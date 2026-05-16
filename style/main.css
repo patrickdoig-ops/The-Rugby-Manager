@@ -194,51 +194,23 @@ html, body {
 #panel-bottom {
   flex: 1;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 3fr 2fr;
   overflow: hidden;
   border-top: 1px solid var(--border);
 }
 
-/* Tab bar — mobile only */
-#tab-bar {
+#panel-commentary {
   display: flex;
-  flex-shrink: 0;
-  border-bottom: 1px solid var(--border);
-  background: #0d0d0d;
-}
-
-.tab-btn {
-  flex: 1;
-  padding: 10px 8px;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: #666;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.tab-btn.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-  background: rgba(255, 215, 0, 0.04);
-}
-
-/* Tab panels — only active one is shown on mobile */
-.tab-panel {
-  display: none;
-  flex: 1;
-  min-height: 0;
   flex-direction: column;
   overflow: hidden;
+  border-right: 1px solid var(--border);
 }
 
-.tab-panel.tab-active {
+#panel-stats {
   display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .panel-header {
@@ -425,29 +397,8 @@ html, body {
     padding: 16px 24px 12px;
   }
 
-  /* Restore side-by-side panels */
   #panel-bottom {
     grid-area: bottom;
-    flex-direction: row;
-    border-top: 1px solid var(--border);
-  }
-
-  /* Hide tab bar — both panels visible */
-  #tab-bar { display: none; }
-
-  .tab-panel {
-    display: flex !important;
-    flex: 1;
-    overflow: hidden;
-  }
-
-  #panel-commentary {
-    border-right: 1px solid var(--border);
-    flex: 3;
-  }
-
-  #panel-stats {
-    flex: 2;
   }
 
   #sim-controls {

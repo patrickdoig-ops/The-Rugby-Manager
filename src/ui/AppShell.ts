@@ -36,15 +36,11 @@ export function buildAppShell(): void {
       </div>
     </div>
     <div id="panel-bottom">
-      <div id="tab-bar">
-        <button class="tab-btn active" data-target="panel-commentary">📻 Commentary</button>
-        <button class="tab-btn" data-target="panel-stats">📊 Stats</button>
-      </div>
-      <div id="panel-commentary" class="tab-panel tab-active">
+      <div id="panel-commentary">
         <div class="panel-header">Commentary</div>
         <div id="commentary-feed"></div>
       </div>
-      <div id="panel-stats" class="tab-panel">
+      <div id="panel-stats">
         <div class="panel-header">Match Stats</div>
         <div id="stats-content"></div>
         <div class="panel-header" style="margin-top:8px;">Player Fatigue</div>
@@ -64,17 +60,4 @@ export function buildAppShell(): void {
       <div id="modal-box"></div>
     </div>
   `;
-
-  // Tab switching
-  const tabBtns = app.querySelectorAll<HTMLButtonElement>('.tab-btn');
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const targetId = btn.dataset.target!;
-      tabBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      app.querySelectorAll<HTMLElement>('.tab-panel').forEach(panel => {
-        panel.classList.toggle('tab-active', panel.id === targetId);
-      });
-    });
-  });
 }

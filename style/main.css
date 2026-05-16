@@ -6,8 +6,6 @@
   --border: #333;
   --text: #e0e0e0;
   --accent: #FFD700;
-  --scoreboard-h: 56px;
-  --controls-h: 50px;
 }
 
 html, body {
@@ -17,49 +15,63 @@ html, body {
   font-family: 'Segoe UI', system-ui, sans-serif;
   font-size: 14px;
   overflow: hidden;
+  /* Prevent iOS rubber-band scroll */
+  overscroll-behavior: none;
 }
 
+/* ════════════════════════════════════════
+   MOBILE LAYOUT (default — portrait phone)
+   ════════════════════════════════════════ */
+
 #app {
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  /* dvh accounts for Safari address bar; vh is the fallback */
   height: 100vh;
-  grid-template-rows: var(--scoreboard-h) 1fr 1fr var(--controls-h);
-  grid-template-columns: 1fr;
-  grid-template-areas:
-    "scoreboard"
-    "pitch"
-    "bottom"
-    "controls";
+  height: 100dvh;
+  /* Respect notch / home indicator */
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left:   env(safe-area-inset-left);
+  padding-right:  env(safe-area-inset-right);
 }
 
 /* ─── Scoreboard ─── */
 #scoreboard {
-  grid-area: scoreboard;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: #0d0d0d;
   border-bottom: 1px solid var(--border);
-  padding: 0 24px;
+  padding: 0 12px;
+  height: 48px;
+  padding-left:  max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
 }
 
 #score-home, #score-away {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .team-name {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  /* Prevent long names from breaking layout */
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .score {
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 900;
   color: var(--accent);
-  min-width: 40px;
+  min-width: 32px;
   text-align: center;
 }
 
@@ -67,29 +79,33 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 #clock-display {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
   color: #fff;
 }
 
 .phase-badge {
-  font-size: 10px;
+  font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   color: #888;
   background: #222;
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ─── Pitch ─── */
 #panel-pitch {
-  grid-area: pitch;
-  position: relative;
+  flex-shrink: 0;
+  height: 220px;
   background: #0a1a0a;
   overflow: hidden;
 }
@@ -102,115 +118,170 @@ html, body {
 
 /* ─── Bottom panels ─── */
 #panel-bottom {
-  grid-area: bottom;
-  display: grid;
-  grid-template-columns: 3fr 2fr;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   border-top: 1px solid var(--border);
-  overflow: hidden;
 }
 
-#panel-commentary {
-  border-right: 1px solid var(--border);
+/* Tab bar — mobile only */
+#tab-bar {
   display: flex;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background: #0d0d0d;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px 8px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #666;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: rgba(255, 215, 0, 0.04);
+}
+
+/* Tab panels — only active one is shown on mobile */
+.tab-panel {
+  display: none;
+  flex: 1;
+  min-height: 0;
   flex-direction: column;
   overflow: hidden;
 }
 
-#panel-stats {
+.tab-panel.tab-active {
   display: flex;
-  flex-direction: column;
-  overflow: hidden;
 }
 
 .panel-header {
   background: #111;
   border-bottom: 1px solid var(--border);
-  padding: 6px 12px;
-  font-size: 11px;
+  padding: 5px 12px;
+  font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #888;
+  color: #666;
   flex-shrink: 0;
 }
 
 /* ─── Controls ─── */
 #sim-controls {
-  grid-area: controls;
+  flex-shrink: 0;
   background: #0d0d0d;
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 16px;
+  gap: 8px;
+  padding: 0 12px;
+  height: 56px;
+  padding-left:  max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
 }
 
 .ctrl-btn {
-  padding: 6px 18px;
+  /* Min 44px touch target */
+  min-height: 44px;
+  padding: 0 16px;
   border: 1px solid var(--border);
   background: #222;
   color: var(--text);
   font-size: 13px;
   font-weight: 600;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
 }
-.ctrl-btn:hover:not(:disabled) { background: #333; }
-.ctrl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.ctrl-btn:active:not(:disabled) { background: #333; }
+.ctrl-btn:disabled { opacity: 0.4; }
 .ctrl-btn.primary { border-color: #2ecc71; color: #2ecc71; }
-.ctrl-btn.primary:hover:not(:disabled) { background: rgba(46,204,113,0.1); }
+.ctrl-btn.primary:active:not(:disabled) { background: rgba(46,204,113,0.1); }
 
 .speed-label {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
+  gap: 6px;
+  font-size: 11px;
   color: #888;
   margin-left: auto;
+  min-width: 0;
 }
 
-#speed-slider { width: 100px; cursor: pointer; }
-#speed-display { color: var(--accent); font-weight: 700; min-width: 44px; }
+.speed-text { white-space: nowrap; }
+
+#speed-slider {
+  width: 70px;
+  cursor: pointer;
+  min-width: 0;
+  /* Larger touch target on iOS */
+  height: 20px;
+}
+
+#speed-display {
+  color: var(--accent);
+  font-weight: 700;
+  min-width: 40px;
+  font-size: 11px;
+}
 
 /* ─── Modal ─── */
 #modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.72);
-  backdrop-filter: blur(3px);
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
-  align-items: center;
+  align-items: flex-end;   /* Sheet slides up from bottom on mobile */
   justify-content: center;
   z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
 }
+
 #modal-overlay.hidden { display: none; }
 
 #modal-box {
   background: #1c1c1c;
   border: 1px solid #444;
-  border-radius: 12px;
-  padding: 28px 32px;
-  max-width: 440px;
+  border-radius: 16px 16px 0 0;
+  padding: 20px 20px;
   width: 100%;
-  box-shadow: 0 24px 60px rgba(0,0,0,0.7);
-  animation: modalIn 0.2s ease-out;
+  box-shadow: 0 -12px 40px rgba(0,0,0,0.6);
+  animation: sheetUp 0.22s ease-out;
 }
 
-@keyframes modalIn {
-  from { transform: scale(0.9); opacity: 0; }
-  to   { transform: scale(1);   opacity: 1; }
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
 }
 
 .modal-title {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 800;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
+
 .modal-subtitle {
   color: #aaa;
-  font-size: 13px;
-  margin-bottom: 20px;
+  font-size: 12px;
+  margin-bottom: 16px;
 }
 
 .modal-choices { display: flex; flex-direction: column; gap: 10px; }
@@ -220,23 +291,113 @@ html, body {
   flex-direction: column;
   background: #252525;
   border: 1px solid #3a3a3a;
-  border-radius: 8px;
-  padding: 14px 18px;
+  border-radius: 10px;
+  padding: 14px 16px;
+  min-height: 56px;
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s, background 0.15s;
   color: var(--text);
+  -webkit-tap-highlight-color: transparent;
 }
-.modal-choice-btn:hover {
+
+.modal-choice-btn:active {
   background: #2e2e2e;
   border-color: var(--accent);
 }
+
 .choice-label {
   font-size: 15px;
   font-weight: 700;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
+
 .choice-desc {
-  font-size: 12px;
+  font-size: 11px;
   color: #888;
+}
+
+/* ════════════════════════════════════════
+   DESKTOP LAYOUT (≥ 700px wide)
+   ════════════════════════════════════════ */
+
+@media (min-width: 700px) {
+  #app {
+    display: grid;
+    height: 100vh;
+    height: 100dvh;
+    grid-template-rows: 56px 1fr 1fr 50px;
+    grid-template-areas:
+      "scoreboard"
+      "pitch"
+      "bottom"
+      "controls";
+    padding: 0;
+  }
+
+  #scoreboard {
+    grid-area: scoreboard;
+    height: auto;
+    padding: 0 24px;
+  }
+
+  .team-name  { font-size: 16px; max-width: none; }
+  .score      { font-size: 32px; }
+  #clock-display { font-size: 22px; }
+
+  #panel-pitch {
+    grid-area: pitch;
+    height: auto;
+    flex-shrink: unset;
+  }
+
+  /* Restore side-by-side panels */
+  #panel-bottom {
+    grid-area: bottom;
+    flex-direction: row;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Hide tab bar — both panels visible */
+  #tab-bar { display: none; }
+
+  .tab-panel {
+    display: flex !important;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  #panel-commentary {
+    border-right: 1px solid var(--border);
+    flex: 3;
+  }
+
+  #panel-stats {
+    flex: 2;
+  }
+
+  #sim-controls {
+    grid-area: controls;
+    height: auto;
+    padding: 0 16px;
+    gap: 12px;
+  }
+
+  .ctrl-btn { min-height: unset; padding: 6px 18px; }
+  .ctrl-btn:hover:not(:disabled) { background: #333; }
+  .ctrl-btn.primary:hover:not(:disabled) { background: rgba(46,204,113,0.1); }
+
+  #speed-slider { width: 100px; }
+
+  /* Modal as centred dialog on desktop */
+  #modal-overlay { align-items: center; padding-bottom: 0; }
+  #modal-box {
+    border-radius: 12px;
+    max-width: 440px;
+    animation: modalIn 0.2s ease-out;
+  }
+  @keyframes modalIn {
+    from { transform: scale(0.92); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+  }
 }

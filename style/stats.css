@@ -1,5 +1,5 @@
 #stats-content {
-  padding: 8px 10px;
+  padding: 6px 10px;
   flex-shrink: 0;
 }
 
@@ -13,18 +13,19 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 4px 6px;
+  letter-spacing: 0.06em;
+  padding: 3px 4px;
 }
 
-.stats-table td { padding: 4px 6px; }
+.stats-table td { padding: 3px 4px; }
 .stat-val   { font-weight: 700; text-align: center; color: #ddd; }
-.stat-label { text-align: center; color: #888; font-size: 11px; }
+.stat-label { text-align: center; color: #888; font-size: 10px; }
 
 #fatigue-content {
   flex: 1;
   overflow-y: auto;
   padding: 4px 10px;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: #333 transparent;
 }
@@ -32,14 +33,14 @@
 .fatigue-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   margin-bottom: 4px;
 }
 
 .fatigue-name {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  width: 80px;
+  width: 68px;
   flex-shrink: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -48,7 +49,7 @@
 
 .fatigue-bar-bg {
   flex: 1;
-  height: 8px;
+  height: 7px;
   background: #333;
   border-radius: 4px;
   overflow: hidden;
@@ -65,9 +66,9 @@
 .fatigue-low  { background: #e74c3c; }
 
 .fatigue-pct {
-  font-size: 10px;
+  font-size: 9px;
   color: #888;
-  width: 28px;
+  width: 26px;
   text-align: right;
   flex-shrink: 0;
 }

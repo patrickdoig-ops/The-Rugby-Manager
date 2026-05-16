@@ -19,21 +19,26 @@ export function buildAppShell(): void {
       <canvas id="pitch-canvas"></canvas>
     </div>
     <div id="panel-bottom">
-      <div id="panel-commentary">
+      <div id="tab-bar">
+        <button class="tab-btn active" data-target="panel-commentary">📻 Commentary</button>
+        <button class="tab-btn" data-target="panel-stats">📊 Stats</button>
+      </div>
+      <div id="panel-commentary" class="tab-panel tab-active">
         <div class="panel-header">Commentary</div>
         <div id="commentary-feed"></div>
       </div>
-      <div id="panel-stats">
+      <div id="panel-stats" class="tab-panel">
         <div class="panel-header">Match Stats</div>
         <div id="stats-content"></div>
-        <div class="panel-header" style="margin-top:12px;">Player Fatigue</div>
+        <div class="panel-header" style="margin-top:8px;">Player Fatigue</div>
         <div id="fatigue-content"></div>
       </div>
     </div>
     <div id="sim-controls">
       <button id="btn-play" class="ctrl-btn primary">▶ Play</button>
       <button id="btn-pause" class="ctrl-btn" disabled>⏸ Pause</button>
-      <label class="speed-label">Speed
+      <label class="speed-label">
+        <span class="speed-text">Speed</span>
         <input type="range" id="speed-slider" min="100" max="2000" value="600" step="100">
         <span id="speed-display">600ms</span>
       </label>
@@ -42,4 +47,17 @@ export function buildAppShell(): void {
       <div id="modal-box"></div>
     </div>
   `;
+
+  // Tab switching
+  const tabBtns = app.querySelectorAll<HTMLButtonElement>('.tab-btn');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.target!;
+      tabBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      app.querySelectorAll<HTMLElement>('.tab-panel').forEach(panel => {
+        panel.classList.toggle('tab-active', panel.id === targetId);
+      });
+    });
+  });
 }

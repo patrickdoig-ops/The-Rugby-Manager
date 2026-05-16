@@ -1,6 +1,7 @@
 import '../style/main.css';
 import '../style/commentary.css';
 import '../style/stats.css';
+import '../style/prematch.css';
 
 import { buildAppShell }      from './ui/AppShell';
 import { initScoreboard }     from './ui/Scoreboard';
@@ -9,14 +10,16 @@ import { initCommentaryFeed } from './ui/CommentaryFeed';
 import { initStatsPanel }     from './ui/StatsPanel';
 import { initSimController }  from './ui/SimController';
 import { initModalManager }   from './ui/ModalManager';
+import { initPreMatchScreen } from './ui/PreMatchScreen';
 import { MatchEngine }        from './engine/MatchEngine';
 
 import homeTeamRaw from './data/team-home.json';
 import awayTeamRaw from './data/team-away.json';
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Build the game shell and wire all UI listeners in the background.
+  // The pre-match screen overlays everything until the user kicks off.
   buildAppShell();
-
   initScoreboard();
   initPitchStrip();
   initCommentaryFeed();
@@ -29,5 +32,9 @@ document.addEventListener('DOMContentLoaded', () => {
     { tickDelayMs: 600 },
   );
   initSimController(engine);
-  engine.initialize();
+
+  // Show pre-match preview; engine only starts once the user clicks Kick Off.
+  initPreMatchScreen(homeTeamRaw, awayTeamRaw, () => {
+    engine.initialize();
+  });
 });

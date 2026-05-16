@@ -1,0 +1,277 @@
+/* ═══════════════════════════════════════
+   PRE-MATCH SCREEN — full-viewport overlay
+   ═══════════════════════════════════════ */
+
+#pre-match {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  /* Respect notch / home indicator */
+  padding-top:    env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left:   env(safe-area-inset-left);
+  padding-right:  env(safe-area-inset-right);
+}
+
+#pre-match.pm-exit {
+  animation: pmSlideDown 0.3s ease-in forwards;
+}
+
+@keyframes pmSlideDown {
+  from { transform: translateY(0);    opacity: 1; }
+  to   { transform: translateY(100%); opacity: 0; }
+}
+
+/* ─── Header ─── */
+#pm-header {
+  flex-shrink: 0;
+  background: #0d0d0d;
+  border-bottom: 1px solid var(--border);
+  padding: 14px 16px 0;
+}
+
+#pm-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+#pm-matchup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.pm-team-badge {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+#pm-vs {
+  font-size: 12px;
+  color: #555;
+  font-weight: 600;
+}
+
+/* ─── Tabs ─── */
+#pm-tabs {
+  display: flex;
+  gap: 0;
+}
+
+.pm-tab {
+  flex: 1;
+  padding: 9px 0;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #555;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.pm-tab.active {
+  color: var(--tc, var(--accent));
+  border-bottom-color: var(--tc, var(--accent));
+}
+
+/* ─── Scrollable body ─── */
+#pm-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #333 transparent;
+}
+
+.pm-panel { padding: 10px 12px 0; }
+.pm-panel.hidden { display: none; }
+
+/* ─── Stat legend (one per roster) ─── */
+.pm-legend {
+  display: flex;
+  gap: 6px;
+  padding: 4px 0 6px;
+  border-bottom: 1px solid #222;
+  margin-bottom: 6px;
+}
+
+.legend-group {
+  display: flex;
+  gap: 3px;
+}
+
+.legend-group + .legend-group::before {
+  content: '';
+  width: 1px;
+  background: #2a2a2a;
+  margin-right: 3px;
+}
+
+.legend-item {
+  font-size: 8px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  width: 24px;
+  text-align: center;
+}
+
+/* ─── Player row ─── */
+.pm-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.pm-player-hd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  width: 108px;
+}
+
+.pm-num {
+  font-size: 12px;
+  font-weight: 800;
+  width: 18px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.pm-identity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pm-name {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #e0e0e0;
+}
+
+.pm-pos {
+  font-size: 9px;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── Attribute grid ─── */
+.pm-attrs {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.attr-group {
+  display: flex;
+  gap: 2px;
+}
+
+.attr-group + .attr-group {
+  border-left: 1px solid #252525;
+  padding-left: 4px;
+}
+
+.attr-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 24px;
+}
+
+.attr-key {
+  font-size: 7px;
+  color: #444;
+  text-transform: uppercase;
+  line-height: 1;
+  margin-bottom: 1px;
+}
+
+.attr-val {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Tier colour coding */
+.tier-elite .attr-val { color: #FFD700; }
+.tier-great .attr-val { color: #2ecc71; }
+.tier-good  .attr-val { color: #5dade2; }
+.tier-avg   .attr-val { color: #ccc;    }
+.tier-poor  .attr-val { color: #555;    }
+
+/* ─── Footer / CTA ─── */
+#pm-footer {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  background: #0d0d0d;
+  border-top: 1px solid var(--border);
+}
+
+#pm-start {
+  width: 100%;
+  height: 48px;
+  background: transparent;
+  border: 2px solid #2ecc71;
+  border-radius: 8px;
+  color: #2ecc71;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#pm-start:active {
+  background: rgba(46, 204, 113, 0.12);
+}
+
+/* ─── Desktop ─── */
+@media (min-width: 700px) {
+  #pm-header { padding: 18px 24px 0; }
+  #pm-title  { font-size: 12px; }
+
+  .pm-team-badge { font-size: 24px; }
+
+  .pm-tab    { font-size: 14px; padding: 10px 0; }
+
+  .pm-panel  { padding: 12px 24px 0; max-width: 900px; margin: 0 auto; }
+
+  .pm-player-hd { width: 140px; }
+  .pm-name       { font-size: 13px; }
+  .pm-pos        { font-size: 10px; }
+
+  .attr-cell  { width: 28px; }
+  .attr-key   { font-size: 8px; }
+  .attr-val   { font-size: 12px; }
+
+  #pm-footer  { padding: 16px 24px; }
+  #pm-start   { max-width: 320px; height: 44px; display: block; margin: 0 auto; }
+
+  #pm-start:hover { background: rgba(46, 204, 113, 0.12); }
+}

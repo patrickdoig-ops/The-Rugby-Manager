@@ -46,31 +46,39 @@ function renderStats(state: MatchState): string {
   `;
 }
 
-function renderFatigue(state: MatchState): string {
-  const players = [
-    ...state.homeTeam.players.slice(0, 8),
-    ...state.awayTeam.players.slice(0, 8),
+function ratingClass(r: number): string {
+  if (r >= 7.5) return 'rating-high';
+  if (r >= 5.5) return 'rating-mid';
+  if (r >= 3.5) return 'rating-low';
+  return 'rating-poor';
+}
+
+function renderPlayerStats(state: MatchState): string {
+  const allPlayers = [
+    ...state.homeTeam.players.map(p => ({ p, team: state.homeTeam })),
+    ...state.awayTeam.players.map(p => ({ p, team: state.awayTeam })),
   ];
 
-  return players.map(p => {
-    const team = state.homeTeam.players.includes(p) ? state.homeTeam : state.awayTeam;
+  return allPlayers.map(({ p, team }) => {
     const f = Math.round(p.fatiguePct);
     const barClass = f > 60 ? 'fatigue-ok' : f > 30 ? 'fatigue-warn' : 'fatigue-low';
+    const r = p.rating.toFixed(1);
+    const rClass = ratingClass(p.rating);
     return `
-      <div class="fatigue-row">
+      <div class="player-stat-row">
         <span class="fatigue-name" style="color:${team.color}">#${p.id} ${p.name.split(' ')[1] ?? p.name}</span>
         <div class="fatigue-bar-bg">
           <div class="fatigue-bar ${barClass}" style="width:${f}%"></div>
         </div>
-        <span class="fatigue-pct">${f}%</span>
+        <span class="rating-badge ${rClass}">${r}</span>
       </div>
     `;
   }).join('');
 }
 
 export function initStatsPanel(): void {
-  const statsContent   = document.getElementById('stats-content')!;
-  const fatigueContent = document.getElementById('fatigue-content')!;
+  const statsContent      = document.getElementById('stats-content')!;
+  const playerStatsContent = document.getElementById('player-stats-content')!;
   const homeName  = document.getElementById('home-name')!;
   const awayName  = document.getElementById('away-name')!;
   const homeScore = document.getElementById('home-score')!;
@@ -78,7 +86,7 @@ export function initStatsPanel(): void {
   const clockDisplay = document.getElementById('clock-display')!;
   const phaseDisplay = document.getElementById('phase-display')!;
 
-  let lastFatigueUpdate = -1;
+  let lastPlayerStatsUpdate = -1;
 
   eventBus.on('engine:stateChange', ({ state }) => {
     homeName.textContent  = state.homeTeam.name;
@@ -90,9 +98,9 @@ export function initStatsPanel(): void {
 
     statsContent.innerHTML = renderStats(state);
 
-    if (Math.floor(state.gameMinute) !== lastFatigueUpdate) {
-      lastFatigueUpdate = Math.floor(state.gameMinute);
-      fatigueContent.innerHTML = renderFatigue(state);
+    if (Math.floor(state.gameMinute) !== lastPlayerStatsUpdate) {
+      lastPlayerStatsUpdate = Math.floor(state.gameMinute);
+      playerStatsContent.innerHTML = renderPlayerStats(state);
     }
   });
 }

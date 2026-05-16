@@ -24,11 +24,12 @@ function deepCloneStats(s: PlayerStats): PlayerStats {
   return { ...s };
 }
 
-function initPlayer(raw: Omit<Player, 'currentStats' | 'fatiguePct' | 'x' | 'y'>): Player {
+function initPlayer(raw: Omit<Player, 'currentStats' | 'fatiguePct' | 'rating' | 'x' | 'y'>): Player {
   return {
     ...raw,
     currentStats: deepCloneStats(raw.baseStats),
     fatiguePct: 100,
+    rating: 6.0,
     x: 50,
     y: 50,
   };
@@ -118,6 +119,11 @@ export class MatchEngine {
 
   getState(): Readonly<MatchState> {
     return this.state;
+  }
+
+  private adjustRating(player: Player | undefined, delta: number): void {
+    if (!player) return;
+    player.rating = clamp(player.rating + delta, 1, 10);
   }
 
   // Direction the current possession team is attacking: +1 = toward x=100, -1 = toward x=0.
@@ -218,6 +224,7 @@ export class MatchEngine {
         secondaryPlayer = chaser;
 
         if (res.result === 'knock_on') {
+          this.adjustRating(receiver, -0.25);
           state.possession = state.possession === 'home' ? 'away' : 'home';
           nextPhase = MatchPhase.Scrum;
           commentary = getCommentary({ ...this.draftEvent(nextPhase), primaryPlayer, secondaryPlayer }, 'knock_on');
@@ -236,12 +243,14 @@ export class MatchEngine {
         const res = resolveOpenPlay(carrier, defender);
 
         if (res.outcome === 'knock_on') {
+          this.adjustRating(carrier, -0.3);
           state.stats.handlingErrors[state.possession]++;
           const prev = state.possession;
           state.possession = prev === 'home' ? 'away' : 'home';
           nextPhase = MatchPhase.Scrum;
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.OpenPlay), primaryPlayer, secondaryPlayer }, 'knock_on');
         } else if (res.outcome === 'line_break') {
+          this.adjustRating(carrier, +0.25);
           state.ballX = clamp(state.ballX + this.attackDir() * res.gainMetres, 0, 100);
           nextPhase = MatchPhase.Breakdown;
 
@@ -250,6 +259,8 @@ export class MatchEngine {
           }
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.OpenPlay), primaryPlayer, secondaryPlayer }, 'line_break');
         } else if (res.outcome === 'dominant_tackle') {
+          this.adjustRating(defender, +0.2);
+          this.adjustRating(carrier, -0.05);
           state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
           state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].made++;
           state.ballX = clamp(state.ballX + this.attackDir() * res.gainMetres, 0, 100);
@@ -257,6 +268,7 @@ export class MatchEngine {
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.OpenPlay), primaryPlayer, secondaryPlayer }, 'dominant_tackle');
         } else {
           // dominant_carry or play_on
+          if (res.outcome === 'dominant_carry') this.adjustRating(carrier, +0.15);
           state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
           state.ballX = clamp(state.ballX + this.attackDir() * res.gainMetres, 0, 100);
           nextPhase = MatchPhase.Breakdown;
@@ -278,14 +290,18 @@ export class MatchEngine {
         const res = resolveBreakdown(supporters, jackal);
 
         if (res.result === 'clean_ball' || res.result === 'slow_ball') {
+          if (res.result === 'clean_ball') this.adjustRating(primaryPlayer, +0.1);
           nextPhase = MatchPhase.OpenPlay;
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.Breakdown), primaryPlayer, secondaryPlayer }, res.result);
         } else if (res.result === 'turnover') {
+          this.adjustRating(jackal, +0.3);
+          this.adjustRating(primaryPlayer, -0.1);
           state.possession = state.possession === 'home' ? 'away' : 'home';
           nextPhase = MatchPhase.OpenPlay;
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.Breakdown), primaryPlayer: secondaryPlayer, secondaryPlayer: primaryPlayer }, 'turnover');
         } else {
           // penalty_defending
+          this.adjustRating(primaryPlayer, -0.25);
           nextPhase = MatchPhase.Penalty;
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.Breakdown), primaryPlayer, secondaryPlayer }, 'penalty_defending');
         }
@@ -300,6 +316,7 @@ export class MatchEngine {
         const res = resolveScrum(attackFront5, defendFront5);
 
         if (res.result === 'stable_win') {
+          this.adjustRating(primaryPlayer, +0.1);
           state.stats.scrums[state.possession]++;
           nextPhase = MatchPhase.OpenPlay;
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.Scrum), primaryPlayer, secondaryPlayer }, 'stable_win');
@@ -308,6 +325,8 @@ export class MatchEngine {
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.Scrum), primaryPlayer, secondaryPlayer }, 'wheel');
         } else {
           // dominant_penalty — defending team gets penalty
+          this.adjustRating(secondaryPlayer, +0.15);
+          this.adjustRating(primaryPlayer, -0.2);
           state.possession = state.possession === 'home' ? 'away' : 'home';
           nextPhase = MatchPhase.Penalty;
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.Scrum), primaryPlayer: secondaryPlayer, secondaryPlayer: primaryPlayer }, 'dominant_penalty');
@@ -324,10 +343,12 @@ export class MatchEngine {
         const res = resolveLineout(hooker, attackJumper, defendJumper);
 
         if (res.result === 'clean_catch') {
+          this.adjustRating(attackJumper, +0.15);
           state.stats.lineouts[state.possession]++;
           nextPhase = MatchPhase.OpenPlay;
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.Lineout), primaryPlayer, secondaryPlayer: hooker }, 'clean_catch');
         } else if (res.result === 'scrappy_knock_on') {
+          this.adjustRating(attackJumper, -0.2);
           state.stats.handlingErrors[state.possession]++;
           const prev = state.possession;
           state.possession = prev === 'home' ? 'away' : 'home';
@@ -335,6 +356,8 @@ export class MatchEngine {
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.Lineout), primaryPlayer, secondaryPlayer }, 'scrappy_knock_on');
         } else {
           // steal
+          this.adjustRating(defendJumper, +0.3);
+          this.adjustRating(attackJumper, -0.1);
           state.possession = state.possession === 'home' ? 'away' : 'home';
           nextPhase = MatchPhase.OpenPlay;
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.Lineout), primaryPlayer: secondaryPlayer, secondaryPlayer: primaryPlayer }, 'steal');
@@ -350,14 +373,17 @@ export class MatchEngine {
         const res = resolveTacticalKick(kicker, defender);
 
         if (res.result === 'poor_kick') {
+          this.adjustRating(kicker, -0.15);
           nextPhase = MatchPhase.OpenPlay;
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.TacticalKick), primaryPlayer, secondaryPlayer }, 'poor_kick');
         } else if (res.result === 'knock_on_catch') {
+          this.adjustRating(defender, -0.2);
           state.stats.handlingErrors[state.possession === 'home' ? 'away' : 'home']++;
           nextPhase = MatchPhase.Scrum;
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.TacticalKick), primaryPlayer, secondaryPlayer }, 'knock_on_catch');
         } else {
           // good_kick — ball goes to touch → lineout, or open play if caught
+          this.adjustRating(kicker, +0.1);
           const goesToTouch = rng(1, 100) <= 60;
           if (goesToTouch) {
             const kickDir = this.attackDir(); // capture before possession swap
@@ -375,6 +401,7 @@ export class MatchEngine {
       case MatchPhase.TryScored: {
         const scorer = randomPlayer(attackTeam);
         primaryPlayer = scorer;
+        this.adjustRating(scorer, +0.5);
         state.score[state.possession] += 5;
         state.stats.tries[state.possession]++;
         nextPhase = MatchPhase.ConversionKick;
@@ -388,9 +415,11 @@ export class MatchEngine {
         const distFromPosts = Math.abs(state.ballY - 50) * 0.4;
         const res = resolveGoalKick(kicker, distFromPosts);
         if (res.success) {
+          this.adjustRating(kicker, +0.15);
           state.score[state.possession] += 2;
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.ConversionKick), primaryPlayer }, 'success');
         } else {
+          this.adjustRating(kicker, -0.1);
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.ConversionKick), primaryPlayer }, 'miss');
         }
         // Swap possession and reset ball for kick-off
@@ -498,6 +527,8 @@ export class MatchEngine {
       const distFromPosts = Math.abs(state.ballY - 50) * 0.3 + Math.abs(state.ballX - tryLine) * 0.2;
       const res = resolveGoalKick(kicker, distFromPosts);
 
+      if (res.success) this.adjustRating(kicker, +0.2);
+      else this.adjustRating(kicker, -0.15);
       const penEvent: GameEvent = {
         id: makeId(),
         gameMinute: state.gameMinute,

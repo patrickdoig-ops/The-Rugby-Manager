@@ -43,8 +43,8 @@ export function buildAppShell(): void {
       <div id="panel-stats">
         <div class="panel-header">Match Stats</div>
         <div id="stats-content"></div>
-        <div class="panel-header" style="margin-top:8px;">Player Fatigue</div>
-        <div id="fatigue-content"></div>
+        <div class="panel-header" style="margin-top:8px;">Player Stats</div>
+        <div id="player-stats-content"></div>
       </div>
     </div>
     <div id="sim-controls">

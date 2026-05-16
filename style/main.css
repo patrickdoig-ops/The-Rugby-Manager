@@ -1,21 +1,74 @@
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* ════════════════════════════════════════
+   DESIGN TOKENS — dark mode (always-on)
+   ════════════════════════════════════════ */
 
 :root {
-  --bg: #111;
-  --panel-bg: #1a1a1a;
-  --border: #333;
-  --text: #e0e0e0;
-  --accent: #FFD700;
+  /* Backgrounds */
+  --bg:        #111111;
+  --surface:   #0d0d0d;
+  --surface2:  #1a1a1a;
+
+  /* Borders */
+  --border:     #333333;
+  --border-mid: #444444;
+
+  /* Text */
+  --text:       #FFFFFF;
+  --text-sec:   #CCCCCC;
+  --text-muted: #888888;
+
+  /* Semantic action colours */
+  --blue:       #00BAFF;
+  --blue-dark:  #005A8C;
+  --blue-light: #001A26;
+
+  /* Semantic event colours — text/border use only (not button backgrounds) */
+  --green:  #2ecc71;
+  --red:    #e74c3c;
+  --amber:  #FFB800;
+  --purple: #A855F7;
+  --gold:   #FFD700;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Space Mono', 'JetBrains Mono', ui-monospace, monospace;
 }
+
+/* ════════════════════════════════════════
+   RESET & GLOBALS
+   ════════════════════════════════════════ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+input, textarea, [contenteditable] {
+  user-select: text;
+}
+
+/* Blue focus ring — replaces browser default */
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+/* Hide scrollbars globally; overflow-y: auto still scrolls */
+::-webkit-scrollbar { display: none; }
+* { scrollbar-width: none; }
 
 html, body {
   height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
   overflow: hidden;
-  /* Prevent iOS rubber-band scroll */
   overscroll-behavior: none;
 }
 
@@ -26,10 +79,8 @@ html, body {
 #app {
   display: flex;
   flex-direction: column;
-  /* dvh accounts for Safari address bar; vh is the fallback */
   height: 100vh;
   height: 100dvh;
-  /* Respect notch / home indicator */
   padding-bottom: env(safe-area-inset-bottom);
   padding-left:   env(safe-area-inset-left);
   padding-right:  env(safe-area-inset-right);
@@ -41,10 +92,10 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #0d0d0d;
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
   padding: 0 12px;
-  height: 48px;
+  height: 52px;
   padding-left:  max(12px, env(safe-area-inset-left));
   padding-right: max(12px, env(safe-area-inset-right));
 }
@@ -56,21 +107,24 @@ html, body {
 }
 
 .team-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  /* Prevent long names from breaking layout */
-  max-width: 90px;
+  color: var(--text-sec);
+  max-width: 88px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* Scores — monospace + tabular-nums for digit stability */
 .score {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 26px;
-  font-weight: 900;
-  color: var(--accent);
+  font-weight: 700;
+  color: var(--gold);
   min-width: 32px;
   text-align: center;
 }
@@ -79,23 +133,27 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
 }
 
 #clock-display {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 18px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text);
 }
 
 .phase-badge {
   font-size: 9px;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #888;
-  background: #222;
+  color: var(--text-muted);
+  background: var(--surface2);
+  border: 1px solid var(--border);
   padding: 2px 6px;
-  border-radius: 8px;
+  border-radius: 6px;
   max-width: 80px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -105,9 +163,9 @@ html, body {
 /* ─── Pitch strip ─── */
 #panel-pitch {
   flex-shrink: 0;
-  background: #0d0d0d;
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
-  padding: 14px 16px 10px;
+  padding: 12px 16px 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -120,9 +178,9 @@ html, body {
 }
 
 .end-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   flex-shrink: 0;
   width: 32px;
@@ -136,11 +194,10 @@ html, body {
   display: flex;
   border-radius: 4px;
   overflow: visible;
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.15);
 }
 
-/* Zone widths match real pitch proportions: try(5) + 22m(17) + mid(22) + mid(22) + 22m(17) + try(5) = 88 total
-   Simplified to: try=5%, 22m-home=17%, mid=56%, 22m-away=17%, try=5% */
+/* Zone widths: try 5% | 22m 17% | midfield 56% | 22m 17% | try 5% */
 .field-zone { height: 100%; }
 .zone-home-try  { width: 5%;  background: #174a17; }
 .zone-home-22   { width: 17%; background: #1e5e1e; }
@@ -148,17 +205,16 @@ html, body {
 .zone-away-22   { width: 17%; background: #1e5e1e; }
 .zone-away-try  { width: 5%;  background: #174a17; }
 
-/* Vertical yard-line markers */
 .pitch-line {
   position: absolute;
   top: 0;
   height: 100%;
   width: 1px;
-  background: rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.25);
   pointer-events: none;
 }
 .line-home-22  { left: 22%; }
-.line-halfway  { left: 50%; background: rgba(255,255,255,0.6); width: 2px; }
+.line-halfway  { left: 50%; background: rgba(255,255,255,0.5); width: 2px; }
 .line-away-22  { left: 78%; }
 
 /* Ball marker */
@@ -169,8 +225,8 @@ html, body {
   height: 13px;
   background: #8B4513;
   border-radius: 50%;
-  border: 2px solid var(--accent);
-  box-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 10px rgba(255,215,0,0.6);
   transform: translate(-50%, -50%);
   transition: left 0.35s ease;
   pointer-events: none;
@@ -187,7 +243,7 @@ html, body {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;
-  transition: color 0.3s;
+  transition: color 0.2s ease;
 }
 
 /* ─── Bottom panels ─── */
@@ -214,21 +270,21 @@ html, body {
 }
 
 .panel-header {
-  background: #111;
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
-  padding: 5px 12px;
-  font-size: 10px;
+  padding: 6px 12px;
+  font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #666;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
   flex-shrink: 0;
 }
 
-/* ─── Controls ─── */
+/* ─── Sim controls ─── */
 #sim-controls {
   flex-shrink: 0;
-  background: #0d0d0d;
+  background: var(--surface);
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -239,33 +295,49 @@ html, body {
   padding-right: max(12px, env(safe-area-inset-right));
 }
 
+/* ─── Buttons ─── */
 .ctrl-btn {
-  /* Min 44px touch target */
   min-height: 44px;
   padding: 0 16px;
-  border: 1px solid var(--border);
-  background: #222;
-  color: var(--text);
+  border: 1px solid var(--border-mid);
+  background: var(--surface2);
+  color: var(--text-sec);
+  font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 600;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background 0.15s;
-  -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s ease, border-color 0.1s ease;
   white-space: nowrap;
 }
 
-.ctrl-btn:active:not(:disabled) { background: #333; }
-.ctrl-btn:disabled { opacity: 0.4; }
-.ctrl-btn.primary { border-color: #2ecc71; color: #2ecc71; }
-.ctrl-btn.primary:active:not(:disabled) { background: rgba(46,204,113,0.1); }
+.ctrl-btn:active:not(:disabled) {
+  background: var(--border);
+}
 
+.ctrl-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Play — positive-action green (border only; filled green would be neon) */
+.ctrl-btn.primary {
+  border-color: #007a2a;
+  color: var(--green);
+}
+
+.ctrl-btn.primary:active:not(:disabled) {
+  background: rgba(46,204,113,0.08);
+}
+
+/* Speed control */
 .speed-label {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  color: #888;
+  font-weight: 500;
+  color: var(--text-muted);
   margin-left: auto;
   min-width: 0;
 }
@@ -276,26 +348,28 @@ html, body {
   width: 70px;
   cursor: pointer;
   min-width: 0;
-  /* Larger touch target on iOS */
   height: 20px;
+  accent-color: var(--blue);
 }
 
 #speed-display {
-  color: var(--accent);
-  font-weight: 700;
-  min-width: 40px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 11px;
+  font-weight: 700;
+  color: var(--gold);
+  min-width: 40px;
 }
 
 /* ─── Modal ─── */
 #modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.75);
+  background: rgba(0,0,0,0.65);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   display: flex;
-  align-items: flex-end;   /* Sheet slides up from bottom on mobile */
+  align-items: flex-end;
   justify-content: center;
   z-index: 100;
   padding-bottom: env(safe-area-inset-bottom);
@@ -304,29 +378,31 @@ html, body {
 #modal-overlay.hidden { display: none; }
 
 #modal-box {
-  background: #1c1c1c;
-  border: 1px solid #444;
+  background: var(--surface2);
+  border: 1px solid var(--border-mid);
   border-radius: 16px 16px 0 0;
-  padding: 20px 20px;
+  padding: 20px;
   width: 100%;
-  box-shadow: 0 -12px 40px rgba(0,0,0,0.6);
-  animation: sheetUp 0.22s ease-out;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.5);
+  animation: sheetUp 0.2s ease-out;
 }
 
 @keyframes sheetUp {
-  from { transform: translateY(100%); }
-  to   { transform: translateY(0); }
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
 
 .modal-title {
   font-size: 18px;
   font-weight: 800;
+  letter-spacing: 0.01em;
   margin-bottom: 4px;
 }
 
 .modal-subtitle {
-  color: #aaa;
   font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
   margin-bottom: 16px;
 }
 
@@ -335,21 +411,20 @@ html, body {
 .modal-choice-btn {
   display: flex;
   flex-direction: column;
-  background: #252525;
-  border: 1px solid #3a3a3a;
+  background: var(--surface);
+  border: 1px solid var(--border-mid);
   border-radius: 10px;
   padding: 14px 16px;
   min-height: 56px;
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.1s ease, background 0.1s ease;
   color: var(--text);
-  -webkit-tap-highlight-color: transparent;
 }
 
 .modal-choice-btn:active {
-  background: #2e2e2e;
-  border-color: var(--accent);
+  background: var(--surface2);
+  border-color: var(--blue);
 }
 
 .choice-label {
@@ -360,11 +435,12 @@ html, body {
 
 .choice-desc {
   font-size: 11px;
-  color: #888;
+  font-weight: 400;
+  color: var(--text-muted);
 }
 
 /* ════════════════════════════════════════
-   DESKTOP LAYOUT (≥ 700px wide)
+   DESKTOP (≥ 700px)
    ════════════════════════════════════════ */
 
 @media (min-width: 700px) {
@@ -372,7 +448,6 @@ html, body {
     display: grid;
     height: 100vh;
     height: 100dvh;
-    /* pitch strip is auto-height; bottom panels fill the rest */
     grid-template-rows: 56px auto 1fr 50px;
     grid-template-areas:
       "scoreboard"
@@ -388,8 +463,8 @@ html, body {
     padding: 0 24px;
   }
 
-  .team-name  { font-size: 16px; max-width: none; }
-  .score      { font-size: 32px; }
+  .team-name   { font-size: 14px; max-width: none; }
+  .score       { font-size: 32px; }
   #clock-display { font-size: 22px; }
 
   #panel-pitch {
@@ -397,9 +472,7 @@ html, body {
     padding: 16px 24px 12px;
   }
 
-  #panel-bottom {
-    grid-area: bottom;
-  }
+  #panel-bottom { grid-area: bottom; }
 
   #sim-controls {
     grid-area: controls;
@@ -408,21 +481,37 @@ html, body {
     gap: 12px;
   }
 
-  .ctrl-btn { min-height: unset; padding: 6px 18px; }
-  .ctrl-btn:hover:not(:disabled) { background: #333; }
-  .ctrl-btn.primary:hover:not(:disabled) { background: rgba(46,204,113,0.1); }
+  .ctrl-btn {
+    min-height: unset;
+    padding: 7px 18px;
+  }
+
+  .ctrl-btn:hover:not(:disabled) {
+    background: var(--border);
+  }
+
+  .ctrl-btn.primary:hover:not(:disabled) {
+    background: rgba(46,204,113,0.08);
+  }
 
   #speed-slider { width: 100px; }
 
-  /* Modal as centred dialog on desktop */
+  /* Modal as centred dialog */
   #modal-overlay { align-items: center; padding-bottom: 0; }
+
   #modal-box {
-    border-radius: 12px;
+    border-radius: 16px;
     max-width: 440px;
     animation: modalIn 0.2s ease-out;
   }
+
   @keyframes modalIn {
-    from { transform: scale(0.92); opacity: 0; }
+    from { transform: scale(0.94); opacity: 0; }
     to   { transform: scale(1);    opacity: 1; }
+  }
+
+  .modal-choice-btn:hover {
+    background: var(--surface2);
+    border-color: var(--blue);
   }
 }

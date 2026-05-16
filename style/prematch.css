@@ -9,7 +9,6 @@
   display: flex;
   flex-direction: column;
   background: var(--bg);
-  /* Respect notch / home indicator */
   padding-top:    env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
   padding-left:   env(safe-area-inset-left);
@@ -28,18 +27,19 @@
 /* ─── Header ─── */
 #pm-header {
   flex-shrink: 0;
-  background: #0d0d0d;
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
   padding: 14px 16px 0;
 }
 
+/* Screen title — all-caps + 0.2em tracking per design guide */
 #pm-title {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: #666;
-  margin-bottom: 6px;
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
 }
 
 #pm-matchup {
@@ -51,20 +51,19 @@
 
 .pm-team-badge {
   font-size: 20px;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.04em;
 }
 
 #pm-vs {
   font-size: 12px;
-  color: #555;
-  font-weight: 600;
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
 /* ─── Tabs ─── */
 #pm-tabs {
   display: flex;
-  gap: 0;
 }
 
 .pm-tab {
@@ -73,39 +72,36 @@
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  color: #555;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
   text-align: center;
   letter-spacing: 0.02em;
 }
 
 .pm-tab.active {
-  color: var(--tc, var(--accent));
-  border-bottom-color: var(--tc, var(--accent));
+  color: var(--tc, var(--blue));
+  border-bottom-color: var(--tc, var(--blue));
 }
 
-/* ─── Scrollable body ─── */
+/* ─── Scrollable roster ─── */
 #pm-body {
   flex: 1;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: #333 transparent;
 }
 
 .pm-panel { padding: 10px 12px 0; }
 .pm-panel.hidden { display: none; }
 
-/* ─── Stat legend (one per roster) ─── */
+/* ─── Stat group legend ─── */
 .pm-legend {
   display: flex;
   gap: 6px;
   padding: 4px 0 6px;
-  border-bottom: 1px solid #222;
+  border-bottom: 1px solid var(--border);
   margin-bottom: 6px;
 }
 
@@ -114,16 +110,15 @@
   gap: 3px;
 }
 
-.legend-group + .legend-group::before {
-  content: '';
-  width: 1px;
-  background: #2a2a2a;
-  margin-right: 3px;
+.legend-group + .legend-group {
+  border-left: 1px solid var(--surface2);
+  padding-left: 6px;
 }
 
 .legend-item {
   font-size: 8px;
-  color: #555;
+  font-weight: 500;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   width: 24px;
@@ -136,7 +131,7 @@
   align-items: center;
   gap: 8px;
   padding: 5px 0;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid var(--surface2);
 }
 
 .pm-player-hd {
@@ -148,8 +143,9 @@
 }
 
 .pm-num {
-  font-size: 12px;
-  font-weight: 800;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
   width: 18px;
   text-align: right;
   flex-shrink: 0;
@@ -167,12 +163,13 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #e0e0e0;
+  color: var(--text);
 }
 
 .pm-pos {
   font-size: 9px;
-  color: #666;
+  font-weight: 400;
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -192,7 +189,7 @@
 }
 
 .attr-group + .attr-group {
-  border-left: 1px solid #252525;
+  border-left: 1px solid var(--surface2);
   padding-left: 4px;
 }
 
@@ -205,58 +202,61 @@
 
 .attr-key {
   font-size: 7px;
-  color: #444;
+  font-weight: 500;
+  color: var(--surface2);  /* invisible — legend above does the labelling */
   text-transform: uppercase;
   line-height: 1;
   margin-bottom: 1px;
 }
 
 .attr-val {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
 }
 
-/* Tier colour coding */
-.tier-elite .attr-val { color: #FFD700; }
-.tier-great .attr-val { color: #2ecc71; }
-.tier-good  .attr-val { color: #5dade2; }
-.tier-avg   .attr-val { color: #ccc;    }
-.tier-poor  .attr-val { color: #555;    }
+/* Tier colours — aligned to design guide semantic palette */
+.tier-elite .attr-val { color: var(--gold);      }  /* 90+ */
+.tier-great .attr-val { color: var(--green);     }  /* 80–89 */
+.tier-good  .attr-val { color: var(--blue);      }  /* 70–79 */
+.tier-avg   .attr-val { color: var(--text-sec);  }  /* 60–69 */
+.tier-poor  .attr-val { color: var(--text-muted);}  /* <60   */
 
 /* ─── Footer / CTA ─── */
 #pm-footer {
   flex-shrink: 0;
   padding: 12px 16px;
-  background: #0d0d0d;
+  background: var(--surface);
   border-top: 1px solid var(--border);
 }
 
+/* Primary blue button per design guide: filled, black text for contrast on #00BAFF */
 #pm-start {
   width: 100%;
   height: 48px;
-  background: transparent;
-  border: 2px solid #2ecc71;
+  background: var(--blue);
+  border: none;
   border-radius: 8px;
-  color: #2ecc71;
+  color: #000000;
+  font-family: var(--font-sans);
   font-size: 15px;
   font-weight: 800;
   letter-spacing: 0.06em;
   cursor: pointer;
-  transition: background 0.15s;
-  -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s ease;
+  box-shadow: 0 0 16px rgba(0,186,255,0.2);
 }
 
 #pm-start:active {
-  background: rgba(46, 204, 113, 0.12);
+  background: var(--blue-dark);
+  color: var(--text);
 }
 
 /* ─── Desktop ─── */
 @media (min-width: 700px) {
   #pm-header { padding: 18px 24px 0; }
-  #pm-title  { font-size: 12px; }
-
-  .pm-team-badge { font-size: 24px; }
 
   .pm-tab    { font-size: 14px; padding: 10px 0; }
 
@@ -267,11 +267,15 @@
   .pm-pos        { font-size: 10px; }
 
   .attr-cell  { width: 28px; }
-  .attr-key   { font-size: 8px; }
   .attr-val   { font-size: 12px; }
 
   #pm-footer  { padding: 16px 24px; }
-  #pm-start   { max-width: 320px; height: 44px; display: block; margin: 0 auto; }
+  #pm-start   {
+    max-width: 320px;
+    height: 44px;
+    display: block;
+    margin: 0 auto;
+  }
 
-  #pm-start:hover { background: rgba(46, 204, 113, 0.12); }
+  #pm-start:hover { background: var(--blue-dark); color: var(--text); }
 }

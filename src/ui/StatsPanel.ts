@@ -77,29 +77,22 @@ function renderPlayerStats(state: MatchState): string {
 }
 
 export function initStatsPanel(): void {
-  const statsContent      = document.getElementById('stats-content')!;
+  const statsContent       = document.getElementById('stats-content')!;
   const playerStatsContent = document.getElementById('player-stats-content')!;
-  const homeName  = document.getElementById('home-name')!;
-  const awayName  = document.getElementById('away-name')!;
-  const homeScore = document.getElementById('home-score')!;
-  const awayScore = document.getElementById('away-score')!;
-  const clockDisplay = document.getElementById('clock-display')!;
-  const phaseDisplay = document.getElementById('phase-display')!;
 
-  let lastPlayerStatsUpdate = -1;
+  let lastStatsHtml        = '';
+  let lastPlayerStatsMinute = -1;
 
   eventBus.on('engine:stateChange', ({ state }) => {
-    homeName.textContent  = state.homeTeam.name;
-    awayName.textContent  = state.awayTeam.name;
-    homeScore.textContent = String(state.score.home);
-    awayScore.textContent = String(state.score.away);
-    clockDisplay.textContent = `${Math.floor(state.gameMinute)}'`;
-    phaseDisplay.textContent = state.phase.replace(/_/g, ' ');
+    const newStatsHtml = renderStats(state);
+    if (newStatsHtml !== lastStatsHtml) {
+      lastStatsHtml = newStatsHtml;
+      statsContent.innerHTML = newStatsHtml;
+    }
 
-    statsContent.innerHTML = renderStats(state);
-
-    if (Math.floor(state.gameMinute) !== lastPlayerStatsUpdate) {
-      lastPlayerStatsUpdate = Math.floor(state.gameMinute);
+    const minute = Math.floor(state.gameMinute);
+    if (minute !== lastPlayerStatsMinute) {
+      lastPlayerStatsMinute = minute;
       playerStatsContent.innerHTML = renderPlayerStats(state);
     }
   });

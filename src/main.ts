@@ -3,6 +3,7 @@ import '../style/commentary.css';
 import '../style/stats.css';
 
 import { buildAppShell }      from './ui/AppShell';
+import { initScoreboard }     from './ui/Scoreboard';
 import { initPitchStrip }     from './ui/PitchStrip';
 import { initCommentaryFeed } from './ui/CommentaryFeed';
 import { initStatsPanel }     from './ui/StatsPanel';
@@ -16,6 +17,7 @@ import awayTeamRaw from './data/team-away.json';
 document.addEventListener('DOMContentLoaded', () => {
   buildAppShell();
 
+  initScoreboard();
   initPitchStrip();
   initCommentaryFeed();
   initStatsPanel();

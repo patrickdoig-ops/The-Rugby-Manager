@@ -120,6 +120,29 @@ export class MatchEngine {
     return this.state;
   }
 
+  // Direction the current possession team is attacking: +1 = toward x=100, -1 = toward x=0.
+  // Home attacks right (→100) in the first half, left (→0) in the second half.
+  // Teams only swap ends at half-time, never on turnovers.
+  private attackDir(): number {
+    const homeAttacksRight = !this.state.halfTimeDone;
+    if (this.state.possession === 'home') return homeAttacksRight ? 1 : -1;
+    return homeAttacksRight ? -1 : 1;
+  }
+
+  private isTryScored(): boolean {
+    const { ballX, possession } = this.state;
+    const homeAttacksRight = !this.state.halfTimeDone;
+    if (possession === 'home') return homeAttacksRight ? ballX >= 95 : ballX <= 5;
+    return homeAttacksRight ? ballX <= 5 : ballX >= 95;
+  }
+
+  private inOpposition22(): boolean {
+    const { ballX, possession } = this.state;
+    const homeAttacksRight = !this.state.halfTimeDone;
+    if (possession === 'home') return homeAttacksRight ? ballX >= 78 : ballX <= 22;
+    return homeAttacksRight ? ballX <= 22 : ballX >= 78;
+  }
+
   private scheduleTick(delay: number): void {
     this.tickTimeout = setTimeout(() => this.tick(), delay);
   }
@@ -219,25 +242,23 @@ export class MatchEngine {
           nextPhase = MatchPhase.Scrum;
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.OpenPlay), primaryPlayer, secondaryPlayer }, 'knock_on');
         } else if (res.outcome === 'line_break') {
-          state.ballX = clamp(state.ballX + (state.possession === 'home' ? res.gainMetres : -res.gainMetres), 0, 100);
+          state.ballX = clamp(state.ballX + this.attackDir() * res.gainMetres, 0, 100);
           nextPhase = MatchPhase.Breakdown;
 
-          // Check for try
-          if ((state.possession === 'home' && state.ballX >= 95) ||
-              (state.possession === 'away' && state.ballX <= 5)) {
+          if (this.isTryScored()) {
             nextPhase = MatchPhase.TryScored;
           }
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.OpenPlay), primaryPlayer, secondaryPlayer }, 'line_break');
         } else if (res.outcome === 'dominant_tackle') {
           state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
           state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].made++;
-          state.ballX = clamp(state.ballX + (state.possession === 'home' ? res.gainMetres : -res.gainMetres), 0, 100);
+          state.ballX = clamp(state.ballX + this.attackDir() * res.gainMetres, 0, 100);
           nextPhase = MatchPhase.Breakdown;
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.OpenPlay), primaryPlayer, secondaryPlayer }, 'dominant_tackle');
         } else {
           // dominant_carry or play_on
           state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
-          state.ballX = clamp(state.ballX + (state.possession === 'home' ? res.gainMetres : -res.gainMetres), 0, 100);
+          state.ballX = clamp(state.ballX + this.attackDir() * res.gainMetres, 0, 100);
           nextPhase = MatchPhase.Breakdown;
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.OpenPlay), primaryPlayer, secondaryPlayer }, res.outcome);
         }
@@ -339,8 +360,9 @@ export class MatchEngine {
           // good_kick — ball goes to touch → lineout, or open play if caught
           const goesToTouch = rng(1, 100) <= 60;
           if (goesToTouch) {
+            const kickDir = this.attackDir(); // capture before possession swap
             state.possession = state.possession === 'home' ? 'away' : 'home';
-            state.ballX = clamp(state.ballX + (state.possession === 'away' ? res.ballMovement * 2 : -res.ballMovement * 2), 5, 95);
+            state.ballX = clamp(state.ballX + kickDir * Math.abs(res.ballMovement) * 2, 5, 95);
             nextPhase = MatchPhase.Lineout;
           } else {
             nextPhase = MatchPhase.OpenPlay;
@@ -433,8 +455,7 @@ export class MatchEngine {
 
   private async handlePenaltyDecision(event: GameEvent): Promise<void> {
     const { state } = this;
-    const inOpp22 = (state.possession === 'home' && state.ballX >= 78) ||
-                    (state.possession === 'away' && state.ballX <= 22);
+    const inOpp22 = this.inOpposition22();
 
     if (!inOpp22) {
       // Auto-choose kick to touch when not in scoring range
@@ -471,7 +492,10 @@ export class MatchEngine {
     if (choice === 'kick_for_goal') {
       const kicker = (state.possession === 'home' ? state.homeTeam : state.awayTeam)
         .players.find(p => p.id === 10) ?? (state.possession === 'home' ? state.homeTeam : state.awayTeam).players[0];
-      const distFromPosts = Math.abs(state.ballY - 50) * 0.3 + Math.abs(state.ballX - (state.possession === 'home' ? 100 : 0)) * 0.2;
+      const tryLine = !state.halfTimeDone
+        ? (state.possession === 'home' ? 100 : 0)
+        : (state.possession === 'home' ? 0 : 100);
+      const distFromPosts = Math.abs(state.ballY - 50) * 0.3 + Math.abs(state.ballX - tryLine) * 0.2;
       const res = resolveGoalKick(kicker, distFromPosts);
 
       const penEvent: GameEvent = {
@@ -497,7 +521,7 @@ export class MatchEngine {
       state.phase = MatchPhase.KickOff;
 
     } else if (choice === 'kick_to_touch') {
-      state.ballX = clamp(state.ballX + (state.possession === 'home' ? 10 : -10), 5, 95);
+      state.ballX = clamp(state.ballX + this.attackDir() * 10, 5, 95);
       const penEvent: GameEvent = {
         id: makeId(),
         gameMinute: state.gameMinute,

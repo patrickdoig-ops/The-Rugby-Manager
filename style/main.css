@@ -102,18 +102,92 @@ html, body {
   white-space: nowrap;
 }
 
-/* ─── Pitch ─── */
+/* ─── Pitch strip ─── */
 #panel-pitch {
   flex-shrink: 0;
-  height: 220px;
-  background: #0a1a0a;
-  overflow: hidden;
+  background: #0d0d0d;
+  border-bottom: 1px solid var(--border);
+  padding: 14px 16px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-#pitch-canvas {
-  width: 100%;
+#pitch-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.end-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  width: 32px;
+  text-align: center;
+}
+
+#pitch-field {
+  position: relative;
+  flex: 1;
+  height: 36px;
+  display: flex;
+  border-radius: 4px;
+  overflow: visible;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+/* Zone widths match real pitch proportions: try(5) + 22m(17) + mid(22) + mid(22) + 22m(17) + try(5) = 88 total
+   Simplified to: try=5%, 22m-home=17%, mid=56%, 22m-away=17%, try=5% */
+.field-zone { height: 100%; }
+.zone-home-try  { width: 5%;  background: #174a17; }
+.zone-home-22   { width: 17%; background: #1e5e1e; }
+.zone-midfield  { width: 56%; background: #246824; }
+.zone-away-22   { width: 17%; background: #1e5e1e; }
+.zone-away-try  { width: 5%;  background: #174a17; }
+
+/* Vertical yard-line markers */
+.pitch-line {
+  position: absolute;
+  top: 0;
   height: 100%;
-  display: block;
+  width: 1px;
+  background: rgba(255,255,255,0.35);
+  pointer-events: none;
+}
+.line-home-22  { left: 22%; }
+.line-halfway  { left: 50%; background: rgba(255,255,255,0.6); width: 2px; }
+.line-away-22  { left: 78%; }
+
+/* Ball marker */
+#ball-marker {
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 13px;
+  background: #8B4513;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+  transform: translate(-50%, -50%);
+  transition: left 0.35s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Attack direction label */
+#attack-label-row {
+  text-align: center;
+  min-height: 16px;
+}
+
+#attack-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  transition: color 0.3s;
 }
 
 /* ─── Bottom panels ─── */
@@ -326,7 +400,8 @@ html, body {
     display: grid;
     height: 100vh;
     height: 100dvh;
-    grid-template-rows: 56px 1fr 1fr 50px;
+    /* pitch strip is auto-height; bottom panels fill the rest */
+    grid-template-rows: 56px auto 1fr 50px;
     grid-template-areas:
       "scoreboard"
       "pitch"
@@ -347,8 +422,7 @@ html, body {
 
   #panel-pitch {
     grid-area: pitch;
-    height: auto;
-    flex-shrink: unset;
+    padding: 16px 24px 12px;
   }
 
   /* Restore side-by-side panels */

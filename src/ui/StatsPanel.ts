@@ -1,0 +1,98 @@
+import { eventBus } from '../utils/eventBus';
+import type { MatchState } from '../types/match';
+
+function pct(a: number, b: number): string {
+  const total = a + b;
+  if (total === 0) return '50%';
+  return `${Math.round((a / total) * 100)}%`;
+}
+
+function tacklePct(t: { attempted: number; made: number }): string {
+  if (t.attempted === 0) return '—';
+  return `${Math.round((t.made / t.attempted) * 100)}%`;
+}
+
+function renderStats(state: MatchState): string {
+  const { stats, homeTeam, awayTeam } = state;
+  const rows = [
+    ['Possession', pct(stats.possession.home, stats.possession.away), pct(stats.possession.away, stats.possession.home)],
+    ['Territory',  pct(stats.territory.home,  stats.territory.away),  pct(stats.territory.away,  stats.territory.home)],
+    ['Tackle %',   tacklePct(stats.tackles.home), tacklePct(stats.tackles.away)],
+    ['Handling Err', String(stats.handlingErrors.home), String(stats.handlingErrors.away)],
+    ['Tries',      String(stats.tries.home),   String(stats.tries.away)],
+    ['Scrums Won', String(stats.scrums.home),  String(stats.scrums.away)],
+    ['Lineouts Won', String(stats.lineouts.home), String(stats.lineouts.away)],
+  ];
+
+  return `
+    <table class="stats-table">
+      <thead>
+        <tr>
+          <th class="stat-col-home" style="color:${homeTeam.color}">${homeTeam.shortName}</th>
+          <th class="stat-col-label"></th>
+          <th class="stat-col-away" style="color:${awayTeam.color}">${awayTeam.shortName}</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(([label, h, a]) => `
+          <tr>
+            <td class="stat-val">${h}</td>
+            <td class="stat-label">${label}</td>
+            <td class="stat-val">${a}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderFatigue(state: MatchState): string {
+  const players = [
+    ...state.homeTeam.players.slice(0, 8),
+    ...state.awayTeam.players.slice(0, 8),
+  ];
+
+  return players.map(p => {
+    const team = state.homeTeam.players.includes(p) ? state.homeTeam : state.awayTeam;
+    const f = Math.round(p.fatiguePct);
+    const barClass = f > 60 ? 'fatigue-ok' : f > 30 ? 'fatigue-warn' : 'fatigue-low';
+    return `
+      <div class="fatigue-row">
+        <span class="fatigue-name" style="color:${team.color}">#${p.id} ${p.name.split(' ')[1] ?? p.name}</span>
+        <div class="fatigue-bar-bg">
+          <div class="fatigue-bar ${barClass}" style="width:${f}%"></div>
+        </div>
+        <span class="fatigue-pct">${f}%</span>
+      </div>
+    `;
+  }).join('');
+}
+
+export function initStatsPanel(): void {
+  const statsContent   = document.getElementById('stats-content')!;
+  const fatigueContent = document.getElementById('fatigue-content')!;
+  const homeName  = document.getElementById('home-name')!;
+  const awayName  = document.getElementById('away-name')!;
+  const homeScore = document.getElementById('home-score')!;
+  const awayScore = document.getElementById('away-score')!;
+  const clockDisplay = document.getElementById('clock-display')!;
+  const phaseDisplay = document.getElementById('phase-display')!;
+
+  let lastFatigueUpdate = -1;
+
+  eventBus.on('engine:stateChange', ({ state }) => {
+    homeName.textContent  = state.homeTeam.name;
+    awayName.textContent  = state.awayTeam.name;
+    homeScore.textContent = String(state.score.home);
+    awayScore.textContent = String(state.score.away);
+    clockDisplay.textContent = `${Math.floor(state.gameMinute)}'`;
+    phaseDisplay.textContent = state.phase.replace(/_/g, ' ');
+
+    statsContent.innerHTML = renderStats(state);
+
+    if (Math.floor(state.gameMinute) !== lastFatigueUpdate) {
+      lastFatigueUpdate = Math.floor(state.gameMinute);
+      fatigueContent.innerHTML = renderFatigue(state);
+    }
+  });
+}

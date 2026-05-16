@@ -1,0 +1,69 @@
+{
+  "id": "eagles",
+  "name": "The Eagles",
+  "shortName": "EGL",
+  "color": "#003087",
+  "secondaryColor": "#ffd700",
+  "players": [
+    {
+      "id": 1, "name": "Cian Brady", "position": "Loosehead Prop",
+      "baseStats": { "stamina": 79, "strength": 87, "pace": 54, "agility": 50, "handling": 60, "tackling": 79, "breakdown": 73, "kicking": 36, "setPiece": 86, "discipline": 70, "positioning": 73, "composure": 67 }
+    },
+    {
+      "id": 2, "name": "Rory Flynn", "position": "Hooker",
+      "baseStats": { "stamina": 81, "strength": 83, "pace": 58, "agility": 56, "handling": 70, "tackling": 80, "breakdown": 76, "kicking": 40, "setPiece": 84, "discipline": 72, "positioning": 74, "composure": 69 }
+    },
+    {
+      "id": 3, "name": "Declan Murtagh", "position": "Tighthead Prop",
+      "baseStats": { "stamina": 77, "strength": 91, "pace": 48, "agility": 46, "handling": 58, "tackling": 79, "breakdown": 70, "kicking": 33, "setPiece": 88, "discipline": 69, "positioning": 71, "composure": 64 }
+    },
+    {
+      "id": 4, "name": "Conor Doyle", "position": "Left Lock",
+      "baseStats": { "stamina": 85, "strength": 85, "pace": 62, "agility": 56, "handling": 65, "tackling": 79, "breakdown": 76, "kicking": 42, "setPiece": 87, "discipline": 76, "positioning": 79, "composure": 70 }
+    },
+    {
+      "id": 5, "name": "Shane Nolan", "position": "Right Lock",
+      "baseStats": { "stamina": 82, "strength": 86, "pace": 60, "agility": 55, "handling": 63, "tackling": 78, "breakdown": 74, "kicking": 40, "setPiece": 86, "discipline": 74, "positioning": 77, "composure": 68 }
+    },
+    {
+      "id": 6, "name": "Aaron Kelly", "position": "Blindside Flanker",
+      "baseStats": { "stamina": 87, "strength": 83, "pace": 71, "agility": 69, "handling": 73, "tackling": 86, "breakdown": 83, "kicking": 46, "setPiece": 73, "discipline": 79, "positioning": 81, "composure": 75 }
+    },
+    {
+      "id": 7, "name": "Paul Donnelly", "position": "Openside Flanker",
+      "baseStats": { "stamina": 89, "strength": 79, "pace": 74, "agility": 76, "handling": 75, "tackling": 85, "breakdown": 90, "kicking": 47, "setPiece": 71, "discipline": 77, "positioning": 83, "composure": 76 }
+    },
+    {
+      "id": 8, "name": "Ross Lynch", "position": "Number 8",
+      "baseStats": { "stamina": 84, "strength": 84, "pace": 75, "agility": 71, "handling": 74, "tackling": 83, "breakdown": 81, "kicking": 52, "setPiece": 77, "discipline": 75, "positioning": 79, "composure": 75 }
+    },
+    {
+      "id": 9, "name": "Sean Brennan", "position": "Scrum-Half",
+      "baseStats": { "stamina": 83, "strength": 60, "pace": 84, "agility": 86, "handling": 88, "tackling": 71, "breakdown": 69, "kicking": 78, "setPiece": 62, "discipline": 81, "positioning": 83, "composure": 81 }
+    },
+    {
+      "id": 10, "name": "Eoin Callaghan", "position": "Fly-Half",
+      "baseStats": { "stamina": 81, "strength": 64, "pace": 79, "agility": 81, "handling": 86, "tackling": 67, "breakdown": 63, "kicking": 90, "setPiece": 61, "discipline": 83, "positioning": 86, "composure": 89 }
+    },
+    {
+      "id": 11, "name": "Cormac Reid", "position": "Left Wing",
+      "baseStats": { "stamina": 81, "strength": 71, "pace": 91, "agility": 87, "handling": 81, "tackling": 69, "breakdown": 61, "kicking": 63, "setPiece": 54, "discipline": 75, "positioning": 79, "composure": 77 }
+    },
+    {
+      "id": 12, "name": "Niall Byrne", "position": "Inside Centre",
+      "baseStats": { "stamina": 83, "strength": 79, "pace": 81, "agility": 79, "handling": 84, "tackling": 81, "breakdown": 73, "kicking": 69, "setPiece": 61, "discipline": 79, "positioning": 83, "composure": 81 }
+    },
+    {
+      "id": 13, "name": "Gavin Power", "position": "Outside Centre",
+      "baseStats": { "stamina": 81, "strength": 75, "pace": 85, "agility": 81, "handling": 83, "tackling": 77, "breakdown": 69, "kicking": 67, "setPiece": 59, "discipline": 77, "positioning": 81, "composure": 80 }
+    },
+    {
+      "id": 14, "name": "David Farrell", "position": "Right Wing",
+      "baseStats": { "stamina": 79, "strength": 69, "pace": 92, "agility": 89, "handling": 82, "tackling": 69, "breakdown": 62, "kicking": 66, "setPiece": 55, "discipline": 75, "positioning": 79, "composure": 78 }
+    },
+    {
+      "id": 15, "name": "Kevin Martin", "position": "Fullback",
+      "baseStats": { "stamina": 85, "strength": 71, "pace": 87, "agility": 85, "handling": 87, "tackling": 76, "breakdown": 66, "kicking": 86, "setPiece": 59, "discipline": 81, "positioning": 89, "composure": 87 }
+    }
+  ]
+}

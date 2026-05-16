@@ -1,0 +1,193 @@
+import { MatchPhase } from '../types/engine';
+import type { GameEvent } from '../types/match';
+
+type Templates = Record<string, string[]>;
+
+const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates } = {
+  [MatchPhase.KickOff]: {
+    clean_receive: [
+      '{primary} takes the kick cleanly and looks to set up the first phase.',
+      'The kick-off is gathered neatly by {primary}. Great start for {side}.',
+    ],
+    knock_on: [
+      'Oh no! {primary} drops the kick-off — a knock-on! Scrum to the kicking team.',
+      'Disaster! The ball is fumbled by {primary}. Scrum awarded at halfway.',
+    ],
+    contested: [
+      'Tremendous contest in the air! {primary} and {secondary} challenge for the ball.',
+      'Both sides up for the kick — {primary} manages to secure it under pressure.',
+    ],
+    poor_kick: [
+      'The kick barely travels 10 metres — {primary} re-kicks from the restart zone.',
+      'A poor kick-off from {primary}, not reaching the 10-metre line.',
+    ],
+  },
+  [MatchPhase.OpenPlay]: {
+    knock_on: [
+      '{primary} knocks on under pressure! Scrum to {secondary}\'s team.',
+      'Unforced error from {primary} — the ball squirts forward. Scrum awarded.',
+      'Handling error! {primary} fails to collect and the referee calls knock-on.',
+    ],
+    line_break: [
+      '{primary} breaks through the line! A huge gain for {side}!',
+      'Sensational play from {primary} — the defence is beaten completely!',
+      '{primary} is through! Nothing but open space ahead!',
+    ],
+    dominant_carry: [
+      '{primary} drives hard into contact, making great ground.',
+      'Powerful carry from {primary}, gaining metres against the defence.',
+      '{primary} charges forward and the defence is forced back.',
+    ],
+    dominant_tackle: [
+      'Huge hit by {secondary}! He drives {primary} back and wins the collision.',
+      '{secondary} absolutely smashes {primary}! No gain there whatsoever.',
+      'Monster tackle from {secondary} — {primary} is stopped dead in his tracks.',
+    ],
+    play_on: [
+      '{primary} takes contact and goes to ground. A ruck forms.',
+      '{secondary} brings {primary} down — both sides arrive quickly.',
+      'Solid carry from {primary} before being tackled. Play continues.',
+    ],
+  },
+  [MatchPhase.Breakdown]: {
+    clean_ball: [
+      'Quick ball from the ruck! {side} move it wide immediately.',
+      'Clean possession secured — {side} on the front foot now.',
+      'The ruck is won comfortably — {primary} snipers from the base.',
+    ],
+    slow_ball: [
+      'Slow ball from the breakdown — the defence has time to reset.',
+      '{primary} has to be patient at the ruck. Slow ball emerges.',
+      'The ball trickles back slowly — {side} will need to recycle.',
+    ],
+    turnover: [
+      'Turnover! {secondary} wins the jackal and {side} have possession!',
+      'Brilliant work at the breakdown from {secondary} — it\'s a steal!',
+      '{secondary} is over the ball brilliantly — referee signals turnover!',
+    ],
+    penalty_defending: [
+      'Penalty! The referee spots the infringement at the ruck — {side} awarded.',
+      '{primary} is caught holding on — penalty to {side}!',
+      'Hands in the ruck! Penalty awarded to {side} for the infringement.',
+    ],
+  },
+  [MatchPhase.Scrum]: {
+    stable_win: [
+      '{side} win clean scrum ball — {primary} picks and goes.',
+      'Solid platform from the scrum — good possession for {side}.',
+      'The scrum holds firm and {primary} feeds the backs.',
+    ],
+    wheel: [
+      'The scrum wheels! {secondary} has to reset as the ball squirts loose.',
+      'A powerful wheel by the defending pack — {side} scramble to recover.',
+    ],
+    dominant_penalty: [
+      'Penalty! The scrum collapses — referee signals against {side}.',
+      'The defending pack dominates — {primary} is penalised for going to ground.',
+    ],
+  },
+  [MatchPhase.Lineout]: {
+    clean_catch: [
+      'Straight ball from the lineout — {primary} takes it cleanly at the tail.',
+      'Perfect throw from {secondary}! {primary} claims it above the defenders.',
+      'Superb lineout execution — {side} have possession and drive.',
+    ],
+    steal: [
+      '{secondary} steals the lineout! Incredible work against the throw!',
+      'Turnover at the lineout — {secondary} outjumps the opposition!',
+      'The throw is misjudged — {secondary} gratefully takes possession.',
+    ],
+    scrappy_knock_on: [
+      'Scrappy lineout — the ball is knocked on and {side} lose possession.',
+      'The jumper can\'t hold it — knock-on awarded, scrum to the opposition.',
+    ],
+  },
+  [MatchPhase.TacticalKick]: {
+    good_kick: [
+      '{primary} finds the right corner — excellent tactical kick to pin them back.',
+      'Lovely kick from {primary}, finding touch 40 metres upfield.',
+      '{primary} peppers the back three with a high ball — pressure building.',
+    ],
+    poor_kick: [
+      'The kick from {primary} doesn\'t find touch — easy ball for the fullback.',
+      'Poor execution from {primary} — the kick falls straight to {secondary}.',
+    ],
+    knock_on_catch: [
+      '{secondary} drops the catch under pressure — knock-on! Scrum to {side}.',
+      'The high ball beats {secondary}! A knock-on and scrum to {side}.',
+    ],
+  },
+  [MatchPhase.TryScored]: {
+    try: [
+      'TRY! {primary} crashes over in the corner! Magnificent score!',
+      'TRY! {primary} touches down! The crowd erupts!',
+      'TRY! What a finish from {primary} — {side} take the lead!',
+      'TRY! {primary} squeezes over in the corner! Superb support play!',
+    ],
+  },
+  [MatchPhase.ConversionKick]: {
+    success: [
+      '{primary} steps up and slots the conversion — 7 points on the board!',
+      'Right between the posts from {primary}! Excellent kicking.',
+      'Straight through the uprights — {primary} adds the extras!',
+    ],
+    miss: [
+      '{primary}\'s conversion drifts wide — only 5 points from that score.',
+      'Just wide! {primary} fails to add the conversion.',
+    ],
+  },
+  [MatchPhase.Penalty]: {
+    kick_for_goal: [
+      '{primary} lines up the kick at goal... it\'s good! Three points!',
+      'The penalty is slotted between the posts by {primary}. Three more!',
+    ],
+    kick_to_touch: [
+      '{primary} kicks to the corner — {side} opt for the lineout.',
+      'Into touch from {primary} — the lineout is set deep in opposition territory.',
+    ],
+    tap_and_go: [
+      '{primary} taps and goes — {side} opt to run it!',
+      'Quick tap taken — {side} are looking to exploit space.',
+    ],
+    miss: [
+      'Oh! {primary}\'s penalty attempt falls short — no score from that.',
+      'The kick is wide! {primary} fails to add the points.',
+    ],
+  },
+  [MatchPhase.HalfTime]: {
+    whistle: [
+      'That\'s the half-time whistle! The teams head into the dressing rooms.',
+      'Half time! Both sides regroup as the referee calls a halt to proceedings.',
+    ],
+  },
+  [MatchPhase.FullTime]: {
+    whistle: [
+      'Full time! What a match — the final whistle brings proceedings to a close.',
+      'The referee blows for full time! An incredible 80 minutes of rugby.',
+    ],
+  },
+  default: {
+    generic: [
+      'Play continues.',
+      'The match moves on.',
+      'Action resumes.',
+    ],
+  },
+};
+
+function pick(arr: string[]): string {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function interpolate(template: string, event: GameEvent): string {
+  return template
+    .replace(/{primary}/g,   event.primaryPlayer?.name   ?? 'the player')
+    .replace(/{secondary}/g, event.secondaryPlayer?.name ?? 'the defender')
+    .replace(/{side}/g,      event.side === 'home' ? 'the home side' : 'the away side');
+}
+
+export function getCommentary(event: GameEvent, key: string): string {
+  const phaseTemplates = TEMPLATES[event.phase] ?? TEMPLATES.default;
+  const bank = phaseTemplates[key] ?? TEMPLATES.default.generic;
+  return interpolate(pick(bank), event);
+}

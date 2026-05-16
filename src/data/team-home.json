@@ -1,0 +1,69 @@
+{
+  "id": "lions",
+  "name": "The Lions",
+  "shortName": "LNS",
+  "color": "#c8102e",
+  "secondaryColor": "#ffffff",
+  "players": [
+    {
+      "id": 1, "name": "Marcus Cole", "position": "Loosehead Prop",
+      "baseStats": { "stamina": 80, "strength": 88, "pace": 55, "agility": 52, "handling": 62, "tackling": 80, "breakdown": 75, "kicking": 38, "setPiece": 87, "discipline": 72, "positioning": 74, "composure": 68 }
+    },
+    {
+      "id": 2, "name": "Danny Harker", "position": "Hooker",
+      "baseStats": { "stamina": 82, "strength": 84, "pace": 60, "agility": 58, "handling": 71, "tackling": 82, "breakdown": 78, "kicking": 42, "setPiece": 85, "discipline": 74, "positioning": 76, "composure": 70 }
+    },
+    {
+      "id": 3, "name": "Phil Stanton", "position": "Tighthead Prop",
+      "baseStats": { "stamina": 78, "strength": 90, "pace": 50, "agility": 48, "handling": 60, "tackling": 80, "breakdown": 72, "kicking": 35, "setPiece": 89, "discipline": 70, "positioning": 72, "composure": 65 }
+    },
+    {
+      "id": 4, "name": "James Elliot", "position": "Left Lock",
+      "baseStats": { "stamina": 84, "strength": 86, "pace": 60, "agility": 55, "handling": 64, "tackling": 78, "breakdown": 74, "kicking": 40, "setPiece": 86, "discipline": 75, "positioning": 78, "composure": 68 }
+    },
+    {
+      "id": 5, "name": "Ben Thornton", "position": "Right Lock",
+      "baseStats": { "stamina": 83, "strength": 87, "pace": 58, "agility": 54, "handling": 63, "tackling": 77, "breakdown": 75, "kicking": 38, "setPiece": 85, "discipline": 73, "positioning": 76, "composure": 67 }
+    },
+    {
+      "id": 6, "name": "Owen Price", "position": "Blindside Flanker",
+      "baseStats": { "stamina": 86, "strength": 82, "pace": 70, "agility": 68, "handling": 72, "tackling": 85, "breakdown": 82, "kicking": 45, "setPiece": 72, "discipline": 78, "positioning": 80, "composure": 74 }
+    },
+    {
+      "id": 7, "name": "Tom Walsh", "position": "Openside Flanker",
+      "baseStats": { "stamina": 88, "strength": 78, "pace": 72, "agility": 74, "handling": 74, "tackling": 84, "breakdown": 88, "kicking": 46, "setPiece": 70, "discipline": 76, "positioning": 82, "composure": 75 }
+    },
+    {
+      "id": 8, "name": "Sam Reeves", "position": "Number 8",
+      "baseStats": { "stamina": 85, "strength": 85, "pace": 74, "agility": 70, "handling": 75, "tackling": 82, "breakdown": 80, "kicking": 50, "setPiece": 76, "discipline": 74, "positioning": 78, "composure": 74 }
+    },
+    {
+      "id": 9, "name": "Finn Murray", "position": "Scrum-Half",
+      "baseStats": { "stamina": 84, "strength": 62, "pace": 82, "agility": 85, "handling": 87, "tackling": 70, "breakdown": 68, "kicking": 76, "setPiece": 64, "discipline": 80, "positioning": 82, "composure": 80 }
+    },
+    {
+      "id": 10, "name": "Ryan Daly", "position": "Fly-Half",
+      "baseStats": { "stamina": 80, "strength": 65, "pace": 78, "agility": 80, "handling": 85, "tackling": 68, "breakdown": 62, "kicking": 88, "setPiece": 60, "discipline": 82, "positioning": 85, "composure": 88 }
+    },
+    {
+      "id": 11, "name": "Luke Barnett", "position": "Left Wing",
+      "baseStats": { "stamina": 82, "strength": 70, "pace": 92, "agility": 88, "handling": 82, "tackling": 70, "breakdown": 62, "kicking": 65, "setPiece": 55, "discipline": 76, "positioning": 80, "composure": 78 }
+    },
+    {
+      "id": 12, "name": "Craig Foster", "position": "Inside Centre",
+      "baseStats": { "stamina": 82, "strength": 78, "pace": 80, "agility": 78, "handling": 83, "tackling": 80, "breakdown": 72, "kicking": 68, "setPiece": 60, "discipline": 78, "positioning": 82, "composure": 80 }
+    },
+    {
+      "id": 13, "name": "Jack Spencer", "position": "Outside Centre",
+      "baseStats": { "stamina": 82, "strength": 76, "pace": 84, "agility": 80, "handling": 84, "tackling": 76, "breakdown": 68, "kicking": 66, "setPiece": 58, "discipline": 76, "positioning": 80, "composure": 79 }
+    },
+    {
+      "id": 14, "name": "Noah Clarke", "position": "Right Wing",
+      "baseStats": { "stamina": 80, "strength": 68, "pace": 90, "agility": 88, "handling": 80, "tackling": 68, "breakdown": 60, "kicking": 64, "setPiece": 54, "discipline": 74, "positioning": 78, "composure": 77 }
+    },
+    {
+      "id": 15, "name": "Aled Hughes", "position": "Fullback",
+      "baseStats": { "stamina": 84, "strength": 70, "pace": 86, "agility": 84, "handling": 86, "tackling": 75, "breakdown": 65, "kicking": 84, "setPiece": 58, "discipline": 80, "positioning": 88, "composure": 86 }
+    }
+  ]
+}

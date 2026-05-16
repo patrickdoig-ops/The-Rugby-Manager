@@ -228,17 +228,6 @@ text-sm font-mono
 | Community card | `trading-blue` | `trading-blue/60` on `trading-blue/5` bg |
 | `1–15` (normal) | `text-main` | `border-mid` |
 
-### Face-down back
-
-- Player cards: `bg-trading-blue/75` fill
-- Community cards: `bg-trading-blue` (full opacity)
-- Back pattern: `repeating-linear-gradient(45deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 1.5px, transparent 1.5px, transparent 6px)`
-- Monogram: `MM` text in `text-white/25`
-- Border radius: `rounded-[3px]`
-
-### Corner indices
-
-Value is printed at `top-0.5 left-1` and mirrored at `bottom-0.5 right-1 rotate-180`, matching real playing card proportions.
 
 ---
 
@@ -313,7 +302,6 @@ Screens not in `validScreens` in `useSession.ts` (currently: `analytics`) fall b
 
 **Don't:**
 - Use `bg-trading-green-text` or `bg-trading-red-text` as button backgrounds (neon in dark mode)
-- Add `>` before screen titles — it was removed in Beta v0.4p
 - Use `flex-wrap` for the InfoBar grid — column alignment breaks
 - Reset the action panel spread value between live rounds — the player's chosen spread must persist
 - Hardcode colours in component logic that belong in the theme (except the two Buy/Sell exceptions above)

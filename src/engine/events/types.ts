@@ -10,6 +10,8 @@ export interface PhaseContext {
   attackDir(): number;
   isTryScored(): boolean;
   inOpposition22(): boolean;
+  inOwn22(): boolean;
+  inOwnHalf(): boolean;
   adjustRating(player: Player | undefined, delta: number): void;
   randomPlayer(team: Team): Player;
   pickPlayer(team: Team, ...ids: number[]): Player;

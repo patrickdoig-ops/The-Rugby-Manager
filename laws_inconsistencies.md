@@ -5,9 +5,7 @@ I've reviewed the core engine logic (`engine.md`, `MatchEngine.ts`, and the phas
 While the engine captures the spirit and fundamental flow of rugby remarkably well, it relies on several necessary abstractions. Here are the notable inconsistencies and missing laws compared to real-world rugby:
 
 ## 1. Tactical Kicking & The Touchline
-The engine currently forces all tactical kicks into a binary "Touch (Lineout)" or "Caught (OpenPlay)" outcome. It misses several crucial real-world kicking laws:
-- **Direct to Touch (Out on the Full):** If a player kicks the ball directly into touch from outside their own 22-metre line, the lineout should be brought all the way back to where the kick was taken. The engine currently moves the ball forward regardless of pitch position.
-- **The 50:22 Rule:** A recent law where if a player kicks from inside their own half and the ball bounces into touch inside the opposition's 22, the *kicking* team is rewarded with the lineout throw. The engine currently always gives the lineout to the receiving team after a tactical kick.
+The engine currently forces all tactical kicks into a binary "Touch (Lineout)" or "Caught (OpenPlay)" outcome. It misses one crucial real-world kicking law:
 - **Mark:** Players cannot currently call a "Mark" by catching the ball cleanly inside their own 22. 
 
 ## 2. Foul Play & Disciplinary Sanctions

@@ -179,6 +179,20 @@ export class MatchEngine {
     return homeAttacksRight ? ballX < 50 : ballX > 50;
   }
 
+  private inOwn22(): boolean {
+    const { ballX, possession } = this.state;
+    const homeAttacksRight = !this.state.halfTimeDone;
+    if (possession === 'home') return homeAttacksRight ? ballX <= 22 : ballX >= 78;
+    return homeAttacksRight ? ballX >= 78 : ballX <= 22;
+  }
+
+  private inOwnHalf(): boolean {
+    const { ballX, possession } = this.state;
+    const homeAttacksRight = !this.state.halfTimeDone;
+    if (possession === 'home') return homeAttacksRight ? ballX <= 50 : ballX >= 50;
+    return homeAttacksRight ? ballX >= 50 : ballX <= 50;
+  }
+
   private scheduleTick(delay: number): void {
     this.tickTimeout = setTimeout(() => this.tick(), delay);
   }
@@ -236,6 +250,8 @@ export class MatchEngine {
       attackDir:      () => this.attackDir(),
       isTryScored:    () => this.isTryScored(),
       inOpposition22: () => this.inOpposition22(),
+      inOwn22:        () => this.inOwn22(),
+      inOwnHalf:      () => this.inOwnHalf(),
       adjustRating:   (player, delta) => this.adjustRating(player, delta),
       randomPlayer:   (team) => team.players[rng(0, team.players.length - 1)],
       pickPlayer:     (team, ...ids) => team.players.find(p => ids.includes(p.id))!,

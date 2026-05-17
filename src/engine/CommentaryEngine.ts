@@ -145,8 +145,18 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
   [MatchPhase.TacticalKick]: {
     good_kick: [
       '{primary} finds the right corner — excellent tactical kick to pin them back.',
-      'Lovely kick from {primary}, finding touch 40 metres upfield.',
-      '{primary} peppers the back three with a high ball — pressure building.',
+      'Lovely kick from {primary}, finding touch upfield.',
+      'A deep kick from {primary} finds touch — putting pressure on the opposition.',
+    ],
+    out_on_the_full: [
+      'Disaster! {primary} kicks directly out on the full. The lineout comes all the way back.',
+      'A poor kick from {primary} goes straight out on the full. Costly mistake.',
+      '{primary} slices the kick out on the full! No ground gained.',
+    ],
+    fifty_twenty_two: [
+      'Brilliant! A 50:22 from {primary}! It bounces into touch and {side} retain the throw-in!',
+      'What a kick from {primary}! A perfect 50:22 — {side} get the lineout deep in enemy territory.',
+      'Incredible vision from {primary} to find the 50:22! An attacking lineout for {side}.',
     ],
     poor_kick: [
       'The kick from {primary} doesn\'t find touch — easy ball for the fullback.',

@@ -421,9 +421,14 @@ The ball's position on the pitch is updated immediately based on the calculated 
 
 ### Step 2 — Touch or caught
 
-Possession **always** flips to the defending team (they either throw in at the lineout or have caught the ball in the field).
+The game rolls a percentage chance against the touch probability determined in Step 1 to see if the ball goes into touch.
 
-The game rolls a percentage chance against the touch probability determined in Step 1. If the roll is successful, the ball goes into touch and the phase becomes a Lineout. If the roll fails, the defending fullback catches the ball in the field of play, and the phase becomes Open Play.
+If the ball **does not** go into touch, the defending fullback catches the ball in the field of play. The phase becomes Open Play, and possession flips to the defending team.
+
+If the ball **does** go into touch, pitch geography dictates the outcome:
+- **Out on the Full:** If the kick was a poor kick and was taken from *outside* the kicking team's own 22m line, it is deemed to have gone straight out on the full. The ball is brought all the way back to the original kicking position (no ground gained) and the defending team gets the lineout.
+- **50:22 Rule:** If the kick was taken from *inside* the kicking team's own half, and bounces into touch *inside* the opposition's 22m line, the kicking team is rewarded for a 50:22! The kicking team **retains possession** and gets the throw-in at the resulting lineout.
+- **Standard Touch:** In all other touch scenarios, the distance is gained and the defending team gets the throw-in at the lineout.
 
 ### Rating adjustments
 

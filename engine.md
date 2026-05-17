@@ -61,9 +61,9 @@ Called via `applyFatigue(team, elapsedMinutes)` approximately every 5 game minut
 
 Every cycle, a base decay rate between 0.5 and 1.5 is randomly determined, then doubled. This rate is then reduced depending on the player's stamina — higher stamina means a slower fatigue drain. A player with a stamina rating of 90 will only suffer 40% of the base decay compared to a player with a stamina rating of 0.
 
-`actualDecay = decayRate × 2 × (1 − stamina / 150)`
+`actualDecay = decayRate × 4 × (1 − stamina / 150)`
 
-Higher stamina reduces decay. A player with stamina 90 decays at 40% the rate of one with stamina 0. The ×2 multiplier means players reach meaningful fatigue thresholds (70%, 50%, 30%) well within a normal match.
+Higher stamina reduces decay. A player with stamina 90 decays at 40% the rate of one with stamina 0. With the ×4 multiplier and 16 fatigue applications per 80-minute game, expected total fatigue loss at stamina 60 is ~38%, stamina 0 is ~64%, stamina 90 is ~26% — ensuring most players cross meaningful thresholds (70%, 50%) visibly during a match.
 
 ### Attribute penalties (applied to `currentStats` from `baseStats`)
 

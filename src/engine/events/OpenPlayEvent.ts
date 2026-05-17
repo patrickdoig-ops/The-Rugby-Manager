@@ -32,7 +32,9 @@ export function handleOpenPlay({ state, attackTeam, defendTeam, attackDir, isTry
   // Step 1 — Handling gate → Step 2 Evasion → Step 3 Collision
   const carrier  = randomPlayer(attackTeam);
   const defender = randomPlayer(defendTeam);
-  const res = resolveOpenPlay(carrier, defender);
+  const { attack: attackMod, defend: defendMod } = state.breakdownMod;
+  state.breakdownMod = { attack: 0, defend: 0 };
+  const res = resolveOpenPlay(carrier, defender, attackMod, defendMod);
 
   let nextPhase: MatchPhase;
   let commentary: string;

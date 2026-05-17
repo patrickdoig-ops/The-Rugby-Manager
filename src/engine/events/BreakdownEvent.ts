@@ -12,7 +12,15 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
   const lastEvent = state.events[state.events.length - 1];
   const lastOpenPlay = lastEvent?.phase === MatchPhase.OpenPlay ? lastEvent : undefined;
   const carrierId = lastOpenPlay?.primaryPlayer?.id;
-  const attackBonus = lastOpenPlay?.outcome === 'dominant_carry' ? 6 : 0;
+  const dominantCarryBonus = lastOpenPlay?.outcome === 'dominant_carry' ? 6 : 0;
+  const commitBonus = attPlan === 'pick_and_drive' ? 8 : (attPlan === 'wide_play' ? -5 : 0);
+  const attackBonus = dominantCarryBonus + commitBonus;
+
+  // Next-phase modifier: more players committed to ruck = fewer on feet for the next phase
+  const nextAttackMod = attPlan === 'pick_and_drive' ? -8 : (attPlan === 'wide_play' ? 8 : 0);
+  const nextDefendMod = defPlan === 'shadow' ? 10 : (defPlan === 'counter_ruck' ? -8 : 0);
+  state.breakdownMod = { attack: nextAttackMod, defend: nextDefendMod };
+
   const forwardPool = attackTeam.players.filter(p => p.id <= 8 && p.id !== carrierId);
   if (forwardPool.length === 0) forwardPool.push(attackTeam.players[0]);
   const pool = [...forwardPool];
@@ -64,6 +72,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
     adjustRating(jackal, +0.3);
     adjustRating(primary, -0.1);
     state.possession = state.possession === 'home' ? 'away' : 'home';
+    state.breakdownMod = { attack: 0, defend: 0 };
     return {
       nextPhase: MatchPhase.OpenPlay,
       commentary: getCommentary({ ...draftEvent(MatchPhase.Breakdown), primaryPlayer: jackal, secondaryPlayer: primary }, 'turnover'),
@@ -75,6 +84,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
   // penalty_defending — defending team awarded the penalty, so possession flips to them
   adjustRating(primary, -0.25);
   state.possession = state.possession === 'home' ? 'away' : 'home';
+  state.breakdownMod = { attack: 0, defend: 0 };
   return {
     nextPhase: MatchPhase.Penalty,
     commentary: getCommentary({ ...draftEvent(MatchPhase.Breakdown), primaryPlayer: primary, secondaryPlayer: jackal }, 'penalty_defending'),

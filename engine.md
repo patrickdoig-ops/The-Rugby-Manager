@@ -164,7 +164,9 @@ Carrier only. The defender has no influence. If it fails, possession flips and a
 
 ### Step 2 — Evasion vs defence
 
-If the ball is controlled, the carrier attempts to evade the defence. The carrier's evasion score is a mix of their agility and pace, while the defender relies on their positioning and pace to track them down. Both scores include a random factor, and the defence score is subtracted from the evasion score to determine the margin:
+If the ball is controlled, the carrier attempts to evade the defence. The carrier's evasion score is a mix of their agility and pace, while the defender relies on their positioning and pace to track them down. Both scores include a random factor. If a `breakdownMod` was set by the preceding breakdown phase, `attackMod` is added to the evasion score and `defendMod` is added to the defence score before the margin is calculated — see the Breakdown section for values.
+
+The defence score is subtracted from the evasion score to determine the margin:
 
 | Margin | Result |
 |---|---|
@@ -210,11 +212,24 @@ backRow     = defendTeam.players.filter(p => p.id >= 6 && p.id <= 8)
 Three attacking forwards are chosen at random from the full forward pool (ids 1–8). The defending jackal is chosen at random from the back row (ids 6–8); each of the three back-row players has an equal chance of attempting the steal.
 
 **Tactical Breakdown Commitment (`AttackingBreakdown` & `DefendingBreakdown`):**
-- **Attacking:** Supporter count is driven by `attackTeam.tactics.attackingBreakdown`: `pick_and_drive` commits 4 forwards; `balanced` commits 3 forwards; `wide_play` commits 2 forwards.
+- **Attacking:** Supporter count is driven by `attackTeam.tactics.attackingBreakdown`: `pick_and_drive` commits 4 forwards; `balanced` commits 3 forwards; `wide_play` commits 2 forwards. Commitment also adds a direct ARS bonus: `pick_and_drive` +8, `balanced` 0, `wide_play` −5.
 - **Defending:** Strategy is driven by `defendTeam.tactics.defendingBreakdown`:
   - `jackal`: Relies on individual back-row specialist's breakdown stat (standard turnover contest).
   - `counter_ruck`: Engages the entire defending pack (ids 1–8) using average strength and breakdown power.
   - `shadow`: Concedes ruck ball (low defensive score) to maintain a perfectly aligned defensive line.
+
+**Next-phase carry-over (`state.breakdownMod`):** Committing more players to the ruck leaves fewer available for the next phase. After every breakdown the engine sets `state.breakdownMod.attack` and `state.breakdownMod.defend` which are consumed (and reset to zero) by the very next `OpenPlay` phase, where they are applied as modifiers to the evasion and defence scores respectively.
+
+| Tactic | Effect on next OpenPlay |
+|---|---|
+| `pick_and_drive` | attack −8 evasion (forwards still arriving) |
+| `balanced` | 0 |
+| `wide_play` | attack +8 evasion (extra players on feet outside) |
+| `counter_ruck` | defend −8 (pack committed to ruck) |
+| `jackal` | 0 (one player, line intact) |
+| `shadow` | defend +10 (full defensive line set) |
+
+On turnover or penalty, `breakdownMod` is reset to `{0, 0}` immediately — possession changes reset the context. On Scrum, `breakdownMod` is also reset so stale mods from the BoxKick → Scrum → OpenPlay path don't carry through.
 
 ### Resolution
 
@@ -227,9 +242,9 @@ Both scores include a random dice roll. The defensive score is subtracted from t
 | Margin | Result |
 |---|---|
 | ≥ 10 | `clean_ball` → OpenPlay |
-| 1–9 | `slow_ball` → OpenPlay / BoxKick |
-| −14 to 0 | `turnover` → OpenPlay (possession flips) |
-| ≤ −15 | `penalty_defending` → Penalty (possession flips to defending team) |
+| ≥ −8 | `slow_ball` → OpenPlay / BoxKick |
+| ≥ −14 | `turnover` → OpenPlay (possession flips) |
+| < −14 | `penalty_defending` → Penalty (possession flips to defending team) |
 
 ### Ball movement
 

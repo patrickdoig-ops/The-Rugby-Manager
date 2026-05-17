@@ -4,6 +4,7 @@ import { resolveScrum } from '../resolvers/ScrumResolver';
 import { getCommentary } from '../CommentaryEngine';
 
 export function handleScrum({ state, attackTeam, defendTeam, adjustRating, draftEvent }: PhaseContext): PhaseResult {
+  state.breakdownMod = { attack: 0, defend: 0 };
   const attackForwards = attackTeam.players.filter(p => p.id <= 8);
   const defendForwards = defendTeam.players.filter(p => p.id <= 8);
   const attackHooker   = attackTeam.players.find(p => p.id === 2)!;

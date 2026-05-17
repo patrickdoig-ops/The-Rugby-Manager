@@ -20,7 +20,7 @@ export interface OpenPlayResolution {
   collisionDefend: number;
 }
 
-export function resolveOpenPlay(attacker: Player, defender: Player): OpenPlayResolution {
+export function resolveOpenPlay(attacker: Player, defender: Player, attackMod = 0, defendMod = 0): OpenPlayResolution {
   // Step 1: Handling check
   const handlingScore = attacker.currentStats.handling + rng(1, 20);
   if (handlingScore < 30) {
@@ -28,8 +28,9 @@ export function resolveOpenPlay(attacker: Player, defender: Player): OpenPlayRes
   }
 
   // Step 2: Evasion check
-  const evasionScore  = (attacker.currentStats.agility + attacker.currentStats.pace) / 2 + rng(1, 20);
-  const defenseScore  = (defender.currentStats.positioning + defender.currentStats.pace) / 2 + rng(1, 20);
+  // attackMod/defendMod reflect how many players each team has on their feet after the ruck
+  const evasionScore  = (attacker.currentStats.agility + attacker.currentStats.pace) / 2 + rng(1, 20) + attackMod;
+  const defenseScore  = (defender.currentStats.positioning + defender.currentStats.pace) / 2 + rng(1, 20) + defendMod;
 
   if (evasionScore - defenseScore >= 15) {
     return { outcome: 'line_break', gainMetres: rng(10, 25), handlingScore, evasionScore, defenseScore, collisionAttack: 0, collisionDefend: 0 };

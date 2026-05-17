@@ -46,4 +46,5 @@ export interface MatchState {
   isPaused: boolean;
   halfTimeDone: boolean;
   tickDelayMs: number;
+  breakdownMod: { attack: number; defend: number };
 }

@@ -74,6 +74,7 @@ function initMatchState(homeRaw: Parameters<typeof buildTeam>[0], awayRaw: Param
     isPaused: false,
     halfTimeDone: false,
     tickDelayMs,
+    breakdownMod: { attack: 0, defend: 0 },
   };
 }
 

@@ -166,6 +166,14 @@ Carrier only. The defender has no influence. If it fails, possession flips and a
 
 If the ball is controlled, the carrier attempts to evade the defence. The carrier's evasion score is a mix of their agility and pace, while the defender relies on their positioning and pace to track them down. Both scores include a random factor. If a `breakdownMod` was set by the preceding breakdown phase, `attackMod` is added to the evasion score and `defendMod` is added to the defence score before the margin is calculated — see the Breakdown section for values.
 
+**Backfield Defence front-line penalty:** If the defending team has more than one player committed to the backfield (`backfieldDefence`), their front-line defence is weakened. This penalty is applied to the defend score every carry phase (not via `breakdownMod` — it is always-on because backfield players are continuously absent from the line):
+
+| `backfieldDefence` | `defendMod` adjustment |
+|---|---|
+| `one_back` | 0 |
+| `two_back` | −5 |
+| `three_back` | −10 |
+
 The defence score is subtracted from the evasion score to determine the margin:
 
 | Margin | Result |
@@ -367,6 +375,14 @@ fullback   = defendTeam.players.find(p => p.id === 15)
 
 The scrum half always takes the kick. One attacking winger is selected at random to contest the aerial ball. The defending fullback always receives.
 
+**Backfield Defence modifier (`fullbackMod`):** The defending team's `backfieldDefence` tactic determines how much support the fullback has under the high ball. This is applied as a flat bonus to both the fullback's contested score and the uncontested catch score:
+
+| `backfieldDefence` | `fullbackMod` |
+|---|---|
+| `one_back` | 0 |
+| `two_back` | +8 |
+| `three_back` | +15 |
+
 ### Resolution
 
 **Step 1 — Kick quality gate**
@@ -439,6 +455,16 @@ The kicker relies on their kicking stat and a random factor to generate a kick s
 
 The ball's position on the pitch is updated immediately based on the calculated distance.
 
+**Backfield Defence touch reduction:** The defending team's `backfieldDefence` tactic reduces the effective touch probability — more backfield players mean better kick coverage and a lower chance of the kick finding touch:
+
+| `backfieldDefence` | Touch probability reduction |
+|---|---|
+| `one_back` | 0 |
+| `two_back` | −15 |
+| `three_back` | −25 |
+
+The reduction is applied as `Math.max(0, touchProbability - touchReduction)` so the probability never goes below zero.
+
 ### Step 2 — Out on the full, touch, or caught
 
 The game first rolls a percentage chance against the `outOnTheFullProbability` determined in Step 1.
@@ -449,6 +475,14 @@ If the ball does not go out on the full, the game rolls against `touchProbabilit
 - **Standard Touch:** In all other bouncing touch scenarios (or direct touch from inside own 22), the distance is gained and the defending team gets the throw-in at the lineout.
 
 If the ball **does not** go into touch at all, the defending fullback catches the ball in the field of play. The phase becomes Open Play, and possession flips to the defending team.
+
+**Backfield return momentum:** When the kick is caught in the field, the defending team's backfield players support the counter-attack. A `breakdownMod.attack` bonus is set to give the receiving team an advantage in the next open play phase:
+
+| `backfieldDefence` | `breakdownMod.attack` on catch |
+|---|---|
+| `one_back` | 0 (no bonus) |
+| `two_back` | +5 |
+| `three_back` | +10 |
 
 ### Rating adjustments
 
@@ -592,6 +626,36 @@ state.isRunning = false
 ```
 
 Forces phase to `FullTime`. Emits `engine:event`, `engine:stateChange`, and `engine:finished`. No further ticks are scheduled.
+
+---
+
+## Tactical Commentary
+
+Each event file (`BreakdownEvent`, `OpenPlayEvent`, `TacticalKickEvent`, `BoxKickEvent`) contains a local `tacticNote(chancePct, ...lines)` helper:
+
+```typescript
+function tacticNote(chancePct: number, ...lines: string[]): string {
+  return rng(1, 100) <= chancePct ? ' ' + lines[rng(0, lines.length - 1)] : '';
+}
+```
+
+When a tactic directly influences a key outcome, the handler may append a note to the standard `getCommentary(...)` string. Notes only fire for the **home team** (checked via `state.possession` before any possession flip). Multiple lines are provided per trigger; one is chosen at random. This ensures variety and prevents the feed from becoming formulaic.
+
+Notes cover both the upside and the downside of a tactic choice — a player should see their good decisions rewarded *and* their poor decisions highlighted.
+
+| File | Trigger | Home role | Chance |
+|---|---|---|---|
+| `BreakdownEvent` | `pick_and_drive` + `clean_ball` | attacking | 30% |
+| `BreakdownEvent` | `wide_play` + `slow_ball` | attacking | 30% |
+| `BreakdownEvent` | `wide_play` or `pick_and_drive` + `penalty_defending` | attacking | 25% |
+| `BreakdownEvent` | `jackal` + `turnover` | defending | 35% |
+| `BreakdownEvent` | `counter_ruck` + `slow_ball` or `turnover` | defending | 30% |
+| `BreakdownEvent` | `shadow` + `clean_ball` conceded | defending | 30% |
+| `BreakdownEvent` | `jackal` + `penalty_defending` | defending | 25% |
+| `OpenPlayEvent` | `line_break` + `two_back`/`three_back` defending | defending | 30% |
+| `TacticalKickEvent` | kick caught + `two_back`/`three_back` | defending (now attacking) | 35% |
+| `TacticalKickEvent` | `fifty_twenty_two` + `one_back` | defending | 25% |
+| `BoxKickEvent` | `defend_catch` + `two_back`/`three_back` | defending | 30% |
 
 ---
 

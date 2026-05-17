@@ -146,12 +146,12 @@ Resolver formulas at a glance:
 | Phase | Key formula | Outcome thresholds |
 |---|---|---|
 | **KickOff** | `kickScore = kicking + rng(1,20)` < 35 → knock_on; then `catchScore - chaseScore` | > 10 clean_receive; > -5 contested; else knock_on |
-| **OpenPlay** | 3-step: handling gate → evasion → collision | handling < 30 = knock_on; evasion margin ≥ 15 = line_break; collision ±5 = dominant |
+| **OpenPlay** | 3-step: handling gate → evasion → collision. `backfieldPenalty` applied to defend evasion score: `three_back` −10, `two_back` −5 (front line short). Also consumes `state.breakdownMod` | handling < 30 = knock_on; evasion margin ≥ 15 = line_break; collision ±5 = dominant |
 | **Breakdown** | `ARS = avgBreakdown×0.6 + avgStrength×0.4 + (avgDiscipline−50)×0.15 + rng(1,20) + attackBonus` (attackBonus = 6 if previous play was `dominant_carry`, else 0). DTS varies by `defendingBreakdown`: **jackal** = `jackalBreakdown×0.7 + jackalStrength×0.3 + (jackalDiscipline−50)×0.15 + rng(1,20)`; **counter_ruck** = `avgPackStrength×0.6 + avgPackBreakdown×0.4 + (avgPackDiscipline−50)×0.15 + rng(1,20)`; **shadow** = `rng(1,10)` (concedes ball to set line) | margin ≥ 10 clean_ball; ≥ -8 slow_ball; ≥ -14 turnover; else penalty_defending |
 | **Scrum** | `avg(setPiece×0.6 + strength×0.4) + rng` for each front 5 | attack margin > 0 stable_win; > -15 wheel; else dominant_penalty |
 | **Lineout** | `throwScore = hookerSetPiece + rng` < 40 → auto steal; then `(setPiece×0.5 + agility×0.5) + rng` each jumper | margin ≥ 5 clean_catch; ≥ 0 scrappy_knock_on; else steal |
-| **BoxKick** | `kickScore = kicking + rng(1,20)` ≥ 75 → contested (wingerScore vs fullbackScore); else uncontested catch gate | contested: margin ≥ 10 attack_retain; ≥ 0 defend_knock_on; else defend_catch_contested. Uncontested: catchScore ≥ 35 defend_catch; else knock_on |
-| **TacticalKick** | `kickScore = kicking + rng(1, 20)` < 25 → poor_kick | goodKick: outOnTheFull 0%, touch 75%; poorKick: outOnTheFull 30%, touch 30% → Lineout / OpenPlay |
+| **BoxKick** | `kickScore = kicking + rng(1,20)` ≥ 75 → contested (wingerScore vs fullbackScore + fullbackMod); else uncontested (catchScore + fullbackMod ≥ 35). `fullbackMod`: `three_back` +15, `two_back` +8, `one_back` 0 | contested: margin ≥ 10 attack_retain; ≥ 0 defend_knock_on; else defend_catch_contested. Uncontested: catchScore ≥ 35 defend_catch; else knock_on |
+| **TacticalKick** | `kickScore = kicking + rng(1, 20)` < 25 → poor_kick. Touch probability reduced by backfield: `three_back` −25, `two_back` −15. If kick caught: `breakdownMod.attack` = `three_back` +10, `two_back` +5 | goodKick: outOnTheFull 0%, touch 75% (minus reduction); poorKick: outOnTheFull 30%, touch 30% → Lineout / OpenPlay |
 | **GoalKick** | `kicking + composure×0.2 − anglePenalty + rng(1,20)` | ≥ 65 = success |
 
 ### Player selection per phase
@@ -170,7 +170,7 @@ Resolver formulas at a glance:
 
 ### Tactics system
 
-Four tactic dimensions are defined in `TeamTactics` (see `src/types/team.ts`). The UI (`TacticsMenu.ts`) lets the **home team** change all four mid-match. Away team uses engine defaults and cannot be changed through the UI.
+Five tactic dimensions are defined in `TeamTactics` (see `src/types/team.ts`). The UI (`TacticsMenu.ts`) lets the **home team** change all five mid-match. Away team uses engine defaults and cannot be changed through the UI.
 
 | Tactic | Values | Engine effect |
 |---|---|---|
@@ -178,6 +178,7 @@ Four tactic dimensions are defined in `TeamTactics` (see `src/types/team.ts`). T
 | `attackingGamePlan` | `possession` / `balanced` / `kicking` | Kick-or-carry probability in OpenPlay (per pitch zone); box kick propensity in Breakdown |
 | `attackingBreakdown` | `pick_and_drive` / `balanced` / `wide_play` | Supporter count (4 / 3 / 2) in `BreakdownEvent` |
 | `defendingBreakdown` | `jackal` / `counter_ruck` / `shadow` | DTS formula branch in `BreakdownResolver` |
+| `backfieldDefence` | `one_back` / `two_back` / `three_back` | Touch probability reduction in TacticalKick; `fullbackMod` bonus in BoxKick; front-line penalty in OpenPlay carry; return momentum bonus when kick is caught |
 
 Kick-or-carry probabilities by `attackingGamePlan` and pitch zone:
 
@@ -194,6 +195,24 @@ Box kick propensity by `attackingGamePlan` (triggered from slow ball in Breakdow
 | `possession` | Never |
 | `balanced` | In own half and not in own 22 |
 | `kicking` | Not in opposition 22 and not in own 22 |
+
+### Tactical commentary
+
+Event handlers append tactic-aware commentary notes to the standard `getCommentary(...)` string using a local `tacticNote(chancePct, ...lines)` helper (defined at the top of each event file). The helper returns `' ' + randomLine` at the given probability, or `''`. Notes are only appended when the **home team** is the relevant party (attacker or defender, depending on context). Probabilities are 25–35% so notes appear often enough to be noticed without saturating the feed.
+
+| Event file | Trigger condition | Home team role | Probability |
+|---|---|---|---|
+| `BreakdownEvent` | `pick_and_drive` + `clean_ball` | attacking | 30% |
+| `BreakdownEvent` | `wide_play` + `slow_ball` or turnover conceded | attacking | 30% |
+| `BreakdownEvent` | `pick_and_drive` or `wide_play` + `penalty_defending` | attacking | 25% |
+| `BreakdownEvent` | `jackal` + `turnover` | defending | 35% |
+| `BreakdownEvent` | `counter_ruck` + `slow_ball` or `turnover` | defending | 30% |
+| `BreakdownEvent` | `shadow` + `clean_ball` conceded | defending | 30% |
+| `BreakdownEvent` | `jackal` + `penalty_defending` | defending | 25% |
+| `OpenPlayEvent` | `line_break` + `backfieldPenalty < 0` (two/three_back) | defending | 30% |
+| `TacticalKickEvent` | kick caught + `returnBonus > 0` (two/three_back) | defending (just flipped to attacking) | 35% |
+| `TacticalKickEvent` | `fifty_twenty_two` + `one_back` defending | defending | 25% |
+| `BoxKickEvent` | `defend_catch` + `fullbackMod > 0` (two/three_back) | defending | 30% |
 
 ### Player attributes — known gaps
 

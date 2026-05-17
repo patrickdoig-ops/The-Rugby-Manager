@@ -237,6 +237,25 @@ export class MatchEngine {
       else this.state.stats.territory.away++;
 
       const previousPhase = this.state.phase;
+
+      if (this.state.phase === MatchPhase.BoxKick) {
+        const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
+        const scrumHalf = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
+        const announceEvent: GameEvent = {
+          id: makeId(),
+          gameMinute: this.state.gameMinute,
+          phase: MatchPhase.BoxKick,
+          side: this.state.possession,
+          sideName: attackTeam.name,
+          primaryPlayer: scrumHalf,
+          ballX: this.state.ballX,
+          ballY: this.state.ballY,
+          commentary: getCommentary({ ...this.draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf }, 'announce'),
+        };
+        this.state.events.push(announceEvent);
+        eventBus.emit('engine:event', { event: announceEvent });
+      }
+
       const event = this.resolvePhase();
       this.state.events.push(event);
 

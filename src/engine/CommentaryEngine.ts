@@ -116,6 +116,12 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
     ],
   },
   [MatchPhase.BoxKick]: {
+    announce: [
+      '{primary} picks up from the back of the ruck — he\'s going to box kick!',
+      '{primary} shapes to hoist it — box kick going up!',
+      'Slow ball at the ruck — {primary} is set, he\'s going to box kick upfield!',
+      '{primary} at the base — up it goes! A box kick from the scrum-half!',
+    ],
     attack_retain: [
       '{secondary} wins the aerial contest! Superb kick from {primary} — possession retained!',
       '{secondary} outjumps the fullback — {primary}\'s box kick pays off! {side} keep the ball.',

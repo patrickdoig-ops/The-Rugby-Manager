@@ -6,6 +6,18 @@ import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 
 export function handleOpenPlay({ state, attackTeam, defendTeam, attackDir, isTryScored, adjustRating, randomPlayer, draftEvent }: PhaseContext): PhaseResult {
+  // Step 0 — Kick or carry decision (15% chance to kick)
+  // Future: propensity should be driven by attacking team tactics and pitch location
+  if (rng(1, 100) <= 15) {
+    const flyHalf = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
+    return {
+      nextPhase: MatchPhase.TacticalKick,
+      commentary: getCommentary({ ...draftEvent(MatchPhase.OpenPlay) }, 'kick_decision'),
+      primaryPlayer: flyHalf,
+    };
+  }
+
+  // Step 1 — Handling gate → Step 2 Evasion → Step 3 Collision
   const carrier  = randomPlayer(attackTeam);
   const defender = randomPlayer(defendTeam);
   const res = resolveOpenPlay(carrier, defender);
@@ -38,10 +50,6 @@ export function handleOpenPlay({ state, attackTeam, defendTeam, attackDir, isTry
     state.ballX = clamp(state.ballX + attackDir() * res.gainMetres, 0, 100);
     nextPhase = MatchPhase.Breakdown;
     commentary = getCommentary({ ...draftEvent(MatchPhase.OpenPlay), primaryPlayer: carrier, secondaryPlayer: defender }, res.outcome);
-  }
-
-  if (nextPhase === MatchPhase.Breakdown && rng(1, 100) <= 15) {
-    nextPhase = MatchPhase.TacticalKick;
   }
 
   return { nextPhase, commentary, primaryPlayer: carrier, secondaryPlayer: defender };

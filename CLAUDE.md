@@ -116,6 +116,10 @@ Resolver formulas at a glance:
 | ConversionKick | id=10 (fly-half) | — |
 | TryScored | `randomPlayer(attackTeam)` — not the actual carrier | — |
 
+### Open Play — future development notes
+
+- **Kick propensity:** the 15% kick-or-carry decision at the start of open play is a flat probability. It should be driven by the attacking team's tactical setting (a "kicking game" tactic raises the likelihood; a "possession game" lowers it) and by pitch location (e.g. kicking from inside your own 22 or near the touchline is unusual even for kicking teams).
+
 ### Breakdown — future development notes
 
 - **Number of forwards deployed** should be driven by the attacking team's tactical setting (e.g. a "pick-and-drive" tactic deploys more forwards; a "wide game" tactic fewer). Currently hard-coded to 3.

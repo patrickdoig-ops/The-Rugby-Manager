@@ -23,6 +23,11 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
     ],
   },
   [MatchPhase.OpenPlay]: {
+    kick_decision: [
+      '{side} elect to kick rather than take contact.',
+      'Quick thinking from {side} — the ball is kicked rather than carried.',
+      '{side} go to the boot, looking to change the point of attack.',
+    ],
     knock_on: [
       '{primary} knocks on under pressure! Scrum to {secondary}\'s team.',
       'Unforced error from {primary} — the ball squirts forward. Scrum awarded.',

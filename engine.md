@@ -141,6 +141,16 @@ defender = randomPlayer(defendTeam)   // any of 15
 
 No positional weighting. All 15 players are equally likely to be drawn regardless of position.
 
+### Step 0 — Kick or carry decision
+
+```
+rng(1, 100) ≤ 15  →  TacticalKick (phase exits immediately, no carrier selected)
+```
+
+Checked before any player is selected. If it fires, the fly-half (id=10) is logged as `primaryPlayer` for commentary and the phase transitions to `TacticalKick`. Steps 1–3 do not run.
+
+**Future development:** propensity to kick should be driven by the attacking team's tactical setting (a "kicking game" tactic raises the threshold; a "possession game" lowers it) and by pitch location (e.g. kicking from inside your own 22 is unusual even for kicking teams).
+
 ### Step 1 — Handling gate
 
 ```
@@ -177,7 +187,7 @@ margin          = collisionAttack − collisionDefend
 | −4 to +4 | `play_on` | 1–4m |
 | ≤ −5 | `dominant_tackle` | −2 to +1m |
 
-All three outcomes transition to Breakdown. After that, a flat 15% random chance redirects to TacticalKick instead.
+All three outcomes transition to Breakdown.
 
 ### Ball movement
 

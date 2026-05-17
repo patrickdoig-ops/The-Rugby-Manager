@@ -1,6 +1,6 @@
 # Design Guide
 
-This guide documents the current Rugby Simulator UI. It is specific to this repo's plain DOM and CSS implementation. It does not use React, Tailwind, Framer Motion, or component libraries.
+This guide documents the current Rugby Simulator UI. It is specific to this repo's DOM and CSS implementation.
 
 For engine behaviour, formulas, and phase rules, use `engine.md`. For contributor workflow, versioning, and architecture constraints, use `CLAUDE.md`.
 
@@ -191,8 +191,7 @@ Make fixed-format elements stable with explicit dimensions or responsive constra
 
 ## Don't
 
-- Do not introduce a framework or component library for small UI changes.
-- Do not use Tailwind, Framer Motion, or React patterns in this repo unless the app is deliberately migrated.
+- Do not introduce new component libraries for small UI changes without discussion.
 - Do not hardcode deploy-sensitive paths or asset bases.
 - Do not reverse semantic colours: green is positive/OK, red is penalty/poor/low, amber is try/warning, purple is terminal phase.
 - Do not add ornamental UI that reduces scannability during a match.

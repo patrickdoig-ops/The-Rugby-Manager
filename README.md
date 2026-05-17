@@ -24,5 +24,5 @@ The codebase is heavily documented to maintain strict architectural and design g
 ## Architecture Overview
 
 - **Event-Driven Interface:** The engine never imports or mutates UI components directly. It publishes events via a centralized `eventBus` (e.g., `engine:stateChange`, `engine:event`), allowing isolated UI modules to update reactively.
-- **Vanilla Tech Stack:** Built without React, Vue, or Tailwind. The project relies on plain HTML, modular TypeScript classes, and scoped CSS variables for robust styling.
+- **Modular Tech Stack:** The project relies on plain HTML, modular TypeScript classes, and scoped CSS variables for robust styling.
 - **Phased State Machine:** Match flow follows a rigorous state machine (e.g., `KickOff` → `OpenPlay` → `Breakdown` / `Scrums` / `Lineouts`), resolving actions by comparing player attributes mixed with RNG.

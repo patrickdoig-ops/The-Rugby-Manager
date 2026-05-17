@@ -3,6 +3,7 @@ import { MatchPhase } from '../../types/engine';
 import { resolveKickOff } from '../resolvers/KickOffResolver';
 import { getCommentary } from '../CommentaryEngine';
 import { clamp } from '../../utils/math';
+import { rng } from '../../utils/rng';
 
 export function handleKickOff({ state, attackTeam, defendTeam, attackDir, adjustRating, randomPlayer, draftEvent }: PhaseContext): PhaseResult {
   const kicker   = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
@@ -35,7 +36,17 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, adjust
     };
   }
 
-  // contested — neither side secures cleanly, but the receiving team scrambles possession
+  // contested — a short kick gives the kicking team a small chance to regather (15%)
+  if (attackTeam.tactics.kickOffStrategy === 'short_kick' && rng(1, 100) <= 15) {
+    return {
+      nextPhase: MatchPhase.OpenPlay,
+      commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: chaser, secondaryPlayer: receiver }, 'short_kick_retain'),
+      primaryPlayer: chaser,
+      secondaryPlayer: receiver,
+    };
+  }
+
+  // All other contested results — receiving team scrambles possession
   state.possession = state.possession === 'home' ? 'away' : 'home';
   return {
     nextPhase: MatchPhase.OpenPlay,

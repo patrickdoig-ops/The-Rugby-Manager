@@ -36,6 +36,11 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
       'The kick barely travels 10 metres — {primary} re-kicks from the restart zone.',
       'A poor kick-off from {primary}, not reaching the 10-metre line.',
     ],
+    short_kick_retain: [
+      'Clever short kick-off and {primary} wins it back! {side} retain possession!',
+      'What a restart! The short kick catches the opposition flat — {primary} regathers!',
+      '{primary} chases the short kick and claims it — a perfectly executed restart!',
+    ],
   },
   [MatchPhase.OpenPlay]: {
     kick_decision: [

@@ -244,7 +244,7 @@ margin = ARS − DTS
 | ≥ 10 | `clean_ball` → OpenPlay |
 | 1–9 | `slow_ball` → OpenPlay |
 | −14 to 0 | `turnover` → OpenPlay (possession flips) |
-| ≤ −15 | `penalty_defending` → Penalty (possession keeps) |
+| ≤ −15 | `penalty_defending` → Penalty (possession flips to defending team) |
 
 ### Ball movement
 

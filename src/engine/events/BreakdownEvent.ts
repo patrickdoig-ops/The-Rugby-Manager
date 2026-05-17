@@ -50,8 +50,9 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
     };
   }
 
-  // penalty_defending
+  // penalty_defending — defending team awarded the penalty, so possession flips to them
   adjustRating(primary, -0.25);
+  state.possession = state.possession === 'home' ? 'away' : 'home';
   return {
     nextPhase: MatchPhase.Penalty,
     commentary: getCommentary({ ...draftEvent(MatchPhase.Breakdown), primaryPlayer: primary, secondaryPlayer: jackal }, 'penalty_defending'),

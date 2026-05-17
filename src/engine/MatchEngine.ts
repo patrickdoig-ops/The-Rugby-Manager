@@ -290,7 +290,8 @@ export class MatchEngine {
           const idx = rng(0, pool.length - 1);
           supporters.push(...pool.splice(idx, 1));
         }
-        const jackal     = defendTeam.players.find(p => p.id === 7) ?? defendTeam.players[0];
+        const backRow    = defendTeam.players.filter(p => p.id >= 6 && p.id <= 8);
+        const jackal     = backRow.length > 0 ? backRow[rng(0, backRow.length - 1)] : defendTeam.players[0];
         primaryPlayer   = supporters[0];
         secondaryPlayer = jackal;
         const res = resolveBreakdown(supporters, jackal);

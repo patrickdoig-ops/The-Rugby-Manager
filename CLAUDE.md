@@ -106,7 +106,7 @@ Resolver formulas at a glance:
 |---|---|---|
 | KickOff | id=10 (fly-half) as kicker; random as chaser | random receiver |
 | OpenPlay | `randomPlayer(attackTeam)` | `randomPlayer(defendTeam)` |
-| Breakdown | 3 forwards sampled at random without replacement from `players.filter(p.id <= 8)` | id=7 (openside flanker) |
+| Breakdown | 3 forwards sampled at random without replacement from `players.filter(p.id <= 8)` | 1 back-row player sampled at random from `players.filter(p.id >= 6 && p.id <= 8)` |
 | Scrum | `players.filter(p => p.id <= 5)` (front 5) | same filter on defend team |
 | Lineout | hooker=id 2; jumper=`find(id===4\|5\|6)` → always id 4 | `find(id===4\|5\|6)` → always id 4 |
 | TacticalKick | id=10 or id=9 (fly-half/scrum-half) | id=15 (fullback) |
@@ -117,6 +117,7 @@ Resolver formulas at a glance:
 
 - **Number of forwards deployed** should be driven by the attacking team's tactical setting (e.g. a "pick-and-drive" tactic deploys more forwards; a "wide game" tactic fewer). Currently hard-coded to 3.
 - **Ball carrier exclusion:** if the open-play ball carrier was a forward (id ≤ 8) they should be excluded from the forward pool when selecting breakdown supporters — a player cannot carry the ball into contact and also arrive as a support runner. The carrier is not currently threaded from `OpenPlay` into `Breakdown`, so this requires tracking the carrier on `MatchState` or passing it through the phase transition first.
+- **Defensive breakdown tactics:** the number of defensive forwards deployed to a breakdown should depend on the defending team's tactical setting. The defending team should also choose between two strategies: **jackal** (attempt a turnover steal, current behaviour) and **counter ruck** (use collective forward power to drive the attackers off the ball). Currently only the jackal is modelled.
 
 ### Player attributes — known gaps
 

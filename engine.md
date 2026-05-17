@@ -204,12 +204,15 @@ state.ballX = clamp(state.ballX + attackDir() × gainMetres, 0, 100)
 ```typescript
 forwardPool = attackTeam.players.filter(p => p.id <= 8)   // all forwards (props, hooker, locks, flankers, no. 8)
 supporters  = 3 players sampled without replacement from forwardPool using rng()
-jackal      = defendTeam.players.find(p => p.id === 7) ?? defendTeam.players[0]
+backRow     = defendTeam.players.filter(p => p.id >= 6 && p.id <= 8)   // blindside, openside, no. 8
+jackal      = backRow[rng(0, backRow.length - 1)]
 ```
 
-Three forwards are chosen at random from the full forward pool (ids 1–8) on each breakdown. Each forward has an equal chance of being selected, so flankers and number 8 now contribute alongside props and locks. The defending jackal is always the openside flanker (id 7).
+Three attacking forwards are chosen at random from the full forward pool (ids 1–8). The defending jackal is chosen at random from the back row (ids 6–8); each of the three back-row players has an equal chance of attempting the steal.
 
-**Future development:** The number of forwards deployed to a breakdown should be driven by the attacking team's tactical setting (e.g. pick-and-drive deploys more forwards; wide game deploys fewer). Additionally, if the open-play ball carrier was a forward (id ≤ 8) they should be excluded from the pool — a player cannot carry the ball into contact and simultaneously arrive as a support runner. Implementing this requires the carrier to be threaded from the `OpenPlay` case into `Breakdown`, either via `MatchState` or a phase-transition payload.
+**Future development:**
+- **Attacking:** the number of forwards deployed should be driven by the attacking team's tactical setting (pick-and-drive deploys more; wide game deploys fewer). The open-play ball carrier (if a forward) should be excluded from the support pool — a player cannot carry the ball into contact and simultaneously arrive as a support runner. This requires the carrier to be threaded from `OpenPlay` into `Breakdown` via `MatchState` or a phase-transition payload.
+- **Defending:** the number of defensive forwards deployed should depend on the defending team's tactical setting. The defending team should also choose between **jackal** (attempt a turnover steal, current behaviour) and **counter ruck** (use collective forward power to drive the attackers off the ball). Counter ruck would require a second resolver formula comparing pack scores rather than individual breakdown stats.
 
 ### Resolution
 

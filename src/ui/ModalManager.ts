@@ -3,9 +3,9 @@ import type { PenaltyChoice } from '../types/engine';
 import { renderTacticsMenu } from './TacticsMenu';
 
 const CHOICE_LABELS: Record<PenaltyChoice, string> = {
-  kick_for_goal: '⚽ Kick for Goal (3 pts)',
-  kick_to_touch: '📐 Kick to Touch (Lineout)',
-  tap_and_go:    '🏃 Tap & Go (Run it!)',
+  kick_for_goal: 'Kick for Goal (3 pts)',
+  kick_to_touch: 'Kick to Touch (Lineout)',
+  tap_and_go:    'Tap & Go (Run it!)',
 };
 
 const CHOICE_DESC: Record<PenaltyChoice, string> = {
@@ -25,7 +25,7 @@ export function initModalManager(): void {
     const zone = context.inOpposition22 ? 'in the opposition 22' : 'in the opposition half';
 
     box.innerHTML = `
-      <h2 class="modal-title">🟡 Penalty Awarded!</h2>
+      <h2 class="modal-title">Penalty Awarded!</h2>
       <p class="modal-subtitle">${context.attackingSide === 'home' ? 'Home' : 'Away'} team — ${zone}</p>
       <div class="modal-choices">
         ${(['kick_for_goal', 'kick_to_touch', 'tap_and_go'] as PenaltyChoice[]).map(key => `

@@ -405,6 +405,8 @@ html, body {
   box-shadow: none;
 }
 
+.ctrl-btn svg { pointer-events: none; flex-shrink: 0; }
+
 /* Speed control */
 .speed-label {
   display: flex;

@@ -8,33 +8,33 @@ interface OptionDef<T> {
 }
 
 const KICKOFF_OPTIONS: OptionDef<KickOffStrategy>[] = [
-  { value: 'high_ball',  label: '🏉 High Ball',   desc: 'Deep kick with hang time to allow chasers to contest cleanly.' },
-  { value: 'short_kick', label: '⚡ Short Kick',  desc: 'Just crosses the 10m line for an aggressive aerial contest.' },
-  { value: 'grubber',    label: '🎳 Grubber',    desc: 'Low hard kick along the ground to force handling errors.' },
+  { value: 'high_ball',  label: 'High Ball',   desc: 'Deep kick with hang time to allow chasers to contest cleanly.' },
+  { value: 'short_kick', label: 'Short Kick',  desc: 'Just crosses the 10m line for an aggressive aerial contest.' },
+  { value: 'grubber',    label: 'Grubber',     desc: 'Low hard kick along the ground to force handling errors.' },
 ];
 
 const ATTACK_PLAN_OPTIONS: OptionDef<AttackingGamePlan>[] = [
-  { value: 'possession', label: '🤲 Possession', desc: 'Patient phase play, minimal kicking, keep ball in hand.' },
-  { value: 'balanced',   label: '⚖️ Balanced',   desc: 'Mixed kick/carry approach adapting dynamically to pitch zone.' },
-  { value: 'kicking',    label: '🥾 Territorial',desc: 'Frequent tactical kicking to play the game in opposition territory.' },
+  { value: 'possession', label: 'Possession', desc: 'Patient phase play, minimal kicking, keep ball in hand.' },
+  { value: 'balanced',   label: 'Balanced',   desc: 'Mixed kick/carry approach adapting dynamically to pitch zone.' },
+  { value: 'kicking',    label: 'Territorial', desc: 'Frequent tactical kicking to play the game in opposition territory.' },
 ];
 
 const ATTACK_RUCK_OPTIONS: OptionDef<AttackingBreakdown>[] = [
-  { value: 'pick_and_drive', label: '🛡️ Heavy Commit',  desc: 'Commit 3–4 forwards to rucks to ensure clean ball delivery.' },
-  { value: 'balanced',       label: '⚖️ Balanced Ruck', desc: 'Standard 2–3 forwards supporting the breakdown.' },
-  { value: 'wide_play',      label: '🏃 Wide Play',     desc: 'Minimal ruck commit (1–2) to keep extra attackers in the backline.' },
+  { value: 'pick_and_drive', label: 'Heavy Commit',  desc: 'Commit 3–4 forwards to rucks to ensure clean ball delivery.' },
+  { value: 'balanced',       label: 'Balanced Ruck', desc: 'Standard 2–3 forwards supporting the breakdown.' },
+  { value: 'wide_play',      label: 'Wide Play',     desc: 'Minimal ruck commit (1–2) to keep extra attackers in the backline.' },
 ];
 
 const DEFEND_RUCK_OPTIONS: OptionDef<DefendingBreakdown>[] = [
-  { value: 'jackal',       label: '🪝 Jackal Steal', desc: 'Rely on individual back-row specialists for turnover steals.' },
-  { value: 'counter_ruck', label: '💥 Counter Ruck', desc: 'Commit pack forwards to blow through the ruck and disrupt ball.' },
-  { value: 'shadow',       label: '🧱 Shadow Line',  desc: 'Concede ruck ball to maintain a perfectly set defensive line.' },
+  { value: 'jackal',       label: 'Jackal Steal', desc: 'Rely on individual back-row specialists for turnover steals.' },
+  { value: 'counter_ruck', label: 'Counter Ruck', desc: 'Commit pack forwards to blow through the ruck and disrupt ball.' },
+  { value: 'shadow',       label: 'Shadow Line',  desc: 'Concede ruck ball to maintain a perfectly set defensive line.' },
 ];
 
 const BACKFIELD_OPTIONS: OptionDef<BackfieldDefence>[] = [
-  { value: 'one_back',   label: '1️⃣ One Back',   desc: 'Standard fullback only. Maximum players in the front defensive line.' },
-  { value: 'two_back',   label: '2️⃣ Two Back',   desc: 'Fullback + one wing. Balanced kick cover and front-line strength.' },
-  { value: 'three_back', label: '3️⃣ Three Back',  desc: 'Full back three deployed deep. Strong kick defence, thinner front line.' },
+  { value: 'one_back',   label: 'One Back',   desc: 'Standard fullback only. Maximum players in the front defensive line.' },
+  { value: 'two_back',   label: 'Two Back',   desc: 'Fullback + one wing. Balanced kick cover and front-line strength.' },
+  { value: 'three_back', label: 'Three Back', desc: 'Full back three deployed deep. Strong kick defence, thinner front line.' },
 ];
 
 export function renderTacticsMenu(
@@ -68,7 +68,7 @@ export function renderTacticsMenu(
 
   container.innerHTML = `
     <div class="tactics-menu-wrapper ${isModal ? 'modal-view' : ''}">
-      ${isModal ? `<h2 class="tactics-main-title">📋 Tactical Adjustments</h2>` : ''}
+      ${isModal ? `<h2 class="tactics-main-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18" style="vertical-align:-3px;margin-right:8px"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/></svg>Tactical Adjustments</h2>` : ''}
       <div class="tactics-categories-container">
         ${renderCategory('Kick-Off Strategy', 'kickOffStrategy', KICKOFF_OPTIONS)}
         ${renderCategory('Attacking Game Plan', 'attackingGamePlan', ATTACK_PLAN_OPTIONS)}
@@ -78,7 +78,7 @@ export function renderTacticsMenu(
       </div>
       ${isModal ? `
         <div class="tactics-modal-footer">
-          <button id="btn-resume-match" class="tactics-resume-btn">▶ Resume Match</button>
+          <button id="btn-resume-match" class="tactics-resume-btn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14" style="vertical-align:-1px;margin-right:6px"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>Resume Match</button>
         </div>
       ` : ''}
     </div>

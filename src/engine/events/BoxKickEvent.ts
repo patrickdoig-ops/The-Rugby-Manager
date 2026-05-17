@@ -5,6 +5,10 @@ import { getCommentary } from '../CommentaryEngine';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 
+function tacticNote(chancePct: number, ...lines: string[]): string {
+  return rng(1, 100) <= chancePct ? ' ' + lines[rng(0, lines.length - 1)] : '';
+}
+
 export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjustRating, randomPlayer, draftEvent }: PhaseContext): PhaseResult {
   const scrumHalf  = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
   const wingerPool = attackTeam.players.filter(p => p.id === 11 || p.id === 14);
@@ -55,10 +59,20 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
 
   if (res.outcome === 'defend_catch') {
     adjustRating(fullback, +0.1);
+    // home team is defending (not possessing) when the box kick goes up
+    const homeIsDefending = state.possession !== 'home';
+    const catchNote = (homeIsDefending && fullbackMod > 0)
+      ? tacticNote(30,
+          "The backfield numbers are making the difference — the fullback had plenty of cover and took that cleanly.",
+          fullbackMod >= 15
+            ? "Three in the backfield: the box kick had no chance, they had the numbers to deal with it comfortably."
+            : "The extra cover in the backfield paid off — that kick never had a chance of being contested.",
+        )
+      : '';
     state.possession = state.possession === 'home' ? 'away' : 'home';
     return {
       nextPhase: MatchPhase.OpenPlay,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: winger }, 'defend_catch'),
+      commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: winger }, 'defend_catch') + catchNote,
       primaryPlayer: scrumHalf,
       secondaryPlayer: winger,
     };

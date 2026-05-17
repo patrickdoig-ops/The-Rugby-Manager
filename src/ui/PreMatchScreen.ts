@@ -37,6 +37,11 @@ const STAT_ABBR: Record<keyof PlayerStats, string> = {
   composure:   'CMP',
 };
 
+function computeOverall(stats: PlayerStats): number {
+  const vals = Object.values(stats) as number[];
+  return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+}
+
 function tierClass(v: number): string {
   if (v >= 90) return 'tier-elite';
   if (v >= 80) return 'tier-great';
@@ -46,6 +51,14 @@ function tierClass(v: number): string {
 }
 
 function renderPlayer(p: RawPlayer, color: string): string {
+  const ovr = computeOverall(p.baseStats);
+  const ovrGroup = `<div class="attr-group attr-group--ovr">
+    <div class="attr-cell ${tierClass(ovr)}">
+      <span class="attr-key">OVR</span>
+      <span class="attr-val">${ovr}</span>
+    </div>
+  </div>`;
+
   const groupCells = STAT_GROUPS.map(g =>
     `<div class="attr-group">
       ${g.keys.map(k => {
@@ -68,12 +81,15 @@ function renderPlayer(p: RawPlayer, color: string): string {
         <span class="pm-pos">${p.position}</span>
       </div>
     </div>
-    <div class="pm-attrs">${groupCells}</div>
+    <div class="pm-attrs">${ovrGroup}${groupCells}</div>
   </div>`;
 }
 
 function renderRoster(team: RawTeam): string {
   return `<div class="pm-legend">
+    <div class="legend-group legend-group--ovr">
+      <span class="legend-item">OVR</span>
+    </div>
     ${STAT_GROUPS.map(g =>
       `<div class="legend-group">
         ${g.keys.map(k => `<span class="legend-item">${STAT_ABBR[k]}</span>`).join('')}

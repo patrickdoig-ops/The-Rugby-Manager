@@ -198,6 +198,7 @@ export class MatchEngine {
   }
 
   private async tick(): Promise<void> {
+    this.tickTimeout = null;
     if (!this.state.isRunning) return;
 
     const timeAdvance = 0.5 + rng(0, 15) / 10;

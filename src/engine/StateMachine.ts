@@ -3,7 +3,7 @@ import { MatchPhase } from '../types/engine';
 type TransitionMap = Partial<Record<MatchPhase, MatchPhase[]>>;
 
 const VALID_TRANSITIONS: TransitionMap = {
-  [MatchPhase.KickOff]:        [MatchPhase.OpenPlay],
+  [MatchPhase.KickOff]:        [MatchPhase.OpenPlay, MatchPhase.Scrum],
   [MatchPhase.OpenPlay]:       [MatchPhase.Breakdown, MatchPhase.TacticalKick, MatchPhase.TryScored, MatchPhase.Penalty, MatchPhase.HalfTime, MatchPhase.FullTime, MatchPhase.Scrum],
   [MatchPhase.Breakdown]:      [MatchPhase.OpenPlay, MatchPhase.Scrum, MatchPhase.Lineout, MatchPhase.Penalty, MatchPhase.BoxKick],
   [MatchPhase.BoxKick]:        [MatchPhase.OpenPlay, MatchPhase.Scrum],

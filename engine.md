@@ -32,11 +32,11 @@ Never compute ball direction or territory logic outside these helpers.
 ### Phase state machine
 
 ```
-KickOff      → OpenPlay
+KickOff      → OpenPlay | Scrum
 OpenPlay     → Breakdown | TacticalKick | TryScored | Penalty | Scrum | HalfTime | FullTime
 Breakdown    → OpenPlay | BoxKick | Scrum | Lineout | Penalty
 BoxKick      → OpenPlay | Scrum
-Scrum        → OpenPlay | Penalty
+Scrum        → OpenPlay | Penalty | Scrum
 Lineout      → OpenPlay | Scrum
 TacticalKick → OpenPlay | Lineout | Scrum
 TryScored    → ConversionKick → KickOff

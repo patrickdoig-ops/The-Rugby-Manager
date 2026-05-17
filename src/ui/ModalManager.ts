@@ -22,13 +22,11 @@ export function initModalManager(): void {
     if (payload.type !== 'penalty_choice') return;
 
     const { context, onChoice } = payload;
-    const zone = context.attackingSide === 'home'
-      ? `${Math.round(100 - context.ballX)}m from touch`
-      : `${Math.round(context.ballX)}m from touch`;
+    const zone = context.inOpposition22 ? 'in the opposition 22' : 'in the opposition half';
 
     box.innerHTML = `
       <h2 class="modal-title">🟡 Penalty Awarded!</h2>
-      <p class="modal-subtitle">${context.attackingSide === 'home' ? 'Home' : 'Away'} team — ${zone} in opposition 22</p>
+      <p class="modal-subtitle">${context.attackingSide === 'home' ? 'Home' : 'Away'} team — ${zone}</p>
       <div class="modal-choices">
         ${(['kick_for_goal', 'kick_to_touch', 'tap_and_go'] as PenaltyChoice[]).map(key => `
           <button class="modal-choice-btn" data-choice="${key}">

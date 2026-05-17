@@ -10,8 +10,9 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
   const defPlan = defendTeam.tactics.defendingBreakdown;
 
   const lastEvent = state.events[state.events.length - 1];
-  const carrierId = lastEvent?.primaryPlayer?.id;
-  const attackBonus = lastEvent?.outcome === 'dominant_carry' ? 6 : 0;
+  const lastOpenPlay = lastEvent?.phase === MatchPhase.OpenPlay ? lastEvent : undefined;
+  const carrierId = lastOpenPlay?.primaryPlayer?.id;
+  const attackBonus = lastOpenPlay?.outcome === 'dominant_carry' ? 6 : 0;
   const forwardPool = attackTeam.players.filter(p => p.id <= 8 && p.id !== carrierId);
   if (forwardPool.length === 0) forwardPool.push(attackTeam.players[0]);
   const pool = [...forwardPool];

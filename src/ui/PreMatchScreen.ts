@@ -1,5 +1,5 @@
 import type { PlayerStats } from '../types/player';
-import type { TeamTactics } from '../types/team';
+import { DEFAULT_TACTICS } from '../types/team';
 import { renderTacticsMenu } from './TacticsMenu';
 
 type RawPlayer = {
@@ -136,13 +136,7 @@ export function initPreMatchScreen(
   `;
 
   const tacticsContainer = screen.querySelector<HTMLElement>('#pm-tactics')!;
-  const defaultTactics: TeamTactics = {
-    kickOffStrategy: 'high_ball',
-    attackingGamePlan: 'balanced',
-    attackingBreakdown: 'balanced',
-    defendingBreakdown: 'jackal',
-  };
-  renderTacticsMenu(tacticsContainer, defaultTactics);
+  renderTacticsMenu(tacticsContainer, { ...DEFAULT_TACTICS });
 
   const tabs         = screen.querySelectorAll<HTMLButtonElement>('.pm-tab');
   const homePanel    = screen.querySelector<HTMLElement>('#pm-home')!;

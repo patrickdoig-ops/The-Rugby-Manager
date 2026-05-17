@@ -24,3 +24,10 @@ export interface Team {
   tactics: TeamTactics;
 }
 
+export const DEFAULT_TACTICS: TeamTactics = {
+  kickOffStrategy: 'high_ball',
+  attackingGamePlan: 'balanced',
+  attackingBreakdown: 'balanced',
+  defendingBreakdown: 'jackal',
+};
+

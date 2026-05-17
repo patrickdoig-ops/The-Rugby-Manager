@@ -42,6 +42,7 @@ export function handleLineout({ state, attackTeam, defendTeam, adjustRating, pic
   adjustRating(defendJumper, +0.3);
   adjustRating(attackJumper, -0.1);
   state.possession = state.possession === 'home' ? 'away' : 'home';
+  state.stats.lineouts[state.possession]++;
   return {
     nextPhase: MatchPhase.OpenPlay,
     commentary: getCommentary({ ...draftEvent(MatchPhase.Lineout), primaryPlayer: defendJumper, secondaryPlayer: attackJumper }, 'steal'),

@@ -1,5 +1,6 @@
 import type { MatchState, GameEvent } from '../types/match';
 import type { Team } from '../types/team';
+import { DEFAULT_TACTICS } from '../types/team';
 import type { Player, PlayerStats } from '../types/player';
 import { MatchPhase, type PossessionSide, type PenaltyChoice } from '../types/engine';
 import { StateMachine } from './StateMachine';
@@ -45,12 +46,7 @@ function buildTeam(raw: { id: string; name: string; shortName: string; color: st
   return {
     ...raw,
     players: raw.players.map(initPlayer),
-    tactics: {
-      kickOffStrategy: 'high_ball',
-      attackingGamePlan: 'balanced',
-      attackingBreakdown: 'balanced',
-      defendingBreakdown: 'jackal',
-    },
+    tactics: { ...DEFAULT_TACTICS },
   };
 }
 
@@ -233,7 +229,8 @@ export class MatchEngine {
       }
 
       this.state.stats.possession[this.state.possession]++;
-      if (this.state.ballX > 50) this.state.stats.territory.home++;
+      const homeInOppHalf = !this.state.halfTimeDone ? this.state.ballX > 50 : this.state.ballX < 50;
+      if (homeInOppHalf) this.state.stats.territory.home++;
       else this.state.stats.territory.away++;
 
       const previousPhase = this.state.phase;
@@ -276,6 +273,7 @@ export class MatchEngine {
 
       const event = this.resolvePhase();
       this.state.events.push(event);
+      if (this.state.events.length > 300) this.state.events.splice(0, this.state.events.length - 300);
 
       eventBus.emit('engine:event', { event });
       eventBus.emit('engine:stateChange', { state: this.state });
@@ -330,9 +328,10 @@ export class MatchEngine {
       defendTeam,
       attackDir:      () => this.attackDir(),
       isTryScored:    () => this.isTryScored(),
-      inOpposition22: () => this.inOpposition22(),
-      inOwn22:        () => this.inOwn22(),
-      inOwnHalf:      () => this.inOwnHalf(),
+      inOpposition22:   () => this.inOpposition22(),
+      inOppositionHalf: () => this.inOppositionHalf(),
+      inOwn22:          () => this.inOwn22(),
+      inOwnHalf:        () => this.inOwnHalf(),
       adjustRating:   (player, delta) => this.adjustRating(player, delta),
       randomPlayer:   (team) => team.players[rng(0, team.players.length - 1)],
       pickPlayer:     (team, ...ids) => team.players.find(p => ids.includes(p.id)) ?? team.players[0],
@@ -399,7 +398,7 @@ export class MatchEngine {
             phase: state.phase,
             ballX: state.ballX,
             ballY: state.ballY,
-            inOpposition22: true,
+            inOpposition22: this.inOpposition22(),
             attackingSide: state.possession,
           },
           onChoice: (c) => resolve(c),

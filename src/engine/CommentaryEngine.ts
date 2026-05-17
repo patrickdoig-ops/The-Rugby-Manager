@@ -23,7 +23,7 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
     ],
     knock_on: [
       '{primary} drops the kick-off — a knock-on! Scrum to the kicking team.',
-      'Disaster for {side}! The ball is fumbled by {primary}. The kicking team wins a scrum.',
+      'Oh no! {primary} fumbles the catch — knock-on! The kicking side wins the scrum.',
       '{primary} can\'t hold it under pressure — knock-on! Scrum awarded to the kicking side.',
     ],
     contested: [
@@ -170,14 +170,6 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
       'Brilliant! A 50:22 from {primary}! It bounces into touch and {side} retain the throw-in!',
       'What a kick from {primary}! A perfect 50:22 — {side} get the lineout deep in enemy territory.',
       'Incredible vision from {primary} to find the 50:22! An attacking lineout for {side}.',
-    ],
-    poor_kick: [
-      'The kick from {primary} doesn\'t find touch — easy ball for the fullback.',
-      'Poor execution from {primary} — the kick falls straight to {secondary}.',
-    ],
-    knock_on_catch: [
-      '{secondary} drops the catch under pressure — knock-on! Scrum to {side}.',
-      'The high ball beats {secondary}! A knock-on and scrum to {side}.',
     ],
     kick_caught: [
       'The kick doesn\'t find touch — {secondary} gathers and {side} are in possession.',

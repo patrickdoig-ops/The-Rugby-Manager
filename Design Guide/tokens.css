@@ -1,0 +1,95 @@
+/* ──────────────────────────────────────────────────────────
+   RUGBY MANAGER — Design Tokens
+   "Match Day Editorial" — dark, atmospheric, broadcast-grade
+   ────────────────────────────────────────────────────────── */
+
+:root {
+  /* — Surfaces — deep charcoal with subtle green undertone */
+  --rm-bg:           oklch(0.16 0.012 150);
+  --rm-bg-deep:      oklch(0.12 0.010 150);
+  --rm-surface:      oklch(0.205 0.013 150);
+  --rm-surface-2:    oklch(0.245 0.014 150);
+  --rm-surface-3:    oklch(0.295 0.015 150);
+
+  /* — Borders — */
+  --rm-border:       oklch(0.32 0.012 150);
+  --rm-border-soft:  oklch(0.27 0.010 150);
+  --rm-divider:      oklch(0.38 0.015 150);
+  --rm-hairline:     color-mix(in oklch, var(--rm-chalk) 8%, transparent);
+
+  /* — Text — warm off-white system */
+  --rm-chalk:        oklch(0.97 0.008 90);
+  --rm-text:         oklch(0.95 0.008 90);
+  --rm-text-muted:   oklch(0.68 0.012 150);
+  --rm-text-dim:     oklch(0.50 0.012 150);
+  --rm-text-faint:   oklch(0.38 0.012 150);
+
+  /* — Brand accents — pitch + chalk */
+  --rm-pitch:        oklch(0.76 0.21 144);   /* vivid live-broadcast green */
+  --rm-pitch-deep:   oklch(0.55 0.18 144);
+  --rm-pitch-soft:   oklch(0.30 0.08 144);
+  --rm-pitch-glow:   color-mix(in oklch, var(--rm-pitch) 38%, transparent);
+
+  /* — Ball / utility amber — */
+  --rm-amber:        oklch(0.74 0.16 62);
+  --rm-amber-deep:   oklch(0.58 0.16 50);
+
+  /* — Stat heatmap (low→high) — */
+  --rm-stat-1:       oklch(0.55 0.18 25);    /* poor — coral red */
+  --rm-stat-2:       oklch(0.68 0.16 55);    /* below — amber */
+  --rm-stat-3:       oklch(0.78 0.14 95);    /* avg — chartreuse */
+  --rm-stat-4:       oklch(0.76 0.20 144);   /* good — pitch green */
+  --rm-stat-5:       oklch(0.82 0.18 175);   /* elite — cyan */
+
+  /* — Team colors (defaults; teams can override) — */
+  --rm-team-a:       oklch(0.62 0.21 25);    /* Lions — red */
+  --rm-team-a-soft:  oklch(0.30 0.12 25);
+  --rm-team-b:       oklch(0.62 0.18 248);   /* Eagles — royal blue */
+  --rm-team-b-soft:  oklch(0.30 0.12 248);
+
+  /* — Type — */
+  --rm-font-display: 'Anton', 'Bebas Neue', Impact, sans-serif;
+  --rm-font-editor:  'Instrument Serif', 'Times New Roman', serif;
+  --rm-font-body:    'Geist', 'Helvetica Neue', system-ui, sans-serif;
+  --rm-font-mono:    'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  /* — Geometry — */
+  --rm-r-xs: 4px;
+  --rm-r-sm: 6px;
+  --rm-r-md: 10px;
+  --rm-r-lg: 14px;
+  --rm-r-xl: 20px;
+  --rm-r-pill: 999px;
+
+  /* — Shadows — */
+  --rm-shadow-1: 0 1px 0 rgba(255,255,255,0.04) inset, 0 1px 2px rgba(0,0,0,0.4);
+  --rm-shadow-2: 0 8px 28px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.04) inset;
+  --rm-glow-pitch: 0 0 32px var(--rm-pitch-glow);
+}
+
+/* ── Reset within the rugby-app surface ── */
+.rm * { box-sizing: border-box; }
+.rm {
+  color: var(--rm-text);
+  font-family: var(--rm-font-body);
+  background: var(--rm-bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'ss01', 'cv11', 'tnum';
+}
+.rm .mono { font-family: var(--rm-font-mono); font-feature-settings: 'tnum', 'zero'; letter-spacing: 0.02em; }
+.rm .disp { font-family: var(--rm-font-display); letter-spacing: 0.01em; }
+.rm .ed   { font-family: var(--rm-font-editor); font-style: italic; }
+
+/* ── Subtle pitch-line decoration helper ── */
+.rm-pitch-bg {
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in oklch, var(--rm-pitch) 9%, transparent) 0%, transparent 55%),
+    repeating-linear-gradient(180deg,
+      transparent 0 22px,
+      color-mix(in oklch, var(--rm-pitch) 5%, transparent) 22px 23px),
+    var(--rm-bg-deep);
+}
+
+/* Compact tabular numerics everywhere */
+.rm .num { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum', 'zero'; }

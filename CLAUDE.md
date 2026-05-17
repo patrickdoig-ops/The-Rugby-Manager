@@ -285,11 +285,19 @@ Players start each match at `rating: 6.0` (out of 10). `MatchEngine.adjustRating
 
 ### Design system
 
-All visual decisions are governed by `DESIGN.md`. CSS custom properties are defined in `style/main.css` `:root` and must be used for every colour — no hardcoded hex except: primary CTA green (`#007a2a` / `#009434` active / `#006622` pressed), team identity colours injected inline from team JSON data, and ball fill (`#7a3a10`).
+**`DESIGN.md` is the single source of truth for all visual decisions.** Read it before touching any UI code. Every colour, font, spacing, and component pattern is documented there. When in doubt, consult `DESIGN.md` first — do not invent visual decisions.
 
-Key tokens: `--bg`, `--surface`, `--surface2`, `--border`, `--border-mid`, `--text`, `--text-sec`, `--text-muted`, `--blue`, `--green`, `--red`, `--amber`, `--purple`, `--gold`, `--font-sans` (Inter), `--font-mono` (Space Mono).
+CSS custom properties are defined in `style/main.css` `:root` and must be used for every colour — no hardcoded hex except: primary CTA green (`#007a2a` / `#009434` active / `#006622` pressed), team identity colours injected inline from team JSON data, and ball fill (`#7a3a10`).
 
-**All live numeric values** must use `font-family: var(--font-mono); font-variant-numeric: tabular-nums` to prevent digit-width jitter.
+Key token prefixes from the `--rm-*` system: `--rm-bg`, `--rm-surface`, `--rm-surface-2`, `--rm-surface-3`, `--rm-border-soft`, `--rm-border`, `--rm-hairline`, `--rm-chalk`, `--rm-text`, `--rm-text-muted`, `--rm-text-dim`, `--rm-pitch`, `--rm-amber`, `--rm-coral`, `--rm-font-display` (Anton), `--rm-font-editor` (Instrument Serif), `--rm-font-body` (Geist), `--rm-font-mono` (JetBrains Mono).
+
+Font roles — apply consistently:
+- `--rm-font-display`: impact headings, CTA button labels, scoreboard scores
+- `--rm-font-editor`: editorial moments, subtitles, choice descriptions, try commentary
+- `--rm-font-body`: body copy, UI labels, tab text
+- `--rm-font-mono`: all live numbers, stats, clocks, ratings
+
+**All live numeric values** must use `font-family: var(--rm-font-mono); font-variant-numeric: tabular-nums` to prevent digit-width jitter.
 
 ### Team data
 

@@ -99,20 +99,21 @@
 /* ─── Stat group legend ─── */
 .pm-legend {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   padding: 4px 0 6px;
+  padding-left: 116px; /* pm-player-hd width (108px) + pm-player gap (8px) */
   border-bottom: 1px solid var(--border);
   margin-bottom: 6px;
 }
 
 .legend-group {
   display: flex;
-  gap: 3px;
+  gap: 2px;
 }
 
 .legend-group + .legend-group {
   border-left: 1px solid var(--surface2);
-  padding-left: 6px;
+  padding-left: 4px;
 }
 
 .legend-item {
@@ -263,6 +264,7 @@
   .pm-panel  { padding: 12px 24px 0; max-width: 900px; margin: 0 auto; }
 
   .pm-player-hd { width: 140px; }
+  .pm-legend    { padding-left: 148px; } /* pm-player-hd width (140px) + pm-player gap (8px) */
   .pm-name       { font-size: 13px; }
   .pm-pos        { font-size: 10px; }
 

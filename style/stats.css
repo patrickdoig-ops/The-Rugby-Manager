@@ -94,8 +94,8 @@
   padding: 1px 2px;
 }
 
-/* Tier colours — text only, no filled backgrounds */
-.rating-high { color: var(--gold);   }
-.rating-mid  { color: var(--green);  }
-.rating-low  { color: var(--amber);  }
-.rating-poor { color: var(--red);    }
+/* Tier colours with subtle filled backgrounds */
+.rating-high { color: var(--gold);  background: rgba(255,215,0,0.12); }
+.rating-mid  { color: var(--green); background: rgba(46,204,113,0.12); }
+.rating-low  { color: var(--amber); background: rgba(255,184,0,0.12); }
+.rating-poor { color: var(--red);   background: rgba(231,76,60,0.12); }

@@ -9,14 +9,14 @@ export interface ScrumResolution {
   margin: number;
 }
 
-function packScore(front5: Player[]): number {
-  return front5.reduce((sum, p) => sum + p.currentStats.setPiece * 0.6 + p.currentStats.strength * 0.4, 0)
-       / front5.length;
+function packScore(forwards: Player[]): number {
+  return forwards.reduce((sum, p) => sum + p.currentStats.setPiece * 0.6 + p.currentStats.strength * 0.4, 0)
+       / forwards.length;
 }
 
-export function resolveScrum(attackFront5: Player[], defendFront5: Player[]): ScrumResolution {
-  const attackScore = packScore(attackFront5) + rng(1, 20);
-  const defendScore = packScore(defendFront5) + rng(1, 20);
+export function resolveScrum(attackForwards: Player[], defendForwards: Player[]): ScrumResolution {
+  const attackScore = packScore(attackForwards) + rng(1, 20);
+  const defendScore = packScore(defendForwards) + rng(1, 20);
   const margin = attackScore - defendScore;
 
   let result: ScrumResult;

@@ -289,20 +289,21 @@ None. `ballX` does not change during a breakdown.
 ### Player selection
 
 ```typescript
-attackFront5 = attackTeam.players.filter(p => p.id <= 5)   // props + locks
-defendFront5 = defendTeam.players.filter(p => p.id <= 5)
-primaryPlayer = attackFront5[1]   // hooker (id 2), for commentary and ratings only
+attackForwards = attackTeam.players.filter(p => p.id <= 8)   // props, hooker, locks, flankers, no. 8
+defendForwards = defendTeam.players.filter(p => p.id <= 8)
+attackHooker   = attackTeam.players.find(p => p.id === 2)
+defendHooker   = defendTeam.players.find(p => p.id === 2)
 ```
 
-All five forwards contribute to the pack score. Flankers and number 8 are excluded.
+All eight forwards contribute to the pack score. The hooker is used only for commentary and ratings.
 
 ### Resolution
 
 ```
-packScore(front5) = avg(setPiece × 0.6 + strength × 0.4) across all 5 players
+packScore(forwards) = avg(setPiece × 0.6 + strength × 0.4) across all 8 players
 
-attackScore = packScore(attackFront5) + rng(1, 20)
-defendScore = packScore(defendFront5) + rng(1, 20)
+attackScore = packScore(attackForwards) + rng(1, 20)
+defendScore = packScore(defendForwards) + rng(1, 20)
 margin      = attackScore − defendScore
 ```
 
@@ -333,12 +334,12 @@ None.
 ### Player selection
 
 ```typescript
-hooker       = pickPlayer(attackTeam, 2)         // always hooker (id 2)
-attackJumper = pickPlayer(attackTeam, 4, 5, 6)   // always id 4 (Left Lock)
-defendJumper = pickPlayer(defendTeam, 4, 5, 6)   // always id 4 (Left Lock)
+hooker       = pickPlayer(attackTeam, 2)                          // hooker (id 2)
+attackJumper = attackTeam.players.find(p => p.id === [4,5,7][rng(0,2)])  // random from Left Lock, Right Lock, Openside Flanker
+defendJumper = pickPlayer(defendTeam, 4, 5, 6)                    // always id 4 (Left Lock)
 ```
 
-`pickPlayer` uses `Array.find`, which returns the first match. Since id 4 always exists, players 5 (Right Lock) and 6 (Blindside Flanker) are **never** selected as jumpers despite appearing in the selection list.
+The attacking jumper is chosen at random from ids 4 (Left Lock), 5 (Right Lock), and 7 (Openside Flanker). The defending jumper is selected via `Array.find`, which always returns id 4.
 
 ### Step 1 — Throw quality gate
 
@@ -359,9 +360,11 @@ margin          = attackJumpScore − defendJumpScore
 
 | Margin | Result |
 |---|---|
-| ≥ 5 | `clean_catch` → OpenPlay |
-| 0–4 | `scrappy_knock_on` → Scrum (possession flips) |
-| < 0 | `steal` → OpenPlay (possession flips) |
+| ≥ −5 | `clean_catch` → OpenPlay |
+| −15 to −6 | `scrappy_knock_on` → Scrum (possession flips) |
+| < −15 | `steal` → OpenPlay (possession flips) |
+
+The attack team has a significant advantage; a clean catch is the expected outcome unless the defending jumper is markedly superior.
 
 ### Ball movement
 
@@ -467,49 +470,40 @@ kicker   = attackTeam.players.find(p => p.id === 10 || p.id === 9) ?? attackTeam
 defender = defendTeam.players.find(p => p.id === 15) ?? randomPlayer(defendTeam)
 ```
 
-Fly-half kicks first, scrum-half if fly-half is unavailable. The fullback always receives.
+Fly-half kicks first, scrum-half if fly-half is unavailable. The fullback receives.
 
-### Step 1 — Kick quality gate
-
-```
-kickScore = kicker.kicking + rng(1, 20)
-kickScore < 25 → poor_kick → OpenPlay (no possession change)
-```
-
-A poor kick returns the ball to open play without changing possession or moving the ball.
-
-### Step 2 — Catch quality gate
+### Step 1 — Kick quality and distance
 
 ```
-catchScore    = (defender.handling + defender.positioning) / 2 + rng(1, 20)
-ballMovement  = round((kickScore − 50) / 5)
-
-catchScore < 30 → knock_on_catch → Scrum (kicking team retains put-in)
+kickScore        = kicker.kicking + rng(1, 20)
+goodKick         = kickScore ≥ 25
+distance         = goodKick ? rng(20, 40) : rng(5, 15)   // metres
+touchProbability = goodKick ? 75 : 30                     // percent
 ```
 
-### Step 3 — Good kick outcome
+Ball moves immediately:
 
 ```
-goesToTouch = rng(1, 100) ≤ 60   (60% chance)
-
-if goesToTouch:
-    possession flips
-    ballX += attackDir() × |ballMovement| × 2
-    → Lineout
-
-else:
-    → OpenPlay
+state.ballX = clamp(state.ballX + attackDir() × distance, 5, 95)
 ```
 
-`ballMovement` from a kick with score 70 = 4 units, × 2 = 8 units forward. Score 90 = 8 units, × 2 = 16 units forward.
+### Step 2 — Touch or caught
+
+Possession **always** flips to the defending team (they either throw in at the lineout or have caught the ball in the field).
+
+```
+goesToTouch = rng(1, 100) ≤ touchProbability
+
+if goesToTouch → Lineout
+else           → OpenPlay (defender catches, plays on)
+```
 
 ### Rating adjustments
 
 | Outcome | Player | Delta |
 |---|---|---|
-| poor_kick | kicker | −0.15 |
-| knock_on_catch | defender | −0.20 |
-| good_kick | kicker | +0.10 |
+| good kick (kickScore ≥ 25) | kicker | +0.10 |
+| poor kick (kickScore < 25) | kicker | −0.15 |
 
 ---
 
@@ -667,6 +661,5 @@ Forces phase to `FullTime`. Emits `engine:event`, `engine:stateChange`, and `eng
 |---|---|---|
 | `discipline` not read by any resolver | StaminaSystem only | Penalty rate is identical for all players regardless of discipline stat |
 | Ball carrier not excluded from breakdown support pool | `MatchEngine` Breakdown case | A forward who carried the ball into contact can be randomly re-selected as a support runner on the same breakdown |
-| `pickPlayer(team, 4, 5, 6)` always returns id 4 | `MatchEngine` Lineout case | Right Lock and Blindside Flanker never jump at lineout |
 | Try scorer is `randomPlayer()` | `MatchEngine` TryScored case | Props are as likely to be credited as wings; the carrier who made the line break is not linked to the try |
 | strength, breakdown, kicking, setPiece, positioning not degraded by fatigue | StaminaSystem | These stats remain at full base value for the entire 80 minutes |

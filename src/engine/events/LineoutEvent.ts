@@ -2,10 +2,12 @@ import type { PhaseContext, PhaseResult } from './types';
 import { MatchPhase } from '../../types/engine';
 import { resolveLineout } from '../resolvers/LineoutResolver';
 import { getCommentary } from '../CommentaryEngine';
+import { rng } from '../../utils/rng';
 
 export function handleLineout({ state, attackTeam, defendTeam, adjustRating, pickPlayer, draftEvent }: PhaseContext): PhaseResult {
   const hooker       = pickPlayer(attackTeam, 2);
-  const attackJumper = pickPlayer(attackTeam, 4, 5, 6);
+  const jumperIds    = [4, 5, 7];
+  const attackJumper = attackTeam.players.find(p => p.id === jumperIds[rng(0, 2)])!;
   const defendJumper = pickPlayer(defendTeam, 4, 5, 6);
   const res = resolveLineout(hooker, attackJumper, defendJumper);
 

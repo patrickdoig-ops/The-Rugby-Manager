@@ -8,44 +8,32 @@ import { clamp } from '../../utils/math';
 export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, adjustRating, randomPlayer, draftEvent }: PhaseContext): PhaseResult {
   const kicker   = attackTeam.players.find(p => p.id === 10 || p.id === 9) ?? attackTeam.players[0];
   const defender = defendTeam.players.find(p => p.id === 15) ?? randomPlayer(defendTeam);
-  const res = resolveTacticalKick(kicker, defender);
+  const res = resolveTacticalKick(kicker);
 
-  if (res.result === 'poor_kick') {
-    adjustRating(kicker, -0.15);
+  const goodKick    = res.kickScore >= 25;
+  const goesToTouch = rng(1, 100) <= res.touchProbability;
+
+  // Ball travels forward; capture direction before possession flips
+  const kickDir = attackDir();
+  state.ballX = clamp(state.ballX + kickDir * res.distance, 5, 95);
+
+  // Possession always transfers to the defending team
+  state.possession = state.possession === 'home' ? 'away' : 'home';
+
+  adjustRating(kicker, goodKick ? +0.1 : -0.15);
+
+  if (goesToTouch) {
     return {
-      nextPhase: MatchPhase.OpenPlay,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.TacticalKick), primaryPlayer: kicker, secondaryPlayer: defender }, 'poor_kick'),
+      nextPhase: MatchPhase.Lineout,
+      commentary: getCommentary({ ...draftEvent(MatchPhase.TacticalKick), primaryPlayer: kicker, secondaryPlayer: defender }, 'good_kick'),
       primaryPlayer: kicker,
       secondaryPlayer: defender,
     };
-  }
-
-  if (res.result === 'knock_on_catch') {
-    adjustRating(defender, -0.2);
-    state.stats.handlingErrors[state.possession === 'home' ? 'away' : 'home']++;
-    return {
-      nextPhase: MatchPhase.Scrum,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.TacticalKick), primaryPlayer: kicker, secondaryPlayer: defender }, 'knock_on_catch'),
-      primaryPlayer: kicker,
-      secondaryPlayer: defender,
-    };
-  }
-
-  // good_kick
-  adjustRating(kicker, +0.1);
-  let nextPhase: MatchPhase;
-  if (rng(1, 100) <= 60) {
-    const kickDir = attackDir(); // capture before possession swap
-    state.possession = state.possession === 'home' ? 'away' : 'home';
-    state.ballX = clamp(state.ballX + kickDir * Math.abs(res.ballMovement) * 2, 5, 95);
-    nextPhase = MatchPhase.Lineout;
-  } else {
-    nextPhase = MatchPhase.OpenPlay;
   }
 
   return {
-    nextPhase,
-    commentary: getCommentary({ ...draftEvent(MatchPhase.TacticalKick), primaryPlayer: kicker, secondaryPlayer: defender }, 'good_kick'),
+    nextPhase: MatchPhase.OpenPlay,
+    commentary: getCommentary({ ...draftEvent(MatchPhase.TacticalKick), primaryPlayer: kicker, secondaryPlayer: defender }, 'kick_caught'),
     primaryPlayer: kicker,
     secondaryPlayer: defender,
   };

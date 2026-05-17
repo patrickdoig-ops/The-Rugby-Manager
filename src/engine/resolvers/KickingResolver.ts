@@ -3,27 +3,19 @@ import type { KickResult } from '../../types/engine';
 import { rng } from '../../utils/rng';
 
 export interface KickingResolution {
-  result: KickResult;
   kickScore: number;
-  catchScore: number;
-  ballMovement: number;
+  distance: number;         // metres the kick travels
+  touchProbability: number; // 0–100; chance kick finds touch
 }
 
-export function resolveTacticalKick(kicker: Player, defender: Player): KickingResolution {
+export function resolveTacticalKick(kicker: Player): KickingResolution {
   const kickScore = kicker.currentStats.kicking + rng(1, 20);
-
-  if (kickScore < 25) {
-    return { result: 'poor_kick', kickScore, catchScore: 0, ballMovement: -5 };
-  }
-
-  const catchScore = (defender.currentStats.handling + defender.currentStats.positioning) / 2 + rng(1, 20);
-  const ballMovement = Math.round((kickScore - 50) / 5);
-
-  if (catchScore < 30) {
-    return { result: 'knock_on_catch', kickScore, catchScore, ballMovement };
-  }
-
-  return { result: 'good_kick', kickScore, catchScore, ballMovement };
+  const goodKick  = kickScore >= 25;
+  return {
+    kickScore,
+    distance:         goodKick ? rng(20, 40) : rng(5, 15),
+    touchProbability: goodKick ? 75 : 30,
+  };
 }
 
 export interface GoalKickResolution {

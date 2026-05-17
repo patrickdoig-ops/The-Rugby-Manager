@@ -31,8 +31,8 @@ export function resolveLineout(
   const margin = attackJumpScore - defendJumpScore;
 
   let result: LineoutResult;
-  if (margin >= 5) result = 'clean_catch';
-  else if (margin >= 0) result = 'scrappy_knock_on';
+  if (margin >= -5) result = 'clean_catch';
+  else if (margin >= -15) result = 'scrappy_knock_on';
   else result = 'steal';
 
   return { result, throwScore, attackJumpScore, defendJumpScore };

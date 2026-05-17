@@ -156,6 +156,11 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
       '{secondary} drops the catch under pressure — knock-on! Scrum to {side}.',
       'The high ball beats {secondary}! A knock-on and scrum to {side}.',
     ],
+    kick_caught: [
+      'The kick doesn\'t find touch — {secondary} gathers and {side} are in possession.',
+      '{primary}\'s kick is taken on the full by {secondary}. {side} look to counter.',
+      'Gathered by {secondary} — {side} come away with the ball.',
+    ],
   },
   [MatchPhase.TryScored]: {
     try: [

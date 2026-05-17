@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const engine = new MatchEngine(
     homeTeamRaw as ConstructorParameters<typeof MatchEngine>[0],
     awayTeamRaw as ConstructorParameters<typeof MatchEngine>[1],
-    { tickDelayMs: 600 },
+    { tickDelayMs: 1500 },
   );
   initSimController(engine);
 

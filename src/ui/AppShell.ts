@@ -52,7 +52,7 @@ export function buildAppShell(): void {
       <button id="btn-pause" class="ctrl-btn" disabled>⏸ Pause</button>
       <label class="speed-label">
         <span class="speed-text">Speed</span>
-        <input type="range" id="speed-slider" min="100" max="2000" value="600" step="100">
+        <input type="range" id="speed-slider" min="100" max="2000" value="1500" step="100">
         <span id="speed-display">600ms</span>
       </label>
     </div>

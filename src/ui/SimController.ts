@@ -19,6 +19,8 @@ export function initSimController(engine: MatchEngine): void {
     btnPause.disabled = true;
   });
 
+  speedDisplay.textContent = `${slider.value}ms`;
+
   slider.addEventListener('input', () => {
     const ms = Number(slider.value);
     engine.setTickDelay(ms);

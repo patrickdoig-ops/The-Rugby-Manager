@@ -1,14 +1,14 @@
 # Design Guide
 
-This guide documents the current Rugby Simulator UI. It is specific to this repo's DOM and CSS implementation.
+This guide documents the current Rugby Simulator UI — the "Match Day Editorial" design system. It is specific to this repo's DOM and CSS implementation.
 
 For engine behaviour, formulas, and phase rules, use `engine.md`. For contributor workflow, versioning, and architecture constraints, use `CLAUDE.md`.
 
 ## Design Principles
 
-- Keep the game readable during a live simulation.
+- Broadcast-grade dark aesthetic: atmospheric, data-dense, live.
 - Prioritise stable, compact information over decorative layout.
-- Use the same visual language across home, pre-match, match, commentary, stats, and modal surfaces.
+- Use typographic contrast (display / editorial / mono) to signal different kinds of information at a glance.
 - Keep numeric values steady with monospace, tabular numbers.
 - Use team colour only where it clarifies identity or possession.
 - Avoid visual changes that make live updates jump, wrap unexpectedly, or obscure match state.
@@ -22,171 +22,215 @@ The UI is split into small modules under `src/ui/`. Each module owns one surface
 | `AppShell.ts` | Static match shell injected into `#app` |
 | `HomeScreen.ts` | Home overlay, version display, theme toggle, start button |
 | `PreMatchScreen.ts` | Match preview, team tabs, player attribute rows |
-| `Scoreboard.ts` | Team names, scores, clock, phase badge |
+| `Scoreboard.ts` | Team crests, codes, scores, clock, phase badge |
 | `PitchStrip.ts` | Pitch zones, ball marker, end labels, attack direction |
-| `CommentaryFeed.ts` | Live commentary entries, possession tint, phase colour accents |
-| `StatsPanel.ts` | Match stats table plus player fatigue/rating rows |
+| `CommentaryFeed.ts` | Live commentary entries, event tags, possession tint |
+| `StatsPanel.ts` | Dual-bar match stats and player fatigue/rating rows |
 | `SimController.ts` | Play, Pause, and speed controls |
 | `ModalManager.ts` | Penalty choice modal |
 
 Keep DOM ids and class names stable unless the owning module and CSS are updated together.
 
-## Colour Tokens
+## Typography
 
-All shared colours are CSS custom properties in `style/main.css`.
+Fonts are loaded in `index.html` from Google Fonts:
+
+| Variable | Family | Use |
+|---|---|---|
+| `var(--rm-font-display)` | Anton, Bebas Neue, Impact | Large impact moments: home screen title, scores, CTA labels |
+| `var(--rm-font-editor)` | Instrument Serif, Georgia | Editorial italic moments: scoreboard clock, try commentary, home tagline |
+| `var(--rm-font-body)` | Geist, Helvetica Neue, system-ui | General UI: labels, buttons, navigation |
+| `var(--rm-font-mono)` | JetBrains Mono, ui-monospace | All live numbers, codes, tags, minute stamps |
+
+`var(--font-sans)` and `var(--font-mono)` are mapped to the new families for legacy compatibility.
+
+**Rule:** All live numeric values — scores, clock, stat values, player ratings, commentary minutes — must use:
+```css
+font-family: var(--rm-font-mono);
+font-variant-numeric: tabular-nums;
+```
+
+**Rule:** Do not use display or editorial fonts for body copy. Display type is for moments of impact only.
+
+## Colour System
+
+All colours use the `oklch()` colour space, defined as `--rm-*` custom properties in `style/main.css`. Legacy tokens (`--bg`, `--surface`, `--text`, etc.) are mapped to `--rm-*` values for backward compatibility.
 
 ### Background / Surface Hierarchy
 
-Surfaces get progressively lighter as they are more elevated. Always use the next level up for a raised or nested element.
-
-| Token | Dark value | Purpose |
+| Token | Value | Purpose |
 |---|---|---|
-| `--bg` | `#090c14` | App background — the floor everything sits on |
-| `--surface` | `#0f1420` | Major panels: scoreboard, sim controls, pre-match header/footer |
-| `--surface2` | `#161d2e` | Raised panels: panel headers, clock pill, modal box |
-| `--surface3` | `#1e2538` | Deepest raised elements: active ctrl-btn states |
+| `--rm-bg-deep` | `oklch(0.12 0.010 150)` | Deepest background: scoreboard gradient base, controls bar gradient |
+| `--rm-bg` | `oklch(0.16 0.012 150)` | App background floor |
+| `--rm-surface` | `oklch(0.205 0.013 150)` | Major panels |
+| `--rm-surface-2` | `oklch(0.245 0.014 150)` | Raised panels, panel headers, modal |
+| `--rm-surface-3` | `oklch(0.295 0.015 150)` | Active/hover states |
+
+All surfaces have a subtle green undertone (hue 150) to tie the palette to the pitch.
 
 ### Border Tokens
 
-| Token | Dark value | Purpose |
+| Token | Value | Purpose |
 |---|---|---|
-| `--border` | `#1c2538` | Subtle structural dividers |
-| `--border-mid` | `#28345a` | Stronger borders: clock pill, panel headers, footer separators |
+| `--rm-border` | `oklch(0.32 0.012 150)` | Structural dividers |
+| `--rm-border-soft` | `oklch(0.27 0.010 150)` | Softer borders: button outlines, modal |
+| `--rm-divider` | `oklch(0.38 0.015 150)` | Stronger rule lines |
+| `--rm-hairline` | `color-mix(in oklch, chalk 8%, transparent)` | Near-invisible separators in feeds and panels |
 
 ### Text Tokens
 
-| Token | Dark value | Purpose |
+| Token | Value | Purpose |
 |---|---|---|
-| `--text` | `#e2e8f8` | Primary text |
-| `--text-sec` | `#8a98bc` | Secondary text, team names |
-| `--text-muted` | `#485070` | Muted labels and captions |
+| `--rm-chalk` | `oklch(0.97 0.008 90)` | Maximum contrast text: scores, headings, highlighted values |
+| `--rm-text` | `oklch(0.95 0.008 90)` | Primary body text |
+| `--rm-text-muted` | `oklch(0.68 0.012 150)` | Secondary labels, helper text |
+| `--rm-text-dim` | `oklch(0.50 0.012 150)` | Tertiary labels, codes, tags |
+| `--rm-text-faint` | `oklch(0.38 0.012 150)` | Barely-visible decorative text |
 
-### Accent / Semantic Tokens
+### Accent Tokens
 
-| Token | Dark value | Purpose |
+| Token | Value | Purpose |
 |---|---|---|
-| `--blue` | `#4d9fff` | Accents, lineout events, active tactic selection |
-| `--blue-dark` | `#1a3a6e` | Hover border for tactic option buttons |
-| `--blue-light` | `#0d1a35` | Active tactic card background tint |
-| `--green` | `#00d97e` | Good outcomes, scrum events, fatigue-ok bars |
-| `--red` | `#ff4d5e` | Penalties, poor outcomes, fatigue-low bars |
-| `--amber` | `#ffb52e` | Tries, warnings, fatigue-warning bars |
-| `--purple` | `#b06aff` | Half-time and full-time events |
-| `--gold` | `#ffd040` | Scores, ball outline, high ratings |
+| `--rm-pitch` | `oklch(0.76 0.21 144)` | Vivid broadcast green — primary brand accent: CTAs, active states, live indicators |
+| `--rm-pitch-deep` | `oklch(0.55 0.18 144)` | Deeper green for gradients and hover |
+| `--rm-pitch-soft` | `oklch(0.30 0.08 144)` | Very subtle green tint for backgrounds |
+| `--rm-pitch-glow` | `color-mix(rm-pitch 38%, transparent)` | Box-shadow / glow at reduced opacity |
+| `--rm-amber` | `oklch(0.74 0.16 62)` | Tries, penalties, warnings |
+| `--rm-amber-deep` | `oklch(0.58 0.16 50)` | Deeper amber for ball gradients |
 
-### Pitch Tokens
+### Stat Heatmap — 5-tier scale
 
-Pitch zone colours are defined in `:root` and used exclusively by the pitch strip. Do not use these tokens outside `PitchStrip` context.
+Used for player attribute values, player ratings, and animated bars. Applied as `color` on numeric values.
 
-| Token | Dark value | Zone |
+| Token | Value | Range | Meaning |
+|---|---|---|---|
+| `--rm-stat-1` | `oklch(0.55 0.18 25)` | Poor | Coral red |
+| `--rm-stat-2` | `oklch(0.68 0.16 55)` | Below average | Amber |
+| `--rm-stat-3` | `oklch(0.78 0.14 95)` | Average | Chartreuse |
+| `--rm-stat-4` | `oklch(0.76 0.20 144)` | Good | Pitch green |
+| `--rm-stat-5` | `oklch(0.82 0.18 175)` | Elite | Cyan |
+
+### Pitch Strip Tokens
+
+Used exclusively by the pitch strip. Do not use outside `PitchStrip` context.
+
+| Token | Value | Zone |
 |---|---|---|
-| `--pitch-try` | `#0a300e` | Try zones (5% each end) |
-| `--pitch-22` | `#0e3d14` | 22m zones (17% each) |
-| `--pitch-mid` | `#11481a` | Midfield zone (56%) |
+| `--pitch-try` | `oklch(0.15 0.04 144)` | Try zones (5% each end) |
+| `--pitch-22` | `oklch(0.20 0.06 144)` | 22m zones (17% each) |
+| `--pitch-mid` | `oklch(0.24 0.08 144)` | Midfield zone (56%) |
+
+### Semantic Colour Aliases (legacy tokens)
+
+| Legacy token | Maps to | Role |
+|---|---|---|
+| `--green` | `--rm-pitch` | Positive outcomes, scrum events |
+| `--red` | `--rm-stat-1` | Penalties, errors, fatigue-low |
+| `--amber` | `--rm-amber` | Tries, warnings, fatigue-warning |
+| `--gold` | `--rm-amber` | Retained for backward compatibility |
+| `--blue` | `oklch(0.70 0.18 248)` | Lineout events, active tactic states |
+| `--purple` | `oklch(0.64 0.22 302)` | Half/full-time events |
 
 ### Light Mode
 
-`body.light-mode` overrides all tokens with lighter equivalents. The theme toggle in `HomeScreen.ts` persists `light-mode` in local storage under `rugby-manager-theme`. Light mode token values:
+`body.light-mode` overrides all `--rm-*` tokens with a clean white variant. The palette inverts: near-white backgrounds, near-black text, slightly darker pitch greens and ambers for contrast. The theme toggle in `HomeScreen.ts` persists `light-mode` in local storage under `rugby-manager-theme`.
 
-| Token | Light value |
+Key light mode overrides:
+- `--rm-bg` → `oklch(0.98 0.004 150)` (near white with faint green undertone)
+- `--rm-surface` → `oklch(1.0 0 0)` (pure white)
+- `--rm-chalk` → `oklch(0.12 0.012 150)` (near black)
+- `--rm-pitch` → `oklch(0.46 0.18 144)` (darker green for contrast)
+- Stat heatmap tokens shift to lower lightness values for legibility on white
+
+### Hardcoded Colour Exceptions
+
+These values are intentionally fixed and must not be replaced with tokens:
+
+| Value | Use |
 |---|---|
-| `--bg` | `#f0f3fc` |
-| `--surface` | `#ffffff` |
-| `--surface2` | `#e8eef8` |
-| `--surface3` | `#dde5f5` |
-| `--border` | `#ccd5ee` |
-| `--border-mid` | `#b0bcdc` |
-| `--text` | `#0c1220` |
-| `--text-sec` | `#3a4a72` |
-| `--text-muted` | `#7080a8` |
-| `--blue` | `#2563eb` |
-| `--blue-dark` | `#1e40af` |
-| `--blue-light` | `#dbeafe` |
-| `--green` | `#059669` |
-| `--red` | `#dc2626` |
-| `--amber` | `#d97706` |
-| `--purple` | `#7c3aed` |
-| `--gold` | `#b45309` |
-| `--pitch-try` | `#14532d` |
-| `--pitch-22` | `#166534` |
-| `--pitch-mid` | `#15803d` |
+| `#007a2a` | Primary CTA background |
+| `#009434` | Primary CTA hover |
+| `#006622` | Primary CTA active/pressed |
+| `#7a3a10` | Ball fill colour |
+| Team identity colours | Set inline from team JSON data |
 
-Use tokens for colours wherever possible. Hardcoded colours are acceptable only where the value is domain-specific or intentionally fixed: team identity colours in the scoreboard gradient, possession tints, ball colour (`#7a3a10` with `--gold` border), and the primary CTA green (`#007a2a`/`#009434`/`#006622`).
+## Colour Usage Rules
+
+- Use `color-mix(in oklch, <token> <pct>, transparent)` for semi-transparent tints. Do not use `rgba()` with hardcoded hex values for tinted surfaces.
+- Do not reverse semantic direction: pitch green = positive/active, red = error/poor, amber = event/warning, purple = terminal phase.
+- Do not add new surface colours without adding them to `:root` in `style/main.css`.
 
 ## Button Patterns
 
-### Primary CTA — dark green, white text
+### Primary CTA — pitch green, dark text
 
-The primary CTA pattern is used for the single most important action on each screen. It must always be visually dominant.
+The primary CTA is used for the single most important action on each screen. It uses the hardcoded green spec (not a token) and must remain visually dominant.
 
-**Exact spec:**
-
+**Spec:**
 ```css
 background: #007a2a;
-border: 1px solid rgba(255,255,255,0.12);
-color: #ffffff;
-font-family: var(--font-sans);
-font-weight: 700;
-text-transform: uppercase;
-letter-spacing: 0.05em;
-border-radius: 12px;
-box-shadow: 0 4px 24px rgba(0,122,42,0.45), inset 0 1px 0 rgba(255,255,255,0.10);
-transition: background 0.15s, box-shadow 0.15s;
+border: none;
+color: #ffffff;         /* or --rm-bg-deep for dark-on-green */
+border-radius: 16px;
+box-shadow: 0 12px 36px color-mix(in oklch, var(--rm-pitch) 28%, transparent),
+            inset 0 1px 0 rgba(255,255,255,0.3);
 ```
 
-Hover (desktop only):
+For the home screen CTA, the label uses Anton display font at 28px. For smaller CTAs (Kick Off, Resume), use the body font, bold, uppercase.
+
+Hover (desktop):
 ```css
 background: #009434;
-box-shadow: 0 6px 32px rgba(0,148,52,0.60);
 ```
 
 Active:
 ```css
 background: #006622;
-box-shadow: none;
 ```
 
-**Used on:**
-- `#start-game-btn` — home screen Start Game (`style/homescreen.css`)
-- `#pm-start` — pre-match Kick Off (`style/prematch.css`)
-- `.ctrl-btn.primary` — sim controls Play button (`style/main.css`, slightly tighter shadow)
-- `.tactics-resume-btn` — tactics panel Resume (`style/tactics.css`)
+**Used on:** `#start-game-btn`, `#pm-start`, `.ctrl-btn.primary`, `.tactics-resume-btn`
 
-### Secondary / Neutral — surface fill, mid border
-
-Used for non-primary actions that should not compete visually with the primary CTA.
+### Secondary / Neutral — surface fill, soft border
 
 ```css
-background: var(--surface2);
-border: 1px solid var(--border-mid);
-color: var(--text-sec);
-border-radius: 8px;
+background: var(--rm-surface-2);
+border: 1px solid var(--rm-border-soft);
+color: var(--rm-text-muted);
+border-radius: 10px;
 ```
 
-Hover (desktop):
+Hover (desktop): `background: var(--rm-surface-3)`
+
+**Used on:** `.ctrl-btn` (Pause, Tactics), `#theme-toggle`, `.modal-choice-btn`
+
+### Monogram Crest Tile
+
+Team identity tiles used in the scoreboard. Background is set inline from team JSON colour data.
+
 ```css
-background: var(--surface3);
+.team-crest {
+  width: 38–44px; height: 38–44px;
+  border-radius: 8px;
+  font-family: var(--rm-font-display);
+  /* gradient + border-color set inline via JS in Scoreboard.ts */
+}
 ```
 
-**Used on:** `.ctrl-btn` (Pause, speed adjust), `#theme-toggle`, `.modal-choice-btn` (penalty options).
+The gradient pattern:
+```js
+`linear-gradient(160deg, ${color} 0%, color-mix(in oklch, ${color} 65%, black) 100%)`
+```
+
+A `::after` pseudo-element adds a `linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.18) 100%)` shadow overlay. The letter inside is wrapped in `<span>` so it sits above the overlay at `z-index: 1`.
 
 ## Icons
 
-All icons use inline SVGs from the [Heroicons](https://heroicons.com/) library. Do not use emoji, Unicode symbols, or any icon font.
+All icons use inline SVGs from [Heroicons](https://heroicons.com/). Do not use emoji, Unicode symbols, or any icon font.
 
-- **Solid style** (`fill="currentColor"`) for actions that feel weighty or primary: play, pause.
-- **Outline style** (`stroke="currentColor"`, `stroke-width="1.5"`) for settings-style controls and decorative labels: tactics adjustments, modal titles.
+- **Solid style** (`fill="currentColor"`) for action icons: play, pause.
+- **Outline style** (`stroke="currentColor"`, `stroke-width="1.5"`) for settings and label icons: tactics, navigation.
 
-Inline SVG markup pattern:
-```html
-<!-- Solid (fill) -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">…</svg>
-
-<!-- Outline (stroke) -->
-<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18">…</svg>
-```
-
-SVGs inside buttons must have `pointer-events: none` so clicks pass through to the button element. The global rule in `style/main.css` covers `.ctrl-btn svg`; add a matching rule for any new button context that wraps an SVG.
+SVGs inside buttons must carry `pointer-events: none` so clicks pass through. The global rule `.ctrl-btn svg { pointer-events: none; flex-shrink: 0; }` in `style/main.css` covers sim controls; add a matching rule for any new button context wrapping an SVG.
 
 Current icon assignments:
 
@@ -195,23 +239,10 @@ Current icon assignments:
 | Sim controls — Play | `play` | Solid |
 | Sim controls — Pause | `pause` | Solid |
 | Sim controls — Tactics | `adjustments-horizontal` | Outline |
-| Tactics modal title | `adjustments-horizontal` | Outline |
-| Tactics resume button | `play` (14 × 14) | Solid |
-
-## Typography
-
-Fonts are loaded in `index.html`:
-
-- Inter (`var(--font-sans)`) for general UI text.
-- Space Mono with JetBrains Mono fallback (`var(--font-mono)`) for live numbers.
-
-Use `var(--font-sans)` for general UI and `var(--font-mono)` for changing numeric values. Live numbers must also use:
-
-```css
-font-variant-numeric: tabular-nums;
-```
-
-Current numeric surfaces include scores, clock, version number, player ids, player attributes, match stat values, fatigue and rating values, and commentary minute stamps.
+| Home screen — Start Game (arrow) | `arrow-right` | Outline (stroke-width 2.5) |
+| Pre-match — back nav | `arrow-left` | Outline |
+| Theme toggle — dark mode | `moon` | Outline |
+| Theme toggle — light mode | `sun` | Outline |
 
 ## Layout
 
@@ -224,7 +255,7 @@ Primary overlay stack (z-index order):
 3. `#modal-overlay` — fixed overlay, z-index 100
 4. `#app` — match shell underneath
 
-Match shell order (mobile: flex column; desktop: grid with named areas):
+Match shell order (mobile: flex column; desktop: CSS grid with named areas):
 
 1. `#scoreboard`
 2. `#panel-pitch`
@@ -237,179 +268,226 @@ Safe-area insets (`env(safe-area-inset-*)`) are applied to all full-screen layer
 
 ### Home Screen
 
-The home screen is intentionally sparse: title, version, start button, and theme toggle. The start button is the primary action and should remain visually distinct.
+The home screen uses an atmospheric pitch design to establish mood before the simulation starts.
 
-**Visual details:**
-- `#home-screen` has two radial-gradient glows on `background-image`: a green ellipse at 42% vertical (pitch atmosphere) and a blue ellipse at the bottom (atmospheric).
-- `#home-title` uses `background-clip: text` with a `linear-gradient(155deg, #ffffff 25%, var(--gold) 100%)` for a white-to-gold gradient on the text.
-- `#home-version` is a monospace pill with `var(--surface2)` background and `var(--border-mid)` border.
-- `#start-game-btn` uses the primary CTA pattern (full spec above).
-- `#theme-toggle` (top-left) uses the secondary/neutral button pattern.
+**Visual structure (top to bottom):**
+- Background: `--rm-bg-deep` base with two radial gradient glows (pitch green ellipse centred high, dark vignette at the bottom) plus a `repeating-linear-gradient` for faint pitch stripe texture.
+- Decorative SVG: `<svg class="home-pitch-lines">` — pitch line markings (halfway line, 22m lines, centre circle) at `opacity: 0.15`, `position: absolute; inset: 0`.
+- `#home-chrome`: live status dot + version text on the left; `#theme-toggle` on the right.
+- `#home-hero`: eyebrow label (`--rm-font-mono`, pitch green), `#home-title` (Anton, `clamp(72px, 22vw, 96px)`, `line-height: 0.86`, `--rm-chalk`), version badge pill, `#home-tagline` (Instrument Serif italic, 20px, `--rm-text-muted`).
+- `#home-cta`: full-width primary CTA (`#start-game-btn`) with Anton "Start Game" label and arrow icon.
+
+**Live dot:** `8px × 8px` circle, `background: var(--rm-pitch)`, `box-shadow: 0 0 12px var(--rm-pitch)`.
 
 ### Pre-Match
 
-The pre-match screen is dense by design. It lets the user scan each team before kick-off:
+Dense by design. Lets the user scan each team before kick-off.
 
-- Header with match title and team matchup.
-- Tabs for home and away rosters (active tab uses `var(--tc, var(--blue))` for team-colour accent).
-- Attribute legend grouped into Physical, Technical, and Mental.
-- Compact player rows with id, surname, position, and stat cells.
-- Fixed footer with primary CTA (Kick Off).
+- Header: mono eyebrow (`--rm-text-dim`), Anton team badges coloured with team identity colour, Instrument Serif italic "vs", tab bar.
+- Tabs active state: `color: var(--rm-chalk)`, `border-bottom-color: var(--tc, var(--rm-pitch))`.
+- Attribute legend: `--rm-font-mono`, `--rm-text-dim`.
+- Player rows: surname + position, compact attribute cells with heatmap colours.
+- Footer: `background: var(--rm-surface)`, `border-top: 1px solid var(--rm-hairline)`, primary CTA.
 
-Stat cell tier colours (applied to `.attr-val`):
+Attribute cell tier colours use the stat heatmap tokens:
 
-| Class | Colour token | Range |
+| Class | Token | Range |
 |---|---|---|
-| `.tier-elite` | `var(--gold)` | 90+ |
-| `.tier-great` | `var(--green)` | 80–89 |
-| `.tier-good` | `var(--blue)` | 70–79 |
-| `.tier-avg` | `var(--text-sec)` | 60–69 |
-| `.tier-poor` | `var(--text-muted)` | <60 |
-
-`#pm-footer` uses `border-top: 1px solid var(--border-mid)`.
-
-Preserve the compact row layout; this screen needs to fit 15 players on small screens with minimal scrolling.
+| `.tier-elite` | `--rm-stat-5` | 90+ |
+| `.tier-great` | `--rm-stat-4` | 80–89 |
+| `.tier-good` | `--rm-stat-3` | 70–79 |
+| `.tier-avg` | `--rm-stat-2` | 60–69 |
+| `.tier-poor` | `--rm-text-dim` | <60 |
 
 ### Scoreboard
 
-The scoreboard must remain stable during live updates.
+Must remain stable during live updates. Key visual elements:
 
-**Visual details:**
-- `#scoreboard` has a `background-image` with a `linear-gradient(90deg, ...)` that fades from Lions red (`rgba(200,16,46,0.10)`) at 0% to transparent at 36%, and from transparent at 64% to Eagles blue (`rgba(0,48,135,0.10)`) at 100%. These are hardcoded team identity colours.
-- `.score` values are monospace/tabular, `var(--gold)` colour, with `text-shadow: 0 0 24px rgba(255,208,64,0.45)` gold glow.
-- `#clock-display` is a boxed pill: `var(--surface2)` background, `var(--border-mid)` border, 8px border-radius.
-- Team names are uppercase, truncated with `text-overflow: ellipsis`, coloured `var(--text-sec)`.
+**Team sides:** each side is `display: flex; align-items: center; gap: 8px`. Home side: `[crest][score-block]`. Away side: `[score-block][crest]` (reversed).
 
-**Phase badge** (`.phase-badge`): a pill below the clock, colour-coded by game state. Classes are set by `phaseClass()` in `Scoreboard.ts`:
+**Crest tile:** 38–44px square, `border-radius: 8px`, gradient background + semi-transparent border set inline via `Scoreboard.ts` on the first `engine:stateChange` (one-shot initialisation, since team data is fixed for the match).
 
-| Class | Colour | Used for |
+**Team code:** `--rm-font-mono`, 9px, `letter-spacing: 0.16em`, coloured with team identity colour.
+
+**Score:** Anton display font, 42px mobile / 52px desktop, `--rm-chalk`, `line-height: 0.9`. Rendered zero-padded: `String(score).padStart(2, '0')`.
+
+**Clock:** `#clock-display` uses Instrument Serif italic, 24px mobile / 30px desktop, `--rm-pitch`. The Instrument Serif italic treatment communicates "live, in-the-moment" versus the static display font scores.
+
+**Scoreboard background:** `linear-gradient(180deg, rm-bg-deep 0%, rm-bg 100%)` — a subtle gradient toward the base surface. No hardcoded team-colour gradient (unlike the old design).
+
+**Phase badge** (`.phase-badge`): `--rm-font-mono`, 8px, uppercase, positioned below the clock. Colour-coded by phase:
+
+| Class | Colour | Use |
 |---|---|---|
-| `.phase-play` | `var(--text-muted)` (default) | OpenPlay, Breakdown, KickOff |
-| `.phase-try` | `var(--amber)` | TryScored, ConversionKick |
-| `.phase-penalty` | `var(--red)` | Penalty |
-| `.phase-scrum` | `var(--green)` | Scrum, Lineout |
-| `.phase-kick` | `var(--blue)` | BoxKick, TacticalKick |
-| `.phase-terminal` | `var(--purple)` | HalfTime, FullTime |
+| `.phase-try` | `--rm-amber` | TryScored, ConversionKick |
+| `.phase-penalty` | `--rm-stat-1` | Penalty |
+| `.phase-scrum` | `--rm-pitch` | Scrum |
+| `.phase-kick` | `--blue` | Lineout, BoxKick, TacticalKick, KickOff |
+| `.phase-terminal` | `--purple` | HalfTime, FullTime |
 
-Each coloured badge has a matching semi-transparent background and border at the same hue.
+Each badge uses `color-mix(in oklch, <token> 14%, transparent)` background and `color-mix(in oklch, <token> 45%, transparent)` border.
 
 ### Pitch Strip
 
-The pitch is a horizontal strip. Zone widths: try 5% | 22m 17% | midfield 56% | 22m 17% | try 5%. Zone colours use `--pitch-try`, `--pitch-22`, and `--pitch-mid` CSS variables. The midfield zone adds a repeating mow-stripe effect via `repeating-linear-gradient`.
+Horizontal strip below the scoreboard. Zone widths: try 5% | 22m 17% | midfield 56% | 22m 17% | try 5%. Zone colours use `--pitch-try`, `--pitch-22`, `--pitch-mid`. The midfield zone adds a `repeating-linear-gradient` mow-stripe overlay.
 
-The ball marker (`#ball-marker`) is oval (`22px × 14px`), dark brown fill (`#7a3a10`), `var(--gold)` border, with a multi-stop `box-shadow` for a bright inner glow and soft outer halo. It transitions `left` over 0.35s.
+**Ball marker:** `20px × 13px` oval, `#7a3a10` fill, `--rm-amber` 2px border, two-stop `box-shadow` (amber glow at 85% + faint outer halo at 22%). Transitions `left` over 0.35s ease.
 
 ### Commentary
 
-Commentary entries are prepended (max 30). Each entry has two layered class responsibilities:
+Entries are prepended (max 30). Each entry is a **3-column CSS grid**:
 
-1. **Possession classes** set both `background` tint and `border-left-color` (team identity colours):
-   - `.possession-home`: `rgba(200,16,46,0.11)` background, `rgba(200,16,46,0.55)` left border
-   - `.possession-away`: `rgba(0,48,135,0.13)` background, `rgba(0,48,135,0.55)` left border
+```
+grid-template-columns: 30px 34px 1fr
+```
 
-2. **Event classes** override just the `border-left-color` (and for try/halftime/fulltime also the background):
-   - `.event-try`: `var(--amber)` border, amber-tinted background, `var(--text)` colour
-   - `.event-penalty`: `var(--red)` border
-   - `.event-scrum`: `var(--green)` border
-   - `.event-lineout`: `var(--blue)` border
-   - `.event-halftime`: `var(--purple)` border, purple-tinted background, `var(--text)` colour, `font-weight: 600`
-   - `.event-fulltime`: `var(--purple)` border, stronger purple tint, `var(--text)` colour, `font-weight: 700`
+Columns: minute | event tag | text
 
-Minute stamps use `var(--font-mono)` / tabular-nums.
+**Minute:** `--rm-font-mono`, 10px, `--rm-text-dim`. The most-recent entry (`:first-child`) gets `--rm-pitch` + `font-weight: 700`.
 
-Keep commentary text compact. Long entries reduce the usefulness of the live feed.
+**Event tag:** `--rm-font-mono`, 8px, uppercase, `letter-spacing: 0.12em`. Colour varies by entry class.
 
-### Stats
+**Text:** 12px, `--rm-text`.
 
-Match stats: compact table with home and away values around a centre label. Stat values use `var(--font-mono)` / tabular-nums.
+Entry classes set both the tag colour and (for TRY) the text style:
 
-Player stats (updated once per game minute):
+| Class | Tag | Tag colour | Text style |
+|---|---|---|---|
+| `.event-try` | `TRY` | `--rm-pitch` | Instrument Serif italic, 13.5px, `--rm-chalk` |
+| `.event-penalty` | `PEN` | `--rm-amber` | Normal |
+| `.event-conversion` | `CON` | `--rm-pitch` | Normal |
+| `.event-scrum` | `SCR` | `--rm-pitch` at 70% opacity | Normal |
+| `.event-lineout` | `LNO` | `--blue` | Normal |
+| `.event-kickoff` | `KO` | `--rm-text-dim` | Normal |
+| `.event-halftime` | `HT` | `--purple` | Bold chalk |
+| `.event-fulltime` | `FT` | `--purple` | Bold chalk |
+| (other) | `·` | `--rm-text-dim` | Normal |
 
-**Fatigue bars** use CSS gradients (not flat colours):
+Player names are colourised inline with team identity colours via `colorizePlayer()` in `CommentaryFeed.ts`. Player format is `"Name (#N)"`.
+
+### Match Stats
+
+The stats panel uses **dual proportional bars** rather than a table. Each stat row has:
+
+1. **Header row:** `36px | 1fr | 36px` grid — home value (right-aligned), label (centred, mono uppercase), away value (left-aligned). The winning side's value gets `.stat-winner` (chalk colour); the losing side is `--rm-text-muted`.
+
+2. **Bar row:** `display: flex; height: 3px`. Two `div`s side-by-side with widths proportional to each team's raw count. Bar colours are set inline from team JSON data. Winning side at `opacity: 1`; losing side at `opacity: 0.4`.
+
+For inverted stats (e.g. Errors, where lower is better), winning logic reverses.
+
+Stat labels: `--rm-font-mono`, 8px, uppercase, `letter-spacing: 0.12em`, `--rm-text-dim`. Always `white-space: nowrap`.
+
+### Player Stats
+
+Updated once per game minute using DOM patching (not full re-render) for performance. Layout: **4-column grid** `22px | 1fr | 36px | 28px` — jersey number | surname | fatigue bar | rating.
+
+**Jersey number:** `--rm-font-mono`, 9px, coloured with team identity colour.
+
+**Fatigue bars** use gradients from the stat heatmap tokens:
 
 | Class | Gradient | Condition |
 |---|---|---|
-| `.fatigue-ok` | `#00d97e → #00a360` | ≥ normal |
-| `.fatigue-warn` | `#ffb52e → #e07800` | warning |
-| `.fatigue-low` | `#ff4d5e → #cc1a2a` | low |
+| `.fatigue-ok` | `stat-4 70% → stat-4` | ≥ 60% stamina |
+| `.fatigue-warn` | `stat-2 70% → stat-2` | 30–60% stamina |
+| `.fatigue-low` | `stat-1 70% → stat-1` | <30% stamina |
 
-**Rating badges** (`.rating-badge`): pill with `border-radius: 20px`, monospace font, filled tier background:
+**Rating badges:** `--rm-font-mono`, 10px, right-aligned. Colour only (no background fill), using heatmap tokens:
 
-| Class | Colour | Background |
+| Class | Token | Rating |
 |---|---|---|
-| `.rating-high` | `var(--gold)` | `rgba(255,208,64,0.15)` |
-| `.rating-mid` | `var(--green)` | `rgba(0,217,126,0.14)` |
-| `.rating-low` | `var(--amber)` | `rgba(255,181,46,0.14)` |
-| `.rating-poor` | `var(--red)` | `rgba(255,77,94,0.14)` |
+| `.rating-high` | `--rm-stat-5` | ≥ 7.5 |
+| `.rating-mid` | `--rm-stat-4` | 5.5–7.5 |
+| `.rating-low` | `--rm-stat-3` | 3.5–5.5 |
+| `.rating-poor` | `--rm-stat-2` | <3.5 |
+
+### Sim Controls
+
+The controls bar uses a **frosted glass card** pattern. The outer `#sim-controls` has a gradient fade from transparent to `--rm-bg-deep`. The inner `#ctrl-bar` is the glass card:
+
+```css
+background: color-mix(in oklch, var(--rm-surface) 92%, transparent);
+backdrop-filter: blur(20px) saturate(160%);
+-webkit-backdrop-filter: blur(20px) saturate(160%);
+border: 1px solid var(--rm-hairline);
+border-radius: 14px;
+```
+
+The Play button (`.ctrl-btn.primary`) glows: `box-shadow: 0 0 16px color-mix(in oklch, var(--rm-pitch) 45%, transparent)`.
 
 ### Modal
 
-The modal (penalty choices) slides up from the bottom on mobile (`sheetUp` animation), and scales in as a centred dialog on desktop (`modalIn` animation). Backdrop uses `rgba(0,0,0,0.72)` with `backdrop-filter: blur(6px)`.
+The penalty modal slides up from the bottom on mobile (`sheetUp` animation) and scales in as a centred dialog on desktop (`modalIn` animation). Backdrop: `rgba(0,0,0,0.72)` with `backdrop-filter: blur(6px)`.
 
-Choice buttons (`.modal-choice-btn`) use the secondary/neutral pattern (`var(--surface)` bg, `var(--border-mid)` border). On active/hover they gain `var(--blue)` border-color.
+Choice buttons use the secondary/neutral pattern. On active/hover they gain `var(--rm-pitch)` border-color.
 
 ### Tactics Menu
 
-Tactic option cards (`.tactics-opt-btn`) use the secondary/neutral pattern. Active selection:
-- Background: `var(--blue-light)`
-- Border: `var(--blue)`, with a `0 0 14px rgba(77,159,255,0.18)` glow
-- A 4px blue left accent bar via `::before` pseudo-element
-- Label colour changes to `var(--blue)`
+Active tactic card:
+```css
+background: color-mix(in oklch, var(--rm-pitch) 18%, var(--rm-surface));
+border-color: var(--rm-pitch);
+box-shadow: 0 0 14px color-mix(in oklch, var(--rm-pitch) 18%, transparent);
+```
 
-The Resume button (`.tactics-resume-btn`) uses the primary CTA pattern.
+Active label colour: `var(--rm-pitch)`. A 4px left accent bar via `::before`.
+
+The Resume button uses the primary CTA pattern.
+
+The title uses `--rm-pitch` colour (not `--rm-amber` / old gold).
 
 ## Motion
 
 Motion is CSS-only:
 
-- Commentary entries use `entryIn` over 0.18s (slide from -4px + fade).
-- Pre-match exits with `pmSlideDown` over 0.3s.
-- Modal sheet slides up with `sheetUp` over 0.22s (`cubic-bezier(0.22, 1, 0.36, 1)`).
-- Modal desktop dialog scales in with `modalIn` over 0.22s (same easing).
-- Ball marker movement transitions `left` over 0.35s ease.
-- Fatigue bars transition `width` over 0.5s ease.
-- Phase badge transitions `background`, `border-color`, `color` over 0.25s.
-- Buttons use `background` and `box-shadow` transitions over 0.12–0.15s.
+- Commentary entries: `entryIn` 0.18s (slide from -4px + fade).
+- Pre-match exit: `pmSlideDown` 0.3s.
+- Modal sheet: `sheetUp` 0.22s `cubic-bezier(0.22, 1, 0.36, 1)`.
+- Modal desktop dialog: `modalIn` 0.22s (same easing, scale from 0.92).
+- Ball marker: `left` transitions over 0.35s ease.
+- Fatigue bars: `width` transitions over 0.5s ease.
+- Phase badge: `background`, `border-color`, `color` over 0.25s.
+- Buttons: `background`, `box-shadow` over 0.12–0.15s.
+- Live dot: `rmPulse` keyframe — `opacity: 1 → 0.35 → 1` over 1.8s.
 
 Keep motion functional and brief. It should help users track live changes, not compete with the simulation.
 
 ## Accessibility
 
-- `:focus-visible` uses a 2px solid `var(--blue)` outline.
-- Tap highlight is suppressed globally (`-webkit-tap-highlight-color: transparent`) for a mobile-app feel.
-- Text selection is disabled globally and re-enabled for `input`, `textarea`, and `[contenteditable]`.
+- `:focus-visible` uses a 2px solid `var(--rm-pitch)` outline.
+- Tap highlight suppressed globally (`-webkit-tap-highlight-color: transparent`).
+- Text selection disabled globally; re-enabled on `input`, `textarea`, `[contenteditable]`.
 - The theme toggle has an `aria-label` that reflects the next action.
-- Avoid conveying meaning through colour alone when adding new controls.
+- Decorative SVGs carry `aria-hidden="true"`.
+- Do not convey meaning through colour alone.
 
 ## Responsive Behaviour
 
-The default CSS is mobile-first. Desktop layout (≥ 700px) is handled in each CSS file's `@media (min-width: 700px)` block. On desktop, `#app` switches from flex column to a CSS grid with named areas.
+Mobile-first CSS. Desktop layout (≥ 700px) in each file's `@media (min-width: 700px)` block. On desktop, `#app` switches from flex column to CSS grid with named areas.
 
-Key stability rules:
-
-- Do not let score, clock, phase, or button text resize their containers during play.
-- Do not let player names or team names push numeric columns out of alignment.
-- Prefer truncation (`overflow: hidden; text-overflow: ellipsis; white-space: nowrap`) for labels and surnames in dense panels.
-- Hover rules are only inside desktop media queries — mobile has no hover states.
+Stability rules:
+- Scores, clock, phase badge, and button labels must never cause their container to resize during play.
+- Player names and team names must truncate (`overflow: hidden; text-overflow: ellipsis; white-space: nowrap`), not reflow.
+- Hover rules only inside desktop media queries — no hover states on mobile.
 
 ## Do
 
-- Use CSS variables from `style/main.css`.
-- Use `var(--font-mono)` and `font-variant-numeric: tabular-nums` for live numeric values.
+- Use `--rm-*` tokens from `style/main.css` for all colours.
+- Use `var(--rm-font-mono)` and `font-variant-numeric: tabular-nums` for all live numeric values.
+- Use `color-mix(in oklch, <token> <pct>, transparent)` for semi-transparent tints.
+- Use Anton for display/impact moments, Instrument Serif italic for editorial/live moments, JetBrains Mono for all numbers.
+- Use Heroicons inline SVGs for all iconography; solid for actions, outline for settings.
 - Keep each UI module responsible for one surface.
 - Preserve the event-driven engine/UI boundary described in `CLAUDE.md`.
-- Check `engine.md` before changing text that describes match behaviour.
-- Keep live-match screens dense, legible, and stable.
-- Use `var(--surface2)` background and `var(--border-mid)` border for secondary/neutral buttons.
-- Use Heroicons inline SVGs for all iconography; solid style for action icons, outline for settings/label icons.
+- Zero-pad score values: `String(score).padStart(2, '0')`.
 
 ## Don't
 
-- Do not use emoji or Unicode symbols in the UI — use Heroicons inline SVGs instead.
-- Do not introduce new component libraries for small UI changes without discussion.
-- Do not hardcode deploy-sensitive paths or asset bases.
-- Do not reverse semantic colours: green is positive/OK, red is penalty/poor/low, amber is try/warning, purple is terminal phase.
+- Do not use emoji or Unicode symbols in the UI — use Heroicons inline SVGs.
+- Do not use `rgba()` with hardcoded hex for tinted surfaces — use `color-mix(in oklch, ...)`.
+- Do not hardcode any colour except the three CTA green values (`#007a2a`, `#009434`, `#006622`), the ball fill (`#7a3a10`), and team identity colours injected from JSON.
+- Do not use display font (Anton) for body copy or labels — only for scores, headings, and CTA text.
+- Do not reverse semantic colours: pitch green = positive/active, red = error/poor, amber = event/warning, purple = terminal phase.
 - Do not add ornamental UI that reduces scannability during a match.
-- Do not use the blue (`var(--blue)`) filled pattern or neon-green (`var(--green)`) filled pattern for primary CTAs — use the dark green (`#007a2a`) pattern exclusively for primary actions.
-- Do not add new surface-level colours without adding them as tokens to `:root` in `style/main.css`.
-- Do not use `transform: translateY(...)` on button `:active` states — none of the standard buttons do this.
+- Do not add new surface colours without adding them as tokens to `:root`.
+- Do not use `transform: translateY(...)` on button `:active` states.
+- Do not introduce the `--blue` filled pattern for primary CTAs — use the dark green hardcoded spec exclusively.

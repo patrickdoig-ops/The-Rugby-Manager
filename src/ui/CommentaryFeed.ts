@@ -17,7 +17,7 @@ export function initCommentaryFeed(): void {
 
   eventBus.on('engine:event', ({ event }) => {
     const entry = document.createElement('div');
-    entry.className = `commentary-entry ${PHASE_CLASS[event.phase] ?? ''}`;
+    entry.className = `commentary-entry possession-${event.side} ${PHASE_CLASS[event.phase] ?? ''}`;
 
     const minute = Math.floor(event.gameMinute);
     entry.innerHTML = `<span class="event-minute">${minute}'</span> ${event.commentary}`;

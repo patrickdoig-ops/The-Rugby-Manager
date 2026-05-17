@@ -259,10 +259,14 @@ function pick(arr: string[]): string {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+function playerLabel(p: { name: string; id: number } | undefined, fallback: string): string {
+  return p ? `${p.name} (#${p.id})` : fallback;
+}
+
 function interpolate(template: string, event: GameEvent): string {
   return template
-    .replace(/{primary}/g,   event.primaryPlayer?.name   ?? 'the player')
-    .replace(/{secondary}/g, event.secondaryPlayer?.name ?? 'the defender')
+    .replace(/{primary}/g,   playerLabel(event.primaryPlayer,   'the player'))
+    .replace(/{secondary}/g, playerLabel(event.secondaryPlayer, 'the defender'))
     .replace(/{side}/g,      event.sideName);
 }
 

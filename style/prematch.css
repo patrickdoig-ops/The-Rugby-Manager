@@ -246,7 +246,7 @@
 /* ─── Footer / CTA ─── */
 #pm-footer {
   flex-shrink: 0;
-  padding: 12px 16px;
+  padding: 12px 24px;
   background: var(--rm-surface);
   border-top: 1px solid var(--rm-hairline);
 }

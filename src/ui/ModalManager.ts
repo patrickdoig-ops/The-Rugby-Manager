@@ -25,7 +25,7 @@ export function initModalManager(): void {
     const zone = context.inOpposition22 ? 'in the opposition 22' : 'in the opposition half';
 
     box.innerHTML = `
-      <h2 class="modal-title">Penalty Awarded!</h2>
+      <h2 class="modal-title">Penalty awarded</h2>
       <p class="modal-subtitle">${context.attackingSide === 'home' ? 'Home' : 'Away'} team — ${zone}</p>
       <div class="modal-choices">
         ${(['kick_for_goal', 'kick_to_touch', 'tap_and_go'] as PenaltyChoice[]).map(key => `

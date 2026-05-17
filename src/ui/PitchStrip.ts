@@ -6,18 +6,21 @@ export function initPitchStrip(): void {
   const homeEndLabel = document.getElementById('home-end-label')!;
   const awayEndLabel = document.getElementById('away-end-label')!;
 
-  // Team colours and short names are match constants — initialise once then drop the listener.
-  let cancelInit = eventBus.on('engine:stateChange', ({ state }) => {
-    homeEndLabel.style.color = state.homeTeam.color;
-    awayEndLabel.style.color = state.awayTeam.color;
-    homeEndLabel.textContent = state.homeTeam.shortName;
-    awayEndLabel.textContent = state.awayTeam.shortName;
-    cancelInit();
-  });
+  let lastHalfTimeDone: boolean | null = null;
 
-  // Hot-path listener: only updates that actually change each tick.
   eventBus.on('engine:stateChange', ({ state }) => {
     ballMarker.style.left = `${state.ballX}%`;
+
+    if (state.halfTimeDone !== lastHalfTimeDone) {
+      lastHalfTimeDone = state.halfTimeDone;
+      const leftTeam  = !state.halfTimeDone ? state.homeTeam : state.awayTeam;
+      const rightTeam = !state.halfTimeDone ? state.awayTeam : state.homeTeam;
+
+      homeEndLabel.style.color = leftTeam.color;
+      homeEndLabel.textContent = leftTeam.shortName;
+      awayEndLabel.style.color = rightTeam.color;
+      awayEndLabel.textContent = rightTeam.shortName;
+    }
 
     const attackingTeam    = state.possession === 'home' ? state.homeTeam : state.awayTeam;
     const homeAttacksRight = !state.halfTimeDone;

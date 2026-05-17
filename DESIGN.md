@@ -1,307 +1,198 @@
 # Design Guide
 
-A reference for visual design, layout patterns, and component conventions used across the app. Intended for anyone extending or restyling the UI.
+This guide documents the current Rugby Simulator UI. It is specific to this repo's plain DOM and CSS implementation. It does not use React, Tailwind, Framer Motion, or component libraries.
 
----
+For engine behaviour, formulas, and phase rules, use `engine.md`. For contributor workflow, versioning, and architecture constraints, use `CLAUDE.md`.
+
+## Design Principles
+
+- Keep the game readable during a live simulation.
+- Prioritise stable, compact information over decorative layout.
+- Use the same visual language across home, pre-match, match, commentary, stats, and modal surfaces.
+- Keep numeric values steady with monospace, tabular numbers.
+- Use team colour only where it clarifies identity or possession.
+- Avoid visual changes that make live updates jump, wrap unexpectedly, or obscure match state.
+
+## Architecture Implications
+
+The UI is split into small modules under `src/ui/`. Each module owns one surface and updates in response to `eventBus` events.
+
+| Module | UI responsibility |
+|---|---|
+| `AppShell.ts` | Static match shell injected into `#app` |
+| `HomeScreen.ts` | Home overlay, version display, theme toggle, start button |
+| `PreMatchScreen.ts` | Match preview, team tabs, player attribute rows |
+| `Scoreboard.ts` | Team names, scores, clock, phase badge |
+| `PitchStrip.ts` | Pitch zones, ball marker, end labels, attack direction |
+| `CommentaryFeed.ts` | Live commentary entries, possession tint, phase colour accents |
+| `StatsPanel.ts` | Match stats table plus player fatigue/rating rows |
+| `SimController.ts` | Play, Pause, and speed controls |
+| `ModalManager.ts` | Penalty choice modal |
+
+Keep DOM ids and class names stable unless the owning module and CSS are updated together.
+
+## Colour Tokens
+
+All shared colours are CSS custom properties in `style/main.css`.
+
+| Token | Default value | Purpose |
+|---|---:|---|
+| `--bg` | `#111111` | App background |
+| `--surface` | `#0d0d0d` | Major panels and overlays |
+| `--surface2` | `#1a1a1a` | Raised or nested surfaces |
+| `--border` | `#333333` | Subtle borders |
+| `--border-mid` | `#444444` | Stronger borders |
+| `--text` | `#FFFFFF` | Primary text |
+| `--text-sec` | `#CCCCCC` | Secondary text |
+| `--text-muted` | `#888888` | Muted labels and captions |
+| `--blue` | `#00BAFF` | Primary accent and lineout event colour |
+| `--blue-dark` | `#005A8C` | Darker blue accent |
+| `--blue-light` | `#001A26` | Blue tinted surface |
+| `--green` | `#2ecc71` | Good outcomes, scrum event colour, fatigue OK |
+| `--red` | `#e74c3c` | Penalties, poor outcomes, low fatigue |
+| `--amber` | `#FFB800` | Tries, warnings, fatigue warning |
+| `--purple` | `#A855F7` | Half-time and full-time accents |
+| `--gold` | `#FFD700` | Scores, ball outline, high ratings |
+
+`body.light-mode` overrides the same tokens for the light theme. The theme toggle in `HomeScreen.ts` persists `light-mode` in local storage under `rugby-manager-theme`.
+
+Use tokens for colours wherever possible. Hardcoded colours currently exist only where the value is domain-specific or intentionally fixed, such as the pitch zones, team possession tints, ball colour, and the green start button border.
 
 ## Typography
 
-Two font families are used throughout.
+Fonts are loaded in `index.html`:
 
-**Sans-serif — Inter**
-Used for all body text, labels, and UI copy.
+- Inter for general UI text.
+- Space Mono with JetBrains Mono fallback for live numbers.
 
-| Weight | Usage |
-|--------|-------|
-| 300 | Light labels, secondary captions |
-| 400 | Body text, descriptions |
-| 500 | Emphasis, subheadings |
-| 600 | Section labels, interactive text |
-| 700 | Primary headings, bold UI elements |
-| 800 | Hero text, screen titles |
-
-**Monospace — Space Mono / JetBrains Mono**
-Used for all numeric values and anything that must align in columns. Always pair with `tabular-nums` to prevent digit-width jitter.
+Use `var(--font-sans)` for general UI and `var(--font-mono)` for changing numeric values. Live numbers should also use:
 
 ```css
-font-family: "Space Mono", "JetBrains Mono", monospace;
+font-variant-numeric: tabular-nums;
 ```
 
-**Terminal mode:** The `.terminal-mode` class applies `font-mono !important` to every element on screen, giving a full monospace aesthetic selectable in settings.
+Current numeric surfaces include:
 
-**Screen titles** use all-caps with `tracking-[0.2em]` letter-spacing.
+- Score values.
+- Clock.
+- Version number.
+- Player ids.
+- Player attributes.
+- Match stat values.
+- Fatigue and rating values.
+- Commentary minute stamps.
 
----
+## Layout
 
-## Colour System
+The app is a full-viewport single-page experience. `html`, `body`, and `#app` are locked to the viewport and hide browser scrollbars. Internal panels scroll where needed.
 
-All colours are CSS custom properties defined on `:root` and overridden by `.dark-mode`. Tailwind tokens map to these properties via `@theme` in `index.css`.
+Primary flow:
 
-### Light mode
+1. `#home-screen` is a fixed overlay at z-index 300.
+2. `#pre-match` is a fixed overlay at z-index 200.
+3. `#app` contains the match shell underneath.
 
-| Token | Variable | Hex | Usage |
-|-------|----------|-----|-------|
-| `bg` | `--bg` | `#FFFFFF` | Page background |
-| `surface` | `--surface` | `#F7F7F7` | Card / panel fill |
-| `surface2` | `--surface2` | `#FAFAFA` | Nested surface, input fill |
-| `border-dim` | `--border` | `#EEEEEE` | Subtle dividers |
-| `border-mid` | `--border-mid` | `#CCCCCC` | Standard borders |
-| `text` | `--text` | `#1D1D1B` | Primary text |
-| `text-sec` | `--text-sec` | `#2D3039` | Secondary text |
-| `text-muted` | `--text-muted` | `#757575` | Placeholder, captions |
-| `trading-blue` | `--blue` | `#0F70C7` | Primary action colour |
-| `trading-blue-dark` | `--blue-dark` | `#0019A8` | Hover state for blue |
-| `trading-blue-light` | `--blue-light` | `#EFF6FD` | Blue tinted surfaces |
-| `trading-green-text` | `--green-text` | `#00782A` | Profit, positive P&L |
-| `trading-green-bg` | `--green-bg` | `#E7F6DC` | Profit background tint |
-| `trading-red-text` | `--red-text` | `#C8102E` | Loss, negative P&L |
-| `trading-red-bg` | `--red-bg` | `#FFEFEF` | Loss background tint |
-| `trading-amber-text` | `--amber-text` | `#7A6500` | Warnings, special values |
-| `trading-amber-bg` | `--amber-bg` | `#FAF5E1` | Warning background tint |
-| `trading-purple-text` | `--purple-text` | `#6B21A8` | Achievements, rare items |
-| `trading-purple-bg` | `--purple-bg` | `#F5EFFF` | Achievement background tint |
-| `trading-gold` | `--gold` | `#D4AF37` | Career final, legendary rarity |
-| `surface-alt` | `--surface-alt` | `#EEEEEE` | Muted button fill |
-| `surface-hover` | `--surface-hover` | `#E8E8E8` | Muted button hover |
+Match shell order:
 
-### Dark mode (`.dark-mode`)
+1. `#scoreboard`
+2. `#panel-pitch`
+3. `#panel-bottom`
+4. `#sim-controls`
+5. `#modal-overlay`
 
-| Token | Hex | Notes |
-|-------|-----|-------|
-| `--bg` | `#000000` | Pure black |
-| `--surface` | `#000000` | Matches bg |
-| `--surface2` | `#0A0A0A` | Barely lifted |
-| `--border` | `#333333` | |
-| `--border-mid` | `#555555` | |
-| `--text` | `#FFFFFF` | |
-| `--text-sec` | `#CCCCCC` | |
-| `--text-muted` | `#888888` | |
-| `--blue` | `#00BAFF` | Brighter for dark contrast |
-| `--blue-dark` | `#005A8C` | |
-| `--blue-light` | `#001A26` | |
-| `--green-text` | `#00FF00` | Neon — do not use as button bg |
-| `--red-text` | `#FF1A00` | Neon — do not use as button bg |
-| `--amber-text` | `#FFB800` | |
-| `--purple-text` | `#A855F7` | |
-| `--gold` | `#FFD700` | |
+Safe-area insets are used for mobile notches and home indicators. Preserve those rules when changing full-screen layouts.
 
-> **Critical:** The dark-mode green (`#00FF00`) and red (`#FF1A00`) are neon values with near-zero contrast against white text. Never use `bg-trading-green-text` or `bg-trading-red-text` as button backgrounds. Use the fixed hex values `#007a2a` (buy) and `#b8001b` (sell) instead — these work in both modes.
+## Screen Notes
 
-## Spacing & Layout
+### Home Screen
 
-The app is a full-viewport single-page experience with no browser chrome. Layout is built on Tailwind utility classes with the following conventions:
+The home screen is intentionally sparse: title, version, start button, and theme toggle. The start button is the primary action and should remain visually distinct.
 
-- **Padding scale:** `p-3` / `p-4` inside panels; `p-6` for page-level containers; responsive variants use `md:` prefix
-- **Gap scale:** `gap-2` for tight rows, `gap-3`–`gap-4` for component groups, `gap-5`–`gap-6` for sections
-- **Border radius:** `rounded-[3px]` for playing cards (near-square), `rounded-lg` for buttons and chips, `rounded-xl` for floating panels and modals
-- **Safe areas:** `.safe-top` and `.safe-bottom` utility classes handle iOS notch/home-indicator insets (`env(safe-area-inset-top/bottom)`, minimum 1rem)
+### Pre-Match
 
-### Scrolling
+The pre-match screen is dense by design. It lets the user scan each team before kick-off:
 
-Scrollable regions hide their scrollbar via `.no-scrollbar` (cross-browser, using both `-webkit-scrollbar: none` and `scrollbar-width: none`).
+- Header with match title and team matchup.
+- Tabs for home and away rosters.
+- Attribute legend grouped into Physical, Technical, and Mental.
+- Compact player rows with id, surname, position, and stat cells.
+- Fixed footer action to kick off.
 
----
+Preserve the compact row layout; this screen needs to fit 15 players on small screens with minimal scrolling.
 
-## Shadows & Elevation
+### Scoreboard
 
-| Usage | Class |
-|-------|-------|
-| Light card lift | `shadow-sm` |
-| Panel / modal | `shadow-md` or `shadow-lg` |
-| Bottom sheet upward shadow | `shadow-[0_-2px_8px_rgba(0,0,0,0.06)]` |
-| Blue button glow | `shadow-trading-blue/20` |
+The scoreboard must remain stable during live updates. Scores and clock use monospace/tabular numbers. Team names are uppercase and truncated to avoid layout shifts.
 
-Avoid heavy shadows in dark mode — the near-black backgrounds make elevation feel more via border contrast than shadow depth.
+### Pitch Strip
 
----
+The pitch is a horizontal strip, not a detailed field. It communicates:
+
+- Try zones.
+- 22m zones.
+- Halfway.
+- Ball position as `ballX` percentage.
+- Current attacking team and direction.
+
+The ball marker should always transition smoothly and stay visually above pitch zones.
+
+### Commentary
+
+Commentary entries are prepended, with a maximum of 30 entries. Possession tint shows which side had the ball; phase-specific left borders highlight notable events.
+
+Keep commentary text compact. Long entries reduce the usefulness of the live feed.
+
+### Stats
+
+Match stats are rendered as a compact table, with home and away values around a centre label. Player stats show fatigue bars and rating badges. Player stats update once per game minute to reduce unnecessary DOM churn.
+
+### Modal
+
+The modal is currently used for penalty choices. It should interrupt the simulation clearly without hiding the match context permanently. Choice buttons should contain both an action label and a short consequence.
 
 ## Motion
 
-Animation uses the `motion/react` library (Framer Motion v12).
+Motion is CSS-only:
 
-### Enter / exit pattern
+- Commentary entries use `entryIn` over 0.18s.
+- Pre-match exits with `pmSlideDown` over 0.3s.
+- Ball marker movement transitions over 0.35s.
+- Fatigue bars transition width over 0.5s.
+- Buttons use short background or border transitions.
 
-Screens and panels enter with opacity + small transform, exit with a matching reverse:
-
-```tsx
-initial={{ opacity: 0, y: 8 }}
-animate={{ opacity: 1, y: 0 }}
-exit={{ opacity: 0, y: -8 }}
-transition={{ duration: 0.18, ease: 'easeOut' }}
-```
-
-`AnimatePresence` in `App.tsx` wraps all screen transitions.
-
-### Spring physics
-
-Interactive elements (modals, cards, achievement badges) use spring transitions:
-
-```tsx
-transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-```
-
-### Confetti
-
-Achievement celebrations use CSS `@keyframes confettiFall`: 110vh fall over ~1.5s with a 720° rotation, fading out at 85%.
-
-### Timing reference
-
-| Duration | Usage |
-|----------|-------|
-| 80–120ms | Micro-interactions (button press, toggle) |
-| 180–220ms | Panel open/close, element enter |
-| 300–350ms | Screen transitions, card reveals |
-| 500ms | Longer emphasis (settlement, career modal) |
-
----
-
-## Buttons
-
-### Primary (blue)
-
-```
-bg-trading-blue text-white rounded-lg
-hover:bg-trading-blue-dark
-transition-colors duration-200
-```
-
-Used for the main action on a screen (Start Game, etc.).
-
-### Muted / secondary
-
-```
-bg-surface-alt text-text-main rounded-lg
-hover:bg-surface-hover
-border border-border-dim
-```
-
-Used for secondary actions and cancel buttons.
-
-### Buy (green — fixed hex)
-
-```
-bg-[#007a2a] text-white rounded-lg
-hover:bg-[#005c1e]
-```
-
-### Sell (red — fixed hex)
-
-```
-bg-[#b8001b] text-white rounded-lg
-hover:bg-[#8f0015]
-```
-
-### Danger / destructive
-
-```
-bg-[#b8001b] text-white rounded-lg
-hover:bg-[#8f0015]
-```
-
-Same as sell — used for delete/reset actions in settings.
-
-### Small control buttons (± nudge buttons)
-
-```
-w-8 h-8 rounded-lg
-bg-surface border border-border-mid
-hover:bg-surface-v2
-text-sm font-mono
-```
-
----
-
-### Sizes
-
-| Size prop | Classes | Typical context |
-|-----------|---------|-----------------|
-| `sm` | `w-8 h-11 md:w-10 md:h-14` | Info bar, tutorial deck grid |
-| `md` | `w-10 h-14` | Settlement recap rows |
-| `lg` | `w-14 h-20 md:w-20 md:h-28` | Tutorial large display |
-
-### Face-up colour coding
-
-| Value | Text colour | Border colour |
-|-------|-------------|---------------|
-| `-10` | `trading-red-text` | `trading-red-text/40` |
-| `20` | `trading-amber-text` | `trading-amber-text/50` |
-| Community card | `trading-blue` | `trading-blue/60` on `trading-blue/5` bg |
-| `1–15` (normal) | `text-main` | `border-mid` |
-
-
----
-
-### Modals / dialogs
-
-```
-fixed inset-0 z-50
-bg-black/60 backdrop-blur-sm
-flex items-center justify-center
-```
-
-Inner card:
-```
-bg-bg border border-border-dim rounded-xl
-p-6 shadow-lg
-max-w-sm w-full mx-4
-```
-
----
-
-## Semantic Colour Usage
-
-These mappings are consistent throughout the app and must not be reversed:
-
-| Meaning | Colour |
-|---------|--------|
-| Profit / buy / positive | Green (`trading-green-text`) |
-| Loss / sell / negative | Red (`trading-red-text`) |
-| Primary action / selected | Blue (`trading-blue`) |
-| Warning / special card (20) | Amber (`trading-amber-text`) |
-| Achievement / rare | Purple (`trading-purple-text`) |
-| Career final / legendary | Gold (`trading-gold`) |
-| Break-even / neutral | Muted (`text-muted`) |
-
----
-
-## Screen Structure
-
-All screens are full-height flex columns (`flex flex-col min-h-screen` or `h-screen`). The in-game screen is the only one with a fixed layout: `Header (56–64px) → InfoBar → EventLog (flex-1, scrollable) → LiveMarket (conditional) → ActionPanel`.
-
-Screens not in `validScreens` in `useSession.ts` (currently: `analytics`) fall back to `home` on page reload.
-
----
+Keep motion functional and brief. It should help users track live changes, not compete with the simulation.
 
 ## Accessibility
 
-- **Focus rings:** `focus-visible:ring-2 focus-visible:ring-trading-blue` on interactive elements
-- **Tap highlight:** Suppressed globally (`-webkit-tap-highlight-color: transparent`)
-- **Text selection:** Disabled on non-input elements (`user-select: none`) to prevent accidental selection during touch interactions; re-enabled on `input` and `textarea`
-- **Colour contrast:** All text/background combinations are chosen for WCAG AA at minimum. The neon dark-mode values (`#00FF00`, `#FF1A00`) are text-only tokens — never used as backgrounds with white foreground text.
+- `:focus-visible` uses a blue outline token.
+- Tap highlight is suppressed globally for a mobile-app feel.
+- Text selection is disabled for normal UI and re-enabled for inputs, textareas, and editable content.
+- The theme toggle has an `aria-label` that reflects the next action.
+- Avoid conveying meaning through colour alone when adding new controls.
 
----
+## Responsive Behaviour
 
-## Rarity Colours (Achievements)
+The default CSS is mobile-first. Larger viewports are handled in `style/main.css` with media queries. When adding new UI, check both phone-sized and desktop-sized layouts.
 
-| Rarity | Badge colour |
-|--------|-------------|
-| Common | `text-text-muted` / `border-border-mid` |
-| Uncommon | `text-trading-green-text` / `border-trading-green-text` |
-| Rare | `text-trading-blue` / `border-trading-blue` |
-| Epic | `text-trading-purple-text` / `border-trading-purple-text` |
-| Legendary | `text-trading-gold` / `border-trading-gold` |
+Make fixed-format elements stable with explicit dimensions or responsive constraints. In particular:
 
----
+- Do not let score, clock, phase, or button text resize their containers during play.
+- Do not let player names or team names push numeric columns out of alignment.
+- Prefer truncation for labels and surnames in dense panels.
 
-## Do / Don't
+## Do
 
-**Do:**
-- Use `font-mono tabular-nums` for every numeric value that updates live
-- Read colour tokens from CSS variables via Tailwind tokens — never hardcode hex except for Buy/Sell buttons
-- Use spring transitions for interactive surfaces; easeOut for passive enters
+- Use CSS variables from `style/main.css`.
+- Use `var(--font-mono)` and tabular numbers for live numeric values.
+- Keep each UI module responsible for one surface.
+- Preserve the event-driven engine/UI boundary described in `CLAUDE.md`.
+- Check `engine.md` before changing text that describes match behaviour.
+- Keep live-match screens dense, legible, and stable.
 
-**Don't:**
-- Use `bg-trading-green-text` or `bg-trading-red-text` as button backgrounds (neon in dark mode)
-- Use `flex-wrap` for the InfoBar grid — column alignment breaks
-- Reset the action panel spread value between live rounds — the player's chosen spread must persist
-- Hardcode colours in component logic that belong in the theme (except the two Buy/Sell exceptions above)
+## Don't
+
+- Do not introduce a framework or component library for small UI changes.
+- Do not use Tailwind, Framer Motion, or React patterns in this repo unless the app is deliberately migrated.
+- Do not hardcode deploy-sensitive paths or asset bases.
+- Do not reverse semantic colours: green is positive/OK, red is penalty/poor/low, amber is try/warning, purple is terminal phase.
+- Do not add ornamental UI that reduces scannability during a match.

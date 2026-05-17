@@ -119,11 +119,11 @@ The penalty interactive pause is a `Promise` that resolves when the `onChoice(ch
 
 ```
 KickOff → OpenPlay → Breakdown → OpenPlay (loop)
-                               → BoxKick (slow ball outside opp 22) → OpenPlay / Scrum
-                   → TacticalKick (15% chance) → OpenPlay / Lineout / Scrum
+                               → BoxKick (slow ball; propensity driven by attackingGamePlan + pitch zone) → OpenPlay / Scrum
+                   → TacticalKick (propensity driven by attackingGamePlan + pitch zone) → OpenPlay / Lineout / Scrum
                    → Scrum / Lineout → OpenPlay
                    → TryScored → ConversionKick → KickOff
-                   → Penalty → [modal if in opp 22] → KickOff / Lineout / OpenPlay
+                   → Penalty → [modal if home team in opposition half] → KickOff / Lineout / OpenPlay
 OpenPlay at 40 min → HalfTime → KickOff (second half)
 Any phase at 80 min → FullTime
 ```
@@ -147,7 +147,7 @@ Resolver formulas at a glance:
 |---|---|---|
 | **KickOff** | `kickScore = kicking + rng(1,20)` < 35 → knock_on; then `catchScore - chaseScore` | > 10 clean_receive; > -5 contested; else knock_on |
 | **OpenPlay** | 3-step: handling gate → evasion → collision | handling < 30 = knock_on; evasion margin ≥ 15 = line_break; collision ±5 = dominant |
-| **Breakdown** | `ARS = avgBreakdown×0.6 + avgStrength×0.4 + rng(1,20)` vs `DTS = jackalBreakdown×0.7 + jackalStrength×0.3 + rng(1,20)` | margin ≥ 10 clean_ball; ≥ 1 slow_ball; ≥ -14 turnover; else penalty_defending |
+| **Breakdown** | `ARS = avgBreakdown×0.6 + avgStrength×0.4 + (avgDiscipline−50)×0.15 + rng(1,20)`. DTS varies by `defendingBreakdown`: **jackal** = `jackalBreakdown×0.7 + jackalStrength×0.3 + (jackalDiscipline−50)×0.15 + rng(1,20)`; **counter_ruck** = `avgPackStrength×0.6 + avgPackBreakdown×0.4 + (avgPackDiscipline−50)×0.15 + rng(1,20)`; **shadow** = `rng(1,10)` (concedes ball to set line) | margin ≥ 10 clean_ball; ≥ 1 slow_ball; ≥ -14 turnover; else penalty_defending |
 | **Scrum** | `avg(setPiece×0.6 + strength×0.4) + rng` for each front 5 | attack margin > 0 stable_win; > -15 wheel; else dominant_penalty |
 | **Lineout** | `throwScore = hookerSetPiece + rng` < 40 → auto steal; then `(setPiece×0.5 + agility×0.5) + rng` each jumper | margin ≥ 5 clean_catch; ≥ 0 scrappy_knock_on; else steal |
 | **BoxKick** | `kickScore = kicking + rng(1,20)` ≥ 75 → contested (wingerScore vs fullbackScore); else uncontested catch gate | contested: margin ≥ 10 attack_retain; ≥ 0 defend_knock_on; else defend_catch_contested. Uncontested: catchScore ≥ 35 defend_catch; else knock_on |
@@ -160,7 +160,7 @@ Resolver formulas at a glance:
 |---|---|---|
 | KickOff | id=10 (fly-half) as kicker; random as chaser | random receiver |
 | OpenPlay | `randomPlayer(attackTeam)` | `randomPlayer(defendTeam)` |
-| Breakdown | 3 forwards sampled at random without replacement from `players.filter(p.id <= 8)` | 1 back-row player sampled at random from `players.filter(p.id >= 6 && p.id <= 8)` |
+| Breakdown | 2–4 forwards sampled at random without replacement from `players.filter(p.id <= 8 && p.id !== carrierId)` — count = 4 (`pick_and_drive`), 3 (`balanced`), 2 (`wide_play`) per `attackingBreakdown` tactic | 1 back-row player sampled at random from `players.filter(p.id >= 6 && p.id <= 8)`; full pack (`p.id <= 8`) passed for `counter_ruck` |
 | BoxKick | id=9 (scrum half) as kicker; random from id=11\|14 (wingers) as chaser | id=15 (fullback) |
 | Scrum | `players.filter(p => p.id <= 5)` (front 5) | same filter on defend team |
 | Lineout | hooker=id 2; jumper=`find(id===4\|5\|6)` → always id 4 | `find(id===4\|5\|6)` → always id 4 |
@@ -168,15 +168,32 @@ Resolver formulas at a glance:
 | ConversionKick | id=10 (fly-half) | — |
 | TryScored | last event primaryPlayer (carrier) | — |
 
-### Open Play — future development notes
+### Tactics system
 
-- **Kick propensity:** the 15% kick-or-carry decision at the start of open play is a flat probability. It should be driven by the attacking team's tactical setting (a "kicking game" tactic raises the likelihood; a "possession game" lowers it) and by pitch location (e.g. kicking from inside your own 22 or near the touchline is unusual even for kicking teams).
+Four tactic dimensions are defined in `TeamTactics` (see `src/types/team.ts`). The UI (`TacticsMenu.ts`) lets the **home team** change all four mid-match. Away team uses engine defaults and cannot be changed through the UI.
 
-### Breakdown — future development notes
+| Tactic | Values | Engine effect |
+|---|---|---|
+| `kickOffStrategy` | `high_ball` / `short_kick` / `grubber` | Changes kick distance and `catchMod` in `KickOffResolver` |
+| `attackingGamePlan` | `possession` / `balanced` / `kicking` | Kick-or-carry probability in OpenPlay (per pitch zone); box kick propensity in Breakdown |
+| `attackingBreakdown` | `pick_and_drive` / `balanced` / `wide_play` | Supporter count (4 / 3 / 2) in `BreakdownEvent` |
+| `defendingBreakdown` | `jackal` / `counter_ruck` / `shadow` | DTS formula branch in `BreakdownResolver` |
 
-- **Number of forwards deployed** should be driven by the attacking team's tactical setting (e.g. a "pick-and-drive" tactic deploys more forwards; a "wide game" tactic fewer). Currently hard-coded to 3.
-- **Defensive breakdown tactics:** the number of defensive forwards deployed to a breakdown should depend on the defending team's tactical setting. The defending team should also choose between two strategies: **jackal** (attempt a turnover steal, current behaviour) and **counter ruck** (use collective forward power to drive the attackers off the ball). Currently only the jackal is modelled.
-- **Box kick propensity:** the decision to box kick from slow ball, and the propensity to do so in different pitch locations, should be driven by the attacking team's tactical setting. A "kicking game" tactic should increase propensity; a "possession game" tactic should reduce or eliminate it. Kicking from very deep in your own 22 is unusual even for kicking-oriented teams, so pitch zone should also gate the trigger. Currently the box kick always triggers on slow ball outside the opposition 22.
+Kick-or-carry probabilities by `attackingGamePlan` and pitch zone:
+
+| Plan | Own 22 | Own half | Opp half |
+|---|---|---|---|
+| `possession` | 10% | 5% | 0% |
+| `balanced` | 20% | 15% | 10% |
+| `kicking` | 35% | 25% | 15% |
+
+Box kick propensity by `attackingGamePlan` (triggered from slow ball in Breakdown):
+
+| Plan | Condition |
+|---|---|
+| `possession` | Never |
+| `balanced` | In own half and not in own 22 |
+| `kicking` | Not in opposition 22 and not in own 22 |
 
 ### Player attributes — known gaps
 

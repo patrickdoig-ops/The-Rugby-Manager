@@ -120,7 +120,7 @@ export function initPreMatchScreen(
       <div id="pm-tabs" role="tablist">
         <button class="pm-tab active" data-tab="home"    style="--tc:${home.color}">${home.name}</button>
         <button class="pm-tab"        data-tab="away"    style="--tc:${away.color}">${away.name}</button>
-        <button class="pm-tab"        data-tab="tactics" style="--tc:var(--gold)">Tactics</button>
+        <button class="pm-tab"        data-tab="tactics" style="--tc:var(--rm-pitch)">Tactics</button>
       </div>
     </div>
 

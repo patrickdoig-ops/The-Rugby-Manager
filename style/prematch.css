@@ -118,7 +118,7 @@
 }
 
 .legend-group + .legend-group {
-  border-left: 1px solid var(--surface2);
+  border-left: 1px solid var(--rm-hairline);
   padding-left: 4px;
 }
 
@@ -156,7 +156,7 @@
 }
 
 .pm-num {
-  font-family: var(--font-mono);
+  font-family: var(--rm-font-mono);
   font-size: 11px;
   font-weight: 700;
   width: 18px;
@@ -202,12 +202,12 @@
 }
 
 .attr-group + .attr-group {
-  border-left: 1px solid var(--surface2);
+  border-left: 1px solid var(--rm-hairline);
   padding-left: 4px;
 }
 
 .attr-group--ovr {
-  border-right: 1px solid var(--border-mid);
+  border-right: 1px solid var(--rm-border-soft);
   padding-right: 6px;
   margin-right: 2px;
 }
@@ -222,14 +222,14 @@
 .attr-key {
   font-size: 7px;
   font-weight: 500;
-  color: var(--surface2);  /* invisible — legend above does the labelling */
+  color: transparent;  /* invisible — legend above does the labelling */
   text-transform: uppercase;
   line-height: 1;
   margin-bottom: 1px;
 }
 
 .attr-val {
-  font-family: var(--font-mono);
+  font-family: var(--rm-font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 11px;
   font-weight: 700;
@@ -258,7 +258,7 @@
   border: 1px solid rgba(255,255,255,0.12);
   border-radius: 12px;
   color: #ffffff;
-  font-family: var(--font-sans);
+  font-family: var(--rm-font-body);
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.05em;

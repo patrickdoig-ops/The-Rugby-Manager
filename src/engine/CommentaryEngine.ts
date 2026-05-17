@@ -178,11 +178,26 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
     ],
   },
   [MatchPhase.TryScored]: {
-    try: [
-      'TRY! {primary} crashes over in the corner! Magnificent score!',
-      'TRY! {primary} touches down! The crowd erupts!',
-      'TRY! What a finish from {primary} — {side} take the lead!',
-      'TRY! {primary} squeezes over in the corner! Superb support play!',
+    try_lead: [
+      'TRY! {primary} touches down — and {side} take the lead!',
+      'TRY! What a score from {primary}! {side} are in front!',
+      'TRY! {primary} crashes over — {side} snatch the lead!',
+    ],
+    try_extend_lead: [
+      'TRY! {primary} crashes over! {side} extending their advantage!',
+      'TRY! {primary} touches down — the lead is growing for {side}!',
+      'TRY! More misery for the opposition as {primary} goes over!',
+    ],
+    try_level: [
+      'TRY! {primary} touches down — and {side} draw level!',
+      'TRY! A brilliant finish from {primary}! The scores are level!',
+      'TRY! {primary} scores and it\'s all square! This match is wide open!',
+    ],
+    try_trail: [
+      'TRY! {primary} goes over — {side} pulling one back but still behind!',
+      'TRY! A much needed score from {primary}! {side} cutting the deficit!',
+      'TRY! {primary} crashes over — {side} giving themselves a chance!',
+      'TRY! {primary} squeezes over! {side} closing the gap!',
     ],
   },
   [MatchPhase.ConversionKick]: {

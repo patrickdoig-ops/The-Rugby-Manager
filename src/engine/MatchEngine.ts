@@ -322,6 +322,12 @@ export class MatchEngine {
     const { state } = this;
     const attackTeam = state.possession === 'home' ? state.homeTeam : state.awayTeam;
     const defendTeam = state.possession === 'home' ? state.awayTeam : state.homeTeam;
+    // Capture before the handler runs — possession may flip inside the handler.
+    // ConversionKick flips possession to set up the kick-off, but the event itself
+    // belongs to the scoring team, so we preserve the pre-handler side for that case.
+    const phaseAtStart   = state.phase;
+    const sideAtStart    = state.possession;
+    const sideNameAtStart = attackTeam.name;
 
     const ctx: PhaseContext = {
       state,
@@ -351,12 +357,13 @@ export class MatchEngine {
     }
     state.phase = nextPhase;
 
+    const isConversion = phaseAtStart === MatchPhase.ConversionKick;
     return {
       id: makeId(),
       gameMinute: state.gameMinute,
       phase: state.phase,
-      side: state.possession,
-      sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
+      side:     isConversion ? sideAtStart    : state.possession,
+      sideName: isConversion ? sideNameAtStart : (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
       primaryPlayer,
       secondaryPlayer,
       ballX: state.ballX,

@@ -35,7 +35,8 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, adjust
     };
   }
 
-  // contested — neither side secures cleanly, play on
+  // contested — neither side secures cleanly, but the receiving team scrambles possession
+  state.possession = state.possession === 'home' ? 'away' : 'home';
   return {
     nextPhase: MatchPhase.OpenPlay,
     commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: receiver, secondaryPlayer: chaser }, 'contested'),

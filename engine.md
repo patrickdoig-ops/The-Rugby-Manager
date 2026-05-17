@@ -508,9 +508,12 @@ In both cases the **non-offending team** gains possession and the phase transiti
 After `resolvePhase()` sets the phase to `Penalty`, `tick()` calls `handlePenaltyDecision()`:
 
 ```
-if NOT inOpposition22() → auto-select kick_to_touch (no modal shown)
-if inOpposition22()     → emit engine:paused → await Promise<PenaltyChoice>
+if possession !== 'home'  → auto-select kick_to_touch (away team AI, no modal)
+if NOT inOppositionHalf() → auto-select kick_to_touch (own half, no modal)
+if possession === 'home' AND inOppositionHalf() → emit engine:paused → await Promise<PenaltyChoice>
 ```
+
+`inOppositionHalf()` returns true when `ballX > 50` for home in the first half (attacking right) or `ballX < 50` in the second half (attacking left). The modal is only shown to the human manager, who controls the home team.
 
 The engine loop is suspended mid-tick at the `await`. It resumes only when `resolvePlayerChoice(choice)` is called from `SimController` (wired to the modal's choice buttons).
 

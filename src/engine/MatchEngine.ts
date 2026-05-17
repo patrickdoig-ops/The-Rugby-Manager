@@ -165,6 +165,13 @@ export class MatchEngine {
     return homeAttacksRight ? ballX <= 22 : ballX >= 78;
   }
 
+  private inOppositionHalf(): boolean {
+    const { ballX, possession } = this.state;
+    const homeAttacksRight = !this.state.halfTimeDone;
+    if (possession === 'home') return homeAttacksRight ? ballX > 50 : ballX < 50;
+    return homeAttacksRight ? ballX < 50 : ballX > 50;
+  }
+
   private scheduleTick(delay: number): void {
     this.tickTimeout = setTimeout(() => this.tick(), delay);
   }
@@ -268,7 +275,9 @@ export class MatchEngine {
   private async handlePenaltyDecision(event: GameEvent): Promise<void> {
     const { state } = this;
 
-    if (!this.inOpposition22()) {
+    // Only present the choice to the human manager (home team) and only when
+    // the penalty is in the opposition's half. All other penalties auto-kick to touch.
+    if (state.possession !== 'home' || !this.inOppositionHalf()) {
       this.applyPenaltyChoice('kick_to_touch');
       return;
     }

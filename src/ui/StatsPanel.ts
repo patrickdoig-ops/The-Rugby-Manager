@@ -18,10 +18,10 @@ function renderStats(state: MatchState): string {
     ['Possession', pct(stats.possession.home, stats.possession.away), pct(stats.possession.away, stats.possession.home)],
     ['Territory',  pct(stats.territory.home,  stats.territory.away),  pct(stats.territory.away,  stats.territory.home)],
     ['Tackle %',   tacklePct(stats.tackles.home), tacklePct(stats.tackles.away)],
-    ['Handling Err', String(stats.handlingErrors.home), String(stats.handlingErrors.away)],
-    ['Tries',      String(stats.tries.home),   String(stats.tries.away)],
-    ['Scrums Won', String(stats.scrums.home),  String(stats.scrums.away)],
-    ['Lineouts Won', String(stats.lineouts.home), String(stats.lineouts.away)],
+    ['Errors',    String(stats.handlingErrors.home), String(stats.handlingErrors.away)],
+    ['Tries',     String(stats.tries.home),    String(stats.tries.away)],
+    ['Scrums',    String(stats.scrums.home),   String(stats.scrums.away)],
+    ['Lineouts',  String(stats.lineouts.home), String(stats.lineouts.away)],
   ];
 
   return `

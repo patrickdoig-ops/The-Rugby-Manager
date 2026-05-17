@@ -35,6 +35,7 @@
   font-size: 10px;
   font-weight: 500;
   color: var(--text-sec);
+  white-space: nowrap;
 }
 
 /* ─── Player stats panel ─── */

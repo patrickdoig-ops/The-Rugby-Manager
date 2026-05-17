@@ -39,7 +39,7 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.2em;
-  color: var(--text-muted);
+  color: var(--text-sec);
   margin-bottom: 8px;
 }
 
@@ -59,7 +59,7 @@
 #pm-vs {
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-muted);
+  color: var(--text-sec);
 }
 
 /* ─── Tabs ─── */
@@ -73,7 +73,7 @@
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  color: var(--text-muted);
+  color: var(--text-sec);
   font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 600;
@@ -120,7 +120,7 @@
 .legend-item {
   font-size: 8px;
   font-weight: 500;
-  color: var(--text-muted);
+  color: var(--text-sec);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   width: 24px;

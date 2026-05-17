@@ -15,7 +15,7 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   padding: 3px 4px;
-  color: var(--text-muted);
+  color: var(--text-sec);
 }
 
 .stats-table td { padding: 3px 4px; }
@@ -34,7 +34,7 @@
   text-align: center;
   font-size: 10px;
   font-weight: 500;
-  color: var(--text-muted);
+  color: var(--text-sec);
 }
 
 /* ─── Player stats panel ─── */

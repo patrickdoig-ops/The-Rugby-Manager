@@ -120,13 +120,17 @@ The receiving player attempts to catch the ball, relying on their handling and c
 | Margin | Result | Possession |
 |---|---|---|
 | > 10 | `clean_receive` → OpenPlay | Flips to receiving team |
-| > −5 | `contested` → OpenPlay | No change (kicking team plays on) |
+| > −5 | `contested` → OpenPlay | Flips to receiving team (scrambles possession) |
 | ≤ −5 | `knock_on` → Scrum | No change (kicking team wins scrum put-in) |
 
+`contested` always gives the ball to the receiving team — only a `knock_on` (the receiver drops it uncontested) benefits the kicking side.
+
+**Short kick regather (`short_kick_retain`):** When the kicking team uses `short_kick` and the result is `contested`, there is a 15% chance the kicking team regathers their own kick and retains possession. The chase player (`chaser`) is credited as `primaryPlayer` for the event. This is the only scenario where the kicking team can retain on a `contested` result.
+
 **Tactical Strategy (`KickOffStrategy`):**
-- `high_ball`: Standard deep kick (25–40m), normal catch vs chase margin.
-- `short_kick`: Shorter distance (10–18m), tightens the catch vs chase margin (+15 chaser advantage), increasing contestability.
-- `grubber`: Hard low kick along ground (15–30m), inflicts -10 catch penalty on receiver to increase knock-on probability.
+- `high_ball`: Standard deep kick (25–40m on a good kick), normal catch vs chase margin.
+- `short_kick`: Shorter distance (10–18m), makes receiver's catch slightly harder on a good kick (`catchMod` −5), easier on a poor kick (`catchMod` +10). Contested result has 15% kicking-team regather.
+- `grubber`: Hard low kick along ground (15–30m), inflicts −10 catch penalty on receiver to increase knock-on probability.
 
 ### Rating adjustments
 
@@ -664,3 +668,6 @@ Notes cover both the upside and the downside of a tactic choice — a player sho
 | Gap | Location | Effect |
 |---|---|---|
 | strength, breakdown, kicking, setPiece, positioning not degraded by fatigue | StaminaSystem | These stats remain at full base value for the entire 80 minutes |
+| Conversion kick difficulty uses angle only, not distance | ConversionKickEvent | `distFromPosts = Math.abs(ballY - 50) * 0.4` — a try scored from 60m out has the same conversion difficulty as one from 5m, if the angle is equal |
+| Scrum `dominant_penalty` not counted in scrum stats | ScrumEvent | `state.stats.scrums` is only incremented on `stable_win`; a dominant penalty win is not recorded as a scrum won |
+| Tackle `made` stat only incremented on `dominant_tackle` | OpenPlayEvent | `dominant_carry` and `play_on` both result in a tackle but only increment `attempted`, not `made` |

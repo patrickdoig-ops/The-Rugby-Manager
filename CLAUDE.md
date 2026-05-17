@@ -145,7 +145,7 @@ Resolver formulas at a glance:
 
 | Phase | Key formula | Outcome thresholds |
 |---|---|---|
-| **KickOff** | `kickScore = kicking + rng(1,20)` < 35 → knock_on; then `catchScore - chaseScore` | > 10 clean_receive; > -5 contested; else knock_on |
+| **KickOff** | `kickScore = kicking + rng(1,20)` < 35 → knock_on; then `catchScore - chaseScore` | > 10 `clean_receive` (possession flips); > -5 `contested` (possession flips — receiving team scrambles it); ≤ -5 `knock_on` → Scrum (kicking team retains). `short_kick` + contested: 15% chance kicking team regathers (`short_kick_retain`, possession retained) |
 | **OpenPlay** | 3-step: handling gate → evasion → collision. `backfieldPenalty` applied to defend evasion score: `three_back` −10, `two_back` −5 (front line short). Also consumes `state.breakdownMod` | handling < 30 = knock_on; evasion margin ≥ 15 = line_break; collision ±5 = dominant |
 | **Breakdown** | `ARS = avgBreakdown×0.6 + avgStrength×0.4 + (avgDiscipline−50)×0.15 + rng(1,20) + attackBonus` (attackBonus = 6 if previous play was `dominant_carry`, else 0). DTS varies by `defendingBreakdown`: **jackal** = `jackalBreakdown×0.7 + jackalStrength×0.3 + (jackalDiscipline−50)×0.15 + rng(1,20)`; **counter_ruck** = `avgPackStrength×0.6 + avgPackBreakdown×0.4 + (avgPackDiscipline−50)×0.15 + rng(1,20)`; **shadow** = `rng(1,10)` (concedes ball to set line) | margin ≥ 10 clean_ball; ≥ -8 slow_ball; ≥ -14 turnover; else penalty_defending |
 | **Scrum** | `avg(setPiece×0.6 + strength×0.4) + rng` for each front 5 | attack margin > 0 stable_win; > -15 wheel; else dominant_penalty |
@@ -158,12 +158,12 @@ Resolver formulas at a glance:
 
 | Phase | Attacker | Defender |
 |---|---|---|
-| KickOff | id=10 (fly-half) as kicker; random as chaser | random receiver |
+| KickOff | id=10 (fly-half) as kicker; random chaser from attacking team | random receiver from defending team |
 | OpenPlay | `randomPlayer(attackTeam)` | `randomPlayer(defendTeam)` |
 | Breakdown | 2–4 forwards sampled at random without replacement from `players.filter(p.id <= 8 && p.id !== carrierId)` — count = 4 (`pick_and_drive`), 3 (`balanced`), 2 (`wide_play`) per `attackingBreakdown` tactic | 1 back-row player sampled at random from `players.filter(p.id >= 6 && p.id <= 8)`; full pack (`p.id <= 8`) passed for `counter_ruck` |
 | BoxKick | id=9 (scrum half) as kicker; random from id=11\|14 (wingers) as chaser | id=15 (fullback) |
 | Scrum | `players.filter(p => p.id <= 5)` (front 5) | same filter on defend team |
-| Lineout | hooker=id 2; jumper=`find(id===4\|5\|6)` → always id 4 | `find(id===4\|5\|6)` → always id 4 |
+| Lineout | hooker=id 2; jumper=random from `[4, 5, 7]` (Left Lock / Right Lock / Openside Flanker) | `find(id===4\|5\|6)` → always id 4 (Left Lock) |
 | TacticalKick | id=10 or id=9 (fly-half/scrum-half) | id=15 (fullback) |
 | ConversionKick | id=10 (fly-half) | — |
 | TryScored | last event primaryPlayer (carrier) | — |

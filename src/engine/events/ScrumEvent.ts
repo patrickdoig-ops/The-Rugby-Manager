@@ -37,7 +37,7 @@ export function handleScrum({ state, attackTeam, defendTeam, adjustRating, draft
   state.possession = state.possession === 'home' ? 'away' : 'home';
   return {
     nextPhase: MatchPhase.Penalty,
-    commentary: getCommentary({ ...draftEvent(MatchPhase.Scrum), primaryPlayer: defendHooker, secondaryPlayer: attackHooker }, 'dominant_penalty'),
+    commentary: getCommentary({ ...draftEvent(MatchPhase.Scrum), primaryPlayer: attackHooker, secondaryPlayer: defendHooker }, 'dominant_penalty'),
     primaryPlayer: defendHooker,
     secondaryPlayer: attackHooker,
   };

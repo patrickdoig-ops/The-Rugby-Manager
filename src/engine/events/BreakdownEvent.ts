@@ -127,7 +127,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
     }
     return {
       nextPhase: MatchPhase.OpenPlay,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.Breakdown), primaryPlayer: jackal, secondaryPlayer: primary }, 'turnover') + note,
+      commentary: getCommentary({ ...draftEvent(MatchPhase.Breakdown), primaryPlayer: primary, secondaryPlayer: jackal }, 'turnover') + note,
       primaryPlayer: jackal,
       secondaryPlayer: primary,
     };

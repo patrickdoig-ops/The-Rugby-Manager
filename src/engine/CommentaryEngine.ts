@@ -107,7 +107,7 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
       'A powerful wheel by the defending pack — we\'ll have a reset scrum.',
     ],
     dominant_penalty: [
-      'Penalty! The scrum collapses — referee signals against {side}.',
+      'Penalty! {primary} is penalised as the scrum collapses under pressure.',
       'The defending pack dominates — {primary} is penalised for going to ground.',
     ],
   },

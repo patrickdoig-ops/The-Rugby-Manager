@@ -236,11 +236,30 @@ export class MatchEngine {
       if (this.state.ballX > 50) this.state.stats.territory.home++;
       else this.state.stats.territory.away++;
 
+      const previousPhase = this.state.phase;
       const event = this.resolvePhase();
       this.state.events.push(event);
 
       eventBus.emit('engine:event', { event });
       eventBus.emit('engine:stateChange', { state: this.state });
+
+      if ((this.state.phase === MatchPhase.Lineout && previousPhase !== MatchPhase.Lineout) ||
+          (this.state.phase === MatchPhase.Scrum && previousPhase !== MatchPhase.Scrum)) {
+        const phaseName = this.state.phase === MatchPhase.Lineout ? 'Lineout' : 'Scrum';
+        const teamName = (this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam).name;
+        const awardEvent: GameEvent = {
+          id: makeId(),
+          gameMinute: this.state.gameMinute,
+          phase: this.state.phase,
+          side: this.state.possession,
+          sideName: teamName,
+          ballX: this.state.ballX,
+          ballY: this.state.ballY,
+          commentary: `${phaseName} awarded to ${teamName}.`,
+        };
+        this.state.events.push(awardEvent);
+        eventBus.emit('engine:event', { event: awardEvent });
+      }
 
       if (this.state.phase === MatchPhase.Penalty) {
         await this.handlePenaltyDecision();
@@ -406,6 +425,21 @@ export class MatchEngine {
       };
       state.events.push(penEvent);
       eventBus.emit('engine:event', { event: penEvent });
+
+      const teamName = (state.possession === 'home' ? state.homeTeam : state.awayTeam).name;
+      const awardEvent: GameEvent = {
+        id: makeId(),
+        gameMinute: state.gameMinute,
+        phase: MatchPhase.Lineout,
+        side: state.possession,
+        sideName: teamName,
+        ballX: state.ballX,
+        ballY: state.ballY,
+        commentary: `Lineout awarded to ${teamName}.`,
+      };
+      state.events.push(awardEvent);
+      eventBus.emit('engine:event', { event: awardEvent });
+
       sm.forceTransition(MatchPhase.Lineout);
       state.phase = MatchPhase.Lineout;
 

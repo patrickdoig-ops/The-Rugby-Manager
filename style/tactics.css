@@ -70,7 +70,7 @@
 .tactics-opt-btn.active {
   background: var(--blue-light);
   border-color: var(--blue);
-  box-shadow: 0 0 12px rgba(0, 186, 255, 0.15);
+  box-shadow: 0 0 14px rgba(77,159,255,0.18);
 }
 
 .tactics-opt-btn.active::before {
@@ -125,7 +125,7 @@
 }
 
 .tactics-resume-btn:hover {
-  background: #27ae60;
+  background: #009434;
   color: #ffffff;
 }
 

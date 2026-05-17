@@ -28,8 +28,9 @@
 #pm-header {
   flex-shrink: 0;
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-mid);
   padding: 14px 16px 0;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.3);
 }
 
 /* Screen title — all-caps + 0.2em tracking per design guide */
@@ -50,9 +51,9 @@
 }
 
 .pm-team-badge {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
 }
 
 #pm-vs {
@@ -244,26 +245,27 @@
   border-top: 1px solid var(--border);
 }
 
-/* Primary blue button per design guide: filled, black text for contrast on #00BAFF */
 #pm-start {
   width: 100%;
   height: 48px;
   background: var(--blue);
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   color: #000000;
   font-family: var(--font-sans);
   font-size: 15px;
   font-weight: 800;
   letter-spacing: 0.06em;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: background 0.1s ease;
-  box-shadow: 0 0 16px rgba(0,186,255,0.2);
+  transition: background 0.12s, box-shadow 0.12s;
+  box-shadow: 0 4px 20px rgba(77,159,255,0.35), inset 0 1px 0 rgba(255,255,255,0.18);
 }
 
 #pm-start:active {
   background: var(--blue-dark);
   color: var(--text);
+  box-shadow: none;
 }
 
 /* ─── Desktop ─── */
@@ -290,5 +292,9 @@
     margin: 0 auto;
   }
 
-  #pm-start:hover { background: var(--blue-dark); color: var(--text); }
+  #pm-start:hover {
+    background: var(--blue-dark);
+    color: var(--text);
+    box-shadow: 0 4px 24px rgba(77,159,255,0.45);
+  }
 }

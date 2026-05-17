@@ -20,7 +20,7 @@
 
 .stats-table td { padding: 3px 4px; }
 
-/* Numbers align in columns — Space Mono + tabular-nums */
+/* Numbers align in columns */
 .stat-val {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
@@ -48,7 +48,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 
 .fatigue-name {
@@ -63,39 +63,37 @@
 
 .fatigue-bar-bg {
   flex: 1;
-  height: 6px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  height: 5px;
+  background: var(--surface3);
+  border-radius: 10px;
   overflow: hidden;
 }
 
 .fatigue-bar {
   height: 100%;
-  border-radius: 4px;
+  border-radius: 10px;
   transition: width 0.5s ease;
 }
 
-/* Fatigue bar tiers */
-.fatigue-ok   { background: var(--green); }
-.fatigue-warn { background: var(--amber); }
-.fatigue-low  { background: var(--red); }
+/* Gradient fatigue bars */
+.fatigue-ok   { background: linear-gradient(90deg, #00d97e, #00a360); }
+.fatigue-warn { background: linear-gradient(90deg, #ffb52e, #e07800); }
+.fatigue-low  { background: linear-gradient(90deg, #ff4d5e, #cc1a2a); }
 
-/* Rating badge — monospace, colour-coded by tier */
+/* Rating badge — pill with filled tier background */
 .rating-badge {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 10px;
   font-weight: 700;
-  width: 28px;
+  width: 30px;
   text-align: center;
   flex-shrink: 0;
-  border-radius: 4px;
-  padding: 1px 2px;
+  border-radius: 20px;
+  padding: 1px 3px;
 }
 
-/* Tier colours with subtle filled backgrounds */
-.rating-high { color: var(--gold);  background: rgba(255,215,0,0.12); }
-.rating-mid  { color: var(--green); background: rgba(46,204,113,0.12); }
-.rating-low  { color: var(--amber); background: rgba(255,184,0,0.12); }
-.rating-poor { color: var(--red);   background: rgba(231,76,60,0.12); }
+.rating-high { color: var(--gold);   background: rgba(255,208,64,0.15); }
+.rating-mid  { color: var(--green);  background: rgba(0,217,126,0.14);  }
+.rating-low  { color: var(--amber);  background: rgba(255,181,46,0.14); }
+.rating-poor { color: var(--red);    background: rgba(255,77,94,0.14);  }

@@ -35,6 +35,29 @@
 }
 
 /* ════════════════════════════════════════
+   LIGHT MODE OVERRIDES
+   ════════════════════════════════════════ */
+
+body.light-mode {
+  --bg:         #f4f4f4;
+  --surface:    #ffffff;
+  --surface2:   #e8e8e8;
+  --border:     #d0d0d0;
+  --border-mid: #b8b8b8;
+  --text:       #111111;
+  --text-sec:   #333333;
+  --text-muted: #777777;
+  --blue:       #0077b6;
+  --blue-dark:  #023e8a;
+  --blue-light: #caf0f8;
+  --green:      #1a7f3e;
+  --red:        #c0392b;
+  --amber:      #e67e00;
+  --purple:     #7c3aed;
+  --gold:       #b8860b;
+}
+
+/* ════════════════════════════════════════
    RESET & GLOBALS
    ════════════════════════════════════════ */
 

@@ -14,6 +14,12 @@ There are no tests or linters configured. TypeScript strict mode is the primary 
 
 **Deploy:** Push to `main`. GitHub Actions builds and deploys to GitHub Pages automatically. The Vite base path is `/Rugby-Simulator-/` — do not change it or asset URLs break in production.
 
+## Versioning
+
+**After every committed update, bump the version in `src/version.ts` and push to `main`.**
+
+The version string follows the pattern `0.XXa` (e.g. `0.01a`, `0.02a`). Increment the two-digit numeric part by 1 for each update. The version is displayed on the Home Screen; `src/version.ts` is the single source of truth.
+
 ## Maintaining engine.md
 
 **After any change to engine code, update `engine.md` to match.**

@@ -23,4 +23,5 @@ export interface PhaseResult {
   commentary: string;
   primaryPlayer?: Player;
   secondaryPlayer?: Player;
+  outcome?: string;
 }

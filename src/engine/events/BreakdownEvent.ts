@@ -11,6 +11,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
 
   const lastEvent = state.events[state.events.length - 1];
   const carrierId = lastEvent?.primaryPlayer?.id;
+  const attackBonus = lastEvent?.outcome === 'dominant_carry' ? 6 : 0;
   const forwardPool = attackTeam.players.filter(p => p.id <= 8 && p.id !== carrierId);
   if (forwardPool.length === 0) forwardPool.push(attackTeam.players[0]);
   const pool = [...forwardPool];
@@ -26,7 +27,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
   const primary = supporters[0];
 
   const defendPack = defendTeam.players.filter(p => p.id <= 8);
-  const res = resolveBreakdown(supporters, jackal, defPlan, defendPack);
+  const res = resolveBreakdown(supporters, jackal, defPlan, defendPack, attackBonus);
 
   if (res.result === 'clean_ball') {
     adjustRating(primary, +0.1);

@@ -64,5 +64,5 @@ export function handleOpenPlay({ state, attackTeam, defendTeam, attackDir, isTry
     commentary = getCommentary({ ...draftEvent(MatchPhase.OpenPlay), primaryPlayer: carrier, secondaryPlayer: defender }, res.outcome);
   }
 
-  return { nextPhase, commentary, primaryPlayer: carrier, secondaryPlayer: defender };
+  return { nextPhase, commentary, primaryPlayer: carrier, secondaryPlayer: defender, outcome: res.outcome };
 }

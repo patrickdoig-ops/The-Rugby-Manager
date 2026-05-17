@@ -340,9 +340,9 @@ export class MatchEngine {
     };
 
     const handler = PHASE_HANDLERS[state.phase];
-    const { nextPhase, commentary, primaryPlayer, secondaryPlayer } = handler
+    const { nextPhase, commentary, primaryPlayer, secondaryPlayer, outcome } = handler
       ? handler(ctx)
-      : { nextPhase: state.phase, commentary: 'Match event.', primaryPlayer: undefined, secondaryPlayer: undefined };
+      : { nextPhase: state.phase, commentary: 'Match event.', primaryPlayer: undefined, secondaryPlayer: undefined, outcome: undefined };
 
     try {
       this.sm.transition(nextPhase);
@@ -362,6 +362,7 @@ export class MatchEngine {
       ballX: state.ballX,
       ballY: state.ballY,
       commentary,
+      outcome,
     };
   }
 

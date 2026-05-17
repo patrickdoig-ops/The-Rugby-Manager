@@ -28,6 +28,7 @@ export interface GameEvent {
   ballX: number;
   ballY: number;
   commentary: string;
+  outcome?: string;
 }
 
 export interface MatchState {

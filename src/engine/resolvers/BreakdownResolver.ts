@@ -16,11 +16,13 @@ export function resolveBreakdown(
   jackal: Player,
   defPlan: DefendingBreakdown = 'jackal',
   defendPack: Player[] = [],
+  attackBonus = 0,
 ): BreakdownResolution {
   const ars = avgStat(supporters, 'breakdown') * 0.6
             + avgStat(supporters, 'strength') * 0.4
             + (avgStat(supporters, 'discipline') - 50) * 0.15
-            + rng(1, 20);
+            + rng(1, 20)
+            + attackBonus;
 
   let dts: number;
   if (defPlan === 'counter_ruck' && defendPack.length > 0) {
@@ -42,7 +44,7 @@ export function resolveBreakdown(
 
   let result: BreakdownResult;
   if (margin >= 10) result = 'clean_ball';
-  else if (margin >= 1) result = 'slow_ball';
+  else if (margin >= -8) result = 'slow_ball';
   else if (margin >= -14) result = 'turnover';
   else result = 'penalty_defending';
 

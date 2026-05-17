@@ -32,16 +32,17 @@ Never compute ball direction or territory logic outside these helpers.
 ### Phase state machine
 
 ```
-KickOff → OpenPlay
-OpenPlay → Breakdown | TacticalKick | TryScored | Penalty | Scrum
-Breakdown → OpenPlay | Scrum | Lineout | Penalty
-Scrum → OpenPlay | Penalty
-Lineout → OpenPlay | Scrum
+KickOff      → OpenPlay
+OpenPlay     → Breakdown | TacticalKick | TryScored | Penalty | Scrum | HalfTime | FullTime
+Breakdown    → OpenPlay | BoxKick | Scrum | Lineout | Penalty
+BoxKick      → OpenPlay | Scrum
+Scrum        → OpenPlay | Penalty
+Lineout      → OpenPlay | Scrum
 TacticalKick → OpenPlay | Lineout | Scrum
-TryScored → ConversionKick → KickOff
-Penalty → [modal] → KickOff | Lineout | OpenPlay
-HalfTime → KickOff
-FullTime → (terminal)
+TryScored    → ConversionKick → KickOff
+Penalty      → [modal] → KickOff | Lineout | OpenPlay
+HalfTime     → KickOff
+FullTime     → (terminal)
 ```
 
 `StateMachine.transition()` validates against this table and throws on illegal moves. `forceTransition()` bypasses validation and is used for HalfTime, FullTime, and penalty resolution.

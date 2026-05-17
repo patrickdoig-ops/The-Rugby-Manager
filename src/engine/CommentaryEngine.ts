@@ -28,8 +28,9 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
     ],
     contested: [
       'Tremendous contest in the air! {primary} and {secondary} challenge for the ball.',
-      'Both sides up for the kick — {primary} manages to secure it under pressure.',
       'Chaos at the kick-off! {primary} and {secondary} compete fiercely for possession.',
+      'Neither side claims it cleanly — a scramble breaks out at the catch!',
+      'The ball is up for grabs! Both teams battle at the breakdown.',
     ],
     poor_kick: [
       'The kick barely travels 10 metres — {primary} re-kicks from the restart zone.',

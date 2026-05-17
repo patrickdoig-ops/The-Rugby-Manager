@@ -563,16 +563,19 @@ html, body {
 }
 
 .modal-title {
-  font-family: var(--rm-font-body);
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  font-family: var(--rm-font-display);
+  font-size: 26px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
   color: var(--rm-chalk);
   margin-bottom: 4px;
 }
 
 .modal-subtitle {
-  font-size: 12px;
+  font-family: var(--rm-font-editor);
+  font-style: italic;
+  font-size: 13px;
   color: var(--rm-text-muted);
   margin-bottom: 20px;
 }
@@ -599,13 +602,17 @@ html, body {
 }
 
 .choice-label {
-  font-size: 15px;
+  font-family: var(--rm-font-body);
+  font-size: 14px;
   font-weight: 700;
+  letter-spacing: 0.01em;
   margin-bottom: 3px;
   color: var(--rm-chalk);
 }
 
 .choice-desc {
+  font-family: var(--rm-font-editor);
+  font-style: italic;
   font-size: 11px;
   color: var(--rm-text-muted);
   line-height: 1.4;

@@ -11,7 +11,6 @@ export function applyFatigue(team: Team, elapsedMinutes: number): void {
     player.fatiguePct = clamp(player.fatiguePct - actualDecay, 0, 100);
 
     const base = player.baseStats;
-    const current = player.currentStats;
     const f = player.fatiguePct;
 
     const copyBase = (): PlayerStats => ({ ...base });
@@ -43,6 +42,5 @@ export function applyFatigue(team: Team, elapsedMinutes: number): void {
       ) as unknown as PlayerStats;
 
     player.currentStats = clampAll(stats);
-    void current;
   }
 }

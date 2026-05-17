@@ -32,6 +32,7 @@ function deepCloneStats(s: PlayerStats): PlayerStats {
 function initPlayer(raw: Omit<Player, 'currentStats' | 'fatiguePct' | 'rating' | 'x' | 'y'>): Player {
   return {
     ...raw,
+    baseStats: deepCloneStats(raw.baseStats),
     currentStats: deepCloneStats(raw.baseStats),
     fatiguePct: 100,
     rating: 6.0,
@@ -237,7 +238,7 @@ export class MatchEngine {
     eventBus.emit('engine:stateChange', { state: this.state });
 
     if (this.state.phase === MatchPhase.Penalty) {
-      await this.handlePenaltyDecision(event);
+      await this.handlePenaltyDecision();
       if (!this.state.isRunning) return;
     }
 
@@ -279,11 +280,7 @@ export class MatchEngine {
       ? handler(ctx)
       : { nextPhase: state.phase, commentary: 'Match event.', primaryPlayer: undefined, secondaryPlayer: undefined };
 
-    try {
-      this.sm.transition(nextPhase);
-    } catch {
-      this.sm.forceTransition(nextPhase);
-    }
+    this.sm.transition(nextPhase);
     state.phase = nextPhase;
 
     return {
@@ -314,7 +311,7 @@ export class MatchEngine {
     };
   }
 
-  private async handlePenaltyDecision(event: GameEvent): Promise<void> {
+  private async handlePenaltyDecision(): Promise<void> {
     const { state } = this;
 
     // Only present the choice to the human manager (home team) and only when
@@ -343,7 +340,6 @@ export class MatchEngine {
     state.isPaused = false;
     eventBus.emit('engine:resumed', {});
     this.applyPenaltyChoice(choice);
-    void event;
   }
 
   private applyPenaltyChoice(choice: PenaltyChoice): void {

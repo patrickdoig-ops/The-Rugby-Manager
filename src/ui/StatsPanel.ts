@@ -76,12 +76,45 @@ function renderPlayerStats(state: MatchState): string {
   }).join('');
 }
 
+function updatePlayerStatsDOM(container: HTMLElement, state: MatchState): void {
+  const allPlayers = [
+    ...state.homeTeam.players,
+    ...state.awayTeam.players,
+  ];
+  const rows = container.querySelectorAll('.player-stat-row');
+  if (rows.length !== allPlayers.length) {
+    container.innerHTML = renderPlayerStats(state);
+    return;
+  }
+
+  allPlayers.forEach((p, i) => {
+    const row = rows[i];
+    const f = Math.round(p.fatiguePct);
+    const barClass = f > 60 ? 'fatigue-ok' : f > 30 ? 'fatigue-warn' : 'fatigue-low';
+    const r = p.rating.toFixed(1);
+    const rClass = ratingClass(p.rating);
+
+    const bar = row.querySelector('.fatigue-bar') as HTMLElement;
+    if (bar) {
+      bar.className = `fatigue-bar ${barClass}`;
+      bar.style.width = `${f}%`;
+    }
+
+    const badge = row.querySelector('.rating-badge') as HTMLElement;
+    if (badge) {
+      badge.className = `rating-badge ${rClass}`;
+      badge.textContent = r;
+    }
+  });
+}
+
 export function initStatsPanel(): void {
   const statsContent       = document.getElementById('stats-content')!;
   const playerStatsContent = document.getElementById('player-stats-content')!;
 
   let lastStatsHtml        = '';
   let lastPlayerStatsMinute = -1;
+  let isPlayerStatsInit    = false;
 
   eventBus.on('engine:stateChange', ({ state }) => {
     const newStatsHtml = renderStats(state);
@@ -93,7 +126,12 @@ export function initStatsPanel(): void {
     const minute = Math.floor(state.gameMinute);
     if (minute !== lastPlayerStatsMinute) {
       lastPlayerStatsMinute = minute;
-      playerStatsContent.innerHTML = renderPlayerStats(state);
+      if (!isPlayerStatsInit) {
+        playerStatsContent.innerHTML = renderPlayerStats(state);
+        isPlayerStatsInit = true;
+      } else {
+        updatePlayerStatsDOM(playerStatsContent, state);
+      }
     }
   });
 }

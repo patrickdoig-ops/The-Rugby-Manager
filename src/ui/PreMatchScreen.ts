@@ -145,10 +145,15 @@ export function initPreMatchScreen(
 
   screen.querySelector('#pm-start')!.addEventListener('click', () => {
     screen.classList.add('pm-exit');
-    screen.addEventListener('animationend', () => {
+    let started = false;
+    const start = () => {
+      if (started) return;
+      started = true;
       screen.style.display = 'none';
       onStart();
-    }, { once: true });
+    };
+    screen.addEventListener('animationend', start, { once: true });
+    setTimeout(start, 600);
   });
 }
 

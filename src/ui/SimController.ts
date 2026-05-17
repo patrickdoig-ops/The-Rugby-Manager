@@ -8,6 +8,8 @@ export function initSimController(engine: MatchEngine): void {
   const slider     = document.getElementById('speed-slider') as HTMLInputElement;
   const speedDisplay = document.getElementById('speed-display')!;
 
+  let wasPausedBeforeTactics = false;
+
   btnPlay.addEventListener('click', () => {
     engine.start();
     btnPlay.disabled  = true;
@@ -21,9 +23,11 @@ export function initSimController(engine: MatchEngine): void {
   });
 
   btnTactics.addEventListener('click', () => {
+    wasPausedBeforeTactics = !engine.getState().isRunning;
     engine.pause();
     btnPlay.disabled  = false;
     btnPause.disabled = true;
+    btnTactics.disabled = true;
     eventBus.emit('ui:openTacticsModal', { tactics: engine.getState().homeTeam.tactics });
   });
 
@@ -49,10 +53,21 @@ export function initSimController(engine: MatchEngine): void {
   });
 
   eventBus.on('engine:resumed', () => {
-    engine.resume();
     btnPlay.disabled    = true;
     btnPause.disabled   = false;
     btnTactics.disabled = false;
+  });
+
+  eventBus.on('ui:tacticsClosed', () => {
+    btnTactics.disabled = false;
+    if (!wasPausedBeforeTactics) {
+      engine.resume();
+      btnPlay.disabled  = true;
+      btnPause.disabled = false;
+    } else {
+      btnPlay.disabled  = false;
+      btnPause.disabled = true;
+    }
   });
 }
 

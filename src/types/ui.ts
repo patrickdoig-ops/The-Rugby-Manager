@@ -17,5 +17,6 @@ export interface AppEvents {
   'ui:speedChange':     { delayMs: number };
   'ui:tacticsChange':   { teamId: string; tactics: TeamTactics };
   'ui:openTacticsModal':{ tactics: TeamTactics };
+  'ui:tacticsClosed':   Record<string, never>;
 }
 

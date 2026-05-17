@@ -10,11 +10,13 @@ export interface ScrumResolution {
 }
 
 function packScore(forwards: Player[]): number {
+  if (forwards.length === 0) return 0;
   return forwards.reduce((sum, p) => sum + p.currentStats.setPiece * 0.6 + p.currentStats.strength * 0.4, 0)
        / forwards.length;
 }
 
 function packDiscipline(forwards: Player[]): number {
+  if (forwards.length === 0) return 50;
   return forwards.reduce((sum, p) => sum + p.currentStats.discipline, 0) / forwards.length;
 }
 

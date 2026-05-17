@@ -53,7 +53,7 @@ export function initModalManager(): void {
   eventBus.on('ui:openTacticsModal', ({ tactics }) => {
     renderTacticsMenu(box, tactics, true, () => {
       overlay.classList.add('hidden');
-      eventBus.emit('engine:resumed', {});
+      eventBus.emit('ui:tacticsClosed', {});
     });
     overlay.classList.remove('hidden');
   });

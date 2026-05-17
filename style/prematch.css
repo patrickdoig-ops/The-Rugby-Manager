@@ -133,6 +133,11 @@
   gap: 8px;
   padding: 5px 0;
   border-bottom: 1px solid var(--surface2);
+  transition: background 0.1s ease;
+}
+
+.pm-player:hover {
+  background: rgba(255,255,255,0.025);
 }
 
 .pm-player-hd {
@@ -192,6 +197,12 @@
 .attr-group + .attr-group {
   border-left: 1px solid var(--surface2);
   padding-left: 4px;
+}
+
+.attr-group--ovr {
+  border-right: 1px solid var(--border-mid);
+  padding-right: 6px;
+  margin-right: 2px;
 }
 
 .attr-cell {

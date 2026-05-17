@@ -14,35 +14,54 @@ function tacklePct(t: { attempted: number; made: number }): string {
 
 function renderStats(state: MatchState): string {
   const { stats, homeTeam, awayTeam } = state;
-  const rows = [
-    ['Possession', pct(stats.possession.home, stats.possession.away), pct(stats.possession.away, stats.possession.home)],
-    ['Territory',  pct(stats.territory.home,  stats.territory.away),  pct(stats.territory.away,  stats.territory.home)],
-    ['Tackle %',   tacklePct(stats.tackles.home), tacklePct(stats.tackles.away)],
-    ['Errors',    String(stats.handlingErrors.home), String(stats.handlingErrors.away)],
-    ['Tries',     String(stats.tries.home),    String(stats.tries.away)],
-    ['Scrums',    String(stats.scrums.home),   String(stats.scrums.away)],
-    ['Lineouts',  String(stats.lineouts.home), String(stats.lineouts.away)],
+  const hc = homeTeam.color;
+  const ac = awayTeam.color;
+
+  const rows: Array<{
+    label: string;
+    homeVal: string;
+    awayVal: string;
+    homeNum: number;
+    awayNum: number;
+    invert?: boolean;
+  }> = [
+    { label: 'Possession', homeVal: pct(stats.possession.home, stats.possession.away),   awayVal: pct(stats.possession.away, stats.possession.home),   homeNum: stats.possession.home,        awayNum: stats.possession.away },
+    { label: 'Territory',  homeVal: pct(stats.territory.home,  stats.territory.away),    awayVal: pct(stats.territory.away,  stats.territory.home),    homeNum: stats.territory.home,         awayNum: stats.territory.away },
+    { label: 'Tackle %',   homeVal: tacklePct(stats.tackles.home), awayVal: tacklePct(stats.tackles.away), homeNum: stats.tackles.home.made, awayNum: stats.tackles.away.made },
+    { label: 'Errors',     homeVal: String(stats.handlingErrors.home), awayVal: String(stats.handlingErrors.away), homeNum: stats.handlingErrors.home, awayNum: stats.handlingErrors.away, invert: true },
+    { label: 'Tries',      homeVal: String(stats.tries.home),    awayVal: String(stats.tries.away),    homeNum: stats.tries.home,    awayNum: stats.tries.away },
+    { label: 'Scrums',     homeVal: String(stats.scrums.home),   awayVal: String(stats.scrums.away),   homeNum: stats.scrums.home,   awayNum: stats.scrums.away },
+    { label: 'Lineouts',   homeVal: String(stats.lineouts.home), awayVal: String(stats.lineouts.away), homeNum: stats.lineouts.home, awayNum: stats.lineouts.away },
   ];
 
+  const rowsHtml = rows.map(r => {
+    const total = r.homeNum + r.awayNum;
+    const hPct  = total > 0 ? (r.homeNum / total) * 100 : 50;
+    const aPct  = 100 - hPct;
+    const hWins = r.invert ? r.homeNum < r.awayNum : r.homeNum > r.awayNum;
+    const aWins = r.invert ? r.awayNum < r.homeNum : r.awayNum > r.homeNum;
+    return `
+      <div class="stat-row">
+        <div class="stat-row-header">
+          <span class="stat-val${hWins ? ' stat-winner' : ''}">${r.homeVal}</span>
+          <span class="stat-label">${r.label}</span>
+          <span class="stat-val${aWins ? ' stat-winner' : ''}">${r.awayVal}</span>
+        </div>
+        <div class="stat-bars">
+          <div class="stat-bar-h" style="width:${hPct.toFixed(1)}%;background:${hc};opacity:${hWins ? 1 : 0.4}"></div>
+          <div class="stat-bar-a" style="width:${aPct.toFixed(1)}%;background:${ac};opacity:${aWins ? 1 : 0.4}"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
   return `
-    <table class="stats-table">
-      <thead>
-        <tr>
-          <th class="stat-col-home" style="color:${homeTeam.color}">${homeTeam.shortName}</th>
-          <th class="stat-col-label"></th>
-          <th class="stat-col-away" style="color:${awayTeam.color}">${awayTeam.shortName}</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows.map(([label, h, a]) => `
-          <tr>
-            <td class="stat-val">${h}</td>
-            <td class="stat-label">${label}</td>
-            <td class="stat-val">${a}</td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
+    <div class="match-stats-header">
+      <span class="header-home" style="color:${hc}">${homeTeam.shortName}</span>
+      <span></span>
+      <span class="header-away" style="color:${ac}">${awayTeam.shortName}</span>
+    </div>
+    ${rowsHtml}
   `;
 }
 
@@ -66,7 +85,8 @@ function renderPlayerStats(state: MatchState): string {
     const rClass = ratingClass(p.rating);
     return `
       <div class="player-stat-row">
-        <span class="fatigue-name" style="color:${team.color}">#${p.id} ${p.name.split(' ')[1] ?? p.name}</span>
+        <span class="player-jersey" style="color:${team.color}">${p.id}</span>
+        <span class="fatigue-name">${p.name.split(' ')[1] ?? p.name}</span>
         <div class="fatigue-bar-bg">
           <div class="fatigue-bar ${barClass}" style="width:${f}%"></div>
         </div>
@@ -120,9 +140,9 @@ export function initStatsPanel(): void {
   const statsContent       = document.getElementById('stats-content')!;
   const playerStatsContent = document.getElementById('player-stats-content')!;
 
-  let lastStatsKey         = '';
+  let lastStatsKey          = '';
   let lastPlayerStatsMinute = -1;
-  let isPlayerStatsInit    = false;
+  let isPlayerStatsInit     = false;
 
   eventBus.on('engine:stateChange', ({ state }) => {
     const key = statsKey(state);

@@ -7,7 +7,7 @@
   flex-direction: column;
   gap: 20px;
   width: 100%;
-  color: var(--text);
+  color: var(--rm-text);
   padding-bottom: 20px;
 }
 
@@ -15,8 +15,8 @@
   font-size: 20px;
   font-weight: 800;
   letter-spacing: 0.02em;
-  color: var(--gold);
-  border-bottom: 1px solid var(--border-mid);
+  color: var(--rm-pitch);
+  border-bottom: 1px solid var(--rm-border-soft);
   padding-bottom: 10px;
   margin-bottom: 4px;
 }
@@ -38,7 +38,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: var(--text-sec);
+  color: var(--rm-text-muted);
 }
 
 .tactics-options-grid {
@@ -50,26 +50,26 @@
 .tactics-opt-btn {
   display: flex;
   flex-direction: column;
-  background: var(--surface);
-  border: 1px solid var(--border-mid);
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
   border-radius: 12px;
   padding: 14px 16px;
   cursor: pointer;
   text-align: left;
   transition: all 0.15s ease;
-  color: var(--text);
+  color: var(--rm-text);
   position: relative;
   overflow: hidden;
 }
 
 .tactics-opt-btn:hover {
-  background: var(--surface2);
-  border-color: var(--blue-dark);
+  background: var(--rm-surface-2);
+  border-color: var(--rm-pitch-soft);
 }
 
 .tactics-opt-btn.active {
-  background: var(--blue-light);
-  border-color: var(--blue);
+  background: color-mix(in oklch, var(--rm-pitch) 18%, var(--rm-surface));
+  border-color: var(--rm-pitch);
   box-shadow: 0 0 14px rgba(77,159,255,0.18);
 }
 
@@ -80,24 +80,24 @@
   left: 0;
   width: 4px;
   height: 100%;
-  background: var(--blue);
+  background: var(--rm-pitch);
 }
 
 .tactics-opt-label {
   font-size: 14px;
   font-weight: 700;
   margin-bottom: 4px;
-  color: var(--text);
+  color: var(--rm-text);
 }
 
 .tactics-opt-btn.active .tactics-opt-label {
-  color: var(--blue);
+  color: var(--rm-pitch);
 }
 
 .tactics-opt-desc {
   font-size: 11px;
   font-weight: 400;
-  color: var(--text-sec);
+  color: var(--rm-text-muted);
   line-height: 1.3;
 }
 
@@ -105,7 +105,7 @@
   margin-top: 12px;
   display: flex;
   justify-content: flex-end;
-  border-top: 1px solid var(--border-mid);
+  border-top: 1px solid var(--rm-border-soft);
   padding-top: 16px;
 }
 
@@ -115,7 +115,7 @@
   color: #ffffff;
   border: 1px solid rgba(255,255,255,0.12);
   border-radius: 12px;
-  font-family: var(--font-sans);
+  font-family: var(--rm-font-body);
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.05em;

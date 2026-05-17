@@ -1,108 +1,200 @@
 /* ════════════════════════════════════════
-   HOME SCREEN
+   HOME SCREEN — atmospheric pitch splash
    ════════════════════════════════════════ */
 
 #home-screen {
   position: fixed;
   inset: 0;
   z-index: 300;
-  background: var(--bg);
-  /* Green pitch glow in centre, blue atmospheric at bottom */
+  background: var(--rm-bg-deep);
   background-image:
-    radial-gradient(ellipse 75% 55% at 50% 42%, rgba(0,217,126,0.09) 0%, transparent 60%),
-    radial-gradient(ellipse 100% 70% at 50% 100%, rgba(77,159,255,0.06) 0%, transparent 55%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Theme toggle — top-left */
-#theme-toggle {
-  position: absolute;
-  top: max(16px, env(safe-area-inset-top));
-  left: max(16px, env(safe-area-inset-left));
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--surface2);
-  border: 1px solid var(--border-mid);
-  border-radius: 10px;
-  color: var(--text-sec);
-  cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
-  z-index: 1;
-}
-
-#theme-toggle:hover  { background: var(--surface3); }
-#theme-toggle:active { background: var(--surface3); }
-
-/* Centre content */
-#home-content {
+    radial-gradient(ellipse 80% 55% at 50% 35%, color-mix(in oklch, var(--rm-pitch) 14%, transparent) 0%, transparent 65%),
+    radial-gradient(ellipse 110% 60% at 50% 110%, color-mix(in oklch, var(--rm-bg-deep) 90%, black) 0%, transparent 60%),
+    repeating-linear-gradient(180deg,
+      transparent 0 22px,
+      color-mix(in oklch, var(--rm-pitch) 5%, transparent) 22px 23px);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 18px;
-  text-align: center;
-  padding: 32px 24px;
+  padding-top: max(52px, env(safe-area-inset-top));
+  color: var(--rm-text);
+  overflow: hidden;
+}
+
+/* Decorative pitch-line SVG overlay */
+.home-pitch-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+/* ─── Top chrome ─── */
+#home-chrome {
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
 }
 
-/* Title — white-to-gold gradient */
-#home-title {
-  font-size: 54px;
-  font-weight: 800;
-  letter-spacing: -0.035em;
-  line-height: 1.0;
-  background: linear-gradient(155deg, #ffffff 25%, var(--gold) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+#home-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-/* Version pill */
-#home-version {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 11px;
-  color: var(--text-muted);
-  letter-spacing: 0.08em;
-  background: var(--surface2);
-  border: 1px solid var(--border-mid);
-  padding: 4px 12px;
-  border-radius: 20px;
-  margin-top: -6px;
+.home-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--rm-pitch);
+  box-shadow: 0 0 12px var(--rm-pitch);
 }
 
-/* Start button — filled green, uppercase */
-#start-game-btn {
-  margin-top: 6px;
-  padding: 16px 60px;
-  background: #007a2a;
-  border: 1px solid rgba(255,255,255,0.12);
-  color: #ffffff;
-  font-family: var(--font-sans);
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
+.home-status-text {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--rm-text-dim);
   text-transform: uppercase;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: background 0.15s, box-shadow 0.15s;
-  min-height: 54px;
-  box-shadow:
-    0 4px 24px rgba(0,122,42,0.45),
-    inset 0 1px 0 rgba(255,255,255,0.10);
 }
+
+/* Theme toggle */
+#theme-toggle {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in oklch, var(--rm-surface) 60%, transparent);
+  border: 1px solid var(--rm-border);
+  border-radius: 10px;
+  color: var(--rm-text-muted);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  flex-shrink: 0;
+}
+
+#theme-toggle:hover  { background: var(--rm-surface-2); }
+#theme-toggle:active { background: var(--rm-surface-3); }
+
+/* ─── Hero block ─── */
+#home-hero {
+  flex: 1;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 24px;
+}
+
+.home-eyebrow {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--rm-pitch);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+#home-title {
+  font-family: var(--rm-font-display);
+  font-size: clamp(72px, 22vw, 96px);
+  font-weight: 400;
+  line-height: 0.86;
+  text-transform: uppercase;
+  letter-spacing: -0.005em;
+  color: var(--rm-chalk);
+  margin: 0 0 14px;
+}
+
+.home-version-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-version-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--rm-pitch) 14%, transparent);
+  border: 1px solid color-mix(in oklch, var(--rm-pitch) 35%, transparent);
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  color: var(--rm-pitch);
+  letter-spacing: 0.1em;
+}
+
+.home-version-hr {
+  flex: 1;
+  height: 1px;
+  background: var(--rm-hairline);
+}
+
+#home-tagline {
+  font-family: var(--rm-font-editor);
+  font-style: italic;
+  font-size: 20px;
+  line-height: 1.3;
+  color: var(--rm-text-muted);
+  max-width: 320px;
+  margin-top: 24px;
+  margin-bottom: 0;
+}
+
+#home-tagline strong {
+  color: var(--rm-chalk);
+  font-style: normal;
+}
+
+/* ─── CTA ─── */
+#home-cta {
+  position: relative;
+  z-index: 2;
+  padding: 0 24px max(40px, env(safe-area-inset-bottom));
+}
+
+#start-game-btn {
+  width: 100%;
+  padding: 18px 22px;
+  background: #007a2a;
+  border: none;
+  border-radius: 16px;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  box-shadow:
+    0 12px 36px color-mix(in oklch, var(--rm-pitch) 28%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.3);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+#start-game-btn .btn-label {
+  font-family: var(--rm-font-display);
+  font-size: 28px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+#start-game-btn svg { flex-shrink: 0; }
 
 #start-game-btn:hover  {
   background: #009434;
-  box-shadow: 0 6px 32px rgba(0,148,52,0.60);
+  box-shadow:
+    0 16px 48px color-mix(in oklch, var(--rm-pitch) 38%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.3);
 }
 
 #start-game-btn:active {
   background: #006622;
-  box-shadow: 0 2px 10px rgba(0,100,34,0.4);
+  box-shadow: 0 4px 12px color-mix(in oklch, var(--rm-pitch) 20%, transparent);
 }

@@ -1,100 +1,157 @@
+/* ════════════════════════════════════════
+   STATS PANEL — dual proportional bars
+   ════════════════════════════════════════ */
+
 #stats-content {
-  padding: 6px 10px;
+  padding: 4px 8px 6px;
   flex-shrink: 0;
 }
 
-.stats-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
+/* Team name header row */
+.match-stats-header {
+  display: grid;
+  grid-template-columns: 36px 1fr 36px;
+  gap: 4px;
+  padding: 4px 0 6px;
+  border-bottom: 1px solid var(--rm-hairline);
+  margin-bottom: 2px;
 }
 
-.stats-table th {
-  font-size: 10px;
+.match-stats-header .header-home {
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
   font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 3px 4px;
-  color: var(--text-sec);
+  text-align: right;
 }
 
-.stats-table td { padding: 3px 4px; }
-
-/* Numbers align in columns */
-.stat-val {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 12px;
+.match-stats-header .header-away {
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
   font-weight: 700;
-  text-align: center;
-  color: var(--text);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: left;
 }
+
+/* Individual stat row */
+.stat-row {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--rm-hairline);
+}
+
+.stat-row-header {
+  display: grid;
+  grid-template-columns: 36px 1fr 36px;
+  gap: 4px;
+  align-items: baseline;
+  margin-bottom: 3px;
+}
+
+.stat-val {
+  font-family: var(--rm-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--rm-text-muted);
+}
+
+.stat-val:first-child { text-align: right; }
+.stat-val:last-child  { text-align: left; }
+
+.stat-winner { color: var(--rm-chalk); }
 
 .stat-label {
   text-align: center;
-  font-size: 10px;
+  font-family: var(--rm-font-mono);
+  font-size: 8px;
   font-weight: 500;
-  color: var(--text-sec);
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
   white-space: nowrap;
+}
+
+/* Proportional dual bar */
+.stat-bars {
+  display: flex;
+  height: 3px;
+  border-radius: 2px;
+  overflow: hidden;
+  gap: 1px;
+}
+
+.stat-bar-h,
+.stat-bar-a {
+  height: 100%;
 }
 
 /* ─── Player stats panel ─── */
 #player-stats-content {
   flex: 1;
   overflow-y: auto;
-  padding: 4px 10px;
+  padding: 2px 8px 4px;
 }
 
 .player-stat-row {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 22px 1fr 36px 28px;
   gap: 5px;
-  margin-bottom: 5px;
+  align-items: center;
+  padding: 5px 2px;
+  border-bottom: 1px solid var(--rm-hairline);
 }
 
+/* Jersey number */
+.player-jersey {
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+  /* colour set inline */
+}
+
+/* Name */
 .fatigue-name {
   font-size: 10px;
   font-weight: 600;
-  width: 68px;
-  flex-shrink: 0;
+  color: var(--rm-chalk);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* Rating bar background */
 .fatigue-bar-bg {
   flex: 1;
-  height: 5px;
-  background: var(--surface3);
-  border-radius: 10px;
+  height: 3px;
+  background: color-mix(in oklch, var(--rm-surface-3) 80%, transparent);
+  border-radius: 2px;
   overflow: hidden;
 }
 
 .fatigue-bar {
   height: 100%;
-  border-radius: 10px;
+  border-radius: 2px;
   transition: width 0.5s ease;
 }
 
-/* Gradient fatigue bars */
-.fatigue-ok   { background: linear-gradient(90deg, #00d97e, #00a360); }
-.fatigue-warn { background: linear-gradient(90deg, #ffb52e, #e07800); }
-.fatigue-low  { background: linear-gradient(90deg, #ff4d5e, #cc1a2a); }
+.fatigue-ok   { background: linear-gradient(90deg, color-mix(in oklch, var(--rm-stat-4) 70%, transparent), var(--rm-stat-4)); }
+.fatigue-warn { background: linear-gradient(90deg, color-mix(in oklch, var(--rm-stat-2) 70%, transparent), var(--rm-stat-2)); }
+.fatigue-low  { background: linear-gradient(90deg, color-mix(in oklch, var(--rm-stat-1) 70%, transparent), var(--rm-stat-1)); }
 
-/* Rating badge — pill with filled tier background */
+/* Rating badge */
 .rating-badge {
-  font-family: var(--font-mono);
+  font-family: var(--rm-font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 10px;
   font-weight: 700;
-  width: 30px;
-  text-align: center;
+  text-align: right;
   flex-shrink: 0;
-  border-radius: 20px;
-  padding: 1px 3px;
 }
 
-.rating-high { color: var(--gold);   background: rgba(255,208,64,0.15); }
-.rating-mid  { color: var(--green);  background: rgba(0,217,126,0.14);  }
-.rating-low  { color: var(--amber);  background: rgba(255,181,46,0.14); }
-.rating-poor { color: var(--red);    background: rgba(255,77,94,0.14);  }
+.rating-high { color: var(--rm-stat-5); }
+.rating-mid  { color: var(--rm-stat-4); }
+.rating-low  { color: var(--rm-stat-3); }
+.rating-poor { color: var(--rm-stat-2); }

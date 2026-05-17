@@ -8,7 +8,7 @@
   z-index: 200;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  background: var(--rm-bg);
   padding-top:    env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
   padding-left:   env(safe-area-inset-left);
@@ -27,19 +27,20 @@
 /* ─── Header ─── */
 #pm-header {
   flex-shrink: 0;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border-mid);
+  background: var(--rm-surface);
+  border-bottom: 1px solid var(--rm-hairline);
   padding: 14px 16px 0;
   box-shadow: 0 2px 16px rgba(0,0,0,0.3);
 }
 
 /* Screen title — all-caps + 0.2em tracking per design guide */
 #pm-title {
-  font-size: 11px;
-  font-weight: 800;
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.2em;
-  color: var(--text-sec);
+  color: var(--rm-text-dim);
   margin-bottom: 8px;
 }
 
@@ -51,15 +52,18 @@
 }
 
 .pm-team-badge {
-  font-size: 22px;
-  font-weight: 800;
+  font-family: var(--rm-font-display);
+  font-size: 28px;
   letter-spacing: 0.03em;
+  line-height: 1;
 }
 
 #pm-vs {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-sec);
+  font-family: var(--rm-font-editor);
+  font-style: italic;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--rm-text-dim);
 }
 
 /* ─── Tabs ─── */
@@ -73,10 +77,10 @@
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  color: var(--text-sec);
-  font-family: var(--font-sans);
+  color: var(--rm-text-dim);
+  font-family: var(--rm-font-body);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: color 0.15s ease, border-color 0.15s ease;
   text-align: center;
@@ -84,8 +88,9 @@
 }
 
 .pm-tab.active {
-  color: var(--tc, var(--blue));
-  border-bottom-color: var(--tc, var(--blue));
+  color: var(--rm-chalk);
+  border-bottom-color: var(--tc, var(--rm-pitch));
+  font-weight: 600;
 }
 
 /* ─── Scrollable roster ─── */
@@ -103,7 +108,7 @@
   gap: 4px;
   padding: 4px 0 6px;
   padding-left: 116px; /* pm-player-hd width (108px) + pm-player gap (8px) */
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--rm-hairline);
   margin-bottom: 6px;
 }
 
@@ -118,9 +123,10 @@
 }
 
 .legend-item {
+  font-family: var(--rm-font-mono);
   font-size: 8px;
   font-weight: 500;
-  color: var(--text-sec);
+  color: var(--rm-text-dim);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   width: 24px;
@@ -133,12 +139,12 @@
   align-items: center;
   gap: 8px;
   padding: 5px 0;
-  border-bottom: 1px solid var(--surface2);
+  border-bottom: 1px solid var(--rm-hairline);
   transition: background 0.1s ease;
 }
 
 .pm-player:hover {
-  background: rgba(255,255,255,0.025);
+  background: color-mix(in oklch, var(--rm-surface) 30%, transparent);
 }
 
 .pm-player-hd {
@@ -170,13 +176,13 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--text);
+  color: var(--rm-chalk);
 }
 
 .pm-pos {
   font-size: 9px;
   font-weight: 400;
-  color: var(--text-muted);
+  color: var(--rm-text-dim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -230,19 +236,19 @@
   line-height: 1;
 }
 
-/* Tier colours — aligned to design guide semantic palette */
-.tier-elite .attr-val { color: var(--gold);      }  /* 90+ */
-.tier-great .attr-val { color: var(--green);     }  /* 80–89 */
-.tier-good  .attr-val { color: var(--blue);      }  /* 70–79 */
-.tier-avg   .attr-val { color: var(--text-sec);  }  /* 60–69 */
-.tier-poor  .attr-val { color: var(--text-muted);}  /* <60   */
+/* Tier colours — heatmap scale */
+.tier-elite .attr-val { color: var(--rm-stat-5); }  /* 90+ */
+.tier-great .attr-val { color: var(--rm-stat-4); }  /* 80–89 */
+.tier-good  .attr-val { color: var(--rm-stat-3); }  /* 70–79 */
+.tier-avg   .attr-val { color: var(--rm-stat-2); }  /* 60–69 */
+.tier-poor  .attr-val { color: var(--rm-text-dim); } /* <60  */
 
 /* ─── Footer / CTA ─── */
 #pm-footer {
   flex-shrink: 0;
   padding: 12px 16px;
-  background: var(--surface);
-  border-top: 1px solid var(--border-mid);
+  background: var(--rm-surface);
+  border-top: 1px solid var(--rm-hairline);
 }
 
 #pm-start {

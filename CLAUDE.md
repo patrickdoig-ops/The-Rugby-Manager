@@ -99,13 +99,15 @@ Engine emits → UI subscribes:
 
 | Event | Payload | Subscribers |
 |---|---|---|
-| `engine:stateChange` | `{ state: MatchState }` | Scoreboard, StatsPanel, PitchStrip |
+| `engine:stateChange` | `{ state: MatchState }` | Scoreboard, StatsPanel, PitchStrip, CommentaryFeed (one-shot) |
 | `engine:event` | `{ event: GameEvent }` | CommentaryFeed |
-| `engine:paused` | `{ payload: ModalPayload }` | ModalManager |
-| `engine:resumed` | `{}` | ModalManager |
+| `engine:paused` | `{ payload: ModalPayload }` | ModalManager, SimController |
+| `engine:resumed` | `{}` | ModalManager, SimController |
 | `engine:finished` | `{ state: MatchState }` | (available for end-screen) |
 
-`eventBus.on()` returns an unsubscribe function. Use it for one-shot initialisation (see `PitchStrip.ts` for the self-removing listener pattern).
+`eventBus.on()` returns an unsubscribe function. All UI init subscriptions are intentionally permanent — the app is a single session per page load and no module is ever torn down. The unsubscribe function should be called when you need a **one-shot** listener, i.e. one that fires once and then removes itself. `CommentaryFeed.ts` uses this pattern to cache team colours on the first `engine:stateChange` then unsubscribe.
+
+Within a single tick, `engine:event` is emitted **before** `engine:stateChange`. This means UI modules that depend on state cached from a previous `stateChange` (e.g. `CommentaryFeed`) will always have a valid cache from the prior tick by the time an event arrives.
 
 ### Simulation loop
 
@@ -272,18 +274,18 @@ Players start each match at `rating: 6.0` (out of 10). `MatchEngine.adjustRating
 | Module | Sole responsibility |
 |---|---|
 | `Scoreboard.ts` | Team names, scores, clock, phase badge |
-| `StatsPanel.ts` | Stats table (cached by HTML diff) + player stats panel (updated once per game minute) |
-| `PitchStrip.ts` | Ball marker position + attack direction label |
-| `CommentaryFeed.ts` | Appending commentary entries (max 30, prepend-scrolls) |
+| `StatsPanel.ts` | Stats table (cached by stat-value key, re-renders on change) + player stats panel (DOM-patched once per game minute) |
+| `PitchStrip.ts` | Ball marker position + attack direction label + end-label swap at half-time |
+| `CommentaryFeed.ts` | Appending commentary entries (max 30, prepend-scrolls); one-shot `stateChange` subscription caches team colours for player name colourisation |
 | `ModalManager.ts` | Penalty choice bottom sheet / centred dialog |
 | `PreMatchScreen.ts` | Pre-match player attribute table; calls `onStart()` callback to trigger `engine.initialize()` |
 | `SimController.ts` | Play / Pause buttons and speed slider — the only UI module that calls engine methods |
 
-`AppShell.ts` injects the static HTML skeleton. All UI modules are initialised before `engine.initialize()` fires — they are purely reactive and have no internal state beyond DOM references and render caches.
+`AppShell.ts` injects the static HTML skeleton. All UI modules are initialised before `engine.initialize()` fires — they are purely reactive and have no internal state beyond DOM references, render caches, and one-shot initialisation values. Player objects are created once in `MatchEngine` and mutated in-place throughout the match; their identity (name, id, team membership) never changes. Commentary colourisation relies on player name lookup against a cached home-team name set — player names are unique across both squads.
 
 ### Design system
 
-All visual decisions are governed by `DESIGN.md`. CSS custom properties are defined in `style/main.css` `:root` and must be used for every colour — no hardcoded hex except the two button exceptions (`#007a2a` Play/buy, `#b8001b` destructive/sell).
+All visual decisions are governed by `DESIGN.md`. CSS custom properties are defined in `style/main.css` `:root` and must be used for every colour — no hardcoded hex except: primary CTA green (`#007a2a` / `#009434` active / `#006622` pressed), team identity colours injected inline from team JSON data, and ball fill (`#7a3a10`).
 
 Key tokens: `--bg`, `--surface`, `--surface2`, `--border`, `--border-mid`, `--text`, `--text-sec`, `--text-muted`, `--blue`, `--green`, `--red`, `--amber`, `--purple`, `--gold`, `--font-sans` (Inter), `--font-mono` (Space Mono).
 

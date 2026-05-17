@@ -668,6 +668,30 @@ Notes cover both the upside and the downside of a tactic choice — a player sho
 
 ---
 
+## Commentary Engine
+
+`CommentaryEngine.ts` is a pure text module. It must never produce HTML — that is the UI layer's concern.
+
+### `getCommentary(event, key)`
+
+Picks a random template from `TEMPLATES[event.phase][key]` (falling back to `TEMPLATES.default.generic`) and calls `interpolate()`.
+
+### Template variables
+
+| Token | Resolved value |
+|---|---|
+| `{primary}` | `primaryPlayer` formatted as `"Name (#jersey)"`, or `"the player"` if absent |
+| `{secondary}` | `secondaryPlayer` formatted as `"Name (#jersey)"`, or `"the defender"` if absent |
+| `{side}` | `event.sideName` (team name string) |
+
+The `playerLabel(player, fallback)` helper produces the `"Name (#N)"` format. Both `{primary}` and `{secondary}` use it. Adding a player to a template automatically picks up jersey number — no template changes needed.
+
+### Plain-text contract
+
+`CommentaryEngine` always returns a plain-text string. `CommentaryFeed.ts` post-processes it to wrap player name tokens in team-coloured `<span>` elements. If `CommentaryEngine` ever emits HTML, the span injection in `CommentaryFeed` will double-encode or break.
+
+---
+
 ## Known Gaps
 
 | Gap | Location | Effect |

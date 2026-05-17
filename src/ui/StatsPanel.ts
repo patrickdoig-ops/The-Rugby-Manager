@@ -108,19 +108,27 @@ function updatePlayerStatsDOM(container: HTMLElement, state: MatchState): void {
   });
 }
 
+function statsKey(state: MatchState): string {
+  const s = state.stats;
+  return `${s.possession.home},${s.possession.away},${s.territory.home},${s.territory.away},`
+       + `${s.tackles.home.made},${s.tackles.home.attempted},${s.tackles.away.made},${s.tackles.away.attempted},`
+       + `${s.handlingErrors.home},${s.handlingErrors.away},${s.tries.home},${s.tries.away},`
+       + `${s.scrums.home},${s.scrums.away},${s.lineouts.home},${s.lineouts.away}`;
+}
+
 export function initStatsPanel(): void {
   const statsContent       = document.getElementById('stats-content')!;
   const playerStatsContent = document.getElementById('player-stats-content')!;
 
-  let lastStatsHtml        = '';
+  let lastStatsKey         = '';
   let lastPlayerStatsMinute = -1;
   let isPlayerStatsInit    = false;
 
   eventBus.on('engine:stateChange', ({ state }) => {
-    const newStatsHtml = renderStats(state);
-    if (newStatsHtml !== lastStatsHtml) {
-      lastStatsHtml = newStatsHtml;
-      statsContent.innerHTML = newStatsHtml;
+    const key = statsKey(state);
+    if (key !== lastStatsKey) {
+      lastStatsKey = key;
+      statsContent.innerHTML = renderStats(state);
     }
 
     const minute = Math.floor(state.gameMinute);

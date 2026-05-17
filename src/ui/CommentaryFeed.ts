@@ -22,12 +22,17 @@ function colorizePlayer(text: string, player: Player, color: string): string {
 export function initCommentaryFeed(): void {
   const feed = document.getElementById('commentary-feed')!;
 
-  let homeTeam: Team | null = null;
-  let awayTeam: Team | null = null;
+  let homeColor = '';
+  let awayColor = '';
+  let homePlayerNames: Set<string> | null = null;
 
-  eventBus.on('engine:stateChange', ({ state }) => {
-    homeTeam = state.homeTeam;
-    awayTeam = state.awayTeam;
+  // One-shot: team colours and rosters are fixed for the match lifetime.
+  // engine:stateChange fires during initialize() before any play events.
+  const unsubTeams = eventBus.on('engine:stateChange', ({ state }) => {
+    homeColor = state.homeTeam.color;
+    awayColor = state.awayTeam.color;
+    homePlayerNames = new Set(state.homeTeam.players.map(p => p.name));
+    unsubTeams();
   });
 
   eventBus.on('engine:event', ({ event }) => {
@@ -37,10 +42,10 @@ export function initCommentaryFeed(): void {
     const minute = Math.floor(event.gameMinute);
     let html = event.commentary;
 
-    if (homeTeam && awayTeam) {
+    if (homePlayerNames) {
       for (const player of [event.primaryPlayer, event.secondaryPlayer]) {
         if (!player) continue;
-        const color = homeTeam.players.includes(player) ? homeTeam.color : awayTeam.color;
+        const color = homePlayerNames.has(player.name) ? homeColor : awayColor;
         html = colorizePlayer(html, player, color);
       }
     }
@@ -48,8 +53,8 @@ export function initCommentaryFeed(): void {
     entry.innerHTML = `<span class="event-minute">${minute}'</span> ${html}`;
     feed.insertBefore(entry, feed.firstChild);
 
-    while (feed.children.length > MAX_ENTRIES) {
-      feed.removeChild(feed.lastChild!);
+    while (feed.children.length > MAX_ENTRIES && feed.lastChild) {
+      feed.removeChild(feed.lastChild);
     }
   });
 }

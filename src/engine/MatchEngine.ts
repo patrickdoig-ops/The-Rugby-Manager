@@ -283,7 +283,13 @@ export class MatchEngine {
       }
 
       case MatchPhase.Breakdown: {
-        const supporters = attackTeam.players.slice(0, 3);
+        const forwardPool = attackTeam.players.filter(p => p.id <= 8);
+        const pool = [...forwardPool];
+        const supporters: Player[] = [];
+        while (supporters.length < 3 && pool.length > 0) {
+          const idx = rng(0, pool.length - 1);
+          supporters.push(...pool.splice(idx, 1));
+        }
         const jackal     = defendTeam.players.find(p => p.id === 7) ?? defendTeam.players[0];
         primaryPlayer   = supporters[0];
         secondaryPlayer = jackal;

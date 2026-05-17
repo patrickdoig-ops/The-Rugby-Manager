@@ -106,12 +106,17 @@ Resolver formulas at a glance:
 |---|---|---|
 | KickOff | id=10 (fly-half) as kicker; random as chaser | random receiver |
 | OpenPlay | `randomPlayer(attackTeam)` | `randomPlayer(defendTeam)` |
-| Breakdown | `attackTeam.players.slice(0,3)` (ids 1–3, front row) | id=7 (openside flanker) |
+| Breakdown | 3 forwards sampled at random without replacement from `players.filter(p.id <= 8)` | id=7 (openside flanker) |
 | Scrum | `players.filter(p => p.id <= 5)` (front 5) | same filter on defend team |
 | Lineout | hooker=id 2; jumper=`find(id===4\|5\|6)` → always id 4 | `find(id===4\|5\|6)` → always id 4 |
 | TacticalKick | id=10 or id=9 (fly-half/scrum-half) | id=15 (fullback) |
 | ConversionKick | id=10 (fly-half) | — |
 | TryScored | `randomPlayer(attackTeam)` — not the actual carrier | — |
+
+### Breakdown — future development notes
+
+- **Number of forwards deployed** should be driven by the attacking team's tactical setting (e.g. a "pick-and-drive" tactic deploys more forwards; a "wide game" tactic fewer). Currently hard-coded to 3.
+- **Ball carrier exclusion:** if the open-play ball carrier was a forward (id ≤ 8) they should be excluded from the forward pool when selecting breakdown supporters — a player cannot carry the ball into contact and also arrive as a support runner. The carrier is not currently threaded from `OpenPlay` into `Breakdown`, so this requires tracking the carrier on `MatchState` or passing it through the phase transition first.
 
 ### Player attributes — known gaps
 

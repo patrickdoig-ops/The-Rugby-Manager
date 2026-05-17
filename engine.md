@@ -202,11 +202,14 @@ state.ballX = clamp(state.ballX + attackDir() × gainMetres, 0, 100)
 ### Player selection
 
 ```typescript
-supporters = attackTeam.players.slice(0, 3)   // always players 1, 2, 3 (props + hooker)
-jackal     = defendTeam.players.find(p => p.id === 7) ?? defendTeam.players[0]
+forwardPool = attackTeam.players.filter(p => p.id <= 8)   // all forwards (props, hooker, locks, flankers, no. 8)
+supporters  = 3 players sampled without replacement from forwardPool using rng()
+jackal      = defendTeam.players.find(p => p.id === 7) ?? defendTeam.players[0]
 ```
 
-The attacking supporters are always the front row. The defending jackal is always the openside flanker. Flankers 6, number 8, and locks are never involved despite being the primary breakdown players in real rugby.
+Three forwards are chosen at random from the full forward pool (ids 1–8) on each breakdown. Each forward has an equal chance of being selected, so flankers and number 8 now contribute alongside props and locks. The defending jackal is always the openside flanker (id 7).
+
+**Future development:** The number of forwards deployed to a breakdown should be driven by the attacking team's tactical setting (e.g. pick-and-drive deploys more forwards; wide game deploys fewer). Additionally, if the open-play ball carrier was a forward (id ≤ 8) they should be excluded from the pool — a player cannot carry the ball into contact and simultaneously arrive as a support runner. Implementing this requires the carrier to be threaded from the `OpenPlay` case into `Breakdown`, either via `MatchState` or a phase-transition payload.
 
 ### Resolution
 
@@ -237,14 +240,12 @@ None. `ballX` does not change during a breakdown.
 
 | Outcome | Player | Delta |
 |---|---|---|
-| clean_ball | supporters[0] (prop 1) | +0.10 |
+| clean_ball | supporters[0] (randomly selected forward) | +0.10 |
 | turnover | jackal | +0.30 |
 | turnover | supporters[0] | −0.10 |
 | penalty_defending | supporters[0] | −0.25 |
 
-### Known gap
-
-The `primaryPlayer` for ratings is `supporters[0]` — always the loosehead prop — regardless of which forward was actually at fault or made the carry. The front-row props receive all breakdown ratings even though in practice the breakdown is dominated by flankers and number 8.
+`supporters[0]` is the first of the three randomly selected forwards and serves as the `primaryPlayer` for commentary and rating purposes.
 
 ---
 
@@ -550,7 +551,7 @@ Forces phase to `FullTime`. Emits `engine:event`, `engine:stateChange`, and `eng
 |---|---|---|
 | `discipline` not read by any resolver | StaminaSystem only | Penalty rate is identical for all players regardless of discipline stat |
 | Knock-on from poor kick-off penalises receiver, not kicker | `MatchEngine` KickOff case | Kicker fault misattributed in ratings |
-| Breakdown supporters always players 1–3 (front row) | `MatchEngine` Breakdown case | Flankers and number 8 never influence or receive ratings for breakdown events |
+| Ball carrier not excluded from breakdown support pool | `MatchEngine` Breakdown case | A forward who carried the ball into contact can be randomly re-selected as a support runner on the same breakdown |
 | `pickPlayer(team, 4, 5, 6)` always returns id 4 | `MatchEngine` Lineout case | Right Lock and Blindside Flanker never jump at lineout |
 | Try scorer is `randomPlayer()` | `MatchEngine` TryScored case | Props are as likely to be credited as wings; the carrier who made the line break is not linked to the try |
 | strength, breakdown, kicking, setPiece, positioning not degraded by fatigue | StaminaSystem | These stats remain at full base value for the entire 80 minutes |

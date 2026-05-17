@@ -10,7 +10,9 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
   const wingerPool = attackTeam.players.filter(p => p.id === 11 || p.id === 14);
   const winger     = wingerPool.length > 0 ? wingerPool[rng(0, wingerPool.length - 1)] : randomPlayer(attackTeam);
   const fullback   = defendTeam.players.find(p => p.id === 15) ?? randomPlayer(defendTeam);
-  const res = resolveBoxKick(scrumHalf, winger, fullback);
+  const backfield = defendTeam.tactics.backfieldDefence;
+  const fullbackMod = backfield === 'three_back' ? 15 : backfield === 'two_back' ? 8 : 0;
+  const res = resolveBoxKick(scrumHalf, winger, fullback, fullbackMod);
 
   state.ballX = clamp(state.ballX + attackDir() * (res.quality === 'very_good' ? 15 : 8), 5, 95);
 

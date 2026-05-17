@@ -1,5 +1,5 @@
 import { eventBus } from '../utils/eventBus';
-import type { TeamTactics, KickOffStrategy, AttackingGamePlan, AttackingBreakdown, DefendingBreakdown } from '../types/team';
+import type { TeamTactics, KickOffStrategy, AttackingGamePlan, AttackingBreakdown, DefendingBreakdown, BackfieldDefence } from '../types/team';
 
 interface OptionDef<T> {
   value: T;
@@ -29,6 +29,12 @@ const DEFEND_RUCK_OPTIONS: OptionDef<DefendingBreakdown>[] = [
   { value: 'jackal',       label: '🪝 Jackal Steal', desc: 'Rely on individual back-row specialists for turnover steals.' },
   { value: 'counter_ruck', label: '💥 Counter Ruck', desc: 'Commit pack forwards to blow through the ruck and disrupt ball.' },
   { value: 'shadow',       label: '🧱 Shadow Line',  desc: 'Concede ruck ball to maintain a perfectly set defensive line.' },
+];
+
+const BACKFIELD_OPTIONS: OptionDef<BackfieldDefence>[] = [
+  { value: 'one_back',   label: '1️⃣ One Back',   desc: 'Standard fullback only. Maximum players in the front defensive line.' },
+  { value: 'two_back',   label: '2️⃣ Two Back',   desc: 'Fullback + one wing. Balanced kick cover and front-line strength.' },
+  { value: 'three_back', label: '3️⃣ Three Back',  desc: 'Full back three deployed deep. Strong kick defence, thinner front line.' },
 ];
 
 export function renderTacticsMenu(
@@ -68,6 +74,7 @@ export function renderTacticsMenu(
         ${renderCategory('Attacking Game Plan', 'attackingGamePlan', ATTACK_PLAN_OPTIONS)}
         ${renderCategory('Attacking Breakdown', 'attackingBreakdown', ATTACK_RUCK_OPTIONS)}
         ${renderCategory('Defending Breakdown', 'defendingBreakdown', DEFEND_RUCK_OPTIONS)}
+        ${renderCategory('Backfield Defence', 'backfieldDefence', BACKFIELD_OPTIONS)}
       </div>
       ${isModal ? `
         <div class="tactics-modal-footer">

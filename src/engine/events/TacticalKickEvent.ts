@@ -14,9 +14,11 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
   const originalBallX = state.ballX;
 
   const res = resolveTacticalKick(kicker);
-  const goodKick         = res.kickScore >= 25;
+  const goodKick = res.kickScore >= 25;
+  const backfield = defendTeam.tactics.backfieldDefence;
+  const touchReduction = backfield === 'three_back' ? 25 : backfield === 'two_back' ? 15 : 0;
   const goesOutOnTheFull = rng(1, 100) <= res.outOnTheFullProbability;
-  const goesToTouch      = !goesOutOnTheFull && rng(1, 100) <= res.touchProbability;
+  const goesToTouch      = !goesOutOnTheFull && rng(1, 100) <= Math.max(0, res.touchProbability - touchReduction);
 
   const kickDir = attackDir();
   
@@ -67,7 +69,9 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
     };
   }
 
-  // Kept in field
+  // Kept in field — receiver attacks with backfield support
+  const returnBonus = backfield === 'three_back' ? 10 : backfield === 'two_back' ? 5 : 0;
+  if (returnBonus > 0) state.breakdownMod = { attack: returnBonus, defend: 0 };
   state.possession = state.possession === 'home' ? 'away' : 'home';
   return {
     nextPhase: MatchPhase.OpenPlay,

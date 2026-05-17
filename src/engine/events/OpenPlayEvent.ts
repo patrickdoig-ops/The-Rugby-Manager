@@ -21,6 +21,7 @@ export function handleOpenPlay({ state, attackTeam, defendTeam, attackDir, isTry
   }
 
   if (rng(1, 100) <= kickProb) {
+    state.breakdownMod = { attack: 0, defend: 0 };
     const flyHalf = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
     return {
       nextPhase: MatchPhase.TacticalKick,
@@ -34,7 +35,9 @@ export function handleOpenPlay({ state, attackTeam, defendTeam, attackDir, isTry
   const defender = randomPlayer(defendTeam);
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;
   state.breakdownMod = { attack: 0, defend: 0 };
-  const res = resolveOpenPlay(carrier, defender, attackMod, defendMod);
+  const backfieldPenalty = defendTeam.tactics.backfieldDefence === 'three_back' ? -10
+                         : defendTeam.tactics.backfieldDefence === 'two_back'   ? -5 : 0;
+  const res = resolveOpenPlay(carrier, defender, attackMod, defendMod + backfieldPenalty);
 
   let nextPhase: MatchPhase;
   let commentary: string;

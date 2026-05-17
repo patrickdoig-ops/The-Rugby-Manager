@@ -25,17 +25,18 @@ export function resolveBoxKick(
   scrumHalf: Player,
   winger: Player,
   fullback: Player,
+  fullbackMod = 0,
 ): BoxKickResolution {
   const kickScore = scrumHalf.currentStats.kicking + rng(1, 20);
 
   if (kickScore < VERY_GOOD_KICK_THRESHOLD) {
-    const catchScore = (fullback.currentStats.handling + fullback.currentStats.positioning) / 2 + rng(1, 20);
+    const catchScore = (fullback.currentStats.handling + fullback.currentStats.positioning) / 2 + rng(1, 20) + fullbackMod;
     const outcome = catchScore >= UNCONTESTED_CATCH_THRESHOLD ? 'defend_catch' : 'knock_on';
     return { quality: 'poor', kickScore, catchScore, outcome };
   }
 
   const wingerScore   = (winger.currentStats.handling + winger.currentStats.pace) / 2 + rng(1, 20);
-  const fullbackScore = (fullback.currentStats.handling + fullback.currentStats.positioning) / 2 + rng(1, 20);
+  const fullbackScore = (fullback.currentStats.handling + fullback.currentStats.positioning) / 2 + rng(1, 20) + fullbackMod;
   const contestMargin = wingerScore - fullbackScore;
 
   let outcome: 'attack_retain' | 'defend_knock_on' | 'defend_catch_contested';

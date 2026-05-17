@@ -170,6 +170,34 @@ background: var(--surface3);
 
 **Used on:** `.ctrl-btn` (Pause, speed adjust), `#theme-toggle`, `.modal-choice-btn` (penalty options).
 
+## Icons
+
+All icons use inline SVGs from the [Heroicons](https://heroicons.com/) library. Do not use emoji, Unicode symbols, or any icon font.
+
+- **Solid style** (`fill="currentColor"`) for actions that feel weighty or primary: play, pause.
+- **Outline style** (`stroke="currentColor"`, `stroke-width="1.5"`) for settings-style controls and decorative labels: tactics adjustments, modal titles.
+
+Inline SVG markup pattern:
+```html
+<!-- Solid (fill) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">…</svg>
+
+<!-- Outline (stroke) -->
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18">…</svg>
+```
+
+SVGs inside buttons must have `pointer-events: none` so clicks pass through to the button element. The global rule in `style/main.css` covers `.ctrl-btn svg`; add a matching rule for any new button context that wraps an SVG.
+
+Current icon assignments:
+
+| Location | Icon | Style |
+|---|---|---|
+| Sim controls — Play | `play` | Solid |
+| Sim controls — Pause | `pause` | Solid |
+| Sim controls — Tactics | `adjustments-horizontal` | Outline |
+| Tactics modal title | `adjustments-horizontal` | Outline |
+| Tactics resume button | `play` (14 × 14) | Solid |
+
 ## Typography
 
 Fonts are loaded in `index.html`:
@@ -373,9 +401,11 @@ Key stability rules:
 - Check `engine.md` before changing text that describes match behaviour.
 - Keep live-match screens dense, legible, and stable.
 - Use `var(--surface2)` background and `var(--border-mid)` border for secondary/neutral buttons.
+- Use Heroicons inline SVGs for all iconography; solid style for action icons, outline for settings/label icons.
 
 ## Don't
 
+- Do not use emoji or Unicode symbols in the UI — use Heroicons inline SVGs instead.
 - Do not introduce new component libraries for small UI changes without discussion.
 - Do not hardcode deploy-sensitive paths or asset bases.
 - Do not reverse semantic colours: green is positive/OK, red is penalty/poor/low, amber is try/warning, purple is terminal phase.

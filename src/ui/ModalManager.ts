@@ -1,5 +1,6 @@
 import { eventBus } from '../utils/eventBus';
 import type { PenaltyChoice } from '../types/engine';
+import { renderTacticsMenu } from './TacticsMenu';
 
 const CHOICE_LABELS: Record<PenaltyChoice, string> = {
   kick_for_goal: '⚽ Kick for Goal (3 pts)',
@@ -49,7 +50,16 @@ export function initModalManager(): void {
     });
   });
 
+  eventBus.on('ui:openTacticsModal', ({ tactics }) => {
+    renderTacticsMenu(box, tactics, true, () => {
+      overlay.classList.add('hidden');
+      eventBus.emit('engine:resumed', {});
+    });
+    overlay.classList.remove('hidden');
+  });
+
   eventBus.on('engine:resumed', () => {
     overlay.classList.add('hidden');
   });
 }
+

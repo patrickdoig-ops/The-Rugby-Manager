@@ -44,6 +44,12 @@ function buildTeam(raw: { id: string; name: string; shortName: string; color: st
   return {
     ...raw,
     players: raw.players.map(initPlayer),
+    tactics: {
+      kickOffStrategy: 'high_ball',
+      attackingGamePlan: 'balanced',
+      attackingBreakdown: 'balanced',
+      defendingBreakdown: 'jackal',
+    },
   };
 }
 
@@ -99,7 +105,16 @@ export class MatchEngine {
   ) {
     this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500);
     this.sm = new StateMachine(MatchPhase.KickOff);
+
+    eventBus.on('ui:tacticsChange', ({ teamId, tactics }) => {
+      if (teamId === 'home') {
+        this.state.homeTeam.tactics = { ...tactics };
+      } else if (teamId === 'away') {
+        this.state.awayTeam.tactics = { ...tactics };
+      }
+    });
   }
+
 
   initialize(): void {
     // Coin toss — 50/50; winner kicks off in the first half, loser in the second.

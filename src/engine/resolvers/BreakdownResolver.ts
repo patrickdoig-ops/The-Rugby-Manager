@@ -1,5 +1,6 @@
 import type { Player } from '../../types/player';
 import type { BreakdownResult } from '../../types/engine';
+import type { DefendingBreakdown } from '../../types/team';
 import { avgStat } from '../../utils/math';
 import { rng } from '../../utils/rng';
 
@@ -10,16 +11,32 @@ export interface BreakdownResolution {
   margin: number;
 }
 
-export function resolveBreakdown(supporters: Player[], jackal: Player): BreakdownResolution {
+export function resolveBreakdown(
+  supporters: Player[],
+  jackal: Player,
+  defPlan: DefendingBreakdown = 'jackal',
+  defendPack: Player[] = [],
+): BreakdownResolution {
   const ars = avgStat(supporters, 'breakdown') * 0.6
             + avgStat(supporters, 'strength') * 0.4
             + (avgStat(supporters, 'discipline') - 50) * 0.15
             + rng(1, 20);
 
-  const dts = jackal.currentStats.breakdown * 0.7
-            + jackal.currentStats.strength * 0.3
-            + (jackal.currentStats.discipline - 50) * 0.15
-            + rng(1, 20);
+  let dts: number;
+  if (defPlan === 'counter_ruck' && defendPack.length > 0) {
+    dts = avgStat(defendPack, 'strength') * 0.6
+        + avgStat(defendPack, 'breakdown') * 0.4
+        + (avgStat(defendPack, 'discipline') - 50) * 0.15
+        + rng(1, 20);
+  } else if (defPlan === 'shadow') {
+    dts = rng(1, 10); // Low score concedes clean ball to reset defensive line
+  } else {
+    // jackal
+    dts = jackal.currentStats.breakdown * 0.7
+        + jackal.currentStats.strength * 0.3
+        + (jackal.currentStats.discipline - 50) * 0.15
+        + rng(1, 20);
+  }
 
   const margin = ars - dts;
 
@@ -31,3 +48,4 @@ export function resolveBreakdown(supporters: Player[], jackal: Player): Breakdow
 
   return { result, ars, dts, margin };
 }
+

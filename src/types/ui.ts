@@ -1,5 +1,6 @@
 import type { PenaltyChoice, PenaltyContext } from './engine';
 import type { GameEvent, MatchState } from './match';
+import type { TeamTactics } from './team';
 
 export interface ModalPayload {
   type: 'penalty_choice';
@@ -14,4 +15,7 @@ export interface AppEvents {
   'engine:resumed':     Record<string, never>;
   'engine:finished':    { state: MatchState };
   'ui:speedChange':     { delayMs: number };
+  'ui:tacticsChange':   { teamId: string; tactics: TeamTactics };
+  'ui:openTacticsModal':{ tactics: TeamTactics };
 }
+

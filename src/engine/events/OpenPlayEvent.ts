@@ -5,10 +5,22 @@ import { getCommentary } from '../CommentaryEngine';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 
-export function handleOpenPlay({ state, attackTeam, defendTeam, attackDir, isTryScored, adjustRating, randomPlayer, draftEvent }: PhaseContext): PhaseResult {
-  // Step 0 — Kick or carry decision (15% chance to kick)
-  // Future: propensity should be driven by attacking team tactics and pitch location
-  if (rng(1, 100) <= 15) {
+export function handleOpenPlay({ state, attackTeam, defendTeam, attackDir, isTryScored, inOwnHalf, inOwn22, adjustRating, randomPlayer, draftEvent }: PhaseContext): PhaseResult {
+  // Step 0 — Kick or carry decision
+  // Propensity is driven by attacking team tactics and pitch location
+  const plan = attackTeam.tactics.attackingGamePlan;
+  let kickProb = 15;
+
+  if (plan === 'possession') {
+    kickProb = inOwn22() ? 10 : (inOwnHalf() ? 5 : 0);
+  } else if (plan === 'kicking') {
+    kickProb = inOwn22() ? 35 : (inOwnHalf() ? 25 : 15);
+  } else {
+    // balanced
+    kickProb = inOwn22() ? 20 : (inOwnHalf() ? 15 : 10);
+  }
+
+  if (rng(1, 100) <= kickProb) {
     const flyHalf = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
     return {
       nextPhase: MatchPhase.TacticalKick,

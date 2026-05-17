@@ -5,14 +5,19 @@ import { resolveBreakdown } from '../resolvers/BreakdownResolver';
 import { getCommentary } from '../CommentaryEngine';
 import { rng } from '../../utils/rng';
 
-export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22, adjustRating, draftEvent }: PhaseContext): PhaseResult {
+export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22, inOwn22, inOwnHalf, adjustRating, draftEvent }: PhaseContext): PhaseResult {
+  const attPlan = attackTeam.tactics.attackingBreakdown;
+  const defPlan = defendTeam.tactics.defendingBreakdown;
+
   const lastEvent = state.events[state.events.length - 1];
   const carrierId = lastEvent?.primaryPlayer?.id;
   const forwardPool = attackTeam.players.filter(p => p.id <= 8 && p.id !== carrierId);
   if (forwardPool.length === 0) forwardPool.push(attackTeam.players[0]);
   const pool = [...forwardPool];
+
+  const count = attPlan === 'pick_and_drive' ? 4 : (attPlan === 'wide_play' ? 2 : 3);
   const supporters: Player[] = [];
-  while (supporters.length < 3 && pool.length > 0) {
+  while (supporters.length < count && pool.length > 0) {
     supporters.push(...pool.splice(rng(0, pool.length - 1), 1));
   }
 
@@ -20,7 +25,8 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
   const jackal  = backRow.length > 0 ? backRow[rng(0, backRow.length - 1)] : defendTeam.players[0];
   const primary = supporters[0];
 
-  const res = resolveBreakdown(supporters, jackal);
+  const defendPack = defendTeam.players.filter(p => p.id <= 8);
+  const res = resolveBreakdown(supporters, jackal, defPlan, defendPack);
 
   if (res.result === 'clean_ball') {
     adjustRating(primary, +0.1);
@@ -33,8 +39,19 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
   }
 
   if (res.result === 'slow_ball') {
+    const plan = attackTeam.tactics.attackingGamePlan;
+    let boxKick = false;
+
+    if (plan === 'possession') {
+      boxKick = false;
+    } else if (plan === 'kicking') {
+      boxKick = !inOpposition22() && !inOwn22();
+    } else {
+      boxKick = inOwnHalf() && !inOwn22();
+    }
+
     return {
-      nextPhase: !inOpposition22() ? MatchPhase.BoxKick : MatchPhase.OpenPlay,
+      nextPhase: boxKick ? MatchPhase.BoxKick : MatchPhase.OpenPlay,
       commentary: getCommentary({ ...draftEvent(MatchPhase.Breakdown), primaryPlayer: primary, secondaryPlayer: jackal }, 'slow_ball'),
       primaryPlayer: primary,
       secondaryPlayer: jackal,

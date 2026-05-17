@@ -1,4 +1,6 @@
 import type { PlayerStats } from '../types/player';
+import type { TeamTactics } from '../types/team';
+import { renderTacticsMenu } from './TacticsMenu';
 
 type RawPlayer = {
   id: number;
@@ -100,14 +102,16 @@ export function initPreMatchScreen(
         <span class="pm-team-badge" style="color:${away.color}">${away.shortName}</span>
       </div>
       <div id="pm-tabs" role="tablist">
-        <button class="pm-tab active" data-tab="home" style="--tc:${home.color}">${home.name}</button>
-        <button class="pm-tab"        data-tab="away" style="--tc:${away.color}">${away.name}</button>
+        <button class="pm-tab active" data-tab="home"    style="--tc:${home.color}">${home.name}</button>
+        <button class="pm-tab"        data-tab="away"    style="--tc:${away.color}">${away.name}</button>
+        <button class="pm-tab"        data-tab="tactics" style="--tc:var(--gold)">Tactics</button>
       </div>
     </div>
 
     <div id="pm-body">
-      <div id="pm-home" class="pm-panel">${homeHtml}</div>
-      <div id="pm-away" class="pm-panel hidden">${awayHtml}</div>
+      <div id="pm-home"    class="pm-panel">${homeHtml}</div>
+      <div id="pm-away"    class="pm-panel hidden">${awayHtml}</div>
+      <div id="pm-tactics" class="pm-panel hidden"></div>
     </div>
 
     <div id="pm-footer">
@@ -115,9 +119,19 @@ export function initPreMatchScreen(
     </div>
   `;
 
-  const tabs     = screen.querySelectorAll<HTMLButtonElement>('.pm-tab');
-  const homePanel = screen.querySelector<HTMLElement>('#pm-home')!;
-  const awayPanel = screen.querySelector<HTMLElement>('#pm-away')!;
+  const tacticsContainer = screen.querySelector<HTMLElement>('#pm-tactics')!;
+  const defaultTactics: TeamTactics = {
+    kickOffStrategy: 'high_ball',
+    attackingGamePlan: 'balanced',
+    attackingBreakdown: 'balanced',
+    defendingBreakdown: 'jackal',
+  };
+  renderTacticsMenu(tacticsContainer, defaultTactics);
+
+  const tabs         = screen.querySelectorAll<HTMLButtonElement>('.pm-tab');
+  const homePanel    = screen.querySelector<HTMLElement>('#pm-home')!;
+  const awayPanel    = screen.querySelector<HTMLElement>('#pm-away')!;
+  const tacticsPanel = screen.querySelector<HTMLElement>('#pm-tactics')!;
 
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
@@ -125,6 +139,7 @@ export function initPreMatchScreen(
       tabs.forEach(b => b.classList.toggle('active', b.dataset.tab === t));
       homePanel.classList.toggle('hidden', t !== 'home');
       awayPanel.classList.toggle('hidden', t !== 'away');
+      tacticsPanel.classList.toggle('hidden', t !== 'tactics');
     });
   });
 
@@ -136,3 +151,4 @@ export function initPreMatchScreen(
     }, { once: true });
   });
 }
+

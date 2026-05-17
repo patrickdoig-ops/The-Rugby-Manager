@@ -8,7 +8,7 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, adjust
   const kicker   = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
   const receiver = randomPlayer(defendTeam);
   const chaser   = randomPlayer(attackTeam);
-  const res = resolveKickOff(kicker, receiver, chaser);
+  const res = resolveKickOff(kicker, receiver, chaser, attackTeam.tactics.kickOffStrategy);
 
   // Ball lands at the kick distance from halfway
   state.ballX = clamp(50 + attackDir() * res.distance, 5, 95);

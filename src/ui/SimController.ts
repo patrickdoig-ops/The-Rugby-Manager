@@ -2,9 +2,10 @@ import type { MatchEngine } from '../engine/MatchEngine';
 import { eventBus } from '../utils/eventBus';
 
 export function initSimController(engine: MatchEngine): void {
-  const btnPlay  = document.getElementById('btn-play')  as HTMLButtonElement;
-  const btnPause = document.getElementById('btn-pause') as HTMLButtonElement;
-  const slider   = document.getElementById('speed-slider') as HTMLInputElement;
+  const btnPlay    = document.getElementById('btn-play')    as HTMLButtonElement;
+  const btnPause   = document.getElementById('btn-pause')   as HTMLButtonElement;
+  const btnTactics = document.getElementById('btn-tactics') as HTMLButtonElement;
+  const slider     = document.getElementById('speed-slider') as HTMLInputElement;
   const speedDisplay = document.getElementById('speed-display')!;
 
   btnPlay.addEventListener('click', () => {
@@ -19,6 +20,13 @@ export function initSimController(engine: MatchEngine): void {
     btnPause.disabled = true;
   });
 
+  btnTactics.addEventListener('click', () => {
+    engine.pause();
+    btnPlay.disabled  = false;
+    btnPause.disabled = true;
+    eventBus.emit('ui:openTacticsModal', { tactics: engine.getState().homeTeam.tactics });
+  });
+
   speedDisplay.textContent = `${slider.value}ms`;
 
   slider.addEventListener('input', () => {
@@ -29,17 +37,22 @@ export function initSimController(engine: MatchEngine): void {
   });
 
   eventBus.on('engine:finished', () => {
-    btnPlay.disabled  = true;
-    btnPause.disabled = true;
+    btnPlay.disabled    = true;
+    btnPause.disabled   = true;
+    btnTactics.disabled = true;
   });
 
   eventBus.on('engine:paused', () => {
-    btnPause.disabled = true;
-    btnPlay.disabled  = true;
+    btnPause.disabled   = true;
+    btnPlay.disabled    = true;
+    btnTactics.disabled = true;
   });
 
   eventBus.on('engine:resumed', () => {
-    btnPlay.disabled  = true;
-    btnPause.disabled = false;
+    engine.resume();
+    btnPlay.disabled    = true;
+    btnPause.disabled   = false;
+    btnTactics.disabled = false;
   });
 }
+

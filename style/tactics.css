@@ -1,0 +1,134 @@
+/* ════════════════════════════════════════
+   TACTICS MENU STYLES
+   ════════════════════════════════════════ */
+
+.tactics-menu-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  color: var(--text);
+  padding-bottom: 20px;
+}
+
+.tactics-main-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--gold);
+  border-bottom: 1px solid var(--border-mid);
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+}
+
+.tactics-categories-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.tactics-category {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tactics-cat-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+}
+
+.tactics-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.tactics-opt-btn {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border-mid);
+  border-radius: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  color: var(--text);
+  position: relative;
+  overflow: hidden;
+}
+
+.tactics-opt-btn:hover {
+  background: var(--surface2);
+  border-color: var(--blue-dark);
+}
+
+.tactics-opt-btn.active {
+  background: var(--blue-light);
+  border-color: var(--blue);
+  box-shadow: 0 0 12px rgba(0, 186, 255, 0.15);
+}
+
+.tactics-opt-btn.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--blue);
+}
+
+.tactics-opt-label {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+
+.tactics-opt-btn.active .tactics-opt-label {
+  color: var(--blue);
+}
+
+.tactics-opt-desc {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.tactics-modal-footer {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--border-mid);
+  padding-top: 16px;
+}
+
+.tactics-resume-btn {
+  padding: 12px 32px;
+  background: var(--green);
+  color: #000000;
+  border: none;
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  box-shadow: 0 0 16px rgba(46, 204, 113, 0.25);
+}
+
+.tactics-resume-btn:hover {
+  background: #27ae60;
+  color: #ffffff;
+}
+
+.tactics-resume-btn:active {
+  transform: translateY(1px);
+}

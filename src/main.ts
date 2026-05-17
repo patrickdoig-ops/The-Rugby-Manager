@@ -3,6 +3,7 @@ import '../style/homescreen.css';
 import '../style/commentary.css';
 import '../style/stats.css';
 import '../style/prematch.css';
+import '../style/tactics.css';
 
 import { buildAppShell }      from './ui/AppShell';
 import { initScoreboard }     from './ui/Scoreboard';

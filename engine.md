@@ -123,7 +123,10 @@ The receiving player attempts to catch the ball, relying on their handling and c
 | > −5 | `contested` → OpenPlay | No change (kicking team plays on) |
 | ≤ −5 | `knock_on` → Scrum | No change (kicking team wins scrum put-in) |
 
-**Future development:** kick-off strategy (high ball, short kick, grubber) should be selectable as part of team tactics.
+**Tactical Strategy (`KickOffStrategy`):**
+- `high_ball`: Standard deep kick (25–40m), normal catch vs chase margin.
+- `short_kick`: Shorter distance (10–18m), tightens the catch vs chase margin (+15 chaser advantage), increasing contestability.
+- `grubber`: Hard low kick along ground (15–30m), inflicts -10 catch penalty on receiver to increase knock-on probability.
 
 ### Rating adjustments
 
@@ -146,11 +149,12 @@ No positional weighting. All 15 players are equally likely to be drawn regardles
 
 ### Step 0 — Kick or carry decision
 
-There is a flat 15% chance that the attacking team decides to kick rather than carry the ball into contact. If they decide to kick, the play immediately shifts to a Tactical Kick phase. The rest of the open play steps are skipped.
+The probability of kicking rather than carrying into contact is driven by `attackTeam.tactics.attackingGamePlan` and pitch location:
+- `possession`: 10% inside own 22; 5% in own half; 0% in opposition half.
+- `balanced`: 20% inside own 22; 15% in own half; 10% in opposition half.
+- `kicking`: 35% inside own 22; 25% in own half; 15% in opposition half.
 
 Checked before any player is selected. If it fires, the fly-half (id=10) is logged as `primaryPlayer` for commentary and the phase transitions to `TacticalKick`. Steps 1–3 do not run.
-
-**Future development:** propensity to kick should be driven by the attacking team's tactical setting (a "kicking game" tactic raises the threshold; a "possession game" lowers it) and by pitch location (e.g. kicking from inside your own 22 is unusual even for kicking teams).
 
 ### Step 1 — Handling gate
 
@@ -200,17 +204,17 @@ The ball's position on the pitch is moved forward or backwards depending on the 
 ### Player selection
 
 ```typescript
-forwardPool = attackTeam.players.filter(p => p.id <= 8)   // all forwards (props, hooker, locks, flankers, no. 8)
-supporters  = 3 players sampled without replacement from forwardPool using rng()
-backRow     = defendTeam.players.filter(p => p.id >= 6 && p.id <= 8)   // blindside, openside, no. 8
-jackal      = backRow[rng(0, backRow.length - 1)]
+forwardPool = attackTeam.players.filter(p => p.id <= 8)
+backRow     = defendTeam.players.filter(p => p.id >= 6 && p.id <= 8)
 ```
-
 Three attacking forwards are chosen at random from the full forward pool (ids 1–8). The defending jackal is chosen at random from the back row (ids 6–8); each of the three back-row players has an equal chance of attempting the steal.
 
-**Future development:**
-- **Attacking:** the number of forwards deployed should be driven by the attacking team's tactical setting (pick-and-drive deploys more; wide game deploys fewer).
-- **Defending:** the number of defensive forwards deployed should depend on the defending team's tactical setting. The defending team should also choose between **jackal** (attempt a turnover steal, current behaviour) and **counter ruck** (use collective forward power to drive the attackers off the ball). Counter ruck would require a second resolver formula comparing pack scores rather than individual breakdown stats.
+**Tactical Breakdown Commitment (`AttackingBreakdown` & `DefendingBreakdown`):**
+- **Attacking:** Supporter count is driven by `attackTeam.tactics.attackingBreakdown`: `pick_and_drive` commits 4 forwards; `balanced` commits 3 forwards; `wide_play` commits 2 forwards.
+- **Defending:** Strategy is driven by `defendTeam.tactics.defendingBreakdown`:
+  - `jackal`: Relies on individual back-row specialist's breakdown stat (standard turnover contest).
+  - `counter_ruck`: Engages the entire defending pack (ids 1–8) using average strength and breakdown power.
+  - `shadow`: Concedes ruck ball (low defensive score) to maintain a perfectly aligned defensive line.
 
 ### Resolution
 
@@ -223,7 +227,7 @@ Both scores include a random dice roll. The defensive score is subtracted from t
 | Margin | Result |
 |---|---|
 | ≥ 10 | `clean_ball` → OpenPlay |
-| 1–9 | `slow_ball` → OpenPlay |
+| 1–9 | `slow_ball` → OpenPlay / BoxKick |
 | −14 to 0 | `turnover` → OpenPlay (possession flips) |
 | ≤ −15 | `penalty_defending` → Penalty (possession flips to defending team) |
 
@@ -332,7 +336,10 @@ None.
 
 ## Box Kick
 
-Triggered from a `slow_ball` Breakdown result when the ball is more than 22 metres from the defending team's try line (i.e. `!inOpposition22()`). Not used when already inside the opposition 22, where other options are preferred.
+Triggered from a `slow_ball` Breakdown result. The decision to box kick is dynamically gated by `attackTeam.tactics.attackingGamePlan` and pitch location:
+- `possession`: Never box kick; retain possession in hand (`OpenPlay`).
+- `kicking`: Box kick on slow ball from anywhere outside opposition 22 and outside own deep 22.
+- `balanced`: Box kick on slow ball primarily when in own half (outside own 22).
 
 ### Player selection
 
@@ -344,8 +351,6 @@ fullback   = defendTeam.players.find(p => p.id === 15)
 ```
 
 The scrum half always takes the kick. One attacking winger is selected at random to contest the aerial ball. The defending fullback always receives.
-
-**Future development:** the decision to box kick from slow ball — and the propensity to do so in different pitch locations — should be driven by the attacking team's tactical setting. A "kicking game" tactic should increase propensity; a "possession game" tactic should reduce or eliminate it. Kicking from very deep in your own 22 is unusual even for kicking-oriented teams, so pitch zone should also gate the trigger.
 
 ### Resolution
 

@@ -50,6 +50,7 @@ export function buildAppShell(): void {
     <div id="sim-controls">
       <button id="btn-play" class="ctrl-btn primary">▶ Play</button>
       <button id="btn-pause" class="ctrl-btn" disabled>⏸ Pause</button>
+      <button id="btn-tactics" class="ctrl-btn">📋 Tactics</button>
       <label class="speed-label">
         <span class="speed-text">Speed</span>
         <input type="range" id="speed-slider" min="100" max="2000" value="1500" step="100">

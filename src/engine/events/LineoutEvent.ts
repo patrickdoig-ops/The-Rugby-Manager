@@ -7,7 +7,10 @@ import { rng } from '../../utils/rng';
 export function handleLineout({ state, attackTeam, defendTeam, adjustRating, pickPlayer, draftEvent }: PhaseContext): PhaseResult {
   const hooker       = pickPlayer(attackTeam, 2);
   const jumperIds    = [4, 5, 7];
-  const attackJumper = attackTeam.players.find(p => p.id === jumperIds[rng(0, 2)])!;
+  const chosenId     = jumperIds[rng(0, 2)];
+  const attackJumper = attackTeam.players.find(p => p.id === chosenId)
+                    ?? attackTeam.players.find(p => p.id === 4)
+                    ?? attackTeam.players[0];
   const defendJumper = pickPlayer(defendTeam, 4, 5, 6);
   const res = resolveLineout(hooker, attackJumper, defendJumper);
 

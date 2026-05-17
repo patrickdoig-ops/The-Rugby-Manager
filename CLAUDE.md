@@ -151,7 +151,7 @@ Resolver formulas at a glance:
 | **Scrum** | `avg(setPiece×0.6 + strength×0.4) + rng` for each front 5 | attack margin > 0 stable_win; > -15 wheel; else dominant_penalty |
 | **Lineout** | `throwScore = hookerSetPiece + rng` < 40 → auto steal; then `(setPiece×0.5 + agility×0.5) + rng` each jumper | margin ≥ 5 clean_catch; ≥ 0 scrappy_knock_on; else steal |
 | **BoxKick** | `kickScore = kicking + rng(1,20)` ≥ 75 → contested (wingerScore vs fullbackScore); else uncontested catch gate | contested: margin ≥ 10 attack_retain; ≥ 0 defend_knock_on; else defend_catch_contested. Uncontested: catchScore ≥ 35 defend_catch; else knock_on |
-| **TacticalKick** | `kickScore = kicking + rng` < 25 → poor_kick; `catchScore = (handling+positioning)/2 + rng` < 30 → knock_on_catch | else good_kick; 60% chance goes to touch → Lineout |
+| **TacticalKick** | `kickScore = kicking + rng(1, 20)` < 25 → poor_kick | goodKick: outOnTheFull 0%, touch 75%; poorKick: outOnTheFull 30%, touch 30% → Lineout / OpenPlay |
 | **GoalKick** | `kicking + composure×0.2 − anglePenalty + rng(1,20)` | ≥ 65 = success |
 
 ### Player selection per phase

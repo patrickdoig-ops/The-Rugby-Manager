@@ -4,8 +4,9 @@ import { rng } from '../../utils/rng';
 
 export interface KickingResolution {
   kickScore: number;
-  distance: number;         // metres the kick travels
-  touchProbability: number; // 0–100; chance kick finds touch
+  distance: number;                // metres the kick travels
+  outOnTheFullProbability: number; // 0–100; chance kick goes directly out on the full
+  touchProbability: number;        // 0–100; chance kick finds touch
 }
 
 export function resolveTacticalKick(kicker: Player): KickingResolution {
@@ -13,8 +14,9 @@ export function resolveTacticalKick(kicker: Player): KickingResolution {
   const goodKick  = kickScore >= 25;
   return {
     kickScore,
-    distance:         goodKick ? rng(20, 40) : rng(5, 15),
-    touchProbability: goodKick ? 75 : 30,
+    distance:                goodKick ? rng(20, 40) : rng(5, 15),
+    outOnTheFullProbability: goodKick ? 0 : 30,
+    touchProbability:        goodKick ? 75 : 30,
   };
 }
 

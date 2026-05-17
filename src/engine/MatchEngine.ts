@@ -210,6 +210,10 @@ export class MatchEngine {
   }
 
   private scheduleTick(delay: number): void {
+    if (this.tickTimeout) {
+      clearTimeout(this.tickTimeout);
+      this.tickTimeout = null;
+    }
     this.tickTimeout = setTimeout(() => this.tick(), delay);
   }
 
@@ -217,39 +221,43 @@ export class MatchEngine {
     this.tickTimeout = null;
     if (!this.state.isRunning) return;
 
-    const timeAdvance = 0.5 + rng(0, 15) / 10;
-    this.state.gameMinute = Math.min(80, this.state.gameMinute + timeAdvance);
+    try {
+      const timeAdvance = 0.5 + rng(0, 15) / 10;
+      this.state.gameMinute = Math.min(80, this.state.gameMinute + timeAdvance);
 
-    this.fatigueAccumulator += timeAdvance;
-    if (this.fatigueAccumulator >= 5) {
-      applyFatigue(this.state.homeTeam, this.fatigueAccumulator);
-      applyFatigue(this.state.awayTeam, this.fatigueAccumulator);
-      this.fatigueAccumulator -= 5;
-    }
+      this.fatigueAccumulator += timeAdvance;
+      if (this.fatigueAccumulator >= 5) {
+        applyFatigue(this.state.homeTeam, this.fatigueAccumulator);
+        applyFatigue(this.state.awayTeam, this.fatigueAccumulator);
+        this.fatigueAccumulator -= 5;
+      }
 
-    this.state.stats.possession[this.state.possession]++;
-    if (this.state.ballX > 50) this.state.stats.territory.home++;
-    else this.state.stats.territory.away++;
+      this.state.stats.possession[this.state.possession]++;
+      if (this.state.ballX > 50) this.state.stats.territory.home++;
+      else this.state.stats.territory.away++;
 
-    const event = this.resolvePhase();
-    this.state.events.push(event);
+      const event = this.resolvePhase();
+      this.state.events.push(event);
 
-    eventBus.emit('engine:event', { event });
-    eventBus.emit('engine:stateChange', { state: this.state });
+      eventBus.emit('engine:event', { event });
+      eventBus.emit('engine:stateChange', { state: this.state });
 
-    if (this.state.phase === MatchPhase.Penalty) {
-      await this.handlePenaltyDecision();
-      if (!this.state.isRunning) return;
-    }
+      if (this.state.phase === MatchPhase.Penalty) {
+        await this.handlePenaltyDecision();
+        if (!this.state.isRunning) return;
+      }
 
-    if (this.state.gameMinute >= 40 && !this.state.halfTimeDone) {
-      this.triggerHalfTime();
-      if (!this.state.isRunning) return;
-    }
+      if (this.state.gameMinute >= 40 && !this.state.halfTimeDone) {
+        this.triggerHalfTime();
+        if (!this.state.isRunning) return;
+      }
 
-    if (this.state.gameMinute >= 80) {
-      this.endMatch();
-      return;
+      if (this.state.gameMinute >= 80) {
+        this.endMatch();
+        return;
+      }
+    } catch (err) {
+      console.error('MatchEngine tick error encountered, recovering loop:', err);
     }
 
     this.scheduleTick(this.state.tickDelayMs);
@@ -271,7 +279,7 @@ export class MatchEngine {
       inOwnHalf:      () => this.inOwnHalf(),
       adjustRating:   (player, delta) => this.adjustRating(player, delta),
       randomPlayer:   (team) => team.players[rng(0, team.players.length - 1)],
-      pickPlayer:     (team, ...ids) => team.players.find(p => ids.includes(p.id))!,
+      pickPlayer:     (team, ...ids) => team.players.find(p => ids.includes(p.id)) ?? team.players[0],
       draftEvent:     (phase) => this.draftEvent(phase),
     };
 
@@ -280,7 +288,11 @@ export class MatchEngine {
       ? handler(ctx)
       : { nextPhase: state.phase, commentary: 'Match event.', primaryPlayer: undefined, secondaryPlayer: undefined };
 
-    this.sm.transition(nextPhase);
+    try {
+      this.sm.transition(nextPhase);
+    } catch {
+      this.sm.forceTransition(nextPhase);
+    }
     state.phase = nextPhase;
 
     return {

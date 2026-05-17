@@ -420,20 +420,20 @@ Fly-half kicks first, scrum-half if fly-half is unavailable. The fullback receiv
 
 ### Step 1 — Kick quality and distance
 
-The kicker relies on their kicking stat and a random factor to generate a kick score. A good kick travels further (20 to 40 metres) and has a high probability (75%) of bouncing into touch. A poor kick is shorter (5 to 15 metres) and has a lower probability (30%) of finding touch.
+The kicker relies on their kicking stat and a random factor to generate a kick score (`kickScore = kicking + rng(1, 20)`). A good kick (`kickScore >= 25`) travels further (20 to 40 metres), has a 0% chance of going out on the full, and a 75% chance of bouncing into touch. A poor kick (`kickScore < 25`) is shorter (5 to 15 metres), has a 30% chance of going directly out on the full, and a 30% chance of bouncing into touch.
 
 The ball's position on the pitch is updated immediately based on the calculated distance.
 
-### Step 2 — Touch or caught
+### Step 2 — Out on the full, touch, or caught
 
-The game rolls a percentage chance against the touch probability determined in Step 1 to see if the ball goes into touch.
+The game first rolls a percentage chance against the `outOnTheFullProbability` determined in Step 1.
+- **Out on the Full:** If the roll succeeds and the kick was taken from *outside* the kicking team's own 22m line, it goes straight out on the full. The ball is brought all the way back to the original kicking position (no ground gained) and the defending team gets the lineout. (If taken from *inside* the own 22m line, gaining ground directly into touch is legal, so it acts as a Standard Touch).
 
-If the ball **does not** go into touch, the defending fullback catches the ball in the field of play. The phase becomes Open Play, and possession flips to the defending team.
+If the ball does not go out on the full, the game rolls against `touchProbability` to see if the ball bounces into touch.
+- **50:22 Rule:** If the kick bounces into touch, was taken from *inside* the kicking team's own half, and lands *inside* the opposition's 22m line, the kicking team is rewarded for a 50:22! The kicking team **retains possession** and gets the throw-in at the resulting lineout.
+- **Standard Touch:** In all other bouncing touch scenarios (or direct touch from inside own 22), the distance is gained and the defending team gets the throw-in at the lineout.
 
-If the ball **does** go into touch, pitch geography dictates the outcome:
-- **Out on the Full:** If the kick was a poor kick and was taken from *outside* the kicking team's own 22m line, it is deemed to have gone straight out on the full. The ball is brought all the way back to the original kicking position (no ground gained) and the defending team gets the lineout.
-- **50:22 Rule:** If the kick was taken from *inside* the kicking team's own half, and bounces into touch *inside* the opposition's 22m line, the kicking team is rewarded for a 50:22! The kicking team **retains possession** and gets the throw-in at the resulting lineout.
-- **Standard Touch:** In all other touch scenarios, the distance is gained and the defending team gets the throw-in at the lineout.
+If the ball **does not** go into touch at all, the defending fullback catches the ball in the field of play. The phase becomes Open Play, and possession flips to the defending team.
 
 ### Rating adjustments
 

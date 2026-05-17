@@ -220,7 +220,7 @@ One attribute does not currently influence in-play resolution:
 
 - **`stamina`** — controls fatigue decay rate via `decayRate * (1 − staminaBase/150)` but never appears in a resolver formula directly
 
-Six attributes (`strength`, `breakdown`, `kicking`, `setPiece`, `positioning` at mild fatigue; all non-listed at <30%) are **not** affected at early fatigue tiers. Full fatigue attribute degradation table:
+Five attributes (`strength`, `breakdown`, `kicking`, `positioning` at mild fatigue; all non-listed at <30%) are **not** affected at early fatigue tiers. Full fatigue attribute degradation table:
 
 | Attribute | <70% fatigue | <50% fatigue | <30% fatigue |
 |---|---|---|---|
@@ -229,8 +229,9 @@ Six attributes (`strength`, `breakdown`, `kicking`, `setPiece`, `positioning` at
 | handling | — | ×0.92 | ×0.80 |
 | discipline | — | ×0.92 | ×0.80 |
 | composure | — | ×0.92 | ×0.80 |
+| setPiece | — | ×0.92 | ×0.82 |
 | tackling | — | — | ×0.85 |
-| strength, breakdown, kicking, setPiece, positioning | unchanged | unchanged | unchanged |
+| strength, breakdown, kicking, positioning | unchanged | unchanged | unchanged |
 
 ### Player rating system
 

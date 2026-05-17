@@ -71,12 +71,13 @@ Higher stamina reduces decay. A player with stamina 90 decays at 40% the rate of
 |---|---|---|
 | < 70% | pace, agility | × 0.95 |
 | < 50% | pace, agility | × 0.87 |
-| < 50% | handling, discipline, composure | × 0.92 |
+| < 50% | handling, discipline, composure, setPiece | × 0.92 |
 | < 30% | pace, agility | × 0.75 |
 | < 30% | handling, discipline, composure | × 0.80 |
 | < 30% | tackling | × 0.85 |
+| < 30% | setPiece | × 0.82 |
 
-**Not affected by fatigue at any threshold:** strength, breakdown, kicking, setPiece, positioning.
+**Not affected by fatigue at any threshold:** strength, breakdown, kicking, positioning.
 
 `baseStats` is never modified. `currentStats` is rebuilt from `baseStats` on every fatigue application.
 
@@ -669,7 +670,7 @@ Notes cover both the upside and the downside of a tactic choice — a player sho
 
 | Gap | Location | Effect |
 |---|---|---|
-| strength, breakdown, kicking, setPiece, positioning not degraded by fatigue | StaminaSystem | These stats remain at full base value for the entire 80 minutes |
+| strength, breakdown, kicking, positioning not degraded by fatigue | StaminaSystem | These stats remain at full base value for the entire 80 minutes |
 | Conversion kick difficulty uses angle only, not distance | ConversionKickEvent | `distFromPosts = Math.abs(ballY - 50) * 0.4` — a try scored from 60m out has the same conversion difficulty as one from 5m, if the angle is equal |
 | Scrum `dominant_penalty` not counted in scrum stats | ScrumEvent | `state.stats.scrums` is only incremented on `stable_win`; a dominant penalty win is not recorded as a scrum won |
 | Tackle `made` stat only incremented on `dominant_tackle` | OpenPlayEvent | `dominant_carry` and `play_on` both result in a tackle but only increment `attempted`, not `made` |

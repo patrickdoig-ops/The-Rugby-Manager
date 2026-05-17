@@ -33,9 +33,9 @@
 }
 
 /* Semantic event colours — border + subtle tint */
-.event-try      { border-left-color: var(--green);  background: rgba(46,204,113,0.05); color: var(--text); }
-.event-penalty  { border-left-color: var(--amber);  background: rgba(255,184,0,0.05);  }
-.event-scrum    { border-left-color: var(--red);    background: rgba(231,76,60,0.04);  }
+.event-try      { border-left-color: var(--amber);  background: rgba(255,184,0,0.05);  color: var(--text); }
+.event-penalty  { border-left-color: var(--red);    background: rgba(231,76,60,0.04);  }
+.event-scrum    { border-left-color: var(--green);  background: rgba(46,204,113,0.05); }
 .event-lineout  { border-left-color: var(--blue);   background: rgba(0,186,255,0.04);  }
 .event-halftime { border-left-color: var(--purple); background: rgba(168,85,247,0.07); font-weight: 600; color: var(--text); }
-.event-fulltime { border-left-color: var(--gold);   background: rgba(255,215,0,0.07);  font-weight: 700; color: var(--text); }
+.event-fulltime { border-left-color: var(--purple); background: rgba(168,85,247,0.07); font-weight: 700; color: var(--text); }

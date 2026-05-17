@@ -238,6 +238,24 @@ export class MatchEngine {
 
       const previousPhase = this.state.phase;
 
+      if (this.state.phase === MatchPhase.KickOff) {
+        const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
+        const kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
+        const announceEvent: GameEvent = {
+          id: makeId(),
+          gameMinute: this.state.gameMinute,
+          phase: MatchPhase.KickOff,
+          side: this.state.possession,
+          sideName: attackTeam.name,
+          primaryPlayer: kicker,
+          ballX: this.state.ballX,
+          ballY: this.state.ballY,
+          commentary: getCommentary({ ...this.draftEvent(MatchPhase.KickOff), primaryPlayer: kicker }, 'announce'),
+        };
+        this.state.events.push(announceEvent);
+        eventBus.emit('engine:event', { event: announceEvent });
+      }
+
       if (this.state.phase === MatchPhase.BoxKick) {
         const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
         const scrumHalf = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];

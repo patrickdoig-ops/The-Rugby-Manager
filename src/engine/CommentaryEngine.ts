@@ -5,6 +5,12 @@ type Templates = Record<string, string[]>;
 
 const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates } = {
   [MatchPhase.KickOff]: {
+    announce: [
+      '{primary} steps up to kick off. The referee blows his whistle — here we go!',
+      '{side} restart from the halfway line. {primary} prepares to kick.',
+      '{primary} sets the ball on the tee. {side} about to kick off.',
+      'Play resumes — {primary} will kick off for {side}.',
+    ],
     coin_toss: [
       '{side} win the coin toss and will kick off!',
       'The referee flips the coin — {side} take the toss and elect to kick!',

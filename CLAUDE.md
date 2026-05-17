@@ -67,6 +67,7 @@ The penalty interactive pause is a `Promise` that resolves only when `resolvePla
 
 ```
 KickOff → OpenPlay → Breakdown → OpenPlay (loop)
+                               → BoxKick (slow ball outside opp 22) → OpenPlay / Scrum
                    → TacticalKick (15% chance) → OpenPlay / Lineout / Scrum
                    → Scrum / Lineout → OpenPlay
                    → TryScored → ConversionKick → KickOff
@@ -97,6 +98,7 @@ Resolver formulas at a glance:
 | **Breakdown** | `ARS = avgBreakdown×0.6 + avgStrength×0.4 + rng(1,20)` vs `DTS = jackalBreakdown×0.7 + jackalStrength×0.3 + rng(1,20)` | margin ≥ 10 clean_ball; ≥ 1 slow_ball; ≥ -14 turnover; else penalty_defending |
 | **Scrum** | `avg(setPiece×0.6 + strength×0.4) + rng` for each front 5 | attack margin > 0 stable_win; > -15 wheel; else dominant_penalty |
 | **Lineout** | `throwScore = hookerSetPiece + rng` < 40 → auto steal; then `(setPiece×0.5 + agility×0.5) + rng` each jumper | margin ≥ 5 clean_catch; ≥ 0 scrappy_knock_on; else steal |
+| **BoxKick** | `kickScore = kicking + rng(1,20)` ≥ 75 → contested (wingerScore vs fullbackScore); else uncontested catch gate | contested: margin ≥ 10 attack_retain; ≥ 0 defend_knock_on; else defend_catch_contested. Uncontested: catchScore ≥ 35 defend_catch; else knock_on |
 | **TacticalKick** | `kickScore = kicking + rng` < 25 → poor_kick; `catchScore = (handling+positioning)/2 + rng` < 30 → knock_on_catch | else good_kick; 60% chance goes to touch → Lineout |
 | **GoalKick** | `kicking + composure×0.2 − anglePenalty + rng(1,20)` | ≥ 65 = success |
 
@@ -107,6 +109,7 @@ Resolver formulas at a glance:
 | KickOff | id=10 (fly-half) as kicker; random as chaser | random receiver |
 | OpenPlay | `randomPlayer(attackTeam)` | `randomPlayer(defendTeam)` |
 | Breakdown | 3 forwards sampled at random without replacement from `players.filter(p.id <= 8)` | 1 back-row player sampled at random from `players.filter(p.id >= 6 && p.id <= 8)` |
+| BoxKick | id=9 (scrum half) as kicker; random from id=11\|14 (wingers) as chaser | id=15 (fullback) |
 | Scrum | `players.filter(p => p.id <= 5)` (front 5) | same filter on defend team |
 | Lineout | hooker=id 2; jumper=`find(id===4\|5\|6)` → always id 4 | `find(id===4\|5\|6)` → always id 4 |
 | TacticalKick | id=10 or id=9 (fly-half/scrum-half) | id=15 (fullback) |
@@ -118,6 +121,7 @@ Resolver formulas at a glance:
 - **Number of forwards deployed** should be driven by the attacking team's tactical setting (e.g. a "pick-and-drive" tactic deploys more forwards; a "wide game" tactic fewer). Currently hard-coded to 3.
 - **Ball carrier exclusion:** if the open-play ball carrier was a forward (id ≤ 8) they should be excluded from the forward pool when selecting breakdown supporters — a player cannot carry the ball into contact and also arrive as a support runner. The carrier is not currently threaded from `OpenPlay` into `Breakdown`, so this requires tracking the carrier on `MatchState` or passing it through the phase transition first.
 - **Defensive breakdown tactics:** the number of defensive forwards deployed to a breakdown should depend on the defending team's tactical setting. The defending team should also choose between two strategies: **jackal** (attempt a turnover steal, current behaviour) and **counter ruck** (use collective forward power to drive the attackers off the ball). Currently only the jackal is modelled.
+- **Box kick propensity:** the decision to box kick from slow ball, and the propensity to do so in different pitch locations, should be driven by the attacking team's tactical setting. A "kicking game" tactic should increase propensity; a "possession game" tactic should reduce or eliminate it. Kicking from very deep in your own 22 is unusual even for kicking-oriented teams, so pitch zone should also gate the trigger. Currently the box kick always triggers on slow ball outside the opposition 22.
 
 ### Player attributes — known gaps
 

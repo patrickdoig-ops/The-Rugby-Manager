@@ -346,6 +346,84 @@ None.
 
 ---
 
+## Box Kick
+
+Triggered from a `slow_ball` Breakdown result when the ball is more than 22 metres from the defending team's try line (i.e. `!inOpposition22()`). Not used when already inside the opposition 22, where other options are preferred.
+
+### Player selection
+
+```typescript
+scrumHalf  = attackTeam.players.find(p => p.id === 9)
+wingerPool = attackTeam.players.filter(p => p.id === 11 || p.id === 14)   // left and right wings
+winger     = wingerPool[rng(0, wingerPool.length - 1)]   // random winger
+fullback   = defendTeam.players.find(p => p.id === 15)
+```
+
+The scrum half always takes the kick. One attacking winger is selected at random to contest the aerial ball. The defending fullback always receives.
+
+**Future development:** the decision to box kick from slow ball — and the propensity to do so in different pitch locations — should be driven by the attacking team's tactical setting. A "kicking game" tactic should increase propensity; a "possession game" tactic should reduce or eliminate it. Kicking from very deep in your own 22 is unusual even for kicking-oriented teams, so pitch zone should also gate the trigger.
+
+### Resolution
+
+**Step 1 — Kick quality gate**
+
+```
+kickScore = scrumHalf.kicking + rng(1, 20)
+```
+
+| Threshold | Quality |
+|---|---|
+| kickScore ≥ 75 | very_good → contested catch |
+| kickScore < 75 | poor → uncontested catch |
+
+**Step 2a — Very good kick: contested catch** (ball moves 15m up the pitch)
+
+```
+wingerScore   = (winger.handling + winger.pace) / 2 + rng(1, 20)
+fullbackScore = (fullback.handling + fullback.positioning) / 2 + rng(1, 20)
+contestMargin = wingerScore − fullbackScore
+```
+
+| Margin | Outcome | Next Phase |
+|---|---|---|
+| ≥ 10 | `attack_retain` — attacker wins contest clearly | OpenPlay (possession kept) |
+| 0–9 | `defend_knock_on` — defender fumbles under pressure | Scrum (attacking put-in) |
+| < 0 | `defend_catch_contested` — fullback claims cleanly | OpenPlay (possession flips) |
+
+**Step 2b — Poor kick: uncontested catch** (ball moves 8m up the pitch)
+
+```
+catchScore = (fullback.handling + fullback.positioning) / 2 + rng(1, 20)
+```
+
+| Threshold | Outcome | Next Phase |
+|---|---|---|
+| catchScore ≥ 35 | `defend_catch` — fullback collects | OpenPlay (possession flips) |
+| catchScore < 35 | `knock_on` — fullback drops | Scrum (attacking put-in) |
+
+### Ball movement
+
+- Very good kick: `ballX += attackDir() × 15`
+- Poor kick: `ballX += attackDir() × 8`
+
+### Rating adjustments
+
+| Outcome | Player | Delta |
+|---|---|---|
+| attack_retain | scrum half | +0.10 |
+| attack_retain | winger | +0.20 |
+| attack_retain | fullback | −0.10 |
+| defend_knock_on | scrum half | +0.05 |
+| defend_knock_on | winger | +0.10 |
+| defend_knock_on | fullback | −0.15 |
+| defend_catch_contested | fullback | +0.20 |
+| defend_catch_contested | winger | −0.10 |
+| defend_catch | fullback | +0.10 |
+| knock_on | scrum half | −0.10 |
+| knock_on | fullback | −0.15 |
+
+---
+
 ## Tactical Kick
 
 Triggered either by a direct phase transition or by the 15% random chance at the end of any OpenPlay resolution.

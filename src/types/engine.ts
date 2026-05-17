@@ -5,6 +5,7 @@ export enum MatchPhase {
   Scrum          = 'SCRUM',
   Lineout        = 'LINEOUT',
   TacticalKick   = 'TACTICAL_KICK',
+  BoxKick        = 'BOX_KICK',
   Penalty        = 'PENALTY',
   ConversionKick = 'CONVERSION_KICK',
   TryScored      = 'TRY_SCORED',

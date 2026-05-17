@@ -10,6 +10,7 @@ import { resolveLineout } from './resolvers/LineoutResolver';
 import { resolveKickOff } from './resolvers/KickOffResolver';
 import { resolveOpenPlay } from './resolvers/OpenPlayResolver';
 import { resolveTacticalKick, resolveGoalKick } from './resolvers/KickingResolver';
+import { resolveBoxKick } from './resolvers/BoxKickResolver';
 import { getCommentary } from './CommentaryEngine';
 import { eventBus } from '../utils/eventBus';
 import { rng } from '../utils/rng';
@@ -297,8 +298,12 @@ export class MatchEngine {
         const res = resolveBreakdown(supporters, jackal);
 
         if (res.result === 'clean_ball' || res.result === 'slow_ball') {
-          if (res.result === 'clean_ball') this.adjustRating(primaryPlayer, +0.1);
-          nextPhase = MatchPhase.OpenPlay;
+          if (res.result === 'clean_ball') {
+            this.adjustRating(primaryPlayer, +0.1);
+            nextPhase = MatchPhase.OpenPlay;
+          } else {
+            nextPhase = !this.inOpposition22() ? MatchPhase.BoxKick : MatchPhase.OpenPlay;
+          }
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.Breakdown), primaryPlayer, secondaryPlayer }, res.result);
         } else if (res.result === 'turnover') {
           this.adjustRating(jackal, +0.3);
@@ -401,6 +406,53 @@ export class MatchEngine {
             nextPhase = MatchPhase.OpenPlay;
           }
           commentary = getCommentary({ ...this.draftEvent(MatchPhase.TacticalKick), primaryPlayer, secondaryPlayer }, 'good_kick');
+        }
+        break;
+      }
+
+      case MatchPhase.BoxKick: {
+        const scrumHalf  = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
+        const wingerPool = attackTeam.players.filter(p => p.id === 11 || p.id === 14);
+        const winger     = wingerPool.length > 0 ? wingerPool[rng(0, wingerPool.length - 1)] : randomPlayer(attackTeam);
+        const fullback   = defendTeam.players.find(p => p.id === 15) ?? randomPlayer(defendTeam);
+        primaryPlayer   = scrumHalf;
+        secondaryPlayer = winger;
+        const res = resolveBoxKick(scrumHalf, winger, fullback);
+
+        const kickDist = res.quality === 'very_good' ? 15 : 8;
+        state.ballX = clamp(state.ballX + this.attackDir() * kickDist, 5, 95);
+
+        if (res.outcome === 'attack_retain') {
+          this.adjustRating(scrumHalf, +0.1);
+          this.adjustRating(winger, +0.2);
+          this.adjustRating(fullback, -0.1);
+          nextPhase = MatchPhase.OpenPlay;
+          commentary = getCommentary({ ...this.draftEvent(MatchPhase.BoxKick), primaryPlayer, secondaryPlayer }, 'attack_retain');
+        } else if (res.outcome === 'defend_knock_on') {
+          this.adjustRating(scrumHalf, +0.05);
+          this.adjustRating(winger, +0.1);
+          this.adjustRating(fullback, -0.15);
+          state.stats.handlingErrors[state.possession === 'home' ? 'away' : 'home']++;
+          nextPhase = MatchPhase.Scrum;
+          commentary = getCommentary({ ...this.draftEvent(MatchPhase.BoxKick), primaryPlayer, secondaryPlayer }, 'defend_knock_on');
+        } else if (res.outcome === 'defend_catch_contested') {
+          this.adjustRating(fullback, +0.2);
+          this.adjustRating(winger, -0.1);
+          state.possession = state.possession === 'home' ? 'away' : 'home';
+          nextPhase = MatchPhase.OpenPlay;
+          commentary = getCommentary({ ...this.draftEvent(MatchPhase.BoxKick), primaryPlayer, secondaryPlayer }, 'defend_catch_contested');
+        } else if (res.outcome === 'defend_catch') {
+          this.adjustRating(fullback, +0.1);
+          state.possession = state.possession === 'home' ? 'away' : 'home';
+          nextPhase = MatchPhase.OpenPlay;
+          commentary = getCommentary({ ...this.draftEvent(MatchPhase.BoxKick), primaryPlayer, secondaryPlayer }, 'defend_catch');
+        } else {
+          // knock_on — poor kick, fullback drops uncontested
+          this.adjustRating(scrumHalf, -0.1);
+          this.adjustRating(fullback, -0.15);
+          state.stats.handlingErrors[state.possession === 'home' ? 'away' : 'home']++;
+          nextPhase = MatchPhase.Scrum;
+          commentary = getCommentary({ ...this.draftEvent(MatchPhase.BoxKick), primaryPlayer, secondaryPlayer }, 'knock_on');
         }
         break;
       }

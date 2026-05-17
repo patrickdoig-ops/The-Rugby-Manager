@@ -102,6 +102,33 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
       'The jumper can\'t hold it — knock-on awarded, scrum to the opposition.',
     ],
   },
+  [MatchPhase.BoxKick]: {
+    attack_retain: [
+      '{secondary} wins the aerial contest! Superb kick from {primary} — possession retained!',
+      '{secondary} outjumps the fullback — {primary}\'s box kick pays off! {side} keep the ball.',
+      'What a chase from {secondary}! The ball is claimed and {side} stay in possession!',
+    ],
+    defend_knock_on: [
+      'The fullback fumbles under pressure from {secondary}! Knock-on — scrum to {side}.',
+      '{secondary} gets right in the fullback\'s face — the ball is spilled! Scrum to {side}.',
+      'Brilliant chasing from {secondary}! The fullback spills it — {side} win a scrum.',
+    ],
+    defend_catch_contested: [
+      'The fullback claims {primary}\'s box kick under real pressure — {side} turn it over.',
+      'Good hands from the fullback despite the chase — {side} collect and clear.',
+      'The fullback takes the contested ball cleanly — {side} win possession.',
+    ],
+    defend_catch: [
+      '{primary}\'s box kick is gathered comfortably by the fullback — possession to {side}.',
+      'The box kick from {primary} lacks depth — the fullback collects easily. {side} in possession.',
+      'Safe hands from the fullback — {primary}\'s box kick turns over.',
+    ],
+    knock_on: [
+      'The fullback spills {primary}\'s box kick! Knock-on — scrum to {side}!',
+      '{primary}\'s kick bounces awkwardly — the fullback can\'t hold on! Scrum ball.',
+      'Disaster for the fullback — {primary}\'s box kick wrong-foots them completely! Scrum to {side}.',
+    ],
+  },
   [MatchPhase.TacticalKick]: {
     good_kick: [
       '{primary} finds the right corner — excellent tactical kick to pin them back.',

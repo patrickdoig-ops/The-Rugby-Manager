@@ -482,9 +482,9 @@ Rating: success → kicker +0.20; miss → kicker −0.15.
 
 ### Choice: kick_to_touch
 
-The ball is moved 10 metres down the pitch towards the opposition try line.
+The ball is moved 20 metres down the pitch towards the opposition try line.
 
-Possession is retained. The lineout is awarded to the kicking team 10 units further up the pitch.
+Possession is retained. The lineout is awarded to the kicking team 20 units further up the pitch.
 
 ### Choice: tap_and_go
 

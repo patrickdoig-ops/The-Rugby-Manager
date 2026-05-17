@@ -385,7 +385,7 @@ export class MatchEngine {
       state.phase = MatchPhase.KickOff;
 
     } else if (choice === 'kick_to_touch') {
-      state.ballX = clamp(state.ballX + this.attackDir() * 10, 5, 95);
+      state.ballX = clamp(state.ballX + this.attackDir() * 20, 5, 95);
       const penEvent: GameEvent = {
         id: makeId(),
         gameMinute: state.gameMinute,

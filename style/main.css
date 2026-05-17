@@ -177,7 +177,7 @@ html, body {
   border: 1px solid var(--border);
   padding: 2px 6px;
   border-radius: 6px;
-  max-width: 80px;
+  max-width: 130px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -320,18 +320,22 @@ html, body {
 
 /* ─── Buttons ─── */
 .ctrl-btn {
-  min-height: 44px;
-  padding: 0 16px;
+  min-height: 38px;
+  min-width: 38px;
+  padding: 0;
   border: 1px solid var(--border-mid);
   background: var(--surface2);
   color: var(--text-sec);
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.1s ease, border-color 0.1s ease;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ctrl-btn:active:not(:disabled) {
@@ -368,7 +372,7 @@ html, body {
 .speed-text { white-space: nowrap; }
 
 #speed-slider {
-  width: 70px;
+  width: 110px;
   cursor: pointer;
   min-width: 0;
   height: 20px;
@@ -505,8 +509,9 @@ html, body {
   }
 
   .ctrl-btn {
-    min-height: unset;
-    padding: 7px 18px;
+    min-height: 38px;
+    min-width: 38px;
+    padding: 0;
   }
 
   .ctrl-btn:hover:not(:disabled) {
@@ -517,7 +522,7 @@ html, body {
     background: rgba(46,204,113,0.08);
   }
 
-  #speed-slider { width: 100px; }
+  #speed-slider { width: 140px; }
 
   /* Modal as centred dialog */
   #modal-overlay { align-items: center; padding-bottom: 0; }

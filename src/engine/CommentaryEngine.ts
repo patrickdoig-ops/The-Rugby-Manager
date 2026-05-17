@@ -76,7 +76,7 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
     turnover: [
       'Turnover! {secondary} wins the jackal and {side} have possession!',
       'Brilliant work at the breakdown from {secondary} — it\'s a steal!',
-      '{secondary} is over the ball brilliantly — referee signals turnover!',
+      '{secondary} is over the ball brilliantly — referee says good turnover!',
     ],
     penalty_defending: [
       'Penalty! The referee spots the infringement at the ruck — {side} awarded.',

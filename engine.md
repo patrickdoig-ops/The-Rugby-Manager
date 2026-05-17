@@ -486,6 +486,8 @@ The ball is moved 20 metres down the pitch towards the opposition try line.
 
 Possession is retained. The lineout is awarded to the kicking team 20 units further up the pitch.
 
+**Future development:** the metres gained from kicking to touch should be variable, driven by the kicker's kicking stat, composure, and pitch location.
+
 ### Choice: tap_and_go
 
 

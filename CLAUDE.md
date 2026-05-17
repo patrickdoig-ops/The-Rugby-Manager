@@ -14,6 +14,29 @@ There are no tests or linters configured. TypeScript strict mode is the primary 
 
 **Deploy:** Push to `main`. GitHub Actions builds and deploys to GitHub Pages automatically. The Vite base path is `/Rugby-Simulator-/` — do not change it or asset URLs break in production.
 
+## Maintaining engine.md
+
+**After any change to engine code, update `engine.md` to match.**
+
+`engine.md` is a plain-English reference for the entire game engine. It must stay in sync with the code. This includes:
+- `src/engine/MatchEngine.ts` — loop, phase resolution, rating deltas, ball movement
+- `src/engine/StaminaSystem.ts` — fatigue decay formula, attribute penalty tiers
+- `src/engine/StateMachine.ts` — allowed phase transitions
+- `src/engine/resolvers/*.ts` — all resolver formulas, thresholds, return types
+- `src/engine/CommentaryEngine.ts` — commentary template keys
+
+When updating `engine.md`, document:
+1. Which players are selected (exact `find`/`filter` conditions from `MatchEngine.resolvePhase()`)
+2. The resolver formula with actual numbers from the resolver file
+3. All outcome thresholds
+4. Ball position changes and possession swaps
+5. Rating adjustments (delta values)
+6. Any known gaps or approximations
+
+Do not paraphrase — if the code changes, the doc must reflect the new code exactly.
+
+---
+
 ## Architecture
 
 ### Engine ↔ UI contract
@@ -36,14 +59,16 @@ Engine emits → UI subscribes:
 
 `MatchEngine.tick()` is a self-rescheduling `async` function using `setTimeout` — **not** `setInterval`. Pausing is simply not scheduling the next tick. Resuming calls `scheduleTick(0)`.
 
+Time advances `0.5 + rng(0,15)/10` game minutes per tick (0.5–2.0 min). Fatigue is applied every ~5 accumulated game minutes via `fatigueAccumulator`.
+
 The penalty interactive pause is a `Promise` that resolves only when `resolvePlayerChoice(choice)` is called from outside. The loop `await`s it mid-tick; `handlePenaltyDecision()` emits `engine:paused` which triggers the modal.
 
 ### Phase flow
 
 ```
 KickOff → OpenPlay → Breakdown → OpenPlay (loop)
+                   → TacticalKick (15% chance) → OpenPlay / Lineout / Scrum
                    → Scrum / Lineout → OpenPlay
-                   → TacticalKick → OpenPlay / Lineout / Scrum
                    → TryScored → ConversionKick → KickOff
                    → Penalty → [modal if in opp 22] → KickOff / Lineout / OpenPlay
 OpenPlay at 40 min → HalfTime → KickOff (second half)
@@ -56,29 +81,88 @@ Any phase at 80 min → FullTime
 
 Home attacks toward x=100 in the first half, toward x=0 in the second half. **Teams only swap ends at half-time, never on turnovers.** All `ballX` mutations must go through `attackDir()`, `isTryScored()`, and `inOpposition22()` in `MatchEngine` — these are the authoritative helpers that factor in `state.halfTimeDone`.
 
+- Try scored: `ballX >= 95` (home attacking right) or `ballX <= 5` (home attacking left)
+- In opposition 22: `ballX >= 78` / `ballX <= 22` depending on half and possession
+
 ### Resolvers
 
 Each resolver in `src/engine/resolvers/` is a pure function (no side effects, no imports from engine). They receive player objects and return a typed result. `MatchEngine.resolvePhase()` calls them and owns all state mutations and rating adjustments.
 
 Resolver formulas at a glance:
-- **Breakdown:** `ARS = avgBreakdown×0.6 + avgStrength×0.4 + rng(1,20)` vs `DTS = jackalBreakdown×0.7 + jackalStrength×0.3 + rng(1,20)`
-- **Scrum:** `packScore = avg(setPiece×0.6 + strength×0.4) + rng`
-- **Lineout:** hooker `setPiece + rng` gates the throw (< 40 = steal); jumpers contest on `(setPiece×0.5 + agility×0.5) + rng`
-- **OpenPlay:** three-step chain — handling gate (< 30 = knock-on) → evasion vs defence → collision
-- **GoalKick:** `kicking + composure×0.2 − anglePenalty + rng ≥ 65` = success
+
+| Phase | Key formula | Outcome thresholds |
+|---|---|---|
+| **KickOff** | `kickScore = kicking + rng(1,20)` < 35 → knock_on; then `catchScore - chaseScore` | > 10 clean_receive; > -5 contested; else knock_on |
+| **OpenPlay** | 3-step: handling gate → evasion → collision | handling < 30 = knock_on; evasion margin ≥ 15 = line_break; collision ±5 = dominant |
+| **Breakdown** | `ARS = avgBreakdown×0.6 + avgStrength×0.4 + rng(1,20)` vs `DTS = jackalBreakdown×0.7 + jackalStrength×0.3 + rng(1,20)` | margin ≥ 10 clean_ball; ≥ 1 slow_ball; ≥ -14 turnover; else penalty_defending |
+| **Scrum** | `avg(setPiece×0.6 + strength×0.4) + rng` for each front 5 | attack margin > 0 stable_win; > -15 wheel; else dominant_penalty |
+| **Lineout** | `throwScore = hookerSetPiece + rng` < 40 → auto steal; then `(setPiece×0.5 + agility×0.5) + rng` each jumper | margin ≥ 5 clean_catch; ≥ 0 scrappy_knock_on; else steal |
+| **TacticalKick** | `kickScore = kicking + rng` < 25 → poor_kick; `catchScore = (handling+positioning)/2 + rng` < 30 → knock_on_catch | else good_kick; 60% chance goes to touch → Lineout |
+| **GoalKick** | `kicking + composure×0.2 − anglePenalty + rng(1,20)` | ≥ 65 = success |
+
+### Player selection per phase
+
+| Phase | Attacker | Defender |
+|---|---|---|
+| KickOff | id=10 (fly-half) as kicker; random as chaser | random receiver |
+| OpenPlay | `randomPlayer(attackTeam)` | `randomPlayer(defendTeam)` |
+| Breakdown | `attackTeam.players.slice(0,3)` (ids 1–3, front row) | id=7 (openside flanker) |
+| Scrum | `players.filter(p => p.id <= 5)` (front 5) | same filter on defend team |
+| Lineout | hooker=id 2; jumper=`find(id===4\|5\|6)` → always id 4 | `find(id===4\|5\|6)` → always id 4 |
+| TacticalKick | id=10 or id=9 (fly-half/scrum-half) | id=15 (fullback) |
+| ConversionKick | id=10 (fly-half) | — |
+| TryScored | `randomPlayer(attackTeam)` — not the actual carrier | — |
 
 ### Player attributes — known gaps
 
 Two attributes do not currently influence in-play resolution:
 
-- **`discipline`** — degrades with fatigue but is never read by any resolver. It does not affect penalty rates.
-- **`stamina`** — only controls fatigue decay rate, never appears in a resolver formula directly.
+- **`discipline`** — degraded by fatigue (<50%: −8%, <30%: −20%) but never read by any resolver
+- **`stamina`** — controls fatigue decay rate via `decayRate * (1 − staminaBase/150)` but never appears in a resolver formula directly
 
-Six attributes (`strength`, `breakdown`, `kicking`, `setPiece`, `positioning`, `tackling` at mild fatigue) are **not** reduced by the fatigue system — they stay at base value regardless of match duration.
+Six attributes (`strength`, `breakdown`, `kicking`, `setPiece`, `positioning` at mild fatigue; all non-listed at <30%) are **not** affected at early fatigue tiers. Full fatigue attribute degradation table:
+
+| Attribute | <70% fatigue | <50% fatigue | <30% fatigue |
+|---|---|---|---|
+| pace | ×0.95 | ×0.87 | ×0.75 |
+| agility | ×0.95 | ×0.87 | ×0.75 |
+| handling | — | ×0.92 | ×0.80 |
+| discipline | — | ×0.92 | ×0.80 |
+| composure | — | ×0.92 | ×0.80 |
+| tackling | — | — | ×0.85 |
+| strength, breakdown, kicking, setPiece, positioning | unchanged | unchanged | unchanged |
 
 ### Player rating system
 
-Players start each match at `rating: 6.0` (out of 10). `MatchEngine.adjustRating(player, delta)` clamps to [1, 10]. Deltas fire inside `resolvePhase()` and `applyPenaltyChoice()` at every meaningful outcome (try: +0.5, turnover jackal: +0.3, knock-on: −0.3, etc.).
+Players start each match at `rating: 6.0` (out of 10). `MatchEngine.adjustRating(player, delta)` clamps to [1, 10]. Deltas:
+
+| Event | Player | Delta |
+|---|---|---|
+| Try scored | scorer | +0.5 |
+| Lineout steal | defender jumper | +0.3 |
+| Breakdown turnover | jackal | +0.3 |
+| Goal kick success (penalty) | kicker | +0.2 |
+| Dominant tackle | defender | +0.2 |
+| Scrum dominant_penalty | defending hooker | +0.15 |
+| Lineout clean_catch | attack jumper | +0.15 |
+| Goal kick success (conversion) | kicker | +0.15 |
+| Dominant carry | carrier | +0.15 |
+| Line break | carrier | +0.25 |
+| Scrum stable_win | hooker | +0.1 |
+| Breakdown clean_ball | primary supporter | +0.1 |
+| Tactical kick success | kicker | +0.1 |
+| Knock-on (open play) | carrier | −0.3 |
+| Lineout steal conceded | attack jumper | −0.2 |
+| Tactical kick catch drop | defender | −0.2 |
+| Scrum dominant_penalty conceded | attack hooker | −0.2 |
+| Breakdown penalty conceded | primary supporter | −0.25 |
+| Kick-off knock-on | receiver | −0.25 |
+| Goal kick miss (penalty) | kicker | −0.15 |
+| Tactical kick poor | kicker | −0.15 |
+| Lineout scrappy_knock_on | attack jumper | −0.2 |
+| Breakdown turnover conceded | primary supporter | −0.1 |
+| Goal kick miss (conversion) | kicker | −0.1 |
+| Dominant tackle conceded | carrier | −0.05 |
 
 ### UI module responsibilities
 

@@ -111,24 +111,26 @@
 
 .tactics-resume-btn {
   padding: 12px 32px;
-  background: var(--green);
-  color: #000000;
-  border: none;
-  border-radius: 8px;
+  background: #007a2a;
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
   font-family: var(--font-sans);
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.05em;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: background 0.12s ease;
-  box-shadow: 0 0 16px rgba(46, 204, 113, 0.25);
+  transition: background 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 24px rgba(0,122,42,0.45), inset 0 1px 0 rgba(255,255,255,0.10);
 }
 
 .tactics-resume-btn:hover {
   background: #009434;
-  color: #ffffff;
+  box-shadow: 0 6px 32px rgba(0,148,52,0.60);
 }
 
 .tactics-resume-btn:active {
-  transform: translateY(1px);
+  background: #006622;
+  box-shadow: none;
 }

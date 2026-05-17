@@ -111,7 +111,7 @@ Engine emits → UI subscribes:
 
 `MatchEngine.tick()` is a self-rescheduling `async` function using `setTimeout` — **not** `setInterval`. Pausing is simply not scheduling the next tick. Resuming calls `scheduleTick(0)`.
 
-Time advances `0.5 + rng(0,15)/10` game minutes per tick (0.5–2.0 min). Fatigue is applied every ~5 accumulated game minutes via `fatigueAccumulator`.
+Time advances `(0.5 + rng(0,15)/10) * 0.5` game minutes per tick (0.25–1.0 min). Fatigue is applied every ~5 accumulated game minutes via `fatigueAccumulator`.
 
 The penalty interactive pause is a `Promise` that resolves when the `onChoice(choice)` callback is called from the UI payload. The loop `await`s it mid-tick; `handlePenaltyDecision()` emits `engine:paused` which triggers the modal.
 

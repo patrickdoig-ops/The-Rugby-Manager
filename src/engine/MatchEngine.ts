@@ -160,7 +160,7 @@ export class MatchEngine {
 
   private adjustRating(player: Player | undefined, delta: number): void {
     if (!player) return;
-    player.rating = clamp(player.rating + delta, 1, 10);
+    player.rating = clamp(player.rating + delta * 1.5, 1, 10);
   }
 
   // Home attacks toward x=100 in the first half, toward x=0 in the second.
@@ -219,7 +219,7 @@ export class MatchEngine {
     if (!this.state.isRunning) return;
 
     try {
-      const timeAdvance = 0.5 + rng(0, 15) / 10;
+      const timeAdvance = (0.5 + rng(0, 15) / 10) * 0.5;
       this.state.gameMinute = Math.min(80, this.state.gameMinute + timeAdvance);
 
       this.fatigueAccumulator += timeAdvance;

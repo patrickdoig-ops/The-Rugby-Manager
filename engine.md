@@ -9,7 +9,7 @@ Documents the complete game engine: the simulation loop, every match phase, all 
 `MatchEngine.tick()` is a self-rescheduling `async` function using `setTimeout`. It is not `setInterval` — pausing is simply not scheduling the next tick.
 
 Each tick:
-1. Advances game time by `0.5 + rng(0, 15) / 10` minutes (0.5–2.0 per tick)
+1. Advances game time by `(0.5 + rng(0, 15) / 10) * 0.5` minutes (0.25–1.0 per tick)
 2. Accumulates elapsed time; calls `applyFatigue()` on both teams once the accumulator reaches 5 game minutes
 3. Increments possession and territory counters
 4. Calls `resolvePhase()` to produce a `GameEvent`
@@ -49,7 +49,7 @@ FullTime     → (terminal)
 
 ### Player ratings
 
-All players start at `rating: 6.0`. `adjustRating(player, delta)` clamps to [1, 10]. Rating deltas are applied inside `resolvePhase()` and `applyPenaltyChoice()` at meaningful outcomes. Ratings are displayed in the Player Stats panel and update once per game minute.
+All players start at `rating: 6.0`. `adjustRating(player, delta)` multiplies the delta by **1.5** before applying it, then clamps to [1, 10]. The raw delta values documented in each phase section are the pre-multiplier figures; the actual change applied is `delta × 1.5`. Ratings are displayed in the Player Stats panel and update once per game minute.
 
 ---
 
@@ -59,9 +59,11 @@ Called via `applyFatigue(team, elapsedMinutes)` approximately every 5 game minut
 
 ### Decay
 
-Every cycle, a base decay rate between 0.5 and 1.5 is randomly determined. This base rate is then reduced depending on the player's stamina—higher stamina means a slower fatigue drain. For example, a player with a stamina rating of 90 will only suffer 40% of the base decay compared to a player with a stamina rating of 0. The player's overall fatigue percentage is then lowered by this final calculated amount.
+Every cycle, a base decay rate between 0.5 and 1.5 is randomly determined, then doubled. This rate is then reduced depending on the player's stamina — higher stamina means a slower fatigue drain. A player with a stamina rating of 90 will only suffer 40% of the base decay compared to a player with a stamina rating of 0.
 
-Higher stamina reduces decay. A player with stamina 90 decays at 40% the rate of one with stamina 0.
+`actualDecay = decayRate × 2 × (1 − stamina / 150)`
+
+Higher stamina reduces decay. A player with stamina 90 decays at 40% the rate of one with stamina 0. The ×2 multiplier means players reach meaningful fatigue thresholds (70%, 50%, 30%) well within a normal match.
 
 ### Attribute penalties (applied to `currentStats` from `baseStats`)
 

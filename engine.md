@@ -84,6 +84,21 @@ Higher stamina reduces decay. A player with stamina 90 decays at 40% the rate of
 
 ---
 
+## Coin Toss
+
+Resolved inside `MatchEngine.initialize()` before the first tick.
+
+```
+winner = rng(0, 1) === 0 ? 'home' : 'away'
+state.possession = winner
+```
+
+A 50/50 coin flip. The winning team kicks off in the first half. At half-time, `triggerHalfTime()` flips possession as normal — the losing-toss team therefore kicks off the second half automatically, with no additional logic needed.
+
+A `GameEvent` with phase `KickOff` and key `coin_toss` is emitted immediately so the result appears in the commentary feed before the first tick runs.
+
+---
+
 ## Kick-Off
 
 ### Player selection
@@ -94,40 +109,46 @@ receiver = randomPlayer(defendTeam)   // any of 15
 chaser   = randomPlayer(attackTeam)   // any of 15
 ```
 
-The fly-half always kicks. Receiver and chaser are drawn at random from the full squad.
+The fly-half (id 10) of the kicking team always takes the kick. Receiver and chaser are drawn at random from the full squads.
 
-### Step 1 — Kick quality gate
+### Step 1 — Kick quality and distance
 
 ```
 kickScore = kicker.kicking + rng(1, 20)
-kickScore < 35 → knock_on
+goodKick  = kickScore ≥ 35
+distance  = goodKick ? rng(25, 40) : rng(10, 20)   // metres
+catchMod  = goodKick ? 0 : +15
 ```
 
-Pass/fail. If the kick fails, the phase ends immediately — no catch contest. Possession flips, scrum awarded. Note: despite being the kicker's fault, the `receiver` receives the −0.25 rating penalty (known gap — see below).
+A good kick travels 25–40 metres and is harder to catch. A poor kick travels only 10–20 metres but is easier to catch (receiver gets a +15 bonus on catchScore). Ball position is immediately updated:
+
+```
+state.ballX = clamp(50 + attackDir() × distance, 5, 95)
+```
+
+The scrum (on a knock-on) is therefore placed at the landing position, not at halfway.
 
 ### Step 2 — Catch vs chase contest
 
 ```
-catchScore  = (receiver.handling + receiver.composure) / 2 + rng(1, 20)
+catchScore  = (receiver.handling + receiver.composure) / 2 + rng(1, 20) + catchMod
 chaseScore  = (chaser.pace + chaser.agility) / 2 + rng(1, 20)
 margin      = catchScore − chaseScore
 ```
 
-| Margin | Result |
-|---|---|
-| > 10 | `clean_receive` → OpenPlay |
-| > −5 | `contested` → OpenPlay |
-| ≤ −5 | `knock_on` → Scrum (possession flips) |
+| Margin | Result | Possession |
+|---|---|---|
+| > 10 | `clean_receive` → OpenPlay | Flips to receiving team |
+| > −5 | `contested` → OpenPlay | No change (kicking team plays on) |
+| ≤ −5 | `knock_on` → Scrum | No change (kicking team wins scrum put-in) |
+
+**Future development:** kick-off strategy (high ball, short kick, grubber) should be selectable as part of team tactics.
 
 ### Rating adjustments
 
 | Outcome | Player | Delta |
 |---|---|---|
-| knock_on (either cause) | receiver | −0.25 |
-
-### Known gap
-
-When the kick fails the quality gate (`kickScore < 35`), the kicker is at fault but the **receiver** takes the rating penalty. This is because `primaryPlayer` is set to `receiver` before the quality check result is known, and the same rating path is used for both failure types.
+| knock_on | receiver | −0.25 |
 
 ---
 
@@ -437,7 +458,7 @@ catchScore = (fullback.handling + fullback.positioning) / 2 + rng(1, 20)
 
 ## Tactical Kick
 
-Triggered either by a direct phase transition or by the 15% random chance at the end of any OpenPlay resolution.
+Triggered by the 15% kick-or-carry check at the start of `OpenPlay` (Step 0, before any player is selected for a carry).
 
 ### Player selection
 
@@ -645,7 +666,6 @@ Forces phase to `FullTime`. Emits `engine:event`, `engine:stateChange`, and `eng
 | Gap | Location | Effect |
 |---|---|---|
 | `discipline` not read by any resolver | StaminaSystem only | Penalty rate is identical for all players regardless of discipline stat |
-| Knock-on from poor kick-off penalises receiver, not kicker | `MatchEngine` KickOff case | Kicker fault misattributed in ratings |
 | Ball carrier not excluded from breakdown support pool | `MatchEngine` Breakdown case | A forward who carried the ball into contact can be randomly re-selected as a support runner on the same breakdown |
 | `pickPlayer(team, 4, 5, 6)` always returns id 4 | `MatchEngine` Lineout case | Right Lock and Blindside Flanker never jump at lineout |
 | Try scorer is `randomPlayer()` | `MatchEngine` TryScored case | Props are as likely to be credited as wings; the carrier who made the line break is not linked to the try |

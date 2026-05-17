@@ -103,6 +103,17 @@ export class MatchEngine {
   }
 
   initialize(): void {
+    // Coin toss — 50/50; winner kicks off in the first half, loser in the second.
+    // Half-time already flips possession, so just set the first-half kicker here.
+    this.state.possession = rng(0, 1) === 0 ? 'home' : 'away';
+    const draft = this.draftEvent(MatchPhase.KickOff);
+    const tossEvent: GameEvent = {
+      ...draft,
+      id: makeId(),
+      commentary: getCommentary(draft, 'coin_toss'),
+    };
+    this.state.events.push(tossEvent);
+    eventBus.emit('engine:event', { event: tossEvent });
     eventBus.emit('engine:stateChange', { state: this.state });
   }
 

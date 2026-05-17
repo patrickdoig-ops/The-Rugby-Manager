@@ -5,17 +5,25 @@ type Templates = Record<string, string[]>;
 
 const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates } = {
   [MatchPhase.KickOff]: {
+    coin_toss: [
+      '{side} win the coin toss and will kick off!',
+      'The referee flips the coin — {side} take the toss and elect to kick!',
+      'Coin toss goes to {side}. They\'ll start with the kick-off.',
+    ],
     clean_receive: [
       '{primary} takes the kick cleanly and looks to set up the first phase.',
       'The kick-off is gathered neatly by {primary}. Great start for {side}.',
+      'Superb hands from {primary} — {side} are in possession and ready to attack.',
     ],
     knock_on: [
-      'Oh no! {primary} drops the kick-off — a knock-on! Scrum to the kicking team.',
-      'Disaster! The ball is fumbled by {primary}. Scrum awarded at halfway.',
+      '{primary} drops the kick-off — a knock-on! Scrum to the kicking team.',
+      'Disaster for {side}! The ball is fumbled by {primary}. The kicking team wins a scrum.',
+      '{primary} can\'t hold it under pressure — knock-on! Scrum awarded to the kicking side.',
     ],
     contested: [
       'Tremendous contest in the air! {primary} and {secondary} challenge for the ball.',
       'Both sides up for the kick — {primary} manages to secure it under pressure.',
+      'Chaos at the kick-off! {primary} and {secondary} compete fiercely for possession.',
     ],
     poor_kick: [
       'The kick barely travels 10 metres — {primary} re-kicks from the restart zone.',

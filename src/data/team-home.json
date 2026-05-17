@@ -7,23 +7,23 @@
   "players": [
     {
       "id": 1, "name": "Marcus Cole", "position": "Loosehead Prop",
-      "baseStats": { "stamina": 79, "strength": 88, "pace": 47, "agility": 51, "handling": 65, "tackling": 80, "breakdown": 79, "kicking": 33, "setPiece": 91, "discipline": 69, "positioning": 71, "composure": 72 }
+      "baseStats": { "stamina": 69, "strength": 88, "pace": 47, "agility": 51, "handling": 65, "tackling": 80, "breakdown": 79, "kicking": 33, "setPiece": 91, "discipline": 69, "positioning": 71, "composure": 72 }
     },
     {
       "id": 2, "name": "Danny Harker", "position": "Hooker",
-      "baseStats": { "stamina": 86, "strength": 82, "pace": 64, "agility": 62, "handling": 75, "tackling": 84, "breakdown": 82, "kicking": 45, "setPiece": 88, "discipline": 77, "positioning": 79, "composure": 74 }
+      "baseStats": { "stamina": 76, "strength": 82, "pace": 64, "agility": 62, "handling": 75, "tackling": 84, "breakdown": 82, "kicking": 45, "setPiece": 88, "discipline": 77, "positioning": 79, "composure": 74 }
     },
     {
       "id": 3, "name": "Phil Stanton", "position": "Tighthead Prop",
-      "baseStats": { "stamina": 76, "strength": 94, "pace": 42, "agility": 44, "handling": 57, "tackling": 78, "breakdown": 71, "kicking": 29, "setPiece": 93, "discipline": 65, "positioning": 68, "composure": 63 }
+      "baseStats": { "stamina": 66, "strength": 94, "pace": 42, "agility": 44, "handling": 57, "tackling": 78, "breakdown": 71, "kicking": 29, "setPiece": 93, "discipline": 65, "positioning": 68, "composure": 63 }
     },
     {
       "id": 4, "name": "James Elliot", "position": "Left Lock",
-      "baseStats": { "stamina": 84, "strength": 89, "pace": 57, "agility": 53, "handling": 64, "tackling": 78, "breakdown": 74, "kicking": 38, "setPiece": 90, "discipline": 75, "positioning": 76, "composure": 70 }
+      "baseStats": { "stamina": 74, "strength": 89, "pace": 57, "agility": 53, "handling": 64, "tackling": 78, "breakdown": 74, "kicking": 38, "setPiece": 90, "discipline": 75, "positioning": 76, "composure": 70 }
     },
     {
       "id": 5, "name": "Ben Thornton", "position": "Right Lock",
-      "baseStats": { "stamina": 87, "strength": 90, "pace": 63, "agility": 58, "handling": 69, "tackling": 81, "breakdown": 79, "kicking": 41, "setPiece": 86, "discipline": 73, "positioning": 78, "composure": 69 }
+      "baseStats": { "stamina": 77, "strength": 90, "pace": 63, "agility": 58, "handling": 69, "tackling": 81, "breakdown": 79, "kicking": 41, "setPiece": 86, "discipline": 73, "positioning": 78, "composure": 69 }
     },
     {
       "id": 6, "name": "Owen Price", "position": "Blindside Flanker",

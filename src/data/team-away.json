@@ -7,23 +7,23 @@
   "players": [
     {
       "id": 1, "name": "Cian Brady", "position": "Loosehead Prop",
-      "baseStats": { "stamina": 81, "strength": 86, "pace": 49, "agility": 49, "handling": 63, "tackling": 78, "breakdown": 72, "kicking": 35, "setPiece": 88, "discipline": 74, "positioning": 72, "composure": 70 }
+      "baseStats": { "stamina": 71, "strength": 86, "pace": 49, "agility": 49, "handling": 63, "tackling": 78, "breakdown": 72, "kicking": 35, "setPiece": 88, "discipline": 74, "positioning": 72, "composure": 70 }
     },
     {
       "id": 2, "name": "Rory Flynn", "position": "Hooker",
-      "baseStats": { "stamina": 84, "strength": 80, "pace": 61, "agility": 59, "handling": 78, "tackling": 81, "breakdown": 75, "kicking": 47, "setPiece": 90, "discipline": 76, "positioning": 77, "composure": 75 }
+      "baseStats": { "stamina": 74, "strength": 80, "pace": 61, "agility": 59, "handling": 78, "tackling": 81, "breakdown": 75, "kicking": 47, "setPiece": 90, "discipline": 76, "positioning": 77, "composure": 75 }
     },
     {
       "id": 3, "name": "Declan Murtagh", "position": "Tighthead Prop",
-      "baseStats": { "stamina": 75, "strength": 95, "pace": 43, "agility": 43, "handling": 55, "tackling": 77, "breakdown": 69, "kicking": 28, "setPiece": 94, "discipline": 63, "positioning": 69, "composure": 62 }
+      "baseStats": { "stamina": 65, "strength": 95, "pace": 43, "agility": 43, "handling": 55, "tackling": 77, "breakdown": 69, "kicking": 28, "setPiece": 94, "discipline": 63, "positioning": 69, "composure": 62 }
     },
     {
       "id": 4, "name": "Conor Doyle", "position": "Left Lock",
-      "baseStats": { "stamina": 87, "strength": 87, "pace": 65, "agility": 60, "handling": 68, "tackling": 81, "breakdown": 78, "kicking": 43, "setPiece": 89, "discipline": 78, "positioning": 81, "composure": 73 }
+      "baseStats": { "stamina": 77, "strength": 87, "pace": 65, "agility": 60, "handling": 68, "tackling": 81, "breakdown": 78, "kicking": 43, "setPiece": 89, "discipline": 78, "positioning": 81, "composure": 73 }
     },
     {
       "id": 5, "name": "Shane Nolan", "position": "Right Lock",
-      "baseStats": { "stamina": 85, "strength": 91, "pace": 60, "agility": 55, "handling": 65, "tackling": 80, "breakdown": 77, "kicking": 40, "setPiece": 87, "discipline": 74, "positioning": 77, "composure": 69 }
+      "baseStats": { "stamina": 75, "strength": 91, "pace": 60, "agility": 55, "handling": 65, "tackling": 80, "breakdown": 77, "kicking": 40, "setPiece": 87, "discipline": 74, "positioning": 77, "composure": 69 }
     },
     {
       "id": 6, "name": "Aaron Kelly", "position": "Blindside Flanker",

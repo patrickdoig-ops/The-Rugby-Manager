@@ -74,6 +74,7 @@ export function handleOpenPlay({ state, attackTeam, defendTeam, attackDir, isTry
   } else {
     if (res.outcome === 'dominant_carry') adjustRating(carrier, +0.15);
     state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
+    state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].made++;
     state.ballX = clamp(state.ballX + attackDir() * res.gainMetres, 0, 100);
     nextPhase = MatchPhase.Breakdown;
     commentary = getCommentary({ ...draftEvent(MatchPhase.OpenPlay), primaryPlayer: carrier, secondaryPlayer: defender }, res.outcome);

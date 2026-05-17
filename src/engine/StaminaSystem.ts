@@ -21,21 +21,25 @@ export function applyFatigue(team: Team, elapsedMinutes: number): void {
       stats.agility = Math.round(base.agility * 0.95);
     }
     if (f < 50) {
-      stats.pace      = Math.round(base.pace    * 0.87);
-      stats.agility   = Math.round(base.agility * 0.87);
+      stats.pace      = Math.round(base.pace      * 0.87);
+      stats.agility   = Math.round(base.agility   * 0.87);
       stats.handling  = Math.round(base.handling  * 0.92);
       stats.discipline= Math.round(base.discipline* 0.92);
       stats.composure = Math.round(base.composure * 0.92);
       stats.setPiece  = Math.round(base.setPiece  * 0.92);
+      stats.strength  = Math.round(base.strength  * 0.95);
+      stats.breakdown = Math.round(base.breakdown * 0.92);
     }
     if (f < 30) {
-      stats.pace      = Math.round(base.pace    * 0.75);
-      stats.agility   = Math.round(base.agility * 0.75);
+      stats.pace      = Math.round(base.pace      * 0.75);
+      stats.agility   = Math.round(base.agility   * 0.75);
       stats.handling  = Math.round(base.handling  * 0.80);
       stats.discipline= Math.round(base.discipline* 0.80);
       stats.composure = Math.round(base.composure * 0.80);
       stats.tackling  = Math.round(base.tackling  * 0.85);
       stats.setPiece  = Math.round(base.setPiece  * 0.82);
+      stats.strength  = Math.round(base.strength  * 0.88);
+      stats.breakdown = Math.round(base.breakdown * 0.82);
     }
 
     const clampAll = (s: PlayerStats): PlayerStats =>

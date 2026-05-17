@@ -22,6 +22,7 @@ export interface GameEvent {
   gameMinute: number;
   phase: MatchPhase;
   side: PossessionSide;
+  sideName: string;
   primaryPlayer?: Player;
   secondaryPlayer?: Player;
   ballX: number;

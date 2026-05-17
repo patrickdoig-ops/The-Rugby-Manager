@@ -215,7 +215,7 @@ function interpolate(template: string, event: GameEvent): string {
   return template
     .replace(/{primary}/g,   event.primaryPlayer?.name   ?? 'the player')
     .replace(/{secondary}/g, event.secondaryPlayer?.name ?? 'the defender')
-    .replace(/{side}/g,      event.side === 'home' ? 'the home side' : 'the away side');
+    .replace(/{side}/g,      event.sideName);
 }
 
 export function getCommentary(event: GameEvent, key: string): string {

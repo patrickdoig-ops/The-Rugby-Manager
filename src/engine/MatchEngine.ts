@@ -252,6 +252,7 @@ export class MatchEngine {
       gameMinute: state.gameMinute,
       phase: state.phase,
       side: state.possession,
+      sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
       primaryPlayer,
       secondaryPlayer,
       ballX: state.ballX,
@@ -261,11 +262,13 @@ export class MatchEngine {
   }
 
   private draftEvent(phase: MatchPhase): GameEvent {
+    const team = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
     return {
       id: '',
       gameMinute: this.state.gameMinute,
       phase,
       side: this.state.possession,
+      sideName: team.name,
       ballX: this.state.ballX,
       ballY: this.state.ballY,
       commentary: '',
@@ -325,6 +328,7 @@ export class MatchEngine {
         gameMinute: state.gameMinute,
         phase: MatchPhase.Penalty,
         side: state.possession,
+        sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
         primaryPlayer: kicker,
         ballX: state.ballX,
         ballY: state.ballY,
@@ -349,6 +353,7 @@ export class MatchEngine {
         gameMinute: state.gameMinute,
         phase: MatchPhase.Penalty,
         side: state.possession,
+        sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
         ballX: state.ballX,
         ballY: state.ballY,
         commentary: getCommentary(this.draftEvent(MatchPhase.Penalty), 'kick_to_touch'),
@@ -365,6 +370,7 @@ export class MatchEngine {
         gameMinute: state.gameMinute,
         phase: MatchPhase.Penalty,
         side: state.possession,
+        sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
         ballX: state.ballX,
         ballY: state.ballY,
         commentary: getCommentary(this.draftEvent(MatchPhase.Penalty), 'tap_and_go'),
@@ -387,6 +393,7 @@ export class MatchEngine {
       gameMinute: 40,
       phase: MatchPhase.HalfTime,
       side: state.possession,
+      sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
       ballX: 50,
       ballY: 50,
       commentary: 'Half time! The teams head to the dressing rooms to regroup.',
@@ -416,6 +423,7 @@ export class MatchEngine {
       gameMinute: 80,
       phase: MatchPhase.FullTime,
       side: state.possession,
+      sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
       ballX: state.ballX,
       ballY: state.ballY,
       commentary: `Full time! ${state.homeTeam.name} ${state.score.home} – ${state.score.away} ${state.awayTeam.name}`,

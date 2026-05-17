@@ -113,7 +113,7 @@ Engine emits → UI subscribes:
 
 Time advances `0.5 + rng(0,15)/10` game minutes per tick (0.5–2.0 min). Fatigue is applied every ~5 accumulated game minutes via `fatigueAccumulator`.
 
-The penalty interactive pause is a `Promise` that resolves only when `resolvePlayerChoice(choice)` is called from outside. The loop `await`s it mid-tick; `handlePenaltyDecision()` emits `engine:paused` which triggers the modal.
+The penalty interactive pause is a `Promise` that resolves when the `onChoice(choice)` callback is called from the UI payload. The loop `await`s it mid-tick; `handlePenaltyDecision()` emits `engine:paused` which triggers the modal.
 
 ### Phase flow
 
@@ -166,7 +166,7 @@ Resolver formulas at a glance:
 | Lineout | hooker=id 2; jumper=`find(id===4\|5\|6)` → always id 4 | `find(id===4\|5\|6)` → always id 4 |
 | TacticalKick | id=10 or id=9 (fly-half/scrum-half) | id=15 (fullback) |
 | ConversionKick | id=10 (fly-half) | — |
-| TryScored | `randomPlayer(attackTeam)` — not the actual carrier | — |
+| TryScored | last event primaryPlayer (carrier) | — |
 
 ### Open Play — future development notes
 
@@ -175,15 +175,13 @@ Resolver formulas at a glance:
 ### Breakdown — future development notes
 
 - **Number of forwards deployed** should be driven by the attacking team's tactical setting (e.g. a "pick-and-drive" tactic deploys more forwards; a "wide game" tactic fewer). Currently hard-coded to 3.
-- **Ball carrier exclusion:** if the open-play ball carrier was a forward (id ≤ 8) they should be excluded from the forward pool when selecting breakdown supporters — a player cannot carry the ball into contact and also arrive as a support runner. The carrier is not currently threaded from `OpenPlay` into `Breakdown`, so this requires tracking the carrier on `MatchState` or passing it through the phase transition first.
 - **Defensive breakdown tactics:** the number of defensive forwards deployed to a breakdown should depend on the defending team's tactical setting. The defending team should also choose between two strategies: **jackal** (attempt a turnover steal, current behaviour) and **counter ruck** (use collective forward power to drive the attackers off the ball). Currently only the jackal is modelled.
 - **Box kick propensity:** the decision to box kick from slow ball, and the propensity to do so in different pitch locations, should be driven by the attacking team's tactical setting. A "kicking game" tactic should increase propensity; a "possession game" tactic should reduce or eliminate it. Kicking from very deep in your own 22 is unusual even for kicking-oriented teams, so pitch zone should also gate the trigger. Currently the box kick always triggers on slow ball outside the opposition 22.
 
 ### Player attributes — known gaps
 
-Two attributes do not currently influence in-play resolution:
+One attribute does not currently influence in-play resolution:
 
-- **`discipline`** — degraded by fatigue (<50%: −8%, <30%: −20%) but never read by any resolver
 - **`stamina`** — controls fatigue decay rate via `decayRate * (1 − staminaBase/150)` but never appears in a resolver formula directly
 
 Six attributes (`strength`, `breakdown`, `kicking`, `setPiece`, `positioning` at mild fatigue; all non-listed at <30%) are **not** affected at early fatigue tiers. Full fatigue attribute degradation table:

@@ -6,7 +6,10 @@ import { getCommentary } from '../CommentaryEngine';
 import { rng } from '../../utils/rng';
 
 export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22, adjustRating, draftEvent }: PhaseContext): PhaseResult {
-  const forwardPool = attackTeam.players.filter(p => p.id <= 8);
+  const lastEvent = state.events[state.events.length - 1];
+  const carrierId = lastEvent?.primaryPlayer?.id;
+  const forwardPool = attackTeam.players.filter(p => p.id <= 8 && p.id !== carrierId);
+  if (forwardPool.length === 0) forwardPool.push(attackTeam.players[0]);
   const pool = [...forwardPool];
   const supporters: Player[] = [];
   while (supporters.length < 3 && pool.length > 0) {

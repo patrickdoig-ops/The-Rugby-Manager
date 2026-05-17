@@ -23,7 +23,7 @@ export function handleScrum({ state, attackTeam, defendTeam, adjustRating, draft
 
   if (res.result === 'wheel') {
     return {
-      nextPhase: MatchPhase.OpenPlay,
+      nextPhase: MatchPhase.Scrum,
       commentary: getCommentary({ ...draftEvent(MatchPhase.Scrum), primaryPlayer: attackHooker, secondaryPlayer: defendHooker }, 'wheel'),
       primaryPlayer: attackHooker,
       secondaryPlayer: defendHooker,

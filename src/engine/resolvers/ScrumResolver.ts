@@ -14,9 +14,13 @@ function packScore(forwards: Player[]): number {
        / forwards.length;
 }
 
+function packDiscipline(forwards: Player[]): number {
+  return forwards.reduce((sum, p) => sum + p.currentStats.discipline, 0) / forwards.length;
+}
+
 export function resolveScrum(attackForwards: Player[], defendForwards: Player[]): ScrumResolution {
-  const attackScore = packScore(attackForwards) + rng(1, 20);
-  const defendScore = packScore(defendForwards) + rng(1, 20);
+  const attackScore = packScore(attackForwards) + (packDiscipline(attackForwards) - 50) * 0.15 + rng(1, 20);
+  const defendScore = packScore(defendForwards) + (packDiscipline(defendForwards) - 50) * 0.15 + rng(1, 20);
   const margin = attackScore - defendScore;
 
   let result: ScrumResult;

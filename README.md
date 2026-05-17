@@ -18,6 +18,8 @@ npm run preview  # serve the dist/ folder locally
 The codebase is heavily documented to maintain strict architectural and design guidelines. Please refer to the following core documents before contributing or modifying the code:
 
 - [Engine Reference (`engine.md`)](./engine.md) — The authoritative guide on the game engine, covering the simulation loop, phase state machine, resolver formulas, fatigue system, and known gaps.
+- [Rugby Laws Summary (`rugby_laws_summary.md`)](./rugby_laws_summary.md) — A high-level overview of the official World Rugby laws.
+- [Engine Law Inconsistencies (`laws_inconsistencies.md`)](./laws_inconsistencies.md) — A breakdown of where the simulation simplifies or deviates from the official real-world laws.
 - [Design Guide (`DESIGN.md`)](./DESIGN.md) — Covers the UI principles, CSS custom properties, typography, responsive layout rules, and modular UI structure.
 - [Contributor Workflow (`CLAUDE.md`)](./CLAUDE.md) — Essential guidelines for AI assistants and contributors, detailing the coding philosophy, architecture constraints (Engine ↔ UI contract), and versioning instructions.
 

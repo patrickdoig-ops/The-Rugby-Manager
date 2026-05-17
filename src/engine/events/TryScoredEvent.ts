@@ -3,7 +3,8 @@ import { MatchPhase } from '../../types/engine';
 import { getCommentary } from '../CommentaryEngine';
 
 export function handleTryScored({ state, attackTeam, adjustRating, randomPlayer, draftEvent }: PhaseContext): PhaseResult {
-  const scorer = randomPlayer(attackTeam);
+  const lastEvent = state.events[state.events.length - 1];
+  const scorer = lastEvent?.primaryPlayer ?? randomPlayer(attackTeam);
   adjustRating(scorer, +0.5);
   state.score[state.possession] += 5;
   state.stats.tries[state.possession]++;

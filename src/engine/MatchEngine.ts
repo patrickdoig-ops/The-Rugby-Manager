@@ -90,7 +90,6 @@ export class MatchEngine {
   private state: MatchState;
   private sm: StateMachine;
   private tickTimeout: ReturnType<typeof setTimeout> | null = null;
-  private pendingChoiceResolve: ((choice: PenaltyChoice) => void) | null = null;
   private fatigueAccumulator = 0;
 
   constructor(
@@ -136,12 +135,9 @@ export class MatchEngine {
 
   setTickDelay(ms: number): void {
     this.state.tickDelayMs = ms;
-  }
-
-  resolvePlayerChoice(choice: PenaltyChoice): void {
-    if (this.pendingChoiceResolve) {
-      this.pendingChoiceResolve(choice);
-      this.pendingChoiceResolve = null;
+    if (this.state.isRunning && this.tickTimeout) {
+      clearTimeout(this.tickTimeout);
+      this.scheduleTick(ms);
     }
   }
 
@@ -197,7 +193,7 @@ export class MatchEngine {
     if (this.fatigueAccumulator >= 5) {
       applyFatigue(this.state.homeTeam, this.fatigueAccumulator);
       applyFatigue(this.state.awayTeam, this.fatigueAccumulator);
-      this.fatigueAccumulator = 0;
+      this.fatigueAccumulator -= 5;
     }
 
     this.state.stats.possession[this.state.possession]++;
@@ -298,7 +294,6 @@ export class MatchEngine {
 
     state.isPaused = true;
     const choice = await new Promise<PenaltyChoice>(resolve => {
-      this.pendingChoiceResolve = resolve;
       eventBus.emit('engine:paused', {
         payload: {
           type: 'penalty_choice',

@@ -91,8 +91,8 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
       'The scrum holds firm and {primary} feeds the backs.',
     ],
     wheel: [
-      'The scrum wheels! {secondary} has to reset as the ball squirts loose.',
-      'A powerful wheel by the defending pack — {side} scramble to recover.',
+      'The scrum wheels! The referee blows the whistle and orders a reset.',
+      'A powerful wheel by the defending pack — we\'ll have a reset scrum.',
     ],
     dominant_penalty: [
       'Penalty! The scrum collapses — referee signals against {side}.',

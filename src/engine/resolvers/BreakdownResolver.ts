@@ -13,10 +13,12 @@ export interface BreakdownResolution {
 export function resolveBreakdown(supporters: Player[], jackal: Player): BreakdownResolution {
   const ars = avgStat(supporters, 'breakdown') * 0.6
             + avgStat(supporters, 'strength') * 0.4
+            + (avgStat(supporters, 'discipline') - 50) * 0.15
             + rng(1, 20);
 
   const dts = jackal.currentStats.breakdown * 0.7
             + jackal.currentStats.strength * 0.3
+            + (jackal.currentStats.discipline - 50) * 0.15
             + rng(1, 20);
 
   const margin = ars - dts;

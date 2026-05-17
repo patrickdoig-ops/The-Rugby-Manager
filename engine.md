@@ -59,11 +59,7 @@ Called via `applyFatigue(team, elapsedMinutes)` approximately every 5 game minut
 
 ### Decay
 
-```
-decayRate  = 0.5 + rng(0, 10) / 10        (0.5–1.5 per call)
-actualDecay = decayRate × (1 − stamina / 150)
-fatiguePct -= actualDecay
-```
+Every cycle, a base decay rate between 0.5 and 1.5 is randomly determined. This base rate is then reduced depending on the player's stamina—higher stamina means a slower fatigue drain. For example, a player with a stamina rating of 90 will only suffer 40% of the base decay compared to a player with a stamina rating of 0. The player's overall fatigue percentage is then lowered by this final calculated amount.
 
 Higher stamina reduces decay. A player with stamina 90 decays at 40% the rate of one with stamina 0.
 
@@ -113,28 +109,13 @@ The fly-half (id 10) of the kicking team always takes the kick. Receiver and cha
 
 ### Step 1 — Kick quality and distance
 
-```
-kickScore = kicker.kicking + rng(1, 20)
-goodKick  = kickScore ≥ 35
-distance  = goodKick ? rng(25, 40) : rng(10, 20)   // metres
-catchMod  = goodKick ? 0 : +15
-```
-
-A good kick travels 25–40 metres and is harder to catch. A poor kick travels only 10–20 metres but is easier to catch (receiver gets a +15 bonus on catchScore). Ball position is immediately updated:
-
-```
-state.ballX = clamp(50 + attackDir() × distance, 5, 95)
-```
+The kicker's kicking stat combined with a random factor determines the quality of the kick. If the result meets a good threshold, the kick travels between 25 and 40 metres down the pitch and is harder for the receiving team to catch. If the kick is poor, it travels a shorter distance (10 to 20 metres) and the receiving team gets a significant advantage when attempting to catch the ball. The ball's position is immediately moved down the pitch by the kick's distance.
 
 The scrum (on a knock-on) is therefore placed at the landing position, not at halfway.
 
 ### Step 2 — Catch vs chase contest
 
-```
-catchScore  = (receiver.handling + receiver.composure) / 2 + rng(1, 20) + catchMod
-chaseScore  = (chaser.pace + chaser.agility) / 2 + rng(1, 20)
-margin      = catchScore − chaseScore
-```
+The receiving player attempts to catch the ball, relying on their handling and composure, boosted by any advantage from a poor kick. Simultaneously, a chasing player from the kicking team races forward, relying on their pace and agility. Both scores include a random factor, and the chasing score is subtracted from the catching score to determine the margin:
 
 | Margin | Result | Possession |
 |---|---|---|
@@ -165,9 +146,7 @@ No positional weighting. All 15 players are equally likely to be drawn regardles
 
 ### Step 0 — Kick or carry decision
 
-```
-rng(1, 100) ≤ 15  →  TacticalKick (phase exits immediately, no carrier selected)
-```
+There is a flat 15% chance that the attacking team decides to kick rather than carry the ball into contact. If they decide to kick, the play immediately shifts to a Tactical Kick phase. The rest of the open play steps are skipped.
 
 Checked before any player is selected. If it fires, the fly-half (id=10) is logged as `primaryPlayer` for commentary and the phase transitions to `TacticalKick`. Steps 1–3 do not run.
 
@@ -175,20 +154,13 @@ Checked before any player is selected. If it fires, the fly-half (id=10) is logg
 
 ### Step 1 — Handling gate
 
-```
-handlingScore = carrier.handling + rng(1, 20)
-handlingScore < 30 → knock_on
-```
+The ball carrier must first successfully catch and control the ball. Their handling stat is tested with a random factor. If they fail to meet the minimum threshold, they knock the ball on, resulting in a turnover and a scrum for the defending team.
 
 Carrier only. The defender has no influence. If it fails, possession flips and a scrum is awarded. Steps 2 and 3 do not run.
 
 ### Step 2 — Evasion vs defence
 
-```
-evasionScore  = (carrier.agility + carrier.pace) / 2 + rng(1, 20)
-defenceScore  = (defender.positioning + defender.pace) / 2 + rng(1, 20)
-margin        = evasionScore − defenceScore
-```
+If the ball is controlled, the carrier attempts to evade the defence. The carrier's evasion score is a mix of their agility and pace, while the defender relies on their positioning and pace to track them down. Both scores include a random factor, and the defence score is subtracted from the evasion score to determine the margin:
 
 | Margin | Result |
 |---|---|
@@ -197,11 +169,7 @@ margin        = evasionScore − defenceScore
 
 ### Step 3 — Collision
 
-```
-collisionAttack = (carrier.strength + carrier.pace) / 2 + rng(1, 20)
-collisionDefend = (defender.tackling + defender.strength) / 2 + rng(1, 20)
-margin          = collisionAttack − collisionDefend
-```
+If the carrier doesn't make a clean line break, a physical collision occurs. The carrier uses their strength and pace to drive forward, while the defender relies on their tackling and strength to stop them. Both collision scores include a random factor, and the defender's score is subtracted from the carrier's score to determine the margin:
 
 | Margin | Result | Gain |
 |---|---|---|
@@ -213,9 +181,7 @@ All three outcomes transition to Breakdown.
 
 ### Ball movement
 
-```typescript
-state.ballX = clamp(state.ballX + attackDir() × gainMetres, 0, 100)
-```
+The ball's position on the pitch is moved forward or backwards depending on the metres gained or lost in the collision.
 
 ### Rating adjustments
 
@@ -243,22 +209,16 @@ jackal      = backRow[rng(0, backRow.length - 1)]
 Three attacking forwards are chosen at random from the full forward pool (ids 1–8). The defending jackal is chosen at random from the back row (ids 6–8); each of the three back-row players has an equal chance of attempting the steal.
 
 **Future development:**
-- **Attacking:** the number of forwards deployed should be driven by the attacking team's tactical setting (pick-and-drive deploys more; wide game deploys fewer). The open-play ball carrier (if a forward) should be excluded from the support pool — a player cannot carry the ball into contact and simultaneously arrive as a support runner. This requires the carrier to be threaded from `OpenPlay` into `Breakdown` via `MatchState` or a phase-transition payload.
+- **Attacking:** the number of forwards deployed should be driven by the attacking team's tactical setting (pick-and-drive deploys more; wide game deploys fewer).
 - **Defending:** the number of defensive forwards deployed should depend on the defending team's tactical setting. The defending team should also choose between **jackal** (attempt a turnover steal, current behaviour) and **counter ruck** (use collective forward power to drive the attackers off the ball). Counter ruck would require a second resolver formula comparing pack scores rather than individual breakdown stats.
 
 ### Resolution
 
-```
-ARS = avgStat(supporters, 'breakdown') × 0.6
-    + avgStat(supporters, 'strength') × 0.4
-    + rng(1, 20)
+The attacking team generates an Attack Ruck Score based heavily on the breakdown and strength stats of their supporting players. They also receive a slight bonus or penalty depending on whether their average discipline is above or below 50.
 
-DTS = jackal.breakdown × 0.7
-    + jackal.strength × 0.3
-    + rng(1, 20)
+The defending jackal generates a Defensive Turnover Score based heavily on their individual breakdown and strength stats, also modified slightly by their discipline.
 
-margin = ARS − DTS
-```
+Both scores include a random dice roll. The defensive score is subtracted from the attacking score to determine the margin:
 
 | Margin | Result |
 |---|---|
@@ -299,18 +259,14 @@ All eight forwards contribute to the pack score. The hooker is used only for com
 
 ### Resolution
 
-```
-packScore(forwards) = avg(setPiece × 0.6 + strength × 0.4) across all 8 players
+Each team calculates a pack score by averaging the set-piece and strength stats of all eight forwards. They also calculate an average discipline score for the pack.
 
-attackScore = packScore(attackForwards) + rng(1, 20)
-defendScore = packScore(defendForwards) + rng(1, 20)
-margin      = attackScore − defendScore
-```
+The final score for each pack combines their pack score, a slight bonus or penalty based on their pack's average discipline, and a random dice roll. The defending pack's score is subtracted from the attacking pack's score to determine the margin:
 
 | Margin | Result |
 |---|---|
 | > 0 | `stable_win` → OpenPlay |
-| −15 to 0 | `wheel` → OpenPlay |
+| −15 to 0 | `wheel` → Scrum |
 | ≤ −15 | `dominant_penalty` → Penalty (possession flips to defending team) |
 
 The threshold for `stable_win` is any positive margin — attackers win if they score higher by even 1 point.
@@ -343,20 +299,13 @@ The attacking jumper is chosen at random from ids 4 (Left Lock), 5 (Right Lock),
 
 ### Step 1 — Throw quality gate
 
-```
-throwScore = hooker.setPiece + rng(1, 20)
-throwScore < 40 → immediate steal (jump contest skipped)
-```
+The hooker attempts the throw, combining their set-piece stat with a random dice roll. If the throw is extremely poor and fails to meet a minimum threshold, the lineout is considered not straight or easily stolen, and the defending team takes possession immediately without a jump contest.
 
 If the throw fails, the defending team takes possession with no jump contest — `attackJumpScore` and `defendJumpScore` are both 0 in the returned resolution.
 
 ### Step 2 — Jump contest
 
-```
-attackJumpScore = (attackJumper.setPiece × 0.5 + attackJumper.agility × 0.5) + rng(1, 20)
-defendJumpScore = (defendJumper.setPiece × 0.5 + defendJumper.agility × 0.5) + rng(1, 20)
-margin          = attackJumpScore − defendJumpScore
-```
+If the throw is good, the designated jumpers from both teams compete in the air. Both jumpers use a combination of their set-piece stat and agility, plus a random dice roll, to generate a jump score. The defending jumper's score is subtracted from the attacking jumper's score to determine the margin:
 
 | Margin | Result |
 |---|---|
@@ -402,9 +351,7 @@ The scrum half always takes the kick. One attacking winger is selected at random
 
 **Step 1 — Kick quality gate**
 
-```
-kickScore = scrumHalf.kicking + rng(1, 20)
-```
+The scrum-half's kicking stat, combined with a random factor, determines the kick's quality. A high score results in a very good, hang-time kick, while a lower score results in a poor kick.
 
 | Threshold | Quality |
 |---|---|
@@ -413,11 +360,7 @@ kickScore = scrumHalf.kicking + rng(1, 20)
 
 **Step 2a — Very good kick: contested catch** (ball moves 15m up the pitch)
 
-```
-wingerScore   = (winger.handling + winger.pace) / 2 + rng(1, 20)
-fullbackScore = (fullback.handling + fullback.positioning) / 2 + rng(1, 20)
-contestMargin = wingerScore − fullbackScore
-```
+The attacking winger races to contest the ball, relying on their handling and pace. The defending fullback relies on their handling and positioning. Both scores include a random factor, and the fullback's score is subtracted from the winger's score to determine the margin:
 
 | Margin | Outcome | Next Phase |
 |---|---|---|
@@ -427,9 +370,7 @@ contestMargin = wingerScore − fullbackScore
 
 **Step 2b — Poor kick: uncontested catch** (ball moves 8m up the pitch)
 
-```
-catchScore = (fullback.handling + fullback.positioning) / 2 + rng(1, 20)
-```
+Because the kick lacked hang-time or distance, the fullback has time to set themselves under the ball. They rely entirely on their handling and positioning, plus a random factor, to catch the ball cleanly. A high score results in a clean catch, while a low score results in a knock-on.
 
 | Threshold | Outcome | Next Phase |
 |---|---|---|
@@ -474,29 +415,15 @@ Fly-half kicks first, scrum-half if fly-half is unavailable. The fullback receiv
 
 ### Step 1 — Kick quality and distance
 
-```
-kickScore        = kicker.kicking + rng(1, 20)
-goodKick         = kickScore ≥ 25
-distance         = goodKick ? rng(20, 40) : rng(5, 15)   // metres
-touchProbability = goodKick ? 75 : 30                     // percent
-```
+The kicker relies on their kicking stat and a random factor to generate a kick score. A good kick travels further (20 to 40 metres) and has a high probability (75%) of bouncing into touch. A poor kick is shorter (5 to 15 metres) and has a lower probability (30%) of finding touch.
 
-Ball moves immediately:
-
-```
-state.ballX = clamp(state.ballX + attackDir() × distance, 5, 95)
-```
+The ball's position on the pitch is updated immediately based on the calculated distance.
 
 ### Step 2 — Touch or caught
 
 Possession **always** flips to the defending team (they either throw in at the lineout or have caught the ball in the field).
 
-```
-goesToTouch = rng(1, 100) ≤ touchProbability
-
-if goesToTouch → Lineout
-else           → OpenPlay (defender catches, plays on)
-```
+The game rolls a percentage chance against the touch probability determined in Step 1. If the roll is successful, the ball goes into touch and the phase becomes a Lineout. If the roll fails, the defending fullback catches the ball in the field of play, and the phase becomes Open Play.
 
 ### Rating adjustments
 
@@ -530,18 +457,13 @@ if possession === 'home' AND inOppositionHalf() → emit engine:paused → await
 
 `inOppositionHalf()` returns true when `ballX > 50` for home in the first half (attacking right) or `ballX < 50` in the second half (attacking left). The modal is only shown to the human manager, who controls the home team.
 
-The engine loop is suspended mid-tick at the `await`. It resumes only when `resolvePlayerChoice(choice)` is called from `SimController` (wired to the modal's choice buttons).
+The engine loop is suspended mid-tick at the `await`. It resumes when the `onChoice(choice)` callback (provided in the `engine:paused` payload) is called by `ModalManager`.
 
 ### Choice: kick_for_goal
 
-```
-tryLine        = possession team's attacking try line (accounts for halfTimeDone)
-distFromPosts  = |ballY − 50| × 0.3 + |ballX − tryLine| × 0.2
-anglePenalty   = distFromPosts × 0.3
+The distance from the posts and the angle of the kick (based on where the penalty was awarded) create a combined difficulty penalty.
 
-goalKickScore  = kicker.kicking + kicker.composure × 0.2 − anglePenalty + rng(1, 20)
-success        = goalKickScore ≥ 65
-```
+The kicker generates a goal kick score by combining their kicking stat, a small bonus from their composure, and a random factor. The difficulty penalty is subtracted from this total. If the final score meets the minimum threshold, the kick is successful.
 
 On success: +3 points, possession flips, ballX resets to 50, → KickOff.
 On miss: no score, possession flips, ballX resets to 50, → KickOff.
@@ -550,18 +472,13 @@ Rating: success → kicker +0.20; miss → kicker −0.15.
 
 ### Choice: kick_to_touch
 
-```
-ballX += attackDir() × 10
-→ Lineout
-```
+The ball is moved 10 metres down the pitch towards the opposition try line.
 
 Possession is retained. The lineout is awarded to the kicking team 10 units further up the pitch.
 
 ### Choice: tap_and_go
 
-```
-→ OpenPlay
-```
+
 
 No ball movement. Possession is retained. Resumes open play from current position.
 
@@ -576,10 +493,10 @@ No ball movement. Possession is retained. Resumes open play from current positio
 ### Resolution
 
 ```typescript
-scorer = randomPlayer(attackTeam)   // any of 15
+scorer = lastEvent.primaryPlayer ?? randomPlayer(attackTeam)
 ```
 
-The scorer is selected at random from the full squad — no weighting toward the carrier who actually made the line break.
+The scorer is assigned to the player who carried the ball over the line from the previous phase.
 
 ```
 score[possession] += 5
@@ -607,13 +524,9 @@ Always the fly-half.
 
 ### Resolution
 
-```
-distFromPosts = |ballY − 50| × 0.4
-anglePenalty  = distFromPosts × 0.3
+The distance from the posts and the angle of the kick (based on where the try was scored) create a combined difficulty penalty.
 
-goalKickScore = kicker.kicking + kicker.composure × 0.2 − anglePenalty + rng(1, 20)
-success       = goalKickScore ≥ 65
-```
+The kicker generates a goal kick score by combining their kicking stat, a small bonus from their composure, and a random factor. The difficulty penalty is subtracted from this total. If the final score meets the minimum threshold, the kick is successful.
 
 On success: +2 points.
 
@@ -659,7 +572,4 @@ Forces phase to `FullTime`. Emits `engine:event`, `engine:stateChange`, and `eng
 
 | Gap | Location | Effect |
 |---|---|---|
-| `discipline` not read by any resolver | StaminaSystem only | Penalty rate is identical for all players regardless of discipline stat |
-| Ball carrier not excluded from breakdown support pool | `MatchEngine` Breakdown case | A forward who carried the ball into contact can be randomly re-selected as a support runner on the same breakdown |
-| Try scorer is `randomPlayer()` | `MatchEngine` TryScored case | Props are as likely to be credited as wings; the carrier who made the line break is not linked to the try |
 | strength, breakdown, kicking, setPiece, positioning not degraded by fatigue | StaminaSystem | These stats remain at full base value for the entire 80 minutes |

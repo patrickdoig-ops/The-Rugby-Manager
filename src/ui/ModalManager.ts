@@ -3,9 +3,9 @@ import type { PenaltyChoice } from '../types/engine';
 import { renderTacticsMenu } from './TacticsMenu';
 
 const CHOICE_LABELS: Record<PenaltyChoice, string> = {
-  kick_for_goal: 'Kick for Goal (3 pts)',
-  kick_to_touch: 'Kick to Touch (Lineout)',
-  tap_and_go:    'Tap & Go (Run it!)',
+  kick_for_goal: 'Kick for goal',
+  kick_to_touch: 'Kick to touch',
+  tap_and_go:    'Tap and go',
 };
 
 const CHOICE_DESC: Record<PenaltyChoice, string> = {

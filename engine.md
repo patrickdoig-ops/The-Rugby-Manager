@@ -359,13 +359,15 @@ None. `ballX` does not change during a breakdown.
 ### Player selection
 
 ```typescript
-attackForwards = attackTeam.players.filter(p => p.id <= 8)   // props, hooker, locks, flankers, no. 8
-defendForwards = defendTeam.players.filter(p => p.id <= 8)
-attackHooker   = attackTeam.players.find(p => p.id === 2)
-defendHooker   = defendTeam.players.find(p => p.id === 2)
+attackForwards  = attackTeam.players.filter(p => p.id <= 8)   // props, hooker, locks, flankers, no. 8
+defendForwards  = defendTeam.players.filter(p => p.id <= 8)
+attackFrontRow  = attackTeam.players.filter(p => p.id <= 3)   // loosehead, hooker, tighthead
+defendFrontRow  = defendTeam.players.filter(p => p.id <= 3)
+attackHooker    = attackTeam.players.find(p => p.id === 2)     // commentary only
+defendHooker    = defendTeam.players.find(p => p.id === 2)     // commentary only
 ```
 
-All eight forwards contribute to the pack score. The hooker is used only for commentary and ratings.
+All eight forwards contribute to the pack score. The hooker is used for commentary only. Rating adjustments apply to the entire front row (ids 1–3) on both sides.
 
 ### Resolution
 
@@ -389,9 +391,9 @@ None.
 
 | Outcome | Player | Delta |
 |---|---|---|
-| stable_win | attacking hooker | +0.10 |
-| dominant_penalty | defending hooker | +0.15 |
-| dominant_penalty | attacking hooker | −0.20 |
+| stable_win | attacking front row (ids 1–3), each | +0.15 |
+| dominant_penalty | defending front row (ids 1–3), each | +0.225 |
+| dominant_penalty | attacking front row (ids 1–3), each | −0.3 |
 
 ---
 

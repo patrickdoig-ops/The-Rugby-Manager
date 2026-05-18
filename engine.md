@@ -12,12 +12,14 @@ Each tick:
 1. Advances game time by `0.2 + rng(0, 8) / 10` minutes (0.2–1.0 per tick)
 2. Accumulates elapsed time; calls `applyFatigue()` on both teams once the accumulator reaches 5 game minutes
 3. Increments possession and territory counters
-4. Calls `resolvePhase()` to produce a `GameEvent`
-5. Emits `engine:event` and `engine:stateChange`
-6. Checks for penalty interactive pause (if phase is `Penalty`)
-7. Checks for half-time (gameMinute ≥ 40 and `halfTimeDone === false`)
-8. Checks for full-time (gameMinute ≥ 80)
-9. Schedules next tick at `state.tickDelayMs`
+4. For `KickOff` and `BoxKick` phases: emits a pre-phase announce `GameEvent` (naming the kicker before the outcome is resolved)
+5. For `KickOff` phase: awaits kick-off strategy selection — home team via modal (`kickoff_choice` pause), away team auto-selected
+6. Calls `resolvePhase()` to produce the outcome `GameEvent`
+7. Emits `engine:event` and `engine:stateChange`
+8. Checks for penalty interactive pause (if phase is `Penalty`)
+9. Checks for half-time (gameMinute ≥ 40 and `halfTimeDone === false`)
+10. Checks for full-time (gameMinute ≥ 80)
+11. Schedules next tick at `state.tickDelayMs`
 
 ### Attack direction
 
@@ -129,7 +131,7 @@ A `GameEvent` with phase `KickOff` and key `coin_toss` is emitted immediately so
 
 Before the resolver runs, the kicking team's strategy is determined:
 
-- **Home team kicking:** A modal pause (`kickoff_choice`) is presented to the human manager. Three options: Kick Short (`short_kick`), Grubber Kick (`grubber`), Kick Long (`high_ball`). The engine awaits the selection before proceeding.
+- **Home team kicking:** A modal pause (`kickoff_choice`) is presented to the human manager. Three options: Kick Short (`short_kick`), Grubber Kick (`grubber`), Kick Deep (`high_ball`). The engine awaits the selection before proceeding.
 - **Away team kicking:** Strategy is auto-selected. Default is `high_ball`. Exception: if `gameMinute >= 70` and `score.away < score.home`, selects `short_kick` — the away team gambles on regathering to score quickly.
 
 ### Player selection

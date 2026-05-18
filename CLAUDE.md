@@ -24,6 +24,15 @@ Before implementing:
 
 Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 
+**Resolve constant arithmetic at write-time, not runtime.**
+
+If a formula applies a fixed multiplier or offset to a literal or random range, collapse the algebra into the value directly:
+- `rng(0.5, 1.5) * 8` → `rng(4, 12)`
+- `delta * 1.5` applied uniformly → multiply each literal by 1.5 and remove the multiplier
+- `(a + rng(...) / n) * k` → fold `k` into the range and the constant
+
+The result should express the actual value used, not the derivation of it.
+
 ## 3. Surgical Changes
 
 **Touch only what you must. Clean up only your own mess.**

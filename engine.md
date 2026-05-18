@@ -130,7 +130,12 @@ The fly-half (id 10) of the kicking team always takes the kick. Receiver and cha
 
 ### Step 1 — Kick quality and distance
 
-The kicker's kicking stat combined with a random factor determines the quality of the kick. If the result meets a good threshold, the kick travels between 25 and 40 metres down the pitch and is harder for the receiving team to catch. If the kick is poor, it travels a shorter distance (10 to 20 metres) and the receiving team gets a significant advantage when attempting to catch the ball. The ball's position is immediately moved down the pitch by the kick's distance.
+```
+kickScore = kicker.kicking + rng(1, 20)
+goodKick  = kickScore >= 35
+```
+
+A good kick (`kickScore ≥ 35`) travels 25–40m (high_ball) and the receiver gets no catch advantage. A poor kick travels 10–20m and grants the receiver a significant catch bonus (`catchMod +15`), representing a floated, catchable ball. The ball's position is immediately moved down the pitch by the kick's distance.
 
 The scrum (on a knock-on) is therefore placed at the landing position, not at halfway.
 
@@ -149,15 +154,15 @@ The receiving player attempts to catch the ball, relying on their handling and c
 **Short kick regather (`short_kick_retain`):** When the kicking team uses `short_kick` and the result is `contested`, there is a 15% chance the kicking team regathers their own kick and retains possession. The chase player (`chaser`) is credited as `primaryPlayer` for the event. This is the only scenario where the kicking team can retain on a `contested` result.
 
 **Tactical Strategy (`KickOffStrategy`):**
-- `high_ball`: Standard deep kick (25–40m on a good kick), normal catch vs chase margin.
-- `short_kick`: Shorter distance (10–18m), makes receiver's catch slightly harder on a good kick (`catchMod` −5), easier on a poor kick (`catchMod` +10). Contested result has 15% kicking-team regather.
-- `grubber`: Hard low kick along ground (15–30m), inflicts −10 catch penalty on receiver to increase knock-on probability.
+- `high_ball`: Good kick 25–40m, poor kick 10–20m. Good kick: `catchMod` 0 (normal contest). Poor kick: `catchMod` +15 (receiver advantaged).
+- `short_kick`: Good kick 10–18m, poor kick 8–12m. Good kick: `catchMod` −5 (harder for receiver, chaser contest tighter). Poor kick: `catchMod` +10. Contested result has 15% chance kicking team regathers their own kick (`short_kick_retain`).
+- `grubber`: Distance always 15–30m regardless of kick quality. `catchMod` −10 (hard low ball, clean catch difficult) on all outcomes.
 
 ### Rating adjustments
 
 | Outcome | Player | Delta |
 |---|---|---|
-| knock_on | receiver | −0.25 |
+| knock_on | receiver | −0.375 |
 
 ---
 
@@ -371,9 +376,13 @@ All eight forwards contribute to the pack score. The hooker is used for commenta
 
 ### Resolution
 
-Each team calculates a pack score by averaging the set-piece and strength stats of all eight forwards. They also calculate an average discipline score for the pack.
+```
+packScore      = avg(setPiece×0.6 + strength×0.4) across all 8 forwards
+packDiscipline = avg(discipline) across all 8 forwards
+finalScore     = packScore + (packDiscipline − 50)×0.15 + rng(1,20)
+```
 
-The final score for each pack combines their pack score, a slight bonus or penalty based on their pack's average discipline, and a random dice roll. The defending pack's score is subtracted from the attacking pack's score to determine the margin:
+The defending pack's final score is subtracted from the attacking pack's final score to determine the margin:
 
 | Margin | Result |
 |---|---|
@@ -519,17 +528,17 @@ Because the kick lacked hang-time or distance, the fullback has time to set them
 
 | Outcome | Player | Delta |
 |---|---|---|
-| attack_retain | scrum half | +0.10 |
-| attack_retain | winger | +0.20 |
-| attack_retain | fullback | −0.10 |
-| defend_knock_on | scrum half | +0.05 |
-| defend_knock_on | winger | +0.10 |
-| defend_knock_on | fullback | −0.15 |
-| defend_catch_contested | fullback | +0.20 |
-| defend_catch_contested | winger | −0.10 |
-| defend_catch | fullback | +0.10 |
-| knock_on | scrum half | −0.10 |
-| knock_on | fullback | −0.15 |
+| attack_retain | scrum half | +0.15 |
+| attack_retain | winger | +0.30 |
+| attack_retain | fullback | −0.15 |
+| defend_knock_on | scrum half | +0.075 |
+| defend_knock_on | winger | +0.15 |
+| defend_knock_on | fullback | −0.225 |
+| defend_catch_contested | fullback | +0.30 |
+| defend_catch_contested | winger | −0.15 |
+| defend_catch | fullback | +0.15 |
+| knock_on | scrum half | −0.15 |
+| knock_on | fullback | −0.225 |
 
 ---
 
@@ -585,8 +594,8 @@ If the ball **does not** go into touch at all, the defending fullback catches th
 
 | Outcome | Player | Delta |
 |---|---|---|
-| good kick (kickScore ≥ 25) | kicker | +0.10 |
-| poor kick (kickScore < 25) | kicker | −0.15 |
+| good kick (kickScore ≥ 25) | kicker | +0.15 |
+| poor kick (kickScore < 25) | kicker | −0.225 |
 
 ---
 
@@ -617,14 +626,20 @@ The engine loop is suspended mid-tick at the `await`. It resumes when the `onCho
 
 ### Choice: kick_for_goal
 
-The distance from the posts and the angle of the kick (based on where the penalty was awarded) create a combined difficulty penalty.
+```
+tryLine        = attacking try line (100 or 0 depending on half and possession)
+distFromPosts  = |ballY − 50| × 0.3 + |ballX − tryLine| × 0.2
+anglePenalty   = distFromPosts × 0.3
+score          = kicking + composure×0.2 − anglePenalty + rng(1,20)
+success        = score ≥ 65
+```
 
-The kicker generates a goal kick score by combining their kicking stat, a small bonus from their composure, and a random factor. The difficulty penalty is subtracted from this total. If the final score meets the minimum threshold, the kick is successful.
+Both lateral angle (`ballY`) and distance from the try line (`ballX`) contribute to difficulty. A central kick close to the posts has `distFromPosts ≈ 0`; a wide kick from distance can push `distFromPosts` to 30+, adding ~9 points of penalty.
 
 On success: +3 points, possession flips, ballX resets to 50, → KickOff.
 On miss: no score, possession flips, ballX resets to 50, → KickOff.
 
-Rating: success → kicker +0.20; miss → kicker −0.15.
+Rating: success → kicker +0.3; miss → kicker −0.225.
 
 ### Choice: kick_to_touch
 
@@ -666,7 +681,7 @@ stats.tries[possession]++
 
 | Player | Delta |
 |---|---|
-| scorer | +0.50 |
+| scorer | +1.0 |
 
 ---
 
@@ -682,9 +697,14 @@ Always the fly-half.
 
 ### Resolution
 
-The distance from the posts and the angle of the kick (based on where the try was scored) create a combined difficulty penalty.
+```
+distFromPosts = |ballY − 50| × 0.4
+anglePenalty  = distFromPosts × 0.3
+score         = kicking + composure×0.2 − anglePenalty + rng(1,20)
+success       = score ≥ 65
+```
 
-The kicker generates a goal kick score by combining their kicking stat, a small bonus from their composure, and a random factor. The difficulty penalty is subtracted from this total. If the final score meets the minimum threshold, the kick is successful.
+Only the lateral angle (`ballY`) affects difficulty for conversions — unlike the penalty kick, distance from the try line is not factored in. A central conversion has `distFromPosts = 0`; a conversion from the touchline adds up to ~6 points of penalty.
 
 On success: +2 points.
 
@@ -694,8 +714,8 @@ After resolution (regardless of outcome): possession flips, ballX resets to 50, 
 
 | Outcome | Player | Delta |
 |---|---|---|
-| success | kicker | +0.15 |
-| miss | kicker | −0.10 |
+| success | kicker | +0.225 |
+| miss | kicker | −0.15 |
 
 ---
 
@@ -723,6 +743,25 @@ state.isRunning = false
 ```
 
 Forces phase to `FullTime`. Emits `engine:event`, `engine:stateChange`, and `engine:finished`. No further ticks are scheduled.
+
+---
+
+## Substitutions
+
+Triggered by the UI via `eventBus.emit('ui:substitution', { benchSquadNum, fieldSquadNum })`. The engine listens and calls `substitute('home', benchSquadNum, fieldSquadNum)` immediately (mid-tick if in progress).
+
+```typescript
+sub.id = off.id     // sub inherits the field jersey position (id) of the player coming off
+team.players[fieldIdx] = sub
+team.bench.splice(benchIdx, 1)
+team.substitutedOff.push(off)
+```
+
+The substitute takes the squad position (`id`) of the player they replace, so they slot into the same formation role and will be selected by phase handlers using that id. A commentary event (`MatchPhase.Substitution`) is emitted immediately so the change appears in the feed.
+
+No rating adjustment is applied on substitution. The incoming player's `formModifier` and `fatiguePct` are as initialised at match start — they are not reset on sub.
+
+**Scope:** Only the home team can substitute via the UI. Away team substitutions are not implemented.
 
 ---
 

@@ -166,11 +166,14 @@ The receiving player attempts to catch the ball, relying on their handling and c
 ### Player selection
 
 ```typescript
-carrier  = randomPlayer(attackTeam)   // any of 15
+carrier  = randomPlayer(attackTeam)   // any of 15 (initial ball carrier)
 defender = randomPlayer(defendTeam)   // any of 15
+// Out the Back path only:
+flyHalf      = pickPlayer(attackTeam, 10)
+outsideBack  = random from attackTeam.players where id ∈ {11, 13, 14, 15}
 ```
 
-No positional weighting. All 15 players are equally likely to be drawn regardless of position.
+The initial carrier and defender are always selected. The fly half and outside back are only selected if the Out the Back path is taken (see Step 2).
 
 ### Step 0 — Kick or carry decision
 
@@ -179,19 +182,38 @@ The probability of kicking rather than carrying into contact is driven by `attac
 - `balanced`: 20% inside own 22; 15% in own half; 10% in opposition half.
 - `kicking`: 35% inside own 22; 25% in own half; 15% in opposition half.
 
-Checked before any player is selected. If it fires, the fly-half (id=10) is logged as `primaryPlayer` for commentary and the phase transitions to `TacticalKick`. Steps 1–3 do not run.
+Checked before any player is selected. If it fires, the fly-half (id=10) is logged as `primaryPlayer` for commentary and the phase transitions to `TacticalKick`. Steps 1–4 do not run.
 
-### Step 1 — Handling gate
+### Step 1 — Carrier handling gate
 
-The ball carrier must first successfully catch and control the ball. Their handling stat is tested with a random factor. If they fail to meet the minimum threshold, they knock the ball on, resulting in a turnover and a scrum for the defending team.
+The carrier's handling stat is tested with a random factor (threshold < 30). If they fail, they knock the ball on: possession flips, `handlingErrors` increments, and a scrum is awarded. Steps 2–4 do not run.
 
-Carrier only. The defender has no influence. If it fails, possession flips and a scrum is awarded. Steps 2 and 3 do not run.
+### Step 2 — Hard Carry / Out the Back decision
 
-### Step 2 — Evasion vs defence
+After the carrier's handling gate passes, the attacking team chooses a play based on `attackTeam.tactics.attackingStyle`:
 
-If the ball is controlled, the carrier attempts to evade the defence. The carrier's evasion score is a mix of their agility and pace, while the defender relies on their positioning and pace to track them down. Both scores include a random factor. If a `breakdownMod` was set by the preceding breakdown phase, `attackMod` is added to the evasion score and `defendMod` is added to the defence score before the margin is calculated — see the Breakdown section for values.
+| `attackingStyle` | Hard Carry | Out the Back |
+|---|---|---|
+| `keep_it_tight` | 90% | 10% |
+| `balanced` | 70% | 30% |
+| `wide_wide` | 50% | 50% |
 
-**Backfield Defence front-line penalty:** If the defending team has more than one player committed to the backfield (`backfieldDefence`), their front-line defence is weakened. This penalty is applied to the defend score every carry phase (not via `breakdownMod` — it is always-on because backfield players are continuously absent from the line):
+If the carrier is the fly half (id 10), always Hard Carry.
+
+**Hard Carry:** the carrier proceeds directly to evasion (Step 3). `ballCarrier = carrier`.
+
+**Out the Back:** the ball is worked through the fly half to an outside back via two additional handling gates:
+
+1. Fly half (id 10) handling gate (threshold < 30) — if failed: fly half is credited with the knock-on, possession flips, scrum awarded. The `out_the_back` commentary intro is still prepended.
+2. Outside back (random from ids 11, 13, 14, 15) handling gate (threshold < 30) — if failed: outside back is credited with the knock-on, possession flips, scrum awarded. The `out_the_back` commentary intro is still prepended.
+
+If both gates pass, `ballCarrier = outsideBack` and play proceeds to evasion (Step 3) with the outside back as the ball carrier. The outside back's pace and agility stats are used — backs with high pace naturally gain more from this path than a forward would.
+
+### Step 3 — Evasion vs defence
+
+`ballCarrier` (carrier or outside back depending on Step 2) attempts to evade the defence. The ball carrier's evasion score is a mix of their agility and pace; the defender relies on their positioning and pace. Both scores include a random factor. `breakdownMod` values are applied here — `attackMod` added to evasion, `defendMod` added to defence.
+
+**Backfield Defence front-line penalty:** applied to the defend score on every carry, regardless of path:
 
 | `backfieldDefence` | `defendMod` adjustment |
 |---|---|
@@ -204,11 +226,11 @@ The defence score is subtracted from the evasion score to determine the margin:
 | Margin | Result |
 |---|---|
 | ≥ 15 | `line_break` → Breakdown (or TryScored if ball crosses line) |
-| < 15 | Proceed to Step 3 |
+| < 15 | Proceed to Step 4 |
 
-### Step 3 — Collision
+### Step 4 — Collision
 
-If the carrier doesn't make a clean line break, a physical collision occurs. The carrier uses their strength and pace to drive forward, while the defender relies on their tackling and strength to stop them. Both collision scores include a random factor, and the defender's score is subtracted from the carrier's score to determine the margin:
+If the ball carrier doesn't make a clean line break, a physical collision occurs. The ball carrier uses their strength and pace to drive forward; the defender relies on their tackling and strength to stop them. Both scores include a random factor.
 
 | Margin | Result | Gain |
 |---|---|---|
@@ -218,19 +240,25 @@ If the carrier doesn't make a clean line break, a physical collision occurs. The
 
 All three outcomes transition to Breakdown.
 
+### Commentary
+
+When the Out the Back path is taken, an `out_the_back` commentary line is generated immediately after the fly half is selected, naming the carrier (`{primary}`) and fly half (`{secondary}`). This intro is prepended to the outcome commentary in every exit path — including both knock-on cases. Example combined output: *"Out the back from Jones! Williams catches and sends it wide. Price breaks through the line!"*
+
 ### Ball movement
 
 The ball's position on the pitch is moved forward or backwards depending on the metres gained or lost in the collision.
 
 ### Rating adjustments
 
+Applies to `ballCarrier` (the outside back on the Out the Back path, or the original carrier on Hard Carry).
+
 | Outcome | Player | Delta |
 |---|---|---|
-| knock_on | carrier | −0.30 |
-| line_break | carrier | +0.25 |
-| dominant_carry | carrier | +0.15 |
-| dominant_tackle | defender | +0.20 |
-| dominant_tackle | carrier | −0.05 |
+| knock_on (any gate) | player who dropped | −0.45 |
+| line_break | ballCarrier | +0.375 |
+| dominant_carry | ballCarrier | +0.225 |
+| dominant_tackle | defender | +0.3 |
+| dominant_tackle | ballCarrier | −0.075 |
 
 ---
 
@@ -681,6 +709,8 @@ Notes cover both the upside and the downside of a tactic choice — a player sho
 | `TacticalKickEvent` | kick caught + `two_back`/`three_back` | defending (now attacking) | 35% |
 | `TacticalKickEvent` | `fifty_twenty_two` + `one_back` | defending | 25% |
 | `BoxKickEvent` | `defend_catch` + `two_back`/`three_back` | defending | 30% |
+
+The Out the Back path in `OpenPlayEvent` uses a different mechanism — a structural `getCommentary(..., 'out_the_back')` call (not a `tacticNote`) that always fires when the path is taken. It names the carrier and fly half and is prepended to the outcome commentary.
 
 ---
 

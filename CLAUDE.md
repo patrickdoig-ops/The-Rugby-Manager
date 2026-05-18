@@ -170,7 +170,7 @@ Resolver formulas at a glance:
 | Phase | Attacker | Defender |
 |---|---|---|
 | KickOff | id=10 (fly-half) as kicker; random chaser from attacking team | random receiver from defending team |
-| OpenPlay | `randomPlayer(attackTeam)` | `randomPlayer(defendTeam)` |
+| OpenPlay | `randomPlayer(attackTeam)` as carrier; Out the Back path adds: id=10 (fly-half) then random from ids 11/13/14/15 (outside backs) | `randomPlayer(defendTeam)` |
 | Breakdown | 2–4 forwards sampled at random without replacement from `players.filter(p.id <= 8 && p.id !== carrierId)` — count = 4 (`pick_and_drive`), 3 (`balanced`), 2 (`wide_play`) per `attackingBreakdown` tactic | 1 back-row player sampled at random from `players.filter(p.id >= 6 && p.id <= 8)`; full pack (`p.id <= 8`) passed for `counter_ruck` |
 | BoxKick | id=9 (scrum half) as kicker; random from id=11\|14 (wingers) as chaser | id=15 (fullback) |
 | Scrum | `players.filter(p => p.id <= 5)` (front 5) | same filter on defend team |
@@ -225,6 +225,8 @@ Event handlers append tactic-aware commentary notes to the standard `getCommenta
 | `TacticalKickEvent` | kick caught + `returnBonus > 0` (two/three_back) | defending (just flipped to attacking) | 35% |
 | `TacticalKickEvent` | `fifty_twenty_two` + `one_back` defending | defending | 25% |
 | `BoxKickEvent` | `defend_catch` + `fullbackMod > 0` (two/three_back) | defending | 30% |
+
+`OpenPlayEvent` also prepends a structural `out_the_back` commentary line (always-on, not probabilistic) whenever the Out the Back path is taken, naming the carrier and fly half before the outcome commentary.
 
 ### Player attributes — known gaps
 

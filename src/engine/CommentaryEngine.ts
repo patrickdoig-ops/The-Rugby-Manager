@@ -168,12 +168,6 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
       'Oh no! {primary} fumbles the catch — knock-on! The kicking side wins the scrum.',
       '{primary} can\'t hold it under pressure — knock-on! Scrum awarded to the kicking side.',
     ],
-    contested: [
-      'Tremendous contest in the air! {primary} and {secondary} challenge for the ball.',
-      'Chaos at the kick-off! {primary} and {secondary} compete fiercely for possession.',
-      'Neither side claims it cleanly — a scramble breaks out at the catch!',
-      'The ball is up for grabs! Both teams battle at the breakdown.',
-    ],
     poor_kick: [
       '{primary}\'s kick-off falls short of the 10-metre line — scrum to {side} at halfway.',
       'The kick-off from {primary} doesn\'t travel 10 metres. Scrum awarded to {side}.',

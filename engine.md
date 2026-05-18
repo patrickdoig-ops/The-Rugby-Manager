@@ -9,17 +9,17 @@ Documents the complete game engine: the simulation loop, every match phase, all 
 `MatchEngine.tick()` is a self-rescheduling `async` function using `setTimeout`. It is not `setInterval` — pausing is simply not scheduling the next tick.
 
 Each tick:
-1. Advances game time by `0.2 + rng(0, 8) / 10` minutes (0.2–1.0 per tick)
-2. Accumulates elapsed time; calls `applyFatigue()` on both teams once the accumulator reaches 5 game minutes
-3. Increments possession and territory counters
-4. For `KickOff` and `BoxKick` phases: emits a pre-phase announce `GameEvent` (naming the kicker before the outcome is resolved)
-5. For `KickOff` phase: awaits kick-off strategy selection via modal (`kickoff_choice` pause) — both teams use the modal
-6. Calls `resolvePhase()` to produce the outcome `GameEvent`
-7. Emits `engine:event` and `engine:stateChange`
-8. Checks for penalty interactive pause (if phase is `Penalty`)
-9. Checks for half-time (gameMinute ≥ 40 and `halfTimeDone === false`)
-10. Checks for full-time (gameMinute ≥ 80)
-11. Schedules next tick at `state.tickDelayMs`
+1. Captures `wasInRed = state.clockInTheRed` and `previousPhase = state.phase` before any mutation.
+2. Advances game time: if `wasInRed`, adds `timeAdvance / 50` (clock crawls); otherwise advances normally and clamps to the half target (40 or 80). `timeAdvance = 0.2 + rng(0, 8) / 10` (0.2–1.0 per tick).
+3. Accumulates elapsed time; calls `applyFatigue()` on both teams once the accumulator reaches 5 game minutes. Returns newly-fatigued players (crossing below 50%); emits a fatigue commentary event for each.
+4. Increments possession and territory counters.
+5. For `KickOff` and `BoxKick` phases: emits a pre-phase announce `GameEvent` (naming the kicker before the outcome is resolved).
+6. For `KickOff` phase: awaits kick-off strategy selection via modal (`kickoff_choice` pause) — **home team only**. Away team always defaults to `high_ball` with no modal.
+7. Calls `resolvePhase()` to produce the outcome `GameEvent`.
+8. Emits `engine:event` and `engine:stateChange`.
+9. Checks for penalty interactive pause (if phase is `Penalty`).
+10. **Clock-in-the-red check:** If `!clockInTheRed && gameMinute >= halfTarget`, calls `enterClockInTheRed()` (sets flag, emits announcement). Else if `wasInRed && shouldEndPeriod(previousPhase)`, triggers half-time or full-time.
+11. Schedules next tick at `state.tickDelayMs`.
 
 ### Attack direction
 
@@ -298,14 +298,14 @@ Driven by `attackingStyle` using the same thresholds as the Hard Carry / Out the
 
 **Crash Ball path** (#10 → #12):
 1. `#10` passes to `insideCentre` (id 12)
-2. `insideCentre` handling gate (threshold < 30) → knock-on if failed
+2. `insideCentre` handling gate (`handling + rng(1,100) < 85`; red-clock variant: `< Math.min(99, 85 + Math.round(Math.max(0, 85 − handling) × 0.4))`) → knock-on if failed
 3. `ballCarrier = insideCentre`; `defender = pickPlayer(defendTeam, 12)`
 
 **Wide Play path** (#10 → #13 → #11 or #14):
 1. `#10` passes to `outsideCentre` (id 13)
-2. `outsideCentre` handling gate (threshold < 30) → knock-on if failed
+2. `outsideCentre` handling gate (same formula as above) → knock-on if failed
 3. `outsideCentre` passes to `wing` (random from ids 11, 14)
-4. `wing` handling gate (threshold < 30) → knock-on if failed
+4. `wing` handling gate (same formula) → knock-on if failed
 5. `ballCarrier = wing`; `defender = random from defendTeam.players where id ∈ {11, 14}`
 
 On any knock-on: possession flips, scrum awarded, dropping player −0.45. The `out_the_back` commentary intro is prepended before the knock-on line.
@@ -868,15 +868,54 @@ After resolution (regardless of outcome): possession flips, ballX resets to 50, 
 
 ---
 
-## Half-Time
+## Clock In The Red
 
-Triggered inside `tick()` when `gameMinute ≥ 40` and `halfTimeDone === false`.
+When `gameMinute` reaches the half target (40 first half, 80 second half), the engine enters the **clock-in-the-red** state. The ball is still live; the half does not end immediately.
+
+### Entering the red
+
+`enterClockInTheRed()` is called on the tick when `!clockInTheRed && gameMinute >= halfTarget`:
 
 ```typescript
-state.halfTimeDone = true
-state.possession   = flipped
-state.ballX        = 50
-state.ballY        = 50
+state.clockInTheRed = true
+// emits GameEvent with a randomly chosen announcement line (3 variants per half)
+```
+
+From this point, clock time advances at `timeAdvance / 50` per tick — effectively crawling — so that many more phases can occur before the game ends.
+
+The knock-on threshold in all carry phases is raised from 85 to `Math.min(99, 85 + Math.round(Math.max(0, 85 − handling) × 0.4))`, giving approximately a 40% increase in knock-on probability for players with handling below 85.
+
+### Ending the period: `shouldEndPeriod(prevPhase)`
+
+The period ends only when the ball goes dead. `shouldEndPeriod` returns `true` on these transitions:
+
+| Condition | Description |
+|---|---|
+| `state.phase === Scrum && prevPhase !== Scrum` | Knock-on or crooked lineout throw (not a wheel reset — those have prevPhase === Scrum) |
+| `state.phase === Lineout && !penaltyKickToTouchLineout` | Ball in touch (except after a penalty kick-to-touch — see exception below) |
+| `state.phase === KickOff && prevPhase === ConversionKick` | Try scored and conversion taken |
+
+**Penalty kick-to-touch exception:** When the home team chooses `kick_to_touch` on a penalty during the red, `penaltyKickToTouchLineout` is set to `true`. `shouldEndPeriod` detects this, clears the flag, and returns `false` — the subsequent lineout does not end the period. This allows the attacking team to take the lineout and keep playing.
+
+### Triggering half-time / full-time
+
+When `wasInRed && shouldEndPeriod(previousPhase)`:
+- **First half:** calls `triggerHalfTime()`, which resets `clockInTheRed = false` and `penaltyKickToTouchLineout = false` for the second half.
+- **Second half:** calls `endMatch()`.
+
+---
+
+## Half-Time
+
+Triggered by `triggerHalfTime()` inside `tick()` after `shouldEndPeriod()` returns true during the first-half red.
+
+```typescript
+state.halfTimeDone           = true
+state.clockInTheRed          = false
+state.penaltyKickToTouchLineout = false
+state.possession             = flipped
+state.ballX                  = 50
+state.ballY                  = 50
 ```
 
 A `HalfTime` event is emitted, then the phase force-transitions to `KickOff` for the second half. The possession swap at half-time combined with `halfTimeDone = true` is what reverses the output of `attackDir()`, `isTryScored()`, and `inOpposition22()` for the rest of the match.
@@ -885,7 +924,7 @@ A `HalfTime` event is emitted, then the phase force-transitions to `KickOff` for
 
 ## Full-Time
 
-Triggered inside `tick()` when `gameMinute ≥ 80`.
+Triggered by `endMatch()` inside `tick()` after `shouldEndPeriod()` returns true during the second-half red.
 
 ```typescript
 state.isRunning = false

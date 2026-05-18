@@ -58,7 +58,14 @@ export function initScoreboard(): void {
 
     homeScore.textContent    = String(state.score.home).padStart(2, '0');
     awayScore.textContent    = String(state.score.away).padStart(2, '0');
-    clockDisplay.textContent = `${Math.floor(state.gameMinute)}′`;
+    if (state.clockInTheRed) {
+      const halfTarget = state.halfTimeDone ? 80 : 40;
+      clockDisplay.textContent = `${halfTarget}+${Math.floor(state.gameMinute - halfTarget)}′`;
+      clockDisplay.style.color = 'var(--rm-coral)';
+    } else {
+      clockDisplay.textContent = `${Math.floor(state.gameMinute)}′`;
+      clockDisplay.style.color = '';
+    }
     phaseDisplay.textContent = state.phase.replace(/_/g, ' ');
     phaseDisplay.className   = `phase-badge ${phaseClass(state.phase)}`;
   });

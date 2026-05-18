@@ -190,7 +190,7 @@ Resolver formulas at a glance:
 | KickReturn | `state.kickReturnCarrier` (set by prior kick phase) ?? `randomPlayer(attackTeam)` | `randomPlayer(defendTeam)` |
 | Breakdown | 2–4 forwards sampled at random without replacement from `players.filter(p.id <= 8 && p.id !== carrierId)` — count = 4 (`pick_and_drive`), 3 (`balanced`), 2 (`wide_play`) per `attackingBreakdown` tactic | 1 back-row player sampled at random from `players.filter(p.id >= 6 && p.id <= 8)`; full pack (`p.id <= 8`) passed for `counter_ruck` |
 | BoxKick | id=9 (scrum half) as kicker; random from id=11\|14 (wingers) as chaser | id=15 (fullback) |
-| Scrum | `players.filter(p => p.id <= 5)` (front 5) | same filter on defend team |
+| Scrum | `players.filter(p => p.id <= 8)` (all 8 forwards) for pack score; `filter(p => p.id <= 3)` for front-row rating adjustments | same filters on defend team |
 | Lineout | hooker=id 2; jumper=random from `[4, 5, 7]` (Left Lock / Right Lock / Openside Flanker) | `find(id===4\|5\|6)` → always id 4 (Left Lock) |
 | TacticalKick | id=10 or id=9 (fly-half/scrum-half) | id=15 (fullback) |
 | ConversionKick | id=10 (fly-half) | — |
@@ -300,6 +300,7 @@ Players start each match at `rating: 6.0` (out of 10). `MatchEngine.adjustRating
 | Breakdown penalty conceded | primary supporter | −0.375 |
 | Kick-off knock-on | receiver | −0.375 |
 | Goal kick miss (penalty) | kicker | −0.225 |
+| Kick-off poor kick | kicker | −0.225 |
 | Tactical kick poor | kicker | −0.225 |
 | Lineout scrappy_knock_on | attack jumper | −0.3 |
 | Breakdown turnover conceded | primary supporter | −0.15 |

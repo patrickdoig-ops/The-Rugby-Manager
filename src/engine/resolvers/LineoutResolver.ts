@@ -14,10 +14,10 @@ export function resolveLineout(
   attackJumper: Player,
   defendJumper: Player,
 ): LineoutResolution {
-  const throwScore = hooker.currentStats.setPiece + rng(1, 20);
+  const throwScore = hooker.currentStats.setPiece + rng(1, 100);
 
-  if (throwScore < 40) {
-    return { result: 'steal', throwScore, attackJumpScore: 0, defendJumpScore: 0 };
+  if (throwScore < 95) {
+    return { result: 'crooked_throw', throwScore, attackJumpScore: 0, defendJumpScore: 0 };
   }
 
   const attackJumpScore = (attackJumper.currentStats.setPiece * 0.5

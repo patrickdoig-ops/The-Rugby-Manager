@@ -124,6 +124,12 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
       'Perfect throw from {secondary}! {primary} claims it above the defenders.',
       'Superb lineout execution — {side} have possession and drive.',
     ],
+    crooked_throw: [
+      'Not straight from {primary}! The referee calls it immediately — scrum to the opposition.',
+      '{primary} can\'t find his jumper — the ball goes in crooked. Scrum awarded.',
+      'Oh no — {primary}\'s throw is crooked! A simple error hands a scrum to the opposition.',
+      'Lineout ball not straight from {primary}! The referee whistles straight away.',
+    ],
     steal: [
       '{secondary} steals the lineout! Incredible work against the throw!',
       'Turnover at the lineout — {secondary} outjumps the opposition!',

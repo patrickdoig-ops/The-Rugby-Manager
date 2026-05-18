@@ -14,6 +14,16 @@ export function handleLineout({ state, attackTeam, defendTeam, adjustRating, pic
   const defendJumper = pickPlayer(defendTeam, 4, 5, 6);
   const res = resolveLineout(hooker, attackJumper, defendJumper);
 
+  if (res.result === 'crooked_throw') {
+    adjustRating(hooker, -0.4);
+    state.possession = state.possession === 'home' ? 'away' : 'home';
+    return {
+      nextPhase: MatchPhase.Scrum,
+      commentary: getCommentary({ ...draftEvent(MatchPhase.Lineout), primaryPlayer: hooker }, 'crooked_throw'),
+      primaryPlayer: hooker,
+    };
+  }
+
   if (res.result === 'clean_catch') {
     adjustRating(attackJumper, +0.225);
     state.stats.lineouts[state.possession]++;

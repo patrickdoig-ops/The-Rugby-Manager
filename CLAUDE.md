@@ -77,14 +77,16 @@ The version string follows the pattern `0.XXa` (e.g. `0.01a`, `0.02a`). Incremen
 
 ## Maintaining engine.md
 
-**After any change to engine code, update `engine.md` to match.**
+**After any change to engine code, update `engine.md` to match. This is not optional — engine.md must be updated in the same commit as the engine change.**
 
 `engine.md` is a plain-English reference for the entire game engine. It must stay in sync with the code. This includes:
 - `src/engine/MatchEngine.ts` — loop, phase resolution, rating deltas, ball movement
 - `src/engine/StaminaSystem.ts` — fatigue decay formula, attribute penalty tiers
 - `src/engine/StateMachine.ts` — allowed phase transitions
 - `src/engine/resolvers/*.ts` — all resolver formulas, thresholds, return types
+- `src/engine/events/*.ts` — rating deltas, possession swaps, next-phase routing
 - `src/engine/CommentaryEngine.ts` — commentary template keys
+- `src/types/engine.ts` — result type unions (LineoutResult, ScrumResult, etc.)
 
 When updating `engine.md`, document:
 1. Which players are selected (exact `find`/`filter` conditions from `MatchEngine.resolvePhase()`)
@@ -160,7 +162,7 @@ Resolver formulas at a glance:
 | **OpenPlay** | Carrier handling gate (inline, < 30 = knock_on). Then Hard Carry / Out the Back split per `attackingStyle`. Out the Back: fly half (#10) handling gate → outside back (random from 11, 13, 14, 15) handling gate → evasion + collision with outside back as carrier. Hard Carry: evasion + collision with original carrier. `backfieldPenalty` applied to defend evasion score: `three_back` −10, `two_back` −5. Also consumes `state.breakdownMod` | knock_on (handling < 30 at any gate); evasion margin ≥ 15 = line_break; collision ±5 = dominant |
 | **Breakdown** | `ARS = stackedScore(supporters, breakdown, strength) + rng(1,20) + attackBonus` (attackBonus = 6 if previous play was `dominant_carry`, else 0). `stackedScore` sorts players best-first and applies weights [1.0, 0.6, 0.4, 0.3], summed and divided by 2 — so body count AND quality both matter, with diminishing returns. DTS varies by `defendingBreakdown`: **jackal** = `breakdown×0.7 + strength×0.3 + (discipline−50)×0.15 + rng(1,20)`; **counter_ruck** = `stackedScore(top4defenders, strength, breakdown) + rng(1,20)` (top 4 defenders by `strength×0.6 + breakdown×0.4`); **shadow** = `rng(1,10)` (concedes ball to set line) | margin ≥ 10 clean_ball; ≥ -8 slow_ball; ≥ -14 turnover; else penalty_defending |
 | **Scrum** | `avg(setPiece×0.6 + strength×0.4) + rng` for each front 5 | attack margin > 0 stable_win; > -15 wheel; else dominant_penalty |
-| **Lineout** | `throwScore = hookerSetPiece + rng` < 40 → auto steal; then `(setPiece×0.5 + agility×0.5) + rng` each jumper | margin ≥ 5 clean_catch; ≥ 0 scrappy_knock_on; else steal |
+| **Lineout** | `throwScore = hookerSetPiece + rng(1,100)` < 95 → `crooked_throw` (scrum, possession flips, hooker −0.4); then `(setPiece×0.5 + agility×0.5) + rng(1,20)` each jumper | margin ≥ −5 clean_catch; ≥ −15 scrappy_knock_on; else steal |
 | **BoxKick** | `kickScore = kicking + rng(1,20)` ≥ 75 → contested (wingerScore vs fullbackScore + fullbackMod); else uncontested (catchScore + fullbackMod ≥ 35). `fullbackMod`: `three_back` +15, `two_back` +8, `one_back` 0 | contested: margin ≥ 10 attack_retain; ≥ 0 defend_knock_on; else defend_catch_contested. Uncontested: catchScore ≥ 35 defend_catch; else knock_on |
 | **TacticalKick** | `kickScore = kicking + rng(1, 20)` < 25 → poor_kick. Touch probability reduced by backfield: `three_back` −25, `two_back` −15. If kick caught: `breakdownMod.attack` = `three_back` +10, `two_back` +5 | goodKick: outOnTheFull 0%, touch 75% (minus reduction); poorKick: outOnTheFull 30%, touch 30% → Lineout / OpenPlay |
 | **GoalKick** | `kicking + composure×0.2 − anglePenalty + rng(1,20)` | ≥ 65 = success |

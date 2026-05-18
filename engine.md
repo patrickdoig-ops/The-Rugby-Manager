@@ -411,13 +411,24 @@ The attacking jumper is chosen at random from ids 4 (Left Lock), 5 (Right Lock),
 
 ### Step 1 — Throw quality gate
 
-The hooker attempts the throw, combining their set-piece stat with a random dice roll. If the throw is extremely poor and fails to meet a minimum threshold, the lineout is considered not straight or easily stolen, and the defending team takes possession immediately without a jump contest.
+```
+throwScore = hooker.setPiece + rng(1, 100)
+if throwScore < 95 → crooked_throw
+```
 
-If the throw fails, the defending team takes possession with no jump contest — `attackJumpScore` and `defendJumpScore` are both 0 in the returned resolution.
+`rng(1, 100)` is used here (not the usual 1–20) to allow fine probability calibration. For the hookers in the current squads (setPiece 88–90), this gives a ~4–6% crooked-throw rate. A hooker with setPiece 75 would fail ~19% of the time; setPiece 60 fails ~34% of the time.
+
+On a crooked throw: possession flips, scrum awarded to the defending team. `attackJumpScore` and `defendJumpScore` are both 0.
 
 ### Step 2 — Jump contest
 
-If the throw is good, the designated jumpers from both teams compete in the air. Both jumpers use a combination of their set-piece stat and agility, plus a random dice roll, to generate a jump score. The defending jumper's score is subtracted from the attacking jumper's score to determine the margin:
+If the throw is good, both jumpers compete in the air using set-piece and agility, plus a random dice roll. The defending jumper's score is subtracted from the attacking jumper's score:
+
+```
+attackJumpScore = (setPiece×0.5 + agility×0.5) + rng(1,20)
+defendJumpScore = (setPiece×0.5 + agility×0.5) + rng(1,20)
+margin = attackJumpScore − defendJumpScore
+```
 
 | Margin | Result |
 |---|---|
@@ -425,7 +436,7 @@ If the throw is good, the designated jumpers from both teams compete in the air.
 | −15 to −6 | `scrappy_knock_on` → Scrum (possession flips) |
 | < −15 | `steal` → OpenPlay (possession flips) |
 
-The attack team has a significant advantage; a clean catch is the expected outcome unless the defending jumper is markedly superior.
+The attack team has a significant advantage at the jump; clean catch is the expected outcome unless the defending jumper is markedly superior.
 
 ### Ball movement
 
@@ -435,10 +446,11 @@ None.
 
 | Outcome | Player | Delta |
 |---|---|---|
-| clean_catch | attackJumper (id 4) | +0.15 |
-| scrappy_knock_on | attackJumper | −0.20 |
-| steal | defendJumper | +0.30 |
-| steal | attackJumper | −0.10 |
+| crooked_throw | hooker | −0.4 |
+| clean_catch | attackJumper | +0.225 |
+| scrappy_knock_on | attackJumper | −0.3 |
+| steal | defendJumper | +0.45 |
+| steal | attackJumper | −0.15 |
 
 ---
 

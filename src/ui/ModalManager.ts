@@ -19,7 +19,7 @@ const CHOICE_DESC: Record<PenaltyChoice, string> = {
 const KICKOFF_LABELS: Record<KickOffStrategy, string> = {
   short_kick: 'Kick Short',
   grubber:    'Grubber Kick',
-  high_ball:  'Kick Long',
+  high_ball:  'Kick Deep',
 };
 
 const KICKOFF_DESC: Record<KickOffStrategy, string> = {

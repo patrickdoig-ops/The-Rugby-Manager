@@ -12,7 +12,7 @@ export function handleScrum({ state, attackTeam, defendTeam, adjustRating, draft
   const res = resolveScrum(attackForwards, defendForwards);
 
   if (res.result === 'stable_win') {
-    adjustRating(attackHooker, +0.1);
+    adjustRating(attackHooker, +0.15);
     state.stats.scrums[state.possession]++;
     return {
       nextPhase: MatchPhase.OpenPlay,
@@ -32,8 +32,8 @@ export function handleScrum({ state, attackTeam, defendTeam, adjustRating, draft
   }
 
   // dominant_penalty — defending team wins the penalty
-  adjustRating(defendHooker, +0.15);
-  adjustRating(attackHooker, -0.2);
+  adjustRating(defendHooker, +0.225);
+  adjustRating(attackHooker, -0.3);
   state.possession = state.possession === 'home' ? 'away' : 'home';
   state.stats.scrums[state.possession]++;
   return {

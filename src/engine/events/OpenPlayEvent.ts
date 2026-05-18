@@ -47,13 +47,13 @@ export function handleOpenPlay({ state, attackTeam, defendTeam, attackDir, isTry
   let commentary: string;
 
   if (res.outcome === 'knock_on') {
-    adjustRating(carrier, -0.3);
+    adjustRating(carrier, -0.45);
     state.stats.handlingErrors[state.possession]++;
     state.possession = state.possession === 'home' ? 'away' : 'home';
     nextPhase = MatchPhase.Scrum;
     commentary = getCommentary({ ...draftEvent(MatchPhase.OpenPlay), primaryPlayer: carrier, secondaryPlayer: defender }, 'knock_on');
   } else if (res.outcome === 'line_break') {
-    adjustRating(carrier, +0.25);
+    adjustRating(carrier, +0.375);
     state.ballX = clamp(state.ballX + attackDir() * res.gainMetres, 0, 100);
     nextPhase = isTryScored() ? MatchPhase.TryScored : MatchPhase.Breakdown;
     const lineBreakNote = (backfieldPenalty < 0 && state.possession !== 'home')
@@ -64,15 +64,15 @@ export function handleOpenPlay({ state, attackTeam, defendTeam, attackDir, isTry
       : '';
     commentary = getCommentary({ ...draftEvent(MatchPhase.OpenPlay), primaryPlayer: carrier, secondaryPlayer: defender }, 'line_break') + lineBreakNote;
   } else if (res.outcome === 'dominant_tackle') {
-    adjustRating(defender, +0.2);
-    adjustRating(carrier, -0.05);
+    adjustRating(defender, +0.3);
+    adjustRating(carrier, -0.075);
     state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
     state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].made++;
     state.ballX = clamp(state.ballX + attackDir() * res.gainMetres, 0, 100);
     nextPhase = MatchPhase.Breakdown;
     commentary = getCommentary({ ...draftEvent(MatchPhase.OpenPlay), primaryPlayer: carrier, secondaryPlayer: defender }, 'dominant_tackle');
   } else {
-    if (res.outcome === 'dominant_carry') adjustRating(carrier, +0.15);
+    if (res.outcome === 'dominant_carry') adjustRating(carrier, +0.225);
     state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
     state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].made++;
     state.ballX = clamp(state.ballX + attackDir() * res.gainMetres, 0, 100);

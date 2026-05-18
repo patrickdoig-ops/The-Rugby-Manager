@@ -29,7 +29,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
   // Update ballX tentatively
   state.ballX = clamp(state.ballX + kickDir * res.distance, 5, 95);
 
-  adjustRating(kicker, goodKick ? +0.1 : -0.15);
+  adjustRating(kicker, goodKick ? +0.15 : -0.225);
 
   if (goesOutOnTheFull) {
     if (!startedInOwn22) {

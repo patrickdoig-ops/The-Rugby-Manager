@@ -215,7 +215,7 @@ export class MatchEngine {
 
   private adjustRating(player: Player | undefined, delta: number): void {
     if (!player) return;
-    player.rating = clamp(player.rating + delta * 1.5, 1, 10);
+    player.rating = clamp(player.rating + delta, 1, 10);
   }
 
   // Home attacks toward x=100 in the first half, toward x=0 in the second.
@@ -485,8 +485,8 @@ export class MatchEngine {
       const distFromPosts = Math.abs(state.ballY - 50) * 0.3 + Math.abs(state.ballX - tryLine) * 0.2;
       const res = resolveGoalKick(kicker, distFromPosts);
 
-      if (res.success) this.adjustRating(kicker, +0.2);
-      else             this.adjustRating(kicker, -0.15);
+      if (res.success) this.adjustRating(kicker, +0.3);
+      else             this.adjustRating(kicker, -0.225);
 
       const penEvent: GameEvent = {
         id: makeId(),

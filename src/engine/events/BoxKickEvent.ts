@@ -21,9 +21,9 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
   state.ballX = clamp(state.ballX + attackDir() * (res.quality === 'very_good' ? 15 : 8), 5, 95);
 
   if (res.outcome === 'attack_retain') {
-    adjustRating(scrumHalf, +0.1);
-    adjustRating(winger, +0.2);
-    adjustRating(fullback, -0.1);
+    adjustRating(scrumHalf, +0.15);
+    adjustRating(winger, +0.3);
+    adjustRating(fullback, -0.15);
     return {
       nextPhase: MatchPhase.OpenPlay,
       commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: winger }, 'attack_retain'),
@@ -33,9 +33,9 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
   }
 
   if (res.outcome === 'defend_knock_on') {
-    adjustRating(scrumHalf, +0.05);
-    adjustRating(winger, +0.1);
-    adjustRating(fullback, -0.15);
+    adjustRating(scrumHalf, +0.075);
+    adjustRating(winger, +0.15);
+    adjustRating(fullback, -0.225);
     state.stats.handlingErrors[state.possession === 'home' ? 'away' : 'home']++;
     return {
       nextPhase: MatchPhase.Scrum,
@@ -46,8 +46,8 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
   }
 
   if (res.outcome === 'defend_catch_contested') {
-    adjustRating(fullback, +0.2);
-    adjustRating(winger, -0.1);
+    adjustRating(fullback, +0.3);
+    adjustRating(winger, -0.15);
     state.possession = state.possession === 'home' ? 'away' : 'home';
     return {
       nextPhase: MatchPhase.OpenPlay,
@@ -58,7 +58,7 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
   }
 
   if (res.outcome === 'defend_catch') {
-    adjustRating(fullback, +0.1);
+    adjustRating(fullback, +0.15);
     // home team is defending (not possessing) when the box kick goes up
     const homeIsDefending = state.possession !== 'home';
     const catchNote = (homeIsDefending && fullbackMod > 0)
@@ -79,8 +79,8 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
   }
 
   // knock_on — poor kick, fullback drops uncontested
-  adjustRating(scrumHalf, -0.1);
-  adjustRating(fullback, -0.15);
+  adjustRating(scrumHalf, -0.15);
+  adjustRating(fullback, -0.225);
   state.stats.handlingErrors[state.possession === 'home' ? 'away' : 'home']++;
   return {
     nextPhase: MatchPhase.Scrum,

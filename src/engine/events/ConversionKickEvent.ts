@@ -10,11 +10,11 @@ export function handleConversionKick({ state, attackTeam, adjustRating, draftEve
 
   let commentary: string;
   if (res.success) {
-    adjustRating(kicker, +0.15);
+    adjustRating(kicker, +0.225);
     state.score[state.possession] += 2;
     commentary = getCommentary({ ...draftEvent(MatchPhase.ConversionKick), primaryPlayer: kicker }, 'success');
   } else {
-    adjustRating(kicker, -0.1);
+    adjustRating(kicker, -0.15);
     commentary = getCommentary({ ...draftEvent(MatchPhase.ConversionKick), primaryPlayer: kicker }, 'miss');
   }
 

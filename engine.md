@@ -49,7 +49,7 @@ FullTime     → (terminal)
 
 ### Player ratings
 
-All players start at `rating: 6.0`. `adjustRating(player, delta)` multiplies the delta by **1.5** before applying it, then clamps to [1, 10]. The raw delta values documented in each phase section are the pre-multiplier figures; the actual change applied is `delta × 1.5`. Ratings are displayed in the Player Stats panel and update once per game minute.
+All players start at `rating: 6.0`. `adjustRating(player, delta)` clamps `rating + delta` to [1, 10]. Ratings are displayed in the Player Stats panel and update once per game minute.
 
 ---
 

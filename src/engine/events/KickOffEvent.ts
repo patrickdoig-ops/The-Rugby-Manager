@@ -16,7 +16,7 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, adjust
 
   if (res.result === 'knock_on') {
     // Receiver drops it — scrum at landing position, kicking team puts in (no possession flip)
-    adjustRating(receiver, -0.25);
+    adjustRating(receiver, -0.375);
     return {
       nextPhase: MatchPhase.Scrum,
       commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: receiver, secondaryPlayer: chaser }, 'knock_on'),

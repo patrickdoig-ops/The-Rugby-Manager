@@ -243,31 +243,31 @@ Players start each match at `rating: 6.0` (out of 10). `MatchEngine.adjustRating
 
 | Event | Player | Delta |
 |---|---|---|
-| Try scored | scorer | +0.5 |
-| Lineout steal | defender jumper | +0.3 |
-| Breakdown turnover | jackal | +0.3 |
-| Goal kick success (penalty) | kicker | +0.2 |
-| Dominant tackle | defender | +0.2 |
-| Scrum dominant_penalty | defending hooker | +0.15 |
-| Lineout clean_catch | attack jumper | +0.15 |
-| Goal kick success (conversion) | kicker | +0.15 |
-| Dominant carry | carrier | +0.15 |
-| Line break | carrier | +0.25 |
-| Scrum stable_win | hooker | +0.1 |
-| Breakdown clean_ball | primary supporter | +0.1 |
-| Tactical kick success | kicker | +0.1 |
-| Knock-on (open play) | carrier | −0.3 |
-| Lineout steal conceded | attack jumper | −0.2 |
-| Tactical kick catch drop | defender | −0.2 |
-| Scrum dominant_penalty conceded | attack hooker | −0.2 |
-| Breakdown penalty conceded | primary supporter | −0.25 |
-| Kick-off knock-on | receiver | −0.25 |
-| Goal kick miss (penalty) | kicker | −0.15 |
-| Tactical kick poor | kicker | −0.15 |
-| Lineout scrappy_knock_on | attack jumper | −0.2 |
-| Breakdown turnover conceded | primary supporter | −0.1 |
-| Goal kick miss (conversion) | kicker | −0.1 |
-| Dominant tackle conceded | carrier | −0.05 |
+| Try scored | scorer | +0.75 |
+| Lineout steal | defender jumper | +0.45 |
+| Breakdown turnover | jackal | +0.45 |
+| Goal kick success (penalty) | kicker | +0.3 |
+| Dominant tackle | defender | +0.3 |
+| Scrum dominant_penalty | defending hooker | +0.225 |
+| Lineout clean_catch | attack jumper | +0.225 |
+| Goal kick success (conversion) | kicker | +0.225 |
+| Dominant carry | carrier | +0.225 |
+| Line break | carrier | +0.375 |
+| Scrum stable_win | hooker | +0.15 |
+| Breakdown clean_ball | primary supporter | +0.15 |
+| Tactical kick success | kicker | +0.15 |
+| Knock-on (open play) | carrier | −0.45 |
+| Lineout steal conceded | attack jumper | −0.3 |
+| Tactical kick catch drop | defender | −0.3 |
+| Scrum dominant_penalty conceded | attack hooker | −0.3 |
+| Breakdown penalty conceded | primary supporter | −0.375 |
+| Kick-off knock-on | receiver | −0.375 |
+| Goal kick miss (penalty) | kicker | −0.225 |
+| Tactical kick poor | kicker | −0.225 |
+| Lineout scrappy_knock_on | attack jumper | −0.3 |
+| Breakdown turnover conceded | primary supporter | −0.15 |
+| Goal kick miss (conversion) | kicker | −0.15 |
+| Dominant tackle conceded | carrier | −0.075 |
 
 ### UI module responsibilities
 

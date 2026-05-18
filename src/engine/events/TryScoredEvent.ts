@@ -5,7 +5,7 @@ import { getCommentary } from '../CommentaryEngine';
 export function handleTryScored({ state, attackTeam, adjustRating, randomPlayer, draftEvent }: PhaseContext): PhaseResult {
   const lastEvent = state.events[state.events.length - 1];
   const scorer = lastEvent?.primaryPlayer ?? randomPlayer(attackTeam);
-  adjustRating(scorer, +0.5);
+  adjustRating(scorer, +0.75);
 
   const otherSide = state.possession === 'home' ? 'away' : 'home';
   const scoreBefore = state.score[state.possession];

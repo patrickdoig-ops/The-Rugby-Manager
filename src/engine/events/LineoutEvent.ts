@@ -15,7 +15,7 @@ export function handleLineout({ state, attackTeam, defendTeam, adjustRating, pic
   const res = resolveLineout(hooker, attackJumper, defendJumper);
 
   if (res.result === 'clean_catch') {
-    adjustRating(attackJumper, +0.15);
+    adjustRating(attackJumper, +0.225);
     state.stats.lineouts[state.possession]++;
     return {
       nextPhase: MatchPhase.OpenPlay,
@@ -27,7 +27,7 @@ export function handleLineout({ state, attackTeam, defendTeam, adjustRating, pic
   }
 
   if (res.result === 'scrappy_knock_on') {
-    adjustRating(attackJumper, -0.2);
+    adjustRating(attackJumper, -0.3);
     state.stats.handlingErrors[state.possession]++;
     state.possession = state.possession === 'home' ? 'away' : 'home';
     return {
@@ -39,8 +39,8 @@ export function handleLineout({ state, attackTeam, defendTeam, adjustRating, pic
   }
 
   // steal
-  adjustRating(defendJumper, +0.3);
-  adjustRating(attackJumper, -0.1);
+  adjustRating(defendJumper, +0.45);
+  adjustRating(attackJumper, -0.15);
   state.possession = state.possession === 'home' ? 'away' : 'home';
   state.stats.lineouts[state.possession]++;
   return {

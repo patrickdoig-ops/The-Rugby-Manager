@@ -54,13 +54,15 @@ export function renderSubstitutionPanel(container: HTMLElement, homeTeam: Team):
         </button>`;
     }).join('');
 
+    const xIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="12" height="12" aria-hidden="true" style="pointer-events:none"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>`;
+
     const pendingHtml = pendingSubs.length > 0
       ? `<div class="sub-section-label">Pending</div>
          <div id="sub-pending-list">
            ${pendingSubs.map((s, i) => `
              <div class="sub-pending-row">
                <span class="sub-pending-text">${s.benchLabel} <span class="sub-pending-arrow">→</span> ${s.fieldLabel}</span>
-               <button class="sub-pending-remove" data-idx="${i}" aria-label="Remove">×</button>
+               <button class="sub-pending-remove" data-idx="${i}" aria-label="Remove">${xIcon}</button>
              </div>`).join('')}
          </div>`
       : '';
@@ -78,8 +80,14 @@ export function renderSubstitutionPanel(container: HTMLElement, homeTeam: Team):
         <div id="sub-starter-list">${starterRows}</div>
       ` : ''}
       <div class="sub-action-row">
-        <button id="btn-subs-cancel" class="modal-choice-btn sub-cancel-btn">Cancel</button>
-        <button id="btn-subs-confirm" class="primary-cta-btn sub-confirm-btn"${confirmDisabled}>Confirm substitutions</button>
+        <button id="btn-subs-cancel" class="sub-action-btn sub-action-cancel">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="16" height="16" aria-hidden="true" style="pointer-events:none"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+          <span>Cancel</span>
+        </button>
+        <button id="btn-subs-confirm" class="sub-action-btn sub-action-confirm"${confirmDisabled}>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="16" height="16" aria-hidden="true" style="pointer-events:none"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+          <span>Confirm</span>
+        </button>
       </div>
     `;
 

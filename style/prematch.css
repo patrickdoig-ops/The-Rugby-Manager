@@ -102,7 +102,7 @@
 .pm-panel { padding: 10px 12px 0; }
 .pm-panel.hidden { display: none; }
 
-/* ─── Stat group legend ─── */
+/* ─── Stat group legend — sticky so column labels stay visible while scrolling ─── */
 .pm-legend {
   display: flex;
   gap: 4px;
@@ -110,6 +110,10 @@
   padding-left: 116px; /* pm-player-hd width (108px) + pm-player gap (8px) */
   border-bottom: 1px solid var(--rm-hairline);
   margin-bottom: 6px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--rm-bg);
 }
 
 .legend-group {
@@ -291,7 +295,7 @@
   .pm-panel  { padding: 12px 24px 0; max-width: 900px; margin: 0 auto; }
 
   .pm-player-hd { width: 140px; }
-  .pm-legend    { padding-left: 148px; } /* pm-player-hd width (140px) + pm-player gap (8px) */
+  .pm-legend    { padding-left: 148px; background: var(--rm-bg); } /* pm-player-hd width (140px) + pm-player gap (8px) */
   .pm-name       { font-size: 13px; }
   .pm-pos        { font-size: 10px; }
 
@@ -349,6 +353,9 @@
 /* ─── Starters become swap targets when a bench player is selected ─── */
 .pm-player--starter.pm-swap-target {
   cursor: pointer;
+  outline: 1px solid color-mix(in oklch, var(--rm-pitch) 55%, var(--rm-border-soft));
+  border-radius: 4px;
+  background: color-mix(in oklch, var(--rm-pitch) 5%, transparent);
 }
 
 /* ─── Swap icon button in player header ─── */
@@ -370,23 +377,24 @@
   opacity: 1;
 }
 
-.pm-player--starter.pm-swap-target {
-  outline: 1px solid var(--rm-border-soft);
-  border-radius: 4px;
-}
-
 @media (min-width: 700px) {
   .pm-player--starter.pm-swap-target:hover {
-    background: color-mix(in oklch, var(--rm-pitch) 8%, transparent);
+    background: color-mix(in oklch, var(--rm-pitch) 10%, transparent);
     outline-color: var(--rm-pitch);
   }
 }
 
-/* ─── Lineup hint bar ─── */
-.pm-lineup-hint {
+/* ─── Lineup hint bar — in header, hidden for non-home tabs ─── */
+.pm-hint-bar {
   font-family: var(--rm-font-mono);
   font-size: 10px;
   color: var(--rm-text-dim);
-  text-align: center;
-  padding: 6px 0 2px;
+  text-align: right;
+  padding: 5px 0 8px;
+  border-top: 1px solid var(--rm-hairline);
+  margin-top: 2px;
+}
+
+.pm-hint-hidden {
+  display: none;
 }

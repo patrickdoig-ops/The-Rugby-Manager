@@ -103,14 +103,13 @@
 
 .tactics-modal-footer {
   margin-top: 12px;
-  display: flex;
-  justify-content: flex-end;
   border-top: 1px solid var(--rm-border-soft);
   padding-top: 16px;
 }
 
 .tactics-resume-btn {
-  padding: 12px 32px;
+  width: 100%;
+  padding: 13px 24px;
   background: #007a2a;
   color: #ffffff;
   border: 1px solid rgba(255,255,255,0.12);
@@ -118,11 +117,15 @@
   font-family: var(--rm-font-body);
   font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   transition: background 0.15s, box-shadow 0.15s;
-  box-shadow: 0 4px 24px rgba(0,122,42,0.45), inset 0 1px 0 rgba(255,255,255,0.10);
+  box-shadow: 0 4px 24px color-mix(in oklch, var(--rm-pitch) 28%, transparent), inset 0 1px 0 rgba(255,255,255,0.10);
 }
 
 .tactics-resume-btn:hover {

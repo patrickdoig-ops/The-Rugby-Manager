@@ -704,37 +704,55 @@ html, body {
 .sub-action-row {
   display: flex;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
-.sub-cancel-btn {
+.sub-action-btn {
   flex: 1;
-  text-align: center;
+  display: flex;
+  align-items: center;
   justify-content: center;
-}
-
-.sub-confirm-btn {
-  flex: 2;
-  padding: 9px 12px;
-  background: #007a2a;
-  border: none;
-  border-radius: 8px;
-  color: #fff;
+  gap: 6px;
+  padding: 11px 10px;
+  border-radius: 10px;
   font-family: var(--rm-font-body);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.12s, border-color 0.12s;
+  white-space: nowrap;
 }
 
-.sub-confirm-btn:disabled {
+.sub-action-cancel {
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  color: var(--rm-text-muted);
+}
+
+.sub-action-cancel:active {
   background: var(--rm-surface-3);
+}
+
+.sub-action-confirm {
+  background: #007a2a;
+  border: 1px solid transparent;
+  color: #ffffff;
+  box-shadow: 0 4px 16px color-mix(in oklch, var(--rm-pitch) 22%, transparent);
+}
+
+.sub-action-confirm:not(:disabled):active {
+  background: #006622;
+  box-shadow: none;
+}
+
+.sub-action-confirm:disabled {
+  background: var(--rm-surface-3);
+  border-color: transparent;
   color: var(--rm-text-dim);
   cursor: default;
-}
-
-.sub-confirm-btn:not(:disabled):active {
-  background: #006622;
+  box-shadow: none;
 }
 
 .sub-pending-row {
@@ -848,5 +866,13 @@ html, body {
   .modal-choice-btn:hover {
     background: var(--rm-surface-2);
     border-color: var(--rm-pitch);
+  }
+
+  .sub-action-cancel:hover {
+    background: var(--rm-surface-3);
+  }
+
+  .sub-action-confirm:not(:disabled):hover {
+    background: #009434;
   }
 }

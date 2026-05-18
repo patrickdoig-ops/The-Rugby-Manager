@@ -162,6 +162,25 @@ These values are intentionally fixed and must not be replaced with tokens:
 
 ## Button Patterns
 
+### Button System Rules
+
+Two patterns govern all buttons in the app based on how many actions appear together:
+
+**Single action (full-width CTA):** When a view or modal has one primary action, the button spans the full available width. The label is always in block capitals (`text-transform: uppercase`, `letter-spacing: 0.06–0.08em`). Examples: "RESUME MATCH", "KICK OFF", "START GAME". Use the primary CTA green spec for positive actions.
+
+**Multi-button row (icon-led pair):** When two actions appear side by side (confirm/cancel), each button leads with a Heroicons SVG icon (`width="16" height="16"`, `pointer-events: none`) followed by a short uppercase label. Both use `flex: 1`. Confirm uses primary CTA green; Cancel uses secondary/neutral.
+
+Standard icon assignments for paired buttons:
+- Cancel / Dismiss: `x-mark` outline (`M6 18 18 6M6 6l12 12`)
+- Confirm / Apply: `check` outline (`m4.5 12.75 6 6 9-13.5`)
+
+CSS class pattern for multi-button rows:
+```css
+.sub-action-btn      /* shared base: flex, gap, padding, font, uppercase */
+.sub-action-cancel   /* surface-2 fill, soft border, muted text */
+.sub-action-confirm  /* #007a2a fill, white text, pitch glow shadow */
+```
+
 ### Primary CTA — pitch green, dark text
 
 The primary CTA is used for the single most important action on each screen. It uses the hardcoded green spec (not a token) and must remain visually dominant.

@@ -1,7 +1,6 @@
 import type { Player } from '../../types/player';
 import type { BreakdownResult } from '../../types/engine';
 import type { DefendingBreakdown } from '../../types/team';
-import { avgStat } from '../../utils/math';
 import { rng } from '../../utils/rng';
 
 export interface BreakdownResolution {
@@ -11,6 +10,29 @@ export interface BreakdownResolution {
   margin: number;
 }
 
+// Diminishing-return weights per body at the ruck. Players sorted best-first
+// so the strongest specialist always gets the full 1.0 weight.
+const WEIGHTS = [1.0, 0.6, 0.4, 0.3];
+
+function stackedScore(
+  players: Player[],
+  leadStat: 'breakdown' | 'strength',
+  supportStat: 'breakdown' | 'strength',
+): number {
+  const sorted = [...players].sort((a, b) =>
+    (b.currentStats[leadStat] * 0.6 + b.currentStats[supportStat] * 0.4) -
+    (a.currentStats[leadStat] * 0.6 + a.currentStats[supportStat] * 0.4)
+  );
+  return sorted.reduce((sum, p, i) => {
+    const w = WEIGHTS[i] ?? 0.3;
+    return sum + (
+      p.currentStats[leadStat] * 0.6
+      + p.currentStats[supportStat] * 0.4
+      + (p.currentStats.discipline - 50) * 0.15
+    ) * w;
+  }, 0) / 2;
+}
+
 export function resolveBreakdown(
   supporters: Player[],
   jackal: Player,
@@ -18,20 +40,19 @@ export function resolveBreakdown(
   defendPack: Player[] = [],
   attackBonus = 0,
 ): BreakdownResolution {
-  const ars = avgStat(supporters, 'breakdown') * 0.6
-            + avgStat(supporters, 'strength') * 0.4
-            + (avgStat(supporters, 'discipline') - 50) * 0.15
-            + rng(1, 20)
-            + attackBonus;
+  const ars = stackedScore(supporters, 'breakdown', 'strength') + rng(1, 20) + attackBonus;
 
   let dts: number;
   if (defPlan === 'counter_ruck' && defendPack.length > 0) {
-    dts = avgStat(defendPack, 'strength') * 0.6
-        + avgStat(defendPack, 'breakdown') * 0.4
-        + (avgStat(defendPack, 'discipline') - 50) * 0.15
-        + rng(1, 20);
+    const top4 = [...defendPack]
+      .sort((a, b) =>
+        (b.currentStats.strength * 0.6 + b.currentStats.breakdown * 0.4) -
+        (a.currentStats.strength * 0.6 + a.currentStats.breakdown * 0.4)
+      )
+      .slice(0, 4);
+    dts = stackedScore(top4, 'strength', 'breakdown') + rng(1, 20);
   } else if (defPlan === 'shadow') {
-    dts = rng(1, 10); // Low score concedes clean ball to reset defensive line
+    dts = rng(1, 10);
   } else {
     // jackal
     dts = jackal.currentStats.breakdown * 0.7
@@ -50,4 +71,3 @@ export function resolveBreakdown(
 
   return { result, ars, dts, margin };
 }
-

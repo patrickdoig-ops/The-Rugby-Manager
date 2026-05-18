@@ -17,8 +17,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
   const lastOpenPlay = lastEvent?.phase === MatchPhase.OpenPlay ? lastEvent : undefined;
   const carrierId = lastOpenPlay?.primaryPlayer?.id;
   const dominantCarryBonus = lastOpenPlay?.outcome === 'dominant_carry' ? 6 : 0;
-  const commitBonus = attPlan === 'pick_and_drive' ? 8 : (attPlan === 'wide_play' ? -5 : 0);
-  const attackBonus = dominantCarryBonus + commitBonus;
+  const attackBonus = dominantCarryBonus;
 
   // Next-phase modifier: more players committed to ruck = fewer on feet for the next phase
   const nextAttackMod = attPlan === 'pick_and_drive' ? -8 : (attPlan === 'wide_play' ? 8 : 0);

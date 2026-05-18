@@ -267,17 +267,19 @@ Applies to `ballCarrier` (the outside back on the Out the Back path, or the orig
 ### Player selection
 
 ```typescript
-forwardPool = attackTeam.players.filter(p => p.id <= 8)
+forwardPool = attackTeam.players.filter(p => p.id <= 8 && p.id !== carrierId)
 backRow     = defendTeam.players.filter(p => p.id >= 6 && p.id <= 8)
+defendPack  = defendTeam.players.filter(p => p.id <= 8)
 ```
-Three attacking forwards are chosen at random from the full forward pool (ids 1–8). The defending jackal is chosen at random from the back row (ids 6–8); each of the three back-row players has an equal chance of attempting the steal.
+
+Attacking supporters are sampled at random (without replacement) from the forward pool. The count is set by `attackingBreakdown`: `pick_and_drive` = 4, `balanced` = 3, `wide_play` = 2. The defending jackal is chosen at random from the back row (ids 6–8). The full defending pack (ids 1–8) is also passed for use by the `counter_ruck` branch.
 
 **Tactical Breakdown Commitment (`AttackingBreakdown` & `DefendingBreakdown`):**
-- **Attacking:** Supporter count is driven by `attackTeam.tactics.attackingBreakdown`: `pick_and_drive` commits 4 forwards; `balanced` commits 3 forwards; `wide_play` commits 2 forwards. Commitment also adds a direct ARS bonus: `pick_and_drive` +8, `balanced` 0, `wide_play` −5.
+- **Attacking:** Supporter count is driven by `attackTeam.tactics.attackingBreakdown`: `pick_and_drive` commits 4 forwards; `balanced` commits 3 forwards; `wide_play` commits 2 forwards. Body count directly drives ARS via the stacked-score formula — no separate flat bonus.
 - **Defending:** Strategy is driven by `defendTeam.tactics.defendingBreakdown`:
-  - `jackal`: Relies on individual back-row specialist's breakdown stat (standard turnover contest).
-  - `counter_ruck`: Engages the entire defending pack (ids 1–8) using average strength and breakdown power.
-  - `shadow`: Concedes ruck ball (low defensive score) to maintain a perfectly aligned defensive line.
+  - `jackal`: Relies on a single back-row specialist's breakdown stat.
+  - `counter_ruck`: The 4 strongest defenders (by `strength×0.6 + breakdown×0.4`) contest the ruck using the stacked-score formula.
+  - `shadow`: Concedes ruck ball (DTS = rng(1,10)) to maintain a perfectly aligned defensive line.
 
 **Next-phase carry-over (`state.breakdownMod`):** Committing more players to the ruck leaves fewer available for the next phase. After every breakdown the engine sets `state.breakdownMod.attack` and `state.breakdownMod.defend` which are consumed (and reset to zero) by the very next `OpenPlay` phase, where they are applied as modifiers to the evasion and defence scores respectively.
 
@@ -294,11 +296,39 @@ On turnover or penalty, `breakdownMod` is reset to `{0, 0}` immediately — poss
 
 ### Resolution
 
-The attacking team generates an Attack Ruck Score based heavily on the breakdown and strength stats of their supporting players. They also receive a slight bonus or penalty depending on whether their average discipline is above or below 50.
+Both attack and defense use a **diminishing-return stacked score** (`stackedScore`). Players are sorted best-first (by their two primary stats), then each contributes their weighted score with the weights `[1.0, 0.6, 0.4, 0.3]` for positions 1–4. The raw weighted sum is divided by 2, which calibrates 3 supporters (balanced) to the same base as a simple average.
 
-The defending jackal generates a Defensive Turnover Score based heavily on their individual breakdown and strength stats, also modified slightly by their discipline.
+```
+stackedScore(players, leadStat, supportStat):
+  sort players descending by (leadStat×0.6 + supportStat×0.4)
+  sum = Σ (leadStat×0.6 + supportStat×0.4 + (discipline−50)×0.15) × WEIGHTS[i]
+  return sum / 2
+```
 
-Both scores include a random dice roll. The defensive score is subtracted from the attacking score to determine the margin:
+**ARS (Attack Ruck Score):**
+```
+ARS = stackedScore(supporters, breakdown, strength) + rng(1,20) + attackBonus
+attackBonus = 6 if previous play was dominant_carry, else 0
+```
+
+**DTS (Defensive Turnover Score):**
+- **jackal**: `breakdown×0.7 + strength×0.3 + (discipline−50)×0.15 + rng(1,20)`
+- **counter_ruck**: `stackedScore(top4defenders, strength, breakdown) + rng(1,20)`
+- **shadow**: `rng(1,10)`
+
+The top 4 defenders for `counter_ruck` are the 4 forwards with the highest `strength×0.6 + breakdown×0.4` score.
+
+Effect of player count on ARS (same-quality supporters, typical stats):
+
+| Tactic | Supporters | Weight sum | ARS multiplier vs average |
+|---|---|---|---|
+| `wide_play` | 2 | 1.6 | ×0.80 |
+| `balanced` | 3 | 2.0 | ×1.00 (baseline) |
+| `pick_and_drive` | 4 | 2.3 | ×1.15 |
+
+Both quality (stat values) and quantity (number of bodies) now independently influence the score. A team with specialist breakdown forwards benefits more from committing them to the ruck.
+
+**Margin and outcomes:**
 
 | Margin | Result |
 |---|---|
@@ -315,12 +345,12 @@ None. `ballX` does not change during a breakdown.
 
 | Outcome | Player | Delta |
 |---|---|---|
-| clean_ball | supporters[0] (randomly selected forward) | +0.10 |
-| turnover | jackal | +0.30 |
-| turnover | supporters[0] | −0.10 |
-| penalty_defending | supporters[0] | −0.25 |
+| clean_ball | supporters[0] (primary forward) | +0.15 |
+| turnover | jackal | +0.75 |
+| turnover | supporters[0] | −0.15 |
+| penalty_defending | supporters[0] | −0.375 |
 
-`supporters[0]` is the first of the three randomly selected forwards and serves as the `primaryPlayer` for commentary and rating purposes.
+`supporters[0]` is the first randomly selected forward and serves as the `primaryPlayer` for commentary and rating purposes.
 
 ---
 

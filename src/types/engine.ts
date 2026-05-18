@@ -17,6 +17,7 @@ export enum MatchPhase {
 }
 
 export type PossessionSide = 'home' | 'away';
+export type KickOffStrategy = 'high_ball' | 'short_kick' | 'grubber';
 
 export type BreakdownResult = 'clean_ball' | 'slow_ball' | 'turnover' | 'penalty_defending';
 export type ScrumResult     = 'stable_win' | 'wheel' | 'dominant_penalty';

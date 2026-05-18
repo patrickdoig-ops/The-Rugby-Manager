@@ -188,11 +188,12 @@ Resolver formulas at a glance:
 
 ### Tactics system
 
-Six tactic dimensions are defined in `TeamTactics` (see `src/types/team.ts`). The UI (`TacticsMenu.ts`) lets the **home team** change all six mid-match. Away team uses engine defaults and cannot be changed through the UI.
+Five tactic dimensions are defined in `TeamTactics` (see `src/types/team.ts`). The UI (`TacticsMenu.ts`) lets the **home team** change all five mid-match. Away team uses engine defaults and cannot be changed through the UI.
+
+Kick-off strategy is **not** a standing tactic. It is chosen per kick-off via an interactive modal (home team) or auto-selected by the engine (away team: default `high_ball`; `short_kick` if `gameMinute >= 70 && score.away < score.home`). `KickOffStrategy` is defined in `src/types/engine.ts`.
 
 | Tactic | Values | Engine effect |
 |---|---|---|
-| `kickOffStrategy` | `high_ball` / `short_kick` / `grubber` | Changes kick distance and `catchMod` in `KickOffResolver` |
 | `attackingGamePlan` | `possession` / `balanced` / `kicking` | Kick-or-carry probability in OpenPlay (per pitch zone); box kick propensity in Breakdown |
 | `attackingStyle` | `keep_it_tight` / `balanced` / `wide_wide` | Hard Carry vs Out the Back split in OpenPlay (90/10, 70/30, 50/50) |
 | `attackingBreakdown` | `pick_and_drive` / `balanced` / `wide_play` | Supporter count (4 / 3 / 2) in `BreakdownEvent` |

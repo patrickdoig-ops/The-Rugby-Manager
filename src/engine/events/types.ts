@@ -1,4 +1,4 @@
-import type { MatchPhase } from '../../types/engine';
+import type { MatchPhase, KickOffStrategy } from '../../types/engine';
 import type { GameEvent, MatchState } from '../../types/match';
 import type { Team } from '../../types/team';
 import type { Player } from '../../types/player';
@@ -17,6 +17,7 @@ export interface PhaseContext {
   randomPlayer(team: Team): Player;
   pickPlayer(team: Team, ...ids: number[]): Player;
   draftEvent(phase: MatchPhase): GameEvent;
+  kickOffStrategy: KickOffStrategy;
 }
 
 export interface PhaseResult {

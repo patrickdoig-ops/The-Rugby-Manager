@@ -1,6 +1,7 @@
 import type { Player } from '../../types/player';
 import type { KickOffResult } from '../../types/engine';
-import type { KickOffStrategy, BackfieldDefence } from '../../types/team';
+import type { KickOffStrategy } from '../../types/engine';
+import type { BackfieldDefence } from '../../types/team';
 import { rng } from '../../utils/rng';
 
 export interface KickOffResolution {

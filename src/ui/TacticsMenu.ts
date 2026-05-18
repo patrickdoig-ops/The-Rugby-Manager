@@ -1,17 +1,11 @@
 import { eventBus } from '../utils/eventBus';
-import type { TeamTactics, KickOffStrategy, AttackingGamePlan, AttackingStyle, AttackingBreakdown, DefendingBreakdown, BackfieldDefence } from '../types/team';
+import type { TeamTactics, AttackingGamePlan, AttackingStyle, AttackingBreakdown, DefendingBreakdown, BackfieldDefence } from '../types/team';
 
 interface OptionDef<T> {
   value: T;
   label: string;
   desc: string;
 }
-
-const KICKOFF_OPTIONS: OptionDef<KickOffStrategy>[] = [
-  { value: 'high_ball',  label: 'High Ball',   desc: 'Deep kick with hang time to allow chasers to contest cleanly.' },
-  { value: 'short_kick', label: 'Short Kick',  desc: 'Just crosses the 10m line for an aggressive aerial contest.' },
-  { value: 'grubber',    label: 'Grubber',     desc: 'Low hard kick along the ground to force handling errors.' },
-];
 
 const ATTACK_PLAN_OPTIONS: OptionDef<AttackingGamePlan>[] = [
   { value: 'possession', label: 'Possession', desc: 'Patient phase play, minimal kicking, keep ball in hand.' },
@@ -76,7 +70,6 @@ export function renderTacticsMenu(
     <div class="tactics-menu-wrapper ${isModal ? 'modal-view' : ''}">
       ${isModal ? `<h2 class="tactics-main-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18" style="vertical-align:-3px;margin-right:8px"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/></svg>Tactical Adjustments</h2>` : ''}
       <div class="tactics-categories-container">
-        ${renderCategory('Kick-Off Strategy', 'kickOffStrategy', KICKOFF_OPTIONS)}
         ${renderCategory('Attacking Game Plan', 'attackingGamePlan', ATTACK_PLAN_OPTIONS)}
         ${renderCategory('Attacking Style', 'attackingStyle', ATTACKING_STYLE_OPTIONS)}
         ${renderCategory('Attacking Breakdown', 'attackingBreakdown', ATTACK_RUCK_OPTIONS)}

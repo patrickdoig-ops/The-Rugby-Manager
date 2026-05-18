@@ -2,7 +2,7 @@ import type { MatchState, GameEvent } from '../types/match';
 import type { Team, TeamTactics } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';
 import type { Player, PlayerStats } from '../types/player';
-import { MatchPhase, type PossessionSide, type PenaltyChoice } from '../types/engine';
+import { MatchPhase, type PossessionSide, type PenaltyChoice, type KickOffStrategy } from '../types/engine';
 import { StateMachine } from './StateMachine';
 import { applyFatigue } from './StaminaSystem';
 import { resolveGoalKick } from './resolvers/KickingResolver';
@@ -116,6 +116,7 @@ export class MatchEngine {
   private sm: StateMachine;
   private tickTimeout: ReturnType<typeof setTimeout> | null = null;
   private fatigueAccumulator = 0;
+  private kickOffStrategy: KickOffStrategy = 'high_ball';
 
   constructor(
     homeRaw: RawTeamInput,
@@ -319,6 +320,11 @@ export class MatchEngine {
         eventBus.emit('engine:event', { event: announceEvent });
       }
 
+      if (this.state.phase === MatchPhase.KickOff) {
+        await this.handleKickOffStrategy();
+        if (!this.state.isRunning) return;
+      }
+
       if (this.state.phase === MatchPhase.BoxKick) {
         const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
         const scrumHalf = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
@@ -408,6 +414,7 @@ export class MatchEngine {
       randomPlayer:   (team) => team.players[rng(0, team.players.length - 1)],
       pickPlayer:     (team, ...ids) => team.players.find(p => ids.includes(p.id)) ?? team.players[0],
       draftEvent:     (phase) => this.draftEvent(phase),
+      kickOffStrategy: this.kickOffStrategy,
     };
 
     const handler = PHASE_HANDLERS[state.phase];
@@ -450,6 +457,27 @@ export class MatchEngine {
       ballY: this.state.ballY,
       commentary: '',
     };
+  }
+
+  private async handleKickOffStrategy(): Promise<void> {
+    if (this.state.possession === 'home') {
+      this.state.isPaused = true;
+      this.kickOffStrategy = await new Promise<KickOffStrategy>(resolve => {
+        eventBus.emit('engine:paused', {
+          payload: { type: 'kickoff_choice', onChoice: (c) => resolve(c) },
+        });
+      });
+      this.state.isPaused = false;
+      eventBus.emit('engine:resumed', {});
+    } else {
+      this.kickOffStrategy = this.selectAwayKickOffStrategy();
+    }
+  }
+
+  private selectAwayKickOffStrategy(): KickOffStrategy {
+    const { gameMinute, score } = this.state;
+    if (gameMinute >= 70 && score.away < score.home) return 'short_kick';
+    return 'high_ball';
   }
 
   private async handlePenaltyDecision(): Promise<void> {

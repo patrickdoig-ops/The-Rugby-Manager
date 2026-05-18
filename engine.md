@@ -125,6 +125,13 @@ A `GameEvent` with phase `KickOff` and key `coin_toss` is emitted immediately so
 
 ## Kick-Off
 
+### Strategy selection
+
+Before the resolver runs, the kicking team's strategy is determined:
+
+- **Home team kicking:** A modal pause (`kickoff_choice`) is presented to the human manager. Three options: Kick Short (`short_kick`), Grubber Kick (`grubber`), Kick Long (`high_ball`). The engine awaits the selection before proceeding.
+- **Away team kicking:** Strategy is auto-selected. Default is `high_ball`. Exception: if `gameMinute >= 70` and `score.away < score.home`, selects `short_kick` — the away team gambles on regathering to score quickly.
+
 ### Player selection
 
 ```typescript

@@ -2,7 +2,6 @@ import type { Player } from './player';
 
 export type TeamSide = 'home' | 'away';
 
-export type KickOffStrategy = 'high_ball' | 'short_kick' | 'grubber';
 export type AttackingGamePlan = 'possession' | 'balanced' | 'kicking';
 export type AttackingStyle = 'keep_it_tight' | 'balanced' | 'wide_wide';
 export type AttackingBreakdown = 'pick_and_drive' | 'balanced' | 'wide_play';
@@ -10,7 +9,6 @@ export type DefendingBreakdown = 'jackal' | 'counter_ruck' | 'shadow';
 export type BackfieldDefence = 'one_back' | 'two_back' | 'three_back';
 
 export interface TeamTactics {
-  kickOffStrategy: KickOffStrategy;
   attackingGamePlan: AttackingGamePlan;
   attackingStyle: AttackingStyle;
   attackingBreakdown: AttackingBreakdown;
@@ -31,7 +29,6 @@ export interface Team {
 }
 
 export const DEFAULT_TACTICS: TeamTactics = {
-  kickOffStrategy: 'high_ball',
   attackingGamePlan: 'balanced',
   attackingStyle: 'balanced',
   attackingBreakdown: 'balanced',

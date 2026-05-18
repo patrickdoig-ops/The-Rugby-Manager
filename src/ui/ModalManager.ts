@@ -1,5 +1,5 @@
 import { eventBus } from '../utils/eventBus';
-import type { PenaltyChoice } from '../types/engine';
+import type { PenaltyChoice, KickOffStrategy } from '../types/engine';
 import type { MatchState } from '../types/match';
 import { renderTacticsMenu } from './TacticsMenu';
 import { renderSubstitutionPanel } from './SubstitutionModal';
@@ -16,6 +16,18 @@ const CHOICE_DESC: Record<PenaltyChoice, string> = {
   tap_and_go:    'Tap the ball and continue play immediately from the mark.',
 };
 
+const KICKOFF_LABELS: Record<KickOffStrategy, string> = {
+  short_kick: 'Kick Short',
+  grubber:    'Grubber Kick',
+  high_ball:  'Kick Long',
+};
+
+const KICKOFF_DESC: Record<KickOffStrategy, string> = {
+  short_kick: 'Aggressive short kick just over the 10m line — chase hard and aim to regather.',
+  grubber:    'Low, skidding kick along the ground to force a handling error.',
+  high_ball:  'Deep kick with hang time — allow chasers to contest cleanly in the air.',
+};
+
 export function initModalManager(): void {
   const overlay = document.getElementById('modal-overlay')!;
   const box     = document.getElementById('modal-box')!;
@@ -24,6 +36,30 @@ export function initModalManager(): void {
   eventBus.on('engine:stateChange', ({ state }) => { cachedState = state; });
 
   eventBus.on('engine:paused', ({ payload }) => {
+    if (payload.type === 'kickoff_choice') {
+      const { onChoice } = payload;
+      box.innerHTML = `
+        <h2 class="modal-title">Kick-Off Strategy</h2>
+        <p class="modal-subtitle">Select how your team will restart play</p>
+        <div class="modal-choices">
+          ${(['short_kick', 'grubber', 'high_ball'] as KickOffStrategy[]).map(key => `
+            <button class="modal-choice-btn" data-choice="${key}">
+              <span class="choice-label">${KICKOFF_LABELS[key]}</span>
+              <span class="choice-desc">${KICKOFF_DESC[key]}</span>
+            </button>
+          `).join('')}
+        </div>
+      `;
+      overlay.classList.remove('hidden');
+      box.querySelectorAll<HTMLButtonElement>('.modal-choice-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          overlay.classList.add('hidden');
+          onChoice(btn.dataset.choice as KickOffStrategy);
+        }, { once: true });
+      });
+      return;
+    }
+
     if (payload.type !== 'penalty_choice') return;
 
     const { context, onChoice } = payload;

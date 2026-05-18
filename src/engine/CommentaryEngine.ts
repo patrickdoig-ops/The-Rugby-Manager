@@ -212,9 +212,9 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
   },
   [MatchPhase.Scrum]: {
     stable_win: [
-      '{side} win clean scrum ball — {primary} picks and goes.',
+      '{side} win clean scrum ball — solid hooking from {primary}.',
       'Solid platform from the scrum — good possession for {side}.',
-      'The scrum holds firm and {primary} feeds the backs.',
+      'The scrum holds firm — clean ball, {side} can move it wide.',
     ],
     wheel: [
       'The scrum wheels! The referee blows the whistle and orders a reset.',
@@ -238,9 +238,9 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
       'Lineout ball not straight from {primary}! The referee whistles straight away.',
     ],
     steal: [
-      '{secondary} steals the lineout! Incredible work against the throw!',
-      'Turnover at the lineout — {secondary} outjumps the opposition!',
-      'The throw is misjudged — {secondary} gratefully takes possession.',
+      '{primary} steals the lineout! Incredible work against the throw!',
+      'Turnover at the lineout — {primary} outjumps the opposition!',
+      'The throw is misjudged — {primary} gratefully takes possession.',
     ],
     scrappy_knock_on: [
       'Scrappy lineout — the ball is knocked on. Scrum to {side}.',

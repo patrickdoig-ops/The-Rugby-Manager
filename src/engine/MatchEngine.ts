@@ -290,9 +290,33 @@ export class MatchEngine {
 
       this.fatigueAccumulator += timeAdvance;
       if (this.fatigueAccumulator >= 5) {
-        applyFatigue(this.state.homeTeam, this.fatigueAccumulator);
-        applyFatigue(this.state.awayTeam, this.fatigueAccumulator);
+        const homeFatigued = applyFatigue(this.state.homeTeam, this.fatigueAccumulator);
+        const awayFatigued = applyFatigue(this.state.awayTeam, this.fatigueAccumulator);
         this.fatigueAccumulator -= 5;
+        const fatigueLines = [
+          (name: string, num: number) => `${name} (#${num}) is starting to look tired out there — the legs are going.`,
+          (name: string, num: number) => `${name} (#${num}) is looking leggy. The fatigue is setting in.`,
+          (name: string, num: number) => `You can see the wear on ${name} (#${num}) — the energy is fading.`,
+          (name: string, num: number) => `${name} (#${num}) is running on empty now — the effort is starting to show.`,
+          (name: string, num: number) => `${name} (#${num}) looks worn out — the pace is dropping off.`,
+          (name: string, num: number) => `The tank is emptying for ${name} (#${num}) — that's the fatigue biting.`,
+        ];
+        for (const player of [...homeFatigued, ...awayFatigued]) {
+          const line = fatigueLines[rng(0, fatigueLines.length - 1)];
+          const fatEvent: GameEvent = {
+            id: makeId(),
+            gameMinute: this.state.gameMinute,
+            phase: this.state.phase,
+            side: this.state.possession,
+            sideName: this.state.possession === 'home' ? this.state.homeTeam.name : this.state.awayTeam.name,
+            primaryPlayer: player,
+            ballX: this.state.ballX,
+            ballY: this.state.ballY,
+            commentary: line(player.name, player.squadNumber),
+          };
+          this.state.events.push(fatEvent);
+          eventBus.emit('engine:event', { event: fatEvent });
+        }
       }
 
       this.state.stats.possession[this.state.possession]++;

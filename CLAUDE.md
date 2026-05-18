@@ -250,18 +250,20 @@ One attribute does not currently influence in-play resolution:
 
 Two attributes (`kicking`, `positioning`) are never degraded by fatigue. Full fatigue attribute degradation table:
 
-| Attribute | <70% fatigue | <50% fatigue | <30% fatigue |
-|---|---|---|---|
-| pace | ×0.95 | ×0.87 | ×0.75 |
-| agility | ×0.95 | ×0.87 | ×0.75 |
-| handling | — | ×0.92 | ×0.80 |
-| discipline | — | ×0.92 | ×0.80 |
-| composure | — | ×0.92 | ×0.80 |
-| setPiece | — | ×0.92 | ×0.82 |
-| breakdown | — | ×0.92 | ×0.82 |
-| strength | — | ×0.95 | ×0.88 |
-| tackling | — | — | ×0.85 |
-| kicking, positioning | unchanged | unchanged | unchanged |
+| Attribute | <90% | <80% | <70% | <50% | <30% |
+|---|---|---|---|---|---|
+| pace | — | — | ×0.75 | ×0.55 | ×0.35 |
+| agility | — | — | ×0.75 | ×0.55 | ×0.35 |
+| handling | — | — | ×0.80 | ×0.60 | ×0.40 |
+| discipline | — | — | ×0.80 | ×0.60 | ×0.40 |
+| composure | — | — | ×0.80 | ×0.60 | ×0.40 |
+| setPiece | — | — | ×0.80 | ×0.60 | ×0.30 |
+| breakdown | — | — | ×0.80 | ×0.60 | ×0.30 |
+| tackling | — | ×0.80 | — | — | ×0.40 |
+| strength | ×0.90 | — | ×0.70 | ×0.50 | ×0.30 |
+| kicking, positioning | unchanged | unchanged | unchanged | unchanged | unchanged |
+
+When a player's fatiguePct drops below 50% for the first time, `applyFatigue` returns that player in a list; `MatchEngine` emits a commentary event with a randomised "looking tired/leggy/worn out" line.
 
 ### Player rating system
 

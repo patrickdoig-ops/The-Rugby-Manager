@@ -84,21 +84,31 @@ Higher stamina reduces decay. A player with stamina 90 decays at 40% the rate of
 
 ### Attribute penalties (applied to `currentStats` from `baseStats`)
 
+Each `if` block overwrites the previous, so the final matching block wins.
+
 | Fatigue threshold | Affected attributes | Multiplier |
 |---|---|---|
-| < 70% | pace, agility | × 0.95 |
-| < 50% | pace, agility | × 0.87 |
-| < 50% | handling, discipline, composure, setPiece, breakdown | × 0.92 |
-| < 50% | strength | × 0.95 |
-| < 30% | pace, agility | × 0.75 |
-| < 30% | handling, discipline, composure | × 0.80 |
-| < 30% | tackling | × 0.85 |
-| < 30% | setPiece, breakdown | × 0.82 |
-| < 30% | strength | × 0.88 |
+| < 90% | strength | × 0.90 |
+| < 80% | tackling | × 0.80 |
+| < 70% | pace, agility | × 0.75 |
+| < 70% | handling, discipline, composure, setPiece, breakdown | × 0.80 |
+| < 70% | strength | × 0.70 |
+| < 50% | pace, agility | × 0.55 |
+| < 50% | handling, discipline, composure, setPiece, breakdown | × 0.60 |
+| < 50% | strength | × 0.50 |
+| < 30% | pace, agility | × 0.35 |
+| < 30% | handling, discipline, composure | × 0.40 |
+| < 30% | tackling | × 0.40 |
+| < 30% | setPiece, breakdown | × 0.30 |
+| < 30% | strength | × 0.30 |
 
 **Not affected by fatigue at any threshold:** kicking, positioning.
 
 `baseStats` is never modified. `currentStats` is rebuilt from `baseStats` on every fatigue application.
+
+### Fatigue commentary
+
+When `applyFatigue` detects a player crossing from ≥ 50% to < 50% fatiguePct, it returns that player in a list. `MatchEngine` emits a `GameEvent` (using the current phase/possession context) with a randomly chosen line from six variants: "starting to look tired", "looking leggy", "wear is showing", "running on empty", "looks worn out", "tank is emptying". The commentary feed colorises the player name normally.
 
 ---
 

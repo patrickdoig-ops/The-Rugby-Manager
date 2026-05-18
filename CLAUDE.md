@@ -163,7 +163,7 @@ Resolver formulas at a glance:
 
 | Phase | Key formula | Outcome thresholds |
 |---|---|---|
-| **KickOff** | `kickScore = kicking + rng(1,20)` ≥ 35 = goodKick. Distance and catchMod set by strategy. `catchMod` += `three_back` +15 / `two_back` +8. `short_kick` + poor + distance < 10 → `poor_kick` (scrum at halfway, no contest). `catchScore - chaseScore` | > 10 `clean_receive` → KickReturn (possession flips); > -5 `contested` → KickReturn (possession flips); ≤ -5 `knock_on` → Scrum (kicking team retains). `short_kick` + contested: 15% → `short_kick_retain` (kicking team retains, KickReturn) |
+| **KickOff** | `kickScore = kicking + rng(1,20)` ≥ 35 = goodKick. **Kick Deep:** distance 25–40m / 15–25m; catching gate `(handling+composure)/2 + rng(1,20) < 30` → `knock_on`. **Kick Short:** distance 10–20m / 4–9m; < 10m → `poor_kick`; catch vs chase margin > 10 → `clean_receive`; > -5 → 30% `short_kick_retain`; else → `knock_on`. **Grubber:** distance 15–25m / 4–9m; < 10m → `poor_kick`; catching gate < 30 → `knock_on`. | `poor_kick`: scrum halfway, receiving team puts in. `knock_on`: scrum at landing, kicking team puts in. `clean_receive` / `short_kick_retain`: KickReturn (possession flips only on `clean_receive`) |
 | **PhasePlay / FirstPhase / KickReturn** | Carrier handling gate (inline, < 30 = knock_on). Then Hard Carry / Out the Back split per `attackingStyle`. Out the Back: fly half (#10) handling gate → outside back (random from 11, 13, 14, 15) handling gate → evasion + collision with outside back as carrier. Hard Carry: evasion + collision with original carrier. `backfieldPenalty` applied to defend evasion score: `three_back` −10, `two_back` −5. Also consumes `state.breakdownMod` | knock_on (handling < 30 at any gate); evasion margin ≥ 15 = line_break; collision ±5 = dominant |
 | **Breakdown** | `ARS = stackedScore(supporters, breakdown, strength) + rng(1,20) + attackBonus` (attackBonus = 6 if previous play was `dominant_carry`, else 0). `stackedScore` sorts players best-first and applies weights [1.0, 0.6, 0.4, 0.3], summed and divided by 2 — so body count AND quality both matter, with diminishing returns. DTS varies by `defendingBreakdown`: **jackal** = `breakdown×0.7 + strength×0.3 + (discipline−50)×0.15 + rng(1,20)`; **counter_ruck** = `stackedScore(top4defenders, strength, breakdown) + rng(1,20)` (top 4 defenders by `strength×0.6 + breakdown×0.4`); **shadow** = `rng(1,10)` (concedes ball to set line) | margin ≥ 10 clean_ball; ≥ -8 slow_ball; ≥ -14 turnover; else penalty_defending |
 | **Scrum** | `avg(setPiece×0.6 + strength×0.4) + rng` for each front 5 | attack margin > 0 stable_win; > -15 wheel; else dominant_penalty |
@@ -176,7 +176,7 @@ Resolver formulas at a glance:
 
 | Phase | Attacker | Defender |
 |---|---|---|
-| KickOff | id=10 (fly-half) as kicker; random chaser from attacking team | random receiver from defending team |
+| KickOff | id=10 (fly-half) as kicker; chaser: any (`high_ball`/`grubber`) or from ids 7,11,14 (`short_kick`) | receiver: ids 9,11,14,15 (`high_ball`) or ids 1–8 forwards (`short_kick`/`grubber`) |
 | PhasePlay / FirstPhase / KickReturn | `randomPlayer(attackTeam)` as carrier; Out the Back path adds: id=10 (fly-half) then random from ids 11/13/14/15 (outside backs) | `randomPlayer(defendTeam)` |
 | Breakdown | 2–4 forwards sampled at random without replacement from `players.filter(p.id <= 8 && p.id !== carrierId)` — count = 4 (`pick_and_drive`), 3 (`balanced`), 2 (`wide_play`) per `attackingBreakdown` tactic | 1 back-row player sampled at random from `players.filter(p.id >= 6 && p.id <= 8)`; full pack (`p.id <= 8`) passed for `counter_ruck` |
 | BoxKick | id=9 (scrum half) as kicker; random from id=11\|14 (wingers) as chaser | id=15 (fullback) |
@@ -190,7 +190,7 @@ Resolver formulas at a glance:
 
 Five tactic dimensions are defined in `TeamTactics` (see `src/types/team.ts`). The UI (`TacticsMenu.ts`) lets the **home team** change all five mid-match. Away team uses engine defaults and cannot be changed through the UI.
 
-Kick-off strategy is **not** a standing tactic. It is chosen per kick-off via an interactive modal (home team) or auto-selected by the engine (away team: default `high_ball`; `short_kick` if `gameMinute >= 70 && score.away < score.home`). `KickOffStrategy` is defined in `src/types/engine.ts`.
+Kick-off strategy is **not** a standing tactic. It is chosen per kick-off via an interactive modal for **both teams**. `KickOffStrategy` is defined in `src/types/engine.ts`.
 
 | Tactic | Values | Engine effect |
 |---|---|---|

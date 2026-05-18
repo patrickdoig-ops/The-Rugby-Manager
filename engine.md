@@ -13,7 +13,7 @@ Each tick:
 2. Accumulates elapsed time; calls `applyFatigue()` on both teams once the accumulator reaches 5 game minutes
 3. Increments possession and territory counters
 4. For `KickOff` and `BoxKick` phases: emits a pre-phase announce `GameEvent` (naming the kicker before the outcome is resolved)
-5. For `KickOff` phase: awaits kick-off strategy selection — home team via modal (`kickoff_choice` pause), away team auto-selected
+5. For `KickOff` phase: awaits kick-off strategy selection via modal (`kickoff_choice` pause) — both teams use the modal
 6. Calls `resolvePhase()` to produce the outcome `GameEvent`
 7. Emits `engine:event` and `engine:stateChange`
 8. Checks for penalty interactive pause (if phase is `Penalty`)
@@ -129,20 +129,19 @@ A `GameEvent` with phase `KickOff` and key `coin_toss` is emitted immediately so
 
 ### Strategy selection
 
-Before the resolver runs, the kicking team's strategy is determined:
-
-- **Home team kicking:** A modal pause (`kickoff_choice`) is presented to the human manager. Three options: Kick Short (`short_kick`), Grubber Kick (`grubber`), Kick Deep (`high_ball`). The engine awaits the selection before proceeding.
-- **Away team kicking:** Strategy is auto-selected. Default is `high_ball`. Exception: if `gameMinute >= 70` and `score.away < score.home`, selects `short_kick` — the away team gambles on regathering to score quickly.
+Before the resolver runs, a modal pause (`kickoff_choice`) is presented for **both** teams. Three options: Kick Short (`short_kick`), Grubber Kick (`grubber`), Kick Deep (`high_ball`). The engine awaits the selection before proceeding.
 
 ### Player selection
 
-```typescript
-kicker   = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0]
-receiver = randomPlayer(defendTeam)   // any of 15
-chaser   = randomPlayer(attackTeam)   // any of 15
-```
+The fly-half (id 10) of the kicking team always takes the kick. Receiver and chaser are drawn based on strategy:
 
-The fly-half (id 10) of the kicking team always takes the kick. Receiver and chaser are drawn at random from the full squads.
+| Strategy | Receiver pool | Chaser pool |
+|---|---|---|
+| `high_ball` (Kick Deep) | ids 9, 11, 14, 15 (backs) | any |
+| `short_kick` (Kick Short) | ids 1–8 (forwards) | ids 7, 11, 14 |
+| `grubber` (Grubber Kick) | ids 1–8 (forwards) | any (not used in resolver) |
+
+Falls back to `randomPlayer` if the filtered pool is empty.
 
 ### Step 1 — Kick quality and distance
 
@@ -151,43 +150,51 @@ kickScore = kicker.kicking + rng(1, 20)
 goodKick  = kickScore >= 35
 ```
 
-Distance and base `catchMod` vary by strategy:
+| Strategy | Good kick distance | Bad kick distance |
+|---|---|---|
+| `high_ball` | 25–40m | 15–25m (no poor-kick threshold) |
+| `short_kick` | 10–20m | 4–9m → `poor_kick` |
+| `grubber` | 15–25m | 4–9m → `poor_kick` |
 
-| Strategy | Good kick distance | Poor kick distance | Good kick `catchMod` | Poor kick `catchMod` |
-|---|---|---|---|---|
-| `high_ball` | 25–40m | 10–20m | 0 | +15 (floated ball, easy catch) |
-| `short_kick` | 10–18m | 8–12m | −5 (tighter contest) | +10 |
-| `grubber` | 15–30m | 15–30m | −10 (hard low ball) | −10 |
-
-**10-metre rule:** If `strategy === 'short_kick'` and `!goodKick` and `distance < 10`, the kick fails to reach the 10-metre line. The resolver returns `poor_kick` immediately — no catch contest is held. The receiving team is awarded a scrum at halfway and the kicker receives a rating penalty.
+**10-metre rule (`short_kick` and `grubber`):** If `distance < 10`, the resolver returns `poor_kick` immediately. The receiving team is awarded a scrum at halfway (possession flips) and the kicker receives a rating penalty.
 
 The ball is placed at the kick's landing position before outcome resolution (so a `knock_on` scrum is at the landing spot, not at halfway). `poor_kick` resets `ballX` to 50.
 
-### Step 2 — Backfield modifier
+### Step 2 — Outcome resolution
 
+**Kick Deep (`high_ball`) — catching gate only:**
 ```
-catchMod += backfieldDefence === 'three_back' ? 15 : backfieldDefence === 'two_back' ? 8 : 0
+catchScore = (receiver.handling + receiver.composure) / 2 + rng(1, 20)
+catchScore < 30 → knock_on
+else            → clean_receive
 ```
+No chase contest. The result is solely whether the receiver holds the ball.
 
-The defending team's `backfieldDefence` tactic is applied as an additive bonus to `catchMod`. A team with more players positioned deep is better equipped to receive aerial kicks — consistent with the BoxKick `fullbackMod`.
-
-### Step 3 — Catch vs chase contest
-
+**Kick Short (`short_kick`) — catch vs chase contest:**
 ```
-catchScore = (receiver.handling + receiver.composure) / 2 + rng(1, 20) + catchMod
+catchScore = (receiver.handling + receiver.composure) / 2 + rng(1, 20)
 chaseScore = (chaser.pace + chaser.agility) / 2 + rng(1, 20)
 margin     = catchScore − chaseScore
+margin > 10  → clean_receive
+margin > −5  → 30% short_kick_retain, else clean_receive
+margin ≤ −5  → knock_on
 ```
 
-| Margin | Result | Possession |
-|---|---|---|
-| > 10 | `clean_receive` → KickReturn | Flips to receiving team |
-| > −5 | `contested` → KickReturn | Flips to receiving team |
-| ≤ −5 | `knock_on` → Scrum | No change (kicking team wins put-in) |
+**Grubber (`grubber`) — catching gate only:**
+```
+catchScore = (receiver.handling + receiver.composure) / 2 + rng(1, 20)
+catchScore < 30 → knock_on
+else            → clean_receive
+```
 
-`contested` always gives the ball to the receiving team — only `knock_on` benefits the kicking side.
+### Outcome summary
 
-**Short kick regather:** After a `contested` result with `strategy === 'short_kick'`, a 15% chance in the resolver upgrades the result to `short_kick_retain` — the kicker's team regathers their own kick, no possession flip, and play continues as `KickReturn`.
+| Result | Possession | ballX | Next phase |
+|---|---|---|---|
+| `poor_kick` | flip to receiving team | 50 (halfway) | Scrum |
+| `knock_on` | stays with kicking team | landing position | Scrum |
+| `clean_receive` | flip to receiving team | landing position | KickReturn |
+| `short_kick_retain` | stays with kicking team | landing position | KickReturn |
 
 ### Rating adjustments
 

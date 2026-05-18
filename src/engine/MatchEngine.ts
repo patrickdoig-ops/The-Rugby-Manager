@@ -460,28 +460,14 @@ export class MatchEngine {
   }
 
   private async handleKickOffStrategy(): Promise<void> {
-    console.log('[KickOff] handleKickOffStrategy called, possession:', this.state.possession);
-    if (this.state.possession === 'home') {
-      this.state.isPaused = true;
-      console.log('[KickOff] Emitting engine:paused for kickoff_choice');
-      this.kickOffStrategy = await new Promise<KickOffStrategy>(resolve => {
-        eventBus.emit('engine:paused', {
-          payload: { type: 'kickoff_choice', onChoice: (c) => { console.log('[KickOff] onChoice called with:', c); resolve(c); } },
-        });
+    this.state.isPaused = true;
+    this.kickOffStrategy = await new Promise<KickOffStrategy>(resolve => {
+      eventBus.emit('engine:paused', {
+        payload: { type: 'kickoff_choice', onChoice: (c) => resolve(c) },
       });
-      console.log('[KickOff] kickOffStrategy resolved to:', this.kickOffStrategy);
-      this.state.isPaused = false;
-      eventBus.emit('engine:resumed', {});
-    } else {
-      this.kickOffStrategy = this.selectAwayKickOffStrategy();
-      console.log('[KickOff] Away auto-selected:', this.kickOffStrategy);
-    }
-  }
-
-  private selectAwayKickOffStrategy(): KickOffStrategy {
-    const { gameMinute, score } = this.state;
-    if (gameMinute >= 70 && score.away < score.home) return 'short_kick';
-    return 'high_ball';
+    });
+    this.state.isPaused = false;
+    eventBus.emit('engine:resumed', {});
   }
 
   private async handlePenaltyDecision(): Promise<void> {

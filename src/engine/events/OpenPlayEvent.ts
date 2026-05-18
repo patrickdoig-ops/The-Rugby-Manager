@@ -98,7 +98,7 @@ export function handleOpenPlay({ state, attackTeam, defendTeam, attackDir, isTry
   }
 
   // Step 3 — Evasion → Step 4 Collision (handling gate already cleared)
-  const res = resolveOpenPlay(ballCarrier, defender, attackMod, defendMod + backfieldPenalty, true);
+  const res = resolveOpenPlay(ballCarrier, defender, attackMod, defendMod + backfieldPenalty);
 
   let nextPhase: MatchPhase;
   let commentary: string;

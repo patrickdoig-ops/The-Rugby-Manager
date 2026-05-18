@@ -3,7 +3,6 @@ import type { CollisionResult } from '../../types/engine';
 import { rng } from '../../utils/rng';
 
 export type OpenPlayOutcome =
-  | 'knock_on'
   | 'line_break'
   | 'dominant_carry'
   | 'dominant_tackle'
@@ -13,30 +12,22 @@ export interface OpenPlayResolution {
   outcome: OpenPlayOutcome;
   collisionResult?: CollisionResult;
   gainMetres: number;
-  handlingScore: number;
   evasionScore: number;
   defenseScore: number;
   collisionAttack: number;
   collisionDefend: number;
 }
 
-export function resolveOpenPlay(attacker: Player, defender: Player, attackMod = 0, defendMod = 0, skipHandlingGate = false): OpenPlayResolution {
-  // Step 1: Handling check
-  const handlingScore = attacker.currentStats.handling + rng(1, 20);
-  if (!skipHandlingGate && handlingScore < 30) {
-    return { outcome: 'knock_on', gainMetres: 0, handlingScore, evasionScore: 0, defenseScore: 0, collisionAttack: 0, collisionDefend: 0 };
-  }
-
-  // Step 2: Evasion check
-  // attackMod/defendMod reflect how many players each team has on their feet after the ruck
+export function resolveOpenPlay(attacker: Player, defender: Player, attackMod = 0, defendMod = 0): OpenPlayResolution {
+  // Evasion check
   const evasionScore  = (attacker.currentStats.agility + attacker.currentStats.pace) / 2 + rng(1, 20) + attackMod;
   const defenseScore  = (defender.currentStats.positioning + defender.currentStats.pace) / 2 + rng(1, 20) + defendMod;
 
   if (evasionScore - defenseScore >= 15) {
-    return { outcome: 'line_break', gainMetres: rng(10, 25), handlingScore, evasionScore, defenseScore, collisionAttack: 0, collisionDefend: 0 };
+    return { outcome: 'line_break', gainMetres: rng(10, 25), evasionScore, defenseScore, collisionAttack: 0, collisionDefend: 0 };
   }
 
-  // Step 3: Collision check
+  // Collision check
   const collisionAttack = (attacker.currentStats.strength + attacker.currentStats.pace) / 2 + rng(1, 20);
   const collisionDefend = (defender.currentStats.tackling + defender.currentStats.strength) / 2 + rng(1, 20);
   const collisionMargin = collisionAttack - collisionDefend;
@@ -59,5 +50,5 @@ export function resolveOpenPlay(attacker: Player, defender: Player, attackMod = 
     gainMetres = rng(1, 4);
   }
 
-  return { outcome, collisionResult, gainMetres, handlingScore, evasionScore, defenseScore, collisionAttack, collisionDefend };
+  return { outcome, collisionResult, gainMetres, evasionScore, defenseScore, collisionAttack, collisionDefend };
 }

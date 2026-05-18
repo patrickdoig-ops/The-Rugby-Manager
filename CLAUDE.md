@@ -220,7 +220,7 @@ Event handlers append tactic-aware commentary notes to the standard `getCommenta
 
 One attribute does not currently influence in-play resolution:
 
-- **`stamina`** — controls fatigue decay rate via `decayRate * (1 − staminaBase/150)` but never appears in a resolver formula directly
+- **`stamina`** — controls fatigue decay rate via `rng(4,12) * (1 − staminaBase/150)` but never appears in a resolver formula directly
 
 Two attributes (`kicking`, `positioning`) are never degraded by fatigue. Full fatigue attribute degradation table:
 

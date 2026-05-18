@@ -5,9 +5,9 @@ import { rng } from '../utils/rng';
 
 export function applyFatigue(team: Team, elapsedMinutes: number): void {
   for (const player of team.players) {
-    const decayRate = 0.5 + rng(0, 10) / 10;
+    const decayRate = rng(4, 12);
     const staminaBase = player.baseStats.stamina;
-    const actualDecay = decayRate * 8 * (1 - staminaBase / 150);
+    const actualDecay = decayRate * (1 - staminaBase / 150);
     player.fatiguePct = clamp(player.fatiguePct - actualDecay, 0, 100);
 
     const base = player.baseStats;

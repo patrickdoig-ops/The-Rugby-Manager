@@ -200,8 +200,8 @@ Kick-off strategy is **not** a standing tactic. It is chosen per kick-off via an
 |---|---|---|
 | `attackingGamePlan` | `possession` / `balanced` / `kicking` | Kick-or-carry probability in OpenPlay (per pitch zone); box kick propensity in Breakdown |
 | `attackingStyle` | `keep_it_tight` / `balanced` / `wide_wide` | Hard Carry vs Out the Back split in OpenPlay (90/10, 70/30, 50/50) |
-| `attackingBreakdown` | `pick_and_drive` / `balanced` / `wide_play` | Supporter count (4 / 3 / 2) in `BreakdownEvent` |
-| `defendingBreakdown` | `jackal` / `counter_ruck` / `shadow` | DTS formula branch in `BreakdownResolver` |
+| `attackingBreakdown` | `pick_and_drive` / `balanced` / `wide_play` | Supporter count (4 / 3 / 2) in `BreakdownEvent`; `pick_and_drive` adds ×1.1 fatigue decay to all forwards |
+| `defendingBreakdown` | `jackal` / `counter_ruck` / `shadow` | DTS formula branch in `BreakdownResolver`; `counter_ruck` adds ×1.1 fatigue decay to all forwards |
 | `backfieldDefence` | `one_back` / `two_back` / `three_back` | Touch probability reduction in TacticalKick; `fullbackMod` bonus in BoxKick; front-line penalty in OpenPlay carry; return momentum bonus when kick is caught |
 
 Kick-or-carry probabilities by `attackingGamePlan` and pitch zone:
@@ -246,7 +246,7 @@ Commentary templates support four interpolation tokens: `{primary}` (`primaryPla
 
 One attribute does not currently influence in-play resolution:
 
-- **`stamina`** — controls fatigue decay rate via `rng(4,12) * (1 − staminaBase/150)` but never appears in a resolver formula directly
+- **`stamina`** — controls fatigue decay rate via `rng(4,12) * (1 − staminaBase/150)` but never appears in a resolver formula directly. For forwards (id ≤ 8), decay is further multiplied by 1.1 per tactic: `pick_and_drive` (attacking) and `counter_ruck` (defending) each add 10%, cumulative (both = ×1.21 total).
 
 Two attributes (`kicking`, `positioning`) are never degraded by fatigue. Full fatigue attribute degradation table:
 

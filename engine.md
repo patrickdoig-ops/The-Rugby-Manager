@@ -72,6 +72,14 @@ Every cycle, a base decay rate between 4 and 12 is randomly determined. This rat
 
 `actualDecay = decayRate × (1 − stamina / 150)`
 
+For forwards (player id ≤ 8), the decay is then multiplied by a tactic factor:
+
+- `attackingBreakdown === 'pick_and_drive'`: ×1.1
+- `defendingBreakdown === 'counter_ruck'`: ×1.1
+- Both active: ×1.21 (multiplicative, not additive)
+
+Backs (id ≥ 9) are unaffected by the tactic multiplier.
+
 Higher stamina reduces decay. A player with stamina 90 decays at 40% the rate of one with stamina 0. With 16 fatigue applications per 80-minute game, expected total fatigue loss at stamina 60 is ~77%, stamina 0 hits the floor well before full time, stamina 90 is ~51% — most players cross the 50% penalty tier during the match.
 
 ### Attribute penalties (applied to `currentStats` from `baseStats`)

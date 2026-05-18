@@ -20,7 +20,7 @@ const ATTACKING_STYLE_OPTIONS: OptionDef<AttackingStyle>[] = [
 ];
 
 const ATTACK_RUCK_OPTIONS: OptionDef<AttackingBreakdown>[] = [
-  { value: 'pick_and_drive', label: 'Heavy Commit',  desc: 'Commit 3–4 forwards to rucks to ensure clean ball delivery.' },
+  { value: 'pick_and_drive', label: 'Commit Numbers', desc: 'Commit 3–4 forwards to rucks to ensure clean ball delivery.' },
   { value: 'balanced',       label: 'Balanced Ruck', desc: 'Standard 2–3 forwards supporting the breakdown.' },
   { value: 'wide_play',      label: 'Wide Play',     desc: 'Minimal ruck commit (1–2) to keep extra attackers in the backline.' },
 ];

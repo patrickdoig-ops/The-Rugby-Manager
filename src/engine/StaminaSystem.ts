@@ -7,7 +7,11 @@ export function applyFatigue(team: Team, elapsedMinutes: number): void {
   for (const player of team.players) {
     const decayRate = rng(4, 12);
     const staminaBase = player.baseStats.stamina;
-    const actualDecay = decayRate * (1 - staminaBase / 150);
+    let actualDecay = decayRate * (1 - staminaBase / 150);
+    if (player.id <= 8) {
+      if (team.tactics.attackingBreakdown === 'pick_and_drive') actualDecay *= 1.1;
+      if (team.tactics.defendingBreakdown === 'counter_ruck')   actualDecay *= 1.1;
+    }
     player.fatiguePct = clamp(player.fatiguePct - actualDecay, 0, 100);
 
     const base = player.baseStats;

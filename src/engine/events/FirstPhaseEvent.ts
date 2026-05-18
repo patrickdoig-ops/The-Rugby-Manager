@@ -39,7 +39,10 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
   const backfieldPenalty = defendTeam.tactics.backfieldDefence === 'three_back' ? -10
                          : defendTeam.tactics.backfieldDefence === 'two_back'   ? -5 : 0;
 
-  if (carrier.currentStats.handling + rng(1, 100) < 85) {
+  const carrierKoThreshold = state.clockInTheRed
+    ? Math.min(99, 85 + Math.round(Math.max(0, 85 - carrier.currentStats.handling) * 0.4))
+    : 85;
+  if (carrier.currentStats.handling + rng(1, 100) < carrierKoThreshold) {
     adjustRating(carrier, -0.45);
     state.stats.handlingErrors[state.possession]++;
     state.possession = state.possession === 'home' ? 'away' : 'home';
@@ -66,7 +69,10 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
     const insideCentre = pickPlayer(attackTeam, 12);
     playIntro = getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: carrier, secondaryPlayer: insideCentre }, 'crash_ball') + ' ';
 
-    if (insideCentre.currentStats.handling + rng(1, 100) < 85) {
+    const icKoThreshold = state.clockInTheRed
+      ? Math.min(99, 85 + Math.round(Math.max(0, 85 - insideCentre.currentStats.handling) * 0.4))
+      : 85;
+    if (insideCentre.currentStats.handling + rng(1, 100) < icKoThreshold) {
       adjustRating(insideCentre, -0.45);
       state.stats.handlingErrors[state.possession]++;
       state.possession = state.possession === 'home' ? 'away' : 'home';
@@ -85,7 +91,10 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
     const outsideCentre = pickPlayer(attackTeam, 13);
     playIntro = getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: carrier, secondaryPlayer: outsideCentre }, 'out_the_back') + ' ';
 
-    if (outsideCentre.currentStats.handling + rng(1, 100) < 85) {
+    const ocKoThreshold = state.clockInTheRed
+      ? Math.min(99, 85 + Math.round(Math.max(0, 85 - outsideCentre.currentStats.handling) * 0.4))
+      : 85;
+    if (outsideCentre.currentStats.handling + rng(1, 100) < ocKoThreshold) {
       adjustRating(outsideCentre, -0.45);
       state.stats.handlingErrors[state.possession]++;
       state.possession = state.possession === 'home' ? 'away' : 'home';
@@ -101,7 +110,10 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
     const wing = wingPool.length > 0 ? wingPool[rng(0, wingPool.length - 1)] : randomPlayer(attackTeam);
     playIntro += getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: outsideCentre, secondaryPlayer: wing }, 'out_the_back') + ' ';
 
-    if (wing.currentStats.handling + rng(1, 100) < 85) {
+    const wingKoThreshold = state.clockInTheRed
+      ? Math.min(99, 85 + Math.round(Math.max(0, 85 - wing.currentStats.handling) * 0.4))
+      : 85;
+    if (wing.currentStats.handling + rng(1, 100) < wingKoThreshold) {
       adjustRating(wing, -0.45);
       state.stats.handlingErrors[state.possession]++;
       state.possession = state.possession === 'home' ? 'away' : 'home';

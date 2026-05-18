@@ -46,6 +46,8 @@ export interface MatchState {
   isRunning: boolean;
   isPaused: boolean;
   halfTimeDone: boolean;
+  clockInTheRed: boolean;
+  penaltyKickToTouchLineout: boolean;
   tickDelayMs: number;
   breakdownMod: { attack: number; defend: number };
   kickReturnCarrier?: Player;

@@ -42,7 +42,10 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
   const backfieldPenalty = defendTeam.tactics.backfieldDefence === 'three_back' ? -10
                          : defendTeam.tactics.backfieldDefence === 'two_back'   ? -5 : 0;
 
-  if (carrier.currentStats.handling + rng(1, 100) < 85) {
+  const koThreshold = state.clockInTheRed
+    ? Math.min(99, 85 + Math.round(Math.max(0, 85 - carrier.currentStats.handling) * 0.4))
+    : 85;
+  if (carrier.currentStats.handling + rng(1, 100) < koThreshold) {
     adjustRating(carrier, -0.45);
     state.stats.handlingErrors[state.possession]++;
     state.possession = state.possession === 'home' ? 'away' : 'home';
@@ -69,7 +72,10 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
       wideIntro = getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: carrier, secondaryPlayer: flyHalf }, 'out_the_back') + ' ';
 
       // Fly half handling gate
-      if (flyHalf.currentStats.handling + rng(1, 100) < 85) {
+      const fhThreshold = state.clockInTheRed
+        ? Math.min(99, 85 + Math.round(Math.max(0, 85 - flyHalf.currentStats.handling) * 0.4))
+        : 85;
+      if (flyHalf.currentStats.handling + rng(1, 100) < fhThreshold) {
         adjustRating(flyHalf, -0.45);
         state.stats.handlingErrors[state.possession]++;
         state.possession = state.possession === 'home' ? 'away' : 'home';
@@ -88,7 +94,10 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
     if (carrier.id === 10) {
       wideIntro = getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: flyHalf, secondaryPlayer: outsideBack }, 'out_the_back') + ' ';
     }
-    if (outsideBack.currentStats.handling + rng(1, 100) < 85) {
+    const obThreshold = state.clockInTheRed
+      ? Math.min(99, 85 + Math.round(Math.max(0, 85 - outsideBack.currentStats.handling) * 0.4))
+      : 85;
+    if (outsideBack.currentStats.handling + rng(1, 100) < obThreshold) {
       adjustRating(outsideBack, -0.45);
       state.stats.handlingErrors[state.possession]++;
       state.possession = state.possession === 'home' ? 'away' : 'home';

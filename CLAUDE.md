@@ -124,7 +124,7 @@ Within a single tick, `engine:event` is emitted **before** `engine:stateChange`.
 
 `MatchEngine.tick()` is a self-rescheduling `async` function using `setTimeout` — **not** `setInterval`. Pausing is simply not scheduling the next tick. Resuming calls `scheduleTick(0)`.
 
-Time advances `0.2 + rng(0,8)/10` game minutes per tick (0.2–1.0 min). Fatigue is applied every ~5 accumulated game minutes via `fatigueAccumulator`.
+Time advances `0.2 + rng(0,8)/10` game minutes per tick (0.2–1.0 min). Fatigue is applied every ~5 accumulated game minutes via `fatigueAccumulator`. Clock is clamped to 40 (first half) or 80 (second half) until `clockInTheRed` is set, then advances at 1/50 normal speed.
 
 The penalty interactive pause is a `Promise` that resolves when the `onChoice(choice)` callback is called from the UI payload. The loop `await`s it mid-tick; `handlePenaltyDecision()` emits `engine:paused` which triggers the modal.
 
@@ -137,8 +137,14 @@ KickOff → KickReturn → Breakdown → PhasePlay (loop)
                       → Scrum / Lineout → FirstPhase
                       → TryScored → ConversionKick → KickOff
                       → Penalty → [modal if home team in opposition half] → KickOff / Lineout / FirstPhase
-Any carry phase at 40 min → HalfTime → KickOff (second half)
-Any phase at 80 min → FullTime
+Clock reaches 40 min (first half) or 80 min (second half) → clockInTheRed = true, commentary emitted, clock slows to 1/50 speed.
+  While in the red, game ends only when ball goes dead:
+    Scrum awarded (knock-on or crooked throw, NOT wheel reset) → HalfTime / FullTime
+    Lineout awarded (ball to touch, NOT from penalty kick-to-touch) → HalfTime / FullTime
+    ConversionKick → KickOff (try scored + conversion taken) → HalfTime / FullTime
+  Exception: penalty kick-to-touch in the red sets penaltyKickToTouchLineout flag; that one lineout does NOT end the game.
+  Knock-on threshold increases ~40% in the red: Math.min(99, 85 + Math.round(Math.max(0, 85 − handling) × 0.4)).
+  triggerHalfTime() resets clockInTheRed = false for the second half.
 ```
 
 Three carry phases share the same evasion/collision resolver (`resolveOpenPlay`) but have distinct player selection, play structure, and commentary template sets (`PHASE_PLAY_TEMPLATES`, `FIRST_PHASE_TEMPLATES`, `KICK_RETURN_TEMPLATES`):

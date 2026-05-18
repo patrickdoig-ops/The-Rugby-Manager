@@ -92,6 +92,8 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
     isRunning: false,
     isPaused: false,
     halfTimeDone: false,
+    clockInTheRed: false,
+    penaltyKickToTouchLineout: false,
     tickDelayMs,
     breakdownMod: { attack: 0, defend: 0 },
   };
@@ -285,8 +287,14 @@ export class MatchEngine {
     if (!this.state.isRunning) return;
 
     try {
+      const wasInRed   = this.state.clockInTheRed;
+      const halfTarget = this.state.halfTimeDone ? 80 : 40;
       const timeAdvance = 0.2 + rng(0, 8) / 10;
-      this.state.gameMinute = Math.min(80, this.state.gameMinute + timeAdvance);
+      if (wasInRed) {
+        this.state.gameMinute += timeAdvance / 50;
+      } else {
+        this.state.gameMinute = Math.min(halfTarget, this.state.gameMinute + timeAdvance);
+      }
 
       this.fatigueAccumulator += timeAdvance;
       if (this.fatigueAccumulator >= 5) {
@@ -397,14 +405,16 @@ export class MatchEngine {
         if (!this.state.isRunning) return;
       }
 
-      if (this.state.gameMinute >= 40 && !this.state.halfTimeDone) {
-        this.triggerHalfTime();
-        if (!this.state.isRunning) return;
-      }
-
-      if (this.state.gameMinute >= 80) {
-        this.endMatch();
-        return;
+      if (!this.state.clockInTheRed && this.state.gameMinute >= halfTarget) {
+        this.enterClockInTheRed();
+      } else if (wasInRed && this.shouldEndPeriod(previousPhase)) {
+        if (!this.state.halfTimeDone) {
+          this.triggerHalfTime();
+          if (!this.state.isRunning) return;
+        } else {
+          this.endMatch();
+          return;
+        }
       }
     } catch (err) {
       console.error('MatchEngine tick error encountered, recovering loop:', err);
@@ -578,6 +588,7 @@ export class MatchEngine {
       state.phase = MatchPhase.KickOff;
 
     } else if (choice === 'kick_to_touch') {
+      if (state.clockInTheRed) state.penaltyKickToTouchLineout = true;
       state.ballX = clamp(state.ballX + this.attackDir() * 20, 5, 95);
       const penEvent: GameEvent = {
         id: makeId(),
@@ -630,9 +641,57 @@ export class MatchEngine {
     eventBus.emit('engine:stateChange', { state });
   }
 
+  private enterClockInTheRed(): void {
+    const { state } = this;
+    state.clockInTheRed = true;
+    const isFirstHalf = !state.halfTimeDone;
+    const lines = isFirstHalf
+      ? [
+          'That\'s the 40 minutes — the clock is in the red! Play on until the ball is dead.',
+          'Forty minutes up — we\'re into added time. The clock is in the red.',
+          'The half-time whistle is ready, but the clock is in the red — play continues.',
+        ]
+      : [
+          'That\'s 80 minutes — the clock is in the red! The game isn\'t over until the ball is dead.',
+          'Eighty minutes on the clock — we\'re into overtime. The clock is in the red.',
+          'Full time on the clock, but the ball is still in play — the clock is in the red!',
+        ];
+    const redEvent: GameEvent = {
+      id: makeId(),
+      gameMinute: state.gameMinute,
+      phase: state.phase,
+      side: state.possession,
+      sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
+      ballX: state.ballX,
+      ballY: state.ballY,
+      commentary: lines[rng(0, lines.length - 1)],
+    };
+    state.events.push(redEvent);
+    eventBus.emit('engine:event', { event: redEvent });
+  }
+
+  private shouldEndPeriod(prevPhase: MatchPhase): boolean {
+    const { state } = this;
+    // Knock-on or crooked lineout throw → scrum (but not a wheel reset scrum)
+    if (state.phase === MatchPhase.Scrum && prevPhase !== MatchPhase.Scrum) return true;
+    // Ball went to touch → lineout (exception: penalty kick-to-touch lineout)
+    if (state.phase === MatchPhase.Lineout) {
+      if (state.penaltyKickToTouchLineout) {
+        state.penaltyKickToTouchLineout = false;
+        return false;
+      }
+      return true;
+    }
+    // Try scored and conversion taken → kickoff restart
+    if (state.phase === MatchPhase.KickOff && prevPhase === MatchPhase.ConversionKick) return true;
+    return false;
+  }
+
   private triggerHalfTime(): void {
     const { state, sm } = this;
     state.halfTimeDone = true;
+    state.clockInTheRed = false;
+    state.penaltyKickToTouchLineout = false;
 
     const htEvent: GameEvent = {
       id: makeId(),

@@ -26,6 +26,12 @@ const PHASE_PLAY_TEMPLATES: Templates = {
     '{primary} punches a hole through the defence! A major gain in open play!',
     '{primary} bursts clear! The defensive line is broken and {side} are on the move!',
   ],
+  line_break_try: [
+    'TRY! {primary} finds the line and goes over! {side} have their points!',
+    'TRY! {primary} is through and touches down — {side} score!',
+    'TRY! {primary} beats the cover and goes over in the corner!',
+    'TRY! {primary} races clear and there\'s no stopping him — {side} score!',
+  ],
   dominant_carry: [
     '{primary} drives hard into contact, dragging defenders with him.',
     '{primary} takes it at the line and wins the collision — forward momentum for {side}.',
@@ -75,6 +81,12 @@ const FIRST_PHASE_TEMPLATES: Templates = {
     '{primary} finds the space and he\'s gone! The set piece has created a huge opportunity!',
     '{primary} splits the defence wide open! Outstanding first-phase execution from {side}!',
   ],
+  line_break_try: [
+    'TRY! {primary} explodes off the set piece and goes over! {side} score!',
+    'TRY! First-phase perfection from {side} — {primary} touches down!',
+    'TRY! {primary} breaks the line from the set piece and scores!',
+    'TRY! {side} carve through with their first-phase play — {primary} goes over!',
+  ],
   dominant_carry: [
     '{primary} takes the ball at pace and drives hard into the defensive line.',
     'Powerful carry from {primary} straight off the set piece — good metres gained.',
@@ -98,7 +110,7 @@ const FIRST_PHASE_TEMPLATES: Templates = {
 const KICK_RETURN_TEMPLATES: Templates = {
   kick_decision: [
     '{side} opt to kick rather than run from the return.',
-    '{primary} doesn\'t run the ball back — {side} kick it on for territory.',
+    '{side} choose to kick it on from the return rather than carry.',
     'Rather than attack from the return, {side} look to kick for field position.',
   ],
   line_break: [
@@ -106,6 +118,12 @@ const KICK_RETURN_TEMPLATES: Templates = {
     'Superb counter from {primary} — he\'s broken the cover and he\'s running into space!',
     '{primary} makes a line break from the return! {side} are flying!',
     '{primary} sidesteps the first chaser and bursts clear! The return has turned into something special!',
+  ],
+  line_break_try: [
+    'TRY! {primary} turns the return into points — an outstanding counter-attack!',
+    'TRY! Counter-attack brilliance from {primary} — they\'ve scored from nothing!',
+    'TRY! {primary} beats the cover on the return and goes over! {side} score!',
+    'TRY! {primary} is untouchable on the return — he races clear and touches down!',
   ],
   dominant_carry: [
     '{primary} picks a strong line and drives well into opposition territory on the return.',
@@ -225,8 +243,8 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
       'The throw is misjudged — {secondary} gratefully takes possession.',
     ],
     scrappy_knock_on: [
-      'Scrappy lineout — the ball is knocked on and {side} lose possession.',
-      'The jumper can\'t hold it — knock-on awarded, scrum to the opposition.',
+      'Scrappy lineout — the ball is knocked on. Scrum to {side}.',
+      'The jumper can\'t hold it — knock-on awarded. Scrum to {side}.',
     ],
   },
   [MatchPhase.BoxKick]: {

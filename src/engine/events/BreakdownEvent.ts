@@ -48,7 +48,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
     let note = '';
     if (homeIsAttacking && attPlan === 'pick_and_drive') {
       note = tacticNote(30,
-        'The pick-and-drive is working a treat — the forwards are dominating at the breakdown.',
+        'Committing numbers to the ruck is working — the forwards dominate the clearout and win clean ball.',
         "That's the reward for flooding the ruck — quick, clean ball.",
       );
     } else if (homeIsDefending && defPlan === 'shadow') {
@@ -138,7 +138,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
   let penaltyNote = '';
   if (homeIsAttacking && attPlan === 'pick_and_drive') {
     penaltyNote = tacticNote(25,
-      "The pick-and-drive is aggressive but they've gone too far — penalty given away at the ruck.",
+      "Flooding the ruck with forwards is aggressive but they've gone too far — penalty given away.",
       "Too many bodies piling in and the referee has had enough — a penalty against them at the breakdown.",
     );
   } else if (homeIsAttacking && attPlan === 'wide_play') {

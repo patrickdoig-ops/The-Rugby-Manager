@@ -64,24 +64,30 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
 
   if (goWide) {
     const flyHalf = pickPlayer(attackTeam, 10);
-    wideIntro = getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: carrier, secondaryPlayer: flyHalf }, 'out_the_back') + ' ';
 
-    // Fly half handling gate
-    if (flyHalf.currentStats.handling + rng(1, 20) < 30) {
-      adjustRating(flyHalf, -0.45);
-      state.stats.handlingErrors[state.possession]++;
-      state.possession = state.possession === 'home' ? 'away' : 'home';
-      return {
-        nextPhase: MatchPhase.Scrum,
-        commentary: wideIntro + getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: flyHalf, secondaryPlayer: defender }, 'knock_on'),
-        primaryPlayer: flyHalf,
-        secondaryPlayer: defender,
-      };
+    if (carrier.id !== 10) {
+      wideIntro = getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: carrier, secondaryPlayer: flyHalf }, 'out_the_back') + ' ';
+
+      // Fly half handling gate
+      if (flyHalf.currentStats.handling + rng(1, 20) < 30) {
+        adjustRating(flyHalf, -0.45);
+        state.stats.handlingErrors[state.possession]++;
+        state.possession = state.possession === 'home' ? 'away' : 'home';
+        return {
+          nextPhase: MatchPhase.Scrum,
+          commentary: wideIntro + getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: flyHalf, secondaryPlayer: defender }, 'knock_on'),
+          primaryPlayer: flyHalf,
+          secondaryPlayer: defender,
+        };
+      }
     }
 
     // Outside back handling gate (outside centre, both wings, fullback)
     const obPool = attackTeam.players.filter(p => [11, 13, 14, 15].includes(p.id));
     const outsideBack = obPool.length > 0 ? obPool[rng(0, obPool.length - 1)] : randomPlayer(attackTeam);
+    if (carrier.id === 10) {
+      wideIntro = getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: flyHalf, secondaryPlayer: outsideBack }, 'out_the_back') + ' ';
+    }
     if (outsideBack.currentStats.handling + rng(1, 20) < 30) {
       adjustRating(outsideBack, -0.45);
       state.stats.handlingErrors[state.possession]++;
@@ -106,14 +112,19 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
   if (res.outcome === 'line_break') {
     adjustRating(ballCarrier, +0.375);
     state.ballX = clamp(state.ballX + attackDir() * res.gainMetres, 0, 100);
-    nextPhase = isTryScored() ? MatchPhase.TryScored : MatchPhase.Breakdown;
-    const lineBreakNote = (backfieldPenalty < 0 && state.possession !== 'home')
-      ? tacticNote(30,
-          "The backfield commitment is leaving them short in the defensive line — and they've been cut through.",
-          "Three in the backfield means only twelve in the line and there's the gap — a costly trade-off.",
-        )
-      : '';
-    commentary = wideIntro + getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: ballCarrier, secondaryPlayer: defender }, 'line_break') + lineBreakNote;
+    const tryScored = isTryScored();
+    nextPhase = tryScored ? MatchPhase.TryScored : MatchPhase.Breakdown;
+    if (tryScored) {
+      commentary = wideIntro + getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: ballCarrier, secondaryPlayer: defender }, 'line_break_try');
+    } else {
+      const lineBreakNote = (backfieldPenalty < 0 && state.possession !== 'home')
+        ? tacticNote(30,
+            "The backfield commitment is leaving them short in the defensive line — and they've been cut through.",
+            "Three in the backfield means only twelve in the line and there's the gap — a costly trade-off.",
+          )
+        : '';
+      commentary = wideIntro + getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: ballCarrier, secondaryPlayer: defender }, 'line_break') + lineBreakNote;
+    }
   } else if (res.outcome === 'dominant_tackle') {
     adjustRating(defender, +0.3);
     adjustRating(ballCarrier, -0.075);

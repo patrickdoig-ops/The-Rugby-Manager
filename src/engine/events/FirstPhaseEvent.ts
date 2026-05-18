@@ -127,14 +127,19 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
   if (res.outcome === 'line_break') {
     adjustRating(ballCarrier, +0.375);
     state.ballX = clamp(state.ballX + attackDir() * res.gainMetres, 0, 100);
-    nextPhase = isTryScored() ? MatchPhase.TryScored : MatchPhase.Breakdown;
-    const lineBreakNote = (backfieldPenalty < 0 && state.possession !== 'home')
-      ? tacticNote(30,
-          "The backfield commitment is leaving them short in the defensive line — and they've been cut through.",
-          "Three in the backfield means only twelve in the line and there's the gap — a costly trade-off.",
-        )
-      : '';
-    commentary = playIntro + getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: ballCarrier, secondaryPlayer: defender }, 'line_break') + lineBreakNote;
+    const tryScored = isTryScored();
+    nextPhase = tryScored ? MatchPhase.TryScored : MatchPhase.Breakdown;
+    if (tryScored) {
+      commentary = playIntro + getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: ballCarrier, secondaryPlayer: defender }, 'line_break_try');
+    } else {
+      const lineBreakNote = (backfieldPenalty < 0 && state.possession !== 'home')
+        ? tacticNote(30,
+            "The backfield commitment is leaving them short in the defensive line — and they've been cut through.",
+            "Three in the backfield means only twelve in the line and there's the gap — a costly trade-off.",
+          )
+        : '';
+      commentary = playIntro + getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: ballCarrier, secondaryPlayer: defender }, 'line_break') + lineBreakNote;
+    }
   } else if (res.outcome === 'dominant_tackle') {
     adjustRating(defender, +0.3);
     adjustRating(ballCarrier, -0.075);

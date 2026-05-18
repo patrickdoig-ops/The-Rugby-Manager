@@ -1,6 +1,8 @@
 import { eventBus } from '../utils/eventBus';
 import type { PenaltyChoice } from '../types/engine';
+import type { MatchState } from '../types/match';
 import { renderTacticsMenu } from './TacticsMenu';
+import { renderSubstitutionPanel } from './SubstitutionModal';
 
 const CHOICE_LABELS: Record<PenaltyChoice, string> = {
   kick_for_goal: 'Kick for goal',
@@ -17,6 +19,9 @@ const CHOICE_DESC: Record<PenaltyChoice, string> = {
 export function initModalManager(): void {
   const overlay = document.getElementById('modal-overlay')!;
   const box     = document.getElementById('modal-box')!;
+
+  let cachedState: MatchState | null = null;
+  eventBus.on('engine:stateChange', ({ state }) => { cachedState = state; });
 
   eventBus.on('engine:paused', ({ payload }) => {
     if (payload.type !== 'penalty_choice') return;
@@ -56,8 +61,16 @@ export function initModalManager(): void {
     overlay.classList.remove('hidden');
   });
 
+  eventBus.on('ui:openSubsModal', ({ homeTeam }) => {
+    renderSubstitutionPanel(box, homeTeam);
+    overlay.classList.remove('hidden');
+  });
+
+  eventBus.on('ui:subsClosed', () => {
+    overlay.classList.add('hidden');
+  });
+
   eventBus.on('engine:resumed', () => {
     overlay.classList.add('hidden');
   });
 }
-

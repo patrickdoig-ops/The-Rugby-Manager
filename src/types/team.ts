@@ -23,6 +23,8 @@ export interface Team {
   color: string;
   secondaryColor: string;
   players: Player[];
+  bench: Player[];
+  substitutedOff: Player[];
   tactics: TeamTactics;
 }
 

@@ -65,5 +65,39 @@
       "id": 15, "name": "Aled Hughes", "position": "Fullback",
       "baseStats": { "stamina": 86, "strength": 71, "pace": 89, "agility": 87, "handling": 89, "tackling": 77, "breakdown": 65, "kicking": 88, "setPiece": 57, "discipline": 83, "positioning": 93, "composure": 91 }
     }
+  ],
+  "bench": [
+    {
+      "id": 16, "name": "Sean Doyle", "position": "Loosehead Prop",
+      "baseStats": { "stamina": 65, "strength": 83, "pace": 44, "agility": 48, "handling": 61, "tackling": 76, "breakdown": 74, "kicking": 30, "setPiece": 84, "discipline": 65, "positioning": 67, "composure": 68 }
+    },
+    {
+      "id": 17, "name": "Matt Dorian", "position": "Hooker",
+      "baseStats": { "stamina": 72, "strength": 77, "pace": 60, "agility": 58, "handling": 70, "tackling": 79, "breakdown": 76, "kicking": 41, "setPiece": 81, "discipline": 73, "positioning": 74, "composure": 70 }
+    },
+    {
+      "id": 18, "name": "Carl Briggs", "position": "Tighthead Prop",
+      "baseStats": { "stamina": 62, "strength": 88, "pace": 40, "agility": 41, "handling": 53, "tackling": 74, "breakdown": 67, "kicking": 27, "setPiece": 86, "discipline": 61, "positioning": 64, "composure": 60 }
+    },
+    {
+      "id": 19, "name": "Rob Davies", "position": "Left Lock",
+      "baseStats": { "stamina": 71, "strength": 85, "pace": 53, "agility": 50, "handling": 61, "tackling": 74, "breakdown": 70, "kicking": 35, "setPiece": 83, "discipline": 71, "positioning": 73, "composure": 66 }
+    },
+    {
+      "id": 20, "name": "Kai Summers", "position": "Blindside Flanker",
+      "baseStats": { "stamina": 84, "strength": 81, "pace": 68, "agility": 65, "handling": 70, "tackling": 83, "breakdown": 81, "kicking": 40, "setPiece": 70, "discipline": 74, "positioning": 78, "composure": 72 }
+    },
+    {
+      "id": 21, "name": "Pete Burns", "position": "Scrum-Half",
+      "baseStats": { "stamina": 83, "strength": 57, "pace": 81, "agility": 84, "handling": 84, "tackling": 68, "breakdown": 65, "kicking": 74, "setPiece": 59, "discipline": 79, "positioning": 81, "composure": 77 }
+    },
+    {
+      "id": 22, "name": "Tom Hessler", "position": "Fly-Half",
+      "baseStats": { "stamina": 75, "strength": 59, "pace": 71, "agility": 75, "handling": 83, "tackling": 58, "breakdown": 55, "kicking": 87, "setPiece": 52, "discipline": 81, "positioning": 83, "composure": 87 }
+    },
+    {
+      "id": 23, "name": "Dale Norris", "position": "Utility Back",
+      "baseStats": { "stamina": 78, "strength": 66, "pace": 88, "agility": 86, "handling": 78, "tackling": 70, "breakdown": 58, "kicking": 68, "setPiece": 53, "discipline": 75, "positioning": 80, "composure": 77 }
+    }
   ]
 }

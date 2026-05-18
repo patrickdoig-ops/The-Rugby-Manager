@@ -65,5 +65,39 @@
       "id": 15, "name": "Kevin Martin", "position": "Fullback",
       "baseStats": { "stamina": 87, "strength": 72, "pace": 90, "agility": 88, "handling": 90, "tackling": 78, "breakdown": 66, "kicking": 90, "setPiece": 58, "discipline": 84, "positioning": 92, "composure": 91 }
     }
+  ],
+  "bench": [
+    {
+      "id": 16, "name": "Liam Sheridan", "position": "Loosehead Prop",
+      "baseStats": { "stamina": 68, "strength": 81, "pace": 46, "agility": 46, "handling": 60, "tackling": 74, "breakdown": 69, "kicking": 32, "setPiece": 81, "discipline": 70, "positioning": 69, "composure": 67 }
+    },
+    {
+      "id": 17, "name": "Donal Casey", "position": "Hooker",
+      "baseStats": { "stamina": 70, "strength": 75, "pace": 57, "agility": 55, "handling": 73, "tackling": 77, "breakdown": 71, "kicking": 43, "setPiece": 83, "discipline": 72, "positioning": 74, "composure": 72 }
+    },
+    {
+      "id": 18, "name": "Brendan Moore", "position": "Tighthead Prop",
+      "baseStats": { "stamina": 62, "strength": 89, "pace": 41, "agility": 40, "handling": 52, "tackling": 73, "breakdown": 65, "kicking": 26, "setPiece": 87, "discipline": 61, "positioning": 66, "composure": 60 }
+    },
+    {
+      "id": 19, "name": "Padraig Walsh", "position": "Left Lock",
+      "baseStats": { "stamina": 73, "strength": 84, "pace": 62, "agility": 57, "handling": 63, "tackling": 77, "breakdown": 74, "kicking": 39, "setPiece": 83, "discipline": 74, "positioning": 77, "composure": 70 }
+    },
+    {
+      "id": 20, "name": "Ciaran Duffy", "position": "Blindside Flanker",
+      "baseStats": { "stamina": 85, "strength": 82, "pace": 70, "agility": 68, "handling": 71, "tackling": 85, "breakdown": 79, "kicking": 43, "setPiece": 70, "discipline": 77, "positioning": 80, "composure": 74 }
+    },
+    {
+      "id": 21, "name": "Fionn Murray", "position": "Scrum-Half",
+      "baseStats": { "stamina": 83, "strength": 59, "pace": 84, "agility": 86, "handling": 86, "tackling": 67, "breakdown": 68, "kicking": 78, "setPiece": 59, "discipline": 81, "positioning": 83, "composure": 81 }
+    },
+    {
+      "id": 22, "name": "Oisin Byrne", "position": "Fly-Half",
+      "baseStats": { "stamina": 77, "strength": 58, "pace": 76, "agility": 79, "handling": 85, "tackling": 57, "breakdown": 58, "kicking": 89, "setPiece": 56, "discipline": 83, "positioning": 86, "composure": 87 }
+    },
+    {
+      "id": 23, "name": "Ruairi Doyle", "position": "Utility Back",
+      "baseStats": { "stamina": 79, "strength": 64, "pace": 87, "agility": 85, "handling": 79, "tackling": 68, "breakdown": 57, "kicking": 70, "setPiece": 53, "discipline": 76, "positioning": 82, "composure": 78 }
+    }
   ]
 }

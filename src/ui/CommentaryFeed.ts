@@ -29,7 +29,7 @@ const TAG_MAP: Partial<Record<MatchPhase, string>> = {
 const MAX_ENTRIES = 30;
 
 function colorizePlayer(text: string, player: Player, color: string): string {
-  const label = `${player.name} (#${player.id})`;
+  const label = `${player.name} (#${player.squadNumber})`;
   return text.split(label).join(`<span style="color:${color};font-weight:700">${label}</span>`);
 }
 
@@ -44,7 +44,10 @@ export function initCommentaryFeed(): void {
   const unsubTeams = eventBus.on('engine:stateChange', ({ state }) => {
     homeColor = state.homeTeam.color;
     awayColor = state.awayTeam.color;
-    homePlayerNames = new Set(state.homeTeam.players.map(p => p.name));
+    homePlayerNames = new Set([
+      ...state.homeTeam.players.map(p => p.name),
+      ...state.homeTeam.bench.map(p => p.name),
+    ]);
     unsubTeams();
   });
 

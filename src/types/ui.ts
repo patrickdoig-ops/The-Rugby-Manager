@@ -1,6 +1,6 @@
 import type { PenaltyChoice, PenaltyContext } from './engine';
 import type { GameEvent, MatchState } from './match';
-import type { TeamTactics } from './team';
+import type { Team, TeamTactics } from './team';
 
 export interface ModalPayload {
   type: 'penalty_choice';
@@ -18,5 +18,8 @@ export interface AppEvents {
   'ui:tacticsChange':   { teamId: string; tactics: TeamTactics };
   'ui:openTacticsModal':{ tactics: TeamTactics };
   'ui:tacticsClosed':   Record<string, never>;
+  'ui:openSubsModal':   { homeTeam: Team };
+  'ui:substitution':    { benchSquadNum: number; fieldSquadNum: number };
+  'ui:subsClosed':      Record<string, never>;
 }
 

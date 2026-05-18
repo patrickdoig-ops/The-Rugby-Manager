@@ -9,7 +9,7 @@ Documents the complete game engine: the simulation loop, every match phase, all 
 `MatchEngine.tick()` is a self-rescheduling `async` function using `setTimeout`. It is not `setInterval` — pausing is simply not scheduling the next tick.
 
 Each tick:
-1. Advances game time by `(0.5 + rng(0, 15) / 10) * 0.5` minutes (0.25–1.0 per tick)
+1. Advances game time by `0.2 + rng(0, 8) / 10` minutes (0.2–1.0 per tick)
 2. Accumulates elapsed time; calls `applyFatigue()` on both teams once the accumulator reaches 5 game minutes
 3. Increments possession and territory counters
 4. Calls `resolvePhase()` to produce a `GameEvent`

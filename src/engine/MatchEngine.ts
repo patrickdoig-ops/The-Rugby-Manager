@@ -274,7 +274,7 @@ export class MatchEngine {
     if (!this.state.isRunning) return;
 
     try {
-      const timeAdvance = (0.5 + rng(0, 15) / 10) * 0.5;
+      const timeAdvance = 0.2 + rng(0, 8) / 10;
       this.state.gameMinute = Math.min(80, this.state.gameMinute + timeAdvance);
 
       this.fatigueAccumulator += timeAdvance;

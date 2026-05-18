@@ -1,5 +1,5 @@
 import { eventBus } from '../utils/eventBus';
-import type { TeamTactics, KickOffStrategy, AttackingGamePlan, AttackingBreakdown, DefendingBreakdown, BackfieldDefence } from '../types/team';
+import type { TeamTactics, KickOffStrategy, AttackingGamePlan, AttackingStyle, AttackingBreakdown, DefendingBreakdown, BackfieldDefence } from '../types/team';
 
 interface OptionDef<T> {
   value: T;
@@ -17,6 +17,12 @@ const ATTACK_PLAN_OPTIONS: OptionDef<AttackingGamePlan>[] = [
   { value: 'possession', label: 'Possession', desc: 'Patient phase play, minimal kicking, keep ball in hand.' },
   { value: 'balanced',   label: 'Balanced',   desc: 'Mixed kick/carry approach adapting dynamically to pitch zone.' },
   { value: 'kicking',    label: 'Territorial', desc: 'Frequent tactical kicking to play the game in opposition territory.' },
+];
+
+const ATTACKING_STYLE_OPTIONS: OptionDef<AttackingStyle>[] = [
+  { value: 'keep_it_tight', label: 'Keep It Tight', desc: 'Crash the ball up with the forwards. Strong carriers hit the line direct.' },
+  { value: 'balanced',      label: 'Balanced',      desc: 'Mix of hard carries and wide distribution depending on the situation.' },
+  { value: 'wide_wide',     label: 'Wide Wide',     desc: 'Get the ball to the outside backs at every opportunity.' },
 ];
 
 const ATTACK_RUCK_OPTIONS: OptionDef<AttackingBreakdown>[] = [
@@ -72,6 +78,7 @@ export function renderTacticsMenu(
       <div class="tactics-categories-container">
         ${renderCategory('Kick-Off Strategy', 'kickOffStrategy', KICKOFF_OPTIONS)}
         ${renderCategory('Attacking Game Plan', 'attackingGamePlan', ATTACK_PLAN_OPTIONS)}
+        ${renderCategory('Attacking Style', 'attackingStyle', ATTACKING_STYLE_OPTIONS)}
         ${renderCategory('Attacking Breakdown', 'attackingBreakdown', ATTACK_RUCK_OPTIONS)}
         ${renderCategory('Defending Breakdown', 'defendingBreakdown', DEFEND_RUCK_OPTIONS)}
         ${renderCategory('Backfield Defence', 'backfieldDefence', BACKFIELD_OPTIONS)}

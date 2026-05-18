@@ -20,10 +20,10 @@ export interface OpenPlayResolution {
   collisionDefend: number;
 }
 
-export function resolveOpenPlay(attacker: Player, defender: Player, attackMod = 0, defendMod = 0): OpenPlayResolution {
+export function resolveOpenPlay(attacker: Player, defender: Player, attackMod = 0, defendMod = 0, skipHandlingGate = false): OpenPlayResolution {
   // Step 1: Handling check
   const handlingScore = attacker.currentStats.handling + rng(1, 20);
-  if (handlingScore < 30) {
+  if (!skipHandlingGate && handlingScore < 30) {
     return { outcome: 'knock_on', gainMetres: 0, handlingScore, evasionScore: 0, defenseScore: 0, collisionAttack: 0, collisionDefend: 0 };
   }
 

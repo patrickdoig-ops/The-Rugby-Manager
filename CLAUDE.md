@@ -157,7 +157,7 @@ Resolver formulas at a glance:
 | Phase | Key formula | Outcome thresholds |
 |---|---|---|
 | **KickOff** | `kickScore = kicking + rng(1,20)` < 35 → knock_on; then `catchScore - chaseScore` | > 10 `clean_receive` (possession flips); > -5 `contested` (possession flips — receiving team scrambles it); ≤ -5 `knock_on` → Scrum (kicking team retains). `short_kick` + contested: 15% chance kicking team regathers (`short_kick_retain`, possession retained) |
-| **OpenPlay** | 3-step: handling gate → evasion → collision. `backfieldPenalty` applied to defend evasion score: `three_back` −10, `two_back` −5 (front line short). Also consumes `state.breakdownMod` | handling < 30 = knock_on; evasion margin ≥ 15 = line_break; collision ±5 = dominant |
+| **OpenPlay** | Carrier handling gate (inline, < 30 = knock_on). Then Hard Carry / Out the Back split per `attackingStyle`. Out the Back: fly half (#10) handling gate → outside back (random from 11, 13, 14, 15) handling gate → evasion + collision with outside back as carrier. Hard Carry: evasion + collision with original carrier. `backfieldPenalty` applied to defend evasion score: `three_back` −10, `two_back` −5. Also consumes `state.breakdownMod` | knock_on (handling < 30 at any gate); evasion margin ≥ 15 = line_break; collision ±5 = dominant |
 | **Breakdown** | `ARS = avgBreakdown×0.6 + avgStrength×0.4 + (avgDiscipline−50)×0.15 + rng(1,20) + attackBonus` (attackBonus = 6 if previous play was `dominant_carry`, else 0). DTS varies by `defendingBreakdown`: **jackal** = `jackalBreakdown×0.7 + jackalStrength×0.3 + (jackalDiscipline−50)×0.15 + rng(1,20)`; **counter_ruck** = `avgPackStrength×0.6 + avgPackBreakdown×0.4 + (avgPackDiscipline−50)×0.15 + rng(1,20)`; **shadow** = `rng(1,10)` (concedes ball to set line) | margin ≥ 10 clean_ball; ≥ -8 slow_ball; ≥ -14 turnover; else penalty_defending |
 | **Scrum** | `avg(setPiece×0.6 + strength×0.4) + rng` for each front 5 | attack margin > 0 stable_win; > -15 wheel; else dominant_penalty |
 | **Lineout** | `throwScore = hookerSetPiece + rng` < 40 → auto steal; then `(setPiece×0.5 + agility×0.5) + rng` each jumper | margin ≥ 5 clean_catch; ≥ 0 scrappy_knock_on; else steal |
@@ -181,12 +181,13 @@ Resolver formulas at a glance:
 
 ### Tactics system
 
-Five tactic dimensions are defined in `TeamTactics` (see `src/types/team.ts`). The UI (`TacticsMenu.ts`) lets the **home team** change all five mid-match. Away team uses engine defaults and cannot be changed through the UI.
+Six tactic dimensions are defined in `TeamTactics` (see `src/types/team.ts`). The UI (`TacticsMenu.ts`) lets the **home team** change all six mid-match. Away team uses engine defaults and cannot be changed through the UI.
 
 | Tactic | Values | Engine effect |
 |---|---|---|
 | `kickOffStrategy` | `high_ball` / `short_kick` / `grubber` | Changes kick distance and `catchMod` in `KickOffResolver` |
 | `attackingGamePlan` | `possession` / `balanced` / `kicking` | Kick-or-carry probability in OpenPlay (per pitch zone); box kick propensity in Breakdown |
+| `attackingStyle` | `keep_it_tight` / `balanced` / `wide_wide` | Hard Carry vs Out the Back split in OpenPlay (90/10, 70/30, 50/50) |
 | `attackingBreakdown` | `pick_and_drive` / `balanced` / `wide_play` | Supporter count (4 / 3 / 2) in `BreakdownEvent` |
 | `defendingBreakdown` | `jackal` / `counter_ruck` / `shadow` | DTS formula branch in `BreakdownResolver` |
 | `backfieldDefence` | `one_back` / `two_back` / `three_back` | Touch probability reduction in TacticalKick; `fullbackMod` bonus in BoxKick; front-line penalty in OpenPlay carry; return momentum bonus when kick is caught |

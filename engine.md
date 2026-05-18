@@ -636,7 +636,7 @@ The scrum-half's kicking stat, combined with a random factor, determines the kic
 | kickScore ≥ 75 | very_good → contested catch |
 | kickScore < 75 | poor → uncontested catch |
 
-**Step 2a — Very good kick: contested catch** (ball moves 15m up the pitch)
+**Step 2a — Very good kick: contested catch** (ball moves 20m up the pitch)
 
 The attacking winger races to contest the ball, relying on their handling and pace. The defending fullback relies on their handling and positioning. Both scores include a random factor, and the fullback's score is subtracted from the winger's score to determine the margin:
 
@@ -646,9 +646,9 @@ The attacking winger races to contest the ball, relying on their handling and pa
 | 0–9 | `defend_knock_on` — defender fumbles under pressure | Scrum (attacking put-in) |
 | < 0 | `defend_catch_contested` — fullback claims cleanly | OpenPlay (possession flips) |
 
-**Step 2b — Poor kick: uncontested catch** (ball moves 8m up the pitch)
+**Step 2b — Poor kick: uncontested catch** (ball moves 30m or 8m, 50-50)
 
-Because the kick lacked hang-time or distance, the fullback has time to set themselves under the ball. They rely entirely on their handling and positioning, plus a random factor, to catch the ball cleanly. A high score results in a clean catch, while a low score results in a knock-on.
+Because the kick lacked hang-time or distance (or is over-hit), the fullback has time to set themselves under the ball. They rely entirely on their handling and positioning, plus a random factor, to catch the ball cleanly. A high score results in a clean catch, while a low score results in a knock-on.
 
 | Threshold | Outcome | Next Phase |
 |---|---|---|
@@ -657,8 +657,8 @@ Because the kick lacked hang-time or distance, the fullback has time to set them
 
 ### Ball movement
 
-- Very good kick: `ballX += attackDir() × 15`
-- Poor kick: `ballX += attackDir() × 8`
+- Very good kick: `ballX += attackDir() × 20`
+- Poor kick: `ballX += attackDir() × 30` or `× 8` (50-50, resolved in resolver)
 
 ### Rating adjustments
 
@@ -693,7 +693,9 @@ Fly-half kicks first, scrum-half if fly-half is unavailable. The fullback receiv
 
 ### Step 1 — Kick quality and distance
 
-The kicker relies on their kicking stat and a random factor to generate a kick score (`kickScore = kicking + rng(1, 20)`). A good kick (`kickScore >= 25`) travels further (20 to 40 metres), has a 0% chance of going out on the full, and a 75% chance of bouncing into touch. A poor kick (`kickScore < 25`) is shorter (5 to 15 metres), has a 30% chance of going directly out on the full, and a 30% chance of bouncing into touch.
+The kicker relies on their kicking stat and a random factor to generate a kick score (`kickScore = kicking + rng(1, 20)`). A good kick (`kickScore >= 25`) travels further (30 to 50 metres), has a 0% chance of going out on the full, and a 75% chance of bouncing into touch. A poor kick (`kickScore < 25`) is shorter (10 to 20 metres), has a 30% chance of going directly out on the full, and a 30% chance of bouncing into touch.
+
+The ball position is clamped to 5–95 after the kick — the ball can never land within 5m of either try line.
 
 The ball's position on the pitch is updated immediately based on the calculated distance.
 

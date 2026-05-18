@@ -14,7 +14,7 @@ export function resolveTacticalKick(kicker: Player): KickingResolution {
   const goodKick  = kickScore >= 25;
   return {
     kickScore,
-    distance:                goodKick ? rng(20, 40) : rng(5, 15),
+    distance:                goodKick ? rng(30, 50) : rng(10, 20),
     outOnTheFullProbability: goodKick ? 0 : 30,
     touchProbability:        goodKick ? 75 : 30,
   };

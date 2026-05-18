@@ -12,12 +12,14 @@ export type BoxKickResolution =
       wingerScore: number;
       fullbackScore: number;
       contestMargin: number;
+      distance: number;
       outcome: 'attack_retain' | 'defend_knock_on' | 'defend_catch_contested';
     }
   | {
       quality: 'poor';
       kickScore: number;
       catchScore: number;
+      distance: number;
       outcome: 'defend_catch' | 'knock_on';
     };
 
@@ -32,7 +34,8 @@ export function resolveBoxKick(
   if (kickScore < VERY_GOOD_KICK_THRESHOLD) {
     const catchScore = (fullback.currentStats.handling + fullback.currentStats.positioning) / 2 + rng(1, 20) + fullbackMod;
     const outcome = catchScore >= UNCONTESTED_CATCH_THRESHOLD ? 'defend_catch' : 'knock_on';
-    return { quality: 'poor', kickScore, catchScore, outcome };
+    const distance = rng(1, 2) === 1 ? 30 : 8;
+    return { quality: 'poor', kickScore, catchScore, distance, outcome };
   }
 
   const wingerScore   = (winger.currentStats.handling + winger.currentStats.pace) / 2 + rng(1, 20);
@@ -44,5 +47,5 @@ export function resolveBoxKick(
   else if (contestMargin >= 0)               outcome = 'defend_knock_on';
   else                                        outcome = 'defend_catch_contested';
 
-  return { quality: 'very_good', kickScore, wingerScore, fullbackScore, contestMargin, outcome };
+  return { quality: 'very_good', kickScore, wingerScore, fullbackScore, contestMargin, distance: 20, outcome };
 }

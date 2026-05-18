@@ -18,7 +18,7 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
   const fullbackMod = backfield === 'three_back' ? 15 : backfield === 'two_back' ? 8 : 0;
   const res = resolveBoxKick(scrumHalf, winger, fullback, fullbackMod);
 
-  state.ballX = clamp(state.ballX + attackDir() * (res.quality === 'very_good' ? 15 : 8), 5, 95);
+  state.ballX = clamp(state.ballX + attackDir() * res.distance, 5, 95);
 
   if (res.outcome === 'attack_retain') {
     adjustRating(scrumHalf, +0.15);

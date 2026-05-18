@@ -3,19 +3,29 @@ import { MatchPhase } from '../../types/engine';
 import { resolveKickOff } from '../resolvers/KickOffResolver';
 import { getCommentary } from '../CommentaryEngine';
 import { clamp } from '../../utils/math';
-import { rng } from '../../utils/rng';
 
 export function handleKickOff({ state, attackTeam, defendTeam, attackDir, adjustRating, randomPlayer, draftEvent }: PhaseContext): PhaseResult {
   const kicker   = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
   const receiver = randomPlayer(defendTeam);
   const chaser   = randomPlayer(attackTeam);
-  const res = resolveKickOff(kicker, receiver, chaser, attackTeam.tactics.kickOffStrategy);
+  const res = resolveKickOff(kicker, receiver, chaser, attackTeam.tactics.kickOffStrategy, defendTeam.tactics.backfieldDefence);
 
-  // Ball lands at the kick distance from halfway
   state.ballX = clamp(50 + attackDir() * res.distance, 5, 95);
 
+  if (res.result === 'poor_kick') {
+    // Kick fails to reach 10m — scrum at halfway to receiving team
+    adjustRating(kicker, -0.225);
+    state.ballX = 50;
+    state.possession = state.possession === 'home' ? 'away' : 'home';
+    return {
+      nextPhase: MatchPhase.Scrum,
+      commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: kicker }, 'poor_kick'),
+      primaryPlayer: kicker,
+    };
+  }
+
   if (res.result === 'knock_on') {
-    // Receiver drops it — scrum at landing position, kicking team puts in (no possession flip)
+    // Receiver drops it — scrum at landing position, kicking team puts in
     adjustRating(receiver, -0.375);
     return {
       nextPhase: MatchPhase.Scrum,
@@ -25,8 +35,17 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, adjust
     };
   }
 
+  if (res.result === 'short_kick_retain') {
+    // Kicking team regathers — no possession flip
+    return {
+      nextPhase: MatchPhase.KickReturn,
+      commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: chaser, secondaryPlayer: receiver }, 'short_kick_retain'),
+      primaryPlayer: chaser,
+      secondaryPlayer: receiver,
+    };
+  }
+
   if (res.result === 'clean_receive') {
-    // Receiving team secures the ball — possession flips to them
     state.possession = state.possession === 'home' ? 'away' : 'home';
     return {
       nextPhase: MatchPhase.KickReturn,
@@ -36,17 +55,7 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, adjust
     };
   }
 
-  // contested — a short kick gives the kicking team a small chance to regather (15%)
-  if (attackTeam.tactics.kickOffStrategy === 'short_kick' && rng(1, 100) <= 15) {
-    return {
-      nextPhase: MatchPhase.KickReturn,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: chaser, secondaryPlayer: receiver }, 'short_kick_retain'),
-      primaryPlayer: chaser,
-      secondaryPlayer: receiver,
-    };
-  }
-
-  // All other contested results — receiving team scrambles possession
+  // contested — receiving team scrambles possession
   state.possession = state.possession === 'home' ? 'away' : 'home';
   return {
     nextPhase: MatchPhase.KickReturn,

@@ -73,8 +73,9 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
       'The ball is up for grabs! Both teams battle at the breakdown.',
     ],
     poor_kick: [
-      'The kick barely travels 10 metres — {primary} re-kicks from the restart zone.',
-      'A poor kick-off from {primary}, not reaching the 10-metre line.',
+      '{primary}\'s kick-off falls short of the 10-metre line — scrum to {side} at halfway.',
+      'The kick-off from {primary} doesn\'t travel 10 metres. Scrum awarded to {side}.',
+      'Short kick-off from {primary} fails the 10-metre test — {side} get the scrum at halfway.',
     ],
     short_kick_retain: [
       'Clever short kick-off and {primary} wins it back! {side} retain possession!',

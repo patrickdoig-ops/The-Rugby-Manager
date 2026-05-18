@@ -142,34 +142,50 @@ kickScore = kicker.kicking + rng(1, 20)
 goodKick  = kickScore >= 35
 ```
 
-A good kick (`kickScore ≥ 35`) travels 25–40m (high_ball) and the receiver gets no catch advantage. A poor kick travels 10–20m and grants the receiver a significant catch bonus (`catchMod +15`), representing a floated, catchable ball. The ball's position is immediately moved down the pitch by the kick's distance.
+Distance and base `catchMod` vary by strategy:
 
-The scrum (on a knock-on) is therefore placed at the landing position, not at halfway.
+| Strategy | Good kick distance | Poor kick distance | Good kick `catchMod` | Poor kick `catchMod` |
+|---|---|---|---|---|
+| `high_ball` | 25–40m | 10–20m | 0 | +15 (floated ball, easy catch) |
+| `short_kick` | 10–18m | 8–12m | −5 (tighter contest) | +10 |
+| `grubber` | 15–30m | 15–30m | −10 (hard low ball) | −10 |
 
-### Step 2 — Catch vs chase contest
+**10-metre rule:** If `strategy === 'short_kick'` and `!goodKick` and `distance < 10`, the kick fails to reach the 10-metre line. The resolver returns `poor_kick` immediately — no catch contest is held. The receiving team is awarded a scrum at halfway and the kicker receives a rating penalty.
 
-The receiving player attempts to catch the ball, relying on their handling and composure, boosted by any advantage from a poor kick. Simultaneously, a chasing player from the kicking team races forward, relying on their pace and agility. Both scores include a random factor, and the chasing score is subtracted from the catching score to determine the margin:
+The ball is placed at the kick's landing position before outcome resolution (so a `knock_on` scrum is at the landing spot, not at halfway). `poor_kick` resets `ballX` to 50.
+
+### Step 2 — Backfield modifier
+
+```
+catchMod += backfieldDefence === 'three_back' ? 15 : backfieldDefence === 'two_back' ? 8 : 0
+```
+
+The defending team's `backfieldDefence` tactic is applied as an additive bonus to `catchMod`. A team with more players positioned deep is better equipped to receive aerial kicks — consistent with the BoxKick `fullbackMod`.
+
+### Step 3 — Catch vs chase contest
+
+```
+catchScore = (receiver.handling + receiver.composure) / 2 + rng(1, 20) + catchMod
+chaseScore = (chaser.pace + chaser.agility) / 2 + rng(1, 20)
+margin     = catchScore − chaseScore
+```
 
 | Margin | Result | Possession |
 |---|---|---|
-| > 10 | `clean_receive` → OpenPlay | Flips to receiving team |
-| > −5 | `contested` → OpenPlay | Flips to receiving team (scrambles possession) |
-| ≤ −5 | `knock_on` → Scrum | No change (kicking team wins scrum put-in) |
+| > 10 | `clean_receive` → KickReturn | Flips to receiving team |
+| > −5 | `contested` → KickReturn | Flips to receiving team |
+| ≤ −5 | `knock_on` → Scrum | No change (kicking team wins put-in) |
 
-`contested` always gives the ball to the receiving team — only a `knock_on` (the receiver drops it uncontested) benefits the kicking side.
+`contested` always gives the ball to the receiving team — only `knock_on` benefits the kicking side.
 
-**Short kick regather (`short_kick_retain`):** When the kicking team uses `short_kick` and the result is `contested`, there is a 15% chance the kicking team regathers their own kick and retains possession. The chase player (`chaser`) is credited as `primaryPlayer` for the event. This is the only scenario where the kicking team can retain on a `contested` result.
-
-**Tactical Strategy (`KickOffStrategy`):**
-- `high_ball`: Good kick 25–40m, poor kick 10–20m. Good kick: `catchMod` 0 (normal contest). Poor kick: `catchMod` +15 (receiver advantaged).
-- `short_kick`: Good kick 10–18m, poor kick 8–12m. Good kick: `catchMod` −5 (harder for receiver, chaser contest tighter). Poor kick: `catchMod` +10. Contested result has 15% chance kicking team regathers their own kick (`short_kick_retain`).
-- `grubber`: Distance always 15–30m regardless of kick quality. `catchMod` −10 (hard low ball, clean catch difficult) on all outcomes.
+**Short kick regather:** After a `contested` result with `strategy === 'short_kick'`, a 15% chance in the resolver upgrades the result to `short_kick_retain` — the kicker's team regathers their own kick, no possession flip, and play continues as `KickReturn`.
 
 ### Rating adjustments
 
 | Outcome | Player | Delta |
 |---|---|---|
-| knock_on | receiver | −0.375 |
+| `poor_kick` | kicker | −0.225 |
+| `knock_on` | receiver | −0.375 |
 
 ---
 

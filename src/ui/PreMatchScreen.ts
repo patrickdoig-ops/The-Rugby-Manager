@@ -76,19 +76,21 @@ function renderPlayer(p: RawPlayer, color: string, interactive = false, isBench 
   const lastName = p.name.split(' ').slice(1).join(' ') || p.name;
   const benchClass = isBench ? ' pm-player--bench' : ' pm-player--starter';
   const dataAttr   = interactive ? `data-squad="${squadNum}"` : '';
-  const swapBtn    = interactive ? `<button class="pm-swap-btn" aria-label="Select for swap" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="12" height="12" style="pointer-events:none"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg></button>` : '';
 
-  return `<div class="pm-player${benchClass}" ${dataAttr}>
+  // Use <button> for interactive rows — iOS Safari only fires click on
+  // native interactive elements. Nested <button> inside <button> is invalid
+  // HTML, so the decorative swap icon is omitted for interactive rows.
+  const tag = interactive ? 'button' : 'div';
+  return `<${tag} class="pm-player${benchClass}" ${dataAttr}>
     <div class="pm-player-hd">
       <span class="pm-num" style="color:${color}">${squadNum}</span>
       <div class="pm-identity">
         <span class="pm-name">${lastName}</span>
         <span class="pm-pos">${p.position}</span>
       </div>
-      ${swapBtn}
     </div>
     <div class="pm-attrs">${ovrGroup}${groupCells}</div>
-  </div>`;
+  </${tag}>`;
 }
 
 function renderLegend(): string {

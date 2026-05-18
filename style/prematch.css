@@ -147,6 +147,21 @@
   transition: background 0.1s ease;
 }
 
+/* Reset <button> defaults for interactive player rows */
+button.pm-player {
+  -webkit-appearance: none;
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rm-hairline);
+  border-radius: 0;
+  text-align: left;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
 .pm-player:hover {
   background: color-mix(in oklch, var(--rm-surface) 30%, transparent);
 }
@@ -356,25 +371,6 @@
   outline: 1px solid color-mix(in oklch, var(--rm-pitch) 55%, var(--rm-border-soft));
   border-radius: 4px;
   background: color-mix(in oklch, var(--rm-pitch) 5%, transparent);
-}
-
-/* ─── Swap icon button in player header ─── */
-.pm-swap-btn {
-  background: none;
-  border: none;
-  color: var(--rm-text-dim);
-  font-size: 11px;
-  cursor: pointer;
-  padding: 0 2px;
-  margin-left: auto;
-  opacity: 0;
-  transition: opacity 0.1s;
-  pointer-events: none;
-}
-
-.pm-player--bench:hover .pm-swap-btn,
-.pm-player--selected .pm-swap-btn {
-  opacity: 1;
 }
 
 @media (min-width: 700px) {

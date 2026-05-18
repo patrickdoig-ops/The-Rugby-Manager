@@ -11,6 +11,7 @@ export enum MatchPhase {
   TryScored      = 'TRY_SCORED',
   HalfTime       = 'HALF_TIME',
   FullTime       = 'FULL_TIME',
+  Substitution   = 'SUBSTITUTION',
 }
 
 export type PossessionSide = 'home' | 'away';

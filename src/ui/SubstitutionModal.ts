@@ -1,6 +1,13 @@
 import type { Team } from '../types/team';
 import { eventBus } from '../utils/eventBus';
 
+type PendingSub = {
+  benchSquadNum: number;
+  fieldSquadNum: number;
+  benchLabel: string;
+  fieldLabel: string;
+};
+
 function ratingClass(r: number): string {
   if (r >= 7.5) return 'rating-high';
   if (r >= 5.5) return 'rating-mid';
@@ -9,68 +16,119 @@ function ratingClass(r: number): string {
 }
 
 export function renderSubstitutionPanel(container: HTMLElement, homeTeam: Team): void {
-  const { bench, players, color } = homeTeam;
-
-  const benchRows = bench.length > 0
-    ? bench.map(p => `
-        <button class="sub-player-btn sub-bench-btn" data-squad="${p.squadNumber}">
-          <span class="sub-num" style="color:${color}">${p.squadNumber}</span>
-          <span class="sub-name">${p.name.split(' ').pop()}</span>
-          <span class="sub-pos">${p.position}</span>
-        </button>
-      `).join('')
-    : '<p class="sub-empty">No substitutes remaining.</p>';
-
-  const starterRows = players.map(p => {
-    const f = Math.round(p.fatiguePct);
-    const barClass = f > 60 ? 'fatigue-ok' : f > 30 ? 'fatigue-warn' : 'fatigue-low';
-    const rClass   = ratingClass(p.rating);
-    return `
-      <button class="sub-player-btn sub-starter-btn" data-squad="${p.squadNumber}">
-        <span class="sub-num" style="color:${color}">${p.squadNumber}</span>
-        <span class="sub-name">${p.name.split(' ').pop()}</span>
-        <div class="sub-fatigue-bar-bg">
-          <div class="fatigue-bar ${barClass}" style="width:${f}%"></div>
-        </div>
-        <span class="rating-badge ${rClass}">${p.rating.toFixed(1)}</span>
-      </button>
-    `;
-  }).join('');
-
-  container.innerHTML = `
-    <h2 class="modal-title">Substitutions</h2>
-    <p class="modal-subtitle">${homeTeam.name}</p>
-    <div class="sub-section-label">Bench — select incoming player</div>
-    <div id="sub-bench-list">${benchRows}</div>
-    ${bench.length > 0 ? `
-      <div class="sub-section-label">On field — select player to replace</div>
-      <div id="sub-starter-list">${starterRows}</div>
-    ` : ''}
-    <button id="btn-subs-cancel" class="modal-choice-btn sub-cancel-btn">Cancel</button>
-  `;
-
+  const { color } = homeTeam;
+  const pendingSubs: PendingSub[] = [];
   let selectedBenchSquadNum: number | null = null;
 
-  container.querySelectorAll<HTMLButtonElement>('.sub-bench-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      selectedBenchSquadNum = Number(btn.dataset.squad);
-      container.querySelectorAll('.sub-bench-btn').forEach(b => b.classList.remove('sub-selected'));
-      btn.classList.add('sub-selected');
-    });
-  });
+  function render(): void {
+    const pendingBenchNums = new Set(pendingSubs.map(s => s.benchSquadNum));
+    const pendingFieldNums = new Set(pendingSubs.map(s => s.fieldSquadNum));
 
-  container.querySelectorAll<HTMLButtonElement>('.sub-starter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (selectedBenchSquadNum === null) return;
-      eventBus.emit('ui:substitution', {
-        benchSquadNum: selectedBenchSquadNum,
-        fieldSquadNum: Number(btn.dataset.squad),
+    const availBench = homeTeam.bench.filter(p => !pendingBenchNums.has(p.squadNumber));
+    const availField = homeTeam.players.filter(p => !pendingFieldNums.has(p.squadNumber));
+
+    const benchRows = availBench.length > 0
+      ? availBench.map(p => {
+          const isSelected = selectedBenchSquadNum === p.squadNumber;
+          return `
+            <button class="sub-player-btn sub-bench-btn${isSelected ? ' sub-selected' : ''}" data-squad="${p.squadNumber}">
+              <span class="sub-num" style="color:${color}">${p.squadNumber}</span>
+              <span class="sub-name">${p.name.split(' ').pop()}</span>
+              <span class="sub-pos">${p.position}</span>
+            </button>`;
+        }).join('')
+      : '<p class="sub-empty">No substitutes remaining.</p>';
+
+    const starterRows = availField.map(p => {
+      const f = Math.round(p.fatiguePct);
+      const barClass = f > 60 ? 'fatigue-ok' : f > 30 ? 'fatigue-warn' : 'fatigue-low';
+      const rClass = ratingClass(p.rating);
+      return `
+        <button class="sub-player-btn sub-starter-btn" data-squad="${p.squadNumber}">
+          <span class="sub-num" style="color:${color}">${p.squadNumber}</span>
+          <span class="sub-name">${p.name.split(' ').pop()}</span>
+          <div class="sub-fatigue-bar-bg">
+            <div class="fatigue-bar ${barClass}" style="width:${f}%"></div>
+          </div>
+          <span class="rating-badge ${rClass}">${p.rating.toFixed(1)}</span>
+        </button>`;
+    }).join('');
+
+    const pendingHtml = pendingSubs.length > 0
+      ? `<div class="sub-section-label">Pending</div>
+         <div id="sub-pending-list">
+           ${pendingSubs.map((s, i) => `
+             <div class="sub-pending-row">
+               <span class="sub-pending-text">${s.benchLabel} <span class="sub-pending-arrow">→</span> ${s.fieldLabel}</span>
+               <button class="sub-pending-remove" data-idx="${i}" aria-label="Remove">×</button>
+             </div>`).join('')}
+         </div>`
+      : '';
+
+    const confirmDisabled = pendingSubs.length === 0 ? ' disabled' : '';
+
+    container.innerHTML = `
+      <h2 class="modal-title">Substitutions</h2>
+      <p class="modal-subtitle">${homeTeam.name}</p>
+      ${pendingHtml}
+      <div class="sub-section-label">Bench — select incoming player</div>
+      <div id="sub-bench-list">${benchRows}</div>
+      ${availBench.length > 0 ? `
+        <div class="sub-section-label">On field — select player to replace</div>
+        <div id="sub-starter-list">${starterRows}</div>
+      ` : ''}
+      <div class="sub-action-row">
+        <button id="btn-subs-cancel" class="modal-choice-btn sub-cancel-btn">Cancel</button>
+        <button id="btn-subs-confirm" class="primary-cta-btn sub-confirm-btn"${confirmDisabled}>Confirm substitutions</button>
+      </div>
+    `;
+
+    container.querySelectorAll<HTMLButtonElement>('.sub-bench-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sq = Number(btn.dataset.squad);
+        selectedBenchSquadNum = selectedBenchSquadNum === sq ? null : sq;
+        render();
       });
+    });
+
+    if (selectedBenchSquadNum !== null) {
+      container.querySelectorAll<HTMLButtonElement>('.sub-starter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const fieldSq = Number(btn.dataset.squad);
+          const benchPlayer = homeTeam.bench.find(p => p.squadNumber === selectedBenchSquadNum);
+          const fieldPlayer = homeTeam.players.find(p => p.squadNumber === fieldSq);
+          if (!benchPlayer || !fieldPlayer) return;
+          pendingSubs.push({
+            benchSquadNum: benchPlayer.squadNumber,
+            fieldSquadNum: fieldPlayer.squadNumber,
+            benchLabel: `${benchPlayer.name.split(' ').pop()} (${benchPlayer.squadNumber})`,
+            fieldLabel: `${fieldPlayer.name.split(' ').pop()} (${fieldPlayer.squadNumber})`,
+          });
+          selectedBenchSquadNum = null;
+          render();
+        });
+      });
+    }
+
+    container.querySelectorAll<HTMLButtonElement>('.sub-pending-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        pendingSubs.splice(Number(btn.dataset.idx), 1);
+        render();
+      });
+    });
+
+    container.querySelector('#btn-subs-cancel')!.addEventListener('click', () => {
       eventBus.emit('ui:subsClosed', {});
     });
-  });
 
-  container.querySelector('#btn-subs-cancel')!.addEventListener('click', () => {
-    eventBus.emit('ui:subsClosed', {});
-  });
+    container.querySelector('#btn-subs-confirm')!.addEventListener('click', () => {
+      if (pendingSubs.length === 0) return;
+      for (const s of pendingSubs) {
+        eventBus.emit('ui:substitution', { benchSquadNum: s.benchSquadNum, fieldSquadNum: s.fieldSquadNum });
+      }
+      eventBus.emit('ui:subsClosed', {});
+    });
+  }
+
+  render();
 }

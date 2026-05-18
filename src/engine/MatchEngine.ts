@@ -145,6 +145,26 @@ export class MatchEngine {
     team.bench.splice(benchIdx, 1);
     team.substitutedOff.push(off);
 
+    const templates = [
+      `${sub.name} (#${sub.squadNumber}) comes on to replace ${off.name} (#${off.squadNumber}).`,
+      `${sub.name} (#${sub.squadNumber}) is introduced, replacing ${off.name} (#${off.squadNumber}).`,
+      `A change for ${team.name}: ${off.name} (#${off.squadNumber}) makes way for ${sub.name} (#${sub.squadNumber}).`,
+      `${off.name} (#${off.squadNumber}) is replaced by ${sub.name} (#${sub.squadNumber}).`,
+    ];
+    const subEvent: GameEvent = {
+      id: makeId(),
+      gameMinute: this.state.gameMinute,
+      phase: MatchPhase.Substitution,
+      side,
+      sideName: team.name,
+      primaryPlayer: sub,
+      secondaryPlayer: off,
+      ballX: this.state.ballX,
+      ballY: this.state.ballY,
+      commentary: templates[rng(0, templates.length - 1)],
+    };
+    this.state.events.push(subEvent);
+    eventBus.emit('engine:event', { event: subEvent });
     eventBus.emit('engine:stateChange', { state: this.state });
   }
 

@@ -93,3 +93,6 @@
 
 /* Kick off */
 .event-kickoff .event-tag { color: var(--rm-text-dim); }
+
+/* Substitution */
+.event-sub .event-tag { color: var(--rm-text-muted); }

@@ -11,6 +11,7 @@ const PHASE_CLASS: Partial<Record<MatchPhase, string>> = {
   [MatchPhase.KickOff]:       'event-kickoff',
   [MatchPhase.HalfTime]:      'event-halftime',
   [MatchPhase.FullTime]:      'event-fulltime',
+  [MatchPhase.Substitution]:  'event-sub',
 };
 
 const TAG_MAP: Partial<Record<MatchPhase, string>> = {
@@ -24,6 +25,7 @@ const TAG_MAP: Partial<Record<MatchPhase, string>> = {
   [MatchPhase.TacticalKick]:  'KICK',
   [MatchPhase.HalfTime]:      'HT',
   [MatchPhase.FullTime]:      'FT',
+  [MatchPhase.Substitution]:  'SUB',
 };
 
 const MAX_ENTRIES = 30;

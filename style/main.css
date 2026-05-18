@@ -701,11 +701,72 @@ html, body {
   text-align: center;
 }
 
-.sub-cancel-btn {
+.sub-action-row {
+  display: flex;
+  gap: 8px;
   margin-top: 10px;
-  width: 100%;
+}
+
+.sub-cancel-btn {
+  flex: 1;
   text-align: center;
   justify-content: center;
+}
+
+.sub-confirm-btn {
+  flex: 2;
+  padding: 9px 12px;
+  background: #007a2a;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-family: var(--rm-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sub-confirm-btn:disabled {
+  background: var(--rm-surface-3);
+  color: var(--rm-text-dim);
+  cursor: default;
+}
+
+.sub-confirm-btn:not(:disabled):active {
+  background: #006622;
+}
+
+.sub-pending-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 6px;
+  background: color-mix(in oklch, var(--rm-pitch) 8%, transparent);
+  border-radius: 6px;
+  margin-bottom: 4px;
+  gap: 8px;
+}
+
+.sub-pending-text {
+  font-size: 12px;
+  color: var(--rm-chalk);
+  font-family: var(--rm-font-body);
+}
+
+.sub-pending-arrow {
+  color: var(--rm-text-dim);
+}
+
+.sub-pending-remove {
+  background: none;
+  border: none;
+  color: var(--rm-text-dim);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  flex-shrink: 0;
 }
 
 /* ─── Animations ─── */

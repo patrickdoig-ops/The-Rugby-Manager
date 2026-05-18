@@ -76,7 +76,7 @@ function renderPlayer(p: RawPlayer, color: string, interactive = false, isBench 
   const lastName = p.name.split(' ').slice(1).join(' ') || p.name;
   const benchClass = isBench ? ' pm-player--bench' : ' pm-player--starter';
   const dataAttr   = interactive ? `data-squad="${squadNum}"` : '';
-  const swapBtn    = interactive ? `<button class="pm-swap-btn" aria-label="Select for swap" tabindex="-1">⇄</button>` : '';
+  const swapBtn    = interactive ? `<button class="pm-swap-btn" aria-label="Select for swap" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="12" height="12" style="pointer-events:none"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg></button>` : '';
 
   return `<div class="pm-player${benchClass}" ${dataAttr}>
     <div class="pm-player-hd">
@@ -104,11 +104,13 @@ function renderLegend(): string {
   </div>`;
 }
 
-function renderLineupPanel(starters: RawPlayer[], bench: RawPlayer[], color: string, interactive: boolean): string {
+function renderLineupPanel(starters: RawPlayer[], bench: RawPlayer[], color: string, interactive: boolean, hintText = ''): string {
   const starterHtml = starters.map(p => renderPlayer(p, color, interactive, false)).join('');
   const benchHtml   = bench.map(p => renderPlayer(p, color, interactive, true)).join('');
+  const hint = interactive && hintText ? `<div id="pm-lineup-hint" class="pm-lineup-hint">${hintText}</div>` : '';
   return `
     ${renderLegend()}
+    ${hint}
     <div class="pm-section-header">Starting XV</div>
     <div class="pm-starters-list">${starterHtml}</div>
     <div class="pm-section-header pm-section-bench">Bench</div>
@@ -168,8 +170,17 @@ export function initPreMatchScreen(
 
   function renderHomePanel(): void {
     const panel = screen.querySelector<HTMLElement>('#pm-home')!;
-    panel.innerHTML = renderLineupPanel(homeStarters, homeBench, home.color, true);
-    selectedBenchSquadNum = null;
+    const hintText = selectedBenchSquadNum === null
+      ? 'Select a bench player, then a starter to swap'
+      : 'Now select a starter to replace';
+    panel.innerHTML = renderLineupPanel(homeStarters, homeBench, home.color, true, hintText);
+
+    function updateHint(): void {
+      const hint = panel.querySelector<HTMLElement>('#pm-lineup-hint');
+      if (hint) hint.textContent = selectedBenchSquadNum === null
+        ? 'Select a bench player, then a starter to swap'
+        : 'Now select a starter to replace';
+    }
 
     // Wire up bench player selection
     panel.querySelectorAll<HTMLElement>('.pm-player--bench').forEach(el => {
@@ -186,6 +197,7 @@ export function initPreMatchScreen(
           el.classList.add('pm-player--selected');
           panel.querySelectorAll('.pm-player--starter').forEach(e => e.classList.add('pm-swap-target'));
         }
+        updateHint();
       });
     });
 
@@ -206,6 +218,7 @@ export function initPreMatchScreen(
 
         homeStarters[starterIdx] = newStarter;
         homeBench[benchIdx]      = newBenchSlot;
+        selectedBenchSquadNum = null;
         renderHomePanel();
       });
     });

@@ -370,10 +370,23 @@
   opacity: 1;
 }
 
+.pm-player--starter.pm-swap-target {
+  outline: 1px solid var(--rm-border-soft);
+  border-radius: 4px;
+}
+
 @media (min-width: 700px) {
   .pm-player--starter.pm-swap-target:hover {
     background: color-mix(in oklch, var(--rm-pitch) 8%, transparent);
-    outline: 1px solid var(--rm-border-soft);
-    border-radius: 4px;
+    outline-color: var(--rm-pitch);
   }
+}
+
+/* ─── Lineup hint bar ─── */
+.pm-lineup-hint {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  color: var(--rm-text-dim);
+  text-align: center;
+  padding: 6px 0 2px;
 }

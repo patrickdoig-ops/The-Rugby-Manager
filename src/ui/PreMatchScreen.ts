@@ -1,6 +1,8 @@
 import type { PlayerStats } from '../types/player';
+import type { TeamTactics } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';
 import { renderTacticsMenu } from './TacticsMenu';
+import { eventBus } from '../utils/eventBus';
 import type { RawTeamInput } from '../engine/MatchEngine';
 
 type RawPlayer = {
@@ -121,7 +123,7 @@ function renderLineupPanel(starters: RawPlayer[], bench: RawPlayer[], color: str
 export function initPreMatchScreen(
   home: RawTeam,
   away: RawTeam,
-  onStart: (configuredHome: RawTeam, configuredAway: RawTeam) => void,
+  onStart: (configuredHome: RawTeam, configuredAway: RawTeam, homeTactics: TeamTactics) => void,
 ): void {
   const screen = document.getElementById('pre-match')!;
 
@@ -219,6 +221,11 @@ export function initPreMatchScreen(
     }
   });
 
+  let chosenTactics: TeamTactics = { ...DEFAULT_TACTICS };
+  const unsubTactics = eventBus.on('ui:tacticsChange', ({ teamId, tactics }) => {
+    if (teamId === 'home') chosenTactics = tactics;
+  });
+
   renderTacticsMenu(tacticsPanel, { ...DEFAULT_TACTICS });
 
   tabs.forEach(tab => {
@@ -238,9 +245,10 @@ export function initPreMatchScreen(
     const start = () => {
       if (started) return;
       started = true;
+      unsubTactics();
       screen.style.display = 'none';
       const configuredHome = { ...home, players: homeStarters, bench: homeBench } as unknown as RawTeam;
-      onStart(configuredHome, away);
+      onStart(configuredHome, away, chosenTactics);
     };
     screen.addEventListener('animationend', start, { once: true });
     setTimeout(start, 600);

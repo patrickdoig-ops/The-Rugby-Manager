@@ -1,5 +1,5 @@
 import type { MatchState, GameEvent } from '../types/match';
-import type { Team } from '../types/team';
+import type { Team, TeamTactics } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';
 import type { Player, PlayerStats } from '../types/player';
 import { MatchPhase, type PossessionSide, type PenaltyChoice } from '../types/engine';
@@ -59,17 +59,17 @@ function initPlayer(raw: RawPlayer): Player {
   };
 }
 
-function buildTeam(raw: RawTeamInput): Team {
+function buildTeam(raw: RawTeamInput, tactics?: TeamTactics): Team {
   return {
     ...raw,
     players: raw.players.map(initPlayer),
     bench: (raw.bench ?? []).map(initPlayer),
     substitutedOff: [],
-    tactics: { ...DEFAULT_TACTICS },
+    tactics: tactics ? { ...tactics } : { ...DEFAULT_TACTICS },
   };
 }
 
-function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayMs: number): MatchState {
+function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayMs: number, homeTactics?: TeamTactics): MatchState {
   return {
     phase: MatchPhase.KickOff,
     gameMinute: 0,
@@ -77,7 +77,7 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
     possession: 'home',
     ballX: 50,
     ballY: 50,
-    homeTeam: buildTeam(homeRaw),
+    homeTeam: buildTeam(homeRaw, homeTactics),
     awayTeam: buildTeam(awayRaw),
     stats: {
       possession: { home: 0, away: 0 },
@@ -120,9 +120,9 @@ export class MatchEngine {
   constructor(
     homeRaw: RawTeamInput,
     awayRaw: RawTeamInput,
-    opts: { tickDelayMs?: number } = {},
+    opts: { tickDelayMs?: number; homeTactics?: TeamTactics } = {},
   ) {
-    this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500);
+    this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, opts.homeTactics);
     this.sm = new StateMachine(MatchPhase.KickOff);
 
     eventBus.on('ui:tacticsChange', ({ teamId, tactics }) => {

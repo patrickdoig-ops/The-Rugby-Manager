@@ -8,7 +8,7 @@ import { applyFatigue } from './StaminaSystem';
 import { resolveGoalKick } from './resolvers/KickingResolver';
 import { getCommentary } from './CommentaryEngine';
 import { eventBus } from '../utils/eventBus';
-import { rng } from '../utils/rng';
+import { rng, rngForm } from '../utils/rng';
 import { clamp } from '../utils/math';
 import type { PhaseContext, PhaseResult } from './events/types';
 import { handleKickOff }        from './events/KickOffEvent';
@@ -39,11 +39,17 @@ export type RawTeamInput = {
 };
 
 function initPlayer(raw: RawPlayer): Player {
+  const form = rngForm();
+  const current = deepCloneStats(raw.baseStats);
+  for (const key of Object.keys(current) as (keyof PlayerStats)[]) {
+    current[key] = Math.max(1, Math.min(100, current[key] + form));
+  }
   return {
     ...raw,
     squadNumber: raw.squadNumber ?? raw.id,
     baseStats: deepCloneStats(raw.baseStats),
-    currentStats: deepCloneStats(raw.baseStats),
+    currentStats: current,
+    formModifier: form,
     fatiguePct: 100,
     rating: 6.0,
     x: 50,

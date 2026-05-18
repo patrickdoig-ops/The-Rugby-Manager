@@ -85,6 +85,22 @@ Higher stamina reduces decay. A player with stamina 90 decays at 40% the rate of
 
 ---
 
+## Per-Match Form Modifier
+
+**Source:** `rngForm()` in `src/utils/rng.ts`, applied in `initPlayer()` in `src/engine/MatchEngine.ts`.
+
+At match start, every player (starters and bench) receives a `formModifier` — a signed integer drawn from a normal distribution (mean 0, std dev 5, clamped to [−10, +10]). It is applied additively to every stat in `currentStats` before the first tick:
+
+```
+current[stat] = clamp(baseStats[stat] + formModifier, 1, 100)
+```
+
+`baseStats` is untouched. Fatigue then degrades `currentStats` from this form-adjusted base throughout the match. A player with `formModifier = +8` starts with all attributes elevated by 8 points; one with `formModifier = −6` starts 6 points below baseline in every stat.
+
+`formModifier` is hidden from the UI — it is stored on `Player` for engine purposes but no UI module reads it.
+
+---
+
 ## Coin Toss
 
 Resolved inside `MatchEngine.initialize()` before the first tick.

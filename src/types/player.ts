@@ -29,6 +29,7 @@ export interface Player {
   baseStats: PlayerStats;
   currentStats: PlayerStats;
   fatiguePct: number;
+  formModifier: number;
   rating: number;
   x: number;
   y: number;

@@ -32,7 +32,7 @@ Never compute ball direction or territory logic outside these helpers.
 ### Phase state machine
 
 ```
-KickOff      → FirstPhase | Scrum
+KickOff      → KickReturn | Scrum
 PhasePlay    → Breakdown | TacticalKick | TryScored | Penalty | Scrum | HalfTime | FullTime
 FirstPhase   → Breakdown | TacticalKick | TryScored | Penalty | Scrum | HalfTime | FullTime
 KickReturn   → Breakdown | TacticalKick | TryScored | Penalty | Scrum | HalfTime | FullTime
@@ -49,8 +49,8 @@ FullTime     → (terminal)
 
 Three carry phases share identical mechanics but are context-specific:
 - **PhasePlay** — runs after Breakdown (recycled possession)
-- **FirstPhase** — runs after KickOff, Scrum, Lineout, or a penalty tap-and-go
-- **KickReturn** — runs after BoxKick or TacticalKick (the receiving team now attacks)
+- **FirstPhase** — runs after Scrum, Lineout, or a penalty tap-and-go
+- **KickReturn** — runs after KickOff, BoxKick, or TacticalKick (the receiving team now attacks)
 
 `StateMachine.transition()` validates against this table and throws on illegal moves. `forceTransition()` bypasses validation and is used for HalfTime, FullTime, and penalty resolution.
 

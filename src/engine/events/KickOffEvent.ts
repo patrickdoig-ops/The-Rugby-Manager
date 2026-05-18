@@ -29,7 +29,7 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, adjust
     // Receiving team secures the ball — possession flips to them
     state.possession = state.possession === 'home' ? 'away' : 'home';
     return {
-      nextPhase: MatchPhase.FirstPhase,
+      nextPhase: MatchPhase.KickReturn,
       commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: receiver, secondaryPlayer: chaser }, 'clean_receive'),
       primaryPlayer: receiver,
       secondaryPlayer: chaser,
@@ -39,7 +39,7 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, adjust
   // contested — a short kick gives the kicking team a small chance to regather (15%)
   if (attackTeam.tactics.kickOffStrategy === 'short_kick' && rng(1, 100) <= 15) {
     return {
-      nextPhase: MatchPhase.FirstPhase,
+      nextPhase: MatchPhase.KickReturn,
       commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: chaser, secondaryPlayer: receiver }, 'short_kick_retain'),
       primaryPlayer: chaser,
       secondaryPlayer: receiver,
@@ -49,7 +49,7 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, adjust
   // All other contested results — receiving team scrambles possession
   state.possession = state.possession === 'home' ? 'away' : 'home';
   return {
-    nextPhase: MatchPhase.FirstPhase,
+    nextPhase: MatchPhase.KickReturn,
     commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: receiver, secondaryPlayer: chaser }, 'contested'),
     primaryPlayer: receiver,
     secondaryPlayer: chaser,

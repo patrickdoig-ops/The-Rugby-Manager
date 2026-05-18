@@ -131,7 +131,7 @@ The penalty interactive pause is a `Promise` that resolves when the `onChoice(ch
 ### Phase flow
 
 ```
-KickOff → FirstPhase → Breakdown → PhasePlay (loop)
+KickOff → KickReturn → Breakdown → PhasePlay (loop)
                                   → BoxKick (slow ball; propensity driven by attackingGamePlan + pitch zone) → KickReturn / Scrum
                       → TacticalKick (propensity driven by attackingGamePlan + pitch zone) → KickReturn / Lineout / Scrum
                       → Scrum / Lineout → FirstPhase
@@ -143,8 +143,8 @@ Any phase at 80 min → FullTime
 
 Three carry phases share identical mechanics (same resolver, same commentary templates):
 - **PhasePlay** — after Breakdown (recycled possession)
-- **FirstPhase** — after KickOff, Scrum, Lineout, or tap-and-go penalty
-- **KickReturn** — after BoxKick or TacticalKick
+- **FirstPhase** — after Scrum, Lineout, or tap-and-go penalty
+- **KickReturn** — after KickOff, BoxKick, or TacticalKick
 
 `StateMachine` validates transitions; `forceTransition()` bypasses validation for HalfTime/FullTime/penalty resolution.
 

@@ -252,23 +252,23 @@ Players start each match at `rating: 6.0` (out of 10). `MatchEngine.adjustRating
 
 | Event | Player | Delta |
 |---|---|---|
-| Try scored | scorer | +0.75 |
+| Try scored | scorer | +1.0 |
 | Lineout steal | defender jumper | +0.45 |
-| Breakdown turnover | jackal | +0.45 |
+| Breakdown turnover | jackal | +0.75 |
 | Goal kick success (penalty) | kicker | +0.3 |
 | Dominant tackle | defender | +0.3 |
-| Scrum dominant_penalty | defending hooker | +0.225 |
+| Scrum dominant_penalty | defending front row (each) | +0.225 |
 | Lineout clean_catch | attack jumper | +0.225 |
 | Goal kick success (conversion) | kicker | +0.225 |
 | Dominant carry | carrier | +0.225 |
 | Line break | carrier | +0.375 |
-| Scrum stable_win | hooker | +0.15 |
+| Scrum stable_win | attack front row (each) | +0.15 |
 | Breakdown clean_ball | primary supporter | +0.15 |
 | Tactical kick success | kicker | +0.15 |
 | Knock-on (open play) | carrier | −0.45 |
 | Lineout steal conceded | attack jumper | −0.3 |
 | Tactical kick catch drop | defender | −0.3 |
-| Scrum dominant_penalty conceded | attack hooker | −0.3 |
+| Scrum dominant_penalty conceded | attack front row (each) | −0.3 |
 | Breakdown penalty conceded | primary supporter | −0.375 |
 | Kick-off knock-on | receiver | −0.375 |
 | Goal kick miss (penalty) | kicker | −0.225 |

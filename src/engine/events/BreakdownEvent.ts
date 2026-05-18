@@ -104,7 +104,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
   }
 
   if (res.result === 'turnover') {
-    adjustRating(jackal, +0.45);
+    adjustRating(jackal, +0.75);
     adjustRating(primary, -0.15);
     state.possession = state.possession === 'home' ? 'away' : 'home';
     state.breakdownMod = { attack: 0, defend: 0 };

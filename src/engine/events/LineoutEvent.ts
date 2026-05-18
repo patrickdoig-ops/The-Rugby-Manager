@@ -28,7 +28,7 @@ export function handleLineout({ state, attackTeam, defendTeam, adjustRating, pic
     adjustRating(attackJumper, +0.225);
     state.stats.lineouts[state.possession]++;
     return {
-      nextPhase: MatchPhase.OpenPlay,
+      nextPhase: MatchPhase.FirstPhase,
       // secondaryPlayer in commentary is the hooker (thrower); in the event it is the defend jumper
       commentary: getCommentary({ ...draftEvent(MatchPhase.Lineout), primaryPlayer: attackJumper, secondaryPlayer: hooker }, 'clean_catch'),
       primaryPlayer: attackJumper,
@@ -54,7 +54,7 @@ export function handleLineout({ state, attackTeam, defendTeam, adjustRating, pic
   state.possession = state.possession === 'home' ? 'away' : 'home';
   state.stats.lineouts[state.possession]++;
   return {
-    nextPhase: MatchPhase.OpenPlay,
+    nextPhase: MatchPhase.FirstPhase,
     commentary: getCommentary({ ...draftEvent(MatchPhase.Lineout), primaryPlayer: defendJumper, secondaryPlayer: attackJumper }, 'steal'),
     primaryPlayer: defendJumper,
     secondaryPlayer: attackJumper,

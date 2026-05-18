@@ -1,8 +1,8 @@
 import type { MatchState, GameEvent } from '../types/match';
-import type { Team } from '../types/team';
+import type { Team, TeamTactics } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';
 import type { Player, PlayerStats } from '../types/player';
-import { MatchPhase, type PossessionSide, type PenaltyChoice } from '../types/engine';
+import { MatchPhase, type PossessionSide, type PenaltyChoice, type KickOffStrategy } from '../types/engine';
 import { StateMachine } from './StateMachine';
 import { applyFatigue } from './StaminaSystem';
 import { resolveGoalKick } from './resolvers/KickingResolver';
@@ -12,7 +12,9 @@ import { rng, rngForm } from '../utils/rng';
 import { clamp } from '../utils/math';
 import type { PhaseContext, PhaseResult } from './events/types';
 import { handleKickOff }        from './events/KickOffEvent';
-import { handleOpenPlay }       from './events/OpenPlayEvent';
+import { handlePhasePlay }      from './events/OpenPlayEvent';
+import { handleFirstPhase }     from './events/FirstPhaseEvent';
+import { handleKickReturn }     from './events/KickReturnEvent';
 import { handleBreakdown }      from './events/BreakdownEvent';
 import { handleScrum }          from './events/ScrumEvent';
 import { handleLineout }        from './events/LineoutEvent';
@@ -57,17 +59,17 @@ function initPlayer(raw: RawPlayer): Player {
   };
 }
 
-function buildTeam(raw: RawTeamInput): Team {
+function buildTeam(raw: RawTeamInput, tactics?: TeamTactics): Team {
   return {
     ...raw,
     players: raw.players.map(initPlayer),
     bench: (raw.bench ?? []).map(initPlayer),
     substitutedOff: [],
-    tactics: { ...DEFAULT_TACTICS },
+    tactics: tactics ? { ...tactics } : { ...DEFAULT_TACTICS },
   };
 }
 
-function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayMs: number): MatchState {
+function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayMs: number, homeTactics?: TeamTactics): MatchState {
   return {
     phase: MatchPhase.KickOff,
     gameMinute: 0,
@@ -75,7 +77,7 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
     possession: 'home',
     ballX: 50,
     ballY: 50,
-    homeTeam: buildTeam(homeRaw),
+    homeTeam: buildTeam(homeRaw, homeTactics),
     awayTeam: buildTeam(awayRaw),
     stats: {
       possession: { home: 0, away: 0 },
@@ -97,7 +99,9 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
 
 const PHASE_HANDLERS: Partial<Record<MatchPhase, (ctx: PhaseContext) => PhaseResult>> = {
   [MatchPhase.KickOff]:        handleKickOff,
-  [MatchPhase.OpenPlay]:       handleOpenPlay,
+  [MatchPhase.PhasePlay]:      handlePhasePlay,
+  [MatchPhase.FirstPhase]:     handleFirstPhase,
+  [MatchPhase.KickReturn]:     handleKickReturn,
   [MatchPhase.Breakdown]:      handleBreakdown,
   [MatchPhase.Scrum]:          handleScrum,
   [MatchPhase.Lineout]:        handleLineout,
@@ -112,13 +116,14 @@ export class MatchEngine {
   private sm: StateMachine;
   private tickTimeout: ReturnType<typeof setTimeout> | null = null;
   private fatigueAccumulator = 0;
+  private kickOffStrategy: KickOffStrategy = 'high_ball';
 
   constructor(
     homeRaw: RawTeamInput,
     awayRaw: RawTeamInput,
-    opts: { tickDelayMs?: number } = {},
+    opts: { tickDelayMs?: number; homeTactics?: TeamTactics } = {},
   ) {
-    this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500);
+    this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, opts.homeTactics);
     this.sm = new StateMachine(MatchPhase.KickOff);
 
     eventBus.on('ui:tacticsChange', ({ teamId, tactics }) => {
@@ -315,6 +320,11 @@ export class MatchEngine {
         eventBus.emit('engine:event', { event: announceEvent });
       }
 
+      if (this.state.phase === MatchPhase.KickOff) {
+        await this.handleKickOffStrategy();
+        if (!this.state.isRunning) return;
+      }
+
       if (this.state.phase === MatchPhase.BoxKick) {
         const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
         const scrumHalf = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
@@ -404,6 +414,7 @@ export class MatchEngine {
       randomPlayer:   (team) => team.players[rng(0, team.players.length - 1)],
       pickPlayer:     (team, ...ids) => team.players.find(p => ids.includes(p.id)) ?? team.players[0],
       draftEvent:     (phase) => this.draftEvent(phase),
+      kickOffStrategy: this.kickOffStrategy,
     };
 
     const handler = PHASE_HANDLERS[state.phase];
@@ -446,6 +457,17 @@ export class MatchEngine {
       ballY: this.state.ballY,
       commentary: '',
     };
+  }
+
+  private async handleKickOffStrategy(): Promise<void> {
+    this.state.isPaused = true;
+    this.kickOffStrategy = await new Promise<KickOffStrategy>(resolve => {
+      eventBus.emit('engine:paused', {
+        payload: { type: 'kickoff_choice', onChoice: (c) => resolve(c) },
+      });
+    });
+    this.state.isPaused = false;
+    eventBus.emit('engine:resumed', {});
   }
 
   private async handlePenaltyDecision(): Promise<void> {
@@ -563,8 +585,8 @@ export class MatchEngine {
       };
       state.events.push(penEvent);
       eventBus.emit('engine:event', { event: penEvent });
-      sm.forceTransition(MatchPhase.OpenPlay);
-      state.phase = MatchPhase.OpenPlay;
+      sm.forceTransition(MatchPhase.FirstPhase);
+      state.phase = MatchPhase.FirstPhase;
     }
 
     eventBus.emit('engine:stateChange', { state });

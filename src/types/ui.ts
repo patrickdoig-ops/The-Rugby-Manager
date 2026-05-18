@@ -1,12 +1,10 @@
-import type { PenaltyChoice, PenaltyContext } from './engine';
+import type { PenaltyChoice, PenaltyContext, KickOffStrategy } from './engine';
 import type { GameEvent, MatchState } from './match';
 import type { Team, TeamTactics } from './team';
 
-export interface ModalPayload {
-  type: 'penalty_choice';
-  context: PenaltyContext;
-  onChoice: (choice: PenaltyChoice) => void;
-}
+export type ModalPayload =
+  | { type: 'penalty_choice'; context: PenaltyContext; onChoice: (choice: PenaltyChoice) => void; }
+  | { type: 'kickoff_choice'; onChoice: (choice: KickOffStrategy) => void; };
 
 export interface AppEvents {
   'engine:event':       { event: GameEvent };

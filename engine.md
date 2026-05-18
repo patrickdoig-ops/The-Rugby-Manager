@@ -12,12 +12,14 @@ Each tick:
 1. Advances game time by `0.2 + rng(0, 8) / 10` minutes (0.2–1.0 per tick)
 2. Accumulates elapsed time; calls `applyFatigue()` on both teams once the accumulator reaches 5 game minutes
 3. Increments possession and territory counters
-4. Calls `resolvePhase()` to produce a `GameEvent`
-5. Emits `engine:event` and `engine:stateChange`
-6. Checks for penalty interactive pause (if phase is `Penalty`)
-7. Checks for half-time (gameMinute ≥ 40 and `halfTimeDone === false`)
-8. Checks for full-time (gameMinute ≥ 80)
-9. Schedules next tick at `state.tickDelayMs`
+4. For `KickOff` and `BoxKick` phases: emits a pre-phase announce `GameEvent` (naming the kicker before the outcome is resolved)
+5. For `KickOff` phase: awaits kick-off strategy selection via modal (`kickoff_choice` pause) — both teams use the modal
+6. Calls `resolvePhase()` to produce the outcome `GameEvent`
+7. Emits `engine:event` and `engine:stateChange`
+8. Checks for penalty interactive pause (if phase is `Penalty`)
+9. Checks for half-time (gameMinute ≥ 40 and `halfTimeDone === false`)
+10. Checks for full-time (gameMinute ≥ 80)
+11. Schedules next tick at `state.tickDelayMs`
 
 ### Attack direction
 
@@ -32,18 +34,25 @@ Never compute ball direction or territory logic outside these helpers.
 ### Phase state machine
 
 ```
-KickOff      → OpenPlay | Scrum
-OpenPlay     → Breakdown | TacticalKick | TryScored | Penalty | Scrum | HalfTime | FullTime
-Breakdown    → OpenPlay | BoxKick | Scrum | Lineout | Penalty
-BoxKick      → OpenPlay | Scrum
-Scrum        → OpenPlay | Penalty | Scrum
-Lineout      → OpenPlay | Scrum
-TacticalKick → OpenPlay | Lineout | Scrum
+KickOff      → KickReturn | Scrum
+PhasePlay    → Breakdown | TacticalKick | TryScored | Penalty | Scrum | HalfTime | FullTime
+FirstPhase   → Breakdown | TacticalKick | TryScored | Penalty | Scrum | HalfTime | FullTime
+KickReturn   → Breakdown | TacticalKick | TryScored | Penalty | Scrum | HalfTime | FullTime
+Breakdown    → PhasePlay | BoxKick | Scrum | Lineout | Penalty
+BoxKick      → KickReturn | Scrum
+Scrum        → FirstPhase | Penalty | Scrum
+Lineout      → FirstPhase | Scrum
+TacticalKick → KickReturn | Lineout | Scrum
 TryScored    → ConversionKick → KickOff
-Penalty      → [modal] → KickOff | Lineout | OpenPlay
+Penalty      → [modal] → KickOff | Lineout | FirstPhase
 HalfTime     → KickOff
 FullTime     → (terminal)
 ```
+
+Three carry phases share identical mechanics but are context-specific:
+- **PhasePlay** — runs after Breakdown (recycled possession)
+- **FirstPhase** — runs after Scrum, Lineout, or a penalty tap-and-go
+- **KickReturn** — runs after KickOff, BoxKick, or TacticalKick (the receiving team now attacks)
 
 `StateMachine.transition()` validates against this table and throws on illegal moves. `forceTransition()` bypasses validation and is used for HalfTime, FullTime, and penalty resolution.
 
@@ -118,15 +127,21 @@ A `GameEvent` with phase `KickOff` and key `coin_toss` is emitted immediately so
 
 ## Kick-Off
 
+### Strategy selection
+
+Before the resolver runs, a modal pause (`kickoff_choice`) is presented for **both** teams. Three options: Kick Short (`short_kick`), Grubber Kick (`grubber`), Kick Deep (`high_ball`). The engine awaits the selection before proceeding.
+
 ### Player selection
 
-```typescript
-kicker   = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0]
-receiver = randomPlayer(defendTeam)   // any of 15
-chaser   = randomPlayer(attackTeam)   // any of 15
-```
+The fly-half (id 10) of the kicking team always takes the kick. Receiver and chaser are drawn based on strategy:
 
-The fly-half (id 10) of the kicking team always takes the kick. Receiver and chaser are drawn at random from the full squads.
+| Strategy | Receiver pool | Chaser pool |
+|---|---|---|
+| `high_ball` (Kick Deep) | ids 9, 11, 14, 15 (backs) | any |
+| `short_kick` (Kick Short) | ids 1–8 (forwards) | ids 7, 11, 14 |
+| `grubber` (Grubber Kick) | ids 1–8 (forwards) | any (not used in resolver) |
+
+Falls back to `randomPlayer` if the filtered pool is empty.
 
 ### Step 1 — Kick quality and distance
 
@@ -135,38 +150,64 @@ kickScore = kicker.kicking + rng(1, 20)
 goodKick  = kickScore >= 35
 ```
 
-A good kick (`kickScore ≥ 35`) travels 25–40m (high_ball) and the receiver gets no catch advantage. A poor kick travels 10–20m and grants the receiver a significant catch bonus (`catchMod +15`), representing a floated, catchable ball. The ball's position is immediately moved down the pitch by the kick's distance.
-
-The scrum (on a knock-on) is therefore placed at the landing position, not at halfway.
-
-### Step 2 — Catch vs chase contest
-
-The receiving player attempts to catch the ball, relying on their handling and composure, boosted by any advantage from a poor kick. Simultaneously, a chasing player from the kicking team races forward, relying on their pace and agility. Both scores include a random factor, and the chasing score is subtracted from the catching score to determine the margin:
-
-| Margin | Result | Possession |
+| Strategy | Good kick distance | Bad kick distance |
 |---|---|---|
-| > 10 | `clean_receive` → OpenPlay | Flips to receiving team |
-| > −5 | `contested` → OpenPlay | Flips to receiving team (scrambles possession) |
-| ≤ −5 | `knock_on` → Scrum | No change (kicking team wins scrum put-in) |
+| `high_ball` | 25–40m | 15–25m (no poor-kick threshold) |
+| `short_kick` | 10–20m | 4–9m → `poor_kick` |
+| `grubber` | 15–25m | 4–9m → `poor_kick` |
 
-`contested` always gives the ball to the receiving team — only a `knock_on` (the receiver drops it uncontested) benefits the kicking side.
+**10-metre rule (`short_kick` and `grubber`):** If `distance < 10`, the resolver returns `poor_kick` immediately. The receiving team is awarded a scrum at halfway (possession flips) and the kicker receives a rating penalty.
 
-**Short kick regather (`short_kick_retain`):** When the kicking team uses `short_kick` and the result is `contested`, there is a 15% chance the kicking team regathers their own kick and retains possession. The chase player (`chaser`) is credited as `primaryPlayer` for the event. This is the only scenario where the kicking team can retain on a `contested` result.
+The ball is placed at the kick's landing position before outcome resolution (so a `knock_on` scrum is at the landing spot, not at halfway). `poor_kick` resets `ballX` to 50.
 
-**Tactical Strategy (`KickOffStrategy`):**
-- `high_ball`: Good kick 25–40m, poor kick 10–20m. Good kick: `catchMod` 0 (normal contest). Poor kick: `catchMod` +15 (receiver advantaged).
-- `short_kick`: Good kick 10–18m, poor kick 8–12m. Good kick: `catchMod` −5 (harder for receiver, chaser contest tighter). Poor kick: `catchMod` +10. Contested result has 15% chance kicking team regathers their own kick (`short_kick_retain`).
-- `grubber`: Distance always 15–30m regardless of kick quality. `catchMod` −10 (hard low ball, clean catch difficult) on all outcomes.
+### Step 2 — Outcome resolution
+
+**Kick Deep (`high_ball`) — catching gate only:**
+```
+catchScore = (receiver.handling + receiver.composure) / 2 + rng(1, 20)
+catchScore < 30 → knock_on
+else            → clean_receive
+```
+No chase contest. The result is solely whether the receiver holds the ball.
+
+**Kick Short (`short_kick`) — catch vs chase contest:**
+```
+catchScore = (receiver.handling + receiver.composure) / 2 + rng(1, 20)
+chaseScore = (chaser.pace + chaser.agility) / 2 + rng(1, 20)
+margin     = catchScore − chaseScore
+margin > 10  → clean_receive
+margin > −5  → 30% short_kick_retain, else clean_receive
+margin ≤ −5  → knock_on
+```
+
+**Grubber (`grubber`) — catching gate only:**
+```
+catchScore = (receiver.handling + receiver.composure) / 2 + rng(1, 20)
+catchScore < 30 → knock_on
+else            → clean_receive
+```
+
+### Outcome summary
+
+| Result | Possession | ballX | Next phase |
+|---|---|---|---|
+| `poor_kick` | flip to receiving team | 50 (halfway) | Scrum |
+| `knock_on` | stays with kicking team | landing position | Scrum |
+| `clean_receive` | flip to receiving team | landing position | KickReturn |
+| `short_kick_retain` | stays with kicking team | landing position | KickReturn |
 
 ### Rating adjustments
 
 | Outcome | Player | Delta |
 |---|---|---|
-| knock_on | receiver | −0.375 |
+| `poor_kick` | kicker | −0.225 |
+| `knock_on` | receiver | −0.375 |
 
 ---
 
-## Open Play
+## Carry Phases (PhasePlay / FirstPhase / KickReturn)
+
+Three phases share identical mechanics and commentary templates. **PhasePlay** runs after Breakdown; **FirstPhase** runs after KickOff, Scrum, Lineout, or a tap-and-go penalty; **KickReturn** runs after BoxKick or TacticalKick. Each is a separate handler (`handlePhasePlay`, `handleFirstPhase`, `handleKickReturn`) in its own file, routing to the matching `MatchPhase` enum value for commentary lookups.
 
 ### Player selection
 
@@ -183,9 +224,9 @@ The initial carrier and defender are always selected. The fly half and outside b
 ### Step 0 — Kick or carry decision
 
 The probability of kicking rather than carrying into contact is driven by `attackTeam.tactics.attackingGamePlan` and pitch location:
-- `possession`: 10% inside own 22; 5% in own half; 0% in opposition half.
-- `balanced`: 20% inside own 22; 15% in own half; 10% in opposition half.
-- `kicking`: 35% inside own 22; 25% in own half; 15% in opposition half.
+- `possession`: 50% inside own 22; 15% in own half; 0% in opposition half.
+- `balanced`: 75% inside own 22; 50% in own half; 10% in opposition half.
+- `kicking`: 90% inside own 22; 65% in own half; 15% in opposition half.
 
 Checked before any player is selected. If it fires, the fly-half (id=10) is logged as `primaryPlayer` for commentary and the phase transitions to `TacticalKick`. Steps 1–4 do not run.
 
@@ -286,9 +327,9 @@ Attacking supporters are sampled at random (without replacement) from the forwar
   - `counter_ruck`: The 4 strongest defenders (by `strength×0.6 + breakdown×0.4`) contest the ruck using the stacked-score formula.
   - `shadow`: Concedes ruck ball (DTS = rng(1,10)) to maintain a perfectly aligned defensive line.
 
-**Next-phase carry-over (`state.breakdownMod`):** Committing more players to the ruck leaves fewer available for the next phase. After every breakdown the engine sets `state.breakdownMod.attack` and `state.breakdownMod.defend` which are consumed (and reset to zero) by the very next `OpenPlay` phase, where they are applied as modifiers to the evasion and defence scores respectively.
+**Next-phase carry-over (`state.breakdownMod`):** Committing more players to the ruck leaves fewer available for the next phase. After every breakdown the engine sets `state.breakdownMod.attack` and `state.breakdownMod.defend` which are consumed (and reset to zero) by the very next carry phase (PhasePlay after Breakdown, or FirstPhase/KickReturn in other contexts), where they are applied as modifiers to the evasion and defence scores respectively.
 
-| Tactic | Effect on next OpenPlay |
+| Tactic | Effect on next carry phase |
 |---|---|
 | `pick_and_drive` | attack −8 evasion (forwards still arriving) |
 | `balanced` | 0 |
@@ -337,9 +378,9 @@ Both quality (stat values) and quantity (number of bodies) now independently inf
 
 | Margin | Result |
 |---|---|
-| ≥ 10 | `clean_ball` → OpenPlay |
-| ≥ −8 | `slow_ball` → OpenPlay / BoxKick |
-| ≥ −14 | `turnover` → OpenPlay (possession flips) |
+| ≥ 10 | `clean_ball` → PhasePlay |
+| ≥ −8 | `slow_ball` → PhasePlay / BoxKick |
+| ≥ −14 | `turnover` → PhasePlay (possession flips) |
 | < −14 | `penalty_defending` → Penalty (possession flips to defending team) |
 
 ### Ball movement

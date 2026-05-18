@@ -32,8 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initPreMatchScreen(
       homeTeamRaw as RawTeamInput,
       awayTeamRaw as RawTeamInput,
-      (configuredHome, configuredAway) => {
-        const engine = new MatchEngine(configuredHome, configuredAway, { tickDelayMs: 1500 });
+      (configuredHome, configuredAway, homeTactics) => {
+        const engine = new MatchEngine(configuredHome, configuredAway, { tickDelayMs: 1500, homeTactics });
         initSimController(engine);
         engine.initialize();
       },

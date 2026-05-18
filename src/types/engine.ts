@@ -1,6 +1,8 @@
 export enum MatchPhase {
   KickOff        = 'KICK_OFF',
-  OpenPlay       = 'OPEN_PLAY',
+  PhasePlay      = 'PHASE_PLAY',
+  FirstPhase     = 'FIRST_PHASE',
+  KickReturn     = 'KICK_RETURN',
   Breakdown      = 'BREAKDOWN',
   Scrum          = 'SCRUM',
   Lineout        = 'LINEOUT',
@@ -15,11 +17,12 @@ export enum MatchPhase {
 }
 
 export type PossessionSide = 'home' | 'away';
+export type KickOffStrategy = 'high_ball' | 'short_kick' | 'grubber';
 
 export type BreakdownResult = 'clean_ball' | 'slow_ball' | 'turnover' | 'penalty_defending';
 export type ScrumResult     = 'stable_win' | 'wheel' | 'dominant_penalty';
 export type LineoutResult   = 'clean_catch' | 'steal' | 'scrappy_knock_on' | 'crooked_throw';
-export type KickOffResult   = 'clean_receive' | 'contested' | 'knock_on';
+export type KickOffResult   = 'clean_receive' | 'knock_on' | 'short_kick_retain' | 'poor_kick';
 export type CollisionResult = 'dominant_carry' | 'dominant_tackle' | 'broken_tackle';
 export type KickResult      = 'good_kick' | 'poor_kick' | 'knock_on_catch';
 export type PenaltyChoice   = 'kick_for_goal' | 'kick_to_touch' | 'tap_and_go';

@@ -94,7 +94,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
       )
     : '';
   return {
-    nextPhase: MatchPhase.OpenPlay,
+    nextPhase: MatchPhase.KickReturn,
     commentary: getCommentary({ ...draftEvent(MatchPhase.TacticalKick), primaryPlayer: kicker, secondaryPlayer: defender }, 'kick_caught') + kickCaughtNote,
     primaryPlayer: kicker,
     secondaryPlayer: defender,

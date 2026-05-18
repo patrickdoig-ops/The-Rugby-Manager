@@ -21,10 +21,10 @@ const PHASE_PLAY_TEMPLATES: Templates = {
     '{primary} fumbles under pressure. Knock-on — scrum to the opposition.',
   ],
   line_break: [
-    '{primary} finds the gap and he\'s through! {side} have broken the defensive line!',
+    '{primary} finds the gap and he\'s through! {side} have broken {defside}\'s line!',
     'Sensational carry from {primary} — he\'s stepped the cover and he\'s running!',
-    '{primary} punches a hole through the defence! A major gain in open play!',
-    '{primary} bursts clear! The defensive line is broken and {side} are on the move!',
+    '{primary} punches a hole through {defside}\'s defence! A major gain in open play!',
+    '{primary} bursts clear! {defside}\'s defensive line is broken — {side} are on the move!',
   ],
   line_break_try: [
     'TRY! {primary} finds the line and goes over! {side} have their points!',
@@ -41,7 +41,7 @@ const PHASE_PLAY_TEMPLATES: Templates = {
   dominant_tackle: [
     'Big read by {secondary}! He drives {primary} backwards — a dominant tackle.',
     '{secondary} cleans up {primary} with a thunderous hit. No gain there.',
-    'The defence wins this one — {secondary} stops {primary} dead and drives him back.',
+    '{defside} win this one — {secondary} stops {primary} dead and drives him back.',
     '{secondary} times the tackle perfectly and {primary} goes nowhere.',
   ],
   play_on: [
@@ -79,7 +79,7 @@ const FIRST_PHASE_TEMPLATES: Templates = {
     '{primary} bursts through off the top of a set piece! A brilliant running line!',
     'First-phase gold from {side} — {primary} punches through for a line break!',
     '{primary} finds the space and he\'s gone! The set piece has created a huge opportunity!',
-    '{primary} splits the defence wide open! Outstanding first-phase execution from {side}!',
+    '{primary} splits {defside}\'s defence wide open! Outstanding first-phase execution from {side}!',
   ],
   line_break_try: [
     'TRY! {primary} explodes off the set piece and goes over! {side} score!',
@@ -95,7 +95,7 @@ const FIRST_PHASE_TEMPLATES: Templates = {
   ],
   dominant_tackle: [
     '{secondary} reads the set-piece play perfectly and drives {primary} back.',
-    'The defence holds at the gain line — {secondary} wins the collision with {primary}.',
+    '{defside} hold at the gain line — {secondary} wins the collision with {primary}.',
     'Excellent defensive read from {secondary}. {primary} is stopped before he can get going.',
     'Dominant tackle from {secondary} — the first phase goes nowhere for {side}.',
   ],
@@ -260,24 +260,24 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
       'What a chase from {secondary}! The ball is claimed and {side} stay in possession!',
     ],
     defend_knock_on: [
-      'The fullback fumbles under pressure from {secondary}! Knock-on — scrum to {side}.',
-      '{secondary} gets right in the fullback\'s face — the ball is spilled! Scrum to {side}.',
-      'Brilliant chasing from {secondary}! The fullback spills it — {side} win a scrum.',
+      '{secondary} chases hard and forces the fumble — knock-on! Scrum to {side}.',
+      '{secondary} gets right under the kick — the ball is spilled! Scrum to {side}.',
+      'Brilliant chasing from {secondary} forces the error — scrum to {side}.',
     ],
     defend_catch_contested: [
-      'The fullback claims {primary}\'s box kick under real pressure — {side} turn it over.',
-      'Good hands from the fullback despite the chase — {side} collect and clear.',
-      'The fullback takes the contested ball cleanly — {side} win possession.',
+      '{secondary} claims {primary}\'s box kick under real pressure — {side} turn it over.',
+      'Good hands from {secondary} despite the chase — {side} collect and clear.',
+      '{secondary} takes the contested ball cleanly — {side} win possession.',
     ],
     defend_catch: [
-      '{primary}\'s box kick is gathered comfortably by the fullback — possession to {side}.',
-      'The box kick from {primary} lacks depth — the fullback collects easily. {side} in possession.',
-      'Safe hands from the fullback — {primary}\'s box kick turns over.',
+      '{primary}\'s box kick is gathered comfortably by {secondary} — possession to {side}.',
+      'The box kick from {primary} lacks depth — {secondary} collects easily. {side} in possession.',
+      'Safe hands from {secondary} — {primary}\'s box kick turns over.',
     ],
     knock_on: [
-      'The fullback spills {primary}\'s box kick! Knock-on — scrum to {side}!',
-      '{primary}\'s kick bounces awkwardly — the fullback can\'t hold on! Scrum ball.',
-      'Disaster for the fullback — {primary}\'s box kick wrong-foots them completely! Scrum to {side}.',
+      '{secondary} spills {primary}\'s box kick! Knock-on — scrum to {side}!',
+      '{primary}\'s kick bounces awkwardly — {secondary} can\'t hold on! Scrum ball.',
+      'Disaster for {secondary} — {primary}\'s box kick wrong-foots them completely! Scrum to {side}.',
     ],
   },
   [MatchPhase.TacticalKick]: {
@@ -387,7 +387,8 @@ function interpolate(template: string, event: GameEvent): string {
   return template
     .replace(/{primary}/g,   playerLabel(event.primaryPlayer,   'the player'))
     .replace(/{secondary}/g, playerLabel(event.secondaryPlayer, 'the defender'))
-    .replace(/{side}/g,      event.sideName);
+    .replace(/{side}/g,      event.sideName)
+    .replace(/{defside}/g,   event.defSideName ?? 'the opposition');
 }
 
 export function getCommentary(event: GameEvent, key: string): string {

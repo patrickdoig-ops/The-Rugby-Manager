@@ -23,6 +23,7 @@ export interface GameEvent {
   phase: MatchPhase;
   side: PossessionSide;
   sideName: string;
+  defSideName?: string;
   primaryPlayer?: Player;
   secondaryPlayer?: Player;
   ballX: number;

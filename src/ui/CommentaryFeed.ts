@@ -39,14 +39,20 @@ export function initCommentaryFeed(): void {
   const feed = document.getElementById('commentary-feed')!;
 
   let allPlayersWithColor: Array<{ player: Player; color: string }> = [];
+  let homeTeamName = '';
+  let awayTeamName = '';
+  let homeTeamColor = '';
+  let awayTeamColor = '';
 
   // One-shot: team colours and rosters are fixed for the match lifetime.
   const unsubTeams = eventBus.on('engine:stateChange', ({ state }) => {
-    const homeColor = state.homeTeam.color;
-    const awayColor = state.awayTeam.color;
+    homeTeamColor = state.homeTeam.color;
+    awayTeamColor = state.awayTeam.color;
+    homeTeamName  = state.homeTeam.name;
+    awayTeamName  = state.awayTeam.name;
     allPlayersWithColor = [
-      ...[...state.homeTeam.players, ...state.homeTeam.bench].map(p => ({ player: p, color: homeColor })),
-      ...[...state.awayTeam.players, ...state.awayTeam.bench].map(p => ({ player: p, color: awayColor })),
+      ...[...state.homeTeam.players, ...state.homeTeam.bench].map(p => ({ player: p, color: homeTeamColor })),
+      ...[...state.awayTeam.players, ...state.awayTeam.bench].map(p => ({ player: p, color: awayTeamColor })),
     ];
     unsubTeams();
   });
@@ -65,6 +71,9 @@ export function initCommentaryFeed(): void {
     for (const { player, color } of allPlayersWithColor) {
       html = colorizePlayer(html, player, color);
     }
+
+    if (homeTeamName) html = html.split(homeTeamName).join(`<span style="color:${homeTeamColor};font-weight:600">${homeTeamName}</span>`);
+    if (awayTeamName) html = html.split(awayTeamName).join(`<span style="color:${awayTeamColor};font-weight:600">${awayTeamName}</span>`);
 
     entry.innerHTML =
       `<span class="event-minute">${minute}′</span>` +

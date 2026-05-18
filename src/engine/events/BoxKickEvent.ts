@@ -53,9 +53,9 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
     state.kickReturnCarrier = fullback;
     return {
       nextPhase: MatchPhase.KickReturn,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: winger }, 'defend_catch_contested'),
+      commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: fullback }, 'defend_catch_contested'),
       primaryPlayer: scrumHalf,
-      secondaryPlayer: winger,
+      secondaryPlayer: fullback,
     };
   }
 
@@ -65,9 +65,9 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
     const homeIsDefending = state.possession !== 'home';
     const catchNote = (homeIsDefending && fullbackMod > 0)
       ? tacticNote(30,
-          "The backfield numbers are making the difference — the fullback had plenty of cover and took that cleanly.",
+          `The backfield numbers are making the difference — ${fullback.name} had plenty of cover and took that cleanly.`,
           fullbackMod >= 15
-            ? "Three in the backfield: the box kick had no chance, they had the numbers to deal with it comfortably."
+            ? `Three in the backfield: the box kick had no chance, ${defendTeam.name} had the numbers to deal with it comfortably.`
             : "The extra cover in the backfield paid off — that kick never had a chance of being contested.",
         )
       : '';
@@ -75,9 +75,9 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
     state.kickReturnCarrier = fullback;
     return {
       nextPhase: MatchPhase.KickReturn,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: winger }, 'defend_catch') + catchNote,
+      commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: fullback }, 'defend_catch') + catchNote,
       primaryPlayer: scrumHalf,
-      secondaryPlayer: winger,
+      secondaryPlayer: fullback,
     };
   }
 
@@ -87,8 +87,8 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
   state.stats.handlingErrors[state.possession === 'home' ? 'away' : 'home']++;
   return {
     nextPhase: MatchPhase.Scrum,
-    commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: winger }, 'knock_on'),
+    commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: fullback }, 'knock_on'),
     primaryPlayer: scrumHalf,
-    secondaryPlayer: winger,
+    secondaryPlayer: fullback,
   };
 }

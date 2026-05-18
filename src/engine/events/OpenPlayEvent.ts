@@ -119,8 +119,8 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
     } else {
       const lineBreakNote = (backfieldPenalty < 0 && state.possession !== 'home')
         ? tacticNote(30,
-            "The backfield commitment is leaving them short in the defensive line — and they've been cut through.",
-            "Three in the backfield means only twelve in the line and there's the gap — a costly trade-off.",
+            `The backfield commitment is leaving ${defendTeam.name} short in the defensive line — and they've been cut through.`,
+            `Three in the backfield means only twelve in the line for ${defendTeam.name} — and there's the gap.`,
           )
         : '';
       commentary = wideIntro + getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: ballCarrier, secondaryPlayer: defender }, 'line_break') + lineBreakNote;

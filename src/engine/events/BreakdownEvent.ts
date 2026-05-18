@@ -53,12 +53,12 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
       );
     } else if (homeIsDefending && defPlan === 'shadow') {
       note = tacticNote(30,
-        'The shadow defence is giving them a platform — they were already set before the ball arrived.',
-        "Conceding the ruck but giving nothing else — the defensive line is already organised.",
+        `The shadow defence is giving ${defendTeam.name} a platform — they were already set before the ball arrived.`,
+        `Conceding the ruck but giving nothing else — ${defendTeam.name}'s defensive line is already organised.`,
       );
     } else if (homeIsDefending && defPlan === 'jackal') {
       note = tacticNote(25,
-        "The jackal threat is still there even when they can't get the turnover — slowing things down.",
+        `The jackal threat is still there even when ${defendTeam.name} can't get the turnover — slowing things down.`,
       );
     }
     return {
@@ -84,7 +84,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
     let note = '';
     if (homeIsAttacking && attPlan === 'wide_play') {
       note = tacticNote(30,
-        "The wide game plan is leaving them thin at the ruck — they're having to work hard for this ball.",
+        `The wide game plan is leaving ${attackTeam.name} thin at the ruck — they're having to work hard for this ball.`,
         "A price to pay for the wide-play approach: not enough bodies to secure quick ball there.",
       );
     } else if (homeIsDefending && defPlan === 'counter_ruck') {
@@ -110,16 +110,16 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
     // After possession flip, home is now attacking if they just won the turnover
     if (homeIsDefending && defPlan === 'jackal') {
       note = tacticNote(35,
-        "That's the jackal game paying off — huge work-rate at the breakdown and they've stolen possession.",
-        "Exactly what the jackal strategy is designed for — patience at the breakdown and they've come away with the ball.",
+        `That's the jackal game paying off — huge work-rate at the breakdown and ${defendTeam.name} have stolen possession.`,
+        `Exactly what the jackal strategy is designed for — patience at the breakdown and ${defendTeam.name} come away with the ball.`,
       );
     } else if (homeIsDefending && defPlan === 'counter_ruck') {
       note = tacticNote(30,
-        "The counter-ruck overwhelms the opposition and they've turned it over — sheer forward power.",
+        `The counter-ruck overwhelms the opposition and ${defendTeam.name} have turned it over — sheer forward power.`,
       );
     } else if (homeIsAttacking && attPlan === 'wide_play') {
       note = tacticNote(25,
-        "The wide game plan leaves too few at the ruck and they've paid the price — possession gone.",
+        `The wide game plan leaves too few at the ruck and ${attackTeam.name} have paid the price — possession gone.`,
         "That's the danger with going wide — not enough bodies to secure that ball.",
       );
     }
@@ -143,7 +143,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
     );
   } else if (homeIsAttacking && attPlan === 'wide_play') {
     penaltyNote = tacticNote(25,
-      "With so few at the ruck they've struggled to stay legal — and the referee penalises them.",
+      `With so few at the ruck ${attackTeam.name} struggled to stay legal — and the referee penalises them.`,
     );
   } else if (homeIsDefending && defPlan === 'jackal') {
     penaltyNote = tacticNote(25,

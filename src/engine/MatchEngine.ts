@@ -454,13 +454,15 @@ export class MatchEngine {
   }
 
   private draftEvent(phase: MatchPhase): GameEvent {
-    const team = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
+    const team    = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
+    const defTeam = this.state.possession === 'home' ? this.state.awayTeam : this.state.homeTeam;
     return {
       id: '',
       gameMinute: this.state.gameMinute,
       phase,
       side: this.state.possession,
       sideName: team.name,
+      defSideName: defTeam.name,
       ballX: this.state.ballX,
       ballY: this.state.ballY,
       commentary: '',

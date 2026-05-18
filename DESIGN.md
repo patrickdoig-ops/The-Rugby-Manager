@@ -439,6 +439,8 @@ The penalty modal slides up from the bottom on mobile (`sheetUp` animation) and 
 
 Choice buttons use the secondary/neutral pattern. On active/hover they gain `var(--rm-pitch)` border-color.
 
+Typography inside modals uses `--rm-font-body` (Geist) throughout — no italic. `.modal-subtitle` and `.choice-desc` are both regular weight Geist at `--rm-text-muted` colour. Instrument Serif italic is reserved for the scoreboard clock, try commentary entries, and editorial moments — not interactive UI copy.
+
 ### Tactics Menu
 
 Active tactic card:

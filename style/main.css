@@ -575,8 +575,7 @@ html, body {
 }
 
 .modal-subtitle {
-  font-family: var(--rm-font-editor);
-  font-style: italic;
+  font-family: var(--rm-font-body);
   font-size: 13px;
   color: var(--rm-text-muted);
   margin-bottom: 20px;
@@ -613,8 +612,7 @@ html, body {
 }
 
 .choice-desc {
-  font-family: var(--rm-font-editor);
-  font-style: italic;
+  font-family: var(--rm-font-body);
   font-size: 11px;
   color: var(--rm-text-muted);
   line-height: 1.4;

@@ -37,6 +37,7 @@ export function initModalManager(): void {
 
   eventBus.on('engine:paused', ({ payload }) => {
     if (payload.type === 'kickoff_choice') {
+      console.log('[ModalManager] kickoff_choice received, showing modal');
       const { onChoice } = payload;
       box.innerHTML = `
         <h2 class="modal-title">Kick-Off Strategy</h2>

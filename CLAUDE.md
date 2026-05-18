@@ -204,9 +204,9 @@ Kick-or-carry probabilities by `attackingGamePlan` and pitch zone:
 
 | Plan | Own 22 | Own half | Opp half |
 |---|---|---|---|
-| `possession` | 10% | 5% | 0% |
-| `balanced` | 20% | 15% | 10% |
-| `kicking` | 35% | 25% | 15% |
+| `possession` | 50% | 15% | 0% |
+| `balanced` | 75% | 50% | 10% |
+| `kicking` | 90% | 65% | 15% |
 
 Box kick propensity by `attackingGamePlan` (triggered from slow ball in Breakdown):
 

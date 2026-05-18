@@ -16,12 +16,12 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
   let kickProb = 15;
 
   if (plan === 'possession') {
-    kickProb = inOwn22() ? 10 : (inOwnHalf() ? 5 : 0);
+    kickProb = inOwn22() ? 50 : (inOwnHalf() ? 15 : 0);
   } else if (plan === 'kicking') {
-    kickProb = inOwn22() ? 35 : (inOwnHalf() ? 25 : 15);
+    kickProb = inOwn22() ? 90 : (inOwnHalf() ? 65 : 15);
   } else {
     // balanced
-    kickProb = inOwn22() ? 20 : (inOwnHalf() ? 15 : 10);
+    kickProb = inOwn22() ? 75 : (inOwnHalf() ? 50 : 10);
   }
 
   if (rng(1, 100) <= kickProb) {

@@ -217,9 +217,9 @@ The initial carrier and defender are always selected. The fly half and outside b
 ### Step 0 — Kick or carry decision
 
 The probability of kicking rather than carrying into contact is driven by `attackTeam.tactics.attackingGamePlan` and pitch location:
-- `possession`: 10% inside own 22; 5% in own half; 0% in opposition half.
-- `balanced`: 20% inside own 22; 15% in own half; 10% in opposition half.
-- `kicking`: 35% inside own 22; 25% in own half; 15% in opposition half.
+- `possession`: 50% inside own 22; 15% in own half; 0% in opposition half.
+- `balanced`: 75% inside own 22; 50% in own half; 10% in opposition half.
+- `kicking`: 90% inside own 22; 65% in own half; 15% in opposition half.
 
 Checked before any player is selected. If it fires, the fly-half (id=10) is logged as `primaryPlayer` for commentary and the phase transitions to `TacticalKick`. Steps 1–4 do not run.
 

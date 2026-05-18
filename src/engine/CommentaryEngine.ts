@@ -48,6 +48,13 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
       'Quick thinking from {side} — the ball is kicked rather than carried.',
       '{side} go to the boot, looking to change the point of attack.',
     ],
+    out_the_back: [
+      '{primary} goes out the back — a pass to {secondary}, who looks to fire it wide.',
+      '{primary} pulls it back for {secondary}, who moves it wide quickly.',
+      'Gone wide! {primary} finds {secondary} out the back.',
+      '{primary} goes out the back! {secondary} takes the pass and sends it wide.',
+      'The ball is pulled back to {secondary} by {primary}, who works it wide.',
+    ],
     knock_on: [
       '{primary} knocks on under pressure! Scrum to {secondary}\'s team.',
       'Unforced error from {primary} — the ball squirts forward. Scrum awarded.',

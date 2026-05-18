@@ -430,10 +430,18 @@ export class MatchEngine {
     state.phase = nextPhase;
 
     const isConversion = phaseAtStart === MatchPhase.ConversionKick;
+    // Carry phases that score a try emit with TryScored phase so they get the try highlight.
+    // All other events use the phase being resolved (phaseAtStart), not the next phase.
+    const isCarryToTry = (
+      phaseAtStart === MatchPhase.PhasePlay ||
+      phaseAtStart === MatchPhase.FirstPhase ||
+      phaseAtStart === MatchPhase.KickReturn
+    ) && nextPhase === MatchPhase.TryScored;
+    const eventPhase = isCarryToTry ? MatchPhase.TryScored : phaseAtStart;
     return {
       id: makeId(),
       gameMinute: state.gameMinute,
-      phase: state.phase,
+      phase: eventPhase,
       side:     isConversion ? sideAtStart    : state.possession,
       sideName: isConversion ? sideNameAtStart : (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
       primaryPlayer,

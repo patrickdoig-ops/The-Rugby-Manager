@@ -38,22 +38,22 @@ function colorizePlayer(text: string, player: Player, color: string): string {
 export function initCommentaryFeed(): void {
   const feed = document.getElementById('commentary-feed')!;
 
-  let homeColor = '';
-  let awayColor = '';
-  let homePlayerNames: Set<string> | null = null;
+  let allPlayersWithColor: Array<{ player: Player; color: string }> = [];
 
   // One-shot: team colours and rosters are fixed for the match lifetime.
   const unsubTeams = eventBus.on('engine:stateChange', ({ state }) => {
-    homeColor = state.homeTeam.color;
-    awayColor = state.awayTeam.color;
-    homePlayerNames = new Set([
-      ...state.homeTeam.players.map(p => p.name),
-      ...state.homeTeam.bench.map(p => p.name),
-    ]);
+    const homeColor = state.homeTeam.color;
+    const awayColor = state.awayTeam.color;
+    allPlayersWithColor = [
+      ...[...state.homeTeam.players, ...state.homeTeam.bench].map(p => ({ player: p, color: homeColor })),
+      ...[...state.awayTeam.players, ...state.awayTeam.bench].map(p => ({ player: p, color: awayColor })),
+    ];
     unsubTeams();
   });
 
   eventBus.on('engine:event', ({ event }) => {
+    if (!event.commentary.trim()) return;
+
     const entry = document.createElement('div');
     const phaseClass = PHASE_CLASS[event.phase] ?? '';
     entry.className = `commentary-entry possession-${event.side} ${phaseClass}`.trim();
@@ -62,12 +62,8 @@ export function initCommentaryFeed(): void {
     const tag    = TAG_MAP[event.phase] ?? '·';
     let html = event.commentary;
 
-    if (homePlayerNames) {
-      for (const player of [event.primaryPlayer, event.secondaryPlayer]) {
-        if (!player) continue;
-        const color = homePlayerNames.has(player.name) ? homeColor : awayColor;
-        html = colorizePlayer(html, player, color);
-      }
+    for (const { player, color } of allPlayersWithColor) {
+      html = colorizePlayer(html, player, color);
     }
 
     entry.innerHTML =

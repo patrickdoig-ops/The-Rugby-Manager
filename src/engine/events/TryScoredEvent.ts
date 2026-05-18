@@ -26,7 +26,7 @@ export function handleTryScored({ state, attackTeam, adjustRating, randomPlayer,
 
   return {
     nextPhase: MatchPhase.ConversionKick,
-    commentary: getCommentary({ ...draftEvent(MatchPhase.TryScored), primaryPlayer: scorer }, commentaryKey),
+    commentary: '',  // carry phase already emitted the try commentary; suppress this duplicate
     primaryPlayer: scorer,
   };
 }

@@ -61,13 +61,17 @@
 
 /* ─── Event type accents ─── */
 
-/* TRY — editorial serif, chalk, green tag */
-.event-try .event-tag  { color: var(--rm-pitch); }
+/* TRY — gold background highlight, body font, bold */
+.event-try {
+  background: color-mix(in oklch, var(--rm-amber) 14%, var(--rm-surface));
+  border-bottom-color: color-mix(in oklch, var(--rm-amber) 30%, transparent);
+}
+.event-try .event-tag  { color: var(--rm-amber); font-weight: 700; }
 .event-try .event-text {
-  font-family: var(--rm-font-editor);
-  font-style: italic;
-  font-size: 13.5px;
-  color: var(--rm-chalk);
+  font-family: var(--rm-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rm-text);
 }
 
 /* Penalty */

@@ -190,7 +190,7 @@ Resolver formulas at a glance:
 
 Five tactic dimensions are defined in `TeamTactics` (see `src/types/team.ts`). The UI (`TacticsMenu.ts`) lets the **home team** change all five mid-match. Away team uses engine defaults and cannot be changed through the UI.
 
-Kick-off strategy is **not** a standing tactic. It is chosen per kick-off via an interactive modal for **both teams**. `KickOffStrategy` is defined in `src/types/engine.ts`.
+Kick-off strategy is **not** a standing tactic. It is chosen per kick-off via an interactive modal (home team only). Away team always defaults to `high_ball`. `KickOffStrategy` is defined in `src/types/engine.ts`.
 
 | Tactic | Values | Engine effect |
 |---|---|---|

@@ -129,7 +129,12 @@ A `GameEvent` with phase `KickOff` and key `coin_toss` is emitted immediately so
 
 ### Strategy selection
 
-Before the resolver runs, a modal pause (`kickoff_choice`) is presented for **both** teams. Three options: Kick Short (`short_kick`), Grubber Kick (`grubber`), Kick Deep (`high_ball`). The engine awaits the selection before proceeding.
+Before the resolver runs, the kicking team's strategy is determined:
+
+- **Home team kicking:** A modal pause (`kickoff_choice`) is presented. Three options: Kick Short (`short_kick`), Grubber Kick (`grubber`), Kick Deep (`high_ball`). The engine awaits the selection before proceeding.
+- **Away team kicking:** Always defaults to `high_ball` (Kick Deep), no modal shown.
+
+> **Future development:** Away team kick-off strategy should be driven by away team tactics (e.g. late-game pressure situations selecting `short_kick`). Currently hardcoded to `high_ball` pending away team tactical UI.
 
 ### Player selection
 

@@ -460,6 +460,10 @@ export class MatchEngine {
   }
 
   private async handleKickOffStrategy(): Promise<void> {
+    if (this.state.possession !== 'home') {
+      this.kickOffStrategy = 'high_ball';
+      return;
+    }
     this.state.isPaused = true;
     this.kickOffStrategy = await new Promise<KickOffStrategy>(resolve => {
       eventBus.emit('engine:paused', {

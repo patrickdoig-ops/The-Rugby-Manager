@@ -49,10 +49,10 @@ HalfTime     → KickOff
 FullTime     → (terminal)
 ```
 
-Three carry phases share identical mechanics but are context-specific:
-- **PhasePlay** — runs after Breakdown (recycled possession)
-- **FirstPhase** — runs after Scrum, Lineout, or a penalty tap-and-go
-- **KickReturn** — runs after KickOff, BoxKick, or TacticalKick (the receiving team now attacks)
+Three carry phases share an evasion/collision resolver but have distinct player selection and structure:
+- **PhasePlay** — runs after Breakdown; random carrier; hard carry or out-the-back split
+- **FirstPhase** — runs after Scrum, Lineout, or a tap-and-go penalty; carrier always #10; crash ball or wide play
+- **KickReturn** — runs after KickOff, BoxKick, or TacticalKick; carrier is whoever caught the kick; run step before evasion/collision
 
 `StateMachine.transition()` validates against this table and throws on illegal moves. `forceTransition()` bypasses validation and is used for HalfTime, FullTime, and penalty resolution.
 
@@ -212,36 +212,33 @@ else            → clean_receive
 
 ## Carry Phases (PhasePlay / FirstPhase / KickReturn)
 
-Three phases share identical mechanics and commentary templates. **PhasePlay** runs after Breakdown; **FirstPhase** runs after KickOff, Scrum, Lineout, or a tap-and-go penalty; **KickReturn** runs after BoxKick or TacticalKick. Each is a separate handler (`handlePhasePlay`, `handleFirstPhase`, `handleKickReturn`) in its own file, routing to the matching `MatchPhase` enum value for commentary lookups.
+Three phases share a common evasion/collision resolver but have distinct player selection, play-structure, and preliminary steps. Each is a separate handler in its own file, routing to the matching `MatchPhase` enum for commentary.
 
-### Player selection
+### Step 0 — Kick or carry decision (all three phases)
 
-```typescript
-carrier  = randomPlayer(attackTeam)   // any of 15 (initial ball carrier)
-defender = randomPlayer(defendTeam)   // any of 15
-// Out the Back path only:
-flyHalf      = pickPlayer(attackTeam, 10)
-outsideBack  = random from attackTeam.players where id ∈ {11, 13, 14, 15}
-```
-
-The initial carrier and defender are always selected. The fly half and outside back are only selected if the Out the Back path is taken (see Step 2).
-
-### Step 0 — Kick or carry decision
-
-The probability of kicking rather than carrying into contact is driven by `attackTeam.tactics.attackingGamePlan` and pitch location:
+The probability of kicking rather than carrying is driven by `attackTeam.tactics.attackingGamePlan` and pitch location:
 - `possession`: 50% inside own 22; 15% in own half; 0% in opposition half.
 - `balanced`: 75% inside own 22; 50% in own half; 10% in opposition half.
 - `kicking`: 90% inside own 22; 65% in own half; 15% in opposition half.
 
-Checked before any player is selected. If it fires, the fly-half (id=10) is logged as `primaryPlayer` for commentary and the phase transitions to `TacticalKick`. Steps 1–4 do not run.
+If it fires, the fly-half (id=10) is logged as `primaryPlayer` for commentary and the phase transitions to `TacticalKick`. The remaining steps do not run.
 
-### Step 1 — Carrier handling gate
+---
 
-The carrier's handling stat is tested with a random factor (threshold < 30). If they fail, they knock the ball on: possession flips, `handlingErrors` increments, and a scrum is awarded. Steps 2–4 do not run.
+### PhasePlay
 
-### Step 2 — Hard Carry / Out the Back decision
+Runs after `Breakdown` (recycled possession). The carrier is a random player from the attacking team.
 
-After the carrier's handling gate passes, the attacking team chooses a play based on `attackTeam.tactics.attackingStyle`:
+```typescript
+carrier  = randomPlayer(attackTeam)
+defender = randomPlayer(defendTeam)
+```
+
+**Step 1 — Carrier handling gate**
+
+`handling + rng(1,20) < 30` → knock-on: possession flips, scrum awarded, carrier −0.45.
+
+**Step 2 — Hard Carry / Out the Back decision**
 
 | `attackingStyle` | Hard Carry | Out the Back |
 |---|---|---|
@@ -249,22 +246,101 @@ After the carrier's handling gate passes, the attacking team chooses a play base
 | `balanced` | 70% | 30% |
 | `wide_wide` | 50% | 50% |
 
-If the carrier is the fly half (id 10), always Hard Carry.
+If the carrier is the fly-half (id 10), **always Out the Back**.
 
-**Hard Carry:** the carrier proceeds directly to evasion (Step 3). `ballCarrier = carrier`.
+**Hard Carry:** carrier proceeds directly to evasion (Step 3).
 
-**Out the Back:** the ball is worked through the fly half to an outside back via two additional handling gates:
+**Out the Back:** ball is worked through the fly half (id 10) to an outside back (random from ids 11, 13, 14, 15) via two additional handling gates (same threshold < 30). Knock-on at either gate: possession flips, scrum awarded. If both pass, `ballCarrier = outsideBack`.
 
-1. Fly half (id 10) handling gate (threshold < 30) — if failed: fly half is credited with the knock-on, possession flips, scrum awarded. The `out_the_back` commentary intro is still prepended.
-2. Outside back (random from ids 11, 13, 14, 15) handling gate (threshold < 30) — if failed: outside back is credited with the knock-on, possession flips, scrum awarded. The `out_the_back` commentary intro is still prepended.
+**Steps 3–4 — Evasion → Collision** — see [Shared Evasion/Collision](#shared-evasioncollision) below.
 
-If both gates pass, `ballCarrier = outsideBack` and play proceeds to evasion (Step 3) with the outside back as the ball carrier. The outside back's pace and agility stats are used — backs with high pace naturally gain more from this path than a forward would.
+---
 
-### Step 3 — Evasion vs defence
+### FirstPhase
 
-`ballCarrier` (carrier or outside back depending on Step 2) attempts to evade the defence. The ball carrier's evasion score is a mix of their agility and pace; the defender relies on their positioning and pace. Both scores include a random factor. `breakdownMod` values are applied here — `attackMod` added to evasion, `defendMod` added to defence.
+Runs after `Scrum`, `Lineout`, or a tap-and-go penalty. The carrier is **always #10 (fly-half)**.
 
-**Backfield Defence front-line penalty:** applied to the defend score on every carry, regardless of path:
+```typescript
+carrier  = pickPlayer(attackTeam, 10)
+```
+
+**Step 1 — Carrier handling gate**
+
+Same threshold as PhasePlay (`handling + rng(1,20) < 30` → knock-on; defender is `randomPlayer(defendTeam)` for commentary).
+
+**Step 2 — Crash Ball / Wide Play decision**
+
+Driven by `attackingStyle` using the same thresholds as the Hard Carry / Out the Back split:
+
+| `attackingStyle` | Crash Ball | Wide Play |
+|---|---|---|
+| `keep_it_tight` | 90% | 10% |
+| `balanced` | 70% | 30% |
+| `wide_wide` | 50% | 50% |
+
+**Crash Ball path** (#10 → #12):
+1. `#10` passes to `insideCentre` (id 12)
+2. `insideCentre` handling gate (threshold < 30) → knock-on if failed
+3. `ballCarrier = insideCentre`; `defender = pickPlayer(defendTeam, 12)`
+
+**Wide Play path** (#10 → #13 → #11 or #14):
+1. `#10` passes to `outsideCentre` (id 13)
+2. `outsideCentre` handling gate (threshold < 30) → knock-on if failed
+3. `outsideCentre` passes to `wing` (random from ids 11, 14)
+4. `wing` handling gate (threshold < 30) → knock-on if failed
+5. `ballCarrier = wing`; `defender = random from defendTeam.players where id ∈ {11, 14}`
+
+On any knock-on: possession flips, scrum awarded, dropping player −0.45. The `out_the_back` commentary intro is prepended before the knock-on line.
+
+**Steps 3–4 — Evasion → Collision** — see [Shared Evasion/Collision](#shared-evasioncollision) below.
+
+---
+
+### KickReturn
+
+Runs after `KickOff`, `BoxKick`, or `TacticalKick`. The carrier is **whoever caught the kick** in the prior phase, tracked via `state.kickReturnCarrier` (set by each kick handler before transitioning to `KickReturn`, cleared at the start of this handler). Falls back to `randomPlayer(attackTeam)` if unset.
+
+```typescript
+carrier  = state.kickReturnCarrier ?? randomPlayer(attackTeam)
+defender = randomPlayer(defendTeam)   // any of the 15
+```
+
+`kickReturnCarrier` sources by prior phase:
+
+| Prior phase | Outcome | Carrier set to |
+|---|---|---|
+| `KickOff` | `clean_receive` | `receiver` |
+| `KickOff` | `short_kick_retain` | `chaser` |
+| `BoxKick` | `attack_retain` | `winger` |
+| `BoxKick` | `defend_catch_contested` | `fullback` |
+| `BoxKick` | `defend_catch` | `fullback` |
+| `TacticalKick` | `kick_caught` | `defender` (the fullback) |
+
+**No carrier handling gate** — the catch was already resolved in the kick phase.
+
+**Step 2 — Run**
+
+The returner runs back before meeting the defensive line. Uses pace and agility against the chasers' pace and tackling:
+
+```
+runAttack = (carrier.pace + carrier.agility) / 2 + rng(1, 20)
+runDefend = (defender.pace + defender.tackling) / 2 + rng(1, 20)
+runMetres = runAttack >= runDefend ? rng(3, 10) : rng(0, 3)
+```
+
+`runMetres` is added to the evasion/collision gain at the end.
+
+**Steps 3–4 — Evasion → Collision** — see [Shared Evasion/Collision](#shared-evasioncollision) below.
+
+Total ball movement = `runMetres + res.gainMetres`.
+
+---
+
+### Shared Evasion/Collision
+
+All three phases call `resolveOpenPlay(ballCarrier, defender, attackMod, defendMod + backfieldPenalty)` after completing their phase-specific steps.
+
+**Backfield Defence front-line penalty:**
 
 | `backfieldDefence` | `defendMod` adjustment |
 |---|---|
@@ -272,16 +348,24 @@ If both gates pass, `ballCarrier = outsideBack` and play proceeds to evasion (St
 | `two_back` | −5 |
 | `three_back` | −10 |
 
-The defence score is subtracted from the evasion score to determine the margin:
+**Step 3 — Evasion:**
+
+```
+evasionScore = (ballCarrier.agility + ballCarrier.pace) / 2 + rng(1,20) + attackMod
+defenseScore = (defender.positioning + defender.pace) / 2 + rng(1,20) + (defendMod + backfieldPenalty)
+```
 
 | Margin | Result |
 |---|---|
-| ≥ 15 | `line_break` → Breakdown (or TryScored if ball crosses line) |
+| ≥ 15 | `line_break` → Breakdown (or TryScored) |
 | < 15 | Proceed to Step 4 |
 
-### Step 4 — Collision
+**Step 4 — Collision:**
 
-If the ball carrier doesn't make a clean line break, a physical collision occurs. The ball carrier uses their strength and pace to drive forward; the defender relies on their tackling and strength to stop them. Both scores include a random factor.
+```
+collisionAttack = (ballCarrier.strength + ballCarrier.pace) / 2 + rng(1,20)
+collisionDefend = (defender.tackling + defender.strength) / 2 + rng(1,20)
+```
 
 | Margin | Result | Gain |
 |---|---|---|
@@ -289,19 +373,13 @@ If the ball carrier doesn't make a clean line break, a physical collision occurs
 | −4 to +4 | `play_on` | 1–4m |
 | ≤ −5 | `dominant_tackle` | −2 to +1m |
 
-All three outcomes transition to Breakdown.
+All outcomes → Breakdown.
 
 ### Commentary
 
-When the Out the Back path is taken, an `out_the_back` commentary line is generated immediately after the fly half is selected, naming the carrier (`{primary}`) and fly half (`{secondary}`). This intro is prepended to the outcome commentary in every exit path — including both knock-on cases. Example combined output: *"Out the back from Jones! Williams catches and sends it wide. Price breaks through the line!"*
-
-### Ball movement
-
-The ball's position on the pitch is moved forward or backwards depending on the metres gained or lost in the collision.
+When Out the Back (PhasePlay), Crash Ball, or Wide Play (FirstPhase) paths are taken, `out_the_back` commentary lines are prepended naming the passer and receiver. These fire at each pass in the sequence and are prepended to all downstream outcomes including knock-ons.
 
 ### Rating adjustments
-
-Applies to `ballCarrier` (the outside back on the Out the Back path, or the original carrier on Hard Carry).
 
 | Outcome | Player | Delta |
 |---|---|---|

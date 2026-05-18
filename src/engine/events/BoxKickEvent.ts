@@ -24,6 +24,7 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
     adjustRating(scrumHalf, +0.15);
     adjustRating(winger, +0.3);
     adjustRating(fullback, -0.15);
+    state.kickReturnCarrier = winger;
     return {
       nextPhase: MatchPhase.KickReturn,
       commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: winger }, 'attack_retain'),
@@ -49,6 +50,7 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
     adjustRating(fullback, +0.3);
     adjustRating(winger, -0.15);
     state.possession = state.possession === 'home' ? 'away' : 'home';
+    state.kickReturnCarrier = fullback;
     return {
       nextPhase: MatchPhase.KickReturn,
       commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: winger }, 'defend_catch_contested'),
@@ -70,6 +72,7 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
         )
       : '';
     state.possession = state.possession === 'home' ? 'away' : 'home';
+    state.kickReturnCarrier = fullback;
     return {
       nextPhase: MatchPhase.KickReturn,
       commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: winger }, 'defend_catch') + catchNote,

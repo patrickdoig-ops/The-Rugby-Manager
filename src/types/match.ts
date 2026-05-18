@@ -47,4 +47,5 @@ export interface MatchState {
   halfTimeDone: boolean;
   tickDelayMs: number;
   breakdownMod: { attack: number; defend: number };
+  kickReturnCarrier?: Player;
 }

@@ -23,6 +23,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
   }
 
   if (rng(1, 100) <= kickProb) {
+    state.kickReturnCarrier = undefined;
     state.breakdownMod = { attack: 0, defend: 0 };
     const flyHalf = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
     return {
@@ -32,76 +33,29 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
     };
   }
 
-  // Step 1 — Carrier handling gate (inline)
-  const carrier  = randomPlayer(attackTeam);
+  // Step 1 — Carrier is whoever caught the kick; no handling gate
+  const carrier = state.kickReturnCarrier ?? randomPlayer(attackTeam);
+  state.kickReturnCarrier = undefined;
   const defender = randomPlayer(defendTeam);
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;
   state.breakdownMod = { attack: 0, defend: 0 };
   const backfieldPenalty = defendTeam.tactics.backfieldDefence === 'three_back' ? -10
                          : defendTeam.tactics.backfieldDefence === 'two_back'   ? -5 : 0;
 
-  if (carrier.currentStats.handling + rng(1, 20) < 30) {
-    adjustRating(carrier, -0.45);
-    state.stats.handlingErrors[state.possession]++;
-    state.possession = state.possession === 'home' ? 'away' : 'home';
-    return {
-      nextPhase: MatchPhase.Scrum,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: carrier, secondaryPlayer: defender }, 'knock_on'),
-      primaryPlayer: carrier,
-      secondaryPlayer: defender,
-    };
-  }
-
-  // Step 2 — Hard Carry / Out the Back decision
-  const style = attackTeam.tactics.attackingStyle;
-  const hardCarryThreshold = style === 'keep_it_tight' ? 90 : style === 'wide_wide' ? 50 : 70;
-  const goWide = carrier.id !== 10 && rng(1, 100) > hardCarryThreshold;
-
-  let ballCarrier = carrier;
-  let wideIntro = '';
-
-  if (goWide) {
-    const flyHalf = pickPlayer(attackTeam, 10);
-    wideIntro = getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: carrier, secondaryPlayer: flyHalf }, 'out_the_back') + ' ';
-
-    if (flyHalf.currentStats.handling + rng(1, 20) < 30) {
-      adjustRating(flyHalf, -0.45);
-      state.stats.handlingErrors[state.possession]++;
-      state.possession = state.possession === 'home' ? 'away' : 'home';
-      return {
-        nextPhase: MatchPhase.Scrum,
-        commentary: wideIntro + getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: flyHalf, secondaryPlayer: defender }, 'knock_on'),
-        primaryPlayer: flyHalf,
-        secondaryPlayer: defender,
-      };
-    }
-
-    const obPool = attackTeam.players.filter(p => [11, 13, 14, 15].includes(p.id));
-    const outsideBack = obPool.length > 0 ? obPool[rng(0, obPool.length - 1)] : randomPlayer(attackTeam);
-    if (outsideBack.currentStats.handling + rng(1, 20) < 30) {
-      adjustRating(outsideBack, -0.45);
-      state.stats.handlingErrors[state.possession]++;
-      state.possession = state.possession === 'home' ? 'away' : 'home';
-      return {
-        nextPhase: MatchPhase.Scrum,
-        commentary: wideIntro + getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: outsideBack, secondaryPlayer: defender }, 'knock_on'),
-        primaryPlayer: outsideBack,
-        secondaryPlayer: defender,
-      };
-    }
-
-    ballCarrier = outsideBack;
-  }
+  // Step 2 — Run: carrier pace/agility vs chaser pace/tackling
+  const runAttack = (carrier.currentStats.pace + carrier.currentStats.agility) / 2 + rng(1, 20);
+  const runDefend = (defender.currentStats.pace + defender.currentStats.tackling) / 2 + rng(1, 20);
+  const runMetres = runAttack >= runDefend ? rng(3, 10) : rng(0, 3);
 
   // Step 3 — Evasion → Step 4 Collision
-  const res = resolveOpenPlay(ballCarrier, defender, attackMod, defendMod + backfieldPenalty);
+  const res = resolveOpenPlay(carrier, defender, attackMod, defendMod + backfieldPenalty);
 
   let nextPhase: MatchPhase;
   let commentary: string;
 
   if (res.outcome === 'line_break') {
-    adjustRating(ballCarrier, +0.375);
-    state.ballX = clamp(state.ballX + attackDir() * res.gainMetres, 0, 100);
+    adjustRating(carrier, +0.375);
+    state.ballX = clamp(state.ballX + attackDir() * (runMetres + res.gainMetres), 0, 100);
     nextPhase = isTryScored() ? MatchPhase.TryScored : MatchPhase.Breakdown;
     const lineBreakNote = (backfieldPenalty < 0 && state.possession !== 'home')
       ? tacticNote(30,
@@ -109,23 +63,23 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
           "Three in the backfield means only twelve in the line and there's the gap — a costly trade-off.",
         )
       : '';
-    commentary = wideIntro + getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: ballCarrier, secondaryPlayer: defender }, 'line_break') + lineBreakNote;
+    commentary = getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: carrier, secondaryPlayer: defender }, 'line_break') + lineBreakNote;
   } else if (res.outcome === 'dominant_tackle') {
     adjustRating(defender, +0.3);
-    adjustRating(ballCarrier, -0.075);
+    adjustRating(carrier, -0.075);
     state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
     state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].made++;
-    state.ballX = clamp(state.ballX + attackDir() * res.gainMetres, 0, 100);
+    state.ballX = clamp(state.ballX + attackDir() * (runMetres + res.gainMetres), 0, 100);
     nextPhase = MatchPhase.Breakdown;
-    commentary = wideIntro + getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: ballCarrier, secondaryPlayer: defender }, 'dominant_tackle');
+    commentary = getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: carrier, secondaryPlayer: defender }, 'dominant_tackle');
   } else {
-    if (res.outcome === 'dominant_carry') adjustRating(ballCarrier, +0.225);
+    if (res.outcome === 'dominant_carry') adjustRating(carrier, +0.225);
     state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
     state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].made++;
-    state.ballX = clamp(state.ballX + attackDir() * res.gainMetres, 0, 100);
+    state.ballX = clamp(state.ballX + attackDir() * (runMetres + res.gainMetres), 0, 100);
     nextPhase = MatchPhase.Breakdown;
-    commentary = wideIntro + getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: ballCarrier, secondaryPlayer: defender }, res.outcome);
+    commentary = getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: carrier, secondaryPlayer: defender }, res.outcome);
   }
 
-  return { nextPhase, commentary, primaryPlayer: ballCarrier, secondaryPlayer: defender, outcome: res.outcome };
+  return { nextPhase, commentary, primaryPlayer: carrier, secondaryPlayer: defender, outcome: res.outcome };
 }

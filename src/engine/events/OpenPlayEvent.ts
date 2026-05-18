@@ -57,7 +57,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
   // Step 2 — Hard Carry / Out the Back decision
   const style = attackTeam.tactics.attackingStyle;
   const hardCarryThreshold = style === 'keep_it_tight' ? 90 : style === 'wide_wide' ? 50 : 70;
-  const goWide = carrier.id !== 10 && rng(1, 100) > hardCarryThreshold;
+  const goWide = carrier.id === 10 || rng(1, 100) > hardCarryThreshold;
 
   let ballCarrier = carrier;
   let wideIntro = '';

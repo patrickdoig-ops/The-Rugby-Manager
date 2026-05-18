@@ -51,6 +51,7 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, adjust
   }
 
   if (res.result === 'short_kick_retain') {
+    state.kickReturnCarrier = chaser;
     return {
       nextPhase: MatchPhase.KickReturn,
       commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: chaser, secondaryPlayer: receiver }, 'short_kick_retain'),
@@ -61,6 +62,7 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, adjust
 
   // clean_receive — receiving team takes possession
   state.possession = state.possession === 'home' ? 'away' : 'home';
+  state.kickReturnCarrier = receiver;
   return {
     nextPhase: MatchPhase.KickReturn,
     commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: receiver, secondaryPlayer: chaser }, 'clean_receive'),

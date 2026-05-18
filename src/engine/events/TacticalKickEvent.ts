@@ -83,6 +83,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
   const returnBonus = backfield === 'three_back' ? 10 : backfield === 'two_back' ? 5 : 0;
   if (returnBonus > 0) state.breakdownMod = { attack: returnBonus, defend: 0 };
   state.possession = state.possession === 'home' ? 'away' : 'home';
+  state.kickReturnCarrier = defender;
   // After possession flip, home is now attacking if they caught the kick (state.possession === 'home')
   const kickCaughtNote = (returnBonus > 0 && state.possession === 'home')
     ? tacticNote(35,

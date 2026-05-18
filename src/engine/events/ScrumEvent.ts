@@ -13,6 +13,18 @@ export function handleScrum({ state, attackTeam, defendTeam, adjustRating, draft
   const defendHooker   = defendTeam.players.find(p => p.id === 2)!;
   const res = resolveScrum(attackForwards, defendForwards);
 
+  if (res.result === 'attacking_dominant_penalty') {
+    attackFrontRow.forEach(p => adjustRating(p, +0.225));
+    defendFrontRow.forEach(p => adjustRating(p, -0.3));
+    state.stats.scrums[state.possession]++;
+    return {
+      nextPhase: MatchPhase.Penalty,
+      commentary: getCommentary({ ...draftEvent(MatchPhase.Scrum), primaryPlayer: defendHooker, secondaryPlayer: attackHooker }, 'attacking_dominant_penalty'),
+      primaryPlayer: attackHooker,
+      secondaryPlayer: defendHooker,
+    };
+  }
+
   if (res.result === 'stable_win') {
     attackFrontRow.forEach(p => adjustRating(p, +0.15));
     state.stats.scrums[state.possession]++;
@@ -33,14 +45,14 @@ export function handleScrum({ state, attackTeam, defendTeam, adjustRating, draft
     };
   }
 
-  // dominant_penalty — defending team wins the penalty
+  // defending_dominant_penalty — defending team wins the penalty
   defendFrontRow.forEach(p => adjustRating(p, +0.225));
   attackFrontRow.forEach(p => adjustRating(p, -0.3));
   state.possession = state.possession === 'home' ? 'away' : 'home';
   state.stats.scrums[state.possession]++;
   return {
     nextPhase: MatchPhase.Penalty,
-    commentary: getCommentary({ ...draftEvent(MatchPhase.Scrum), primaryPlayer: attackHooker, secondaryPlayer: defendHooker }, 'dominant_penalty'),
+    commentary: getCommentary({ ...draftEvent(MatchPhase.Scrum), primaryPlayer: attackHooker, secondaryPlayer: defendHooker }, 'defending_dominant_penalty'),
     primaryPlayer: defendHooker,
     secondaryPlayer: attackHooker,
   };

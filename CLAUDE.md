@@ -168,7 +168,7 @@ Resolver formulas at a glance:
 | **FirstPhase** | Carrier always #10; handling gate (same `handling + rng(1,100) < 85` formula). Crash Ball (90/70/50% driven by `attackingStyle`): #10 → #12 (inside centre) handling gate → collision vs opp #12. Wide Play: #10 → #13 (outside centre) → random wing (11/14) two handling gates; collision vs random opp wing. `backfieldPenalty` and `breakdownMod` consumed | same thresholds |
 | **KickReturn** | Carrier = `state.kickReturnCarrier` ?? `randomPlayer`. No handling gate. Run step: `(carrier.pace+agility)/2 + rng(1,20)` vs `(defender.pace+tackling)/2 + rng(1,20)` → `runMetres` 3–10 (win) or 0–3 (lose). Evasion + collision; ball gains `runMetres + res.gainMetres`. `backfieldPenalty` and `breakdownMod` consumed | evasion ≥ 15 = line_break; collision ±5 = dominant |
 | **Breakdown** | `ARS = stackedScore(supporters, breakdown, strength) + rng(1,20) + attackBonus` (attackBonus = 6 if previous play was `dominant_carry`, else 0). `stackedScore` sorts players best-first and applies weights [1.0, 0.6, 0.4, 0.3], summed and divided by 2 — so body count AND quality both matter, with diminishing returns. DTS varies by `defendingBreakdown`: **jackal** = `breakdown×0.7 + strength×0.3 + (discipline−50)×0.15 + rng(1,20)`; **counter_ruck** = `stackedScore(top4defenders, strength, breakdown) + rng(1,20)` (top 4 defenders by `strength×0.6 + breakdown×0.4`); **shadow** = `rng(1,10)` (concedes ball to set line) | margin ≥ 10 clean_ball; ≥ -8 slow_ball; ≥ -14 turnover; else penalty_defending |
-| **Scrum** | `avg(setPiece×0.6 + strength×0.4) + rng` for each front 5 | attack margin > 0 stable_win; > -15 wheel; else dominant_penalty |
+| **Scrum** | `avg(setPiece×0.6 + strength×0.4) + rng` for each front 5 | attack margin > 15 attacking_dominant_penalty; > 0 stable_win; > -15 wheel; else defending_dominant_penalty |
 | **Lineout** | `throwScore = hookerSetPiece + rng(1,100)` < 95 → `crooked_throw` (scrum, possession flips, hooker −0.4); then `(setPiece×0.5 + agility×0.5) + rng(1,20)` each jumper | margin ≥ −5 clean_catch; ≥ −15 scrappy_knock_on; else steal |
 | **BoxKick** | `kickScore = kicking + rng(1,20)` ≥ 75 → contested (wingerScore vs fullbackScore + fullbackMod); else uncontested (catchScore + fullbackMod ≥ 35). `fullbackMod`: `three_back` +15, `two_back` +8, `one_back` 0 | contested: margin ≥ 10 attack_retain; ≥ 0 defend_knock_on; else defend_catch_contested. Uncontested: catchScore ≥ 35 defend_catch; else knock_on |
 | **TacticalKick** | `kickScore = kicking + rng(1, 20)` < 25 → poor_kick. Touch probability reduced by backfield: `three_back` −25, `two_back` −15. If kick caught: `breakdownMod.attack` = `three_back` +10, `two_back` +5 | goodKick: outOnTheFull 0%, touch 75% (minus reduction); poorKick: outOnTheFull 30%, touch 30% → Lineout / OpenPlay |
@@ -274,7 +274,8 @@ Players start each match at `rating: 6.0` (out of 10). `MatchEngine.adjustRating
 | Breakdown turnover | jackal | +0.75 |
 | Goal kick success (penalty) | kicker | +0.3 |
 | Dominant tackle | defender | +0.3 |
-| Scrum dominant_penalty | defending front row (each) | +0.225 |
+| Scrum attacking_dominant_penalty | attacking front row (each) | +0.225 |
+| Scrum defending_dominant_penalty | defending front row (each) | +0.225 |
 | Lineout clean_catch | attack jumper | +0.225 |
 | Goal kick success (conversion) | kicker | +0.225 |
 | Dominant carry | carrier | +0.225 |
@@ -286,7 +287,8 @@ Players start each match at `rating: 6.0` (out of 10). `MatchEngine.adjustRating
 | Knock-on (open play) | carrier | −0.45 |
 | Lineout steal conceded | attack jumper | −0.15 |
 | Tactical kick catch drop | defender | −0.3 |
-| Scrum dominant_penalty conceded | attack front row (each) | −0.3 |
+| Scrum attacking_dominant_penalty conceded | defending front row (each) | −0.3 |
+| Scrum defending_dominant_penalty conceded | attacking front row (each) | −0.3 |
 | Breakdown penalty conceded | primary supporter | −0.375 |
 | Kick-off knock-on | receiver | −0.375 |
 | Goal kick miss (penalty) | kicker | −0.225 |

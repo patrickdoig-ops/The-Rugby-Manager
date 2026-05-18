@@ -20,7 +20,7 @@ export type PossessionSide = 'home' | 'away';
 export type KickOffStrategy = 'high_ball' | 'short_kick' | 'grubber';
 
 export type BreakdownResult = 'clean_ball' | 'slow_ball' | 'turnover' | 'penalty_defending';
-export type ScrumResult     = 'stable_win' | 'wheel' | 'dominant_penalty';
+export type ScrumResult     = 'stable_win' | 'wheel' | 'attacking_dominant_penalty' | 'defending_dominant_penalty';
 export type LineoutResult   = 'clean_catch' | 'steal' | 'scrappy_knock_on' | 'crooked_throw';
 export type KickOffResult   = 'clean_receive' | 'knock_on' | 'short_kick_retain' | 'poor_kick';
 export type CollisionResult = 'dominant_carry' | 'dominant_tackle' | 'broken_tackle';

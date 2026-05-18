@@ -3,43 +3,127 @@ import type { GameEvent } from '../types/match';
 
 type Templates = Record<string, string[]>;
 
-const CARRY_TEMPLATES: Templates = {
+const PHASE_PLAY_TEMPLATES: Templates = {
   kick_decision: [
-    '{side} elect to kick rather than take contact.',
-    'Quick thinking from {side} — the ball is kicked rather than carried.',
-    '{side} go to the boot, looking to change the point of attack.',
+    '{side} elect to kick from the phase rather than take contact.',
+    'Quick switch from {side} — they go to the boot instead of carrying.',
+    '{side} change the point of attack with a kick from the breakdown.',
   ],
   out_the_back: [
-    '{primary} goes out the back — a pass to {secondary}, who looks to fire it wide.',
-    '{primary} pulls it back for {secondary}, who moves it wide quickly.',
-    'Gone wide! {primary} finds {secondary} out the back.',
-    '{primary} goes out the back! {secondary} takes the pass and sends it wide.',
-    'The ball is pulled back to {secondary} by {primary}, who works it wide.',
+    '{primary} draws the defender and goes out the back to {secondary}, who attacks the line.',
+    '{primary} offloads to {secondary} — the ball moves quickly through the phase.',
+    'Clever hands from {primary}, finding {secondary} in space out wide.',
+    '{primary} pulls it back for {secondary}, who accelerates into the channel.',
   ],
   knock_on: [
-    '{primary} knocks on under pressure! Scrum to {secondary}\'s team.',
-    'Unforced error from {primary} — the ball squirts forward. Scrum awarded.',
-    'Handling error! {primary} fails to collect and the referee calls knock-on.',
+    '{primary} loses the ball forward! Knock-on — scrum awarded.',
+    'Handling error from {primary} — the ball squirts forward and the referee calls it.',
+    '{primary} fumbles under pressure. Knock-on — scrum to the opposition.',
   ],
   line_break: [
-    '{primary} breaks through the line! A huge gain for {side}!',
-    'Sensational play from {primary} — the defence is beaten completely!',
-    '{primary} is through! Nothing but open space ahead!',
+    '{primary} finds the gap and he\'s through! {side} have broken the defensive line!',
+    'Sensational carry from {primary} — he\'s stepped the cover and he\'s running!',
+    '{primary} punches a hole through the defence! A major gain in open play!',
+    '{primary} bursts clear! The defensive line is broken and {side} are on the move!',
   ],
   dominant_carry: [
-    '{primary} drives hard into contact, making great ground.',
-    'Powerful carry from {primary}, gaining metres against the defence.',
-    '{primary} charges forward and the defence is forced back.',
+    '{primary} drives hard into contact, dragging defenders with him.',
+    '{primary} takes it at the line and wins the collision — forward momentum for {side}.',
+    'Physical carry from {primary}. He makes good metres and stays on his feet.',
+    '{primary} crashes into contact and drives forward. Strong work.',
   ],
   dominant_tackle: [
-    'Huge hit by {secondary}! He drives {primary} back and wins the collision.',
-    '{secondary} absolutely smashes {primary}! No gain there whatsoever.',
-    'Monster tackle from {secondary} — {primary} is stopped dead in his tracks.',
+    'Big read by {secondary}! He drives {primary} backwards — a dominant tackle.',
+    '{secondary} cleans up {primary} with a thunderous hit. No gain there.',
+    'The defence wins this one — {secondary} stops {primary} dead and drives him back.',
+    '{secondary} times the tackle perfectly and {primary} goes nowhere.',
   ],
   play_on: [
-    '{primary} takes contact and goes to ground. A ruck forms.',
-    '{secondary} brings {primary} down — both sides arrive quickly.',
-    'Solid carry from {primary} before being tackled. Play continues.',
+    '{primary} takes contact and the ruck forms quickly.',
+    '{secondary} brings {primary} down — {side} recycle and go again.',
+    'Hard carry from {primary}. He earns a few metres before {secondary} makes the tackle.',
+    '{primary} goes to ground after contact. The ball is available.',
+  ],
+};
+
+const FIRST_PHASE_TEMPLATES: Templates = {
+  kick_decision: [
+    '{side} choose to kick rather than attack from the set piece.',
+    'Off the top and they kick — {side} looking for field position.',
+    '{side} go to the boot off the set piece, looking to change the game.',
+  ],
+  crash_ball: [
+    '{primary} fixes the first defender and drives it short to {secondary}.',
+    'Crash ball! {primary} plays it tight to {secondary}, who takes it at pace.',
+    '{primary} sets {secondary} on a hard line — straight into the defensive channel.',
+    '{secondary} receives from {primary} and hits the gain line hard.',
+  ],
+  out_the_back: [
+    '{primary} sweeps it wide to {secondary} — {side} going for width off the set piece.',
+    '{primary} finds {secondary} out the back and the ball moves quickly.',
+    'Gone wide! {primary} releases {secondary} into space.',
+    '{primary} goes to width — {secondary} catches and attacks the line.',
+  ],
+  knock_on: [
+    '{primary} loses it forward off the set piece! Scrum awarded.',
+    'Knock-on at the first phase — {primary} can\'t hold the pass. Scrum.',
+    'Poor hands from {primary} and the ball goes forward! Scrum to the opposition.',
+  ],
+  line_break: [
+    '{primary} bursts through off the top of a set piece! A brilliant running line!',
+    'First-phase gold from {side} — {primary} punches through for a line break!',
+    '{primary} finds the space and he\'s gone! The set piece has created a huge opportunity!',
+    '{primary} splits the defence wide open! Outstanding first-phase execution from {side}!',
+  ],
+  dominant_carry: [
+    '{primary} takes the ball at pace and drives hard into the defensive line.',
+    'Powerful carry from {primary} straight off the set piece — good metres gained.',
+    '{primary} hits the gain line and wins the contact. {side} on the front foot.',
+    '{primary} crashes into the line and drives forward. Hard to stop.',
+  ],
+  dominant_tackle: [
+    '{secondary} reads the set-piece play perfectly and drives {primary} back.',
+    'The defence holds at the gain line — {secondary} wins the collision with {primary}.',
+    'Excellent defensive read from {secondary}. {primary} is stopped before he can get going.',
+    'Dominant tackle from {secondary} — the first phase goes nowhere for {side}.',
+  ],
+  play_on: [
+    '{primary} takes contact at the gain line. Both sides compete at the ruck.',
+    '{secondary} makes the tackle and {primary} goes to ground. Ball available.',
+    'First phase earns a few metres — {primary} goes to ground and {side} recycle.',
+    '{primary} carries into contact and {secondary} brings him down. Ruck forms.',
+  ],
+};
+
+const KICK_RETURN_TEMPLATES: Templates = {
+  kick_decision: [
+    '{side} opt to kick rather than run from the return.',
+    '{primary} doesn\'t run the ball back — {side} kick it on for territory.',
+    'Rather than attack from the return, {side} look to kick for field position.',
+  ],
+  line_break: [
+    '{primary} is through! He\'s turned the return into a full counter-attack!',
+    'Superb counter from {primary} — he\'s broken the cover and he\'s running into space!',
+    '{primary} makes a line break from the return! {side} are flying!',
+    '{primary} sidesteps the first chaser and bursts clear! The return has turned into something special!',
+  ],
+  dominant_carry: [
+    '{primary} picks a strong line and drives well into opposition territory on the return.',
+    'Powerful return from {primary} — he takes the contact and wins it.',
+    '{primary} runs a hard line off the kick return. Great metres for {side}.',
+    '{primary} carries hard on the return and comes out on top of the collision.',
+  ],
+  dominant_tackle: [
+    '{secondary} lines up {primary} on the return and drives him back — a dominant tackle.',
+    'Big defensive play from {secondary}! He stops {primary}\'s return dead.',
+    '{secondary} wins the physical contest and {primary} is driven back. {side} contained.',
+    '{primary} meets a wall of resistance — {secondary} puts him down emphatically on the return.',
+  ],
+  play_on: [
+    '{primary} makes ground on the return before {secondary} brings him down.',
+    'Good metres from {primary} on the kick return. {secondary} makes the tackle.',
+    '{primary} runs it back well before the cover arrives. Ruck forms.',
+    '{secondary} makes the tackle on {primary} — solid return but {side} held up.',
   ],
 };
 
@@ -83,9 +167,9 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
       '{primary} chases the short kick and claims it — a perfectly executed restart!',
     ],
   },
-  [MatchPhase.PhasePlay]:  CARRY_TEMPLATES,
-  [MatchPhase.FirstPhase]: CARRY_TEMPLATES,
-  [MatchPhase.KickReturn]: CARRY_TEMPLATES,
+  [MatchPhase.PhasePlay]:  PHASE_PLAY_TEMPLATES,
+  [MatchPhase.FirstPhase]: FIRST_PHASE_TEMPLATES,
+  [MatchPhase.KickReturn]: KICK_RETURN_TEMPLATES,
   [MatchPhase.Breakdown]: {
     clean_ball: [
       'Quick ball from the ruck! {side} move it wide immediately.',

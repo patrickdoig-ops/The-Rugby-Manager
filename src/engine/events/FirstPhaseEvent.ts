@@ -64,7 +64,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
   if (goCrashBall) {
     // Crash Ball: #10 → #12 (inside centre)
     const insideCentre = pickPlayer(attackTeam, 12);
-    playIntro = getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: carrier, secondaryPlayer: insideCentre }, 'out_the_back') + ' ';
+    playIntro = getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: carrier, secondaryPlayer: insideCentre }, 'crash_ball') + ' ';
 
     if (insideCentre.currentStats.handling + rng(1, 20) < 30) {
       adjustRating(insideCentre, -0.45);

@@ -259,8 +259,8 @@ function pick(arr: string[]): string {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function playerLabel(p: { name: string; id: number } | undefined, fallback: string): string {
-  return p ? `${p.name} (#${p.id})` : fallback;
+function playerLabel(p: { name: string; squadNumber: number } | undefined, fallback: string): string {
+  return p ? `${p.name} (#${p.squadNumber})` : fallback;
 }
 
 function interpolate(template: string, event: GameEvent): string {

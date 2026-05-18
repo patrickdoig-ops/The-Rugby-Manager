@@ -311,3 +311,69 @@
       inset 0 1px 0 rgba(255,255,255,0.3);
   }
 }
+
+/* ─── Lineup section headers (Starting XV / Bench) ─── */
+.pm-section-header {
+  font-family: var(--rm-font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--rm-text-dim);
+  padding: 10px 0 4px;
+}
+
+.pm-section-bench {
+  border-top: 1px solid var(--rm-border-soft);
+  margin-top: 4px;
+}
+
+/* ─── Bench player row — slightly dimmed until selected ─── */
+.pm-player--bench {
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.pm-player--starter {
+  cursor: default;
+}
+
+/* ─── Selected bench player (coming on) ─── */
+.pm-player--selected {
+  opacity: 1;
+  outline: 1px solid var(--rm-pitch);
+  border-radius: 4px;
+  background: color-mix(in oklch, var(--rm-pitch) 10%, transparent) !important;
+}
+
+/* ─── Starters become swap targets when a bench player is selected ─── */
+.pm-player--starter.pm-swap-target {
+  cursor: pointer;
+}
+
+/* ─── Swap icon button in player header ─── */
+.pm-swap-btn {
+  background: none;
+  border: none;
+  color: var(--rm-text-dim);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0 2px;
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity 0.1s;
+  pointer-events: none;
+}
+
+.pm-player--bench:hover .pm-swap-btn,
+.pm-player--selected .pm-swap-btn {
+  opacity: 1;
+}
+
+@media (min-width: 700px) {
+  .pm-player--starter.pm-swap-target:hover {
+    background: color-mix(in oklch, var(--rm-pitch) 8%, transparent);
+    outline: 1px solid var(--rm-border-soft);
+    border-radius: 4px;
+  }
+}

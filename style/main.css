@@ -618,6 +618,94 @@ html, body {
   line-height: 1.4;
 }
 
+/* ─── Substitution modal ─── */
+.sub-section-label {
+  font-family: var(--rm-font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--rm-text-dim);
+  padding: 8px 0 4px;
+  border-top: 1px solid var(--rm-hairline);
+  margin-top: 6px;
+}
+
+.sub-player-btn {
+  display: grid;
+  grid-template-columns: 20px 1fr auto auto;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
+  padding: 7px 8px;
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 8px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.sub-player-btn:hover {
+  background: var(--rm-surface-3);
+  border-color: var(--rm-border);
+}
+
+.sub-player-btn.sub-selected {
+  background: color-mix(in oklch, var(--rm-pitch) 14%, var(--rm-surface-2));
+  border-color: var(--rm-pitch);
+  box-shadow: 0 0 10px color-mix(in oklch, var(--rm-pitch) 20%, transparent);
+}
+
+.sub-starter-btn {
+  grid-template-columns: 20px 1fr 40px auto;
+}
+
+.sub-num {
+  font-family: var(--rm-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.sub-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--rm-chalk);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sub-pos {
+  font-size: 9px;
+  color: var(--rm-text-dim);
+  white-space: nowrap;
+}
+
+.sub-fatigue-bar-bg {
+  height: 3px;
+  background: var(--rm-surface-3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.sub-empty {
+  font-size: 12px;
+  color: var(--rm-text-dim);
+  padding: 8px 0;
+  text-align: center;
+}
+
+.sub-cancel-btn {
+  margin-top: 10px;
+  width: 100%;
+  text-align: center;
+  justify-content: center;
+}
+
 /* ─── Animations ─── */
 @keyframes rmPulse {
   0%, 100% { opacity: 1; }

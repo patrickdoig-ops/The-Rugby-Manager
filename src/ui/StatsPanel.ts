@@ -85,7 +85,7 @@ function renderPlayerStats(state: MatchState): string {
     const rClass = ratingClass(p.rating);
     return `
       <div class="player-stat-row">
-        <span class="player-jersey" style="color:${team.color}">${p.id}</span>
+        <span class="player-jersey" style="color:${team.color}">${p.squadNumber}</span>
         <span class="fatigue-name">${p.name.split(' ')[1] ?? p.name}</span>
         <div class="fatigue-bar-bg">
           <div class="fatigue-bar ${barClass}" style="width:${f}%"></div>
@@ -103,6 +103,16 @@ function updatePlayerStatsDOM(container: HTMLElement, state: MatchState): void {
   ];
   const rows = container.querySelectorAll('.player-stat-row');
   if (rows.length !== allPlayers.length) {
+    container.innerHTML = renderPlayerStats(state);
+    return;
+  }
+
+  // Detect a substitution by checking whether jersey numbers still match
+  const hasSubstitution = allPlayers.some((p, i) => {
+    const jerseyEl = rows[i].querySelector('.player-jersey');
+    return jerseyEl && jerseyEl.textContent !== String(p.squadNumber);
+  });
+  if (hasSubstitution) {
     container.innerHTML = renderPlayerStats(state);
     return;
   }

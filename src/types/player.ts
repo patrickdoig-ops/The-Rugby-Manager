@@ -4,7 +4,7 @@ export type Position =
   | 'Blindside Flanker' | 'Openside Flanker' | 'Number 8'
   | 'Scrum-Half' | 'Fly-Half'
   | 'Left Wing' | 'Inside Centre' | 'Outside Centre' | 'Right Wing'
-  | 'Fullback';
+  | 'Fullback' | 'Utility Back';
 
 export interface PlayerStats {
   stamina: number;
@@ -23,6 +23,7 @@ export interface PlayerStats {
 
 export interface Player {
   id: number;
+  squadNumber: number;
   name: string;
   position: Position;
   baseStats: PlayerStats;

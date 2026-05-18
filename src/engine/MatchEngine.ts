@@ -30,9 +30,18 @@ function deepCloneStats(s: PlayerStats): PlayerStats {
   return { ...s };
 }
 
-function initPlayer(raw: Omit<Player, 'currentStats' | 'fatiguePct' | 'rating' | 'x' | 'y'>): Player {
+type RawPlayer = Omit<Player, 'currentStats' | 'fatiguePct' | 'rating' | 'x' | 'y' | 'squadNumber'> & { squadNumber?: number };
+
+export type RawTeamInput = {
+  id: string; name: string; shortName: string; color: string; secondaryColor: string;
+  players: RawPlayer[];
+  bench?: RawPlayer[];
+};
+
+function initPlayer(raw: RawPlayer): Player {
   return {
     ...raw,
+    squadNumber: raw.squadNumber ?? raw.id,
     baseStats: deepCloneStats(raw.baseStats),
     currentStats: deepCloneStats(raw.baseStats),
     fatiguePct: 100,
@@ -42,15 +51,17 @@ function initPlayer(raw: Omit<Player, 'currentStats' | 'fatiguePct' | 'rating' |
   };
 }
 
-function buildTeam(raw: { id: string; name: string; shortName: string; color: string; secondaryColor: string; players: Omit<Player, 'currentStats' | 'fatiguePct' | 'x' | 'y'>[] }): Team {
+function buildTeam(raw: RawTeamInput): Team {
   return {
     ...raw,
     players: raw.players.map(initPlayer),
+    bench: (raw.bench ?? []).map(initPlayer),
+    substitutedOff: [],
     tactics: { ...DEFAULT_TACTICS },
   };
 }
 
-function initMatchState(homeRaw: Parameters<typeof buildTeam>[0], awayRaw: Parameters<typeof buildTeam>[0], tickDelayMs: number): MatchState {
+function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayMs: number): MatchState {
   return {
     phase: MatchPhase.KickOff,
     gameMinute: 0,
@@ -97,8 +108,8 @@ export class MatchEngine {
   private fatigueAccumulator = 0;
 
   constructor(
-    homeRaw: Parameters<typeof buildTeam>[0],
-    awayRaw: Parameters<typeof buildTeam>[0],
+    homeRaw: RawTeamInput,
+    awayRaw: RawTeamInput,
     opts: { tickDelayMs?: number } = {},
   ) {
     this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500);
@@ -111,6 +122,30 @@ export class MatchEngine {
         this.state.awayTeam.tactics = { ...tactics };
       }
     });
+
+    eventBus.on('ui:substitution', ({ benchSquadNum, fieldSquadNum }) => {
+      this.substitute('home', benchSquadNum, fieldSquadNum);
+    });
+  }
+
+  substitute(side: 'home' | 'away', benchSquadNum: number, fieldSquadNum: number): void {
+    const team = side === 'home' ? this.state.homeTeam : this.state.awayTeam;
+    const benchIdx = team.bench.findIndex(p => p.squadNumber === benchSquadNum);
+    const fieldIdx = team.players.findIndex(p => p.squadNumber === fieldSquadNum);
+    if (benchIdx === -1 || fieldIdx === -1) return;
+
+    const sub = team.bench[benchIdx];
+    const off = team.players[fieldIdx];
+
+    sub.id = off.id;
+    sub.x  = off.x;
+    sub.y  = off.y;
+
+    team.players[fieldIdx] = sub;
+    team.bench.splice(benchIdx, 1);
+    team.substitutedOff.push(off);
+
+    eventBus.emit('engine:stateChange', { state: this.state });
   }
 
 

@@ -15,13 +15,12 @@ import { initModalManager }   from './ui/ModalManager';
 import { initPreMatchScreen } from './ui/PreMatchScreen';
 import { initHomeScreen }     from './ui/HomeScreen';
 import { MatchEngine }        from './engine/MatchEngine';
+import type { RawTeamInput }  from './engine/MatchEngine';
 
 import homeTeamRaw from './data/team-home.json';
 import awayTeamRaw from './data/team-away.json';
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Build the game shell and wire all UI listeners in the background.
-  // Home screen overlays everything; pre-match overlays the game shell.
   buildAppShell();
   initScoreboard();
   initPitchStrip();
@@ -29,17 +28,15 @@ document.addEventListener('DOMContentLoaded', () => {
   initStatsPanel();
   initModalManager();
 
-  const engine = new MatchEngine(
-    homeTeamRaw as ConstructorParameters<typeof MatchEngine>[0],
-    awayTeamRaw as ConstructorParameters<typeof MatchEngine>[1],
-    { tickDelayMs: 1500 },
-  );
-  initSimController(engine);
-
-  // Home screen → Start Game → pre-match preview → Kick Off → engine starts.
   initHomeScreen(() => {
-    initPreMatchScreen(homeTeamRaw, awayTeamRaw, () => {
-      engine.initialize();
-    });
+    initPreMatchScreen(
+      homeTeamRaw as RawTeamInput,
+      awayTeamRaw as RawTeamInput,
+      (configuredHome, configuredAway) => {
+        const engine = new MatchEngine(configuredHome, configuredAway, { tickDelayMs: 1500 });
+        initSimController(engine);
+        engine.initialize();
+      },
+    );
   });
 });

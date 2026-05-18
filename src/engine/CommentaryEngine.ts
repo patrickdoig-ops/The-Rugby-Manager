@@ -3,6 +3,46 @@ import type { GameEvent } from '../types/match';
 
 type Templates = Record<string, string[]>;
 
+const CARRY_TEMPLATES: Templates = {
+  kick_decision: [
+    '{side} elect to kick rather than take contact.',
+    'Quick thinking from {side} — the ball is kicked rather than carried.',
+    '{side} go to the boot, looking to change the point of attack.',
+  ],
+  out_the_back: [
+    '{primary} goes out the back — a pass to {secondary}, who looks to fire it wide.',
+    '{primary} pulls it back for {secondary}, who moves it wide quickly.',
+    'Gone wide! {primary} finds {secondary} out the back.',
+    '{primary} goes out the back! {secondary} takes the pass and sends it wide.',
+    'The ball is pulled back to {secondary} by {primary}, who works it wide.',
+  ],
+  knock_on: [
+    '{primary} knocks on under pressure! Scrum to {secondary}\'s team.',
+    'Unforced error from {primary} — the ball squirts forward. Scrum awarded.',
+    'Handling error! {primary} fails to collect and the referee calls knock-on.',
+  ],
+  line_break: [
+    '{primary} breaks through the line! A huge gain for {side}!',
+    'Sensational play from {primary} — the defence is beaten completely!',
+    '{primary} is through! Nothing but open space ahead!',
+  ],
+  dominant_carry: [
+    '{primary} drives hard into contact, making great ground.',
+    'Powerful carry from {primary}, gaining metres against the defence.',
+    '{primary} charges forward and the defence is forced back.',
+  ],
+  dominant_tackle: [
+    'Huge hit by {secondary}! He drives {primary} back and wins the collision.',
+    '{secondary} absolutely smashes {primary}! No gain there whatsoever.',
+    'Monster tackle from {secondary} — {primary} is stopped dead in his tracks.',
+  ],
+  play_on: [
+    '{primary} takes contact and goes to ground. A ruck forms.',
+    '{secondary} brings {primary} down — both sides arrive quickly.',
+    'Solid carry from {primary} before being tackled. Play continues.',
+  ],
+};
+
 const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates } = {
   [MatchPhase.KickOff]: {
     announce: [
@@ -42,45 +82,9 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
       '{primary} chases the short kick and claims it — a perfectly executed restart!',
     ],
   },
-  [MatchPhase.OpenPlay]: {
-    kick_decision: [
-      '{side} elect to kick rather than take contact.',
-      'Quick thinking from {side} — the ball is kicked rather than carried.',
-      '{side} go to the boot, looking to change the point of attack.',
-    ],
-    out_the_back: [
-      '{primary} goes out the back — a pass to {secondary}, who looks to fire it wide.',
-      '{primary} pulls it back for {secondary}, who moves it wide quickly.',
-      'Gone wide! {primary} finds {secondary} out the back.',
-      '{primary} goes out the back! {secondary} takes the pass and sends it wide.',
-      'The ball is pulled back to {secondary} by {primary}, who works it wide.',
-    ],
-    knock_on: [
-      '{primary} knocks on under pressure! Scrum to {secondary}\'s team.',
-      'Unforced error from {primary} — the ball squirts forward. Scrum awarded.',
-      'Handling error! {primary} fails to collect and the referee calls knock-on.',
-    ],
-    line_break: [
-      '{primary} breaks through the line! A huge gain for {side}!',
-      'Sensational play from {primary} — the defence is beaten completely!',
-      '{primary} is through! Nothing but open space ahead!',
-    ],
-    dominant_carry: [
-      '{primary} drives hard into contact, making great ground.',
-      'Powerful carry from {primary}, gaining metres against the defence.',
-      '{primary} charges forward and the defence is forced back.',
-    ],
-    dominant_tackle: [
-      'Huge hit by {secondary}! He drives {primary} back and wins the collision.',
-      '{secondary} absolutely smashes {primary}! No gain there whatsoever.',
-      'Monster tackle from {secondary} — {primary} is stopped dead in his tracks.',
-    ],
-    play_on: [
-      '{primary} takes contact and goes to ground. A ruck forms.',
-      '{secondary} brings {primary} down — both sides arrive quickly.',
-      'Solid carry from {primary} before being tackled. Play continues.',
-    ],
-  },
+  [MatchPhase.PhasePlay]:  CARRY_TEMPLATES,
+  [MatchPhase.FirstPhase]: CARRY_TEMPLATES,
+  [MatchPhase.KickReturn]: CARRY_TEMPLATES,
   [MatchPhase.Breakdown]: {
     clean_ball: [
       'Quick ball from the ruck! {side} move it wide immediately.',

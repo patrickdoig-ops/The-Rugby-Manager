@@ -32,18 +32,25 @@ Never compute ball direction or territory logic outside these helpers.
 ### Phase state machine
 
 ```
-KickOff      → OpenPlay | Scrum
-OpenPlay     → Breakdown | TacticalKick | TryScored | Penalty | Scrum | HalfTime | FullTime
-Breakdown    → OpenPlay | BoxKick | Scrum | Lineout | Penalty
-BoxKick      → OpenPlay | Scrum
-Scrum        → OpenPlay | Penalty | Scrum
-Lineout      → OpenPlay | Scrum
-TacticalKick → OpenPlay | Lineout | Scrum
+KickOff      → FirstPhase | Scrum
+PhasePlay    → Breakdown | TacticalKick | TryScored | Penalty | Scrum | HalfTime | FullTime
+FirstPhase   → Breakdown | TacticalKick | TryScored | Penalty | Scrum | HalfTime | FullTime
+KickReturn   → Breakdown | TacticalKick | TryScored | Penalty | Scrum | HalfTime | FullTime
+Breakdown    → PhasePlay | BoxKick | Scrum | Lineout | Penalty
+BoxKick      → KickReturn | Scrum
+Scrum        → FirstPhase | Penalty | Scrum
+Lineout      → FirstPhase | Scrum
+TacticalKick → KickReturn | Lineout | Scrum
 TryScored    → ConversionKick → KickOff
-Penalty      → [modal] → KickOff | Lineout | OpenPlay
+Penalty      → [modal] → KickOff | Lineout | FirstPhase
 HalfTime     → KickOff
 FullTime     → (terminal)
 ```
+
+Three carry phases share identical mechanics but are context-specific:
+- **PhasePlay** — runs after Breakdown (recycled possession)
+- **FirstPhase** — runs after KickOff, Scrum, Lineout, or a penalty tap-and-go
+- **KickReturn** — runs after BoxKick or TacticalKick (the receiving team now attacks)
 
 `StateMachine.transition()` validates against this table and throws on illegal moves. `forceTransition()` bypasses validation and is used for HalfTime, FullTime, and penalty resolution.
 
@@ -166,7 +173,9 @@ The receiving player attempts to catch the ball, relying on their handling and c
 
 ---
 
-## Open Play
+## Carry Phases (PhasePlay / FirstPhase / KickReturn)
+
+Three phases share identical mechanics and commentary templates. **PhasePlay** runs after Breakdown; **FirstPhase** runs after KickOff, Scrum, Lineout, or a tap-and-go penalty; **KickReturn** runs after BoxKick or TacticalKick. Each is a separate handler (`handlePhasePlay`, `handleFirstPhase`, `handleKickReturn`) in its own file, routing to the matching `MatchPhase` enum value for commentary lookups.
 
 ### Player selection
 
@@ -286,9 +295,9 @@ Attacking supporters are sampled at random (without replacement) from the forwar
   - `counter_ruck`: The 4 strongest defenders (by `strength×0.6 + breakdown×0.4`) contest the ruck using the stacked-score formula.
   - `shadow`: Concedes ruck ball (DTS = rng(1,10)) to maintain a perfectly aligned defensive line.
 
-**Next-phase carry-over (`state.breakdownMod`):** Committing more players to the ruck leaves fewer available for the next phase. After every breakdown the engine sets `state.breakdownMod.attack` and `state.breakdownMod.defend` which are consumed (and reset to zero) by the very next `OpenPlay` phase, where they are applied as modifiers to the evasion and defence scores respectively.
+**Next-phase carry-over (`state.breakdownMod`):** Committing more players to the ruck leaves fewer available for the next phase. After every breakdown the engine sets `state.breakdownMod.attack` and `state.breakdownMod.defend` which are consumed (and reset to zero) by the very next carry phase (PhasePlay after Breakdown, or FirstPhase/KickReturn in other contexts), where they are applied as modifiers to the evasion and defence scores respectively.
 
-| Tactic | Effect on next OpenPlay |
+| Tactic | Effect on next carry phase |
 |---|---|
 | `pick_and_drive` | attack −8 evasion (forwards still arriving) |
 | `balanced` | 0 |
@@ -337,9 +346,9 @@ Both quality (stat values) and quantity (number of bodies) now independently inf
 
 | Margin | Result |
 |---|---|
-| ≥ 10 | `clean_ball` → OpenPlay |
-| ≥ −8 | `slow_ball` → OpenPlay / BoxKick |
-| ≥ −14 | `turnover` → OpenPlay (possession flips) |
+| ≥ 10 | `clean_ball` → PhasePlay |
+| ≥ −8 | `slow_ball` → PhasePlay / BoxKick |
+| ≥ −14 | `turnover` → PhasePlay (possession flips) |
 | < −14 | `penalty_defending` → Penalty (possession flips to defending team) |
 
 ### Ball movement

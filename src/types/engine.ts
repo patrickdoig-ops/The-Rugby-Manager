@@ -1,6 +1,8 @@
 export enum MatchPhase {
   KickOff        = 'KICK_OFF',
-  OpenPlay       = 'OPEN_PLAY',
+  PhasePlay      = 'PHASE_PLAY',
+  FirstPhase     = 'FIRST_PHASE',
+  KickReturn     = 'KICK_RETURN',
   Breakdown      = 'BREAKDOWN',
   Scrum          = 'SCRUM',
   Lineout        = 'LINEOUT',

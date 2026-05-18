@@ -14,9 +14,8 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
   const defPlan = defendTeam.tactics.defendingBreakdown;
 
   const lastEvent = state.events[state.events.length - 1];
-  const lastOpenPlay = lastEvent?.phase === MatchPhase.OpenPlay ? lastEvent : undefined;
-  const carrierId = lastOpenPlay?.primaryPlayer?.id;
-  const dominantCarryBonus = lastOpenPlay?.outcome === 'dominant_carry' ? 6 : 0;
+  const carrierId = lastEvent?.primaryPlayer?.id;
+  const dominantCarryBonus = lastEvent?.outcome === 'dominant_carry' ? 6 : 0;
   const attackBonus = dominantCarryBonus;
 
   // Next-phase modifier: more players committed to ruck = fewer on feet for the next phase
@@ -63,7 +62,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
       );
     }
     return {
-      nextPhase: MatchPhase.OpenPlay,
+      nextPhase: MatchPhase.PhasePlay,
       commentary: getCommentary({ ...draftEvent(MatchPhase.Breakdown), primaryPlayer: primary, secondaryPlayer: jackal }, 'clean_ball') + note,
       primaryPlayer: primary,
       secondaryPlayer: jackal,
@@ -95,7 +94,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
       );
     }
     return {
-      nextPhase: boxKick ? MatchPhase.BoxKick : MatchPhase.OpenPlay,
+      nextPhase: boxKick ? MatchPhase.BoxKick : MatchPhase.PhasePlay,
       commentary: getCommentary({ ...draftEvent(MatchPhase.Breakdown), primaryPlayer: primary, secondaryPlayer: jackal }, 'slow_ball') + note,
       primaryPlayer: primary,
       secondaryPlayer: jackal,
@@ -125,7 +124,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
       );
     }
     return {
-      nextPhase: MatchPhase.OpenPlay,
+      nextPhase: MatchPhase.PhasePlay,
       commentary: getCommentary({ ...draftEvent(MatchPhase.Breakdown), primaryPlayer: primary, secondaryPlayer: jackal }, 'turnover') + note,
       primaryPlayer: jackal,
       secondaryPlayer: primary,

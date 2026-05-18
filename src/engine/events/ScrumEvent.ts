@@ -17,7 +17,7 @@ export function handleScrum({ state, attackTeam, defendTeam, adjustRating, draft
     attackFrontRow.forEach(p => adjustRating(p, +0.15));
     state.stats.scrums[state.possession]++;
     return {
-      nextPhase: MatchPhase.OpenPlay,
+      nextPhase: MatchPhase.FirstPhase,
       commentary: getCommentary({ ...draftEvent(MatchPhase.Scrum), primaryPlayer: attackHooker, secondaryPlayer: defendHooker }, 'stable_win'),
       primaryPlayer: attackHooker,
       secondaryPlayer: defendHooker,

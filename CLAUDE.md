@@ -131,15 +131,20 @@ The penalty interactive pause is a `Promise` that resolves when the `onChoice(ch
 ### Phase flow
 
 ```
-KickOff → OpenPlay → Breakdown → OpenPlay (loop)
-                               → BoxKick (slow ball; propensity driven by attackingGamePlan + pitch zone) → OpenPlay / Scrum
-                   → TacticalKick (propensity driven by attackingGamePlan + pitch zone) → OpenPlay / Lineout / Scrum
-                   → Scrum / Lineout → OpenPlay
-                   → TryScored → ConversionKick → KickOff
-                   → Penalty → [modal if home team in opposition half] → KickOff / Lineout / OpenPlay
-OpenPlay at 40 min → HalfTime → KickOff (second half)
+KickOff → FirstPhase → Breakdown → PhasePlay (loop)
+                                  → BoxKick (slow ball; propensity driven by attackingGamePlan + pitch zone) → KickReturn / Scrum
+                      → TacticalKick (propensity driven by attackingGamePlan + pitch zone) → KickReturn / Lineout / Scrum
+                      → Scrum / Lineout → FirstPhase
+                      → TryScored → ConversionKick → KickOff
+                      → Penalty → [modal if home team in opposition half] → KickOff / Lineout / FirstPhase
+Any carry phase at 40 min → HalfTime → KickOff (second half)
 Any phase at 80 min → FullTime
 ```
+
+Three carry phases share identical mechanics (same resolver, same commentary templates):
+- **PhasePlay** — after Breakdown (recycled possession)
+- **FirstPhase** — after KickOff, Scrum, Lineout, or tap-and-go penalty
+- **KickReturn** — after BoxKick or TacticalKick
 
 `StateMachine` validates transitions; `forceTransition()` bypasses validation for HalfTime/FullTime/penalty resolution.
 
@@ -159,7 +164,7 @@ Resolver formulas at a glance:
 | Phase | Key formula | Outcome thresholds |
 |---|---|---|
 | **KickOff** | `kickScore = kicking + rng(1,20)` < 35 → knock_on; then `catchScore - chaseScore` | > 10 `clean_receive` (possession flips); > -5 `contested` (possession flips — receiving team scrambles it); ≤ -5 `knock_on` → Scrum (kicking team retains). `short_kick` + contested: 15% chance kicking team regathers (`short_kick_retain`, possession retained) |
-| **OpenPlay** | Carrier handling gate (inline, < 30 = knock_on). Then Hard Carry / Out the Back split per `attackingStyle`. Out the Back: fly half (#10) handling gate → outside back (random from 11, 13, 14, 15) handling gate → evasion + collision with outside back as carrier. Hard Carry: evasion + collision with original carrier. `backfieldPenalty` applied to defend evasion score: `three_back` −10, `two_back` −5. Also consumes `state.breakdownMod` | knock_on (handling < 30 at any gate); evasion margin ≥ 15 = line_break; collision ±5 = dominant |
+| **PhasePlay / FirstPhase / KickReturn** | Carrier handling gate (inline, < 30 = knock_on). Then Hard Carry / Out the Back split per `attackingStyle`. Out the Back: fly half (#10) handling gate → outside back (random from 11, 13, 14, 15) handling gate → evasion + collision with outside back as carrier. Hard Carry: evasion + collision with original carrier. `backfieldPenalty` applied to defend evasion score: `three_back` −10, `two_back` −5. Also consumes `state.breakdownMod` | knock_on (handling < 30 at any gate); evasion margin ≥ 15 = line_break; collision ±5 = dominant |
 | **Breakdown** | `ARS = stackedScore(supporters, breakdown, strength) + rng(1,20) + attackBonus` (attackBonus = 6 if previous play was `dominant_carry`, else 0). `stackedScore` sorts players best-first and applies weights [1.0, 0.6, 0.4, 0.3], summed and divided by 2 — so body count AND quality both matter, with diminishing returns. DTS varies by `defendingBreakdown`: **jackal** = `breakdown×0.7 + strength×0.3 + (discipline−50)×0.15 + rng(1,20)`; **counter_ruck** = `stackedScore(top4defenders, strength, breakdown) + rng(1,20)` (top 4 defenders by `strength×0.6 + breakdown×0.4`); **shadow** = `rng(1,10)` (concedes ball to set line) | margin ≥ 10 clean_ball; ≥ -8 slow_ball; ≥ -14 turnover; else penalty_defending |
 | **Scrum** | `avg(setPiece×0.6 + strength×0.4) + rng` for each front 5 | attack margin > 0 stable_win; > -15 wheel; else dominant_penalty |
 | **Lineout** | `throwScore = hookerSetPiece + rng(1,100)` < 95 → `crooked_throw` (scrum, possession flips, hooker −0.4); then `(setPiece×0.5 + agility×0.5) + rng(1,20)` each jumper | margin ≥ −5 clean_catch; ≥ −15 scrappy_knock_on; else steal |
@@ -172,7 +177,7 @@ Resolver formulas at a glance:
 | Phase | Attacker | Defender |
 |---|---|---|
 | KickOff | id=10 (fly-half) as kicker; random chaser from attacking team | random receiver from defending team |
-| OpenPlay | `randomPlayer(attackTeam)` as carrier; Out the Back path adds: id=10 (fly-half) then random from ids 11/13/14/15 (outside backs) | `randomPlayer(defendTeam)` |
+| PhasePlay / FirstPhase / KickReturn | `randomPlayer(attackTeam)` as carrier; Out the Back path adds: id=10 (fly-half) then random from ids 11/13/14/15 (outside backs) | `randomPlayer(defendTeam)` |
 | Breakdown | 2–4 forwards sampled at random without replacement from `players.filter(p.id <= 8 && p.id !== carrierId)` — count = 4 (`pick_and_drive`), 3 (`balanced`), 2 (`wide_play`) per `attackingBreakdown` tactic | 1 back-row player sampled at random from `players.filter(p.id >= 6 && p.id <= 8)`; full pack (`p.id <= 8`) passed for `counter_ruck` |
 | BoxKick | id=9 (scrum half) as kicker; random from id=11\|14 (wingers) as chaser | id=15 (fullback) |
 | Scrum | `players.filter(p => p.id <= 5)` (front 5) | same filter on defend team |
@@ -223,7 +228,7 @@ Event handlers append tactic-aware commentary notes to the standard `getCommenta
 | `BreakdownEvent` | `counter_ruck` + `slow_ball` or `turnover` | defending | 30% |
 | `BreakdownEvent` | `shadow` + `clean_ball` conceded | defending | 30% |
 | `BreakdownEvent` | `jackal` + `penalty_defending` | defending | 25% |
-| `OpenPlayEvent` | `line_break` + `backfieldPenalty < 0` (two/three_back) | defending | 30% |
+| `OpenPlayEvent` / `FirstPhaseEvent` / `KickReturnEvent` | `line_break` + `backfieldPenalty < 0` (two/three_back) | defending | 30% |
 | `TacticalKickEvent` | kick caught + `returnBonus > 0` (two/three_back) | defending (just flipped to attacking) | 35% |
 | `TacticalKickEvent` | `fifty_twenty_two` + `one_back` defending | defending | 25% |
 | `BoxKickEvent` | `defend_catch` + `fullbackMod > 0` (two/three_back) | defending | 30% |

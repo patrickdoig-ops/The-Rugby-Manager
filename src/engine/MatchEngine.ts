@@ -12,7 +12,9 @@ import { rng, rngForm } from '../utils/rng';
 import { clamp } from '../utils/math';
 import type { PhaseContext, PhaseResult } from './events/types';
 import { handleKickOff }        from './events/KickOffEvent';
-import { handleOpenPlay }       from './events/OpenPlayEvent';
+import { handlePhasePlay }      from './events/OpenPlayEvent';
+import { handleFirstPhase }     from './events/FirstPhaseEvent';
+import { handleKickReturn }     from './events/KickReturnEvent';
 import { handleBreakdown }      from './events/BreakdownEvent';
 import { handleScrum }          from './events/ScrumEvent';
 import { handleLineout }        from './events/LineoutEvent';
@@ -97,7 +99,9 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
 
 const PHASE_HANDLERS: Partial<Record<MatchPhase, (ctx: PhaseContext) => PhaseResult>> = {
   [MatchPhase.KickOff]:        handleKickOff,
-  [MatchPhase.OpenPlay]:       handleOpenPlay,
+  [MatchPhase.PhasePlay]:      handlePhasePlay,
+  [MatchPhase.FirstPhase]:     handleFirstPhase,
+  [MatchPhase.KickReturn]:     handleKickReturn,
   [MatchPhase.Breakdown]:      handleBreakdown,
   [MatchPhase.Scrum]:          handleScrum,
   [MatchPhase.Lineout]:        handleLineout,
@@ -563,8 +567,8 @@ export class MatchEngine {
       };
       state.events.push(penEvent);
       eventBus.emit('engine:event', { event: penEvent });
-      sm.forceTransition(MatchPhase.OpenPlay);
-      state.phase = MatchPhase.OpenPlay;
+      sm.forceTransition(MatchPhase.FirstPhase);
+      state.phase = MatchPhase.FirstPhase;
     }
 
     eventBus.emit('engine:stateChange', { state });

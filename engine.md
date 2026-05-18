@@ -935,13 +935,20 @@ Picks a random template from `TEMPLATES[event.phase][key]` (falling back to `TEM
 |---|---|
 | `{primary}` | `primaryPlayer` formatted as `"Name (#jersey)"`, or `"the player"` if absent |
 | `{secondary}` | `secondaryPlayer` formatted as `"Name (#jersey)"`, or `"the defender"` if absent |
-| `{side}` | `event.sideName` (team name string) |
+| `{side}` | `event.sideName` (attacking team name) |
+| `{defside}` | `event.defSideName` (defending team name), or `"the opposition"` if absent |
+
+`defSideName` is set by `draftEvent()` in `MatchEngine` from the non-possessing team's name at the moment the event is drafted. It is declared as `defSideName?: string` on `GameEvent`. Templates that name the defending team (e.g. "The Eagles hold at the gain line") use `{defside}` rather than hardcoding.
 
 The `playerLabel(player, fallback)` helper produces the `"Name (#N)"` format. Both `{primary}` and `{secondary}` use it. Adding a player to a template automatically picks up jersey number — no template changes needed.
 
 ### Plain-text contract
 
-`CommentaryEngine` always returns a plain-text string. `CommentaryFeed.ts` post-processes it to wrap player name tokens in team-coloured `<span>` elements. If `CommentaryEngine` ever emits HTML, the span injection in `CommentaryFeed` will double-encode or break.
+`CommentaryEngine` always returns a plain-text string. `CommentaryFeed.ts` post-processes it to:
+1. Wrap all `"Name (#N)"` player mentions in team-coloured `<span>` elements (scans all 30 squad members)
+2. Wrap team name strings ("The Lions", "The Eagles") in their respective team-coloured `<span>` elements
+
+If `CommentaryEngine` ever emits HTML, the span injection will double-encode or break. Tactic notes in event handlers are plain template literals (`\`...\``) that embed `attackTeam.name` / `defendTeam.name` directly — these also go through the same CommentaryFeed colorization pass.
 
 ---
 

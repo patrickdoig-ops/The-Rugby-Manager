@@ -141,10 +141,10 @@ Any carry phase at 40 min → HalfTime → KickOff (second half)
 Any phase at 80 min → FullTime
 ```
 
-Three carry phases share identical mechanics (same resolver, same commentary templates):
-- **PhasePlay** — after Breakdown (recycled possession)
-- **FirstPhase** — after Scrum, Lineout, or tap-and-go penalty
-- **KickReturn** — after KickOff, BoxKick, or TacticalKick
+Three carry phases share the same evasion/collision resolver (`resolveOpenPlay`) but have distinct player selection, play structure, and commentary template sets (`PHASE_PLAY_TEMPLATES`, `FIRST_PHASE_TEMPLATES`, `KICK_RETURN_TEMPLATES`):
+- **PhasePlay** — after Breakdown; random carrier; hard carry or out-the-back split driven by `attackingStyle`; if carrier is #10 the out-the-back path is always taken (skipping the separate carrier→flyHalf step)
+- **FirstPhase** — after Scrum, Lineout, or tap-and-go penalty; carrier always #10; crash ball (#10→#12) or wide play (#10→#13→wing) split driven by `attackingStyle`
+- **KickReturn** — after KickOff, BoxKick, or TacticalKick; carrier = `state.kickReturnCarrier` (whoever caught the kick, set by the prior kick handler); run step (pace/agility vs pace/tackling) before evasion/collision; no handling gate
 
 `StateMachine` validates transitions; `forceTransition()` bypasses validation for HalfTime/FullTime/penalty resolution.
 
@@ -164,7 +164,9 @@ Resolver formulas at a glance:
 | Phase | Key formula | Outcome thresholds |
 |---|---|---|
 | **KickOff** | `kickScore = kicking + rng(1,20)` ≥ 35 = goodKick. **Kick Deep:** distance 25–40m / 15–25m; catching gate `(handling+composure)/2 + rng(1,20) < 30` → `knock_on`. **Kick Short:** distance 10–20m / 4–9m; < 10m → `poor_kick`; catch vs chase margin > 10 → `clean_receive`; > -5 → 30% `short_kick_retain`; else → `knock_on`. **Grubber:** distance 15–25m / 4–9m; < 10m → `poor_kick`; catching gate < 30 → `knock_on`. | `poor_kick`: scrum halfway, receiving team puts in. `knock_on`: scrum at landing, kicking team puts in. `clean_receive` / `short_kick_retain`: KickReturn (possession flips only on `clean_receive`) |
-| **PhasePlay / FirstPhase / KickReturn** | Carrier handling gate (inline, < 30 = knock_on). Then Hard Carry / Out the Back split per `attackingStyle`. Out the Back: fly half (#10) handling gate → outside back (random from 11, 13, 14, 15) handling gate → evasion + collision with outside back as carrier. Hard Carry: evasion + collision with original carrier. `backfieldPenalty` applied to defend evasion score: `three_back` −10, `two_back` −5. Also consumes `state.breakdownMod` | knock_on (handling < 30 at any gate); evasion margin ≥ 15 = line_break; collision ±5 = dominant |
+| **PhasePlay** | Random carrier; handling gate (< 30 = knock_on). If carrier is #10 or `rng` > hard-carry threshold: Out the Back (#10 → random outside back from ids 11/13/14/15) via up to two handling gates; if carrier IS #10, the carrier→flyHalf step is skipped and only the flyHalf→outsideBack step runs. Hard Carry: evasion + collision with original carrier. `backfieldPenalty`: `three_back` −10, `two_back` −5. Consumes `state.breakdownMod` | knock_on (gate); evasion ≥ 15 = line_break; collision ±5 = dominant |
+| **FirstPhase** | Carrier always #10; handling gate (< 30 = knock_on). Crash Ball (90/70/50% driven by `attackingStyle`): #10 → #12 (inside centre) handling gate → collision vs opp #12. Wide Play: #10 → #13 (outside centre) → random wing (11/14) two handling gates; collision vs random opp wing. `backfieldPenalty` and `breakdownMod` consumed | same thresholds |
+| **KickReturn** | Carrier = `state.kickReturnCarrier` ?? `randomPlayer`. No handling gate. Run step: `(carrier.pace+agility)/2 + rng(1,20)` vs `(defender.pace+tackling)/2 + rng(1,20)` → `runMetres` 3–10 (win) or 0–3 (lose). Evasion + collision; ball gains `runMetres + res.gainMetres`. `backfieldPenalty` and `breakdownMod` consumed | evasion ≥ 15 = line_break; collision ±5 = dominant |
 | **Breakdown** | `ARS = stackedScore(supporters, breakdown, strength) + rng(1,20) + attackBonus` (attackBonus = 6 if previous play was `dominant_carry`, else 0). `stackedScore` sorts players best-first and applies weights [1.0, 0.6, 0.4, 0.3], summed and divided by 2 — so body count AND quality both matter, with diminishing returns. DTS varies by `defendingBreakdown`: **jackal** = `breakdown×0.7 + strength×0.3 + (discipline−50)×0.15 + rng(1,20)`; **counter_ruck** = `stackedScore(top4defenders, strength, breakdown) + rng(1,20)` (top 4 defenders by `strength×0.6 + breakdown×0.4`); **shadow** = `rng(1,10)` (concedes ball to set line) | margin ≥ 10 clean_ball; ≥ -8 slow_ball; ≥ -14 turnover; else penalty_defending |
 | **Scrum** | `avg(setPiece×0.6 + strength×0.4) + rng` for each front 5 | attack margin > 0 stable_win; > -15 wheel; else dominant_penalty |
 | **Lineout** | `throwScore = hookerSetPiece + rng(1,100)` < 95 → `crooked_throw` (scrum, possession flips, hooker −0.4); then `(setPiece×0.5 + agility×0.5) + rng(1,20)` each jumper | margin ≥ −5 clean_catch; ≥ −15 scrappy_knock_on; else steal |
@@ -177,7 +179,9 @@ Resolver formulas at a glance:
 | Phase | Attacker | Defender |
 |---|---|---|
 | KickOff | id=10 (fly-half) as kicker; chaser: any (`high_ball`/`grubber`) or from ids 7,11,14 (`short_kick`) | receiver: ids 9,11,14,15 (`high_ball`) or ids 1–8 forwards (`short_kick`/`grubber`) |
-| PhasePlay / FirstPhase / KickReturn | `randomPlayer(attackTeam)` as carrier; Out the Back path adds: id=10 (fly-half) then random from ids 11/13/14/15 (outside backs) | `randomPlayer(defendTeam)` |
+| PhasePlay | `randomPlayer(attackTeam)` as carrier; Out the Back adds id=10 (fly-half, skipped if carrier IS #10) then random from ids 11/13/14/15 | `randomPlayer(defendTeam)` |
+| FirstPhase | id=10 (fly-half) always; Crash Ball → id=12 (inside centre); Wide Play → id=13 (outside centre) → random from ids 11/14 (wings) | Crash Ball: id=12; Wide Play: random from ids 11/14 |
+| KickReturn | `state.kickReturnCarrier` (set by prior kick phase) ?? `randomPlayer(attackTeam)` | `randomPlayer(defendTeam)` |
 | Breakdown | 2–4 forwards sampled at random without replacement from `players.filter(p.id <= 8 && p.id !== carrierId)` — count = 4 (`pick_and_drive`), 3 (`balanced`), 2 (`wide_play`) per `attackingBreakdown` tactic | 1 back-row player sampled at random from `players.filter(p.id >= 6 && p.id <= 8)`; full pack (`p.id <= 8`) passed for `counter_ruck` |
 | BoxKick | id=9 (scrum half) as kicker; random from id=11\|14 (wingers) as chaser | id=15 (fullback) |
 | Scrum | `players.filter(p => p.id <= 5)` (front 5) | same filter on defend team |
@@ -234,7 +238,9 @@ Event handlers append tactic-aware commentary notes to the standard `getCommenta
 | `TacticalKickEvent` | `fifty_twenty_two` + `one_back` defending | defending | 25% |
 | `BoxKickEvent` | `defend_catch` + `fullbackMod > 0` (two/three_back) | defending | 30% |
 
-`OpenPlayEvent` also prepends a structural `out_the_back` commentary line (always-on, not probabilistic) whenever the Out the Back path is taken, naming the carrier and fly half before the outcome commentary.
+`OpenPlayEvent` and `FirstPhaseEvent` prepend structural commentary lines (always-on, not probabilistic) for the Out the Back / Crash Ball / Wide Play paths, naming the passer and receiver before the outcome commentary.
+
+Commentary templates support four interpolation tokens: `{primary}` (`primaryPlayer` name + jersey, or "the player"), `{secondary}` (`secondaryPlayer`, or "the defender"), `{side}` (attacking team name), and `{defside}` (defending team name — sourced from `GameEvent.defSideName`). Tactic notes in event handlers use template literals with `attackTeam.name` / `defendTeam.name` directly rather than going through `getCommentary()`.
 
 ### Player attributes — known gaps
 
@@ -277,7 +283,7 @@ Players start each match at `rating: 6.0` (out of 10). `MatchEngine.adjustRating
 | Breakdown clean_ball | primary supporter | +0.15 |
 | Tactical kick success | kicker | +0.15 |
 | Knock-on (open play) | carrier | −0.45 |
-| Lineout steal conceded | attack jumper | −0.3 |
+| Lineout steal conceded | attack jumper | −0.15 |
 | Tactical kick catch drop | defender | −0.3 |
 | Scrum dominant_penalty conceded | attack front row (each) | −0.3 |
 | Breakdown penalty conceded | primary supporter | −0.375 |
@@ -296,12 +302,16 @@ Players start each match at `rating: 6.0` (out of 10). `MatchEngine.adjustRating
 | `Scoreboard.ts` | Team names, scores, clock, phase badge |
 | `StatsPanel.ts` | Stats table (cached by stat-value key, re-renders on change) + player stats panel (DOM-patched once per game minute) |
 | `PitchStrip.ts` | Ball marker position + attack direction label + end-label swap at half-time |
-| `CommentaryFeed.ts` | Appending commentary entries (max 30, prepend-scrolls); one-shot `stateChange` subscription caches team colours for player name colourisation |
+| `CommentaryFeed.ts` | Appending commentary entries (max 30, prepend-scrolls); one-shot `stateChange` subscription caches team colours, names, and full squad rosters; colorizes all player name mentions in their team colour; colorizes team name mentions (The Lions, The Eagles) in their team colour |
 | `ModalManager.ts` | Penalty choice bottom sheet / centred dialog |
 | `PreMatchScreen.ts` | Pre-match player attribute table; calls `onStart()` callback to trigger `engine.initialize()` |
 | `SimController.ts` | Play / Pause buttons and speed slider — the only UI module that calls engine methods |
 
-`AppShell.ts` injects the static HTML skeleton. All UI modules are initialised before `engine.initialize()` fires — they are purely reactive and have no internal state beyond DOM references, render caches, and one-shot initialisation values. Player objects are created once in `MatchEngine` and mutated in-place throughout the match; their identity (name, id, team membership) never changes. Commentary colourisation relies on player name lookup against a cached home-team name set — player names are unique across both squads.
+`AppShell.ts` injects the static HTML skeleton. All UI modules are initialised before `engine.initialize()` fires — they are purely reactive and have no internal state beyond DOM references, render caches, and one-shot initialisation values. Player objects are created once in `MatchEngine` and mutated in-place throughout the match; their identity (name, id, team membership) never changes. Commentary colourisation scans commentary text for `"Name (#N)"` patterns from a cached roster of all 30 players (both squads) and team name strings, wrapping matches in inline-coloured spans. Player names are unique across both squads.
+
+Two key fields carry state between phases:
+- `MatchState.kickReturnCarrier?: Player` — set by each kick handler before transitioning to `KickReturn`; consumed and cleared at the start of `KickReturnEvent`. Sources: `KickOffEvent` (clean_receive, short_kick_retain), `BoxKickEvent` (attack_retain, defend_catch_contested, defend_catch), `TacticalKickEvent` (kick_caught).
+- `GameEvent.defSideName?: string` — the defending team's name, set by `draftEvent()` from `state.possession`. Used via the `{defside}` interpolation token in commentary templates to name the defending team explicitly (e.g. "The Eagles hold at the gain line").
 
 ### Design system
 

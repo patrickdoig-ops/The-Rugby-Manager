@@ -42,7 +42,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
   const backfieldPenalty = defendTeam.tactics.backfieldDefence === 'three_back' ? -10
                          : defendTeam.tactics.backfieldDefence === 'two_back'   ? -5 : 0;
 
-  if (carrier.currentStats.handling + rng(1, 20) < 30) {
+  if (carrier.currentStats.handling + rng(1, 100) < 85) {
     adjustRating(carrier, -0.45);
     state.stats.handlingErrors[state.possession]++;
     state.possession = state.possession === 'home' ? 'away' : 'home';
@@ -69,7 +69,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
       wideIntro = getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: carrier, secondaryPlayer: flyHalf }, 'out_the_back') + ' ';
 
       // Fly half handling gate
-      if (flyHalf.currentStats.handling + rng(1, 20) < 30) {
+      if (flyHalf.currentStats.handling + rng(1, 100) < 85) {
         adjustRating(flyHalf, -0.45);
         state.stats.handlingErrors[state.possession]++;
         state.possession = state.possession === 'home' ? 'away' : 'home';
@@ -88,7 +88,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
     if (carrier.id === 10) {
       wideIntro = getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: flyHalf, secondaryPlayer: outsideBack }, 'out_the_back') + ' ';
     }
-    if (outsideBack.currentStats.handling + rng(1, 20) < 30) {
+    if (outsideBack.currentStats.handling + rng(1, 100) < 85) {
       adjustRating(outsideBack, -0.45);
       state.stats.handlingErrors[state.possession]++;
       state.possession = state.possession === 'home' ? 'away' : 'home';
@@ -111,6 +111,8 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
 
   if (res.outcome === 'line_break') {
     adjustRating(ballCarrier, +0.375);
+    adjustRating(defender, -0.4);
+    state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
     state.ballX = clamp(state.ballX + attackDir() * res.gainMetres, 0, 100);
     const tryScored = isTryScored();
     nextPhase = tryScored ? MatchPhase.TryScored : MatchPhase.Breakdown;

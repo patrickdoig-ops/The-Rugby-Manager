@@ -164,8 +164,8 @@ Resolver formulas at a glance:
 | Phase | Key formula | Outcome thresholds |
 |---|---|---|
 | **KickOff** | `kickScore = kicking + rng(1,20)` ≥ 35 = goodKick. **Kick Deep:** distance 25–40m / 15–25m; catching gate `(handling+composure)/2 + rng(1,20) < 30` → `knock_on`. **Kick Short:** distance 10–20m / 4–9m; < 10m → `poor_kick`; catch vs chase margin > 10 → `clean_receive`; > -5 → 30% `short_kick_retain`; else → `knock_on`. **Grubber:** distance 15–25m / 4–9m; < 10m → `poor_kick`; catching gate < 30 → `knock_on`. | `poor_kick`: scrum halfway, receiving team puts in. `knock_on`: scrum at landing, kicking team puts in. `clean_receive` / `short_kick_retain`: KickReturn (possession flips only on `clean_receive`) |
-| **PhasePlay** | Random carrier; handling gate (< 30 = knock_on). If carrier is #10 or `rng` > hard-carry threshold: Out the Back (#10 → random outside back from ids 11/13/14/15) via up to two handling gates; if carrier IS #10, the carrier→flyHalf step is skipped and only the flyHalf→outsideBack step runs. Hard Carry: evasion + collision with original carrier. `backfieldPenalty`: `three_back` −10, `two_back` −5. Consumes `state.breakdownMod` | knock_on (gate); evasion ≥ 15 = line_break; collision ±5 = dominant |
-| **FirstPhase** | Carrier always #10; handling gate (< 30 = knock_on). Crash Ball (90/70/50% driven by `attackingStyle`): #10 → #12 (inside centre) handling gate → collision vs opp #12. Wide Play: #10 → #13 (outside centre) → random wing (11/14) two handling gates; collision vs random opp wing. `backfieldPenalty` and `breakdownMod` consumed | same thresholds |
+| **PhasePlay** | Random carrier; handling gate (`handling + rng(1,100) < 85` = knock_on; ~5% for handling 80, ~20% for handling 65). If carrier is #10 or `rng` > hard-carry threshold: Out the Back (#10 → random outside back from ids 11/13/14/15) via up to two handling gates; if carrier IS #10, the carrier→flyHalf step is skipped and only the flyHalf→outsideBack step runs. Hard Carry: evasion + collision with original carrier. `backfieldPenalty`: `three_back` −10, `two_back` −5. Consumes `state.breakdownMod` | knock_on (gate); evasion ≥ 15 = line_break (defender −0.4, tackles.attempted++); collision ±5 = dominant |
+| **FirstPhase** | Carrier always #10; handling gate (same `handling + rng(1,100) < 85` formula). Crash Ball (90/70/50% driven by `attackingStyle`): #10 → #12 (inside centre) handling gate → collision vs opp #12. Wide Play: #10 → #13 (outside centre) → random wing (11/14) two handling gates; collision vs random opp wing. `backfieldPenalty` and `breakdownMod` consumed | same thresholds |
 | **KickReturn** | Carrier = `state.kickReturnCarrier` ?? `randomPlayer`. No handling gate. Run step: `(carrier.pace+agility)/2 + rng(1,20)` vs `(defender.pace+tackling)/2 + rng(1,20)` → `runMetres` 3–10 (win) or 0–3 (lose). Evasion + collision; ball gains `runMetres + res.gainMetres`. `backfieldPenalty` and `breakdownMod` consumed | evasion ≥ 15 = line_break; collision ±5 = dominant |
 | **Breakdown** | `ARS = stackedScore(supporters, breakdown, strength) + rng(1,20) + attackBonus` (attackBonus = 6 if previous play was `dominant_carry`, else 0). `stackedScore` sorts players best-first and applies weights [1.0, 0.6, 0.4, 0.3], summed and divided by 2 — so body count AND quality both matter, with diminishing returns. DTS varies by `defendingBreakdown`: **jackal** = `breakdown×0.7 + strength×0.3 + (discipline−50)×0.15 + rng(1,20)`; **counter_ruck** = `stackedScore(top4defenders, strength, breakdown) + rng(1,20)` (top 4 defenders by `strength×0.6 + breakdown×0.4`); **shadow** = `rng(1,10)` (concedes ball to set line) | margin ≥ 10 clean_ball; ≥ -8 slow_ball; ≥ -14 turnover; else penalty_defending |
 | **Scrum** | `avg(setPiece×0.6 + strength×0.4) + rng` for each front 5 | attack margin > 0 stable_win; > -15 wheel; else dominant_penalty |
@@ -279,6 +279,7 @@ Players start each match at `rating: 6.0` (out of 10). `MatchEngine.adjustRating
 | Goal kick success (conversion) | kicker | +0.225 |
 | Dominant carry | carrier | +0.225 |
 | Line break | carrier | +0.375 |
+| Line break (missed tackle) | defender | −0.4 |
 | Scrum stable_win | attack front row (each) | +0.15 |
 | Breakdown clean_ball | primary supporter | +0.15 |
 | Tactical kick success | kicker | +0.15 |
@@ -294,6 +295,8 @@ Players start each match at `rating: 6.0` (out of 10). `MatchEngine.adjustRating
 | Breakdown turnover conceded | primary supporter | −0.15 |
 | Goal kick miss (conversion) | kicker | −0.15 |
 | Dominant tackle conceded | carrier | −0.075 |
+
+Note: `tackles.attempted` is incremented for `dominant_tackle`, `dominant_carry`, `play_on`, and `line_break` outcomes. `tackles.made` is only incremented for `dominant_tackle`, `dominant_carry`, and `play_on`. Line breaks count as a missed tackle (attempted but not made), so tackle % correctly reflects evasion.
 
 ### UI module responsibilities
 

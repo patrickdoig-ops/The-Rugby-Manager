@@ -39,7 +39,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
   const backfieldPenalty = defendTeam.tactics.backfieldDefence === 'three_back' ? -10
                          : defendTeam.tactics.backfieldDefence === 'two_back'   ? -5 : 0;
 
-  if (carrier.currentStats.handling + rng(1, 20) < 30) {
+  if (carrier.currentStats.handling + rng(1, 100) < 85) {
     adjustRating(carrier, -0.45);
     state.stats.handlingErrors[state.possession]++;
     state.possession = state.possession === 'home' ? 'away' : 'home';
@@ -66,7 +66,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
     const insideCentre = pickPlayer(attackTeam, 12);
     playIntro = getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: carrier, secondaryPlayer: insideCentre }, 'crash_ball') + ' ';
 
-    if (insideCentre.currentStats.handling + rng(1, 20) < 30) {
+    if (insideCentre.currentStats.handling + rng(1, 100) < 85) {
       adjustRating(insideCentre, -0.45);
       state.stats.handlingErrors[state.possession]++;
       state.possession = state.possession === 'home' ? 'away' : 'home';
@@ -85,7 +85,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
     const outsideCentre = pickPlayer(attackTeam, 13);
     playIntro = getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: carrier, secondaryPlayer: outsideCentre }, 'out_the_back') + ' ';
 
-    if (outsideCentre.currentStats.handling + rng(1, 20) < 30) {
+    if (outsideCentre.currentStats.handling + rng(1, 100) < 85) {
       adjustRating(outsideCentre, -0.45);
       state.stats.handlingErrors[state.possession]++;
       state.possession = state.possession === 'home' ? 'away' : 'home';
@@ -101,7 +101,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
     const wing = wingPool.length > 0 ? wingPool[rng(0, wingPool.length - 1)] : randomPlayer(attackTeam);
     playIntro += getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: outsideCentre, secondaryPlayer: wing }, 'out_the_back') + ' ';
 
-    if (wing.currentStats.handling + rng(1, 20) < 30) {
+    if (wing.currentStats.handling + rng(1, 100) < 85) {
       adjustRating(wing, -0.45);
       state.stats.handlingErrors[state.possession]++;
       state.possession = state.possession === 'home' ? 'away' : 'home';
@@ -126,6 +126,8 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
 
   if (res.outcome === 'line_break') {
     adjustRating(ballCarrier, +0.375);
+    adjustRating(defender, -0.4);
+    state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
     state.ballX = clamp(state.ballX + attackDir() * res.gainMetres, 0, 100);
     const tryScored = isTryScored();
     nextPhase = tryScored ? MatchPhase.TryScored : MatchPhase.Breakdown;

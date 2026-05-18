@@ -55,6 +55,8 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
 
   if (res.outcome === 'line_break') {
     adjustRating(carrier, +0.375);
+    adjustRating(defender, -0.4);
+    state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
     state.ballX = clamp(state.ballX + attackDir() * (runMetres + res.gainMetres), 0, 100);
     const tryScored = isTryScored();
     nextPhase = tryScored ? MatchPhase.TryScored : MatchPhase.Breakdown;

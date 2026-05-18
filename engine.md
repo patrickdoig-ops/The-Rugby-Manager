@@ -236,7 +236,7 @@ defender = randomPlayer(defendTeam)
 
 **Step 1 — Carrier handling gate**
 
-`handling + rng(1,20) < 30` → knock-on: possession flips, scrum awarded, carrier −0.45.
+`handling + rng(1,100) < 85` → knock-on: possession flips, scrum awarded, carrier −0.45. This gives ~5% for handling 80, ~10% for handling 75, ~20% for handling 65, 0% for handling ≥ 85.
 
 **Step 2 — Hard Carry / Out the Back decision**
 
@@ -250,7 +250,7 @@ If the carrier is the fly-half (id 10), **always Out the Back**.
 
 **Hard Carry:** carrier proceeds directly to evasion (Step 3).
 
-**Out the Back:** ball is worked through the fly half (id 10) to an outside back (random from ids 11, 13, 14, 15) via two additional handling gates (same threshold < 30). Knock-on at either gate: possession flips, scrum awarded. If both pass, `ballCarrier = outsideBack`.
+**Out the Back:** ball is worked through the fly half (id 10) to an outside back (random from ids 11, 13, 14, 15) via two additional handling gates (same `handling + rng(1,100) < 85` threshold). Knock-on at either gate: possession flips, scrum awarded. If both pass, `ballCarrier = outsideBack`.
 
 **Steps 3–4 — Evasion → Collision** — see [Shared Evasion/Collision](#shared-evasioncollision) below.
 
@@ -266,7 +266,7 @@ carrier  = pickPlayer(attackTeam, 10)
 
 **Step 1 — Carrier handling gate**
 
-Same threshold as PhasePlay (`handling + rng(1,20) < 30` → knock-on; defender is `randomPlayer(defendTeam)` for commentary).
+Same threshold as PhasePlay (`handling + rng(1,100) < 85` → knock-on; defender is `randomPlayer(defendTeam)` for commentary).
 
 **Step 2 — Crash Ball / Wide Play decision**
 
@@ -375,6 +375,8 @@ collisionDefend = (defender.tackling + defender.strength) / 2 + rng(1,20)
 
 All outcomes → Breakdown.
 
+**Tackle statistics:** `tackles.attempted` is incremented for `dominant_tackle`, `dominant_carry`, `play_on`, and `line_break`. `tackles.made` is only incremented for `dominant_tackle`, `dominant_carry`, and `play_on`. Line breaks therefore count as a missed tackle, lowering the tackle % displayed in the stats panel.
+
 ### Commentary
 
 When Out the Back (PhasePlay), Crash Ball, or Wide Play (FirstPhase) paths are taken, `out_the_back` commentary lines are prepended naming the passer and receiver. These fire at each pass in the sequence and are prepended to all downstream outcomes including knock-ons.
@@ -385,6 +387,7 @@ When Out the Back (PhasePlay), Crash Ball, or Wide Play (FirstPhase) paths are t
 |---|---|---|
 | knock_on (any gate) | player who dropped | −0.45 |
 | line_break | ballCarrier | +0.375 |
+| line_break (missed tackle) | defender | −0.4 |
 | dominant_carry | ballCarrier | +0.225 |
 | dominant_tackle | defender | +0.3 |
 | dominant_tackle | ballCarrier | −0.075 |

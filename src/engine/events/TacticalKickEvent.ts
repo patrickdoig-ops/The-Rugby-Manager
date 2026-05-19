@@ -5,6 +5,7 @@ import { MatchPhase } from '../../types/engine';
 import { resolveTacticalKick } from '../resolvers/KickingResolver';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
+import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
 
 export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, inOwn22, inOwnHalf, inOpposition22, randomPlayer }: PhaseContext): PhaseResult {
   const kicker   = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
@@ -16,7 +17,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
 
   const res = resolveTacticalKick(kicker);
   const backfield = defendTeam.tactics.backfieldDefence;
-  const touchReduction = backfield === 'three_back' ? 25 : backfield === 'two_back' ? 15 : 0;
+  const touchReduction = TACTIC_MODIFIERS.tacticalKickTouchReduction[backfield];
   const goesOutOnTheFull = rng(1, 100) <= res.outOnTheFullProbability;
   const goesToTouch      = !goesOutOnTheFull && rng(1, 100) <= Math.max(0, res.touchProbability - touchReduction);
 
@@ -65,7 +66,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
         { kind: 'phase_outcome', phase: MatchPhase.TacticalKick, key: 'fifty_twenty_two', primary: kicker },
       ];
       if (state.possession !== 'home' && backfield === 'one_back') {
-        steps.push({ kind: 'tactic_note', cause: 'fifty_twenty_two_one_back', chancePct: 25 });
+        steps.push({ kind: 'tactic_note', cause: 'fifty_twenty_two_one_back', chancePct: COMMENTARY_CHANCES.tacticalKickFiftyTwentyTwo });
       }
       return {
         nextPhase: MatchPhase.Lineout,
@@ -87,7 +88,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
   }
 
   // Kept in field — receiver attacks with backfield support
-  const returnBonus = backfield === 'three_back' ? 10 : backfield === 'two_back' ? 5 : 0;
+  const returnBonus = TACTIC_MODIFIERS.tacticalKickReturnBonus[backfield];
   if (returnBonus > 0) events.push({ type: 'BREAKDOWN_MOD_SET', attack: returnBonus, defend: 0 });
   events.push({ type: 'POSSESSION_SWAPPED' });
   events.push({ type: 'KICK_RETURN_CARRIER_SET', player: defender });
@@ -101,7 +102,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
     kickCaughtSteps.push({
       kind: 'tactic_note',
       cause: 'kick_caught_return_bonus',
-      chancePct: 35,
+      chancePct: COMMENTARY_CHANCES.tacticalKickCaughtReturn,
       params: { backfieldDefence: backfield },
     });
   }

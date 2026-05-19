@@ -18,6 +18,7 @@ The engine is split across files in `src/engine/`. `MatchCoordinator` owns the p
 | `applyMatchEvent.ts` | **The single mutation boundary.** A reducer over the `MatchEvent` discriminated union (`src/types/matchEvent.ts`). The only function permitted to write to `MatchState` or any `Player` field. |
 | `StaminaSystem.ts` | Pure `computeFatigue(team, elapsedMinutes)` — returns `{updates, newlyTired}` without writing to players; the caller emits `FATIGUE_APPLIED` events. |
 | `RatingEngine.ts` | Pure `computeRating(player)` — called by `applyMatchEvent` when a `RATINGS_RECALCULATED` event is reduced. |
+| `balance.ts` | **Single source of truth for every gameplay tuning number.** Kick probabilities, tactic modifiers, breakdown thresholds, fatigue tiers, rating weights, clock targets — all named `as const` exports grouped by section. Resolvers, events, and systems import from here; no tuning literals live elsewhere. |
 
 All emit UI side-effects through the shared `src/utils/eventBus.ts` singleton; event IDs come from the monotonic counter in `src/engine/eventId.ts`. `StateMachine` (`src/engine/StateMachine.ts`) is owned by `MatchCoordinator` and passed into `ClockController` and `PhaseRouter` for transitions.
 
@@ -26,6 +27,10 @@ All emit UI side-effects through the shared `src/utils/eventBus.ts` singleton; e
 All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.currentStats`, and `player.rating` flow through one function: `applyMatchEvent(state, event)` in `src/engine/applyMatchEvent.ts`. The `MatchEvent` discriminated union (`src/types/matchEvent.ts`) defines every kind of mutation the engine performs — domain events like `TRY_SCORED`, `KNOCK_ON`, `CARRY_RESOLVED`, `LINEOUT_RESOLVED`, `SCRUM_RESOLVED`, `BREAKDOWN_HIT`, `TURNOVER_AT_BREAKDOWN`, plus structural events like `BALL_REPOSITIONED`, `POSSESSION_SWAPPED`, `PHASE_CHANGED`, `COMMENTARY_LOGGED`, `RATINGS_RECALCULATED`. Phase handlers in `src/engine/events/` are read-only over state: they read, compute, and return `PhaseResult { ..., events: MatchEvent[] }`. `PhaseRouter.resolvePhase()` applies the queue through `applyMatchEvent` before composing the outgoing `GameEvent`. Orchestrators (`MatchCoordinator`, `ClockController`, `PenaltyHandler`) apply events directly through `applyMatchEvent` for non-phase mutations (clock, half-time, penalty choice, substitutions, tactics). UI bus emissions (`eventBus.emit('engine:event'|'engine:stateChange'|…)`) are pure side effects that fire alongside, and are **not** part of the `MatchEvent` boundary.
 
 `applyMatchEvent` uses a `default: const _: never = event;` exhaustiveness check, so adding a new `MatchEvent` variant without a handling branch is a compile error.
+
+### Balance constants
+
+Every number listed in the resolver formulas, tactic modifier tables, fatigue tiers, and rating weights below is defined in `src/engine/balance.ts`. The doc below shows the current values; balance.ts is the canonical place to read or change them. Sections include `KICK_PROBABILITIES`, `HARD_CARRY_THRESHOLDS`, `TACTIC_MODIFIERS`, `HANDLING_GATE` (+ `knockOnThreshold` helper), `BREAKDOWN_VALUES`, `SCRUM_VALUES`, `LINEOUT_VALUES`, `OPEN_PLAY_VALUES`, `KICK_OFF_VALUES`, `BOX_KICK_VALUES`, `TACTICAL_KICK_VALUES`, `GOAL_KICK_VALUES`, `CONVERSION_VALUES`, `FATIGUE_SCALING`, `RATING_WEIGHTS`, `CLOCK_VALUES`, `PENALTY_VALUES`, `COMMENTARY_CHANCES`.
 
 ### `MatchState` shape
 

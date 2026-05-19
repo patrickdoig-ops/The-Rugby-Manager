@@ -5,6 +5,7 @@ import type { NarrationStep } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
 import { resolveBreakdown } from '../resolvers/BreakdownResolver';
 import { rng } from '../../utils/rng';
+import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
 
 export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22, inOwn22, inOwnHalf }: PhaseContext): PhaseResult {
   const attPlan = attackTeam.tactics.attackingBreakdown;
@@ -12,18 +13,17 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
 
   const lastEvent = state.events[state.events.length - 1];
   const carrierId = lastEvent?.primaryPlayer?.id;
-  const dominantCarryBonus = lastEvent?.outcome === 'dominant_carry' ? 6 : 0;
-  const attackBonus = dominantCarryBonus;
+  const attackBonus = lastEvent?.outcome === 'dominant_carry' ? TACTIC_MODIFIERS.dominantCarryBonus : 0;
 
   // Next-phase modifier: more players committed to ruck = fewer on feet for the next phase
-  const nextAttackMod = attPlan === 'pick_and_drive' ? -8 : (attPlan === 'wide_play' ? 8 : 0);
-  const nextDefendMod = defPlan === 'shadow' ? 10 : (defPlan === 'counter_ruck' ? -8 : 0);
+  const nextAttackMod = TACTIC_MODIFIERS.breakdownAttack[attPlan];
+  const nextDefendMod = TACTIC_MODIFIERS.breakdownDefend[defPlan];
 
   const forwardPool = attackTeam.players.filter(p => p.id <= 8 && p.id !== carrierId);
   if (forwardPool.length === 0) forwardPool.push(attackTeam.players[0]);
   const pool = [...forwardPool];
 
-  const count = attPlan === 'pick_and_drive' ? 4 : (attPlan === 'wide_play' ? 2 : 3);
+  const count = TACTIC_MODIFIERS.breakdownSupporterCount[attPlan];
   const supporters: Player[] = [];
   while (supporters.length < count && pool.length > 0) {
     supporters.push(...pool.splice(rng(0, pool.length - 1), 1));
@@ -51,11 +51,11 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
       { kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'clean_ball', primary, secondary: jackal },
     ];
     if (homeIsAttacking && attPlan === 'pick_and_drive') {
-      steps.push({ kind: 'tactic_note', cause: 'breakdown_pick_and_drive_clean', chancePct: 30 });
+      steps.push({ kind: 'tactic_note', cause: 'breakdown_pick_and_drive_clean', chancePct: COMMENTARY_CHANCES.breakdownPickAndDriveClean });
     } else if (homeIsDefending && defPlan === 'shadow') {
-      steps.push({ kind: 'tactic_note', cause: 'breakdown_shadow_clean', chancePct: 30, params: { defendTeamName: defendTeam.name } });
+      steps.push({ kind: 'tactic_note', cause: 'breakdown_shadow_clean', chancePct: COMMENTARY_CHANCES.breakdownShadowClean, params: { defendTeamName: defendTeam.name } });
     } else if (homeIsDefending && defPlan === 'jackal') {
-      steps.push({ kind: 'tactic_note', cause: 'breakdown_jackal_clean', chancePct: 25, params: { defendTeamName: defendTeam.name } });
+      steps.push({ kind: 'tactic_note', cause: 'breakdown_jackal_clean', chancePct: COMMENTARY_CHANCES.breakdownJackalClean, params: { defendTeamName: defendTeam.name } });
     }
     return {
       nextPhase: MatchPhase.PhasePlay,
@@ -82,9 +82,9 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
       { kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'slow_ball', primary, secondary: jackal },
     ];
     if (homeIsAttacking && attPlan === 'wide_play') {
-      steps.push({ kind: 'tactic_note', cause: 'breakdown_wide_play_slow', chancePct: 30, params: { attackTeamName: attackTeam.name } });
+      steps.push({ kind: 'tactic_note', cause: 'breakdown_wide_play_slow', chancePct: COMMENTARY_CHANCES.breakdownWidePlaySlow, params: { attackTeamName: attackTeam.name } });
     } else if (homeIsDefending && defPlan === 'counter_ruck') {
-      steps.push({ kind: 'tactic_note', cause: 'breakdown_counter_ruck_slow', chancePct: 30 });
+      steps.push({ kind: 'tactic_note', cause: 'breakdown_counter_ruck_slow', chancePct: COMMENTARY_CHANCES.breakdownCounterRuckSlow });
     }
     return {
       nextPhase: boxKick ? MatchPhase.BoxKick : MatchPhase.PhasePlay,
@@ -102,11 +102,11 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
     ];
     // After possession flip, home is now attacking if they just won the turnover
     if (homeIsDefending && defPlan === 'jackal') {
-      steps.push({ kind: 'tactic_note', cause: 'breakdown_jackal_turnover', chancePct: 35, params: { defendTeamName: defendTeam.name } });
+      steps.push({ kind: 'tactic_note', cause: 'breakdown_jackal_turnover', chancePct: COMMENTARY_CHANCES.breakdownJackalTurnover, params: { defendTeamName: defendTeam.name } });
     } else if (homeIsDefending && defPlan === 'counter_ruck') {
-      steps.push({ kind: 'tactic_note', cause: 'breakdown_counter_ruck_turnover', chancePct: 30, params: { defendTeamName: defendTeam.name } });
+      steps.push({ kind: 'tactic_note', cause: 'breakdown_counter_ruck_turnover', chancePct: COMMENTARY_CHANCES.breakdownCounterRuckTurnover, params: { defendTeamName: defendTeam.name } });
     } else if (homeIsAttacking && attPlan === 'wide_play') {
-      steps.push({ kind: 'tactic_note', cause: 'breakdown_wide_play_turnover', chancePct: 25, params: { attackTeamName: attackTeam.name } });
+      steps.push({ kind: 'tactic_note', cause: 'breakdown_wide_play_turnover', chancePct: COMMENTARY_CHANCES.breakdownWidePlayTurnover, params: { attackTeamName: attackTeam.name } });
     }
     return {
       nextPhase: MatchPhase.PhasePlay,
@@ -123,11 +123,11 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
     { kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'penalty_defending', primary, secondary: jackal },
   ];
   if (homeIsAttacking && attPlan === 'pick_and_drive') {
-    penaltySteps.push({ kind: 'tactic_note', cause: 'breakdown_pick_and_drive_penalty', chancePct: 25 });
+    penaltySteps.push({ kind: 'tactic_note', cause: 'breakdown_pick_and_drive_penalty', chancePct: COMMENTARY_CHANCES.breakdownPickAndDrivePenalty });
   } else if (homeIsAttacking && attPlan === 'wide_play') {
-    penaltySteps.push({ kind: 'tactic_note', cause: 'breakdown_wide_play_penalty', chancePct: 25, params: { attackTeamName: attackTeam.name } });
+    penaltySteps.push({ kind: 'tactic_note', cause: 'breakdown_wide_play_penalty', chancePct: COMMENTARY_CHANCES.breakdownWidePlayPenalty, params: { attackTeamName: attackTeam.name } });
   } else if (homeIsDefending && defPlan === 'jackal') {
-    penaltySteps.push({ kind: 'tactic_note', cause: 'breakdown_jackal_penalty', chancePct: 25 });
+    penaltySteps.push({ kind: 'tactic_note', cause: 'breakdown_jackal_penalty', chancePct: COMMENTARY_CHANCES.breakdownJackalPenalty });
   }
   return {
     nextPhase: MatchPhase.Penalty,

@@ -3,6 +3,7 @@ import type { MatchEvent } from '../types/matchEvent';
 import { clamp } from '../utils/math';
 import { attackDir } from './FieldPosition';
 import { computeRating } from './RatingEngine';
+import { CLOCK_VALUES } from './balance';
 
 // The single function permitted to mutate MatchState (or any Player field).
 // Every handler / orchestrator builds an array of MatchEvent and routes them
@@ -179,7 +180,7 @@ export function applyMatchEvent(state: MatchState, event: MatchEvent): void {
 
     // ── Clock & period ──────────────────────────────────────────────────
     case 'CLOCK_ADVANCED': {
-      const halfTarget = state.clock.halfTimeDone ? 80 : 40;
+      const halfTarget = state.clock.halfTimeDone ? CLOCK_VALUES.fullTimeMinute : CLOCK_VALUES.halfTimeMinute;
       if (state.clock.clockInTheRed) {
         state.clock.gameMinute += event.delta / 2;
       } else {

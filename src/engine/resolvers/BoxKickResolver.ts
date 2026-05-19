@@ -1,9 +1,6 @@
 import type { Player } from '../../types/player';
 import { rng } from '../../utils/rng';
-
-const VERY_GOOD_KICK_THRESHOLD = 75;
-const UNCONTESTED_CATCH_THRESHOLD = 35;
-const CONTEST_CLEAR_MARGIN = 10;
+import { BOX_KICK_VALUES } from '../balance';
 
 export type BoxKickResolution =
   | {
@@ -29,12 +26,13 @@ export function resolveBoxKick(
   fullback: Player,
   fullbackMod = 0,
 ): BoxKickResolution {
+  const V = BOX_KICK_VALUES;
   const kickScore = scrumHalf.currentStats.kicking + rng(1, 20);
 
-  if (kickScore < VERY_GOOD_KICK_THRESHOLD) {
+  if (kickScore < V.veryGoodKickThreshold) {
     const catchScore = (fullback.currentStats.handling + fullback.currentStats.positioning) / 2 + rng(1, 20) + fullbackMod;
-    const outcome = catchScore >= UNCONTESTED_CATCH_THRESHOLD ? 'defend_catch' : 'knock_on';
-    const distance = rng(1, 2) === 1 ? 30 : 8;
+    const outcome = catchScore >= V.uncontestedCatchThreshold ? 'defend_catch' : 'knock_on';
+    const distance = rng(1, 2) === 1 ? V.poorKickFarDistance : V.poorKickShortDistance;
     return { quality: 'poor', kickScore, catchScore, distance, outcome };
   }
 
@@ -43,9 +41,9 @@ export function resolveBoxKick(
   const contestMargin = wingerScore - fullbackScore;
 
   let outcome: 'attack_retain' | 'defend_knock_on' | 'defend_catch_contested';
-  if (contestMargin >= CONTEST_CLEAR_MARGIN) outcome = 'attack_retain';
+  if (contestMargin >= V.contestClearMargin) outcome = 'attack_retain';
   else if (contestMargin >= 0)               outcome = 'defend_knock_on';
   else                                        outcome = 'defend_catch_contested';
 
-  return { quality: 'very_good', kickScore, wingerScore, fullbackScore, contestMargin, distance: 20, outcome };
+  return { quality: 'very_good', kickScore, wingerScore, fullbackScore, contestMargin, distance: V.veryGoodKickDistance, outcome };
 }

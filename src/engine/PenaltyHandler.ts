@@ -7,6 +7,7 @@ import { clamp } from '../utils/math';
 import { makeId } from './eventId';
 import { attackDir, inOpposition22, inOppositionHalf } from './FieldPosition';
 import { applyMatchEvent } from './applyMatchEvent';
+import { PENALTY_VALUES } from './balance';
 
 export interface PenaltyHandlerDeps {
   state: MatchState;
@@ -80,7 +81,8 @@ export class PenaltyHandler {
       const tryLine = !state.clock.halfTimeDone
         ? (state.possession === 'home' ? 100 : 0)
         : (state.possession === 'home' ? 0 : 100);
-      const distFromPosts = Math.abs(state.ball.y - 50) * 0.3 + Math.abs(state.ball.x - tryLine) * 0.2;
+      const distFromPosts = Math.abs(state.ball.y - 50) * PENALTY_VALUES.goalKickDistanceFromPostsWeight
+                          + Math.abs(state.ball.x - tryLine) * PENALTY_VALUES.goalKickTryLineOffsetWeight;
       const res = resolveGoalKick(kicker, distFromPosts);
 
       const side = state.possession;
@@ -119,7 +121,7 @@ export class PenaltyHandler {
       }
       applyMatchEvent(state, {
         type: 'BALL_REPOSITIONED',
-        x: clamp(state.ball.x + attackDir(state) * 20, 5, 95),
+        x: clamp(state.ball.x + attackDir(state) * PENALTY_VALUES.kickToTouchDistance, 5, 95),
       });
       const penEvent: GameEvent = {
         id: makeId(),

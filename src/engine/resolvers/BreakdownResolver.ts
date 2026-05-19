@@ -2,6 +2,7 @@ import type { Player } from '../../types/player';
 import type { BreakdownResult } from '../../types/engine';
 import type { DefendingBreakdown } from '../../types/team';
 import { rng } from '../../utils/rng';
+import { BREAKDOWN_VALUES } from '../balance';
 
 export interface BreakdownResolution {
   result: BreakdownResult;
@@ -10,25 +11,22 @@ export interface BreakdownResolution {
   margin: number;
 }
 
-// Diminishing-return weights per body at the ruck. Players sorted best-first
-// so the strongest specialist always gets the full 1.0 weight.
-const WEIGHTS = [1.0, 0.6, 0.4, 0.3];
-
 function stackedScore(
   players: Player[],
   leadStat: 'breakdown' | 'strength',
   supportStat: 'breakdown' | 'strength',
 ): number {
+  const { leadWeight, supportWeight, disciplineWeight, bodyWeights, bodyWeightFallback } = BREAKDOWN_VALUES;
   const sorted = [...players].sort((a, b) =>
-    (b.currentStats[leadStat] * 0.6 + b.currentStats[supportStat] * 0.4) -
-    (a.currentStats[leadStat] * 0.6 + a.currentStats[supportStat] * 0.4)
+    (b.currentStats[leadStat] * leadWeight + b.currentStats[supportStat] * supportWeight) -
+    (a.currentStats[leadStat] * leadWeight + a.currentStats[supportStat] * supportWeight)
   );
   return sorted.reduce((sum, p, i) => {
-    const w = WEIGHTS[i] ?? 0.3;
+    const w = bodyWeights[i] ?? bodyWeightFallback;
     return sum + (
-      p.currentStats[leadStat] * 0.6
-      + p.currentStats[supportStat] * 0.4
-      + (p.currentStats.discipline - 50) * 0.15
+      p.currentStats[leadStat] * leadWeight
+      + p.currentStats[supportStat] * supportWeight
+      + (p.currentStats.discipline - 50) * disciplineWeight
     ) * w;
   }, 0) / 2;
 }
@@ -40,33 +38,34 @@ export function resolveBreakdown(
   defendPack: Player[] = [],
   attackBonus = 0,
 ): BreakdownResolution {
+  const { jackalLeadWeight, jackalSupportWeight, disciplineWeight, counterRuckTop, cleanBallMargin, slowBallMargin, turnoverMargin } = BREAKDOWN_VALUES;
   const ars = stackedScore(supporters, 'breakdown', 'strength') + rng(1, 20) + attackBonus;
 
   let dts: number;
   if (defPlan === 'counter_ruck' && defendPack.length > 0) {
     const top4 = [...defendPack]
       .sort((a, b) =>
-        (b.currentStats.strength * 0.6 + b.currentStats.breakdown * 0.4) -
-        (a.currentStats.strength * 0.6 + a.currentStats.breakdown * 0.4)
+        (b.currentStats.strength * BREAKDOWN_VALUES.leadWeight + b.currentStats.breakdown * BREAKDOWN_VALUES.supportWeight) -
+        (a.currentStats.strength * BREAKDOWN_VALUES.leadWeight + a.currentStats.breakdown * BREAKDOWN_VALUES.supportWeight)
       )
-      .slice(0, 4);
+      .slice(0, counterRuckTop);
     dts = stackedScore(top4, 'strength', 'breakdown') + rng(1, 20);
   } else if (defPlan === 'shadow') {
     dts = rng(1, 10);
   } else {
     // jackal
-    dts = jackal.currentStats.breakdown * 0.7
-        + jackal.currentStats.strength * 0.3
-        + (jackal.currentStats.discipline - 50) * 0.15
+    dts = jackal.currentStats.breakdown * jackalLeadWeight
+        + jackal.currentStats.strength * jackalSupportWeight
+        + (jackal.currentStats.discipline - 50) * disciplineWeight
         + rng(1, 20);
   }
 
   const margin = ars - dts;
 
   let result: BreakdownResult;
-  if (margin >= 10) result = 'clean_ball';
-  else if (margin >= -8) result = 'slow_ball';
-  else if (margin >= -14) result = 'turnover';
+  if (margin >= cleanBallMargin) result = 'clean_ball';
+  else if (margin >= slowBallMargin) result = 'slow_ball';
+  else if (margin >= turnoverMargin) result = 'turnover';
   else result = 'penalty_defending';
 
   return { result, ars, dts, margin };

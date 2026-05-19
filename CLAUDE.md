@@ -150,6 +150,10 @@ When updating `engine.md`, document:
 
 Do not paraphrase — if the code changes, the doc must reflect the new code exactly.
 
+## Balance constants
+
+**Every gameplay tuning number — probability, threshold, modifier, weight, fatigue multiplier, rating point value — lives in `src/engine/balance.ts`.** Do not introduce new tuning literals in resolvers, events, or systems. Exempt by design: rugby pitch geometry (`FieldPosition.ts`), jersey-number position checks, and RNG shape values inside resolver formulas (e.g. `rng(1, 20)`).
+
 ---
 
 ## Architecture

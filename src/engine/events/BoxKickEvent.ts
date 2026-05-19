@@ -5,6 +5,7 @@ import { MatchPhase } from '../../types/engine';
 import { resolveBoxKick } from '../resolvers/BoxKickResolver';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
+import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
 
 export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, randomPlayer }: PhaseContext): PhaseResult {
   const scrumHalf  = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
@@ -12,7 +13,7 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, random
   const winger     = wingerPool.length > 0 ? wingerPool[rng(0, wingerPool.length - 1)] : randomPlayer(attackTeam);
   const fullback   = defendTeam.players.find(p => p.id === 15) ?? randomPlayer(defendTeam);
   const backfield = defendTeam.tactics.backfieldDefence;
-  const fullbackMod = backfield === 'three_back' ? 15 : backfield === 'two_back' ? 8 : 0;
+  const fullbackMod = TACTIC_MODIFIERS.boxKickFullbackBonus[backfield];
   const res = resolveBoxKick(scrumHalf, winger, fullback, fullbackMod);
 
   const events: MatchEvent[] = [
@@ -69,7 +70,7 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, random
       steps.push({
         kind: 'tactic_note',
         cause: 'boxkick_backfield_caught',
-        chancePct: 30,
+        chancePct: COMMENTARY_CHANCES.boxKickBackfieldCaught,
         params: { defendTeamName: defendTeam.name, fullback, backfieldDefence: defendTeam.tactics.backfieldDefence },
       });
     }

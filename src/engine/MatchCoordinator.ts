@@ -12,6 +12,7 @@ import { ClockController } from './ClockController';
 import { resolvePhase, draftEvent } from './PhaseRouter';
 import { makeId } from './eventId';
 import { applyMatchEvent } from './applyMatchEvent';
+import { FATIGUE_SCALING } from './balance';
 
 function deepCloneStats(s: PlayerStats): PlayerStats {
   return { ...s };
@@ -250,10 +251,10 @@ export class MatchCoordinator {
       const timeAdvance = this.clock.advanceMinute(this.state);
 
       this.fatigueAccumulator += timeAdvance;
-      if (this.fatigueAccumulator >= 5) {
+      if (this.fatigueAccumulator >= FATIGUE_SCALING.computeIntervalMinutes) {
         const homeFatigue = computeFatigue(this.state.homeTeam, this.fatigueAccumulator);
         const awayFatigue = computeFatigue(this.state.awayTeam, this.fatigueAccumulator);
-        this.fatigueAccumulator -= 5;
+        this.fatigueAccumulator -= FATIGUE_SCALING.computeIntervalMinutes;
         for (const u of [...homeFatigue.updates, ...awayFatigue.updates]) {
           applyMatchEvent(this.state, {
             type: 'FATIGUE_APPLIED',

@@ -6,19 +6,13 @@ import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { isTryScoredAt } from '../FieldPosition';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
+import { KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, knockOnThreshold } from '../balance';
 
 export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isTryScored, inOwnHalf, inOwn22, randomPlayer, pickPlayer }: PhaseContext): PhaseResult {
   // Step 0 — Kick or carry decision
   const plan = attackTeam.tactics.attackingGamePlan;
-  let kickProb = 15;
-
-  if (plan === 'possession') {
-    kickProb = inOwn22() ? 50 : (inOwnHalf() ? 15 : 0);
-  } else if (plan === 'kicking') {
-    kickProb = inOwn22() ? 90 : (inOwnHalf() ? 65 : 15);
-  } else {
-    kickProb = inOwn22() ? 75 : (inOwnHalf() ? 50 : 10);
-  }
+  const probs = KICK_PROBABILITIES[plan];
+  const kickProb = inOwn22() ? probs.own22 : (inOwnHalf() ? probs.ownHalf : probs.opposition);
 
   if (rng(1, 100) <= kickProb) {
     const flyHalf = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
@@ -43,13 +37,9 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;
   events.push({ type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 });
 
-  const backfieldPenalty = defendTeam.tactics.backfieldDefence === 'three_back' ? -10
-                         : defendTeam.tactics.backfieldDefence === 'two_back'   ? -5 : 0;
+  const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[defendTeam.tactics.backfieldDefence];
 
-  const carrierKoThreshold = state.clock.clockInTheRed
-    ? Math.min(99, 85 + Math.round(Math.max(0, 85 - carrier.currentStats.handling) * 0.4))
-    : 85;
-  if (carrier.currentStats.handling + rng(1, 100) < carrierKoThreshold) {
+  if (carrier.currentStats.handling + rng(1, 100) < knockOnThreshold(carrier.currentStats.handling, state.clock.clockInTheRed)) {
     events.push({ type: 'KNOCK_ON', player: carrier, attackSide });
     const defender = randomPlayer(defendTeam);
     return {
@@ -63,8 +53,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
 
   // Step 2 — Crash Ball or Wide Play
   const style = attackTeam.tactics.attackingStyle;
-  const crashBallThreshold = style === 'keep_it_tight' ? 90 : style === 'wide_wide' ? 50 : 70;
-  const goCrashBall = rng(1, 100) <= crashBallThreshold;
+  const goCrashBall = rng(1, 100) <= HARD_CARRY_THRESHOLDS[style];
 
   let ballCarrier;
   let defender;
@@ -77,10 +66,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
     const insideCentre = pickPlayer(attackTeam, 12);
     playIntroSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'crash_ball', primary: carrier, secondary: insideCentre });
 
-    const icKoThreshold = state.clock.clockInTheRed
-      ? Math.min(99, 85 + Math.round(Math.max(0, 85 - insideCentre.currentStats.handling) * 0.4))
-      : 85;
-    if (insideCentre.currentStats.handling + rng(1, 100) < icKoThreshold) {
+    if (insideCentre.currentStats.handling + rng(1, 100) < knockOnThreshold(insideCentre.currentStats.handling, state.clock.clockInTheRed)) {
       events.push({ type: 'KNOCK_ON', player: insideCentre, attackSide });
       return {
         nextPhase: MatchPhase.Scrum,
@@ -99,10 +85,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
     const outsideCentre = pickPlayer(attackTeam, 13);
     playIntroSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'out_the_back', primary: carrier, secondary: outsideCentre });
 
-    const ocKoThreshold = state.clock.clockInTheRed
-      ? Math.min(99, 85 + Math.round(Math.max(0, 85 - outsideCentre.currentStats.handling) * 0.4))
-      : 85;
-    if (outsideCentre.currentStats.handling + rng(1, 100) < ocKoThreshold) {
+    if (outsideCentre.currentStats.handling + rng(1, 100) < knockOnThreshold(outsideCentre.currentStats.handling, state.clock.clockInTheRed)) {
       events.push({ type: 'KNOCK_ON', player: outsideCentre, attackSide });
       return {
         nextPhase: MatchPhase.Scrum,
@@ -119,10 +102,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
     const wing = wingPool.length > 0 ? wingPool[rng(0, wingPool.length - 1)] : randomPlayer(attackTeam);
     playIntroSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'out_the_back', primary: outsideCentre, secondary: wing });
 
-    const wingKoThreshold = state.clock.clockInTheRed
-      ? Math.min(99, 85 + Math.round(Math.max(0, 85 - wing.currentStats.handling) * 0.4))
-      : 85;
-    if (wing.currentStats.handling + rng(1, 100) < wingKoThreshold) {
+    if (wing.currentStats.handling + rng(1, 100) < knockOnThreshold(wing.currentStats.handling, state.clock.clockInTheRed)) {
       events.push({ type: 'KNOCK_ON', player: wing, attackSide });
       return {
         nextPhase: MatchPhase.Scrum,
@@ -168,7 +148,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
         outcomeSteps.push({
           kind: 'tactic_note',
           cause: 'line_break_backfield_thin',
-          chancePct: 30,
+          chancePct: COMMENTARY_CHANCES.lineBreakBackfieldThin,
           params: { defendTeamName: defendTeam.name, backfieldDefence: defendTeam.tactics.backfieldDefence },
         });
       }

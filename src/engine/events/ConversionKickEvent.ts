@@ -2,10 +2,11 @@ import type { PhaseContext, PhaseResult } from './types';
 import type { MatchEvent } from '../../types/matchEvent';
 import { MatchPhase } from '../../types/engine';
 import { resolveGoalKick } from '../resolvers/KickingResolver';
+import { CONVERSION_VALUES } from '../balance';
 
 export function handleConversionKick({ state, attackTeam }: PhaseContext): PhaseResult {
   const kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
-  const distFromPosts = Math.abs(state.ball.y - 50) * 0.4;
+  const distFromPosts = Math.abs(state.ball.y - 50) * CONVERSION_VALUES.distanceFromPostsWeight;
   const res = resolveGoalKick(kicker, distFromPosts);
 
   const side = state.possession;

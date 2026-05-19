@@ -6,21 +6,14 @@ import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { isTryScoredAt } from '../FieldPosition';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
+import { KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, knockOnThreshold } from '../balance';
 
 export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTryScored, inOwnHalf, inOwn22, randomPlayer, pickPlayer }: PhaseContext): PhaseResult {
   // Step 0 — Kick or carry decision
   // Propensity is driven by attacking team tactics and pitch location
   const plan = attackTeam.tactics.attackingGamePlan;
-  let kickProb = 15;
-
-  if (plan === 'possession') {
-    kickProb = inOwn22() ? 50 : (inOwnHalf() ? 15 : 0);
-  } else if (plan === 'kicking') {
-    kickProb = inOwn22() ? 90 : (inOwnHalf() ? 65 : 15);
-  } else {
-    // balanced
-    kickProb = inOwn22() ? 75 : (inOwnHalf() ? 50 : 10);
-  }
+  const probs = KICK_PROBABILITIES[plan];
+  const kickProb = inOwn22() ? probs.own22 : (inOwnHalf() ? probs.ownHalf : probs.opposition);
 
   if (rng(1, 100) <= kickProb) {
     const flyHalf = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
@@ -45,13 +38,9 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;
   events.push({ type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 });
 
-  const backfieldPenalty = defendTeam.tactics.backfieldDefence === 'three_back' ? -10
-                         : defendTeam.tactics.backfieldDefence === 'two_back'   ? -5 : 0;
+  const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[defendTeam.tactics.backfieldDefence];
 
-  const koThreshold = state.clock.clockInTheRed
-    ? Math.min(99, 85 + Math.round(Math.max(0, 85 - carrier.currentStats.handling) * 0.4))
-    : 85;
-  if (carrier.currentStats.handling + rng(1, 100) < koThreshold) {
+  if (carrier.currentStats.handling + rng(1, 100) < knockOnThreshold(carrier.currentStats.handling, state.clock.clockInTheRed)) {
     events.push({ type: 'KNOCK_ON', player: carrier, attackSide });
     return {
       nextPhase: MatchPhase.Scrum,
@@ -64,8 +53,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
 
   // Step 2 — Hard Carry / Out the Back decision
   const style = attackTeam.tactics.attackingStyle;
-  const hardCarryThreshold = style === 'keep_it_tight' ? 90 : style === 'wide_wide' ? 50 : 70;
-  const goWide = carrier.id === 10 || rng(1, 100) > hardCarryThreshold;
+  const goWide = carrier.id === 10 || rng(1, 100) > HARD_CARRY_THRESHOLDS[style];
 
   let ballCarrier = carrier;
   // Tracks the most-recent "out the back" pass step that prefixes the eventual
@@ -79,10 +67,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
       wideIntroSteps = [{ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'out_the_back', primary: carrier, secondary: flyHalf }];
 
       // Fly half handling gate
-      const fhThreshold = state.clock.clockInTheRed
-        ? Math.min(99, 85 + Math.round(Math.max(0, 85 - flyHalf.currentStats.handling) * 0.4))
-        : 85;
-      if (flyHalf.currentStats.handling + rng(1, 100) < fhThreshold) {
+      if (flyHalf.currentStats.handling + rng(1, 100) < knockOnThreshold(flyHalf.currentStats.handling, state.clock.clockInTheRed)) {
         events.push({ type: 'KNOCK_ON', player: flyHalf, attackSide });
         return {
           nextPhase: MatchPhase.Scrum,
@@ -100,10 +85,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
     if (carrier.id === 10) {
       wideIntroSteps = [{ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'out_the_back', primary: flyHalf, secondary: outsideBack }];
     }
-    const obThreshold = state.clock.clockInTheRed
-      ? Math.min(99, 85 + Math.round(Math.max(0, 85 - outsideBack.currentStats.handling) * 0.4))
-      : 85;
-    if (outsideBack.currentStats.handling + rng(1, 100) < obThreshold) {
+    if (outsideBack.currentStats.handling + rng(1, 100) < knockOnThreshold(outsideBack.currentStats.handling, state.clock.clockInTheRed)) {
       events.push({ type: 'KNOCK_ON', player: outsideBack, attackSide });
       return {
         nextPhase: MatchPhase.Scrum,
@@ -149,7 +131,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
         outcomeSteps.push({
           kind: 'tactic_note',
           cause: 'line_break_backfield_thin',
-          chancePct: 30,
+          chancePct: COMMENTARY_CHANCES.lineBreakBackfieldThin,
           params: { defendTeamName: defendTeam.name, backfieldDefence: defendTeam.tactics.backfieldDefence },
         });
       }

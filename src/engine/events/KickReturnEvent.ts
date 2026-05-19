@@ -6,19 +6,13 @@ import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { isTryScoredAt } from '../FieldPosition';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
+import { KICK_PROBABILITIES, TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
 
 export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isTryScored, inOwnHalf, inOwn22, randomPlayer }: PhaseContext): PhaseResult {
   // Step 0 — Kick or carry decision
   const plan = attackTeam.tactics.attackingGamePlan;
-  let kickProb = 15;
-
-  if (plan === 'possession') {
-    kickProb = inOwn22() ? 50 : (inOwnHalf() ? 15 : 0);
-  } else if (plan === 'kicking') {
-    kickProb = inOwn22() ? 90 : (inOwnHalf() ? 65 : 15);
-  } else {
-    kickProb = inOwn22() ? 75 : (inOwnHalf() ? 50 : 10);
-  }
+  const probs = KICK_PROBABILITIES[plan];
+  const kickProb = inOwn22() ? probs.own22 : (inOwnHalf() ? probs.ownHalf : probs.opposition);
 
   if (rng(1, 100) <= kickProb) {
     const flyHalf = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
@@ -45,8 +39,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
     { type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 },
   ];
 
-  const backfieldPenalty = defendTeam.tactics.backfieldDefence === 'three_back' ? -10
-                         : defendTeam.tactics.backfieldDefence === 'two_back'   ? -5 : 0;
+  const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[defendTeam.tactics.backfieldDefence];
 
   // Step 2 — Run: carrier pace/agility vs chaser pace/tackling
   const runAttack = (carrier.currentStats.pace + carrier.currentStats.agility) / 2 + rng(1, 20);
@@ -83,7 +76,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
         steps.push({
           kind: 'tactic_note',
           cause: 'line_break_backfield_thin',
-          chancePct: 30,
+          chancePct: COMMENTARY_CHANCES.lineBreakBackfieldThin,
           params: { defendTeamName: defendTeam.name, backfieldDefence: defendTeam.tactics.backfieldDefence },
         });
       }

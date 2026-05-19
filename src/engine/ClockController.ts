@@ -6,6 +6,7 @@ import { eventBus } from '../utils/eventBus';
 import { rng } from '../utils/rng';
 import { makeId } from './eventId';
 import { applyMatchEvent } from './applyMatchEvent';
+import { CLOCK_VALUES } from './balance';
 
 export class ClockController {
   constructor(private sm: StateMachine) {}
@@ -13,7 +14,8 @@ export class ClockController {
   // Advances state.clock.gameMinute via a CLOCK_ADVANCED MatchEvent.
   // Returns the raw timeAdvance so the caller can drive the fatigue accumulator.
   advanceMinute(state: MatchState): number {
-    const timeAdvance = 0.2 + rng(0, 8) / 10;
+    const C = CLOCK_VALUES;
+    const timeAdvance = C.baseAdvance + rng(C.rngMin, C.rngMax) / C.rngDivisor;
     applyMatchEvent(state, { type: 'CLOCK_ADVANCED', delta: timeAdvance });
     return timeAdvance;
   }
@@ -22,7 +24,7 @@ export class ClockController {
   // emits commentary event through the UI bus.
   checkClockInRed(state: MatchState): void {
     if (state.clock.clockInTheRed) return;
-    const halfTarget = state.clock.halfTimeDone ? 80 : 40;
+    const halfTarget = state.clock.halfTimeDone ? CLOCK_VALUES.fullTimeMinute : CLOCK_VALUES.halfTimeMinute;
     if (state.clock.gameMinute < halfTarget) return;
 
     applyMatchEvent(state, { type: 'CLOCK_IN_RED_TRIPPED' });
@@ -68,7 +70,7 @@ export class ClockController {
 
     const htEvent: GameEvent = {
       id: makeId(),
-      gameMinute: 40,
+      gameMinute: CLOCK_VALUES.halfTimeMinute,
       phase: MatchPhase.HalfTime,
       side: state.possession,
       sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
@@ -96,7 +98,7 @@ export class ClockController {
 
     const ftEvent: GameEvent = {
       id: makeId(),
-      gameMinute: 80,
+      gameMinute: CLOCK_VALUES.fullTimeMinute,
       phase: MatchPhase.FullTime,
       side: state.possession,
       sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,

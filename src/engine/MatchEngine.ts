@@ -306,7 +306,7 @@ export class MatchEngine {
       const halfTarget = this.state.halfTimeDone ? 80 : 40;
       const timeAdvance = 0.2 + rng(0, 8) / 10;
       if (wasInRed) {
-        this.state.gameMinute += timeAdvance / 50;
+        this.state.gameMinute += timeAdvance / 20;
       } else {
         this.state.gameMinute = Math.min(halfTarget, this.state.gameMinute + timeAdvance);
       }

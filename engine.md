@@ -10,7 +10,7 @@ Documents the complete game engine: the simulation loop, every match phase, all 
 
 Each tick:
 1. Captures `wasInRed = state.clockInTheRed` and `previousPhase = state.phase` before any mutation.
-2. Advances game time: if `wasInRed`, adds `timeAdvance / 20` (clock crawls); otherwise advances normally and clamps to the half target (40 or 80). `timeAdvance = 0.2 + rng(0, 8) / 10` (0.2–1.0 per tick).
+2. Advances game time: if `wasInRed`, adds `timeAdvance / 2` (clock crawls); otherwise advances normally and clamps to the half target (40 or 80). `timeAdvance = 0.2 + rng(0, 8) / 10` (0.2–1.0 per tick).
 3. Accumulates elapsed time; calls `applyFatigue()` on both teams once the accumulator reaches 5 game minutes. Returns newly-fatigued players (crossing below 50%); emits a fatigue commentary event for each.
 4. Increments possession and territory counters.
 5. For `KickOff` and `BoxKick` phases: emits a pre-phase announce `GameEvent` (naming the kicker before the outcome is resolved).
@@ -924,7 +924,7 @@ state.clockInTheRed = true
 // emits GameEvent with a randomly chosen announcement line (3 variants per half)
 ```
 
-From this point, clock time advances at `timeAdvance / 20` per tick — effectively crawling — so that many more phases can occur before the game ends.
+From this point, clock time advances at `timeAdvance / 2` per tick — effectively crawling — so that many more phases can occur before the game ends.
 
 The knock-on threshold in all carry phases is raised from 85 to `Math.min(99, 85 + Math.round(Math.max(0, 85 − handling) × 0.4))`, giving approximately a 40% increase in knock-on probability for players with handling below 85.
 

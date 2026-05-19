@@ -18,8 +18,8 @@ import { initPreMatchScreen }      from './ui/PreMatchScreen';
 import { initHomeScreen }          from './ui/HomeScreen';
 import { initTeamSelectorScreen }  from './ui/TeamSelectorScreen';
 import { initFixtureListScreen }   from './ui/FixtureListScreen';
-import { MatchEngine }             from './engine/MatchEngine';
-import type { RawTeamInput }       from './engine/MatchEngine';
+import { MatchCoordinator }        from './engine/MatchCoordinator';
+import type { RawTeamInput }       from './engine/MatchCoordinator';
 
 import homeTeamRaw     from './data/team-home.json';
 import awayTeamRaw     from './data/team-away.json';
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
           playerSide,
           round,
           (configuredHome, configuredAway, playerTactics) => {
-            const engine = new MatchEngine(configuredHome, configuredAway, { tickDelayMs: 2000, playerTactics, humanSide: playerSide });
+            const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: 2000, playerTactics, humanSide: playerSide });
             initSimController(engine);
             engine.initialize();
           },

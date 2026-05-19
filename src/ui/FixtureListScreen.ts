@@ -1,4 +1,4 @@
-import type { RawTeamInput } from '../engine/MatchEngine';
+import type { RawTeamInput } from '../engine/MatchCoordinator';
 
 type Fixture = {
   round: number;

@@ -1,7 +1,7 @@
-import type { MatchEngine } from '../engine/MatchEngine';
+import type { MatchCoordinator } from '../engine/MatchCoordinator';
 import { eventBus } from '../utils/eventBus';
 
-export function initSimController(engine: MatchEngine): void {
+export function initSimController(engine: MatchCoordinator): void {
   const btnPlay    = document.getElementById('btn-play')    as HTMLButtonElement;
   const btnPause   = document.getElementById('btn-pause')   as HTMLButtonElement;
   const btnTactics = document.getElementById('btn-tactics') as HTMLButtonElement;

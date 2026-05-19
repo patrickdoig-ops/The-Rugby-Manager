@@ -4,9 +4,25 @@ Documents the complete game engine: the simulation loop, every match phase, all 
 
 ---
 
+## Architecture
+
+The engine is split across five files in `src/engine/`. `MatchCoordinator` owns the public API, the tick loop, and the long-lived state; it delegates the four most cohesive responsibilities to dedicated modules:
+
+| Module | Responsibility |
+|---|---|
+| `MatchCoordinator.ts` | Public API (`initialize`, `start`, `pause`, `resume`, `setTickDelay`, `getState`, `substitute`), tick loop, fatigue accumulator, possession/territory stats, rating recalculation, substitution. |
+| `ClockController.ts` | Minute advance (clamped to half target, halved while in the red), clock-in-red entry, half-time and full-time triggers (`advanceMinute`, `checkClockInRed`, `shouldEndPeriod`, `triggerHalfTime`, `endMatch`). |
+| `PhaseRouter.ts` | `PHASE_HANDLERS` map, `resolvePhase(state, sm, kickOffStrategy)`, and the `draftEvent(state, phase)` template builder. |
+| `PenaltyHandler.ts` | Penalty-decision modal pause and outcome application (`kick_for_goal`, `kick_to_touch`, `tap_and_kick_dead`, `tap_and_go`), plus the kick-off strategy modal (`awaitKickOffStrategy`, `handlePenaltyDecision`). |
+| `FieldPosition.ts` | Pure helpers over `MatchState` that factor in `state.halfTimeDone`: `attackDir`, `isTryScored`, `inOpposition22`, `inOppositionHalf`, `inOwn22`, `inOwnHalf`. |
+
+All five emit through the shared `src/utils/eventBus.ts` singleton; event IDs come from the monotonic counter in `src/engine/eventId.ts`. `StateMachine` (`src/engine/StateMachine.ts`) is owned by `MatchCoordinator` and passed into `ClockController` and `PhaseRouter` for transitions.
+
+---
+
 ## Simulation Loop
 
-`MatchEngine.tick()` is a self-rescheduling `async` function using `setTimeout`. It is not `setInterval` — pausing is simply not scheduling the next tick.
+`MatchCoordinator.tick()` is a self-rescheduling `async` function using `setTimeout`. It is not `setInterval` — pausing is simply not scheduling the next tick.
 
 Each tick:
 1. Captures `wasInRed = state.clockInTheRed` and `previousPhase = state.phase` before any mutation.
@@ -157,13 +173,13 @@ Each `if` block overwrites the previous, so the final matching block wins.
 
 ### Fatigue commentary
 
-When `applyFatigue` detects a player crossing from ≥ 50% to < 50% fatiguePct, it returns that player in a list. `MatchEngine` emits a `GameEvent` (using the current phase/possession context) with a randomly chosen line from six variants: "starting to look tired", "looking leggy", "wear is showing", "running on empty", "looks worn out", "tank is emptying". The commentary feed colorises the player name normally.
+When `applyFatigue` detects a player crossing from ≥ 50% to < 50% fatiguePct, it returns that player in a list. `MatchCoordinator` emits a `GameEvent` (using the current phase/possession context) with a randomly chosen line from six variants: "starting to look tired", "looking leggy", "wear is showing", "running on empty", "looks worn out", "tank is emptying". The commentary feed colorises the player name normally.
 
 ---
 
 ## Per-Match Form Modifier
 
-**Source:** `rngForm()` in `src/utils/rng.ts`, applied in `initPlayer()` in `src/engine/MatchEngine.ts`.
+**Source:** `rngForm()` in `src/utils/rng.ts`, applied in `initPlayer()` in `src/engine/MatchCoordinator.ts`.
 
 At match start, every player (starters and bench) receives a `formModifier` — a signed integer drawn from a normal distribution (mean 0, std dev 5, clamped to [−10, +10]). It is applied additively to every stat in `currentStats` before the first tick:
 
@@ -179,7 +195,7 @@ current[stat] = clamp(baseStats[stat] + formModifier, 1, 100)
 
 ## Coin Toss
 
-Resolved inside `MatchEngine.initialize()` before the first tick.
+Resolved inside `MatchCoordinator.initialize()` before the first tick.
 
 ```
 winner = rng(0, 1) === 0 ? 'home' : 'away'

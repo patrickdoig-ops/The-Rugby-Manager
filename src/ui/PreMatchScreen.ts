@@ -3,7 +3,7 @@ import type { TeamTactics } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';
 import { renderTacticsMenu } from './TacticsMenu';
 import { eventBus } from '../utils/eventBus';
-import type { RawTeamInput } from '../engine/MatchEngine';
+import type { RawTeamInput } from '../engine/MatchCoordinator';
 
 type RawPlayer = {
   id: number;

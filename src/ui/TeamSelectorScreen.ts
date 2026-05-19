@@ -1,4 +1,4 @@
-import type { RawTeamInput } from '../engine/MatchEngine';
+import type { RawTeamInput } from '../engine/MatchCoordinator';
 
 function crestHtml(initial: string, color: string, size: number): string {
   const grad = `linear-gradient(160deg, ${color} 0%, color-mix(in oklch, ${color} 65%, black) 100%)`;

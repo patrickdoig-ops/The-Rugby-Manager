@@ -98,7 +98,7 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
   };
 }
 
-export class MatchEngine {
+export class MatchCoordinator {
   private state: MatchState;
   private sm: StateMachine;
   private tickTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -374,7 +374,7 @@ export class MatchEngine {
         }
       }
     } catch (err) {
-      console.error('MatchEngine tick error encountered, recovering loop:', err);
+      console.error('MatchCoordinator tick error encountered, recovering loop:', err);
     }
 
     this.scheduleTick(this.state.tickDelayMs);

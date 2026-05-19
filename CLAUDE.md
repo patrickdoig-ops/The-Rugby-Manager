@@ -348,3 +348,12 @@ Font roles — apply consistently:
 ### Team data
 
 `src/data/team-home.json` (The Lions, `#c8102e`) and `src/data/team-away.json` (The Eagles, `#003087`). Each has 15 players with 12 base stats on a 1–100 integer scale. `initPlayer()` in `MatchEngine` copies `baseStats` to `currentStats` at match start, then `StaminaSystem.applyFatigue()` mutates `currentStats` over the course of the match. `baseStats` is never modified.
+
+## Placeholder Data in Pre-Match Screen
+
+The pre-match header contains several elements that display hardcoded placeholder values because the underlying data systems do not exist yet. These must be replaced when the relevant systems are built:
+
+- **Round number** (`"Round 1"` in the match context label) — needs a season/match progression system.
+- **Form pins** (e.g. `WWLWD`) — needs a match result history store per team.
+- **Stake row** (League position, Head-to-Head record, Odds) — needs season table data and a fixture/odds system.
+- **Match kick-off time** (`20:00`) — needs scheduled match times.

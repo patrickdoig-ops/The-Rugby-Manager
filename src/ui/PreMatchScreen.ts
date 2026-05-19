@@ -15,138 +15,145 @@ type RawPlayer = {
 
 type RawTeam = RawTeamInput;
 
-const STAT_GROUPS: Array<{ label: string; abbr: string; keys: (keyof PlayerStats)[] }> = [
-  { label: 'Physical',  abbr: 'PHY', keys: ['stamina', 'strength', 'pace', 'agility'] },
-  { label: 'Technical', abbr: 'TEC', keys: ['handling', 'tackling', 'breakdown', 'kicking', 'setPiece'] },
-  { label: 'Mental',    abbr: 'MNT', keys: ['discipline', 'positioning', 'composure'] },
+// 9 compact stats shown in the roster grid (mental stats excluded for space)
+const COMPACT_STATS: { key: keyof PlayerStats; abbr: string }[] = [
+  { key: 'stamina',   abbr: 'STM' },
+  { key: 'strength',  abbr: 'STR' },
+  { key: 'pace',      abbr: 'PAC' },
+  { key: 'agility',   abbr: 'AGI' },
+  { key: 'handling',  abbr: 'HND' },
+  { key: 'tackling',  abbr: 'TKL' },
+  { key: 'breakdown', abbr: 'BRK' },
+  { key: 'kicking',   abbr: 'KCK' },
+  { key: 'setPiece',  abbr: 'SET' },
 ];
 
-const STAT_ABBR: Record<keyof PlayerStats, string> = {
-  stamina:     'STM',
-  strength:    'STR',
-  pace:        'PAC',
-  agility:     'AGI',
-  handling:    'HND',
-  tackling:    'TKL',
-  breakdown:   'BRK',
-  kicking:     'KCK',
-  setPiece:    'SET',
-  discipline:  'DIS',
-  positioning: 'POS',
-  composure:   'CMP',
-};
+// Formation rows: [jersey ids] from top (fullback) to bottom (front row)
+const FORMATION_ROWS: number[][] = [
+  [15],
+  [11, 14],
+  [12, 13],
+  [9, 10],
+  [6, 7, 8],
+  [4, 5],
+  [1, 2, 3],
+];
+const ROW_Y_PCT = [10, 24, 38, 52, 64, 76, 88];
+
+function statColor(v: number): string {
+  if (v >= 88) return 'var(--rm-stat-5)';
+  if (v >= 78) return 'var(--rm-stat-4)';
+  if (v >= 65) return 'var(--rm-stat-3)';
+  if (v >= 50) return 'var(--rm-stat-2)';
+  return 'var(--rm-stat-1)';
+}
 
 function computeOverall(stats: PlayerStats): number {
   const vals = Object.values(stats) as number[];
   return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
 }
 
-function tierClass(v: number): string {
-  if (v >= 90) return 'tier-elite';
-  if (v >= 80) return 'tier-great';
-  if (v >= 70) return 'tier-good';
-  if (v >= 60) return 'tier-avg';
-  return 'tier-poor';
-}
-
 function getSquadNum(p: RawPlayer): number {
   return p.squadNumber ?? p.id;
 }
 
-function renderPlayer(p: RawPlayer, color: string, interactive = false, isBench = false, view: 'summary' | number = 'summary'): string {
+function crestHtml(letter: string, color: string, size = 48): string {
+  return `<div class="pm-crest" style="
+    width:${size}px;height:${size}px;
+    background:linear-gradient(160deg,${color} 0%,color-mix(in oklch,${color} 65%,black) 100%);
+    border:1px solid color-mix(in oklch,${color} 50%,transparent);
+    box-shadow:0 6px 16px color-mix(in oklch,${color} 30%,transparent),inset 0 1px 0 rgba(255,255,255,0.15);
+  "><span>${letter}</span></div>`;
+}
+
+function formPins(sequence: string): string {
+  return sequence.split('').map(r => {
+    const cls = r === 'W' ? 'pm-form-pin--w' : r === 'L' ? 'pm-form-pin--l' : 'pm-form-pin--d';
+    return `<span class="pm-form-pin ${cls}">${r}</span>`;
+  }).join('');
+}
+
+function renderColumnHeader(): string {
+  return `<div class="pm-col-header">
+    <div></div>
+    <div></div>
+    <div class="pm-col-label">OVR</div>
+    <div></div>
+    ${COMPACT_STATS.map(s => `<div class="pm-col-label">${s.abbr}</div>`).join('')}
+  </div>`;
+}
+
+function renderPlayerRow(p: RawPlayer, color: string, interactive: boolean, isBench: boolean): string {
   const ovr = computeOverall(p.baseStats);
   const squadNum = getSquadNum(p);
-  const ovrGroup = `<div class="attr-group attr-group--ovr">
-    <div class="attr-cell ${tierClass(ovr)}">
-      <span class="attr-key">OVR</span>
-      <span class="attr-val">${ovr}</span>
-    </div>
-  </div>`;
-
-  let groupCells: string;
-  if (view === 'summary') {
-    groupCells = STAT_GROUPS.map(g => {
-      const avg = Math.round(g.keys.reduce((s, k) => s + p.baseStats[k], 0) / g.keys.length);
-      return `<div class="attr-group">
-        <div class="attr-cell attr-cell--group ${tierClass(avg)}">
-          <span class="attr-key">${g.abbr}</span>
-          <span class="attr-val">${avg}</span>
-        </div>
-      </div>`;
-    }).join('');
-  } else {
-    const g = STAT_GROUPS[view];
-    groupCells = `<div class="attr-group">
-      ${g.keys.map(k => {
-        const v = p.baseStats[k];
-        return `<div class="attr-cell ${tierClass(v)}">
-          <span class="attr-key">${STAT_ABBR[k]}</span>
-          <span class="attr-val">${v}</span>
-        </div>`;
-      }).join('')}
-    </div>`;
-  }
-
   const lastName = p.name.split(' ').slice(1).join(' ') || p.name;
   const benchClass = isBench ? ' pm-player--bench' : ' pm-player--starter';
-  const dataAttr   = interactive ? `data-squad="${squadNum}"` : '';
-
-  // Use <button> for interactive rows — iOS Safari only fires click on
-  // native interactive elements. Nested <button> inside <button> is invalid
-  // HTML, so the decorative swap icon is omitted for interactive rows.
+  const dataAttr = interactive ? `data-squad="${squadNum}"` : '';
   const tag = interactive ? 'button' : 'div';
-  return `<${tag} class="pm-player${benchClass}" ${dataAttr}>
-    <div class="pm-player-hd">
-      <span class="pm-num" style="color:${color}">${squadNum}</span>
-      <div class="pm-identity">
-        <span class="pm-name">${lastName}</span>
-        <span class="pm-pos">${p.position}</span>
-      </div>
+
+  const statCells = COMPACT_STATS.map(s => {
+    const v = p.baseStats[s.key];
+    return `<div class="pm-stat" style="color:${statColor(v)}">${v}</div>`;
+  }).join('');
+
+  return `<${tag} class="pm-player-row${benchClass}" ${dataAttr}>
+    <div class="pm-num" style="color:${color}">${squadNum}</div>
+    <div class="pm-identity">
+      <span class="pm-name">${lastName}</span>
+      <span class="pm-pos">${p.position}</span>
     </div>
-    <div class="pm-attrs">${ovrGroup}${groupCells}</div>
+    <div class="pm-ovr-val" style="color:${statColor(ovr)}">${ovr}</div>
+    <div class="pm-row-divider"></div>
+    ${statCells}
   </${tag}>`;
 }
 
-function renderLegend(view: 'summary' | number): string {
-  const groupsHtml = view === 'summary'
-    ? STAT_GROUPS.map(g =>
-        `<div class="legend-group">
-          <span class="legend-item legend-item--group">${g.abbr}</span>
-        </div>`
-      ).join('')
-    : `<div class="legend-group">
-        ${STAT_GROUPS[view].keys.map(k => `<span class="legend-item">${STAT_ABBR[k]}</span>`).join('')}
-      </div>`;
+function renderPitchFormation(starters: RawPlayer[], color: string): string {
+  const byId: Record<number, RawPlayer> = {};
+  for (const p of starters) byId[p.id] = p;
 
-  return `<div class="pm-legend">
-    <div class="legend-group legend-group--ovr">
-      <span class="legend-item">OVR</span>
-    </div>
-    ${groupsHtml}
+  const tokens = FORMATION_ROWS.flatMap((row, ri) => {
+    const y = ROW_Y_PCT[ri];
+    return row.map((id, ci) => {
+      const p = byId[id];
+      if (!p) return '';
+      const x = ((ci + 1) / (row.length + 1)) * 100;
+      const lastName = p.name.split(' ').slice(1).join(' ') || p.name;
+      return `<div class="pm-player-token" style="top:${y}%;left:${x}%">
+        <div class="pm-token-circle" style="background:linear-gradient(180deg,${color} 0%,color-mix(in oklch,${color} 60%,black) 100%)">${id}</div>
+        <div class="pm-token-name">${lastName}</div>
+      </div>`;
+    });
+  }).join('');
+
+  return `<div class="pm-pitch-formation">
+    <div class="pm-pitch-line" style="top:8%"></div>
+    <div class="pm-pitch-line" style="top:50%"></div>
+    <div class="pm-pitch-line" style="bottom:8%"></div>
+    ${tokens}
   </div>`;
 }
 
-function renderLineupPanel(starters: RawPlayer[], bench: RawPlayer[], color: string, interactive: boolean, view: 'summary' | number): string {
-  const starterHtml = starters.map(p => renderPlayer(p, color, interactive, false, view)).join('');
-  const benchHtml   = bench.map(p => renderPlayer(p, color, interactive, true, view)).join('');
+function renderLineupPanel(
+  starters: RawPlayer[],
+  bench: RawPlayer[],
+  color: string,
+  interactive: boolean,
+  view: 'list' | 'pitch',
+): string {
+  if (view === 'pitch') {
+    return renderPitchFormation(starters, color);
+  }
 
-  const viewBtns = [
-    { label: 'All', value: 'summary' as const },
-    ...STAT_GROUPS.map((g, i) => ({ label: g.abbr, value: i as number })),
-  ].map(btn => {
-    const active = btn.value === view;
-    return `<button class="pm-view-btn${active ? ' pm-view-btn--active' : ''}" data-view="${btn.value}">${btn.label}</button>`;
-  }).join('');
+  const starterHtml = starters.map(p => renderPlayerRow(p, color, interactive, false)).join('');
+  const benchHtml   = bench.map(p => renderPlayerRow(p, color, interactive, true)).join('');
 
   return `
-    <div class="pm-list-header">
-      <div class="pm-view-bar">${viewBtns}</div>
-      ${renderLegend(view)}
-    </div>
+    ${renderColumnHeader()}
     <div class="pm-section-header">Starting XV</div>
-    <div class="pm-starters-list">${starterHtml}</div>
+    ${starterHtml}
     <div class="pm-section-header pm-section-bench">Bench</div>
-    <div class="pm-bench-list">${benchHtml}</div>
+    ${benchHtml}
   `;
 }
 
@@ -164,21 +171,79 @@ export function initPreMatchScreen(
   const awayBench:    RawPlayer[] = ((away.bench ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
 
   let selectedBenchSquadNum: number | null = null;
-  let activeView: 'summary' | number = 'summary';
+  let activeView: 'list' | 'pitch' = 'list';
+
+  const homeFirst = home.shortName[0] ?? 'H';
+  const awayFirst = away.shortName[0] ?? 'A';
 
   screen.innerHTML = `
     <div id="pm-header">
-      <h1 id="pm-title">Match Preview</h1>
-      <div id="pm-matchup">
-        <span class="pm-team-badge" style="color:${home.color}">${home.shortName}</span>
-        <span id="pm-vs">vs</span>
-        <span class="pm-team-badge" style="color:${away.color}">${away.shortName}</span>
+      <div id="pm-topbar">
+        <button id="pm-back" aria-label="Back">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <span>Lobby</span>
+        </button>
+        <span id="pm-context-label">Match Preview · Round 1</span>
+        <div style="width:60px"></div>
       </div>
-      <div id="pm-tabs" role="tablist">
-        <button class="pm-tab active" data-tab="home"    style="--tc:${home.color}">${home.name}</button>
-        <button class="pm-tab"        data-tab="away"    style="--tc:${away.color}">${away.name}</button>
-        <button class="pm-tab"        data-tab="tactics" style="--tc:var(--rm-pitch)">Tactics</button>
+
+      <div id="pm-versus">
+        <div class="pm-versus-side">
+          <div class="pm-versus-ident">
+            ${crestHtml(homeFirst, home.color, 48)}
+            <div>
+              <div class="pm-team-code">${home.shortName}</div>
+              <div class="pm-team-full">${home.name}</div>
+              <div class="pm-form-row">${formPins('WWLWD')}</div>
+            </div>
+          </div>
+        </div>
+        <div class="pm-versus-center">
+          <span class="pm-vs-text">vs</span>
+          <div class="pm-kickoff-time">20:00</div>
+        </div>
+        <div class="pm-versus-side pm-versus-away">
+          <div class="pm-versus-ident pm-versus-ident--right">
+            <div style="text-align:right">
+              <div class="pm-team-code">${away.shortName}</div>
+              <div class="pm-team-full">${away.name}</div>
+              <div class="pm-form-row pm-form-row--right">${formPins('WWWLW')}</div>
+            </div>
+            ${crestHtml(awayFirst, away.color, 48)}
+          </div>
+        </div>
       </div>
+
+      <div id="pm-stake-row">
+        ${[
+          ['LEAGUE', '2nd', '4 pts'],
+          ['H2H',    '1W · 2L', 'last 3'],
+          ['ODDS',   '+3.5',    `${away.shortName} fav.`],
+        ].map(([k, v, sub]) => `
+          <div class="pm-stake-card">
+            <div class="pm-stake-key">${k}</div>
+            <div class="pm-stake-val">${v}</div>
+            <div class="pm-stake-sub">${sub}</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div id="pm-tabs-bar">
+        <div id="pm-tabs" role="tablist">
+          <button class="pm-tab active" data-tab="home"    style="--tc:${home.color}">${home.name}</button>
+          <button class="pm-tab"        data-tab="away"    style="--tc:${away.color}">${away.name}</button>
+          <button class="pm-tab"        data-tab="tactics" style="--tc:var(--rm-pitch)">Tactics</button>
+        </div>
+        <div id="pm-view-toggle">
+          <button class="pm-view-btn pm-view-btn--active" data-view="list" aria-label="List view">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+          </button>
+          <button class="pm-view-btn" data-view="pitch" aria-label="Pitch view">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="1"/><path d="M12 6v12"/></svg>
+          </button>
+        </div>
+      </div>
+
       <div id="pm-hint-bar" class="pm-hint-bar">Select a bench player, then a starter to swap</div>
     </div>
 
@@ -201,6 +266,7 @@ export function initPreMatchScreen(
   const awayPanel    = screen.querySelector<HTMLElement>('#pm-away')!;
   const tacticsPanel = screen.querySelector<HTMLElement>('#pm-tactics')!;
   const tabs         = screen.querySelectorAll<HTMLButtonElement>('.pm-tab');
+  const viewToggle   = screen.querySelector<HTMLElement>('#pm-view-toggle')!;
 
   function updateHint(): void {
     hintBar.textContent = selectedBenchSquadNum === null
@@ -220,7 +286,6 @@ export function initPreMatchScreen(
   renderHomePanel();
   renderAwayPanel();
 
-  // Single delegated handler — set up once so re-renders don't stack handlers
   homePanel.addEventListener('click', (e) => {
     const playerEl = (e.target as HTMLElement).closest<HTMLElement>('.pm-player--bench, .pm-player--starter');
     if (!playerEl) return;
@@ -248,7 +313,7 @@ export function initPreMatchScreen(
 
       const slotId       = homeStarters[starterIdx].id;
       const benchSlotId  = homeBench[benchIdx].id;
-      const newStarter   = { ...homeBench[benchIdx],   id: slotId };
+      const newStarter   = { ...homeBench[benchIdx],      id: slotId };
       const newBenchSlot = { ...homeStarters[starterIdx], id: benchSlotId };
       homeStarters[starterIdx] = newStarter;
       homeBench[benchIdx]      = newBenchSlot;
@@ -257,14 +322,16 @@ export function initPreMatchScreen(
     }
   });
 
-  const pmBody = screen.querySelector<HTMLElement>('#pm-body')!;
-  pmBody.addEventListener('click', (e) => {
+  viewToggle.addEventListener('click', (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.pm-view-btn');
     if (!btn) return;
-    const raw = btn.dataset.view!;
-    const clicked: 'summary' | number = raw === 'summary' ? 'summary' : Number(raw);
-    activeView = clicked === activeView ? 'summary' : clicked;
+    const v = btn.dataset.view as 'list' | 'pitch';
+    if (v === activeView) return;
+    activeView = v;
     selectedBenchSquadNum = null;
+    viewToggle.querySelectorAll('.pm-view-btn').forEach(b => {
+      b.classList.toggle('pm-view-btn--active', (b as HTMLElement).dataset.view === v);
+    });
     renderHomePanel();
     renderAwayPanel();
   });
@@ -284,6 +351,7 @@ export function initPreMatchScreen(
       awayPanel.classList.toggle('hidden', t !== 'away');
       tacticsPanel.classList.toggle('hidden', t !== 'tactics');
       hintBar.classList.toggle('pm-hint-hidden', t !== 'home');
+      viewToggle.classList.toggle('pm-view-toggle--hidden', t === 'tactics');
     });
   });
 

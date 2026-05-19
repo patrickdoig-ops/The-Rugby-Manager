@@ -9,7 +9,7 @@ function tacticNote(chancePct: number, ...lines: string[]): string {
   return rng(1, 100) <= chancePct ? ' ' + lines[rng(0, lines.length - 1)] : '';
 }
 
-export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22, inOwn22, inOwnHalf, adjustRating, draftEvent }: PhaseContext): PhaseResult {
+export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22, inOwn22, inOwnHalf, draftEvent }: PhaseContext): PhaseResult {
   const attPlan = attackTeam.tactics.attackingBreakdown;
   const defPlan = defendTeam.tactics.defendingBreakdown;
 
@@ -44,7 +44,6 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
   const homeIsDefending = !homeIsAttacking;
 
   if (res.result === 'clean_ball') {
-    adjustRating(primary, +0.15);
     let note = '';
     if (homeIsAttacking && attPlan === 'pick_and_drive') {
       note = tacticNote(30,
@@ -102,8 +101,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
   }
 
   if (res.result === 'turnover') {
-    adjustRating(jackal, +0.75);
-    adjustRating(primary, -0.15);
+    jackal.matchStats.turnoversWon++;
     state.possession = state.possession === 'home' ? 'away' : 'home';
     state.breakdownMod = { attack: 0, defend: 0 };
     let note = '';
@@ -132,7 +130,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
   }
 
   // penalty_defending — defending team awarded the penalty, so possession flips to them
-  adjustRating(primary, -0.375);
+  primary.matchStats.penaltiesConceded++;
   state.possession = state.possession === 'home' ? 'away' : 'home';
   state.breakdownMod = { attack: 0, defend: 0 };
   let penaltyNote = '';

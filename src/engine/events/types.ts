@@ -13,7 +13,6 @@ export interface PhaseContext {
   inOppositionHalf(): boolean;
   inOwn22(): boolean;
   inOwnHalf(): boolean;
-  adjustRating(player: Player | undefined, delta: number): void;
   randomPlayer(team: Team): Player;
   pickPlayer(team: Team, ...ids: number[]): Player;
   draftEvent(phase: MatchPhase): GameEvent;

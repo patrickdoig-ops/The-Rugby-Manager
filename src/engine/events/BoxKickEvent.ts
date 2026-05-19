@@ -9,8 +9,9 @@ function tacticNote(chancePct: number, ...lines: string[]): string {
   return rng(1, 100) <= chancePct ? ' ' + lines[rng(0, lines.length - 1)] : '';
 }
 
-export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjustRating, randomPlayer, draftEvent }: PhaseContext): PhaseResult {
+export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, randomPlayer, draftEvent }: PhaseContext): PhaseResult {
   const scrumHalf  = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
+  scrumHalf.matchStats.kicksFromHand++;
   const wingerPool = attackTeam.players.filter(p => p.id === 11 || p.id === 14);
   const winger     = wingerPool.length > 0 ? wingerPool[rng(0, wingerPool.length - 1)] : randomPlayer(attackTeam);
   const fullback   = defendTeam.players.find(p => p.id === 15) ?? randomPlayer(defendTeam);
@@ -21,9 +22,6 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
   state.ballX = clamp(state.ballX + attackDir() * res.distance, 5, 95);
 
   if (res.outcome === 'attack_retain') {
-    adjustRating(scrumHalf, +0.15);
-    adjustRating(winger, +0.3);
-    adjustRating(fullback, -0.15);
     state.kickReturnCarrier = winger;
     return {
       nextPhase: MatchPhase.KickReturn,
@@ -34,9 +32,6 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
   }
 
   if (res.outcome === 'defend_knock_on') {
-    adjustRating(scrumHalf, +0.075);
-    adjustRating(winger, +0.15);
-    adjustRating(fullback, -0.225);
     state.stats.handlingErrors[state.possession === 'home' ? 'away' : 'home']++;
     return {
       nextPhase: MatchPhase.Scrum,
@@ -47,8 +42,6 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
   }
 
   if (res.outcome === 'defend_catch_contested') {
-    adjustRating(fullback, +0.3);
-    adjustRating(winger, -0.15);
     state.possession = state.possession === 'home' ? 'away' : 'home';
     state.kickReturnCarrier = fullback;
     return {
@@ -60,7 +53,6 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
   }
 
   if (res.outcome === 'defend_catch') {
-    adjustRating(fullback, +0.15);
     // home team is defending (not possessing) when the box kick goes up
     const homeIsDefending = state.possession !== 'home';
     const catchNote = (homeIsDefending && fullbackMod > 0)
@@ -82,8 +74,6 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, adjust
   }
 
   // knock_on — poor kick, fullback drops uncontested
-  adjustRating(scrumHalf, -0.15);
-  adjustRating(fullback, -0.225);
   state.stats.handlingErrors[state.possession === 'home' ? 'away' : 'home']++;
   return {
     nextPhase: MatchPhase.Scrum,

@@ -4,7 +4,7 @@ import { resolveLineout } from '../resolvers/LineoutResolver';
 import { getCommentary } from '../CommentaryEngine';
 import { rng } from '../../utils/rng';
 
-export function handleLineout({ state, attackTeam, defendTeam, adjustRating, pickPlayer, draftEvent }: PhaseContext): PhaseResult {
+export function handleLineout({ state, attackTeam, defendTeam, pickPlayer, draftEvent }: PhaseContext): PhaseResult {
   const hooker       = pickPlayer(attackTeam, 2);
   const jumperIds    = [4, 5, 7];
   const chosenId     = jumperIds[rng(0, 2)];
@@ -14,8 +14,9 @@ export function handleLineout({ state, attackTeam, defendTeam, adjustRating, pic
   const defendJumper = pickPlayer(defendTeam, 4, 5, 6);
   const res = resolveLineout(hooker, attackJumper, defendJumper);
 
+  hooker.matchStats.lineoutThrows++;
+
   if (res.result === 'crooked_throw') {
-    adjustRating(hooker, -0.4);
     state.possession = state.possession === 'home' ? 'away' : 'home';
     return {
       nextPhase: MatchPhase.Scrum,
@@ -25,7 +26,8 @@ export function handleLineout({ state, attackTeam, defendTeam, adjustRating, pic
   }
 
   if (res.result === 'clean_catch') {
-    adjustRating(attackJumper, +0.225);
+    hooker.matchStats.lineoutWins++;
+    attackJumper.matchStats.lineoutCatches++;
     state.stats.lineouts[state.possession]++;
     return {
       nextPhase: MatchPhase.FirstPhase,
@@ -37,7 +39,6 @@ export function handleLineout({ state, attackTeam, defendTeam, adjustRating, pic
   }
 
   if (res.result === 'scrappy_knock_on') {
-    adjustRating(attackJumper, -0.3);
     state.stats.handlingErrors[state.possession]++;
     state.possession = state.possession === 'home' ? 'away' : 'home';
     return {
@@ -49,8 +50,7 @@ export function handleLineout({ state, attackTeam, defendTeam, adjustRating, pic
   }
 
   // steal
-  adjustRating(defendJumper, +0.45);
-  adjustRating(attackJumper, -0.15);
+  defendJumper.matchStats.lineoutSteals++;
   state.possession = state.possession === 'home' ? 'away' : 'home';
   state.stats.lineouts[state.possession]++;
   return {

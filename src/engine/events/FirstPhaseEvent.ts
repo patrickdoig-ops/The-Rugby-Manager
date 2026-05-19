@@ -9,7 +9,7 @@ function tacticNote(chancePct: number, ...lines: string[]): string {
   return rng(1, 100) <= chancePct ? ' ' + lines[rng(0, lines.length - 1)] : '';
 }
 
-export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isTryScored, inOwnHalf, inOwn22, adjustRating, randomPlayer, pickPlayer, draftEvent }: PhaseContext): PhaseResult {
+export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isTryScored, inOwnHalf, inOwn22, randomPlayer, pickPlayer, draftEvent }: PhaseContext): PhaseResult {
   // Step 0 — Kick or carry decision
   const plan = attackTeam.tactics.attackingGamePlan;
   let kickProb = 15;
@@ -43,7 +43,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
     ? Math.min(99, 85 + Math.round(Math.max(0, 85 - carrier.currentStats.handling) * 0.4))
     : 85;
   if (carrier.currentStats.handling + rng(1, 100) < carrierKoThreshold) {
-    adjustRating(carrier, -0.45);
+    carrier.matchStats.knockOns++;
     state.stats.handlingErrors[state.possession]++;
     state.possession = state.possession === 'home' ? 'away' : 'home';
     const defender = randomPlayer(defendTeam);
@@ -73,7 +73,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
       ? Math.min(99, 85 + Math.round(Math.max(0, 85 - insideCentre.currentStats.handling) * 0.4))
       : 85;
     if (insideCentre.currentStats.handling + rng(1, 100) < icKoThreshold) {
-      adjustRating(insideCentre, -0.45);
+      insideCentre.matchStats.knockOns++;
       state.stats.handlingErrors[state.possession]++;
       state.possession = state.possession === 'home' ? 'away' : 'home';
       return {
@@ -84,6 +84,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
       };
     }
 
+    carrier.matchStats.passes++;
     ballCarrier = insideCentre;
     defender = pickPlayer(defendTeam, 12);
   } else {
@@ -95,7 +96,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
       ? Math.min(99, 85 + Math.round(Math.max(0, 85 - outsideCentre.currentStats.handling) * 0.4))
       : 85;
     if (outsideCentre.currentStats.handling + rng(1, 100) < ocKoThreshold) {
-      adjustRating(outsideCentre, -0.45);
+      outsideCentre.matchStats.knockOns++;
       state.stats.handlingErrors[state.possession]++;
       state.possession = state.possession === 'home' ? 'away' : 'home';
       return {
@@ -106,6 +107,8 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
       };
     }
 
+    carrier.matchStats.passes++;
+
     const wingPool = attackTeam.players.filter(p => p.id === 11 || p.id === 14);
     const wing = wingPool.length > 0 ? wingPool[rng(0, wingPool.length - 1)] : randomPlayer(attackTeam);
     playIntro += getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: outsideCentre, secondaryPlayer: wing }, 'out_the_back') + ' ';
@@ -114,7 +117,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
       ? Math.min(99, 85 + Math.round(Math.max(0, 85 - wing.currentStats.handling) * 0.4))
       : 85;
     if (wing.currentStats.handling + rng(1, 100) < wingKoThreshold) {
-      adjustRating(wing, -0.45);
+      wing.matchStats.knockOns++;
       state.stats.handlingErrors[state.possession]++;
       state.possession = state.possession === 'home' ? 'away' : 'home';
       return {
@@ -125,6 +128,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
       };
     }
 
+    outsideCentre.matchStats.passes++;
     ballCarrier = wing;
     const defWingPool = defendTeam.players.filter(p => p.id === 11 || p.id === 14);
     defender = defWingPool.length > 0 ? defWingPool[rng(0, defWingPool.length - 1)] : randomPlayer(defendTeam);
@@ -137,8 +141,11 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
   let commentary: string;
 
   if (res.outcome === 'line_break') {
-    adjustRating(ballCarrier, +0.375);
-    adjustRating(defender, -0.4);
+    ballCarrier.matchStats.carries++;
+    ballCarrier.matchStats.metresCarried += res.gainMetres;
+    ballCarrier.matchStats.lineBreaks++;
+    ballCarrier.matchStats.defendersBeaten++;
+    defender.matchStats.tacklesAttempted++;
     state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
     state.ballX = clamp(state.ballX + attackDir() * res.gainMetres, 0, 100);
     const tryScored = isTryScored();
@@ -155,15 +162,22 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
       commentary = playIntro + getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: ballCarrier, secondaryPlayer: defender }, 'line_break') + lineBreakNote;
     }
   } else if (res.outcome === 'dominant_tackle') {
-    adjustRating(defender, +0.3);
-    adjustRating(ballCarrier, -0.075);
+    ballCarrier.matchStats.carries++;
+    ballCarrier.matchStats.metresCarried += res.gainMetres;
+    defender.matchStats.tacklesAttempted++;
+    defender.matchStats.tacklesMade++;
+    defender.matchStats.dominantTackles++;
     state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
     state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].made++;
     state.ballX = clamp(state.ballX + attackDir() * res.gainMetres, 0, 100);
     nextPhase = MatchPhase.Breakdown;
     commentary = playIntro + getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: ballCarrier, secondaryPlayer: defender }, 'dominant_tackle');
   } else {
-    if (res.outcome === 'dominant_carry') adjustRating(ballCarrier, +0.225);
+    ballCarrier.matchStats.carries++;
+    ballCarrier.matchStats.metresCarried += res.gainMetres;
+    if (res.outcome === 'dominant_carry') ballCarrier.matchStats.defendersBeaten++;
+    defender.matchStats.tacklesAttempted++;
+    defender.matchStats.tacklesMade++;
     state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
     state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].made++;
     state.ballX = clamp(state.ballX + attackDir() * res.gainMetres, 0, 100);

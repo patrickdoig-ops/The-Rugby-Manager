@@ -72,6 +72,17 @@ function ratingClass(r: number): string {
   return 'rating-poor';
 }
 
+function statChipsInner(p: MatchState['homeTeam']['players'][number]): string {
+  const s = p.matchStats;
+  const tryClass = s.tries > 0 ? ' chip-try' : '';
+  return `<span class="chip">${s.carries}c</span>`
+    + `<span class="chip">${s.metresCarried}m</span>`
+    + `<span class="chip">${s.tacklesMade}tk</span>`
+    + `<span class="chip">${s.turnoversWon}to</span>`
+    + `<span class="chip">${s.lineBreaks}lb</span>`
+    + `<span class="chip${tryClass}">${s.tries}T</span>`;
+}
+
 function renderPlayerStats(state: MatchState): string {
   const allPlayers = [
     ...state.homeTeam.players.map(p => ({ p, team: state.homeTeam })),
@@ -91,6 +102,7 @@ function renderPlayerStats(state: MatchState): string {
           <div class="fatigue-bar ${barClass}" style="width:${f}%"></div>
         </div>
         <span class="rating-badge ${rClass}">${r}</span>
+        <div class="player-stat-chips">${statChipsInner(p)}</div>
       </div>
     `;
   }).join('');
@@ -135,6 +147,9 @@ function updatePlayerStatsDOM(container: HTMLElement, state: MatchState): void {
       badge.className = `rating-badge ${rClass}`;
       badge.textContent = r;
     }
+
+    const chips = row.querySelector('.player-stat-chips') as HTMLElement | null;
+    if (chips) chips.innerHTML = statChipsInner(p);
   });
 }
 

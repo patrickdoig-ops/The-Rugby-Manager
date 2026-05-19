@@ -58,7 +58,55 @@ Three carry phases share an evasion/collision resolver but have distinct player 
 
 ### Player ratings
 
-All players start at `rating: 6.0`. `adjustRating(player, delta)` clamps `rating + delta` to [1, 10]. Ratings are displayed in the Player Stats panel and update once per game minute.
+Ratings are computed from accumulated per-player statistics, not from event-by-event deltas. After every `resolvePhase()` call (and after penalty goal kicks in `applyPenaltyChoice()`), `recalculateRatings()` calls `computeRating(player)` on all 30 players and writes the result to `player.rating`.
+
+**`computeRating`** is a pure function in `src/engine/RatingEngine.ts`. It reads `player.matchStats` (a `PlayerMatchStats` object) and returns a value in [1.0, 10.0]:
+
+```
+baseScore = 6.0
+score += tries × 7.0
+score += lineBreaks × 2.5
+score += defendersBeaten × 0.8
+score += turnoversWon × 2.5
+score += dominantTackles × 1.0
+score += tacklesMade × 0.35
+score += kicksMade × 1.0
+score += metresCarried × 0.05
+score -= knockOns × 1.5
+score -= (tacklesAttempted − tacklesMade) × 0.5   // missed tackles
+score -= penaltiesConceded × 1.2                  // breakdown penalties only
+score -= kicksMissed × 0.75
+```
+
+Position bonuses (stacked additively on top of universal):
+
+| Player id | Bonus |
+|---|---|
+| 2 (hooker) | `(lineoutWins / lineoutThrows − 0.75) × 20` when lineoutThrows > 0 |
+| 4, 5 (locks) | `lineoutCatches × 1.5` + `lineoutSteals × 3.0` |
+| 1–3 (front row) | `scrumPenaltiesWon × 2.5` − `scrumPenaltiesConceded × 2.5` |
+| 6–8 (back row) | `turnoversWon × 1.5` (stacked) + `carries × 0.3` |
+| 9 (scrum-half) | `passes × 0.05` |
+| 10 (fly-half) | `kicksFromHand × 0.25` |
+| 11, 14, 15 (wings/fullback) | `lineBreaks × 1.5` (stacked) |
+
+```
+rating = clamp(6.0 + score / 10.0, 1.0, 10.0)
+```
+
+**`PlayerMatchStats`** is declared in `src/types/player.ts` and initialised to all zeros in `zeroMatchStats()` which is called by `initPlayer()` for every player (starters and bench). Fields:
+
+```typescript
+carries, metresCarried, lineBreaks, defendersBeaten, knockOns, passes,
+tacklesAttempted, tacklesMade, dominantTackles, turnoversWon, penaltiesConceded,
+tries, kicksFromHand, kicksAtGoal, kicksMade, kicksMissed,
+lineoutThrows, lineoutWins, lineoutCatches, lineoutSteals,
+scrumPenaltiesWon, scrumPenaltiesConceded
+```
+
+To add a new stat: add one field to `PlayerMatchStats`, one `field: 0` in `zeroMatchStats()`, increment it in the relevant event file(s), and optionally add a weight in `computeRating()`.
+
+Ratings are displayed in the Player Stats panel and update once per game minute. Bench players who never came on retain their initial rating of 6.0.
 
 ---
 
@@ -219,12 +267,11 @@ else            → clean_receive
 | `clean_receive` | flip to receiving team | landing position | KickReturn |
 | `short_kick_retain` | stays with kicking team | landing position | KickReturn |
 
-### Rating adjustments
+### Stat increments
 
-| Outcome | Player | Delta |
+| Outcome | Player | Stat |
 |---|---|---|
-| `poor_kick` | kicker | −0.225 |
-| `knock_on` | receiver | −0.375 |
+| every kick-off | kicker | `kicksFromHand++` |
 
 ---
 
@@ -399,16 +446,23 @@ All outcomes → Breakdown.
 
 When Out the Back (PhasePlay), Crash Ball, or Wide Play (FirstPhase) paths are taken, `out_the_back` commentary lines are prepended naming the passer and receiver. These fire at each pass in the sequence and are prepended to all downstream outcomes including knock-ons.
 
-### Rating adjustments
+### Stat increments
 
-| Outcome | Player | Delta |
+| Outcome | Player | Stats |
 |---|---|---|
-| knock_on (any gate) | player who dropped | −0.45 |
-| line_break | ballCarrier | +0.375 |
-| line_break (missed tackle) | defender | −0.4 |
-| dominant_carry | ballCarrier | +0.225 |
-| dominant_tackle | defender | +0.3 |
-| dominant_tackle | ballCarrier | −0.075 |
+| knock-on at any handling gate | dropping player | `knockOns++` |
+| Out the Back path clears outsideBack gate | flyHalf | `passes++` |
+| Crash Ball path clears insideCentre gate | carrier (#10) | `passes++` |
+| Wide Play path clears outsideCentre gate | carrier (#10) | `passes++` |
+| Wide Play path clears wing gate | outsideCentre | `passes++` |
+| all four collision outcomes | ballCarrier | `carries++`, `metresCarried += gainMetres` |
+| all four collision outcomes | defender | `tacklesAttempted++` |
+| `line_break` | ballCarrier | `lineBreaks++`, `defendersBeaten++` |
+| `dominant_carry` | ballCarrier | `defendersBeaten++` |
+| `dominant_tackle` | defender | `tacklesMade++`, `dominantTackles++` |
+| `dominant_carry` or `play_on` | defender | `tacklesMade++` |
+
+KickReturn: total metres = `runMetres + res.gainMetres` (combined into `metresCarried`).
 
 ---
 
@@ -491,16 +545,14 @@ Both quality (stat values) and quantity (number of bodies) now independently inf
 
 None. `ballX` does not change during a breakdown.
 
-### Rating adjustments
+### Stat increments
 
-| Outcome | Player | Delta |
+| Outcome | Player | Stats |
 |---|---|---|
-| clean_ball | supporters[0] (primary forward) | +0.15 |
-| turnover | jackal | +0.75 |
-| turnover | supporters[0] | −0.15 |
-| penalty_defending | supporters[0] | −0.375 |
+| `turnover` | jackal | `turnoversWon++` |
+| `penalty_defending` | supporters[0] | `penaltiesConceded++` |
 
-`supporters[0]` is the first randomly selected forward and serves as the `primaryPlayer` for commentary and rating purposes.
+`supporters[0]` is the first randomly selected forward and serves as the `primaryPlayer` for commentary purposes.
 
 ---
 
@@ -540,15 +592,14 @@ The defending pack's final score is subtracted from the attacking pack's final s
 
 None.
 
-### Rating adjustments
+### Stat increments
 
-| Outcome | Player | Delta |
+| Outcome | Player | Stats |
 |---|---|---|
-| attacking_dominant_penalty | attacking front row (ids 1–3), each | +0.225 |
-| attacking_dominant_penalty | defending front row (ids 1–3), each | −0.3 |
-| stable_win | attacking front row (ids 1–3), each | +0.15 |
-| defending_dominant_penalty | defending front row (ids 1–3), each | +0.225 |
-| defending_dominant_penalty | attacking front row (ids 1–3), each | −0.3 |
+| `attacking_dominant_penalty` | attacking front row (ids 1–3), each | `scrumPenaltiesWon++` |
+| `attacking_dominant_penalty` | defending front row (ids 1–3), each | `scrumPenaltiesConceded++` |
+| `defending_dominant_penalty` | defending front row (ids 1–3), each | `scrumPenaltiesWon++` |
+| `defending_dominant_penalty` | attacking front row (ids 1–3), each | `scrumPenaltiesConceded++` |
 
 ---
 
@@ -597,15 +648,14 @@ The attack team has a significant advantage at the jump; clean catch is the expe
 
 None.
 
-### Rating adjustments
+### Stat increments
 
-| Outcome | Player | Delta |
+| Outcome | Player | Stats |
 |---|---|---|
-| crooked_throw | hooker | −0.4 |
-| clean_catch | attackJumper | +0.225 |
-| scrappy_knock_on | attackJumper | −0.3 |
-| steal | defendJumper | +0.45 |
-| steal | attackJumper | −0.15 |
+| every lineout | hooker | `lineoutThrows++` |
+| `clean_catch` | hooker | `lineoutWins++` |
+| `clean_catch` | attackJumper | `lineoutCatches++` |
+| `steal` | defendJumper | `lineoutSteals++` |
 
 ---
 
@@ -670,21 +720,11 @@ Because the kick lacked hang-time or distance (or is over-hit), the fullback has
 - Very good kick: `ballX += attackDir() × 20`
 - Poor kick: `ballX += attackDir() × 30` or `× 8` (50-50, resolved in resolver)
 
-### Rating adjustments
+### Stat increments
 
-| Outcome | Player | Delta |
+| Outcome | Player | Stats |
 |---|---|---|
-| attack_retain | scrum half | +0.15 |
-| attack_retain | winger | +0.30 |
-| attack_retain | fullback | −0.15 |
-| defend_knock_on | scrum half | +0.075 |
-| defend_knock_on | winger | +0.15 |
-| defend_knock_on | fullback | −0.225 |
-| defend_catch_contested | fullback | +0.30 |
-| defend_catch_contested | winger | −0.15 |
-| defend_catch | fullback | +0.15 |
-| knock_on | scrum half | −0.15 |
-| knock_on | fullback | −0.225 |
+| every box kick | scrumHalf | `kicksFromHand++` |
 
 ---
 
@@ -738,12 +778,11 @@ If the ball **does not** go into touch at all, the defending fullback catches th
 | `two_back` | +5 |
 | `three_back` | +10 |
 
-### Rating adjustments
+### Stat increments
 
-| Outcome | Player | Delta |
+| Outcome | Player | Stats |
 |---|---|---|
-| good kick (kickScore ≥ 25) | kicker | +0.15 |
-| poor kick (kickScore < 25) | kicker | −0.225 |
+| every tactical kick | kicker | `kicksFromHand++` |
 
 ---
 
@@ -789,7 +828,7 @@ Both lateral angle (`ballY`) and distance from the try line (`ballX`) contribute
 On success: +3 points, possession flips, ballX resets to 50, → KickOff.
 On miss: no score, possession flips, ballX resets to 50, → KickOff.
 
-Rating: success → kicker +0.3; miss → kicker −0.225.
+Stat increments: `kicker.kicksAtGoal++`; on success `kicksMade++`; on miss `kicksMissed++`.
 
 ### Choice: kick_to_touch
 
@@ -833,11 +872,9 @@ stats.tries[possession]++
 → ConversionKick
 ```
 
-### Rating adjustments
+### Stat increments
 
-| Player | Delta |
-|---|---|
-| scorer | +1.0 |
+`scorer.matchStats.tries++`
 
 ---
 
@@ -866,12 +903,9 @@ On success: +2 points.
 
 After resolution (regardless of outcome): possession flips, ballX resets to 50, → KickOff.
 
-### Rating adjustments
+### Stat increments
 
-| Outcome | Player | Delta |
-|---|---|---|
-| success | kicker | +0.225 |
-| miss | kicker | −0.15 |
+`kicker.matchStats.kicksAtGoal++`; on success `kicksMade++`; on miss `kicksMissed++`.
 
 ---
 

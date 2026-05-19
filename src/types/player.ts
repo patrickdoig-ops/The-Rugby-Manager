@@ -21,6 +21,31 @@ export interface PlayerStats {
   composure: number;
 }
 
+export interface PlayerMatchStats {
+  carries:                number;
+  metresCarried:          number;
+  lineBreaks:             number;
+  defendersBeaten:        number;
+  knockOns:               number;
+  passes:                 number;
+  tacklesAttempted:       number;
+  tacklesMade:            number;
+  dominantTackles:        number;
+  turnoversWon:           number;
+  penaltiesConceded:      number;
+  tries:                  number;
+  kicksFromHand:          number;
+  kicksAtGoal:            number;
+  kicksMade:              number;
+  kicksMissed:            number;
+  lineoutThrows:          number;
+  lineoutWins:            number;
+  lineoutCatches:         number;
+  lineoutSteals:          number;
+  scrumPenaltiesWon:      number;
+  scrumPenaltiesConceded: number;
+}
+
 export interface Player {
   id: number;
   squadNumber: number;
@@ -28,6 +53,7 @@ export interface Player {
   position: Position;
   baseStats: PlayerStats;
   currentStats: PlayerStats;
+  matchStats: PlayerMatchStats;
   fatiguePct: number;
   formModifier: number;
   rating: number;

@@ -9,8 +9,9 @@ function tacticNote(chancePct: number, ...lines: string[]): string {
   return rng(1, 100) <= chancePct ? ' ' + lines[rng(0, lines.length - 1)] : '';
 }
 
-export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, inOwn22, inOwnHalf, inOpposition22, adjustRating, randomPlayer, draftEvent }: PhaseContext): PhaseResult {
+export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, inOwn22, inOwnHalf, inOpposition22, randomPlayer, draftEvent }: PhaseContext): PhaseResult {
   const kicker   = attackTeam.players.find(p => p.id === 10 || p.id === 9) ?? attackTeam.players[0];
+  kicker.matchStats.kicksFromHand++;
   const defender = defendTeam.players.find(p => p.id === 15) ?? randomPlayer(defendTeam);
   
   const startedInOwn22 = inOwn22();
@@ -28,8 +29,6 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
   
   // Update ballX tentatively
   state.ballX = clamp(state.ballX + kickDir * res.distance, 5, 95);
-
-  adjustRating(kicker, goodKick ? +0.15 : -0.225);
 
   if (goesOutOnTheFull) {
     if (!startedInOwn22) {

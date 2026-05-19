@@ -1,7 +1,8 @@
 import type { MatchState, GameEvent } from '../types/match';
 import type { Team, TeamTactics } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';
-import type { Player, PlayerStats } from '../types/player';
+import type { Player, PlayerStats, PlayerMatchStats } from '../types/player';
+import { computeRating } from './RatingEngine';
 import { MatchPhase, type PossessionSide, type PenaltyChoice, type KickOffStrategy } from '../types/engine';
 import { StateMachine } from './StateMachine';
 import { applyFatigue } from './StaminaSystem';
@@ -32,6 +33,17 @@ function deepCloneStats(s: PlayerStats): PlayerStats {
   return { ...s };
 }
 
+function zeroMatchStats(): PlayerMatchStats {
+  return {
+    carries: 0, metresCarried: 0, lineBreaks: 0, defendersBeaten: 0,
+    knockOns: 0, passes: 0, tacklesAttempted: 0, tacklesMade: 0,
+    dominantTackles: 0, turnoversWon: 0, penaltiesConceded: 0, tries: 0,
+    kicksFromHand: 0, kicksAtGoal: 0, kicksMade: 0, kicksMissed: 0,
+    lineoutThrows: 0, lineoutWins: 0, lineoutCatches: 0, lineoutSteals: 0,
+    scrumPenaltiesWon: 0, scrumPenaltiesConceded: 0,
+  };
+}
+
 type RawPlayer = Omit<Player, 'currentStats' | 'fatiguePct' | 'rating' | 'x' | 'y' | 'squadNumber'> & { squadNumber?: number };
 
 export type RawTeamInput = {
@@ -51,6 +63,7 @@ function initPlayer(raw: RawPlayer): Player {
     squadNumber: raw.squadNumber ?? raw.id,
     baseStats: deepCloneStats(raw.baseStats),
     currentStats: current,
+    matchStats: zeroMatchStats(),
     formModifier: form,
     fatiguePct: 100,
     rating: 6.0,
@@ -226,9 +239,9 @@ export class MatchEngine {
     return this.state;
   }
 
-  private adjustRating(player: Player | undefined, delta: number): void {
-    if (!player) return;
-    player.rating = clamp(player.rating + delta, 1, 10);
+  private recalculateRatings(): void {
+    for (const p of this.state.homeTeam.players) p.rating = computeRating(p);
+    for (const p of this.state.awayTeam.players) p.rating = computeRating(p);
   }
 
   // Home attacks toward x=100 in the first half, toward x=0 in the second.
@@ -376,6 +389,7 @@ export class MatchEngine {
       }
 
       const event = this.resolvePhase();
+      this.recalculateRatings();
       this.state.events.push(event);
       if (this.state.events.length > 300) this.state.events.splice(0, this.state.events.length - 300);
 
@@ -444,7 +458,6 @@ export class MatchEngine {
       inOppositionHalf: () => this.inOppositionHalf(),
       inOwn22:          () => this.inOwn22(),
       inOwnHalf:        () => this.inOwnHalf(),
-      adjustRating:   (player, delta) => this.adjustRating(player, delta),
       randomPlayer:   (team) => team.players[rng(0, team.players.length - 1)],
       pickPlayer:     (team, ...ids) => team.players.find(p => ids.includes(p.id)) ?? team.players[0],
       draftEvent:     (phase) => this.draftEvent(phase),
@@ -567,8 +580,10 @@ export class MatchEngine {
       const distFromPosts = Math.abs(state.ballY - 50) * 0.3 + Math.abs(state.ballX - tryLine) * 0.2;
       const res = resolveGoalKick(kicker, distFromPosts);
 
-      if (res.success) this.adjustRating(kicker, +0.3);
-      else             this.adjustRating(kicker, -0.225);
+      kicker.matchStats.kicksAtGoal++;
+      if (res.success) kicker.matchStats.kicksMade++;
+      else             kicker.matchStats.kicksMissed++;
+      this.recalculateRatings();
 
       const penEvent: GameEvent = {
         id: makeId(),

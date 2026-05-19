@@ -5,8 +5,9 @@ import { getCommentary } from '../CommentaryEngine';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
 
-export function handleKickOff({ state, attackTeam, defendTeam, attackDir, adjustRating, randomPlayer, draftEvent, kickOffStrategy }: PhaseContext): PhaseResult {
+export function handleKickOff({ state, attackTeam, defendTeam, attackDir, randomPlayer, draftEvent, kickOffStrategy }: PhaseContext): PhaseResult {
   const kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
+  kicker.matchStats.kicksFromHand++;
 
   let receiver;
   let chaser;
@@ -30,7 +31,6 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, adjust
   state.ballX = clamp(50 + attackDir() * res.distance, 5, 95);
 
   if (res.result === 'poor_kick') {
-    adjustRating(kicker, -0.225);
     state.ballX = 50;
     state.possession = state.possession === 'home' ? 'away' : 'home';
     return {
@@ -41,7 +41,6 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, adjust
   }
 
   if (res.result === 'knock_on') {
-    adjustRating(receiver, -0.375);
     return {
       nextPhase: MatchPhase.Scrum,
       commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: receiver, secondaryPlayer: chaser }, 'knock_on'),

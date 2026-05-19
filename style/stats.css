@@ -97,10 +97,29 @@
 .player-stat-row {
   display: grid;
   grid-template-columns: 22px 1fr 36px 28px;
-  gap: 5px;
+  grid-template-rows: auto auto;
+  gap: 3px 5px;
   align-items: center;
   padding: 5px 2px;
   border-bottom: 1px solid var(--rm-hairline);
+}
+
+.player-stat-chips {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 6px;
+}
+
+.chip {
+  font-family: var(--rm-font-mono);
+  font-size: 8px;
+  color: var(--rm-text-dim);
+  white-space: nowrap;
+}
+
+.chip-try {
+  color: var(--rm-stat-5);
+  font-weight: 700;
 }
 
 /* Jersey number */

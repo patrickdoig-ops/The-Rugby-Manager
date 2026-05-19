@@ -9,7 +9,7 @@ function tacticNote(chancePct: number, ...lines: string[]): string {
   return rng(1, 100) <= chancePct ? ' ' + lines[rng(0, lines.length - 1)] : '';
 }
 
-export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isTryScored, inOwnHalf, inOwn22, adjustRating, randomPlayer, pickPlayer, draftEvent }: PhaseContext): PhaseResult {
+export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isTryScored, inOwnHalf, inOwn22, randomPlayer, pickPlayer, draftEvent }: PhaseContext): PhaseResult {
   // Step 0 — Kick or carry decision
   const plan = attackTeam.tactics.attackingGamePlan;
   let kickProb = 15;
@@ -53,11 +53,16 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
   let nextPhase: MatchPhase;
   let commentary: string;
 
+  const totalMetres = runMetres + res.gainMetres;
+
   if (res.outcome === 'line_break') {
-    adjustRating(carrier, +0.375);
-    adjustRating(defender, -0.4);
+    carrier.matchStats.carries++;
+    carrier.matchStats.metresCarried += totalMetres;
+    carrier.matchStats.lineBreaks++;
+    carrier.matchStats.defendersBeaten++;
+    defender.matchStats.tacklesAttempted++;
     state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
-    state.ballX = clamp(state.ballX + attackDir() * (runMetres + res.gainMetres), 0, 100);
+    state.ballX = clamp(state.ballX + attackDir() * totalMetres, 0, 100);
     const tryScored = isTryScored();
     nextPhase = tryScored ? MatchPhase.TryScored : MatchPhase.Breakdown;
     if (tryScored) {
@@ -72,18 +77,25 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
       commentary = getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: carrier, secondaryPlayer: defender }, 'line_break') + lineBreakNote;
     }
   } else if (res.outcome === 'dominant_tackle') {
-    adjustRating(defender, +0.3);
-    adjustRating(carrier, -0.075);
+    carrier.matchStats.carries++;
+    carrier.matchStats.metresCarried += totalMetres;
+    defender.matchStats.tacklesAttempted++;
+    defender.matchStats.tacklesMade++;
+    defender.matchStats.dominantTackles++;
     state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
     state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].made++;
-    state.ballX = clamp(state.ballX + attackDir() * (runMetres + res.gainMetres), 0, 100);
+    state.ballX = clamp(state.ballX + attackDir() * totalMetres, 0, 100);
     nextPhase = MatchPhase.Breakdown;
     commentary = getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: carrier, secondaryPlayer: defender }, 'dominant_tackle');
   } else {
-    if (res.outcome === 'dominant_carry') adjustRating(carrier, +0.225);
+    carrier.matchStats.carries++;
+    carrier.matchStats.metresCarried += totalMetres;
+    if (res.outcome === 'dominant_carry') carrier.matchStats.defendersBeaten++;
+    defender.matchStats.tacklesAttempted++;
+    defender.matchStats.tacklesMade++;
     state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
     state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].made++;
-    state.ballX = clamp(state.ballX + attackDir() * (runMetres + res.gainMetres), 0, 100);
+    state.ballX = clamp(state.ballX + attackDir() * totalMetres, 0, 100);
     nextPhase = MatchPhase.Breakdown;
     commentary = getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: carrier, secondaryPlayer: defender }, res.outcome);
   }

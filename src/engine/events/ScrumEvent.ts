@@ -3,7 +3,7 @@ import { MatchPhase } from '../../types/engine';
 import { resolveScrum } from '../resolvers/ScrumResolver';
 import { getCommentary } from '../CommentaryEngine';
 
-export function handleScrum({ state, attackTeam, defendTeam, adjustRating, draftEvent }: PhaseContext): PhaseResult {
+export function handleScrum({ state, attackTeam, defendTeam, draftEvent }: PhaseContext): PhaseResult {
   state.breakdownMod = { attack: 0, defend: 0 };
   const attackForwards = attackTeam.players.filter(p => p.id <= 8);
   const defendForwards = defendTeam.players.filter(p => p.id <= 8);
@@ -14,8 +14,8 @@ export function handleScrum({ state, attackTeam, defendTeam, adjustRating, draft
   const res = resolveScrum(attackForwards, defendForwards);
 
   if (res.result === 'attacking_dominant_penalty') {
-    attackFrontRow.forEach(p => adjustRating(p, +0.225));
-    defendFrontRow.forEach(p => adjustRating(p, -0.3));
+    attackFrontRow.forEach(p => { p.matchStats.scrumPenaltiesWon++; });
+    defendFrontRow.forEach(p => { p.matchStats.scrumPenaltiesConceded++; });
     state.stats.scrums[state.possession]++;
     return {
       nextPhase: MatchPhase.Penalty,
@@ -26,7 +26,6 @@ export function handleScrum({ state, attackTeam, defendTeam, adjustRating, draft
   }
 
   if (res.result === 'stable_win') {
-    attackFrontRow.forEach(p => adjustRating(p, +0.15));
     state.stats.scrums[state.possession]++;
     return {
       nextPhase: MatchPhase.FirstPhase,
@@ -46,8 +45,8 @@ export function handleScrum({ state, attackTeam, defendTeam, adjustRating, draft
   }
 
   // defending_dominant_penalty — defending team wins the penalty
-  defendFrontRow.forEach(p => adjustRating(p, +0.225));
-  attackFrontRow.forEach(p => adjustRating(p, -0.3));
+  defendFrontRow.forEach(p => { p.matchStats.scrumPenaltiesWon++; });
+  attackFrontRow.forEach(p => { p.matchStats.scrumPenaltiesConceded++; });
   state.possession = state.possession === 'home' ? 'away' : 'home';
   state.stats.scrums[state.possession]++;
   return {

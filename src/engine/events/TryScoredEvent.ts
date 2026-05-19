@@ -1,10 +1,10 @@
 import type { PhaseContext, PhaseResult } from './types';
 import { MatchPhase } from '../../types/engine';
 
-export function handleTryScored({ state, attackTeam, adjustRating, randomPlayer }: PhaseContext): PhaseResult {
+export function handleTryScored({ state, attackTeam, randomPlayer }: PhaseContext): PhaseResult {
   const lastEvent = state.events[state.events.length - 1];
   const scorer = lastEvent?.primaryPlayer ?? randomPlayer(attackTeam);
-  adjustRating(scorer, +1.0);
+  scorer.matchStats.tries++;
 
   state.score[state.possession] += 5;
   state.stats.tries[state.possession]++;

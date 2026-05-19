@@ -49,6 +49,18 @@ When your changes create orphans:
 
 The test: Every changed line should trace directly to the user's request.
 
+## 4. Module Boundaries
+
+**Split before god objects form. Don't wrap clean primitives.**
+
+- When one file accumulates multiple unrelated responsibilities, split — name each piece by what it does (Coordinator, Controller, Router, Handler). Don't wait for thousands of lines.
+- Push back on proposed abstractions that wrap already-clean primitives. Don't wrap a typed state object in a "store". Don't wrap a typed pub/sub singleton in a "dispatcher". Both add ceremony without isolation benefit.
+- Prefer pure functions over methods when state can be passed directly. `FieldPosition` helpers take `state: MatchState` as an argument; they are not closures threaded through a deps interface.
+- Use constructor dependency injection for classes whose methods share the same deps (`PenaltyHandler`, `ClockController`). Use module-level functions for pure helpers (`FieldPosition`, `PhaseRouter`).
+- Extract a shared utility the moment a second module needs it, not before. `eventId.ts` was extracted only when both `PenaltyHandler` and `ClockController` needed `makeId()`.
+- Refactor incrementally. One cohesive split per commit; each commit must build clean and preserve behaviour. Big-bang refactors are unreviewable.
+- A module-boundary change is an engine change — update `engine.md` in the same commit.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
@@ -80,7 +92,11 @@ The version string follows the pattern `0.XXa` (e.g. `0.01a`, `0.02a`). Incremen
 **After any change to engine code, update `engine.md` to match. This is not optional — engine.md must be updated in the same commit as the engine change.**
 
 `engine.md` is a plain-English reference for the entire game engine. It must stay in sync with the code. This includes:
-- `src/engine/MatchEngine.ts` — loop, phase resolution, stat increments, ball movement
+- `src/engine/MatchCoordinator.ts` — public API, tick loop, fatigue accumulator, possession/territory stats, substitution, rating recalculation
+- `src/engine/ClockController.ts` — minute advance, clock-in-red, half-time, full-time
+- `src/engine/PhaseRouter.ts` — `PHASE_HANDLERS` map, `resolvePhase`, `draftEvent`
+- `src/engine/PenaltyHandler.ts` — penalty modal pause + outcome branches, kick-off strategy modal
+- `src/engine/FieldPosition.ts` — pure field-position helpers (`attackDir`, `isTryScored`, `inOpposition22`, etc.)
 - `src/engine/StaminaSystem.ts` — fatigue decay formula, attribute penalty tiers
 - `src/engine/StateMachine.ts` — allowed phase transitions
 - `src/engine/resolvers/*.ts` — all resolver formulas, thresholds, return types
@@ -89,7 +105,7 @@ The version string follows the pattern `0.XXa` (e.g. `0.01a`, `0.02a`). Incremen
 - `src/types/engine.ts` — result type unions (LineoutResult, ScrumResult, etc.)
 
 When updating `engine.md`, document:
-1. Which players are selected (exact `find`/`filter` conditions from `MatchEngine.resolvePhase()`)
+1. Which players are selected (exact `find`/`filter` conditions from `PhaseRouter.resolvePhase()` and the relevant event handler)
 2. The resolver formula with actual numbers from the resolver file
 3. All outcome thresholds
 4. Ball position changes and possession swaps
@@ -122,7 +138,7 @@ Within a single tick, `engine:event` is emitted **before** `engine:stateChange`.
 
 ### Simulation loop
 
-`MatchEngine.tick()` is a self-rescheduling `async` function using `setTimeout` — **not** `setInterval`. Pausing is simply not scheduling the next tick. Resuming calls `scheduleTick(0)`.
+`MatchCoordinator.tick()` is a self-rescheduling `async` function using `setTimeout` — **not** `setInterval`. Pausing is simply not scheduling the next tick. Resuming calls `scheduleTick(0)`. The tick loop delegates to `ClockController` for time advancement and period transitions, to `PhaseRouter.resolvePhase` for phase dispatch, and to `PenaltyHandler` for penalty/kick-off modal pauses; it owns only the fatigue accumulator, possession/territory stats, the announce/award events, and rating recalculation.
 
 Time advances `0.2 + rng(0,8)/10` game minutes per tick (0.2–1.0 min). Fatigue is applied every ~5 accumulated game minutes via `fatigueAccumulator`. Clock is clamped to 40 (first half) or 80 (second half) until `clockInTheRed` is set, then advances at 1/2 normal speed.
 
@@ -158,14 +174,14 @@ Three carry phases share the same evasion/collision resolver (`resolveOpenPlay`)
 
 ### Attack direction
 
-Home attacks toward x=100 in the first half, toward x=0 in the second half. **Teams only swap ends at half-time, never on turnovers.** All `ballX` mutations must go through `attackDir()`, `isTryScored()`, and `inOpposition22()` in `MatchEngine` — these are the authoritative helpers that factor in `state.halfTimeDone`.
+Home attacks toward x=100 in the first half, toward x=0 in the second half. **Teams only swap ends at half-time, never on turnovers.** All `ballX` reasoning must go through the pure helpers in `src/engine/FieldPosition.ts` (`attackDir(state)`, `isTryScored(state)`, `inOpposition22(state)`, `inOppositionHalf(state)`, `inOwn22(state)`, `inOwnHalf(state)`) — these are the authoritative helpers that factor in `state.halfTimeDone`.
 
 - Try scored: `ballX >= 95` (home attacking right) or `ballX <= 5` (home attacking left)
 - In opposition 22: `ballX >= 78` / `ballX <= 22` depending on half and possession
 
 ### Resolvers
 
-Each resolver in `src/engine/resolvers/` is a pure function (no side effects, no imports from engine). They receive player objects and return a typed result. `MatchEngine.resolvePhase()` calls them and owns all state mutations and stat increments.
+Each resolver in `src/engine/resolvers/` is a pure function (no side effects, no imports from engine). They receive player objects and return a typed result. `PhaseRouter.resolvePhase()` builds the `PhaseContext`, dispatches to the matching event handler (which calls the resolver), runs the `StateMachine` transition, and returns the resulting `GameEvent`. Event handlers are read-only over state: they build a `MatchEvent[]` (`src/types/matchEvent.ts`) and return it; `PhaseRouter` applies the queue through `applyMatchEvent` (`src/engine/applyMatchEvent.ts`) — the single mutation boundary for `MatchState` and `Player` fields.
 
 Resolver formulas at a glance:
 
@@ -271,7 +287,7 @@ Two attributes (`kicking`, `positioning`) are never degraded by fatigue. Full fa
 | strength | ×0.90 | — | ×0.70 | ×0.50 | ×0.30 |
 | kicking, positioning | unchanged | unchanged | unchanged | unchanged | unchanged |
 
-When a player's fatiguePct drops below 50% for the first time, `applyFatigue` returns that player in a list; `MatchEngine` emits a commentary event with a randomised "looking tired/leggy/worn out" line.
+When a player's fatiguePct drops below 50% for the first time, `applyFatigue` returns that player in a list; `MatchCoordinator` emits a commentary event with a randomised "looking tired/leggy/worn out" line.
 
 ### Player rating system
 
@@ -303,7 +319,7 @@ Note: `tackles.attempted` is incremented for `dominant_tackle`, `dominant_carry`
 | `PreMatchScreen.ts` | Pre-match player attribute table; calls `onStart()` callback to trigger `engine.initialize()` |
 | `SimController.ts` | Play / Pause / Speed controls (the only UI module that calls engine methods) + view toggle button handlers that switch `#panel-bottom` between `view-dashboard`, `view-commentary`, `view-stats`, `view-players` |
 
-`AppShell.ts` injects the static HTML skeleton. All UI modules are initialised before `engine.initialize()` fires — they are purely reactive and have no internal state beyond DOM references, render caches, and one-shot initialisation values. Player objects are created once in `MatchEngine` and mutated in-place throughout the match; their identity (name, id, team membership) never changes. Commentary colourisation scans commentary text for `"Name (#N)"` patterns from a cached roster of all 30 players (both squads) and team name strings, wrapping matches in inline-coloured spans. Player names are unique across both squads.
+`AppShell.ts` injects the static HTML skeleton. All UI modules are initialised before `engine.initialize()` fires — they are purely reactive and have no internal state beyond DOM references, render caches, and one-shot initialisation values. Player objects are created once in `MatchCoordinator` and mutated in-place throughout the match; their identity (name, id, team membership) never changes. Commentary colourisation scans commentary text for `"Name (#N)"` patterns from a cached roster of all 30 players (both squads) and team name strings, wrapping matches in inline-coloured spans. Player names are unique across both squads.
 
 ### Live match screen layout
 
@@ -358,7 +374,7 @@ Font roles — apply consistently:
 
 ### Team data
 
-`src/data/team-home.json` (The Lions, `#c8102e`) and `src/data/team-away.json` (The Eagles, `#003087`). Each has 15 players with 12 base stats on a 1–100 integer scale. `initPlayer()` in `MatchEngine` copies `baseStats` to `currentStats` at match start, then `StaminaSystem.applyFatigue()` mutates `currentStats` over the course of the match. `baseStats` is never modified.
+`src/data/team-home.json` (The Lions, `#c8102e`) and `src/data/team-away.json` (The Eagles, `#003087`). Each has 15 players with 12 base stats on a 1–100 integer scale. `initPlayer()` in `MatchCoordinator` copies `baseStats` to `currentStats` at match start, then `StaminaSystem.applyFatigue()` mutates `currentStats` over the course of the match. `baseStats` is never modified.
 
 ## Placeholder Data in Pre-Match Screen
 

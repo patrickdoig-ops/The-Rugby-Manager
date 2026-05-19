@@ -61,11 +61,7 @@
 
 /* ─── Event type accents ─── */
 
-/* TRY — gold background highlight, body font, bold */
-.event-try {
-  background: color-mix(in oklch, var(--rm-amber) 14%, var(--rm-surface));
-  border-bottom-color: color-mix(in oklch, var(--rm-amber) 30%, transparent);
-}
+/* TRY — body font, bold */
 .event-try .event-tag  { color: var(--rm-amber); font-weight: 700; }
 .event-try .event-text {
   font-family: var(--rm-font-body);

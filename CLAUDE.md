@@ -321,9 +321,40 @@ Note: `tackles.attempted` is incremented for `dominant_tackle`, `dominant_carry`
 | `CommentaryFeed.ts` | Appending commentary entries (max 30, prepend-scrolls); one-shot `stateChange` subscription caches team colours, names, and full squad rosters; colorizes all player name mentions in their team colour; colorizes team name mentions (The Lions, The Eagles) in their team colour |
 | `ModalManager.ts` | Penalty choice bottom sheet / centred dialog |
 | `PreMatchScreen.ts` | Pre-match player attribute table; calls `onStart()` callback to trigger `engine.initialize()` |
-| `SimController.ts` | Play / Pause buttons and speed slider — the only UI module that calls engine methods |
+| `SimController.ts` | Play / Pause / Speed controls (the only UI module that calls engine methods) + view toggle button handlers that switch `#panel-bottom` between `view-dashboard`, `view-commentary`, `view-stats`, `view-players` |
 
 `AppShell.ts` injects the static HTML skeleton. All UI modules are initialised before `engine.initialize()` fires — they are purely reactive and have no internal state beyond DOM references, render caches, and one-shot initialisation values. Player objects are created once in `MatchEngine` and mutated in-place throughout the match; their identity (name, id, team membership) never changes. Commentary colourisation scans commentary text for `"Name (#N)"` patterns from a cached roster of all 30 players (both squads) and team name strings, wrapping matches in inline-coloured spans. Player names are unique across both squads.
+
+### Live match screen layout
+
+```
+#scoreboard                      — score grid (3 columns) + pitch strip (spans all 3)
+  #score-home / #match-clock / #score-away
+  #pitch-wrapper (grid-column: 1/-1)
+    .end-label#home-end-label
+    #pitch-field                 — striped pitch; lines at 8%/24%/50%/76%/92%
+      #ball-marker               — SVG rugby ball (amber, drop-shadow); left set by PitchStrip
+      #attack-label              — overlaid at bottom of pitch; shows shortName e.g. "LNS attacking →"
+    .end-label#away-end-label
+#view-toggle-bar                 — 4 icon-only Heroicon buttons; active one gets class "active"
+  #btn-view-dashboard            — Squares2X2 icon
+  #btn-view-commentary           — ChatBubbleLeftEllipsis icon
+  #btn-view-stats                — ChartBar icon
+  #btn-view-players              — UserGroup icon
+#panel-bottom.view-{mode}        — class drives layout; switched by SimController
+  #panel-commentary              — commentary feed (always present in DOM)
+  #panel-stats                   — match stats only (#stats-content inside)
+  #panel-players                 — player stats only (#player-stats-content inside)
+#sim-controls / #ctrl-bar        — unchanged
+```
+
+`#panel-bottom` layout modes (class on the element):
+- `view-dashboard` — CSS grid 3fr/2fr; commentary left, stats+players stacked right (1fr/1fr rows)
+- `view-commentary` — flex column; stats and players `display:none`
+- `view-stats` — flex column; commentary and players `display:none`
+- `view-players` — flex column; commentary and stats `display:none`
+
+`StatsPanel.ts` writes to `#stats-content` and `#player-stats-content` regardless of active view — live data always flows, only visibility changes. **Do not merge `#panel-stats` and `#panel-players` back into one element** — the separate IDs enable independent view modes.
 
 Two key fields carry state between phases:
 - `MatchState.kickReturnCarrier?: Player` — set by each kick handler before transitioning to `KickReturn`; consumed and cleared at the start of `KickReturnEvent`. Sources: `KickOffEvent` (clean_receive, short_kick_retain), `BoxKickEvent` (attack_retain, defend_catch_contested, defend_catch), `TacticalKickEvent` (kick_caught).
@@ -333,7 +364,7 @@ Two key fields carry state between phases:
 
 **`DESIGN.md` is the single source of truth for all visual decisions.** Read it before touching any UI code. Every colour, font, spacing, and component pattern is documented there. When in doubt, consult `DESIGN.md` first — do not invent visual decisions.
 
-CSS custom properties are defined in `style/main.css` `:root` and must be used for every colour — no hardcoded hex except: primary CTA green (`#007a2a` / `#009434` active / `#006622` pressed), team identity colours injected inline from team JSON data, and ball fill (`#7a3a10`).
+CSS custom properties are defined in `style/main.css` `:root` and must be used for every colour — no hardcoded hex except: primary CTA green (`#007a2a` / `#009434` active / `#006622` pressed) and team identity colours injected inline from team JSON data.
 
 Key token prefixes from the `--rm-*` system: `--rm-bg`, `--rm-surface`, `--rm-surface-2`, `--rm-surface-3`, `--rm-border-soft`, `--rm-border`, `--rm-hairline`, `--rm-chalk`, `--rm-text`, `--rm-text-muted`, `--rm-text-dim`, `--rm-pitch`, `--rm-amber`, `--rm-coral`, `--rm-font-display` (Anton), `--rm-font-editor` (Instrument Serif), `--rm-font-body` (Geist), `--rm-font-mono` (JetBrains Mono).
 

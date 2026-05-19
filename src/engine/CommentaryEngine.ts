@@ -1,5 +1,6 @@
 import { MatchPhase } from '../types/engine';
 import type { GameEvent } from '../types/match';
+import { pickRandom } from '../utils/rng';
 
 type Templates = Record<string, string[]>;
 
@@ -379,7 +380,7 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
 };
 
 function pick(arr: string[]): string {
-  return arr[Math.floor(Math.random() * arr.length)];
+  return pickRandom(arr);
 }
 
 function playerLabel(p: { name: string; squadNumber: number } | undefined, fallback: string): string {

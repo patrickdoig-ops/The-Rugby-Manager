@@ -47,6 +47,7 @@ export interface MatchState {
     isRunning: boolean;
     isPaused: boolean;
     tickDelayMs: number;
+    seed: number;
   };
   phase: MatchPhase;
   possession: PossessionSide;

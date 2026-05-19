@@ -7,7 +7,7 @@ import { StateMachine } from './StateMachine';
 import { computeFatigue } from './StaminaSystem';
 import { getCommentary } from './CommentaryEngine';
 import { eventBus } from '../utils/eventBus';
-import { rng, rngForm } from '../utils/rng';
+import { rng, rngForm, setMatchSeed } from '../utils/rng';
 import { PenaltyHandler } from './PenaltyHandler';
 import { ClockController } from './ClockController';
 import { resolvePhase, draftEvent } from './PhaseRouter';
@@ -68,7 +68,7 @@ function buildTeam(raw: RawTeamInput, tactics?: TeamTactics): Team {
   };
 }
 
-function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayMs: number, playerTactics?: TeamTactics, humanSide: 'home' | 'away' = 'home'): MatchState {
+function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayMs: number, seed: number, playerTactics?: TeamTactics, humanSide: 'home' | 'away' = 'home'): MatchState {
   return {
     clock: {
       gameMinute: 0,
@@ -81,6 +81,7 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
       isRunning: false,
       isPaused: false,
       tickDelayMs,
+      seed,
     },
     phase: MatchPhase.KickOff,
     score: { home: 0, away: 0 },
@@ -114,11 +115,13 @@ export class MatchCoordinator {
   constructor(
     homeRaw: RawTeamInput,
     awayRaw: RawTeamInput,
-    opts: { tickDelayMs?: number; homeTactics?: TeamTactics; playerTactics?: TeamTactics; humanSide?: 'home' | 'away' } = {},
+    opts: { tickDelayMs?: number; homeTactics?: TeamTactics; playerTactics?: TeamTactics; humanSide?: 'home' | 'away'; seed?: number } = {},
   ) {
+    const seed = (opts.seed ?? Math.floor(Math.random() * 0x100000000)) >>> 0;
+    setMatchSeed(seed);
     this.humanSide = opts.humanSide ?? 'home';
     const tactics = opts.playerTactics ?? opts.homeTactics;
-    this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, tactics, this.humanSide);
+    this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, seed, tactics, this.humanSide);
     this.sm = new StateMachine(MatchPhase.KickOff);
     this.clock = new ClockController(this.sm);
 

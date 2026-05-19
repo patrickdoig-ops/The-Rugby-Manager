@@ -1,14 +1,40 @@
+function mulberry32(seed: number): () => number {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6D2B79F5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+let outcomeRand: () => number = mulberry32(1);
+let formRand: () => number = mulberry32(2);
+let commentaryRand: () => number = mulberry32(3);
+
+export function setMatchSeed(seed: number): void {
+  const s = seed >>> 0;
+  outcomeRand = mulberry32(s ^ 0x9E3779B9);
+  formRand = mulberry32(s ^ 0x85EBCA6B);
+  commentaryRand = mulberry32(s ^ 0xC2B2AE35);
+}
+
 export function rng(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  return Math.floor(outcomeRand() * (max - min + 1)) + min;
 }
 
 function rngNormal(): number {
   let u1: number;
-  do { u1 = Math.random(); } while (u1 === 0);
-  const u2 = Math.random();
+  do { u1 = formRand(); } while (u1 === 0);
+  const u2 = formRand();
   return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
 }
 
 export function rngForm(): number {
   return Math.max(-10, Math.min(10, Math.round(rngNormal() * 5)));
+}
+
+export function pickRandom<T>(arr: readonly T[]): T {
+  return arr[Math.floor(commentaryRand() * arr.length)];
 }

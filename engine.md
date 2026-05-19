@@ -34,7 +34,7 @@ All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.cu
 ```ts
 state.clock  = { gameMinute, halfTimeDone, clockInTheRed, penaltyKickToTouchLineout }
 state.ball   = { x, y }                              // renamed from ballX/ballY
-state.engine = { isRunning, isPaused, tickDelayMs }
+state.engine = { isRunning, isPaused, tickDelayMs, seed }
 
 // top-level: phase, possession, score, events, breakdownMod, kickReturnCarrier,
 //            homeTeam, awayTeam, stats
@@ -205,9 +205,27 @@ When `computeFatigue` detects a player crossing from ≥ 50% to < 50% fatiguePct
 
 ---
 
+## Determinism (Seeded RNG)
+
+All randomness flows through three isolated mulberry32 streams in `src/utils/rng.ts`:
+
+| Stream | Backing function | Consumers |
+|---|---|---|
+| `outcome` | `rng(min, max)` | Every in-play roll: resolvers, phase handlers, `ClockController.advanceMinute`, coin toss, substitution template selection |
+| `form` | `rngForm()` | Player form modifier in `initPlayer()` |
+| `commentary` | `pickRandom(arr)` | Commentary template selection in `CommentaryEngine.pick()` |
+
+Each stream is seeded with the master seed XORed against a fixed constant, so adding new commentary lines (or any new flavour roll) cannot shift outcome rolls.
+
+The master seed is a 32-bit unsigned integer stored on `state.engine.seed`. It is set in the `MatchCoordinator` constructor — either passed via `opts.seed` or auto-generated via `Math.floor(Math.random() * 0x100000000)`. `setMatchSeed(seed)` is called **before** `initMatchState()` so player form initialisation is deterministic. Once set, the only `Math.random()` call in the engine is the seed-generation line itself.
+
+A match with a given seed is fully reproducible: identical event sequence, identical scores, identical fatigue trajectories.
+
+---
+
 ## Per-Match Form Modifier
 
-**Source:** `rngForm()` in `src/utils/rng.ts`, applied in `initPlayer()` in `src/engine/MatchCoordinator.ts`.
+**Source:** `rngForm()` in `src/utils/rng.ts` (form stream), applied in `initPlayer()` in `src/engine/MatchCoordinator.ts`.
 
 At match start, every player (starters and bench) receives a `formModifier` — a signed integer drawn from a normal distribution (mean 0, std dev 5, clamped to [−10, +10]). It is applied additively to every stat in `currentStats` before the first tick:
 

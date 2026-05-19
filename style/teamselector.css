@@ -52,22 +52,14 @@
   margin: 0;
 }
 
-#ts-matchup {
-  display: flex;
-  align-items: center;
+#ts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
   width: 100%;
 }
 
-#ts-vs {
-  font-family: var(--rm-font-display);
-  font-size: 18px;
-  color: var(--rm-text-dim);
-  flex-shrink: 0;
-}
-
 .ts-card {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;

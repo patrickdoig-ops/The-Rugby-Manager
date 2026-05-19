@@ -1,0 +1,34 @@
+{
+  "id": "leicester",
+  "name": "Leicester",
+  "shortName": "LEI",
+  "color": "#006B3F",
+  "secondaryColor": "#FFFFFF",
+  "players": [
+    { "id": 1,  "name": "James Ward",     "position": "Loosehead Prop",   "baseStats": { "stamina": 72, "strength": 88, "pace": 46, "agility": 49, "handling": 64, "tackling": 81, "breakdown": 78, "kicking": 32, "setPiece": 92, "discipline": 70, "positioning": 70, "composure": 73 } },
+    { "id": 2,  "name": "Tom Ellis",      "position": "Hooker",            "baseStats": { "stamina": 73, "strength": 82, "pace": 54, "agility": 56, "handling": 70, "tackling": 76, "breakdown": 82, "kicking": 36, "setPiece": 91, "discipline": 73, "positioning": 73, "composure": 74 } },
+    { "id": 3,  "name": "Dan Price",      "position": "Tighthead Prop",    "baseStats": { "stamina": 70, "strength": 91, "pace": 43, "agility": 46, "handling": 62, "tackling": 78, "breakdown": 76, "kicking": 28, "setPiece": 93, "discipline": 69, "positioning": 68, "composure": 71 } },
+    { "id": 4,  "name": "Chris Pearce",   "position": "Left Lock",         "baseStats": { "stamina": 74, "strength": 90, "pace": 52, "agility": 50, "handling": 66, "tackling": 80, "breakdown": 80, "kicking": 30, "setPiece": 88, "discipline": 72, "positioning": 75, "composure": 72 } },
+    { "id": 5,  "name": "Matt Thornton",  "position": "Right Lock",        "baseStats": { "stamina": 73, "strength": 89, "pace": 53, "agility": 51, "handling": 67, "tackling": 82, "breakdown": 81, "kicking": 31, "setPiece": 87, "discipline": 71, "positioning": 76, "composure": 73 } },
+    { "id": 6,  "name": "Ben Hughes",     "position": "Blindside Flanker", "baseStats": { "stamina": 79, "strength": 84, "pace": 70, "agility": 71, "handling": 72, "tackling": 87, "breakdown": 88, "kicking": 34, "setPiece": 74, "discipline": 72, "positioning": 78, "composure": 74 } },
+    { "id": 7,  "name": "Luke Fraser",    "position": "Openside Flanker",  "baseStats": { "stamina": 80, "strength": 81, "pace": 74, "agility": 75, "handling": 74, "tackling": 86, "breakdown": 91, "kicking": 36, "setPiece": 71, "discipline": 71, "positioning": 79, "composure": 73 } },
+    { "id": 8,  "name": "Adam Collins",   "position": "Number 8",          "baseStats": { "stamina": 77, "strength": 87, "pace": 74, "agility": 72, "handling": 73, "tackling": 81, "breakdown": 85, "kicking": 38, "setPiece": 76, "discipline": 71, "positioning": 76, "composure": 74 } },
+    { "id": 9,  "name": "Jack Whittle",   "position": "Scrum Half",        "baseStats": { "stamina": 79, "strength": 63, "pace": 83, "agility": 85, "handling": 87, "tackling": 70, "breakdown": 73, "kicking": 73, "setPiece": 66, "discipline": 77, "positioning": 81, "composure": 81 } },
+    { "id": 10, "name": "Sam Cooper",     "position": "Fly Half",          "baseStats": { "stamina": 74, "strength": 66, "pace": 74, "agility": 76, "handling": 82, "tackling": 67, "breakdown": 64, "kicking": 85, "setPiece": 61, "discipline": 78, "positioning": 82, "composure": 84 } },
+    { "id": 11, "name": "Will Rhodes",    "position": "Left Wing",         "baseStats": { "stamina": 77, "strength": 73, "pace": 91, "agility": 89, "handling": 81, "tackling": 73, "breakdown": 62, "kicking": 54, "setPiece": 57, "discipline": 71, "positioning": 80, "composure": 74 } },
+    { "id": 12, "name": "Mike Burton",    "position": "Inside Centre",     "baseStats": { "stamina": 77, "strength": 84, "pace": 76, "agility": 74, "handling": 79, "tackling": 87, "breakdown": 76, "kicking": 56, "setPiece": 63, "discipline": 74, "positioning": 80, "composure": 78 } },
+    { "id": 13, "name": "Rob Hastings",   "position": "Outside Centre",    "baseStats": { "stamina": 76, "strength": 78, "pace": 82, "agility": 81, "handling": 83, "tackling": 78, "breakdown": 66, "kicking": 60, "setPiece": 61, "discipline": 74, "positioning": 81, "composure": 77 } },
+    { "id": 14, "name": "Ed Fry",         "position": "Right Wing",        "baseStats": { "stamina": 76, "strength": 71, "pace": 92, "agility": 90, "handling": 80, "tackling": 72, "breakdown": 61, "kicking": 55, "setPiece": 56, "discipline": 70, "positioning": 79, "composure": 73 } },
+    { "id": 15, "name": "Josh Lowe",      "position": "Fullback",          "baseStats": { "stamina": 77, "strength": 71, "pace": 86, "agility": 84, "handling": 84, "tackling": 73, "breakdown": 63, "kicking": 85, "setPiece": 56, "discipline": 77, "positioning": 88, "composure": 84 } }
+  ],
+  "bench": [
+    { "id": 16, "name": "Pete Davis",   "position": "Loosehead Prop", "baseStats": { "stamina": 68, "strength": 84, "pace": 43, "agility": 46, "handling": 60, "tackling": 76, "breakdown": 74, "kicking": 28, "setPiece": 87, "discipline": 67, "positioning": 66, "composure": 69 } },
+    { "id": 17, "name": "Rory Clarke",  "position": "Hooker",         "baseStats": { "stamina": 70, "strength": 78, "pace": 50, "agility": 52, "handling": 66, "tackling": 72, "breakdown": 77, "kicking": 32, "setPiece": 86, "discipline": 70, "positioning": 70, "composure": 71 } },
+    { "id": 18, "name": "Carl Marsh",   "position": "Tighthead Prop", "baseStats": { "stamina": 67, "strength": 87, "pace": 41, "agility": 43, "handling": 59, "tackling": 74, "breakdown": 72, "kicking": 26, "setPiece": 88, "discipline": 66, "positioning": 64, "composure": 68 } },
+    { "id": 19, "name": "Harry Owen",   "position": "Lock",           "baseStats": { "stamina": 70, "strength": 86, "pace": 49, "agility": 47, "handling": 63, "tackling": 77, "breakdown": 77, "kicking": 28, "setPiece": 83, "discipline": 68, "positioning": 72, "composure": 70 } },
+    { "id": 20, "name": "Finn Brady",   "position": "Flanker",        "baseStats": { "stamina": 76, "strength": 78, "pace": 70, "agility": 70, "handling": 70, "tackling": 82, "breakdown": 85, "kicking": 32, "setPiece": 68, "discipline": 68, "positioning": 75, "composure": 71 } },
+    { "id": 21, "name": "Dan West",     "position": "Scrum Half",     "baseStats": { "stamina": 76, "strength": 60, "pace": 79, "agility": 81, "handling": 83, "tackling": 67, "breakdown": 69, "kicking": 70, "setPiece": 62, "discipline": 74, "positioning": 78, "composure": 77 } },
+    { "id": 22, "name": "Aaron Stone",  "position": "Fly Half",       "baseStats": { "stamina": 71, "strength": 63, "pace": 71, "agility": 72, "handling": 78, "tackling": 63, "breakdown": 60, "kicking": 81, "setPiece": 57, "discipline": 74, "positioning": 79, "composure": 80 } },
+    { "id": 23, "name": "Tom Birch",    "position": "Utility Back",   "baseStats": { "stamina": 73, "strength": 68, "pace": 80, "agility": 79, "handling": 77, "tackling": 70, "breakdown": 60, "kicking": 72, "setPiece": 53, "discipline": 72, "positioning": 77, "composure": 75 } }
+  ]
+}

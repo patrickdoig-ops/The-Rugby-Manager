@@ -9,9 +9,8 @@ function crestHtml(initial: string, color: string, size: number): string {
 }
 
 export function initTeamSelectorScreen(
-  home: RawTeamInput,
-  away: RawTeamInput,
-  onSelect: (side: 'home' | 'away') => void,
+  teams: RawTeamInput[],
+  onSelect: (team: RawTeamInput) => void,
 ): void {
   const el = document.getElementById('team-selector');
   if (!el) return;
@@ -23,28 +22,24 @@ export function initTeamSelectorScreen(
         <h2 id="ts-title">Choose Your Team</h2>
         <p id="ts-subtitle">Select the side you want to manage</p>
       </div>
-      <div id="ts-matchup">
-        <button class="ts-card" data-side="home">
-          ${crestHtml(home.shortName[0] ?? 'H', home.color, 72)}
-          <div class="ts-card-name">${home.name}</div>
-          <div class="ts-card-code">${home.shortName}</div>
-          <div class="ts-card-cta">Manage this team</div>
-        </button>
-        <div id="ts-vs">VS</div>
-        <button class="ts-card" data-side="away">
-          ${crestHtml(away.shortName[0] ?? 'A', away.color, 72)}
-          <div class="ts-card-name">${away.name}</div>
-          <div class="ts-card-code">${away.shortName}</div>
-          <div class="ts-card-cta">Manage this team</div>
-        </button>
+      <div id="ts-grid">
+        ${teams.map(team => `
+          <button class="ts-card" data-id="${team.id}">
+            ${crestHtml(team.shortName[0] ?? '?', team.color, 64)}
+            <div class="ts-card-name">${team.name}</div>
+            <div class="ts-card-code">${team.shortName}</div>
+            <div class="ts-card-cta">Manage this team</div>
+          </button>
+        `).join('')}
       </div>
     </div>
   `;
 
   el.querySelectorAll<HTMLButtonElement>('.ts-card').forEach(btn => {
     btn.addEventListener('click', () => {
+      const team = teams.find(t => t.id === btn.dataset.id)!;
       el.style.display = 'none';
-      onSelect(btn.dataset.side as 'home' | 'away');
+      onSelect(team);
     });
   });
 }

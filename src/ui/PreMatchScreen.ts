@@ -171,6 +171,7 @@ export function initPreMatchScreen(
   home: RawTeam,
   away: RawTeam,
   playerSide: 'home' | 'away',
+  roundNumber: number,
   onStart: (configuredHome: RawTeam, configuredAway: RawTeam, playerTactics: TeamTactics) => void,
 ): void {
   const screen = document.getElementById('pre-match')!;
@@ -194,7 +195,7 @@ export function initPreMatchScreen(
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           <span>Lobby</span>
         </button>
-        <span id="pm-context-label">Match Preview · Round 1</span>
+        <span id="pm-context-label">Match Preview · Round ${roundNumber}</span>
         <div style="width:60px"></div>
       </div>
 

@@ -17,9 +17,9 @@ export function initFixtureListScreen(
   playerTeam: RawTeamInput,
   allTeams: RawTeamInput[],
   onPlay: (homeTeam: RawTeamInput, awayTeam: RawTeamInput, playerSide: 'home' | 'away', round: number) => void,
-): void {
+): { recordResult(round: number, homeScore: number, awayScore: number): void } {
   const el = document.getElementById('fixture-list');
-  if (!el) return;
+  if (!el) return { recordResult() {} };
 
   const opponents = allTeams.filter(t => t.id !== playerTeam.id);
 
@@ -32,6 +32,58 @@ export function initFixtureListScreen(
     { round: 6, homeTeam: opponents[2], awayTeam: playerTeam, playerSide: 'away' },
   ];
 
+  let currentRound = 1;
+  const results = new Map<number, { home: number; away: number }>();
+
+  function render(): void {
+    const list = el!.querySelector('#fl-list')!;
+    list.innerHTML = fixtures.map(f => {
+      const result = results.get(f.round);
+      const isComplete = f.round < currentRound;
+      const isActive   = f.round === currentRound;
+      const rowClass   = isComplete ? 'fl-row--complete' : isActive ? 'fl-row--active' : 'fl-row--locked';
+      const midEl      = isComplete && result
+        ? `<span class="fl-score">${result.home}–${result.away}</span>`
+        : `<span class="fl-vs">vs</span>`;
+      return `
+        <div class="fl-row ${rowClass}">
+          <div class="fl-round">
+            <span class="fl-round-label">RND</span>
+            <span class="fl-round-num">${f.round}</span>
+          </div>
+          <div class="fl-matchup">
+            <div class="fl-team fl-team--home">
+              ${miniCrest(f.homeTeam)}
+              <span class="fl-team-name">${f.homeTeam.shortName}</span>
+            </div>
+            ${midEl}
+            <div class="fl-team fl-team--away">
+              <span class="fl-team-name">${f.awayTeam.shortName}</span>
+              ${miniCrest(f.awayTeam)}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const footer = el!.querySelector('#fl-footer')!;
+    if (currentRound > 6) {
+      footer.innerHTML = `<p id="fl-season-done">Season complete</p>`;
+    } else {
+      footer.innerHTML = `
+        <button id="fl-play-next" aria-label="Play next game">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>
+          <span>Play next game</span>
+        </button>
+      `;
+      el!.querySelector<HTMLButtonElement>('#fl-play-next')!.addEventListener('click', () => {
+        const fixture = fixtures.find(f => f.round === currentRound)!;
+        el!.style.display = 'none';
+        onPlay(fixture.homeTeam, fixture.awayTeam, fixture.playerSide, fixture.round);
+      });
+    }
+  }
+
   el.innerHTML = `
     <div id="fl-topbar">
       <button id="fl-back" aria-label="Back">
@@ -42,50 +94,22 @@ export function initFixtureListScreen(
       <div style="width:72px"></div>
     </div>
     <div id="fl-eyebrow">2026 Season · 6 Rounds</div>
-    <div id="fl-list">
-      ${fixtures.map(f => `
-        <div class="fl-row${f.round === 1 ? ' fl-row--active' : ' fl-row--locked'}">
-          <div class="fl-round">
-            <span class="fl-round-label">RND</span>
-            <span class="fl-round-num">${f.round}</span>
-          </div>
-          <div class="fl-matchup">
-            <div class="fl-team fl-team--home">
-              ${miniCrest(f.homeTeam)}
-              <span class="fl-team-name">${f.homeTeam.shortName}</span>
-            </div>
-            <span class="fl-vs">vs</span>
-            <div class="fl-team fl-team--away">
-              <span class="fl-team-name">${f.awayTeam.shortName}</span>
-              ${miniCrest(f.awayTeam)}
-            </div>
-          </div>
-          ${f.round === 1
-            ? `<button class="fl-play-btn" data-round="${f.round}">
-                 <span>Play</span>
-                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>
-               </button>`
-            : `<div class="fl-locked">
-                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-               </div>`
-          }
-        </div>
-      `).join('')}
-    </div>
+    <div id="fl-list"></div>
+    <div id="fl-footer"></div>
   `;
 
   el.querySelector<HTMLButtonElement>('#fl-back')!.addEventListener('click', () => {
     el.style.display = 'none';
-    const teamSelector = document.getElementById('team-selector')!;
-    teamSelector.style.display = '';
+    document.getElementById('team-selector')!.style.display = '';
   });
 
-  el.querySelectorAll<HTMLButtonElement>('.fl-play-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const round = Number(btn.dataset.round);
-      const fixture = fixtures.find(f => f.round === round)!;
-      el.style.display = 'none';
-      onPlay(fixture.homeTeam, fixture.awayTeam, fixture.playerSide, fixture.round);
-    });
-  });
+  render();
+
+  return {
+    recordResult(round: number, homeScore: number, awayScore: number): void {
+      results.set(round, { home: homeScore, away: awayScore });
+      currentRound = round + 1;
+      render();
+    },
+  };
 }

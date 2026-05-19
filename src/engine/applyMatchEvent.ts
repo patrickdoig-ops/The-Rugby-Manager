@@ -45,7 +45,7 @@ export function applyMatchEvent(state: MatchState, event: MatchEvent): void {
       carrier.matchStats.metresCarried += metres;
       defender.matchStats.tacklesAttempted++;
       state.stats.tackles[defSide].attempted++;
-      state.ballX = clamp(state.ballX + direction * metres, 0, 100);
+      state.ball.x = clamp(state.ball.x + direction * metres, 0, 100);
       switch (outcome) {
         case 'line_break':
           carrier.matchStats.lineBreaks++;
@@ -156,8 +156,8 @@ export function applyMatchEvent(state: MatchState, event: MatchEvent): void {
       return;
 
     case 'BALL_REPOSITIONED':
-      if (event.x !== undefined) state.ballX = event.x;
-      if (event.y !== undefined) state.ballY = event.y;
+      if (event.x !== undefined) state.ball.x = event.x;
+      if (event.y !== undefined) state.ball.y = event.y;
       return;
 
     case 'KICK_RETURN_CARRIER_SET':
@@ -179,31 +179,31 @@ export function applyMatchEvent(state: MatchState, event: MatchEvent): void {
 
     // ── Clock & period ──────────────────────────────────────────────────
     case 'CLOCK_ADVANCED': {
-      const halfTarget = state.halfTimeDone ? 80 : 40;
-      if (state.clockInTheRed) {
-        state.gameMinute += event.delta / 2;
+      const halfTarget = state.clock.halfTimeDone ? 80 : 40;
+      if (state.clock.clockInTheRed) {
+        state.clock.gameMinute += event.delta / 2;
       } else {
-        state.gameMinute = Math.min(halfTarget, state.gameMinute + event.delta);
+        state.clock.gameMinute = Math.min(halfTarget, state.clock.gameMinute + event.delta);
       }
       return;
     }
 
     case 'CLOCK_IN_RED_TRIPPED':
-      state.clockInTheRed = true;
+      state.clock.clockInTheRed = true;
       return;
 
     case 'HALF_TIME_REACHED':
-      state.halfTimeDone = true;
-      state.clockInTheRed = false;
-      state.penaltyKickToTouchLineout = false;
+      state.clock.halfTimeDone = true;
+      state.clock.clockInTheRed = false;
+      state.clock.penaltyKickToTouchLineout = false;
       return;
 
     case 'MATCH_ENDED':
-      state.isRunning = false;
+      state.engine.isRunning = false;
       return;
 
     case 'PENALTY_KICK_TO_TOUCH_FLAG_SET':
-      state.penaltyKickToTouchLineout = event.value;
+      state.clock.penaltyKickToTouchLineout = event.value;
       return;
 
     // ── Tick bookkeeping ────────────────────────────────────────────────
@@ -243,15 +243,15 @@ export function applyMatchEvent(state: MatchState, event: MatchEvent): void {
 
     // ── Engine lifecycle ────────────────────────────────────────────────
     case 'IS_RUNNING_SET':
-      state.isRunning = event.value;
+      state.engine.isRunning = event.value;
       return;
 
     case 'IS_PAUSED_SET':
-      state.isPaused = event.value;
+      state.engine.isPaused = event.value;
       return;
 
     case 'TICK_DELAY_SET':
-      state.tickDelayMs = event.value;
+      state.engine.tickDelayMs = event.value;
       return;
 
     // ── Ratings ─────────────────────────────────────────────────────────

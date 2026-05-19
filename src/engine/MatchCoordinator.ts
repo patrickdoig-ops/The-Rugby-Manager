@@ -70,12 +70,21 @@ function buildTeam(raw: RawTeamInput, tactics?: TeamTactics): Team {
 
 function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayMs: number, playerTactics?: TeamTactics, humanSide: 'home' | 'away' = 'home'): MatchState {
   return {
+    clock: {
+      gameMinute: 0,
+      halfTimeDone: false,
+      clockInTheRed: false,
+      penaltyKickToTouchLineout: false,
+    },
+    ball: { x: 50, y: 50 },
+    engine: {
+      isRunning: false,
+      isPaused: false,
+      tickDelayMs,
+    },
     phase: MatchPhase.KickOff,
-    gameMinute: 0,
     score: { home: 0, away: 0 },
     possession: 'home',
-    ballX: 50,
-    ballY: 50,
     homeTeam: buildTeam(homeRaw, humanSide === 'home' ? playerTactics : undefined),
     awayTeam: buildTeam(awayRaw, humanSide === 'away' ? playerTactics : undefined),
     stats: {
@@ -88,12 +97,6 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
       tries:    { home: 0, away: 0 },
     },
     events: [],
-    isRunning: false,
-    isPaused: false,
-    halfTimeDone: false,
-    clockInTheRed: false,
-    penaltyKickToTouchLineout: false,
-    tickDelayMs,
     breakdownMod: { attack: 0, defend: 0 },
   };
 }
@@ -164,14 +167,14 @@ export class MatchCoordinator {
     ];
     const subEvent: GameEvent = {
       id: makeId(),
-      gameMinute: this.state.gameMinute,
+      gameMinute: this.state.clock.gameMinute,
       phase: MatchPhase.Substitution,
       side,
       sideName: team.name,
       primaryPlayer: sub,
       secondaryPlayer: off,
-      ballX: this.state.ballX,
-      ballY: this.state.ballY,
+      ballX: this.state.ball.x,
+      ballY: this.state.ball.y,
       commentary: templates[rng(0, templates.length - 1)],
     };
     applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: subEvent });
@@ -199,7 +202,7 @@ export class MatchCoordinator {
   }
 
   start(): void {
-    if (this.state.isRunning) return;
+    if (this.state.engine.isRunning) return;
     applyMatchEvent(this.state, { type: 'IS_RUNNING_SET', value: true });
     this.scheduleTick(0);
   }
@@ -210,14 +213,14 @@ export class MatchCoordinator {
   }
 
   resume(): void {
-    if (this.state.isRunning) return;
+    if (this.state.engine.isRunning) return;
     applyMatchEvent(this.state, { type: 'IS_RUNNING_SET', value: true });
     this.scheduleTick(0);
   }
 
   setTickDelay(ms: number): void {
     applyMatchEvent(this.state, { type: 'TICK_DELAY_SET', value: ms });
-    if (this.state.isRunning && this.tickTimeout) {
+    if (this.state.engine.isRunning && this.tickTimeout) {
       clearTimeout(this.tickTimeout);
       this.scheduleTick(ms);
     }
@@ -237,10 +240,10 @@ export class MatchCoordinator {
 
   private async tick(): Promise<void> {
     this.tickTimeout = null;
-    if (!this.state.isRunning) return;
+    if (!this.state.engine.isRunning) return;
 
     try {
-      const wasInRed = this.state.clockInTheRed;
+      const wasInRed = this.state.clock.clockInTheRed;
       const timeAdvance = this.clock.advanceMinute(this.state);
 
       this.fatigueAccumulator += timeAdvance;
@@ -269,13 +272,13 @@ export class MatchCoordinator {
           const line = fatigueLines[rng(0, fatigueLines.length - 1)];
           const fatEvent: GameEvent = {
             id: makeId(),
-            gameMinute: this.state.gameMinute,
+            gameMinute: this.state.clock.gameMinute,
             phase: this.state.phase,
             side: this.state.possession,
             sideName: this.state.possession === 'home' ? this.state.homeTeam.name : this.state.awayTeam.name,
             primaryPlayer: player,
-            ballX: this.state.ballX,
-            ballY: this.state.ballY,
+            ballX: this.state.ball.x,
+            ballY: this.state.ball.y,
             commentary: line(player.name, player.squadNumber),
           };
           applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: fatEvent });
@@ -283,7 +286,7 @@ export class MatchCoordinator {
         }
       }
 
-      const homeInOppHalf = !this.state.halfTimeDone ? this.state.ballX > 50 : this.state.ballX < 50;
+      const homeInOppHalf = !this.state.clock.halfTimeDone ? this.state.ball.x > 50 : this.state.ball.x < 50;
       applyMatchEvent(this.state, {
         type: 'TICK_BOOKKEEPING',
         possessionSide: this.state.possession,
@@ -297,13 +300,13 @@ export class MatchCoordinator {
         const kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
         const announceEvent: GameEvent = {
           id: makeId(),
-          gameMinute: this.state.gameMinute,
+          gameMinute: this.state.clock.gameMinute,
           phase: MatchPhase.KickOff,
           side: this.state.possession,
           sideName: attackTeam.name,
           primaryPlayer: kicker,
-          ballX: this.state.ballX,
-          ballY: this.state.ballY,
+          ballX: this.state.ball.x,
+          ballY: this.state.ball.y,
           commentary: getCommentary({ ...draftEvent(this.state, MatchPhase.KickOff), primaryPlayer: kicker }, 'announce'),
         };
         applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
@@ -312,7 +315,7 @@ export class MatchCoordinator {
 
       if (this.state.phase === MatchPhase.KickOff) {
         this.kickOffStrategy = await this.penaltyHandler.awaitKickOffStrategy();
-        if (!this.state.isRunning) return;
+        if (!this.state.engine.isRunning) return;
       }
 
       if (this.state.phase === MatchPhase.BoxKick) {
@@ -320,13 +323,13 @@ export class MatchCoordinator {
         const scrumHalf = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
         const announceEvent: GameEvent = {
           id: makeId(),
-          gameMinute: this.state.gameMinute,
+          gameMinute: this.state.clock.gameMinute,
           phase: MatchPhase.BoxKick,
           side: this.state.possession,
           sideName: attackTeam.name,
           primaryPlayer: scrumHalf,
-          ballX: this.state.ballX,
-          ballY: this.state.ballY,
+          ballX: this.state.ball.x,
+          ballY: this.state.ball.y,
           commentary: getCommentary({ ...draftEvent(this.state, MatchPhase.BoxKick), primaryPlayer: scrumHalf }, 'announce'),
         };
         applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
@@ -345,12 +348,12 @@ export class MatchCoordinator {
         const teamName = (this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam).name;
         const awardEvent: GameEvent = {
           id: makeId(),
-          gameMinute: this.state.gameMinute,
+          gameMinute: this.state.clock.gameMinute,
           phase: this.state.phase,
           side: this.state.possession,
           sideName: teamName,
-          ballX: this.state.ballX,
-          ballY: this.state.ballY,
+          ballX: this.state.ball.x,
+          ballY: this.state.ball.y,
           commentary: `${phaseName} awarded to ${teamName}.`,
         };
         applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: awardEvent });
@@ -359,16 +362,16 @@ export class MatchCoordinator {
 
       if (this.state.phase === MatchPhase.Penalty) {
         await this.penaltyHandler.handlePenaltyDecision();
-        if (!this.state.isRunning) return;
+        if (!this.state.engine.isRunning) return;
         previousPhase = MatchPhase.Penalty;
       }
 
-      if (!this.state.clockInTheRed) {
+      if (!this.state.clock.clockInTheRed) {
         this.clock.checkClockInRed(this.state);
       } else if (wasInRed && this.clock.shouldEndPeriod(this.state, previousPhase)) {
-        if (!this.state.halfTimeDone) {
+        if (!this.state.clock.halfTimeDone) {
           this.clock.triggerHalfTime(this.state);
-          if (!this.state.isRunning) return;
+          if (!this.state.engine.isRunning) return;
         } else {
           this.clock.endMatch(this.state);
           return;
@@ -378,7 +381,7 @@ export class MatchCoordinator {
       console.error('MatchCoordinator tick error encountered, recovering loop:', err);
     }
 
-    this.scheduleTick(this.state.tickDelayMs);
+    this.scheduleTick(this.state.engine.tickDelayMs);
   }
 
 }

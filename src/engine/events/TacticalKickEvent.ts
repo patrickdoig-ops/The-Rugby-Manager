@@ -16,7 +16,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
 
   const startedInOwn22 = inOwn22();
   const startedInOwnHalf = inOwnHalf();
-  const originalBallX = state.ballX;
+  const originalBallX = state.ball.x;
 
   const res = resolveTacticalKick(kicker);
   const backfield = defendTeam.tactics.backfieldDefence;
@@ -25,7 +25,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
   const goesToTouch      = !goesOutOnTheFull && rng(1, 100) <= Math.max(0, res.touchProbability - touchReduction);
 
   const kickDir = attackDir();
-  const newBallX = clamp(state.ballX + kickDir * res.distance, 5, 95);
+  const newBallX = clamp(state.ball.x + kickDir * res.distance, 5, 95);
 
   const events: MatchEvent[] = [
     { type: 'KICK_FROM_HAND', kicker, metres: res.distance },
@@ -57,7 +57,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
 
   if (goesToTouch) {
     // Check inOpposition22 at the *projected* ballX without mutating state.
-    const homeAttacksRight = !state.halfTimeDone;
+    const homeAttacksRight = !state.clock.halfTimeDone;
     const projectedInOppositionAfterKick = state.possession === 'home'
       ? (homeAttacksRight ? newBallX >= 78 : newBallX <= 22)
       : (homeAttacksRight ? newBallX <= 22 : newBallX >= 78);

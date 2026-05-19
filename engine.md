@@ -14,7 +14,7 @@ The engine is split across files in `src/engine/`. `MatchCoordinator` owns the p
 | `ClockController.ts` | Minute advance (clamped to half target, halved while in the red), clock-in-red entry, half-time and full-time triggers (`advanceMinute`, `checkClockInRed`, `shouldEndPeriod`, `triggerHalfTime`, `endMatch`). |
 | `PhaseRouter.ts` | `PHASE_HANDLERS` map, `resolvePhase(state, sm, kickOffStrategy)`, and the `draftEvent(state, phase)` template builder. |
 | `PenaltyHandler.ts` | Penalty-decision modal pause and outcome application (`kick_for_goal`, `kick_to_touch`, `tap_and_kick_dead`, `tap_and_go`), plus the kick-off strategy modal (`awaitKickOffStrategy`, `handlePenaltyDecision`). |
-| `FieldPosition.ts` | Pure helpers over `MatchState` that factor in `state.halfTimeDone`: `attackDir`, `isTryScored`, `isTryScoredAt`, `inOpposition22`, `inOppositionHalf`, `inOwn22`, `inOwnHalf`. |
+| `FieldPosition.ts` | Pure helpers over `MatchState` that factor in `state.clock.halfTimeDone`: `attackDir`, `isTryScored`, `isTryScoredAt`, `inOpposition22`, `inOppositionHalf`, `inOwn22`, `inOwnHalf`. The exported `isTryScoredAt(ballX, possession, halfTimeDone)` keeps a scalar signature — it's used for projecting not-yet-applied positions. |
 | `applyMatchEvent.ts` | **The single mutation boundary.** A reducer over the `MatchEvent` discriminated union (`src/types/matchEvent.ts`). The only function permitted to write to `MatchState` or any `Player` field. |
 | `StaminaSystem.ts` | Pure `computeFatigue(team, elapsedMinutes)` — returns `{updates, newlyTired}` without writing to players; the caller emits `FATIGUE_APPLIED` events. |
 | `RatingEngine.ts` | Pure `computeRating(player)` — called by `applyMatchEvent` when a `RATINGS_RECALCULATED` event is reduced. |
@@ -27,6 +27,25 @@ All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.cu
 
 `applyMatchEvent` uses a `default: const _: never = event;` exhaustiveness check, so adding a new `MatchEvent` variant without a handling branch is a compile error.
 
+### `MatchState` shape
+
+`MatchState` (`src/types/match.ts`) groups three clusters into nested sub-objects; everything else is top-level:
+
+```ts
+state.clock  = { gameMinute, halfTimeDone, clockInTheRed, penaltyKickToTouchLineout }
+state.ball   = { x, y }                              // renamed from ballX/ballY
+state.engine = { isRunning, isPaused, tickDelayMs }
+
+// top-level: phase, possession, score, events, breakdownMod, kickReturnCarrier,
+//            homeTeam, awayTeam, stats
+```
+
+Snapshot DTOs intentionally **stay scalar** — they are frozen log rows, not live state:
+- `GameEvent.ballX` / `GameEvent.ballY` (entries in `state.events[]`)
+- `PenaltyContext.ballX` / `ballY` / `clockInTheRed` / `halfTimeDone` (crosses the event-bus boundary to `ModalManager`)
+- `MatchEvent` payload fields (`x`, `y`, `delta`, `value`) stay scalar — only the write *targets* in `applyMatchEvent` are nested
+- `isTryScoredAt(ballX, possession, halfTimeDone)` keeps a scalar signature — called on projected (not-yet-applied) positions
+
 ---
 
 ## Simulation Loop
@@ -34,8 +53,8 @@ All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.cu
 `MatchCoordinator.tick()` is a self-rescheduling `async` function using `setTimeout`. It is not `setInterval` — pausing is simply not scheduling the next tick.
 
 Each tick:
-1. Captures `wasInRed = state.clockInTheRed` and `previousPhase = state.phase` before any mutation.
-2. Advances game time via `clock.advanceMinute(state)` (`src/engine/ClockController.ts`): if `state.clockInTheRed`, adds `timeAdvance / 2` (clock crawls); otherwise advances normally and clamps to the half target (40 or 80). `timeAdvance = 0.2 + rng(0, 8) / 10` (0.2–1.0 per tick); the raw value is returned so the caller can drive the fatigue accumulator.
+1. Captures `wasInRed = state.clock.clockInTheRed` and `previousPhase = state.phase` before any mutation.
+2. Advances game time via `clock.advanceMinute(state)` (`src/engine/ClockController.ts`): if `state.clock.clockInTheRed`, adds `timeAdvance / 2` (clock crawls); otherwise advances normally and clamps to the half target (40 or 80). `timeAdvance = 0.2 + rng(0, 8) / 10` (0.2–1.0 per tick); the raw value is returned so the caller can drive the fatigue accumulator.
 3. Accumulates elapsed time; calls the pure `computeFatigue(team, elapsedMinutes)` on both teams once the accumulator reaches 5 game minutes, then emits a `FATIGUE_APPLIED` event for every update. `computeFatigue` returns newly-fatigued players (crossing below 50%); a fatigue commentary event is logged for each.
 4. Increments possession and territory counters.
 5. For `KickOff` and `BoxKick` phases: emits a pre-phase announce `GameEvent` (naming the kicker before the outcome is resolved).
@@ -43,12 +62,12 @@ Each tick:
 7. Calls `resolvePhase(state, sm, kickOffStrategy)` (`src/engine/PhaseRouter.ts`) to produce the outcome `GameEvent`. The router owns the `PHASE_HANDLERS` map, builds the `PhaseContext`, dispatches to the matching event handler, runs the StateMachine transition, and returns the resulting `GameEvent`.
 8. Emits `engine:event` and `engine:stateChange`.
 9. Checks for penalty interactive pause via `penaltyHandler.handlePenaltyDecision()` (if phase is `Penalty`).
-10. **Clock-in-the-red check:** If `!state.clockInTheRed`, calls `clock.checkClockInRed(state)` (sets flag and emits announcement when `gameMinute >= halfTarget`). Else if `wasInRed && clock.shouldEndPeriod(state, previousPhase)`, calls `clock.triggerHalfTime(state)` or `clock.endMatch(state)`.
-11. Schedules next tick at `state.tickDelayMs`.
+10. **Clock-in-the-red check:** If `!state.clock.clockInTheRed`, calls `clock.checkClockInRed(state)` (sets flag and emits announcement when `gameMinute >= halfTarget`). Else if `wasInRed && clock.shouldEndPeriod(state, previousPhase)`, calls `clock.triggerHalfTime(state)` or `clock.endMatch(state)`.
+11. Schedules next tick at `state.engine.tickDelayMs`.
 
 ### Attack direction
 
-Home attacks toward `ballX = 100` in the first half, toward `ballX = 0` in the second. **Teams swap ends only at half-time, never on turnovers.** All ball movement uses pure helpers in `src/engine/FieldPosition.ts` that factor in `state.halfTimeDone`:
+Home attacks toward `ball.x = 100` in the first half, toward `ball.x = 0` in the second. **Teams swap ends only at half-time, never on turnovers.** All ball movement uses pure helpers in `src/engine/FieldPosition.ts` that factor in `state.clock.halfTimeDone`:
 
 - `attackDir(state)` → `+1` or `-1` for the possession team's attacking direction
 - `isTryScored(state)` → true if `ballX` has crossed the possessing team's attacking try line
@@ -942,10 +961,10 @@ When `gameMinute` reaches the half target (40 first half, 80 second half), the e
 
 ### Entering the red
 
-`enterClockInTheRed()` is called on the tick when `!clockInTheRed && gameMinute >= halfTarget`:
+`enterClockInTheRed()` is called on the tick when `!state.clock.clockInTheRed && state.clock.gameMinute >= halfTarget`:
 
 ```typescript
-state.clockInTheRed = true
+state.clock.clockInTheRed = true
 // emits GameEvent with a randomly chosen announcement line (3 variants per half)
 ```
 
@@ -960,16 +979,16 @@ The period ends only when the ball goes dead. `shouldEndPeriod` returns `true` o
 | Condition | Description |
 |---|---|
 | `state.phase === Scrum && prevPhase !== Scrum` | Knock-on or crooked lineout throw (not a wheel reset — those have prevPhase === Scrum) |
-| `state.phase === Lineout && !penaltyKickToTouchLineout` | Ball in touch (except after a penalty kick-to-touch — see exception below) |
+| `state.phase === Lineout && !state.clock.penaltyKickToTouchLineout` | Ball in touch (except after a penalty kick-to-touch — see exception below) |
 | `state.phase === KickOff && prevPhase === ConversionKick` | Try scored and conversion taken |
 | `state.phase === KickOff && prevPhase === Penalty` | Penalty goal kick attempt (success or miss) |
 
-**Penalty kick-to-touch exception:** When the home team chooses `kick_to_touch` on a penalty during the red, `penaltyKickToTouchLineout` is set to `true`. `shouldEndPeriod` detects this, clears the flag, and returns `false` — the subsequent lineout does not end the period. This allows the attacking team to take the lineout and keep playing.
+**Penalty kick-to-touch exception:** When the home team chooses `kick_to_touch` on a penalty during the red, `state.clock.penaltyKickToTouchLineout` is set to `true`. `shouldEndPeriod` detects this, clears the flag, and returns `false` — the subsequent lineout does not end the period. This allows the attacking team to take the lineout and keep playing.
 
 ### Triggering half-time / full-time
 
 When `wasInRed && shouldEndPeriod(previousPhase)`:
-- **First half:** calls `triggerHalfTime()`, which resets `clockInTheRed = false` and `penaltyKickToTouchLineout = false` for the second half.
+- **First half:** calls `triggerHalfTime()`, which resets `state.clock.clockInTheRed = false` and `state.clock.penaltyKickToTouchLineout = false` for the second half.
 - **Second half:** calls `endMatch()`.
 
 ---
@@ -979,15 +998,15 @@ When `wasInRed && shouldEndPeriod(previousPhase)`:
 Triggered by `triggerHalfTime()` inside `tick()` after `shouldEndPeriod()` returns true during the first-half red.
 
 ```typescript
-state.halfTimeDone           = true
-state.clockInTheRed          = false
-state.penaltyKickToTouchLineout = false
-state.possession             = flipped
-state.ballX                  = 50
-state.ballY                  = 50
+state.clock.halfTimeDone              = true
+state.clock.clockInTheRed             = false
+state.clock.penaltyKickToTouchLineout = false
+state.possession                       = flipped
+state.ball.x                           = 50
+state.ball.y                           = 50
 ```
 
-A `HalfTime` event is emitted, then the phase force-transitions to `KickOff` for the second half. The possession swap at half-time combined with `halfTimeDone = true` is what reverses the output of `attackDir()`, `isTryScored()`, and `inOpposition22()` for the rest of the match.
+A `HalfTime` event is emitted, then the phase force-transitions to `KickOff` for the second half. The possession swap at half-time combined with `state.clock.halfTimeDone = true` is what reverses the output of `attackDir()`, `isTryScored()`, and `inOpposition22()` for the rest of the match.
 
 ---
 
@@ -996,7 +1015,7 @@ A `HalfTime` event is emitted, then the phase force-transitions to `KickOff` for
 Triggered by `endMatch()` inside `tick()` after `shouldEndPeriod()` returns true during the second-half red.
 
 ```typescript
-state.isRunning = false
+state.engine.isRunning = false
 ```
 
 Forces phase to `FullTime`. Emits `engine:event`, `engine:stateChange`, and `engine:finished`. No further ticks are scheduled.

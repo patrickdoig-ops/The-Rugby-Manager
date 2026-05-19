@@ -33,22 +33,28 @@ export interface GameEvent {
 }
 
 export interface MatchState {
+  clock: {
+    gameMinute: number;
+    halfTimeDone: boolean;
+    clockInTheRed: boolean;
+    penaltyKickToTouchLineout: boolean;
+  };
+  ball: {
+    x: number;
+    y: number;
+  };
+  engine: {
+    isRunning: boolean;
+    isPaused: boolean;
+    tickDelayMs: number;
+  };
   phase: MatchPhase;
-  gameMinute: number;
-  score: Score;
   possession: PossessionSide;
-  ballX: number;
-  ballY: number;
+  score: Score;
   homeTeam: Team;
   awayTeam: Team;
   stats: MatchStats;
   events: GameEvent[];
-  isRunning: boolean;
-  isPaused: boolean;
-  halfTimeDone: boolean;
-  clockInTheRed: boolean;
-  penaltyKickToTouchLineout: boolean;
-  tickDelayMs: number;
   breakdownMod: { attack: number; defend: number };
   kickReturnCarrier?: Player;
 }

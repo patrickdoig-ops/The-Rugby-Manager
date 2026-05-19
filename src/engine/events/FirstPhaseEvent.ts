@@ -50,7 +50,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
   const backfieldPenalty = defendTeam.tactics.backfieldDefence === 'three_back' ? -10
                          : defendTeam.tactics.backfieldDefence === 'two_back'   ? -5 : 0;
 
-  const carrierKoThreshold = state.clockInTheRed
+  const carrierKoThreshold = state.clock.clockInTheRed
     ? Math.min(99, 85 + Math.round(Math.max(0, 85 - carrier.currentStats.handling) * 0.4))
     : 85;
   if (carrier.currentStats.handling + rng(1, 100) < carrierKoThreshold) {
@@ -79,7 +79,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
     const insideCentre = pickPlayer(attackTeam, 12);
     playIntro = getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: carrier, secondaryPlayer: insideCentre }, 'crash_ball') + ' ';
 
-    const icKoThreshold = state.clockInTheRed
+    const icKoThreshold = state.clock.clockInTheRed
       ? Math.min(99, 85 + Math.round(Math.max(0, 85 - insideCentre.currentStats.handling) * 0.4))
       : 85;
     if (insideCentre.currentStats.handling + rng(1, 100) < icKoThreshold) {
@@ -101,7 +101,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
     const outsideCentre = pickPlayer(attackTeam, 13);
     playIntro = getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: carrier, secondaryPlayer: outsideCentre }, 'out_the_back') + ' ';
 
-    const ocKoThreshold = state.clockInTheRed
+    const ocKoThreshold = state.clock.clockInTheRed
       ? Math.min(99, 85 + Math.round(Math.max(0, 85 - outsideCentre.currentStats.handling) * 0.4))
       : 85;
     if (outsideCentre.currentStats.handling + rng(1, 100) < ocKoThreshold) {
@@ -121,7 +121,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
     const wing = wingPool.length > 0 ? wingPool[rng(0, wingPool.length - 1)] : randomPlayer(attackTeam);
     playIntro += getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: outsideCentre, secondaryPlayer: wing }, 'out_the_back') + ' ';
 
-    const wingKoThreshold = state.clockInTheRed
+    const wingKoThreshold = state.clock.clockInTheRed
       ? Math.min(99, 85 + Math.round(Math.max(0, 85 - wing.currentStats.handling) * 0.4))
       : 85;
     if (wing.currentStats.handling + rng(1, 100) < wingKoThreshold) {
@@ -159,8 +159,8 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
   let commentary: string;
 
   if (res.outcome === 'line_break') {
-    const projectedBallX = clamp(state.ballX + direction * res.gainMetres, 0, 100);
-    const tryScored = isTryScoredAt(projectedBallX, attackSide, state.halfTimeDone);
+    const projectedBallX = clamp(state.ball.x + direction * res.gainMetres, 0, 100);
+    const tryScored = isTryScoredAt(projectedBallX, attackSide, state.clock.halfTimeDone);
     nextPhase = tryScored ? MatchPhase.TryScored : MatchPhase.Breakdown;
     if (tryScored) {
       commentary = playIntro + getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: ballCarrier, secondaryPlayer: defender }, 'line_break_try');

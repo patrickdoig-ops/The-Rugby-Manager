@@ -40,13 +40,13 @@ export function draftEvent(state: MatchState, phase: MatchPhase): GameEvent {
   const defTeam = state.possession === 'home' ? state.awayTeam : state.homeTeam;
   return {
     id: '',
-    gameMinute: state.gameMinute,
+    gameMinute: state.clock.gameMinute,
     phase,
     side: state.possession,
     sideName: team.name,
     defSideName: defTeam.name,
-    ballX: state.ballX,
-    ballY: state.ballY,
+    ballX: state.ball.x,
+    ballY: state.ball.y,
     commentary: '',
   };
 }
@@ -110,14 +110,14 @@ export function resolvePhase(state: MatchState, sm: StateMachine, kickOffStrateg
   const eventPhase = isCarryToTry ? MatchPhase.TryScored : phaseAtStart;
   return {
     id: makeId(),
-    gameMinute: state.gameMinute,
+    gameMinute: state.clock.gameMinute,
     phase: eventPhase,
     side:     isConversion ? sideAtStart     : state.possession,
     sideName: isConversion ? sideNameAtStart : (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
     primaryPlayer: result.primaryPlayer,
     secondaryPlayer: result.secondaryPlayer,
-    ballX: state.ballX,
-    ballY: state.ballY,
+    ballX: state.ball.x,
+    ballY: state.ball.y,
     commentary: result.commentary,
     outcome: result.outcome,
   };

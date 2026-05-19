@@ -21,7 +21,7 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, random
 
   const events: MatchEvent[] = [
     { type: 'KICK_FROM_HAND', kicker: scrumHalf, metres: res.distance },
-    { type: 'BALL_REPOSITIONED', x: clamp(state.ballX + attackDir() * res.distance, 5, 95) },
+    { type: 'BALL_REPOSITIONED', x: clamp(state.ball.x + attackDir() * res.distance, 5, 95) },
   ];
 
   const attackSide = state.possession;

@@ -234,7 +234,7 @@ export function initStatsPanel(): void {
       statsContent.innerHTML = renderStats(state);
     }
 
-    const minute = Math.floor(state.gameMinute);
+    const minute = Math.floor(state.clock.gameMinute);
     if (minute !== lastPlayerStatsMinute) {
       lastPlayerStatsMinute = minute;
       if (!isPlayerStatsInit) {

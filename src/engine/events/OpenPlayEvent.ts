@@ -52,7 +52,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
   const backfieldPenalty = defendTeam.tactics.backfieldDefence === 'three_back' ? -10
                          : defendTeam.tactics.backfieldDefence === 'two_back'   ? -5 : 0;
 
-  const koThreshold = state.clockInTheRed
+  const koThreshold = state.clock.clockInTheRed
     ? Math.min(99, 85 + Math.round(Math.max(0, 85 - carrier.currentStats.handling) * 0.4))
     : 85;
   if (carrier.currentStats.handling + rng(1, 100) < koThreshold) {
@@ -81,7 +81,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
       wideIntro = getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: carrier, secondaryPlayer: flyHalf }, 'out_the_back') + ' ';
 
       // Fly half handling gate
-      const fhThreshold = state.clockInTheRed
+      const fhThreshold = state.clock.clockInTheRed
         ? Math.min(99, 85 + Math.round(Math.max(0, 85 - flyHalf.currentStats.handling) * 0.4))
         : 85;
       if (flyHalf.currentStats.handling + rng(1, 100) < fhThreshold) {
@@ -102,7 +102,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
     if (carrier.id === 10) {
       wideIntro = getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: flyHalf, secondaryPlayer: outsideBack }, 'out_the_back') + ' ';
     }
-    const obThreshold = state.clockInTheRed
+    const obThreshold = state.clock.clockInTheRed
       ? Math.min(99, 85 + Math.round(Math.max(0, 85 - outsideBack.currentStats.handling) * 0.4))
       : 85;
     if (outsideBack.currentStats.handling + rng(1, 100) < obThreshold) {
@@ -140,8 +140,8 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
   if (res.outcome === 'line_break') {
     // Try-scored check uses the projected ballX; the CARRY_RESOLVED event will apply
     // the actual ball move once PhaseRouter reduces the queue.
-    const projectedBallX = clamp(state.ballX + direction * res.gainMetres, 0, 100);
-    const tryScored = isTryScoredAt(projectedBallX, attackSide, state.halfTimeDone);
+    const projectedBallX = clamp(state.ball.x + direction * res.gainMetres, 0, 100);
+    const tryScored = isTryScoredAt(projectedBallX, attackSide, state.clock.halfTimeDone);
     nextPhase = tryScored ? MatchPhase.TryScored : MatchPhase.Breakdown;
     if (tryScored) {
       commentary = wideIntro + getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: ballCarrier, secondaryPlayer: defender }, 'line_break_try');

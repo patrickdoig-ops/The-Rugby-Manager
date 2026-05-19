@@ -21,12 +21,12 @@ export function initPitchStrip(): void {
   let lastHalfTimeDone: boolean | null = null;
 
   eventBus.on('engine:stateChange', ({ state }) => {
-    ballMarker.style.left = `${state.ballX}%`;
+    ballMarker.style.left = `${state.ball.x}%`;
 
-    if (state.halfTimeDone !== lastHalfTimeDone) {
-      lastHalfTimeDone = state.halfTimeDone;
-      const leftTeam  = !state.halfTimeDone ? state.homeTeam : state.awayTeam;
-      const rightTeam = !state.halfTimeDone ? state.awayTeam : state.homeTeam;
+    if (state.clock.halfTimeDone !== lastHalfTimeDone) {
+      lastHalfTimeDone = state.clock.halfTimeDone;
+      const leftTeam  = !state.clock.halfTimeDone ? state.homeTeam : state.awayTeam;
+      const rightTeam = !state.clock.halfTimeDone ? state.awayTeam : state.homeTeam;
 
       homeEndLabel.style.color = leftTeam.color;
       homeEndLabel.textContent = leftTeam.shortName;
@@ -35,7 +35,7 @@ export function initPitchStrip(): void {
     }
 
     const attackingTeam    = state.possession === 'home' ? state.homeTeam : state.awayTeam;
-    const homeAttacksRight = !state.halfTimeDone;
+    const homeAttacksRight = !state.clock.halfTimeDone;
     const arrow = state.possession === 'home'
       ? (homeAttacksRight ? '→' : '←')
       : (homeAttacksRight ? '←' : '→');

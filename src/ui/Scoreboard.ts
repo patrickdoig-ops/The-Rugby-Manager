@@ -58,12 +58,12 @@ export function initScoreboard(): void {
 
     homeScore.textContent    = String(state.score.home).padStart(2, '0');
     awayScore.textContent    = String(state.score.away).padStart(2, '0');
-    if (state.clockInTheRed) {
-      const halfTarget = state.halfTimeDone ? 80 : 40;
-      clockDisplay.textContent = `${halfTarget}+${Math.floor(state.gameMinute - halfTarget)}′`;
+    if (state.clock.clockInTheRed) {
+      const halfTarget = state.clock.halfTimeDone ? 80 : 40;
+      clockDisplay.textContent = `${halfTarget}+${Math.floor(state.clock.gameMinute - halfTarget)}′`;
       clockDisplay.style.color = 'var(--rm-coral)';
     } else {
-      clockDisplay.textContent = `${Math.floor(state.gameMinute)}′`;
+      clockDisplay.textContent = `${Math.floor(state.clock.gameMinute)}′`;
       clockDisplay.style.color = '';
     }
     phaseDisplay.textContent = state.phase.replace(/_/g, ' ');

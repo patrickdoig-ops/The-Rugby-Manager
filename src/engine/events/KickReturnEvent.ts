@@ -76,8 +76,8 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
   let commentary: string;
 
   if (res.outcome === 'line_break') {
-    const projectedBallX = clamp(state.ballX + direction * totalMetres, 0, 100);
-    const tryScored = isTryScoredAt(projectedBallX, attackSide, state.halfTimeDone);
+    const projectedBallX = clamp(state.ball.x + direction * totalMetres, 0, 100);
+    const tryScored = isTryScoredAt(projectedBallX, attackSide, state.clock.halfTimeDone);
     nextPhase = tryScored ? MatchPhase.TryScored : MatchPhase.Breakdown;
     if (tryScored) {
       commentary = getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: carrier, secondaryPlayer: defender }, 'line_break_try');

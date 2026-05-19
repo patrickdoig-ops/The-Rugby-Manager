@@ -25,7 +25,7 @@ export function initSimController(engine: MatchCoordinator): void {
   });
 
   btnTactics.addEventListener('click', () => {
-    wasPausedBeforeTactics = !engine.getState().isRunning;
+    wasPausedBeforeTactics = !engine.getState().engine.isRunning;
     engine.pause();
     btnPlay.disabled    = false;
     btnPause.disabled   = true;
@@ -37,7 +37,7 @@ export function initSimController(engine: MatchCoordinator): void {
   });
 
   btnSubs.addEventListener('click', () => {
-    wasPausedBeforeSubs = !engine.getState().isRunning;
+    wasPausedBeforeSubs = !engine.getState().engine.isRunning;
     engine.pause();
     btnPlay.disabled    = false;
     btnPause.disabled   = true;

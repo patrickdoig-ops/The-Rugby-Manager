@@ -6,7 +6,7 @@ import { getCommentary } from '../CommentaryEngine';
 
 export function handleConversionKick({ state, attackTeam, draftEvent }: PhaseContext): PhaseResult {
   const kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
-  const distFromPosts = Math.abs(state.ballY - 50) * 0.4;
+  const distFromPosts = Math.abs(state.ball.y - 50) * 0.4;
   const res = resolveGoalKick(kicker, distFromPosts);
 
   const side = state.possession;

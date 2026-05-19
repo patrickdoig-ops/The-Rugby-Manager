@@ -31,14 +31,15 @@ const TAG_MAP: Partial<Record<MatchPhase, string>> = {
 const MAX_ENTRIES = 30;
 
 function colorizePlayer(text: string, player: Player, color: string): string {
-  const label = `${player.name} (#${player.squadNumber})`;
+  const surname = player.name.split(' ').pop()!;
+  const label = `${surname} (#${player.squadNumber})`;
   return text.split(label).join(`<span style="color:${color};font-weight:700">${label}</span>`);
 }
 
 function deduplicatePlayerRefs(text: string): string {
   const seen = new Set<string>();
   let result = text.replace(
-    /[A-Z][A-Za-z'-]*(?: [A-Z][A-Za-z'-]*)* \(#\d{1,2}\)/g,
+    /[A-Z][A-Za-z'-]* \(#\d{1,2}\)/g,
     (match) => {
       if (seen.has(match)) return 'he';
       seen.add(match);

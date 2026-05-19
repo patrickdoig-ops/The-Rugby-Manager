@@ -585,8 +585,8 @@ The defending pack's final score is subtracted from the attacking pack's final s
 |---|---|
 | > 15 | `attacking_dominant_penalty` → Penalty (attacking team keeps possession) |
 | > 0 | `stable_win` → FirstPhase |
-| −15 to 0 | `wheel` → Scrum |
-| ≤ −15 | `defending_dominant_penalty` → Penalty (possession flips to defending team) |
+| −8 to 0 | `wheel` → Scrum |
+| ≤ −8 | `defending_dominant_penalty` → Penalty (possession flips to defending team) |
 
 ### Ball movement
 
@@ -819,8 +819,8 @@ The engine loop is suspended mid-tick at the `await`. It resumes when the `onCho
 tryLine        = attacking try line (100 or 0 depending on half and possession)
 distFromPosts  = |ballY − 50| × 0.3 + |ballX − tryLine| × 0.2
 anglePenalty   = distFromPosts × 0.3
-score          = kicking + composure×0.2 − anglePenalty + rng(1,20)
-success        = score ≥ 65
+score          = kicking + composure×0.2 − anglePenalty + rng(1,100)
+success        = score ≥ 120
 ```
 
 Both lateral angle (`ballY`) and distance from the try line (`ballX`) contribute to difficulty. A central kick close to the posts has `distFromPosts ≈ 0`; a wide kick from distance can push `distFromPosts` to 30+, adding ~9 points of penalty.
@@ -893,8 +893,8 @@ Always the fly-half.
 ```
 distFromPosts = |ballY − 50| × 0.4
 anglePenalty  = distFromPosts × 0.3
-score         = kicking + composure×0.2 − anglePenalty + rng(1,20)
-success       = score ≥ 65
+score         = kicking + composure×0.2 − anglePenalty + rng(1,100)
+success       = score ≥ 120
 ```
 
 Only the lateral angle (`ballY`) affects difficulty for conversions — unlike the penalty kick, distance from the try line is not factored in. A central conversion has `distFromPosts = 0`; a conversion from the touchline adds up to ~6 points of penalty.

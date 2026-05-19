@@ -383,7 +383,7 @@ function pick(arr: string[]): string {
 }
 
 function playerLabel(p: { name: string; squadNumber: number } | undefined, fallback: string): string {
-  return p ? `${p.name} (#${p.squadNumber})` : fallback;
+  return p ? `${p.name.split(' ').pop()} (#${p.squadNumber})` : fallback;
 }
 
 function interpolate(template: string, event: GameEvent): string {

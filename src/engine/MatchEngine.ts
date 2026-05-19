@@ -171,11 +171,13 @@ export class MatchEngine {
     team.bench.splice(benchIdx, 1);
     team.substitutedOff.push(off);
 
+    const subSurname = sub.name.split(' ').pop()!;
+    const offSurname = off.name.split(' ').pop()!;
     const templates = [
-      `${sub.name} (#${sub.squadNumber}) comes on to replace ${off.name} (#${off.squadNumber}).`,
-      `${sub.name} (#${sub.squadNumber}) is introduced, replacing ${off.name} (#${off.squadNumber}).`,
-      `A change for ${team.name}: ${off.name} (#${off.squadNumber}) makes way for ${sub.name} (#${sub.squadNumber}).`,
-      `${off.name} (#${off.squadNumber}) is replaced by ${sub.name} (#${sub.squadNumber}).`,
+      `${subSurname} (#${sub.squadNumber}) comes on to replace ${offSurname} (#${off.squadNumber}).`,
+      `${subSurname} (#${sub.squadNumber}) is introduced, replacing ${offSurname} (#${off.squadNumber}).`,
+      `A change for ${team.name}: ${offSurname} (#${off.squadNumber}) makes way for ${subSurname} (#${sub.squadNumber}).`,
+      `${offSurname} (#${off.squadNumber}) is replaced by ${subSurname} (#${sub.squadNumber}).`,
     ];
     const subEvent: GameEvent = {
       id: makeId(),

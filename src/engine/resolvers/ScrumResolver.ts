@@ -28,7 +28,7 @@ export function resolveScrum(attackForwards: Player[], defendForwards: Player[])
   let result: ScrumResult;
   if (margin > 15) result = 'attacking_dominant_penalty';
   else if (margin > 0) result = 'stable_win';
-  else if (margin > -15) result = 'wheel';
+  else if (margin > -8) result = 'wheel';
   else result = 'defending_dominant_penalty';
 
   return { result, attackScore, defendScore, margin };

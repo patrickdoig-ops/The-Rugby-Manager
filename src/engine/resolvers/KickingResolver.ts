@@ -31,7 +31,7 @@ export function resolveGoalKick(kicker: Player, distanceFromPosts: number): Goal
   const score = kicker.currentStats.kicking
               + kicker.currentStats.composure * 0.2
               - anglePenalty
-              + rng(1, 20);
-  const threshold = 65;
+              + rng(1, 100);
+  const threshold = 120;
   return { success: score >= threshold, score, threshold };
 }

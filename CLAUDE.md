@@ -85,6 +85,19 @@ The test: would renaming this break replay, an existing log entry, or a downstre
 - Computations derived from state (`computeRating`, `computeFatigue`) live in pure helpers; their writes still flow through dedicated `MatchEvent` variants (`RATINGS_RECALCULATED`, `FATIGUE_APPLIED`).
 - Events may hold `Player` references for now (object identity is fine for in-memory use). If serialisable replay is ever needed, swap to `{ side, playerId }` lookups at that point — the boundary already exists.
 
+## 6. Randomness Boundary
+
+**All randomness flows through `src/utils/rng.ts`. Never call `Math.random()` directly in engine code.**
+
+Three isolated mulberry32 streams, each seeded from `state.engine.seed`:
+- `rng(min, max)` — outcome stream; every in-play roll (resolvers, phase handlers, clock advance, coin toss, any array sampling that affects the match)
+- `rngForm()` — form stream; player form modifier at `initPlayer()`
+- `pickRandom(arr)` — commentary stream; array sampling for flavour text (commentary templates, etc.)
+
+Streams are independent, so adding a new commentary line cannot shift outcome rolls. When adding a randomness consumer, pick the matching stream — don't reuse `rng()` for flavour text or `pickRandom()` for outcomes.
+
+The master seed is set once in the `MatchCoordinator` constructor via `setMatchSeed(seed)` **before** `initMatchState()` runs, so player form is deterministic. The only `Math.random()` call in the engine is the seed-generator line itself when `opts.seed` is absent. A match with a given seed is fully reproducible. See `engine.md` "Determinism (Seeded RNG)" for the full breakdown.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

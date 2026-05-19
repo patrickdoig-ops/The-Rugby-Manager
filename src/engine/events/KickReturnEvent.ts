@@ -3,16 +3,11 @@ import type { MatchEvent } from '../../types/matchEvent';
 import type { NarrationDescriptor } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
-import { getCommentary } from '../CommentaryEngine';
 import { isTryScoredAt } from '../FieldPosition';
-import { rng, pickRandom, commentaryChance } from '../../utils/rng';
+import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 
-function tacticNote(chancePct: number, ...lines: string[]): string {
-  return commentaryChance(chancePct) ? ' ' + pickRandom(lines) : '';
-}
-
-export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isTryScored, inOwnHalf, inOwn22, randomPlayer, draftEvent }: PhaseContext): PhaseResult {
+export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isTryScored, inOwnHalf, inOwn22, randomPlayer }: PhaseContext): PhaseResult {
   // Step 0 — Kick or carry decision
   const plan = attackTeam.tactics.attackingGamePlan;
   let kickProb = 15;
@@ -29,7 +24,6 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
     const flyHalf = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
     return {
       nextPhase: MatchPhase.TacticalKick,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.KickReturn) }, 'kick_decision'),
       narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'kick_decision' }] },
       primaryPlayer: flyHalf,
       events: [
@@ -75,7 +69,6 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
   });
 
   let nextPhase: MatchPhase;
-  let commentary: string;
   const steps: NarrationDescriptor['steps'] = [];
 
   if (res.outcome === 'line_break') {
@@ -83,16 +76,8 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
     const tryScored = isTryScoredAt(projectedBallX, attackSide, state.clock.halfTimeDone);
     nextPhase = tryScored ? MatchPhase.TryScored : MatchPhase.Breakdown;
     if (tryScored) {
-      commentary = getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: carrier, secondaryPlayer: defender }, 'line_break_try');
       steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'line_break_try', primary: carrier, secondary: defender });
     } else {
-      const lineBreakNote = (backfieldPenalty < 0 && attackSide !== 'home')
-        ? tacticNote(30,
-            `The backfield commitment is leaving ${defendTeam.name} short in the defensive line — and they've been cut through.`,
-            `Three in the backfield means only twelve in the line for ${defendTeam.name} — and there's the gap.`,
-          )
-        : '';
-      commentary = getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: carrier, secondaryPlayer: defender }, 'line_break') + lineBreakNote;
       steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'line_break', primary: carrier, secondary: defender });
       if (backfieldPenalty < 0 && attackSide !== 'home') {
         steps.push({
@@ -105,18 +90,15 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
     }
   } else if (res.outcome === 'dominant_tackle') {
     nextPhase = MatchPhase.Breakdown;
-    commentary = getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: carrier, secondaryPlayer: defender }, 'dominant_tackle');
     steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'dominant_tackle', primary: carrier, secondary: defender });
   } else {
     nextPhase = MatchPhase.Breakdown;
-    commentary = getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: carrier, secondaryPlayer: defender }, res.outcome);
     steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: res.outcome, primary: carrier, secondary: defender });
   }
 
   void isTryScored;
   return {
     nextPhase,
-    commentary,
     narration: { steps },
     primaryPlayer: carrier,
     secondaryPlayer: defender,

@@ -1063,68 +1063,81 @@ No rating adjustment is applied on substitution. The incoming player's `formModi
 
 ## Tactical Commentary
 
-Each event file (`BreakdownEvent`, `OpenPlayEvent`, `TacticalKickEvent`, `BoxKickEvent`) contains a local `tacticNote(chancePct, ...lines)` helper:
-
-```typescript
-function tacticNote(chancePct: number, ...lines: string[]): string {
-  return rng(1, 100) <= chancePct ? ' ' + lines[rng(0, lines.length - 1)] : '';
-}
-```
-
-When a tactic directly influences a key outcome, the handler may append a note to the standard `getCommentary(...)` string. Notes only fire for the **home team** (checked via `state.possession` before any possession flip). Multiple lines are provided per trigger; one is chosen at random. This ensures variety and prevents the feed from becoming formulaic.
+When a tactic directly influences a key outcome, the phase handler pushes a `{ kind: 'tactic_note', cause, chancePct, params? }` step into the `NarrationDescriptor` it returns. The renderer rolls `commentaryChance(chancePct)` (commentary stream) and, on pass, picks a line from `getTacticNoteLines(cause, params)` in `src/commentary/banks/en-GB/tacticNotes.ts`. Notes only fire for the **home team** (checked via `state.possession` before any possession flip).
 
 Notes cover both the upside and the downside of a tactic choice — a player should see their good decisions rewarded *and* their poor decisions highlighted.
 
-| File | Trigger | Home role | Chance |
-|---|---|---|---|
-| `BreakdownEvent` | `pick_and_drive` + `clean_ball` | attacking | 30% |
-| `BreakdownEvent` | `wide_play` + `slow_ball` | attacking | 30% |
-| `BreakdownEvent` | `wide_play` or `pick_and_drive` + `penalty_defending` | attacking | 25% |
-| `BreakdownEvent` | `jackal` + `turnover` | defending | 35% |
-| `BreakdownEvent` | `counter_ruck` + `slow_ball` or `turnover` | defending | 30% |
-| `BreakdownEvent` | `shadow` + `clean_ball` conceded | defending | 30% |
-| `BreakdownEvent` | `jackal` + `penalty_defending` | defending | 25% |
-| `OpenPlayEvent` | `line_break` + `two_back`/`three_back` defending | defending | 30% |
-| `TacticalKickEvent` | kick caught + `two_back`/`three_back` | defending (now attacking) | 35% |
-| `TacticalKickEvent` | `fifty_twenty_two` + `one_back` | defending | 25% |
-| `BoxKickEvent` | `defend_catch` + `two_back`/`three_back` | defending | 30% |
+| Handler | Trigger | Home role | Cause | Chance |
+|---|---|---|---|---|
+| `BreakdownEvent` | `pick_and_drive` + `clean_ball` | attacking | `breakdown_pick_and_drive_clean` | 30% |
+| `BreakdownEvent` | `shadow` + `clean_ball` conceded | defending | `breakdown_shadow_clean` | 30% |
+| `BreakdownEvent` | `jackal` + `clean_ball` conceded | defending | `breakdown_jackal_clean` | 25% |
+| `BreakdownEvent` | `wide_play` + `slow_ball` | attacking | `breakdown_wide_play_slow` | 30% |
+| `BreakdownEvent` | `counter_ruck` + `slow_ball` | defending | `breakdown_counter_ruck_slow` | 30% |
+| `BreakdownEvent` | `jackal` + `turnover` | defending | `breakdown_jackal_turnover` | 35% |
+| `BreakdownEvent` | `counter_ruck` + `turnover` | defending | `breakdown_counter_ruck_turnover` | 30% |
+| `BreakdownEvent` | `wide_play` + `turnover` | attacking (lost) | `breakdown_wide_play_turnover` | 25% |
+| `BreakdownEvent` | `pick_and_drive` + `penalty_defending` | attacking | `breakdown_pick_and_drive_penalty` | 25% |
+| `BreakdownEvent` | `wide_play` + `penalty_defending` | attacking | `breakdown_wide_play_penalty` | 25% |
+| `BreakdownEvent` | `jackal` + `penalty_defending` | defending | `breakdown_jackal_penalty` | 25% |
+| `OpenPlayEvent` / `FirstPhaseEvent` / `KickReturnEvent` | `line_break` + `two_back`/`three_back` defending | defending | `line_break_backfield_thin` | 30% |
+| `TacticalKickEvent` | kick caught + `two_back`/`three_back` | defending (now attacking) | `kick_caught_return_bonus` | 35% |
+| `TacticalKickEvent` | `fifty_twenty_two` + `one_back` | defending | `fifty_twenty_two_one_back` | 25% |
+| `BoxKickEvent` | `defend_catch` + `two_back`/`three_back` | defending | `boxkick_backfield_caught` | 30% |
 
-The Out the Back path in `OpenPlayEvent` uses a different mechanism — a structural `getCommentary(..., 'out_the_back')` call (not a `tacticNote`) that always fires when the path is taken. It names the carrier and fly half and is prepended to the outcome commentary.
+Structural pass commentary (`out_the_back`, `crash_ball`) is expressed as a separate `phase_outcome` step pushed onto `descriptor.steps[]` before the outcome step. The renderer joins them with a single space, reproducing the prefix+outcome composition the previous inline-string assembly produced.
 
 ---
 
 ## Commentary Engine
 
-`CommentaryEngine.ts` is a pure text module. It must never produce HTML — that is the UI layer's concern.
+Commentary text is produced by `src/commentary/CommentaryRenderer.ts` from the structured `NarrationDescriptor` carried on every `GameEvent`. The engine itself never composes commentary strings — phase handlers and inline orchestrators populate `narration.steps[]` and `PhaseRouter` (for handler events) calls `renderNarration(...)` to fill `GameEvent.commentary`. The legacy `src/engine/CommentaryEngine.getCommentary(event, key)` is a thin shim retained for the inline orchestrator sites (`ClockController`, `MatchCoordinator`, `PenaltyHandler`) that still build `GameEvent` literals directly; those callers migrate in the next commit.
 
-### Narration emission (in transit)
+### `NarrationDescriptor` and steps
 
-Every `GameEvent` now carries a structured `narration: NarrationDescriptor` (`src/types/narration.ts`) alongside the rendered `commentary: string`. `NarrationDescriptor` is a list of `NarrationStep`s — `phase_outcome` (phase + outcome key + player refs), `tactic_note` (cause + chance pct + params), or `announcement` (key + params). Phase handlers and inline-commentary sites (`ClockController`, `MatchCoordinator`, `PenaltyHandler`) populate both fields; the string is still authoritative for the UI today. Subsequent commits move text rendering into a dedicated renderer that reads only the descriptor, then delete the string field — at which point silent simulation = don't subscribe a renderer.
+`src/types/narration.ts` defines `NarrationDescriptor { steps: NarrationStep[], context? }`. Each `NarrationStep` is one of:
 
-### `getCommentary(event, key)`
+- `{ kind: 'phase_outcome', phase, key, primary?, secondary? }` — the dominant variant. `key` is a `PhaseOutcomeKey` (e.g. `knock_on`, `line_break`, `crash_ball`, `clean_ball`, `wheel`, `defend_catch_contested`, `fifty_twenty_two`, `tap_and_go`, …).
+- `{ kind: 'tactic_note', cause, chancePct, params? }` — flavour text gated by a `pickRandom`-driven chance roll. `cause` is a `TacticNoteCause` (e.g. `line_break_backfield_thin`, `breakdown_jackal_turnover`, `boxkick_backfield_caught`).
+- `{ kind: 'announcement', key, primary?, secondary?, params? }` — non-phase commentary (substitutions, fatigue, clock-in-red, half-time, full-time, set-piece-award).
 
-Picks a random template from `TEMPLATES[event.phase][key]` (falling back to `TEMPLATES.default.generic`) and calls `interpolate()`.
+Composite commentary (e.g. PhasePlay's "out the back" prefix + outcome + tactic note) is expressed as multiple steps in order; the renderer joins their rendered strings with a single space.
+
+### Renderer (`src/commentary/CommentaryRenderer.ts`)
+
+`renderNarration(event)` walks `event.narration.steps[]` and renders each step:
+- `phase_outcome` → look up `PHASE_BANKS[step.phase][step.key]`, pick a template via `pickRandom` (commentary stream), interpolate `{primary}`/`{secondary}`/`{side}`/`{defside}` tokens.
+- `tactic_note` → roll `commentaryChance(step.chancePct)`. On pass, look up lines via `getTacticNoteLines(cause, params)` and `pickRandom` one.
+- `announcement` → look up the template via `getAnnouncementTemplate(key, params)`, interpolate.
+
+The renderer takes only `sideName` / `defSideName` / `narration` from the event — `GameEvent` satisfies the `RenderableEvent` interface naturally.
+
+### Template banks (`src/commentary/banks/en-GB/`)
+
+- `phases.ts` — `PHASE_BANKS: Partial<Record<MatchPhase, Partial<Record<PhaseOutcomeKey, readonly string[]>>>>`. Copied verbatim from the previous `CommentaryEngine.TEMPLATES` map.
+- `tacticNotes.ts` — `getTacticNoteLines(cause, params)` function. Each `cause` returns the string array from the old inline `tacticNote(...)` calls.
+- `announcements.ts` — `getAnnouncementTemplate(key, params)` function. Used by inline orchestrators (migrated in the next commit); currently mostly unused because the legacy `getCommentary` shim path still serves them.
 
 ### Template variables
 
 | Token | Resolved value |
 |---|---|
-| `{primary}` | `primaryPlayer` formatted as `"Name (#jersey)"`, or `"the player"` if absent |
-| `{secondary}` | `secondaryPlayer` formatted as `"Name (#jersey)"`, or `"the defender"` if absent |
+| `{primary}` | step's `primary` formatted as `"Surname (#N)"`, or `"the player"` if absent |
+| `{secondary}` | step's `secondary` formatted as `"Surname (#N)"`, or `"the defender"` if absent |
 | `{side}` | `event.sideName` (attacking team name) |
 | `{defside}` | `event.defSideName` (defending team name), or `"the opposition"` if absent |
 
-`defSideName` is set by `draftEvent(state, phase)` in `src/engine/PhaseRouter.ts` from the non-possessing team's name at the moment the event is drafted. It is declared as `defSideName?: string` on `GameEvent`. Templates that name the defending team (e.g. "The Eagles hold at the gain line") use `{defside}` rather than hardcoding.
+### `getCommentary(event, key)` shim
 
-The `playerLabel(player, fallback)` helper produces the `"Name (#N)"` format. Both `{primary}` and `{secondary}` use it. Adding a player to a template automatically picks up jersey number — no template changes needed.
+Picks a random template from `PHASE_BANKS[event.phase][key]` (falling back to `FALLBACK_GENERIC`) and interpolates against `event.primaryPlayer`/`event.secondaryPlayer`/`event.sideName`/`event.defSideName`.
 
 ### Plain-text contract
 
-`CommentaryEngine` always returns a plain-text string. `CommentaryFeed.ts` post-processes it to:
+The renderer always returns a plain-text string. `CommentaryFeed.ts` post-processes it to:
 1. Wrap all `"Name (#N)"` player mentions in team-coloured `<span>` elements (scans all 30 squad members)
-2. Wrap team name strings ("The Lions", "The Eagles") in their respective team-coloured `<span>` elements
+2. Wrap team name strings ("Gloucester", "Bristol") in their respective team-coloured `<span>` elements
 
-If `CommentaryEngine` ever emits HTML, the span injection will double-encode or break. Tactic notes in event handlers are plain template literals (`\`...\``) that embed `attackTeam.name` / `defendTeam.name` directly — these also go through the same CommentaryFeed colorization pass.
+If the renderer ever emits HTML, the span injection will double-encode or break. Tactic-note lines in `tacticNotes.ts` embed team names via template literals (from `params.attackTeamName` / `params.defendTeamName`) and go through the same `CommentaryFeed` colourisation pass.
 
 ---
 

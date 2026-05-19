@@ -12,7 +12,7 @@ export function handleTryScored({ state, attackTeam, randomPlayer }: PhaseContex
 
   return {
     nextPhase: MatchPhase.ConversionKick,
-    commentary: '',  // carry phase already emitted the try commentary; suppress this duplicate
+    // Carry phase already rendered the try commentary; suppress duplicate.
     narration: { steps: [] },
     primaryPlayer: scorer,
     events,

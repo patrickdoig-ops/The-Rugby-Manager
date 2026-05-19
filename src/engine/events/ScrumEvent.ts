@@ -2,9 +2,8 @@ import type { PhaseContext, PhaseResult } from './types';
 import type { MatchEvent } from '../../types/matchEvent';
 import { MatchPhase } from '../../types/engine';
 import { resolveScrum } from '../resolvers/ScrumResolver';
-import { getCommentary } from '../CommentaryEngine';
 
-export function handleScrum({ state, attackTeam, defendTeam, draftEvent }: PhaseContext): PhaseResult {
+export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): PhaseResult {
   const attackForwards = attackTeam.players.filter(p => p.id <= 8);
   const defendForwards = defendTeam.players.filter(p => p.id <= 8);
   const attackFrontRow = attackTeam.players.filter(p => p.id <= 3);
@@ -29,7 +28,6 @@ export function handleScrum({ state, attackTeam, defendTeam, draftEvent }: Phase
     });
     return {
       nextPhase: MatchPhase.Penalty,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.Scrum), primaryPlayer: defendHooker, secondaryPlayer: attackHooker }, 'attacking_dominant_penalty'),
       narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Scrum, key: 'attacking_dominant_penalty', primary: defendHooker, secondary: attackHooker }] },
       primaryPlayer: attackHooker,
       secondaryPlayer: defendHooker,
@@ -46,7 +44,6 @@ export function handleScrum({ state, attackTeam, defendTeam, draftEvent }: Phase
     });
     return {
       nextPhase: MatchPhase.FirstPhase,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.Scrum), primaryPlayer: attackHooker, secondaryPlayer: defendHooker }, 'stable_win'),
       narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Scrum, key: 'stable_win', primary: attackHooker, secondary: defendHooker }] },
       primaryPlayer: attackHooker,
       secondaryPlayer: defendHooker,
@@ -63,7 +60,6 @@ export function handleScrum({ state, attackTeam, defendTeam, draftEvent }: Phase
     });
     return {
       nextPhase: MatchPhase.Scrum,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.Scrum), primaryPlayer: attackHooker, secondaryPlayer: defendHooker }, 'wheel'),
       narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Scrum, key: 'wheel', primary: attackHooker, secondary: defendHooker }] },
       primaryPlayer: attackHooker,
       secondaryPlayer: defendHooker,
@@ -80,7 +76,6 @@ export function handleScrum({ state, attackTeam, defendTeam, draftEvent }: Phase
   });
   return {
     nextPhase: MatchPhase.Penalty,
-    commentary: getCommentary({ ...draftEvent(MatchPhase.Scrum), primaryPlayer: attackHooker, secondaryPlayer: defendHooker }, 'defending_dominant_penalty'),
     narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Scrum, key: 'defending_dominant_penalty', primary: attackHooker, secondary: defendHooker }] },
     primaryPlayer: defendHooker,
     secondaryPlayer: attackHooker,

@@ -4,14 +4,9 @@ import type { MatchEvent } from '../../types/matchEvent';
 import type { NarrationStep } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
 import { resolveBreakdown } from '../resolvers/BreakdownResolver';
-import { getCommentary } from '../CommentaryEngine';
-import { rng, pickRandom, commentaryChance } from '../../utils/rng';
+import { rng } from '../../utils/rng';
 
-function tacticNote(chancePct: number, ...lines: string[]): string {
-  return commentaryChance(chancePct) ? ' ' + pickRandom(lines) : '';
-}
-
-export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22, inOwn22, inOwnHalf, draftEvent }: PhaseContext): PhaseResult {
+export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22, inOwn22, inOwnHalf }: PhaseContext): PhaseResult {
   const attPlan = attackTeam.tactics.attackingBreakdown;
   const defPlan = defendTeam.tactics.defendingBreakdown;
 
@@ -52,31 +47,18 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
   ];
 
   if (res.result === 'clean_ball') {
-    let note = '';
     const steps: NarrationStep[] = [
       { kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'clean_ball', primary, secondary: jackal },
     ];
     if (homeIsAttacking && attPlan === 'pick_and_drive') {
-      note = tacticNote(30,
-        'Committing numbers to the ruck is working — the forwards dominate the clearout and win clean ball.',
-        "That's the reward for flooding the ruck — quick, clean ball.",
-      );
       steps.push({ kind: 'tactic_note', cause: 'breakdown_pick_and_drive_clean', chancePct: 30 });
     } else if (homeIsDefending && defPlan === 'shadow') {
-      note = tacticNote(30,
-        `The shadow defence is giving ${defendTeam.name} a platform — they were already set before the ball arrived.`,
-        `Conceding the ruck but giving nothing else — ${defendTeam.name}'s defensive line is already organised.`,
-      );
       steps.push({ kind: 'tactic_note', cause: 'breakdown_shadow_clean', chancePct: 30, params: { defendTeamName: defendTeam.name } });
     } else if (homeIsDefending && defPlan === 'jackal') {
-      note = tacticNote(25,
-        `The jackal threat is still there even when ${defendTeam.name} can't get the turnover — slowing things down.`,
-      );
       steps.push({ kind: 'tactic_note', cause: 'breakdown_jackal_clean', chancePct: 25, params: { defendTeamName: defendTeam.name } });
     }
     return {
       nextPhase: MatchPhase.PhasePlay,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.Breakdown), primaryPlayer: primary, secondaryPlayer: jackal }, 'clean_ball') + note,
       narration: { steps },
       primaryPlayer: primary,
       secondaryPlayer: jackal,
@@ -96,26 +78,16 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
       boxKick = inOwnHalf() && !inOwn22();
     }
 
-    let note = '';
     const steps: NarrationStep[] = [
       { kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'slow_ball', primary, secondary: jackal },
     ];
     if (homeIsAttacking && attPlan === 'wide_play') {
-      note = tacticNote(30,
-        `The wide game plan is leaving ${attackTeam.name} thin at the ruck — they're having to work hard for this ball.`,
-        "A price to pay for the wide-play approach: not enough bodies to secure quick ball there.",
-      );
       steps.push({ kind: 'tactic_note', cause: 'breakdown_wide_play_slow', chancePct: 30, params: { attackTeamName: attackTeam.name } });
     } else if (homeIsDefending && defPlan === 'counter_ruck') {
-      note = tacticNote(30,
-        "The counter-ruck is making a mess of things at the breakdown — the attack is struggling to get away.",
-        "That's what the counter-ruck does: wins the physical battle and slows everything down.",
-      );
       steps.push({ kind: 'tactic_note', cause: 'breakdown_counter_ruck_slow', chancePct: 30 });
     }
     return {
       nextPhase: boxKick ? MatchPhase.BoxKick : MatchPhase.PhasePlay,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.Breakdown), primaryPlayer: primary, secondaryPlayer: jackal }, 'slow_ball') + note,
       narration: { steps },
       primaryPlayer: primary,
       secondaryPlayer: jackal,
@@ -125,32 +97,19 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
 
   if (res.result === 'turnover') {
     events.push({ type: 'TURNOVER_AT_BREAKDOWN', jackal });
-    let note = '';
     const steps: NarrationStep[] = [
       { kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'turnover', primary, secondary: jackal },
     ];
     // After possession flip, home is now attacking if they just won the turnover
     if (homeIsDefending && defPlan === 'jackal') {
-      note = tacticNote(35,
-        `That's the jackal game paying off — huge work-rate at the breakdown and ${defendTeam.name} have stolen possession.`,
-        `Exactly what the jackal strategy is designed for — patience at the breakdown and ${defendTeam.name} come away with the ball.`,
-      );
       steps.push({ kind: 'tactic_note', cause: 'breakdown_jackal_turnover', chancePct: 35, params: { defendTeamName: defendTeam.name } });
     } else if (homeIsDefending && defPlan === 'counter_ruck') {
-      note = tacticNote(30,
-        `The counter-ruck overwhelms the opposition and ${defendTeam.name} have turned it over — sheer forward power.`,
-      );
       steps.push({ kind: 'tactic_note', cause: 'breakdown_counter_ruck_turnover', chancePct: 30, params: { defendTeamName: defendTeam.name } });
     } else if (homeIsAttacking && attPlan === 'wide_play') {
-      note = tacticNote(25,
-        `The wide game plan leaves too few at the ruck and ${attackTeam.name} have paid the price — possession gone.`,
-        "That's the danger with going wide — not enough bodies to secure that ball.",
-      );
       steps.push({ kind: 'tactic_note', cause: 'breakdown_wide_play_turnover', chancePct: 25, params: { attackTeamName: attackTeam.name } });
     }
     return {
       nextPhase: MatchPhase.PhasePlay,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.Breakdown), primaryPlayer: primary, secondaryPlayer: jackal }, 'turnover') + note,
       narration: { steps },
       primaryPlayer: jackal,
       secondaryPlayer: primary,
@@ -160,31 +119,18 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
 
   // penalty_defending — defending team awarded the penalty, so possession flips to them
   events.push({ type: 'PENALTY_CONCEDED_AT_BREAKDOWN', player: primary });
-  let penaltyNote = '';
   const penaltySteps: NarrationStep[] = [
     { kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'penalty_defending', primary, secondary: jackal },
   ];
   if (homeIsAttacking && attPlan === 'pick_and_drive') {
-    penaltyNote = tacticNote(25,
-      "Flooding the ruck with forwards is aggressive but they've gone too far — penalty given away.",
-      "Too many bodies piling in and the referee has had enough — a penalty against them at the breakdown.",
-    );
     penaltySteps.push({ kind: 'tactic_note', cause: 'breakdown_pick_and_drive_penalty', chancePct: 25 });
   } else if (homeIsAttacking && attPlan === 'wide_play') {
-    penaltyNote = tacticNote(25,
-      `With so few at the ruck ${attackTeam.name} struggled to stay legal — and the referee penalises them.`,
-    );
     penaltySteps.push({ kind: 'tactic_note', cause: 'breakdown_wide_play_penalty', chancePct: 25, params: { attackTeamName: attackTeam.name } });
   } else if (homeIsDefending && defPlan === 'jackal') {
-    penaltyNote = tacticNote(25,
-      "The jackal is a high-risk strategy and here it backfires — penalty for not releasing.",
-      "That's the danger of the jackal — get it slightly wrong and the referee penalises you.",
-    );
     penaltySteps.push({ kind: 'tactic_note', cause: 'breakdown_jackal_penalty', chancePct: 25 });
   }
   return {
     nextPhase: MatchPhase.Penalty,
-    commentary: getCommentary({ ...draftEvent(MatchPhase.Breakdown), primaryPlayer: primary, secondaryPlayer: jackal }, 'penalty_defending') + penaltyNote,
     narration: { steps: penaltySteps },
     primaryPlayer: primary,
     secondaryPlayer: jackal,

@@ -2,11 +2,10 @@ import type { PhaseContext, PhaseResult } from './types';
 import type { MatchEvent } from '../../types/matchEvent';
 import { MatchPhase } from '../../types/engine';
 import { resolveKickOff } from '../resolvers/KickOffResolver';
-import { getCommentary } from '../CommentaryEngine';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
 
-export function handleKickOff({ state, attackTeam, defendTeam, attackDir, randomPlayer, draftEvent, kickOffStrategy }: PhaseContext): PhaseResult {
+export function handleKickOff({ attackTeam, defendTeam, attackDir, randomPlayer, kickOffStrategy }: PhaseContext): PhaseResult {
   const kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
 
   let receiver;
@@ -40,7 +39,6 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, random
     events.push({ type: 'POSSESSION_SWAPPED' });
     return {
       nextPhase: MatchPhase.Scrum,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: kicker }, 'poor_kick'),
       narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickOff, key: 'poor_kick', primary: kicker }] },
       primaryPlayer: kicker,
       events,
@@ -54,7 +52,6 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, random
     // Scrum where the ball was dropped; kicking team puts in (possession unchanged)
     return {
       nextPhase: MatchPhase.Scrum,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: receiver, secondaryPlayer: chaser }, 'knock_on'),
       narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickOff, key: 'knock_on', primary: receiver, secondary: chaser }] },
       primaryPlayer: receiver,
       secondaryPlayer: chaser,
@@ -66,7 +63,6 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, random
     events.push({ type: 'KICK_RETURN_CARRIER_SET', player: chaser });
     return {
       nextPhase: MatchPhase.KickReturn,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: chaser, secondaryPlayer: receiver }, 'short_kick_retain'),
       narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickOff, key: 'short_kick_retain', primary: chaser, secondary: receiver }] },
       primaryPlayer: chaser,
       secondaryPlayer: receiver,
@@ -79,7 +75,6 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, random
   events.push({ type: 'KICK_RETURN_CARRIER_SET', player: receiver });
   return {
     nextPhase: MatchPhase.KickReturn,
-    commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: receiver, secondaryPlayer: chaser }, 'clean_receive'),
     narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickOff, key: 'clean_receive', primary: receiver, secondary: chaser }] },
     primaryPlayer: receiver,
     secondaryPlayer: chaser,

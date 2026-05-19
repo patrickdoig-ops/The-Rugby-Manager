@@ -6,6 +6,7 @@ import { makeId } from './eventId';
 import { attackDir, isTryScored, inOpposition22, inOppositionHalf, inOwn22, inOwnHalf } from './FieldPosition';
 import type { PhaseContext, PhaseResult } from './events/types';
 import { applyMatchEvent } from './applyMatchEvent';
+import { renderNarration } from '../commentary/CommentaryRenderer';
 import { handleKickOff }        from './events/KickOffEvent';
 import { handlePhasePlay }      from './events/OpenPlayEvent';
 import { handleFirstPhase }     from './events/FirstPhaseEvent';
@@ -81,7 +82,7 @@ export function resolvePhase(state: MatchState, sm: StateMachine, kickOffStrateg
   const handler = PHASE_HANDLERS[state.phase];
   const result: PhaseResult = handler
     ? handler(ctx)
-    : { nextPhase: state.phase, commentary: 'Match event.', narration: { steps: [] }, primaryPlayer: undefined, secondaryPlayer: undefined, outcome: undefined, events: [] };
+    : { nextPhase: state.phase, narration: { steps: [] }, primaryPlayer: undefined, secondaryPlayer: undefined, outcome: undefined, events: [] };
 
   // Apply all handler-emitted MatchEvents in order — these are the only mutations
   // the handler can make to MatchState / player stats.
@@ -109,17 +110,22 @@ export function resolvePhase(state: MatchState, sm: StateMachine, kickOffStrateg
     phaseAtStart === MatchPhase.KickReturn
   ) && result.nextPhase === MatchPhase.TryScored;
   const eventPhase = isCarryToTry ? MatchPhase.TryScored : phaseAtStart;
+  const sideName = isConversion ? sideNameAtStart : (state.possession === 'home' ? state.homeTeam : state.awayTeam).name;
+  const defSideName = isConversion
+    ? (sideAtStart === 'home' ? state.awayTeam.name : state.homeTeam.name)
+    : (state.possession === 'home' ? state.awayTeam : state.homeTeam).name;
   return {
     id: makeId(),
     gameMinute: state.clock.gameMinute,
     phase: eventPhase,
-    side:     isConversion ? sideAtStart     : state.possession,
-    sideName: isConversion ? sideNameAtStart : (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
+    side:     isConversion ? sideAtStart : state.possession,
+    sideName,
+    defSideName,
     primaryPlayer: result.primaryPlayer,
     secondaryPlayer: result.secondaryPlayer,
     ballX: state.ball.x,
     ballY: state.ball.y,
-    commentary: result.commentary,
+    commentary: renderNarration({ sideName, defSideName, narration: result.narration }),
     narration: result.narration,
     outcome: result.outcome,
   };

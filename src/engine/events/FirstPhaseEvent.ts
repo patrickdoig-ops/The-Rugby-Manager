@@ -3,16 +3,11 @@ import type { MatchEvent } from '../../types/matchEvent';
 import type { NarrationStep } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
-import { getCommentary } from '../CommentaryEngine';
 import { isTryScoredAt } from '../FieldPosition';
-import { rng, pickRandom, commentaryChance } from '../../utils/rng';
+import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 
-function tacticNote(chancePct: number, ...lines: string[]): string {
-  return commentaryChance(chancePct) ? ' ' + pickRandom(lines) : '';
-}
-
-export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isTryScored, inOwnHalf, inOwn22, randomPlayer, pickPlayer, draftEvent }: PhaseContext): PhaseResult {
+export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isTryScored, inOwnHalf, inOwn22, randomPlayer, pickPlayer }: PhaseContext): PhaseResult {
   // Step 0 — Kick or carry decision
   const plan = attackTeam.tactics.attackingGamePlan;
   let kickProb = 15;
@@ -29,7 +24,6 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
     const flyHalf = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
     return {
       nextPhase: MatchPhase.TacticalKick,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.FirstPhase) }, 'kick_decision'),
       narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'kick_decision' }] },
       primaryPlayer: flyHalf,
       events: [{ type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 }],
@@ -60,7 +54,6 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
     const defender = randomPlayer(defendTeam);
     return {
       nextPhase: MatchPhase.Scrum,
-      commentary: getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: carrier, secondaryPlayer: defender }, 'knock_on'),
       narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'knock_on', primary: carrier, secondary: defender }] },
       primaryPlayer: carrier,
       secondaryPlayer: defender,
@@ -75,13 +68,13 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
 
   let ballCarrier;
   let defender;
-  let playIntro = '';
+  // Structural pass steps prefix the outcome step in the descriptor (mirrors
+  // the playIntro string concatenation in the previous implementation).
   const playIntroSteps: NarrationStep[] = [];
 
   if (goCrashBall) {
     // Crash Ball: #10 → #12 (inside centre)
     const insideCentre = pickPlayer(attackTeam, 12);
-    playIntro = getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: carrier, secondaryPlayer: insideCentre }, 'crash_ball') + ' ';
     playIntroSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'crash_ball', primary: carrier, secondary: insideCentre });
 
     const icKoThreshold = state.clock.clockInTheRed
@@ -91,7 +84,6 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
       events.push({ type: 'KNOCK_ON', player: insideCentre, attackSide });
       return {
         nextPhase: MatchPhase.Scrum,
-        commentary: playIntro + getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: insideCentre, secondaryPlayer: carrier }, 'knock_on'),
         narration: { steps: [...playIntroSteps, { kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'knock_on', primary: insideCentre, secondary: carrier }] },
         primaryPlayer: insideCentre,
         secondaryPlayer: carrier,
@@ -105,7 +97,6 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
   } else {
     // Wide Play: #10 → #13 → random of #11/#14
     const outsideCentre = pickPlayer(attackTeam, 13);
-    playIntro = getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: carrier, secondaryPlayer: outsideCentre }, 'out_the_back') + ' ';
     playIntroSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'out_the_back', primary: carrier, secondary: outsideCentre });
 
     const ocKoThreshold = state.clock.clockInTheRed
@@ -115,7 +106,6 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
       events.push({ type: 'KNOCK_ON', player: outsideCentre, attackSide });
       return {
         nextPhase: MatchPhase.Scrum,
-        commentary: playIntro + getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: outsideCentre, secondaryPlayer: carrier }, 'knock_on'),
         narration: { steps: [...playIntroSteps, { kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'knock_on', primary: outsideCentre, secondary: carrier }] },
         primaryPlayer: outsideCentre,
         secondaryPlayer: carrier,
@@ -127,7 +117,6 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
 
     const wingPool = attackTeam.players.filter(p => p.id === 11 || p.id === 14);
     const wing = wingPool.length > 0 ? wingPool[rng(0, wingPool.length - 1)] : randomPlayer(attackTeam);
-    playIntro += getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: outsideCentre, secondaryPlayer: wing }, 'out_the_back') + ' ';
     playIntroSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'out_the_back', primary: outsideCentre, secondary: wing });
 
     const wingKoThreshold = state.clock.clockInTheRed
@@ -137,7 +126,6 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
       events.push({ type: 'KNOCK_ON', player: wing, attackSide });
       return {
         nextPhase: MatchPhase.Scrum,
-        commentary: playIntro + getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: wing, secondaryPlayer: outsideCentre }, 'knock_on'),
         narration: { steps: [...playIntroSteps, { kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'knock_on', primary: wing, secondary: outsideCentre }] },
         primaryPlayer: wing,
         secondaryPlayer: outsideCentre,
@@ -166,7 +154,6 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
   });
 
   let nextPhase: MatchPhase;
-  let commentary: string;
   const outcomeSteps: NarrationStep[] = [...playIntroSteps];
 
   if (res.outcome === 'line_break') {
@@ -174,16 +161,8 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
     const tryScored = isTryScoredAt(projectedBallX, attackSide, state.clock.halfTimeDone);
     nextPhase = tryScored ? MatchPhase.TryScored : MatchPhase.Breakdown;
     if (tryScored) {
-      commentary = playIntro + getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: ballCarrier, secondaryPlayer: defender }, 'line_break_try');
       outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'line_break_try', primary: ballCarrier, secondary: defender });
     } else {
-      const lineBreakNote = (backfieldPenalty < 0 && attackSide !== 'home')
-        ? tacticNote(30,
-            `The backfield commitment is leaving ${defendTeam.name} short in the defensive line — and they've been cut through.`,
-            `Three in the backfield means only twelve in the line for ${defendTeam.name} — and there's the gap.`,
-          )
-        : '';
-      commentary = playIntro + getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: ballCarrier, secondaryPlayer: defender }, 'line_break') + lineBreakNote;
       outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'line_break', primary: ballCarrier, secondary: defender });
       if (backfieldPenalty < 0 && attackSide !== 'home') {
         outcomeSteps.push({
@@ -196,18 +175,15 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
     }
   } else if (res.outcome === 'dominant_tackle') {
     nextPhase = MatchPhase.Breakdown;
-    commentary = playIntro + getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: ballCarrier, secondaryPlayer: defender }, 'dominant_tackle');
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'dominant_tackle', primary: ballCarrier, secondary: defender });
   } else {
     nextPhase = MatchPhase.Breakdown;
-    commentary = playIntro + getCommentary({ ...draftEvent(MatchPhase.FirstPhase), primaryPlayer: ballCarrier, secondaryPlayer: defender }, res.outcome);
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: res.outcome, primary: ballCarrier, secondary: defender });
   }
 
   void isTryScored;  // ctx helper unused — we project ballX ourselves for the try-line check
   return {
     nextPhase,
-    commentary,
     narration: { steps: outcomeSteps },
     primaryPlayer: ballCarrier,
     secondaryPlayer: defender,

@@ -10,7 +10,7 @@ function tacticNote(chancePct: number, ...lines: string[]): string {
 }
 
 export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, inOwn22, inOwnHalf, inOpposition22, randomPlayer, draftEvent }: PhaseContext): PhaseResult {
-  const kicker   = attackTeam.players.find(p => p.id === 10 || p.id === 9) ?? attackTeam.players[0];
+  const kicker   = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
   kicker.matchStats.kicksFromHand++;
   const defender = defendTeam.players.find(p => p.id === 15) ?? randomPlayer(defendTeam);
   

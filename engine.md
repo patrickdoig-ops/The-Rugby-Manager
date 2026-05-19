@@ -1091,7 +1091,7 @@ Structural pass commentary (`out_the_back`, `crash_ball`) is expressed as a sepa
 
 ## Commentary Engine
 
-Commentary text is produced by `src/commentary/CommentaryRenderer.ts` from the structured `NarrationDescriptor` carried on every `GameEvent`. The engine itself never composes commentary strings — phase handlers and inline orchestrator sites (`ClockController`, `MatchCoordinator`, `PenaltyHandler`) populate `narration.steps[]`, and the caller invokes `renderNarration(...)` to fill `GameEvent.commentary`. `PhaseRouter.resolvePhase` does this for handler events; orchestrators do it inline when they build a `GameEvent` literal directly. There is no legacy `getCommentary` API left.
+Commentary text is produced by `src/commentary/CommentaryRenderer.ts` from the structured `NarrationDescriptor` carried on every `GameEvent`. The engine never produces text — phase handlers, `PhaseRouter`, and inline orchestrator sites (`ClockController`, `MatchCoordinator`, `PenaltyHandler`) populate `narration.steps[]` only. `GameEvent` has no `commentary` field. The text renderer runs in the UI subscriber `src/ui/CommentaryFeed.ts`, which calls `renderNarration(event)` once per `engine:event` and writes the rendered string into the DOM. Silent simulation, replay narration, localisation, and analytics consumers all attach to `engine:event` and decide for themselves whether to render text — the engine doesn't care.
 
 ### `NarrationDescriptor` and steps
 

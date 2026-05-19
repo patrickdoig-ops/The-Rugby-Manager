@@ -1,9 +1,7 @@
 import type { MatchState, GameEvent } from '../types/match';
 import { MatchPhase, type PenaltyChoice, type KickOffStrategy } from '../types/engine';
-import type { NarrationDescriptor } from '../types/narration';
 import type { StateMachine } from './StateMachine';
 import { resolveGoalKick } from './resolvers/KickingResolver';
-import { renderNarration } from '../commentary/CommentaryRenderer';
 import { eventBus } from '../utils/eventBus';
 import { clamp } from '../utils/math';
 import { makeId } from './eventId';
@@ -89,27 +87,23 @@ export class PenaltyHandler {
       applyMatchEvent(state, { type: 'PENALTY_GOAL_KICKED', kicker, side, success: res.success });
       applyMatchEvent(state, { type: 'RATINGS_RECALCULATED' });
 
-      const goalSideName = (state.possession === 'home' ? state.homeTeam : state.awayTeam).name;
-      const goalDefSideName = (state.possession === 'home' ? state.awayTeam : state.homeTeam).name;
-      const goalNarration: NarrationDescriptor = {
-        steps: [{
-          kind: 'phase_outcome',
-          phase: MatchPhase.Penalty,
-          key: res.success ? 'kick_for_goal' : 'miss',
-          primary: kicker,
-        }],
-      };
       const penEvent: GameEvent = {
         id: makeId(),
         gameMinute: state.clock.gameMinute,
         phase: MatchPhase.Penalty,
         side: state.possession,
-        sideName: goalSideName,
+        sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
         primaryPlayer: kicker,
         ballX: state.ball.x,
         ballY: state.ball.y,
-        narration: goalNarration,
-        commentary: renderNarration({ sideName: goalSideName, defSideName: goalDefSideName, narration: goalNarration }),
+        narration: {
+          steps: [{
+            kind: 'phase_outcome',
+            phase: MatchPhase.Penalty,
+            key: res.success ? 'kick_for_goal' : 'miss',
+            primary: kicker,
+          }],
+        },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
       eventBus.emit('engine:event', { event: penEvent });
@@ -127,30 +121,21 @@ export class PenaltyHandler {
         type: 'BALL_REPOSITIONED',
         x: clamp(state.ball.x + attackDir(state) * 20, 5, 95),
       });
-      const touchSideName = (state.possession === 'home' ? state.homeTeam : state.awayTeam).name;
-      const touchDefSideName = (state.possession === 'home' ? state.awayTeam : state.homeTeam).name;
-      const touchNarration: NarrationDescriptor = {
-        steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: 'kick_to_touch', primary: kicker }],
-      };
       const penEvent: GameEvent = {
         id: makeId(),
         gameMinute: state.clock.gameMinute,
         phase: MatchPhase.Penalty,
         side: state.possession,
-        sideName: touchSideName,
+        sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
         primaryPlayer: kicker,
         ballX: state.ball.x,
         ballY: state.ball.y,
-        narration: touchNarration,
-        commentary: renderNarration({ sideName: touchSideName, defSideName: touchDefSideName, narration: touchNarration }),
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: 'kick_to_touch', primary: kicker }] },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
       eventBus.emit('engine:event', { event: penEvent });
 
       const teamName = (state.possession === 'home' ? state.homeTeam : state.awayTeam).name;
-      const awardNarration: NarrationDescriptor = {
-        steps: [{ kind: 'announcement', key: 'set_piece_award', params: { phaseName: 'Lineout', teamName } }],
-      };
       const awardEvent: GameEvent = {
         id: makeId(),
         gameMinute: state.clock.gameMinute,
@@ -159,8 +144,7 @@ export class PenaltyHandler {
         sideName: teamName,
         ballX: state.ball.x,
         ballY: state.ball.y,
-        narration: awardNarration,
-        commentary: renderNarration({ sideName: teamName, narration: awardNarration }),
+        narration: { steps: [{ kind: 'announcement', key: 'set_piece_award', params: { phaseName: 'Lineout', teamName } }] },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: awardEvent });
       eventBus.emit('engine:event', { event: awardEvent });
@@ -169,22 +153,16 @@ export class PenaltyHandler {
       applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.Lineout });
 
     } else if (choice === 'tap_and_kick_dead') {
-      const tkdSideName = (state.possession === 'home' ? state.homeTeam : state.awayTeam).name;
-      const tkdDefSideName = (state.possession === 'home' ? state.awayTeam : state.homeTeam).name;
-      const tkdNarration: NarrationDescriptor = {
-        steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: 'tap_and_kick_dead', primary: kicker }],
-      };
       const penEvent: GameEvent = {
         id: makeId(),
         gameMinute: state.clock.gameMinute,
         phase: MatchPhase.Penalty,
         side: state.possession,
-        sideName: tkdSideName,
+        sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
         primaryPlayer: kicker,
         ballX: state.ball.x,
         ballY: state.ball.y,
-        narration: tkdNarration,
-        commentary: renderNarration({ sideName: tkdSideName, defSideName: tkdDefSideName, narration: tkdNarration }),
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: 'tap_and_kick_dead', primary: kicker }] },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
       eventBus.emit('engine:event', { event: penEvent });
@@ -193,22 +171,16 @@ export class PenaltyHandler {
 
     } else {
       // tap_and_go
-      const tagSideName = (state.possession === 'home' ? state.homeTeam : state.awayTeam).name;
-      const tagDefSideName = (state.possession === 'home' ? state.awayTeam : state.homeTeam).name;
-      const tagNarration: NarrationDescriptor = {
-        steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: 'tap_and_go', primary: kicker }],
-      };
       const penEvent: GameEvent = {
         id: makeId(),
         gameMinute: state.clock.gameMinute,
         phase: MatchPhase.Penalty,
         side: state.possession,
-        sideName: tagSideName,
+        sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
         primaryPlayer: kicker,
         ballX: state.ball.x,
         ballY: state.ball.y,
-        narration: tagNarration,
-        commentary: renderNarration({ sideName: tagSideName, defSideName: tagDefSideName, narration: tagNarration }),
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: 'tap_and_go', primary: kicker }] },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
       eventBus.emit('engine:event', { event: penEvent });

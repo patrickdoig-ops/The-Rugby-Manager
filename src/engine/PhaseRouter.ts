@@ -6,7 +6,6 @@ import { makeId } from './eventId';
 import { attackDir, isTryScored, inOpposition22, inOppositionHalf, inOwn22, inOwnHalf } from './FieldPosition';
 import type { PhaseContext, PhaseResult } from './events/types';
 import { applyMatchEvent } from './applyMatchEvent';
-import { renderNarration } from '../commentary/CommentaryRenderer';
 import { handleKickOff }        from './events/KickOffEvent';
 import { handlePhasePlay }      from './events/OpenPlayEvent';
 import { handleFirstPhase }     from './events/FirstPhaseEvent';
@@ -48,7 +47,6 @@ export function draftEvent(state: MatchState, phase: MatchPhase): GameEvent {
     defSideName: defTeam.name,
     ballX: state.ball.x,
     ballY: state.ball.y,
-    commentary: '',
     narration: { steps: [] },
   };
 }
@@ -125,7 +123,6 @@ export function resolvePhase(state: MatchState, sm: StateMachine, kickOffStrateg
     secondaryPlayer: result.secondaryPlayer,
     ballX: state.ball.x,
     ballY: state.ball.y,
-    commentary: renderNarration({ sideName, defSideName, narration: result.narration }),
     narration: result.narration,
     outcome: result.outcome,
   };

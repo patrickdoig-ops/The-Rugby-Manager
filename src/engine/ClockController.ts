@@ -6,7 +6,6 @@ import { eventBus } from '../utils/eventBus';
 import { rng } from '../utils/rng';
 import { makeId } from './eventId';
 import { applyMatchEvent } from './applyMatchEvent';
-import { renderNarration } from '../commentary/CommentaryRenderer';
 
 export class ClockController {
   constructor(private sm: StateMachine) {}
@@ -28,7 +27,6 @@ export class ClockController {
 
     applyMatchEvent(state, { type: 'CLOCK_IN_RED_TRIPPED' });
     const isFirstHalf = !state.clock.halfTimeDone;
-    const sideName = (state.possession === 'home' ? state.homeTeam : state.awayTeam).name;
     const narration: NarrationDescriptor = {
       steps: [{ kind: 'announcement', key: isFirstHalf ? 'clock_in_red_first_half' : 'clock_in_red_second_half' }],
     };
@@ -37,11 +35,10 @@ export class ClockController {
       gameMinute: state.clock.gameMinute,
       phase: state.phase,
       side: state.possession,
-      sideName,
+      sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
       ballX: state.ball.x,
       ballY: state.ball.y,
       narration,
-      commentary: renderNarration({ sideName, narration }),
     };
     applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: redEvent });
     eventBus.emit('engine:event', { event: redEvent });
@@ -69,18 +66,15 @@ export class ClockController {
   triggerHalfTime(state: MatchState): void {
     applyMatchEvent(state, { type: 'HALF_TIME_REACHED' });
 
-    const htSideName = (state.possession === 'home' ? state.homeTeam : state.awayTeam).name;
-    const htNarration: NarrationDescriptor = { steps: [{ kind: 'announcement', key: 'half_time_whistle' }] };
     const htEvent: GameEvent = {
       id: makeId(),
       gameMinute: 40,
       phase: MatchPhase.HalfTime,
       side: state.possession,
-      sideName: htSideName,
+      sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
       ballX: 50,
       ballY: 50,
-      narration: htNarration,
-      commentary: renderNarration({ sideName: htSideName, narration: htNarration }),
+      narration: { steps: [{ kind: 'announcement', key: 'half_time_whistle' }] },
     };
     applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.HalfTime });
     this.sm.forceTransition(MatchPhase.HalfTime);
@@ -100,29 +94,26 @@ export class ClockController {
     this.sm.forceTransition(MatchPhase.FullTime);
     applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.FullTime });
 
-    const ftSideName = (state.possession === 'home' ? state.homeTeam : state.awayTeam).name;
-    const ftNarration: NarrationDescriptor = {
-      steps: [{
-        kind: 'announcement',
-        key: 'full_time_summary',
-        params: {
-          homeName: state.homeTeam.name,
-          awayName: state.awayTeam.name,
-          homeScore: state.score.home,
-          awayScore: state.score.away,
-        },
-      }],
-    };
     const ftEvent: GameEvent = {
       id: makeId(),
       gameMinute: 80,
       phase: MatchPhase.FullTime,
       side: state.possession,
-      sideName: ftSideName,
+      sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
       ballX: state.ball.x,
       ballY: state.ball.y,
-      narration: ftNarration,
-      commentary: renderNarration({ sideName: ftSideName, narration: ftNarration }),
+      narration: {
+        steps: [{
+          kind: 'announcement',
+          key: 'full_time_summary',
+          params: {
+            homeName: state.homeTeam.name,
+            awayName: state.awayTeam.name,
+            homeScore: state.score.home,
+            awayScore: state.score.away,
+          },
+        }],
+      },
     };
     applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: ftEvent });
     eventBus.emit('engine:event', { event: ftEvent });

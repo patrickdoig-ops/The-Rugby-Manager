@@ -1,6 +1,7 @@
 import { eventBus } from '../utils/eventBus';
 import { MatchPhase } from '../types/engine';
 import type { Player } from '../types/player';
+import { renderNarration } from '../commentary/CommentaryRenderer';
 
 const PHASE_CLASS: Partial<Record<MatchPhase, string>> = {
   [MatchPhase.TryScored]:     'event-try',
@@ -89,7 +90,8 @@ export function initCommentaryFeed(): void {
   });
 
   eventBus.on('engine:event', ({ event }) => {
-    if (!event.commentary.trim()) return;
+    const text = renderNarration(event);
+    if (!text.trim()) return;
 
     const entry = document.createElement('div');
     const phaseClass = PHASE_CLASS[event.phase] ?? '';
@@ -97,7 +99,7 @@ export function initCommentaryFeed(): void {
 
     const minute = Math.floor(event.gameMinute);
     const tag    = TAG_MAP[event.phase] ?? '·';
-    let html = deduplicatePlayerRefs(event.commentary);
+    let html = deduplicatePlayerRefs(text);
 
     for (const { player, color } of allPlayersWithColor) {
       html = colorizePlayer(html, player, color);

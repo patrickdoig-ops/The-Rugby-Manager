@@ -23,9 +23,8 @@ export interface PhaseContext {
 
 export interface PhaseResult {
   nextPhase: MatchPhase;
-  // Handlers describe what happened structurally; PhaseRouter renders the
-  // text via src/commentary/CommentaryRenderer.ts and writes it onto the
-  // outgoing GameEvent.commentary field.
+  // Handlers describe what happened structurally; text rendering happens
+  // in the UI subscriber (CommentaryFeed) via renderNarration().
   narration: NarrationDescriptor;
   primaryPlayer?: Player;
   secondaryPlayer?: Player;

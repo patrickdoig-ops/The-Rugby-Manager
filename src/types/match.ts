@@ -29,7 +29,6 @@ export interface GameEvent {
   secondaryPlayer?: Player;
   ballX: number;
   ballY: number;
-  commentary: string;
   narration: NarrationDescriptor;
   outcome?: string;
 }

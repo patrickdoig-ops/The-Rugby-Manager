@@ -286,7 +286,7 @@ Box kick propensity by `attackingGamePlan` (triggered from slow ball in Breakdow
 
 ### Tactical commentary
 
-Event handlers append tactic-aware commentary notes to the standard `getCommentary(...)` string using a local `tacticNote(chancePct, ...lines)` helper (defined at the top of each event file). The helper returns `' ' + randomLine` at the given probability, or `''`. Notes are only appended when the **home team** is the relevant party (attacker or defender, depending on context). Probabilities are 25–35% so notes appear often enough to be noticed without saturating the feed.
+Event handlers describe tactic-aware notes by pushing `{ kind: 'tactic_note', cause, chancePct, params? }` steps into the `NarrationDescriptor` they return. The renderer (`src/commentary/CommentaryRenderer.ts`) rolls `commentaryChance(chancePct)` (commentary RNG stream) and, on pass, picks a line from `getTacticNoteLines(cause, params)` in `src/commentary/banks/en-GB/tacticNotes.ts`. Notes only fire when the **home team** is the relevant party (attacker or defender, depending on context). Probabilities are 25–35% so notes appear often enough to be noticed without saturating the feed.
 
 | Event file | Trigger condition | Home team role | Probability |
 |---|---|---|---|
@@ -302,9 +302,9 @@ Event handlers append tactic-aware commentary notes to the standard `getCommenta
 | `TacticalKickEvent` | `fifty_twenty_two` + `one_back` defending | defending | 25% |
 | `BoxKickEvent` | `defend_catch` + `fullbackMod > 0` (two/three_back) | defending | 30% |
 
-`OpenPlayEvent` and `FirstPhaseEvent` prepend structural commentary lines (always-on, not probabilistic) for the Out the Back / Crash Ball / Wide Play paths, naming the passer and receiver before the outcome commentary.
+`OpenPlayEvent` and `FirstPhaseEvent` push structural pass steps (always-on, not probabilistic) for the Out the Back / Crash Ball / Wide Play paths onto the descriptor before the outcome step. The renderer joins their rendered strings with a single space, reproducing the prefix+outcome composition the previous inline-string assembly produced.
 
-Commentary templates support four interpolation tokens: `{primary}` (`primaryPlayer` formatted as `"Surname (#N)"`, or "the player"), `{secondary}` (`secondaryPlayer` formatted as `"Surname (#N)"`, or "the defender"), `{side}` (attacking team name), and `{defside}` (defending team name — sourced from `GameEvent.defSideName`). Tactic notes in event handlers use template literals with `attackTeam.name` / `defendTeam.name` directly rather than going through `getCommentary()`.
+Renderer templates support four interpolation tokens: `{primary}` (step's `primary` formatted as `"Surname (#N)"`, or "the player"), `{secondary}` (step's `secondary` formatted as `"Surname (#N)"`, or "the defender"), `{side}` (attacking team name from `GameEvent.sideName`), and `{defside}` (defending team name from `GameEvent.defSideName`, fallback "the opposition"). Tactic-note lines in `tacticNotes.ts` embed team names via `params.attackTeamName` / `params.defendTeamName`.
 
 ### Player attributes — known gaps
 

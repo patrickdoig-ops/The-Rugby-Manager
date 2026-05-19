@@ -572,10 +572,10 @@ export class MatchEngine {
 
   private applyPenaltyChoice(choice: PenaltyChoice): void {
     const { state, sm } = this;
+    const attackTeam = state.possession === 'home' ? state.homeTeam : state.awayTeam;
+    const kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
 
     if (choice === 'kick_for_goal') {
-      const attackTeam = state.possession === 'home' ? state.homeTeam : state.awayTeam;
-      const kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
       const tryLine = !state.halfTimeDone
         ? (state.possession === 'home' ? 100 : 0)
         : (state.possession === 'home' ? 0 : 100);
@@ -619,9 +619,10 @@ export class MatchEngine {
         phase: MatchPhase.Penalty,
         side: state.possession,
         sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
+        primaryPlayer: kicker,
         ballX: state.ballX,
         ballY: state.ballY,
-        commentary: getCommentary(this.draftEvent(MatchPhase.Penalty), 'kick_to_touch'),
+        commentary: getCommentary({ ...this.draftEvent(MatchPhase.Penalty), primaryPlayer: kicker }, 'kick_to_touch'),
       };
       state.events.push(penEvent);
       eventBus.emit('engine:event', { event: penEvent });
@@ -650,9 +651,10 @@ export class MatchEngine {
         phase: MatchPhase.Penalty,
         side: state.possession,
         sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
+        primaryPlayer: kicker,
         ballX: state.ballX,
         ballY: state.ballY,
-        commentary: getCommentary(this.draftEvent(MatchPhase.Penalty), 'tap_and_kick_dead'),
+        commentary: getCommentary({ ...this.draftEvent(MatchPhase.Penalty), primaryPlayer: kicker }, 'tap_and_kick_dead'),
       };
       state.events.push(penEvent);
       eventBus.emit('engine:event', { event: penEvent });
@@ -667,9 +669,10 @@ export class MatchEngine {
         phase: MatchPhase.Penalty,
         side: state.possession,
         sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
+        primaryPlayer: kicker,
         ballX: state.ballX,
         ballY: state.ballY,
-        commentary: getCommentary(this.draftEvent(MatchPhase.Penalty), 'tap_and_go'),
+        commentary: getCommentary({ ...this.draftEvent(MatchPhase.Penalty), primaryPlayer: kicker }, 'tap_and_go'),
       };
       state.events.push(penEvent);
       eventBus.emit('engine:event', { event: penEvent });

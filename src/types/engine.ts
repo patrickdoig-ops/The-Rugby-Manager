@@ -25,7 +25,7 @@ export type LineoutResult   = 'clean_catch' | 'steal' | 'scrappy_knock_on' | 'cr
 export type KickOffResult   = 'clean_receive' | 'knock_on' | 'short_kick_retain' | 'poor_kick';
 export type CollisionResult = 'dominant_carry' | 'dominant_tackle' | 'broken_tackle';
 export type KickResult      = 'good_kick' | 'poor_kick' | 'knock_on_catch';
-export type PenaltyChoice   = 'kick_for_goal' | 'kick_to_touch' | 'tap_and_go';
+export type PenaltyChoice   = 'kick_for_goal' | 'kick_to_touch' | 'tap_and_go' | 'tap_and_kick_dead';
 
 export interface PenaltyContext {
   phase: MatchPhase;
@@ -33,4 +33,6 @@ export interface PenaltyContext {
   ballY: number;
   inOpposition22: boolean;
   attackingSide: PossessionSide;
+  clockInTheRed: boolean;
+  halfTimeDone: boolean;
 }

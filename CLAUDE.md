@@ -143,6 +143,8 @@ Clock reaches 40 min (first half) or 80 min (second half) → clockInTheRed = tr
     Lineout awarded (ball to touch, NOT from penalty kick-to-touch) → HalfTime / FullTime
     ConversionKick → KickOff (try scored + conversion taken) → HalfTime / FullTime
   Exception: penalty kick-to-touch in the red sets penaltyKickToTouchLineout flag; that one lineout does NOT end the game.
+  Exception 2: penalty kick-to-touch via tap_and_kick_dead does NOT set the flag, so that lineout DOES end the game.
+  Penalty goal kick (kick_for_goal) in the red → KickOff with prevPhase=Penalty → always ends the period (success or miss).
   Knock-on threshold increases ~40% in the red: Math.min(99, 85 + Math.round(Math.max(0, 85 − handling) × 0.4)).
   triggerHalfTime() resets clockInTheRed = false for the second half.
 ```

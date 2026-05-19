@@ -5,15 +5,17 @@ import { renderTacticsMenu } from './TacticsMenu';
 import { renderSubstitutionPanel } from './SubstitutionModal';
 
 const CHOICE_LABELS: Record<PenaltyChoice, string> = {
-  kick_for_goal: 'Kick for goal',
-  kick_to_touch: 'Kick to touch',
-  tap_and_go:    'Tap and go',
+  kick_for_goal:     'Kick for goal',
+  kick_to_touch:     'Kick to touch',
+  tap_and_go:        'Tap and go',
+  tap_and_kick_dead: 'Tap & kick dead',
 };
 
 const CHOICE_DESC: Record<PenaltyChoice, string> = {
-  kick_for_goal: 'Attempt a penalty goal kick from this position.',
-  kick_to_touch: 'Kick into touch to win a lineout near the opposition try-line.',
-  tap_and_go:    'Tap the ball and continue play immediately from the mark.',
+  kick_for_goal:     'Attempt a penalty goal kick from this position.',
+  kick_to_touch:     'Kick into touch to win a lineout near the opposition try-line.',
+  tap_and_go:        'Tap the ball and continue play immediately from the mark.',
+  tap_and_kick_dead: 'Tap and kick the ball into touch — ends the half/match immediately.',
 };
 
 const KICKOFF_LABELS: Record<KickOffStrategy, string> = {
@@ -65,11 +67,14 @@ export function initModalManager(): void {
     const { context, onChoice } = payload;
     const zone = context.inOpposition22 ? 'in the opposition 22' : 'in the opposition half';
 
+    const choices: PenaltyChoice[] = ['kick_for_goal', 'kick_to_touch', 'tap_and_go'];
+    if (context.clockInTheRed) choices.push('tap_and_kick_dead');
+
     box.innerHTML = `
       <h2 class="modal-title">Penalty awarded</h2>
       <p class="modal-subtitle">${context.attackingSide === 'home' ? 'Home' : 'Away'} team — ${zone}</p>
       <div class="modal-choices">
-        ${(['kick_for_goal', 'kick_to_touch', 'tap_and_go'] as PenaltyChoice[]).map(key => `
+        ${choices.map(key => `
           <button class="modal-choice-btn" data-choice="${key}">
             <span class="choice-label">${CHOICE_LABELS[key]}</span>
             <span class="choice-desc">${CHOICE_DESC[key]}</span>

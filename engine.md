@@ -764,8 +764,9 @@ In both cases the **non-offending team** gains possession and the phase transiti
 After `resolvePhase()` sets the phase to `Penalty`, `tick()` calls `handlePenaltyDecision()`:
 
 ```
-if possession !== 'home'  → auto-select kick_to_touch (away team AI, no modal)
-if NOT inOppositionHalf() → auto-select kick_to_touch (own half, no modal)
+if possession !== 'home' OR NOT inOppositionHalf():
+  if clockInTheRed AND possession === 'away' AND score.away > score.home → auto-select tap_and_kick_dead
+  else → auto-select kick_to_touch
 if possession === 'home' AND inOppositionHalf() → emit engine:paused → await Promise<PenaltyChoice>
 ```
 
@@ -800,9 +801,15 @@ Possession is retained. The lineout is awarded to the kicking team 20 units furt
 
 ### Choice: tap_and_go
 
-
-
 No ball movement. Possession is retained. Resumes open play from current position.
+
+### Choice: tap_and_kick_dead *(clock-in-the-red only)*
+
+Available only when `clockInTheRed` is true. The attacking team taps the ball then immediately kicks it into touch, ending the period.
+
+The phase transitions to `Lineout` without setting `penaltyKickToTouchLineout`, so `shouldEndPeriod` returns true and triggers half-time or full-time on the same tick.
+
+Home team: shown as a 4th option in the modal when `clockInTheRed`. Away team AI: auto-selected when `clockInTheRed && score.away > score.home`.
 
 ---
 
@@ -894,6 +901,7 @@ The period ends only when the ball goes dead. `shouldEndPeriod` returns `true` o
 | `state.phase === Scrum && prevPhase !== Scrum` | Knock-on or crooked lineout throw (not a wheel reset — those have prevPhase === Scrum) |
 | `state.phase === Lineout && !penaltyKickToTouchLineout` | Ball in touch (except after a penalty kick-to-touch — see exception below) |
 | `state.phase === KickOff && prevPhase === ConversionKick` | Try scored and conversion taken |
+| `state.phase === KickOff && prevPhase === Penalty` | Penalty goal kick attempt (success or miss) |
 
 **Penalty kick-to-touch exception:** When the home team chooses `kick_to_touch` on a penalty during the red, `penaltyKickToTouchLineout` is set to `true`. `shouldEndPeriod` detects this, clears the flag, and returns `false` — the subsequent lineout does not end the period. This allows the attacking team to take the lineout and keep playing.
 

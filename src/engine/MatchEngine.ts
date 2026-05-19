@@ -524,7 +524,11 @@ export class MatchEngine {
     // Only present the choice to the human manager (home team) and only when
     // the penalty is in the opposition's half. All other penalties auto-kick to touch.
     if (state.possession !== 'home' || !this.inOppositionHalf()) {
-      this.applyPenaltyChoice('kick_to_touch');
+      const autoChoice =
+        state.clockInTheRed && state.possession === 'away' && state.score.away > state.score.home
+          ? 'tap_and_kick_dead'
+          : 'kick_to_touch';
+      this.applyPenaltyChoice(autoChoice);
       return;
     }
 
@@ -539,6 +543,8 @@ export class MatchEngine {
             ballY: state.ballY,
             inOpposition22: this.inOpposition22(),
             attackingSide: state.possession,
+            clockInTheRed: state.clockInTheRed,
+            halfTimeDone: state.halfTimeDone,
           },
           onChoice: (c) => resolve(c),
         },
@@ -620,6 +626,22 @@ export class MatchEngine {
       sm.forceTransition(MatchPhase.Lineout);
       state.phase = MatchPhase.Lineout;
 
+    } else if (choice === 'tap_and_kick_dead') {
+      const penEvent: GameEvent = {
+        id: makeId(),
+        gameMinute: state.gameMinute,
+        phase: MatchPhase.Penalty,
+        side: state.possession,
+        sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
+        ballX: state.ballX,
+        ballY: state.ballY,
+        commentary: getCommentary(this.draftEvent(MatchPhase.Penalty), 'tap_and_kick_dead'),
+      };
+      state.events.push(penEvent);
+      eventBus.emit('engine:event', { event: penEvent });
+      sm.forceTransition(MatchPhase.Lineout);
+      state.phase = MatchPhase.Lineout;
+
     } else {
       // tap_and_go
       const penEvent: GameEvent = {
@@ -684,6 +706,8 @@ export class MatchEngine {
     }
     // Try scored and conversion taken → kickoff restart
     if (state.phase === MatchPhase.KickOff && prevPhase === MatchPhase.ConversionKick) return true;
+    // Penalty goal kick (success or miss) → kickoff restart
+    if (state.phase === MatchPhase.KickOff && prevPhase === MatchPhase.Penalty) return true;
     return false;
   }
 

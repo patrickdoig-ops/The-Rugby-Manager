@@ -347,6 +347,11 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
       '{primary} taps and goes — {side} opt to run it!',
       'Quick tap taken — {side} are looking to exploit space.',
     ],
+    tap_and_kick_dead: [
+      '{primary} taps and kicks the ball dead — {side} run the clock down.',
+      'Quick tap, then into touch — {side} are happy to let the whistle blow.',
+      '{primary} taps and finds touch — and that brings an end to proceedings!',
+    ],
     miss: [
       'Oh! {primary}\'s penalty attempt falls short — no score from that.',
       'The kick is wide! {primary} fails to add the points.',

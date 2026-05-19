@@ -48,6 +48,7 @@ export function draftEvent(state: MatchState, phase: MatchPhase): GameEvent {
     ballX: state.ball.x,
     ballY: state.ball.y,
     commentary: '',
+    narration: { steps: [] },
   };
 }
 
@@ -80,7 +81,7 @@ export function resolvePhase(state: MatchState, sm: StateMachine, kickOffStrateg
   const handler = PHASE_HANDLERS[state.phase];
   const result: PhaseResult = handler
     ? handler(ctx)
-    : { nextPhase: state.phase, commentary: 'Match event.', primaryPlayer: undefined, secondaryPlayer: undefined, outcome: undefined, events: [] };
+    : { nextPhase: state.phase, commentary: 'Match event.', narration: { steps: [] }, primaryPlayer: undefined, secondaryPlayer: undefined, outcome: undefined, events: [] };
 
   // Apply all handler-emitted MatchEvents in order — these are the only mutations
   // the handler can make to MatchState / player stats.
@@ -119,6 +120,7 @@ export function resolvePhase(state: MatchState, sm: StateMachine, kickOffStrateg
     ballX: state.ball.x,
     ballY: state.ball.y,
     commentary: result.commentary,
+    narration: result.narration,
     outcome: result.outcome,
   };
 }

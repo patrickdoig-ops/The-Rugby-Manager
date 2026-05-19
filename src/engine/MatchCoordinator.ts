@@ -179,6 +179,15 @@ export class MatchCoordinator {
       ballX: this.state.ball.x,
       ballY: this.state.ball.y,
       commentary: templates[rng(0, templates.length - 1)],
+      narration: {
+        steps: [{
+          kind: 'announcement',
+          key: 'substitution',
+          primary: sub,
+          secondary: off,
+          params: { teamName: team.name },
+        }],
+      },
     };
     applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: subEvent });
     eventBus.emit('engine:event', { event: subEvent });
@@ -199,6 +208,7 @@ export class MatchCoordinator {
       ...draft,
       id: makeId(),
       commentary: getCommentary(draft, 'coin_toss'),
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickOff, key: 'coin_toss' }] },
     };
     applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: tossEvent });
     eventBus.emit('engine:event', { event: tossEvent });
@@ -284,6 +294,7 @@ export class MatchCoordinator {
             ballX: this.state.ball.x,
             ballY: this.state.ball.y,
             commentary: line(player.name, player.squadNumber),
+            narration: { steps: [{ kind: 'announcement', key: 'fatigue_tiredness', primary: player }] },
           };
           applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: fatEvent });
           eventBus.emit('engine:event', { event: fatEvent });
@@ -312,6 +323,7 @@ export class MatchCoordinator {
           ballX: this.state.ball.x,
           ballY: this.state.ball.y,
           commentary: getCommentary({ ...draftEvent(this.state, MatchPhase.KickOff), primaryPlayer: kicker }, 'announce'),
+          narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickOff, key: 'announce', primary: kicker }] },
         };
         applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
         eventBus.emit('engine:event', { event: announceEvent });
@@ -335,6 +347,7 @@ export class MatchCoordinator {
           ballX: this.state.ball.x,
           ballY: this.state.ball.y,
           commentary: getCommentary({ ...draftEvent(this.state, MatchPhase.BoxKick), primaryPlayer: scrumHalf }, 'announce'),
+          narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.BoxKick, key: 'announce', primary: scrumHalf }] },
         };
         applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
         eventBus.emit('engine:event', { event: announceEvent });
@@ -359,6 +372,7 @@ export class MatchCoordinator {
           ballX: this.state.ball.x,
           ballY: this.state.ball.y,
           commentary: `${phaseName} awarded to ${teamName}.`,
+          narration: { steps: [{ kind: 'announcement', key: 'set_piece_award', params: { phaseName, teamName } }] },
         };
         applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: awardEvent });
         eventBus.emit('engine:event', { event: awardEvent });

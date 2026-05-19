@@ -32,6 +32,7 @@ export function handleLineout({ state, attackTeam, defendTeam, pickPlayer, draft
     return {
       nextPhase: MatchPhase.Scrum,
       commentary: getCommentary({ ...draftEvent(MatchPhase.Lineout), primaryPlayer: hooker }, 'crooked_throw'),
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Lineout, key: 'crooked_throw', primary: hooker }] },
       primaryPlayer: hooker,
       events,
     };
@@ -48,6 +49,7 @@ export function handleLineout({ state, attackTeam, defendTeam, pickPlayer, draft
       nextPhase: MatchPhase.FirstPhase,
       // secondaryPlayer in commentary is the hooker (thrower); in the event it is the defend jumper
       commentary: getCommentary({ ...draftEvent(MatchPhase.Lineout), primaryPlayer: attackJumper, secondaryPlayer: hooker }, 'clean_catch'),
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Lineout, key: 'clean_catch', primary: attackJumper, secondary: hooker }] },
       primaryPlayer: attackJumper,
       secondaryPlayer: defendJumper,
       events,
@@ -64,6 +66,7 @@ export function handleLineout({ state, attackTeam, defendTeam, pickPlayer, draft
     return {
       nextPhase: MatchPhase.Scrum,
       commentary: getCommentary({ ...draftEvent(MatchPhase.Lineout), primaryPlayer: attackJumper, secondaryPlayer: defendJumper }, 'scrappy_knock_on'),
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Lineout, key: 'scrappy_knock_on', primary: attackJumper, secondary: defendJumper }] },
       primaryPlayer: attackJumper,
       secondaryPlayer: defendJumper,
       events,
@@ -80,6 +83,7 @@ export function handleLineout({ state, attackTeam, defendTeam, pickPlayer, draft
   return {
     nextPhase: MatchPhase.FirstPhase,
     commentary: getCommentary({ ...draftEvent(MatchPhase.Lineout), primaryPlayer: defendJumper, secondaryPlayer: attackJumper }, 'steal'),
+    narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Lineout, key: 'steal', primary: defendJumper, secondary: attackJumper }] },
     primaryPlayer: defendJumper,
     secondaryPlayer: attackJumper,
     events,

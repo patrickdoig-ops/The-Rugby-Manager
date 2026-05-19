@@ -1,5 +1,6 @@
 import type { PhaseContext, PhaseResult } from './types';
 import type { MatchEvent } from '../../types/matchEvent';
+import type { NarrationDescriptor } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { getCommentary } from '../CommentaryEngine';
@@ -29,6 +30,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
     return {
       nextPhase: MatchPhase.TacticalKick,
       commentary: getCommentary({ ...draftEvent(MatchPhase.KickReturn) }, 'kick_decision'),
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'kick_decision' }] },
       primaryPlayer: flyHalf,
       events: [
         { type: 'KICK_RETURN_CARRIER_SET', player: undefined },
@@ -74,6 +76,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
 
   let nextPhase: MatchPhase;
   let commentary: string;
+  const steps: NarrationDescriptor['steps'] = [];
 
   if (res.outcome === 'line_break') {
     const projectedBallX = clamp(state.ball.x + direction * totalMetres, 0, 100);
@@ -81,6 +84,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
     nextPhase = tryScored ? MatchPhase.TryScored : MatchPhase.Breakdown;
     if (tryScored) {
       commentary = getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: carrier, secondaryPlayer: defender }, 'line_break_try');
+      steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'line_break_try', primary: carrier, secondary: defender });
     } else {
       const lineBreakNote = (backfieldPenalty < 0 && attackSide !== 'home')
         ? tacticNote(30,
@@ -89,15 +93,34 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
           )
         : '';
       commentary = getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: carrier, secondaryPlayer: defender }, 'line_break') + lineBreakNote;
+      steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'line_break', primary: carrier, secondary: defender });
+      if (backfieldPenalty < 0 && attackSide !== 'home') {
+        steps.push({
+          kind: 'tactic_note',
+          cause: 'line_break_backfield_thin',
+          chancePct: 30,
+          params: { defendTeamName: defendTeam.name, backfieldDefence: defendTeam.tactics.backfieldDefence },
+        });
+      }
     }
   } else if (res.outcome === 'dominant_tackle') {
     nextPhase = MatchPhase.Breakdown;
     commentary = getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: carrier, secondaryPlayer: defender }, 'dominant_tackle');
+    steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'dominant_tackle', primary: carrier, secondary: defender });
   } else {
     nextPhase = MatchPhase.Breakdown;
     commentary = getCommentary({ ...draftEvent(MatchPhase.KickReturn), primaryPlayer: carrier, secondaryPlayer: defender }, res.outcome);
+    steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: res.outcome, primary: carrier, secondary: defender });
   }
 
   void isTryScored;
-  return { nextPhase, commentary, primaryPlayer: carrier, secondaryPlayer: defender, outcome: res.outcome, events };
+  return {
+    nextPhase,
+    commentary,
+    narration: { steps },
+    primaryPlayer: carrier,
+    secondaryPlayer: defender,
+    outcome: res.outcome,
+    events,
+  };
 }

@@ -1,5 +1,6 @@
 import type { PhaseContext, PhaseResult } from './types';
 import type { MatchEvent } from '../../types/matchEvent';
+import type { NarrationDescriptor } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
 import { resolveTacticalKick } from '../resolvers/KickingResolver';
 import { getCommentary } from '../CommentaryEngine';
@@ -40,6 +41,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
       return {
         nextPhase: MatchPhase.Lineout,
         commentary: getCommentary({ ...draftEvent(MatchPhase.TacticalKick), primaryPlayer: kicker }, 'out_on_the_full'),
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.TacticalKick, key: 'out_on_the_full', primary: kicker }] },
         primaryPlayer: kicker,
         events,
       };
@@ -49,6 +51,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
     return {
       nextPhase: MatchPhase.Lineout,
       commentary: getCommentary({ ...draftEvent(MatchPhase.TacticalKick), primaryPlayer: kicker, secondaryPlayer: defender }, 'good_kick'),
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.TacticalKick, key: 'good_kick', primary: kicker, secondary: defender }] },
       primaryPlayer: kicker,
       secondaryPlayer: defender,
       events,
@@ -71,9 +74,16 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
             "The 50:22 exploits the shallow backfield — there was simply nobody to chase it down.",
           )
         : '';
+      const steps: NarrationDescriptor['steps'] = [
+        { kind: 'phase_outcome', phase: MatchPhase.TacticalKick, key: 'fifty_twenty_two', primary: kicker },
+      ];
+      if (state.possession !== 'home' && backfield === 'one_back') {
+        steps.push({ kind: 'tactic_note', cause: 'fifty_twenty_two_one_back', chancePct: 25 });
+      }
       return {
         nextPhase: MatchPhase.Lineout,
         commentary: getCommentary({ ...draftEvent(MatchPhase.TacticalKick), primaryPlayer: kicker }, 'fifty_twenty_two') + fiftyTwentyNote,
+        narration: { steps },
         primaryPlayer: kicker,
         events,
       };
@@ -84,6 +94,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
     return {
       nextPhase: MatchPhase.Lineout,
       commentary: getCommentary({ ...draftEvent(MatchPhase.TacticalKick), primaryPlayer: kicker, secondaryPlayer: defender }, 'good_kick'),
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.TacticalKick, key: 'good_kick', primary: kicker, secondary: defender }] },
       primaryPlayer: kicker,
       secondaryPlayer: defender,
       events,
@@ -107,9 +118,21 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
           : "Two in the backfield and they've got the numbers to make something of this — good return.",
       )
     : '';
+  const kickCaughtSteps: NarrationDescriptor['steps'] = [
+    { kind: 'phase_outcome', phase: MatchPhase.TacticalKick, key: 'kick_caught', primary: kicker, secondary: defender },
+  ];
+  if (returnBonus > 0 && newAttackerSide === 'home') {
+    kickCaughtSteps.push({
+      kind: 'tactic_note',
+      cause: 'kick_caught_return_bonus',
+      chancePct: 35,
+      params: { backfieldDefence: backfield },
+    });
+  }
   return {
     nextPhase: MatchPhase.KickReturn,
     commentary: getCommentary({ ...draftEvent(MatchPhase.TacticalKick), primaryPlayer: kicker, secondaryPlayer: defender }, 'kick_caught') + kickCaughtNote,
+    narration: { steps: kickCaughtSteps },
     primaryPlayer: kicker,
     secondaryPlayer: defender,
     events,

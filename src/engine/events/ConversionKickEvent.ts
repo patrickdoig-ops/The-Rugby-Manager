@@ -10,9 +10,10 @@ export function handleConversionKick({ state, attackTeam, draftEvent }: PhaseCon
   const res = resolveGoalKick(kicker, distFromPosts);
 
   const side = state.possession;
+  const key = res.success ? 'success' : 'miss';
   const commentary = getCommentary(
     { ...draftEvent(MatchPhase.ConversionKick), primaryPlayer: kicker },
-    res.success ? 'success' : 'miss',
+    key,
   );
 
   const events: MatchEvent[] = [
@@ -21,5 +22,11 @@ export function handleConversionKick({ state, attackTeam, draftEvent }: PhaseCon
     { type: 'BALL_REPOSITIONED', x: 50, y: 50 },
   ];
 
-  return { nextPhase: MatchPhase.KickOff, commentary, primaryPlayer: kicker, events };
+  return {
+    nextPhase: MatchPhase.KickOff,
+    commentary,
+    narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.ConversionKick, key, primary: kicker }] },
+    primaryPlayer: kicker,
+    events,
+  };
 }

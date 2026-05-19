@@ -101,6 +101,14 @@ export class PenaltyHandler {
         commentary: res.success
           ? getCommentary({ ...draftEvent(state, MatchPhase.Penalty), primaryPlayer: kicker }, 'kick_for_goal')
           : getCommentary({ ...draftEvent(state, MatchPhase.Penalty), primaryPlayer: kicker }, 'miss'),
+        narration: {
+          steps: [{
+            kind: 'phase_outcome',
+            phase: MatchPhase.Penalty,
+            key: res.success ? 'kick_for_goal' : 'miss',
+            primary: kicker,
+          }],
+        },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
       eventBus.emit('engine:event', { event: penEvent });
@@ -128,6 +136,7 @@ export class PenaltyHandler {
         ballX: state.ball.x,
         ballY: state.ball.y,
         commentary: getCommentary({ ...draftEvent(state, MatchPhase.Penalty), primaryPlayer: kicker }, 'kick_to_touch'),
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: 'kick_to_touch', primary: kicker }] },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
       eventBus.emit('engine:event', { event: penEvent });
@@ -142,6 +151,7 @@ export class PenaltyHandler {
         ballX: state.ball.x,
         ballY: state.ball.y,
         commentary: `Lineout awarded to ${teamName}.`,
+        narration: { steps: [{ kind: 'announcement', key: 'set_piece_award', params: { phaseName: 'Lineout', teamName } }] },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: awardEvent });
       eventBus.emit('engine:event', { event: awardEvent });
@@ -160,6 +170,7 @@ export class PenaltyHandler {
         ballX: state.ball.x,
         ballY: state.ball.y,
         commentary: getCommentary({ ...draftEvent(state, MatchPhase.Penalty), primaryPlayer: kicker }, 'tap_and_kick_dead'),
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: 'tap_and_kick_dead', primary: kicker }] },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
       eventBus.emit('engine:event', { event: penEvent });
@@ -178,6 +189,7 @@ export class PenaltyHandler {
         ballX: state.ball.x,
         ballY: state.ball.y,
         commentary: getCommentary({ ...draftEvent(state, MatchPhase.Penalty), primaryPlayer: kicker }, 'tap_and_go'),
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: 'tap_and_go', primary: kicker }] },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
       eventBus.emit('engine:event', { event: penEvent });

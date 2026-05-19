@@ -1,6 +1,7 @@
 import type { MatchPhase, PossessionSide } from './engine';
 import type { Team } from './team';
 import type { Player } from './player';
+import type { NarrationDescriptor } from './narration';
 
 export interface Score {
   home: number;
@@ -29,6 +30,7 @@ export interface GameEvent {
   ballX: number;
   ballY: number;
   commentary: string;
+  narration: NarrationDescriptor;
   outcome?: string;
 }
 

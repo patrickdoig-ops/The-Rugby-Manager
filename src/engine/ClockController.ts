@@ -46,6 +46,7 @@ export class ClockController {
       ballX: state.ball.x,
       ballY: state.ball.y,
       commentary: lines[rng(0, lines.length - 1)],
+      narration: { steps: [{ kind: 'announcement', key: isFirstHalf ? 'clock_in_red_first_half' : 'clock_in_red_second_half' }] },
     };
     applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: redEvent });
     eventBus.emit('engine:event', { event: redEvent });
@@ -82,6 +83,7 @@ export class ClockController {
       ballX: 50,
       ballY: 50,
       commentary: 'Half time! The teams head to the dressing rooms to regroup.',
+      narration: { steps: [{ kind: 'announcement', key: 'half_time_whistle' }] },
     };
     applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.HalfTime });
     this.sm.forceTransition(MatchPhase.HalfTime);
@@ -110,6 +112,18 @@ export class ClockController {
       ballX: state.ball.x,
       ballY: state.ball.y,
       commentary: `Full time! ${state.homeTeam.name} ${state.score.home} – ${state.score.away} ${state.awayTeam.name}`,
+      narration: {
+        steps: [{
+          kind: 'announcement',
+          key: 'full_time_summary',
+          params: {
+            homeName: state.homeTeam.name,
+            awayName: state.awayTeam.name,
+            homeScore: state.score.home,
+            awayScore: state.score.away,
+          },
+        }],
+      },
     };
     applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: ftEvent });
     eventBus.emit('engine:event', { event: ftEvent });

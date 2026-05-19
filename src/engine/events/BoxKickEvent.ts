@@ -1,5 +1,6 @@
 import type { PhaseContext, PhaseResult } from './types';
 import type { MatchEvent } from '../../types/matchEvent';
+import type { NarrationDescriptor } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
 import { resolveBoxKick } from '../resolvers/BoxKickResolver';
 import { getCommentary } from '../CommentaryEngine';
@@ -32,6 +33,7 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, random
     return {
       nextPhase: MatchPhase.KickReturn,
       commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: winger }, 'attack_retain'),
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.BoxKick, key: 'attack_retain', primary: scrumHalf, secondary: winger }] },
       primaryPlayer: scrumHalf,
       secondaryPlayer: winger,
       events,
@@ -43,6 +45,7 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, random
     return {
       nextPhase: MatchPhase.Scrum,
       commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: winger }, 'defend_knock_on'),
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.BoxKick, key: 'defend_knock_on', primary: scrumHalf, secondary: winger }] },
       primaryPlayer: scrumHalf,
       secondaryPlayer: winger,
       events,
@@ -55,6 +58,7 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, random
     return {
       nextPhase: MatchPhase.KickReturn,
       commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: fullback }, 'defend_catch_contested'),
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.BoxKick, key: 'defend_catch_contested', primary: scrumHalf, secondary: fullback }] },
       primaryPlayer: scrumHalf,
       secondaryPlayer: fullback,
       events,
@@ -74,9 +78,21 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, random
       : '';
     events.push({ type: 'POSSESSION_SWAPPED' });
     events.push({ type: 'KICK_RETURN_CARRIER_SET', player: fullback });
+    const steps: NarrationDescriptor['steps'] = [
+      { kind: 'phase_outcome', phase: MatchPhase.BoxKick, key: 'defend_catch', primary: scrumHalf, secondary: fullback },
+    ];
+    if (homeIsDefending && fullbackMod > 0) {
+      steps.push({
+        kind: 'tactic_note',
+        cause: 'boxkick_backfield_caught',
+        chancePct: 30,
+        params: { defendTeamName: defendTeam.name, fullback, backfieldDefence: defendTeam.tactics.backfieldDefence },
+      });
+    }
     return {
       nextPhase: MatchPhase.KickReturn,
       commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: fullback }, 'defend_catch') + catchNote,
+      narration: { steps },
       primaryPlayer: scrumHalf,
       secondaryPlayer: fullback,
       events,
@@ -88,6 +104,7 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, random
   return {
     nextPhase: MatchPhase.Scrum,
     commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: fullback }, 'knock_on'),
+    narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.BoxKick, key: 'knock_on', primary: scrumHalf, secondary: fullback }] },
     primaryPlayer: scrumHalf,
     secondaryPlayer: fullback,
     events,

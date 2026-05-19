@@ -41,6 +41,7 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, random
     return {
       nextPhase: MatchPhase.Scrum,
       commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: kicker }, 'poor_kick'),
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickOff, key: 'poor_kick', primary: kicker }] },
       primaryPlayer: kicker,
       events,
     };
@@ -54,6 +55,7 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, random
     return {
       nextPhase: MatchPhase.Scrum,
       commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: receiver, secondaryPlayer: chaser }, 'knock_on'),
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickOff, key: 'knock_on', primary: receiver, secondary: chaser }] },
       primaryPlayer: receiver,
       secondaryPlayer: chaser,
       events,
@@ -65,6 +67,7 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, random
     return {
       nextPhase: MatchPhase.KickReturn,
       commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: chaser, secondaryPlayer: receiver }, 'short_kick_retain'),
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickOff, key: 'short_kick_retain', primary: chaser, secondary: receiver }] },
       primaryPlayer: chaser,
       secondaryPlayer: receiver,
       events,
@@ -77,6 +80,7 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, random
   return {
     nextPhase: MatchPhase.KickReturn,
     commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: receiver, secondaryPlayer: chaser }, 'clean_receive'),
+    narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickOff, key: 'clean_receive', primary: receiver, secondary: chaser }] },
     primaryPlayer: receiver,
     secondaryPlayer: chaser,
     events,

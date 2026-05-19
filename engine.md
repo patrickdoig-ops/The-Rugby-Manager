@@ -1097,6 +1097,10 @@ The Out the Back path in `OpenPlayEvent` uses a different mechanism — a struct
 
 `CommentaryEngine.ts` is a pure text module. It must never produce HTML — that is the UI layer's concern.
 
+### Narration emission (in transit)
+
+Every `GameEvent` now carries a structured `narration: NarrationDescriptor` (`src/types/narration.ts`) alongside the rendered `commentary: string`. `NarrationDescriptor` is a list of `NarrationStep`s — `phase_outcome` (phase + outcome key + player refs), `tactic_note` (cause + chance pct + params), or `announcement` (key + params). Phase handlers and inline-commentary sites (`ClockController`, `MatchCoordinator`, `PenaltyHandler`) populate both fields; the string is still authoritative for the UI today. Subsequent commits move text rendering into a dedicated renderer that reads only the descriptor, then delete the string field — at which point silent simulation = don't subscribe a renderer.
+
 ### `getCommentary(event, key)`
 
 Picks a random template from `TEMPLATES[event.phase][key]` (falling back to `TEMPLATES.default.generic`) and calls `interpolate()`.

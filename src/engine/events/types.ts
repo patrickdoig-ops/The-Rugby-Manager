@@ -3,6 +3,7 @@ import type { GameEvent, MatchState } from '../../types/match';
 import type { Team } from '../../types/team';
 import type { Player } from '../../types/player';
 import type { MatchEvent } from '../../types/matchEvent';
+import type { NarrationDescriptor } from '../../types/narration';
 
 export interface PhaseContext {
   state: MatchState;
@@ -23,6 +24,7 @@ export interface PhaseContext {
 export interface PhaseResult {
   nextPhase: MatchPhase;
   commentary: string;
+  narration: NarrationDescriptor;
   primaryPlayer?: Player;
   secondaryPlayer?: Player;
   outcome?: string;

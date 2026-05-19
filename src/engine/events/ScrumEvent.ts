@@ -30,6 +30,7 @@ export function handleScrum({ state, attackTeam, defendTeam, draftEvent }: Phase
     return {
       nextPhase: MatchPhase.Penalty,
       commentary: getCommentary({ ...draftEvent(MatchPhase.Scrum), primaryPlayer: defendHooker, secondaryPlayer: attackHooker }, 'attacking_dominant_penalty'),
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Scrum, key: 'attacking_dominant_penalty', primary: defendHooker, secondary: attackHooker }] },
       primaryPlayer: attackHooker,
       secondaryPlayer: defendHooker,
       events,
@@ -46,6 +47,7 @@ export function handleScrum({ state, attackTeam, defendTeam, draftEvent }: Phase
     return {
       nextPhase: MatchPhase.FirstPhase,
       commentary: getCommentary({ ...draftEvent(MatchPhase.Scrum), primaryPlayer: attackHooker, secondaryPlayer: defendHooker }, 'stable_win'),
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Scrum, key: 'stable_win', primary: attackHooker, secondary: defendHooker }] },
       primaryPlayer: attackHooker,
       secondaryPlayer: defendHooker,
       events,
@@ -62,6 +64,7 @@ export function handleScrum({ state, attackTeam, defendTeam, draftEvent }: Phase
     return {
       nextPhase: MatchPhase.Scrum,
       commentary: getCommentary({ ...draftEvent(MatchPhase.Scrum), primaryPlayer: attackHooker, secondaryPlayer: defendHooker }, 'wheel'),
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Scrum, key: 'wheel', primary: attackHooker, secondary: defendHooker }] },
       primaryPlayer: attackHooker,
       secondaryPlayer: defendHooker,
       events,
@@ -78,6 +81,7 @@ export function handleScrum({ state, attackTeam, defendTeam, draftEvent }: Phase
   return {
     nextPhase: MatchPhase.Penalty,
     commentary: getCommentary({ ...draftEvent(MatchPhase.Scrum), primaryPlayer: attackHooker, secondaryPlayer: defendHooker }, 'defending_dominant_penalty'),
+    narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Scrum, key: 'defending_dominant_penalty', primary: attackHooker, secondary: defendHooker }] },
     primaryPlayer: defendHooker,
     secondaryPlayer: attackHooker,
     events,

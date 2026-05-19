@@ -61,6 +61,20 @@ The test: Every changed line should trace directly to the user's request.
 - Refactor incrementally. One cohesive split per commit; each commit must build clean and preserve behaviour. Big-bang refactors are unreviewable.
 - A module-boundary change is an engine change — update `engine.md` in the same commit.
 
+## 5. Mutation Boundaries
+
+**State mutation flows through one function. Don't sneak in a direct write.**
+
+- All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.currentStats`, and `player.rating` go through `applyMatchEvent(state, event)` in `src/engine/applyMatchEvent.ts`. No exceptions, including `state.events.push(...)`.
+- Phase handlers in `src/engine/events/` are read-only over state: they read fields, compute, build a `MatchEvent[]`, and return it on `PhaseResult.events`. `PhaseRouter.resolvePhase()` applies the queue, then composes the outgoing `GameEvent`.
+- Orchestrators (`MatchCoordinator`, `ClockController`, `PenaltyHandler`) call `applyMatchEvent` directly for non-phase mutations (clock, half-time, penalty choices, substitutions, tactics, fatigue, commentary log).
+- Use **domain-meaningful** event names (`TRY_SCORED`, `KNOCK_ON`, `CARRY_RESOLVED`, `LINEOUT_RESOLVED`) — not primitive setters (`SET_BALL_X`, `INC_STAT`). The event log should read like commentary, not assembly. One narrow exception: structural setters (`BALL_REPOSITIONED`, `PHASE_CHANGED`, `BREAKDOWN_MOD_SET`, `POSSESSION_SWAPPED`, `POSSESSION_SET`) exist where the domain has no single name for the change.
+- Adding a new mutation kind: add one variant to the `MatchEvent` union in `src/types/matchEvent.ts`, one branch in `applyMatchEvent`. The exhaustive `default: const _: never = event;` in the switch catches missing branches at compile time.
+- Adding a new player stat: extend `PlayerMatchStats` + `zeroMatchStats()` + the relevant domain event's apply branch — never push a raw `player.matchStats.X++` into a handler.
+- `eventBus.emit` calls (`engine:event`, `engine:stateChange`, `engine:paused`, `engine:resumed`, `engine:finished`) are **pure UI side effects** and are NOT part of the mutation boundary. They live in orchestrators alongside `applyMatchEvent` calls, not inside `applyMatchEvent` itself.
+- Computations derived from state (`computeRating`, `computeFatigue`) live in pure helpers; their writes still flow through dedicated `MatchEvent` variants (`RATINGS_RECALCULATED`, `FATIGUE_APPLIED`).
+- Events may hold `Player` references for now (object identity is fine for in-memory use). If serialisable replay is ever needed, swap to `{ side, playerId }` lookups at that point — the boundary already exists.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
@@ -92,17 +106,20 @@ The version string follows the pattern `0.XXa` (e.g. `0.01a`, `0.02a`). Incremen
 **After any change to engine code, update `engine.md` to match. This is not optional — engine.md must be updated in the same commit as the engine change.**
 
 `engine.md` is a plain-English reference for the entire game engine. It must stay in sync with the code. This includes:
-- `src/engine/MatchCoordinator.ts` — public API, tick loop, fatigue accumulator, possession/territory stats, substitution, rating recalculation
+- `src/engine/MatchCoordinator.ts` — public API, tick loop, fatigue accumulator, possession/territory stats, substitution
 - `src/engine/ClockController.ts` — minute advance, clock-in-red, half-time, full-time
-- `src/engine/PhaseRouter.ts` — `PHASE_HANDLERS` map, `resolvePhase`, `draftEvent`
+- `src/engine/PhaseRouter.ts` — `PHASE_HANDLERS` map, `resolvePhase`, `draftEvent`; applies handler `MatchEvent[]` through `applyMatchEvent`
 - `src/engine/PenaltyHandler.ts` — penalty modal pause + outcome branches, kick-off strategy modal
-- `src/engine/FieldPosition.ts` — pure field-position helpers (`attackDir`, `isTryScored`, `inOpposition22`, etc.)
-- `src/engine/StaminaSystem.ts` — fatigue decay formula, attribute penalty tiers
+- `src/engine/FieldPosition.ts` — pure field-position helpers (`attackDir`, `isTryScored`, `isTryScoredAt`, `inOpposition22`, etc.)
+- `src/engine/StaminaSystem.ts` — pure `computeFatigue` (fatigue decay formula, attribute penalty tiers); caller emits `FATIGUE_APPLIED`
+- `src/engine/RatingEngine.ts` — pure `computeRating`; called from the `RATINGS_RECALCULATED` branch in `applyMatchEvent`
+- `src/engine/applyMatchEvent.ts` — single mutation reducer; one branch per `MatchEvent` variant
 - `src/engine/StateMachine.ts` — allowed phase transitions
 - `src/engine/resolvers/*.ts` — all resolver formulas, thresholds, return types
-- `src/engine/events/*.ts` — stat increments, possession swaps, next-phase routing
+- `src/engine/events/*.ts` — phase handlers; build `MatchEvent[]`, return next-phase routing
 - `src/engine/CommentaryEngine.ts` — commentary template keys
 - `src/types/engine.ts` — result type unions (LineoutResult, ScrumResult, etc.)
+- `src/types/matchEvent.ts` — discriminated union of every state-mutation kind
 
 When updating `engine.md`, document:
 1. Which players are selected (exact `find`/`filter` conditions from `PhaseRouter.resolvePhase()` and the relevant event handler)
@@ -138,11 +155,11 @@ Within a single tick, `engine:event` is emitted **before** `engine:stateChange`.
 
 ### Simulation loop
 
-`MatchCoordinator.tick()` is a self-rescheduling `async` function using `setTimeout` — **not** `setInterval`. Pausing is simply not scheduling the next tick. Resuming calls `scheduleTick(0)`. The tick loop delegates to `ClockController` for time advancement and period transitions, to `PhaseRouter.resolvePhase` for phase dispatch, and to `PenaltyHandler` for penalty/kick-off modal pauses; it owns only the fatigue accumulator, possession/territory stats, the announce/award events, and rating recalculation.
+`MatchCoordinator.tick()` is a self-rescheduling `async` function using `setTimeout` — **not** `setInterval`. Pausing is simply not scheduling the next tick. Resuming calls `scheduleTick(0)`. The tick loop delegates to `ClockController` for time advancement and period transitions, to `PhaseRouter.resolvePhase` for phase dispatch, and to `PenaltyHandler` for penalty/kick-off modal pauses; it owns only the fatigue accumulator, the announce/award events, and the `TICK_BOOKKEEPING` event that increments possession/territory stats. Rating recalculation is emitted as a `RATINGS_RECALCULATED` `MatchEvent` from `PhaseRouter` (after every phase resolve) and from `PenaltyHandler` (after penalty goal kicks).
 
-Time advances `0.2 + rng(0,8)/10` game minutes per tick (0.2–1.0 min). Fatigue is applied every ~5 accumulated game minutes via `fatigueAccumulator`. Clock is clamped to 40 (first half) or 80 (second half) until `clockInTheRed` is set, then advances at 1/2 normal speed.
+Time advances `0.2 + rng(0,8)/10` game minutes per tick (0.2–1.0 min) via a `CLOCK_ADVANCED` event. Fatigue is computed every ~5 accumulated game minutes via `fatigueAccumulator`: `computeFatigue(team, elapsedMinutes)` returns updates and the tick loop emits a `FATIGUE_APPLIED` event for each player. Clock is clamped to 40 (first half) or 80 (second half) until `clockInTheRed` is set, then advances at 1/2 normal speed (clamp + halving happen inside `applyMatchEvent`'s `CLOCK_ADVANCED` branch).
 
-The penalty interactive pause is a `Promise` that resolves when the `onChoice(choice)` callback is called from the UI payload. The loop `await`s it mid-tick; `handlePenaltyDecision()` emits `engine:paused` which triggers the modal.
+The penalty interactive pause is a `Promise` that resolves when the `onChoice(choice)` callback is called from the UI payload. The loop `await`s it mid-tick; `handlePenaltyDecision()` emits `engine:paused` which triggers the modal — and is only presented to the managed team (the side the human player selected) in the opposition half; all other penalties auto-resolve to `kick_to_touch`.
 
 ### Phase flow
 
@@ -152,7 +169,7 @@ KickOff → KickReturn → Breakdown → PhasePlay (loop)
                       → TacticalKick (propensity driven by attackingGamePlan + pitch zone) → KickReturn / Lineout / Scrum
                       → Scrum / Lineout → FirstPhase
                       → TryScored → ConversionKick → KickOff
-                      → Penalty → [modal if home team in opposition half] → KickOff / Lineout / FirstPhase
+                      → Penalty → [modal if managed team in opposition half] → KickOff / Lineout / FirstPhase
 Clock reaches 40 min (first half) or 80 min (second half) → clockInTheRed = true, commentary emitted, clock slows to 1/2 speed.
   While in the red, game ends only when ball goes dead:
     Scrum awarded (knock-on or crooked throw, NOT wheel reset) → HalfTime / FullTime
@@ -216,9 +233,9 @@ Resolver formulas at a glance:
 
 ### Tactics system
 
-Five tactic dimensions are defined in `TeamTactics` (see `src/types/team.ts`). The UI (`TacticsMenu.ts`) lets the **home team** change all five mid-match. Away team uses engine defaults and cannot be changed through the UI.
+Five tactic dimensions are defined in `TeamTactics` (see `src/types/team.ts`). The UI (`TacticsMenu.ts`) lets the **managed team** change all five mid-match — `SimController` opens the modal with `teamId = engine.getHumanSide()`, and the `ui:tacticsChange` handler in `MatchCoordinator` routes the update through a `TACTICS_UPDATED` `MatchEvent`. The AI-controlled team uses engine defaults and cannot be changed through the UI.
 
-Kick-off strategy is **not** a standing tactic. It is chosen per kick-off via an interactive modal (home team only). Away team always defaults to `high_ball`. `KickOffStrategy` is defined in `src/types/engine.ts`.
+Kick-off strategy is **not** a standing tactic. It is chosen per kick-off via an interactive modal (managed team only). The AI side always defaults to `high_ball`. `KickOffStrategy` is defined in `src/types/engine.ts`.
 
 | Tactic | Values | Engine effect |
 |---|---|---|
@@ -287,11 +304,11 @@ Two attributes (`kicking`, `positioning`) are never degraded by fatigue. Full fa
 | strength | ×0.90 | — | ×0.70 | ×0.50 | ×0.30 |
 | kicking, positioning | unchanged | unchanged | unchanged | unchanged | unchanged |
 
-When a player's fatiguePct drops below 50% for the first time, `applyFatigue` returns that player in a list; `MatchCoordinator` emits a commentary event with a randomised "looking tired/leggy/worn out" line.
+When a player's fatiguePct drops below 50% for the first time, `computeFatigue` returns that player in its `newlyTired` list; `MatchCoordinator` emits a commentary `GameEvent` with a randomised "looking tired/leggy/worn out" line. The fatiguePct + currentStats writes themselves go through `FATIGUE_APPLIED` `MatchEvent`s.
 
 ### Player rating system
 
-Ratings are stat-driven, not delta-driven. There is no `adjustRating()` method. Instead, event handlers increment named counters on `player.matchStats`, and after every `resolvePhase()` call (and after penalty goal kicks), `recalculateRatings()` runs `computeRating(player)` on all 30 players and writes the result to `player.rating`.
+Ratings are stat-driven, not delta-driven. There is no `adjustRating()` method. Instead, phase handlers emit domain `MatchEvent`s (`TRY_SCORED`, `CARRY_RESOLVED`, `LINEOUT_RESOLVED`, etc.) and `applyMatchEvent`'s branches do the underlying `player.matchStats.X++`. After every `resolvePhase()` call (and after penalty goal kicks), a `RATINGS_RECALCULATED` `MatchEvent` is emitted; `applyMatchEvent` then runs `computeRating(player)` on all 30 players and writes the result to `player.rating`.
 
 **`computeRating`** is a pure function in `src/engine/RatingEngine.ts`. Returns `clamp(6.0 + score / 10.0, 1.0, 10.0)` where `score` is built from universal weights plus position-aware bonuses:
 
@@ -301,25 +318,30 @@ Position bonuses: hooker (#2) lineout accuracy; locks (#4,5) lineout catches/ste
 
 **`PlayerMatchStats`** is declared in `src/types/player.ts`, initialised by `zeroMatchStats()` in `initPlayer()`. Fields: `carries`, `metresCarried`, `lineBreaks`, `defendersBeaten`, `knockOns`, `passes`, `tacklesAttempted`, `tacklesMade`, `dominantTackles`, `turnoversWon`, `penaltiesConceded`, `tries`, `kicksFromHand`, `kicksAtGoal`, `kicksMade`, `kicksMissed`, `lineoutThrows`, `lineoutWins`, `lineoutCatches`, `lineoutSteals`, `scrumPenaltiesWon`, `scrumPenaltiesConceded`, `kickMetres`, `rucksHit`.
 
-**Extending:** add one field to `PlayerMatchStats` + one `field: 0` in `zeroMatchStats()` + increment site(s) in the relevant event file(s) + optional weight in `computeRating()`.
+**Extending:** add one field to `PlayerMatchStats` + one `field: 0` in `zeroMatchStats()` + the increment in the relevant `MatchEvent` apply branch (in `src/engine/applyMatchEvent.ts`) — and if no existing variant fits, add a new variant to `src/types/matchEvent.ts` and an `events.push({ type: '...' })` site in the relevant phase handler. Optional weight in `computeRating()`.
 
-**Pass tracking:** `scrumHalf.matchStats.passes++` fires in `FirstPhaseEvent` (always — #9 distributes after every scrum/lineout) and in `OpenPlayEvent` (when `scrumHalf !== carrier` — #9 distributes after every breakdown unless #9 is the random carrier).
+**Pass tracking:** a `PASS_COMPLETED` event fires in `FirstPhaseEvent` for the scrum half (always — #9 distributes after every scrum/lineout) and in `OpenPlayEvent` (when `scrumHalf !== carrier` — #9 distributes after every breakdown unless #9 is the random carrier). `applyMatchEvent`'s `PASS_COMPLETED` branch does the `passer.matchStats.passes++`.
 
-Note: `tackles.attempted` is incremented for `dominant_tackle`, `dominant_carry`, `play_on`, and `line_break` outcomes. `tackles.made` is only incremented for `dominant_tackle`, `dominant_carry`, and `play_on`. Line breaks count as a missed tackle, so tackle % correctly reflects evasion.
+Note: `tackles.attempted` is incremented for `dominant_tackle`, `dominant_carry`, `play_on`, and `line_break` outcomes; `tackles.made` is only incremented for `dominant_tackle`, `dominant_carry`, and `play_on` — all driven by the `CARRY_RESOLVED.outcome` branch in `applyMatchEvent`. Line breaks count as a missed tackle, so tackle % correctly reflects evasion.
 
 ### UI module responsibilities
 
 | Module | Sole responsibility |
 |---|---|
+| `HomeScreen.ts` | Landing screen; entry point to the team selector |
+| `TeamSelectorScreen.ts` | 4-team picker; chooses the player's managed team and propagates `humanSide` to the match |
+| `FixtureListScreen.ts` | 6-round fixture list against the other three teams; sticky Play button; post-match result overlay; persists per-round scores |
 | `Scoreboard.ts` | Team names, scores, clock, phase badge |
 | `StatsPanel.ts` | Stats table (cached by stat-value key, re-renders on change) + player stats panel (DOM-patched once per game minute) |
 | `PitchStrip.ts` | Ball marker position + attack direction label + end-label swap at half-time |
-| `CommentaryFeed.ts` | Appending commentary entries (max 30, prepend-scrolls); one-shot `stateChange` subscription caches team colours, names, and full squad rosters; colorizes all player name mentions in their team colour; colorizes team name mentions (The Lions, The Eagles) in their team colour |
-| `ModalManager.ts` | Penalty choice bottom sheet / centred dialog |
+| `CommentaryFeed.ts` | Appending commentary entries (max 30, prepend-scrolls); one-shot `stateChange` subscription caches team colours, names, and full squad rosters; colorizes all player name mentions in their team colour; colorizes team name mentions (e.g. Gloucester, Bristol) in their team colour |
+| `ModalManager.ts` | Penalty choice / kick-off choice / tactics / substitution modal hosting (bottom sheet / centred dialog) |
+| `TacticsMenu.ts` | Five-dimension tactics picker; rendered inside the tactics modal; emits `ui:tacticsChange` |
+| `SubstitutionModal.ts` | Bench-vs-on-pitch substitution UI; emits `ui:substitution` |
 | `PreMatchScreen.ts` | Pre-match player attribute table; calls `onStart()` callback to trigger `engine.initialize()` |
 | `SimController.ts` | Play / Pause / Speed controls (the only UI module that calls engine methods) + view toggle button handlers that switch `#panel-bottom` between `view-dashboard`, `view-commentary`, `view-stats`, `view-players` |
 
-`AppShell.ts` injects the static HTML skeleton. All UI modules are initialised before `engine.initialize()` fires — they are purely reactive and have no internal state beyond DOM references, render caches, and one-shot initialisation values. Player objects are created once in `MatchCoordinator` and mutated in-place throughout the match; their identity (name, id, team membership) never changes. Commentary colourisation scans commentary text for `"Name (#N)"` patterns from a cached roster of all 30 players (both squads) and team name strings, wrapping matches in inline-coloured spans. Player names are unique across both squads.
+`AppShell.ts` injects the static HTML skeleton. All UI modules are initialised before `engine.initialize()` fires — they are purely reactive and have no internal state beyond DOM references, render caches, and one-shot initialisation values. Player objects are created once in `MatchCoordinator` and mutated in-place throughout the match via `applyMatchEvent`; their identity (name, id, team membership) never changes (substitutions reassign the on-pitch slot via `SUBSTITUTION_APPLIED`, but the substituted-off player object is preserved on `team.substitutedOff`). Commentary colourisation scans commentary text for `"Name (#N)"` patterns from a cached roster of all 30 players (both squads) and team name strings, wrapping matches in inline-coloured spans. Player names are unique across both squads.
 
 ### Live match screen layout
 
@@ -354,7 +376,7 @@ Note: `tackles.attempted` is incremented for `dominant_tackle`, `dominant_carry`
 
 Two key fields carry state between phases:
 - `MatchState.kickReturnCarrier?: Player` — set by each kick handler before transitioning to `KickReturn`; consumed and cleared at the start of `KickReturnEvent`. Sources: `KickOffEvent` (clean_receive, short_kick_retain), `BoxKickEvent` (attack_retain, defend_catch_contested, defend_catch), `TacticalKickEvent` (kick_caught).
-- `GameEvent.defSideName?: string` — the defending team's name, set by `draftEvent()` from `state.possession`. Used via the `{defside}` interpolation token in commentary templates to name the defending team explicitly (e.g. "The Eagles hold at the gain line").
+- `GameEvent.defSideName?: string` — the defending team's name, set by `draftEvent()` from `state.possession`. Used via the `{defside}` interpolation token in commentary templates to name the defending team explicitly (e.g. "Bristol hold at the gain line").
 
 ### Design system
 
@@ -374,13 +396,12 @@ Font roles — apply consistently:
 
 ### Team data
 
-`src/data/team-home.json` (The Lions, `#c8102e`) and `src/data/team-away.json` (The Eagles, `#003087`). Each has 15 players with 12 base stats on a 1–100 integer scale. `initPlayer()` in `MatchCoordinator` copies `baseStats` to `currentStats` at match start, then `StaminaSystem.applyFatigue()` mutates `currentStats` over the course of the match. `baseStats` is never modified.
+`src/data/team-home.json` (Gloucester, `#c8102e`) and `src/data/team-away.json` (Bristol, `#003087`). Each has 15 players with 12 base stats on a 1–100 integer scale. `initPlayer()` in `MatchCoordinator` copies `baseStats` to `currentStats` at match start. `StaminaSystem.computeFatigue()` then computes new `currentStats` over the course of the match; the writes are applied via `FATIGUE_APPLIED` `MatchEvent`s through `applyMatchEvent`. `baseStats` is never modified. Additional teams (Leicester, Saracens) live alongside as `team-*.json` and feed the 4-team selector.
 
 ## Placeholder Data in Pre-Match Screen
 
-The pre-match header contains several elements that display hardcoded placeholder values because the underlying data systems do not exist yet. These must be replaced when the relevant systems are built:
+The pre-match header still contains hardcoded placeholder values for elements whose underlying data systems do not exist yet. Round number is now real (driven by `FixtureListScreen`'s 6-round fixture list); the rest are still stubs:
 
-- **Round number** (`"Round 1"` in the match context label) — needs a season/match progression system.
-- **Form pins** (e.g. `WWLWD`) — needs a match result history store per team.
-- **Stake row** (League position, Head-to-Head record, Odds) — needs season table data and a fixture/odds system.
+- **Form pins** (e.g. `WWLWD` / `WWWLW` in `PreMatchScreen.ts`) — needs a match result history store per team (only the player team's per-round scores are persisted today).
+- **Stake row** (`LEAGUE 2nd · 4 pts`, `H2H 1W · 2L last 3`, `ODDS +3.5`) — needs season table data and a fixture/odds system.
 - **Match kick-off time** (`20:00`) — needs scheduled match times.

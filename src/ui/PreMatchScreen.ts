@@ -175,6 +175,8 @@ export function initPreMatchScreen(
   onStart: (configuredHome: RawTeam, configuredAway: RawTeam, playerTactics: TeamTactics) => void,
 ): void {
   const screen = document.getElementById('pre-match')!;
+  screen.style.display = '';
+  screen.classList.remove('pm-exit');
 
   let homeStarters: RawPlayer[] = (home.players as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
   let homeBench:    RawPlayer[] = ((home.bench ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));

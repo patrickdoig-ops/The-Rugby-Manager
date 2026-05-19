@@ -7,6 +7,7 @@ export type ModalPayload =
   | { type: 'kickoff_choice'; onChoice: (choice: KickOffStrategy) => void; };
 
 export interface AppEvents {
+  'engine:initialized': Record<string, never>;
   'engine:event':       { event: GameEvent };
   'engine:stateChange': { state: MatchState };
   'engine:paused':      { payload: ModalPayload };

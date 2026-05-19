@@ -184,6 +184,7 @@ export class MatchCoordinator {
 
 
   initialize(): void {
+    eventBus.emit('engine:initialized', {});
     // Coin toss — 50/50; winner kicks off in the first half, loser in the second.
     // Half-time already flips possession, so just set the first-half kicker here.
     applyMatchEvent(this.state, {

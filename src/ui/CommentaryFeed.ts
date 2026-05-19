@@ -58,17 +58,34 @@ export function initCommentaryFeed(): void {
   let homeTeamColor = '';
   let awayTeamColor = '';
 
-  // One-shot: team colours and rosters are fixed for the match lifetime.
-  const unsubTeams = eventBus.on('engine:stateChange', ({ state }) => {
-    homeTeamColor = state.homeTeam.color;
-    awayTeamColor = state.awayTeam.color;
-    homeTeamName  = state.homeTeam.name;
-    awayTeamName  = state.awayTeam.name;
-    allPlayersWithColor = [
-      ...[...state.homeTeam.players, ...state.homeTeam.bench].map(p => ({ player: p, color: homeTeamColor })),
-      ...[...state.awayTeam.players, ...state.awayTeam.bench].map(p => ({ player: p, color: awayTeamColor })),
-    ];
-    unsubTeams();
+  // One-shot per match: team colours and rosters are fixed for the match lifetime.
+  // Re-armed on `engine:initialized` so subsequent matches refresh the cache.
+  let unsubTeams: (() => void) | null = null;
+  function armTeamCache(): void {
+    unsubTeams = eventBus.on('engine:stateChange', ({ state }) => {
+      homeTeamColor = state.homeTeam.color;
+      awayTeamColor = state.awayTeam.color;
+      homeTeamName  = state.homeTeam.name;
+      awayTeamName  = state.awayTeam.name;
+      allPlayersWithColor = [
+        ...[...state.homeTeam.players, ...state.homeTeam.bench].map(p => ({ player: p, color: homeTeamColor })),
+        ...[...state.awayTeam.players, ...state.awayTeam.bench].map(p => ({ player: p, color: awayTeamColor })),
+      ];
+      unsubTeams?.();
+      unsubTeams = null;
+    });
+  }
+  armTeamCache();
+
+  eventBus.on('engine:initialized', () => {
+    feed.innerHTML = '';
+    allPlayersWithColor = [];
+    homeTeamName = '';
+    awayTeamName = '';
+    homeTeamColor = '';
+    awayTeamColor = '';
+    unsubTeams?.();
+    armTeamCache();
   });
 
   eventBus.on('engine:event', ({ event }) => {

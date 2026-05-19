@@ -20,6 +20,10 @@ export function initPitchStrip(): void {
 
   let lastHalfTimeDone: boolean | null = null;
 
+  eventBus.on('engine:initialized', () => {
+    lastHalfTimeDone = null;
+  });
+
   eventBus.on('engine:stateChange', ({ state }) => {
     ballMarker.style.left = `${state.ball.x}%`;
 

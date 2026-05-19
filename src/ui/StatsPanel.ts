@@ -227,6 +227,16 @@ export function initStatsPanel(): void {
   let isPlayerStatsInit     = false;
   let lastPlayerTableKey    = '';
 
+  eventBus.on('engine:initialized', () => {
+    lastStatsKey          = '';
+    lastPlayerStatsMinute = -1;
+    isPlayerStatsInit     = false;
+    lastPlayerTableKey    = '';
+    statsContent.innerHTML        = '';
+    playerStatsContent.innerHTML  = '';
+    playerDetailContent.innerHTML = '';
+  });
+
   eventBus.on('engine:stateChange', ({ state }) => {
     const key = statsKey(state);
     if (key !== lastStatsKey) {

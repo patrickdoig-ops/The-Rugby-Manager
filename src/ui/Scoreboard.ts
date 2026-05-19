@@ -46,6 +46,10 @@ export function initScoreboard(): void {
 
   let crestsSet = false;
 
+  eventBus.on('engine:initialized', () => {
+    crestsSet = false;
+  });
+
   eventBus.on('engine:stateChange', ({ state }) => {
     if (!crestsSet) {
       crestsSet = true;

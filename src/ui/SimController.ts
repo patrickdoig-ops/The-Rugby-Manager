@@ -1,7 +1,14 @@
 import type { MatchCoordinator } from '../engine/MatchCoordinator';
 import { eventBus } from '../utils/eventBus';
 
+let unsubs: Array<() => void> = [];
+
 export function initSimController(engine: MatchCoordinator): void {
+  // Re-init is per-match; clean up the previous match's eventBus subscriptions
+  // so handlers don't drive a stale engine instance.
+  for (const unsub of unsubs) unsub();
+  unsubs = [];
+
   const btnPlay    = document.getElementById('btn-play')    as HTMLButtonElement;
   const btnPause   = document.getElementById('btn-pause')   as HTMLButtonElement;
   const btnTactics = document.getElementById('btn-tactics') as HTMLButtonElement;
@@ -9,22 +16,28 @@ export function initSimController(engine: MatchCoordinator): void {
   const slider     = document.getElementById('speed-slider') as HTMLInputElement;
   const speedDisplay = document.getElementById('speed-display')!;
 
+  // Reset button enabled-state — the previous match left Play disabled on finish.
+  btnPlay.disabled    = false;
+  btnPause.disabled   = true;
+  btnTactics.disabled = false;
+  btnSubs.disabled    = false;
+
   let wasPausedBeforeTactics = false;
   let wasPausedBeforeSubs    = false;
 
-  btnPlay.addEventListener('click', () => {
+  btnPlay.onclick = () => {
     engine.start();
     btnPlay.disabled  = true;
     btnPause.disabled = false;
-  });
+  };
 
-  btnPause.addEventListener('click', () => {
+  btnPause.onclick = () => {
     engine.pause();
     btnPlay.disabled  = false;
     btnPause.disabled = true;
-  });
+  };
 
-  btnTactics.addEventListener('click', () => {
+  btnTactics.onclick = () => {
     wasPausedBeforeTactics = !engine.getState().engine.isRunning;
     engine.pause();
     btnPlay.disabled    = false;
@@ -34,9 +47,9 @@ export function initSimController(engine: MatchCoordinator): void {
     const state = engine.getState();
     const team = side === 'home' ? state.homeTeam : state.awayTeam;
     eventBus.emit('ui:openTacticsModal', { tactics: team.tactics, teamId: side });
-  });
+  };
 
-  btnSubs.addEventListener('click', () => {
+  btnSubs.onclick = () => {
     wasPausedBeforeSubs = !engine.getState().engine.isRunning;
     engine.pause();
     btnPlay.disabled    = false;
@@ -47,39 +60,39 @@ export function initSimController(engine: MatchCoordinator): void {
     const state = engine.getState();
     const team = side === 'home' ? state.homeTeam : state.awayTeam;
     eventBus.emit('ui:openSubsModal', { team });
-  });
+  };
 
   speedDisplay.textContent = `${slider.value}ms`;
 
-  slider.addEventListener('input', () => {
+  slider.oninput = () => {
     const ms = Number(slider.value);
     engine.setTickDelay(ms);
     speedDisplay.textContent = `${ms}ms`;
     eventBus.emit('ui:speedChange', { delayMs: ms });
-  });
+  };
 
-  eventBus.on('engine:finished', () => {
+  unsubs.push(eventBus.on('engine:finished', () => {
     btnPlay.disabled    = true;
     btnPause.disabled   = true;
     btnTactics.disabled = true;
     btnSubs.disabled    = true;
-  });
+  }));
 
-  eventBus.on('engine:paused', () => {
+  unsubs.push(eventBus.on('engine:paused', () => {
     btnPause.disabled   = true;
     btnPlay.disabled    = true;
     btnTactics.disabled = true;
     btnSubs.disabled    = true;
-  });
+  }));
 
-  eventBus.on('engine:resumed', () => {
+  unsubs.push(eventBus.on('engine:resumed', () => {
     btnPlay.disabled    = true;
     btnPause.disabled   = false;
     btnTactics.disabled = false;
     btnSubs.disabled    = false;
-  });
+  }));
 
-  eventBus.on('ui:tacticsClosed', () => {
+  unsubs.push(eventBus.on('ui:tacticsClosed', () => {
     btnTactics.disabled = false;
     btnSubs.disabled    = false;
     if (!wasPausedBeforeTactics) {
@@ -90,9 +103,9 @@ export function initSimController(engine: MatchCoordinator): void {
       btnPlay.disabled  = false;
       btnPause.disabled = true;
     }
-  });
+  }));
 
-  eventBus.on('ui:subsClosed', () => {
+  unsubs.push(eventBus.on('ui:subsClosed', () => {
     btnSubs.disabled    = false;
     btnTactics.disabled = false;
     if (!wasPausedBeforeSubs) {
@@ -103,17 +116,17 @@ export function initSimController(engine: MatchCoordinator): void {
       btnPlay.disabled  = false;
       btnPause.disabled = true;
     }
-  });
+  }));
 
   const views = ['dashboard', 'commentary', 'stats', 'players'] as const;
   const viewBtns = views.map(v => document.getElementById(`btn-view-${v}`) as HTMLButtonElement);
   const panelBottom = document.getElementById('panel-bottom')!;
 
   viewBtns.forEach((btn, i) => {
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
       viewBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       panelBottom.className = `view-${views[i]}`;
-    });
+    };
   });
 }

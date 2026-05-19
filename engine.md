@@ -14,10 +14,10 @@ Each tick:
 3. Accumulates elapsed time; calls `applyFatigue()` on both teams once the accumulator reaches 5 game minutes. Returns newly-fatigued players (crossing below 50%); emits a fatigue commentary event for each.
 4. Increments possession and territory counters.
 5. For `KickOff` and `BoxKick` phases: emits a pre-phase announce `GameEvent` (naming the kicker before the outcome is resolved).
-6. For `KickOff` phase: awaits kick-off strategy selection via modal (`kickoff_choice` pause) — **managed team only** (the side the human player chose at the team selector). The AI-controlled team always defaults to `high_ball` with no modal.
+6. For `KickOff` phase: awaits kick-off strategy selection via `penaltyHandler.awaitKickOffStrategy()` (modal `kickoff_choice` pause) — **managed team only** (the side the human player chose at the team selector). The AI-controlled team always defaults to `high_ball` with no modal.
 7. Calls `resolvePhase()` to produce the outcome `GameEvent`.
 8. Emits `engine:event` and `engine:stateChange`.
-9. Checks for penalty interactive pause (if phase is `Penalty`).
+9. Checks for penalty interactive pause via `penaltyHandler.handlePenaltyDecision()` (if phase is `Penalty`).
 10. **Clock-in-the-red check:** If `!clockInTheRed && gameMinute >= halfTarget`, calls `enterClockInTheRed()` (sets flag, emits announcement). Else if `wasInRed && shouldEndPeriod(previousPhase)`, triggers half-time or full-time.
 11. Schedules next tick at `state.tickDelayMs`.
 
@@ -58,7 +58,7 @@ Three carry phases share an evasion/collision resolver but have distinct player 
 
 ### Player ratings
 
-Ratings are computed from accumulated per-player statistics, not from event-by-event deltas. After every `resolvePhase()` call (and after penalty goal kicks in `applyPenaltyChoice()`), `recalculateRatings()` calls `computeRating(player)` on all 30 players and writes the result to `player.rating`.
+Ratings are computed from accumulated per-player statistics, not from event-by-event deltas. After every `resolvePhase()` call (and after penalty goal kicks inside `PenaltyHandler`), `recalculateRatings()` calls `computeRating(player)` on all 30 players and writes the result to `player.rating`.
 
 **`computeRating`** is a pure function in `src/engine/RatingEngine.ts`. It reads `player.matchStats` (a `PlayerMatchStats` object) and returns a value in [1.0, 10.0]:
 
@@ -802,7 +802,7 @@ In both cases the **non-offending team** gains possession and the phase transiti
 
 ### Interactive pause decision
 
-After `resolvePhase()` sets the phase to `Penalty`, `tick()` calls `handlePenaltyDecision()`:
+After `resolvePhase()` sets the phase to `Penalty`, `tick()` calls `penaltyHandler.handlePenaltyDecision()` (`src/engine/PenaltyHandler.ts`):
 
 ```
 if possession !== humanSide OR NOT inOppositionHalf():

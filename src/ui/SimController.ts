@@ -98,4 +98,16 @@ export function initSimController(engine: MatchEngine): void {
       btnPause.disabled = true;
     }
   });
+
+  const views = ['dashboard', 'commentary', 'stats', 'players'] as const;
+  const viewBtns = views.map(v => document.getElementById(`btn-view-${v}`) as HTMLButtonElement);
+  const panelBottom = document.getElementById('panel-bottom')!;
+
+  viewBtns.forEach((btn, i) => {
+    btn.addEventListener('click', () => {
+      viewBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      panelBottom.className = `view-${views[i]}`;
+    });
+  });
 }

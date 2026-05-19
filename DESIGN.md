@@ -283,6 +283,39 @@ Match shell order (mobile: flex column; desktop: CSS grid with named areas):
 
 Safe-area insets (`env(safe-area-inset-*)`) are applied to all full-screen layers. Preserve those rules when changing full-screen layouts.
 
+### Live match shell
+
+`AppShell.ts` injects this static HTML skeleton:
+
+```
+#scoreboard                      — score grid (3 columns) + pitch strip (spans all 3)
+  #score-home / #match-clock / #score-away
+  #pitch-wrapper (grid-column: 1/-1)
+    .end-label#home-end-label
+    #pitch-field                 — striped pitch; lines at 8%/24%/50%/76%/92%
+      #ball-marker               — SVG rugby ball (amber, drop-shadow); left set by PitchStrip
+      #attack-label              — overlaid at bottom of pitch; shows shortName e.g. "LNS attacking →"
+    .end-label#away-end-label
+#view-toggle-bar                 — 4 icon-only Heroicon buttons; active one gets class "active"
+  #btn-view-dashboard            — Squares2X2 icon
+  #btn-view-commentary           — ChatBubbleLeftEllipsis icon
+  #btn-view-stats                — ChartBar icon
+  #btn-view-players              — UserGroup icon
+#panel-bottom.view-{mode}        — class drives layout; switched by SimController
+  #panel-commentary              — commentary feed (always present in DOM)
+  #panel-stats                   — match stats only (#stats-content inside)
+  #panel-players                 — player stats only (#player-stats-content inside)
+#sim-controls / #ctrl-bar
+```
+
+`#panel-bottom` layout modes (class on the element):
+- `view-dashboard` — CSS grid 3fr/2fr; commentary left, stats+players stacked right (1fr/1fr rows)
+- `view-commentary` — flex column; stats and players `display:none`
+- `view-stats` — flex column; commentary and players `display:none`
+- `view-players` — flex column; commentary and stats `display:none`
+
+`StatsPanel.ts` writes to `#stats-content` and `#player-stats-content` regardless of active view — live data always flows, only visibility changes. **Do not merge `#panel-stats` and `#panel-players` back into one element** — the separate IDs enable independent view modes.
+
 ## Screen Notes
 
 ### Home Screen

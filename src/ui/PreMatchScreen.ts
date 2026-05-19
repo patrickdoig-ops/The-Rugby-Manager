@@ -15,10 +15,10 @@ type RawPlayer = {
 
 type RawTeam = RawTeamInput;
 
-const STAT_GROUPS: Array<{ label: string; keys: (keyof PlayerStats)[] }> = [
-  { label: 'Physical',  keys: ['stamina', 'strength', 'pace', 'agility'] },
-  { label: 'Technical', keys: ['handling', 'tackling', 'breakdown', 'kicking', 'setPiece'] },
-  { label: 'Mental',    keys: ['discipline', 'positioning', 'composure'] },
+const STAT_GROUPS: Array<{ label: string; abbr: string; keys: (keyof PlayerStats)[] }> = [
+  { label: 'Physical',  abbr: 'PHY', keys: ['stamina', 'strength', 'pace', 'agility'] },
+  { label: 'Technical', abbr: 'TEC', keys: ['handling', 'tackling', 'breakdown', 'kicking', 'setPiece'] },
+  { label: 'Mental',    abbr: 'MNT', keys: ['discipline', 'positioning', 'composure'] },
 ];
 
 const STAT_ABBR: Record<keyof PlayerStats, string> = {
@@ -63,17 +63,22 @@ function renderPlayer(p: RawPlayer, color: string, interactive = false, isBench 
     </div>
   </div>`;
 
-  const groupCells = STAT_GROUPS.map(g =>
-    `<div class="attr-group">
-      ${g.keys.map(k => {
+  const groupCells = STAT_GROUPS.map(g => {
+    const avg = Math.round(g.keys.reduce((s, k) => s + p.baseStats[k], 0) / g.keys.length);
+    const summaryCell = `<div class="attr-cell attr-cell--group ${tierClass(avg)}">
+          <span class="attr-key">${g.abbr}</span>
+          <span class="attr-val">${avg}</span>
+        </div>`;
+    return `<div class="attr-group">
+      ${summaryCell}${g.keys.map(k => {
         const v = p.baseStats[k];
         return `<div class="attr-cell ${tierClass(v)}">
           <span class="attr-key">${STAT_ABBR[k]}</span>
           <span class="attr-val">${v}</span>
         </div>`;
       }).join('')}
-    </div>`
-  ).join('');
+    </div>`;
+  }).join('');
 
   const lastName = p.name.split(' ').slice(1).join(' ') || p.name;
   const benchClass = isBench ? ' pm-player--bench' : ' pm-player--starter';
@@ -102,7 +107,7 @@ function renderLegend(): string {
     </div>
     ${STAT_GROUPS.map(g =>
       `<div class="legend-group">
-        ${g.keys.map(k => `<span class="legend-item">${STAT_ABBR[k]}</span>`).join('')}
+        <span class="legend-item legend-item--group">${g.abbr}</span>${g.keys.map(k => `<span class="legend-item">${STAT_ABBR[k]}</span>`).join('')}
       </div>`
     ).join('')}
   </div>`;

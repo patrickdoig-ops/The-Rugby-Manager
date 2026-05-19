@@ -242,7 +242,7 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
     ],
     scrappy_knock_on: [
       'Scrappy lineout — the ball is knocked on. Scrum to {side}.',
-      'The jumper can\'t hold it — knock-on awarded. Scrum to {side}.',
+      '{primary} can\'t hold it — knock-on awarded. Scrum to {side}.',
     ],
   },
   [MatchPhase.BoxKick]: {

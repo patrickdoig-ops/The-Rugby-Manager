@@ -15,8 +15,8 @@ function ratingClass(r: number): string {
   return 'rating-poor';
 }
 
-export function renderSubstitutionPanel(container: HTMLElement, homeTeam: Team): void {
-  const { color } = homeTeam;
+export function renderSubstitutionPanel(container: HTMLElement, team: Team): void {
+  const { color } = team;
   const pendingSubs: PendingSub[] = [];
   let selectedBenchSquadNum: number | null = null;
 
@@ -24,8 +24,8 @@ export function renderSubstitutionPanel(container: HTMLElement, homeTeam: Team):
     const pendingBenchNums = new Set(pendingSubs.map(s => s.benchSquadNum));
     const pendingFieldNums = new Set(pendingSubs.map(s => s.fieldSquadNum));
 
-    const availBench = homeTeam.bench.filter(p => !pendingBenchNums.has(p.squadNumber));
-    const availField = homeTeam.players.filter(p => !pendingFieldNums.has(p.squadNumber));
+    const availBench = team.bench.filter(p => !pendingBenchNums.has(p.squadNumber));
+    const availField = team.players.filter(p => !pendingFieldNums.has(p.squadNumber));
 
     const benchRows = availBench.length > 0
       ? availBench.map(p => {
@@ -71,7 +71,7 @@ export function renderSubstitutionPanel(container: HTMLElement, homeTeam: Team):
 
     container.innerHTML = `
       <h2 class="modal-title">Substitutions</h2>
-      <p class="modal-subtitle">${homeTeam.name}</p>
+      <p class="modal-subtitle">${team.name}</p>
       ${pendingHtml}
       <div class="sub-section-label">Bench — select incoming player</div>
       <div id="sub-bench-list">${benchRows}</div>
@@ -103,8 +103,8 @@ export function renderSubstitutionPanel(container: HTMLElement, homeTeam: Team):
       container.querySelectorAll<HTMLButtonElement>('.sub-starter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const fieldSq = Number(btn.dataset.squad);
-          const benchPlayer = homeTeam.bench.find(p => p.squadNumber === selectedBenchSquadNum);
-          const fieldPlayer = homeTeam.players.find(p => p.squadNumber === fieldSq);
+          const benchPlayer = team.bench.find(p => p.squadNumber === selectedBenchSquadNum);
+          const fieldPlayer = team.players.find(p => p.squadNumber === fieldSq);
           if (!benchPlayer || !fieldPlayer) return;
           pendingSubs.push({
             benchSquadNum: benchPlayer.squadNumber,

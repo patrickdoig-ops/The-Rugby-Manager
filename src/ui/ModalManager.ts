@@ -94,16 +94,16 @@ export function initModalManager(): void {
     });
   });
 
-  eventBus.on('ui:openTacticsModal', ({ tactics }) => {
-    renderTacticsMenu(box, tactics, true, () => {
+  eventBus.on('ui:openTacticsModal', ({ tactics, teamId }) => {
+    renderTacticsMenu(box, tactics, teamId, true, () => {
       overlay.classList.add('hidden');
       eventBus.emit('ui:tacticsClosed', {});
     });
     overlay.classList.remove('hidden');
   });
 
-  eventBus.on('ui:openSubsModal', ({ homeTeam }) => {
-    renderSubstitutionPanel(box, homeTeam);
+  eventBus.on('ui:openSubsModal', ({ team }) => {
+    renderSubstitutionPanel(box, team);
     overlay.classList.remove('hidden');
   });
 

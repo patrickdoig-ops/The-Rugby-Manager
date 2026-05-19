@@ -170,15 +170,16 @@ function renderLineupPanel(
 export function initPreMatchScreen(
   home: RawTeam,
   away: RawTeam,
-  onStart: (configuredHome: RawTeam, configuredAway: RawTeam, homeTactics: TeamTactics) => void,
+  playerSide: 'home' | 'away',
+  onStart: (configuredHome: RawTeam, configuredAway: RawTeam, playerTactics: TeamTactics) => void,
 ): void {
   const screen = document.getElementById('pre-match')!;
 
   let homeStarters: RawPlayer[] = (home.players as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
   let homeBench:    RawPlayer[] = ((home.bench ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
 
-  const awayStarters: RawPlayer[] = (away.players as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
-  const awayBench:    RawPlayer[] = ((away.bench ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
+  let awayStarters: RawPlayer[] = (away.players as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
+  let awayBench:    RawPlayer[] = ((away.bench ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
 
   let selectedBenchSquadNum: number | null = null;
   let activeView: 'list' | 'pitch' = 'list';
@@ -274,8 +275,12 @@ export function initPreMatchScreen(
   const tabs         = screen.querySelectorAll<HTMLButtonElement>('.pm-tab');
   const viewToggle   = screen.querySelector<HTMLElement>('#pm-view-toggle')!;
 
+  const playerStarters = playerSide === 'home' ? homeStarters : awayStarters;
+  const playerBench    = playerSide === 'home' ? homeBench    : awayBench;
+
   function updateHint(): void {
-    const hintEl = homePanel.querySelector<HTMLElement>('.pm-bench-hint');
+    const panel = playerSide === 'home' ? homePanel : awayPanel;
+    const hintEl = panel.querySelector<HTMLElement>('.pm-bench-hint');
     if (!hintEl) return;
     if (selectedBenchSquadNum === null) {
       hintEl.textContent = 'Select a bench player to swap';
@@ -287,18 +292,20 @@ export function initPreMatchScreen(
   }
 
   function renderHomePanel(): void {
-    homePanel.innerHTML = renderLineupPanel(homeStarters, homeBench, home.color, true, activeView);
-    updateHint();
+    homePanel.innerHTML = renderLineupPanel(homeStarters, homeBench, home.color, playerSide === 'home', activeView);
+    if (playerSide === 'home') updateHint();
   }
 
   function renderAwayPanel(): void {
-    awayPanel.innerHTML = renderLineupPanel(awayStarters, awayBench, away.color, false, activeView);
+    awayPanel.innerHTML = renderLineupPanel(awayStarters, awayBench, away.color, playerSide === 'away', activeView);
+    if (playerSide === 'away') updateHint();
   }
 
   renderHomePanel();
   renderAwayPanel();
 
-  homePanel.addEventListener('click', (e) => {
+  const activePanel = playerSide === 'home' ? homePanel : awayPanel;
+  activePanel.addEventListener('click', (e) => {
     const playerEl = (e.target as HTMLElement).closest<HTMLElement>('.pm-player--bench, .pm-player--starter');
     if (!playerEl) return;
 
@@ -307,30 +314,31 @@ export function initPreMatchScreen(
       if (selectedBenchSquadNum === squadNum) {
         selectedBenchSquadNum = null;
         playerEl.classList.remove('pm-player--selected');
-        homePanel.querySelectorAll('.pm-player--starter').forEach(el => el.classList.remove('pm-swap-target'));
+        activePanel.querySelectorAll('.pm-player--starter').forEach(el => el.classList.remove('pm-swap-target'));
       } else {
         selectedBenchSquadNum = squadNum;
-        homePanel.querySelectorAll('.pm-player--selected').forEach(el => el.classList.remove('pm-player--selected'));
+        activePanel.querySelectorAll('.pm-player--selected').forEach(el => el.classList.remove('pm-player--selected'));
         playerEl.classList.add('pm-player--selected');
-        homePanel.querySelectorAll('.pm-player--starter').forEach(el => el.classList.add('pm-swap-target'));
+        activePanel.querySelectorAll('.pm-player--starter').forEach(el => el.classList.add('pm-swap-target'));
       }
       updateHint();
     } else if (playerEl.classList.contains('pm-player--starter')) {
       if (selectedBenchSquadNum === null) return;
 
       const starterSquadNum = Number(playerEl.dataset.squad);
-      const starterIdx = homeStarters.findIndex(p => getSquadNum(p) === starterSquadNum);
-      const benchIdx   = homeBench.findIndex(p => getSquadNum(p) === selectedBenchSquadNum);
+      const starterIdx = playerStarters.findIndex(p => getSquadNum(p) === starterSquadNum);
+      const benchIdx   = playerBench.findIndex(p => getSquadNum(p) === selectedBenchSquadNum);
       if (starterIdx === -1 || benchIdx === -1) return;
 
-      const slotId       = homeStarters[starterIdx].id;
-      const benchSlotId  = homeBench[benchIdx].id;
-      const newStarter   = { ...homeBench[benchIdx],      id: slotId };
-      const newBenchSlot = { ...homeStarters[starterIdx], id: benchSlotId };
-      homeStarters[starterIdx] = newStarter;
-      homeBench[benchIdx]      = newBenchSlot;
+      const slotId      = playerStarters[starterIdx].id;
+      const benchSlotId = playerBench[benchIdx].id;
+      const newStarter  = { ...playerBench[benchIdx],    id: slotId };
+      const newBenchSlot = { ...playerStarters[starterIdx], id: benchSlotId };
+      playerStarters[starterIdx] = newStarter;
+      playerBench[benchIdx]      = newBenchSlot;
       selectedBenchSquadNum = null;
-      renderHomePanel();
+      if (playerSide === 'home') renderHomePanel();
+      else renderAwayPanel();
     }
   });
 
@@ -350,10 +358,10 @@ export function initPreMatchScreen(
 
   let chosenTactics: TeamTactics = { ...DEFAULT_TACTICS };
   const unsubTactics = eventBus.on('ui:tacticsChange', ({ teamId, tactics }) => {
-    if (teamId === 'home') chosenTactics = tactics;
+    if (teamId === playerSide) chosenTactics = tactics;
   });
 
-  renderTacticsMenu(tacticsPanel, { ...DEFAULT_TACTICS });
+  renderTacticsMenu(tacticsPanel, { ...DEFAULT_TACTICS }, playerSide);
 
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
@@ -374,8 +382,13 @@ export function initPreMatchScreen(
       started = true;
       unsubTactics();
       screen.style.display = 'none';
-      const configuredHome = { ...home, players: homeStarters, bench: homeBench } as unknown as RawTeam;
-      onStart(configuredHome, away, chosenTactics);
+      const configuredHome = playerSide === 'home'
+        ? { ...home, players: homeStarters, bench: homeBench } as unknown as RawTeam
+        : home as unknown as RawTeam;
+      const configuredAway = playerSide === 'away'
+        ? { ...away, players: awayStarters, bench: awayBench } as unknown as RawTeam
+        : away as unknown as RawTeam;
+      onStart(configuredHome, configuredAway, chosenTactics);
     };
     screen.addEventListener('animationend', start, { once: true });
     setTimeout(start, 600);

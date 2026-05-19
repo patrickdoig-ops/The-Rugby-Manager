@@ -40,6 +40,7 @@ const BACKFIELD_OPTIONS: OptionDef<BackfieldDefence>[] = [
 export function renderTacticsMenu(
   container: HTMLElement,
   initialTactics: TeamTactics,
+  teamId: 'home' | 'away' = 'home',
   isModal = false,
   onResume?: () => void,
 ): void {
@@ -95,7 +96,7 @@ export function renderTacticsMenu(
         [cat]: val,
       };
 
-      eventBus.emit('ui:tacticsChange', { teamId: 'home', tactics: currentTactics });
+      eventBus.emit('ui:tacticsChange', { teamId, tactics: currentTactics });
 
       // Update active classes within this category
       const siblings = container.querySelectorAll<HTMLButtonElement>(`.tactics-opt-btn[data-cat="${cat}"]`);

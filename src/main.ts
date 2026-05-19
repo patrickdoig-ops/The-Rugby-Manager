@@ -1,5 +1,6 @@
 import '../style/main.css';
 import '../style/homescreen.css';
+import '../style/teamselector.css';
 import '../style/commentary.css';
 import '../style/stats.css';
 import '../style/prematch.css';
@@ -13,7 +14,8 @@ import { initStatsPanel }     from './ui/StatsPanel';
 import { initSimController }  from './ui/SimController';
 import { initModalManager }   from './ui/ModalManager';
 import { initPreMatchScreen } from './ui/PreMatchScreen';
-import { initHomeScreen }     from './ui/HomeScreen';
+import { initHomeScreen }          from './ui/HomeScreen';
+import { initTeamSelectorScreen }  from './ui/TeamSelectorScreen';
 import { MatchEngine }        from './engine/MatchEngine';
 import type { RawTeamInput }  from './engine/MatchEngine';
 
@@ -29,14 +31,17 @@ document.addEventListener('DOMContentLoaded', () => {
   initModalManager();
 
   initHomeScreen(() => {
-    initPreMatchScreen(
-      homeTeamRaw as RawTeamInput,
-      awayTeamRaw as RawTeamInput,
-      (configuredHome, configuredAway, homeTactics) => {
-        const engine = new MatchEngine(configuredHome, configuredAway, { tickDelayMs: 2000, homeTactics });
-        initSimController(engine);
-        engine.initialize();
-      },
-    );
+    initTeamSelectorScreen(homeTeamRaw as RawTeamInput, awayTeamRaw as RawTeamInput, (playerSide) => {
+      initPreMatchScreen(
+        homeTeamRaw as RawTeamInput,
+        awayTeamRaw as RawTeamInput,
+        playerSide,
+        (configuredHome, configuredAway, playerTactics) => {
+          const engine = new MatchEngine(configuredHome, configuredAway, { tickDelayMs: 2000, playerTactics, humanSide: playerSide });
+          initSimController(engine);
+          engine.initialize();
+        },
+      );
+    });
   });
 });

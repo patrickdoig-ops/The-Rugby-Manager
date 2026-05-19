@@ -83,7 +83,7 @@ function buildTeam(raw: RawTeamInput, tactics?: TeamTactics): Team {
   };
 }
 
-function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayMs: number, homeTactics?: TeamTactics): MatchState {
+function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayMs: number, playerTactics?: TeamTactics, humanSide: 'home' | 'away' = 'home'): MatchState {
   return {
     phase: MatchPhase.KickOff,
     gameMinute: 0,
@@ -91,8 +91,8 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
     possession: 'home',
     ballX: 50,
     ballY: 50,
-    homeTeam: buildTeam(homeRaw, homeTactics),
-    awayTeam: buildTeam(awayRaw),
+    homeTeam: buildTeam(homeRaw, humanSide === 'home' ? playerTactics : undefined),
+    awayTeam: buildTeam(awayRaw, humanSide === 'away' ? playerTactics : undefined),
     stats: {
       possession: { home: 0, away: 0 },
       territory:  { home: 0, away: 0 },
@@ -133,13 +133,16 @@ export class MatchEngine {
   private tickTimeout: ReturnType<typeof setTimeout> | null = null;
   private fatigueAccumulator = 0;
   private kickOffStrategy: KickOffStrategy = 'high_ball';
+  private humanSide: 'home' | 'away';
 
   constructor(
     homeRaw: RawTeamInput,
     awayRaw: RawTeamInput,
-    opts: { tickDelayMs?: number; homeTactics?: TeamTactics } = {},
+    opts: { tickDelayMs?: number; homeTactics?: TeamTactics; playerTactics?: TeamTactics; humanSide?: 'home' | 'away' } = {},
   ) {
-    this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, opts.homeTactics);
+    this.humanSide = opts.humanSide ?? 'home';
+    const tactics = opts.playerTactics ?? opts.homeTactics;
+    this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, tactics, this.humanSide);
     this.sm = new StateMachine(MatchPhase.KickOff);
 
     eventBus.on('ui:tacticsChange', ({ teamId, tactics }) => {
@@ -151,8 +154,12 @@ export class MatchEngine {
     });
 
     eventBus.on('ui:substitution', ({ benchSquadNum, fieldSquadNum }) => {
-      this.substitute('home', benchSquadNum, fieldSquadNum);
+      this.substitute(this.humanSide, benchSquadNum, fieldSquadNum);
     });
+  }
+
+  getHumanSide(): 'home' | 'away' {
+    return this.humanSide;
   }
 
   substitute(side: 'home' | 'away', benchSquadNum: number, fieldSquadNum: number): void {
@@ -521,7 +528,7 @@ export class MatchEngine {
   }
 
   private async handleKickOffStrategy(): Promise<void> {
-    if (this.state.possession !== 'home') {
+    if (this.state.possession !== this.humanSide) {
       this.kickOffStrategy = 'high_ball';
       return;
     }
@@ -540,9 +547,10 @@ export class MatchEngine {
 
     // Only present the choice to the human manager (home team) and only when
     // the penalty is in the opposition's half. All other penalties auto-kick to touch.
-    if (state.possession !== 'home' || !this.inOppositionHalf()) {
+    if (state.possession !== this.humanSide || !this.inOppositionHalf()) {
+      const aiSide = this.humanSide === 'home' ? 'away' : 'home';
       const autoChoice =
-        state.clockInTheRed && state.possession === 'away' && state.score.away > state.score.home
+        state.clockInTheRed && state.possession === aiSide && state.score[aiSide] > state.score[this.humanSide]
           ? 'tap_and_kick_dead'
           : 'kick_to_touch';
       this.applyPenaltyChoice(autoChoice);

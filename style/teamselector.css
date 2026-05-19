@@ -1,0 +1,149 @@
+#team-selector {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  background: var(--rm-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding:
+    env(safe-area-inset-top, 0px)
+    env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
+}
+
+#ts-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 36px;
+  padding: 24px 20px;
+  width: 100%;
+  max-width: 480px;
+}
+
+#ts-header {
+  text-align: center;
+}
+
+#ts-eyebrow {
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--rm-pitch);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+#ts-title {
+  font-family: var(--rm-font-display);
+  font-size: clamp(32px, 10vw, 48px);
+  color: var(--rm-chalk);
+  line-height: 0.95;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+#ts-subtitle {
+  font-family: var(--rm-font-body);
+  font-size: 14px;
+  color: var(--rm-text-muted);
+  margin: 0;
+}
+
+#ts-matchup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+#ts-vs {
+  font-family: var(--rm-font-display);
+  font-size: 18px;
+  color: var(--rm-text-dim);
+  flex-shrink: 0;
+}
+
+.ts-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 12px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ts-crest {
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-display);
+  font-size: 28px;
+  color: rgba(255,255,255,0.9);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ts-crest::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.18) 100%);
+}
+
+.ts-crest span {
+  position: relative;
+  z-index: 1;
+}
+
+.ts-card-name {
+  font-family: var(--rm-font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--rm-chalk);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.ts-card-code {
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+}
+
+.ts-card-cta {
+  font-family: var(--rm-font-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rm-pitch);
+  margin-top: 2px;
+}
+
+.ts-card:active {
+  background: var(--rm-surface-3);
+}
+
+@media (hover: hover) {
+  .ts-card:hover {
+    background: var(--rm-surface-2);
+    border-color: var(--rm-pitch);
+    box-shadow: 0 0 20px color-mix(in oklch, var(--rm-pitch) 18%, transparent);
+  }
+}

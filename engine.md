@@ -14,7 +14,7 @@ Each tick:
 3. Accumulates elapsed time; calls `applyFatigue()` on both teams once the accumulator reaches 5 game minutes. Returns newly-fatigued players (crossing below 50%); emits a fatigue commentary event for each.
 4. Increments possession and territory counters.
 5. For `KickOff` and `BoxKick` phases: emits a pre-phase announce `GameEvent` (naming the kicker before the outcome is resolved).
-6. For `KickOff` phase: awaits kick-off strategy selection via modal (`kickoff_choice` pause) — **home team only**. Away team always defaults to `high_ball` with no modal.
+6. For `KickOff` phase: awaits kick-off strategy selection via modal (`kickoff_choice` pause) — **managed team only** (the side the human player chose at the team selector). The AI-controlled team always defaults to `high_ball` with no modal.
 7. Calls `resolvePhase()` to produce the outcome `GameEvent`.
 8. Emits `engine:event` and `engine:stateChange`.
 9. Checks for penalty interactive pause (if phase is `Penalty`).
@@ -198,10 +198,8 @@ A `GameEvent` with phase `KickOff` and key `coin_toss` is emitted immediately so
 
 Before the resolver runs, the kicking team's strategy is determined:
 
-- **Home team kicking:** A modal pause (`kickoff_choice`) is presented. Three options: Kick Short (`short_kick`), Grubber Kick (`grubber`), Kick Deep (`high_ball`). The engine awaits the selection before proceeding.
-- **Away team kicking:** Always defaults to `high_ball` (Kick Deep), no modal shown.
-
-> **Future development:** Away team kick-off strategy should be driven by away team tactics (e.g. late-game pressure situations selecting `short_kick`). Currently hardcoded to `high_ball` pending away team tactical UI.
+- **Managed team kicking:** A modal pause (`kickoff_choice`) is presented. Three options: Kick Short (`short_kick`), Grubber Kick (`grubber`), Kick Deep (`high_ball`). The engine awaits the selection before proceeding.
+- **AI-controlled team kicking:** Always defaults to `high_ball` (Kick Deep), no modal shown.
 
 ### Player selection
 
@@ -807,13 +805,13 @@ In both cases the **non-offending team** gains possession and the phase transiti
 After `resolvePhase()` sets the phase to `Penalty`, `tick()` calls `handlePenaltyDecision()`:
 
 ```
-if possession !== 'home' OR NOT inOppositionHalf():
-  if clockInTheRed AND possession === 'away' AND score.away > score.home → auto-select tap_and_kick_dead
+if possession !== humanSide OR NOT inOppositionHalf():
+  if clockInTheRed AND possession === aiSide AND score[aiSide] > score[humanSide] → auto-select tap_and_kick_dead
   else → auto-select kick_to_touch
-if possession === 'home' AND inOppositionHalf() → emit engine:paused → await Promise<PenaltyChoice>
+if possession === humanSide AND inOppositionHalf() → emit engine:paused → await Promise<PenaltyChoice>
 ```
 
-`inOppositionHalf()` returns true when `ballX > 50` for home in the first half (attacking right) or `ballX < 50` in the second half (attacking left). The modal is only shown to the human manager, who controls the home team.
+`inOppositionHalf()` returns true when `ballX > 50` for home in the first half (attacking right) or `ballX < 50` in the second half (attacking left). The modal is only shown when the managed (human) team has the penalty. `humanSide` is set at match start from the team the player chose; `aiSide` is the other side.
 
 The engine loop is suspended mid-tick at the `await`. It resumes when the `onChoice(choice)` callback (provided in the `engine:paused` payload) is called by `ModalManager`.
 
@@ -995,7 +993,7 @@ The substitute takes the squad position (`id`) of the player they replace, so th
 
 No rating adjustment is applied on substitution. The incoming player's `formModifier` and `fatiguePct` are as initialised at match start — they are not reset on sub.
 
-**Scope:** Only the home team can substitute via the UI. Away team substitutions are not implemented.
+**Scope:** Only the managed (human) team can substitute via the UI. The AI-controlled team does not substitute.
 
 ---
 

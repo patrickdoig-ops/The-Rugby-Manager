@@ -30,7 +30,10 @@ export function initSimController(engine: MatchEngine): void {
     btnPlay.disabled    = false;
     btnPause.disabled   = true;
     btnTactics.disabled = true;
-    eventBus.emit('ui:openTacticsModal', { tactics: engine.getState().homeTeam.tactics });
+    const side = engine.getHumanSide();
+    const state = engine.getState();
+    const team = side === 'home' ? state.homeTeam : state.awayTeam;
+    eventBus.emit('ui:openTacticsModal', { tactics: team.tactics, teamId: side });
   });
 
   btnSubs.addEventListener('click', () => {
@@ -40,7 +43,10 @@ export function initSimController(engine: MatchEngine): void {
     btnPause.disabled   = true;
     btnSubs.disabled    = true;
     btnTactics.disabled = true;
-    eventBus.emit('ui:openSubsModal', { homeTeam: engine.getState().homeTeam });
+    const side = engine.getHumanSide();
+    const state = engine.getState();
+    const team = side === 'home' ? state.homeTeam : state.awayTeam;
+    eventBus.emit('ui:openSubsModal', { team });
   });
 
   speedDisplay.textContent = `${slider.value}ms`;

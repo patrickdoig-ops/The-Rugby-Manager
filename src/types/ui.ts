@@ -14,9 +14,9 @@ export interface AppEvents {
   'engine:finished':    { state: MatchState };
   'ui:speedChange':     { delayMs: number };
   'ui:tacticsChange':   { teamId: string; tactics: TeamTactics };
-  'ui:openTacticsModal':{ tactics: TeamTactics };
+  'ui:openTacticsModal':{ tactics: TeamTactics; teamId: 'home' | 'away' };
   'ui:tacticsClosed':   Record<string, never>;
-  'ui:openSubsModal':   { homeTeam: Team };
+  'ui:openSubsModal':   { team: Team };
   'ui:substitution':    { benchSquadNum: number; fieldSquadNum: number };
   'ui:subsClosed':      Record<string, never>;
 }

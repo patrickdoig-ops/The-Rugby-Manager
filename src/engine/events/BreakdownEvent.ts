@@ -39,6 +39,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
 
   const defendPack = defendTeam.players.filter(p => p.id <= 8);
   const res = resolveBreakdown(supporters, jackal, defPlan, defendPack, attackBonus);
+  supporters.forEach(p => p.matchStats.rucksHit++);
 
   const homeIsAttacking = state.possession === 'home';
   const homeIsDefending = !homeIsAttacking;

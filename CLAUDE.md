@@ -283,7 +283,7 @@ Universal: `tries×7.0`, `lineBreaks×2.5`, `defendersBeaten×0.8`, `turnoversWo
 
 Position bonuses: hooker (#2) lineout accuracy; locks (#4,5) lineout catches/steals; front row (#1–3) scrum penalty differential; back row (#6–8) extra turnover + carry weight; scrum half (#9) `passes×0.05`; fly-half (#10) `kicksFromHand×0.25`; wings/fullback (#11,14,15) extra line break weight.
 
-**`PlayerMatchStats`** is declared in `src/types/player.ts`, initialised by `zeroMatchStats()` in `initPlayer()`. Fields: `carries`, `metresCarried`, `lineBreaks`, `defendersBeaten`, `knockOns`, `passes`, `tacklesAttempted`, `tacklesMade`, `dominantTackles`, `turnoversWon`, `penaltiesConceded`, `tries`, `kicksFromHand`, `kicksAtGoal`, `kicksMade`, `kicksMissed`, `lineoutThrows`, `lineoutWins`, `lineoutCatches`, `lineoutSteals`, `scrumPenaltiesWon`, `scrumPenaltiesConceded`.
+**`PlayerMatchStats`** is declared in `src/types/player.ts`, initialised by `zeroMatchStats()` in `initPlayer()`. Fields: `carries`, `metresCarried`, `lineBreaks`, `defendersBeaten`, `knockOns`, `passes`, `tacklesAttempted`, `tacklesMade`, `dominantTackles`, `turnoversWon`, `penaltiesConceded`, `tries`, `kicksFromHand`, `kicksAtGoal`, `kicksMade`, `kicksMissed`, `lineoutThrows`, `lineoutWins`, `lineoutCatches`, `lineoutSteals`, `scrumPenaltiesWon`, `scrumPenaltiesConceded`, `kickMetres`, `rucksHit`.
 
 **Extending:** add one field to `PlayerMatchStats` + one `field: 0` in `zeroMatchStats()` + increment site(s) in the relevant event file(s) + optional weight in `computeRating()`.
 

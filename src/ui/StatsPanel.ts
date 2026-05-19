@@ -161,13 +161,71 @@ function statsKey(state: MatchState): string {
        + `${s.scrums.home},${s.scrums.away},${s.lineouts.home},${s.lineouts.away}`;
 }
 
+// ─── Player detail table ───────────────────────────────────────────────────
+
+const TABLE_HEADERS = ['#', 'Player', 'Rt', 'Car', 'M', 'Pass', 'Tkl', 'MT', 'Kick', 'KM', 'Ruck', 'TO', 'T', 'GK+', 'GK-'];
+
+function playerTableRow(p: MatchState['homeTeam']['players'][number], teamColor: string, isSubbedOff: boolean): string {
+  const s = p.matchStats;
+  const rowClass = isSubbedOff ? ' class="player-subbed"' : '';
+  const triesClass = s.tries > 0 ? ' class="td-tries"' : '';
+  const mt = Math.max(0, s.tacklesAttempted - s.tacklesMade);
+  return `<tr${rowClass}>
+    <td style="color:${teamColor}">${p.squadNumber}</td>
+    <td>${p.name.split(' ')[1] ?? p.name}</td>
+    <td class="${ratingClass(p.rating)}">${p.rating.toFixed(1)}</td>
+    <td>${s.carries}</td>
+    <td>${s.metresCarried}</td>
+    <td>${s.passes}</td>
+    <td>${s.tacklesMade}</td>
+    <td>${mt}</td>
+    <td>${s.kicksFromHand}</td>
+    <td>${s.kickMetres}</td>
+    <td>${s.rucksHit}</td>
+    <td>${s.turnoversWon}</td>
+    <td${triesClass}>${s.tries}</td>
+    <td>${s.kicksMade}</td>
+    <td>${s.kicksMissed}</td>
+  </tr>`;
+}
+
+function renderPlayerTable(state: MatchState): string {
+  const headerCells = TABLE_HEADERS.map(h => `<th>${h}</th>`).join('');
+  const teamSection = (team: MatchState['homeTeam']): string[] => [
+    `<tr class="team-row"><td colspan="15" style="color:${team.color}">${team.name}</td></tr>`,
+    ...team.players.map(p => playerTableRow(p, team.color, false)),
+    ...team.substitutedOff.map(p => playerTableRow(p, team.color, true)),
+  ];
+  return `<table class="player-table">
+    <thead><tr>${headerCells}</tr></thead>
+    <tbody>${[...teamSection(state.homeTeam), ...teamSection(state.awayTeam)].join('')}</tbody>
+  </table>`;
+}
+
+function playerTableKey(state: MatchState): string {
+  const all = [
+    ...state.homeTeam.players, ...state.homeTeam.substitutedOff,
+    ...state.awayTeam.players, ...state.awayTeam.substitutedOff,
+  ];
+  return `${state.homeTeam.players.length},${state.homeTeam.substitutedOff.length},`
+       + `${state.awayTeam.players.length},${state.awayTeam.substitutedOff.length},`
+       + all.map(p => {
+           const s = p.matchStats;
+           return `${p.rating.toFixed(1)},${s.carries},${s.metresCarried},${s.passes},`
+                + `${s.tacklesMade},${s.tacklesAttempted},${s.kicksFromHand},${s.kickMetres},`
+                + `${s.rucksHit},${s.turnoversWon},${s.tries},${s.kicksMade},${s.kicksMissed}`;
+         }).join(';');
+}
+
 export function initStatsPanel(): void {
-  const statsContent       = document.getElementById('stats-content')!;
-  const playerStatsContent = document.getElementById('player-stats-content')!;
+  const statsContent        = document.getElementById('stats-content')!;
+  const playerStatsContent  = document.getElementById('player-stats-content')!;
+  const playerDetailContent = document.getElementById('player-detail-content')!;
 
   let lastStatsKey          = '';
   let lastPlayerStatsMinute = -1;
   let isPlayerStatsInit     = false;
+  let lastPlayerTableKey    = '';
 
   eventBus.on('engine:stateChange', ({ state }) => {
     const key = statsKey(state);
@@ -185,6 +243,12 @@ export function initStatsPanel(): void {
       } else {
         updatePlayerStatsDOM(playerStatsContent, state);
       }
+    }
+
+    const tableKey = playerTableKey(state);
+    if (tableKey !== lastPlayerTableKey) {
+      lastPlayerTableKey = tableKey;
+      playerDetailContent.innerHTML = renderPlayerTable(state);
     }
   });
 }

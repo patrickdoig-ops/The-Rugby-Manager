@@ -20,6 +20,7 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, random
   const res = resolveBoxKick(scrumHalf, winger, fullback, fullbackMod);
 
   state.ballX = clamp(state.ballX + attackDir() * res.distance, 5, 95);
+  scrumHalf.matchStats.kickMetres += res.distance;
 
   if (res.outcome === 'attack_retain') {
     state.kickReturnCarrier = winger;

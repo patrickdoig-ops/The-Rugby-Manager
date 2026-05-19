@@ -44,6 +44,8 @@ export interface PlayerMatchStats {
   lineoutSteals:          number;
   scrumPenaltiesWon:      number;
   scrumPenaltiesConceded: number;
+  kickMetres:             number;
+  rucksHit:               number;
 }
 
 export interface Player {

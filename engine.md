@@ -101,7 +101,8 @@ carries, metresCarried, lineBreaks, defendersBeaten, knockOns, passes,
 tacklesAttempted, tacklesMade, dominantTackles, turnoversWon, penaltiesConceded,
 tries, kicksFromHand, kicksAtGoal, kicksMade, kicksMissed,
 lineoutThrows, lineoutWins, lineoutCatches, lineoutSteals,
-scrumPenaltiesWon, scrumPenaltiesConceded
+scrumPenaltiesWon, scrumPenaltiesConceded,
+kickMetres, rucksHit
 ```
 
 To add a new stat: add one field to `PlayerMatchStats`, one `field: 0` in `zeroMatchStats()`, increment it in the relevant event file(s), and optionally add a weight in `computeRating()`.
@@ -551,6 +552,7 @@ None. `ballX` does not change during a breakdown.
 
 | Outcome | Player | Stats |
 |---|---|---|
+| every breakdown | all supporters | `rucksHit++` (attacking ruck involvements) |
 | `turnover` | jackal | `turnoversWon++` |
 | `penalty_defending` | supporters[0] | `penaltiesConceded++` |
 
@@ -726,7 +728,7 @@ Because the kick lacked hang-time or distance (or is over-hit), the fullback has
 
 | Outcome | Player | Stats |
 |---|---|---|
-| every box kick | scrumHalf | `kicksFromHand++` |
+| every box kick | scrumHalf | `kicksFromHand++`, `kickMetres += res.distance` |
 
 ---
 
@@ -784,7 +786,7 @@ If the ball **does not** go into touch at all, the defending fullback catches th
 
 | Outcome | Player | Stats |
 |---|---|---|
-| every tactical kick | kicker | `kicksFromHand++` |
+| every tactical kick | kicker | `kicksFromHand++`, `kickMetres += res.distance` |
 
 ---
 

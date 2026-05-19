@@ -174,3 +174,67 @@
 .rating-mid  { color: var(--rm-stat-4); }
 .rating-low  { color: var(--rm-stat-3); }
 .rating-poor { color: var(--rm-stat-2); }
+
+/* ─── Player detail table (view-players only) ─── */
+
+#player-detail-content {
+  display: none;
+  overflow-x: auto;
+  padding: 0 0 4px;
+}
+
+#panel-bottom.view-players #player-detail-content { display: block; }
+#panel-bottom.view-players #player-stats-content  { display: none; }
+
+.player-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.player-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--rm-surface-2);
+  color: var(--rm-text-dim);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 5px 3px;
+  text-align: right;
+  border-bottom: 1px solid var(--rm-hairline);
+  z-index: 1;
+}
+
+.player-table thead th:nth-child(2) { text-align: left; }
+
+.player-table td {
+  padding: 3px 5px;
+  text-align: right;
+  color: var(--rm-text-muted);
+  border-bottom: 1px solid var(--rm-hairline);
+  font-variant-numeric: tabular-nums;
+}
+
+.player-table td:nth-child(2) { text-align: left; color: var(--rm-chalk); }
+
+.player-table .team-row td {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 5px 5px 3px;
+  color: var(--rm-text-dim);
+  background: var(--rm-surface-2);
+  border-bottom: 1px solid var(--rm-border);
+}
+
+.player-table .player-subbed td { opacity: 0.4; }
+.player-table .player-subbed td:nth-child(2)::after {
+  content: ' \2193';
+  font-size: 7px;
+}
+
+.player-table .td-tries { color: var(--rm-stat-5); font-weight: 700; }

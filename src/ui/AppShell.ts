@@ -60,6 +60,7 @@ export function buildAppShell(): void {
       <div id="panel-players">
         <div class="panel-header">Player Stats</div>
         <div id="player-stats-content"></div>
+        <div id="player-detail-content"></div>
       </div>
     </div>
     <div id="sim-controls">

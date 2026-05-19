@@ -41,6 +41,7 @@ function zeroMatchStats(): PlayerMatchStats {
     kicksFromHand: 0, kicksAtGoal: 0, kicksMade: 0, kicksMissed: 0,
     lineoutThrows: 0, lineoutWins: 0, lineoutCatches: 0, lineoutSteals: 0,
     scrumPenaltiesWon: 0, scrumPenaltiesConceded: 0,
+    kickMetres: 0, rucksHit: 0,
   };
 }
 

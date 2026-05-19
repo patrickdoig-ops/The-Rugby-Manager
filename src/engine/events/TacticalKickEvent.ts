@@ -19,6 +19,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
   const originalBallX = state.ballX;
 
   const res = resolveTacticalKick(kicker);
+  kicker.matchStats.kickMetres += res.distance;
   const goodKick = res.kickScore >= 25;
   const backfield = defendTeam.tactics.backfieldDefence;
   const touchReduction = backfield === 'three_back' ? 25 : backfield === 'two_back' ? 15 : 0;

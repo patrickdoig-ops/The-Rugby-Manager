@@ -10,6 +10,7 @@ import { getCommentary } from './CommentaryEngine';
 import { eventBus } from '../utils/eventBus';
 import { rng, rngForm } from '../utils/rng';
 import { PenaltyHandler } from './PenaltyHandler';
+import { ClockController } from './ClockController';
 import { makeId } from './eventId';
 import type { PhaseContext, PhaseResult } from './events/types';
 import { handleKickOff }        from './events/KickOffEvent';
@@ -130,6 +131,7 @@ export class MatchEngine {
   private kickOffStrategy: KickOffStrategy = 'high_ball';
   private humanSide: 'home' | 'away';
   private penaltyHandler: PenaltyHandler;
+  private clock: ClockController;
 
   constructor(
     homeRaw: RawTeamInput,
@@ -140,6 +142,7 @@ export class MatchEngine {
     const tactics = opts.playerTactics ?? opts.homeTactics;
     this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, tactics, this.humanSide);
     this.sm = new StateMachine(MatchPhase.KickOff);
+    this.clock = new ClockController(this.sm);
 
     this.penaltyHandler = new PenaltyHandler({
       state: this.state,
@@ -317,14 +320,8 @@ export class MatchEngine {
     if (!this.state.isRunning) return;
 
     try {
-      const wasInRed   = this.state.clockInTheRed;
-      const halfTarget = this.state.halfTimeDone ? 80 : 40;
-      const timeAdvance = 0.2 + rng(0, 8) / 10;
-      if (wasInRed) {
-        this.state.gameMinute += timeAdvance / 2;
-      } else {
-        this.state.gameMinute = Math.min(halfTarget, this.state.gameMinute + timeAdvance);
-      }
+      const wasInRed = this.state.clockInTheRed;
+      const timeAdvance = this.clock.advanceMinute(this.state);
 
       this.fatigueAccumulator += timeAdvance;
       if (this.fatigueAccumulator >= 5) {
@@ -437,14 +434,14 @@ export class MatchEngine {
         previousPhase = MatchPhase.Penalty;
       }
 
-      if (!this.state.clockInTheRed && this.state.gameMinute >= halfTarget) {
-        this.enterClockInTheRed();
-      } else if (wasInRed && this.shouldEndPeriod(previousPhase)) {
+      if (!this.state.clockInTheRed) {
+        this.clock.checkClockInRed(this.state);
+      } else if (wasInRed && this.clock.shouldEndPeriod(this.state, previousPhase)) {
         if (!this.state.halfTimeDone) {
-          this.triggerHalfTime();
+          this.clock.triggerHalfTime(this.state);
           if (!this.state.isRunning) return;
         } else {
-          this.endMatch();
+          this.clock.endMatch(this.state);
           return;
         }
       }
@@ -534,105 +531,6 @@ export class MatchEngine {
     };
   }
 
-  private enterClockInTheRed(): void {
-    const { state } = this;
-    state.clockInTheRed = true;
-    const isFirstHalf = !state.halfTimeDone;
-    const lines = isFirstHalf
-      ? [
-          'That\'s the 40 minutes — the clock is in the red! Play on until the ball is dead.',
-          'Forty minutes up — we\'re into added time. The clock is in the red.',
-          'The half-time whistle is ready, but the clock is in the red — play continues.',
-        ]
-      : [
-          'That\'s 80 minutes — the clock is in the red! The game isn\'t over until the ball is dead.',
-          'Eighty minutes on the clock — we\'re into overtime. The clock is in the red.',
-          'Full time on the clock, but the ball is still in play — the clock is in the red!',
-        ];
-    const redEvent: GameEvent = {
-      id: makeId(),
-      gameMinute: state.gameMinute,
-      phase: state.phase,
-      side: state.possession,
-      sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
-      ballX: state.ballX,
-      ballY: state.ballY,
-      commentary: lines[rng(0, lines.length - 1)],
-    };
-    state.events.push(redEvent);
-    eventBus.emit('engine:event', { event: redEvent });
-  }
-
-  private shouldEndPeriod(prevPhase: MatchPhase): boolean {
-    const { state } = this;
-    // Knock-on or crooked lineout throw → scrum (but not a wheel reset scrum)
-    if (state.phase === MatchPhase.Scrum && prevPhase !== MatchPhase.Scrum) return true;
-    // Ball went to touch → lineout (exception: penalty kick-to-touch lineout)
-    if (state.phase === MatchPhase.Lineout) {
-      if (state.penaltyKickToTouchLineout) {
-        state.penaltyKickToTouchLineout = false;
-        return false;
-      }
-      return true;
-    }
-    // Try scored and conversion taken → kickoff restart
-    if (state.phase === MatchPhase.KickOff && prevPhase === MatchPhase.ConversionKick) return true;
-    // Penalty goal kick (success or miss) → kickoff restart
-    if (state.phase === MatchPhase.KickOff && prevPhase === MatchPhase.Penalty) return true;
-    return false;
-  }
-
-  private triggerHalfTime(): void {
-    const { state, sm } = this;
-    state.halfTimeDone = true;
-    state.clockInTheRed = false;
-    state.penaltyKickToTouchLineout = false;
-
-    const htEvent: GameEvent = {
-      id: makeId(),
-      gameMinute: 40,
-      phase: MatchPhase.HalfTime,
-      side: state.possession,
-      sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
-      ballX: 50,
-      ballY: 50,
-      commentary: 'Half time! The teams head to the dressing rooms to regroup.',
-    };
-    state.phase = MatchPhase.HalfTime;
-    sm.forceTransition(MatchPhase.HalfTime);
-    state.events.push(htEvent);
-    eventBus.emit('engine:event', { event: htEvent });
-    eventBus.emit('engine:stateChange', { state });
-
-    state.possession = state.possession === 'home' ? 'away' : 'home';
-    state.ballX = 50;
-    state.ballY = 50;
-
-    sm.forceTransition(MatchPhase.KickOff);
-    state.phase = MatchPhase.KickOff;
-  }
-
-  private endMatch(): void {
-    const { state, sm } = this;
-    state.isRunning = false;
-    sm.forceTransition(MatchPhase.FullTime);
-    state.phase = MatchPhase.FullTime;
-
-    const ftEvent: GameEvent = {
-      id: makeId(),
-      gameMinute: 80,
-      phase: MatchPhase.FullTime,
-      side: state.possession,
-      sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
-      ballX: state.ballX,
-      ballY: state.ballY,
-      commentary: `Full time! ${state.homeTeam.name} ${state.score.home} – ${state.score.away} ${state.awayTeam.name}`,
-    };
-    state.events.push(ftEvent);
-    eventBus.emit('engine:event', { event: ftEvent });
-    eventBus.emit('engine:stateChange', { state });
-    eventBus.emit('engine:finished', { state });
-  }
 }
 
 // Re-export PossessionSide so UI modules that imported it from here continue to work

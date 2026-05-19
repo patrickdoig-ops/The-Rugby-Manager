@@ -10,7 +10,7 @@ Documents the complete game engine: the simulation loop, every match phase, all 
 
 Each tick:
 1. Captures `wasInRed = state.clockInTheRed` and `previousPhase = state.phase` before any mutation.
-2. Advances game time: if `wasInRed`, adds `timeAdvance / 2` (clock crawls); otherwise advances normally and clamps to the half target (40 or 80). `timeAdvance = 0.2 + rng(0, 8) / 10` (0.2–1.0 per tick).
+2. Advances game time via `clock.advanceMinute(state)` (`src/engine/ClockController.ts`): if `state.clockInTheRed`, adds `timeAdvance / 2` (clock crawls); otherwise advances normally and clamps to the half target (40 or 80). `timeAdvance = 0.2 + rng(0, 8) / 10` (0.2–1.0 per tick); the raw value is returned so the caller can drive the fatigue accumulator.
 3. Accumulates elapsed time; calls `applyFatigue()` on both teams once the accumulator reaches 5 game minutes. Returns newly-fatigued players (crossing below 50%); emits a fatigue commentary event for each.
 4. Increments possession and territory counters.
 5. For `KickOff` and `BoxKick` phases: emits a pre-phase announce `GameEvent` (naming the kicker before the outcome is resolved).
@@ -18,7 +18,7 @@ Each tick:
 7. Calls `resolvePhase()` to produce the outcome `GameEvent`.
 8. Emits `engine:event` and `engine:stateChange`.
 9. Checks for penalty interactive pause via `penaltyHandler.handlePenaltyDecision()` (if phase is `Penalty`).
-10. **Clock-in-the-red check:** If `!clockInTheRed && gameMinute >= halfTarget`, calls `enterClockInTheRed()` (sets flag, emits announcement). Else if `wasInRed && shouldEndPeriod(previousPhase)`, triggers half-time or full-time.
+10. **Clock-in-the-red check:** If `!state.clockInTheRed`, calls `clock.checkClockInRed(state)` (sets flag and emits announcement when `gameMinute >= halfTarget`). Else if `wasInRed && clock.shouldEndPeriod(state, previousPhase)`, calls `clock.triggerHalfTime(state)` or `clock.endMatch(state)`.
 11. Schedules next tick at `state.tickDelayMs`.
 
 ### Attack direction

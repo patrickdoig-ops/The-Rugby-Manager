@@ -15,7 +15,7 @@ Each tick:
 4. Increments possession and territory counters.
 5. For `KickOff` and `BoxKick` phases: emits a pre-phase announce `GameEvent` (naming the kicker before the outcome is resolved).
 6. For `KickOff` phase: awaits kick-off strategy selection via `penaltyHandler.awaitKickOffStrategy()` (modal `kickoff_choice` pause) — **managed team only** (the side the human player chose at the team selector). The AI-controlled team always defaults to `high_ball` with no modal.
-7. Calls `resolvePhase()` to produce the outcome `GameEvent`.
+7. Calls `resolvePhase(state, sm, kickOffStrategy)` (`src/engine/PhaseRouter.ts`) to produce the outcome `GameEvent`. The router owns the `PHASE_HANDLERS` map, builds the `PhaseContext`, dispatches to the matching event handler, runs the StateMachine transition, and returns the resulting `GameEvent`.
 8. Emits `engine:event` and `engine:stateChange`.
 9. Checks for penalty interactive pause via `penaltyHandler.handlePenaltyDecision()` (if phase is `Penalty`).
 10. **Clock-in-the-red check:** If `!state.clockInTheRed`, calls `clock.checkClockInRed(state)` (sets flag and emits announcement when `gameMinute >= halfTarget`). Else if `wasInRed && clock.shouldEndPeriod(state, previousPhase)`, calls `clock.triggerHalfTime(state)` or `clock.endMatch(state)`.
@@ -23,11 +23,11 @@ Each tick:
 
 ### Attack direction
 
-Home attacks toward `ballX = 100` in the first half, toward `ballX = 0` in the second. **Teams swap ends only at half-time, never on turnovers.** All ball movement uses three helpers in `MatchEngine` that factor in `state.halfTimeDone`:
+Home attacks toward `ballX = 100` in the first half, toward `ballX = 0` in the second. **Teams swap ends only at half-time, never on turnovers.** All ball movement uses pure helpers in `src/engine/FieldPosition.ts` that factor in `state.halfTimeDone`:
 
-- `attackDir()` → `+1` or `-1` for the possession team's attacking direction
-- `isTryScored()` → true if `ballX` has crossed the possessing team's attacking try line
-- `inOpposition22()` → true if `ballX` is inside the defending team's 22m zone
+- `attackDir(state)` → `+1` or `-1` for the possession team's attacking direction
+- `isTryScored(state)` → true if `ballX` has crossed the possessing team's attacking try line
+- `inOpposition22(state)` → true if `ballX` is inside the defending team's 22m zone
 
 Never compute ball direction or territory logic outside these helpers.
 
@@ -1046,7 +1046,7 @@ Picks a random template from `TEMPLATES[event.phase][key]` (falling back to `TEM
 | `{side}` | `event.sideName` (attacking team name) |
 | `{defside}` | `event.defSideName` (defending team name), or `"the opposition"` if absent |
 
-`defSideName` is set by `draftEvent()` in `MatchEngine` from the non-possessing team's name at the moment the event is drafted. It is declared as `defSideName?: string` on `GameEvent`. Templates that name the defending team (e.g. "The Eagles hold at the gain line") use `{defside}` rather than hardcoding.
+`defSideName` is set by `draftEvent(state, phase)` in `src/engine/PhaseRouter.ts` from the non-possessing team's name at the moment the event is drafted. It is declared as `defSideName?: string` on `GameEvent`. Templates that name the defending team (e.g. "The Eagles hold at the gain line") use `{defside}` rather than hardcoding.
 
 The `playerLabel(player, fallback)` helper produces the `"Name (#N)"` format. Both `{primary}` and `{secondary}` use it. Adding a player to a template automatically picks up jersey number — no template changes needed.
 

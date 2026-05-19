@@ -11,19 +11,8 @@ import { eventBus } from '../utils/eventBus';
 import { rng, rngForm } from '../utils/rng';
 import { PenaltyHandler } from './PenaltyHandler';
 import { ClockController } from './ClockController';
+import { resolvePhase, draftEvent } from './PhaseRouter';
 import { makeId } from './eventId';
-import type { PhaseContext, PhaseResult } from './events/types';
-import { handleKickOff }        from './events/KickOffEvent';
-import { handlePhasePlay }      from './events/OpenPlayEvent';
-import { handleFirstPhase }     from './events/FirstPhaseEvent';
-import { handleKickReturn }     from './events/KickReturnEvent';
-import { handleBreakdown }      from './events/BreakdownEvent';
-import { handleScrum }          from './events/ScrumEvent';
-import { handleLineout }        from './events/LineoutEvent';
-import { handleTacticalKick }   from './events/TacticalKickEvent';
-import { handleBoxKick }        from './events/BoxKickEvent';
-import { handleTryScored }      from './events/TryScoredEvent';
-import { handleConversionKick } from './events/ConversionKickEvent';
 
 function deepCloneStats(s: PlayerStats): PlayerStats {
   return { ...s };
@@ -109,20 +98,6 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
   };
 }
 
-const PHASE_HANDLERS: Partial<Record<MatchPhase, (ctx: PhaseContext) => PhaseResult>> = {
-  [MatchPhase.KickOff]:        handleKickOff,
-  [MatchPhase.PhasePlay]:      handlePhasePlay,
-  [MatchPhase.FirstPhase]:     handleFirstPhase,
-  [MatchPhase.KickReturn]:     handleKickReturn,
-  [MatchPhase.Breakdown]:      handleBreakdown,
-  [MatchPhase.Scrum]:          handleScrum,
-  [MatchPhase.Lineout]:        handleLineout,
-  [MatchPhase.TacticalKick]:   handleTacticalKick,
-  [MatchPhase.BoxKick]:        handleBoxKick,
-  [MatchPhase.TryScored]:      handleTryScored,
-  [MatchPhase.ConversionKick]: handleConversionKick,
-};
-
 export class MatchEngine {
   private state: MatchState;
   private sm: StateMachine;
@@ -148,10 +123,6 @@ export class MatchEngine {
       state: this.state,
       sm: this.sm,
       humanSide: this.humanSide,
-      attackDir:        () => this.attackDir(),
-      inOpposition22:   () => this.inOpposition22(),
-      inOppositionHalf: () => this.inOppositionHalf(),
-      draftEvent:       (phase) => this.draftEvent(phase),
       recalculateRatings: () => this.recalculateRatings(),
     });
 
@@ -219,7 +190,7 @@ export class MatchEngine {
     // Coin toss — 50/50; winner kicks off in the first half, loser in the second.
     // Half-time already flips possession, so just set the first-half kicker here.
     this.state.possession = rng(0, 1) === 0 ? 'home' : 'away';
-    const draft = this.draftEvent(MatchPhase.KickOff);
+    const draft = draftEvent(this.state, MatchPhase.KickOff);
     const tossEvent: GameEvent = {
       ...draft,
       id: makeId(),
@@ -262,49 +233,6 @@ export class MatchEngine {
   private recalculateRatings(): void {
     for (const p of this.state.homeTeam.players) p.rating = computeRating(p);
     for (const p of this.state.awayTeam.players) p.rating = computeRating(p);
-  }
-
-  // Home attacks toward x=100 in the first half, toward x=0 in the second.
-  // Teams only swap ends at half-time, never on turnovers.
-  private attackDir(): number {
-    const homeAttacksRight = !this.state.halfTimeDone;
-    if (this.state.possession === 'home') return homeAttacksRight ? 1 : -1;
-    return homeAttacksRight ? -1 : 1;
-  }
-
-  private isTryScored(): boolean {
-    const { ballX, possession } = this.state;
-    const homeAttacksRight = !this.state.halfTimeDone;
-    if (possession === 'home') return homeAttacksRight ? ballX >= 95 : ballX <= 5;
-    return homeAttacksRight ? ballX <= 5 : ballX >= 95;
-  }
-
-  private inOpposition22(): boolean {
-    const { ballX, possession } = this.state;
-    const homeAttacksRight = !this.state.halfTimeDone;
-    if (possession === 'home') return homeAttacksRight ? ballX >= 78 : ballX <= 22;
-    return homeAttacksRight ? ballX <= 22 : ballX >= 78;
-  }
-
-  private inOppositionHalf(): boolean {
-    const { ballX, possession } = this.state;
-    const homeAttacksRight = !this.state.halfTimeDone;
-    if (possession === 'home') return homeAttacksRight ? ballX > 50 : ballX < 50;
-    return homeAttacksRight ? ballX < 50 : ballX > 50;
-  }
-
-  private inOwn22(): boolean {
-    const { ballX, possession } = this.state;
-    const homeAttacksRight = !this.state.halfTimeDone;
-    if (possession === 'home') return homeAttacksRight ? ballX <= 22 : ballX >= 78;
-    return homeAttacksRight ? ballX >= 78 : ballX <= 22;
-  }
-
-  private inOwnHalf(): boolean {
-    const { ballX, possession } = this.state;
-    const homeAttacksRight = !this.state.halfTimeDone;
-    if (possession === 'home') return homeAttacksRight ? ballX <= 50 : ballX >= 50;
-    return homeAttacksRight ? ballX >= 50 : ballX <= 50;
   }
 
   private scheduleTick(delay: number): void {
@@ -373,7 +301,7 @@ export class MatchEngine {
           primaryPlayer: kicker,
           ballX: this.state.ballX,
           ballY: this.state.ballY,
-          commentary: getCommentary({ ...this.draftEvent(MatchPhase.KickOff), primaryPlayer: kicker }, 'announce'),
+          commentary: getCommentary({ ...draftEvent(this.state, MatchPhase.KickOff), primaryPlayer: kicker }, 'announce'),
         };
         this.state.events.push(announceEvent);
         eventBus.emit('engine:event', { event: announceEvent });
@@ -396,13 +324,13 @@ export class MatchEngine {
           primaryPlayer: scrumHalf,
           ballX: this.state.ballX,
           ballY: this.state.ballY,
-          commentary: getCommentary({ ...this.draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf }, 'announce'),
+          commentary: getCommentary({ ...draftEvent(this.state, MatchPhase.BoxKick), primaryPlayer: scrumHalf }, 'announce'),
         };
         this.state.events.push(announceEvent);
         eventBus.emit('engine:event', { event: announceEvent });
       }
 
-      const event = this.resolvePhase();
+      const event = resolvePhase(this.state, this.sm, this.kickOffStrategy);
       this.recalculateRatings();
       this.state.events.push(event);
       if (this.state.events.length > 300) this.state.events.splice(0, this.state.events.length - 300);
@@ -450,85 +378,6 @@ export class MatchEngine {
     }
 
     this.scheduleTick(this.state.tickDelayMs);
-  }
-
-  private resolvePhase(): GameEvent {
-    const { state } = this;
-    const attackTeam = state.possession === 'home' ? state.homeTeam : state.awayTeam;
-    const defendTeam = state.possession === 'home' ? state.awayTeam : state.homeTeam;
-    // Capture before the handler runs — possession may flip inside the handler.
-    // ConversionKick flips possession to set up the kick-off, but the event itself
-    // belongs to the scoring team, so we preserve the pre-handler side for that case.
-    const phaseAtStart   = state.phase;
-    const sideAtStart    = state.possession;
-    const sideNameAtStart = attackTeam.name;
-
-    const ctx: PhaseContext = {
-      state,
-      attackTeam,
-      defendTeam,
-      attackDir:      () => this.attackDir(),
-      isTryScored:    () => this.isTryScored(),
-      inOpposition22:   () => this.inOpposition22(),
-      inOppositionHalf: () => this.inOppositionHalf(),
-      inOwn22:          () => this.inOwn22(),
-      inOwnHalf:        () => this.inOwnHalf(),
-      randomPlayer:   (team) => team.players[rng(0, team.players.length - 1)],
-      pickPlayer:     (team, ...ids) => team.players.find(p => ids.includes(p.id)) ?? team.players[0],
-      draftEvent:     (phase) => this.draftEvent(phase),
-      kickOffStrategy: this.kickOffStrategy,
-    };
-
-    const handler = PHASE_HANDLERS[state.phase];
-    const { nextPhase, commentary, primaryPlayer, secondaryPlayer, outcome } = handler
-      ? handler(ctx)
-      : { nextPhase: state.phase, commentary: 'Match event.', primaryPlayer: undefined, secondaryPlayer: undefined, outcome: undefined };
-
-    try {
-      this.sm.transition(nextPhase);
-    } catch {
-      this.sm.forceTransition(nextPhase);
-    }
-    state.phase = nextPhase;
-
-    const isConversion = phaseAtStart === MatchPhase.ConversionKick;
-    // Carry phases that score a try emit with TryScored phase so they get the try highlight.
-    // All other events use the phase being resolved (phaseAtStart), not the next phase.
-    const isCarryToTry = (
-      phaseAtStart === MatchPhase.PhasePlay ||
-      phaseAtStart === MatchPhase.FirstPhase ||
-      phaseAtStart === MatchPhase.KickReturn
-    ) && nextPhase === MatchPhase.TryScored;
-    const eventPhase = isCarryToTry ? MatchPhase.TryScored : phaseAtStart;
-    return {
-      id: makeId(),
-      gameMinute: state.gameMinute,
-      phase: eventPhase,
-      side:     isConversion ? sideAtStart    : state.possession,
-      sideName: isConversion ? sideNameAtStart : (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
-      primaryPlayer,
-      secondaryPlayer,
-      ballX: state.ballX,
-      ballY: state.ballY,
-      commentary,
-      outcome,
-    };
-  }
-
-  private draftEvent(phase: MatchPhase): GameEvent {
-    const team    = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
-    const defTeam = this.state.possession === 'home' ? this.state.awayTeam : this.state.homeTeam;
-    return {
-      id: '',
-      gameMinute: this.state.gameMinute,
-      phase,
-      side: this.state.possession,
-      sideName: team.name,
-      defSideName: defTeam.name,
-      ballX: this.state.ballX,
-      ballY: this.state.ballY,
-      commentary: '',
-    };
   }
 
 }

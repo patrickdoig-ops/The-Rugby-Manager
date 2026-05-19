@@ -1,0 +1,44 @@
+import type { MatchState } from '../types/match';
+
+// Home attacks toward x=100 in the first half, toward x=0 in the second.
+// Teams only swap ends at half-time, never on turnovers.
+export function attackDir(state: MatchState): 1 | -1 {
+  const homeAttacksRight = !state.halfTimeDone;
+  if (state.possession === 'home') return homeAttacksRight ? 1 : -1;
+  return homeAttacksRight ? -1 : 1;
+}
+
+export function isTryScored(state: MatchState): boolean {
+  const { ballX, possession } = state;
+  const homeAttacksRight = !state.halfTimeDone;
+  if (possession === 'home') return homeAttacksRight ? ballX >= 95 : ballX <= 5;
+  return homeAttacksRight ? ballX <= 5 : ballX >= 95;
+}
+
+export function inOpposition22(state: MatchState): boolean {
+  const { ballX, possession } = state;
+  const homeAttacksRight = !state.halfTimeDone;
+  if (possession === 'home') return homeAttacksRight ? ballX >= 78 : ballX <= 22;
+  return homeAttacksRight ? ballX <= 22 : ballX >= 78;
+}
+
+export function inOppositionHalf(state: MatchState): boolean {
+  const { ballX, possession } = state;
+  const homeAttacksRight = !state.halfTimeDone;
+  if (possession === 'home') return homeAttacksRight ? ballX > 50 : ballX < 50;
+  return homeAttacksRight ? ballX < 50 : ballX > 50;
+}
+
+export function inOwn22(state: MatchState): boolean {
+  const { ballX, possession } = state;
+  const homeAttacksRight = !state.halfTimeDone;
+  if (possession === 'home') return homeAttacksRight ? ballX <= 22 : ballX >= 78;
+  return homeAttacksRight ? ballX >= 78 : ballX <= 22;
+}
+
+export function inOwnHalf(state: MatchState): boolean {
+  const { ballX, possession } = state;
+  const homeAttacksRight = !state.halfTimeDone;
+  if (possession === 'home') return homeAttacksRight ? ballX <= 50 : ballX >= 50;
+  return homeAttacksRight ? ballX >= 50 : ballX <= 50;
+}

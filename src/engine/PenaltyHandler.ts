@@ -6,15 +6,13 @@ import { getCommentary } from './CommentaryEngine';
 import { eventBus } from '../utils/eventBus';
 import { clamp } from '../utils/math';
 import { makeId } from './eventId';
+import { attackDir, inOpposition22, inOppositionHalf } from './FieldPosition';
+import { draftEvent } from './PhaseRouter';
 
 export interface PenaltyHandlerDeps {
   state: MatchState;
   sm: StateMachine;
   humanSide: 'home' | 'away';
-  attackDir: () => number;
-  inOpposition22: () => boolean;
-  inOppositionHalf: () => boolean;
-  draftEvent: (phase: MatchPhase) => GameEvent;
   recalculateRatings: () => void;
 }
 
@@ -38,11 +36,11 @@ export class PenaltyHandler {
   }
 
   async handlePenaltyDecision(): Promise<void> {
-    const { state, humanSide, inOppositionHalf, inOpposition22 } = this.deps;
+    const { state, humanSide } = this.deps;
 
     // Only present the choice to the human manager and only when the penalty
     // is in the opposition's half. All other penalties auto-kick to touch.
-    if (state.possession !== humanSide || !inOppositionHalf()) {
+    if (state.possession !== humanSide || !inOppositionHalf(state)) {
       const aiSide = humanSide === 'home' ? 'away' : 'home';
       const autoChoice =
         state.clockInTheRed && state.possession === aiSide && state.score[aiSide] > state.score[humanSide]
@@ -61,7 +59,7 @@ export class PenaltyHandler {
             phase: state.phase,
             ballX: state.ballX,
             ballY: state.ballY,
-            inOpposition22: inOpposition22(),
+            inOpposition22: inOpposition22(state),
             attackingSide: state.possession,
             clockInTheRed: state.clockInTheRed,
             halfTimeDone: state.halfTimeDone,
@@ -76,7 +74,7 @@ export class PenaltyHandler {
   }
 
   private applyPenaltyChoice(choice: PenaltyChoice): void {
-    const { state, sm, attackDir, draftEvent, recalculateRatings } = this.deps;
+    const { state, sm, recalculateRatings } = this.deps;
     const attackTeam = state.possession === 'home' ? state.homeTeam : state.awayTeam;
     const kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
 
@@ -102,8 +100,8 @@ export class PenaltyHandler {
         ballX: state.ballX,
         ballY: state.ballY,
         commentary: res.success
-          ? getCommentary({ ...draftEvent(MatchPhase.Penalty), primaryPlayer: kicker }, 'kick_for_goal')
-          : getCommentary({ ...draftEvent(MatchPhase.Penalty), primaryPlayer: kicker }, 'miss'),
+          ? getCommentary({ ...draftEvent(state, MatchPhase.Penalty), primaryPlayer: kicker }, 'kick_for_goal')
+          : getCommentary({ ...draftEvent(state, MatchPhase.Penalty), primaryPlayer: kicker }, 'miss'),
       };
       if (res.success) state.score[state.possession] += 3;
       state.events.push(penEvent);
@@ -117,7 +115,7 @@ export class PenaltyHandler {
 
     } else if (choice === 'kick_to_touch') {
       if (state.clockInTheRed) state.penaltyKickToTouchLineout = true;
-      state.ballX = clamp(state.ballX + attackDir() * 20, 5, 95);
+      state.ballX = clamp(state.ballX + attackDir(state) * 20, 5, 95);
       const penEvent: GameEvent = {
         id: makeId(),
         gameMinute: state.gameMinute,
@@ -127,7 +125,7 @@ export class PenaltyHandler {
         primaryPlayer: kicker,
         ballX: state.ballX,
         ballY: state.ballY,
-        commentary: getCommentary({ ...draftEvent(MatchPhase.Penalty), primaryPlayer: kicker }, 'kick_to_touch'),
+        commentary: getCommentary({ ...draftEvent(state, MatchPhase.Penalty), primaryPlayer: kicker }, 'kick_to_touch'),
       };
       state.events.push(penEvent);
       eventBus.emit('engine:event', { event: penEvent });
@@ -159,7 +157,7 @@ export class PenaltyHandler {
         primaryPlayer: kicker,
         ballX: state.ballX,
         ballY: state.ballY,
-        commentary: getCommentary({ ...draftEvent(MatchPhase.Penalty), primaryPlayer: kicker }, 'tap_and_kick_dead'),
+        commentary: getCommentary({ ...draftEvent(state, MatchPhase.Penalty), primaryPlayer: kicker }, 'tap_and_kick_dead'),
       };
       state.events.push(penEvent);
       eventBus.emit('engine:event', { event: penEvent });
@@ -177,7 +175,7 @@ export class PenaltyHandler {
         primaryPlayer: kicker,
         ballX: state.ballX,
         ballY: state.ballY,
-        commentary: getCommentary({ ...draftEvent(MatchPhase.Penalty), primaryPlayer: kicker }, 'tap_and_go'),
+        commentary: getCommentary({ ...draftEvent(state, MatchPhase.Penalty), primaryPlayer: kicker }, 'tap_and_go'),
       };
       state.events.push(penEvent);
       eventBus.emit('engine:event', { event: penEvent });

@@ -1091,7 +1091,7 @@ Structural pass commentary (`out_the_back`, `crash_ball`) is expressed as a sepa
 
 ## Commentary Engine
 
-Commentary text is produced by `src/commentary/CommentaryRenderer.ts` from the structured `NarrationDescriptor` carried on every `GameEvent`. The engine itself never composes commentary strings — phase handlers and inline orchestrators populate `narration.steps[]` and `PhaseRouter` (for handler events) calls `renderNarration(...)` to fill `GameEvent.commentary`. The legacy `src/engine/CommentaryEngine.getCommentary(event, key)` is a thin shim retained for the inline orchestrator sites (`ClockController`, `MatchCoordinator`, `PenaltyHandler`) that still build `GameEvent` literals directly; those callers migrate in the next commit.
+Commentary text is produced by `src/commentary/CommentaryRenderer.ts` from the structured `NarrationDescriptor` carried on every `GameEvent`. The engine itself never composes commentary strings — phase handlers and inline orchestrator sites (`ClockController`, `MatchCoordinator`, `PenaltyHandler`) populate `narration.steps[]`, and the caller invokes `renderNarration(...)` to fill `GameEvent.commentary`. `PhaseRouter.resolvePhase` does this for handler events; orchestrators do it inline when they build a `GameEvent` literal directly. There is no legacy `getCommentary` API left.
 
 ### `NarrationDescriptor` and steps
 
@@ -1116,7 +1116,7 @@ The renderer takes only `sideName` / `defSideName` / `narration` from the event 
 
 - `phases.ts` — `PHASE_BANKS: Partial<Record<MatchPhase, Partial<Record<PhaseOutcomeKey, readonly string[]>>>>`. Copied verbatim from the previous `CommentaryEngine.TEMPLATES` map.
 - `tacticNotes.ts` — `getTacticNoteLines(cause, params)` function. Each `cause` returns the string array from the old inline `tacticNote(...)` calls.
-- `announcements.ts` — `getAnnouncementTemplate(key, params)` function. Used by inline orchestrators (migrated in the next commit); currently mostly unused because the legacy `getCommentary` shim path still serves them.
+- `announcements.ts` — `getAnnouncementTemplate(key, params)` function. Used by inline orchestrators for substitution lines, fatigue lines, clock-in-red warnings, half-time and full-time announcements, and set-piece awards.
 
 ### Template variables
 
@@ -1126,10 +1126,6 @@ The renderer takes only `sideName` / `defSideName` / `narration` from the event 
 | `{secondary}` | step's `secondary` formatted as `"Surname (#N)"`, or `"the defender"` if absent |
 | `{side}` | `event.sideName` (attacking team name) |
 | `{defside}` | `event.defSideName` (defending team name), or `"the opposition"` if absent |
-
-### `getCommentary(event, key)` shim
-
-Picks a random template from `PHASE_BANKS[event.phase][key]` (falling back to `FALLBACK_GENERIC`) and interpolates against `event.primaryPlayer`/`event.secondaryPlayer`/`event.sideName`/`event.defSideName`.
 
 ### Plain-text contract
 

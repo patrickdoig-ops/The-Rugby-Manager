@@ -3,11 +3,12 @@ import type { Team, TeamTactics } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';
 import type { Player, PlayerStats, PlayerMatchStats } from '../types/player';
 import { MatchPhase, type PossessionSide, type KickOffStrategy } from '../types/engine';
+import type { NarrationDescriptor } from '../types/narration';
 import { StateMachine } from './StateMachine';
 import { computeFatigue } from './StaminaSystem';
-import { getCommentary } from './CommentaryEngine';
+import { renderNarration } from '../commentary/CommentaryRenderer';
 import { eventBus } from '../utils/eventBus';
-import { rng, rngForm, setMatchSeed } from '../utils/rng';
+import { rngForm, setMatchSeed, rng } from '../utils/rng';
 import { PenaltyHandler } from './PenaltyHandler';
 import { ClockController } from './ClockController';
 import { resolvePhase, draftEvent } from './PhaseRouter';
@@ -160,14 +161,15 @@ export class MatchCoordinator {
       off, on: sub, teamSide: side, benchIdx, fieldIdx,
     });
 
-    const subSurname = sub.name.split(' ').pop()!;
-    const offSurname = off.name.split(' ').pop()!;
-    const templates = [
-      `${subSurname} (#${sub.squadNumber}) comes on to replace ${offSurname} (#${off.squadNumber}).`,
-      `${subSurname} (#${sub.squadNumber}) is introduced, replacing ${offSurname} (#${off.squadNumber}).`,
-      `A change for ${team.name}: ${offSurname} (#${off.squadNumber}) makes way for ${subSurname} (#${sub.squadNumber}).`,
-      `${offSurname} (#${off.squadNumber}) is replaced by ${subSurname} (#${sub.squadNumber}).`,
-    ];
+    const subNarration: NarrationDescriptor = {
+      steps: [{
+        kind: 'announcement',
+        key: 'substitution',
+        primary: sub,
+        secondary: off,
+        params: { teamName: team.name },
+      }],
+    };
     const subEvent: GameEvent = {
       id: makeId(),
       gameMinute: this.state.clock.gameMinute,
@@ -178,16 +180,8 @@ export class MatchCoordinator {
       secondaryPlayer: off,
       ballX: this.state.ball.x,
       ballY: this.state.ball.y,
-      commentary: templates[rng(0, templates.length - 1)],
-      narration: {
-        steps: [{
-          kind: 'announcement',
-          key: 'substitution',
-          primary: sub,
-          secondary: off,
-          params: { teamName: team.name },
-        }],
-      },
+      narration: subNarration,
+      commentary: renderNarration({ sideName: team.name, narration: subNarration }),
     };
     applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: subEvent });
     eventBus.emit('engine:event', { event: subEvent });
@@ -204,11 +198,14 @@ export class MatchCoordinator {
       side: rng(0, 1) === 0 ? 'home' : 'away',
     });
     const draft = draftEvent(this.state, MatchPhase.KickOff);
+    const tossNarration: NarrationDescriptor = {
+      steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickOff, key: 'coin_toss' }],
+    };
     const tossEvent: GameEvent = {
       ...draft,
       id: makeId(),
-      commentary: getCommentary(draft, 'coin_toss'),
-      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickOff, key: 'coin_toss' }] },
+      narration: tossNarration,
+      commentary: renderNarration({ sideName: draft.sideName, defSideName: draft.defSideName, narration: tossNarration }),
     };
     applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: tossEvent });
     eventBus.emit('engine:event', { event: tossEvent });
@@ -274,27 +271,22 @@ export class MatchCoordinator {
           });
         }
 
-        const fatigueLines = [
-          (name: string, num: number) => `${name} (#${num}) is starting to look tired out there — the legs are going.`,
-          (name: string, num: number) => `${name} (#${num}) is looking leggy. The fatigue is setting in.`,
-          (name: string, num: number) => `You can see the wear on ${name} (#${num}) — the energy is fading.`,
-          (name: string, num: number) => `${name} (#${num}) is running on empty now — the effort is starting to show.`,
-          (name: string, num: number) => `${name} (#${num}) looks worn out — the pace is dropping off.`,
-          (name: string, num: number) => `The tank is emptying for ${name} (#${num}) — that's the fatigue biting.`,
-        ];
         for (const player of [...homeFatigue.newlyTired, ...awayFatigue.newlyTired]) {
-          const line = fatigueLines[rng(0, fatigueLines.length - 1)];
+          const fatSideName = this.state.possession === 'home' ? this.state.homeTeam.name : this.state.awayTeam.name;
+          const fatNarration: NarrationDescriptor = {
+            steps: [{ kind: 'announcement', key: 'fatigue_tiredness', primary: player }],
+          };
           const fatEvent: GameEvent = {
             id: makeId(),
             gameMinute: this.state.clock.gameMinute,
             phase: this.state.phase,
             side: this.state.possession,
-            sideName: this.state.possession === 'home' ? this.state.homeTeam.name : this.state.awayTeam.name,
+            sideName: fatSideName,
             primaryPlayer: player,
             ballX: this.state.ball.x,
             ballY: this.state.ball.y,
-            commentary: line(player.name, player.squadNumber),
-            narration: { steps: [{ kind: 'announcement', key: 'fatigue_tiredness', primary: player }] },
+            narration: fatNarration,
+            commentary: renderNarration({ sideName: fatSideName, narration: fatNarration }),
           };
           applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: fatEvent });
           eventBus.emit('engine:event', { event: fatEvent });
@@ -312,7 +304,11 @@ export class MatchCoordinator {
 
       if (this.state.phase === MatchPhase.KickOff) {
         const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
+        const defendTeam = this.state.possession === 'home' ? this.state.awayTeam : this.state.homeTeam;
         const kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
+        const koNarration: NarrationDescriptor = {
+          steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickOff, key: 'announce', primary: kicker }],
+        };
         const announceEvent: GameEvent = {
           id: makeId(),
           gameMinute: this.state.clock.gameMinute,
@@ -322,8 +318,8 @@ export class MatchCoordinator {
           primaryPlayer: kicker,
           ballX: this.state.ball.x,
           ballY: this.state.ball.y,
-          commentary: getCommentary({ ...draftEvent(this.state, MatchPhase.KickOff), primaryPlayer: kicker }, 'announce'),
-          narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickOff, key: 'announce', primary: kicker }] },
+          narration: koNarration,
+          commentary: renderNarration({ sideName: attackTeam.name, defSideName: defendTeam.name, narration: koNarration }),
         };
         applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
         eventBus.emit('engine:event', { event: announceEvent });
@@ -336,7 +332,11 @@ export class MatchCoordinator {
 
       if (this.state.phase === MatchPhase.BoxKick) {
         const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
+        const defendTeam = this.state.possession === 'home' ? this.state.awayTeam : this.state.homeTeam;
         const scrumHalf = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
+        const bkNarration: NarrationDescriptor = {
+          steps: [{ kind: 'phase_outcome', phase: MatchPhase.BoxKick, key: 'announce', primary: scrumHalf }],
+        };
         const announceEvent: GameEvent = {
           id: makeId(),
           gameMinute: this.state.clock.gameMinute,
@@ -346,8 +346,8 @@ export class MatchCoordinator {
           primaryPlayer: scrumHalf,
           ballX: this.state.ball.x,
           ballY: this.state.ball.y,
-          commentary: getCommentary({ ...draftEvent(this.state, MatchPhase.BoxKick), primaryPlayer: scrumHalf }, 'announce'),
-          narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.BoxKick, key: 'announce', primary: scrumHalf }] },
+          narration: bkNarration,
+          commentary: renderNarration({ sideName: attackTeam.name, defSideName: defendTeam.name, narration: bkNarration }),
         };
         applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
         eventBus.emit('engine:event', { event: announceEvent });
@@ -363,6 +363,9 @@ export class MatchCoordinator {
           (this.state.phase === MatchPhase.Scrum && previousPhase !== MatchPhase.Scrum)) {
         const phaseName = this.state.phase === MatchPhase.Lineout ? 'Lineout' : 'Scrum';
         const teamName = (this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam).name;
+        const awardNarration: NarrationDescriptor = {
+          steps: [{ kind: 'announcement', key: 'set_piece_award', params: { phaseName, teamName } }],
+        };
         const awardEvent: GameEvent = {
           id: makeId(),
           gameMinute: this.state.clock.gameMinute,
@@ -371,8 +374,8 @@ export class MatchCoordinator {
           sideName: teamName,
           ballX: this.state.ball.x,
           ballY: this.state.ball.y,
-          commentary: `${phaseName} awarded to ${teamName}.`,
-          narration: { steps: [{ kind: 'announcement', key: 'set_piece_award', params: { phaseName, teamName } }] },
+          narration: awardNarration,
+          commentary: renderNarration({ sideName: teamName, narration: awardNarration }),
         };
         applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: awardEvent });
         eventBus.emit('engine:event', { event: awardEvent });

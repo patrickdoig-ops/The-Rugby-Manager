@@ -451,6 +451,8 @@ When Out the Back (PhasePlay), Crash Ball, or Wide Play (FirstPhase) paths are t
 | Outcome | Player | Stats |
 |---|---|---|
 | knock-on at any handling gate | dropping player | `knockOns++` |
+| PhasePlay carry phase (carrier ≠ #9) | scrumHalf (#9) | `passes++` |
+| FirstPhase carry phase (after scrum/lineout) | scrumHalf (#9) | `passes++` |
 | Out the Back path clears outsideBack gate | flyHalf | `passes++` |
 | Crash Ball path clears insideCentre gate | carrier (#10) | `passes++` |
 | Wide Play path clears outsideCentre gate | carrier (#10) | `passes++` |

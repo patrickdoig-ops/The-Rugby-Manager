@@ -35,8 +35,10 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
   }
 
   // Step 1 — Carrier handling gate (inline)
-  const carrier  = randomPlayer(attackTeam);
-  const defender = randomPlayer(defendTeam);
+  const carrier   = randomPlayer(attackTeam);
+  const defender  = randomPlayer(defendTeam);
+  const scrumHalf = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
+  if (scrumHalf !== carrier) scrumHalf.matchStats.passes++;
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;
   state.breakdownMod = { attack: 0, defend: 0 };
   const backfieldPenalty = defendTeam.tactics.backfieldDefence === 'three_back' ? -10

@@ -33,7 +33,9 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
   }
 
   // Step 1 — Carrier is always #10 (fly-half); handling gate
-  const carrier  = pickPlayer(attackTeam, 10);
+  const carrier   = pickPlayer(attackTeam, 10);
+  const scrumHalf = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
+  scrumHalf.matchStats.passes++;
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;
   state.breakdownMod = { attack: 0, defend: 0 };
   const backfieldPenalty = defendTeam.tactics.backfieldDefence === 'three_back' ? -10

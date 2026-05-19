@@ -199,19 +199,27 @@ export function initPreMatchScreen(
 
       <div id="pm-versus">
         <div class="pm-versus-team">
-          ${crestHtml(homeFirst, home.color, 44)}
-          <div class="pm-form-row">${formPins('WWLWD')}</div>
-          <div class="pm-team-code">${home.shortName}</div>
-          <div class="pm-team-full">${home.name}</div>
+          <div class="pm-versus-badge">
+            ${crestHtml(homeFirst, home.color, 44)}
+            <div class="pm-form-row">${formPins('WWLWD')}</div>
+          </div>
+          <div class="pm-versus-names">
+            <div class="pm-team-code">${home.shortName}</div>
+            <div class="pm-team-full">${home.name}</div>
+          </div>
         </div>
         <div class="pm-versus-center">
           <span class="pm-vs-text">vs</span>
         </div>
-        <div class="pm-versus-team">
-          ${crestHtml(awayFirst, away.color, 44)}
-          <div class="pm-form-row">${formPins('WWWLW')}</div>
-          <div class="pm-team-code">${away.shortName}</div>
-          <div class="pm-team-full">${away.name}</div>
+        <div class="pm-versus-team pm-versus-team--away">
+          <div class="pm-versus-badge">
+            ${crestHtml(awayFirst, away.color, 44)}
+            <div class="pm-form-row">${formPins('WWWLW')}</div>
+          </div>
+          <div class="pm-versus-names pm-versus-names--right">
+            <div class="pm-team-code">${away.shortName}</div>
+            <div class="pm-team-full">${away.name}</div>
+          </div>
         </div>
       </div>
 

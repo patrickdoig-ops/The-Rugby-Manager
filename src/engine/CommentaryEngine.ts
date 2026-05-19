@@ -190,7 +190,7 @@ const TEMPLATES: Partial<Record<MatchPhase, Templates>> & { default: Templates }
     ],
     slow_ball: [
       'Slow ball from the breakdown — the defence has time to reset.',
-      '{primary} has to be patient at the ruck. Slow ball emerges.',
+      '{side} have to be patient at the ruck. Slow ball emerges.',
       'The ball trickles back slowly — {side} will need to recycle.',
     ],
     turnover: [

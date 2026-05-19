@@ -347,7 +347,7 @@ export class MatchEngine {
       if (homeInOppHalf) this.state.stats.territory.home++;
       else this.state.stats.territory.away++;
 
-      const previousPhase = this.state.phase;
+      let previousPhase = this.state.phase;
 
       if (this.state.phase === MatchPhase.KickOff) {
         const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
@@ -419,6 +419,7 @@ export class MatchEngine {
       if (this.state.phase === MatchPhase.Penalty) {
         await this.handlePenaltyDecision();
         if (!this.state.isRunning) return;
+        previousPhase = MatchPhase.Penalty;
       }
 
       if (!this.state.clockInTheRed && this.state.gameMinute >= halfTarget) {

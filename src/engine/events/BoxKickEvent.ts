@@ -3,11 +3,11 @@ import type { MatchEvent } from '../../types/matchEvent';
 import { MatchPhase } from '../../types/engine';
 import { resolveBoxKick } from '../resolvers/BoxKickResolver';
 import { getCommentary } from '../CommentaryEngine';
-import { rng } from '../../utils/rng';
+import { rng, pickRandom, commentaryChance } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 
 function tacticNote(chancePct: number, ...lines: string[]): string {
-  return rng(1, 100) <= chancePct ? ' ' + lines[rng(0, lines.length - 1)] : '';
+  return commentaryChance(chancePct) ? ' ' + pickRandom(lines) : '';
 }
 
 export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, randomPlayer, draftEvent }: PhaseContext): PhaseResult {

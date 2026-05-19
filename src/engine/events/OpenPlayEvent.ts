@@ -5,10 +5,10 @@ import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { getCommentary } from '../CommentaryEngine';
 import { isTryScoredAt } from '../FieldPosition';
 import { clamp } from '../../utils/math';
-import { rng } from '../../utils/rng';
+import { rng, pickRandom, commentaryChance } from '../../utils/rng';
 
 function tacticNote(chancePct: number, ...lines: string[]): string {
-  return rng(1, 100) <= chancePct ? ' ' + lines[rng(0, lines.length - 1)] : '';
+  return commentaryChance(chancePct) ? ' ' + pickRandom(lines) : '';
 }
 
 export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTryScored, inOwnHalf, inOwn22, randomPlayer, pickPlayer, draftEvent }: PhaseContext): PhaseResult {

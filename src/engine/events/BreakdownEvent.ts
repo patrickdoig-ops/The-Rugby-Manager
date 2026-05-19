@@ -4,10 +4,10 @@ import type { MatchEvent } from '../../types/matchEvent';
 import { MatchPhase } from '../../types/engine';
 import { resolveBreakdown } from '../resolvers/BreakdownResolver';
 import { getCommentary } from '../CommentaryEngine';
-import { rng } from '../../utils/rng';
+import { rng, pickRandom, commentaryChance } from '../../utils/rng';
 
 function tacticNote(chancePct: number, ...lines: string[]): string {
-  return rng(1, 100) <= chancePct ? ' ' + lines[rng(0, lines.length - 1)] : '';
+  return commentaryChance(chancePct) ? ' ' + pickRandom(lines) : '';
 }
 
 export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22, inOwn22, inOwnHalf, draftEvent }: PhaseContext): PhaseResult {

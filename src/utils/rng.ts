@@ -38,3 +38,7 @@ export function rngForm(): number {
 export function pickRandom<T>(arr: readonly T[]): T {
   return arr[Math.floor(commentaryRand() * arr.length)];
 }
+
+export function commentaryChance(pct: number): boolean {
+  return commentaryRand() * 100 < pct;
+}

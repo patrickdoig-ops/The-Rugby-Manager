@@ -2,10 +2,9 @@ import type { MatchState, GameEvent } from '../types/match';
 import type { Team, TeamTactics } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';
 import type { Player, PlayerStats, PlayerMatchStats } from '../types/player';
-import { computeRating } from './RatingEngine';
 import { MatchPhase, type PossessionSide, type KickOffStrategy } from '../types/engine';
 import { StateMachine } from './StateMachine';
-import { applyFatigue } from './StaminaSystem';
+import { computeFatigue } from './StaminaSystem';
 import { getCommentary } from './CommentaryEngine';
 import { eventBus } from '../utils/eventBus';
 import { rng, rngForm } from '../utils/rng';
@@ -13,6 +12,7 @@ import { PenaltyHandler } from './PenaltyHandler';
 import { ClockController } from './ClockController';
 import { resolvePhase, draftEvent } from './PhaseRouter';
 import { makeId } from './eventId';
+import { applyMatchEvent } from './applyMatchEvent';
 
 function deepCloneStats(s: PlayerStats): PlayerStats {
   return { ...s };
@@ -123,14 +123,11 @@ export class MatchCoordinator {
       state: this.state,
       sm: this.sm,
       humanSide: this.humanSide,
-      recalculateRatings: () => this.recalculateRatings(),
     });
 
     eventBus.on('ui:tacticsChange', ({ teamId, tactics }) => {
-      if (teamId === 'home') {
-        this.state.homeTeam.tactics = { ...tactics };
-      } else if (teamId === 'away') {
-        this.state.awayTeam.tactics = { ...tactics };
+      if (teamId === 'home' || teamId === 'away') {
+        applyMatchEvent(this.state, { type: 'TACTICS_UPDATED', side: teamId, tactics });
       }
     });
 
@@ -152,13 +149,10 @@ export class MatchCoordinator {
     const sub = team.bench[benchIdx];
     const off = team.players[fieldIdx];
 
-    sub.id = off.id;
-    sub.x  = off.x;
-    sub.y  = off.y;
-
-    team.players[fieldIdx] = sub;
-    team.bench.splice(benchIdx, 1);
-    team.substitutedOff.push(off);
+    applyMatchEvent(this.state, {
+      type: 'SUBSTITUTION_APPLIED',
+      off, on: sub, teamSide: side, benchIdx, fieldIdx,
+    });
 
     const subSurname = sub.name.split(' ').pop()!;
     const offSurname = off.name.split(' ').pop()!;
@@ -180,7 +174,7 @@ export class MatchCoordinator {
       ballY: this.state.ballY,
       commentary: templates[rng(0, templates.length - 1)],
     };
-    this.state.events.push(subEvent);
+    applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: subEvent });
     eventBus.emit('engine:event', { event: subEvent });
     eventBus.emit('engine:stateChange', { state: this.state });
   }
@@ -189,37 +183,40 @@ export class MatchCoordinator {
   initialize(): void {
     // Coin toss — 50/50; winner kicks off in the first half, loser in the second.
     // Half-time already flips possession, so just set the first-half kicker here.
-    this.state.possession = rng(0, 1) === 0 ? 'home' : 'away';
+    applyMatchEvent(this.state, {
+      type: 'POSSESSION_SET',
+      side: rng(0, 1) === 0 ? 'home' : 'away',
+    });
     const draft = draftEvent(this.state, MatchPhase.KickOff);
     const tossEvent: GameEvent = {
       ...draft,
       id: makeId(),
       commentary: getCommentary(draft, 'coin_toss'),
     };
-    this.state.events.push(tossEvent);
+    applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: tossEvent });
     eventBus.emit('engine:event', { event: tossEvent });
     eventBus.emit('engine:stateChange', { state: this.state });
   }
 
   start(): void {
     if (this.state.isRunning) return;
-    this.state.isRunning = true;
+    applyMatchEvent(this.state, { type: 'IS_RUNNING_SET', value: true });
     this.scheduleTick(0);
   }
 
   pause(): void {
-    this.state.isRunning = false;
+    applyMatchEvent(this.state, { type: 'IS_RUNNING_SET', value: false });
     if (this.tickTimeout) { clearTimeout(this.tickTimeout); this.tickTimeout = null; }
   }
 
   resume(): void {
     if (this.state.isRunning) return;
-    this.state.isRunning = true;
+    applyMatchEvent(this.state, { type: 'IS_RUNNING_SET', value: true });
     this.scheduleTick(0);
   }
 
   setTickDelay(ms: number): void {
-    this.state.tickDelayMs = ms;
+    applyMatchEvent(this.state, { type: 'TICK_DELAY_SET', value: ms });
     if (this.state.isRunning && this.tickTimeout) {
       clearTimeout(this.tickTimeout);
       this.scheduleTick(ms);
@@ -228,11 +225,6 @@ export class MatchCoordinator {
 
   getState(): Readonly<MatchState> {
     return this.state;
-  }
-
-  private recalculateRatings(): void {
-    for (const p of this.state.homeTeam.players) p.rating = computeRating(p);
-    for (const p of this.state.awayTeam.players) p.rating = computeRating(p);
   }
 
   private scheduleTick(delay: number): void {
@@ -253,9 +245,18 @@ export class MatchCoordinator {
 
       this.fatigueAccumulator += timeAdvance;
       if (this.fatigueAccumulator >= 5) {
-        const homeFatigued = applyFatigue(this.state.homeTeam, this.fatigueAccumulator);
-        const awayFatigued = applyFatigue(this.state.awayTeam, this.fatigueAccumulator);
+        const homeFatigue = computeFatigue(this.state.homeTeam, this.fatigueAccumulator);
+        const awayFatigue = computeFatigue(this.state.awayTeam, this.fatigueAccumulator);
         this.fatigueAccumulator -= 5;
+        for (const u of [...homeFatigue.updates, ...awayFatigue.updates]) {
+          applyMatchEvent(this.state, {
+            type: 'FATIGUE_APPLIED',
+            player: u.player,
+            newFatiguePct: u.newFatiguePct,
+            newCurrentStats: u.newCurrentStats,
+          });
+        }
+
         const fatigueLines = [
           (name: string, num: number) => `${name} (#${num}) is starting to look tired out there — the legs are going.`,
           (name: string, num: number) => `${name} (#${num}) is looking leggy. The fatigue is setting in.`,
@@ -264,7 +265,7 @@ export class MatchCoordinator {
           (name: string, num: number) => `${name} (#${num}) looks worn out — the pace is dropping off.`,
           (name: string, num: number) => `The tank is emptying for ${name} (#${num}) — that's the fatigue biting.`,
         ];
-        for (const player of [...homeFatigued, ...awayFatigued]) {
+        for (const player of [...homeFatigue.newlyTired, ...awayFatigue.newlyTired]) {
           const line = fatigueLines[rng(0, fatigueLines.length - 1)];
           const fatEvent: GameEvent = {
             id: makeId(),
@@ -277,15 +278,17 @@ export class MatchCoordinator {
             ballY: this.state.ballY,
             commentary: line(player.name, player.squadNumber),
           };
-          this.state.events.push(fatEvent);
+          applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: fatEvent });
           eventBus.emit('engine:event', { event: fatEvent });
         }
       }
 
-      this.state.stats.possession[this.state.possession]++;
       const homeInOppHalf = !this.state.halfTimeDone ? this.state.ballX > 50 : this.state.ballX < 50;
-      if (homeInOppHalf) this.state.stats.territory.home++;
-      else this.state.stats.territory.away++;
+      applyMatchEvent(this.state, {
+        type: 'TICK_BOOKKEEPING',
+        possessionSide: this.state.possession,
+        territorySide: homeInOppHalf ? 'home' : 'away',
+      });
 
       let previousPhase = this.state.phase;
 
@@ -303,7 +306,7 @@ export class MatchCoordinator {
           ballY: this.state.ballY,
           commentary: getCommentary({ ...draftEvent(this.state, MatchPhase.KickOff), primaryPlayer: kicker }, 'announce'),
         };
-        this.state.events.push(announceEvent);
+        applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
         eventBus.emit('engine:event', { event: announceEvent });
       }
 
@@ -326,14 +329,12 @@ export class MatchCoordinator {
           ballY: this.state.ballY,
           commentary: getCommentary({ ...draftEvent(this.state, MatchPhase.BoxKick), primaryPlayer: scrumHalf }, 'announce'),
         };
-        this.state.events.push(announceEvent);
+        applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
         eventBus.emit('engine:event', { event: announceEvent });
       }
 
       const event = resolvePhase(this.state, this.sm, this.kickOffStrategy);
-      this.recalculateRatings();
-      this.state.events.push(event);
-      if (this.state.events.length > 300) this.state.events.splice(0, this.state.events.length - 300);
+      applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event });
 
       eventBus.emit('engine:event', { event });
       eventBus.emit('engine:stateChange', { state: this.state });
@@ -352,7 +353,7 @@ export class MatchCoordinator {
           ballY: this.state.ballY,
           commentary: `${phaseName} awarded to ${teamName}.`,
         };
-        this.state.events.push(awardEvent);
+        applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: awardEvent });
         eventBus.emit('engine:event', { event: awardEvent });
       }
 

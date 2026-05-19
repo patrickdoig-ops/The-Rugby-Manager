@@ -6,17 +6,26 @@ Documents the complete game engine: the simulation loop, every match phase, all 
 
 ## Architecture
 
-The engine is split across five files in `src/engine/`. `MatchCoordinator` owns the public API, the tick loop, and the long-lived state; it delegates the four most cohesive responsibilities to dedicated modules:
+The engine is split across files in `src/engine/`. `MatchCoordinator` owns the public API, the tick loop, and the long-lived state; it delegates the four most cohesive responsibilities to dedicated modules:
 
 | Module | Responsibility |
 |---|---|
-| `MatchCoordinator.ts` | Public API (`initialize`, `start`, `pause`, `resume`, `setTickDelay`, `getState`, `substitute`), tick loop, fatigue accumulator, possession/territory stats, rating recalculation, substitution. |
+| `MatchCoordinator.ts` | Public API (`initialize`, `start`, `pause`, `resume`, `setTickDelay`, `getState`, `substitute`), tick loop, fatigue accumulator, possession/territory stats, substitution. |
 | `ClockController.ts` | Minute advance (clamped to half target, halved while in the red), clock-in-red entry, half-time and full-time triggers (`advanceMinute`, `checkClockInRed`, `shouldEndPeriod`, `triggerHalfTime`, `endMatch`). |
 | `PhaseRouter.ts` | `PHASE_HANDLERS` map, `resolvePhase(state, sm, kickOffStrategy)`, and the `draftEvent(state, phase)` template builder. |
 | `PenaltyHandler.ts` | Penalty-decision modal pause and outcome application (`kick_for_goal`, `kick_to_touch`, `tap_and_kick_dead`, `tap_and_go`), plus the kick-off strategy modal (`awaitKickOffStrategy`, `handlePenaltyDecision`). |
-| `FieldPosition.ts` | Pure helpers over `MatchState` that factor in `state.halfTimeDone`: `attackDir`, `isTryScored`, `inOpposition22`, `inOppositionHalf`, `inOwn22`, `inOwnHalf`. |
+| `FieldPosition.ts` | Pure helpers over `MatchState` that factor in `state.halfTimeDone`: `attackDir`, `isTryScored`, `isTryScoredAt`, `inOpposition22`, `inOppositionHalf`, `inOwn22`, `inOwnHalf`. |
+| `applyMatchEvent.ts` | **The single mutation boundary.** A reducer over the `MatchEvent` discriminated union (`src/types/matchEvent.ts`). The only function permitted to write to `MatchState` or any `Player` field. |
+| `StaminaSystem.ts` | Pure `computeFatigue(team, elapsedMinutes)` — returns `{updates, newlyTired}` without writing to players; the caller emits `FATIGUE_APPLIED` events. |
+| `RatingEngine.ts` | Pure `computeRating(player)` — called by `applyMatchEvent` when a `RATINGS_RECALCULATED` event is reduced. |
 
-All five emit through the shared `src/utils/eventBus.ts` singleton; event IDs come from the monotonic counter in `src/engine/eventId.ts`. `StateMachine` (`src/engine/StateMachine.ts`) is owned by `MatchCoordinator` and passed into `ClockController` and `PhaseRouter` for transitions.
+All emit UI side-effects through the shared `src/utils/eventBus.ts` singleton; event IDs come from the monotonic counter in `src/engine/eventId.ts`. `StateMachine` (`src/engine/StateMachine.ts`) is owned by `MatchCoordinator` and passed into `ClockController` and `PhaseRouter` for transitions.
+
+### Mutation boundary: `MatchEvent` and `applyMatchEvent`
+
+All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.currentStats`, and `player.rating` flow through one function: `applyMatchEvent(state, event)` in `src/engine/applyMatchEvent.ts`. The `MatchEvent` discriminated union (`src/types/matchEvent.ts`) defines every kind of mutation the engine performs — domain events like `TRY_SCORED`, `KNOCK_ON`, `CARRY_RESOLVED`, `LINEOUT_RESOLVED`, `SCRUM_RESOLVED`, `BREAKDOWN_HIT`, `TURNOVER_AT_BREAKDOWN`, plus structural events like `BALL_REPOSITIONED`, `POSSESSION_SWAPPED`, `PHASE_CHANGED`, `COMMENTARY_LOGGED`, `RATINGS_RECALCULATED`. Phase handlers in `src/engine/events/` are read-only over state: they read, compute, and return `PhaseResult { ..., events: MatchEvent[] }`. `PhaseRouter.resolvePhase()` applies the queue through `applyMatchEvent` before composing the outgoing `GameEvent`. Orchestrators (`MatchCoordinator`, `ClockController`, `PenaltyHandler`) apply events directly through `applyMatchEvent` for non-phase mutations (clock, half-time, penalty choice, substitutions, tactics). UI bus emissions (`eventBus.emit('engine:event'|'engine:stateChange'|…)`) are pure side effects that fire alongside, and are **not** part of the `MatchEvent` boundary.
+
+`applyMatchEvent` uses a `default: const _: never = event;` exhaustiveness check, so adding a new `MatchEvent` variant without a handling branch is a compile error.
 
 ---
 
@@ -27,7 +36,7 @@ All five emit through the shared `src/utils/eventBus.ts` singleton; event IDs co
 Each tick:
 1. Captures `wasInRed = state.clockInTheRed` and `previousPhase = state.phase` before any mutation.
 2. Advances game time via `clock.advanceMinute(state)` (`src/engine/ClockController.ts`): if `state.clockInTheRed`, adds `timeAdvance / 2` (clock crawls); otherwise advances normally and clamps to the half target (40 or 80). `timeAdvance = 0.2 + rng(0, 8) / 10` (0.2–1.0 per tick); the raw value is returned so the caller can drive the fatigue accumulator.
-3. Accumulates elapsed time; calls `applyFatigue()` on both teams once the accumulator reaches 5 game minutes. Returns newly-fatigued players (crossing below 50%); emits a fatigue commentary event for each.
+3. Accumulates elapsed time; calls the pure `computeFatigue(team, elapsedMinutes)` on both teams once the accumulator reaches 5 game minutes, then emits a `FATIGUE_APPLIED` event for every update. `computeFatigue` returns newly-fatigued players (crossing below 50%); a fatigue commentary event is logged for each.
 4. Increments possession and territory counters.
 5. For `KickOff` and `BoxKick` phases: emits a pre-phase announce `GameEvent` (naming the kicker before the outcome is resolved).
 6. For `KickOff` phase: awaits kick-off strategy selection via `penaltyHandler.awaitKickOffStrategy()` (modal `kickoff_choice` pause) — **managed team only** (the side the human player chose at the team selector). The AI-controlled team always defaults to `high_ball` with no modal.
@@ -74,7 +83,7 @@ Three carry phases share an evasion/collision resolver but have distinct player 
 
 ### Player ratings
 
-Ratings are computed from accumulated per-player statistics, not from event-by-event deltas. After every `resolvePhase()` call (and after penalty goal kicks inside `PenaltyHandler`), `recalculateRatings()` calls `computeRating(player)` on all 30 players and writes the result to `player.rating`.
+Ratings are computed from accumulated per-player statistics, not from event-by-event deltas. After every `resolvePhase()` call (and after penalty goal kicks inside `PenaltyHandler`), a `RATINGS_RECALCULATED` `MatchEvent` is emitted; `applyMatchEvent` calls `computeRating(player)` on all 30 players and writes the result to `player.rating`.
 
 **`computeRating`** is a pure function in `src/engine/RatingEngine.ts`. It reads `player.matchStats` (a `PlayerMatchStats` object) and returns a value in [1.0, 10.0]:
 
@@ -129,7 +138,7 @@ Ratings are displayed in the Player Stats panel and update once per game minute.
 
 ## Fatigue System
 
-Called via `applyFatigue(team, elapsedMinutes)` approximately every 5 game minutes.
+Called via `computeFatigue(team, elapsedMinutes)` approximately every 5 game minutes. The function is pure — it returns `{updates, newlyTired}` and the caller emits `FATIGUE_APPLIED` `MatchEvent`s for each update.
 
 ### Decay
 
@@ -173,7 +182,7 @@ Each `if` block overwrites the previous, so the final matching block wins.
 
 ### Fatigue commentary
 
-When `applyFatigue` detects a player crossing from ≥ 50% to < 50% fatiguePct, it returns that player in a list. `MatchCoordinator` emits a `GameEvent` (using the current phase/possession context) with a randomly chosen line from six variants: "starting to look tired", "looking leggy", "wear is showing", "running on empty", "looks worn out", "tank is emptying". The commentary feed colorises the player name normally.
+When `computeFatigue` detects a player crossing from ≥ 50% to < 50% fatiguePct, it returns that player in its `newlyTired` list. `MatchCoordinator` emits a commentary `GameEvent` (using the current phase/possession context) with a randomly chosen line from six variants: "starting to look tired", "looking leggy", "wear is showing", "running on empty", "looks worn out", "tank is emptying". The commentary feed colorises the player name normally.
 
 ---
 

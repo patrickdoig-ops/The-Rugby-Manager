@@ -1,4 +1,5 @@
 import type { PhaseContext, PhaseResult } from './types';
+import type { MatchEvent } from '../../types/matchEvent';
 import { MatchPhase } from '../../types/engine';
 import { resolveTacticalKick } from '../resolvers/KickingResolver';
 import { getCommentary } from '../CommentaryEngine';
@@ -11,50 +12,58 @@ function tacticNote(chancePct: number, ...lines: string[]): string {
 
 export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, inOwn22, inOwnHalf, inOpposition22, randomPlayer, draftEvent }: PhaseContext): PhaseResult {
   const kicker   = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
-  kicker.matchStats.kicksFromHand++;
   const defender = defendTeam.players.find(p => p.id === 15) ?? randomPlayer(defendTeam);
-  
+
   const startedInOwn22 = inOwn22();
   const startedInOwnHalf = inOwnHalf();
   const originalBallX = state.ballX;
 
   const res = resolveTacticalKick(kicker);
-  kicker.matchStats.kickMetres += res.distance;
-  const goodKick = res.kickScore >= 25;
   const backfield = defendTeam.tactics.backfieldDefence;
   const touchReduction = backfield === 'three_back' ? 25 : backfield === 'two_back' ? 15 : 0;
   const goesOutOnTheFull = rng(1, 100) <= res.outOnTheFullProbability;
   const goesToTouch      = !goesOutOnTheFull && rng(1, 100) <= Math.max(0, res.touchProbability - touchReduction);
 
   const kickDir = attackDir();
-  
-  // Update ballX tentatively
-  state.ballX = clamp(state.ballX + kickDir * res.distance, 5, 95);
+  const newBallX = clamp(state.ballX + kickDir * res.distance, 5, 95);
+
+  const events: MatchEvent[] = [
+    { type: 'KICK_FROM_HAND', kicker, metres: res.distance },
+    { type: 'BALL_REPOSITIONED', x: newBallX },
+  ];
 
   if (goesOutOnTheFull) {
     if (!startedInOwn22) {
-      // Out on the full
-      state.ballX = originalBallX;
-      state.possession = state.possession === 'home' ? 'away' : 'home';
+      // Out on the full — ball reverts to where it was kicked from
+      events.push({ type: 'BALL_REPOSITIONED', x: originalBallX });
+      events.push({ type: 'POSSESSION_SWAPPED' });
       return {
         nextPhase: MatchPhase.Lineout,
         commentary: getCommentary({ ...draftEvent(MatchPhase.TacticalKick), primaryPlayer: kicker }, 'out_on_the_full'),
         primaryPlayer: kicker,
+        events,
       };
     }
     // Kicked directly to touch from inside own 22 - gains ground, standard touch
-    state.possession = state.possession === 'home' ? 'away' : 'home';
+    events.push({ type: 'POSSESSION_SWAPPED' });
     return {
       nextPhase: MatchPhase.Lineout,
       commentary: getCommentary({ ...draftEvent(MatchPhase.TacticalKick), primaryPlayer: kicker, secondaryPlayer: defender }, 'good_kick'),
       primaryPlayer: kicker,
       secondaryPlayer: defender,
+      events,
     };
   }
 
   if (goesToTouch) {
-    const landedInOpposition22 = inOpposition22();
-    if (startedInOwnHalf && landedInOpposition22) {
+    // Check inOpposition22 at the *projected* ballX without mutating state.
+    const homeAttacksRight = !state.halfTimeDone;
+    const projectedInOppositionAfterKick = state.possession === 'home'
+      ? (homeAttacksRight ? newBallX >= 78 : newBallX <= 22)
+      : (homeAttacksRight ? newBallX <= 22 : newBallX >= 78);
+    void inOpposition22;  // ctx helper unused — we project ballX ourselves
+
+    if (startedInOwnHalf && projectedInOppositionAfterKick) {
       // 50:22 rule - kicking team retains possession!
       const fiftyTwentyNote = (state.possession !== 'home' && backfield === 'one_back')
         ? tacticNote(25,
@@ -66,26 +75,30 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
         nextPhase: MatchPhase.Lineout,
         commentary: getCommentary({ ...draftEvent(MatchPhase.TacticalKick), primaryPlayer: kicker }, 'fifty_twenty_two') + fiftyTwentyNote,
         primaryPlayer: kicker,
+        events,
       };
     }
 
     // Standard touch
-    state.possession = state.possession === 'home' ? 'away' : 'home';
+    events.push({ type: 'POSSESSION_SWAPPED' });
     return {
       nextPhase: MatchPhase.Lineout,
       commentary: getCommentary({ ...draftEvent(MatchPhase.TacticalKick), primaryPlayer: kicker, secondaryPlayer: defender }, 'good_kick'),
       primaryPlayer: kicker,
       secondaryPlayer: defender,
+      events,
     };
   }
 
   // Kept in field — receiver attacks with backfield support
   const returnBonus = backfield === 'three_back' ? 10 : backfield === 'two_back' ? 5 : 0;
-  if (returnBonus > 0) state.breakdownMod = { attack: returnBonus, defend: 0 };
-  state.possession = state.possession === 'home' ? 'away' : 'home';
-  state.kickReturnCarrier = defender;
-  // After possession flip, home is now attacking if they caught the kick (state.possession === 'home')
-  const kickCaughtNote = (returnBonus > 0 && state.possession === 'home')
+  if (returnBonus > 0) events.push({ type: 'BREAKDOWN_MOD_SET', attack: returnBonus, defend: 0 });
+  events.push({ type: 'POSSESSION_SWAPPED' });
+  events.push({ type: 'KICK_RETURN_CARRIER_SET', player: defender });
+  // After possession flip, home is now attacking if they caught the kick.
+  // Compute that here using attackSide (before the swap is applied).
+  const newAttackerSide: 'home' | 'away' = state.possession === 'home' ? 'away' : 'home';
+  const kickCaughtNote = (returnBonus > 0 && newAttackerSide === 'home')
     ? tacticNote(35,
         "The backfield presence pays dividends — plenty of runners in support and they're coming back at pace.",
         "That's the reward for committing to the backfield — the return is structured and dangerous.",
@@ -99,5 +112,6 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
     commentary: getCommentary({ ...draftEvent(MatchPhase.TacticalKick), primaryPlayer: kicker, secondaryPlayer: defender }, 'kick_caught') + kickCaughtNote,
     primaryPlayer: kicker,
     secondaryPlayer: defender,
+    events,
   };
 }

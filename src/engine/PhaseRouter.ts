@@ -5,6 +5,7 @@ import { rng } from '../utils/rng';
 import { makeId } from './eventId';
 import { attackDir, isTryScored, inOpposition22, inOppositionHalf, inOwn22, inOwnHalf } from './FieldPosition';
 import type { PhaseContext, PhaseResult } from './events/types';
+import { applyMatchEvent } from './applyMatchEvent';
 import { handleKickOff }        from './events/KickOffEvent';
 import { handlePhasePlay }      from './events/OpenPlayEvent';
 import { handleFirstPhase }     from './events/FirstPhaseEvent';
@@ -77,16 +78,26 @@ export function resolvePhase(state: MatchState, sm: StateMachine, kickOffStrateg
   };
 
   const handler = PHASE_HANDLERS[state.phase];
-  const { nextPhase, commentary, primaryPlayer, secondaryPlayer, outcome } = handler
+  const result: PhaseResult = handler
     ? handler(ctx)
-    : { nextPhase: state.phase, commentary: 'Match event.', primaryPlayer: undefined, secondaryPlayer: undefined, outcome: undefined };
+    : { nextPhase: state.phase, commentary: 'Match event.', primaryPlayer: undefined, secondaryPlayer: undefined, outcome: undefined, events: [] };
 
+  // Apply all handler-emitted MatchEvents in order — these are the only mutations
+  // the handler can make to MatchState / player stats.
+  for (const e of result.events) applyMatchEvent(state, e);
+
+  // Phase transition is its own MatchEvent so applyMatchEvent owns state.phase too.
+  // The StateMachine keeps its parallel _current field; transition() validates,
+  // forceTransition() bypasses validation (used as a fallback).
   try {
-    sm.transition(nextPhase);
+    sm.transition(result.nextPhase);
   } catch {
-    sm.forceTransition(nextPhase);
+    sm.forceTransition(result.nextPhase);
   }
-  state.phase = nextPhase;
+  applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: result.nextPhase });
+
+  // Ratings are a derived quantity recomputed from matchStats after every phase resolve.
+  applyMatchEvent(state, { type: 'RATINGS_RECALCULATED' });
 
   const isConversion = phaseAtStart === MatchPhase.ConversionKick;
   // Carry phases that score a try emit with TryScored phase so they get the try highlight.
@@ -95,7 +106,7 @@ export function resolvePhase(state: MatchState, sm: StateMachine, kickOffStrateg
     phaseAtStart === MatchPhase.PhasePlay ||
     phaseAtStart === MatchPhase.FirstPhase ||
     phaseAtStart === MatchPhase.KickReturn
-  ) && nextPhase === MatchPhase.TryScored;
+  ) && result.nextPhase === MatchPhase.TryScored;
   const eventPhase = isCarryToTry ? MatchPhase.TryScored : phaseAtStart;
   return {
     id: makeId(),
@@ -103,11 +114,11 @@ export function resolvePhase(state: MatchState, sm: StateMachine, kickOffStrateg
     phase: eventPhase,
     side:     isConversion ? sideAtStart     : state.possession,
     sideName: isConversion ? sideNameAtStart : (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
-    primaryPlayer,
-    secondaryPlayer,
+    primaryPlayer: result.primaryPlayer,
+    secondaryPlayer: result.secondaryPlayer,
     ballX: state.ballX,
     ballY: state.ballY,
-    commentary,
-    outcome,
+    commentary: result.commentary,
+    outcome: result.outcome,
   };
 }

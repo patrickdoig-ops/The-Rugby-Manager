@@ -1,4 +1,5 @@
 import type { PhaseContext, PhaseResult } from './types';
+import type { MatchEvent } from '../../types/matchEvent';
 import { MatchPhase } from '../../types/engine';
 import { resolveLineout } from '../resolvers/LineoutResolver';
 import { getCommentary } from '../CommentaryEngine';
@@ -14,49 +15,73 @@ export function handleLineout({ state, attackTeam, defendTeam, pickPlayer, draft
   const defendJumper = pickPlayer(defendTeam, 4, 5, 6);
   const res = resolveLineout(hooker, attackJumper, defendJumper);
 
-  hooker.matchStats.lineoutThrows++;
+  const attackSide = state.possession;
+  const flipSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
+
+  const events: MatchEvent[] = [
+    { type: 'LINEOUT_THROWN', hooker },
+  ];
 
   if (res.result === 'crooked_throw') {
-    state.possession = state.possession === 'home' ? 'away' : 'home';
+    events.push({
+      type: 'LINEOUT_RESOLVED',
+      outcome: 'crooked_throw',
+      hooker, attackJumper, defendJumper,
+      attackSide, possessionSideAfter: flipSide,
+    });
     return {
       nextPhase: MatchPhase.Scrum,
       commentary: getCommentary({ ...draftEvent(MatchPhase.Lineout), primaryPlayer: hooker }, 'crooked_throw'),
       primaryPlayer: hooker,
+      events,
     };
   }
 
   if (res.result === 'clean_catch') {
-    hooker.matchStats.lineoutWins++;
-    attackJumper.matchStats.lineoutCatches++;
-    state.stats.lineouts[state.possession]++;
+    events.push({
+      type: 'LINEOUT_RESOLVED',
+      outcome: 'clean_catch',
+      hooker, attackJumper, defendJumper,
+      attackSide, possessionSideAfter: attackSide,
+    });
     return {
       nextPhase: MatchPhase.FirstPhase,
       // secondaryPlayer in commentary is the hooker (thrower); in the event it is the defend jumper
       commentary: getCommentary({ ...draftEvent(MatchPhase.Lineout), primaryPlayer: attackJumper, secondaryPlayer: hooker }, 'clean_catch'),
       primaryPlayer: attackJumper,
       secondaryPlayer: defendJumper,
+      events,
     };
   }
 
   if (res.result === 'scrappy_knock_on') {
-    state.stats.handlingErrors[state.possession]++;
-    state.possession = state.possession === 'home' ? 'away' : 'home';
+    events.push({
+      type: 'LINEOUT_RESOLVED',
+      outcome: 'scrappy_knock_on',
+      hooker, attackJumper, defendJumper,
+      attackSide, possessionSideAfter: flipSide,
+    });
     return {
       nextPhase: MatchPhase.Scrum,
       commentary: getCommentary({ ...draftEvent(MatchPhase.Lineout), primaryPlayer: attackJumper, secondaryPlayer: defendJumper }, 'scrappy_knock_on'),
       primaryPlayer: attackJumper,
       secondaryPlayer: defendJumper,
+      events,
     };
   }
 
   // steal
-  defendJumper.matchStats.lineoutSteals++;
-  state.possession = state.possession === 'home' ? 'away' : 'home';
-  state.stats.lineouts[state.possession]++;
+  events.push({
+    type: 'LINEOUT_RESOLVED',
+    outcome: 'steal',
+    hooker, attackJumper, defendJumper,
+    attackSide, possessionSideAfter: flipSide,
+  });
   return {
     nextPhase: MatchPhase.FirstPhase,
     commentary: getCommentary({ ...draftEvent(MatchPhase.Lineout), primaryPlayer: defendJumper, secondaryPlayer: attackJumper }, 'steal'),
     primaryPlayer: defendJumper,
     secondaryPlayer: attackJumper,
+    events,
   };
 }

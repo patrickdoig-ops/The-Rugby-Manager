@@ -9,8 +9,13 @@ export function attackDir(state: MatchState): 1 | -1 {
 }
 
 export function isTryScored(state: MatchState): boolean {
-  const { ballX, possession } = state;
-  const homeAttacksRight = !state.halfTimeDone;
+  return isTryScoredAt(state.ballX, state.possession, state.halfTimeDone);
+}
+
+// Same logic as isTryScored but takes the raw ballX — useful when a handler needs
+// to check whether a projected (not-yet-applied) ball position crosses the try line.
+export function isTryScoredAt(ballX: number, possession: 'home' | 'away', halfTimeDone: boolean): boolean {
+  const homeAttacksRight = !halfTimeDone;
   if (possession === 'home') return homeAttacksRight ? ballX >= 95 : ballX <= 5;
   return homeAttacksRight ? ballX <= 5 : ballX >= 95;
 }

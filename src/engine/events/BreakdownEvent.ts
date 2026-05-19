@@ -1,5 +1,6 @@
 import type { Player } from '../../types/player';
 import type { PhaseContext, PhaseResult } from './types';
+import type { MatchEvent } from '../../types/matchEvent';
 import { MatchPhase } from '../../types/engine';
 import { resolveBreakdown } from '../resolvers/BreakdownResolver';
 import { getCommentary } from '../CommentaryEngine';
@@ -21,7 +22,6 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
   // Next-phase modifier: more players committed to ruck = fewer on feet for the next phase
   const nextAttackMod = attPlan === 'pick_and_drive' ? -8 : (attPlan === 'wide_play' ? 8 : 0);
   const nextDefendMod = defPlan === 'shadow' ? 10 : (defPlan === 'counter_ruck' ? -8 : 0);
-  state.breakdownMod = { attack: nextAttackMod, defend: nextDefendMod };
 
   const forwardPool = attackTeam.players.filter(p => p.id <= 8 && p.id !== carrierId);
   if (forwardPool.length === 0) forwardPool.push(attackTeam.players[0]);
@@ -39,10 +39,16 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
 
   const defendPack = defendTeam.players.filter(p => p.id <= 8);
   const res = resolveBreakdown(supporters, jackal, defPlan, defendPack, attackBonus);
-  supporters.forEach(p => p.matchStats.rucksHit++);
 
   const homeIsAttacking = state.possession === 'home';
   const homeIsDefending = !homeIsAttacking;
+
+  // Set the breakdown mod and credit the ruck hit for every supporter — both happen
+  // regardless of outcome.
+  const events: MatchEvent[] = [
+    { type: 'BREAKDOWN_MOD_SET', attack: nextAttackMod, defend: nextDefendMod },
+    { type: 'BREAKDOWN_HIT', players: supporters },
+  ];
 
   if (res.result === 'clean_ball') {
     let note = '';
@@ -66,6 +72,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
       commentary: getCommentary({ ...draftEvent(MatchPhase.Breakdown), primaryPlayer: primary, secondaryPlayer: jackal }, 'clean_ball') + note,
       primaryPlayer: primary,
       secondaryPlayer: jackal,
+      events,
     };
   }
 
@@ -98,13 +105,12 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
       commentary: getCommentary({ ...draftEvent(MatchPhase.Breakdown), primaryPlayer: primary, secondaryPlayer: jackal }, 'slow_ball') + note,
       primaryPlayer: primary,
       secondaryPlayer: jackal,
+      events,
     };
   }
 
   if (res.result === 'turnover') {
-    jackal.matchStats.turnoversWon++;
-    state.possession = state.possession === 'home' ? 'away' : 'home';
-    state.breakdownMod = { attack: 0, defend: 0 };
+    events.push({ type: 'TURNOVER_AT_BREAKDOWN', jackal });
     let note = '';
     // After possession flip, home is now attacking if they just won the turnover
     if (homeIsDefending && defPlan === 'jackal') {
@@ -127,13 +133,12 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
       commentary: getCommentary({ ...draftEvent(MatchPhase.Breakdown), primaryPlayer: primary, secondaryPlayer: jackal }, 'turnover') + note,
       primaryPlayer: jackal,
       secondaryPlayer: primary,
+      events,
     };
   }
 
   // penalty_defending — defending team awarded the penalty, so possession flips to them
-  primary.matchStats.penaltiesConceded++;
-  state.possession = state.possession === 'home' ? 'away' : 'home';
-  state.breakdownMod = { attack: 0, defend: 0 };
+  events.push({ type: 'PENALTY_CONCEDED_AT_BREAKDOWN', player: primary });
   let penaltyNote = '';
   if (homeIsAttacking && attPlan === 'pick_and_drive') {
     penaltyNote = tacticNote(25,
@@ -155,5 +160,6 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
     commentary: getCommentary({ ...draftEvent(MatchPhase.Breakdown), primaryPlayer: primary, secondaryPlayer: jackal }, 'penalty_defending') + penaltyNote,
     primaryPlayer: primary,
     secondaryPlayer: jackal,
+    events,
   };
 }

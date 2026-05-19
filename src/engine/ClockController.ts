@@ -4,30 +4,27 @@ import type { StateMachine } from './StateMachine';
 import { eventBus } from '../utils/eventBus';
 import { rng } from '../utils/rng';
 import { makeId } from './eventId';
+import { applyMatchEvent } from './applyMatchEvent';
 
 export class ClockController {
   constructor(private sm: StateMachine) {}
 
-  // Advances state.gameMinute; halved while clockInTheRed; clamped to the half target otherwise.
+  // Advances state.gameMinute via a CLOCK_ADVANCED MatchEvent.
   // Returns the raw timeAdvance so the caller can drive the fatigue accumulator.
   advanceMinute(state: MatchState): number {
-    const halfTarget = state.halfTimeDone ? 80 : 40;
     const timeAdvance = 0.2 + rng(0, 8) / 10;
-    if (state.clockInTheRed) {
-      state.gameMinute += timeAdvance / 2;
-    } else {
-      state.gameMinute = Math.min(halfTarget, state.gameMinute + timeAdvance);
-    }
+    applyMatchEvent(state, { type: 'CLOCK_ADVANCED', delta: timeAdvance });
     return timeAdvance;
   }
 
-  // Enters the "clock in the red" state if the half target has been reached; emits commentary event.
+  // Enters the "clock in the red" state if the half target has been reached;
+  // emits commentary event through the UI bus.
   checkClockInRed(state: MatchState): void {
     if (state.clockInTheRed) return;
     const halfTarget = state.halfTimeDone ? 80 : 40;
     if (state.gameMinute < halfTarget) return;
 
-    state.clockInTheRed = true;
+    applyMatchEvent(state, { type: 'CLOCK_IN_RED_TRIPPED' });
     const isFirstHalf = !state.halfTimeDone;
     const lines = isFirstHalf
       ? [
@@ -50,7 +47,7 @@ export class ClockController {
       ballY: state.ballY,
       commentary: lines[rng(0, lines.length - 1)],
     };
-    state.events.push(redEvent);
+    applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: redEvent });
     eventBus.emit('engine:event', { event: redEvent });
   }
 
@@ -60,7 +57,8 @@ export class ClockController {
     // Ball went to touch → lineout (exception: penalty kick-to-touch lineout)
     if (state.phase === MatchPhase.Lineout) {
       if (state.penaltyKickToTouchLineout) {
-        state.penaltyKickToTouchLineout = false;
+        // Reset the flag through the boundary, then suppress the period-end.
+        applyMatchEvent(state, { type: 'PENALTY_KICK_TO_TOUCH_FLAG_SET', value: false });
         return false;
       }
       return true;
@@ -73,9 +71,7 @@ export class ClockController {
   }
 
   triggerHalfTime(state: MatchState): void {
-    state.halfTimeDone = true;
-    state.clockInTheRed = false;
-    state.penaltyKickToTouchLineout = false;
+    applyMatchEvent(state, { type: 'HALF_TIME_REACHED' });
 
     const htEvent: GameEvent = {
       id: makeId(),
@@ -87,24 +83,23 @@ export class ClockController {
       ballY: 50,
       commentary: 'Half time! The teams head to the dressing rooms to regroup.',
     };
-    state.phase = MatchPhase.HalfTime;
+    applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.HalfTime });
     this.sm.forceTransition(MatchPhase.HalfTime);
-    state.events.push(htEvent);
+    applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: htEvent });
     eventBus.emit('engine:event', { event: htEvent });
     eventBus.emit('engine:stateChange', { state });
 
-    state.possession = state.possession === 'home' ? 'away' : 'home';
-    state.ballX = 50;
-    state.ballY = 50;
+    applyMatchEvent(state, { type: 'POSSESSION_SWAPPED' });
+    applyMatchEvent(state, { type: 'BALL_REPOSITIONED', x: 50, y: 50 });
 
     this.sm.forceTransition(MatchPhase.KickOff);
-    state.phase = MatchPhase.KickOff;
+    applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.KickOff });
   }
 
   endMatch(state: MatchState): void {
-    state.isRunning = false;
+    applyMatchEvent(state, { type: 'MATCH_ENDED' });
     this.sm.forceTransition(MatchPhase.FullTime);
-    state.phase = MatchPhase.FullTime;
+    applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.FullTime });
 
     const ftEvent: GameEvent = {
       id: makeId(),
@@ -116,7 +111,7 @@ export class ClockController {
       ballY: state.ballY,
       commentary: `Full time! ${state.homeTeam.name} ${state.score.home} – ${state.score.away} ${state.awayTeam.name}`,
     };
-    state.events.push(ftEvent);
+    applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: ftEvent });
     eventBus.emit('engine:event', { event: ftEvent });
     eventBus.emit('engine:stateChange', { state });
     eventBus.emit('engine:finished', { state });

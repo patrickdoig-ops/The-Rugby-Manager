@@ -8,12 +8,12 @@ import { clamp } from '../utils/math';
 import { makeId } from './eventId';
 import { attackDir, inOpposition22, inOppositionHalf } from './FieldPosition';
 import { draftEvent } from './PhaseRouter';
+import { applyMatchEvent } from './applyMatchEvent';
 
 export interface PenaltyHandlerDeps {
   state: MatchState;
   sm: StateMachine;
   humanSide: 'home' | 'away';
-  recalculateRatings: () => void;
 }
 
 export class PenaltyHandler {
@@ -24,13 +24,13 @@ export class PenaltyHandler {
     if (state.possession !== humanSide) {
       return 'high_ball';
     }
-    state.isPaused = true;
+    applyMatchEvent(state, { type: 'IS_PAUSED_SET', value: true });
     const choice = await new Promise<KickOffStrategy>(resolve => {
       eventBus.emit('engine:paused', {
         payload: { type: 'kickoff_choice', onChoice: (c) => resolve(c) },
       });
     });
-    state.isPaused = false;
+    applyMatchEvent(state, { type: 'IS_PAUSED_SET', value: false });
     eventBus.emit('engine:resumed', {});
     return choice;
   }
@@ -50,7 +50,7 @@ export class PenaltyHandler {
       return;
     }
 
-    state.isPaused = true;
+    applyMatchEvent(state, { type: 'IS_PAUSED_SET', value: true });
     const choice = await new Promise<PenaltyChoice>(resolve => {
       eventBus.emit('engine:paused', {
         payload: {
@@ -68,13 +68,13 @@ export class PenaltyHandler {
         },
       });
     });
-    state.isPaused = false;
+    applyMatchEvent(state, { type: 'IS_PAUSED_SET', value: false });
     eventBus.emit('engine:resumed', {});
     this.applyPenaltyChoice(choice);
   }
 
   private applyPenaltyChoice(choice: PenaltyChoice): void {
-    const { state, sm, recalculateRatings } = this.deps;
+    const { state, sm } = this.deps;
     const attackTeam = state.possession === 'home' ? state.homeTeam : state.awayTeam;
     const kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
 
@@ -85,10 +85,9 @@ export class PenaltyHandler {
       const distFromPosts = Math.abs(state.ballY - 50) * 0.3 + Math.abs(state.ballX - tryLine) * 0.2;
       const res = resolveGoalKick(kicker, distFromPosts);
 
-      kicker.matchStats.kicksAtGoal++;
-      if (res.success) kicker.matchStats.kicksMade++;
-      else             kicker.matchStats.kicksMissed++;
-      recalculateRatings();
+      const side = state.possession;
+      applyMatchEvent(state, { type: 'PENALTY_GOAL_KICKED', kicker, side, success: res.success });
+      applyMatchEvent(state, { type: 'RATINGS_RECALCULATED' });
 
       const penEvent: GameEvent = {
         id: makeId(),
@@ -103,19 +102,22 @@ export class PenaltyHandler {
           ? getCommentary({ ...draftEvent(state, MatchPhase.Penalty), primaryPlayer: kicker }, 'kick_for_goal')
           : getCommentary({ ...draftEvent(state, MatchPhase.Penalty), primaryPlayer: kicker }, 'miss'),
       };
-      if (res.success) state.score[state.possession] += 3;
-      state.events.push(penEvent);
+      applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
       eventBus.emit('engine:event', { event: penEvent });
 
-      state.possession = state.possession === 'home' ? 'away' : 'home';
-      state.ballX = 50;
-      state.ballY = 50;
+      applyMatchEvent(state, { type: 'POSSESSION_SWAPPED' });
+      applyMatchEvent(state, { type: 'BALL_REPOSITIONED', x: 50, y: 50 });
       sm.forceTransition(MatchPhase.KickOff);
-      state.phase = MatchPhase.KickOff;
+      applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.KickOff });
 
     } else if (choice === 'kick_to_touch') {
-      if (state.clockInTheRed) state.penaltyKickToTouchLineout = true;
-      state.ballX = clamp(state.ballX + attackDir(state) * 20, 5, 95);
+      if (state.clockInTheRed) {
+        applyMatchEvent(state, { type: 'PENALTY_KICK_TO_TOUCH_FLAG_SET', value: true });
+      }
+      applyMatchEvent(state, {
+        type: 'BALL_REPOSITIONED',
+        x: clamp(state.ballX + attackDir(state) * 20, 5, 95),
+      });
       const penEvent: GameEvent = {
         id: makeId(),
         gameMinute: state.gameMinute,
@@ -127,7 +129,7 @@ export class PenaltyHandler {
         ballY: state.ballY,
         commentary: getCommentary({ ...draftEvent(state, MatchPhase.Penalty), primaryPlayer: kicker }, 'kick_to_touch'),
       };
-      state.events.push(penEvent);
+      applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
       eventBus.emit('engine:event', { event: penEvent });
 
       const teamName = (state.possession === 'home' ? state.homeTeam : state.awayTeam).name;
@@ -141,11 +143,11 @@ export class PenaltyHandler {
         ballY: state.ballY,
         commentary: `Lineout awarded to ${teamName}.`,
       };
-      state.events.push(awardEvent);
+      applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: awardEvent });
       eventBus.emit('engine:event', { event: awardEvent });
 
       sm.forceTransition(MatchPhase.Lineout);
-      state.phase = MatchPhase.Lineout;
+      applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.Lineout });
 
     } else if (choice === 'tap_and_kick_dead') {
       const penEvent: GameEvent = {
@@ -159,10 +161,10 @@ export class PenaltyHandler {
         ballY: state.ballY,
         commentary: getCommentary({ ...draftEvent(state, MatchPhase.Penalty), primaryPlayer: kicker }, 'tap_and_kick_dead'),
       };
-      state.events.push(penEvent);
+      applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
       eventBus.emit('engine:event', { event: penEvent });
       sm.forceTransition(MatchPhase.Lineout);
-      state.phase = MatchPhase.Lineout;
+      applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.Lineout });
 
     } else {
       // tap_and_go
@@ -177,10 +179,10 @@ export class PenaltyHandler {
         ballY: state.ballY,
         commentary: getCommentary({ ...draftEvent(state, MatchPhase.Penalty), primaryPlayer: kicker }, 'tap_and_go'),
       };
-      state.events.push(penEvent);
+      applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
       eventBus.emit('engine:event', { event: penEvent });
       sm.forceTransition(MatchPhase.FirstPhase);
-      state.phase = MatchPhase.FirstPhase;
+      applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.FirstPhase });
     }
 
     eventBus.emit('engine:stateChange', { state });

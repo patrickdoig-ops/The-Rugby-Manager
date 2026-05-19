@@ -3,8 +3,25 @@ import type { Player, PlayerStats } from '../types/player';
 import { clamp } from '../utils/math';
 import { rng } from '../utils/rng';
 
-export function applyFatigue(team: Team, elapsedMinutes: number): Player[] {
-  const newlyFatigued: Player[] = [];
+export interface FatigueUpdate {
+  player: Player;
+  newFatiguePct: number;
+  newCurrentStats: PlayerStats;
+}
+
+export interface FatigueResult {
+  updates: FatigueUpdate[];
+  newlyTired: Player[];
+}
+
+// Pure: computes the fatigue decay and updated currentStats for every player on the
+// team but does not write to any Player field. The caller emits FATIGUE_APPLIED
+// MatchEvents which apply through `applyMatchEvent`.
+export function computeFatigue(team: Team, elapsedMinutes: number): FatigueResult {
+  void elapsedMinutes; // signature kept for clarity at call site; the formula uses fixed RNG decay per call
+  const updates: FatigueUpdate[] = [];
+  const newlyTired: Player[] = [];
+
   for (const player of team.players) {
     const decayRate = rng(4, 12);
     const staminaBase = player.baseStats.stamina;
@@ -14,14 +31,13 @@ export function applyFatigue(team: Team, elapsedMinutes: number): Player[] {
       if (team.tactics.defendingBreakdown === 'counter_ruck')   actualDecay *= 1.1;
     }
     const prevFatigue = player.fatiguePct;
-    player.fatiguePct = clamp(player.fatiguePct - actualDecay, 0, 100);
-    if (prevFatigue >= 50 && player.fatiguePct < 50) {
-      newlyFatigued.push(player);
+    const newFatiguePct = clamp(player.fatiguePct - actualDecay, 0, 100);
+    if (prevFatigue >= 50 && newFatiguePct < 50) {
+      newlyTired.push(player);
     }
 
     const base = player.baseStats;
-    const f = player.fatiguePct;
-
+    const f = newFatiguePct;
     const stats: PlayerStats = { ...base };
 
     if (f < 90) {
@@ -62,9 +78,12 @@ export function applyFatigue(team: Team, elapsedMinutes: number): Player[] {
       stats.strength   = Math.round(base.strength   * 0.30);
     }
 
-    player.currentStats = Object.fromEntries(
+    const newCurrentStats = Object.fromEntries(
       Object.entries(stats).map(([k, v]) => [k, clamp(v as number, 1, 100)])
     ) as unknown as PlayerStats;
+
+    updates.push({ player, newFatiguePct, newCurrentStats });
   }
-  return newlyFatigued;
+
+  return { updates, newlyTired };
 }

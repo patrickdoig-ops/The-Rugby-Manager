@@ -2,12 +2,13 @@ import type { MatchPhase, KickOffStrategy } from '../../types/engine';
 import type { GameEvent, MatchState } from '../../types/match';
 import type { Team } from '../../types/team';
 import type { Player } from '../../types/player';
+import type { MatchEvent } from '../../types/matchEvent';
 
 export interface PhaseContext {
   state: MatchState;
   attackTeam: Team;
   defendTeam: Team;
-  attackDir(): number;
+  attackDir(): 1 | -1;
   isTryScored(): boolean;
   inOpposition22(): boolean;
   inOppositionHalf(): boolean;
@@ -25,4 +26,7 @@ export interface PhaseResult {
   primaryPlayer?: Player;
   secondaryPlayer?: Player;
   outcome?: string;
+  // MatchEvents emitted by the handler. PhaseRouter routes them through
+  // applyMatchEvent before composing the outgoing GameEvent.
+  events: MatchEvent[];
 }

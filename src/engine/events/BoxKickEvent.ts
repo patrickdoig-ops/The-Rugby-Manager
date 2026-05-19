@@ -1,4 +1,5 @@
 import type { PhaseContext, PhaseResult } from './types';
+import type { MatchEvent } from '../../types/matchEvent';
 import { MatchPhase } from '../../types/engine';
 import { resolveBoxKick } from '../resolvers/BoxKickResolver';
 import { getCommentary } from '../CommentaryEngine';
@@ -11,7 +12,6 @@ function tacticNote(chancePct: number, ...lines: string[]): string {
 
 export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, randomPlayer, draftEvent }: PhaseContext): PhaseResult {
   const scrumHalf  = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
-  scrumHalf.matchStats.kicksFromHand++;
   const wingerPool = attackTeam.players.filter(p => p.id === 11 || p.id === 14);
   const winger     = wingerPool.length > 0 ? wingerPool[rng(0, wingerPool.length - 1)] : randomPlayer(attackTeam);
   const fullback   = defendTeam.players.find(p => p.id === 15) ?? randomPlayer(defendTeam);
@@ -19,37 +19,45 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, random
   const fullbackMod = backfield === 'three_back' ? 15 : backfield === 'two_back' ? 8 : 0;
   const res = resolveBoxKick(scrumHalf, winger, fullback, fullbackMod);
 
-  state.ballX = clamp(state.ballX + attackDir() * res.distance, 5, 95);
-  scrumHalf.matchStats.kickMetres += res.distance;
+  const events: MatchEvent[] = [
+    { type: 'KICK_FROM_HAND', kicker: scrumHalf, metres: res.distance },
+    { type: 'BALL_REPOSITIONED', x: clamp(state.ballX + attackDir() * res.distance, 5, 95) },
+  ];
+
+  const attackSide = state.possession;
+  const defSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
 
   if (res.outcome === 'attack_retain') {
-    state.kickReturnCarrier = winger;
+    events.push({ type: 'KICK_RETURN_CARRIER_SET', player: winger });
     return {
       nextPhase: MatchPhase.KickReturn,
       commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: winger }, 'attack_retain'),
       primaryPlayer: scrumHalf,
       secondaryPlayer: winger,
+      events,
     };
   }
 
   if (res.outcome === 'defend_knock_on') {
-    state.stats.handlingErrors[state.possession === 'home' ? 'away' : 'home']++;
+    events.push({ type: 'HANDLING_ERROR', side: defSide });
     return {
       nextPhase: MatchPhase.Scrum,
       commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: winger }, 'defend_knock_on'),
       primaryPlayer: scrumHalf,
       secondaryPlayer: winger,
+      events,
     };
   }
 
   if (res.outcome === 'defend_catch_contested') {
-    state.possession = state.possession === 'home' ? 'away' : 'home';
-    state.kickReturnCarrier = fullback;
+    events.push({ type: 'POSSESSION_SWAPPED' });
+    events.push({ type: 'KICK_RETURN_CARRIER_SET', player: fullback });
     return {
       nextPhase: MatchPhase.KickReturn,
       commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: fullback }, 'defend_catch_contested'),
       primaryPlayer: scrumHalf,
       secondaryPlayer: fullback,
+      events,
     };
   }
 
@@ -64,22 +72,24 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, random
             : "The extra cover in the backfield paid off — that kick never had a chance of being contested.",
         )
       : '';
-    state.possession = state.possession === 'home' ? 'away' : 'home';
-    state.kickReturnCarrier = fullback;
+    events.push({ type: 'POSSESSION_SWAPPED' });
+    events.push({ type: 'KICK_RETURN_CARRIER_SET', player: fullback });
     return {
       nextPhase: MatchPhase.KickReturn,
       commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: fullback }, 'defend_catch') + catchNote,
       primaryPlayer: scrumHalf,
       secondaryPlayer: fullback,
+      events,
     };
   }
 
   // knock_on — poor kick, fullback drops uncontested
-  state.stats.handlingErrors[state.possession === 'home' ? 'away' : 'home']++;
+  events.push({ type: 'HANDLING_ERROR', side: defSide });
   return {
     nextPhase: MatchPhase.Scrum,
     commentary: getCommentary({ ...draftEvent(MatchPhase.BoxKick), primaryPlayer: scrumHalf, secondaryPlayer: fullback }, 'knock_on'),
     primaryPlayer: scrumHalf,
     secondaryPlayer: fullback,
+    events,
   };
 }

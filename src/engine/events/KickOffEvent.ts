@@ -1,4 +1,5 @@
 import type { PhaseContext, PhaseResult } from './types';
+import type { MatchEvent } from '../../types/matchEvent';
 import { MatchPhase } from '../../types/engine';
 import { resolveKickOff } from '../resolvers/KickOffResolver';
 import { getCommentary } from '../CommentaryEngine';
@@ -7,7 +8,6 @@ import { rng } from '../../utils/rng';
 
 export function handleKickOff({ state, attackTeam, defendTeam, attackDir, randomPlayer, draftEvent, kickOffStrategy }: PhaseContext): PhaseResult {
   const kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
-  kicker.matchStats.kicksFromHand++;
 
   let receiver;
   let chaser;
@@ -28,44 +28,57 @@ export function handleKickOff({ state, attackTeam, defendTeam, attackDir, random
   }
 
   const res = resolveKickOff(kicker, receiver, chaser, kickOffStrategy);
-  state.ballX = clamp(50 + attackDir() * res.distance, 5, 95);
+
+  // Kick stats always count, regardless of outcome.
+  const events: MatchEvent[] = [
+    { type: 'KICK_FROM_HAND', kicker, metres: 0 },  // kicksFromHand++ (distance not tracked for kick-offs)
+  ];
 
   if (res.result === 'poor_kick') {
-    state.ballX = 50;
-    state.possession = state.possession === 'home' ? 'away' : 'home';
+    // Scrum awarded at halfway to the receiving team
+    events.push({ type: 'BALL_REPOSITIONED', x: 50 });
+    events.push({ type: 'POSSESSION_SWAPPED' });
     return {
       nextPhase: MatchPhase.Scrum,
       commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: kicker }, 'poor_kick'),
       primaryPlayer: kicker,
+      events,
     };
   }
 
+  // Ball lands where the kick reaches
+  events.unshift({ type: 'BALL_REPOSITIONED', x: clamp(50 + attackDir() * res.distance, 5, 95) });
+
   if (res.result === 'knock_on') {
+    // Scrum where the ball was dropped; kicking team puts in (possession unchanged)
     return {
       nextPhase: MatchPhase.Scrum,
       commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: receiver, secondaryPlayer: chaser }, 'knock_on'),
       primaryPlayer: receiver,
       secondaryPlayer: chaser,
+      events,
     };
   }
 
   if (res.result === 'short_kick_retain') {
-    state.kickReturnCarrier = chaser;
+    events.push({ type: 'KICK_RETURN_CARRIER_SET', player: chaser });
     return {
       nextPhase: MatchPhase.KickReturn,
       commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: chaser, secondaryPlayer: receiver }, 'short_kick_retain'),
       primaryPlayer: chaser,
       secondaryPlayer: receiver,
+      events,
     };
   }
 
   // clean_receive — receiving team takes possession
-  state.possession = state.possession === 'home' ? 'away' : 'home';
-  state.kickReturnCarrier = receiver;
+  events.push({ type: 'POSSESSION_SWAPPED' });
+  events.push({ type: 'KICK_RETURN_CARRIER_SET', player: receiver });
   return {
     nextPhase: MatchPhase.KickReturn,
     commentary: getCommentary({ ...draftEvent(MatchPhase.KickOff), primaryPlayer: receiver, secondaryPlayer: chaser }, 'clean_receive'),
     primaryPlayer: receiver,
     secondaryPlayer: chaser,
+    events,
   };
 }

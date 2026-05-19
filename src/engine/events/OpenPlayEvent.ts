@@ -1,9 +1,11 @@
 import type { PhaseContext, PhaseResult } from './types';
+import type { MatchEvent } from '../../types/matchEvent';
 import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { getCommentary } from '../CommentaryEngine';
-import { rng } from '../../utils/rng';
+import { isTryScoredAt } from '../FieldPosition';
 import { clamp } from '../../utils/math';
+import { rng } from '../../utils/rng';
 
 function tacticNote(chancePct: number, ...lines: string[]): string {
   return rng(1, 100) <= chancePct ? ' ' + lines[rng(0, lines.length - 1)] : '';
@@ -25,12 +27,12 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
   }
 
   if (rng(1, 100) <= kickProb) {
-    state.breakdownMod = { attack: 0, defend: 0 };
     const flyHalf = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
     return {
       nextPhase: MatchPhase.TacticalKick,
       commentary: getCommentary({ ...draftEvent(MatchPhase.PhasePlay) }, 'kick_decision'),
       primaryPlayer: flyHalf,
+      events: [{ type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 }],
     };
   }
 
@@ -38,9 +40,15 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
   const carrier   = randomPlayer(attackTeam);
   const defender  = randomPlayer(defendTeam);
   const scrumHalf = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
-  if (scrumHalf !== carrier) scrumHalf.matchStats.passes++;
+  const attackSide = state.possession;
+  const defSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
+
+  const events: MatchEvent[] = [];
+  if (scrumHalf !== carrier) events.push({ type: 'PASS_COMPLETED', passer: scrumHalf });
+
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;
-  state.breakdownMod = { attack: 0, defend: 0 };
+  events.push({ type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 });
+
   const backfieldPenalty = defendTeam.tactics.backfieldDefence === 'three_back' ? -10
                          : defendTeam.tactics.backfieldDefence === 'two_back'   ? -5 : 0;
 
@@ -48,14 +56,13 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
     ? Math.min(99, 85 + Math.round(Math.max(0, 85 - carrier.currentStats.handling) * 0.4))
     : 85;
   if (carrier.currentStats.handling + rng(1, 100) < koThreshold) {
-    carrier.matchStats.knockOns++;
-    state.stats.handlingErrors[state.possession]++;
-    state.possession = state.possession === 'home' ? 'away' : 'home';
+    events.push({ type: 'KNOCK_ON', player: carrier, attackSide });
     return {
       nextPhase: MatchPhase.Scrum,
       commentary: getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: carrier, secondaryPlayer: defender }, 'knock_on'),
       primaryPlayer: carrier,
       secondaryPlayer: defender,
+      events,
     };
   }
 
@@ -78,14 +85,13 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
         ? Math.min(99, 85 + Math.round(Math.max(0, 85 - flyHalf.currentStats.handling) * 0.4))
         : 85;
       if (flyHalf.currentStats.handling + rng(1, 100) < fhThreshold) {
-        flyHalf.matchStats.knockOns++;
-        state.stats.handlingErrors[state.possession]++;
-        state.possession = state.possession === 'home' ? 'away' : 'home';
+        events.push({ type: 'KNOCK_ON', player: flyHalf, attackSide });
         return {
           nextPhase: MatchPhase.Scrum,
           commentary: wideIntro + getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: flyHalf, secondaryPlayer: defender }, 'knock_on'),
           primaryPlayer: flyHalf,
           secondaryPlayer: defender,
+          events,
         };
       }
     }
@@ -100,41 +106,47 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
       ? Math.min(99, 85 + Math.round(Math.max(0, 85 - outsideBack.currentStats.handling) * 0.4))
       : 85;
     if (outsideBack.currentStats.handling + rng(1, 100) < obThreshold) {
-      outsideBack.matchStats.knockOns++;
-      state.stats.handlingErrors[state.possession]++;
-      state.possession = state.possession === 'home' ? 'away' : 'home';
+      events.push({ type: 'KNOCK_ON', player: outsideBack, attackSide });
       return {
         nextPhase: MatchPhase.Scrum,
         commentary: wideIntro + getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: outsideBack, secondaryPlayer: defender }, 'knock_on'),
         primaryPlayer: outsideBack,
         secondaryPlayer: defender,
+        events,
       };
     }
 
-    flyHalf.matchStats.passes++;
+    events.push({ type: 'PASS_COMPLETED', passer: flyHalf });
     ballCarrier = outsideBack;
   }
 
   // Step 3 — Evasion → Step 4 Collision (handling gate already cleared)
   const res = resolveOpenPlay(ballCarrier, defender, attackMod, defendMod + backfieldPenalty);
+  const direction = attackDir();
+
+  events.push({
+    type: 'CARRY_RESOLVED',
+    carrier: ballCarrier,
+    defender,
+    metres: res.gainMetres,
+    direction,
+    outcome: res.outcome,
+    defSide,
+  });
 
   let nextPhase: MatchPhase;
   let commentary: string;
 
   if (res.outcome === 'line_break') {
-    ballCarrier.matchStats.carries++;
-    ballCarrier.matchStats.metresCarried += res.gainMetres;
-    ballCarrier.matchStats.lineBreaks++;
-    ballCarrier.matchStats.defendersBeaten++;
-    defender.matchStats.tacklesAttempted++;
-    state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
-    state.ballX = clamp(state.ballX + attackDir() * res.gainMetres, 0, 100);
-    const tryScored = isTryScored();
+    // Try-scored check uses the projected ballX; the CARRY_RESOLVED event will apply
+    // the actual ball move once PhaseRouter reduces the queue.
+    const projectedBallX = clamp(state.ballX + direction * res.gainMetres, 0, 100);
+    const tryScored = isTryScoredAt(projectedBallX, attackSide, state.halfTimeDone);
     nextPhase = tryScored ? MatchPhase.TryScored : MatchPhase.Breakdown;
     if (tryScored) {
       commentary = wideIntro + getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: ballCarrier, secondaryPlayer: defender }, 'line_break_try');
     } else {
-      const lineBreakNote = (backfieldPenalty < 0 && state.possession !== 'home')
+      const lineBreakNote = (backfieldPenalty < 0 && attackSide !== 'home')
         ? tacticNote(30,
             `The backfield commitment is leaving ${defendTeam.name} short in the defensive line — and they've been cut through.`,
             `Three in the backfield means only twelve in the line for ${defendTeam.name} — and there's the gap.`,
@@ -143,28 +155,12 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
       commentary = wideIntro + getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: ballCarrier, secondaryPlayer: defender }, 'line_break') + lineBreakNote;
     }
   } else if (res.outcome === 'dominant_tackle') {
-    ballCarrier.matchStats.carries++;
-    ballCarrier.matchStats.metresCarried += res.gainMetres;
-    defender.matchStats.tacklesAttempted++;
-    defender.matchStats.tacklesMade++;
-    defender.matchStats.dominantTackles++;
-    state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
-    state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].made++;
-    state.ballX = clamp(state.ballX + attackDir() * res.gainMetres, 0, 100);
     nextPhase = MatchPhase.Breakdown;
     commentary = wideIntro + getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: ballCarrier, secondaryPlayer: defender }, 'dominant_tackle');
   } else {
-    ballCarrier.matchStats.carries++;
-    ballCarrier.matchStats.metresCarried += res.gainMetres;
-    if (res.outcome === 'dominant_carry') ballCarrier.matchStats.defendersBeaten++;
-    defender.matchStats.tacklesAttempted++;
-    defender.matchStats.tacklesMade++;
-    state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].attempted++;
-    state.stats.tackles[state.possession === 'home' ? 'away' : 'home'].made++;
-    state.ballX = clamp(state.ballX + attackDir() * res.gainMetres, 0, 100);
     nextPhase = MatchPhase.Breakdown;
     commentary = wideIntro + getCommentary({ ...draftEvent(MatchPhase.PhasePlay), primaryPlayer: ballCarrier, secondaryPlayer: defender }, res.outcome);
   }
-
-  return { nextPhase, commentary, primaryPlayer: ballCarrier, secondaryPlayer: defender, outcome: res.outcome };
+  void isTryScored;  // ctx helper unused — we project ballX ourselves for the try-line check
+  return { nextPhase, commentary, primaryPlayer: ballCarrier, secondaryPlayer: defender, outcome: res.outcome, events };
 }

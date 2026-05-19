@@ -80,11 +80,11 @@ The version string follows the pattern `0.XXa` (e.g. `0.01a`, `0.02a`). Incremen
 **After any change to engine code, update `engine.md` to match. This is not optional — engine.md must be updated in the same commit as the engine change.**
 
 `engine.md` is a plain-English reference for the entire game engine. It must stay in sync with the code. This includes:
-- `src/engine/MatchEngine.ts` — loop, phase resolution, rating deltas, ball movement
+- `src/engine/MatchEngine.ts` — loop, phase resolution, stat increments, ball movement
 - `src/engine/StaminaSystem.ts` — fatigue decay formula, attribute penalty tiers
 - `src/engine/StateMachine.ts` — allowed phase transitions
 - `src/engine/resolvers/*.ts` — all resolver formulas, thresholds, return types
-- `src/engine/events/*.ts` — rating deltas, possession swaps, next-phase routing
+- `src/engine/events/*.ts` — stat increments, possession swaps, next-phase routing
 - `src/engine/CommentaryEngine.ts` — commentary template keys
 - `src/types/engine.ts` — result type unions (LineoutResult, ScrumResult, etc.)
 
@@ -93,7 +93,7 @@ When updating `engine.md`, document:
 2. The resolver formula with actual numbers from the resolver file
 3. All outcome thresholds
 4. Ball position changes and possession swaps
-5. Rating adjustments (delta values)
+5. Stat increments per phase (which player, which `matchStats` field)
 6. Any known gaps or approximations
 
 Do not paraphrase — if the code changes, the doc must reflect the new code exactly.
@@ -165,19 +165,19 @@ Home attacks toward x=100 in the first half, toward x=0 in the second half. **Te
 
 ### Resolvers
 
-Each resolver in `src/engine/resolvers/` is a pure function (no side effects, no imports from engine). They receive player objects and return a typed result. `MatchEngine.resolvePhase()` calls them and owns all state mutations and rating adjustments.
+Each resolver in `src/engine/resolvers/` is a pure function (no side effects, no imports from engine). They receive player objects and return a typed result. `MatchEngine.resolvePhase()` calls them and owns all state mutations and stat increments.
 
 Resolver formulas at a glance:
 
 | Phase | Key formula | Outcome thresholds |
 |---|---|---|
 | **KickOff** | `kickScore = kicking + rng(1,20)` ≥ 35 = goodKick. **Kick Deep:** distance 25–40m / 15–25m; catching gate `(handling+composure)/2 + rng(1,20) < 30` → `knock_on`. **Kick Short:** distance 10–20m / 4–9m; < 10m → `poor_kick`; catch vs chase margin > 10 → `clean_receive`; > -5 → 30% `short_kick_retain`; else → `knock_on`. **Grubber:** distance 15–25m / 4–9m; < 10m → `poor_kick`; catching gate < 30 → `knock_on`. | `poor_kick`: scrum halfway, receiving team puts in. `knock_on`: scrum at landing, kicking team puts in. `clean_receive` / `short_kick_retain`: KickReturn (possession flips only on `clean_receive`) |
-| **PhasePlay** | Random carrier; handling gate (`handling + rng(1,100) < 85` = knock_on; ~5% for handling 80, ~20% for handling 65). If carrier is #10 or `rng` > hard-carry threshold: Out the Back (#10 → random outside back from ids 11/13/14/15) via up to two handling gates; if carrier IS #10, the carrier→flyHalf step is skipped and only the flyHalf→outsideBack step runs. Hard Carry: evasion + collision with original carrier. Evasion: `evasionScore = (agility+pace)/2 + rng(1,20) + attackMod`; `defenseScore = (defender.positioning+defender.pace)/2 + rng(1,20) + defendMod`; margin ≥ 15 = line_break. Collision: `(strength+pace)/2` vs `(tackling+strength)/2`. `backfieldPenalty`: `three_back` −10, `two_back` −5. Consumes `state.breakdownMod` | knock_on (gate); evasion ≥ 15 = line_break (defender −0.4, tackles.attempted++); collision ±5 = dominant |
+| **PhasePlay** | Random carrier; handling gate (`handling + rng(1,100) < 85` = knock_on; ~5% for handling 80, ~20% for handling 65). If carrier is #10 or `rng` > hard-carry threshold: Out the Back (#10 → random outside back from ids 11/13/14/15) via up to two handling gates; if carrier IS #10, the carrier→flyHalf step is skipped and only the flyHalf→outsideBack step runs. Hard Carry: evasion + collision with original carrier. Evasion: `evasionScore = (agility+pace)/2 + rng(1,20) + attackMod`; `defenseScore = (defender.positioning+defender.pace)/2 + rng(1,20) + defendMod`; margin ≥ 15 = line_break. Collision: `(strength+pace)/2` vs `(tackling+strength)/2`. `backfieldPenalty`: `three_back` −10, `two_back` −5. Consumes `state.breakdownMod` | knock_on (gate); evasion ≥ 15 = line_break (tackles.attempted++); collision ±5 = dominant |
 | **FirstPhase** | Carrier always #10; handling gate (same `handling + rng(1,100) < 85` formula). Crash Ball (90/70/50% driven by `attackingStyle`): #10 → #12 (inside centre) handling gate → collision vs opp #12. Wide Play: #10 → #13 (outside centre) → random wing (11/14) two handling gates; collision vs random opp wing. `backfieldPenalty` and `breakdownMod` consumed | same thresholds |
 | **KickReturn** | Carrier = `state.kickReturnCarrier` ?? `randomPlayer`. No handling gate. Run step: `(carrier.pace+agility)/2 + rng(1,20)` vs `(defender.pace+tackling)/2 + rng(1,20)` → `runMetres` 3–10 (win) or 0–3 (lose). Evasion + collision; ball gains `runMetres + res.gainMetres`. `backfieldPenalty` and `breakdownMod` consumed | evasion ≥ 15 = line_break; collision ±5 = dominant |
 | **Breakdown** | `ARS = stackedScore(supporters, breakdown, strength) + rng(1,20) + attackBonus` (attackBonus = 6 if previous play was `dominant_carry`, else 0). `stackedScore` sorts players best-first and applies weights [1.0, 0.6, 0.4, 0.3], inner formula per player is `(leadStat×0.6 + supportStat×0.4 + (discipline−50)×0.15) × weight`, summed and divided by 2 — so body count, quality, AND discipline all matter, with diminishing returns. DTS varies by `defendingBreakdown`: **jackal** = `breakdown×0.7 + strength×0.3 + (discipline−50)×0.15 + rng(1,20)`; **counter_ruck** = `stackedScore(top4defenders, strength, breakdown) + rng(1,20)` (top 4 defenders by `strength×0.6 + breakdown×0.4`; discipline term also applies per player inside stackedScore); **shadow** = `rng(1,10)` (concedes ball to set line) | margin ≥ 10 clean_ball; ≥ -8 slow_ball; ≥ -14 turnover; else penalty_defending |
 | **Scrum** | `avg(setPiece×0.6 + strength×0.4) + (avg(discipline)−50)×0.15 + rng(1,20)` per pack (all 8 forwards) | attack margin > 15 attacking_dominant_penalty; > 0 stable_win; > -15 wheel; else defending_dominant_penalty |
-| **Lineout** | `throwScore = hookerSetPiece + rng(1,100)` < 95 → `crooked_throw` (scrum, possession flips, hooker −0.4); then `(setPiece×0.5 + agility×0.5) + rng(1,20)` each jumper | margin ≥ −5 clean_catch; ≥ −15 scrappy_knock_on; else steal |
+| **Lineout** | `throwScore = hookerSetPiece + rng(1,100)` < 95 → `crooked_throw` (scrum, possession flips); then `(setPiece×0.5 + agility×0.5) + rng(1,20)` each jumper | margin ≥ −5 clean_catch; ≥ −15 scrappy_knock_on; else steal |
 | **BoxKick** | `kickScore = kicking + rng(1,20)` ≥ 75 → very_good (contested, 20m); else poor (uncontested, 50-50 30m or 8m; `catchScore = (handling+positioning)/2 + rng(1,20) + fullbackMod` ≥ 35). `fullbackMod`: `three_back` +15, `two_back` +8, `one_back` 0 | contested: margin ≥ 10 attack_retain; ≥ 0 defend_knock_on; else defend_catch_contested. Uncontested: catchScore ≥ 35 defend_catch; else knock_on |
 | **TacticalKick** | `kickScore = kicking + rng(1, 20)` < 25 → poor_kick. Touch probability reduced by backfield: `three_back` −25, `two_back` −15. If kick caught: `breakdownMod.attack` = `three_back` +10, `two_back` +5 | goodKick: 30–50m, outOnTheFull 0%, touch 75% (minus reduction); poorKick: 10–20m, outOnTheFull 30%, touch 30% → Lineout / OpenPlay. Ball clamped to 5–95 (never within 5m of try line) |
 | **GoalKick** | `kicking + composure×0.2 − anglePenalty + rng(1,20)` | ≥ 65 = success |
@@ -275,41 +275,21 @@ When a player's fatiguePct drops below 50% for the first time, `applyFatigue` re
 
 ### Player rating system
 
-Players start each match at `rating: 6.0` (out of 10). `MatchEngine.adjustRating(player, delta)` clamps to [1, 10]. Deltas:
+Ratings are stat-driven, not delta-driven. There is no `adjustRating()` method. Instead, event handlers increment named counters on `player.matchStats`, and after every `resolvePhase()` call (and after penalty goal kicks), `recalculateRatings()` runs `computeRating(player)` on all 30 players and writes the result to `player.rating`.
 
-| Event | Player | Delta |
-|---|---|---|
-| Try scored | scorer | +1.0 |
-| Lineout steal | defender jumper | +0.45 |
-| Breakdown turnover | jackal | +0.75 |
-| Goal kick success (penalty) | kicker | +0.3 |
-| Dominant tackle | defender | +0.3 |
-| Scrum attacking_dominant_penalty | attacking front row (each) | +0.225 |
-| Scrum defending_dominant_penalty | defending front row (each) | +0.225 |
-| Lineout clean_catch | attack jumper | +0.225 |
-| Goal kick success (conversion) | kicker | +0.225 |
-| Dominant carry | carrier | +0.225 |
-| Line break | carrier | +0.375 |
-| Line break (missed tackle) | defender | −0.4 |
-| Scrum stable_win | attack front row (each) | +0.15 |
-| Breakdown clean_ball | primary supporter | +0.15 |
-| Tactical kick success | kicker | +0.15 |
-| Knock-on (open play) | carrier | −0.45 |
-| Lineout steal conceded | attack jumper | −0.15 |
-| Tactical kick catch drop | defender | −0.3 |
-| Scrum attacking_dominant_penalty conceded | defending front row (each) | −0.3 |
-| Scrum defending_dominant_penalty conceded | attacking front row (each) | −0.3 |
-| Breakdown penalty conceded | primary supporter | −0.375 |
-| Kick-off knock-on | receiver | −0.375 |
-| Goal kick miss (penalty) | kicker | −0.225 |
-| Kick-off poor kick | kicker | −0.225 |
-| Tactical kick poor | kicker | −0.225 |
-| Lineout scrappy_knock_on | attack jumper | −0.3 |
-| Breakdown turnover conceded | primary supporter | −0.15 |
-| Goal kick miss (conversion) | kicker | −0.15 |
-| Dominant tackle conceded | carrier | −0.075 |
+**`computeRating`** is a pure function in `src/engine/RatingEngine.ts`. Returns `clamp(6.0 + score / 10.0, 1.0, 10.0)` where `score` is built from universal weights plus position-aware bonuses:
 
-Note: `tackles.attempted` is incremented for `dominant_tackle`, `dominant_carry`, `play_on`, and `line_break` outcomes. `tackles.made` is only incremented for `dominant_tackle`, `dominant_carry`, and `play_on`. Line breaks count as a missed tackle (attempted but not made), so tackle % correctly reflects evasion.
+Universal: `tries×7.0`, `lineBreaks×2.5`, `defendersBeaten×0.8`, `turnoversWon×2.5`, `dominantTackles×1.0`, `tacklesMade×0.35`, `kicksMade×1.0`, `metresCarried×0.05`, minus `knockOns×1.5`, `missedTackles×0.5`, `penaltiesConceded×1.2`, `kicksMissed×0.75`.
+
+Position bonuses: hooker (#2) lineout accuracy; locks (#4,5) lineout catches/steals; front row (#1–3) scrum penalty differential; back row (#6–8) extra turnover + carry weight; scrum half (#9) `passes×0.05`; fly-half (#10) `kicksFromHand×0.25`; wings/fullback (#11,14,15) extra line break weight.
+
+**`PlayerMatchStats`** is declared in `src/types/player.ts`, initialised by `zeroMatchStats()` in `initPlayer()`. Fields: `carries`, `metresCarried`, `lineBreaks`, `defendersBeaten`, `knockOns`, `passes`, `tacklesAttempted`, `tacklesMade`, `dominantTackles`, `turnoversWon`, `penaltiesConceded`, `tries`, `kicksFromHand`, `kicksAtGoal`, `kicksMade`, `kicksMissed`, `lineoutThrows`, `lineoutWins`, `lineoutCatches`, `lineoutSteals`, `scrumPenaltiesWon`, `scrumPenaltiesConceded`.
+
+**Extending:** add one field to `PlayerMatchStats` + one `field: 0` in `zeroMatchStats()` + increment site(s) in the relevant event file(s) + optional weight in `computeRating()`.
+
+**Pass tracking:** `scrumHalf.matchStats.passes++` fires in `FirstPhaseEvent` (always — #9 distributes after every scrum/lineout) and in `OpenPlayEvent` (when `scrumHalf !== carrier` — #9 distributes after every breakdown unless #9 is the random carrier).
+
+Note: `tackles.attempted` is incremented for `dominant_tackle`, `dominant_carry`, `play_on`, and `line_break` outcomes. `tackles.made` is only incremented for `dominant_tackle`, `dominant_carry`, and `play_on`. Line breaks count as a missed tackle, so tackle % correctly reflects evasion.
 
 ### UI module responsibilities
 

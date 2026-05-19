@@ -49,6 +49,16 @@ When your changes create orphans:
 
 The test: Every changed line should trace directly to the user's request.
 
+**Restructuring a live type doesn't restructure its snapshots.** A frozen log row, an event-bus payload, or a replay event has schema lifetime independent of the live state it was copied from. Don't restructure a snapshot just because the source restructured. Examples from this codebase:
+- `GameEvent.ballX/ballY` stayed scalar when `MatchState.ball` became `{x, y}` — `GameEvent` entries in `state.events[]` are frozen log rows.
+- `PenaltyContext.ballX/ballY/clockInTheRed/halfTimeDone` stayed scalar even when their source fields moved into `state.clock` — it's a DTO crossing the event-bus boundary to `ModalManager`.
+- `MatchEvent` payloads (`{ x, y, delta, value }`) stayed scalar — only the *write targets* inside `applyMatchEvent` moved to nested paths.
+- `isTryScoredAt(ballX, possession, halfTimeDone)` keeps a scalar signature — it's called on projected (not-yet-applied) values, not the live state.
+
+The test: would renaming this break replay, an existing log entry, or a downstream consumer that already serialised the old shape? If yes, leave it alone.
+
+**When refactoring "for less coupling", verify the prescription actually eliminates the coupling, not just relocates it.** `state.phase.breakdownMod` has identical coupling properties to `state.breakdownMod` — namespacing isn't decoupling. Before drafting a sweeping change, name the specific coupling smell and check that the proposed shape removes it.
+
 ## 4. Module Boundaries
 
 **Split before god objects form. Don't wrap clean primitives.**
@@ -157,7 +167,7 @@ Within a single tick, `engine:event` is emitted **before** `engine:stateChange`.
 
 `MatchCoordinator.tick()` is a self-rescheduling `async` function using `setTimeout` — **not** `setInterval`. Pausing is simply not scheduling the next tick. Resuming calls `scheduleTick(0)`. The tick loop delegates to `ClockController` for time advancement and period transitions, to `PhaseRouter.resolvePhase` for phase dispatch, and to `PenaltyHandler` for penalty/kick-off modal pauses; it owns only the fatigue accumulator, the announce/award events, and the `TICK_BOOKKEEPING` event that increments possession/territory stats. Rating recalculation is emitted as a `RATINGS_RECALCULATED` `MatchEvent` from `PhaseRouter` (after every phase resolve) and from `PenaltyHandler` (after penalty goal kicks).
 
-Time advances `0.2 + rng(0,8)/10` game minutes per tick (0.2–1.0 min) via a `CLOCK_ADVANCED` event. Fatigue is computed every ~5 accumulated game minutes via `fatigueAccumulator`: `computeFatigue(team, elapsedMinutes)` returns updates and the tick loop emits a `FATIGUE_APPLIED` event for each player. Clock is clamped to 40 (first half) or 80 (second half) until `clockInTheRed` is set, then advances at 1/2 normal speed (clamp + halving happen inside `applyMatchEvent`'s `CLOCK_ADVANCED` branch).
+Time advances `0.2 + rng(0,8)/10` game minutes per tick (0.2–1.0 min) via a `CLOCK_ADVANCED` event. Fatigue is computed every ~5 accumulated game minutes via `fatigueAccumulator`: `computeFatigue(team, elapsedMinutes)` returns updates and the tick loop emits a `FATIGUE_APPLIED` event for each player. Clock is clamped to 40 (first half) or 80 (second half) until `state.clock.clockInTheRed` is set, then advances at 1/2 normal speed (clamp + halving happen inside `applyMatchEvent`'s `CLOCK_ADVANCED` branch).
 
 The penalty interactive pause is a `Promise` that resolves when the `onChoice(choice)` callback is called from the UI payload. The loop `await`s it mid-tick; `handlePenaltyDecision()` emits `engine:paused` which triggers the modal — and is only presented to the managed team (the side the human player selected) in the opposition half; all other penalties auto-resolve to `kick_to_touch`.
 
@@ -170,16 +180,16 @@ KickOff → KickReturn → Breakdown → PhasePlay (loop)
                       → Scrum / Lineout → FirstPhase
                       → TryScored → ConversionKick → KickOff
                       → Penalty → [modal if managed team in opposition half] → KickOff / Lineout / FirstPhase
-Clock reaches 40 min (first half) or 80 min (second half) → clockInTheRed = true, commentary emitted, clock slows to 1/2 speed.
+Clock reaches 40 min (first half) or 80 min (second half) → state.clock.clockInTheRed = true, commentary emitted, clock slows to 1/2 speed.
   While in the red, game ends only when ball goes dead:
     Scrum awarded (knock-on or crooked throw, NOT wheel reset) → HalfTime / FullTime
     Lineout awarded (ball to touch, NOT from penalty kick-to-touch) → HalfTime / FullTime
     ConversionKick → KickOff (try scored + conversion taken) → HalfTime / FullTime
-  Exception: penalty kick-to-touch in the red sets penaltyKickToTouchLineout flag; that one lineout does NOT end the game.
+  Exception: penalty kick-to-touch in the red sets state.clock.penaltyKickToTouchLineout flag; that one lineout does NOT end the game.
   Exception 2: penalty kick-to-touch via tap_and_kick_dead does NOT set the flag, so that lineout DOES end the game.
   Penalty goal kick (kick_for_goal) in the red → KickOff with prevPhase=Penalty → always ends the period (success or miss).
   Knock-on threshold increases ~40% in the red: Math.min(99, 85 + Math.round(Math.max(0, 85 − handling) × 0.4)).
-  triggerHalfTime() resets clockInTheRed = false for the second half.
+  triggerHalfTime() resets state.clock.clockInTheRed = false for the second half.
 ```
 
 Three carry phases share the same evasion/collision resolver (`resolveOpenPlay`) but have distinct player selection, play structure, and commentary template sets (`PHASE_PLAY_TEMPLATES`, `FIRST_PHASE_TEMPLATES`, `KICK_RETURN_TEMPLATES`):
@@ -191,7 +201,7 @@ Three carry phases share the same evasion/collision resolver (`resolveOpenPlay`)
 
 ### Attack direction
 
-Home attacks toward x=100 in the first half, toward x=0 in the second half. **Teams only swap ends at half-time, never on turnovers.** All `ballX` reasoning must go through the pure helpers in `src/engine/FieldPosition.ts` (`attackDir(state)`, `isTryScored(state)`, `inOpposition22(state)`, `inOppositionHalf(state)`, `inOwn22(state)`, `inOwnHalf(state)`) — these are the authoritative helpers that factor in `state.halfTimeDone`.
+Home attacks toward x=100 in the first half, toward x=0 in the second half. **Teams only swap ends at half-time, never on turnovers.** All `ball.x` reasoning must go through the pure helpers in `src/engine/FieldPosition.ts` (`attackDir(state)`, `isTryScored(state)`, `inOpposition22(state)`, `inOppositionHalf(state)`, `inOwn22(state)`, `inOwnHalf(state)`) — these are the authoritative helpers that factor in `state.clock.halfTimeDone`. The live ball lives at `state.ball.{x,y}`; clock fields under `state.clock`; engine-lifecycle flags under `state.engine`. Snapshot DTOs (`GameEvent`, `PenaltyContext`, `MatchEvent` payloads) intentionally keep flat `ballX`/`ballY` scalars — see Section 3.
 
 - Try scored: `ballX >= 95` (home attacking right) or `ballX <= 5` (home attacking left)
 - In opposition 22: `ballX >= 78` / `ballX <= 22` depending on half and possession

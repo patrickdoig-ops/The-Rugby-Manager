@@ -15,17 +15,20 @@ type RawPlayer = {
 
 type RawTeam = RawTeamInput;
 
-// 9 compact stats shown in the roster grid (mental stats excluded for space)
+// All 12 stats shown in the horizontally scrollable roster grid
 const COMPACT_STATS: { key: keyof PlayerStats; abbr: string }[] = [
-  { key: 'stamina',   abbr: 'STM' },
-  { key: 'strength',  abbr: 'STR' },
-  { key: 'pace',      abbr: 'PAC' },
-  { key: 'agility',   abbr: 'AGI' },
-  { key: 'handling',  abbr: 'HND' },
-  { key: 'tackling',  abbr: 'TKL' },
-  { key: 'breakdown', abbr: 'BRK' },
-  { key: 'kicking',   abbr: 'KCK' },
-  { key: 'setPiece',  abbr: 'SET' },
+  { key: 'stamina',    abbr: 'STM' },
+  { key: 'strength',   abbr: 'STR' },
+  { key: 'pace',       abbr: 'PAC' },
+  { key: 'agility',    abbr: 'AGI' },
+  { key: 'handling',   abbr: 'HND' },
+  { key: 'tackling',   abbr: 'TKL' },
+  { key: 'breakdown',  abbr: 'BRK' },
+  { key: 'kicking',    abbr: 'KCK' },
+  { key: 'setPiece',   abbr: 'SET' },
+  { key: 'discipline', abbr: 'DIS' },
+  { key: 'positioning',abbr: 'POS' },
+  { key: 'composure',  abbr: 'CMP' },
 ];
 
 // Formation rows: [jersey ids] from top (fullback) to bottom (front row)
@@ -57,7 +60,7 @@ function getSquadNum(p: RawPlayer): number {
   return p.squadNumber ?? p.id;
 }
 
-function crestHtml(letter: string, color: string, size = 48): string {
+function crestHtml(letter: string, color: string, size = 44): string {
   return `<div class="pm-crest" style="
     width:${size}px;height:${size}px;
     background:linear-gradient(160deg,${color} 0%,color-mix(in oklch,${color} 65%,black) 100%);
@@ -149,11 +152,18 @@ function renderLineupPanel(
   const benchHtml   = bench.map(p => renderPlayerRow(p, color, interactive, true)).join('');
 
   return `
-    ${renderColumnHeader()}
-    <div class="pm-section-header">Starting XV</div>
-    ${starterHtml}
-    <div class="pm-section-header pm-section-bench">Bench</div>
-    ${benchHtml}
+    <div class="pm-roster-scroller">
+      <div class="pm-roster-inner">
+        ${renderColumnHeader()}
+        <div class="pm-section-header">Starting XV</div>
+        ${starterHtml}
+        <div class="pm-section-header pm-section-bench">
+          Bench
+          <span class="pm-bench-hint">Select a bench player to swap</span>
+        </div>
+        ${benchHtml}
+      </div>
+    </div>
   `;
 }
 
@@ -188,29 +198,20 @@ export function initPreMatchScreen(
       </div>
 
       <div id="pm-versus">
-        <div class="pm-versus-side">
-          <div class="pm-versus-ident">
-            ${crestHtml(homeFirst, home.color, 48)}
-            <div>
-              <div class="pm-team-code">${home.shortName}</div>
-              <div class="pm-team-full">${home.name}</div>
-              <div class="pm-form-row">${formPins('WWLWD')}</div>
-            </div>
-          </div>
+        <div class="pm-versus-team">
+          ${crestHtml(homeFirst, home.color, 44)}
+          <div class="pm-form-row">${formPins('WWLWD')}</div>
+          <div class="pm-team-code">${home.shortName}</div>
+          <div class="pm-team-full">${home.name}</div>
         </div>
         <div class="pm-versus-center">
           <span class="pm-vs-text">vs</span>
-          <div class="pm-kickoff-time">20:00</div>
         </div>
-        <div class="pm-versus-side pm-versus-away">
-          <div class="pm-versus-ident pm-versus-ident--right">
-            <div style="text-align:right">
-              <div class="pm-team-code">${away.shortName}</div>
-              <div class="pm-team-full">${away.name}</div>
-              <div class="pm-form-row pm-form-row--right">${formPins('WWWLW')}</div>
-            </div>
-            ${crestHtml(awayFirst, away.color, 48)}
-          </div>
+        <div class="pm-versus-team">
+          ${crestHtml(awayFirst, away.color, 44)}
+          <div class="pm-form-row">${formPins('WWWLW')}</div>
+          <div class="pm-team-code">${away.shortName}</div>
+          <div class="pm-team-full">${away.name}</div>
         </div>
       </div>
 
@@ -243,8 +244,6 @@ export function initPreMatchScreen(
           </button>
         </div>
       </div>
-
-      <div id="pm-hint-bar" class="pm-hint-bar">Select a bench player, then a starter to swap</div>
     </div>
 
     <div id="pm-body">
@@ -256,12 +255,11 @@ export function initPreMatchScreen(
     <div id="pm-footer">
       <button id="pm-start">
         <span class="btn-label">Kick off</span>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
       </button>
     </div>
   `;
 
-  const hintBar      = screen.querySelector<HTMLElement>('#pm-hint-bar')!;
   const homePanel    = screen.querySelector<HTMLElement>('#pm-home')!;
   const awayPanel    = screen.querySelector<HTMLElement>('#pm-away')!;
   const tacticsPanel = screen.querySelector<HTMLElement>('#pm-tactics')!;
@@ -269,9 +267,15 @@ export function initPreMatchScreen(
   const viewToggle   = screen.querySelector<HTMLElement>('#pm-view-toggle')!;
 
   function updateHint(): void {
-    hintBar.textContent = selectedBenchSquadNum === null
-      ? 'Select a bench player, then a starter to swap'
-      : 'Now select a starter to replace';
+    const hintEl = homePanel.querySelector<HTMLElement>('.pm-bench-hint');
+    if (!hintEl) return;
+    if (selectedBenchSquadNum === null) {
+      hintEl.textContent = 'Select a bench player to swap';
+      hintEl.classList.remove('pm-bench-hint--active');
+    } else {
+      hintEl.textContent = 'Now select a starter to replace';
+      hintEl.classList.add('pm-bench-hint--active');
+    }
   }
 
   function renderHomePanel(): void {
@@ -350,7 +354,6 @@ export function initPreMatchScreen(
       homePanel.classList.toggle('hidden', t !== 'home');
       awayPanel.classList.toggle('hidden', t !== 'away');
       tacticsPanel.classList.toggle('hidden', t !== 'tactics');
-      hintBar.classList.toggle('pm-hint-hidden', t !== 'home');
       viewToggle.classList.toggle('pm-view-toggle--hidden', t === 'tactics');
     });
   });

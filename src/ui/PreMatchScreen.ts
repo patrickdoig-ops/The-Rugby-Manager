@@ -31,15 +31,15 @@ const COMPACT_STATS: { key: keyof PlayerStats; abbr: string }[] = [
   { key: 'composure',  abbr: 'CMP' },
 ];
 
-// Formation rows: [jersey ids] from top (fullback) to bottom (front row)
+// Formation rows: [jersey ids] from top (front row) to bottom (fullback)
 const FORMATION_ROWS: number[][] = [
-  [15],
-  [11, 14],
-  [12, 13],
-  [9, 10],
-  [6, 7, 8],
-  [4, 5],
   [1, 2, 3],
+  [4, 5],
+  [6, 8, 7],
+  [9, 10],
+  [12, 13],
+  [11, 14],
+  [15],
 ];
 const ROW_Y_PCT = [10, 24, 38, 52, 64, 76, 88];
 

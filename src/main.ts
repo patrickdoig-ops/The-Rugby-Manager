@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
       homeTeamRaw as RawTeamInput,
       awayTeamRaw as RawTeamInput,
       (configuredHome, configuredAway, homeTactics) => {
-        const engine = new MatchEngine(configuredHome, configuredAway, { tickDelayMs: 1500, homeTactics });
+        const engine = new MatchEngine(configuredHome, configuredAway, { tickDelayMs: 2000, homeTactics });
         initSimController(engine);
         engine.initialize();
       },

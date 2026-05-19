@@ -79,7 +79,7 @@ export function buildAppShell(): void {
         </button>
         <label class="speed-label">
           <span class="speed-text">Speed</span>
-          <input type="range" id="speed-slider" min="100" max="2000" value="1500" step="100">
+          <input type="range" id="speed-slider" min="100" max="4000" value="2000" step="100">
           <span id="speed-display">600ms</span>
         </label>
       </div>

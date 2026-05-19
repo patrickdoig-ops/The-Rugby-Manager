@@ -35,6 +35,19 @@ function colorizePlayer(text: string, player: Player, color: string): string {
   return text.split(label).join(`<span style="color:${color};font-weight:700">${label}</span>`);
 }
 
+function deduplicatePlayerRefs(text: string): string {
+  const seen = new Set<string>();
+  let result = text.replace(
+    /[A-Z][A-Za-z'-]*(?: [A-Z][A-Za-z'-]*)* \(#\d{1,2}\)/g,
+    (match) => {
+      if (seen.has(match)) return 'he';
+      seen.add(match);
+      return match;
+    },
+  );
+  return result.replace(/([.!?]\s+)he\b/g, (_, punc) => punc + 'He');
+}
+
 export function initCommentaryFeed(): void {
   const feed = document.getElementById('commentary-feed')!;
 
@@ -66,7 +79,7 @@ export function initCommentaryFeed(): void {
 
     const minute = Math.floor(event.gameMinute);
     const tag    = TAG_MAP[event.phase] ?? '·';
-    let html = event.commentary;
+    let html = deduplicatePlayerRefs(event.commentary);
 
     for (const { player, color } of allPlayersWithColor) {
       html = colorizePlayer(html, player, color);

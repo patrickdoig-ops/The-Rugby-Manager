@@ -53,7 +53,7 @@ function getSquadNum(p: RawPlayer): number {
   return p.squadNumber ?? p.id;
 }
 
-function renderPlayer(p: RawPlayer, color: string, interactive = false, isBench = false): string {
+function renderPlayer(p: RawPlayer, color: string, interactive = false, isBench = false, view: 'summary' | number = 'summary'): string {
   const ovr = computeOverall(p.baseStats);
   const squadNum = getSquadNum(p);
   const ovrGroup = `<div class="attr-group attr-group--ovr">
@@ -63,14 +63,21 @@ function renderPlayer(p: RawPlayer, color: string, interactive = false, isBench 
     </div>
   </div>`;
 
-  const groupCells = STAT_GROUPS.map(g => {
-    const avg = Math.round(g.keys.reduce((s, k) => s + p.baseStats[k], 0) / g.keys.length);
-    const summaryCell = `<div class="attr-cell attr-cell--group ${tierClass(avg)}">
+  let groupCells: string;
+  if (view === 'summary') {
+    groupCells = STAT_GROUPS.map(g => {
+      const avg = Math.round(g.keys.reduce((s, k) => s + p.baseStats[k], 0) / g.keys.length);
+      return `<div class="attr-group">
+        <div class="attr-cell attr-cell--group ${tierClass(avg)}">
           <span class="attr-key">${g.abbr}</span>
           <span class="attr-val">${avg}</span>
-        </div>`;
-    return `<div class="attr-group">
-      ${summaryCell}${g.keys.map(k => {
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    const g = STAT_GROUPS[view];
+    groupCells = `<div class="attr-group">
+      ${g.keys.map(k => {
         const v = p.baseStats[k];
         return `<div class="attr-cell ${tierClass(v)}">
           <span class="attr-key">${STAT_ABBR[k]}</span>
@@ -78,7 +85,7 @@ function renderPlayer(p: RawPlayer, color: string, interactive = false, isBench 
         </div>`;
       }).join('')}
     </div>`;
-  }).join('');
+  }
 
   const lastName = p.name.split(' ').slice(1).join(' ') || p.name;
   const benchClass = isBench ? ' pm-player--bench' : ' pm-player--starter';
@@ -100,24 +107,42 @@ function renderPlayer(p: RawPlayer, color: string, interactive = false, isBench 
   </${tag}>`;
 }
 
-function renderLegend(): string {
+function renderLegend(view: 'summary' | number): string {
+  const groupsHtml = view === 'summary'
+    ? STAT_GROUPS.map(g =>
+        `<div class="legend-group">
+          <span class="legend-item legend-item--group">${g.abbr}</span>
+        </div>`
+      ).join('')
+    : `<div class="legend-group">
+        ${STAT_GROUPS[view].keys.map(k => `<span class="legend-item">${STAT_ABBR[k]}</span>`).join('')}
+      </div>`;
+
   return `<div class="pm-legend">
     <div class="legend-group legend-group--ovr">
       <span class="legend-item">OVR</span>
     </div>
-    ${STAT_GROUPS.map(g =>
-      `<div class="legend-group">
-        <span class="legend-item legend-item--group">${g.abbr}</span>${g.keys.map(k => `<span class="legend-item">${STAT_ABBR[k]}</span>`).join('')}
-      </div>`
-    ).join('')}
+    ${groupsHtml}
   </div>`;
 }
 
-function renderLineupPanel(starters: RawPlayer[], bench: RawPlayer[], color: string, interactive: boolean): string {
-  const starterHtml = starters.map(p => renderPlayer(p, color, interactive, false)).join('');
-  const benchHtml   = bench.map(p => renderPlayer(p, color, interactive, true)).join('');
+function renderLineupPanel(starters: RawPlayer[], bench: RawPlayer[], color: string, interactive: boolean, view: 'summary' | number): string {
+  const starterHtml = starters.map(p => renderPlayer(p, color, interactive, false, view)).join('');
+  const benchHtml   = bench.map(p => renderPlayer(p, color, interactive, true, view)).join('');
+
+  const viewBtns = [
+    { label: 'All', value: 'summary' as const },
+    ...STAT_GROUPS.map((g, i) => ({ label: g.abbr, value: i as number })),
+  ].map(btn => {
+    const active = btn.value === view;
+    return `<button class="pm-view-btn${active ? ' pm-view-btn--active' : ''}" data-view="${btn.value}">${btn.label}</button>`;
+  }).join('');
+
   return `
-    ${renderLegend()}
+    <div class="pm-list-header">
+      <div class="pm-view-bar">${viewBtns}</div>
+      ${renderLegend(view)}
+    </div>
     <div class="pm-section-header">Starting XV</div>
     <div class="pm-starters-list">${starterHtml}</div>
     <div class="pm-section-header pm-section-bench">Bench</div>
@@ -139,6 +164,7 @@ export function initPreMatchScreen(
   const awayBench:    RawPlayer[] = ((away.bench ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
 
   let selectedBenchSquadNum: number | null = null;
+  let activeView: 'summary' | number = 'summary';
 
   screen.innerHTML = `
     <div id="pm-header">
@@ -158,7 +184,7 @@ export function initPreMatchScreen(
 
     <div id="pm-body">
       <div id="pm-home"    class="pm-panel"></div>
-      <div id="pm-away"    class="pm-panel hidden">${renderLineupPanel(awayStarters, awayBench, away.color, false)}</div>
+      <div id="pm-away"    class="pm-panel hidden"></div>
       <div id="pm-tactics" class="pm-panel hidden"></div>
     </div>
 
@@ -183,11 +209,16 @@ export function initPreMatchScreen(
   }
 
   function renderHomePanel(): void {
-    homePanel.innerHTML = renderLineupPanel(homeStarters, homeBench, home.color, true);
+    homePanel.innerHTML = renderLineupPanel(homeStarters, homeBench, home.color, true, activeView);
     updateHint();
   }
 
+  function renderAwayPanel(): void {
+    awayPanel.innerHTML = renderLineupPanel(awayStarters, awayBench, away.color, false, activeView);
+  }
+
   renderHomePanel();
+  renderAwayPanel();
 
   // Single delegated handler — set up once so re-renders don't stack handlers
   homePanel.addEventListener('click', (e) => {
@@ -224,6 +255,18 @@ export function initPreMatchScreen(
       selectedBenchSquadNum = null;
       renderHomePanel();
     }
+  });
+
+  const pmBody = screen.querySelector<HTMLElement>('#pm-body')!;
+  pmBody.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.pm-view-btn');
+    if (!btn) return;
+    const raw = btn.dataset.view!;
+    const clicked: 'summary' | number = raw === 'summary' ? 'summary' : Number(raw);
+    activeView = clicked === activeView ? 'summary' : clicked;
+    selectedBenchSquadNum = null;
+    renderHomePanel();
+    renderAwayPanel();
   });
 
   let chosenTactics: TeamTactics = { ...DEFAULT_TACTICS };

@@ -53,3 +53,11 @@ export const PENALTY_VALUES = {
   goalKickDistanceFromPostsWeight: 0.3,
   kickToTouchDistance: 20,
 } as const;
+
+// Kick-return run gain (Step 2 in handleKickReturn): the carrier wins the
+// run vs the chaser → `successfulRunMetres`; otherwise `failedRunMetres`.
+// Each pair is [min, max] passed to `rng(min, max)`.
+export const KICK_RETURN_VALUES = {
+  successfulRunMetres: [3, 10],
+  failedRunMetres:     [0, 3],
+} as const;

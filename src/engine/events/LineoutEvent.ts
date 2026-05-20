@@ -3,11 +3,12 @@ import type { MatchEvent } from '../../types/matchEvent';
 import { MatchPhase } from '../../types/engine';
 import { resolveLineout } from '../resolvers/LineoutResolver';
 import { rng } from '../../utils/rng';
+import { LINEOUT_VALUES } from '../balance';
 
 export function handleLineout({ state, attackTeam, defendTeam, pickPlayer }: PhaseContext): PhaseResult {
   const hooker       = pickPlayer(attackTeam, 2);
-  const jumperIds    = [4, 5, 7];
-  const chosenId     = jumperIds[rng(0, 2)];
+  const jumperIds    = LINEOUT_VALUES.jumperIds;
+  const chosenId     = jumperIds[rng(0, jumperIds.length - 1)];
   const attackJumper = attackTeam.players.find(p => p.id === chosenId)
                     ?? attackTeam.players.find(p => p.id === 4)
                     ?? attackTeam.players[0];

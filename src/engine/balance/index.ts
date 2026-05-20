@@ -10,6 +10,7 @@
 // One file per logical concern. Importers can read from the barrel
 // (`./balance`) — they don't need to know which sub-file holds which constant.
 
+export * from './scoring';
 export * from './kicking';
 export * from './openPlay';
 export * from './breakdown';

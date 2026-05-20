@@ -26,7 +26,7 @@ function stackedScore(
     return sum + (
       p.currentStats[leadStat] * leadWeight
       + p.currentStats[supportStat] * supportWeight
-      + (p.currentStats.discipline - 50) * disciplineWeight
+      + (p.currentStats.discipline - BREAKDOWN_VALUES.disciplinePivot) * disciplineWeight
     ) * w;
   }, 0) / 2;
 }
@@ -56,7 +56,7 @@ export function resolveBreakdown(
     // jackal
     dts = jackal.currentStats.breakdown * jackalLeadWeight
         + jackal.currentStats.strength * jackalSupportWeight
-        + (jackal.currentStats.discipline - 50) * disciplineWeight
+        + (jackal.currentStats.discipline - BREAKDOWN_VALUES.disciplinePivot) * disciplineWeight
         + rng(1, 20);
   }
 

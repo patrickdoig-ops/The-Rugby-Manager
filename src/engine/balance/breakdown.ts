@@ -5,6 +5,9 @@ export const BREAKDOWN_VALUES = {
   leadWeight:       0.6,
   supportWeight:    0.4,
   disciplineWeight: 0.15,
+  // Pivot used as `(p.discipline - disciplinePivot) * disciplineWeight` so a
+  // discipline of 50 is neutral and values above/below add or subtract score.
+  disciplinePivot:  50,
   bodyWeights:      [1.0, 0.6, 0.4, 0.3],
   bodyWeightFallback: 0.3,
   cleanBallMargin:  10,

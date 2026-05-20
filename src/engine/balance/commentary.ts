@@ -20,3 +20,7 @@ export const COMMENTARY_CHANCES = {
   tacticalKickFiftyTwentyTwo:   25,
   tacticalKickCaughtReturn:     35,
 } as const;
+
+// Soft cap on the in-state commentary buffer (state.events). Older entries
+// are spliced off the front when the buffer overflows.
+export const COMMENTARY_BUFFER_CAP = 300;

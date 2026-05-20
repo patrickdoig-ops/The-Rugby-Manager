@@ -3,7 +3,7 @@ import type { MatchEvent } from '../types/matchEvent';
 import { clamp } from '../utils/math';
 import { attackDir } from './FieldPosition';
 import { computeRating } from './RatingEngine';
-import { CLOCK_VALUES } from './balance';
+import { CLOCK_VALUES, SCORE_VALUES, COMMENTARY_BUFFER_CAP } from './balance';
 
 // The single function permitted to mutate MatchState (or any Player field).
 // Every handler / orchestrator builds an array of MatchEvent and routes them
@@ -15,13 +15,13 @@ export function applyMatchEvent(state: MatchState, event: MatchEvent): void {
     // ── Scoring ──────────────────────────────────────────────────────────
     case 'TRY_SCORED': {
       event.scorer.matchStats.tries++;
-      state.score[event.side] += 5;
+      state.score[event.side] += SCORE_VALUES.try;
       state.stats.tries[event.side]++;
       // A try is always scored inside the opposition 22 — auto-register the entry
       // if a same-tick break-and-score arrived before the tick-boundary detection.
       const e = state.stats.entries22[event.side];
       if (!e.active) { e.count++; e.active = true; }
-      e.pointsScored += 5;
+      e.pointsScored += SCORE_VALUES.try;
       return;
     }
 
@@ -29,9 +29,9 @@ export function applyMatchEvent(state: MatchState, event: MatchEvent): void {
       event.kicker.matchStats.kicksAtGoal++;
       if (event.success) {
         event.kicker.matchStats.kicksMade++;
-        state.score[event.side] += 2;
+        state.score[event.side] += SCORE_VALUES.conversion;
         if (state.stats.entries22[event.side].active) {
-          state.stats.entries22[event.side].pointsScored += 2;
+          state.stats.entries22[event.side].pointsScored += SCORE_VALUES.conversion;
         }
       } else {
         event.kicker.matchStats.kicksMissed++;
@@ -42,9 +42,9 @@ export function applyMatchEvent(state: MatchState, event: MatchEvent): void {
       event.kicker.matchStats.kicksAtGoal++;
       if (event.success) {
         event.kicker.matchStats.kicksMade++;
-        state.score[event.side] += 3;
+        state.score[event.side] += SCORE_VALUES.penaltyGoal;
         if (state.stats.entries22[event.side].active) {
-          state.stats.entries22[event.side].pointsScored += 3;
+          state.stats.entries22[event.side].pointsScored += SCORE_VALUES.penaltyGoal;
         }
       } else {
         event.kicker.matchStats.kicksMissed++;
@@ -301,7 +301,9 @@ export function applyMatchEvent(state: MatchState, event: MatchEvent): void {
     // ── Commentary feed ─────────────────────────────────────────────────
     case 'COMMENTARY_LOGGED':
       state.events.push(event.event);
-      if (state.events.length > 300) state.events.splice(0, state.events.length - 300);
+      if (state.events.length > COMMENTARY_BUFFER_CAP) {
+        state.events.splice(0, state.events.length - COMMENTARY_BUFFER_CAP);
+      }
       return;
 
     default: {

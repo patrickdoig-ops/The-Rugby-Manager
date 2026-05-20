@@ -6,7 +6,7 @@ import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { isTryScoredAt } from '../FieldPosition';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
-import { KICK_PROBABILITIES, TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
+import { KICK_PROBABILITIES, KICK_RETURN_VALUES, TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
 
 export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isTryScored, inOwnHalf, inOwn22, randomPlayer }: PhaseContext): PhaseResult {
   // Step 0 — Kick or carry decision
@@ -44,7 +44,8 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
   // Step 2 — Run: carrier pace/agility vs chaser pace/tackling
   const runAttack = (carrier.currentStats.pace + carrier.currentStats.agility) / 2 + rng(1, 20);
   const runDefend = (defender.currentStats.pace + defender.currentStats.tackling) / 2 + rng(1, 20);
-  const runMetres = runAttack >= runDefend ? rng(3, 10) : rng(0, 3);
+  const runRange  = runAttack >= runDefend ? KICK_RETURN_VALUES.successfulRunMetres : KICK_RETURN_VALUES.failedRunMetres;
+  const runMetres = rng(runRange[0], runRange[1]);
 
   // Step 3 — Evasion → Step 4 Collision
   const res = resolveOpenPlay(carrier, defender, attackMod, defendMod + backfieldPenalty);

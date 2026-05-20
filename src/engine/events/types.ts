@@ -9,12 +9,11 @@ export interface PhaseContext {
   state: MatchState;
   attackTeam: Team;
   defendTeam: Team;
-  attackDir(): 1 | -1;
-  isTryScored(): boolean;
-  inOpposition22(): boolean;
-  inOppositionHalf(): boolean;
-  inOwn22(): boolean;
-  inOwnHalf(): boolean;
+  // Field-position helpers (attackDir, isTryScoredAt, inOpposition22, etc.)
+  // are pure functions in `src/engine/FieldPosition.ts` that take `state` as
+  // an argument. Handlers import them directly — no closures threaded
+  // through this context (CLAUDE.md §4 prefers pure functions over methods
+  // when state can be passed directly).
   randomPlayer(team: Team): Player;
   pickPlayer(team: Team, ...ids: number[]): Player;
   draftEvent(phase: MatchPhase): GameEvent;

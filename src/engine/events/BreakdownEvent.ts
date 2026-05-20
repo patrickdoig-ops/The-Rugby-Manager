@@ -6,8 +6,9 @@ import { MatchPhase } from '../../types/engine';
 import { resolveBreakdown } from '../resolvers/BreakdownResolver';
 import { rng } from '../../utils/rng';
 import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
+import { inOpposition22, inOwn22, inOwnHalf } from '../FieldPosition';
 
-export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22, inOwn22, inOwnHalf }: PhaseContext): PhaseResult {
+export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext): PhaseResult {
   const attPlan = attackTeam.tactics.attackingBreakdown;
   const defPlan = defendTeam.tactics.defendingBreakdown;
 
@@ -70,9 +71,9 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
     if (plan === 'possession') {
       boxKick = false;
     } else if (plan === 'kicking') {
-      boxKick = !inOpposition22() && !inOwn22();
+      boxKick = !inOpposition22(state) && !inOwn22(state);
     } else {
-      boxKick = inOwnHalf() && !inOwn22();
+      boxKick = inOwnHalf(state) && !inOwn22(state);
     }
 
     const steps: NarrationStep[] = [

@@ -1,9 +1,7 @@
 import type { MatchState, GameEvent } from '../types/match';
 import { MatchPhase, type KickOffStrategy } from '../types/engine';
-import type { StateMachine } from './StateMachine';
 import { rng } from '../utils/rng';
 import { makeId } from './eventId';
-import { attackDir, isTryScored, inOpposition22, inOppositionHalf, inOwn22, inOwnHalf } from './FieldPosition';
 import type { PhaseContext, PhaseResult } from './events/types';
 import { applyMatchEvent } from './applyMatchEvent';
 import { handleKickOff }        from './events/KickOffEvent';
@@ -51,7 +49,7 @@ export function draftEvent(state: MatchState, phase: MatchPhase): GameEvent {
   };
 }
 
-export function resolvePhase(state: MatchState, sm: StateMachine, kickOffStrategy: KickOffStrategy): GameEvent {
+export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy): GameEvent {
   const attackTeam = state.possession === 'home' ? state.homeTeam : state.awayTeam;
   const defendTeam = state.possession === 'home' ? state.awayTeam : state.homeTeam;
   // Capture before the handler runs — possession may flip inside the handler.
@@ -65,12 +63,6 @@ export function resolvePhase(state: MatchState, sm: StateMachine, kickOffStrateg
     state,
     attackTeam,
     defendTeam,
-    attackDir:        () => attackDir(state),
-    isTryScored:      () => isTryScored(state),
-    inOpposition22:   () => inOpposition22(state),
-    inOppositionHalf: () => inOppositionHalf(state),
-    inOwn22:          () => inOwn22(state),
-    inOwnHalf:        () => inOwnHalf(state),
     randomPlayer: (team) => team.players[rng(0, team.players.length - 1)],
     pickPlayer:   (team, ...ids) => team.players.find(p => ids.includes(p.id)) ?? team.players[0],
     draftEvent:   (phase) => draftEvent(state, phase),
@@ -89,14 +81,7 @@ export function resolvePhase(state: MatchState, sm: StateMachine, kickOffStrateg
   // the handler can make to MatchState / player stats.
   for (const e of result.events) applyMatchEvent(state, e);
 
-  // Phase transition is its own MatchEvent so applyMatchEvent owns state.phase too.
-  // The StateMachine keeps its parallel _current field; transition() validates,
-  // forceTransition() bypasses validation (used as a fallback).
-  try {
-    sm.transition(result.nextPhase);
-  } catch {
-    sm.forceTransition(result.nextPhase);
-  }
+  // Phase transition is its own MatchEvent — applyMatchEvent owns state.phase.
   applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: result.nextPhase });
 
   // Ratings are a derived quantity recomputed from matchStats after every phase resolve.

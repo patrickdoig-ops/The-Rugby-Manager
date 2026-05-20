@@ -3,16 +3,16 @@ import type { MatchEvent } from '../../types/matchEvent';
 import type { NarrationDescriptor } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
-import { isTryScoredAt } from '../FieldPosition';
+import { attackDir, isTryScoredAt, inOwnHalf, inOwn22 } from '../FieldPosition';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { KICK_PROBABILITIES, KICK_RETURN_VALUES, TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
 
-export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isTryScored, inOwnHalf, inOwn22, randomPlayer }: PhaseContext): PhaseResult {
+export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }: PhaseContext): PhaseResult {
   // Step 0 — Kick or carry decision
   const plan = attackTeam.tactics.attackingGamePlan;
   const probs = KICK_PROBABILITIES[plan];
-  const kickProb = inOwn22() ? probs.own22 : (inOwnHalf() ? probs.ownHalf : probs.opposition);
+  const kickProb = inOwn22(state) ? probs.own22 : (inOwnHalf(state) ? probs.ownHalf : probs.opposition);
 
   if (rng(1, 100) <= kickProb) {
     const flyHalf = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
@@ -50,7 +50,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
   // Step 3 — Evasion → Step 4 Collision
   const res = resolveOpenPlay(carrier, defender, attackMod, defendMod + backfieldPenalty);
   const totalMetres = runMetres + res.gainMetres;
-  const direction = attackDir();
+  const direction = attackDir(state);
 
   events.push({
     type: 'CARRY_RESOLVED',
@@ -90,7 +90,6 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
     steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: res.outcome, primary: carrier, secondary: defender });
   }
 
-  void isTryScored;
   return {
     nextPhase,
     narration: { steps },

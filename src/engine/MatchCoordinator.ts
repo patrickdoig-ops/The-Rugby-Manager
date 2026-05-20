@@ -5,7 +5,6 @@ import type { Player, PlayerStats } from '../types/player';
 import { zeroMatchStats } from '../types/player';
 import type { RawPlayer, RawTeamInput } from '../types/teamData';
 import { MatchPhase, type PossessionSide, type KickOffStrategy } from '../types/engine';
-import { StateMachine } from './StateMachine';
 import { eventBus } from '../utils/eventBus';
 import { rngForm, setMatchSeed, rng, generateSeed } from '../utils/rng';
 import { PenaltyHandler } from './PenaltyHandler';
@@ -92,7 +91,6 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
 
 export class MatchCoordinator {
   private state: MatchState;
-  private sm: StateMachine;
   private tickTimeout: ReturnType<typeof setTimeout> | null = null;
   private kickOffStrategy: KickOffStrategy = 'high_ball';
   private humanSide: 'home' | 'away';
@@ -118,13 +116,11 @@ export class MatchCoordinator {
     this.silent = opts.silent ?? false;
     const tactics = opts.playerTactics ?? opts.homeTactics;
     this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, seed, tactics, this.humanSide);
-    this.sm = new StateMachine(MatchPhase.KickOff);
-    this.clock = new ClockController(this.sm, this.silent);
+    this.clock = new ClockController(this.silent);
     this.fatigue = new FatigueAccumulator(this.state, this.silent);
 
     this.penaltyHandler = new PenaltyHandler({
       state: this.state,
-      sm: this.sm,
       humanSide: this.humanSide,
       silent: this.silent,
     });
@@ -329,7 +325,7 @@ export class MatchCoordinator {
         this.emitEvent(announceEvent);
       }
 
-      const event = resolvePhase(this.state, this.sm, this.kickOffStrategy);
+      const event = resolvePhase(this.state, this.kickOffStrategy);
       applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event });
 
       detectEntry22Changes(this.state);

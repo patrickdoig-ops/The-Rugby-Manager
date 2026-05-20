@@ -36,7 +36,7 @@ The engine is split across files in `src/engine/`. `MatchCoordinator` owns the p
 | `RatingEngine.ts` | Pure `computeRating(player)` — called by `applyMatchEvent` when a `RATINGS_RECALCULATED` event is reduced. |
 | `balance/` | **Single source of truth for every gameplay tuning number.** One file per concern (scoring, kicking, openPlay, breakdown, scrum, lineout, fatigue, rating, tactics, clock, commentary, season) re-exported through `balance/index.ts`. Resolvers, events, and systems import from here; no tuning literals live elsewhere. |
 
-All emit UI side-effects through the shared `src/utils/eventBus.ts` singleton; event IDs come from the monotonic counter in `src/engine/eventId.ts`. `StateMachine` (`src/engine/StateMachine.ts`) is owned by `MatchCoordinator` and passed into `ClockController` and `PhaseRouter` for transitions.
+All emit UI side-effects through the shared `src/utils/eventBus.ts` singleton; event IDs come from the monotonic counter in `src/engine/eventId.ts`. The current phase lives solely on `state.phase`; all transitions go through the `PHASE_CHANGED` `MatchEvent` (no separate state-machine class). `PhaseContext` (`src/engine/events/types.ts`) is the minimal closure passed to handlers — `{ state, attackTeam, defendTeam, randomPlayer, pickPlayer, draftEvent, kickOffStrategy }`. Field-position helpers (`attackDir`, `inOwn22`, `isTryScoredAt`, …) are pure functions in `FieldPosition.ts` that handlers import directly with `state`.
 
 ### Mutation boundary: `MatchEvent` and `applyMatchEvent`
 
@@ -128,7 +128,7 @@ Each tick:
 4. Increments possession and territory counters.
 5. For `KickOff` and `BoxKick` phases: emits a pre-phase announce `GameEvent` (naming the kicker before the outcome is resolved).
 6. For `KickOff` phase: awaits kick-off strategy selection via `penaltyHandler.awaitKickOffStrategy()` (modal `kickoff_choice` pause) — **managed team only** (the side the human player chose at the team selector). The AI-controlled team always defaults to `high_ball` with no modal.
-7. Calls `resolvePhase(state, sm, kickOffStrategy)` (`src/engine/PhaseRouter.ts`) to produce the outcome `GameEvent`. The router owns the `PHASE_HANDLERS` map, builds the `PhaseContext`, dispatches to the matching event handler, runs the StateMachine transition, and returns the resulting `GameEvent`.
+7. Calls `resolvePhase(state, kickOffStrategy)` (`src/engine/PhaseRouter.ts`) to produce the outcome `GameEvent`. The router owns the `PHASE_HANDLERS` map, builds the `PhaseContext`, dispatches to the matching event handler, applies the handler's `MatchEvent[]` queue, then applies `PHASE_CHANGED` to advance `state.phase`, and returns the resulting `GameEvent`.
 8. Emits `engine:event` and `engine:stateChange`.
 9. Checks for penalty interactive pause via `penaltyHandler.handlePenaltyDecision()` (if phase is `Penalty`).
 10. **Clock-in-the-red check:** If `!state.clock.clockInTheRed`, calls `clock.checkClockInRed(state)` (sets flag and emits announcement when `gameMinute >= halfTarget`). Else if `wasInRed && clock.shouldEndPeriod(state, previousPhase)`, calls `clock.triggerHalfTime(state)` or `clock.endMatch(state)`.
@@ -167,7 +167,7 @@ Three carry phases share an evasion/collision resolver but have distinct player 
 - **FirstPhase** — runs after Scrum, Lineout, or a tap-and-go penalty; carrier always #10; crash ball or wide play
 - **KickReturn** — runs after KickOff, BoxKick, or TacticalKick; carrier is whoever caught the kick; run step before evasion/collision
 
-`StateMachine.transition()` validates against this table and throws on illegal moves. `forceTransition()` bypasses validation and is used for HalfTime, FullTime, and penalty resolution.
+The transition table above is documentary; the engine no longer enforces it at runtime. All transitions go through `PHASE_CHANGED` applied via `applyMatchEvent`.
 
 ### Player ratings
 

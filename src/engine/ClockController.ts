@@ -1,7 +1,6 @@
 import type { MatchState, GameEvent } from '../types/match';
 import { MatchPhase } from '../types/engine';
 import type { NarrationDescriptor } from '../types/narration';
-import type { StateMachine } from './StateMachine';
 import { eventBus } from '../utils/eventBus';
 import { rng } from '../utils/rng';
 import { makeId } from './eventId';
@@ -12,7 +11,7 @@ export class ClockController {
   // `silent` matches headless AI fixtures — suppresses every commentary
   // event and stateChange notification. `engine:finished` is still emitted
   // because the headless caller awaits it to read final scores.
-  constructor(private sm: StateMachine, private silent: boolean = false) {}
+  constructor(private silent: boolean = false) {}
 
   private emitEvent(event: GameEvent): void {
     if (this.silent) return;
@@ -88,7 +87,6 @@ export class ClockController {
       state.engine.firstHalfKicker === 'home' ? 'away' : 'home';
     applyMatchEvent(state, { type: 'POSSESSION_SET', side: secondHalfKicker });
     applyMatchEvent(state, { type: 'BALL_REPOSITIONED', x: 50, y: 50 });
-    this.sm.forceTransition(MatchPhase.KickOff);
     applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.KickOff });
 
     const htEvent: GameEvent = {
@@ -108,7 +106,6 @@ export class ClockController {
 
   endMatch(state: MatchState): void {
     applyMatchEvent(state, { type: 'MATCH_ENDED' });
-    this.sm.forceTransition(MatchPhase.FullTime);
     applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.FullTime });
 
     const ftEvent: GameEvent = {

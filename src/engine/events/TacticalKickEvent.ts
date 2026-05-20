@@ -3,17 +3,17 @@ import type { MatchEvent } from '../../types/matchEvent';
 import type { NarrationDescriptor } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
 import { resolveTacticalKick } from '../resolvers/KickingResolver';
-import { inOpposition22At } from '../FieldPosition';
+import { attackDir, inOwn22, inOwnHalf, inOpposition22At } from '../FieldPosition';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
 
-export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, inOwn22, inOwnHalf, randomPlayer }: PhaseContext): PhaseResult {
+export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer }: PhaseContext): PhaseResult {
   const kicker   = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
   const defender = defendTeam.players.find(p => p.id === 15) ?? randomPlayer(defendTeam);
 
-  const startedInOwn22 = inOwn22();
-  const startedInOwnHalf = inOwnHalf();
+  const startedInOwn22 = inOwn22(state);
+  const startedInOwnHalf = inOwnHalf(state);
   const originalBallX = state.ball.x;
 
   const res = resolveTacticalKick(kicker);
@@ -22,7 +22,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
   const goesOutOnTheFull = rng(1, 100) <= res.outOnTheFullProbability;
   const goesToTouch      = !goesOutOnTheFull && rng(1, 100) <= Math.max(0, res.touchProbability - touchReduction);
 
-  const kickDir = attackDir();
+  const kickDir = attackDir(state);
   const newBallX = clamp(state.ball.x + kickDir * res.distance, 5, 95);
 
   const events: MatchEvent[] = [

@@ -1,6 +1,5 @@
 import type { MatchState, GameEvent } from '../types/match';
 import { MatchPhase, type PenaltyChoice, type KickOffStrategy } from '../types/engine';
-import type { StateMachine } from './StateMachine';
 import { resolveGoalKick } from './resolvers/KickingResolver';
 import { eventBus } from '../utils/eventBus';
 import { clamp } from '../utils/math';
@@ -11,7 +10,6 @@ import { PENALTY_VALUES } from './balance';
 
 export interface PenaltyHandlerDeps {
   state: MatchState;
-  sm: StateMachine;
   humanSide: 'home' | 'away';
   // Silent mode (headless AI fixture): never prompt; resolve with the same
   // defaults the determinism harness uses (`high_ball` / `kick_for_goal`).
@@ -87,7 +85,7 @@ export class PenaltyHandler {
   }
 
   private applyPenaltyChoice(choice: PenaltyChoice): void {
-    const { state, sm } = this.deps;
+    const { state } = this.deps;
     const attackTeam = state.possession === 'home' ? state.homeTeam : state.awayTeam;
     const kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
 
@@ -126,7 +124,6 @@ export class PenaltyHandler {
 
       applyMatchEvent(state, { type: 'POSSESSION_SWAPPED' });
       applyMatchEvent(state, { type: 'BALL_REPOSITIONED', x: 50, y: 50 });
-      sm.forceTransition(MatchPhase.KickOff);
       applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.KickOff });
 
     } else if (choice === 'kick_to_touch') {
@@ -165,7 +162,6 @@ export class PenaltyHandler {
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: awardEvent });
       this.emit('engine:event', { event: awardEvent });
 
-      sm.forceTransition(MatchPhase.Lineout);
       applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.Lineout });
 
     } else if (choice === 'tap_and_kick_dead') {
@@ -182,7 +178,6 @@ export class PenaltyHandler {
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
       this.emit('engine:event', { event: penEvent });
-      sm.forceTransition(MatchPhase.Lineout);
       applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.Lineout });
 
     } else {
@@ -200,7 +195,6 @@ export class PenaltyHandler {
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
       this.emit('engine:event', { event: penEvent });
-      sm.forceTransition(MatchPhase.FirstPhase);
       applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.FirstPhase });
     }
 

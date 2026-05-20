@@ -6,8 +6,9 @@ import { resolveBoxKick } from '../resolvers/BoxKickResolver';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
+import { attackDir } from '../FieldPosition';
 
-export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, randomPlayer }: PhaseContext): PhaseResult {
+export function handleBoxKick({ state, attackTeam, defendTeam, randomPlayer }: PhaseContext): PhaseResult {
   const scrumHalf  = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
   const wingerPool = attackTeam.players.filter(p => p.id === 11 || p.id === 14);
   const winger     = wingerPool.length > 0 ? wingerPool[rng(0, wingerPool.length - 1)] : randomPlayer(attackTeam);
@@ -18,7 +19,7 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, random
 
   const events: MatchEvent[] = [
     { type: 'KICK_FROM_HAND', kicker: scrumHalf, metres: res.distance },
-    { type: 'BALL_REPOSITIONED', x: clamp(state.ball.x + attackDir() * res.distance, 5, 95) },
+    { type: 'BALL_REPOSITIONED', x: clamp(state.ball.x + attackDir(state) * res.distance, 5, 95) },
   ];
 
   const attackSide = state.possession;

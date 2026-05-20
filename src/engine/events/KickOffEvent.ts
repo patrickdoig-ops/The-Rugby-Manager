@@ -4,8 +4,9 @@ import { MatchPhase } from '../../types/engine';
 import { resolveKickOff } from '../resolvers/KickOffResolver';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
+import { attackDir } from '../FieldPosition';
 
-export function handleKickOff({ attackTeam, defendTeam, attackDir, randomPlayer, kickOffStrategy }: PhaseContext): PhaseResult {
+export function handleKickOff({ state, attackTeam, defendTeam, randomPlayer, kickOffStrategy }: PhaseContext): PhaseResult {
   const kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
 
   let receiver;
@@ -46,7 +47,7 @@ export function handleKickOff({ attackTeam, defendTeam, attackDir, randomPlayer,
   }
 
   // Ball lands where the kick reaches
-  events.unshift({ type: 'BALL_REPOSITIONED', x: clamp(50 + attackDir() * res.distance, 5, 95) });
+  events.unshift({ type: 'BALL_REPOSITIONED', x: clamp(50 + attackDir(state) * res.distance, 5, 95) });
 
   if (res.result === 'knock_on') {
     // Scrum where the ball was dropped; kicking team puts in (possession unchanged)

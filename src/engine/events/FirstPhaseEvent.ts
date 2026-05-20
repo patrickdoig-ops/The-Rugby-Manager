@@ -3,16 +3,16 @@ import type { MatchEvent } from '../../types/matchEvent';
 import type { NarrationStep } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
-import { isTryScoredAt } from '../FieldPosition';
+import { attackDir, isTryScoredAt, inOwnHalf, inOwn22 } from '../FieldPosition';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, knockOnThreshold } from '../balance';
 
-export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isTryScored, inOwnHalf, inOwn22, randomPlayer, pickPlayer }: PhaseContext): PhaseResult {
+export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, pickPlayer }: PhaseContext): PhaseResult {
   // Step 0 — Kick or carry decision
   const plan = attackTeam.tactics.attackingGamePlan;
   const probs = KICK_PROBABILITIES[plan];
-  const kickProb = inOwn22() ? probs.own22 : (inOwnHalf() ? probs.ownHalf : probs.opposition);
+  const kickProb = inOwn22(state) ? probs.own22 : (inOwnHalf(state) ? probs.ownHalf : probs.opposition);
 
   if (rng(1, 100) <= kickProb) {
     const flyHalf = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
@@ -124,7 +124,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
 
   // Step 3 — Evasion → Step 4 Collision
   const res = resolveOpenPlay(ballCarrier, defender, attackMod, defendMod + backfieldPenalty);
-  const direction = attackDir();
+  const direction = attackDir(state);
 
   events.push({
     type: 'CARRY_RESOLVED',
@@ -164,7 +164,6 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, attackDir, isT
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: res.outcome, primary: ballCarrier, secondary: defender });
   }
 
-  void isTryScored;  // ctx helper unused — we project ballX ourselves for the try-line check
   return {
     nextPhase,
     narration: { steps: outcomeSteps },

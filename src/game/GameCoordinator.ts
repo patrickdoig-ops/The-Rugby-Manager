@@ -135,6 +135,17 @@ export class GameCoordinator {
     );
     if (!fixture) throw new Error(`No player fixture for round ${round}`);
 
+    // Re-entrancy guard. The match-result screen's Continue button kicks off
+    // an async handler (player result → 4 headless AI sims → WEEK_ADVANCED),
+    // and the button isn't disabled while that work runs. A double-click
+    // would otherwise double-apply every standings update for the round and
+    // tick the calendar twice. The player result is recorded first, so its
+    // presence is a reliable signal that the round is already in flight.
+    const alreadyRecorded = this.state.league.results.some(r =>
+      r.round === round && r.homeId === fixture.homeId && r.awayId === fixture.awayId
+    );
+    if (alreadyRecorded) return;
+
     const playerSide: 'home' | 'away' = fixture.homeId === this.state.player.teamId ? 'home' : 'away';
     const result: FixtureResult = {
       round,

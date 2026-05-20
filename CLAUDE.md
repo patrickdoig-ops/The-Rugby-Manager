@@ -100,9 +100,10 @@ When code changes, update the corresponding doc in the same commit.
 npm run dev      # start Vite dev server (hot reload)
 npm run build    # tsc type-check then Vite production build → dist/
 npm run preview  # serve the dist/ folder locally
+npm run verify   # run a fixed-seed match twice and assert identical event-log hash — fails loud on RNG-order regressions
 ```
 
-No tests or linters. TypeScript strict mode is the primary correctness check — `npm run build` must pass cleanly before every commit.
+No tests or linters. TypeScript strict mode is the primary correctness check. Both `npm run build` and `npm run verify` must pass cleanly before every commit.
 
 **Deploy:** push to `main`. GitHub Actions builds and deploys to GitHub Pages. The Vite base path is `/Rugby-Simulator-/` — do not change it or asset URLs break in production.
 

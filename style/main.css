@@ -453,6 +453,20 @@ html, body {
 #panel-bottom.view-stats   #latest-commentary,
 #panel-bottom.view-players #latest-commentary { display: block; }
 
+/* Fixed 3-line height inside latest-commentary so the panel below doesn't jump
+   as commentary length varies. Text gets clamped to 3 lines if it's longer. */
+#latest-commentary .commentary-entry {
+  height: 76px;
+  border-bottom: none;
+  overflow: hidden;
+}
+#latest-commentary .event-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 #panel-commentary,
 #panel-stats,
 #panel-players {

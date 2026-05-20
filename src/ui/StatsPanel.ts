@@ -118,10 +118,21 @@ function statChipsInner(p: MatchState['homeTeam']['players'][number]): string {
     + `<span class="chip${tryClass}">${s.tries}T</span>`;
 }
 
+// Player lists put the human's team first so the manager scans their own
+// XV without hunting past the AI rows. Live-match panels only; the snapshot
+// keys below still iterate home→away (their identity is just "did anything
+// change?", and order is irrelevant to that).
+function teamsInHumanOrder(state: MatchState): [MatchState['homeTeam'], MatchState['awayTeam']] {
+  return state.engine.humanSide === 'away'
+    ? [state.awayTeam, state.homeTeam]
+    : [state.homeTeam, state.awayTeam];
+}
+
 function renderPlayerStats(state: MatchState): string {
+  const [first, second] = teamsInHumanOrder(state);
   const allPlayers = [
-    ...state.homeTeam.players.map(p => ({ p, team: state.homeTeam })),
-    ...state.awayTeam.players.map(p => ({ p, team: state.awayTeam })),
+    ...first.players.map(p => ({ p, team: first })),
+    ...second.players.map(p => ({ p, team: second })),
   ];
 
   return allPlayers.map(({ p, team }) => {
@@ -144,9 +155,10 @@ function renderPlayerStats(state: MatchState): string {
 }
 
 function updatePlayerStatsDOM(container: HTMLElement, state: MatchState): void {
+  const [first, second] = teamsInHumanOrder(state);
   const allPlayers = [
-    ...state.homeTeam.players,
-    ...state.awayTeam.players,
+    ...first.players,
+    ...second.players,
   ];
   const rows = container.querySelectorAll('.player-stat-row');
   if (rows.length !== allPlayers.length) {
@@ -242,9 +254,10 @@ function renderPlayerTable(state: MatchState): string {
       ...team.substitutedOff.map(p => playerTableRow(p, tc, true)),
     ];
   };
+  const [first, second] = teamsInHumanOrder(state);
   return `<table class="player-table">
     <thead><tr>${headerCells}</tr></thead>
-    <tbody>${[...teamSection(state.homeTeam), ...teamSection(state.awayTeam)].join('')}</tbody>
+    <tbody>${[...teamSection(first), ...teamSection(second)].join('')}</tbody>
   </table>`;
 }
 

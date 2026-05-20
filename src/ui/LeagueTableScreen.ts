@@ -1,12 +1,30 @@
 // Full league standings view. Reached from the Hub's League tile; back
 // navigates to the Hub. Read-only — standings are mutated by the game
 // engine via FIXTURE_RESULT_RECORDED.
+//
+// Dual-mode: the hub-entry path uses the back arrow (always → Hub). The
+// post-match flow calls `showLeagueTablePostMatch(onContinue)` to surface
+// a forward "Continue → Hub" CTA in place of the back arrow. Activating
+// or clearing the mode also triggers a re-render so the change is
+// visible immediately rather than waiting on the next `game:*` event.
 
 import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { TeamStanding } from '../types/gameState';
 import { sortStandings } from '../game/leagueTable';
 import { eventBus } from '../utils/eventBus';
+
+let postMatchOnContinue: (() => void) | null = null;
+let renderImpl: (() => void) | null = null;
+
+export function showLeagueTablePostMatch(onContinue: () => void): void {
+  postMatchOnContinue = onContinue;
+  renderImpl?.();
+}
+
+function clearPostMatchMode(): void {
+  postMatchOnContinue = null;
+}
 
 function teamCrest(team: RawTeamInput): string {
   const grad = `linear-gradient(160deg, ${team.color} 0%, color-mix(in oklch, ${team.color} 65%, black) 100%)`;
@@ -55,12 +73,25 @@ export function initLeagueTableScreen(
       standingsRow(s, i + 1, teamsById, s.teamId === playerTeamId)
     ).join('');
 
+    const inPostMatch = postMatchOnContinue !== null;
+    const topbarLeft = inPostMatch
+      ? `<div style="width:72px"></div>`
+      : `<button id="lt-back" aria-label="Back to hub">
+           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+           <span>Hub</span>
+         </button>`;
+    const footer = inPostMatch
+      ? `<div id="lt-footer">
+           <button id="lt-continue">
+             <span>Continue</span>
+             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+           </button>
+         </div>`
+      : '';
+
     el!.innerHTML = `
       <div id="lt-topbar">
-        <button id="lt-back" aria-label="Back to hub">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          <span>Hub</span>
-        </button>
+        ${topbarLeft}
         <span id="lt-title">League Table</span>
         <div style="width:72px"></div>
       </div>
@@ -79,12 +110,23 @@ export function initLeagueTableScreen(
         </div>
         ${rows}
       </div>
+      ${footer}
     `;
 
-    el!.querySelector<HTMLButtonElement>('#lt-back')!.addEventListener('click', () => {
-      onBack();
-    });
+    if (!inPostMatch) {
+      el!.querySelector<HTMLButtonElement>('#lt-back')!.addEventListener('click', () => {
+        onBack();
+      });
+    } else {
+      el!.querySelector<HTMLButtonElement>('#lt-continue')!.addEventListener('click', () => {
+        const fn = postMatchOnContinue!;
+        clearPostMatchMode();
+        fn();
+      });
+    }
   }
+
+  renderImpl = render;
 
   eventBus.on('game:fixtureRecorded', () => render());
   eventBus.on('game:weekAdvanced', () => render());

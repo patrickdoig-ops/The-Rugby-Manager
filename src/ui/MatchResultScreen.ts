@@ -164,8 +164,9 @@ export function initMatchResultScreen(state: MatchState, round: number, onContin
       <div class="mr-teamline">${homeTeam.name} <span class="mr-teamline-sep">·</span> ${awayTeam.name}</div>
 
       ${renderStatsCard(state)}
-      ${renderRatingsBlock(homeTeam, true)}
-      ${renderRatingsBlock(awayTeam, false)}
+      ${state.engine.humanSide === 'away'
+        ? renderRatingsBlock(awayTeam, false) + renderRatingsBlock(homeTeam, true)
+        : renderRatingsBlock(homeTeam, true) + renderRatingsBlock(awayTeam, false)}
     </div>
 
     <div id="mr-footer">

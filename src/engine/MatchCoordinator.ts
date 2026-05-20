@@ -64,6 +64,7 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
       tickDelayMs,
       seed,
       firstHalfKicker: 'home',
+      humanSide,
     },
     phase: MatchPhase.KickOff,
     score: { home: 0, away: 0 },

@@ -55,6 +55,7 @@ export interface MatchState {
     tickDelayMs: number;
     seed: number;
     firstHalfKicker: PossessionSide;
+    humanSide: PossessionSide;
   };
   phase: MatchPhase;
   possession: PossessionSide;

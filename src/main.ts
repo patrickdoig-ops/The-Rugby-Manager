@@ -7,6 +7,7 @@ import '../style/fixturelist.css';
 import '../style/leaguetable.css';
 import '../style/hub.css';
 import '../style/matchresult.css';
+import '../style/roundresults.css';
 import '../style/commentary.css';
 import '../style/stats.css';
 import '../style/prematch.css';
@@ -25,9 +26,10 @@ import { initSettingsScreen }      from './ui/SettingsScreen';
 import { initTeamSelectorScreen }  from './ui/TeamSelectorScreen';
 import { initTeamInfoScreen }      from './ui/TeamInfoScreen';
 import { initFixtureListScreen }   from './ui/FixtureListScreen';
-import { initLeagueTableScreen }   from './ui/LeagueTableScreen';
+import { initLeagueTableScreen, showLeagueTablePostMatch } from './ui/LeagueTableScreen';
 import { initHubScreen }           from './ui/HubScreen';
 import { initMatchResultScreen }   from './ui/MatchResultScreen';
+import { initRoundResultsScreen, showRoundResults } from './ui/RoundResultsScreen';
 import { screenRouter }            from './ui/ScreenRouter';
 import { loadSave, saveGame, clearSave } from './ui/SaveManager';
 import { MatchCoordinator }        from './engine/MatchCoordinator';
@@ -128,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     initFixtureListScreen(gameEngine, allTeams, goHub);
     initLeagueTableScreen(gameEngine, allTeams, goHub);
+    initRoundResultsScreen(gameEngine, allTeams);
   }
 
   function goHub(): void {
@@ -205,7 +208,13 @@ document.addEventListener('DOMContentLoaded', () => {
         await gameEngine.recordPlayerMatchResult(round, state.score.home, state.score.away);
         saveGame(gameEngine.toSavePayload());
       }
-      goHub();
+      // Post-match nav chain: round results → league table → hub. Each
+      // step's CTA hands the next callback in.
+      showRoundResults(round, () => {
+        showLeagueTablePostMatch(goHub);
+        screenRouter.show('league-table');
+      });
+      screenRouter.show('round-results');
     });
     screenRouter.show('match-result');
   }

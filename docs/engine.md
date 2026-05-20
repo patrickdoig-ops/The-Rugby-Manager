@@ -99,7 +99,7 @@ Mid-match the human can swap any dimension via the tactics modal (`ui:tacticsCha
 ```ts
 state.clock  = { gameMinute, halfTimeDone, clockInTheRed, penaltyKickToTouchLineout }
 state.ball   = { x, y }                              // renamed from ballX/ballY
-state.engine = { isRunning, tickDelayMs, seed, firstHalfKicker }
+state.engine = { isRunning, tickDelayMs, seed, firstHalfKicker, humanSide }
 
 // top-level: phase, possession, score, events, breakdownMod, kickReturnCarrier,
 //            homeTeam, awayTeam, stats

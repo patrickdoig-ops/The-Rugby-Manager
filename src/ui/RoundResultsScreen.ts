@@ -1,0 +1,104 @@
+// Post-match summary of every fixture in the round just completed.
+// Reached from the match-result screen's Continue CTA; its own Continue
+// CTA advances to the league table (which then has its own Continue → Hub).
+//
+// Initialised once per page lifetime (like the other in-season screens)
+// and re-renders on every `game:fixtureRecorded` so headless AI fixtures
+// fill in their scores as they resolve. The `round` to show is set
+// imperatively via `setRoundResultsRound(n)` immediately before
+// `screenRouter.show('round-results')`.
+
+import type { RawTeamInput } from '../types/teamData';
+import type { GameCoordinator } from '../game/GameCoordinator';
+import type { Fixture, FixtureResult, GameState } from '../types/gameState';
+import { eventBus } from '../utils/eventBus';
+
+let activeRound = 1;
+let activeOnContinue: () => void = () => {};
+let renderImpl: (() => void) | null = null;
+
+export function showRoundResults(round: number, onContinue: () => void): void {
+  activeRound = round;
+  activeOnContinue = onContinue;
+  renderImpl?.();
+}
+
+function crest(team: RawTeamInput): string {
+  const grad = `linear-gradient(160deg, ${team.color} 0%, color-mix(in oklch, ${team.color} 65%, black) 100%)`;
+  const initial = team.shortName[0] ?? '?';
+  return `<div class="rr-crest" style="background:${grad};border:1px solid color-mix(in oklch,${team.color} 45%,transparent)"><span>${initial}</span></div>`;
+}
+
+export function initRoundResultsScreen(
+  gameEngine: GameCoordinator,
+  allTeams: RawTeamInput[],
+): void {
+  const el = document.getElementById('round-results');
+  if (!el) return;
+
+  const teamsById = new Map(allTeams.map(t => [t.id, t]));
+
+  function roundFixtures(state: GameState): Array<{ fixture: Fixture; result: FixtureResult | undefined }> {
+    return state.league.fixtures
+      .filter(f => f.round === activeRound)
+      .map(fixture => ({
+        fixture,
+        result: state.league.results.find(r =>
+          r.round === fixture.round && r.homeId === fixture.homeId && r.awayId === fixture.awayId
+        ),
+      }));
+  }
+
+  function render(): void {
+    const state = gameEngine.getState();
+    const playerTeamId = state.player.teamId;
+    const fixtures = roundFixtures(state);
+
+    const rowsHtml = fixtures.map(({ fixture, result }) => {
+      const home = teamsById.get(fixture.homeId)!;
+      const away = teamsById.get(fixture.awayId)!;
+      const isPlayer = fixture.homeId === playerTeamId || fixture.awayId === playerTeamId;
+      const mid = result
+        ? `<span class="rr-score">${result.homeScore}–${result.awayScore}</span>`
+        : `<span class="rr-pending">…</span>`;
+      return `
+        <div class="rr-row${isPlayer ? ' rr-row--me' : ''}">
+          <div class="rr-team rr-team--home">
+            ${crest(home)}
+            <span class="rr-team-name">${home.shortName}</span>
+          </div>
+          ${mid}
+          <div class="rr-team rr-team--away">
+            <span class="rr-team-name">${away.shortName}</span>
+            ${crest(away)}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    el!.innerHTML = `
+      <div id="rr-topbar">
+        <div style="width:72px"></div>
+        <span id="rr-title">Round ${activeRound} Results</span>
+        <div style="width:72px"></div>
+      </div>
+      <div id="rr-eyebrow">${state.calendar.seasonLabel}</div>
+      <div id="rr-list">${rowsHtml}</div>
+      <div id="rr-footer">
+        <button id="rr-continue">
+          <span>League Table</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    `;
+
+    el!.querySelector<HTMLButtonElement>('#rr-continue')!.addEventListener('click', () => {
+      activeOnContinue();
+    });
+  }
+
+  renderImpl = render;
+
+  // Re-render as each headless AI fixture resolves so pending scores fill in.
+  eventBus.on('game:fixtureRecorded', () => render());
+}

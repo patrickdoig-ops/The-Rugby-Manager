@@ -7,6 +7,10 @@ import { shortName } from '../utils/playerName';
 import { teamTextColor } from '../utils/teamColor';
 import type { RawTeamInput } from '../types/teamData';
 import { playerOverall } from '../engine/RatingEngine';
+import { computeOverallRating } from '../team/teamProfile';
+import { sortStandings } from '../game/leagueTable';
+import { recentForm, headToHead, matchSpread, type FormResult } from '../game/teamStats';
+import type { GameCoordinator } from '../game/GameCoordinator';
 
 type RawPlayer = {
   id: number;
@@ -70,11 +74,31 @@ function crestHtml(letter: string, color: string, size = 44): string {
   "><span>${letter}</span></div>`;
 }
 
-function formPins(sequence: string): string {
-  return sequence.split('').map(r => {
+function formPins(form: Array<FormResult | null>): string {
+  return form.map(r => {
+    if (r === null) return `<span class="pm-form-pin pm-form-pin--empty">–</span>`;
     const cls = r === 'W' ? 'pm-form-pin--w' : r === 'L' ? 'pm-form-pin--l' : 'pm-form-pin--d';
     return `<span class="pm-form-pin ${cls}">${r}</span>`;
   }).join('');
+}
+
+function ordinalSuffix(n: number): string {
+  const tens = n % 100;
+  if (tens >= 11 && tens <= 13) return 'th';
+  switch (n % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+}
+
+function h2hValue(h: { wins: number; draws: number; losses: number; meetings: number }): string {
+  if (h.meetings === 0) return '—';
+  const parts = [`${h.wins}W`];
+  if (h.draws > 0) parts.push(`${h.draws}D`);
+  parts.push(`${h.losses}L`);
+  return parts.join(' · ');
 }
 
 function renderColumnHeader(): string {
@@ -184,11 +208,19 @@ export function initPreMatchScreen(
   away: RawTeam,
   playerSide: 'home' | 'away',
   roundNumber: number,
+  gameEngine: GameCoordinator,
   onStart: (configuredHome: RawTeam, configuredAway: RawTeam, playerTactics: TeamTactics) => void,
   onBack: () => void,
 ): void {
   const screen = document.getElementById('pre-match')!;
   screen.classList.remove('pm-exit');
+
+  // Visual layout puts the player's team in the LEFT versus slot and as the
+  // first/active tab so the manager's eye lands on it. Engine-side identity
+  // (home vs away) is preserved — only the on-screen order changes.
+  const playerTeam = playerSide === 'home' ? home : away;
+  const oppTeam    = playerSide === 'home' ? away : home;
+  const oppSide: 'home' | 'away' = playerSide === 'home' ? 'away' : 'home';
 
   const homeStarters: RawPlayer[] = (home.players as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
   const homeBench:    RawPlayer[] = ((home.bench ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
@@ -201,15 +233,49 @@ export function initPreMatchScreen(
   let selection: { tier: Tier; squadNum: number } | null = null;
   let activeView: 'list' | 'pitch' = 'list';
 
-  const homeFirst = home.shortName[0] ?? 'H';
-  const awayFirst = away.shortName[0] ?? 'A';
+  const state = gameEngine.getState();
+  const results = state.league.results;
+  const playerForm = recentForm(playerTeam.id, results);
+  const oppForm    = recentForm(oppTeam.id,    results);
+
+  const playerRating = computeOverallRating(playerTeam.id);
+  const oppRating    = computeOverallRating(oppTeam.id);
+  const spread = matchSpread(
+    playerSide === 'home' ? playerRating : oppRating,
+    playerSide === 'home' ? oppRating    : playerRating,
+  );
+  const playerSpread = playerSide === 'home' ? spread.home : spread.away;
+  const oddsValue =
+    playerSpread === 0 ? 'Even'
+    : playerSpread > 0 ? `+${playerSpread}`
+    :                    `${playerSpread}`;
+  const oddsSub =
+    playerSpread === 0 ? 'Even match'
+    : playerSpread < 0 ? `${playerTeam.shortName} fav.`
+    :                    `${oppTeam.shortName} fav.`;
+
+  const h2h = headToHead(playerTeam.id, oppTeam.id, results);
+  const h2hSub = h2h.meetings === 0 ? 'first meeting' : `last ${h2h.meetings}`;
+
+  const sorted = sortStandings(state.league.standings);
+  const playerRankIdx = sorted.findIndex(s => s.teamId === playerTeam.id);
+  const playerStanding = playerRankIdx === -1 ? null : sorted[playerRankIdx];
+  const leagueValue = playerStanding === null
+    ? '—'
+    : `${playerRankIdx + 1}${ordinalSuffix(playerRankIdx + 1)}`;
+  const leagueSub = playerStanding === null
+    ? ''
+    : `${playerStanding.leaguePoints} pt${playerStanding.leaguePoints === 1 ? '' : 's'}`;
+
+  const playerInitial = playerTeam.shortName[0] ?? 'P';
+  const oppInitial    = oppTeam.shortName[0]    ?? 'O';
 
   screen.innerHTML = `
     <div id="pm-header">
       <div id="pm-topbar">
-        <button id="pm-back" aria-label="Back">
+        <button id="pm-back" aria-label="Back to hub">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          <span>Lobby</span>
+          <span>Hub</span>
         </button>
         <span id="pm-context-label">Match Preview · Round ${roundNumber}</span>
         <div style="width:60px"></div>
@@ -218,12 +284,12 @@ export function initPreMatchScreen(
       <div id="pm-versus">
         <div class="pm-versus-team">
           <div class="pm-versus-badge">
-            ${crestHtml(homeFirst, home.color, 44)}
-            <div class="pm-form-row">${formPins('WWLWD')}</div>
+            ${crestHtml(playerInitial, playerTeam.color, 44)}
+            <div class="pm-form-row">${formPins(playerForm)}</div>
           </div>
           <div class="pm-versus-names">
-            <div class="pm-team-code">${home.shortName}</div>
-            <div class="pm-team-full">${home.name}</div>
+            <div class="pm-team-code">${playerTeam.shortName}</div>
+            <div class="pm-team-full">${playerTeam.name}</div>
           </div>
         </div>
         <div class="pm-versus-center">
@@ -231,21 +297,21 @@ export function initPreMatchScreen(
         </div>
         <div class="pm-versus-team pm-versus-team--away">
           <div class="pm-versus-badge">
-            ${crestHtml(awayFirst, away.color, 44)}
-            <div class="pm-form-row">${formPins('WWWLW')}</div>
+            ${crestHtml(oppInitial, oppTeam.color, 44)}
+            <div class="pm-form-row">${formPins(oppForm)}</div>
           </div>
           <div class="pm-versus-names pm-versus-names--right">
-            <div class="pm-team-code">${away.shortName}</div>
-            <div class="pm-team-full">${away.name}</div>
+            <div class="pm-team-code">${oppTeam.shortName}</div>
+            <div class="pm-team-full">${oppTeam.name}</div>
           </div>
         </div>
       </div>
 
       <div id="pm-stake-row">
         ${[
-          ['LEAGUE', '2nd', '4 pts'],
-          ['H2H',    '1W · 2L', 'last 3'],
-          ['ODDS',   '+3.5',    `${away.shortName} fav.`],
+          ['LEAGUE', leagueValue, leagueSub],
+          ['H2H',    h2hValue(h2h), h2hSub],
+          ['ODDS',   oddsValue, oddsSub],
         ].map(([k, v, sub]) => `
           <div class="pm-stake-card">
             <div class="pm-stake-key">${k}</div>
@@ -257,9 +323,9 @@ export function initPreMatchScreen(
 
       <div id="pm-tabs-bar">
         <div id="pm-tabs" role="tablist">
-          <button class="pm-tab active" data-tab="home"    style="--tc:${home.color}">${home.name}</button>
-          <button class="pm-tab"        data-tab="away"    style="--tc:${away.color}">${away.name}</button>
-          <button class="pm-tab"        data-tab="tactics" style="--tc:var(--rm-pitch)">Tactics</button>
+          <button class="pm-tab active" data-tab="${playerSide}" style="--tc:${playerTeam.color}">${playerTeam.name}</button>
+          <button class="pm-tab"        data-tab="${oppSide}"    style="--tc:${oppTeam.color}">${oppTeam.name}</button>
+          <button class="pm-tab"        data-tab="tactics"       style="--tc:var(--rm-pitch)">Tactics</button>
         </div>
         <div id="pm-view-toggle">
           <button class="pm-view-btn pm-view-btn--active" data-view="list" aria-label="List view">
@@ -273,8 +339,8 @@ export function initPreMatchScreen(
     </div>
 
     <div id="pm-body">
-      <div id="pm-home"    class="pm-panel"></div>
-      <div id="pm-away"    class="pm-panel hidden"></div>
+      <div id="pm-home"    class="pm-panel${playerSide === 'home' ? '' : ' hidden'}"></div>
+      <div id="pm-away"    class="pm-panel${playerSide === 'away' ? '' : ' hidden'}"></div>
       <div id="pm-tactics" class="pm-panel hidden"></div>
     </div>
 

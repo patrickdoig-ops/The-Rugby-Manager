@@ -172,11 +172,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function onPlayRound(homeTeam: RawTeamInput, awayTeam: RawTeamInput, playerSide: 'home' | 'away', round: number): void {
+    if (!gameEngine) return;
     initPreMatchScreen(
       homeTeam,
       awayTeam,
       playerSide,
       round,
+      gameEngine,
       (configuredHome, configuredAway, playerTactics) => onMatchStart(configuredHome, configuredAway, playerSide, round, playerTactics),
       goHub,
     );

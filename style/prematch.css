@@ -167,6 +167,12 @@
   color: var(--rm-text-muted);
 }
 
+.pm-form-pin--empty {
+  background: transparent;
+  border: 1px dashed var(--rm-border-soft);
+  color: var(--rm-text-faint);
+}
+
 .pm-team-code {
   font-family: var(--rm-font-display);
   font-size: 22px;

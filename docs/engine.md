@@ -57,6 +57,7 @@ Match-scope writes flow through `applyMatchEvent`; **season-scope writes flow th
 | `fixtures.ts` | Pure double round-robin generator using the standard "circle" method. Player's team is placed at position 0 so its match is always the first pairing per round. |
 | `simulateFixture.ts` | Headless wrapper around `MatchCoordinator` with `silent: true` — suppresses every `engine:event`/`engine:stateChange`/`engine:initialized`/`engine:resumed` emit and replaces modal prompts with `high_ball`/`kick_for_goal` defaults. `engine:finished` still fires for completion detection. |
 | `leagueTable.ts` | Pure helpers: `sortStandings` (league points → points diff → points for), `findStanding`. |
+| `teamStats.ts` | Pure derivations from `FixtureResult[]` + overall ratings: `recentForm` (rolling W/L/D pins padded with null on the left), `headToHead` (W/D/L record from one team's POV across every meeting so far), `matchSpread` (rating-derived handicap, favored side negative). Read by `PreMatchScreen`; no module state, no bus subscriptions. |
 | `derive.ts` | `deriveFixtureSeed(rootSeed, round, homeId, awayId)` — hashes the inputs so each headless AI fixture has a stable, derivable seed. |
 | `age.ts` | Pure `getAge(dobIso, currentDateIso)` — returns null when `dob` is missing. Used by `TeamInfoScreen` to derive ages from `calendar.date`. |
 | `balance/season.ts` | Season tuning constants — `SEASON_VALUES` (start date, season label, week length) and `LEAGUE_POINTS` (Premiership 4/2/0 + losing bonus when margin ≤ 7). |

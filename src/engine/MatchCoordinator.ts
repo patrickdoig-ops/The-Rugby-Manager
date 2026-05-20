@@ -6,6 +6,7 @@ import { zeroMatchStats } from '../types/player';
 import type { RawPlayer, RawTeamInput } from '../types/teamData';
 import { MatchPhase, type PossessionSide, type KickOffStrategy } from '../types/engine';
 import { eventBus } from '../utils/eventBus';
+import { colorsClash } from '../utils/teamColor';
 import { rngForm, setMatchSeed, rng, generateSeed } from '../utils/rng';
 import { PenaltyHandler } from './PenaltyHandler';
 import { ClockController } from './ClockController';
@@ -40,9 +41,15 @@ function initPlayer(raw: RawPlayer): Player {
   };
 }
 
-function buildTeam(raw: RawTeamInput, tactics?: TeamTactics): Team {
+// `kitColor` overrides `raw.color` when the home team is forced into its
+// change strip (see initMatchState). Within MatchState the `color` field
+// means "the kit colour for this match" — out-of-match UI (FixtureList,
+// LeagueTable, Hub, RoundResults, TeamInfo) reads from RawTeamInput so
+// keeps showing the brand colour.
+function buildTeam(raw: RawTeamInput, tactics?: TeamTactics, kitColor?: string): Team {
   return {
     ...raw,
+    color: kitColor ?? raw.color,
     players: raw.players.map(initPlayer),
     bench: (raw.bench ?? []).map(initPlayer),
     substitutedOff: [],
@@ -74,7 +81,15 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
     // club plays to its own identity rather than DEFAULT_TACTICS. Either
     // input may be absent, in which case buildTeam falls through to
     // DEFAULT_TACTICS.
-    homeTeam: buildTeam(homeRaw, humanSide === 'home' && playerTactics ? playerTactics : homeRaw.suggestedTactics),
+    //
+    // Kit clash: if the two teams' primary colours would be hard to tell
+    // apart on small chips, the home side flips to its change strip
+    // (secondaryColor). Away never changes — same rule as on-field practice.
+    homeTeam: buildTeam(
+      homeRaw,
+      humanSide === 'home' && playerTactics ? playerTactics : homeRaw.suggestedTactics,
+      colorsClash(homeRaw.color, awayRaw.color) ? homeRaw.secondaryColor : undefined,
+    ),
     awayTeam: buildTeam(awayRaw, humanSide === 'away' && playerTactics ? playerTactics : awayRaw.suggestedTactics),
     stats: {
       possession: { home: 0, away: 0 },

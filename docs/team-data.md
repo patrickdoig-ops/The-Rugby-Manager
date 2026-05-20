@@ -660,7 +660,7 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 The 2023-24 champions under Phil Dowson, Saints are the league's electric attacking outfit — willing to play from anywhere on the pitch and devastating in transition. Fin Smith conducts a heads-up backline that scores tries from deep, off turnover ball and from set-piece strike plays in equal measure. Their forwards are mobile and link-friendly rather than collision-first, designed to win quick ball and feed the runners. When they get rolling they put 40+ on teams; when the platform wobbles, the structure shows cracks.
 
 - **Home ground:** cinch Stadium at Franklin's Gardens (commonly "Franklin's Gardens").
-- **Club colours:** `#000000` / `#00563f`
+- **Club colours:** `#00563f` / `#000000`
 - **Nickname:** Saints.
 - **Founded:** 1880.
 - **Stadium capacity:** 15,249.

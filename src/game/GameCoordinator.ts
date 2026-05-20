@@ -14,8 +14,9 @@
 // runs on a timer.
 
 import type {
-  Fixture, FixtureResult, GameState, SeasonSchedule,
+  Fixture, FixtureResult, GameState, PlayerRef, SeasonSchedule,
 } from '../types/gameState';
+import type { TeamTactics } from '../types/team';
 import { applySeasonEvent } from './applySeasonEvent';
 import { simulateFixture } from './simulateFixture';
 import { eventBus } from '../utils/eventBus';
@@ -43,6 +44,11 @@ export interface SavedSeason {
   // the type so legacy v2 saves can still be migrated by SaveManager.
   seasonLabel?: string;
   fixtures?: Fixture[];
+  // v4+: persisted pre-match choices that carry forward as defaults for
+  // the next match. Both undefined on a fresh season; populated after the
+  // first Kick Off.
+  tactics?: TeamTactics;
+  matchdaySquad?: PlayerRef[];
 }
 
 function emptyState(): GameState {
@@ -110,8 +116,22 @@ export class GameCoordinator {
     while (coord.state.calendar.week < save.currentWeek) {
       applySeasonEvent(coord.state, { type: 'WEEK_ADVANCED' });
     }
+    if (save.tactics) {
+      applySeasonEvent(coord.state, { type: 'PLAYER_TACTICS_SET', tactics: save.tactics });
+    }
+    if (save.matchdaySquad) {
+      applySeasonEvent(coord.state, { type: 'PLAYER_MATCHDAY_SQUAD_SET', squad: save.matchdaySquad });
+    }
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
+  }
+
+  setPlayerTactics(tactics: TeamTactics): void {
+    applySeasonEvent(this.state, { type: 'PLAYER_TACTICS_SET', tactics });
+  }
+
+  setPlayerMatchdaySquad(squad: PlayerRef[]): void {
+    applySeasonEvent(this.state, { type: 'PLAYER_MATCHDAY_SQUAD_SET', squad });
   }
 
   getState(): Readonly<GameState> {
@@ -195,6 +215,10 @@ export class GameCoordinator {
       results: this.state.league.results.map(r => ({ ...r })),
       seasonLabel: this.state.calendar.seasonLabel,
       fixtures: this.state.league.fixtures.map(f => ({ ...f })),
+      ...(this.state.player.tactics ? { tactics: { ...this.state.player.tactics } } : {}),
+      ...(this.state.player.matchdaySquad
+        ? { matchdaySquad: this.state.player.matchdaySquad.map(r => ({ ...r })) }
+        : {}),
     };
   }
 }

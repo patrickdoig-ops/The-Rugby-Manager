@@ -35,6 +35,14 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
       state.calendar.date = nextRoundDate ?? addDays(state.calendar.date, SEASON_VALUES.weekLengthDays);
       return;
     }
+    case 'PLAYER_TACTICS_SET': {
+      state.player.tactics = { ...event.tactics };
+      return;
+    }
+    case 'PLAYER_MATCHDAY_SQUAD_SET': {
+      state.player.matchdaySquad = event.squad.map(r => ({ firstName: r.firstName, lastName: r.lastName }));
+      return;
+    }
     default: {
       const _: never = event;
       void _;

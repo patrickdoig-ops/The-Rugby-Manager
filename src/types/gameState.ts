@@ -8,6 +8,8 @@
 // latter is already taken by the in-match commentary log type in
 // src/types/match.ts. The two are unrelated.
 
+import type { TeamTactics } from './team';
+
 export interface Fixture {
   round: number;
   homeId: string;
@@ -56,10 +58,27 @@ export interface League {
   standings: TeamStanding[];
 }
 
+// Stable reference to a real player across save/load and across raw-team
+// regenerations. Full names are unique league-wide (see CLAUDE.md "Team
+// data"), so a name pair is enough — no IDs needed (and IDs shift on
+// pre-match swaps).
+export interface PlayerRef {
+  firstName: string;
+  lastName: string;
+}
+
 export interface GameState {
   calendar: Calendar;
   league: League;
-  player: { teamId: string };
+  player: {
+    teamId: string;
+    // Persisted preferences from the previous pre-match commit. Undefined
+    // means "fall back to authored defaults" (DEFAULT_TACTICS for tactics,
+    // raw team JSON order for matchdaySquad). Set via PLAYER_TACTICS_SET /
+    // PLAYER_MATCHDAY_SQUAD_SET and consumed only by PreMatchScreen.
+    tactics?: TeamTactics;
+    matchdaySquad?: PlayerRef[]; // length 23: slots 1-15 starters, 16-23 bench
+  };
   seed: number;
 }
 
@@ -91,4 +110,12 @@ export type SeasonEvent =
     }
   | {
       type: 'WEEK_ADVANCED';
+    }
+  | {
+      type: 'PLAYER_TACTICS_SET';
+      tactics: TeamTactics;
+    }
+  | {
+      type: 'PLAYER_MATCHDAY_SQUAD_SET';
+      squad: PlayerRef[];
     };

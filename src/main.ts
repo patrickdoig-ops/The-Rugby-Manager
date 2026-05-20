@@ -39,6 +39,7 @@ import type { MatchState }         from './types/match';
 import * as teamProfile            from './team/teamProfile';
 import type { TeamJson }           from './team/teamProfile';
 import { GameCoordinator }         from './game/GameCoordinator';
+import { extractMatchdaySquad }    from './game/playerSquad';
 import { SEASON_VALUES }           from './engine/balance';
 import { generateSeed }            from './utils/rng';
 import { eventBus }                from './utils/eventBus';
@@ -179,7 +180,18 @@ document.addEventListener('DOMContentLoaded', () => {
       playerSide,
       round,
       gameEngine,
-      (configuredHome, configuredAway, playerTactics) => onMatchStart(configuredHome, configuredAway, playerSide, round, playerTactics),
+      (configuredHome, configuredAway, playerTactics) => {
+        // Persist the manager's pre-match commits so the next match opens
+        // with these as defaults. Saved here (on Kick Off) rather than after
+        // the result so backing out mid-match keeps the chosen line-up.
+        if (gameEngine) {
+          const playerConfigured = playerSide === 'home' ? configuredHome : configuredAway;
+          gameEngine.setPlayerTactics(playerTactics);
+          gameEngine.setPlayerMatchdaySquad(extractMatchdaySquad(playerConfigured));
+          saveGame(gameEngine.toSavePayload());
+        }
+        onMatchStart(configuredHome, configuredAway, playerSide, round, playerTactics);
+      },
       goHub,
     );
     screenRouter.show('pre-match');

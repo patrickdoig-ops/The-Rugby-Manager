@@ -10,6 +10,7 @@ import { playerOverall } from '../engine/RatingEngine';
 import { computeOverallRating } from '../team/teamProfile';
 import { sortStandings } from '../game/leagueTable';
 import { recentForm, headToHead, matchSpread, type FormResult } from '../game/teamStats';
+import { applyMatchdaySquad } from '../game/playerSquad';
 import type { GameCoordinator } from '../game/GameCoordinator';
 
 type RawPlayer = {
@@ -222,18 +223,27 @@ export function initPreMatchScreen(
   const oppTeam    = playerSide === 'home' ? away : home;
   const oppSide: 'home' | 'away' = playerSide === 'home' ? 'away' : 'home';
 
-  const homeStarters: RawPlayer[] = (home.players as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
-  const homeBench:    RawPlayer[] = ((home.bench ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
-  const homeSquad:    RawPlayer[] = ((home.squad ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
+  const state = gameEngine.getState();
+  const savedTactics = state.player.tactics;
+  const savedSquad   = state.player.matchdaySquad;
 
-  const awayStarters: RawPlayer[] = (away.players as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
-  const awayBench:    RawPlayer[] = ((away.bench ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
-  const awaySquad:    RawPlayer[] = ((away.squad ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
+  // The player team's roster is rearranged to put the persisted matchday
+  // squad in slots 1-23 (starters + bench) and the rest in `squad`. Opponent
+  // roster is untouched.
+  const homeApplied = playerSide === 'home' ? applyMatchdaySquad(home, savedSquad) : home;
+  const awayApplied = playerSide === 'away' ? applyMatchdaySquad(away, savedSquad) : away;
+
+  const homeStarters: RawPlayer[] = (homeApplied.players as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
+  const homeBench:    RawPlayer[] = ((homeApplied.bench ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
+  const homeSquad:    RawPlayer[] = ((homeApplied.squad ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
+
+  const awayStarters: RawPlayer[] = (awayApplied.players as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
+  const awayBench:    RawPlayer[] = ((awayApplied.bench ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
+  const awaySquad:    RawPlayer[] = ((awayApplied.squad ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
 
   let selection: { tier: Tier; squadNum: number } | null = null;
   let activeView: 'list' | 'pitch' = 'list';
 
-  const state = gameEngine.getState();
   const results = state.league.results;
   const playerForm = recentForm(playerTeam.id, results);
   const oppForm    = recentForm(oppTeam.id,    results);
@@ -458,12 +468,13 @@ export function initPreMatchScreen(
     renderAwayPanel();
   });
 
-  let chosenTactics: TeamTactics = { ...DEFAULT_TACTICS };
+  const initialTactics: TeamTactics = savedTactics ? { ...savedTactics } : { ...DEFAULT_TACTICS };
+  let chosenTactics: TeamTactics = { ...initialTactics };
   const unsubTactics = eventBus.on('ui:tacticsChange', ({ teamId, tactics }) => {
     if (teamId === playerSide) chosenTactics = tactics;
   });
 
-  renderTacticsMenu(tacticsPanel, { ...DEFAULT_TACTICS }, playerSide);
+  renderTacticsMenu(tacticsPanel, initialTactics, playerSide);
 
   screen.querySelector('#pm-back')!.addEventListener('click', () => {
     unsubTactics();

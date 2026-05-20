@@ -48,12 +48,13 @@ All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.cu
 
 ### Season-scope mutation seam: `GameCoordinator` + `applySeasonEvent`
 
-Match-scope writes flow through `applyMatchEvent`; **season-scope writes flow through `applySeasonEvent`** in `src/game/applySeasonEvent.ts`. The game engine (`src/game/`) is a sibling to the match engine (`src/engine/`) and owns one `GameState` per session — calendar (`date`, `week`, `seasonLabel`), league (`fixtures`, `results`, `standings`), `player.teamId`, and the root `seed`.
+Match-scope writes flow through `applyMatchEvent`; **season-scope writes flow through `applySeasonEvent`** in `src/game/applySeasonEvent.ts`. The game engine (`src/game/`) is a sibling to the match engine (`src/engine/`) and owns one `GameState` per session — calendar (`date`, `week`, `seasonLabel`), league (`fixtures`, `results`, `standings`), `player.teamId` + `player.tactics` + `player.matchdaySquad` (the last two persist pre-match choices across matches), and the root `seed`.
 
 | Module | Responsibility |
 |---|---|
 | `GameCoordinator.ts` | Public API (`newSeason`, `fromSave`, `getState`, `getCurrentFixture`, `recordPlayerMatchResult`, `toSavePayload`). Owns the `GameState`. The "tick" of the game engine is a player match completing: `recordPlayerMatchResult` applies the player's score, headlessly simulates the other fixtures of the round, then advances the week. |
-| `applySeasonEvent.ts` | Single mutation seam. Reducer over `SeasonEvent` (`src/types/gameState.ts`): `SEASON_INITIALIZED`, `FIXTURE_RESULT_RECORDED`, `WEEK_ADVANCED`. Same `default: const _: never = event;` exhaustiveness contract as `applyMatchEvent`. |
+| `applySeasonEvent.ts` | Single mutation seam. Reducer over `SeasonEvent` (`src/types/gameState.ts`): `SEASON_INITIALIZED`, `FIXTURE_RESULT_RECORDED`, `WEEK_ADVANCED`, `PLAYER_TACTICS_SET`, `PLAYER_MATCHDAY_SQUAD_SET`. Same `default: const _: never = event;` exhaustiveness contract as `applyMatchEvent`. |
+| `playerSquad.ts` | Pure helpers: `extractMatchdaySquad` (snapshot the 23-man matchday roster as stable name refs) and `applyMatchdaySquad` (inverse — rearrange a fresh-from-JSON `RawTeamInput` so the saved 23 occupy slots 1-23). Returns the team unchanged when the saved list is empty, the wrong length, or references a player no longer rostered. |
 | `fixtures.ts` | Pure double round-robin generator using the standard "circle" method. Player's team is placed at position 0 so its match is always the first pairing per round. |
 | `simulateFixture.ts` | Headless wrapper around `MatchCoordinator` with `silent: true` — suppresses every `engine:event`/`engine:stateChange`/`engine:initialized`/`engine:resumed` emit and replaces modal prompts with `high_ball`/`kick_for_goal` defaults. `engine:finished` still fires for completion detection. |
 | `leagueTable.ts` | Pure helpers: `sortStandings` (league points → points diff → points for), `findStanding`. |
@@ -72,7 +73,7 @@ Match-scope writes flow through `applyMatchEvent`; **season-scope writes flow th
 | `game:fixtureRecorded` | `{ result: FixtureResult; state: GameState }` | `FixtureListScreen` (re-render fixtures + standings as each headless sim resolves) |
 | `game:weekAdvanced` | `{ state: GameState }` | `FixtureListScreen` (calendar header) |
 
-`SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`: `playerTeamId`, `seed`, `currentWeek`, every `FixtureResult` (player's + AI), and (v3+) the `seasonLabel` + `fixtures` snapshot the user saw at save time. `fromSave` re-runs `SEASON_INITIALIZED` against the saved schedule when present (otherwise falls back to the canonical one for legacy v2 saves) then replays results to rebuild standings + calendar deterministically. `SAVE_VERSION` is now 3; v2 saves load via the legacy path (no fixtures snapshot) and v1 saves are discarded.
+`SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`: `playerTeamId`, `seed`, `currentWeek`, every `FixtureResult` (player's + AI), (v3+) the `seasonLabel` + `fixtures` snapshot the user saw at save time, and (v4+) the persisted pre-match `tactics` + `matchdaySquad` so the next match opens with the manager's last commit as the default. `fromSave` re-runs `SEASON_INITIALIZED` against the saved schedule when present (otherwise falls back to the canonical one for legacy v2 saves), replays results to rebuild standings + calendar deterministically, then replays the saved `PLAYER_TACTICS_SET` / `PLAYER_MATCHDAY_SQUAD_SET` events if present. `SAVE_VERSION` is now 4; v2 and v3 saves load via the legacy path (no tactics/squad snapshot) and v1 saves are discarded.
 
 Season-level determinism: `(playerTeamId, rootSeed)` plus the player's series of results produces an identical final league table on every run. Verified by `scripts/checkSeasonDeterminism.ts`; `npm run verify` runs both the match-level and season-level harnesses.
 

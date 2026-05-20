@@ -1,4 +1,5 @@
 import { eventBus } from '../utils/eventBus';
+import { shortName } from '../utils/playerName';
 import type { MatchState } from '../types/match';
 
 function pct(a: number, b: number): string {
@@ -97,7 +98,7 @@ function renderPlayerStats(state: MatchState): string {
     return `
       <div class="player-stat-row">
         <span class="player-jersey" style="color:${team.color}">${p.squadNumber}</span>
-        <span class="fatigue-name">${p.lastName}</span>
+        <span class="fatigue-name">${shortName(p)}</span>
         <div class="fatigue-bar-bg">
           <div class="fatigue-bar ${barClass}" style="width:${f}%"></div>
         </div>
@@ -172,7 +173,7 @@ function playerTableRow(p: MatchState['homeTeam']['players'][number], teamColor:
   const mt = Math.max(0, s.tacklesAttempted - s.tacklesMade);
   return `<tr${rowClass}>
     <td style="color:${teamColor}">${p.squadNumber}</td>
-    <td>${p.lastName}</td>
+    <td>${shortName(p)}</td>
     <td class="${ratingClass(p.rating)}">${p.rating.toFixed(1)}</td>
     <td>${s.carries}</td>
     <td>${s.metresCarried}</td>

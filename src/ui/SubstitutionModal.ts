@@ -1,5 +1,6 @@
 import type { Team } from '../types/team';
 import { eventBus } from '../utils/eventBus';
+import { shortName } from '../utils/playerName';
 
 type PendingSub = {
   benchSquadNum: number;
@@ -33,7 +34,7 @@ export function renderSubstitutionPanel(container: HTMLElement, team: Team): voi
           return `
             <button class="sub-player-btn sub-bench-btn${isSelected ? ' sub-selected' : ''}" data-squad="${p.squadNumber}">
               <span class="sub-num" style="color:${color}">${p.squadNumber}</span>
-              <span class="sub-name">${p.lastName}</span>
+              <span class="sub-name">${shortName(p)}</span>
               <span class="sub-pos">${p.position}</span>
             </button>`;
         }).join('')
@@ -46,7 +47,7 @@ export function renderSubstitutionPanel(container: HTMLElement, team: Team): voi
       return `
         <button class="sub-player-btn sub-starter-btn" data-squad="${p.squadNumber}">
           <span class="sub-num" style="color:${color}">${p.squadNumber}</span>
-          <span class="sub-name">${p.lastName}</span>
+          <span class="sub-name">${shortName(p)}</span>
           <div class="sub-fatigue-bar-bg">
             <div class="fatigue-bar ${barClass}" style="width:${f}%"></div>
           </div>
@@ -109,8 +110,8 @@ export function renderSubstitutionPanel(container: HTMLElement, team: Team): voi
           pendingSubs.push({
             benchSquadNum: benchPlayer.squadNumber,
             fieldSquadNum: fieldPlayer.squadNumber,
-            benchLabel: `${benchPlayer.lastName} (${benchPlayer.squadNumber})`,
-            fieldLabel: `${fieldPlayer.lastName} (${fieldPlayer.squadNumber})`,
+            benchLabel: `${shortName(benchPlayer)} (${benchPlayer.squadNumber})`,
+            fieldLabel: `${shortName(fieldPlayer)} (${fieldPlayer.squadNumber})`,
           });
           selectedBenchSquadNum = null;
           render();

@@ -3,6 +3,7 @@ import type { TeamTactics } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';
 import { renderTacticsMenu } from './TacticsMenu';
 import { eventBus } from '../utils/eventBus';
+import { shortName } from '../utils/playerName';
 import type { RawTeamInput } from '../engine/MatchCoordinator';
 
 type RawPlayer = {
@@ -92,7 +93,7 @@ function renderColumnHeader(): string {
 function renderPlayerRow(p: RawPlayer, color: string, interactive: boolean, isBench: boolean): string {
   const ovr = computeOverall(p.baseStats);
   const squadNum = getSquadNum(p);
-  const lastName = p.lastName;
+  const lastName = shortName(p);
   const benchClass = isBench ? ' pm-player--bench' : ' pm-player--starter';
   const dataAttr = interactive ? `data-squad="${squadNum}"` : '';
   const tag = interactive ? 'button' : 'div';
@@ -124,7 +125,7 @@ function renderPitchFormation(starters: RawPlayer[], color: string): string {
       const p = byId[id];
       if (!p) return '';
       const x = ((ci + 1) / (row.length + 1)) * 100;
-      const lastName = p.lastName;
+      const lastName = shortName(p);
       return `<div class="pm-player-token" style="top:${y}%;left:${x}%">
         <div class="pm-token-circle" style="background:linear-gradient(180deg,${color} 0%,color-mix(in oklch,${color} 60%,black) 100%)">${id}</div>
         <div class="pm-token-name">${lastName}</div>

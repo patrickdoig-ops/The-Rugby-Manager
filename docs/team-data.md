@@ -6,7 +6,7 @@ The simulator currently ships with 4 of the 10 Premiership clubs; the remaining 
 
 **Squad data note:** Squad lists are compiled from public sources (club websites, Wikipedia, Ultimate Rugby, RugbyPass) as of May 2026. Coverage is best-effort: DOBs and ages are filled where available, blank where not. The data has not been manually validated against current club rosters — see "Data notes" at the bottom of this file for known caveats (likely transfer artifacts, duplicate listings, possible retirees).
 
-Related docs: see `CLAUDE.md` "Tactics system" for tactic-effect mechanics, `engine.md` "Carry Phases" for how tactics shape match outcomes, and `src/types/team.ts` for the authoritative `TeamTactics` definition.
+Related docs: see `CLAUDE.md` "Tactics system" for tactic-effect mechanics, `docs/engine.md` "Carry Phases" for how tactics shape match outcomes, and `src/types/team.ts` for the authoritative `TeamTactics` definition.
 
 ---
 

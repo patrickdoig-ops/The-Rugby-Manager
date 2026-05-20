@@ -2,7 +2,7 @@
 
 This guide documents the current Rugby Simulator UI — the "Match Day Editorial" design system. It is specific to this repo's DOM and CSS implementation.
 
-For engine behaviour, formulas, and phase rules, use `engine.md`. For contributor workflow, versioning, and architecture constraints, use `CLAUDE.md`.
+For engine behaviour, formulas, and phase rules, use `docs/engine.md`. For contributor workflow, versioning, and architecture constraints, use `CLAUDE.md`.
 
 ## Design Principles
 

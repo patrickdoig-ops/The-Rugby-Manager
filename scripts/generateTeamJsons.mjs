@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Generate team JSON files from team-data.md.
-// Re-runnable: parses team-data.md and writes src/data/team-<slug>.json for all 10 Prem teams.
+// Generate team JSON files from docs/team-data.md.
+// Re-runnable: parses docs/team-data.md and writes src/data/team-<slug>.json for all 10 Prem teams.
 // Run with: node scripts/generateTeamJsons.mjs
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
-const SOURCE = resolve(ROOT, 'team-data.md');
+const SOURCE = resolve(ROOT, 'docs/team-data.md');
 const OUT_DIR = resolve(ROOT, 'src/data');
 
 // ─── Team metadata ─────────────────────────────────────────────────────────

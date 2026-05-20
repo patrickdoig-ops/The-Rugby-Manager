@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Architectural invariants and ways of working for this repo. Lean by design. Read in full at session start. For engine internals see **`engine.md`**; for visual design see **`DESIGN.md`**.
+Architectural invariants and ways of working for this repo. Lean by design. Read in full at session start. For engine internals see **`docs/engine.md`**; for visual design see **`docs/DESIGN.md`**.
 
 ---
 
@@ -53,7 +53,7 @@ The test: every changed line traces directly to the user's request.
 - Use constructor DI for classes whose methods share the same deps (`PenaltyHandler`, `ClockController`). Use module-level functions for pure helpers (`FieldPosition`, `PhaseRouter`).
 - Extract a shared utility the moment a second module needs it, not before.
 - Refactor incrementally. One cohesive split per commit; each commit must build clean and preserve behaviour.
-- A module-boundary change is an engine change — update `engine.md` in the same commit.
+- A module-boundary change is an engine change — update `docs/engine.md` in the same commit.
 - **Navigation goes through `screenRouter.show(id)`** (`src/ui/ScreenRouter.ts`). Screen modules never poke `document.getElementById('…').style.display` directly; they accept `onForward`/`onBack` callbacks from `main.ts`. Adding a screen: (1) add the id to the `SCREENS` map in `ScreenRouter.ts`, (2) add a `<div id="…">` to `index.html`, (3) add a flat navigation handler in `main.ts`.
 - **`MatchCoordinator` owns its event-bus subscriptions and must be destroyed.** Constructor captures unsubs in `busUnsubs[]`; `destroy()` runs them, cancels the tick timer, and clears the run flag. `main.ts` calls `engine.destroy()` after the match-result overlay is dismissed.
 
@@ -80,7 +80,7 @@ Three isolated mulberry32 streams seeded from `state.engine.seed`:
 - `rngForm()` — form stream; player form modifier at `initPlayer()`.
 - `pickRandom(arr)` / `commentaryChance(pct)` — commentary stream; flavour-text sampling.
 
-Streams are independent — adding a commentary line cannot shift outcome rolls. Pick the matching stream when adding a randomness consumer. Seed is set once in the `MatchCoordinator` constructor via `setMatchSeed(seed)` **before** `initMatchState()` runs. A match with a given seed is fully reproducible. Full breakdown in `engine.md` "Determinism (Seeded RNG)".
+Streams are independent — adding a commentary line cannot shift outcome rolls. Pick the matching stream when adding a randomness consumer. Seed is set once in the `MatchCoordinator` constructor via `setMatchSeed(seed)` **before** `initMatchState()` runs. A match with a given seed is fully reproducible. Full breakdown in `docs/engine.md` "Determinism (Seeded RNG)".
 
 ---
 
@@ -88,8 +88,8 @@ Streams are independent — adding a commentary line cannot shift outcome rolls.
 
 | Topic | Source of truth |
 |---|---|
-| Engine internals — phases, resolvers, formulas, RNG, tactics effects, commentary, UI event-bus contract | **`engine.md`** |
-| Visual design — colours, fonts, spacing, components, live-match shell HTML, screen notes | **`DESIGN.md`** |
+| Engine internals — phases, resolvers, formulas, RNG, tactics effects, commentary, UI event-bus contract | **`docs/engine.md`** |
+| Visual design — colours, fonts, spacing, components, live-match shell HTML, screen notes | **`docs/DESIGN.md`** |
 | Architectural invariants & ways of working | this file |
 
 When code changes, update the corresponding doc in the same commit.
@@ -116,17 +116,17 @@ No tests or linters. TypeScript strict mode is the primary correctness check —
 
 ## Architecture
 
-**Engine ↔ UI contract.** The engine never imports from UI; UI never calls engine methods directly **except** `SimController` (Play/Pause/Speed). All communication goes through the typed pub/sub singleton at `src/utils/eventBus.ts`. Within a single tick, `engine:event` is emitted **before** `engine:stateChange` — UI state caches from the prior tick are always valid by the time an event arrives. Engine event table and subscribers: `engine.md` § "UI Event Bus Contract". UI subscriptions registered at startup are permanent; one-shots are explicitly unsub'd (e.g. `CommentaryFeed`'s team-colour cache).
+**Engine ↔ UI contract.** The engine never imports from UI; UI never calls engine methods directly **except** `SimController` (Play/Pause/Speed). All communication goes through the typed pub/sub singleton at `src/utils/eventBus.ts`. Within a single tick, `engine:event` is emitted **before** `engine:stateChange` — UI state caches from the prior tick are always valid by the time an event arrives. Engine event table and subscribers: `docs/engine.md` § "UI Event Bus Contract". UI subscriptions registered at startup are permanent; one-shots are explicitly unsub'd (e.g. `CommentaryFeed`'s team-colour cache).
 
 **Commentary is data, not text.** The engine populates `NarrationDescriptor` on every `GameEvent`; `CommentaryFeed.ts` calls `renderNarration(event)` to produce strings. Silent simulation = don't initialise `CommentaryFeed`.
 
 **Attack direction.** Home attacks toward x=100 in the first half, toward x=0 in the second. Teams swap ends only at half-time, never on turnovers. All `ball.x` reasoning must go through the pure helpers in `src/engine/FieldPosition.ts` — they factor in `state.clock.halfTimeDone`. Snapshot DTOs (`GameEvent`, `PenaltyContext`, `MatchEvent` payloads) keep flat `ballX`/`ballY` scalars; see Section 3.
 
-**Tactics.** Five dimensions in `TeamTactics` (`src/types/team.ts`). The managed team can change all five mid-match via the tactics modal; AI uses `DEFAULT_TACTICS` and cannot be changed via UI. Kick-off strategy is per-kick (not a standing tactic) — managed team picks via modal, AI defaults to `high_ball`. Effects, probability tables, and tactic-note triggers: `engine.md` "Carry Phases" + "Tactical Commentary".
+**Tactics.** Five dimensions in `TeamTactics` (`src/types/team.ts`). The managed team can change all five mid-match via the tactics modal; AI uses `DEFAULT_TACTICS` and cannot be changed via UI. Kick-off strategy is per-kick (not a standing tactic) — managed team picks via modal, AI defaults to `high_ball`. Effects, probability tables, and tactic-note triggers: `docs/engine.md` "Carry Phases" + "Tactical Commentary".
 
-**Design system.** `DESIGN.md` is the single source of truth for every colour, font, spacing, and component pattern. CSS custom properties in `style/main.css` `:root` — no hardcoded hex except primary CTA green (`#007a2a` / `#009434` active / `#006622` pressed) and team identity colours injected inline from team JSON.
+**Design system.** `docs/DESIGN.md` is the single source of truth for every colour, font, spacing, and component pattern. CSS custom properties in `style/main.css` `:root` — no hardcoded hex except primary CTA green (`#007a2a` / `#009434` active / `#006622` pressed) and team identity colours injected inline from team JSON.
 
-**Team data.** `src/data/team-*.json` — all 10 Gallagher Premiership clubs (Bath, Bristol, Exeter, Gloucester, Harlequins, Leicester, Newcastle, Northampton, Sale, Saracens). Each file has `players` (15 starters, id 1-15), `bench` (8 matchday subs, id 16-23), and `squad` (the rest of the senior roster, id 24+; data-only, engine ignores). Each player carries `firstName`, `lastName`, `dob` (nullable ISO), `nationality`, `position` (detailed engine form), and 12 `baseStats` on a 1–100 scale. `MatchCoordinator.initPlayer` copies `baseStats` to `currentStats` at match start; `StaminaSystem.computeFatigue` drives `currentStats` over the match via `FATIGUE_APPLIED`. `baseStats` is never modified. Player full names are unique league-wide — `CommentaryFeed`'s colourisation pass relies on this. **Source of truth is `team-data.md`** — to regenerate the JSONs deterministically after editing team-data.md, run `node scripts/generateTeamJsons.mjs`.
+**Team data.** `src/data/team-*.json` — all 10 Gallagher Premiership clubs (Bath, Bristol, Exeter, Gloucester, Harlequins, Leicester, Newcastle, Northampton, Sale, Saracens). Each file has `players` (15 starters, id 1-15), `bench` (8 matchday subs, id 16-23), and `squad` (the rest of the senior roster, id 24+; data-only, engine ignores). Each player carries `firstName`, `lastName`, `dob` (nullable ISO), `nationality`, `position` (detailed engine form), and 12 `baseStats` on a 1–100 scale. `MatchCoordinator.initPlayer` copies `baseStats` to `currentStats` at match start; `StaminaSystem.computeFatigue` drives `currentStats` over the match via `FATIGUE_APPLIED`. `baseStats` is never modified. Player full names are unique league-wide — `CommentaryFeed`'s colourisation pass relies on this. **Source of truth is `docs/team-data.md`** — to regenerate the JSONs deterministically after editing team-data.md, run `node scripts/generateTeamJsons.mjs`.
 
 ---
 

@@ -1,6 +1,6 @@
 # Rugby Simulator vs. World Rugby Laws
 
-I've reviewed the core engine logic (`engine.md`, `MatchEngine.ts`, and the phase resolvers) against the official Laws of Rugby Union. 
+I've reviewed the core engine logic (`docs/engine.md`, `MatchEngine.ts`, and the phase resolvers) against the official Laws of Rugby Union. 
 
 While the engine captures the spirit and fundamental flow of rugby remarkably well, it relies on several necessary abstractions. Here are the notable inconsistencies and missing laws compared to real-world rugby:
 

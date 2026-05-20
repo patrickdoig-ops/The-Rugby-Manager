@@ -13,10 +13,35 @@ function tacklePct(t: { attempted: number; made: number }): string {
   return `${Math.round((t.made / t.attempted) * 100)}%`;
 }
 
+function setPieceSuccess(s: { won: number; thrown?: number; putIn?: number }): string {
+  const total = s.thrown ?? s.putIn ?? 0;
+  if (total === 0) return '—';
+  return `${s.won}/${total} (${Math.round((s.won / total) * 100)}%)`;
+}
+
+function teamMetres(team: MatchState['homeTeam'], key: 'metresCarried' | 'kickMetres'): number {
+  let sum = 0;
+  for (const p of team.players) sum += p.matchStats[key];
+  for (const p of team.substitutedOff) sum += p.matchStats[key];
+  return sum;
+}
+
+function pointsPerEntry(e: { count: number; pointsScored: number }): string {
+  if (e.count === 0) return '—';
+  return (e.pointsScored / e.count).toFixed(1);
+}
+
 function renderStats(state: MatchState): string {
   const { stats, homeTeam, awayTeam } = state;
   const hc = homeTeam.color;
   const ac = awayTeam.color;
+
+  const hRunM = teamMetres(homeTeam, 'metresCarried');
+  const aRunM = teamMetres(awayTeam, 'metresCarried');
+  const hKickM = teamMetres(homeTeam, 'kickMetres');
+  const aKickM = teamMetres(awayTeam, 'kickMetres');
+  const hMissed = Math.max(0, stats.tackles.home.attempted - stats.tackles.home.made);
+  const aMissed = Math.max(0, stats.tackles.away.attempted - stats.tackles.away.made);
 
   const rows: Array<{
     label: string;
@@ -33,6 +58,14 @@ function renderStats(state: MatchState): string {
     { label: 'Tries',      homeVal: String(stats.tries.home),    awayVal: String(stats.tries.away),    homeNum: stats.tries.home,    awayNum: stats.tries.away },
     { label: 'Scrums',     homeVal: String(stats.scrums.home),   awayVal: String(stats.scrums.away),   homeNum: stats.scrums.home,   awayNum: stats.scrums.away },
     { label: 'Lineouts',   homeVal: String(stats.lineouts.home), awayVal: String(stats.lineouts.away), homeNum: stats.lineouts.home, awayNum: stats.lineouts.away },
+    { label: 'Lineout success', homeVal: setPieceSuccess(stats.ownLineouts.home), awayVal: setPieceSuccess(stats.ownLineouts.away), homeNum: stats.ownLineouts.home.won, awayNum: stats.ownLineouts.away.won },
+    { label: 'Scrum success',   homeVal: setPieceSuccess(stats.ownScrums.home),   awayVal: setPieceSuccess(stats.ownScrums.away),   homeNum: stats.ownScrums.home.won,   awayNum: stats.ownScrums.away.won },
+    { label: 'Run metres',      homeVal: String(hRunM),  awayVal: String(aRunM),  homeNum: hRunM,  awayNum: aRunM },
+    { label: 'Kick metres',     homeVal: String(hKickM), awayVal: String(aKickM), homeNum: hKickM, awayNum: aKickM },
+    { label: 'Tackles made',    homeVal: String(stats.tackles.home.made), awayVal: String(stats.tackles.away.made), homeNum: stats.tackles.home.made, awayNum: stats.tackles.away.made },
+    { label: 'Missed tackles',  homeVal: String(hMissed), awayVal: String(aMissed), homeNum: hMissed, awayNum: aMissed, invert: true },
+    { label: '22 entries',      homeVal: String(stats.entries22.home.count), awayVal: String(stats.entries22.away.count), homeNum: stats.entries22.home.count, awayNum: stats.entries22.away.count },
+    { label: 'Points / entry',  homeVal: pointsPerEntry(stats.entries22.home), awayVal: pointsPerEntry(stats.entries22.away), homeNum: stats.entries22.home.pointsScored, awayNum: stats.entries22.away.pointsScored },
   ];
 
   const rowsHtml = rows.map(r => {
@@ -156,10 +189,18 @@ function updatePlayerStatsDOM(container: HTMLElement, state: MatchState): void {
 
 function statsKey(state: MatchState): string {
   const s = state.stats;
+  const hRunM = teamMetres(state.homeTeam, 'metresCarried');
+  const aRunM = teamMetres(state.awayTeam, 'metresCarried');
+  const hKickM = teamMetres(state.homeTeam, 'kickMetres');
+  const aKickM = teamMetres(state.awayTeam, 'kickMetres');
   return `${s.possession.home},${s.possession.away},${s.territory.home},${s.territory.away},`
        + `${s.tackles.home.made},${s.tackles.home.attempted},${s.tackles.away.made},${s.tackles.away.attempted},`
        + `${s.handlingErrors.home},${s.handlingErrors.away},${s.tries.home},${s.tries.away},`
-       + `${s.scrums.home},${s.scrums.away},${s.lineouts.home},${s.lineouts.away}`;
+       + `${s.scrums.home},${s.scrums.away},${s.lineouts.home},${s.lineouts.away},`
+       + `${s.ownLineouts.home.thrown},${s.ownLineouts.home.won},${s.ownLineouts.away.thrown},${s.ownLineouts.away.won},`
+       + `${s.ownScrums.home.putIn},${s.ownScrums.home.won},${s.ownScrums.away.putIn},${s.ownScrums.away.won},`
+       + `${s.entries22.home.count},${s.entries22.home.pointsScored},${s.entries22.away.count},${s.entries22.away.pointsScored},`
+       + `${hRunM},${aRunM},${hKickM},${aKickM}`;
 }
 
 // ─── Player detail table ───────────────────────────────────────────────────

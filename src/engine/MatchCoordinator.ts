@@ -10,6 +10,7 @@ import { rngForm, setMatchSeed, rng, generateSeed } from '../utils/rng';
 import { PenaltyHandler } from './PenaltyHandler';
 import { ClockController } from './ClockController';
 import { resolvePhase, draftEvent } from './PhaseRouter';
+import { inOpposition22 } from './FieldPosition';
 import { makeId, resetEventCounter } from './eventId';
 import { applyMatchEvent } from './applyMatchEvent';
 import { FATIGUE_SCALING } from './balance';
@@ -99,6 +100,12 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
       scrums:   { home: 0, away: 0 },
       lineouts: { home: 0, away: 0 },
       tries:    { home: 0, away: 0 },
+      ownLineouts: { home: { thrown: 0, won: 0 }, away: { thrown: 0, won: 0 } },
+      ownScrums:   { home: { putIn: 0, won: 0 }, away: { putIn: 0, won: 0 } },
+      entries22: {
+        home: { count: 0, pointsScored: 0, active: false },
+        away: { count: 0, pointsScored: 0, active: false },
+      },
     },
     events: [],
     breakdownMod: { attack: 0, defend: 0 },
@@ -264,6 +271,21 @@ export class MatchCoordinator {
     this.tickTimeout = setTimeout(() => this.tick(), delay);
   }
 
+  // 22-entry detection: an entry begins when a team has possession inside the
+  // opposition 22 and ends only when they lose possession. Going back outside
+  // the 22 with the ball is NOT an exit. Idempotent — enforces the invariant
+  // that only the current possessor can have an active flag.
+  private detectEntry22Changes(): void {
+    const cur = this.state.possession;
+    const other: PossessionSide = cur === 'home' ? 'away' : 'home';
+    if (this.state.stats.entries22[other].active) {
+      applyMatchEvent(this.state, { type: 'ENTRY22_CLEARED', side: other });
+    }
+    if (inOpposition22(this.state) && !this.state.stats.entries22[cur].active) {
+      applyMatchEvent(this.state, { type: 'ENTRY22_REGISTERED', side: cur });
+    }
+  }
+
   private async tick(): Promise<void> {
     this.tickTimeout = null;
     if (!this.state.engine.isRunning) return;
@@ -355,6 +377,8 @@ export class MatchCoordinator {
 
       const event = resolvePhase(this.state, this.sm, this.kickOffStrategy);
       applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event });
+
+      this.detectEntry22Changes();
 
       eventBus.emit('engine:event', { event });
       eventBus.emit('engine:stateChange', { state: this.state });

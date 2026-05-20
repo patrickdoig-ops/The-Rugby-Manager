@@ -16,6 +16,12 @@ export interface MatchStats {
   scrums:     { home: number; away: number };
   lineouts:   { home: number; away: number };
   tries:      { home: number; away: number };
+  ownLineouts: { home: { thrown: number; won: number }; away: { thrown: number; won: number } };
+  ownScrums:   { home: { putIn: number; won: number };  away: { putIn: number; won: number } };
+  entries22:   {
+    home: { count: number; pointsScored: number; active: boolean };
+    away: { count: number; pointsScored: number; active: boolean };
+  };
 }
 
 export interface GameEvent {

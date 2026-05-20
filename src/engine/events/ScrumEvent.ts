@@ -24,6 +24,7 @@ export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): Ph
       type: 'SCRUM_RESOLVED',
       outcome: 'attacking_dominant_penalty',
       attackFrontRow, defendFrontRow,
+      attackSide,
       possessionSideAfter: attackSide,
     });
     return {
@@ -40,6 +41,7 @@ export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): Ph
       type: 'SCRUM_RESOLVED',
       outcome: 'stable_win',
       attackFrontRow, defendFrontRow,
+      attackSide,
       possessionSideAfter: attackSide,
     });
     return {
@@ -56,6 +58,7 @@ export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): Ph
       type: 'SCRUM_RESOLVED',
       outcome: 'wheel',
       attackFrontRow, defendFrontRow,
+      attackSide,
       possessionSideAfter: attackSide,
     });
     return {
@@ -72,6 +75,7 @@ export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): Ph
     type: 'SCRUM_RESOLVED',
     outcome: 'defending_dominant_penalty',
     attackFrontRow, defendFrontRow,
+    attackSide,
     possessionSideAfter: flipSide,
   });
   return {

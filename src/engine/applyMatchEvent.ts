@@ -13,17 +13,26 @@ export function applyMatchEvent(state: MatchState, event: MatchEvent): void {
   switch (event.type) {
 
     // ── Scoring ──────────────────────────────────────────────────────────
-    case 'TRY_SCORED':
+    case 'TRY_SCORED': {
       event.scorer.matchStats.tries++;
       state.score[event.side] += 5;
       state.stats.tries[event.side]++;
+      // A try is always scored inside the opposition 22 — auto-register the entry
+      // if a same-tick break-and-score arrived before the tick-boundary detection.
+      const e = state.stats.entries22[event.side];
+      if (!e.active) { e.count++; e.active = true; }
+      e.pointsScored += 5;
       return;
+    }
 
     case 'CONVERSION_KICKED':
       event.kicker.matchStats.kicksAtGoal++;
       if (event.success) {
         event.kicker.matchStats.kicksMade++;
         state.score[event.side] += 2;
+        if (state.stats.entries22[event.side].active) {
+          state.stats.entries22[event.side].pointsScored += 2;
+        }
       } else {
         event.kicker.matchStats.kicksMissed++;
       }
@@ -34,6 +43,9 @@ export function applyMatchEvent(state: MatchState, event: MatchEvent): void {
       if (event.success) {
         event.kicker.matchStats.kicksMade++;
         state.score[event.side] += 3;
+        if (state.stats.entries22[event.side].active) {
+          state.stats.entries22[event.side].pointsScored += 3;
+        }
       } else {
         event.kicker.matchStats.kicksMissed++;
       }
@@ -126,6 +138,10 @@ export function applyMatchEvent(state: MatchState, event: MatchEvent): void {
           state.stats.lineouts[event.possessionSideAfter]++;
           break;
       }
+      state.stats.ownLineouts[event.attackSide].thrown++;
+      if (event.possessionSideAfter === event.attackSide) {
+        state.stats.ownLineouts[event.attackSide].won++;
+      }
       state.possession = event.possessionSideAfter;
       return;
 
@@ -146,6 +162,10 @@ export function applyMatchEvent(state: MatchState, event: MatchEvent): void {
           event.attackFrontRow.forEach(p => { p.matchStats.scrumPenaltiesConceded++; });
           state.stats.scrums[event.possessionSideAfter]++;
           break;
+      }
+      state.stats.ownScrums[event.attackSide].putIn++;
+      if (event.possessionSideAfter === event.attackSide) {
+        state.stats.ownScrums[event.attackSide].won++;
       }
       state.possession = event.possessionSideAfter;
       return;
@@ -215,6 +235,16 @@ export function applyMatchEvent(state: MatchState, event: MatchEvent): void {
 
     case 'HANDLING_ERROR':
       state.stats.handlingErrors[event.side]++;
+      return;
+
+    // ── 22-entry tracking ───────────────────────────────────────────────
+    case 'ENTRY22_REGISTERED':
+      state.stats.entries22[event.side].count++;
+      state.stats.entries22[event.side].active = true;
+      return;
+
+    case 'ENTRY22_CLEARED':
+      state.stats.entries22[event.side].active = false;
       return;
 
     // ── Fatigue ─────────────────────────────────────────────────────────

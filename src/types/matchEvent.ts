@@ -51,6 +51,7 @@ export type MatchEvent =
       outcome: 'stable_win' | 'wheel' | 'attacking_dominant_penalty' | 'defending_dominant_penalty';
       attackFrontRow: Player[];
       defendFrontRow: Player[];
+      attackSide: PossessionSide;       // side that put the ball in (pre-flip)
       possessionSideAfter: PossessionSide;
     }
 
@@ -74,6 +75,10 @@ export type MatchEvent =
   // ── Match-stat bookkeeping (per tick) ────────────────────────────────────
   | { type: 'TICK_BOOKKEEPING'; possessionSide: PossessionSide; territorySide: PossessionSide }
   | { type: 'HANDLING_ERROR'; side: PossessionSide }   // stats.handlingErrors[side]++ without flipping
+
+  // ── 22-entry tracking ────────────────────────────────────────────────────
+  | { type: 'ENTRY22_REGISTERED'; side: PossessionSide }
+  | { type: 'ENTRY22_CLEARED';    side: PossessionSide }
 
   // ── Fatigue ──────────────────────────────────────────────────────────────
   | { type: 'FATIGUE_APPLIED'; player: Player; newFatiguePct: number; newCurrentStats: PlayerStats }

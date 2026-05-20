@@ -69,6 +69,12 @@ document.addEventListener('DOMContentLoaded', () => {
   teamProfile.init(allTeamsRaw);
 
   let gameEngine: GameCoordinator | null = null;
+  // In-season screens (Hub, Fixtures, League) register permanent `game:*`
+  // subscriptions at init time without an unsub seam. Running init more than
+  // once per session (e.g. New Game → Home → Continue) would compound those
+  // subscriptions and double-render on every game-state change. Gate the
+  // init so it runs exactly once across the lifetime of the page.
+  let inSeasonInited = false;
 
   function goHome(): void {
     // Re-init so the Continue button state reflects the latest save (e.g. just
@@ -106,6 +112,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // them go through `screenRouter.show(...)` without re-initialising.
   function initInSeasonScreens(): void {
     if (!gameEngine) return;
+    if (inSeasonInited) return;
+    inSeasonInited = true;
     initHubScreen({
       gameEngine,
       allTeams,

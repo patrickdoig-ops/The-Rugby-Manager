@@ -26,12 +26,21 @@ import type { TeamTactics }        from './types/team';
 import type { MatchState }         from './types/match';
 import { eventBus }                from './utils/eventBus';
 
-import gloucesterRaw   from './data/team-gloucester.json';
+import bathRaw         from './data/team-bath.json';
 import bristolRaw      from './data/team-bristol.json';
+import exeterRaw       from './data/team-exeter.json';
+import gloucesterRaw   from './data/team-gloucester.json';
+import harlequinsRaw   from './data/team-harlequins.json';
 import leicesterRaw    from './data/team-leicester.json';
+import newcastleRaw    from './data/team-newcastle.json';
+import northamptonRaw  from './data/team-northampton.json';
+import saleRaw         from './data/team-sale.json';
 import saracensRaw     from './data/team-saracens.json';
 
-const allTeams = [gloucesterRaw, bristolRaw, leicesterRaw, saracensRaw] as unknown as RawTeamInput[];
+const allTeams = [
+  bathRaw, bristolRaw, exeterRaw, gloucesterRaw, harlequinsRaw,
+  leicesterRaw, newcastleRaw, northamptonRaw, saleRaw, saracensRaw,
+] as unknown as RawTeamInput[];
 
 document.addEventListener('DOMContentLoaded', () => {
   buildAppShell();

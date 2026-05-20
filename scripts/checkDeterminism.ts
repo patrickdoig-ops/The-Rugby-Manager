@@ -1,7 +1,12 @@
 // Determinism golden-master harness.
 //
 // Runs a fixed (seed, home, away) match through MatchCoordinator twice and
-// asserts the two state.events[] arrays produce identical SHA-256 hashes.
+// asserts the two snapshots produce identical SHA-256 hashes. The snapshot
+// covers both the commentary log (state.events) and per-player matchStats
+// from every player who took the field on either side. The wider snapshot
+// catches regressions that corrupt a stat counter without changing the
+// final score (e.g. a kicker's kicksMade off by one).
+//
 // Exit 0 = deterministic. Exit 1 = RNG-order regression — investigate before
 // committing.
 //
@@ -32,8 +37,15 @@ function runOnce(seed: number): Promise<string> {
     const offFinished = eventBus.on('engine:finished', () => {
       offPaused();
       offFinished();
-      const events = engine.getState().events;
-      const hash = createHash('sha256').update(JSON.stringify(events)).digest('hex');
+      const state = engine.getState();
+      const snapshot = {
+        events:     state.events,
+        homeStats:  state.homeTeam.players.map(p => p.matchStats),
+        awayStats:  state.awayTeam.players.map(p => p.matchStats),
+        homeSubbed: state.homeTeam.substitutedOff.map(p => p.matchStats),
+        awaySubbed: state.awayTeam.substitutedOff.map(p => p.matchStats),
+      };
+      const hash = createHash('sha256').update(JSON.stringify(snapshot)).digest('hex');
       engine.destroy();
       resolve(hash);
     });

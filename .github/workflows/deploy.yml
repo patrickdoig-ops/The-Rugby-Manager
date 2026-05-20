@@ -3,6 +3,10 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+    # Telemetry refreshes telemetry/latest.md on main; that change has no
+    # impact on the deployed site (the file is not in dist/), so skip
+    # re-deploying when only telemetry has changed.
+    paths-ignore: ['telemetry/**']
   workflow_dispatch:
 
 permissions:

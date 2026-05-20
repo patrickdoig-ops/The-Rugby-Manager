@@ -806,7 +806,6 @@ Snapshot date: **May 2026**, after round 16 of the 25-26 regular season (10 of 1
 
 Squad data was compiled in parallel from multiple public sources and has **not** been manually validated against current club rosters. Known caveats for a future cleanup pass:
 
-- **Possibly stale entries:** `Joe Launchbury` (listed at Harlequins), `Christian Wade` (listed at Newcastle Red Bulls) — both were thought to have retired; verify against current squad announcements.
 - **Position normalisation:** Some entries use `Back Row` / `Back row` / specific (`Flanker`, `Number 8`) interchangeably. When this file is wired into the engine, normalise to the position literals used in `src/data/team-*.json`.
 - **Missing fields:** DOB and age are blank where the public source didn't expose them — particularly common for academy-grade or recently-signed players. Filling these in is straightforward when seeding JSON.
 - **Newcastle Red Bulls:** Post-takeover (Aug 2025) recruitment has been heavy and the squad is in flux; expect this list to be the least stable of the ten.

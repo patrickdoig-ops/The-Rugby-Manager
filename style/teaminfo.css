@@ -102,7 +102,21 @@
 }
 
 .ti-tiles-club {
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: 1fr 1fr;
+}
+
+.ti-tiles-club .ti-tile-value {
+  font-family: var(--rm-font-body);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.ti-tiles-club .ti-tile {
+  min-height: 100px;
+  justify-content: center;
 }
 
 .ti-tile {
@@ -139,16 +153,6 @@
   font-family: var(--rm-font-body);
   font-size: 11px;
   color: var(--rm-text-muted);
-}
-
-.ti-tile-value.ti-tile-text {
-  font-family: var(--rm-font-body);
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: 0;
-  text-transform: none;
-  padding-top: 4px;
 }
 
 /* ─── Sections ────────────────────────────────────────────────── */

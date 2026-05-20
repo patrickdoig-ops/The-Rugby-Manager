@@ -57,7 +57,7 @@ function clubTilesHtml(profile: TeamProfile): string {
     tiles.push(`
       <div class="ti-tile">
         <div class="ti-tile-label">Nickname</div>
-        <div class="ti-tile-value ti-tile-text">${shortNickname(profile.nickname)}</div>
+        <div class="ti-tile-value">${shortNickname(profile.nickname)}</div>
       </div>`);
   }
   if (profile.stadiumCapacity) {
@@ -72,7 +72,7 @@ function clubTilesHtml(profile: TeamProfile): string {
     tiles.push(`
       <div class="ti-tile">
         <div class="ti-tile-label">Head coach</div>
-        <div class="ti-tile-value ti-tile-text">${shortCoach(profile.headCoach)}</div>
+        <div class="ti-tile-value">${shortCoach(profile.headCoach)}</div>
       </div>`);
   }
   return tiles.join('');

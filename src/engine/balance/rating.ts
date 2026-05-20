@@ -62,12 +62,12 @@ const LOCK_WEIGHTS: StatWeights = {
   pace: 0.25, agility: 0.25, kicking: 0, handling: 0.7,
 };
 const FLANKER_WEIGHTS: StatWeights = {
-  breakdown: 2.0, tackling: 1.8, stamina: 1.5, strength: 1.2, pace: 1.1,
+  breakdown: 2.0, tackling: 1.8, stamina: 1.5, strength: 1.2, pace: 0.9,
   positioning: 1.2, setPiece: 0.7, kicking: 0,
 };
 const NUMBER_8_WEIGHTS: StatWeights = {
   strength: 1.8, breakdown: 1.6, tackling: 1.4, handling: 1.3, stamina: 1.3,
-  pace: 1.0, setPiece: 0.8, kicking: 0,
+  pace: 0.7, setPiece: 0.8, kicking: 0,
 };
 const SCRUM_HALF_WEIGHTS: StatWeights = {
   handling: 2.0, pace: 1.5, composure: 1.5, positioning: 1.4, agility: 1.3,
@@ -75,7 +75,7 @@ const SCRUM_HALF_WEIGHTS: StatWeights = {
 };
 const FLY_HALF_WEIGHTS: StatWeights = {
   kicking: 2.0, composure: 1.8, handling: 1.6, positioning: 1.4, discipline: 1.2,
-  pace: 1.0, setPiece: 0, strength: 0.3, breakdown: 0.6,
+  pace: 0.8, setPiece: 0, strength: 0.3, breakdown: 0,
 };
 const CENTRE_WEIGHTS: StatWeights = {
   tackling: 1.6, pace: 1.5, handling: 1.5, strength: 1.3, agility: 1.2,

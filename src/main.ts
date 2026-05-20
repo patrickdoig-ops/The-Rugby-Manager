@@ -22,6 +22,7 @@ import { initSettingsScreen }      from './ui/SettingsScreen';
 import { initTeamSelectorScreen }  from './ui/TeamSelectorScreen';
 import { initFixtureListScreen }   from './ui/FixtureListScreen';
 import type { FixtureInitialState } from './ui/FixtureListScreen';
+import { initMatchResultScreen }   from './ui/MatchResultScreen';
 import { screenRouter }            from './ui/ScreenRouter';
 import { loadSave, saveGame, clearSave } from './ui/SaveManager';
 import { MatchCoordinator }        from './engine/MatchCoordinator';
@@ -138,15 +139,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showMatchResult(engine: MatchCoordinator, state: MatchState, round: number): void {
-    document.getElementById('mr-score')!.textContent = `${state.score.home} – ${state.score.away}`;
-    document.getElementById('mr-teams')!.textContent = `${state.homeTeam.name}  ·  ${state.awayTeam.name}`;
-    screenRouter.show('match-result');
-
-    (document.getElementById('mr-return') as HTMLButtonElement).onclick = () => {
+    initMatchResultScreen(state, round, () => {
       fixtureList!.recordResult(round, state.score.home, state.score.away);
       engine.destroy();
       screenRouter.show('fixture-list');
-    };
+    });
+    screenRouter.show('match-result');
   }
 
   initHomeScreen(goTeamSelector, continueGame, goSettings);

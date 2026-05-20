@@ -134,6 +134,27 @@ export const IRRELEVANT_STATS: Record<Position, (keyof PlayerStats)[]> = {
   'Utility Back':      ['setPiece'],
 };
 
+// League-wide per-stat ceilings honoured by both the league-floor pass and the
+// star-boost iteration. Lets us say "no one in the league has pace > 95" with
+// one constant. Per-player exceptions live in PLAYER_STAT_OVERRIDES below and
+// are applied AFTER ceilings, so they can exceed them.
+export const LEAGUE_STAT_CEILINGS: Partial<Record<keyof PlayerStats, number>> = {
+  pace: 95,
+};
+
+// Per-player exact-value overrides applied as the very last spawn step. Use
+// for visible stats where the league ordering matters and the position/star
+// machinery can't express the constraint (e.g. "Henry Arundell is the
+// league's fastest, no one else may match him"). Overrides exceed
+// LEAGUE_STAT_CEILINGS. Keyed by exact full name as authored in the team
+// JSON (case-sensitive, matched after the team data is loaded).
+export const PLAYER_STAT_OVERRIDES: Record<string, Partial<PlayerStats>> = {
+  'Henry Arundell':     { pace: 99 },
+  'Adam Radwan':        { pace: 98 },
+  'Cadan Murley':       { pace: 95 },
+  'Ollie Sleightholme': { pace: 95 },
+};
+
 export const PLAYER_OVERALL_WEIGHTS: Record<Position, StatWeights> = {
   'Loosehead Prop':    PROP_WEIGHTS,
   'Tighthead Prop':    PROP_WEIGHTS,

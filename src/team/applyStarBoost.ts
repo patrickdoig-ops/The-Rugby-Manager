@@ -16,7 +16,13 @@
 import type { TeamJson } from './teamProfile';
 import type { PlayerStats } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
-import { PLAYER_OVERALL_WEIGHTS, STAR_BOOST, IRRELEVANT_STATS } from '../engine/balance';
+import {
+  PLAYER_OVERALL_WEIGHTS,
+  STAR_BOOST,
+  IRRELEVANT_STATS,
+  LEAGUE_STAT_CEILINGS,
+  PLAYER_STAT_OVERRIDES,
+} from '../engine/balance';
 
 type RosterEntry = TeamJson['players'][number] & {
   firstName: string;
@@ -24,14 +30,28 @@ type RosterEntry = TeamJson['players'][number] & {
 };
 
 export function applyStarBoost(team: TeamJson): TeamJson {
-  const players = (team.players as RosterEntry[]).map(applyLeagueFloor);
-  const bench = ((team.bench ?? []) as RosterEntry[]).map(applyLeagueFloor);
+  let players = (team.players as RosterEntry[]).map(applyLeagueFloor);
+  let bench = ((team.bench ?? []) as RosterEntry[]).map(applyLeagueFloor);
 
   for (const star of team.stars) {
     if (!boostByName(players, star)) boostByName(bench, star);
   }
 
-  return { ...team, players, bench };
+  // Per-player overrides apply across the whole roster — matchday + wider
+  // squad — so a named exception (e.g. "fastest wing in the league") shows
+  // correctly even when the player isn't in this round's 23. The league
+  // floor / star boost still leave `squad[]` untouched per data-only intent.
+  players = players.map(applyPlayerOverrides);
+  bench = bench.map(applyPlayerOverrides);
+  const squad = team.squad
+    ? (team.squad as RosterEntry[]).map(applyPlayerOverrides)
+    : undefined;
+
+  return { ...team, players, bench, ...(squad ? { squad } : {}) };
+}
+
+function statCap(k: keyof PlayerStats): number {
+  return Math.min(STAR_BOOST.capPerStat, LEAGUE_STAT_CEILINGS[k] ?? STAR_BOOST.capPerStat);
 }
 
 function applyLeagueFloor(p: RosterEntry): RosterEntry {
@@ -40,8 +60,10 @@ function applyLeagueFloor(p: RosterEntry): RosterEntry {
   for (const k of Object.keys(stats) as (keyof PlayerStats)[]) {
     if (irrelevant.has(k)) {
       if (stats[k] > STAR_BOOST.irrelevantStatMax) stats[k] = STAR_BOOST.irrelevantStatMax;
-    } else if (stats[k] < STAR_BOOST.leagueMin) {
-      stats[k] = STAR_BOOST.leagueMin;
+    } else {
+      if (stats[k] < STAR_BOOST.leagueMin) stats[k] = STAR_BOOST.leagueMin;
+      const cap = statCap(k);
+      if (stats[k] > cap) stats[k] = cap;
     }
   }
   return { ...p, baseStats: stats };
@@ -70,7 +92,8 @@ function boostStar(p: RosterEntry, star: TeamJson['stars'][number]): RosterEntry
 
   for (const k of Object.keys(stats) as (keyof PlayerStats)[]) {
     if (irrelevant.has(k)) continue;
-    const floor = indexHigh.has(k) ? indexHighFloor : STAR_BOOST.otherStatMin;
+    const cap = statCap(k);
+    const floor = Math.min(indexHigh.has(k) ? indexHighFloor : STAR_BOOST.otherStatMin, cap);
     if (stats[k] < floor) stats[k] = floor;
   }
 
@@ -82,7 +105,7 @@ function boostStar(p: RosterEntry, star: TeamJson['stars'][number]): RosterEntry
     let bestWeight = -1;
     for (const k of Object.keys(stats) as (keyof PlayerStats)[]) {
       if (irrelevant.has(k)) continue;
-      if (stats[k] >= STAR_BOOST.capPerStat) continue;
+      if (stats[k] >= statCap(k)) continue;
       const w = weights[k] ?? 1.0;
       if (w > bestWeight) { bestWeight = w; bestKey = k; }
     }
@@ -91,4 +114,10 @@ function boostStar(p: RosterEntry, star: TeamJson['stars'][number]): RosterEntry
   }
 
   return { ...p, baseStats: stats };
+}
+
+function applyPlayerOverrides(p: RosterEntry): RosterEntry {
+  const overrides = PLAYER_STAT_OVERRIDES[`${p.firstName} ${p.lastName}`];
+  if (!overrides) return p;
+  return { ...p, baseStats: { ...p.baseStats, ...overrides } };
 }

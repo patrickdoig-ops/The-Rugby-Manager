@@ -37,6 +37,12 @@ export interface SavedSeason {
   seed: number;
   currentWeek: number;
   results: SavedSeasonResult[];
+  // The fixture list and season label captured at save time. Restored
+  // verbatim on load so an edit to the canonical schedule (e.g. fixture
+  // re-arrangement) does not corrupt an in-progress season. Optional on
+  // the type so legacy v2 saves can still be migrated by SaveManager.
+  seasonLabel?: string;
+  fixtures?: Fixture[];
 }
 
 function emptyState(): GameState {
@@ -81,12 +87,17 @@ export class GameCoordinator {
     schedule: SeasonSchedule = PREMIERSHIP_2025_26,
   ): GameCoordinator {
     const coord = new GameCoordinator(allTeams);
+    // Prefer the saved schedule when present (v3+); fall back to the
+    // current canonical one for legacy v2 saves that pre-date the field.
+    const effectiveSchedule: SeasonSchedule = save.fixtures
+      ? { seasonLabel: save.seasonLabel ?? schedule.seasonLabel, fixtures: save.fixtures.map(f => ({ ...f })) }
+      : schedule;
     applySeasonEvent(coord.state, {
       type: 'SEASON_INITIALIZED',
       playerTeamId: save.playerTeamId,
       seed: save.seed >>> 0,
       teamIds: allTeams.map(t => t.id),
-      schedule,
+      schedule: effectiveSchedule,
     });
     // Replay results in round order, then advance week to match the snapshot.
     const ordered = [...save.results].sort((a, b) => a.round - b.round);
@@ -171,6 +182,8 @@ export class GameCoordinator {
       seed: this.state.seed,
       currentWeek: this.state.calendar.week,
       results: this.state.league.results.map(r => ({ ...r })),
+      seasonLabel: this.state.calendar.seasonLabel,
+      fixtures: this.state.league.fixtures.map(f => ({ ...f })),
     };
   }
 }

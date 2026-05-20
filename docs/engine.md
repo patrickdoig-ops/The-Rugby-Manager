@@ -69,7 +69,7 @@ Match-scope writes flow through `applyMatchEvent`; **season-scope writes flow th
 | `game:fixtureRecorded` | `{ result: FixtureResult; state: GameState }` | `FixtureListScreen` (re-render fixtures + standings as each headless sim resolves) |
 | `game:weekAdvanced` | `{ state: GameState }` | `FixtureListScreen` (calendar header) |
 
-`SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`: `playerTeamId`, `seed`, `currentWeek`, and every `FixtureResult` (player's + AI). `fromSave` re-runs `SEASON_INITIALIZED` then replays results to rebuild fixtures, standings, and calendar deterministically — same philosophy as the prior "replay results to rebuild season form". `SAVE_VERSION` is now 2; v1 saves are discarded on load (they predate AI-vs-AI results and can't reconstruct the league table).
+`SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`: `playerTeamId`, `seed`, `currentWeek`, every `FixtureResult` (player's + AI), and (v3+) the `seasonLabel` + `fixtures` snapshot the user saw at save time. `fromSave` re-runs `SEASON_INITIALIZED` against the saved schedule when present (otherwise falls back to the canonical one for legacy v2 saves) then replays results to rebuild standings + calendar deterministically. `SAVE_VERSION` is now 3; v2 saves load via the legacy path (no fixtures snapshot) and v1 saves are discarded.
 
 Season-level determinism: `(playerTeamId, rootSeed)` plus the player's series of results produces an identical final league table on every run. Verified by `scripts/checkSeasonDeterminism.ts`; `npm run verify` runs both the match-level and season-level harnesses.
 

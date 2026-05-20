@@ -1,0 +1,45 @@
+name: Telemetry
+
+# Runs the balance-tuning telemetry script (90-fixture double round-robin)
+# and writes the markdown output to the workflow run summary so it renders
+# directly on the Actions run page — viewable from desktop and the GitHub
+# mobile app without downloading anything. Also uploads the report as a
+# build artifact.
+#
+# Triggers:
+#   - workflow_dispatch: fire manually (e.g. from GitHub mobile app)
+#   - push to main: every deploy gets a historical telemetry record
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  telemetry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run telemetry
+        run: npm run telemetry > telemetry-report.md
+
+      - name: Publish report to run summary
+        run: cat telemetry-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: telemetry-report
+          path: telemetry-report.md
+          retention-days: 90

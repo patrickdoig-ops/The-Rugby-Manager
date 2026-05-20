@@ -1,13 +1,23 @@
-import type { Player, PlayerStats } from '../types/player';
+import type { Player, PlayerStats, Position } from '../types/player';
 import { clamp } from '../utils/math';
-import { RATING_WEIGHTS } from './balance';
+import { PLAYER_OVERALL_WEIGHTS, RATING_WEIGHTS } from './balance';
 
-// Ability-based overall (0–100) — average of the 12 baseStats. Used for
-// pre-match roster displays and team-level rating aggregation. Distinct from
-// `computeRating` below, which is match-performance-based.
-export function playerOverall(stats: PlayerStats): number {
-  const vals = Object.values(stats) as number[];
-  return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+// Ability-based overall (0–100) — position-weighted mean of the 12 baseStats,
+// normalised by the sum of weights so the output stays on the same 0–100
+// scale a simple mean would produce. Stats missing from the position's
+// weight table default to 1.0. Used for pre-match roster displays and
+// team-level rating aggregation. Distinct from `computeRating` below, which
+// is match-performance-based.
+export function playerOverall(stats: PlayerStats, position: Position): number {
+  const weights = PLAYER_OVERALL_WEIGHTS[position];
+  let weightedSum = 0;
+  let weightTotal = 0;
+  for (const key of Object.keys(stats) as (keyof PlayerStats)[]) {
+    const w = weights[key] ?? 1.0;
+    weightedSum += stats[key] * w;
+    weightTotal += w;
+  }
+  return Math.round(weightedSum / weightTotal);
 }
 
 export function computeRating(player: Player): number {

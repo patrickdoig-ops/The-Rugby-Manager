@@ -57,7 +57,7 @@ function starCard(s: StarPlayerMeta): string {
 }
 
 function squadRow(p: RawPlayer): string {
-  const ovr = playerOverall(p.baseStats);
+  const ovr = playerOverall(p.baseStats, p.position);
   const name = `${p.firstName} ${p.lastName}`.trim();
   return `
     <div class="ti-squad-row">

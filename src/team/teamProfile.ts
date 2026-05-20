@@ -10,7 +10,7 @@
 import type { TeamProfile, SeasonForm } from '../types/teamProfile';
 import { zeroSeasonForm } from '../types/teamProfile';
 import type { TeamTactics } from '../types/team';
-import type { PlayerStats } from '../types/player';
+import type { PlayerStats, Position } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
 import type { SavedResult } from '../ui/SaveManager';
 
@@ -37,13 +37,15 @@ export interface TeamJson {
     indexHigh: string[];
     suggestedRating: number;
   }[];
-  players: { baseStats: PlayerStats }[];
-  bench?: { baseStats: PlayerStats }[];
-  squad?: { baseStats: PlayerStats }[];
+  players: { baseStats: PlayerStats; position: Position }[];
+  bench?: { baseStats: PlayerStats; position: Position }[];
+  squad?: { baseStats: PlayerStats; position: Position }[];
 }
 
+interface RosterEntry { stats: PlayerStats; position: Position; }
+
 const profiles = new Map<string, TeamProfile>();
-const rosters = new Map<string, PlayerStats[]>();
+const rosters = new Map<string, RosterEntry[]>();
 
 export function init(rawTeams: TeamJson[]): void {
   profiles.clear();
@@ -64,10 +66,10 @@ export function init(rawTeams: TeamJson[]): void {
       stars: t.stars,
       seasonForm: zeroSeasonForm(),
     });
-    const roster: PlayerStats[] = [
-      ...t.players.map(p => p.baseStats),
-      ...(t.bench ?? []).map(p => p.baseStats),
-      ...(t.squad ?? []).map(p => p.baseStats),
+    const roster: RosterEntry[] = [
+      ...t.players.map(p => ({ stats: p.baseStats, position: p.position })),
+      ...(t.bench ?? []).map(p => ({ stats: p.baseStats, position: p.position })),
+      ...(t.squad ?? []).map(p => ({ stats: p.baseStats, position: p.position })),
     ];
     rosters.set(t.id, roster);
   }
@@ -88,7 +90,7 @@ export function getAllProfiles(): TeamProfile[] {
 export function computeOverallRating(teamId: string): number {
   const roster = rosters.get(teamId);
   if (!roster || roster.length === 0) return 0;
-  const overalls = roster.map(playerOverall).sort((a, b) => b - a);
+  const overalls = roster.map(r => playerOverall(r.stats, r.position)).sort((a, b) => b - a);
   const top = overalls.slice(0, 23);
   return Math.round(top.reduce((a, b) => a + b, 0) / top.length);
 }

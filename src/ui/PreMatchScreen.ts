@@ -1,4 +1,4 @@
-import type { PlayerStats } from '../types/player';
+import type { PlayerStats, Position } from '../types/player';
 import type { TeamTactics } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';
 import { renderTacticsMenu } from './TacticsMenu';
@@ -15,7 +15,7 @@ type RawPlayer = {
   lastName: string;
   dob: string | null;
   nationality: string;
-  position: string;
+  position: Position;
   baseStats: PlayerStats;
 };
 
@@ -90,7 +90,7 @@ function renderColumnHeader(): string {
 type Tier = 'starter' | 'bench' | 'squad';
 
 function renderPlayerRow(p: RawPlayer, color: string, interactive: boolean, tier: Tier): string {
-  const ovr = playerOverall(p.baseStats);
+  const ovr = playerOverall(p.baseStats, p.position);
   const squadNum = getSquadNum(p);
   const lastName = shortName(p);
   const tierClass = ` pm-player--${tier}`;

@@ -26,6 +26,9 @@ export interface TeamJson {
   stadium: string;
   founded?: number;
   nickname?: string;
+  stadiumCapacity?: number;
+  headCoach?: string;
+  honours?: string;
   blurb: string;
   suggestedTactics: TeamTactics;
   statBias: string[];
@@ -60,6 +63,9 @@ export function init(rawTeams: TeamJson[]): void {
       stadium: t.stadium,
       founded: t.founded,
       nickname: t.nickname,
+      stadiumCapacity: t.stadiumCapacity,
+      headCoach: t.headCoach,
+      honours: t.honours,
       blurb: t.blurb,
       suggestedTactics: t.suggestedTactics,
       statBias: t.statBias,

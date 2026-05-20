@@ -5,6 +5,11 @@
   "color": "#000000",
   "secondaryColor": "#dc1e25",
   "stadium": "Kingston Park",
+  "nickname": "Red Bulls (rebranded from \"Falcons\" after Red Bull's August 2025 takeover)",
+  "founded": 1877,
+  "stadiumCapacity": 10200,
+  "headCoach": "Stephen Jones (interim Head Coach from March 2026 after Alan Dickens departed; Dan McFarland confirmed to take the role from 2026-27)",
+  "honours": "Premiership title 1997-98; Anglo-Welsh Cup 2000-01, 2003-04",
   "blurb": "Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastle are mid-transformation: heavy investment, aggressive recruitment, and a search for a clearer identity after three straight bottom-of-the-table finishes. Historically a developmental, lower-budget side that fought hard but lacked depth, the Red Bulls era is rebuilding from the ground up. Kingston Park remains home, but the playing identity is still being written — expect them to start the simulator era as the league's weakest squad, with room to grow.",
   "suggestedTactics": {
     "attackingGamePlan": "balanced",

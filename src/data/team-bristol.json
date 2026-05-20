@@ -5,6 +5,11 @@
   "color": "#003087",
   "secondaryColor": "#c8102e",
   "stadium": "Ashton Gate",
+  "nickname": "The Bears (rebranded from Bristol in 2018)",
+  "founded": 1888,
+  "stadiumCapacity": 27000,
+  "headCoach": "Pat Lam (Director of Rugby since 2017)",
+  "honours": "European Challenge Cup 2019-20; RFU Knockout Cup 1982-83; Championship title 2017-18",
   "blurb": "Shaped by the Pat Lam era's \"Bristol-Bilbao\" expansive ambition, the Bears are the league's most ball-in-hand, high-tempo side, willing to attack from anywhere on the pitch. They prize width, offloads and pace over territorial caution, and will gladly trade penalties for tempo. Their forwards are built for carrying and linking rather than maul dominance, and they often outscore opponents in shootouts. The flip side is risk: turnovers and defensive lapses come with the style.",
   "suggestedTactics": {
     "attackingGamePlan": "possession",

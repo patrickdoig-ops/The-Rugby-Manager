@@ -5,6 +5,11 @@
   "color": "#1c5e3f",
   "secondaryColor": "#ffffff",
   "stadium": "Mattioli Woods Welford Road (commonly \"Welford Road\")",
+  "nickname": "Tigers",
+  "founded": 1880,
+  "stadiumCapacity": 25849,
+  "headCoach": "Geoff Parling (Head Coach since August 2025, succeeding Michael Cheika)",
+  "honours": "11 × English league title (latest 2021-22, most in the modern era); 2 × European Champions Cup (2000-01, 2001-02); Anglo-Welsh Cup × 6",
   "blurb": "The Welford Road tradition is set-piece power, structured forward-led play, and hard-nosed defence built on discipline. Tigers historically squeeze the game through scrum and maul dominance, accurate exit kicking, and a defensive line that gives nothing cheap. Their attack is built off forward platform first, with the backs called on to finish rather than create from scratch. Recent rebuilds have softened the edges, but the identity remains: territory, set piece, pressure.",
   "suggestedTactics": {
     "attackingGamePlan": "kicking",

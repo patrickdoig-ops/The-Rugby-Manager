@@ -500,11 +500,13 @@ Reached from the team selector via a top-right info ⓘ button on each team card
 Screen structure (`#team-info` → `#ti-inner`, max-width 540px, scrollable column, 28px gap):
 
 - **Back button** `#ti-back` — fixed top-left, mirrors `#ts-back`/`#fl-back`/`#pm-back` pattern. Label "Back" since the origin varies (selector now; other team info screens later — closure-based back stack in `main.ts`, no global history).
-- **Hero** `#ti-hero` — large 96px team crest (same gradient + inset shadow pattern as the selector, scaled), Anton team name `clamp(28px, 8vw, 40px)`, mono code · stadium subline.
+- **Hero** `#ti-hero` — large 96px team crest (same gradient + inset shadow pattern as the selector, scaled), Anton team name `clamp(28px, 8vw, 40px)`, mono subline joining `shortName · nickname · Est. {founded} · stadium` (any absent field silently drops out, no dangling separators).
 - **Tiles** `.ti-tiles` — auto-fit grid, min 150px. Each `.ti-tile` is `--rm-surface` with `--rm-border-soft`. Anton 36px value. The "Overall rating" tile colours its value in `--rm-pitch`; the "Season form" tile shows W-D-L large, then `<played> played · <pts> pts · <±>PD` in mono.
+- **Club** — second `.ti-tiles` row holding up to four identity tiles: **Founded** (year + `N years old` foot), **Nickname** (text variant), **Stadium capacity** (locale-formatted number, stadium name foot), **Head coach** (text variant; parenthetical role notes are stripped). Text-valued tiles use `.ti-tile-value.ti-tile-text` (15px body semi-bold) so longer strings fit. Any tile whose value is missing is omitted; the section disappears entirely if all four are blank.
 - **About** — narrative blurb from `team-data.md` in `--rm-font-body` 14px, `line-height: 1.55`.
 - **Playing style** — `.ti-tactics-grid` 2-column, each `.ti-tactic-chip` showing the dimension label (mono, dim) above the human-readable tactic name (body, 13px, chalk, semi-bold). Stat-bias pills below in `--rm-pitch` pill style (lowercase mono on `pitch 14%` tint).
 - **Star players** — `.ti-star` cards: name + Anton 22px suggested-rating top-right, position · nationality subline, body blurb, indexHigh pills.
+- **Honours** — `.ti-honours` paragraph in `--rm-surface` panel with a `--rm-pitch` 3px left-border accent. 13px body, 1.6 line-height. Section omitted if `team-data.md` has no honours line.
 - **Squad** — collapsible `<details>` sections (Starting XV / Bench / Wider squad). Each row: mono squad number · name · mono position · Anton overall (in `--rm-pitch`). Summary chevron handled by `<details>` default with custom marker hidden.
 
 Overall rating on the rating tile is the team's top-23 player-overall average, computed at read time by `src/team/teamProfile.ts:computeOverallRating`. Form tile is hidden when `seasonForm.played === 0`.

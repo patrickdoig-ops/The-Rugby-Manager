@@ -101,6 +101,10 @@
   gap: 12px;
 }
 
+.ti-tiles-club {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
 .ti-tile {
   background: var(--rm-surface);
   border: 1px solid var(--rm-border-soft);
@@ -137,6 +141,16 @@
   color: var(--rm-text-muted);
 }
 
+.ti-tile-value.ti-tile-text {
+  font-family: var(--rm-font-body);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0;
+  text-transform: none;
+  padding-top: 4px;
+}
+
 /* ─── Sections ────────────────────────────────────────────────── */
 
 .ti-section {
@@ -160,6 +174,19 @@
   line-height: 1.55;
   color: var(--rm-text);
   margin: 0;
+}
+
+.ti-honours {
+  font-family: var(--rm-font-body);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--rm-text);
+  margin: 0;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-left: 3px solid var(--rm-pitch);
+  border-radius: 8px;
+  padding: 12px 14px;
 }
 
 /* ─── Tactics grid ────────────────────────────────────────────── */

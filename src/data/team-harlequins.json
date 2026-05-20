@@ -5,6 +5,11 @@
   "color": "#73144a",
   "secondaryColor": "#23bcad",
   "stadium": "Twickenham Stoop (commonly \"The Stoop\")",
+  "nickname": "Quins",
+  "founded": 1866,
+  "stadiumCapacity": 14800,
+  "headCoach": "Jason Gilmore (Head Coach since September 2025, promoted from defence coach after Danny Wilson's late departure to Wales)",
+  "honours": "2 × Premiership title (2011-12, 2020-21); European Challenge Cup 2010-11; Anglo-Welsh Cup 1987-88, 2012-13",
   "blurb": "The Twickenham Stoop entertainers and the league's most committed expansive, attacking side. Built around Marcus Smith's creative range — cross-field kicks, late drop-goal nous, footwork at first receiver — Quins play fast-paced running rugby and back themselves to outscore anyone. Their forwards are mobile and carry-friendly rather than maul-monsters, and they thrive on broken-field rugby and counter-attack. The trade-off is defensive vulnerability when the tempo turns against them.",
   "suggestedTactics": {
     "attackingGamePlan": "possession",

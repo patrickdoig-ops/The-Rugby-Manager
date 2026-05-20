@@ -29,6 +29,9 @@ export interface TeamProfile {
   stadium: string;
   founded?: number;
   nickname?: string;
+  stadiumCapacity?: number;
+  headCoach?: string;
+  honours?: string;
   blurb: string;
   suggestedTactics: TeamTactics;
   statBias: string[];

@@ -5,6 +5,11 @@
   "color": "#000000",
   "secondaryColor": "#ed1c24",
   "stadium": "StoneX Stadium (formerly Allianz Park)",
+  "nickname": "Sarries (the \"Wolfpack\" defensive identity)",
+  "founded": 1876,
+  "stadiumCapacity": 10500,
+  "headCoach": "Mark McCall (Director of Rugby since 2010; stepping down end of 2025-26, with Brendan Venter to take over for 2026-27)",
+  "honours": "5 × Premiership title (latest 2018-19); 3 × European Champions Cup (2015-16, 2016-17, 2018-19)",
   "blurb": "Under Mark McCall, Saracens have been the league's clinical operator — structure, precision and physical dominance executed to a finer tolerance than anyone else. The \"Wolfpack\" defence with its aggressive line-speed and choke tackles is the signature, paired with a smart kicking game that turns territory into points. They are ruthless game managers: ahead late, they will close a match out with possession and field position rather than tries. Calm under pressure, brutal in the collision.",
   "suggestedTactics": {
     "attackingGamePlan": "kicking",

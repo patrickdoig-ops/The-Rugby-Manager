@@ -126,6 +126,11 @@ function parseTeamDataMd(md) {
     const stadiumMatch = body.match(/\*\*Home ground:\*\*\s*(.+?)\.\s*$/m);
     const coloursMatch = body.match(/\*\*Club colours:\*\*\s*`(#[0-9a-fA-F]{6})`\s*\/\s*`(#[0-9a-fA-F]{6})`/);
     if (!coloursMatch) throw new Error(`Missing 'Club colours:' line for ${teamName}`);
+    const nicknameMatch  = body.match(/\*\*Nickname:\*\*\s*(.+?)\.\s*$/m);
+    const foundedMatch   = body.match(/\*\*Founded:\*\*\s*(\d{4})/);
+    const capacityMatch  = body.match(/\*\*Stadium capacity:\*\*\s*([\d,]+)/);
+    const headCoachMatch = body.match(/\*\*Head coach:\*\*\s*(.+?)\.\s*$/m);
+    const honoursMatch   = body.match(/\*\*Honours:\*\*\s*(.+?)\s*$/m);
     const ratingMatch = body.match(/\*\*Overall rating:\*\*\s*\*\*(\d+)\/100\*\*/);
     const statBiasMatch = body.match(/\*\*Stat bias:\*\*\s*(.+)$/m);
     const tacticsMatch = body.match(/\*\*Suggested tactics:\*\*\s*(.+)$/m);
@@ -188,6 +193,11 @@ function parseTeamDataMd(md) {
     teams[teamName] = {
       meta: { ...TEAM_META[teamName], color: coloursMatch[1].toLowerCase(), secondaryColor: coloursMatch[2].toLowerCase() },
       stadium: stadiumMatch ? stadiumMatch[1].trim() : undefined,
+      nickname: nicknameMatch ? nicknameMatch[1].trim() : undefined,
+      founded: foundedMatch ? parseInt(foundedMatch[1], 10) : undefined,
+      stadiumCapacity: capacityMatch ? parseInt(capacityMatch[1].replace(/,/g, ''), 10) : undefined,
+      headCoach: headCoachMatch ? headCoachMatch[1].trim() : undefined,
+      honours: honoursMatch ? honoursMatch[1].trim().replace(/\.$/, '') : undefined,
       rating: ratingMatch ? parseInt(ratingMatch[1], 10) : undefined,
       blurb,
       suggestedTactics,
@@ -366,6 +376,11 @@ function buildTeamJson(teamName, team) {
     color: team.meta.color,
     secondaryColor: team.meta.secondaryColor,
     stadium: team.stadium,
+    nickname: team.nickname,
+    founded: team.founded,
+    stadiumCapacity: team.stadiumCapacity,
+    headCoach: team.headCoach,
+    honours: team.honours,
     blurb: team.blurb,
     suggestedTactics: team.suggestedTactics,
     statBias: team.statBias,

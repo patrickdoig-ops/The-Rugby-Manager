@@ -25,14 +25,30 @@ Related docs: see `CLAUDE.md` "Tactics system" for tactic-effect mechanics, `eng
 **Player base stats** (12 fields, 0–100 scale, from `src/data/team-*.json`):
 `stamina · strength · pace · agility · handling · tackling · breakdown · kicking · setPiece · discipline · positioning · composure`
 
+**Team rating formula** — each team carries an `Overall rating` derived from real-world league performance:
+
+```
+seasonScore   = (leaguePoints / matchesPlayed) / 5.0 × 100
+overallRating = round( 0.6 × seasonScore_25_26 + 0.4 × seasonScore_24_25 )
+```
+
+Premiership ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend leans on the current season while still respecting prior-season form. Snapshot inputs and the per-team math are documented in "Rating inputs" at the bottom of this file — refresh after each round.
+
 ---
 
 ## Gloucester *(in game)*
 
 A historic west-country club with a cherry-and-white forwards-led identity, defined by the close, vocal "Shed" at Kingsholm. Gloucester traditionally make their living from a robust, hard-carrying pack, set-piece confrontation and direct lines through the middle. The backline is functional rather than expansive, leaning on power runners to punch holes that fast support can exploit. At their best they are abrasive, physical and uncompromising at the breakdown; at their worst they over-rely on the forwards when a wider game is needed.
 
+- **Overall rating:** **44/100** *(25-26: 1.56 ppm × 0.6 = 18.8, 24-25: 3.11 ppm × 0.4 = 24.9)*
 - **Suggested tactics:** `balanced` · `keep_it_tight` · `pick_and_drive` · `counter_ruck` · `one_back`
 - **Stat bias:** high `strength`, `breakdown`, `setPiece`.
+
+### Star players
+
+- **Ross Byrne** (Fly-half, Ireland) — Marquee signing from Leinster and the province's third all-time top points scorer (1,156 pts), bringing four URC titles and a Champions Cup pedigree to Kingsholm as the new tactical conductor. Index high: `kicking`, `composure`, `positioning`, `discipline`, `handling`. Suggested rating: **86/100**.
+- **Max Llewellyn** (Centre, Wales) — Big-bodied 13 who broke into the Wales midfield during the 2025 Six Nations (scored his first Test try vs Scotland) and gives Gloucester a power-runner gainline option through the middle channel. Index high: `strength`, `tackling`, `handling`, `pace`. Suggested rating: **82/100**.
+- **Lewis Ludlow** (Flanker, England) — Former long-serving Gloucester captain and England A skipper; relentless openside whose breakdown work-rate and tackle volume have anchored the cherry-and-whites' defensive identity for years. Index high: `breakdown`, `tackling`, `stamina`, `discipline`, `positioning`. Suggested rating: **83/100**.
 
 ### Squad (2025-26)
 
@@ -89,8 +105,15 @@ A historic west-country club with a cherry-and-white forwards-led identity, defi
 
 Shaped by the Pat Lam era's "Bristol-Bilbao" expansive ambition, the Bears are the league's most ball-in-hand, high-tempo side, willing to attack from anywhere on the pitch. They prize width, offloads and pace over territorial caution, and will gladly trade penalties for tempo. Their forwards are built for carrying and linking rather than maul dominance, and they often outscore opponents in shootouts. The flip side is risk: turnovers and defensive lapses come with the style.
 
+- **Overall rating:** **63/100** *(25-26: 3.13 ppm × 0.6 = 37.5, 24-25: 3.22 ppm × 0.4 = 25.8)*
 - **Suggested tactics:** `possession` · `wide_wide` · `wide_play` · `jackal` · `two_back`
 - **Stat bias:** high `pace`, `handling`, `agility`.
+
+### Star players
+
+- **Ellis Genge** (Prop, England) — Lions Test starter on the 2025 tour to Australia and dubbed the "form player in the world" by Ben Youngs; world-class loosehead scrummager and Bristol's vice-captain whose ball-carrying sets the tempo. Index high: `strength`, `setPiece`, `breakdown`, `tackling`, `stamina`. Suggested rating: **91/100**.
+- **Louis Rees-Zammit** (Wing, Wales) — Returned from the NFL in summer 2025 and lit up the PREM with six tries in eight, clocking 23.57mph against Leicester; 32-cap Wales finisher with elite top-end pace and a 2021 Lions tourist's pedigree. Index high: `pace`, `agility`, `handling`, `positioning`. Suggested rating: **88/100**.
+- **Viliame Mata** (Number 8, Fiji) — Long-time Edinburgh enforcer turned Bristol No.8; offloading, ball-playing back-rower whose footwork and tip-on game perfectly fit Pat Lam's wide-wide system. Index high: `strength`, `handling`, `breakdown`, `agility`, `stamina`. Suggested rating: **85/100**.
 
 ### Squad (2025-26)
 
@@ -147,8 +170,16 @@ Shaped by the Pat Lam era's "Bristol-Bilbao" expansive ambition, the Bears are t
 
 The Welford Road tradition is set-piece power, structured forward-led play, and hard-nosed defence built on discipline. Tigers historically squeeze the game through scrum and maul dominance, accurate exit kicking, and a defensive line that gives nothing cheap. Their attack is built off forward platform first, with the backs called on to finish rather than create from scratch. Recent rebuilds have softened the edges, but the identity remains: territory, set piece, pressure.
 
+- **Overall rating:** **74/100** *(25-26: 3.88 ppm × 0.6 = 46.5, 24-25: 3.39 ppm × 0.4 = 27.1)*
 - **Suggested tactics:** `kicking` · `keep_it_tight` · `pick_and_drive` · `jackal` · `two_back`
 - **Stat bias:** high `setPiece`, `tackling`, `discipline`.
+
+### Star players
+
+- **Freddie Steward** (Full-back, England) — England's first-choice 15 and the Premiership's most dominant aerial operator; reads kick-chase lanes better than anyone and rarely spills under the high ball. Index high: `positioning`, `handling`, `tackling`, `composure`, `kicking`. Suggested rating: **86/100**.
+- **Ollie Chessum** (Lock, England) — 2025 Lions Test starter and the league's most athletic lock-cum-blindside; carries hard, hits rucks at pace, and is a genuine lineout option in both pods. Index high: `strength`, `setPiece`, `stamina`, `tackling`, `breakdown`. Suggested rating: **87/100**.
+- **Tommy Reffell** (Flanker, Wales) — Wales' premier openside and arguably the Premiership's purest jackal; averaged 6-7 turnovers a game in patches and topped the July Tests for forced turnovers. Index high: `breakdown`, `tackling`, `stamina`, `discipline`, `positioning`. Suggested rating: **84/100**.
+- **Jack van Poortvliet** (Scrum-half, England) — England-capped 9 whose box-kick accuracy and pass speed fit Welford Road's territory-first identity; a sharp tactical kicker who controls the tempo from the base. Index high: `kicking`, `handling`, `positioning`, `composure`, `agility`. Suggested rating: **80/100**.
 
 ### Squad (2025-26)
 
@@ -212,8 +243,16 @@ The Welford Road tradition is set-piece power, structured forward-led play, and 
 
 Under Mark McCall, Saracens have been the league's clinical operator — structure, precision and physical dominance executed to a finer tolerance than anyone else. The "Wolfpack" defence with its aggressive line-speed and choke tackles is the signature, paired with a smart kicking game that turns territory into points. They are ruthless game managers: ahead late, they will close a match out with possession and field position rather than tries. Calm under pressure, brutal in the collision.
 
+- **Overall rating:** **64/100** *(25-26: 3.25 ppm × 0.6 = 39.0, 24-25: 3.11 ppm × 0.4 = 24.9)*
 - **Suggested tactics:** `kicking` · `balanced` · `balanced` · `shadow` · `two_back`
 - **Stat bias:** high `tackling`, `positioning`, `composure`.
+
+### Star players
+
+- **Maro Itoje** (Lock, England) — 2025 Lions captain and the first Black skipper in the tour's 137-year history; ran a lineout "clinic" in the series win and remains the gold standard for a modern second row — enforcer, jumper, leader. Index high: `setPiece`, `tackling`, `strength`, `breakdown`, `composure`. Suggested rating: **92/100**.
+- **Owen Farrell** (Fly-half, England) — Returned from Racing 92 on a two-year player-coach deal; over 1,200 Test points, six Premiership titles with Sarries, and still the league's most ruthless game-manager off the tee. Index high: `kicking`, `composure`, `positioning`, `discipline`, `tackling`. Suggested rating: **88/100**.
+- **Ben Earl** (Number 8, England) — 2025 Lions Test back-rower and 2024 England Player of the Year; 73 carries for 419 metres across that Six Nations made him the explosive go-to ball-carrier from the base. Index high: `pace`, `strength`, `stamina`, `handling`, `tackling`. Suggested rating: **88/100**.
+- **Jamie George** (Hooker, England) — Long-time England hooker and former captain; elite throwing accuracy underpins the Sarries lineout and his work rate around the park is a benchmark for the position. Index high: `setPiece`, `tackling`, `breakdown`, `composure`, `discipline`. Suggested rating: **85/100**.
 
 ### Squad (2025-26)
 
@@ -276,8 +315,16 @@ Under Mark McCall, Saracens have been the league's clinical operator — structu
 
 The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at 10 and Santi Carreras at 15, with strong ball-playing centres giving Bath multiple distributors at the line. Their best rugby blends forward dominance and territory with a backline that can shift the point of attack at will. Russell's growing pragmatism has added game management to the flair, though some 2025-26 criticism has pointed to conservative five-metre pick-and-drive over their expansive instincts. At full song, they balance heft up front with the league's most creative half-back axis.
 
+- **Overall rating:** **79/100** *(25-26: 3.94 ppm × 0.6 = 47.3, 24-25: 4.00 ppm × 0.4 = 32.0)*
 - **Suggested tactics:** `balanced` · `balanced` · `balanced` · `jackal` · `two_back`
 - **Stat bias:** high `handling`, `kicking`, `composure`.
+
+### Star players
+
+- **Finn Russell** (Fly-half, Scotland) — Scotland captain and three-time Lion; the creative fulcrum of Bath's title defence with audacious passing range, sublime kicking from the tee and in play, and a newly mature game-management edge. Index high: `handling`, `kicking`, `composure`, `positioning`. Suggested rating: **92/100**.
+- **Ollie Lawrence** (Centre, England) — England's first-choice 12 when fit: a punishing power runner who flattens gainline defences and creates front-foot ball for Russell. Returning from Achilles surgery but ahead of schedule. Index high: `strength`, `pace`, `tackling`, `handling`. Suggested rating: **87/100**.
+- **Sam Underhill** (Flanker, England) — One of the Premiership's most feared defensive forwards: timing, technique and ferocity on the chop tackle, with a relentless work-rate around the breakdown. Index high: `tackling`, `breakdown`, `strength`, `stamina`. Suggested rating: **86/100**.
+- **Santi Carreras** (Full-back, Argentina) — Pumas' starting fly-half slotting in at 15 to give Bath a second playmaker; aerial security, a beautiful left boot and the footwork to step into the line as a second-receiver. Index high: `handling`, `kicking`, `agility`, `positioning`. Suggested rating: **84/100**.
 
 ### Squad (2025-26)
 
@@ -337,8 +384,15 @@ The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at
 
 The Rob Baxter long-build identity is phase-heavy possession rugby — pressure and patience, suffocating teams with multiple phases and field position before striking. The driving maul is a signature weapon and the forwards are built for relentless go-forward over flashy carries. Chiefs cede little territory, kick smartly and trust their fitness to wear opponents down. They are mid-rebuild after the peak title-winning era, but the DNA — disciplined, methodical, set-piece confident — is intact.
 
+- **Overall rating:** **54/100** *(25-26: 3.44 ppm × 0.6 = 41.3, 24-25: 1.61 ppm × 0.4 = 12.9)*
 - **Suggested tactics:** `possession` · `keep_it_tight` · `pick_and_drive` · `counter_ruck` · `one_back`
 - **Stat bias:** high `stamina`, `breakdown`, `setPiece`.
+
+### Star players
+
+- **Henry Slade** (Centre, England) — 74-cap England 13, the Chiefs' on-field metronome: long passing, pinpoint kicking from hand and elite defensive reads that shut down opposition channels. Said to be in one of his best club seasons. Index high: `handling`, `kicking`, `tackling`, `positioning`, `composure`. Suggested rating: **86/100**.
+- **Len Ikitau** (Centre, Australia) — Marquee Wallaby signing from the Brumbies: 39-cap Test 13 with bone-jarring defence, sharp spatial awareness and the carrying power to break gainlines. Already producing standout Premiership performances. Index high: `tackling`, `strength`, `pace`, `positioning`. Suggested rating: **85/100**.
+- **Immanuel Feyi-Waboso** (Wing, England) — Explosive England finisher; a hat-trick on return announced him as one of the league's most dangerous strike runners off both wings, with raw acceleration and aerial bravery. Index high: `pace`, `agility`, `handling`, `strength`. Suggested rating: **83/100**.
 
 ### Squad (2025-26)
 
@@ -406,8 +460,15 @@ The Rob Baxter long-build identity is phase-heavy possession rugby — pressure 
 
 The Twickenham Stoop entertainers and the league's most committed expansive, attacking side. Built around Marcus Smith's creative range — cross-field kicks, late drop-goal nous, footwork at first receiver — Quins play fast-paced running rugby and back themselves to outscore anyone. Their forwards are mobile and carry-friendly rather than maul-monsters, and they thrive on broken-field rugby and counter-attack. The trade-off is defensive vulnerability when the tempo turns against them.
 
+- **Overall rating:** **41/100** *(25-26: 1.63 ppm × 0.6 = 19.5, 24-25: 2.67 ppm × 0.4 = 21.3)*
 - **Suggested tactics:** `possession` · `wide_wide` · `wide_play` · `jackal` · `one_back`
 - **Stat bias:** high `pace`, `agility`, `handling`.
+
+### Star players
+
+- **Marcus Smith** (Fly-half, England) — England fly-half and British & Irish Lion; the creative fulcrum of the Quins attack with electric footwork at first receiver, cross-field-kick threat, and late drop-goal nous. The heartbeat of the league's most expansive side. Index high: `handling`, `agility`, `kicking`, `composure`, `pace`. Suggested rating: **90/100**.
+- **Alex Dombrandt** (Number 8, England) — England No.8 and Quins captain; a powerful one-out ball-carrier with soft hands in tight space who anchors the back row both as a link-man in the wide channels and as a defensive presence over the ball. Index high: `strength`, `handling`, `breakdown`, `tackling`, `stamina`. Suggested rating: **84/100**.
+- **Chandler Cunningham-South** (Flanker, England) — Destructive 6ft 5in England back-rower built for collisions; ferocious ball-carrying and tackling, with an improving lineout-steal game adding a third string to a profile already feared at the breakdown. Index high: `strength`, `tackling`, `breakdown`, `setPiece`, `stamina`. Suggested rating: **83/100**.
 
 ### Squad (2025-26)
 
@@ -467,8 +528,14 @@ The Twickenham Stoop entertainers and the league's most committed expansive, att
 
 Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastle are mid-transformation: heavy investment, aggressive recruitment, and a search for a clearer identity after three straight bottom-of-the-table finishes. Historically a developmental, lower-budget side that fought hard but lacked depth, the Red Bulls era is rebuilding from the ground up. Kingston Park remains home, but the playing identity is still being written — expect them to start the simulator era as the league's weakest squad, with room to grow.
 
+- **Overall rating:** **11/100** *(25-26: 0.44 ppm × 0.6 = 5.3, 24-25: 0.72 ppm × 0.4 = 5.8)*
 - **Suggested tactics:** `balanced` · `balanced` · `balanced` · `jackal` · `two_back`
 - **Stat bias:** modest across the board (rebuild status); slight lean toward `stamina` and `discipline`.
+
+### Star players
+
+- **Liam Williams** (Full-back, Wales) — 93-cap Wales legend and two-tour Lion; the marquee Red-Bull-era signing whose world-class aerial work and broken-field counter-attack give Newcastle their first genuine back-three threat in years. Index high: `positioning`, `handling`, `composure`, `agility`, `pace`. Suggested rating: **84/100**.
+- **Amanaki Mafi** (Number 8, Japan) — 29-cap Brave Blossom and 2015 World Cup hero against South Africa; powerful go-forward ball-carrier with footwork and an offloading game built to get a struggling pack over the gainline. Index high: `strength`, `handling`, `breakdown`, `stamina`, `tackling`. Suggested rating: **80/100**.
 
 ### Squad (2025-26)
 
@@ -540,8 +607,16 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 
 The 2023-24 champions under Phil Dowson, Saints are the league's electric attacking outfit — willing to play from anywhere on the pitch and devastating in transition. Fin Smith conducts a heads-up backline that scores tries from deep, off turnover ball and from set-piece strike plays in equal measure. Their forwards are mobile and link-friendly rather than collision-first, designed to win quick ball and feed the runners. When they get rolling they put 40+ on teams; when the platform wobbles, the structure shows cracks.
 
+- **Overall rating:** **70/100** *(25-26: 4.19 ppm × 0.6 = 50.3, 24-25: 2.44 ppm × 0.4 = 19.6)*
 - **Suggested tactics:** `possession` · `wide_wide` · `wide_play` · `jackal` · `one_back`
 - **Stat bias:** high `pace`, `handling`, `agility`.
+
+### Star players
+
+- **Fin Smith** (Fly-half, England) — England's first-choice fly-half and marquee playmaker; ice-cold game manager with a clutch boot (hit the winning drop goal vs Bath in the 83rd minute) who runs Saints' high-tempo, wide-wide attack from a flat alignment. Index high: `kicking`, `composure`, `handling`, `positioning`, `discipline`. Suggested rating: **89/100**.
+- **Tommy Freeman** (Wing, England) — England wing and 2025 Lions Test starter; serial hat-trick scorer (four vs Saracens, hat-tricks vs Bath, Clermont, Leinster) and the first Englishman to score in every round of a Six Nations. Aerial dominance, finishing instinct, and centre-grade footwork. Index high: `pace`, `handling`, `positioning`, `agility`, `composure`. Suggested rating: **90/100**.
+- **Alex Mitchell** (Scrum-half, England) — England's sniping starting 9; razor-sharp service, constant running threat around the fringes, and the tempo-setter that lets Saints play heads-up rugby from anywhere. Index high: `pace`, `agility`, `handling`, `positioning`, `stamina`. Suggested rating: **86/100**.
+- **Henry Pollock** (Flanker, England) — Twenty-one-year-old breakthrough sensation; youngest player on the 2025 Lions tour, World Rugby Breakthrough Player nominee. Relentless engine, jackal threat over the ball, and a try-scoring flanker with genuine pace in the wide channels. Index high: `breakdown`, `stamina`, `pace`, `tackling`, `agility`. Suggested rating: **85/100**.
 
 ### Squad (2025-26)
 
@@ -615,8 +690,16 @@ The 2023-24 champions under Phil Dowson, Saints are the league's electric attack
 
 The Manchester defence-first side: line-speed, collision-dominant loose forwards and a physical inside-centre channel, all built to choke teams into errors. Sale are happy to cede possession because they back their defence to win the field-position battle, and George Ford's tempo control gives them clinical execution when they do attack. Tackles, turnovers and territory underpin everything; they are the league's least flashy and most resilient team. Box-kick, chase, tackle, repeat.
 
+- **Overall rating:** **48/100** *(25-26: 1.81 ppm × 0.6 = 21.8, 24-25: 3.22 ppm × 0.4 = 25.8)*
 - **Suggested tactics:** `kicking` · `keep_it_tight` · `balanced` · `shadow` · `three_back`
 - **Stat bias:** high `tackling`, `strength`, `kicking`.
+
+### Star players
+
+- **Tom Curry** (Flanker, England) — Lions Test starter at openside on the 2025 Australia tour; relentless jackal threat and the "engine" of England's back row, with brutal tackle work-rate even after wrist surgery. Index high: `tackling`, `breakdown`, `stamina`, `strength`, `positioning`. Suggested rating: **91/100**.
+- **George Ford** (Fly-half, England) — England's first-choice 10 through the 10-Test winning run; ice-cold game manager with a stunning 50-22 kicking game and tempo control that underpins Sale's territory-first identity. Index high: `kicking`, `composure`, `positioning`, `handling`, `discipline`. Suggested rating: **90/100**.
+- **Ben Curry** (Flanker, England) — Sale's captain and a breakdown menace; started England's Six Nations opener alongside his twin and brings the same chop-tackle, jackal-heavy profile that defines Sale's defensive identity. Index high: `tackling`, `breakdown`, `stamina`, `strength`, `discipline`. Suggested rating: **86/100**.
+- **Tom Roebuck** (Wing, England) — England wing in red-hot form (three tries in the 57-5 win over Newcastle); silky footwork, deceptive power in the carry and a genuine aerial threat that turns Sale's kick-chase into points. Index high: `pace`, `handling`, `agility`, `strength`, `positioning`. Suggested rating: **84/100**.
 
 ### Squad (2025-26)
 
@@ -671,6 +754,57 @@ The Manchester defence-first side: line-speed, collision-dominant loose forwards
 | Nye Thomas | Scrum-half | | | Wales |
 | Gus Warr | Scrum-half | | | England |
 | Alex Wills | Wing | | | England |
+
+---
+
+## Rating inputs
+
+Snapshot date: **May 2026**, after round 16 of the 25-26 regular season (10 of 18 rounds yet to fall away from the 18-game 24-25 baseline). Refresh after each round to keep `Overall rating` current.
+
+**2024-25 final regular-season table** (P = played, PD = points difference, B = bonus points, Pts = league points). Bath beat Leicester 23-21 in the play-off final.
+
+| Pos | Team | P | PD | B | Pts |
+|---|---|---|---|---|---|
+| 1 | Bath | 18 | +234 | 16 | 72 |
+| 2 | Leicester | 18 | +94 | 15 | 61 |
+| 3 | Sale | 18 | +74 | 10 | 58 |
+| 4 | Bristol | 18 | +55 | 18 | 58 |
+| 5 | Gloucester | 18 | +89 | 16 | 56 |
+| 6 | Saracens | 18 | +40 | 16 | 56 |
+| 7 | Harlequins | 18 | -40 | 14 | 48 |
+| 8 | Northampton | 18 | -27 | 12 | 44 |
+| 9 | Exeter | 18 | -125 | 13 | 29 |
+| 10 | Newcastle | 18 | -394 | 5 | 13 |
+
+**2025-26 current table** (after round 16):
+
+| Pos | Team | P | PD | B | Pts |
+|---|---|---|---|---|---|
+| 1 | Northampton | 16 | +160 | 13 | 67 |
+| 2 | Bath | 16 | +222 | 15 | 63 |
+| 3 | Leicester | 16 | +189 | 14 | 62 |
+| 4 | Exeter | 16 | +125 | 17 | 55 |
+| 5 | Saracens | 16 | +185 | 16 | 52 |
+| 6 | Bristol | 16 | +35 | 10 | 50 |
+| 7 | Sale | 16 | -96 | 13 | 29 |
+| 8 | Harlequins | 16 | -134 | 6 | 26 |
+| 9 | Gloucester | 16 | -181 | 9 | 25 |
+| 10 | Newcastle | 16 | -505 | 3 | 7 |
+
+**Derived ratings** (`seasonScore = ppm / 5 × 100`, `overall = round(0.6 × s_25_26 + 0.4 × s_24_25)`):
+
+| Team | 24-25 ppm | 24-25 score | 25-26 ppm | 25-26 score | **Overall** |
+|---|---|---|---|---|---|
+| Bath | 4.00 | 80.0 | 3.94 | 78.8 | **79** |
+| Leicester | 3.39 | 67.8 | 3.88 | 77.5 | **74** |
+| Northampton | 2.44 | 48.9 | 4.19 | 83.8 | **70** |
+| Saracens | 3.11 | 62.2 | 3.25 | 65.0 | **64** |
+| Bristol | 3.22 | 64.4 | 3.13 | 62.5 | **63** |
+| Exeter | 1.61 | 32.2 | 3.44 | 68.8 | **54** |
+| Sale | 3.22 | 64.4 | 1.81 | 36.3 | **48** |
+| Gloucester | 3.11 | 62.2 | 1.56 | 31.3 | **44** |
+| Harlequins | 2.67 | 53.3 | 1.63 | 32.5 | **41** |
+| Newcastle | 0.72 | 14.4 | 0.44 | 8.8 | **11** |
 
 ---
 

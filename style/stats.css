@@ -171,9 +171,9 @@
   flex-shrink: 0;
 }
 
-.rating-high { color: var(--rm-stat-5); }
+.rating-high { color: var(--rm-stat-3); }
 .rating-mid  { color: var(--rm-stat-4); }
-.rating-low  { color: var(--rm-stat-3); }
+.rating-low  { color: var(--rm-stat-5); }
 .rating-poor { color: var(--rm-stat-2); }
 
 /* ─── Player detail table (view-players only) ─── */

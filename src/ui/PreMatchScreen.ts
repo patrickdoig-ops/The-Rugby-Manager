@@ -55,9 +55,9 @@ const FORMATION_ROWS: number[][] = [
 const ROW_Y_PCT = [10, 24, 38, 52, 64, 76, 88];
 
 function statColor(v: number): string {
-  if (v >= 88) return 'var(--rm-stat-5)';
+  if (v >= 88) return 'var(--rm-stat-3)';
   if (v >= 78) return 'var(--rm-stat-4)';
-  if (v >= 65) return 'var(--rm-stat-3)';
+  if (v >= 65) return 'var(--rm-stat-5)';
   if (v >= 50) return 'var(--rm-stat-2)';
   return 'var(--rm-stat-1)';
 }

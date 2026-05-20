@@ -281,10 +281,10 @@
   text-align: right;
 }
 
-.mr-player-rating.rating-high { color: var(--rm-stat-5, #4ade80); }
-.mr-player-rating.rating-mid  { color: var(--rm-stat-3, #e5d24a); }
-.mr-player-rating.rating-low  { color: var(--rm-stat-2, #e88a3a); }
-.mr-player-rating.rating-poor { color: var(--rm-stat-1, #d6493a); }
+.mr-player-rating.rating-high { color: var(--rm-stat-3); }
+.mr-player-rating.rating-mid  { color: var(--rm-stat-4); }
+.mr-player-rating.rating-low  { color: var(--rm-stat-5); }
+.mr-player-rating.rating-poor { color: var(--rm-stat-2); }
 
 /* ─── Footer / continue ─── */
 #mr-footer {

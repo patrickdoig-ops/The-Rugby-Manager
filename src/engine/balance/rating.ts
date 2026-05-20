@@ -148,11 +148,20 @@ export const LEAGUE_STAT_CEILINGS: Partial<Record<keyof PlayerStats, number>> = 
 // league's fastest, no one else may match him"). Overrides exceed
 // LEAGUE_STAT_CEILINGS. Keyed by exact full name as authored in the team
 // JSON (case-sensitive, matched after the team data is loaded).
+//
+// For stars, the override also acts as a per-player cap during the boost
+// iteration — so a star whose pace is overridden to 85 has those weight
+// points redistributed to other stats rather than the iteration driving
+// pace up to the league ceiling only to be slammed back down at the end.
 export const PLAYER_STAT_OVERRIDES: Record<string, Partial<PlayerStats>> = {
   'Henry Arundell':     { pace: 99 },
   'Adam Radwan':        { pace: 98 },
   'Cadan Murley':       { pace: 95 },
   'Ollie Sleightholme': { pace: 95 },
+  'Henry Slade':        { pace: 85 },
+  'Alex Mitchell':      { pace: 88 },
+  'Henry Pollock':      { pace: 92 },
+  'Ben Earl':           { pace: 89 },
 };
 
 export const PLAYER_OVERALL_WEIGHTS: Record<Position, StatWeights> = {

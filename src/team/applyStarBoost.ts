@@ -50,7 +50,9 @@ export function applyStarBoost(team: TeamJson): TeamJson {
   return { ...team, players, bench, ...(squad ? { squad } : {}) };
 }
 
-function statCap(k: keyof PlayerStats): number {
+function statCap(p: RosterEntry, k: keyof PlayerStats): number {
+  const override = PLAYER_STAT_OVERRIDES[`${p.firstName} ${p.lastName}`]?.[k];
+  if (override !== undefined) return override;
   return Math.min(STAR_BOOST.capPerStat, LEAGUE_STAT_CEILINGS[k] ?? STAR_BOOST.capPerStat);
 }
 
@@ -62,7 +64,7 @@ function applyLeagueFloor(p: RosterEntry): RosterEntry {
       if (stats[k] > STAR_BOOST.irrelevantStatMax) stats[k] = STAR_BOOST.irrelevantStatMax;
     } else {
       if (stats[k] < STAR_BOOST.leagueMin) stats[k] = STAR_BOOST.leagueMin;
-      const cap = statCap(k);
+      const cap = statCap(p, k);
       if (stats[k] > cap) stats[k] = cap;
     }
   }
@@ -92,9 +94,10 @@ function boostStar(p: RosterEntry, star: TeamJson['stars'][number]): RosterEntry
 
   for (const k of Object.keys(stats) as (keyof PlayerStats)[]) {
     if (irrelevant.has(k)) continue;
-    const cap = statCap(k);
+    const cap = statCap(p, k);
     const floor = Math.min(indexHigh.has(k) ? indexHighFloor : STAR_BOOST.otherStatMin, cap);
     if (stats[k] < floor) stats[k] = floor;
+    if (stats[k] > cap) stats[k] = cap;
   }
 
   const target = star.suggestedRating + STAR_BOOST.targetOffset;
@@ -105,7 +108,7 @@ function boostStar(p: RosterEntry, star: TeamJson['stars'][number]): RosterEntry
     let bestWeight = -1;
     for (const k of Object.keys(stats) as (keyof PlayerStats)[]) {
       if (irrelevant.has(k)) continue;
-      if (stats[k] >= statCap(k)) continue;
+      if (stats[k] >= statCap(p, k)) continue;
       const w = weights[k] ?? 1.0;
       if (w > bestWeight) { bestWeight = w; bestKey = k; }
     }

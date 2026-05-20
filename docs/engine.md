@@ -20,19 +20,21 @@ Do not paraphrase — if the code changes, the doc must reflect the new code exa
 
 ## Architecture
 
-The engine is split across files in `src/engine/`. `MatchCoordinator` owns the public API, the tick loop, and the long-lived state; it delegates the four most cohesive responsibilities to dedicated modules:
+The engine is split across files in `src/engine/`. `MatchCoordinator` owns the public API, the tick loop, and the long-lived state; it delegates the cohesive responsibilities to dedicated modules:
 
 | Module | Responsibility |
 |---|---|
-| `MatchCoordinator.ts` | Public API (`initialize`, `start`, `pause`, `resume`, `setTickDelay`, `getState`, `substitute`), tick loop, fatigue accumulator, possession/territory stats, substitution. |
+| `MatchCoordinator.ts` | Public API (`initialize`, `start`, `pause`, `resume`, `setTickDelay`, `getState`, `substitute`), tick loop, possession/territory stats, substitution. |
 | `ClockController.ts` | Minute advance (clamped to half target, halved while in the red), clock-in-red entry, half-time and full-time triggers (`advanceMinute`, `checkClockInRed`, `shouldEndPeriod`, `triggerHalfTime`, `endMatch`). |
+| `FatigueAccumulator.ts` | Owns the per-tick fatigue accumulator; drains in `FATIGUE_SCALING.computeIntervalMinutes` increments, computes home-then-away fatigue via `StaminaSystem.computeFatigue`, applies `FATIGUE_APPLIED`, and emits the newly-tired commentary `GameEvent`. The home-then-away order is determinism-critical (both calls consume the outcome RNG stream). |
+| `Entry22Tracker.ts` | Pure `detectEntry22Changes(state)` — clears the non-possessor's active flag and registers the possessor's entry when in the opposition 22. |
 | `PhaseRouter.ts` | `PHASE_HANDLERS` map, `resolvePhase(state, sm, kickOffStrategy)`, and the `draftEvent(state, phase)` template builder. |
 | `PenaltyHandler.ts` | Penalty-decision modal pause and outcome application (`kick_for_goal`, `kick_to_touch`, `tap_and_kick_dead`, `tap_and_go`), plus the kick-off strategy modal (`awaitKickOffStrategy`, `handlePenaltyDecision`). |
 | `FieldPosition.ts` | Pure helpers over `MatchState` that factor in `state.clock.halfTimeDone`: `attackDir`, `isTryScored`, `isTryScoredAt`, `inOpposition22`, `inOpposition22At`, `inOppositionHalf`, `inOwn22`, `inOwnHalf`. The `*At(ballX, possession, halfTimeDone)` variants keep a scalar signature — used for projecting not-yet-applied positions. |
 | `applyMatchEvent.ts` | **The single mutation boundary.** A reducer over the `MatchEvent` discriminated union (`src/types/matchEvent.ts`). The only function permitted to write to `MatchState` or any `Player` field. |
-| `StaminaSystem.ts` | Pure `computeFatigue(team, elapsedMinutes)` — returns `{updates, newlyTired}` without writing to players; the caller emits `FATIGUE_APPLIED` events. |
+| `StaminaSystem.ts` | Pure `computeFatigue(team, elapsedMinutes)` — returns `{updates, newlyTired}` without writing to players; `FatigueAccumulator` emits the resulting `FATIGUE_APPLIED` events. |
 | `RatingEngine.ts` | Pure `computeRating(player)` — called by `applyMatchEvent` when a `RATINGS_RECALCULATED` event is reduced. |
-| `balance.ts` | **Single source of truth for every gameplay tuning number.** Kick probabilities, tactic modifiers, breakdown thresholds, fatigue tiers, rating weights, clock targets — all named `as const` exports grouped by section. Resolvers, events, and systems import from here; no tuning literals live elsewhere. |
+| `balance/` | **Single source of truth for every gameplay tuning number.** One file per concern (kicking, openPlay, breakdown, scrum, lineout, fatigue, rating, tactics, clock, commentary) re-exported through `balance/index.ts`. Resolvers, events, and systems import from here; no tuning literals live elsewhere. |
 
 All emit UI side-effects through the shared `src/utils/eventBus.ts` singleton; event IDs come from the monotonic counter in `src/engine/eventId.ts`. `StateMachine` (`src/engine/StateMachine.ts`) is owned by `MatchCoordinator` and passed into `ClockController` and `PhaseRouter` for transitions.
 
@@ -48,7 +50,7 @@ Match scope writes flow through `applyMatchEvent`; **season scope writes flow th
 
 ### Balance constants
 
-Every number listed in the resolver formulas, tactic modifier tables, fatigue tiers, and rating weights below is defined in `src/engine/balance.ts`. The doc below shows the current values; balance.ts is the canonical place to read or change them. Sections include `KICK_PROBABILITIES`, `HARD_CARRY_THRESHOLDS`, `TACTIC_MODIFIERS`, `HANDLING_GATE` (+ `knockOnThreshold` helper), `BREAKDOWN_VALUES`, `SCRUM_VALUES`, `LINEOUT_VALUES`, `OPEN_PLAY_VALUES`, `KICK_OFF_VALUES`, `BOX_KICK_VALUES`, `TACTICAL_KICK_VALUES`, `GOAL_KICK_VALUES`, `CONVERSION_VALUES`, `FATIGUE_SCALING`, `RATING_WEIGHTS`, `CLOCK_VALUES`, `PENALTY_VALUES`, `COMMENTARY_CHANCES`.
+Every number listed in the resolver formulas, tactic modifier tables, fatigue tiers, and rating weights below is defined under `src/engine/balance/` — one file per concern (`kicking`, `openPlay`, `breakdown`, `scrum`, `lineout`, `fatigue`, `rating`, `tactics`, `clock`, `commentary`), re-exported through `balance/index.ts`. The doc below shows the current values; the `balance/` directory is the canonical place to read or change them.
 
 ### `MatchState` shape
 
@@ -97,7 +99,7 @@ UI→engine direction is one channel: `SimController` is the only UI module that
 Each tick:
 1. Captures `wasInRed = state.clock.clockInTheRed` and `previousPhase = state.phase` before any mutation.
 2. Advances game time via `clock.advanceMinute(state)` (`src/engine/ClockController.ts`): if `state.clock.clockInTheRed`, adds `timeAdvance / 2` (clock crawls); otherwise advances normally and clamps to the half target (40 or 80). `timeAdvance = 0.2 + rng(0, 8) / 10` (0.2–1.0 per tick); the raw value is returned so the caller can drive the fatigue accumulator.
-3. Accumulates elapsed time; calls the pure `computeFatigue(team, elapsedMinutes)` on both teams once the accumulator reaches 5 game minutes, then emits a `FATIGUE_APPLIED` event for every update. `computeFatigue` returns newly-fatigued players (crossing below 50%); a fatigue commentary event is logged for each.
+3. Drives `FatigueAccumulator.tick(timeAdvance)` (`src/engine/FatigueAccumulator.ts`): accumulates elapsed time and, once the accumulator reaches 5 game minutes, calls the pure `computeFatigue(team, elapsedMinutes)` on both teams (home first, then away — order matters because both consume the outcome RNG stream) and emits a `FATIGUE_APPLIED` event for every update. `computeFatigue` also returns newly-fatigued players (crossing below 50%); a fatigue commentary event is logged for each.
 4. Increments possession and territory counters.
 5. For `KickOff` and `BoxKick` phases: emits a pre-phase announce `GameEvent` (naming the kicker before the outcome is resolved).
 6. For `KickOff` phase: awaits kick-off strategy selection via `penaltyHandler.awaitKickOffStrategy()` (modal `kickoff_choice` pause) — **managed team only** (the side the human player chose at the team selector). The AI-controlled team always defaults to `high_ball` with no modal.
@@ -243,7 +245,7 @@ Each `if` block overwrites the previous, so the final matching block wins.
 
 ### Fatigue commentary
 
-When `computeFatigue` detects a player crossing from ≥ 50% to < 50% fatiguePct, it returns that player in its `newlyTired` list. `MatchCoordinator` emits a commentary `GameEvent` (using the current phase/possession context) with a randomly chosen line from six variants: "starting to look tired", "looking leggy", "wear is showing", "running on empty", "looks worn out", "tank is emptying". The commentary feed colorises the player name normally.
+When `computeFatigue` detects a player crossing from ≥ 50% to < 50% fatiguePct, it returns that player in its `newlyTired` list. `FatigueAccumulator` emits a commentary `GameEvent` (using the current phase/possession context) with a randomly chosen line from six variants: "starting to look tired", "looking leggy", "wear is showing", "running on empty", "looks worn out", "tank is emptying". The commentary feed colorises the player name normally.
 
 ---
 

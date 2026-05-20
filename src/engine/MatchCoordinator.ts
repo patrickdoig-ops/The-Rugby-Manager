@@ -4,16 +4,15 @@ import { DEFAULT_TACTICS } from '../types/team';
 import type { Player, PlayerStats, PlayerMatchStats } from '../types/player';
 import { MatchPhase, type PossessionSide, type KickOffStrategy } from '../types/engine';
 import { StateMachine } from './StateMachine';
-import { computeFatigue } from './StaminaSystem';
 import { eventBus } from '../utils/eventBus';
 import { rngForm, setMatchSeed, rng, generateSeed } from '../utils/rng';
 import { PenaltyHandler } from './PenaltyHandler';
 import { ClockController } from './ClockController';
+import { FatigueAccumulator } from './FatigueAccumulator';
+import { detectEntry22Changes } from './Entry22Tracker';
 import { resolvePhase, draftEvent } from './PhaseRouter';
-import { inOpposition22 } from './FieldPosition';
 import { makeId, resetEventCounter } from './eventId';
 import { applyMatchEvent } from './applyMatchEvent';
-import { FATIGUE_SCALING } from './balance';
 
 function deepCloneStats(s: PlayerStats): PlayerStats {
   return { ...s };
@@ -115,11 +114,11 @@ export class MatchCoordinator {
   private state: MatchState;
   private sm: StateMachine;
   private tickTimeout: ReturnType<typeof setTimeout> | null = null;
-  private fatigueAccumulator = 0;
   private kickOffStrategy: KickOffStrategy = 'high_ball';
   private humanSide: 'home' | 'away';
   private penaltyHandler: PenaltyHandler;
   private clock: ClockController;
+  private fatigue: FatigueAccumulator;
   private busUnsubs: Array<() => void> = [];
 
   constructor(
@@ -135,6 +134,7 @@ export class MatchCoordinator {
     this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, seed, tactics, this.humanSide);
     this.sm = new StateMachine(MatchPhase.KickOff);
     this.clock = new ClockController(this.sm);
+    this.fatigue = new FatigueAccumulator(this.state);
 
     this.penaltyHandler = new PenaltyHandler({
       state: this.state,
@@ -270,21 +270,6 @@ export class MatchCoordinator {
     this.tickTimeout = setTimeout(() => this.tick(), delay);
   }
 
-  // 22-entry detection: an entry begins when a team has possession inside the
-  // opposition 22 and ends only when they lose possession. Going back outside
-  // the 22 with the ball is NOT an exit. Idempotent — enforces the invariant
-  // that only the current possessor can have an active flag.
-  private detectEntry22Changes(): void {
-    const cur = this.state.possession;
-    const other: PossessionSide = cur === 'home' ? 'away' : 'home';
-    if (this.state.stats.entries22[other].active) {
-      applyMatchEvent(this.state, { type: 'ENTRY22_CLEARED', side: other });
-    }
-    if (inOpposition22(this.state) && !this.state.stats.entries22[cur].active) {
-      applyMatchEvent(this.state, { type: 'ENTRY22_REGISTERED', side: cur });
-    }
-  }
-
   private async tick(): Promise<void> {
     this.tickTimeout = null;
     if (!this.state.engine.isRunning) return;
@@ -293,36 +278,7 @@ export class MatchCoordinator {
       const wasInRed = this.state.clock.clockInTheRed;
       const timeAdvance = this.clock.advanceMinute(this.state);
 
-      this.fatigueAccumulator += timeAdvance;
-      while (this.fatigueAccumulator >= FATIGUE_SCALING.computeIntervalMinutes) {
-        const homeFatigue = computeFatigue(this.state.homeTeam, this.fatigueAccumulator);
-        const awayFatigue = computeFatigue(this.state.awayTeam, this.fatigueAccumulator);
-        this.fatigueAccumulator -= FATIGUE_SCALING.computeIntervalMinutes;
-        for (const u of [...homeFatigue.updates, ...awayFatigue.updates]) {
-          applyMatchEvent(this.state, {
-            type: 'FATIGUE_APPLIED',
-            player: u.player,
-            newFatiguePct: u.newFatiguePct,
-            newCurrentStats: u.newCurrentStats,
-          });
-        }
-
-        for (const player of [...homeFatigue.newlyTired, ...awayFatigue.newlyTired]) {
-          const fatEvent: GameEvent = {
-            id: makeId(),
-            gameMinute: this.state.clock.gameMinute,
-            phase: this.state.phase,
-            side: this.state.possession,
-            sideName: this.state.possession === 'home' ? this.state.homeTeam.name : this.state.awayTeam.name,
-            primaryPlayer: player,
-            ballX: this.state.ball.x,
-            ballY: this.state.ball.y,
-            narration: { steps: [{ kind: 'announcement', key: 'fatigue_tiredness', primary: player }] },
-          };
-          applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: fatEvent });
-          eventBus.emit('engine:event', { event: fatEvent });
-        }
-      }
+      this.fatigue.tick(timeAdvance);
 
       const homeInOppHalf = !this.state.clock.halfTimeDone ? this.state.ball.x > 50 : this.state.ball.x < 50;
       applyMatchEvent(this.state, {
@@ -377,7 +333,7 @@ export class MatchCoordinator {
       const event = resolvePhase(this.state, this.sm, this.kickOffStrategy);
       applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event });
 
-      this.detectEntry22Changes();
+      detectEntry22Changes(this.state);
 
       eventBus.emit('engine:event', { event });
       eventBus.emit('engine:stateChange', { state: this.state });

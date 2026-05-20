@@ -92,6 +92,7 @@ Streams are independent — adding a commentary line cannot shift outcome rolls.
 |---|---|
 | Match-engine internals — phases, resolvers, formulas, RNG, tactics effects, commentary, UI event-bus contract | **`docs/engine.md`** |
 | Game-engine internals — `GameCoordinator`, season state, fixtures, headless AI sims, league standings | **`docs/engine.md`** § "Season-scope mutation seam" |
+| 2025/26 Premiership fixture list — authoritative schedule, breaks, broadcast notes | **`docs/prem-fixtures-2025-26.md`** ↔ `src/data/fixtures-2025-26.ts` |
 | Visual design — colours, fonts, spacing, components, live-match shell HTML, screen notes | **`docs/DESIGN.md`** |
 | Architectural invariants & ways of working | this file |
 
@@ -135,6 +136,8 @@ No tests or linters. TypeScript strict mode is the primary correctness check. Bo
 **Design system.** `docs/DESIGN.md` is the single source of truth for every colour, font, spacing, and component pattern. CSS custom properties in `style/main.css` `:root` — no hardcoded hex except primary CTA green (`#007a2a` / `#009434` active / `#006622` pressed) and team identity colours injected inline from team JSON.
 
 **Team data.** `src/data/team-*.json` — all 10 Gallagher Premiership clubs (Bath, Bristol, Exeter, Gloucester, Harlequins, Leicester, Newcastle, Northampton, Sale, Saracens). Each file has `players` (15 starters, id 1-15), `bench` (8 matchday subs, id 16-23), and `squad` (the rest of the senior roster, id 24+; data-only, engine ignores). Each player carries `firstName`, `lastName`, `dob` (nullable ISO), `nationality`, `position` (detailed engine form), and 12 `baseStats` on a 1–100 scale. `MatchCoordinator.initPlayer` copies `baseStats` to `currentStats` at match start; `StaminaSystem.computeFatigue` drives `currentStats` over the match via `FATIGUE_APPLIED`. `baseStats` is never modified. Player full names are unique league-wide — `CommentaryFeed`'s colourisation pass relies on this. **Source of truth is `docs/team-data.md`** — to regenerate the JSONs deterministically after editing team-data.md, run `node scripts/generateTeamJsons.mjs`.
+
+**Season schedule.** `src/data/fixtures-2025-26.ts` exports `PREMIERSHIP_2025_26: SeasonSchedule` — the canonical 90-fixture list for the 2025/26 Premiership (5 fixtures × 18 rounds, full double round-robin). Each `Fixture` carries its real ISO `date`. `GameCoordinator.newSeason()` and `fromSave()` default to this schedule; `applySeasonEvent`'s `SEASON_INITIALIZED` ingests it directly. `WEEK_ADVANCED` jumps `calendar.date` to the next round's earliest fixture date (so the Autumn Nations and Six Nations breaks appear without special-casing); falls back to `+SEASON_VALUES.weekLengthDays` when no per-round date is present. `calendar.week` is the upcoming round number, not a wall-clock week. **Source of truth is `docs/prem-fixtures-2025-26.md`** — the doc and the TS module must stay in sync when fixtures change. `src/game/fixtures.ts::generateFixtures` (circle-method round-robin) is retained for future random-gen seasons — it produces fixtures with no `date`, so the +7-day fallback applies; not called at season init today, do not delete as dead code.
 
 ---
 

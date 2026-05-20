@@ -115,7 +115,12 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   }
 
   // penalty_defending — defending team awarded the penalty, so possession flips to them
-  events.push({ type: 'PENALTY_CONCEDED_AT_BREAKDOWN', player: primary });
+  events.push({
+    type: 'PENALTY_AWARDED',
+    offence: 'breakdown_infringement',
+    offender: primary,
+    offendingSide: state.possession,
+  });
   const penaltySteps: NarrationStep[] = [
     { kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'penalty_defending', primary, secondary: jackal },
   ];

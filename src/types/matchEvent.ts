@@ -1,7 +1,7 @@
 import type { Player, PlayerStats } from './player';
 import type { GameEvent } from './match';
 import type { TeamTactics } from './team';
-import { type MatchPhase, type PossessionSide } from './engine';
+import { type MatchPhase, type PossessionSide, type PenaltyOffence } from './engine';
 
 // Domain-level events that describe everything the engine can do to MatchState.
 // `applyMatchEvent(state, event)` (src/engine/applyMatchEvent.ts) is the only
@@ -28,7 +28,12 @@ export type MatchEvent =
   // ── Errors / turnovers ───────────────────────────────────────────────────
   | { type: 'KNOCK_ON'; player: Player; attackSide: PossessionSide }
   | { type: 'TURNOVER_AT_BREAKDOWN'; jackal: Player }
-  | { type: 'PENALTY_CONCEDED_AT_BREAKDOWN'; player: Player }
+
+  // The single seam for "a penalty has been awarded". Emitted by every resolver
+  // that detects an infringement; its reducer flips possession to the
+  // non-offending side, bumps `offender.matchStats.penaltiesConceded++`, resets
+  // `breakdownMod`, and snapshots the cause onto `state.lastPenalty`.
+  | { type: 'PENALTY_AWARDED'; offence: PenaltyOffence; offender: Player; offendingSide: PossessionSide }
 
   // ── Passing / breakdown bookkeeping ──────────────────────────────────────
   | { type: 'PASS_COMPLETED'; passer: Player }

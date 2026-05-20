@@ -107,10 +107,16 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       state.breakdownMod = { attack: 0, defend: 0 };
       return;
 
-    case 'PENALTY_CONCEDED_AT_BREAKDOWN':
-      event.player.matchStats.penaltiesConceded++;
-      state.possession = state.possession === 'home' ? 'away' : 'home';
+    case 'PENALTY_AWARDED':
+      event.offender.matchStats.penaltiesConceded++;
+      state.possession = event.offendingSide === 'home' ? 'away' : 'home';
       state.breakdownMod = { attack: 0, defend: 0 };
+      state.lastPenalty = {
+        offence: event.offence,
+        offender: event.offender,
+        offendingSide: event.offendingSide,
+        gameMinute: state.clock.gameMinute,
+      };
       return;
 
     // ── Passing / breakdown bookkeeping ─────────────────────────────────

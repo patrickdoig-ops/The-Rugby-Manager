@@ -1,7 +1,12 @@
 import { eventBus } from '../utils/eventBus';
-import type { PenaltyChoice, KickOffStrategy } from '../types/engine';
+import type { PenaltyChoice, KickOffStrategy, PenaltyOffence } from '../types/engine';
 import { renderTacticsMenu } from './TacticsMenu';
 import { renderSubstitutionPanel } from './SubstitutionModal';
+
+const OFFENCE_LABELS: Record<PenaltyOffence, string> = {
+  breakdown_infringement: 'Breakdown infringement',
+  scrum_infringement:     'Scrum infringement',
+};
 
 const CHOICE_LABELS: Record<PenaltyChoice, string> = {
   kick_for_goal:     'Kick for goal',
@@ -62,12 +67,14 @@ export function initModalManager(): void {
 
     const { context, onChoice } = payload;
     const zone = context.inOpposition22 ? 'in the opposition 22' : 'in the opposition half';
+    const offenceLabel = OFFENCE_LABELS[context.offence];
 
     const choices: PenaltyChoice[] = ['kick_for_goal', 'kick_to_touch', 'tap_and_go'];
     if (context.clockInTheRed) choices.push('tap_and_kick_dead');
 
     box.innerHTML = `
       <h2 class="modal-title">Penalty awarded</h2>
+      <p class="modal-subtitle">${offenceLabel} — ${context.offenderPosition} ${context.offenderName}</p>
       <p class="modal-subtitle">${context.attackingSide === 'home' ? 'Home' : 'Away'} team — ${zone}</p>
       <div class="modal-choices">
         ${choices.map(key => `

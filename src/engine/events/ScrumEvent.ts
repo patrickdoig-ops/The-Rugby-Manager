@@ -27,6 +27,12 @@ export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): Ph
       attackSide,
       possessionSideAfter: attackSide,
     });
+    events.push({
+      type: 'PENALTY_AWARDED',
+      offence: 'scrum_infringement',
+      offender: defendHooker,
+      offendingSide: flipSide,
+    });
     return {
       nextPhase: MatchPhase.Penalty,
       narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Scrum, key: 'attacking_dominant_penalty', primary: defendHooker, secondary: attackHooker }] },
@@ -77,6 +83,12 @@ export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): Ph
     attackFrontRow, defendFrontRow,
     attackSide,
     possessionSideAfter: flipSide,
+  });
+  events.push({
+    type: 'PENALTY_AWARDED',
+    offence: 'scrum_infringement',
+    offender: attackHooker,
+    offendingSide: attackSide,
   });
   return {
     nextPhase: MatchPhase.Penalty,

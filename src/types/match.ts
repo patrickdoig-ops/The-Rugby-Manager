@@ -1,4 +1,4 @@
-import type { MatchPhase, PossessionSide } from './engine';
+import type { MatchPhase, PossessionSide, PenaltyOffence } from './engine';
 import type { Team } from './team';
 import type { Player } from './player';
 import type { NarrationDescriptor } from './narration';
@@ -66,4 +66,13 @@ export interface MatchState {
   events: GameEvent[];
   breakdownMod: { attack: number; defend: number };
   kickReturnCarrier?: Player;
+  // Set by the PENALTY_AWARDED reducer; read by PenaltyHandler to enrich the
+  // PenaltyContext that crosses the bus boundary to the modal. Overwritten on
+  // every new penalty award; never cleared.
+  lastPenalty?: {
+    offence: PenaltyOffence;
+    offender: Player;
+    offendingSide: PossessionSide;
+    gameMinute: number;
+  };
 }

@@ -56,6 +56,12 @@ export class PenaltyHandler {
       return;
     }
 
+    // state.lastPenalty is set by the PENALTY_AWARDED reducer before the phase
+    // transitions to Penalty; reaching the modal without one is a programming
+    // error (the assert keeps the bus boundary honest about what it sends).
+    const last = state.lastPenalty;
+    if (!last) throw new Error('PenaltyHandler: state.lastPenalty unset when entering Penalty phase');
+
     const wasRunning = state.engine.isRunning;
     const choice = await new Promise<PenaltyChoice>(resolve => {
       eventBus.emit('engine:paused', {
@@ -69,6 +75,9 @@ export class PenaltyHandler {
             attackingSide: state.possession,
             clockInTheRed: state.clock.clockInTheRed,
             halfTimeDone: state.clock.halfTimeDone,
+            offence: last.offence,
+            offenderName: `${last.offender.firstName} ${last.offender.lastName}`,
+            offenderPosition: last.offender.position,
           },
           onChoice: (c) => resolve(c),
         },

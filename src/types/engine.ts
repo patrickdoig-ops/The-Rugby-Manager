@@ -27,6 +27,13 @@ export type CollisionResult = 'dominant_carry' | 'dominant_tackle' | 'broken_tac
 export type KickResult      = 'good_kick' | 'poor_kick' | 'knock_on_catch';
 export type PenaltyChoice   = 'kick_for_goal' | 'kick_to_touch' | 'tap_and_go' | 'tap_and_kick_dead';
 
+// Cause taxonomy for a penalty award. Set by the resolver that detected the
+// offence, carried on PENALTY_AWARDED, and snapshotted onto state.lastPenalty
+// so PenaltyHandler / the modal / the commentary feed can describe why the
+// whistle blew. Grows as new offence types are added (e.g. 'high_tackle',
+// 'offside', 'not_rolling_away').
+export type PenaltyOffence = 'breakdown_infringement' | 'scrum_infringement';
+
 export interface PenaltyContext {
   phase: MatchPhase;
   ballX: number;
@@ -35,4 +42,7 @@ export interface PenaltyContext {
   attackingSide: PossessionSide;
   clockInTheRed: boolean;
   halfTimeDone: boolean;
+  offence: PenaltyOffence;
+  offenderName: string;
+  offenderPosition: string;
 }

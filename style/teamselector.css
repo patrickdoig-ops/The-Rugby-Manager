@@ -176,12 +176,27 @@
   max-width: 100%;
 }
 
-.ts-card-code {
+.ts-card-ovr {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.ts-card-ovr-label {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.16em;
   color: var(--rm-text-dim);
   text-transform: uppercase;
+}
+
+.ts-card-ovr-value {
+  font-family: var(--rm-font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--rm-chalk);
+  line-height: 1;
 }
 
 .ts-card-cta {

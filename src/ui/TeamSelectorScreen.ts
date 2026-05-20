@@ -1,5 +1,5 @@
 import type { RawTeamInput } from '../types/teamData';
-import { getProfile } from '../team/teamProfile';
+import { computeOverallRating } from '../team/teamProfile';
 
 function crestHtml(initial: string, color: string, size: number): string {
   const grad = `linear-gradient(160deg, ${color} 0%, color-mix(in oklch, ${color} 65%, black) 100%)`;
@@ -32,9 +32,7 @@ export function initTeamSelectorScreen(
         <p id="ts-subtitle">Select the side you want to manage</p>
       </div>
       <div id="ts-grid">
-        ${sortedTeams.map(team => {
-          const founded = getProfile(team.id).founded;
-          return `
+        ${sortedTeams.map(team => `
           <div class="ts-card" data-id="${team.id}">
             <button class="ts-card-info" data-id="${team.id}" aria-label="Team info">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
@@ -42,11 +40,10 @@ export function initTeamSelectorScreen(
             <button class="ts-card-select" data-id="${team.id}">
               ${crestHtml(team.shortName[0] ?? '?', team.color, 64)}
               <div class="ts-card-name">${team.name}</div>
-              <div class="ts-card-code">${team.shortName}${founded ? ` · Est. ${founded}` : ''}</div>
+              <div class="ts-card-ovr"><span class="ts-card-ovr-label">OVR</span><span class="ts-card-ovr-value">${computeOverallRating(team.id)}</span></div>
             </button>
           </div>
-        `;
-        }).join('')}
+        `).join('')}
       </div>
     </div>
   `;

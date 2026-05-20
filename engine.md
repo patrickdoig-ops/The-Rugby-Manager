@@ -2,6 +2,20 @@
 
 Documents the complete game engine: the simulation loop, every match phase, all resolver formulas, and known gaps. Intended as the authoritative reference for anyone modifying engine behaviour.
 
+## Maintaining this doc
+
+After any change to engine code, update this file in the same commit. Engine code is everything under `src/engine/`, plus the engine-facing types in `src/types/engine.ts` and `src/types/matchEvent.ts`. The commentary renderer (`src/commentary/`) is also covered here.
+
+When updating, document:
+1. Which players are selected (exact `find`/`filter` conditions from `PhaseRouter.resolvePhase()` and the relevant event handler).
+2. The resolver formula with actual numbers from the resolver file.
+3. All outcome thresholds.
+4. Ball position changes and possession swaps.
+5. Stat increments per phase (which player, which `matchStats` field).
+6. Any known gaps or approximations (add to § Known Gaps).
+
+Do not paraphrase — if the code changes, the doc must reflect the new code exactly.
+
 ---
 
 ## Architecture
@@ -50,6 +64,25 @@ Snapshot DTOs intentionally **stay scalar** — they are frozen log rows, not li
 - `PenaltyContext.ballX` / `ballY` / `clockInTheRed` / `halfTimeDone` (crosses the event-bus boundary to `ModalManager`)
 - `MatchEvent` payload fields (`x`, `y`, `delta`, `value`) stay scalar — only the write *targets* in `applyMatchEvent` are nested
 - `isTryScoredAt(ballX, possession, halfTimeDone)` and `inOpposition22At(ballX, possession, halfTimeDone)` keep scalar signatures — called on projected (not-yet-applied) positions
+
+### UI Event Bus Contract
+
+The engine emits five UI-bound events through `src/utils/eventBus.ts`. UI modules subscribe to react; the engine never imports any UI module.
+
+| Event | Payload | Subscribers |
+|---|---|---|
+| `engine:initialized` | `{}` | Scoreboard, PitchStrip, StatsPanel, CommentaryFeed — reset per-match caches |
+| `engine:stateChange` | `{ state: MatchState }` | Scoreboard, StatsPanel, PitchStrip; CommentaryFeed (one-shot for team-colour cache) |
+| `engine:event` | `{ event: GameEvent }` | CommentaryFeed (renders narration) |
+| `engine:paused` | `{ payload: ModalPayload }` | ModalManager (penalty / kick-off / tactics / sub modal), SimController (button gating) |
+| `engine:resumed` | `{}` | ModalManager, SimController |
+| `engine:finished` | `{ state: MatchState }` | `main.ts` (shows match-result overlay) |
+
+**Tick ordering:** within a single tick, `engine:event` fires **before** `engine:stateChange`. UI subscribers that depend on cached state from the prior tick will always have a valid cache by the time an event arrives.
+
+**Subscription lifetime:** `eventBus.on()` returns an unsubscribe function. UI subscriptions registered at startup are intentionally permanent for the page lifetime. One-shots (e.g. `CommentaryFeed` caching team colours on first `engine:stateChange`) call the returned unsub explicitly.
+
+UI→engine direction is one channel: `SimController` is the only UI module that calls engine methods (`start`, `pause`, `resume`, `setTickDelay`). Substitutions and tactics changes go through `ui:substitution` / `ui:tacticsChange` bus events; `MatchCoordinator` subscribes to these in its constructor and unsubscribes in `destroy()` (called from `main.ts` after the match-result overlay closes).
 
 ---
 
@@ -1153,3 +1186,6 @@ If the renderer ever emits HTML, the span injection will double-encode or break.
 | Gap | Location | Effect |
 |---|---|---|
 | kicking, positioning not degraded by fatigue | StaminaSystem | These stats remain at full base value for the entire 80 minutes |
+| pre-match form pins (`WWLWD` / `WWWLW`) are hardcoded | `PreMatchScreen.ts` | Needs a per-team match-result history store; only the player team's per-round scores are persisted today (`FixtureListScreen`) |
+| pre-match stake row (`LEAGUE 2nd · 4 pts`, `H2H 1W · 2L last 3`, `ODDS +3.5`) is hardcoded | `PreMatchScreen.ts` | Needs a season table and a fixture/odds system |
+| pre-match kick-off time (`20:00`) is hardcoded | `PreMatchScreen.ts` | Needs scheduled match times |

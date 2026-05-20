@@ -33,7 +33,7 @@ const TAG_MAP: Partial<Record<MatchPhase, string>> = {
 const MAX_ENTRIES = 30;
 
 function colorizePlayer(text: string, player: Player, color: string): string {
-  const surname = player.lastName ?? player.name?.split(' ').pop() ?? '';
+  const surname = player.lastName;
   const label = `${surname} (#${player.squadNumber})`;
   return text.split(label).join(`<span style="color:${color};font-weight:700">${label}</span>`);
 }

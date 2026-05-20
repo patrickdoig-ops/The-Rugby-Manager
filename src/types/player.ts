@@ -55,7 +55,6 @@ export interface Player {
   lastName: string;
   dob: string | null;
   nationality: string;
-  name?: string;
   position: Position;
   baseStats: PlayerStats;
   currentStats: PlayerStats;

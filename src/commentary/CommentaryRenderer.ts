@@ -13,9 +13,7 @@ export interface RenderableEvent {
 }
 
 function playerLabel(p: Player | undefined, fallback: string): string {
-  if (!p) return fallback;
-  const surname = p.lastName ?? p.name?.split(' ').pop() ?? '';
-  return `${surname} (#${p.squadNumber})`;
+  return p ? `${p.lastName} (#${p.squadNumber})` : fallback;
 }
 
 function interpolate(

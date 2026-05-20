@@ -12,7 +12,7 @@ export function getTacticNoteLines(
 ): readonly string[] {
   const att = params.attackTeamName ?? 'the attacking team';
   const def = params.defendTeamName ?? 'the opposition';
-  const fullbackName = params.fullback?.name ?? 'the fullback';
+  const fullbackName = params.fullback?.lastName ?? 'the fullback';
 
   switch (cause) {
     case 'line_break_backfield_thin':

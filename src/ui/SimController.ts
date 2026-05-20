@@ -1,5 +1,6 @@
 import type { MatchCoordinator } from '../engine/MatchCoordinator';
 import { eventBus } from '../utils/eventBus';
+import { loadTickDelayMs, saveTickDelayMs } from './uiPrefs';
 
 let unsubs: Array<() => void> = [];
 
@@ -62,12 +63,18 @@ export function initSimController(engine: MatchCoordinator): void {
     eventBus.emit('ui:openSubsModal', { team });
   };
 
+  // Sync the slider to the persisted preference on every match start —
+  // covers a page refresh (slider DOM resets to its HTML default) as well
+  // as the in-session case where the slider's own runtime value already
+  // carried over.
+  slider.value = String(loadTickDelayMs());
   speedDisplay.textContent = `${slider.value}ms`;
 
   slider.oninput = () => {
     const ms = Number(slider.value);
     engine.setTickDelay(ms);
     speedDisplay.textContent = `${ms}ms`;
+    saveTickDelayMs(ms);
     eventBus.emit('ui:speedChange', { delayMs: ms });
   };
 

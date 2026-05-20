@@ -32,6 +32,7 @@ import { initMatchResultScreen }   from './ui/MatchResultScreen';
 import { initRoundResultsScreen, showRoundResults } from './ui/RoundResultsScreen';
 import { screenRouter }            from './ui/ScreenRouter';
 import { loadSave, saveGame, clearSave } from './ui/SaveManager';
+import { loadTickDelayMs }           from './ui/uiPrefs';
 import { MatchCoordinator }        from './engine/MatchCoordinator';
 import type { RawTeamInput }       from './types/teamData';
 import type { TeamTactics }        from './types/team';
@@ -204,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
     round: number,
     playerTactics: TeamTactics,
   ): void {
-    const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: 2000, playerTactics, humanSide: playerSide });
+    const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: loadTickDelayMs(), playerTactics, humanSide: playerSide });
     initSimController(engine);
     screenRouter.show('app');
 

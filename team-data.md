@@ -40,6 +40,7 @@ Premiership ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 ble
 
 A historic west-country club with a cherry-and-white forwards-led identity, defined by the close, vocal "Shed" at Kingsholm. Gloucester traditionally make their living from a robust, hard-carrying pack, set-piece confrontation and direct lines through the middle. The backline is functional rather than expansive, leaning on power runners to punch holes that fast support can exploit. At their best they are abrasive, physical and uncompromising at the breakdown; at their worst they over-rely on the forwards when a wider game is needed.
 
+- **Home ground:** Kingsholm Stadium (the famous "Shed" terrace).
 - **Overall rating:** **44/100** *(25-26: 1.56 ppm × 0.6 = 18.8, 24-25: 3.11 ppm × 0.4 = 24.9)*
 - **Suggested tactics:** `balanced` · `keep_it_tight` · `pick_and_drive` · `counter_ruck` · `one_back`
 - **Stat bias:** high `strength`, `breakdown`, `setPiece`.
@@ -105,6 +106,7 @@ A historic west-country club with a cherry-and-white forwards-led identity, defi
 
 Shaped by the Pat Lam era's "Bristol-Bilbao" expansive ambition, the Bears are the league's most ball-in-hand, high-tempo side, willing to attack from anywhere on the pitch. They prize width, offloads and pace over territorial caution, and will gladly trade penalties for tempo. Their forwards are built for carrying and linking rather than maul dominance, and they often outscore opponents in shootouts. The flip side is risk: turnovers and defensive lapses come with the style.
 
+- **Home ground:** Ashton Gate.
 - **Overall rating:** **63/100** *(25-26: 3.13 ppm × 0.6 = 37.5, 24-25: 3.22 ppm × 0.4 = 25.8)*
 - **Suggested tactics:** `possession` · `wide_wide` · `wide_play` · `jackal` · `two_back`
 - **Stat bias:** high `pace`, `handling`, `agility`.
@@ -170,6 +172,7 @@ Shaped by the Pat Lam era's "Bristol-Bilbao" expansive ambition, the Bears are t
 
 The Welford Road tradition is set-piece power, structured forward-led play, and hard-nosed defence built on discipline. Tigers historically squeeze the game through scrum and maul dominance, accurate exit kicking, and a defensive line that gives nothing cheap. Their attack is built off forward platform first, with the backs called on to finish rather than create from scratch. Recent rebuilds have softened the edges, but the identity remains: territory, set piece, pressure.
 
+- **Home ground:** Mattioli Woods Welford Road (commonly "Welford Road").
 - **Overall rating:** **74/100** *(25-26: 3.88 ppm × 0.6 = 46.5, 24-25: 3.39 ppm × 0.4 = 27.1)*
 - **Suggested tactics:** `kicking` · `keep_it_tight` · `pick_and_drive` · `jackal` · `two_back`
 - **Stat bias:** high `setPiece`, `tackling`, `discipline`.
@@ -243,6 +246,7 @@ The Welford Road tradition is set-piece power, structured forward-led play, and 
 
 Under Mark McCall, Saracens have been the league's clinical operator — structure, precision and physical dominance executed to a finer tolerance than anyone else. The "Wolfpack" defence with its aggressive line-speed and choke tackles is the signature, paired with a smart kicking game that turns territory into points. They are ruthless game managers: ahead late, they will close a match out with possession and field position rather than tries. Calm under pressure, brutal in the collision.
 
+- **Home ground:** StoneX Stadium (formerly Allianz Park).
 - **Overall rating:** **64/100** *(25-26: 3.25 ppm × 0.6 = 39.0, 24-25: 3.11 ppm × 0.4 = 24.9)*
 - **Suggested tactics:** `kicking` · `balanced` · `balanced` · `shadow` · `two_back`
 - **Stat bias:** high `tackling`, `positioning`, `composure`.
@@ -314,6 +318,7 @@ Under Mark McCall, Saracens have been the league's clinical operator — structu
 
 The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at 10 and Santi Carreras at 15, with strong ball-playing centres giving Bath multiple distributors at the line. Their best rugby blends forward dominance and territory with a backline that can shift the point of attack at will. Russell's growing pragmatism has added game management to the flair, though some 2025-26 criticism has pointed to conservative five-metre pick-and-drive over their expansive instincts. At full song, they balance heft up front with the league's most creative half-back axis.
 
+- **Home ground:** The Recreation Ground (commonly "The Rec").
 - **Overall rating:** **79/100** *(25-26: 3.94 ppm × 0.6 = 47.3, 24-25: 4.00 ppm × 0.4 = 32.0)*
 - **Suggested tactics:** `balanced` · `balanced` · `balanced` · `jackal` · `two_back`
 - **Stat bias:** high `handling`, `kicking`, `composure`.
@@ -383,6 +388,7 @@ The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at
 
 The Rob Baxter long-build identity is phase-heavy possession rugby — pressure and patience, suffocating teams with multiple phases and field position before striking. The driving maul is a signature weapon and the forwards are built for relentless go-forward over flashy carries. Chiefs cede little territory, kick smartly and trust their fitness to wear opponents down. They are mid-rebuild after the peak title-winning era, but the DNA — disciplined, methodical, set-piece confident — is intact.
 
+- **Home ground:** Sandy Park.
 - **Overall rating:** **54/100** *(25-26: 3.44 ppm × 0.6 = 41.3, 24-25: 1.61 ppm × 0.4 = 12.9)*
 - **Suggested tactics:** `possession` · `keep_it_tight` · `pick_and_drive` · `counter_ruck` · `one_back`
 - **Stat bias:** high `stamina`, `breakdown`, `setPiece`.
@@ -458,6 +464,7 @@ The Rob Baxter long-build identity is phase-heavy possession rugby — pressure 
 
 The Twickenham Stoop entertainers and the league's most committed expansive, attacking side. Built around Marcus Smith's creative range — cross-field kicks, late drop-goal nous, footwork at first receiver — Quins play fast-paced running rugby and back themselves to outscore anyone. Their forwards are mobile and carry-friendly rather than maul-monsters, and they thrive on broken-field rugby and counter-attack. The trade-off is defensive vulnerability when the tempo turns against them.
 
+- **Home ground:** Twickenham Stoop (commonly "The Stoop").
 - **Overall rating:** **41/100** *(25-26: 1.63 ppm × 0.6 = 19.5, 24-25: 2.67 ppm × 0.4 = 21.3)*
 - **Suggested tactics:** `possession` · `wide_wide` · `wide_play` · `jackal` · `one_back`
 - **Stat bias:** high `pace`, `agility`, `handling`.
@@ -526,6 +533,7 @@ The Twickenham Stoop entertainers and the league's most committed expansive, att
 
 Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastle are mid-transformation: heavy investment, aggressive recruitment, and a search for a clearer identity after three straight bottom-of-the-table finishes. Historically a developmental, lower-budget side that fought hard but lacked depth, the Red Bulls era is rebuilding from the ground up. Kingston Park remains home, but the playing identity is still being written — expect them to start the simulator era as the league's weakest squad, with room to grow.
 
+- **Home ground:** Kingston Park.
 - **Overall rating:** **11/100** *(25-26: 0.44 ppm × 0.6 = 5.3, 24-25: 0.72 ppm × 0.4 = 5.8)*
 - **Suggested tactics:** `balanced` · `balanced` · `balanced` · `jackal` · `two_back`
 - **Stat bias:** modest across the board (rebuild status); slight lean toward `stamina` and `discipline`.
@@ -602,6 +610,7 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 
 The 2023-24 champions under Phil Dowson, Saints are the league's electric attacking outfit — willing to play from anywhere on the pitch and devastating in transition. Fin Smith conducts a heads-up backline that scores tries from deep, off turnover ball and from set-piece strike plays in equal measure. Their forwards are mobile and link-friendly rather than collision-first, designed to win quick ball and feed the runners. When they get rolling they put 40+ on teams; when the platform wobbles, the structure shows cracks.
 
+- **Home ground:** cinch Stadium at Franklin's Gardens (commonly "Franklin's Gardens").
 - **Overall rating:** **70/100** *(25-26: 4.19 ppm × 0.6 = 50.3, 24-25: 2.44 ppm × 0.4 = 19.6)*
 - **Suggested tactics:** `possession` · `wide_wide` · `wide_play` · `jackal` · `one_back`
 - **Stat bias:** high `pace`, `handling`, `agility`.
@@ -685,6 +694,7 @@ The 2023-24 champions under Phil Dowson, Saints are the league's electric attack
 
 The Manchester defence-first side: line-speed, collision-dominant loose forwards and a physical inside-centre channel, all built to choke teams into errors. Sale are happy to cede possession because they back their defence to win the field-position battle, and George Ford's tempo control gives them clinical execution when they do attack. Tackles, turnovers and territory underpin everything; they are the league's least flashy and most resilient team. Box-kick, chase, tackle, repeat.
 
+- **Home ground:** Salford Community Stadium (formerly AJ Bell Stadium).
 - **Overall rating:** **48/100** *(25-26: 1.81 ppm × 0.6 = 21.8, 24-25: 3.22 ppm × 0.4 = 25.8)*
 - **Suggested tactics:** `kicking` · `keep_it_tight` · `balanced` · `shadow` · `three_back`
 - **Stat bias:** high `tackling`, `strength`, `kicking`.

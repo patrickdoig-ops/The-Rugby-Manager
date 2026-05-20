@@ -14,7 +14,7 @@ The engine is split across files in `src/engine/`. `MatchCoordinator` owns the p
 | `ClockController.ts` | Minute advance (clamped to half target, halved while in the red), clock-in-red entry, half-time and full-time triggers (`advanceMinute`, `checkClockInRed`, `shouldEndPeriod`, `triggerHalfTime`, `endMatch`). |
 | `PhaseRouter.ts` | `PHASE_HANDLERS` map, `resolvePhase(state, sm, kickOffStrategy)`, and the `draftEvent(state, phase)` template builder. |
 | `PenaltyHandler.ts` | Penalty-decision modal pause and outcome application (`kick_for_goal`, `kick_to_touch`, `tap_and_kick_dead`, `tap_and_go`), plus the kick-off strategy modal (`awaitKickOffStrategy`, `handlePenaltyDecision`). |
-| `FieldPosition.ts` | Pure helpers over `MatchState` that factor in `state.clock.halfTimeDone`: `attackDir`, `isTryScored`, `isTryScoredAt`, `inOpposition22`, `inOppositionHalf`, `inOwn22`, `inOwnHalf`. The exported `isTryScoredAt(ballX, possession, halfTimeDone)` keeps a scalar signature — it's used for projecting not-yet-applied positions. |
+| `FieldPosition.ts` | Pure helpers over `MatchState` that factor in `state.clock.halfTimeDone`: `attackDir`, `isTryScored`, `isTryScoredAt`, `inOpposition22`, `inOpposition22At`, `inOppositionHalf`, `inOwn22`, `inOwnHalf`. The `*At(ballX, possession, halfTimeDone)` variants keep a scalar signature — used for projecting not-yet-applied positions. |
 | `applyMatchEvent.ts` | **The single mutation boundary.** A reducer over the `MatchEvent` discriminated union (`src/types/matchEvent.ts`). The only function permitted to write to `MatchState` or any `Player` field. |
 | `StaminaSystem.ts` | Pure `computeFatigue(team, elapsedMinutes)` — returns `{updates, newlyTired}` without writing to players; the caller emits `FATIGUE_APPLIED` events. |
 | `RatingEngine.ts` | Pure `computeRating(player)` — called by `applyMatchEvent` when a `RATINGS_RECALCULATED` event is reduced. |
@@ -39,7 +39,7 @@ Every number listed in the resolver formulas, tactic modifier tables, fatigue ti
 ```ts
 state.clock  = { gameMinute, halfTimeDone, clockInTheRed, penaltyKickToTouchLineout }
 state.ball   = { x, y }                              // renamed from ballX/ballY
-state.engine = { isRunning, isPaused, tickDelayMs, seed }
+state.engine = { isRunning, tickDelayMs, seed, firstHalfKicker }
 
 // top-level: phase, possession, score, events, breakdownMod, kickReturnCarrier,
 //            homeTeam, awayTeam, stats
@@ -49,7 +49,7 @@ Snapshot DTOs intentionally **stay scalar** — they are frozen log rows, not li
 - `GameEvent.ballX` / `GameEvent.ballY` (entries in `state.events[]`)
 - `PenaltyContext.ballX` / `ballY` / `clockInTheRed` / `halfTimeDone` (crosses the event-bus boundary to `ModalManager`)
 - `MatchEvent` payload fields (`x`, `y`, `delta`, `value`) stay scalar — only the write *targets* in `applyMatchEvent` are nested
-- `isTryScoredAt(ballX, possession, halfTimeDone)` keeps a scalar signature — called on projected (not-yet-applied) positions
+- `isTryScoredAt(ballX, possession, halfTimeDone)` and `inOpposition22At(ballX, possession, halfTimeDone)` keep scalar signatures — called on projected (not-yet-applied) positions
 
 ---
 
@@ -250,10 +250,11 @@ Resolved inside `MatchCoordinator.initialize()` before the first tick.
 
 ```
 winner = rng(0, 1) === 0 ? 'home' : 'away'
-state.possession = winner
+state.possession = winner                       // POSSESSION_SET
+state.engine.firstHalfKicker = winner           // FIRST_HALF_KICKER_SET
 ```
 
-A 50/50 coin flip. The winning team kicks off in the first half. At half-time, `triggerHalfTime()` flips possession as normal — the losing-toss team therefore kicks off the second half automatically, with no additional logic needed.
+A 50/50 coin flip. The winning team kicks off in the first half. `state.engine.firstHalfKicker` is the persisted record of who took the 1H kick-off; `ClockController.triggerHalfTime()` reads it and sets `state.possession = the complement` so the other team always kicks off the second half — regardless of who happens to hold possession at the dead-ball moment that triggers HT.
 
 `initialize()` first emits an `engine:initialized` UI-bus event (zero payload) so UI modules holding per-match caches (`Scoreboard` crests, `PitchStrip` end labels, `CommentaryFeed` team roster + DOM, `StatsPanel` cached render keys + DOM) can reset before the new match's first `engine:stateChange`. This is what makes back-to-back matches in the same page session work — each `new MatchCoordinator(...).initialize()` call resets all UI caches.
 
@@ -672,6 +673,8 @@ None.
 | `defending_dominant_penalty` | defending front row (ids 1–3), each | `scrumPenaltiesWon++` |
 | `defending_dominant_penalty` | attacking front row (ids 1–3), each | `scrumPenaltiesConceded++` |
 
+Team-level scrum count: `stats.scrums[possessionSideAfter]++` for `stable_win`, `attacking_dominant_penalty`, and `defending_dominant_penalty`. `wheel` does not count (the scrum resets, no possession decided).
+
 ---
 
 ## Lineout
@@ -1026,12 +1029,15 @@ Triggered by `triggerHalfTime()` inside `tick()` after `shouldEndPeriod()` retur
 state.clock.halfTimeDone              = true
 state.clock.clockInTheRed             = false
 state.clock.penaltyKickToTouchLineout = false
-state.possession                       = flipped
+state.possession                       = complement(state.engine.firstHalfKicker)
 state.ball.x                           = 50
 state.ball.y                           = 50
+state.phase                            = KickOff
 ```
 
-A `HalfTime` event is emitted, then the phase force-transitions to `KickOff` for the second half. The possession swap at half-time combined with `state.clock.halfTimeDone = true` is what reverses the output of `attackDir()`, `isTryScored()`, and `inOpposition22()` for the rest of the match.
+All mutations apply first; **then** a single `HalfTime` `COMMENTARY_LOGGED` is dispatched and the bus emits `engine:event` followed by one `engine:stateChange`. This ordering ensures UI subscribers (`PitchStrip` ball marker + attack arrow, `Scoreboard` clock) render the post-HT frame in one paint with no mid-transition glitch.
+
+The 2H kicker is set explicitly from `state.engine.firstHalfKicker` (recorded at coin toss) — not from the dead-ball possession — so the rugby rule "the team that didn't kick off in the first half kicks off the second" holds regardless of who had possession when the period ended. The `halfTimeDone = true` flag is what reverses the output of `attackDir()`, `isTryScored()`, `inOpposition22()`, `inOppositionHalf()`, `inOwn22()`, and `inOwnHalf()` for the rest of the match.
 
 ---
 
@@ -1068,27 +1074,27 @@ No rating adjustment is applied on substitution. The incoming player's `formModi
 
 ## Tactical Commentary
 
-When a tactic directly influences a key outcome, the phase handler pushes a `{ kind: 'tactic_note', cause, chancePct, params? }` step into the `NarrationDescriptor` it returns. The renderer rolls `commentaryChance(chancePct)` (commentary stream) and, on pass, picks a line from `getTacticNoteLines(cause, params)` in `src/commentary/banks/en-GB/tacticNotes.ts`. Notes only fire for the **home team** (checked via `state.possession` before any possession flip).
+When a tactic directly influences a key outcome, the phase handler pushes a `{ kind: 'tactic_note', cause, chancePct, params? }` step into the `NarrationDescriptor` it returns. The renderer rolls `commentaryChance(chancePct)` (commentary stream) and, on pass, picks a line from `getTacticNoteLines(cause, params)` in `src/commentary/banks/en-GB/tacticNotes.ts`. Notes fire symmetrically — whichever team's tactic produced the outcome, the corresponding note may trigger. The note text names the relevant team via the `params: { attackTeamName, defendTeamName }` so it reads correctly regardless of which side the player is managing.
 
 Notes cover both the upside and the downside of a tactic choice — a player should see their good decisions rewarded *and* their poor decisions highlighted.
 
-| Handler | Trigger | Home role | Cause | Chance |
-|---|---|---|---|---|
-| `BreakdownEvent` | `pick_and_drive` + `clean_ball` | attacking | `breakdown_pick_and_drive_clean` | 30% |
-| `BreakdownEvent` | `shadow` + `clean_ball` conceded | defending | `breakdown_shadow_clean` | 30% |
-| `BreakdownEvent` | `jackal` + `clean_ball` conceded | defending | `breakdown_jackal_clean` | 25% |
-| `BreakdownEvent` | `wide_play` + `slow_ball` | attacking | `breakdown_wide_play_slow` | 30% |
-| `BreakdownEvent` | `counter_ruck` + `slow_ball` | defending | `breakdown_counter_ruck_slow` | 30% |
-| `BreakdownEvent` | `jackal` + `turnover` | defending | `breakdown_jackal_turnover` | 35% |
-| `BreakdownEvent` | `counter_ruck` + `turnover` | defending | `breakdown_counter_ruck_turnover` | 30% |
-| `BreakdownEvent` | `wide_play` + `turnover` | attacking (lost) | `breakdown_wide_play_turnover` | 25% |
-| `BreakdownEvent` | `pick_and_drive` + `penalty_defending` | attacking | `breakdown_pick_and_drive_penalty` | 25% |
-| `BreakdownEvent` | `wide_play` + `penalty_defending` | attacking | `breakdown_wide_play_penalty` | 25% |
-| `BreakdownEvent` | `jackal` + `penalty_defending` | defending | `breakdown_jackal_penalty` | 25% |
-| `OpenPlayEvent` / `FirstPhaseEvent` / `KickReturnEvent` | `line_break` + `two_back`/`three_back` defending | defending | `line_break_backfield_thin` | 30% |
-| `TacticalKickEvent` | kick caught + `two_back`/`three_back` | defending (now attacking) | `kick_caught_return_bonus` | 35% |
-| `TacticalKickEvent` | `fifty_twenty_two` + `one_back` | defending | `fifty_twenty_two_one_back` | 25% |
-| `BoxKickEvent` | `defend_catch` + `two_back`/`three_back` | defending | `boxkick_backfield_caught` | 30% |
+| Handler | Trigger | Cause | Chance |
+|---|---|---|---|
+| `BreakdownEvent` | `pick_and_drive` + `clean_ball` | `breakdown_pick_and_drive_clean` | 30% |
+| `BreakdownEvent` | `shadow` + `clean_ball` conceded | `breakdown_shadow_clean` | 30% |
+| `BreakdownEvent` | `jackal` + `clean_ball` conceded | `breakdown_jackal_clean` | 25% |
+| `BreakdownEvent` | `wide_play` + `slow_ball` | `breakdown_wide_play_slow` | 30% |
+| `BreakdownEvent` | `counter_ruck` + `slow_ball` | `breakdown_counter_ruck_slow` | 30% |
+| `BreakdownEvent` | `jackal` + `turnover` | `breakdown_jackal_turnover` | 35% |
+| `BreakdownEvent` | `counter_ruck` + `turnover` | `breakdown_counter_ruck_turnover` | 30% |
+| `BreakdownEvent` | `wide_play` + `turnover` | `breakdown_wide_play_turnover` | 25% |
+| `BreakdownEvent` | `pick_and_drive` + `penalty_defending` | `breakdown_pick_and_drive_penalty` | 25% |
+| `BreakdownEvent` | `wide_play` + `penalty_defending` | `breakdown_wide_play_penalty` | 25% |
+| `BreakdownEvent` | `jackal` + `penalty_defending` | `breakdown_jackal_penalty` | 25% |
+| `OpenPlayEvent` / `FirstPhaseEvent` / `KickReturnEvent` | `line_break` + `two_back`/`three_back` defending | `line_break_backfield_thin` | 30% |
+| `TacticalKickEvent` | kick caught + `two_back`/`three_back` | `kick_caught_return_bonus` | 35% |
+| `TacticalKickEvent` | `fifty_twenty_two` + `one_back` | `fifty_twenty_two_one_back` | 25% |
+| `BoxKickEvent` | `defend_catch` + `two_back`/`three_back` | `boxkick_backfield_caught` | 30% |
 
 Structural pass commentary (`out_the_back`, `crash_ball`) is expressed as a separate `phase_outcome` step pushed onto `descriptor.steps[]` before the outcome step. The renderer joins them with a single space, reproducing the prefix+outcome composition the previous inline-string assembly produced.
 
@@ -1100,7 +1106,7 @@ Commentary text is produced by `src/commentary/CommentaryRenderer.ts` from the s
 
 ### `NarrationDescriptor` and steps
 
-`src/types/narration.ts` defines `NarrationDescriptor { steps: NarrationStep[], context? }`. Each `NarrationStep` is one of:
+`src/types/narration.ts` defines `NarrationDescriptor { steps: NarrationStep[] }`. Each `NarrationStep` is one of:
 
 - `{ kind: 'phase_outcome', phase, key, primary?, secondary? }` — the dominant variant. `key` is a `PhaseOutcomeKey` (e.g. `knock_on`, `line_break`, `crash_ball`, `clean_ball`, `wheel`, `defend_catch_contested`, `fifty_twenty_two`, `tap_and_go`, …).
 - `{ kind: 'tactic_note', cause, chancePct, params? }` — flavour text gated by a `pickRandom`-driven chance roll. `cause` is a `TacticNoteCause` (e.g. `line_break_backfield_thin`, `breakdown_jackal_turnover`, `boxkick_backfield_caught`).

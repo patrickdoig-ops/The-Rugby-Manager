@@ -366,6 +366,12 @@ export function initPreMatchScreen(
 
   renderTacticsMenu(tacticsPanel, { ...DEFAULT_TACTICS }, playerSide);
 
+  screen.querySelector('#pm-back')!.addEventListener('click', () => {
+    unsubTactics();
+    screen.style.display = 'none';
+    document.getElementById('fixture-list')!.style.display = '';
+  });
+
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const t = tab.dataset.tab!;
@@ -379,10 +385,7 @@ export function initPreMatchScreen(
 
   screen.querySelector('#pm-start')!.addEventListener('click', () => {
     screen.classList.add('pm-exit');
-    let started = false;
-    const start = () => {
-      if (started) return;
-      started = true;
+    setTimeout(() => {
       unsubTactics();
       screen.style.display = 'none';
       const configuredHome = playerSide === 'home'
@@ -392,8 +395,6 @@ export function initPreMatchScreen(
         ? { ...away, players: awayStarters, bench: awayBench } as unknown as RawTeam
         : away as unknown as RawTeam;
       onStart(configuredHome, configuredAway, chosenTactics);
-    };
-    screen.addEventListener('animationend', start, { once: true });
-    setTimeout(start, 600);
+    }, 600);
   });
 }

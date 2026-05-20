@@ -54,6 +54,11 @@ export function initHomeScreen(onStart: () => void): void {
   const el = document.getElementById('home-screen');
   if (!el) return;
 
+  // Restore the user's preferred theme from the previous session.
+  if (localStorage.getItem(THEME_KEY) === 'light') {
+    document.body.classList.add('light-mode');
+  }
+
   el.innerHTML = `
     ${pitchLinesSvg()}
 

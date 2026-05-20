@@ -6,11 +6,11 @@ import { MatchPhase, type PossessionSide, type KickOffStrategy } from '../types/
 import { StateMachine } from './StateMachine';
 import { computeFatigue } from './StaminaSystem';
 import { eventBus } from '../utils/eventBus';
-import { rngForm, setMatchSeed, rng } from '../utils/rng';
+import { rngForm, setMatchSeed, rng, generateSeed } from '../utils/rng';
 import { PenaltyHandler } from './PenaltyHandler';
 import { ClockController } from './ClockController';
 import { resolvePhase, draftEvent } from './PhaseRouter';
-import { makeId } from './eventId';
+import { makeId, resetEventCounter } from './eventId';
 import { applyMatchEvent } from './applyMatchEvent';
 import { FATIGUE_SCALING } from './balance';
 
@@ -79,9 +79,9 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
     ball: { x: 50, y: 50 },
     engine: {
       isRunning: false,
-      isPaused: false,
       tickDelayMs,
       seed,
+      firstHalfKicker: 'home',
     },
     phase: MatchPhase.KickOff,
     score: { home: 0, away: 0 },
@@ -117,8 +117,9 @@ export class MatchCoordinator {
     awayRaw: RawTeamInput,
     opts: { tickDelayMs?: number; homeTactics?: TeamTactics; playerTactics?: TeamTactics; humanSide?: 'home' | 'away'; seed?: number } = {},
   ) {
-    const seed = (opts.seed ?? Math.floor(Math.random() * 0x100000000)) >>> 0;
+    const seed = (opts.seed ?? generateSeed()) >>> 0;
     setMatchSeed(seed);
+    resetEventCounter();
     this.humanSide = opts.humanSide ?? 'home';
     const tactics = opts.playerTactics ?? opts.homeTactics;
     this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, seed, tactics, this.humanSide);
@@ -188,12 +189,12 @@ export class MatchCoordinator {
 
   initialize(): void {
     eventBus.emit('engine:initialized', {});
-    // Coin toss — 50/50; winner kicks off in the first half, loser in the second.
-    // Half-time already flips possession, so just set the first-half kicker here.
-    applyMatchEvent(this.state, {
-      type: 'POSSESSION_SET',
-      side: rng(0, 1) === 0 ? 'home' : 'away',
-    });
+    // Coin toss — 50/50; winner kicks off in the first half, the other side
+    // kicks off the second half (set via FIRST_HALF_KICKER_SET, read by
+    // ClockController.triggerHalfTime).
+    const tossWinner: 'home' | 'away' = rng(0, 1) === 0 ? 'home' : 'away';
+    applyMatchEvent(this.state, { type: 'POSSESSION_SET', side: tossWinner });
+    applyMatchEvent(this.state, { type: 'FIRST_HALF_KICKER_SET', side: tossWinner });
     const draft = draftEvent(this.state, MatchPhase.KickOff);
     const tossEvent: GameEvent = {
       ...draft,
@@ -251,7 +252,7 @@ export class MatchCoordinator {
       const timeAdvance = this.clock.advanceMinute(this.state);
 
       this.fatigueAccumulator += timeAdvance;
-      if (this.fatigueAccumulator >= FATIGUE_SCALING.computeIntervalMinutes) {
+      while (this.fatigueAccumulator >= FATIGUE_SCALING.computeIntervalMinutes) {
         const homeFatigue = computeFatigue(this.state.homeTeam, this.fatigueAccumulator);
         const awayFatigue = computeFatigue(this.state.awayTeam, this.fatigueAccumulator);
         this.fatigueAccumulator -= FATIGUE_SCALING.computeIntervalMinutes;

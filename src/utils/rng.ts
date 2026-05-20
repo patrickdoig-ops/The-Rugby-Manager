@@ -20,6 +20,12 @@ export function setMatchSeed(seed: number): void {
   commentaryRand = mulberry32(s ^ 0xC2B2AE35);
 }
 
+// The only Math.random() call in the engine. Used when MatchCoordinator
+// is constructed without an explicit seed.
+export function generateSeed(): number {
+  return Math.floor(Math.random() * 0x100000000) >>> 0;
+}
+
 export function rng(min: number, max: number): number {
   return Math.floor(outcomeRand() * (max - min + 1)) + min;
 }

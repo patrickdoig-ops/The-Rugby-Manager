@@ -23,14 +23,13 @@ export class PenaltyHandler {
     if (state.possession !== humanSide) {
       return 'high_ball';
     }
-    applyMatchEvent(state, { type: 'IS_PAUSED_SET', value: true });
+    const wasRunning = state.engine.isRunning;
     const choice = await new Promise<KickOffStrategy>(resolve => {
       eventBus.emit('engine:paused', {
         payload: { type: 'kickoff_choice', onChoice: (c) => resolve(c) },
       });
     });
-    applyMatchEvent(state, { type: 'IS_PAUSED_SET', value: false });
-    eventBus.emit('engine:resumed', {});
+    if (wasRunning) eventBus.emit('engine:resumed', {});
     return choice;
   }
 
@@ -49,7 +48,7 @@ export class PenaltyHandler {
       return;
     }
 
-    applyMatchEvent(state, { type: 'IS_PAUSED_SET', value: true });
+    const wasRunning = state.engine.isRunning;
     const choice = await new Promise<PenaltyChoice>(resolve => {
       eventBus.emit('engine:paused', {
         payload: {
@@ -67,8 +66,7 @@ export class PenaltyHandler {
         },
       });
     });
-    applyMatchEvent(state, { type: 'IS_PAUSED_SET', value: false });
-    eventBus.emit('engine:resumed', {});
+    if (wasRunning) eventBus.emit('engine:resumed', {});
     this.applyPenaltyChoice(choice);
   }
 

@@ -21,9 +21,14 @@ export function isTryScoredAt(ballX: number, possession: 'home' | 'away', halfTi
 }
 
 export function inOpposition22(state: MatchState): boolean {
-  const { x: ballX } = state.ball;
-  const { possession } = state;
-  const homeAttacksRight = !state.clock.halfTimeDone;
+  return inOpposition22At(state.ball.x, state.possession, state.clock.halfTimeDone);
+}
+
+// Same logic as inOpposition22 but takes the raw ballX — useful when a handler
+// needs to check whether a projected (not-yet-applied) ball position is inside
+// the opposition 22.
+export function inOpposition22At(ballX: number, possession: 'home' | 'away', halfTimeDone: boolean): boolean {
+  const homeAttacksRight = !halfTimeDone;
   if (possession === 'home') return homeAttacksRight ? ballX >= 78 : ballX <= 22;
   return homeAttacksRight ? ballX <= 22 : ballX >= 78;
 }

@@ -104,8 +104,9 @@ export const LINEOUT_VALUES = {
 // =============================================================================
 
 export const OPEN_PLAY_VALUES = {
-  agilityWeight: 0.5,
-  paceWeight:    0.5,
+  agilityWeight:     0.5,
+  positioningWeight: 0.5,
+  paceWeight:        0.5,
   lineBreakMargin: 15,
   lineBreakMetres: [10, 25],
   dominantCarryMargin:  5,

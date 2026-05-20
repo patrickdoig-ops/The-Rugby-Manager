@@ -1,9 +1,6 @@
 import type { Player } from './player';
-import type { MatchPhase, PossessionSide } from './engine';
-import type {
-  AttackingBreakdown, DefendingBreakdown, BackfieldDefence,
-  AttackingGamePlan, AttackingStyle,
-} from './team';
+import type { MatchPhase } from './engine';
+import type { BackfieldDefence } from './team';
 
 // Structured narration emitted by the engine and rendered to text by
 // src/commentary/CommentaryRenderer.ts. The engine never composes text — it
@@ -98,19 +95,6 @@ export type NarrationStep =
       params?: AnnouncementParams;
     };
 
-export interface NarrationContext {
-  attackingBreakdown?: AttackingBreakdown;
-  defendingBreakdown?: DefendingBreakdown;
-  backfieldDefence?: BackfieldDefence;
-  attackingGamePlan?: AttackingGamePlan;
-  attackingStyle?: AttackingStyle;
-  attackSide?: PossessionSide;
-  defendSide?: PossessionSide;
-  metres?: number;
-  outcome?: string;
-}
-
 export interface NarrationDescriptor {
   steps: NarrationStep[];
-  context?: NarrationContext;
 }

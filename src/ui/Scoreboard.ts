@@ -1,14 +1,20 @@
 import { eventBus } from '../utils/eventBus';
+import { MatchPhase } from '../types/engine';
+import { CLOCK_VALUES } from '../engine/balance';
 
-function phaseClass(phase: string): string {
+function phaseClass(phase: MatchPhase): string {
   switch (phase) {
-    case 'TryScored':                                      return 'phase-try';
-    case 'Penalty': case 'GoalKick':                       return 'phase-penalty';
-    case 'Scrum':                                          return 'phase-scrum';
-    case 'Lineout': case 'BoxKick': case 'TacticalKick':
-    case 'KickOff': case 'ConversionKick':                 return 'phase-kick';
-    case 'HalfTime': case 'FullTime':                      return 'phase-terminal';
-    default:                                               return 'phase-play';
+    case MatchPhase.TryScored:                              return 'phase-try';
+    case MatchPhase.Penalty:                                return 'phase-penalty';
+    case MatchPhase.Scrum:                                  return 'phase-scrum';
+    case MatchPhase.Lineout:
+    case MatchPhase.BoxKick:
+    case MatchPhase.TacticalKick:
+    case MatchPhase.KickOff:
+    case MatchPhase.ConversionKick:                         return 'phase-kick';
+    case MatchPhase.HalfTime:
+    case MatchPhase.FullTime:                               return 'phase-terminal';
+    default:                                                return 'phase-play';
   }
 }
 
@@ -63,7 +69,7 @@ export function initScoreboard(): void {
     homeScore.textContent    = String(state.score.home).padStart(2, '0');
     awayScore.textContent    = String(state.score.away).padStart(2, '0');
     if (state.clock.clockInTheRed) {
-      const halfTarget = state.clock.halfTimeDone ? 80 : 40;
+      const halfTarget = state.clock.halfTimeDone ? CLOCK_VALUES.fullTimeMinute : CLOCK_VALUES.halfTimeMinute;
       clockDisplay.textContent = `${halfTarget}+${Math.floor(state.clock.gameMinute - halfTarget)}′`;
       clockDisplay.style.color = 'var(--rm-coral)';
     } else {

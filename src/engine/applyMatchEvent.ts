@@ -234,6 +234,7 @@ export function applyMatchEvent(state: MatchState, event: MatchEvent): void {
       const team = event.teamSide === 'home' ? state.homeTeam : state.awayTeam;
       const { off, on, benchIdx, fieldIdx } = event;
       on.id = off.id;
+      on.position = off.position;
       on.x = off.x;
       on.y = off.y;
       team.players[fieldIdx] = on;
@@ -247,16 +248,17 @@ export function applyMatchEvent(state: MatchState, event: MatchEvent): void {
       state.engine.isRunning = event.value;
       return;
 
-    case 'IS_PAUSED_SET':
-      state.engine.isPaused = event.value;
-      return;
-
     case 'TICK_DELAY_SET':
       state.engine.tickDelayMs = event.value;
       return;
 
+    case 'FIRST_HALF_KICKER_SET':
+      state.engine.firstHalfKicker = event.side;
+      return;
+
     // ── Ratings ─────────────────────────────────────────────────────────
     case 'RATINGS_RECALCULATED':
+      // substitutedOff players are intentionally excluded — their matchStats no longer change
       for (const p of state.homeTeam.players) p.rating = computeRating(p);
       for (const p of state.awayTeam.players) p.rating = computeRating(p);
       return;

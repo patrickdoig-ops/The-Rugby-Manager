@@ -46,9 +46,9 @@ export interface MatchState {
   };
   engine: {
     isRunning: boolean;
-    isPaused: boolean;
     tickDelayMs: number;
     seed: number;
+    firstHalfKicker: PossessionSide;
   };
   phase: MatchPhase;
   possession: PossessionSide;

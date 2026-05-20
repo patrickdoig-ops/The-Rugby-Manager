@@ -3,11 +3,12 @@ import type { MatchEvent } from '../../types/matchEvent';
 import type { NarrationDescriptor } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
 import { resolveTacticalKick } from '../resolvers/KickingResolver';
+import { inOpposition22At } from '../FieldPosition';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
 
-export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, inOwn22, inOwnHalf, inOpposition22, randomPlayer }: PhaseContext): PhaseResult {
+export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, inOwn22, inOwnHalf, randomPlayer }: PhaseContext): PhaseResult {
   const kicker   = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
   const defender = defendTeam.players.find(p => p.id === 15) ?? randomPlayer(defendTeam);
 
@@ -53,19 +54,14 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
   }
 
   if (goesToTouch) {
-    // Check inOpposition22 at the *projected* ballX without mutating state.
-    const homeAttacksRight = !state.clock.halfTimeDone;
-    const projectedInOppositionAfterKick = state.possession === 'home'
-      ? (homeAttacksRight ? newBallX >= 78 : newBallX <= 22)
-      : (homeAttacksRight ? newBallX <= 22 : newBallX >= 78);
-    void inOpposition22;  // ctx helper unused — we project ballX ourselves
+    const projectedInOppositionAfterKick = inOpposition22At(newBallX, state.possession, state.clock.halfTimeDone);
 
     if (startedInOwnHalf && projectedInOppositionAfterKick) {
       // 50:22 rule - kicking team retains possession!
       const steps: NarrationDescriptor['steps'] = [
         { kind: 'phase_outcome', phase: MatchPhase.TacticalKick, key: 'fifty_twenty_two', primary: kicker },
       ];
-      if (state.possession !== 'home' && backfield === 'one_back') {
+      if (backfield === 'one_back') {
         steps.push({ kind: 'tactic_note', cause: 'fifty_twenty_two_one_back', chancePct: COMMENTARY_CHANCES.tacticalKickFiftyTwentyTwo });
       }
       return {
@@ -92,13 +88,10 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, attackDir, i
   if (returnBonus > 0) events.push({ type: 'BREAKDOWN_MOD_SET', attack: returnBonus, defend: 0 });
   events.push({ type: 'POSSESSION_SWAPPED' });
   events.push({ type: 'KICK_RETURN_CARRIER_SET', player: defender });
-  // After possession flip, home is now attacking if they caught the kick.
-  // Compute that here using attackSide (before the swap is applied).
-  const newAttackerSide: 'home' | 'away' = state.possession === 'home' ? 'away' : 'home';
   const kickCaughtSteps: NarrationDescriptor['steps'] = [
     { kind: 'phase_outcome', phase: MatchPhase.TacticalKick, key: 'kick_caught', primary: kicker, secondary: defender },
   ];
-  if (returnBonus > 0 && newAttackerSide === 'home') {
+  if (returnBonus > 0) {
     kickCaughtSteps.push({
       kind: 'tactic_note',
       cause: 'kick_caught_return_bonus',

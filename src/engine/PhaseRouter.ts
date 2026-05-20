@@ -78,9 +78,12 @@ export function resolvePhase(state: MatchState, sm: StateMachine, kickOffStrateg
   };
 
   const handler = PHASE_HANDLERS[state.phase];
-  const result: PhaseResult = handler
-    ? handler(ctx)
-    : { nextPhase: state.phase, narration: { steps: [] }, primaryPlayer: undefined, secondaryPlayer: undefined, outcome: undefined, events: [] };
+  if (!handler) {
+    // Penalty / HalfTime / FullTime / Substitution are driven by orchestrators
+    // outside resolvePhase. Reaching this branch means a programming error.
+    throw new Error(`No phase handler registered for ${state.phase}`);
+  }
+  const result: PhaseResult = handler(ctx);
 
   // Apply all handler-emitted MatchEvents in order — these are the only mutations
   // the handler can make to MatchState / player stats.
@@ -100,6 +103,11 @@ export function resolvePhase(state: MatchState, sm: StateMachine, kickOffStrateg
   applyMatchEvent(state, { type: 'RATINGS_RECALCULATED' });
 
   const isConversion = phaseAtStart === MatchPhase.ConversionKick;
+  // Poor kick-off swaps possession (receiving team gets the scrum at halfway),
+  // but the event narration is from the kicker's perspective — preserve the
+  // pre-swap side so the row colour & side-name match the kicker, not the receiver.
+  const isPoorKickOffSwap = phaseAtStart === MatchPhase.KickOff && state.possession !== sideAtStart;
+  const preserveSide = isConversion || isPoorKickOffSwap;
   // Carry phases that score a try emit with TryScored phase so they get the try highlight.
   // All other events use the phase being resolved (phaseAtStart), not the next phase.
   const isCarryToTry = (
@@ -108,15 +116,15 @@ export function resolvePhase(state: MatchState, sm: StateMachine, kickOffStrateg
     phaseAtStart === MatchPhase.KickReturn
   ) && result.nextPhase === MatchPhase.TryScored;
   const eventPhase = isCarryToTry ? MatchPhase.TryScored : phaseAtStart;
-  const sideName = isConversion ? sideNameAtStart : (state.possession === 'home' ? state.homeTeam : state.awayTeam).name;
-  const defSideName = isConversion
+  const sideName = preserveSide ? sideNameAtStart : (state.possession === 'home' ? state.homeTeam : state.awayTeam).name;
+  const defSideName = preserveSide
     ? (sideAtStart === 'home' ? state.awayTeam.name : state.homeTeam.name)
     : (state.possession === 'home' ? state.awayTeam : state.homeTeam).name;
   return {
     id: makeId(),
     gameMinute: state.clock.gameMinute,
     phase: eventPhase,
-    side:     isConversion ? sideAtStart : state.possession,
+    side:     preserveSide ? sideAtStart : state.possession,
     sideName,
     defSideName,
     primaryPlayer: result.primaryPlayer,

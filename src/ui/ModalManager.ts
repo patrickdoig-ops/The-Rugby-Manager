@@ -1,6 +1,5 @@
 import { eventBus } from '../utils/eventBus';
 import type { PenaltyChoice, KickOffStrategy } from '../types/engine';
-import type { MatchState } from '../types/match';
 import { renderTacticsMenu } from './TacticsMenu';
 import { renderSubstitutionPanel } from './SubstitutionModal';
 
@@ -33,9 +32,6 @@ const KICKOFF_DESC: Record<KickOffStrategy, string> = {
 export function initModalManager(): void {
   const overlay = document.getElementById('modal-overlay')!;
   const box     = document.getElementById('modal-box')!;
-
-  let cachedState: MatchState | null = null;
-  eventBus.on('engine:stateChange', ({ state }) => { cachedState = state; });
 
   eventBus.on('engine:paused', ({ payload }) => {
     if (payload.type === 'kickoff_choice') {

@@ -72,7 +72,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, attackDir, isT
       steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'line_break_try', primary: carrier, secondary: defender });
     } else {
       steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'line_break', primary: carrier, secondary: defender });
-      if (backfieldPenalty < 0 && attackSide !== 'home') {
+      if (backfieldPenalty < 0) {
         steps.push({
           kind: 'tactic_note',
           cause: 'line_break_backfield_thin',

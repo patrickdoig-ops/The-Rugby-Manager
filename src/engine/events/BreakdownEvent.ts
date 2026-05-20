@@ -36,9 +36,6 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
   const defendPack = defendTeam.players.filter(p => p.id <= 8);
   const res = resolveBreakdown(supporters, jackal, defPlan, defendPack, attackBonus);
 
-  const homeIsAttacking = state.possession === 'home';
-  const homeIsDefending = !homeIsAttacking;
-
   // Set the breakdown mod and credit the ruck hit for every supporter — both happen
   // regardless of outcome.
   const events: MatchEvent[] = [
@@ -50,11 +47,11 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
     const steps: NarrationStep[] = [
       { kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'clean_ball', primary, secondary: jackal },
     ];
-    if (homeIsAttacking && attPlan === 'pick_and_drive') {
+    if (attPlan === 'pick_and_drive') {
       steps.push({ kind: 'tactic_note', cause: 'breakdown_pick_and_drive_clean', chancePct: COMMENTARY_CHANCES.breakdownPickAndDriveClean });
-    } else if (homeIsDefending && defPlan === 'shadow') {
+    } else if (defPlan === 'shadow') {
       steps.push({ kind: 'tactic_note', cause: 'breakdown_shadow_clean', chancePct: COMMENTARY_CHANCES.breakdownShadowClean, params: { defendTeamName: defendTeam.name } });
-    } else if (homeIsDefending && defPlan === 'jackal') {
+    } else if (defPlan === 'jackal') {
       steps.push({ kind: 'tactic_note', cause: 'breakdown_jackal_clean', chancePct: COMMENTARY_CHANCES.breakdownJackalClean, params: { defendTeamName: defendTeam.name } });
     }
     return {
@@ -81,9 +78,9 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
     const steps: NarrationStep[] = [
       { kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'slow_ball', primary, secondary: jackal },
     ];
-    if (homeIsAttacking && attPlan === 'wide_play') {
+    if (attPlan === 'wide_play') {
       steps.push({ kind: 'tactic_note', cause: 'breakdown_wide_play_slow', chancePct: COMMENTARY_CHANCES.breakdownWidePlaySlow, params: { attackTeamName: attackTeam.name } });
-    } else if (homeIsDefending && defPlan === 'counter_ruck') {
+    } else if (defPlan === 'counter_ruck') {
       steps.push({ kind: 'tactic_note', cause: 'breakdown_counter_ruck_slow', chancePct: COMMENTARY_CHANCES.breakdownCounterRuckSlow });
     }
     return {
@@ -100,12 +97,11 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
     const steps: NarrationStep[] = [
       { kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'turnover', primary, secondary: jackal },
     ];
-    // After possession flip, home is now attacking if they just won the turnover
-    if (homeIsDefending && defPlan === 'jackal') {
+    if (defPlan === 'jackal') {
       steps.push({ kind: 'tactic_note', cause: 'breakdown_jackal_turnover', chancePct: COMMENTARY_CHANCES.breakdownJackalTurnover, params: { defendTeamName: defendTeam.name } });
-    } else if (homeIsDefending && defPlan === 'counter_ruck') {
+    } else if (defPlan === 'counter_ruck') {
       steps.push({ kind: 'tactic_note', cause: 'breakdown_counter_ruck_turnover', chancePct: COMMENTARY_CHANCES.breakdownCounterRuckTurnover, params: { defendTeamName: defendTeam.name } });
-    } else if (homeIsAttacking && attPlan === 'wide_play') {
+    } else if (attPlan === 'wide_play') {
       steps.push({ kind: 'tactic_note', cause: 'breakdown_wide_play_turnover', chancePct: COMMENTARY_CHANCES.breakdownWidePlayTurnover, params: { attackTeamName: attackTeam.name } });
     }
     return {
@@ -122,11 +118,11 @@ export function handleBreakdown({ state, attackTeam, defendTeam, inOpposition22,
   const penaltySteps: NarrationStep[] = [
     { kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'penalty_defending', primary, secondary: jackal },
   ];
-  if (homeIsAttacking && attPlan === 'pick_and_drive') {
+  if (attPlan === 'pick_and_drive') {
     penaltySteps.push({ kind: 'tactic_note', cause: 'breakdown_pick_and_drive_penalty', chancePct: COMMENTARY_CHANCES.breakdownPickAndDrivePenalty });
-  } else if (homeIsAttacking && attPlan === 'wide_play') {
+  } else if (attPlan === 'wide_play') {
     penaltySteps.push({ kind: 'tactic_note', cause: 'breakdown_wide_play_penalty', chancePct: COMMENTARY_CHANCES.breakdownWidePlayPenalty, params: { attackTeamName: attackTeam.name } });
-  } else if (homeIsDefending && defPlan === 'jackal') {
+  } else if (defPlan === 'jackal') {
     penaltySteps.push({ kind: 'tactic_note', cause: 'breakdown_jackal_penalty', chancePct: COMMENTARY_CHANCES.breakdownJackalPenalty });
   }
   return {

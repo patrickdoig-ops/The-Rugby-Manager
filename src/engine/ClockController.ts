@@ -66,7 +66,17 @@ export class ClockController {
   }
 
   triggerHalfTime(state: MatchState): void {
+    // Apply all state mutations first so the single engine:stateChange emit
+    // at the end shows a coherent post-HT frame (centre ball, 2H kicker in
+    // possession, KickOff phase). Rugby rule: the team that didn't kick off
+    // the first half kicks off the second.
     applyMatchEvent(state, { type: 'HALF_TIME_REACHED' });
+    const secondHalfKicker: 'home' | 'away' =
+      state.engine.firstHalfKicker === 'home' ? 'away' : 'home';
+    applyMatchEvent(state, { type: 'POSSESSION_SET', side: secondHalfKicker });
+    applyMatchEvent(state, { type: 'BALL_REPOSITIONED', x: 50, y: 50 });
+    this.sm.forceTransition(MatchPhase.KickOff);
+    applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.KickOff });
 
     const htEvent: GameEvent = {
       id: makeId(),
@@ -78,17 +88,9 @@ export class ClockController {
       ballY: 50,
       narration: { steps: [{ kind: 'announcement', key: 'half_time_whistle' }] },
     };
-    applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.HalfTime });
-    this.sm.forceTransition(MatchPhase.HalfTime);
     applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: htEvent });
     eventBus.emit('engine:event', { event: htEvent });
     eventBus.emit('engine:stateChange', { state });
-
-    applyMatchEvent(state, { type: 'POSSESSION_SWAPPED' });
-    applyMatchEvent(state, { type: 'BALL_REPOSITIONED', x: 50, y: 50 });
-
-    this.sm.forceTransition(MatchPhase.KickOff);
-    applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.KickOff });
   }
 
   endMatch(state: MatchState): void {

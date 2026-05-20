@@ -84,8 +84,8 @@ export type MatchEvent =
 
   // ── Engine lifecycle ─────────────────────────────────────────────────────
   | { type: 'IS_RUNNING_SET'; value: boolean }
-  | { type: 'IS_PAUSED_SET'; value: boolean }
   | { type: 'TICK_DELAY_SET'; value: number }
+  | { type: 'FIRST_HALF_KICKER_SET'; side: PossessionSide }
 
   // ── Ratings (derived from matchStats) ────────────────────────────────────
   | { type: 'RATINGS_RECALCULATED' }

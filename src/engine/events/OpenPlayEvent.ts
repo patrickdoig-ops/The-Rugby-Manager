@@ -21,7 +21,10 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
       nextPhase: MatchPhase.TacticalKick,
       narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'kick_decision' }] },
       primaryPlayer: flyHalf,
-      events: [{ type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 }],
+      events: [
+        { type: 'KICK_RETURN_CARRIER_SET', player: undefined },
+        { type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 },
+      ],
     };
   }
 
@@ -127,7 +130,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, attackDir, isTr
       outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'line_break_try', primary: ballCarrier, secondary: defender });
     } else {
       outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'line_break', primary: ballCarrier, secondary: defender });
-      if (backfieldPenalty < 0 && attackSide !== 'home') {
+      if (backfieldPenalty < 0) {
         outcomeSteps.push({
           kind: 'tactic_note',
           cause: 'line_break_backfield_thin',

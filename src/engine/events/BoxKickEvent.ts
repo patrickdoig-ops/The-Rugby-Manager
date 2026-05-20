@@ -59,14 +59,12 @@ export function handleBoxKick({ state, attackTeam, defendTeam, attackDir, random
   }
 
   if (res.outcome === 'defend_catch') {
-    // home team is defending (not possessing) when the box kick goes up
-    const homeIsDefending = state.possession !== 'home';
     events.push({ type: 'POSSESSION_SWAPPED' });
     events.push({ type: 'KICK_RETURN_CARRIER_SET', player: fullback });
     const steps: NarrationDescriptor['steps'] = [
       { kind: 'phase_outcome', phase: MatchPhase.BoxKick, key: 'defend_catch', primary: scrumHalf, secondary: fullback },
     ];
-    if (homeIsDefending && fullbackMod > 0) {
+    if (fullbackMod > 0) {
       steps.push({
         kind: 'tactic_note',
         cause: 'boxkick_backfield_caught',

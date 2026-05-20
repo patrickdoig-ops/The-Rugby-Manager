@@ -30,52 +30,12 @@ function crestHtml(initial: string, color: string, size: number): string {
     </div>`;
 }
 
-function shortStadium(stadium: string): string {
-  return stadium.split('(')[0].trim();
-}
-
 function shortCoach(coach: string): string {
   return coach.split('(')[0].trim().replace(/[,;]\s*$/, '');
 }
 
 function shortNickname(nickname: string): string {
   return nickname.split('(')[0].trim();
-}
-
-function clubTilesHtml(profile: TeamProfile): string {
-  const tiles: string[] = [];
-  if (profile.founded) {
-    const age = new Date().getFullYear() - profile.founded;
-    tiles.push(`
-      <div class="ti-tile">
-        <div class="ti-tile-label">Founded</div>
-        <div class="ti-tile-value">${profile.founded}</div>
-        <div class="ti-tile-foot">${age} years old</div>
-      </div>`);
-  }
-  if (profile.nickname) {
-    tiles.push(`
-      <div class="ti-tile">
-        <div class="ti-tile-label">Nickname</div>
-        <div class="ti-tile-value">${shortNickname(profile.nickname)}</div>
-      </div>`);
-  }
-  if (profile.stadiumCapacity) {
-    tiles.push(`
-      <div class="ti-tile">
-        <div class="ti-tile-label">Stadium capacity</div>
-        <div class="ti-tile-value">${profile.stadiumCapacity.toLocaleString()}</div>
-        <div class="ti-tile-foot">${shortStadium(profile.stadium)}</div>
-      </div>`);
-  }
-  if (profile.headCoach) {
-    tiles.push(`
-      <div class="ti-tile">
-        <div class="ti-tile-label">Head coach</div>
-        <div class="ti-tile-value">${shortCoach(profile.headCoach)}</div>
-      </div>`);
-  }
-  return tiles.join('');
 }
 
 function tacticsChips(t: TeamTactics): string {
@@ -143,34 +103,37 @@ export function initTeamInfoScreen(
         ${crestHtml(profile.shortName[0] ?? '?', profile.color, 96)}
         <h2 id="ti-name">${profile.name}</h2>
         <div id="ti-code">${[
-          profile.shortName,
           profile.nickname ? shortNickname(profile.nickname) : null,
           profile.founded ? `Est. ${profile.founded}` : null,
-          shortStadium(profile.stadium),
         ].filter(Boolean).join(' · ')}</div>
       </header>
 
       <section class="ti-tiles">
-        <div class="ti-tile">
+        <div class="ti-tile ti-tile-full">
           <div class="ti-tile-label">Overall rating</div>
           <div class="ti-tile-value ti-rating">${overallRating}</div>
-          <div class="ti-tile-foot">Top-23 squad average</div>
         </div>
         ${showForm ? `
-          <div class="ti-tile">
+          <div class="ti-tile ti-tile-full">
             <div class="ti-tile-label">Season form</div>
             <div class="ti-tile-value">${form.won}-${form.drawn}-${form.lost}</div>
             <div class="ti-tile-foot">${form.played} played · ${form.leaguePoints} pts · ${form.pointsDiff >= 0 ? '+' : ''}${form.pointsDiff} PD</div>
           </div>
         ` : ''}
+        ${profile.stadiumCapacity ? `
+          <div class="ti-tile ti-tile-sm">
+            <div class="ti-tile-label">Stadium capacity</div>
+            <div class="ti-tile-value">${profile.stadiumCapacity.toLocaleString()}</div>
+            <div class="ti-tile-foot">${profile.stadium.split('(')[0].trim()}</div>
+          </div>
+        ` : ''}
+        ${profile.headCoach ? `
+          <div class="ti-tile ti-tile-sm">
+            <div class="ti-tile-label">Head coach</div>
+            <div class="ti-tile-value">${shortCoach(profile.headCoach)}</div>
+          </div>
+        ` : ''}
       </section>
-
-      ${(profile.founded || profile.nickname || profile.stadiumCapacity || profile.headCoach) ? `
-        <section class="ti-section">
-          <h3 class="ti-section-title">Club</h3>
-          <div class="ti-tiles ti-tiles-club">${clubTilesHtml(profile)}</div>
-        </section>
-      ` : ''}
 
       ${profile.blurb ? `
         <section class="ti-section">

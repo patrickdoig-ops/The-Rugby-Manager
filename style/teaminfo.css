@@ -97,15 +97,15 @@
 
 .ti-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
-.ti-tiles-club {
-  grid-template-columns: 1fr 1fr;
+.ti-tile-full {
+  grid-column: 1 / -1;
 }
 
-.ti-tiles-club .ti-tile-value {
+.ti-tile-sm .ti-tile-value {
   font-family: var(--rm-font-body);
   font-size: 20px;
   font-weight: 700;
@@ -114,7 +114,7 @@
   text-transform: none;
 }
 
-.ti-tiles-club .ti-tile {
+.ti-tile-sm {
   min-height: 100px;
   justify-content: center;
 }

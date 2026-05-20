@@ -51,7 +51,11 @@ export interface PlayerMatchStats {
 export interface Player {
   id: number;
   squadNumber: number;
-  name: string;
+  firstName: string;
+  lastName: string;
+  dob: string | null;
+  nationality: string;
+  name?: string;
   position: Position;
   baseStats: PlayerStats;
   currentStats: PlayerStats;

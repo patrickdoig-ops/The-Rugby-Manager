@@ -8,7 +8,11 @@ import type { RawTeamInput } from '../engine/MatchCoordinator';
 type RawPlayer = {
   id: number;
   squadNumber?: number;
-  name: string;
+  firstName?: string;
+  lastName?: string;
+  dob?: string | null;
+  nationality?: string;
+  name?: string;
   position: string;
   baseStats: PlayerStats;
 };
@@ -89,7 +93,7 @@ function renderColumnHeader(): string {
 function renderPlayerRow(p: RawPlayer, color: string, interactive: boolean, isBench: boolean): string {
   const ovr = computeOverall(p.baseStats);
   const squadNum = getSquadNum(p);
-  const lastName = p.name.split(' ').slice(1).join(' ') || p.name;
+  const lastName = p.lastName ?? (p.name ? (p.name.split(' ').slice(1).join(' ') || p.name) : '');
   const benchClass = isBench ? ' pm-player--bench' : ' pm-player--starter';
   const dataAttr = interactive ? `data-squad="${squadNum}"` : '';
   const tag = interactive ? 'button' : 'div';
@@ -121,7 +125,7 @@ function renderPitchFormation(starters: RawPlayer[], color: string): string {
       const p = byId[id];
       if (!p) return '';
       const x = ((ci + 1) / (row.length + 1)) * 100;
-      const lastName = p.name.split(' ').slice(1).join(' ') || p.name;
+      const lastName = p.lastName ?? (p.name ? (p.name.split(' ').slice(1).join(' ') || p.name) : '');
       return `<div class="pm-player-token" style="top:${y}%;left:${x}%">
         <div class="pm-token-circle" style="background:linear-gradient(180deg,${color} 0%,color-mix(in oklch,${color} 60%,black) 100%)">${id}</div>
         <div class="pm-token-name">${lastName}</div>

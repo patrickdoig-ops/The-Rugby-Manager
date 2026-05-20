@@ -34,8 +34,11 @@ type RawPlayer = Omit<Player, 'currentStats' | 'fatiguePct' | 'rating' | 'x' | '
 
 export type RawTeamInput = {
   id: string; name: string; shortName: string; color: string; secondaryColor: string;
+  stadium?: string;
+  rating?: number;
   players: RawPlayer[];
   bench?: RawPlayer[];
+  squad?: RawPlayer[];
 };
 
 function initPlayer(raw: RawPlayer): Player {

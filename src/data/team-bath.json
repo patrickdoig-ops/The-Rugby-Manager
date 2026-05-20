@@ -42,12 +42,13 @@
       "name": "Finn Russell",
       "position": "Fly-half",
       "nationality": "Scotland",
-      "blurb": "Scotland captain and three-time Lion; the creative fulcrum of Bath's title defence with audacious passing range, sublime kicking from the tee and in play, and a newly mature game-management edge",
+      "blurb": "Scotland captain and three-time Lion; the creative fulcrum of Bath's title defence with audacious passing range, sublime kicking from the tee and in play, and a newly mature game-management edge. Not a pure speed merchant but his footwork, body angles and step in the line are world-class",
       "indexHigh": [
         "handling",
         "kicking",
         "composure",
-        "positioning"
+        "positioning",
+        "agility"
       ],
       "suggestedRating": 92
     },
@@ -312,7 +313,7 @@
         "stamina": 71,
         "strength": 66,
         "pace": 73,
-        "agility": 77,
+        "agility": 93,
         "handling": 94,
         "tackling": 68,
         "breakdown": 69,

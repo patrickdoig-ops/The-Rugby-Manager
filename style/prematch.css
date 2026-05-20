@@ -332,9 +332,11 @@
 .pm-panel.hidden { display: none; }
 
 /* Home/away panels hand off scrolling to the inner roster-scroller so that the
-   sticky column header inside it can stick to the correct scroll context. */
-#pm-home,
-#pm-away {
+   sticky column header inside it can stick to the correct scroll context.
+   :not(.hidden) keeps the tab-switching `.pm-panel.hidden { display: none }`
+   rule winning even though these ID selectors are more specific. */
+#pm-home:not(.hidden),
+#pm-away:not(.hidden) {
   display: flex;
   flex-direction: column;
   overflow: hidden;

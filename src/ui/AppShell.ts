@@ -49,6 +49,7 @@ export function buildAppShell(): void {
       </button>
     </div>
     <div id="panel-bottom" class="view-dashboard">
+      <div id="latest-commentary"></div>
       <div id="panel-commentary">
         <div class="panel-header">Commentary</div>
         <div id="commentary-feed"></div>

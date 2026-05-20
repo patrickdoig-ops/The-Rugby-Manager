@@ -1,5 +1,6 @@
 import { eventBus } from '../utils/eventBus';
 import { MatchPhase } from '../types/engine';
+import type { GameEvent } from '../types/match';
 import type { Player } from '../types/player';
 import { renderNarration } from '../commentary/CommentaryRenderer';
 
@@ -51,7 +52,8 @@ function deduplicatePlayerRefs(text: string): string {
 }
 
 export function initCommentaryFeed(): void {
-  const feed = document.getElementById('commentary-feed')!;
+  const feed   = document.getElementById('commentary-feed')!;
+  const latest = document.getElementById('latest-commentary')!;
 
   let allPlayersWithColor: Array<{ player: Player; color: string }> = [];
   let homeTeamName = '';
@@ -78,21 +80,7 @@ export function initCommentaryFeed(): void {
   }
   armTeamCache();
 
-  eventBus.on('engine:initialized', () => {
-    feed.innerHTML = '';
-    allPlayersWithColor = [];
-    homeTeamName = '';
-    awayTeamName = '';
-    homeTeamColor = '';
-    awayTeamColor = '';
-    unsubTeams?.();
-    armTeamCache();
-  });
-
-  eventBus.on('engine:event', ({ event }) => {
-    const text = renderNarration(event);
-    if (!text.trim()) return;
-
+  function buildEntry(event: GameEvent, text: string): HTMLDivElement {
     const entry = document.createElement('div');
     const phaseClass = PHASE_CLASS[event.phase] ?? '';
     entry.className = `commentary-entry possession-${event.side} ${phaseClass}`.trim();
@@ -113,10 +101,32 @@ export function initCommentaryFeed(): void {
       `<span class="event-tag">${tag}</span>` +
       `<span class="event-text">${html}</span>`;
 
+    return entry;
+  }
+
+  eventBus.on('engine:initialized', () => {
+    feed.innerHTML = '';
+    latest.innerHTML = '';
+    allPlayersWithColor = [];
+    homeTeamName = '';
+    awayTeamName = '';
+    homeTeamColor = '';
+    awayTeamColor = '';
+    unsubTeams?.();
+    armTeamCache();
+  });
+
+  eventBus.on('engine:event', ({ event }) => {
+    const text = renderNarration(event);
+    if (!text.trim()) return;
+
+    const entry = buildEntry(event, text);
     feed.insertBefore(entry, feed.firstChild);
 
     while (feed.children.length > MAX_ENTRIES && feed.lastChild) {
       feed.removeChild(feed.lastChild);
     }
+
+    latest.replaceChildren(entry.cloneNode(true));
   });
 }

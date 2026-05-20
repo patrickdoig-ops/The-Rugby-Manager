@@ -443,6 +443,16 @@ html, body {
 #panel-bottom.view-players #panel-commentary,
 #panel-bottom.view-players #panel-stats { display: none; }
 
+/* Latest commentary line — shown only in stats / players views */
+#latest-commentary {
+  display: none;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--rm-hairline);
+  padding: 0 8px;
+}
+#panel-bottom.view-stats   #latest-commentary,
+#panel-bottom.view-players #latest-commentary { display: block; }
+
 #panel-commentary,
 #panel-stats,
 #panel-players {

@@ -23,17 +23,25 @@ export function initFixtureListScreen(
   if (!el) return { recordResult() {} };
 
   const opponents = allTeams.filter(t => t.id !== playerTeam.id);
+  const TOTAL_ROUNDS = opponents.length * 2;
 
   // Round-robin alternating venue: player starts at home, venue flips every
-  // round, each opponent is faced once at home and once away.
-  const fixtures: Fixture[] = [
-    { round: 1, homeTeam: playerTeam, awayTeam: opponents[0], playerSide: 'home' },
-    { round: 2, homeTeam: opponents[1], awayTeam: playerTeam, playerSide: 'away' },
-    { round: 3, homeTeam: playerTeam, awayTeam: opponents[2], playerSide: 'home' },
-    { round: 4, homeTeam: opponents[0], awayTeam: playerTeam, playerSide: 'away' },
-    { round: 5, homeTeam: playerTeam, awayTeam: opponents[1], playerSide: 'home' },
-    { round: 6, homeTeam: opponents[2], awayTeam: playerTeam, playerSide: 'away' },
-  ];
+  // round, each opponent is faced once at home and once away. First leg cycles
+  // through opponents[0..n-1] in rounds 1..n; second leg replays opponents
+  // [0..n-1] in rounds n+1..2n, by which point each opponent's venue has flipped.
+  const fixtures: Fixture[] = [];
+  for (let leg = 0; leg < 2; leg++) {
+    for (let i = 0; i < opponents.length; i++) {
+      const round = leg * opponents.length + i + 1;
+      const playerHome = round % 2 === 1;
+      fixtures.push({
+        round,
+        homeTeam: playerHome ? playerTeam : opponents[i],
+        awayTeam: playerHome ? opponents[i] : playerTeam,
+        playerSide: playerHome ? 'home' : 'away',
+      });
+    }
+  }
 
   let currentRound = 1;
   const results = new Map<number, { home: number; away: number }>();
@@ -70,7 +78,7 @@ export function initFixtureListScreen(
     }).join('');
 
     const footer = el!.querySelector('#fl-footer')!;
-    if (currentRound > 6) {
+    if (currentRound > TOTAL_ROUNDS) {
       footer.innerHTML = `<p id="fl-season-done">Season complete</p>`;
     } else {
       footer.innerHTML = `
@@ -95,7 +103,7 @@ export function initFixtureListScreen(
       <span id="fl-title">Season Fixtures</span>
       <div style="width:72px"></div>
     </div>
-    <div id="fl-eyebrow">2025/26 Season · 6 Rounds</div>
+    <div id="fl-eyebrow">2025/26 Season · ${TOTAL_ROUNDS} Rounds</div>
     <div id="fl-list"></div>
     <div id="fl-footer"></div>
   `;

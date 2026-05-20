@@ -47,47 +47,65 @@ type StatWeights = Partial<Record<keyof PlayerStats, number>>;
 
 const PROP_WEIGHTS: StatWeights = {
   setPiece: 2.0, strength: 2.0, breakdown: 1.5, tackling: 1.5, stamina: 1.2,
-  pace: 0.4, agility: 0.4, kicking: 0.2, handling: 0.6,
+  pace: 0.2, agility: 0.2, kicking: 0.1, handling: 0.6,
 };
 const HOOKER_WEIGHTS: StatWeights = {
   setPiece: 2.0, breakdown: 1.5, tackling: 1.5, strength: 1.3, handling: 1.1,
-  kicking: 0.3, pace: 0.5,
+  kicking: 0.15, pace: 0.3,
 };
 const LOCK_WEIGHTS: StatWeights = {
   setPiece: 2.0, strength: 1.8, tackling: 1.4, breakdown: 1.2, stamina: 1.2,
-  pace: 0.5, agility: 0.5, kicking: 0.3, handling: 0.7,
+  pace: 0.25, agility: 0.25, kicking: 0.15, handling: 0.7,
 };
 const FLANKER_WEIGHTS: StatWeights = {
   breakdown: 2.0, tackling: 1.8, stamina: 1.5, strength: 1.2, pace: 1.1,
-  positioning: 1.2, setPiece: 0.7, kicking: 0.3,
+  positioning: 1.2, setPiece: 0.7, kicking: 0.15,
 };
 const NUMBER_8_WEIGHTS: StatWeights = {
   strength: 1.8, breakdown: 1.6, tackling: 1.4, handling: 1.3, stamina: 1.3,
-  pace: 1.0, setPiece: 0.8, kicking: 0.4,
+  pace: 1.0, setPiece: 0.8, kicking: 0.2,
 };
 const SCRUM_HALF_WEIGHTS: StatWeights = {
   handling: 2.0, pace: 1.5, composure: 1.5, positioning: 1.4, agility: 1.3,
-  kicking: 1.2, setPiece: 0.3, strength: 0.5, breakdown: 0.7,
+  kicking: 1.2, setPiece: 0.15, strength: 0.3, breakdown: 0.7,
 };
 const FLY_HALF_WEIGHTS: StatWeights = {
   kicking: 2.0, composure: 1.8, handling: 1.6, positioning: 1.4, discipline: 1.2,
-  pace: 1.0, setPiece: 0.3, strength: 0.5, breakdown: 0.6,
+  pace: 1.0, setPiece: 0.15, strength: 0.3, breakdown: 0.6,
 };
 const CENTRE_WEIGHTS: StatWeights = {
   tackling: 1.6, pace: 1.5, handling: 1.5, strength: 1.3, agility: 1.2,
-  positioning: 1.2, setPiece: 0.4, kicking: 0.8, breakdown: 0.9,
+  positioning: 1.2, setPiece: 0.2, kicking: 0.8, breakdown: 0.9,
 };
 const WING_WEIGHTS: StatWeights = {
   pace: 2.0, agility: 1.6, handling: 1.4, positioning: 1.2, composure: 1.1,
-  setPiece: 0.3, strength: 0.7, kicking: 0.6, breakdown: 0.5,
+  setPiece: 0.15, strength: 0.7, kicking: 0.6, breakdown: 0.3,
 };
 const FULLBACK_WEIGHTS: StatWeights = {
   positioning: 1.8, kicking: 1.6, handling: 1.4, pace: 1.4, composure: 1.4,
-  setPiece: 0.3, strength: 0.6, breakdown: 0.5,
+  setPiece: 0.15, strength: 0.6, breakdown: 0.3,
 };
 
 // Utility Back uses unit weights (simple mean) — they fill anywhere on the bench.
 const UTILITY_WEIGHTS: StatWeights = {};
+
+// Spawn-time lift applied at team JSON ingest (`src/team/applyStarBoost.ts`).
+// Maps each team's authored `stars[]` metadata (indexHigh + suggestedRating)
+// onto its players' baseStats so elite real-world players compute to ~95 OVR
+// rather than the ~80 a hand-authored "realistic" stat line produces under the
+// position-weighted average above. League-wide floor lifts every rostered
+// player a couple of points; per-star floors + iterative top-up land each
+// named star within ~1 of (suggestedRating + targetOffset).
+export const STAR_BOOST = {
+  leagueMin:       60,   // every baseStat floor for players + bench
+  targetOffset:    3,    // target OVR = star.suggestedRating + offset
+  indexHighMin:    95,   // floor for star's indexHigh stats (regular stars)
+  topIndexHighMin: 97,   // floor for star's indexHigh stats (suggestedRating ≥ topThreshold)
+  topThreshold:    90,
+  otherStatMin:    78,   // floor for star's non-indexHigh stats
+  capPerStat:      99,
+  maxIterations:   120,
+} as const;
 
 export const PLAYER_OVERALL_WEIGHTS: Record<Position, StatWeights> = {
   'Loosehead Prop':    PROP_WEIGHTS,

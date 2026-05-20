@@ -12,6 +12,8 @@
 import { MatchCoordinator } from '../src/engine/MatchCoordinator.js';
 import { deriveFixtureSeed } from '../src/game/derive.js';
 import { eventBus } from '../src/utils/eventBus.js';
+import { applyStarBoost } from '../src/team/applyStarBoost.js';
+import type { TeamJson } from '../src/team/teamProfile.js';
 import type { RawTeamInput } from '../src/types/teamData.js';
 import type { TeamTactics, AttackingGamePlan, AttackingBreakdown, BackfieldDefence } from '../src/types/team.js';
 import type { MatchState } from '../src/types/match.js';
@@ -29,10 +31,10 @@ import saleRaw        from '../src/data/team-sale.json'        with { type: 'jso
 import saracensRaw    from '../src/data/team-saracens.json'    with { type: 'json' };
 
 const ROOT_SEED = 0xDEADBEEF;
-const ALL_TEAMS = [
+const ALL_TEAMS = ([
   bathRaw, bristolRaw, exeterRaw, gloucesterRaw, harlequinsRaw,
   leicesterRaw, newcastleRaw, northamptonRaw, saleRaw, saracensRaw,
-] as unknown as RawTeamInput[];
+] as unknown as TeamJson[]).map(applyStarBoost) as unknown as RawTeamInput[];
 
 interface MatchSummary {
   home: RawTeamInput;

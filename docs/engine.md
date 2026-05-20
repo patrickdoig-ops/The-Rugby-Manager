@@ -239,6 +239,17 @@ To add a new stat: add one field to `PlayerMatchStats`, one `field: 0` in `zeroM
 
 Ratings are displayed in the Player Stats panel and update once per game minute. Bench players who never came on retain their initial rating of 6.0.
 
+### Pre-match overall (0–100) and spawn-time star boost
+
+Distinct from the match-performance `computeRating` above, **`playerOverall(stats, position)`** in `src/engine/RatingEngine.ts` returns a 0–100 ability score from the 12 `baseStats`. It is a normalised position-weighted average — weights live in `PLAYER_OVERALL_WEIGHTS` (`src/engine/balance/rating.ts`), stats missing from a position's table default to 1.0. Read by `PreMatchScreen`, `TeamInfoScreen`, and `teamProfile.computeOverallRating` (top-23 mean). Never mutated in-match.
+
+**`applyStarBoost(team)`** in `src/team/applyStarBoost.ts` is the spawn-time transform that lifts authored baseStats so elite real-world players compute to ~95 OVR rather than the high-70s a hand-authored "realistic" line produces under the weighted-average formula. Called once at app start from `main.ts` against each `TeamJson` before either `teamProfile.init()` or any `RawTeamInput` cast that feeds `MatchCoordinator`. Two deterministic, RNG-free passes per team:
+
+1. **League-wide floor.** Every player on the matchday roster (players + bench, *excluding* the data-only `squad[]`) gets each baseStat raised to `STAR_BOOST.leagueMin`. Stats already above the floor are untouched.
+2. **Per-star boost.** For each `team.stars[i]`, find the matching roster player by full name and lift their `indexHigh` stats to a high floor (97 for top stars with `suggestedRating ≥ 90`, 95 otherwise) and non-`indexHigh` stats to `otherStatMin`. Then iteratively pick the highest-position-weighted non-capped stat and bump it +1 until the computed OVR meets `suggestedRating + targetOffset` (or all stats cap at 99).
+
+`STAR_BOOST` lives next to the OVR weights in `src/engine/balance/rating.ts`. The boost runs against the local `TeamJson` shape and returns a new object — the on-disk JSONs are unchanged. The determinism harnesses (`scripts/checkDeterminism.ts`, `scripts/checkSeasonDeterminism.ts`) and the telemetry script apply the same boost so the verification chain sees the same league the player does.
+
 ---
 
 ## Fatigue System

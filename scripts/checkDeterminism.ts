@@ -18,12 +18,14 @@ import { createHash } from 'node:crypto';
 import { MatchCoordinator } from '../src/engine/MatchCoordinator.js';
 import type { RawTeamInput } from '../src/types/teamData.js';
 import { eventBus } from '../src/utils/eventBus.js';
+import { applyStarBoost } from '../src/team/applyStarBoost.js';
+import type { TeamJson } from '../src/team/teamProfile.js';
 import bathRaw from '../src/data/team-bath.json' with { type: 'json' };
 import saracensRaw from '../src/data/team-saracens.json' with { type: 'json' };
 
 const SEED = 0xDEADBEEF;
-const HOME = bathRaw as unknown as RawTeamInput;
-const AWAY = saracensRaw as unknown as RawTeamInput;
+const HOME = applyStarBoost(bathRaw as unknown as TeamJson) as unknown as RawTeamInput;
+const AWAY = applyStarBoost(saracensRaw as unknown as TeamJson) as unknown as RawTeamInput;
 
 function runOnce(seed: number): Promise<string> {
   return new Promise(resolve => {

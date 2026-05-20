@@ -39,6 +39,7 @@ import type { TeamTactics }        from './types/team';
 import type { MatchState }         from './types/match';
 import * as teamProfile            from './team/teamProfile';
 import type { TeamJson }           from './team/teamProfile';
+import { applyStarBoost }          from './team/applyStarBoost';
 import { GameCoordinator }         from './game/GameCoordinator';
 import { extractMatchdaySquad }    from './game/playerSquad';
 import { SEASON_VALUES }           from './engine/balance';
@@ -56,10 +57,10 @@ import northamptonRaw  from './data/team-northampton.json';
 import saleRaw         from './data/team-sale.json';
 import saracensRaw     from './data/team-saracens.json';
 
-const allTeamsRaw = [
+const allTeamsRaw = ([
   bathRaw, bristolRaw, exeterRaw, gloucesterRaw, harlequinsRaw,
   leicesterRaw, newcastleRaw, northamptonRaw, saleRaw, saracensRaw,
-] as unknown as TeamJson[];
+] as unknown as TeamJson[]).map(applyStarBoost);
 const allTeams = allTeamsRaw as unknown as RawTeamInput[];
 
 document.addEventListener('DOMContentLoaded', () => {

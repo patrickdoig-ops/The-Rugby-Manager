@@ -12,6 +12,8 @@ import { createHash } from 'node:crypto';
 import { GameCoordinator } from '../src/game/GameCoordinator.js';
 import { simulateFixture } from '../src/game/simulateFixture.js';
 import type { RawTeamInput } from '../src/types/teamData.js';
+import { applyStarBoost } from '../src/team/applyStarBoost.js';
+import type { TeamJson } from '../src/team/teamProfile.js';
 
 import bathRaw         from '../src/data/team-bath.json' with { type: 'json' };
 import bristolRaw      from '../src/data/team-bristol.json' with { type: 'json' };
@@ -27,10 +29,10 @@ import saracensRaw     from '../src/data/team-saracens.json' with { type: 'json'
 const SEED = 0xDEADBEEF;
 const PLAYER_ID = 'bath';
 
-const allTeams = [
+const allTeams = ([
   bathRaw, bristolRaw, exeterRaw, gloucesterRaw, harlequinsRaw,
   leicesterRaw, newcastleRaw, northamptonRaw, saleRaw, saracensRaw,
-] as unknown as RawTeamInput[];
+] as unknown as TeamJson[]).map(applyStarBoost) as unknown as RawTeamInput[];
 
 async function runOnce(seed: number): Promise<string> {
   const coord = GameCoordinator.newSeason(PLAYER_ID, seed, allTeams);

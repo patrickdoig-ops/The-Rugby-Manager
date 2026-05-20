@@ -45,45 +45,49 @@ import type { Position, PlayerStats } from '../../types/player';
 
 type StatWeights = Partial<Record<keyof PlayerStats, number>>;
 
+// Forwards: kicking weight = 0 (no kicking skill expected, value clipped low at
+// spawn — see IRRELEVANT_STATS below).
+// Backs: setPiece weight = 0 (no scrum/lineout skill expected, same treatment).
+
 const PROP_WEIGHTS: StatWeights = {
   setPiece: 2.0, strength: 2.0, breakdown: 1.5, tackling: 1.5, stamina: 1.2,
-  pace: 0.2, agility: 0.2, kicking: 0.1, handling: 0.6,
+  pace: 0.2, agility: 0.2, kicking: 0, handling: 0.6,
 };
 const HOOKER_WEIGHTS: StatWeights = {
   setPiece: 2.0, breakdown: 1.5, tackling: 1.5, strength: 1.3, handling: 1.1,
-  kicking: 0.15, pace: 0.3,
+  kicking: 0, pace: 0.3,
 };
 const LOCK_WEIGHTS: StatWeights = {
   setPiece: 2.0, strength: 1.8, tackling: 1.4, breakdown: 1.2, stamina: 1.2,
-  pace: 0.25, agility: 0.25, kicking: 0.15, handling: 0.7,
+  pace: 0.25, agility: 0.25, kicking: 0, handling: 0.7,
 };
 const FLANKER_WEIGHTS: StatWeights = {
   breakdown: 2.0, tackling: 1.8, stamina: 1.5, strength: 1.2, pace: 1.1,
-  positioning: 1.2, setPiece: 0.7, kicking: 0.15,
+  positioning: 1.2, setPiece: 0.7, kicking: 0,
 };
 const NUMBER_8_WEIGHTS: StatWeights = {
   strength: 1.8, breakdown: 1.6, tackling: 1.4, handling: 1.3, stamina: 1.3,
-  pace: 1.0, setPiece: 0.8, kicking: 0.2,
+  pace: 1.0, setPiece: 0.8, kicking: 0,
 };
 const SCRUM_HALF_WEIGHTS: StatWeights = {
   handling: 2.0, pace: 1.5, composure: 1.5, positioning: 1.4, agility: 1.3,
-  kicking: 1.2, setPiece: 0.15, strength: 0.3, breakdown: 0.7,
+  kicking: 1.2, setPiece: 0, strength: 0.3, breakdown: 0.7,
 };
 const FLY_HALF_WEIGHTS: StatWeights = {
   kicking: 2.0, composure: 1.8, handling: 1.6, positioning: 1.4, discipline: 1.2,
-  pace: 1.0, setPiece: 0.15, strength: 0.3, breakdown: 0.6,
+  pace: 1.0, setPiece: 0, strength: 0.3, breakdown: 0.6,
 };
 const CENTRE_WEIGHTS: StatWeights = {
   tackling: 1.6, pace: 1.5, handling: 1.5, strength: 1.3, agility: 1.2,
-  positioning: 1.2, setPiece: 0.2, kicking: 0.8, breakdown: 0.9,
+  positioning: 1.2, setPiece: 0, kicking: 0.8, breakdown: 0.9,
 };
 const WING_WEIGHTS: StatWeights = {
   pace: 2.0, agility: 1.6, handling: 1.4, positioning: 1.2, composure: 1.1,
-  setPiece: 0.15, strength: 0.7, kicking: 0.6, breakdown: 0.3,
+  setPiece: 0, strength: 0.7, kicking: 0.6, breakdown: 0.3,
 };
 const FULLBACK_WEIGHTS: StatWeights = {
   positioning: 1.8, kicking: 1.6, handling: 1.4, pace: 1.4, composure: 1.4,
-  setPiece: 0.15, strength: 0.6, breakdown: 0.3,
+  setPiece: 0, strength: 0.6, breakdown: 0.3,
 };
 
 // Utility Back uses unit weights (simple mean) — they fill anywhere on the bench.
@@ -97,15 +101,38 @@ const UTILITY_WEIGHTS: StatWeights = {};
 // player a couple of points; per-star floors + iterative top-up land each
 // named star within ~1 of (suggestedRating + targetOffset).
 export const STAR_BOOST = {
-  leagueMin:       60,   // every baseStat floor for players + bench
-  targetOffset:    3,    // target OVR = star.suggestedRating + offset
-  indexHighMin:    95,   // floor for star's indexHigh stats (regular stars)
-  topIndexHighMin: 97,   // floor for star's indexHigh stats (suggestedRating ≥ topThreshold)
-  topThreshold:    90,
-  otherStatMin:    78,   // floor for star's non-indexHigh stats
-  capPerStat:      99,
-  maxIterations:   120,
+  leagueMin:         60,   // every baseStat floor for players + bench
+  targetOffset:      3,    // target OVR = star.suggestedRating + offset
+  indexHighMin:      95,   // floor for star's indexHigh stats (regular stars)
+  topIndexHighMin:   97,   // floor for star's indexHigh stats (suggestedRating ≥ topThreshold)
+  topThreshold:      90,
+  otherStatMin:      78,   // floor for star's non-indexHigh stats
+  capPerStat:        99,
+  maxIterations:     120,
+  irrelevantStatMax: 15,   // cap for stats listed in IRRELEVANT_STATS (forwards' kicking, backs' setPiece)
 } as const;
+
+// Stats that don't belong to a position's skillset at all — value clamped to
+// `STAR_BOOST.irrelevantStatMax` at spawn, weight 0 in the OVR formula above.
+// Forwards have no kicking skill; backs have no scrum/lineout skill.
+export const IRRELEVANT_STATS: Record<Position, (keyof PlayerStats)[]> = {
+  'Loosehead Prop':    ['kicking'],
+  'Tighthead Prop':    ['kicking'],
+  'Hooker':            ['kicking'],
+  'Left Lock':         ['kicking'],
+  'Right Lock':        ['kicking'],
+  'Blindside Flanker': ['kicking'],
+  'Openside Flanker':  ['kicking'],
+  'Number 8':          ['kicking'],
+  'Scrum-Half':        ['setPiece'],
+  'Fly-Half':          ['setPiece'],
+  'Left Wing':         ['setPiece'],
+  'Inside Centre':     ['setPiece'],
+  'Outside Centre':    ['setPiece'],
+  'Right Wing':        ['setPiece'],
+  'Fullback':          ['setPiece'],
+  'Utility Back':      ['setPiece'],
+};
 
 export const PLAYER_OVERALL_WEIGHTS: Record<Position, StatWeights> = {
   'Loosehead Prop':    PROP_WEIGHTS,

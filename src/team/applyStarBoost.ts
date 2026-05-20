@@ -16,7 +16,7 @@
 import type { TeamJson } from './teamProfile';
 import type { PlayerStats } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
-import { PLAYER_OVERALL_WEIGHTS, STAR_BOOST } from '../engine/balance';
+import { PLAYER_OVERALL_WEIGHTS, STAR_BOOST, IRRELEVANT_STATS } from '../engine/balance';
 
 type RosterEntry = TeamJson['players'][number] & {
   firstName: string;
@@ -35,9 +35,14 @@ export function applyStarBoost(team: TeamJson): TeamJson {
 }
 
 function applyLeagueFloor(p: RosterEntry): RosterEntry {
+  const irrelevant = new Set(IRRELEVANT_STATS[p.position] ?? []);
   const stats = { ...p.baseStats };
   for (const k of Object.keys(stats) as (keyof PlayerStats)[]) {
-    if (stats[k] < STAR_BOOST.leagueMin) stats[k] = STAR_BOOST.leagueMin;
+    if (irrelevant.has(k)) {
+      if (stats[k] > STAR_BOOST.irrelevantStatMax) stats[k] = STAR_BOOST.irrelevantStatMax;
+    } else if (stats[k] < STAR_BOOST.leagueMin) {
+      stats[k] = STAR_BOOST.leagueMin;
+    }
   }
   return { ...p, baseStats: stats };
 }
@@ -57,12 +62,14 @@ function boostByName(arr: RosterEntry[], star: TeamJson['stars'][number]): boole
 
 function boostStar(p: RosterEntry, star: TeamJson['stars'][number]): RosterEntry {
   const stats = { ...p.baseStats };
+  const irrelevant = new Set(IRRELEVANT_STATS[p.position] ?? []);
   const indexHigh = new Set(star.indexHigh as (keyof PlayerStats)[]);
   const indexHighFloor = star.suggestedRating >= STAR_BOOST.topThreshold
     ? STAR_BOOST.topIndexHighMin
     : STAR_BOOST.indexHighMin;
 
   for (const k of Object.keys(stats) as (keyof PlayerStats)[]) {
+    if (irrelevant.has(k)) continue;
     const floor = indexHigh.has(k) ? indexHighFloor : STAR_BOOST.otherStatMin;
     if (stats[k] < floor) stats[k] = floor;
   }
@@ -74,6 +81,7 @@ function boostStar(p: RosterEntry, star: TeamJson['stars'][number]): RosterEntry
     let bestKey: keyof PlayerStats | null = null;
     let bestWeight = -1;
     for (const k of Object.keys(stats) as (keyof PlayerStats)[]) {
+      if (irrelevant.has(k)) continue;
       if (stats[k] >= STAR_BOOST.capPerStat) continue;
       const w = weights[k] ?? 1.0;
       if (w > bestWeight) { bestWeight = w; bestKey = k; }

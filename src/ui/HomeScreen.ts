@@ -65,7 +65,7 @@ export function initHomeScreen(onStart: () => void): void {
     <div id="home-chrome">
       <div id="home-status">
         <span class="home-live-dot"></span>
-        <span class="home-status-text">Season 2026</span>
+        <span class="home-status-text">2025/26 Season</span>
       </div>
       <button id="theme-toggle"></button>
     </div>

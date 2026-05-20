@@ -84,6 +84,7 @@ The test: would renaming this break replay, an existing log entry, or a downstre
 - `eventBus.emit` calls (`engine:event`, `engine:stateChange`, `engine:paused`, `engine:resumed`, `engine:finished`) are **pure UI side effects** and are NOT part of the mutation boundary. They live in orchestrators alongside `applyMatchEvent` calls, not inside `applyMatchEvent` itself.
 - Computations derived from state (`computeRating`, `computeFatigue`) live in pure helpers; their writes still flow through dedicated `MatchEvent` variants (`RATINGS_RECALCULATED`, `FATIGUE_APPLIED`).
 - Events may hold `Player` references for now (object identity is fine for in-memory use). If serialisable replay is ever needed, swap to `{ side, playerId }` lookups at that point — the boundary already exists.
+- **Pre-match jersey assignment vs in-game substitution are different operations.** Pre-match (`PreMatchScreen.assignStartingJersey`) reassigns `squadNumber` AND `id` by slot — the starting XV always wears 1–15, the bench always wears 16–23. In-game substitution (`SUBSTITUTION_APPLIED` in `applyMatchEvent`) reassigns ONLY `id`/`position`/`x`/`y`; the substituting player keeps their bench `squadNumber` and runs on wearing that number. Both flows assume `squadNumber` is unique across `team.players ∪ team.bench`.
 
 ## 6. Randomness Boundary
 

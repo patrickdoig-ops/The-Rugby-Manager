@@ -304,6 +304,20 @@ export function initPreMatchScreen(
     if (playerSide === 'away') updateHint();
   }
 
+  // Pre-match jersey assignment: starter slots wear jerseys 1–15, bench slots
+  // wear 16–23. Swapping a starter ↔ bench pair reassigns BOTH the player's
+  // `id` (used by the engine for position queries) and `squadNumber` (the
+  // visible jersey number) to match the slot they end up in. This is the only
+  // place squadNumber is re-assigned by slot — in-game substitutions preserve it.
+  function assignStartingJersey(starterIdx: number, benchIdx: number): void {
+    const slotId      = playerStarters[starterIdx].id;
+    const benchSlotId = playerBench[benchIdx].id;
+    const newStarter   = { ...playerBench[benchIdx],    id: slotId,      squadNumber: slotId };
+    const newBenchSlot = { ...playerStarters[starterIdx], id: benchSlotId, squadNumber: benchSlotId };
+    playerStarters[starterIdx] = newStarter;
+    playerBench[benchIdx]      = newBenchSlot;
+  }
+
   renderHomePanel();
   renderAwayPanel();
 
@@ -333,12 +347,7 @@ export function initPreMatchScreen(
       const benchIdx   = playerBench.findIndex(p => getSquadNum(p) === selectedBenchSquadNum);
       if (starterIdx === -1 || benchIdx === -1) return;
 
-      const slotId      = playerStarters[starterIdx].id;
-      const benchSlotId = playerBench[benchIdx].id;
-      const newStarter  = { ...playerBench[benchIdx],    id: slotId };
-      const newBenchSlot = { ...playerStarters[starterIdx], id: benchSlotId };
-      playerStarters[starterIdx] = newStarter;
-      playerBench[benchIdx]      = newBenchSlot;
+      assignStartingJersey(starterIdx, benchIdx);
       selectedBenchSquadNum = null;
       if (playerSide === 'home') renderHomePanel();
       else renderAwayPanel();

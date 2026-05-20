@@ -259,9 +259,28 @@ Current icon assignments:
 | Sim controls — Pause | `pause` | Solid |
 | Sim controls — Tactics | `adjustments-horizontal` | Outline |
 | Home screen — Start Game (arrow) | `arrow-right` | Outline (stroke-width 2.5) |
-| Pre-match — back nav | `arrow-left` | Outline |
+| Back navigation (any screen) | `arrow-left` | Outline (stroke-width 2) |
 | Theme toggle — dark mode | `moon` | Outline |
 | Theme toggle — light mode | `sun` | Outline |
+
+### Back navigation
+
+Every screen that pushes a forward navigation (Home → TeamSelector → FixtureList → PreMatch → live match) carries a back button in the top-left, rendered as the Heroicons `arrow-left` outline. The label names the **destination**, not the current screen (e.g. "Lobby" on Team Selector returns to Home; "Teams" on Fixture List returns to Team Selector). Stroke width is 2 — slightly heavier than the default 1.5 to match the chunky nav-bar feel.
+
+Canonical markup:
+
+```html
+<button id="…-back" aria-label="Back">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+       stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M19 12H5M12 19l-7-7 7-7"/>
+  </svg>
+  <span>[destination label]</span>
+</button>
+```
+
+Reference implementations: `#fl-back` (FixtureListScreen), `#pm-back` (PreMatchScreen), `#ts-back` (TeamSelectorScreen). All three share the same SVG path and the same button shape — copy from any of them when adding a back button to a new screen.
 
 ## Layout
 

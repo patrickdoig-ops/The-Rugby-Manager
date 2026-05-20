@@ -230,6 +230,11 @@ export function applyMatchEvent(state: MatchState, event: MatchEvent): void {
       return;
     }
 
+    // In-game substitution preserves the bench player's squadNumber — they run
+    // onto the pitch wearing their bench number. Only `id`/`position`/coords
+    // are re-assigned to the field slot (used for engine position queries).
+    // Pre-match jersey assignment (PreMatchScreen.assignStartingJersey) is
+    // the only place squadNumber is re-assigned by slot.
     case 'SUBSTITUTION_APPLIED': {
       const team = event.teamSide === 'home' ? state.homeTeam : state.awayTeam;
       const { off, on, benchIdx, fieldIdx } = event;

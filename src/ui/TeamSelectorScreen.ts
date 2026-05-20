@@ -14,26 +14,37 @@ export function initTeamSelectorScreen(
 ): void {
   const el = document.getElementById('team-selector');
   if (!el) return;
+  el.style.display = '';
+
+  const sortedTeams = [...teams].sort((a, b) => a.name.localeCompare(b.name));
 
   el.innerHTML = `
+    <button id="ts-back" aria-label="Back">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      <span>Lobby</span>
+    </button>
     <div id="ts-inner">
       <div id="ts-header">
-        <div id="ts-eyebrow">Season 2026 · New Manager</div>
+        <div id="ts-eyebrow">2025/26 Season · New Manager</div>
         <h2 id="ts-title">Choose Your Team</h2>
         <p id="ts-subtitle">Select the side you want to manage</p>
       </div>
       <div id="ts-grid">
-        ${teams.map(team => `
+        ${sortedTeams.map(team => `
           <button class="ts-card" data-id="${team.id}">
             ${crestHtml(team.shortName[0] ?? '?', team.color, 64)}
             <div class="ts-card-name">${team.name}</div>
             <div class="ts-card-code">${team.shortName}</div>
-            <div class="ts-card-cta">Manage this team</div>
           </button>
         `).join('')}
       </div>
     </div>
   `;
+
+  el.querySelector<HTMLButtonElement>('#ts-back')!.addEventListener('click', () => {
+    el.style.display = 'none';
+    document.getElementById('home-screen')!.style.display = '';
+  });
 
   el.querySelectorAll<HTMLButtonElement>('.ts-card').forEach(btn => {
     btn.addEventListener('click', () => {

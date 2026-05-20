@@ -23,12 +23,14 @@ export function initFixtureListScreen(
 
   const opponents = allTeams.filter(t => t.id !== playerTeam.id);
 
+  // Round-robin alternating venue: player starts at home, venue flips every
+  // round, each opponent is faced once at home and once away.
   const fixtures: Fixture[] = [
     { round: 1, homeTeam: playerTeam, awayTeam: opponents[0], playerSide: 'home' },
-    { round: 2, homeTeam: playerTeam, awayTeam: opponents[1], playerSide: 'home' },
+    { round: 2, homeTeam: opponents[1], awayTeam: playerTeam, playerSide: 'away' },
     { round: 3, homeTeam: playerTeam, awayTeam: opponents[2], playerSide: 'home' },
     { round: 4, homeTeam: opponents[0], awayTeam: playerTeam, playerSide: 'away' },
-    { round: 5, homeTeam: opponents[1], awayTeam: playerTeam, playerSide: 'away' },
+    { round: 5, homeTeam: playerTeam, awayTeam: opponents[1], playerSide: 'home' },
     { round: 6, homeTeam: opponents[2], awayTeam: playerTeam, playerSide: 'away' },
   ];
 
@@ -93,7 +95,7 @@ export function initFixtureListScreen(
       <span id="fl-title">Season Fixtures</span>
       <div style="width:72px"></div>
     </div>
-    <div id="fl-eyebrow">2026 Season · 6 Rounds</div>
+    <div id="fl-eyebrow">2025/26 Season · 6 Rounds</div>
     <div id="fl-list"></div>
     <div id="fl-footer"></div>
   `;

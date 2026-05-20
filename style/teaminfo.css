@@ -358,13 +358,21 @@
 
 .ti-squad-row {
   display: grid;
-  grid-template-columns: 32px 1fr auto 40px;
+  grid-template-columns: 32px 1fr auto 28px 40px;
   align-items: center;
   gap: 10px;
   padding: 8px 16px;
   border-top: 1px solid var(--rm-hairline);
   font-family: var(--rm-font-body);
   font-size: 13px;
+}
+
+.ti-squad-age {
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  color: var(--rm-text-dim);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .ti-squad-row:first-child { border-top: none; }

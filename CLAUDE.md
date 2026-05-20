@@ -70,6 +70,7 @@ The test: every changed line traces directly to the user's request.
 - `eventBus.emit` calls are **pure UI side effects** and are NOT part of the mutation boundary. They live in orchestrators alongside `applyMatchEvent` calls, not inside `applyMatchEvent` itself.
 - Derived state (`computeRating`, `computeFatigue`) lives in pure helpers; writes still flow through dedicated `MatchEvent` variants (`RATINGS_RECALCULATED`, `FATIGUE_APPLIED`).
 - **Pre-match jersey assignment vs in-game substitution are different operations.** Pre-match (`PreMatchScreen.assignStartingJersey`) reassigns `squadNumber` AND `id` by slot — starting XV wears 1–15, bench wears 16–23. In-game substitution (`SUBSTITUTION_APPLIED`) reassigns ONLY `id`/`position`/`x`/`y`; the substituting player keeps their bench `squadNumber`. Both flows assume `squadNumber` is unique across `team.players ∪ team.bench`.
+- **Season-scope mutations have their own boundary: `applySeasonEvent(state, event)`** in `src/game/applySeasonEvent.ts`, operating on `GameState` (`src/types/gameState.ts`). `GameCoordinator` is the only caller. `SeasonEvent` variants are domain-meaningful (`SEASON_INITIALIZED`, `FIXTURE_RESULT_RECORDED`, `WEEK_ADVANCED`) and the same `default: const _: never = event;` exhaustiveness contract applies. Adding training/transfers/youth-academy systems later means adding new variants — not new mutation seams.
 
 ## 6. Randomness Boundary
 
@@ -88,7 +89,8 @@ Streams are independent — adding a commentary line cannot shift outcome rolls.
 
 | Topic | Source of truth |
 |---|---|
-| Engine internals — phases, resolvers, formulas, RNG, tactics effects, commentary, UI event-bus contract | **`docs/engine.md`** |
+| Match-engine internals — phases, resolvers, formulas, RNG, tactics effects, commentary, UI event-bus contract | **`docs/engine.md`** |
+| Game-engine internals — `GameCoordinator`, season state, fixtures, headless AI sims, league standings | **`docs/engine.md`** § "Season-scope mutation seam" |
 | Visual design — colours, fonts, spacing, components, live-match shell HTML, screen notes | **`docs/DESIGN.md`** |
 | Architectural invariants & ways of working | this file |
 

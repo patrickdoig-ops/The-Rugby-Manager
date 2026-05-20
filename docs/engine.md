@@ -44,9 +44,34 @@ All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.cu
 
 `applyMatchEvent` uses a `default: const _: never = event;` exhaustiveness check, so adding a new `MatchEvent` variant without a handling branch is a compile error.
 
-### Season-scope mutation seam: `teamProfile`
+### Season-scope mutation seam: `GameCoordinator` + `applySeasonEvent`
 
-Match scope writes flow through `applyMatchEvent`; **season scope writes flow through `src/team/teamProfile.ts`**. The module owns each team's `TeamProfile` (identity, narrative, suggested tactics, stat bias, star metadata, and live `seasonForm`). Read API: `getProfile(id)`, `getAllProfiles()`, `computeOverallRating(id)` (top-23 player-overall average). Write API: `applyResult(SavedResult)` (Premiership 4/2/0 league points + losing bonus when margin ≤ 7; no try bonus because `SavedResult` does not carry try counts) and `hydrateFromSave(results[])` (reset + replay on app start). No code outside this module mutates profile state; `main.ts` calls `applyResult` once, alongside `fixtureList.recordResult`, after each match completes.
+Match-scope writes flow through `applyMatchEvent`; **season-scope writes flow through `applySeasonEvent`** in `src/game/applySeasonEvent.ts`. The game engine (`src/game/`) is a sibling to the match engine (`src/engine/`) and owns one `GameState` per session — calendar (`date`, `week`, `seasonLabel`), league (`fixtures`, `results`, `standings`), `player.teamId`, and the root `seed`.
+
+| Module | Responsibility |
+|---|---|
+| `GameCoordinator.ts` | Public API (`newSeason`, `fromSave`, `getState`, `getCurrentFixture`, `recordPlayerMatchResult`, `toSavePayload`). Owns the `GameState`. The "tick" of the game engine is a player match completing: `recordPlayerMatchResult` applies the player's score, headlessly simulates the other fixtures of the round, then advances the week. |
+| `applySeasonEvent.ts` | Single mutation seam. Reducer over `SeasonEvent` (`src/types/gameState.ts`): `SEASON_INITIALIZED`, `FIXTURE_RESULT_RECORDED`, `WEEK_ADVANCED`. Same `default: const _: never = event;` exhaustiveness contract as `applyMatchEvent`. |
+| `fixtures.ts` | Pure double round-robin generator using the standard "circle" method. Player's team is placed at position 0 so its match is always the first pairing per round. |
+| `simulateFixture.ts` | Headless wrapper around `MatchCoordinator` with `silent: true` — suppresses every `engine:event`/`engine:stateChange`/`engine:initialized`/`engine:resumed` emit and replaces modal prompts with `high_ball`/`kick_for_goal` defaults. `engine:finished` still fires for completion detection. |
+| `leagueTable.ts` | Pure helpers: `sortStandings` (league points → points diff → points for), `findStanding`. |
+| `derive.ts` | `deriveFixtureSeed(rootSeed, round, homeId, awayId)` — hashes the inputs so each headless AI fixture has a stable, derivable seed. |
+| `age.ts` | Pure `getAge(dobIso, currentDateIso)` — returns null when `dob` is missing. Used by `TeamInfoScreen` to derive ages from `calendar.date`. |
+| `balance/season.ts` | Season tuning constants — `SEASON_VALUES` (start date, season label, week length) and `LEAGUE_POINTS` (Premiership 4/2/0 + losing bonus when margin ≤ 7). |
+
+`TeamProfile` (`src/team/teamProfile.ts`) was previously the season-scope mutation seam; that role has moved into `GameState.league.standings`. The module now only exposes identity/narrative/star data + roster lookups (`computeOverallRating`).
+
+#### Game-engine UI events
+
+| Event | Payload | Subscribers |
+|---|---|---|
+| `game:initialized` | `{ state: GameState }` | `FixtureListScreen` (initial render after `newSeason` / `fromSave`) |
+| `game:fixtureRecorded` | `{ result: FixtureResult; state: GameState }` | `FixtureListScreen` (re-render fixtures + standings as each headless sim resolves) |
+| `game:weekAdvanced` | `{ state: GameState }` | `FixtureListScreen` (calendar header) |
+
+`SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`: `playerTeamId`, `seed`, `currentWeek`, and every `FixtureResult` (player's + AI). `fromSave` re-runs `SEASON_INITIALIZED` then replays results to rebuild fixtures, standings, and calendar deterministically — same philosophy as the prior "replay results to rebuild season form". `SAVE_VERSION` is now 2; v1 saves are discarded on load (they predate AI-vs-AI results and can't reconstruct the league table).
+
+Season-level determinism: `(playerTeamId, rootSeed)` plus the player's series of results produces an identical final league table on every run. Verified by `scripts/checkSeasonDeterminism.ts`; `npm run verify` runs both the match-level and season-level harnesses.
 
 ### Balance constants
 

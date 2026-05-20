@@ -9,7 +9,20 @@ import { applyMatchEvent } from './applyMatchEvent';
 import { CLOCK_VALUES } from './balance';
 
 export class ClockController {
-  constructor(private sm: StateMachine) {}
+  // `silent` matches headless AI fixtures — suppresses every commentary
+  // event and stateChange notification. `engine:finished` is still emitted
+  // because the headless caller awaits it to read final scores.
+  constructor(private sm: StateMachine, private silent: boolean = false) {}
+
+  private emitEvent(event: GameEvent): void {
+    if (this.silent) return;
+    eventBus.emit('engine:event', { event });
+  }
+
+  private emitStateChange(state: MatchState): void {
+    if (this.silent) return;
+    eventBus.emit('engine:stateChange', { state });
+  }
 
   // Advances state.clock.gameMinute via a CLOCK_ADVANCED MatchEvent.
   // Returns the raw timeAdvance so the caller can drive the fatigue accumulator.
@@ -43,7 +56,7 @@ export class ClockController {
       narration,
     };
     applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: redEvent });
-    eventBus.emit('engine:event', { event: redEvent });
+    this.emitEvent(redEvent);
   }
 
   shouldEndPeriod(state: MatchState, prevPhase: MatchPhase): boolean {
@@ -89,8 +102,8 @@ export class ClockController {
       narration: { steps: [{ kind: 'announcement', key: 'half_time_whistle' }] },
     };
     applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: htEvent });
-    eventBus.emit('engine:event', { event: htEvent });
-    eventBus.emit('engine:stateChange', { state });
+    this.emitEvent(htEvent);
+    this.emitStateChange(state);
   }
 
   endMatch(state: MatchState): void {
@@ -120,8 +133,8 @@ export class ClockController {
       },
     };
     applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: ftEvent });
-    eventBus.emit('engine:event', { event: ftEvent });
-    eventBus.emit('engine:stateChange', { state });
+    this.emitEvent(ftEvent);
+    this.emitStateChange(state);
     eventBus.emit('engine:finished', { state });
   }
 }

@@ -9,17 +9,9 @@ export interface StarPlayerMeta {
   suggestedRating: number;
 }
 
-export interface SeasonForm {
-  played: number;
-  won: number;
-  drawn: number;
-  lost: number;
-  leaguePoints: number;
-  pointsFor: number;
-  pointsAgainst: number;
-  pointsDiff: number;
-}
-
+// Identity, narrative and stat-bias metadata for a club. Season-form
+// (W/D/L, league points) lives on GameState.league.standings — not here —
+// since the game engine refactor centralised that state.
 export interface TeamProfile {
   id: string;
   name: string;
@@ -36,18 +28,4 @@ export interface TeamProfile {
   suggestedTactics: TeamTactics;
   statBias: string[];
   stars: StarPlayerMeta[];
-  seasonForm: SeasonForm;
-}
-
-export function zeroSeasonForm(): SeasonForm {
-  return {
-    played: 0,
-    won: 0,
-    drawn: 0,
-    lost: 0,
-    leaguePoints: 0,
-    pointsFor: 0,
-    pointsAgainst: 0,
-    pointsDiff: 0,
-  };
 }

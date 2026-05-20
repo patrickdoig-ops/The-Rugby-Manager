@@ -1,6 +1,7 @@
 import type { PenaltyChoice, PenaltyContext, KickOffStrategy } from './engine';
 import type { GameEvent, MatchState } from './match';
 import type { Team, TeamTactics } from './team';
+import type { FixtureResult, GameState } from './gameState';
 
 export type ModalPayload =
   | { type: 'penalty_choice'; context: PenaltyContext; onChoice: (choice: PenaltyChoice) => void; }
@@ -20,5 +21,8 @@ export interface AppEvents {
   'ui:openSubsModal':   { team: Team };
   'ui:substitution':    { benchSquadNum: number; fieldSquadNum: number };
   'ui:subsClosed':      Record<string, never>;
+  'game:initialized':     { state: GameState };
+  'game:fixtureRecorded': { result: FixtureResult; state: GameState };
+  'game:weekAdvanced':    { state: GameState };
 }
 

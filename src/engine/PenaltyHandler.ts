@@ -13,14 +13,17 @@ export interface PenaltyHandlerDeps {
   state: MatchState;
   sm: StateMachine;
   humanSide: 'home' | 'away';
+  // Silent mode (headless AI fixture): never prompt; resolve with the same
+  // defaults the determinism harness uses (`high_ball` / `kick_for_goal`).
+  silent?: boolean;
 }
 
 export class PenaltyHandler {
   constructor(private deps: PenaltyHandlerDeps) {}
 
   async awaitKickOffStrategy(): Promise<KickOffStrategy> {
-    const { state, humanSide } = this.deps;
-    if (state.possession !== humanSide) {
+    const { state, humanSide, silent } = this.deps;
+    if (silent || state.possession !== humanSide) {
       return 'high_ball';
     }
     const wasRunning = state.engine.isRunning;
@@ -34,16 +37,23 @@ export class PenaltyHandler {
   }
 
   async handlePenaltyDecision(): Promise<void> {
-    const { state, humanSide } = this.deps;
+    const { state, humanSide, silent } = this.deps;
 
     // Only present the choice to the human manager and only when the penalty
     // is in the opposition's half. All other penalties auto-kick to touch.
-    if (state.possession !== humanSide || !inOppositionHalf(state)) {
-      const aiSide = humanSide === 'home' ? 'away' : 'home';
-      const autoChoice =
-        state.clock.clockInTheRed && state.possession === aiSide && state.score[aiSide] > state.score[humanSide]
-          ? 'tap_and_kick_dead'
-          : 'kick_to_touch';
+    // Silent mode auto-kicks at goal whenever the human would otherwise be
+    // prompted, matching the determinism harness behaviour.
+    if (silent || state.possession !== humanSide || !inOppositionHalf(state)) {
+      let autoChoice: PenaltyChoice;
+      if (silent && state.possession === humanSide && inOppositionHalf(state)) {
+        autoChoice = 'kick_for_goal';
+      } else {
+        const aiSide = humanSide === 'home' ? 'away' : 'home';
+        autoChoice =
+          state.clock.clockInTheRed && state.possession === aiSide && state.score[aiSide] > state.score[humanSide]
+            ? 'tap_and_kick_dead'
+            : 'kick_to_touch';
+      }
       this.applyPenaltyChoice(autoChoice);
       return;
     }
@@ -68,6 +78,12 @@ export class PenaltyHandler {
     });
     if (wasRunning) eventBus.emit('engine:resumed', {});
     this.applyPenaltyChoice(choice);
+  }
+
+  private emit(name: 'engine:event' | 'engine:stateChange', payload: { event: GameEvent } | { state: MatchState }): void {
+    if (this.deps.silent) return;
+    if (name === 'engine:event') eventBus.emit('engine:event', payload as { event: GameEvent });
+    else eventBus.emit('engine:stateChange', payload as { state: MatchState });
   }
 
   private applyPenaltyChoice(choice: PenaltyChoice): void {
@@ -106,7 +122,7 @@ export class PenaltyHandler {
         },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
-      eventBus.emit('engine:event', { event: penEvent });
+      this.emit('engine:event', { event: penEvent });
 
       applyMatchEvent(state, { type: 'POSSESSION_SWAPPED' });
       applyMatchEvent(state, { type: 'BALL_REPOSITIONED', x: 50, y: 50 });
@@ -133,7 +149,7 @@ export class PenaltyHandler {
         narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: 'kick_to_touch', primary: kicker }] },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
-      eventBus.emit('engine:event', { event: penEvent });
+      this.emit('engine:event', { event: penEvent });
 
       const teamName = (state.possession === 'home' ? state.homeTeam : state.awayTeam).name;
       const awardEvent: GameEvent = {
@@ -147,7 +163,7 @@ export class PenaltyHandler {
         narration: { steps: [{ kind: 'announcement', key: 'set_piece_award', params: { phaseName: 'Lineout', teamName } }] },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: awardEvent });
-      eventBus.emit('engine:event', { event: awardEvent });
+      this.emit('engine:event', { event: awardEvent });
 
       sm.forceTransition(MatchPhase.Lineout);
       applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.Lineout });
@@ -165,7 +181,7 @@ export class PenaltyHandler {
         narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: 'tap_and_kick_dead', primary: kicker }] },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
-      eventBus.emit('engine:event', { event: penEvent });
+      this.emit('engine:event', { event: penEvent });
       sm.forceTransition(MatchPhase.Lineout);
       applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.Lineout });
 
@@ -183,11 +199,11 @@ export class PenaltyHandler {
         narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: 'tap_and_go', primary: kicker }] },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
-      eventBus.emit('engine:event', { event: penEvent });
+      this.emit('engine:event', { event: penEvent });
       sm.forceTransition(MatchPhase.FirstPhase);
       applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.FirstPhase });
     }
 
-    eventBus.emit('engine:stateChange', { state });
+    this.emit('engine:stateChange', { state });
   }
 }

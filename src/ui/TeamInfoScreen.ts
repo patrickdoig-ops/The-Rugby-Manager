@@ -3,6 +3,7 @@ import type { TeamTactics } from '../types/team';
 import { computeOverallRating } from '../team/teamProfile';
 import { playerOverall } from '../engine/RatingEngine';
 import type { RawTeamInput } from '../engine/MatchCoordinator';
+import { getAge } from '../game/age';
 
 type RawPlayer = RawTeamInput['players'][number];
 
@@ -64,14 +65,17 @@ function starCard(s: StarPlayerMeta): string {
     </div>`;
 }
 
-function squadRow(p: RawPlayer): string {
+function squadRow(p: RawPlayer, currentDate: string): string {
   const ovr = playerOverall(p.baseStats, p.position);
   const name = `${p.firstName} ${p.lastName}`.trim();
+  const age = getAge(p.dob, currentDate);
+  const ageLabel = age === null ? '—' : `${age}`;
   return `
     <div class="ti-squad-row">
       <div class="ti-squad-num">${p.squadNumber ?? p.id}</div>
       <div class="ti-squad-name">${name}</div>
       <div class="ti-squad-pos">${p.position}</div>
+      <div class="ti-squad-age">${ageLabel}</div>
       <div class="ti-squad-ovr">${ovr}</div>
     </div>`;
 }
@@ -79,14 +83,13 @@ function squadRow(p: RawPlayer): string {
 export function initTeamInfoScreen(
   profile: TeamProfile,
   rawTeam: RawTeamInput,
+  currentDate: string,
   onBack: () => void,
 ): void {
   const el = document.getElementById('team-info');
   if (!el) return;
 
   const overallRating = computeOverallRating(profile.id);
-  const form = profile.seasonForm;
-  const showForm = form.played > 0;
 
   const starters = rawTeam.players;
   const bench = rawTeam.bench ?? [];
@@ -113,13 +116,6 @@ export function initTeamInfoScreen(
           <div class="ti-tile-label">Overall rating</div>
           <div class="ti-tile-value ti-rating">${overallRating}</div>
         </div>
-        ${showForm ? `
-          <div class="ti-tile ti-tile-full">
-            <div class="ti-tile-label">Season form</div>
-            <div class="ti-tile-value">${form.won}-${form.drawn}-${form.lost}</div>
-            <div class="ti-tile-foot">${form.played} played · ${form.leaguePoints} pts · ${form.pointsDiff >= 0 ? '+' : ''}${form.pointsDiff} PD</div>
-          </div>
-        ` : ''}
         ${profile.stadiumCapacity ? `
           <div class="ti-tile ti-tile-sm">
             <div class="ti-tile-label">Stadium capacity</div>
@@ -171,18 +167,18 @@ export function initTeamInfoScreen(
         <h3 class="ti-section-title">Squad</h3>
         <details class="ti-squad-details">
           <summary>Starting XV (15)</summary>
-          <div class="ti-squad-list">${starters.map(squadRow).join('')}</div>
+          <div class="ti-squad-list">${starters.map(p => squadRow(p, currentDate)).join('')}</div>
         </details>
         ${bench.length ? `
           <details class="ti-squad-details">
             <summary>Bench (${bench.length})</summary>
-            <div class="ti-squad-list">${bench.map(squadRow).join('')}</div>
+            <div class="ti-squad-list">${bench.map(p => squadRow(p, currentDate)).join('')}</div>
           </details>
         ` : ''}
         ${squad.length ? `
           <details class="ti-squad-details">
             <summary>Wider squad (${squad.length})</summary>
-            <div class="ti-squad-list">${squad.map(squadRow).join('')}</div>
+            <div class="ti-squad-list">${squad.map(p => squadRow(p, currentDate)).join('')}</div>
           </details>
         ` : ''}
       </section>

@@ -1,17 +1,8 @@
 import type { RawTeamInput } from '../engine/MatchCoordinator';
-import { saveGame, type SavedResult } from './SaveManager';
-
-type Fixture = {
-  round: number;
-  homeTeam: RawTeamInput;
-  awayTeam: RawTeamInput;
-  playerSide: 'home' | 'away';
-};
-
-export type FixtureInitialState = {
-  currentRound: number;
-  results: Map<number, { home: number; away: number }>;
-};
+import type { GameCoordinator } from '../game/GameCoordinator';
+import type { Fixture, FixtureResult, GameState, TeamStanding } from '../types/gameState';
+import { sortStandings } from '../game/leagueTable';
+import { eventBus } from '../utils/eventBus';
 
 function miniCrest(team: RawTeamInput): string {
   const grad = `linear-gradient(160deg, ${team.color} 0%, color-mix(in oklch, ${team.color} 65%, black) 100%)`;
@@ -19,135 +10,149 @@ function miniCrest(team: RawTeamInput): string {
   return `<div class="fl-crest" style="background:${grad};border:1px solid color-mix(in oklch,${team.color} 45%,transparent)"><span>${initial}</span></div>`;
 }
 
+function standingsRow(s: TeamStanding, rank: number, teamsById: Map<string, RawTeamInput>, highlight: boolean): string {
+  const team = teamsById.get(s.teamId);
+  const name = team?.shortName ?? s.teamId;
+  const cls = highlight ? 'fl-table-row fl-table-row--me' : 'fl-table-row';
+  const diff = `${s.pointsDiff >= 0 ? '+' : ''}${s.pointsDiff}`;
+  return `
+    <div class="${cls}">
+      <span class="fl-table-rank">${rank}</span>
+      <span class="fl-table-name">${name}</span>
+      <span class="fl-table-num">${s.played}</span>
+      <span class="fl-table-num">${s.won}</span>
+      <span class="fl-table-num">${s.drawn}</span>
+      <span class="fl-table-num">${s.lost}</span>
+      <span class="fl-table-num">${diff}</span>
+      <span class="fl-table-pts">${s.leaguePoints}</span>
+    </div>
+  `;
+}
+
 export function initFixtureListScreen(
-  playerTeam: RawTeamInput,
+  gameEngine: GameCoordinator,
   allTeams: RawTeamInput[],
   onPlay: (homeTeam: RawTeamInput, awayTeam: RawTeamInput, playerSide: 'home' | 'away', round: number) => void,
   onBack: () => void,
-  initialState?: FixtureInitialState,
-): { recordResult(round: number, homeScore: number, awayScore: number): void } {
+): void {
   const el = document.getElementById('fixture-list');
-  if (!el) return { recordResult() {} };
+  if (!el) return;
 
-  const opponents = allTeams.filter(t => t.id !== playerTeam.id);
-  const TOTAL_ROUNDS = opponents.length * 2;
+  const teamsById = new Map(allTeams.map(t => [t.id, t]));
+  const playerTeamId = gameEngine.getState().player.teamId;
+  const playerTeam = teamsById.get(playerTeamId)!;
 
-  // Round-robin alternating venue: player starts at home, venue flips every
-  // round, each opponent is faced once at home and once away. First leg cycles
-  // through opponents[0..n-1] in rounds 1..n; second leg replays opponents
-  // [0..n-1] in rounds n+1..2n, by which point each opponent's venue has flipped.
-  const fixtures: Fixture[] = [];
-  for (let leg = 0; leg < 2; leg++) {
-    for (let i = 0; i < opponents.length; i++) {
-      const round = leg * opponents.length + i + 1;
-      const playerHome = round % 2 === 1;
-      fixtures.push({
-        round,
-        homeTeam: playerHome ? playerTeam : opponents[i],
-        awayTeam: playerHome ? opponents[i] : playerTeam,
-        playerSide: playerHome ? 'home' : 'away',
-      });
-    }
-  }
-
-  let currentRound = initialState?.currentRound ?? 1;
-  const results = new Map<number, { home: number; away: number }>(initialState?.results ?? []);
-
-  function persist(): void {
-    const savedResults: SavedResult[] = fixtures
-      .filter(f => results.has(f.round))
-      .map(f => {
-        const r = results.get(f.round)!;
-        return {
-          round: f.round,
-          homeId: f.homeTeam.id,
-          awayId: f.awayTeam.id,
-          playerSide: f.playerSide,
-          homeScore: r.home,
-          awayScore: r.away,
-        };
-      });
-    saveGame({
-      playerTeamId: playerTeam.id,
-      currentRound,
-      results: savedResults,
-    });
+  // Player's fixture list: every fixture that includes the player's team, in
+  // round order. Built once from GameState — game-engine events drive re-renders.
+  function playerFixtures(state: GameState): Array<{ fixture: Fixture; playerSide: 'home' | 'away'; result: FixtureResult | undefined }> {
+    return state.league.fixtures
+      .filter(f => f.homeId === playerTeamId || f.awayId === playerTeamId)
+      .sort((a, b) => a.round - b.round)
+      .map(fixture => ({
+        fixture,
+        playerSide: fixture.homeId === playerTeamId ? 'home' : 'away',
+        result: state.league.results.find(r => r.round === fixture.round && r.homeId === fixture.homeId && r.awayId === fixture.awayId),
+      }));
   }
 
   function render(): void {
-    const list = el!.querySelector('#fl-list')!;
-    list.innerHTML = fixtures.map(f => {
-      const result = results.get(f.round);
-      const isComplete = f.round < currentRound;
-      const isActive   = f.round === currentRound;
-      const rowClass   = isComplete ? 'fl-row--complete' : isActive ? 'fl-row--active' : 'fl-row--locked';
-      const midEl      = isComplete && result
-        ? `<span class="fl-score">${result.home}–${result.away}</span>`
+    const state = gameEngine.getState();
+    const totalRounds = state.league.fixtures.reduce((max, f) => Math.max(max, f.round), 0);
+    const myFixtures = playerFixtures(state);
+    const nextFixture = gameEngine.getCurrentFixture();
+    const seasonComplete = nextFixture === null;
+
+    const fixturesHtml = myFixtures.map(({ fixture, result }) => {
+      const home = teamsById.get(fixture.homeId)!;
+      const away = teamsById.get(fixture.awayId)!;
+      const isComplete = !!result;
+      const isActive = !isComplete && fixture.round === nextFixture?.round;
+      const rowClass = isComplete ? 'fl-row--complete' : isActive ? 'fl-row--active' : 'fl-row--locked';
+      const midEl = isComplete
+        ? `<span class="fl-score">${result.homeScore}–${result.awayScore}</span>`
         : `<span class="fl-vs">vs</span>`;
       return `
         <div class="fl-row ${rowClass}">
           <div class="fl-round">
             <span class="fl-round-label">RND</span>
-            <span class="fl-round-num">${f.round}</span>
+            <span class="fl-round-num">${fixture.round}</span>
           </div>
           <div class="fl-matchup">
             <div class="fl-team fl-team--home">
-              ${miniCrest(f.homeTeam)}
-              <span class="fl-team-name">${f.homeTeam.shortName}</span>
+              ${miniCrest(home)}
+              <span class="fl-team-name">${home.shortName}</span>
             </div>
             ${midEl}
             <div class="fl-team fl-team--away">
-              <span class="fl-team-name">${f.awayTeam.shortName}</span>
-              ${miniCrest(f.awayTeam)}
+              <span class="fl-team-name">${away.shortName}</span>
+              ${miniCrest(away)}
             </div>
           </div>
         </div>
       `;
     }).join('');
 
-    const footer = el!.querySelector('#fl-footer')!;
-    if (currentRound > TOTAL_ROUNDS) {
-      footer.innerHTML = `<p id="fl-season-done">Season complete</p>`;
-    } else {
-      footer.innerHTML = `
+    const sorted = sortStandings(state.league.standings);
+    const tableRows = sorted.map((s, i) =>
+      standingsRow(s, i + 1, teamsById, s.teamId === playerTeamId)
+    ).join('');
+
+    const footerHtml = seasonComplete
+      ? `<p id="fl-season-done">Season complete</p>`
+      : `
         <button id="fl-play-next" aria-label="Play next game">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>
           <span>Play next game</span>
         </button>
       `;
+
+    el!.innerHTML = `
+      <div id="fl-topbar">
+        <button id="fl-back" aria-label="Back">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <span>Teams</span>
+        </button>
+        <span id="fl-title">Season Fixtures</span>
+        <div style="width:72px"></div>
+      </div>
+      <div id="fl-eyebrow">${state.calendar.seasonLabel} · ${state.calendar.date} · Week ${state.calendar.week} of ${totalRounds}</div>
+      <div id="fl-standings">
+        <div class="fl-table-head">
+          <span class="fl-table-rank">#</span>
+          <span class="fl-table-name">Club</span>
+          <span class="fl-table-num">P</span>
+          <span class="fl-table-num">W</span>
+          <span class="fl-table-num">D</span>
+          <span class="fl-table-num">L</span>
+          <span class="fl-table-num">PD</span>
+          <span class="fl-table-pts">Pts</span>
+        </div>
+        ${tableRows}
+      </div>
+      <div id="fl-list">${fixturesHtml}</div>
+      <div id="fl-footer">${footerHtml}</div>
+    `;
+
+    el!.querySelector<HTMLButtonElement>('#fl-back')!.addEventListener('click', () => {
+      onBack();
+    });
+
+    if (!seasonComplete) {
       el!.querySelector<HTMLButtonElement>('#fl-play-next')!.addEventListener('click', () => {
-        const fixture = fixtures.find(f => f.round === currentRound)!;
-        onPlay(fixture.homeTeam, fixture.awayTeam, fixture.playerSide, fixture.round);
+        const home = teamsById.get(nextFixture!.homeId)!;
+        const away = teamsById.get(nextFixture!.awayId)!;
+        const playerSide: 'home' | 'away' = nextFixture!.homeId === playerTeam.id ? 'home' : 'away';
+        onPlay(home, away, playerSide, nextFixture!.round);
       });
     }
   }
 
-  el.innerHTML = `
-    <div id="fl-topbar">
-      <button id="fl-back" aria-label="Back">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        <span>Teams</span>
-      </button>
-      <span id="fl-title">Season Fixtures</span>
-      <div style="width:72px"></div>
-    </div>
-    <div id="fl-eyebrow">2025/26 Season · ${TOTAL_ROUNDS} Rounds</div>
-    <div id="fl-list"></div>
-    <div id="fl-footer"></div>
-  `;
-
-  el.querySelector<HTMLButtonElement>('#fl-back')!.addEventListener('click', () => {
-    onBack();
-  });
+  // Re-render whenever the season state changes. Subscriptions live for the
+  // lifetime of the screen module; they cost nothing while the screen is
+  // hidden because the DOM updates only run when render() is called.
+  eventBus.on('game:fixtureRecorded', () => render());
+  eventBus.on('game:weekAdvanced', () => render());
+  eventBus.on('game:initialized', () => render());
 
   render();
-
-  return {
-    recordResult(round: number, homeScore: number, awayScore: number): void {
-      results.set(round, { home: homeScore, away: awayScore });
-      currentRound = round + 1;
-      persist();
-      render();
-    },
-  };
 }

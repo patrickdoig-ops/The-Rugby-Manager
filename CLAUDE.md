@@ -57,12 +57,14 @@ The test: every changed line traces directly to the user's request.
 - **Navigation goes through `screenRouter.show(id)`** (`src/ui/ScreenRouter.ts`). Screen modules never poke `document.getElementById('…').style.display` directly; they accept `onForward`/`onBack` callbacks from `main.ts`. Adding a screen: (1) add the id to the `SCREENS` map in `ScreenRouter.ts`, (2) add a `<div id="…">` to `index.html`, (3) add a flat navigation handler in `main.ts`.
 - **In-season screens (`HubScreen`, `FixtureListScreen`, `LeagueTableScreen`) are initialised once per page lifetime, not per game and not per navigation.** `initInSeasonScreens()` in `main.ts` is gated by an `inSeasonInited` closure flag, so the second call (e.g. New Game → Home → Continue) is a no-op. This is load-bearing: each screen registers `eventBus.on('game:*')` subscriptions at init time without an unsub, so without the gate every back/forward (or game switch) would duplicate handlers and leak. Subsequent visits use bare `screenRouter.show(id)`. Each screen reads through `opts.gameEngine.getState()` on every render, so the underlying engine reference can be swapped (New Game ↔ Continue) without re-initialising the screens. **Hub is the top of the in-season stack** — no back arrow; the Settings cog is the exit route to Home. Fixture-list and league-table back-buttons both return to Hub.
 - **`MatchCoordinator` owns its event-bus subscriptions and must be destroyed.** Constructor captures unsubs in `busUnsubs[]`; `destroy()` runs them, cancels the tick timer, and clears the run flag. `main.ts` calls `engine.destroy()` after the match-result overlay is dismissed. The **`silent: true`** constructor option (used by `src/game/simulateFixture.ts` for headless AI fixtures inside `recordPlayerMatchResult`) suppresses every `engine:*` emit except `engine:finished`, skips the constructor's UI-event subscriptions, and short-circuits `PenaltyHandler` modal prompts to `high_ball` / `kick_for_goal` defaults. `ClockController` and `FatigueAccumulator` take the same flag — every engine orchestrator that emits to the bus must gate on it.
+- **`AITacticalDirector` is a pure, RNG-free module owned by `MatchCoordinator`** (`src/engine/AITacticalDirector.ts`). Called once per tick from `tick()` *before* `resolvePhase()` so the new tactics affect the same tick that triggered them. Constructor takes `humanSide: TeamSide | undefined`; in a live match `MatchCoordinator` passes the player's side (the director never touches it), in silent fixtures it passes `undefined` (both teams adapt). All tactic changes flow through `TACTICS_UPDATED` via `applyMatchEvent` — same mutation boundary as the in-match tactics modal. Tuning constants live in `src/engine/balance/aiDirector.ts`.
 
 ## 5. Mutation Boundaries
 
 **State mutation flows through one function. Don't sneak in a direct write.**
 
 - All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.currentStats`, and `player.rating` go through `applyMatchEvent(state, event)` in `src/engine/applyMatchEvent.ts`. No exceptions, including `state.events.push(...)`.
+- **`applyMatchEvent` runs `assertInvariants(state)` after every event** (`src/engine/invariants.ts`). It throws if score/possession/phase/ball/clock or any player's `fatiguePct`/`rating`/`currentStats` strays outside its legal range. Always-on, not env-gated — cost is O(matchday squad) per mutation, negligible against the per-tick work already done. Adding a new mutation kind that touches one of these fields: extend the invariant check too if it could push a value off the asserted range.
 - Phase handlers in `src/engine/events/` are read-only over state: they read, compute, build a `MatchEvent[]`, and return it on `PhaseResult.events`. `PhaseRouter.resolvePhase()` applies the queue then composes the outgoing `GameEvent`.
 - Orchestrators (`MatchCoordinator`, `ClockController`, `PenaltyHandler`) call `applyMatchEvent` directly for non-phase mutations (clock, half-time, penalty choices, substitutions, tactics, fatigue, commentary log).
 - Use **domain-meaningful** event names (`TRY_SCORED`, `KNOCK_ON`, `CARRY_RESOLVED`, `LINEOUT_RESOLVED`) — not primitive setters. Narrow exception: structural setters (`BALL_REPOSITIONED`, `PHASE_CHANGED`, `BREAKDOWN_MOD_SET`, `POSSESSION_SWAPPED`, `POSSESSION_SET`) where the domain has no single name.
@@ -103,10 +105,11 @@ When code changes, update the corresponding doc in the same commit.
 ## Commands
 
 ```bash
-npm run dev      # start Vite dev server (hot reload)
-npm run build    # tsc type-check then Vite production build → dist/
-npm run preview  # serve the dist/ folder locally
-npm run verify   # match determinism (scripts/checkDeterminism.ts) AND season determinism (scripts/checkSeasonDeterminism.ts) — both must pass
+npm run dev       # start Vite dev server (hot reload)
+npm run build     # tsc type-check then Vite production build → dist/
+npm run preview   # serve the dist/ folder locally
+npm run verify    # match determinism (scripts/checkDeterminism.ts) AND season determinism (scripts/checkSeasonDeterminism.ts) — both must pass
+npm run telemetry # balance tuning report (scripts/telemetry.ts) — 90-fixture league pass, markdown to stdout. Not part of `verify`; run on demand when tuning.
 ```
 
 No tests or linters. TypeScript strict mode is the primary correctness check. Both `npm run build` and `npm run verify` must pass cleanly before every commit.
@@ -133,7 +136,7 @@ No tests or linters. TypeScript strict mode is the primary correctness check. Bo
 
 **Attack direction.** Home attacks toward x=100 in the first half, toward x=0 in the second. Teams swap ends only at half-time, never on turnovers. All `ball.x` reasoning must go through the pure helpers in `src/engine/FieldPosition.ts` — they factor in `state.clock.halfTimeDone`. Snapshot DTOs (`GameEvent`, `PenaltyContext`, `MatchEvent` payloads) keep flat `ballX`/`ballY` scalars; see Section 3.
 
-**Tactics.** Five dimensions in `TeamTactics` (`src/types/team.ts`). The managed team can change all five mid-match via the tactics modal; AI uses `DEFAULT_TACTICS` and cannot be changed via UI. Kick-off strategy is per-kick (not a standing tactic) — managed team picks via modal, AI defaults to `high_ball`. Effects, probability tables, and tactic-note triggers: `docs/engine.md` "Carry Phases" + "Tactical Commentary".
+**Tactics.** Five dimensions in `TeamTactics` (`src/types/team.ts`). The managed team can change all five mid-match via the tactics modal. The AI side opens each match on its team's authored `suggestedTactics` (from `src/data/team-*.json`, surfaced on `RawTeamInput.suggestedTactics`) — *not* `DEFAULT_TACTICS`, which is now only the fallback when no authored value exists. Mid-match the AI is adapted by `AITacticalDirector` (see Section 4): inside the final 15 minutes a score gap of ≥ 8 flips it into `AI_INTENT_CHASING` (trailing) or `AI_INTENT_PROTECTING` (leading); otherwise it sits on the baseline. The director never proposes tactics for the human side. Kick-off strategy is per-kick (not a standing tactic) — managed team picks via modal, AI defaults to `high_ball`. Effects, probability tables, and tactic-note triggers: `docs/engine.md` "Tactics: who picks what" + "Carry Phases" + "Tactical Commentary".
 
 **Design system.** `docs/DESIGN.md` is the single source of truth for every colour, font, spacing, and component pattern. CSS custom properties in `style/main.css` `:root` — no hardcoded hex except primary CTA green (`#007a2a` / `#009434` active / `#006622` pressed) and team identity colours injected inline from team JSON.
 

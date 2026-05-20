@@ -55,7 +55,8 @@ The test: every changed line traces directly to the user's request.
 - Refactor incrementally. One cohesive split per commit; each commit must build clean and preserve behaviour.
 - A module-boundary change is an engine change — update `docs/engine.md` in the same commit.
 - **Navigation goes through `screenRouter.show(id)`** (`src/ui/ScreenRouter.ts`). Screen modules never poke `document.getElementById('…').style.display` directly; they accept `onForward`/`onBack` callbacks from `main.ts`. Adding a screen: (1) add the id to the `SCREENS` map in `ScreenRouter.ts`, (2) add a `<div id="…">` to `index.html`, (3) add a flat navigation handler in `main.ts`.
-- **`MatchCoordinator` owns its event-bus subscriptions and must be destroyed.** Constructor captures unsubs in `busUnsubs[]`; `destroy()` runs them, cancels the tick timer, and clears the run flag. `main.ts` calls `engine.destroy()` after the match-result overlay is dismissed.
+- **In-season screens (`HubScreen`, `FixtureListScreen`, `LeagueTableScreen`) are initialised once per game, not per navigation.** `initInSeasonScreens()` in `main.ts` runs after `GameCoordinator` is created (new season or `fromSave`); subsequent visits use bare `screenRouter.show(id)`. This is load-bearing: each screen registers `eventBus.on('game:*')` subscriptions at init time without an unsub, so re-initialising on every back/forward would duplicate handlers and leak. **Hub is the top of the in-season stack** — no back arrow; the Settings cog is the exit route to Home. Fixture-list and league-table back-buttons both return to Hub.
+- **`MatchCoordinator` owns its event-bus subscriptions and must be destroyed.** Constructor captures unsubs in `busUnsubs[]`; `destroy()` runs them, cancels the tick timer, and clears the run flag. `main.ts` calls `engine.destroy()` after the match-result overlay is dismissed. The **`silent: true`** constructor option (used by `src/game/simulateFixture.ts` for headless AI fixtures inside `recordPlayerMatchResult`) suppresses every `engine:*` emit except `engine:finished`, skips the constructor's UI-event subscriptions, and short-circuits `PenaltyHandler` modal prompts to `high_ball` / `kick_for_goal` defaults. `ClockController` takes the same flag.
 
 ## 5. Mutation Boundaries
 
@@ -102,7 +103,7 @@ When code changes, update the corresponding doc in the same commit.
 npm run dev      # start Vite dev server (hot reload)
 npm run build    # tsc type-check then Vite production build → dist/
 npm run preview  # serve the dist/ folder locally
-npm run verify   # run a fixed-seed match twice and assert identical event-log hash — fails loud on RNG-order regressions
+npm run verify   # match determinism (scripts/checkDeterminism.ts) AND season determinism (scripts/checkSeasonDeterminism.ts) — both must pass
 ```
 
 No tests or linters. TypeScript strict mode is the primary correctness check. Both `npm run build` and `npm run verify` must pass cleanly before every commit.
@@ -121,7 +122,11 @@ No tests or linters. TypeScript strict mode is the primary correctness check. Bo
 
 **Engine ↔ UI contract.** The engine never imports from UI; UI never calls engine methods directly **except** `SimController` (Play/Pause/Speed). All communication goes through the typed pub/sub singleton at `src/utils/eventBus.ts`. Within a single tick, `engine:event` is emitted **before** `engine:stateChange` — UI state caches from the prior tick are always valid by the time an event arrives. Engine event table and subscribers: `docs/engine.md` § "UI Event Bus Contract". UI subscriptions registered at startup are permanent; one-shots are explicitly unsub'd (e.g. `CommentaryFeed`'s team-colour cache).
 
-**Commentary is data, not text.** The engine populates `NarrationDescriptor` on every `GameEvent`; `CommentaryFeed.ts` calls `renderNarration(event)` to produce strings. Silent simulation = don't initialise `CommentaryFeed`.
+**Game engine ↔ UI contract.** Analogous, season-scope. `GameCoordinator` (`src/game/`) emits three `game:*` events on the same bus: `game:initialized` (after `newSeason` / `fromSave`), `game:fixtureRecorded` (once per result — the player's match plus every headless AI fixture of that round), and `game:weekAdvanced` (after the round completes and the calendar steps forward). Hub, FixtureList, and LeagueTable subscribe to these and re-render reactively. Headless AI fixtures inside `recordPlayerMatchResult` run silent `MatchCoordinator` instances, so they emit no `engine:*` UI noise — but they still emit `game:fixtureRecorded` so the league table updates live.
+
+**Navigation flow.** Home → Team Selector → Hub → PreMatch → Match → Result → Hub. The Hub (`src/ui/HubScreen.ts`) is the in-season control centre: six tiles route to Fixtures (`fixture-list`), League (`league-table`), and four placeholder destinations (Squad / Training / Contracts / Transfers — no-op handlers until those screens exist), plus a Settings cog and a "Go to next match" CTA. PreMatch back, MatchResult dismissal, and the sub-screen back-buttons all return to Hub. Settings has two entry points with different back targets — `goSettingsFromHome` (back → Home) and `goSettingsFromHub` (back → Hub) in `main.ts`.
+
+**Commentary is data, not text.** The engine populates `NarrationDescriptor` on every `GameEvent`; `CommentaryFeed.ts` calls `renderNarration(event)` to produce strings. CommentaryFeed is initialised once at startup and listens permanently; **silencing during a headless AI fixture is the engine's job, not the UI's** — set `silent: true` on the `MatchCoordinator` (see Section 4).
 
 **Attack direction.** Home attacks toward x=100 in the first half, toward x=0 in the second. Teams swap ends only at half-time, never on turnovers. All `ball.x` reasoning must go through the pure helpers in `src/engine/FieldPosition.ts` — they factor in `state.clock.halfTimeDone`. Snapshot DTOs (`GameEvent`, `PenaltyContext`, `MatchEvent` payloads) keep flat `ballX`/`ballY` scalars; see Section 3.
 

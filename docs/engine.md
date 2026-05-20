@@ -1011,7 +1011,11 @@ Home team: shown as a 4th option in the modal when `clockInTheRed`. Away team AI
 
 ### How a try arises
 
-`TryScored` is set inside the `OpenPlay` handler when a `line_break` result causes `isTryScored()` to return true — i.e. the ball has crossed the attacking try line after `gainMetres` are applied.
+`TryScored` is set inside the `OpenPlay` handler when a `line_break` result causes `isTryScored()` to return true — i.e. the ball has crossed the attacking try line after `gainMetres` are applied. The same branch runs in `FirstPhase` and `KickReturn` for tries scored from set-piece strike plays and broken-field returns respectively.
+
+### Lateral landing position
+
+When a carry crosses the try line each of the three carry handlers (`OpenPlay`, `FirstPhase`, `KickReturn`) calls `tryLandingY(attackTeam.tactics.attackingStyle)` from `src/engine/resolvers/TryLocationResolver.ts` and emits a `BALL_REPOSITIONED` with the resulting y. Spread is uniform around the midline with a half-spread keyed off `attackingStyle`: `keep_it_tight` ±12, `balanced` ±25, `wide_wide` ±45. The same y then drives `ConversionKickEvent`'s difficulty calculation (which already read `|ballY − 50|`) and the post-try narration band: central (≤ 7), close (≤ 17), wide (≤ 32), corner (otherwise). Phrases live in the `try_location_*` keys of `src/commentary/banks/en-GB/announcements.ts`.
 
 ### Resolution
 

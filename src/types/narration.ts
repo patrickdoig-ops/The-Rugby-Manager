@@ -55,7 +55,9 @@ export type AnnouncementKey =
   | 'half_time_whistle'        | 'full_time_summary'
   | 'substitution'
   | 'fatigue_tiredness'
-  | 'set_piece_award';
+  | 'set_piece_award'
+  | 'try_location_central' | 'try_location_close'
+  | 'try_location_wide'    | 'try_location_corner';
 
 export interface TacticNoteParams {
   defendTeamName?: string;

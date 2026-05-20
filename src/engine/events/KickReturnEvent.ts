@@ -3,6 +3,7 @@ import type { MatchEvent } from '../../types/matchEvent';
 import type { NarrationDescriptor } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
+import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
 import { attackDir, isTryScoredAt, inOwnHalf, inOwn22 } from '../FieldPosition';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
@@ -71,6 +72,9 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
     nextPhase = tryScored ? MatchPhase.TryScored : MatchPhase.Breakdown;
     if (tryScored) {
       steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'line_break_try', primary: carrier, secondary: defender });
+      const y = tryLandingY(attackTeam.tactics.attackingStyle);
+      events.push({ type: 'BALL_REPOSITIONED', y });
+      steps.push({ kind: 'announcement', key: `try_location_${tryLocationBand(y)}` });
     } else {
       steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'line_break', primary: carrier, secondary: defender });
       if (backfieldPenalty < 0) {

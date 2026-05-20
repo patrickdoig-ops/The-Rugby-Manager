@@ -173,9 +173,9 @@ export function initPreMatchScreen(
   playerSide: 'home' | 'away',
   roundNumber: number,
   onStart: (configuredHome: RawTeam, configuredAway: RawTeam, playerTactics: TeamTactics) => void,
+  onBack: () => void,
 ): void {
   const screen = document.getElementById('pre-match')!;
-  screen.style.display = '';
   screen.classList.remove('pm-exit');
 
   let homeStarters: RawPlayer[] = (home.players as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
@@ -377,8 +377,7 @@ export function initPreMatchScreen(
 
   screen.querySelector('#pm-back')!.addEventListener('click', () => {
     unsubTactics();
-    screen.style.display = 'none';
-    document.getElementById('fixture-list')!.style.display = '';
+    onBack();
   });
 
   tabs.forEach(tab => {
@@ -396,7 +395,6 @@ export function initPreMatchScreen(
     screen.classList.add('pm-exit');
     setTimeout(() => {
       unsubTactics();
-      screen.style.display = 'none';
       const configuredHome = playerSide === 'home'
         ? { ...home, players: homeStarters, bench: homeBench } as unknown as RawTeam
         : home as unknown as RawTeam;

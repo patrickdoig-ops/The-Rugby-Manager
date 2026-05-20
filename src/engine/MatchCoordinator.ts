@@ -111,6 +111,7 @@ export class MatchCoordinator {
   private humanSide: 'home' | 'away';
   private penaltyHandler: PenaltyHandler;
   private clock: ClockController;
+  private busUnsubs: Array<() => void> = [];
 
   constructor(
     homeRaw: RawTeamInput,
@@ -132,15 +133,32 @@ export class MatchCoordinator {
       humanSide: this.humanSide,
     });
 
-    eventBus.on('ui:tacticsChange', ({ teamId, tactics }) => {
-      if (teamId === 'home' || teamId === 'away') {
-        applyMatchEvent(this.state, { type: 'TACTICS_UPDATED', side: teamId, tactics });
-      }
-    });
+    this.busUnsubs.push(
+      eventBus.on('ui:tacticsChange', ({ teamId, tactics }) => {
+        if (teamId === 'home' || teamId === 'away') {
+          applyMatchEvent(this.state, { type: 'TACTICS_UPDATED', side: teamId, tactics });
+        }
+      }),
+      eventBus.on('ui:substitution', ({ benchSquadNum, fieldSquadNum }) => {
+        this.substitute(this.humanSide, benchSquadNum, fieldSquadNum);
+      }),
+    );
+  }
 
-    eventBus.on('ui:substitution', ({ benchSquadNum, fieldSquadNum }) => {
-      this.substitute(this.humanSide, benchSquadNum, fieldSquadNum);
-    });
+  // Releases all per-match resources: cancels the pending tick timer, stops the
+  // run flag, and unsubscribes the constructor-registered UI-event handlers.
+  // After destroy() returns, the coordinator is inert and may be garbage-collected
+  // as soon as the caller drops its reference. Safe to call multiple times.
+  destroy(): void {
+    if (this.tickTimeout) {
+      clearTimeout(this.tickTimeout);
+      this.tickTimeout = null;
+    }
+    if (this.state.engine.isRunning) {
+      applyMatchEvent(this.state, { type: 'IS_RUNNING_SET', value: false });
+    }
+    for (const unsub of this.busUnsubs) unsub();
+    this.busUnsubs = [];
   }
 
   getHumanSide(): 'home' | 'away' {

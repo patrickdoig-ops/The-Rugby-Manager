@@ -101,7 +101,6 @@ export function initHomeScreen(onStart: () => void): void {
   });
 
   el.querySelector<HTMLButtonElement>('#start-game-btn')!.addEventListener('click', () => {
-    el.style.display = 'none';
     onStart();
   });
 }

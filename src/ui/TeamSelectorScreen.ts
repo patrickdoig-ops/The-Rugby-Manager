@@ -11,10 +11,10 @@ function crestHtml(initial: string, color: string, size: number): string {
 export function initTeamSelectorScreen(
   teams: RawTeamInput[],
   onSelect: (team: RawTeamInput) => void,
+  onBack: () => void,
 ): void {
   const el = document.getElementById('team-selector');
   if (!el) return;
-  el.style.display = '';
 
   const sortedTeams = [...teams].sort((a, b) => a.name.localeCompare(b.name));
 
@@ -42,14 +42,12 @@ export function initTeamSelectorScreen(
   `;
 
   el.querySelector<HTMLButtonElement>('#ts-back')!.addEventListener('click', () => {
-    el.style.display = 'none';
-    document.getElementById('home-screen')!.style.display = '';
+    onBack();
   });
 
   el.querySelectorAll<HTMLButtonElement>('.ts-card').forEach(btn => {
     btn.addEventListener('click', () => {
       const team = teams.find(t => t.id === btn.dataset.id)!;
-      el.style.display = 'none';
       onSelect(team);
     });
   });

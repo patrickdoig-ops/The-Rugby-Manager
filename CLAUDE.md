@@ -70,6 +70,8 @@ The test: would renaming this break replay, an existing log entry, or a downstre
 - Extract a shared utility the moment a second module needs it, not before. `eventId.ts` was extracted only when both `PenaltyHandler` and `ClockController` needed `makeId()`.
 - Refactor incrementally. One cohesive split per commit; each commit must build clean and preserve behaviour. Big-bang refactors are unreviewable.
 - A module-boundary change is an engine change — update `engine.md` in the same commit.
+- **Navigation goes through `screenRouter.show(id)`** (`src/ui/ScreenRouter.ts`). Screen modules never poke `document.getElementById('…').style.display` directly; they accept `onForward` / `onBack` callbacks from `main.ts` and `main.ts` decides the next route. Adding a screen means: (1) add the id to the `SCREENS` map in `ScreenRouter.ts`, (2) add a `<div id="…">` element to `index.html`, (3) add a flat navigation handler in `main.ts`.
+- **`MatchCoordinator` owns its event-bus subscriptions and must be destroyed.** The constructor captures unsubs in `busUnsubs[]`; `destroy()` runs them, cancels the tick timer, and clears the run flag. `main.ts` calls `engine.destroy()` after the user dismisses the match-result overlay so the previous match's `MatchState` can be GC'd before the next round starts.
 
 ## 5. Mutation Boundaries
 

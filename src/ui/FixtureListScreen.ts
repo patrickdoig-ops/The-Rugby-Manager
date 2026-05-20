@@ -17,6 +17,7 @@ export function initFixtureListScreen(
   playerTeam: RawTeamInput,
   allTeams: RawTeamInput[],
   onPlay: (homeTeam: RawTeamInput, awayTeam: RawTeamInput, playerSide: 'home' | 'away', round: number) => void,
+  onBack: () => void,
 ): { recordResult(round: number, homeScore: number, awayScore: number): void } {
   const el = document.getElementById('fixture-list');
   if (!el) return { recordResult() {} };
@@ -80,7 +81,6 @@ export function initFixtureListScreen(
       `;
       el!.querySelector<HTMLButtonElement>('#fl-play-next')!.addEventListener('click', () => {
         const fixture = fixtures.find(f => f.round === currentRound)!;
-        el!.style.display = 'none';
         onPlay(fixture.homeTeam, fixture.awayTeam, fixture.playerSide, fixture.round);
       });
     }
@@ -101,8 +101,7 @@ export function initFixtureListScreen(
   `;
 
   el.querySelector<HTMLButtonElement>('#fl-back')!.addEventListener('click', () => {
-    el.style.display = 'none';
-    document.getElementById('team-selector')!.style.display = '';
+    onBack();
   });
 
   render();

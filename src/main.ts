@@ -19,8 +19,11 @@ import { initPreMatchScreen }      from './ui/PreMatchScreen';
 import { initHomeScreen }          from './ui/HomeScreen';
 import { initTeamSelectorScreen }  from './ui/TeamSelectorScreen';
 import { initFixtureListScreen }   from './ui/FixtureListScreen';
+import { screenRouter }            from './ui/ScreenRouter';
 import { MatchCoordinator }        from './engine/MatchCoordinator';
 import type { RawTeamInput }       from './engine/MatchCoordinator';
+import type { TeamTactics }        from './types/team';
+import type { MatchState }         from './types/match';
 import { eventBus }                from './utils/eventBus';
 
 import gloucesterRaw   from './data/team-gloucester.json';
@@ -38,41 +41,64 @@ document.addEventListener('DOMContentLoaded', () => {
   initStatsPanel();
   initModalManager();
 
-  initHomeScreen(() => {
-    initTeamSelectorScreen(allTeams, (playerTeam) => {
-      const fixtureList = initFixtureListScreen(playerTeam, allTeams, (homeTeam, awayTeam, playerSide, round) => {
-        initPreMatchScreen(
-          homeTeam as RawTeamInput,
-          awayTeam as RawTeamInput,
-          playerSide,
-          round,
-          (configuredHome, configuredAway, playerTactics) => {
-            const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: 2000, playerTactics, humanSide: playerSide });
-            initSimController(engine);
+  let fixtureList: ReturnType<typeof initFixtureListScreen> | null = null;
 
-            const mrEl     = document.getElementById('match-result')!;
-            const mrScore  = document.getElementById('mr-score')!;
-            const mrTeams  = document.getElementById('mr-teams')!;
-            const mrReturn = document.getElementById('mr-return') as HTMLButtonElement;
-            const flEl     = document.getElementById('fixture-list')!;
+  function goHome(): void {
+    screenRouter.show('home');
+  }
 
-            const unsub = eventBus.on('engine:finished', ({ state }) => {
-              unsub();
-              mrScore.textContent = `${state.score.home} – ${state.score.away}`;
-              mrTeams.textContent = `${state.homeTeam.name}  ·  ${state.awayTeam.name}`;
-              mrEl.style.display = 'flex';
+  function goTeamSelector(): void {
+    initTeamSelectorScreen(allTeams, onTeamPicked, goHome);
+    screenRouter.show('team-selector');
+  }
 
-              mrReturn.onclick = () => {
-                mrEl.style.display = 'none';
-                fixtureList.recordResult(round, state.score.home, state.score.away);
-                flEl.style.display = '';
-              };
-            });
+  function onTeamPicked(team: RawTeamInput): void {
+    fixtureList = initFixtureListScreen(team, allTeams, onPlayRound, goTeamSelector);
+    screenRouter.show('fixture-list');
+  }
 
-            engine.initialize();
-          },
-        );
-      });
+  function onPlayRound(homeTeam: RawTeamInput, awayTeam: RawTeamInput, playerSide: 'home' | 'away', round: number): void {
+    initPreMatchScreen(
+      homeTeam,
+      awayTeam,
+      playerSide,
+      round,
+      (configuredHome, configuredAway, playerTactics) => onMatchStart(configuredHome, configuredAway, playerSide, round, playerTactics),
+      () => screenRouter.show('fixture-list'),
+    );
+    screenRouter.show('pre-match');
+  }
+
+  function onMatchStart(
+    configuredHome: RawTeamInput,
+    configuredAway: RawTeamInput,
+    playerSide: 'home' | 'away',
+    round: number,
+    playerTactics: TeamTactics,
+  ): void {
+    const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: 2000, playerTactics, humanSide: playerSide });
+    initSimController(engine);
+    screenRouter.show('app');
+
+    const unsub = eventBus.on('engine:finished', ({ state }) => {
+      unsub();
+      showMatchResult(engine, state, round);
     });
-  });
+    engine.initialize();
+  }
+
+  function showMatchResult(engine: MatchCoordinator, state: MatchState, round: number): void {
+    document.getElementById('mr-score')!.textContent = `${state.score.home} – ${state.score.away}`;
+    document.getElementById('mr-teams')!.textContent = `${state.homeTeam.name}  ·  ${state.awayTeam.name}`;
+    screenRouter.show('match-result');
+
+    (document.getElementById('mr-return') as HTMLButtonElement).onclick = () => {
+      fixtureList!.recordResult(round, state.score.home, state.score.away);
+      engine.destroy();
+      screenRouter.show('fixture-list');
+    };
+  }
+
+  initHomeScreen(goTeamSelector);
+  screenRouter.show('home');
 });

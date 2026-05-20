@@ -4,6 +4,7 @@ import '../style/settings.css';
 import '../style/teamselector.css';
 import '../style/teaminfo.css';
 import '../style/fixturelist.css';
+import '../style/hub.css';
 import '../style/matchresult.css';
 import '../style/commentary.css';
 import '../style/stats.css';

@@ -88,7 +88,9 @@ At match init (`MatchCoordinator.initMatchState`):
 - **AI side** uses the team's `suggestedTactics` from `RawTeamInput` — authored per club in `src/data/team-*.json`. Each side gets its own identity at kick-off (Bath two-back fullback cover, Saracens jackal-heavy defence, etc.) rather than a single league-wide `DEFAULT_TACTICS`.
 - If neither input is present (e.g. legacy fixture data without `suggestedTactics`), `buildTeam` falls through to `DEFAULT_TACTICS`.
 
-Mid-match the human can swap any dimension via the tactics modal (`ui:tacticsChange` bus event → `TACTICS_UPDATED` `MatchEvent`). The AI has no UI; in-match adjustments are written by code, not the user. Both paths share the same mutation seam — `applyMatchEvent` is the only writer of `team.tactics`.
+Mid-match the human can swap any dimension via the tactics modal (`ui:tacticsChange` bus event → `TACTICS_UPDATED` `MatchEvent`). The AI has no UI; in-match adjustments are written by `AITacticalDirector` (see below). Both paths share the same mutation seam — `applyMatchEvent` is the only writer of `team.tactics`.
+
+**`AITacticalDirector`** (`src/engine/AITacticalDirector.ts`) is a pure (no RNG) module owned by `MatchCoordinator`. It's instantiated alongside `clock` / `fatigue` and called once per tick — `director.evaluate()` runs *before* `resolvePhase()`, so a tactic change applies to the same tick that triggered it. The director never proposes tactics for the human side; in silent (fully-headless) fixtures the constructor is given `humanSide: undefined` so both teams adapt. Tuning lives in `src/engine/balance/aiDirector.ts`: `scoreGapTrigger` (8 points) and `minutesRemainingTrigger` (15 minutes) gate the flip. Two named intent bundles overlay the team's baseline `suggestedTactics`: `AI_INTENT_CHASING` (possession + wide_wide + wide_play + one_back — trailing late) and `AI_INTENT_PROTECTING` (kicking + keep_it_tight + pick_and_drive + shadow + two_back — leading late). Outside the late-game window or within the score-gap dead band, the director reverts each side to its captured baseline.
 
 ### `MatchState` shape
 

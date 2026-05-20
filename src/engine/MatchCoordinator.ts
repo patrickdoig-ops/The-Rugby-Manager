@@ -14,6 +14,7 @@ import { detectEntry22Changes } from './Entry22Tracker';
 import { resolvePhase, draftEvent } from './PhaseRouter';
 import { makeId, resetEventCounter } from './eventId';
 import { applyMatchEvent } from './applyMatchEvent';
+import { AITacticalDirector } from './AITacticalDirector';
 
 function deepCloneStats(s: PlayerStats): PlayerStats {
   return { ...s };
@@ -102,6 +103,7 @@ export class MatchCoordinator {
   private penaltyHandler: PenaltyHandler;
   private clock: ClockController;
   private fatigue: FatigueAccumulator;
+  private director: AITacticalDirector;
   private busUnsubs: Array<() => void> = [];
   // Silent matches suppress every engine event except `engine:finished`
   // (which the headless caller awaits) so the live UI stays inert while a
@@ -129,6 +131,12 @@ export class MatchCoordinator {
       humanSide: this.humanSide,
       silent: this.silent,
     });
+
+    // Director adapts AI tactics each tick based on score gap + clock. In
+    // silent (fully headless) mode, no humanSide is meaningful — pass
+    // undefined so both teams adapt. In a live match, the human owns their
+    // side via the modal, so director leaves it alone.
+    this.director = new AITacticalDirector(this.state, this.silent ? undefined : this.humanSide);
 
     if (!this.silent) {
       this.busUnsubs.push(
@@ -329,6 +337,10 @@ export class MatchCoordinator {
         applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
         this.emitEvent(announceEvent);
       }
+
+      // AI tactical adaptation runs before resolvePhase so the new tactics
+      // take effect on the very tick that meets the trigger condition.
+      this.director.evaluate();
 
       const event = resolvePhase(this.state, this.kickOffStrategy);
       applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event });

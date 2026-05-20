@@ -51,21 +51,21 @@ function renderStats(state: MatchState): string {
     awayNum: number;
     invert?: boolean;
   }> = [
-    { label: 'Possession', homeVal: pct(stats.possession.home, stats.possession.away),   awayVal: pct(stats.possession.away, stats.possession.home),   homeNum: stats.possession.home,        awayNum: stats.possession.away },
-    { label: 'Territory',  homeVal: pct(stats.territory.home,  stats.territory.away),    awayVal: pct(stats.territory.away,  stats.territory.home),    homeNum: stats.territory.home,         awayNum: stats.territory.away },
-    { label: 'Tackle %',   homeVal: tacklePct(stats.tackles.home), awayVal: tacklePct(stats.tackles.away), homeNum: stats.tackles.home.made, awayNum: stats.tackles.away.made },
-    { label: 'Errors',     homeVal: String(stats.handlingErrors.home), awayVal: String(stats.handlingErrors.away), homeNum: stats.handlingErrors.home, awayNum: stats.handlingErrors.away, invert: true },
-    { label: 'Tries',      homeVal: String(stats.tries.home),    awayVal: String(stats.tries.away),    homeNum: stats.tries.home,    awayNum: stats.tries.away },
-    { label: 'Scrums',     homeVal: String(stats.scrums.home),   awayVal: String(stats.scrums.away),   homeNum: stats.scrums.home,   awayNum: stats.scrums.away },
-    { label: 'Lineouts',   homeVal: String(stats.lineouts.home), awayVal: String(stats.lineouts.away), homeNum: stats.lineouts.home, awayNum: stats.lineouts.away },
+    { label: 'Possession',     homeVal: pct(stats.possession.home, stats.possession.away),   awayVal: pct(stats.possession.away, stats.possession.home),   homeNum: stats.possession.home, awayNum: stats.possession.away },
+    { label: 'Territory',      homeVal: pct(stats.territory.home,  stats.territory.away),    awayVal: pct(stats.territory.away,  stats.territory.home),    homeNum: stats.territory.home,  awayNum: stats.territory.away },
+    { label: 'Tries',          homeVal: String(stats.tries.home),    awayVal: String(stats.tries.away),    homeNum: stats.tries.home,    awayNum: stats.tries.away },
+    { label: '22 entries',     homeVal: String(stats.entries22.home.count), awayVal: String(stats.entries22.away.count), homeNum: stats.entries22.home.count, awayNum: stats.entries22.away.count },
+    { label: 'Points / entry', homeVal: pointsPerEntry(stats.entries22.home), awayVal: pointsPerEntry(stats.entries22.away), homeNum: stats.entries22.home.pointsScored, awayNum: stats.entries22.away.pointsScored },
+    { label: 'Run metres',     homeVal: String(hRunM),  awayVal: String(aRunM),  homeNum: hRunM,  awayNum: aRunM },
+    { label: 'Kick metres',    homeVal: String(hKickM), awayVal: String(aKickM), homeNum: hKickM, awayNum: aKickM },
+    { label: 'Errors',         homeVal: String(stats.handlingErrors.home), awayVal: String(stats.handlingErrors.away), homeNum: stats.handlingErrors.home, awayNum: stats.handlingErrors.away, invert: true },
+    { label: 'Tackle %',       homeVal: tacklePct(stats.tackles.home), awayVal: tacklePct(stats.tackles.away), homeNum: stats.tackles.home.made, awayNum: stats.tackles.away.made },
+    { label: 'Tackles made',   homeVal: String(stats.tackles.home.made), awayVal: String(stats.tackles.away.made), homeNum: stats.tackles.home.made, awayNum: stats.tackles.away.made },
+    { label: 'Missed tackles', homeVal: String(hMissed), awayVal: String(aMissed), homeNum: hMissed, awayNum: aMissed, invert: true },
+    { label: 'Lineouts',        homeVal: String(stats.lineouts.home), awayVal: String(stats.lineouts.away), homeNum: stats.lineouts.home, awayNum: stats.lineouts.away },
     { label: 'Lineout success', homeVal: setPieceSuccess(stats.ownLineouts.home), awayVal: setPieceSuccess(stats.ownLineouts.away), homeNum: stats.ownLineouts.home.won, awayNum: stats.ownLineouts.away.won },
+    { label: 'Scrums',          homeVal: String(stats.scrums.home),   awayVal: String(stats.scrums.away),   homeNum: stats.scrums.home,   awayNum: stats.scrums.away },
     { label: 'Scrum success',   homeVal: setPieceSuccess(stats.ownScrums.home),   awayVal: setPieceSuccess(stats.ownScrums.away),   homeNum: stats.ownScrums.home.won,   awayNum: stats.ownScrums.away.won },
-    { label: 'Run metres',      homeVal: String(hRunM),  awayVal: String(aRunM),  homeNum: hRunM,  awayNum: aRunM },
-    { label: 'Kick metres',     homeVal: String(hKickM), awayVal: String(aKickM), homeNum: hKickM, awayNum: aKickM },
-    { label: 'Tackles made',    homeVal: String(stats.tackles.home.made), awayVal: String(stats.tackles.away.made), homeNum: stats.tackles.home.made, awayNum: stats.tackles.away.made },
-    { label: 'Missed tackles',  homeVal: String(hMissed), awayVal: String(aMissed), homeNum: hMissed, awayNum: aMissed, invert: true },
-    { label: '22 entries',      homeVal: String(stats.entries22.home.count), awayVal: String(stats.entries22.away.count), homeNum: stats.entries22.home.count, awayNum: stats.entries22.away.count },
-    { label: 'Points / entry',  homeVal: pointsPerEntry(stats.entries22.home), awayVal: pointsPerEntry(stats.entries22.away), homeNum: stats.entries22.home.pointsScored, awayNum: stats.entries22.away.pointsScored },
   ];
 
   const rowsHtml = rows.map(r => {

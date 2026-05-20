@@ -3,6 +3,7 @@ import type { MatchEvent } from '../../types/matchEvent';
 import type { NarrationStep } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
+import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
 import { attackDir, isTryScoredAt, inOwnHalf, inOwn22 } from '../FieldPosition';
 import { rng } from '../../utils/rng';
@@ -166,6 +167,14 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   } else {
     nextPhase = MatchPhase.Breakdown;
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: res.outcome, primary: ballCarrier, secondary: defender });
+  }
+
+  // High-tackle check: applies on top of the carry result (carrier keeps the
+  // metres — advantage law). Skipped on line breaks.
+  if (res.outcome !== 'line_break' && tackleInfringement(defender) === 'high_tackle') {
+    events.push({ type: 'PENALTY_AWARDED', offence: 'high_tackle', offender: defender, offendingSide: defSide });
+    outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'high_tackle_penalty', primary: defender, secondary: ballCarrier });
+    nextPhase = MatchPhase.Penalty;
   }
 
   return {

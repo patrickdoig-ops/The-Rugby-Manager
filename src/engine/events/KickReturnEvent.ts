@@ -3,6 +3,7 @@ import type { MatchEvent } from '../../types/matchEvent';
 import type { NarrationDescriptor } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
+import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
 import { attackDir, isTryScoredAt, inOwnHalf, inOwn22 } from '../FieldPosition';
 import { rng } from '../../utils/rng';
@@ -92,6 +93,14 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
   } else {
     nextPhase = MatchPhase.Breakdown;
     steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: res.outcome, primary: carrier, secondary: defender });
+  }
+
+  // High-tackle check: applies on top of the carry result (carrier keeps the
+  // metres — advantage law). Skipped on line breaks.
+  if (res.outcome !== 'line_break' && tackleInfringement(defender) === 'high_tackle') {
+    events.push({ type: 'PENALTY_AWARDED', offence: 'high_tackle', offender: defender, offendingSide: defSide });
+    steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'high_tackle_penalty', primary: defender, secondary: carrier });
+    nextPhase = MatchPhase.Penalty;
   }
 
   return {

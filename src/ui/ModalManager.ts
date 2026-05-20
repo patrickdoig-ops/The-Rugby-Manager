@@ -6,6 +6,7 @@ import { renderSubstitutionPanel } from './SubstitutionModal';
 const OFFENCE_LABELS: Record<PenaltyOffence, string> = {
   breakdown_infringement: 'Breakdown infringement',
   scrum_infringement:     'Scrum infringement',
+  high_tackle:            'High tackle',
 };
 
 const CHOICE_LABELS: Record<PenaltyChoice, string> = {

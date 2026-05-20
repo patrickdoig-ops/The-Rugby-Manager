@@ -969,8 +969,24 @@ The `PenaltyOffence` taxonomy (`src/types/engine.ts`) starts narrow and grows as
 | `breakdown_infringement` | `BreakdownEvent` | `supporters[0]` from the attacking team | breakdown margin ≤ −15 (attacker infringes at the ruck) |
 | `scrum_infringement` (attacking_dominant_penalty) | `ScrumEvent` | defending hooker | scrum margin > 15 (defending pack collapses) |
 | `scrum_infringement` (defending_dominant_penalty) | `ScrumEvent` | attacking hooker | scrum margin ≤ −15 (attacking pack collapses) |
+| `high_tackle` | `OpenPlayEvent` / `FirstPhaseEvent` / `KickReturnEvent` | the defender who attempted the tackle | `tackleInfringement(defender)` returns `'high_tackle'`, gated to non-line-break collisions |
 
 `SCRUM_RESOLVED` still owns the scrum-specific front-row stat increments (`scrumPenaltiesWon++` / `scrumPenaltiesConceded++` on every player in the dominated/dominant front row). The follow-up `PENALTY_AWARDED` adds the general `penaltiesConceded++` on the picked hooker; that's why a scrum-penalty hooker now carries both counters (the previous shape only bumped `penaltiesConceded` for breakdown penalties — the new shape is symmetric).
+
+### High tackle
+
+`tackleInfringement(defender)` (`src/engine/resolvers/TackleInfringementResolver.ts`) is a pure helper called from the three carry handlers after `resolveOpenPlay` returns, but only when the carry didn't produce a line break (no completed tackle on a line break). It combines the defender's `tackling` + `discipline` (pivoting around 50) with one `rng(1,100)` roll against `HIGH_TACKLE` (`src/engine/balance/discipline.ts`):
+
+```
+pct = max(minPct, basePct
+                + (50 − tackling)   × tacklingWeight
+                + (50 − discipline) × disciplineWeight)
+high_tackle if rng(1,100) ≤ pct
+```
+
+Current values: `basePct=8`, `tacklingWeight=0.1`, `disciplineWeight=0.1`, `minPct=2.5`. A 50/50 defender sits at 8% per tackle; a 80/75 elite defender drops to the 2.5% floor; a 30/30 weak defender rises to 12%. Realistic match output: ~0.5–1 high tackles per team per match, scaling slightly with squad quality.
+
+When fired, the carry handler emits `CARRY_RESOLVED` first (so the carrier still earns the metres — advantage law) and then `PENALTY_AWARDED { offence: 'high_tackle', offender: defender, offendingSide: defSide }`, overriding `nextPhase` to `Penalty`. The narration appends a `high_tackle_penalty` `phase_outcome` step after the carry-outcome step, so the commentary reads "dominant tackle on Smith... high! Penalty against the tackler."
 
 ### Interactive pause decision
 

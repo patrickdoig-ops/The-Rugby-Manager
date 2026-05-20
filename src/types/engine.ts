@@ -32,7 +32,7 @@ export type PenaltyChoice   = 'kick_for_goal' | 'kick_to_touch' | 'tap_and_go' |
 // so PenaltyHandler / the modal / the commentary feed can describe why the
 // whistle blew. Grows as new offence types are added (e.g. 'high_tackle',
 // 'offside', 'not_rolling_away').
-export type PenaltyOffence = 'breakdown_infringement' | 'scrum_infringement';
+export type PenaltyOffence = 'breakdown_infringement' | 'scrum_infringement' | 'high_tackle';
 
 export interface PenaltyContext {
   phase: MatchPhase;

@@ -22,4 +22,5 @@ export * from './tactics';
 export * from './aiDirector';
 export * from './clock';
 export * from './commentary';
+export * from './discipline';
 export * from './season';

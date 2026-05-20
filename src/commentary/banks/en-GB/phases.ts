@@ -60,6 +60,12 @@ const PHASE_PLAY: PhaseBank = {
     'Hard carry from {primary}. He earns a few metres before {secondary} makes the tackle.',
     '{primary} goes to ground after contact. The ball is available.',
   ],
+  high_tackle_penalty: [
+    'High! The referee\'s arm is straight up — {primary} caught {secondary} around the neck. Penalty to {defside}.',
+    '{primary} goes in high on {secondary}! The whistle blows immediately — penalty {defside}.',
+    'No arms, high contact from {primary} — referee comes back for the penalty.',
+    '{primary} swings the arm and gets {secondary} around the head. {defside} have the penalty.',
+  ],
 };
 
 const FIRST_PHASE: PhaseBank = {
@@ -115,6 +121,11 @@ const FIRST_PHASE: PhaseBank = {
     'First phase earns a few metres — {primary} goes to ground and {side} recycle.',
     '{primary} carries into contact and {secondary} brings him down. Ruck forms.',
   ],
+  high_tackle_penalty: [
+    'High tackle from {primary} off the set piece! Straight to the penalty for {defside}.',
+    '{primary} catches {secondary} high on the first-phase tackle — referee blows it up.',
+    'No wrap and high contact from {primary}! {defside} get the penalty from the set-piece play.',
+  ],
 };
 
 const KICK_RETURN: PhaseBank = {
@@ -152,6 +163,11 @@ const KICK_RETURN: PhaseBank = {
     'Good metres from {primary} on the kick return. {secondary} makes the tackle.',
     '{primary} runs it back well before the cover arrives. Ruck forms.',
     '{secondary} makes the tackle on {primary} — solid return but {side} held up.',
+  ],
+  high_tackle_penalty: [
+    '{primary} flies in high on the returner! Penalty {defside} — the chaser swung the arm.',
+    'Reckless chase from {primary} — he catches {secondary} around the neck on the return. Penalty {defside}.',
+    'High tackle on the kick return! {primary} hits {secondary} above the line — {defside} get the penalty.',
   ],
 };
 

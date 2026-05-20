@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "verify": "tsx scripts/checkDeterminism.ts"
+    "verify": "tsx scripts/checkDeterminism.ts && tsx scripts/checkSeasonDeterminism.ts"
   },
   "devDependencies": {
     "tsx": "^4.19.0",

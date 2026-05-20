@@ -20,3 +20,4 @@ export * from './rating';
 export * from './tactics';
 export * from './clock';
 export * from './commentary';
+export * from './season';

@@ -120,38 +120,57 @@ export class MatchCoordinator {
   private clock: ClockController;
   private fatigue: FatigueAccumulator;
   private busUnsubs: Array<() => void> = [];
+  // Silent matches suppress every engine event except `engine:finished`
+  // (which the headless caller awaits) so the live UI stays inert while a
+  // background AI fixture runs. PenaltyHandler short-circuits modal prompts
+  // to the same defaults the determinism harness uses.
+  private silent: boolean;
 
   constructor(
     homeRaw: RawTeamInput,
     awayRaw: RawTeamInput,
-    opts: { tickDelayMs?: number; homeTactics?: TeamTactics; playerTactics?: TeamTactics; humanSide?: 'home' | 'away'; seed?: number } = {},
+    opts: { tickDelayMs?: number; homeTactics?: TeamTactics; playerTactics?: TeamTactics; humanSide?: 'home' | 'away'; seed?: number; silent?: boolean } = {},
   ) {
     const seed = (opts.seed ?? generateSeed()) >>> 0;
     setMatchSeed(seed);
     resetEventCounter();
     this.humanSide = opts.humanSide ?? 'home';
+    this.silent = opts.silent ?? false;
     const tactics = opts.playerTactics ?? opts.homeTactics;
     this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, seed, tactics, this.humanSide);
     this.sm = new StateMachine(MatchPhase.KickOff);
-    this.clock = new ClockController(this.sm);
+    this.clock = new ClockController(this.sm, this.silent);
     this.fatigue = new FatigueAccumulator(this.state);
 
     this.penaltyHandler = new PenaltyHandler({
       state: this.state,
       sm: this.sm,
       humanSide: this.humanSide,
+      silent: this.silent,
     });
 
-    this.busUnsubs.push(
-      eventBus.on('ui:tacticsChange', ({ teamId, tactics }) => {
-        if (teamId === 'home' || teamId === 'away') {
-          applyMatchEvent(this.state, { type: 'TACTICS_UPDATED', side: teamId, tactics });
-        }
-      }),
-      eventBus.on('ui:substitution', ({ benchSquadNum, fieldSquadNum }) => {
-        this.substitute(this.humanSide, benchSquadNum, fieldSquadNum);
-      }),
-    );
+    if (!this.silent) {
+      this.busUnsubs.push(
+        eventBus.on('ui:tacticsChange', ({ teamId, tactics }) => {
+          if (teamId === 'home' || teamId === 'away') {
+            applyMatchEvent(this.state, { type: 'TACTICS_UPDATED', side: teamId, tactics });
+          }
+        }),
+        eventBus.on('ui:substitution', ({ benchSquadNum, fieldSquadNum }) => {
+          this.substitute(this.humanSide, benchSquadNum, fieldSquadNum);
+        }),
+      );
+    }
+  }
+
+  private emitEvent(event: GameEvent): void {
+    if (this.silent) return;
+    eventBus.emit('engine:event', { event });
+  }
+
+  private emitStateChange(): void {
+    if (this.silent) return;
+    eventBus.emit('engine:stateChange', { state: this.state });
   }
 
   // Releases all per-match resources: cancels the pending tick timer, stops the
@@ -209,13 +228,13 @@ export class MatchCoordinator {
       },
     };
     applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: subEvent });
-    eventBus.emit('engine:event', { event: subEvent });
-    eventBus.emit('engine:stateChange', { state: this.state });
+    this.emitEvent(subEvent);
+    this.emitStateChange();
   }
 
 
   initialize(): void {
-    eventBus.emit('engine:initialized', {});
+    if (!this.silent) eventBus.emit('engine:initialized', {});
     // Coin toss — 50/50; winner kicks off in the first half, the other side
     // kicks off the second half (set via FIRST_HALF_KICKER_SET, read by
     // ClockController.triggerHalfTime).
@@ -229,8 +248,8 @@ export class MatchCoordinator {
       narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickOff, key: 'coin_toss' }] },
     };
     applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: tossEvent });
-    eventBus.emit('engine:event', { event: tossEvent });
-    eventBus.emit('engine:stateChange', { state: this.state });
+    this.emitEvent(tossEvent);
+    this.emitStateChange();
   }
 
   start(): void {
@@ -304,7 +323,7 @@ export class MatchCoordinator {
           narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickOff, key: 'announce', primary: kicker }] },
         };
         applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
-        eventBus.emit('engine:event', { event: announceEvent });
+        this.emitEvent(announceEvent);
       }
 
       if (this.state.phase === MatchPhase.KickOff) {
@@ -327,7 +346,7 @@ export class MatchCoordinator {
           narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.BoxKick, key: 'announce', primary: scrumHalf }] },
         };
         applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
-        eventBus.emit('engine:event', { event: announceEvent });
+        this.emitEvent(announceEvent);
       }
 
       const event = resolvePhase(this.state, this.sm, this.kickOffStrategy);
@@ -335,8 +354,8 @@ export class MatchCoordinator {
 
       detectEntry22Changes(this.state);
 
-      eventBus.emit('engine:event', { event });
-      eventBus.emit('engine:stateChange', { state: this.state });
+      this.emitEvent(event);
+      this.emitStateChange();
 
       if ((this.state.phase === MatchPhase.Lineout && previousPhase !== MatchPhase.Lineout) ||
           (this.state.phase === MatchPhase.Scrum && previousPhase !== MatchPhase.Scrum)) {
@@ -353,7 +372,7 @@ export class MatchCoordinator {
           narration: { steps: [{ kind: 'announcement', key: 'set_piece_award', params: { phaseName, teamName } }] },
         };
         applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: awardEvent });
-        eventBus.emit('engine:event', { event: awardEvent });
+        this.emitEvent(awardEvent);
       }
 
       if (this.state.phase === MatchPhase.Penalty) {

@@ -1,18 +1,11 @@
-// Season-scope mutation seam for team-level data. Analogous to
-// `src/engine/applyMatchEvent.ts` but at season scope: all writes to a
-// TeamProfile flow through `applyResult` / `hydrateFromSave`. No code outside
-// this module mutates profile state.
-//
-// On app start `init(rawTeams)` seeds the in-memory store from the imported
-// team JSONs. `hydrateFromSave(savedResults)` then replays persisted results
-// so a "Continue Game" load reaches the right season-form state.
+// In-memory registry of identity, narrative, star and roster data for each
+// team. Pure data — no season-form state lives here any more (the game
+// engine owns standings on GameState.league.standings).
 
-import type { TeamProfile, SeasonForm } from '../types/teamProfile';
-import { zeroSeasonForm } from '../types/teamProfile';
+import type { TeamProfile } from '../types/teamProfile';
 import type { TeamTactics } from '../types/team';
 import type { PlayerStats, Position } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
-import type { SavedResult } from '../ui/SaveManager';
 
 // Shape of each team JSON file after the v1.55a regeneration. Holds both
 // roster data (consumed by MatchCoordinator via RawTeamInput) and the
@@ -70,7 +63,6 @@ export function init(rawTeams: TeamJson[]): void {
       suggestedTactics: t.suggestedTactics,
       statBias: t.statBias,
       stars: t.stars,
-      seasonForm: zeroSeasonForm(),
     });
     const roster: RosterEntry[] = [
       ...t.players.map(p => ({ stats: p.baseStats, position: p.position })),
@@ -99,42 +91,4 @@ export function computeOverallRating(teamId: string): number {
   const overalls = roster.map(r => playerOverall(r.stats, r.position)).sort((a, b) => b - a);
   const top = overalls.slice(0, 23);
   return Math.round(top.reduce((a, b) => a + b, 0) / top.length);
-}
-
-// Apply a single result to both teams' season form. Premiership scoring:
-// 4 for win, 2 for draw, 0 for loss; +1 losing bonus if lost by ≤7. Try
-// bonus is omitted because SavedResult does not persist try counts; adding
-// try-bonus support would require bumping SAVE_VERSION.
-export function applyResult(result: SavedResult): void {
-  const home = profiles.get(result.homeId);
-  const away = profiles.get(result.awayId);
-  if (!home || !away) return;
-  const margin = result.homeScore - result.awayScore;
-  applyToSide(home.seasonForm, result.homeScore, result.awayScore, margin);
-  applyToSide(away.seasonForm, result.awayScore, result.homeScore, -margin);
-}
-
-function applyToSide(form: SeasonForm, pf: number, pa: number, margin: number): void {
-  form.played += 1;
-  form.pointsFor += pf;
-  form.pointsAgainst += pa;
-  form.pointsDiff = form.pointsFor - form.pointsAgainst;
-  if (margin > 0) {
-    form.won += 1;
-    form.leaguePoints += 4;
-  } else if (margin === 0) {
-    form.drawn += 1;
-    form.leaguePoints += 2;
-  } else {
-    form.lost += 1;
-    if (margin >= -7) form.leaguePoints += 1;
-  }
-}
-
-export function hydrateFromSave(savedResults: SavedResult[]): void {
-  for (const p of profiles.values()) {
-    p.seasonForm = zeroSeasonForm();
-  }
-  const ordered = [...savedResults].sort((a, b) => a.round - b.round);
-  for (const r of ordered) applyResult(r);
 }

@@ -27,6 +27,17 @@ const TEAM_META = {
   'Sale Sharks':           { slug: 'sale',         shortName: 'SAL', color: '#0a1b40', secondaryColor: '#0fb5d1' },
 };
 
+// Map md tactics literals to TeamTactics dimensions in fixed order:
+// attackingGamePlan · attackingStyle · attackingBreakdown · defendingBreakdown · backfieldDefence
+const TACTIC_KEYS = ['attackingGamePlan', 'attackingStyle', 'attackingBreakdown', 'defendingBreakdown', 'backfieldDefence'];
+const DEFAULT_TACTICS = {
+  attackingGamePlan: 'balanced',
+  attackingStyle: 'balanced',
+  attackingBreakdown: 'balanced',
+  defendingBreakdown: 'jackal',
+  backfieldDefence: 'one_back',
+};
+
 // ─── 12-stat position template (offsets from baseline) ────────────────────
 
 const POSITION_TEMPLATE = {
@@ -107,29 +118,43 @@ function parseTeamDataMd(md) {
 
     const body = lines.slice(1).join('\n');
 
+    // Narrative blurb — first non-empty paragraph above the bullet list.
+    const blurbMatch = body.match(/^\s*([\s\S]*?)\n\n-\s/);
+    const blurb = blurbMatch ? blurbMatch[1].replace(/\n/g, ' ').trim() : '';
+
     const stadiumMatch = body.match(/\*\*Home ground:\*\*\s*(.+?)\.\s*$/m);
     const ratingMatch = body.match(/\*\*Overall rating:\*\*\s*\*\*(\d+)\/100\*\*/);
     const statBiasMatch = body.match(/\*\*Stat bias:\*\*\s*(.+)$/m);
+    const tacticsMatch = body.match(/\*\*Suggested tactics:\*\*\s*(.+)$/m);
 
     const statBias = statBiasMatch
       ? [...statBiasMatch[1].matchAll(/`(\w+)`/g)].map(m => m[1])
       : [];
 
-    // Star players
+    // Suggested tactics: backtick-quoted literals in order. Fall back to
+    // DEFAULT_TACTICS for any missing slot (e.g. teams marked `to add`).
+    const suggestedTactics = { ...DEFAULT_TACTICS };
+    if (tacticsMatch) {
+      const vals = [...tacticsMatch[1].matchAll(/`([a-z_]+)`/g)].map(m => m[1]);
+      vals.forEach((v, i) => { if (i < TACTIC_KEYS.length) suggestedTactics[TACTIC_KEYS[i]] = v; });
+    }
+
+    // Star players — entry line "- **Name** (Position, Nationality) — blurb. Index high: ... Suggested rating: NN/100."
     const stars = [];
     const starsBlockMatch = body.match(/### Star players\s*\n([\s\S]*?)(?=\n### |\n## |\n---|$)/);
     if (starsBlockMatch) {
       const starLines = starsBlockMatch[1].split('\n').filter(l => l.startsWith('- **'));
       for (const line of starLines) {
-        const m = line.match(/^- \*\*([^*]+)\*\*\s*\(([^,]+),\s*([^)]+)\).+?Index high:\s*(.+?)\.\s*Suggested rating:\s*\*\*(\d+)\/100\*\*/);
+        const m = line.match(/^- \*\*([^*]+)\*\*\s*\(([^,]+),\s*([^)]+)\)\s*[—-]\s*(.+?)\s*Index high:\s*(.+?)\.\s*Suggested rating:\s*\*\*(\d+)\/100\*\*/);
         if (!m) continue;
-        const indexHigh = [...m[4].matchAll(/`(\w+)`/g)].map(x => x[1]);
+        const indexHigh = [...m[5].matchAll(/`(\w+)`/g)].map(x => x[1]);
         stars.push({
           name: m[1].trim(),
           position: SIMPLE_FROM_TEAMDATA(m[2]),
           nationality: m[3].trim(),
+          blurb: m[4].trim().replace(/\.$/, ''),
           indexHigh,
-          rating: parseInt(m[5], 10),
+          rating: parseInt(m[6], 10),
         });
       }
     }
@@ -161,6 +186,8 @@ function parseTeamDataMd(md) {
       meta: TEAM_META[teamName],
       stadium: stadiumMatch ? stadiumMatch[1].trim() : undefined,
       rating: ratingMatch ? parseInt(ratingMatch[1], 10) : undefined,
+      blurb,
+      suggestedTactics,
       statBias,
       stars,
       squad,
@@ -336,7 +363,17 @@ function buildTeamJson(teamName, team) {
     color: team.meta.color,
     secondaryColor: team.meta.secondaryColor,
     stadium: team.stadium,
-    rating: team.rating,
+    blurb: team.blurb,
+    suggestedTactics: team.suggestedTactics,
+    statBias: team.statBias,
+    stars: team.stars.map(s => ({
+      name: s.name,
+      position: s.position,
+      nationality: s.nationality,
+      blurb: s.blurb,
+      indexHigh: s.indexHigh,
+      suggestedRating: s.rating,
+    })),
     players: starters.map(p => buildPlayerJson(p, team)),
     bench: bench.map(p => buildPlayerJson(p, team)),
     squad: squad.map(p => buildPlayerJson(p, team)),

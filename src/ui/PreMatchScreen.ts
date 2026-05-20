@@ -5,6 +5,7 @@ import { renderTacticsMenu } from './TacticsMenu';
 import { eventBus } from '../utils/eventBus';
 import { shortName } from '../utils/playerName';
 import type { RawTeamInput } from '../engine/MatchCoordinator';
+import { playerOverall } from '../engine/RatingEngine';
 
 type RawPlayer = {
   id: number;
@@ -55,11 +56,6 @@ function statColor(v: number): string {
   return 'var(--rm-stat-1)';
 }
 
-function computeOverall(stats: PlayerStats): number {
-  const vals = Object.values(stats) as number[];
-  return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
-}
-
 function getSquadNum(p: RawPlayer): number {
   return p.squadNumber ?? p.id;
 }
@@ -93,7 +89,7 @@ function renderColumnHeader(): string {
 type Tier = 'starter' | 'bench' | 'squad';
 
 function renderPlayerRow(p: RawPlayer, color: string, interactive: boolean, tier: Tier): string {
-  const ovr = computeOverall(p.baseStats);
+  const ovr = playerOverall(p.baseStats);
   const squadNum = getSquadNum(p);
   const lastName = shortName(p);
   const tierClass = ` pm-player--${tier}`;

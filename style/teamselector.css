@@ -82,19 +82,63 @@
 }
 
 .ts-card {
+  position: relative;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 14px;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ts-card-select {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
   padding: 20px 12px;
-  background: var(--rm-surface);
-  border: 1px solid var(--rm-border-soft);
+  width: 100%;
+  background: transparent;
+  border: none;
   border-radius: 14px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
   text-align: center;
+  color: inherit;
+  font: inherit;
   -webkit-tap-highlight-color: transparent;
 }
+
+.ts-card-info {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--rm-text-dim);
+  cursor: pointer;
+  z-index: 1;
+  transition: color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ts-card-info:active {
+  background: var(--rm-surface-3);
+  color: var(--rm-chalk);
+}
+
+@media (hover: hover) {
+  .ts-card-info:hover {
+    color: var(--rm-chalk);
+    background: var(--rm-surface-3);
+  }
+}
+
+.ts-card-info svg { pointer-events: none; }
 
 .ts-crest {
   border-radius: 10px;
@@ -150,14 +194,18 @@
   margin-top: 2px;
 }
 
-.ts-card:active {
+.ts-card-select:active {
   background: var(--rm-surface-3);
+  border-radius: 14px;
 }
 
 @media (hover: hover) {
   .ts-card:hover {
-    background: var(--rm-surface-2);
     border-color: var(--rm-pitch);
     box-shadow: 0 0 20px color-mix(in oklch, var(--rm-pitch) 18%, transparent);
+  }
+  .ts-card-select:hover {
+    background: var(--rm-surface-2);
+    border-radius: 14px;
   }
 }

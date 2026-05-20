@@ -5,7 +5,62 @@
   "color": "#003087",
   "secondaryColor": "#ffd700",
   "stadium": "Ashton Gate",
-  "rating": 63,
+  "blurb": "Shaped by the Pat Lam era's \"Bristol-Bilbao\" expansive ambition, the Bears are the league's most ball-in-hand, high-tempo side, willing to attack from anywhere on the pitch. They prize width, offloads and pace over territorial caution, and will gladly trade penalties for tempo. Their forwards are built for carrying and linking rather than maul dominance, and they often outscore opponents in shootouts. The flip side is risk: turnovers and defensive lapses come with the style.",
+  "suggestedTactics": {
+    "attackingGamePlan": "possession",
+    "attackingStyle": "wide_wide",
+    "attackingBreakdown": "wide_play",
+    "defendingBreakdown": "jackal",
+    "backfieldDefence": "two_back"
+  },
+  "statBias": [
+    "pace",
+    "handling",
+    "agility"
+  ],
+  "stars": [
+    {
+      "name": "Ellis Genge",
+      "position": "Prop",
+      "nationality": "England",
+      "blurb": "Lions Test starter on the 2025 tour to Australia and dubbed the \"form player in the world\" by Ben Youngs; world-class loosehead scrummager and Bristol's vice-captain whose ball-carrying sets the tempo",
+      "indexHigh": [
+        "strength",
+        "setPiece",
+        "breakdown",
+        "tackling",
+        "stamina"
+      ],
+      "suggestedRating": 91
+    },
+    {
+      "name": "Louis Rees-Zammit",
+      "position": "Wing",
+      "nationality": "Wales",
+      "blurb": "Returned from the NFL in summer 2025 and lit up the PREM with six tries in eight, clocking 23.57mph against Leicester; 32-cap Wales finisher with elite top-end pace and a 2021 Lions tourist's pedigree",
+      "indexHigh": [
+        "pace",
+        "agility",
+        "handling",
+        "positioning"
+      ],
+      "suggestedRating": 88
+    },
+    {
+      "name": "Viliame Mata",
+      "position": "Number 8",
+      "nationality": "Fiji",
+      "blurb": "Long-time Edinburgh enforcer turned Bristol No.8; offloading, ball-playing back-rower whose footwork and tip-on game perfectly fit Pat Lam's wide-wide system",
+      "indexHigh": [
+        "strength",
+        "handling",
+        "breakdown",
+        "agility",
+        "stamina"
+      ],
+      "suggestedRating": 85
+    }
+  ],
   "players": [
     {
       "id": 1,

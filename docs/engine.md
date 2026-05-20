@@ -42,6 +42,10 @@ All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.cu
 
 `applyMatchEvent` uses a `default: const _: never = event;` exhaustiveness check, so adding a new `MatchEvent` variant without a handling branch is a compile error.
 
+### Season-scope mutation seam: `teamProfile`
+
+Match scope writes flow through `applyMatchEvent`; **season scope writes flow through `src/team/teamProfile.ts`**. The module owns each team's `TeamProfile` (identity, narrative, suggested tactics, stat bias, star metadata, and live `seasonForm`). Read API: `getProfile(id)`, `getAllProfiles()`, `computeOverallRating(id)` (top-23 player-overall average). Write API: `applyResult(SavedResult)` (Premiership 4/2/0 league points + losing bonus when margin ≤ 7; no try bonus because `SavedResult` does not carry try counts) and `hydrateFromSave(results[])` (reset + replay on app start). No code outside this module mutates profile state; `main.ts` calls `applyResult` once, alongside `fixtureList.recordResult`, after each match completes.
+
 ### Balance constants
 
 Every number listed in the resolver formulas, tactic modifier tables, fatigue tiers, and rating weights below is defined in `src/engine/balance.ts`. The doc below shows the current values; balance.ts is the canonical place to read or change them. Sections include `KICK_PROBABILITIES`, `HARD_CARRY_THRESHOLDS`, `TACTIC_MODIFIERS`, `HANDLING_GATE` (+ `knockOnThreshold` helper), `BREAKDOWN_VALUES`, `SCRUM_VALUES`, `LINEOUT_VALUES`, `OPEN_PLAY_VALUES`, `KICK_OFF_VALUES`, `BOX_KICK_VALUES`, `TACTICAL_KICK_VALUES`, `GOAL_KICK_VALUES`, `CONVERSION_VALUES`, `FATIGUE_SCALING`, `RATING_WEIGHTS`, `CLOCK_VALUES`, `PENALTY_VALUES`, `COMMENTARY_CHANCES`.

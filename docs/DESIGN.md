@@ -493,6 +493,22 @@ Choice buttons use the secondary/neutral pattern. On active/hover they gain `var
 
 Typography inside modals uses `--rm-font-body` (Geist) throughout — no italic. `.modal-subtitle` and `.choice-desc` are both regular weight Geist at `--rm-text-muted` colour. Instrument Serif italic is reserved for the scoreboard clock, try commentary entries, and editorial moments — not interactive UI copy.
 
+### Team Info
+
+Reached from the team selector via a top-right info ⓘ button on each team card. The card itself is a `<div>` containing a nested `.ts-card-select` button (covers crest + name + code) and an absolutely positioned `.ts-card-info` button (32×32, top-right, transparent background, `--rm-text-dim` icon — surface-3 on hover/active).
+
+Screen structure (`#team-info` → `#ti-inner`, max-width 540px, scrollable column, 28px gap):
+
+- **Back button** `#ti-back` — fixed top-left, mirrors `#ts-back`/`#fl-back`/`#pm-back` pattern. Label "Back" since the origin varies (selector now; other team info screens later — closure-based back stack in `main.ts`, no global history).
+- **Hero** `#ti-hero` — large 96px team crest (same gradient + inset shadow pattern as the selector, scaled), Anton team name `clamp(28px, 8vw, 40px)`, mono code · stadium subline.
+- **Tiles** `.ti-tiles` — auto-fit grid, min 150px. Each `.ti-tile` is `--rm-surface` with `--rm-border-soft`. Anton 36px value. The "Overall rating" tile colours its value in `--rm-pitch`; the "Season form" tile shows W-D-L large, then `<played> played · <pts> pts · <±>PD` in mono.
+- **About** — narrative blurb from `team-data.md` in `--rm-font-body` 14px, `line-height: 1.55`.
+- **Playing style** — `.ti-tactics-grid` 2-column, each `.ti-tactic-chip` showing the dimension label (mono, dim) above the human-readable tactic name (body, 13px, chalk, semi-bold). Stat-bias pills below in `--rm-pitch` pill style (lowercase mono on `pitch 14%` tint).
+- **Star players** — `.ti-star` cards: name + Anton 22px suggested-rating top-right, position · nationality subline, body blurb, indexHigh pills.
+- **Squad** — collapsible `<details>` sections (Starting XV / Bench / Wider squad). Each row: mono squad number · name · mono position · Anton overall (in `--rm-pitch`). Summary chevron handled by `<details>` default with custom marker hidden.
+
+Overall rating on the rating tile is the team's top-23 player-overall average, computed at read time by `src/team/teamProfile.ts:computeOverallRating`. Form tile is hidden when `seasonForm.played === 0`.
+
 ### Tactics Menu
 
 Active tactic card:

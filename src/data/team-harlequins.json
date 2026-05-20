@@ -5,7 +5,63 @@
   "color": "#73144a",
   "secondaryColor": "#23bcad",
   "stadium": "Twickenham Stoop (commonly \"The Stoop\")",
-  "rating": 41,
+  "blurb": "The Twickenham Stoop entertainers and the league's most committed expansive, attacking side. Built around Marcus Smith's creative range — cross-field kicks, late drop-goal nous, footwork at first receiver — Quins play fast-paced running rugby and back themselves to outscore anyone. Their forwards are mobile and carry-friendly rather than maul-monsters, and they thrive on broken-field rugby and counter-attack. The trade-off is defensive vulnerability when the tempo turns against them.",
+  "suggestedTactics": {
+    "attackingGamePlan": "possession",
+    "attackingStyle": "wide_wide",
+    "attackingBreakdown": "wide_play",
+    "defendingBreakdown": "jackal",
+    "backfieldDefence": "one_back"
+  },
+  "statBias": [
+    "pace",
+    "agility",
+    "handling"
+  ],
+  "stars": [
+    {
+      "name": "Marcus Smith",
+      "position": "Fly-half",
+      "nationality": "England",
+      "blurb": "England fly-half and British & Irish Lion; the creative fulcrum of the Quins attack with electric footwork at first receiver, cross-field-kick threat, and late drop-goal nous. The heartbeat of the league's most expansive side",
+      "indexHigh": [
+        "handling",
+        "agility",
+        "kicking",
+        "composure",
+        "pace"
+      ],
+      "suggestedRating": 90
+    },
+    {
+      "name": "Alex Dombrandt",
+      "position": "Number 8",
+      "nationality": "England",
+      "blurb": "England No.8 and Quins captain; a powerful one-out ball-carrier with soft hands in tight space who anchors the back row both as a link-man in the wide channels and as a defensive presence over the ball",
+      "indexHigh": [
+        "strength",
+        "handling",
+        "breakdown",
+        "tackling",
+        "stamina"
+      ],
+      "suggestedRating": 84
+    },
+    {
+      "name": "Chandler Cunningham-South",
+      "position": "Flanker",
+      "nationality": "England",
+      "blurb": "Destructive 6ft 5in England back-rower built for collisions; ferocious ball-carrying and tackling, with an improving lineout-steal game adding a third string to a profile already feared at the breakdown",
+      "indexHigh": [
+        "strength",
+        "tackling",
+        "breakdown",
+        "setPiece",
+        "stamina"
+      ],
+      "suggestedRating": 83
+    }
+  ],
   "players": [
     {
       "id": 1,

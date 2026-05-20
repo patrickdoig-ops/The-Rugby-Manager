@@ -1,6 +1,14 @@
-import type { Player } from '../types/player';
+import type { Player, PlayerStats } from '../types/player';
 import { clamp } from '../utils/math';
 import { RATING_WEIGHTS } from './balance';
+
+// Ability-based overall (0–100) — average of the 12 baseStats. Used for
+// pre-match roster displays and team-level rating aggregation. Distinct from
+// `computeRating` below, which is match-performance-based.
+export function playerOverall(stats: PlayerStats): number {
+  const vals = Object.values(stats) as number[];
+  return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+}
 
 export function computeRating(player: Player): number {
   const s = player.matchStats;

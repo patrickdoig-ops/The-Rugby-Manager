@@ -5,7 +5,48 @@
   "color": "#00006a",
   "secondaryColor": "#dc1e25",
   "stadium": "Kingston Park",
-  "rating": 11,
+  "blurb": "Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastle are mid-transformation: heavy investment, aggressive recruitment, and a search for a clearer identity after three straight bottom-of-the-table finishes. Historically a developmental, lower-budget side that fought hard but lacked depth, the Red Bulls era is rebuilding from the ground up. Kingston Park remains home, but the playing identity is still being written — expect them to start the simulator era as the league's weakest squad, with room to grow.",
+  "suggestedTactics": {
+    "attackingGamePlan": "balanced",
+    "attackingStyle": "balanced",
+    "attackingBreakdown": "balanced",
+    "defendingBreakdown": "jackal",
+    "backfieldDefence": "two_back"
+  },
+  "statBias": [
+    "stamina",
+    "discipline"
+  ],
+  "stars": [
+    {
+      "name": "Liam Williams",
+      "position": "Full-back",
+      "nationality": "Wales",
+      "blurb": "93-cap Wales legend and two-tour Lion; the marquee Red-Bull-era signing whose world-class aerial work and broken-field counter-attack give Newcastle their first genuine back-three threat in years",
+      "indexHigh": [
+        "positioning",
+        "handling",
+        "composure",
+        "agility",
+        "pace"
+      ],
+      "suggestedRating": 84
+    },
+    {
+      "name": "Amanaki Mafi",
+      "position": "Number 8",
+      "nationality": "Japan",
+      "blurb": "29-cap Brave Blossom and 2015 World Cup hero against South Africa; powerful go-forward ball-carrier with footwork and an offloading game built to get a struggling pack over the gainline",
+      "indexHigh": [
+        "strength",
+        "handling",
+        "breakdown",
+        "stamina",
+        "tackling"
+      ],
+      "suggestedRating": 80
+    }
+  ],
   "players": [
     {
       "id": 1,

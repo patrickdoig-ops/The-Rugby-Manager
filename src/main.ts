@@ -2,6 +2,7 @@ import '../style/main.css';
 import '../style/homescreen.css';
 import '../style/settings.css';
 import '../style/teamselector.css';
+import '../style/teaminfo.css';
 import '../style/fixturelist.css';
 import '../style/matchresult.css';
 import '../style/commentary.css';
@@ -20,6 +21,7 @@ import { initPreMatchScreen }      from './ui/PreMatchScreen';
 import { initHomeScreen }          from './ui/HomeScreen';
 import { initSettingsScreen }      from './ui/SettingsScreen';
 import { initTeamSelectorScreen }  from './ui/TeamSelectorScreen';
+import { initTeamInfoScreen }      from './ui/TeamInfoScreen';
 import { initFixtureListScreen }   from './ui/FixtureListScreen';
 import type { FixtureInitialState } from './ui/FixtureListScreen';
 import { initMatchResultScreen }   from './ui/MatchResultScreen';
@@ -29,6 +31,8 @@ import { MatchCoordinator }        from './engine/MatchCoordinator';
 import type { RawTeamInput }       from './engine/MatchCoordinator';
 import type { TeamTactics }        from './types/team';
 import type { MatchState }         from './types/match';
+import * as teamProfile            from './team/teamProfile';
+import type { TeamJson }           from './team/teamProfile';
 import { eventBus }                from './utils/eventBus';
 
 import bathRaw         from './data/team-bath.json';
@@ -42,10 +46,11 @@ import northamptonRaw  from './data/team-northampton.json';
 import saleRaw         from './data/team-sale.json';
 import saracensRaw     from './data/team-saracens.json';
 
-const allTeams = [
+const allTeamsRaw = [
   bathRaw, bristolRaw, exeterRaw, gloucesterRaw, harlequinsRaw,
   leicesterRaw, newcastleRaw, northamptonRaw, saleRaw, saracensRaw,
-] as unknown as RawTeamInput[];
+] as unknown as TeamJson[];
+const allTeams = allTeamsRaw as unknown as RawTeamInput[];
 
 document.addEventListener('DOMContentLoaded', () => {
   buildAppShell();
@@ -54,6 +59,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initCommentaryFeed();
   initStatsPanel();
   initModalManager();
+
+  teamProfile.init(allTeamsRaw);
+  teamProfile.hydrateFromSave(loadSave()?.results ?? []);
 
   let fixtureList: ReturnType<typeof initFixtureListScreen> | null = null;
 
@@ -70,8 +78,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function goTeamSelector(): void {
-    initTeamSelectorScreen(allTeams, onTeamPicked, goHome);
+    initTeamSelectorScreen(allTeams, onTeamPicked, goHome, (team) => goTeamInfo(team, goTeamSelector));
     screenRouter.show('team-selector');
+  }
+
+  function goTeamInfo(team: RawTeamInput, onBack: () => void): void {
+    const profile = teamProfile.getProfile(team.id);
+    initTeamInfoScreen(profile, team, onBack);
+    screenRouter.show('team-info');
   }
 
   function onTeamPicked(team: RawTeamInput): void {
@@ -133,14 +147,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const unsub = eventBus.on('engine:finished', ({ state }) => {
       unsub();
-      showMatchResult(engine, state, round);
+      showMatchResult(engine, state, round, playerSide);
     });
     engine.initialize();
   }
 
-  function showMatchResult(engine: MatchCoordinator, state: MatchState, round: number): void {
+  function showMatchResult(engine: MatchCoordinator, state: MatchState, round: number, playerSide: 'home' | 'away'): void {
     initMatchResultScreen(state, round, () => {
       fixtureList!.recordResult(round, state.score.home, state.score.away);
+      teamProfile.applyResult({
+        round,
+        homeId: state.homeTeam.id,
+        awayId: state.awayTeam.id,
+        playerSide,
+        homeScore: state.score.home,
+        awayScore: state.score.away,
+      });
       engine.destroy();
       screenRouter.show('fixture-list');
     });

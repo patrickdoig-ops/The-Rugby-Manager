@@ -22,6 +22,7 @@ export interface Team {
   shortName: string;
   color: string;
   secondaryColor: string;
+  stadium: string;
   players: Player[];
   bench: Player[];
   substitutedOff: Player[];

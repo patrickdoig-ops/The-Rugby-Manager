@@ -5,7 +5,73 @@
   "color": "#0033a0",
   "secondaryColor": "#ffffff",
   "stadium": "The Recreation Ground (commonly \"The Rec\")",
-  "rating": 79,
+  "blurb": "The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at 10 and Santi Carreras at 15, with strong ball-playing centres giving Bath multiple distributors at the line. Their best rugby blends forward dominance and territory with a backline that can shift the point of attack at will. Russell's growing pragmatism has added game management to the flair, though some 2025-26 criticism has pointed to conservative five-metre pick-and-drive over their expansive instincts. At full song, they balance heft up front with the league's most creative half-back axis.",
+  "suggestedTactics": {
+    "attackingGamePlan": "balanced",
+    "attackingStyle": "balanced",
+    "attackingBreakdown": "balanced",
+    "defendingBreakdown": "jackal",
+    "backfieldDefence": "two_back"
+  },
+  "statBias": [
+    "handling",
+    "kicking",
+    "composure"
+  ],
+  "stars": [
+    {
+      "name": "Finn Russell",
+      "position": "Fly-half",
+      "nationality": "Scotland",
+      "blurb": "Scotland captain and three-time Lion; the creative fulcrum of Bath's title defence with audacious passing range, sublime kicking from the tee and in play, and a newly mature game-management edge",
+      "indexHigh": [
+        "handling",
+        "kicking",
+        "composure",
+        "positioning"
+      ],
+      "suggestedRating": 92
+    },
+    {
+      "name": "Ollie Lawrence",
+      "position": "Centre",
+      "nationality": "England",
+      "blurb": "England's first-choice 12 when fit: a punishing power runner who flattens gainline defences and creates front-foot ball for Russell. Returning from Achilles surgery but ahead of schedule",
+      "indexHigh": [
+        "strength",
+        "pace",
+        "tackling",
+        "handling"
+      ],
+      "suggestedRating": 87
+    },
+    {
+      "name": "Sam Underhill",
+      "position": "Flanker",
+      "nationality": "England",
+      "blurb": "One of the Premiership's most feared defensive forwards: timing, technique and ferocity on the chop tackle, with a relentless work-rate around the breakdown",
+      "indexHigh": [
+        "tackling",
+        "breakdown",
+        "strength",
+        "stamina"
+      ],
+      "suggestedRating": 86
+    },
+    {
+      "name": "Santi Carreras",
+      "position": "Full-back",
+      "nationality": "Argentina",
+      "blurb": "Pumas' starting fly-half slotting in at 15 to give Bath a second playmaker; aerial security, a beautiful left boot and the footwork to step into the line as a second-receiver",
+      "indexHigh": [
+        "handling",
+        "kicking",
+        "agility",
+        "positioning"
+      ],
+      "suggestedRating": 84
+    }
+  ],
   "players": [
     {
       "id": 1,

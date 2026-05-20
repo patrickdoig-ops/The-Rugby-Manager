@@ -5,7 +5,62 @@
   "color": "#c8102e",
   "secondaryColor": "#ffffff",
   "stadium": "Kingsholm Stadium (the famous \"Shed\" terrace)",
-  "rating": 44,
+  "blurb": "A historic west-country club with a cherry-and-white forwards-led identity, defined by the close, vocal \"Shed\" at Kingsholm. Gloucester traditionally make their living from a robust, hard-carrying pack, set-piece confrontation and direct lines through the middle. The backline is functional rather than expansive, leaning on power runners to punch holes that fast support can exploit. At their best they are abrasive, physical and uncompromising at the breakdown; at their worst they over-rely on the forwards when a wider game is needed.",
+  "suggestedTactics": {
+    "attackingGamePlan": "balanced",
+    "attackingStyle": "keep_it_tight",
+    "attackingBreakdown": "pick_and_drive",
+    "defendingBreakdown": "counter_ruck",
+    "backfieldDefence": "one_back"
+  },
+  "statBias": [
+    "strength",
+    "breakdown",
+    "setPiece"
+  ],
+  "stars": [
+    {
+      "name": "Ross Byrne",
+      "position": "Fly-half",
+      "nationality": "Ireland",
+      "blurb": "Marquee signing from Leinster and the province's third all-time top points scorer (1,156 pts), bringing four URC titles and a Champions Cup pedigree to Kingsholm as the new tactical conductor",
+      "indexHigh": [
+        "kicking",
+        "composure",
+        "positioning",
+        "discipline",
+        "handling"
+      ],
+      "suggestedRating": 86
+    },
+    {
+      "name": "Max Llewellyn",
+      "position": "Centre",
+      "nationality": "Wales",
+      "blurb": "Big-bodied 13 who broke into the Wales midfield during the 2025 Six Nations (scored his first Test try vs Scotland) and gives Gloucester a power-runner gainline option through the middle channel",
+      "indexHigh": [
+        "strength",
+        "tackling",
+        "handling",
+        "pace"
+      ],
+      "suggestedRating": 82
+    },
+    {
+      "name": "Lewis Ludlow",
+      "position": "Flanker",
+      "nationality": "England",
+      "blurb": "Former long-serving Gloucester captain and England A skipper; relentless openside whose breakdown work-rate and tackle volume have anchored the cherry-and-whites' defensive identity for years",
+      "indexHigh": [
+        "breakdown",
+        "tackling",
+        "stamina",
+        "discipline",
+        "positioning"
+      ],
+      "suggestedRating": 83
+    }
+  ],
   "players": [
     {
       "id": 1,

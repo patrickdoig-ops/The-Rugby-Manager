@@ -5,7 +5,77 @@
   "color": "#0a1b40",
   "secondaryColor": "#0fb5d1",
   "stadium": "Salford Community Stadium (formerly AJ Bell Stadium)",
-  "rating": 48,
+  "blurb": "The Manchester defence-first side: line-speed, collision-dominant loose forwards and a physical inside-centre channel, all built to choke teams into errors. Sale are happy to cede possession because they back their defence to win the field-position battle, and George Ford's tempo control gives them clinical execution when they do attack. Tackles, turnovers and territory underpin everything; they are the league's least flashy and most resilient team. Box-kick, chase, tackle, repeat.",
+  "suggestedTactics": {
+    "attackingGamePlan": "kicking",
+    "attackingStyle": "keep_it_tight",
+    "attackingBreakdown": "balanced",
+    "defendingBreakdown": "shadow",
+    "backfieldDefence": "three_back"
+  },
+  "statBias": [
+    "tackling",
+    "strength",
+    "kicking"
+  ],
+  "stars": [
+    {
+      "name": "Tom Curry",
+      "position": "Flanker",
+      "nationality": "England",
+      "blurb": "Lions Test starter at openside on the 2025 Australia tour; relentless jackal threat and the \"engine\" of England's back row, with brutal tackle work-rate even after wrist surgery",
+      "indexHigh": [
+        "tackling",
+        "breakdown",
+        "stamina",
+        "strength",
+        "positioning"
+      ],
+      "suggestedRating": 91
+    },
+    {
+      "name": "George Ford",
+      "position": "Fly-half",
+      "nationality": "England",
+      "blurb": "England's first-choice 10 through the 10-Test winning run; ice-cold game manager with a stunning 50-22 kicking game and tempo control that underpins Sale's territory-first identity",
+      "indexHigh": [
+        "kicking",
+        "composure",
+        "positioning",
+        "handling",
+        "discipline"
+      ],
+      "suggestedRating": 90
+    },
+    {
+      "name": "Ben Curry",
+      "position": "Flanker",
+      "nationality": "England",
+      "blurb": "Sale's captain and a breakdown menace; started England's Six Nations opener alongside his twin and brings the same chop-tackle, jackal-heavy profile that defines Sale's defensive identity",
+      "indexHigh": [
+        "tackling",
+        "breakdown",
+        "stamina",
+        "strength",
+        "discipline"
+      ],
+      "suggestedRating": 86
+    },
+    {
+      "name": "Tom Roebuck",
+      "position": "Wing",
+      "nationality": "England",
+      "blurb": "England wing in red-hot form (three tries in the 57-5 win over Newcastle); silky footwork, deceptive power in the carry and a genuine aerial threat that turns Sale's kick-chase into points",
+      "indexHigh": [
+        "pace",
+        "handling",
+        "agility",
+        "strength",
+        "positioning"
+      ],
+      "suggestedRating": 84
+    }
+  ],
   "players": [
     {
       "id": 1,

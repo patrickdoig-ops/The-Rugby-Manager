@@ -5,7 +5,77 @@
   "color": "#000000",
   "secondaryColor": "#ed1c24",
   "stadium": "StoneX Stadium (formerly Allianz Park)",
-  "rating": 64,
+  "blurb": "Under Mark McCall, Saracens have been the league's clinical operator — structure, precision and physical dominance executed to a finer tolerance than anyone else. The \"Wolfpack\" defence with its aggressive line-speed and choke tackles is the signature, paired with a smart kicking game that turns territory into points. They are ruthless game managers: ahead late, they will close a match out with possession and field position rather than tries. Calm under pressure, brutal in the collision.",
+  "suggestedTactics": {
+    "attackingGamePlan": "kicking",
+    "attackingStyle": "balanced",
+    "attackingBreakdown": "balanced",
+    "defendingBreakdown": "shadow",
+    "backfieldDefence": "two_back"
+  },
+  "statBias": [
+    "tackling",
+    "positioning",
+    "composure"
+  ],
+  "stars": [
+    {
+      "name": "Maro Itoje",
+      "position": "Lock",
+      "nationality": "England",
+      "blurb": "2025 Lions captain and the first Black skipper in the tour's 137-year history; ran a lineout \"clinic\" in the series win and remains the gold standard for a modern second row — enforcer, jumper, leader",
+      "indexHigh": [
+        "setPiece",
+        "tackling",
+        "strength",
+        "breakdown",
+        "composure"
+      ],
+      "suggestedRating": 92
+    },
+    {
+      "name": "Owen Farrell",
+      "position": "Fly-half",
+      "nationality": "England",
+      "blurb": "Returned from Racing 92 on a two-year player-coach deal; over 1,200 Test points, six Premiership titles with Sarries, and still the league's most ruthless game-manager off the tee",
+      "indexHigh": [
+        "kicking",
+        "composure",
+        "positioning",
+        "discipline",
+        "tackling"
+      ],
+      "suggestedRating": 88
+    },
+    {
+      "name": "Ben Earl",
+      "position": "Number 8",
+      "nationality": "England",
+      "blurb": "2025 Lions Test back-rower and 2024 England Player of the Year; 73 carries for 419 metres across that Six Nations made him the explosive go-to ball-carrier from the base",
+      "indexHigh": [
+        "pace",
+        "strength",
+        "stamina",
+        "handling",
+        "tackling"
+      ],
+      "suggestedRating": 88
+    },
+    {
+      "name": "Jamie George",
+      "position": "Hooker",
+      "nationality": "England",
+      "blurb": "Long-time England hooker and former captain; elite throwing accuracy underpins the Sarries lineout and his work rate around the park is a benchmark for the position",
+      "indexHigh": [
+        "setPiece",
+        "tackling",
+        "breakdown",
+        "composure",
+        "discipline"
+      ],
+      "suggestedRating": 85
+    }
+  ],
   "players": [
     {
       "id": 1,

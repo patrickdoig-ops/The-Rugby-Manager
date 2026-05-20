@@ -12,6 +12,7 @@ export function initTeamSelectorScreen(
   teams: RawTeamInput[],
   onSelect: (team: RawTeamInput) => void,
   onBack: () => void,
+  onInfo: (team: RawTeamInput) => void,
 ): void {
   const el = document.getElementById('team-selector');
   if (!el) return;
@@ -31,11 +32,16 @@ export function initTeamSelectorScreen(
       </div>
       <div id="ts-grid">
         ${sortedTeams.map(team => `
-          <button class="ts-card" data-id="${team.id}">
-            ${crestHtml(team.shortName[0] ?? '?', team.color, 64)}
-            <div class="ts-card-name">${team.name}</div>
-            <div class="ts-card-code">${team.shortName}</div>
-          </button>
+          <div class="ts-card" data-id="${team.id}">
+            <button class="ts-card-info" data-id="${team.id}" aria-label="Team info">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
+            <button class="ts-card-select" data-id="${team.id}">
+              ${crestHtml(team.shortName[0] ?? '?', team.color, 64)}
+              <div class="ts-card-name">${team.name}</div>
+              <div class="ts-card-code">${team.shortName}</div>
+            </button>
+          </div>
         `).join('')}
       </div>
     </div>
@@ -45,10 +51,17 @@ export function initTeamSelectorScreen(
     onBack();
   });
 
-  el.querySelectorAll<HTMLButtonElement>('.ts-card').forEach(btn => {
+  el.querySelectorAll<HTMLButtonElement>('.ts-card-select').forEach(btn => {
     btn.addEventListener('click', () => {
       const team = teams.find(t => t.id === btn.dataset.id)!;
       onSelect(team);
+    });
+  });
+
+  el.querySelectorAll<HTMLButtonElement>('.ts-card-info').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const team = teams.find(t => t.id === btn.dataset.id)!;
+      onInfo(team);
     });
   });
 }

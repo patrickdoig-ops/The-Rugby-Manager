@@ -321,3 +321,24 @@
 
 #mr-continue:hover  { background: #009434; }
 #mr-continue:active { background: #006622; }
+
+.mr-continue-spinner { display: none; }
+
+#mr-continue.mr-continue--simulating {
+  background: #006622;
+  cursor: progress;
+}
+#mr-continue.mr-continue--simulating .mr-continue-arrow { display: none; }
+#mr-continue.mr-continue--simulating .mr-continue-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #ffffff;
+  animation: mrSpin 0.8s linear infinite;
+}
+
+@keyframes mrSpin {
+  to { transform: rotate(360deg); }
+}

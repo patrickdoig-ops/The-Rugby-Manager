@@ -170,13 +170,19 @@ export function initMatchResultScreen(state: MatchState, round: number, onContin
 
     <div id="mr-footer">
       <button id="mr-continue">
-        <span>Continue</span>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        <span class="mr-continue-label">Continue</span>
+        <svg class="mr-continue-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        <span class="mr-continue-spinner" aria-hidden="true"></span>
       </button>
     </div>
   `;
 
-  el.querySelector<HTMLButtonElement>('#mr-continue')!.addEventListener('click', () => {
+  const btn = el.querySelector<HTMLButtonElement>('#mr-continue')!;
+  btn.addEventListener('click', () => {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.classList.add('mr-continue--simulating');
+    btn.querySelector<HTMLSpanElement>('.mr-continue-label')!.textContent = `Simulating round ${round}…`;
     onContinue();
   });
 }

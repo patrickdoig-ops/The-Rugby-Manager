@@ -3,6 +3,7 @@ import { MatchPhase } from '../types/engine';
 import type { GameEvent } from '../types/match';
 import type { Player } from '../types/player';
 import { renderNarration } from '../commentary/CommentaryRenderer';
+import { teamTextColor } from '../utils/teamColor';
 
 const PHASE_CLASS: Partial<Record<MatchPhase, string>> = {
   [MatchPhase.TryScored]:     'event-try',
@@ -66,8 +67,8 @@ export function initCommentaryFeed(): void {
   let unsubTeams: (() => void) | null = null;
   function armTeamCache(): void {
     unsubTeams = eventBus.on('engine:stateChange', ({ state }) => {
-      homeTeamColor = state.homeTeam.color;
-      awayTeamColor = state.awayTeam.color;
+      homeTeamColor = teamTextColor(state.homeTeam.color);
+      awayTeamColor = teamTextColor(state.awayTeam.color);
       homeTeamName  = state.homeTeam.name;
       awayTeamName  = state.awayTeam.name;
       allPlayersWithColor = [

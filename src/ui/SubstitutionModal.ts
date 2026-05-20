@@ -1,6 +1,7 @@
 import type { Team } from '../types/team';
 import { eventBus } from '../utils/eventBus';
 import { shortName } from '../utils/playerName';
+import { teamTextColor } from '../utils/teamColor';
 
 type PendingSub = {
   benchSquadNum: number;
@@ -17,7 +18,7 @@ function ratingClass(r: number): string {
 }
 
 export function renderSubstitutionPanel(container: HTMLElement, team: Team): void {
-  const { color } = team;
+  const color = teamTextColor(team.color);
   const pendingSubs: PendingSub[] = [];
   let selectedBenchSquadNum: number | null = null;
 

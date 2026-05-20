@@ -1,6 +1,7 @@
 import { eventBus } from '../utils/eventBus';
 import { MatchPhase } from '../types/engine';
 import { CLOCK_VALUES } from '../engine/balance';
+import { teamTextColor } from '../utils/teamColor';
 
 function phaseClass(phase: MatchPhase): string {
   switch (phase) {
@@ -35,9 +36,9 @@ function applyCrests(
   setCrest(awayCrest, awayColor, awayShort[0]);
 
   homeCode.textContent = homeShort;
-  homeCode.style.color = homeColor;
+  homeCode.style.color = teamTextColor(homeColor);
   awayCode.textContent = awayShort;
-  awayCode.style.color = awayColor;
+  awayCode.style.color = teamTextColor(awayColor);
 }
 
 export function initScoreboard(): void {

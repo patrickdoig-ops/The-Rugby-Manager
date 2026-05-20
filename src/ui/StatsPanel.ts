@@ -1,5 +1,6 @@
 import { eventBus } from '../utils/eventBus';
 import { shortName } from '../utils/playerName';
+import { teamTextColor } from '../utils/teamColor';
 import type { MatchState } from '../types/match';
 
 function pct(a: number, b: number): string {
@@ -33,8 +34,8 @@ function pointsPerEntry(e: { count: number; pointsScored: number }): string {
 
 function renderStats(state: MatchState): string {
   const { stats, homeTeam, awayTeam } = state;
-  const hc = homeTeam.color;
-  const ac = awayTeam.color;
+  const hc = teamTextColor(homeTeam.color);
+  const ac = teamTextColor(awayTeam.color);
 
   const hRunM = teamMetres(homeTeam, 'metresCarried');
   const aRunM = teamMetres(awayTeam, 'metresCarried');
@@ -130,7 +131,7 @@ function renderPlayerStats(state: MatchState): string {
     const rClass = ratingClass(p.rating);
     return `
       <div class="player-stat-row">
-        <span class="player-jersey" style="color:${team.color}">${p.squadNumber}</span>
+        <span class="player-jersey" style="color:${teamTextColor(team.color)}">${p.squadNumber}</span>
         <span class="fatigue-name">${shortName(p)}</span>
         <div class="fatigue-bar-bg">
           <div class="fatigue-bar ${barClass}" style="width:${f}%"></div>
@@ -233,11 +234,14 @@ function playerTableRow(p: MatchState['homeTeam']['players'][number], teamColor:
 
 function renderPlayerTable(state: MatchState): string {
   const headerCells = TABLE_HEADERS.map(h => `<th>${h}</th>`).join('');
-  const teamSection = (team: MatchState['homeTeam']): string[] => [
-    `<tr class="team-row"><td colspan="15" style="color:${team.color}">${team.name}</td></tr>`,
-    ...team.players.map(p => playerTableRow(p, team.color, false)),
-    ...team.substitutedOff.map(p => playerTableRow(p, team.color, true)),
-  ];
+  const teamSection = (team: MatchState['homeTeam']): string[] => {
+    const tc = teamTextColor(team.color);
+    return [
+      `<tr class="team-row"><td colspan="15" style="color:${tc}">${team.name}</td></tr>`,
+      ...team.players.map(p => playerTableRow(p, tc, false)),
+      ...team.substitutedOff.map(p => playerTableRow(p, tc, true)),
+    ];
+  };
   return `<table class="player-table">
     <thead><tr>${headerCells}</tr></thead>
     <tbody>${[...teamSection(state.homeTeam), ...teamSection(state.awayTeam)].join('')}</tbody>

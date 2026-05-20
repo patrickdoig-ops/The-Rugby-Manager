@@ -6,6 +6,7 @@ import type { MatchState } from '../types/match';
 import type { Team } from '../types/team';
 import type { Player } from '../types/player';
 import { shortName } from '../utils/playerName';
+import { teamTextColor } from '../utils/teamColor';
 
 function pct(a: number, b: number): string {
   const total = a + b;
@@ -43,8 +44,8 @@ function crestHtml(team: Team, size = 48): string {
 
 function renderStatsCard(state: MatchState): string {
   const { stats, homeTeam, awayTeam } = state;
-  const hc = homeTeam.color;
-  const ac = awayTeam.color;
+  const hc = teamTextColor(homeTeam.color);
+  const ac = teamTextColor(awayTeam.color);
 
   const homeMetres = teamMetres(homeTeam);
   const awayMetres = teamMetres(awayTeam);
@@ -110,7 +111,7 @@ function renderRatingsBlock(team: Team, isHome: boolean): string {
     const isMotm = p.rating === topRating && p.rating >= 7.5;
     return `
       <div class="mr-player-row">
-        <span class="mr-player-num" style="color:${team.color}">${p.squadNumber}</span>
+        <span class="mr-player-num" style="color:${teamTextColor(team.color)}">${p.squadNumber}</span>
         <span class="mr-player-name">${shortName(p)}</span>
         <span class="mr-player-pos">${p.position}</span>
         ${isMotm ? '<span class="mr-player-motm" title="Top rated">★</span>' : '<span class="mr-player-motm"></span>'}
@@ -150,9 +151,9 @@ export function initMatchResultScreen(state: MatchState, round: number, onContin
           <div class="mr-versus-name">${homeTeam.shortName}</div>
         </div>
         <div class="mr-scoreline">
-          <span class="mr-score" style="color:${score.home >= score.away ? homeTeam.color : 'var(--rm-text-muted)'}">${score.home}</span>
+          <span class="mr-score" style="color:${score.home >= score.away ? teamTextColor(homeTeam.color) : 'var(--rm-text-muted)'}">${score.home}</span>
           <span class="mr-score-sep">–</span>
-          <span class="mr-score" style="color:${score.away >= score.home ? awayTeam.color : 'var(--rm-text-muted)'}">${score.away}</span>
+          <span class="mr-score" style="color:${score.away >= score.home ? teamTextColor(awayTeam.color) : 'var(--rm-text-muted)'}">${score.away}</span>
         </div>
         <div class="mr-versus-team">
           ${crestHtml(awayTeam, 56)}

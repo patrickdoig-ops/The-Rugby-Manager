@@ -4,6 +4,7 @@ import { DEFAULT_TACTICS } from '../types/team';
 import { renderTacticsMenu } from './TacticsMenu';
 import { eventBus } from '../utils/eventBus';
 import { shortName } from '../utils/playerName';
+import { teamTextColor } from '../utils/teamColor';
 import type { RawTeamInput } from '../engine/MatchCoordinator';
 import { playerOverall } from '../engine/RatingEngine';
 
@@ -102,7 +103,7 @@ function renderPlayerRow(p: RawPlayer, color: string, interactive: boolean, tier
   }).join('');
 
   return `<${tag} class="pm-player-row${tierClass}" ${dataAttr}>
-    <div class="pm-num" style="color:${color}">${squadNum}</div>
+    <div class="pm-num" style="color:${teamTextColor(color)}">${squadNum}</div>
     <div class="pm-identity">
       <span class="pm-name">${lastName}</span>
       <span class="pm-pos">${p.position}</span>

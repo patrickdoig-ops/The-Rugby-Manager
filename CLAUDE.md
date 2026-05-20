@@ -113,7 +113,7 @@ No tests or linters. TypeScript strict mode is the primary correctness check. Bo
 
 ## Balance constants
 
-**Every gameplay tuning number — probability, threshold, modifier, weight, fatigue multiplier, rating point value — lives in `src/engine/balance.ts`.** Do not introduce new tuning literals in resolvers, events, or systems. Exempt: rugby pitch geometry (`FieldPosition.ts`), jersey-number position checks, and RNG shape values inside resolver formulas (e.g. `rng(1, 20)`).
+**Every gameplay tuning number — probability, threshold, modifier, weight, fatigue multiplier, rating point value — lives in `src/engine/balance/`.** One file per concern (kicking, openPlay, breakdown, scrum, lineout, fatigue, rating, tactics, clock, commentary), barrel re-export from `balance/index.ts`. Importers read from `'./balance'` and don't need to know which sub-file holds which constant. Do not introduce new tuning literals in resolvers, events, or systems. Exempt: rugby pitch geometry (`FieldPosition.ts`), jersey-number position checks, and RNG shape values inside resolver formulas (e.g. `rng(1, 20)`).
 
 ## Architecture
 

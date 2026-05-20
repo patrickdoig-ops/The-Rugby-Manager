@@ -147,7 +147,7 @@ Shaped by the Pat Lam era's "Bristol-Bilbao" expansive ambition, the Bears are t
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
 | Jack Bates | Wing | 2001-09-21 | 24 | England |
-| Sam Bedlow | Centre | | | England |
+| Sam Bedlow | Centre | 1995-08-08 | 30 | England |
 | Josh Carrington | Wing | | | England |
 | Noah Heward | Full-back | 2002-03-30 | 24 | England |
 | Gabriel Ibitoye | Wing | 1998-04-26 | 28 | England |
@@ -299,7 +299,6 @@ Under Mark McCall, Saracens have been the league's clinical operator — structu
 | Owen Farrell | Fly-half | 1991-09-24 | 34 | England |
 | Angus Hall | Centre | 2005-09-17 | 20 | England |
 | Olly Hartley | Centre | 2002-02-19 | 24 | England |
-| Cameron Hutchison | Centre | 1998-06-01 | 27 | Scotland |
 | Louie Johnson | Fly-half | 2003-06-13 | 22 | England |
 | Alex Lozowski | Centre | 1993-06-30 | 32 | England |
 | Max Malins | Wing | 1997-01-07 | 29 | England |
@@ -441,7 +440,6 @@ The Rob Baxter long-build identity is phase-heavy possession rugby — pressure 
 | Immanuel Feyi-Waboso | Wing | 2002-12-20 | 23 | England |
 | Ben Hammersley | Wing | 2003-05-20 | 23 | England |
 | Will Haydon-Wood | Fly-half | 2000-10-27 | 25 | England |
-| Josh Hodge | Full-back | 2000-05-23 | 26 | England |
 | Len Ikitau | Centre | 1998-10-01 | 27 | Australia |
 | Iwan Jenkins | Fly-half | 2003-03-13 | 23 | Wales |
 | Dan John | Wing | 2001-10-04 | 24 | Wales |
@@ -555,7 +553,6 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 | Ollie Fletcher | Hooker | | | England |
 | Bryce Gordon | Hooker | | | New Zealand |
 | Tom Gordon | Flanker | | | Scotland |
-| Sam Graham | Back Row | 1997-07-06 | 28 | England |
 | Connor Hancock | Prop | | 25 | England |
 | John Hawkins | Lock | | | Wales |
 | Jamie Hodgson | Lock | | | Scotland |
@@ -566,13 +563,11 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 | Amanaki Mafi | Number 8 | 1990-01-11 | 36 | Japan |
 | Murray McCallum | Prop | 1996-03-16 | 30 | Scotland |
 | George McGuigan | Hooker | | 32 | England |
-| Elliot Millar-Mills | Prop | 1992-07-08 | 33 | Scotland |
 | Cameron Neild | Flanker | 1996-09-06 | 29 | England |
 | Rob Palframan | Prop | | | England |
 | Pouri Rakete-Stones | Prop | | | New Zealand |
 | Micky Rewcastle | Prop | | | England |
 | Adam Scott | Lock | | | England |
-| Rusi Tuima | Lock | | 25 | Fiji |
 | Charlie Turnbull | Back Row | | | England |
 | Oscar Usher | Lock | | | England |
 
@@ -591,8 +586,8 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 | Joel Grayson | Wing | | | England |
 | Nick Greenwood | Wing | | | England |
 | Alex Hearle | Centre | | | England |
-| Josh Hodge | Full-back | | | England |
-| Cameron Hutchison | Centre | | | Scotland |
+| Josh Hodge | Full-back | 2000-05-23 | 26 | England |
+| Cameron Hutchison | Centre | 1998-06-01 | 27 | Scotland |
 | Elliott Obatoyinbo | Wing/Full-back | 1998-10-09 | 27 | England |
 | Harrison Obatoyinbo | Wing | | 24 | England |
 | Oliver Spencer | Centre | | | England |
@@ -640,7 +635,7 @@ The 2023-24 champions under Phil Dowson, Saints are the league's electric attack
 | Curtis Langdon | Hooker | 1997-08-03 | 28 | England |
 | Jack Lawrence | Back Row | | | England |
 | Tom Lockett | Lock | 2002-10-06 | 23 | England |
-| Elliot Millar Mills | Prop | 1992-07-08 | 33 | Scotland |
+| Elliot Millar-Mills | Prop | 1992-07-08 | 33 | Scotland |
 | Chunya Munga | Lock | 2000-09-02 | 25 | England |
 | Tom Pearson | Flanker | 1999-10-26 | 26 | England |
 | Henry Pollock | Flanker | 2005-01-14 | 21 | England |
@@ -736,7 +731,6 @@ The Manchester defence-first side: line-speed, collision-dominant loose forwards
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
 | Joe Bedlow | Centre | 2002-03-29 | 24 | England |
-| Sam Bedlow | Centre | 1995-08-08 | 30 | England |
 | Joe Carpenter | Full-back | 2001-08-19 | 24 | England |
 | Tom Curtis | Fly-half | | | England |
 | Ollie Davies | Fly-half | | | England |
@@ -812,16 +806,7 @@ Snapshot date: **May 2026**, after round 16 of the 25-26 regular season (10 of 1
 
 Squad data was compiled in parallel from multiple public sources and has **not** been manually validated against current club rosters. Known caveats for a future cleanup pass:
 
-- **Cross-listed players (likely transfer / stale-source artifacts):**
-  - `Sam Graham` (DOB 1997-07-06) appears in both Sale Sharks and Northampton Saints squads. Same DOB — one entry is wrong.
-  - `Cameron Hutchison` appears in both Saracens and Northampton Saints squads.
-  - `Elliot Millar-Mills` / `Elliot Millar Mills` (DOB 1992-07-08) appears in both Sale Sharks and Northampton Saints squads.
-  - `Rusi Tuima` appears in both Exeter Chiefs and Northampton Saints squads.
-  - `Sam Bedlow` appears in both Bristol Bears and Sale Sharks squads.
-  - `Josh Hodge` appears in both Exeter Chiefs and Northampton Saints squads.
-  - `Henry Pollock` listed at Sale — Pollock is actually a Northampton Saints flanker; likely a source mix-up.
-  - The Northampton "Forwards" list appears to have absorbed several players whose true club is elsewhere (Sale / Newcastle / Exeter) — this section needs the most scrutiny.
-- **Possibly stale entries:** `Joe Launchbury` (listed at Newcastle Red Bulls), `Christian Wade` (listed at Northampton) — both were thought to have retired; verify against current squad announcements.
+- **Possibly stale entries:** `Joe Launchbury` (listed at Harlequins), `Christian Wade` (listed at Newcastle Red Bulls) — both were thought to have retired; verify against current squad announcements.
 - **Position normalisation:** Some entries use `Back Row` / `Back row` / specific (`Flanker`, `Number 8`) interchangeably. When this file is wired into the engine, normalise to the position literals used in `src/data/team-*.json`.
 - **Missing fields:** DOB and age are blank where the public source didn't expose them — particularly common for academy-grade or recently-signed players. Filling these in is straightforward when seeding JSON.
 - **Newcastle Red Bulls:** Post-takeover (Aug 2025) recruitment has been heavy and the squad is in flux; expect this list to be the least stable of the ten.

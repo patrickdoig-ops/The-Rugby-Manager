@@ -17,7 +17,11 @@ import { FATIGUE_SCALING } from './balance';
 export class FatigueAccumulator {
   private accumulator = 0;
 
-  constructor(private state: MatchState) {}
+  // `silent` matches headless AI fixtures — suppresses the newly-tired
+  // commentary emit. The state mutations (FATIGUE_APPLIED, COMMENTARY_LOGGED)
+  // still apply through the boundary so headless ratings and player stats stay
+  // consistent with the live UI run.
+  constructor(private state: MatchState, private silent: boolean = false) {}
 
   tick(timeAdvance: number): void {
     this.accumulator += timeAdvance;
@@ -47,7 +51,7 @@ export class FatigueAccumulator {
           narration: { steps: [{ kind: 'announcement', key: 'fatigue_tiredness', primary: player }] },
         };
         applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: fatEvent });
-        eventBus.emit('engine:event', { event: fatEvent });
+        if (!this.silent) eventBus.emit('engine:event', { event: fatEvent });
       }
     }
   }

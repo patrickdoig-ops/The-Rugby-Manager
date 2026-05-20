@@ -140,7 +140,7 @@ export class MatchCoordinator {
     this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, seed, tactics, this.humanSide);
     this.sm = new StateMachine(MatchPhase.KickOff);
     this.clock = new ClockController(this.sm, this.silent);
-    this.fatigue = new FatigueAccumulator(this.state);
+    this.fatigue = new FatigueAccumulator(this.state, this.silent);
 
     this.penaltyHandler = new PenaltyHandler({
       state: this.state,

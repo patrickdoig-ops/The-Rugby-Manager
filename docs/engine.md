@@ -44,6 +44,8 @@ All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.cu
 
 `applyMatchEvent` uses a `default: const _: never = event;` exhaustiveness check, so adding a new `MatchEvent` variant without a handling branch is a compile error.
 
+**Runtime invariants.** After every event is applied, `assertInvariants(state)` (`src/engine/invariants.ts`) verifies the live numeric/structural ranges that the type system can't express: `score.home/away ≥ 0` and integer, `possession ∈ {'home','away'}`, `phase ∈ MatchPhase`, `ball.x/y ∈ [0,100]`, `clock.gameMinute ≥ 0`, and for every player on either roster (starters, bench, substituted-off) `fatiguePct ∈ [0,100]`, `rating ∈ [0,10]`, every `currentStats.X ∈ [1,100]`. A violation throws with the offending field, so the failure surfaces at the mutation that caused it rather than at some downstream render or save-load step. Cost is O(matchday squad) per mutation; runs in all environments — it's a tripwire for engine bugs, not defensive runtime handling.
+
 ### Season-scope mutation seam: `GameCoordinator` + `applySeasonEvent`
 
 Match-scope writes flow through `applyMatchEvent`; **season-scope writes flow through `applySeasonEvent`** in `src/game/applySeasonEvent.ts`. The game engine (`src/game/`) is a sibling to the match engine (`src/engine/`) and owns one `GameState` per session — calendar (`date`, `week`, `seasonLabel`), league (`fixtures`, `results`, `standings`), `player.teamId`, and the root `seed`.

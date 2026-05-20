@@ -3,13 +3,24 @@ import type { MatchEvent } from '../types/matchEvent';
 import { clamp } from '../utils/math';
 import { attackDir } from './FieldPosition';
 import { computeRating } from './RatingEngine';
+import { assertInvariants } from './invariants';
 import { CLOCK_VALUES, SCORE_VALUES, COMMENTARY_BUFFER_CAP } from './balance';
 
 // The single function permitted to mutate MatchState (or any Player field).
 // Every handler / orchestrator builds an array of MatchEvent and routes them
 // through here. In-place mutation; returns void.
+//
+// After every mutation, assertInvariants() runs as a tripwire — if any code
+// path drives score/possession/phase/ball/clock/player numeric ranges outside
+// their legal bounds, the throw surfaces at the offending event rather than
+// at some downstream consumer.
 
 export function applyMatchEvent(state: MatchState, event: MatchEvent): void {
+  applyEventToState(state, event);
+  assertInvariants(state);
+}
+
+function applyEventToState(state: MatchState, event: MatchEvent): void {
   switch (event.type) {
 
     // ── Scoring ──────────────────────────────────────────────────────────

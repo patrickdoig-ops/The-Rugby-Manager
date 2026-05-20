@@ -82,6 +82,31 @@
 #theme-toggle:hover  { background: var(--rm-surface-2); }
 #theme-toggle:active { background: var(--rm-surface-3); }
 
+/* Top-right chrome cluster (theme toggle + settings gear) */
+#home-chrome-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#settings-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in oklch, var(--rm-surface) 60%, transparent);
+  border: 1px solid var(--rm-border);
+  border-radius: 10px;
+  color: var(--rm-text-muted);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+
+#settings-btn:hover  { background: var(--rm-surface-2); color: var(--rm-chalk); }
+#settings-btn:active { background: var(--rm-surface-3); }
+
 /* ─── Hero block ─── */
 #home-hero {
   flex: 1;
@@ -154,14 +179,18 @@
   font-style: normal;
 }
 
-/* ─── CTA ─── */
+/* ─── CTAs ─── */
 #home-cta {
   position: relative;
   z-index: 2;
   padding: 0 24px max(40px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-#start-game-btn {
+#start-game-btn,
+#continue-game-btn {
   width: 100%;
   padding: 11px 22px;
   background: #007a2a;
@@ -175,26 +204,45 @@
   box-shadow:
     0 12px 36px color-mix(in oklch, var(--rm-pitch) 28%, transparent),
     inset 0 1px 0 rgba(255,255,255,0.3);
-  transition: background 0.15s, box-shadow 0.15s;
+  transition: background 0.15s, box-shadow 0.15s, opacity 0.15s;
 }
 
-#start-game-btn .btn-label {
+#start-game-btn .btn-label,
+#continue-game-btn .btn-label {
   font-family: var(--rm-font-display);
   font-size: 28px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-#start-game-btn svg { flex-shrink: 0; }
+#start-game-btn svg,
+#continue-game-btn svg { flex-shrink: 0; }
 
-#start-game-btn:hover  {
+#start-game-btn:hover,
+#continue-game-btn:not(:disabled):hover {
   background: #009434;
   box-shadow:
     0 16px 48px color-mix(in oklch, var(--rm-pitch) 38%, transparent),
     inset 0 1px 0 rgba(255,255,255,0.3);
 }
 
-#start-game-btn:active {
+#start-game-btn:active,
+#continue-game-btn:not(:disabled):active {
   background: #006622;
   box-shadow: 0 4px 12px color-mix(in oklch, var(--rm-pitch) 20%, transparent);
+}
+
+/* Continue button — secondary visual weight to keep Start as the primary CTA */
+#continue-game-btn {
+  background: color-mix(in oklch, var(--rm-pitch) 28%, var(--rm-surface) 72%);
+  box-shadow:
+    0 6px 18px color-mix(in oklch, var(--rm-pitch) 15%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+#continue-game-btn.home-cta--disabled,
+#continue-game-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
 }

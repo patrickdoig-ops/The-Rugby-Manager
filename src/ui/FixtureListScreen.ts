@@ -1,10 +1,16 @@
 import type { RawTeamInput } from '../engine/MatchCoordinator';
+import { saveGame, type SavedResult } from './SaveManager';
 
 type Fixture = {
   round: number;
   homeTeam: RawTeamInput;
   awayTeam: RawTeamInput;
   playerSide: 'home' | 'away';
+};
+
+export type FixtureInitialState = {
+  currentRound: number;
+  results: Map<number, { home: number; away: number }>;
 };
 
 function miniCrest(team: RawTeamInput): string {
@@ -18,6 +24,7 @@ export function initFixtureListScreen(
   allTeams: RawTeamInput[],
   onPlay: (homeTeam: RawTeamInput, awayTeam: RawTeamInput, playerSide: 'home' | 'away', round: number) => void,
   onBack: () => void,
+  initialState?: FixtureInitialState,
 ): { recordResult(round: number, homeScore: number, awayScore: number): void } {
   const el = document.getElementById('fixture-list');
   if (!el) return { recordResult() {} };
@@ -43,8 +50,29 @@ export function initFixtureListScreen(
     }
   }
 
-  let currentRound = 1;
-  const results = new Map<number, { home: number; away: number }>();
+  let currentRound = initialState?.currentRound ?? 1;
+  const results = new Map<number, { home: number; away: number }>(initialState?.results ?? []);
+
+  function persist(): void {
+    const savedResults: SavedResult[] = fixtures
+      .filter(f => results.has(f.round))
+      .map(f => {
+        const r = results.get(f.round)!;
+        return {
+          round: f.round,
+          homeId: f.homeTeam.id,
+          awayId: f.awayTeam.id,
+          playerSide: f.playerSide,
+          homeScore: r.home,
+          awayScore: r.away,
+        };
+      });
+    saveGame({
+      playerTeamId: playerTeam.id,
+      currentRound,
+      results: savedResults,
+    });
+  }
 
   function render(): void {
     const list = el!.querySelector('#fl-list')!;
@@ -118,6 +146,7 @@ export function initFixtureListScreen(
     recordResult(round: number, homeScore: number, awayScore: number): void {
       results.set(round, { home: homeScore, away: awayScore });
       currentRound = round + 1;
+      persist();
       render();
     },
   };

@@ -1,4 +1,4 @@
-import type { RawTeamInput } from '../engine/MatchCoordinator';
+import type { RawTeamInput } from '../types/teamData';
 import { getProfile } from '../team/teamProfile';
 
 function crestHtml(initial: string, color: string, size: number): string {

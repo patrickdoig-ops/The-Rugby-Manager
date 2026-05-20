@@ -1,7 +1,9 @@
 import type { MatchState, GameEvent } from '../types/match';
 import type { Team, TeamTactics } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';
-import type { Player, PlayerStats, PlayerMatchStats } from '../types/player';
+import type { Player, PlayerStats } from '../types/player';
+import { zeroMatchStats } from '../types/player';
+import type { RawPlayer, RawTeamInput } from '../types/teamData';
 import { MatchPhase, type PossessionSide, type KickOffStrategy } from '../types/engine';
 import { StateMachine } from './StateMachine';
 import { eventBus } from '../utils/eventBus';
@@ -17,28 +19,6 @@ import { applyMatchEvent } from './applyMatchEvent';
 function deepCloneStats(s: PlayerStats): PlayerStats {
   return { ...s };
 }
-
-function zeroMatchStats(): PlayerMatchStats {
-  return {
-    carries: 0, metresCarried: 0, lineBreaks: 0, defendersBeaten: 0,
-    knockOns: 0, passes: 0, tacklesAttempted: 0, tacklesMade: 0,
-    dominantTackles: 0, turnoversWon: 0, penaltiesConceded: 0, tries: 0,
-    kicksFromHand: 0, kicksAtGoal: 0, kicksMade: 0, kicksMissed: 0,
-    lineoutThrows: 0, lineoutWins: 0, lineoutCatches: 0, lineoutSteals: 0,
-    scrumPenaltiesWon: 0, scrumPenaltiesConceded: 0,
-    kickMetres: 0, rucksHit: 0,
-  };
-}
-
-type RawPlayer = Omit<Player, 'currentStats' | 'fatiguePct' | 'rating' | 'x' | 'y' | 'squadNumber'> & { squadNumber?: number };
-
-export type RawTeamInput = {
-  id: string; name: string; shortName: string; color: string; secondaryColor: string;
-  stadium: string;
-  players: RawPlayer[];
-  bench?: RawPlayer[];
-  squad?: RawPlayer[];
-};
 
 function initPlayer(raw: RawPlayer): Player {
   const form = rngForm();

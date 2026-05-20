@@ -2,7 +2,7 @@
 // navigates to the Hub. Read-only — standings are mutated by the game
 // engine via FIXTURE_RESULT_RECORDED.
 
-import type { RawTeamInput } from '../engine/MatchCoordinator';
+import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { TeamStanding } from '../types/gameState';
 import { sortStandings } from '../game/leagueTable';

@@ -10,7 +10,8 @@
 // defaults, then waits for engine:finished. No engine changes required.
 
 import { createHash } from 'node:crypto';
-import { MatchCoordinator, type RawTeamInput } from '../src/engine/MatchCoordinator.js';
+import { MatchCoordinator } from '../src/engine/MatchCoordinator.js';
+import type { RawTeamInput } from '../src/types/teamData.js';
 import { eventBus } from '../src/utils/eventBus.js';
 import bathRaw from '../src/data/team-bath.json' with { type: 'json' };
 import saracensRaw from '../src/data/team-saracens.json' with { type: 'json' };

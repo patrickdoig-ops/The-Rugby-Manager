@@ -21,7 +21,7 @@ import { simulateFixture } from './simulateFixture';
 import { eventBus } from '../utils/eventBus';
 import { SEASON_VALUES } from '../engine/balance';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
-import type { RawTeamInput } from '../engine/MatchCoordinator';
+import type { RawTeamInput } from '../types/teamData';
 
 export type SavedSeasonResult = {
   round: number;

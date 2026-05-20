@@ -5,7 +5,7 @@
 // scores filled in for completed matches. Reached from the Hub's Fixtures
 // tile; back navigates to the Hub.
 
-import type { RawTeamInput } from '../engine/MatchCoordinator';
+import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { Fixture, FixtureResult, GameState } from '../types/gameState';
 import { eventBus } from '../utils/eventBus';

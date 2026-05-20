@@ -2,7 +2,7 @@ import type { TeamProfile, StarPlayerMeta } from '../types/teamProfile';
 import type { TeamTactics } from '../types/team';
 import { computeOverallRating } from '../team/teamProfile';
 import { playerOverall } from '../engine/RatingEngine';
-import type { RawTeamInput } from '../engine/MatchCoordinator';
+import type { RawTeamInput } from '../types/teamData';
 import { getAge } from '../game/age';
 
 type RawPlayer = RawTeamInput['players'][number];

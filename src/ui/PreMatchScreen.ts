@@ -5,7 +5,7 @@ import { renderTacticsMenu } from './TacticsMenu';
 import { eventBus } from '../utils/eventBus';
 import { shortName } from '../utils/playerName';
 import { teamTextColor } from '../utils/teamColor';
-import type { RawTeamInput } from '../engine/MatchCoordinator';
+import type { RawTeamInput } from '../types/teamData';
 import { playerOverall } from '../engine/RatingEngine';
 
 type RawPlayer = {

@@ -7,7 +7,7 @@
 // (`onPlayMatch`) is exercisable in this iteration.
 
 import type { GameCoordinator } from '../game/GameCoordinator';
-import type { RawTeamInput } from '../engine/MatchCoordinator';
+import type { RawTeamInput } from '../types/teamData';
 import type { Fixture, GameState } from '../types/gameState';
 import { eventBus } from '../utils/eventBus';
 

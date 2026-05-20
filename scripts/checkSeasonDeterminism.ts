@@ -11,7 +11,7 @@
 import { createHash } from 'node:crypto';
 import { GameCoordinator } from '../src/game/GameCoordinator.js';
 import { simulateFixture } from '../src/game/simulateFixture.js';
-import type { RawTeamInput } from '../src/engine/MatchCoordinator.js';
+import type { RawTeamInput } from '../src/types/teamData.js';
 
 import bathRaw         from '../src/data/team-bath.json' with { type: 'json' };
 import bristolRaw      from '../src/data/team-bristol.json' with { type: 'json' };

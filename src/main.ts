@@ -31,7 +31,7 @@ import { initMatchResultScreen }   from './ui/MatchResultScreen';
 import { screenRouter }            from './ui/ScreenRouter';
 import { loadSave, saveGame, clearSave } from './ui/SaveManager';
 import { MatchCoordinator }        from './engine/MatchCoordinator';
-import type { RawTeamInput }       from './engine/MatchCoordinator';
+import type { RawTeamInput }       from './types/teamData';
 import type { TeamTactics }        from './types/team';
 import type { MatchState }         from './types/match';
 import * as teamProfile            from './team/teamProfile';

@@ -9,7 +9,8 @@
 // Determinism: seed is derived per-fixture via deriveFixtureSeed so the same
 // (rootSeed, round, homeId, awayId) always produces the same score.
 
-import { MatchCoordinator, type RawTeamInput } from '../engine/MatchCoordinator';
+import { MatchCoordinator } from '../engine/MatchCoordinator';
+import type { RawTeamInput } from '../types/teamData';
 import { eventBus } from '../utils/eventBus';
 import { deriveFixtureSeed } from './derive';
 

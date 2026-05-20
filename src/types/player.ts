@@ -65,3 +65,17 @@ export interface Player {
   x: number;
   y: number;
 }
+
+// Identity element for PlayerMatchStats — co-located with the type so adding
+// a new stat is a single-file change (extend the interface + zero it here).
+export function zeroMatchStats(): PlayerMatchStats {
+  return {
+    carries: 0, metresCarried: 0, lineBreaks: 0, defendersBeaten: 0,
+    knockOns: 0, passes: 0, tacklesAttempted: 0, tacklesMade: 0,
+    dominantTackles: 0, turnoversWon: 0, penaltiesConceded: 0, tries: 0,
+    kicksFromHand: 0, kicksAtGoal: 0, kicksMade: 0, kicksMissed: 0,
+    lineoutThrows: 0, lineoutWins: 0, lineoutCatches: 0, lineoutSteals: 0,
+    scrumPenaltiesWon: 0, scrumPenaltiesConceded: 0,
+    kickMetres: 0, rucksHit: 0,
+  };
+}

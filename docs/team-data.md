@@ -25,6 +25,8 @@ Related docs: see `CLAUDE.md` "Tactics system" for tactic-effect mechanics, `doc
 **Player base stats** (12 fields, 0–100 scale, from `src/data/team-*.json`):
 `stamina · strength · pace · agility · handling · tackling · breakdown · kicking · setPiece · discipline · positioning · composure`
 
+**Club colours** — each team carries a primary and secondary hex on the `Club colours:` line in its profile. These are the source of truth for `color` / `secondaryColor` in the generated `team-*.json` files; `scripts/generateTeamJsons.mjs` parses them directly from this file.
+
 **Team rating formula** — each team carries an `Overall rating` derived from real-world league performance:
 
 ```
@@ -41,6 +43,7 @@ Premiership ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 ble
 A historic west-country club with a cherry-and-white forwards-led identity, defined by the close, vocal "Shed" at Kingsholm. Gloucester traditionally make their living from a robust, hard-carrying pack, set-piece confrontation and direct lines through the middle. The backline is functional rather than expansive, leaning on power runners to punch holes that fast support can exploit. At their best they are abrasive, physical and uncompromising at the breakdown; at their worst they over-rely on the forwards when a wider game is needed.
 
 - **Home ground:** Kingsholm Stadium (the famous "Shed" terrace).
+- **Club colours:** `#c8102e` / `#ffffff`
 - **Nickname:** Cherry & Whites.
 - **Founded:** 1873.
 - **Stadium capacity:** 16,155.
@@ -71,7 +74,7 @@ A historic west-country club with a cherry-and-white forwards-led identity, defi
 | Danny Eite | Lock | | 22 | England |
 | Afolabi Fasogbon | Prop | 2003-12-17 | 22 | Ireland |
 | Jamal Ford-Robinson | Prop | 1993-04-23 | 33 | England |
-| Kirill Gotovtsev | Prop | 1992-07-09 | 33 | Russia |
+| Kirill Gotovtsev | Prop | 1987-07-17 | 38 | Russia |
 | Jack Innard | Hooker | 2001-04-13 | 25 | England |
 | Cameron Jordan | Lock | 1996-05-23 | 30 | England |
 | Ciaran Knight | Prop | 1995-08-30 | 30 | England |
@@ -113,6 +116,7 @@ A historic west-country club with a cherry-and-white forwards-led identity, defi
 Shaped by the Pat Lam era's "Bristol-Bilbao" expansive ambition, the Bears are the league's most ball-in-hand, high-tempo side, willing to attack from anywhere on the pitch. They prize width, offloads and pace over territorial caution, and will gladly trade penalties for tempo. Their forwards are built for carrying and linking rather than maul dominance, and they often outscore opponents in shootouts. The flip side is risk: turnovers and defensive lapses come with the style.
 
 - **Home ground:** Ashton Gate.
+- **Club colours:** `#003087` / `#c8102e`
 - **Nickname:** The Bears (rebranded from Bristol in 2018).
 - **Founded:** 1888.
 - **Stadium capacity:** 27,000 (shared with Bristol City FC).
@@ -184,6 +188,7 @@ Shaped by the Pat Lam era's "Bristol-Bilbao" expansive ambition, the Bears are t
 The Welford Road tradition is set-piece power, structured forward-led play, and hard-nosed defence built on discipline. Tigers historically squeeze the game through scrum and maul dominance, accurate exit kicking, and a defensive line that gives nothing cheap. Their attack is built off forward platform first, with the backs called on to finish rather than create from scratch. Recent rebuilds have softened the edges, but the identity remains: territory, set piece, pressure.
 
 - **Home ground:** Mattioli Woods Welford Road (commonly "Welford Road").
+- **Club colours:** `#1c5e3f` / `#ffffff`
 - **Nickname:** Tigers.
 - **Founded:** 1880.
 - **Stadium capacity:** 25,849 (the largest club-owned rugby ground in England).
@@ -263,6 +268,7 @@ The Welford Road tradition is set-piece power, structured forward-led play, and 
 Under Mark McCall, Saracens have been the league's clinical operator — structure, precision and physical dominance executed to a finer tolerance than anyone else. The "Wolfpack" defence with its aggressive line-speed and choke tackles is the signature, paired with a smart kicking game that turns territory into points. They are ruthless game managers: ahead late, they will close a match out with possession and field position rather than tries. Calm under pressure, brutal in the collision.
 
 - **Home ground:** StoneX Stadium (formerly Allianz Park).
+- **Club colours:** `#000000` / `#ed1c24`
 - **Nickname:** Sarries (the "Wolfpack" defensive identity).
 - **Founded:** 1876.
 - **Stadium capacity:** 10,500.
@@ -275,7 +281,7 @@ Under Mark McCall, Saracens have been the league's clinical operator — structu
 ### Star players
 
 - **Maro Itoje** (Lock, England) — 2025 Lions captain and the first Black skipper in the tour's 137-year history; ran a lineout "clinic" in the series win and remains the gold standard for a modern second row — enforcer, jumper, leader. Index high: `setPiece`, `tackling`, `strength`, `breakdown`, `composure`. Suggested rating: **92/100**.
-- **Owen Farrell** (Fly-half, England) — Returned from Racing 92 on a two-year player-coach deal; over 1,200 Test points, six Premiership titles with Sarries, and still the league's most ruthless game-manager off the tee. Index high: `kicking`, `composure`, `positioning`, `discipline`, `tackling`. Suggested rating: **88/100**.
+- **Owen Farrell** (Fly-half, England) — Returned from Racing 92 on a two-year playing deal; over 1,200 Test points, five Premiership titles with Sarries, and still the league's most ruthless game-manager off the tee. Index high: `kicking`, `composure`, `positioning`, `discipline`, `tackling`. Suggested rating: **88/100**.
 - **Ben Earl** (Number 8, England) — 2025 Lions Test back-rower and 2024 England Player of the Year; 73 carries for 419 metres across that Six Nations made him the explosive go-to ball-carrier from the base. Index high: `pace`, `strength`, `stamina`, `handling`, `tackling`. Suggested rating: **88/100**.
 - **Jamie George** (Hooker, England) — Long-time England hooker and former captain; elite throwing accuracy underpins the Sarries lineout and his work rate around the park is a benchmark for the position. Index high: `setPiece`, `tackling`, `breakdown`, `composure`, `discipline`. Suggested rating: **85/100**.
 
@@ -284,7 +290,6 @@ Under Mark McCall, Saracens have been the league's clinical operator — structu
 **Forwards**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Samson Adejimi | Hooker | | 24 | England |
 | Harvey Beaton | Prop | 2001-03-15 | 25 | England |
 | Phil Brantingham | Prop | 2001-10-02 | 24 | England |
 | Rhys Carre | Prop | 1998-02-08 | 28 | Wales |
@@ -340,6 +345,7 @@ Under Mark McCall, Saracens have been the league's clinical operator — structu
 The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at 10 and Santi Carreras at 15, with strong ball-playing centres giving Bath multiple distributors at the line. Their best rugby blends forward dominance and territory with a backline that can shift the point of attack at will. Russell's growing pragmatism has added game management to the flair, though some 2025-26 criticism has pointed to conservative five-metre pick-and-drive over their expansive instincts. At full song, they balance heft up front with the league's most creative half-back axis.
 
 - **Home ground:** The Recreation Ground (commonly "The Rec").
+- **Club colours:** `#0033a0` / `#ffffff`
 - **Nickname:** The Blue, Black and Whites.
 - **Founded:** 1865 — one of the oldest rugby clubs in England.
 - **Stadium capacity:** 14,500 (18,000-seat rebuild approved September 2025).
@@ -415,6 +421,7 @@ The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at
 The Rob Baxter long-build identity is phase-heavy possession rugby — pressure and patience, suffocating teams with multiple phases and field position before striking. The driving maul is a signature weapon and the forwards are built for relentless go-forward over flashy carries. Chiefs cede little territory, kick smartly and trust their fitness to wear opponents down. They are mid-rebuild after the peak title-winning era, but the DNA — disciplined, methodical, set-piece confident — is intact.
 
 - **Home ground:** Sandy Park.
+- **Club colours:** `#000000` / `#ffffff`
 - **Nickname:** Chiefs.
 - **Founded:** 1871.
 - **Stadium capacity:** 13,593.
@@ -496,6 +503,7 @@ The Rob Baxter long-build identity is phase-heavy possession rugby — pressure 
 The Twickenham Stoop entertainers and the league's most committed expansive, attacking side. Built around Marcus Smith's creative range — cross-field kicks, late drop-goal nous, footwork at first receiver — Quins play fast-paced running rugby and back themselves to outscore anyone. Their forwards are mobile and carry-friendly rather than maul-monsters, and they thrive on broken-field rugby and counter-attack. The trade-off is defensive vulnerability when the tempo turns against them.
 
 - **Home ground:** Twickenham Stoop (commonly "The Stoop").
+- **Club colours:** `#73144a` / `#23bcad`
 - **Nickname:** Quins.
 - **Founded:** 1866 — the league's oldest continuously professional club.
 - **Stadium capacity:** 14,800.
@@ -546,14 +554,14 @@ The Twickenham Stoop entertainers and the league's most committed expansive, att
 | Cameron Anderson | Full-back | 1999-09-16 | 26 | England |
 | Oscar Beard | Centre | 2001-11-20 | 24 | England |
 | Jamie Benson | Fly-half | 2002-09-23 | 23 | England |
-| Bryn Bradley | Centre | 2003-04-17 | 23 | England |
+| Bryn Bradley | Centre | 2003-04-17 | 23 | Wales |
 | Conor Byrne | Full-back | 2005-07-07 | 20 | England |
 | Cassius Cleaves | Wing | 2003-03-15 | 23 | England |
 | Nick David | Full-back | 1998-11-04 | 27 | England |
 | Jarrod Evans | Fly-half | 1996-07-25 | 29 | Wales |
 | Max Green | Scrum-half | 1996-02-13 | 30 | England |
 | Tyrone Green | Full-back | 1998-03-05 | 28 | South Africa |
-| Hayden Hyde | Centre | 2000-09-15 | 25 | Ireland |
+| Hayden Hyde | Centre | 2000-09-15 | 25 | England |
 | Rodrigo Isgró | Wing | 1999-03-24 | 27 | Argentina |
 | Sean Kerr | Centre | 2004-11-08 | 21 | England |
 | Cadan Murley | Wing | 1999-07-31 | 26 | England |
@@ -570,6 +578,7 @@ The Twickenham Stoop entertainers and the league's most committed expansive, att
 Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastle are mid-transformation: heavy investment, aggressive recruitment, and a search for a clearer identity after three straight bottom-of-the-table finishes. Historically a developmental, lower-budget side that fought hard but lacked depth, the Red Bulls era is rebuilding from the ground up. Kingston Park remains home, but the playing identity is still being written — expect them to start the simulator era as the league's weakest squad, with room to grow.
 
 - **Home ground:** Kingston Park.
+- **Club colours:** `#000000` / `#dc1e25`
 - **Nickname:** Red Bulls (rebranded from "Falcons" after Red Bull's August 2025 takeover).
 - **Founded:** 1877 (as Gosforth FC).
 - **Stadium capacity:** 10,200.
@@ -589,9 +598,9 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 **Forwards**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Senatla Adejimi | Hooker | | | England |
+| Samson Adejimi | Hooker | | 24 | England |
 | Finn Baker | Lock | | | England |
-| Ewan Bello | Prop | | | England |
+| Eduardo Bello | Prop | 1995-09-14 | 30 | Argentina |
 | Adam Brocklebank | Prop | | | England |
 | Tim Cardall | Lock | | | England |
 | Tom Christie | Flanker | 1998-03-04 | 28 | New Zealand |
@@ -614,7 +623,6 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 | George McGuigan | Hooker | | 32 | England |
 | Cameron Neild | Flanker | 1996-09-06 | 29 | England |
 | Rob Palframan | Prop | | | England |
-| Pouri Rakete-Stones | Prop | | | New Zealand |
 | Micky Rewcastle | Prop | | | England |
 | Adam Scott | Lock | | | England |
 | Charlie Turnbull | Back Row | | | England |
@@ -652,6 +660,7 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 The 2023-24 champions under Phil Dowson, Saints are the league's electric attacking outfit — willing to play from anywhere on the pitch and devastating in transition. Fin Smith conducts a heads-up backline that scores tries from deep, off turnover ball and from set-piece strike plays in equal measure. Their forwards are mobile and link-friendly rather than collision-first, designed to win quick ball and feed the runners. When they get rolling they put 40+ on teams; when the platform wobbles, the structure shows cracks.
 
 - **Home ground:** cinch Stadium at Franklin's Gardens (commonly "Franklin's Gardens").
+- **Club colours:** `#000000` / `#00563f`
 - **Nickname:** Saints.
 - **Founded:** 1880.
 - **Stadium capacity:** 15,249.
@@ -741,6 +750,7 @@ The 2023-24 champions under Phil Dowson, Saints are the league's electric attack
 The Manchester defence-first side: line-speed, collision-dominant loose forwards and a physical inside-centre channel, all built to choke teams into errors. Sale are happy to cede possession because they back their defence to win the field-position battle, and George Ford's tempo control gives them clinical execution when they do attack. Tackles, turnovers and territory underpin everything; they are the league's least flashy and most resilient team. Box-kick, chase, tackle, repeat.
 
 - **Home ground:** Salford Community Stadium (formerly AJ Bell Stadium).
+- **Club colours:** `#0a1b40` / `#ffffff`
 - **Nickname:** Sharks.
 - **Founded:** 1861 — the oldest open rugby club in the world still playing.
 - **Stadium capacity:** 12,000 (shared with Salford Red Devils RL).
@@ -776,13 +786,12 @@ The Manchester defence-first side: line-speed, collision-dominant loose forwards
 | James Harper | Prop | | | England |
 | Nathan Jibulu | Hooker | | | England |
 | WillGriff John | Prop | 1992-12-04 | 33 | Wales |
-| Reuben Logan | Back Row | | | England |
+| Reuben Logan | Back Row | | | Scotland |
 | Tadgh McElroy | Hooker | | 28 | Ireland |
 | Si McIntyre | Prop | | | England |
 | Asher Opoku-Fordjour | Prop | | 21 | England |
 | Dan du Preez | Number 8 | | | South Africa |
 | Tye Raymont | Prop | | | England |
-| Le Roux Roets | Lock | | | South Africa |
 | Bevan Rodd | Prop | | | England |
 | Ernst van Rhyn | Lock | | | South Africa |
 | Jacques Vermeulen | Flanker | | | South Africa |

@@ -37,7 +37,7 @@
       "name": "Owen Farrell",
       "position": "Fly-half",
       "nationality": "England",
-      "blurb": "Returned from Racing 92 on a two-year player-coach deal; over 1,200 Test points, six Premiership titles with Sarries, and still the league's most ruthless game-manager off the tee",
+      "blurb": "Returned from Racing 92 on a two-year playing deal; over 1,200 Test points, five Premiership titles with Sarries, and still the league's most ruthless game-manager off the tee",
       "indexHigh": [
         "kicking",
         "composure",
@@ -427,24 +427,24 @@
     {
       "id": 16,
       "squadNumber": 16,
-      "firstName": "Samson",
-      "lastName": "Adejimi",
-      "dob": null,
-      "nationality": "England",
+      "firstName": "Eoghan",
+      "lastName": "Clarke",
+      "dob": "1998-06-12",
+      "nationality": "Ireland",
       "position": "Hooker",
       "baseStats": {
-        "stamina": 63,
-        "strength": 71,
-        "pace": 55,
-        "agility": 59,
-        "handling": 63,
-        "tackling": 79,
-        "breakdown": 73,
-        "kicking": 49,
-        "setPiece": 82,
-        "discipline": 69,
-        "positioning": 70,
-        "composure": 66
+        "stamina": 70,
+        "strength": 67,
+        "pace": 57,
+        "agility": 64,
+        "handling": 65,
+        "tackling": 75,
+        "breakdown": 74,
+        "kicking": 54,
+        "setPiece": 80,
+        "discipline": 63,
+        "positioning": 72,
+        "composure": 71
       }
     },
     {
@@ -705,29 +705,6 @@
     {
       "id": 28,
       "squadNumber": 28,
-      "firstName": "Eoghan",
-      "lastName": "Clarke",
-      "dob": "1998-06-12",
-      "nationality": "Ireland",
-      "position": "Hooker",
-      "baseStats": {
-        "stamina": 70,
-        "strength": 67,
-        "pace": 57,
-        "agility": 64,
-        "handling": 65,
-        "tackling": 75,
-        "breakdown": 74,
-        "kicking": 54,
-        "setPiece": 80,
-        "discipline": 63,
-        "positioning": 72,
-        "composure": 71
-      }
-    },
-    {
-      "id": 29,
-      "squadNumber": 29,
       "firstName": "Theo",
       "lastName": "Dan",
       "dob": "2000-12-26",
@@ -749,8 +726,8 @@
       }
     },
     {
-      "id": 30,
-      "squadNumber": 30,
+      "id": 29,
+      "squadNumber": 29,
       "firstName": "James",
       "lastName": "Hadfield",
       "dob": null,
@@ -772,8 +749,8 @@
       }
     },
     {
-      "id": 31,
-      "squadNumber": 31,
+      "id": 30,
+      "squadNumber": 30,
       "firstName": "James",
       "lastName": "Isaacs",
       "dob": "2004-03-28",
@@ -795,8 +772,8 @@
       }
     },
     {
-      "id": 32,
-      "squadNumber": 32,
+      "id": 31,
+      "squadNumber": 31,
       "firstName": "Mak",
       "lastName": "Eke",
       "dob": null,
@@ -818,8 +795,8 @@
       }
     },
     {
-      "id": 33,
-      "squadNumber": 33,
+      "id": 32,
+      "squadNumber": 32,
       "firstName": "Theo",
       "lastName": "McFarland",
       "dob": "1995-10-16",
@@ -841,8 +818,8 @@
       }
     },
     {
-      "id": 34,
-      "squadNumber": 34,
+      "id": 33,
+      "squadNumber": 33,
       "firstName": "Barnaby",
       "lastName": "Merrett",
       "dob": "2004-11-22",
@@ -864,8 +841,8 @@
       }
     },
     {
-      "id": 35,
-      "squadNumber": 35,
+      "id": 34,
+      "squadNumber": 34,
       "firstName": "Nathan",
       "lastName": "Michelow",
       "dob": "2004-05-16",
@@ -887,8 +864,8 @@
       }
     },
     {
-      "id": 36,
-      "squadNumber": 36,
+      "id": 35,
+      "squadNumber": 35,
       "firstName": "Tom",
       "lastName": "Willis",
       "dob": "1999-01-18",
@@ -910,8 +887,8 @@
       }
     },
     {
-      "id": 37,
-      "squadNumber": 37,
+      "id": 36,
+      "squadNumber": 36,
       "firstName": "Ivan",
       "lastName": "van Zyl",
       "dob": "1995-06-30",
@@ -933,8 +910,8 @@
       }
     },
     {
-      "id": 38,
-      "squadNumber": 38,
+      "id": 37,
+      "squadNumber": 37,
       "firstName": "Louie",
       "lastName": "Johnson",
       "dob": "2003-06-13",
@@ -956,8 +933,8 @@
       }
     },
     {
-      "id": 39,
-      "squadNumber": 39,
+      "id": 38,
+      "squadNumber": 38,
       "firstName": "Olly",
       "lastName": "Hartley",
       "dob": "2002-02-19",
@@ -979,8 +956,8 @@
       }
     },
     {
-      "id": 40,
-      "squadNumber": 40,
+      "id": 39,
+      "squadNumber": 39,
       "firstName": "Alex",
       "lastName": "Lozowski",
       "dob": "1993-06-30",
@@ -1002,8 +979,8 @@
       }
     },
     {
-      "id": 41,
-      "squadNumber": 41,
+      "id": 40,
+      "squadNumber": 40,
       "firstName": "Sam",
       "lastName": "Spink",
       "dob": "1999-10-06",
@@ -1025,8 +1002,8 @@
       }
     },
     {
-      "id": 42,
-      "squadNumber": 42,
+      "id": 41,
+      "squadNumber": 41,
       "firstName": "Nick",
       "lastName": "Tompkins",
       "dob": "1995-02-16",
@@ -1048,8 +1025,8 @@
       }
     },
     {
-      "id": 43,
-      "squadNumber": 43,
+      "id": 42,
+      "squadNumber": 42,
       "firstName": "Max",
       "lastName": "Malins",
       "dob": "1997-01-07",
@@ -1071,8 +1048,8 @@
       }
     },
     {
-      "id": 44,
-      "squadNumber": 44,
+      "id": 43,
+      "squadNumber": 43,
       "firstName": "Rotimi",
       "lastName": "Segun",
       "dob": "1996-12-28",

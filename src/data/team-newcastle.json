@@ -2,7 +2,7 @@
   "id": "newcastle",
   "name": "Newcastle Red Bulls",
   "shortName": "NEW",
-  "color": "#00006a",
+  "color": "#000000",
   "secondaryColor": "#dc1e25",
   "stadium": "Kingston Park",
   "blurb": "Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastle are mid-transformation: heavy investment, aggressive recruitment, and a search for a clearer identity after three straight bottom-of-the-table finishes. Historically a developmental, lower-budget side that fought hard but lacked depth, the Red Bulls era is rebuilding from the ground up. Kingston Park remains home, but the playing identity is still being written — expect them to start the simulator era as the league's weakest squad, with room to grow.",
@@ -51,47 +51,47 @@
     {
       "id": 1,
       "squadNumber": 1,
-      "firstName": "Ewan",
+      "firstName": "Eduardo",
       "lastName": "Bello",
-      "dob": null,
-      "nationality": "England",
+      "dob": "1995-09-14",
+      "nationality": "Argentina",
       "position": "Loosehead Prop",
       "baseStats": {
-        "stamina": 47,
-        "strength": 53,
+        "stamina": 51,
+        "strength": 56,
         "pace": 35,
         "agility": 35,
-        "handling": 40,
-        "tackling": 53,
-        "breakdown": 51,
+        "handling": 35,
+        "tackling": 54,
+        "breakdown": 46,
         "kicking": 35,
-        "setPiece": 65,
-        "discipline": 48,
-        "positioning": 46,
-        "composure": 42
+        "setPiece": 58,
+        "discipline": 45,
+        "positioning": 42,
+        "composure": 44
       }
     },
     {
       "id": 2,
       "squadNumber": 2,
-      "firstName": "Senatla",
+      "firstName": "Samson",
       "lastName": "Adejimi",
       "dob": null,
       "nationality": "England",
       "position": "Hooker",
       "baseStats": {
-        "stamina": 49,
+        "stamina": 45,
         "strength": 48,
-        "pace": 36,
+        "pace": 35,
         "agility": 40,
-        "handling": 42,
+        "handling": 40,
         "tackling": 46,
-        "breakdown": 52,
+        "breakdown": 51,
         "kicking": 35,
         "setPiece": 57,
-        "discipline": 51,
-        "positioning": 46,
-        "composure": 41
+        "discipline": 49,
+        "positioning": 43,
+        "composure": 42
       }
     },
     {
@@ -630,29 +630,6 @@
     {
       "id": 26,
       "squadNumber": 26,
-      "firstName": "Pouri",
-      "lastName": "Rakete-Stones",
-      "dob": null,
-      "nationality": "New Zealand",
-      "position": "Loosehead Prop",
-      "baseStats": {
-        "stamina": 46,
-        "strength": 57,
-        "pace": 35,
-        "agility": 36,
-        "handling": 36,
-        "tackling": 55,
-        "breakdown": 53,
-        "kicking": 35,
-        "setPiece": 64,
-        "discipline": 45,
-        "positioning": 46,
-        "composure": 46
-      }
-    },
-    {
-      "id": 27,
-      "squadNumber": 27,
       "firstName": "Micky",
       "lastName": "Rewcastle",
       "dob": null,
@@ -674,8 +651,8 @@
       }
     },
     {
-      "id": 28,
-      "squadNumber": 28,
+      "id": 27,
+      "squadNumber": 27,
       "firstName": "Ollie",
       "lastName": "Fletcher",
       "dob": null,
@@ -697,8 +674,8 @@
       }
     },
     {
-      "id": 29,
-      "squadNumber": 29,
+      "id": 28,
+      "squadNumber": 28,
       "firstName": "Bryce",
       "lastName": "Gordon",
       "dob": null,
@@ -720,8 +697,8 @@
       }
     },
     {
-      "id": 30,
-      "squadNumber": 30,
+      "id": 29,
+      "squadNumber": 29,
       "firstName": "George",
       "lastName": "McGuigan",
       "dob": null,
@@ -743,8 +720,8 @@
       }
     },
     {
-      "id": 31,
-      "squadNumber": 31,
+      "id": 30,
+      "squadNumber": 30,
       "firstName": "Sebastian",
       "lastName": "De Chaves",
       "dob": "1990-10-30",
@@ -766,8 +743,8 @@
       }
     },
     {
-      "id": 32,
-      "squadNumber": 32,
+      "id": 31,
+      "squadNumber": 31,
       "firstName": "John",
       "lastName": "Hawkins",
       "dob": null,
@@ -789,8 +766,8 @@
       }
     },
     {
-      "id": 33,
-      "squadNumber": 33,
+      "id": 32,
+      "squadNumber": 32,
       "firstName": "Jamie",
       "lastName": "Hodgson",
       "dob": null,
@@ -812,8 +789,8 @@
       }
     },
     {
-      "id": 34,
-      "squadNumber": 34,
+      "id": 33,
+      "squadNumber": 33,
       "firstName": "Cam",
       "lastName": "Jordan",
       "dob": "1999-11-17",
@@ -835,8 +812,8 @@
       }
     },
     {
-      "id": 35,
-      "squadNumber": 35,
+      "id": 34,
+      "squadNumber": 34,
       "firstName": "Fergus",
       "lastName": "Lee-Warner",
       "dob": "1994-02-03",
@@ -858,8 +835,8 @@
       }
     },
     {
-      "id": 36,
-      "squadNumber": 36,
+      "id": 35,
+      "squadNumber": 35,
       "firstName": "Adam",
       "lastName": "Scott",
       "dob": null,
@@ -881,8 +858,8 @@
       }
     },
     {
-      "id": 37,
-      "squadNumber": 37,
+      "id": 36,
+      "squadNumber": 36,
       "firstName": "Oscar",
       "lastName": "Usher",
       "dob": null,
@@ -904,8 +881,8 @@
       }
     },
     {
-      "id": 38,
-      "squadNumber": 38,
+      "id": 37,
+      "squadNumber": 37,
       "firstName": "Ollie",
       "lastName": "Leatherbarrow",
       "dob": null,
@@ -927,8 +904,8 @@
       }
     },
     {
-      "id": 39,
-      "squadNumber": 39,
+      "id": 38,
+      "squadNumber": 38,
       "firstName": "Charlie",
       "lastName": "Turnbull",
       "dob": null,
@@ -950,8 +927,8 @@
       }
     },
     {
-      "id": 40,
-      "squadNumber": 40,
+      "id": 39,
+      "squadNumber": 39,
       "firstName": "Freddie",
       "lastName": "Lockwood",
       "dob": "2000-12-31",
@@ -973,8 +950,8 @@
       }
     },
     {
-      "id": 41,
-      "squadNumber": 41,
+      "id": 40,
+      "squadNumber": 40,
       "firstName": "James",
       "lastName": "Elliott",
       "dob": null,
@@ -996,8 +973,8 @@
       }
     },
     {
-      "id": 42,
-      "squadNumber": 42,
+      "id": 41,
+      "squadNumber": 41,
       "firstName": "Sam",
       "lastName": "Stuart",
       "dob": "1991-09-27",
@@ -1019,8 +996,8 @@
       }
     },
     {
-      "id": 43,
-      "squadNumber": 43,
+      "id": 42,
+      "squadNumber": 42,
       "firstName": "Ethan",
       "lastName": "Grayson",
       "dob": null,
@@ -1042,8 +1019,8 @@
       }
     },
     {
-      "id": 44,
-      "squadNumber": 44,
+      "id": 43,
+      "squadNumber": 43,
       "firstName": "Connor",
       "lastName": "Doherty",
       "dob": null,
@@ -1065,8 +1042,8 @@
       }
     },
     {
-      "id": 45,
-      "squadNumber": 45,
+      "id": 44,
+      "squadNumber": 44,
       "firstName": "Alex",
       "lastName": "Hearle",
       "dob": null,
@@ -1088,8 +1065,8 @@
       }
     },
     {
-      "id": 46,
-      "squadNumber": 46,
+      "id": 45,
+      "squadNumber": 45,
       "firstName": "Cameron",
       "lastName": "Hutchison",
       "dob": "1998-06-01",
@@ -1111,8 +1088,8 @@
       }
     },
     {
-      "id": 47,
-      "squadNumber": 47,
+      "id": 46,
+      "squadNumber": 46,
       "firstName": "Oliver",
       "lastName": "Spencer",
       "dob": null,
@@ -1134,8 +1111,8 @@
       }
     },
     {
-      "id": 48,
-      "squadNumber": 48,
+      "id": 47,
+      "squadNumber": 47,
       "firstName": "Sam",
       "lastName": "Waugh",
       "dob": null,
@@ -1157,8 +1134,8 @@
       }
     },
     {
-      "id": 49,
-      "squadNumber": 49,
+      "id": 48,
+      "squadNumber": 48,
       "firstName": "Christian",
       "lastName": "Wade",
       "dob": "1991-05-15",
@@ -1180,8 +1157,8 @@
       }
     },
     {
-      "id": 50,
-      "squadNumber": 50,
+      "id": 49,
+      "squadNumber": 49,
       "firstName": "Josh",
       "lastName": "Hodge",
       "dob": "2000-05-23",
@@ -1203,8 +1180,8 @@
       }
     },
     {
-      "id": 51,
-      "squadNumber": 51,
+      "id": 50,
+      "squadNumber": 50,
       "firstName": "Elliott",
       "lastName": "Obatoyinbo",
       "dob": "1998-10-09",

@@ -14,17 +14,18 @@ const OUT_DIR = resolve(ROOT, 'src/data');
 
 // ─── Team metadata ─────────────────────────────────────────────────────────
 
+// Colours are parsed from each team's `Club colours:` line in docs/team-data.md.
 const TEAM_META = {
-  'Gloucester':            { slug: 'gloucester',   shortName: 'GLO', color: '#c8102e', secondaryColor: '#ffffff' },
-  'Bristol Bears':         { slug: 'bristol',      shortName: 'BRI', color: '#003087', secondaryColor: '#ffd700' },
-  'Leicester Tigers':      { slug: 'leicester',    shortName: 'LEI', color: '#1c5e3f', secondaryColor: '#ffffff' },
-  'Saracens':              { slug: 'saracens',     shortName: 'SAR', color: '#000000', secondaryColor: '#ed1c24' },
-  'Bath Rugby':            { slug: 'bath',         shortName: 'BAT', color: '#0033a0', secondaryColor: '#ffffff' },
-  'Exeter Chiefs':         { slug: 'exeter',       shortName: 'EXE', color: '#0a1b40', secondaryColor: '#ffffff' },
-  'Harlequins':            { slug: 'harlequins',   shortName: 'HAR', color: '#73144a', secondaryColor: '#23bcad' },
-  'Newcastle Red Bulls':   { slug: 'newcastle',    shortName: 'NEW', color: '#00006a', secondaryColor: '#dc1e25' },
-  'Northampton Saints':    { slug: 'northampton',  shortName: 'NOR', color: '#000000', secondaryColor: '#1b4b9c' },
-  'Sale Sharks':           { slug: 'sale',         shortName: 'SAL', color: '#0a1b40', secondaryColor: '#0fb5d1' },
+  'Gloucester':            { slug: 'gloucester',   shortName: 'GLO' },
+  'Bristol Bears':         { slug: 'bristol',      shortName: 'BRI' },
+  'Leicester Tigers':      { slug: 'leicester',    shortName: 'LEI' },
+  'Saracens':              { slug: 'saracens',     shortName: 'SAR' },
+  'Bath Rugby':            { slug: 'bath',         shortName: 'BAT' },
+  'Exeter Chiefs':         { slug: 'exeter',       shortName: 'EXE' },
+  'Harlequins':            { slug: 'harlequins',   shortName: 'HAR' },
+  'Newcastle Red Bulls':   { slug: 'newcastle',    shortName: 'NEW' },
+  'Northampton Saints':    { slug: 'northampton',  shortName: 'NOR' },
+  'Sale Sharks':           { slug: 'sale',         shortName: 'SAL' },
 };
 
 // Map md tactics literals to TeamTactics dimensions in fixed order:
@@ -123,6 +124,8 @@ function parseTeamDataMd(md) {
     const blurb = blurbMatch ? blurbMatch[1].replace(/\n/g, ' ').trim() : '';
 
     const stadiumMatch = body.match(/\*\*Home ground:\*\*\s*(.+?)\.\s*$/m);
+    const coloursMatch = body.match(/\*\*Club colours:\*\*\s*`(#[0-9a-fA-F]{6})`\s*\/\s*`(#[0-9a-fA-F]{6})`/);
+    if (!coloursMatch) throw new Error(`Missing 'Club colours:' line for ${teamName}`);
     const ratingMatch = body.match(/\*\*Overall rating:\*\*\s*\*\*(\d+)\/100\*\*/);
     const statBiasMatch = body.match(/\*\*Stat bias:\*\*\s*(.+)$/m);
     const tacticsMatch = body.match(/\*\*Suggested tactics:\*\*\s*(.+)$/m);
@@ -183,7 +186,7 @@ function parseTeamDataMd(md) {
     }
 
     teams[teamName] = {
-      meta: TEAM_META[teamName],
+      meta: { ...TEAM_META[teamName], color: coloursMatch[1].toLowerCase(), secondaryColor: coloursMatch[2].toLowerCase() },
       stadium: stadiumMatch ? stadiumMatch[1].trim() : undefined,
       rating: ratingMatch ? parseInt(ratingMatch[1], 10) : undefined,
       blurb,

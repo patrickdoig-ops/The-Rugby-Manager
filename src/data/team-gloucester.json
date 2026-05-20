@@ -34,6 +34,20 @@
       "suggestedRating": 86
     },
     {
+      "name": "Tomos Williams",
+      "position": "Scrum-half",
+      "nationality": "Wales",
+      "blurb": "Gloucester's 2025-26 club captain and reigning Premiership Rugby Player of the Season; 69-cap Wales 9 and 2025 Lions tourist who scored twice against the Western Force in Perth before a hamstring injury cut his tour short. A sniping running threat, sharp service and tempo control from the base — confirmed in December 2025 to be joining Saracens at season's end",
+      "indexHigh": [
+        "pace",
+        "agility",
+        "handling",
+        "composure",
+        "positioning"
+      ],
+      "suggestedRating": 87
+    },
+    {
       "name": "Max Llewellyn",
       "position": "Centre",
       "nationality": "Wales",
@@ -249,24 +263,24 @@
     {
       "id": 9,
       "squadNumber": 9,
-      "firstName": "Mike",
-      "lastName": "Austin",
-      "dob": null,
-      "nationality": "England",
+      "firstName": "Tomos",
+      "lastName": "Williams",
+      "dob": "1994-10-25",
+      "nationality": "Wales",
       "position": "Scrum-Half",
       "baseStats": {
-        "stamina": 59,
-        "strength": 60,
-        "pace": 66,
-        "agility": 65,
-        "handling": 62,
-        "tackling": 61,
-        "breakdown": 59,
-        "kicking": 61,
-        "setPiece": 52,
+        "stamina": 58,
+        "strength": 54,
+        "pace": 86,
+        "agility": 86,
+        "handling": 89,
+        "tackling": 60,
+        "breakdown": 57,
+        "kicking": 63,
+        "setPiece": 47,
         "discipline": 60,
-        "positioning": 65,
-        "composure": 65
+        "positioning": 87,
+        "composure": 86
       }
     },
     {
@@ -460,7 +474,7 @@
       "squadNumber": 18,
       "firstName": "Kirill",
       "lastName": "Gotovtsev",
-      "dob": "1992-07-09",
+      "dob": "1987-07-17",
       "nationality": "Russia",
       "position": "Tighthead Prop",
       "baseStats": {
@@ -527,24 +541,24 @@
     {
       "id": 21,
       "squadNumber": 21,
-      "firstName": "Caolan",
-      "lastName": "Englefield",
-      "dob": "2000-04-15",
+      "firstName": "Mike",
+      "lastName": "Austin",
+      "dob": null,
       "nationality": "England",
       "position": "Scrum-Half",
       "baseStats": {
         "stamina": 59,
-        "strength": 54,
-        "pace": 70,
-        "agility": 62,
-        "handling": 59,
-        "tackling": 57,
-        "breakdown": 64,
-        "kicking": 65,
-        "setPiece": 48,
-        "discipline": 63,
-        "positioning": 60,
-        "composure": 66
+        "strength": 60,
+        "pace": 66,
+        "agility": 65,
+        "handling": 62,
+        "tackling": 61,
+        "breakdown": 59,
+        "kicking": 61,
+        "setPiece": 52,
+        "discipline": 60,
+        "positioning": 65,
+        "composure": 65
       }
     },
     {
@@ -828,24 +842,24 @@
     {
       "id": 34,
       "squadNumber": 34,
-      "firstName": "Tomos",
-      "lastName": "Williams",
-      "dob": "1994-10-25",
-      "nationality": "Wales",
+      "firstName": "Caolan",
+      "lastName": "Englefield",
+      "dob": "2000-04-15",
+      "nationality": "England",
       "position": "Scrum-Half",
       "baseStats": {
-        "stamina": 58,
-        "strength": 57,
-        "pace": 64,
-        "agility": 61,
-        "handling": 67,
-        "tackling": 61,
-        "breakdown": 59,
-        "kicking": 63,
-        "setPiece": 49,
-        "discipline": 60,
-        "positioning": 64,
-        "composure": 61
+        "stamina": 59,
+        "strength": 54,
+        "pace": 70,
+        "agility": 62,
+        "handling": 59,
+        "tackling": 57,
+        "breakdown": 64,
+        "kicking": 65,
+        "setPiece": 48,
+        "discipline": 63,
+        "positioning": 60,
+        "composure": 66
       }
     },
     {

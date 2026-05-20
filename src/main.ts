@@ -4,6 +4,7 @@ import '../style/settings.css';
 import '../style/teamselector.css';
 import '../style/teaminfo.css';
 import '../style/fixturelist.css';
+import '../style/leaguetable.css';
 import '../style/hub.css';
 import '../style/matchresult.css';
 import '../style/commentary.css';
@@ -24,6 +25,8 @@ import { initSettingsScreen }      from './ui/SettingsScreen';
 import { initTeamSelectorScreen }  from './ui/TeamSelectorScreen';
 import { initTeamInfoScreen }      from './ui/TeamInfoScreen';
 import { initFixtureListScreen }   from './ui/FixtureListScreen';
+import { initLeagueTableScreen }   from './ui/LeagueTableScreen';
+import { initHubScreen }           from './ui/HubScreen';
 import { initMatchResultScreen }   from './ui/MatchResultScreen';
 import { screenRouter }            from './ui/ScreenRouter';
 import { loadSave, saveGame, clearSave } from './ui/SaveManager';
@@ -70,12 +73,17 @@ document.addEventListener('DOMContentLoaded', () => {
   function goHome(): void {
     // Re-init so the Continue button state reflects the latest save (e.g. just
     // returned from a season the user is now resuming).
-    initHomeScreen(goTeamSelector, continueGame, goSettings);
+    initHomeScreen(goTeamSelector, continueGame, goSettingsFromHome);
     screenRouter.show('home');
   }
 
-  function goSettings(): void {
+  function goSettingsFromHome(): void {
     initSettingsScreen(goHome);
+    screenRouter.show('settings');
+  }
+
+  function goSettingsFromHub(): void {
+    initSettingsScreen(goHub);
     screenRouter.show('settings');
   }
 
@@ -92,14 +100,48 @@ document.addEventListener('DOMContentLoaded', () => {
     screenRouter.show('team-info');
   }
 
+  // Initialise the three in-season screens (Hub, Fixtures, League) for the
+  // current game engine instance. Done once per game so each screen registers
+  // its game:* event subscriptions exactly once; later navigations between
+  // them go through `screenRouter.show(...)` without re-initialising.
+  function initInSeasonScreens(): void {
+    if (!gameEngine) return;
+    initHubScreen({
+      gameEngine,
+      allTeams,
+      onPlayMatch: onPlayRound,
+      onFixtures: goFixtures,
+      onLeague:   goLeagueTable,
+      onSquad:    () => { /* placeholder until Squad selector screen lands */ },
+      onTraining: () => { /* placeholder until Training screen lands */ },
+      onContracts:() => { /* placeholder until Contracts screen lands */ },
+      onTransfers:() => { /* placeholder until Transfer market screen lands */ },
+      onSettings: goSettingsFromHub,
+    });
+    initFixtureListScreen(gameEngine, allTeams, goHub);
+    initLeagueTableScreen(gameEngine, allTeams, goHub);
+  }
+
+  function goHub(): void {
+    screenRouter.show('hub');
+  }
+
+  function goFixtures(): void {
+    screenRouter.show('fixture-list');
+  }
+
+  function goLeagueTable(): void {
+    screenRouter.show('league-table');
+  }
+
   function onTeamPicked(team: RawTeamInput): void {
     // A new team pick replaces any prior save — the user is explicitly starting
     // a new season. Seed the save immediately so Continue is enabled even if
     // they back out before playing the first match.
     gameEngine = GameCoordinator.newSeason(team.id, generateSeed(), allTeams);
     saveGame(gameEngine.toSavePayload());
-    initFixtureListScreen(gameEngine, allTeams, onPlayRound, goTeamSelector);
-    screenRouter.show('fixture-list');
+    initInSeasonScreens();
+    goHub();
   }
 
   function continueGame(): void {
@@ -114,8 +156,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     gameEngine = GameCoordinator.fromSave(save, allTeams);
-    initFixtureListScreen(gameEngine, allTeams, onPlayRound, goTeamSelector);
-    screenRouter.show('fixture-list');
+    initInSeasonScreens();
+    goHub();
   }
 
   function onPlayRound(homeTeam: RawTeamInput, awayTeam: RawTeamInput, playerSide: 'home' | 'away', round: number): void {
@@ -125,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
       playerSide,
       round,
       (configuredHome, configuredAway, playerTactics) => onMatchStart(configuredHome, configuredAway, playerSide, round, playerTactics),
-      () => screenRouter.show('fixture-list'),
+      goHub,
     );
     screenRouter.show('pre-match');
   }
@@ -155,11 +197,11 @@ document.addEventListener('DOMContentLoaded', () => {
         await gameEngine.recordPlayerMatchResult(round, state.score.home, state.score.away);
         saveGame(gameEngine.toSavePayload());
       }
-      screenRouter.show('fixture-list');
+      goHub();
     });
     screenRouter.show('match-result');
   }
 
-  initHomeScreen(goTeamSelector, continueGame, goSettings);
+  initHomeScreen(goTeamSelector, continueGame, goSettingsFromHome);
   screenRouter.show('home');
 });

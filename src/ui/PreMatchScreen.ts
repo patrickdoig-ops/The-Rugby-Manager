@@ -90,12 +90,14 @@ function renderColumnHeader(): string {
   </div>`;
 }
 
-function renderPlayerRow(p: RawPlayer, color: string, interactive: boolean, isBench: boolean): string {
+type Tier = 'starter' | 'bench' | 'squad';
+
+function renderPlayerRow(p: RawPlayer, color: string, interactive: boolean, tier: Tier): string {
   const ovr = computeOverall(p.baseStats);
   const squadNum = getSquadNum(p);
   const lastName = shortName(p);
-  const benchClass = isBench ? ' pm-player--bench' : ' pm-player--starter';
-  const dataAttr = interactive ? `data-squad="${squadNum}"` : '';
+  const tierClass = ` pm-player--${tier}`;
+  const dataAttr = interactive ? `data-squad="${squadNum}" data-tier="${tier}"` : '';
   const tag = interactive ? 'button' : 'div';
 
   const statCells = COMPACT_STATS.map(s => {
@@ -103,7 +105,7 @@ function renderPlayerRow(p: RawPlayer, color: string, interactive: boolean, isBe
     return `<div class="pm-stat" style="color:${statColor(v)}">${v}</div>`;
   }).join('');
 
-  return `<${tag} class="pm-player-row${benchClass}" ${dataAttr}>
+  return `<${tag} class="pm-player-row${tierClass}" ${dataAttr}>
     <div class="pm-num" style="color:${color}">${squadNum}</div>
     <div class="pm-identity">
       <span class="pm-name">${lastName}</span>
@@ -144,6 +146,7 @@ function renderPitchFormation(starters: RawPlayer[], color: string): string {
 function renderLineupPanel(
   starters: RawPlayer[],
   bench: RawPlayer[],
+  squad: RawPlayer[],
   color: string,
   interactive: boolean,
   view: 'list' | 'pitch',
@@ -152,20 +155,28 @@ function renderLineupPanel(
     return renderPitchFormation(starters, color);
   }
 
-  const starterHtml = starters.map(p => renderPlayerRow(p, color, interactive, false)).join('');
-  const benchHtml   = bench.map(p => renderPlayerRow(p, color, interactive, true)).join('');
+  const starterHtml = starters.map(p => renderPlayerRow(p, color, interactive, 'starter')).join('');
+  const benchHtml   = bench.map(p => renderPlayerRow(p, color, interactive, 'bench')).join('');
+  const squadHtml   = squad.map(p => renderPlayerRow(p, color, interactive, 'squad')).join('');
 
   return `
     <div class="pm-roster-scroller">
       <div class="pm-roster-inner">
         ${renderColumnHeader()}
-        <div class="pm-section-header">Starting XV</div>
-        ${starterHtml}
-        <div class="pm-section-header pm-section-bench">
-          Bench
-          <span class="pm-bench-hint">Select a bench player to swap</span>
+        <div class="pm-section-header">
+          Starting XV
+          <span class="pm-bench-hint">Select a bench or squad player to swap</span>
         </div>
+        ${starterHtml}
+        <div class="pm-section-header pm-section-bench">Bench</div>
         ${benchHtml}
+        ${squad.length > 0 ? `
+          <div class="pm-section-header pm-section-squad">
+            Squad
+            <span class="pm-section-sub">${squad.length} player${squad.length === 1 ? '' : 's'} not in matchday 23</span>
+          </div>
+          ${squadHtml}
+        ` : ''}
       </div>
     </div>
   `;
@@ -182,13 +193,15 @@ export function initPreMatchScreen(
   const screen = document.getElementById('pre-match')!;
   screen.classList.remove('pm-exit');
 
-  let homeStarters: RawPlayer[] = (home.players as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
-  let homeBench:    RawPlayer[] = ((home.bench ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
+  const homeStarters: RawPlayer[] = (home.players as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
+  const homeBench:    RawPlayer[] = ((home.bench ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
+  const homeSquad:    RawPlayer[] = ((home.squad ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
 
-  let awayStarters: RawPlayer[] = (away.players as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
-  let awayBench:    RawPlayer[] = ((away.bench ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
+  const awayStarters: RawPlayer[] = (away.players as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
+  const awayBench:    RawPlayer[] = ((away.bench ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
+  const awaySquad:    RawPlayer[] = ((away.squad ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
 
-  let selectedBenchSquadNum: number | null = null;
+  let selection: { tier: Tier; squadNum: number } | null = null;
   let activeView: 'list' | 'pitch' = 'list';
 
   const homeFirst = home.shortName[0] ?? 'H';
@@ -284,78 +297,88 @@ export function initPreMatchScreen(
 
   const playerStarters = playerSide === 'home' ? homeStarters : awayStarters;
   const playerBench    = playerSide === 'home' ? homeBench    : awayBench;
+  const playerSquad    = playerSide === 'home' ? homeSquad    : awaySquad;
+
+  function listForTier(t: Tier): RawPlayer[] {
+    return t === 'starter' ? playerStarters : t === 'bench' ? playerBench : playerSquad;
+  }
 
   function updateHint(): void {
     const panel = playerSide === 'home' ? homePanel : awayPanel;
     const hintEl = panel.querySelector<HTMLElement>('.pm-bench-hint');
     if (!hintEl) return;
-    if (selectedBenchSquadNum === null) {
-      hintEl.textContent = 'Select a bench player to swap';
+    if (selection === null) {
+      hintEl.textContent = 'Select a bench or squad player to swap';
       hintEl.classList.remove('pm-bench-hint--active');
     } else {
-      hintEl.textContent = 'Now select a starter to replace';
+      hintEl.textContent = 'Now select another player to swap with';
       hintEl.classList.add('pm-bench-hint--active');
     }
   }
 
   function renderHomePanel(): void {
-    homePanel.innerHTML = renderLineupPanel(homeStarters, homeBench, home.color, playerSide === 'home', activeView);
+    homePanel.innerHTML = renderLineupPanel(homeStarters, homeBench, homeSquad, home.color, playerSide === 'home', activeView);
     if (playerSide === 'home') updateHint();
   }
 
   function renderAwayPanel(): void {
-    awayPanel.innerHTML = renderLineupPanel(awayStarters, awayBench, away.color, playerSide === 'away', activeView);
+    awayPanel.innerHTML = renderLineupPanel(awayStarters, awayBench, awaySquad, away.color, playerSide === 'away', activeView);
     if (playerSide === 'away') updateHint();
   }
 
-  // Pre-match jersey assignment: starter slots wear jerseys 1–15, bench slots
-  // wear 16–23. Swapping a starter ↔ bench pair reassigns BOTH the player's
-  // `id` (used by the engine for position queries) and `squadNumber` (the
-  // visible jersey number) to match the slot they end up in. This is the only
-  // place squadNumber is re-assigned by slot — in-game substitutions preserve it.
-  function assignStartingJersey(starterIdx: number, benchIdx: number): void {
-    const slotId      = playerStarters[starterIdx].id;
-    const benchSlotId = playerBench[benchIdx].id;
-    const newStarter   = { ...playerBench[benchIdx],    id: slotId,      squadNumber: slotId };
-    const newBenchSlot = { ...playerStarters[starterIdx], id: benchSlotId, squadNumber: benchSlotId };
-    playerStarters[starterIdx] = newStarter;
-    playerBench[benchIdx]      = newBenchSlot;
-  }
+  // Pre-match selection: any non-starter player can be swap source; any player
+  // can be swap target. The player who lands in a slot takes that slot's id and
+  // squadNumber (engine routes position by id, jersey UI reads squadNumber).
+  // This is the only place id/squadNumber is re-assigned by slot — in-game
+  // substitutions preserve squadNumber.
 
   renderHomePanel();
   renderAwayPanel();
 
   const activePanel = playerSide === 'home' ? homePanel : awayPanel;
   activePanel.addEventListener('click', (e) => {
-    const playerEl = (e.target as HTMLElement).closest<HTMLElement>('.pm-player--bench, .pm-player--starter');
+    const playerEl = (e.target as HTMLElement).closest<HTMLElement>('.pm-player-row');
     if (!playerEl) return;
+    const tierAttr = playerEl.dataset.tier as Tier | undefined;
+    if (!tierAttr) return;
+    const squadNum = Number(playerEl.dataset.squad);
 
-    if (playerEl.classList.contains('pm-player--bench')) {
-      const squadNum = Number(playerEl.dataset.squad);
-      if (selectedBenchSquadNum === squadNum) {
-        selectedBenchSquadNum = null;
-        playerEl.classList.remove('pm-player--selected');
-        activePanel.querySelectorAll('.pm-player--starter').forEach(el => el.classList.remove('pm-swap-target'));
-      } else {
-        selectedBenchSquadNum = squadNum;
-        activePanel.querySelectorAll('.pm-player--selected').forEach(el => el.classList.remove('pm-player--selected'));
-        playerEl.classList.add('pm-player--selected');
-        activePanel.querySelectorAll('.pm-player--starter').forEach(el => el.classList.add('pm-swap-target'));
-      }
-      updateHint();
-    } else if (playerEl.classList.contains('pm-player--starter')) {
-      if (selectedBenchSquadNum === null) return;
-
-      const starterSquadNum = Number(playerEl.dataset.squad);
-      const starterIdx = playerStarters.findIndex(p => getSquadNum(p) === starterSquadNum);
-      const benchIdx   = playerBench.findIndex(p => getSquadNum(p) === selectedBenchSquadNum);
-      if (starterIdx === -1 || benchIdx === -1) return;
-
-      assignStartingJersey(starterIdx, benchIdx);
-      selectedBenchSquadNum = null;
-      if (playerSide === 'home') renderHomePanel();
-      else renderAwayPanel();
+    // Same player clicked again → deselect
+    if (selection && selection.tier === tierAttr && selection.squadNum === squadNum) {
+      selection = null;
+      if (playerSide === 'home') renderHomePanel(); else renderAwayPanel();
+      return;
     }
+
+    // No selection yet → start one (starters can't initiate; they're only swap targets)
+    if (selection === null) {
+      if (tierAttr === 'starter') return;
+      selection = { tier: tierAttr, squadNum };
+      if (playerSide === 'home') renderHomePanel(); else renderAwayPanel();
+      const sel = activePanel.querySelector<HTMLElement>(`.pm-player-row[data-tier="${tierAttr}"][data-squad="${squadNum}"]`);
+      sel?.classList.add('pm-player--selected');
+      activePanel.querySelectorAll('.pm-player-row').forEach(el => {
+        if (el !== sel) el.classList.add('pm-swap-target');
+      });
+      return;
+    }
+
+    // Selection exists, clicked a different player → swap
+    const fromList = listForTier(selection.tier);
+    const toList   = listForTier(tierAttr);
+    const fromIdx  = fromList.findIndex(p => getSquadNum(p) === selection!.squadNum);
+    const toIdx    = toList.findIndex(p => getSquadNum(p) === squadNum);
+    if (fromIdx === -1 || toIdx === -1) return;
+
+    const fromId = fromList[fromIdx].id;
+    const toId   = toList[toIdx].id;
+    const fromPlayer = fromList[fromIdx];
+    const toPlayer   = toList[toIdx];
+    fromList[fromIdx] = { ...toPlayer, id: fromId, squadNumber: fromId };
+    toList[toIdx]     = { ...fromPlayer, id: toId, squadNumber: toId };
+
+    selection = null;
+    if (playerSide === 'home') renderHomePanel(); else renderAwayPanel();
   });
 
   viewToggle.addEventListener('click', (e) => {
@@ -364,7 +387,7 @@ export function initPreMatchScreen(
     const v = btn.dataset.view as 'list' | 'pitch';
     if (v === activeView) return;
     activeView = v;
-    selectedBenchSquadNum = null;
+    selection = null;
     viewToggle.querySelectorAll('.pm-view-btn').forEach(b => {
       b.classList.toggle('pm-view-btn--active', (b as HTMLElement).dataset.view === v);
     });
@@ -400,10 +423,10 @@ export function initPreMatchScreen(
     setTimeout(() => {
       unsubTactics();
       const configuredHome = playerSide === 'home'
-        ? { ...home, players: homeStarters, bench: homeBench } as unknown as RawTeam
+        ? { ...home, players: homeStarters, bench: homeBench, squad: homeSquad } as unknown as RawTeam
         : home as unknown as RawTeam;
       const configuredAway = playerSide === 'away'
-        ? { ...away, players: awayStarters, bench: awayBench } as unknown as RawTeam
+        ? { ...away, players: awayStarters, bench: awayBench, squad: awaySquad } as unknown as RawTeam
         : away as unknown as RawTeam;
       onStart(configuredHome, configuredAway, chosenTactics);
     }, 600);

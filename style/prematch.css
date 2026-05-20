@@ -317,17 +317,37 @@
 /* ─── Scrollable roster ─── */
 #pm-body {
   flex: 1;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
 }
 
-.pm-panel { padding: 0 0 80px; }
+.pm-panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 0 100px;
+}
 .pm-panel.hidden { display: none; }
 
-/* ─── Horizontal scroll wrapper for stats grid ─── */
+/* Home/away panels hand off scrolling to the inner roster-scroller so that the
+   sticky column header inside it can stick to the correct scroll context. */
+#pm-home,
+#pm-away {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+/* ─── Horizontal + vertical scroll wrapper for stats grid ─── */
 .pm-roster-scroller {
-  overflow-x: auto;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 0 12px;
+  padding: 0 12px 100px;
 }
 
 .pm-roster-inner {
@@ -461,9 +481,19 @@ button.pm-player-row {
   gap: 8px;
 }
 
-.pm-section-bench {
+.pm-section-bench,
+.pm-section-squad {
   border-top: 1px solid var(--rm-border-soft);
   margin-top: 4px;
+}
+
+.pm-section-sub {
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--rm-text-faint);
+  text-transform: none;
+  font-weight: 400;
 }
 
 /* ─── Bench hint (inline with bench header) ─── */
@@ -481,9 +511,14 @@ button.pm-player-row {
   color: var(--rm-pitch);
 }
 
-/* ─── Bench player row ─── */
+/* ─── Bench / squad player row ─── */
 .pm-player--bench {
   opacity: 0.7;
+  cursor: pointer;
+}
+
+.pm-player--squad {
+  opacity: 0.55;
   cursor: pointer;
 }
 
@@ -499,12 +534,12 @@ button.pm-player-row {
   background: color-mix(in oklch, var(--rm-pitch) 10%, transparent) !important;
 }
 
-.pm-player--starter.pm-swap-target {
+.pm-player-row.pm-swap-target {
   cursor: pointer;
 }
 
 @media (min-width: 700px) {
-  .pm-player--starter.pm-swap-target:hover {
+  .pm-player-row.pm-swap-target:hover {
     background: color-mix(in oklch, var(--rm-pitch) 8%, transparent);
     outline: 1px solid var(--rm-pitch);
     outline-offset: -1px;

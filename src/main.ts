@@ -23,12 +23,12 @@ import { MatchCoordinator }        from './engine/MatchCoordinator';
 import type { RawTeamInput }       from './engine/MatchCoordinator';
 import { eventBus }                from './utils/eventBus';
 
-import homeTeamRaw     from './data/team-home.json';
-import awayTeamRaw     from './data/team-away.json';
+import gloucesterRaw   from './data/team-gloucester.json';
+import bristolRaw      from './data/team-bristol.json';
 import leicesterRaw    from './data/team-leicester.json';
 import saracensRaw     from './data/team-saracens.json';
 
-const allTeams = [homeTeamRaw, awayTeamRaw, leicesterRaw, saracensRaw] as unknown as RawTeamInput[];
+const allTeams = [gloucesterRaw, bristolRaw, leicesterRaw, saracensRaw] as unknown as RawTeamInput[];
 
 document.addEventListener('DOMContentLoaded', () => {
   buildAppShell();

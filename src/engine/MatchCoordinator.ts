@@ -67,8 +67,13 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
     phase: MatchPhase.KickOff,
     score: { home: 0, away: 0 },
     possession: 'home',
-    homeTeam: buildTeam(homeRaw, humanSide === 'home' ? playerTactics : undefined),
-    awayTeam: buildTeam(awayRaw, humanSide === 'away' ? playerTactics : undefined),
+    // Human side runs the tactics chosen pre-match (when supplied); AI side
+    // takes the team's authored suggestedTactics from RawTeamInput so each
+    // club plays to its own identity rather than DEFAULT_TACTICS. Either
+    // input may be absent, in which case buildTeam falls through to
+    // DEFAULT_TACTICS.
+    homeTeam: buildTeam(homeRaw, humanSide === 'home' && playerTactics ? playerTactics : homeRaw.suggestedTactics),
+    awayTeam: buildTeam(awayRaw, humanSide === 'away' && playerTactics ? playerTactics : awayRaw.suggestedTactics),
     stats: {
       possession: { home: 0, away: 0 },
       territory:  { home: 0, away: 0 },

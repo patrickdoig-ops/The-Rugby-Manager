@@ -9,6 +9,7 @@
 // shape neutral — the engine consumes it, it doesn't own it.
 
 import type { Player } from './player';
+import type { TeamTactics } from './team';
 
 export type RawPlayer = Omit<Player, 'currentStats' | 'fatiguePct' | 'rating' | 'x' | 'y' | 'squadNumber'> & { squadNumber?: number };
 
@@ -22,4 +23,10 @@ export type RawTeamInput = {
   players: RawPlayer[];
   bench?: RawPlayer[];
   squad?: RawPlayer[];
+  // Authored per-club identity tactics (`src/data/team-*.json`). Consumed by
+  // MatchCoordinator as the AI side's baseline; the human side overrides via
+  // playerTactics from PreMatchScreen. Optional only because legacy / test
+  // fixtures may not supply it — in which case buildTeam falls through to
+  // DEFAULT_TACTICS.
+  suggestedTactics?: TeamTactics;
 };

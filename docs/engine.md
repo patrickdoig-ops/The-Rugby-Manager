@@ -79,6 +79,17 @@ Season-level determinism: `(playerTeamId, rootSeed)` plus the player's series of
 
 Every number listed in the resolver formulas, tactic modifier tables, fatigue tiers, and rating weights below is defined under `src/engine/balance/` — one file per concern (`scoring`, `kicking`, `openPlay`, `breakdown`, `scrum`, `lineout`, `fatigue`, `rating`, `tactics`, `clock`, `commentary`, `season`), re-exported through `balance/index.ts`. The doc below shows the current values; the `balance/` directory is the canonical place to read or change them. `scoring.ts` holds the laws-of-the-game point values (try 5, conversion 2, penalty goal 3); `commentary.ts` also holds `COMMENTARY_BUFFER_CAP` (the soft cap on `state.events`).
 
+### Tactics: who picks what
+
+`TeamTactics` (`src/types/team.ts`) is a five-dimension object: `attackingGamePlan`, `attackingStyle`, `attackingBreakdown`, `defendingBreakdown`, `backfieldDefence`. Every resolver reads it from `attackTeam.tactics.X` / `defendTeam.tactics.X` directly — no separate "intent" layer.
+
+At match init (`MatchCoordinator.initMatchState`):
+- **Human side** uses `playerTactics` if supplied (the object passed from `PreMatchScreen.onStart`), otherwise falls back to the team's `suggestedTactics`.
+- **AI side** uses the team's `suggestedTactics` from `RawTeamInput` — authored per club in `src/data/team-*.json`. Each side gets its own identity at kick-off (Bath two-back fullback cover, Saracens jackal-heavy defence, etc.) rather than a single league-wide `DEFAULT_TACTICS`.
+- If neither input is present (e.g. legacy fixture data without `suggestedTactics`), `buildTeam` falls through to `DEFAULT_TACTICS`.
+
+Mid-match the human can swap any dimension via the tactics modal (`ui:tacticsChange` bus event → `TACTICS_UPDATED` `MatchEvent`). The AI has no UI; in-match adjustments are written by code, not the user. Both paths share the same mutation seam — `applyMatchEvent` is the only writer of `team.tactics`.
+
 ### `MatchState` shape
 
 `MatchState` (`src/types/match.ts`) groups three clusters into nested sub-objects; everything else is top-level:

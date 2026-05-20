@@ -3,9 +3,8 @@
 // variant has a single branch, and the exhaustive `default: const _: never`
 // catches missing branches at compile time when SeasonEvent grows.
 
-import type { GameState, SeasonEvent, TeamStanding } from '../types/gameState';
+import type { Fixture, GameState, SeasonEvent, TeamStanding } from '../types/gameState';
 import { zeroStanding } from '../types/gameState';
-import { generateFixtures } from './fixtures';
 import { LEAGUE_POINTS, SEASON_VALUES } from '../engine/balance';
 
 export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
@@ -13,10 +12,10 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
     case 'SEASON_INITIALIZED': {
       state.player.teamId = event.playerTeamId;
       state.seed = event.seed >>> 0;
-      state.calendar.date = event.startDate;
       state.calendar.week = 1;
-      state.calendar.seasonLabel = event.seasonLabel;
-      state.league.fixtures = generateFixtures(event.playerTeamId, event.teamIds);
+      state.calendar.seasonLabel = event.schedule.seasonLabel;
+      state.league.fixtures = event.schedule.fixtures.map(f => ({ ...f }));
+      state.calendar.date = earliestDateForRound(state.league.fixtures, 1) ?? SEASON_VALUES.startDate;
       state.league.results = [];
       state.league.standings = event.teamIds.map(zeroStanding);
       return;
@@ -32,7 +31,8 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
     }
     case 'WEEK_ADVANCED': {
       state.calendar.week += 1;
-      state.calendar.date = addDays(state.calendar.date, SEASON_VALUES.weekLengthDays);
+      const nextRoundDate = earliestDateForRound(state.league.fixtures, state.calendar.week);
+      state.calendar.date = nextRoundDate ?? addDays(state.calendar.date, SEASON_VALUES.weekLengthDays);
       return;
     }
     default: {
@@ -76,4 +76,16 @@ function addDays(iso: string, days: number): string {
   const d = new Date(iso);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+// Min ISO date across fixtures in a given round. Returns null if no fixture
+// in that round carries a date (random-gen seasons), or the round doesn't
+// exist (season finished).
+function earliestDateForRound(fixtures: Fixture[], round: number): string | null {
+  let min: string | null = null;
+  for (const f of fixtures) {
+    if (f.round !== round || !f.date) continue;
+    if (min === null || f.date < min) min = f.date;
+  }
+  return min;
 }

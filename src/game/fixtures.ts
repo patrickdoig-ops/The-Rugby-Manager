@@ -7,8 +7,11 @@
 // The player's team is placed at position 0 so the player's match each round
 // is always the first of the round's pairings (intuitive for the fixture UI).
 //
-// Replaces the player-only fixture loop that used to live inside
-// FixtureListScreen.ts (before the game-engine refactor).
+// No longer called at season init — the default season is now the hardcoded
+// PREMIERSHIP_2025_26 schedule (src/data/fixtures-2025-26.ts). This generator
+// remains the entry point for future random-gen seasons; produces fixtures
+// with no `date` field, so applySeasonEvent falls back to a flat +7-day
+// weekly advance.
 
 import type { Fixture } from '../types/gameState';
 

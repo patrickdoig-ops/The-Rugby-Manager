@@ -2,6 +2,8 @@
 
 Reference fixture list for the 2025/26 Gallagher Premiership Rugby season. Used to seed a season schedule in the simulator if/when a league mode is added.
 
+**Executable mirror:** the engine consumes this schedule from `src/data/fixtures-2025-26.ts` (`PREMIERSHIP_2025_26`). Keep the two in sync — the data file is the canonical input to `GameCoordinator.newSeason()`.
+
 ## Season structure
 
 - **10 clubs:** Bath, Bristol Bears, Exeter Chiefs, Gloucester, Harlequins, Leicester Tigers, Newcastle Red Bulls (rebranded from Falcons), Northampton Saints, Sale Sharks, Saracens.

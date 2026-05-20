@@ -14,12 +14,13 @@
 // runs on a timer.
 
 import type {
-  Fixture, FixtureResult, GameState,
+  Fixture, FixtureResult, GameState, SeasonSchedule,
 } from '../types/gameState';
 import { applySeasonEvent } from './applySeasonEvent';
 import { simulateFixture } from './simulateFixture';
 import { eventBus } from '../utils/eventBus';
 import { SEASON_VALUES } from '../engine/balance';
+import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 import type { RawTeamInput } from '../engine/MatchCoordinator';
 
 export type SavedSeasonResult = {
@@ -40,7 +41,7 @@ export interface SavedSeason {
 
 function emptyState(): GameState {
   return {
-    calendar: { date: SEASON_VALUES.startDate, week: 1, seasonLabel: SEASON_VALUES.seasonLabel },
+    calendar: { date: SEASON_VALUES.startDate, week: 1, seasonLabel: '' },
     league: { fixtures: [], results: [], standings: [] },
     player: { teamId: '' },
     seed: 0,
@@ -56,29 +57,36 @@ export class GameCoordinator {
     this.teamsById = new Map(allTeams.map(t => [t.id, t]));
   }
 
-  static newSeason(playerTeamId: string, seed: number, allTeams: RawTeamInput[]): GameCoordinator {
+  static newSeason(
+    playerTeamId: string,
+    seed: number,
+    allTeams: RawTeamInput[],
+    schedule: SeasonSchedule = PREMIERSHIP_2025_26,
+  ): GameCoordinator {
     const coord = new GameCoordinator(allTeams);
     applySeasonEvent(coord.state, {
       type: 'SEASON_INITIALIZED',
       playerTeamId,
       seed: seed >>> 0,
       teamIds: allTeams.map(t => t.id),
-      seasonLabel: SEASON_VALUES.seasonLabel,
-      startDate: SEASON_VALUES.startDate,
+      schedule,
     });
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
   }
 
-  static fromSave(save: SavedSeason, allTeams: RawTeamInput[]): GameCoordinator {
+  static fromSave(
+    save: SavedSeason,
+    allTeams: RawTeamInput[],
+    schedule: SeasonSchedule = PREMIERSHIP_2025_26,
+  ): GameCoordinator {
     const coord = new GameCoordinator(allTeams);
     applySeasonEvent(coord.state, {
       type: 'SEASON_INITIALIZED',
       playerTeamId: save.playerTeamId,
       seed: save.seed >>> 0,
       teamIds: allTeams.map(t => t.id),
-      seasonLabel: SEASON_VALUES.seasonLabel,
-      startDate: SEASON_VALUES.startDate,
+      schedule,
     });
     // Replay results in round order, then advance week to match the snapshot.
     const ordered = [...save.results].sort((a, b) => a.round - b.round);

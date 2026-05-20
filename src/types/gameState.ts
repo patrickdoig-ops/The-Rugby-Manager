@@ -12,6 +12,15 @@ export interface Fixture {
   round: number;
   homeId: string;
   awayId: string;
+  // ISO yyyy-mm-dd. Optional so future random-gen schedules can omit it;
+  // when present, the calendar advances to per-round dates rather than the
+  // flat +7-day fallback in applySeasonEvent.
+  date?: string;
+}
+
+export interface SeasonSchedule {
+  seasonLabel: string;
+  fixtures: Fixture[];
 }
 
 export interface FixtureResult {
@@ -73,9 +82,8 @@ export type SeasonEvent =
       type: 'SEASON_INITIALIZED';
       playerTeamId: string;
       seed: number;
-      teamIds: string[];      // ordering matters: drives fixture rotation
-      seasonLabel: string;
-      startDate: string;       // ISO yyyy-mm-dd
+      teamIds: string[];          // drives standings init
+      schedule: SeasonSchedule;
     }
   | {
       type: 'FIXTURE_RESULT_RECORDED';

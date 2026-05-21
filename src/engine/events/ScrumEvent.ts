@@ -1,8 +1,18 @@
 import type { PhaseContext, PhaseResult } from './types';
 import type { MatchEvent } from '../../types/matchEvent';
+import type { Player } from '../../types/player';
 import { MatchPhase } from '../../types/engine';
 import { resolveScrum } from '../resolvers/ScrumResolver';
 import { availableForwards, onFieldPlayers } from '../FieldPosition';
+import { rng } from '../../utils/rng';
+
+// Random front-row offender for a scrum penalty — props and hooker can all
+// be cited, not just the hooker. Falls back to the hooker (and onward) when
+// the front row is empty (e.g. multiple cards have taken the front row off).
+function pickFrontRowOffender(frontRow: Player[], hookerFallback: Player): Player {
+  if (frontRow.length === 0) return hookerFallback;
+  return frontRow[rng(0, frontRow.length - 1)];
+}
 
 export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): PhaseResult {
   const attackSide = state.possession;
@@ -25,6 +35,11 @@ export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): Ph
   ];
 
   if (res.result === 'attacking_dominant_penalty') {
+    // Cite a random member of the offending side's front row (prop or hooker)
+    // rather than always the hooker. SCRUM_RESOLVED below still credits every
+    // front-row player with scrumPenaltiesConceded so team-level stats are
+    // unaffected; this only changes who the referee names.
+    const defendOffender = pickFrontRowOffender(defendFrontRow, defendHooker);
     events.push({
       type: 'SCRUM_RESOLVED',
       outcome: 'attacking_dominant_penalty',
@@ -35,14 +50,14 @@ export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): Ph
     events.push({
       type: 'PENALTY_AWARDED',
       offence: 'scrum_infringement',
-      offender: defendHooker,
+      offender: defendOffender,
       offendingSide: flipSide,
     });
     return {
       nextPhase: MatchPhase.Penalty,
-      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Scrum, key: 'attacking_dominant_penalty', primary: defendHooker, secondary: attackHooker }] },
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Scrum, key: 'attacking_dominant_penalty', primary: defendOffender, secondary: attackHooker }] },
       primaryPlayer: attackHooker,
-      secondaryPlayer: defendHooker,
+      secondaryPlayer: defendOffender,
       events,
     };
   }
@@ -82,6 +97,8 @@ export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): Ph
   }
 
   // defending_dominant_penalty — defending team wins the penalty
+  // See pickFrontRowOffender comment in the attacking-penalty branch.
+  const attackOffender = pickFrontRowOffender(attackFrontRow, attackHooker);
   events.push({
     type: 'SCRUM_RESOLVED',
     outcome: 'defending_dominant_penalty',
@@ -92,14 +109,14 @@ export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): Ph
   events.push({
     type: 'PENALTY_AWARDED',
     offence: 'scrum_infringement',
-    offender: attackHooker,
+    offender: attackOffender,
     offendingSide: attackSide,
   });
   return {
     nextPhase: MatchPhase.Penalty,
-    narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Scrum, key: 'defending_dominant_penalty', primary: attackHooker, secondary: defendHooker }] },
+    narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Scrum, key: 'defending_dominant_penalty', primary: attackOffender, secondary: defendHooker }] },
     primaryPlayer: defendHooker,
-    secondaryPlayer: attackHooker,
+    secondaryPlayer: attackOffender,
     events,
   };
 }

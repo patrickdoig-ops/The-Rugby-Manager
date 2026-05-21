@@ -5,6 +5,7 @@
 
 import type { Fixture, GameState, SeasonEvent, TeamStanding } from '../types/gameState';
 import { zeroStanding } from '../types/gameState';
+import { zeroSeasonStats } from '../types/player';
 import { LEAGUE_POINTS, SEASON_VALUES } from '../engine/balance';
 
 export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
@@ -41,6 +42,65 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
     }
     case 'PLAYER_MATCHDAY_SQUAD_SET': {
       state.player.matchdaySquad = event.squad.map(r => ({ firstName: r.firstName, lastName: r.lastName }));
+      return;
+    }
+    case 'ROSTER_SEEDED': {
+      state.career.roster = event.roster;
+      state.career.clubs = event.clubs.map(c => ({ id: c.id, squad: [...c.squad] }));
+      state.career.nextRosterId = event.nextRosterId;
+      return;
+    }
+    case 'PLAYER_SEASON_STATS_ACCUMULATED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      const s = p.seasonStats;
+      const d = event.statsDelta;
+      s.appearances     += d.appearances;
+      s.tries           += d.tries;
+      s.conversions     += d.conversions;
+      s.penaltiesScored += d.penaltiesScored;
+      s.dropGoals       += d.dropGoals;
+      s.yellowCards     += d.yellowCards;
+      s.redCards        += d.redCards;
+      s.tackles         += d.tackles;
+      s.missedTackles   += d.missedTackles;
+      s.turnoversWon    += d.turnoversWon;
+      s.ratingSum       += d.ratingSum;
+      return;
+    }
+    case 'PLAYER_AGED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      for (const [stat, delta] of Object.entries(event.statDeltas)) {
+        if (delta === undefined) continue;
+        const k = stat as keyof typeof p.baseStats;
+        p.baseStats[k] = Math.max(1, Math.min(99, p.baseStats[k] + delta));
+      }
+      return;
+    }
+    case 'PLAYER_RETIRED': {
+      const club = state.career.clubs.find(c => c.id === event.clubId);
+      if (club) club.squad = club.squad.filter(id => id !== event.rosterId);
+      return;
+    }
+    case 'SEASON_ROLLED_OVER': {
+      state.career.archive.push({
+        seasonLabel: state.calendar.seasonLabel,
+        standings: event.archivedStandings.map(s => ({ ...s })),
+        topScorerRosterId: event.topScorerRosterId,
+        mvpRosterId: event.mvpRosterId,
+      });
+      state.career.seasonsCompleted += 1;
+      state.calendar.seasonLabel = event.newSeasonLabel;
+      state.calendar.week = 1;
+      state.league.fixtures = event.newFixtures.map(f => ({ ...f }));
+      state.league.results = [];
+      state.league.standings = state.league.standings.map(s => zeroStanding(s.teamId));
+      state.calendar.date = earliestDateForRound(state.league.fixtures, 1) ?? state.calendar.date;
+      // Reset per-player season aggregates for the new season.
+      for (const id of Object.keys(state.career.roster)) {
+        state.career.roster[Number(id)].seasonStats = zeroSeasonStats();
+      }
       return;
     }
     default: {

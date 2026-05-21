@@ -2,7 +2,7 @@ import type { MatchState, GameEvent } from '../types/match';
 import type { Team, TeamTactics } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';
 import type { Player, PlayerStats } from '../types/player';
-import { zeroMatchStats } from '../types/player';
+import { zeroMatchStats, zeroSeasonStats } from '../types/player';
 import type { RawPlayer, RawTeamInput } from '../types/teamData';
 import { MatchPhase, type PossessionSide, type KickOffStrategy } from '../types/engine';
 import { eventBus } from '../utils/eventBus';
@@ -21,7 +21,11 @@ function deepCloneStats(s: PlayerStats): PlayerStats {
   return { ...s };
 }
 
-function initPlayer(raw: RawPlayer): Player {
+// `rosterId` defaults to 0 when initPlayer is called via the legacy JSON
+// path (MatchCoordinator constructed with RawTeamInput). When called via
+// rosterTeamBuilder (Phase 1 commit 4+) the caller threads in the real
+// rosterId so career-scope code can correlate match performance.
+function initPlayer(raw: RawPlayer & { rosterId?: number }): Player {
   const form = rngForm();
   const current = deepCloneStats(raw.baseStats);
   for (const key of Object.keys(current) as (keyof PlayerStats)[]) {
@@ -30,9 +34,11 @@ function initPlayer(raw: RawPlayer): Player {
   return {
     ...raw,
     squadNumber: raw.squadNumber ?? raw.id,
+    rosterId: raw.rosterId ?? 0,
     baseStats: deepCloneStats(raw.baseStats),
     currentStats: current,
     matchStats: zeroMatchStats(),
+    seasonStats: zeroSeasonStats(),
     formModifier: form,
     fatiguePct: 100,
     rating: 6.0,

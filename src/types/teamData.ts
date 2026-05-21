@@ -11,7 +11,13 @@
 import type { Player } from './player';
 import type { TeamTactics } from './team';
 
-export type RawPlayer = Omit<Player, 'currentStats' | 'fatiguePct' | 'rating' | 'x' | 'y' | 'squadNumber'> & { squadNumber?: number };
+// `rosterId` is allocated at roster seed time, not in JSON. `seasonStats`
+// is per-season accumulator state owned by the engine. Both omitted from
+// the data shape.
+export type RawPlayer = Omit<Player,
+  'currentStats' | 'fatiguePct' | 'rating' | 'x' | 'y' | 'squadNumber'
+  | 'rosterId' | 'seasonStats' | 'matchStats'
+> & { squadNumber?: number };
 
 export type RawTeamInput = {
   id: string;

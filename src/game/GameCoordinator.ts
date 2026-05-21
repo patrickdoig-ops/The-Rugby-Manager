@@ -16,6 +16,7 @@
 import type {
   Fixture, FixtureResult, GameState, PlayerRef, SeasonSchedule,
 } from '../types/gameState';
+import { emptyCareerState } from '../types/gameState';
 import type { TeamTactics } from '../types/team';
 import { applySeasonEvent } from './applySeasonEvent';
 import { simulateFixture } from './simulateFixture';
@@ -58,6 +59,7 @@ function emptyState(): GameState {
     league: { fixtures: [], results: [], standings: [] },
     player: { teamId: '' },
     seed: 0,
+    career: emptyCareerState(),
   };
 }
 

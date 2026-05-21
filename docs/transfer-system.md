@@ -302,7 +302,7 @@ Saves older than current are best-effort migrated where the missing data has sen
 
 ## 8. Phased implementation plan
 
-Each phase is **independently shippable** and **builds clean / `npm run verify` green** on its own. One cohesive split per commit; per CLAUDE.md, a module-boundary change is an engine change and updates `docs/match-engine.md` in the same commit.
+Each phase is **independently shippable** and **builds clean / `npm run verify` green** on its own. One cohesive split per commit; per CLAUDE.md, a module-boundary change is an engine change and updates the corresponding engine doc (`docs/match-engine.md` for `src/engine/` work, `docs/game-engine.md` for `src/game/` work) in the same commit.
 
 ### Phase 1 — Multi-season rollover (no market)
 
@@ -316,7 +316,7 @@ Each phase is **independently shippable** and **builds clean / `npm run verify` 
 5. Wire `EndOfSeasonScreen` + `RolloverScreen` into `main.ts` and `ScreenRouter`.
 6. Save v4: persist the roster snapshot + season counter.
 7. Extend `checkSeasonDeterminism.ts` to cover a 3-season career.
-8. Update `docs/match-engine.md` "Season-scope mutation seam" section to document the new variants and the roster ownership change.
+8. Update `docs/game-engine.md` to document the new `SeasonEvent` variants and the roster-ownership change.
 
 **Out of scope:** any contracts, any market, generated personas.
 

@@ -17,7 +17,8 @@ npm run preview  # serve the dist/ folder locally
 
 The codebase is heavily documented to maintain strict architectural and design guidelines. Please refer to the following core documents before contributing or modifying the code:
 
-- [Match Engine Reference (`docs/match-engine.md`)](./docs/match-engine.md) — The authoritative guide on the match engine, covering the simulation loop, phase state machine, resolver formulas, fatigue system, season-scope mutation seam, and known gaps.
+- [Match Engine Reference (`docs/match-engine.md`)](./docs/match-engine.md) — The authoritative guide on the match engine, covering the simulation loop, phase state machine, resolver formulas, fatigue system, and known gaps.
+- [Game Engine Reference (`docs/game-engine.md`)](./docs/game-engine.md) — The season-scope sibling: `GameCoordinator`, the `applySeasonEvent` mutation seam, fixtures, league standings, headless AI sims, and save format.
 - [Rugby Laws Summary (`docs/rugby_laws_summary.md`)](./docs/rugby_laws_summary.md) — A high-level overview of the official World Rugby laws.
 - [Engine Law Inconsistencies (`docs/laws_inconsistencies.md`)](./docs/laws_inconsistencies.md) — A breakdown of where the simulation simplifies or deviates from the official real-world laws.
 - [Design Guide (`docs/DESIGN.md`)](./docs/DESIGN.md) — Covers the UI principles, CSS custom properties, typography, responsive layout rules, and modular UI structure.

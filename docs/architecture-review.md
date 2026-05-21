@@ -2,7 +2,7 @@
 
 A point-in-time architectural review against the invariants in `CLAUDE.md` and best-practice patterns for sport simulators. The codebase is healthy today; this document is forward-looking, identifying where the structures that hold at one-match-at-a-time will strain under expected growth (season simulation, multi-league, multi-match player careers, save/resume).
 
-Companion documents: `docs/match-engine.md` (engine internals), `docs/DESIGN.md` (visual design), `CLAUDE.md` (architectural invariants and ways of working). This file does not duplicate them.
+Companion documents: `docs/match-engine.md` (match-engine internals), `docs/game-engine.md` (season-scope engine internals), `docs/DESIGN.md` (visual design), `CLAUDE.md` (architectural invariants and ways of working). This file does not duplicate them.
 
 ---
 

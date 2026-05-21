@@ -1,10 +1,12 @@
-# Engine Reference
+# Match Engine Reference
 
-Documents the complete game engine: the simulation loop, every match phase, all resolver formulas, and known gaps. Intended as the authoritative reference for anyone modifying engine behaviour.
+Documents the match engine — the per-match simulation: the tick loop, every phase, all resolver formulas, fatigue, commentary, and known gaps. Intended as the authoritative reference for anyone modifying match-engine behaviour.
+
+For the season-scope sibling (`GameCoordinator`, `applySeasonEvent`, fixtures, league standings, save format) see **`docs/game-engine.md`**.
 
 ## Maintaining this doc
 
-After any change to engine code, update this file in the same commit. Engine code is everything under `src/engine/`, plus the engine-facing types in `src/types/engine.ts` and `src/types/matchEvent.ts`. The commentary renderer (`src/commentary/`) is also covered here.
+After any change to match-engine code, update this file in the same commit. Match-engine code is everything under `src/engine/`, plus the engine-facing types in `src/types/engine.ts` and `src/types/matchEvent.ts`. The commentary renderer (`src/commentary/`) is also covered here. Season code (`src/game/`) lives in `docs/game-engine.md`.
 
 When updating, document:
 1. Which players are selected (exact `find`/`filter` conditions from `PhaseRouter.resolvePhase()` and the relevant event handler).
@@ -49,36 +51,7 @@ All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.cu
 
 **Runtime invariants.** After every event is applied, `assertInvariants(state)` (`src/engine/invariants.ts`) verifies the live numeric/structural ranges that the type system can't express: `score.home/away ≥ 0` and integer, `possession ∈ {'home','away'}`, `phase ∈ MatchPhase`, `ball.x/y ∈ [0,100]`, `clock.gameMinute ≥ 0`, and for every player on either roster (starters, bench, substituted-off) `fatiguePct ∈ [0,100]`, `rating ∈ [0,10]`, every `currentStats.X ∈ [1,100]`. A violation throws with the offending field, so the failure surfaces at the mutation that caused it rather than at some downstream render or save-load step. Cost is O(matchday squad) per mutation; runs in all environments — it's a tripwire for engine bugs, not defensive runtime handling.
 
-### Season-scope mutation seam: `GameCoordinator` + `applySeasonEvent`
-
-Match-scope writes flow through `applyMatchEvent`; **season-scope writes flow through `applySeasonEvent`** in `src/game/applySeasonEvent.ts`. The game engine (`src/game/`) is a sibling to the match engine (`src/engine/`) and owns one `GameState` per session — calendar (`date`, `week`, `seasonLabel`), league (`fixtures`, `results`, `standings`), `player.teamId` + `player.tactics` + `player.matchdaySquad` (the last two persist pre-match choices across matches), and the root `seed`.
-
-| Module | Responsibility |
-|---|---|
-| `GameCoordinator.ts` | Public API (`newSeason`, `fromSave`, `getState`, `getCurrentFixture`, `recordPlayerMatchResult`, `toSavePayload`). Owns the `GameState`. The "tick" of the game engine is a player match completing: `recordPlayerMatchResult` applies the player's score, headlessly simulates the other fixtures of the round, then advances the week. |
-| `applySeasonEvent.ts` | Single mutation seam. Reducer over `SeasonEvent` (`src/types/gameState.ts`): `SEASON_INITIALIZED`, `FIXTURE_RESULT_RECORDED`, `WEEK_ADVANCED`, `PLAYER_TACTICS_SET`, `PLAYER_MATCHDAY_SQUAD_SET`. Same `default: const _: never = event;` exhaustiveness contract as `applyMatchEvent`. |
-| `playerSquad.ts` | Pure helpers: `extractMatchdaySquad` (snapshot the 23-man matchday roster as stable name refs) and `applyMatchdaySquad` (inverse — rearrange a fresh-from-JSON `RawTeamInput` so the saved 23 occupy slots 1-23). Returns the team unchanged when the saved list is empty, the wrong length, or references a player no longer rostered. |
-| `fixtures.ts` | Pure double round-robin generator using the standard "circle" method. Player's team is placed at position 0 so its match is always the first pairing per round. |
-| `simulateFixture.ts` | Headless wrapper around `MatchCoordinator` with `silent: true` — suppresses every `engine:event`/`engine:stateChange`/`engine:initialized`/`engine:resumed` emit and replaces modal prompts with `high_ball`/`kick_for_goal` defaults. `engine:finished` still fires for completion detection. |
-| `leagueTable.ts` | Pure helpers: `sortStandings` (league points → points diff → points for), `findStanding`. |
-| `teamStats.ts` | Pure derivations from `FixtureResult[]` + overall ratings: `recentForm` (rolling W/L/D pins padded with null on the left), `headToHead` (W/D/L record from one team's POV across every meeting so far), `matchSpread` (rating-derived handicap, favored side negative). Read by `PreMatchScreen`; no module state, no bus subscriptions. |
-| `derive.ts` | `deriveFixtureSeed(rootSeed, round, homeId, awayId)` — hashes the inputs so each headless AI fixture has a stable, derivable seed. |
-| `age.ts` | Pure `getAge(dobIso, currentDateIso)` — returns null when `dob` is missing. Used by `TeamInfoScreen` to derive ages from `calendar.date`. |
-| `balance/season.ts` | Season tuning constants — `SEASON_VALUES` (start date, season label, week length) and `LEAGUE_POINTS` (Premiership 4/2/0 + losing bonus when margin ≤ 7). |
-
-`TeamProfile` (`src/team/teamProfile.ts`) was previously the season-scope mutation seam; that role has moved into `GameState.league.standings`. The module now only exposes identity/narrative/star data + roster lookups (`computeOverallRating`).
-
-#### Game-engine UI events
-
-| Event | Payload | Subscribers |
-|---|---|---|
-| `game:initialized` | `{ state: GameState }` | `FixtureListScreen` (initial render after `newSeason` / `fromSave`) |
-| `game:fixtureRecorded` | `{ result: FixtureResult; state: GameState }` | `FixtureListScreen` (re-render fixtures + standings as each headless sim resolves) |
-| `game:weekAdvanced` | `{ state: GameState }` | `FixtureListScreen` (calendar header) |
-
-`SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`: `playerTeamId`, `seed`, `currentWeek`, every `FixtureResult` (player's + AI), (v3+) the `seasonLabel` + `fixtures` snapshot the user saw at save time, and (v4+) the persisted pre-match `tactics` + `matchdaySquad` so the next match opens with the manager's last commit as the default. `fromSave` re-runs `SEASON_INITIALIZED` against the saved schedule when present (otherwise falls back to the canonical one for legacy v2 saves), replays results to rebuild standings + calendar deterministically, then replays the saved `PLAYER_TACTICS_SET` / `PLAYER_MATCHDAY_SQUAD_SET` events if present. `SAVE_VERSION` is now 4; v2 and v3 saves load via the legacy path (no tactics/squad snapshot) and v1 saves are discarded.
-
-Season-level determinism: `(playerTeamId, rootSeed)` plus the player's series of results produces an identical final league table on every run. Verified by `scripts/checkSeasonDeterminism.ts`; `npm run verify` runs both the match-level and season-level harnesses.
+**Sibling seam (season scope).** A parallel mutation boundary, `applySeasonEvent` in `src/game/applySeasonEvent.ts`, owns season state (calendar, fixtures, results, standings) and follows the same single-reducer / exhaustive-`never` contract. The match engine and the game engine only meet at `src/game/simulateFixture.ts`, which spawns silent `MatchCoordinator` instances to play out the non-player fixtures of a round. Full breakdown in **`docs/game-engine.md`**.
 
 ### Balance constants
 

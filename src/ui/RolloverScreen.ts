@@ -3,14 +3,11 @@
 // applied the rollover events — this screen displays the diff from the
 // returned event list, then bridges to the new season's Hub.
 //
-// Shows two sections:
-//   1. Retirements — every PLAYER_RETIRED event, with the player's name,
-//      age (computed from dob vs. the now-current calendar), club, and
-//      position.
-//   2. Your squad development — PLAYER_AGED events for players still on
-//      the user's club after rollover. Capped to a manageable list (top
-//      changes by absolute magnitude) so the screen doesn't scroll
-//      forever.
+// Sections (each suppressed when its event list is empty):
+//   1. Retirements — every PLAYER_RETIRED event.
+//   2. Your academy graduates — ACADEMY_GRADUATED events for your club.
+//   3. Your squad — Development — PLAYER_AGED events for the player's club.
+//   4. Inbound transfers — TRANSFER_ACTIVATED events into the player's club.
 
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
@@ -60,6 +57,9 @@ export function initRolloverScreen(
 
     const retirements = activeEvents.filter(e => e.type === 'PLAYER_RETIRED');
     const agings = activeEvents.filter(e => e.type === 'PLAYER_AGED');
+    const myClubId = state.player.teamId;
+    const academyGrads = activeEvents.filter(e => e.type === 'ACADEMY_GRADUATED' && e.clubId === myClubId);
+    const inboundTransfers = activeEvents.filter(e => e.type === 'TRANSFER_ACTIVATED' && e.toClubId === myClubId);
 
     // Restrict the squad-development list to the player's club, sorted by
     // largest absolute delta so the most notable changes surface first.
@@ -102,6 +102,29 @@ export function initRolloverScreen(
             </div>`;
         }).join('');
 
+    const academyHtml = academyGrads.map(e => {
+      if (e.type !== 'ACADEMY_GRADUATED') return '';
+      const p = e.player;
+      const ovrSum = Object.values(p.baseStats).reduce((a, b) => a + b, 0);
+      const ovr = Math.round(ovrSum / 12);
+      return `
+        <div class="roll-row">
+          <span class="roll-name">${p.firstName} ${p.lastName}</span>
+          <span class="roll-meta">${p.position} · OVR ${ovr}</span>
+        </div>`;
+    }).join('');
+
+    const transfersHtml = inboundTransfers.map(e => {
+      if (e.type !== 'TRANSFER_ACTIVATED') return '';
+      const p = state.career.roster[e.rosterId];
+      if (!p) return '';
+      return `
+        <div class="roll-row">
+          <span class="roll-name">${p.firstName} ${p.lastName}</span>
+          <span class="roll-meta">${p.position} · joins from previous club</span>
+        </div>`;
+    }).join('');
+
     el!.innerHTML = `
       <div id="roll-topbar">
         <div style="width:72px"></div>
@@ -114,6 +137,18 @@ export function initRolloverScreen(
         <h3 class="roll-h3">Retirements <span class="roll-count">${retirements.length}</span></h3>
         <div class="roll-list">${retiredHtml}</div>
       </section>
+
+      ${inboundTransfers.length > 0 ? `
+      <section class="roll-section">
+        <h3 class="roll-h3">Inbound Transfers <span class="roll-count">${inboundTransfers.length}</span></h3>
+        <div class="roll-list">${transfersHtml}</div>
+      </section>` : ''}
+
+      ${academyGrads.length > 0 ? `
+      <section class="roll-section">
+        <h3 class="roll-h3">Academy Graduates <span class="roll-count">${academyGrads.length}</span></h3>
+        <div class="roll-list">${academyHtml}</div>
+      </section>` : ''}
 
       <section class="roll-section">
         <h3 class="roll-h3">Your Squad — Development</h3>

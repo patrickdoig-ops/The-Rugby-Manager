@@ -33,7 +33,18 @@ import { AGE_CURVES, STAT_NOISE, RETIREMENT_CURVE, SEASON_AWARDS } from '../engi
 import { SEASON_VALUES } from '../engine/balance';
 import { getAge, parseSeasonStartYear, seasonOpenIso } from './age';
 import { generateFixtures } from './fixtures';
-import { rngTransferRaw } from '../utils/rng';
+import { rngTransferRaw, rngTransfer } from '../utils/rng';
+import { generatePersona } from './personaGenerator';
+
+// Phase 7 supply parameters. Per-club academy + per-rollover import counts.
+const ACADEMY_GRADS_PER_CLUB_MIN = 2;
+const ACADEMY_GRADS_PER_CLUB_MAX = 4;
+const FOREIGN_IMPORTS_MIN = 5;
+const FOREIGN_IMPORTS_MAX = 10;
+const ACADEMY_AGE = { min: 18, max: 20 };
+const ACADEMY_RATING = { min: 55, max: 75 };
+const IMPORT_AGE = { min: 23, max: 30 };
+const IMPORT_RATING = { min: 65, max: 88 };
 
 export function computeRollover(state: GameState, allTeamIds: string[]): SeasonEvent[] {
   const events: SeasonEvent[] = [];
@@ -78,7 +89,43 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
     }
   }
 
-  // 3. Awards + season-rollover composite.
+  // 3. Phase 7 supply pipeline. Allocate fresh rosterIds for academy
+  // graduates + foreign imports. Stable iteration order (clubs alpha,
+  // then per-club graduate count, then imports) so the rngTransfer
+  // sequence is deterministic. Each generatePersona call advances
+  // rngTransfer several times (nationality, name, position, dob,
+  // stats × 12) — locking the order is what keeps the harness
+  // reproducible.
+  let nextRid = state.career.nextRosterId;
+  const calendarAnchor = seasonOpenIso(newSeasonStartYear);
+
+  // Academy: per club, in stable id-ascending order.
+  const sortedClubs = [...state.career.clubs].sort((a, b) => a.id.localeCompare(b.id));
+  for (const club of sortedClubs) {
+    const grads = rngTransfer(ACADEMY_GRADS_PER_CLUB_MIN, ACADEMY_GRADS_PER_CLUB_MAX);
+    for (let i = 0; i < grads; i++) {
+      const player = generatePersona(
+        { rosterId: nextRid, clubId: club.id, ageBand: ACADEMY_AGE, ratingBand: ACADEMY_RATING },
+        calendarAnchor,
+      );
+      events.push({ type: 'ACADEMY_GRADUATED', clubId: club.id, player });
+      nextRid += 1;
+    }
+  }
+
+  // Foreign imports — single batch into the free-agent pool. Phase 5
+  // signing flow consumes them at the next open signing window.
+  const imports = rngTransfer(FOREIGN_IMPORTS_MIN, FOREIGN_IMPORTS_MAX);
+  for (let i = 0; i < imports; i++) {
+    const player = generatePersona(
+      { rosterId: nextRid, ageBand: IMPORT_AGE, ratingBand: IMPORT_RATING },
+      calendarAnchor,
+    );
+    events.push({ type: 'FOREIGN_IMPORT_ARRIVED', player });
+    nextRid += 1;
+  }
+
+  // 4. Awards + season-rollover composite.
   const { topScorerRosterId, mvpRosterId } = computeAwards(state);
   const newSeasonLabel = `${newSeasonStartYear}/${(newSeasonStartYear + 1).toString().slice(2)} Premiership`;
   const newFixtures = dateRounds(

@@ -339,8 +339,8 @@ export function initPreMatchScreen(
 
       <div id="pm-tabs-bar">
         <div id="pm-tabs" role="tablist">
-          <button class="pm-tab active" data-tab="${playerSide}" style="--tc:${playerTeam.color}">${playerTeam.name}</button>
-          <button class="pm-tab"        data-tab="${oppSide}"    style="--tc:${oppTeam.color}">${oppTeam.name}</button>
+          <button class="pm-tab active" data-tab="${playerSide}" style="--tc:${playerTeam.color}">${playerTeam.shortName}</button>
+          <button class="pm-tab"        data-tab="${oppSide}"    style="--tc:${oppTeam.color}">${oppTeam.shortName}</button>
           <button class="pm-tab"        data-tab="tactics"       style="--tc:var(--rm-pitch)">Tactics</button>
         </div>
         <div id="pm-view-toggle">

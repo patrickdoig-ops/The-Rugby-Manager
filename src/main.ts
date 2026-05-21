@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function goHome(): void {
     // Re-init so the Continue button state reflects the latest save (e.g. just
     // returned from a season the user is now resuming).
-    initHomeScreen(goTeamSelector, continueGame, goSettingsFromHome);
+    initHomeScreen(goTeamSelector, continueGame, goSettingsFromHome, allTeams);
     screenRouter.show('home');
   }
 
@@ -288,6 +288,6 @@ document.addEventListener('DOMContentLoaded', () => {
     screenRouter.show('match-result');
   }
 
-  initHomeScreen(goTeamSelector, continueGame, goSettingsFromHome);
+  initHomeScreen(goTeamSelector, continueGame, goSettingsFromHome, allTeams);
   screenRouter.show('home');
 });

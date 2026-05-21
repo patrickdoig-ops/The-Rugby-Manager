@@ -61,17 +61,30 @@ export function initRoundResultsScreen(
       const mid = result
         ? `<span class="rr-score">${result.homeScore}–${result.awayScore}</span>`
         : `<span class="rr-pending">…</span>`;
+      const total = result ? result.homeScore + result.awayScore : 0;
+      const hp = total > 0 ? (result!.homeScore / total) * 100 : 50;
+      const ap = 100 - hp;
+      const marginBar = result
+        ? `<div class="rr-margin-bar">
+             <div style="width:${hp.toFixed(1)}%;background:${home.color};opacity:${result.homeScore >= result.awayScore ? 1 : 0.45}"></div>
+             <div style="width:${ap.toFixed(1)}%;background:${away.color};opacity:${result.awayScore >= result.homeScore ? 1 : 0.45}"></div>
+           </div>`
+        : `<div class="rr-margin-bar rr-margin-bar--pending"></div>`;
       return `
         <div class="rr-row${isPlayer ? ' rr-row--me' : ''}">
-          <div class="rr-team rr-team--home">
-            ${crest(home)}
-            <span class="rr-team-name">${home.shortName}</span>
+          <div class="rr-fixture-line">
+            <div class="rr-team rr-team--home">
+              ${crest(home)}
+              <span class="rr-team-name">${home.shortName}</span>
+              <span class="rr-venue-pill">H</span>
+            </div>
+            ${mid}
+            <div class="rr-team rr-team--away">
+              <span class="rr-team-name">${away.shortName}</span>
+              ${crest(away)}
+            </div>
           </div>
-          ${mid}
-          <div class="rr-team rr-team--away">
-            <span class="rr-team-name">${away.shortName}</span>
-            ${crest(away)}
-          </div>
+          ${marginBar}
         </div>
       `;
     }).join('');

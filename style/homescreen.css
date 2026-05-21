@@ -207,6 +207,32 @@
   transition: background 0.15s, box-shadow 0.15s, opacity 0.15s;
 }
 
+#continue-game-btn {
+  flex-direction: column;
+  align-items: stretch;
+  height: auto;
+  min-height: 58px;
+  padding: 12px 22px;
+  gap: 3px;
+}
+
+.continue-btn-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.home-save-context {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--rm-pitch);
+  text-transform: uppercase;
+  font-weight: 400;
+  text-align: left;
+}
+
 #start-game-btn .btn-label,
 #continue-game-btn .btn-label {
   font-family: var(--rm-font-display);
@@ -246,3 +272,90 @@
   cursor: not-allowed;
   box-shadow: none;
 }
+
+/* ─── Overwrite confirmation modal ─── */
+.home-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 350;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.home-confirm {
+  width: 100%;
+  max-width: 480px;
+  padding: 24px 24px max(36px, env(safe-area-inset-bottom, 0px));
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 20px 20px 0 0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 -8px 48px rgba(0, 0, 0, 0.65);
+  animation: homeConfirmSheetUp 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes homeConfirmSheetUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+.home-confirm-title {
+  font-family: var(--rm-font-display);
+  font-size: 28px;
+  text-transform: uppercase;
+  color: var(--rm-chalk);
+  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+}
+
+.home-confirm-body {
+  font-size: 13px;
+  color: var(--rm-text-muted);
+  margin-bottom: 22px;
+  line-height: 1.55;
+}
+
+.home-confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.home-confirm-btn {
+  flex: 1;
+  padding: 13px;
+  border-radius: 12px;
+  font-family: var(--rm-font-body);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-confirm-cancel {
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  color: var(--rm-text-muted);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.home-confirm-proceed {
+  background: #007a2a;
+  border: none;
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 4px 16px color-mix(in oklch, var(--rm-pitch) 28%, transparent);
+}
+
+.home-confirm-proceed:active { background: #006622; }

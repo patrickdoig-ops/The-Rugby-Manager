@@ -109,10 +109,11 @@
 
 .ts-card-info {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 32px;
-  height: 32px;
+  top: 0;
+  right: 0;
+  width: 44px;
+  height: 44px;
+  margin: -6px -6px 0 0;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -516,7 +516,8 @@ button.pm-player-row {
 }
 
 .pm-bench-hint--active {
-  color: var(--rm-pitch);
+  color: var(--rm-amber);
+  font-weight: 700;
 }
 
 /* ─── Bench / squad player row ─── */
@@ -562,14 +563,24 @@ button.pm-player-row {
   overflow: hidden;
   height: 560px;
   margin: 8px 12px;
-  background:
-    radial-gradient(120% 80% at 50% 0%, color-mix(in oklch, var(--rm-pitch) 12%, transparent) 0%, transparent 60%),
-    repeating-linear-gradient(0deg,
-      color-mix(in oklch, var(--rm-pitch-deep) 60%, var(--rm-bg-deep)) 0px,
-      color-mix(in oklch, var(--rm-pitch-deep) 60%, var(--rm-bg-deep)) 28px,
-      color-mix(in oklch, var(--rm-pitch-deep) 75%, var(--rm-bg-deep)) 28px,
-      color-mix(in oklch, var(--rm-pitch-deep) 75%, var(--rm-bg-deep)) 56px);
+  background: repeating-linear-gradient(180deg,
+    color-mix(in oklch, var(--rm-pitch-deep) 58%, var(--rm-bg-deep)) 0,
+    color-mix(in oklch, var(--rm-pitch-deep) 58%, var(--rm-bg-deep)) 22px,
+    color-mix(in oklch, var(--rm-pitch-deep) 74%, var(--rm-bg-deep)) 22px,
+    color-mix(in oklch, var(--rm-pitch-deep) 74%, var(--rm-bg-deep)) 44px);
   border: 1px solid var(--rm-hairline);
+  border-top: 1px solid color-mix(in oklch, var(--rm-pitch) 25%, transparent);
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.3);
+}
+
+.pm-pitch-formation::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 80% at 50% 0%,
+    color-mix(in oklch, var(--rm-pitch) 14%, transparent) 0%,
+    transparent 60%);
 }
 
 .pm-pitch-line {

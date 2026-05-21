@@ -9,6 +9,14 @@ function crestHtml(initial: string, color: string, size: number): string {
     </div>`;
 }
 
+function ovrColor(r: number): string {
+  if (r >= 85) return 'var(--rm-stat-3)'; // gold — elite
+  if (r >= 78) return 'var(--rm-stat-4)'; // green — good
+  if (r >= 70) return 'var(--rm-stat-5)'; // cyan — above avg
+  if (r >= 62) return 'var(--rm-stat-2)'; // amber — below avg
+  return 'var(--rm-stat-1)';              // red — poor
+}
+
 export function initTeamSelectorScreen(
   teams: RawTeamInput[],
   onSelect: (team: RawTeamInput) => void,
@@ -40,7 +48,12 @@ export function initTeamSelectorScreen(
             <button class="ts-card-select" data-id="${team.id}">
               ${crestHtml(team.shortName[0] ?? '?', team.color, 64)}
               <div class="ts-card-name">${team.name}</div>
-              <div class="ts-card-ovr"><span class="ts-card-ovr-label">OVR</span><span class="ts-card-ovr-value">${computeOverallRating(team.id)}</span></div>
+              ${(() => {
+                const ovr = computeOverallRating(team.id);
+                const c = ovrColor(ovr);
+                const eliteShadow = ovr >= 85 ? `text-shadow: 0 0 14px color-mix(in oklch, var(--rm-stat-3) 55%, transparent);` : '';
+                return `<div class="ts-card-ovr"><span class="ts-card-ovr-label">OVR</span><span class="ts-card-ovr-value" style="color:${c};${eliteShadow}">${ovr}</span></div>`;
+              })()}
             </button>
           </div>
         `).join('')}

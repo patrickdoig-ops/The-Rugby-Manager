@@ -31,8 +31,9 @@ The engine is split across files in `src/engine/`. `MatchCoordinator` owns the p
 | `FatigueAccumulator.ts` | Owns the per-tick fatigue accumulator; drains in `FATIGUE_SCALING.computeIntervalMinutes` increments, computes home-then-away fatigue via `StaminaSystem.computeFatigue`, applies `FATIGUE_APPLIED`, and emits the newly-tired commentary `GameEvent`. The home-then-away order is determinism-critical (both calls consume the outcome RNG stream). Accepts the same `silent` flag as `ClockController` — when true, the newly-tired commentary emit is suppressed (mutations still apply through the boundary). |
 | `Entry22Tracker.ts` | Pure `detectEntry22Changes(state)` — clears the non-possessor's active flag and registers the possessor's entry when in the opposition 22. |
 | `PhaseRouter.ts` | `PHASE_HANDLERS` map, `resolvePhase(state, sm, kickOffStrategy)`, and the `draftEvent(state, phase)` template builder. |
-| `PenaltyHandler.ts` | Penalty-decision modal pause and outcome application (`kick_for_goal`, `kick_to_touch`, `tap_and_kick_dead`, `tap_and_go`), plus the kick-off strategy modal (`awaitKickOffStrategy`, `handlePenaltyDecision`). Enriches the `PenaltyContext` it sends to the modal from `state.lastPenalty` (offence + offender + offending side), populated by the `PENALTY_AWARDED` reducer. |
-| `FieldPosition.ts` | Pure helpers over `MatchState` that factor in `state.clock.halfTimeDone`: `attackDir`, `isTryScored`, `isTryScoredAt`, `inOpposition22`, `inOpposition22At`, `inOppositionHalf`, `inOwn22`, `inOwnHalf`. The `*At(ballX, possession, halfTimeDone)` variants keep a scalar signature — used for projecting not-yet-applied positions. |
+| `PenaltyHandler.ts` | Penalty-decision modal pause and outcome application (`kick_for_goal`, `kick_to_touch`, `tap_and_kick_dead`, `tap_and_go`), plus the kick-off strategy modal (`awaitKickOffStrategy`, `handlePenaltyDecision`). Enriches the `PenaltyContext` it sends to the modal from `state.lastPenalty` (offence + offender + offending side), populated by the `PENALTY_AWARDED` reducer. **`CardHandler` runs before this** for every penalty — if it triggers a TMO review or a forced team-22 yellow, the penalty modal is deferred until the card sequence resolves. |
+| `CardHandler.ts` | Owns the card pipeline: `evaluateNewPenalty()` (called by `MatchCoordinator.tick` after PENALTY_AWARDED enters Penalty — rolls TMO trigger / team-22 threshold, emits CARD_ISSUED), `advanceTmoReview()` (drives the 3-tick narrative when phase is `TmoReview`), `scanSinBinReturns()` (per-tick expiry check, fires SIN_BIN_RETURNED / RED_20_EXPIRED). Silent mode collapses the TMO narrative to a single inline application — RNG order is preserved so silent and live match outcomes are identical. Full breakdown in [Cards (Yellow / Red 20 / Red full)](#cards-yellow--red-20--red-full). |
+| `FieldPosition.ts` | Pure helpers over `MatchState` that factor in `state.clock.halfTimeDone`: `attackDir`, `isTryScored`, `isTryScoredAt`, `inOpposition22`, `inOpposition22At`, `inOppositionHalf`, `inOwn22`, `inOwn22For` (any side), `inOwnHalf`. The `*At(ballX, possession, halfTimeDone)` variants keep a scalar signature — used for projecting not-yet-applied positions. Plus the card-availability filter family: `offFieldIds(state, side)`, `onFieldPlayers(team, state, side)`, `availableForwards`, `availableBacks` — used by every resolver and selector to exclude sin-binned / sent-off players from the contest. |
 | `HomeAdvantage.ts` | One helper, `homeEdge(state, mod)` → `{ attack, defend }`. Splits a flat per-channel modifier (from `HOME_ADVANTAGE` in balance) into the attacker/defender pair the carry and breakdown resolvers expect, based on `state.possession`. See [Home Advantage](#home-advantage). |
 | `AITacticalDirector.ts` | Pure (no-RNG) module owned by `MatchCoordinator`. Called once per tick before `resolvePhase()` to override AI-side `team.tactics` based on score gap + minutes remaining. Tuning in `balance/aiDirector.ts`; full breakdown in [Tactics: who picks what](#tactics-who-picks-what). |
 | `applyMatchEvent.ts` | **The single mutation boundary.** A reducer over the `MatchEvent` discriminated union (`src/types/matchEvent.ts`). The only function permitted to write to `MatchState` or any `Player` field. |
@@ -45,7 +46,7 @@ All emit UI side-effects through the shared `src/utils/eventBus.ts` singleton; e
 
 ### Mutation boundary: `MatchEvent` and `applyMatchEvent`
 
-All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.currentStats`, and `player.rating` flow through one function: `applyMatchEvent(state, event)` in `src/engine/applyMatchEvent.ts`. The `MatchEvent` discriminated union (`src/types/matchEvent.ts`) defines every kind of mutation the engine performs — domain events like `TRY_SCORED`, `KNOCK_ON`, `CARRY_RESOLVED`, `LINEOUT_RESOLVED`, `SCRUM_RESOLVED`, `BREAKDOWN_HIT`, `TURNOVER_AT_BREAKDOWN`, `PENALTY_AWARDED`, plus structural events like `BALL_REPOSITIONED`, `POSSESSION_SWAPPED`, `PHASE_CHANGED`, `COMMENTARY_LOGGED`, `RATINGS_RECALCULATED`. Phase handlers in `src/engine/events/` are read-only over state: they read, compute, and return `PhaseResult { ..., events: MatchEvent[] }`. `PhaseRouter.resolvePhase()` applies the queue through `applyMatchEvent` before composing the outgoing `GameEvent`. Orchestrators (`MatchCoordinator`, `ClockController`, `PenaltyHandler`) apply events directly through `applyMatchEvent` for non-phase mutations (clock, half-time, penalty choice, substitutions, tactics). UI bus emissions (`eventBus.emit('engine:event'|'engine:stateChange'|…)`) are pure side effects that fire alongside, and are **not** part of the `MatchEvent` boundary.
+All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.currentStats`, and `player.rating` flow through one function: `applyMatchEvent(state, event)` in `src/engine/applyMatchEvent.ts`. The `MatchEvent` discriminated union (`src/types/matchEvent.ts`) defines every kind of mutation the engine performs — domain events like `TRY_SCORED`, `KNOCK_ON`, `CARRY_RESOLVED`, `LINEOUT_RESOLVED`, `SCRUM_RESOLVED`, `BREAKDOWN_HIT`, `TURNOVER_AT_BREAKDOWN`, `PENALTY_AWARDED`, `CARD_ISSUED`, `SIN_BIN_RETURNED`, `RED_20_EXPIRED`, `TEAM_PENALTY_22_RECORDED`, `TEAM_22_WARNING_ISSUED`, `TMO_REVIEW_STARTED`/`TICK_ADVANCED`/`RESOLVED`, plus structural events like `BALL_REPOSITIONED`, `POSSESSION_SWAPPED`, `PHASE_CHANGED`, `COMMENTARY_LOGGED`, `RATINGS_RECALCULATED`. Phase handlers in `src/engine/events/` are read-only over state: they read, compute, and return `PhaseResult { ..., events: MatchEvent[] }`. `PhaseRouter.resolvePhase()` applies the queue through `applyMatchEvent` before composing the outgoing `GameEvent`. Orchestrators (`MatchCoordinator`, `ClockController`, `PenaltyHandler`, `CardHandler`) apply events directly through `applyMatchEvent` for non-phase mutations (clock, half-time, penalty choice, cards, sub flow, tactics). UI bus emissions (`eventBus.emit('engine:event'|'engine:stateChange'|…)`) are pure side effects that fire alongside, and are **not** part of the `MatchEvent` boundary.
 
 `applyMatchEvent` uses a `default: const _: never = event;` exhaustiveness check, so adding a new `MatchEvent` variant without a handling branch is a compile error.
 
@@ -78,12 +79,22 @@ Mid-match the human can swap any dimension via the tactics modal (`ui:tacticsCha
 state.clock  = { gameMinute, halfTimeDone, clockInTheRed, penaltyKickToTouchLineout }
 state.ball   = { x, y }                              // renamed from ballX/ballY
 state.engine = { isRunning, tickDelayMs, seed, firstHalfKicker, humanSide }
+state.cards  = { sinBin, sentOff, teamPenalty22, teamWarned22 }   // per-side arrays + counters
+state.tmoReview? = { step: 1|2|3, outcome, offender, offendingSide }   // mid-review only
 
 // top-level: phase, possession, score, events, breakdownMod, kickReturnCarrier,
 //            lastPenalty?, homeTeam, awayTeam, stats
 ```
 
-`state.lastPenalty?: { offence, offender, offendingSide, gameMinute }` is set by the `PENALTY_AWARDED` reducer and read by `PenaltyHandler` to enrich the `PenaltyContext` it sends to the modal. Overwritten on every new award; never cleared.
+`state.lastPenalty?: { offence, offender, offendingSide, preFlipPossession, gameMinute }` is set by the `PENALTY_AWARDED` reducer. `PenaltyHandler` reads `offence` + `offender` + `offendingSide` to enrich the `PenaltyContext` it sends to the modal; `CardHandler` reads `preFlipPossession` to compute `wasDefending` for the team-22 rule (snapshot of `state.possession` *before* PENALTY_AWARDED flipped it). Overwritten on every new award; never cleared.
+
+`state.cards` is the card-system state cluster — see [Cards (Yellow / Red 20 / Red full)](#cards-yellow--red-20--red-full):
+- `sinBin: { home, away }` — `SinBinEntry[]` for each side; entries carry `{ player, kind: 'yellow' | 'red_20', returnMinute }`. Resolvers filter `team.players` against these via `onFieldPlayers`.
+- `sentOff: { home, away }` — permanently off (red_20 with no replacement available, or future red_full).
+- `teamPenalty22: { home, away }` — cumulative count of defensive penalties given away in own 22; never resets within a match.
+- `teamWarned22: { home, away }` — one-shot flag for the ref's captain warning at threshold 3.
+
+`state.tmoReview` is the in-progress TMO review (only defined while phase === `TmoReview`). `outcome` is pre-rolled at TMO entry; the 3 narrative ticks are deterministic replay. Cleared by TMO_REVIEW_RESOLVED on step 3.
 
 Snapshot DTOs intentionally **stay scalar** — they are frozen log rows, not live state:
 - `GameEvent.ballX` / `GameEvent.ballY` (entries in `state.events[]`)
@@ -100,7 +111,7 @@ The engine emits five UI-bound events through `src/utils/eventBus.ts`. UI module
 | `engine:initialized` | `{}` | Scoreboard, PitchStrip, StatsPanel, CommentaryFeed — reset per-match caches |
 | `engine:stateChange` | `{ state: MatchState }` | Scoreboard, StatsPanel, PitchStrip; CommentaryFeed (one-shot for team-colour cache) |
 | `engine:event` | `{ event: GameEvent }` | CommentaryFeed (renders narration) |
-| `engine:paused` | `{ payload: ModalPayload }` | ModalManager (penalty / kick-off / tactics / sub modal), SimController (button gating) |
+| `engine:paused` | `{ payload: ModalPayload }` | ModalManager (penalty_choice / kickoff_choice / forced_substitution_choice — red_20-expired sub picker — / tactics / sub modal), SimController (button gating) |
 | `engine:resumed` | `{}` | ModalManager, SimController |
 | `engine:finished` | `{ state: MatchState }` | `main.ts` (shows match-result overlay) |
 
@@ -125,7 +136,7 @@ Each tick:
 6. For `KickOff` phase: awaits kick-off strategy selection via `penaltyHandler.awaitKickOffStrategy()` (modal `kickoff_choice` pause) — **managed team only** (the side the human player chose at the team selector). The AI-controlled team always defaults to `high_ball` with no modal.
 7. Calls `resolvePhase(state, kickOffStrategy)` (`src/engine/PhaseRouter.ts`) to produce the outcome `GameEvent`. The router owns the `PHASE_HANDLERS` map, builds the `PhaseContext`, dispatches to the matching event handler, applies the handler's `MatchEvent[]` queue, then applies `PHASE_CHANGED` to advance `state.phase`, and returns the resulting `GameEvent`.
 8. Emits `engine:event` and `engine:stateChange`.
-9. Checks for penalty interactive pause via `penaltyHandler.handlePenaltyDecision()` (if phase is `Penalty`).
+9. **Card pipeline** (`src/engine/CardHandler.ts`). For phase `Penalty`: calls `cardHandler.evaluateNewPenalty()` *before* `penaltyHandler.handlePenaltyDecision()`. If verdict is `'tmo'`, transitions phase to `TmoReview` and bails the tick (the next 3 ticks drive the narrative). If `'team22_card'` or `'none'`, runs the penalty modal normally. For phase `TmoReview`: calls `cardHandler.advanceTmoReview()` and bails (clock stays frozen via `ClockController.advanceMinute` returning 0 during TmoReview). Per non-TMO tick, `cardHandler.scanSinBinReturns()` fires `SIN_BIN_RETURNED` for expired yellows and `RED_20_EXPIRED` (+ the forced-sub flow in `MatchCoordinator.handleRed20Replacement`) for expired red_20s.
 10. **Clock-in-the-red check:** If `!state.clock.clockInTheRed`, calls `clock.checkClockInRed(state)` (sets flag and emits announcement when `gameMinute >= halfTarget`). Else if `wasInRed && clock.shouldEndPeriod(state, previousPhase)`, calls `clock.triggerHalfTime(state)` or `clock.endMatch(state)`.
 11. Schedules next tick at `state.engine.tickDelayMs`.
 
@@ -152,7 +163,8 @@ Scrum        → FirstPhase | Penalty | Scrum
 Lineout      → FirstPhase | Scrum
 TacticalKick → KickReturn | Lineout | Scrum
 TryScored    → ConversionKick → KickOff
-Penalty      → [modal] → KickOff | Lineout | FirstPhase
+Penalty      → [CardHandler.evaluateNewPenalty] → TmoReview | Penalty[modal] → KickOff | Lineout | FirstPhase
+TmoReview    → (3 narrative ticks, clock frozen) → Penalty
 HalfTime     → KickOff
 FullTime     → (terminal)
 ```
@@ -1006,7 +1018,7 @@ When fired, the carry handler emits `CARRY_RESOLVED` first (so the carrier still
 
 ### Interactive pause decision
 
-After `resolvePhase()` sets the phase to `Penalty`, `tick()` calls `penaltyHandler.handlePenaltyDecision()` (`src/engine/PenaltyHandler.ts`):
+After `resolvePhase()` sets the phase to `Penalty`, `tick()` first calls `cardHandler.evaluateNewPenalty()` (see [Cards](#cards-yellow--red-20--red-full)). If that defers (TMO triggered → phase transitions to `TmoReview`), the modal is deferred until the card sequence completes 3 ticks later. Otherwise — or for any penalty that's not a TMO trigger — `penaltyHandler.handlePenaltyDecision()` (`src/engine/PenaltyHandler.ts`) runs:
 
 ```
 if possession !== humanSide OR NOT inOppositionHalf():

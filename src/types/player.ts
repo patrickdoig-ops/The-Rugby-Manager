@@ -66,6 +66,18 @@ export interface PlayerSeasonStats {
   ratingSum:        number;
 }
 
+// Contract terms held against a Player. Read-only in Phase 2 of the
+// career system — seeded once at roster creation (via
+// src/game/contractSeeder.ts or per-player overrides in
+// docs/team-data.md), never mutates. Phase 3+ adds renewals and
+// signings as dedicated SeasonEvent variants.
+export interface PlayerContract {
+  clubId: string;          // current club; matches the RawTeamInput.id of the owning club
+  expiresOn: string;       // ISO yyyy-mm-dd; convention is 30 June of the season-end year
+  annualWage: number;      // £ per year, gross
+  isMarquee: boolean;      // true ⇔ this player occupies the club's one marquee slot
+}
+
 export interface Player {
   // Matchday slot number, 1–23. Used by match-engine events / RatingEngine /
   // StaminaSystem. Reassigned by applyMatchdaySquad on every pre-match.
@@ -85,6 +97,14 @@ export interface Player {
   currentStats: PlayerStats;
   matchStats: PlayerMatchStats;
   seasonStats: PlayerSeasonStats;
+  // Career-scope reputation, 0–100. Seeded from overall rating + a
+  // marquee bump. Drifts up/down with form / silverware (Phase 3+);
+  // read-only in Phase 2.
+  reputation: number;
+  // Contract terms. Always populated on the persistent roster (via
+  // contractSeeder); the matchday-Player copy carries them through too.
+  // Read-only in Phase 2.
+  contract: PlayerContract;
   fatiguePct: number;
   formModifier: number;
   rating: number;

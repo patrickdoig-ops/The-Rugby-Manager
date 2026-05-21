@@ -63,6 +63,12 @@ function hydratePersistentPlayer(raw: RawPlayer, rosterId: number): Player {
     nationality: raw.nationality,
     position: raw.position,
     baseStats: { ...raw.baseStats },
+    // reputation + contract default to placeholders here. Commit 2 of
+    // Phase 2 wires contractSeeder to populate them with real values
+    // (wage by rating tier, expiry staggered across years, marquee
+    // overrides from JSON).
+    reputation: raw.reputation ?? 0,
+    contract: raw.contract ?? { clubId: '', expiresOn: '', annualWage: 0, isMarquee: false },
     // Volatile per-match fields default to idle values in the roster.
     // MatchCoordinator.initPlayer overwrites them when the player is
     // hydrated into a matchday Team.

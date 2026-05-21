@@ -16,10 +16,21 @@ import type { TeamTactics } from './team';
 // matchday RawTeamInput so MatchCoordinator.initPlayer can thread it
 // through to the live matchday Player. Optional in the data shape: JSON
 // imports leave it undefined, the engine path populates it.
+//
+// `contract` + `reputation` are likewise engine-populated by the
+// roster-seed pipeline. JSONs may optionally carry them as
+// hand-authored overrides for marquee stars (see docs/team-data.md);
+// every other player has them synthesised by contractSeeder.
 export type RawPlayer = Omit<Player,
   'currentStats' | 'fatiguePct' | 'rating' | 'x' | 'y' | 'squadNumber'
   | 'rosterId' | 'seasonStats' | 'matchStats' | 'formModifier'
-> & { squadNumber?: number; rosterId?: number };
+  | 'contract' | 'reputation'
+> & {
+  squadNumber?: number;
+  rosterId?: number;
+  contract?: Player['contract'];
+  reputation?: number;
+};
 
 export type RawTeamInput = {
   id: string;

@@ -23,6 +23,7 @@ import { simulateFixture } from './simulateFixture';
 import { seedRoster } from './rosterSeeder';
 import { buildTeamFromRoster } from './rosterTeamBuilder';
 import { collectSeasonEvents, type PlayerStatsSnapshot } from './seasonStatsCollector';
+import { computeRollover } from './careerRollover';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed } from '../utils/rng';
 import { SEASON_VALUES } from '../engine/balance';
@@ -245,6 +246,21 @@ export class GameCoordinator {
 
     applySeasonEvent(this.state, { type: 'WEEK_ADVANCED' });
     eventBus.emit('game:weekAdvanced', { state: this.state });
+  }
+
+  // Advance the persistent career one full season. Ages every player,
+  // resolves retirements via RETIREMENT_CURVE, archives the just-finished
+  // standings + season awards, and replaces league.fixtures with a fresh
+  // circle-method schedule (with synthetic Sept-May weekly dates).
+  //
+  // Called from main.ts's RolloverScreen "Begin next season" CTA.
+  // Idempotency: relies on the caller — once SEASON_ROLLED_OVER is
+  // applied, the league.fixtures and seasonLabel are the new season's;
+  // a second call would roll forward again.
+  rollSeason(): void {
+    const events = computeRollover(this.state, [...this.teamsById.keys()]);
+    for (const ev of events) applySeasonEvent(this.state, ev);
+    eventBus.emit('game:seasonRolledOver', { state: this.state });
   }
 
   toSavePayload(): SavedSeason {

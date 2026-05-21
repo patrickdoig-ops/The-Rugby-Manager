@@ -15,7 +15,7 @@
 
 import type {
   ArchivedSeason, ClubState,
-  Fixture, FixtureResult, GameState, PlayerRef, SeasonEvent, SeasonSchedule,
+  Fixture, FixtureResult, GameState, MarketState, PlayerRef, SeasonEvent, SeasonSchedule,
 } from '../types/gameState';
 import { emptyCareerState } from '../types/gameState';
 import type { Player } from '../types/player';
@@ -49,12 +49,19 @@ export type SavedSeasonResult = {
 // v5+: persistent career snapshot — every player's current baseStats +
 // the per-club squad pointers. Absent on v4 and older saves; fromSave
 // seeds a fresh roster from the JSONs in that case.
+//
+// v7 adds the optional market layer: `freeAgents` (rosterIds of players
+// whose contracts expired without renewal) and `market` (the live
+// state of an open renewal window, null when closed). v5/v6 loads
+// default both to []/null via emptyCareerState.
 export interface SavedCareer {
   seasonsCompleted: number;
   nextRosterId: number;
   clubs: ClubState[];
   roster: Record<number, Player>;
   archive: ArchivedSeason[];
+  freeAgents?: number[];
+  market?: MarketState | null;
 }
 
 export interface SavedSeason {
@@ -191,13 +198,18 @@ export class GameCoordinator {
         nextRosterId: save.career.nextRosterId,
       });
       // ROSTER_SEEDED only repopulates the roster + clubs. Cumulative
-      // career counters (seasonsCompleted, archive) are restored through
-      // their own SeasonEvent so every state.career.* write stays inside
-      // applySeasonEvent — no mutation-boundary carveout.
+      // career counters (seasonsCompleted, archive) and the market
+      // layer (freeAgents + market) are restored through
+      // CAREER_ARCHIVE_RESTORED so every state.career.* write stays
+      // inside applySeasonEvent — no mutation-boundary carveout. v5/v6
+      // saves omit freeAgents + market; the event handler leaves them
+      // at their emptyCareerState defaults in that case.
       applySeasonEvent(coord.state, {
         type: 'CAREER_ARCHIVE_RESTORED',
         seasonsCompleted: save.career.seasonsCompleted,
         archive: save.career.archive,
+        ...(save.career.freeAgents !== undefined ? { freeAgents: save.career.freeAgents } : {}),
+        ...(save.career.market !== undefined ? { market: save.career.market } : {}),
       });
     } else {
       const seeded = seedRoster(allTeams, parseSeasonStartYear(coord.state.calendar.seasonLabel));
@@ -454,6 +466,14 @@ export class GameCoordinator {
           topScorerRosterId: a.topScorerRosterId,
           mvpRosterId: a.mvpRosterId,
         })),
+        freeAgents: [...this.state.career.freeAgents],
+        market: this.state.career.market
+          ? {
+              openedAfterSeason: this.state.career.market.openedAfterSeason,
+              expiringRosterIds: [...this.state.career.market.expiringRosterIds],
+              offers: this.state.career.market.offers.map(o => ({ ...o })),
+            }
+          : null,
       },
     };
   }

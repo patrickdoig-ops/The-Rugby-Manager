@@ -286,9 +286,15 @@ export type SeasonEvent =
       // SEASON_ROLLED_OVER would otherwise build incrementally. Keeps
       // every state.career.* write inside applySeasonEvent so the
       // mutation boundary stays clean (CLAUDE.md §5).
+      //
+      // `freeAgents` + `market` arrived in v7 (Phase 4); v5/v6 saves
+      // omit them and the fields stay at their emptyCareerState
+      // defaults ([] / null).
       type: 'CAREER_ARCHIVE_RESTORED';
       seasonsCompleted: number;
       archive: ArchivedSeason[];
+      freeAgents?: number[];
+      market?: MarketState | null;
     }
   | {
       type: 'SEASON_ROLLED_OVER';

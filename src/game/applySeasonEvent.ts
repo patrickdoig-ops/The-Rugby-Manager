@@ -166,6 +166,16 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
         topScorerRosterId: a.topScorerRosterId,
         mvpRosterId: a.mvpRosterId,
       }));
+      if (event.freeAgents) state.career.freeAgents = [...event.freeAgents];
+      if (event.market !== undefined) {
+        state.career.market = event.market
+          ? {
+              openedAfterSeason: event.market.openedAfterSeason,
+              expiringRosterIds: [...event.market.expiringRosterIds],
+              offers: event.market.offers.map(o => ({ ...o })),
+            }
+          : null;
+      }
       return;
     }
     case 'SEASON_ROLLED_OVER': {

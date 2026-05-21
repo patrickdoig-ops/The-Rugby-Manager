@@ -9,7 +9,7 @@ import type { RawTeamInput } from '../types/teamData';
 import { playerOverall } from '../engine/RatingEngine';
 import { computeOverallRating } from '../team/teamProfile';
 import { sortStandings } from '../game/leagueTable';
-import { recentForm, headToHead, matchSpread, type FormResult } from '../game/teamStats';
+import { recentForm, headToHead, matchSpread, formAdjustment, HOME_ADVANTAGE_PTS, type FormResult } from '../game/teamStats';
 import { applyMatchdaySquad } from '../game/playerSquad';
 import type { GameCoordinator } from '../game/GameCoordinator';
 
@@ -248,21 +248,27 @@ export function initPreMatchScreen(
   const playerForm = recentForm(playerTeam.id, results);
   const oppForm    = recentForm(oppTeam.id,    results);
 
-  const playerRating = computeOverallRating(playerTeam.id);
-  const oppRating    = computeOverallRating(oppTeam.id);
-  const spread = matchSpread(
-    playerSide === 'home' ? playerRating : oppRating,
-    playerSide === 'home' ? oppRating    : playerRating,
-  );
-  const playerSpread = playerSide === 'home' ? spread.home : spread.away;
+  // Spread = effective home rating vs effective away rating, where each
+  // side's effective rating bakes in (1) the home team's flat advantage
+  // and (2) a live form modifier from current league standings. The
+  // resulting `spread.home` is the home team's handicap (negative when
+  // home is favoured), and we display it as "<favourite> by <margin> PTS"
+  // to make clear it's a point spread, not a fractional/decimal odds line.
+  const homeTeam = playerSide === 'home' ? playerTeam : oppTeam;
+  const awayTeam = playerSide === 'home' ? oppTeam : playerTeam;
+  const homeStanding = state.league.standings.find(s => s.teamId === homeTeam.id);
+  const awayStanding = state.league.standings.find(s => s.teamId === awayTeam.id);
+  const homeEffective = computeOverallRating(homeTeam.id)
+    + HOME_ADVANTAGE_PTS
+    + formAdjustment(homeStanding, state.league.standings);
+  const awayEffective = computeOverallRating(awayTeam.id)
+    + formAdjustment(awayStanding, state.league.standings);
+  const spread = matchSpread(homeEffective, awayEffective);
   const oddsValue =
-    playerSpread === 0 ? 'Even'
-    : playerSpread > 0 ? `+${playerSpread}`
-    :                    `${playerSpread}`;
-  const oddsSub =
-    playerSpread === 0 ? 'Even match'
-    : playerSpread < 0 ? `${playerTeam.shortName} fav.`
-    :                    `${oppTeam.shortName} fav.`;
+    spread.home === 0 ? 'Even'
+    : spread.home < 0 ? `${homeTeam.shortName} by ${-spread.home}`
+    :                   `${awayTeam.shortName} by ${spread.home}`;
+  const oddsSub = spread.home === 0 ? 'No favourite' : 'PTS';
 
   const h2h = headToHead(playerTeam.id, oppTeam.id, results);
   const h2hSub = h2h.meetings === 0 ? 'first meeting' : `last ${h2h.meetings}`;
@@ -321,7 +327,7 @@ export function initPreMatchScreen(
         ${[
           ['LEAGUE', leagueValue, leagueSub],
           ['H2H',    h2hValue(h2h), h2hSub],
-          ['ODDS',   oddsValue, oddsSub],
+          ['SPREAD', oddsValue, oddsSub],
         ].map(([k, v, sub]) => `
           <div class="pm-stake-card">
             <div class="pm-stake-key">${k}</div>

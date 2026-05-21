@@ -3,7 +3,7 @@
 // helper takes the slice it needs as an argument — no module state, no
 // reading from the bus, no subscription to game events.
 
-import type { FixtureResult } from '../types/gameState';
+import type { FixtureResult, TeamStanding } from '../types/gameState';
 
 export type FormResult = 'W' | 'L' | 'D';
 
@@ -54,10 +54,36 @@ export function headToHead(teamA: string, teamB: string, results: FixtureResult[
   return { wins, draws, losses, meetings: wins + draws + losses };
 }
 
-// Match handicap from team overall ratings. The favored team's spread is
+// Spread tuning. Both numbers live here (not in src/engine/balance/)
+// because they're prediction-only: the actual match engine doesn't apply
+// home advantage or league-form modifiers to outcomes today. Tweak in one
+// place if either factor needs recalibrating.
+export const HOME_ADVANTAGE_PTS = 3;
+export const FORM_PTS_WEIGHT    = 0.1;
+
+// "Live" form adjustment: the team's league points relative to the league
+// average, scaled by FORM_PTS_WEIGHT. Zero at season start (every team on
+// 0 pts → average is 0 → delta is 0); grows as standings spread out.
+// Returns 0 for a missing standing or an empty league — both states mean
+// "no signal yet".
+export function formAdjustment(
+  standing: TeamStanding | undefined,
+  standings: TeamStanding[],
+): number {
+  if (!standing || standings.length === 0) return 0;
+  const total = standings.reduce((sum, s) => sum + s.leaguePoints, 0);
+  const avg = total / standings.length;
+  return (standing.leaguePoints - avg) * FORM_PTS_WEIGHT;
+}
+
+// Match handicap from two effective ratings. The favoured team's spread is
 // negative; the underdog's is positive. At this league's scoring tempo 1
-// overall-rating point ≈ 1 scoreboard point, so the difference doubles as
-// the expected margin. Symmetric: `home + away === 0`.
+// rating point ≈ 1 scoreboard point, so the difference doubles as the
+// expected margin. Symmetric: `home + away === 0`.
+//
+// Inputs are *effective* ratings — caller is expected to bake in
+// HOME_ADVANTAGE_PTS for the home side and formAdjustment for each team
+// before calling, keeping this helper a pure mathematical transform.
 export function matchSpread(homeRating: number, awayRating: number): { home: number; away: number } {
   const home = Math.round(awayRating - homeRating);
   return { home, away: -home };

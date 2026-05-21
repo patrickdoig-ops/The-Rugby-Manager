@@ -2,7 +2,7 @@
 
 This file is the canonical, human-readable reference for each Gallagher Premiership club's identity. Each profile summarises a team's playing style, signature gameplay features, and core DNA in 4–5 lines, with a suggested mapping to the in-game `TeamTactics` dimensions, a hint on which player stats should be biased for that club's character, and the 2025-26 senior first-team squad.
 
-The simulator currently ships with 4 of the 10 Premiership clubs; the remaining 6 are flagged `to add`. Today this file is descriptive only — it is not parsed by the engine. The intent is that a future task will use it to seed player ratings, default tactics, AI behaviour, and the actual rosters for each club.
+The simulator ships all 10 Premiership clubs. This file is the source of truth for team identity, stars, and rosters — `scripts/generateTeamJsons.mjs` parses it to produce the `src/data/team-*.json` files the engine loads.
 
 **Squad data note:** Squad lists are compiled from public sources (club websites, Wikipedia, Ultimate Rugby, RugbyPass) as of May 2026. Coverage is best-effort: DOBs and ages are filled where available, blank where not. The data has not been manually validated against current club rosters — see "Data notes" at the bottom of this file for known caveats (likely transfer artifacts, duplicate listings, possible retirees).
 
@@ -340,7 +340,7 @@ Under Mark McCall, Saracens have been the league's clinical operator — structu
 
 ---
 
-## Bath Rugby *(to add)*
+## Bath Rugby
 
 The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at 10 and Santi Carreras at 15, with strong ball-playing centres giving Bath multiple distributors at the line. Their best rugby blends forward dominance and territory with a backline that can shift the point of attack at will. Russell's growing pragmatism has added game management to the flair, though some 2025-26 criticism has pointed to conservative five-metre pick-and-drive over their expansive instincts. At full song, they balance heft up front with the league's most creative half-back axis.
 
@@ -417,7 +417,7 @@ The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at
 
 ---
 
-## Exeter Chiefs *(to add)*
+## Exeter Chiefs
 
 The Rob Baxter long-build identity is phase-heavy possession rugby — pressure and patience, suffocating teams with multiple phases and field position before striking. The driving maul is a signature weapon and the forwards are built for relentless go-forward over flashy carries. Chiefs cede little territory, kick smartly and trust their fitness to wear opponents down. They are mid-rebuild after the peak title-winning era, but the DNA — disciplined, methodical, set-piece confident — is intact.
 
@@ -499,7 +499,7 @@ The Rob Baxter long-build identity is phase-heavy possession rugby — pressure 
 
 ---
 
-## Harlequins *(to add)*
+## Harlequins
 
 The Twickenham Stoop entertainers and the league's most committed expansive, attacking side. Built around Marcus Smith's creative range — cross-field kicks, late drop-goal nous, footwork at first receiver — Quins play fast-paced running rugby and back themselves to outscore anyone. Their forwards are mobile and carry-friendly rather than maul-monsters, and they thrive on broken-field rugby and counter-attack. The trade-off is defensive vulnerability when the tempo turns against them.
 
@@ -574,7 +574,7 @@ The Twickenham Stoop entertainers and the league's most committed expansive, att
 
 ---
 
-## Newcastle Red Bulls *(to add)*
+## Newcastle Red Bulls
 
 Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastle are mid-transformation: heavy investment, aggressive recruitment, and a search for a clearer identity after three straight bottom-of-the-table finishes. Historically a developmental, lower-budget side that fought hard but lacked depth, the Red Bulls era is rebuilding from the ground up. Kingston Park remains home, but the playing identity is still being written — expect them to start the simulator era as the league's weakest squad, with room to grow.
 
@@ -656,7 +656,7 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 
 ---
 
-## Northampton Saints *(to add)*
+## Northampton Saints
 
 The 2023-24 champions under Phil Dowson, Saints are the league's electric attacking outfit — willing to play from anywhere on the pitch and devastating in transition. Fin Smith conducts a heads-up backline that scores tries from deep, off turnover ball and from set-piece strike plays in equal measure. Their forwards are mobile and link-friendly rather than collision-first, designed to win quick ball and feed the runners. When they get rolling they put 40+ on teams; when the platform wobbles, the structure shows cracks.
 
@@ -746,7 +746,7 @@ The 2023-24 champions under Phil Dowson, Saints are the league's electric attack
 
 ---
 
-## Sale Sharks *(to add)*
+## Sale Sharks
 
 The Manchester defence-first side: line-speed, collision-dominant loose forwards and a physical inside-centre channel, all built to choke teams into errors. Sale are happy to cede possession because they back their defence to win the field-position battle, and George Ford's tempo control gives them clinical execution when they do attack. Tackles, turnovers and territory underpin everything; they are the league's least flashy and most resilient team. Box-kick, chase, tackle, repeat.
 

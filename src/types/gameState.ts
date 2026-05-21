@@ -282,6 +282,19 @@ export type SeasonEvent =
       reason: 'released' | 'expired' | 'retired';
     }
   | {
+      // Signs a free-agent player to a new club. Removes the rosterId
+      // from state.career.freeAgents, adds them to ClubState.squad,
+      // sets contract.clubId + expiresOn + annualWage. isMarquee on
+      // the contract is set from the offer (the signing club may
+      // intend this signing as their marquee — call the
+      // MARQUEE_DESIGNATED event separately if so).
+      type: 'CONTRACT_SIGNED';
+      rosterId: number;
+      clubId: string;
+      expiresOn: string;
+      annualWage: number;
+    }
+  | {
       // fromSave-only: restores the cumulative career counters that
       // SEASON_ROLLED_OVER would otherwise build incrementally. Keeps
       // every state.career.* write inside applySeasonEvent so the

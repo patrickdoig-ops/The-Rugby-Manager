@@ -154,8 +154,28 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
       }
       // Player's club affiliation is cleared on the contract so
       // downstream lookups don't show them attached to their former
-      // squad. They'll be re-bound on CONTRACT_SIGNED (Phase 5).
+      // squad. They'll be re-bound on CONTRACT_SIGNED.
       p.contract = { ...p.contract, clubId: '' };
+      return;
+    }
+    case 'CONTRACT_SIGNED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      // Remove from free-agent pool (defensive — also handles the case
+      // where the signing originates from elsewhere than the pool, e.g.
+      // a Phase 7 academy graduate that lands directly on a squad).
+      state.career.freeAgents = state.career.freeAgents.filter(id => id !== event.rosterId);
+      // Add to new club's squad (defensive against double-add).
+      const newClub = state.career.clubs.find(c => c.id === event.clubId);
+      if (newClub && !newClub.squad.includes(event.rosterId)) {
+        newClub.squad.push(event.rosterId);
+      }
+      p.contract = {
+        clubId: event.clubId,
+        expiresOn: event.expiresOn,
+        annualWage: event.annualWage,
+        isMarquee: false,
+      };
       return;
     }
     case 'CAREER_ARCHIVE_RESTORED': {

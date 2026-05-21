@@ -57,7 +57,12 @@ function initPlayer(raw: RawPlayer & { rosterId?: number }): Player {
     squadNumber: raw.squadNumber ?? raw.id,
     rosterId: raw.rosterId ?? 0,
     reputation: raw.reputation ?? 0,
-    contract: raw.contract ?? { clubId: '', expiresOn: '', annualWage: 0, isMarquee: false },
+    contract: {
+      clubId:     raw.contract?.clubId     ?? '',
+      expiresOn:  raw.contract?.expiresOn  ?? '',
+      annualWage: raw.contract?.annualWage ?? 0,
+      isMarquee:  raw.contract?.isMarquee  ?? false,
+    },
     baseStats: deepCloneStats(raw.baseStats),
     currentStats: current,
     matchStats: zeroMatchStats(),

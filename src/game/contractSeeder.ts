@@ -33,21 +33,19 @@ export function seedContractFields(
   seasonStartYear: number,
 ): SeededContractFields {
   const overall = playerOverall(raw.baseStats, raw.position);
-  const isMarquee = raw.contract?.isMarquee ?? false;
+  const override = raw.contract;
+  // RNG order matters for determinism — always advance rngTransfer in the
+  // same sequence regardless of which override fields are present. Each
+  // call below consumes the stream once.
+  const lengthYears = pickLength(raw, overall);
+  const wage = synthesizeWage(raw, overall);
 
-  const contract: PlayerContract = raw.contract
-    ? {
-        clubId: raw.contract.clubId || clubId,
-        expiresOn: raw.contract.expiresOn || expiryFor(seasonStartYear, pickLength(raw, overall)),
-        annualWage: raw.contract.annualWage > 0 ? raw.contract.annualWage : synthesizeWage(raw, overall),
-        isMarquee,
-      }
-    : {
-        clubId,
-        expiresOn: expiryFor(seasonStartYear, pickLength(raw, overall)),
-        annualWage: synthesizeWage(raw, overall),
-        isMarquee: false,
-      };
+  const contract: PlayerContract = {
+    clubId: override?.clubId || clubId,
+    expiresOn: override?.expiresOn || expiryFor(seasonStartYear, lengthYears),
+    annualWage: override?.annualWage && override.annualWage > 0 ? override.annualWage : wage,
+    isMarquee: override?.isMarquee ?? false,
+  };
 
   const reputation = raw.reputation ?? clampReputation(
     Math.round(overall * REPUTATION_SEED.ratingMultiplier) +

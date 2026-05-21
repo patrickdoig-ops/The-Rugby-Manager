@@ -396,7 +396,8 @@
         "discipline": 45,
         "positioning": 84,
         "composure": 86
-      }
+      },
+      "contract": { "isMarquee": true }
     }
   ],
   "bench": [

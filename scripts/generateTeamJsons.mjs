@@ -150,7 +150,10 @@ function parseTeamDataMd(md) {
       vals.forEach((v, i) => { if (i < TACTIC_KEYS.length) suggestedTactics[TACTIC_KEYS[i]] = v; });
     }
 
-    // Star players — entry line "- **Name** (Position, Nationality) — blurb. Index high: ... Suggested rating: NN/100."
+    // Star players — entry line "- **Name** (Position, Nationality) — blurb. Index high: ... Suggested rating: NN/100. [Marquee: yes.]"
+    // The trailing `Marquee: yes` annotation is optional; one per team picks
+    // the cap-excluded marquee slot. Anyone without it gets isMarquee=false
+    // and the seeder synthesises a normal in-cap wage.
     const stars = [];
     const starsBlockMatch = body.match(/### Star players\s*\n([\s\S]*?)(?=\n### |\n## |\n---|$)/);
     if (starsBlockMatch) {
@@ -159,6 +162,7 @@ function parseTeamDataMd(md) {
         const m = line.match(/^- \*\*([^*]+)\*\*\s*\(([^,]+),\s*([^)]+)\)\s*[—-]\s*(.+?)\s*Index high:\s*(.+?)\.\s*Suggested rating:\s*\*\*(\d+)\/100\*\*/);
         if (!m) continue;
         const indexHigh = [...m[5].matchAll(/`(\w+)`/g)].map(x => x[1]);
+        const isMarquee = /Marquee:\s*yes/i.test(line);
         stars.push({
           name: m[1].trim(),
           position: SIMPLE_FROM_TEAMDATA(m[2]),
@@ -166,6 +170,7 @@ function parseTeamDataMd(md) {
           blurb: m[4].trim().replace(/\.$/, ''),
           indexHigh,
           rating: parseInt(m[6], 10),
+          isMarquee,
         });
       }
     }
@@ -349,6 +354,11 @@ function buildPlayerJson(p, team) {
   const { firstName, lastName } = splitName(p.name);
   const rng = makeRng(hash32(`${team.meta.slug}|${p.name}`));
   const baseStats = genStats(p, team, rng);
+  // Carry the marquee designation through to the JSON so the
+  // contractSeeder (src/game/contractSeeder.ts) marks the player as
+  // cap-excluded at roster-seed time. Only the flag — wage / expiry /
+  // clubId still come from the seeder.
+  const marqueeStar = team.stars.find(s => s.name === p.name && s.isMarquee);
   return {
     id: p.id,
     squadNumber: p.id,
@@ -358,6 +368,7 @@ function buildPlayerJson(p, team) {
     nationality: p.nationality || 'England',
     position: p.position,
     baseStats,
+    ...(marqueeStar ? { contract: { isMarquee: true } } : {}),
   };
 }
 

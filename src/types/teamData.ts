@@ -8,7 +8,7 @@
 // hydrates it. Living here rather than in the match engine keeps the data
 // shape neutral — the engine consumes it, it doesn't own it.
 
-import type { Player } from './player';
+import type { Player, PlayerContract } from './player';
 import type { TeamTactics } from './team';
 
 // `rosterId` is allocated at roster seed time, not in JSON — but
@@ -28,7 +28,11 @@ export type RawPlayer = Omit<Player,
 > & {
   squadNumber?: number;
   rosterId?: number;
-  contract?: Player['contract'];
+  // Partial overrides — JSON typically provides only the marquee flag;
+  // contractSeeder fills the missing wage / length / expiry / clubId.
+  // The full PlayerContract shape flows through when rosterTeamBuilder
+  // re-derives a matchday RawTeamInput from the persisted roster.
+  contract?: Partial<PlayerContract>;
   reputation?: number;
 };
 

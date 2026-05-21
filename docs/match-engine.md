@@ -309,7 +309,7 @@ When `computeFatigue` detects a player crossing from ≥ 50% to < 50% fatiguePct
 
 ## Determinism (Seeded RNG)
 
-All randomness flows through three isolated mulberry32 streams in `src/utils/rng.ts`:
+Match-scope randomness flows through three isolated mulberry32 streams in `src/utils/rng.ts`:
 
 | Stream | Backing function | Consumers |
 |---|---|---|
@@ -317,7 +317,9 @@ All randomness flows through three isolated mulberry32 streams in `src/utils/rng
 | `form` | `rngForm()` | Player form modifier in `initPlayer()` |
 | `commentary` | `pickRandom(arr)` | Commentary template selection in `CommentaryEngine.pick()` |
 
-Each stream is seeded with the master seed XORed against a fixed constant, so adding new commentary lines (or any new flavour roll) cannot shift outcome rolls.
+A fourth stream — `transfer`, backed by `rngTransferRaw()` and seeded via `setCareerSeed(seed)` — covers season-scope randomness (contract seeding, age-curve jitter, retirement rolls). It lives in `src/utils/rng.ts` alongside the others but is consumed only by `src/game/` code; see **`docs/game-engine.md`** § Determinism. Match-engine code never touches it.
+
+Each stream is seeded with its master seed XORed against a fixed constant, so adding new commentary lines (or any new flavour roll) cannot shift outcome rolls.
 
 The master seed is a 32-bit unsigned integer stored on `state.engine.seed`. It is set in the `MatchCoordinator` constructor — either passed via `opts.seed` or auto-generated via `Math.floor(Math.random() * 0x100000000)`. `setMatchSeed(seed)` is called **before** `initMatchState()` so player form initialisation is deterministic. Once set, the only `Math.random()` call in the engine is the seed-generation line itself.
 

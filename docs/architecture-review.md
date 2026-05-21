@@ -1,5 +1,13 @@
 # Architecture Review — Scalability
 
+> ⚠️ **Largely superseded.** This file is a snapshot from before the v2.x work. Several specific recommendations have shipped:
+> - `balance.ts` (the 357-line single file referenced below) was split into 17 per-concern files under `src/engine/balance/`.
+> - `StateMachine.ts` (referenced below as a class throwing on illegal transitions) has been deleted; `state.phase` is now the sole source of truth, with transitions flowing through `PHASE_CHANGED` via `applyMatchEvent` — see `docs/match-engine.md` § Architecture.
+> - The multi-match player-career trigger called out in R5 below has shipped in v2.22a (persistent roster, `PLAYER_AGED`, `PLAYER_RETIRED`, `SEASON_ROLLED_OVER`); see `docs/game-engine.md`.
+> - Several module extractions in §4 (FatigueAccumulator, Entry22Tracker) shipped earlier and are reflected in the current architecture table.
+>
+> Use `CLAUDE.md` for current architectural invariants and the two engine docs for current module shape. The remaining forward-looking items below (multi-league split, future career deepenings) are still useful but the headline metrics are months stale.
+
 A point-in-time architectural review against the invariants in `CLAUDE.md` and best-practice patterns for sport simulators. The codebase is healthy today; this document is forward-looking, identifying where the structures that hold at one-match-at-a-time will strain under expected growth (season simulation, multi-league, multi-match player careers, save/resume).
 
 Companion documents: `docs/match-engine.md` (match-engine internals), `docs/game-engine.md` (season-scope engine internals), `docs/DESIGN.md` (visual design), `CLAUDE.md` (architectural invariants and ways of working). This file does not duplicate them.

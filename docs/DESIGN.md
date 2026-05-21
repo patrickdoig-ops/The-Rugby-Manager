@@ -531,6 +531,24 @@ The Resume button uses the primary CTA pattern.
 
 The title uses `--rm-pitch` colour (not `--rm-amber` / old gold).
 
+### End-of-Season + Off-Season (paired)
+
+Both screens share `style/seasonrollover.css` — they're the post-final-round flow's two halves. Full-screen `position: fixed`, `z-index: 225`, `--rm-bg` background, safe-area padding identical to the rest of the in-season screens.
+
+**EndOfSeasonScreen** (`#end-of-season`) — final standings + awards (top scorer, MVP) with the player's club row highlighted via the same `--me`-tinted treatment as the league table. Forward CTA "Continue → Off-Season".
+
+**RolloverScreen** (`#rollover`) — off-season diff: retirements and per-player stat deltas for the player's squad. Deltas render as inline pills tagged `roll-delta-pos` / `roll-delta-neg`, scoped to the standard heatmap accents (green = positive growth, coral = decline). Forward CTA "Begin {next-season-label}".
+
+No back navigation on either screen — they sit on a forward-only spine that lands the user on the new season's Hub.
+
+### Contracts
+
+`style/contracts.css`, `#contracts`. Read-only tabular list of the player's senior squad, columns: name / position / age / OVR / wage / expiry / marquee star. Header buttons are sortable. Wage values render with `fmtWage()` (£M for ≥1M, £k for ≥1k). Cap usage shows as a dimmed pill at the top right (`ct-cappill`) — non-marquee wage sum vs `SENIOR_CAP`, no enforcement until Phase 3 of the transfer system.
+
+Expiry chips: `ct-expiring` flag (rendered next to the date) when expiry is within ten months of the current calendar date. Marquee row gets a subtle `--marquee` tint (slight gold wash on the row, gold star icon in the flag column).
+
+Hub-stack screen: back arrow returns to Hub. Reached via the Hub's Contracts tile.
+
 ## Motion
 
 Motion is CSS-only:

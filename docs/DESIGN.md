@@ -98,17 +98,19 @@ All surfaces have a subtle green undertone (hue 150) to tie the palette to the p
 | `--rm-amber` | `oklch(0.74 0.16 62)` | Tries, penalties, warnings |
 | `--rm-amber-deep` | `oklch(0.58 0.16 50)` | Deeper amber for ball gradients |
 
-### Stat Heatmap — 5-tier scale
+### Stat Heatmap — palette
 
-Used for player attribute values, player ratings, and animated bars. Applied as `color` on numeric values.
+Five named hues used for player attribute values, player ratings, fatigue bars, and phase badges. Applied as `color` on numeric values. The tokens are a neutral palette — *which* hue means "elite" vs "poor" is set by the rating-tier mappings further down (see `.rating-*` and `.tier-*` tables), not by token ordinal.
 
-| Token | Value | Range | Meaning |
+| Token | Value | Hue | Typical use |
 |---|---|---|---|
-| `--rm-stat-1` | `oklch(0.55 0.18 25)` | Poor | Coral red |
-| `--rm-stat-2` | `oklch(0.68 0.16 55)` | Below average | Amber |
-| `--rm-stat-3` | `oklch(0.78 0.14 95)` | Average | Chartreuse |
-| `--rm-stat-4` | `oklch(0.76 0.20 144)` | Good | Pitch green |
-| `--rm-stat-5` | `oklch(0.82 0.18 175)` | Elite | Cyan |
+| `--rm-stat-1` | `oklch(0.55 0.18 25)` | Coral red | Errors, penalties, the very bottom of the rating scale |
+| `--rm-stat-2` | `oklch(0.68 0.16 55)` | Amber | Below-average ratings, fatigue warn tier |
+| `--rm-stat-3` | `oklch(0.78 0.14 95)` | Gold | **Top rating tier** — draws the eye to star-level numbers |
+| `--rm-stat-4` | `oklch(0.76 0.20 144)` | Pitch green | Strong-but-not-elite ratings, fatigue ok tier |
+| `--rm-stat-5` | `oklch(0.82 0.18 175)` | Cyan | Above-average ratings (one tier below green) |
+
+Rating order from worst to best: amber → cyan → green → gold. Gold sits at the top so elite numbers pop; red is reserved for clearly poor / penalty signal.
 
 ### Pitch Strip Tokens
 
@@ -364,11 +366,13 @@ Attribute cell tier colours use the stat heatmap tokens:
 
 | Class | Token | Range |
 |---|---|---|
-| `.tier-elite` | `--rm-stat-5` | 90+ |
-| `.tier-great` | `--rm-stat-4` | 80–89 |
-| `.tier-good` | `--rm-stat-3` | 70–79 |
-| `.tier-avg` | `--rm-stat-2` | 60–69 |
-| `.tier-poor` | `--rm-text-dim` | <60 |
+| `.tier-elite` | `--rm-stat-3` (gold) | 88+ |
+| `.tier-great` | `--rm-stat-4` (green) | 78–87 |
+| `.tier-good` | `--rm-stat-5` (cyan) | 65–77 |
+| `.tier-avg` | `--rm-stat-2` (amber) | 50–64 |
+| `.tier-poor` | `--rm-stat-1` (red) | <50 |
+
+These thresholds match `statColor()` in `src/ui/PreMatchScreen.ts`, which is the source of truth for per-stat colouring on the pre-match grid.
 
 ### Scoreboard
 
@@ -466,10 +470,10 @@ Updated once per game minute using DOM patching (not full re-render) for perform
 
 | Class | Token | Rating |
 |---|---|---|
-| `.rating-high` | `--rm-stat-5` | ≥ 7.5 |
-| `.rating-mid` | `--rm-stat-4` | 5.5–7.5 |
-| `.rating-low` | `--rm-stat-3` | 3.5–5.5 |
-| `.rating-poor` | `--rm-stat-2` | <3.5 |
+| `.rating-high` | `--rm-stat-3` (gold) | ≥ 7.5 |
+| `.rating-mid` | `--rm-stat-4` (green) | 5.5–7.5 |
+| `.rating-low` | `--rm-stat-5` (cyan) | 3.5–5.5 |
+| `.rating-poor` | `--rm-stat-2` (amber) | <3.5 |
 
 ### Sim Controls
 

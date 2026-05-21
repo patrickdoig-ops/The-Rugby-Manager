@@ -77,8 +77,15 @@ export function assertInvariants(state: MatchState): void {
 
   // Card state — bin entries must reference real on-field IDs (1..15),
   // teamPenalty22 counters are non-negative integers, and the per-tick
-  // tmoReview shape is only present when phase === TmoReview with a
-  // legal step number.
+  // tmoReview step is in range when present.
+  //
+  // Deliberately NOT cross-checking `tmoReview` against `state.phase`:
+  // CardHandler applies TMO_REVIEW_STARTED (which sets tmoReview) before
+  // PHASE_CHANGED (which sets phase to TmoReview), and applyMatchEvent
+  // runs this assert between every event, so a cross-field check would
+  // throw on the legitimate transient state. The same shape applies on
+  // teardown: TMO_REVIEW_RESOLVED clears tmoReview before phase flips
+  // back to Penalty.
   for (const side of ['home', 'away'] as const) {
     for (const entry of state.cards.sinBin[side]) {
       if (!(entry.returnMinute >= 0)) {
@@ -94,9 +101,6 @@ export function assertInvariants(state: MatchState): void {
     }
   }
   if (state.tmoReview) {
-    if (state.phase !== MatchPhase.TmoReview) {
-      fail('tmoReview.phase', `tmoReview set but phase=${state.phase}`);
-    }
     const step = state.tmoReview.step;
     if (step !== 1 && step !== 2 && step !== 3) {
       fail('tmoReview.step', `${step}`);

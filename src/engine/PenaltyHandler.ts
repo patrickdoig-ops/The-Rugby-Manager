@@ -37,21 +37,39 @@ export class PenaltyHandler {
   async handlePenaltyDecision(): Promise<void> {
     const { state, humanSide, silent } = this.deps;
 
-    // Only present the choice to the human manager and only when the penalty
-    // is in the opposition's half. All other penalties auto-kick to touch.
-    // Silent mode auto-kicks at goal whenever the human would otherwise be
-    // prompted, matching the determinism harness behaviour.
-    if (silent || state.possession !== humanSide || !inOppositionHalf(state)) {
+    // Silent mode is used for telemetry, the determinism harness, and the
+    // headless AI fixtures inside `recordPlayerMatchResult`. The auto-choice
+    // must be symmetric for both sides — until v2.48a this branch was
+    // gated on `state.possession === humanSide`, and since `humanSide`
+    // defaults to 'home' in silent fixtures, that meant home auto-kicked at
+    // goal in opposition half (3 pts) while away auto-kicked to touch
+    // (defensive lineout). Across the 90-fixture round-robin telemetry
+    // that asymmetry produced ~3 percentage points of structural home-win
+    // bias on top of the documented HOME_ADVANTAGE channel.
+    if (silent) {
+      const opposingSide = state.possession === 'home' ? 'away' : 'home';
       let autoChoice: PenaltyChoice;
-      if (silent && state.possession === humanSide && inOppositionHalf(state)) {
+      if (inOppositionHalf(state)) {
         autoChoice = 'kick_for_goal';
+      } else if (state.clock.clockInTheRed && state.score[state.possession] > state.score[opposingSide]) {
+        autoChoice = 'tap_and_kick_dead';
       } else {
-        const aiSide = humanSide === 'home' ? 'away' : 'home';
-        autoChoice =
-          state.clock.clockInTheRed && state.possession === aiSide && state.score[aiSide] > state.score[humanSide]
-            ? 'tap_and_kick_dead'
-            : 'kick_to_touch';
+        autoChoice = 'kick_to_touch';
       }
+      this.applyPenaltyChoice(autoChoice);
+      return;
+    }
+
+    // Live mode: prompt the human only when they have a penalty in opposition
+    // half. The AI side stays defensive (kick to touch, with a clock-burn
+    // exception when leading late) — this human-vs-AI asymmetry is by
+    // design (the AI is intentionally less aggressive than the manager).
+    if (state.possession !== humanSide || !inOppositionHalf(state)) {
+      const aiSide = humanSide === 'home' ? 'away' : 'home';
+      const autoChoice: PenaltyChoice =
+        state.clock.clockInTheRed && state.possession === aiSide && state.score[aiSide] > state.score[humanSide]
+          ? 'tap_and_kick_dead'
+          : 'kick_to_touch';
       this.applyPenaltyChoice(autoChoice);
       return;
     }

@@ -39,6 +39,7 @@ function crestHtml(team: Team, size = 48): string {
     width:${size}px;height:${size}px;
     background:linear-gradient(160deg,${team.color} 0%,color-mix(in oklch,${team.color} 65%,black) 100%);
     border:1px solid color-mix(in oklch,${team.color} 50%,transparent);
+    box-shadow: 0 0 18px color-mix(in oklch, ${team.color} 40%, transparent), inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 20px rgba(0,0,0,0.5);
   "><span>${initial}</span></div>`;
 }
 
@@ -226,7 +227,7 @@ export function initMatchResultScreen(state: MatchState, round: number, onContin
     </div>
 
     <div id="mr-footer">
-      <button id="mr-continue">
+      <button id="mr-continue" class="cta-pulse">
         <span class="mr-continue-label">Continue</span>
         <svg class="mr-continue-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
         <span class="mr-continue-spinner" aria-hidden="true"></span>

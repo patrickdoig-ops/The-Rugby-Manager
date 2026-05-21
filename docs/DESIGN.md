@@ -162,6 +162,52 @@ These values are intentionally fixed and must not be replaced with tokens:
 - Do not reverse semantic direction: pitch green = positive/active, red = error/poor, amber = event/warning, purple = terminal phase.
 - Do not add new surface colours without adding them to `:root` in `style/main.css`.
 
+## Elevation & Polish Patterns
+
+Three reusable patterns lift surfaces and signal interactivity. Defined once in `style/main.css`, consumed by every screen.
+
+### Card elevation — `--rm-card-shadow`
+
+`:root` exposes a single multi-layer shadow that gives every panel / tile / card a uniform sense of depth:
+
+```css
+--rm-card-shadow:
+  inset 0 1px 0 rgba(255, 255, 255, 0.055),  /* inner top highlight */
+  0 2px 8px  rgba(0, 0, 0, 0.55),             /* close shadow */
+  0 8px 28px rgba(0, 0, 0, 0.35);             /* ambient lift */
+```
+
+Applied to `.mr-card`, `.hub-tile`, `#hub-next-match`, `.lt-row`, `.rr-row`, `.ts-card`. Stub tiles (`.hub-tile--stub`) override to a flatter `0 1px 4px rgba(0,0,0,0.3)` to read as inactive.
+
+### CTA pulse — `.cta-pulse`
+
+A single shared `ctaPulse` keyframe breathes the primary CTA glow between two intensities every 2.4s. Add the `cta-pulse` class to any green primary button:
+
+```css
+@keyframes ctaPulse {
+  0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.25),
+                          0 8px 24px color-mix(in oklch, var(--rm-pitch) 30%, transparent); }
+  50%      { box-shadow: inset 0 1px 0 rgba(255,255,255,0.25),
+                          0 8px 36px color-mix(in oklch, var(--rm-pitch) 55%, transparent); }
+}
+.cta-pulse { animation: ctaPulse 2.4s ease-in-out infinite; }
+```
+
+Live on `#start-game-btn`, `#hub-play-next`, `#mr-continue`, `#rr-continue`, `#lt-continue`, `#pm-start`. Pressed / disabled states are unaffected — they continue to read their own pressed box-shadows.
+
+### Crest glow
+
+Large monogram crests (Hub, Match Result, Team Selector, Round Results, Hub next-match) carry an outer team-colour glow set inline at build time so the colour follows the team's identity:
+
+```js
+`box-shadow:
+  0 0 18px color-mix(in oklch, ${team.color} 40%, transparent),
+  inset 0 1px 0 rgba(255,255,255,0.18),
+  0 6px 20px rgba(0,0,0,0.5);`
+```
+
+League-table crests (`.lt-crest`, 22×22) skip the glow — too noisy at row scale.
+
 ## Button Patterns
 
 ### Button System Rules

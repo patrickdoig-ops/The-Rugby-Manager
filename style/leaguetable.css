@@ -92,6 +92,7 @@
   color: var(--rm-text);
   background: var(--rm-surface);
   border: 1px solid var(--rm-border-soft);
+  box-shadow: var(--rm-card-shadow);
 }
 
 .lt-row--me {

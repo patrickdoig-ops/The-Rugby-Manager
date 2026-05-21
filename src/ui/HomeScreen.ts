@@ -209,7 +209,7 @@ export function initHomeScreen(
     </div>
 
     <div id="home-cta">
-      <button id="start-game-btn">
+      <button id="start-game-btn" class="cta-pulse">
         <span class="btn-label">Start New Game</span>
         ${arrowIcon()}
       </button>

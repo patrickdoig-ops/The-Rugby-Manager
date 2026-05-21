@@ -40,7 +40,8 @@ function formatDateShort(iso: string): string {
 function crestHtml(team: RawTeamInput, klass: string): string {
   const grad = `linear-gradient(160deg, ${team.color} 0%, color-mix(in oklch, ${team.color} 65%, black) 100%)`;
   const initial = team.shortName[0] ?? '?';
-  return `<div class="${klass}" style="background:${grad};border:1px solid color-mix(in oklch,${team.color} 45%,transparent)"><span>${initial}</span></div>`;
+  const glow = `box-shadow: 0 0 18px color-mix(in oklch, ${team.color} 40%, transparent), inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 20px rgba(0,0,0,0.5);`;
+  return `<div class="${klass}" style="background:${grad};border:1px solid color-mix(in oklch,${team.color} 45%,transparent);${glow}"><span>${initial}</span></div>`;
 }
 
 // Heroicons outline 28×28, stroke-width 1.5. Path strings are
@@ -217,7 +218,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
       return `<p id="hub-season-done">Season complete</p>`;
     }
     return `
-      <button id="hub-play-next" aria-label="Go to next match">
+      <button id="hub-play-next" class="cta-pulse" aria-label="Go to next match">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>
         <span>Go to next match</span>
       </button>

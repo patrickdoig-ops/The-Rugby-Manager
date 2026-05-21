@@ -55,6 +55,7 @@
   background: var(--rm-surface);
   border: 1px solid var(--rm-border-soft);
   border-radius: 12px;
+  box-shadow: var(--rm-card-shadow);
 }
 
 .rr-fixture-line {

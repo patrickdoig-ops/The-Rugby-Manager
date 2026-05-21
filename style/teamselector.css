@@ -88,6 +88,7 @@
   border-radius: 14px;
   transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
   -webkit-tap-highlight-color: transparent;
+  box-shadow: var(--rm-card-shadow);
 }
 
 .ts-card-select {

@@ -145,6 +145,7 @@
   border-radius: 14px;
   padding: 16px;
   margin-bottom: 16px;
+  box-shadow: var(--rm-card-shadow);
 }
 
 .mr-card-title {

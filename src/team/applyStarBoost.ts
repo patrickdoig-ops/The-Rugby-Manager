@@ -1,13 +1,20 @@
-// Spawn-time lift of authored team JSONs. Two passes per team:
-//   1. League-wide floor — every player on the matchday roster (players + bench)
-//      gets each baseStat raised to `STAR_BOOST.leagueMin`. Stats already above
-//      the floor are untouched. The data-only `squad[]` is left alone.
+// Spawn-time lift of authored team JSONs. Three passes per team:
+//   1. Tier calibration — additive shift on every non-star, non-irrelevant
+//      baseStat. Magnitude depends on the roster slot the player sits in
+//      (`TIER_CALIBRATION` in src/engine/balance/rating.ts). Starter
+//      non-stars are lifted; bench less so; squad pushed down. Irrelevant
+//      stats are clamped to `STAR_BOOST.irrelevantStatMax`. Stars get
+//      `shift = 0` here — the next pass owns their numbers.
 //   2. Per-star boost — for each entry in `team.stars[]`, find the matching
-//      roster player by full name and lift their indexHigh stats to an elite
-//      floor + non-indexHigh stats to a competitive floor, then iteratively
-//      bump the highest-position-weighted non-capped stat by +1 until the
-//      computed OVR meets `suggestedRating + targetOffset` (or every stat
-//      caps at 99).
+//      roster player by full name and lift their indexHigh stats to an
+//      elite floor + non-indexHigh stats to a competitive floor, then
+//      iteratively bump the highest-position-weighted non-capped stat by
+//      +1 until the computed OVR meets `suggestedRating + targetOffset`
+//      (or every stat caps at 99 / the per-stat ceiling).
+//   3. Per-player overrides — `PLAYER_STAT_OVERRIDES` applied verbatim
+//      across players + bench + squad. Can exceed the league ceiling
+//      (e.g. Arundell pace 99) and acts as a per-player cap during the
+//      boost iteration too.
 //
 // Deterministic and pure — no RNG, no side effects, returns a new TeamJson.
 // Called once at app start from `main.ts` before `teamProfile.init` and
@@ -19,6 +26,7 @@ import { playerOverall } from '../engine/RatingEngine';
 import {
   PLAYER_OVERALL_WEIGHTS,
   STAR_BOOST,
+  TIER_CALIBRATION,
   IRRELEVANT_STATS,
   LEAGUE_STAT_CEILINGS,
   PLAYER_STAT_OVERRIDES,
@@ -29,23 +37,26 @@ type RosterEntry = TeamJson['players'][number] & {
   lastName: string;
 };
 
+type Tier = keyof typeof TIER_CALIBRATION;
+
 export function applyStarBoost(team: TeamJson): TeamJson {
-  let players = (team.players as RosterEntry[]).map(applyLeagueFloor);
-  let bench = ((team.bench ?? []) as RosterEntry[]).map(applyLeagueFloor);
+  const isStar = (p: RosterEntry): boolean =>
+    team.stars.some(s => s.name.trim().toLowerCase() === `${p.firstName} ${p.lastName}`.trim().toLowerCase());
+
+  let players = (team.players as RosterEntry[]).map(p => applyTierCalibration(p, 'starter', isStar(p)));
+  let bench   = ((team.bench  ?? []) as RosterEntry[]).map(p => applyTierCalibration(p, 'bench',   isStar(p)));
+  // Squad players are never marked as stars; always shifted down a tier.
+  let squad   = team.squad
+    ? (team.squad as RosterEntry[]).map(p => applyTierCalibration(p, 'squad', false))
+    : undefined;
 
   for (const star of team.stars) {
     if (!boostByName(players, star)) boostByName(bench, star);
   }
 
-  // Per-player overrides apply across the whole roster — matchday + wider
-  // squad — so a named exception (e.g. "fastest wing in the league") shows
-  // correctly even when the player isn't in this round's 23. The league
-  // floor / star boost still leave `squad[]` untouched per data-only intent.
   players = players.map(applyPlayerOverrides);
-  bench = bench.map(applyPlayerOverrides);
-  const squad = team.squad
-    ? (team.squad as RosterEntry[]).map(applyPlayerOverrides)
-    : undefined;
+  bench   = bench.map(applyPlayerOverrides);
+  squad   = squad?.map(applyPlayerOverrides);
 
   return { ...team, players, bench, ...(squad ? { squad } : {}) };
 }
@@ -56,16 +67,16 @@ function statCap(p: RosterEntry, k: keyof PlayerStats): number {
   return Math.min(STAR_BOOST.capPerStat, LEAGUE_STAT_CEILINGS[k] ?? STAR_BOOST.capPerStat);
 }
 
-function applyLeagueFloor(p: RosterEntry): RosterEntry {
+function applyTierCalibration(p: RosterEntry, tier: Tier, isStar: boolean): RosterEntry {
   const irrelevant = new Set(IRRELEVANT_STATS[p.position] ?? []);
+  const shift = isStar ? 0 : TIER_CALIBRATION[tier];
   const stats = { ...p.baseStats };
   for (const k of Object.keys(stats) as (keyof PlayerStats)[]) {
     if (irrelevant.has(k)) {
       if (stats[k] > STAR_BOOST.irrelevantStatMax) stats[k] = STAR_BOOST.irrelevantStatMax;
     } else {
-      if (stats[k] < STAR_BOOST.leagueMin) stats[k] = STAR_BOOST.leagueMin;
       const cap = statCap(p, k);
-      if (stats[k] > cap) stats[k] = cap;
+      stats[k] = Math.max(STAR_BOOST.statHardFloor, Math.min(cap, stats[k] + shift));
     }
   }
   return { ...p, baseStats: stats };

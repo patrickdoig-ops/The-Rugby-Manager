@@ -101,7 +101,6 @@ const UTILITY_WEIGHTS: StatWeights = {};
 // player a couple of points; per-star floors + iterative top-up land each
 // named star within ~1 of (suggestedRating + targetOffset).
 export const STAR_BOOST = {
-  leagueMin:         60,   // every baseStat floor for players + bench
   targetOffset:      3,    // target OVR = star.suggestedRating + offset
   indexHighMin:      95,   // floor for star's indexHigh stats (regular stars)
   topIndexHighMin:   97,   // floor for star's indexHigh stats (suggestedRating ≥ topThreshold)
@@ -110,6 +109,18 @@ export const STAR_BOOST = {
   capPerStat:        99,
   maxIterations:     120,
   irrelevantStatMax: 15,   // cap for stats listed in IRRELEVANT_STATS (forwards' kicking, backs' setPiece)
+  statHardFloor:     35,   // never let any non-irrelevant stat drop below this (matches the generator's lower clamp)
+} as const;
+
+// Per-tier additive shift applied at spawn to every non-star, non-irrelevant
+// baseStat — keeps within-player stat shape intact (additive, not scaling)
+// while creating a clear OVR step between starting XV non-stars, the
+// matchday bench, and the wider squad. Stars skip the shift entirely
+// (boostStar drives them to their own targets).
+export const TIER_CALIBRATION = {
+  starter: +10,   // starting 15 non-stars
+  bench:   +3,
+  squad:   -5,
 } as const;
 
 // Stats that don't belong to a position's skillset at all — value clamped to

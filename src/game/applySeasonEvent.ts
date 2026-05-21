@@ -83,6 +83,16 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
       if (club) club.squad = club.squad.filter(id => id !== event.rosterId);
       return;
     }
+    case 'CAREER_ARCHIVE_RESTORED': {
+      state.career.seasonsCompleted = event.seasonsCompleted;
+      state.career.archive = event.archive.map(a => ({
+        seasonLabel: a.seasonLabel,
+        standings: a.standings.map(s => ({ ...s })),
+        topScorerRosterId: a.topScorerRosterId,
+        mvpRosterId: a.mvpRosterId,
+      }));
+      return;
+    }
     case 'SEASON_ROLLED_OVER': {
       state.career.archive.push({
         seasonLabel: state.calendar.seasonLabel,

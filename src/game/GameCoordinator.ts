@@ -186,18 +186,15 @@ export class GameCoordinator {
         clubs: save.career.clubs.map(c => ({ id: c.id, squad: [...c.squad] })),
         nextRosterId: save.career.nextRosterId,
       });
-      // ROSTER_SEEDED only repopulates the roster + clubs. seasonsCompleted
-      // and archive need a separate restore — no dedicated SeasonEvent
-      // since they only mutate inside SEASON_ROLLED_OVER. Direct splice
-      // is acceptable here because fromSave is the construction path,
-      // pre-emit, with no other mutations in flight.
-      coord.state.career.seasonsCompleted = save.career.seasonsCompleted;
-      coord.state.career.archive = save.career.archive.map(a => ({
-        seasonLabel: a.seasonLabel,
-        standings: a.standings.map(s => ({ ...s })),
-        topScorerRosterId: a.topScorerRosterId,
-        mvpRosterId: a.mvpRosterId,
-      }));
+      // ROSTER_SEEDED only repopulates the roster + clubs. Cumulative
+      // career counters (seasonsCompleted, archive) are restored through
+      // their own SeasonEvent so every state.career.* write stays inside
+      // applySeasonEvent — no mutation-boundary carveout.
+      applySeasonEvent(coord.state, {
+        type: 'CAREER_ARCHIVE_RESTORED',
+        seasonsCompleted: save.career.seasonsCompleted,
+        archive: save.career.archive,
+      });
     } else {
       const seeded = seedRoster(allTeams, parseSeasonStartYear(coord.state.calendar.seasonLabel));
       applySeasonEvent(coord.state, {

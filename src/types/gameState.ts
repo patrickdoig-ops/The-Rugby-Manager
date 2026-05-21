@@ -190,6 +190,15 @@ export type SeasonEvent =
       clubId: string;             // for archive context; player stays in roster
     }
   | {
+      // fromSave-only: restores the cumulative career counters that
+      // SEASON_ROLLED_OVER would otherwise build incrementally. Keeps
+      // every state.career.* write inside applySeasonEvent so the
+      // mutation boundary stays clean (CLAUDE.md §5).
+      type: 'CAREER_ARCHIVE_RESTORED';
+      seasonsCompleted: number;
+      archive: ArchivedSeason[];
+    }
+  | {
       type: 'SEASON_ROLLED_OVER';
       newSeasonLabel: string;
       newFixtures: Fixture[];

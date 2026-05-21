@@ -906,6 +906,7 @@ html, body {
 }
 
 .cta-pulse { animation: ctaPulse 2.4s ease-in-out infinite; }
+.cta-pulse:disabled { animation: none; }
 
 /* ════════════════════════════════════════
    DESKTOP (≥ 700px)

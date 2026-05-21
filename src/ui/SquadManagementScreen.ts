@@ -78,10 +78,11 @@ const POSITION_GROUPS: Record<Position, GroupId> = {
 };
 
 function ovrClass(ovr: number): string {
-  if (ovr >= 88) return 'ovr-elite';
+  if (ovr >= 85) return 'ovr-elite';
   if (ovr >= 78) return 'ovr-good';
-  if (ovr >= 65) return 'ovr-avg';
-  return 'ovr-poor';
+  if (ovr >= 70) return 'ovr-avg';
+  if (ovr >= 62) return 'ovr-poor';
+  return 'ovr-veryPoor';
 }
 
 let renderImpl: (() => void) | null = null;
@@ -200,9 +201,9 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     el.innerHTML = `
       <div id="sq-header">
         <div id="sq-topbar">
-          <button id="sq-back">
+          <button id="sq-back" aria-label="Back to hub">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-            Hub
+            <span>Hub</span>
           </button>
           <span id="sq-title">Squad</span>
           <div style="width:30px"></div>
@@ -214,7 +215,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       <div id="sq-list">${listHtml}</div>
 
       <div id="sq-footer">
-        <button id="sq-save"${saveDisabled}>
+        <button id="sq-save" class="cta-pulse"${saveDisabled}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none" aria-hidden="true"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Save Squad
         </button>

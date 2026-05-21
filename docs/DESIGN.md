@@ -15,19 +15,50 @@ For engine behaviour, formulas, and phase rules, use `docs/match-engine.md`. For
 
 ## Architecture Implications
 
-The UI is split into small modules under `src/ui/`. Each module owns one surface and updates in response to `eventBus` events.
+The UI is split into small modules under `src/ui/`. Each module owns one surface and updates in response to `eventBus` events. Pre-match / match-day modules (top section) drive a single match; in-season modules (middle) survive across matches and re-render on `game:*` events; supporting infrastructure (bottom) is non-rendering.
+
+**Match-day modules (one match at a time):**
 
 | Module | UI responsibility |
 |---|---|
-| `AppShell.ts` | Static match shell injected into `#app` |
-| `HomeScreen.ts` | Home overlay, version display, theme toggle, start button |
-| `PreMatchScreen.ts` | Match preview, team tabs, player attribute rows |
+| `AppShell.ts` | Static match shell injected into `#app` (scoreboard, pitch, panels, controls) |
 | `Scoreboard.ts` | Team crests, codes, scores, clock, phase badge |
 | `PitchStrip.ts` | Pitch zones, ball marker, end labels, attack direction |
 | `CommentaryFeed.ts` | Live commentary entries, event tags, possession tint |
 | `StatsPanel.ts` | Dual-bar match stats and player fatigue/rating rows |
-| `SimController.ts` | Play, Pause, and speed controls |
-| `ModalManager.ts` | Penalty choice modal |
+| `SimController.ts` | Play, Pause, speed presets, view toggle, subs/tactics buttons |
+| `ModalManager.ts` | Penalty choice, kickoff strategy, forced substitution, tactics, and subs modals |
+| `TacticsMenu.ts` | Five-dimension tactics picker rendered inside the modal |
+| `SubstitutionModal.ts` | Sub picker and forced-sub picker rendered inside the modal |
+| `MatchResultScreen.ts` | Full-time score, verdict, scorers, key stats, player ratings |
+| `PreMatchScreen.ts` | Match preview, team tabs, lineup grid, tactics, kick-off CTA |
+
+**In-season modules (career-scope, reactive to `game:*` events):**
+
+| Module | UI responsibility |
+|---|---|
+| `HubScreen.ts` | In-season control centre — standing widget, next-match card, six tiles, play-next CTA |
+| `FixtureListScreen.ts` | Full season schedule with played / pending status |
+| `LeagueTableScreen.ts` | Standings table (P/W/D/L/PD/Pts/Form), zone separator |
+| `RoundResultsScreen.ts` | Per-round fixture list with venue pill + score-magnitude bar |
+| `EndOfSeasonScreen.ts` | Final standings + top scorer / MVP awards |
+| `RenewalsScreen.ts` | Per-row Renew/Release toggle on the player's expiring contracts |
+| `TransferMarketScreen.ts` | Free-agent + Reg-7 poach offer lists |
+| `RolloverScreen.ts` | Off-season diff — retirements + per-player aging deltas |
+| `ContractsScreen.ts` | Sortable squad list with wage / expiry / marquee / cap pill |
+| `SquadManagementScreen.ts` | Position-filtered matchday curation (Starting XV / Bench / Wider Squad) |
+| `TeamSelectorScreen.ts` | Team-pick grid with OVR colour heatmap |
+| `TeamInfoScreen.ts` | Per-team profile — overall, form, stadium, coach, style, stars, honours, squad |
+| `HomeScreen.ts` | Home overlay, version display, theme toggle, start + continue CTAs, overwrite confirm |
+| `SettingsScreen.ts` | Sound, theme, and reset controls; back routes to Home or Hub depending on entry |
+
+**Supporting modules (non-rendering):**
+
+| Module | Responsibility |
+|---|---|
+| `ScreenRouter.ts` | Single owner of which top-level screen is visible; flat `screenRouter.show(id)` API |
+| `SaveManager.ts` | localStorage load / save / clear with schema version migration |
+| `uiPrefs.ts` | Persistent UI preferences (e.g. tick delay) outside the save schema |
 
 Keep DOM ids and class names stable unless the owning module and CSS are updated together.
 
@@ -334,12 +365,19 @@ Reference implementations: `#fl-back` (FixtureListScreen), `#pm-back` (PreMatchS
 
 The app is a full-viewport single-page experience. `html`, `body`, and `#app` are locked to the viewport and hide browser scrollbars. Internal panels scroll where needed.
 
-Primary overlay stack (z-index order):
+Primary overlay stack (z-index, top → bottom). Each screen is `position: fixed; inset: 0;` and is shown / hidden by `screenRouter.show(id)` (`src/ui/ScreenRouter.ts`):
 
-1. `#home-screen` — fixed overlay, z-index 300
-2. `#pre-match` — fixed overlay, z-index 200
-3. `#modal-overlay` — fixed overlay, z-index 100
-4. `#app` — match shell underneath
+| z-index | Screens | Notes |
+|---|---|---|
+| 350 | `.home-confirm-backdrop`, `.sq-discard-backdrop` | Bottom-sheet confirms (overwrite save, discard squad changes) — sit over their owning screens |
+| 300 | `#home-screen` | Home overlay |
+| 280 | `#settings` | Settings — reachable from Home (back → Home) or Hub (back → Hub) |
+| 250 | `#team-selector`, `#team-info` | Pre-game team browsing |
+| 225 | `#hub`, `#fixture-list`, `#league-table`, `#round-results`, `#end-of-season`, `#renewals`, `#transfer-market`, `#rollover`, `#contracts`, `#squad-management` | All in-season screens share this tier — only one is visible at a time |
+| 200 | `#pre-match` | Match preview |
+| 150 | `#match-result` | Full-time overlay; sits above `#app` so the result reads on top of the dimmed match shell |
+| 100 | `#modal-overlay` | In-match modal (penalty / kickoff / tactics / subs / forced sub) |
+| 0   | `#app` | Live match shell underneath |
 
 Match shell order (mobile: flex column; desktop: CSS grid with named areas):
 
@@ -412,13 +450,13 @@ Attribute cell tier colours use the stat heatmap tokens:
 
 | Class | Token | Range |
 |---|---|---|
-| `.tier-elite` | `--rm-stat-3` (gold) | 88+ |
-| `.tier-great` | `--rm-stat-4` (green) | 78–87 |
-| `.tier-good` | `--rm-stat-5` (cyan) | 65–77 |
-| `.tier-avg` | `--rm-stat-2` (amber) | 50–64 |
-| `.tier-poor` | `--rm-stat-1` (red) | <50 |
+| `.tier-elite` | `--rm-stat-3` (gold) | 85+ |
+| `.tier-great` | `--rm-stat-4` (green) | 78–84 |
+| `.tier-good` | `--rm-stat-5` (cyan) | 70–77 |
+| `.tier-avg` | `--rm-stat-2` (amber) | 62–69 |
+| `.tier-poor` | `--rm-stat-1` (red) | <62 |
 
-These thresholds match `statColor()` in `src/ui/PreMatchScreen.ts`, which is the source of truth for per-stat colouring on the pre-match grid.
+These thresholds match `statColor()` in `src/ui/PreMatchScreen.ts`, which is the source of truth for the 0–99 scale used by per-stat cells (pace, strength, etc.), per-player OVR (Squad Management's `ovrClass`), and team-average OVR (Team Selector's `ovrColor`). All three share the same thresholds so the same value paints the same colour wherever it shows up. Note: per-match player ratings (0–10 scale, used in StatsPanel / MatchResult / SubstitutionModal via `ratingClass`) use a separate threshold table — see "Player Stats".
 
 ### Scoreboard
 
@@ -594,6 +632,83 @@ No back navigation on either screen — they sit on a forward-only spine that la
 Expiry chips: `ct-expiring` flag (rendered next to the date) when expiry is within ten months of the current calendar date. Marquee row gets a subtle `--marquee` tint (slight gold wash on the row, gold star icon in the flag column).
 
 Hub-stack screen: back arrow returns to Hub. Reached via the Hub's Contracts tile.
+
+### Team Selector
+
+`style/teamselector.css`, `#team-selector`. Pre-game team picker (Home → Team Selector → Hub). Grid of 10 club cards. Each card is a `<div>` containing a nested `.ts-card-select` button (covers the crest, name, OVR) and an absolutely-positioned `.ts-card-info` button (44×44 tap target, top-right, transparent background) that pushes through to Team Info.
+
+The OVR badge uses the standard 85/78/70/62 tier scale (gold / green / cyan / amber / red) via `ovrColor()` — same thresholds as `statColor` in PreMatchScreen so a team's overall number paints the same colour wherever it shows up. Elite OVRs (≥85) get a gold text-shadow glow.
+
+Cards take `--rm-card-shadow`. Crest tiles take the team-colour glow pattern from § "Crest glow".
+
+### Hub
+
+`style/hub.css`, `#hub`. The in-season control centre — Hub is the top of the in-season stack (no back arrow; Settings cog exits to Home). Layout (top → bottom):
+
+- **Topbar** — Settings cog only.
+- **Hero** — team-colour radial wash background (`--team-color` injected inline); 58×58 monogram crest with team-colour outer glow; Anton team name 22px; three-stat standing widget (Position / Points / W–L record) split by hairline rules; mono eyebrow `{season} · WK {n} / {total}`; thin gradient progress bar reflecting season completion.
+- **Next match card** — `#hub-next-match` taking `--rm-card-shadow`; mono `NEXT MATCH · ROUND {n} · {date}` label; player and opponent crests at 34×34 with Instrument Serif italic "vs"; venue label + stadium name; spread line `{favourite} favoured · {pts} pts` using the same `matchSpread` helper as PreMatch's odds tile.
+- **Tile grid** — 2 × 3 grid of `.hub-tile`s (Squad, Fixtures, League, Training, Contracts, Transfers). Each tile takes `--rm-card-shadow` and shows a Heroicons outline icon (22×22, pitch green) above an uppercase Geist label. Unimplemented tiles get class `.hub-tile--stub` (32% opacity, no pointer events) plus a `.hub-tile-soon` "Soon" badge in the top-right corner.
+- **Footer CTA** — `#hub-play-next` with `.cta-pulse`. Anton 20px label "Go to Next Match"; disabled when the season is complete (replaced with a "Season complete" message).
+
+### Fixture List
+
+`style/fixturelist.css`, `#fixture-list`. The full season schedule grouped by round. Each fixture row shows home crest + shortname, score-or-`vs`, away crest. Player's fixtures get a `.fl-row--me` highlight (pitch tint border + chalk text). Round headers are sticky. Pending (unplayed) fixtures show the kick-off date in place of the score.
+
+Back arrow returns to Hub.
+
+### League Table
+
+`style/leaguetable.css`, `#league-table`. Standings table with columns: rank, crest, name, P / W / D / L / PD / Pts / Form. Each row takes `--rm-card-shadow`. The player's row gets `.lt-row--me` (pitch tint background, chalk text). A red-tinted top border on the 5th-place row marks the playoff zone separator (`.lt-row--zone-break`). Form column shows the last five results as pill chips (`.lt-fp--w` / `.lt-fp--l` / `.lt-fp--d`). Column headers carry `title` tooltips for the abbreviations.
+
+Dual-mode screen: hub-entry path renders a "Hub" back arrow; the post-match Continue chain calls `showLeagueTablePostMatch(onContinue)` to render a forward "Continue" CTA in place of the back arrow.
+
+### Round Results
+
+`style/roundresults.css`, `#round-results`. Post-match summary of every fixture in the just-completed round. Each fixture row (taking `--rm-card-shadow`) has a fixture line (crest · shortname · "H" venue pill · score · shortname · crest) and a score-magnitude bar underneath (home-side width = home's share of total points; loser side at 0.45 opacity). Pending fixtures animate dots while the headless AI sim resolves.
+
+The player's match gets a `.rr-row--me` ring highlight. Forward CTA "League Table" carries `.cta-pulse`.
+
+### Match Result
+
+`style/matchresult.css`, `#match-result`. Post-match score and stats. Layout:
+
+- **Header** — eyebrow `Full Time · Round {n}`; italic verdict ("Convincing victory — 18 points to the good.") via `matchVerdict()`.
+- **Score line** — winner score 68px chalk with team-colour text-shadow; loser 44px muted. Crests on either side use the team-colour glow pattern.
+- **Cards** (each `.mr-card` with `--rm-card-shadow`): Try Scorers (per-team list of "T", "n×T", "nC"); Key Stats (dual-bar comparative rows); Player Ratings (one card per team, sorted by rating, with MOTM marked by a Heroicons star in `--rm-amber`).
+- **Footer CTA** — `#mr-continue` with `.cta-pulse`. Continue routes through Round Results → League Table → Hub.
+
+### Renewals
+
+`style/renewals.css`, `#renewals`. Per-row Renew/Release toggle on the player's expiring contracts. Each row shows name, position, age, current OVR, demanded wage, projected new expiry, and a two-state toggle. Live projected-cap pill at the top mirrors `ContractsScreen`'s 3-state (ok / tight / over).
+
+One-shot screen reached only via `showRenewals(onContinue)` from the post-match Continue chain (end-of-season → renewals → transfer market → rollover → hub). Forward CTA `#rn-continue` with `.cta-pulse`.
+
+### Transfer Market
+
+`style/transfermarket.css`, `#transfer-market`. Two-section signing window: free agents (with Sign buttons) and final-12-month contracted players from other clubs (with Pre-Agree buttons under Reg 7). Sortable by name / position / age / OVR / wage. Live projected-cap pill mirrors `ContractsScreen`. Pre-agreed rows show a disabled "Pre-Agreed ✓" so the user can see commitments.
+
+One-shot screen, post-match Continue chain only. Forward CTA `#tm-continue` with `.cta-pulse`.
+
+### Squad Management
+
+`style/squad.css`, `#squad-management`. Position-filtered matchday curation reached from the Hub's Squad tile. Layout:
+
+- **Header** — mono "Squad" title; back arrow (canonical pattern) returns to Hub; team-colour eyebrow `{team} · {season} · Round {n}`.
+- **Position filter chips** — scrollable horizontal strip: All / Props / Hooker / Locks / Loose Forwards / Scrum Halves / Fly Halves / Centres / Wings / Full Backs. Active chip uses team-colour tint (`color-mix(in oklch, var(--team-color) 22%, ...)`).
+- **Player list** — three sticky-headed sections (Starting XV / Bench / Wider Squad). Each row: jersey badge (team-colour gradient for starters; surface-2 for bench; dashed outline + em-dash for wider squad) + name + position + OVR badge using the standard 85/78/70/62 scale.
+- **Edit mechanic** — two-tap swap, identical to PreMatch: tap a non-starter row to select; tap any other row in the current filter view to swap. Slots 1-15 / 16-23 / 24+ re-assigned in place. Local-edit mode until "Save Squad"; back arrow on a dirty draft opens a discard-confirmation bottom sheet.
+- **Footer CTA** — `#sq-save` with `.cta-pulse`. Disabled until the draft is dirty.
+
+Round-trips with PreMatchScreen verbatim — both screens read from and write to `state.player.matchdaySquad` through the same `PLAYER_MATCHDAY_SQUAD_SET` event.
+
+### Settings
+
+`style/settings.css`, `#settings`. Sound, theme, and reset controls. Reachable from two paths:
+- Home → Settings (back routes to Home)
+- Hub → Settings cog (back routes to Hub)
+
+Same DOM tree, different `onBack` closure threaded through by `main.ts` (`goSettingsFromHome` vs `goSettingsFromHub`).
 
 ## Motion
 

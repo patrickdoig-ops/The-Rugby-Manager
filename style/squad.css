@@ -294,6 +294,11 @@
   background: color-mix(in oklch, var(--rm-stat-2) 10%, var(--rm-surface-2));
   border-color: color-mix(in oklch, var(--rm-stat-2) 25%, transparent);
 }
+.sq-ovr.ovr-veryPoor {
+  color: var(--rm-stat-1);
+  background: color-mix(in oklch, var(--rm-stat-1) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-1) 25%, transparent);
+}
 
 /* Empty state */
 .sq-empty {
@@ -340,7 +345,6 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.25),
     0 4px 20px color-mix(in oklch, var(--rm-pitch) 28%, transparent),
     0 4px 12px rgba(0, 0, 0, 0.45);
-  animation: ctaPulse 2.4s ease-in-out infinite;
 }
 
 #sq-save:active:not(:disabled) { background: #006622; }
@@ -349,7 +353,6 @@
   opacity: 0.4;
   cursor: not-allowed;
   box-shadow: none;
-  animation: none;
 }
 
 /* ─── Discard confirm sheet ─── */

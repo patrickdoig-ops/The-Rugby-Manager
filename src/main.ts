@@ -10,6 +10,7 @@ import '../style/matchresult.css';
 import '../style/roundresults.css';
 import '../style/seasonrollover.css';
 import '../style/contracts.css';
+import '../style/renewals.css';
 import '../style/commentary.css';
 import '../style/stats.css';
 import '../style/prematch.css';

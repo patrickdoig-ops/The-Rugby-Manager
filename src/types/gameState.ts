@@ -85,6 +85,32 @@ export interface ArchivedSeason {
   mvpRosterId: number | null;
 }
 
+// A renewal / signing offer surfaced during the end-of-season market
+// window. `fromClubId` === `rosterId`'s current club on a renewal offer;
+// cross-club poaching (Reg 7) lands in Phase 6 with the same shape.
+// `id` is deterministic from (seasonsCompleted, fromClubId, rosterId)
+// so save/restore round-trips identically.
+export interface TransferOffer {
+  id: string;
+  fromClubId: string;
+  rosterId: number;
+  annualWage: number;
+  lengthYears: number;        // 1-3
+  isMarquee: boolean;
+  status: 'pending' | 'accepted' | 'rejected' | 'withdrawn';
+  rejectionReason?: 'wage' | 'ambition' | 'cap_overcommit';
+}
+
+// Transient state during the end-of-season market window. Populated by
+// MARKET_OPENED, mutated by OFFER_SENT / OFFER_RESPONDED, cleared by
+// MARKET_CLOSED. Persisted in v7+ saves so closing the tab mid-window
+// resumes at the same state.
+export interface MarketState {
+  openedAfterSeason: string;  // seasonLabel of the just-completed season
+  expiringRosterIds: number[];
+  offers: TransferOffer[];
+}
+
 // Multi-season career state — the persistent roster of every senior player
 // across every club, plus per-club squad pointers and historical archive.
 // Seeded once at first-ever new-game start (ROSTER_SEEDED); mutates only
@@ -95,6 +121,11 @@ export interface CareerState {
   clubs: ClubState[];
   roster: Record<number, Player>; // key: rosterId
   nextRosterId: number;
+  // Unsigned players whose contracts have expired without renewal.
+  // Phase 4 populates the pool; Phase 5 adds the sign-from-pool flow.
+  freeAgents: number[];
+  // Live during the end-of-season renewal window only; null otherwise.
+  market: MarketState | null;
 }
 
 export interface GameState {
@@ -120,6 +151,8 @@ export function emptyCareerState(): CareerState {
     clubs: [],
     roster: {},
     nextRosterId: 1,
+    freeAgents: [],
+    market: null,
   };
 }
 
@@ -197,6 +230,56 @@ export type SeasonEvent =
       type: 'MARQUEE_DESIGNATED';
       clubId: string;
       rosterId: number | null;
+    }
+  | {
+      // Opens the end-of-season renewal window. Seeds state.career.market
+      // with the list of players whose contracts expire this rollover
+      // plus the proposed renewal terms (one TransferOffer per expiring
+      // player, status 'pending'). Fired by GameCoordinator.openRenewalWindow.
+      type: 'MARKET_OPENED';
+      expiringRosterIds: number[];
+      offers: TransferOffer[];
+    }
+  | {
+      // Closes the renewal window. Clears state.career.market.
+      // Contract decisions (accepts / rejections) fire as separate
+      // OFFER_RESPONDED + CONTRACT_EXTENDED / CONTRACT_TERMINATED
+      // events before this one.
+      type: 'MARKET_CLOSED';
+    }
+  | {
+      // New offer entry added to state.career.market.offers. Phase 4 only
+      // ever fires this for renewals; Phases 5-6 reuse the same variant
+      // for free-agent signings + cross-club poaching.
+      type: 'OFFER_SENT';
+      offer: TransferOffer;
+    }
+  | {
+      // Marks an existing offer accepted or rejected. Does not by itself
+      // mutate the player's contract — that flows through
+      // CONTRACT_EXTENDED (renewals) or CONTRACT_SIGNED (signings, Phase 5+).
+      type: 'OFFER_RESPONDED';
+      offerId: string;
+      accept: boolean;
+      reason?: 'wage' | 'ambition' | 'cap_overcommit';
+    }
+  | {
+      // Renewal landed — updates the player's contract terms in place.
+      // ClubId is unchanged (same club extending an existing player).
+      type: 'CONTRACT_EXTENDED';
+      rosterId: number;
+      newExpiresOn: string;
+      newAnnualWage: number;
+    }
+  | {
+      // Removes a player from their current club's squad and adds them
+      // to state.career.freeAgents. Used by Phase 4 for unrenewed
+      // expiring contracts ('expired') and Phase 5+ for proactive
+      // releases ('released'). 'retired' would be conceptually valid
+      // but is currently handled separately via PLAYER_RETIRED.
+      type: 'CONTRACT_TERMINATED';
+      rosterId: number;
+      reason: 'released' | 'expired' | 'retired';
     }
   | {
       // fromSave-only: restores the cumulative career counters that

@@ -101,6 +101,63 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
       }
       return;
     }
+    case 'MARKET_OPENED': {
+      state.career.market = {
+        openedAfterSeason: state.calendar.seasonLabel,
+        expiringRosterIds: [...event.expiringRosterIds],
+        offers: event.offers.map(o => ({ ...o })),
+      };
+      return;
+    }
+    case 'MARKET_CLOSED': {
+      state.career.market = null;
+      return;
+    }
+    case 'OFFER_SENT': {
+      if (!state.career.market) return;
+      // Defensive: ignore duplicate IDs so OFFER_SENT is idempotent.
+      const existing = state.career.market.offers.find(o => o.id === event.offer.id);
+      if (existing) return;
+      state.career.market.offers.push({ ...event.offer });
+      return;
+    }
+    case 'OFFER_RESPONDED': {
+      if (!state.career.market) return;
+      const o = state.career.market.offers.find(x => x.id === event.offerId);
+      if (!o) return;
+      o.status = event.accept ? 'accepted' : 'rejected';
+      if (!event.accept && event.reason) o.rejectionReason = event.reason;
+      return;
+    }
+    case 'CONTRACT_EXTENDED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.contract = {
+        ...p.contract,
+        expiresOn: event.newExpiresOn,
+        annualWage: event.newAnnualWage,
+      };
+      return;
+    }
+    case 'CONTRACT_TERMINATED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      const club = state.career.clubs.find(c => c.id === p.contract.clubId);
+      if (club) club.squad = club.squad.filter(id => id !== event.rosterId);
+      // Marquees clear their flag on departure — slot is now free for
+      // the club to re-designate.
+      if (p.contract.isMarquee) p.contract.isMarquee = false;
+      if (event.reason !== 'retired') {
+        if (!state.career.freeAgents.includes(event.rosterId)) {
+          state.career.freeAgents.push(event.rosterId);
+        }
+      }
+      // Player's club affiliation is cleared on the contract so
+      // downstream lookups don't show them attached to their former
+      // squad. They'll be re-bound on CONTRACT_SIGNED (Phase 5).
+      p.contract = { ...p.contract, clubId: '' };
+      return;
+    }
     case 'CAREER_ARCHIVE_RESTORED': {
       state.career.seasonsCompleted = event.seasonsCompleted;
       state.career.archive = event.archive.map(a => ({

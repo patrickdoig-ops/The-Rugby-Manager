@@ -753,34 +753,36 @@ None. `ballX` does not change during a breakdown.
 ### Player selection
 
 ```typescript
-attackForwards  = attackTeam.players.filter(p => p.id <= 8)   // props, hooker, locks, flankers, no. 8
-defendForwards  = defendTeam.players.filter(p => p.id <= 8)
-attackFrontRow  = attackTeam.players.filter(p => p.id <= 3)   // loosehead, hooker, tighthead
-defendFrontRow  = defendTeam.players.filter(p => p.id <= 3)
-attackHooker    = attackTeam.players.find(p => p.id === 2)     // commentary only
-defendHooker    = defendTeam.players.find(p => p.id === 2)     // commentary only
+attackForwards  = onFieldPlayers(attackTeam, state, attackSide).filter(p => p.id <= 8)   // props, hooker, locks, flankers, no. 8
+defendForwards  = onFieldPlayers(defendTeam, state, flipSide).filter(p => p.id <= 8)
+attackFrontRow  = attackForwards.filter(p => p.id <= 3)   // loosehead, hooker, tighthead
+defendFrontRow  = defendForwards.filter(p => p.id <= 3)
+attackHooker    = attackForwards.find(p => p.id === 2) ?? attackForwards[0] ?? attackOnField[0]   // fallback chain
+defendHooker    = defendForwards.find(p => p.id === 2) ?? defendForwards[0] ?? defendOnField[0]
 ```
 
-All eight forwards contribute to the pack score. The hooker is used for commentary only. Rating adjustments apply to the entire front row (ids 1–3) on both sides.
+All eight forwards contribute to the pack score. The front rows (ids 1–3) get the per-player penalty stat credits. When a scrum penalty fires the cited offender is **picked uniformly at random** from the offending side's front row via `pickFrontRowOffender(frontRow, hookerFallback)` — a prop or hooker can be named. The hooker is the fallback when the front row is empty (multiple cards have taken it apart), and it chains further to `forwards[0]` and then any on-field player.
 
 ### Resolution
 
 ```
 packScore      = sum(setPiece×0.6 + strength×0.4) across the on-field forwards
 packDiscipline = avg(discipline) across the on-field forwards
-finalScore     = packScore + (packDiscipline − 50)×1.2 + rng(1,60)
+finalScore     = packScore + (packDiscipline − 50)×1.2 + rng(1,50)
 ```
 
-`packScore` is a **sum**, not an average — so a pack a man down (forward in the sin-bin or sent off) loses ~12% of its score and is materially weaker at the scrum. `onFieldPlayers(team, state, side)` filters out sin-binned / sent-off forwards before the pack is assembled. `packDiscipline` stays as an average (per-player attribute, not a pack aggregate). The `rng(1,60)` per side scales the random variance to match the new sum-based score range so matched packs see a healthy spread of outcomes instead of clustering near zero and grinding into wheel resets.
+`packScore` is a **sum**, not an average — so a pack a man down (forward in the sin-bin or sent off) loses ~12% of its score (~72 from a ~576 base) and is materially weaker at the scrum. `onFieldPlayers(team, state, side)` filters out sin-binned / sent-off forwards before the pack is assembled. `packDiscipline` stays as an average (per-player attribute, not a pack aggregate). `rng(1,50)` per side gives a margin distribution that's triangular on `[-49, +49]` with peak at 0; tuned with the bucket thresholds below to land scrum penalty rates inside the real-Premiership 10-15%-per-scrum band.
 
 The defending pack's final score is subtracted from the attacking pack's final score to determine the margin:
 
-| Margin | Result |
-|---|---|
-| > 40 | `attacking_dominant_penalty` → Penalty (attacking team keeps possession) |
-| > 0 | `stable_win` → FirstPhase |
-| −20 to 0 | `wheel` → Scrum |
-| ≤ −20 | `defending_dominant_penalty` → Penalty (possession flips to defending team) |
+| Margin | Result | Probability (equal packs) |
+|---|---|---:|
+| > +30 | `attacking_dominant_penalty` → Penalty (attacking team keeps possession) | **7.6%** |
+| −15 to +30 | `stable_win` → FirstPhase | **68.6%** |
+| −35 to −16 | `wheel` → Scrum | **19.6%** |
+| ≤ −36 | `defending_dominant_penalty` → Penalty (possession flips to defending team) | **4.2%** |
+
+Attacker:defender penalty ratio ~1.8:1 — reflects the real-rugby put-in advantage. Effective per-scrum-sequence penalty rate (accounting for wheel re-rolls): `0.118 / (1 − 0.196) ≈ 14.7%`. All thresholds in `SCRUM_VALUES` (`balance/scrum.ts`).
 
 ### Ball movement
 
@@ -792,8 +794,12 @@ None.
 |---|---|---|
 | `attacking_dominant_penalty` | attacking front row (ids 1–3), each | `scrumPenaltiesWon++` |
 | `attacking_dominant_penalty` | defending front row (ids 1–3), each | `scrumPenaltiesConceded++` |
+| `attacking_dominant_penalty` | the cited offender (random from defending front row) | `penaltiesConceded++` via the `PENALTY_AWARDED` reducer |
 | `defending_dominant_penalty` | defending front row (ids 1–3), each | `scrumPenaltiesWon++` |
 | `defending_dominant_penalty` | attacking front row (ids 1–3), each | `scrumPenaltiesConceded++` |
+| `defending_dominant_penalty` | the cited offender (random from attacking front row) | `penaltiesConceded++` via the `PENALTY_AWARDED` reducer |
+
+The front-row aggregate stats credit every prop / hooker on the dominated side, so team-level scrum-strength data stays consistent regardless of which front-rower the referee cited. The general `penaltiesConceded` counter only moves for the picked offender.
 
 Team-level scrum count: `stats.scrums[possessionSideAfter]++` for `stable_win`, `attacking_dominant_penalty`, and `defending_dominant_penalty`. `wheel` does not count (the scrum resets, no possession decided).
 

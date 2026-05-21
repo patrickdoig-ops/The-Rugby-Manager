@@ -61,10 +61,15 @@ const PHASE_PLAY: PhaseBank = {
     '{primary} goes to ground after contact. The ball is available.',
   ],
   high_tackle_penalty: [
-    'High! The referee\'s arm is straight up — {primary} caught {secondary} around the neck. Penalty to {defside}.',
-    '{primary} goes in high on {secondary}! The whistle blows immediately — penalty {defside}.',
-    'No arms, high contact from {primary} — referee comes back for the penalty.',
-    '{primary} swings the arm and gets {secondary} around the head. {defside} have the penalty.',
+    // Templates avoid referencing {primary} / {secondary} — both are
+    // already named in the preceding carry-outcome step, and the
+    // CommentaryFeed dedupe pass strips repeated names to "he",
+    // which mangled "goes in high on he" output. The {defside} ref
+    // is kept since the team name only appears here.
+    'That looked high! The whistle blows immediately — penalty {defside}.',
+    'High! The referee\'s arm is straight up — penalty to {defside}.',
+    'No arms, high contact — referee comes back for the penalty. {defside} get it.',
+    'Arm swings high around the head. {defside} have the penalty.',
   ],
 };
 
@@ -122,9 +127,12 @@ const FIRST_PHASE: PhaseBank = {
     '{primary} carries into contact and {secondary} brings him down. Ruck forms.',
   ],
   high_tackle_penalty: [
-    'High tackle from {primary} off the set piece! Straight to the penalty for {defside}.',
-    '{primary} catches {secondary} high on the first-phase tackle — referee blows it up.',
-    'No wrap and high contact from {primary}! {defside} get the penalty from the set-piece play.',
+    // See PHASE_PLAY / high_tackle_penalty comment — names are stripped
+    // mid-clause by the CommentaryFeed dedupe when the preceding carry
+    // step already mentioned both players.
+    'High tackle off the set piece! Straight to the penalty for {defside}.',
+    'Caught high on the first-phase tackle — referee blows it up. {defside} have the penalty.',
+    'No wrap, high contact! {defside} get the penalty from the set-piece play.',
   ],
 };
 
@@ -165,9 +173,11 @@ const KICK_RETURN: PhaseBank = {
     '{secondary} makes the tackle on {primary} — solid return but {side} held up.',
   ],
   high_tackle_penalty: [
-    '{primary} flies in high on the returner! Penalty {defside} — the chaser swung the arm.',
-    'Reckless chase from {primary} — he catches {secondary} around the neck on the return. Penalty {defside}.',
-    'High tackle on the kick return! {primary} hits {secondary} above the line — {defside} get the penalty.',
+    // See PHASE_PLAY / high_tackle_penalty comment — keep these
+    // free of player-name backrefs.
+    'A chaser flies in high on the returner! Penalty {defside} — the arm swung up.',
+    'Reckless chase, contact around the neck on the return. Penalty {defside}.',
+    'High tackle on the kick return! Hit above the line — {defside} get the penalty.',
   ],
 };
 

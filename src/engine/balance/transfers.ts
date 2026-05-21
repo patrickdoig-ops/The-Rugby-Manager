@@ -30,19 +30,20 @@ export const EFFECTIVE_CAP_CREDITS =
 
 // Map an overall rating (0-100) to a base annual wage band before any
 // position-scarcity modifier or noise is applied. Linear interpolation
-// between adjacent anchors. Marquee tier (rating >= 90) sits above
-// the cap-friendly anchors — those signings are designed to be the
-// excluded slot.
+// between adjacent anchors. Marquee-tier wages (£600k+) are only
+// reached via the excluded marquee slot; ordinary stars compress into
+// the £350-550k band so a club can field two or three internationals
+// inside the effective cap.
 export const WAGE_BY_RATING: Array<{ rating: number; wage: number }> = [
   { rating: 60, wage:  30_000 },
   { rating: 70, wage:  60_000 },
   { rating: 75, wage:  90_000 },
-  { rating: 80, wage: 140_000 },
-  { rating: 85, wage: 240_000 },
-  { rating: 88, wage: 360_000 },
-  { rating: 90, wage: 480_000 },
-  { rating: 93, wage: 620_000 },
-  { rating: 96, wage: 780_000 },
+  { rating: 80, wage: 130_000 },
+  { rating: 85, wage: 200_000 },
+  { rating: 88, wage: 280_000 },
+  { rating: 90, wage: 360_000 },
+  { rating: 93, wage: 460_000 },
+  { rating: 96, wage: 560_000 },
 ];
 
 // Position scarcity. Half-backs and tightheads command higher wages

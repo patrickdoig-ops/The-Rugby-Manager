@@ -371,19 +371,34 @@ html, body {
 .view-btn {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 10px 0;
+  gap: 3px;
+  padding: 8px 0;
   background: transparent;
   border: none;
+  border-bottom: 2px solid transparent;
   cursor: pointer;
   color: var(--rm-text-dim);
   appearance: none;
-  transition: color 0.15s;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
 }
 
-.view-btn.active { color: var(--rm-pitch); }
+.view-btn.active {
+  color: var(--rm-pitch);
+  border-bottom-color: var(--rm-pitch);
+  background: color-mix(in oklch, var(--rm-pitch) 5%, transparent);
+}
 .view-btn svg { display: block; pointer-events: none; }
+
+.view-btn-label {
+  font-family: var(--rm-font-mono);
+  font-size: 8px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  line-height: 1;
+}
 
 /* ─── Bottom panels ─── */
 #panel-bottom {
@@ -515,6 +530,7 @@ html, body {
 
 /* ─── Buttons ─── */
 .ctrl-btn {
+  position: relative;
   min-height: 40px;
   min-width: 40px;
   padding: 0;
@@ -532,6 +548,27 @@ html, body {
   align-items: center;
   justify-content: center;
 }
+
+.ctrl-btn-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--rm-amber);
+  color: var(--rm-bg-deep);
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--rm-bg-deep);
+  box-shadow: 0 0 8px color-mix(in oklch, var(--rm-amber) 55%, transparent);
+}
+
+.ctrl-btn-badge[hidden] { display: none; }
 
 .ctrl-btn:active:not(:disabled) {
   background: var(--rm-surface-3);
@@ -560,38 +597,32 @@ html, body {
 
 .ctrl-btn svg { pointer-events: none; flex-shrink: 0; }
 
-/* Speed control */
-.speed-label {
+/* Speed presets */
+.speed-presets {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--rm-font-mono);
-  font-size: 9px;
-  font-weight: 500;
-  color: var(--rm-text-dim);
+  gap: 3px;
   margin-left: auto;
-  min-width: 0;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
-.speed-text { white-space: nowrap; }
-
-#speed-slider {
-  width: 100px;
-  cursor: pointer;
-  min-width: 0;
-  height: 20px;
-  accent-color: var(--rm-pitch);
-}
-
-#speed-display {
+.speed-btn {
   font-family: var(--rm-font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  color: var(--rm-pitch);
-  min-width: 40px;
+  padding: 0 9px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  color: var(--rm-text-dim);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s, box-shadow 0.12s;
+}
+
+.speed-btn--active {
+  background: color-mix(in oklch, var(--rm-pitch) 20%, var(--rm-surface-2));
+  border-color: var(--rm-pitch);
+  color: var(--rm-chalk);
+  box-shadow: 0 0 10px color-mix(in oklch, var(--rm-pitch) 25%, transparent);
 }
 
 /* ─── Modal ─── */
@@ -903,8 +934,6 @@ html, body {
     border-color: #009434;
     box-shadow: 0 0 20px color-mix(in oklch, var(--rm-pitch) 55%, transparent);
   }
-
-  #speed-slider { width: 130px; }
 
   /* Modal as centred dialog on desktop */
   #modal-overlay { align-items: center; padding-bottom: 0; }

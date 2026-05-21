@@ -10,9 +10,12 @@
 
 import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
-import type { TeamStanding } from '../types/gameState';
+import type { FixtureResult, TeamStanding } from '../types/gameState';
 import { sortStandings } from '../game/leagueTable';
+import { recentForm } from '../game/teamStats';
 import { eventBus } from '../utils/eventBus';
+
+const PLAYOFF_SPOTS = 4;
 
 let postMatchOnContinue: (() => void) | null = null;
 let renderImpl: (() => void) | null = null;
@@ -32,14 +35,27 @@ function teamCrest(team: RawTeamInput): string {
   return `<div class="lt-crest" style="background:${grad};border:1px solid color-mix(in oklch,${team.color} 45%,transparent)"><span>${initial}</span></div>`;
 }
 
-function standingsRow(s: TeamStanding, rank: number, teamsById: Map<string, RawTeamInput>, highlight: boolean): string {
+function standingsRow(
+  s: TeamStanding,
+  rank: number,
+  teamsById: Map<string, RawTeamInput>,
+  highlight: boolean,
+  results: FixtureResult[],
+): string {
   const team = teamsById.get(s.teamId);
   const name = team?.shortName ?? s.teamId;
-  const cls = highlight ? 'lt-row lt-row--me' : 'lt-row';
+  const classes = ['lt-row'];
+  if (highlight) classes.push('lt-row--me');
+  if (rank === PLAYOFF_SPOTS + 1) classes.push('lt-row--zone-break');
   const diff = `${s.pointsDiff >= 0 ? '+' : ''}${s.pointsDiff}`;
   const crest = team ? teamCrest(team) : '<div class="lt-crest"></div>';
+  const form = recentForm(s.teamId, results);
+  const formHtml = form.map(r => {
+    if (!r) return `<span class="lt-fp lt-fp--empty">–</span>`;
+    return `<span class="lt-fp lt-fp--${r.toLowerCase()}">${r}</span>`;
+  }).join('');
   return `
-    <div class="${cls}">
+    <div class="${classes.join(' ')}">
       <span class="lt-rank">${rank}</span>
       ${crest}
       <span class="lt-name">${name}</span>
@@ -49,6 +65,7 @@ function standingsRow(s: TeamStanding, rank: number, teamsById: Map<string, RawT
       <span class="lt-num">${s.lost}</span>
       <span class="lt-num">${diff}</span>
       <span class="lt-pts">${s.leaguePoints}</span>
+      <span class="lt-form">${formHtml}</span>
     </div>
   `;
 }
@@ -69,8 +86,9 @@ export function initLeagueTableScreen(
     const totalRounds = state.league.fixtures.reduce((max, f) => Math.max(max, f.round), 0);
     const sorted = sortStandings(state.league.standings);
 
+    const results = state.league.results;
     const rows = sorted.map((s, i) =>
-      standingsRow(s, i + 1, teamsById, s.teamId === playerTeamId)
+      standingsRow(s, i + 1, teamsById, s.teamId === playerTeamId, results)
     ).join('');
 
     const inPostMatch = postMatchOnContinue !== null;
@@ -101,12 +119,13 @@ export function initLeagueTableScreen(
           <span class="lt-rank">#</span>
           <span class="lt-crest-spacer"></span>
           <span class="lt-name">Club</span>
-          <span class="lt-num">P</span>
-          <span class="lt-num">W</span>
-          <span class="lt-num">D</span>
-          <span class="lt-num">L</span>
-          <span class="lt-num">PD</span>
-          <span class="lt-pts">Pts</span>
+          <span class="lt-num" title="Played">P</span>
+          <span class="lt-num" title="Won">W</span>
+          <span class="lt-num" title="Drawn">D</span>
+          <span class="lt-num" title="Lost">L</span>
+          <span class="lt-num" title="Points difference">PD</span>
+          <span class="lt-pts" title="League points">Pts</span>
+          <span class="lt-form" title="Last 5 results">Form</span>
         </div>
         ${rows}
       </div>

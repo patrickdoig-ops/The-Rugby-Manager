@@ -70,10 +70,10 @@
 .lt-head,
 .lt-row {
   display: grid;
-  grid-template-columns: 24px 22px 1fr 28px 28px 28px 28px 36px 38px;
+  grid-template-columns: 22px 22px 1fr 22px 22px 22px 22px 30px 32px 76px;
   align-items: center;
-  gap: 6px;
-  padding: 8px 10px;
+  gap: 5px;
+  padding: 8px 8px;
   border-radius: 8px;
 }
 
@@ -138,6 +138,40 @@
 
 .lt-num { text-align: right; color: var(--rm-text-muted); }
 .lt-pts { text-align: right; font-weight: 700; color: var(--rm-chalk); }
+
+.lt-form {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.lt-head .lt-form {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  color: var(--rm-text-dim);
+}
+
+.lt-fp {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-mono);
+  font-size: 7px;
+  font-weight: 700;
+}
+.lt-fp--w { background: color-mix(in oklch, var(--rm-stat-4) 22%, transparent); color: var(--rm-stat-4); }
+.lt-fp--l { background: color-mix(in oklch, var(--rm-stat-1) 22%, transparent); color: var(--rm-stat-1); }
+.lt-fp--d { background: color-mix(in oklch, var(--rm-text-dim) 18%, transparent); color: var(--rm-text-dim); }
+.lt-fp--empty { background: transparent; color: var(--rm-text-faint); border: 1px solid var(--rm-hairline); }
+
+.lt-row--zone-break {
+  border-top: 2px solid color-mix(in oklch, var(--rm-stat-1) 42%, transparent) !important;
+}
 
 @media (hover: hover) {
   #lt-back:hover { color: var(--rm-text); }

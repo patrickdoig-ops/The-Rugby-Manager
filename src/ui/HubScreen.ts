@@ -10,6 +10,9 @@ import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import type { Fixture, GameState } from '../types/gameState';
 import { eventBus } from '../utils/eventBus';
+import { sortStandings } from '../game/leagueTable';
+import { computeOverallRating } from '../team/teamProfile';
+import { formAdjustment, matchSpread, HOME_ADVANTAGE_PTS } from '../game/teamStats';
 
 export interface InitHubScreenOpts {
   gameEngine: GameCoordinator;
@@ -58,16 +61,28 @@ interface TileSpec {
   label: string;
   iconKey: keyof typeof TILE_ICONS;
   handlerKey: 'onSquad' | 'onFixtures' | 'onLeague' | 'onTraining' | 'onContracts' | 'onTransfers';
+  stub?: boolean;
 }
 
 const TILES: TileSpec[] = [
   { id: 'hub-tile-squad',     ariaLabel: 'Squad selector',  label: 'Squad',     iconKey: 'squad',     handlerKey: 'onSquad' },
   { id: 'hub-tile-fixtures',  ariaLabel: 'Fixture list',    label: 'Fixtures',  iconKey: 'fixtures',  handlerKey: 'onFixtures' },
   { id: 'hub-tile-league',    ariaLabel: 'League table',    label: 'League',    iconKey: 'league',    handlerKey: 'onLeague' },
-  { id: 'hub-tile-training',  ariaLabel: 'Training',        label: 'Training',  iconKey: 'training',  handlerKey: 'onTraining' },
+  { id: 'hub-tile-training',  ariaLabel: 'Training',        label: 'Training',  iconKey: 'training',  handlerKey: 'onTraining',  stub: true },
   { id: 'hub-tile-contracts', ariaLabel: 'Contracts',       label: 'Contracts', iconKey: 'contracts', handlerKey: 'onContracts' },
-  { id: 'hub-tile-transfers', ariaLabel: 'Transfer market', label: 'Transfers', iconKey: 'transfers', handlerKey: 'onTransfers' },
+  { id: 'hub-tile-transfers', ariaLabel: 'Transfer market', label: 'Transfers', iconKey: 'transfers', handlerKey: 'onTransfers', stub: true },
 ];
+
+function ordinalSuffix(n: number): string {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return 'th';
+  switch (n % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+}
 
 export function initHubScreen(opts: InitHubScreenOpts): void {
   const el = document.getElementById('hub');
@@ -81,6 +96,14 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
 
     const nextFixture = opts.gameEngine.getCurrentFixture();
 
+    const sorted = sortStandings(state.league.standings);
+    const rankIdx = sorted.findIndex(s => s.teamId === playerTeam.id);
+    const standing = rankIdx >= 0 ? sorted[rankIdx] : null;
+    const rank = rankIdx + 1;
+
+    const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
+    const pct = totalRounds > 0 ? (state.calendar.week / totalRounds) * 100 : 0;
+
     el!.innerHTML = `
       <div id="hub-topbar">
         <button id="hub-settings" aria-label="Settings">
@@ -88,17 +111,35 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
         </button>
       </div>
 
-      <div id="hub-hero">
+      <div id="hub-hero" style="--team-color:${playerTeam.color}">
         ${crestHtml(playerTeam, 'hub-crest')}
         <h1 id="hub-team-name">${playerTeam.name}</h1>
-        <div id="hub-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} · ${formatDateShort(state.calendar.date)}</div>
+        <div id="hub-standing">
+          <div class="hub-standing-item">
+            <span class="hub-standing-val" style="color:${playerTeam.color}">${rank > 0 ? rank + ordinalSuffix(rank) : '—'}</span>
+            <span class="hub-standing-label">Position</span>
+          </div>
+          <div class="hub-standing-item">
+            <span class="hub-standing-val hub-standing-val--chalk">${standing?.leaguePoints ?? 0}</span>
+            <span class="hub-standing-label">Points</span>
+          </div>
+          <div class="hub-standing-item">
+            <span class="hub-standing-val hub-standing-val--chalk hub-standing-val--record">${standing?.won ?? 0}W–${standing?.lost ?? 0}L</span>
+            <span class="hub-standing-label">Record</span>
+          </div>
+        </div>
+        <div id="hub-meta">
+          <div id="hub-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
+          <div id="hub-progress"><div id="hub-progress-fill" style="width:${pct.toFixed(1)}%"></div></div>
+        </div>
       </div>
 
       ${nextMatchHtml(nextFixture, state, teamsById, playerTeam.id)}
 
       <div id="hub-grid">
         ${TILES.map(t => `
-          <button id="${t.id}" class="hub-tile" aria-label="${t.ariaLabel}">
+          <button id="${t.id}" class="hub-tile${t.stub ? ' hub-tile--stub' : ''}" aria-label="${t.ariaLabel}"${t.stub ? ' disabled' : ''}>
+            ${t.stub ? '<span class="hub-tile-soon">Soon</span>' : ''}
             ${TILE_ICONS[t.iconKey]}
             <span class="hub-tile-label">${t.label}</span>
           </button>
@@ -110,6 +151,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
 
     el!.querySelector<HTMLButtonElement>('#hub-settings')!.addEventListener('click', () => opts.onSettings());
     for (const t of TILES) {
+      if (t.stub) continue;
       el!.querySelector<HTMLButtonElement>(`#${t.id}`)!.addEventListener('click', () => opts[t.handlerKey]());
     }
     if (nextFixture) {
@@ -132,6 +174,24 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
     const playerHome = fixture.homeId === playerId;
     const venueLabel = playerHome ? 'HOME' : 'AWAY';
     const venueName = home.stadium.split('(')[0].trim().toUpperCase();
+
+    const homeStanding = state.league.standings.find(s => s.teamId === home.id);
+    const awayStanding = state.league.standings.find(s => s.teamId === away.id);
+    const homeEffective = computeOverallRating(home.id)
+      + HOME_ADVANTAGE_PTS
+      + formAdjustment(homeStanding, state.league.standings);
+    const awayEffective = computeOverallRating(away.id)
+      + formAdjustment(awayStanding, state.league.standings);
+    const spread = matchSpread(homeEffective, awayEffective);
+    let spreadLabel: string;
+    if (spread.home === 0) {
+      spreadLabel = 'Even contest';
+    } else if (spread.home < 0) {
+      spreadLabel = `${home.shortName} favoured · ${-spread.home} pts`;
+    } else {
+      spreadLabel = `${away.shortName} favoured · ${spread.home} pts`;
+    }
+
     return `
       <div id="hub-next-match">
         <div class="hub-nm-label">NEXT MATCH · ROUND ${fixture.round} · ${formatDateShort(state.calendar.date)}</div>
@@ -147,6 +207,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
           </div>
         </div>
         <div class="hub-nm-meta">${venueLabel} · ${venueName}</div>
+        <div class="hub-nm-spread">${spreadLabel}</div>
       </div>
     `;
   }

@@ -62,6 +62,11 @@
 /* ─── Event type accents ─── */
 
 /* TRY — body font, bold */
+.event-try {
+  background: color-mix(in oklch, var(--rm-amber) 6%, transparent);
+  border-left: 2px solid color-mix(in oklch, var(--rm-amber) 55%, transparent);
+  padding-left: 8px;
+}
 .event-try .event-tag  { color: var(--rm-amber); font-weight: 700; }
 .event-try .event-text {
   font-family: var(--rm-font-body);

@@ -14,8 +14,8 @@ export function initSimController(engine: MatchCoordinator): void {
   const btnPause   = document.getElementById('btn-pause')   as HTMLButtonElement;
   const btnTactics = document.getElementById('btn-tactics') as HTMLButtonElement;
   const btnSubs    = document.getElementById('btn-subs')    as HTMLButtonElement;
-  const slider     = document.getElementById('speed-slider') as HTMLInputElement;
-  const speedDisplay = document.getElementById('speed-display')!;
+  const subsBadge  = document.getElementById('subs-badge')  as HTMLSpanElement;
+  const speedBtns  = Array.from(document.querySelectorAll<HTMLButtonElement>('.speed-btn'));
 
   // Reset button enabled-state — the previous match left Play disabled on finish.
   btnPlay.disabled    = false;
@@ -63,20 +63,39 @@ export function initSimController(engine: MatchCoordinator): void {
     eventBus.emit('ui:openSubsModal', { team });
   };
 
-  // Sync the slider to the persisted preference on every match start —
-  // covers a page refresh (slider DOM resets to its HTML default) as well
-  // as the in-session case where the slider's own runtime value already
-  // carried over.
-  slider.value = String(loadTickDelayMs());
-  speedDisplay.textContent = `${slider.value}ms`;
-
-  slider.oninput = () => {
-    const ms = Number(slider.value);
+  // Sync the speed presets to the persisted preference on every match start.
+  // Map the saved ms to the closest preset; if none matches, default to 1×.
+  function applySpeed(ms: number): void {
+    speedBtns.forEach(b => b.classList.toggle('speed-btn--active', Number(b.dataset.ms) === ms));
     engine.setTickDelay(ms);
-    speedDisplay.textContent = `${ms}ms`;
     saveTickDelayMs(ms);
     eventBus.emit('ui:speedChange', { delayMs: ms });
-  };
+  }
+
+  const savedMs = loadTickDelayMs();
+  const presetMs = speedBtns.some(b => Number(b.dataset.ms) === savedMs)
+    ? savedMs
+    : 1500;
+  applySpeed(presetMs);
+
+  speedBtns.forEach(btn => {
+    btn.addEventListener('click', () => applySpeed(Number(btn.dataset.ms)));
+  });
+
+  function updateSubsBadge(n: number): void {
+    if (!subsBadge) return;
+    subsBadge.textContent = String(n);
+    subsBadge.hidden = n === 0;
+  }
+
+  function syncSubsBadge(): void {
+    const side = engine.getHumanSide();
+    const state = engine.getState();
+    const team = side === 'home' ? state.homeTeam : state.awayTeam;
+    updateSubsBadge(team.substitutedOff.length);
+  }
+
+  syncSubsBadge();
 
   unsubs.push(eventBus.on('engine:finished', () => {
     btnPlay.disabled    = true;
@@ -115,6 +134,7 @@ export function initSimController(engine: MatchCoordinator): void {
   unsubs.push(eventBus.on('ui:subsClosed', () => {
     btnSubs.disabled    = false;
     btnTactics.disabled = false;
+    syncSubsBadge();
     if (!wasPausedBeforeSubs) {
       engine.resume();
       btnPlay.disabled  = true;
@@ -124,6 +144,8 @@ export function initSimController(engine: MatchCoordinator): void {
       btnPause.disabled = true;
     }
   }));
+
+  unsubs.push(eventBus.on('engine:stateChange', () => syncSubsBadge()));
 
   const views = ['dashboard', 'commentary', 'stats', 'players'] as const;
   const viewBtns = views.map(v => document.getElementById(`btn-view-${v}`) as HTMLButtonElement);

@@ -20,6 +20,7 @@ import type { TeamTactics } from '../types/team';
 import { applySeasonEvent } from './applySeasonEvent';
 import { simulateFixture } from './simulateFixture';
 import { eventBus } from '../utils/eventBus';
+import { setCareerSeed } from '../utils/rng';
 import { SEASON_VALUES } from '../engine/balance';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 import type { RawTeamInput } from '../types/teamData';
@@ -76,6 +77,7 @@ export class GameCoordinator {
     schedule: SeasonSchedule = PREMIERSHIP_2025_26,
   ): GameCoordinator {
     const coord = new GameCoordinator(allTeams);
+    setCareerSeed(seed);
     applySeasonEvent(coord.state, {
       type: 'SEASON_INITIALIZED',
       playerTeamId,
@@ -93,6 +95,7 @@ export class GameCoordinator {
     schedule: SeasonSchedule = PREMIERSHIP_2025_26,
   ): GameCoordinator {
     const coord = new GameCoordinator(allTeams);
+    setCareerSeed(save.seed);
     // Prefer the saved schedule when present (v3+); fall back to the
     // current canonical one for legacy v2 saves that pre-date the field.
     const effectiveSchedule: SeasonSchedule = save.fixtures

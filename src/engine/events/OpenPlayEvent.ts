@@ -6,9 +6,10 @@ import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
 import { attackDir, isTryScoredAt, inOwnHalf, inOwn22 } from '../FieldPosition';
+import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
-import { KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, knockOnThreshold } from '../balance';
+import { HOME_ADVANTAGE, KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, knockOnThreshold } from '../balance';
 
 export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, pickPlayer }: PhaseContext): PhaseResult {
   // Step 0 — Kick or carry decision
@@ -106,7 +107,8 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   }
 
   // Step 3 — Evasion → Step 4 Collision (handling gate already cleared)
-  const res = resolveOpenPlay(ballCarrier, defender, attackMod, defendMod + backfieldPenalty);
+  const ha = homeEdge(state, HOME_ADVANTAGE.carryMod);
+  const res = resolveOpenPlay(ballCarrier, defender, attackMod + ha.attack, defendMod + backfieldPenalty + ha.defend);
   const direction = attackDir(state);
 
   events.push({

@@ -24,3 +24,4 @@ export * from './clock';
 export * from './commentary';
 export * from './discipline';
 export * from './season';
+export * from './homeAdvantage';

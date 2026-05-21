@@ -122,6 +122,11 @@ async function main(): Promise<void> {
   const clubAgg = new Map<string, { games: number; tries: number; kickMetres: number; lineBreaks: number; possessionPct: number; pointsFor: number; pointsAgainst: number; wins: number; draws: number; losses: number }>();
   for (const t of ALL_TEAMS) clubAgg.set(t.id, { games: 0, tries: 0, kickMetres: 0, lineBreaks: 0, possessionPct: 0, pointsFor: 0, pointsAgainst: 0, wins: 0, draws: 0, losses: 0 });
 
+  // Home / away splits — calibration signal for HOME_ADVANTAGE tuning.
+  // Real Premiership home win-rate sits at ~57%, which is our target.
+  let homeWins = 0, awayWins = 0, draws = 0;
+  let homePoints = 0, awayPoints = 0;
+
   for (const s of summaries) {
     const ha = sumMatchStats('home', s.state);
     const aa = sumMatchStats('away', s.state);
@@ -131,9 +136,11 @@ async function main(): Promise<void> {
     a.games++; a.tries += aa.tries; a.kickMetres += aa.kickMetres; a.lineBreaks += aa.lineBreaks; a.possessionPct += aa.possessionPct;
     h.pointsFor += s.state.score.home; h.pointsAgainst += s.state.score.away;
     a.pointsFor += s.state.score.away; a.pointsAgainst += s.state.score.home;
-    if (s.state.score.home > s.state.score.away) { h.wins++; a.losses++; }
-    else if (s.state.score.home < s.state.score.away) { a.wins++; h.losses++; }
-    else { h.draws++; a.draws++; }
+    if (s.state.score.home > s.state.score.away) { h.wins++; a.losses++; homeWins++; }
+    else if (s.state.score.home < s.state.score.away) { a.wins++; h.losses++; awayWins++; }
+    else { h.draws++; a.draws++; draws++; }
+    homePoints += s.state.score.home;
+    awayPoints += s.state.score.away;
   }
 
   // ── Per-attackingGamePlan slice ───────────────────────────────────────
@@ -214,6 +221,18 @@ async function main(): Promise<void> {
   lines.push('# Telemetry');
   lines.push('');
   lines.push(`Root seed: 0x${ROOT_SEED.toString(16)} · ${summaries.length} fixtures · ${elapsedMs} ms`);
+  lines.push('');
+
+  lines.push('## Home advantage');
+  lines.push('');
+  lines.push('| outcome | count | share |');
+  lines.push('|---|---:|---:|');
+  const totalMatches = summaries.length;
+  lines.push(`| home win | ${homeWins} | ${fmt(100 * homeWins / totalMatches)}% |`);
+  lines.push(`| away win | ${awayWins} | ${fmt(100 * awayWins / totalMatches)}% |`);
+  lines.push(`| draw     | ${draws}    | ${fmt(100 * draws    / totalMatches)}% |`);
+  lines.push('');
+  lines.push(`Average score: home ${fmt(homePoints / totalMatches)} – ${fmt(awayPoints / totalMatches)} away (margin ${fmt((homePoints - awayPoints) / totalMatches)} for the home side).`);
   lines.push('');
 
   lines.push('## Per-club results (full double round-robin)');

@@ -6,9 +6,10 @@ import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
 import { attackDir, isTryScoredAt, inOwnHalf, inOwn22 } from '../FieldPosition';
+import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
-import { KICK_PROBABILITIES, KICK_RETURN_VALUES, TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
+import { HOME_ADVANTAGE, KICK_PROBABILITIES, KICK_RETURN_VALUES, TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
 
 export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }: PhaseContext): PhaseResult {
   // Step 0 — Kick or carry decision
@@ -50,7 +51,8 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
   const runMetres = rng(runRange[0], runRange[1]);
 
   // Step 3 — Evasion → Step 4 Collision
-  const res = resolveOpenPlay(carrier, defender, attackMod, defendMod + backfieldPenalty);
+  const ha = homeEdge(state, HOME_ADVANTAGE.carryMod);
+  const res = resolveOpenPlay(carrier, defender, attackMod + ha.attack, defendMod + backfieldPenalty + ha.defend);
   const totalMetres = runMetres + res.gainMetres;
   const direction = attackDir(state);
 

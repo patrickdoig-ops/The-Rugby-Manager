@@ -336,6 +336,25 @@ current[stat] = clamp(baseStats[stat] + formModifier, 1, 100)
 
 ---
 
+## Home Advantage
+
+**Source:** `HOME_ADVANTAGE` constants in `src/engine/balance/homeAdvantage.ts`; resolved per call site via `homeEdge(state, mod)` in `src/engine/HomeAdvantage.ts`.
+
+A flat per-match tilt toward the side currently occupying the `homeTeam` slot in `MatchState`. The engine consumes it through two channels — open-play carries (`carryMod`) and the breakdown (`breakdownMod`) — and the pre-match SPREAD tile reads the same `spreadPts` headline so prediction and simulation agree.
+
+**Channels:**
+
+| channel | call site | how it flows |
+|---|---|---|
+| Open-play carry | `FirstPhaseEvent`, `OpenPlayEvent`, `KickReturnEvent` | `homeEdge` is added to the `attackMod` / `defendMod` passed into `resolveOpenPlay`. Bumps evasion / defence rolls on the home side. |
+| Breakdown | `BreakdownEvent` | `homeEdge` is added to the `attackBonus` / `defendBonus` passed into `resolveBreakdown`. Bumps `ars` (when home is attacking the ruck) or `dts` (when home is defending). |
+
+**Calibration:** tuned via `npm run telemetry` against the real-rugby Premiership home win-rate of ~57%. Current values produce **57.8% home wins · 37.8% away wins · 4.4% draws** across the 90-fixture pass, with an average home margin of 5.5 points. The headline `spreadPts: 3` is the betting-market-style baseline for a typical matchup; the larger simulated margin reflects the compounding effect of two channels across an 80-minute match.
+
+What's **not** modelled today: referee tilt on marginal penalties, kicker accuracy bump at home, travel fatigue for the away side. Each could be added as an extra channel with its own `HOME_ADVANTAGE.*` knob and re-tuning pass.
+
+---
+
 ## Coin Toss
 
 Resolved inside `MatchCoordinator.initialize()` before the first tick.
@@ -564,7 +583,7 @@ Total ball movement = `runMetres + res.gainMetres`.
 
 ### Shared Evasion/Collision
 
-All three phases call `resolveOpenPlay(ballCarrier, defender, attackMod, defendMod + backfieldPenalty)` after completing their phase-specific steps.
+All three phases call `resolveOpenPlay(ballCarrier, defender, attackMod, defendMod + backfieldPenalty)` after completing their phase-specific steps. Both modifier arguments additionally receive a **home-advantage edge** computed via `homeEdge(state, HOME_ADVANTAGE.carryMod)` — when the home team has possession the bump lands on `attackMod`, when they're defending it lands on `defendMod`. See [Home Advantage](#home-advantage) below.
 
 **Backfield Defence front-line penalty:**
 

@@ -4,6 +4,7 @@
 // reading from the bus, no subscription to game events.
 
 import type { FixtureResult, TeamStanding } from '../types/gameState';
+import { HOME_ADVANTAGE } from '../engine/balance';
 
 export type FormResult = 'W' | 'L' | 'D';
 
@@ -54,11 +55,12 @@ export function headToHead(teamA: string, teamB: string, results: FixtureResult[
   return { wins, draws, losses, meetings: wins + draws + losses };
 }
 
-// Spread tuning. Both numbers live here (not in src/engine/balance/)
-// because they're prediction-only: the actual match engine doesn't apply
-// home advantage or league-form modifiers to outcomes today. Tweak in one
-// place if either factor needs recalibrating.
-export const HOME_ADVANTAGE_PTS = 3;
+// Home advantage now lives in src/engine/balance/homeAdvantage.ts because
+// the match engine actually applies it to carries and breakdowns. The
+// pre-match SPREAD tile re-uses the same headline figure so prediction
+// and simulation stay aligned. Form weighting is still prediction-only
+// (no engine path consumes it) and stays here.
+export const HOME_ADVANTAGE_PTS = HOME_ADVANTAGE.spreadPts;
 export const FORM_PTS_WEIGHT    = 0.1;
 
 // "Live" form adjustment: the team's league points relative to the league

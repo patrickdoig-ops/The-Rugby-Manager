@@ -37,6 +37,7 @@ export function resolveBreakdown(
   defPlan: DefendingBreakdown = 'jackal',
   defendPack: Player[] = [],
   attackBonus = 0,
+  defendBonus = 0,
 ): BreakdownResolution {
   const { jackalLeadWeight, jackalSupportWeight, disciplineWeight, counterRuckTop, cleanBallMargin, slowBallMargin, turnoverMargin } = BREAKDOWN_VALUES;
   const ars = stackedScore(supporters, 'breakdown', 'strength') + rng(1, 20) + attackBonus;
@@ -59,6 +60,7 @@ export function resolveBreakdown(
         + (jackal.currentStats.discipline - BREAKDOWN_VALUES.disciplinePivot) * disciplineWeight
         + rng(1, 20);
   }
+  dts += defendBonus;
 
   const margin = ars - dts;
 

@@ -5,7 +5,8 @@ import type { NarrationStep } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
 import { resolveBreakdown } from '../resolvers/BreakdownResolver';
 import { rng } from '../../utils/rng';
-import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
+import { HOME_ADVANTAGE, TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
+import { homeEdge } from '../HomeAdvantage';
 import { inOpposition22, inOwn22, inOwnHalf } from '../FieldPosition';
 
 export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext): PhaseResult {
@@ -35,7 +36,8 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   const primary = supporters[0];
 
   const defendPack = defendTeam.players.filter(p => p.id <= 8);
-  const res = resolveBreakdown(supporters, jackal, defPlan, defendPack, attackBonus);
+  const ha = homeEdge(state, HOME_ADVANTAGE.breakdownMod);
+  const res = resolveBreakdown(supporters, jackal, defPlan, defendPack, attackBonus + ha.attack, ha.defend);
 
   // Set the breakdown mod and credit the ruck hit for every supporter — both happen
   // regardless of outcome.

@@ -397,7 +397,9 @@
         "positioning": 84,
         "composure": 86
       },
-      "contract": { "isMarquee": true }
+      "contract": {
+        "isMarquee": true
+      }
     }
   ],
   "bench": [

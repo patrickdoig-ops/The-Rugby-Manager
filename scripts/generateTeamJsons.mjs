@@ -115,9 +115,9 @@ function parseTeamDataMd(md) {
   for (const section of sections) {
     const lines = section.split('\n');
     const headerLine = lines[0];
-    const headerMatch = headerLine.match(/^(.+?)\s*\*\((in game|to add)\)\*/);
-    if (!headerMatch) continue;
-    const teamName = headerMatch[1].trim();
+    // Header is the team name, optionally followed by a parenthetical marker
+    // (legacy `*(in game)*` / `*(to add)*`); anything not in TEAM_META is skipped.
+    const teamName = headerLine.replace(/\s*\*\([^)]+\)\*\s*$/, '').trim();
     if (!TEAM_META[teamName]) continue;
 
     const body = lines.slice(1).join('\n');

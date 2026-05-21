@@ -38,7 +38,7 @@ Premiership ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 ble
 
 ---
 
-## Gloucester *(in game)*
+## Gloucester
 
 A historic west-country club with a cherry-and-white forwards-led identity, defined by the close, vocal "Shed" at Kingsholm. Gloucester traditionally make their living from a robust, hard-carrying pack, set-piece confrontation and direct lines through the middle. The backline is functional rather than expansive, leaning on power runners to punch holes that fast support can exploit. At their best they are abrasive, physical and uncompromising at the breakdown; at their worst they over-rely on the forwards when a wider game is needed.
 
@@ -111,7 +111,7 @@ A historic west-country club with a cherry-and-white forwards-led identity, defi
 
 ---
 
-## Bristol Bears *(in game)*
+## Bristol Bears
 
 Shaped by the Pat Lam era's "Bristol-Bilbao" expansive ambition, the Bears are the league's most ball-in-hand, high-tempo side, willing to attack from anywhere on the pitch. They prize width, offloads and pace over territorial caution, and will gladly trade penalties for tempo. Their forwards are built for carrying and linking rather than maul dominance, and they often outscore opponents in shootouts. The flip side is risk: turnovers and defensive lapses come with the style.
 
@@ -183,7 +183,7 @@ Shaped by the Pat Lam era's "Bristol-Bilbao" expansive ambition, the Bears are t
 
 ---
 
-## Leicester Tigers *(in game)*
+## Leicester Tigers
 
 The Welford Road tradition is set-piece power, structured forward-led play, and hard-nosed defence built on discipline. Tigers historically squeeze the game through scrum and maul dominance, accurate exit kicking, and a defensive line that gives nothing cheap. Their attack is built off forward platform first, with the backs called on to finish rather than create from scratch. Recent rebuilds have softened the edges, but the identity remains: territory, set piece, pressure.
 
@@ -263,7 +263,7 @@ The Welford Road tradition is set-piece power, structured forward-led play, and 
 
 ---
 
-## Saracens *(in game)*
+## Saracens
 
 Under Mark McCall, Saracens have been the league's clinical operator — structure, precision and physical dominance executed to a finer tolerance than anyone else. The "Wolfpack" defence with its aggressive line-speed and choke tackles is the signature, paired with a smart kicking game that turns territory into points. They are ruthless game managers: ahead late, they will close a match out with possession and field position rather than tries. Calm under pressure, brutal in the collision.
 
@@ -681,15 +681,20 @@ The 2023-24 champions under Phil Dowson, Saints are the league's electric attack
 ### Squad (2025-26)
 
 **Forwards**
+
+Row order matters — `scripts/generateTeamJsons.mjs` picks starting XV slots by walking each position bucket in doc order (stars first). Coles, van der Mescht, Pearson are pinned to the top so they land in jerseys 4, 5, 7 alongside star Pollock at 6; the rest of the table is alphabetical.
+
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
+| Alex Coles | Lock | 1999-09-21 | 26 | England |
+| JJ van der Mescht | Lock | 1999-05-04 | 27 | South Africa |
+| Tom Pearson | Flanker | 1999-10-26 | 26 | England |
 | Aiden Ainsworth-Cave | Lock | | | England |
 | Archie Appleby | Back Row | | | England |
 | Emeka Atuanya | Lock | 2003-03-17 | 23 | England |
 | Archie Benson | Lock | 2001-08-18 | 24 | England |
 | Fyn Brown | Back Row | 2002-10-11 | 23 | England |
 | Callum Chick | Number 8 | 1996-11-25 | 29 | England |
-| Alex Coles | Lock | 1999-09-21 | 26 | England |
 | Trevor Davison | Prop | 1992-08-20 | 33 | England |
 | Danilo Fischetti | Prop | 1998-01-26 | 28 | Italy |
 | Sam Graham | Flanker | 1997-07-06 | 28 | England |
@@ -702,7 +707,6 @@ The 2023-24 champions under Phil Dowson, Saints are the league's electric attack
 | Tom Lockett | Lock | 2002-10-06 | 23 | England |
 | Elliot Millar-Mills | Prop | 1992-07-08 | 33 | Scotland |
 | Chunya Munga | Lock | 2000-09-02 | 25 | England |
-| Tom Pearson | Flanker | 1999-10-26 | 26 | England |
 | Henry Pollock | Flanker | 2005-01-14 | 21 | England |
 | Ed Prowse | Lock | 2000-10-27 | 25 | England |
 | Ollie Scola | Prop | | | England |
@@ -710,7 +714,6 @@ The 2023-24 champions under Phil Dowson, Saints are the league's electric attack
 | Robbie Smith | Hooker | 1998-09-26 | 27 | Scotland |
 | Sonny Tonga'uiha | Prop | | | England |
 | Charlie Ulcoq | Back Row | | | England |
-| JJ van der Mescht | Lock | 1999-05-04 | 27 | South Africa |
 | Henry Walker | Hooker | 1998-03-10 | 28 | England |
 | Siep Walta | Back Row | | | Netherlands |
 | Tom West | Prop | 1996-02-11 | 30 | England |

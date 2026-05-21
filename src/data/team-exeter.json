@@ -364,7 +364,9 @@
         "positioning": 87,
         "composure": 85
       },
-      "contract": { "isMarquee": true }
+      "contract": {
+        "isMarquee": true
+      }
     },
     {
       "id": 14,

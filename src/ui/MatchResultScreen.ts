@@ -42,6 +42,54 @@ function crestHtml(team: Team, size = 48): string {
   "><span>${initial}</span></div>`;
 }
 
+function matchVerdict(home: number, away: number, side: 'home' | 'away'): string {
+  const margin = Math.abs(home - away);
+  if (home === away) return 'A hard-fought draw.';
+  const won = side === 'home' ? home > away : away > home;
+  const mag = margin >= 20 ? 'Convincing' : margin >= 8 ? 'Comfortable' : 'Narrow';
+  return won
+    ? `${mag} victory — ${margin} points to the good.`
+    : `${mag} defeat — lost by ${margin} points.`;
+}
+
+function renderScorers(state: MatchState): string {
+  function lines(team: Team): string {
+    const all = [...team.players, ...team.substitutedOff];
+    const rows = all
+      .filter(p => p.matchStats.tries > 0 || p.matchStats.kicksMade > 0)
+      .map(p => {
+        const ev: string[] = [];
+        if (p.matchStats.tries) {
+          ev.push(p.matchStats.tries > 1 ? `${p.matchStats.tries}×T` : 'T');
+        }
+        if (p.matchStats.kicksMade) {
+          ev.push(`${p.matchStats.kicksMade}C`);
+        }
+        return `<div class="mr-scorer-row">
+          <span class="mr-scorer-name">${shortName(p)}</span>
+          <span class="mr-scorer-events">${ev.join(' · ')}</span>
+        </div>`;
+      });
+    return rows.length > 0 ? rows.join('') : '<span class="mr-no-scorers">—</span>';
+  }
+  return `
+    <section class="mr-card">
+      <h2 class="mr-card-title">Try Scorers</h2>
+      <div class="mr-scorers-grid">
+        <div class="mr-scorers-team">
+          <div class="mr-scorers-team-label" style="color:${teamTextColor(state.homeTeam.color)}">${state.homeTeam.shortName}</div>
+          ${lines(state.homeTeam)}
+        </div>
+        <div class="mr-scorers-divider"></div>
+        <div class="mr-scorers-team">
+          <div class="mr-scorers-team-label" style="color:${teamTextColor(state.awayTeam.color)}">${state.awayTeam.shortName}</div>
+          ${lines(state.awayTeam)}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function renderStatsCard(state: MatchState): string {
   const { stats, homeTeam, awayTeam } = state;
   const hc = teamTextColor(homeTeam.color);
@@ -114,7 +162,9 @@ function renderRatingsBlock(team: Team, isHome: boolean): string {
         <span class="mr-player-num" style="color:${teamTextColor(team.color)}">${p.squadNumber}</span>
         <span class="mr-player-name">${shortName(p)}</span>
         <span class="mr-player-pos">${p.position}</span>
-        ${isMotm ? '<span class="mr-player-motm" title="Top rated">★</span>' : '<span class="mr-player-motm"></span>'}
+        ${isMotm
+          ? `<span class="mr-player-motm" title="Top rated"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.637 1.55.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.755-.415-2.211.749-2.305l5.404-.434 2.082-5.005z"/></svg></span>`
+          : '<span class="mr-player-motm"></span>'}
         <span class="mr-player-rating ${cls}">${p.rating.toFixed(1)}</span>
       </div>
     `;
@@ -139,10 +189,15 @@ export function initMatchResultScreen(state: MatchState, round: number, onContin
 
   const { homeTeam, awayTeam, score } = state;
 
+  const homeWinning = score.home >= score.away;
+  const humanSide = state.engine.humanSide ?? 'home';
+  const verdict = matchVerdict(score.home, score.away, humanSide);
+
   el.innerHTML = `
     <div id="mr-body">
       <div class="mr-header">
         <span class="mr-eyebrow">Full Time · Round ${round}</span>
+        <p class="mr-verdict">${verdict}</p>
       </div>
 
       <div class="mr-versus">
@@ -151,9 +206,9 @@ export function initMatchResultScreen(state: MatchState, round: number, onContin
           <div class="mr-versus-name">${homeTeam.shortName}</div>
         </div>
         <div class="mr-scoreline">
-          <span class="mr-score" style="color:${score.home >= score.away ? teamTextColor(homeTeam.color) : 'var(--rm-text-muted)'}">${score.home}</span>
+          <span class="mr-score mr-score--${homeWinning ? 'winner' : 'loser'}" style="${homeWinning ? `color:${teamTextColor(homeTeam.color)}` : ''}">${score.home}</span>
           <span class="mr-score-sep">–</span>
-          <span class="mr-score" style="color:${score.away >= score.home ? teamTextColor(awayTeam.color) : 'var(--rm-text-muted)'}">${score.away}</span>
+          <span class="mr-score mr-score--${!homeWinning ? 'winner' : 'loser'}" style="${!homeWinning ? `color:${teamTextColor(awayTeam.color)}` : ''}">${score.away}</span>
         </div>
         <div class="mr-versus-team">
           ${crestHtml(awayTeam, 56)}
@@ -163,6 +218,7 @@ export function initMatchResultScreen(state: MatchState, round: number, onContin
 
       <div class="mr-teamline">${homeTeam.name} <span class="mr-teamline-sep">·</span> ${awayTeam.name}</div>
 
+      ${renderScorers(state)}
       ${renderStatsCard(state)}
       ${state.engine.humanSide === 'away'
         ? renderRatingsBlock(awayTeam, false) + renderRatingsBlock(homeTeam, true)

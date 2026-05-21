@@ -36,6 +36,15 @@
   text-transform: uppercase;
 }
 
+.mr-verdict {
+  font-family: var(--rm-font-editor);
+  font-style: italic;
+  font-size: 17px;
+  color: var(--rm-text-muted);
+  margin-top: 5px;
+  line-height: 1.45;
+}
+
 /* ─── Versus + score ─── */
 .mr-versus {
   display: grid;
@@ -96,6 +105,18 @@
   line-height: 1;
 }
 
+.mr-score--winner {
+  font-size: 68px;
+  line-height: 1;
+  color: var(--rm-chalk);
+}
+
+.mr-score--loser {
+  font-size: 44px;
+  line-height: 1;
+  color: var(--rm-text-muted);
+}
+
 .mr-score-sep {
   font-size: 36px;
   color: var(--rm-text-faint);
@@ -150,6 +171,60 @@
   height: 8px;
   border-radius: 50%;
   display: inline-block;
+}
+
+/* ─── Try scorers ─── */
+.mr-scorers-grid {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 0 14px;
+}
+
+.mr-scorers-divider {
+  background: var(--rm-border-soft);
+}
+
+.mr-scorers-team {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.mr-scorers-team-label {
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.mr-scorer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mr-scorer-name {
+  font-family: var(--rm-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rm-chalk);
+}
+
+.mr-scorer-events {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  color: var(--rm-pitch);
+}
+
+.mr-no-scorers {
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  color: var(--rm-text-dim);
 }
 
 /* ─── Stats card rows (comparative bars) ─── */
@@ -267,9 +342,10 @@
 }
 
 .mr-player-motm {
-  font-size: 13px;
-  color: #ffce4f;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--rm-amber);
   line-height: 1;
 }
 

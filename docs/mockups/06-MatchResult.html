@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<title>06 — Match Result (Polished)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;700&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --win: #1B6EC2;
+  --lose: #006C4E;
+}
+
+#match-result {
+  display: flex; flex-direction: column;
+  min-height: 844px;
+  /* IMPROVED: Winning team colour atmospheric wash from top */
+  background: var(--rm-bg);
+  background-image:
+    radial-gradient(ellipse 120% 38% at 30% 0%,
+      color-mix(in oklch, var(--win) 20%, transparent) 0%,
+      transparent 65%),
+    radial-gradient(ellipse 80% 25% at 75% 0%,
+      color-mix(in oklch, var(--lose) 8%, transparent) 0%,
+      transparent 60%);
+  position: relative; overflow: hidden;
+}
+
+/* Faint mow-stripe texture */
+#match-result::before {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(180deg,
+    transparent 0, transparent 32px,
+    color-mix(in oklch, var(--rm-pitch-soft) 25%, transparent) 32px,
+    color-mix(in oklch, var(--rm-pitch-soft) 25%, transparent) 33px);
+  opacity: 0.18;
+}
+
+#mr-body {
+  position: relative; z-index: 1;
+  flex: 1; overflow-y: auto;
+  padding: 24px 20px 24px;
+}
+
+/* ── Header ── */
+.mr-header { text-align: center; margin-bottom: 18px; }
+
+.mr-eyebrow {
+  font-family: var(--rm-font-mono);
+  font-size: 11px; letter-spacing: 0.22em;
+  color: var(--rm-pitch); text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+/* IMPROVED: Verdict in Instrument Serif italic */
+.mr-verdict {
+  font-family: var(--rm-font-editor); font-style: italic;
+  font-size: 18px; color: var(--rm-text-muted);
+  line-height: 1.45;
+}
+
+/* ── Scoreline ── */
+.mr-versus {
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: 10px; margin-bottom: 6px;
+}
+
+.mr-versus-team {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+
+.mr-crest {
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 12px; position: relative;
+  font-family: var(--rm-font-display); color: rgba(255,255,255,0.95);
+}
+.mr-crest::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 50%, rgba(0,0,0,0.20) 100%);
+}
+.mr-crest span { position: relative; z-index: 1; }
+
+.mr-versus-name {
+  font-family: var(--rm-font-display); font-size: 14px;
+  letter-spacing: 0.10em; color: var(--rm-chalk);
+}
+
+.mr-scoreline {
+  display: flex; align-items: baseline; gap: 10px;
+  font-family: var(--rm-font-display); font-variant-numeric: tabular-nums;
+}
+
+/* IMPROVED: Winner bigger + team-colour text glow */
+.mr-score--winner {
+  font-size: 68px; line-height: 1; color: var(--rm-chalk);
+  text-shadow: 0 0 48px color-mix(in oklch, var(--win) 55%, transparent);
+}
+.mr-score--loser  { font-size: 44px; line-height: 1; color: var(--rm-text-muted); }
+.mr-score-sep     { font-size: 30px; color: var(--rm-text-faint); line-height: 1; }
+
+.mr-teamline {
+  text-align: center; font-family: var(--rm-font-mono);
+  font-size: 10px; letter-spacing: 0.16em;
+  color: var(--rm-text-muted); text-transform: uppercase; margin-bottom: 22px;
+}
+
+/* ── Cards ── */
+.mr-card {
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 14px; padding: 16px; margin-bottom: 14px;
+  position: relative;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.055),
+    0 2px 8px rgba(0,0,0,0.5),
+    0 8px 28px rgba(0,0,0,0.3);
+}
+
+.mr-card-title {
+  font-family: var(--rm-font-mono); font-size: 10px;
+  font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--rm-text-dim); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.mr-card-subtitle { font-weight: 400; color: var(--rm-text-faint); letter-spacing: 0.12em; }
+.mr-team-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* ── Try scorers ── */
+.mr-scorers-grid {
+  display: grid; grid-template-columns: 1fr 1px 1fr; gap: 0 14px;
+}
+.mr-scorers-divider { background: var(--rm-border-soft); }
+.mr-scorers-team { display: flex; flex-direction: column; gap: 7px; }
+.mr-scorers-team-label {
+  font-family: var(--rm-font-mono); font-size: 9px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  margin-bottom: 3px; font-weight: 700;
+}
+.mr-scorer-row {
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 8px;
+}
+.mr-scorer-name { font-size: 13px; color: var(--rm-chalk); font-weight: 600; }
+.mr-scorer-events {
+  font-family: var(--rm-font-mono); font-size: 10px;
+  letter-spacing: 0.10em; color: var(--rm-pitch); font-weight: 700;
+}
+.mr-no-scorers { font-family: var(--rm-font-mono); font-size: 11px; color: var(--rm-text-dim); }
+
+/* ── Stats ── */
+.mr-stats-header {
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; margin-bottom: 8px;
+}
+.mr-stats-team-code {
+  font-family: var(--rm-font-mono); font-size: 10px;
+  font-weight: 700; letter-spacing: 0.18em;
+}
+.mr-stats-team-code:first-child { text-align: left; }
+.mr-stats-team-code:last-child  { text-align: right; }
+
+.mr-stat-row { padding: 7px 0; border-top: 1px solid var(--rm-hairline); }
+.mr-stat-row:first-of-type { border-top: none; }
+.mr-stat-row-header {
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; margin-bottom: 5px;
+}
+.mr-stat-val {
+  font-family: var(--rm-font-mono); font-size: 13px;
+  font-variant-numeric: tabular-nums; color: var(--rm-text-muted);
+}
+.mr-stat-row-header .mr-stat-val:first-child { text-align: left; }
+.mr-stat-row-header .mr-stat-val:last-child  { text-align: right; }
+.mr-stat-winner { color: var(--rm-chalk); font-weight: 700; }
+.mr-stat-label {
+  font-family: var(--rm-font-mono); font-size: 9px;
+  letter-spacing: 0.10em; color: var(--rm-text-dim);
+  text-transform: uppercase; padding: 0 10px;
+}
+.mr-stat-bars {
+  display: flex; height: 4px; border-radius: 2px; overflow: hidden;
+}
+.mr-stat-bar-h, .mr-stat-bar-a { height: 100%; }
+
+/* ── Player ratings ── */
+.mr-player-row {
+  display: grid; grid-template-columns: 28px 1fr auto 18px 44px;
+  gap: 8px; align-items: center; padding: 7px 4px;
+  border-top: 1px solid var(--rm-hairline);
+}
+.mr-player-row:first-of-type { border-top: none; }
+
+.mr-player-num {
+  font-family: var(--rm-font-mono); font-size: 13px;
+  font-weight: 700; text-align: center;
+}
+.mr-player-name { font-size: 13px; color: var(--rm-chalk); }
+.mr-player-pos {
+  font-family: var(--rm-font-mono); font-size: 9px;
+  letter-spacing: 0.10em; color: var(--rm-text-dim); text-transform: uppercase;
+}
+
+/* FIXED: MOTM uses SVG star + var(--rm-amber), no emoji, no hardcoded hex */
+.mr-player-motm { display: flex; align-items: center; color: var(--rm-amber); }
+
+.mr-player-rating {
+  font-family: var(--rm-font-mono); font-size: 14px; font-weight: 700;
+  font-variant-numeric: tabular-nums; text-align: right;
+}
+/* Per updated DESIGN.md: gold=high, green=mid, cyan=low, amber=poor */
+.mr-player-rating.rating-high {
+  color: var(--rm-stat-3);
+  /* Gold ratings glow */
+  text-shadow: 0 0 12px color-mix(in oklch, var(--rm-stat-3) 55%, transparent);
+}
+.mr-player-rating.rating-mid  { color: var(--rm-stat-4); }
+.mr-player-rating.rating-low  { color: var(--rm-stat-5); }
+.mr-player-rating.rating-poor { color: var(--rm-stat-2); }
+
+/* ── Footer ── */
+#mr-footer {
+  position: relative; z-index: 1;
+  flex-shrink: 0; padding: 12px 20px 30px;
+  border-top: 1px solid var(--rm-hairline);
+  background: linear-gradient(180deg, transparent, color-mix(in oklch, var(--rm-bg-deep) 80%, transparent));
+}
+
+#mr-continue {
+  width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 15px 22px; background: #007a2a; border: none;
+  border-radius: 14px; color: #fff;
+  font-family: var(--rm-font-display); font-size: 20px;
+  letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.25),
+    0 8px 28px color-mix(in oklch, var(--rm-pitch) 32%, transparent),
+    0 4px 12px rgba(0,0,0,0.45);
+  animation: ctaPulse 2.4s ease-in-out infinite;
+}
+@keyframes ctaPulse {
+  0%,100% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 8px 24px color-mix(in oklch, var(--rm-pitch) 30%, transparent), 0 4px 12px rgba(0,0,0,0.4); }
+  50%      { box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 8px 36px color-mix(in oklch, var(--rm-pitch) 55%, transparent), 0 4px 16px rgba(0,0,0,0.35); }
+}
+</style>
+</head>
+<body>
+<div class="frame-label">
+  <span class="frame-label-name">Match Result</span>
+  <span class="frame-label-badge">v2 — Polished</span>
+</div>
+
+<div class="frame">
+  <div id="match-result">
+    <div id="mr-body">
+
+      <div class="mr-header">
+        <div class="mr-eyebrow">Full Time · Round 9</div>
+        <p class="mr-verdict">Comfortable victory — 14 points to the good.</p>
+      </div>
+
+      <!-- Scoreline: winner 68px with glow, loser 44px -->
+      <div class="mr-versus">
+        <div class="mr-versus-team">
+          <div class="mr-crest"
+               style="width:60px;height:60px;font-size:30px;
+                      background:linear-gradient(160deg,#1B6EC2 0%,#0c3a7a 100%);
+                      box-shadow:0 0 24px color-mix(in oklch,#1B6EC2 45%,transparent),inset 0 1px 0 rgba(255,255,255,0.18),0 6px 20px rgba(0,0,0,0.5)">
+            <span>H</span>
+          </div>
+          <div class="mr-versus-name">HAR</div>
+        </div>
+        <div class="mr-scoreline">
+          <span class="mr-score--winner">27</span>
+          <span class="mr-score-sep">–</span>
+          <span class="mr-score--loser">13</span>
+        </div>
+        <div class="mr-versus-team">
+          <div class="mr-crest"
+               style="width:60px;height:60px;font-size:30px;
+                      background:linear-gradient(160deg,#006C4E 0%,#003828 100%);
+                      box-shadow:0 0 16px color-mix(in oklch,#006C4E 30%,transparent),inset 0 1px 0 rgba(255,255,255,0.10),0 6px 20px rgba(0,0,0,0.5)">
+            <span>N</span>
+          </div>
+          <div class="mr-versus-name">NOR</div>
+        </div>
+      </div>
+
+      <div class="mr-teamline">
+        Harlequins <span style="color:var(--rm-text-faint);margin:0 6px">·</span> Northampton Saints
+      </div>
+
+      <!-- IMPROVED: Try scorers card -->
+      <section class="mr-card">
+        <h2 class="mr-card-title">Try Scorers</h2>
+        <div class="mr-scorers-grid">
+          <div class="mr-scorers-team">
+            <div class="mr-scorers-team-label" style="color:#1B6EC2">Harlequins</div>
+            <div class="mr-scorer-row"><span class="mr-scorer-name">Smith</span><span class="mr-scorer-events">T · 3C</span></div>
+            <div class="mr-scorer-row"><span class="mr-scorer-name">Lynagh</span><span class="mr-scorer-events">T</span></div>
+            <div class="mr-scorer-row"><span class="mr-scorer-name">Care</span><span class="mr-scorer-events">T</span></div>
+          </div>
+          <div class="mr-scorers-divider"></div>
+          <div class="mr-scorers-team">
+            <div class="mr-scorers-team-label" style="color:#006C4E">Northampton</div>
+            <div class="mr-scorer-row"><span class="mr-scorer-name">Biggar</span><span class="mr-scorer-events">T · C · P</span></div>
+            <div class="mr-scorer-row"><span class="mr-scorer-name">Hartley</span><span class="mr-scorer-events">T</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Key stats -->
+      <section class="mr-card">
+        <h2 class="mr-card-title">Key Stats</h2>
+        <div class="mr-stats-header">
+          <span class="mr-stats-team-code" style="color:#1B6EC2">HAR</span>
+          <span></span>
+          <span class="mr-stats-team-code" style="color:#006C4E">NOR</span>
+        </div>
+        <div class="mr-stat-row">
+          <div class="mr-stat-row-header">
+            <span class="mr-stat-val mr-stat-winner">62%</span>
+            <span class="mr-stat-label">Possession</span>
+            <span class="mr-stat-val">38%</span>
+          </div>
+          <div class="mr-stat-bars">
+            <div class="mr-stat-bar-h" style="width:62%;background:#1B6EC2"></div>
+            <div class="mr-stat-bar-a" style="flex:1;background:#006C4E;opacity:.4"></div>
+          </div>
+        </div>
+        <div class="mr-stat-row">
+          <div class="mr-stat-row-header">
+            <span class="mr-stat-val mr-stat-winner">3</span>
+            <span class="mr-stat-label">Tries</span>
+            <span class="mr-stat-val">2</span>
+          </div>
+          <div class="mr-stat-bars">
+            <div class="mr-stat-bar-h" style="width:60%;background:#1B6EC2"></div>
+            <div class="mr-stat-bar-a" style="flex:1;background:#006C4E;opacity:.4"></div>
+          </div>
+        </div>
+        <div class="mr-stat-row">
+          <div class="mr-stat-row-header">
+            <span class="mr-stat-val mr-stat-winner">312m</span>
+            <span class="mr-stat-label">Metres</span>
+            <span class="mr-stat-val">198m</span>
+          </div>
+          <div class="mr-stat-bars">
+            <div class="mr-stat-bar-h" style="width:61%;background:#1B6EC2"></div>
+            <div class="mr-stat-bar-a" style="flex:1;background:#006C4E;opacity:.4"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Player ratings — FIXED colours + SVG star MOTM -->
+      <section class="mr-card">
+        <h2 class="mr-card-title">
+          <span class="mr-team-dot" style="background:#1B6EC2"></span>
+          Harlequins <span class="mr-card-subtitle">player ratings</span>
+        </h2>
+        <!-- MOTM: SVG star (no emoji, no hardcoded hex) -->
+        <div class="mr-player-row">
+          <span class="mr-player-num" style="color:#1B6EC2">10</span>
+          <span class="mr-player-name">Smith</span>
+          <span class="mr-player-pos">FH</span>
+          <span class="mr-player-motm">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.637 1.55.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.755-.415-2.211.749-2.305l5.404-.434 2.082-5.005z"/></svg>
+          </span>
+          <!-- gold = high rating, with glow -->
+          <span class="mr-player-rating rating-high">8.4</span>
+        </div>
+        <div class="mr-player-row">
+          <span class="mr-player-num" style="color:#1B6EC2">1</span>
+          <span class="mr-player-name">Lynagh</span>
+          <span class="mr-player-pos">PR</span>
+          <span class="mr-player-motm"></span>
+          <!-- green = mid rating -->
+          <span class="mr-player-rating rating-mid">7.1</span>
+        </div>
+        <div class="mr-player-row">
+          <span class="mr-player-num" style="color:#1B6EC2">9</span>
+          <span class="mr-player-name">de Klerk</span>
+          <span class="mr-player-pos">SH</span>
+          <span class="mr-player-motm"></span>
+          <span class="mr-player-rating rating-mid">6.8</span>
+        </div>
+        <div class="mr-player-row">
+          <span class="mr-player-num" style="color:#1B6EC2">8</span>
+          <span class="mr-player-name">Dombrandt</span>
+          <span class="mr-player-pos">N8</span>
+          <span class="mr-player-motm"></span>
+          <!-- cyan = low -->
+          <span class="mr-player-rating rating-low">5.1</span>
+        </div>
+        <div class="mr-player-row">
+          <span class="mr-player-num" style="color:#1B6EC2">4</span>
+          <span class="mr-player-name">Symons</span>
+          <span class="mr-player-pos">LK</span>
+          <span class="mr-player-motm"></span>
+          <!-- amber = poor -->
+          <span class="mr-player-rating rating-poor">3.2</span>
+        </div>
+      </section>
+
+    </div>
+
+    <div id="mr-footer">
+      <button id="mr-continue">
+        Continue
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" pointer-events="none"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

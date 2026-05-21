@@ -28,6 +28,9 @@ import { parseSeasonStartYear } from './age';
 import { collectSeasonEvents, type PlayerStatsSnapshot } from './seasonStatsCollector';
 import { computeRollover } from './careerRollover';
 import { seedContractFields } from './contractSeeder';
+import {
+  expiringRosterIds, generateRenewalOffers, decideAIOffers, expiryAfterYears,
+} from './aiTransferDirector';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed } from '../utils/rng';
 import { SEASON_VALUES } from '../engine/balance';
@@ -239,6 +242,79 @@ export class GameCoordinator {
   // to clear without re-designating.
   designateMarquee(clubId: string, rosterId: number | null): void {
     applySeasonEvent(this.state, { type: 'MARQUEE_DESIGNATED', clubId, rosterId });
+  }
+
+  // Open the end-of-season renewal window. Seeds state.career.market
+  // with one TransferOffer per expiring player league-wide, status
+  // 'pending'. Idempotent — re-opening with the window already open
+  // returns without changes. If there are no expiring players, the
+  // window doesn't open at all (caller can skip the screen).
+  openRenewalWindow(): void {
+    if (this.state.career.market) return;
+    const expiring = expiringRosterIds(this.state);
+    if (expiring.length === 0) return;
+    const offers = generateRenewalOffers(this.state);
+    applySeasonEvent(this.state, {
+      type: 'MARKET_OPENED',
+      expiringRosterIds: expiring,
+      offers,
+    });
+  }
+
+  // Close the renewal window: gather decisions, apply CONTRACT_EXTENDED
+  // for accepts and CONTRACT_TERMINATED ('expired') for rejects, then
+  // fire MARKET_CLOSED.
+  //
+  // `userDecisions` keys are offer IDs (only those belonging to the
+  // player's club take effect); values are 'renew' or 'release'. Any
+  // unsupplied offer falls back to the AI default for its club.
+  closeRenewalWindow(userDecisions: Record<string, 'renew' | 'release'> = {}): void {
+    const market = this.state.career.market;
+    if (!market) return;
+    const playerClubId = this.state.player.teamId;
+
+    // Gather decisions per offer ID. AI decides everywhere first,
+    // then the user can override only their own club's offers.
+    const decisions = new Map<string, boolean>();
+    for (const club of this.state.career.clubs) {
+      const { acceptIds, rejectIds } = decideAIOffers(this.state, club.id);
+      for (const id of acceptIds) decisions.set(id, true);
+      for (const id of rejectIds) decisions.set(id, false);
+    }
+    for (const [id, choice] of Object.entries(userDecisions)) {
+      const offer = market.offers.find(o => o.id === id);
+      if (offer && offer.fromClubId === playerClubId) {
+        decisions.set(id, choice === 'renew');
+      }
+    }
+
+    // Apply in the offer-list order so the event log is stable.
+    for (const offer of market.offers) {
+      if (offer.status !== 'pending') continue;
+      const accept = decisions.get(offer.id) ?? false;
+      applySeasonEvent(this.state, {
+        type: 'OFFER_RESPONDED',
+        offerId: offer.id,
+        accept,
+        ...(accept ? {} : { reason: 'cap_overcommit' as const }),
+      });
+      if (accept) {
+        applySeasonEvent(this.state, {
+          type: 'CONTRACT_EXTENDED',
+          rosterId: offer.rosterId,
+          newExpiresOn: expiryAfterYears(this.state, offer.lengthYears),
+          newAnnualWage: offer.annualWage,
+        });
+      } else {
+        applySeasonEvent(this.state, {
+          type: 'CONTRACT_TERMINATED',
+          rosterId: offer.rosterId,
+          reason: 'expired',
+        });
+      }
+    }
+
+    applySeasonEvent(this.state, { type: 'MARKET_CLOSED' });
   }
 
   getState(): Readonly<GameState> {

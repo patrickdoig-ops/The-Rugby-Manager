@@ -1,8 +1,8 @@
 # Transfer System & Career Mode — Roadmap
 
-Roadmap for multi-season career mode and the transfer market, with phase status. **Phases 1 + 2 shipped on main (v2.23a)** — multi-season rollover with aging/retirements/fixture regen, plus read-only contract data with marquee designations. **Phases 3-7 still ahead** — cap enforcement, end-of-season renewals, free-agent signings, cross-Prem poaching (Reg 7), generated player supply.
+Roadmap for multi-season career mode and the transfer market, with phase status. **All seven phases shipped on main (v2.43a)** — multi-season rollover, read-only contracts with marquee designations, interactive marquee + salary-cap pill, end-of-season renewals, free-agent signings, Reg 7 cross-Prem poaching, and generated player supply (academy + foreign imports).
 
-This started as a forward-looking plan and is partially live; the data shapes and mutation seams in §3–§5 are now grounded in shipped code (with `// ✅ live` / `// 🚧 future` annotations). UI / balance / phase scope for the remaining phases is still firm only at the architectural level — concrete numbers and UI copy land as each phase opens.
+The data shapes and mutation seams in §3–§5 are now fully grounded in shipped code. Remaining open work is refinement, not roadmap (§9).
 
 ---
 
@@ -10,8 +10,8 @@ This started as a forward-looking plan and is partially live; the data shapes an
 
 Two intertwined features delivered in sequence:
 
-1. **Multi-season rollover** ✅ — the league restarts, ages tick, stats develop, retirements happen, fixtures regenerate, save persists across seasons. No market. *(Phase 1, shipped v2.22a.)*
-2. **Transfer market** 🚧 — contracts (read-only ✅ v2.23a), salary cap with one marquee slot, end-of-season window, AI-driven cross-club movement, generated player supply.
+1. **Multi-season rollover** ✅ — the league restarts, ages tick, stats develop, retirements happen, fixtures regenerate, save persists across seasons. *(Phase 1, shipped v2.22a.)*
+2. **Transfer market** ✅ — contracts + reputation (Phase 2, v2.23a), salary cap with one marquee slot (Phase 3, v2.36a), end-of-season renewal window (Phase 4, v2.36a), free-agent signings + Reg 7 poaching (Phases 5+6, v2.43a), generated player supply via academy + foreign imports (Phase 7, v2.43a).
 
 Career mode is the umbrella; rollover is the prerequisite.
 
@@ -19,17 +19,17 @@ Career mode is the umbrella; rollover is the prerequisite.
 
 | Decision | Choice |
 |---|---|
-| Rollover order | First, as standalone milestone — then transfers on top |
-| Cap fidelity | £6.4M senior cap + 1 excluded marquee player. **No** HG / EPS credit pools in v1 |
-| Player supply | Closed system + free-agent pool + generated stream (academy graduates + foreign imports) each summer |
-| Player agency model | Wage + ambition (league position / silverware). Current-club loyalty bonus |
+| Rollover order | Standalone milestone first — then transfers on top |
+| Cap fidelity | £6.4M senior cap + £1.4M flat dispensation pool (HG/EPS/injury credits, modelled flat per-club) + 1 excluded marquee player ✅ |
+| Player supply | Closed system + free-agent pool + generated stream (academy graduates + foreign imports) each summer ✅ |
+| Player agency model | Wage-driven with current-club loyalty discount on renewals. Ambition / silverware response deferred |
 | Rollover scope | Stat development by age curve + age-based retirements. **No** injuries in v1 |
 | Future fixtures | Year 1 = `PREMIERSHIP_2025_26` verbatim. Year 2+ = regenerate via `src/game/fixtures.ts::generateFixtures` |
 | Doc location | This file, source of truth for the feature |
 
 ### Explicitly out of scope (v1)
 
-- ~~**Salary-cap credits** (Home Grown £600k pool, EPS/International £400k pool, £80k per-player ceiling).~~ **Promoted into Phase 5 prerequisites** — Phase 4 research showed the seeded league sits over the headline cap on average because dispensations weren't modelled; credit pools land in `balance/transfers.ts` alongside the free-agent flow. Per-player HG/EPS tagging stays deferred — flat per-club credit application is enough for v1.
+- **Per-player HG/EPS cap-credit tagging** — credit pools are modelled flat per-club in v1 (`CAP_CREDITS` in `balance/transfers.ts` sums to `EFFECTIVE_CAP_CREDITS = £1.4M`, applied flat to every club). The real PRL rules tag specific players as HG / EPS internationals and apply credits on their wages individually. The flat model gets the league inside its effective cap; per-player tagging is a refinement.
 - **PGP / hybrid RFU contracts** — modelled as a flat top-up later, if at all.
 - **EQP quota** (15 EQP avg in matchday 23). A real Premiership rule but adds compositional constraint; defer.
 - **Long-term injury system** and injury-dispensation cap relief.
@@ -111,13 +111,38 @@ interface PlayerContract {    // ✅ live
 
 The matchday `Team` doesn't carry transfer data. Career-scope club state lives on `GameState.career`, not the per-match `Team`. The matchday team is *built* from the roster on every fixture via `src/game/rosterTeamBuilder.ts::buildTeamFromRoster(state, teamJson)` — team identity from JSON, player data from roster.
 
-### Career-scope state ✅ shipped + 🚧 future (`src/types/gameState.ts`)
+### Career-scope state ✅ live (`src/types/gameState.ts`)
 
 ```ts
-// ✅ live
 interface ClubState {
   id: string;
   squad: number[];           // rosterIds of every player signed to the club
+}
+
+interface PreAgreement {
+  rosterId: number;
+  fromClubId: string;        // current club (player still plays the season at)
+  toClubId: string;          // new club at next rollover
+  annualWage: number;
+  lengthYears: number;       // 1-3
+}
+
+interface MarketState {
+  phase: 'renewals' | 'signings';
+  openedAfterSeason: string;
+  expiringRosterIds: number[];  // empty during signings phase
+  offers: TransferOffer[];
+}
+
+interface TransferOffer {
+  id: string;                // deterministic from (seasonsCompleted, fromClubId|'fa'|'pc', rosterId)
+  fromClubId: string;        // '' for free-agent signings
+  rosterId: number;
+  annualWage: number;
+  lengthYears: number;       // 1-3
+  isMarquee: boolean;
+  status: 'pending' | 'accepted' | 'rejected' | 'withdrawn';
+  rejectionReason?: 'wage' | 'ambition' | 'cap_overcommit';
 }
 
 interface CareerState {
@@ -126,38 +151,18 @@ interface CareerState {
   clubs: ClubState[];
   roster: Record<number, Player>;  // key: rosterId
   nextRosterId: number;
+  freeAgents: number[];            // unsigned rosterIds — populated by Phase 4 expiries + Phase 7 imports; consumed by Phase 5 signings
+  market: MarketState | null;      // live during renewal or signing window
+  pendingMoves: PreAgreement[];    // Phase 6 — activated at next rollover via TRANSFER_ACTIVATED
 }
 
 interface GameState {
   // ... existing ...
   career: CareerState;
 }
-
-// 🚧 future (Phases 3-6)
-//
-// ClubState gains: capUsed (derived), marqueePlayerId, budgetRemaining,
-// reputation, ambition.
-//
-// GameState gains: freeAgents (rosterId[]), market (MarketState | null).
-//
-// interface MarketState {
-//   windowOpen: boolean;
-//   openedAt: string;
-//   closesAt: string;
-//   pendingOffers: TransferOffer[];
-// }
-//
-// interface TransferOffer {
-//   id: string;              // deterministic from (round, fromClubId, rosterId, attempt)
-//   fromClubId: string;
-//   rosterId: number;
-//   annualWage: number;
-//   lengthYears: number;
-//   isMarquee: boolean;
-//   status: 'pending' | 'accepted' | 'rejected' | 'withdrawn';
-//   rejectionReason?: 'wage' | 'ambition' | 'cap_overcommit';
-// }
 ```
+
+`ClubState` deliberately stays minimal — derivations like cap usage and marquee identity live on the roster (`Player.contract.annualWage`, `Player.contract.isMarquee`) rather than denormalised onto the club. Future ambition / reputation drift would slot onto either the club or the roster as separate fields.
 
 **Identity note.** During planning the doc proposed `playerId` as the persistent identity. Shipped reality: a separate `rosterId` field keeps `Player.id` as the 1–23 matchday slot (preserves the match-engine contract — every event/system reads `id` as a jersey number). All career-scope event variants use `rosterId`. `PlayerRef` (firstName + lastName) remains the cross-save key for persisted matchday-squad snapshots.
 
@@ -199,46 +204,59 @@ All season-scope writes continue to flow through `applySeasonEvent` (see CLAUDE.
 
 `SEASON_ROLLED_OVER` is the one big event; the aging and retirement events fire in a loop inside `careerRollover.computeRollover` before it. `GameCoordinator.rollSeason()` applies them then returns the events list so the UI can render the diff.
 
-### Contract-phase variants 🚧 future (Phases 3–4)
-
-Phase 2 shipped read-only contracts via `ROSTER_SEEDED` (with `contract` embedded on each Player) — no contract-specific events yet. The renewal / designation / termination flow adds:
+### Contract-phase variants ✅ live (Phases 3–4)
 
 ```ts
-| { type: 'CONTRACT_SIGNED';
-    rosterId: number;
+| { type: 'MARQUEE_DESIGNATED';
     clubId: string;
-    contract: PlayerContract; }
-| { type: 'CONTRACT_EXTENDED';
+    rosterId: number | null; }    // null clears the slot without re-designating
+| { type: 'CONTRACT_EXTENDED';    // ✅ renewal — clubId unchanged
     rosterId: number;
     newExpiresOn: string;
     newAnnualWage: number; }
 | { type: 'CONTRACT_TERMINATED';
-    rosterId: number;            // → goes to freeAgents
+    rosterId: number;             // → joins freeAgents (unless reason === 'retired')
     reason: 'released' | 'expired' | 'retired'; }
-| { type: 'MARQUEE_DESIGNATED';
-    clubId: string;
-    rosterId: number | null; }
 ```
 
-### Market-phase variants 🚧 future (Phases 5–6)
+### Market-phase variants ✅ live (Phases 4–5)
 
 ```ts
-| { type: 'MARKET_OPENED'; closesAt: string; }
+| { type: 'MARKET_OPENED';
+    phase: 'renewals' | 'signings'; // discriminates the two off-season windows
+    expiringRosterIds: number[];    // empty during signings phase
+    offers: TransferOffer[]; }
 | { type: 'MARKET_CLOSED'; }
-| { type: 'OFFER_SENT';      offer: TransferOffer; }
-| { type: 'OFFER_RESPONDED'; offerId: string; accept: boolean; reason?: string; }
-| { type: 'OFFER_WITHDRAWN'; offerId: string; }
+| { type: 'OFFER_SENT';      offer: TransferOffer; }  // idempotent on duplicate IDs
+| { type: 'OFFER_RESPONDED'; offerId: string; accept: boolean;
+    reason?: 'wage' | 'ambition' | 'cap_overcommit'; }
 ```
 
-### Supply-phase variants 🚧 future (Phase 7)
+### Signing-phase variants ✅ live (Phases 5–6)
+
+```ts
+| { type: 'CONTRACT_SIGNED';                    // free-agent inbound (user or AI)
+    rosterId: number;
+    clubId: string;
+    expiresOn: string;
+    annualWage: number; }
+| { type: 'PRE_AGREEMENT_SIGNED';               // Reg 7 — deferred activation
+    agreement: PreAgreement; }
+| { type: 'TRANSFER_ACTIVATED';                 // rollover-time activation of a pending move
+    rosterId: number;
+    toClubId: string;
+    annualWage: number;
+    expiresOn: string; }
+```
+
+### Supply-phase variants ✅ live (Phase 7)
 
 ```ts
 | { type: 'ACADEMY_GRADUATED';
     clubId: string;
-    player: Player; }            // generated persona — rosterId allocated from nextRosterId
+    player: Player; }              // generated persona — rosterId allocated from nextRosterId
 | { type: 'FOREIGN_IMPORT_ARRIVED';
-    player: Player;              // unsigned → joins free-agent pool
-    askingWage: number; }
+    player: Player; }              // unsigned → joins freeAgents pool
 ```
 
 The exhaustive `default: const _: never = event` contract is preserved at every step.
@@ -249,9 +267,9 @@ The exhaustive `default: const _: never = event` contract is preserved at every 
 
 A fourth seeded RNG stream `rngTransfer(min, max)` / `rngTransferRaw()` lives in `src/utils/rng.ts` alongside the existing three (outcome / form / commentary). Seeded via `setCareerSeed(seed)` from `GameCoordinator.newSeason` / `fromSave` with constant `0x27D4EB2F` — independent of `setMatchSeed`, so per-fixture seed derivation cannot perturb career-scope outcomes.
 
-All stat-development RNG (Phase 1 — `clampedNormal` in `careerRollover.ts`), retirement rolls (Phase 1), contract-length and wage-noise rolls (Phase 2 — `contractSeeder.ts`) already flow through this stream. **Future**: AI offer construction, free-agent selection, persona generation (Phases 3-7).
+All stat-development RNG (Phase 1 — `clampedNormal` in `careerRollover.ts`), retirement rolls (Phase 1), contract-length + wage-noise rolls (Phase 2 — `contractSeeder.ts`), renewal offer wages (Phase 4 — `generateRenewalOffers`), signing-window offer wages (Phase 5 — cached on `state.career.market.offers` so re-renders don't re-advance the stream), and persona generation (Phase 7 — `generatePersona` advances `rngTransfer` for nationality + name + position + dob + 12 baseStats per persona) all flow through this stream.
 
-`scripts/checkSeasonDeterminism.ts` runs a 3-season career with fixed seed, snapshots per-season standings + results + the full SeasonEvent stream (retirements + aging deltas) + final-state roster baseStats + seasonsCompleted, and asserts byte-equal hash on a second run. A career with a given seed produces an identical final league table + roster + retirement list every run.
+`scripts/checkSeasonDeterminism.ts` runs a 3-season career with fixed seed, exercises both `openRenewalWindow` + `closeRenewalWindow` and `openSigningWindow` + `closeSigningWindow` between each pair of seasons (AI-only, no user decisions), snapshots per-season standings + results + the full SeasonEvent stream + renewal + signing offer hashes + post-window free-agents pool + final-state roster baseStats + seasonsCompleted, and asserts byte-equal hash on a second run. A career with a given seed produces an identical final league table + roster + retirement list + transfer activity every run.
 
 ---
 
@@ -260,17 +278,16 @@ All stat-development RNG (Phase 1 — `clampedNormal` in `careerRollover.ts`), r
 | Screen | Status | Triggered from | Purpose |
 |---|---|---|---|
 | **EndOfSeasonScreen** | ✅ live (v2.22a) | Auto, after final-round result | Final table + your-season summary + top scorer + MVP cards |
-| **RolloverScreen** | ✅ live (v2.22a) | After EndOfSeason "Continue" | Retirements list + your-squad stat-changes; "Begin {next season}" CTA |
-| **ContractsScreen** | ✅ live (v2.23a) | Hub → Contracts tile | Sortable squad list — name / pos / age / OVR / wage / expiry / marquee badge. Dimmed cap pill (no enforcement yet) |
-| **CapDashboard** | 🚧 Phase 3 | Hub → Contracts → "Cap" pill | Interactive cap usage, marquee designation, projected impact |
-| **TransferMarketScreen** | 🚧 Phase 5 | Hub → Transfers tile | List of approachable players (expiring contracts + free agents), filter by position, sort by wage/reputation/age |
-| **OfferModal** | 🚧 Phase 4 | TransferMarket / Contracts → row click | Compose an offer: wage, length, marquee flag. Shows cap impact preview |
+| **RenewalsScreen** | ✅ live (v2.36a) | After EndOfSeason if expiring contracts exist | Per-row Renew/Release toggle on the player's expiring squad with live projected-cap pill |
+| **TransferMarketScreen** | ✅ live (v2.43a) | After Renewals if free agents or Reg 7 poach candidates exist | Two sections — free agents (Sign) + final-12-month contracted (Pre-Agree). Sortable by name/pos/age/OVR/wage, live cap pill |
+| **RolloverScreen** | ✅ live (v2.22a) | After TransferMarket (or directly after Renewals/EndOfSeason if windows skipped) | Retirements + per-player aging deltas + inbound transfers + academy graduates; "Begin {next season}" CTA |
+| **ContractsScreen** | ✅ live (v2.36a) | Hub → Contracts tile | Sortable squad list — name / pos / age / OVR / wage / expiry / marquee badge. Interactive marquee toggle + 3-state cap pill |
 
 ### Existing screens that need updates
 
-- **HubScreen** — Contracts tile live (v2.23a). Cap usage chip in the header + badge on Transfers tile when offers need response: 🚧 Phase 3+.
-- **TeamInfoScreen** — contract expiry on each player row: 🚧 (Phase 2 surfaced it on ContractsScreen only).
-- **PreMatchScreen** — no change v1; matchday selection is unaffected.
+- **HubScreen** — Contracts tile live. Cap usage chip in header + badge on Transfers tile when offers need response: not yet wired (the Transfers tile remains a placeholder; the signing window today is reachable only via the post-EndOfSeason chain).
+- **TeamInfoScreen** — contract expiry on each player row: not yet surfaced (lives on ContractsScreen only).
+- **PreMatchScreen** — no change; matchday selection is unaffected.
 - **MatchResultScreen** — unchanged; rollover triggers from EndOfSeasonScreen, not from each match result.
 
 ### Navigation flow
@@ -279,15 +296,16 @@ All stat-development RNG (Phase 1 — `clampedNormal` in `careerRollover.ts`), r
 Match → MatchResult → RoundResults → LeagueTable → Hub             (mid-season, unchanged)
 
 Final-round result →
-  RoundResults → LeagueTable → EndOfSeasonScreen ✅ →
-    RolloverScreen ✅ → Hub (new season)                            (✅ shipped v2.22a)
+  RoundResults → LeagueTable → EndOfSeasonScreen
+                             → RenewalsScreen        (if any expiring contracts)
+                             → TransferMarketScreen  (if any free agents or poach candidates)
+                             → RolloverScreen
+                             → Hub (new season)
 
-Hub → Contracts tile → ContractsScreen ✅ → Hub                     (✅ shipped v2.23a, read-only)
-
-Hub → Transfers tile → TransferMarketScreen → OfferModal → Hub      🚧 Phase 5+
+Hub → Contracts tile → ContractsScreen → Hub
 ```
 
-Hub remains the top of the in-season stack. Settings is still the exit route.
+The Transfers tile on Hub remains a no-op placeholder — the signing window is only reachable via the post-EndOfSeason chain. Mid-season transfer activity is out of scope (deferred indefinitely per §1). Hub remains the top of the in-season stack. Settings is still the exit route.
 
 ---
 
@@ -299,9 +317,10 @@ Each landing milestone bumps `SAVE_VERSION` in `src/ui/SaveManager.ts`. The orig
 |---|---|---|
 | v5 | ✅ shipped v2.22a | Rollover: `state.career` snapshot — every `Player` keyed by `rosterId`, `ClubState[]`, `archive[]`, `seasonsCompleted`, `nextRosterId` |
 | v6 | ✅ shipped v2.23a | Contracts: `PlayerContract` + `reputation` embedded on each persisted Player |
-| v7 | 🚧 Phase 4+ | Market: `freeAgents[]` (rosterId[]), `MarketState` if window is open, pending offers |
+| v7 | ✅ shipped v2.36a | Market: `freeAgents[]` (rosterId[]) + optional `MarketState` if a renewal window is open mid-save. `MarketState.phase` discriminates renewals from signings (defaults to `'renewals'` on older v7 loads) |
+| v8 | ✅ shipped v2.43a | Reg 7: `pendingMoves[]` (PreAgreement[]) for cross-Prem pre-agreements that activate at the next rollover |
 
-Migrations are auto on load. v4 → v5 seeds a fresh roster from JSONs (lossless — pre-v5 had zero per-player evolution). v5 → v6 walks the persisted roster and runs `contractSeeder.seedContractFields` for any Player missing contract / reputation fields. v2 → v3 → v4 cascades use earlier-version restore paths. v1 saves are discarded.
+Migrations are auto on load. v7 → v8 defaults `pendingMoves` to `[]`. v6 → v7 defaults `freeAgents` to `[]` and `market` to `null`. v5 → v6 walks the persisted roster and runs `contractSeeder.seedContractFields` for any Player missing contract / reputation fields. v4 → v5 seeds a fresh roster from JSONs (lossless — pre-v5 had zero per-player evolution). v2 → v3 → v4 cascades use earlier-version restore paths. v1 saves are discarded. Every restore flows through `CAREER_ARCHIVE_RESTORED` (with optional `freeAgents` + `market` + `pendingMoves`) so the `applySeasonEvent` seam holds across the load path.
 
 ---
 
@@ -337,77 +356,68 @@ Every player carries `PlayerContract` + `reputation`. Hub's Contracts tile opens
 
 **Deferred to Phase 3+:** any market activity, cap enforcement, interactive marquee designation (current marquees are immutable from JSON).
 
-### Phase 3 — Salary cap + marquee 🚧
+### Phase 3 — Salary cap + marquee ✅ shipped v2.36a
 
-**Goal:** every club has a visible cap usage. Each club designates one marquee player (free choice for the human; AI auto-picks the highest-paid).
+Every club has a visible 3-state cap pill. The user designates one marquee player via tap-to-toggle on `ContractsScreen`; AI clubs retain their JSON-authored marquee (no AI marquee auto-pick — kept simple, the renewal+signing layer handles AI cap management).
 
-**Work items:**
-1. `MARQUEE_DESIGNATED` event + handler. Current marquees from JSON become the initial assignment but can be re-pointed.
-2. Derived `capUsed = Σ(squad wages) - marqueeWage`. (Already computed read-only in `ContractsScreen` cap pill; Phase 3 makes it interactive.)
-3. New `CapDashboard` screen showing cap usage, marquee, projected impact.
-4. ✅ `src/engine/balance/transfers.ts` already shipped with Phase 2 — `SENIOR_CAP = 6_400_000`, `WAGE_BY_RATING`, `POSITION_SCARCITY`, etc.
+**Shipped:**
+1. ✅ `MARQUEE_DESIGNATED` event + apply branch — clears the prior marquee on the named club's squad before setting the new one. Idempotent on `rosterId: null` (clears without re-designating).
+2. ✅ Cap = Σ non-marquee wages, computed live in `ContractsScreen`. Cap pill (`ok` / `tight` ≥ 95% / `over`).
+3. ✅ Marquee toggle on ContractsScreen (no separate CapDashboard — the cap pill in the header is the dashboard).
 
-**Out of scope:** any active market. Cap is decorative until Phase 4.
+### Phase 4 — End-of-season renewals ✅ shipped v2.36a
 
-### Phase 4 — End-of-season renewals only
+Between the final-round `EndOfSeasonScreen` and rollover, every expiring contract gets a `TransferOffer`. The user toggles Renew/Release on their own club's offers in `RenewalsScreen`; AI clubs auto-resolve via `aiTransferDirector.decideAIOffers` (greedy by OVR with marquee + effective-cap-target + OVR-floor rules).
 
-**Goal:** at end of season, expiring contracts trigger an offer screen. Human can renew their own expiring players within cap. AI auto-renews theirs.
+**Shipped:**
+1. ✅ `MARKET_OPENED(phase: 'renewals')` / `MARKET_CLOSED` events firing from EndOfSeason → Rollover.
+2. ✅ `OFFER_SENT` (reserved — open-window flow seeds via `MARKET_OPENED` directly) + `OFFER_RESPONDED` per offer.
+3. ✅ `RenewalsScreen` with per-row toggle + live projected cap pill.
+4. ✅ Loyalty-discount model: current-club offer = market wage × `1 - RENEWAL.loyaltyDiscount`.
+5. ✅ Rejected → `CONTRACT_TERMINATED('expired')` → joins `state.career.freeAgents`.
+6. ✅ `src/game/aiTransferDirector.ts` — pure / RNG-free greedy AI decisions.
 
-**Work items:**
-1. `MARKET_OPENED` / `MARKET_CLOSED` events firing from `EndOfSeasonScreen` → `RolloverScreen` transition.
-2. `OFFER_SENT` / `OFFER_RESPONDED` events (only own-club renewals).
-3. `OfferModal` UI.
-4. Rejection model: wage-driven; current club has a loyalty discount on demanded wage.
-5. Unrenewed players → `CONTRACT_TERMINATED reason: 'expired'` → `freeAgents`.
-6. New `src/engine/AITransferDirector.ts` — pure RNG-only module, called for each AI club to decide renewals. Constructor analogous to `AITacticalDirector`.
+### Phase 5 — Free-agent signings ✅ shipped v2.43a
 
-**Out of scope:** signing other clubs' players, free-agent signings, generated supply.
+After renewals close, the user + every AI club can sign any player in `state.career.freeAgents`.
 
-### Phase 5 — Free-agent pool, both sides can sign 🚧
-
-**Goal:** human and AI can sign any free agent during the end-of-season window.
-
-**Cap-fidelity prerequisites (do these first within Phase 5).** Phase 4 surfaced two over-cap issues in the seeded league: every wage decision (sign/renew/release) interacts with the cap, so getting cap realism right before the market opens up matters more than during Phases 1-4. Three small changes:
-
-1. **Credit pools in `src/engine/balance/transfers.ts`.** Real Premiership clubs can spend up to ~£8.5M before exceeding cap, via dispensations the model doesn't currently apply. Add `CAP_CREDITS = { homeGrownPool: 600_000, homeGrownPerPlayer: 50_000, epsPool: 400_000, epsPerPlayer: 80_000, injuryPool: 400_000 }`. Derive effective cap headroom in `ContractsScreen`'s pill and `aiTransferDirector.decideAIOffers` as `SENIOR_CAP + applicableCredits − marqueeWage`. Phase 5 model: credits applied flat to each club (no per-player HG/EPS tagging yet — that lands in a later refinement). This alone closes ~£1.4M of headroom league-wide.
-2. **Tighten the upper `WAGE_BY_RATING` anchors.** The current £780k @ rating 96 anchor puts ordinary stars (du Toit, Itoje, Russell, etc.) at marquee-tier wages, which inflates seeded squads. Drop the top of the curve so rating 96 lands closer to £550k (the £700k-900k band stays reachable but only via the excluded marquee slot, which is the real-world mechanic). Re-runs of the determinism harness give new hashes — expected; document the rebaseline.
-3. **Switch Bath's marquee from du Toit to Russell.** Single-line edit in `docs/team-data.md` (move the `Marquee: yes.` annotation) + regen JSONs. Russell is the real-world marquee per the league's published list; du Toit's wage is fully cap-burdening at Bath. Also updates the Phase 1 hand-edits on the six non-`*(in game)*` team JSONs if needed.
-
-After the prerequisites, cap-burdening figures league-wide drop materially (Bath was +£2.1M over; should land within ~£1M of cap, fixable through the renewal window over 1-2 seasons).
+**Cap-fidelity prerequisites (landed first as part of Phase 5):**
+1. ✅ `CAP_CREDITS` in `src/engine/balance/transfers.ts` — flat per-club HG £600k + EPS £400k + injury £400k = `EFFECTIVE_CAP_CREDITS = £1.4M` widening effective cap to £7.8M.
+2. ✅ Tightened `WAGE_BY_RATING` upper anchors — rating 96 anchor dropped from £780k to £560k so ordinary stars compress into the £350-550k band; marquee-tier wages only via the excluded marquee slot.
+3. ✅ Bath marquee moved from du Toit to Russell (matches the real-world published marquee list).
 
 **Phase 5 work items proper:**
+1. ✅ `TransferMarketScreen` lists free agents sortable by name / pos / age / OVR / wage, with live projected-cap pill.
+2. ✅ `aiTransferDirector.decideAISignings` — greedy by `overall + position-need × 10`, no OVR floor (the pool is largely sub-70 — score keeps quality ahead of squad-filler), capped at 4 signings per club per window against `AI_SIGN_CAP_TARGET = 0.92` of effective cap.
+3. ✅ Cached offers on `state.career.market.offers` (seeded once at `openSigningWindow`, read by re-renders + sign calls + AI close pass — keeps `rngTransfer` stable).
+4. ✅ User-side `signFreeAgent(rosterId)` fires `CONTRACT_SIGNED` immediately at the cached terms.
 
-1. `TransferMarketScreen` lists free agents (sortable by position / reputation / wage / age).
-2. AI scoring function for free agents: position need × reputation × wage affordability (against the now-credits-aware effective cap).
-3. Multi-offer handling — if multiple clubs offer same player, deterministic resolution by `(wage, ambition, rngTransfer tiebreak)`.
-4. Window "tick": player advances time by clicking "Continue Window". Each tick, AI sends new offers and resolves any matured ones.
+**Deferred:** per-player HG/EPS cap-credit tagging.
 
-**Out of scope:** cross-Prem poaching of contracted players (Phase 6), per-player HG/EPS tagging (deferred refinement).
+### Phase 6 — Cross-Prem poaching (Reg 7) ✅ shipped v2.43a
 
-### Phase 6 — Cross-Prem poaching (Reg 7)
+Approach players at other clubs whose contract enters its final 12 months. The move activates at the next rollover, not immediately — the player completes the current season at their existing club.
 
-**Goal:** approach players at other clubs whose contract enters its final 12 months. Effective 1 July of next season.
+**Shipped:**
+1. ✅ `aiTransferDirector.isPoachEligible(player, currentDate)` — final-12-month check.
+2. ✅ Surfaced in `TransferMarketScreen` as a second section ("Final-12-Month Contracts (Reg 7 Pre-Agreement)") alongside free agents — the same screen serves both flows.
+3. ✅ `PRE_AGREEMENT_SIGNED` pushes onto `state.career.pendingMoves`; `careerRollover` fires `TRANSFER_ACTIVATED` per pending move on rollover (atomic squad swap, no `freeAgents` touch).
+4. ✅ `aiTransferDirector.decideAIPoaches` — max 1 per non-human AI club per window, OVR ≥ `aiReleaseRatingFloor`, position-need bonus.
 
-**Work items:**
-1. `OFFER_SENT` from non-current club allowed iff `contract.expiresOn` is within 12 months of current calendar date.
-2. Offer takes effect on `SEASON_ROLLED_OVER` for the relevant season — the player's `clubId` changes only then.
-3. Visible "Approaching expiry" badge in `TransferMarketScreen`.
-4. AI poaching logic in `AITransferDirector` (target position-of-need + reputation gap they can afford).
+**Deferred:** mid-season activation, buyouts, loan deals.
 
-**Out of scope:** mid-season activation, buyouts, loan deals.
+### Phase 7 — Generated supply (academy + foreign) ✅ shipped v2.43a
 
-### Phase 7 — Generated supply (academy + foreign)
+The league no longer feels closed. Each rollover, every club graduates 2-4 academy players and 5-10 foreign imports enter the free-agent pool.
 
-**Goal:** the league no longer feels closed. Each summer, every club graduates some academy players and a handful of foreign imports enter the free-agent pool.
+**Shipped:**
+1. ✅ `src/game/personaGenerator.ts::generatePersona(seed, calendarDate)` — deterministic from `rngTransfer`. Inputs: clubId (drives nationality bias), ageBand, ratingBand. Outputs: full `Player` shape with name, dob, baseStats, position, nationality, reputation, contract.
+2. ✅ `NAME_POOLS` per 10 nationalities (English, Welsh, Scottish, Irish, French, South Africa, NZ, Australia, Fiji, Argentina), ~15-20 first + last names each.
+3. ✅ `ACADEMY_GRADUATED` fired in `careerRollover`: 2-4 per club, ages 18-20, ratingBand 55-75, £20k fixed RPA rookie wage, 2-year deal.
+4. ✅ `FOREIGN_IMPORT_ARRIVED` fired in `careerRollover`: 5-10 single batch, ages 23-30, ratingBand 65-88, `WAGE_BY_RATING × POSITION_SCARCITY` wage, joins `freeAgents`.
+5. ✅ Surfaced in `RolloverScreen` (Inbound Transfers + Academy Graduates sections, conditional on event presence).
 
-**Work items:**
-1. Persona generator (`src/game/personaGenerator.ts`): deterministic from `rngTransfer`. Inputs: nationality bias for club, target position, target rating band. Outputs: a `Player` with name, dob, baseStats, position, nationality, starting reputation.
-2. Name pools by nationality (English, Welsh, Scottish, Irish, French, South African, NZ/Australian, Pacific Islander, Argentinian).
-3. `ACADEMY_GRADUATED` fired during `SEASON_ROLLED_OVER`: 2–4 graduates per club, ages 18–20, starting reputation 25–50, fixed rookie wage.
-4. `FOREIGN_IMPORT_ARRIVED` fired before market opens: 5–10 imports per summer, ages 23–30, varied tier.
-5. Match-engine compatibility check: any code that assumed `player.id ≤ 23` or used `Player.id` as a stable cross-team index must be audited.
-
-**Out of scope:** rugby league converts, Championship promotions, retiring international stars joining from URC mid-career (these are individually scriptable later).
+**Deferred:** rugby league converts, Championship promotions, retiring international stars joining from URC mid-career (individually scriptable later).
 
 ---
 

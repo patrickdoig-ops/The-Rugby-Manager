@@ -14,9 +14,11 @@
 // runs on a timer.
 
 import type {
+  ArchivedSeason, ClubState,
   Fixture, FixtureResult, GameState, PlayerRef, SeasonEvent, SeasonSchedule,
 } from '../types/gameState';
 import { emptyCareerState } from '../types/gameState';
+import type { Player } from '../types/player';
 import type { TeamTactics } from '../types/team';
 import { applySeasonEvent } from './applySeasonEvent';
 import { simulateFixture } from './simulateFixture';
@@ -39,6 +41,17 @@ export type SavedSeasonResult = {
   awayScore: number;
 };
 
+// v5+: persistent career snapshot — every player's current baseStats +
+// the per-club squad pointers. Absent on v4 and older saves; fromSave
+// seeds a fresh roster from the JSONs in that case.
+export interface SavedCareer {
+  seasonsCompleted: number;
+  nextRosterId: number;
+  clubs: ClubState[];
+  roster: Record<number, Player>;
+  archive: ArchivedSeason[];
+}
+
 export interface SavedSeason {
   playerTeamId: string;
   seed: number;
@@ -55,6 +68,31 @@ export interface SavedSeason {
   // first Kick Off.
   tactics?: TeamTactics;
   matchdaySquad?: PlayerRef[];
+  // v5+: persistent roster + career history. v4 loads seed fresh from
+  // JSONs since pre-v5 there has been zero per-player evolution to
+  // preserve.
+  career?: SavedCareer;
+}
+
+// Deep clone the roster index for save serialisation — every Player and
+// its nested PlayerStats / PlayerMatchStats / PlayerSeasonStats. Skip
+// volatile per-match fields (currentStats / fatiguePct / rating / x / y /
+// matchStats / formModifier) by passing through baseStats only and
+// re-zeroing the others on load via initPlayer; but for v5 we keep the
+// full Player shape so the load path is uniform. Idle defaults are safe.
+function serializeRoster(roster: Record<number, Player>): Record<number, Player> {
+  const out: Record<number, Player> = {};
+  for (const k of Object.keys(roster)) {
+    const p = roster[Number(k)];
+    out[Number(k)] = {
+      ...p,
+      baseStats: { ...p.baseStats },
+      currentStats: { ...p.currentStats },
+      matchStats: { ...p.matchStats },
+      seasonStats: { ...p.seasonStats },
+    };
+  }
+  return out;
 }
 
 function emptyState(): GameState {
@@ -121,16 +159,37 @@ export class GameCoordinator {
       teamIds: allTeams.map(t => t.id),
       schedule: effectiveSchedule,
     });
-    // v4 saves predate the persistent roster — seed it fresh from the raw
-    // team JSONs. v5+ saves will carry the roster directly and skip this
-    // (added in Phase 1 commit 8 when SAVE_VERSION bumps).
-    const seeded = seedRoster(allTeams);
-    applySeasonEvent(coord.state, {
-      type: 'ROSTER_SEEDED',
-      roster: seeded.roster,
-      clubs: seeded.clubs,
-      nextRosterId: seeded.nextRosterId,
-    });
+    // v5+ saves carry the persistent roster + career archive directly.
+    // v4 and older predate the roster; seed fresh from JSONs (lossless —
+    // pre-v5 there was zero per-player evolution to preserve).
+    if (save.career) {
+      applySeasonEvent(coord.state, {
+        type: 'ROSTER_SEEDED',
+        roster: save.career.roster,
+        clubs: save.career.clubs.map(c => ({ id: c.id, squad: [...c.squad] })),
+        nextRosterId: save.career.nextRosterId,
+      });
+      // ROSTER_SEEDED only repopulates the roster + clubs. seasonsCompleted
+      // and archive need a separate restore — no dedicated SeasonEvent
+      // since they only mutate inside SEASON_ROLLED_OVER. Direct splice
+      // is acceptable here because fromSave is the construction path,
+      // pre-emit, with no other mutations in flight.
+      coord.state.career.seasonsCompleted = save.career.seasonsCompleted;
+      coord.state.career.archive = save.career.archive.map(a => ({
+        seasonLabel: a.seasonLabel,
+        standings: a.standings.map(s => ({ ...s })),
+        topScorerRosterId: a.topScorerRosterId,
+        mvpRosterId: a.mvpRosterId,
+      }));
+    } else {
+      const seeded = seedRoster(allTeams);
+      applySeasonEvent(coord.state, {
+        type: 'ROSTER_SEEDED',
+        roster: seeded.roster,
+        clubs: seeded.clubs,
+        nextRosterId: seeded.nextRosterId,
+      });
+    }
     // Replay results in round order, then advance week to match the snapshot.
     const ordered = [...save.results].sort((a, b) => a.round - b.round);
     for (const r of ordered) {
@@ -285,6 +344,18 @@ export class GameCoordinator {
       ...(this.state.player.matchdaySquad
         ? { matchdaySquad: this.state.player.matchdaySquad.map(r => ({ ...r })) }
         : {}),
+      career: {
+        seasonsCompleted: this.state.career.seasonsCompleted,
+        nextRosterId: this.state.career.nextRosterId,
+        clubs: this.state.career.clubs.map(c => ({ id: c.id, squad: [...c.squad] })),
+        roster: serializeRoster(this.state.career.roster),
+        archive: this.state.career.archive.map(a => ({
+          seasonLabel: a.seasonLabel,
+          standings: a.standings.map(s => ({ ...s })),
+          topScorerRosterId: a.topScorerRosterId,
+          mvpRosterId: a.mvpRosterId,
+        })),
+      },
     };
   }
 }

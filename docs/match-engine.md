@@ -75,10 +75,28 @@ Match-scope writes flow through `applyMatchEvent`; **season-scope writes flow th
 | `game:initialized` | `{ state: GameState }` | `FixtureListScreen` (initial render after `newSeason` / `fromSave`) |
 | `game:fixtureRecorded` | `{ result: FixtureResult; state: GameState }` | `FixtureListScreen` (re-render fixtures + standings as each headless sim resolves) |
 | `game:weekAdvanced` | `{ state: GameState }` | `FixtureListScreen` (calendar header) |
+| `game:seasonComplete` | `{ state: GameState }` | `main.ts` latches a flag; the post-match Continue chain reroutes through `EndOfSeasonScreen` → `RolloverScreen` |
+| `game:seasonRolledOver` | `{ state: GameState }` | (none yet — emitted after `rollSeason()` applies its events; reserved for future watchers) |
 
-`SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`: `playerTeamId`, `seed`, `currentWeek`, every `FixtureResult` (player's + AI), (v3+) the `seasonLabel` + `fixtures` snapshot the user saw at save time, and (v4+) the persisted pre-match `tactics` + `matchdaySquad` so the next match opens with the manager's last commit as the default. `fromSave` re-runs `SEASON_INITIALIZED` against the saved schedule when present (otherwise falls back to the canonical one for legacy v2 saves), replays results to rebuild standings + calendar deterministically, then replays the saved `PLAYER_TACTICS_SET` / `PLAYER_MATCHDAY_SQUAD_SET` events if present. `SAVE_VERSION` is now 4; v2 and v3 saves load via the legacy path (no tactics/squad snapshot) and v1 saves are discarded.
+#### Career-scope mutation seam
 
-Season-level determinism: `(playerTeamId, rootSeed)` plus the player's series of results produces an identical final league table on every run. Verified by `scripts/checkSeasonDeterminism.ts`; `npm run verify` runs both the match-level and season-level harnesses.
+Layered on top of `applySeasonEvent`: `GameState.career` (`src/types/gameState.ts`) holds the persistent senior-squad roster + per-club squad pointers + archived season standings, so the league can span multiple years. Five additional `SeasonEvent` variants (still routed through `applySeasonEvent`, same exhaustive `never` contract):
+
+- `ROSTER_SEEDED` — fired once on `newSeason` (and on `fromSave` when `save.career` is absent, i.e. v4 saves). Walks every `RawTeamInput`, allocates a globally-unique `rosterId` per player via `src/game/rosterSeeder.ts`, and populates `state.career.roster` + `ClubState[]`.
+- `PLAYER_SEASON_STATS_ACCUMULATED` — fired post-fixture (player + silent AI) by `GameCoordinator.recordPlayerMatchResult` via `src/game/seasonStatsCollector.ts`. Adds the per-match delta to `roster[rosterId].seasonStats` — the per-season accumulator that drives top-scorer / MVP cards in EndOfSeasonScreen.
+- `PLAYER_AGED` — emitted per player per rollover from `src/game/careerRollover.ts`. Applies the age-curve-driven stat delta (`AGE_CURVES` in `balance/career.ts`) plus Gaussian noise (`STAT_NOISE`, sampled via `rngTransfer`).
+- `PLAYER_RETIRED` — emitted per retiring player per rollover. Probabilistic check against `RETIREMENT_CURVE` (split by `forwards` / `backs` position class). Removes the rosterId from `ClubState.squad`; the `Player` record itself is retained for archive references.
+- `SEASON_ROLLED_OVER` — the composite. Archives the just-completed season's standings + top scorer + MVP, resets `league.results` / `league.standings` / per-player `seasonStats`, replaces `league.fixtures` with a freshly generated round-robin (with synthetic Sept–May weekly dates skipping November + February), sets the new `seasonLabel`, increments `seasonsCompleted`.
+
+The two ends of the rollover are wired through the post-match nav chain in `main.ts`: a `game:seasonComplete` emit from `GameCoordinator.recordPlayerMatchResult` after the final round latches a flag; the LeagueTable Continue handler then routes through `EndOfSeasonScreen` (recap render, with state still at the just-completed season) and `RolloverScreen` (renders the `SeasonEvent[]` returned by `rollSeason()` — retirements + per-player stat deltas). `rollSeason()` returns the events list so the diff can be rendered post-apply.
+
+The matchday `Player.id` is **still a slot number 1–23** — every match-engine event variant, `RatingEngine`, `StaminaSystem`, etc. continue to read it as a slot. The persistent identity is `Player.rosterId`. The matchday team is built from the roster by `src/game/rosterTeamBuilder.ts::buildTeamFromRoster(state, teamJson)` which carries `rosterId` through on each `RawPlayer` so `MatchCoordinator.initPlayer` can re-attach it.
+
+A fourth seeded RNG stream `rngTransfer` (`src/utils/rng.ts`, constant `0x27D4EB2F`, reset by `setCareerSeed(seed)` on `newSeason`/`fromSave`) services all career-scope randomness — stat noise, retirement rolls, future transfer / persona generation. Stays isolated from `rng` / `rngForm` / `pickRandom` so career mutations cannot perturb match outcomes.
+
+`SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`: `playerTeamId`, `seed`, `currentWeek`, every `FixtureResult` (player's + AI), (v3+) the `seasonLabel` + `fixtures` snapshot the user saw at save time, (v4+) the persisted pre-match `tactics` + `matchdaySquad`, and (v5+) the full `career` snapshot — `roster` (every player keyed by rosterId), `clubs` (per-club squad pointers), `archive` (past-season standings + awards), `seasonsCompleted`, `nextRosterId`. `fromSave` restores the career when present; v4 and older trigger a fresh roster seed from JSONs (lossless — pre-v5 there was zero per-player evolution). `SAVE_VERSION` is now 5; v2–v4 saves load via the legacy path and v1 saves are discarded.
+
+Season + career determinism: `(playerTeamId, rootSeed)` plus the player's series of results produces an identical final league table + roster baseStats + retirement list on every run, across multiple seasons. Verified by `scripts/checkSeasonDeterminism.ts`; `npm run verify` runs both the match-level and career-level harnesses.
 
 ### Balance constants
 

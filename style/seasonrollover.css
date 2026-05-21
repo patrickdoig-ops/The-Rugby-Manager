@@ -1,0 +1,358 @@
+/* End-of-Season + Rollover screens. Paired post-final-round flow. */
+
+#end-of-season,
+#rollover {
+  position: fixed;
+  inset: 0;
+  z-index: 225;
+  background: var(--rm-bg);
+  display: flex;
+  flex-direction: column;
+  padding-top:    env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left:   env(safe-area-inset-left, 0px);
+  padding-right:  env(safe-area-inset-right, 0px);
+  overflow: hidden;
+}
+
+#eos-topbar,
+#roll-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 0;
+  flex-shrink: 0;
+}
+
+#eos-title,
+#roll-title {
+  font-family: var(--rm-font-display);
+  font-size: 16px;
+  color: var(--rm-chalk);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+#eos-eyebrow,
+#roll-eyebrow {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--rm-pitch);
+  text-transform: uppercase;
+  text-align: center;
+  padding: 10px 16px 14px;
+  flex-shrink: 0;
+}
+
+/* ===== EndOfSeasonScreen ===== */
+
+#eos-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  padding: 0 16px;
+}
+
+@media (min-width: 640px) {
+  #eos-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.eos-section {
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 12px;
+  padding: 14px;
+  flex: 0 0 auto;
+}
+
+#end-of-season > .eos-section {
+  margin: 14px 16px 0;
+}
+
+.eos-h3 {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--rm-text-muted, var(--rm-text-dim));
+  text-transform: uppercase;
+  margin: 0 0 10px;
+}
+
+#end-of-season > div:nth-of-type(2) {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.eos-table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eos-row {
+  display: grid;
+  grid-template-columns: 24px 28px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+
+.eos-row--me {
+  background: color-mix(in oklch, var(--rm-pitch) 18%, transparent);
+  border: 1px solid color-mix(in oklch, var(--rm-pitch) 40%, transparent);
+}
+
+.eos-rank {
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  color: var(--rm-text-dim);
+  text-align: right;
+}
+
+.eos-crest {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-display);
+  font-size: 11px;
+  color: rgba(255,255,255,0.92);
+}
+
+.eos-team-name {
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--rm-text);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eos-pts {
+  font-family: var(--rm-font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--rm-chalk);
+  font-variant-numeric: tabular-nums;
+}
+
+.eos-season-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eos-season-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rm-hairline);
+}
+
+.eos-season-list li:last-child { border-bottom: none; }
+
+.eos-season-list span {
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+}
+
+.eos-season-list strong {
+  font-family: var(--rm-font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--rm-chalk);
+  font-variant-numeric: tabular-nums;
+}
+
+.eos-leaders {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 480px) {
+  .eos-leaders { grid-template-columns: 1fr 1fr; }
+}
+
+.eos-leader {
+  padding: 14px;
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--rm-bg) 60%, transparent);
+}
+
+.eos-leader-label {
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--rm-pitch);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.eos-leader-name {
+  font-family: var(--rm-font-display);
+  font-size: 18px;
+  color: var(--rm-chalk);
+  letter-spacing: 0.03em;
+}
+
+.eos-leader-meta {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--rm-text-dim);
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+.eos-leader-metric {
+  margin-top: 8px;
+  font-family: var(--rm-font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--rm-chalk);
+  font-variant-numeric: tabular-nums;
+}
+
+#eos-footer,
+#roll-footer {
+  flex-shrink: 0;
+  padding: 14px 20px max(16px, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--rm-hairline);
+  background: color-mix(in oklch, var(--rm-bg) 92%, transparent);
+  margin-top: auto;
+}
+
+#eos-continue,
+#roll-continue {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 22px;
+  background: #007a2a;
+  border: none;
+  border-radius: 12px;
+  color: #ffffff;
+  font-family: var(--rm-font-display);
+  font-size: 18px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow:
+    0 8px 24px color-mix(in oklch, var(--rm-pitch) 28%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+  transition: background 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#eos-continue:hover,  #roll-continue:hover  { background: #009434; }
+#eos-continue:active, #roll-continue:active { background: #006622; }
+
+/* ===== RolloverScreen ===== */
+
+.roll-section {
+  margin: 14px 16px 0;
+  padding: 14px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 12px;
+}
+
+#rollover {
+  overflow-y: auto;
+}
+
+.roll-h3 {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--rm-text-muted, var(--rm-text-dim));
+  text-transform: uppercase;
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.roll-count {
+  font-family: var(--rm-font-display);
+  font-size: 16px;
+  color: var(--rm-chalk);
+  letter-spacing: 0.02em;
+}
+
+.roll-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.roll-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  background: color-mix(in oklch, var(--rm-bg) 65%, transparent);
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.roll-name {
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--rm-chalk);
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.roll-meta {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+}
+
+.roll-deltas {
+  display: flex;
+  gap: 8px;
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  flex-wrap: wrap;
+}
+
+.roll-delta-pos { color: var(--rm-pitch); }
+.roll-delta-neg { color: var(--rm-danger, #d8503e); }
+
+.roll-empty {
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  color: var(--rm-text-dim);
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+  padding: 14px 0;
+}

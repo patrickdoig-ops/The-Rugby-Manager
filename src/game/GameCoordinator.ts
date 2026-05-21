@@ -14,7 +14,7 @@
 // runs on a timer.
 
 import type {
-  Fixture, FixtureResult, GameState, PlayerRef, SeasonSchedule,
+  Fixture, FixtureResult, GameState, PlayerRef, SeasonEvent, SeasonSchedule,
 } from '../types/gameState';
 import { emptyCareerState } from '../types/gameState';
 import type { TeamTactics } from '../types/team';
@@ -246,6 +246,13 @@ export class GameCoordinator {
 
     applySeasonEvent(this.state, { type: 'WEEK_ADVANCED' });
     eventBus.emit('game:weekAdvanced', { state: this.state });
+
+    // No more player fixtures after this round → fire the season-complete
+    // signal so the post-match Continue chain (LeagueTable → ...) reroutes
+    // through EndOfSeasonScreen instead of landing back on Hub.
+    if (this.getCurrentFixture() === null) {
+      eventBus.emit('game:seasonComplete', { state: this.state });
+    }
   }
 
   // Advance the persistent career one full season. Ages every player,
@@ -253,14 +260,17 @@ export class GameCoordinator {
   // standings + season awards, and replaces league.fixtures with a fresh
   // circle-method schedule (with synthetic Sept-May weekly dates).
   //
-  // Called from main.ts's RolloverScreen "Begin next season" CTA.
+  // Returns the SeasonEvent list it applied so the caller can render the
+  // diff (retirements + per-player stat changes) in RolloverScreen.
+  // Called by main.ts on the EndOfSeason → Rollover transition.
   // Idempotency: relies on the caller — once SEASON_ROLLED_OVER is
   // applied, the league.fixtures and seasonLabel are the new season's;
   // a second call would roll forward again.
-  rollSeason(): void {
+  rollSeason(): SeasonEvent[] {
     const events = computeRollover(this.state, [...this.teamsById.keys()]);
     for (const ev of events) applySeasonEvent(this.state, ev);
     eventBus.emit('game:seasonRolledOver', { state: this.state });
+    return events;
   }
 
   toSavePayload(): SavedSeason {

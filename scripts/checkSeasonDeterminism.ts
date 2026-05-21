@@ -11,6 +11,7 @@
 import { createHash } from 'node:crypto';
 import { GameCoordinator } from '../src/game/GameCoordinator.js';
 import { simulateFixture } from '../src/game/simulateFixture.js';
+import { buildTeamFromRoster } from '../src/game/rosterTeamBuilder.js';
 import type { RawTeamInput } from '../src/types/teamData.js';
 import { applyStarBoost } from '../src/team/applyStarBoost.js';
 import type { TeamJson } from '../src/team/teamProfile.js';
@@ -41,9 +42,12 @@ async function runOnce(seed: number): Promise<string> {
   while (true) {
     const next = coord.getCurrentFixture();
     if (!next) break;
-    const home = teamsById.get(next.homeId)!;
-    const away = teamsById.get(next.awayId)!;
-    const sim = await simulateFixture(home, away, coord.getState().seed, next.round);
+    const state = coord.getState();
+    const homeJson = teamsById.get(next.homeId)!;
+    const awayJson = teamsById.get(next.awayId)!;
+    const home = buildTeamFromRoster(state, homeJson);
+    const away = buildTeamFromRoster(state, awayJson);
+    const sim = await simulateFixture(home, away, state.seed, next.round);
     await coord.recordPlayerMatchResult(next.round, sim.homeScore, sim.awayScore);
   }
 

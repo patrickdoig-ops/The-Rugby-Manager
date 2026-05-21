@@ -21,6 +21,7 @@ import type { TeamTactics } from '../types/team';
 import { applySeasonEvent } from './applySeasonEvent';
 import { simulateFixture } from './simulateFixture';
 import { seedRoster } from './rosterSeeder';
+import { buildTeamFromRoster } from './rosterTeamBuilder';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed } from '../utils/rng';
 import { SEASON_VALUES } from '../engine/balance';
@@ -210,9 +211,11 @@ export class GameCoordinator {
       f.awayId !== this.state.player.teamId
     );
     for (const f of aiFixtures) {
-      const home = this.teamsById.get(f.homeId);
-      const away = this.teamsById.get(f.awayId);
-      if (!home || !away) continue;
+      const homeJson = this.teamsById.get(f.homeId);
+      const awayJson = this.teamsById.get(f.awayId);
+      if (!homeJson || !awayJson) continue;
+      const home = buildTeamFromRoster(this.state, homeJson);
+      const away = buildTeamFromRoster(this.state, awayJson);
       const sim = await simulateFixture(home, away, this.state.seed, f.round);
       const aiResult: FixtureResult = {
         round: f.round,

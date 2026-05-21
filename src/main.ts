@@ -42,6 +42,7 @@ import type { TeamJson }           from './team/teamProfile';
 import { applyStarBoost }          from './team/applyStarBoost';
 import { GameCoordinator }         from './game/GameCoordinator';
 import { extractMatchdaySquad }    from './game/playerSquad';
+import { buildTeamFromRoster }     from './game/rosterTeamBuilder';
 import { SEASON_VALUES }           from './engine/balance';
 import { generateSeed }            from './utils/rng';
 import { eventBus }                from './utils/eventBus';
@@ -176,9 +177,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function onPlayRound(homeTeam: RawTeamInput, awayTeam: RawTeamInput, playerSide: 'home' | 'away', round: number): void {
     if (!gameEngine) return;
+    // Source player data from the persistent career roster — team identity
+    // (color, name, stadium, suggestedTactics) still comes from the JSON
+    // passed in by HubScreen.
+    const state = gameEngine.getState();
+    const rosteredHome = buildTeamFromRoster(state, homeTeam);
+    const rosteredAway = buildTeamFromRoster(state, awayTeam);
     initPreMatchScreen(
-      homeTeam,
-      awayTeam,
+      rosteredHome,
+      rosteredAway,
       playerSide,
       round,
       gameEngine,

@@ -11,13 +11,15 @@
 import type { Player } from './player';
 import type { TeamTactics } from './team';
 
-// `rosterId` is allocated at roster seed time, not in JSON. `seasonStats`
-// is per-season accumulator state owned by the engine. Both omitted from
-// the data shape.
+// `rosterId` is allocated at roster seed time, not in JSON — but
+// rosterTeamBuilder (`src/game/rosterTeamBuilder.ts`) re-attaches it on the
+// matchday RawTeamInput so MatchCoordinator.initPlayer can thread it
+// through to the live matchday Player. Optional in the data shape: JSON
+// imports leave it undefined, the engine path populates it.
 export type RawPlayer = Omit<Player,
   'currentStats' | 'fatiguePct' | 'rating' | 'x' | 'y' | 'squadNumber'
-  | 'rosterId' | 'seasonStats' | 'matchStats'
-> & { squadNumber?: number };
+  | 'rosterId' | 'seasonStats' | 'matchStats' | 'formModifier'
+> & { squadNumber?: number; rosterId?: number };
 
 export type RawTeamInput = {
   id: string;

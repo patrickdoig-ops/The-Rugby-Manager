@@ -65,3 +65,25 @@ export const REPUTATION_SEED = {
   ratingMultiplier: 0.9,
   marqueeBonus: 8,
 };
+
+// End-of-season renewals (Phase 4 onward).
+//
+// `loyaltyDiscount`: a player's current club can re-sign them for this
+//   fraction below their fresh-market wage and the player still accepts.
+//   A cross-club poacher (Phase 6) won't get the discount and must pay
+//   at least full market.
+// `aiTargetCapUtilisation`: each AI club aims to keep cap usage at or
+//   below this fraction of SENIOR_CAP when deciding renewals. If
+//   renewing every expiring player would push the club over the
+//   threshold, lowest-rated expiring players get released until cap
+//   fits. Float so we can tune below 1.0 without going right to the
+//   ceiling.
+// `aiReleaseRatingFloor`: if an AI club has cap headroom, they renew
+//   every expiring player who scores above this rating. Below it, the
+//   player is at risk regardless of cap — keeps the league from
+//   hoarding fringe pros forever.
+export const RENEWAL = {
+  loyaltyDiscount: 0.10,
+  aiTargetCapUtilisation: 0.95,
+  aiReleaseRatingFloor: 70,
+};

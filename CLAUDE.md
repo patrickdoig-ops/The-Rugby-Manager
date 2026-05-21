@@ -167,4 +167,19 @@ Adding a new star, league-wide stat cap, or per-player exception is a one-line e
 
 ---
 
+## Future development (intentionally out of scope today)
+
+Deliberate gaps. The architecture is ready for each; no refactor needed when adding.
+
+### Card system extensions
+- **More card-issuing offences.** `PenaltyOffence` (`src/types/engine.ts`) currently fires TMO only for `high_tackle`. Add `'dangerous_cleanout'`, `'offside'`, `'not_rolling_away'`, etc. as one-line additions to the union plus a CardHandler branch in `evaluateNewPenalty`. The TMO + team-22 infrastructure is reusable as-is.
+
+### Maul phase
+- **No `MatchPhase.Maul` exists today.** Driving mauls are folded into the lineout / breakdown abstraction. When added, the card system's forward-availability filter (`onFieldPlayers` in `src/engine/FieldPosition.ts`) plus the `SHORT_HANDED` constants in `src/engine/balance/discipline.ts` should be extended to apply the same "missing forward = weaker pack" weakening to the maul resolver. A `missingForwardMaulPenalty` constant slots into `SHORT_HANDED`.
+
+### AITacticalDirector card-awareness
+- **`AITacticalDirector` (`src/engine/AITacticalDirector.ts`) does not read `state.cards`.** A team a man down (yellow / red_20 / red_full for a back) should arguably flip the AI more defensive (`AI_INTENT_PROTECTING`-style overlay) regardless of score gap. Extension: add a `playerCountTrigger` block to `src/engine/balance/aiDirector.ts` and a card-count check inside `director.evaluate()`. Pure additive — no breaking change to the baseline-vs-intent bundle architecture.
+
+---
+
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

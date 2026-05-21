@@ -9,6 +9,7 @@ import { eventBus } from '../utils/eventBus';
 import { colorsClash } from '../utils/teamColor';
 import { rngForm, setMatchSeed, rng, generateSeed } from '../utils/rng';
 import { PenaltyHandler } from './PenaltyHandler';
+import { CardHandler, buildAnnounce } from './CardHandler';
 import { ClockController } from './ClockController';
 import { FatigueAccumulator } from './FatigueAccumulator';
 import { detectEntry22Changes } from './Entry22Tracker';
@@ -19,6 +20,26 @@ import { AITacticalDirector } from './AITacticalDirector';
 
 function deepCloneStats(s: PlayerStats): PlayerStats {
   return { ...s };
+}
+
+// Position-group fit for auto-picking a red_20 replacement. Returns the bench
+// player's squadNumber, or null if bench is empty. Stable scan (no rng) so AI
+// + silent paths stay deterministic.
+function pickAutoReplacement(bench: Player[], off: Player): number | null {
+  if (bench.length === 0) return null;
+  // Exact position match first (e.g. Hooker for Hooker).
+  const exact = bench.find(p => p.position === off.position);
+  if (exact) return exact.squadNumber;
+  // Position-group match — keep the bin tight enough that a back replaces a
+  // back, a forward replaces a forward.
+  const FORWARD_POSITIONS = new Set([
+    'Prop', 'Hooker', 'Lock', 'Flanker', 'Number 8', 'Back Row',
+  ]);
+  const offIsForward = FORWARD_POSITIONS.has(off.position);
+  const groupMatch = bench.find(p => FORWARD_POSITIONS.has(p.position) === offIsForward);
+  if (groupMatch) return groupMatch.squadNumber;
+  // Worst case: first bench player.
+  return bench[0].squadNumber;
 }
 
 function initPlayer(raw: RawPlayer): Player {
@@ -123,6 +144,7 @@ export class MatchCoordinator {
   private kickOffStrategy: KickOffStrategy = 'high_ball';
   private humanSide: 'home' | 'away';
   private penaltyHandler: PenaltyHandler;
+  private cardHandler: CardHandler;
   private clock: ClockController;
   private fatigue: FatigueAccumulator;
   private director: AITacticalDirector;
@@ -149,6 +171,12 @@ export class MatchCoordinator {
     this.fatigue = new FatigueAccumulator(this.state, this.silent);
 
     this.penaltyHandler = new PenaltyHandler({
+      state: this.state,
+      humanSide: this.humanSide,
+      silent: this.silent,
+    });
+
+    this.cardHandler = new CardHandler({
       state: this.state,
       humanSide: this.humanSide,
       silent: this.silent,
@@ -202,6 +230,72 @@ export class MatchCoordinator {
 
   getHumanSide(): 'home' | 'away' {
     return this.humanSide;
+  }
+
+  // Called when a red_20 player's 20 minutes are up. Human side gets a modal
+  // to pick the replacement; AI side and silent matches auto-pick by position
+  // group. Empty bench → emit a "no replacement" announcement; the team plays
+  // a man down for the rest of the match.
+  private async handleRed20Replacement(off: Player, side: 'home' | 'away'): Promise<void> {
+    const team = side === 'home' ? this.state.homeTeam : this.state.awayTeam;
+    if (team.bench.length === 0) {
+      const ev = buildAnnounce({
+        key: 'red_20_no_replacement',
+        state: this.state,
+        side,
+        secondary: off,
+        teamName: team.name,
+      });
+      applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: ev });
+      this.emitEvent(ev);
+      return;
+    }
+
+    let benchSquadNum: number | null = null;
+    if (this.silent || side !== this.humanSide) {
+      benchSquadNum = pickAutoReplacement(team.bench, off);
+    } else {
+      const wasRunning = this.state.engine.isRunning;
+      benchSquadNum = await new Promise<number | null>(resolve => {
+        eventBus.emit('engine:paused', {
+          payload: {
+            type: 'forced_substitution_choice',
+            side,
+            sentOff: off,
+            bench: [...team.bench],
+            onChoice: (n) => resolve(n),
+          },
+        });
+      });
+      if (wasRunning) eventBus.emit('engine:resumed', {});
+    }
+
+    if (benchSquadNum === null) return;
+    const benchPlayer = team.bench.find(p => p.squadNumber === benchSquadNum);
+    if (!benchPlayer) return;
+
+    // Field slot vacated by the sent-off player: team.players still contains
+    // them in that slot (CARD_ISSUED didn't remove from the array). Locate by id.
+    const fieldIdx = team.players.findIndex(p => p.id === off.id);
+    if (fieldIdx === -1) return;
+    const benchIdx = team.bench.findIndex(p => p.squadNumber === benchSquadNum);
+
+    applyMatchEvent(this.state, {
+      type: 'SUBSTITUTION_APPLIED',
+      off, on: benchPlayer, teamSide: side, benchIdx, fieldIdx,
+    });
+
+    const ev = buildAnnounce({
+      key: 'red_20_replacement_done',
+      state: this.state,
+      side,
+      primary: benchPlayer,
+      secondary: off,
+      teamName: team.name,
+    });
+    applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: ev });
+    this.emitEvent(ev);
+    this.emitStateChange();
   }
 
   substitute(side: 'home' | 'away', benchSquadNum: number, fieldSquadNum: number): void {
@@ -310,6 +404,26 @@ export class MatchCoordinator {
 
       this.fatigue.tick(timeAdvance);
 
+      // TMO review: clock is frozen (advanceMinute returned 0) and play is
+      // suspended. Just advance the narrative one step and bail. On step 3 the
+      // handler applies CARD_ISSUED and transitions phase back to Penalty —
+      // the next tick will fall through to handlePenaltyDecision.
+      if (this.state.phase === MatchPhase.TmoReview) {
+        this.cardHandler.advanceTmoReview();
+        this.emitStateChange();
+        this.scheduleTick(this.state.engine.tickDelayMs);
+        return;
+      }
+
+      // Sin-bin scan: returnMinute is gameMinute-based and the clock just
+      // advanced (or didn't, if we were in TMO — handled above). Yellow
+      // expirations are inline; red_20 expirations queue a forced-sub flow.
+      const expiredRed20 = this.cardHandler.scanSinBinReturns();
+      for (const exp of expiredRed20) {
+        await this.handleRed20Replacement(exp.player, exp.side);
+        if (!this.state.engine.isRunning) return;
+      }
+
       const homeInOppHalf = !this.state.clock.halfTimeDone ? this.state.ball.x > 50 : this.state.ball.x < 50;
       applyMatchEvent(this.state, {
         type: 'TICK_BOOKKEEPING',
@@ -391,6 +505,18 @@ export class MatchCoordinator {
       }
 
       if (this.state.phase === MatchPhase.Penalty) {
+        // CardHandler runs before PenaltyHandler so a TMO review can preempt
+        // the penalty modal. 'tmo' verdict transitions phase to TmoReview;
+        // we bail this tick and let the TmoReview branch above drive the
+        // next 3 ticks of narrative.
+        const verdict = this.cardHandler.evaluateNewPenalty();
+        if (verdict === 'tmo') {
+          this.emitStateChange();
+          this.scheduleTick(this.state.engine.tickDelayMs);
+          return;
+        }
+        // 'team22_card' issued an inline yellow before this point; 'none'
+        // means no card. Either way, run the penalty decision modal next.
         await this.penaltyHandler.handlePenaltyDecision();
         if (!this.state.engine.isRunning) return;
         previousPhase = MatchPhase.Penalty;

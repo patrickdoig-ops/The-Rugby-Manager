@@ -58,7 +58,14 @@ export type AnnouncementKey =
   | 'fatigue_tiredness'
   | 'set_piece_award'
   | 'try_location_central' | 'try_location_close'
-  | 'try_location_wide'    | 'try_location_corner';
+  | 'try_location_wide'    | 'try_location_corner'
+  // ── Discipline / cards ──────────────────────────────────────────────────
+  | 'tmo_intervenes'   | 'tmo_reviewing'
+  | 'tmo_decision_no_card' | 'tmo_decision_yellow' | 'tmo_decision_red_20'
+  | 'card_yellow' | 'card_red_20' | 'card_red_full'
+  | 'sin_bin_returned'
+  | 'red_20_replacement_done' | 'red_20_no_replacement'
+  | 'team_22_warning';
 
 export interface TacticNoteParams {
   defendTeamName?: string;
@@ -75,6 +82,11 @@ export interface AnnouncementParams {
   homeScore?: number;
   awayScore?: number;
 }
+
+// Some announcements (sin-bin return, replacement done) need to mention a
+// player by name even though they're not a phase_outcome. The bank templates
+// reference {primary} / {secondary} via the optional primary/secondary on
+// NarrationStep['announcement'], so no new field is needed here.
 
 export type NarrationStep =
   | {

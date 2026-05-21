@@ -1058,6 +1058,75 @@ Home team: shown as a 4th option in the modal when `clockInTheRed`. Away team AI
 
 ---
 
+## Cards (Yellow / Red 20 / Red full)
+
+The card system layers on top of the penalty seam. Whenever `PENALTY_AWARDED` fires and the phase becomes `Penalty`, `MatchCoordinator.tick` calls `cardHandler.evaluateNewPenalty()` (`src/engine/CardHandler.ts`) **before** running `PenaltyHandler.handlePenaltyDecision`. CardHandler decides whether a card should follow.
+
+### Two trigger paths
+
+1. **Team-22 rule.** Each penalty where the offender's team was *defending* in their own 22 increments `state.cards.teamPenalty22[offendingSide]`. The 3rd-in-22 (`TEAM_22.warnAt`) emits a `team_22_warning` announcement (once per match per side). The 4th-in-22 (`TEAM_22.cardAt`) **forces** an immediate yellow on the offender — TMO is skipped. The counter is not reset; the 5th–8th in-22 add no further cards (per spec "the fourth penalty triggers the yellow").
+
+2. **High-tackle TMO.** If the offence is `'high_tackle'` and the team-22 rule didn't already card, CardHandler rolls `rng(1,100) <= TMO.triggerPctHighTackle` (60%). On a hit, a single `rng(1,100)` is bucketed by `TMO.outcomeNoCardPct / outcomeYellowPct / outcomeRed20Pct` (40/40/20) to pre-roll the outcome. In live mode this enters `MatchPhase.TmoReview` for 3 narrative ticks. In silent mode the narrative is collapsed and the card is applied inline — RNG order is identical, so determinism is preserved.
+
+### TMO review tick anatomy
+
+| Tick | What happens | Clock |
+|---|---|---|
+| N | Carry handler emits PENALTY_AWARDED + commentary ("High tackle! Penalty!"). Phase → Penalty. CardHandler.evaluateNewPenalty rolls TMO, pre-rolls outcome, applies TMO_REVIEW_STARTED + phase → TmoReview, emits `tmo_intervenes`. | Running until this tick |
+| N+1 | CardHandler.advanceTmoReview emits `tmo_reviewing`, applies TMO_REVIEW_TICK_ADVANCED (step 1 → 2). | **Stopped** (ClockController.advanceMinute returns 0 when phase === TmoReview) |
+| N+2 | Emits `tmo_decision_<outcome>` announcement, applies TMO_REVIEW_TICK_ADVANCED (step 2 → 3). | Stopped |
+| N+3 | If outcome ≠ no_card: emits CARD_ISSUED + `card_<kind>` announcement. Applies TMO_REVIEW_RESOLVED + phase → Penalty. | Stopped |
+| N+4 | PenaltyHandler shows the existing penalty modal (kick for goal / kick to touch / tap). Play resumes. | Resumes |
+
+### Card lifecycle
+
+`CARD_ISSUED { player, side, kind }` (reducer in `applyMatchEvent`):
+- Yellow → `player.matchStats.yellowCards++`, push `{ player, kind, returnMinute: gameMinute + SIN_BIN_DURATION.yellow }` into `state.cards.sinBin[side]`.
+- Red_20 → `player.matchStats.redCards++`, push entry with `returnMinute: gameMinute + SIN_BIN_DURATION.red_20`.
+- Red_full → `player.matchStats.redCards++`, push to `state.cards.sentOff[side]`. No trigger exists today.
+
+`ClockController.advanceMinute` is short-circuited to 0 during `TmoReview`. Each non-TMO tick, `MatchCoordinator.tick` calls `cardHandler.scanSinBinReturns()`, which:
+- For each `kind: 'yellow'` entry with `returnMinute <= gameMinute` → emits `SIN_BIN_RETURNED` + `sin_bin_returned` announcement. Player is back on the field (`onFieldPlayers` no longer excludes them).
+- For each `kind: 'red_20'` entry expired → emits `RED_20_EXPIRED` (moves player from sinBin to sentOff). Returns the entry; the coordinator then runs the forced-sub flow.
+
+### Forced substitution after red_20 expires
+
+`MatchCoordinator.handleRed20Replacement(off, side)`:
+- Empty bench → emits `red_20_no_replacement` announcement, team plays a man down for the rest of the match.
+- Human side + bench available → emits `engine:paused` with `forced_substitution_choice` payload; awaits the manager's pick via the existing modal infrastructure.
+- AI side / silent → `pickAutoReplacement` selects by exact position match → position group (forward/back) → first bench player.
+- On choice: applies `SUBSTITUTION_APPLIED` (existing event). The reducer extension removes the sent-off player from `state.cards.sentOff`, restoring the team to full strength.
+
+### On-field availability
+
+`onFieldPlayers(team, state, side)` (`src/engine/FieldPosition.ts`) filters `team.players` against the union of `state.cards.sinBin[side]` and `state.cards.sentOff[side]`. All carry handlers, scrum, lineout, and breakdown selectors call through this helper.
+
+**Forward weakening** is automatic via:
+- `ScrumResolver.packScore` is a **sum** — losing a forward removes ~12% of the pack's contribution.
+- `LineoutResolver` jumper selection falls back from #4/#5 to other on-field forwards if a lock is binned — weaker jumper score.
+- `BreakdownResolver` supporter pool shrinks naturally.
+
+**Back weakening** is a `defendMod` term: each carry handler computes `missingBacks = 7 - availableBacks(...).length` and folds `missingBacks * SHORT_HANDED.missingBackDefendPenalty` (currently `-8` per missing back) into the `defendMod` passed to `resolveOpenPlay`. Mirrors the existing `backfieldLineBreakPenalty` precedent.
+
+### Rating impact
+
+`RATING_WEIGHTS.universal.yellowCards = -5.0` and `redCards = -15.0` (in `src/engine/balance/rating.ts`) are aggregated through the existing `computeRating` formula. A yellow drops the rating by ~0.5; a red by ~1.5.
+
+### Stat additions
+
+`PlayerMatchStats` extends with `yellowCards` + `redCards` (both bounded `[0, 3]` in `assertInvariants` as a paranoia ceiling). Red_20 bumps `redCards++` only — total cards = `yellowCards + redCards`.
+
+### Balance constants (`src/engine/balance/discipline.ts`)
+
+```ts
+TMO              = { triggerPctHighTackle: 60, outcomeNoCardPct: 40, outcomeYellowPct: 40, outcomeRed20Pct: 20 }
+SIN_BIN_DURATION = { yellow: 10, red_20: 20 }
+TEAM_22          = { warnAt: 3, cardAt: 4 }
+SHORT_HANDED     = { missingBackDefendPenalty: -8 }
+```
+
+---
+
 ## Try Scored
 
 ### How a try arises

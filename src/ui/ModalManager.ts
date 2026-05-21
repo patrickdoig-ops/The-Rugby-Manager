@@ -1,7 +1,7 @@
 import { eventBus } from '../utils/eventBus';
 import type { PenaltyChoice, KickOffStrategy, PenaltyOffence } from '../types/engine';
 import { renderTacticsMenu } from './TacticsMenu';
-import { renderSubstitutionPanel } from './SubstitutionModal';
+import { renderSubstitutionPanel, renderForcedSubstitutionPanel } from './SubstitutionModal';
 
 const OFFENCE_LABELS: Record<PenaltyOffence, string> = {
   breakdown_infringement: 'Breakdown infringement',
@@ -61,6 +61,15 @@ export function initModalManager(): void {
           onChoice(btn.dataset.choice as KickOffStrategy);
         }, { once: true });
       });
+      return;
+    }
+
+    if (payload.type === 'forced_substitution_choice') {
+      renderForcedSubstitutionPanel(box, payload.sentOff, payload.bench, (benchSquadNum) => {
+        overlay.classList.add('hidden');
+        payload.onChoice(benchSquadNum);
+      });
+      overlay.classList.remove('hidden');
       return;
     }
 

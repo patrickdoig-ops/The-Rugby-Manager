@@ -25,7 +25,11 @@ export class ClockController {
 
   // Advances state.clock.gameMinute via a CLOCK_ADVANCED MatchEvent.
   // Returns the raw timeAdvance so the caller can drive the fatigue accumulator.
+  // During MatchPhase.TmoReview the clock is frozen — TMO is a real-time stop,
+  // so we skip both the rng roll and the CLOCK_ADVANCED emit and return 0.
+  // Fatigue accumulator then drains nothing this tick, matching live behaviour.
   advanceMinute(state: MatchState): number {
+    if (state.phase === MatchPhase.TmoReview) return 0;
     const C = CLOCK_VALUES;
     const timeAdvance = C.baseAdvance + rng(C.rngMin, C.rngMax) / C.rngDivisor;
     applyMatchEvent(state, { type: 'CLOCK_ADVANCED', delta: timeAdvance });

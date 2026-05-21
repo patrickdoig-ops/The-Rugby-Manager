@@ -24,6 +24,8 @@ export const RATING_WEIGHTS = {
     missedTacklePerMiss: -0.5,
     penaltiesConceded:   -1.2,
     kicksMissed:         -0.75,
+    yellowCards:         -5.0,   // a yellow tanks the rating — proportional to 10 min off
+    redCards:           -15.0,   // a red is a match-ruining offence
   },
   position: {
     hooker:    { lineoutWinRateBaseline: 0.75, lineoutBonusMultiplier: 20 },

@@ -40,6 +40,8 @@ export function computeRating(player: Player): number {
   score += (s.tacklesAttempted - s.tacklesMade) * u.missedTacklePerMiss;
   score += s.penaltiesConceded * u.penaltiesConceded;
   score += s.kicksMissed       * u.kicksMissed;
+  score += s.yellowCards       * u.yellowCards;
+  score += s.redCards          * u.redCards;
 
   // Position bonuses
   if (id === 2 && s.lineoutThrows > 0)

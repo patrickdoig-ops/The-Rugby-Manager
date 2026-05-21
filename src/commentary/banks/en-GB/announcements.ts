@@ -64,6 +64,78 @@ const TRY_LOCATION_CORNER: readonly string[] = [
   'In the corner — the kicker will need every bit of range and angle.',
 ];
 
+const TMO_INTERVENES: readonly string[] = [
+  'The TMO is in the referee\'s ear — they want to take a closer look at that tackle.',
+  'TMO check! The official upstairs has flagged a concern with the tackle technique.',
+  '"Sir, hold on — we need to review this." The TMO interjects.',
+  'TMO intervention. The referee pauses play to consult.',
+];
+
+const TMO_REVIEWING: readonly string[] = [
+  'The referee is at the screen now, watching the replay frame by frame.',
+  'Big screen footage running back — the official is checking head contact.',
+  'They\'re looking at the point of contact in slow motion.',
+  'Replay rolling — referee and TMO going through it together.',
+];
+
+const TMO_DECISION_NO_CARD: readonly string[] = [
+  'No head contact in the view of the referee — just the penalty.',
+  '"Play on after the penalty — no further action." Clean technique on review.',
+  'Referee waves it away — just the penalty, no card.',
+];
+
+const TMO_DECISION_YELLOW: readonly string[] = [
+  '"Head contact, mitigation — yellow card." Ten minutes in the bin.',
+  'Yellow card on review — illegal but mitigated. Off for ten minutes.',
+  'The referee shows yellow — ten in the bin for the tackler.',
+];
+
+const TMO_DECISION_RED_20: readonly string[] = [
+  '"Head contact, no mitigation — 20-minute red." A serious blow for the team.',
+  'Twenty-minute red! Referee says no mitigation. The team can replace after twenty.',
+  'It\'s a 20-minute red card — off the field, replacement available after twenty.',
+];
+
+const CARD_YELLOW: readonly string[] = [
+  'Yellow card for {primary} — ten minutes in the sin bin.',
+  '{primary} is off to the bin — ten-minute yellow.',
+  'Sin bin for {primary}. Ten minutes off.',
+];
+
+const CARD_RED_20: readonly string[] = [
+  '20-minute red for {primary} — off the field. {teamName} can replace after the twenty.',
+  '{primary} is given a 20-minute red. No return, but the team can sub after twenty.',
+  'Red card — 20-minute version — for {primary}. Off, replacement to come.',
+];
+
+const CARD_RED_FULL: readonly string[] = [
+  'Red card! {primary} is sent off for the rest of the match. {teamName} down to fourteen.',
+  '{primary} sees red — gone for the rest of the game. A serious blow.',
+];
+
+const SIN_BIN_RETURNED: readonly string[] = [
+  '{primary} returns to the field — the ten minutes are up.',
+  '{primary} is back on. {teamName} are at full strength again.',
+  'Ten minutes done — {primary} re-joins the action.',
+];
+
+const RED_20_REPLACEMENT_DONE: readonly string[] = [
+  '{primary} comes on for the sent-off {secondary}. {teamName} back to fifteen.',
+  '{teamName} use their replacement — {primary} on, {secondary}\'s twenty are up.',
+  'Replacement made — {primary} on for {secondary}, who watches from the stand.',
+];
+
+const RED_20_NO_REPLACEMENT: readonly string[] = [
+  '{secondary}\'s twenty minutes are up — but {teamName} have nobody on the bench. A man down for the rest of it.',
+  'No replacement available for {teamName} — they finish the match with fourteen.',
+];
+
+const TEAM_22_WARNING: readonly string[] = [
+  'The referee speaks to the captain — that\'s three penalties in your own 22. The next one is a card.',
+  '"Captain, I\'ve seen enough. Three penalties down here — your next one\'s a yellow." A warning issued.',
+  'Captain summoned — referee\'s warning over repeat infringements inside the 22.',
+];
+
 export function getAnnouncementTemplate(
   key: AnnouncementKey,
   params: AnnouncementParams = {},
@@ -93,5 +165,39 @@ export function getAnnouncementTemplate(
       return pickRandom(TRY_LOCATION_WIDE);
     case 'try_location_corner':
       return pickRandom(TRY_LOCATION_CORNER);
+    case 'tmo_intervenes':
+      return pickRandom(TMO_INTERVENES);
+    case 'tmo_reviewing':
+      return pickRandom(TMO_REVIEWING);
+    case 'tmo_decision_no_card':
+      return pickRandom(TMO_DECISION_NO_CARD);
+    case 'tmo_decision_yellow':
+      return pickRandom(TMO_DECISION_YELLOW);
+    case 'tmo_decision_red_20':
+      return pickRandom(TMO_DECISION_RED_20);
+    case 'card_yellow':
+      return pickRandom(CARD_YELLOW);
+    case 'card_red_20': {
+      const teamName = params.teamName ?? 'the team';
+      return pickRandom(CARD_RED_20).replace(/{teamName}/g, teamName);
+    }
+    case 'card_red_full': {
+      const teamName = params.teamName ?? 'the team';
+      return pickRandom(CARD_RED_FULL).replace(/{teamName}/g, teamName);
+    }
+    case 'sin_bin_returned': {
+      const teamName = params.teamName ?? 'the team';
+      return pickRandom(SIN_BIN_RETURNED).replace(/{teamName}/g, teamName);
+    }
+    case 'red_20_replacement_done': {
+      const teamName = params.teamName ?? 'the team';
+      return pickRandom(RED_20_REPLACEMENT_DONE).replace(/{teamName}/g, teamName);
+    }
+    case 'red_20_no_replacement': {
+      const teamName = params.teamName ?? 'the team';
+      return pickRandom(RED_20_NO_REPLACEMENT).replace(/{teamName}/g, teamName);
+    }
+    case 'team_22_warning':
+      return pickRandom(TEAM_22_WARNING);
   }
 }

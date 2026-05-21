@@ -1,4 +1,5 @@
 import type { Team } from '../types/team';
+import type { Player } from '../types/player';
 import { eventBus } from '../utils/eventBus';
 import { shortName } from '../utils/playerName';
 import { teamTextColor } from '../utils/teamColor';
@@ -141,4 +142,45 @@ export function renderSubstitutionPanel(container: HTMLElement, team: Team): voi
   }
 
   render();
+}
+
+// Forced replacement panel shown when a red_20 player's 20 minutes are up.
+// One-shot pick (no pending queue, no field-side picker — the sent-off slot
+// is implicit). onChoice receives the chosen bench squadNumber, or null if
+// the manager skips (e.g. wants to play short).
+export function renderForcedSubstitutionPanel(
+  container: HTMLElement,
+  sentOff: Player,
+  bench: Player[],
+  onChoice: (benchSquadNum: number | null) => void,
+): void {
+  const benchRows = bench.length > 0
+    ? bench.map(p => `
+        <button class="sub-player-btn sub-bench-btn" data-squad="${p.squadNumber}">
+          <span class="sub-num">${p.squadNumber}</span>
+          <span class="sub-name">${shortName(p)}</span>
+          <span class="sub-pos">${p.position}</span>
+        </button>`).join('')
+    : '<p class="sub-empty">No substitutes available.</p>';
+
+  container.innerHTML = `
+    <h2 class="modal-title">Replacement required</h2>
+    <p class="modal-subtitle">${shortName(sentOff)} (${sentOff.position}) — 20-minute red has expired</p>
+    <div class="sub-section-label">Bench — select replacement</div>
+    <div id="sub-bench-list">${benchRows}</div>
+    <div class="sub-action-row">
+      <button id="btn-subs-skip" class="sub-action-btn sub-action-cancel">
+        <span>Play short</span>
+      </button>
+    </div>
+  `;
+
+  container.querySelectorAll<HTMLButtonElement>('.sub-bench-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      onChoice(Number(btn.dataset.squad));
+    }, { once: true });
+  });
+  container.querySelector('#btn-subs-skip')!.addEventListener('click', () => {
+    onChoice(null);
+  }, { once: true });
 }

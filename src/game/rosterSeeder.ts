@@ -3,20 +3,24 @@
 // and per-club squad pointers. Takes already-star-boosted team inputs —
 // star boost (`src/team/applyStarBoost.ts`) is applied once at JSON
 // import time in main.ts and the seeder consumes the already-boosted
-// data. Persistent Player objects carry baseStats only — currentStats /
-// fatiguePct / rating / matchStats / x / y are freshly initialised per
-// match by MatchCoordinator.initPlayer.
+// data. Persistent Player objects carry baseStats + contract + reputation;
+// volatile per-match fields default to idle values and are overwritten
+// per match by MatchCoordinator.initPlayer.
 //
-// Pure: no RNG, no side effects. Re-seeding the same set of teams
-// produces an identical roster.
+// Contract terms come from contractSeeder (rngTransfer-driven) unless
+// the JSON carries hand-authored overrides (typically marquees). The
+// `seasonStartYear` argument is the year the next season opens in — used
+// to compute contract expiry dates relative to "now".
 //
-// Called from GameCoordinator.newSeason (always) and GameCoordinator.fromSave
-// (only when the save predates v5 — v5+ saves carry the roster directly).
+// Consumes rngTransfer (via contractSeeder); call setCareerSeed before
+// invoking. Same root seed produces an identical roster + identical
+// contract terms.
 
 import type { Player } from '../types/player';
 import { zeroMatchStats, zeroSeasonStats } from '../types/player';
 import type { ClubState } from '../types/gameState';
 import type { RawPlayer, RawTeamInput } from '../types/teamData';
+import { seedContractFields } from './contractSeeder';
 
 export interface SeededRoster {
   roster: Record<number, Player>;
@@ -24,7 +28,7 @@ export interface SeededRoster {
   nextRosterId: number;
 }
 
-export function seedRoster(allTeams: RawTeamInput[]): SeededRoster {
+export function seedRoster(allTeams: RawTeamInput[], seasonStartYear: number): SeededRoster {
   const roster: Record<number, Player> = {};
   const clubs: ClubState[] = [];
   let nextId = 1;
@@ -35,7 +39,7 @@ export function seedRoster(allTeams: RawTeamInput[]): SeededRoster {
       if (!arr) return;
       for (const rp of arr) {
         const id = nextId++;
-        roster[id] = hydratePersistentPlayer(rp, id);
+        roster[id] = hydratePersistentPlayer(rp, id, team.id, seasonStartYear);
         squadIds.push(id);
       }
     };
@@ -52,7 +56,13 @@ export function seedRoster(allTeams: RawTeamInput[]): SeededRoster {
   return { roster, clubs, nextRosterId: nextId };
 }
 
-function hydratePersistentPlayer(raw: RawPlayer, rosterId: number): Player {
+function hydratePersistentPlayer(
+  raw: RawPlayer,
+  rosterId: number,
+  clubId: string,
+  seasonStartYear: number,
+): Player {
+  const { contract, reputation } = seedContractFields(raw, clubId, seasonStartYear);
   return {
     id: raw.id,
     rosterId,
@@ -63,6 +73,8 @@ function hydratePersistentPlayer(raw: RawPlayer, rosterId: number): Player {
     nationality: raw.nationality,
     position: raw.position,
     baseStats: { ...raw.baseStats },
+    reputation,
+    contract,
     // Volatile per-match fields default to idle values in the roster.
     // MatchCoordinator.initPlayer overwrites them when the player is
     // hydrated into a matchday Team.

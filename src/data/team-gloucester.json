@@ -286,6 +286,9 @@
         "discipline": 60,
         "positioning": 87,
         "composure": 86
+      },
+      "contract": {
+        "isMarquee": true
       }
     },
     {

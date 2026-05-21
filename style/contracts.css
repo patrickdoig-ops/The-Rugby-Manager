@@ -1,0 +1,231 @@
+/* Contracts screen — read-only squad list with wage / expiry / marquee. */
+
+#contracts {
+  position: fixed;
+  inset: 0;
+  z-index: 225;
+  background: var(--rm-bg);
+  display: flex;
+  flex-direction: column;
+  padding-top:    env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left:   env(safe-area-inset-left, 0px);
+  padding-right:  env(safe-area-inset-right, 0px);
+}
+
+#ct-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 0;
+  flex-shrink: 0;
+  gap: 12px;
+}
+
+#ct-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--rm-text);
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  min-width: 72px;
+}
+
+#ct-back:hover { background: color-mix(in oklch, var(--rm-surface) 60%, transparent); }
+
+#ct-title {
+  font-family: var(--rm-font-display);
+  font-size: 16px;
+  color: var(--rm-chalk);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ct-cappill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: color-mix(in oklch, var(--rm-surface) 80%, transparent);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 8px;
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+  min-width: 72px;
+  justify-content: center;
+}
+
+.ct-cappill span:last-child {
+  color: var(--rm-chalk);
+  font-weight: 600;
+}
+
+#ct-headrow,
+.ct-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) 38px 36px 36px minmax(70px, 0.9fr) minmax(80px, 1fr) 28px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+}
+
+#ct-headrow {
+  margin-top: 12px;
+  border-bottom: 1px solid var(--rm-hairline);
+  padding-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.ct-head {
+  background: transparent;
+  border: none;
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ct-head--active {
+  color: var(--rm-pitch);
+}
+
+.ct-head.ct-num,
+.ct-head.ct-wage,
+.ct-head.ct-flag {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.ct-head.ct-expiry {
+  justify-content: flex-start;
+}
+
+#ct-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 16px;
+}
+
+.ct-row {
+  border-bottom: 1px solid var(--rm-hairline);
+  transition: background 0.12s;
+}
+
+.ct-row:hover {
+  background: color-mix(in oklch, var(--rm-surface) 40%, transparent);
+}
+
+.ct-row--marquee {
+  background: color-mix(in oklch, var(--rm-pitch) 8%, transparent);
+}
+
+.ct-name {
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--rm-chalk);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ct-pos {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+}
+
+.ct-num {
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  color: var(--rm-text);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.ct-wage {
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--rm-chalk);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.ct-expiry {
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  color: var(--rm-text-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ct-expiring {
+  display: inline-block;
+  padding: 2px 6px;
+  background: color-mix(in oklch, var(--rm-danger, #d8503e) 18%, transparent);
+  color: var(--rm-danger, #d8503e);
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.ct-flag {
+  text-align: right;
+}
+
+.ct-marquee {
+  display: inline-block;
+  font-size: 14px;
+  color: var(--rm-pitch);
+  line-height: 1;
+}
+
+#ct-footer {
+  flex-shrink: 0;
+  padding: 10px 16px max(12px, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--rm-hairline);
+  background: color-mix(in oklch, var(--rm-bg) 92%, transparent);
+}
+
+.ct-cap-note {
+  display: block;
+  text-align: center;
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+}

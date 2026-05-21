@@ -56,7 +56,7 @@ A historic west-country club with a cherry-and-white forwards-led identity, defi
 ### Star players
 
 - **Ross Byrne** (Fly-half, Ireland) — Marquee signing from Leinster and the province's third all-time top points scorer (1,156 pts), bringing four URC titles and a Champions Cup pedigree to Kingsholm as the new tactical conductor. Index high: `kicking`, `composure`, `positioning`, `discipline`, `handling`. Suggested rating: **86/100**.
-- **Tomos Williams** (Scrum-half, Wales) — Gloucester's 2025-26 club captain and reigning Premiership Rugby Player of the Season; 69-cap Wales 9 and 2025 Lions tourist who scored twice against the Western Force in Perth before a hamstring injury cut his tour short. A sniping running threat, sharp service and tempo control from the base — confirmed in December 2025 to be joining Saracens at season's end. Index high: `pace`, `agility`, `handling`, `composure`, `positioning`. Suggested rating: **87/100**.
+- **Tomos Williams** (Scrum-half, Wales) — Gloucester's 2025-26 club captain and reigning Premiership Rugby Player of the Season; 69-cap Wales 9 and 2025 Lions tourist who scored twice against the Western Force in Perth before a hamstring injury cut his tour short. A sniping running threat, sharp service and tempo control from the base — confirmed in December 2025 to be joining Saracens at season's end. Index high: `pace`, `agility`, `handling`, `composure`, `positioning`. Suggested rating: **87/100**. Marquee: yes.
 - **Max Llewellyn** (Centre, Wales) — Big-bodied 13 who broke into the Wales midfield during the 2025 Six Nations (scored his first Test try vs Scotland) and gives Gloucester a power-runner gainline option through the middle channel. Index high: `strength`, `tackling`, `handling`, `pace`. Suggested rating: **82/100**.
 - **Lewis Ludlow** (Flanker, England) — Former long-serving Gloucester captain and England A skipper; relentless openside whose breakdown work-rate and tackle volume have anchored the cherry-and-whites' defensive identity for years. Index high: `breakdown`, `tackling`, `stamina`, `discipline`, `positioning`. Suggested rating: **83/100**.
 
@@ -128,7 +128,7 @@ Shaped by the Pat Lam era's "Bristol-Bilbao" expansive ambition, the Bears are t
 
 ### Star players
 
-- **Ellis Genge** (Prop, England) — Lions Test starter on the 2025 tour to Australia and dubbed the "form player in the world" by Ben Youngs; world-class loosehead scrummager and Bristol's vice-captain whose ball-carrying sets the tempo. Index high: `strength`, `setPiece`, `breakdown`, `tackling`, `stamina`. Suggested rating: **91/100**.
+- **Ellis Genge** (Prop, England) — Lions Test starter on the 2025 tour to Australia and dubbed the "form player in the world" by Ben Youngs; world-class loosehead scrummager and Bristol's vice-captain whose ball-carrying sets the tempo. Index high: `strength`, `setPiece`, `breakdown`, `tackling`, `stamina`. Suggested rating: **91/100**. Marquee: yes.
 - **Louis Rees-Zammit** (Wing, Wales) — Returned from the NFL in summer 2025 and lit up the PREM with six tries in eight, clocking 23.57mph against Leicester; 32-cap Wales finisher with elite top-end pace and a 2021 Lions tourist's pedigree. Index high: `pace`, `agility`, `handling`, `positioning`. Suggested rating: **88/100**.
 - **Viliame Mata** (Number 8, Fiji) — Long-time Edinburgh enforcer turned Bristol No.8; offloading, ball-playing back-rower whose footwork and tip-on game perfectly fit Pat Lam's wide-wide system. Index high: `strength`, `handling`, `breakdown`, `agility`, `stamina`. Suggested rating: **85/100**.
 
@@ -201,7 +201,7 @@ The Welford Road tradition is set-piece power, structured forward-led play, and 
 ### Star players
 
 - **Freddie Steward** (Full-back, England) — England's first-choice 15 and the Premiership's most dominant aerial operator; reads kick-chase lanes better than anyone and rarely spills under the high ball. Index high: `positioning`, `handling`, `tackling`, `composure`, `kicking`. Suggested rating: **86/100**.
-- **Ollie Chessum** (Lock, England) — 2025 Lions Test starter and the league's most athletic lock-cum-blindside; carries hard, hits rucks at pace, and is a genuine lineout option in both pods. Index high: `strength`, `setPiece`, `stamina`, `tackling`, `breakdown`. Suggested rating: **87/100**.
+- **Ollie Chessum** (Lock, England) — 2025 Lions Test starter and the league's most athletic lock-cum-blindside; carries hard, hits rucks at pace, and is a genuine lineout option in both pods. Index high: `strength`, `setPiece`, `stamina`, `tackling`, `breakdown`. Suggested rating: **87/100**. Marquee: yes.
 - **Tommy Reffell** (Flanker, Wales) — Wales' premier openside and arguably the Premiership's purest jackal; averaged 6-7 turnovers a game in patches and topped the July Tests for forced turnovers. Index high: `breakdown`, `tackling`, `stamina`, `discipline`, `positioning`. Suggested rating: **84/100**.
 - **Jack van Poortvliet** (Scrum-half, England) — England-capped 9 whose box-kick accuracy and pass speed fit Welford Road's territory-first identity; a sharp tactical kicker who controls the tempo from the base. Index high: `kicking`, `handling`, `positioning`, `composure`, `agility`. Suggested rating: **80/100**.
 
@@ -280,7 +280,7 @@ Under Mark McCall, Saracens have been the league's clinical operator — structu
 
 ### Star players
 
-- **Maro Itoje** (Lock, England) — 2025 Lions captain and the first Black skipper in the tour's 137-year history; ran a lineout "clinic" in the series win and remains the gold standard for a modern second row — enforcer, jumper, leader. Index high: `setPiece`, `tackling`, `strength`, `breakdown`, `composure`. Suggested rating: **92/100**.
+- **Maro Itoje** (Lock, England) — 2025 Lions captain and the first Black skipper in the tour's 137-year history; ran a lineout "clinic" in the series win and remains the gold standard for a modern second row — enforcer, jumper, leader. Index high: `setPiece`, `tackling`, `strength`, `breakdown`, `composure`. Suggested rating: **92/100**. Marquee: yes.
 - **Owen Farrell** (Fly-half, England) — Returned from Racing 92 on a two-year playing deal; over 1,200 Test points, five Premiership titles with Sarries, and still the league's most ruthless game-manager off the tee. Index high: `kicking`, `composure`, `positioning`, `discipline`, `tackling`. Suggested rating: **88/100**.
 - **Ben Earl** (Number 8, England) — 2025 Lions Test back-rower and 2024 England Player of the Year; 73 carries for 419 metres across that Six Nations made him the explosive go-to ball-carrier from the base. Index high: `pace`, `strength`, `stamina`, `handling`, `tackling`. Suggested rating: **88/100**.
 - **Jamie George** (Hooker, England) — Long-time England hooker and former captain; elite throwing accuracy underpins the Sarries lineout and his work rate around the park is a benchmark for the position. Index high: `setPiece`, `tackling`, `breakdown`, `composure`, `discipline`. Suggested rating: **85/100**.
@@ -357,7 +357,7 @@ The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at
 
 ### Star players
 
-- **Thomas du Toit** (Prop, South Africa) — World Rugby Player of the Year 2025 and the Springboks' first-choice loosehead; a destructive scrum technician whose mobility, abrasive breakdown work and high-volume ball-carrying set him apart from any other prop in the world game. Springbok pillar in the 2023 Rugby World Cup defence; signed for Bath from Sale ahead of 2024-25 and became the cornerstone of the championship-winning pack. Index high: `setPiece`, `strength`, `breakdown`, `tackling`, `stamina`. Suggested rating: **93/100**.
+- **Thomas du Toit** (Prop, South Africa) — World Rugby Player of the Year 2025 and the Springboks' first-choice loosehead; a destructive scrum technician whose mobility, abrasive breakdown work and high-volume ball-carrying set him apart from any other prop in the world game. Springbok pillar in the 2023 Rugby World Cup defence; signed for Bath from Sale ahead of 2024-25 and became the cornerstone of the championship-winning pack. Index high: `setPiece`, `strength`, `breakdown`, `tackling`, `stamina`. Suggested rating: **93/100**. Marquee: yes.
 - **Finn Russell** (Fly-half, Scotland) — Scotland captain and three-time Lion; the creative fulcrum of Bath's title defence with audacious passing range, sublime kicking from the tee and in play, and a newly mature game-management edge. Not a pure speed merchant but his footwork, body angles and step in the line are world-class. Index high: `handling`, `kicking`, `composure`, `positioning`, `agility`. Suggested rating: **92/100**.
 - **Ben Spencer** (Scrum-half, England) — Bath club captain and the experienced general at the base who lifted the 2024-25 Premiership trophy. Spent a decade at Saracens winning multiple Premiership and Champions Cup titles before joining Bath in 2020; capped by England across two World Cup cycles and a late call-up to the 2021 Lions tour of South Africa. An elite box-kicker with a metronomic service and sharp tactical brain, his territorial control and tempo management are the perfect foil for Russell's creativity. Index high: `kicking`, `composure`, `positioning`, `discipline`, `handling`. Suggested rating: **85/100**.
 - **Sam Underhill** (Flanker, England) — One of the Premiership's most feared defensive forwards: timing, technique and ferocity on the chop tackle, with a relentless work-rate around the breakdown. Index high: `tackling`, `breakdown`, `strength`, `stamina`. Suggested rating: **86/100**.
@@ -434,7 +434,7 @@ The Rob Baxter long-build identity is phase-heavy possession rugby — pressure 
 
 ### Star players
 
-- **Henry Slade** (Centre, England) — 74-cap England 13, the Chiefs' on-field metronome: long passing, pinpoint kicking from hand and elite defensive reads that shut down opposition channels. Said to be in one of his best club seasons. Index high: `handling`, `kicking`, `tackling`, `positioning`, `composure`. Suggested rating: **86/100**.
+- **Henry Slade** (Centre, England) — 74-cap England 13, the Chiefs' on-field metronome: long passing, pinpoint kicking from hand and elite defensive reads that shut down opposition channels. Said to be in one of his best club seasons. Index high: `handling`, `kicking`, `tackling`, `positioning`, `composure`. Suggested rating: **86/100**. Marquee: yes.
 - **Len Ikitau** (Centre, Australia) — Marquee Wallaby signing from the Brumbies: 39-cap Test 13 with bone-jarring defence, sharp spatial awareness and the carrying power to break gainlines. Already producing standout Premiership performances. Index high: `tackling`, `strength`, `pace`, `positioning`. Suggested rating: **85/100**.
 - **Immanuel Feyi-Waboso** (Wing, England) — Explosive England finisher; a hat-trick on return announced him as one of the league's most dangerous strike runners off both wings, with raw acceleration and aerial bravery. Index high: `pace`, `agility`, `handling`, `strength`. Suggested rating: **83/100**.
 
@@ -516,7 +516,7 @@ The Twickenham Stoop entertainers and the league's most committed expansive, att
 
 ### Star players
 
-- **Marcus Smith** (Fly-half, England) — England fly-half and British & Irish Lion; the creative fulcrum of the Quins attack with electric footwork at first receiver, cross-field-kick threat, and late drop-goal nous. The heartbeat of the league's most expansive side. Index high: `handling`, `agility`, `kicking`, `composure`, `pace`. Suggested rating: **90/100**.
+- **Marcus Smith** (Fly-half, England) — England fly-half and British & Irish Lion; the creative fulcrum of the Quins attack with electric footwork at first receiver, cross-field-kick threat, and late drop-goal nous. The heartbeat of the league's most expansive side. Index high: `handling`, `agility`, `kicking`, `composure`, `pace`. Suggested rating: **90/100**. Marquee: yes.
 - **Alex Dombrandt** (Number 8, England) — England No.8 and Quins captain; a powerful one-out ball-carrier with soft hands in tight space who anchors the back row both as a link-man in the wide channels and as a defensive presence over the ball. Index high: `strength`, `handling`, `breakdown`, `tackling`, `stamina`. Suggested rating: **84/100**.
 - **Chandler Cunningham-South** (Flanker, England) — Destructive 6ft 5in England back-rower built for collisions; ferocious ball-carrying and tackling, with an improving lineout-steal game adding a third string to a profile already feared at the breakdown. Index high: `strength`, `tackling`, `breakdown`, `setPiece`, `stamina`. Suggested rating: **83/100**.
 
@@ -591,7 +591,7 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 
 ### Star players
 
-- **Liam Williams** (Full-back, Wales) — 93-cap Wales legend and two-tour Lion; the marquee Red-Bull-era signing whose world-class aerial work and broken-field counter-attack give Newcastle their first genuine back-three threat in years. Index high: `positioning`, `handling`, `composure`, `agility`, `pace`. Suggested rating: **84/100**.
+- **Liam Williams** (Full-back, Wales) — 93-cap Wales legend and two-tour Lion; the marquee Red-Bull-era signing whose world-class aerial work and broken-field counter-attack give Newcastle their first genuine back-three threat in years. Index high: `positioning`, `handling`, `composure`, `agility`, `pace`. Suggested rating: **84/100**. Marquee: yes.
 - **Amanaki Mafi** (Number 8, Japan) — 29-cap Brave Blossom and 2015 World Cup hero against South Africa; powerful go-forward ball-carrier with footwork and an offloading game built to get a struggling pack over the gainline. Index high: `strength`, `handling`, `breakdown`, `stamina`, `tackling`. Suggested rating: **80/100**.
 
 ### Squad (2025-26)
@@ -673,7 +673,7 @@ The 2023-24 champions under Phil Dowson, Saints are the league's electric attack
 
 ### Star players
 
-- **Fin Smith** (Fly-half, England) — England's first-choice fly-half and marquee playmaker; ice-cold game manager with a clutch boot (hit the winning drop goal vs Bath in the 83rd minute) who runs Saints' high-tempo, wide-wide attack from a flat alignment. Index high: `kicking`, `composure`, `handling`, `positioning`, `discipline`. Suggested rating: **89/100**.
+- **Fin Smith** (Fly-half, England) — England's first-choice fly-half and marquee playmaker; ice-cold game manager with a clutch boot (hit the winning drop goal vs Bath in the 83rd minute) who runs Saints' high-tempo, wide-wide attack from a flat alignment. Index high: `kicking`, `composure`, `handling`, `positioning`, `discipline`. Suggested rating: **89/100**. Marquee: yes.
 - **Tommy Freeman** (Wing, England) — England wing and 2025 Lions Test starter; serial hat-trick scorer (four vs Saracens, hat-tricks vs Bath, Clermont, Leinster) and the first Englishman to score in every round of a Six Nations. Aerial dominance, finishing instinct, and centre-grade footwork. Index high: `pace`, `handling`, `positioning`, `agility`, `composure`. Suggested rating: **90/100**.
 - **Alex Mitchell** (Scrum-half, England) — England's sniping starting 9; razor-sharp service, constant running threat around the fringes, and the tempo-setter that lets Saints play heads-up rugby from anywhere. Index high: `pace`, `agility`, `handling`, `positioning`, `stamina`. Suggested rating: **86/100**.
 - **Henry Pollock** (Flanker, England) — Twenty-one-year-old breakthrough sensation; youngest player on the 2025 Lions tour, World Rugby Breakthrough Player nominee. Relentless engine, jackal threat over the ball, and a try-scoring flanker with genuine pace in the wide channels. Index high: `breakdown`, `stamina`, `pace`, `tackling`, `agility`. Suggested rating: **85/100**.
@@ -763,7 +763,7 @@ The Manchester defence-first side: line-speed, collision-dominant loose forwards
 
 ### Star players
 
-- **Tom Curry** (Flanker, England) — Lions Test starter at openside on the 2025 Australia tour; relentless jackal threat and the "engine" of England's back row, with brutal tackle work-rate even after wrist surgery. Index high: `tackling`, `breakdown`, `stamina`, `strength`, `positioning`. Suggested rating: **91/100**.
+- **Tom Curry** (Flanker, England) — Lions Test starter at openside on the 2025 Australia tour; relentless jackal threat and the "engine" of England's back row, with brutal tackle work-rate even after wrist surgery. Index high: `tackling`, `breakdown`, `stamina`, `strength`, `positioning`. Suggested rating: **91/100**. Marquee: yes.
 - **George Ford** (Fly-half, England) — England's first-choice 10 through the 10-Test winning run; ice-cold game manager with a stunning 50-22 kicking game and tempo control that underpins Sale's territory-first identity. Index high: `kicking`, `composure`, `positioning`, `handling`, `discipline`. Suggested rating: **90/100**.
 - **Ben Curry** (Flanker, England) — Sale's captain and a breakdown menace; started England's Six Nations opener alongside his twin and brings the same chop-tackle, jackal-heavy profile that defines Sale's defensive identity. Index high: `tackling`, `breakdown`, `stamina`, `strength`, `discipline`. Suggested rating: **86/100**.
 - **Tom Roebuck** (Wing, England) — England wing in red-hot form (three tries in the 57-5 win over Newcastle); silky footwork, deceptive power in the carry and a genuine aerial threat that turns Sale's kick-chase into points. Index high: `pace`, `handling`, `agility`, `strength`, `positioning`. Suggested rating: **84/100**.

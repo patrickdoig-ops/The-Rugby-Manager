@@ -19,7 +19,8 @@ export type ScreenId =
   | 'match-result'
   | 'round-results'
   | 'end-of-season'
-  | 'rollover';
+  | 'rollover'
+  | 'contracts';
 
 const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'home':          { elId: 'home-screen',   shownDisplay: '' },
@@ -35,6 +36,7 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'round-results': { elId: 'round-results', shownDisplay: '' },
   'end-of-season': { elId: 'end-of-season', shownDisplay: '' },
   'rollover':      { elId: 'rollover',      shownDisplay: '' },
+  'contracts':     { elId: 'contracts',     shownDisplay: '' },
 };
 
 export const screenRouter = {

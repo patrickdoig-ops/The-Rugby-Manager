@@ -88,6 +88,9 @@
         "discipline": 63,
         "positioning": 66,
         "composure": 62
+      },
+      "contract": {
+        "isMarquee": true
       }
     },
     {

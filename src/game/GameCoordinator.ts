@@ -26,6 +26,7 @@ import { seedRoster } from './rosterSeeder';
 import { buildTeamFromRoster } from './rosterTeamBuilder';
 import { collectSeasonEvents, type PlayerStatsSnapshot } from './seasonStatsCollector';
 import { computeRollover } from './careerRollover';
+import { seedContractFields } from './contractSeeder';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed } from '../utils/rng';
 import { SEASON_VALUES } from '../engine/balance';
@@ -129,7 +130,7 @@ export class GameCoordinator {
       teamIds: allTeams.map(t => t.id),
       schedule,
     });
-    const seeded = seedRoster(allTeams);
+    const seeded = seedRoster(allTeams, parseSeasonStartYear(coord.state.calendar.seasonLabel));
     applySeasonEvent(coord.state, {
       type: 'ROSTER_SEEDED',
       roster: seeded.roster,
@@ -163,6 +164,22 @@ export class GameCoordinator {
     // v4 and older predate the roster; seed fresh from JSONs (lossless —
     // pre-v5 there was zero per-player evolution to preserve).
     if (save.career) {
+      // v5 → v6 backfill. Saved Players from a v5-era career lack the
+      // `contract` + `reputation` fields added in Phase 2. Synthesise
+      // them via contractSeeder so the loaded career is usable on v6
+      // code paths (ContractsScreen, etc.). The seasonStartYear is
+      // derived from the saved season label.
+      const seasonStartYear = parseSeasonStartYear(save.seasonLabel ?? coord.state.calendar.seasonLabel);
+      const rosterIds = Object.keys(save.career.roster).map(Number).sort((a, b) => a - b);
+      for (const rid of rosterIds) {
+        const p = save.career.roster[rid];
+        if (!p.contract || !p.contract.expiresOn) {
+          const club = save.career.clubs.find(c => c.squad.includes(rid));
+          const { contract, reputation } = seedContractFields(p, club?.id ?? '', seasonStartYear);
+          p.contract = contract;
+          if (typeof p.reputation !== 'number') p.reputation = reputation;
+        }
+      }
       applySeasonEvent(coord.state, {
         type: 'ROSTER_SEEDED',
         roster: save.career.roster,
@@ -182,7 +199,7 @@ export class GameCoordinator {
         mvpRosterId: a.mvpRosterId,
       }));
     } else {
-      const seeded = seedRoster(allTeams);
+      const seeded = seedRoster(allTeams, parseSeasonStartYear(coord.state.calendar.seasonLabel));
       applySeasonEvent(coord.state, {
         type: 'ROSTER_SEEDED',
         roster: seeded.roster,
@@ -358,4 +375,12 @@ export class GameCoordinator {
       },
     };
   }
+}
+
+// Parse the season label (e.g. "2025/26 Premiership") to the start year
+// of that season. Used by contractSeeder to compute expiry dates
+// relative to "now" so a 2-year deal expires on 30 June of (startYear + 2).
+function parseSeasonStartYear(label: string): number {
+  const m = label.match(/(\d{4})/);
+  return m ? parseInt(m[1], 10) : new Date().getUTCFullYear();
 }

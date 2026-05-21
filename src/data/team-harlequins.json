@@ -296,7 +296,8 @@
         "discipline": 59,
         "positioning": 58,
         "composure": 91
-      }
+      },
+      "contract": { "isMarquee": true }
     },
     {
       "id": 11,

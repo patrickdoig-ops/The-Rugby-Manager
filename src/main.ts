@@ -9,6 +9,7 @@ import '../style/hub.css';
 import '../style/matchresult.css';
 import '../style/roundresults.css';
 import '../style/seasonrollover.css';
+import '../style/contracts.css';
 import '../style/commentary.css';
 import '../style/stats.css';
 import '../style/prematch.css';
@@ -33,6 +34,7 @@ import { initMatchResultScreen }   from './ui/MatchResultScreen';
 import { initRoundResultsScreen, showRoundResults } from './ui/RoundResultsScreen';
 import { initEndOfSeasonScreen, showEndOfSeason }   from './ui/EndOfSeasonScreen';
 import { initRolloverScreen, showRollover }         from './ui/RolloverScreen';
+import { initContractsScreen, showContracts }       from './ui/ContractsScreen';
 import { screenRouter }            from './ui/ScreenRouter';
 import { loadSave, saveGame, clearSave } from './ui/SaveManager';
 import { loadTickDelayMs }           from './ui/uiPrefs';
@@ -133,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onLeague:   goLeagueTable,
       onSquad:    () => { /* placeholder until Squad selector screen lands */ },
       onTraining: () => { /* placeholder until Training screen lands */ },
-      onContracts:() => { /* placeholder until Contracts screen lands */ },
+      onContracts: goContracts,
       onTransfers:() => { /* placeholder until Transfer market screen lands */ },
       onSettings: goSettingsFromHub,
     });
@@ -142,6 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initRoundResultsScreen(gameEngine, allTeams);
     initEndOfSeasonScreen(gameEngine, allTeams);
     initRolloverScreen(gameEngine, allTeams);
+    initContractsScreen(gameEngine, allTeams, goHub);
 
     // The post-match Continue chain (LeagueTable → ...) reads this flag.
     // GameCoordinator emits game:seasonComplete after the last round's
@@ -160,6 +163,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function goLeagueTable(): void {
     screenRouter.show('league-table');
+  }
+
+  function goContracts(): void {
+    showContracts();
+    screenRouter.show('contracts');
   }
 
   function onTeamPicked(team: RawTeamInput): void {

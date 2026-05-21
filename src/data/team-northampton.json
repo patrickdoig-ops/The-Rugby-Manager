@@ -310,7 +310,8 @@
         "discipline": 89,
         "positioning": 89,
         "composure": 91
-      }
+      },
+      "contract": { "isMarquee": true }
     },
     {
       "id": 11,

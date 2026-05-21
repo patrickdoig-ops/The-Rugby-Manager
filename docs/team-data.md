@@ -49,7 +49,7 @@ A historic west-country club with a cherry-and-white forwards-led identity, defi
 - **Stadium capacity:** 16,155.
 - **Head coach:** George Skivington (Head Coach; returned to the role March 2026 after serving as Director of Rugby from 2020).
 - **Honours:** RFU Cup × 4 (1971-72, 1977-78, 1981-82, 2002-03); European Challenge Cup 2005-06, 2014-15.
-- **Overall rating:** **44/100** *(25-26: 1.56 ppm × 0.6 = 18.8, 24-25: 3.11 ppm × 0.4 = 24.9)*
+- **Overall rating:** **63/100**
 - **Suggested tactics:** `balanced` · `keep_it_tight` · `pick_and_drive` · `counter_ruck` · `one_back`
 - **Stat bias:** high `strength`, `breakdown`, `setPiece`.
 
@@ -122,7 +122,7 @@ Shaped by the Pat Lam era's "Bristol-Bilbao" expansive ambition, the Bears are t
 - **Stadium capacity:** 27,000 (shared with Bristol City FC).
 - **Head coach:** Pat Lam (Director of Rugby since 2017).
 - **Honours:** European Challenge Cup 2019-20; RFU Knockout Cup 1982-83; Championship title 2017-18.
-- **Overall rating:** **63/100** *(25-26: 3.13 ppm × 0.6 = 37.5, 24-25: 3.22 ppm × 0.4 = 25.8)*
+- **Overall rating:** **71/100**
 - **Suggested tactics:** `possession` · `wide_wide` · `wide_play` · `jackal` · `two_back`
 - **Stat bias:** high `pace`, `handling`, `agility`.
 
@@ -194,7 +194,7 @@ The Welford Road tradition is set-piece power, structured forward-led play, and 
 - **Stadium capacity:** 25,849 (the largest club-owned rugby ground in England).
 - **Head coach:** Geoff Parling (Head Coach since August 2025, succeeding Michael Cheika).
 - **Honours:** 11 × English league title (latest 2021-22, most in the modern era); 2 × European Champions Cup (2000-01, 2001-02); Anglo-Welsh Cup × 6.
-- **Overall rating:** **74/100** *(25-26: 3.88 ppm × 0.6 = 46.5, 24-25: 3.39 ppm × 0.4 = 27.1)*
+- **Overall rating:** **77/100**
 - **Suggested tactics:** `kicking` · `keep_it_tight` · `pick_and_drive` · `jackal` · `two_back`
 - **Stat bias:** high `setPiece`, `tackling`, `discipline`.
 
@@ -274,7 +274,7 @@ Under Mark McCall, Saracens have been the league's clinical operator — structu
 - **Stadium capacity:** 10,500.
 - **Head coach:** Mark McCall (Director of Rugby since 2010; stepping down end of 2025-26, with Brendan Venter to take over for 2026-27).
 - **Honours:** 5 × Premiership title (latest 2018-19); 3 × European Champions Cup (2015-16, 2016-17, 2018-19).
-- **Overall rating:** **64/100** *(25-26: 3.25 ppm × 0.6 = 39.0, 24-25: 3.11 ppm × 0.4 = 24.9)*
+- **Overall rating:** **72/100**
 - **Suggested tactics:** `kicking` · `balanced` · `balanced` · `shadow` · `two_back`
 - **Stat bias:** high `tackling`, `positioning`, `composure`.
 
@@ -351,7 +351,7 @@ The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at
 - **Stadium capacity:** 14,500 (18,000-seat rebuild approved September 2025).
 - **Head coach:** Johann van Graan (Head of Rugby since 2022, contracted to 2030).
 - **Honours:** 7 × English league title (latest 2024-25); 10 × RFU Cup (1984–1996 dynasty); European Challenge Cup 2007-08.
-- **Overall rating:** **79/100** *(25-26: 3.94 ppm × 0.6 = 47.3, 24-25: 4.00 ppm × 0.4 = 32.0)*
+- **Overall rating:** **79/100**
 - **Suggested tactics:** `balanced` · `balanced` · `balanced` · `jackal` · `two_back`
 - **Stat bias:** high `handling`, `kicking`, `composure`.
 
@@ -428,7 +428,7 @@ The Rob Baxter long-build identity is phase-heavy possession rugby — pressure 
 - **Stadium capacity:** 13,593.
 - **Head coach:** Rob Baxter (Director of Rugby since 2009 — the league's longest-serving head coach).
 - **Honours:** 2 × Premiership title (2016-17, 2019-20); European Champions Cup 2019-20; Anglo-Welsh Cup 2013-14.
-- **Overall rating:** **54/100** *(25-26: 3.44 ppm × 0.6 = 41.3, 24-25: 1.61 ppm × 0.4 = 12.9)*
+- **Overall rating:** **68/100**
 - **Suggested tactics:** `possession` · `keep_it_tight` · `pick_and_drive` · `counter_ruck` · `one_back`
 - **Stat bias:** high `stamina`, `breakdown`, `setPiece`.
 
@@ -510,7 +510,7 @@ The Twickenham Stoop entertainers and the league's most committed expansive, att
 - **Stadium capacity:** 14,800.
 - **Head coach:** Jason Gilmore (Head Coach since September 2025, promoted from defence coach after Danny Wilson's late departure to Wales).
 - **Honours:** 2 × Premiership title (2011-12, 2020-21); European Challenge Cup 2010-11; Anglo-Welsh Cup 1987-88, 2012-13.
-- **Overall rating:** **41/100** *(25-26: 1.63 ppm × 0.6 = 19.5, 24-25: 2.67 ppm × 0.4 = 21.3)*
+- **Overall rating:** **62/100**
 - **Suggested tactics:** `possession` · `wide_wide` · `wide_play` · `jackal` · `one_back`
 - **Stat bias:** high `pace`, `agility`, `handling`.
 
@@ -585,7 +585,7 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 - **Stadium capacity:** 10,200.
 - **Head coach:** Stephen Jones (interim Head Coach from March 2026 after Alan Dickens departed; Dan McFarland confirmed to take the role from 2026-27).
 - **Honours:** Premiership title 1997-98; Anglo-Welsh Cup 2000-01, 2003-04.
-- **Overall rating:** **11/100** *(25-26: 0.44 ppm × 0.6 = 5.3, 24-25: 0.72 ppm × 0.4 = 5.8)*
+- **Overall rating:** **48/100**
 - **Suggested tactics:** `balanced` · `balanced` · `balanced` · `jackal` · `two_back`
 - **Stat bias:** modest across the board (rebuild status); slight lean toward `stamina` and `discipline`.
 
@@ -667,7 +667,7 @@ The 2023-24 champions under Phil Dowson, Saints are the league's electric attack
 - **Stadium capacity:** 15,249.
 - **Head coach:** Phil Dowson (Director of Rugby since 2022).
 - **Honours:** 2 × Premiership title (2013-14, 2023-24); European Cup 1999-2000; European Challenge Cup 2008-09, 2014.
-- **Overall rating:** **70/100** *(25-26: 4.19 ppm × 0.6 = 50.3, 24-25: 2.44 ppm × 0.4 = 19.6)*
+- **Overall rating:** **75/100**
 - **Suggested tactics:** `possession` · `wide_wide` · `wide_play` · `jackal` · `one_back`
 - **Stat bias:** high `pace`, `handling`, `agility`.
 
@@ -760,7 +760,7 @@ The Manchester defence-first side: line-speed, collision-dominant loose forwards
 - **Stadium capacity:** 12,000 (shared with Salford Red Devils RL).
 - **Head coach:** Alex Sanderson (Director of Rugby since 2021).
 - **Honours:** Premiership title 2005-06; European Challenge Cup 2001-02, 2004-05.
-- **Overall rating:** **48/100** *(25-26: 1.81 ppm × 0.6 = 21.8, 24-25: 3.22 ppm × 0.4 = 25.8)*
+- **Overall rating:** **65/100**
 - **Suggested tactics:** `kicking` · `keep_it_tight` · `balanced` · `shadow` · `three_back`
 - **Stat bias:** high `tackling`, `strength`, `kicking`.
 

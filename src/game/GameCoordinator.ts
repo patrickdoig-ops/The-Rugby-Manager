@@ -20,6 +20,7 @@ import { emptyCareerState } from '../types/gameState';
 import type { TeamTactics } from '../types/team';
 import { applySeasonEvent } from './applySeasonEvent';
 import { simulateFixture } from './simulateFixture';
+import { seedRoster } from './rosterSeeder';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed } from '../utils/rng';
 import { SEASON_VALUES } from '../engine/balance';
@@ -87,6 +88,13 @@ export class GameCoordinator {
       teamIds: allTeams.map(t => t.id),
       schedule,
     });
+    const seeded = seedRoster(allTeams);
+    applySeasonEvent(coord.state, {
+      type: 'ROSTER_SEEDED',
+      roster: seeded.roster,
+      clubs: seeded.clubs,
+      nextRosterId: seeded.nextRosterId,
+    });
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
   }
@@ -109,6 +117,16 @@ export class GameCoordinator {
       seed: save.seed >>> 0,
       teamIds: allTeams.map(t => t.id),
       schedule: effectiveSchedule,
+    });
+    // v4 saves predate the persistent roster — seed it fresh from the raw
+    // team JSONs. v5+ saves will carry the roster directly and skip this
+    // (added in Phase 1 commit 8 when SAVE_VERSION bumps).
+    const seeded = seedRoster(allTeams);
+    applySeasonEvent(coord.state, {
+      type: 'ROSTER_SEEDED',
+      roster: seeded.roster,
+      clubs: seeded.clubs,
+      nextRosterId: seeded.nextRosterId,
     });
     // Replay results in round order, then advance week to match the snapshot.
     const ordered = [...save.results].sort((a, b) => a.round - b.round);

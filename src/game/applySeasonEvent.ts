@@ -206,6 +206,26 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
       };
       return;
     }
+    case 'ACADEMY_GRADUATED': {
+      // New persona entering the senior roster of an existing club.
+      // rosterId on the supplied Player is the freshly allocated id;
+      // we bump nextRosterId past it.
+      const rid = event.player.rosterId;
+      state.career.roster[rid] = event.player;
+      const club = state.career.clubs.find(c => c.id === event.clubId);
+      if (club && !club.squad.includes(rid)) club.squad.push(rid);
+      if (rid >= state.career.nextRosterId) state.career.nextRosterId = rid + 1;
+      return;
+    }
+    case 'FOREIGN_IMPORT_ARRIVED': {
+      // Unsigned new persona. Lands in freeAgents; signing flow picks
+      // them up next.
+      const rid = event.player.rosterId;
+      state.career.roster[rid] = event.player;
+      if (!state.career.freeAgents.includes(rid)) state.career.freeAgents.push(rid);
+      if (rid >= state.career.nextRosterId) state.career.nextRosterId = rid + 1;
+      return;
+    }
     case 'CAREER_ARCHIVE_RESTORED': {
       state.career.seasonsCompleted = event.seasonsCompleted;
       state.career.archive = event.archive.map(a => ({

@@ -62,3 +62,7 @@ export function commentaryChance(pct: number): boolean {
 export function rngTransferRaw(): number {
   return transferRand();
 }
+
+export function rngTransfer(min: number, max: number): number {
+  return Math.floor(transferRand() * (max - min + 1)) + min;
+}

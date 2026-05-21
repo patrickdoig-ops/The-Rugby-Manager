@@ -346,6 +346,24 @@ export type SeasonEvent =
       expiresOn: string;
     }
   | {
+      // Phase 7: new academy graduate joining a senior squad. Player
+      // record is allocated nextRosterId at the moment of the event.
+      // ClubId is the academy club's senior side (no transfer flow —
+      // home-grown players go straight onto the senior roster). Wage +
+      // expiry on the player.contract are set by personaGenerator
+      // (rookie fixed wage + 2-year deal).
+      type: 'ACADEMY_GRADUATED';
+      clubId: string;
+      player: Player;
+    }
+  | {
+      // Phase 7: foreign import enters the free-agent pool with a
+      // pre-set asking-wage. Player.contract.clubId is '' (unsigned).
+      // Phase 5+ signing flow consumes them like any other free agent.
+      type: 'FOREIGN_IMPORT_ARRIVED';
+      player: Player;
+    }
+  | {
       // fromSave-only: restores the cumulative career counters that
       // SEASON_ROLLED_OVER would otherwise build incrementally. Keeps
       // every state.career.* write inside applySeasonEvent so the

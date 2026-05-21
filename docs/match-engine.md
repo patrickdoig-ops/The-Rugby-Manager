@@ -244,16 +244,31 @@ To add a new stat: add one field to `PlayerMatchStats`, one `field: 0` in `zeroM
 
 Ratings are displayed in the Player Stats panel and update once per game minute. Bench players who never came on retain their initial rating of 6.0.
 
-### Pre-match overall (0–100) and spawn-time star boost
+### Pre-match overall (0–100) and the spawn pipeline
 
 Distinct from the match-performance `computeRating` above, **`playerOverall(stats, position)`** in `src/engine/RatingEngine.ts` returns a 0–100 ability score from the 12 `baseStats`. It is a normalised position-weighted average — weights live in `PLAYER_OVERALL_WEIGHTS` (`src/engine/balance/rating.ts`), stats missing from a position's table default to 1.0. Read by `PreMatchScreen`, `TeamInfoScreen`, and `teamProfile.computeOverallRating` (top-23 mean). Never mutated in-match.
 
-**`applyStarBoost(team)`** in `src/team/applyStarBoost.ts` is the spawn-time transform that lifts authored baseStats so elite real-world players compute to ~95 OVR rather than the high-70s a hand-authored "realistic" line produces under the weighted-average formula. Called once at app start from `main.ts` against each `TeamJson` before either `teamProfile.init()` or any `RawTeamInput` cast that feeds `MatchCoordinator`. Two deterministic, RNG-free passes per team:
+**`applyStarBoost(team)`** in `src/team/applyStarBoost.ts` is the deterministic, RNG-free spawn-time transform that calibrates authored `baseStats` into four progressive rating tiers (star > starter > bench > squad). Called once at app start from `main.ts` against each `TeamJson` before either `teamProfile.init()` or any `RawTeamInput` cast that feeds `MatchCoordinator`. The determinism harnesses (`scripts/checkDeterminism.ts`, `scripts/checkSeasonDeterminism.ts`) and `scripts/telemetry.ts` apply the same boost so the verification chain sees the same league the player does. Returns a new `TeamJson` — the on-disk JSON is never mutated. Three passes per team, in order:
 
-1. **League-wide floor.** Every player on the matchday roster (players + bench, *excluding* the data-only `squad[]`) gets each baseStat raised to `STAR_BOOST.leagueMin`. Stats already above the floor are untouched.
-2. **Per-star boost.** For each `team.stars[i]`, find the matching roster player by full name and lift their `indexHigh` stats to a high floor (97 for top stars with `suggestedRating ≥ 90`, 95 otherwise) and non-`indexHigh` stats to `otherStatMin`. Then iteratively pick the highest-position-weighted non-capped stat and bump it +1 until the computed OVR meets `suggestedRating + targetOffset` (or all stats cap at 99).
+**1. Tier calibration (`applyTierCalibration`).** Every non-star, non-irrelevant baseStat gets an additive shift from `TIER_CALIBRATION`:
 
-`STAR_BOOST` lives next to the OVR weights in `src/engine/balance/rating.ts`. The boost runs against the local `TeamJson` shape and returns a new object — the on-disk JSONs are unchanged. The determinism harnesses (`scripts/checkDeterminism.ts`, `scripts/checkSeasonDeterminism.ts`) and the telemetry script apply the same boost so the verification chain sees the same league the player does.
+| Roster slot | Shift | Expected OVR mean | Range |
+|---|---|---|---|
+| `players[]` (starting XV, non-star) | `+10` | ~77 | 57-89 |
+| `bench[]` (matchday 16-23, non-star) | `+3` | ~71 | 51-83 |
+| `squad[]` (wider roster) | `-5` | ~62 | 42-74 |
+
+Stars get `shift = 0`. Irrelevant stats — `IRRELEVANT_STATS[position]` (forwards' `kicking`, backs' `setPiece`, all of which have weight 0 in `PLAYER_OVERALL_WEIGHTS`) — are clamped to `STAR_BOOST.irrelevantStatMax` (15). The shift is bounded above by `statCap(p, k)` (which honours `LEAGUE_STAT_CEILINGS` and `PLAYER_STAT_OVERRIDES`) and below by `STAR_BOOST.statHardFloor` (35).
+
+**2. Per-star boost (`boostStar`).** For each entry in `team.stars[]`, match by full name across `players[]` + `bench[]`. Floor `indexHigh` stats to `indexHighMin` (95) — or `topIndexHighMin` (97) when `suggestedRating ≥ topThreshold` (90). Floor non-`indexHigh` stats to `otherStatMin` (78). Then iterate up to `maxIterations` (120) rounds, each round picking the highest-position-weighted non-capped non-irrelevant stat and bumping it by +1 until `playerOverall(stats, position) ≥ suggestedRating + targetOffset` (3). Stars supersede tier calibration unconditionally because every star floor (78+) is above any non-star tier value.
+
+**3. Per-player overrides (`applyPlayerOverrides`).** `PLAYER_STAT_OVERRIDES` applied verbatim across `players` + `bench` + `squad`. Exact-set per stat, applied last, can exceed `LEAGUE_STAT_CEILINGS`. Today: pace 99 for Henry Arundell, 98 for Adam Radwan, 95 for Cadan Murley + Ollie Sleightholme, plus per-star caps for Slade 85, Mitchell 88, Pollock 92, Earl 89.
+
+**Cap interaction.** `statCap(p, k)` returns `PLAYER_STAT_OVERRIDES[name][k]` if defined, else `min(STAR_BOOST.capPerStat, LEAGUE_STAT_CEILINGS[k] ?? capPerStat)`. The star boost iteration (step 2) consults `statCap()` on every loop, so a starred player whose pace is capped (Slade at 85, Pollock at 92) has those weight points redistributed onto other eligible stats instead of being lifted to 95 and then clobbered by the final override pass. Result: the star still hits their target OVR.
+
+**Adding a new constant.** All five tuning levers (`STAR_BOOST`, `TIER_CALIBRATION`, `IRRELEVANT_STATS`, `LEAGUE_STAT_CEILINGS`, `PLAYER_STAT_OVERRIDES`) live side-by-side in `src/engine/balance/rating.ts`. Adding a new star: edit `docs/team-data.md` and run `node scripts/generateTeamJsons.mjs`. Adding a per-player override: one line in `PLAYER_STAT_OVERRIDES`. Adding a new league-wide stat cap: one line in `LEAGUE_STAT_CEILINGS`. Retuning a tier: change one number in `TIER_CALIBRATION`.
+
+**Known limitation.** Stars with low `suggestedRating` (≤ 87) can land 1-5 OVR above target because the floor pass alone produces an OVR above target and the iteration loop only ever lifts up. Affects ~9 stars today (e.g. Mafi sug 80 → OVR 88, van Poortvliet sug 80 → OVR 88, Ludlow sug 83 → OVR 88). Deviations are small enough to defer; a "scale down to target" final pass would fix it cleanly if it becomes a problem.
 
 ---
 

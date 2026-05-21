@@ -21,6 +21,7 @@ import {
   WAGE_BY_RATING, POSITION_SCARCITY, WAGE_NOISE, CONTRACT_LENGTH, REPUTATION_SEED,
 } from '../engine/balance/transfers';
 import { rngTransferRaw } from '../utils/rng';
+import { getAge, seasonOpenIso } from './age';
 
 export interface SeededContractFields {
   contract: PlayerContract;
@@ -37,7 +38,7 @@ export function seedContractFields(
   // RNG order matters for determinism — always advance rngTransfer in the
   // same sequence regardless of which override fields are present. Each
   // call below consumes the stream once.
-  const lengthYears = pickLength(raw, overall);
+  const lengthYears = pickLength(raw, overall, seasonStartYear);
   const wage = synthesizeWage(raw, overall);
 
   const contract: PlayerContract = {
@@ -80,8 +81,8 @@ function wageFromRating(overall: number): number {
   return anchors[anchors.length - 1].wage;
 }
 
-function pickLength(raw: RawPlayer, overall: number): number {
-  const age = currentAgeForLengthHeuristic(raw, overall);
+function pickLength(raw: RawPlayer, overall: number, seasonStartYear: number): number {
+  const age = currentAgeForLengthHeuristic(raw, overall, seasonStartYear);
   const bucket = age < 25
     ? CONTRACT_LENGTH.under25
     : age < 30
@@ -93,18 +94,14 @@ function pickLength(raw: RawPlayer, overall: number): number {
   return 3;
 }
 
-// Best-effort age estimate at seed time. Uses the JSON dob when
-// present; falls back to a rating-based heuristic for the
-// no-dob case so the length distribution still behaves.
-function currentAgeForLengthHeuristic(raw: RawPlayer, overall: number): number {
-  if (raw.dob) {
-    const seasonOpen = new Date('2025-09-01');
-    const dob = new Date(raw.dob);
-    let age = seasonOpen.getUTCFullYear() - dob.getUTCFullYear();
-    const m = seasonOpen.getUTCMonth() - dob.getUTCMonth();
-    if (m < 0 || (m === 0 && seasonOpen.getUTCDate() < dob.getUTCDate())) age -= 1;
-    return age;
-  }
+// Best-effort age estimate at seed time. Uses the JSON dob anchored to
+// the season-open date of the *current* season (so a v5 save migrated
+// to v6 in year 2 of a career gets the right age, not the 2025 age).
+// Falls back to a rating-based heuristic for the no-dob case so the
+// length distribution still behaves.
+function currentAgeForLengthHeuristic(raw: RawPlayer, overall: number, seasonStartYear: number): number {
+  const age = getAge(raw.dob, seasonOpenIso(seasonStartYear));
+  if (age !== null) return age;
   return overall >= 85 ? 28 : 25;
 }
 

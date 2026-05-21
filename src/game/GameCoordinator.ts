@@ -22,6 +22,7 @@ import { applySeasonEvent } from './applySeasonEvent';
 import { simulateFixture } from './simulateFixture';
 import { seedRoster } from './rosterSeeder';
 import { buildTeamFromRoster } from './rosterTeamBuilder';
+import { collectSeasonEvents, type PlayerStatsSnapshot } from './seasonStatsCollector';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed } from '../utils/rng';
 import { SEASON_VALUES } from '../engine/balance';
@@ -173,7 +174,12 @@ export class GameCoordinator {
     return upcoming[0] ?? null;
   }
 
-  async recordPlayerMatchResult(round: number, homeScore: number, awayScore: number): Promise<void> {
+  async recordPlayerMatchResult(
+    round: number,
+    homeScore: number,
+    awayScore: number,
+    playerSnapshots?: PlayerStatsSnapshot[],
+  ): Promise<void> {
     const fixture = this.state.league.fixtures.find(f =>
       f.round === round && (f.homeId === this.state.player.teamId || f.awayId === this.state.player.teamId)
     );
@@ -200,6 +206,11 @@ export class GameCoordinator {
       playerSide,
     };
     applySeasonEvent(this.state, { type: 'FIXTURE_RESULT_RECORDED', result });
+    if (playerSnapshots) {
+      for (const ev of collectSeasonEvents(playerSnapshots)) {
+        applySeasonEvent(this.state, ev);
+      }
+    }
     eventBus.emit('game:fixtureRecorded', { result, state: this.state });
 
     // Headless-simulate every other fixture in this round so the league table
@@ -226,6 +237,9 @@ export class GameCoordinator {
         playerSide: null,
       };
       applySeasonEvent(this.state, { type: 'FIXTURE_RESULT_RECORDED', result: aiResult });
+      for (const ev of collectSeasonEvents(sim.playerSnapshots)) {
+        applySeasonEvent(this.state, ev);
+      }
       eventBus.emit('game:fixtureRecorded', { result: aiResult, state: this.state });
     }
 

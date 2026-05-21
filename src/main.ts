@@ -43,6 +43,7 @@ import { applyStarBoost }          from './team/applyStarBoost';
 import { GameCoordinator }         from './game/GameCoordinator';
 import { extractMatchdaySquad }    from './game/playerSquad';
 import { buildTeamFromRoster }     from './game/rosterTeamBuilder';
+import { snapshotMatch }           from './game/seasonStatsCollector';
 import { SEASON_VALUES }           from './engine/balance';
 import { generateSeed }            from './utils/rng';
 import { eventBus }                from './utils/eventBus';
@@ -226,9 +227,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function showMatchResult(engine: MatchCoordinator, state: MatchState, round: number): void {
     initMatchResultScreen(state, round, async () => {
+      // Snapshot the per-player stats before destroy() tears down the
+      // match state — feeds PLAYER_SEASON_STATS_ACCUMULATED inside
+      // recordPlayerMatchResult so league top-scorer / MVP cards can
+      // surface real season aggregates.
+      const playerSnapshots = snapshotMatch(state);
       engine.destroy();
       if (gameEngine) {
-        await gameEngine.recordPlayerMatchResult(round, state.score.home, state.score.away);
+        await gameEngine.recordPlayerMatchResult(round, state.score.home, state.score.away, playerSnapshots);
         saveGame(gameEngine.toSavePayload());
       }
       // Post-match nav chain: round results → league table → hub. Each

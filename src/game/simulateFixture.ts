@@ -13,10 +13,16 @@ import { MatchCoordinator } from '../engine/MatchCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import { eventBus } from '../utils/eventBus';
 import { deriveFixtureSeed } from './derive';
+import { snapshotMatch, type PlayerStatsSnapshot } from './seasonStatsCollector';
 
 export interface SimulatedFixtureResult {
   homeScore: number;
   awayScore: number;
+  // Per-player stat snapshot taken before MatchCoordinator.destroy(). Empty
+  // when both teams' players have rosterId === 0 (non-career test contexts).
+  // GameCoordinator feeds it to seasonStatsCollector to drive the
+  // PLAYER_SEASON_STATS_ACCUMULATED events.
+  playerSnapshots: PlayerStatsSnapshot[];
 }
 
 export function simulateFixture(
@@ -35,8 +41,9 @@ export function simulateFixture(
     const off = eventBus.on('engine:finished', ({ state }) => {
       off();
       const { home: homeScore, away: awayScore } = state.score;
+      const playerSnapshots = snapshotMatch(state);
       engine.destroy();
-      resolve({ homeScore, awayScore });
+      resolve({ homeScore, awayScore, playerSnapshots });
     });
     engine.initialize();
     engine.start();

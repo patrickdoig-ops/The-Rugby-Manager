@@ -15,7 +15,7 @@
 
 import type {
   ArchivedSeason, ClubState,
-  Fixture, FixtureResult, GameState, MarketState, PlayerRef, SeasonEvent, SeasonSchedule, TransferOffer,
+  Fixture, FixtureResult, GameState, MarketState, PlayerRef, PreAgreement, SeasonEvent, SeasonSchedule, TransferOffer,
 } from '../types/gameState';
 import { emptyCareerState } from '../types/gameState';
 import type { Player } from '../types/player';
@@ -53,8 +53,11 @@ export type SavedSeasonResult = {
 //
 // v7 adds the optional market layer: `freeAgents` (rosterIds of players
 // whose contracts expired without renewal) and `market` (the live
-// state of an open renewal window, null when closed). v5/v6 loads
+// state of an open market window, null when closed). v5/v6 loads
 // default both to []/null via emptyCareerState.
+//
+// v8 adds `pendingMoves` (PreAgreement[]) for Phase 6 cross-Prem
+// poaching. Activated at the next rollover.
 export interface SavedCareer {
   seasonsCompleted: number;
   nextRosterId: number;
@@ -63,6 +66,7 @@ export interface SavedCareer {
   archive: ArchivedSeason[];
   freeAgents?: number[];
   market?: MarketState | null;
+  pendingMoves?: PreAgreement[];
 }
 
 export interface SavedSeason {
@@ -211,6 +215,7 @@ export class GameCoordinator {
         archive: save.career.archive,
         ...(save.career.freeAgents !== undefined ? { freeAgents: save.career.freeAgents } : {}),
         ...(save.career.market !== undefined ? { market: save.career.market } : {}),
+        ...(save.career.pendingMoves !== undefined ? { pendingMoves: save.career.pendingMoves } : {}),
       });
     } else {
       const seeded = seedRoster(allTeams, parseSeasonStartYear(coord.state.calendar.seasonLabel));
@@ -555,6 +560,7 @@ export class GameCoordinator {
               offers: this.state.career.market.offers.map(o => ({ ...o })),
             }
           : null,
+        pendingMoves: this.state.career.pendingMoves.map(m => ({ ...m })),
       },
     };
   }

@@ -32,13 +32,13 @@
 // v1 saves are discarded — they predate AI-vs-AI results.
 
 import type { SavedCareer, SavedSeason, SavedSeasonResult } from '../game/GameCoordinator';
-import type { ArchivedSeason, ClubState, Fixture, MarketState, PlayerRef, TransferOffer } from '../types/gameState';
+import type { ArchivedSeason, ClubState, Fixture, MarketState, PlayerRef, PreAgreement, TransferOffer } from '../types/gameState';
 import type { Player } from '../types/player';
 import type { TeamTactics } from '../types/team';
 
 const SAVE_KEY = 'rugby-manager-save';
-const SAVE_VERSION = 7;
-const ACCEPTED_VERSIONS = new Set([7, 6, 5, 4, 3, 2]);
+const SAVE_VERSION = 8;
+const ACCEPTED_VERSIONS = new Set([8, 7, 6, 5, 4, 3, 2]);
 
 export type SavedGame = SavedSeason & { version: number };
 
@@ -113,6 +113,9 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
     ? c.freeAgents.filter((n): n is number => typeof n === 'number')
     : [];
   const market = parseMarket(c.market);
+  const pendingMoves = Array.isArray(c.pendingMoves)
+    ? (c.pendingMoves as PreAgreement[]).map(m => ({ ...m }))
+    : [];
   return {
     seasonsCompleted: c.seasonsCompleted,
     nextRosterId: c.nextRosterId,
@@ -126,6 +129,7 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
     })),
     freeAgents,
     market,
+    pendingMoves,
   };
 }
 

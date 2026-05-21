@@ -40,6 +40,22 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
   const currentSeasonStartYear = parseSeasonStartYear(state.calendar.seasonLabel);
   const newSeasonStartYear = currentSeasonStartYear + 1;
 
+  // 0. Activate pre-agreed cross-club moves (Phase 6, Reg 7). Sorted by
+  // rosterId so the event order is stable across runs. Each TRANSFER_ACTIVATED
+  // atomically moves the player from old squad to new without touching
+  // freeAgents — the player goes straight to their new club ahead of
+  // any aging / retirement pass for the new season.
+  const sortedMoves = [...state.career.pendingMoves].sort((a, b) => a.rosterId - b.rosterId);
+  for (const move of sortedMoves) {
+    events.push({
+      type: 'TRANSFER_ACTIVATED',
+      rosterId: move.rosterId,
+      toClubId: move.toClubId,
+      annualWage: move.annualWage,
+      expiresOn: `${newSeasonStartYear + move.lengthYears - 1}-06-30`,
+    });
+  }
+
   // 1 + 2. Per-player aging + retirement. Iterate roster in stable
   // numeric-ascending order so the rngTransfer call sequence is
   // deterministic across runs.

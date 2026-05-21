@@ -179,6 +179,33 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
       };
       return;
     }
+    case 'PRE_AGREEMENT_SIGNED': {
+      // Defensive: drop any prior pending move for this rosterId — only
+      // one pre-agreement at a time.
+      state.career.pendingMoves = state.career.pendingMoves.filter(m => m.rosterId !== event.agreement.rosterId);
+      state.career.pendingMoves.push({ ...event.agreement });
+      return;
+    }
+    case 'TRANSFER_ACTIVATED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      // Remove from old club's squad.
+      const oldClub = state.career.clubs.find(c => c.id === p.contract.clubId);
+      if (oldClub) oldClub.squad = oldClub.squad.filter(id => id !== event.rosterId);
+      // Add to new club's squad (defensive against double-add).
+      const newClub = state.career.clubs.find(c => c.id === event.toClubId);
+      if (newClub && !newClub.squad.includes(event.rosterId)) {
+        newClub.squad.push(event.rosterId);
+      }
+      // Marquee status clears on departure; new club re-designates if wanted.
+      p.contract = {
+        clubId: event.toClubId,
+        expiresOn: event.expiresOn,
+        annualWage: event.annualWage,
+        isMarquee: false,
+      };
+      return;
+    }
     case 'CAREER_ARCHIVE_RESTORED': {
       state.career.seasonsCompleted = event.seasonsCompleted;
       state.career.archive = event.archive.map(a => ({
@@ -198,6 +225,7 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
             }
           : null;
       }
+      if (event.pendingMoves) state.career.pendingMoves = event.pendingMoves.map(m => ({ ...m }));
       return;
     }
     case 'SEASON_ROLLED_OVER': {
@@ -218,6 +246,10 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
       for (const id of Object.keys(state.career.roster)) {
         state.career.roster[Number(id)].seasonStats = zeroSeasonStats();
       }
+      // Pending moves should already have been processed via
+      // TRANSFER_ACTIVATED events fired by careerRollover before this
+      // SEASON_ROLLED_OVER; clear the list as a safety net.
+      state.career.pendingMoves = [];
       return;
     }
     default: {

@@ -119,6 +119,19 @@ export interface MarketState {
   offers: TransferOffer[];
 }
 
+// Cross-Prem pre-agreement (Phase 6 / Reg 7). A player whose contract
+// enters its final 12 months can be approached by another club; if both
+// sides agree, the move activates at the *next* SEASON_ROLLED_OVER
+// rather than immediately. The player completes the current season at
+// their existing club before switching.
+export interface PreAgreement {
+  rosterId: number;
+  fromClubId: string;     // current club (for the year they'll still play)
+  toClubId: string;       // new club at next rollover
+  annualWage: number;     // wage at new club
+  lengthYears: number;    // 1-3
+}
+
 // Multi-season career state — the persistent roster of every senior player
 // across every club, plus per-club squad pointers and historical archive.
 // Seeded once at first-ever new-game start (ROSTER_SEEDED); mutates only
@@ -134,6 +147,11 @@ export interface CareerState {
   freeAgents: number[];
   // Live during the end-of-season renewal window only; null otherwise.
   market: MarketState | null;
+  // Pending cross-club moves agreed in the just-completed off-season
+  // but not yet activated (Reg 7 — Phase 6). careerRollover processes
+  // them on SEASON_ROLLED_OVER: each agreement turns into a CONTRACT_TERMINATED
+  // on the old club + CONTRACT_SIGNED on the new club.
+  pendingMoves: PreAgreement[];
 }
 
 export interface GameState {
@@ -161,6 +179,7 @@ export function emptyCareerState(): CareerState {
     nextRosterId: 1,
     freeAgents: [],
     market: null,
+    pendingMoves: [],
   };
 }
 
@@ -309,19 +328,38 @@ export type SeasonEvent =
       annualWage: number;
     }
   | {
+      // Reg 7 pre-agreement: a contracted player at one club signs to
+      // join another at the next rollover. Pushed to
+      // state.career.pendingMoves; activated by careerRollover.
+      type: 'PRE_AGREEMENT_SIGNED';
+      agreement: PreAgreement;
+    }
+  | {
+      // Activates a pre-agreement at rollover time. Atomic squad swap:
+      // remove rosterId from the old club, add to the new, update
+      // contract. Does NOT touch freeAgents — the player goes
+      // straight from one squad to another.
+      type: 'TRANSFER_ACTIVATED';
+      rosterId: number;
+      toClubId: string;
+      annualWage: number;
+      expiresOn: string;
+    }
+  | {
       // fromSave-only: restores the cumulative career counters that
       // SEASON_ROLLED_OVER would otherwise build incrementally. Keeps
       // every state.career.* write inside applySeasonEvent so the
       // mutation boundary stays clean (CLAUDE.md §5).
       //
-      // `freeAgents` + `market` arrived in v7 (Phase 4); v5/v6 saves
-      // omit them and the fields stay at their emptyCareerState
-      // defaults ([] / null).
+      // `freeAgents` + `market` arrived in v7 (Phase 4); `pendingMoves`
+      // in v8 (Phase 6). Older saves omit these and the fields stay at
+      // their emptyCareerState defaults ([] / null / []).
       type: 'CAREER_ARCHIVE_RESTORED';
       seasonsCompleted: number;
       archive: ArchivedSeason[];
       freeAgents?: number[];
       market?: MarketState | null;
+      pendingMoves?: PreAgreement[];
     }
   | {
       type: 'SEASON_ROLLED_OVER';

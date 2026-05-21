@@ -8,9 +8,25 @@
 // Numbers are v1 baselines — refine when the market actually opens.
 
 // Headline senior-squad cap (£). The marquee player's wage is
-// excluded from this total. Shown dimmed on Phase 2's ContractsScreen;
-// becomes interactive when Phase 3 lands.
+// excluded from this total. Effective spending power per club is
+// `SENIOR_CAP + applicableCredits − marqueeWage` — see CAP_CREDITS.
 export const SENIOR_CAP = 6_400_000;
+
+// Dispensation pools that lift effective cap headroom for every club.
+// Modelled flat per-club rather than per-player tagged: a v1 reflection
+// of the real PRL rules (Home Grown / EPS / injury dispensations) just
+// good enough to bring seeded squads inside their effective cap.
+// Per-player HG/EPS tagging stays deferred (see docs/transfer-system.md).
+export const CAP_CREDITS = {
+  homeGrownPool: 600_000,   // up to £50k per player, up to 12 players
+  epsPool:       400_000,   // up to £80k per player, up to 5 EPS internationals
+  injuryPool:    400_000,   // injury-dispensation replacement allowance
+};
+
+// Total credit dispensation any club enjoys in v1 (sum of the three
+// pools above). Effective cap = SENIOR_CAP + EFFECTIVE_CAP_CREDITS.
+export const EFFECTIVE_CAP_CREDITS =
+  CAP_CREDITS.homeGrownPool + CAP_CREDITS.epsPool + CAP_CREDITS.injuryPool;
 
 // Map an overall rating (0-100) to a base annual wage band before any
 // position-scarcity modifier or noise is applied. Linear interpolation

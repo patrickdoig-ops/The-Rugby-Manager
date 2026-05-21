@@ -9,7 +9,7 @@
 
 import type { GameState, TransferOffer } from '../types/gameState';
 import { playerOverall } from '../engine/RatingEngine';
-import { SENIOR_CAP, RENEWAL } from '../engine/balance/transfers';
+import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS, RENEWAL } from '../engine/balance/transfers';
 import { seedContractFields } from './contractSeeder';
 import { parseSeasonStartYear } from './age';
 
@@ -83,13 +83,15 @@ export function decideAIOffers(state: GameState, clubId: string): { acceptIds: s
   //   (includes the expiring players at their current rates).
   //   fixedCap — non-marquee wages AFTER expiring players drop off.
   //
-  // Cap target = max(SENIOR_CAP × aiTargetCapUtilisation, preWindowCap).
-  // The lower bound keeps under-cap clubs disciplined; the
-  // upper bound stops over-cap clubs (most of them, in v2.23a's
-  // seeded world) from shedding their entire expiring cohort the
-  // first time a renewal window opens. Renewals' loyalty discount
-  // means most renewals reduce wage anyway, so over-cap clubs
-  // gradually converge toward the cap over multiple seasons.
+  // Effective cap = SENIOR_CAP + EFFECTIVE_CAP_CREDITS — the headline
+  // £6.4M plus the HG/EPS/injury dispensation pools every Premiership
+  // club enjoys (modelled flat in v1). Then target =
+  // max(effectiveCap × aiTargetCapUtilisation, preWindowCap):
+  // the lower bound keeps under-cap clubs disciplined; the upper bound
+  // stops over-cap clubs from shedding their entire expiring cohort
+  // the first time a window opens. Renewals' loyalty discount means
+  // most renewals reduce wage anyway, so over-cap clubs gradually
+  // converge.
   const expiringSet = new Set(market.expiringRosterIds);
   let preWindowCap = 0;
   let fixedCap = 0;
@@ -100,7 +102,8 @@ export function decideAIOffers(state: GameState, clubId: string): { acceptIds: s
     if (expiringSet.has(rid)) continue;
     fixedCap += p.contract.annualWage;
   }
-  const targetCap = Math.max(SENIOR_CAP * RENEWAL.aiTargetCapUtilisation, preWindowCap);
+  const effectiveCap = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
+  const targetCap = Math.max(effectiveCap * RENEWAL.aiTargetCapUtilisation, preWindowCap);
   let headroom = targetCap - fixedCap;
 
   const ranked = clubOffers.map(o => {

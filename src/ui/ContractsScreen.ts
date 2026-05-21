@@ -19,7 +19,7 @@ import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { Player } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
-import { SENIOR_CAP } from '../engine/balance/transfers';
+import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance/transfers';
 import { getAge } from '../game/age';
 
 type SortKey = 'name' | 'position' | 'age' | 'ovr' | 'wage' | 'expiry';
@@ -80,11 +80,13 @@ export function initContractsScreen(
     const sorted = sortPlayers(players, calendarDate);
 
     const capUsed = players.filter(p => !p.contract.isMarquee).reduce((sum, p) => sum + p.contract.annualWage, 0);
+    // Effective ceiling = headline cap + HG/EPS/injury dispensation pools.
+    const effectiveCap = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
     const capStatus =
-      capUsed > SENIOR_CAP ? 'over' :
-      capUsed > SENIOR_CAP * 0.95 ? 'tight' :
+      capUsed > effectiveCap ? 'over' :
+      capUsed > effectiveCap * 0.95 ? 'tight' :
       'ok';
-    const capPill = `<span class="ct-cappill ct-cappill--${capStatus}"><span>CAP</span><span>${fmtWage(capUsed)} / ${fmtWage(SENIOR_CAP)}</span></span>`;
+    const capPill = `<span class="ct-cappill ct-cappill--${capStatus}"><span>CAP</span><span>${fmtWage(capUsed)} / ${fmtWage(effectiveCap)}</span></span>`;
 
     const rows = sorted.map(p => {
       const overall = playerOverall(p.baseStats, p.position);

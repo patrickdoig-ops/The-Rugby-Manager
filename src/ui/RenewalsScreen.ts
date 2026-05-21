@@ -18,7 +18,7 @@ import type { RawTeamInput } from '../types/teamData';
 import type { TransferOffer } from '../types/gameState';
 import type { Player } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
-import { SENIOR_CAP } from '../engine/balance/transfers';
+import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance/transfers';
 import { getAge } from '../game/age';
 
 type Decision = 'renew' | 'release';
@@ -102,9 +102,10 @@ export function initRenewalsScreen(
         projectedCap += o.annualWage;
       }
     }
+    const effectiveCap = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
     const capStatus =
-      projectedCap > SENIOR_CAP ? 'over' :
-      projectedCap > SENIOR_CAP * 0.95 ? 'tight' :
+      projectedCap > effectiveCap ? 'over' :
+      projectedCap > effectiveCap * 0.95 ? 'tight' :
       'ok';
 
     const renewedCount = myOffers.filter(o => decisions.get(o.id) === 'renew').length;
@@ -138,7 +139,7 @@ export function initRenewalsScreen(
         </div>`;
     }).join('');
 
-    const capPill = `<span class="rn-cappill rn-cappill--${capStatus}"><span>CAP</span><span>${fmtWage(projectedCap)} / ${fmtWage(SENIOR_CAP)}</span></span>`;
+    const capPill = `<span class="rn-cappill rn-cappill--${capStatus}"><span>CAP</span><span>${fmtWage(projectedCap)} / ${fmtWage(effectiveCap)}</span></span>`;
 
     el!.innerHTML = `
       <div id="rn-topbar">

@@ -28,6 +28,7 @@
 
 import type { Fixture, GameState, SeasonEvent, TeamStanding } from '../types/gameState';
 import type { Player, PlayerStats } from '../types/player';
+import { isForward } from '../types/player';
 import { AGE_CURVES, STAT_NOISE, RETIREMENT_CURVE, SEASON_AWARDS } from '../engine/balance/career';
 import { SEASON_VALUES } from '../engine/balance';
 import { getAge, parseSeasonStartYear, seasonOpenIso } from './age';
@@ -120,10 +121,7 @@ function shouldRetire(p: Player, ageInNewSeason: number): boolean {
 }
 
 function positionClass(pos: Player['position']): 'forwards' | 'backs' {
-  const forwards: Player['position'][] = [
-    'Prop', 'Hooker', 'Lock', 'Flanker', 'Number 8', 'Back Row',
-  ];
-  return forwards.includes(pos) ? 'forwards' : 'backs';
+  return isForward(pos) ? 'forwards' : 'backs';
 }
 
 // --- Awards ---

@@ -51,6 +51,17 @@ export type TacticNoteCause =
   | 'fifty_twenty_two_one_back'
   | 'kick_caught_return_bonus';
 
+// Card-system announcement keys live in their own union so CardHandler
+// can type its emitter against the same set the renderer keys off,
+// without the two having to stay in lockstep by hand.
+export type CardAnnouncementKey =
+  | 'tmo_intervenes'   | 'tmo_reviewing'
+  | 'tmo_decision_no_card' | 'tmo_decision_yellow' | 'tmo_decision_red_20'
+  | 'card_yellow' | 'card_red_20' | 'card_red_full'
+  | 'sin_bin_returned'
+  | 'red_20_replacement_done' | 'red_20_no_replacement'
+  | 'team_22_warning';
+
 export type AnnouncementKey =
   | 'clock_in_red_first_half' | 'clock_in_red_second_half'
   | 'half_time_whistle'        | 'full_time_summary'
@@ -59,13 +70,7 @@ export type AnnouncementKey =
   | 'set_piece_award'
   | 'try_location_central' | 'try_location_close'
   | 'try_location_wide'    | 'try_location_corner'
-  // ── Discipline / cards ──────────────────────────────────────────────────
-  | 'tmo_intervenes'   | 'tmo_reviewing'
-  | 'tmo_decision_no_card' | 'tmo_decision_yellow' | 'tmo_decision_red_20'
-  | 'card_yellow' | 'card_red_20' | 'card_red_full'
-  | 'sin_bin_returned'
-  | 'red_20_replacement_done' | 'red_20_no_replacement'
-  | 'team_22_warning';
+  | CardAnnouncementKey;
 
 export interface TacticNoteParams {
   defendTeamName?: string;

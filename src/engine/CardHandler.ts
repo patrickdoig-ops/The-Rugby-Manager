@@ -1,6 +1,7 @@
 import type { MatchState, GameEvent } from '../types/match';
 import type { Player } from '../types/player';
 import type { PossessionSide } from '../types/engine';
+import type { CardAnnouncementKey } from '../types/narration';
 import { MatchPhase } from '../types/engine';
 import { eventBus } from '../utils/eventBus';
 import { rng } from '../utils/rng';
@@ -166,12 +167,7 @@ function pickTmoOutcome(): TmoOutcome {
 }
 
 interface AnnounceArgs {
-  key:
-    | 'tmo_intervenes' | 'tmo_reviewing'
-    | 'tmo_decision_no_card' | 'tmo_decision_yellow' | 'tmo_decision_red_20'
-    | 'card_yellow' | 'card_red_20' | 'card_red_full'
-    | 'sin_bin_returned' | 'red_20_replacement_done' | 'red_20_no_replacement'
-    | 'team_22_warning';
+  key: CardAnnouncementKey;
   state: MatchState;
   side: PossessionSide;
   primary?: Player;

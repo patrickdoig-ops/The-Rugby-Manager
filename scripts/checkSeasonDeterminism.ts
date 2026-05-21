@@ -58,7 +58,7 @@ async function simulateSeason(coord: GameCoordinator, teamsById: Map<string, Raw
     const home = buildTeamFromRoster(state, homeJson);
     const away = buildTeamFromRoster(state, awayJson);
     const sim = await simulateFixture(home, away, state.seed, next.round);
-    await coord.recordPlayerMatchResult(next.round, sim.homeScore, sim.awayScore);
+    await coord.recordPlayerMatchResult(next.round, sim.homeScore, sim.awayScore, sim.playerSnapshots);
   }
 }
 

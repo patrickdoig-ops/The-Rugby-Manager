@@ -249,11 +249,15 @@ export class GameCoordinator {
     return upcoming[0] ?? null;
   }
 
+  // playerSnapshots is required so the season-aggregate path can't be
+  // silently bypassed by a future caller that forgets to pass it. Use an
+  // empty array if you genuinely have nothing to record (e.g. a forfeit
+  // path with no per-player stats — not a thing today).
   async recordPlayerMatchResult(
     round: number,
     homeScore: number,
     awayScore: number,
-    playerSnapshots?: PlayerStatsSnapshot[],
+    playerSnapshots: PlayerStatsSnapshot[],
   ): Promise<void> {
     const fixture = this.state.league.fixtures.find(f =>
       f.round === round && (f.homeId === this.state.player.teamId || f.awayId === this.state.player.teamId)
@@ -281,10 +285,8 @@ export class GameCoordinator {
       playerSide,
     };
     applySeasonEvent(this.state, { type: 'FIXTURE_RESULT_RECORDED', result });
-    if (playerSnapshots) {
-      for (const ev of collectSeasonEvents(playerSnapshots)) {
-        applySeasonEvent(this.state, ev);
-      }
+    for (const ev of collectSeasonEvents(playerSnapshots)) {
+      applySeasonEvent(this.state, ev);
     }
     eventBus.emit('game:fixtureRecorded', { result, state: this.state });
 

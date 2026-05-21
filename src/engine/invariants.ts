@@ -74,4 +74,32 @@ export function assertInvariants(state: MatchState): void {
   for (const p of state.awayTeam.players)        assertPlayer(p, 'away.players');
   for (const p of state.awayTeam.bench)          assertPlayer(p, 'away.bench');
   for (const p of state.awayTeam.substitutedOff) assertPlayer(p, 'away.substitutedOff');
+
+  // Card state — bin entries must reference real on-field IDs (1..15),
+  // teamPenalty22 counters are non-negative integers, and the per-tick
+  // tmoReview shape is only present when phase === TmoReview with a
+  // legal step number.
+  for (const side of ['home', 'away'] as const) {
+    for (const entry of state.cards.sinBin[side]) {
+      if (!(entry.returnMinute >= 0)) {
+        fail(`cards.sinBin.${side}.returnMinute`, `id=${entry.player.id} returnMinute=${entry.returnMinute}`);
+      }
+      if (entry.kind !== 'yellow' && entry.kind !== 'red_20') {
+        fail(`cards.sinBin.${side}.kind`, `id=${entry.player.id} kind=${entry.kind}`);
+      }
+    }
+    const pen22 = state.cards.teamPenalty22[side];
+    if (!(pen22 >= 0) || !Number.isInteger(pen22)) {
+      fail(`cards.teamPenalty22.${side}`, `${pen22}`);
+    }
+  }
+  if (state.tmoReview) {
+    if (state.phase !== MatchPhase.TmoReview) {
+      fail('tmoReview.phase', `tmoReview set but phase=${state.phase}`);
+    }
+    const step = state.tmoReview.step;
+    if (step !== 1 && step !== 2 && step !== 3) {
+      fail('tmoReview.step', `${step}`);
+    }
+  }
 }

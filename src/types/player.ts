@@ -4,6 +4,17 @@ export type Position =
   | 'Scrum-Half' | 'Fly-Half'
   | 'Centre' | 'Wing' | 'Fullback' | 'Utility Back';
 
+// Position-group lookup. Used wherever code needs to ask "is this player
+// a forward or a back" without enumerating the union — auto-pick on
+// forced subs, career age-curve heuristics, etc.
+const FORWARD_POSITIONS = new Set<Position>([
+  'Prop', 'Hooker', 'Lock', 'Flanker', 'Number 8', 'Back Row',
+]);
+
+export function isForward(pos: Position): boolean {
+  return FORWARD_POSITIONS.has(pos);
+}
+
 export interface PlayerStats {
   stamina: number;
   strength: number;

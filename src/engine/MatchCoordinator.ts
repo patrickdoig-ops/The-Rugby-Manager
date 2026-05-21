@@ -2,7 +2,7 @@ import type { MatchState, GameEvent } from '../types/match';
 import type { Team, TeamTactics } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';
 import type { Player, PlayerStats } from '../types/player';
-import { zeroMatchStats, zeroSeasonStats } from '../types/player';
+import { isForward, zeroMatchStats, zeroSeasonStats } from '../types/player';
 import type { RawPlayer, RawTeamInput } from '../types/teamData';
 import { MatchPhase, type PossessionSide, type KickOffStrategy } from '../types/engine';
 import { eventBus } from '../utils/eventBus';
@@ -32,11 +32,8 @@ function pickAutoReplacement(bench: Player[], off: Player): number | null {
   if (exact) return exact.squadNumber;
   // Position-group match — keep the bin tight enough that a back replaces a
   // back, a forward replaces a forward.
-  const FORWARD_POSITIONS = new Set([
-    'Prop', 'Hooker', 'Lock', 'Flanker', 'Number 8', 'Back Row',
-  ]);
-  const offIsForward = FORWARD_POSITIONS.has(off.position);
-  const groupMatch = bench.find(p => FORWARD_POSITIONS.has(p.position) === offIsForward);
+  const offIsForward = isForward(off.position);
+  const groupMatch = bench.find(p => isForward(p.position) === offIsForward);
   if (groupMatch) return groupMatch.squadNumber;
   // Worst case: first bench player.
   return bench[0].squadNumber;
@@ -162,6 +159,11 @@ export class MatchCoordinator {
   private fatigue: FatigueAccumulator;
   private director: AITacticalDirector;
   private busUnsubs: Array<() => void> = [];
+  // When a red_20 forced-substitution modal is open and waiting on the
+  // manager, the Promise's resolve sits here so destroy() can short-circuit
+  // it (resolve(null) → "no replacement chosen, play short") rather than
+  // leaving the Promise pending after teardown.
+  private pendingForcedSubResolve: ((n: number | null) => void) | null = null;
   // Silent matches suppress every engine event except `engine:finished`
   // (which the headless caller awaits) so the live UI stays inert while a
   // background AI fixture runs. PenaltyHandler short-circuits modal prompts
@@ -237,6 +239,10 @@ export class MatchCoordinator {
     if (this.state.engine.isRunning) {
       applyMatchEvent(this.state, { type: 'IS_RUNNING_SET', value: false });
     }
+    if (this.pendingForcedSubResolve) {
+      this.pendingForcedSubResolve(null);
+      this.pendingForcedSubResolve = null;
+    }
     for (const unsub of this.busUnsubs) unsub();
     this.busUnsubs = [];
   }
@@ -270,6 +276,7 @@ export class MatchCoordinator {
     } else {
       const wasRunning = this.state.engine.isRunning;
       benchSquadNum = await new Promise<number | null>(resolve => {
+        this.pendingForcedSubResolve = resolve;
         eventBus.emit('engine:paused', {
           payload: {
             type: 'forced_substitution_choice',
@@ -280,6 +287,7 @@ export class MatchCoordinator {
           },
         });
       });
+      this.pendingForcedSubResolve = null;
       if (wasRunning) eventBus.emit('engine:resumed', {});
     }
 

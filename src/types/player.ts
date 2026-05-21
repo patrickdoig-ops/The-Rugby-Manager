@@ -1,10 +1,8 @@
 export type Position =
-  | 'Loosehead Prop' | 'Hooker' | 'Tighthead Prop'
-  | 'Left Lock' | 'Right Lock'
-  | 'Blindside Flanker' | 'Openside Flanker' | 'Number 8'
+  | 'Prop' | 'Hooker' | 'Lock'
+  | 'Flanker' | 'Number 8' | 'Back Row'
   | 'Scrum-Half' | 'Fly-Half'
-  | 'Left Wing' | 'Inside Centre' | 'Outside Centre' | 'Right Wing'
-  | 'Fullback' | 'Utility Back';
+  | 'Centre' | 'Wing' | 'Fullback' | 'Utility Back';
 
 export interface PlayerStats {
   stamina: number;

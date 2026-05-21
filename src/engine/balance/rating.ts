@@ -116,22 +116,18 @@ export const STAR_BOOST = {
 // `STAR_BOOST.irrelevantStatMax` at spawn, weight 0 in the OVR formula above.
 // Forwards have no kicking skill; backs have no scrum/lineout skill.
 export const IRRELEVANT_STATS: Record<Position, (keyof PlayerStats)[]> = {
-  'Loosehead Prop':    ['kicking'],
-  'Tighthead Prop':    ['kicking'],
-  'Hooker':            ['kicking'],
-  'Left Lock':         ['kicking'],
-  'Right Lock':        ['kicking'],
-  'Blindside Flanker': ['kicking'],
-  'Openside Flanker':  ['kicking'],
-  'Number 8':          ['kicking'],
-  'Scrum-Half':        ['setPiece'],
-  'Fly-Half':          ['setPiece'],
-  'Left Wing':         ['setPiece'],
-  'Inside Centre':     ['setPiece'],
-  'Outside Centre':    ['setPiece'],
-  'Right Wing':        ['setPiece'],
-  'Fullback':          ['setPiece'],
-  'Utility Back':      ['setPiece'],
+  'Prop':         ['kicking'],
+  'Hooker':       ['kicking'],
+  'Lock':         ['kicking'],
+  'Flanker':      ['kicking'],
+  'Number 8':     ['kicking'],
+  'Back Row':     ['kicking'],
+  'Scrum-Half':   ['setPiece'],
+  'Fly-Half':     ['setPiece'],
+  'Centre':       ['setPiece'],
+  'Wing':         ['setPiece'],
+  'Fullback':     ['setPiece'],
+  'Utility Back': ['setPiece'],
 };
 
 // League-wide per-stat ceilings honoured by both the league-floor pass and the
@@ -165,20 +161,19 @@ export const PLAYER_STAT_OVERRIDES: Record<string, Partial<PlayerStats>> = {
 };
 
 export const PLAYER_OVERALL_WEIGHTS: Record<Position, StatWeights> = {
-  'Loosehead Prop':    PROP_WEIGHTS,
-  'Tighthead Prop':    PROP_WEIGHTS,
-  'Hooker':            HOOKER_WEIGHTS,
-  'Left Lock':         LOCK_WEIGHTS,
-  'Right Lock':        LOCK_WEIGHTS,
-  'Blindside Flanker': FLANKER_WEIGHTS,
-  'Openside Flanker':  FLANKER_WEIGHTS,
-  'Number 8':          NUMBER_8_WEIGHTS,
-  'Scrum-Half':        SCRUM_HALF_WEIGHTS,
-  'Fly-Half':          FLY_HALF_WEIGHTS,
-  'Left Wing':         WING_WEIGHTS,
-  'Inside Centre':     CENTRE_WEIGHTS,
-  'Outside Centre':    CENTRE_WEIGHTS,
-  'Right Wing':        WING_WEIGHTS,
-  'Fullback':          FULLBACK_WEIGHTS,
-  'Utility Back':      UTILITY_WEIGHTS,
+  'Prop':         PROP_WEIGHTS,
+  'Hooker':       HOOKER_WEIGHTS,
+  'Lock':         LOCK_WEIGHTS,
+  'Flanker':      FLANKER_WEIGHTS,
+  'Number 8':     NUMBER_8_WEIGHTS,
+  // Back-row utility players who could play 6/7/8 get the flanker profile —
+  // mobile, breakdown-focused. Players whose data specifies Number 8 keep the
+  // strength-leaning N8 table above.
+  'Back Row':     FLANKER_WEIGHTS,
+  'Scrum-Half':   SCRUM_HALF_WEIGHTS,
+  'Fly-Half':     FLY_HALF_WEIGHTS,
+  'Centre':       CENTRE_WEIGHTS,
+  'Wing':         WING_WEIGHTS,
+  'Fullback':     FULLBACK_WEIGHTS,
+  'Utility Back': UTILITY_WEIGHTS,
 };

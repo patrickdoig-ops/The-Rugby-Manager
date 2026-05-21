@@ -40,29 +40,32 @@ const DEFAULT_TACTICS = {
 };
 
 // ─── 12-stat position template (offsets from baseline) ────────────────────
+//
+// Keyed by the engine's generic Position (`src/types/player.ts`) — the md is
+// the source of truth, no Loosehead/Tighthead, Left/Right Lock etc. split.
+// Flanker numbers blend the old Blindside/Openside profiles; Back Row sits
+// between Flanker and Number 8 since the player could fill 6/7/8.
 
 const POSITION_TEMPLATE = {
-  'Loosehead Prop':    { stamina:  0, strength: 12, pace: -15, agility: -10, handling: -8, tackling:  8, breakdown:  5, kicking: -20, setPiece: 18, discipline:  0, positioning:  0, composure:  0 },
-  'Tighthead Prop':    { stamina:  0, strength: 13, pace: -15, agility: -10, handling: -8, tackling:  8, breakdown:  5, kicking: -20, setPiece: 18, discipline:  0, positioning:  0, composure:  0 },
-  'Hooker':            { stamina:  0, strength:  5, pace: -10, agility:  -5, handling: -2, tackling:  6, breakdown:  6, kicking: -15, setPiece: 15, discipline:  0, positioning:  2, composure:  0 },
-  'Left Lock':         { stamina:  2, strength: 10, pace: -10, agility:  -8, handling: -5, tackling:  6, breakdown:  4, kicking: -18, setPiece: 18, discipline:  0, positioning:  2, composure:  0 },
-  'Right Lock':        { stamina:  2, strength: 10, pace: -10, agility:  -8, handling: -5, tackling:  6, breakdown:  4, kicking: -18, setPiece: 18, discipline:  0, positioning:  2, composure:  0 },
-  'Blindside Flanker': { stamina:  5, strength:  8, pace:  -2, agility:   0, handling: -2, tackling: 10, breakdown: 10, kicking: -10, setPiece:  5, discipline:  0, positioning:  3, composure:  0 },
-  'Openside Flanker':  { stamina:  6, strength:  5, pace:   0, agility:   3, handling:  0, tackling: 10, breakdown: 15, kicking: -10, setPiece:  3, discipline:  0, positioning:  5, composure:  0 },
-  'Number 8':          { stamina:  5, strength: 10, pace:   0, agility:   2, handling:  2, tackling:  8, breakdown:  8, kicking:  -8, setPiece:  5, discipline:  0, positioning:  3, composure:  0 },
-  'Scrum-Half':        { stamina:  0, strength: -5, pace:   8, agility:   5, handling:  5, tackling:  0, breakdown:  2, kicking:   5, setPiece:-10, discipline:  2, positioning:  5, composure:  5 },
-  'Fly-Half':          { stamina:  0, strength: -5, pace:   3, agility:   3, handling:  8, tackling: -2, breakdown: -3, kicking:  18, setPiece:-10, discipline:  3, positioning:  5, composure:  8 },
-  'Inside Centre':     { stamina:  2, strength:  5, pace:   5, agility:   5, handling:  5, tackling:  5, breakdown:  0, kicking:  -2, setPiece: -8, discipline:  0, positioning:  3, composure:  2 },
-  'Outside Centre':    { stamina:  2, strength:  5, pace:   6, agility:   5, handling:  5, tackling:  5, breakdown:  0, kicking:  -2, setPiece: -8, discipline:  0, positioning:  3, composure:  2 },
-  'Left Wing':         { stamina:  0, strength: -3, pace:  15, agility:  12, handling:  5, tackling: -2, breakdown: -5, kicking:  -2, setPiece:-12, discipline:  0, positioning:  3, composure:  0 },
-  'Right Wing':        { stamina:  0, strength: -3, pace:  15, agility:  12, handling:  5, tackling: -2, breakdown: -5, kicking:  -2, setPiece:-12, discipline:  0, positioning:  3, composure:  0 },
-  'Fullback':          { stamina:  0, strength: -3, pace:   8, agility:   8, handling:  5, tackling:  3, breakdown: -3, kicking:   5, setPiece:-10, discipline:  2, positioning:  8, composure:  3 },
-  'Utility Back':      { stamina:  0, strength:  0, pace:   3, agility:   3, handling:  3, tackling:  2, breakdown:  0, kicking:   0, setPiece: -5, discipline:  0, positioning:  3, composure:  2 },
+  'Prop':         { stamina:  0, strength: 12, pace: -15, agility: -10, handling: -8, tackling:  8, breakdown:  5, kicking: -20, setPiece: 18, discipline:  0, positioning:  0, composure:  0 },
+  'Hooker':       { stamina:  0, strength:  5, pace: -10, agility:  -5, handling: -2, tackling:  6, breakdown:  6, kicking: -15, setPiece: 15, discipline:  0, positioning:  2, composure:  0 },
+  'Lock':         { stamina:  2, strength: 10, pace: -10, agility:  -8, handling: -5, tackling:  6, breakdown:  4, kicking: -18, setPiece: 18, discipline:  0, positioning:  2, composure:  0 },
+  'Flanker':      { stamina:  5, strength:  7, pace:  -1, agility:   2, handling: -1, tackling: 10, breakdown: 12, kicking: -10, setPiece:  4, discipline:  0, positioning:  4, composure:  0 },
+  'Number 8':     { stamina:  5, strength: 10, pace:   0, agility:   2, handling:  2, tackling:  8, breakdown:  8, kicking:  -8, setPiece:  5, discipline:  0, positioning:  3, composure:  0 },
+  'Back Row':     { stamina:  5, strength:  8, pace:   0, agility:   2, handling:  0, tackling:  9, breakdown: 10, kicking: -10, setPiece:  4, discipline:  0, positioning:  3, composure:  0 },
+  'Scrum-Half':   { stamina:  0, strength: -5, pace:   8, agility:   5, handling:  5, tackling:  0, breakdown:  2, kicking:   5, setPiece:-10, discipline:  2, positioning:  5, composure:  5 },
+  'Fly-Half':     { stamina:  0, strength: -5, pace:   3, agility:   3, handling:  8, tackling: -2, breakdown: -3, kicking:  18, setPiece:-10, discipline:  3, positioning:  5, composure:  8 },
+  'Centre':       { stamina:  2, strength:  5, pace:   6, agility:   5, handling:  5, tackling:  5, breakdown:  0, kicking:  -2, setPiece: -8, discipline:  0, positioning:  3, composure:  2 },
+  'Wing':         { stamina:  0, strength: -3, pace:  15, agility:  12, handling:  5, tackling: -2, breakdown: -5, kicking:  -2, setPiece:-12, discipline:  0, positioning:  3, composure:  0 },
+  'Fullback':     { stamina:  0, strength: -3, pace:   8, agility:   8, handling:  5, tackling:  3, breakdown: -3, kicking:   5, setPiece:-10, discipline:  2, positioning:  8, composure:  3 },
+  'Utility Back': { stamina:  0, strength:  0, pace:   3, agility:   3, handling:  3, tackling:  2, breakdown:  0, kicking:   0, setPiece: -5, discipline:  0, positioning:  3, composure:  2 },
 };
 
 const STAT_KEYS = ['stamina','strength','pace','agility','handling','tackling','breakdown','kicking','setPiece','discipline','positioning','composure'];
 
-// ─── Position-string normalisation ────────────────────────────────────────
+// Normalise the team-data.md position string into the engine's Position enum
+// (see src/types/player.ts). Generic forms only — the md is the source of
+// truth and we no longer split Loosehead/Tighthead, Left/Right Lock, etc.
 
 const SIMPLE_FROM_TEAMDATA = (s) => {
   const t = s.trim();
@@ -72,10 +75,10 @@ const SIMPLE_FROM_TEAMDATA = (s) => {
   if (/number 8|no\.?\s*8|n\.?8/i.test(t)) return 'Number 8';
   if (/back row|backrow/i.test(t)) return 'Back Row';
   if (/flanker/i.test(t)) return 'Flanker';
-  if (/scrum.?half/i.test(t)) return 'Scrum-half';
-  if (/fly.?half/i.test(t)) return 'Fly-half';
+  if (/scrum.?half/i.test(t)) return 'Scrum-Half';
+  if (/fly.?half/i.test(t)) return 'Fly-Half';
   if (/centre/i.test(t)) return 'Centre';
-  if (/full.?back/i.test(t)) return 'Full-back';
+  if (/full.?back/i.test(t)) return 'Fullback';
   if (/wing/i.test(t)) return 'Wing';
   if (/utility/i.test(t)) return 'Utility Back';
   return t;
@@ -220,7 +223,7 @@ function splitName(full) {
 // ─── Starter / bench / squad allocator ────────────────────────────────────
 
 function buildLineup(team) {
-  const byPos = { Prop: [], Hooker: [], Lock: [], Flanker: [], 'Number 8': [], 'Back Row': [], 'Scrum-half': [], 'Fly-half': [], Centre: [], Wing: [], 'Full-back': [], 'Utility Back': [] };
+  const byPos = { Prop: [], Hooker: [], Lock: [], Flanker: [], 'Number 8': [], 'Back Row': [], 'Scrum-Half': [], 'Fly-Half': [], Centre: [], Wing: [], Fullback: [], 'Utility Back': [] };
   for (const p of team.squad) {
     const bucket = byPos[p.position] ?? byPos['Utility Back'];
     bucket.push({ ...p, isStar: team.stars.some(s => s.name === p.name) });
@@ -228,7 +231,9 @@ function buildLineup(team) {
   // Stars first within each bucket
   for (const list of Object.values(byPos)) list.sort((a, b) => Number(b.isStar) - Number(a.isStar));
 
-  // Distribute Back Row entries: fill remaining Flanker/N8 slots in order
+  // Distribute Back Row entries into the Flanker / Number 8 buckets so they
+  // can fill jerseys 6/7/8 on the field. Their `position` stays 'Back Row' —
+  // the engine only cares about the jersey number.
   while (byPos['Back Row'].length) {
     const p = byPos['Back Row'].shift();
     if (byPos['Flanker'].length < 4) byPos['Flanker'].push(p);
@@ -236,92 +241,81 @@ function buildLineup(team) {
     else byPos['Flanker'].push(p);
   }
 
-  // Build the 15 starters in canonical jersey order
+  // Build the 15 starters in canonical jersey order. Position string is taken
+  // verbatim from the player's authored md position (generic — Prop, Lock,
+  // Flanker, Centre, Wing, …) — the engine reads jersey id, not the string.
   const takeFirst = (list) => list.length > 0 ? list.shift() : null;
   const starters = [];
   // 1 LHP, 2 H, 3 THP
   const propA = takeFirst(byPos.Prop);
   const propB = takeFirst(byPos.Prop);
-  starters.push({ ...propA, engPos: 'Loosehead Prop', id: 1 });
-  starters.push({ ...takeFirst(byPos.Hooker), engPos: 'Hooker', id: 2 });
-  starters.push({ ...propB, engPos: 'Tighthead Prop', id: 3 });
+  starters.push({ ...propA, id: 1 });
+  starters.push({ ...takeFirst(byPos.Hooker), id: 2 });
+  starters.push({ ...propB, id: 3 });
   // 4 L1, 5 L2
-  starters.push({ ...takeFirst(byPos.Lock), engPos: 'Left Lock', id: 4 });
-  starters.push({ ...takeFirst(byPos.Lock), engPos: 'Right Lock', id: 5 });
-  // 6 BSF, 7 OSF, 8 N8 — prefer dedicated N8 if available
+  starters.push({ ...takeFirst(byPos.Lock), id: 4 });
+  starters.push({ ...takeFirst(byPos.Lock), id: 5 });
+  // 6 BSF, 7 OSF, 8 N8 — prefer dedicated N8 for jersey 8 if available
   const flA = takeFirst(byPos.Flanker);
   const flB = takeFirst(byPos.Flanker);
   const n8 = byPos['Number 8'].length > 0 ? takeFirst(byPos['Number 8']) : takeFirst(byPos.Flanker);
-  starters.push({ ...flA, engPos: 'Blindside Flanker', id: 6 });
-  starters.push({ ...flB, engPos: 'Openside Flanker', id: 7 });
-  starters.push({ ...n8, engPos: 'Number 8', id: 8 });
+  starters.push({ ...flA, id: 6 });
+  starters.push({ ...flB, id: 7 });
+  starters.push({ ...n8, id: 8 });
   // 9 SH, 10 FH
-  starters.push({ ...takeFirst(byPos['Scrum-half']), engPos: 'Scrum-Half', id: 9 });
-  starters.push({ ...takeFirst(byPos['Fly-half']), engPos: 'Fly-Half', id: 10 });
+  starters.push({ ...takeFirst(byPos['Scrum-Half']), id: 9 });
+  starters.push({ ...takeFirst(byPos['Fly-Half']), id: 10 });
   // 11 LW, 12 IC, 13 OC, 14 RW, 15 FB
   const wingA = takeFirst(byPos.Wing);
   const centreA = takeFirst(byPos.Centre);
   const centreB = takeFirst(byPos.Centre);
   const wingB = takeFirst(byPos.Wing);
-  starters.push({ ...wingA, engPos: 'Left Wing', id: 11 });
-  starters.push({ ...centreA, engPos: 'Inside Centre', id: 12 });
-  starters.push({ ...centreB, engPos: 'Outside Centre', id: 13 });
-  starters.push({ ...wingB, engPos: 'Right Wing', id: 14 });
-  // FB fallback: dedicated Full-back, else Utility Back, else any remaining Wing
-  const fb = byPos['Full-back'].length > 0
-    ? takeFirst(byPos['Full-back'])
+  starters.push({ ...wingA, id: 11 });
+  starters.push({ ...centreA, id: 12 });
+  starters.push({ ...centreB, id: 13 });
+  starters.push({ ...wingB, id: 14 });
+  // FB fallback: dedicated Fullback, else Utility Back, else any remaining Wing
+  const fb = byPos.Fullback.length > 0
+    ? takeFirst(byPos.Fullback)
     : byPos['Utility Back'].length > 0
       ? takeFirst(byPos['Utility Back'])
       : takeFirst(byPos.Wing);
-  starters.push({ ...fb, engPos: 'Fullback', id: 15 });
+  starters.push({ ...fb, id: 15 });
 
   if (starters.some(s => !s || !s.name)) {
     throw new Error(`Could not fill all starter slots for team. Missing positions: ${starters.map((s,i)=>!s||!s.name?(i+1):null).filter(Boolean).join(',')}`);
   }
 
-  // Bench: standard 16-23 layout
+  // Bench: standard 16-23 layout. `src` is the bucket name (matches the
+  // generic Position values returned by SIMPLE_FROM_TEAMDATA).
   const bench = [];
   const benchSlots = [
-    { id: 16, src: 'Hooker',       engPos: 'Hooker' },
-    { id: 17, src: 'Prop',         engPos: 'Loosehead Prop' },
-    { id: 18, src: 'Prop',         engPos: 'Tighthead Prop' },
-    { id: 19, src: 'Lock',         engPos: 'Left Lock' },
-    { id: 20, src: 'Flanker',      engPos: 'Blindside Flanker' },
-    { id: 21, src: 'Scrum-half',   engPos: 'Scrum-Half' },
-    { id: 22, src: 'Fly-half',     engPos: 'Fly-Half' },
-    { id: 23, src: 'Utility Back', engPos: 'Utility Back' },
+    { id: 16, src: 'Hooker'       },
+    { id: 17, src: 'Prop'         },
+    { id: 18, src: 'Prop'         },
+    { id: 19, src: 'Lock'         },
+    { id: 20, src: 'Flanker'      },
+    { id: 21, src: 'Scrum-Half'   },
+    { id: 22, src: 'Fly-Half'     },
+    { id: 23, src: 'Utility Back' },
   ];
   for (const slot of benchSlots) {
     let pool = byPos[slot.src];
     if (!pool || pool.length === 0) {
-      // Fallback chain by slot
-      if (slot.src === 'Utility Back') pool = byPos.Wing.length ? byPos.Wing : byPos['Full-back'].length ? byPos['Full-back'] : byPos.Centre;
+      if (slot.src === 'Utility Back') pool = byPos.Wing.length ? byPos.Wing : byPos.Fullback.length ? byPos.Fullback : byPos.Centre;
       else if (slot.src === 'Flanker') pool = byPos['Number 8'];
       else if (slot.src === 'Hooker') pool = byPos.Prop;
     }
     const p = pool && pool.length > 0 ? pool.shift() : null;
-    if (p) bench.push({ ...p, engPos: slot.engPos, id: slot.id });
+    if (p) bench.push({ ...p, id: slot.id });
   }
 
-  // Squad — everyone left over. Assign sequential id starting at 24.
+  // Squad — everyone left over. Assign sequential id starting at 24. Position
+  // stays as-authored.
   const squadExtras = [];
   let nextId = 24;
-  const allLeft = Object.entries(byPos).flatMap(([k, list]) => list.map(p => ({ ...p, srcPos: k })));
-  for (const p of allLeft) {
-    // Map to canonical engine position (best fit)
-    const engPos =
-      p.srcPos === 'Prop'         ? 'Loosehead Prop' :
-      p.srcPos === 'Hooker'       ? 'Hooker' :
-      p.srcPos === 'Lock'         ? 'Left Lock' :
-      p.srcPos === 'Flanker'      ? 'Openside Flanker' :
-      p.srcPos === 'Number 8'     ? 'Number 8' :
-      p.srcPos === 'Scrum-half'   ? 'Scrum-Half' :
-      p.srcPos === 'Fly-half'     ? 'Fly-Half' :
-      p.srcPos === 'Centre'       ? 'Inside Centre' :
-      p.srcPos === 'Wing'         ? 'Left Wing' :
-      p.srcPos === 'Full-back'    ? 'Fullback' :
-                                    'Utility Back';
-    squadExtras.push({ ...p, engPos, id: nextId++ });
+  for (const list of Object.values(byPos)) {
+    for (const p of list) squadExtras.push({ ...p, id: nextId++ });
   }
 
   return { starters, bench, squad: squadExtras };
@@ -333,7 +327,7 @@ function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, Math.round(v))); }
 
 function genStats(p, team, rng) {
   const star = team.stars.find(s => s.name === p.name);
-  const tmpl = POSITION_TEMPLATE[p.engPos];
+  const tmpl = POSITION_TEMPLATE[p.position];
   const baseline = 40 + (team.rating / 100) * 40;
   const stats = {};
   for (const stat of STAT_KEYS) {
@@ -362,7 +356,7 @@ function buildPlayerJson(p, team) {
     lastName,
     dob: p.dob || null,
     nationality: p.nationality || 'England',
-    position: p.engPos,
+    position: p.position,
     baseStats,
   };
 }

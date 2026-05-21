@@ -2,7 +2,15 @@
 // Screen's "Continue Game" button can resume mid-season after a browser
 // close. Schema is versioned — bump SAVE_VERSION whenever the shape changes.
 //
-// v5 (current) extends v4 with a persistent career snapshot —
+// v6 (current) extends v5 with PlayerContract + reputation embedded in
+// each persisted roster Player. Loading a v5 save (which has the roster
+// but no contracts) triggers a backfill in GameCoordinator.fromSave —
+// contractSeeder is called per player to synthesise wage / expiry /
+// reputation. Marquee designations come back from the JSON overrides
+// since rosterTeamBuilder / hydratePersistentPlayer source those at
+// load time anyway.
+//
+// v5 extended v4 with a persistent career snapshot —
 // state.career.roster (every player, with current baseStats), per-club
 // squad pointers, archived standings + awards from prior seasons, and the
 // seasonsCompleted / nextRosterId allocator. Lets the career span multiple
@@ -10,9 +18,6 @@
 //
 // v4 extended v3 with persisted pre-match choices — `tactics` and
 // `matchdaySquad` — that carry forward as defaults for the next match.
-// v4 saves are still loadable; the career snapshot is synthesised fresh
-// from the JSON team data on load (lossless — pre-v5 there was zero
-// per-player evolution to preserve).
 //
 // v3 extended v2 with `seasonLabel` and `fixtures` snapshots so the schedule
 // the user saw at save time is reconstructed verbatim on load.
@@ -28,8 +33,8 @@ import type { Player } from '../types/player';
 import type { TeamTactics } from '../types/team';
 
 const SAVE_KEY = 'rugby-manager-save';
-const SAVE_VERSION = 5;
-const ACCEPTED_VERSIONS = new Set([5, 4, 3, 2]);
+const SAVE_VERSION = 6;
+const ACCEPTED_VERSIONS = new Set([6, 5, 4, 3, 2]);
 
 export type SavedGame = SavedSeason & { version: number };
 

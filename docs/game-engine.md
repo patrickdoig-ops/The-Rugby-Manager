@@ -59,7 +59,19 @@ A fourth seeded RNG stream `rngTransfer` (`src/utils/rng.ts`, constant `0x27D4EB
 
 ## Save format
 
-`SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`: `playerTeamId`, `seed`, `currentWeek`, every `FixtureResult` (player's + AI), (v3+) the `seasonLabel` + `fixtures` snapshot the user saw at save time, (v4+) the persisted pre-match `tactics` + `matchdaySquad`, and (v5+) the full `career` snapshot — `roster` (every player keyed by rosterId), `clubs` (per-club squad pointers), `archive` (past-season standings + awards), `seasonsCompleted`, `nextRosterId`. `fromSave` restores the career when present; v4 and older trigger a fresh roster seed from JSONs (lossless — pre-v5 there was zero per-player evolution). `SAVE_VERSION` is now 5; v2–v4 saves load via the legacy path and v1 saves are discarded.
+`SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`: `playerTeamId`, `seed`, `currentWeek`, every `FixtureResult` (player's + AI), (v3+) the `seasonLabel` + `fixtures` snapshot the user saw at save time, (v4+) the persisted pre-match `tactics` + `matchdaySquad`, (v5+) the full `career` snapshot — `roster` (every player keyed by rosterId), `clubs` (per-club squad pointers), `archive` (past-season standings + awards), `seasonsCompleted`, `nextRosterId`, and (v6+) each persisted Player now carries `contract` + `reputation`. `fromSave` restores the career when present; v4 and older trigger a fresh roster seed from JSONs (lossless — pre-v5 there was zero per-player evolution), and v5 saves trigger a per-player contract+reputation backfill via `contractSeeder.seedContractFields`. `SAVE_VERSION` is now 6; v2–v5 saves load via the legacy paths and v1 saves are discarded.
+
+## Contracts (Phase 2 — read-only)
+
+Every persistent roster Player carries a `PlayerContract { clubId, expiresOn, annualWage, isMarquee }` plus a `reputation: number` (0–100). Seeded once at roster creation via `src/game/contractSeeder.ts::seedContractFields`, which keys two `rngTransfer` calls per player (one for contract length, one for wage noise) so the same root seed produces identical contracts across runs.
+
+Wage formula: piecewise-linear interpolation from `WAGE_BY_RATING` (anchored £30k @ rating 60 up to £780k @ rating 96) × `POSITION_SCARCITY` (10s, 9s, hookers and props are bumped 1.10–1.20×) × `WAGE_NOISE` (uniform [0.88, 1.12]), rounded to the nearest £5k. Tuning constants in `src/engine/balance/transfers.ts`.
+
+Length is age-banded: under-25s skew to 3-year deals, 30+ to 1-year. Expiry is set to 30 June of (seasonStartYear + lengthYears). Initial distribution staggers ~22/38/42 across +1/+2/+3 years so the first rollover doesn't dump every player as a free agent at once.
+
+Marquees: one per club, hand-authored via a `Marquee: yes.` annotation on the star player's bullet in `docs/team-data.md`. The annotation translates (via `scripts/generateTeamJsons.mjs`) into a `contract: { isMarquee: true }` partial override in the JSON, which `contractSeeder` honours by copying through. Reputation gets a `+8` bump for marquees.
+
+`src/ui/ContractsScreen.ts` surfaces this read-only via the Hub's Contracts tile: sortable squad list with wage / expiry / OVR / age / marquee badge, plus a dimmed cap pill (Σ non-marquee wages / `SENIOR_CAP`). No enforcement until Phase 3.
 
 ## Determinism
 

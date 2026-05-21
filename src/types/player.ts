@@ -48,9 +48,34 @@ export interface PlayerMatchStats {
   redCards:               number;
 }
 
+// Season-scope aggregates accumulated per fixture (player and silent AI).
+// Reset on SEASON_ROLLED_OVER. Used to drive top-scorer / MVP / appearances
+// cards in EndOfSeasonScreen. `ratingSum` is an accumulator: avg rating =
+// ratingSum / appearances.
+export interface PlayerSeasonStats {
+  appearances:      number;
+  tries:            number;
+  conversions:      number;
+  penaltiesScored:  number;
+  dropGoals:        number;
+  yellowCards:      number;
+  redCards:         number;
+  tackles:          number;
+  missedTackles:    number;
+  turnoversWon:     number;
+  ratingSum:        number;
+}
+
 export interface Player {
+  // Matchday slot number, 1–23. Used by match-engine events / RatingEngine /
+  // StaminaSystem. Reassigned by applyMatchdaySquad on every pre-match.
+  // NOT the persistent identity — use `rosterId` for that.
   id: number;
   squadNumber: number;
+  // Globally-unique persistent identity allocated at roster seed time.
+  // Stable across substitutions, rollovers, and transfers. Keys
+  // GameState.career.roster.
+  rosterId: number;
   firstName: string;
   lastName: string;
   dob: string | null;
@@ -59,6 +84,7 @@ export interface Player {
   baseStats: PlayerStats;
   currentStats: PlayerStats;
   matchStats: PlayerMatchStats;
+  seasonStats: PlayerSeasonStats;
   fatiguePct: number;
   formModifier: number;
   rating: number;
@@ -78,5 +104,13 @@ export function zeroMatchStats(): PlayerMatchStats {
     scrumPenaltiesWon: 0, scrumPenaltiesConceded: 0,
     kickMetres: 0, rucksHit: 0,
     yellowCards: 0, redCards: 0,
+  };
+}
+
+export function zeroSeasonStats(): PlayerSeasonStats {
+  return {
+    appearances: 0, tries: 0, conversions: 0, penaltiesScored: 0, dropGoals: 0,
+    yellowCards: 0, redCards: 0, tackles: 0, missedTackles: 0, turnoversWon: 0,
+    ratingSum: 0,
   };
 }

@@ -12,12 +12,22 @@ function mulberry32(seed: number): () => number {
 let outcomeRand: () => number = mulberry32(1);
 let formRand: () => number = mulberry32(2);
 let commentaryRand: () => number = mulberry32(3);
+let transferRand: () => number = mulberry32(4);
 
 export function setMatchSeed(seed: number): void {
   const s = seed >>> 0;
   outcomeRand = mulberry32(s ^ 0x9E3779B9);
   formRand = mulberry32(s ^ 0x85EBCA6B);
   commentaryRand = mulberry32(s ^ 0xC2B2AE35);
+}
+
+// Career-scope RNG. Reset once when a GameCoordinator is initialised (new
+// season or load); kept independent of setMatchSeed so a per-fixture seed
+// derivation cannot perturb season-scope outcomes (rollover, contracts,
+// transfers).
+export function setCareerSeed(seed: number): void {
+  const s = seed >>> 0;
+  transferRand = mulberry32(s ^ 0x27D4EB2F);
 }
 
 // The only Math.random() call in the engine. Used when MatchCoordinator
@@ -47,4 +57,12 @@ export function pickRandom<T>(arr: readonly T[]): T {
 
 export function commentaryChance(pct: number): boolean {
   return commentaryRand() * 100 < pct;
+}
+
+export function rngTransfer(min: number, max: number): number {
+  return Math.floor(transferRand() * (max - min + 1)) + min;
+}
+
+export function rngTransferRaw(): number {
+  return transferRand();
 }

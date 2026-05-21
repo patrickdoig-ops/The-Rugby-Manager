@@ -37,5 +37,7 @@ export interface AppEvents {
   'game:initialized':     { state: GameState };
   'game:fixtureRecorded': { result: FixtureResult; state: GameState };
   'game:weekAdvanced':    { state: GameState };
+  'game:seasonComplete':  { state: GameState };
+  'game:seasonRolledOver':{ state: GameState };
 }
 

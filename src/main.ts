@@ -8,6 +8,7 @@ import '../style/leaguetable.css';
 import '../style/hub.css';
 import '../style/matchresult.css';
 import '../style/roundresults.css';
+import '../style/seasonrollover.css';
 import '../style/commentary.css';
 import '../style/stats.css';
 import '../style/prematch.css';
@@ -30,6 +31,8 @@ import { initLeagueTableScreen, showLeagueTablePostMatch } from './ui/LeagueTabl
 import { initHubScreen }           from './ui/HubScreen';
 import { initMatchResultScreen }   from './ui/MatchResultScreen';
 import { initRoundResultsScreen, showRoundResults } from './ui/RoundResultsScreen';
+import { initEndOfSeasonScreen, showEndOfSeason }   from './ui/EndOfSeasonScreen';
+import { initRolloverScreen, showRollover }         from './ui/RolloverScreen';
 import { screenRouter }            from './ui/ScreenRouter';
 import { loadSave, saveGame, clearSave } from './ui/SaveManager';
 import { loadTickDelayMs }           from './ui/uiPrefs';
@@ -42,6 +45,8 @@ import type { TeamJson }           from './team/teamProfile';
 import { applyStarBoost }          from './team/applyStarBoost';
 import { GameCoordinator }         from './game/GameCoordinator';
 import { extractMatchdaySquad }    from './game/playerSquad';
+import { buildTeamFromRoster }     from './game/rosterTeamBuilder';
+import { snapshotMatch }           from './game/seasonStatsCollector';
 import { SEASON_VALUES }           from './engine/balance';
 import { generateSeed }            from './utils/rng';
 import { eventBus }                from './utils/eventBus';
@@ -80,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // subscriptions and double-render on every game-state change. Gate the
   // init so it runs exactly once across the lifetime of the page.
   let inSeasonInited = false;
+  let seasonCompletePending = false;
 
   function goHome(): void {
     // Re-init so the Continue button state reflects the latest save (e.g. just
@@ -134,6 +140,14 @@ document.addEventListener('DOMContentLoaded', () => {
     initFixtureListScreen(gameEngine, allTeams, goHub);
     initLeagueTableScreen(gameEngine, allTeams, goHub);
     initRoundResultsScreen(gameEngine, allTeams);
+    initEndOfSeasonScreen(gameEngine, allTeams);
+    initRolloverScreen(gameEngine, allTeams);
+
+    // The post-match Continue chain (LeagueTable → ...) reads this flag.
+    // GameCoordinator emits game:seasonComplete after the last round's
+    // WEEK_ADVANCED; we latch it here and clear it once the chain has
+    // routed through EndOfSeason → Rollover.
+    eventBus.on('game:seasonComplete', () => { seasonCompletePending = true; });
   }
 
   function goHub(): void {
@@ -176,9 +190,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function onPlayRound(homeTeam: RawTeamInput, awayTeam: RawTeamInput, playerSide: 'home' | 'away', round: number): void {
     if (!gameEngine) return;
+    // Source player data from the persistent career roster — team identity
+    // (color, name, stadium, suggestedTactics) still comes from the JSON
+    // passed in by HubScreen.
+    const state = gameEngine.getState();
+    const rosteredHome = buildTeamFromRoster(state, homeTeam);
+    const rosteredAway = buildTeamFromRoster(state, awayTeam);
     initPreMatchScreen(
-      homeTeam,
-      awayTeam,
+      rosteredHome,
+      rosteredAway,
       playerSide,
       round,
       gameEngine,
@@ -219,15 +239,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function showMatchResult(engine: MatchCoordinator, state: MatchState, round: number): void {
     initMatchResultScreen(state, round, async () => {
+      // Snapshot the per-player stats before destroy() tears down the
+      // match state — feeds PLAYER_SEASON_STATS_ACCUMULATED inside
+      // recordPlayerMatchResult so league top-scorer / MVP cards can
+      // surface real season aggregates.
+      const playerSnapshots = snapshotMatch(state);
       engine.destroy();
       if (gameEngine) {
-        await gameEngine.recordPlayerMatchResult(round, state.score.home, state.score.away);
+        await gameEngine.recordPlayerMatchResult(round, state.score.home, state.score.away, playerSnapshots);
         saveGame(gameEngine.toSavePayload());
       }
-      // Post-match nav chain: round results → league table → hub. Each
-      // step's CTA hands the next callback in.
+      // Post-match nav chain. Normally: RoundResults → LeagueTable → Hub.
+      // If GameCoordinator latched `seasonCompletePending` during
+      // recordPlayerMatchResult (final round just resolved), the chain
+      // detours: LeagueTable → EndOfSeasonScreen → RolloverScreen → Hub.
+      const onLeagueContinue = (): void => {
+        if (seasonCompletePending) {
+          seasonCompletePending = false;
+          showEndOfSeason(() => {
+            if (!gameEngine) { goHub(); return; }
+            const rolloverEvents = gameEngine.rollSeason();
+            saveGame(gameEngine.toSavePayload());
+            showRollover(rolloverEvents, () => {
+              if (gameEngine) saveGame(gameEngine.toSavePayload());
+              goHub();
+            });
+            screenRouter.show('rollover');
+          });
+          screenRouter.show('end-of-season');
+        } else {
+          goHub();
+        }
+      };
       showRoundResults(round, () => {
-        showLeagueTablePostMatch(goHub);
+        showLeagueTablePostMatch(onLeagueContinue);
         screenRouter.show('league-table');
       });
       screenRouter.show('round-results');

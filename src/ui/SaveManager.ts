@@ -1,31 +1,35 @@
-// Persists the player's in-progress season to localStorage so the Home
+// Persists the player's in-progress career to localStorage so the Home
 // Screen's "Continue Game" button can resume mid-season after a browser
 // close. Schema is versioned — bump SAVE_VERSION whenever the shape changes.
 //
-// v4 (current) extends v3 with persisted pre-match choices — `tactics` and
+// v5 (current) extends v4 with a persistent career snapshot —
+// state.career.roster (every player, with current baseStats), per-club
+// squad pointers, archived standings + awards from prior seasons, and the
+// seasonsCompleted / nextRosterId allocator. Lets the career span multiple
+// seasons with stat development and retirements that survive a tab close.
+//
+// v4 extended v3 with persisted pre-match choices — `tactics` and
 // `matchdaySquad` — that carry forward as defaults for the next match.
+// v4 saves are still loadable; the career snapshot is synthesised fresh
+// from the JSON team data on load (lossless — pre-v5 there was zero
+// per-player evolution to preserve).
 //
 // v3 extended v2 with `seasonLabel` and `fixtures` snapshots so the schedule
-// the user saw at save time is reconstructed verbatim on load. An edit to
-// the canonical PREMIERSHIP_2025_26 mid-season no longer corrupts a
-// player's in-progress save.
+// the user saw at save time is reconstructed verbatim on load.
 //
 // v2 stored the minimal slice for replay (playerTeamId, seed, currentWeek,
-// results); it predates the per-save schedule snapshot. Migrated transparently
-// on load — v2 saves were created against PREMIERSHIP_2025_26 (the only
-// schedule that has ever shipped), so loading them with the current schedule
-// is correct as long as fixtures-2025-26.ts hasn't drifted since the save.
+// results).
 //
-// v1 saves are discarded — they predate AI-vs-AI results, so the table
-// could not be reconstructed without re-simulating absent rounds.
+// v1 saves are discarded — they predate AI-vs-AI results.
 
-import type { SavedSeason, SavedSeasonResult } from '../game/GameCoordinator';
-import type { Fixture, PlayerRef } from '../types/gameState';
+import type { SavedCareer, SavedSeason, SavedSeasonResult } from '../game/GameCoordinator';
+import type { ArchivedSeason, ClubState, Fixture, PlayerRef } from '../types/gameState';
+import type { Player } from '../types/player';
 import type { TeamTactics } from '../types/team';
 
 const SAVE_KEY = 'rugby-manager-save';
-const SAVE_VERSION = 4;
-const ACCEPTED_VERSIONS = new Set([4, 3, 2]);
+const SAVE_VERSION = 5;
+const ACCEPTED_VERSIONS = new Set([5, 4, 3, 2]);
 
 export type SavedGame = SavedSeason & { version: number };
 
@@ -57,6 +61,10 @@ export function loadSave(): SavedSeason | null {
       parsed.version >= 4 && Array.isArray(parsed.matchdaySquad) && parsed.matchdaySquad.length === 23
         ? parsed.matchdaySquad.map(r => ({ firstName: r.firstName, lastName: r.lastName }))
         : undefined;
+    // v5+ persists the full career snapshot. v4 and older fall through —
+    // GameCoordinator.fromSave seeds a fresh roster from JSONs.
+    const career: SavedCareer | undefined =
+      parsed.version >= 5 && parsed.career ? parseCareer(parsed.career) : undefined;
     return {
       playerTeamId: parsed.playerTeamId,
       seed: parsed.seed >>> 0,
@@ -73,10 +81,36 @@ export function loadSave(): SavedSeason | null {
       ...(fixtures !== undefined ? { fixtures } : {}),
       ...(tactics !== undefined ? { tactics } : {}),
       ...(matchdaySquad !== undefined ? { matchdaySquad } : {}),
+      ...(career !== undefined ? { career } : {}),
     };
   } catch {
     return null;
   }
+}
+
+// Best-effort structural parse of the v5 career envelope. Returns
+// undefined if any required field is missing — callers (fromSave) then
+// fall through to fresh-seed behaviour rather than corrupting state.
+function parseCareer(raw: unknown): SavedCareer | undefined {
+  if (typeof raw !== 'object' || raw === null) return undefined;
+  const c = raw as Record<string, unknown>;
+  if (typeof c.seasonsCompleted !== 'number') return undefined;
+  if (typeof c.nextRosterId !== 'number') return undefined;
+  if (!Array.isArray(c.clubs)) return undefined;
+  if (typeof c.roster !== 'object' || c.roster === null) return undefined;
+  if (!Array.isArray(c.archive)) return undefined;
+  return {
+    seasonsCompleted: c.seasonsCompleted,
+    nextRosterId: c.nextRosterId,
+    clubs: (c.clubs as ClubState[]).map(cl => ({ id: cl.id, squad: [...cl.squad] })),
+    roster: c.roster as Record<number, Player>,
+    archive: (c.archive as ArchivedSeason[]).map(a => ({
+      seasonLabel: a.seasonLabel,
+      standings: a.standings.map(s => ({ ...s })),
+      topScorerRosterId: a.topScorerRosterId,
+      mvpRosterId: a.mvpRosterId,
+    })),
+  };
 }
 
 export function saveGame(save: SavedSeason): void {

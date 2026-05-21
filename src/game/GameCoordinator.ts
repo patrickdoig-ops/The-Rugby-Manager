@@ -30,6 +30,7 @@ import { computeRollover } from './careerRollover';
 import { seedContractFields } from './contractSeeder';
 import {
   expiringRosterIds, generateRenewalOffers, decideAIOffers, expiryAfterYears,
+  decideAISignings, signingTermsFor,
 } from './aiTransferDirector';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed } from '../utils/rng';
@@ -327,6 +328,51 @@ export class GameCoordinator {
     }
 
     applySeasonEvent(this.state, { type: 'MARKET_CLOSED' });
+  }
+
+  // ===== Free-agent signings (Phase 5) =====
+
+  // User-side sign. Fires CONTRACT_SIGNED at the market-rate terms
+  // signingTermsFor produces. Returns false if rosterId isn't in the
+  // free-agent pool or the player can't be found. Caller is expected
+  // to have read the cap pill and decided independently — no
+  // affordability gate here, so the user can deliberately go over cap
+  // if they choose.
+  signFreeAgent(rosterId: number): boolean {
+    if (!this.state.career.freeAgents.includes(rosterId)) return false;
+    const playerClubId = this.state.player.teamId;
+    const terms = signingTermsFor(this.state, rosterId, playerClubId);
+    if (!terms) return false;
+    applySeasonEvent(this.state, {
+      type: 'CONTRACT_SIGNED',
+      rosterId,
+      clubId: playerClubId,
+      expiresOn: terms.expiresOn,
+      annualWage: terms.annualWage,
+    });
+    return true;
+  }
+
+  // Runs the AI-side signing pass. Each non-human AI club greedy-signs
+  // from the remaining free-agent pool against a cap target + per-club
+  // signing limit (`aiTransferDirector.decideAISignings`). Fires
+  // CONTRACT_SIGNED for each signing in determined order. Idempotent
+  // by design — if called twice with no intervening user action the
+  // second call sees an unchanged pool and might select different
+  // players (rngTransfer has advanced); callers should call exactly
+  // once per signing window.
+  closeSigningWindow(): void {
+    const humanClubId = this.state.player.teamId;
+    const signings = decideAISignings(this.state, humanClubId);
+    for (const s of signings) {
+      applySeasonEvent(this.state, {
+        type: 'CONTRACT_SIGNED',
+        rosterId: s.rosterId,
+        clubId: s.clubId,
+        expiresOn: s.expiresOn,
+        annualWage: s.annualWage,
+      });
+    }
   }
 
   getState(): Readonly<GameState> {

@@ -156,3 +156,126 @@ function yearsBetween(currentExpiry: string, newExpiry: string): number {
   if (Number.isNaN(a) || Number.isNaN(b)) return 1;
   return Math.max(1, Math.min(3, b - a));
 }
+
+// --- Free-agent signings (Phase 5) ---
+
+// Per-signing decision the director produces for one AI club. Caller
+// fires CONTRACT_SIGNED with these fields.
+export interface AISigning {
+  rosterId: number;
+  clubId: string;
+  annualWage: number;
+  lengthYears: number;
+  expiresOn: string;
+}
+
+// Cap target per club for the signing window (looser than renewals —
+// signings actively bring in talent, not just hold ground). Stops the
+// AI from spending every penny on a single free agent.
+const AI_SIGN_CAP_TARGET = 0.92;
+// Max signings per club per window — prevents one club from hoovering
+// the whole free-agent pool. Real clubs typically sign 3-6 per summer.
+const AI_SIGNINGS_PER_CLUB_LIMIT = 4;
+// Minimum position spread the AI aims for. Once a club's squad has 2
+// at every position group there's less urgency; targeting needs first.
+const TARGET_PER_POSITION = 2;
+
+// One pass per AI club, in stable club-id-ascending order. For each:
+// score the remaining free agents (rating + position-need bonus),
+// greedy-sign the top scorers until the club's cap target or the
+// per-club signing limit is hit. Players signed by an earlier club
+// are not re-considered by later clubs (deterministic resolution of
+// what would otherwise be multi-club bidding).
+//
+// rngTransfer is advanced once per candidate per club (via
+// contractSeeder seeding their fresh-market wage). Stable rosterId
+// iteration order keeps the sequence deterministic across runs.
+//
+// `humanClubId` (if provided) is skipped — the human signs themselves
+// via signFreeAgent. Pass undefined in headless contexts so the
+// director fills every club.
+export function decideAISignings(state: GameState, humanClubId?: string): AISigning[] {
+  const signings: AISigning[] = [];
+  const taken = new Set<number>();
+  const seasonStartYear = parseSeasonStartYear(state.calendar.seasonLabel);
+  const effectiveCap = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
+
+  const clubs = [...state.career.clubs].sort((a, b) => a.id.localeCompare(b.id));
+  for (const club of clubs) {
+    if (club.id === humanClubId) continue;
+
+    let currentCap = 0;
+    const positionCounts = new Map<string, number>();
+    for (const rid of club.squad) {
+      const p = state.career.roster[rid];
+      if (!p) continue;
+      if (!p.contract.isMarquee) currentCap += p.contract.annualWage;
+      positionCounts.set(p.position, (positionCounts.get(p.position) ?? 0) + 1);
+    }
+    let headroom = effectiveCap * AI_SIGN_CAP_TARGET - currentCap;
+    if (headroom <= 0) continue;
+
+    // Score every remaining free agent for this club. Each candidate
+    // gets a fresh wage seed (advances rngTransfer twice) so the
+    // sequence is deterministic.
+    const candidates = state.career.freeAgents
+      .filter(rid => !taken.has(rid))
+      .map(rid => {
+        const p = state.career.roster[rid];
+        if (!p) return null;
+        const overall = playerOverall(p.baseStats, p.position);
+        const fresh = seedContractFields(p, club.id, seasonStartYear);
+        const need = Math.max(0, TARGET_PER_POSITION - (positionCounts.get(p.position) ?? 0));
+        const score = overall + need * 10;
+        return { rid, p, overall, fresh, score };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null)
+      // No OVR floor here — the pool is largely sub-70 (renewals
+      // released them precisely because of the renewal floor) but
+      // clubs still need to fill thin positions. Score keeps quality
+      // signings ahead of squad-filler ones.
+      .sort((a, b) => b.score - a.score || a.rid - b.rid);
+
+    let signedThisClub = 0;
+    for (const { rid, p, fresh } of candidates) {
+      if (signedThisClub >= AI_SIGNINGS_PER_CLUB_LIMIT) break;
+      const wage = fresh.contract.annualWage;
+      if (wage > headroom) continue;
+      const lengthYears = yearsBetween(p.contract.expiresOn || `${seasonStartYear + 1}-06-30`, fresh.contract.expiresOn) || 2;
+      signings.push({
+        rosterId: rid,
+        clubId: club.id,
+        annualWage: wage,
+        lengthYears,
+        expiresOn: expiryAfterYears(state, lengthYears),
+      });
+      taken.add(rid);
+      headroom -= wage;
+      positionCounts.set(p.position, (positionCounts.get(p.position) ?? 0) + 1);
+      signedThisClub += 1;
+    }
+  }
+
+  return signings;
+}
+
+// Pure helper for the user-side signing path. Returns the wage +
+// length the user's club would offer a given free agent (matches what
+// the AI director would compute for the same player at the same
+// moment in the rngTransfer stream).
+export function signingTermsFor(
+  state: GameState,
+  rosterId: number,
+  clubId: string,
+): { annualWage: number; lengthYears: number; expiresOn: string } | null {
+  const p = state.career.roster[rosterId];
+  if (!p) return null;
+  const seasonStartYear = parseSeasonStartYear(state.calendar.seasonLabel);
+  const fresh = seedContractFields(p, clubId, seasonStartYear);
+  const lengthYears = yearsBetween(p.contract.expiresOn || `${seasonStartYear + 1}-06-30`, fresh.contract.expiresOn) || 2;
+  return {
+    annualWage: fresh.contract.annualWage,
+    lengthYears,
+    expiresOn: expiryAfterYears(state, lengthYears),
+  };
+}

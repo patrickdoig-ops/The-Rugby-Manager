@@ -26,11 +26,11 @@ function packDiscipline(forwards: Player[]): number {
 
 export function resolveScrum(attackForwards: Player[], defendForwards: Player[]): ScrumResolution {
   const { disciplineWeight, disciplinePivot, attackPenaltyMargin, stableWinMargin, wheelMargin } = SCRUM_VALUES;
-  // rng range scales with the sum-based packScore — ~±30 per side, ~±60 on
-  // margin — so matched packs see a healthy spread of outcomes instead of
-  // clustering near zero and grinding to wheel resets.
-  const attackScore = packScore(attackForwards) + (packDiscipline(attackForwards) - disciplinePivot) * disciplineWeight + rng(1, 60);
-  const defendScore = packScore(defendForwards) + (packDiscipline(defendForwards) - disciplinePivot) * disciplineWeight + rng(1, 60);
+  // rng(1,50) per side ⇒ margin distribution triangular on [-49, +49] with
+  // peak at 0. Tighter than the previous (1,60) spread so penalty rates land
+  // in the real-rugby 10-15%-per-scrum band given the SCRUM_VALUES buckets.
+  const attackScore = packScore(attackForwards) + (packDiscipline(attackForwards) - disciplinePivot) * disciplineWeight + rng(1, 50);
+  const defendScore = packScore(defendForwards) + (packDiscipline(defendForwards) - disciplinePivot) * disciplineWeight + rng(1, 50);
   const margin = attackScore - defendScore;
 
   let result: ScrumResult;

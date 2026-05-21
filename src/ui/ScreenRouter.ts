@@ -22,7 +22,8 @@ export type ScreenId =
   | 'renewals'
   | 'transfer-market'
   | 'rollover'
-  | 'contracts';
+  | 'contracts'
+  | 'squad-management';
 
 const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'home':          { elId: 'home-screen',   shownDisplay: '' },
@@ -36,11 +37,12 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'app':           { elId: 'app',           shownDisplay: '' },
   'match-result':  { elId: 'match-result',  shownDisplay: 'flex' },
   'round-results': { elId: 'round-results', shownDisplay: '' },
-  'end-of-season':   { elId: 'end-of-season',   shownDisplay: '' },
-  'renewals':        { elId: 'renewals',        shownDisplay: '' },
-  'transfer-market': { elId: 'transfer-market', shownDisplay: '' },
-  'rollover':        { elId: 'rollover',        shownDisplay: '' },
-  'contracts':       { elId: 'contracts',       shownDisplay: '' },
+  'end-of-season':    { elId: 'end-of-season',    shownDisplay: '' },
+  'renewals':         { elId: 'renewals',         shownDisplay: '' },
+  'transfer-market':  { elId: 'transfer-market',  shownDisplay: '' },
+  'rollover':         { elId: 'rollover',         shownDisplay: '' },
+  'contracts':        { elId: 'contracts',        shownDisplay: '' },
+  'squad-management': { elId: 'squad-management', shownDisplay: '' },
 };
 
 export const screenRouter = {

@@ -10,6 +10,7 @@ import '../style/matchresult.css';
 import '../style/roundresults.css';
 import '../style/seasonrollover.css';
 import '../style/contracts.css';
+import '../style/squad.css';
 import '../style/renewals.css';
 import '../style/transfermarket.css';
 import '../style/commentary.css';
@@ -39,6 +40,7 @@ import { initRenewalsScreen, showRenewals }         from './ui/RenewalsScreen';
 import { initTransferMarketScreen, showTransferMarket } from './ui/TransferMarketScreen';
 import { initRolloverScreen, showRollover }         from './ui/RolloverScreen';
 import { initContractsScreen, showContracts }       from './ui/ContractsScreen';
+import { initSquadManagementScreen, showSquadManagement } from './ui/SquadManagementScreen';
 import { screenRouter }            from './ui/ScreenRouter';
 import { loadSave, saveGame, clearSave } from './ui/SaveManager';
 import { loadTickDelayMs }           from './ui/uiPrefs';
@@ -137,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onPlayMatch: onPlayRound,
       onFixtures: goFixtures,
       onLeague:   goLeagueTable,
-      onSquad:    () => { /* placeholder until Squad selector screen lands */ },
+      onSquad:    goSquad,
       onTraining: () => { /* placeholder until Training screen lands */ },
       onContracts: goContracts,
       onTransfers:() => { /* placeholder until Transfer market screen lands */ },
@@ -151,6 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initTransferMarketScreen(gameEngine, allTeams);
     initRolloverScreen(gameEngine, allTeams);
     initContractsScreen(gameEngine, allTeams, goHub);
+    initSquadManagementScreen({ gameEngine, allTeams, onBack: goHub });
 
     // The post-match Continue chain (LeagueTable → ...) reads this flag.
     // GameCoordinator emits game:seasonComplete after the last round's
@@ -174,6 +177,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function goContracts(): void {
     showContracts();
     screenRouter.show('contracts');
+  }
+
+  function goSquad(): void {
+    showSquadManagement();
+    screenRouter.show('squad-management');
   }
 
   function onTeamPicked(team: RawTeamInput): void {

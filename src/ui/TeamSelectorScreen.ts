@@ -52,7 +52,7 @@ export function initTeamSelectorScreen(
               ${(() => {
                 const ovr = computeOverallRating(team.id);
                 const c = ovrColor(ovr);
-                const eliteShadow = ovr >= 85 ? `text-shadow: 0 0 14px color-mix(in oklch, var(--rm-stat-3) 55%, transparent);` : '';
+                const eliteShadow = ovr >= 85 ? `text-shadow: 0 0 8px color-mix(in oklch, var(--rm-stat-3) 28%, transparent);` : '';
                 return `<div class="ts-card-ovr"><span class="ts-card-ovr-label">OVR</span><span class="ts-card-ovr-value" style="color:${c};${eliteShadow}">${ovr}</span></div>`;
               })()}
             </button>

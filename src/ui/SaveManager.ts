@@ -2,13 +2,17 @@
 // Screen's "Continue Game" button can resume mid-season after a browser
 // close. Schema is versioned — bump SAVE_VERSION whenever the shape changes.
 //
-// v6 (current) extends v5 with PlayerContract + reputation embedded in
-// each persisted roster Player. Loading a v5 save (which has the roster
-// but no contracts) triggers a backfill in GameCoordinator.fromSave —
-// contractSeeder is called per player to synthesise wage / expiry /
-// reputation. Marquee designations come back from the JSON overrides
-// since rosterTeamBuilder / hydratePersistentPlayer source those at
-// load time anyway.
+// v7 (current) extends v6 with the Phase 4 market layer — state.career.
+// freeAgents (rosterIds whose contracts expired without renewal) and an
+// optional state.career.market (open during the end-of-season renewal
+// window, null otherwise). Mid-window saves let the player resume on
+// the same offers; closed-window saves carry forward the accumulating
+// free-agent pool for Phase 5+ to consume.
+//
+// v6 extended v5 with PlayerContract + reputation embedded in each
+// persisted roster Player. Loading a v5 save triggers a per-player
+// backfill in GameCoordinator.fromSave via contractSeeder. v6 saves
+// load on v7 with freeAgents / market defaulting to [] / null.
 //
 // v5 extended v4 with a persistent career snapshot —
 // state.career.roster (every player, with current baseStats), per-club
@@ -28,13 +32,13 @@
 // v1 saves are discarded — they predate AI-vs-AI results.
 
 import type { SavedCareer, SavedSeason, SavedSeasonResult } from '../game/GameCoordinator';
-import type { ArchivedSeason, ClubState, Fixture, PlayerRef } from '../types/gameState';
+import type { ArchivedSeason, ClubState, Fixture, MarketState, PlayerRef, TransferOffer } from '../types/gameState';
 import type { Player } from '../types/player';
 import type { TeamTactics } from '../types/team';
 
 const SAVE_KEY = 'rugby-manager-save';
-const SAVE_VERSION = 6;
-const ACCEPTED_VERSIONS = new Set([6, 5, 4, 3, 2]);
+const SAVE_VERSION = 7;
+const ACCEPTED_VERSIONS = new Set([7, 6, 5, 4, 3, 2]);
 
 export type SavedGame = SavedSeason & { version: number };
 
@@ -93,9 +97,10 @@ export function loadSave(): SavedSeason | null {
   }
 }
 
-// Best-effort structural parse of the v5 career envelope. Returns
+// Best-effort structural parse of the v5+ career envelope. Returns
 // undefined if any required field is missing — callers (fromSave) then
 // fall through to fresh-seed behaviour rather than corrupting state.
+// v7 adds optional freeAgents + market.
 function parseCareer(raw: unknown): SavedCareer | undefined {
   if (typeof raw !== 'object' || raw === null) return undefined;
   const c = raw as Record<string, unknown>;
@@ -104,6 +109,10 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
   if (!Array.isArray(c.clubs)) return undefined;
   if (typeof c.roster !== 'object' || c.roster === null) return undefined;
   if (!Array.isArray(c.archive)) return undefined;
+  const freeAgents = Array.isArray(c.freeAgents)
+    ? c.freeAgents.filter((n): n is number => typeof n === 'number')
+    : [];
+  const market = parseMarket(c.market);
   return {
     seasonsCompleted: c.seasonsCompleted,
     nextRosterId: c.nextRosterId,
@@ -115,6 +124,21 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
       topScorerRosterId: a.topScorerRosterId,
       mvpRosterId: a.mvpRosterId,
     })),
+    freeAgents,
+    market,
+  };
+}
+
+function parseMarket(raw: unknown): MarketState | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const m = raw as Record<string, unknown>;
+  if (typeof m.openedAfterSeason !== 'string') return null;
+  if (!Array.isArray(m.expiringRosterIds)) return null;
+  if (!Array.isArray(m.offers)) return null;
+  return {
+    openedAfterSeason: m.openedAfterSeason,
+    expiringRosterIds: m.expiringRosterIds.filter((n): n is number => typeof n === 'number'),
+    offers: (m.offers as TransferOffer[]).map(o => ({ ...o })),
   };
 }
 

@@ -19,6 +19,7 @@ export type ScreenId =
   | 'match-result'
   | 'round-results'
   | 'end-of-season'
+  | 'renewals'
   | 'rollover'
   | 'contracts';
 
@@ -35,6 +36,7 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'match-result':  { elId: 'match-result',  shownDisplay: 'flex' },
   'round-results': { elId: 'round-results', shownDisplay: '' },
   'end-of-season': { elId: 'end-of-season', shownDisplay: '' },
+  'renewals':      { elId: 'renewals',      shownDisplay: '' },
   'rollover':      { elId: 'rollover',      shownDisplay: '' },
   'contracts':     { elId: 'contracts',     shownDisplay: '' },
 };

@@ -1,12 +1,19 @@
-// Read-only contracts list for the player's club. Reached from the Hub's
-// Contracts tile; back navigates to Hub. Phase 2 surface — shows
-// per-player wage, expiry, marquee badge, OVR, age, position. Sortable
-// columns via header clicks. Cap usage is shown as a dimmed pill (no
-// enforcement until Phase 3).
+// Contracts list for the player's club. Reached from the Hub's Contracts
+// tile; back navigates to Hub. Shows per-player wage, expiry, marquee
+// badge, OVR, age, position. Sortable columns via header clicks.
+//
+// **Phase 3 interactivity:**
+// - Cap pill is live: green when under SENIOR_CAP, amber within 5%, red
+//   when over. Cap excludes the marquee's wage (Σ non-marquee wages).
+// - Marquee column is tap-to-toggle: tapping a non-marquee player makes
+//   them the new marquee (silently replacing the existing one);
+//   tapping the current marquee clears the slot. Goes through
+//   GameCoordinator.designateMarquee → MARQUEE_DESIGNATED event.
 //
 // Initialised once per page lifetime alongside the other in-season
 // screens. Re-reads gameEngine.getState() on every render so the data
-// reflects the current roster (including future renewals / signings).
+// reflects the current roster (including renewals / signings landing in
+// Phases 4+).
 
 import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
@@ -73,23 +80,29 @@ export function initContractsScreen(
     const sorted = sortPlayers(players, calendarDate);
 
     const capUsed = players.filter(p => !p.contract.isMarquee).reduce((sum, p) => sum + p.contract.annualWage, 0);
-    const capPill = `<span class="ct-cappill"><span>CAP</span><span>${fmtWage(capUsed)} / ${fmtWage(SENIOR_CAP)}</span></span>`;
+    const capStatus =
+      capUsed > SENIOR_CAP ? 'over' :
+      capUsed > SENIOR_CAP * 0.95 ? 'tight' :
+      'ok';
+    const capPill = `<span class="ct-cappill ct-cappill--${capStatus}"><span>CAP</span><span>${fmtWage(capUsed)} / ${fmtWage(SENIOR_CAP)}</span></span>`;
 
     const rows = sorted.map(p => {
       const overall = playerOverall(p.baseStats, p.position);
       const age = getAge(p.dob, calendarDate);
       const expiring = expiresThisSeason(p.contract.expiresOn, calendarDate);
-      const marquee = p.contract.isMarquee ? '<span class="ct-marquee" aria-label="Marquee">★</span>' : '';
+      const star = p.contract.isMarquee
+        ? '<span class="ct-marquee" aria-label="Marquee — tap to clear">★</span>'
+        : '<span class="ct-marquee-empty" aria-label="Designate marquee">☆</span>';
       const expiringChip = expiring ? '<span class="ct-expiring">EXPIRES</span>' : '';
       return `
-        <div class="ct-row${p.contract.isMarquee ? ' ct-row--marquee' : ''}">
+        <div class="ct-row${p.contract.isMarquee ? ' ct-row--marquee' : ''}" data-roster-id="${p.rosterId}">
           <span class="ct-name">${p.firstName} ${p.lastName}</span>
           <span class="ct-pos">${shortPos(p.position)}</span>
           <span class="ct-num">${age ?? '—'}</span>
           <span class="ct-num">${overall}</span>
           <span class="ct-wage">${fmtWage(p.contract.annualWage)}</span>
           <span class="ct-expiry">${fmtExpiry(p.contract.expiresOn)}${expiringChip}</span>
-          <span class="ct-flag">${marquee}</span>
+          <button class="ct-flag" data-marquee-toggle="${p.rosterId}" aria-label="${p.contract.isMarquee ? 'Clear marquee' : 'Designate marquee'}">${star}</button>
         </div>`;
     }).join('');
 
@@ -120,7 +133,7 @@ export function initContractsScreen(
       </div>
       <div id="ct-list">${rows}</div>
       <div id="ct-footer">
-        <span class="ct-cap-note">Cap dashboard becomes interactive in Phase 3.</span>
+        <span class="ct-cap-note">Tap ☆ to designate a marquee — that player's wage is excluded from the cap.</span>
       </div>
     `;
 
@@ -130,6 +143,17 @@ export function initContractsScreen(
         const key = btn.dataset.sort as SortKey;
         if (key === sortKey) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
         else { sortKey = key; sortDir = defaultDirFor(key); }
+        render();
+      });
+    });
+    el!.querySelectorAll<HTMLButtonElement>('.ct-flag[data-marquee-toggle]').forEach(btn => {
+      btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const rid = Number(btn.dataset.marqueeToggle);
+        if (!Number.isFinite(rid)) return;
+        const p = state.career.roster[rid];
+        if (!p) return;
+        gameEngine.designateMarquee(playerTeamId, p.contract.isMarquee ? null : rid);
         render();
       });
     });

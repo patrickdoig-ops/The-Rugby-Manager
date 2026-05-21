@@ -19,6 +19,9 @@
 //   3. computeRollover (aging + retirement via rngTransfer) is
 //      reproducible — same retirements, same stat deltas.
 //   4. Generated year-2+ fixtures are reproducible.
+//   5. The renewal window (Phase 4: openRenewalWindow +
+//      closeRenewalWindow with AI-only decisions) produces the same
+//      offers + accept/reject outcomes + freeAgents pool every run.
 
 import { createHash } from 'node:crypto';
 import { GameCoordinator } from '../src/game/GameCoordinator.js';
@@ -76,7 +79,26 @@ async function runOnce(seed: number): Promise<string> {
     const resultsHash = createHash('sha256').update(JSON.stringify(preRolloverState.league.results)).digest('hex');
 
     let rolloverEvents: unknown[] = [];
+    let marketSummary: unknown = null;
     if (s < SEASONS - 1) {
+      // Phase 4: exercise the renewal window between seasons. AI-only
+      // — no user decisions, so the director resolves every offer
+      // deterministically against the cap target.
+      coord.openRenewalWindow();
+      const market = coord.getState().career.market;
+      if (market) {
+        const offerHashSource = market.offers
+          .slice()
+          .sort((a, b) => a.id.localeCompare(b.id))
+          .map(o => `${o.id}|${o.rosterId}|${o.annualWage}|${o.lengthYears}|${o.status}`);
+        marketSummary = {
+          expiringCount: market.expiringRosterIds.length,
+          offerHash: createHash('sha256').update(offerHashSource.join('\n')).digest('hex'),
+        };
+        coord.closeRenewalWindow();
+        const freeAgentsAfter = [...coord.getState().career.freeAgents].sort((a, b) => a - b);
+        marketSummary = { ...marketSummary as object, freeAgentsAfter };
+      }
       rolloverEvents = coord.rollSeason();
     }
 
@@ -84,6 +106,7 @@ async function runOnce(seed: number): Promise<string> {
       seasonLabel,
       finalStandings,
       resultsHash,
+      marketSummary,
       // Strip large stable fields from the rollover payload — only the
       // PLAYER_RETIRED rosterIds and PLAYER_AGED deltas matter for the
       // determinism contract; SEASON_ROLLED_OVER's fixture list is
@@ -101,6 +124,7 @@ async function runOnce(seed: number): Promise<string> {
     .map(rid => ({
       rid,
       baseStats: endState.career.roster[rid].baseStats,
+      contract: endState.career.roster[rid].contract,
     }));
 
   return createHash('sha256').update(JSON.stringify({
@@ -108,6 +132,7 @@ async function runOnce(seed: number): Promise<string> {
     finalRoster: rosterEntries,
     seasonsCompleted: endState.career.seasonsCompleted,
     archiveLen: endState.career.archive.length,
+    freeAgentsFinal: [...endState.career.freeAgents].sort((a, b) => a - b),
   })).digest('hex');
 }
 

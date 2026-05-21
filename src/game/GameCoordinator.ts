@@ -15,7 +15,7 @@
 
 import type {
   ArchivedSeason, ClubState,
-  Fixture, FixtureResult, GameState, PlayerRef, SeasonEvent, SeasonSchedule,
+  Fixture, FixtureResult, GameState, MarketState, PlayerRef, SeasonEvent, SeasonSchedule,
 } from '../types/gameState';
 import { emptyCareerState } from '../types/gameState';
 import type { Player } from '../types/player';
@@ -28,6 +28,9 @@ import { parseSeasonStartYear } from './age';
 import { collectSeasonEvents, type PlayerStatsSnapshot } from './seasonStatsCollector';
 import { computeRollover } from './careerRollover';
 import { seedContractFields } from './contractSeeder';
+import {
+  expiringRosterIds, generateRenewalOffers, decideAIOffers, expiryAfterYears,
+} from './aiTransferDirector';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed } from '../utils/rng';
 import { SEASON_VALUES } from '../engine/balance';
@@ -46,12 +49,19 @@ export type SavedSeasonResult = {
 // v5+: persistent career snapshot — every player's current baseStats +
 // the per-club squad pointers. Absent on v4 and older saves; fromSave
 // seeds a fresh roster from the JSONs in that case.
+//
+// v7 adds the optional market layer: `freeAgents` (rosterIds of players
+// whose contracts expired without renewal) and `market` (the live
+// state of an open renewal window, null when closed). v5/v6 loads
+// default both to []/null via emptyCareerState.
 export interface SavedCareer {
   seasonsCompleted: number;
   nextRosterId: number;
   clubs: ClubState[];
   roster: Record<number, Player>;
   archive: ArchivedSeason[];
+  freeAgents?: number[];
+  market?: MarketState | null;
 }
 
 export interface SavedSeason {
@@ -188,13 +198,18 @@ export class GameCoordinator {
         nextRosterId: save.career.nextRosterId,
       });
       // ROSTER_SEEDED only repopulates the roster + clubs. Cumulative
-      // career counters (seasonsCompleted, archive) are restored through
-      // their own SeasonEvent so every state.career.* write stays inside
-      // applySeasonEvent — no mutation-boundary carveout.
+      // career counters (seasonsCompleted, archive) and the market
+      // layer (freeAgents + market) are restored through
+      // CAREER_ARCHIVE_RESTORED so every state.career.* write stays
+      // inside applySeasonEvent — no mutation-boundary carveout. v5/v6
+      // saves omit freeAgents + market; the event handler leaves them
+      // at their emptyCareerState defaults in that case.
       applySeasonEvent(coord.state, {
         type: 'CAREER_ARCHIVE_RESTORED',
         seasonsCompleted: save.career.seasonsCompleted,
         archive: save.career.archive,
+        ...(save.career.freeAgents !== undefined ? { freeAgents: save.career.freeAgents } : {}),
+        ...(save.career.market !== undefined ? { market: save.career.market } : {}),
       });
     } else {
       const seeded = seedRoster(allTeams, parseSeasonStartYear(coord.state.calendar.seasonLabel));
@@ -232,6 +247,86 @@ export class GameCoordinator {
 
   setPlayerMatchdaySquad(squad: PlayerRef[]): void {
     applySeasonEvent(this.state, { type: 'PLAYER_MATCHDAY_SQUAD_SET', squad });
+  }
+
+  // Re-designate the marquee slot for a club. Clears the previous
+  // marquee on that squad and sets the new one. Pass `rosterId: null`
+  // to clear without re-designating.
+  designateMarquee(clubId: string, rosterId: number | null): void {
+    applySeasonEvent(this.state, { type: 'MARQUEE_DESIGNATED', clubId, rosterId });
+  }
+
+  // Open the end-of-season renewal window. Seeds state.career.market
+  // with one TransferOffer per expiring player league-wide, status
+  // 'pending'. Idempotent — re-opening with the window already open
+  // returns without changes. If there are no expiring players, the
+  // window doesn't open at all (caller can skip the screen).
+  openRenewalWindow(): void {
+    if (this.state.career.market) return;
+    const expiring = expiringRosterIds(this.state);
+    if (expiring.length === 0) return;
+    const offers = generateRenewalOffers(this.state);
+    applySeasonEvent(this.state, {
+      type: 'MARKET_OPENED',
+      expiringRosterIds: expiring,
+      offers,
+    });
+  }
+
+  // Close the renewal window: gather decisions, apply CONTRACT_EXTENDED
+  // for accepts and CONTRACT_TERMINATED ('expired') for rejects, then
+  // fire MARKET_CLOSED.
+  //
+  // `userDecisions` keys are offer IDs (only those belonging to the
+  // player's club take effect); values are 'renew' or 'release'. Any
+  // unsupplied offer falls back to the AI default for its club.
+  closeRenewalWindow(userDecisions: Record<string, 'renew' | 'release'> = {}): void {
+    const market = this.state.career.market;
+    if (!market) return;
+    const playerClubId = this.state.player.teamId;
+
+    // Gather decisions per offer ID. AI decides everywhere first,
+    // then the user can override only their own club's offers.
+    const decisions = new Map<string, boolean>();
+    for (const club of this.state.career.clubs) {
+      const { acceptIds, rejectIds } = decideAIOffers(this.state, club.id);
+      for (const id of acceptIds) decisions.set(id, true);
+      for (const id of rejectIds) decisions.set(id, false);
+    }
+    for (const [id, choice] of Object.entries(userDecisions)) {
+      const offer = market.offers.find(o => o.id === id);
+      if (offer && offer.fromClubId === playerClubId) {
+        decisions.set(id, choice === 'renew');
+      }
+    }
+
+    // Apply in the offer-list order so the event log is stable.
+    for (const offer of market.offers) {
+      if (offer.status !== 'pending') continue;
+      const accept = decisions.get(offer.id) ?? false;
+      applySeasonEvent(this.state, {
+        type: 'OFFER_RESPONDED',
+        offerId: offer.id,
+        accept,
+        ...(accept ? {} : { reason: 'cap_overcommit' as const }),
+      });
+      if (accept) {
+        applySeasonEvent(this.state, {
+          type: 'CONTRACT_EXTENDED',
+          rosterId: offer.rosterId,
+          newExpiresOn: expiryAfterYears(this.state, offer.lengthYears),
+          newAnnualWage: offer.annualWage,
+        });
+      } else {
+        applySeasonEvent(this.state, {
+          type: 'CONTRACT_TERMINATED',
+          rosterId: offer.rosterId,
+          reason: 'expired',
+        });
+      }
+    }
+
+    applySeasonEvent(this.state, { type: 'MARKET_CLOSED' });
   }
 
   getState(): Readonly<GameState> {
@@ -371,6 +466,14 @@ export class GameCoordinator {
           topScorerRosterId: a.topScorerRosterId,
           mvpRosterId: a.mvpRosterId,
         })),
+        freeAgents: [...this.state.career.freeAgents],
+        market: this.state.career.market
+          ? {
+              openedAfterSeason: this.state.career.market.openedAfterSeason,
+              expiringRosterIds: [...this.state.career.market.expiringRosterIds],
+              offers: this.state.career.market.offers.map(o => ({ ...o })),
+            }
+          : null,
       },
     };
   }

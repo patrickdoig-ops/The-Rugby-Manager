@@ -198,13 +198,13 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
         <div class="hub-nm-label">NEXT MATCH · ROUND ${fixture.round} · ${formatDateShort(state.calendar.date)}</div>
         <div class="hub-nm-fixture">
           <div class="hub-nm-side hub-nm-side--home${playerHome ? ' hub-nm-side--me' : ''}">
-            ${crestHtml(home, 'fl-crest')}
+            ${crestHtml(home, 'nm-crest')}
             <span class="hub-nm-name">${home.shortName}</span>
           </div>
           <span class="hub-nm-vs">vs</span>
           <div class="hub-nm-side hub-nm-side--away${!playerHome ? ' hub-nm-side--me' : ''}">
             <span class="hub-nm-name">${away.shortName}</span>
-            ${crestHtml(away, 'fl-crest')}
+            ${crestHtml(away, 'nm-crest')}
           </div>
         </div>
         <div class="hub-nm-meta">${venueLabel} · ${venueName}</div>

@@ -426,12 +426,24 @@ export class MatchCoordinator {
       this.fatigue.tick(timeAdvance);
 
       // TMO review: clock is frozen (advanceMinute returned 0) and play is
-      // suspended. Just advance the narrative one step and bail. On step 3 the
-      // handler applies CARD_ISSUED and transitions phase back to Penalty —
-      // the next tick will fall through to handlePenaltyDecision.
+      // suspended. Steps 1 + 2 narrate and bail. Step 3 applies CARD_ISSUED,
+      // resolves the review, and transitions phase back to Penalty — we then
+      // run the penalty modal in the SAME tick so the next tick starts in a
+      // phase resolvePhase() can handle. Without this fall-through the next
+      // tick enters resolvePhase with phase=Penalty, throws "no handler",
+      // gets caught + rescheduled, and the game stalls on the TMO outcome.
+      // evaluateNewPenalty is deliberately NOT re-called here: the team-22
+      // counter was bumped on the original Penalty tick before TMO began,
+      // and re-running would either double-bump or re-trigger TMO.
       if (this.state.phase === MatchPhase.TmoReview) {
         this.cardHandler.advanceTmoReview();
         this.emitStateChange();
+        // advanceTmoReview may have mutated state.phase (step 3 → Penalty);
+        // cast to defeat the narrowing TS inherited from the outer condition.
+        if ((this.state.phase as MatchPhase) === MatchPhase.Penalty) {
+          await this.penaltyHandler.handlePenaltyDecision();
+          if (!this.state.engine.isRunning) return;
+        }
         this.scheduleTick(this.state.engine.tickDelayMs);
         return;
       }

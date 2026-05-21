@@ -115,9 +115,6 @@
         "discipline": 71,
         "positioning": 72,
         "composure": 74
-      },
-      "contract": {
-        "isMarquee": true
       }
     },
     {
@@ -325,7 +322,8 @@
         "discipline": 76,
         "positioning": 92,
         "composure": 92
-      }
+      },
+      "contract": { "isMarquee": true }
     },
     {
       "id": 11,

@@ -341,7 +341,7 @@ export function initPreMatchScreen(
         <div id="pm-tabs" role="tablist">
           <button class="pm-tab active" data-tab="${playerSide}" style="--tc:${playerTeam.color}">${playerTeam.shortName}</button>
           <button class="pm-tab"        data-tab="${oppSide}"    style="--tc:${oppTeam.color}">${oppTeam.shortName}</button>
-          <button class="pm-tab"        data-tab="tactics"       style="--tc:var(--rm-pitch)">Tactics</button>
+          <button class="pm-tab"        data-tab="tactics"       style="--tc:var(--rm-pitch)">TACTICS</button>
         </div>
         <div id="pm-view-toggle">
           <button class="pm-view-btn pm-view-btn--active" data-view="list" aria-label="List view">

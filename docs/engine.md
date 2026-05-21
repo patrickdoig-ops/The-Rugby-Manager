@@ -29,12 +29,15 @@ The engine is split across files in `src/engine/`. `MatchCoordinator` owns the p
 | `FatigueAccumulator.ts` | Owns the per-tick fatigue accumulator; drains in `FATIGUE_SCALING.computeIntervalMinutes` increments, computes home-then-away fatigue via `StaminaSystem.computeFatigue`, applies `FATIGUE_APPLIED`, and emits the newly-tired commentary `GameEvent`. The home-then-away order is determinism-critical (both calls consume the outcome RNG stream). Accepts the same `silent` flag as `ClockController` — when true, the newly-tired commentary emit is suppressed (mutations still apply through the boundary). |
 | `Entry22Tracker.ts` | Pure `detectEntry22Changes(state)` — clears the non-possessor's active flag and registers the possessor's entry when in the opposition 22. |
 | `PhaseRouter.ts` | `PHASE_HANDLERS` map, `resolvePhase(state, sm, kickOffStrategy)`, and the `draftEvent(state, phase)` template builder. |
-| `PenaltyHandler.ts` | Penalty-decision modal pause and outcome application (`kick_for_goal`, `kick_to_touch`, `tap_and_kick_dead`, `tap_and_go`), plus the kick-off strategy modal (`awaitKickOffStrategy`, `handlePenaltyDecision`). |
+| `PenaltyHandler.ts` | Penalty-decision modal pause and outcome application (`kick_for_goal`, `kick_to_touch`, `tap_and_kick_dead`, `tap_and_go`), plus the kick-off strategy modal (`awaitKickOffStrategy`, `handlePenaltyDecision`). Enriches the `PenaltyContext` it sends to the modal from `state.lastPenalty` (offence + offender + offending side), populated by the `PENALTY_AWARDED` reducer. |
 | `FieldPosition.ts` | Pure helpers over `MatchState` that factor in `state.clock.halfTimeDone`: `attackDir`, `isTryScored`, `isTryScoredAt`, `inOpposition22`, `inOpposition22At`, `inOppositionHalf`, `inOwn22`, `inOwnHalf`. The `*At(ballX, possession, halfTimeDone)` variants keep a scalar signature — used for projecting not-yet-applied positions. |
+| `HomeAdvantage.ts` | One helper, `homeEdge(state, mod)` → `{ attack, defend }`. Splits a flat per-channel modifier (from `HOME_ADVANTAGE` in balance) into the attacker/defender pair the carry and breakdown resolvers expect, based on `state.possession`. See [Home Advantage](#home-advantage). |
+| `AITacticalDirector.ts` | Pure (no-RNG) module owned by `MatchCoordinator`. Called once per tick before `resolvePhase()` to override AI-side `team.tactics` based on score gap + minutes remaining. Tuning in `balance/aiDirector.ts`; full breakdown in [Tactics: who picks what](#tactics-who-picks-what). |
 | `applyMatchEvent.ts` | **The single mutation boundary.** A reducer over the `MatchEvent` discriminated union (`src/types/matchEvent.ts`). The only function permitted to write to `MatchState` or any `Player` field. |
+| `invariants.ts` | `assertInvariants(state)` — runtime tripwire called after every `applyMatchEvent` mutation. Checks live numeric/structural ranges the type system can't express (score ≥ 0 + integer, ball in `[0,100]`, every player's fatigue/rating/currentStats in range). Always-on; the cost is O(matchday squad) per mutation. |
 | `StaminaSystem.ts` | Pure `computeFatigue(team, elapsedMinutes)` — returns `{updates, newlyTired}` without writing to players; `FatigueAccumulator` emits the resulting `FATIGUE_APPLIED` events. |
 | `RatingEngine.ts` | Pure `computeRating(player)` — called by `applyMatchEvent` when a `RATINGS_RECALCULATED` event is reduced. |
-| `balance/` | **Single source of truth for every gameplay tuning number.** One file per concern (scoring, kicking, openPlay, breakdown, scrum, lineout, fatigue, rating, tactics, clock, commentary, season) re-exported through `balance/index.ts`. Resolvers, events, and systems import from here; no tuning literals live elsewhere. |
+| `balance/` | **Single source of truth for every gameplay tuning number.** One file per concern (`scoring`, `kicking`, `openPlay`, `breakdown`, `scrum`, `lineout`, `fatigue`, `rating`, `tactics`, `clock`, `commentary`, `discipline`, `homeAdvantage`, `aiDirector`, `season`) re-exported through `balance/index.ts`. Resolvers, events, and systems import from here; no tuning literals live elsewhere. |
 
 All emit UI side-effects through the shared `src/utils/eventBus.ts` singleton; event IDs come from the monotonic counter in `src/engine/eventId.ts`. The current phase lives solely on `state.phase`; all transitions go through the `PHASE_CHANGED` `MatchEvent` (no separate state-machine class). `PhaseContext` (`src/engine/events/types.ts`) is the minimal closure passed to handlers — `{ state, attackTeam, defendTeam, randomPlayer, pickPlayer, draftEvent, kickOffStrategy }`. Field-position helpers (`attackDir`, `inOwn22`, `isTryScoredAt`, …) are pure functions in `FieldPosition.ts` that handlers import directly with `state`.
 
@@ -79,7 +82,7 @@ Season-level determinism: `(playerTeamId, rootSeed)` plus the player's series of
 
 ### Balance constants
 
-Every number listed in the resolver formulas, tactic modifier tables, fatigue tiers, and rating weights below is defined under `src/engine/balance/` — one file per concern (`scoring`, `kicking`, `openPlay`, `breakdown`, `scrum`, `lineout`, `fatigue`, `rating`, `tactics`, `clock`, `commentary`, `season`), re-exported through `balance/index.ts`. The doc below shows the current values; the `balance/` directory is the canonical place to read or change them. `scoring.ts` holds the laws-of-the-game point values (try 5, conversion 2, penalty goal 3); `commentary.ts` also holds `COMMENTARY_BUFFER_CAP` (the soft cap on `state.events`).
+Every number listed in the resolver formulas, tactic modifier tables, fatigue tiers, and rating weights below is defined under `src/engine/balance/` — one file per concern (`scoring`, `kicking`, `openPlay`, `breakdown`, `scrum`, `lineout`, `fatigue`, `rating`, `tactics`, `clock`, `commentary`, `discipline`, `homeAdvantage`, `aiDirector`, `season`), re-exported through `balance/index.ts`. The doc below shows the current values; the `balance/` directory is the canonical place to read or change them. `scoring.ts` holds the laws-of-the-game point values (try 5, conversion 2, penalty goal 3); `commentary.ts` also holds `COMMENTARY_BUFFER_CAP` (the soft cap on `state.events`).
 
 ### Tactics: who picks what
 
@@ -104,8 +107,10 @@ state.ball   = { x, y }                              // renamed from ballX/ballY
 state.engine = { isRunning, tickDelayMs, seed, firstHalfKicker, humanSide }
 
 // top-level: phase, possession, score, events, breakdownMod, kickReturnCarrier,
-//            homeTeam, awayTeam, stats
+//            lastPenalty?, homeTeam, awayTeam, stats
 ```
+
+`state.lastPenalty?: { offence, offender, offendingSide, gameMinute }` is set by the `PENALTY_AWARDED` reducer and read by `PenaltyHandler` to enrich the `PenaltyContext` it sends to the modal. Overwritten on every new award; never cleared.
 
 Snapshot DTOs intentionally **stay scalar** — they are frozen log rows, not live state:
 - `GameEvent.ballX` / `GameEvent.ballY` (entries in `state.events[]`)
@@ -694,13 +699,15 @@ stackedScore(players, leadStat, supportStat):
 **ARS (Attack Ruck Score):**
 ```
 ARS = stackedScore(supporters, breakdown, strength) + rng(1,20) + attackBonus
-attackBonus = 6 if previous play was dominant_carry, else 0
+attackBonus = (6 if previous play was dominant_carry, else 0) + homeEdge.attack
 ```
 
 **DTS (Defensive Turnover Score):**
 - **jackal**: `breakdown×0.7 + strength×0.3 + (discipline−50)×0.15 + rng(1,20)`
 - **counter_ruck**: `stackedScore(top4defenders, strength, breakdown) + rng(1,20)`
 - **shadow**: `rng(1,10)`
+
+After the active branch resolves, `DTS += defendBonus` (currently sourced from `homeEdge.defend` only). Together with the `attackBonus` addition above this is the breakdown channel of [Home Advantage](#home-advantage): when the home team has possession, `homeEdge` bumps ARS; when they're defending the ruck, it bumps DTS.
 
 The top 4 defenders for `counter_ruck` are the 4 forwards with the highest `strength×0.6 + breakdown×0.4` score.
 
@@ -1291,7 +1298,6 @@ If the renderer ever emits HTML, the span injection will double-encode or break.
 
 | Gap | Location | Effect |
 |---|---|---|
-| kicking, positioning not degraded by fatigue | StaminaSystem | These stats remain at full base value for the entire 80 minutes |
-| pre-match form pins (`WWLWD` / `WWWLW`) are hardcoded | `PreMatchScreen.ts` | Needs a per-team match-result history store; only the player team's per-round scores are persisted today (`FixtureListScreen`) |
-| pre-match stake row (`LEAGUE 2nd · 4 pts`, `H2H 1W · 2L last 3`, `ODDS +3.5`) is hardcoded | `PreMatchScreen.ts` | Needs a season table and a fixture/odds system |
-| pre-match kick-off time (`20:00`) is hardcoded | `PreMatchScreen.ts` | Needs scheduled match times |
+| `kicking`, `positioning` not degraded by fatigue | `StaminaSystem` | These stats remain at full base value for the entire 80 minutes. |
+| Home advantage only flows through carries + breakdown | `HOME_ADVANTAGE` in `balance/` | Referee tilt on marginal penalties, kicker accuracy at home, and travel fatigue for the away side are all plausible extra channels — each would need its own `HOME_ADVANTAGE.*` knob and a telemetry re-tune. |
+| Head-to-head is single-season only | `headToHead` in `src/game/teamStats.ts` | Pre-match H2H tile resets each season; multi-season aggregation would need a persisted slice on `GameState` and a `SEASON_ROLLED_OVER` event. |

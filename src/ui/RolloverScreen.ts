@@ -16,6 +16,7 @@ import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import type { GameState, SeasonEvent } from '../types/gameState';
 import type { Player, PlayerStats } from '../types/player';
+import { getAge } from '../game/age';
 
 let activeEvents: SeasonEvent[] = [];
 let activeOnContinue: () => void = () => {};
@@ -27,14 +28,6 @@ export function showRollover(events: SeasonEvent[], onContinue: () => void): voi
   renderImpl?.();
 }
 
-function ageOnDate(dobIso: string, onIso: string): number {
-  const dob = new Date(dobIso);
-  const on = new Date(onIso);
-  let age = on.getUTCFullYear() - dob.getUTCFullYear();
-  const m = on.getUTCMonth() - dob.getUTCMonth();
-  if (m < 0 || (m === 0 && on.getUTCDate() < dob.getUTCDate())) age -= 1;
-  return age;
-}
 
 function statLabel(s: keyof PlayerStats): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -87,7 +80,7 @@ export function initRolloverScreen(
           if (e.type !== 'PLAYER_RETIRED') return '';
           const p: Player | undefined = state.career.roster[e.rosterId];
           if (!p) return '';
-          const age = p.dob ? ageOnDate(p.dob, today) : '—';
+          const age = p.dob ? getAge(p.dob, today) : '—';
           const club = teamsById.get(e.clubId);
           return `
             <div class="roll-row">

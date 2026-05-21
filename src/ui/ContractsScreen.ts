@@ -13,6 +13,7 @@ import type { GameCoordinator } from '../game/GameCoordinator';
 import type { Player } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
 import { SENIOR_CAP } from '../engine/balance/transfers';
+import { getAge } from '../game/age';
 
 type SortKey = 'name' | 'position' | 'age' | 'ovr' | 'wage' | 'expiry';
 type SortDir = 'asc' | 'desc';
@@ -34,15 +35,6 @@ function fmtExpiry(iso: string): string {
   return `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear() % 100}`;
 }
 
-function ageOnDate(dobIso: string | null, onIso: string): number | null {
-  if (!dobIso) return null;
-  const dob = new Date(dobIso);
-  const on = new Date(onIso);
-  let age = on.getUTCFullYear() - dob.getUTCFullYear();
-  const m = on.getUTCMonth() - dob.getUTCMonth();
-  if (m < 0 || (m === 0 && on.getUTCDate() < dob.getUTCDate())) age -= 1;
-  return age;
-}
 
 function expiresThisSeason(expiresOn: string, calendarDate: string): boolean {
   if (!expiresOn) return false;
@@ -85,7 +77,7 @@ export function initContractsScreen(
 
     const rows = sorted.map(p => {
       const overall = playerOverall(p.baseStats, p.position);
-      const age = ageOnDate(p.dob, calendarDate);
+      const age = getAge(p.dob, calendarDate);
       const expiring = expiresThisSeason(p.contract.expiresOn, calendarDate);
       const marquee = p.contract.isMarquee ? '<span class="ct-marquee" aria-label="Marquee">★</span>' : '';
       const expiringChip = expiring ? '<span class="ct-expiring">EXPIRES</span>' : '';
@@ -170,8 +162,8 @@ function compare(a: Player, b: Player, calendarDate: string): number {
     case 'name':     return `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`);
     case 'position': return slotOrder(a.id) - slotOrder(b.id) || a.position.localeCompare(b.position);
     case 'age': {
-      const aa = ageOnDate(a.dob, calendarDate) ?? -1;
-      const bb = ageOnDate(b.dob, calendarDate) ?? -1;
+      const aa = getAge(a.dob, calendarDate) ?? -1;
+      const bb = getAge(b.dob, calendarDate) ?? -1;
       return aa - bb;
     }
     case 'ovr':      return playerOverall(a.baseStats, a.position) - playerOverall(b.baseStats, b.position);

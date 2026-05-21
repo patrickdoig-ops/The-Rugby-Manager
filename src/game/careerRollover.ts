@@ -29,12 +29,13 @@
 import type { Fixture, GameState, SeasonEvent, TeamStanding } from '../types/gameState';
 import type { Player, PlayerStats } from '../types/player';
 import { AGE_CURVES, STAT_NOISE, RETIREMENT_CURVE, SEASON_AWARDS } from '../engine/balance/career';
+import { SEASON_VALUES } from '../engine/balance';
+import { getAge, parseSeasonStartYear, seasonOpenIso } from './age';
 import { generateFixtures } from './fixtures';
 import { rngTransferRaw } from '../utils/rng';
 
 export function computeRollover(state: GameState, allTeamIds: string[]): SeasonEvent[] {
   const events: SeasonEvent[] = [];
-  const today = state.calendar.date;
   const currentSeasonStartYear = parseSeasonStartYear(state.calendar.seasonLabel);
   const newSeasonStartYear = currentSeasonStartYear + 1;
 
@@ -45,7 +46,7 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
   for (const rid of rosterIds) {
     const p = state.career.roster[rid];
     if (!p.dob) continue;
-    const ageInNewSeason = ageOnDate(p.dob, isoDate(newSeasonStartYear, 8, 1));
+    const ageInNewSeason = getAge(p.dob, seasonOpenIso(newSeasonStartYear)) ?? 0;
 
     const deltas = developStats(p, ageInNewSeason);
     if (Object.keys(deltas).length > 0) {
@@ -151,42 +152,22 @@ function computeAwards(state: GameState): { topScorerRosterId: number | null; mv
   return { topScorerRosterId, mvpRosterId };
 }
 
-// --- Date helpers ---
-
-function ageOnDate(dobIso: string, onIso: string): number {
-  const dob = new Date(dobIso);
-  const on = new Date(onIso);
-  let age = on.getUTCFullYear() - dob.getUTCFullYear();
-  const m = on.getUTCMonth() - dob.getUTCMonth();
-  if (m < 0 || (m === 0 && on.getUTCDate() < dob.getUTCDate())) age -= 1;
-  return age;
-}
-
-function isoDate(year: number, monthIdx: number, day: number): string {
-  return new Date(Date.UTC(year, monthIdx, day)).toISOString().slice(0, 10);
-}
-
-// Assign weekly fixture dates starting Sept 1 of `startYear`, skipping
-// November and February. Sept-Oct + Dec-Jan + Mar-May = ~8 months at 1
-// round/week = ~32 round slots, comfortably more than the 18 rounds we
-// need. Same date per round (all fixtures in a round share it).
-function parseSeasonStartYear(label: string): number {
-  // "2025/26 Premiership" → 2025
-  const m = label.match(/(\d{4})/);
-  return m ? parseInt(m[1], 10) : new Date().getUTCFullYear();
-}
-
+// Assigns weekly fixture dates starting on the season-open anchor of
+// `startYear`, skipping the international windows. Sept-Oct + Dec-Jan
+// + Mar-May = ~8 months at 1 round/week = ~32 round slots, comfortably
+// more than the 18 rounds we need. Same date per round (all fixtures
+// in a round share it). All calendar anchors live in SEASON_VALUES.
 function dateRounds(fixtures: Fixture[], startYear: number): Fixture[] {
   const rounds = [...new Set(fixtures.map(f => f.round))].sort((a, b) => a - b);
   const dateByRound = new Map<number, string>();
-  const cursor = new Date(Date.UTC(startYear, 8, 1));  // Sept 1
+  const cursor = new Date(Date.UTC(startYear, SEASON_VALUES.seasonOpenMonth, SEASON_VALUES.seasonOpenDay));
+  const skipMonths = new Set<number>(SEASON_VALUES.internationalWindowMonths);
   for (const round of rounds) {
-    while (cursor.getUTCMonth() === 10 || cursor.getUTCMonth() === 1) {
-      // Skip November (10) and February (1) — international windows.
-      cursor.setUTCDate(cursor.getUTCDate() + 28);
+    while (skipMonths.has(cursor.getUTCMonth())) {
+      cursor.setUTCDate(cursor.getUTCDate() + SEASON_VALUES.internationalSkipDays);
     }
     dateByRound.set(round, cursor.toISOString().slice(0, 10));
-    cursor.setUTCDate(cursor.getUTCDate() + 7);
+    cursor.setUTCDate(cursor.getUTCDate() + SEASON_VALUES.weekLengthDays);
   }
   return fixtures.map(f => ({ ...f, date: dateByRound.get(f.round) }));
 }

@@ -24,6 +24,7 @@ import { applySeasonEvent } from './applySeasonEvent';
 import { simulateFixture } from './simulateFixture';
 import { seedRoster } from './rosterSeeder';
 import { buildTeamFromRoster } from './rosterTeamBuilder';
+import { parseSeasonStartYear } from './age';
 import { collectSeasonEvents, type PlayerStatsSnapshot } from './seasonStatsCollector';
 import { computeRollover } from './careerRollover';
 import { seedContractFields } from './contractSeeder';
@@ -374,10 +375,3 @@ export class GameCoordinator {
   }
 }
 
-// Parse the season label (e.g. "2025/26 Premiership") to the start year
-// of that season. Used by contractSeeder to compute expiry dates
-// relative to "now" so a 2-year deal expires on 30 June of (startYear + 2).
-function parseSeasonStartYear(label: string): number {
-  const m = label.match(/(\d{4})/);
-  return m ? parseInt(m[1], 10) : new Date().getUTCFullYear();
-}

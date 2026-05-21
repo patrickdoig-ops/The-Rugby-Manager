@@ -30,7 +30,7 @@ import { computeRollover } from './careerRollover';
 import { seedContractFields } from './contractSeeder';
 import {
   expiringRosterIds, generateRenewalOffers, decideAIOffers, expiryAfterYears,
-  decideAISignings, signingTermsFor,
+  decideAISignings, signingTermsFor, isPoachEligible, decideAIPoaches, poachCandidates,
 } from './aiTransferDirector';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed } from '../utils/rng';
@@ -339,24 +339,51 @@ export class GameCoordinator {
   // ===== Free-agent signings (Phase 5) =====
 
   // Opens the signing window. Pre-computes one TransferOffer per
-  // free agent (asking-wage every club sees) in stable rosterId order
-  // — advances rngTransfer twice per FA via contractSeeder, deterministic.
-  // Idempotent — no-op if window is already open or freeAgents is empty.
+  // free agent AND per Reg 7 poach candidate (final-12-month
+  // contracted players at other clubs) in stable rosterId order so
+  // rngTransfer advance is deterministic.
   //
-  // Stores offers on state.career.market so subsequent renders +
-  // signFreeAgent reads + the AI close pass all see identical terms.
+  // Stores all offers on state.career.market so subsequent renders +
+  // signFreeAgent / preAgreePoach reads + the AI close pass all see
+  // identical terms. The UI splits free-agent rows from poach rows by
+  // looking up which rosterIds are in state.career.freeAgents.
+  //
+  // Idempotent — no-op if window is already open or there's nothing
+  // to offer (no free agents AND no poach candidates).
   openSigningWindow(): void {
     if (this.state.career.market) return;
-    if (this.state.career.freeAgents.length === 0) return;
-    const seasonStartYear = parseSeasonStartYear(this.state.calendar.seasonLabel);
     const sortedFAs = [...this.state.career.freeAgents].sort((a, b) => a - b);
+    const poaches = poachCandidates(this.state).filter(rid => {
+      const p = this.state.career.roster[rid];
+      // Skip player's own club's players (can't poach yourself).
+      return p && p.contract.clubId !== this.state.player.teamId;
+    });
+    if (sortedFAs.length === 0 && poaches.length === 0) return;
+
     const offers: TransferOffer[] = [];
+    const seasonsCompleted = this.state.career.seasonsCompleted;
+    // Combined stable order: FAs first, then poach candidates.
+    // Both sub-lists are rosterId-ascending so rngTransfer consumption
+    // is fully deterministic.
     for (const rid of sortedFAs) {
       const terms = signingTermsFor(this.state, rid, this.state.player.teamId);
       if (!terms) continue;
       offers.push({
-        id: `s${this.state.career.seasonsCompleted}_${rid}`,
-        fromClubId: '',  // free agents aren't tied to any particular bidder until accepted
+        id: `s${seasonsCompleted}_fa_${rid}`,
+        fromClubId: '',
+        rosterId: rid,
+        annualWage: terms.annualWage,
+        lengthYears: terms.lengthYears,
+        isMarquee: false,
+        status: 'pending',
+      });
+    }
+    for (const rid of poaches) {
+      const terms = signingTermsFor(this.state, rid, this.state.player.teamId);
+      if (!terms) continue;
+      offers.push({
+        id: `s${seasonsCompleted}_pc_${rid}`,
+        fromClubId: this.state.career.roster[rid]?.contract.clubId ?? '',
         rosterId: rid,
         annualWage: terms.annualWage,
         lengthYears: terms.lengthYears,
@@ -394,9 +421,42 @@ export class GameCoordinator {
     return true;
   }
 
-  // Closes the signing window. Runs the AI's signing pass over
-  // whatever free agents remain (decideAISignings), fires CONTRACT_SIGNED
-  // for each, then fires MARKET_CLOSED to clear state.career.market.
+  // User-side Reg 7 poach. Pre-agrees a move for a contracted player
+  // currently at another club whose deal is in its final 12 months.
+  // The move activates at the next rollover via TRANSFER_ACTIVATED
+  // (not immediately) — the player completes the current season at
+  // their existing club.
+  //
+  // Reads from the cached signing-window offers (state.career.market)
+  // so the wage matches what the user saw on TransferMarketScreen.
+  // Returns false if no signing window is open, the player isn't
+  // poach-eligible, or no cached offer exists.
+  preAgreePoach(rosterId: number): boolean {
+    const market = this.state.career.market;
+    if (!market || market.phase !== 'signings') return false;
+    const p = this.state.career.roster[rosterId];
+    if (!p) return false;
+    if (!isPoachEligible(p, this.state.calendar.date)) return false;
+    const playerClubId = this.state.player.teamId;
+    if (p.contract.clubId === playerClubId) return false;
+    const offer = market.offers.find(o => o.rosterId === rosterId && o.status === 'pending');
+    if (!offer) return false;
+    applySeasonEvent(this.state, {
+      type: 'PRE_AGREEMENT_SIGNED',
+      agreement: {
+        rosterId,
+        fromClubId: p.contract.clubId,
+        toClubId: playerClubId,
+        annualWage: offer.annualWage,
+        lengthYears: offer.lengthYears,
+      },
+    });
+    return true;
+  }
+
+  // Closes the signing window. Runs the AI signing pass over whatever
+  // free agents remain, then the AI poaching pass over contracted
+  // players in their final 12 months, then fires MARKET_CLOSED.
   closeSigningWindow(): void {
     const market = this.state.career.market;
     if (!market || market.phase !== 'signings') return;
@@ -409,6 +469,23 @@ export class GameCoordinator {
         clubId: s.clubId,
         expiresOn: s.expiresOn,
         annualWage: s.annualWage,
+      });
+    }
+    // Phase 6: AI poaching pass. Each non-human AI club pre-agrees at
+    // most one Reg 7 candidate. Activations happen at the next
+    // rollover via TRANSFER_ACTIVATED.
+    const poaches = decideAIPoaches(this.state, humanClubId);
+    for (const a of poaches) {
+      const fromClubId = this.state.career.roster[a.rosterId]?.contract.clubId ?? '';
+      applySeasonEvent(this.state, {
+        type: 'PRE_AGREEMENT_SIGNED',
+        agreement: {
+          rosterId: a.rosterId,
+          fromClubId,
+          toClubId: a.toClubId,
+          annualWage: a.annualWage,
+          lengthYears: a.lengthYears,
+        },
       });
     }
     applySeasonEvent(this.state, { type: 'MARKET_CLOSED' });

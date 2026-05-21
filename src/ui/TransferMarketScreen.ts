@@ -16,6 +16,7 @@ import type { Player } from '../types/player';
 import type { TransferOffer } from '../types/gameState';
 import { playerOverall } from '../engine/RatingEngine';
 import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance/transfers';
+import { poachCandidates, signingTermsFor } from '../game/aiTransferDirector';
 import { getAge } from '../game/age';
 
 type SortKey = 'name' | 'pos' | 'age' | 'ovr' | 'wage';
@@ -88,7 +89,12 @@ export function initTransferMarketScreen(
       'ok';
     const capPill = `<span class="tm-cappill tm-cappill--${capStatus}"><span>CAP</span><span>${fmtWage(capUsed)} / ${fmtWage(effectiveCap)}</span></span>`;
 
-    const rows = availableOffers
+    // Split offers into two sections by their rosterId membership:
+    //   freeAgentRows — players in state.career.freeAgents
+    //   poachRows     — contracted players in their final 12 months at another club (Reg 7)
+    // openSigningWindow seeds both into market.offers; UI just splits.
+    const pendingMovesSet = new Set(state.career.pendingMoves.map(m => m.rosterId));
+    const allRows = availableOffers
       .map(offer => {
         const p = state.career.roster[offer.rosterId];
         if (!p) return null;
@@ -99,23 +105,44 @@ export function initTransferMarketScreen(
         const cmp = compare(a, b, calendarDate);
         return sortDir === 'asc' ? cmp : -cmp;
       });
+    const freeAgentRows = allRows.filter(r => freeAgentSet.has(r.p.rosterId));
+    const poachRows = allRows.filter(r => !freeAgentSet.has(r.p.rosterId));
 
-    const rowHtml = rows.length === 0
+    const renderRow = (offer: TransferOffer, p: Player, action: 'sign' | 'poach'): string => {
+      const age = getAge(p.dob, calendarDate);
+      const ovr = playerOverall(p.baseStats, p.position);
+      const wouldExceedCap = capUsed + offer.annualWage > effectiveCap;
+      const pending = pendingMovesSet.has(p.rosterId);
+      const buttonLabel = pending
+        ? 'Pre-Agreed ✓'
+        : action === 'sign'
+          ? (wouldExceedCap ? 'Sign (over cap)' : 'Sign')
+          : (wouldExceedCap ? 'Pre-Agree (over cap)' : 'Pre-Agree');
+      const buttonClass = `tm-sign${wouldExceedCap ? ' tm-sign--warn' : ''}${pending ? ' tm-sign--pending' : ''}`;
+      const ariaLabel = pending
+        ? `Pre-agreed for ${p.firstName} ${p.lastName}`
+        : `${action === 'sign' ? 'Sign' : 'Pre-agree'} ${p.firstName} ${p.lastName}`;
+      const currentClub = action === 'poach'
+        ? `<span class="tm-from">← ${teamsById.get(p.contract.clubId)?.shortName ?? p.contract.clubId}</span>`
+        : '';
+      return `
+        <div class="tm-row" data-roster-id="${p.rosterId}">
+          <span class="tm-name">${p.firstName} ${p.lastName}${currentClub}</span>
+          <span class="tm-pos">${shortPos(p.position)}</span>
+          <span class="tm-num">${age ?? '—'}</span>
+          <span class="tm-num">${ovr}</span>
+          <span class="tm-wage">${fmtWage(offer.annualWage)} <span class="tm-len">× ${offer.lengthYears}y</span></span>
+          <button class="${buttonClass}" data-${action}="${p.rosterId}"${pending ? ' disabled' : ''} aria-label="${ariaLabel}">${buttonLabel}</button>
+        </div>`;
+    };
+
+    const freeAgentHtml = freeAgentRows.length === 0
       ? '<div class="tm-empty">No free agents available this off-season.</div>'
-      : rows.map(({ p, offer }) => {
-          const age = getAge(p.dob, calendarDate);
-          const ovr = playerOverall(p.baseStats, p.position);
-          const wouldExceedCap = capUsed + offer.annualWage > effectiveCap;
-          return `
-            <div class="tm-row" data-roster-id="${p.rosterId}">
-              <span class="tm-name">${p.firstName} ${p.lastName}</span>
-              <span class="tm-pos">${shortPos(p.position)}</span>
-              <span class="tm-num">${age ?? '—'}</span>
-              <span class="tm-num">${ovr}</span>
-              <span class="tm-wage">${fmtWage(offer.annualWage)} <span class="tm-len">× ${offer.lengthYears}y</span></span>
-              <button class="tm-sign${wouldExceedCap ? ' tm-sign--warn' : ''}" data-sign="${p.rosterId}" aria-label="Sign ${p.firstName} ${p.lastName}">${wouldExceedCap ? 'Sign (over cap)' : 'Sign'}</button>
-            </div>`;
-        }).join('');
+      : freeAgentRows.map(({ p, offer }) => renderRow(offer, p, 'sign')).join('');
+
+    const poachHtml = poachRows.length === 0
+      ? '<div class="tm-empty tm-empty--small">No contracted players in their final 12 months at other clubs.</div>'
+      : poachRows.map(({ p, offer }) => renderRow(offer, p, 'poach')).join('');
 
     const headerCell = (key: SortKey, label: string, cls: string): string => {
       const active = key === sortKey;
@@ -126,20 +153,25 @@ export function initTransferMarketScreen(
     el!.innerHTML = `
       <div id="tm-topbar">
         <div style="width:72px"></div>
-        <span id="tm-title">Free Agents — ${team.shortName}</span>
+        <span id="tm-title">Transfer Market — ${team.shortName}</span>
         ${capPill}
       </div>
-      <div id="tm-eyebrow">${state.calendar.seasonLabel} · ${rows.length} available</div>
+      <div id="tm-eyebrow">${state.calendar.seasonLabel} · ${freeAgentRows.length} free agents · ${poachRows.length} approachable</div>
 
+      <h3 class="tm-section-h">Free Agents</h3>
       <div id="tm-headrow">
         ${headerCell('name', 'NAME', 'tm-name')}
         ${headerCell('pos',  'POS',  'tm-pos')}
         ${headerCell('age',  'AGE',  'tm-num')}
         ${headerCell('ovr',  'OVR',  'tm-num')}
         ${headerCell('wage', 'WAGE', 'tm-wage')}
-        <span class="tm-head tm-sign-col">SIGN</span>
+        <span class="tm-head tm-sign-col">ACTION</span>
       </div>
-      <div id="tm-list">${rowHtml}</div>
+      <div id="tm-list">${freeAgentHtml}</div>
+
+      <h3 class="tm-section-h tm-section-h--poach">Final-12-Month Contracts (Reg 7 Pre-Agreement)</h3>
+      <div id="tm-poach-list">${poachHtml}</div>
+
       <div id="tm-footer">
         <button id="tm-continue">
           <span>Continue</span>
@@ -161,6 +193,14 @@ export function initTransferMarketScreen(
         const rid = Number(btn.dataset.sign);
         if (!Number.isFinite(rid)) return;
         gameEngine.signFreeAgent(rid);
+        render();
+      });
+    });
+    el!.querySelectorAll<HTMLButtonElement>('.tm-sign[data-poach]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const rid = Number(btn.dataset.poach);
+        if (!Number.isFinite(rid)) return;
+        gameEngine.preAgreePoach(rid);
         render();
       });
     });

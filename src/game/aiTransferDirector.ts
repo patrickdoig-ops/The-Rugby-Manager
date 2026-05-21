@@ -8,6 +8,7 @@
 // signings + cross-club poaching using the same TransferOffer shape.
 
 import type { GameState, TransferOffer } from '../types/gameState';
+import type { Player } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
 import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS, RENEWAL } from '../engine/balance/transfers';
 import { seedContractFields } from './contractSeeder';
@@ -278,4 +279,107 @@ export function signingTermsFor(
     lengthYears,
     expiresOn: expiryAfterYears(state, lengthYears),
   };
+}
+
+// --- Cross-club poaching (Phase 6 — Reg 7) ---
+
+// A contracted player is eligible for cross-club approach in the final
+// 12 months of their deal. Bath player whose contract expires
+// 2027-06-30 becomes approachable on 2026-07-01, and the move (if
+// agreed) activates at the 2027 rollover.
+export function isPoachEligible(player: { contract: { expiresOn: string; clubId: string } }, currentDate: string): boolean {
+  if (!player.contract.expiresOn) return false;
+  if (!player.contract.clubId) return false; // free agents go via signFreeAgent
+  const exp = new Date(player.contract.expiresOn);
+  const now = new Date(currentDate);
+  const monthsAhead = (exp.getUTCFullYear() - now.getUTCFullYear()) * 12
+                    + (exp.getUTCMonth() - now.getUTCMonth());
+  return monthsAhead >= 0 && monthsAhead <= 12;
+}
+
+// rosterIds of every player league-wide who could be approached now.
+// Stable rosterId-ascending order.
+export function poachCandidates(state: GameState): number[] {
+  const ids: number[] = [];
+  for (const club of state.career.clubs) {
+    for (const rid of club.squad) {
+      const p = state.career.roster[rid];
+      if (!p) continue;
+      if (p.contract.isMarquee) continue; // marquees rarely move mid-deal; simplification for v1
+      if (isPoachEligible(p, state.calendar.date)) ids.push(rid);
+    }
+  }
+  return ids.sort((a, b) => a - b);
+}
+
+// AI poaching pass: per club, score available poach candidates and
+// pre-agree the top scorer if cap fits AND the player's OVR is above
+// the floor + the candidate isn't already pre-agreed by an earlier
+// club. Pure / RNG-free decision logic (wage seeds via contractSeeder
+// inside seedContractFields → rngTransfer, deterministic over stable
+// iteration).
+//
+// One poaching per non-human AI club per window in v1 — keeps the AI
+// from gutting a rival's entire squad in one off-season.
+export function decideAIPoaches(state: GameState, humanClubId?: string): Array<{
+  rosterId: number; toClubId: string; annualWage: number; lengthYears: number;
+}> {
+  const decisions: Array<{ rosterId: number; toClubId: string; annualWage: number; lengthYears: number }> = [];
+  const claimed = new Set<number>();
+  const seasonStartYear = parseSeasonStartYear(state.calendar.seasonLabel);
+  const effectiveCap = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
+  const candidates = poachCandidates(state);
+  if (candidates.length === 0) return decisions;
+
+  const clubs = [...state.career.clubs].sort((a, b) => a.id.localeCompare(b.id));
+  for (const club of clubs) {
+    if (club.id === humanClubId) continue;
+
+    let currentCap = 0;
+    for (const rid of club.squad) {
+      const p = state.career.roster[rid];
+      if (!p || p.contract.isMarquee) continue;
+      currentCap += p.contract.annualWage;
+    }
+    const headroom = effectiveCap * AI_SIGN_CAP_TARGET - currentCap;
+    if (headroom <= 0) continue;
+
+    // Score: overall + position-need bonus, restricted to OVR >= floor.
+    const positionCounts = new Map<string, number>();
+    for (const rid of club.squad) {
+      const p = state.career.roster[rid];
+      if (!p) continue;
+      positionCounts.set(p.position, (positionCounts.get(p.position) ?? 0) + 1);
+    }
+
+    const ranked = candidates
+      .filter(rid => !claimed.has(rid))
+      .map(rid => state.career.roster[rid])
+      .filter((p): p is Player => !!p)
+      .filter(p => p.contract.clubId !== club.id) // don't poach your own
+      .map(p => {
+        const overall = playerOverall(p.baseStats, p.position);
+        const fresh = seedContractFields(p, club.id, seasonStartYear);
+        const need = Math.max(0, TARGET_PER_POSITION - (positionCounts.get(p.position) ?? 0));
+        return { p, overall, fresh, score: overall + need * 10 };
+      })
+      .filter(x => x.overall >= RENEWAL.aiReleaseRatingFloor)
+      .filter(x => x.fresh.contract.annualWage <= headroom)
+      .sort((a, b) => b.score - a.score || a.p.rosterId - b.p.rosterId);
+
+    const top = ranked[0];
+    if (!top) continue;
+    const lengthYears = Math.max(1, Math.min(3,
+      parseInt(top.fresh.contract.expiresOn.slice(0, 4), 10) - parseInt(top.p.contract.expiresOn.slice(0, 4), 10)
+    )) || 2;
+    decisions.push({
+      rosterId: top.p.rosterId,
+      toClubId: club.id,
+      annualWage: top.fresh.contract.annualWage,
+      lengthYears,
+    });
+    claimed.add(top.p.rosterId);
+  }
+
+  return decisions;
 }

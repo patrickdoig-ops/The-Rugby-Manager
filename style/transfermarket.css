@@ -189,6 +189,48 @@
   background: color-mix(in oklch, var(--rm-danger, #d8503e) 18%, transparent);
 }
 
+.tm-sign--pending {
+  border-color: var(--rm-text-dim);
+  color: var(--rm-text-dim);
+  cursor: not-allowed;
+}
+
+.tm-sign--pending:hover {
+  background: transparent;
+}
+
+.tm-section-h {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--rm-text-muted, var(--rm-text-dim));
+  text-transform: uppercase;
+  margin: 12px 16px 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--rm-hairline);
+}
+
+.tm-section-h--poach {
+  margin-top: 8px;
+}
+
+#tm-poach-list {
+  padding-bottom: 16px;
+}
+
+.tm-from {
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--rm-text-dim);
+  margin-left: 6px;
+}
+
+.tm-empty--small {
+  padding: 16px 16px;
+  font-size: 10px;
+}
+
 .tm-empty {
   font-family: var(--rm-font-mono);
   font-size: 11px;

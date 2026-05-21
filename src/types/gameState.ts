@@ -105,9 +105,17 @@ export interface TransferOffer {
 // MARKET_OPENED, mutated by OFFER_SENT / OFFER_RESPONDED, cleared by
 // MARKET_CLOSED. Persisted in v7+ saves so closing the tab mid-window
 // resumes at the same state.
+//
+// `phase` discriminates renewal-window from signing-window. The two
+// phases share the same MarketState shape but populate `offers`
+// differently — renewals get one offer per expiring player league-wide;
+// signings get one offer per free agent (the asking wage every club
+// will see). v7 saves load with `phase` defaulting to 'renewals' for
+// backward compat.
 export interface MarketState {
+  phase: 'renewals' | 'signings';
   openedAfterSeason: string;  // seasonLabel of the just-completed season
-  expiringRosterIds: number[];
+  expiringRosterIds: number[]; // empty during the signings phase
   offers: TransferOffer[];
 }
 
@@ -232,12 +240,18 @@ export type SeasonEvent =
       rosterId: number | null;
     }
   | {
-      // Opens the end-of-season renewal window. Seeds state.career.market
-      // with the list of players whose contracts expire this rollover
-      // plus the proposed renewal terms (one TransferOffer per expiring
-      // player, status 'pending'). Fired by GameCoordinator.openRenewalWindow.
+      // Opens an end-of-season market window. Two phases share the
+      // shape:
+      //   'renewals' — seeded by openRenewalWindow with one offer per
+      //     expiring player league-wide (status 'pending'). User decides
+      //     for own club; AI auto-resolves for the rest at close.
+      //   'signings' — seeded by openSigningWindow (after renewals
+      //     close) with one offer per free agent (the asking wage every
+      //     club is quoted against). User signs at the listed terms;
+      //     AI signs at close from what's left.
       type: 'MARKET_OPENED';
-      expiringRosterIds: number[];
+      phase: 'renewals' | 'signings';
+      expiringRosterIds: number[]; // empty when phase === 'signings'
       offers: TransferOffer[];
     }
   | {

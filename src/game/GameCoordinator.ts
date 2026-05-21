@@ -15,7 +15,7 @@
 
 import type {
   ArchivedSeason, ClubState,
-  Fixture, FixtureResult, GameState, MarketState, PlayerRef, SeasonEvent, SeasonSchedule,
+  Fixture, FixtureResult, GameState, MarketState, PlayerRef, SeasonEvent, SeasonSchedule, TransferOffer,
 } from '../types/gameState';
 import { emptyCareerState } from '../types/gameState';
 import type { Player } from '../types/player';
@@ -269,6 +269,7 @@ export class GameCoordinator {
     const offers = generateRenewalOffers(this.state);
     applySeasonEvent(this.state, {
       type: 'MARKET_OPENED',
+      phase: 'renewals',
       expiringRosterIds: expiring,
       offers,
     });
@@ -332,36 +333,68 @@ export class GameCoordinator {
 
   // ===== Free-agent signings (Phase 5) =====
 
-  // User-side sign. Fires CONTRACT_SIGNED at the market-rate terms
-  // signingTermsFor produces. Returns false if rosterId isn't in the
-  // free-agent pool or the player can't be found. Caller is expected
-  // to have read the cap pill and decided independently — no
-  // affordability gate here, so the user can deliberately go over cap
-  // if they choose.
+  // Opens the signing window. Pre-computes one TransferOffer per
+  // free agent (asking-wage every club sees) in stable rosterId order
+  // — advances rngTransfer twice per FA via contractSeeder, deterministic.
+  // Idempotent — no-op if window is already open or freeAgents is empty.
+  //
+  // Stores offers on state.career.market so subsequent renders +
+  // signFreeAgent reads + the AI close pass all see identical terms.
+  openSigningWindow(): void {
+    if (this.state.career.market) return;
+    if (this.state.career.freeAgents.length === 0) return;
+    const seasonStartYear = parseSeasonStartYear(this.state.calendar.seasonLabel);
+    const sortedFAs = [...this.state.career.freeAgents].sort((a, b) => a - b);
+    const offers: TransferOffer[] = [];
+    for (const rid of sortedFAs) {
+      const terms = signingTermsFor(this.state, rid, this.state.player.teamId);
+      if (!terms) continue;
+      offers.push({
+        id: `s${this.state.career.seasonsCompleted}_${rid}`,
+        fromClubId: '',  // free agents aren't tied to any particular bidder until accepted
+        rosterId: rid,
+        annualWage: terms.annualWage,
+        lengthYears: terms.lengthYears,
+        isMarquee: false,
+        status: 'pending',
+      });
+    }
+    applySeasonEvent(this.state, {
+      type: 'MARKET_OPENED',
+      phase: 'signings',
+      expiringRosterIds: [],
+      offers,
+    });
+  }
+
+  // User-side sign. Looks up the cached offer for `rosterId` in the
+  // open signing window and fires CONTRACT_SIGNED at those terms.
+  // Returns false if no window is open, no cached offer exists, or
+  // the player is no longer a free agent.
+  //
+  // No cap-affordability gate — the user can deliberately overspend.
   signFreeAgent(rosterId: number): boolean {
+    const market = this.state.career.market;
+    if (!market || market.phase !== 'signings') return false;
     if (!this.state.career.freeAgents.includes(rosterId)) return false;
-    const playerClubId = this.state.player.teamId;
-    const terms = signingTermsFor(this.state, rosterId, playerClubId);
-    if (!terms) return false;
+    const offer = market.offers.find(o => o.rosterId === rosterId && o.status === 'pending');
+    if (!offer) return false;
     applySeasonEvent(this.state, {
       type: 'CONTRACT_SIGNED',
       rosterId,
-      clubId: playerClubId,
-      expiresOn: terms.expiresOn,
-      annualWage: terms.annualWage,
+      clubId: this.state.player.teamId,
+      expiresOn: expiryAfterYears(this.state, offer.lengthYears),
+      annualWage: offer.annualWage,
     });
     return true;
   }
 
-  // Runs the AI-side signing pass. Each non-human AI club greedy-signs
-  // from the remaining free-agent pool against a cap target + per-club
-  // signing limit (`aiTransferDirector.decideAISignings`). Fires
-  // CONTRACT_SIGNED for each signing in determined order. Idempotent
-  // by design — if called twice with no intervening user action the
-  // second call sees an unchanged pool and might select different
-  // players (rngTransfer has advanced); callers should call exactly
-  // once per signing window.
+  // Closes the signing window. Runs the AI's signing pass over
+  // whatever free agents remain (decideAISignings), fires CONTRACT_SIGNED
+  // for each, then fires MARKET_CLOSED to clear state.career.market.
   closeSigningWindow(): void {
+    const market = this.state.career.market;
+    if (!market || market.phase !== 'signings') return;
     const humanClubId = this.state.player.teamId;
     const signings = decideAISignings(this.state, humanClubId);
     for (const s of signings) {
@@ -373,6 +406,7 @@ export class GameCoordinator {
         annualWage: s.annualWage,
       });
     }
+    applySeasonEvent(this.state, { type: 'MARKET_CLOSED' });
   }
 
   getState(): Readonly<GameState> {
@@ -515,6 +549,7 @@ export class GameCoordinator {
         freeAgents: [...this.state.career.freeAgents],
         market: this.state.career.market
           ? {
+              phase: this.state.career.market.phase,
               openedAfterSeason: this.state.career.market.openedAfterSeason,
               expiringRosterIds: [...this.state.career.market.expiringRosterIds],
               offers: this.state.career.market.offers.map(o => ({ ...o })),

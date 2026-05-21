@@ -11,6 +11,7 @@ import '../style/roundresults.css';
 import '../style/seasonrollover.css';
 import '../style/contracts.css';
 import '../style/renewals.css';
+import '../style/transfermarket.css';
 import '../style/commentary.css';
 import '../style/stats.css';
 import '../style/prematch.css';
@@ -35,6 +36,7 @@ import { initMatchResultScreen }   from './ui/MatchResultScreen';
 import { initRoundResultsScreen, showRoundResults } from './ui/RoundResultsScreen';
 import { initEndOfSeasonScreen, showEndOfSeason }   from './ui/EndOfSeasonScreen';
 import { initRenewalsScreen, showRenewals }         from './ui/RenewalsScreen';
+import { initTransferMarketScreen, showTransferMarket } from './ui/TransferMarketScreen';
 import { initRolloverScreen, showRollover }         from './ui/RolloverScreen';
 import { initContractsScreen, showContracts }       from './ui/ContractsScreen';
 import { screenRouter }            from './ui/ScreenRouter';
@@ -146,6 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initRoundResultsScreen(gameEngine, allTeams);
     initEndOfSeasonScreen(gameEngine, allTeams);
     initRenewalsScreen(gameEngine, allTeams);
+    initTransferMarketScreen(gameEngine, allTeams);
     initRolloverScreen(gameEngine, allTeams);
     initContractsScreen(gameEngine, allTeams, goHub);
 
@@ -263,10 +266,14 @@ document.addEventListener('DOMContentLoaded', () => {
       // Post-match nav chain. Normally: RoundResults → LeagueTable → Hub.
       // If GameCoordinator latched `seasonCompletePending` during
       // recordPlayerMatchResult (final round just resolved), the chain
-      // detours: LeagueTable → EndOfSeason → (Renewals?) → Rollover → Hub.
-      // The Renewals detour is skipped only when no contracts expire
-      // this off-season — openRenewalWindow leaves state.career.market
-      // null in that case.
+      // detours through the off-season screens:
+      //   LeagueTable → EndOfSeason
+      //               → (Renewals?)
+      //               → (TransferMarket?)
+      //               → Rollover → Hub.
+      // Each window screen is skipped when its market would be empty
+      // (openRenewalWindow / openSigningWindow leave state.career.market
+      // null in that case).
       const proceedToRollover = (): void => {
         if (!gameEngine) { goHub(); return; }
         const rolloverEvents = gameEngine.rollSeason();
@@ -276,6 +283,22 @@ document.addEventListener('DOMContentLoaded', () => {
           goHub();
         });
         screenRouter.show('rollover');
+      };
+      const proceedToSignings = (): void => {
+        if (!gameEngine) { goHub(); return; }
+        gameEngine.openSigningWindow();
+        if (gameEngine.getState().career.market) {
+          saveGame(gameEngine.toSavePayload());
+          showTransferMarket(() => {
+            if (!gameEngine) { goHub(); return; }
+            gameEngine.closeSigningWindow();
+            saveGame(gameEngine.toSavePayload());
+            proceedToRollover();
+          });
+          screenRouter.show('transfer-market');
+        } else {
+          proceedToRollover();
+        }
       };
       const onLeagueContinue = (): void => {
         if (seasonCompletePending) {
@@ -289,11 +312,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!gameEngine) { goHub(); return; }
                 gameEngine.closeRenewalWindow(decisions);
                 saveGame(gameEngine.toSavePayload());
-                proceedToRollover();
+                proceedToSignings();
               });
               screenRouter.show('renewals');
             } else {
-              proceedToRollover();
+              proceedToSignings();
             }
           });
           screenRouter.show('end-of-season');

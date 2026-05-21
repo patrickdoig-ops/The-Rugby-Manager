@@ -1,0 +1,197 @@
+// Free-agent signing window (Phase 5). Reached from RenewalsScreen's
+// Continue CTA. By the time this screen renders, openSigningWindow
+// has pre-computed one TransferOffer per free agent and parked them
+// on state.career.market (phase: 'signings'). Reading from the cached
+// offers — rather than calling signingTermsFor per render — keeps
+// rngTransfer stable across re-renders and matches what
+// signFreeAgent / decideAISignings will use.
+//
+// Module-level setter pattern (matches RenewalsScreen / RolloverScreen).
+// Each render reads live state.career.market so a sign action's
+// re-render reflects the now-shorter list.
+
+import type { GameCoordinator } from '../game/GameCoordinator';
+import type { RawTeamInput } from '../types/teamData';
+import type { Player } from '../types/player';
+import type { TransferOffer } from '../types/gameState';
+import { playerOverall } from '../engine/RatingEngine';
+import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance/transfers';
+import { getAge } from '../game/age';
+
+type SortKey = 'name' | 'pos' | 'age' | 'ovr' | 'wage';
+type SortDir = 'asc' | 'desc';
+
+let sortKey: SortKey = 'ovr';
+let sortDir: SortDir = 'desc';
+let activeOnContinue: () => void = () => {};
+let renderImpl: (() => void) | null = null;
+
+export function showTransferMarket(onContinue: () => void): void {
+  activeOnContinue = onContinue;
+  renderImpl?.();
+}
+
+function fmtWage(n: number): string {
+  if (n >= 1_000_000) return `£${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000) return `£${Math.round(n / 1_000)}k`;
+  return `£${n}`;
+}
+
+function shortPos(pos: string): string {
+  const map: Record<string, string> = {
+    'Prop': 'PR', 'Hooker': 'HK', 'Lock': 'LK', 'Flanker': 'FL',
+    'Number 8': 'N8', 'Back Row': 'BR', 'Scrum-Half': 'SH',
+    'Fly-Half': 'FH', 'Centre': 'CE', 'Wing': 'WG', 'Fullback': 'FB',
+    'Utility Back': 'UB',
+  };
+  return map[pos] ?? pos.slice(0, 2).toUpperCase();
+}
+
+export function initTransferMarketScreen(
+  gameEngine: GameCoordinator,
+  allTeams: RawTeamInput[],
+): void {
+  const el = document.getElementById('transfer-market');
+  if (!el) return;
+
+  const teamsById = new Map(allTeams.map(t => [t.id, t]));
+
+  function render(): void {
+    const state = gameEngine.getState();
+    const playerClubId = state.player.teamId;
+    const team = teamsById.get(playerClubId);
+    const club = state.career.clubs.find(c => c.id === playerClubId);
+    const market = state.career.market;
+    if (!team || !club || !market || market.phase !== 'signings') {
+      el!.innerHTML = `
+        <div id="tm-topbar"><div style="width:72px"></div><span id="tm-title">No Free Agents</span><div style="width:72px"></div></div>
+        <div class="tm-empty">No signing window open.</div>
+        <div id="tm-footer"><button id="tm-continue"><span>Continue</span></button></div>
+      `;
+      el!.querySelector<HTMLButtonElement>('#tm-continue')!.addEventListener('click', () => activeOnContinue());
+      return;
+    }
+
+    const calendarDate = state.calendar.date;
+    const freeAgentSet = new Set(state.career.freeAgents);
+    const availableOffers = market.offers
+      .filter(o => o.status === 'pending' && freeAgentSet.has(o.rosterId));
+
+    const capUsed = club.squad
+      .map(rid => state.career.roster[rid])
+      .filter(p => p && !p.contract.isMarquee)
+      .reduce((sum, p) => sum + p!.contract.annualWage, 0);
+    const effectiveCap = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
+    const capStatus =
+      capUsed > effectiveCap ? 'over' :
+      capUsed > effectiveCap * 0.95 ? 'tight' :
+      'ok';
+    const capPill = `<span class="tm-cappill tm-cappill--${capStatus}"><span>CAP</span><span>${fmtWage(capUsed)} / ${fmtWage(effectiveCap)}</span></span>`;
+
+    const rows = availableOffers
+      .map(offer => {
+        const p = state.career.roster[offer.rosterId];
+        if (!p) return null;
+        return { offer, p };
+      })
+      .filter((x): x is { offer: TransferOffer; p: Player } => x !== null)
+      .sort((a, b) => {
+        const cmp = compare(a, b, calendarDate);
+        return sortDir === 'asc' ? cmp : -cmp;
+      });
+
+    const rowHtml = rows.length === 0
+      ? '<div class="tm-empty">No free agents available this off-season.</div>'
+      : rows.map(({ p, offer }) => {
+          const age = getAge(p.dob, calendarDate);
+          const ovr = playerOverall(p.baseStats, p.position);
+          const wouldExceedCap = capUsed + offer.annualWage > effectiveCap;
+          return `
+            <div class="tm-row" data-roster-id="${p.rosterId}">
+              <span class="tm-name">${p.firstName} ${p.lastName}</span>
+              <span class="tm-pos">${shortPos(p.position)}</span>
+              <span class="tm-num">${age ?? '—'}</span>
+              <span class="tm-num">${ovr}</span>
+              <span class="tm-wage">${fmtWage(offer.annualWage)} <span class="tm-len">× ${offer.lengthYears}y</span></span>
+              <button class="tm-sign${wouldExceedCap ? ' tm-sign--warn' : ''}" data-sign="${p.rosterId}" aria-label="Sign ${p.firstName} ${p.lastName}">${wouldExceedCap ? 'Sign (over cap)' : 'Sign'}</button>
+            </div>`;
+        }).join('');
+
+    const headerCell = (key: SortKey, label: string, cls: string): string => {
+      const active = key === sortKey;
+      const arrow = active ? (sortDir === 'asc' ? '▲' : '▼') : '';
+      return `<button class="tm-head ${cls}${active ? ' tm-head--active' : ''}" data-sort="${key}">${label}${arrow ? ` ${arrow}` : ''}</button>`;
+    };
+
+    el!.innerHTML = `
+      <div id="tm-topbar">
+        <div style="width:72px"></div>
+        <span id="tm-title">Free Agents — ${team.shortName}</span>
+        ${capPill}
+      </div>
+      <div id="tm-eyebrow">${state.calendar.seasonLabel} · ${rows.length} available</div>
+
+      <div id="tm-headrow">
+        ${headerCell('name', 'NAME', 'tm-name')}
+        ${headerCell('pos',  'POS',  'tm-pos')}
+        ${headerCell('age',  'AGE',  'tm-num')}
+        ${headerCell('ovr',  'OVR',  'tm-num')}
+        ${headerCell('wage', 'WAGE', 'tm-wage')}
+        <span class="tm-head tm-sign-col">SIGN</span>
+      </div>
+      <div id="tm-list">${rowHtml}</div>
+      <div id="tm-footer">
+        <button id="tm-continue">
+          <span>Continue</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    `;
+
+    el!.querySelectorAll<HTMLButtonElement>('.tm-head[data-sort]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.sort as SortKey;
+        if (key === sortKey) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+        else { sortKey = key; sortDir = defaultDirFor(key); }
+        render();
+      });
+    });
+    el!.querySelectorAll<HTMLButtonElement>('.tm-sign[data-sign]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const rid = Number(btn.dataset.sign);
+        if (!Number.isFinite(rid)) return;
+        gameEngine.signFreeAgent(rid);
+        render();
+      });
+    });
+    el!.querySelector<HTMLButtonElement>('#tm-continue')!.addEventListener('click', () => activeOnContinue());
+  }
+
+  renderImpl = render;
+}
+
+function defaultDirFor(key: SortKey): SortDir {
+  return key === 'name' || key === 'pos' ? 'asc' : 'desc';
+}
+
+function compare(
+  a: { offer: TransferOffer; p: Player },
+  b: { offer: TransferOffer; p: Player },
+  calendarDate: string,
+): number {
+  switch (sortKey) {
+    case 'name':
+      return `${a.p.lastName} ${a.p.firstName}`.localeCompare(`${b.p.lastName} ${b.p.firstName}`);
+    case 'pos':
+      return a.p.position.localeCompare(b.p.position);
+    case 'age': {
+      const aa = getAge(a.p.dob, calendarDate) ?? 999;
+      const bb = getAge(b.p.dob, calendarDate) ?? 999;
+      return aa - bb;
+    }
+    case 'ovr':
+      return playerOverall(a.p.baseStats, a.p.position) - playerOverall(b.p.baseStats, b.p.position);
+    case 'wage':
+      return a.offer.annualWage - b.offer.annualWage;
+  }
+}

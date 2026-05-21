@@ -85,19 +85,37 @@ async function runOnce(seed: number): Promise<string> {
       // — no user decisions, so the director resolves every offer
       // deterministically against the cap target.
       coord.openRenewalWindow();
-      const market = coord.getState().career.market;
-      if (market) {
-        const offerHashSource = market.offers
+      const renewalMarket = coord.getState().career.market;
+      if (renewalMarket) {
+        const offerHashSource = renewalMarket.offers
           .slice()
           .sort((a, b) => a.id.localeCompare(b.id))
           .map(o => `${o.id}|${o.rosterId}|${o.annualWage}|${o.lengthYears}|${o.status}`);
         marketSummary = {
-          expiringCount: market.expiringRosterIds.length,
-          offerHash: createHash('sha256').update(offerHashSource.join('\n')).digest('hex'),
+          expiringCount: renewalMarket.expiringRosterIds.length,
+          renewalOfferHash: createHash('sha256').update(offerHashSource.join('\n')).digest('hex'),
         };
         coord.closeRenewalWindow();
         const freeAgentsAfter = [...coord.getState().career.freeAgents].sort((a, b) => a - b);
-        marketSummary = { ...marketSummary as object, freeAgentsAfter };
+        marketSummary = { ...marketSummary as object, freeAgentsAfterRenewals: freeAgentsAfter };
+      }
+      // Phase 5: signing window. AI-only — humanClubId still 'bath',
+      // but the harness doesn't sign anyone, so the AI's decideAISignings
+      // resolves every other club's signings deterministically.
+      coord.openSigningWindow();
+      const signingMarket = coord.getState().career.market;
+      if (signingMarket) {
+        const offerHashSource = signingMarket.offers
+          .slice()
+          .sort((a, b) => a.id.localeCompare(b.id))
+          .map(o => `${o.id}|${o.rosterId}|${o.annualWage}|${o.lengthYears}`);
+        marketSummary = {
+          ...marketSummary as object,
+          signingOfferHash: createHash('sha256').update(offerHashSource.join('\n')).digest('hex'),
+        };
+        coord.closeSigningWindow();
+        const freeAgentsLeft = [...coord.getState().career.freeAgents].sort((a, b) => a - b);
+        marketSummary = { ...marketSummary as object, freeAgentsAfterSignings: freeAgentsLeft };
       }
       rolloverEvents = coord.rollSeason();
     }

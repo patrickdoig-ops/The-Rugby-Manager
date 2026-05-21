@@ -135,7 +135,11 @@ function parseMarket(raw: unknown): MarketState | null {
   if (typeof m.openedAfterSeason !== 'string') return null;
   if (!Array.isArray(m.expiringRosterIds)) return null;
   if (!Array.isArray(m.offers)) return null;
+  // v7 saves predate the phase field; default to 'renewals' so a save
+  // mid-window resumes on the correct screen.
+  const phase: 'renewals' | 'signings' = m.phase === 'signings' ? 'signings' : 'renewals';
   return {
+    phase,
     openedAfterSeason: m.openedAfterSeason,
     expiringRosterIds: m.expiringRosterIds.filter((n): n is number => typeof n === 'number'),
     offers: (m.offers as TransferOffer[]).map(o => ({ ...o })),

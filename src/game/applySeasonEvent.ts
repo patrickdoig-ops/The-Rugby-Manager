@@ -103,6 +103,7 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
     }
     case 'MARKET_OPENED': {
       state.career.market = {
+        phase: event.phase,
         openedAfterSeason: state.calendar.seasonLabel,
         expiringRosterIds: [...event.expiringRosterIds],
         offers: event.offers.map(o => ({ ...o })),
@@ -190,6 +191,7 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
       if (event.market !== undefined) {
         state.career.market = event.market
           ? {
+              phase: event.market.phase,
               openedAfterSeason: event.market.openedAfterSeason,
               expiringRosterIds: [...event.market.expiringRosterIds],
               offers: event.market.offers.map(o => ({ ...o })),

@@ -2,7 +2,7 @@
 
 A point-in-time architectural review against the invariants in `CLAUDE.md` and best-practice patterns for sport simulators. The codebase is healthy today; this document is forward-looking, identifying where the structures that hold at one-match-at-a-time will strain under expected growth (season simulation, multi-league, multi-match player careers, save/resume).
 
-Companion documents: `docs/engine.md` (engine internals), `docs/DESIGN.md` (visual design), `CLAUDE.md` (architectural invariants and ways of working). This file does not duplicate them.
+Companion documents: `docs/match-engine.md` (engine internals), `docs/DESIGN.md` (visual design), `CLAUDE.md` (architectural invariants and ways of working). This file does not duplicate them.
 
 ---
 
@@ -180,7 +180,7 @@ Both are stateful side-effects driven by the tick loop. Pull them into modules w
 
 `MatchCoordinator` constructs both, calls `tick()` on each per match-minute. Coordinator drops below 350 lines and is purely orchestration.
 
-**Files:** `src/engine/FatigueAccumulator.ts` (new), `src/engine/Entry22Tracker.ts` (new), `src/engine/MatchCoordinator.ts` (slim down), `docs/engine.md` (Architecture table — per the "module-boundary change is an engine change" rule).
+**Files:** `src/engine/FatigueAccumulator.ts` (new), `src/engine/Entry22Tracker.ts` (new), `src/engine/MatchCoordinator.ts` (slim down), `docs/match-engine.md` (Architecture table — per the "module-boundary change is an engine change" rule).
 **Exit criteria:** R1 hash unchanged. `MatchCoordinator` below 350 lines.
 
 ---
@@ -207,7 +207,7 @@ Identity vs. per-match state:
 
 Saves carry profile IDs only. Cross-match aggregations (player-of-the-season, season fatigue carryover, transfers) become trivial. The mutation boundary moves from `Player` to `MatchPlayer` cleanly — `applyMatchEvent` writes only to `MatchPlayer`.
 
-**Files:** `src/types/player.ts` (split), `src/engine/MatchCoordinator.ts` (`initPlayer` returns `MatchPlayer`), every reader of `player.firstName`/`player.position` (UI side, mostly via `playerName()` utility), `src/engine/applyMatchEvent.ts` (mutate `MatchPlayer`, not `Player`), `docs/engine.md` (Architecture section).
+**Files:** `src/types/player.ts` (split), `src/engine/MatchCoordinator.ts` (`initPlayer` returns `MatchPlayer`), every reader of `player.firstName`/`player.position` (UI side, mostly via `playerName()` utility), `src/engine/applyMatchEvent.ts` (mutate `MatchPlayer`, not `Player`), `docs/match-engine.md` (Architecture section).
 **Exit criteria:** Type-check passes. No `MatchPlayer` is reused across matches. R1 hash unchanged.
 
 #### R6 — Dynamic team loader

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Architectural invariants and ways of working for this repo. Lean by design. Read in full at session start. For engine internals see **`docs/engine.md`**; for visual design see **`docs/DESIGN.md`**.
+Architectural invariants and ways of working for this repo. Lean by design. Read in full at session start. For engine internals see **`docs/match-engine.md`**; for visual design see **`docs/DESIGN.md`**.
 
 ---
 
@@ -53,7 +53,7 @@ The test: every changed line traces directly to the user's request.
 - Use constructor DI for classes whose methods share the same deps (`PenaltyHandler`, `ClockController`). Use module-level functions for pure helpers (`FieldPosition`, `PhaseRouter`).
 - Extract a shared utility the moment a second module needs it, not before.
 - Refactor incrementally. One cohesive split per commit; each commit must build clean and preserve behaviour.
-- A module-boundary change is an engine change — update `docs/engine.md` in the same commit.
+- A module-boundary change is an engine change — update `docs/match-engine.md` in the same commit.
 - **Navigation goes through `screenRouter.show(id)`** (`src/ui/ScreenRouter.ts`). Screen modules never poke `document.getElementById('…').style.display` directly; they accept `onForward`/`onBack` callbacks from `main.ts`. Adding a screen: (1) add the id to the `SCREENS` map in `ScreenRouter.ts`, (2) add a `<div id="…">` to `index.html`, (3) add a flat navigation handler in `main.ts`.
 - **In-season screens (`HubScreen`, `FixtureListScreen`, `LeagueTableScreen`, `RoundResultsScreen`) are initialised once per page lifetime, not per game and not per navigation.** `initInSeasonScreens()` in `main.ts` is gated by an `inSeasonInited` closure flag, so the second call (e.g. New Game → Home → Continue) is a no-op. This is load-bearing: each screen registers `eventBus.on('game:*')` subscriptions at init time without an unsub, so without the gate every back/forward (or game switch) would duplicate handlers and leak. Subsequent visits use bare `screenRouter.show(id)`. Each screen reads through `opts.gameEngine.getState()` on every render, so the underlying engine reference can be swapped (New Game ↔ Continue) without re-initialising the screens. **Hub is the top of the in-season stack** — no back arrow; the Settings cog is the exit route to Home. Fixture-list and league-table back-buttons both return to Hub.
 - **Dual-mode in-season screens (post-match Continue flow).** `RoundResultsScreen` and `LeagueTableScreen` each expose a module-level setter — `showRoundResults(round, onContinue)`, `showLeagueTablePostMatch(onContinue)` — that the navigation handler calls *before* `screenRouter.show(id)`. The setter updates closure state and invokes a stored `renderImpl` so the forward "Continue → next" CTA is visible immediately, replacing the back arrow. The hub-entry path doesn't call the setter and gets the back-arrow render. Mode is cleared on the forward click. New dual-mode screens should follow the same pattern; don't reach for a global store and don't re-init the screen.
@@ -69,7 +69,7 @@ The test: every changed line traces directly to the user's request.
 - Phase handlers in `src/engine/events/` are read-only over state: they read, compute, build a `MatchEvent[]`, and return it on `PhaseResult.events`. `PhaseRouter.resolvePhase()` applies the queue then composes the outgoing `GameEvent`.
 - Orchestrators (`MatchCoordinator`, `ClockController`, `PenaltyHandler`) call `applyMatchEvent` directly for non-phase mutations (clock, half-time, penalty choices, substitutions, tactics, fatigue, commentary log).
 - Use **domain-meaningful** event names (`TRY_SCORED`, `KNOCK_ON`, `CARRY_RESOLVED`, `LINEOUT_RESOLVED`) — not primitive setters. Narrow exception: structural setters (`BALL_REPOSITIONED`, `PHASE_CHANGED`, `BREAKDOWN_MOD_SET`, `POSSESSION_SWAPPED`, `POSSESSION_SET`) where the domain has no single name.
-- **`state.phase` is the sole source of truth for the current phase.** All transitions go through `PHASE_CHANGED` via `applyMatchEvent`; there is no separate state-machine class. The valid-transition table in `docs/engine.md` is documentary, not enforced at runtime.
+- **`state.phase` is the sole source of truth for the current phase.** All transitions go through `PHASE_CHANGED` via `applyMatchEvent`; there is no separate state-machine class. The valid-transition table in `docs/match-engine.md` is documentary, not enforced at runtime.
 - **`PhaseContext` is the minimal closure passed to handlers** — `{ state, attackTeam, defendTeam, randomPlayer, pickPlayer, draftEvent, kickOffStrategy }`. Field-position helpers (`attackDir`, `inOwn22`, `isTryScoredAt`, …) are pure functions in `src/engine/FieldPosition.ts` and take `state` as an argument — handlers import them directly rather than threading them through the context.
 - Adding a new mutation kind: one variant in the `MatchEvent` union (`src/types/matchEvent.ts`), one branch in `applyMatchEvent`. The exhaustive `default: const _: never = event;` catches missing branches at compile time.
 - Adding a new player stat: extend `PlayerMatchStats` + `zeroMatchStats()` (both in `src/types/player.ts`, co-located) + the relevant domain event's apply branch — never push a raw `player.matchStats.X++` into a handler.
@@ -89,7 +89,7 @@ Three isolated mulberry32 streams seeded from `state.engine.seed`:
 - `rngForm()` — form stream; player form modifier at `initPlayer()`.
 - `pickRandom(arr)` / `commentaryChance(pct)` — commentary stream; flavour-text sampling.
 
-Streams are independent — adding a commentary line cannot shift outcome rolls. Pick the matching stream when adding a randomness consumer. Seed is set once in the `MatchCoordinator` constructor via `setMatchSeed(seed)` **before** `initMatchState()` runs. A match with a given seed is fully reproducible. Full breakdown in `docs/engine.md` "Determinism (Seeded RNG)".
+Streams are independent — adding a commentary line cannot shift outcome rolls. Pick the matching stream when adding a randomness consumer. Seed is set once in the `MatchCoordinator` constructor via `setMatchSeed(seed)` **before** `initMatchState()` runs. A match with a given seed is fully reproducible. Full breakdown in `docs/match-engine.md` "Determinism (Seeded RNG)".
 
 ---
 
@@ -97,8 +97,8 @@ Streams are independent — adding a commentary line cannot shift outcome rolls.
 
 | Topic | Source of truth |
 |---|---|
-| Match-engine internals — phases, resolvers, formulas, RNG, tactics effects, commentary, UI event-bus contract | **`docs/engine.md`** |
-| Game-engine internals — `GameCoordinator`, season state, fixtures, headless AI sims, league standings | **`docs/engine.md`** § "Season-scope mutation seam" |
+| Match-engine internals — phases, resolvers, formulas, RNG, tactics effects, commentary, UI event-bus contract | **`docs/match-engine.md`** |
+| Game-engine internals — `GameCoordinator`, season state, fixtures, headless AI sims, league standings | **`docs/match-engine.md`** § "Season-scope mutation seam" |
 | 2025/26 Premiership fixture list — authoritative schedule, breaks, broadcast notes | **`docs/prem-fixtures-2025-26.md`** ↔ `src/data/fixtures-2025-26.ts` |
 | Visual design — colours, fonts, spacing, components, live-match shell HTML, screen notes | **`docs/DESIGN.md`** |
 | Architectural invariants & ways of working | this file |
@@ -129,7 +129,7 @@ No tests or linters. TypeScript strict mode is the primary correctness check. Bo
 
 ## Architecture
 
-**Engine ↔ UI contract.** The engine never imports from UI; UI never calls engine methods directly **except** `SimController` (Play/Pause/Speed). All communication goes through the typed pub/sub singleton at `src/utils/eventBus.ts`. Within a single tick, `engine:event` is emitted **before** `engine:stateChange` — UI state caches from the prior tick are always valid by the time an event arrives. Engine event table and subscribers: `docs/engine.md` § "UI Event Bus Contract". UI subscriptions registered at startup are permanent; one-shots are explicitly unsub'd (e.g. `CommentaryFeed`'s team-colour cache).
+**Engine ↔ UI contract.** The engine never imports from UI; UI never calls engine methods directly **except** `SimController` (Play/Pause/Speed). All communication goes through the typed pub/sub singleton at `src/utils/eventBus.ts`. Within a single tick, `engine:event` is emitted **before** `engine:stateChange` — UI state caches from the prior tick are always valid by the time an event arrives. Engine event table and subscribers: `docs/match-engine.md` § "UI Event Bus Contract". UI subscriptions registered at startup are permanent; one-shots are explicitly unsub'd (e.g. `CommentaryFeed`'s team-colour cache).
 
 **Game engine ↔ UI contract.** Analogous, season-scope. `GameCoordinator` (`src/game/`) emits three `game:*` events on the same bus: `game:initialized` (after `newSeason` / `fromSave`), `game:fixtureRecorded` (once per result — the player's match plus every headless AI fixture of that round), and `game:weekAdvanced` (after the round completes and the calendar steps forward). Hub, FixtureList, LeagueTable, and RoundResults subscribe to these and re-render reactively. Headless AI fixtures inside `recordPlayerMatchResult` run silent `MatchCoordinator` instances, so they emit no `engine:*` UI noise — but they still emit `game:fixtureRecorded` so the league table updates live.
 
@@ -145,7 +145,7 @@ No tests or linters. TypeScript strict mode is the primary correctness check. Bo
 
 **Attack direction.** Home attacks toward x=100 in the first half, toward x=0 in the second. Teams swap ends only at half-time, never on turnovers. All `ball.x` reasoning must go through the pure helpers in `src/engine/FieldPosition.ts` — they factor in `state.clock.halfTimeDone`. Snapshot DTOs (`GameEvent`, `PenaltyContext`, `MatchEvent` payloads) keep flat `ballX`/`ballY` scalars; see Section 3.
 
-**Tactics.** Five dimensions in `TeamTactics` (`src/types/team.ts`). The managed team can change all five mid-match via the tactics modal. The AI side opens each match on its team's authored `suggestedTactics` (from `src/data/team-*.json`, surfaced on `RawTeamInput.suggestedTactics`) — *not* `DEFAULT_TACTICS`, which is now only the fallback when no authored value exists. Mid-match the AI is adapted by `AITacticalDirector` (see Section 4): inside the final 15 minutes a score gap of ≥ 8 flips it into `AI_INTENT_CHASING` (trailing) or `AI_INTENT_PROTECTING` (leading); otherwise it sits on the baseline. The director never proposes tactics for the human side. Kick-off strategy is per-kick (not a standing tactic) — managed team picks via modal, AI defaults to `high_ball`. Effects, probability tables, and tactic-note triggers: `docs/engine.md` "Tactics: who picks what" + "Carry Phases" + "Tactical Commentary".
+**Tactics.** Five dimensions in `TeamTactics` (`src/types/team.ts`). The managed team can change all five mid-match via the tactics modal. The AI side opens each match on its team's authored `suggestedTactics` (from `src/data/team-*.json`, surfaced on `RawTeamInput.suggestedTactics`) — *not* `DEFAULT_TACTICS`, which is now only the fallback when no authored value exists. Mid-match the AI is adapted by `AITacticalDirector` (see Section 4): inside the final 15 minutes a score gap of ≥ 8 flips it into `AI_INTENT_CHASING` (trailing) or `AI_INTENT_PROTECTING` (leading); otherwise it sits on the baseline. The director never proposes tactics for the human side. Kick-off strategy is per-kick (not a standing tactic) — managed team picks via modal, AI defaults to `high_ball`. Effects, probability tables, and tactic-note triggers: `docs/match-engine.md` "Tactics: who picks what" + "Carry Phases" + "Tactical Commentary".
 
 **Design system.** `docs/DESIGN.md` is the single source of truth for every colour, font, spacing, and component pattern. CSS custom properties in `style/main.css` `:root` — no hardcoded hex except primary CTA green (`#007a2a` / `#009434` active / `#006622` pressed) and team identity colours injected inline from team JSON.
 

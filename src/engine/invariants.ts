@@ -28,6 +28,14 @@ function assertPlayer(p: Player, location: string): void {
       fail('player.currentStats', `${location} squad#${p.squadNumber} ${key}=${v}`);
     }
   }
+  // Card counters: a player can theoretically receive at most one yellow + one
+  // red per match (two yellows = red anyway). 3 is a paranoia ceiling.
+  if (!(p.matchStats.yellowCards >= 0 && p.matchStats.yellowCards <= 3)) {
+    fail('player.yellowCards', `${location} squad#${p.squadNumber} yellowCards=${p.matchStats.yellowCards}`);
+  }
+  if (!(p.matchStats.redCards >= 0 && p.matchStats.redCards <= 3)) {
+    fail('player.redCards', `${location} squad#${p.squadNumber} redCards=${p.matchStats.redCards}`);
+  }
 }
 
 export function assertInvariants(state: MatchState): void {

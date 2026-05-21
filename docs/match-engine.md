@@ -752,19 +752,21 @@ All eight forwards contribute to the pack score. The hooker is used for commenta
 ### Resolution
 
 ```
-packScore      = avg(setPiece×0.6 + strength×0.4) across all 8 forwards
-packDiscipline = avg(discipline) across all 8 forwards
-finalScore     = packScore + (packDiscipline − 50)×0.15 + rng(1,20)
+packScore      = sum(setPiece×0.6 + strength×0.4) across the on-field forwards
+packDiscipline = avg(discipline) across the on-field forwards
+finalScore     = packScore + (packDiscipline − 50)×1.2 + rng(1,60)
 ```
+
+`packScore` is a **sum**, not an average — so a pack a man down (forward in the sin-bin or sent off) loses ~12% of its score and is materially weaker at the scrum. `onFieldPlayers(team, state, side)` filters out sin-binned / sent-off forwards before the pack is assembled. `packDiscipline` stays as an average (per-player attribute, not a pack aggregate). The `rng(1,60)` per side scales the random variance to match the new sum-based score range so matched packs see a healthy spread of outcomes instead of clustering near zero and grinding into wheel resets.
 
 The defending pack's final score is subtracted from the attacking pack's final score to determine the margin:
 
 | Margin | Result |
 |---|---|
-| > 15 | `attacking_dominant_penalty` → Penalty (attacking team keeps possession) |
+| > 40 | `attacking_dominant_penalty` → Penalty (attacking team keeps possession) |
 | > 0 | `stable_win` → FirstPhase |
-| −8 to 0 | `wheel` → Scrum |
-| ≤ −8 | `defending_dominant_penalty` → Penalty (possession flips to defending team) |
+| −20 to 0 | `wheel` → Scrum |
+| ≤ −20 | `defending_dominant_penalty` → Penalty (possession flips to defending team) |
 
 ### Ball movement
 

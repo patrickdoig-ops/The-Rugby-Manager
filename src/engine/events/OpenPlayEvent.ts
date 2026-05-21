@@ -5,11 +5,13 @@ import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
-import { attackDir, isTryScoredAt, inOwnHalf, inOwn22 } from '../FieldPosition';
+import { attackDir, isTryScoredAt, inOwnHalf, inOwn22, onFieldPlayers, availableBacks } from '../FieldPosition';
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
-import { HOME_ADVANTAGE, KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, knockOnThreshold } from '../balance';
+import { HOME_ADVANTAGE, KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnThreshold } from '../balance';
+
+const FULL_BACKLINE = 7;  // jersey ids 9–15
 
 export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, pickPlayer }: PhaseContext): PhaseResult {
   // Step 0 — Kick or carry decision
@@ -32,11 +34,13 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   }
 
   // Step 1 — Carrier handling gate (inline)
-  const carrier   = randomPlayer(attackTeam);
-  const defender  = randomPlayer(defendTeam);
-  const scrumHalf = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
   const attackSide = state.possession;
   const defSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
+  const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
+  const defendOnField = onFieldPlayers(defendTeam, state, defSide);
+  const carrier   = attackOnField.length > 0 ? attackOnField[rng(0, attackOnField.length - 1)] : randomPlayer(attackTeam);
+  const defender  = defendOnField.length > 0 ? defendOnField[rng(0, defendOnField.length - 1)] : randomPlayer(defendTeam);
+  const scrumHalf = attackOnField.find(p => p.id === 9) ?? attackOnField[0] ?? attackTeam.players[0];
 
   const events: MatchEvent[] = [];
   if (scrumHalf !== carrier) events.push({ type: 'PASS_COMPLETED', passer: scrumHalf });
@@ -45,6 +49,10 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   events.push({ type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 });
 
   const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[defendTeam.tactics.backfieldDefence];
+  // Short-handed backline: missing backs make wide defence thinner → more
+  // line breaks. Mirrors the backfieldLineBreakPenalty shape; both feed defendMod.
+  const missingBacks = FULL_BACKLINE - availableBacks(defendTeam, state, defSide).length;
+  const shortHandedMod = missingBacks * SHORT_HANDED.missingBackDefendPenalty;
 
   if (carrier.currentStats.handling + rng(1, 100) < knockOnThreshold(carrier.currentStats.handling, state.clock.clockInTheRed)) {
     events.push({ type: 'KNOCK_ON', player: carrier, attackSide });
@@ -67,7 +75,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   let wideIntroSteps: NarrationStep[] = [];
 
   if (goWide) {
-    const flyHalf = pickPlayer(attackTeam, 10);
+    const flyHalf = attackOnField.find(p => p.id === 10) ?? pickPlayer(attackTeam, 10);
 
     if (carrier.id !== 10) {
       wideIntroSteps = [{ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'out_the_back', primary: carrier, secondary: flyHalf }];
@@ -86,8 +94,8 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
     }
 
     // Outside back handling gate (outside centre, both wings, fullback)
-    const obPool = attackTeam.players.filter(p => [11, 13, 14, 15].includes(p.id));
-    const outsideBack = obPool.length > 0 ? obPool[rng(0, obPool.length - 1)] : randomPlayer(attackTeam);
+    const obPool = attackOnField.filter(p => [11, 13, 14, 15].includes(p.id));
+    const outsideBack = obPool.length > 0 ? obPool[rng(0, obPool.length - 1)] : (attackOnField[rng(0, Math.max(0, attackOnField.length - 1))] ?? randomPlayer(attackTeam));
     if (carrier.id === 10) {
       wideIntroSteps = [{ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'out_the_back', primary: flyHalf, secondary: outsideBack }];
     }
@@ -108,7 +116,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
 
   // Step 3 — Evasion → Step 4 Collision (handling gate already cleared)
   const ha = homeEdge(state, HOME_ADVANTAGE.carryMod);
-  const res = resolveOpenPlay(ballCarrier, defender, attackMod + ha.attack, defendMod + backfieldPenalty + ha.defend);
+  const res = resolveOpenPlay(ballCarrier, defender, attackMod + ha.attack, defendMod + backfieldPenalty + shortHandedMod + ha.defend);
   const direction = attackDir(state);
 
   events.push({

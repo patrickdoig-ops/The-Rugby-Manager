@@ -2,18 +2,23 @@ import type { PhaseContext, PhaseResult } from './types';
 import type { MatchEvent } from '../../types/matchEvent';
 import { MatchPhase } from '../../types/engine';
 import { resolveScrum } from '../resolvers/ScrumResolver';
+import { availableForwards, onFieldPlayers } from '../FieldPosition';
 
 export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): PhaseResult {
-  const attackForwards = attackTeam.players.filter(p => p.id <= 8);
-  const defendForwards = defendTeam.players.filter(p => p.id <= 8);
-  const attackFrontRow = attackTeam.players.filter(p => p.id <= 3);
-  const defendFrontRow = defendTeam.players.filter(p => p.id <= 3);
-  const attackHooker   = attackTeam.players.find(p => p.id === 2)!;
-  const defendHooker   = defendTeam.players.find(p => p.id === 2)!;
-  const res = resolveScrum(attackForwards, defendForwards);
-
   const attackSide = state.possession;
   const flipSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
+
+  const attackForwards = availableForwards(attackTeam, state, attackSide);
+  const defendForwards = availableForwards(defendTeam, state, flipSide);
+  const attackFrontRow = attackForwards.filter(p => p.id <= 3);
+  const defendFrontRow = defendForwards.filter(p => p.id <= 3);
+  // Hooker (#2) — fallback to first available forward, then any on-field player,
+  // covering the (extreme) case of all hookers off.
+  const attackOnField  = onFieldPlayers(attackTeam, state, attackSide);
+  const defendOnField  = onFieldPlayers(defendTeam, state, flipSide);
+  const attackHooker   = attackForwards.find(p => p.id === 2) ?? attackForwards[0] ?? attackOnField[0]!;
+  const defendHooker   = defendForwards.find(p => p.id === 2) ?? defendForwards[0] ?? defendOnField[0]!;
+  const res = resolveScrum(attackForwards, defendForwards);
 
   const events: MatchEvent[] = [
     { type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 },

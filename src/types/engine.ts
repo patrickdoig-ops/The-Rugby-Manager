@@ -9,6 +9,7 @@ export enum MatchPhase {
   TacticalKick   = 'TACTICAL_KICK',
   BoxKick        = 'BOX_KICK',
   Penalty        = 'PENALTY',
+  TmoReview      = 'TMO_REVIEW',
   ConversionKick = 'CONVERSION_KICK',
   TryScored      = 'TRY_SCORED',
   HalfTime       = 'HALF_TIME',
@@ -33,6 +34,12 @@ export type PenaltyChoice   = 'kick_for_goal' | 'kick_to_touch' | 'tap_and_go' |
 // whistle blew. Grows as new offence types are added (e.g. 'high_tackle',
 // 'offside', 'not_rolling_away').
 export type PenaltyOffence = 'breakdown_infringement' | 'scrum_infringement' | 'high_tackle';
+
+// Card severity. Yellow = 10-min sin-bin, returns. red_20 = 20-min sin-bin,
+// no return but team may sub from bench. red_full = permanent sent off
+// (very rare; no trigger today). Future card-issuing offences extend
+// PenaltyOffence rather than this union.
+export type CardKind = 'yellow' | 'red_20' | 'red_full';
 
 export interface PenaltyContext {
   phase: MatchPhase;

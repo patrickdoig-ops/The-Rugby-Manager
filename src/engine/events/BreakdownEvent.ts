@@ -7,7 +7,7 @@ import { resolveBreakdown } from '../resolvers/BreakdownResolver';
 import { rng } from '../../utils/rng';
 import { HOME_ADVANTAGE, TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
 import { homeEdge } from '../HomeAdvantage';
-import { inOpposition22, inOwn22, inOwnHalf } from '../FieldPosition';
+import { inOpposition22, inOwn22, inOwnHalf, availableForwards, onFieldPlayers } from '../FieldPosition';
 
 export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext): PhaseResult {
   const attPlan = attackTeam.tactics.attackingBreakdown;
@@ -21,8 +21,16 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   const nextAttackMod = TACTIC_MODIFIERS.breakdownAttack[attPlan];
   const nextDefendMod = TACTIC_MODIFIERS.breakdownDefend[defPlan];
 
-  const forwardPool = attackTeam.players.filter(p => p.id <= 8 && p.id !== carrierId);
-  if (forwardPool.length === 0) forwardPool.push(attackTeam.players[0]);
+  const attackSide = state.possession;
+  const defSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
+
+  const attackFwds = availableForwards(attackTeam, state, attackSide);
+  const defendFwds = availableForwards(defendTeam, state, defSide);
+  const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
+  const defendOnField = onFieldPlayers(defendTeam, state, defSide);
+
+  const forwardPool = attackFwds.filter(p => p.id !== carrierId);
+  if (forwardPool.length === 0) forwardPool.push(attackOnField[0] ?? attackTeam.players[0]);
   const pool = [...forwardPool];
 
   const count = TACTIC_MODIFIERS.breakdownSupporterCount[attPlan];
@@ -31,11 +39,11 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
     supporters.push(...pool.splice(rng(0, pool.length - 1), 1));
   }
 
-  const backRow = defendTeam.players.filter(p => p.id >= 6 && p.id <= 8);
-  const jackal  = backRow.length > 0 ? backRow[rng(0, backRow.length - 1)] : defendTeam.players[0];
+  const backRow = defendFwds.filter(p => p.id >= 6 && p.id <= 8);
+  const jackal  = backRow.length > 0 ? backRow[rng(0, backRow.length - 1)] : (defendOnField[0] ?? defendTeam.players[0]);
   const primary = supporters[0];
 
-  const defendPack = defendTeam.players.filter(p => p.id <= 8);
+  const defendPack = defendFwds;
   const ha = homeEdge(state, HOME_ADVANTAGE.breakdownMod);
   const res = resolveBreakdown(supporters, jackal, defPlan, defendPack, attackBonus + ha.attack, ha.defend);
 
@@ -121,7 +129,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
     type: 'PENALTY_AWARDED',
     offence: 'breakdown_infringement',
     offender: primary,
-    offendingSide: state.possession,
+    offendingSide: attackSide,
   });
   const penaltySteps: NarrationStep[] = [
     { kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'penalty_defending', primary, secondary: jackal },

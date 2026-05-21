@@ -5,11 +5,13 @@ import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
-import { attackDir, isTryScoredAt, inOwnHalf, inOwn22 } from '../FieldPosition';
+import { attackDir, isTryScoredAt, inOwnHalf, inOwn22, onFieldPlayers, availableBacks } from '../FieldPosition';
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
-import { HOME_ADVANTAGE, KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, knockOnThreshold } from '../balance';
+import { HOME_ADVANTAGE, KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnThreshold } from '../balance';
+
+const FULL_BACKLINE = 7;
 
 export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, pickPlayer }: PhaseContext): PhaseResult {
   // Step 0 — Kick or carry decision
@@ -31,10 +33,12 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   }
 
   // Step 1 — Carrier is always #10 (fly-half); handling gate
-  const carrier   = pickPlayer(attackTeam, 10);
-  const scrumHalf = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
   const attackSide = state.possession;
   const defSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
+  const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
+  const defendOnField = onFieldPlayers(defendTeam, state, defSide);
+  const carrier   = attackOnField.find(p => p.id === 10) ?? pickPlayer(attackTeam, 10);
+  const scrumHalf = attackOnField.find(p => p.id === 9) ?? attackOnField[0] ?? attackTeam.players[0];
 
   const events: MatchEvent[] = [
     { type: 'PASS_COMPLETED', passer: scrumHalf },
@@ -44,10 +48,12 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   events.push({ type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 });
 
   const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[defendTeam.tactics.backfieldDefence];
+  const missingBacks = FULL_BACKLINE - availableBacks(defendTeam, state, defSide).length;
+  const shortHandedMod = missingBacks * SHORT_HANDED.missingBackDefendPenalty;
 
   if (carrier.currentStats.handling + rng(1, 100) < knockOnThreshold(carrier.currentStats.handling, state.clock.clockInTheRed)) {
     events.push({ type: 'KNOCK_ON', player: carrier, attackSide });
-    const defender = randomPlayer(defendTeam);
+    const defender = defendOnField.length > 0 ? defendOnField[rng(0, defendOnField.length - 1)] : randomPlayer(defendTeam);
     return {
       nextPhase: MatchPhase.Scrum,
       narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'knock_on', primary: carrier, secondary: defender }] },
@@ -69,7 +75,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
   if (goCrashBall) {
     // Crash Ball: #10 → #12 (inside centre)
-    const insideCentre = pickPlayer(attackTeam, 12);
+    const insideCentre = attackOnField.find(p => p.id === 12) ?? pickPlayer(attackTeam, 12);
     playIntroSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'crash_ball', primary: carrier, secondary: insideCentre });
 
     if (insideCentre.currentStats.handling + rng(1, 100) < knockOnThreshold(insideCentre.currentStats.handling, state.clock.clockInTheRed)) {
@@ -85,10 +91,10 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
     events.push({ type: 'PASS_COMPLETED', passer: carrier });
     ballCarrier = insideCentre;
-    defender = pickPlayer(defendTeam, 12);
+    defender = defendOnField.find(p => p.id === 12) ?? pickPlayer(defendTeam, 12);
   } else {
     // Wide Play: #10 → #13 → random of #11/#14
-    const outsideCentre = pickPlayer(attackTeam, 13);
+    const outsideCentre = attackOnField.find(p => p.id === 13) ?? pickPlayer(attackTeam, 13);
     playIntroSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'out_the_back', primary: carrier, secondary: outsideCentre });
 
     if (outsideCentre.currentStats.handling + rng(1, 100) < knockOnThreshold(outsideCentre.currentStats.handling, state.clock.clockInTheRed)) {
@@ -104,8 +110,8 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
     events.push({ type: 'PASS_COMPLETED', passer: carrier });
 
-    const wingPool = attackTeam.players.filter(p => p.id === 11 || p.id === 14);
-    const wing = wingPool.length > 0 ? wingPool[rng(0, wingPool.length - 1)] : randomPlayer(attackTeam);
+    const wingPool = attackOnField.filter(p => p.id === 11 || p.id === 14);
+    const wing = wingPool.length > 0 ? wingPool[rng(0, wingPool.length - 1)] : (attackOnField[rng(0, Math.max(0, attackOnField.length - 1))] ?? randomPlayer(attackTeam));
     playIntroSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'out_the_back', primary: outsideCentre, secondary: wing });
 
     if (wing.currentStats.handling + rng(1, 100) < knockOnThreshold(wing.currentStats.handling, state.clock.clockInTheRed)) {
@@ -121,13 +127,13 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
     events.push({ type: 'PASS_COMPLETED', passer: outsideCentre });
     ballCarrier = wing;
-    const defWingPool = defendTeam.players.filter(p => p.id === 11 || p.id === 14);
-    defender = defWingPool.length > 0 ? defWingPool[rng(0, defWingPool.length - 1)] : randomPlayer(defendTeam);
+    const defWingPool = defendOnField.filter(p => p.id === 11 || p.id === 14);
+    defender = defWingPool.length > 0 ? defWingPool[rng(0, defWingPool.length - 1)] : (defendOnField[rng(0, Math.max(0, defendOnField.length - 1))] ?? randomPlayer(defendTeam));
   }
 
   // Step 3 — Evasion → Step 4 Collision
   const ha = homeEdge(state, HOME_ADVANTAGE.carryMod);
-  const res = resolveOpenPlay(ballCarrier, defender, attackMod + ha.attack, defendMod + backfieldPenalty + ha.defend);
+  const res = resolveOpenPlay(ballCarrier, defender, attackMod + ha.attack, defendMod + backfieldPenalty + shortHandedMod + ha.defend);
   const direction = attackDir(state);
 
   events.push({

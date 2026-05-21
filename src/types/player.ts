@@ -44,6 +44,8 @@ export interface PlayerMatchStats {
   scrumPenaltiesConceded: number;
   kickMetres:             number;
   rucksHit:               number;
+  yellowCards:            number;
+  redCards:               number;
 }
 
 export interface Player {
@@ -75,5 +77,6 @@ export function zeroMatchStats(): PlayerMatchStats {
     lineoutThrows: 0, lineoutWins: 0, lineoutCatches: 0, lineoutSteals: 0,
     scrumPenaltiesWon: 0, scrumPenaltiesConceded: 0,
     kickMetres: 0, rucksHit: 0,
+    yellowCards: 0, redCards: 0,
   };
 }

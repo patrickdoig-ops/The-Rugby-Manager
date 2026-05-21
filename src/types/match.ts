@@ -1,7 +1,41 @@
-import type { MatchPhase, PossessionSide, PenaltyOffence } from './engine';
+import type { MatchPhase, PossessionSide, PenaltyOffence, CardKind } from './engine';
 import type { Team } from './team';
 import type { Player } from './player';
 import type { NarrationDescriptor } from './narration';
+
+export interface SinBinEntry {
+  player: Player;
+  kind: 'yellow' | 'red_20';
+  returnMinute: number;
+}
+
+export interface CardsState {
+  sinBin:        { home: SinBinEntry[]; away: SinBinEntry[] };
+  sentOff:       { home: Player[];      away: Player[] };
+  teamPenalty22: { home: number;        away: number };
+  teamWarned22:  { home: boolean;       away: boolean };
+}
+
+export interface TmoReviewState {
+  step: 1 | 2 | 3;
+  outcome: 'no_card' | 'yellow' | 'red_20';
+  offender: Player;
+  offendingSide: PossessionSide;
+}
+
+// Set by the PENALTY_AWARDED reducer; read by PenaltyHandler and CardHandler.
+// `preFlipPossession` is the side that had the ball before this PENALTY_AWARDED
+// flipped possession — used by CardHandler to compute wasDefending.
+export interface LastPenaltyState {
+  offence: PenaltyOffence;
+  offender: Player;
+  offendingSide: PossessionSide;
+  preFlipPossession: PossessionSide;
+  gameMinute: number;
+}
+
+// Re-export for downstream consumers that import card types from match.ts.
+export type { CardKind };
 
 export interface Score {
   home: number;
@@ -69,10 +103,12 @@ export interface MatchState {
   // Set by the PENALTY_AWARDED reducer; read by PenaltyHandler to enrich the
   // PenaltyContext that crosses the bus boundary to the modal. Overwritten on
   // every new penalty award; never cleared.
-  lastPenalty?: {
-    offence: PenaltyOffence;
-    offender: Player;
-    offendingSide: PossessionSide;
-    gameMinute: number;
-  };
+  lastPenalty?: LastPenaltyState;
+  // Card state — sin-bin entries, sent-off players, team-22 counters. See
+  // CardsState above. Initialised empty in MatchCoordinator.initMatchState.
+  cards: CardsState;
+  // In-progress TMO review (3-tick narrative + pre-rolled outcome). Cleared
+  // by TMO_REVIEW_RESOLVED on the 3rd tick. Optional because it's only set
+  // mid-review.
+  tmoReview?: TmoReviewState;
 }

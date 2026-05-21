@@ -1,7 +1,7 @@
 import type { Player, PlayerStats } from './player';
 import type { GameEvent } from './match';
 import type { TeamTactics } from './team';
-import { type MatchPhase, type PossessionSide, type PenaltyOffence } from './engine';
+import { type MatchPhase, type PossessionSide, type PenaltyOffence, type CardKind } from './engine';
 
 // Domain-level events that describe everything the engine can do to MatchState.
 // `applyMatchEvent(state, event)` (src/engine/applyMatchEvent.ts) is the only
@@ -32,8 +32,32 @@ export type MatchEvent =
   // The single seam for "a penalty has been awarded". Emitted by every resolver
   // that detects an infringement; its reducer flips possession to the
   // non-offending side, bumps `offender.matchStats.penaltiesConceded++`, resets
-  // `breakdownMod`, and snapshots the cause onto `state.lastPenalty`.
+  // `breakdownMod`, and snapshots the cause + pre-flip possession onto
+  // `state.lastPenalty`. CardHandler reads lastPenalty to evaluate TMO + team-22.
   | { type: 'PENALTY_AWARDED'; offence: PenaltyOffence; offender: Player; offendingSide: PossessionSide }
+
+  // ── Discipline / cards ───────────────────────────────────────────────────
+  // Issued by CardHandler after TMO outcome or team-22 4th-penalty trigger.
+  // Reducer bumps yellowCards/redCards on the offender and adds the player to
+  // sinBin (yellow/red_20) or sentOff (red_full). returnMinute = clock.gameMinute
+  // + SIN_BIN_DURATION[kind] for sin-bin kinds; ignored for red_full.
+  | { type: 'CARD_ISSUED'; player: Player; side: PossessionSide; kind: CardKind }
+  // Yellow / red_20 timer expired. SIN_BIN_RETURNED removes the entry and the
+  // player is back on the field. RED_20_EXPIRED moves the player to sentOff
+  // (permanently off; coordinator follows with sub modal).
+  | { type: 'SIN_BIN_RETURNED'; player: Player; side: PossessionSide }
+  | { type: 'RED_20_EXPIRED'; player: Player; side: PossessionSide }
+  // Team-22 counter machinery. CardHandler emits TEAM_PENALTY_22_RECORDED when
+  // the just-awarded penalty was conceded by the defending side in their own 22.
+  // TEAM_22_WARNING_ISSUED fires once when the 3rd in-22 penalty is reached.
+  | { type: 'TEAM_PENALTY_22_RECORDED'; side: PossessionSide }
+  | { type: 'TEAM_22_WARNING_ISSUED'; side: PossessionSide }
+  // TMO review lifecycle. STARTED sets state.tmoReview with the pre-rolled
+  // outcome; TICK_ADVANCED bumps the step (1→2, 2→3); RESOLVED clears it on the
+  // 3rd tick (after CARD_ISSUED for non-no_card outcomes).
+  | { type: 'TMO_REVIEW_STARTED'; offender: Player; offendingSide: PossessionSide; outcome: 'no_card' | 'yellow' | 'red_20' }
+  | { type: 'TMO_REVIEW_TICK_ADVANCED' }
+  | { type: 'TMO_REVIEW_RESOLVED' }
 
   // ── Passing / breakdown bookkeeping ──────────────────────────────────────
   | { type: 'PASS_COMPLETED'; passer: Player }

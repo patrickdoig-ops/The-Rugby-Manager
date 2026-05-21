@@ -4,7 +4,7 @@ import { clamp } from '../utils/math';
 import { attackDir } from './FieldPosition';
 import { computeRating } from './RatingEngine';
 import { assertInvariants } from './invariants';
-import { CLOCK_VALUES, SCORE_VALUES, COMMENTARY_BUFFER_CAP } from './balance';
+import { CLOCK_VALUES, SCORE_VALUES, COMMENTARY_BUFFER_CAP, SIN_BIN_DURATION } from './balance';
 
 // The single function permitted to mutate MatchState (or any Player field).
 // Every handler / orchestrator builds an array of MatchEvent and routes them
@@ -107,7 +107,8 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       state.breakdownMod = { attack: 0, defend: 0 };
       return;
 
-    case 'PENALTY_AWARDED':
+    case 'PENALTY_AWARDED': {
+      const preFlipPossession = state.possession;
       event.offender.matchStats.penaltiesConceded++;
       state.possession = event.offendingSide === 'home' ? 'away' : 'home';
       state.breakdownMod = { attack: 0, defend: 0 };
@@ -115,8 +116,68 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
         offence: event.offence,
         offender: event.offender,
         offendingSide: event.offendingSide,
+        preFlipPossession,
         gameMinute: state.clock.gameMinute,
       };
+      return;
+    }
+
+    // ── Discipline / cards ──────────────────────────────────────────────
+    case 'CARD_ISSUED': {
+      if (event.kind === 'yellow') event.player.matchStats.yellowCards++;
+      else                          event.player.matchStats.redCards++;
+      if (event.kind === 'red_full') {
+        state.cards.sentOff[event.side].push(event.player);
+      } else {
+        state.cards.sinBin[event.side].push({
+          player: event.player,
+          kind: event.kind,
+          returnMinute: state.clock.gameMinute + SIN_BIN_DURATION[event.kind],
+        });
+      }
+      return;
+    }
+
+    case 'SIN_BIN_RETURNED': {
+      const bin = state.cards.sinBin[event.side];
+      const idx = bin.findIndex(e => e.player.id === event.player.id);
+      if (idx >= 0) bin.splice(idx, 1);
+      return;
+    }
+
+    case 'RED_20_EXPIRED': {
+      const bin = state.cards.sinBin[event.side];
+      const idx = bin.findIndex(e => e.player.id === event.player.id);
+      if (idx >= 0) bin.splice(idx, 1);
+      state.cards.sentOff[event.side].push(event.player);
+      return;
+    }
+
+    case 'TEAM_PENALTY_22_RECORDED':
+      state.cards.teamPenalty22[event.side]++;
+      return;
+
+    case 'TEAM_22_WARNING_ISSUED':
+      state.cards.teamWarned22[event.side] = true;
+      return;
+
+    case 'TMO_REVIEW_STARTED':
+      state.tmoReview = {
+        step: 1,
+        outcome: event.outcome,
+        offender: event.offender,
+        offendingSide: event.offendingSide,
+      };
+      return;
+
+    case 'TMO_REVIEW_TICK_ADVANCED':
+      if (!state.tmoReview) throw new Error('TMO_REVIEW_TICK_ADVANCED with no review in progress');
+      if (state.tmoReview.step >= 3) throw new Error('TMO_REVIEW_TICK_ADVANCED past step 3');
+      state.tmoReview.step = (state.tmoReview.step + 1) as 1 | 2 | 3;
+      return;
+
+    case 'TMO_REVIEW_RESOLVED':
+      state.tmoReview = undefined;
       return;
 
     // ── Passing / breakdown bookkeeping ─────────────────────────────────
@@ -292,6 +353,12 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       team.players[fieldIdx] = on;
       team.bench.splice(benchIdx, 1);
       team.substitutedOff.push(off);
+      // A forced sub after a red_20 backfills the sent-off player's slot —
+      // remove them from cards.sentOff so the availability filter no longer
+      // counts them against the team's strength.
+      const sentOff = state.cards.sentOff[event.teamSide];
+      const sentIdx = sentOff.findIndex(p => p.id === off.id);
+      if (sentIdx >= 0) sentOff.splice(sentIdx, 1);
       return;
     }
 

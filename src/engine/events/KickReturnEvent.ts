@@ -5,11 +5,13 @@ import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
-import { attackDir, isTryScoredAt, inOwnHalf, inOwn22 } from '../FieldPosition';
+import { attackDir, isTryScoredAt, inOwnHalf, inOwn22, onFieldPlayers, availableBacks } from '../FieldPosition';
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
-import { HOME_ADVANTAGE, KICK_PROBABILITIES, KICK_RETURN_VALUES, TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
+import { HOME_ADVANTAGE, KICK_PROBABILITIES, KICK_RETURN_VALUES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED } from '../balance';
+
+const FULL_BACKLINE = 7;
 
 export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }: PhaseContext): PhaseResult {
   // Step 0 — Kick or carry decision
@@ -17,8 +19,13 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
   const probs = KICK_PROBABILITIES[plan];
   const kickProb = inOwn22(state) ? probs.own22 : (inOwnHalf(state) ? probs.ownHalf : probs.opposition);
 
+  const attackSide = state.possession;
+  const defSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
+  const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
+  const defendOnField = onFieldPlayers(defendTeam, state, defSide);
+
   if (rng(1, 100) <= kickProb) {
-    const flyHalf = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
+    const flyHalf = attackOnField.find(p => p.id === 10) ?? attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
     return {
       nextPhase: MatchPhase.TacticalKick,
       narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'kick_decision' }] },
@@ -31,10 +38,8 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
   }
 
   // Step 1 — Carrier is whoever caught the kick; no handling gate
-  const carrier = state.kickReturnCarrier ?? randomPlayer(attackTeam);
-  const defender = randomPlayer(defendTeam);
-  const attackSide = state.possession;
-  const defSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
+  const carrier = state.kickReturnCarrier ?? (attackOnField.length > 0 ? attackOnField[rng(0, attackOnField.length - 1)] : randomPlayer(attackTeam));
+  const defender = defendOnField.length > 0 ? defendOnField[rng(0, defendOnField.length - 1)] : randomPlayer(defendTeam);
 
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;
   const events: MatchEvent[] = [
@@ -43,6 +48,8 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
   ];
 
   const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[defendTeam.tactics.backfieldDefence];
+  const missingBacks = FULL_BACKLINE - availableBacks(defendTeam, state, defSide).length;
+  const shortHandedMod = missingBacks * SHORT_HANDED.missingBackDefendPenalty;
 
   // Step 2 — Run: carrier pace/agility vs chaser pace/tackling
   const runAttack = (carrier.currentStats.pace + carrier.currentStats.agility) / 2 + rng(1, 20);
@@ -52,7 +59,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
 
   // Step 3 — Evasion → Step 4 Collision
   const ha = homeEdge(state, HOME_ADVANTAGE.carryMod);
-  const res = resolveOpenPlay(carrier, defender, attackMod + ha.attack, defendMod + backfieldPenalty + ha.defend);
+  const res = resolveOpenPlay(carrier, defender, attackMod + ha.attack, defendMod + backfieldPenalty + shortHandedMod + ha.defend);
   const totalMetres = runMetres + res.gainMetres;
   const direction = attackDir(state);
 

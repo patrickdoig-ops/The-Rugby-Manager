@@ -15,3 +15,39 @@ export const HIGH_TACKLE = {
   disciplineWeight: 0.1,
   minPct:           2.5,
 } as const;
+
+// TMO review. When a high tackle is awarded, `triggerPct`% chance the TMO
+// intervenes and we enter MatchPhase.TmoReview for 3 narrative ticks. Outcome
+// is pre-rolled and bucketed by these weights (sum to 100); the narrative is
+// pure replay.
+export const TMO = {
+  triggerPctHighTackle: 60,
+  outcomeNoCardPct:     40,
+  outcomeYellowPct:     40,
+  outcomeRed20Pct:      20,
+} as const;
+
+// Sin-bin durations in game minutes. Yellow returns; red_20 expires to sentOff
+// and triggers a forced substitution if the bench has a player.
+export const SIN_BIN_DURATION = {
+  yellow: 10,
+  red_20: 20,
+} as const;
+
+// Team 22 rule. Each defensive penalty in the offender's own 22 increments the
+// per-team counter. At `warnAt`, the referee warns the captain. At `cardAt`,
+// the offender of that penalty receives an automatic yellow (no TMO).
+export const TEAM_22 = {
+  warnAt: 3,
+  cardAt: 4,
+} as const;
+
+// Short-handed modifiers. When backs are off the field (yellow/red_20/red_full),
+// the defending side's wide-defence weakens — fold this into defendMod alongside
+// the existing `backfieldLineBreakPenalty`. The scrum/lineout/breakdown weakening
+// for missing forwards is handled naturally by the sum-based ScrumResolver and
+// by selection-pool shrinkage in LineoutResolver / BreakdownResolver — no
+// dedicated constants needed.
+export const SHORT_HANDED = {
+  missingBackDefendPenalty: -8,   // per missing back; added to defendMod (negative = worse)
+} as const;

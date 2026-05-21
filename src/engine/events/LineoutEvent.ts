@@ -4,19 +4,33 @@ import { MatchPhase } from '../../types/engine';
 import { resolveLineout } from '../resolvers/LineoutResolver';
 import { rng } from '../../utils/rng';
 import { LINEOUT_VALUES } from '../balance';
+import { availableForwards, onFieldPlayers } from '../FieldPosition';
 
-export function handleLineout({ state, attackTeam, defendTeam, pickPlayer }: PhaseContext): PhaseResult {
-  const hooker       = pickPlayer(attackTeam, 2);
-  const jumperIds    = LINEOUT_VALUES.jumperIds;
-  const chosenId     = jumperIds[rng(0, jumperIds.length - 1)];
-  const attackJumper = attackTeam.players.find(p => p.id === chosenId)
-                    ?? attackTeam.players.find(p => p.id === 4)
-                    ?? attackTeam.players[0];
-  const defendJumper = pickPlayer(defendTeam, 4, 5, 6);
-  const res = resolveLineout(hooker, attackJumper, defendJumper);
-
+export function handleLineout({ state, attackTeam, defendTeam }: PhaseContext): PhaseResult {
   const attackSide = state.possession;
   const flipSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
+
+  // Hooker (#2) and jumpers (#4/#5/#6) filtered to on-field players; if a
+  // primary jumper is sin-binned, the find() chain falls back to the next
+  // available forward — weaker jumper score is the natural penalty for being
+  // a forward down at the lineout.
+  const attackFwds   = availableForwards(attackTeam, state, attackSide);
+  const defendFwds   = availableForwards(defendTeam, state, flipSide);
+  const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
+  const defendOnField = onFieldPlayers(defendTeam, state, flipSide);
+  const hooker       = attackFwds.find(p => p.id === 2) ?? attackFwds[0] ?? attackOnField[0]!;
+  const jumperIds    = LINEOUT_VALUES.jumperIds;
+  const chosenId     = jumperIds[rng(0, jumperIds.length - 1)];
+  const attackJumper = attackFwds.find(p => p.id === chosenId)
+                    ?? attackFwds.find(p => p.id === 4)
+                    ?? attackFwds[0]
+                    ?? attackOnField[0]!;
+  const defendJumper = defendFwds.find(p => p.id === 4)
+                    ?? defendFwds.find(p => p.id === 5)
+                    ?? defendFwds.find(p => p.id === 6)
+                    ?? defendFwds[0]
+                    ?? defendOnField[0]!;
+  const res = resolveLineout(hooker, attackJumper, defendJumper);
 
   const events: MatchEvent[] = [
     { type: 'LINEOUT_THROWN', hooker },

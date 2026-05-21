@@ -129,7 +129,7 @@ export class GameCoordinator {
       teamIds: allTeams.map(t => t.id),
       schedule,
     });
-    const seeded = seedRoster(allTeams);
+    const seeded = seedRoster(allTeams, parseSeasonStartYear(coord.state.calendar.seasonLabel));
     applySeasonEvent(coord.state, {
       type: 'ROSTER_SEEDED',
       roster: seeded.roster,
@@ -182,7 +182,7 @@ export class GameCoordinator {
         mvpRosterId: a.mvpRosterId,
       }));
     } else {
-      const seeded = seedRoster(allTeams);
+      const seeded = seedRoster(allTeams, parseSeasonStartYear(coord.state.calendar.seasonLabel));
       applySeasonEvent(coord.state, {
         type: 'ROSTER_SEEDED',
         roster: seeded.roster,
@@ -358,4 +358,12 @@ export class GameCoordinator {
       },
     };
   }
+}
+
+// Parse the season label (e.g. "2025/26 Premiership") to the start year
+// of that season. Used by contractSeeder to compute expiry dates
+// relative to "now" so a 2-year deal expires on 30 June of (startYear + 2).
+function parseSeasonStartYear(label: string): number {
+  const m = label.match(/(\d{4})/);
+  return m ? parseInt(m[1], 10) : new Date().getUTCFullYear();
 }

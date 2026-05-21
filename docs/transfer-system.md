@@ -29,7 +29,7 @@ Career mode is the umbrella; rollover is the prerequisite.
 
 ### Explicitly out of scope (v1)
 
-- **Salary-cap credits** (Home Grown £600k pool, EPS/International £400k pool, £80k per-player ceiling). Documented in §3 for future addition.
+- ~~**Salary-cap credits** (Home Grown £600k pool, EPS/International £400k pool, £80k per-player ceiling).~~ **Promoted into Phase 5 prerequisites** — Phase 4 research showed the seeded league sits over the headline cap on average because dispensations weren't modelled; credit pools land in `balance/transfers.ts` alongside the free-agent flow. Per-player HG/EPS tagging stays deferred — flat per-club credit application is enough for v1.
 - **PGP / hybrid RFU contracts** — modelled as a flat top-up later, if at all.
 - **EQP quota** (15 EQP avg in matchday 23). A real Premiership rule but adds compositional constraint; defer.
 - **Long-term injury system** and injury-dispensation cap relief.
@@ -363,17 +363,26 @@ Every player carries `PlayerContract` + `reputation`. Hub's Contracts tile opens
 
 **Out of scope:** signing other clubs' players, free-agent signings, generated supply.
 
-### Phase 5 — Free-agent pool, both sides can sign
+### Phase 5 — Free-agent pool, both sides can sign 🚧
 
 **Goal:** human and AI can sign any free agent during the end-of-season window.
 
-**Work items:**
-1. `TransferMarketScreen` lists free agents.
-2. AI scoring function for free agents: position need × reputation × wage affordability.
+**Cap-fidelity prerequisites (do these first within Phase 5).** Phase 4 surfaced two over-cap issues in the seeded league: every wage decision (sign/renew/release) interacts with the cap, so getting cap realism right before the market opens up matters more than during Phases 1-4. Three small changes:
+
+1. **Credit pools in `src/engine/balance/transfers.ts`.** Real Premiership clubs can spend up to ~£8.5M before exceeding cap, via dispensations the model doesn't currently apply. Add `CAP_CREDITS = { homeGrownPool: 600_000, homeGrownPerPlayer: 50_000, epsPool: 400_000, epsPerPlayer: 80_000, injuryPool: 400_000 }`. Derive effective cap headroom in `ContractsScreen`'s pill and `aiTransferDirector.decideAIOffers` as `SENIOR_CAP + applicableCredits − marqueeWage`. Phase 5 model: credits applied flat to each club (no per-player HG/EPS tagging yet — that lands in a later refinement). This alone closes ~£1.4M of headroom league-wide.
+2. **Tighten the upper `WAGE_BY_RATING` anchors.** The current £780k @ rating 96 anchor puts ordinary stars (du Toit, Itoje, Russell, etc.) at marquee-tier wages, which inflates seeded squads. Drop the top of the curve so rating 96 lands closer to £550k (the £700k-900k band stays reachable but only via the excluded marquee slot, which is the real-world mechanic). Re-runs of the determinism harness give new hashes — expected; document the rebaseline.
+3. **Switch Bath's marquee from du Toit to Russell.** Single-line edit in `docs/team-data.md` (move the `Marquee: yes.` annotation) + regen JSONs. Russell is the real-world marquee per the league's published list; du Toit's wage is fully cap-burdening at Bath. Also updates the Phase 1 hand-edits on the six non-`*(in game)*` team JSONs if needed.
+
+After the prerequisites, cap-burdening figures league-wide drop materially (Bath was +£2.1M over; should land within ~£1M of cap, fixable through the renewal window over 1-2 seasons).
+
+**Phase 5 work items proper:**
+
+1. `TransferMarketScreen` lists free agents (sortable by position / reputation / wage / age).
+2. AI scoring function for free agents: position need × reputation × wage affordability (against the now-credits-aware effective cap).
 3. Multi-offer handling — if multiple clubs offer same player, deterministic resolution by `(wage, ambition, rngTransfer tiebreak)`.
 4. Window "tick": player advances time by clicking "Continue Window". Each tick, AI sends new offers and resolves any matured ones.
 
-**Out of scope:** cross-Prem poaching of contracted players.
+**Out of scope:** cross-Prem poaching of contracted players (Phase 6), per-player HG/EPS tagging (deferred refinement).
 
 ### Phase 6 — Cross-Prem poaching (Reg 7)
 

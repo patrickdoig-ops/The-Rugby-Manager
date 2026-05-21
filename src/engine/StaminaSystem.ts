@@ -18,7 +18,13 @@ export interface FatigueResult {
 // Pure: computes the fatigue decay and updated currentStats for every player on the
 // team but does not write to any Player field. The caller emits FATIGUE_APPLIED
 // MatchEvents which apply through `applyMatchEvent`.
-export function computeFatigue(team: Team, elapsedMinutes: number): FatigueResult {
+//
+// `offFieldIds` (sin-bin + sent-off) is passed in by the caller so off-field
+// players don't accrue fatigue — they're not actually playing. Skipping the
+// rng() call too is the deliberate choice: a benched player making no rolls
+// shouldn't consume the outcome stream. Hashes shift when a card is issued
+// in a determinism run; that's the correct behaviour change.
+export function computeFatigue(team: Team, elapsedMinutes: number, offFieldIds?: Set<number>): FatigueResult {
   void elapsedMinutes; // signature kept for clarity at call site; the formula uses fixed RNG decay per call
   const updates: FatigueUpdate[] = [];
   const newlyTired: Player[] = [];
@@ -26,6 +32,7 @@ export function computeFatigue(team: Team, elapsedMinutes: number): FatigueResul
   const forwardMult = TACTIC_MODIFIERS.forwardFatigueMultiplier;
 
   for (const player of team.players) {
+    if (offFieldIds?.has(player.id)) continue;
     const decayRate = rng(decayRange[0], decayRange[1]);
     const staminaBase = player.baseStats.stamina;
     let actualDecay = decayRate * (1 - staminaBase / staminaDivisor);

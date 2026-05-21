@@ -9,6 +9,7 @@
 
 import type { MatchState, GameEvent } from '../types/match';
 import { computeFatigue } from './StaminaSystem';
+import { offFieldIds } from './FieldPosition';
 import { applyMatchEvent } from './applyMatchEvent';
 import { makeId } from './eventId';
 import { eventBus } from '../utils/eventBus';
@@ -26,8 +27,8 @@ export class FatigueAccumulator {
   tick(timeAdvance: number): void {
     this.accumulator += timeAdvance;
     while (this.accumulator >= FATIGUE_SCALING.computeIntervalMinutes) {
-      const homeFatigue = computeFatigue(this.state.homeTeam, this.accumulator);
-      const awayFatigue = computeFatigue(this.state.awayTeam, this.accumulator);
+      const homeFatigue = computeFatigue(this.state.homeTeam, this.accumulator, offFieldIds(this.state, 'home'));
+      const awayFatigue = computeFatigue(this.state.awayTeam, this.accumulator, offFieldIds(this.state, 'away'));
       this.accumulator -= FATIGUE_SCALING.computeIntervalMinutes;
       for (const u of [...homeFatigue.updates, ...awayFatigue.updates]) {
         applyMatchEvent(this.state, {

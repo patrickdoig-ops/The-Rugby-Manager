@@ -234,6 +234,13 @@ export class GameCoordinator {
     applySeasonEvent(this.state, { type: 'PLAYER_MATCHDAY_SQUAD_SET', squad });
   }
 
+  // Re-designate the marquee slot for a club. Clears the previous
+  // marquee on that squad and sets the new one. Pass `rosterId: null`
+  // to clear without re-designating.
+  designateMarquee(clubId: string, rosterId: number | null): void {
+    applySeasonEvent(this.state, { type: 'MARQUEE_DESIGNATED', clubId, rosterId });
+  }
+
   getState(): Readonly<GameState> {
     return this.state;
   }

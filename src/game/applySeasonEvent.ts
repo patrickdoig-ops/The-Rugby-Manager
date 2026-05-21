@@ -83,6 +83,24 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
       if (club) club.squad = club.squad.filter(id => id !== event.rosterId);
       return;
     }
+    case 'MARQUEE_DESIGNATED': {
+      const club = state.career.clubs.find(c => c.id === event.clubId);
+      if (!club) return;
+      // Clear any existing marquee in this club's squad first.
+      for (const rid of club.squad) {
+        const p = state.career.roster[rid];
+        if (p && p.contract.isMarquee) p.contract.isMarquee = false;
+      }
+      // Designate the new marquee, if one was specified and the player
+      // is actually in this club's squad.
+      if (event.rosterId !== null) {
+        const target = state.career.roster[event.rosterId];
+        if (target && club.squad.includes(event.rosterId)) {
+          target.contract.isMarquee = true;
+        }
+      }
+      return;
+    }
     case 'CAREER_ARCHIVE_RESTORED': {
       state.career.seasonsCompleted = event.seasonsCompleted;
       state.career.archive = event.archive.map(a => ({

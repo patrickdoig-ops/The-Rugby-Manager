@@ -190,6 +190,15 @@ export type SeasonEvent =
       clubId: string;             // for archive context; player stays in roster
     }
   | {
+      // Re-points (or clears) a club's marquee slot. Clears the
+      // contract.isMarquee flag on the previous marquee in the same
+      // club's squad (if any), then sets it on the new one. Passing
+      // `rosterId: null` clears without re-designating.
+      type: 'MARQUEE_DESIGNATED';
+      clubId: string;
+      rosterId: number | null;
+    }
+  | {
       // fromSave-only: restores the cumulative career counters that
       // SEASON_ROLLED_OVER would otherwise build incrementally. Keeps
       // every state.career.* write inside applySeasonEvent so the

@@ -59,10 +59,6 @@ export function commentaryChance(pct: number): boolean {
   return commentaryRand() * 100 < pct;
 }
 
-export function rngTransfer(min: number, max: number): number {
-  return Math.floor(transferRand() * (max - min + 1)) + min;
-}
-
 export function rngTransferRaw(): number {
   return transferRand();
 }

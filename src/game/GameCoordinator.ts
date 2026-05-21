@@ -343,7 +343,6 @@ export class GameCoordinator {
   rollSeason(): SeasonEvent[] {
     const events = computeRollover(this.state, [...this.teamsById.keys()]);
     for (const ev of events) applySeasonEvent(this.state, ev);
-    eventBus.emit('game:seasonRolledOver', { state: this.state });
     return events;
   }
 

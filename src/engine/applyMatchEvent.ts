@@ -4,7 +4,7 @@ import { clamp } from '../utils/math';
 import { attackDir } from './FieldPosition';
 import { computeRating } from './RatingEngine';
 import { assertInvariants } from './invariants';
-import { CLOCK_VALUES, SCORE_VALUES, COMMENTARY_BUFFER_CAP, SIN_BIN_DURATION } from './balance';
+import { CLOCK_VALUES, SCORE_VALUES, SIN_BIN_DURATION } from './balance';
 
 // The single function permitted to mutate MatchState (or any Player field).
 // Every handler / orchestrator builds an array of MatchEvent and routes them
@@ -383,12 +383,14 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       return;
 
     // ── Commentary feed ─────────────────────────────────────────────────
-    case 'COMMENTARY_LOGGED':
+    case 'COMMENTARY_LOGGED': {
       state.events.push(event.event);
-      if (state.events.length > COMMENTARY_BUFFER_CAP) {
-        state.events.splice(0, state.events.length - COMMENTARY_BUFFER_CAP);
+      const cap = state.engine.commentaryBufferCap;
+      if (state.events.length > cap) {
+        state.events.splice(0, state.events.length - cap);
       }
       return;
+    }
 
     default: {
       // Exhaustiveness check — TS will error here if a new MatchEvent type is added

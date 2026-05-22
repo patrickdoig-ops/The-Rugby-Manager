@@ -90,6 +90,10 @@ export interface MatchState {
     seed: number;
     firstHalfKicker: PossessionSide;
     humanSide: PossessionSide;
+    // Ring-buffer ceiling for state.events. Defaults to COMMENTARY_BUFFER_CAP
+    // (300, sized for the live commentary feed); telemetry runs raise it so
+    // the full event log survives for offline analysis.
+    commentaryBufferCap: number;
   };
   phase: MatchPhase;
   possession: PossessionSide;

@@ -18,6 +18,7 @@ import { makeId, resetEventCounter } from './eventId';
 import { applyMatchEvent } from './applyMatchEvent';
 import { AITacticalDirector } from './AITacticalDirector';
 import { AISubstitutionDirector } from './AISubstitutionDirector';
+import { COMMENTARY_BUFFER_CAP } from './balance';
 
 function deepCloneStats(s: PlayerStats): PlayerStats {
   return { ...s };
@@ -104,6 +105,7 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
       seed,
       firstHalfKicker: 'home',
       humanSide,
+      commentaryBufferCap: COMMENTARY_BUFFER_CAP,
     },
     phase: MatchPhase.KickOff,
     score: { home: 0, away: 0 },
@@ -175,7 +177,7 @@ export class MatchCoordinator {
   constructor(
     homeRaw: RawTeamInput,
     awayRaw: RawTeamInput,
-    opts: { tickDelayMs?: number; homeTactics?: TeamTactics; playerTactics?: TeamTactics; humanSide?: 'home' | 'away'; seed?: number; silent?: boolean } = {},
+    opts: { tickDelayMs?: number; homeTactics?: TeamTactics; playerTactics?: TeamTactics; humanSide?: 'home' | 'away'; seed?: number; silent?: boolean; commentaryBufferCap?: number } = {},
   ) {
     const seed = (opts.seed ?? generateSeed()) >>> 0;
     setMatchSeed(seed);
@@ -184,6 +186,9 @@ export class MatchCoordinator {
     this.silent = opts.silent ?? false;
     const tactics = opts.playerTactics ?? opts.homeTactics;
     this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, seed, tactics, this.humanSide);
+    if (opts.commentaryBufferCap !== undefined) {
+      this.state.engine.commentaryBufferCap = opts.commentaryBufferCap;
+    }
     this.clock = new ClockController(this.silent);
     this.fatigue = new FatigueAccumulator(this.state, this.silent);
 

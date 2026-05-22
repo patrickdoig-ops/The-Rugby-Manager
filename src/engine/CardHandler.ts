@@ -61,8 +61,14 @@ export class CardHandler {
     if (last.offence === 'high_tackle' && rng(1, 100) <= TMO.triggerPctHighTackle) {
       const outcome = pickTmoOutcome();
       if (silent) {
-        // Silent path: collapse the 3 narrative ticks. RNG order above is
-        // identical to live; only the bus emits + tick-budget differ.
+        // Silent path: collapse the 3 narrative ticks into a single tick. RNG
+        // order above is identical to live; only the bus emits + tick-budget
+        // differ. The intervenes + decision announcements still fire so the
+        // event log carries the same audit trail (telemetry counts TMOs +
+        // outcomes by walking these keys).
+        this.emitAnnouncement('tmo_intervenes', last.offendingSide, last.offender);
+        const decisionKey = `tmo_decision_${outcome}` as const;
+        this.emitAnnouncement(decisionKey, last.offendingSide, last.offender);
         if (outcome !== 'no_card') {
           this.issueCard(last.offender, last.offendingSide, outcome);
         }

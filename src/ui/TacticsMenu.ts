@@ -1,5 +1,5 @@
 import { eventBus } from '../utils/eventBus';
-import type { TeamTactics, AttackingGamePlan, AttackingStyle, AttackingBreakdown, DefendingBreakdown, BackfieldDefence } from '../types/team';
+import type { TeamTactics, AttackingGamePlan, AttackingStyle, AttackingBreakdown, DefendingBreakdown, BackfieldDefence, DefensiveLine } from '../types/team';
 
 interface OptionDef<T> {
   value: T;
@@ -35,6 +35,12 @@ const BACKFIELD_OPTIONS: OptionDef<BackfieldDefence>[] = [
   { value: 'one_back',   label: 'One Back',   desc: 'Standard fullback only. Maximum players in the front defensive line.' },
   { value: 'two_back',   label: 'Two Back',   desc: 'Fullback + one wing. Balanced kick cover and front-line strength.' },
   { value: 'three_back', label: 'Three Back', desc: 'Full back three deployed deep. Strong kick defence, thinner front line.' },
+];
+
+const DEFENSIVE_LINE_OPTIONS: OptionDef<DefensiveLine>[] = [
+  { value: 'blitz',  label: 'Blitz',  desc: 'Aggressive line speed. Push the attacker behind the gain line. Higher risk: bigger line breaks against, more offsides.' },
+  { value: 'hybrid', label: 'Hybrid', desc: 'Mix of push and slide. Numerically neutral middle ground between blitz and drift.' },
+  { value: 'drift',  label: 'Drift',  desc: 'Lateral slide that channels the attack toward touch. Safer: fewer line breaks. Concedes more metres on inside carries.' },
 ];
 
 export function renderTacticsMenu(
@@ -76,6 +82,7 @@ export function renderTacticsMenu(
         ${renderCategory('Attacking Breakdown', 'attackingBreakdown', ATTACK_RUCK_OPTIONS)}
         ${renderCategory('Defending Breakdown', 'defendingBreakdown', DEFEND_RUCK_OPTIONS)}
         ${renderCategory('Backfield Defence', 'backfieldDefence', BACKFIELD_OPTIONS)}
+        ${renderCategory('Defensive Line', 'defensiveLine', DEFENSIVE_LINE_OPTIONS)}
       </div>
       ${isModal ? `
         <div class="tactics-modal-footer">

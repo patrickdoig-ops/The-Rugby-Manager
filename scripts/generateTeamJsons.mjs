@@ -29,14 +29,15 @@ const TEAM_META = {
 };
 
 // Map md tactics literals to TeamTactics dimensions in fixed order:
-// attackingGamePlan · attackingStyle · attackingBreakdown · defendingBreakdown · backfieldDefence
-const TACTIC_KEYS = ['attackingGamePlan', 'attackingStyle', 'attackingBreakdown', 'defendingBreakdown', 'backfieldDefence'];
+// attackingGamePlan · attackingStyle · attackingBreakdown · defendingBreakdown · backfieldDefence · defensiveLine
+const TACTIC_KEYS = ['attackingGamePlan', 'attackingStyle', 'attackingBreakdown', 'defendingBreakdown', 'backfieldDefence', 'defensiveLine'];
 const DEFAULT_TACTICS = {
   attackingGamePlan: 'balanced',
   attackingStyle: 'balanced',
   attackingBreakdown: 'balanced',
   defendingBreakdown: 'jackal',
   backfieldDefence: 'one_back',
+  defensiveLine: 'hybrid',
 };
 
 // ─── 12-stat position template (offsets from baseline) ────────────────────

@@ -16,7 +16,8 @@
     "attackingStyle": "balanced",
     "attackingBreakdown": "balanced",
     "defendingBreakdown": "shadow",
-    "backfieldDefence": "two_back"
+    "backfieldDefence": "two_back",
+    "defensiveLine": "blitz"
   },
   "statBias": [
     "tackling",

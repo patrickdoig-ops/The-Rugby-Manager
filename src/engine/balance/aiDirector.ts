@@ -18,12 +18,16 @@ export const AI_DIRECTOR_VALUES = {
 // commits fewer forwards to the breakdown to keep width, and keeps a flat
 // backfield to commit numbers forward. defendingBreakdown stays on jackal
 // because they still need turnovers to get the ball back.
+// defensiveLine stays 'hybrid' in Stage A (data-plumbing) — the
+// late-game blitz override lands in Stage C alongside the live carry
+// mechanism and AI-side adaptation.
 export const AI_INTENT_CHASING: TeamTactics = {
   attackingGamePlan:  'possession',
   attackingStyle:     'wide_wide',
   attackingBreakdown: 'wide_play',
   defendingBreakdown: 'jackal',
   backfieldDefence:   'one_back',
+  defensiveLine:      'hybrid',
 };
 
 // PROTECTING: a team leading late kicks for territory, keeps it tight in
@@ -35,4 +39,5 @@ export const AI_INTENT_PROTECTING: TeamTactics = {
   attackingBreakdown: 'pick_and_drive',
   defendingBreakdown: 'shadow',
   backfieldDefence:   'two_back',
+  defensiveLine:      'hybrid',
 };

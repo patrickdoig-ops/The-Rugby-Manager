@@ -7,6 +7,13 @@ export type AttackingStyle = 'keep_it_tight' | 'balanced' | 'wide_wide';
 export type AttackingBreakdown = 'pick_and_drive' | 'balanced' | 'wide_play';
 export type DefendingBreakdown = 'jackal' | 'counter_ruck' | 'shadow';
 export type BackfieldDefence = 'one_back' | 'two_back' | 'three_back';
+// Defensive line shape — the up-and-back press vs the lateral slide.
+// blitz   : aggressive line speed; more dominant tackles + more offsides; bigger
+//           punishment when the press is beaten (line breaks gain more metres).
+// drift   : lateral slide; safer, fewer line breaks; concedes more metres on
+//           regular carries; eats wide attacks.
+// hybrid  : mix of the two — numerically neutral middle ground.
+export type DefensiveLine = 'blitz' | 'drift' | 'hybrid';
 
 export interface TeamTactics {
   attackingGamePlan: AttackingGamePlan;
@@ -14,6 +21,7 @@ export interface TeamTactics {
   attackingBreakdown: AttackingBreakdown;
   defendingBreakdown: DefendingBreakdown;
   backfieldDefence: BackfieldDefence;
+  defensiveLine: DefensiveLine;
 }
 
 export interface Team {
@@ -35,5 +43,6 @@ export const DEFAULT_TACTICS: TeamTactics = {
   attackingBreakdown: 'balanced',
   defendingBreakdown: 'jackal',
   backfieldDefence: 'one_back',
+  defensiveLine: 'hybrid',
 };
 

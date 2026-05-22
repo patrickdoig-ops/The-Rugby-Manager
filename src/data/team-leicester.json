@@ -16,7 +16,8 @@
     "attackingStyle": "keep_it_tight",
     "attackingBreakdown": "pick_and_drive",
     "defendingBreakdown": "jackal",
-    "backfieldDefence": "two_back"
+    "backfieldDefence": "two_back",
+    "defensiveLine": "blitz"
   },
   "statBias": [
     "setPiece",

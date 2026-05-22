@@ -16,7 +16,8 @@
     "attackingStyle": "wide_wide",
     "attackingBreakdown": "wide_play",
     "defendingBreakdown": "jackal",
-    "backfieldDefence": "one_back"
+    "backfieldDefence": "one_back",
+    "defensiveLine": "hybrid"
   },
   "statBias": [
     "pace",

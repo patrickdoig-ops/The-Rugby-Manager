@@ -16,7 +16,8 @@
     "attackingStyle": "keep_it_tight",
     "attackingBreakdown": "pick_and_drive",
     "defendingBreakdown": "counter_ruck",
-    "backfieldDefence": "one_back"
+    "backfieldDefence": "one_back",
+    "defensiveLine": "drift"
   },
   "statBias": [
     "strength",

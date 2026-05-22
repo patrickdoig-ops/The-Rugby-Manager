@@ -55,7 +55,12 @@ export const OPEN_PLAY_VALUES = {
   positioningWeight: 0.5,
   paceWeight:        0.5,
   lineBreakMargin: 15,
-  lineBreakMetres: [10, 25],
+  // Line breaks now project the ball further downfield (real-world line
+  // breaks pierce the defensive line by 15-40m on average). The 20-45 range
+  // means a midfield line break frequently lands inside the opposition 22,
+  // and the follow-up carry — boosted by TACTIC_MODIFIERS.lineBreakBreakdownBonus
+  // (applied in BreakdownEvent) — closes the score with one more phase.
+  lineBreakMetres: [20, 45],
   dominantCarryMargin:  5,
   dominantCarryMetres:  [3, 8],
   dominantTackleMargin: -5,

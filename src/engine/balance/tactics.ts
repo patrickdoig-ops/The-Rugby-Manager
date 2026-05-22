@@ -12,7 +12,14 @@ export const TACTIC_MODIFIERS = {
   tacticalKickTouchReduction: { three_back: 25, two_back: 15, one_back: 0 },
   tacticalKickReturnBonus:    { three_back: 10, two_back: 5,  one_back: 0 },
   forwardFatigueMultiplier:   { pick_and_drive: 1.1, counter_ruck: 1.1 },
+  // Carry → breakdown handoff bonuses. Applied in BreakdownEvent by reading
+  // the previous CARRY_RESOLVED's outcome. Both shift the breakdown's
+  // attackScore upward (more clean ball) AND, for line breaks, the
+  // next-phase carry's attackMod (front-foot follow-up). Tuned so a midfield
+  // line break that doesn't directly score on the first carry still very
+  // often turns into a try over the next 1-2 phases.
   dominantCarryBonus: 6,
+  lineBreakBreakdownBonus: 15,
   // Penalty-rate shifts (in pct points) added to the matching base rate
   // in BREAKDOWN_PENALTIES / OBSTRUCTION_BASE_PCT. Modest values — these
   // dials nudge the trigger rate, they don't dominate it.

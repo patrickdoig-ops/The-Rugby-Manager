@@ -15,10 +15,20 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
 
   const lastEvent = state.events[state.events.length - 1];
   const carrierId = lastEvent?.primaryPlayer?.id;
-  const attackBonus = lastEvent?.outcome === 'dominant_carry' ? TACTIC_MODIFIERS.dominantCarryBonus : 0;
+  // Carry → breakdown handoff. A line break commits the defence — the
+  // attacker arrives at the ruck on the front foot AND the next phase
+  // sees thin cover. Boost both the current breakdown's attack score
+  // (cleaner ball) and the post-breakdown attackMod (front-foot carry).
+  // dominant_carry is the smaller-effect cousin (existing behaviour).
+  const lineBreakFollowUp = lastEvent?.outcome === 'line_break';
+  const attackBonus =
+      lineBreakFollowUp                     ? TACTIC_MODIFIERS.lineBreakBreakdownBonus
+    : lastEvent?.outcome === 'dominant_carry' ? TACTIC_MODIFIERS.dominantCarryBonus
+    : 0;
 
   // Next-phase modifier: more players committed to ruck = fewer on feet for the next phase
-  const nextAttackMod = TACTIC_MODIFIERS.breakdownAttack[attPlan];
+  const nextAttackMod = TACTIC_MODIFIERS.breakdownAttack[attPlan]
+                      + (lineBreakFollowUp ? TACTIC_MODIFIERS.lineBreakBreakdownBonus : 0);
   const nextDefendMod = TACTIC_MODIFIERS.breakdownDefend[defPlan];
 
   const attackSide = state.possession;

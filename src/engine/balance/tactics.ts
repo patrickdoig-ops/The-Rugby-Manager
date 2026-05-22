@@ -45,4 +45,13 @@ export const TACTIC_MODIFIERS = {
   // 4. Offside-at-ruck rate (plugs the existing TODO in BreakdownEvent).
   //    Pct points added to BREAKDOWN_PENALTIES.offsideAtRuckBasePct.
   offsideAtRuckDefendMod:     { blitz:  6, hybrid:  2, drift: -2 },
+  // 5. Back-position fatigue multiplier. Backs running the blitz line up
+  //    and dropping back ~25 times a half drain faster than backs sitting
+  //    in a drift. Applied per-tick in StaminaSystem for player.id >= 9.
+  backFatigueMultiplier:      { blitz: 1.10, hybrid: 1.00, drift: 0.95 },
+  // 6. Tactical-kick touch-finding shift vs the OPPOSING side's defensive
+  //    line. Blitz cover sprints forward so the kicker has more grass to
+  //    aim at behind the rush; drift cover sits deeper and shrinks that
+  //    space. Pct points added to res.touchProbability in handleTacticalKick.
+  defensiveLineKickProbMod:   { blitz: 10, hybrid: 0, drift: -5 },
 } as const;

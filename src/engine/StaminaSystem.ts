@@ -30,6 +30,7 @@ export function computeFatigue(team: Team, elapsedMinutes: number, offFieldIds?:
   const newlyTired: Player[] = [];
   const { decayRange, staminaDivisor, tirednessThreshold, tiers } = FATIGUE_SCALING;
   const forwardMult = TACTIC_MODIFIERS.forwardFatigueMultiplier;
+  const backMult = TACTIC_MODIFIERS.backFatigueMultiplier;
 
   for (const player of team.players) {
     if (offFieldIds?.has(player.id)) continue;
@@ -39,6 +40,11 @@ export function computeFatigue(team: Team, elapsedMinutes: number, offFieldIds?:
     if (player.id <= 8) {
       if (team.tactics.attackingBreakdown === 'pick_and_drive') actualDecay *= forwardMult.pick_and_drive;
       if (team.tactics.defendingBreakdown === 'counter_ruck')   actualDecay *= forwardMult.counter_ruck;
+    } else {
+      // Backs (#9–#15) drain by team.tactics.defensiveLine: blitz adds 10 %
+      // for the up-and-back motion, drift takes 5 % off the rate, hybrid is
+      // neutral. Multiplier is 1.0 for hybrid so the no-op path stays cheap.
+      actualDecay *= backMult[team.tactics.defensiveLine];
     }
     const prevFatigue = player.fatiguePct;
     const newFatiguePct = clamp(player.fatiguePct - actualDecay, 0, 100);

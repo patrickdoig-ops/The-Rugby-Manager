@@ -19,8 +19,12 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer
   const res = resolveTacticalKick(kicker);
   const backfield = defendTeam.tactics.backfieldDefence;
   const touchReduction = TACTIC_MODIFIERS.tacticalKickTouchReduction[backfield];
+  // Defensive line gives the kicker more (blitz) or less (drift) grass to
+  // hit behind the front-line cover. Added on top of the backfield
+  // reduction; clamped so the touch prob can't go negative.
+  const defensiveLineKickMod = TACTIC_MODIFIERS.defensiveLineKickProbMod[defendTeam.tactics.defensiveLine];
   const goesOutOnTheFull = rng(1, 100) <= res.outOnTheFullProbability;
-  const goesToTouch      = !goesOutOnTheFull && rng(1, 100) <= Math.max(0, res.touchProbability - touchReduction);
+  const goesToTouch      = !goesOutOnTheFull && rng(1, 100) <= Math.max(0, res.touchProbability - touchReduction + defensiveLineKickMod);
 
   const kickDir = attackDir(state);
   const newBallX = clamp(state.ball.x + kickDir * res.distance, 5, 95);

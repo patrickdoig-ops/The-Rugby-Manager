@@ -40,8 +40,12 @@ export const TACTIC_MODIFIERS = {
   defensiveLineCollisionMod:  { blitz:  8, hybrid:  0, drift: -5 },
   // 3. Line break gain bonus — when a line break HAPPENS, blitz cover is
   //    behind the runner and concedes more metres; drift cover is wide
-  //    and shallow and chases laterally.
-  defensiveLineBreakBonus:    { blitz: 10, hybrid:  0, drift: -5 },
+  //    and shallow and chases laterally. Tuned in v2.67a from blitz +10
+  //    to +5: the v2.66a pressure mechanism (knock-ons + interceptions)
+  //    couldn't offset the original +10 penalty, so blitz teams sat at
+  //    the bottom of the table even though dominant_tackles + pick rate
+  //    were correctly elevated.
+  defensiveLineBreakBonus:    { blitz:  5, hybrid:  0, drift: -5 },
   // 4. Offside-at-ruck rate (plugs the existing TODO in BreakdownEvent).
   //    Pct points added to BREAKDOWN_PENALTIES.offsideAtRuckBasePct.
   offsideAtRuckDefendMod:     { blitz:  6, hybrid:  2, drift: -2 },

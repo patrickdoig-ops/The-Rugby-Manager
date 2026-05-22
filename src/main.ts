@@ -262,14 +262,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function showMatchResult(engine: MatchCoordinator, state: MatchState, round: number): void {
     initMatchResultScreen(state, round, async () => {
-      // Snapshot the per-player stats before destroy() tears down the
-      // match state — feeds PLAYER_SEASON_STATS_ACCUMULATED inside
-      // recordPlayerMatchResult so league top-scorer / MVP cards can
+      // Snapshot the per-player + per-team stats before destroy() tears
+      // down the match state — feeds PLAYER_SEASON_STATS_ACCUMULATED and
+      // TEAM_SEASON_STATS_ACCUMULATED inside recordPlayerMatchResult so the
+      // league top-scorer / MVP / leaderboards / team-stat tables can
       // surface real season aggregates.
-      const playerSnapshots = snapshotMatch(state);
+      const snapshot = snapshotMatch(state, state.homeTeam.id, state.awayTeam.id);
       engine.destroy();
       if (gameEngine) {
-        await gameEngine.recordPlayerMatchResult(round, state.score.home, state.score.away, playerSnapshots);
+        await gameEngine.recordPlayerMatchResult(round, state.score.home, state.score.away, snapshot);
         saveGame(gameEngine.toSavePayload());
       }
       // Post-match nav chain. Normally: RoundResults → LeagueTable → Hub.

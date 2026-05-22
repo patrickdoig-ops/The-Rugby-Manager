@@ -61,7 +61,7 @@ async function simulateSeason(coord: GameCoordinator, teamsById: Map<string, Raw
     const home = buildTeamFromRoster(state, homeJson);
     const away = buildTeamFromRoster(state, awayJson);
     const sim = await simulateFixture(home, away, state.seed, next.round);
-    await coord.recordPlayerMatchResult(next.round, sim.homeScore, sim.awayScore, sim.playerSnapshots);
+    await coord.recordPlayerMatchResult(next.round, sim.homeScore, sim.awayScore, sim.snapshot);
   }
 }
 
@@ -77,6 +77,18 @@ async function runOnce(seed: number): Promise<string> {
     const seasonLabel = preRolloverState.calendar.seasonLabel;
     const finalStandings = preRolloverState.league.standings;
     const resultsHash = createHash('sha256').update(JSON.stringify(preRolloverState.league.results)).digest('hex');
+    // Hash the league-wide team-season aggregates (v9+) and every roster
+    // player's seasonStats. Both rebuild from per-fixture
+    // *_SEASON_STATS_ACCUMULATED events, so any drift in the collector
+    // or reducer shows up here even when the scores hash agrees.
+    const teamStatsKeys = Object.keys(preRolloverState.league.teamSeasonStats).sort();
+    const teamStatsHash = createHash('sha256')
+      .update(JSON.stringify(teamStatsKeys.map(k => [k, preRolloverState.league.teamSeasonStats[k]])))
+      .digest('hex');
+    const seasonStatsKeys = Object.keys(preRolloverState.career.roster).map(Number).sort((a, b) => a - b);
+    const seasonStatsHash = createHash('sha256')
+      .update(JSON.stringify(seasonStatsKeys.map(rid => [rid, preRolloverState.career.roster[rid].seasonStats])))
+      .digest('hex');
 
     let rolloverEvents: unknown[] = [];
     let marketSummary: unknown = null;
@@ -124,6 +136,8 @@ async function runOnce(seed: number): Promise<string> {
       seasonLabel,
       finalStandings,
       resultsHash,
+      teamStatsHash,
+      seasonStatsHash,
       marketSummary,
       // Strip large stable fields from the rollover payload — only the
       // PLAYER_RETIRED rosterIds and PLAYER_AGED deltas matter for the

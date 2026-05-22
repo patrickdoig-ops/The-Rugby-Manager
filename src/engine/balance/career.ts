@@ -57,6 +57,12 @@ export const RETIREMENT_CURVE = {
   ],
 };
 
-// Minimum appearances for season MVP eligibility — guards against an
-// occasional 10-minute sub posting a 9.0 rating from a single play.
-export const SEASON_AWARDS = { mvpMinAppearances: 5 };
+// End-of-season awards / leaderboards.
+//   - mvpMinAppearances guards against a 10-minute sub posting a 9.0
+//     rating from a single play.
+//   - leaderboardSize is the top-N captured into ArchivedSeason.leaders
+//     for each category (tries, carries, tackles, avg rating).
+export const SEASON_AWARDS = {
+  mvpMinAppearances: 5,
+  leaderboardSize: 3,
+};

@@ -27,8 +27,9 @@
 // hand-authored schedule for years 2+.
 
 import type { Fixture, GameState, SeasonEvent, TeamStanding } from '../types/gameState';
-import type { Player, PlayerStats } from '../types/player';
+import type { Player, PlayerStats, PlayerSeasonStats } from '../types/player';
 import { isForward } from '../types/player';
+import type { SeasonAwards, SeasonLeader } from '../types/gameState';
 import { AGE_CURVES, STAT_NOISE, RETIREMENT_CURVE, SEASON_AWARDS } from '../engine/balance/career';
 import { SEASON_VALUES } from '../engine/balance';
 import { getAge, parseSeasonStartYear, seasonOpenIso } from './age';
@@ -126,7 +127,9 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
   }
 
   // 4. Awards + season-rollover composite.
-  const { topScorerRosterId, mvpRosterId } = computeAwards(state);
+  const leaders = computeAwards(state);
+  const topScorerRosterId = leaders.topTries[0]?.rosterId ?? null;
+  const mvpRosterId       = leaders.topRating[0]?.rosterId ?? null;
   const newSeasonLabel = `${newSeasonStartYear}/${(newSeasonStartYear + 1).toString().slice(2)} Premiership`;
   const newFixtures = dateRounds(
     generateFixtures(state.player.teamId, allTeamIds),
@@ -141,6 +144,7 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
     archivedStandings,
     topScorerRosterId,
     mvpRosterId,
+    leaders,
   });
 
   return events;
@@ -189,28 +193,40 @@ function positionClass(pos: Player['position']): 'forwards' | 'backs' {
 
 // --- Awards ---
 
-function computeAwards(state: GameState): { topScorerRosterId: number | null; mvpRosterId: number | null } {
-  let topScorerRosterId: number | null = null;
-  let mostTries = 0;
-  let mvpRosterId: number | null = null;
-  let bestAvg = -1;
+// Top-3 across the league per category, taken from each roster player's
+// seasonStats *before* SEASON_ROLLED_OVER zeros them out. Order is by
+// value desc; ties broken by ascending rosterId for deterministic
+// replay-safe ordering. Players with zero value are excluded so the
+// list shortens naturally if a season had thin scoring.
+function computeAwards(state: GameState): SeasonAwards {
   const rosterIds = Object.keys(state.career.roster).map(Number).sort((a, b) => a - b);
-  for (const rid of rosterIds) {
-    const p = state.career.roster[rid];
-    const s = p.seasonStats;
-    if (s.tries > mostTries) {
-      mostTries = s.tries;
-      topScorerRosterId = rid;
+
+  type Entry = { rosterId: number; value: number };
+
+  const topByField = (
+    pick: (s: PlayerSeasonStats) => number,
+    options: { minAppearances?: number } = {},
+  ): SeasonLeader[] => {
+    const entries: Entry[] = [];
+    const min = options.minAppearances ?? 0;
+    for (const rid of rosterIds) {
+      const s = state.career.roster[rid].seasonStats;
+      if (s.appearances < min) continue;
+      const value = pick(s);
+      if (value <= 0) continue;
+      entries.push({ rosterId: rid, value });
     }
-    if (s.appearances >= SEASON_AWARDS.mvpMinAppearances) {
-      const avg = s.ratingSum / s.appearances;
-      if (avg > bestAvg) {
-        bestAvg = avg;
-        mvpRosterId = rid;
-      }
-    }
-  }
-  return { topScorerRosterId, mvpRosterId };
+    entries.sort((a, b) => b.value - a.value || a.rosterId - b.rosterId);
+    return entries.slice(0, SEASON_AWARDS.leaderboardSize);
+  };
+
+  return {
+    topTries:   topByField(s => s.tries),
+    topCarries: topByField(s => s.carries),
+    topTackles: topByField(s => s.tackles),
+    topRating:  topByField(s => s.appearances > 0 ? s.ratingSum / s.appearances : 0,
+                          { minAppearances: SEASON_AWARDS.mvpMinAppearances }),
+  };
 }
 
 // Assigns weekly fixture dates starting on the season-open anchor of

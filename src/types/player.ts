@@ -60,21 +60,50 @@ export interface PlayerMatchStats {
 }
 
 // Season-scope aggregates accumulated per fixture (player and silent AI).
-// Reset on SEASON_ROLLED_OVER. Used to drive top-scorer / MVP / appearances
-// cards in EndOfSeasonScreen. `ratingSum` is an accumulator: avg rating =
-// ratingSum / appearances.
+// Reset on SEASON_ROLLED_OVER. Drives EndOfSeasonScreen cards + the
+// leaderboards in src/game/seasonLeaderboards.ts. `ratingSum` is an
+// accumulator: avg rating = ratingSum / appearances.
+//
+// `conversions` / `penaltiesScored` / `dropGoals` are reserved fields —
+// they remain 0 today because the engine doesn't tag a goal kick as
+// conversion vs penalty vs drop at the player level. See the
+// "Goal-kicking gap" note in CLAUDE.md.
 export interface PlayerSeasonStats {
-  appearances:      number;
-  tries:            number;
-  conversions:      number;
-  penaltiesScored:  number;
-  dropGoals:        number;
-  yellowCards:      number;
-  redCards:         number;
-  tackles:          number;
-  missedTackles:    number;
-  turnoversWon:     number;
-  ratingSum:        number;
+  appearances:            number;
+  // Attack
+  tries:                  number;
+  carries:                number;
+  metresCarried:          number;
+  lineBreaks:             number;
+  defendersBeaten:        number;
+  passes:                 number;
+  // Goal kicking (split fields reserved — see comment above)
+  conversions:            number;
+  penaltiesScored:        number;
+  dropGoals:              number;
+  // Kicking from hand
+  kicksFromHand:          number;
+  kickMetres:             number;
+  kicksAtGoal:            number;
+  kicksMade:              number;
+  // Defence
+  tackles:                number;
+  missedTackles:          number;
+  dominantTackles:        number;
+  turnoversWon:           number;
+  // Set piece
+  lineoutThrows:          number;
+  lineoutWins:            number;
+  lineoutCatches:         number;
+  lineoutSteals:          number;
+  scrumPenaltiesWon:      number;
+  scrumPenaltiesConceded: number;
+  // Discipline + work rate
+  rucksHit:               number;
+  yellowCards:            number;
+  redCards:               number;
+  // Performance rating accumulator
+  ratingSum:              number;
 }
 
 // Contract terms held against a Player. Read-only in Phase 2 of the
@@ -140,8 +169,14 @@ export function zeroMatchStats(): PlayerMatchStats {
 
 export function zeroSeasonStats(): PlayerSeasonStats {
   return {
-    appearances: 0, tries: 0, conversions: 0, penaltiesScored: 0, dropGoals: 0,
-    yellowCards: 0, redCards: 0, tackles: 0, missedTackles: 0, turnoversWon: 0,
+    appearances: 0,
+    tries: 0, carries: 0, metresCarried: 0, lineBreaks: 0, defendersBeaten: 0, passes: 0,
+    conversions: 0, penaltiesScored: 0, dropGoals: 0,
+    kicksFromHand: 0, kickMetres: 0, kicksAtGoal: 0, kicksMade: 0,
+    tackles: 0, missedTackles: 0, dominantTackles: 0, turnoversWon: 0,
+    lineoutThrows: 0, lineoutWins: 0, lineoutCatches: 0, lineoutSteals: 0,
+    scrumPenaltiesWon: 0, scrumPenaltiesConceded: 0,
+    rucksHit: 0, yellowCards: 0, redCards: 0,
     ratingSum: 0,
   };
 }

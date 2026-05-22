@@ -25,7 +25,7 @@ import { simulateFixture } from './simulateFixture';
 import { seedRoster } from './rosterSeeder';
 import { buildTeamFromRoster } from './rosterTeamBuilder';
 import { parseSeasonStartYear } from './age';
-import { collectSeasonEvents, type PlayerStatsSnapshot } from './seasonStatsCollector';
+import { collectSeasonEvents, type MatchSnapshot } from './seasonStatsCollector';
 import { computeRollover } from './careerRollover';
 import { seedContractFields } from './contractSeeder';
 import {
@@ -89,6 +89,10 @@ export interface SavedSeason {
   // JSONs since pre-v5 there has been zero per-player evolution to
   // preserve.
   career?: SavedCareer;
+  // v9+: per-team season aggregates. Keyed by teamId; one TeamSeasonStats
+  // bucket per club. Absent on v8 and older — fromSave falls through to
+  // the zeroed buckets created by SEASON_INITIALIZED.
+  teamSeasonStats?: Record<string, import('../types/gameState').TeamSeasonStats>;
 }
 
 // Deep clone the roster index for save serialisation — every Player and
@@ -115,7 +119,7 @@ function serializeRoster(roster: Record<number, Player>): Record<number, Player>
 function emptyState(): GameState {
   return {
     calendar: { date: SEASON_VALUES.startDate, week: 1, seasonLabel: '' },
-    league: { fixtures: [], results: [], standings: [] },
+    league: { fixtures: [], results: [], standings: [], teamSeasonStats: {} },
     player: { teamId: '' },
     seed: 0,
     career: emptyCareerState(),
@@ -216,6 +220,7 @@ export class GameCoordinator {
         ...(save.career.freeAgents !== undefined ? { freeAgents: save.career.freeAgents } : {}),
         ...(save.career.market !== undefined ? { market: save.career.market } : {}),
         ...(save.career.pendingMoves !== undefined ? { pendingMoves: save.career.pendingMoves } : {}),
+        ...(save.teamSeasonStats !== undefined ? { teamSeasonStats: save.teamSeasonStats } : {}),
       });
     } else {
       const seeded = seedRoster(allTeams, parseSeasonStartYear(coord.state.calendar.seasonLabel));
@@ -514,7 +519,7 @@ export class GameCoordinator {
     round: number,
     homeScore: number,
     awayScore: number,
-    playerSnapshots: PlayerStatsSnapshot[],
+    snapshot: MatchSnapshot,
   ): Promise<void> {
     const fixture = this.state.league.fixtures.find(f =>
       f.round === round && (f.homeId === this.state.player.teamId || f.awayId === this.state.player.teamId)
@@ -542,7 +547,7 @@ export class GameCoordinator {
       playerSide,
     };
     applySeasonEvent(this.state, { type: 'FIXTURE_RESULT_RECORDED', result });
-    for (const ev of collectSeasonEvents(playerSnapshots)) {
+    for (const ev of collectSeasonEvents(snapshot)) {
       applySeasonEvent(this.state, ev);
     }
     eventBus.emit('game:fixtureRecorded', { result, state: this.state });
@@ -571,7 +576,7 @@ export class GameCoordinator {
         playerSide: null,
       };
       applySeasonEvent(this.state, { type: 'FIXTURE_RESULT_RECORDED', result: aiResult });
-      for (const ev of collectSeasonEvents(sim.playerSnapshots)) {
+      for (const ev of collectSeasonEvents(sim.snapshot)) {
         applySeasonEvent(this.state, ev);
       }
       eventBus.emit('game:fixtureRecorded', { result: aiResult, state: this.state });
@@ -627,6 +632,14 @@ export class GameCoordinator {
           standings: a.standings.map(s => ({ ...s })),
           topScorerRosterId: a.topScorerRosterId,
           mvpRosterId: a.mvpRosterId,
+          ...(a.leaders
+            ? { leaders: {
+                topTries:   a.leaders.topTries.map(l => ({ ...l })),
+                topCarries: a.leaders.topCarries.map(l => ({ ...l })),
+                topTackles: a.leaders.topTackles.map(l => ({ ...l })),
+                topRating:  a.leaders.topRating.map(l => ({ ...l })),
+              } }
+            : {}),
         })),
         freeAgents: [...this.state.career.freeAgents],
         market: this.state.career.market
@@ -639,6 +652,9 @@ export class GameCoordinator {
           : null,
         pendingMoves: this.state.career.pendingMoves.map(m => ({ ...m })),
       },
+      teamSeasonStats: Object.fromEntries(
+        Object.entries(this.state.league.teamSeasonStats).map(([id, s]) => [id, { ...s }]),
+      ),
     };
   }
 }

@@ -13,16 +13,18 @@ import { MatchCoordinator } from '../engine/MatchCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import { eventBus } from '../utils/eventBus';
 import { deriveFixtureSeed } from './derive';
-import { snapshotMatch, type PlayerStatsSnapshot } from './seasonStatsCollector';
+import { snapshotMatch, type MatchSnapshot } from './seasonStatsCollector';
 
 export interface SimulatedFixtureResult {
   homeScore: number;
   awayScore: number;
-  // Per-player stat snapshot taken before MatchCoordinator.destroy(). Empty
-  // when both teams' players have rosterId === 0 (non-career test contexts).
-  // GameCoordinator feeds it to seasonStatsCollector to drive the
-  // PLAYER_SEASON_STATS_ACCUMULATED events.
-  playerSnapshots: PlayerStatsSnapshot[];
+  // Per-match snapshot taken before MatchCoordinator.destroy(). Carries the
+  // per-player breakdown plus team-summary aggregates for both sides.
+  // GameCoordinator feeds it to collectSeasonEvents to drive the season-
+  // scope mutation events. Player snapshots are empty when both teams'
+  // players have rosterId === 0 (non-career test contexts); the team
+  // summaries fire regardless.
+  snapshot: MatchSnapshot;
 }
 
 export function simulateFixture(
@@ -41,9 +43,9 @@ export function simulateFixture(
     const off = eventBus.on('engine:finished', ({ state }) => {
       off();
       const { home: homeScore, away: awayScore } = state.score;
-      const playerSnapshots = snapshotMatch(state);
+      const snapshot = snapshotMatch(state, home.id, away.id);
       engine.destroy();
-      resolve({ homeScore, awayScore, playerSnapshots });
+      resolve({ homeScore, awayScore, snapshot });
     });
     engine.initialize();
     engine.start();

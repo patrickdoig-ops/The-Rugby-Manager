@@ -53,10 +53,67 @@ export interface Calendar {
   seasonLabel: string; // e.g. "2025/26 Season"
 }
 
+// Team-scope season aggregates accumulated per fixture. Keyed by teamId.
+// Reset on SEASON_ROLLED_OVER alongside Player.seasonStats. The two
+// sub-blocks come from different sources at snapshot time:
+//   - possession / territory / set-piece / entries from MatchState.stats
+//   - tries / line breaks / carries / metres / tackles / kicks / cards
+//     summed from PlayerMatchStats across the matchday squad
+// (Same split as scripts/telemetry.ts::sumMatchStats — re-derived in
+// the post-match collector so the two stay in lock-step.)
+export interface TeamSeasonStats {
+  matchesPlayed:      number;
+  // Possession (raw seconds; pct = possessionSeconds / matchSeconds at read)
+  possessionSeconds:  number;
+  territorySeconds:   number;
+  matchSeconds:       number;
+  // Attack
+  tries:              number;
+  lineBreaks:         number;
+  defendersBeaten:    number;
+  carries:            number;
+  metresCarried:      number;
+  // Defence
+  tacklesAttempted:   number;
+  tacklesMade:        number;
+  turnoversWon:       number;
+  // Kicking from hand
+  kicksFromHand:      number;
+  kickMetres:         number;
+  // Set piece
+  lineoutsThrown:     number;
+  lineoutsWon:        number;
+  scrumsPutIn:        number;
+  scrumsWon:          number;
+  // Entries 22
+  entries22:          number;
+  entries22Points:    number;
+  // Discipline
+  knockOns:           number;
+  yellowCards:        number;
+  redCards:           number;
+}
+
+export function zeroTeamSeasonStats(): TeamSeasonStats {
+  return {
+    matchesPlayed: 0,
+    possessionSeconds: 0, territorySeconds: 0, matchSeconds: 0,
+    tries: 0, lineBreaks: 0, defendersBeaten: 0, carries: 0, metresCarried: 0,
+    tacklesAttempted: 0, tacklesMade: 0, turnoversWon: 0,
+    kicksFromHand: 0, kickMetres: 0,
+    lineoutsThrown: 0, lineoutsWon: 0, scrumsPutIn: 0, scrumsWon: 0,
+    entries22: 0, entries22Points: 0,
+    knockOns: 0, yellowCards: 0, redCards: 0,
+  };
+}
+
 export interface League {
   fixtures: Fixture[];   // all rounds, generated once at season start
   results: FixtureResult[];
   standings: TeamStanding[];
+  // Per-team season aggregates accumulated post-match. Keyed by teamId
+  // (RawTeamInput.id). Re-zeroed at SEASON_ROLLED_OVER.
+  teamSeasonStats: Record<string, TeamSeasonStats>;
 }
 
 // Stable reference to a real player across save/load and across raw-team
@@ -76,13 +133,30 @@ export interface ClubState {
   squad: number[];
 }
 
+// One row of an archived per-category leaderboard — top-N at end of season.
+export interface SeasonLeader {
+  rosterId: number;
+  value: number;
+}
+
+// Top-3 per category captured at SEASON_ROLLED_OVER. Lets historic
+// leaderboards survive a roll even though state.career.roster's
+// seasonStats are re-zeroed for the new season.
+export interface SeasonAwards {
+  topTries:    SeasonLeader[];
+  topCarries:  SeasonLeader[];
+  topTackles:  SeasonLeader[];
+  topRating:   SeasonLeader[];  // by ratingSum / appearances, min appearances guard
+}
+
 // End-of-season snapshot — final standings + awards. Appended on every
 // SEASON_ROLLED_OVER for the season just completed.
 export interface ArchivedSeason {
   seasonLabel: string;
   standings: TeamStanding[];
-  topScorerRosterId: number | null;
-  mvpRosterId: number | null;
+  topScorerRosterId: number | null;   // kept for back-compat; equals leaders.topTries[0]?.rosterId
+  mvpRosterId: number | null;         // kept for back-compat; equals leaders.topRating[0]?.rosterId
+  leaders?: SeasonAwards;             // top-3 per category. Optional so v8 archives load.
 }
 
 // A renewal / signing offer surfaced during the end-of-season market
@@ -231,13 +305,51 @@ export type SeasonEvent =
       rosterId: number;
       // Delta added to roster[rosterId].seasonStats. Caller pre-computes
       // each field from one fixture's MatchState (silent and live).
+      // Shape mirrors PlayerSeasonStats (minus the appearances pseudo-counter
+      // which is always +1 per event today).
       statsDelta: {
-        appearances: number; tries: number; conversions: number;
-        penaltiesScored: number; dropGoals: number;
-        yellowCards: number; redCards: number;
-        tackles: number; missedTackles: number; turnoversWon: number;
-        ratingSum: number;
+        appearances:            number;
+        tries:                  number;
+        carries:                number;
+        metresCarried:          number;
+        lineBreaks:             number;
+        defendersBeaten:        number;
+        passes:                 number;
+        // Reserved for the goal-kicking split (see CLAUDE.md known gap);
+        // always 0 today.
+        conversions:            number;
+        penaltiesScored:        number;
+        dropGoals:              number;
+        kicksFromHand:          number;
+        kickMetres:             number;
+        kicksAtGoal:            number;
+        kicksMade:              number;
+        tackles:                number;
+        missedTackles:          number;
+        dominantTackles:        number;
+        turnoversWon:           number;
+        lineoutThrows:          number;
+        lineoutWins:            number;
+        lineoutCatches:         number;
+        lineoutSteals:          number;
+        scrumPenaltiesWon:      number;
+        scrumPenaltiesConceded: number;
+        rucksHit:               number;
+        yellowCards:            number;
+        redCards:               number;
+        ratingSum:              number;
       };
+    }
+  | {
+      // Delta added to league.teamSeasonStats[teamId]. Caller pre-computes
+      // the team-scope numbers from one fixture's MatchState — the
+      // possession / territory / set-piece block comes from state.stats
+      // directly, the attack / defence / kicking block is summed across
+      // the team's matchday squad (mirrors telemetry sumMatchStats).
+      // Two events fire per match (one home, one away).
+      type: 'TEAM_SEASON_STATS_ACCUMULATED';
+      teamId: string;
+      statsDelta: TeamSeasonStats;
     }
   | {
       type: 'PLAYER_AGED';
@@ -364,20 +476,23 @@ export type SeasonEvent =
       player: Player;
     }
   | {
-      // fromSave-only: restores the cumulative career counters that
-      // SEASON_ROLLED_OVER would otherwise build incrementally. Keeps
-      // every state.career.* write inside applySeasonEvent so the
-      // mutation boundary stays clean (CLAUDE.md §5).
+      // fromSave-only: restores cumulative state that would otherwise be
+      // built incrementally across the season but can't be rebuilt from
+      // FIXTURE_RESULT_RECORDED replay alone. Keeps every state write
+      // inside applySeasonEvent so the mutation boundary stays clean
+      // (CLAUDE.md §5).
       //
       // `freeAgents` + `market` arrived in v7 (Phase 4); `pendingMoves`
-      // in v8 (Phase 6). Older saves omit these and the fields stay at
-      // their emptyCareerState defaults ([] / null / []).
+      // in v8 (Phase 6); `teamSeasonStats` in v9 (season-stats
+      // architecture). Older saves omit them and the fields stay at
+      // their initial defaults ([] / null / [] / per-team zeroes).
       type: 'CAREER_ARCHIVE_RESTORED';
       seasonsCompleted: number;
       archive: ArchivedSeason[];
       freeAgents?: number[];
       market?: MarketState | null;
       pendingMoves?: PreAgreement[];
+      teamSeasonStats?: Record<string, TeamSeasonStats>;
     }
   | {
       type: 'SEASON_ROLLED_OVER';
@@ -386,4 +501,8 @@ export type SeasonEvent =
       archivedStandings: TeamStanding[];
       topScorerRosterId: number | null;
       mvpRosterId: number | null;
+      // Top-3 per category captured before the roster's seasonStats are
+      // re-zeroed. Optional so older event-replay paths (or hand-crafted
+      // events in tests) can omit it.
+      leaders?: SeasonAwards;
     };

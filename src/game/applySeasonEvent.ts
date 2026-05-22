@@ -3,8 +3,8 @@
 // variant has a single branch, and the exhaustive `default: const _: never`
 // catches missing branches at compile time when SeasonEvent grows.
 
-import type { Fixture, GameState, SeasonEvent, TeamStanding } from '../types/gameState';
-import { zeroStanding } from '../types/gameState';
+import type { Fixture, GameState, SeasonEvent, TeamSeasonStats, TeamStanding } from '../types/gameState';
+import { zeroStanding, zeroTeamSeasonStats } from '../types/gameState';
 import { zeroSeasonStats } from '../types/player';
 import { LEAGUE_POINTS, SEASON_VALUES } from '../engine/balance';
 
@@ -19,6 +19,7 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
       state.calendar.date = earliestDateForRound(state.league.fixtures, 1) ?? SEASON_VALUES.startDate;
       state.league.results = [];
       state.league.standings = event.teamIds.map(zeroStanding);
+      state.league.teamSeasonStats = Object.fromEntries(event.teamIds.map(id => [id, zeroTeamSeasonStats()]));
       return;
     }
     case 'FIXTURE_RESULT_RECORDED': {
@@ -55,17 +56,65 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
       if (!p) return;
       const s = p.seasonStats;
       const d = event.statsDelta;
-      s.appearances     += d.appearances;
-      s.tries           += d.tries;
-      s.conversions     += d.conversions;
-      s.penaltiesScored += d.penaltiesScored;
-      s.dropGoals       += d.dropGoals;
-      s.yellowCards     += d.yellowCards;
-      s.redCards        += d.redCards;
-      s.tackles         += d.tackles;
-      s.missedTackles   += d.missedTackles;
-      s.turnoversWon    += d.turnoversWon;
-      s.ratingSum       += d.ratingSum;
+      s.appearances            += d.appearances;
+      s.tries                  += d.tries;
+      s.carries                += d.carries;
+      s.metresCarried          += d.metresCarried;
+      s.lineBreaks             += d.lineBreaks;
+      s.defendersBeaten        += d.defendersBeaten;
+      s.passes                 += d.passes;
+      s.conversions            += d.conversions;
+      s.penaltiesScored        += d.penaltiesScored;
+      s.dropGoals              += d.dropGoals;
+      s.kicksFromHand          += d.kicksFromHand;
+      s.kickMetres             += d.kickMetres;
+      s.kicksAtGoal            += d.kicksAtGoal;
+      s.kicksMade              += d.kicksMade;
+      s.tackles                += d.tackles;
+      s.missedTackles          += d.missedTackles;
+      s.dominantTackles        += d.dominantTackles;
+      s.turnoversWon           += d.turnoversWon;
+      s.lineoutThrows          += d.lineoutThrows;
+      s.lineoutWins            += d.lineoutWins;
+      s.lineoutCatches         += d.lineoutCatches;
+      s.lineoutSteals          += d.lineoutSteals;
+      s.scrumPenaltiesWon      += d.scrumPenaltiesWon;
+      s.scrumPenaltiesConceded += d.scrumPenaltiesConceded;
+      s.rucksHit               += d.rucksHit;
+      s.yellowCards            += d.yellowCards;
+      s.redCards               += d.redCards;
+      s.ratingSum              += d.ratingSum;
+      return;
+    }
+    case 'TEAM_SEASON_STATS_ACCUMULATED': {
+      const cur = state.league.teamSeasonStats[event.teamId] ?? zeroTeamSeasonStats();
+      const d = event.statsDelta;
+      const next: TeamSeasonStats = {
+        matchesPlayed:     cur.matchesPlayed     + d.matchesPlayed,
+        possessionSeconds: cur.possessionSeconds + d.possessionSeconds,
+        territorySeconds:  cur.territorySeconds  + d.territorySeconds,
+        matchSeconds:      cur.matchSeconds      + d.matchSeconds,
+        tries:             cur.tries             + d.tries,
+        lineBreaks:        cur.lineBreaks        + d.lineBreaks,
+        defendersBeaten:   cur.defendersBeaten   + d.defendersBeaten,
+        carries:           cur.carries           + d.carries,
+        metresCarried:     cur.metresCarried     + d.metresCarried,
+        tacklesAttempted:  cur.tacklesAttempted  + d.tacklesAttempted,
+        tacklesMade:       cur.tacklesMade       + d.tacklesMade,
+        turnoversWon:      cur.turnoversWon      + d.turnoversWon,
+        kicksFromHand:     cur.kicksFromHand     + d.kicksFromHand,
+        kickMetres:        cur.kickMetres        + d.kickMetres,
+        lineoutsThrown:    cur.lineoutsThrown    + d.lineoutsThrown,
+        lineoutsWon:       cur.lineoutsWon       + d.lineoutsWon,
+        scrumsPutIn:       cur.scrumsPutIn       + d.scrumsPutIn,
+        scrumsWon:         cur.scrumsWon         + d.scrumsWon,
+        entries22:         cur.entries22         + d.entries22,
+        entries22Points:   cur.entries22Points   + d.entries22Points,
+        knockOns:          cur.knockOns          + d.knockOns,
+        yellowCards:       cur.yellowCards       + d.yellowCards,
+        redCards:          cur.redCards          + d.redCards,
+      };
+      state.league.teamSeasonStats[event.teamId] = next;
       return;
     }
     case 'PLAYER_AGED': {
@@ -233,6 +282,7 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
         standings: a.standings.map(s => ({ ...s })),
         topScorerRosterId: a.topScorerRosterId,
         mvpRosterId: a.mvpRosterId,
+        ...(a.leaders ? { leaders: cloneLeaders(a.leaders) } : {}),
       }));
       if (event.freeAgents) state.career.freeAgents = [...event.freeAgents];
       if (event.market !== undefined) {
@@ -246,6 +296,13 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
           : null;
       }
       if (event.pendingMoves) state.career.pendingMoves = event.pendingMoves.map(m => ({ ...m }));
+      if (event.teamSeasonStats) {
+        const restored: Record<string, TeamSeasonStats> = {};
+        for (const [teamId, stats] of Object.entries(event.teamSeasonStats)) {
+          restored[teamId] = { ...stats };
+        }
+        state.league.teamSeasonStats = restored;
+      }
       return;
     }
     case 'SEASON_ROLLED_OVER': {
@@ -254,6 +311,7 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
         standings: event.archivedStandings.map(s => ({ ...s })),
         topScorerRosterId: event.topScorerRosterId,
         mvpRosterId: event.mvpRosterId,
+        ...(event.leaders ? { leaders: cloneLeaders(event.leaders) } : {}),
       });
       state.career.seasonsCompleted += 1;
       state.calendar.seasonLabel = event.newSeasonLabel;
@@ -265,6 +323,12 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
       // Reset per-player season aggregates for the new season.
       for (const id of Object.keys(state.career.roster)) {
         state.career.roster[Number(id)].seasonStats = zeroSeasonStats();
+      }
+      // Reset team season aggregates for the new season. Re-zero in place
+      // for every team that already had a bucket; new teams (rare) get
+      // lazy-initialised by the TEAM_SEASON_STATS_ACCUMULATED reducer.
+      for (const teamId of Object.keys(state.league.teamSeasonStats)) {
+        state.league.teamSeasonStats[teamId] = zeroTeamSeasonStats();
       }
       // Pending moves should already have been processed via
       // TRANSFER_ACTIVATED events fired by careerRollover before this
@@ -278,6 +342,15 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
       return;
     }
   }
+}
+
+function cloneLeaders(l: import('../types/gameState').SeasonAwards): import('../types/gameState').SeasonAwards {
+  return {
+    topTries:   l.topTries.map(x => ({ ...x })),
+    topCarries: l.topCarries.map(x => ({ ...x })),
+    topTackles: l.topTackles.map(x => ({ ...x })),
+    topRating:  l.topRating.map(x => ({ ...x })),
+  };
 }
 
 function findOrCreate(standings: TeamStanding[], teamId: string): TeamStanding {

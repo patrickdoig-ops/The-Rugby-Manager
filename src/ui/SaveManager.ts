@@ -32,13 +32,15 @@
 // v1 saves are discarded — they predate AI-vs-AI results.
 
 import type { SavedCareer, SavedSeason, SavedSeasonResult } from '../game/GameCoordinator';
-import type { ArchivedSeason, ClubState, Fixture, MarketState, PlayerRef, PreAgreement, TransferOffer } from '../types/gameState';
-import type { Player } from '../types/player';
+import type { ArchivedSeason, ClubState, Fixture, MarketState, PlayerRef, PreAgreement, SeasonAwards, TeamSeasonStats, TransferOffer } from '../types/gameState';
+import type { Player, PlayerSeasonStats } from '../types/player';
+import { zeroSeasonStats } from '../types/player';
+import { zeroTeamSeasonStats } from '../types/gameState';
 import type { TeamTactics } from '../types/team';
 
 const SAVE_KEY = 'rugby-manager-save';
-const SAVE_VERSION = 8;
-const ACCEPTED_VERSIONS = new Set([8, 7, 6, 5, 4, 3, 2]);
+const SAVE_VERSION = 9;
+const ACCEPTED_VERSIONS = new Set([9, 8, 7, 6, 5, 4, 3, 2]);
 
 export type SavedGame = SavedSeason & { version: number };
 
@@ -74,6 +76,12 @@ export function loadSave(): SavedSeason | null {
     // GameCoordinator.fromSave seeds a fresh roster from JSONs.
     const career: SavedCareer | undefined =
       parsed.version >= 5 && parsed.career ? parseCareer(parsed.career) : undefined;
+    // v9+ persists the per-team season aggregates. v8 and older load
+    // without it; SEASON_INITIALIZED + CAREER_ARCHIVE_RESTORED leave the
+    // map empty / zeroed for those saves.
+    const teamSeasonStats = parsed.version >= 9 && typeof parsed.teamSeasonStats === 'object' && parsed.teamSeasonStats
+      ? parseTeamSeasonStats(parsed.teamSeasonStats as Record<string, unknown>)
+      : undefined;
     return {
       playerTeamId: parsed.playerTeamId,
       seed: parsed.seed >>> 0,
@@ -91,6 +99,7 @@ export function loadSave(): SavedSeason | null {
       ...(tactics !== undefined ? { tactics } : {}),
       ...(matchdaySquad !== undefined ? { matchdaySquad } : {}),
       ...(career !== undefined ? { career } : {}),
+      ...(teamSeasonStats !== undefined ? { teamSeasonStats } : {}),
     };
   } catch {
     return null;
@@ -120,17 +129,68 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
     seasonsCompleted: c.seasonsCompleted,
     nextRosterId: c.nextRosterId,
     clubs: (c.clubs as ClubState[]).map(cl => ({ id: cl.id, squad: [...cl.squad] })),
-    roster: c.roster as Record<number, Player>,
+    roster: backfillRosterSeasonStats(c.roster as Record<number, Player>),
     archive: (c.archive as ArchivedSeason[]).map(a => ({
       seasonLabel: a.seasonLabel,
       standings: a.standings.map(s => ({ ...s })),
       topScorerRosterId: a.topScorerRosterId,
       mvpRosterId: a.mvpRosterId,
+      ...(a.leaders ? { leaders: cloneLeaders(a.leaders) } : {}),
     })),
     freeAgents,
     market,
     pendingMoves,
   };
+}
+
+// Backfill new PlayerSeasonStats fields onto an old-save roster. The v8
+// shape only carried 11 fields (appearances / tries / 2 cards / 3 goal-kick
+// reserves / 3 tackle-flavoured + ratingSum). Newer fields (carries,
+// metresCarried, line breaks, etc.) default to 0 so applySeasonEvent's
+// additive deltas don't NaN out on the next match.
+function backfillRosterSeasonStats(roster: Record<number, Player>): Record<number, Player> {
+  const zero = zeroSeasonStats();
+  for (const k of Object.keys(roster)) {
+    const p = roster[Number(k)];
+    if (!p.seasonStats) {
+      p.seasonStats = { ...zero };
+      continue;
+    }
+    const merged: PlayerSeasonStats = { ...zero };
+    for (const f of Object.keys(zero) as (keyof PlayerSeasonStats)[]) {
+      const v = p.seasonStats[f];
+      if (typeof v === 'number') merged[f] = v;
+    }
+    p.seasonStats = merged;
+  }
+  return roster;
+}
+
+function cloneLeaders(l: SeasonAwards): SeasonAwards {
+  return {
+    topTries:   l.topTries.map(x => ({ ...x })),
+    topCarries: l.topCarries.map(x => ({ ...x })),
+    topTackles: l.topTackles.map(x => ({ ...x })),
+    topRating:  l.topRating.map(x => ({ ...x })),
+  };
+}
+
+// v9+ team-season-stats parse. Defensive against malformed entries —
+// any non-numeric field falls back to the zero default.
+function parseTeamSeasonStats(raw: Record<string, unknown>): Record<string, TeamSeasonStats> {
+  const out: Record<string, TeamSeasonStats> = {};
+  const zero = zeroTeamSeasonStats();
+  for (const [teamId, value] of Object.entries(raw)) {
+    if (typeof value !== 'object' || value === null) continue;
+    const v = value as Record<string, unknown>;
+    const stats: TeamSeasonStats = { ...zero };
+    for (const f of Object.keys(zero) as (keyof TeamSeasonStats)[]) {
+      const n = v[f];
+      if (typeof n === 'number') stats[f] = n;
+    }
+    out[teamId] = stats;
+  }
+  return out;
 }
 
 function parseMarket(raw: unknown): MarketState | null {

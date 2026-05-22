@@ -228,17 +228,21 @@ export function initPreMatchScreen(
   const savedTactics = state.player.tactics;
   const savedSquad   = state.player.matchdaySquad;
 
-  // Human team is built from the persistent career roster so injured /
-  // aged / signed players reflect their current state. The opponent
-  // continues to come from the raw JSON (pre-existing gap; mirror of
-  // how the human's match has always worked). buildTeamFromRoster sorts
-  // injured players to the wider squad so the default 23 are all fit.
+  // Both teams come from the persistent career roster so aging /
+  // signings / academy intake / injuries all reflect their current
+  // state on the matchday squad. buildTeamFromRoster sorts injured
+  // players to the wider squad so the auto-built 23 are all fit.
+  //
+  // The human side additionally gets applyMatchdaySquad on top of the
+  // roster-based base so the manager's curated lineup overrides the
+  // auto-build — with an injury-aware predicate that falls back to the
+  // auto-build when a saved-squad selection is now unavailable. The AI
+  // opponent has no equivalent curation; the buildTeamFromRoster order
+  // is what runs out.
   const humanTeamJson = playerSide === 'home' ? home : away;
+  const oppTeamJson   = playerSide === 'home' ? away : home;
   const humanRosterBased = buildTeamFromRoster(state, humanTeamJson);
-  // Injury predicate is club-scoped — looks up the player's own club's
-  // squad in state.career.roster. Saved-squad entries that match an
-  // injured player cause applyMatchdaySquad to fall back to the
-  // roster-based base (which already has injured players in wider squad).
+  const oppRosterBased   = buildTeamFromRoster(state, oppTeamJson);
   const club = state.career.clubs.find(c => c.id === humanTeamJson.id);
   const isInjured = club ? makeInjuredPredicate(state.career.roster, club.squad) : undefined;
   const humanApplied = applyMatchdaySquad(humanRosterBased, savedSquad, isInjured);
@@ -248,8 +252,8 @@ export function initPreMatchScreen(
     ? savedSquad.filter(ref => isInjured(ref))
     : [];
 
-  const homeApplied = playerSide === 'home' ? humanApplied : home;
-  const awayApplied = playerSide === 'away' ? humanApplied : away;
+  const homeApplied = playerSide === 'home' ? humanApplied : oppRosterBased;
+  const awayApplied = playerSide === 'away' ? humanApplied : oppRosterBased;
 
   const homeStarters: RawPlayer[] = (homeApplied.players as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
   const homeBench:    RawPlayer[] = ((homeApplied.bench ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));

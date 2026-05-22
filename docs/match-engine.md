@@ -1233,7 +1233,6 @@ Calibration target: ~2 injuries / match across both teams. Telemetry at 8.0% bas
 - **Recurrence detection** is scaffolded only — `isRecurrence` is always `false` in v1, and the related multiplier constants are unused. A future iteration adds a `lastInjuredOn` field on the roster Player so the recurrence window can be checked.
 - **HIA protocol** (12-minute concussion check then return) is not modelled. Concussions in v1 are full-off only.
 - **Set-piece injuries** (scrum collapse, lineout lift gone wrong) don't trigger rolls today. Only `handlePhasePlay` calls `rollMatchInjury`. Easy extension when wanted — a `0.5%` roll on `defending_dominant_penalty` scrum outcomes for a prop is the lowest-hanging future addition.
-- **AI clubs in the player's own match** still come from raw JSON via `HubScreen.onPlayMatch`, not from `buildTeamFromRoster` — so injured AI players can appear in their starting XV in the *human* match. Pre-existing gap (same root cause as the aging / signings inconsistency); the headless AI fixtures route correctly via `buildTeamFromRoster` so league standings reflect injuries.
 
 ---
 

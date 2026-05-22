@@ -106,4 +106,23 @@ export const TACTIC_MODIFIERS = {
   //    break ≈ one try because the cover-out-of-position effect was
   //    fired twice (once on the break, once on the chain).
   lineBreakChainMultiplier:   { blitz: 0.5, hybrid: 1.0, drift: 1.0 },
+  // 10. Path-specific collision bonuses for blitz on TIGHT attacking
+  //     paths only. Blitz line speed crushes the two predictable
+  //     inside plays — crash ball (set-piece strike #10 → #12) and
+  //     hard carry (PhasePlay !goWide: scrum-half → carrier hits the
+  //     line) — before they can build momentum. Added on top of the
+  //     base defensiveLineCollisionMod.
+  //
+  //     Wide / out-the-back paths get NO path bonus — the press is
+  //     already exposed when the attack goes wide, so the base mod
+  //     applies alone.
+  //
+  //     Wired in:
+  //       * FirstPhaseEvent — crashBall bonus when goCrashBall is true
+  //       * OpenPlayEvent  — hardCarry bonus when !goWide is true
+  //
+  //     Hybrid / drift stay at 0 — their identity is the lateral cover
+  //     and the safer-line trade-off, not the inside collision.
+  crashBallCollisionBonus:    { blitz: 5, hybrid: 0, drift: 0 },
+  hardCarryCollisionBonus:    { blitz: 3, hybrid: 0, drift: 0 },
 } as const;

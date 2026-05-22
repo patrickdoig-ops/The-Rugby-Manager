@@ -212,7 +212,13 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   // defensiveLine was hoisted up top for the pressure / interception
   // rolls; reused here for the carry-resolution mods.
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];
-  const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine];
+  // Path-specific bonus: !goWide is the "hard carry" path (Step 2 in
+  // this handler: scrum-half pop + carrier into contact, no
+  // out-the-back). Blitz line speed bites hardest on these direct
+  // carries. The wide path gets no bonus — the press is already
+  // exposed when the ball goes wide.
+  const pathBonus = goWide ? 0 : TACTIC_MODIFIERS.hardCarryCollisionBonus[defensiveLine];
+  const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine] + pathBonus;
   const res = resolveOpenPlay(
     ballCarrier, defender,
     attackMod + ha.attack,

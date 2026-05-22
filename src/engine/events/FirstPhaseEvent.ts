@@ -278,7 +278,12 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   // Step 3 — Evasion → Step 4 Collision (defensiveLine already hoisted)
   const ha = homeEdge(state, HOME_ADVANTAGE.carryMod);
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];
-  const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine];
+  // Path-specific bonus: blitz devours the crash-ball move (predictable
+  // #10 → #12 strike, defender meets the receiver behind the gain line).
+  // On the wide-play path (#10 → #13 → wing) no extra bonus — the base
+  // collision mod applies alone.
+  const pathBonus = goCrashBall ? TACTIC_MODIFIERS.crashBallCollisionBonus[defensiveLine] : 0;
+  const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine] + pathBonus;
   const res = resolveOpenPlay(
     ballCarrier, defender,
     attackMod + ha.attack,

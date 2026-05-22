@@ -999,14 +999,24 @@ Every penalty flows through one MatchEvent — `PENALTY_AWARDED { offence, offen
 - resets `state.breakdownMod` to `{0,0}`,
 - snapshots the cause onto `state.lastPenalty` so the next tick's `PenaltyHandler` (and the manager-facing modal) knows *why* the whistle blew.
 
-The `PenaltyOffence` taxonomy (`src/types/engine.ts`) starts narrow and grows as new offence types are added:
+The `PenaltyOffence` taxonomy (`src/types/engine.ts`) covers seven offences. Adding another is a 4-step extension: add the union variant in `engine.ts`, give it a row in `OFFENCE_SPEC` (`balance/discipline.ts`), emit `PENALTY_AWARDED` from the appropriate phase event, and add a `PhaseOutcomeKey` + commentary templates. The `CardHandler` TMO gate is registry-driven so it picks up the new offence automatically.
 
-| `offence` | Emitted by | Offender | Trigger |
-|---|---|---|---|
-| `breakdown_infringement` | `BreakdownEvent` | `supporters[0]` from the attacking team | breakdown margin ≤ −15 (attacker infringes at the ruck) |
-| `scrum_infringement` (attacking_dominant_penalty) | `ScrumEvent` | defending hooker | scrum margin > 15 (defending pack collapses) |
-| `scrum_infringement` (defending_dominant_penalty) | `ScrumEvent` | attacking hooker | scrum margin ≤ −15 (attacking pack collapses) |
-| `high_tackle` | `OpenPlayEvent` / `FirstPhaseEvent` / `KickReturnEvent` | the defender who attempted the tackle | `tackleInfringement(defender)` returns `'high_tackle'`, gated to non-line-break collisions |
+| `offence` | Emitted by | Offender | Trigger | TMO? |
+|---|---|---|---|---|
+| `breakdown_infringement` | `BreakdownEvent` (post-resolve `penalty_defending` branch) | `supporters[0]` from the attacking team | breakdown margin ≤ −15 (attacker infringes at the ruck) | no |
+| `scrum_infringement` (attacking_dominant_penalty) | `ScrumEvent` | defending hooker | scrum margin > 15 (defending pack collapses) | no |
+| `scrum_infringement` (defending_dominant_penalty) | `ScrumEvent` | attacking hooker | scrum margin ≤ −15 (attacking pack collapses) | no |
+| `high_tackle` | `OpenPlayEvent` / `FirstPhaseEvent` / `KickReturnEvent` | the defender who attempted the tackle | `tackleInfringement(defender)` returns `'high_tackle'`, gated to non-line-break collisions | **60 %** |
+| `dangerous_cleanout` | `BreakdownEvent` (pre-resolve) | random `supporter` from the attacking team | `rng(1,100) ≤ BREAKDOWN_PENALTIES.dangerousCleanoutBasePct + TACTIC_MODIFIERS.dangerousCleanoutAttackMod[attPlan]` | **60 %** |
+| `not_rolling_away` | `BreakdownEvent` (pre-resolve) | the jackal (defending back-row over the ball) | `rng(1,100) ≤ BREAKDOWN_PENALTIES.notRollingAwayBasePct + TACTIC_MODIFIERS.notRollingAwayDefendMod[defPlan]` | no |
+| `offside_at_ruck` | `BreakdownEvent` (post-resolve, on `clean_ball` or `slow_ball` only) | random on-field defender | `rng(1,100) ≤ BREAKDOWN_PENALTIES.offsideAtRuckBasePct` (flat — future defensive-tactic hook documented inline) | no |
+| `obstruction` | `OpenPlayEvent` / `FirstPhaseEvent` (in the out-the-back branch) | random attacking forward (the screening forward) | `rng(1,100) ≤ OBSTRUCTION_BASE_PCT + TACTIC_MODIFIERS.obstructionStyleMod[attackingStyle]` | no |
+
+**Breakdown roll order (deterministic):** `dangerous_cleanout` → `not_rolling_away` → `resolveBreakdown` (existing 4-way split) → `offside_at_ruck` (only on clean/slow). Each rolls exactly one `rng(1,100)` when reached. The first pre-resolve hit short-circuits to `Penalty`; the post-resolve `offside_at_ruck` check only fires when the ball was about to enter phase play (no point pinning offside on a turnover or an already-penalty contest).
+
+**Obstruction roll order:** one `rng(1,100)` per out-the-back attempt, fired at the *start* of the wide branch (before any handling gate). The narration step (`obstruction_penalty`) replaces the would-be out-the-back + carry sequence.
+
+**Defensive tactics (blitz / drift) are not yet in the codebase.** `offside_at_ruck` is the natural future-hook: when defensive tactics arrive, replace the `+ 0` in `BreakdownEvent.ts` with `+ TACTIC_MODIFIERS.offsideAtRuckDefendMod[defendTeam.tactics.defensiveLine]`. The base rate already targets a realistic share of league-wide offside calls.
 
 `SCRUM_RESOLVED` still owns the scrum-specific front-row stat increments (`scrumPenaltiesWon++` / `scrumPenaltiesConceded++` on every player in the dominated/dominant front row). The follow-up `PENALTY_AWARDED` adds the general `penaltiesConceded++` on the picked hooker; that's why a scrum-penalty hooker now carries both counters (the previous shape only bumped `penaltiesConceded` for breakdown penalties — the new shape is symmetric).
 
@@ -1087,13 +1097,13 @@ The card system layers on top of the penalty seam. Whenever `PENALTY_AWARDED` fi
 
 1. **Team-22 rule.** Each penalty where the offender's team was *defending* in their own 22 increments `state.cards.teamPenalty22[offendingSide]`. The 3rd-in-22 (`TEAM_22.warnAt`) emits a `team_22_warning` announcement (once per match per side). The 4th-in-22 (`TEAM_22.cardAt`) **forces** an immediate yellow on the offender — TMO is skipped. The counter is not reset; the 5th–8th in-22 add no further cards (per spec "the fourth penalty triggers the yellow").
 
-2. **High-tackle TMO.** If the offence is `'high_tackle'` and the team-22 rule didn't already card, CardHandler rolls `rng(1,100) <= TMO.triggerPctHighTackle` (60%). On a hit, a single `rng(1,100)` is bucketed by `TMO.outcomeNoCardPct / outcomeYellowPct / outcomeRed20Pct` (40/40/20) to pre-roll the outcome. In live mode this enters `MatchPhase.TmoReview` for 3 narrative ticks. In silent mode the narrative is collapsed and the card is applied inline — RNG order is identical, so determinism is preserved.
+2. **Per-offence TMO.** If the team-22 rule didn't already card, CardHandler looks up `OFFENCE_SPEC[last.offence].tmoTriggerPct` and rolls `rng(1,100) <= triggerPct`. Two offences carry a non-zero trigger today: `high_tackle` (60 %) and `dangerous_cleanout` (60 %). On a hit, a single `rng(1,100)` is bucketed by the global `TMO.outcomeNoCardPct / outcomeYellowPct / outcomeRed20Pct` weights (40/40/20) to pre-roll the outcome. In live mode this enters `MatchPhase.TmoReview` for 3 narrative ticks; in silent mode the narrative is collapsed and the card is applied inline — RNG order is identical so determinism is preserved. **Adding a TMO-eligible offence is a one-line edit** to the `OFFENCE_SPEC` registry — no `CardHandler` change.
 
 ### TMO review tick anatomy
 
 | Tick | What happens | Clock |
 |---|---|---|
-| N | Carry handler emits PENALTY_AWARDED + commentary ("High tackle! Penalty!"). Phase → Penalty. CardHandler.evaluateNewPenalty rolls TMO, pre-rolls outcome, applies TMO_REVIEW_STARTED + phase → TmoReview, emits `tmo_intervenes`. | Running until this tick |
+| N | Phase event emits PENALTY_AWARDED + commentary (e.g. "High tackle! Penalty!" from the carry handler, or "Reckless clear-out!" from BreakdownEvent). Phase → Penalty. CardHandler.evaluateNewPenalty looks up `OFFENCE_SPEC[offence].tmoTriggerPct`, rolls TMO, pre-rolls outcome, applies TMO_REVIEW_STARTED + phase → TmoReview, emits `tmo_intervenes`. | Running until this tick |
 | N+1 | CardHandler.advanceTmoReview emits `tmo_reviewing`, applies TMO_REVIEW_TICK_ADVANCED (step 1 → 2). | **Stopped** (ClockController.advanceMinute returns 0 when phase === TmoReview) |
 | N+2 | Emits `tmo_decision_<outcome>` announcement, applies TMO_REVIEW_TICK_ADVANCED (step 2 → 3). | Stopped |
 | N+3 | If outcome ≠ no_card: emits CARD_ISSUED + `card_<kind>` announcement. Applies TMO_REVIEW_RESOLVED + phase → Penalty. | Stopped |
@@ -1137,14 +1147,61 @@ The card system layers on top of the penalty seam. Whenever `PENALTY_AWARDED` fi
 
 `PlayerMatchStats` extends with `yellowCards` + `redCards` (both bounded `[0, 3]` in `assertInvariants` as a paranoia ceiling). Red_20 bumps `redCards++` only — total cards = `yellowCards + redCards`.
 
-### Balance constants (`src/engine/balance/discipline.ts`)
+### Balance constants
 
+**Discipline / cards (`src/engine/balance/discipline.ts`)** — global outcome weights + per-offence registry:
 ```ts
-TMO              = { triggerPctHighTackle: 60, outcomeNoCardPct: 40, outcomeYellowPct: 40, outcomeRed20Pct: 20 }
+TMO              = { outcomeNoCardPct: 40, outcomeYellowPct: 40, outcomeRed20Pct: 20 }
+OFFENCE_SPEC     = {
+  breakdown_infringement: { tmoTriggerPct:  0 },
+  scrum_infringement:     { tmoTriggerPct:  0 },
+  high_tackle:            { tmoTriggerPct: 60 },
+  offside_at_ruck:        { tmoTriggerPct:  0 },
+  obstruction:            { tmoTriggerPct:  0 },
+  dangerous_cleanout:     { tmoTriggerPct: 60 },
+  not_rolling_away:       { tmoTriggerPct:  0 },
+}
 SIN_BIN_DURATION = { yellow: 10, red_20: 20 }
 TEAM_22          = { warnAt: 3, cardAt: 4 }
 SHORT_HANDED     = { missingBackDefendPenalty: -8 }
 ```
+
+**Per-offence base trigger rates** — pct per phase-event for the new offences:
+```ts
+// src/engine/balance/breakdown.ts
+BREAKDOWN_PENALTIES = {
+  dangerousCleanoutBasePct: 1.5,   // pre-resolve roll; pct per breakdown event
+  notRollingAwayBasePct:    4,     // pre-resolve roll; pct per breakdown event
+  offsideAtRuckBasePct:     8,     // post-resolve roll; pct per clean_ball / slow_ball outcome
+}
+
+// src/engine/balance/openPlay.ts
+OBSTRUCTION_BASE_PCT = 4   // pct per out-the-back attempt (PhasePlay + FirstPhase)
+```
+
+**Tactic modifiers** — pct-point shifts on the base trigger rate (`src/engine/balance/tactics.ts`, inside `TACTIC_MODIFIERS`):
+```ts
+notRollingAwayDefendMod:    { jackal: 3,         counter_ruck: 0, shadow: -2 }
+dangerousCleanoutAttackMod: { pick_and_drive: 2, balanced: 0,    wide_play: -1 }
+obstructionStyleMod:        { keep_it_tight: -2, balanced: 0,    wide_wide: 3 }
+// offside_at_ruck: no tactic modifier today — defensive tactics (blitz / drift)
+// not yet in codebase. Future hook is a TODO at the BreakdownEvent call site.
+```
+
+**Telemetry calibration (v2.61a, 5 seeds × 90 fixtures = 450 matches):**
+
+| Offence | Per match | Share |
+|---|---:|---:|
+| breakdown_infringement | 4.78 | 38.4 % |
+| scrum_infringement | 3.00 | 24.1 % |
+| offside_at_ruck | 1.70 | 13.6 % |
+| not_rolling_away | 1.41 | 11.3 % |
+| high_tackle | 0.71 | 5.7 % |
+| obstruction | 0.44 | 3.5 % |
+| dangerous_cleanout | 0.41 | 3.3 % |
+| **Total** | **12.45** | 100 % |
+
+Yellow cards: 0.32 / match · Red_20: 0.10 / match · TMO triggers: 0.71 / match. Real Premiership is ~18-22 pens/match — the new constants are dials if a tighter realism target is wanted.
 
 ---
 

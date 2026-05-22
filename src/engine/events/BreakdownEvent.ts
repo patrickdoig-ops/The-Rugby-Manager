@@ -22,15 +22,25 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   // dominant_carry is the smaller-effect cousin: it boosts only the
   // current breakdown, not the next-phase mod. Constants live in
   // CARRY_HANDOFF_BONUSES (balance/breakdown.ts).
+  //
+  // The line-break chain is then multiplied by lineBreakChainMultiplier
+  // for THIS defender's defensiveLine — blitz cover regroups faster
+  // than drift cover, so the cascade is muted. Without this, the
+  // immediate line-break bonus (defensiveLineBreakBonus) compounded
+  // into the chain, double-counting blitz's "cover behind the runner"
+  // effect and overpunishing blitz teams.
   const lineBreakFollowUp = lastEvent?.outcome === 'line_break';
+  const lineBreakChainMult = TACTIC_MODIFIERS.lineBreakChainMultiplier[defendTeam.tactics.defensiveLine];
+  const lineBreakHandoff = lineBreakFollowUp
+    ? CARRY_HANDOFF_BONUSES.lineBreak * lineBreakChainMult
+    : 0;
   const attackBonus =
-      lineBreakFollowUp                       ? CARRY_HANDOFF_BONUSES.lineBreak
+      lineBreakFollowUp                       ? lineBreakHandoff
     : lastEvent?.outcome === 'dominant_carry' ? CARRY_HANDOFF_BONUSES.dominantCarry
     : 0;
 
   // Next-phase modifier: more players committed to ruck = fewer on feet for the next phase
-  const nextAttackMod = TACTIC_MODIFIERS.breakdownAttack[attPlan]
-                      + (lineBreakFollowUp ? CARRY_HANDOFF_BONUSES.lineBreak : 0);
+  const nextAttackMod = TACTIC_MODIFIERS.breakdownAttack[attPlan] + lineBreakHandoff;
   const nextDefendMod = TACTIC_MODIFIERS.breakdownDefend[defPlan];
 
   const attackSide = state.possession;

@@ -87,4 +87,16 @@ export const TACTIC_MODIFIERS = {
   //    front-foot boost. Calibrated so blitz teams collect ~1 interception
   //    per side per match, drift teams almost never.
   interceptionMod:            { blitz: 1.0, hybrid: 0, drift: -0.3 },
+  // 9. Multiplier on CARRY_HANDOFF_BONUSES.lineBreak when the previous
+  //    play was a line break against THIS defensive line. Models how
+  //    quickly the broken defence regroups for the next phase. The
+  //    immediate line-break gain (defensiveLineBreakBonus) already
+  //    captures the metres-on-the-break — this damps the cascade so a
+  //    blitz line break isn't double-counted into the next phase's
+  //    handoff. Drift's lateral cover takes the normal time to recover
+  //    so it doesn't get the dampener. Without this, blitz teams were
+  //    overpunished by the line-break-handoff compounding: one line
+  //    break ≈ one try because the cover-out-of-position effect was
+  //    fired twice (once on the break, once on the chain).
+  lineBreakChainMultiplier:   { blitz: 0.5, hybrid: 1.0, drift: 1.0 },
 } as const;

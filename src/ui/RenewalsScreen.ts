@@ -70,7 +70,13 @@ export function initRenewalsScreen(
       // Defensive — shouldn't happen if the nav handler only opens the
       // window when there are offers, but render a sensible empty state.
       el!.innerHTML = `
-        <div id="rn-topbar"><div style="width:72px"></div><span id="rn-title">No Renewals</span><div style="width:72px"></div></div>
+        <div class="app-header">
+          <div class="app-topbar">
+            <div class="app-topbar-spacer"></div>
+            <span class="app-title">No Renewals</span>
+            <div class="app-topbar-spacer"></div>
+          </div>
+        </div>
         <div id="rn-empty">No expiring contracts this off-season.</div>
         <div id="rn-footer"><button id="rn-continue" class="cta-pulse"><span>Continue</span></button></div>
       `;
@@ -142,12 +148,14 @@ export function initRenewalsScreen(
     const capPill = `<span class="rn-cappill rn-cappill--${capStatus}"><span>CAP</span><span>${fmtWage(projectedCap)} / ${fmtWage(effectiveCap)}</span></span>`;
 
     el!.innerHTML = `
-      <div id="rn-topbar">
-        <div style="width:72px"></div>
-        <span id="rn-title">Renewals — ${team.shortName}</span>
-        ${capPill}
+      <div class="app-header">
+        <div class="app-topbar">
+          <div class="app-topbar-spacer"></div>
+          <span class="app-title">Renewals</span>
+          ${capPill}
+        </div>
+        <div class="app-eyebrow">${team.name} · ${state.calendar.seasonLabel} · ${renewedCount} of ${myOffers.length} keeping</div>
       </div>
-      <div id="rn-eyebrow">${state.calendar.seasonLabel} · ${renewedCount} of ${myOffers.length} keeping</div>
 
       <div id="rn-list">
         ${myOffers.length === 0

@@ -11,49 +11,6 @@
   padding-right:  env(safe-area-inset-right, 0px);
 }
 
-#fl-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px 0;
-  flex-shrink: 0;
-}
-
-#fl-back {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  color: var(--rm-text-muted);
-  font-family: var(--rm-font-body);
-  font-size: 13px;
-  cursor: pointer;
-  padding: 6px 0;
-  -webkit-tap-highlight-color: transparent;
-}
-
-#fl-back svg { pointer-events: none; }
-
-#fl-title {
-  font-family: var(--rm-font-display);
-  font-size: 16px;
-  color: var(--rm-chalk);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-#fl-eyebrow {
-  font-family: var(--rm-font-mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  color: var(--rm-pitch);
-  text-transform: uppercase;
-  text-align: center;
-  padding: 10px 16px 8px;
-  flex-shrink: 0;
-}
-
 #fl-toggle {
   display: flex;
   margin: 0 16px 12px;
@@ -243,6 +200,3 @@
   flex-shrink: 0;
 }
 
-@media (hover: hover) {
-  #fl-back:hover { color: var(--rm-text); }
-}

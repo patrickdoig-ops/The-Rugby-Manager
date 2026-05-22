@@ -13,47 +13,6 @@
   padding-right:  env(safe-area-inset-right, 0px);
 }
 
-#ct-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px 0;
-  flex-shrink: 0;
-  gap: 12px;
-}
-
-#ct-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: transparent;
-  border: none;
-  color: var(--rm-text);
-  font-family: var(--rm-font-mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 8px;
-  min-width: 72px;
-}
-
-#ct-back:hover { background: color-mix(in oklch, var(--rm-surface) 60%, transparent); }
-
-#ct-title {
-  font-family: var(--rm-font-display);
-  font-size: 16px;
-  color: var(--rm-chalk);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  text-align: center;
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .ct-cappill {
   display: inline-flex;
   align-items: center;

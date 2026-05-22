@@ -115,13 +115,16 @@ export function initContractsScreen(
     };
 
     el!.innerHTML = `
-      <div id="ct-topbar">
-        <button id="ct-back" aria-label="Back to hub">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          <span>Hub</span>
-        </button>
-        <span id="ct-title">Contracts — ${team.shortName}</span>
-        ${capPill}
+      <div class="app-header">
+        <div class="app-topbar">
+          <button id="ct-back" class="app-back" aria-label="Back to hub">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Hub</span>
+          </button>
+          <span class="app-title">Contracts</span>
+          ${capPill}
+        </div>
+        <div class="app-eyebrow">${team.name} · ${state.calendar.seasonLabel}</div>
       </div>
 
       <div id="ct-headrow">

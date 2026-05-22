@@ -65,7 +65,13 @@ export function initTransferMarketScreen(
     const market = state.career.market;
     if (!team || !club || !market || market.phase !== 'signings') {
       el!.innerHTML = `
-        <div id="tm-topbar"><div style="width:72px"></div><span id="tm-title">No Free Agents</span><div style="width:72px"></div></div>
+        <div class="app-header">
+          <div class="app-topbar">
+            <div class="app-topbar-spacer"></div>
+            <span class="app-title">No Free Agents</span>
+            <div class="app-topbar-spacer"></div>
+          </div>
+        </div>
         <div class="tm-empty">No signing window open.</div>
         <div id="tm-footer"><button id="tm-continue" class="cta-pulse"><span>Continue</span></button></div>
       `;
@@ -151,12 +157,14 @@ export function initTransferMarketScreen(
     };
 
     el!.innerHTML = `
-      <div id="tm-topbar">
-        <div style="width:72px"></div>
-        <span id="tm-title">Transfer Market — ${team.shortName}</span>
-        ${capPill}
+      <div class="app-header">
+        <div class="app-topbar">
+          <div class="app-topbar-spacer"></div>
+          <span class="app-title">Transfer Market</span>
+          ${capPill}
+        </div>
+        <div class="app-eyebrow">${team.name} · ${freeAgentRows.length} free agents · ${poachRows.length} approachable</div>
       </div>
-      <div id="tm-eyebrow">${state.calendar.seasonLabel} · ${freeAgentRows.length} free agents · ${poachRows.length} approachable</div>
 
       <h3 class="tm-section-h">Free Agents</h3>
       <div id="tm-headrow">

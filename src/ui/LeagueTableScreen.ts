@@ -93,8 +93,8 @@ export function initLeagueTableScreen(
 
     const inPostMatch = postMatchOnContinue !== null;
     const topbarLeft = inPostMatch
-      ? `<div style="width:72px"></div>`
-      : `<button id="lt-back" aria-label="Back to hub">
+      ? `<div class="app-topbar-spacer"></div>`
+      : `<button id="lt-back" class="app-back" aria-label="Back to hub">
            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
            <span>Hub</span>
          </button>`;
@@ -108,12 +108,14 @@ export function initLeagueTableScreen(
       : '';
 
     el!.innerHTML = `
-      <div id="lt-topbar">
-        ${topbarLeft}
-        <span id="lt-title">League Table</span>
-        <div style="width:72px"></div>
+      <div class="app-header">
+        <div class="app-topbar">
+          ${topbarLeft}
+          <span class="app-title">League Table</span>
+          <div class="app-topbar-spacer"></div>
+        </div>
+        <div class="app-eyebrow">${state.calendar.seasonLabel} · Week ${state.calendar.week} of ${totalRounds}</div>
       </div>
-      <div id="lt-eyebrow">${state.calendar.seasonLabel} · Week ${state.calendar.week} of ${totalRounds}</div>
       <div id="lt-table">
         <div class="lt-head">
           <span class="lt-rank">#</span>

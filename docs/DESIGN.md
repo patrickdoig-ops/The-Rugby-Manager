@@ -346,10 +346,10 @@ Current icon assignments:
 
 Every screen that pushes a forward navigation (Home → TeamSelector → FixtureList → PreMatch → live match) carries a back button in the top-left, rendered as the Heroicons `arrow-left` outline. The label names the **destination**, not the current screen (e.g. "Lobby" on Team Selector returns to Home; "Teams" on Fixture List returns to Team Selector). Stroke width is 2 — slightly heavier than the default 1.5 to match the chunky nav-bar feel.
 
-Canonical markup:
+Canonical markup (uses the shared `.app-back` class — see § "Screen topbar"):
 
 ```html
-<button id="…-back" aria-label="Back">
+<button id="…-back" class="app-back" aria-label="Back">
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
        stroke="currentColor" stroke-width="2"
        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -359,7 +359,51 @@ Canonical markup:
 </button>
 ```
 
-Reference implementations: `#fl-back` (FixtureListScreen), `#pm-back` (PreMatchScreen), `#ts-back` (TeamSelectorScreen). All three share the same SVG path and the same button shape — copy from any of them when adding a back button to a new screen.
+Reference implementations: `#fl-back` (FixtureListScreen), `#sq-back` (SquadManagementScreen), `#ts-back` (TeamSelectorScreen). All share the same SVG path and the same button shape — copy from any of them when adding a back button to a new screen.
+
+### Screen topbar
+
+Every in-season list screen (FixtureList, LeagueTable, RoundResults, Contracts, Squad, Renewals, TransferMarket, EndOfSeason, Rollover, Settings) wraps its top frame in a card-style **header** with a back / title / spacer row plus an optional eyebrow underneath. The header reads as a fixed band over the scrolling content below.
+
+Five primitives live in `style/main.css` and must be reused by every new screen that fits the pattern:
+
+| Class | Purpose | Spec |
+|---|---|---|
+| `.app-header` | The card itself — surface fill, soft bottom border, drop shadow. Wraps `.app-topbar` + optional `.app-eyebrow`. | `background: var(--rm-surface); border-bottom: 1px solid var(--rm-border-soft); box-shadow: 0 2px 12px rgba(0,0,0,0.35); padding: 12px 16px 9px;` |
+| `.app-topbar` | Flex row containing back / title / right-side element. | `display:flex; align-items:center; justify-content:space-between; gap:12px;` |
+| `.app-back` | Back button — Geist body, 13px, muted text, no fill / border. See § "Back navigation". | `font-family: var(--rm-font-body); font-size:13px; color: var(--rm-text-muted); padding: 6px 0;` |
+| `.app-title` | Screen title — Anton display, 16px chalk, uppercase, ellipsised on overflow. | `font-family: var(--rm-font-display); font-size:16px; color: var(--rm-chalk); text-transform: uppercase; letter-spacing: 0.05em;` |
+| `.app-topbar-spacer` | 72px-wide invisible spacer used when the right side has no real element (post-match forward-only flow). | `width: 72px;` |
+| `.app-eyebrow` | Mono subtitle row beneath the topbar inside the header card. Use for season/team context. | `font-family: var(--rm-font-mono); font-size:10px; color: var(--rm-pitch); letter-spacing: 0.14em; text-align: center; margin-top: 8px;` |
+
+Canonical markup:
+
+```html
+<div class="app-header">
+  <div class="app-topbar">
+    <button class="app-back" aria-label="Back">
+      <svg .../><span>Hub</span>
+    </button>
+    <span class="app-title">League Table</span>
+    <div class="app-topbar-spacer"></div>
+  </div>
+  <div class="app-eyebrow">2025/26 · Week 9 of 18</div>
+</div>
+```
+
+**Title text rule:** the title is the screen name only — `"Contracts"`, not `"Contracts — Harlequins"`. Team/season identity belongs in the eyebrow. Three benefits: cleaner title rhythm; no truncation pressure on narrow widths; one place to look for context.
+
+**Right side of the topbar.** In place of `.app-topbar-spacer` you can put a screen-specific element (Contracts' cap pill, Renewals' cap pill, Transfer Market's cap pill). It should be ~72px wide or have its own min-width so the title stays centred.
+
+**Intentional exceptions (don't wrap in `.app-header`):**
+
+| Screen | Why |
+|---|---|
+| Hub | The hero block (crest + team name + standing widget + progress bar) is the meaningful identity surface. Topbar is just the Settings cog over a team-colour radial wash. |
+| PreMatch | The versus block sits immediately under the topbar with its own visual identity; a card-header band would break the flow into the lineup grid. Back button still uses `.app-back`. |
+| Match Result | Celebration overlay — full-time eyebrow + italic verdict + crests in lieu of any nav chrome. |
+| Team Selector / Team Info | Both lead with a centred hero rather than a topbar pattern. Back button is `position: fixed` in the top-left, outside any topbar container. |
+| Home | Atmospheric splash screen — chrome row carries live status + theme/settings buttons over the pitch background. No title. |
 
 ## Layout
 

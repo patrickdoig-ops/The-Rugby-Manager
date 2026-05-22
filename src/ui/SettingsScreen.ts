@@ -13,13 +13,15 @@ export function initSettingsScreen(onBack: () => void): void {
   if (!el) return;
 
   el.innerHTML = `
-    <div id="settings-topbar">
-      <button id="settings-back" aria-label="Back to home">
-        ${backIcon()}
-        <span>Home</span>
-      </button>
-      <span id="settings-title">Settings</span>
-      <div style="width:72px"></div>
+    <div class="app-header">
+      <div class="app-topbar">
+        <button id="settings-back" class="app-back" aria-label="Back to home">
+          ${backIcon()}
+          <span>Home</span>
+        </button>
+        <span class="app-title">Settings</span>
+        <div class="app-topbar-spacer"></div>
+      </div>
     </div>
 
     <div id="settings-body">

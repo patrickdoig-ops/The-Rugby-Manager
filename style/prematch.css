@@ -40,23 +40,6 @@
   padding: 10px 16px 8px;
 }
 
-#pm-back {
-  appearance: none;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: var(--rm-text-muted);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0;
-  font-family: var(--rm-font-mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-#pm-back svg { pointer-events: none; }
 
 #pm-context-label {
   font-family: var(--rm-font-mono);

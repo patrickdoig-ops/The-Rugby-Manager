@@ -17,57 +17,6 @@
   /* --team-color is set inline by JS */
 }
 
-/* ─── Header ─── */
-#sq-header {
-  flex-shrink: 0;
-  background: var(--rm-surface);
-  border-bottom: 1px solid var(--rm-border-soft);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
-}
-
-#sq-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px 8px;
-}
-
-#sq-back {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  color: var(--rm-text-muted);
-  font-family: var(--rm-font-body);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
-  -webkit-tap-highlight-color: transparent;
-}
-
-#sq-back svg { pointer-events: none; }
-
-#sq-title {
-  font-family: var(--rm-font-mono);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--rm-chalk);
-}
-
-#sq-eyebrow {
-  font-family: var(--rm-font-mono);
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  color: var(--rm-pitch);
-  text-transform: uppercase;
-  text-align: center;
-  padding: 0 16px 9px;
-}
-
 /* ─── Position filter chips ─── */
 #sq-filter-bar {
   flex-shrink: 0;

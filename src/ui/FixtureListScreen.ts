@@ -108,15 +108,17 @@ export function initFixtureListScreen(
     const teamLabel = playerTeam?.shortName ?? 'My team';
 
     el!.innerHTML = `
-      <div id="fl-topbar">
-        <button id="fl-back" aria-label="Back to hub">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          <span>Hub</span>
-        </button>
-        <span id="fl-title">Season Fixtures</span>
-        <div style="width:72px"></div>
+      <div class="app-header">
+        <div class="app-topbar">
+          <button id="fl-back" class="app-back" aria-label="Back to hub">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Hub</span>
+          </button>
+          <span class="app-title">Season Fixtures</span>
+          <div class="app-topbar-spacer"></div>
+        </div>
+        <div class="app-eyebrow">${state.calendar.seasonLabel} · ${state.calendar.date} · Week ${state.calendar.week} of ${totalRounds}</div>
       </div>
-      <div id="fl-eyebrow">${state.calendar.seasonLabel} · ${state.calendar.date} · Week ${state.calendar.week} of ${totalRounds}</div>
       <div id="fl-toggle" role="tablist">
         <button class="fl-toggle-btn${activeMode === 'team' ? ' active' : ''}" data-mode="team" role="tab">${teamLabel}</button>
         <button class="fl-toggle-btn${activeMode === 'next' ? ' active' : ''}" data-mode="next" role="tab">Next round</button>

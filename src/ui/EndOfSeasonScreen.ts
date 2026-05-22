@@ -115,12 +115,14 @@ export function initEndOfSeasonScreen(
       `${(mvpPlayer.seasonStats.ratingSum / mvpPlayer.seasonStats.appearances).toFixed(2)} avg · ${mvpPlayer.seasonStats.appearances} apps`) : leaderEmpty('SEASON MVP');
 
     el!.innerHTML = `
-      <div id="eos-topbar">
-        <div style="width:72px"></div>
-        <span id="eos-title">Season Complete</span>
-        <div style="width:72px"></div>
+      <div class="app-header">
+        <div class="app-topbar">
+          <div class="app-topbar-spacer"></div>
+          <span class="app-title">Season Complete</span>
+          <div class="app-topbar-spacer"></div>
+        </div>
+        <div class="app-eyebrow">${state.calendar.seasonLabel}</div>
       </div>
-      <div id="eos-eyebrow">${state.calendar.seasonLabel}</div>
 
       <div id="eos-grid">
         <section class="eos-section eos-standings">

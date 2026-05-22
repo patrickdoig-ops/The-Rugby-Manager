@@ -885,6 +885,76 @@ html, body {
   flex-shrink: 0;
 }
 
+/* ─── Shared screen header primitives ─── */
+/* See docs/DESIGN.md § "Screen topbar". Used by every in-season list screen
+   (FixtureList, LeagueTable, Contracts, Renewals, TransferMarket, Squad,
+   RoundResults, EndOfSeason, Rollover, Settings). Hub / PreMatch / MatchResult
+   / TeamSelector / TeamInfo / Home are intentional exceptions. */
+
+.app-header {
+  flex-shrink: 0;
+  background: var(--rm-surface);
+  border-bottom: 1px solid var(--rm-border-soft);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+  padding: 12px 16px 9px;
+}
+
+.app-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.app-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--rm-text-muted);
+  font-family: var(--rm-font-body);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 6px 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app-back svg { pointer-events: none; }
+
+@media (hover: hover) {
+  .app-back:hover { color: var(--rm-text); }
+}
+
+.app-title {
+  font-family: var(--rm-font-display);
+  font-size: 16px;
+  color: var(--rm-chalk);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.app-topbar-spacer {
+  width: 72px;
+  flex-shrink: 0;
+}
+
+.app-eyebrow {
+  margin-top: 8px;
+  text-align: center;
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--rm-pitch);
+  text-transform: uppercase;
+}
+
 /* ─── Animations ─── */
 @keyframes rmPulse {
   0%, 100% { opacity: 1; }

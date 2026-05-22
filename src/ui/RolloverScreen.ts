@@ -126,12 +126,14 @@ export function initRolloverScreen(
     }).join('');
 
     el!.innerHTML = `
-      <div id="roll-topbar">
-        <div style="width:72px"></div>
-        <span id="roll-title">Off-Season</span>
-        <div style="width:72px"></div>
+      <div class="app-header">
+        <div class="app-topbar">
+          <div class="app-topbar-spacer"></div>
+          <span class="app-title">Off-Season</span>
+          <div class="app-topbar-spacer"></div>
+        </div>
+        <div class="app-eyebrow">${state.calendar.seasonLabel}</div>
       </div>
-      <div id="roll-eyebrow">${state.calendar.seasonLabel}</div>
 
       <section class="roll-section">
         <h3 class="roll-h3">Retirements <span class="roll-count">${retirements.length}</span></h3>

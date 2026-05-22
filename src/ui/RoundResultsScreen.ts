@@ -91,12 +91,14 @@ export function initRoundResultsScreen(
     }).join('');
 
     el!.innerHTML = `
-      <div id="rr-topbar">
-        <div style="width:72px"></div>
-        <span id="rr-title">Round ${activeRound} Results</span>
-        <div style="width:72px"></div>
+      <div class="app-header">
+        <div class="app-topbar">
+          <div class="app-topbar-spacer"></div>
+          <span class="app-title">Round ${activeRound} Results</span>
+          <div class="app-topbar-spacer"></div>
+        </div>
+        <div class="app-eyebrow">${state.calendar.seasonLabel}</div>
       </div>
-      <div id="rr-eyebrow">${state.calendar.seasonLabel}</div>
       <div id="rr-list">${rowsHtml}</div>
       <div id="rr-footer">
         <button id="rr-continue" class="cta-pulse">

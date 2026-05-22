@@ -15,36 +15,6 @@
   overflow: hidden;
 }
 
-#eos-topbar,
-#roll-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px 0;
-  flex-shrink: 0;
-}
-
-#eos-title,
-#roll-title {
-  font-family: var(--rm-font-display);
-  font-size: 16px;
-  color: var(--rm-chalk);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-#eos-eyebrow,
-#roll-eyebrow {
-  font-family: var(--rm-font-mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  color: var(--rm-pitch);
-  text-transform: uppercase;
-  text-align: center;
-  padding: 10px 16px 14px;
-  flex-shrink: 0;
-}
-
 /* ===== EndOfSeasonScreen ===== */
 
 #eos-grid {

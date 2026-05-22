@@ -27,4 +27,11 @@ export const SCRUM_VALUES = {
   attackPenaltyMargin: 30,
   stableWinMargin:    -16,
   wheelMargin:        -36,
+  // Soft floor on own-put-in retention. When the natural margin produces a
+  // defending_dominant_penalty, the resolver re-rolls at this rate to a wheel
+  // (reset scrum, no possession change). Stops a much weaker pack from losing
+  // literally every own scrum and lifts the floor to roughly 70%+ league-wide.
+  // For evenly-matched packs the natural pen rate is already low so this
+  // rarely fires.
+  ownPutInRescuePct: 70,
 } as const;

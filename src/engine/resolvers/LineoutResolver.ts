@@ -18,24 +18,35 @@ export function resolveLineout(
   const { crookedThrowThreshold, setPieceWeight, agilityWeight, cleanCatchMargin, scrappyMargin } = LINEOUT_VALUES;
   const throwScore = hooker.currentStats.setPiece + rng(1, 100);
 
+  let result: LineoutResult;
+  let attackJumpScore = 0;
+  let defendJumpScore = 0;
+
   if (throwScore < crookedThrowThreshold) {
-    return { result: 'crooked_throw', throwScore, attackJumpScore: 0, defendJumpScore: 0 };
+    result = 'crooked_throw';
+  } else {
+    attackJumpScore = (attackJumper.currentStats.setPiece * setPieceWeight
+                     + attackJumper.currentStats.agility  * agilityWeight)
+                    + rng(1, 20);
+
+    defendJumpScore = (defendJumper.currentStats.setPiece * setPieceWeight
+                     + defendJumper.currentStats.agility  * agilityWeight)
+                    + rng(1, 20);
+
+    const margin = attackJumpScore - defendJumpScore;
+    if      (margin >= cleanCatchMargin) result = 'clean_catch';
+    else if (margin >= scrappyMargin)    result = 'scrappy_knock_on';
+    else                                 result = 'steal';
   }
 
-  const attackJumpScore = (attackJumper.currentStats.setPiece * setPieceWeight
-                         + attackJumper.currentStats.agility  * agilityWeight)
-                        + rng(1, 20);
-
-  const defendJumpScore = (defendJumper.currentStats.setPiece * setPieceWeight
-                         + defendJumper.currentStats.agility  * agilityWeight)
-                        + rng(1, 20);
-
-  const margin = attackJumpScore - defendJumpScore;
-
-  let result: LineoutResult;
-  if (margin >= cleanCatchMargin) result = 'clean_catch';
-  else if (margin >= scrappyMargin) result = 'scrappy_knock_on';
-  else result = 'steal';
+  // Own-throw floor (see LINEOUT_VALUES.ownThrowRescuePct). Rescue most
+  // would-be losses (crooked / scrappy / steal) into a clean catch so the
+  // weakest hooker/jumper pairings still hold their own throw at ~70%+
+  // league-wide. Strong packs barely shift since their natural loss rate
+  // is already low.
+  if (result !== 'clean_catch' && rng(1, 100) <= LINEOUT_VALUES.ownThrowRescuePct) {
+    result = 'clean_catch';
+  }
 
   return { result, throwScore, attackJumpScore, defendJumpScore };
 }

@@ -34,6 +34,12 @@ function runOnce(seed: number): Promise<string> {
     const offPaused = eventBus.on('engine:paused', ({ payload }) => {
       if (payload.type === 'kickoff_choice') payload.onChoice('high_ball');
       else if (payload.type === 'penalty_choice') payload.onChoice('kick_for_goal');
+      else if (payload.type === 'forced_substitution_choice') {
+        // Auto-pick the first bench player (or null if bench is empty) so a
+        // red_20 to the human side doesn't stall the harness. Choice is
+        // deterministic for any given seed.
+        payload.onChoice(payload.bench[0]?.squadNumber ?? null);
+      }
     });
 
     const offFinished = eventBus.on('engine:finished', () => {

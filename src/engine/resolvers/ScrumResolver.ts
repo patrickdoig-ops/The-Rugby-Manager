@@ -39,5 +39,14 @@ export function resolveScrum(attackForwards: Player[], defendForwards: Player[])
   else if (margin > wheelMargin) result = 'wheel';
   else result = 'defending_dominant_penalty';
 
+  // Own-put-in floor (see SCRUM_VALUES.ownPutInRescuePct). A much weaker
+  // pack would otherwise lose nearly every own scrum to a dominant pen;
+  // rescue most of those into a wheel reset (no possession change) so the
+  // floor lands around 70%+ league-wide. For evenly-matched packs the
+  // natural pen rate is low so the rescue rarely fires.
+  if (result === 'defending_dominant_penalty' && rng(1, 100) <= SCRUM_VALUES.ownPutInRescuePct) {
+    result = 'wheel';
+  }
+
   return { result, attackScore, defendScore, margin };
 }

@@ -41,7 +41,13 @@ export const TACTICAL_KICK_VALUES = {
 export const GOAL_KICK_VALUES = {
   angleWeight:      0.3,
   composureWeight:  0.2,
-  successThreshold: 120,
+  // Pass mark for resolveGoalKick: `kicking + composure*0.2 - angle*0.3 + rng(1,100)`.
+  // Each +1 to the threshold ≈ −1pp success rate across the rng range, so this
+  // dial is the cleanest league-wide accuracy lever. Calibrated to land the
+  // top kicker (~95 kicking) around 80% and the league at ~75% conversions /
+  // ~78% penalties — closer to Premiership real-world (~70% / ~78%) than the
+  // 90%+ values we had at 120.
+  successThreshold: 135,
 } as const;
 
 export const CONVERSION_VALUES = {

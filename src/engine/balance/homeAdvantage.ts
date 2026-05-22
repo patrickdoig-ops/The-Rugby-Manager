@@ -17,10 +17,10 @@
 export const HOME_ADVANTAGE = {
   // Headline figure surfaced by the pre-match SPREAD tile. Also the
   // calibration target validated via telemetry.
-  spreadPts: 8,
+  spreadPts: 7,
 
   // Per-channel modifiers. Same units as attackMod / defendMod elsewhere
   // (~1 unit ≈ 1 point of effective rating in resolver-margin terms).
-  carryMod:     5,  // FirstPhase / PhasePlay / KickReturn → resolveOpenPlay
+  carryMod:     3,  // FirstPhase / PhasePlay / KickReturn → resolveOpenPlay
   breakdownMod: 3,  // BreakdownEvent → resolveBreakdown
 } as const;

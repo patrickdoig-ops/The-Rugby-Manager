@@ -50,7 +50,7 @@ export const TACTIC_MODIFIERS = {
   //    suppression dominated and drift's collision penalty wasn't kicking
   //    in enough. Making the collision mod harsher pushes drift firmly
   //    into "soft defence, gives ground per carry" territory.
-  defensiveLineCollisionMod:  { blitz:  8, hybrid:  0, drift: -8 },
+  defensiveLineCollisionMod:  { blitz:  8, hybrid:  0, drift: -6 },
   // 3. Line break gain bonus — when a line break HAPPENS, blitz cover is
   //    behind the runner and concedes more metres; drift cover is wide
   //    and shallow and chases laterally. Tuned in v2.67a from blitz +10

@@ -19,8 +19,12 @@ export const TACTIC_MODIFIERS = {
   // Penalty-rate shifts (in pct points) added to the matching base rate
   // in BREAKDOWN_PENALTIES / OBSTRUCTION_BASE_PCT. Modest values — these
   // dials nudge the trigger rate, they don't dominate it.
-  // jackal contests body-position harder → more not-rolling-away risk.
-  notRollingAwayDefendMod:    { jackal: 3,           counter_ruck: 0,  shadow: -2 },
+  // jackal contests body-position harder → more not-rolling-away risk, but
+  // tuned down from +3 to +1 in v2.79a: the offender field puts the whole
+  // penalty on the player attempting the turnover, and the previous +3 was
+  // tanking top jackalers' post-match ratings hard enough to make them
+  // invisible in the leaderboards despite high turnover counts.
+  notRollingAwayDefendMod:    { jackal: 1,           counter_ruck: 0,  shadow: -2 },
   // pick_and_drive puts more bodies into the ruck → more chance one of them
   // hits illegally; wide_play commits fewer cleaners → less risk.
   dangerousCleanoutAttackMod: { pick_and_drive: 2,   balanced: 0,      wide_play: -1 },

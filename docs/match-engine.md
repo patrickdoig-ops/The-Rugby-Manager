@@ -1188,7 +1188,7 @@ OBSTRUCTION_BASE_PCT = 4   // pct per out-the-back attempt (PhasePlay + FirstPha
 
 **Tactic modifiers** — pct-point shifts on the base trigger rate (`src/engine/balance/tactics.ts`, inside `TACTIC_MODIFIERS`):
 ```ts
-notRollingAwayDefendMod:    { jackal: 3,         counter_ruck: 0, shadow: -2 }
+notRollingAwayDefendMod:    { jackal: 1,         counter_ruck: 0, shadow: -2 }
 dangerousCleanoutAttackMod: { pick_and_drive: 2, balanced: 0,    wide_play: -1 }
 obstructionStyleMod:        { keep_it_tight: -2, balanced: 0,    wide_wide: 3 }
 offsideAtRuckDefendMod:     { blitz: 6,          hybrid: 2,      drift: -2 }

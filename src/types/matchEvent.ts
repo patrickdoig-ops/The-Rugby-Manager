@@ -29,6 +29,16 @@ export type MatchEvent =
   | { type: 'KNOCK_ON'; player: Player; attackSide: PossessionSide }
   | { type: 'TURNOVER_AT_BREAKDOWN'; jackal: Player }
 
+  // Defender intercepts a pass attempt. Reducer flips possession and bumps
+  // the interceptor's matchStats.turnoversWon (we reuse that field rather
+  // than add a separate `interceptions` counter — an interception IS a
+  // turnover and the existing field already drives the jackal leaderboard
+  // in telemetry). Caller is expected to also emit KICK_RETURN_CARRIER_SET
+  // (interceptor) + BREAKDOWN_MOD_SET (attack: INTERCEPTION_FOLLOW_UP_BONUS,
+  // defend: 0) so the next-tick KickReturn handler picks the interceptor up
+  // with a front-foot evasion bonus.
+  | { type: 'INTERCEPTION'; interceptor: Player; passer: Player; attackSide: PossessionSide }
+
   // The single seam for "a penalty has been awarded". Emitted by every resolver
   // that detects an infringement; its reducer flips possession to the
   // non-offending side, bumps `offender.matchStats.penaltiesConceded++`, resets

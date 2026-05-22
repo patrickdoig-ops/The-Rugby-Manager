@@ -22,6 +22,8 @@ export const COMMENTARY_CHANCES = {
   blitzDominantTackle:          25,
   driftShepherdToTouch:         20,
   blitzLineBreakPunished:       35,
+  blitzPressureKnockOn:         40,
+  blitzInterception:            45,
 } as const;
 
 // Soft cap on the in-state commentary buffer (state.events). Older entries

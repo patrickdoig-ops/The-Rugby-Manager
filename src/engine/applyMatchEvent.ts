@@ -107,6 +107,16 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       state.breakdownMod = { attack: 0, defend: 0 };
       return;
 
+    case 'INTERCEPTION':
+      // Reusing turnoversWon (per design choice — interception is a kind of
+      // turnover and the stat already drives the jackal/turnover leaderboard).
+      event.interceptor.matchStats.turnoversWon++;
+      state.possession = state.possession === 'home' ? 'away' : 'home';
+      // Note: state.breakdownMod is intentionally NOT reset here — the
+      // call site emits BREAKDOWN_MOD_SET with the front-foot boost
+      // AFTER this event, so a default {0,0} reset would erase the bonus.
+      return;
+
     case 'PENALTY_AWARDED': {
       const preFlipPossession = state.possession;
       event.offender.matchStats.penaltiesConceded++;

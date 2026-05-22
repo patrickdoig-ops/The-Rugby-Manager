@@ -15,6 +15,7 @@ export type PhaseOutcomeKey =
   | 'line_break' | 'line_break_try'
   | 'dominant_carry' | 'dominant_tackle' | 'play_on'
   | 'high_tackle_penalty' | 'obstruction_penalty'
+  | 'interception'
   // Breakdown
   | 'clean_ball' | 'slow_ball' | 'turnover' | 'penalty_defending'
   | 'offside_at_ruck_penalty' | 'not_rolling_away_penalty' | 'dangerous_cleanout_penalty'
@@ -53,7 +54,9 @@ export type TacticNoteCause =
   | 'kick_caught_return_bonus'
   | 'blitz_dominant_tackle'
   | 'drift_shepherd_to_touch'
-  | 'blitz_line_break_punished';
+  | 'blitz_line_break_punished'
+  | 'blitz_pressure_knockon'
+  | 'blitz_interception';
 
 // Card-system announcement keys live in their own union so CardHandler
 // can type its emitter against the same set the renderer keys off,

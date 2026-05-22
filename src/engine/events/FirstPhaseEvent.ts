@@ -9,7 +9,7 @@ import { attackDir, isTryScoredAt, inOwnHalf, inOwn22, onFieldPlayers, available
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
-import { HOME_ADVANTAGE, KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnThreshold, OBSTRUCTION_BASE_PCT } from '../balance';
+import { HOME_ADVANTAGE, KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnThreshold, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_FOLLOW_UP_BONUS } from '../balance';
 
 const FULL_BACKLINE = 7;
 
@@ -40,9 +40,37 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   const carrier   = attackOnField.find(p => p.id === 10) ?? pickPlayer(attackTeam, 10);
   const scrumHalf = attackOnField.find(p => p.id === 9) ?? attackOnField[0] ?? attackTeam.players[0];
 
-  const events: MatchEvent[] = [
-    { type: 'PASS_COMPLETED', passer: scrumHalf },
-  ];
+  // Defensive line drives the per-pass interception probability and the
+  // handling-gate pressure modifier. Hoisted up here so every pass site +
+  // gate site below sees the same value.
+  const defensiveLine = defendTeam.tactics.defensiveLine;
+  const pressureMod   = TACTIC_MODIFIERS.defensiveLineHandlingPressure[defensiveLine];
+  const interceptPctBase = INTERCEPTION_BASE_PCT + TACTIC_MODIFIERS.interceptionMod[defensiveLine];
+
+  const events: MatchEvent[] = [];
+
+  // Scrum-half → fly-half interception roll. Off the set piece this is
+  // the first pass; off-target the ball lands at the interceptor's feet.
+  {
+    const intPct = interceptPctBase - (scrumHalf.currentStats.handling - 50) * 0.02;
+    if (rng(1, 100) <= intPct) {
+      const backs = defendOnField.filter(p => p.id >= 9);
+      const interceptor = backs.length > 0
+        ? backs[rng(0, backs.length - 1)]
+        : (defendOnField[rng(0, Math.max(0, defendOnField.length - 1))] ?? randomPlayer(defendTeam));
+      events.push({ type: 'INTERCEPTION', interceptor, passer: scrumHalf, attackSide });
+      events.push({ type: 'KICK_RETURN_CARRIER_SET', player: interceptor });
+      events.push({ type: 'BREAKDOWN_MOD_SET', attack: INTERCEPTION_FOLLOW_UP_BONUS, defend: 0 });
+      const intSteps: NarrationStep[] = [
+        { kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'interception', primary: interceptor, secondary: scrumHalf },
+      ];
+      if (defensiveLine === 'blitz') {
+        intSteps.push({ kind: 'tactic_note', cause: 'blitz_interception', chancePct: COMMENTARY_CHANCES.blitzInterception, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
+      }
+      return { nextPhase: MatchPhase.KickReturn, narration: { steps: intSteps }, primaryPlayer: interceptor, secondaryPlayer: scrumHalf, events };
+    }
+    events.push({ type: 'PASS_COMPLETED', passer: scrumHalf });
+  }
 
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;
   events.push({ type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 });
@@ -51,12 +79,18 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   const missingBacks = FULL_BACKLINE - availableBacks(defendTeam, state, defSide).length;
   const shortHandedMod = missingBacks * SHORT_HANDED.missingBackDefendPenalty;
 
-  if (carrier.currentStats.handling + rng(1, 100) < knockOnThreshold(carrier.currentStats.handling, state.clock.clockInTheRed)) {
+  if (carrier.currentStats.handling + rng(1, 100) < knockOnThreshold(carrier.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
     events.push({ type: 'KNOCK_ON', player: carrier, attackSide });
     const defender = defendOnField.length > 0 ? defendOnField[rng(0, defendOnField.length - 1)] : randomPlayer(defendTeam);
+    const koSteps: NarrationStep[] = [
+      { kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'knock_on', primary: carrier, secondary: defender },
+    ];
+    if (defensiveLine === 'blitz') {
+      koSteps.push({ kind: 'tactic_note', cause: 'blitz_pressure_knockon', chancePct: COMMENTARY_CHANCES.blitzPressureKnockOn, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
+    }
     return {
       nextPhase: MatchPhase.Scrum,
-      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'knock_on', primary: carrier, secondary: defender }] },
+      narration: { steps: koSteps },
       primaryPlayer: carrier,
       secondaryPlayer: defender,
       events,
@@ -78,11 +112,40 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     const insideCentre = attackOnField.find(p => p.id === 12) ?? pickPlayer(attackTeam, 12);
     playIntroSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'crash_ball', primary: carrier, secondary: insideCentre });
 
-    if (insideCentre.currentStats.handling + rng(1, 100) < knockOnThreshold(insideCentre.currentStats.handling, state.clock.clockInTheRed)) {
+    // Interception roll on the #10 → #12 pass.
+    {
+      const intPct = interceptPctBase - (carrier.currentStats.handling - 50) * 0.02;
+      if (rng(1, 100) <= intPct) {
+        const backs = defendOnField.filter(p => p.id >= 9);
+        const interceptor = backs.length > 0
+          ? backs[rng(0, backs.length - 1)]
+          : (defendOnField[rng(0, Math.max(0, defendOnField.length - 1))] ?? randomPlayer(defendTeam));
+        events.push({ type: 'INTERCEPTION', interceptor, passer: carrier, attackSide });
+        events.push({ type: 'KICK_RETURN_CARRIER_SET', player: interceptor });
+        events.push({ type: 'BREAKDOWN_MOD_SET', attack: INTERCEPTION_FOLLOW_UP_BONUS, defend: 0 });
+        const intSteps: NarrationStep[] = [
+          ...playIntroSteps,
+          { kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'interception', primary: interceptor, secondary: carrier },
+        ];
+        if (defensiveLine === 'blitz') {
+          intSteps.push({ kind: 'tactic_note', cause: 'blitz_interception', chancePct: COMMENTARY_CHANCES.blitzInterception, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
+        }
+        return { nextPhase: MatchPhase.KickReturn, narration: { steps: intSteps }, primaryPlayer: interceptor, secondaryPlayer: carrier, events };
+      }
+    }
+
+    if (insideCentre.currentStats.handling + rng(1, 100) < knockOnThreshold(insideCentre.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
       events.push({ type: 'KNOCK_ON', player: insideCentre, attackSide });
+      const koSteps: NarrationStep[] = [
+        ...playIntroSteps,
+        { kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'knock_on', primary: insideCentre, secondary: carrier },
+      ];
+      if (defensiveLine === 'blitz') {
+        koSteps.push({ kind: 'tactic_note', cause: 'blitz_pressure_knockon', chancePct: COMMENTARY_CHANCES.blitzPressureKnockOn, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
+      }
       return {
         nextPhase: MatchPhase.Scrum,
-        narration: { steps: [...playIntroSteps, { kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'knock_on', primary: insideCentre, secondary: carrier }] },
+        narration: { steps: koSteps },
         primaryPlayer: insideCentre,
         secondaryPlayer: carrier,
         events,
@@ -120,11 +183,40 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
     playIntroSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'out_the_back', primary: carrier, secondary: outsideCentre });
 
-    if (outsideCentre.currentStats.handling + rng(1, 100) < knockOnThreshold(outsideCentre.currentStats.handling, state.clock.clockInTheRed)) {
+    // Interception roll on the #10 → #13 pass.
+    {
+      const intPct = interceptPctBase - (carrier.currentStats.handling - 50) * 0.02;
+      if (rng(1, 100) <= intPct) {
+        const backs = defendOnField.filter(p => p.id >= 9);
+        const interceptor = backs.length > 0
+          ? backs[rng(0, backs.length - 1)]
+          : (defendOnField[rng(0, Math.max(0, defendOnField.length - 1))] ?? randomPlayer(defendTeam));
+        events.push({ type: 'INTERCEPTION', interceptor, passer: carrier, attackSide });
+        events.push({ type: 'KICK_RETURN_CARRIER_SET', player: interceptor });
+        events.push({ type: 'BREAKDOWN_MOD_SET', attack: INTERCEPTION_FOLLOW_UP_BONUS, defend: 0 });
+        const intSteps: NarrationStep[] = [
+          ...playIntroSteps,
+          { kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'interception', primary: interceptor, secondary: carrier },
+        ];
+        if (defensiveLine === 'blitz') {
+          intSteps.push({ kind: 'tactic_note', cause: 'blitz_interception', chancePct: COMMENTARY_CHANCES.blitzInterception, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
+        }
+        return { nextPhase: MatchPhase.KickReturn, narration: { steps: intSteps }, primaryPlayer: interceptor, secondaryPlayer: carrier, events };
+      }
+    }
+
+    if (outsideCentre.currentStats.handling + rng(1, 100) < knockOnThreshold(outsideCentre.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
       events.push({ type: 'KNOCK_ON', player: outsideCentre, attackSide });
+      const koSteps: NarrationStep[] = [
+        ...playIntroSteps,
+        { kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'knock_on', primary: outsideCentre, secondary: carrier },
+      ];
+      if (defensiveLine === 'blitz') {
+        koSteps.push({ kind: 'tactic_note', cause: 'blitz_pressure_knockon', chancePct: COMMENTARY_CHANCES.blitzPressureKnockOn, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
+      }
       return {
         nextPhase: MatchPhase.Scrum,
-        narration: { steps: [...playIntroSteps, { kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'knock_on', primary: outsideCentre, secondary: carrier }] },
+        narration: { steps: koSteps },
         primaryPlayer: outsideCentre,
         secondaryPlayer: carrier,
         events,
@@ -137,11 +229,40 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     const wing = wingPool.length > 0 ? wingPool[rng(0, wingPool.length - 1)] : (attackOnField[rng(0, Math.max(0, attackOnField.length - 1))] ?? randomPlayer(attackTeam));
     playIntroSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'out_the_back', primary: outsideCentre, secondary: wing });
 
-    if (wing.currentStats.handling + rng(1, 100) < knockOnThreshold(wing.currentStats.handling, state.clock.clockInTheRed)) {
+    // Interception roll on the #13 → wing pass.
+    {
+      const intPct = interceptPctBase - (outsideCentre.currentStats.handling - 50) * 0.02;
+      if (rng(1, 100) <= intPct) {
+        const backs = defendOnField.filter(p => p.id >= 9);
+        const interceptor = backs.length > 0
+          ? backs[rng(0, backs.length - 1)]
+          : (defendOnField[rng(0, Math.max(0, defendOnField.length - 1))] ?? randomPlayer(defendTeam));
+        events.push({ type: 'INTERCEPTION', interceptor, passer: outsideCentre, attackSide });
+        events.push({ type: 'KICK_RETURN_CARRIER_SET', player: interceptor });
+        events.push({ type: 'BREAKDOWN_MOD_SET', attack: INTERCEPTION_FOLLOW_UP_BONUS, defend: 0 });
+        const intSteps: NarrationStep[] = [
+          ...playIntroSteps,
+          { kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'interception', primary: interceptor, secondary: outsideCentre },
+        ];
+        if (defensiveLine === 'blitz') {
+          intSteps.push({ kind: 'tactic_note', cause: 'blitz_interception', chancePct: COMMENTARY_CHANCES.blitzInterception, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
+        }
+        return { nextPhase: MatchPhase.KickReturn, narration: { steps: intSteps }, primaryPlayer: interceptor, secondaryPlayer: outsideCentre, events };
+      }
+    }
+
+    if (wing.currentStats.handling + rng(1, 100) < knockOnThreshold(wing.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
       events.push({ type: 'KNOCK_ON', player: wing, attackSide });
+      const koSteps: NarrationStep[] = [
+        ...playIntroSteps,
+        { kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'knock_on', primary: wing, secondary: outsideCentre },
+      ];
+      if (defensiveLine === 'blitz') {
+        koSteps.push({ kind: 'tactic_note', cause: 'blitz_pressure_knockon', chancePct: COMMENTARY_CHANCES.blitzPressureKnockOn, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
+      }
       return {
         nextPhase: MatchPhase.Scrum,
-        narration: { steps: [...playIntroSteps, { kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'knock_on', primary: wing, secondary: outsideCentre }] },
+        narration: { steps: koSteps },
         primaryPlayer: wing,
         secondaryPlayer: outsideCentre,
         events,
@@ -154,9 +275,8 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     defender = defWingPool.length > 0 ? defWingPool[rng(0, defWingPool.length - 1)] : (defendOnField[rng(0, Math.max(0, defendOnField.length - 1))] ?? randomPlayer(defendTeam));
   }
 
-  // Step 3 — Evasion → Step 4 Collision
+  // Step 3 — Evasion → Step 4 Collision (defensiveLine already hoisted)
   const ha = homeEdge(state, HOME_ADVANTAGE.carryMod);
-  const defensiveLine = defendTeam.tactics.defensiveLine;
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine];
   const res = resolveOpenPlay(

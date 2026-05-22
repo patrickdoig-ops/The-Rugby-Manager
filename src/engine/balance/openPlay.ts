@@ -50,6 +50,21 @@ export const TRY_LOCATION_BANDS = {
 // TACTIC_MODIFIERS.obstructionStyleMod[attackingStyle].
 export const OBSTRUCTION_BASE_PCT = 4;
 
+// Base interception rate per pass attempt. Rolled at every PASS_COMPLETED
+// site in OpenPlay + FirstPhase before the pass actually completes. Modified
+// by TACTIC_MODIFIERS.interceptionMod[defenseTactic] and a per-passer
+// `(handling - 50) × 0.02` penalty (better hands → fewer picks). Calibrated
+// for ~50 pass attempts per side per match → ~0.25 base interceptions per
+// side per match, scaling up to ~0.75 vs a blitzing defence.
+export const INTERCEPTION_BASE_PCT = 0.5;
+
+// Front-foot boost on state.breakdownMod.attack that the interceptor
+// carries into their first run after an INTERCEPTION. Mirrors the
+// CARRY_HANDOFF_BONUSES.lineBreak idea: the cover is forward, the
+// interceptor has space — give them the line-break-frequency lift on the
+// next evasion check.
+export const INTERCEPTION_FOLLOW_UP_BONUS = 12;
+
 export const OPEN_PLAY_VALUES = {
   agilityWeight:     0.5,
   positioningWeight: 0.5,

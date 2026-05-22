@@ -77,6 +77,12 @@ const PHASE_PLAY: PhaseBank = {
     'Crossing! {primary} runs the decoy line straight into the cover. {defside} have the penalty.',
     '{primary} drifts across the defender as the ball is shipped wide. Obstruction — {defside}.',
   ],
+  interception: [
+    'INTERCEPTION! {primary} reads the pass from {secondary} and picks it off!',
+    '{primary} jumps the line — intercepts the pass from {secondary}! He\'s away!',
+    'Picked off! {secondary} throws it straight to {primary} — and the cover is way back!',
+    '{primary} steps into the channel and snatches it out of the air!',
+  ],
 };
 
 const FIRST_PHASE: PhaseBank = {
@@ -145,6 +151,11 @@ const FIRST_PHASE: PhaseBank = {
     'The pre-rehearsed strike runs a forward into the defender — referee spots {primary}. Penalty {defside}.',
     'Crossing off the set piece — {primary} drifts into the defender\'s line. {defside} have it.',
     '{primary} screens for the receiver and takes a defender out illegally. Obstruction {defside}.',
+  ],
+  interception: [
+    'INTERCEPTION off the set piece! {primary} reads {secondary}\'s pass perfectly and picks it off!',
+    '{primary} jumps the line on the first-phase strike — intercepts {secondary}\'s pass!',
+    'The pre-rehearsed move is read by {primary} — he gets in front of the receiver and snatches the ball!',
   ],
 };
 

@@ -127,5 +127,19 @@ export function getTacticNoteLines(
         `That's the blitz risk — once it's broken, ${def} have nobody between the runner and the posts.`,
         `${def}'s line came up so hard there's a hole the size of a barn — ${att} take it.`,
       ];
+
+    case 'blitz_pressure_knockon':
+      return [
+        `${def}'s line speed forces the spill — receiver had no time to settle.`,
+        `Hurried into the pass! The blitz pressure pays off for ${def}.`,
+        `${def} arrive so fast that ${att} can't get hands on it — the ball is spilled.`,
+      ];
+
+    case 'blitz_interception':
+      return [
+        `${def}'s line speed pays off — they were in the channel before the receiver could move.`,
+        `That's what the blitz is designed to do — read the pass and pick it off.`,
+        `Pressure from ${def} forces the loose pass and they punish it!`,
+      ];
   }
 }

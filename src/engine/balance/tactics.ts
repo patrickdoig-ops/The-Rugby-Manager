@@ -54,4 +54,17 @@ export const TACTIC_MODIFIERS = {
   //    aim at behind the rush; drift cover sits deeper and shrinks that
   //    space. Pct points added to res.touchProbability in handleTacticalKick.
   defensiveLineKickProbMod:   { blitz: 10, hybrid: 0, drift: -5 },
+  // 7. Handling-gate pressure — pct points added to knockOnThreshold at
+  //    every pass site in OpenPlayEvent / FirstPhaseEvent. Blitz hurries
+  //    the receiver onto the ball; drift gives the receiver time. Lifts
+  //    knock-on rate uniformly across the carrier / fly-half / outside-back
+  //    chain. Net effect for blitz at +4: ~2 extra knock-ons per side per
+  //    match.
+  defensiveLineHandlingPressure: { blitz: 4, hybrid: 0, drift: -2 },
+  // 8. Per-pass interception rate shift (in pct points) added to
+  //    INTERCEPTION_BASE_PCT. Defender intercepts; possession flips and the
+  //    interceptor runs through KickReturn with a +12 breakdownMod.attack
+  //    front-foot boost. Calibrated so blitz teams collect ~1 interception
+  //    per side per match, drift teams almost never.
+  interceptionMod:            { blitz: 1.0, hybrid: 0, drift: -0.3 },
 } as const;

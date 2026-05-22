@@ -9,7 +9,7 @@ import { attackDir, isTryScoredAt, inOwnHalf, inOwn22, onFieldPlayers, available
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
-import { HOME_ADVANTAGE, KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnThreshold, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_FOLLOW_UP_BONUS } from '../balance';
+import { HOME_ADVANTAGE, KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnThreshold, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS } from '../balance';
 
 const FULL_BACKLINE = 7;
 
@@ -52,7 +52,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   // Scrum-half → fly-half interception roll. Off the set piece this is
   // the first pass; off-target the ball lands at the interceptor's feet.
   {
-    const intPct = interceptPctBase - (scrumHalf.currentStats.handling - 50) * 0.02;
+    const intPct = interceptPctBase - (scrumHalf.currentStats.handling - INTERCEPTION_STAT_CENTRE) * INTERCEPTION_HANDLING_WEIGHT;
     if (rng(1, 100) <= intPct) {
       const backs = defendOnField.filter(p => p.id >= 9);
       const interceptor = backs.length > 0
@@ -114,7 +114,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
     // Interception roll on the #10 → #12 pass.
     {
-      const intPct = interceptPctBase - (carrier.currentStats.handling - 50) * 0.02;
+      const intPct = interceptPctBase - (carrier.currentStats.handling - INTERCEPTION_STAT_CENTRE) * INTERCEPTION_HANDLING_WEIGHT;
       if (rng(1, 100) <= intPct) {
         const backs = defendOnField.filter(p => p.id >= 9);
         const interceptor = backs.length > 0
@@ -185,7 +185,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
     // Interception roll on the #10 → #13 pass.
     {
-      const intPct = interceptPctBase - (carrier.currentStats.handling - 50) * 0.02;
+      const intPct = interceptPctBase - (carrier.currentStats.handling - INTERCEPTION_STAT_CENTRE) * INTERCEPTION_HANDLING_WEIGHT;
       if (rng(1, 100) <= intPct) {
         const backs = defendOnField.filter(p => p.id >= 9);
         const interceptor = backs.length > 0
@@ -231,7 +231,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
     // Interception roll on the #13 → wing pass.
     {
-      const intPct = interceptPctBase - (outsideCentre.currentStats.handling - 50) * 0.02;
+      const intPct = interceptPctBase - (outsideCentre.currentStats.handling - INTERCEPTION_STAT_CENTRE) * INTERCEPTION_HANDLING_WEIGHT;
       if (rng(1, 100) <= intPct) {
         const backs = defendOnField.filter(p => p.id >= 9);
         const interceptor = backs.length > 0

@@ -10,7 +10,10 @@
 import type { GameState, TransferOffer } from '../types/gameState';
 import type { Player } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
-import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS, RENEWAL } from '../engine/balance/transfers';
+import {
+  SENIOR_CAP, EFFECTIVE_CAP_CREDITS, RENEWAL,
+  WAGE_FLOOR, WAGE_ROUNDING_UNIT, AI_SIGNING_POLICY,
+} from '../engine/balance/transfers';
 import { seedContractFields } from './contractSeeder';
 import { parseSeasonStartYear } from './age';
 
@@ -45,8 +48,8 @@ export function generateRenewalOffers(state: GameState): TransferOffer[] {
     if (!p) continue;
     const fresh = seedContractFields(p, p.contract.clubId, seasonStartYear);
     const renewalWage = Math.max(
-      20_000,
-      Math.round(fresh.contract.annualWage * (1 - RENEWAL.loyaltyDiscount) / 5_000) * 5_000,
+      WAGE_FLOOR,
+      Math.round(fresh.contract.annualWage * (1 - RENEWAL.loyaltyDiscount) / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT,
     );
     offers.push({
       id: makeOfferId(state.career.seasonsCompleted, p.contract.clubId, rid),
@@ -170,17 +173,6 @@ export interface AISigning {
   expiresOn: string;
 }
 
-// Cap target per club for the signing window (looser than renewals —
-// signings actively bring in talent, not just hold ground). Stops the
-// AI from spending every penny on a single free agent.
-const AI_SIGN_CAP_TARGET = 0.92;
-// Max signings per club per window — prevents one club from hoovering
-// the whole free-agent pool. Real clubs typically sign 3-6 per summer.
-const AI_SIGNINGS_PER_CLUB_LIMIT = 4;
-// Minimum position spread the AI aims for. Once a club's squad has 2
-// at every position group there's less urgency; targeting needs first.
-const TARGET_PER_POSITION = 2;
-
 // One pass per AI club, in stable club-id-ascending order. For each:
 // score the remaining free agents (rating + position-need bonus),
 // greedy-sign the top scorers until the club's cap target or the
@@ -213,7 +205,7 @@ export function decideAISignings(state: GameState, humanClubId?: string): AISign
       if (!p.contract.isMarquee) currentCap += p.contract.annualWage;
       positionCounts.set(p.position, (positionCounts.get(p.position) ?? 0) + 1);
     }
-    let headroom = effectiveCap * AI_SIGN_CAP_TARGET - currentCap;
+    let headroom = effectiveCap * AI_SIGNING_POLICY.capTarget - currentCap;
     if (headroom <= 0) continue;
 
     // Score every remaining free agent for this club. Each candidate
@@ -226,8 +218,8 @@ export function decideAISignings(state: GameState, humanClubId?: string): AISign
         if (!p) return null;
         const overall = playerOverall(p.baseStats, p.position);
         const fresh = seedContractFields(p, club.id, seasonStartYear);
-        const need = Math.max(0, TARGET_PER_POSITION - (positionCounts.get(p.position) ?? 0));
-        const score = overall + need * 10;
+        const need = Math.max(0, AI_SIGNING_POLICY.targetPerPosition - (positionCounts.get(p.position) ?? 0));
+        const score = overall + need * AI_SIGNING_POLICY.positionNeedWeight;
         return { rid, p, overall, fresh, score };
       })
       .filter((x): x is NonNullable<typeof x> => x !== null)
@@ -239,7 +231,7 @@ export function decideAISignings(state: GameState, humanClubId?: string): AISign
 
     let signedThisClub = 0;
     for (const { rid, p, fresh } of candidates) {
-      if (signedThisClub >= AI_SIGNINGS_PER_CLUB_LIMIT) break;
+      if (signedThisClub >= AI_SIGNING_POLICY.perClubLimit) break;
       const wage = fresh.contract.annualWage;
       if (wage > headroom) continue;
       const lengthYears = yearsBetween(p.contract.expiresOn || `${seasonStartYear + 1}-06-30`, fresh.contract.expiresOn) || 2;
@@ -341,7 +333,7 @@ export function decideAIPoaches(state: GameState, humanClubId?: string): Array<{
       if (!p || p.contract.isMarquee) continue;
       currentCap += p.contract.annualWage;
     }
-    const headroom = effectiveCap * AI_SIGN_CAP_TARGET - currentCap;
+    const headroom = effectiveCap * AI_SIGNING_POLICY.capTarget - currentCap;
     if (headroom <= 0) continue;
 
     // Score: overall + position-need bonus, restricted to OVR >= floor.
@@ -360,8 +352,8 @@ export function decideAIPoaches(state: GameState, humanClubId?: string): Array<{
       .map(p => {
         const overall = playerOverall(p.baseStats, p.position);
         const fresh = seedContractFields(p, club.id, seasonStartYear);
-        const need = Math.max(0, TARGET_PER_POSITION - (positionCounts.get(p.position) ?? 0));
-        return { p, overall, fresh, score: overall + need * 10 };
+        const need = Math.max(0, AI_SIGNING_POLICY.targetPerPosition - (positionCounts.get(p.position) ?? 0));
+        return { p, overall, fresh, score: overall + need * AI_SIGNING_POLICY.positionNeedWeight };
       })
       .filter(x => x.overall >= RENEWAL.aiReleaseRatingFloor)
       .filter(x => x.fresh.contract.annualWage <= headroom)

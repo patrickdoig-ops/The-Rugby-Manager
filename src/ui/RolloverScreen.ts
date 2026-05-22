@@ -43,7 +43,8 @@ function statDeltaText(deltas: Partial<PlayerStats>): string {
 }
 
 export function initRolloverScreen(
-  gameEngine: GameCoordinator,
+  // Always called fresh — see HubScreen for the rationale.
+  getGameEngine: () => GameCoordinator,
   allTeams: RawTeamInput[],
 ): void {
   const el = document.getElementById('rollover');
@@ -52,7 +53,7 @@ export function initRolloverScreen(
   const teamsById = new Map(allTeams.map(t => [t.id, t]));
 
   function render(): void {
-    const state: GameState = gameEngine.getState();
+    const state: GameState = getGameEngine().getState();
     const today = state.calendar.date;
 
     const retirements = activeEvents.filter(e => e.type === 'PLAYER_RETIRED');

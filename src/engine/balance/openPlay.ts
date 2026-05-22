@@ -53,10 +53,22 @@ export const OBSTRUCTION_BASE_PCT = 4;
 // Base interception rate per pass attempt. Rolled at every PASS_COMPLETED
 // site in OpenPlay + FirstPhase before the pass actually completes. Modified
 // by TACTIC_MODIFIERS.interceptionMod[defenseTactic] and a per-passer
-// `(handling - 50) × 0.02` penalty (better hands → fewer picks). Calibrated
-// for ~50 pass attempts per side per match → ~0.25 base interceptions per
-// side per match, scaling up to ~0.75 vs a blitzing defence.
+// (handling − statCentre) × handlingWeight penalty (better hands → fewer
+// picks). Calibrated for ~50 pass attempts per side per match → ~0.25 base
+// interceptions per side per match, scaling up to ~0.75 vs a blitzing
+// defence.
 export const INTERCEPTION_BASE_PCT = 0.5;
+
+// Per-point handling sensitivity in the interception formula. The passer's
+// handling above the league-average centre subtracts directly from the
+// per-pass interception roll: intPct = base - (handling − statCentre) ×
+// handlingWeight. A 90-handling fly-half → −0.8% vs a 50-handling one.
+export const INTERCEPTION_HANDLING_WEIGHT = 0.02;
+
+// League-average baseline for the handling stat. Used to centre the
+// (handling − statCentre) term in the interception formula so a perfectly
+// average passer gets no adjustment.
+export const INTERCEPTION_STAT_CENTRE = 50;
 
 // Front-foot boost on state.breakdownMod.attack that the interceptor
 // carries into their first run after an INTERCEPTION. Mirrors the

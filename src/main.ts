@@ -92,7 +92,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // once per session (e.g. New Game → Home → Continue) would compound those
   // subscriptions and double-render on every game-state change. Gate the
   // init so it runs exactly once across the lifetime of the page.
+  //
+  // Each screen takes a `() => GameCoordinator` getter rather than the
+  // engine reference itself, so the live `gameEngine` value reaches every
+  // render — even when the user starts a fresh game and the reference
+  // swaps without re-init.
   let inSeasonInited = false;
+  const getGameEngine = (): GameCoordinator => {
+    if (!gameEngine) throw new Error('gameEngine accessed before initialisation');
+    return gameEngine;
+  };
   let seasonCompletePending = false;
 
   function goHome(): void {
@@ -134,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (inSeasonInited) return;
     inSeasonInited = true;
     initHubScreen({
-      gameEngine,
+      getGameEngine,
       allTeams,
       onPlayMatch: onPlayRound,
       onFixtures: goFixtures,
@@ -145,15 +154,15 @@ document.addEventListener('DOMContentLoaded', () => {
       onTransfers:() => { /* placeholder until Transfer market screen lands */ },
       onSettings: goSettingsFromHub,
     });
-    initFixtureListScreen(gameEngine, allTeams, goHub);
-    initLeagueTableScreen(gameEngine, allTeams, goHub);
-    initRoundResultsScreen(gameEngine, allTeams);
-    initEndOfSeasonScreen(gameEngine, allTeams);
-    initRenewalsScreen(gameEngine, allTeams);
-    initTransferMarketScreen(gameEngine, allTeams);
-    initRolloverScreen(gameEngine, allTeams);
-    initContractsScreen(gameEngine, allTeams, goHub);
-    initSquadManagementScreen({ gameEngine, allTeams, onBack: goHub });
+    initFixtureListScreen(getGameEngine, allTeams, goHub);
+    initLeagueTableScreen(getGameEngine, allTeams, goHub);
+    initRoundResultsScreen(getGameEngine, allTeams);
+    initEndOfSeasonScreen(getGameEngine, allTeams);
+    initRenewalsScreen(getGameEngine, allTeams);
+    initTransferMarketScreen(getGameEngine, allTeams);
+    initRolloverScreen(getGameEngine, allTeams);
+    initContractsScreen(getGameEngine, allTeams, goHub);
+    initSquadManagementScreen({ getGameEngine, allTeams, onBack: goHub });
 
     // The post-match Continue chain (LeagueTable → ...) reads this flag.
     // GameCoordinator emits game:seasonComplete after the last round's

@@ -2,13 +2,30 @@
 // the only call site for applySeasonEvent. Analogous to MatchCoordinator,
 // but season-scope: lives from "New Game"/"Continue" until session end.
 //
-// Public surface:
-//   GameCoordinator.newSeason(...)      // fresh season
-//   GameCoordinator.fromSave(save)      // restore via deterministic replay
-//   coord.getState()                    // readonly snapshot
-//   coord.getCurrentFixture()           // next fixture for the player's team
-//   coord.recordPlayerMatchResult(...)  // applies result + simulates AI + advances week
-//   coord.toSavePayload()               // minimal slice for SaveManager
+// Public surface (every UI call into the game engine goes through one of
+// these — there is no other read or write seam):
+//
+//   Lifecycle / state access
+//     GameCoordinator.newSeason(...)        // fresh season
+//     GameCoordinator.fromSave(save, teams) // restore via deterministic replay
+//     coord.getState()                      // readonly snapshot
+//     coord.getCurrentFixture()             // next fixture for the player's team
+//     coord.toSavePayload()                 // minimal slice for SaveManager
+//
+//   In-season per-round
+//     coord.recordPlayerMatchResult(...)    // applies result + simulates AI + advances week
+//     coord.setPlayerTactics(...)           // persists pre-match tactics commit
+//     coord.setPlayerMatchdaySquad(...)     // persists pre-match line-up commit
+//
+//   Off-season market (Phases 2-7)
+//     coord.designateMarquee(clubId, rid)   // tap-to-toggle marquee
+//     coord.openRenewalWindow()             // populates state.career.market (renewals)
+//     coord.closeRenewalWindow(decisions)   // resolves user + AI renewals
+//     coord.openSigningWindow()             // populates state.career.market (signings)
+//     coord.signFreeAgent(rosterId)         // user-side signing
+//     coord.preAgreePoach(rosterId)         // user-side Reg 7 pre-agreement
+//     coord.closeSigningWindow()            // runs AI signing + poaching pass
+//     coord.rollSeason()                    // archives season + aging + transfers
 //
 // "Tick" of the game engine is a player match completing. The engine never
 // runs on a timer.

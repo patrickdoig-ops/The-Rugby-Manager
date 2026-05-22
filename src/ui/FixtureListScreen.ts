@@ -23,7 +23,8 @@ function miniCrest(team: RawTeamInput): string {
 }
 
 export function initFixtureListScreen(
-  gameEngine: GameCoordinator,
+  // Always called fresh — see HubScreen for the rationale.
+  getGameEngine: () => GameCoordinator,
   allTeams: RawTeamInput[],
   onBack: () => void,
 ): void {
@@ -31,8 +32,6 @@ export function initFixtureListScreen(
   if (!el) return;
 
   const teamsById = new Map(allTeams.map(t => [t.id, t]));
-  const playerTeamId = gameEngine.getState().player.teamId;
-  const playerTeam = teamsById.get(playerTeamId);
 
   let activeMode: Mode = 'team';
 
@@ -42,7 +41,7 @@ export function initFixtureListScreen(
     );
   }
 
-  function fixtureRow(fixture: Fixture, result: FixtureResult | undefined, nextRound: number): string {
+  function fixtureRow(fixture: Fixture, result: FixtureResult | undefined, nextRound: number, playerTeamId: string): string {
     const home = teamsById.get(fixture.homeId)!;
     const away = teamsById.get(fixture.awayId)!;
     const isComplete = !!result;
@@ -74,18 +73,18 @@ export function initFixtureListScreen(
     `;
   }
 
-  function listHtml(state: GameState, nextRound: number): string {
+  function listHtml(state: GameState, nextRound: number, playerTeamId: string): string {
     const sorted = [...state.league.fixtures].sort((a, b) => a.round - b.round);
 
     if (activeMode === 'team') {
       const mine = sorted.filter(f => f.homeId === playerTeamId || f.awayId === playerTeamId);
-      return mine.map(f => fixtureRow(f, resultFor(state, f), nextRound)).join('');
+      return mine.map(f => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId)).join('');
     }
 
     if (activeMode === 'next') {
       if (nextRound === -1) return `<div class="fl-empty">Season complete</div>`;
       const fixtures = sorted.filter(f => f.round === nextRound);
-      return fixtures.map(f => fixtureRow(f, resultFor(state, f), nextRound)).join('');
+      return fixtures.map(f => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId)).join('');
     }
 
     // 'all' — group by round with a section header per block.
@@ -96,12 +95,15 @@ export function initFixtureListScreen(
     }
     return [...byRound.entries()].map(([round, fs]) => `
       <div class="fl-round-header">Round ${round}</div>
-      ${fs.map(f => fixtureRow(f, resultFor(state, f), nextRound)).join('')}
+      ${fs.map(f => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId)).join('')}
     `).join('');
   }
 
   function render(): void {
+    const gameEngine = getGameEngine();
     const state = gameEngine.getState();
+    const playerTeamId = state.player.teamId;
+    const playerTeam = teamsById.get(playerTeamId);
     const totalRounds = state.league.fixtures.reduce((max, f) => Math.max(max, f.round), 0);
     const nextFixture = gameEngine.getCurrentFixture();
     const nextRound = nextFixture?.round ?? -1;
@@ -124,7 +126,7 @@ export function initFixtureListScreen(
         <button class="fl-toggle-btn${activeMode === 'next' ? ' active' : ''}" data-mode="next" role="tab">Next round</button>
         <button class="fl-toggle-btn${activeMode === 'all'  ? ' active' : ''}" data-mode="all"  role="tab">All fixtures</button>
       </div>
-      <div id="fl-list">${listHtml(state, nextRound)}</div>
+      <div id="fl-list">${listHtml(state, nextRound, playerTeamId)}</div>
     `;
 
     el!.querySelector<HTMLButtonElement>('#fl-back')!.addEventListener('click', () => onBack());

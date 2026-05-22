@@ -80,7 +80,8 @@ function ordinal(n: number): string {
 }
 
 export function initEndOfSeasonScreen(
-  gameEngine: GameCoordinator,
+  // Always called fresh — see HubScreen for the rationale.
+  getGameEngine: () => GameCoordinator,
   allTeams: RawTeamInput[],
 ): void {
   const el = document.getElementById('end-of-season');
@@ -89,7 +90,7 @@ export function initEndOfSeasonScreen(
   const teamsById = new Map(allTeams.map(t => [t.id, t]));
 
   function render(): void {
-    const state = gameEngine.getState();
+    const state = getGameEngine().getState();
     const sorted = sortStandings(state.league.standings);
     const playerId = state.player.teamId;
     const playerRank = sorted.findIndex(s => s.teamId === playerId) + 1;

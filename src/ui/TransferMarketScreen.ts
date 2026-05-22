@@ -49,7 +49,8 @@ function shortPos(pos: string): string {
 }
 
 export function initTransferMarketScreen(
-  gameEngine: GameCoordinator,
+  // Always called fresh — see HubScreen for the rationale.
+  getGameEngine: () => GameCoordinator,
   allTeams: RawTeamInput[],
 ): void {
   const el = document.getElementById('transfer-market');
@@ -58,6 +59,7 @@ export function initTransferMarketScreen(
   const teamsById = new Map(allTeams.map(t => [t.id, t]));
 
   function render(): void {
+    const gameEngine = getGameEngine();
     const state = gameEngine.getState();
     const playerClubId = state.player.teamId;
     const team = teamsById.get(playerClubId);

@@ -12,7 +12,8 @@
 import type { Player, Position, PlayerStats } from '../types/player';
 import { zeroMatchStats, zeroSeasonStats } from '../types/player';
 import { rngTransfer } from '../utils/rng';
-import { WAGE_BY_RATING, POSITION_SCARCITY } from '../engine/balance/transfers';
+import { WAGE_BY_RATING, POSITION_SCARCITY, WAGE_FLOOR, WAGE_ROUNDING_UNIT, PERSONA_CONTRACT_LENGTH_YEARS, PERSONA_REPUTATION } from '../engine/balance/transfers';
+import { ACADEMY_SUPPLY } from '../engine/balance/career';
 
 // First names + surnames per nationality. Drawn from Premiership-era
 // rosters to feel idiomatic; not exhaustive.
@@ -119,14 +120,12 @@ export function generatePersona(seed: PersonaSeed, calendarDate: string): Player
 
   // Wage: derived from rating + position scarcity, no noise (predictable
   // for academy graduates on a fixed rookie rate).
-  const isAcademy = seed.ageBand.max <= 22; // crude — academy ageBand is 18-20
+  const isAcademy = seed.ageBand.max <= ACADEMY_SUPPLY.ageBand.max;
   const wage = isAcademy
-    ? 20_000 // RPA rookie fixed academy wage
-    : Math.round(wageFromRating(targetOverall) * (POSITION_SCARCITY[position] ?? 1.0) / 5_000) * 5_000;
+    ? WAGE_FLOOR // RPA rookie fixed academy wage
+    : Math.round(wageFromRating(targetOverall) * (POSITION_SCARCITY[position] ?? 1.0) / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT;
 
-  // 2-year deal for academy + imports (matches RPA rookie length + a
-  // simple default for incoming foreign deals).
-  const lengthYears = 2;
+  const lengthYears = PERSONA_CONTRACT_LENGTH_YEARS;
   const seasonStartYear = parseInt(calendarDate.slice(0, 4), 10);
   const expiresOn = `${seasonStartYear + lengthYears}-06-30`;
 
@@ -143,7 +142,7 @@ export function generatePersona(seed: PersonaSeed, calendarDate: string): Player
     currentStats: { ...baseStats },
     matchStats: zeroMatchStats(),
     seasonStats: zeroSeasonStats(),
-    reputation: Math.max(25, Math.min(60, Math.round(targetOverall * 0.7))),
+    reputation: Math.max(PERSONA_REPUTATION.min, Math.min(PERSONA_REPUTATION.max, Math.round(targetOverall * PERSONA_REPUTATION.ratingMultiplier))),
     contract: {
       clubId: seed.clubId ?? '',
       expiresOn,

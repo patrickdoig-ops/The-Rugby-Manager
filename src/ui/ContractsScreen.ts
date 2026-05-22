@@ -56,7 +56,8 @@ function expiresThisSeason(expiresOn: string, calendarDate: string): boolean {
 }
 
 export function initContractsScreen(
-  gameEngine: GameCoordinator,
+  // Always called fresh — see HubScreen for the rationale.
+  getGameEngine: () => GameCoordinator,
   allTeams: RawTeamInput[],
   onBack: () => void,
 ): void {
@@ -66,6 +67,7 @@ export function initContractsScreen(
   const teamsById = new Map(allTeams.map(t => [t.id, t]));
 
   function render(): void {
+    const gameEngine = getGameEngine();
     const state = gameEngine.getState();
     const playerTeamId = state.player.teamId;
     const club = state.career.clubs.find(c => c.id === playerTeamId);

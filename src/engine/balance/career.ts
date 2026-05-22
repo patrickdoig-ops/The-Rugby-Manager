@@ -66,3 +66,22 @@ export const SEASON_AWARDS = {
   mvpMinAppearances: 5,
   leaderboardSize: 3,
 };
+
+// Phase 7 supply pipeline. Each rollover, every club promotes a handful
+// of academy graduates (per-club, biased toward the club's nationality
+// pool) and a batch of foreign imports lands in the free-agent pool.
+// Per-rollover roster growth is ~32 players league-wide (10 clubs × 3
+// academy + ~7 imports), so a 448-player base settles at ~480 by the
+// end of season 2 — plenty of supply for AI signings and human
+// poaching without runaway inflation.
+export const ACADEMY_SUPPLY = {
+  gradsPerClub: { min: 2, max: 4 },
+  ageBand:      { min: 18, max: 20 },
+  ratingBand:   { min: 55, max: 75 },
+};
+
+export const IMPORT_SUPPLY = {
+  perRollover: { min: 5, max: 10 },
+  ageBand:     { min: 23, max: 30 },
+  ratingBand:  { min: 65, max: 88 },
+};

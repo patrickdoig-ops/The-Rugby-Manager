@@ -53,7 +53,8 @@ function shortPos(pos: string): string {
 }
 
 export function initRenewalsScreen(
-  gameEngine: GameCoordinator,
+  // Always called fresh — see HubScreen for the rationale.
+  getGameEngine: () => GameCoordinator,
   allTeams: RawTeamInput[],
 ): void {
   const el = document.getElementById('renewals');
@@ -62,7 +63,7 @@ export function initRenewalsScreen(
   const teamsById = new Map(allTeams.map(t => [t.id, t]));
 
   function render(): void {
-    const state = gameEngine.getState();
+    const state = getGameEngine().getState();
     const market = state.career.market;
     const playerClubId = state.player.teamId;
     const team = teamsById.get(playerClubId);

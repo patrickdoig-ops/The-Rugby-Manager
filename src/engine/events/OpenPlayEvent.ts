@@ -11,7 +11,7 @@ import { attackDir, isTryScoredAt, inOwnHalf, inOwn22, onFieldPlayers, available
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
-import { HOME_ADVANTAGE, KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnThreshold, INJURY, INJURY_KIND_WEIGHTS, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_FOLLOW_UP_BONUS } from '../balance';
+import { HOME_ADVANTAGE, KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnThreshold, INJURY, INJURY_KIND_WEIGHTS, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS } from '../balance';
 
 const FULL_BACKLINE = 7;  // jersey ids 9–15
 
@@ -57,7 +57,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   // actually happens). On hit, possession flips and the interceptor runs
   // the next phase with a front-foot breakdownMod boost.
   if (scrumHalf !== carrier) {
-    const intPct = interceptPctBase - (scrumHalf.currentStats.handling - 50) * 0.02;
+    const intPct = interceptPctBase - (scrumHalf.currentStats.handling - INTERCEPTION_STAT_CENTRE) * INTERCEPTION_HANDLING_WEIGHT;
     if (rng(1, 100) <= intPct) {
       const backs = defendOnField.filter(p => p.id >= 9);
       const interceptor = backs.length > 0
@@ -184,7 +184,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
 
     // Fly-half → outside-back interception opportunity. Same mechanism as
     // the scrumHalf → carrier roll up top.
-    const intPctWide = interceptPctBase - (flyHalf.currentStats.handling - 50) * 0.02;
+    const intPctWide = interceptPctBase - (flyHalf.currentStats.handling - INTERCEPTION_STAT_CENTRE) * INTERCEPTION_HANDLING_WEIGHT;
     if (rng(1, 100) <= intPctWide) {
       const backs = defendOnField.filter(p => p.id >= 9);
       const interceptor = backs.length > 0

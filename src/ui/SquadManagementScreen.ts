@@ -33,7 +33,8 @@ import { saveGame } from './SaveManager';
 import { eventBus } from '../utils/eventBus';
 
 export interface InitSquadManagementOpts {
-  gameEngine: GameCoordinator;
+  // Always called fresh — see HubScreen for the rationale.
+  getGameEngine: () => GameCoordinator;
   allTeams: RawTeamInput[];
   onBack: () => void;
 }
@@ -120,7 +121,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
   let discardOpen = false;
 
   function resetDraftFromState(): void {
-    const state = opts.gameEngine.getState();
+    const state = opts.getGameEngine().getState();
     const teamJson = teamsById.get(state.player.teamId);
     if (!teamJson) return;
     const fresh = buildTeamFromRoster(state, teamJson);
@@ -141,7 +142,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
   // throughout (no rosterId on the draft row type), and full names are
   // unique league-wide.
   function injuryFor(p: { firstName: string; lastName: string }): PlayerInjury | undefined {
-    const state = opts.gameEngine.getState();
+    const state = opts.getGameEngine().getState();
     const club = state.career.clubs.find(c => c.id === state.player.teamId);
     if (!club) return undefined;
     for (const rid of club.squad) {
@@ -210,7 +211,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
   function render(): void {
     if (!el) return;
 
-    const state = opts.gameEngine.getState();
+    const state = opts.getGameEngine().getState();
     const teamJson = teamsById.get(state.player.teamId);
     if (!teamJson) return;
 
@@ -326,8 +327,9 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
           bench: draftBench,
           squad: draftSquad,
         };
-        opts.gameEngine.setPlayerMatchdaySquad(extractMatchdaySquad(playerTeam));
-        saveGame(opts.gameEngine.toSavePayload());
+        const ge = opts.getGameEngine();
+        ge.setPlayerMatchdaySquad(extractMatchdaySquad(playerTeam));
+        saveGame(ge.toSavePayload());
         dirty = false;
         opts.onBack();
       });

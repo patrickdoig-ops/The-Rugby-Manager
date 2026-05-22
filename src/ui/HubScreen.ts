@@ -15,7 +15,10 @@ import { computeOverallRating } from '../team/teamProfile';
 import { formAdjustment, matchSpread, HOME_ADVANTAGE_PTS } from '../game/teamStats';
 
 export interface InitHubScreenOpts {
-  gameEngine: GameCoordinator;
+  // Always called fresh — the GameCoordinator reference can swap when the
+  // user does New Game → Home → New Game / Continue. Capturing the
+  // engine at init time would freeze the screen to the first game.
+  getGameEngine: () => GameCoordinator;
   allTeams: RawTeamInput[];
   onPlayMatch: (homeTeam: RawTeamInput, awayTeam: RawTeamInput, playerSide: 'home' | 'away', round: number) => void;
   onSquad:     () => void;
@@ -95,7 +98,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
     const playerTeam = teamsById.get(state.player.teamId);
     if (!playerTeam) return;
 
-    const nextFixture = opts.gameEngine.getCurrentFixture();
+    const nextFixture = opts.getGameEngine().getCurrentFixture();
 
     const sorted = sortStandings(state.league.standings);
     const rankIdx = sorted.findIndex(s => s.teamId === playerTeam.id);
@@ -252,5 +255,5 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
   eventBus.on('game:fixtureRecorded', ({ state }) => render(state));
   eventBus.on('game:weekAdvanced',    ({ state }) => render(state));
 
-  render(opts.gameEngine.getState());
+  render(opts.getGameEngine().getState());
 }

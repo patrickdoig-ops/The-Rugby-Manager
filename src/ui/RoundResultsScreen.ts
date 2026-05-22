@@ -31,7 +31,8 @@ function crest(team: RawTeamInput): string {
 }
 
 export function initRoundResultsScreen(
-  gameEngine: GameCoordinator,
+  // Always called fresh — see HubScreen for the rationale.
+  getGameEngine: () => GameCoordinator,
   allTeams: RawTeamInput[],
 ): void {
   const el = document.getElementById('round-results');
@@ -51,7 +52,7 @@ export function initRoundResultsScreen(
   }
 
   function render(): void {
-    const state = gameEngine.getState();
+    const state = getGameEngine().getState();
     const playerTeamId = state.player.teamId;
     const fixtures = roundFixtures(state);
 

@@ -1,3 +1,23 @@
+// Match engine orchestrator. Owns the single MatchState for one fixture
+// and is the only call site for applyMatchEvent's per-tick mutations.
+//
+// UI ↔ engine contract: the UI never calls into the match engine directly
+// except through `SimController` (Play / Pause / Speed). Every other
+// communication goes via the typed pub/sub at `src/utils/eventBus.ts`.
+//
+// Public surface (the only methods SimController and main.ts may call):
+//   new MatchCoordinator(homeTeam, awayTeam, opts)  // build for one match
+//   coord.initialize()                              // emits engine:initialized + first tick
+//   coord.start() / coord.pause() / coord.resume()  // SimController play/pause
+//   coord.setTickDelay(ms)                          // SimController speed slider
+//   coord.getState()                                // readonly snapshot
+//   coord.getHumanSide()                            // for UI ordering
+//   coord.destroy()                                 // cancel timer + unsub bus
+//
+// Anything else (substitute, runForcedSubstitution, tactics changes from
+// the modal, kick-off strategy picks) is wired in via eventBus, not via
+// direct calls.
+
 import type { MatchState, GameEvent } from '../types/match';
 import type { Team, TeamTactics } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';

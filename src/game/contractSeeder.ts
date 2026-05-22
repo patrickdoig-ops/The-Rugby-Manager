@@ -19,6 +19,7 @@ import type { PlayerContract } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
 import {
   WAGE_BY_RATING, POSITION_SCARCITY, WAGE_NOISE, CONTRACT_LENGTH, REPUTATION_SEED,
+  WAGE_FLOOR, WAGE_ROUNDING_UNIT, LENGTH_HEURISTIC_AGE,
 } from '../engine/balance/transfers';
 import { rngTransferRaw } from '../utils/rng';
 import { getAge, seasonOpenIso } from './age';
@@ -61,8 +62,8 @@ function synthesizeWage(raw: RawPlayer, overall: number): number {
   const scarcity = POSITION_SCARCITY[raw.position] ?? 1.0;
   const noise = WAGE_NOISE.min + rngTransferRaw() * (WAGE_NOISE.max - WAGE_NOISE.min);
   const wage = base * scarcity * noise;
-  // Round to the nearest £5k so the UI never shows £138,743.
-  return Math.max(20_000, Math.round(wage / 5_000) * 5_000);
+  // Round to the nearest WAGE_ROUNDING_UNIT so the UI never shows £138,743.
+  return Math.max(WAGE_FLOOR, Math.round(wage / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT);
 }
 
 // Piecewise-linear lookup between the anchor points. Below the lowest
@@ -102,7 +103,9 @@ function pickLength(raw: RawPlayer, overall: number, seasonStartYear: number): n
 function currentAgeForLengthHeuristic(raw: RawPlayer, overall: number, seasonStartYear: number): number {
   const age = getAge(raw.dob, seasonOpenIso(seasonStartYear));
   if (age !== null) return age;
-  return overall >= 85 ? 28 : 25;
+  return overall >= LENGTH_HEURISTIC_AGE.seniorRating
+    ? LENGTH_HEURISTIC_AGE.seniorAge
+    : LENGTH_HEURISTIC_AGE.defaultAge;
 }
 
 function expiryFor(seasonStartYear: number, lengthYears: number): string {

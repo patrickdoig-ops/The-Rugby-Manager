@@ -104,3 +104,59 @@ export const RENEWAL = {
   aiTargetCapUtilisation: 0.95,
   aiReleaseRatingFloor: 70,
 };
+
+// All synthesised wages floor at WAGE_FLOOR and round to the nearest
+// WAGE_ROUNDING_UNIT, so the UI never shows £138,743 and seeded squads
+// can't dip below the RPA rookie rate. WAGE_FLOOR is also the academy
+// graduate's fixed starting wage (RPA rookie rate).
+export const WAGE_FLOOR = 20_000;
+export const WAGE_ROUNDING_UNIT = 5_000;
+
+// Default contract length applied to generated personas (academy
+// graduates + foreign imports). Matches the RPA rookie length and a
+// simple default for incoming foreign deals — long enough to settle,
+// short enough to bring the player back to the market regularly.
+export const PERSONA_CONTRACT_LENGTH_YEARS = 2;
+
+// Reputation seed band for generated personas (academy + imports).
+// Linear in target overall: rep = clamp(targetOverall × ratingMultiplier,
+// [min, max]). Distinct from REPUTATION_SEED (which seeds the JSON
+// roster at game start with a slightly higher multiplier + marquee
+// bonus) — academy graduates aren't yet famous, hence the lower band.
+export const PERSONA_REPUTATION = {
+  ratingMultiplier: 0.7,
+  min: 25,
+  max: 60,
+};
+
+// Fallback ages used by contractSeeder.pickLength when a player's JSON
+// has no dob. Above the seniorRating threshold the heuristic assumes a
+// veteran; otherwise a mid-career player. Only fires on legacy seed
+// data — every persona-generated player carries a dob.
+export const LENGTH_HEURISTIC_AGE = {
+  seniorRating: 85,
+  seniorAge: 28,
+  defaultAge: 25,
+};
+
+// AI signing policy for the free-agent + cross-club poaching windows
+// (Phases 5-6). Pure policy parameters — no RNG involved.
+//
+//   capTarget: cap-utilisation ceiling per club for new signings.
+//     0.92 means an AI club stops signing once 92% of effective cap is
+//     committed, leaving headroom for in-season needs.
+//   perClubLimit: hard cap on signings per window per club. Real clubs
+//     typically add 3-6 players in a summer; 4 keeps any one AI from
+//     hoovering the free-agent pool.
+//   targetPerPosition: minimum positional spread the AI aims for. Once
+//     a club has this many at a position group the need bonus drops to
+//     zero and the AI prioritises elsewhere.
+//   positionNeedWeight: how much each unmet positional slot adds to a
+//     candidate's signing score (overall + need × weight). 10 keeps a
+//     thin position from being skipped over a one-point OVR gap.
+export const AI_SIGNING_POLICY = {
+  capTarget: 0.92,
+  perClubLimit: 4,
+  targetPerPosition: 2,
+  positionNeedWeight: 10,
+};

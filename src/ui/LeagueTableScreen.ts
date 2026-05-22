@@ -80,7 +80,8 @@ function standingsRow(
 }
 
 export function initLeagueTableScreen(
-  gameEngine: GameCoordinator,
+  // Always called fresh — see HubScreen for the rationale.
+  getGameEngine: () => GameCoordinator,
   allTeams: RawTeamInput[],
   onBack: () => void,
 ): void {
@@ -88,10 +89,10 @@ export function initLeagueTableScreen(
   if (!el) return;
 
   const teamsById = new Map(allTeams.map(t => [t.id, t]));
-  const playerTeamId = gameEngine.getState().player.teamId;
 
   function render(): void {
-    const state = gameEngine.getState();
+    const state = getGameEngine().getState();
+    const playerTeamId = state.player.teamId;
     const totalRounds = state.league.fixtures.reduce((max, f) => Math.max(max, f.round), 0);
     const sorted = sortStandings(state.league.standings);
 

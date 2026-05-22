@@ -30,22 +30,12 @@ import type { Fixture, GameState, SeasonEvent, TeamStanding } from '../types/gam
 import type { Player, PlayerStats, PlayerSeasonStats } from '../types/player';
 import { isForward } from '../types/player';
 import type { SeasonAwards, SeasonLeader } from '../types/gameState';
-import { AGE_CURVES, STAT_NOISE, RETIREMENT_CURVE, SEASON_AWARDS } from '../engine/balance/career';
+import { AGE_CURVES, STAT_NOISE, RETIREMENT_CURVE, SEASON_AWARDS, ACADEMY_SUPPLY, IMPORT_SUPPLY } from '../engine/balance/career';
 import { SEASON_VALUES } from '../engine/balance';
 import { getAge, parseSeasonStartYear, seasonOpenIso } from './age';
 import { generateFixtures } from './fixtures';
 import { rngTransferRaw, rngTransfer } from '../utils/rng';
 import { generatePersona } from './personaGenerator';
-
-// Phase 7 supply parameters. Per-club academy + per-rollover import counts.
-const ACADEMY_GRADS_PER_CLUB_MIN = 2;
-const ACADEMY_GRADS_PER_CLUB_MAX = 4;
-const FOREIGN_IMPORTS_MIN = 5;
-const FOREIGN_IMPORTS_MAX = 10;
-const ACADEMY_AGE = { min: 18, max: 20 };
-const ACADEMY_RATING = { min: 55, max: 75 };
-const IMPORT_AGE = { min: 23, max: 30 };
-const IMPORT_RATING = { min: 65, max: 88 };
 
 export function computeRollover(state: GameState, allTeamIds: string[]): SeasonEvent[] {
   const events: SeasonEvent[] = [];
@@ -103,10 +93,10 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
   // Academy: per club, in stable id-ascending order.
   const sortedClubs = [...state.career.clubs].sort((a, b) => a.id.localeCompare(b.id));
   for (const club of sortedClubs) {
-    const grads = rngTransfer(ACADEMY_GRADS_PER_CLUB_MIN, ACADEMY_GRADS_PER_CLUB_MAX);
+    const grads = rngTransfer(ACADEMY_SUPPLY.gradsPerClub.min, ACADEMY_SUPPLY.gradsPerClub.max);
     for (let i = 0; i < grads; i++) {
       const player = generatePersona(
-        { rosterId: nextRid, clubId: club.id, ageBand: ACADEMY_AGE, ratingBand: ACADEMY_RATING },
+        { rosterId: nextRid, clubId: club.id, ageBand: ACADEMY_SUPPLY.ageBand, ratingBand: ACADEMY_SUPPLY.ratingBand },
         calendarAnchor,
       );
       events.push({ type: 'ACADEMY_GRADUATED', clubId: club.id, player });
@@ -116,10 +106,10 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
 
   // Foreign imports — single batch into the free-agent pool. Phase 5
   // signing flow consumes them at the next open signing window.
-  const imports = rngTransfer(FOREIGN_IMPORTS_MIN, FOREIGN_IMPORTS_MAX);
+  const imports = rngTransfer(IMPORT_SUPPLY.perRollover.min, IMPORT_SUPPLY.perRollover.max);
   for (let i = 0; i < imports; i++) {
     const player = generatePersona(
-      { rosterId: nextRid, ageBand: IMPORT_AGE, ratingBand: IMPORT_RATING },
+      { rosterId: nextRid, ageBand: IMPORT_SUPPLY.ageBand, ratingBand: IMPORT_SUPPLY.ratingBand },
       calendarAnchor,
     );
     events.push({ type: 'FOREIGN_IMPORT_ARRIVED', player });

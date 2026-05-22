@@ -1,11 +1,19 @@
 // Contracts list for the player's club. Reached from the Hub's Contracts
-// tile; back navigates to Hub. Shows per-player wage, expiry, marquee
-// badge, OVR, age, position. Sortable columns via header clicks.
+// tile; back navigates to Hub.
+//
+// **Layout (v2 — per mockups/10-ContractsScreen.html):**
+// Two-line player cards instead of a table — full name + wage on the top
+// line, position · age · tags + expiry on the second. OVR badge anchors
+// the left side (38×38 tiered colour); marquee toggle star sits on the
+// right. Above the list: a dedicated salary-cap section with a 6px fill
+// bar (ok / tight / over), a marker line at the effective ceiling, and a
+// meta row naming the marquee-excluded player. Sort lives in a chip-tray
+// drop-down behind a Sort button in the topbar.
 //
 // **Phase 3 interactivity:**
-// - Cap pill is live: green when under SENIOR_CAP, amber within 5%, red
-//   when over. Cap excludes the marquee's wage (Σ non-marquee wages).
-// - Marquee column is tap-to-toggle: tapping a non-marquee player makes
+// - Cap fill colour: green when under SENIOR_CAP, amber within 5%, red
+//   when over. Cap = Σ non-marquee wages.
+// - Marquee star is tap-to-toggle: tapping a non-marquee player makes
 //   them the new marquee (silently replacing the existing one);
 //   tapping the current marquee clears the slot. Goes through
 //   GameCoordinator.designateMarquee → MARQUEE_DESIGNATED event.
@@ -22,15 +30,25 @@ import { playerOverall } from '../engine/RatingEngine';
 import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance/transfers';
 import { getAge } from '../game/age';
 
-type SortKey = 'name' | 'position' | 'age' | 'ovr' | 'wage' | 'expiry';
+type SortKey = 'wage' | 'expiry' | 'ovr' | 'position' | 'age' | 'name';
 type SortDir = 'asc' | 'desc';
+
+const SORT_LABELS: Record<SortKey, string> = {
+  wage:     'Wage',
+  expiry:   'Expiry',
+  ovr:      'OVR',
+  position: 'Position',
+  age:      'Age',
+  name:     'Name',
+};
 
 let sortKey: SortKey = 'wage';
 let sortDir: SortDir = 'desc';
+let sortPanelOpen = false;
 let renderImpl: (() => void) | null = null;
 
 function fmtWage(n: number): string {
-  if (n >= 1_000_000) return `£${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000_000) return `£${(n / 1_000_000).toFixed(2)}m`;
   if (n >= 1_000) return `£${Math.round(n / 1_000)}k`;
   return `£${n}`;
 }
@@ -39,21 +57,32 @@ function fmtExpiry(iso: string): string {
   if (!iso) return '—';
   const d = new Date(iso);
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  return `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear() % 100}`;
+  return `${months[d.getUTCMonth()]} '${String(d.getUTCFullYear()).slice(2)}`;
 }
-
 
 function expiresThisSeason(expiresOn: string, calendarDate: string): boolean {
   if (!expiresOn) return false;
   const exp = new Date(expiresOn);
   const today = new Date(calendarDate);
-  // "this season" = expiry within the next 10 months (June of the
-  // current season-end year is roughly 10 months out from Sept of
-  // the season-start year).
   const monthsAhead = (exp.getUTCFullYear() - today.getUTCFullYear()) * 12
                     + (exp.getUTCMonth() - today.getUTCMonth());
   return monthsAhead >= 0 && monthsAhead <= 10;
 }
+
+function ovrClass(ovr: number): string {
+  if (ovr >= 85) return 'ovr-elite';
+  if (ovr >= 78) return 'ovr-good';
+  if (ovr >= 70) return 'ovr-avg';
+  return 'ovr-poor';
+}
+
+function fmtInjury(kind: string): string {
+  return kind.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+const STAR_FILLED = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.637 1.55.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.755-.415-2.211.749-2.305l5.404-.434 2.082-5.005z"/></svg>`;
+const STAR_OUTLINE = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>`;
+const SORT_ICON  = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M6 12h12M9 18h6"/></svg>`;
 
 export function initContractsScreen(
   // Always called fresh — see HubScreen for the rationale.
@@ -81,46 +110,70 @@ export function initContractsScreen(
     const players: Player[] = club.squad.map(rid => state.career.roster[rid]).filter((p): p is Player => !!p);
     const sorted = sortPlayers(players, calendarDate);
 
-    const capUsed = players.filter(p => !p.contract.isMarquee).reduce((sum, p) => sum + p.contract.annualWage, 0);
-    // Effective ceiling = headline cap + HG/EPS/injury dispensation pools.
+    const nonMarquee = players.filter(p => !p.contract.isMarquee);
+    const marqueePlayer = players.find(p => p.contract.isMarquee);
+    const capUsed = nonMarquee.reduce((sum, p) => sum + p.contract.annualWage, 0);
     const effectiveCap = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
     const capStatus =
       capUsed > effectiveCap ? 'over' :
       capUsed > effectiveCap * 0.95 ? 'tight' :
       'ok';
-    const capPill = `<span class="ct-cappill ct-cappill--${capStatus}"><span>CAP</span><span>${fmtWage(capUsed)} / ${fmtWage(effectiveCap)}</span></span>`;
+    const capPct = Math.min((capUsed / effectiveCap) * 100, 100);
+    const headroom = effectiveCap - capUsed;
+
+    const marqueeLabel = marqueePlayer
+      ? { text: `${marqueePlayer.lastName} excluded (${fmtWage(marqueePlayer.contract.annualWage)})`, colour: 'var(--rm-pitch)' }
+      : { text: 'No marquee designated', colour: 'var(--rm-text-faint)' };
+
+    const headroomLabel = headroom >= 0
+      ? `${fmtWage(headroom)} headroom`
+      : `${fmtWage(-headroom)} over`;
 
     const rows = sorted.map(p => {
       const overall = playerOverall(p.baseStats, p.position);
       const age = getAge(p.dob, calendarDate);
       const expiring = expiresThisSeason(p.contract.expiresOn, calendarDate);
-      const star = p.contract.isMarquee
-        ? '<span class="ct-marquee" aria-label="Marquee — tap to clear">★</span>'
-        : '<span class="ct-marquee-empty" aria-label="Designate marquee">☆</span>';
-      const expiringChip = expiring ? '<span class="ct-expiring">EXPIRES</span>' : '';
-      const injuryChip = p.injury
-        ? `<span class="injury-badge" title="${p.injury.kind.replace(/_/g, ' ')}">${p.injury.weeksRemaining}w</span>`
-        : '';
-      const rowClasses = ['ct-row'];
-      if (p.contract.isMarquee) rowClasses.push('ct-row--marquee');
-      if (p.injury) rowClasses.push('row-injured');
+
+      const classes = ['ct-player'];
+      if (p.contract.isMarquee) classes.push('ct-player--marquee');
+      if (expiring) classes.push('ct-player--expiring');
+      if (p.injury) classes.push('ct-player--injured');
+
+      const tagParts: string[] = [];
+      if (p.contract.isMarquee) tagParts.push('<span class="ct-tag ct-tag--marquee">Marquee</span>');
+      if (expiring) tagParts.push('<span class="ct-tag ct-tag--expires">Expiring</span>');
+      if (p.injury) tagParts.push(`<span class="ct-tag ct-tag--injury" title="${fmtInjury(p.injury.kind)} · ${p.injury.weeksRemaining}w remaining">${fmtInjury(p.injury.kind)} · ${p.injury.weeksRemaining}w</span>`);
+
+      const star = p.contract.isMarquee ? STAR_FILLED : STAR_OUTLINE;
+
       return `
-        <div class="${rowClasses.join(' ')}" data-roster-id="${p.rosterId}">
-          <span class="ct-name">${p.firstName} ${p.lastName}${injuryChip ? ' ' + injuryChip : ''}</span>
-          <span class="ct-pos">${shortPos(p.position)}</span>
-          <span class="ct-num">${age ?? '—'}</span>
-          <span class="ct-num">${overall}</span>
-          <span class="ct-wage">${fmtWage(p.contract.annualWage)}</span>
-          <span class="ct-expiry">${fmtExpiry(p.contract.expiresOn)}${expiringChip}</span>
-          <button class="ct-flag" data-marquee-toggle="${p.rosterId}" aria-label="${p.contract.isMarquee ? 'Clear marquee' : 'Designate marquee'}">${star}</button>
+        <div class="${classes.join(' ')}" data-roster-id="${p.rosterId}">
+          <div class="ct-ovr ${ovrClass(overall)}">
+            <span class="ct-ovr-val">${overall}</span>
+            <span class="ct-ovr-lbl">OVR</span>
+          </div>
+          <div class="ct-player-body">
+            <div class="ct-row1">
+              <span class="ct-player-name">${p.firstName} ${p.lastName}</span>
+              <span class="ct-wage">${fmtWage(p.contract.annualWage)}</span>
+            </div>
+            <div class="ct-row2">
+              <span class="ct-player-meta">
+                <span>${p.position}</span>
+                <span class="ct-meta-sep">·</span>
+                <span>Age ${age ?? '—'}</span>
+                ${tagParts.length ? `<span class="ct-meta-sep">·</span>${tagParts.join('')}` : ''}
+              </span>
+              <span class="ct-expiry-block">${fmtExpiry(p.contract.expiresOn)}</span>
+            </div>
+          </div>
+          <button class="ct-star-btn${p.contract.isMarquee ? ' is-marquee' : ''}" data-marquee-toggle="${p.rosterId}" aria-label="${p.contract.isMarquee ? 'Clear marquee' : 'Designate marquee'}">${star}</button>
         </div>`;
     }).join('');
 
-    const headerCell = (key: SortKey, label: string, cls: string): string => {
-      const active = key === sortKey;
-      const arrow = active ? (sortDir === 'asc' ? '▲' : '▼') : '';
-      return `<button class="ct-head ${cls}${active ? ' ct-head--active' : ''}" data-sort="${key}">${label}${arrow ? ` ${arrow}` : ''}</button>`;
-    };
+    const sortOptions = (Object.keys(SORT_LABELS) as SortKey[]).map(k =>
+      `<button class="ct-sort-option${k === sortKey ? ' active' : ''}" data-sort="${k}">${SORT_LABELS[k]}</button>`
+    ).join('');
 
     el!.innerHTML = `
       <div class="app-header">
@@ -130,36 +183,68 @@ export function initContractsScreen(
             <span>Hub</span>
           </button>
           <span class="app-title">Contracts</span>
-          ${capPill}
+          <button id="ct-sort-btn" aria-label="Sort">
+            ${SORT_ICON}
+            <span>${SORT_LABELS[sortKey]}</span>
+          </button>
         </div>
         <div class="app-eyebrow">${team.name} · ${state.calendar.seasonLabel}</div>
       </div>
 
-      <div id="ct-headrow">
-        ${headerCell('name',     'NAME',    'ct-name')}
-        ${headerCell('position', 'POS',     'ct-pos')}
-        ${headerCell('age',      'AGE',     'ct-num')}
-        ${headerCell('ovr',      'OVR',     'ct-num')}
-        ${headerCell('wage',     'WAGE',    'ct-wage')}
-        ${headerCell('expiry',   'EXPIRES', 'ct-expiry')}
-        <span class="ct-head ct-flag">★</span>
+      <div id="ct-cap-section">
+        <div id="ct-cap-labels">
+          <span id="ct-cap-title">Salary Cap</span>
+          <span id="ct-cap-numbers">
+            <span class="ct-cap-used">${fmtWage(capUsed)}</span>
+            <span class="ct-cap-total"> / ${fmtWage(effectiveCap)}</span>
+          </span>
+        </div>
+        <div id="ct-cap-track">
+          <div id="ct-cap-fill" class="${capStatus}" style="width:${capPct.toFixed(1)}%"></div>
+          <div id="ct-cap-marker"></div>
+        </div>
+        <div class="ct-cap-meta">
+          <div class="ct-cap-meta-item">
+            <div class="ct-cap-dot ct-cap-dot--marquee"></div>
+            <span style="color:${marqueeLabel.colour}">${marqueeLabel.text}</span>
+          </div>
+          <div class="ct-cap-meta-item ct-cap-meta-headroom">
+            <span>${headroomLabel}</span>
+          </div>
+        </div>
       </div>
+
+      <div id="ct-sort-panel" class="${sortPanelOpen ? 'open' : ''}">${sortOptions}</div>
+
       <div id="ct-list">${rows}</div>
+
       <div id="ct-footer">
-        <span class="ct-cap-note">Tap ☆ to designate a marquee — that player's wage is excluded from the cap.</span>
+        <span id="ct-footer-note">Tap the star to designate a marquee — that wage is excluded from the cap</span>
       </div>
     `;
 
     el!.querySelector<HTMLButtonElement>('#ct-back')!.addEventListener('click', () => onBack());
-    el!.querySelectorAll<HTMLButtonElement>('.ct-head[data-sort]').forEach(btn => {
+
+    el!.querySelector<HTMLButtonElement>('#ct-sort-btn')!.addEventListener('click', () => {
+      sortPanelOpen = !sortPanelOpen;
+      render();
+    });
+
+    el!.querySelectorAll<HTMLButtonElement>('.ct-sort-option').forEach(btn => {
       btn.addEventListener('click', () => {
         const key = btn.dataset.sort as SortKey;
-        if (key === sortKey) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-        else { sortKey = key; sortDir = defaultDirFor(key); }
+        if (key === sortKey) {
+          sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+          sortKey = key;
+          sortDir = defaultDirFor(key);
+        }
+        sortPanelOpen = false;
         render();
       });
     });
-    el!.querySelectorAll<HTMLButtonElement>('.ct-flag[data-marquee-toggle]').forEach(btn => {
+
+    el!.querySelectorAll<HTMLButtonElement>('.ct-star-btn[data-marquee-toggle]').forEach(btn => {
       btn.addEventListener('click', (ev) => {
         ev.stopPropagation();
         const rid = Number(btn.dataset.marqueeToggle);
@@ -214,22 +299,4 @@ function compare(a: Player, b: Player, calendarDate: string): number {
 function slotOrder(id: number): number {
   if (id >= 1 && id <= 23) return id;
   return 100 + id;
-}
-
-function shortPos(pos: string): string {
-  switch (pos) {
-    case 'Prop':         return 'PR';
-    case 'Hooker':       return 'HK';
-    case 'Lock':         return 'LK';
-    case 'Flanker':      return 'FL';
-    case 'Number 8':     return 'N8';
-    case 'Back Row':     return 'BR';
-    case 'Scrum-Half':   return 'SH';
-    case 'Fly-Half':     return 'FH';
-    case 'Centre':       return 'CE';
-    case 'Wing':         return 'WG';
-    case 'Fullback':     return 'FB';
-    case 'Utility Back': return 'UB';
-    default:             return pos.slice(0, 2).toUpperCase();
-  }
 }

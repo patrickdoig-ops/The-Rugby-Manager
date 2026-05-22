@@ -44,8 +44,13 @@ export const TACTIC_MODIFIERS = {
   defensiveLineEvasionMod:    { blitz: -4, hybrid:  0, drift:  2 },
   // 2. Collision margin shift — blitz hits with momentum (more dominant
   //    tackles, gain-line carries pushed back); drift hits late and lateral
-  //    (more play_on, more metres conceded on regular carries).
-  defensiveLineCollisionMod:  { blitz:  8, hybrid:  0, drift: -5 },
+  //    (more play_on, more metres conceded on regular carries). Tuned in
+  //    v2.72a from drift -5 to -8: the def×att matrix surfaced that drift
+  //    was conceding only 8.83 m/carry vs hybrid's 9.90 — the line-break
+  //    suppression dominated and drift's collision penalty wasn't kicking
+  //    in enough. Making the collision mod harsher pushes drift firmly
+  //    into "soft defence, gives ground per carry" territory.
+  defensiveLineCollisionMod:  { blitz:  8, hybrid:  0, drift: -8 },
   // 3. Line break gain bonus — when a line break HAPPENS, blitz cover is
   //    behind the runner and concedes more metres; drift cover is wide
   //    and shallow and chases laterally. Tuned in v2.67a from blitz +10
@@ -79,8 +84,10 @@ export const TACTIC_MODIFIERS = {
   //    the receiver onto the ball; drift gives the receiver time. Lifts
   //    knock-on rate uniformly across the carrier / fly-half / outside-back
   //    chain. Net effect for blitz at +4: ~2 extra knock-ons per side per
-  //    match.
-  defensiveLineHandlingPressure: { blitz: 4, hybrid: 0, drift: -2 },
+  //    match. Drift tuned in v2.72a from -2 to -4 so drift defenders
+  //    force noticeably fewer fumbles — drift is the conservative,
+  //    pressure-light option in the lineup.
+  defensiveLineHandlingPressure: { blitz: 4, hybrid: 0, drift: -4 },
   // 8. Per-pass interception rate shift (in pct points) added to
   //    INTERCEPTION_BASE_PCT. Defender intercepts; possession flips and the
   //    interceptor runs through KickReturn with a +12 breakdownMod.attack

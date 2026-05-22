@@ -15,8 +15,8 @@ export const RATING_WEIGHTS = {
     tries:               7.0,
     lineBreaks:          2.5,
     defendersBeaten:     0.8,
-    turnoversWon:        2.5,
-    dominantTackles:     1.0,
+    turnoversWon:        3.5,
+    dominantTackles:     2.0,
     tacklesMade:         0.35,
     kicksMade:           1.0,
     metresCarried:       0.05,
@@ -28,13 +28,13 @@ export const RATING_WEIGHTS = {
     redCards:           -15.0,   // a red is a match-ruining offence
   },
   position: {
-    hooker:    { lineoutWinRateBaseline: 0.75, lineoutBonusMultiplier: 20 },
-    locks:     { lineoutCatch: 1.5, lineoutSteal: 3.0 },
+    hooker:    { lineoutWinRateBaseline: 0.75, lineoutBonusMultiplier: 25 },
+    locks:     { lineoutCatch: 2.0, lineoutSteal: 4.5 },
     frontRow:  { scrumPenaltyWon: 2.5, scrumPenaltyConceded: -2.5 },
-    backRow:   { extraTurnoverWon: 1.5, carry: 0.3 },
+    backRow:   { extraTurnoverWon: 3.5, carry: 0.5 },
     scrumHalf: { passes: 0.05 },
     flyHalf:   { kicksFromHand: 0.25 },
-    backThree: { extraLineBreak: 1.5 },
+    backThree: { extraLineBreak: 1.0 },
   },
 } as const;
 

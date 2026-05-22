@@ -19,6 +19,9 @@ export const COMMENTARY_CHANCES = {
   boxKickBackfieldCaught:       30,
   tacticalKickFiftyTwentyTwo:   25,
   tacticalKickCaughtReturn:     35,
+  blitzDominantTackle:          25,
+  driftShepherdToTouch:         20,
+  blitzLineBreakPunished:       35,
 } as const;
 
 // Soft cap on the in-state commentary buffer (state.events). Older entries

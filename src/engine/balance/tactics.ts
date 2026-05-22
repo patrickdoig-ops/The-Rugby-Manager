@@ -27,8 +27,22 @@ export const TACTIC_MODIFIERS = {
   // wide moves rely on screening forwards in front of the receiver — more
   // chances of an obstruction call.
   obstructionStyleMod:        { keep_it_tight: -2,   balanced: 0,      wide_wide: 3 },
-  // Note: offside_at_ruck has no tactic modifier today. Defensive tactics
-  // (blitz / drift) are not yet in the codebase; the BreakdownEvent call
-  // site adds `+ 0` with a TODO so a single line will plug in
-  // offsideAtRuckDefendMod when those tactics arrive.
+  // Defensive line (blitz / hybrid / drift) — three-way effect on the carry
+  // duel, plus the offside-at-ruck rate.
+  //
+  // 1. Evasion margin shift — blitz starts further forward so an attacker
+  //    that beats the press has more room; drift sits deeper so the line
+  //    break threshold is harder to clear.
+  defensiveLineEvasionMod:    { blitz: -8, hybrid:  0, drift:  5 },
+  // 2. Collision margin shift — blitz hits with momentum (more dominant
+  //    tackles, gain-line carries pushed back); drift hits late and lateral
+  //    (more play_on, more metres conceded on regular carries).
+  defensiveLineCollisionMod:  { blitz:  8, hybrid:  0, drift: -5 },
+  // 3. Line break gain bonus — when a line break HAPPENS, blitz cover is
+  //    behind the runner and concedes more metres; drift cover is wide
+  //    and shallow and chases laterally.
+  defensiveLineBreakBonus:    { blitz: 10, hybrid:  0, drift: -5 },
+  // 4. Offside-at-ruck rate (plugs the existing TODO in BreakdownEvent).
+  //    Pct points added to BREAKDOWN_PENALTIES.offsideAtRuckBasePct.
+  offsideAtRuckDefendMod:     { blitz:  6, hybrid:  2, drift: -2 },
 } as const;

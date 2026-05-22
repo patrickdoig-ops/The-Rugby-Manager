@@ -20,7 +20,7 @@ import { eventBus } from '../src/utils/eventBus.js';
 import { applyStarBoost } from '../src/team/applyStarBoost.js';
 import type { TeamJson } from '../src/team/teamProfile.js';
 import type { RawTeamInput } from '../src/types/teamData.js';
-import type { TeamTactics, AttackingGamePlan, AttackingBreakdown, BackfieldDefence } from '../src/types/team.js';
+import type { TeamTactics, AttackingGamePlan, AttackingBreakdown, BackfieldDefence, DefensiveLine } from '../src/types/team.js';
 import type { MatchState } from '../src/types/match.js';
 import type { Player } from '../src/types/player.js';
 import { MatchPhase } from '../src/types/engine.js';
@@ -154,6 +154,7 @@ function emptyPlayerAgg(name: string, teamId: string, position: string): PlayerA
 interface PlanAgg { games: number; tries: number; kickMetres: number; possessionPct: number; pointsFor: number; pointsAgainst: number; }
 interface BdAgg   { games: number; metresCarried: number; carries: number; turnoversWon: number; pointsFor: number; }
 interface BfAgg   { games: number; concededLineBreaks: number; concededKickMetres: number; pointsAgainst: number; }
+interface DlAgg   { games: number; concededLineBreaks: number; dominantTacklesMade: number; concededMetresCarried: number; concededCarries: number; pointsAgainst: number; }
 
 interface SeasonAgg {
   clubs: Map<string, ClubAgg>;
@@ -177,6 +178,7 @@ interface SeasonAgg {
   planAgg: Map<AttackingGamePlan, PlanAgg>;
   bdAgg:   Map<AttackingBreakdown, BdAgg>;
   bfAgg:   Map<BackfieldDefence, BfAgg>;
+  dlAgg:   Map<DefensiveLine, DlAgg>;
 }
 
 function emptySeasonAgg(): SeasonAgg {
@@ -195,6 +197,10 @@ function emptySeasonAgg(): SeasonAgg {
   for (const bf of ['one_back', 'two_back', 'three_back'] as BackfieldDefence[]) {
     bfAgg.set(bf, { games: 0, concededLineBreaks: 0, concededKickMetres: 0, pointsAgainst: 0 });
   }
+  const dlAgg = new Map<DefensiveLine, DlAgg>();
+  for (const dl of ['blitz', 'hybrid', 'drift'] as DefensiveLine[]) {
+    dlAgg.set(dl, { games: 0, concededLineBreaks: 0, dominantTacklesMade: 0, concededMetresCarried: 0, concededCarries: 0, pointsAgainst: 0 });
+  }
 
   return {
     clubs,
@@ -209,7 +215,7 @@ function emptySeasonAgg(): SeasonAgg {
     phaseCount: new Map<MatchPhase, number>(),
     tryOrigin: new Map<MatchPhase, number>(),
     totalTries: 0,
-    planAgg, bdAgg, bfAgg,
+    planAgg, bdAgg, bfAgg, dlAgg,
   };
 }
 
@@ -274,18 +280,20 @@ function accumulatePlayer(agg: SeasonAgg, p: Player, teamId: string): void {
 function sumSideMatchStats(team: 'home' | 'away', state: MatchState): {
   tries: number; lineBreaks: number; kickMetres: number;
   metresCarried: number; carries: number; turnoversWon: number;
+  dominantTackles: number;
   possessionPct: number;
 } {
   const t = team === 'home' ? state.homeTeam : state.awayTeam;
   const all = [...t.players, ...t.substitutedOff];
   const r = all.reduce((acc, p) => ({
-    tries:         acc.tries         + p.matchStats.tries,
-    lineBreaks:    acc.lineBreaks    + p.matchStats.lineBreaks,
-    kickMetres:    acc.kickMetres    + p.matchStats.kickMetres,
-    metresCarried: acc.metresCarried + p.matchStats.metresCarried,
-    carries:       acc.carries       + p.matchStats.carries,
-    turnoversWon:  acc.turnoversWon  + p.matchStats.turnoversWon,
-  }), { tries: 0, lineBreaks: 0, kickMetres: 0, metresCarried: 0, carries: 0, turnoversWon: 0 });
+    tries:           acc.tries           + p.matchStats.tries,
+    lineBreaks:      acc.lineBreaks      + p.matchStats.lineBreaks,
+    kickMetres:      acc.kickMetres      + p.matchStats.kickMetres,
+    metresCarried:   acc.metresCarried   + p.matchStats.metresCarried,
+    carries:         acc.carries         + p.matchStats.carries,
+    turnoversWon:    acc.turnoversWon    + p.matchStats.turnoversWon,
+    dominantTackles: acc.dominantTackles + p.matchStats.dominantTackles,
+  }), { tries: 0, lineBreaks: 0, kickMetres: 0, metresCarried: 0, carries: 0, turnoversWon: 0, dominantTackles: 0 });
   const possTotal = state.stats.possession.home + state.stats.possession.away || 1;
   return { ...r, possessionPct: 100 * state.stats.possession[team] / possTotal };
 }
@@ -431,6 +439,18 @@ function aggregateMatch(
 
     const bf = agg.bfAgg.get(tactics.backfieldDefence)!;
     bf.games++; bf.concededLineBreaks += opp.lineBreaks; bf.concededKickMetres += opp.kickMetres; bf.pointsAgainst += oppScore;
+
+    // defensiveLine slice — `mine` is THIS team's stats, `opp` is the
+    // opposition's. Concede = what the opposition managed against this
+    // team's defensive line. dominantTacklesMade = how often THIS team's
+    // defenders win the collision while running their defensive line.
+    const dl = agg.dlAgg.get(tactics.defensiveLine)!;
+    dl.games++;
+    dl.concededLineBreaks    += opp.lineBreaks;
+    dl.concededMetresCarried += opp.metresCarried;
+    dl.concededCarries       += opp.carries;
+    dl.dominantTacklesMade   += mine.dominantTackles;
+    dl.pointsAgainst         += oppScore;
   }
 
   for (const p of homeAllPlayers) accumulatePlayer(agg, p, home.id);
@@ -836,6 +856,23 @@ function buildReport(aggs: SeasonAgg[], elapsedMs: number): string {
     const km = aggs.reduce((s, a) => s + a.bfAgg.get(bf)!.concededKickMetres, 0);
     const pa = aggs.reduce((s, a) => s + a.bfAgg.get(bf)!.pointsAgainst, 0);
     lines.push(`| ${bf} | ${games} | ${fmt(lb/games)} | ${fmt(km/games)} | ${fmt(pa/games)} |`);
+  }
+  lines.push('');
+
+  lines.push('## defensiveLine slice (defensive — concede stats are opposition\'s)');
+  lines.push('');
+  lines.push('| line | games | LB conceded/g | dom tackles made/g | m/carry conceded | PA/g |');
+  lines.push('|---|---:|---:|---:|---:|---:|');
+  for (const dl of ['blitz', 'hybrid', 'drift'] as DefensiveLine[]) {
+    const games = aggs.reduce((s, a) => s + a.dlAgg.get(dl)!.games, 0);
+    if (games === 0) continue;
+    const lb = aggs.reduce((s, a) => s + a.dlAgg.get(dl)!.concededLineBreaks, 0);
+    const dt = aggs.reduce((s, a) => s + a.dlAgg.get(dl)!.dominantTacklesMade, 0);
+    const m  = aggs.reduce((s, a) => s + a.dlAgg.get(dl)!.concededMetresCarried, 0);
+    const c  = aggs.reduce((s, a) => s + a.dlAgg.get(dl)!.concededCarries, 0);
+    const pa = aggs.reduce((s, a) => s + a.dlAgg.get(dl)!.pointsAgainst, 0);
+    const mpc = c > 0 ? m / c : 0;
+    lines.push(`| ${dl} | ${games} | ${fmt(lb/games)} | ${fmt(dt/games)} | ${fmt(mpc, 2)} | ${fmt(pa/games)} |`);
   }
   lines.push('');
 

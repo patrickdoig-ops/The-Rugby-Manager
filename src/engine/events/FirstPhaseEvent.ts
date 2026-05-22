@@ -156,8 +156,20 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
   // Step 3 — Evasion → Step 4 Collision
   const ha = homeEdge(state, HOME_ADVANTAGE.carryMod);
-  const res = resolveOpenPlay(ballCarrier, defender, attackMod + ha.attack, defendMod + backfieldPenalty + shortHandedMod + ha.defend);
+  const defensiveLine = defendTeam.tactics.defensiveLine;
+  const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];
+  const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine];
+  const res = resolveOpenPlay(
+    ballCarrier, defender,
+    attackMod + ha.attack,
+    defendMod + backfieldPenalty + shortHandedMod + dlEvasion + ha.defend,
+    dlCollision,
+  );
   const direction = attackDir(state);
+
+  if (res.outcome === 'line_break') {
+    res.gainMetres += TACTIC_MODIFIERS.defensiveLineBreakBonus[defensiveLine];
+  }
 
   events.push({
     type: 'CARRY_RESOLVED',
@@ -192,12 +204,36 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
         });
       }
     }
+    if (defensiveLine === 'blitz') {
+      outcomeSteps.push({
+        kind: 'tactic_note',
+        cause: 'blitz_line_break_punished',
+        chancePct: COMMENTARY_CHANCES.blitzLineBreakPunished,
+        params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name },
+      });
+    }
   } else if (res.outcome === 'dominant_tackle') {
     nextPhase = MatchPhase.Breakdown;
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'dominant_tackle', primary: ballCarrier, secondary: defender });
+    if (defensiveLine === 'blitz') {
+      outcomeSteps.push({
+        kind: 'tactic_note',
+        cause: 'blitz_dominant_tackle',
+        chancePct: COMMENTARY_CHANCES.blitzDominantTackle,
+        params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name },
+      });
+    }
   } else {
     nextPhase = MatchPhase.Breakdown;
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: res.outcome, primary: ballCarrier, secondary: defender });
+    if (defensiveLine === 'drift' && res.outcome === 'play_on') {
+      outcomeSteps.push({
+        kind: 'tactic_note',
+        cause: 'drift_shepherd_to_touch',
+        chancePct: COMMENTARY_CHANCES.driftShepherdToTouch,
+        params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name },
+      });
+    }
   }
 
   // High-tackle check: applies on top of the carry result (carrier keeps the

@@ -106,5 +106,26 @@ export function getTacticNoteLines(
           ? "Three in the backfield and they've turned defence into attack in an instant — devastating counter."
           : "Two in the backfield and they've got the numbers to make something of this — good return.",
       ];
+
+    case 'blitz_dominant_tackle':
+      return [
+        `The blitz pays off — ${def} hit ${att} behind the gain line.`,
+        `Line speed from ${def} kills the carry — driven back on contact.`,
+        `That's the reward for the rush — ${def} eat the metres up before the receiver can build any momentum.`,
+      ];
+
+    case 'drift_shepherd_to_touch':
+      return [
+        `${def}'s drift defence works as designed — the touchline does the rest.`,
+        `Shepherded across the field by ${def} — no inside support and the cover stays organised.`,
+        `Lateral coverage from ${def} closes the space — ${att} run out of room.`,
+      ];
+
+    case 'blitz_line_break_punished':
+      return [
+        `Blitz beaten! ${att} into the space behind the rush — cover is way back.`,
+        `That's the blitz risk — once it's broken, ${def} have nobody between the runner and the posts.`,
+        `${def}'s line came up so hard there's a hole the size of a barn — ${att} take it.`,
+      ];
   }
 }

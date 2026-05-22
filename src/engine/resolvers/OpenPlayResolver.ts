@@ -19,7 +19,15 @@ export interface OpenPlayResolution {
   collisionDefend: number;
 }
 
-export function resolveOpenPlay(attacker: Player, defender: Player, attackMod = 0, defendMod = 0): OpenPlayResolution {
+export function resolveOpenPlay(
+  attacker: Player,
+  defender: Player,
+  attackMod = 0,
+  defendMod = 0,
+  // Defensive-line collision shift (blitz adds, drift subtracts). Defaults
+  // to 0 so existing callers that don't pass it stay byte-identical.
+  defendCollisionMod = 0,
+): OpenPlayResolution {
   const V = OPEN_PLAY_VALUES;
   // Evasion check
   const evasionScore  = (attacker.currentStats.agility     * V.agilityWeight     + attacker.currentStats.pace * V.paceWeight) + rng(1, 20) + attackMod;
@@ -31,7 +39,7 @@ export function resolveOpenPlay(attacker: Player, defender: Player, attackMod = 
 
   // Collision check
   const collisionAttack = (attacker.currentStats.strength * V.attackerStrengthWeight + attacker.currentStats.pace * V.attackerPaceWeight) + rng(1, 20);
-  const collisionDefend = (defender.currentStats.tackling * V.defenderTacklingWeight + defender.currentStats.strength * V.defenderStrengthWeight) + rng(1, 20);
+  const collisionDefend = (defender.currentStats.tackling * V.defenderTacklingWeight + defender.currentStats.strength * V.defenderStrengthWeight) + rng(1, 20) + defendCollisionMod;
   const collisionMargin = collisionAttack - collisionDefend;
 
   let outcome: OpenPlayOutcome;

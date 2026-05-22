@@ -59,7 +59,18 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
 
   // Step 3 — Evasion → Step 4 Collision
   const ha = homeEdge(state, HOME_ADVANTAGE.carryMod);
-  const res = resolveOpenPlay(carrier, defender, attackMod + ha.attack, defendMod + backfieldPenalty + shortHandedMod + ha.defend);
+  const defensiveLine = defendTeam.tactics.defensiveLine;
+  const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];
+  const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine];
+  const res = resolveOpenPlay(
+    carrier, defender,
+    attackMod + ha.attack,
+    defendMod + backfieldPenalty + shortHandedMod + dlEvasion + ha.defend,
+    dlCollision,
+  );
+  if (res.outcome === 'line_break') {
+    res.gainMetres += TACTIC_MODIFIERS.defensiveLineBreakBonus[defensiveLine];
+  }
   const totalMetres = runMetres + res.gainMetres;
   const direction = attackDir(state);
 
@@ -96,12 +107,36 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
         });
       }
     }
+    if (defensiveLine === 'blitz') {
+      steps.push({
+        kind: 'tactic_note',
+        cause: 'blitz_line_break_punished',
+        chancePct: COMMENTARY_CHANCES.blitzLineBreakPunished,
+        params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name },
+      });
+    }
   } else if (res.outcome === 'dominant_tackle') {
     nextPhase = MatchPhase.Breakdown;
     steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'dominant_tackle', primary: carrier, secondary: defender });
+    if (defensiveLine === 'blitz') {
+      steps.push({
+        kind: 'tactic_note',
+        cause: 'blitz_dominant_tackle',
+        chancePct: COMMENTARY_CHANCES.blitzDominantTackle,
+        params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name },
+      });
+    }
   } else {
     nextPhase = MatchPhase.Breakdown;
     steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: res.outcome, primary: carrier, secondary: defender });
+    if (defensiveLine === 'drift' && res.outcome === 'play_on') {
+      steps.push({
+        kind: 'tactic_note',
+        cause: 'drift_shepherd_to_touch',
+        chancePct: COMMENTARY_CHANCES.driftShepherdToTouch,
+        params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name },
+      });
+    }
   }
 
   // High-tackle check: applies on top of the carry result (carrier keeps the

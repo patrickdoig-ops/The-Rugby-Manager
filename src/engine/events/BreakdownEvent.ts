@@ -110,9 +110,8 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   //    penalty_defending (the existing breakdown_infringement already wins
   //    the whistle). Offender: a random on-field defender.
   if (res.result === 'clean_ball' || res.result === 'slow_ball') {
-    // TODO: When defensive tactics (blitz / drift) are added, replace `+ 0`
-    // with `+ TACTIC_MODIFIERS.offsideAtRuckDefendMod[defendTeam.tactics.defensiveLine]`.
-    const offsidePct = BREAKDOWN_PENALTIES.offsideAtRuckBasePct + 0;
+    const offsidePct = BREAKDOWN_PENALTIES.offsideAtRuckBasePct
+                     + TACTIC_MODIFIERS.offsideAtRuckDefendMod[defendTeam.tactics.defensiveLine];
     if (rng(1, 100) <= offsidePct) {
       const offender = defendOnField[rng(0, defendOnField.length - 1)] ?? jackal;
       events.push({ type: 'PENALTY_AWARDED', offence: 'offside_at_ruck', offender, offendingSide: defSide });

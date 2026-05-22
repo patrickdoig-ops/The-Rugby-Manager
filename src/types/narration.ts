@@ -50,7 +50,10 @@ export type TacticNoteCause =
   | 'breakdown_jackal_penalty'
   | 'boxkick_backfield_caught'
   | 'fifty_twenty_two_one_back'
-  | 'kick_caught_return_bonus';
+  | 'kick_caught_return_bonus'
+  | 'blitz_dominant_tackle'
+  | 'drift_shepherd_to_touch'
+  | 'blitz_line_break_punished';
 
 // Card-system announcement keys live in their own union so CardHandler
 // can type its emitter against the same set the renderer keys off,

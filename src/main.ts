@@ -31,7 +31,7 @@ import { initSettingsScreen }      from './ui/SettingsScreen';
 import { initTeamSelectorScreen }  from './ui/TeamSelectorScreen';
 import { initTeamInfoScreen }      from './ui/TeamInfoScreen';
 import { initFixtureListScreen }   from './ui/FixtureListScreen';
-import { initLeagueTableScreen, showLeagueTablePostMatch } from './ui/LeagueTableScreen';
+import { initLeagueTableScreen, showLeagueTable, showLeagueTablePostMatch } from './ui/LeagueTableScreen';
 import { initHubScreen }           from './ui/HubScreen';
 import { initMatchResultScreen }   from './ui/MatchResultScreen';
 import { initRoundResultsScreen, showRoundResults } from './ui/RoundResultsScreen';
@@ -171,6 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function goLeagueTable(): void {
+    showLeagueTable();
     screenRouter.show('league-table');
   }
 

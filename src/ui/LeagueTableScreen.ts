@@ -25,6 +25,15 @@ export function showLeagueTablePostMatch(onContinue: () => void): void {
   renderImpl?.();
 }
 
+// Hub-entry path: clear any lingering post-match mode and re-render so the
+// back-arrow renders cleanly, even if the user just came through the
+// post-match Continue chain (which doesn't fire any game:* event between
+// clearPostMatchMode() and the next Hub-entry).
+export function showLeagueTable(): void {
+  postMatchOnContinue = null;
+  renderImpl?.();
+}
+
 function clearPostMatchMode(): void {
   postMatchOnContinue = null;
 }

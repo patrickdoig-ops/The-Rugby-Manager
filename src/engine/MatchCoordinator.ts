@@ -419,155 +419,151 @@ export class MatchCoordinator {
     this.tickTimeout = null;
     if (!this.state.engine.isRunning) return;
 
-    try {
-      const wasInRed = this.state.clock.clockInTheRed;
-      const timeAdvance = this.clock.advanceMinute(this.state);
+    const wasInRed = this.state.clock.clockInTheRed;
+    const timeAdvance = this.clock.advanceMinute(this.state);
 
-      this.fatigue.tick(timeAdvance);
+    this.fatigue.tick(timeAdvance);
 
-      // TMO review: clock is frozen (advanceMinute returned 0) and play is
-      // suspended. Steps 1 + 2 narrate and bail. Step 3 applies CARD_ISSUED,
-      // resolves the review, and transitions phase back to Penalty — we then
-      // run the penalty modal in the SAME tick so the next tick starts in a
-      // phase resolvePhase() can handle. Without this fall-through the next
-      // tick enters resolvePhase with phase=Penalty, throws "no handler",
-      // gets caught + rescheduled, and the game stalls on the TMO outcome.
-      // evaluateNewPenalty is deliberately NOT re-called here: the team-22
-      // counter was bumped on the original Penalty tick before TMO began,
-      // and re-running would either double-bump or re-trigger TMO.
-      if (this.state.phase === MatchPhase.TmoReview) {
-        this.cardHandler.advanceTmoReview();
+    // TMO review: clock is frozen (advanceMinute returned 0) and play is
+    // suspended. Steps 1 + 2 narrate and bail. Step 3 applies CARD_ISSUED,
+    // resolves the review, and transitions phase back to Penalty — we then
+    // run the penalty modal in the SAME tick so the next tick starts in a
+    // phase resolvePhase() can handle. Without this fall-through the next
+    // tick enters resolvePhase with phase=Penalty and the game stalls on
+    // the TMO outcome. evaluateNewPenalty is deliberately NOT re-called
+    // here: the team-22 counter was bumped on the original Penalty tick
+    // before TMO began, and re-running would either double-bump or
+    // re-trigger TMO.
+    if (this.state.phase === MatchPhase.TmoReview) {
+      this.cardHandler.advanceTmoReview();
+      this.emitStateChange();
+      // advanceTmoReview may have mutated state.phase (step 3 → Penalty);
+      // cast to defeat the narrowing TS inherited from the outer condition.
+      if ((this.state.phase as MatchPhase) === MatchPhase.Penalty) {
+        await this.penaltyHandler.handlePenaltyDecision();
+        if (!this.state.engine.isRunning) return;
+      }
+      this.scheduleTick(this.state.engine.tickDelayMs);
+      return;
+    }
+
+    // Sin-bin scan: returnMinute is gameMinute-based and the clock just
+    // advanced (or didn't, if we were in TMO — handled above). Yellow
+    // expirations are inline; red_20 expirations queue a forced-sub flow.
+    const expiredRed20 = this.cardHandler.scanSinBinReturns();
+    for (const exp of expiredRed20) {
+      await this.handleRed20Replacement(exp.player, exp.side);
+      if (!this.state.engine.isRunning) return;
+    }
+
+    const homeInOppHalf = !this.state.clock.halfTimeDone ? this.state.ball.x > 50 : this.state.ball.x < 50;
+    applyMatchEvent(this.state, {
+      type: 'TICK_BOOKKEEPING',
+      possessionSide: this.state.possession,
+      territorySide: homeInOppHalf ? 'home' : 'away',
+    });
+
+    let previousPhase = this.state.phase;
+
+    if (this.state.phase === MatchPhase.KickOff) {
+      const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
+      const kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
+      const announceEvent: GameEvent = {
+        id: makeId(),
+        gameMinute: this.state.clock.gameMinute,
+        phase: MatchPhase.KickOff,
+        side: this.state.possession,
+        sideName: attackTeam.name,
+        primaryPlayer: kicker,
+        ballX: this.state.ball.x,
+        ballY: this.state.ball.y,
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickOff, key: 'announce', primary: kicker }] },
+      };
+      applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
+      this.emitEvent(announceEvent);
+    }
+
+    if (this.state.phase === MatchPhase.KickOff) {
+      this.kickOffStrategy = await this.penaltyHandler.awaitKickOffStrategy();
+      if (!this.state.engine.isRunning) return;
+    }
+
+    if (this.state.phase === MatchPhase.BoxKick) {
+      const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
+      const scrumHalf = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
+      const announceEvent: GameEvent = {
+        id: makeId(),
+        gameMinute: this.state.clock.gameMinute,
+        phase: MatchPhase.BoxKick,
+        side: this.state.possession,
+        sideName: attackTeam.name,
+        primaryPlayer: scrumHalf,
+        ballX: this.state.ball.x,
+        ballY: this.state.ball.y,
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.BoxKick, key: 'announce', primary: scrumHalf }] },
+      };
+      applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
+      this.emitEvent(announceEvent);
+    }
+
+    // AI tactical adaptation runs before resolvePhase so the new tactics
+    // take effect on the very tick that meets the trigger condition.
+    this.director.evaluate();
+
+    const event = resolvePhase(this.state, this.kickOffStrategy);
+    applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event });
+
+    detectEntry22Changes(this.state);
+
+    this.emitEvent(event);
+    this.emitStateChange();
+
+    if ((this.state.phase === MatchPhase.Lineout && previousPhase !== MatchPhase.Lineout) ||
+        (this.state.phase === MatchPhase.Scrum && previousPhase !== MatchPhase.Scrum)) {
+      const phaseName = this.state.phase === MatchPhase.Lineout ? 'Lineout' : 'Scrum';
+      const teamName = (this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam).name;
+      const awardEvent: GameEvent = {
+        id: makeId(),
+        gameMinute: this.state.clock.gameMinute,
+        phase: this.state.phase,
+        side: this.state.possession,
+        sideName: teamName,
+        ballX: this.state.ball.x,
+        ballY: this.state.ball.y,
+        narration: { steps: [{ kind: 'announcement', key: 'set_piece_award', params: { phaseName, teamName } }] },
+      };
+      applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: awardEvent });
+      this.emitEvent(awardEvent);
+    }
+
+    if (this.state.phase === MatchPhase.Penalty) {
+      // CardHandler runs before PenaltyHandler so a TMO review can preempt
+      // the penalty modal. 'tmo' verdict transitions phase to TmoReview;
+      // we bail this tick and let the TmoReview branch above drive the
+      // next 3 ticks of narrative.
+      const verdict = this.cardHandler.evaluateNewPenalty();
+      if (verdict === 'tmo') {
         this.emitStateChange();
-        // advanceTmoReview may have mutated state.phase (step 3 → Penalty);
-        // cast to defeat the narrowing TS inherited from the outer condition.
-        if ((this.state.phase as MatchPhase) === MatchPhase.Penalty) {
-          await this.penaltyHandler.handlePenaltyDecision();
-          if (!this.state.engine.isRunning) return;
-        }
         this.scheduleTick(this.state.engine.tickDelayMs);
         return;
       }
+      // 'team22_card' issued an inline yellow before this point; 'none'
+      // means no card. Either way, run the penalty decision modal next.
+      await this.penaltyHandler.handlePenaltyDecision();
+      if (!this.state.engine.isRunning) return;
+      previousPhase = MatchPhase.Penalty;
+    }
 
-      // Sin-bin scan: returnMinute is gameMinute-based and the clock just
-      // advanced (or didn't, if we were in TMO — handled above). Yellow
-      // expirations are inline; red_20 expirations queue a forced-sub flow.
-      const expiredRed20 = this.cardHandler.scanSinBinReturns();
-      for (const exp of expiredRed20) {
-        await this.handleRed20Replacement(exp.player, exp.side);
+    if (!this.state.clock.clockInTheRed) {
+      this.clock.checkClockInRed(this.state);
+    } else if (wasInRed && this.clock.shouldEndPeriod(this.state, previousPhase)) {
+      if (!this.state.clock.halfTimeDone) {
+        this.clock.triggerHalfTime(this.state);
         if (!this.state.engine.isRunning) return;
+      } else {
+        this.clock.endMatch(this.state);
+        return;
       }
-
-      const homeInOppHalf = !this.state.clock.halfTimeDone ? this.state.ball.x > 50 : this.state.ball.x < 50;
-      applyMatchEvent(this.state, {
-        type: 'TICK_BOOKKEEPING',
-        possessionSide: this.state.possession,
-        territorySide: homeInOppHalf ? 'home' : 'away',
-      });
-
-      let previousPhase = this.state.phase;
-
-      if (this.state.phase === MatchPhase.KickOff) {
-        const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
-        const kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
-        const announceEvent: GameEvent = {
-          id: makeId(),
-          gameMinute: this.state.clock.gameMinute,
-          phase: MatchPhase.KickOff,
-          side: this.state.possession,
-          sideName: attackTeam.name,
-          primaryPlayer: kicker,
-          ballX: this.state.ball.x,
-          ballY: this.state.ball.y,
-          narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickOff, key: 'announce', primary: kicker }] },
-        };
-        applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
-        this.emitEvent(announceEvent);
-      }
-
-      if (this.state.phase === MatchPhase.KickOff) {
-        this.kickOffStrategy = await this.penaltyHandler.awaitKickOffStrategy();
-        if (!this.state.engine.isRunning) return;
-      }
-
-      if (this.state.phase === MatchPhase.BoxKick) {
-        const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
-        const scrumHalf = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
-        const announceEvent: GameEvent = {
-          id: makeId(),
-          gameMinute: this.state.clock.gameMinute,
-          phase: MatchPhase.BoxKick,
-          side: this.state.possession,
-          sideName: attackTeam.name,
-          primaryPlayer: scrumHalf,
-          ballX: this.state.ball.x,
-          ballY: this.state.ball.y,
-          narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.BoxKick, key: 'announce', primary: scrumHalf }] },
-        };
-        applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
-        this.emitEvent(announceEvent);
-      }
-
-      // AI tactical adaptation runs before resolvePhase so the new tactics
-      // take effect on the very tick that meets the trigger condition.
-      this.director.evaluate();
-
-      const event = resolvePhase(this.state, this.kickOffStrategy);
-      applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event });
-
-      detectEntry22Changes(this.state);
-
-      this.emitEvent(event);
-      this.emitStateChange();
-
-      if ((this.state.phase === MatchPhase.Lineout && previousPhase !== MatchPhase.Lineout) ||
-          (this.state.phase === MatchPhase.Scrum && previousPhase !== MatchPhase.Scrum)) {
-        const phaseName = this.state.phase === MatchPhase.Lineout ? 'Lineout' : 'Scrum';
-        const teamName = (this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam).name;
-        const awardEvent: GameEvent = {
-          id: makeId(),
-          gameMinute: this.state.clock.gameMinute,
-          phase: this.state.phase,
-          side: this.state.possession,
-          sideName: teamName,
-          ballX: this.state.ball.x,
-          ballY: this.state.ball.y,
-          narration: { steps: [{ kind: 'announcement', key: 'set_piece_award', params: { phaseName, teamName } }] },
-        };
-        applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: awardEvent });
-        this.emitEvent(awardEvent);
-      }
-
-      if (this.state.phase === MatchPhase.Penalty) {
-        // CardHandler runs before PenaltyHandler so a TMO review can preempt
-        // the penalty modal. 'tmo' verdict transitions phase to TmoReview;
-        // we bail this tick and let the TmoReview branch above drive the
-        // next 3 ticks of narrative.
-        const verdict = this.cardHandler.evaluateNewPenalty();
-        if (verdict === 'tmo') {
-          this.emitStateChange();
-          this.scheduleTick(this.state.engine.tickDelayMs);
-          return;
-        }
-        // 'team22_card' issued an inline yellow before this point; 'none'
-        // means no card. Either way, run the penalty decision modal next.
-        await this.penaltyHandler.handlePenaltyDecision();
-        if (!this.state.engine.isRunning) return;
-        previousPhase = MatchPhase.Penalty;
-      }
-
-      if (!this.state.clock.clockInTheRed) {
-        this.clock.checkClockInRed(this.state);
-      } else if (wasInRed && this.clock.shouldEndPeriod(this.state, previousPhase)) {
-        if (!this.state.clock.halfTimeDone) {
-          this.clock.triggerHalfTime(this.state);
-          if (!this.state.engine.isRunning) return;
-        } else {
-          this.clock.endMatch(this.state);
-          return;
-        }
-      }
-    } catch (err) {
-      console.error('MatchCoordinator tick error encountered, recovering loop:', err);
     }
 
     this.scheduleTick(this.state.engine.tickDelayMs);

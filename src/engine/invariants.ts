@@ -106,4 +106,41 @@ export function assertInvariants(state: MatchState): void {
       fail('tmoReview.step', `${step}`);
     }
   }
+
+  // Match stats — every counter is a non-negative integer. tackles.made and
+  // ownLineouts.won / ownScrums.won can never exceed their attempted / thrown
+  // / putIn counterparts, so check the relation too. entries22.active is a
+  // bool, count + pointsScored are non-negative integers.
+  for (const side of ['home', 'away'] as const) {
+    assertNonNegInt(`stats.tries.${side}`, state.stats.tries[side]);
+    assertNonNegInt(`stats.handlingErrors.${side}`, state.stats.handlingErrors[side]);
+    assertNonNegInt(`stats.scrums.${side}`, state.stats.scrums[side]);
+    assertNonNegInt(`stats.lineouts.${side}`, state.stats.lineouts[side]);
+    assertNonNegInt(`stats.possession.${side}`, state.stats.possession[side]);
+    assertNonNegInt(`stats.territory.${side}`, state.stats.territory[side]);
+
+    const t = state.stats.tackles[side];
+    assertNonNegInt(`stats.tackles.${side}.attempted`, t.attempted);
+    assertNonNegInt(`stats.tackles.${side}.made`, t.made);
+    if (t.made > t.attempted) fail(`stats.tackles.${side}`, `made=${t.made} > attempted=${t.attempted}`);
+
+    const ol = state.stats.ownLineouts[side];
+    assertNonNegInt(`stats.ownLineouts.${side}.thrown`, ol.thrown);
+    assertNonNegInt(`stats.ownLineouts.${side}.won`, ol.won);
+    if (ol.won > ol.thrown) fail(`stats.ownLineouts.${side}`, `won=${ol.won} > thrown=${ol.thrown}`);
+
+    const os = state.stats.ownScrums[side];
+    assertNonNegInt(`stats.ownScrums.${side}.putIn`, os.putIn);
+    assertNonNegInt(`stats.ownScrums.${side}.won`, os.won);
+    if (os.won > os.putIn) fail(`stats.ownScrums.${side}`, `won=${os.won} > putIn=${os.putIn}`);
+
+    const e22 = state.stats.entries22[side];
+    assertNonNegInt(`stats.entries22.${side}.count`, e22.count);
+    assertNonNegInt(`stats.entries22.${side}.pointsScored`, e22.pointsScored);
+    if (typeof e22.active !== 'boolean') fail(`stats.entries22.${side}.active`, `${e22.active}`);
+  }
+}
+
+function assertNonNegInt(name: string, v: number): void {
+  if (!(v >= 0) || !Number.isInteger(v)) fail(name, `${v}`);
 }

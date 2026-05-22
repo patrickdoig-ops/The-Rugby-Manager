@@ -11,7 +11,7 @@
 
 import type { Player, Position, PlayerStats } from '../types/player';
 import { zeroMatchStats, zeroSeasonStats } from '../types/player';
-import { rngTransferRaw, rngTransfer } from '../utils/rng';
+import { rngTransfer } from '../utils/rng';
 import { WAGE_BY_RATING, POSITION_SCARCITY } from '../engine/balance/transfers';
 
 // First names + surnames per nationality. Drawn from Premiership-era
@@ -195,6 +195,3 @@ function wageFromRating(rating: number): number {
   return anchors[anchors.length - 1].wage;
 }
 
-// Suppress the unused-import warning if no caller currently uses it.
-// rngTransferRaw kept available for future callers.
-void rngTransferRaw;

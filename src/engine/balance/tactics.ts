@@ -32,8 +32,13 @@ export const TACTIC_MODIFIERS = {
   //
   // 1. Evasion margin shift — blitz starts further forward so an attacker
   //    that beats the press has more room; drift sits deeper so the line
-  //    break threshold is harder to clear.
-  defensiveLineEvasionMod:    { blitz: -8, hybrid:  0, drift:  5 },
+  //    break threshold is harder to clear. Tuned in v2.68a from blitz -8
+  //    to -4: the v2.67a size cut addressed the metres-per-break but
+  //    blitz still conceded ~3× more line breaks than hybrid, so half the
+  //    PA gap remained. Halving the frequency penalty too is the cheap
+  //    way to close it — blitz is still riskier (more breaks than hybrid)
+  //    but no longer crushed.
+  defensiveLineEvasionMod:    { blitz: -4, hybrid:  0, drift:  5 },
   // 2. Collision margin shift — blitz hits with momentum (more dominant
   //    tackles, gain-line carries pushed back); drift hits late and lateral
   //    (more play_on, more metres conceded on regular carries).

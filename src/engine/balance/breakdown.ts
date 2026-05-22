@@ -33,3 +33,18 @@ export const BREAKDOWN_PENALTIES = {
   notRollingAwayBasePct:    4,
   offsideAtRuckBasePct:     8,
 } as const;
+
+// Carry → breakdown handoff bonuses. Applied in BreakdownEvent by reading
+// the previous CARRY_RESOLVED's outcome:
+//   * shift the current breakdown's attackScore upward (cleaner ball);
+//   * for line breaks, also shift the post-breakdown attackMod
+//     (state.breakdownMod.attack) so the very next carry runs on the
+//     front foot.
+// These are OUTCOME-driven, not tactic-driven — kept out of
+// TACTIC_MODIFIERS so the file there stays a pure tactic lookup. Tuned
+// so a midfield line break that doesn't directly score on the first
+// carry still very often turns into a try over the next 1-2 phases.
+export const CARRY_HANDOFF_BONUSES = {
+  dominantCarry:    6,    // applied to the breakdown attackScore only
+  lineBreak:       15,    // applied to BOTH breakdown attackScore and next-phase attackMod
+} as const;

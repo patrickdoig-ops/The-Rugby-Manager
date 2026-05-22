@@ -608,10 +608,12 @@ evasionScore = (ballCarrier.agility + ballCarrier.pace) / 2 + rng(1,20) + attack
 defenseScore = (defender.positioning + defender.pace) / 2 + rng(1,20) + (defendMod + backfieldPenalty)
 ```
 
-| Margin | Result |
-|---|---|
-| ≥ 15 | `line_break` → Breakdown (or TryScored) |
-| < 15 | Proceed to Step 4 |
+| Margin | Result | Gain |
+|---|---|---|
+| ≥ 15 | `line_break` → Breakdown (or TryScored if `isTryScoredAt(ballX + dir × gain)`) | `rng(20, 45)` m (`OPEN_PLAY_VALUES.lineBreakMetres`) |
+| < 15 | Proceed to Step 4 | — |
+
+**Line break chain.** A line break that doesn't score on the first carry hands a sustained-attack edge to the next phase. The `BreakdownEvent` that follows reads `lastEvent.outcome === 'line_break'` and folds `CARRY_HANDOFF_BONUSES.lineBreak` (15) into both the current breakdown's `attackBonus` (cleaner ball) and the post-breakdown `state.breakdownMod.attack` (the very next carry runs with attack +15). The same fork point's `dominant_carry` case adds only `CARRY_HANDOFF_BONUSES.dominantCarry` (6) and only to the current breakdown — no next-phase boost. See [Carry → breakdown handoff constants](#carry--breakdown-handoff-constants) below.
 
 **Step 4 — Collision:**
 
@@ -675,7 +677,7 @@ Attacking supporters are sampled at random (without replacement) from the forwar
   - `counter_ruck`: The 4 strongest defenders (by `strength×0.6 + breakdown×0.4`) contest the ruck using the stacked-score formula.
   - `shadow`: Concedes ruck ball (DTS = rng(1,10)) to maintain a perfectly aligned defensive line.
 
-**Next-phase carry-over (`state.breakdownMod`):** Committing more players to the ruck leaves fewer available for the next phase. After every breakdown the engine sets `state.breakdownMod.attack` and `state.breakdownMod.defend` which are consumed (and reset to zero) by the very next carry phase (PhasePlay after Breakdown, or FirstPhase/KickReturn in other contexts), where they are applied as modifiers to the evasion and defence scores respectively.
+**Next-phase carry-over (`state.breakdownMod`):** Committing more players to the ruck leaves fewer available for the next phase. After every breakdown the engine sets `state.breakdownMod.attack` and `state.breakdownMod.defend` which are consumed (and reset to zero) by the very next carry phase (PhasePlay after Breakdown, or FirstPhase/KickReturn in other contexts), where they are applied as modifiers to the evasion and defence scores respectively. **On a line break carry**, the tactic-driven value is further bumped by `CARRY_HANDOFF_BONUSES.lineBreak` (15) — the next carry runs on the front foot, modelling the sustained-attack effect that turns a line break into a try over the next 1-2 phases.
 
 | Tactic | Effect on next carry phase |
 |---|---|
@@ -702,8 +704,13 @@ stackedScore(players, leadStat, supportStat):
 **ARS (Attack Ruck Score):**
 ```
 ARS = stackedScore(supporters, breakdown, strength) + rng(1,20) + attackBonus
-attackBonus = (6 if previous play was dominant_carry, else 0) + homeEdge.attack
+attackBonus = (CARRY_HANDOFF_BONUSES.lineBreak (15)    if previous play was line_break,
+               CARRY_HANDOFF_BONUSES.dominantCarry (6)  if previous play was dominant_carry,
+               0 otherwise)
+            + homeEdge.attack
 ```
+
+Constants live in `CARRY_HANDOFF_BONUSES` in `src/engine/balance/breakdown.ts`. They're outcome-driven (look at the previous CARRY_RESOLVED), not tactic-driven — kept out of `TACTIC_MODIFIERS` so that lookup table stays a pure tactic-keyed Record. On a line break the same bonus is also folded into `state.breakdownMod.attack` so the very next carry phase runs on the front foot (see [Next-phase carry-over](#next-phase-carry-over-statebreakdownmod) above).
 
 **DTS (Defensive Turnover Score):**
 - **jackal**: `breakdown×0.7 + strength×0.3 + (discipline−50)×0.15 + rng(1,20)`
@@ -1187,6 +1194,23 @@ obstructionStyleMod:        { keep_it_tight: -2, balanced: 0,    wide_wide: 3 }
 // offside_at_ruck: no tactic modifier today — defensive tactics (blitz / drift)
 // not yet in codebase. Future hook is a TODO at the BreakdownEvent call site.
 ```
+
+### Carry → breakdown handoff constants
+
+Outcome-driven bonuses applied by `BreakdownEvent` based on the previous `CARRY_RESOLVED` outcome (NOT tactic-driven; live in their own group so `TACTIC_MODIFIERS` stays a pure tactic lookup). Two-way effect on a line break: cleaner breakdown ball PLUS next-phase carry runs on the front foot. Detailed in [Shared Evasion/Collision → Next-phase carry-over](#shared-evasioncollision).
+
+```ts
+// src/engine/balance/breakdown.ts
+CARRY_HANDOFF_BONUSES = {
+  dominantCarry:  6,    // applied to breakdown attackScore only
+  lineBreak:     15,    // applied to BOTH breakdown attackScore and next-phase attackMod
+}
+
+// src/engine/balance/openPlay.ts
+OPEN_PLAY_VALUES.lineBreakMetres = [20, 45]   // gain on a line_break carry; was [10, 25] pre-v2.62a
+```
+
+**Try-rate calibration (v2.62a, 5 seeds × 90 fixtures):** Combined tries / match: 1.1 → 3.0 (+170 %). Combined points / match: 21.9 → 33.4 (+52 %). The two dials above are the entire mechanism. Lifting `CARRY_HANDOFF_BONUSES.lineBreak` shortens the line-break → try gap; lowering it lengthens it.
 
 **Telemetry calibration (v2.61a, 5 seeds × 90 fixtures = 450 matches):**
 

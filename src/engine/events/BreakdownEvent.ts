@@ -5,7 +5,7 @@ import type { NarrationStep } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
 import { resolveBreakdown } from '../resolvers/BreakdownResolver';
 import { rng } from '../../utils/rng';
-import { HOME_ADVANTAGE, TACTIC_MODIFIERS, COMMENTARY_CHANCES, BREAKDOWN_PENALTIES } from '../balance';
+import { HOME_ADVANTAGE, TACTIC_MODIFIERS, COMMENTARY_CHANCES, BREAKDOWN_PENALTIES, CARRY_HANDOFF_BONUSES } from '../balance';
 import { homeEdge } from '../HomeAdvantage';
 import { inOpposition22, inOwn22, inOwnHalf, availableForwards, onFieldPlayers } from '../FieldPosition';
 
@@ -19,16 +19,18 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   // attacker arrives at the ruck on the front foot AND the next phase
   // sees thin cover. Boost both the current breakdown's attack score
   // (cleaner ball) and the post-breakdown attackMod (front-foot carry).
-  // dominant_carry is the smaller-effect cousin (existing behaviour).
+  // dominant_carry is the smaller-effect cousin: it boosts only the
+  // current breakdown, not the next-phase mod. Constants live in
+  // CARRY_HANDOFF_BONUSES (balance/breakdown.ts).
   const lineBreakFollowUp = lastEvent?.outcome === 'line_break';
   const attackBonus =
-      lineBreakFollowUp                     ? TACTIC_MODIFIERS.lineBreakBreakdownBonus
-    : lastEvent?.outcome === 'dominant_carry' ? TACTIC_MODIFIERS.dominantCarryBonus
+      lineBreakFollowUp                       ? CARRY_HANDOFF_BONUSES.lineBreak
+    : lastEvent?.outcome === 'dominant_carry' ? CARRY_HANDOFF_BONUSES.dominantCarry
     : 0;
 
   // Next-phase modifier: more players committed to ruck = fewer on feet for the next phase
   const nextAttackMod = TACTIC_MODIFIERS.breakdownAttack[attPlan]
-                      + (lineBreakFollowUp ? TACTIC_MODIFIERS.lineBreakBreakdownBonus : 0);
+                      + (lineBreakFollowUp ? CARRY_HANDOFF_BONUSES.lineBreak : 0);
   const nextDefendMod = TACTIC_MODIFIERS.breakdownDefend[defPlan];
 
   const attackSide = state.possession;

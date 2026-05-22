@@ -13,4 +13,19 @@ export const TACTIC_MODIFIERS = {
   tacticalKickReturnBonus:    { three_back: 10, two_back: 5,  one_back: 0 },
   forwardFatigueMultiplier:   { pick_and_drive: 1.1, counter_ruck: 1.1 },
   dominantCarryBonus: 6,
+  // Penalty-rate shifts (in pct points) added to the matching base rate
+  // in BREAKDOWN_PENALTIES / OBSTRUCTION_BASE_PCT. Modest values — these
+  // dials nudge the trigger rate, they don't dominate it.
+  // jackal contests body-position harder → more not-rolling-away risk.
+  notRollingAwayDefendMod:    { jackal: 3,           counter_ruck: 0,  shadow: -2 },
+  // pick_and_drive puts more bodies into the ruck → more chance one of them
+  // hits illegally; wide_play commits fewer cleaners → less risk.
+  dangerousCleanoutAttackMod: { pick_and_drive: 2,   balanced: 0,      wide_play: -1 },
+  // wide moves rely on screening forwards in front of the receiver — more
+  // chances of an obstruction call.
+  obstructionStyleMod:        { keep_it_tight: -2,   balanced: 0,      wide_wide: 3 },
+  // Note: offside_at_ruck has no tactic modifier today. Defensive tactics
+  // (blitz / drift) are not yet in the codebase; the BreakdownEvent call
+  // site adds `+ 0` with a TODO so a single line will plug in
+  // offsideAtRuckDefendMod when those tactics arrive.
 } as const;

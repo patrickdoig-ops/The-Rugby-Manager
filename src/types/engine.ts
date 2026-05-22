@@ -31,9 +31,17 @@ export type PenaltyChoice   = 'kick_for_goal' | 'kick_to_touch' | 'tap_and_go' |
 // Cause taxonomy for a penalty award. Set by the resolver that detected the
 // offence, carried on PENALTY_AWARDED, and snapshotted onto state.lastPenalty
 // so PenaltyHandler / the modal / the commentary feed can describe why the
-// whistle blew. Grows as new offence types are added (e.g. 'high_tackle',
-// 'offside', 'not_rolling_away').
-export type PenaltyOffence = 'breakdown_infringement' | 'scrum_infringement' | 'high_tackle';
+// whistle blew. Adding a new offence is a 3-step extension: add the variant
+// here, give it a row in OFFENCE_SPEC (src/engine/balance/discipline.ts) so
+// the TMO gate picks it up, and emit it from the appropriate phase event.
+export type PenaltyOffence =
+  | 'breakdown_infringement'
+  | 'scrum_infringement'
+  | 'high_tackle'
+  | 'offside_at_ruck'
+  | 'obstruction'
+  | 'dangerous_cleanout'
+  | 'not_rolling_away';
 
 // Card severity. Yellow = 10-min sin-bin, returns. red_20 = 20-min sin-bin,
 // no return but team may sub from bench. red_full = permanent sent off

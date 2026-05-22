@@ -8,7 +8,7 @@ import { rng } from '../utils/rng';
 import { makeId } from './eventId';
 import { inOwn22For } from './FieldPosition';
 import { applyMatchEvent } from './applyMatchEvent';
-import { TMO, TEAM_22 } from './balance';
+import { TMO, TEAM_22, OFFENCE_SPEC } from './balance';
 
 export interface CardHandlerDeps {
   state: MatchState;
@@ -57,8 +57,12 @@ export class CardHandler {
       }
     }
 
-    // High-tackle TMO check
-    if (last.offence === 'high_tackle' && rng(1, 100) <= TMO.triggerPctHighTackle) {
+    // TMO gate. The per-offence trigger probability lives in OFFENCE_SPEC
+    // (balance/discipline.ts) so adding a new TMO-eligible offence is a
+    // one-line registry edit. Offences with tmoTriggerPct === 0 never reach
+    // the review path.
+    const spec = OFFENCE_SPEC[last.offence];
+    if (spec.tmoTriggerPct > 0 && rng(1, 100) <= spec.tmoTriggerPct) {
       const outcome = pickTmoOutcome();
       if (silent) {
         // Silent path: collapse the 3 narrative ticks into a single tick. RNG

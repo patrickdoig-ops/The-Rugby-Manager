@@ -7,11 +7,11 @@ import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
-import { attackDir, isTryScoredAt, inOwnHalf, inOwn22, onFieldPlayers, availableBacks } from '../FieldPosition';
+import { attackDir, isTryScoredAt, inOwnHalf, inOwn22, onFieldPlayers, availableBacks, availableForwards } from '../FieldPosition';
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
-import { HOME_ADVANTAGE, KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnThreshold, INJURY, INJURY_KIND_WEIGHTS } from '../balance';
+import { HOME_ADVANTAGE, KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnThreshold, INJURY, INJURY_KIND_WEIGHTS, OBSTRUCTION_BASE_PCT } from '../balance';
 
 const FULL_BACKLINE = 7;  // jersey ids 9–15
 
@@ -78,6 +78,26 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
 
   if (goWide) {
     const flyHalf = attackOnField.find(p => p.id === 10) ?? pickPlayer(attackTeam, 10);
+
+    // Obstruction roll — fires at most once per out-the-back attempt. Offender
+    // is a random screening forward. Modified by attackingStyle (wide_wide =
+    // more screens, keep_it_tight = fewer). If it fires, the play stops here
+    // and the defending side gets the penalty.
+    const obstructionPct = OBSTRUCTION_BASE_PCT + TACTIC_MODIFIERS.obstructionStyleMod[style];
+    if (rng(1, 100) <= obstructionPct) {
+      const attackFwds = availableForwards(attackTeam, state, attackSide);
+      const offender = attackFwds.length > 0
+        ? attackFwds[rng(0, attackFwds.length - 1)]
+        : (attackOnField[0] ?? carrier);
+      events.push({ type: 'PENALTY_AWARDED', offence: 'obstruction', offender, offendingSide: attackSide });
+      return {
+        nextPhase: MatchPhase.Penalty,
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'obstruction_penalty', primary: offender, secondary: defender }] },
+        primaryPlayer: offender,
+        secondaryPlayer: defender,
+        events,
+      };
+    }
 
     if (carrier.id !== 10) {
       wideIntroSteps = [{ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'out_the_back', primary: carrier, secondary: flyHalf }];

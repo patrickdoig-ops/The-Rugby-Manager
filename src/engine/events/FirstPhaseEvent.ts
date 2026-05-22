@@ -5,11 +5,11 @@ import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
-import { attackDir, isTryScoredAt, inOwnHalf, inOwn22, onFieldPlayers, availableBacks } from '../FieldPosition';
+import { attackDir, isTryScoredAt, inOwnHalf, inOwn22, onFieldPlayers, availableBacks, availableForwards } from '../FieldPosition';
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
-import { HOME_ADVANTAGE, KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnThreshold } from '../balance';
+import { HOME_ADVANTAGE, KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnThreshold, OBSTRUCTION_BASE_PCT } from '../balance';
 
 const FULL_BACKLINE = 7;
 
@@ -95,6 +95,29 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   } else {
     // Wide Play: #10 → #13 → random of #11/#14
     const outsideCentre = attackOnField.find(p => p.id === 13) ?? pickPlayer(attackTeam, 13);
+
+    // Obstruction roll — one chance per wide-play attempt, fired before the
+    // first pass so a hit short-circuits the whole sequence. Offender: a
+    // random screening forward. Modified by attackingStyle (wide_wide =
+    // more screens, keep_it_tight = fewer). Defender is the opposite-13
+    // (the player most directly affected by the screen).
+    const obstructionPct = OBSTRUCTION_BASE_PCT + TACTIC_MODIFIERS.obstructionStyleMod[style];
+    if (rng(1, 100) <= obstructionPct) {
+      const attackFwds = availableForwards(attackTeam, state, attackSide);
+      const offender = attackFwds.length > 0
+        ? attackFwds[rng(0, attackFwds.length - 1)]
+        : (attackOnField[0] ?? carrier);
+      const obstructionDefender = defendOnField.find(p => p.id === 13) ?? (defendOnField[0] ?? pickPlayer(defendTeam, 13));
+      events.push({ type: 'PENALTY_AWARDED', offence: 'obstruction', offender, offendingSide: attackSide });
+      return {
+        nextPhase: MatchPhase.Penalty,
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'obstruction_penalty', primary: offender, secondary: obstructionDefender }] },
+        primaryPlayer: offender,
+        secondaryPlayer: obstructionDefender,
+        events,
+      };
+    }
+
     playIntroSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'out_the_back', primary: carrier, secondary: outsideCentre });
 
     if (outsideCentre.currentStats.handling + rng(1, 100) < knockOnThreshold(outsideCentre.currentStats.handling, state.clock.clockInTheRed)) {

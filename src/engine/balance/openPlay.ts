@@ -41,6 +41,15 @@ export const TRY_LOCATION_BANDS = {
   // else → corner
 } as const;
 
+// Base trigger rate for the obstruction penalty. Rolled inside
+// PhasePlay + FirstPhase whenever the attacking side opts to "go out the
+// back" — the forward screen on a wide pass is the typical real-world
+// obstruction source. Pct per out-the-back attempt; out-the-back is reached
+// in ~14 attempts per match league-wide, so a base of 4 gives ~0.6
+// obstructions per match. Shifted at the call site by
+// TACTIC_MODIFIERS.obstructionStyleMod[attackingStyle].
+export const OBSTRUCTION_BASE_PCT = 4;
+
 export const OPEN_PLAY_VALUES = {
   agilityWeight:     0.5,
   positioningWeight: 0.5,

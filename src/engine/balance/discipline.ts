@@ -2,6 +2,28 @@
 // pure resolver in `src/engine/resolvers/`. Probabilities are expressed as
 // percentage points and consumed with `rng(1, 100) <= pct`.
 
+import type { PenaltyOffence } from '../../types/engine';
+
+// Per-offence behaviour table. Single source of truth for the TMO gate (and
+// any future offence-level metadata). CardHandler reads OFFENCE_SPEC[offence]
+// instead of hardcoding offence names — adding a new TMO-eligible offence is
+// a one-line registry edit. `tmoTriggerPct` of 0 means the offence never
+// triggers a TMO review. When > 0, CardHandler rolls vs rng(1,100); on hit
+// it enters MatchPhase.TmoReview with outcome bucketed by the global TMO
+// weights (outcomeNoCardPct / outcomeYellowPct / outcomeRed20Pct).
+export interface OffenceSpec {
+  tmoTriggerPct: number;
+}
+export const OFFENCE_SPEC: Record<PenaltyOffence, OffenceSpec> = {
+  breakdown_infringement: { tmoTriggerPct:  0 },
+  scrum_infringement:     { tmoTriggerPct:  0 },
+  high_tackle:            { tmoTriggerPct: 60 },
+  offside_at_ruck:        { tmoTriggerPct:  0 },
+  obstruction:            { tmoTriggerPct:  0 },
+  dangerous_cleanout:     { tmoTriggerPct: 60 },
+  not_rolling_away:       { tmoTriggerPct:  0 },
+};
+
 // High tackle probability per completed tackle attempt. Combines the
 // tackler's tackling technique with their discipline rating, pivoting around
 // 50 — a 50/50 tackler sits at the baseline; a poor-disciplined, poor-tackling
@@ -16,15 +38,13 @@ export const HIGH_TACKLE = {
   minPct:           2.5,
 } as const;
 
-// TMO review. When a high tackle is awarded, `triggerPct`% chance the TMO
-// intervenes and we enter MatchPhase.TmoReview for 3 narrative ticks. Outcome
-// is pre-rolled and bucketed by these weights (sum to 100); the narrative is
-// pure replay.
+// TMO review outcome weights — global, applied to ANY offence whose
+// OFFENCE_SPEC entry has tmoTriggerPct > 0. Sum to 100. The trigger
+// probability itself is per-offence and lives in OFFENCE_SPEC above.
 export const TMO = {
-  triggerPctHighTackle: 60,
-  outcomeNoCardPct:     40,
-  outcomeYellowPct:     40,
-  outcomeRed20Pct:      20,
+  outcomeNoCardPct: 40,
+  outcomeYellowPct: 40,
+  outcomeRed20Pct:  20,
 } as const;
 
 // Sin-bin durations in game minutes. Yellow returns; red_20 expires to sentOff

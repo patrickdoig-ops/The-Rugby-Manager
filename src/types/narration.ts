@@ -14,9 +14,10 @@ export type PhaseOutcomeKey =
   | 'kick_decision' | 'out_the_back' | 'crash_ball'
   | 'line_break' | 'line_break_try'
   | 'dominant_carry' | 'dominant_tackle' | 'play_on'
-  | 'high_tackle_penalty'
+  | 'high_tackle_penalty' | 'obstruction_penalty'
   // Breakdown
   | 'clean_ball' | 'slow_ball' | 'turnover' | 'penalty_defending'
+  | 'offside_at_ruck_penalty' | 'not_rolling_away_penalty' | 'dangerous_cleanout_penalty'
   // Scrum
   | 'stable_win' | 'wheel'
   | 'attacking_dominant_penalty' | 'defending_dominant_penalty'

@@ -5,7 +5,7 @@ import type { NarrationStep } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
 import { resolveBreakdown } from '../resolvers/BreakdownResolver';
 import { rng } from '../../utils/rng';
-import { HOME_ADVANTAGE, TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
+import { HOME_ADVANTAGE, TACTIC_MODIFIERS, COMMENTARY_CHANCES, BREAKDOWN_PENALTIES } from '../balance';
 import { homeEdge } from '../HomeAdvantage';
 import { inOpposition22, inOwn22, inOwnHalf, availableForwards, onFieldPlayers } from '../FieldPosition';
 
@@ -45,7 +45,6 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
 
   const defendPack = defendFwds;
   const ha = homeEdge(state, HOME_ADVANTAGE.breakdownMod);
-  const res = resolveBreakdown(supporters, jackal, defPlan, defendPack, attackBonus + ha.attack, ha.defend);
 
   // Set the breakdown mod and credit the ruck hit for every supporter — both happen
   // regardless of outcome.
@@ -53,6 +52,67 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
     { type: 'BREAKDOWN_MOD_SET', attack: nextAttackMod, defend: nextDefendMod },
     { type: 'BREAKDOWN_HIT', players: supporters },
   ];
+
+  // ── Pre-resolve penalty rolls (fixed RNG order: cleanout → not-rolling) ───
+  // Each rolls one rng(1, 100) call only when reached, in this exact order, so
+  // the rng stream stays deterministic. If a roll fires, the breakdown
+  // short-circuits to MatchPhase.Penalty before resolveBreakdown is called —
+  // the existing 4-way contest is skipped for this breakdown.
+
+  // 1. dangerous_cleanout — attacker, TMO-eligible (40/40/20 via OFFENCE_SPEC).
+  //    Offender: a random supporter (the cleaner). Penalty flips possession.
+  const cleanoutPct = BREAKDOWN_PENALTIES.dangerousCleanoutBasePct
+                    + TACTIC_MODIFIERS.dangerousCleanoutAttackMod[attPlan];
+  if (rng(1, 100) <= cleanoutPct) {
+    const offender = supporters[rng(0, supporters.length - 1)];
+    events.push({ type: 'PENALTY_AWARDED', offence: 'dangerous_cleanout', offender, offendingSide: attackSide });
+    return {
+      nextPhase: MatchPhase.Penalty,
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'dangerous_cleanout_penalty', primary: offender, secondary: jackal }] },
+      primaryPlayer: offender,
+      secondaryPlayer: jackal,
+      events,
+    };
+  }
+
+  // 2. not_rolling_away — defender, no TMO. Offender is the jackal (the
+  //    nearest defender to the tackle, already picked above).
+  const notRollingPct = BREAKDOWN_PENALTIES.notRollingAwayBasePct
+                      + TACTIC_MODIFIERS.notRollingAwayDefendMod[defPlan];
+  if (rng(1, 100) <= notRollingPct) {
+    events.push({ type: 'PENALTY_AWARDED', offence: 'not_rolling_away', offender: jackal, offendingSide: defSide });
+    return {
+      nextPhase: MatchPhase.Penalty,
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'not_rolling_away_penalty', primary: jackal, secondary: primary }] },
+      primaryPlayer: jackal,
+      secondaryPlayer: primary,
+      events,
+    };
+  }
+
+  const res = resolveBreakdown(supporters, jackal, defPlan, defendPack, attackBonus + ha.attack, ha.defend);
+
+  // 3. offside_at_ruck — defender, post-resolve, fires ONLY on the
+  //    transitions that put the ball back into phase play (clean_ball /
+  //    slow_ball). Skipped on turnover (possession changed) and on
+  //    penalty_defending (the existing breakdown_infringement already wins
+  //    the whistle). Offender: a random on-field defender.
+  if (res.result === 'clean_ball' || res.result === 'slow_ball') {
+    // TODO: When defensive tactics (blitz / drift) are added, replace `+ 0`
+    // with `+ TACTIC_MODIFIERS.offsideAtRuckDefendMod[defendTeam.tactics.defensiveLine]`.
+    const offsidePct = BREAKDOWN_PENALTIES.offsideAtRuckBasePct + 0;
+    if (rng(1, 100) <= offsidePct) {
+      const offender = defendOnField[rng(0, defendOnField.length - 1)] ?? jackal;
+      events.push({ type: 'PENALTY_AWARDED', offence: 'offside_at_ruck', offender, offendingSide: defSide });
+      return {
+        nextPhase: MatchPhase.Penalty,
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'offside_at_ruck_penalty', primary: offender, secondary: primary }] },
+        primaryPlayer: offender,
+        secondaryPlayer: primary,
+        events,
+      };
+    }
+  }
 
   if (res.result === 'clean_ball') {
     const steps: NarrationStep[] = [

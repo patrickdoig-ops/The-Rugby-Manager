@@ -71,6 +71,12 @@ const PHASE_PLAY: PhaseBank = {
     'No arms, high contact — referee comes back for the penalty. {defside} get it.',
     'Arm swings high around the head. {defside} have the penalty.',
   ],
+  obstruction_penalty: [
+    '{primary} steps into the defender as the ball goes out the back — obstruction! Penalty {defside}.',
+    'The referee spots the block from {primary} on the wide screen — obstruction. {defside} get the penalty.',
+    'Crossing! {primary} runs the decoy line straight into the cover. {defside} have the penalty.',
+    '{primary} drifts across the defender as the ball is shipped wide. Obstruction — {defside}.',
+  ],
 };
 
 const FIRST_PHASE: PhaseBank = {
@@ -133,6 +139,12 @@ const FIRST_PHASE: PhaseBank = {
     'High tackle off the set piece! Straight to the penalty for {defside}.',
     'Caught high on the first-phase tackle — referee blows it up. {defside} have the penalty.',
     'No wrap, high contact! {defside} get the penalty from the set-piece play.',
+  ],
+  obstruction_penalty: [
+    '{primary} blocks the inside cover on the first-phase strike move — obstruction! Penalty {defside}.',
+    'The pre-rehearsed strike runs a forward into the defender — referee spots {primary}. Penalty {defside}.',
+    'Crossing off the set piece — {primary} drifts into the defender\'s line. {defside} have it.',
+    '{primary} screens for the receiver and takes a defender out illegally. Obstruction {defside}.',
   ],
 };
 
@@ -235,6 +247,24 @@ const BREAKDOWN: PhaseBank = {
     'Penalty! The referee spots the infringement at the ruck — {side} awarded.',
     '{primary} is caught holding on — penalty to {side}!',
     'Hands in the ruck! Penalty awarded to {side} for the infringement.',
+  ],
+  not_rolling_away_penalty: [
+    '{primary} can\'t get out of the way after the tackle — penalty {side}.',
+    'Not rolling away! {primary} is stuck in the tackle zone. Referee blows it up — penalty {side}.',
+    '{primary} hangs on after the tackle. Whistle goes — {side} have the penalty.',
+    'The tackler is slow to release — penalty {side} for not rolling away.',
+  ],
+  offside_at_ruck_penalty: [
+    'Offside! {primary} is ahead of the last foot as the ball comes back — penalty {side}.',
+    'The referee spots {primary} creeping up offside at the ruck. Penalty {side}.',
+    'Up too quickly off the line! {primary} is penalised for offside at the breakdown — {side} get it.',
+    '{primary} is off his feet and offside — referee\'s arm goes up. Penalty {side}.',
+  ],
+  dangerous_cleanout_penalty: [
+    '{primary} goes in dangerously at the clear-out — off his feet and at the head. Whistle blown.',
+    'Reckless clear-out from {primary}! Penalty — and they\'ll want a look at this one.',
+    '{primary} hits the jackal late and high in the clean-out. Penalty {side} — the referee is going upstairs.',
+    'The cleanout from {primary} was straight off the legs! Referee blows the whistle and signals to the TMO.',
   ],
 };
 

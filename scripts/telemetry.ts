@@ -162,7 +162,7 @@ interface SeasonAgg {
   homePoints: number; awayPoints: number;
   matchCount: number;
   // Penalty offence taxonomy (sourced from narration phase_outcome keys)
-  penOffence: { highTackle: number; breakdown: number; scrum: number };
+  penOffence: { highTackle: number; breakdown: number; scrum: number; offsideAtRuck: number; obstruction: number; dangerousCleanout: number; notRollingAway: number };
   // Penalty kick decisions (the manager / AI choice on every awarded penalty)
   penChoice: { kickForGoal: number; kickToTouch: number; tapAndGo: number; tapAndKickDead: number };
   // TMO lifecycle
@@ -202,7 +202,7 @@ function emptySeasonAgg(): SeasonAgg {
     homeWins: 0, awayWins: 0, draws: 0,
     homePoints: 0, awayPoints: 0,
     matchCount: 0,
-    penOffence: { highTackle: 0, breakdown: 0, scrum: 0 },
+    penOffence: { highTackle: 0, breakdown: 0, scrum: 0, offsideAtRuck: 0, obstruction: 0, dangerousCleanout: 0, notRollingAway: 0 },
     penChoice: { kickForGoal: 0, kickToTouch: 0, tapAndGo: 0, tapAndKickDead: 0 },
     tmoTriggers: 0,
     tmoOutcomes: { noCard: 0, yellow: 0, red20: 0 },
@@ -383,6 +383,10 @@ function aggregateMatch(
         if      (step.key === 'high_tackle_penalty')          agg.penOffence.highTackle++;
         else if (step.key === 'penalty_defending')            agg.penOffence.breakdown++;
         else if (step.key === 'attacking_dominant_penalty' || step.key === 'defending_dominant_penalty') agg.penOffence.scrum++;
+        else if (step.key === 'offside_at_ruck_penalty')      agg.penOffence.offsideAtRuck++;
+        else if (step.key === 'obstruction_penalty')          agg.penOffence.obstruction++;
+        else if (step.key === 'dangerous_cleanout_penalty')   agg.penOffence.dangerousCleanout++;
+        else if (step.key === 'not_rolling_away_penalty')     agg.penOffence.notRollingAway++;
         else if (step.key === 'kick_for_goal')                agg.penChoice.kickForGoal++;
         else if (step.key === 'kick_to_touch')                agg.penChoice.kickToTouch++;
         else if (step.key === 'tap_and_go')                   agg.penChoice.tapAndGo++;
@@ -730,7 +734,7 @@ function buildReport(aggs: SeasonAgg[], elapsedMs: number): string {
   // ── Penalty offence taxonomy ────────────────────────────────────────────
   lines.push('## Penalty offence breakdown');
   lines.push('');
-  const totalPenOff = aggs.reduce((s, a) => s + a.penOffence.highTackle + a.penOffence.breakdown + a.penOffence.scrum, 0);
+  const totalPenOff = aggs.reduce((s, a) => s + a.penOffence.highTackle + a.penOffence.breakdown + a.penOffence.scrum + a.penOffence.offsideAtRuck + a.penOffence.obstruction + a.penOffence.dangerousCleanout + a.penOffence.notRollingAway, 0);
   lines.push(`Total offence-classified penalties: ${totalPenOff} (across ${totalFixtures} fixtures = ${fmt(totalPenOff/totalFixtures, 2)}/match).`);
   lines.push('');
   lines.push('| offence | count | share | per match |');
@@ -739,6 +743,10 @@ function buildReport(aggs: SeasonAgg[], elapsedMs: number): string {
     ['breakdown_infringement', aggs.reduce((s, a) => s + a.penOffence.breakdown, 0)],
     ['scrum_infringement',     aggs.reduce((s, a) => s + a.penOffence.scrum, 0)],
     ['high_tackle',            aggs.reduce((s, a) => s + a.penOffence.highTackle, 0)],
+    ['offside_at_ruck',        aggs.reduce((s, a) => s + a.penOffence.offsideAtRuck, 0)],
+    ['not_rolling_away',       aggs.reduce((s, a) => s + a.penOffence.notRollingAway, 0)],
+    ['obstruction',            aggs.reduce((s, a) => s + a.penOffence.obstruction, 0)],
+    ['dangerous_cleanout',     aggs.reduce((s, a) => s + a.penOffence.dangerousCleanout, 0)],
   ];
   for (const [name, n] of penRows.sort((a, b) => b[1] - a[1])) {
     lines.push(`| ${name} | ${n} | ${pct(n, totalPenOff)} | ${fmt(n/totalFixtures, 2)} |`);

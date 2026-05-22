@@ -2,7 +2,14 @@
 // Screen's "Continue Game" button can resume mid-season after a browser
 // close. Schema is versioned — bump SAVE_VERSION whenever the shape changes.
 //
-// v7 (current) extends v6 with the Phase 4 market layer — state.career.
+// v9 (current) adds the injury system. Persistent injury state lives on
+// each roster Player as the optional `injury` field (PlayerInjury —
+// kind, severity, weeksRemaining, injuredOn, isRecurrence). Absent ⇔
+// fit. Decremented weekly on WEEK_ADVANCED; cleared by PLAYER_RECOVERED.
+// Older saves load with every player at `injury: undefined` — purely
+// additive, no migration shim needed.
+//
+// v7 extended v6 with the Phase 4 market layer — state.career.
 // freeAgents (rosterIds whose contracts expired without renewal) and an
 // optional state.career.market (open during the end-of-season renewal
 // window, null otherwise). Mid-window saves let the player resume on

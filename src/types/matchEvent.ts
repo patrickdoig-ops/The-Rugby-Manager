@@ -1,4 +1,4 @@
-import type { Player, PlayerStats } from './player';
+import type { Player, PlayerStats, InjuryKind } from './player';
 import type { GameEvent } from './match';
 import type { TeamTactics } from './team';
 import { type MatchPhase, type PossessionSide, type PenaltyOffence, type CardKind } from './engine';
@@ -58,6 +58,15 @@ export type MatchEvent =
   | { type: 'TMO_REVIEW_STARTED'; offender: Player; offendingSide: PossessionSide; outcome: 'no_card' | 'yellow' | 'red_20' }
   | { type: 'TMO_REVIEW_TICK_ADVANCED' }
   | { type: 'TMO_REVIEW_RESOLVED' }
+
+  // ── Injuries ─────────────────────────────────────────────────────────────
+  // Fired from a phase resolver (today only OpenPlayEvent's tackle outcome)
+  // when an injury roll triggers. Reducer pushes the player into
+  // state.cards.injured[side] (mirrors sentOff) and sets
+  // player.pendingInjuryKind for the teardown severity roll. Player goes off
+  // for the rest of the match; coordinator follows with the shared
+  // forced-sub flow.
+  | { type: 'PLAYER_INJURED_IN_MATCH'; player: Player; side: PossessionSide; kind: InjuryKind }
 
   // ── Passing / breakdown bookkeeping ──────────────────────────────────────
   | { type: 'PASS_COMPLETED'; passer: Player }

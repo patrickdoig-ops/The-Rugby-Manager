@@ -96,9 +96,15 @@ export function initContractsScreen(
         ? '<span class="ct-marquee" aria-label="Marquee — tap to clear">★</span>'
         : '<span class="ct-marquee-empty" aria-label="Designate marquee">☆</span>';
       const expiringChip = expiring ? '<span class="ct-expiring">EXPIRES</span>' : '';
+      const injuryChip = p.injury
+        ? `<span class="injury-badge" title="${p.injury.kind.replace(/_/g, ' ')}">${p.injury.weeksRemaining}w</span>`
+        : '';
+      const rowClasses = ['ct-row'];
+      if (p.contract.isMarquee) rowClasses.push('ct-row--marquee');
+      if (p.injury) rowClasses.push('row-injured');
       return `
-        <div class="ct-row${p.contract.isMarquee ? ' ct-row--marquee' : ''}" data-roster-id="${p.rosterId}">
-          <span class="ct-name">${p.firstName} ${p.lastName}</span>
+        <div class="${rowClasses.join(' ')}" data-roster-id="${p.rosterId}">
+          <span class="ct-name">${p.firstName} ${p.lastName}${injuryChip ? ' ' + injuryChip : ''}</span>
           <span class="ct-pos">${shortPos(p.position)}</span>
           <span class="ct-num">${age ?? '—'}</span>
           <span class="ct-num">${overall}</span>

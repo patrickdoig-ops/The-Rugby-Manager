@@ -147,6 +147,7 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
       sentOff:       { home: [], away: [] },
       teamPenalty22: { home: 0,  away: 0  },
       teamWarned22:  { home: false, away: false },
+      injured:       { home: [], away: [] },
     },
   };
 }
@@ -266,15 +267,22 @@ export class MatchCoordinator {
     return this.humanSide;
   }
 
-  // Called when a red_20 player's 20 minutes are up. Human side gets a modal
-  // to pick the replacement; AI side and silent matches auto-pick by position
-  // group. Empty bench → emit a "no replacement" announcement; the team plays
-  // a man down for the rest of the match.
-  private async handleRed20Replacement(off: Player, side: 'home' | 'away'): Promise<void> {
+  // Shared forced-substitution flow. Triggered both by red_20 (a player's
+  // 20-minute red expired) and by an in-match injury. Human side gets the
+  // modal; AI side and silent matches auto-pick by position group. Empty
+  // bench → emit the matching "no replacement" announcement and play short.
+  //
+  // `reason` selects the commentary keys: 'red_20' for sin-bin expiry,
+  // 'injury' for an in-match injury. The forced-sub plumbing is otherwise
+  // identical — `off` is already excluded from `onFieldPlayers` (sentOff or
+  // injured), and SUBSTITUTION_APPLIED strips both arrays on the way in.
+  private async runForcedSubstitution(off: Player, side: 'home' | 'away', reason: 'red_20' | 'injury'): Promise<void> {
     const team = side === 'home' ? this.state.homeTeam : this.state.awayTeam;
+    const noReplKey = reason === 'red_20' ? 'red_20_no_replacement' : 'injury_no_replacement';
+    const replDoneKey = reason === 'red_20' ? 'red_20_replacement_done' : 'injury_replacement_done';
     if (team.bench.length === 0) {
       const ev = buildAnnounce({
-        key: 'red_20_no_replacement',
+        key: noReplKey,
         state: this.state,
         side,
         secondary: off,
@@ -310,8 +318,9 @@ export class MatchCoordinator {
     const benchPlayer = team.bench.find(p => p.squadNumber === benchSquadNum);
     if (!benchPlayer) return;
 
-    // Field slot vacated by the sent-off player: team.players still contains
-    // them in that slot (CARD_ISSUED didn't remove from the array). Locate by id.
+    // Field slot vacated by the off player: team.players still contains them
+    // (CARD_ISSUED / PLAYER_INJURED_IN_MATCH didn't remove from the array).
+    // Locate by id.
     const fieldIdx = team.players.findIndex(p => p.id === off.id);
     if (fieldIdx === -1) return;
     const benchIdx = team.bench.findIndex(p => p.squadNumber === benchSquadNum);
@@ -322,7 +331,7 @@ export class MatchCoordinator {
     });
 
     const ev = buildAnnounce({
-      key: 'red_20_replacement_done',
+      key: replDoneKey,
       state: this.state,
       side,
       primary: benchPlayer,
@@ -332,6 +341,23 @@ export class MatchCoordinator {
     applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: ev });
     this.emitEvent(ev);
     this.emitStateChange();
+  }
+
+  // Walks state.cards.injured on both sides and returns the entries whose
+  // slot is still occupied by the injured player (i.e. no replacement has
+  // run yet this match). Stable scan in side ('home' then 'away') and bucket
+  // order so the RNG order of runForcedSubstitution stays deterministic.
+  private collectPendingInjurySubs(): Array<{ player: Player; side: 'home' | 'away' }> {
+    const out: Array<{ player: Player; side: 'home' | 'away' }> = [];
+    for (const side of ['home', 'away'] as const) {
+      const team = side === 'home' ? this.state.homeTeam : this.state.awayTeam;
+      for (const inj of this.state.cards.injured[side]) {
+        if (team.players.some(p => p.id === inj.id && p === inj)) {
+          out.push({ player: inj, side });
+        }
+      }
+    }
+    return out;
   }
 
   substitute(side: 'home' | 'away', benchSquadNum: number, fieldSquadNum: number): void {
@@ -467,7 +493,21 @@ export class MatchCoordinator {
     // expirations are inline; red_20 expirations queue a forced-sub flow.
     const expiredRed20 = this.cardHandler.scanSinBinReturns();
     for (const exp of expiredRed20) {
-      await this.handleRed20Replacement(exp.player, exp.side);
+      await this.runForcedSubstitution(exp.player, exp.side, 'red_20');
+      if (!this.state.engine.isRunning) return;
+    }
+
+    // Injury forced-sub flow: any player pushed onto state.cards.injured by
+    // a PLAYER_INJURED_IN_MATCH on the previous tick's phase resolution gets
+    // a replacement here (mirrors red_20 expiry). The bench player runs on;
+    // SUBSTITUTION_APPLIED clears cards.injured so onFieldPlayers stops
+    // filtering the slot. Players whose pendingInjuryKind is set but bench
+    // was empty stay in cards.injured for the rest of the match — the team
+    // plays short, and the teardown severity roll still finds them via the
+    // pendingInjuryKind flag.
+    const pendingInjurySubs = this.collectPendingInjurySubs();
+    for (const exp of pendingInjurySubs) {
+      await this.runForcedSubstitution(exp.player, exp.side, 'injury');
       if (!this.state.engine.isRunning) return;
     }
 

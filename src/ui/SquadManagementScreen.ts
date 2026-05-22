@@ -24,8 +24,8 @@
 
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput, RawPlayer } from '../types/teamData';
-import type { Position } from '../types/player';
-import { applyMatchdaySquad, extractMatchdaySquad } from '../game/playerSquad';
+import type { Position, PlayerInjury } from '../types/player';
+import { applyMatchdaySquad, extractMatchdaySquad, makeInjuredPredicate } from '../game/playerSquad';
 import { buildTeamFromRoster } from '../game/rosterTeamBuilder';
 import { playerOverall } from '../engine/RatingEngine';
 import { shortName } from '../utils/playerName';
@@ -85,6 +85,19 @@ function ovrClass(ovr: number): string {
   return 'ovr-veryPoor';
 }
 
+function injuryKindLabel(kind: PlayerInjury['kind']): string {
+  switch (kind) {
+    case 'knock':           return 'Knock';
+    case 'concussion':      return 'Concussion';
+    case 'muscle_strain':   return 'Muscle strain';
+    case 'ligament_sprain': return 'Ligament sprain';
+    case 'knee_cartilage':  return 'Knee cartilage';
+    case 'shoulder':        return 'Shoulder';
+    case 'fracture':        return 'Fracture';
+    case 'laceration':      return 'Laceration';
+  }
+}
+
 let renderImpl: (() => void) | null = null;
 
 export function showSquadManagement(): void {
@@ -111,7 +124,9 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     const teamJson = teamsById.get(state.player.teamId);
     if (!teamJson) return;
     const fresh = buildTeamFromRoster(state, teamJson);
-    const applied = applyMatchdaySquad(fresh, state.player.matchdaySquad);
+    const club = state.career.clubs.find(c => c.id === teamJson.id);
+    const isInjured = club ? makeInjuredPredicate(state.career.roster, club.squad) : undefined;
+    const applied = applyMatchdaySquad(fresh, state.player.matchdaySquad, isInjured);
     draftStarters = (applied.players as RawPlayer[]).map(p => ({ ...p }));
     draftBench    = ((applied.bench ?? []) as RawPlayer[]).map(p => ({ ...p }));
     draftSquad    = ((applied.squad ?? []) as RawPlayer[]).map(p => ({ ...p }));
@@ -119,6 +134,21 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     activeGroup = 'all';
     dirty = false;
     discardOpen = false;
+  }
+
+  // Look up the persistent injury (if any) for a draft row by name. Keys
+  // are name pairs because the SquadManagementScreen uses RawPlayer
+  // throughout (no rosterId on the draft row type), and full names are
+  // unique league-wide.
+  function injuryFor(p: { firstName: string; lastName: string }): PlayerInjury | undefined {
+    const state = opts.gameEngine.getState();
+    const club = state.career.clubs.find(c => c.id === state.player.teamId);
+    if (!club) return undefined;
+    for (const rid of club.squad) {
+      const r = state.career.roster[rid];
+      if (r && r.firstName === p.firstName && r.lastName === p.lastName) return r.injury;
+    }
+    return undefined;
   }
 
   function listForTier(tier: Tier): RawPlayer[] {
@@ -152,10 +182,25 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     const toIdx    = toList.findIndex(p => p.squadNumber === toSquadNum);
     if (fromIdx === -1 || toIdx === -1) return;
 
-    const fromId = fromList[fromIdx].id;
-    const toId   = toList[toIdx].id;
+    // Reject any swap that would put an injured player into starting XV
+    // or bench. Injured players are pinned to the wider squad until they
+    // recover. The starter/bench tiers correspond to slots 1-23 (in play
+    // on matchday); wider squad is slots 24+. A non-starter (bench /
+    // squad) initiator paired with a starter/bench target — both the
+    // source and target must be checked.
     const fromPlayer = fromList[fromIdx];
     const toPlayer   = toList[toIdx];
+    const fromInj = injuryFor(fromPlayer);
+    const toInj   = injuryFor(toPlayer);
+    const intoMatchday = (tier: Tier): boolean => tier === 'starter' || tier === 'bench';
+    if ((fromInj && intoMatchday(toTier)) || (toInj && intoMatchday(fromTier))) {
+      // No mutation; silently deselect. (Future: surface a brief toast.)
+      selection = null;
+      return;
+    }
+
+    const fromId = fromList[fromIdx].id;
+    const toId   = toList[toIdx].id;
     fromList[fromIdx] = { ...toPlayer,   id: fromId, squadNumber: fromId };
     toList[toIdx]     = { ...fromPlayer, id: toId,   squadNumber: toId };
     dirty = true;
@@ -327,14 +372,19 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     const isSelected = selection !== null && selection.tier === tier && selection.squadNum === sn;
     const isSwapTarget = selection !== null && !isSelected;
     const jerseyContent = tier === 'squad' ? '—' : String(sn);
+    const injury = injuryFor(p);
     const classes = ['sq-player', `sq-player--${tier}`];
     if (isSelected) classes.push('sq-player--selected');
     if (isSwapTarget) classes.push('sq-player--swap-target');
+    if (injury) classes.push('row-injured');
+    const injuryBadge = injury
+      ? `<span class="injury-badge" title="${injuryKindLabel(injury.kind)} — ${injury.weeksRemaining}w">${injury.weeksRemaining}w</span>`
+      : '';
     return `
       <div class="${classes.join(' ')}" data-tier="${tier}" data-squad="${sn}">
         <div class="sq-jersey sq-jersey--${tier}">${jerseyContent}</div>
         <div class="sq-player-info">
-          <span class="sq-player-name sq-player-name--${tier}">${shortName(p)}</span>
+          <span class="sq-player-name sq-player-name--${tier}">${shortName(p)}${injuryBadge ? ' ' + injuryBadge : ''}</span>
           <span class="sq-player-pos sq-player-pos--${tier}">${p.position}</span>
         </div>
         <div class="sq-ovr ${ovrClass(ovr)}">${ovr}</div>

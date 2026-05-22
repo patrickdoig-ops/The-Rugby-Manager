@@ -23,10 +23,21 @@ export function extractMatchdaySquad(team: RawTeamInput): PlayerRef[] {
   }));
 }
 
-// Returns the team unchanged when `squad` is undefined, the wrong length, or
-// references a player no longer rostered — caller doesn't need to special-case.
-export function applyMatchdaySquad(team: RawTeamInput, squad: PlayerRef[] | undefined): RawTeamInput {
+// Returns the team unchanged when `squad` is undefined, the wrong length,
+// references a player no longer rostered, or references an injured player
+// (per the optional `isInjured` predicate) — caller doesn't need to
+// special-case. When `isInjured` is omitted, only the rostered-or-not
+// fallback applies (matches the v8 contract). PreMatchScreen passes a
+// roster-backed predicate so an injured saved-squad selection auto-falls
+// back to the underlying team (whose `players + bench` are already
+// injury-free if it came from buildTeamFromRoster).
+export function applyMatchdaySquad(
+  team: RawTeamInput,
+  squad: PlayerRef[] | undefined,
+  isInjured?: (ref: PlayerRef) => boolean,
+): RawTeamInput {
   if (!squad || squad.length !== 23) return team;
+  if (isInjured && squad.some(ref => isInjured(ref))) return team;
 
   const all: RawPlayer[] = [
     ...(team.players as RawPlayer[]),
@@ -53,4 +64,20 @@ export function applyMatchdaySquad(team: RawTeamInput, squad: PlayerRef[] | unde
 
   const remaining = all.filter(p => !used.has(nameKey(p)));
   return { ...team, players: starters, bench, squad: remaining };
+}
+
+// Convenience: build an `isInjured` predicate over a GameState's career
+// roster for a specific club, by full-name lookup. Used by PreMatchScreen
+// and SquadManagementScreen so they don't have to duplicate the roster
+// scan on every render.
+export function makeInjuredPredicate(
+  roster: Record<number, { firstName: string; lastName: string; injury?: unknown }>,
+  clubSquad: number[],
+): (ref: PlayerRef) => boolean {
+  const injuredNames = new Set<string>();
+  for (const rid of clubSquad) {
+    const p = roster[rid];
+    if (p && p.injury) injuredNames.add(`${p.firstName}|${p.lastName}`);
+  }
+  return (ref) => injuredNames.has(`${ref.firstName}|${ref.lastName}`);
 }

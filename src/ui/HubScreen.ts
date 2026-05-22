@@ -104,6 +104,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
 
     const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
     const pct = totalRounds > 0 ? (state.calendar.week / totalRounds) * 100 : 0;
+    const injuredCount = countInjured(state);
 
     el!.innerHTML = `
       <div id="hub-topbar">
@@ -146,6 +147,13 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
           </button>
         `).join('')}
       </div>
+
+      ${injuredCount > 0 ? `
+        <div id="hub-treatment-room">
+          <span class="injury-badge">${injuredCount}</span>
+          <span class="hub-treatment-label">${injuredCount === 1 ? 'player' : 'players'} in the treatment room</span>
+        </div>
+      ` : ''}
 
       <div id="hub-footer">${footerHtml(nextFixture)}</div>
     `;
@@ -223,6 +231,19 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
         <span>Go to next match</span>
       </button>
     `;
+  }
+
+  // Count of currently injured roster players on the player's club. Pure
+  // walk over state.career.roster — cheap (≈30 players) and refreshes on
+  // every render. Returns 0 when there's no career roster yet.
+  function countInjured(state: GameState): number {
+    const club = state.career.clubs.find(c => c.id === state.player.teamId);
+    if (!club) return 0;
+    let n = 0;
+    for (const rid of club.squad) {
+      if (state.career.roster[rid]?.injury) n++;
+    }
+    return n;
   }
 
   // Re-render whenever the season state changes — date, week, next-fixture

@@ -14,6 +14,13 @@ export interface CardsState {
   sentOff:       { home: Player[];      away: Player[] };
   teamPenalty22: { home: number;        away: number };
   teamWarned22:  { home: boolean;       away: boolean };
+  // In-match injured players, tracked here so the existing offFieldIds() /
+  // onFieldPlayers() filter automatically excludes them from selection — every
+  // resolver weakens for free. Players are pushed by PLAYER_INJURED_IN_MATCH
+  // and removed by SUBSTITUTION_APPLIED (same as sentOff). Severity + weeks
+  // are rolled at match teardown via rngTransfer; this in-match list does
+  // not carry duration.
+  injured:       { home: Player[];      away: Player[] };
 }
 
 export interface TmoReviewState {

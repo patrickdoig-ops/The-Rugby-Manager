@@ -99,6 +99,13 @@ export function assertInvariants(state: MatchState): void {
     if (!(pen22 >= 0) || !Number.isInteger(pen22)) {
       fail(`cards.teamPenalty22.${side}`, `${pen22}`);
     }
+    // Injured bucket: every entry must reference a real on-field slot.
+    // Duplicates are guarded against in the PLAYER_INJURED_IN_MATCH branch.
+    for (const player of state.cards.injured[side]) {
+      if (!(player.id >= 1 && player.id <= 23)) {
+        fail(`cards.injured.${side}.id`, `id=${player.id}`);
+      }
+    }
   }
   if (state.tmoReview) {
     const step = state.tmoReview.step;

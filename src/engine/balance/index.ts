@@ -28,3 +28,4 @@ export * from './season';
 export * from './homeAdvantage';
 export * from './career';
 export * from './transfers';
+export * from './injuries';

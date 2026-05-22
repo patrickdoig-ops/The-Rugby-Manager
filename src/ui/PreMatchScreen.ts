@@ -10,7 +10,8 @@ import { playerOverall } from '../engine/RatingEngine';
 import { computeOverallRating } from '../team/teamProfile';
 import { sortStandings } from '../game/leagueTable';
 import { recentForm, headToHead, matchSpread, formAdjustment, HOME_ADVANTAGE_PTS, type FormResult } from '../game/teamStats';
-import { applyMatchdaySquad } from '../game/playerSquad';
+import { applyMatchdaySquad, makeInjuredPredicate } from '../game/playerSquad';
+import { buildTeamFromRoster } from '../game/rosterTeamBuilder';
 import type { GameCoordinator } from '../game/GameCoordinator';
 
 type RawPlayer = {
@@ -227,11 +228,28 @@ export function initPreMatchScreen(
   const savedTactics = state.player.tactics;
   const savedSquad   = state.player.matchdaySquad;
 
-  // The player team's roster is rearranged to put the persisted matchday
-  // squad in slots 1-23 (starters + bench) and the rest in `squad`. Opponent
-  // roster is untouched.
-  const homeApplied = playerSide === 'home' ? applyMatchdaySquad(home, savedSquad) : home;
-  const awayApplied = playerSide === 'away' ? applyMatchdaySquad(away, savedSquad) : away;
+  // Human team is built from the persistent career roster so injured /
+  // aged / signed players reflect their current state. The opponent
+  // continues to come from the raw JSON (pre-existing gap; mirror of
+  // how the human's match has always worked). buildTeamFromRoster sorts
+  // injured players to the wider squad so the default 23 are all fit.
+  const humanTeamJson = playerSide === 'home' ? home : away;
+  const humanRosterBased = buildTeamFromRoster(state, humanTeamJson);
+  // Injury predicate is club-scoped — looks up the player's own club's
+  // squad in state.career.roster. Saved-squad entries that match an
+  // injured player cause applyMatchdaySquad to fall back to the
+  // roster-based base (which already has injured players in wider squad).
+  const club = state.career.clubs.find(c => c.id === humanTeamJson.id);
+  const isInjured = club ? makeInjuredPredicate(state.career.roster, club.squad) : undefined;
+  const humanApplied = applyMatchdaySquad(humanRosterBased, savedSquad, isInjured);
+  // Names of the injured players in the saved squad — used to render the
+  // "X out injured" banner below. Empty if savedSquad is clean or absent.
+  const injuredSavedRefs = (savedSquad && isInjured)
+    ? savedSquad.filter(ref => isInjured(ref))
+    : [];
+
+  const homeApplied = playerSide === 'home' ? humanApplied : home;
+  const awayApplied = playerSide === 'away' ? humanApplied : away;
 
   const homeStarters: RawPlayer[] = (homeApplied.players as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
   const homeBench:    RawPlayer[] = ((homeApplied.bench ?? []) as RawPlayer[]).map(p => ({ ...p, squadNumber: getSquadNum(p) }));
@@ -336,6 +354,17 @@ export function initPreMatchScreen(
           </div>
         `).join('')}
       </div>
+
+      ${injuredSavedRefs.length > 0 ? `
+        <div id="pm-injury-banner" role="status">
+          <span class="pm-injury-badge" aria-hidden="true">+</span>
+          <span class="pm-injury-text">
+            ${injuredSavedRefs.length === 1 ? '1 player is' : `${injuredSavedRefs.length} players are`}
+            unavailable through injury (${injuredSavedRefs.map(r => r.lastName).join(', ')}).
+            Replacements auto-picked &mdash; visit Squad to confirm.
+          </span>
+        </div>
+      ` : ''}
 
       <div id="pm-tabs-bar">
         <div id="pm-tabs" role="tablist">

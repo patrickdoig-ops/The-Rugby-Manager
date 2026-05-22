@@ -174,6 +174,43 @@
   display: inline-block;
 }
 
+/* ─── Injuries summary ─── */
+.mr-card--injuries .mr-card-title {
+  color: #d8503e;
+}
+
+.mr-injuries-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-family: var(--rm-font-body);
+  font-size: 12px;
+}
+
+.mr-injury-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mr-injury-name {
+  font-weight: 700;
+}
+
+.mr-injury-kind {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  color: var(--rm-text-dim);
+}
+
+.mr-injury-sep {
+  color: var(--rm-text-faint);
+  font-weight: 700;
+}
+
 /* ─── Try scorers ─── */
 .mr-scorers-grid {
   display: grid;

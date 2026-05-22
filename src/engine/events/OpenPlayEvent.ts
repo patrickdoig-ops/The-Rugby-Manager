@@ -1,6 +1,8 @@
 import type { PhaseContext, PhaseResult } from './types';
 import type { MatchEvent } from '../../types/matchEvent';
 import type { NarrationStep } from '../../types/narration';
+import type { Player, InjuryKind } from '../../types/player';
+import type { PossessionSide } from '../../types/engine';
 import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
@@ -9,7 +11,7 @@ import { attackDir, isTryScoredAt, inOwnHalf, inOwn22, onFieldPlayers, available
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
-import { HOME_ADVANTAGE, KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnThreshold } from '../balance';
+import { HOME_ADVANTAGE, KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnThreshold, INJURY, INJURY_KIND_WEIGHTS } from '../balance';
 
 const FULL_BACKLINE = 7;  // jersey ids 9–15
 
@@ -171,6 +173,20 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
     nextPhase = MatchPhase.Penalty;
   }
 
+  // Injury roll. Single rng(1, 10000) gate (4-digit precision so the small
+  // base percentage isn't dominated by integer rounding); single rng(1, 100)
+  // for the kind weighted pick; on a dominant_tackle, an extra rng(1, 100)
+  // decides carrier-vs-tackler victim. Skipped on line breaks — no completed
+  // tackle to cause contact injury.
+  if (res.outcome !== 'line_break') {
+    const injuryEvent = rollMatchInjury(res.outcome, ballCarrier, defender, attackSide, defSide);
+    if (injuryEvent) {
+      events.push(injuryEvent);
+      const victim = injuryEvent.player;
+      outcomeSteps.push({ kind: 'announcement', key: 'injury_off', primary: victim });
+    }
+  }
+
   return {
     nextPhase,
     narration: { steps: outcomeSteps },
@@ -179,4 +195,49 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
     outcome: res.outcome,
     events,
   };
+}
+
+// Pure helper — uses the outcome RNG stream. Returns either a
+// PLAYER_INJURED_IN_MATCH event or null. Two rolls in a fixed order:
+// trigger first (always consumed when reached), then kind, then (on
+// dominant_tackle) victim selection. Consumers must call in this order
+// only when the trigger passes — otherwise downstream RNG shifts.
+type InjuryMatchEvent = Extract<MatchEvent, { type: 'PLAYER_INJURED_IN_MATCH' }>;
+function rollMatchInjury(
+  outcome: 'dominant_carry' | 'dominant_tackle' | 'play_on',
+  carrier: Player,
+  defender: Player,
+  attackSide: PossessionSide,
+  defSide: PossessionSide,
+): InjuryMatchEvent | null {
+  const isDom = outcome === 'dominant_tackle';
+  // Use the higher-impact side's vulnerability for the trigger probability.
+  // The actual victim is decided below; the trigger weight reflects the
+  // shape of the contact.
+  const carrierVuln = INJURY.positionVuln[carrier.position] ?? 1;
+  // Lower fatiguePct (towards 0) = more tired = more injury-prone. Players
+  // start at 100 and drift downward; the boost scales with how far below
+  // 100 they are.
+  const fatigueBoost = 1 + INJURY.fatigueWeight * (1 - carrier.fatiguePct / 100);
+  const pct = INJURY.basePctPerTackle * (isDom ? INJURY.dominantTackleMult : 1) * carrierVuln * fatigueBoost;
+  // rng(1, 10000); compare to pct% × 100 = pct × 100 / 100 = … just
+  // multiply pct by 100 to get the integer ceiling.
+  if (rng(1, 10000) > pct * 100) return null;
+
+  const kind = pickInjuryKind();
+
+  const victim: Player = isDom && rng(1, 100) <= INJURY.tacklerVictimPct ? defender : carrier;
+  const victimSide: PossessionSide = victim === carrier ? attackSide : defSide;
+
+  return { type: 'PLAYER_INJURED_IN_MATCH', player: victim, side: victimSide, kind };
+}
+
+function pickInjuryKind(): InjuryKind {
+  const roll = rng(1, 100);
+  let cum = 0;
+  for (const [k, w] of Object.entries(INJURY_KIND_WEIGHTS) as Array<[InjuryKind, number]>) {
+    cum += w;
+    if (roll <= cum) return k;
+  }
+  return 'knock';
 }

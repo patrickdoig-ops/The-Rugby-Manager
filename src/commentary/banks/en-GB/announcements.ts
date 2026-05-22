@@ -136,6 +136,26 @@ const TEAM_22_WARNING: readonly string[] = [
   'Captain summoned — referee\'s warning over repeat infringements inside the 22.',
 ];
 
+const INJURY_OFF: readonly string[] = [
+  '{primary} is down — and looks to be hurt. The physio is on.',
+  'Bad news for {primary} — staying down after that contact, waving for the doctor.',
+  '{primary} is in trouble — the medics are sprinting on with the bag.',
+  'Concern for {primary} — flat on the deck, the trainer is over.',
+  '{primary} winces and goes down — that did not look right.',
+];
+
+const INJURY_REPLACEMENT_DONE: readonly string[] = [
+  '{primary} comes on as a forced replacement for the injured {secondary}.',
+  'Enforced change for {teamName} — {primary} on, {secondary} off and straight down the tunnel.',
+  '{secondary} can\'t carry on — {primary} is on in their place.',
+  'A precautionary change for {teamName}: {primary} replaces {secondary}.',
+];
+
+const INJURY_NO_REPLACEMENT: readonly string[] = [
+  '{secondary} can\'t continue — but {teamName} have nobody on the bench. Down to fourteen for the rest of it.',
+  'No replacement available for {teamName} — {secondary} is off, and they finish a player short.',
+];
+
 export function getAnnouncementTemplate(
   key: AnnouncementKey,
   params: AnnouncementParams = {},
@@ -199,5 +219,15 @@ export function getAnnouncementTemplate(
     }
     case 'team_22_warning':
       return pickRandom(TEAM_22_WARNING);
+    case 'injury_off':
+      return pickRandom(INJURY_OFF);
+    case 'injury_replacement_done': {
+      const teamName = params.teamName ?? 'the team';
+      return pickRandom(INJURY_REPLACEMENT_DONE).replace(/{teamName}/g, teamName);
+    }
+    case 'injury_no_replacement': {
+      const teamName = params.teamName ?? 'the team';
+      return pickRandom(INJURY_NO_REPLACEMENT).replace(/{teamName}/g, teamName);
+    }
   }
 }

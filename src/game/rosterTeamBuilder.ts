@@ -23,7 +23,20 @@ export function buildTeamFromRoster(state: GameState, teamJson: RawTeamInput): R
   const club = state.career.clubs.find(c => c.id === teamJson.id);
   if (!club) return teamJson;
 
-  const rosterPlayers = club.squad.map((rid, idx) => {
+  // Stable partition: fit players first (in club.squad order), injured last.
+  // Slots are then assigned 1..N over the partitioned list. Injured players
+  // naturally sink to the wider-squad section, so the auto-built 23 only
+  // contains fit players (assuming the club has at least 23 fit).
+  const fit: number[] = [];
+  const injured: number[] = [];
+  for (const rid of club.squad) {
+    const p = state.career.roster[rid];
+    if (p?.injury) injured.push(rid);
+    else fit.push(rid);
+  }
+  const ordered = [...fit, ...injured];
+
+  const rosterPlayers = ordered.map((rid, idx) => {
     const p = state.career.roster[rid];
     if (!p) return null;
     return rawFromRosterPlayer(p, idx + 1);

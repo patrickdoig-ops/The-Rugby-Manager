@@ -25,7 +25,7 @@ import { simulateFixture } from './simulateFixture';
 import { seedRoster } from './rosterSeeder';
 import { buildTeamFromRoster } from './rosterTeamBuilder';
 import { parseSeasonStartYear } from './age';
-import { collectSeasonEvents, type MatchSnapshot } from './seasonStatsCollector';
+import { collectSeasonEvents, type MatchSnapshot, type PlayerStatsSnapshot } from './seasonStatsCollector';
 import { computeRollover } from './careerRollover';
 import { seedContractFields } from './contractSeeder';
 import {
@@ -33,8 +33,9 @@ import {
   decideAISignings, signingTermsFor, isPoachEligible, decideAIPoaches, poachCandidates,
 } from './aiTransferDirector';
 import { eventBus } from '../utils/eventBus';
-import { setCareerSeed } from '../utils/rng';
-import { SEASON_VALUES } from '../engine/balance';
+import { setCareerSeed, rngTransfer } from '../utils/rng';
+import { SEASON_VALUES, INJURY_SEVERITY } from '../engine/balance';
+import type { InjurySeverity } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 import type { RawTeamInput } from '../types/teamData';
 
@@ -537,6 +538,15 @@ export class GameCoordinator {
     );
     if (alreadyRecorded) return;
 
+    // Injury recovery tick — runs before any new injuries from this round
+    // get added. Represents the week of rest between rounds: every player
+    // currently injured decrements weeksRemaining by 1; players whose
+    // counter would reach 0 fire PLAYER_RECOVERED instead. Order is
+    // rosterId-ascending so the season-determinism harness stays clean.
+    for (const ev of this.tickInjuryEvents()) {
+      applySeasonEvent(this.state, ev);
+    }
+
     const playerSide: 'home' | 'away' = fixture.homeId === this.state.player.teamId ? 'home' : 'away';
     const result: FixtureResult = {
       round,
@@ -548,6 +558,9 @@ export class GameCoordinator {
     };
     applySeasonEvent(this.state, { type: 'FIXTURE_RESULT_RECORDED', result });
     for (const ev of collectSeasonEvents(snapshot)) {
+      applySeasonEvent(this.state, ev);
+    }
+    for (const ev of this.rollNewInjuryEvents(snapshot.playerSnapshots)) {
       applySeasonEvent(this.state, ev);
     }
     eventBus.emit('game:fixtureRecorded', { result, state: this.state });
@@ -579,6 +592,9 @@ export class GameCoordinator {
       for (const ev of collectSeasonEvents(sim.snapshot)) {
         applySeasonEvent(this.state, ev);
       }
+      for (const ev of this.rollNewInjuryEvents(sim.snapshot.playerSnapshots)) {
+        applySeasonEvent(this.state, ev);
+      }
       eventBus.emit('game:fixtureRecorded', { result: aiResult, state: this.state });
     }
 
@@ -591,6 +607,62 @@ export class GameCoordinator {
     if (this.getCurrentFixture() === null) {
       eventBus.emit('game:seasonComplete', { state: this.state });
     }
+  }
+
+  // Roll severity + weeks for every in-match injury surfaced in the given
+  // snapshots. Uses rngTransfer (career stream) so the rolls are independent
+  // of the match outcome stream. Walks rosterId-ascending so the call order
+  // is stable across runs.
+  //
+  // Recurrence detection is deferred to a future iteration — v1 always
+  // emits isRecurrence: false. The tuning constants
+  // (INJURY_RECURRENCE_TIME_LOSS_MULT, etc.) are kept as scaffolding.
+  private rollNewInjuryEvents(snapshots: PlayerStatsSnapshot[]): SeasonEvent[] {
+    const injured = snapshots
+      .filter(s => s.injuryKind !== undefined)
+      .sort((a, b) => a.rosterId - b.rosterId);
+    const out: SeasonEvent[] = [];
+    const injuredOn = this.state.calendar.date;
+    for (const s of injured) {
+      const kind = s.injuryKind!;
+      const profile = INJURY_SEVERITY[kind];
+      const severity = pickSeverity(profile.weights);
+      const [lo, hi] = profile.bands[severity];
+      const weeksRemaining = rngTransfer(lo, hi);
+      out.push({
+        type: 'PLAYER_INJURED',
+        rosterId: s.rosterId,
+        kind,
+        severity,
+        weeksRemaining,
+        injuredOn,
+        isRecurrence: false,
+      });
+    }
+    return out;
+  }
+
+  // Decrement every roster player's `injury.weeksRemaining` by one; fire
+  // PLAYER_RECOVERED for any whose counter would reach zero. No RNG —
+  // pure walk in rosterId order.
+  private tickInjuryEvents(): SeasonEvent[] {
+    const out: SeasonEvent[] = [];
+    const rosterIds = Object.keys(this.state.career.roster).map(Number).sort((a, b) => a - b);
+    for (const rid of rosterIds) {
+      const p = this.state.career.roster[rid];
+      if (!p.injury) continue;
+      if (p.injury.weeksRemaining <= 1) {
+        // Decrement to 0 then clear the field. INJURY_TICK_ADVANCED runs
+        // first so the per-event trace shows the decrement step.
+        if (p.injury.weeksRemaining === 1) {
+          out.push({ type: 'INJURY_TICK_ADVANCED', rosterId: rid });
+        }
+        out.push({ type: 'PLAYER_RECOVERED', rosterId: rid });
+      } else {
+        out.push({ type: 'INJURY_TICK_ADVANCED', rosterId: rid });
+      }
+    }
+    return out;
   }
 
   // Advance the persistent career one full season. Ages every player,
@@ -657,5 +729,18 @@ export class GameCoordinator {
       ),
     };
   }
+}
+
+// Picks a severity bucket from a per-kind weight table. Uses rngTransfer
+// (career stream). Weights sum to 100 by convention; the picker reads
+// them in mild → moderate → severe order.
+function pickSeverity(weights: Record<InjurySeverity, number>): InjurySeverity {
+  const roll = rngTransfer(1, 100);
+  let cum = 0;
+  cum += weights.mild;
+  if (roll <= cum) return 'mild';
+  cum += weights.moderate;
+  if (roll <= cum) return 'moderate';
+  return 'severe';
 }
 

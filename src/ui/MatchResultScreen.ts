@@ -53,6 +53,34 @@ function matchVerdict(home: number, away: number, side: 'home' | 'away'): string
     : `${mag} defeat — lost by ${margin} points.`;
 }
 
+function renderInjuriesLine(state: MatchState): string {
+  // Walks both teams' on-field XV + substitutedOff for players who picked
+  // up a pending injury kind during the match. Bench-but-never-on players
+  // can't be injured (no contact); team.players covers anyone still on
+  // and substitutedOff covers anyone subbed off (including injury subs).
+  const everyone: Array<{ p: Player; team: Team }> = [
+    ...state.homeTeam.players.map(p => ({ p, team: state.homeTeam })),
+    ...state.homeTeam.substitutedOff.map(p => ({ p, team: state.homeTeam })),
+    ...state.awayTeam.players.map(p => ({ p, team: state.awayTeam })),
+    ...state.awayTeam.substitutedOff.map(p => ({ p, team: state.awayTeam })),
+  ];
+  const injured = everyone.filter(e => e.p.pendingInjuryKind);
+  if (injured.length === 0) return '';
+  const entries = injured.map(e => {
+    const kindLabel = e.p.pendingInjuryKind!.replace(/_/g, ' ');
+    return `<span class="mr-injury-entry">
+      <span class="mr-injury-name" style="color:${teamTextColor(e.team.color)}">${shortName(e.p)}</span>
+      <span class="mr-injury-kind">${kindLabel}</span>
+    </span>`;
+  }).join('<span class="mr-injury-sep">·</span>');
+  return `
+    <section class="mr-card mr-card--injuries">
+      <h2 class="mr-card-title">Injuries</h2>
+      <div class="mr-injuries-list">${entries}</div>
+    </section>
+  `;
+}
+
 function renderScorers(state: MatchState): string {
   function lines(team: Team): string {
     const all = [...team.players, ...team.substitutedOff];
@@ -220,6 +248,7 @@ export function initMatchResultScreen(state: MatchState, round: number, onContin
       <div class="mr-teamline">${homeTeam.name} <span class="mr-teamline-sep">·</span> ${awayTeam.name}</div>
 
       ${renderScorers(state)}
+      ${renderInjuriesLine(state)}
       ${renderStatsCard(state)}
       ${state.engine.humanSide === 'away'
         ? renderRatingsBlock(awayTeam, false) + renderRatingsBlock(homeTeam, true)

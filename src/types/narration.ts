@@ -60,7 +60,12 @@ export type CardAnnouncementKey =
   | 'card_yellow' | 'card_red_20' | 'card_red_full'
   | 'sin_bin_returned'
   | 'red_20_replacement_done' | 'red_20_no_replacement'
-  | 'team_22_warning';
+  | 'team_22_warning'
+  // Injury system. injury_off is logged inline by OpenPlayEvent at the
+  // moment of contact; injury_replacement_done / injury_no_replacement
+  // mirror the red_20 lifecycle (replacement on, or play short).
+  | 'injury_off'
+  | 'injury_replacement_done' | 'injury_no_replacement';
 
 export type AnnouncementKey =
   | 'clock_in_red_first_half' | 'clock_in_red_second_half'

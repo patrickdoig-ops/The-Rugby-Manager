@@ -11,8 +11,9 @@
 // committing.
 //
 // Drives an unmodified MatchCoordinator: subscribes to engine:paused and
-// auto-resolves the kickoff-strategy and penalty-choice modals with fixed
-// defaults, then waits for engine:finished. No engine changes required.
+// auto-resolves the kickoff-strategy, penalty-choice, and forced-substitution
+// modals with fixed defaults, then waits for engine:finished. No engine
+// changes required.
 
 import { createHash } from 'node:crypto';
 import { MatchCoordinator } from '../src/engine/MatchCoordinator.js';
@@ -35,10 +36,19 @@ function runOnce(seed: number): Promise<string> {
       if (payload.type === 'kickoff_choice') payload.onChoice('high_ball');
       else if (payload.type === 'penalty_choice') payload.onChoice('kick_for_goal');
       else if (payload.type === 'forced_substitution_choice') {
-        // Auto-pick the first bench player (or null if bench is empty) so a
-        // red_20 to the human side doesn't stall the harness. Choice is
-        // deterministic for any given seed.
-        payload.onChoice(payload.bench[0]?.squadNumber ?? null);
+        // Stable, RNG-free auto-pick: position match first, then position-group
+        // match, else the first bench player. Mirrors the engine's silent /
+        // AI-side `pickAutoReplacement` so both sides resolve identically.
+        // Covers red_20 expirations AND in-match injury forced subs on the
+        // home (human) side without stalling the harness.
+        const off = payload.sentOff;
+        const exact = payload.bench.find(p => p.position === off.position);
+        const fwd = (pos: typeof off.position): boolean =>
+          pos === 'Prop' || pos === 'Hooker' || pos === 'Lock' ||
+          pos === 'Flanker' || pos === 'Number 8' || pos === 'Back Row';
+        const grp = payload.bench.find(p => fwd(p.position) === fwd(off.position));
+        const pick = exact ?? grp ?? payload.bench[0];
+        payload.onChoice(pick?.squadNumber ?? null);
       }
     });
 

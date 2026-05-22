@@ -11,7 +11,7 @@
 // telemetry surface stays consistent.
 
 import type { MatchState } from '../types/match';
-import type { Player, PlayerMatchStats } from '../types/player';
+import type { InjuryKind, Player, PlayerMatchStats } from '../types/player';
 import type { SeasonEvent, TeamSeasonStats } from '../types/gameState';
 
 export interface PlayerStatsSnapshot {
@@ -22,6 +22,10 @@ export interface PlayerStatsSnapshot {
   // single-field touch on PlayerMatchStats, no fanout here.
   matchStats: PlayerMatchStats;
   rating: number;
+  // In-match injury, if the player picked one up. Severity + weeks are
+  // rolled later via rngTransfer inside GameCoordinator (career stream).
+  // Undefined for the typical case where the player finishes fit.
+  injuryKind?: InjuryKind;
 }
 
 // Full post-match roll-up. The team summaries are single-match deltas
@@ -52,6 +56,7 @@ export function snapshotMatch(state: MatchState, homeTeamId: string, awayTeamId:
       rosterId: p.rosterId,
       matchStats: { ...p.matchStats },
       rating: p.rating,
+      ...(p.pendingInjuryKind ? { injuryKind: p.pendingInjuryKind } : {}),
     }));
 
   return {

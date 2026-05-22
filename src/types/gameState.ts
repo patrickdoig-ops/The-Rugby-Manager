@@ -9,7 +9,7 @@
 // src/types/match.ts. The two are unrelated.
 
 import type { TeamTactics } from './team';
-import type { Player, PlayerStats } from './player';
+import type { InjuryKind, InjurySeverity, Player, PlayerStats } from './player';
 
 export interface Fixture {
   round: number;
@@ -493,6 +493,32 @@ export type SeasonEvent =
       market?: MarketState | null;
       pendingMoves?: PreAgreement[];
       teamSeasonStats?: Record<string, TeamSeasonStats>;
+    }
+  | {
+      // Persistent injury landed on a roster player. Fired at match
+      // teardown (one per in-match injury), severity + weeks rolled via
+      // rngTransfer. Reducer writes state.career.roster[rosterId].injury.
+      type: 'PLAYER_INJURED';
+      rosterId: number;
+      kind: InjuryKind;
+      severity: InjurySeverity;
+      weeksRemaining: number;
+      injuredOn: string;
+      isRecurrence: boolean;
+    }
+  | {
+      // One week of recovery elapsed for an injured roster player.
+      // Reducer decrements weeksRemaining (floor 0). Fired by
+      // GameCoordinator alongside WEEK_ADVANCED for every roster player
+      // currently carrying an injury.
+      type: 'INJURY_TICK_ADVANCED';
+      rosterId: number;
+    }
+  | {
+      // Recovery completed (weeksRemaining hit 0). Reducer clears
+      // state.career.roster[rosterId].injury.
+      type: 'PLAYER_RECOVERED';
+      rosterId: number;
     }
   | {
       type: 'SEASON_ROLLED_OVER';

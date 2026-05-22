@@ -72,11 +72,13 @@ export function inOwn22For(state: MatchState, side: PossessionSide): boolean {
 
 // Set of player IDs currently off the field for `side` — sin-bin (yellow or
 // red_20 serving time) plus sentOff (red_full, or red_20 after expiry with no
-// sub available). Used by onFieldPlayers / availableForwards / availableBacks.
+// sub available) plus injured (in-match injury, no return). Used by
+// onFieldPlayers / availableForwards / availableBacks.
 export function offFieldIds(state: MatchState, side: PossessionSide): Set<number> {
   const ids = new Set<number>();
-  for (const entry of state.cards.sinBin[side]) ids.add(entry.player.id);
-  for (const player of state.cards.sentOff[side])   ids.add(player.id);
+  for (const entry of state.cards.sinBin[side])   ids.add(entry.player.id);
+  for (const player of state.cards.sentOff[side]) ids.add(player.id);
+  for (const player of state.cards.injured[side]) ids.add(player.id);
   return ids;
 }
 

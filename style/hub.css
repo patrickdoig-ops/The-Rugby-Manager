@@ -392,6 +392,21 @@
   border-top: 1px solid var(--rm-border-soft);
 }
 
+#hub-treatment-room {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px 0;
+  font-size: 12px;
+  color: var(--rm-text-dim);
+}
+
+.hub-treatment-label {
+  font-family: var(--rm-font-mono);
+  letter-spacing: 0.04em;
+}
+
 #hub-play-next {
   display: flex;
   align-items: center;

@@ -118,6 +118,28 @@ export interface PlayerContract {
   isMarquee: boolean;      // true ⇔ this player occupies the club's one marquee slot
 }
 
+// Injury kinds (calibrated to professional rugby epidemiology — ligament
+// sprains, muscle strains, and concussions account for ~60% of all match
+// injuries). The kind picks the severity band (mild/moderate/severe)
+// weights via INJURY_KIND_PROFILE in balance/injuries.ts.
+export type InjuryKind =
+  | 'knock' | 'concussion' | 'muscle_strain' | 'ligament_sprain'
+  | 'knee_cartilage' | 'shoulder' | 'fracture' | 'laceration';
+
+export type InjurySeverity = 'mild' | 'moderate' | 'severe';
+
+// Career-scope persistent injury record. Lives on the career-roster Player
+// (state.career.roster[rosterId].injury). Written at match teardown by
+// PLAYER_INJURED, decremented weekly by INJURY_TICK_ADVANCED, cleared by
+// PLAYER_RECOVERED. Absent ⇔ player is fit.
+export interface PlayerInjury {
+  kind: InjuryKind;
+  severity: InjurySeverity;
+  weeksRemaining: number;
+  injuredOn: string;       // ISO date — for tooltip + recurrence detection
+  isRecurrence: boolean;
+}
+
 export interface Player {
   // Matchday slot number, 1–23. Used by match-engine events / RatingEngine /
   // StaminaSystem. Reassigned by applyMatchdaySquad on every pre-match.
@@ -150,6 +172,15 @@ export interface Player {
   rating: number;
   x: number;
   y: number;
+  // Career-scope persistent injury (only meaningful on the roster Player).
+  // Optional ⇔ player is fit. Decremented on WEEK_ADVANCED, cleared by
+  // PLAYER_RECOVERED. See PlayerInjury above.
+  injury?: PlayerInjury;
+  // Transient in-match flag: set when this player is injured during the
+  // running match. Read at match teardown to fire PLAYER_INJURED season
+  // events with severity rolled via rngTransfer. Never serialised; absent
+  // outside of an in-progress match.
+  pendingInjuryKind?: InjuryKind;
 }
 
 // Identity element for PlayerMatchStats — co-located with the type so adding

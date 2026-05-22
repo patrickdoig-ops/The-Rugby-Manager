@@ -1148,6 +1148,95 @@ SHORT_HANDED     = { missingBackDefendPenalty: -8 }
 
 ---
 
+## Injuries
+
+Contact injuries that take a player off for the rest of the match and persist into the career layer as multi-week unavailability. Card-system twin: same on-field unavailability mechanism (`state.cards.injured`), same shared forced-sub plumbing, same RNG ordering.
+
+### Where the roll fires
+
+End of `handlePhasePlay` in `src/engine/events/OpenPlayEvent.ts`, after the tackle outcome is decided and any high-tackle penalty has been queued. Skipped on line-break outcomes (no completed tackle). Three rolls in fixed order whenever the trigger passes:
+
+1. `rng(1, 10000)` — trigger. Compared to `INJURY.basePctPerTackle × dominantTackleMult? × positionVuln × fatigueBoost × 100`.
+2. `rng(1, 100)` — kind. Weighted pick from `INJURY_KIND_WEIGHTS` (muscle_strain 22%, ligament_sprain 20%, concussion 15%, knock 12%, knee_cartilage 10%, shoulder 9%, fracture 7%, laceration 5%).
+3. `rng(1, 100)` — victim selector (dominant_tackle only). Below `tacklerVictimPct` → tackler is the victim; otherwise carrier.
+
+Skipped rolls don't shift the RNG stream — the trigger gate short-circuits before any further `rng()` calls.
+
+### In-match flow
+
+- `PLAYER_INJURED_IN_MATCH { player, side, kind }` pushes the victim onto `state.cards.injured[side]` and sets `player.pendingInjuryKind = kind`.
+- `offFieldIds(state, side)` in `FieldPosition.ts` now merges `sinBin ∪ sentOff ∪ injured`. Every resolver that selects through `onFieldPlayers()` weakens automatically — pack score drops, backline thins, no separate flag needed.
+- `MatchCoordinator.tick()` scans `state.cards.injured` after the sin-bin scan and runs `runForcedSubstitution(player, side, 'injury')` for any injured player still occupying a field slot. Human side gets the existing `forced_substitution_choice` modal; AI and silent matches auto-pick by position group via `pickAutoReplacement`.
+- `runForcedSubstitution` is the shared red_20 / injury function — same modal payload shape, same auto-pick fallback. The `reason` param picks the announcement key (`red_20_replacement_done` vs `injury_replacement_done`).
+- `SUBSTITUTION_APPLIED` removes from `cards.injured` (same as `cards.sentOff`) so the new on-field player at the slot isn't filtered out.
+- Bench-empty case: the injured player stays in `cards.injured` for the rest of the match, the team plays short, and the `injury_no_replacement` announcement fires.
+
+### Match-teardown severity roll
+
+Severity + duration are NOT rolled in-match. The matchday Player's `pendingInjuryKind` is read at teardown via `snapshotMatch` (`src/game/seasonStatsCollector.ts`) and surfaces as an optional `injuryKind` on each `PlayerStatsSnapshot`. `GameCoordinator.recordPlayerMatchResult` then calls `rollNewInjuryEvents(snapshots)` which uses `rngTransfer` (career stream, independent of match outcome stream) to:
+
+1. Pick severity (`mild` | `moderate` | `severe`) from the kind's `INJURY_SEVERITY[kind].weights`.
+2. Pick weeksRemaining uniformly from `INJURY_SEVERITY[kind].bands[severity]`.
+3. Emit `PLAYER_INJURED { rosterId, kind, severity, weeksRemaining, injuredOn, isRecurrence: false }`.
+
+Snapshots are sorted rosterId-ascending so the `rngTransfer` call order is stable across runs.
+
+### Recovery tick
+
+`GameCoordinator.recordPlayerMatchResult` calls `tickInjuryEvents()` at the very start (after the re-entry guard, before any new fixture is recorded). It walks `state.career.roster` in rosterId-ascending order; for each player with `injury`:
+
+- `weeksRemaining > 1` → emit `INJURY_TICK_ADVANCED`.
+- `weeksRemaining ≤ 1` → emit `INJURY_TICK_ADVANCED` (if 1) then `PLAYER_RECOVERED` which clears `Player.injury`.
+
+The tick happens **before** new injuries are added, so a player injured this round retains their full weeksRemaining at the next round and ticks down from there.
+
+### Career-roster persistence
+
+The persistent injury sits on `Player.injury?` (in `state.career.roster[rosterId]`). Absent ⇔ fit. The save format (v9+) round-trips it via the standard roster serialise / restore path; no migration shim — the field is purely additive.
+
+`buildTeamFromRoster` (`src/game/rosterTeamBuilder.ts`) stable-partitions the club's squad so injured players sink to the wider squad (slot 24+) when constructing the matchday RawTeamInput. The auto-built starting XV + bench therefore only contain fit players (assuming the club has ≥23 fit).
+
+`applyMatchdaySquad` (`src/game/playerSquad.ts`) accepts an optional `isInjured(ref)` predicate. When the saved squad references an injured player, the function returns the underlying team unchanged (same fallback path as "player no longer rostered"). PreMatchScreen + SquadManagementScreen use `makeInjuredPredicate(roster, clubSquad)` to build the predicate from career state.
+
+### Forced-sub flow under the determinism harness
+
+`scripts/checkDeterminism.ts` handles the `forced_substitution_choice` payload by mirroring `pickAutoReplacement`: exact-position match first, then position-group, else the first bench player. This keeps red_20 and injury-driven subs deterministic.
+
+### Balance constants (`src/engine/balance/injuries.ts`)
+
+```ts
+INJURY = {
+  basePctPerTackle:    8.0,
+  dominantTackleMult:  2.5,
+  fatigueWeight:       0.6,
+  recurrenceMult:      1.4,        // scaffolding for future recurrence path
+  recurrenceWindowWeeks: 8,        // scaffolding
+  tacklerVictimPct:    30,
+  positionVuln: { Prop: 1.20, Hooker: 1.15, Lock: 1.10, Flanker: 1.10,
+                  'Number 8': 1.10, 'Back Row': 1.10, 'Scrum-Half': 0.90,
+                  'Fly-Half': 0.85, Centre: 1.00, Wing: 0.85,
+                  Fullback: 0.90, 'Utility Back': 0.95 },
+}
+
+INJURY_KIND_WEIGHTS = { muscle_strain: 22, ligament_sprain: 20, concussion: 15,
+                       knock: 12, knee_cartilage: 10, shoulder: 9,
+                       fracture: 7, laceration: 5 }
+
+INJURY_SEVERITY[kind] = { weights: { mild, moderate, severe }, bands: { … } }
+INJURY_RECURRENCE_TIME_LOSS_MULT = 1.5   // scaffolding
+```
+
+Calibration target: ~2 injuries / match across both teams. Telemetry at 8.0% baseline lands ~1.87/match across the 90-fixture league pass.
+
+### Known gaps / future work
+
+- **Recurrence detection** is scaffolded only — `isRecurrence` is always `false` in v1, and the related multiplier constants are unused. A future iteration adds a `lastInjuredOn` field on the roster Player so the recurrence window can be checked.
+- **HIA protocol** (12-minute concussion check then return) is not modelled. Concussions in v1 are full-off only.
+- **Set-piece injuries** (scrum collapse, lineout lift gone wrong) don't trigger rolls today. Only `handlePhasePlay` calls `rollMatchInjury`. Easy extension when wanted — a `0.5%` roll on `defending_dominant_penalty` scrum outcomes for a prop is the lowest-hanging future addition.
+- **AI clubs in the player's own match** still come from raw JSON via `HubScreen.onPlayMatch`, not from `buildTeamFromRoster` — so injured AI players can appear in their starting XV in the *human* match. Pre-existing gap (same root cause as the aging / signings inconsistency); the headless AI fixtures route correctly via `buildTeamFromRoster` so league standings reflect injuries.
+
+---
+
 ## Try Scored
 
 ### How a try arises

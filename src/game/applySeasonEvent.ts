@@ -132,6 +132,30 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
       if (club) club.squad = club.squad.filter(id => id !== event.rosterId);
       return;
     }
+    case 'PLAYER_INJURED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.injury = {
+        kind: event.kind,
+        severity: event.severity,
+        weeksRemaining: event.weeksRemaining,
+        injuredOn: event.injuredOn,
+        isRecurrence: event.isRecurrence,
+      };
+      return;
+    }
+    case 'INJURY_TICK_ADVANCED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p || !p.injury) return;
+      p.injury.weeksRemaining = Math.max(0, p.injury.weeksRemaining - 1);
+      return;
+    }
+    case 'PLAYER_RECOVERED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.injury = undefined;
+      return;
+    }
     case 'MARQUEE_DESIGNATED': {
       const club = state.career.clubs.find(c => c.id === event.clubId);
       if (!club) return;

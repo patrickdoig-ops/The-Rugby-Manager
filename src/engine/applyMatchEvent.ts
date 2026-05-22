@@ -180,6 +180,22 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       state.tmoReview = undefined;
       return;
 
+    // ── Injuries ────────────────────────────────────────────────────────
+    case 'PLAYER_INJURED_IN_MATCH': {
+      // Defensive: a duplicate emit (same player twice in one match)
+      // should not double-list the player. The flag carries the kind so
+      // the teardown severity roll can read it; we don't overwrite the
+      // first injury kind if a duplicate sneaks through.
+      const bucket = state.cards.injured[event.side];
+      if (!bucket.some(p => p.id === event.player.id)) {
+        bucket.push(event.player);
+      }
+      if (!event.player.pendingInjuryKind) {
+        event.player.pendingInjuryKind = event.kind;
+      }
+      return;
+    }
+
     // ── Passing / breakdown bookkeeping ─────────────────────────────────
     case 'PASS_COMPLETED':
       event.passer.matchStats.passes++;
@@ -355,10 +371,15 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       team.substitutedOff.push(off);
       // A forced sub after a red_20 backfills the sent-off player's slot —
       // remove them from cards.sentOff so the availability filter no longer
-      // counts them against the team's strength.
+      // counts them against the team's strength. Same shape for an injury
+      // forced sub: the off player came from cards.injured, drop them so
+      // the new on-field player at this slot isn't filtered out.
       const sentOff = state.cards.sentOff[event.teamSide];
       const sentIdx = sentOff.findIndex(p => p.id === off.id);
       if (sentIdx >= 0) sentOff.splice(sentIdx, 1);
+      const injured = state.cards.injured[event.teamSide];
+      const injIdx = injured.findIndex(p => p.id === off.id);
+      if (injIdx >= 0) injured.splice(injIdx, 1);
       return;
     }
 

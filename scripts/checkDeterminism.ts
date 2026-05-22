@@ -36,18 +36,39 @@ function runOnce(seed: number): Promise<string> {
       if (payload.type === 'kickoff_choice') payload.onChoice('high_ball');
       else if (payload.type === 'penalty_choice') payload.onChoice('kick_for_goal');
       else if (payload.type === 'forced_substitution_choice') {
-        // Stable, RNG-free auto-pick: position match first, then position-group
-        // match, else the first bench player. Mirrors the engine's silent /
-        // AI-side `pickAutoReplacement` so both sides resolve identically.
-        // Covers red_20 expirations AND in-match injury forced subs on the
-        // home (human) side without stalling the harness.
+        // Stable, RNG-free auto-pick: walk a like-for-like position fallback
+        // chain, then position-group, else the first bench player. Mirrors
+        // the engine's silent / AI-side `pickAutoReplacement` so both sides
+        // resolve identically. Covers red_20 expirations AND in-match
+        // injury forced subs on the home (human) side without stalling the
+        // harness.
+        type Pos = typeof payload.sentOff.position;
+        const FALLBACK: Record<Pos, Pos[]> = {
+          'Prop':         ['Prop', 'Hooker'],
+          'Hooker':       ['Hooker', 'Prop'],
+          'Lock':         ['Lock', 'Number 8', 'Flanker', 'Back Row'],
+          'Flanker':      ['Flanker', 'Number 8', 'Back Row', 'Lock'],
+          'Number 8':     ['Number 8', 'Flanker', 'Back Row', 'Lock'],
+          'Back Row':     ['Back Row', 'Flanker', 'Number 8', 'Lock'],
+          'Scrum-Half':   ['Scrum-Half', 'Fly-Half', 'Utility Back'],
+          'Fly-Half':     ['Fly-Half', 'Utility Back', 'Centre', 'Scrum-Half'],
+          'Centre':       ['Centre', 'Utility Back', 'Fly-Half', 'Fullback', 'Wing'],
+          'Wing':         ['Wing', 'Fullback', 'Utility Back', 'Centre'],
+          'Fullback':     ['Fullback', 'Wing', 'Utility Back', 'Centre'],
+          'Utility Back': ['Utility Back', 'Centre', 'Fullback', 'Fly-Half', 'Wing'],
+        };
         const off = payload.sentOff;
-        const exact = payload.bench.find(p => p.position === off.position);
-        const fwd = (pos: typeof off.position): boolean =>
-          pos === 'Prop' || pos === 'Hooker' || pos === 'Lock' ||
-          pos === 'Flanker' || pos === 'Number 8' || pos === 'Back Row';
-        const grp = payload.bench.find(p => fwd(p.position) === fwd(off.position));
-        const pick = exact ?? grp ?? payload.bench[0];
+        let pick = null as null | typeof payload.bench[number];
+        for (const pos of FALLBACK[off.position]) {
+          const m = payload.bench.find(p => p.position === pos);
+          if (m) { pick = m; break; }
+        }
+        if (!pick) {
+          const fwd = (pos: Pos): boolean =>
+            pos === 'Prop' || pos === 'Hooker' || pos === 'Lock' ||
+            pos === 'Flanker' || pos === 'Number 8' || pos === 'Back Row';
+          pick = payload.bench.find(p => fwd(p.position) === fwd(off.position)) ?? payload.bench[0] ?? null;
+        }
         payload.onChoice(pick?.squadNumber ?? null);
       }
     });

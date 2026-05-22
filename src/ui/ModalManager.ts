@@ -69,7 +69,7 @@ export function initModalManager(): void {
     }
 
     if (payload.type === 'forced_substitution_choice') {
-      renderForcedSubstitutionPanel(box, payload.sentOff, payload.bench, (benchSquadNum) => {
+      renderForcedSubstitutionPanel(box, payload.sentOff, payload.bench, payload.reason, (benchSquadNum) => {
         overlay.classList.add('hidden');
         payload.onChoice(benchSquadNum);
       });

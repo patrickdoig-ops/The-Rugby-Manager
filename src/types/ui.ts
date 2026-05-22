@@ -5,13 +5,16 @@ import type { Player } from './player';
 import type { FixtureResult, GameState } from './gameState';
 
 // Forced-substitution choice fired by the engine when a red_20 player's
-// 20 minutes expire and the team has bench available. onChoice receives the
-// picked bench squad number, or null if the manager has nobody to bring on.
+// 20 minutes expire or when a player picks up an in-match injury. `reason`
+// drives the modal copy (different framing for sin-bin expiry vs injury);
+// the picking flow is otherwise identical. onChoice receives the picked
+// bench squad number, or null if the manager has nobody to bring on.
 export interface ForcedSubChoicePayload {
   type: 'forced_substitution_choice';
   side: PossessionSide;
   sentOff: Player;
   bench: Player[];
+  reason: 'red_20' | 'injury';
   onChoice: (benchSquadNum: number | null) => void;
 }
 

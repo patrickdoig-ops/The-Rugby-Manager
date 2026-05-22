@@ -11,12 +11,12 @@
 // any Kick-Off swap there writes the same field. Open Squad after a
 // PreMatch swap → see the swap; save here → PreMatch opens with it.
 //
-// **Edit model.** Two-tap swap, mirroring PreMatchScreen: tap a non-
-// starter row to select; tap any other row visible in the current
-// position-filter view to swap. Slots (id / squadNumber) stay with the
-// position they belong to — the players are what move. Local-edit
-// mode until the user taps "Save Squad"; the back arrow opens a discard
-// confirmation if there are pending edits.
+// **Edit model.** Two-tap swap, mirroring PreMatchScreen: tap any row
+// (starter, bench, or wider squad) to select; tap any other row visible
+// in the current position-filter view to swap. Slots (id / squadNumber)
+// stay with the position they belong to — the players are what move.
+// Local-edit mode until the user taps "Save Squad"; the back arrow opens
+// a discard confirmation if there are pending edits.
 //
 // Initialised once per page lifetime alongside the other in-season
 // screens. `showSquadManagement()` (called from main.ts's onSquad before
@@ -293,9 +293,10 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
           return;
         }
 
-        // No selection yet → start one (starters can't initiate; only targets)
+        // No selection yet → start one. Any tier may initiate — two
+        // starters can swap positions, a starter can pull in a bench /
+        // wider-squad player, etc.
         if (selection === null) {
-          if (tier === 'starter') return;
           selection = { tier, squadNum: sn };
           render();
           return;

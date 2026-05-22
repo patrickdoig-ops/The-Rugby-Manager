@@ -188,7 +188,7 @@ function renderLineupPanel(
         ${renderColumnHeader()}
         <div class="pm-section-header">
           Starting XV
-          <span class="pm-bench-hint">Select a bench or squad player to swap</span>
+          <span class="pm-bench-hint">Select any player to swap</span>
         </div>
         ${starterHtml}
         <div class="pm-section-header pm-section-bench">Bench</div>
@@ -420,7 +420,7 @@ export function initPreMatchScreen(
     const hintEl = panel.querySelector<HTMLElement>('.pm-bench-hint');
     if (!hintEl) return;
     if (selection === null) {
-      hintEl.textContent = 'Select a bench or squad player to swap';
+      hintEl.textContent = 'Select any player to swap';
       hintEl.classList.remove('pm-bench-hint--active');
     } else {
       hintEl.textContent = 'Now select another player to swap with';
@@ -438,11 +438,13 @@ export function initPreMatchScreen(
     if (playerSide === 'away') updateHint();
   }
 
-  // Pre-match selection: any non-starter player can be swap source; any player
-  // can be swap target. The player who lands in a slot takes that slot's id and
-  // squadNumber (engine routes position by id, jersey UI reads squadNumber).
-  // This is the only place id/squadNumber is re-assigned by slot — in-game
-  // substitutions preserve squadNumber.
+  // Pre-match selection: any player (starter, bench, or wider squad) can
+  // initiate a swap, and any other player is a valid target — so two
+  // starters can swap positions, a starter can pull a bench/squad player
+  // into the XV, etc. The player who lands in a slot takes that slot's id
+  // and squadNumber (engine routes position by id, jersey UI reads
+  // squadNumber). This is the only place id/squadNumber is re-assigned by
+  // slot — in-game substitutions preserve squadNumber.
 
   renderHomePanel();
   renderAwayPanel();
@@ -462,9 +464,8 @@ export function initPreMatchScreen(
       return;
     }
 
-    // No selection yet → start one (starters can't initiate; they're only swap targets)
+    // No selection yet → start one. Any tier may initiate.
     if (selection === null) {
-      if (tierAttr === 'starter') return;
       selection = { tier: tierAttr, squadNum };
       if (playerSide === 'home') renderHomePanel(); else renderAwayPanel();
       const sel = activePanel.querySelector<HTMLElement>(`.pm-player-row[data-tier="${tierAttr}"][data-squad="${squadNum}"]`);

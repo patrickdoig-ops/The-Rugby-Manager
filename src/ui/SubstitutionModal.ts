@@ -144,14 +144,16 @@ export function renderSubstitutionPanel(container: HTMLElement, team: Team): voi
   render();
 }
 
-// Forced replacement panel shown when a red_20 player's 20 minutes are up.
-// One-shot pick (no pending queue, no field-side picker — the sent-off slot
-// is implicit). onChoice receives the chosen bench squadNumber, or null if
-// the manager skips (e.g. wants to play short).
+// Forced replacement panel shown when a red_20 player's 20 minutes are up
+// or when a player picks up an injury. `reason` only drives the title +
+// subtitle copy — the picking flow is identical. onChoice receives the
+// chosen bench squadNumber, or null if the manager skips (e.g. wants to
+// play short).
 export function renderForcedSubstitutionPanel(
   container: HTMLElement,
   sentOff: Player,
   bench: Player[],
+  reason: 'red_20' | 'injury',
   onChoice: (benchSquadNum: number | null) => void,
 ): void {
   const benchRows = bench.length > 0
@@ -163,9 +165,14 @@ export function renderForcedSubstitutionPanel(
         </button>`).join('')
     : '<p class="sub-empty">No substitutes available.</p>';
 
+  const title = reason === 'injury' ? 'Injury replacement' : 'Replacement required';
+  const subtitle = reason === 'injury'
+    ? `${shortName(sentOff)} (${sentOff.position}) is off injured`
+    : `${shortName(sentOff)} (${sentOff.position}) — 20-minute red has expired`;
+
   container.innerHTML = `
-    <h2 class="modal-title">Replacement required</h2>
-    <p class="modal-subtitle">${shortName(sentOff)} (${sentOff.position}) — 20-minute red has expired</p>
+    <h2 class="modal-title">${title}</h2>
+    <p class="modal-subtitle">${subtitle}</p>
     <div class="sub-section-label">Bench — select replacement</div>
     <div id="sub-bench-list">${benchRows}</div>
     <div class="sub-action-row">

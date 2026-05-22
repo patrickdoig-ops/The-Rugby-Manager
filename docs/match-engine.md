@@ -1132,7 +1132,7 @@ The card system layers on top of the penalty seam. Whenever `PENALTY_AWARDED` fi
 `MatchCoordinator.handleRed20Replacement(off, side)`:
 - Empty bench → emits `red_20_no_replacement` announcement, team plays a man down for the rest of the match.
 - Human side + bench available → emits `engine:paused` with `forced_substitution_choice` payload; awaits the manager's pick via the existing modal infrastructure.
-- AI side / silent → `pickAutoReplacement` selects by exact position match → position group (forward/back) → first bench player.
+- AI side / silent → `pickAutoReplacement` walks a like-for-like fallback chain (e.g. Wing → Fullback → Utility Back → Centre) before relaxing to position group (forward/back) and finally the first bench player. Keeps a Scrum-Half off the wing when a more-natural option is available.
 - On choice: applies `SUBSTITUTION_APPLIED` (existing event). The reducer extension removes the sent-off player from `state.cards.sentOff`, restoring the team to full strength.
 
 ### On-field availability
@@ -1280,7 +1280,7 @@ The persistent injury sits on `Player.injury?` (in `state.career.roster[rosterId
 
 ### Forced-sub flow under the determinism harness
 
-`scripts/checkDeterminism.ts` handles the `forced_substitution_choice` payload by mirroring `pickAutoReplacement`: exact-position match first, then position-group, else the first bench player. This keeps red_20 and injury-driven subs deterministic.
+`scripts/checkDeterminism.ts` handles the `forced_substitution_choice` payload by mirroring `pickAutoReplacement`: walk the `POSITION_FALLBACK` chain, then position-group, else the first bench player. This keeps red_20 and injury-driven subs deterministic.
 
 ### Balance constants (`src/engine/balance/injuries.ts`)
 

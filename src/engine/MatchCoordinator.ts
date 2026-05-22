@@ -21,7 +21,7 @@
 import type { MatchState, GameEvent } from '../types/match';
 import type { Team, TeamTactics } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';
-import type { Player, PlayerStats } from '../types/player';
+import type { Player, PlayerStats, Position } from '../types/player';
 import { isForward, zeroMatchStats, zeroSeasonStats } from '../types/player';
 import type { RawPlayer, RawTeamInput } from '../types/teamData';
 import { MatchPhase, type PossessionSide, type KickOffStrategy } from '../types/engine';
@@ -44,16 +44,40 @@ function deepCloneStats(s: PlayerStats): PlayerStats {
   return { ...s };
 }
 
-// Position-group fit for auto-picking a red_20 replacement. Returns the bench
-// player's squadNumber, or null if bench is empty. Stable scan (no rng) so AI
-// + silent paths stay deterministic.
+// Like-for-like fallback chain for forced-sub auto-pick. The off player's
+// position is tried first, then the listed alternates in order — a Wing
+// down looks for another Wing, then a Fullback, then Utility Back, then a
+// Centre, only falling back to the broad forward/back split if none of
+// those are on the bench. Keeps the new on-field player in something close
+// to the right role rather than dropping a Scrum-Half on the wing.
+const POSITION_FALLBACK: Record<Position, Position[]> = {
+  'Prop':         ['Prop', 'Hooker'],
+  'Hooker':       ['Hooker', 'Prop'],
+  'Lock':         ['Lock', 'Number 8', 'Flanker', 'Back Row'],
+  'Flanker':      ['Flanker', 'Number 8', 'Back Row', 'Lock'],
+  'Number 8':     ['Number 8', 'Flanker', 'Back Row', 'Lock'],
+  'Back Row':     ['Back Row', 'Flanker', 'Number 8', 'Lock'],
+  'Scrum-Half':   ['Scrum-Half', 'Fly-Half', 'Utility Back'],
+  'Fly-Half':     ['Fly-Half', 'Utility Back', 'Centre', 'Scrum-Half'],
+  'Centre':       ['Centre', 'Utility Back', 'Fly-Half', 'Fullback', 'Wing'],
+  'Wing':         ['Wing', 'Fullback', 'Utility Back', 'Centre'],
+  'Fullback':     ['Fullback', 'Wing', 'Utility Back', 'Centre'],
+  'Utility Back': ['Utility Back', 'Centre', 'Fullback', 'Fly-Half', 'Wing'],
+};
+
+// Like-for-like auto-pick for a forced sub. Returns the bench player's
+// squadNumber, or null if bench is empty. Stable scan (no rng) so AI +
+// silent paths stay deterministic.
 function pickAutoReplacement(bench: Player[], off: Player): number | null {
   if (bench.length === 0) return null;
-  // Exact position match first (e.g. Hooker for Hooker).
-  const exact = bench.find(p => p.position === off.position);
-  if (exact) return exact.squadNumber;
-  // Position-group match — keep the bin tight enough that a back replaces a
-  // back, a forward replaces a forward.
+  // Walk the position-similarity chain — exact match first, then the
+  // closest alternates.
+  for (const pos of POSITION_FALLBACK[off.position]) {
+    const match = bench.find(p => p.position === pos);
+    if (match) return match.squadNumber;
+  }
+  // Position-group match — last resort before "any bench". Keeps a forward
+  // covering a forward, a back covering a back.
   const offIsForward = isForward(off.position);
   const groupMatch = bench.find(p => isForward(p.position) === offIsForward);
   if (groupMatch) return groupMatch.squadNumber;
@@ -326,6 +350,7 @@ export class MatchCoordinator {
             side,
             sentOff: off,
             bench: [...team.bench],
+            reason,
             onChoice: (n) => resolve(n),
           },
         });

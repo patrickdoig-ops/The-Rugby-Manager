@@ -106,23 +106,51 @@ export const TACTIC_MODIFIERS = {
   //    break ≈ one try because the cover-out-of-position effect was
   //    fired twice (once on the break, once on the chain).
   lineBreakChainMultiplier:   { blitz: 0.5, hybrid: 1.0, drift: 1.0 },
-  // 10. Path-specific collision bonuses for blitz on TIGHT attacking
-  //     paths only. Blitz line speed crushes the two predictable
-  //     inside plays — crash ball (set-piece strike #10 → #12) and
-  //     hard carry (PhasePlay !goWide: scrum-half → carrier hits the
-  //     line) — before they can build momentum. Added on top of the
-  //     base defensiveLineCollisionMod.
+  // 10. Path-specific MODIFIERS on TIGHT attacking paths only — crash
+  //     ball (set-piece strike #10 → #12) and hard carry (PhasePlay
+  //     !goWide: scrum-half → carrier hits the line). Two parallel
+  //     mods, one for collision (collisionDefend), one for evasion
+  //     (defendMod on the line-break check). Both are added on top of
+  //     the base defensiveLineCollisionMod / defensiveLineEvasionMod.
   //
-  //     Wide / out-the-back paths get NO path bonus — the press is
+  //     Why two mods on the same path: collision alone doesn't move
+  //     PA enough because tries require LINE BREAKS in this engine
+  //     (the line_break outcome is the only path that calls
+  //     isTryScoredAt). A pure collision penalty just generates more
+  //     dominantCarry metres that pile up against the try line
+  //     without scoring. The matching evasion mod opens up line
+  //     breaks on the tight paths so the cumulative metres convert
+  //     into tries.
+  //
+  //     Captures the matchup asymmetry the additive-only model missed:
+  //       * Blitz line speed CRUSHES tight predictable plays — collision
+  //         positive on both paths. (No blitz evasion mod here today —
+  //         blitz already concedes line breaks via the global
+  //         defensiveLineEvasionMod = -4.)
+  //       * Drift defenders are moving LATERALLY while the attacker is
+  //         running FORWARD — they can't get square in time and the
+  //         attacker wins the collision more often AND occasionally
+  //         beats the line. Negative on collision AND negative on
+  //         evasion (a chunk of which cancels drift's own global +2).
+  //       * Hybrid stays at 0 — middle-ground identity preserved.
+  //
+  //     Wide / out-the-back paths get NO path modifier — the press is
   //     already exposed when the attack goes wide, so the base mod
-  //     applies alone.
+  //     applies alone. This creates the rock-paper-scissors:
+  //     blitz dominates vs tight / loses vs wide; drift opposite.
   //
   //     Wired in:
-  //       * FirstPhaseEvent — crashBall bonus when goCrashBall is true
-  //       * OpenPlayEvent  — hardCarry bonus when !goWide is true
-  //
-  //     Hybrid / drift stay at 0 — their identity is the lateral cover
-  //     and the safer-line trade-off, not the inside collision.
-  crashBallCollisionBonus:    { blitz: 5, hybrid: 0, drift: 0 },
-  hardCarryCollisionBonus:    { blitz: 3, hybrid: 0, drift: 0 },
+  //       * FirstPhaseEvent — crashBall mod when goCrashBall is true
+  //       * OpenPlayEvent  — hardCarry mod when !goWide is true
+  crashBallCollisionMod:      { blitz: 5, hybrid: 0, drift: -8 },
+  hardCarryCollisionMod:      { blitz: 3, hybrid: 0, drift: -5 },
+  // Drift's tight-path evasion penalties need to be large enough to
+  // overcome the inherent low evasion of crash-ball carriers (#12,
+  // forwards) — they have low agility/pace so the line-break threshold
+  // is hard to clear regardless of defender mod. The magnitudes below
+  // are sized so a drift defender on a tight path is materially worse
+  // on evasion than even hybrid (drift base +2 minus -6 = -4 net on
+  // crash; -2 net on hard carry).
+  crashBallEvasionMod:        { blitz: 0, hybrid: 0, drift: -6 },
+  hardCarryEvasionMod:        { blitz: 0, hybrid: 0, drift: -4 },
 } as const;

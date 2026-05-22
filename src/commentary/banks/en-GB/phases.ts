@@ -42,6 +42,12 @@ const PHASE_PLAY: PhaseBank = {
     'TRY! {primary} beats the cover and goes over in the corner!',
     'TRY! {primary} races clear and there\'s no stopping him — {side} score!',
   ],
+  dominant_carry_try: [
+    'TRY! {primary} crashes over the line with {secondary} dragged along — {side} score!',
+    'TRY! {primary} bashes through the last tackle and grounds it — {side} have it!',
+    'TRY! {primary} drives over from close range — {side} score in the carry!',
+    'TRY! {primary} powers through {secondary} and touches down — {side} score!',
+  ],
   dominant_carry: [
     '{primary} drives hard into contact, dragging defenders with him.',
     '{primary} takes it at the line and wins the collision — forward momentum for {side}.',
@@ -120,6 +126,11 @@ const FIRST_PHASE: PhaseBank = {
     'TRY! {primary} breaks the line from the set piece and scores!',
     'TRY! {side} carve through with their first-phase play — {primary} goes over!',
   ],
+  dominant_carry_try: [
+    'TRY! {primary} crashes through {secondary} off the set piece — {side} score!',
+    'TRY! Strike move pays off — {primary} bashes over the line!',
+    'TRY! {primary} powers across the chalk from close range — {side} have it!',
+  ],
   dominant_carry: [
     '{primary} takes the ball at pace and drives hard into the defensive line.',
     'Powerful carry from {primary} straight off the set piece — good metres gained.',
@@ -176,6 +187,11 @@ const KICK_RETURN: PhaseBank = {
     'TRY! Counter-attack brilliance from {primary} — they\'ve scored from nothing!',
     'TRY! {primary} beats the cover on the return and goes over! {side} score!',
     'TRY! {primary} is untouchable on the return — he races clear and touches down!',
+  ],
+  dominant_carry_try: [
+    'TRY! {primary} bulldozes through {secondary} on the return and grounds it!',
+    'TRY! {primary} carries hard from the kick return and powers over the line!',
+    'TRY! {primary} drives over from the return — {side} cap the counter with points!',
   ],
   dominant_carry: [
     '{primary} picks a strong line and drives well into opposition territory on the return.',

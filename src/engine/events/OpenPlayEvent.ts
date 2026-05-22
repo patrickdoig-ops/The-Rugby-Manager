@@ -211,14 +211,17 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   const ha = homeEdge(state, HOME_ADVANTAGE.carryMod);
   // defensiveLine was hoisted up top for the pressure / interception
   // rolls; reused here for the carry-resolution mods.
-  const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];
-  // Path-specific bonus: !goWide is the "hard carry" path (Step 2 in
-  // this handler: scrum-half pop + carrier into contact, no
-  // out-the-back). Blitz line speed bites hardest on these direct
-  // carries. The wide path gets no bonus — the press is already
-  // exposed when the ball goes wide.
-  const pathBonus = goWide ? 0 : TACTIC_MODIFIERS.hardCarryCollisionBonus[defensiveLine];
-  const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine] + pathBonus;
+  // Path-specific modifiers fire only on !goWide ("hard carry" — Step 2
+  // in this handler: scrum-half pop + carrier into contact). Both the
+  // collision AND evasion mods kick in: collision shifts how many
+  // metres the defender concedes on contact; evasion shifts how often
+  // the carrier beats the line entirely. Wide / out-the-back path
+  // (goWide) gets no path modifier — base mods only.
+  const isHardCarry = !goWide;
+  const pathCollisionMod = isHardCarry ? TACTIC_MODIFIERS.hardCarryCollisionMod[defensiveLine] : 0;
+  const pathEvasionMod   = isHardCarry ? TACTIC_MODIFIERS.hardCarryEvasionMod[defensiveLine]   : 0;
+  const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine] + pathEvasionMod;
+  const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine] + pathCollisionMod;
   const res = resolveOpenPlay(
     ballCarrier, defender,
     attackMod + ha.attack,
@@ -247,27 +250,34 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   let nextPhase: MatchPhase;
   const outcomeSteps: NarrationStep[] = [...wideIntroSteps];
 
-  if (res.outcome === 'line_break') {
-    // Try-scored check uses the projected ballX; the CARRY_RESOLVED event will apply
-    // the actual ball move once PhaseRouter reduces the queue.
-    const projectedBallX = clamp(state.ball.x + direction * res.gainMetres, 0, 100);
-    const tryScored = isTryScoredAt(projectedBallX, attackSide, state.clock.halfTimeDone);
-    nextPhase = tryScored ? MatchPhase.TryScored : MatchPhase.Breakdown;
-    if (tryScored) {
-      outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'line_break_try', primary: ballCarrier, secondary: defender });
-      const y = tryLandingY(attackTeam.tactics.attackingStyle);
-      events.push({ type: 'BALL_REPOSITIONED', y });
-      outcomeSteps.push({ kind: 'announcement', key: `try_location_${tryLocationBand(y)}` });
-    } else {
-      outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'line_break', primary: ballCarrier, secondary: defender });
-      if (backfieldPenalty < 0) {
-        outcomeSteps.push({
-          kind: 'tactic_note',
-          cause: 'line_break_backfield_thin',
-          chancePct: COMMENTARY_CHANCES.lineBreakBackfieldThin,
-          params: { defendTeamName: defendTeam.name, backfieldDefence: defendTeam.tactics.backfieldDefence },
-        });
-      }
+  // Try check — any forward-progress carry whose projected ballX
+  // crosses the attack-direction try line scores. Line breaks AND
+  // dominant carries both qualify (a centre crash that reaches the
+  // line scores just the same as a winger break). play_on and
+  // dominant_tackle don't score: play_on metres are too short to
+  // matter from > 5m out, dominant_tackle is by definition pushed back.
+  const projectedBallX = clamp(state.ball.x + direction * res.gainMetres, 0, 100);
+  const canScore = res.outcome === 'line_break' || res.outcome === 'dominant_carry';
+  const tryScored = canScore && isTryScoredAt(projectedBallX, attackSide, state.clock.halfTimeDone);
+
+  if (tryScored) {
+    nextPhase = MatchPhase.TryScored;
+    const tryKey: 'line_break_try' | 'dominant_carry_try' =
+      res.outcome === 'line_break' ? 'line_break_try' : 'dominant_carry_try';
+    outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: tryKey, primary: ballCarrier, secondary: defender });
+    const y = tryLandingY(attackTeam.tactics.attackingStyle);
+    events.push({ type: 'BALL_REPOSITIONED', y });
+    outcomeSteps.push({ kind: 'announcement', key: `try_location_${tryLocationBand(y)}` });
+  } else if (res.outcome === 'line_break') {
+    nextPhase = MatchPhase.Breakdown;
+    outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'line_break', primary: ballCarrier, secondary: defender });
+    if (backfieldPenalty < 0) {
+      outcomeSteps.push({
+        kind: 'tactic_note',
+        cause: 'line_break_backfield_thin',
+        chancePct: COMMENTARY_CHANCES.lineBreakBackfieldThin,
+        params: { defendTeamName: defendTeam.name, backfieldDefence: defendTeam.tactics.backfieldDefence },
+      });
     }
     if (defensiveLine === 'blitz') {
       outcomeSteps.push({

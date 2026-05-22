@@ -13,7 +13,7 @@ export type PhaseOutcomeKey =
   // PhasePlay / FirstPhase / KickReturn shared
   | 'kick_decision' | 'out_the_back' | 'crash_ball'
   | 'line_break' | 'line_break_try'
-  | 'dominant_carry' | 'dominant_tackle' | 'play_on'
+  | 'dominant_carry' | 'dominant_carry_try' | 'dominant_tackle' | 'play_on'
   | 'high_tackle_penalty' | 'obstruction_penalty'
   | 'interception'
   // Breakdown

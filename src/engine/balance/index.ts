@@ -20,6 +20,7 @@ export * from './fatigue';
 export * from './rating';
 export * from './tactics';
 export * from './aiDirector';
+export * from './aiSubs';
 export * from './clock';
 export * from './commentary';
 export * from './discipline';

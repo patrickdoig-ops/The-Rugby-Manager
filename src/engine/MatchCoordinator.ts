@@ -17,6 +17,7 @@ import { resolvePhase, draftEvent } from './PhaseRouter';
 import { makeId, resetEventCounter } from './eventId';
 import { applyMatchEvent } from './applyMatchEvent';
 import { AITacticalDirector } from './AITacticalDirector';
+import { AISubstitutionDirector } from './AISubstitutionDirector';
 
 function deepCloneStats(s: PlayerStats): PlayerStats {
   return { ...s };
@@ -158,6 +159,7 @@ export class MatchCoordinator {
   private clock: ClockController;
   private fatigue: FatigueAccumulator;
   private director: AITacticalDirector;
+  private subDirector: AISubstitutionDirector;
   private busUnsubs: Array<() => void> = [];
   // When a red_20 forced-substitution modal is open and waiting on the
   // manager, the Promise's resolve sits here so destroy() can short-circuit
@@ -202,6 +204,14 @@ export class MatchCoordinator {
     // undefined so both teams adapt. In a live match, the human owns their
     // side via the modal, so director leaves it alone.
     this.director = new AITacticalDirector(this.state, this.silent ? undefined : this.humanSide);
+    // Sub director mirrors the same humanSide gate: only AI-controlled teams
+    // get auto-subs. Routes its swaps through this.substitute so the
+    // commentary emit + mutation boundary are identical to a manager sub.
+    this.subDirector = new AISubstitutionDirector(
+      this.state,
+      this.silent ? undefined : this.humanSide,
+      (side, benchSquadNum, fieldSquadNum) => this.substitute(side, benchSquadNum, fieldSquadNum),
+    );
 
     if (!this.silent) {
       this.busUnsubs.push(
@@ -507,8 +517,11 @@ export class MatchCoordinator {
     }
 
     // AI tactical adaptation runs before resolvePhase so the new tactics
-    // take effect on the very tick that meets the trigger condition.
+    // take effect on the very tick that meets the trigger condition. The
+    // sub director runs next so a fresh replacement participates in the
+    // same tick's resolver.
     this.director.evaluate();
+    this.subDirector.evaluate();
 
     const event = resolvePhase(this.state, this.kickOffStrategy);
     applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event });

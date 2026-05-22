@@ -1023,7 +1023,7 @@ The `PenaltyOffence` taxonomy (`src/types/engine.ts`) covers seven offences. Add
 
 **Obstruction roll order:** one `rng(1,100)` per out-the-back attempt, fired at the *start* of the wide branch (before any handling gate). The narration step (`obstruction_penalty`) replaces the would-be out-the-back + carry sequence.
 
-**Defensive tactics (blitz / drift) are not yet in the codebase.** `offside_at_ruck` is the natural future-hook: when defensive tactics arrive, replace the `+ 0` in `BreakdownEvent.ts` with `+ TACTIC_MODIFIERS.offsideAtRuckDefendMod[defendTeam.tactics.defensiveLine]`. The base rate already targets a realistic share of league-wide offside calls.
+**`offside_at_ruck` is tactic-modulated by `defensiveLine`** via `TACTIC_MODIFIERS.offsideAtRuckDefendMod` (`blitz: +6`, `hybrid: +2`, `drift: −2`) — blitz lines push up harder and concede more offside calls.
 
 `SCRUM_RESOLVED` still owns the scrum-specific front-row stat increments (`scrumPenaltiesWon++` / `scrumPenaltiesConceded++` on every player in the dominated/dominant front row). The follow-up `PENALTY_AWARDED` adds the general `penaltiesConceded++` on the picked hooker; that's why a scrum-penalty hooker now carries both counters (the previous shape only bumped `penaltiesConceded` for breakdown penalties — the new shape is symmetric).
 
@@ -1191,8 +1191,7 @@ OBSTRUCTION_BASE_PCT = 4   // pct per out-the-back attempt (PhasePlay + FirstPha
 notRollingAwayDefendMod:    { jackal: 3,         counter_ruck: 0, shadow: -2 }
 dangerousCleanoutAttackMod: { pick_and_drive: 2, balanced: 0,    wide_play: -1 }
 obstructionStyleMod:        { keep_it_tight: -2, balanced: 0,    wide_wide: 3 }
-// offside_at_ruck: no tactic modifier today — defensive tactics (blitz / drift)
-// not yet in codebase. Future hook is a TODO at the BreakdownEvent call site.
+offsideAtRuckDefendMod:     { blitz: 6,          hybrid: 2,      drift: -2 }
 ```
 
 ### Carry → breakdown handoff constants

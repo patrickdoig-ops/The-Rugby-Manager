@@ -17,7 +17,7 @@
     "attackingBreakdown": "pick_and_drive",
     "defendingBreakdown": "counter_ruck",
     "backfieldDefence": "one_back",
-    "defensiveLine": "hybrid"
+    "defensiveLine": "blitz"
   },
   "statBias": [
     "stamina",

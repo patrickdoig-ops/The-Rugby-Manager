@@ -211,7 +211,6 @@ Deliberate gaps. The architecture is ready for each; no refactor needed when add
 
 ### Card system extensions
 - **`PenaltyOffence` taxonomy** (`src/types/engine.ts`) covers seven offences as of v2.61a: `breakdown_infringement` / `scrum_infringement` / `high_tackle` (TMO 60%) / `offside_at_ruck` / `obstruction` / `dangerous_cleanout` (TMO 60%) / `not_rolling_away`. Adding another is a 4-step extension: add the union variant in `engine.ts`, give it a row in `OFFENCE_SPEC` (`balance/discipline.ts` — only field today is `tmoTriggerPct`), emit `PENALTY_AWARDED { offence: '<new>', ... }` from the appropriate phase event, and add a `PhaseOutcomeKey` + commentary templates. The `CardHandler` TMO gate is registry-driven so no branch edit there.
-- **Defensive tactics** (blitz / drift) are not yet in the codebase. `BreakdownEvent.ts` has a documented `TODO` next to the `offside_at_ruck` base rate where a single line will plug in `TACTIC_MODIFIERS.offsideAtRuckDefendMod[...]` once the defensive tactic union exists.
 
 ### Maul phase
 - **No `MatchPhase.Maul` exists today.** Driving mauls are folded into the lineout / breakdown abstraction. When added, the card system's forward-availability filter (`onFieldPlayers` in `src/engine/FieldPosition.ts`) plus the `SHORT_HANDED` constants in `src/engine/balance/discipline.ts` should be extended to apply the same "missing forward = weaker pack" weakening to the maul resolver. A `missingForwardMaulPenalty` constant slots into `SHORT_HANDED`.

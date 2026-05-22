@@ -196,7 +196,7 @@ The Welford Road tradition is set-piece power, structured forward-led play, and 
 - **Head coach:** Geoff Parling (Head Coach since August 2025, succeeding Michael Cheika).
 - **Honours:** 11 × English league title (latest 2021-22, most in the modern era); 2 × European Champions Cup (2000-01, 2001-02); Anglo-Welsh Cup × 6.
 - **Overall rating:** **77/100**
-- **Suggested tactics:** `kicking` · `keep_it_tight` · `pick_and_drive` · `jackal` · `two_back` · `blitz`
+- **Suggested tactics:** `kicking` · `keep_it_tight` · `pick_and_drive` · `jackal` · `two_back` · `hybrid`
 - **Stat bias:** high `setPiece`, `tackling`, `discipline`.
 
 ### Star players
@@ -430,7 +430,7 @@ The Rob Baxter long-build identity is phase-heavy possession rugby — pressure 
 - **Head coach:** Rob Baxter (Director of Rugby since 2009 — the league's longest-serving head coach).
 - **Honours:** 2 × Premiership title (2016-17, 2019-20); European Champions Cup 2019-20; Anglo-Welsh Cup 2013-14.
 - **Overall rating:** **70/100**
-- **Suggested tactics:** `possession` · `keep_it_tight` · `pick_and_drive` · `counter_ruck` · `one_back` · `hybrid`
+- **Suggested tactics:** `possession` · `keep_it_tight` · `pick_and_drive` · `counter_ruck` · `one_back` · `blitz`
 - **Stat bias:** high `stamina`, `breakdown`, `setPiece`.
 
 ### Star players

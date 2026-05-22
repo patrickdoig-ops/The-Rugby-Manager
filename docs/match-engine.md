@@ -1104,7 +1104,7 @@ The card system layers on top of the penalty seam. Whenever `PENALTY_AWARDED` fi
 
 1. **Team-22 rule.** Each penalty where the offender's team was *defending* in their own 22 increments `state.cards.teamPenalty22[offendingSide]`. The 3rd-in-22 (`TEAM_22.warnAt`) emits a `team_22_warning` announcement (once per match per side). The 4th-in-22 (`TEAM_22.cardAt`) **forces** an immediate yellow on the offender — TMO is skipped. The counter is not reset; the 5th–8th in-22 add no further cards (per spec "the fourth penalty triggers the yellow").
 
-2. **Per-offence TMO.** If the team-22 rule didn't already card, CardHandler looks up `OFFENCE_SPEC[last.offence].tmoTriggerPct` and rolls `rng(1,100) <= triggerPct`. Two offences carry a non-zero trigger today: `high_tackle` (60 %) and `dangerous_cleanout` (60 %). On a hit, a single `rng(1,100)` is bucketed by the global `TMO.outcomeNoCardPct / outcomeYellowPct / outcomeRed20Pct` weights (40/40/20) to pre-roll the outcome. In live mode this enters `MatchPhase.TmoReview` for 3 narrative ticks; in silent mode the narrative is collapsed and the card is applied inline — RNG order is identical so determinism is preserved. **Adding a TMO-eligible offence is a one-line edit** to the `OFFENCE_SPEC` registry — no `CardHandler` change.
+2. **Per-offence TMO.** If the team-22 rule didn't already card, CardHandler looks up `OFFENCE_SPEC[last.offence].tmoTriggerPct` and rolls `rng(1,100) <= triggerPct`. Two offences carry a non-zero trigger today: `high_tackle` (60 %) and `dangerous_cleanout` (60 %). On a hit, a single `rng(1,100)` is bucketed by the global `TMO.outcomeNoCardPct / outcomeYellowPct / outcomeRed20Pct` weights (50/35/15) to pre-roll the outcome. In live mode this enters `MatchPhase.TmoReview` for 3 narrative ticks; in silent mode the narrative is collapsed and the card is applied inline — RNG order is identical so determinism is preserved. **Adding a TMO-eligible offence is a one-line edit** to the `OFFENCE_SPEC` registry — no `CardHandler` change.
 
 ### TMO review tick anatomy
 
@@ -1158,7 +1158,7 @@ The card system layers on top of the penalty seam. Whenever `PENALTY_AWARDED` fi
 
 **Discipline / cards (`src/engine/balance/discipline.ts`)** — global outcome weights + per-offence registry:
 ```ts
-TMO              = { outcomeNoCardPct: 40, outcomeYellowPct: 40, outcomeRed20Pct: 20 }
+TMO              = { outcomeNoCardPct: 50, outcomeYellowPct: 35, outcomeRed20Pct: 15 }
 OFFENCE_SPEC     = {
   breakdown_infringement: { tmoTriggerPct:  0 },
   scrum_infringement:     { tmoTriggerPct:  0 },

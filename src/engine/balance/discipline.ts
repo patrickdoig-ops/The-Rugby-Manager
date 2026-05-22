@@ -42,9 +42,9 @@ export const HIGH_TACKLE = {
 // OFFENCE_SPEC entry has tmoTriggerPct > 0. Sum to 100. The trigger
 // probability itself is per-offence and lives in OFFENCE_SPEC above.
 export const TMO = {
-  outcomeNoCardPct: 40,
-  outcomeYellowPct: 40,
-  outcomeRed20Pct:  20,
+  outcomeNoCardPct: 50,
+  outcomeYellowPct: 35,
+  outcomeRed20Pct:  15,
 } as const;
 
 // Sin-bin durations in game minutes. Yellow returns; red_20 expires to sentOff

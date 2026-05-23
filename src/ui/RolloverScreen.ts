@@ -5,9 +5,10 @@
 //
 // Sections (each suppressed when its event list is empty):
 //   1. Retirements — every PLAYER_RETIRED event.
-//   2. Your academy graduates — ACADEMY_GRADUATED events for your club.
-//   3. Your squad — Development — PLAYER_AGED events for the player's club.
-//   4. Inbound transfers — TRANSFER_ACTIVATED events into the player's club.
+//   2. Inbound transfers  — TRANSFER_ACTIVATED events into the player's club.
+//   3. Outbound transfers — TRANSFER_ACTIVATED events out of the player's club.
+//   4. Academy graduates  — ACADEMY_GRADUATED events for the player's club.
+//   5. Your squad — Development — PLAYER_AGED events for the player's club.
 
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
@@ -61,6 +62,7 @@ export function initRolloverScreen(
     const myClubId = state.player.teamId;
     const academyGrads = activeEvents.filter(e => e.type === 'ACADEMY_GRADUATED' && e.clubId === myClubId);
     const inboundTransfers = activeEvents.filter(e => e.type === 'TRANSFER_ACTIVATED' && e.toClubId === myClubId);
+    const outboundTransfers = activeEvents.filter(e => e.type === 'TRANSFER_ACTIVATED' && e.fromClubId === myClubId);
 
     // Restrict the squad-development list to the player's club, sorted by
     // largest absolute delta so the most notable changes surface first.
@@ -119,10 +121,23 @@ export function initRolloverScreen(
       if (e.type !== 'TRANSFER_ACTIVATED') return '';
       const p = state.career.roster[e.rosterId];
       if (!p) return '';
+      const fromClub = teamsById.get(e.fromClubId);
       return `
         <div class="roll-row">
           <span class="roll-name">${p.firstName} ${p.lastName}</span>
-          <span class="roll-meta">${p.position} · joins from previous club</span>
+          <span class="roll-meta">${p.position} · from ${fromClub?.shortName ?? e.fromClubId}</span>
+        </div>`;
+    }).join('');
+
+    const outboundHtml = outboundTransfers.map(e => {
+      if (e.type !== 'TRANSFER_ACTIVATED') return '';
+      const p = state.career.roster[e.rosterId];
+      if (!p) return '';
+      const toClub = teamsById.get(e.toClubId);
+      return `
+        <div class="roll-row">
+          <span class="roll-name">${p.firstName} ${p.lastName}</span>
+          <span class="roll-meta">${p.position} · to ${toClub?.shortName ?? e.toClubId}</span>
         </div>`;
     }).join('');
 
@@ -145,6 +160,12 @@ export function initRolloverScreen(
       <section class="roll-section">
         <h3 class="roll-h3">Inbound Transfers <span class="roll-count">${inboundTransfers.length}</span></h3>
         <div class="roll-list">${transfersHtml}</div>
+      </section>` : ''}
+
+      ${outboundTransfers.length > 0 ? `
+      <section class="roll-section">
+        <h3 class="roll-h3">Outbound Transfers <span class="roll-count">${outboundTransfers.length}</span></h3>
+        <div class="roll-list">${outboundHtml}</div>
       </section>` : ''}
 
       ${academyGrads.length > 0 ? `

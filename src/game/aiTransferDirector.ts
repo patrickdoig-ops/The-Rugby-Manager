@@ -169,7 +169,6 @@ export interface AISigning {
   rosterId: number;
   clubId: string;
   annualWage: number;
-  lengthYears: number;
   expiresOn: string;
 }
 
@@ -239,7 +238,6 @@ export function decideAISignings(state: GameState, humanClubId?: string): AISign
         rosterId: rid,
         clubId: club.id,
         annualWage: wage,
-        lengthYears,
         expiresOn: expiryAfterYears(state, lengthYears),
       });
       taken.add(rid);

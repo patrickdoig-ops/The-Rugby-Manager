@@ -428,6 +428,9 @@ export class GameCoordinator {
   // the player is no longer a free agent.
   //
   // No cap-affordability gate — the user can deliberately overspend.
+  // OFFER_RESPONDED is deferred to closeSigningWindow so the cached
+  // offer stays 'pending' through the window, letting the user undo
+  // via unsignFreeAgent without offer-status drift.
   signFreeAgent(rosterId: number): boolean {
     const market = this.state.career.market;
     if (!market || market.phase !== 'signings') return false;
@@ -440,6 +443,28 @@ export class GameCoordinator {
       clubId: this.state.player.teamId,
       expiresOn: expiryAfterYears(this.state, offer.lengthYears),
       annualWage: offer.annualWage,
+    });
+    return true;
+  }
+
+  // Reverses an in-window signFreeAgent: player returns to freeAgents,
+  // contract.clubId clears. Only valid while the signing window is open
+  // (after MARKET_CLOSED the cached offer is gone). Returns false if
+  // the rosterId isn't on the user's squad — guards against unrelated
+  // squad members being released through this path.
+  unsignFreeAgent(rosterId: number): boolean {
+    const market = this.state.career.market;
+    if (!market || market.phase !== 'signings') return false;
+    const p = this.state.career.roster[rosterId];
+    if (!p) return false;
+    const playerClubId = this.state.player.teamId;
+    if (p.contract.clubId !== playerClubId) return false;
+    const club = this.state.career.clubs.find(c => c.id === playerClubId);
+    if (!club || !club.squad.includes(rosterId)) return false;
+    applySeasonEvent(this.state, {
+      type: 'CONTRACT_TERMINATED',
+      rosterId,
+      reason: 'released',
     });
     return true;
   }
@@ -477,9 +502,24 @@ export class GameCoordinator {
     return true;
   }
 
+  // Reverses an in-window preAgreePoach: drops the pending move so the
+  // player won't switch clubs at rollover. Only valid while the signing
+  // window is open and the pending move belongs to the user's club.
+  cancelPreAgreement(rosterId: number): boolean {
+    const market = this.state.career.market;
+    if (!market || market.phase !== 'signings') return false;
+    const playerClubId = this.state.player.teamId;
+    const move = this.state.career.pendingMoves.find(m => m.rosterId === rosterId);
+    if (!move || move.toClubId !== playerClubId) return false;
+    applySeasonEvent(this.state, { type: 'PRE_AGREEMENT_CANCELLED', rosterId });
+    return true;
+  }
+
   // Closes the signing window. Runs the AI signing pass over whatever
   // free agents remain, then the AI poaching pass over contracted
-  // players in their final 12 months, then fires MARKET_CLOSED.
+  // players in their final 12 months, then batches OFFER_RESPONDED
+  // across every cached offer (accepted iff the rosterId left the
+  // free-agent pool / landed on pendingMoves), then fires MARKET_CLOSED.
   closeSigningWindow(): void {
     const market = this.state.career.market;
     if (!market || market.phase !== 'signings') return;
@@ -509,6 +549,25 @@ export class GameCoordinator {
           annualWage: a.annualWage,
           lengthYears: a.lengthYears,
         },
+      });
+    }
+    // Flip every cached offer to its terminal status so the seam
+    // matches the renewal-window flow. Free-agent offers (fromClubId
+    // === '') accept iff the rosterId is no longer in freeAgents;
+    // poach offers accept iff the rosterId is on pendingMoves.
+    const pendingMovesSet = new Set(this.state.career.pendingMoves.map(m => m.rosterId));
+    const freeAgentSet = new Set(this.state.career.freeAgents);
+    for (const offer of market.offers) {
+      if (offer.status !== 'pending') continue;
+      const isPoach = offer.fromClubId !== '';
+      const accepted = isPoach
+        ? pendingMovesSet.has(offer.rosterId)
+        : !freeAgentSet.has(offer.rosterId);
+      applySeasonEvent(this.state, {
+        type: 'OFFER_RESPONDED',
+        offerId: offer.id,
+        accept: accepted,
+        ...(accepted ? {} : { reason: 'cap_overcommit' as const }),
       });
     }
     applySeasonEvent(this.state, { type: 'MARKET_CLOSED' });

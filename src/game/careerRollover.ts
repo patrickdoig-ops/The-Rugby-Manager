@@ -52,6 +52,7 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
     events.push({
       type: 'TRANSFER_ACTIVATED',
       rosterId: move.rosterId,
+      fromClubId: move.fromClubId,
       toClubId: move.toClubId,
       annualWage: move.annualWage,
       expiresOn: `${newSeasonStartYear + move.lengthYears - 1}-06-30`,

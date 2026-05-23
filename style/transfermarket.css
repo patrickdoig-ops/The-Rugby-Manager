@@ -156,14 +156,26 @@
   background: color-mix(in oklch, var(--rm-danger, #d8503e) 18%, transparent);
 }
 
-.tm-sign--pending {
+/* In-window commitment: signed or pre-agreed. Button label flips to
+   "Undo Sign" / "Undo Pre-Agree" — clickable, distinct treatment so
+   the user can see what they've locked in. */
+.tm-sign--undo {
   border-color: var(--rm-text-dim);
   color: var(--rm-text-dim);
-  cursor: not-allowed;
+  background: color-mix(in oklch, var(--rm-pitch) 8%, transparent);
 }
 
-.tm-sign--pending:hover {
-  background: transparent;
+.tm-sign--undo:hover {
+  background: color-mix(in oklch, var(--rm-danger, #d8503e) 14%, transparent);
+  border-color: var(--rm-danger, #d8503e);
+  color: var(--rm-danger, #d8503e);
+}
+
+.tm-row--committed .tm-name,
+.tm-row--committed .tm-pos,
+.tm-row--committed .tm-num,
+.tm-row--committed .tm-wage {
+  opacity: 0.78;
 }
 
 .tm-section-h {

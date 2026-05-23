@@ -259,11 +259,18 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
       state.career.pendingMoves.push({ ...event.agreement });
       return;
     }
+    case 'PRE_AGREEMENT_CANCELLED': {
+      state.career.pendingMoves = state.career.pendingMoves.filter(m => m.rosterId !== event.rosterId);
+      return;
+    }
     case 'TRANSFER_ACTIVATED': {
       const p = state.career.roster[event.rosterId];
       if (!p) return;
-      // Remove from old club's squad.
-      const oldClub = state.career.clubs.find(c => c.id === p.contract.clubId);
+      // Remove from old club's squad. Source from the event rather than
+      // p.contract.clubId so a future rollover-batch ordering change
+      // (e.g. a CONTRACT_TERMINATED before TRANSFER_ACTIVATED) can't
+      // desync the swap.
+      const oldClub = state.career.clubs.find(c => c.id === event.fromClubId);
       if (oldClub) oldClub.squad = oldClub.squad.filter(id => id !== event.rosterId);
       // Add to new club's squad (defensive against double-add).
       const newClub = state.career.clubs.find(c => c.id === event.toClubId);

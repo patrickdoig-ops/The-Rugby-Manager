@@ -447,12 +447,25 @@ export type SeasonEvent =
       agreement: PreAgreement;
     }
   | {
+      // Reverses a PRE_AGREEMENT_SIGNED within the same signing window.
+      // Drops the pending move for the given rosterId. UI-driven undo
+      // path on TransferMarketScreen; no equivalent for already-activated
+      // moves (those are permanent once rollover applies them).
+      type: 'PRE_AGREEMENT_CANCELLED';
+      rosterId: number;
+    }
+  | {
       // Activates a pre-agreement at rollover time. Atomic squad swap:
       // remove rosterId from the old club, add to the new, update
       // contract. Does NOT touch freeAgents — the player goes
-      // straight from one squad to another.
+      // straight from one squad to another. `fromClubId` is carried on
+      // the event (rather than derived from the player's current
+      // contract at apply time) so RolloverScreen's Outbound section
+      // and any future audit consumers see the move's origin even if
+      // the contract has already been rewritten.
       type: 'TRANSFER_ACTIVATED';
       rosterId: number;
+      fromClubId: string;
       toClubId: string;
       annualWage: number;
       expiresOn: string;

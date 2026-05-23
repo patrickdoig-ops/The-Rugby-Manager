@@ -11,7 +11,7 @@
 
 import type { Player, Position, PlayerStats } from '../types/player';
 import { zeroMatchStats, zeroSeasonStats } from '../types/player';
-import { rngTransfer } from '../utils/rng';
+import { rngTransfer, rngTransferRaw } from '../utils/rng';
 import { WAGE_BY_RATING, POSITION_SCARCITY, WAGE_FLOOR, WAGE_ROUNDING_UNIT, PERSONA_CONTRACT_LENGTH_YEARS, PERSONA_REPUTATION } from '../engine/balance/transfers';
 import { ACADEMY_SUPPLY } from '../engine/balance/career';
 
@@ -125,7 +125,12 @@ export function generatePersona(seed: PersonaSeed, calendarDate: string): Player
     ? WAGE_FLOOR // RPA rookie fixed academy wage
     : Math.round(wageFromRating(targetOverall) * (POSITION_SCARCITY[position] ?? 1.0) / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT;
 
-  const lengthYears = PERSONA_CONTRACT_LENGTH_YEARS;
+  // Length: academy gets the fixed RPA rookie deal (PERSONA_CONTRACT_LENGTH_YEARS,
+  // typically 2yr). Imports stagger 1/2/3 via rngTransfer so a cohort's
+  // expiries spread across future windows rather than all landing in
+  // the same year — keeps long-running careers from cycling huge
+  // import classes through the free-agent pool every other off-season.
+  const lengthYears = isAcademy ? PERSONA_CONTRACT_LENGTH_YEARS : pickImportLength();
   const seasonStartYear = parseInt(calendarDate.slice(0, 4), 10);
   const expiresOn = `${seasonStartYear + lengthYears}-06-30`;
 
@@ -157,8 +162,10 @@ export function generatePersona(seed: PersonaSeed, calendarDate: string): Player
   };
 }
 
-// Bell-shape stats around `targetOverall`. Each stat ~ N(target, 8)
-// clamped to [1, 99]. Crude but produces playable variety.
+// Uniform-noise stats around `targetOverall` — each stat lands within
+// ±12 of the target, clamped to [1, 99]. Not Gaussian; the rngTransfer
+// roll is uniform. Crude but produces playable variety and keeps the
+// rngTransfer call sequence stable across runs.
 function generateStats(targetOverall: number): PlayerStats {
   const stat = (): number => {
     const noise = rngTransfer(-12, 12);
@@ -178,6 +185,16 @@ function generateStats(targetOverall: number): PlayerStats {
     positioning: stat(),
     composure:   stat(),
   };
+}
+
+// Mirrors contractSeeder's age25to30 weights (most imports land in that
+// band). 20% on a 1yr deal, 40% on 2yr, 40% on 3yr — a single
+// rngTransfer call per import.
+function pickImportLength(): number {
+  const roll = rngTransferRaw();
+  if (roll < 0.20) return 1;
+  if (roll < 0.60) return 2;
+  return 3;
 }
 
 function wageFromRating(rating: number): number {

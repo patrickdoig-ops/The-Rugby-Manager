@@ -144,7 +144,7 @@ function renderScorers(state: MatchState): string {
   }
   return `
     <section class="mr-card">
-      <h2 class="mr-card-title">Try Scorers</h2>
+      <h2 class="mr-card-title">Scorers</h2>
       <div class="mr-scorers-grid">
         <div class="mr-scorers-team">
           <div class="mr-scorers-team-label" style="color:${teamTextColor(state.homeTeam.color)}">${state.homeTeam.shortName}</div>

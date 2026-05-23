@@ -186,6 +186,7 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
     },
     events: [],
     breakdownMod: { attack: 0, defend: 0 },
+    lastBallQuality: 'clean',
     cards: {
       sinBin:        { home: [], away: [] },
       sentOff:       { home: [], away: [] },

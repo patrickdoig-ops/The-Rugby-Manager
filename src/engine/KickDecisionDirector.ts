@@ -5,27 +5,48 @@ import type { MatchPhase } from '../types/engine';
 import type { PhaseResult } from './events/types';
 import { MatchPhase as MatchPhaseEnum } from '../types/engine';
 import { rng } from '../utils/rng';
-import { inOwn22, inOwnHalf } from './FieldPosition';
-import { KICK_PROBABILITIES } from './balance';
+import { inOpposition22, inOwn22, inOwnHalf } from './FieldPosition';
+import {
+  KICK_PROBABILITIES,
+  SLOW_BALL_KICK_BONUS,
+  FAMILY_WEIGHTS,
+  SCRUM_HALF_KICKER_PCT,
+  LONG_AND_OFF_PCT,
+  CROSS_FIELD_VS_GRUBBER_PCT,
+  type Plan,
+  type Zone,
+  type Family,
+} from './balance';
 
 // Unified kick-or-carry decision for every carry-phase entry (PhasePlay,
 // FirstPhase, KickReturn). Replaces the three inline kick gates that used
-// to sit at the top of each carry handler.
+// to sit at the top of each carry handler AND the Breakdown slow_ball →
+// BoxKick gate that lived in BreakdownEvent.
 //
-// Stage A (skeleton, no behaviour change): single roll against
-// KICK_PROBABILITIES[plan][zone], identical to the original inline gate.
-// Always returns family='territory' with #10 as kicker — same as today.
+// Decision flow:
+//   1. Compute base kick probability from KICK_PROBABILITIES[plan][zone].
+//   2. Add SLOW_BALL_KICK_BONUS when state.lastBallQuality === 'slow'.
+//   3. Roll vs kickProb. Miss → return { kick: false } (carry path).
+//   4. Pick the kick FAMILY from FAMILY_WEIGHTS[zone][plan].
+//   5. Pick the KICKER (#9 box-kicker vs #10 fly-half) per family.
+//   6. Clearance only — pick longAndOn vs longAndOff per zone.
+//   7. Attacking only — pick cross_field vs grubber sub-type.
 //
-// Subsequent stages add the four kick families (clearance / territory /
-// fifty_22 / attacking), the ballQuality slow-ball bonus, and the
-// #9-or-#10 kicker selection.
+// Stages C/D/E add the dedicated resolver branches for fifty_22 +
+// cross_field + grubber + clearance long-and-off. Stage B routes all
+// kicks to existing BoxKick / TacticalKick phases based on kicker id.
 
-export type KickFamily = 'clearance' | 'territory' | 'fifty_22' | 'attacking';
+export type AttackingSubType = 'cross_field' | 'grubber';
+export type ClearanceStyle   = 'long_and_on' | 'long_and_off';
 
 export interface KickDecision {
   kick: true;
-  family: KickFamily;
+  family: Family;
   kicker: Player;
+  // Only set for family='clearance'.
+  clearanceStyle?: ClearanceStyle;
+  // Only set for family='attacking'.
+  attackingSubType?: AttackingSubType;
 }
 
 export interface CarryDecision {
@@ -40,27 +61,80 @@ export interface KickDecisionContext {
   attackOnField: Player[];
 }
 
+function fieldZone(state: MatchState): Zone {
+  if (inOwn22(state)) return 'own22';
+  if (inOwnHalf(state)) return 'ownHalf';
+  if (inOpposition22(state)) return 'opp22';
+  return 'oppHalf';
+}
+
+function pickFamily(zone: Zone, plan: Plan): Family {
+  const weights = FAMILY_WEIGHTS[zone][plan];
+  const roll = rng(1, 100);
+  let cum = 0;
+  for (const family of ['clearance', 'territory', 'fifty_22', 'attacking'] as const) {
+    cum += weights[family];
+    if (roll <= cum) return family;
+  }
+  return 'territory';
+}
+
+function pickKicker(family: Family, attackOnField: Player[], attackTeam: Team): Player {
+  const scrumHalf = attackOnField.find(p => p.id === 9)
+    ?? attackTeam.players.find(p => p.id === 9)
+    ?? attackTeam.players[0];
+  const flyHalf   = attackOnField.find(p => p.id === 10)
+    ?? attackTeam.players.find(p => p.id === 10)
+    ?? attackTeam.players[0];
+
+  const scrumHalfPct = SCRUM_HALF_KICKER_PCT[family];
+  return rng(1, 100) <= scrumHalfPct ? scrumHalf : flyHalf;
+}
+
 export function decideKick(ctx: KickDecisionContext): KickOrCarry {
   const { state, attackTeam, attackOnField } = ctx;
   const plan = attackTeam.tactics.attackingGamePlan;
   const probs = KICK_PROBABILITIES[plan];
-  const kickProb = inOwn22(state) ? probs.own22 : (inOwnHalf(state) ? probs.ownHalf : probs.opposition);
+  const zone = fieldZone(state);
+
+  // Base kick probability — same KICK_PROBABILITIES[plan][zone] table as
+  // pre-v2.83a. (The zone enum is more granular than the table — own22 +
+  // opp22 use the explicit table value; ownHalf and oppHalf collapse to
+  // the table's "ownHalf" and "opposition" rows respectively.)
+  const baseProb = zone === 'own22' ? probs.own22
+                 : zone === 'opp22' ? probs.opposition
+                 : zone === 'oppHalf' ? probs.opposition
+                 : probs.ownHalf;
+
+  const slowBallBonus = state.lastBallQuality === 'slow' ? SLOW_BALL_KICK_BONUS : 0;
+  const kickProb = baseProb + slowBallBonus;
 
   if (rng(1, 100) > kickProb) return { kick: false };
 
-  const kicker = attackOnField.find(p => p.id === 10)
-    ?? attackTeam.players.find(p => p.id === 10)
-    ?? attackTeam.players[0];
+  const family = pickFamily(zone, plan);
+  const kicker = pickKicker(family, attackOnField, attackTeam);
 
-  return { kick: true, family: 'territory', kicker };
+  const decision: KickDecision = { kick: true, family, kicker };
+
+  if (family === 'clearance') {
+    decision.clearanceStyle = rng(1, 100) <= LONG_AND_OFF_PCT[zone] ? 'long_and_off' : 'long_and_on';
+  }
+  if (family === 'attacking') {
+    decision.attackingSubType = rng(1, 100) <= CROSS_FIELD_VS_GRUBBER_PCT ? 'cross_field' : 'grubber';
+  }
+
+  return decision;
 }
 
-// Builds the PhaseResult that transitions to a kick phase. Today every kick
-// routes to TacticalKick with #10 as kicker; later stages will branch to
-// BoxKick when family=clearance/territory and the kicker is #9.
+// Builds the PhaseResult that transitions to a kick phase. Stage B routing:
+// kicker.id === 9 → BoxKick phase; otherwise → TacticalKick phase.
+// Resolver-level intent branching (clearance long-and-off, fifty_22
+// targeting, attacking sub-type math) arrives in subsequent stages —
+// today's BoxKick / TacticalKick resolvers handle every family.
 export function buildKickTransition(decision: KickDecision, sourcePhase: MatchPhase): PhaseResult {
+  const nextPhase = decision.kicker.id === 9 ? MatchPhaseEnum.BoxKick : MatchPhaseEnum.TacticalKick;
   return {
-    nextPhase: MatchPhaseEnum.TacticalKick,
+    nextPhase,
     narration: { steps: [{ kind: 'phase_outcome', phase: sourcePhase, key: 'kick_decision' }] },
     primaryPlayer: decision.kicker,
     events: [

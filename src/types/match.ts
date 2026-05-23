@@ -1,4 +1,4 @@
-import type { MatchPhase, PossessionSide, PenaltyOffence, CardKind } from './engine';
+import type { MatchPhase, PossessionSide, PenaltyOffence, CardKind, BallQuality } from './engine';
 import type { Team } from './team';
 import type { Player } from './player';
 import type { NarrationDescriptor } from './narration';
@@ -110,6 +110,11 @@ export interface MatchState {
   stats: MatchStats;
   events: GameEvent[];
   breakdownMod: { attack: number; defend: number };
+  // Quality of the ball going into the upcoming phase decision. Set by the
+  // producing phase (Breakdown today); read by KickDecisionDirector to apply
+  // the slow-ball kick-bias modifier. Defaults to 'clean' on match init and
+  // after kicks (the receiver is treating it as fresh).
+  lastBallQuality: BallQuality;
   kickReturnCarrier?: Player;
   // Set by the PENALTY_AWARDED reducer; read by PenaltyHandler to enrich the
   // PenaltyContext that crosses the bus boundary to the modal. Overwritten on

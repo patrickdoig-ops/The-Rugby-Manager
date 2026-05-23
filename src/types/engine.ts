@@ -28,6 +28,12 @@ export type CollisionResult = 'dominant_carry' | 'dominant_tackle' | 'broken_tac
 export type KickResult      = 'good_kick' | 'poor_kick' | 'knock_on_catch';
 export type PenaltyChoice   = 'kick_for_goal' | 'kick_to_touch' | 'tap_and_go' | 'tap_and_kick_dead';
 
+// Quality of the ball going INTO a phase decision. Set by the producing phase
+// (Breakdown clean/slow outcomes today; future stages may add 'set_piece'
+// + 'from_kick'). Read by KickDecisionDirector to apply the slow-ball
+// kick-bias modifier.
+export type BallQuality = 'clean' | 'slow' | 'set_piece' | 'from_kick';
+
 // Cause taxonomy for a penalty award. Set by the resolver that detected the
 // offence, carried on PENALTY_AWARDED, and snapshotted onto state.lastPenalty
 // so PenaltyHandler / the modal / the commentary feed can describe why the

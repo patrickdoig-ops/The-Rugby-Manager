@@ -7,7 +7,7 @@ import { resolveBreakdown } from '../resolvers/BreakdownResolver';
 import { rng } from '../../utils/rng';
 import { HOME_ADVANTAGE, TACTIC_MODIFIERS, COMMENTARY_CHANCES, BREAKDOWN_PENALTIES, CARRY_HANDOFF_BONUSES } from '../balance';
 import { homeEdge } from '../HomeAdvantage';
-import { inOpposition22, inOwn22, inOwnHalf, availableForwards, onFieldPlayers } from '../FieldPosition';
+import { availableForwards, onFieldPlayers } from '../FieldPosition';
 
 export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext): PhaseResult {
   const attPlan = attackTeam.tactics.attackingBreakdown;
@@ -137,6 +137,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   }
 
   if (res.result === 'clean_ball') {
+    events.push({ type: 'BALL_QUALITY_SET', quality: 'clean' });
     const steps: NarrationStep[] = [
       { kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'clean_ball', primary, secondary: jackal },
     ];
@@ -157,17 +158,12 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   }
 
   if (res.result === 'slow_ball') {
-    const plan = attackTeam.tactics.attackingGamePlan;
-    let boxKick = false;
-
-    if (plan === 'possession') {
-      boxKick = false;
-    } else if (plan === 'kicking') {
-      boxKick = !inOpposition22(state) && !inOwn22(state);
-    } else {
-      boxKick = inOwnHalf(state) && !inOwn22(state);
-    }
-
+    // Slow ball → biases the next-phase KickDecisionDirector toward kicking
+    // (any family — clearance / territory / fifty_22 / attacking), replacing
+    // the pre-v2.83a deterministic slow_ball → BoxKick gate that lived here.
+    // The +SLOW_BALL_KICK_BONUS shift in balance/kickDecision.ts is the
+    // probabilistic equivalent.
+    events.push({ type: 'BALL_QUALITY_SET', quality: 'slow' });
     const steps: NarrationStep[] = [
       { kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'slow_ball', primary, secondary: jackal },
     ];
@@ -177,7 +173,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
       steps.push({ kind: 'tactic_note', cause: 'breakdown_counter_ruck_slow', chancePct: COMMENTARY_CHANCES.breakdownCounterRuckSlow });
     }
     return {
-      nextPhase: boxKick ? MatchPhase.BoxKick : MatchPhase.PhasePlay,
+      nextPhase: MatchPhase.PhasePlay,
       narration: { steps },
       primaryPlayer: primary,
       secondaryPlayer: jackal,

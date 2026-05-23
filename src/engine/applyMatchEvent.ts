@@ -1,5 +1,6 @@
 import type { MatchState } from '../types/match';
 import type { MatchEvent } from '../types/matchEvent';
+import { MatchPhase } from '../types/engine';
 import { clamp } from '../utils/math';
 import { attackDir } from './FieldPosition';
 import { computeRating } from './RatingEngine';
@@ -219,6 +220,10 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       state.breakdownMod = { attack: event.attack, defend: event.defend };
       return;
 
+    case 'BALL_QUALITY_SET':
+      state.lastBallQuality = event.quality;
+      return;
+
     // ── Set piece ───────────────────────────────────────────────────────
     case 'LINEOUT_THROWN':
       event.hooker.matchStats.lineoutThrows++;
@@ -300,6 +305,14 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
 
     case 'PHASE_CHANGED':
       state.phase = event.phase;
+      // ballQuality survives Breakdown → PhasePlay (the carry phase reads
+      // the breakdown's slow/clean signal). Every other transition resets
+      // it to 'clean' so a stale 'slow' from an earlier breakdown doesn't
+      // leak into a fresh phase (FirstPhase from set piece, KickReturn
+      // after a kick, etc.).
+      if (event.phase !== MatchPhase.PhasePlay) {
+        state.lastBallQuality = 'clean';
+      }
       return;
 
     // ── Clock & period ──────────────────────────────────────────────────

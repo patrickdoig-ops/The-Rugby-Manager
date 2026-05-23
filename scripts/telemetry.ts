@@ -164,6 +164,11 @@ interface SeasonAgg {
   matchCount: number;
   // Penalty offence taxonomy (sourced from narration phase_outcome keys)
   penOffence: { highTackle: number; breakdown: number; scrum: number; offsideAtRuck: number; obstruction: number; dangerousCleanout: number; notRollingAway: number };
+  // 50/22 outcomes — sourced from TacticalKick narration keys. 'fifty_twenty_two'
+  // covers both deliberate-success and accidental side-effect (territory kick
+  // that happens to land in opp 22); the two attempt-failed keys are emitted
+  // only by the deliberate fifty_22 path (KickDecisionDirector family).
+  fiftyTwoTwo: { success: number; failedTouch: number; failedCaught: number };
   // Penalty kick decisions (the manager / AI choice on every awarded penalty)
   penChoice: { kickForGoal: number; kickToTouch: number; tapAndGo: number; tapAndKickDead: number };
   // TMO lifecycle
@@ -209,6 +214,7 @@ function emptySeasonAgg(): SeasonAgg {
     homePoints: 0, awayPoints: 0,
     matchCount: 0,
     penOffence: { highTackle: 0, breakdown: 0, scrum: 0, offsideAtRuck: 0, obstruction: 0, dangerousCleanout: 0, notRollingAway: 0 },
+    fiftyTwoTwo: { success: 0, failedTouch: 0, failedCaught: 0 },
     penChoice: { kickForGoal: 0, kickToTouch: 0, tapAndGo: 0, tapAndKickDead: 0 },
     tmoTriggers: 0,
     tmoOutcomes: { noCard: 0, yellow: 0, red20: 0 },
@@ -395,6 +401,9 @@ function aggregateMatch(
         else if (step.key === 'obstruction_penalty')          agg.penOffence.obstruction++;
         else if (step.key === 'dangerous_cleanout_penalty')   agg.penOffence.dangerousCleanout++;
         else if (step.key === 'not_rolling_away_penalty')     agg.penOffence.notRollingAway++;
+        else if (step.key === 'fifty_twenty_two')                 agg.fiftyTwoTwo.success++;
+        else if (step.key === 'fifty_twenty_two_attempt_failed_touch')  agg.fiftyTwoTwo.failedTouch++;
+        else if (step.key === 'fifty_twenty_two_attempt_failed_caught') agg.fiftyTwoTwo.failedCaught++;
         else if (step.key === 'kick_for_goal')                agg.penChoice.kickForGoal++;
         else if (step.key === 'kick_to_touch')                agg.penChoice.kickToTouch++;
         else if (step.key === 'tap_and_go')                   agg.penChoice.tapAndGo++;
@@ -771,6 +780,23 @@ function buildReport(aggs: SeasonAgg[], elapsedMs: number): string {
   for (const [name, n] of penRows.sort((a, b) => b[1] - a[1])) {
     lines.push(`| ${name} | ${n} | ${pct(n, totalPenOff)} | ${fmt(n/totalFixtures, 2)} |`);
   }
+  lines.push('');
+
+  // ── 50/22 attempts ──────────────────────────────────────────────────────
+  lines.push('## 50/22 attempts and outcomes');
+  lines.push('');
+  const f22Success = aggs.reduce((s, a) => s + a.fiftyTwoTwo.success, 0);
+  const f22FailTouch = aggs.reduce((s, a) => s + a.fiftyTwoTwo.failedTouch, 0);
+  const f22FailCaught = aggs.reduce((s, a) => s + a.fiftyTwoTwo.failedCaught, 0);
+  const f22Deliberate = f22FailTouch + f22FailCaught;
+  lines.push('Successes include accidental side-effects (territory kick from own half that lands in opposition 22) plus deliberate-intent fifty_22 attempts that succeeded. Failures are deliberate-intent only.');
+  lines.push('');
+  lines.push('| outcome | count | per match |');
+  lines.push('|---|---:|---:|');
+  lines.push(`| success (deliberate + accidental) | ${f22Success} | ${fmt(f22Success/totalFixtures, 2)} |`);
+  lines.push(`| failed — touch elsewhere          | ${f22FailTouch} | ${fmt(f22FailTouch/totalFixtures, 2)} |`);
+  lines.push(`| failed — caught in field          | ${f22FailCaught} | ${fmt(f22FailCaught/totalFixtures, 2)} |`);
+  lines.push(`| total deliberate-intent attempts  | ${f22Deliberate + f22Success} | ${fmt((f22Deliberate + f22Success)/totalFixtures, 2)} |`);
   lines.push('');
 
   // ── Penalty choices ─────────────────────────────────────────────────────

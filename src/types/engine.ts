@@ -34,6 +34,18 @@ export type PenaltyChoice   = 'kick_for_goal' | 'kick_to_touch' | 'tap_and_go' |
 // kick-bias modifier.
 export type BallQuality = 'clean' | 'slow' | 'set_piece' | 'from_kick';
 
+// Carries the KickDecisionDirector's family + sub-choice metadata across
+// the phase boundary so the chosen kick resolver can branch its math.
+// Set when entering BoxKick / TacticalKick, cleared when leaving them.
+export type KickFamily       = 'clearance' | 'territory' | 'fifty_22' | 'attacking';
+export type ClearanceStyle   = 'long_and_on' | 'long_and_off';
+export type AttackingKickSubType = 'cross_field' | 'grubber';
+export interface PendingKick {
+  family: KickFamily;
+  clearanceStyle?: ClearanceStyle;
+  attackingSubType?: AttackingKickSubType;
+}
+
 // Cause taxonomy for a penalty award. Set by the resolver that detected the
 // offence, carried on PENALTY_AWARDED, and snapshotted onto state.lastPenalty
 // so PenaltyHandler / the modal / the commentary feed can describe why the

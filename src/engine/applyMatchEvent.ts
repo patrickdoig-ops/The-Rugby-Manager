@@ -224,6 +224,22 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       state.lastBallQuality = event.quality;
       return;
 
+    case 'KICK_INTENT_SET':
+      state.pendingKick = event.intent;
+      return;
+
+    case 'KICK_INTENT_CLEARED':
+      state.pendingKick = undefined;
+      return;
+
+    case 'FIFTY_22_ATTEMPTED':
+      // Telemetry-only — kicker matchStats counter isn't bumped here, the
+      // KICK_FROM_HAND event handles that. This event exists so the
+      // telemetry report can break out deliberate 50/22 attempts (and
+      // their success rate) from accidental territory kicks that happen
+      // to land in opposition 22.
+      return;
+
     // ── Set piece ───────────────────────────────────────────────────────
     case 'LINEOUT_THROWN':
       event.hooker.matchStats.lineoutThrows++;
@@ -312,6 +328,12 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       // after a kick, etc.).
       if (event.phase !== MatchPhase.PhasePlay) {
         state.lastBallQuality = 'clean';
+      }
+      // pendingKick is set when entering BoxKick / TacticalKick and consumed
+      // by their handlers; clear on any transition away so a future kick
+      // doesn't read stale intent.
+      if (event.phase !== MatchPhase.BoxKick && event.phase !== MatchPhase.TacticalKick) {
+        state.pendingKick = undefined;
       }
       return;
 

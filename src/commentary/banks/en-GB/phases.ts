@@ -393,6 +393,16 @@ const TACTICAL_KICK: PhaseBank = {
     '{primary}\'s kick is taken on the full by {secondary}. {side} look to counter.',
     'Gathered by {secondary} — {side} come away with the ball.',
   ],
+  fifty_twenty_two_attempt_failed_touch: [
+    '{primary} was looking for the 50:22 but the kick lands in touch short of the 22 — {side} get the throw.',
+    'Aimed at the corner for the 50:22, {primary}\'s kick finds touch but not where they wanted.',
+    'Good kick from {primary} but the 50:22 doesn\'t come off — the lineout\'s the wrong way round.',
+  ],
+  fifty_twenty_two_attempt_failed_caught: [
+    '{primary} goes for the 50:22 but {secondary} is in position and gathers it in.',
+    'The 50:22 attempt from {primary} comes up short — {secondary} fields it cleanly.',
+    'Brilliant cover from {secondary} — {primary}\'s 50:22 attempt is caught, and the counter-attack is on.',
+  ],
 };
 
 const TRY_SCORED: PhaseBank = {

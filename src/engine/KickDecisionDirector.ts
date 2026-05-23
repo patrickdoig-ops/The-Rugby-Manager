@@ -126,11 +126,11 @@ export function decideKick(ctx: KickDecisionContext): KickOrCarry {
   return decision;
 }
 
-// Builds the PhaseResult that transitions to a kick phase. Stage B routing:
+// Builds the PhaseResult that transitions to a kick phase. Routing:
 // kicker.id === 9 → BoxKick phase; otherwise → TacticalKick phase.
-// Resolver-level intent branching (clearance long-and-off, fifty_22
-// targeting, attacking sub-type math) arrives in subsequent stages —
-// today's BoxKick / TacticalKick resolvers handle every family.
+// Emits KICK_INTENT_SET so the kick handler reads the family + sub-choice
+// from state.pendingKick. The handler is responsible for emitting
+// KICK_INTENT_CLEARED before it returns.
 export function buildKickTransition(decision: KickDecision, sourcePhase: MatchPhase): PhaseResult {
   const nextPhase = decision.kicker.id === 9 ? MatchPhaseEnum.BoxKick : MatchPhaseEnum.TacticalKick;
   return {
@@ -138,6 +138,11 @@ export function buildKickTransition(decision: KickDecision, sourcePhase: MatchPh
     narration: { steps: [{ kind: 'phase_outcome', phase: sourcePhase, key: 'kick_decision' }] },
     primaryPlayer: decision.kicker,
     events: [
+      { type: 'KICK_INTENT_SET', intent: {
+          family: decision.family,
+          clearanceStyle: decision.clearanceStyle,
+          attackingSubType: decision.attackingSubType,
+        } },
       { type: 'KICK_RETURN_CARRIER_SET', player: undefined },
       { type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 },
     ],

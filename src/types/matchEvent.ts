@@ -1,7 +1,8 @@
 import type { Player, PlayerStats, InjuryKind } from './player';
 import type { GameEvent } from './match';
 import type { TeamTactics } from './team';
-import { type MatchPhase, type PossessionSide, type PenaltyOffence, type CardKind, type BallQuality } from './engine';
+import { type MatchPhase, type PossessionSide, type PenaltyOffence, type CardKind, type BallQuality, type PendingKick } from './engine';
+import type { BackfieldDefence } from './team';
 
 // Domain-level events that describe everything the engine can do to MatchState.
 // `applyMatchEvent(state, event)` (src/engine/applyMatchEvent.ts) is the only
@@ -83,6 +84,9 @@ export type MatchEvent =
   | { type: 'BREAKDOWN_HIT'; players: Player[] }
   | { type: 'BREAKDOWN_MOD_SET'; attack: number; defend: number }
   | { type: 'BALL_QUALITY_SET'; quality: BallQuality }
+  | { type: 'KICK_INTENT_SET'; intent: PendingKick }
+  | { type: 'KICK_INTENT_CLEARED' }
+  | { type: 'FIFTY_22_ATTEMPTED'; kicker: Player; success: boolean; defenderBackfield: BackfieldDefence }
 
   // ── Set piece ────────────────────────────────────────────────────────────
   | { type: 'LINEOUT_THROWN'; hooker: Player }

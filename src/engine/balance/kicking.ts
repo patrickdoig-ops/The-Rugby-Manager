@@ -38,6 +38,31 @@ export const TACTICAL_KICK_VALUES = {
   poorKickTouchProb:     30,
 } as const;
 
+// Deliberate 50/22 attempt math. Used when KickDecisionDirector routes a
+// family='fifty_22' decision to TacticalKickResolver. Success requires the
+// ball to bounce in field and into touch inside the opposition 22, so the
+// defending team's backfield count is the dominant gate (more backs deep
+// = less grass to aim at). Modulated by the kicker's `kicking` stat
+// (pivoted at 70 — average kicker is break-even; top kicker +12pp, weak
+// kicker −12pp).
+export const FIFTY_22_VALUES = {
+  // Base success percent by defender backfield posture. One back deep
+  // leaves both wings up — clearest 50/22 lane. Three backs deep cover
+  // both corners — almost no chance.
+  baseSuccessPct: { one_back: 35, two_back: 18, three_back: 6 },
+  // Kicker stat modifier — pivoted at 70 with 0.4pp per stat point.
+  kickerStatPivot:  70,
+  kickerStatWeight: 0.4,
+  // Failure-mode split when the deliberate 50/22 doesn't succeed. The kick
+  // STILL travels (the kicker aimed at touch) but either misses opp 22
+  // (touch elsewhere → opposition lineout) or doesn't reach touch at all
+  // (caught in field → KickReturn).
+  failureMissTouchPct: 50,
+  // Distance the 50/22 attempt covers when it doesn't succeed (still a
+  // good kick, just didn't land in the corner).
+  attemptDistance: [35, 55],
+} as const;
+
 export const GOAL_KICK_VALUES = {
   angleWeight:      0.3,
   composureWeight:  0.2,

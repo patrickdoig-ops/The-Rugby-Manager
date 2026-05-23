@@ -1,4 +1,4 @@
-import type { MatchPhase, PossessionSide, PenaltyOffence, CardKind, BallQuality } from './engine';
+import type { MatchPhase, PossessionSide, PenaltyOffence, CardKind, BallQuality, PendingKick } from './engine';
 import type { Team } from './team';
 import type { Player } from './player';
 import type { NarrationDescriptor } from './narration';
@@ -115,6 +115,11 @@ export interface MatchState {
   // the slow-ball kick-bias modifier. Defaults to 'clean' on match init and
   // after kicks (the receiver is treating it as fresh).
   lastBallQuality: BallQuality;
+  // Family + sub-choice for the kick about to be resolved. Set by
+  // KickDecisionDirector.buildKickTransition; consumed by the kick handler
+  // (TacticalKickEvent / BoxKickEvent) to branch its math. Cleared once
+  // the kick resolves.
+  pendingKick?: PendingKick;
   kickReturnCarrier?: Player;
   // Set by the PENALTY_AWARDED reducer; read by PenaltyHandler to enrich the
   // PenaltyContext that crosses the bus boundary to the modal. Overwritten on

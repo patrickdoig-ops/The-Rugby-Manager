@@ -1,8 +1,11 @@
 import type { PhaseContext, PhaseResult } from './types';
 import type { MatchEvent } from '../../types/matchEvent';
 import type { NarrationDescriptor } from '../../types/narration';
+import type { BackfieldDefence } from '../../types/team';
+import type { MatchState } from '../../types/match';
+import type { Player } from '../../types/player';
 import { MatchPhase } from '../../types/engine';
-import { resolveTacticalKick } from '../resolvers/KickingResolver';
+import { resolveTacticalKick, resolveFiftyTwentyTwo } from '../resolvers/KickingResolver';
 import { attackDir, inOwn22, inOwnHalf, inOpposition22At } from '../FieldPosition';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
@@ -15,6 +18,14 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer
   const startedInOwn22 = inOwn22(state);
   const startedInOwnHalf = inOwnHalf(state);
   const originalBallX = state.ball.x;
+  const intent = state.pendingKick;
+
+  // Deliberate 50/22 attempt — branches out of the regular tactical-kick
+  // path because success math is gated by the defending team's backfield
+  // posture, not the standard touch-finder probability table.
+  if (intent?.family === 'fifty_22' && startedInOwnHalf) {
+    return handleFiftyTwentyTwoAttempt(state, kicker, defender, defendTeam.tactics.backfieldDefence, originalBallX);
+  }
 
   const res = resolveTacticalKick(kicker);
   const backfield = defendTeam.tactics.backfieldDefence;
@@ -106,6 +117,64 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer
   return {
     nextPhase: MatchPhase.KickReturn,
     narration: { steps: kickCaughtSteps },
+    primaryPlayer: kicker,
+    secondaryPlayer: defender,
+    events,
+  };
+}
+
+// Deliberate 50/22 — the kicker is aiming for the corner from own half.
+// Success math is gated by the defending team's backfield count + the
+// kicker's `kicking` stat (see resolveFiftyTwentyTwo). Three outcomes:
+//   success:         Lineout in opp 22 with attacking throw
+//   touch_elsewhere: Lineout outside opp 22 with opposition throw
+//   caught_in_field: KickReturn with opposition catching
+function handleFiftyTwentyTwoAttempt(
+  state: MatchState,
+  kicker: Player,
+  defender: Player,
+  defenderBackfield: BackfieldDefence,
+  originalBallX: number,
+): PhaseResult {
+  const res = resolveFiftyTwentyTwo(kicker, defenderBackfield);
+  const kickDir = attackDir(state);
+  const newBallX = clamp(state.ball.x + kickDir * res.distance, 5, 95);
+
+  const events: MatchEvent[] = [
+    { type: 'KICK_FROM_HAND', kicker, metres: res.distance },
+    { type: 'FIFTY_22_ATTEMPTED', kicker, success: res.outcome === 'success', defenderBackfield },
+    { type: 'BALL_REPOSITIONED', x: newBallX },
+  ];
+
+  if (res.outcome === 'success') {
+    // 50/22 retained — attacking team throws into opp 22 lineout.
+    return {
+      nextPhase: MatchPhase.Lineout,
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.TacticalKick, key: 'fifty_twenty_two', primary: kicker }] },
+      primaryPlayer: kicker,
+      events,
+    };
+  }
+
+  if (res.outcome === 'touch_elsewhere') {
+    // Aimed for touch and got it, just not where they wanted. Lineout
+    // forms where the ball went out; opposition throw.
+    events.push({ type: 'POSSESSION_SWAPPED' });
+    return {
+      nextPhase: MatchPhase.Lineout,
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.TacticalKick, key: 'fifty_twenty_two_attempt_failed_touch', primary: kicker, secondary: defender }] },
+      primaryPlayer: kicker,
+      secondaryPlayer: defender,
+      events,
+    };
+  }
+
+  // caught_in_field — opposition fullback collects and runs.
+  events.push({ type: 'POSSESSION_SWAPPED' });
+  events.push({ type: 'KICK_RETURN_CARRIER_SET', player: defender });
+  return {
+    nextPhase: MatchPhase.KickReturn,
+    narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.TacticalKick, key: 'fifty_twenty_two_attempt_failed_caught', primary: kicker, secondary: defender }] },
     primaryPlayer: kicker,
     secondaryPlayer: defender,
     events,

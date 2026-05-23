@@ -400,6 +400,11 @@ function aggregateMatch(
   // offence taxonomy, penalty choices, TMO lifecycle.
   for (let i = 0; i < state.events.length; i++) {
     const e = state.events[i];
+    // A try fires two events with phase=TryScored: the carry-to-try event
+    // (relabeled by PhaseRouter, carries the score commentary) and the
+    // handleTryScored follow-up (empty narration — see TryScoredEvent.ts).
+    // Skip the duplicate so phaseCount and try-origin reflect actual tries.
+    if (e.phase === MatchPhase.TryScored && e.narration.steps.length === 0) continue;
     agg.phaseCount.set(e.phase, (agg.phaseCount.get(e.phase) ?? 0) + 1);
 
     for (const step of e.narration.steps) {
@@ -737,7 +742,12 @@ function buildReport(aggs: SeasonAgg[], elapsedMs: number): string {
     const ls  = sumClubField(aggs, c.id, 'lineoutSteals');
     const osp = sumClubField(aggs, c.id, 'ownScrumsPutIn');
     const osw = sumClubField(aggs, c.id, 'ownScrumsWon');
-    const spw = sumClubField(aggs, c.id, 'scrumPenaltiesWon');
+    // applyMatchEvent credits all three front-row players on each scrum
+    // penalty (see SCRUM_RESOLVED in applyMatchEvent.ts), so a team-level
+    // sum across players triples the underlying penalty count. Divide by 3
+    // to recover penalties-per-game; per-player leaderboards still see the
+    // full credit so individual ratings stay unchanged.
+    const spw = sumClubField(aggs, c.id, 'scrumPenaltiesWon') / 3;
     lines.push(`| ${c.shortName} | ${fmt(olt/games)} | ${pct(olw, olt)} | ${fmt(ls/games)} | ${fmt(osp/games)} | ${pct(osw, osp)} | ${fmt(spw/games)} |`);
   }
   lines.push('');

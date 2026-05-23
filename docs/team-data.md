@@ -587,7 +587,7 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 - **Head coach:** Stephen Jones (interim Head Coach from March 2026 after Alan Dickens departed; Dan McFarland confirmed to take the role from 2026-27).
 - **Honours:** Premiership title 1997-98; Anglo-Welsh Cup 2000-01, 2003-04.
 - **Overall rating:** **55/100**
-- **Suggested tactics:** `balanced` · `balanced` · `balanced` · `jackal` · `two_back` · `drift`
+- **Suggested tactics:** `balanced` · `balanced` · `balanced` · `jackal` · `one_back` · `hybrid`
 - **Stat bias:** modest across the board (rebuild status); slight lean toward `stamina` and `discipline`.
 
 ### Star players
@@ -762,7 +762,7 @@ The Manchester defence-first side: line-speed, collision-dominant loose forwards
 - **Head coach:** Alex Sanderson (Director of Rugby since 2021).
 - **Honours:** Premiership title 2005-06; European Challenge Cup 2001-02, 2004-05.
 - **Overall rating:** **68/100**
-- **Suggested tactics:** `kicking` · `keep_it_tight` · `balanced` · `shadow` · `three_back` · `blitz`
+- **Suggested tactics:** `kicking` · `keep_it_tight` · `balanced` · `shadow` · `one_back` · `blitz`
 - **Stat bias:** high `tackling`, `strength`, `kicking`.
 
 ### Star players

@@ -8,7 +8,7 @@
 // choice) live in CARRY_HANDOFF_BONUSES in balance/breakdown.ts.
 
 export const TACTIC_MODIFIERS = {
-  backfieldLineBreakPenalty:  { three_back: -10, two_back: -5,  one_back: 0 },
+  backfieldLineBreakPenalty:  { three_back: -7,  two_back: -5,  one_back: 0 },
   breakdownAttack:            { pick_and_drive: -8, wide_play: 8,  balanced: 0 },
   breakdownDefend:            { shadow: 10, counter_ruck: -8, jackal: 0 },
   breakdownSupporterCount:    { pick_and_drive: 4,  wide_play: 2,  balanced: 3 },

@@ -16,7 +16,7 @@
     "attackingStyle": "keep_it_tight",
     "attackingBreakdown": "balanced",
     "defendingBreakdown": "shadow",
-    "backfieldDefence": "three_back",
+    "backfieldDefence": "one_back",
     "defensiveLine": "blitz"
   },
   "statBias": [

@@ -270,7 +270,32 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showMatchResult(engine: MatchCoordinator, state: MatchState, round: number): void {
-    initMatchResultScreen(state, round, async () => {
+    // Compute the player's next fixture preview (the one *after* the round
+    // just played). The result hasn't been recorded yet at this point, so
+    // walking the schedule for rounds > round is the cleanest source.
+    const nextFixture = (() => {
+      if (!gameEngine) return null;
+      const gs = gameEngine.getState();
+      const playerId = gs.player.teamId;
+      const upcoming = gs.league.fixtures
+        .filter(f => f.round > round && (f.homeId === playerId || f.awayId === playerId))
+        .sort((a, b) => a.round - b.round)[0];
+      if (!upcoming) return null;
+      const isHome   = upcoming.homeId === playerId;
+      const oppId    = isHome ? upcoming.awayId : upcoming.homeId;
+      const opponent = allTeams.find(t => t.id === oppId);
+      if (!opponent) return null;
+      return {
+        opponentName:    opponent.name,
+        opponentInitial: (opponent.shortName[0] ?? '?').toUpperCase(),
+        opponentColor:   opponent.color,
+        isHome,
+        round:           upcoming.round,
+        date:            upcoming.date,
+      };
+    })();
+
+    initMatchResultScreen(state, round, nextFixture, async () => {
       // Snapshot the per-player + per-team stats before destroy() tears
       // down the match state — feeds PLAYER_SEASON_STATS_ACCUMULATED and
       // TEAM_SEASON_STATS_ACCUMULATED inside recordPlayerMatchResult so the

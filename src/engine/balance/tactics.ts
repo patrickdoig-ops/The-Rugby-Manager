@@ -9,7 +9,20 @@
 
 export const TACTIC_MODIFIERS = {
   backfieldLineBreakPenalty:  { three_back: -7,  two_back: -5,  one_back: 0 },
-  breakdownAttack:            { pick_and_drive: -8, wide_play: 8,  balanced: 0 },
+  // breakdown attack-score mod. pick_and_drive sends more bodies but the
+  // forward-heavy mix is slower (negative score offset, compensated by the
+  // higher breakdownSupporterCount); wide_play commits fewer bodies and
+  // relies on this mod to compensate for the lower stacked attack score.
+  // Tuned in v2.103a from wide_play +8 to +16: with 2 supporters vs
+  // balanced's 3, the stacked-score deficit was ~-15.6 and +8 left
+  // wide_play teams (NOR / BRI / HAR) at margin ~-7.6 vs a jackal
+  // defender, putting them in penalty-defending territory ~23% of
+  // breakdowns. +16 restores parity with balanced so wide_play's
+  // tactical identity (fewer bodies, faster recycle) stops being a
+  // self-inflicted penalty trap. The supporter-count difference still
+  // produces a real downstream effect — fewer cleaners → faster
+  // breakdown → marginally more chance of attacker-side offences elsewhere.
+  breakdownAttack:            { pick_and_drive: -8, wide_play: 16, balanced: 0 },
   breakdownDefend:            { shadow: 10, counter_ruck: -8, jackal: 0 },
   breakdownSupporterCount:    { pick_and_drive: 4,  wide_play: 2,  balanced: 3 },
   boxKickFullbackBonus:       { three_back: 15, two_back: 8,  one_back: 0 },
@@ -45,7 +58,15 @@ export const TACTIC_MODIFIERS = {
   //    conceding only 1.92 line breaks per game (well under hybrid's
   //    2.81 and well below realism). Halving the safety lifts drift
   //    back into low-risk-but-not-invulnerable territory.
-  defensiveLineEvasionMod:    { blitz: -4, hybrid:  0, drift:  2 },
+  //    Tuned again in v2.103a from hybrid 0 to -2: the slice telemetry
+  //    showed hybrid was conceding ~15% fewer points than blitz / drift
+  //    with no offsetting downside, making it the strictly dominant
+  //    defensive choice. Giving hybrid a small evasion penalty (~0.4
+  //    extra line breaks per game) lets blitz / drift each retain their
+  //    own identity (blitz: line speed costs metres on contact; hybrid:
+  //    middle ground with a small line-break cost; drift: deep cover
+  //    but soft in the channel) without making hybrid an outright trap.
+  defensiveLineEvasionMod:    { blitz: -4, hybrid: -2, drift:  2 },
   // 2. Collision margin shift — blitz hits with momentum (more dominant
   //    tackles, gain-line carries pushed back); drift hits late and lateral
   //    (more play_on, more metres conceded on regular carries). Tuned in

@@ -877,6 +877,16 @@ Snapshot date: **May 2026**, after round 16 of the 25-26 regular season (10 of 1
 
 ---
 
+## Telemetry interpretation
+
+The simulator is calibrated against the real-world standings above — telemetry reviews should compare against these, not against an idealised "every team should be competitive" baseline.
+
+- **Newcastle bottom of the table is the correct outcome.** Overall rating 11/100, real-world finishes of 13 pts (24-25) and 7 pts after R16 of 25-26 (PD −505). Telemetry showing NEW with 7-11 wins out of 90 fixtures and ~25 pts conceded per match is **realistic**, not a balance bug. Their player stats are intentionally the league's weakest pending squad rebuild. Don't flag NEW's poor record as an issue, don't propose tactic/stat lifts to "fix" it.
+- **The real balance question lives at the top.** Real-world top of the table (R16 of 25-26): Northampton 67 / Bath 63 / Leicester 62 — a three-team race within 5 points. Bath the defending champions, Saints currently leading, Tigers in close contention. If the simulator has Bath running 20+ league points clear of the other two, the dominance has gone past realistic, and that's the balance issue to look at. The expected shape is roughly **NOR ≈ BAT ≈ LEI at the top, ~10 pts ahead of a competitive 4-6 chasing pack (EXE / SAR / BRI), with SAL / HAR / GLO mid-low and NEW comfortably bottom**.
+- **Other teams' positions can wobble round-to-round.** SAL was 3rd in 24-25, 7th in 25-26 after R16. Single-season-style variance in the simulator (BRI / SAR / EXE / GLO trading mid-table places) is expected and not by itself a calibration problem.
+
+---
+
 ## Data notes
 
 Squad data was compiled in parallel from multiple public sources and has **not** been manually validated against current club rosters. Known caveats for a future cleanup pass:

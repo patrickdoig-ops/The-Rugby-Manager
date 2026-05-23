@@ -2,7 +2,7 @@ import type { RawTeamInput } from '../types/teamData';
 import { computeOverallRating } from '../team/teamProfile';
 
 function crestHtml(initial: string, color: string, size: number): string {
-  const grad = `linear-gradient(160deg, ${color} 0%, color-mix(in oklch, ${color} 65%, black) 100%)`;
+  const grad = `linear-gradient(160deg, ${color} 0%, color-mix(in oklch, ${color} 30%, black) 100%)`;
   const glow = `box-shadow: 0 0 18px color-mix(in oklch, ${color} 40%, transparent), inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 20px rgba(0,0,0,0.5);`;
   return `
     <div class="ts-crest" style="width:${size}px;height:${size}px;background:${grad};border:1.5px solid color-mix(in oklch,${color} 55%,transparent);${glow}">

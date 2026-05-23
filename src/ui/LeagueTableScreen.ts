@@ -39,7 +39,7 @@ function clearPostMatchMode(): void {
 }
 
 function teamCrest(team: RawTeamInput): string {
-  const grad = `linear-gradient(160deg, ${team.color} 0%, color-mix(in oklch, ${team.color} 65%, black) 100%)`;
+  const grad = `linear-gradient(160deg, ${team.color} 0%, color-mix(in oklch, ${team.color} 30%, black) 100%)`;
   const initial = team.shortName[0] ?? '?';
   return `<div class="lt-crest" style="background:${grad};border:1px solid color-mix(in oklch,${team.color} 45%,transparent)"><span>${initial}</span></div>`;
 }

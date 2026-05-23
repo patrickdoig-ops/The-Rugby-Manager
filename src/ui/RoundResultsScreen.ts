@@ -24,7 +24,7 @@ export function showRoundResults(round: number, onContinue: () => void): void {
 }
 
 function crest(team: RawTeamInput): string {
-  const grad = `linear-gradient(160deg, ${team.color} 0%, color-mix(in oklch, ${team.color} 65%, black) 100%)`;
+  const grad = `linear-gradient(160deg, ${team.color} 0%, color-mix(in oklch, ${team.color} 30%, black) 100%)`;
   const initial = team.shortName[0] ?? '?';
   const glow = `box-shadow: 0 0 12px color-mix(in oklch, ${team.color} 35%, transparent), inset 0 1px 0 rgba(255,255,255,0.18);`;
   return `<div class="rr-crest" style="background:${grad};border:1px solid color-mix(in oklch,${team.color} 45%,transparent);${glow}"><span>${initial}</span></div>`;

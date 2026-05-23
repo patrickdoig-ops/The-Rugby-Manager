@@ -70,7 +70,7 @@ function getSquadNum(p: RawPlayer): number {
 function crestHtml(letter: string, color: string, size = 44): string {
   return `<div class="pm-crest" style="
     width:${size}px;height:${size}px;
-    background:linear-gradient(160deg,${color} 0%,color-mix(in oklch,${color} 65%,black) 100%);
+    background:linear-gradient(160deg,${color} 0%,color-mix(in oklch,${color} 30%,black) 100%);
     border:1px solid color-mix(in oklch,${color} 50%,transparent);
     box-shadow:0 6px 16px color-mix(in oklch,${color} 30%,transparent),inset 0 1px 0 rgba(255,255,255,0.15);
   "><span>${letter}</span></div>`;

@@ -26,7 +26,7 @@ function applyCrests(
   homeShort: string, awayShort: string,
 ): void {
   const setCrest = (el: HTMLElement, color: string, letter: string) => {
-    el.style.background = `linear-gradient(160deg, ${color} 0%, color-mix(in oklch, ${color} 65%, black) 100%)`;
+    el.style.background = `linear-gradient(160deg, ${color} 0%, color-mix(in oklch, ${color} 30%, black) 100%)`;
     el.style.borderColor = `color-mix(in oklch, ${color} 50%, transparent)`;
     el.style.boxShadow   = `0 4px 16px color-mix(in oklch, ${color} 28%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`;
     const span = el.querySelector('span');

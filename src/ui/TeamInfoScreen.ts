@@ -26,7 +26,7 @@ const TACTIC_DIM_LABELS: Record<keyof TeamTactics, string> = {
 };
 
 function crestHtml(initial: string, color: string, size: number): string {
-  const grad = `linear-gradient(160deg, ${color} 0%, color-mix(in oklch, ${color} 65%, black) 100%)`;
+  const grad = `linear-gradient(160deg, ${color} 0%, color-mix(in oklch, ${color} 30%, black) 100%)`;
   return `
     <div class="ti-crest" style="width:${size}px;height:${size}px;background:${grad};border:2px solid color-mix(in oklch,${color} 55%,transparent)">
       <span>${initial}</span>

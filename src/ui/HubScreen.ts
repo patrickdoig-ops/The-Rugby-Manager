@@ -41,7 +41,7 @@ function formatDateShort(iso: string): string {
 }
 
 function crestHtml(team: RawTeamInput, klass: string): string {
-  const grad = `linear-gradient(160deg, ${team.color} 0%, color-mix(in oklch, ${team.color} 65%, black) 100%)`;
+  const grad = `linear-gradient(160deg, ${team.color} 0%, color-mix(in oklch, ${team.color} 30%, black) 100%)`;
   const initial = team.shortName[0] ?? '?';
   const glow = `box-shadow: 0 0 18px color-mix(in oklch, ${team.color} 40%, transparent), inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 20px rgba(0,0,0,0.5);`;
   return `<div class="${klass}" style="background:${grad};border:1px solid color-mix(in oklch,${team.color} 45%,transparent);${glow}"><span>${initial}</span></div>`;

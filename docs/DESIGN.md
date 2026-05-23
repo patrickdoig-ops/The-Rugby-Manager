@@ -316,7 +316,7 @@ Team identity tiles used in the scoreboard. Background is set inline from team J
 
 The gradient pattern:
 ```js
-`linear-gradient(160deg, ${color} 0%, color-mix(in oklch, ${color} 65%, black) 100%)`
+`linear-gradient(160deg, ${color} 0%, color-mix(in oklch, ${color} 30%, black) 100%)`
 ```
 
 A `::after` pseudo-element adds a `linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.18) 100%)` shadow overlay. The letter inside is wrapped in `<span>` so it sits above the overlay at `z-index: 1`.

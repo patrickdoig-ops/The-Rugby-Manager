@@ -30,6 +30,9 @@ export type PhaseOutcomeKey =
   // TacticalKick
   | 'good_kick' | 'out_on_the_full' | 'fifty_twenty_two' | 'kick_caught'
   | 'fifty_twenty_two_attempt_failed_touch' | 'fifty_twenty_two_attempt_failed_caught'
+  // Attacking kicks (cross-field aerial, grubber through the line)
+  | 'cross_field_caught' | 'cross_field_contested' | 'cross_field_dead'
+  | 'grubber_regathered' | 'grubber_collected' | 'grubber_dead'
   // TryScored (try_lead / try_extend_lead / try_level / try_trail templates exist
   // in CommentaryEngine but TryScoredEvent currently emits no commentary)
   | 'try_lead' | 'try_extend_lead' | 'try_level' | 'try_trail'

@@ -1,8 +1,8 @@
 import type { Player } from '../../types/player';
-import type { KickResult } from '../../types/engine';
+import type { KickResult, AttackingKickSubType } from '../../types/engine';
 import type { BackfieldDefence } from '../../types/team';
 import { rng } from '../../utils/rng';
-import { TACTICAL_KICK_VALUES, GOAL_KICK_VALUES, FIFTY_22_VALUES } from '../balance';
+import { TACTICAL_KICK_VALUES, GOAL_KICK_VALUES, FIFTY_22_VALUES, ATTACKING_KICK_VALUES } from '../balance';
 
 export interface KickingResolution {
   kickScore: number;
@@ -48,6 +48,29 @@ export function resolveFiftyTwentyTwo(kicker: Player, defenderBackfield: Backfie
   // Failed — split between caught (in field) and touch_elsewhere
   const missedTouch = rng(1, 100) <= V.failureMissTouchPct;
   return { outcome: missedTouch ? 'caught_in_field' : 'touch_elsewhere', successPct, distance };
+}
+
+// Attacking kicks from #10 — cross-field (aerial contest to far winger)
+// or grubber (low rolling kick through the line). Both return one of
+// three outcomes: attacker regathers (front-foot opportunity / try),
+// defender wins the contest (turnover), or the ball goes dead (knock-on
+// /out / can't be played).
+export type AttackingKickOutcome = 'attacker_wins' | 'defender_wins' | 'dead';
+export interface AttackingKickResolution {
+  outcome: AttackingKickOutcome;
+  distance: number;
+}
+
+export function resolveAttackingKick(subType: AttackingKickSubType, kicker: Player): AttackingKickResolution {
+  const V = ATTACKING_KICK_VALUES[subType === 'cross_field' ? 'crossField' : 'grubber'];
+  const distance = rng(V.distance[0], V.distance[1]);
+  const statMod = (kicker.currentStats.kicking - V.kickerStatPivot) * V.kickerStatWeight;
+  const attackerWinsPct = Math.max(5, Math.min(60, V.attackerWinsBase + statMod));
+  const deadPct = V.deadBase;
+  const roll = rng(1, 100);
+  if (roll <= attackerWinsPct) return { outcome: 'attacker_wins', distance };
+  if (roll <= attackerWinsPct + deadPct) return { outcome: 'dead', distance };
+  return { outcome: 'defender_wins', distance };
 }
 
 export interface GoalKickResolution {

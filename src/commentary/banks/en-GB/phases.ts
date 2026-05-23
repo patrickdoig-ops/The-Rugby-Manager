@@ -403,6 +403,36 @@ const TACTICAL_KICK: PhaseBank = {
     'The 50:22 attempt from {primary} comes up short — {secondary} fields it cleanly.',
     'Brilliant cover from {secondary} — {primary}\'s 50:22 attempt is caught, and the counter-attack is on.',
   ],
+  cross_field_caught: [
+    'Cross-field kick from {primary} — and {secondary} climbs to take it! {side} are in space!',
+    'Beautiful cross-field ball from {primary} and {secondary} reels it in! Huge opportunity!',
+    '{primary} sends it cross-field for {secondary} — gathered cleanly on the wing!',
+  ],
+  cross_field_contested: [
+    'Cross-field kick from {primary} but {secondary} reads it and gathers safely.',
+    '{secondary} times the jump well to claim {primary}\'s cross-field ball.',
+    'The cross-field doesn\'t come off — {secondary} is in position and brings it down.',
+  ],
+  cross_field_dead: [
+    'The cross-field from {primary} goes into touch — opposition lineout.',
+    '{primary} overcooks the cross-field — it sails out without anyone in chase.',
+    'Knocked on in the contest — the cross-field from {primary} ends in a scrum.',
+  ],
+  grubber_regathered: [
+    'Clever grubber from {primary} — and {secondary} pounces on it!',
+    '{primary} threads a grubber through the line, gathered by {secondary} — that\'s class!',
+    'Grubber from {primary}, perfect weight — {secondary} picks it up at full pace.',
+  ],
+  grubber_collected: [
+    'Grubber from {primary} but {secondary} fields it tidily.',
+    'The grubber sits up nicely for {secondary} — turnover.',
+    '{primary}\'s grubber doesn\'t skip past the cover — {secondary} collects.',
+  ],
+  grubber_dead: [
+    'Grubber from {primary} runs dead — scrum to the opposition.',
+    'The grubber bounces awkwardly and is knocked on. Scrum down.',
+    '{primary}\'s grubber finds no chaser and rolls out of play.',
+  ],
 };
 
 const TRY_SCORED: PhaseBank = {

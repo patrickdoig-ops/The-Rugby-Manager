@@ -1,11 +1,11 @@
 import type { PhaseContext, PhaseResult } from './types';
 import type { MatchEvent } from '../../types/matchEvent';
-import type { NarrationDescriptor } from '../../types/narration';
-import type { BackfieldDefence } from '../../types/team';
+import type { NarrationDescriptor, PhaseOutcomeKey } from '../../types/narration';
+import type { BackfieldDefence, Team } from '../../types/team';
 import type { MatchState } from '../../types/match';
 import type { Player } from '../../types/player';
-import { MatchPhase } from '../../types/engine';
-import { resolveTacticalKick, resolveFiftyTwentyTwo } from '../resolvers/KickingResolver';
+import { MatchPhase, type AttackingKickSubType } from '../../types/engine';
+import { resolveTacticalKick, resolveFiftyTwentyTwo, resolveAttackingKick } from '../resolvers/KickingResolver';
 import { attackDir, inOwn22, inOwnHalf, inOpposition22At } from '../FieldPosition';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
@@ -25,6 +25,13 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer
   // posture, not the standard touch-finder probability table.
   if (intent?.family === 'fifty_22' && startedInOwnHalf) {
     return handleFiftyTwentyTwoAttempt(state, kicker, defender, defendTeam.tactics.backfieldDefence, originalBallX);
+  }
+
+  // Attacking kick — cross-field or grubber from #10 in / near the
+  // opposition half. Routes to a separate resolver because the outcome
+  // is regather/contest/dead rather than touch/caught.
+  if (intent?.family === 'attacking' && intent.attackingSubType) {
+    return handleAttackingKick(state, kicker, defender, defendTeam, intent.attackingSubType, randomPlayer);
   }
 
   const res = resolveTacticalKick(kicker);
@@ -175,6 +182,76 @@ function handleFiftyTwentyTwoAttempt(
   return {
     nextPhase: MatchPhase.KickReturn,
     narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.TacticalKick, key: 'fifty_twenty_two_attempt_failed_caught', primary: kicker, secondary: defender }] },
+    primaryPlayer: kicker,
+    secondaryPlayer: defender,
+    events,
+  };
+}
+
+// Attacking kick — cross-field (high aerial contest to far wing) or
+// grubber (low rolling kick through the defensive line). The chaser is a
+// random outside back from the attacking team for cross-field; a centre
+// or back-row for grubber. Outcome from resolveAttackingKick:
+//   attacker_wins:  chaser gathers — KickReturn with attacker carrying
+//   defender_wins:  defender catches/collects — KickReturn (turnover)
+//   dead:           knock-on / out — Scrum to the defending side
+function handleAttackingKick(
+  state: MatchState,
+  kicker: Player,
+  defender: Player,
+  defendTeam: Team,
+  subType: AttackingKickSubType,
+  randomPlayer: (team: Team) => Player,
+): PhaseResult {
+  const res = resolveAttackingKick(subType, kicker);
+  const kickDir = attackDir(state);
+  const newBallX = clamp(state.ball.x + kickDir * res.distance, 5, 95);
+  const events: MatchEvent[] = [
+    { type: 'KICK_FROM_HAND', kicker, metres: res.distance },
+    { type: 'BALL_REPOSITIONED', x: newBallX },
+  ];
+  const narrKey: PhaseOutcomeKey =
+    subType === 'cross_field'
+      ? (res.outcome === 'attacker_wins' ? 'cross_field_caught'
+         : res.outcome === 'defender_wins' ? 'cross_field_contested'
+         : 'cross_field_dead')
+      : (res.outcome === 'attacker_wins' ? 'grubber_regathered'
+         : res.outcome === 'defender_wins' ? 'grubber_collected'
+         : 'grubber_dead');
+
+  if (res.outcome === 'attacker_wins') {
+    // Attacker regathers. Possession stays; chaser carries via KickReturn.
+    const chaserPool = state.possession === 'home'
+      ? state.homeTeam.players.filter(p => [11, 13, 14].includes(p.id))
+      : state.awayTeam.players.filter(p => [11, 13, 14].includes(p.id));
+    const chaser = chaserPool.length > 0 ? chaserPool[rng(0, chaserPool.length - 1)] : kicker;
+    events.push({ type: 'KICK_RETURN_CARRIER_SET', player: chaser });
+    return {
+      nextPhase: MatchPhase.KickReturn,
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.TacticalKick, key: narrKey, primary: kicker, secondary: chaser }] },
+      primaryPlayer: kicker,
+      secondaryPlayer: chaser,
+      events,
+    };
+  }
+
+  if (res.outcome === 'defender_wins') {
+    events.push({ type: 'POSSESSION_SWAPPED' });
+    events.push({ type: 'KICK_RETURN_CARRIER_SET', player: defender });
+    return {
+      nextPhase: MatchPhase.KickReturn,
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.TacticalKick, key: narrKey, primary: kicker, secondary: defender }] },
+      primaryPlayer: kicker,
+      secondaryPlayer: defender,
+      events,
+    };
+  }
+
+  // dead — knock-on / out of play. Scrum to the defending side.
+  events.push({ type: 'POSSESSION_SWAPPED' });
+  return {
+    nextPhase: MatchPhase.Scrum,
+    narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.TacticalKick, key: narrKey, primary: kicker, secondary: defender }] },
     primaryPlayer: kicker,
     secondaryPlayer: defender,
     events,

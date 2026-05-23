@@ -92,3 +92,28 @@ export const KICK_RETURN_VALUES = {
   successfulRunMetres: [3, 10],
   failedRunMetres:     [0, 3],
 } as const;
+
+// Attacking kicks from #10 in / near the opposition half. Two sub-types:
+// CROSS-FIELD — high deep kick to opposite-side wing for an aerial contest.
+// Success depends on the chasing winger's pace + handling vs the covering
+// fullback / opposite winger, plus the kicker's accuracy.
+// GRUBBER — low rolling kick through the defensive line. Success depends
+// on a bouncing-ball roll plus the chaser's pace beating the defender.
+// Each base table is { attackerWinsPct, deadPct }. Defender wins the rest.
+// Kicker stat modifier shifts the attacker-wins share (±10pp at the edges).
+export const ATTACKING_KICK_VALUES = {
+  crossField: {
+    distance:           [25, 40],
+    attackerWinsBase:   28,   // attacker catches in air
+    deadBase:           12,   // knock-on / out the side
+    kickerStatPivot:    75,
+    kickerStatWeight:   0.4,
+  },
+  grubber: {
+    distance:           [8, 18],
+    attackerWinsBase:   22,
+    deadBase:           18,   // ball goes dead or out
+    kickerStatPivot:    70,
+    kickerStatWeight:   0.3,
+  },
+} as const;

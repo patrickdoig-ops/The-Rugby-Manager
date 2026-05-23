@@ -169,6 +169,12 @@ interface SeasonAgg {
   // that happens to land in opp 22); the two attempt-failed keys are emitted
   // only by the deliberate fifty_22 path (KickDecisionDirector family).
   fiftyTwoTwo: { success: number; failedTouch: number; failedCaught: number };
+  // Attacking kicks (cross-field + grubber). Both sub-types resolve to one
+  // of three outcomes via resolveAttackingKick.
+  attackingKicks: {
+    crossFieldCaught: number;     crossFieldContested: number;     crossFieldDead: number;
+    grubberRegathered: number;    grubberCollected: number;        grubberDead: number;
+  };
   // Penalty kick decisions (the manager / AI choice on every awarded penalty)
   penChoice: { kickForGoal: number; kickToTouch: number; tapAndGo: number; tapAndKickDead: number };
   // TMO lifecycle
@@ -215,6 +221,10 @@ function emptySeasonAgg(): SeasonAgg {
     matchCount: 0,
     penOffence: { highTackle: 0, breakdown: 0, scrum: 0, offsideAtRuck: 0, obstruction: 0, dangerousCleanout: 0, notRollingAway: 0 },
     fiftyTwoTwo: { success: 0, failedTouch: 0, failedCaught: 0 },
+    attackingKicks: {
+      crossFieldCaught: 0, crossFieldContested: 0, crossFieldDead: 0,
+      grubberRegathered: 0, grubberCollected: 0, grubberDead: 0,
+    },
     penChoice: { kickForGoal: 0, kickToTouch: 0, tapAndGo: 0, tapAndKickDead: 0 },
     tmoTriggers: 0,
     tmoOutcomes: { noCard: 0, yellow: 0, red20: 0 },
@@ -404,6 +414,12 @@ function aggregateMatch(
         else if (step.key === 'fifty_twenty_two')                 agg.fiftyTwoTwo.success++;
         else if (step.key === 'fifty_twenty_two_attempt_failed_touch')  agg.fiftyTwoTwo.failedTouch++;
         else if (step.key === 'fifty_twenty_two_attempt_failed_caught') agg.fiftyTwoTwo.failedCaught++;
+        else if (step.key === 'cross_field_caught')      agg.attackingKicks.crossFieldCaught++;
+        else if (step.key === 'cross_field_contested')   agg.attackingKicks.crossFieldContested++;
+        else if (step.key === 'cross_field_dead')        agg.attackingKicks.crossFieldDead++;
+        else if (step.key === 'grubber_regathered')      agg.attackingKicks.grubberRegathered++;
+        else if (step.key === 'grubber_collected')       agg.attackingKicks.grubberCollected++;
+        else if (step.key === 'grubber_dead')            agg.attackingKicks.grubberDead++;
         else if (step.key === 'kick_for_goal')                agg.penChoice.kickForGoal++;
         else if (step.key === 'kick_to_touch')                agg.penChoice.kickToTouch++;
         else if (step.key === 'tap_and_go')                   agg.penChoice.tapAndGo++;
@@ -797,6 +813,33 @@ function buildReport(aggs: SeasonAgg[], elapsedMs: number): string {
   lines.push(`| failed — touch elsewhere          | ${f22FailTouch} | ${fmt(f22FailTouch/totalFixtures, 2)} |`);
   lines.push(`| failed — caught in field          | ${f22FailCaught} | ${fmt(f22FailCaught/totalFixtures, 2)} |`);
   lines.push(`| total deliberate-intent attempts  | ${f22Deliberate + f22Success} | ${fmt((f22Deliberate + f22Success)/totalFixtures, 2)} |`);
+  lines.push('');
+
+  // ── Attacking kicks (cross-field + grubber) ─────────────────────────────
+  lines.push('## Attacking kicks (cross-field + grubber)');
+  lines.push('');
+  const ak = aggs.reduce((s, a) => {
+    return {
+      crossFieldCaught:    s.crossFieldCaught    + a.attackingKicks.crossFieldCaught,
+      crossFieldContested: s.crossFieldContested + a.attackingKicks.crossFieldContested,
+      crossFieldDead:      s.crossFieldDead      + a.attackingKicks.crossFieldDead,
+      grubberRegathered:   s.grubberRegathered   + a.attackingKicks.grubberRegathered,
+      grubberCollected:    s.grubberCollected    + a.attackingKicks.grubberCollected,
+      grubberDead:         s.grubberDead         + a.attackingKicks.grubberDead,
+    };
+  }, { crossFieldCaught: 0, crossFieldContested: 0, crossFieldDead: 0, grubberRegathered: 0, grubberCollected: 0, grubberDead: 0 });
+  const cfTotal = ak.crossFieldCaught + ak.crossFieldContested + ak.crossFieldDead;
+  const gbTotal = ak.grubberRegathered + ak.grubberCollected + ak.grubberDead;
+  lines.push('| sub-type | outcome | count | per match |');
+  lines.push('|---|---|---:|---:|');
+  lines.push(`| cross-field | attacker catches | ${ak.crossFieldCaught} | ${fmt(ak.crossFieldCaught/totalFixtures, 2)} |`);
+  lines.push(`| cross-field | defender catches | ${ak.crossFieldContested} | ${fmt(ak.crossFieldContested/totalFixtures, 2)} |`);
+  lines.push(`| cross-field | dead             | ${ak.crossFieldDead} | ${fmt(ak.crossFieldDead/totalFixtures, 2)} |`);
+  lines.push(`| cross-field | **total**        | **${cfTotal}** | **${fmt(cfTotal/totalFixtures, 2)}** |`);
+  lines.push(`| grubber     | attacker regathers | ${ak.grubberRegathered} | ${fmt(ak.grubberRegathered/totalFixtures, 2)} |`);
+  lines.push(`| grubber     | defender collects  | ${ak.grubberCollected} | ${fmt(ak.grubberCollected/totalFixtures, 2)} |`);
+  lines.push(`| grubber     | dead               | ${ak.grubberDead} | ${fmt(ak.grubberDead/totalFixtures, 2)} |`);
+  lines.push(`| grubber     | **total**          | **${gbTotal}** | **${fmt(gbTotal/totalFixtures, 2)}** |`);
   lines.push('');
 
   // ── Penalty choices ─────────────────────────────────────────────────────

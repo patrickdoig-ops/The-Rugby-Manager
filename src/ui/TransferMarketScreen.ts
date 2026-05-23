@@ -1,14 +1,20 @@
-// Free-agent signing window (Phase 5). Reached from RenewalsScreen's
-// Continue CTA. By the time this screen renders, openSigningWindow
-// has pre-computed one TransferOffer per free agent and parked them
-// on state.career.market (phase: 'signings'). Reading from the cached
-// offers — rather than calling signingTermsFor per render — keeps
-// rngTransfer stable across re-renders and matches what
-// signFreeAgent / decideAISignings will use.
+// Two-mode screen:
+//
+// 1. 'signings' (off-season). Reached from RenewalsScreen's Continue
+//    CTA. openSigningWindow has pre-computed one TransferOffer per
+//    free agent + poach candidate on state.career.market. Reading
+//    from the cached offers — rather than calling signingTermsFor
+//    per render — keeps rngTransfer stable across re-renders.
+//
+// 2. 'scouting' (mid-season). Reached from the Hub Transfers tile.
+//    state.career.market is null. Rows are derived live from
+//    state.career.freeAgents + poachCandidates(state), with no
+//    Sign / Pre-Agree buttons. We deliberately do NOT call
+//    signingTermsFor here — it advances rngTransfer and would
+//    perturb the next signing window's offers. Current wage +
+//    contract expiry stand in as cost hints.
 //
 // Module-level setter pattern (matches RenewalsScreen / RolloverScreen).
-// Each render reads live state.career.market so a sign action's
-// re-render reflects the now-shorter list.
 
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
@@ -17,17 +23,28 @@ import type { TransferOffer } from '../types/gameState';
 import { playerOverall } from '../engine/RatingEngine';
 import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance/transfers';
 import { getAge } from '../game/age';
+import { poachCandidates } from './../game/aiTransferDirector';
 
 type SortKey = 'name' | 'pos' | 'age' | 'ovr' | 'wage';
 type SortDir = 'asc' | 'desc';
+type Mode = 'signings' | 'scouting';
 
 let sortKey: SortKey = 'ovr';
 let sortDir: SortDir = 'desc';
+let mode: Mode = 'signings';
 let activeOnContinue: () => void = () => {};
+let scoutingOnBack: () => void = () => {};
 let renderImpl: (() => void) | null = null;
 
 export function showTransferMarket(onContinue: () => void): void {
+  mode = 'signings';
   activeOnContinue = onContinue;
+  renderImpl?.();
+}
+
+export function showTransferMarketScouting(onBack: () => void): void {
+  mode = 'scouting';
+  scoutingOnBack = onBack;
   renderImpl?.();
 }
 
@@ -63,8 +80,15 @@ export function initTransferMarketScreen(
     const playerClubId = state.player.teamId;
     const team = teamsById.get(playerClubId);
     const club = state.career.clubs.find(c => c.id === playerClubId);
+    if (!team || !club) return;
+
+    if (mode === 'scouting') {
+      renderScouting(state, team, club, playerClubId);
+      return;
+    }
+
     const market = state.career.market;
-    if (!team || !club || !market || market.phase !== 'signings') {
+    if (!market || market.phase !== 'signings') {
       el!.innerHTML = `
         <div class="app-header">
           <div class="app-topbar">
@@ -251,7 +275,143 @@ export function initTransferMarketScreen(
     el!.querySelector<HTMLButtonElement>('#tm-continue')!.addEventListener('click', () => activeOnContinue());
   }
 
+  // Mid-season scouting view. Read-only — no Sign / Pre-Agree buttons,
+  // no rngTransfer consumption (current wage + expiry stand in as cost
+  // hints). Calling signingTermsFor here would advance the transfer
+  // stream and shift the next signing window's offers.
+  function renderScouting(
+    state: ReturnType<GameCoordinator['getState']>,
+    team: RawTeamInput,
+    club: { id: string; squad: number[] },
+    playerClubId: string,
+  ): void {
+    const calendarDate = state.calendar.date;
+    const pendingSet = new Set(state.career.pendingMoves.map(m => m.rosterId));
+
+    type ScoutItem = { p: Player; currentWage: number; expiresOn: string; kind: 'free-agent' | 'poach' };
+    const items: ScoutItem[] = [];
+    for (const rid of state.career.freeAgents) {
+      const p = state.career.roster[rid];
+      if (!p) continue;
+      items.push({ p, currentWage: p.contract.annualWage, expiresOn: p.contract.expiresOn, kind: 'free-agent' });
+    }
+    for (const rid of poachCandidates(state)) {
+      const p = state.career.roster[rid];
+      if (!p) continue;
+      if (p.contract.clubId === playerClubId) continue; // can't approach own squad
+      if (pendingSet.has(rid)) continue; // already pre-agreed elsewhere
+      items.push({ p, currentWage: p.contract.annualWage, expiresOn: p.contract.expiresOn, kind: 'poach' });
+    }
+    items.sort((a, b) => {
+      const cmp = compareScout(a, b, calendarDate);
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    const freeAgentRows = items.filter(it => it.kind === 'free-agent');
+    const poachRows = items.filter(it => it.kind === 'poach');
+
+    const capUsed = club.squad
+      .map(rid => state.career.roster[rid])
+      .filter((p): p is Player => !!p && !p.contract.isMarquee)
+      .reduce((sum, p) => sum + p.contract.annualWage, 0);
+    const effectiveCap = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
+    const capStatus =
+      capUsed > effectiveCap ? 'over' :
+      capUsed > effectiveCap * 0.95 ? 'tight' :
+      'ok';
+    const capPill = `<span class="tm-cappill tm-cappill--${capStatus}"><span>CAP</span><span>${fmtWage(capUsed)} / ${fmtWage(effectiveCap)}</span></span>`;
+
+    const renderScoutRow = (it: ScoutItem): string => {
+      const age = getAge(it.p.dob, calendarDate);
+      const ovr = playerOverall(it.p.baseStats, it.p.position);
+      const clubLabel = it.kind === 'poach'
+        ? `<span class="tm-from">← ${teamsById.get(it.p.contract.clubId)?.shortName ?? it.p.contract.clubId}</span>`
+        : '<span class="tm-from">Free Agent</span>';
+      return `
+        <div class="tm-row" data-roster-id="${it.p.rosterId}">
+          <span class="tm-name">${it.p.firstName} ${it.p.lastName}${clubLabel}</span>
+          <span class="tm-pos">${shortPos(it.p.position)}</span>
+          <span class="tm-num">${age ?? '—'}</span>
+          <span class="tm-num">${ovr}</span>
+          <span class="tm-wage">${fmtWage(it.currentWage)} <span class="tm-len">current</span></span>
+        </div>`;
+    };
+
+    const freeAgentHtml = freeAgentRows.length === 0
+      ? '<div class="tm-empty tm-empty--small">No free agents on the market.</div>'
+      : freeAgentRows.map(renderScoutRow).join('');
+    const poachHtml = poachRows.length === 0
+      ? '<div class="tm-empty tm-empty--small">No contracted players in their final 12 months at other clubs.</div>'
+      : poachRows.map(renderScoutRow).join('');
+
+    const headerCell = (key: SortKey, label: string, cls: string): string => {
+      const active = key === sortKey;
+      const arrow = active ? (sortDir === 'asc' ? '▲' : '▼') : '';
+      return `<button class="tm-head ${cls}${active ? ' tm-head--active' : ''}" data-sort="${key}">${label}${arrow ? ` ${arrow}` : ''}</button>`;
+    };
+
+    el!.innerHTML = `
+      <div class="app-header">
+        <div class="app-topbar">
+          <button id="tm-back" class="app-back" aria-label="Back to hub">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Hub</span>
+          </button>
+          <span class="app-title">Transfer Market</span>
+          ${capPill}
+        </div>
+        <div class="app-eyebrow">${team.name} · ${freeAgentRows.length} free agents · ${poachRows.length} approachable</div>
+      </div>
+
+      <div class="tm-scout-banner">Scouting view — the signing window opens after the final round of the season. Wages shown are players' current deals.</div>
+
+      <h3 class="tm-section-h">Free Agents</h3>
+      <div id="tm-headrow">
+        ${headerCell('name', 'NAME', 'tm-name')}
+        ${headerCell('pos',  'POS',  'tm-pos')}
+        ${headerCell('age',  'AGE',  'tm-num')}
+        ${headerCell('ovr',  'OVR',  'tm-num')}
+        ${headerCell('wage', 'WAGE', 'tm-wage')}
+      </div>
+      <div id="tm-list">${freeAgentHtml}</div>
+
+      <h3 class="tm-section-h tm-section-h--poach">Final-12-Month Contracts (Reg 7 Approachable)</h3>
+      <div id="tm-poach-list">${poachHtml}</div>
+    `;
+
+    el!.querySelectorAll<HTMLButtonElement>('.tm-head[data-sort]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.sort as SortKey;
+        if (key === sortKey) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+        else { sortKey = key; sortDir = defaultDirFor(key); }
+        renderImpl?.();
+      });
+    });
+    el!.querySelector<HTMLButtonElement>('#tm-back')!.addEventListener('click', () => scoutingOnBack());
+  }
+
   renderImpl = render;
+}
+
+function compareScout(
+  a: { p: Player; currentWage: number },
+  b: { p: Player; currentWage: number },
+  calendarDate: string,
+): number {
+  switch (sortKey) {
+    case 'name':
+      return `${a.p.lastName} ${a.p.firstName}`.localeCompare(`${b.p.lastName} ${b.p.firstName}`);
+    case 'pos':
+      return a.p.position.localeCompare(b.p.position);
+    case 'age': {
+      const aa = getAge(a.p.dob, calendarDate) ?? 999;
+      const bb = getAge(b.p.dob, calendarDate) ?? 999;
+      return aa - bb;
+    }
+    case 'ovr':
+      return playerOverall(a.p.baseStats, a.p.position) - playerOverall(b.p.baseStats, b.p.position);
+    case 'wage':
+      return a.currentWage - b.currentWage;
+  }
 }
 
 function defaultDirFor(key: SortKey): SortDir {

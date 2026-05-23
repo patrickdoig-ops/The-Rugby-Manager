@@ -220,6 +220,17 @@
   padding: 40px 16px;
 }
 
+.tm-scout-banner {
+  margin: 10px 16px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--rm-hairline);
+  border-radius: 6px;
+  background: color-mix(in oklch, var(--rm-surface, #1a1d22) 92%, white);
+  color: var(--rm-text-dim);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 #tm-footer {
   flex-shrink: 0;
   padding: 14px 20px max(env(safe-area-inset-bottom), 28px);

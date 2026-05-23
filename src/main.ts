@@ -37,7 +37,7 @@ import { initMatchResultScreen }   from './ui/MatchResultScreen';
 import { initRoundResultsScreen, showRoundResults } from './ui/RoundResultsScreen';
 import { initEndOfSeasonScreen, showEndOfSeason }   from './ui/EndOfSeasonScreen';
 import { initRenewalsScreen, showRenewals }         from './ui/RenewalsScreen';
-import { initTransferMarketScreen, showTransferMarket } from './ui/TransferMarketScreen';
+import { initTransferMarketScreen, showTransferMarket, showTransferMarketScouting } from './ui/TransferMarketScreen';
 import { initRolloverScreen, showRollover }         from './ui/RolloverScreen';
 import { initContractsScreen, showContracts }       from './ui/ContractsScreen';
 import { initSquadManagementScreen, showSquadManagement } from './ui/SquadManagementScreen';
@@ -151,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onSquad:    goSquad,
       onTraining: () => { /* placeholder until Training screen lands */ },
       onContracts: goContracts,
-      onTransfers:() => { /* placeholder until Transfer market screen lands */ },
+      onTransfers: goTransfersScouting,
       onSettings: goSettingsFromHub,
     });
     initFixtureListScreen(getGameEngine, allTeams, goHub);
@@ -192,6 +192,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function goSquad(): void {
     showSquadManagement();
     screenRouter.show('squad-management');
+  }
+
+  function goTransfersScouting(): void {
+    showTransferMarketScouting(goHub);
+    screenRouter.show('transfer-market');
   }
 
   function onTeamPicked(team: RawTeamInput): void {

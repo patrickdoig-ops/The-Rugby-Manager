@@ -4,9 +4,10 @@ import { resolveGoalKick } from './resolvers/KickingResolver';
 import { eventBus } from '../utils/eventBus';
 import { clamp } from '../utils/math';
 import { makeId } from './eventId';
-import { attackDir, inOpposition22, inOppositionHalf } from './FieldPosition';
+import { attackDir, inOpposition22, inOppositionHalf, metresFromOppositionTryLine } from './FieldPosition';
 import { applyMatchEvent } from './applyMatchEvent';
-import { PENALTY_VALUES } from './balance';
+import { PENALTY_VALUES, TAP_AND_GO_AI } from './balance';
+import { rng } from '../utils/rng';
 
 export interface PenaltyHandlerDeps {
   state: MatchState;
@@ -50,7 +51,11 @@ export class PenaltyHandler {
       const opposingSide = state.possession === 'home' ? 'away' : 'home';
       let autoChoice: PenaltyChoice;
       if (inOppositionHalf(state)) {
-        autoChoice = 'kick_for_goal';
+        // 5-10m from the try line: defenders are unset, a quick tap goes
+        // for the 7-point shot instead of the certain 3 from a goal kick.
+        const dist = metresFromOppositionTryLine(state);
+        const inTapZone = dist >= TAP_AND_GO_AI.closeRangeMinMetres && dist <= TAP_AND_GO_AI.closeRangeMaxMetres;
+        autoChoice = (inTapZone && rng(1, 100) <= TAP_AND_GO_AI.closeRangePct) ? 'tap_and_go' : 'kick_for_goal';
       } else if (state.clock.clockInTheRed && state.score[state.possession] > state.score[opposingSide]) {
         autoChoice = 'tap_and_kick_dead';
       } else {
@@ -66,10 +71,19 @@ export class PenaltyHandler {
     // design (the AI is intentionally less aggressive than the manager).
     if (state.possession !== humanSide || !inOppositionHalf(state)) {
       const aiSide = humanSide === 'home' ? 'away' : 'home';
-      const autoChoice: PenaltyChoice =
-        state.clock.clockInTheRed && state.possession === aiSide && state.score[aiSide] > state.score[humanSide]
-          ? 'tap_and_kick_dead'
-          : 'kick_to_touch';
+      let autoChoice: PenaltyChoice;
+      if (state.clock.clockInTheRed && state.possession === aiSide && state.score[aiSide] > state.score[humanSide]) {
+        autoChoice = 'tap_and_kick_dead';
+      } else if (state.possession === aiSide && inOppositionHalf(state)) {
+        // AI side attacking: normally kick to touch, but in the 5-10m close
+        // range take the occasional tap-and-go shot at a 7-point try with
+        // the defence unset (same probability as the silent-mode branch).
+        const dist = metresFromOppositionTryLine(state);
+        const inTapZone = dist >= TAP_AND_GO_AI.closeRangeMinMetres && dist <= TAP_AND_GO_AI.closeRangeMaxMetres;
+        autoChoice = (inTapZone && rng(1, 100) <= TAP_AND_GO_AI.closeRangePct) ? 'tap_and_go' : 'kick_to_touch';
+      } else {
+        autoChoice = 'kick_to_touch';
+      }
       this.applyPenaltyChoice(autoChoice);
       return;
     }

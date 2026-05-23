@@ -71,3 +71,16 @@ export const TEAM_22 = {
 export const SHORT_HANDED = {
   missingBackDefendPenalty: -8,   // per missing back; added to defendMod (negative = worse)
 } as const;
+
+// AI penalty decision — tap-and-go in the close-range zone. When the
+// penalty is awarded between `closeRangeMinMetres` and `closeRangeMaxMetres`
+// from the opposition try line, the AI rolls `rng(1, 100) <= closeRangePct`
+// to take a quick tap instead of the certain 3 from a goal kick (silent mode)
+// or the kick-to-touch default (live mode). Sized so tap-and-go appears as
+// an occasional surprise — frequent enough to register in the penalty-decision
+// telemetry, rare enough that goal kicks stay the dominant choice in the 22.
+export const TAP_AND_GO_AI = {
+  closeRangeMinMetres: 5,
+  closeRangeMaxMetres: 10,
+  closeRangePct:       30,
+} as const;

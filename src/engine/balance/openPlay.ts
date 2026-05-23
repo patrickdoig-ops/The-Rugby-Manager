@@ -79,8 +79,17 @@ export const INTERCEPTION_FOLLOW_UP_BONUS = 12;
 
 export const OPEN_PLAY_VALUES = {
   agilityWeight:     0.5,
-  positioningWeight: 0.5,
+  positioningWeight: 0.3,
   paceWeight:        0.5,
+  // Defender's tackling factored into the line-break check (v2.93a). Before
+  // this, only positioning + pace gated line breaks — `tackling` was decorative
+  // for tackle% because every line break auto-counted as a missed tackle in
+  // applyMatchEvent. Positioning reduced 0.5 → 0.3 to make room for tackling
+  // 0.2, keeping the defender side at total weight 1.0 so the league-wide
+  // line break rate is preserved. Net effect: high-tackling teams (SAR/LEI)
+  // tighten up; low-tackling teams (NEW) sag — realism gain is that the
+  // tackling stat now actually shows up in tackle %.
+  defenderTacklingLineBreakWeight: 0.2,
   lineBreakMargin: 15,
   // Line breaks now project the ball further downfield (real-world line
   // breaks pierce the defensive line by 15-40m on average). The 20-45 range

@@ -31,7 +31,7 @@ export function resolveOpenPlay(
   const V = OPEN_PLAY_VALUES;
   // Evasion check
   const evasionScore  = (attacker.currentStats.agility     * V.agilityWeight     + attacker.currentStats.pace * V.paceWeight) + rng(1, 20) + attackMod;
-  const defenseScore  = (defender.currentStats.positioning * V.positioningWeight + defender.currentStats.pace * V.paceWeight) + rng(1, 20) + defendMod;
+  const defenseScore  = (defender.currentStats.positioning * V.positioningWeight + defender.currentStats.pace * V.paceWeight + defender.currentStats.tackling * V.defenderTacklingLineBreakWeight) + rng(1, 20) + defendMod;
 
   if (evasionScore - defenseScore >= V.lineBreakMargin) {
     return { outcome: 'line_break', gainMetres: rng(V.lineBreakMetres[0], V.lineBreakMetres[1]), evasionScore, defenseScore, collisionAttack: 0, collisionDefend: 0 };

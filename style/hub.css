@@ -280,9 +280,16 @@
   letter-spacing: 0.10em;
   color: var(--rm-stat-4);
   text-transform: uppercase;
-  text-align: center;
   padding-top: 5px;
   border-top: 1px solid var(--rm-hairline);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.hub-nm-spread svg {
+  flex-shrink: 0;
 }
 
 .hub-nm-complete {

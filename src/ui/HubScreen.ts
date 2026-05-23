@@ -195,13 +195,14 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
     const awayEffective = computeOverallRating(away.id)
       + formAdjustment(awayStanding, state.league.standings);
     const spread = matchSpread(homeEffective, awayEffective);
+    const spreadIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.94"/></svg>`;
     let spreadLabel: string;
     if (spread.home === 0) {
       spreadLabel = 'Even contest';
     } else if (spread.home < 0) {
-      spreadLabel = `${home.shortName} favoured · ${-spread.home} pts`;
+      spreadLabel = `${spreadIcon}<span>${home.shortName} favoured · ${-spread.home} pts</span>`;
     } else {
-      spreadLabel = `${away.shortName} favoured · ${spread.home} pts`;
+      spreadLabel = `${spreadIcon}<span>${away.shortName} favoured · ${spread.home} pts</span>`;
     }
 
     return `

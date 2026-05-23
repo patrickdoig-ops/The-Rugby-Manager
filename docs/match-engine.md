@@ -171,7 +171,7 @@ FullTime     → (terminal)
 ```
 
 Three carry phases share an evasion/collision resolver but have distinct player selection and structure:
-- **PhasePlay** — runs after Breakdown; random carrier; hard carry or out-the-back split
+- **PhasePlay** — runs after Breakdown; hard carry / out-the-back decision picks the carrier (random forward on the hard carry, fly-half → outside back on the wide path)
 - **FirstPhase** — runs after Scrum, Lineout, or a tap-and-go penalty; carrier always #10; crash ball or wide play
 - **KickReturn** — runs after KickOff, BoxKick, or TacticalKick; carrier is whoever caught the kick; run step before evasion/collision
 
@@ -477,18 +477,9 @@ If a kick is decided, the phase transitions to `BoxKick` (#9 kicker) or `Tactica
 
 ### PhasePlay
 
-Runs after `Breakdown` (recycled possession). The carrier is a random player from the attacking team.
+Runs after `Breakdown` (recycled possession).
 
-```typescript
-carrier  = randomPlayer(attackTeam)
-defender = randomPlayer(defendTeam)
-```
-
-**Step 1 — Carrier handling gate**
-
-`handling + rng(1,100) < 85` → knock-on: possession flips, scrum awarded, carrier −0.45. This gives ~5% for handling 80, ~10% for handling 75, ~20% for handling 65, 0% for handling ≥ 85.
-
-**Step 2 — Hard Carry / Out the Back decision**
+**Step 1 — Hard Carry / Out the Back decision**
 
 | `attackingStyle` | Hard Carry | Out the Back |
 |---|---|---|
@@ -496,11 +487,21 @@ defender = randomPlayer(defendTeam)
 | `balanced` | 70% | 30% |
 | `wide_wide` | 50% | 50% |
 
-If the carrier is the fly-half (id 10), **always Out the Back**.
+The decision picks the carrier:
 
-**Hard Carry:** carrier proceeds directly to evasion (Step 3).
+- **Hard Carry:** carrier is a random forward (ids 1–8). Scrum-half → forward, then straight into contact.
+- **Out the Back:** carrier is the fly-half (id 10). Scrum-half → fly-half → outside back (random from ids 11, 13, 14, 15); `ballCarrier = outsideBack`.
 
-**Out the Back:** ball is worked through the fly half (id 10) to an outside back (random from ids 11, 13, 14, 15) via two additional handling gates (same `handling + rng(1,100) < 85` threshold). Knock-on at either gate: possession flips, scrum awarded. If both pass, `ballCarrier = outsideBack`.
+```typescript
+carrier  = goWide ? pickPlayer(attackTeam, 10) : randomForward(attackTeam)
+defender = randomPlayer(defendTeam)
+```
+
+**Step 2 — Carrier handling gate**
+
+`handling + rng(1,100) < 85` → knock-on on the scrum-half pass: possession flips, scrum awarded, carrier −0.45. This gives ~5% for handling 80, ~10% for handling 75, ~20% for handling 65, 0% for handling ≥ 85.
+
+On the wide path, a second handling gate (same threshold) fires on the outside back receiving the fly-half pass; knock-on flips possession to a scrum.
 
 **Steps 3–4 — Evasion → Collision** — see [Shared Evasion/Collision](#shared-evasioncollision) below.
 

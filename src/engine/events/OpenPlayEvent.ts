@@ -28,12 +28,21 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
     return buildKickTransition(decision, MatchPhase.PhasePlay);
   }
 
-  // Step 1 — Carrier handling gate (inline)
+  // Step 1 — Hard Carry / Out the Back decision happens FIRST so we can
+  // pick the right carrier for each path: hard carry → random forward
+  // (the pack hits up off #9), wide → fly-half (#10) who then passes on
+  // to an outside back. attackingStyle controls the split.
   const defSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
   const defendOnField = onFieldPlayers(defendTeam, state, defSide);
-  const carrier   = attackOnField.length > 0 ? attackOnField[rng(0, attackOnField.length - 1)] : randomPlayer(attackTeam);
-  const defender  = defendOnField.length > 0 ? defendOnField[rng(0, defendOnField.length - 1)] : randomPlayer(defendTeam);
   const scrumHalf = attackOnField.find(p => p.id === 9) ?? attackOnField[0] ?? attackTeam.players[0];
+  const style = attackTeam.tactics.attackingStyle;
+  const goWide = rng(1, 100) > HARD_CARRY_THRESHOLDS[style];
+
+  const attackFwds = availableForwards(attackTeam, state, attackSide);
+  const carrier   = goWide
+    ? (attackOnField.find(p => p.id === 10) ?? pickPlayer(attackTeam, 10))
+    : (attackFwds.length > 0 ? attackFwds[rng(0, attackFwds.length - 1)] : (attackOnField[0] ?? randomPlayer(attackTeam)));
+  const defender  = defendOnField.length > 0 ? defendOnField[rng(0, defendOnField.length - 1)] : randomPlayer(defendTeam);
 
   // Defensive line drives both the knock-on pressure modifier (handling
   // gates harder vs blitz) and the per-pass interception probability.
@@ -94,17 +103,15 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
     };
   }
 
-  // Step 2 — Hard Carry / Out the Back decision
-  const style = attackTeam.tactics.attackingStyle;
-  const goWide = carrier.id === 10 || rng(1, 100) > HARD_CARRY_THRESHOLDS[style];
-
   let ballCarrier = carrier;
-  // Tracks the most-recent "out the back" pass step that prefixes the eventual
-  // outcome commentary (mirrors the original wideIntro string concatenation).
+  // Tracks the "out the back" pass step that prefixes the eventual outcome
+  // commentary on the wide path.
   let wideIntroSteps: NarrationStep[] = [];
 
   if (goWide) {
-    const flyHalf = attackOnField.find(p => p.id === 10) ?? pickPlayer(attackTeam, 10);
+    // carrier is the fly-half (#10) by construction; the wide path is
+    // scrum-half → fly-half → outside back. Obstruction → KO on outside
+    // back → fly-half → outside-back interception, in that order.
 
     // Obstruction roll — fires at most once per out-the-back attempt. Offender
     // is a random screening forward. Modified by attackingStyle (wide_wide =
@@ -112,7 +119,6 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
     // and the defending side gets the penalty.
     const obstructionPct = OBSTRUCTION_BASE_PCT + TACTIC_MODIFIERS.obstructionStyleMod[style];
     if (rng(1, 100) <= obstructionPct) {
-      const attackFwds = availableForwards(attackTeam, state, attackSide);
       const offender = attackFwds.length > 0
         ? attackFwds[rng(0, attackFwds.length - 1)]
         : (attackOnField[0] ?? carrier);
@@ -126,35 +132,10 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
       };
     }
 
-    if (carrier.id !== 10) {
-      wideIntroSteps = [{ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'out_the_back', primary: carrier, secondary: flyHalf }];
-
-      // Fly half handling gate (pressureMod lifts the threshold vs blitz)
-      if (rng(1, 100) <= knockOnPct(flyHalf.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
-        events.push({ type: 'KNOCK_ON', player: flyHalf, attackSide });
-        const koSteps: NarrationStep[] = [
-          ...wideIntroSteps,
-          { kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'knock_on', primary: flyHalf, secondary: defender },
-        ];
-        if (defensiveLine === 'blitz') {
-          koSteps.push({ kind: 'tactic_note', cause: 'blitz_pressure_knockon', chancePct: COMMENTARY_CHANCES.blitzPressureKnockOn, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
-        }
-        return {
-          nextPhase: MatchPhase.Scrum,
-          narration: { steps: koSteps },
-          primaryPlayer: flyHalf,
-          secondaryPlayer: defender,
-          events,
-        };
-      }
-    }
-
     // Outside back handling gate (outside centre, both wings, fullback)
     const obPool = attackOnField.filter(p => [11, 13, 14, 15].includes(p.id));
     const outsideBack = obPool.length > 0 ? obPool[rng(0, obPool.length - 1)] : (attackOnField[rng(0, Math.max(0, attackOnField.length - 1))] ?? randomPlayer(attackTeam));
-    if (carrier.id === 10) {
-      wideIntroSteps = [{ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'out_the_back', primary: flyHalf, secondary: outsideBack }];
-    }
+    wideIntroSteps = [{ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'out_the_back', primary: carrier, secondary: outsideBack }];
     if (rng(1, 100) <= knockOnPct(outsideBack.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
       events.push({ type: 'KNOCK_ON', player: outsideBack, attackSide });
       const koSteps: NarrationStep[] = [
@@ -175,26 +156,26 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
 
     // Fly-half → outside-back interception opportunity. Same mechanism as
     // the scrumHalf → carrier roll up top.
-    const intPctWide = interceptPctBase - (flyHalf.currentStats.handling - INTERCEPTION_STAT_CENTRE) * INTERCEPTION_HANDLING_WEIGHT;
+    const intPctWide = interceptPctBase - (carrier.currentStats.handling - INTERCEPTION_STAT_CENTRE) * INTERCEPTION_HANDLING_WEIGHT;
     if (rng(1, 100) <= intPctWide) {
       const backs = defendOnField.filter(p => p.id >= 9);
       const interceptor = backs.length > 0
         ? backs[rng(0, backs.length - 1)]
         : (defendOnField[rng(0, Math.max(0, defendOnField.length - 1))] ?? randomPlayer(defendTeam));
-      events.push({ type: 'INTERCEPTION', interceptor, passer: flyHalf, attackSide });
+      events.push({ type: 'INTERCEPTION', interceptor, passer: carrier, attackSide });
       events.push({ type: 'KICK_RETURN_CARRIER_SET', player: interceptor });
       events.push({ type: 'BREAKDOWN_MOD_SET', attack: INTERCEPTION_FOLLOW_UP_BONUS, defend: 0 });
       const intSteps: NarrationStep[] = [
         ...wideIntroSteps,
-        { kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'interception', primary: interceptor, secondary: flyHalf },
+        { kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'interception', primary: interceptor, secondary: carrier },
       ];
       if (defensiveLine === 'blitz') {
         intSteps.push({ kind: 'tactic_note', cause: 'blitz_interception', chancePct: COMMENTARY_CHANCES.blitzInterception, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
       }
-      return { nextPhase: MatchPhase.KickReturn, narration: { steps: intSteps }, primaryPlayer: interceptor, secondaryPlayer: flyHalf, events };
+      return { nextPhase: MatchPhase.KickReturn, narration: { steps: intSteps }, primaryPlayer: interceptor, secondaryPlayer: carrier, events };
     }
 
-    events.push({ type: 'PASS_COMPLETED', passer: flyHalf });
+    events.push({ type: 'PASS_COMPLETED', passer: carrier });
     ballCarrier = outsideBack;
   }
 

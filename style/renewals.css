@@ -208,7 +208,7 @@
 
 #rn-footer {
   flex-shrink: 0;
-  padding: 14px 20px max(16px, env(safe-area-inset-bottom, 0px));
+  padding: 14px 20px max(env(safe-area-inset-bottom), 28px);
   border-top: 1px solid var(--rm-hairline);
   background: color-mix(in oklch, var(--rm-bg) 92%, transparent);
 }

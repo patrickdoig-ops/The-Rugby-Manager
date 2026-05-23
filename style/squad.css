@@ -266,8 +266,7 @@
 /* ─── Footer ─── */
 #sq-footer {
   flex-shrink: 0;
-  padding: 10px 16px;
-  padding-bottom: calc(26px + env(safe-area-inset-bottom, 0px));
+  padding: 10px 16px max(env(safe-area-inset-bottom), 28px);
   border-top: 1px solid var(--rm-border-soft);
   background: var(--rm-surface);
   box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.3);

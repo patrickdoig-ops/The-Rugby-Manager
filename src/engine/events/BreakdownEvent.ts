@@ -16,17 +16,21 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   const lastEvent = state.events[state.events.length - 1];
   const carrierId = lastEvent?.primaryPlayer?.id;
   // Carry → breakdown handoff. A line break commits the defence — the
-  // attacker arrives at the ruck on the front foot AND the next phase
-  // sees thin cover. Boost both the current breakdown's attack score
-  // (cleaner ball) and the post-breakdown attackMod (front-foot carry).
-  // dominant_carry is the smaller-effect cousin: it boosts only the
-  // current breakdown, not the next-phase mod. Constants live in
-  // CARRY_HANDOFF_BONUSES (balance/breakdown.ts).
+  // attacker has thin cover for the NEXT carry, so the bonus flows into
+  // nextAttackMod only (the front-foot next-phase carry boost). We do
+  // NOT also pump the current breakdown's attackScore — that was the
+  // v2.62a double-dip: a line break converted slow_ball → clean_ball at
+  // the immediate breakdown, killing ~0.7 box kicks/match. The line
+  // break has already produced a successful carry contest; the
+  // breakdown contest is its own thing and should resolve on its own
+  // merits. dominant_carry remains a current-breakdown-only bonus
+  // (smaller-effect cousin — it never had a next-phase mod). Constants
+  // live in CARRY_HANDOFF_BONUSES (balance/breakdown.ts).
   //
   // The line-break chain is then multiplied by lineBreakChainMultiplier
   // for THIS defender's defensiveLine — blitz cover regroups faster
   // than drift cover, so the cascade is muted. Without this, the
-  // immediate line-break bonus (defensiveLineBreakBonus) compounded
+  // immediate line-break gain (defensiveLineBreakBonus) compounded
   // into the chain, double-counting blitz's "cover behind the runner"
   // effect and overpunishing blitz teams.
   const lineBreakFollowUp = lastEvent?.outcome === 'line_break';
@@ -34,10 +38,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   const lineBreakHandoff = lineBreakFollowUp
     ? CARRY_HANDOFF_BONUSES.lineBreak * lineBreakChainMult
     : 0;
-  const attackBonus =
-      lineBreakFollowUp                       ? lineBreakHandoff
-    : lastEvent?.outcome === 'dominant_carry' ? CARRY_HANDOFF_BONUSES.dominantCarry
-    : 0;
+  const attackBonus = lastEvent?.outcome === 'dominant_carry' ? CARRY_HANDOFF_BONUSES.dominantCarry : 0;
 
   // Next-phase modifier: more players committed to ruck = fewer on feet for the next phase
   const nextAttackMod = TACTIC_MODIFIERS.breakdownAttack[attPlan] + lineBreakHandoff;

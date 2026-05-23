@@ -35,16 +35,23 @@ export const BREAKDOWN_PENALTIES = {
 } as const;
 
 // Carry → breakdown handoff bonuses. Applied in BreakdownEvent by reading
-// the previous CARRY_RESOLVED's outcome:
-//   * shift the current breakdown's attackScore upward (cleaner ball);
-//   * for line breaks, also shift the post-breakdown attackMod
+// the previous CARRY_RESOLVED's outcome. Two parallel channels (NOT
+// applied together — a line break uses the next-phase channel only, a
+// dominant carry uses the current-breakdown channel only):
+//   * dominant_carry → shift the current breakdown's attackScore upward
+//     (cleaner immediate ball);
+//   * line_break → shift the post-breakdown attackMod
 //     (state.breakdownMod.attack) so the very next carry runs on the
-//     front foot.
+//     front foot. The current breakdown is left to resolve on its own
+//     merits — the line break has already produced its successful
+//     carry, and applying the bonus here too was a double-dip that
+//     converted slow_ball → clean_ball and quietly killed box kicks
+//     (v2.62a → v2.80a fix).
 // These are OUTCOME-driven, not tactic-driven — kept out of
 // TACTIC_MODIFIERS so the file there stays a pure tactic lookup. Tuned
 // so a midfield line break that doesn't directly score on the first
 // carry still very often turns into a try over the next 1-2 phases.
 export const CARRY_HANDOFF_BONUSES = {
   dominantCarry:    6,    // applied to the breakdown attackScore only
-  lineBreak:       15,    // applied to BOTH breakdown attackScore and next-phase attackMod
+  lineBreak:       15,    // applied to the next-phase attackMod only
 } as const;

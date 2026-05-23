@@ -13,6 +13,7 @@ import '../style/contracts.css';
 import '../style/squad.css';
 import '../style/renewals.css';
 import '../style/transfermarket.css';
+import '../style/modepicker.css';
 import '../style/commentary.css';
 import '../style/stats.css';
 import '../style/prematch.css';
@@ -37,7 +38,9 @@ import { initMatchResultScreen }   from './ui/MatchResultScreen';
 import { initRoundResultsScreen, showRoundResults } from './ui/RoundResultsScreen';
 import { initEndOfSeasonScreen, showEndOfSeason }   from './ui/EndOfSeasonScreen';
 import { initRenewalsScreen, showRenewals }         from './ui/RenewalsScreen';
-import { initTransferMarketScreen, showTransferMarket, showTransferMarketScouting } from './ui/TransferMarketScreen';
+import { initTransferMarketScreen, showTransferMarket, showTransferMarketScouting, showTransferMarketPreSeason } from './ui/TransferMarketScreen';
+import { initModePickerScreen }    from './ui/ModePickerScreen';
+import { PRE_SEASON_TRANSFERS_2025_26 } from './data/transfers-2025-26';
 import { initRolloverScreen, showRollover }         from './ui/RolloverScreen';
 import { initContractsScreen, showContracts }       from './ui/ContractsScreen';
 import { initSquadManagementScreen, showSquadManagement } from './ui/SquadManagementScreen';
@@ -200,13 +203,43 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function onTeamPicked(team: RawTeamInput): void {
-    // A new team pick replaces any prior save — the user is explicitly starting
-    // a new season. Seed the save immediately so Continue is enabled even if
-    // they back out before playing the first match.
+    initModePickerScreen(team, () => onQuickStart(team), () => onSquadBuilder(team), goTeamSelector);
+    screenRouter.show('mode-picker');
+  }
+
+  function onQuickStart(team: RawTeamInput): void {
+    // Existing new-game path: seed the save immediately so Continue is enabled
+    // even if the user backs out before playing the first match.
     gameEngine = GameCoordinator.newSeason(team.id, generateSeed(), allTeams);
     saveGame(gameEngine.toSavePayload());
     initInSeasonScreens();
     goHub();
+  }
+
+  // Phase A scaffolding. unwindPreSeasonTransfers is a no-op (the data
+  // file is empty) and openSigningWindow returns early when there are no
+  // free agents and no poaches — so today the only behavioural delta vs
+  // Quick Start is the route through the mode picker. Phases B + C will
+  // land the transfer data + marquee step.
+  function onSquadBuilder(team: RawTeamInput): void {
+    gameEngine = GameCoordinator.newSeason(team.id, generateSeed(), allTeams);
+    gameEngine.unwindPreSeasonTransfers(PRE_SEASON_TRANSFERS_2025_26);
+    saveGame(gameEngine.toSavePayload());
+    initInSeasonScreens();
+    gameEngine.openSigningWindow({ skipPoaches: true });
+    if (gameEngine.getState().career.market) {
+      saveGame(gameEngine.toSavePayload());
+      showTransferMarketPreSeason(() => {
+        if (!gameEngine) { goHub(); return; }
+        gameEngine.closeSigningWindow();
+        saveGame(gameEngine.toSavePayload());
+        goHub();
+      });
+      screenRouter.show('transfer-market');
+    } else {
+      // No FAs available yet (Phase A) — jump straight to Hub.
+      goHub();
+    }
   }
 
   function continueGame(): void {

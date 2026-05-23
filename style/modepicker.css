@@ -1,0 +1,127 @@
+#mode-picker {
+  display: none;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 16px 16px calc(24px + env(safe-area-inset-bottom)) 16px;
+  box-sizing: border-box;
+  background: var(--rm-bg);
+  color: var(--rm-text);
+  position: relative;
+}
+
+#mp-back {
+  position: absolute;
+  top: calc(16px + env(safe-area-inset-top));
+  left: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--rm-text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 6px;
+  z-index: 2;
+}
+#mp-back:hover { color: var(--rm-text); }
+
+#mp-inner {
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding-top: calc(64px + env(safe-area-inset-top));
+}
+
+#mp-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.mp-crest {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-family: 'Anton', sans-serif;
+  color: white;
+  letter-spacing: 0.04em;
+  font-size: 38px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+
+#mp-eyebrow {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+}
+
+#mp-title {
+  font-family: 'Anton', sans-serif;
+  font-size: 30px;
+  letter-spacing: 0.02em;
+  margin: 0;
+  color: var(--team-color, var(--rm-text));
+}
+
+#mp-subtitle {
+  font-size: 13px;
+  color: var(--rm-text-dim);
+  margin: 0;
+}
+
+#mp-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.mp-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px 20px;
+  background: color-mix(in oklch, var(--rm-surface, #1a1d22) 92%, white);
+  border: 1px solid var(--rm-hairline);
+  border-radius: 12px;
+  color: var(--rm-text);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.12s ease, transform 0.12s ease, background 0.12s ease;
+}
+
+.mp-card:hover {
+  border-color: color-mix(in oklch, var(--rm-text) 30%, transparent);
+  transform: translateY(-1px);
+}
+
+.mp-card:active {
+  transform: translateY(0);
+}
+
+.mp-card-icon {
+  color: var(--rm-text-dim);
+}
+
+.mp-card-title {
+  font-family: 'Anton', sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.02em;
+}
+
+.mp-card-body {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--rm-text-dim);
+}

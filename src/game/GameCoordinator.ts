@@ -40,6 +40,7 @@ import { emptyCareerState } from '../types/gameState';
 import type { Player } from '../types/player';
 import type { TeamTactics } from '../types/team';
 import { applySeasonEvent } from './applySeasonEvent';
+import type { PreSeasonTransfer } from '../data/transfers-2025-26';
 import { simulateFixture } from './simulateFixture';
 import { seedRoster } from './rosterSeeder';
 import { buildAutoSelectedTeamFromRoster } from './rosterTeamBuilder';
@@ -308,8 +309,17 @@ export class GameCoordinator {
     this.transfers.closeRenewalWindow(userDecisions);
   }
 
-  openSigningWindow(): void {
-    this.transfers.openSigningWindow();
+  openSigningWindow(opts: { skipPoaches?: boolean } = {}): void {
+    this.transfers.openSigningWindow(opts);
+  }
+
+  // Squad Builder mode entry point. Phase A scaffolding: the empty
+  // PRE_SEASON_TRANSFERS_2025_26 list means this is a no-op until Phase B
+  // populates the data file. Phase C will replace the loop body with
+  // CONTRACT_TERMINATED emits (reason: 'pre_season_unwind') for each
+  // name-matched roster entry.
+  unwindPreSeasonTransfers(transfers: PreSeasonTransfer[]): void {
+    void transfers;
   }
 
   signFreeAgent(rosterId: number): boolean {

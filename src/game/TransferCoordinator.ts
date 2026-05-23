@@ -119,10 +119,10 @@ export class TransferCoordinator {
   //
   // Idempotent — no-op if window is already open or there's nothing
   // to offer (no free agents AND no poach candidates).
-  openSigningWindow(): void {
+  openSigningWindow(opts: { skipPoaches?: boolean } = {}): void {
     if (this.state.career.market) return;
     const sortedFAs = [...this.state.career.freeAgents].sort((a, b) => a - b);
-    const poaches = poachCandidates(this.state).filter(rid => {
+    const poaches = opts.skipPoaches ? [] : poachCandidates(this.state).filter(rid => {
       const p = this.state.career.roster[rid];
       // Skip player's own club's players (can't poach yourself).
       return p && p.contract.clubId !== this.state.player.teamId;

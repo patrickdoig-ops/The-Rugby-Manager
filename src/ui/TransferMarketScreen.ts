@@ -27,7 +27,7 @@ import { poachCandidates } from './../game/aiTransferDirector';
 
 type SortKey = 'name' | 'pos' | 'age' | 'ovr' | 'wage';
 type SortDir = 'asc' | 'desc';
-type Mode = 'signings' | 'scouting';
+type Mode = 'signings' | 'signings-preseason' | 'scouting';
 
 let sortKey: SortKey = 'ovr';
 let sortDir: SortDir = 'desc';
@@ -38,6 +38,12 @@ let renderImpl: (() => void) | null = null;
 
 export function showTransferMarket(onContinue: () => void): void {
   mode = 'signings';
+  activeOnContinue = onContinue;
+  renderImpl?.();
+}
+
+export function showTransferMarketPreSeason(onContinue: () => void): void {
+  mode = 'signings-preseason';
   activeOnContinue = onContinue;
   renderImpl?.();
 }
@@ -200,14 +206,20 @@ export function initTransferMarketScreen(
       return `<button class="tm-head ${cls}${active ? ' tm-head--active' : ''}" data-sort="${key}">${label}${arrow ? ` ${arrow}` : ''}</button>`;
     };
 
+    const isPreSeason = mode === 'signings-preseason';
+    const title = isPreSeason ? 'Pre-Season Signings' : 'Transfer Market';
+    const eyebrowText = isPreSeason
+      ? `${team.name} · ${freeAgentRows.length} free agents · build your squad for Round 1`
+      : `${team.name} · ${freeAgentRows.length} free agents · ${poachRows.length} approachable`;
+
     el!.innerHTML = `
       <div class="app-header">
         <div class="app-topbar">
           <div class="app-topbar-spacer"></div>
-          <span class="app-title">Transfer Market</span>
+          <span class="app-title">${title}</span>
           ${capPill}
         </div>
-        <div class="app-eyebrow">${team.name} · ${freeAgentRows.length} free agents · ${poachRows.length} approachable</div>
+        <div class="app-eyebrow">${eyebrowText}</div>
       </div>
 
       <h3 class="tm-section-h">Free Agents</h3>
@@ -221,8 +233,10 @@ export function initTransferMarketScreen(
       </div>
       <div id="tm-list">${freeAgentHtml}</div>
 
-      <h3 class="tm-section-h tm-section-h--poach">Final-12-Month Contracts (Reg 7 Pre-Agreement)</h3>
-      <div id="tm-poach-list">${poachHtml}</div>
+      ${isPreSeason ? '' : `
+        <h3 class="tm-section-h tm-section-h--poach">Final-12-Month Contracts (Reg 7 Pre-Agreement)</h3>
+        <div id="tm-poach-list">${poachHtml}</div>
+      `}
 
       <div id="tm-footer">
         <button id="tm-continue" class="cta-pulse">

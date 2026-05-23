@@ -469,12 +469,9 @@ Three phases share a common evasion/collision resolver but have distinct player 
 
 ### Step 0 — Kick or carry decision (all three phases)
 
-The probability of kicking rather than carrying is driven by `attackTeam.tactics.attackingGamePlan` and pitch location:
-- `possession`: 50% inside own 22; 15% in own half; 0% in opposition half.
-- `balanced`: 75% inside own 22; 50% in own half; 10% in opposition half.
-- `kicking`: 90% inside own 22; 65% in own half; 15% in opposition half.
+Unified across the three carry phases via `KickDecisionDirector.decide()` (src/engine/KickDecisionDirector.ts). Replaces the three independent inline gates that lived here pre-v2.83a, plus the Breakdown slow_ball → BoxKick gate that lived in BreakdownEvent. See [Kick Decision Director](#kick-decision-director) below for the full tree.
 
-If it fires, the fly-half (id=10) is logged as `primaryPlayer` for commentary and the phase transitions to `TacticalKick`. The remaining steps do not run.
+If a kick is decided, the phase transitions to `BoxKick` (#9 kicker) or `TacticalKick` (#10 kicker). The remaining carry steps do not run.
 
 ---
 
@@ -869,12 +866,60 @@ None.
 
 ---
 
+## Kick Decision Director
+
+Unified kick-or-carry decision module (src/engine/KickDecisionDirector.ts) — runs at the top of every carry-phase entry (`PhasePlay`, `FirstPhase`, `KickReturn`) and replaces both the per-phase inline gates that lived in those handlers pre-v2.83a AND the dedicated Breakdown slow_ball → BoxKick gate. One decision tree, one set of inputs, one routing table.
+
+### Decision tree
+
+```
+1. Compute base kick probability from KICK_PROBABILITIES[plan][zone].
+2. If state.lastBallQuality === 'slow': base += SLOW_BALL_KICK_BONUS (10pp).
+3. Roll rng(1, 100). Miss → return { kick: false } (carry path).
+4. Pick FAMILY from FAMILY_WEIGHTS[zone][plan]:
+     - clearance: get out of trouble (own 5m / own 22 dominant)
+     - territory: contestable kick to gain ground (own half)
+     - fifty_22:  deliberate corner attempt (own half outside 22)
+     - attacking: cross-field / grubber for regather (opposition half)
+5. Pick KICKER per family (SCRUM_HALF_KICKER_PCT):
+     - clearance:  50% #9 box kick / 50% #10 touch-finder
+     - territory:  40% #9 box kick / 60% #10
+     - fifty_22:   40% #9 / 60% #10
+     - attacking:    0% #9 / 100% #10
+6. Clearance only — pick clearanceStyle (LONG_AND_OFF_PCT):
+     - in own 22:   85% long_and_off (find touch — opposition lineout)
+     - in own half: 25% long_and_off (risk of giving up the lineout)
+7. Attacking only — pick attackingSubType:
+     - 65% cross_field / 35% grubber
+```
+
+Outputs `{ kick: true, family, kicker, clearanceStyle?, attackingSubType? }` (or `{ kick: false }`). `buildKickTransition()` then composes the PhaseResult: `nextPhase = BoxKick (#9)` or `TacticalKick (#10)`, emits `KICK_INTENT_SET` so the kick handler reads the family + sub-choice from `state.pendingKick` and branches resolver math.
+
+### State carriers
+
+- **`state.lastBallQuality: BallQuality`** — set by Breakdown clean/slow outcomes; reset to 'clean' on any `PHASE_CHANGED` that doesn't transition to `PhasePlay`. Feeds the slow-ball bonus in step 2.
+- **`state.pendingKick: PendingKick`** — set by `KICK_INTENT_SET` from `buildKickTransition`; cleared by any `PHASE_CHANGED` that leaves a kick phase. Read by `BoxKickEvent` and `TacticalKickEvent` to branch resolver math.
+
+### Resolver routing by family
+
+| Family | Kicker | Phase | Resolver branch |
+|---|---|---|---|
+| `clearance` long-and-off | #9 | `BoxKick` | `resolveBoxKick(style: 'long_and_off')` → `goes_to_touch` → Lineout (opp throw) |
+| `clearance` long-and-on  | #9 | `BoxKick` | `resolveBoxKick()` → standard contestable |
+| `clearance` (any)        | #10 | `TacticalKick` | `resolveTacticalKick()` — existing touch-finder math |
+| `territory`              | #9  | `BoxKick` | `resolveBoxKick()` — standard contestable |
+| `territory`              | #10 | `TacticalKick` | `resolveTacticalKick()` — existing path |
+| `fifty_22`               | #10 | `TacticalKick` | `resolveFiftyTwentyTwo(defenderBackfield)` — defender-backfield-gated deliberate attempt |
+| `attacking` cross-field  | #10 | `TacticalKick` | `resolveAttackingKick('cross_field')` — aerial contest, chaser is back-three #11/13/14 |
+| `attacking` grubber      | #10 | `TacticalKick` | `resolveAttackingKick('grubber')` — bounce-and-chase |
+
+Tuning constants live in `src/engine/balance/kickDecision.ts` (`FAMILY_WEIGHTS`, `SCRUM_HALF_KICKER_PCT`, `LONG_AND_OFF_PCT`, `CROSS_FIELD_VS_GRUBBER_PCT`, `SLOW_BALL_KICK_BONUS`) and `src/engine/balance/kicking.ts` (`FIFTY_22_VALUES`, `ATTACKING_KICK_VALUES`).
+
+---
+
 ## Box Kick
 
-Triggered from a `slow_ball` Breakdown result. The decision to box kick is dynamically gated by `attackTeam.tactics.attackingGamePlan` and pitch location:
-- `possession`: Never box kick; retain possession in hand (`OpenPlay`).
-- `kicking`: Box kick on slow ball from anywhere outside opposition 22 and outside own deep 22.
-- `balanced`: Box kick on slow ball primarily when in own half (outside own 22).
+Routed to from `KickDecisionDirector` (see [Kick Decision Director](#kick-decision-director-stage-a-e)) when `family ∈ {clearance, territory, fifty_22}` and `kicker.id === 9`. The director's decision is made at the top of `PhasePlay` / `FirstPhase` / `KickReturn`; the dedicated Breakdown slow-ball → BoxKick gate that lived here pre-v2.83a is gone — slow ball now feeds a probabilistic `SLOW_BALL_KICK_BONUS` into the unified decision instead.
 
 ### Player selection
 

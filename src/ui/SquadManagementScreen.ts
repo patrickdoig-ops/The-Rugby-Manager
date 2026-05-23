@@ -25,7 +25,7 @@
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput, RawPlayer } from '../types/teamData';
 import type { Position, PlayerInjury } from '../types/player';
-import { applyMatchdaySquad, extractMatchdaySquad, makeInjuredPredicate } from '../game/playerSquad';
+import { applyMatchdaySquad, extractMatchdaySquad } from '../game/playerSquad';
 import { buildTeamFromRoster } from '../game/rosterTeamBuilder';
 import { playerOverall } from '../engine/RatingEngine';
 import { shortName } from '../utils/playerName';
@@ -126,8 +126,8 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     if (!teamJson) return;
     const fresh = buildTeamFromRoster(state, teamJson);
     const club = state.career.clubs.find(c => c.id === teamJson.id);
-    const isInjured = club ? makeInjuredPredicate(state.career.roster, club.squad) : undefined;
-    const applied = applyMatchdaySquad(fresh, state.player.matchdaySquad, isInjured);
+    const repair = club ? { roster: state.career.roster, clubSquadIds: club.squad } : undefined;
+    const applied = applyMatchdaySquad(fresh, state.player.matchdaySquad, repair);
     draftStarters = (applied.players as RawPlayer[]).map(p => ({ ...p }));
     draftBench    = ((applied.bench ?? []) as RawPlayer[]).map(p => ({ ...p }));
     draftSquad    = ((applied.squad ?? []) as RawPlayer[]).map(p => ({ ...p }));

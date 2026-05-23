@@ -11,6 +11,8 @@
 
 import type { RawTeamInput, RawPlayer } from '../types/teamData';
 import type { PlayerRef } from '../types/gameState';
+import type { Player } from '../types/player';
+import { repairInjuredMatchdaySquad } from './autoSelect';
 
 function nameKey(p: { firstName: string; lastName: string }): string {
   return `${p.firstName}|${p.lastName}`;
@@ -24,20 +26,26 @@ export function extractMatchdaySquad(team: RawTeamInput): PlayerRef[] {
 }
 
 // Returns the team unchanged when `squad` is undefined, the wrong length,
-// references a player no longer rostered, or references an injured player
-// (per the optional `isInjured` predicate) — caller doesn't need to
-// special-case. When `isInjured` is omitted, only the rostered-or-not
-// fallback applies (matches the v8 contract). PreMatchScreen passes a
-// roster-backed predicate so an injured saved-squad selection auto-falls
-// back to the underlying team (whose `players + bench` are already
-// injury-free if it came from buildTeamFromRoster).
+// or references a player no longer rostered — caller doesn't need to
+// special-case. When `repair` is provided and the saved squad contains
+// an injured player, the injured slot(s) are surgically swapped for the
+// best same-position replacement from the wider club roster via
+// `repairInjuredMatchdaySquad`. Fit slots stay locked. When `repair` is
+// omitted, no injury handling runs (injured players seat normally —
+// matches the pre-v9 contract).
 export function applyMatchdaySquad(
   team: RawTeamInput,
   squad: PlayerRef[] | undefined,
-  isInjured?: (ref: PlayerRef) => boolean,
+  repair?: { roster: Record<number, Player>; clubSquadIds: number[] },
 ): RawTeamInput {
   if (!squad || squad.length !== 23) return team;
-  if (isInjured && squad.some(ref => isInjured(ref))) return team;
+
+  let workingSquad = squad;
+
+  if (repair) {
+    const repaired = repairForInjuries(squad, repair.roster, repair.clubSquadIds);
+    if (repaired) workingSquad = repaired;
+  }
 
   const all: RawPlayer[] = [
     ...(team.players as RawPlayer[]),
@@ -51,7 +59,7 @@ export function applyMatchdaySquad(
   const used = new Set<string>();
 
   for (let i = 0; i < 23; i++) {
-    const ref = squad[i];
+    const ref = workingSquad[i];
     const key = nameKey(ref);
     const found = byName.get(key);
     if (!found) return team;
@@ -64,6 +72,39 @@ export function applyMatchdaySquad(
 
   const remaining = all.filter(p => !used.has(nameKey(p)));
   return { ...team, players: starters, bench, squad: remaining };
+}
+
+// Maps a PlayerRef[] to rosterIds via the club roster, runs the autoSelect
+// repair pass, and maps back to PlayerRef[]. Returns null when the saved
+// squad has no injured players (caller can skip the repair) or when name
+// resolution fails (caller falls back to the unrepaired squad — the outer
+// seat loop then handles "player not found" with a clean bail-out).
+function repairForInjuries(
+  squad: PlayerRef[],
+  roster: Record<number, Player>,
+  clubSquadIds: number[],
+): PlayerRef[] | null {
+  const idByName = new Map<string, number>();
+  for (const rid of clubSquadIds) {
+    const p = roster[rid];
+    if (p) idByName.set(nameKey(p), rid);
+  }
+
+  const currentIds: number[] = [];
+  let hasInjured = false;
+  for (const ref of squad) {
+    const rid = idByName.get(nameKey(ref));
+    if (rid === undefined) return null;
+    currentIds.push(rid);
+    if (roster[rid]?.injury) hasInjured = true;
+  }
+  if (!hasInjured) return null;
+
+  const repairedIds = repairInjuredMatchdaySquad(currentIds, roster, clubSquadIds);
+  return repairedIds.map(rid => {
+    const p = roster[rid];
+    return { firstName: p.firstName, lastName: p.lastName };
+  });
 }
 
 // Convenience: build an `isInjured` predicate over a GameState's career

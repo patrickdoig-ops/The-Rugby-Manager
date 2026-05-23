@@ -53,7 +53,7 @@ import type { TeamJson }           from './team/teamProfile';
 import { applyStarBoost }          from './team/applyStarBoost';
 import { GameCoordinator }         from './game/GameCoordinator';
 import { extractMatchdaySquad }    from './game/playerSquad';
-import { buildTeamFromRoster }     from './game/rosterTeamBuilder';
+import { buildTeamFromRoster, buildAutoSelectedTeamFromRoster } from './game/rosterTeamBuilder';
 import { snapshotMatch }           from './game/seasonStatsCollector';
 import { SEASON_VALUES }           from './engine/balance';
 import { generateSeed }            from './utils/rng';
@@ -226,8 +226,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // (color, name, stadium, suggestedTactics) still comes from the JSON
     // passed in by HubScreen.
     const state = gameEngine.getState();
-    const rosteredHome = buildTeamFromRoster(state, homeTeam);
-    const rosteredAway = buildTeamFromRoster(state, awayTeam);
+    // Human side comes through buildTeamFromRoster so PreMatchScreen can
+    // layer the manager's curated matchdaySquad on top (with surgical
+    // injury repair). AI side comes through buildAutoSelectedTeamFromRoster
+    // so the opponent always fields its best 23 by OVR-per-position —
+    // re-derived every match week from the current roster.
+    const rosteredHome = playerSide === 'home'
+      ? buildTeamFromRoster(state, homeTeam)
+      : buildAutoSelectedTeamFromRoster(state, homeTeam);
+    const rosteredAway = playerSide === 'away'
+      ? buildTeamFromRoster(state, awayTeam)
+      : buildAutoSelectedTeamFromRoster(state, awayTeam);
     initPreMatchScreen(
       rosteredHome,
       rosteredAway,

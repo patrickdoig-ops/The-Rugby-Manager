@@ -11,7 +11,7 @@ import { computeOverallRating } from '../team/teamProfile';
 import { sortStandings } from '../game/leagueTable';
 import { recentForm, headToHead, matchSpread, formAdjustment, HOME_ADVANTAGE_PTS, type FormResult } from '../game/teamStats';
 import { applyMatchdaySquad, makeInjuredPredicate } from '../game/playerSquad';
-import { buildTeamFromRoster } from '../game/rosterTeamBuilder';
+import { buildTeamFromRoster, buildAutoSelectedTeamFromRoster } from '../game/rosterTeamBuilder';
 import type { GameCoordinator } from '../game/GameCoordinator';
 
 type RawPlayer = {
@@ -230,24 +230,26 @@ export function initPreMatchScreen(
 
   // Both teams come from the persistent career roster so aging /
   // signings / academy intake / injuries all reflect their current
-  // state on the matchday squad. buildTeamFromRoster sorts injured
-  // players to the wider squad so the auto-built 23 are all fit.
+  // state on the matchday squad.
   //
-  // The human side additionally gets applyMatchdaySquad on top of the
-  // roster-based base so the manager's curated lineup overrides the
-  // auto-build — with an injury-aware predicate that falls back to the
-  // auto-build when a saved-squad selection is now unavailable. The AI
-  // opponent has no equivalent curation; the buildTeamFromRoster order
-  // is what runs out.
+  // The AI opponent uses buildAutoSelectedTeamFromRoster: every match
+  // week it re-derives the best 23 by OVR-per-position from the club's
+  // current roster (src/game/autoSelect.ts).
+  //
+  // The human side gets applyMatchdaySquad on top of buildTeamFromRoster
+  // so the manager's curated lineup overrides the auto-build — with the
+  // `repair` arg surgically swapping any injured saved-squad slots for
+  // the best same-position replacement, fit slots locked in place.
   const humanTeamJson = playerSide === 'home' ? home : away;
   const oppTeamJson   = playerSide === 'home' ? away : home;
   const humanRosterBased = buildTeamFromRoster(state, humanTeamJson);
-  const oppRosterBased   = buildTeamFromRoster(state, oppTeamJson);
+  const oppRosterBased   = buildAutoSelectedTeamFromRoster(state, oppTeamJson);
   const club = state.career.clubs.find(c => c.id === humanTeamJson.id);
-  const isInjured = club ? makeInjuredPredicate(state.career.roster, club.squad) : undefined;
-  const humanApplied = applyMatchdaySquad(humanRosterBased, savedSquad, isInjured);
+  const repair = club ? { roster: state.career.roster, clubSquadIds: club.squad } : undefined;
+  const humanApplied = applyMatchdaySquad(humanRosterBased, savedSquad, repair);
   // Names of the injured players in the saved squad — used to render the
   // "X out injured" banner below. Empty if savedSquad is clean or absent.
+  const isInjured = club ? makeInjuredPredicate(state.career.roster, club.squad) : undefined;
   const injuredSavedRefs = (savedSquad && isInjured)
     ? savedSquad.filter(ref => isInjured(ref))
     : [];

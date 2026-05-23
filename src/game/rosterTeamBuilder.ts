@@ -18,6 +18,7 @@
 import type { GameState } from '../types/gameState';
 import type { Player } from '../types/player';
 import type { RawPlayer, RawTeamInput } from '../types/teamData';
+import { selectBestMatchdaySquad } from './autoSelect';
 
 export function buildTeamFromRoster(state: GameState, teamJson: RawTeamInput): RawTeamInput {
   const club = state.career.clubs.find(c => c.id === teamJson.id);
@@ -35,6 +36,42 @@ export function buildTeamFromRoster(state: GameState, teamJson: RawTeamInput): R
     else fit.push(rid);
   }
   const ordered = [...fit, ...injured];
+
+  const rosterPlayers = ordered.map((rid, idx) => {
+    const p = state.career.roster[rid];
+    if (!p) return null;
+    return rawFromRosterPlayer(p, idx + 1);
+  }).filter((p): p is RawPlayer => p !== null);
+
+  return {
+    ...teamJson,
+    players: rosterPlayers.slice(0, 15),
+    bench:   rosterPlayers.slice(15, 23),
+    squad:   rosterPlayers.slice(23),
+  };
+}
+
+// Auto-selected variant: orders the matchday 23 by best-OVR-per-position
+// using src/game/autoSelect.ts. Slots 24+ (wider squad) hold every other
+// roster member in club.squad order. Used by the silent AI fixture path
+// so AI teams always field their strongest available 23, with positional
+// cover honoured by the SLOT_SPECS table.
+//
+// Falls back to buildTeamFromRoster if the club has fewer than 23 fit
+// players (selectBestMatchdaySquad returns a short list in that case).
+export function buildAutoSelectedTeamFromRoster(
+  state: GameState,
+  teamJson: RawTeamInput,
+): RawTeamInput {
+  const club = state.career.clubs.find(c => c.id === teamJson.id);
+  if (!club) return teamJson;
+
+  const selected = selectBestMatchdaySquad(state.career.roster, club.squad);
+  if (selected.length !== 23) return buildTeamFromRoster(state, teamJson);
+
+  const used = new Set(selected);
+  const remaining = club.squad.filter(rid => !used.has(rid));
+  const ordered = [...selected, ...remaining];
 
   const rosterPlayers = ordered.map((rid, idx) => {
     const p = state.career.roster[rid];

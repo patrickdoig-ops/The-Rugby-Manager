@@ -11,7 +11,7 @@ import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForw
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
-import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnThreshold, INJURY, INJURY_KIND_WEIGHTS, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS } from '../balance';
+import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, INJURY, INJURY_KIND_WEIGHTS, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 
 const FULL_BACKLINE = 7;  // jersey ids 9–15
@@ -77,7 +77,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   const missingBacks = FULL_BACKLINE - availableBacks(defendTeam, state, defSide).length;
   const shortHandedMod = missingBacks * SHORT_HANDED.missingBackDefendPenalty;
 
-  if (carrier.currentStats.handling + rng(1, 100) < knockOnThreshold(carrier.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
+  if (rng(1, 100) <= knockOnPct(carrier.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
     events.push({ type: 'KNOCK_ON', player: carrier, attackSide });
     const koSteps: NarrationStep[] = [
       { kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'knock_on', primary: carrier, secondary: defender },
@@ -130,7 +130,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
       wideIntroSteps = [{ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'out_the_back', primary: carrier, secondary: flyHalf }];
 
       // Fly half handling gate (pressureMod lifts the threshold vs blitz)
-      if (flyHalf.currentStats.handling + rng(1, 100) < knockOnThreshold(flyHalf.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
+      if (rng(1, 100) <= knockOnPct(flyHalf.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
         events.push({ type: 'KNOCK_ON', player: flyHalf, attackSide });
         const koSteps: NarrationStep[] = [
           ...wideIntroSteps,
@@ -155,7 +155,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
     if (carrier.id === 10) {
       wideIntroSteps = [{ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'out_the_back', primary: flyHalf, secondary: outsideBack }];
     }
-    if (outsideBack.currentStats.handling + rng(1, 100) < knockOnThreshold(outsideBack.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
+    if (rng(1, 100) <= knockOnPct(outsideBack.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
       events.push({ type: 'KNOCK_ON', player: outsideBack, attackSide });
       const koSteps: NarrationStep[] = [
         ...wideIntroSteps,

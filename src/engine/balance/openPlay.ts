@@ -8,17 +8,24 @@ export const HARD_CARRY_THRESHOLDS = {
   wide_wide:     50,
 } as const;
 
+// Quadratic handling gate. Per-check KO probability = gap² / 100, where
+// gap = max(0, zeroRiskHandling − handling). Above zeroRiskHandling the
+// rate is identically zero — elite playmakers don't drop clean ball. Below,
+// the gap squared means moderate handlers (75–80) stay safe and only
+// genuinely poor handlers cluster the misses. Capped at maxKnockOnPct so
+// a heavily fatigued forward doesn't spill every other carry. clockInRed
+// adds a flat percentage-point bump — late-game tired hands.
 export const HANDLING_GATE = {
-  baseThreshold:   85,
-  clockInRedScale: 0.4,
-  maxThreshold:    99,
+  zeroRiskHandling: 85,
+  maxKnockOnPct:    40,
+  clockInRedBonus:  3,
 } as const;
 
-export function knockOnThreshold(handling: number, clockInTheRed: boolean): number {
+export function knockOnPct(handling: number, clockInTheRed: boolean): number {
   const g = HANDLING_GATE;
-  return clockInTheRed
-    ? Math.min(g.maxThreshold, g.baseThreshold + Math.round(Math.max(0, g.baseThreshold - handling) * g.clockInRedScale))
-    : g.baseThreshold;
+  const gap = Math.max(0, g.zeroRiskHandling - handling);
+  const base = (gap * gap) / 20;
+  return Math.min(g.maxKnockOnPct, clockInTheRed ? base + g.clockInRedBonus : base);
 }
 
 // Tactics-weighted lateral spread when a carry crosses the try line.

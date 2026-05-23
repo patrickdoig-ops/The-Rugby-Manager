@@ -83,7 +83,7 @@ export const TACTIC_MODIFIERS = {
   //    aim at behind the rush; drift cover sits deeper and shrinks that
   //    space. Pct points added to res.touchProbability in handleTacticalKick.
   defensiveLineKickProbMod:   { blitz: 10, hybrid: 0, drift: -5 },
-  // 7. Handling-gate pressure — pct points added to knockOnThreshold at
+  // 7. Handling-gate pressure — pct points added to knockOnPct at
   //    every pass site in OpenPlayEvent / FirstPhaseEvent. Blitz hurries
   //    the receiver onto the ball; drift gives the receiver time. Lifts
   //    knock-on rate uniformly across the carrier / fly-half / outside-back

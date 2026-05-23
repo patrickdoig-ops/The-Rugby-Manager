@@ -9,7 +9,7 @@ import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForw
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
-import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnThreshold, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS } from '../balance';
+import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 
 const FULL_BACKLINE = 7;
@@ -69,7 +69,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   const missingBacks = FULL_BACKLINE - availableBacks(defendTeam, state, defSide).length;
   const shortHandedMod = missingBacks * SHORT_HANDED.missingBackDefendPenalty;
 
-  if (carrier.currentStats.handling + rng(1, 100) < knockOnThreshold(carrier.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
+  if (rng(1, 100) <= knockOnPct(carrier.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
     events.push({ type: 'KNOCK_ON', player: carrier, attackSide });
     const defender = defendOnField.length > 0 ? defendOnField[rng(0, defendOnField.length - 1)] : randomPlayer(defendTeam);
     const koSteps: NarrationStep[] = [
@@ -124,7 +124,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       }
     }
 
-    if (insideCentre.currentStats.handling + rng(1, 100) < knockOnThreshold(insideCentre.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
+    if (rng(1, 100) <= knockOnPct(insideCentre.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
       events.push({ type: 'KNOCK_ON', player: insideCentre, attackSide });
       const koSteps: NarrationStep[] = [
         ...playIntroSteps,
@@ -195,7 +195,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       }
     }
 
-    if (outsideCentre.currentStats.handling + rng(1, 100) < knockOnThreshold(outsideCentre.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
+    if (rng(1, 100) <= knockOnPct(outsideCentre.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
       events.push({ type: 'KNOCK_ON', player: outsideCentre, attackSide });
       const koSteps: NarrationStep[] = [
         ...playIntroSteps,
@@ -241,7 +241,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       }
     }
 
-    if (wing.currentStats.handling + rng(1, 100) < knockOnThreshold(wing.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
+    if (rng(1, 100) <= knockOnPct(wing.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
       events.push({ type: 'KNOCK_ON', player: wing, attackSide });
       const koSteps: NarrationStep[] = [
         ...playIntroSteps,

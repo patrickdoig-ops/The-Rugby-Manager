@@ -27,6 +27,7 @@ export type PhaseOutcomeKey =
   // BoxKick
   | 'attack_retain' | 'defend_knock_on'
   | 'defend_catch_contested' | 'defend_catch'
+  | 'box_kick_to_touch'
   // TacticalKick
   | 'good_kick' | 'out_on_the_full' | 'fifty_twenty_two' | 'kick_caught'
   | 'fifty_twenty_two_attempt_failed_touch' | 'fifty_twenty_two_attempt_failed_caught'

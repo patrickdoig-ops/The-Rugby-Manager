@@ -57,14 +57,14 @@ export const FAMILY_WEIGHTS: Record<Zone, Record<Plan, Record<Family, number>>> 
 
 // Kicker selection within a family. #9 = scrum half (box kick); #10 = fly
 // half (tactical kick path). Percent likelihood of #9 taking the kick.
-// Stage B values — held intentionally low because box kicks rarely find
-// touch in the current resolver (Stage E adds the long-and-off path) so
-// every #9 kick is a contestable that tends to spawn a KickReturn and
-// risk ping-pong chains. When Stage E lands, lift clearance to ~75 and
-// territory to ~70 to match real-world #9 dominance in those families.
+// Modern real-world #9s take ~70% of clearance and ~65% of territorial
+// kicks. The Stage E touch-finder path (BoxKickResolver's goes_to_touch
+// outcome) means long-and-off clearances now end at Lineout instead of
+// spawning KickReturns, so the #9 routing can match real-world dominance
+// without ping-pong inflating total kick volume.
 export const SCRUM_HALF_KICKER_PCT: Record<Family, number> = {
-  clearance: 25,
-  territory: 20,
+  clearance: 50,
+  territory: 40,
   fifty_22:  40,  // either kicker can pull it off
   attacking:  0,  // always #10 — cross-field / grubber / chip is fly-half territory
 };

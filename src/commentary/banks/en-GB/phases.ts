@@ -350,6 +350,11 @@ const BOX_KICK: PhaseBank = {
     '{secondary} outjumps the fullback — {primary}\'s box kick pays off! {side} keep the ball.',
     'What a chase from {secondary}! The ball is claimed and {side} stay in possession!',
   ],
+  box_kick_to_touch: [
+    'Lovely touch-finder from {primary} — deep into opposition territory.',
+    '{primary} angles the box kick into touch — pressure off, territory gained.',
+    'Smart exit from {primary} — finds touch and the danger is cleared.',
+  ],
   defend_knock_on: [
     '{secondary} chases hard and forces the fumble — knock-on! Scrum to {side}.',
     '{secondary} gets right under the kick — the ball is spilled! Scrum to {side}.',

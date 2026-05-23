@@ -15,7 +15,11 @@ export function handleBoxKick({ state, attackTeam, defendTeam, randomPlayer }: P
   const fullback   = defendTeam.players.find(p => p.id === 15) ?? randomPlayer(defendTeam);
   const backfield = defendTeam.tactics.backfieldDefence;
   const fullbackMod = TACTIC_MODIFIERS.boxKickFullbackBonus[backfield];
-  const res = resolveBoxKick(scrumHalf, winger, fullback, fullbackMod);
+  // KickDecisionDirector's clearance sub-choice (long_and_on vs
+  // long_and_off) routes through state.pendingKick. Only used by the
+  // touch-finder branch in the resolver; other families ignore it.
+  const clearanceStyle = state.pendingKick?.family === 'clearance' ? state.pendingKick.clearanceStyle : undefined;
+  const res = resolveBoxKick(scrumHalf, winger, fullback, fullbackMod, clearanceStyle);
 
   const events: MatchEvent[] = [
     { type: 'KICK_FROM_HAND', kicker: scrumHalf, metres: res.distance },
@@ -24,6 +28,18 @@ export function handleBoxKick({ state, attackTeam, defendTeam, randomPlayer }: P
 
   const attackSide = state.possession;
   const defSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
+
+  if (res.outcome === 'goes_to_touch') {
+    // Long-and-off clearance found touch. Opposition gets the lineout
+    // throw, but the kicking team has cleared the danger zone.
+    events.push({ type: 'POSSESSION_SWAPPED' });
+    return {
+      nextPhase: MatchPhase.Lineout,
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.BoxKick, key: 'box_kick_to_touch', primary: scrumHalf }] },
+      primaryPlayer: scrumHalf,
+      events,
+    };
+  }
 
   if (res.outcome === 'attack_retain') {
     events.push({ type: 'KICK_RETURN_CARRIER_SET', player: winger });

@@ -27,8 +27,8 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
       const home = findOrCreate(state.league.standings, event.result.homeId);
       const away = findOrCreate(state.league.standings, event.result.awayId);
       const margin = event.result.homeScore - event.result.awayScore;
-      applyToSide(home, event.result.homeScore, event.result.awayScore, margin);
-      applyToSide(away, event.result.awayScore, event.result.homeScore, -margin);
+      applyToSide(home, event.result.homeScore, event.result.awayScore, event.result.homeTries, margin);
+      applyToSide(away, event.result.awayScore, event.result.homeScore, event.result.awayTries, -margin);
       return;
     }
     case 'WEEK_ADVANCED': {
@@ -393,7 +393,7 @@ function findOrCreate(standings: TeamStanding[], teamId: string): TeamStanding {
   return s;
 }
 
-function applyToSide(s: TeamStanding, pf: number, pa: number, margin: number): void {
+function applyToSide(s: TeamStanding, pf: number, pa: number, tries: number, margin: number): void {
   s.played += 1;
   s.pointsFor += pf;
   s.pointsAgainst += pa;
@@ -409,7 +409,13 @@ function applyToSide(s: TeamStanding, pf: number, pa: number, margin: number): v
     s.leaguePoints += LEAGUE_POINTS.loss;
     if (-margin <= LEAGUE_POINTS.losingBonusThreshold) {
       s.leaguePoints += LEAGUE_POINTS.losingBonusPoints;
+      s.losingBonus += 1;
     }
+  }
+  // Try bonus is independent of the result — a 4-try loss still earns it.
+  if (tries >= LEAGUE_POINTS.tryBonusThreshold) {
+    s.leaguePoints += LEAGUE_POINTS.tryBonusPoints;
+    s.tryBonus += 1;
   }
 }
 

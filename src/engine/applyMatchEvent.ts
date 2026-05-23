@@ -151,14 +151,14 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
 
     case 'SIN_BIN_RETURNED': {
       const bin = state.cards.sinBin[event.side];
-      const idx = bin.findIndex(e => e.player.id === event.player.id);
+      const idx = bin.findIndex(e => e.player === event.player);
       if (idx >= 0) bin.splice(idx, 1);
       return;
     }
 
     case 'RED_20_EXPIRED': {
       const bin = state.cards.sinBin[event.side];
-      const idx = bin.findIndex(e => e.player.id === event.player.id);
+      const idx = bin.findIndex(e => e.player === event.player);
       if (idx >= 0) bin.splice(idx, 1);
       state.cards.sentOff[event.side].push(event.player);
       return;
@@ -198,7 +198,7 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       // the teardown severity roll can read it; we don't overwrite the
       // first injury kind if a duplicate sneaks through.
       const bucket = state.cards.injured[event.side];
-      if (!bucket.some(p => p.id === event.player.id)) {
+      if (!bucket.some(p => p === event.player)) {
         bucket.push(event.player);
       }
       if (!event.player.pendingInjuryKind) {
@@ -419,11 +419,16 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       // counts them against the team's strength. Same shape for an injury
       // forced sub: the off player came from cards.injured, drop them so
       // the new on-field player at this slot isn't filtered out.
+      //
+      // Match by reference, not by `id`: the line above reassigns `on.id =
+      // off.id`, and a second sub at the same slot would otherwise match
+      // an unrelated bin entry with the same numeric id. Player object
+      // identity is the only safe key here.
       const sentOff = state.cards.sentOff[event.teamSide];
-      const sentIdx = sentOff.findIndex(p => p.id === off.id);
+      const sentIdx = sentOff.findIndex(p => p === off);
       if (sentIdx >= 0) sentOff.splice(sentIdx, 1);
       const injured = state.cards.injured[event.teamSide];
-      const injIdx = injured.findIndex(p => p.id === off.id);
+      const injIdx = injured.findIndex(p => p === off);
       if (injIdx >= 0) injured.splice(injIdx, 1);
       return;
     }
@@ -439,6 +444,10 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
 
     case 'FIRST_HALF_KICKER_SET':
       state.engine.firstHalfKicker = event.side;
+      return;
+
+    case 'COMMENTARY_BUFFER_CAP_SET':
+      state.engine.commentaryBufferCap = event.value;
       return;
 
     // ── Ratings ─────────────────────────────────────────────────────────

@@ -27,7 +27,7 @@
 .lt-head,
 .lt-row {
   display: grid;
-  grid-template-columns: 22px 22px 1fr 22px 22px 22px 22px 30px 32px 76px;
+  grid-template-columns: 22px 22px 1fr 22px 22px 22px 22px 30px 22px 32px 76px;
   align-items: center;
   gap: 5px;
   padding: 8px 8px;

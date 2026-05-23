@@ -25,6 +25,12 @@ export const LEAGUE_POINTS = {
   win: 4,
   draw: 2,
   loss: 0,
-  losingBonusThreshold: 7,  // margin ≤ 7 → losing bonus
+  // Gallagher Premiership bonus points:
+  //   tryBonus    — scored ≥ 4 tries in the match (regardless of result)
+  //   losingBonus — lost by 7 match-points or fewer
+  // Both stack: a team that loses by 7 but scores 4 tries gets 2 BP.
+  tryBonusThreshold: 4,
+  tryBonusPoints: 1,
+  losingBonusThreshold: 7,
   losingBonusPoints: 1,
 } as const;

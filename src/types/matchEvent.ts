@@ -144,6 +144,7 @@ export type MatchEvent =
   | { type: 'IS_RUNNING_SET'; value: boolean }
   | { type: 'TICK_DELAY_SET'; value: number }
   | { type: 'FIRST_HALF_KICKER_SET'; side: PossessionSide }
+  | { type: 'COMMENTARY_BUFFER_CAP_SET'; value: number }
 
   // ── Ratings (derived from matchStats) ────────────────────────────────────
   | { type: 'RATINGS_RECALCULATED' }

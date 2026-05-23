@@ -63,6 +63,7 @@ function standingsRow(
     if (!r) return `<span class="lt-fp lt-fp--empty">–</span>`;
     return `<span class="lt-fp lt-fp--${r.toLowerCase()}">${r}</span>`;
   }).join('');
+  const bonusPoints = s.tryBonus + s.losingBonus;
   return `
     <div class="${classes.join(' ')}">
       <span class="lt-rank">${rank}</span>
@@ -73,6 +74,7 @@ function standingsRow(
       <span class="lt-num">${s.drawn}</span>
       <span class="lt-num">${s.lost}</span>
       <span class="lt-num">${diff}</span>
+      <span class="lt-num" title="Bonus points (try bonuses ${s.tryBonus} · losing bonuses ${s.losingBonus})">${bonusPoints}</span>
       <span class="lt-pts">${s.leaguePoints}</span>
       <span class="lt-form">${formHtml}</span>
     </div>
@@ -136,6 +138,7 @@ export function initLeagueTableScreen(
           <span class="lt-num" title="Drawn">D</span>
           <span class="lt-num" title="Lost">L</span>
           <span class="lt-num" title="Points difference">PD</span>
+          <span class="lt-num" title="Bonus points (try + losing)">B</span>
           <span class="lt-pts" title="League points">Pts</span>
           <span class="lt-form" title="Last 5 results">Form</span>
         </div>

@@ -32,6 +32,12 @@ export interface FixtureResult {
   awayId: string;
   homeScore: number;
   awayScore: number;
+  // Per-side try counts. Needed for try-bonus determination (4+ tries
+  // → +1 LP). Optional shape on the type would tempt callers to forget
+  // them, so they're required and v10-era saves backfill with 0 on load
+  // (see SaveManager).
+  homeTries: number;
+  awayTries: number;
   playerSide: 'home' | 'away' | null;
 }
 
@@ -44,6 +50,12 @@ export interface TeamStanding {
   pointsFor: number;
   pointsAgainst: number;
   pointsDiff: number;
+  // Bonus-point counters surfaced in the league table column. tryBonus
+  // and losingBonus both already roll into leaguePoints inside applyToSide;
+  // these fields are the running totals so the UI can display them
+  // without re-deriving from results history.
+  tryBonus: number;
+  losingBonus: number;
   leaguePoints: number;
 }
 
@@ -267,6 +279,8 @@ export function zeroStanding(teamId: string): TeamStanding {
     pointsFor: 0,
     pointsAgainst: 0,
     pointsDiff: 0,
+    tryBonus: 0,
+    losingBonus: 0,
     leaguePoints: 0,
   };
 }

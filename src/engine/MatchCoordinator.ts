@@ -233,7 +233,7 @@ export class MatchCoordinator {
     const tactics = opts.playerTactics ?? opts.homeTactics;
     this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, seed, tactics, this.humanSide);
     if (opts.commentaryBufferCap !== undefined) {
-      this.state.engine.commentaryBufferCap = opts.commentaryBufferCap;
+      applyMatchEvent(this.state, { type: 'COMMENTARY_BUFFER_CAP_SET', value: opts.commentaryBufferCap });
     }
     this.clock = new ClockController(this.silent);
     this.fatigue = new FatigueAccumulator(this.state, this.silent);

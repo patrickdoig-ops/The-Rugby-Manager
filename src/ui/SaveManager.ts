@@ -46,8 +46,8 @@ import { zeroTeamSeasonStats } from '../types/gameState';
 import type { TeamTactics } from '../types/team';
 
 const SAVE_KEY = 'rugby-manager-save';
-const SAVE_VERSION = 10;
-const ACCEPTED_VERSIONS = new Set([10, 9, 8, 7, 6, 5, 4, 3, 2]);
+const SAVE_VERSION = 11;
+const ACCEPTED_VERSIONS = new Set([11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
 
 export type SavedGame = SavedSeason & { version: number };
 
@@ -103,6 +103,9 @@ export function loadSave(): SavedSeason | null {
       playerTeamId: parsed.playerTeamId,
       seed: parsed.seed >>> 0,
       currentWeek: parsed.currentWeek,
+      // v11 adds homeTries/awayTries for the bonus-points system. Pre-v11
+      // saves default to 0 — those rounds were played without try-bonus
+      // tracking, so we don't fabricate retroactive bonuses.
       results: parsed.results.map(r => ({
         round: r.round,
         homeId: r.homeId,
@@ -110,6 +113,8 @@ export function loadSave(): SavedSeason | null {
         playerSide: r.playerSide ?? null,
         homeScore: r.homeScore,
         awayScore: r.awayScore,
+        homeTries: typeof r.homeTries === 'number' ? r.homeTries : 0,
+        awayTries: typeof r.awayTries === 'number' ? r.awayTries : 0,
       } satisfies SavedSeasonResult)),
       ...(parsed.seasonLabel !== undefined ? { seasonLabel: parsed.seasonLabel } : {}),
       ...(fixtures !== undefined ? { fixtures } : {}),

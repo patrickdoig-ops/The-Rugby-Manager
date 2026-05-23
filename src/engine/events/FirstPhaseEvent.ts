@@ -5,37 +5,27 @@ import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
-import { attackDir, isTryScoredAt, inOwnHalf, inOwn22, onFieldPlayers, availableBacks, availableForwards } from '../FieldPosition';
+import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards } from '../FieldPosition';
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
-import { HOME_ADVANTAGE, KICK_PROBABILITIES, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnThreshold, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS } from '../balance';
+import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnThreshold, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS } from '../balance';
+import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 
 const FULL_BACKLINE = 7;
 
 export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, pickPlayer }: PhaseContext): PhaseResult {
-  // Step 0 — Kick or carry decision
-  const plan = attackTeam.tactics.attackingGamePlan;
-  const probs = KICK_PROBABILITIES[plan];
-  const kickProb = inOwn22(state) ? probs.own22 : (inOwnHalf(state) ? probs.ownHalf : probs.opposition);
+  const attackSide = state.possession;
+  const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
 
-  if (rng(1, 100) <= kickProb) {
-    const flyHalf = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
-    return {
-      nextPhase: MatchPhase.TacticalKick,
-      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'kick_decision' }] },
-      primaryPlayer: flyHalf,
-      events: [
-        { type: 'KICK_RETURN_CARRIER_SET', player: undefined },
-        { type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 },
-      ],
-    };
+  // Step 0 — Kick or carry decision (see KickDecisionDirector)
+  const decision = decideKick({ state, attackTeam, attackOnField });
+  if (decision.kick) {
+    return buildKickTransition(decision, MatchPhase.FirstPhase);
   }
 
   // Step 1 — Carrier is always #10 (fly-half); handling gate
-  const attackSide = state.possession;
   const defSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
-  const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
   const defendOnField = onFieldPlayers(defendTeam, state, defSide);
   const carrier   = attackOnField.find(p => p.id === 10) ?? pickPlayer(attackTeam, 10);
   const scrumHalf = attackOnField.find(p => p.id === 9) ?? attackOnField[0] ?? attackTeam.players[0];

@@ -1,23 +1,7 @@
 import { eventBus } from '../utils/eventBus';
-import { MatchPhase } from '../types/engine';
 import { CLOCK_VALUES } from '../engine/balance';
 import { teamTextColor } from '../utils/teamColor';
-
-function phaseClass(phase: MatchPhase): string {
-  switch (phase) {
-    case MatchPhase.TryScored:                              return 'phase-try';
-    case MatchPhase.Penalty:                                return 'phase-penalty';
-    case MatchPhase.Scrum:                                  return 'phase-scrum';
-    case MatchPhase.Lineout:
-    case MatchPhase.BoxKick:
-    case MatchPhase.TacticalKick:
-    case MatchPhase.KickOff:
-    case MatchPhase.ConversionKick:                         return 'phase-kick';
-    case MatchPhase.HalfTime:
-    case MatchPhase.FullTime:                               return 'phase-terminal';
-    default:                                                return 'phase-play';
-  }
-}
+import { phaseClass } from '../utils/phaseColor';
 
 function applyCrests(
   homeCrest: HTMLElement, awayCrest: HTMLElement,

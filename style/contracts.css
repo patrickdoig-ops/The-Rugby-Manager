@@ -1,6 +1,4 @@
-/* Contracts screen — squad list with wage / expiry / marquee.
-   Layout per docs/mockups/10-ContractsScreen.html: two-line player cards,
-   dedicated cap-bar section, drop-down sort panel. */
+/* Contracts screen — squad list with wage / expiry / marquee. */
 
 #contracts {
   position: fixed;

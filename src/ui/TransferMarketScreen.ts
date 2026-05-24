@@ -207,7 +207,7 @@ export function initTransferMarketScreen(
     };
 
     const isPreSeason = mode === 'signings-preseason';
-    const title = isPreSeason ? 'Pre-Season Signings' : 'Transfer Market';
+    const title = isPreSeason ? 'Pre-Season' : 'Transfer Market';
     const eyebrowText = isPreSeason
       ? `${team.name} · ${freeAgentRows.length} free agents · build your squad for Round 1`
       : `${team.name} · ${freeAgentRows.length} free agents · ${poachRows.length} approachable`;

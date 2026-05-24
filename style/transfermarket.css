@@ -47,6 +47,23 @@
   padding: 8px 16px;
 }
 
+/* Narrow viewport: compress columns so the NAME cell stays wide enough
+ * to render the player's name. Without this the fixed POS/AGE/OVR/WAGE
+ * + ACTION widths leave ~8px for NAME on a 390px iPhone, truncating it
+ * to a single initial. */
+@media (max-width: 480px) {
+  #tm-headrow,
+  .tm-row {
+    grid-template-columns: minmax(0, 1fr) 26px 26px 26px minmax(64px, 1fr) 72px;
+    gap: 6px;
+    padding: 8px 10px;
+  }
+  .tm-len { display: none; } /* drop "× 1y" suffix — every offer is 1y in pre-season */
+  .tm-sign { padding: 6px 8px; font-size: 9px; letter-spacing: 0.06em; }
+  .tm-name { font-size: 11px; }
+  .tm-wage { font-size: 11px; }
+}
+
 #tm-headrow {
   border-bottom: 1px solid var(--rm-hairline);
   padding-bottom: 10px;

@@ -1,45 +1,61 @@
-/* Screen-root visibility is owned by screenRouter — toggles inline
- * `display: none` (hidden) vs `display: ''` (shown, falls back to
- * browser default `block`). Declaring `display: none` here would
- * make the fallback ALSO `none`, which silently blanks the screen.
- * Match the convention used by every other screen-root rule.
+/* Mode Picker — follows the Team Selector / Team Info hero pattern per
+ * docs/DESIGN.md. Centred hero (crest + chalk title + muted subtitle)
+ * with the back button position-fixed top-left, two stacked cards
+ * below. Team colour is reserved for the crest gradient + glow only;
+ * the team name itself is chalk so pure-black-coloured teams (Exeter)
+ * stay readable against the dark background. Screen-root visibility
+ * is owned by screenRouter — do NOT declare `display: none` here.
  */
+
 #mode-picker {
-  width: 100%;
-  min-height: 100vh;
-  min-height: 100dvh;
-  padding: 16px 16px calc(24px + env(safe-area-inset-bottom)) 16px;
-  box-sizing: border-box;
+  position: fixed;
+  inset: 0;
+  z-index: 250;
   background: var(--rm-bg);
-  color: var(--rm-text);
-  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding:
+    env(safe-area-inset-top, 0px)
+    env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
 }
 
 #mp-back {
-  position: absolute;
-  top: calc(16px + env(safe-area-inset-top));
-  left: 16px;
-  display: inline-flex;
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: calc(env(safe-area-inset-left, 0px) + 16px);
+  z-index: 260;
+  display: flex;
   align-items: center;
   gap: 6px;
-  background: transparent;
+  background: none;
   border: none;
-  color: var(--rm-text-dim);
+  color: var(--rm-text-muted);
+  font-family: var(--rm-font-body);
   font-size: 13px;
   cursor: pointer;
-  padding: 4px 6px;
-  z-index: 2;
+  padding: 6px 0;
+  -webkit-tap-highlight-color: transparent;
 }
-#mp-back:hover { color: var(--rm-text); }
+
+#mp-back svg { pointer-events: none; }
+
+@media (hover: hover) {
+  #mp-back:hover { color: var(--rm-text); }
+}
 
 #mp-inner {
-  max-width: 520px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
-  padding-top: calc(64px + env(safe-area-inset-top));
+  gap: 28px;
+  padding: 60px 20px 32px;
+  width: 100%;
+  max-width: 480px;
 }
 
 #mp-header {
@@ -55,39 +71,43 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  font-family: 'Anton', sans-serif;
-  color: white;
+  font-family: var(--rm-font-display);
+  color: var(--rm-chalk);
   letter-spacing: 0.04em;
   font-size: 38px;
   text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  margin-bottom: 4px;
 }
 
 #mp-eyebrow {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--rm-pitch);
   text-transform: uppercase;
-  color: var(--rm-text-dim);
 }
 
 #mp-title {
-  font-family: 'Anton', sans-serif;
-  font-size: 30px;
-  letter-spacing: 0.02em;
+  font-family: var(--rm-font-display);
+  font-size: clamp(32px, 9vw, 44px);
+  color: var(--rm-chalk);
+  line-height: 0.95;
   margin: 0;
-  color: var(--team-color, var(--rm-text));
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 #mp-subtitle {
-  font-size: 13px;
-  color: var(--rm-text-dim);
+  font-family: var(--rm-font-body);
+  font-size: 14px;
+  color: var(--rm-text-muted);
   margin: 0;
 }
 
 #mp-cards {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   width: 100%;
 }
 
@@ -95,38 +115,45 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 10px;
+  gap: 8px;
   padding: 18px 20px;
-  background: color-mix(in oklch, var(--rm-surface, #1a1d22) 92%, white);
-  border: 1px solid var(--rm-hairline);
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
   border-radius: 12px;
   color: var(--rm-text);
   cursor: pointer;
   text-align: left;
+  box-shadow: var(--rm-card-shadow);
   transition: border-color 0.12s ease, transform 0.12s ease, background 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.mp-card:hover {
-  border-color: color-mix(in oklch, var(--rm-text) 30%, transparent);
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .mp-card:hover {
+    border-color: color-mix(in oklch, var(--rm-pitch) 35%, var(--rm-border-soft));
+    background: var(--rm-surface-2);
+    transform: translateY(-1px);
+  }
 }
 
-.mp-card:active {
-  transform: translateY(0);
-}
+.mp-card:active { transform: translateY(0); }
 
 .mp-card-icon {
-  color: var(--rm-text-dim);
+  color: var(--rm-text-muted);
+  margin-bottom: 2px;
 }
 
 .mp-card-title {
-  font-family: 'Anton', sans-serif;
+  font-family: var(--rm-font-display);
   font-size: 22px;
+  color: var(--rm-chalk);
   letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .mp-card-body {
+  font-family: var(--rm-font-body);
   font-size: 13px;
-  line-height: 1.4;
-  color: var(--rm-text-dim);
+  line-height: 1.45;
+  color: var(--rm-text-muted);
 }

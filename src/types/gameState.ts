@@ -238,13 +238,15 @@ export interface CareerState {
   // them on SEASON_ROLLED_OVER: each agreement turns into a CONTRACT_TERMINATED
   // on the old club + CONTRACT_SIGNED on the new club.
   pendingMoves: PreAgreement[];
-  // Squad Builder mode resumption flag. Set to 'signings' when the
-  // pre-season signing window opens, 'marquee' when that window
-  // closes and the marquee step is pending, undefined otherwise (the
-  // common case — outside Squad Builder, this is always undefined).
-  // continueGame reads this to route the user back to the right
-  // pre-season screen if they closed the tab mid-flow.
-  preSeasonStep?: 'signings' | 'marquee';
+  // Squad Builder mode resumption flag. Set to 'overview' when the
+  // unwind has just applied and the Squad Overview is showing,
+  // 'signings' when the pre-season signing window is open, 'marquee'
+  // when that window has closed and the marquee step is pending,
+  // undefined otherwise (the common case — outside Squad Builder,
+  // this is always undefined). continueGame reads this to route the
+  // user back to the right pre-season screen if they closed the tab
+  // mid-flow.
+  preSeasonStep?: 'overview' | 'signings' | 'marquee';
 }
 
 export interface GameState {
@@ -529,7 +531,7 @@ export type SeasonEvent =
       market?: MarketState | null;
       pendingMoves?: PreAgreement[];
       teamSeasonStats?: Record<string, TeamSeasonStats>;
-      preSeasonStep?: 'signings' | 'marquee';
+      preSeasonStep?: 'overview' | 'signings' | 'marquee';
     }
   | {
       // Persistent injury landed on a roster player. Fired at match
@@ -574,5 +576,5 @@ export type SeasonEvent =
       // a Continue from a closed tab can route the user back to the
       // right pre-season screen. `null` clears the flag (mode complete).
       type: 'PRE_SEASON_STEP_SET';
-      step: 'signings' | 'marquee' | null;
+      step: 'overview' | 'signings' | 'marquee' | null;
     };

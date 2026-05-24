@@ -14,6 +14,7 @@ import '../style/squad.css';
 import '../style/renewals.css';
 import '../style/transfermarket.css';
 import '../style/modepicker.css';
+import '../style/squadoverview.css';
 import '../style/commentary.css';
 import '../style/stats.css';
 import '../style/prematch.css';
@@ -40,6 +41,7 @@ import { initEndOfSeasonScreen, showEndOfSeason }   from './ui/EndOfSeasonScreen
 import { initRenewalsScreen, showRenewals }         from './ui/RenewalsScreen';
 import { initTransferMarketScreen, showTransferMarket, showTransferMarketScouting, showTransferMarketPreSeason } from './ui/TransferMarketScreen';
 import { initModePickerScreen }    from './ui/ModePickerScreen';
+import { initSquadOverviewScreen, showSquadOverview } from './ui/SquadOverviewScreen';
 import { PRE_SEASON_TRANSFERS_2025_26 } from './data/transfers-2025-26';
 import { initRolloverScreen, showRollover }         from './ui/RolloverScreen';
 import { initContractsScreen, showContracts, showContractsMarqueeEdit } from './ui/ContractsScreen';
@@ -166,6 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initRolloverScreen(getGameEngine, allTeams);
     initContractsScreen(getGameEngine, allTeams, goHub);
     initSquadManagementScreen({ getGameEngine, allTeams, onBack: goHub });
+    initSquadOverviewScreen(getGameEngine, allTeams);
 
     // The post-match Continue chain (LeagueTable → ...) reads this flag.
     // GameCoordinator emits game:seasonComplete after the last round's
@@ -216,15 +219,24 @@ document.addEventListener('DOMContentLoaded', () => {
     goHub();
   }
 
-  // Squad Builder: unwind 2025-26 inbound transfers → pre-season
-  // signing window (FA-only) → marquee selection → Hub. Each step
-  // marks state.career.preSeasonStep before saving so a closed tab
-  // resumes at the right screen via continueGame.
+  // Squad Builder: unwind 2025-26 inbound transfers → squad overview
+  // (read-only depth chart) → pre-season signing window (FA-only) →
+  // marquee selection → Hub. Each step marks state.career.preSeasonStep
+  // before saving so a closed tab resumes at the right screen via
+  // continueGame.
   function onSquadBuilder(team: RawTeamInput): void {
     gameEngine = GameCoordinator.newSeason(team.id, generateSeed(), allTeams);
     gameEngine.unwindPreSeasonTransfers(PRE_SEASON_TRANSFERS_2025_26);
     initInSeasonScreens();
-    runPreSeasonSignings();
+    runPreSeasonOverview();
+  }
+
+  function runPreSeasonOverview(): void {
+    if (!gameEngine) return;
+    gameEngine.setPreSeasonStep('overview');
+    saveGame(gameEngine.toSavePayload());
+    showSquadOverview(() => runPreSeasonSignings());
+    screenRouter.show('squad-overview');
   }
 
   function runPreSeasonSignings(): void {
@@ -282,6 +294,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // while the user is between team-selection and Round 1; after marquee
     // Continue the engine clears it via setPreSeasonStep(null).
     const step = gameEngine.getState().career.preSeasonStep;
+    if (step === 'overview') {
+      runPreSeasonOverview();
+      return;
+    }
     if (step === 'signings') {
       runPreSeasonSignings();
       return;

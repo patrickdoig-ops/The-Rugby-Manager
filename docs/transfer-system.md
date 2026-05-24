@@ -419,9 +419,9 @@ The league no longer feels closed. Each rollover, every club graduates 2-4 acade
 
 **Deferred:** rugby league converts, Championship promotions, retiring international stars joining from URC mid-career (individually scriptable later).
 
-### Phase 8 — Squad Builder (pre-season mode) ✅ shipped v2.114a
+### Phase 8 — Squad Builder (pre-season mode) ✅ shipped v2.114a, Overview step added v2.120a
 
-A new-game branch sitting between Team Selector and Hub. Selecting **Squad Builder** instead of **Quick Start** unwinds every 2025-26 inbound transfer that's present in the seeded roster (releasing those players into `state.career.freeAgents`), opens a pre-season signing window so the user — and every AI club — can rebuild their squad, then routes the user to a marquee-selection step before Round 1. Quick Start lands on Hub with the authored rosters / contracts / marquee, identical to the pre-Phase-8 behaviour.
+A new-game branch sitting between Team Selector and Hub. Selecting **Squad Builder** instead of **Quick Start** unwinds every 2025-26 inbound transfer that's present in the seeded roster (releasing those players into `state.career.freeAgents`), surfaces a **Squad Overview** depth chart so the user can see which positions are now thin, opens a pre-season signing window so the user — and every AI club — can rebuild their squad, then routes the user to a marquee-selection step before Round 1. Quick Start lands on Hub with the authored rosters / contracts / marquee, identical to the pre-Phase-8 behaviour.
 
 **Shipped:**
 1. ✅ `src/ui/ModePickerScreen.ts` (v2.111a, Phase A) — two-CTA screen after Team Selector. Back arrow returns to the team grid; either CTA seeds a new `GameCoordinator` for the picked club.
@@ -431,8 +431,9 @@ A new-game branch sitting between Team Selector and Hub. Selecting **Squad Build
 5. ✅ `openSigningWindow({ skipPoaches?: boolean })` + `closeSigningWindow({ skipPoaches?: boolean })` — pre-season passes `true` so the Reg 7 section is suppressed in both the offer set and the AI close pass. At game start ~22% of contracts are in their final 12 months; surfacing those as approachable pre-agreements would be noise.
 6. ✅ `TransferMarketScreen` `signings-preseason` mode (v2.111a) — FA-only render; "Pre-Season Signings" title; otherwise reuses the off-season Sign/Undo flow, cap pill, sort dropdown.
 7. ✅ `ContractsScreen` `marquee-edit` mode via `showContractsMarqueeEdit(onContinue)` (v2.113a) — same list + interactive star toggle, Continue CTA in place of the back arrow, retitled "Choose Your Marquee".
-8. ✅ `CareerState.preSeasonStep?: 'signings' | 'marquee'` + `PRE_SEASON_STEP_SET` season event (v2.113a) — set before each `saveGame` so a closed-tab mid-pre-season resumes at the right screen via `continueGame`. `SAVE_VERSION` bumped to 12; field is optional, so older saves load unchanged.
+8. ✅ `CareerState.preSeasonStep?: 'overview' | 'signings' | 'marquee'` + `PRE_SEASON_STEP_SET` season event (v2.113a, `'overview'` added v2.120a) — set before each `saveGame` so a closed-tab mid-pre-season resumes at the right screen via `continueGame`. `SAVE_VERSION` bumped to 12; field is optional, so older saves load unchanged.
 9. ✅ `TransferCoordinator.repairAIMarquees()` (v2.114a, Phase D) — re-designates the top-wage player as marquee on any AI club whose authored marquee was unwound (skips the user's club — they pick theirs in the marquee step). Called once at the end of `closeSigningWindow`, plus the no-FAs short-circuit path.
+10. ✅ `SquadOverviewScreen` (v2.120a) — read-only depth chart between unwind and signings. Iterates the 9 user-facing position groups from `src/game/positionGroups.ts` (Loose Forwards combined; Utility Back rolled into Centres), shows count + top-2 OVR-banded players per group, flags positions with `count < 2` as "thin" with an amber section accent and a "No depth" placeholder slot. RNG-free read of `state.career.clubs[playerTeamId].squad` post-unwind. Mirrors `RolloverScreen`'s `.app-header` + `.cta-pulse` "Move to Transfer Market" footer per `docs/DESIGN.md`. Shared `positionGroups.ts` module also feeds `SquadManagementScreen`'s filter chips so both screens stay in lockstep.
 
 **Determinism:** Squad Builder consumes more `rngTransfer` budget than Quick Start (one extra signing window) so the two modes hash differently, but each is individually deterministic given the same root seed. The unwind itself is RNG-free.
 

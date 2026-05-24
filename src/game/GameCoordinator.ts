@@ -92,7 +92,7 @@ export interface SavedCareer {
   // v12+: Squad Builder resumption flag. Optional — outside Squad
   // Builder this is always undefined and the field is omitted from the
   // payload, so existing in-season saves stay byte-equivalent.
-  preSeasonStep?: 'signings' | 'marquee';
+  preSeasonStep?: 'overview' | 'signings' | 'marquee';
 }
 
 export interface SavedSeason {
@@ -325,7 +325,7 @@ export class GameCoordinator {
   // Squad Builder resumption flag. Writes go through applySeasonEvent
   // so the mutation boundary holds; the field lives on state.career
   // and is restored via the save layer.
-  setPreSeasonStep(step: 'signings' | 'marquee' | null): void {
+  setPreSeasonStep(step: 'overview' | 'signings' | 'marquee' | null): void {
     applySeasonEvent(this.state, { type: 'PRE_SEASON_STEP_SET', step });
   }
 

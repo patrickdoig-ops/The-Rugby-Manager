@@ -28,6 +28,7 @@ import type { Position, PlayerInjury } from '../types/player';
 import { applyMatchdaySquad, extractMatchdaySquad } from '../game/playerSquad';
 import { buildTeamFromRoster } from '../game/rosterTeamBuilder';
 import { playerOverall } from '../engine/RatingEngine';
+import { POSITION_GROUPS_ORDER, POSITION_TO_GROUP, type PositionGroupId } from '../game/positionGroups';
 import { shortName } from '../utils/playerName';
 import { saveGame } from './SaveManager';
 import { eventBus } from '../utils/eventBus';
@@ -41,42 +42,9 @@ export interface InitSquadManagementOpts {
 
 type Tier = 'starter' | 'bench' | 'squad';
 
-type GroupId =
-  | 'all' | 'props' | 'hooker' | 'locks' | 'looseforwards'
-  | 'scrumhalves' | 'flyhalves' | 'centres' | 'wings' | 'fullbacks';
-
-interface GroupSpec {
-  id: GroupId;
-  label: string;
-}
-
-const GROUPS: GroupSpec[] = [
-  { id: 'all',          label: 'All' },
-  { id: 'props',        label: 'Props' },
-  { id: 'hooker',       label: 'Hooker' },
-  { id: 'locks',        label: 'Locks' },
-  { id: 'looseforwards',label: 'Loose Forwards' },
-  { id: 'scrumhalves',  label: 'Scrum Halves' },
-  { id: 'flyhalves',    label: 'Fly Halves' },
-  { id: 'centres',      label: 'Centres' },
-  { id: 'wings',        label: 'Wings' },
-  { id: 'fullbacks',    label: 'Full Backs' },
-];
-
-const POSITION_GROUPS: Record<Position, GroupId> = {
-  'Prop':          'props',
-  'Hooker':        'hooker',
-  'Lock':          'locks',
-  'Flanker':       'looseforwards',
-  'Number 8':      'looseforwards',
-  'Back Row':      'looseforwards',
-  'Scrum-Half':    'scrumhalves',
-  'Fly-Half':      'flyhalves',
-  'Centre':        'centres',
-  'Wing':          'wings',
-  'Fullback':      'fullbacks',
-  'Utility Back':  'centres',
-};
+type GroupId = PositionGroupId;
+const GROUPS = POSITION_GROUPS_ORDER;
+const POSITION_GROUPS = POSITION_TO_GROUP;
 
 function ovrClass(ovr: number): string {
   if (ovr >= 85) return 'ovr-elite';

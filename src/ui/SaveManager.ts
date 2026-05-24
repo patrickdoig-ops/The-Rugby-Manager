@@ -147,7 +147,7 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
   const pendingMoves = Array.isArray(c.pendingMoves)
     ? (c.pendingMoves as PreAgreement[]).map(m => ({ ...m }))
     : [];
-  const preSeasonStep = c.preSeasonStep === 'signings' || c.preSeasonStep === 'marquee'
+  const preSeasonStep = c.preSeasonStep === 'overview' || c.preSeasonStep === 'signings' || c.preSeasonStep === 'marquee'
     ? c.preSeasonStep
     : undefined;
   return {

@@ -24,7 +24,8 @@ export type ScreenId =
   | 'transfer-market'
   | 'rollover'
   | 'contracts'
-  | 'squad-management';
+  | 'squad-management'
+  | 'squad-overview';
 
 const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'home':          { elId: 'home-screen',   shownDisplay: '' },
@@ -45,6 +46,7 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'rollover':         { elId: 'rollover',         shownDisplay: '' },
   'contracts':        { elId: 'contracts',        shownDisplay: '' },
   'squad-management': { elId: 'squad-management', shownDisplay: '' },
+  'squad-overview':   { elId: 'squad-overview',   shownDisplay: '' },
 };
 
 export const screenRouter = {

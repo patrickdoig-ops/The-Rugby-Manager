@@ -49,6 +49,14 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
 
 export const screenRouter = {
   show(target: ScreenId): void {
+    const targetEl = document.getElementById(SCREENS[target].elId);
+    // Fails loudly if a screen id is in the SCREENS map but the matching
+    // <div id="…"> isn't in the DOM — otherwise screenRouter.show silently
+    // hides every screen, resulting in a blank page (e.g. when a stale
+    // cached index.html is loaded against a newer JS bundle).
+    if (!targetEl) {
+      throw new Error(`screenRouter.show("${target}"): no element with id "${SCREENS[target].elId}" in DOM. Likely a stale cached index.html — try a hard reload.`);
+    }
     for (const id of Object.keys(SCREENS) as ScreenId[]) {
       const cfg = SCREENS[id];
       const el = document.getElementById(cfg.elId);

@@ -89,9 +89,6 @@
         "discipline": 67,
         "positioning": 70,
         "composure": 66
-      },
-      "contract": {
-        "isMarquee": true
       }
     },
     {
@@ -322,6 +319,10 @@
         "discipline": 69,
         "positioning": 86,
         "composure": 71
+      },
+      "contract": {
+        "isMarquee": true,
+        "annualWage": 550000
       }
     },
     {

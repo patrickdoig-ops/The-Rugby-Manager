@@ -175,7 +175,8 @@
         "composure": 71
       },
       "contract": {
-        "isMarquee": true
+        "isMarquee": true,
+        "annualWage": 550000
       }
     },
     {

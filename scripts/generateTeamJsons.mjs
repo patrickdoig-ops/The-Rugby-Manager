@@ -164,6 +164,16 @@ function parseTeamDataMd(md) {
         if (!m) continue;
         const indexHigh = [...m[5].matchAll(/`(\w+)`/g)].map(x => x[1]);
         const isMarquee = /Marquee:\s*yes/i.test(line);
+        // Optional `Wage: £Xm.` or `Wage: £NNNk.` override — used to land
+        // hand-tuned marquee wages above what the formulaic seeder would
+        // produce. Threaded through to the player JSON's `contract.annualWage`,
+        // which contractSeeder honours verbatim.
+        const wageMatch = line.match(/Wage:\s*£([\d.]+)\s*(m|k)\b/i);
+        const annualWage = wageMatch
+          ? (wageMatch[2].toLowerCase() === 'm'
+              ? Math.round(parseFloat(wageMatch[1]) * 1_000_000)
+              : Math.round(parseFloat(wageMatch[1]) * 1_000))
+          : null;
         stars.push({
           name: m[1].trim(),
           position: SIMPLE_FROM_TEAMDATA(m[2]),
@@ -172,6 +182,7 @@ function parseTeamDataMd(md) {
           indexHigh,
           rating: parseInt(m[6], 10),
           isMarquee,
+          annualWage,
         });
       }
     }
@@ -355,11 +366,18 @@ function buildPlayerJson(p, team) {
   const { firstName, lastName } = splitName(p.name);
   const rng = makeRng(hash32(`${team.meta.slug}|${p.name}`));
   const baseStats = genStats(p, team, rng);
-  // Carry the marquee designation through to the JSON so the
-  // contractSeeder (src/game/contractSeeder.ts) marks the player as
-  // cap-excluded at roster-seed time. Only the flag — wage / expiry /
-  // clubId still come from the seeder.
+  // Carry the marquee designation + optional hand-authored wage through
+  // to the JSON. contractSeeder (src/game/contractSeeder.ts) reads the
+  // marquee flag and uses `annualWage` verbatim when present, falling
+  // back to the WAGE_BY_RATING × POSITION_SCARCITY × WAGE_NOISE formula
+  // for everyone else. Expiry / clubId still come from the seeder.
   const marqueeStar = team.stars.find(s => s.name === p.name && s.isMarquee);
+  const contract = marqueeStar
+    ? {
+        isMarquee: true,
+        ...(marqueeStar.annualWage ? { annualWage: marqueeStar.annualWage } : {}),
+      }
+    : null;
   return {
     id: p.id,
     squadNumber: p.id,
@@ -369,7 +387,7 @@ function buildPlayerJson(p, team) {
     nationality: p.nationality || 'England',
     position: p.position,
     baseStats,
-    ...(marqueeStar ? { contract: { isMarquee: true } } : {}),
+    ...(contract ? { contract } : {}),
   };
 }
 

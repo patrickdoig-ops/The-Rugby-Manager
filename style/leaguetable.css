@@ -27,11 +27,19 @@
 .lt-head,
 .lt-row {
   display: grid;
-  grid-template-columns: 22px 22px 1fr 22px 22px 22px 22px 30px 22px 32px 76px;
+  /* Standard view: rank · crest · name · P · W · D · L · PD · B · Pts.
+   * Form column removed — it starved NAME to a single letter on mobile. */
+  grid-template-columns: 22px 22px 1fr 22px 22px 22px 22px 30px 22px 32px;
   align-items: center;
   gap: 5px;
   padding: 8px 8px;
   border-radius: 8px;
+}
+
+/* Form view: rank · crest · name · last-5 pills · form pts. */
+#lt-table[data-mode="form"] .lt-head,
+#lt-table[data-mode="form"] .lt-row {
+  grid-template-columns: 22px 22px 1fr 88px 30px;
 }
 
 .lt-head {
@@ -129,6 +137,47 @@
 
 .lt-row--zone-break {
   border-top: 2px solid color-mix(in oklch, var(--rm-stat-1) 42%, transparent) !important;
+}
+
+/* Standard / Form view toggle — segmented pill control above the table. */
+.lt-toggle {
+  display: flex;
+  gap: 3px;
+  margin: 8px 16px 10px;
+  padding: 3px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 8px;
+}
+
+.lt-toggle__btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 8px 10px;
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.12s, color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lt-toggle__btn:hover {
+  color: var(--rm-text);
+}
+
+.lt-toggle__btn--active {
+  background: color-mix(in oklch, var(--rm-pitch) 22%, transparent);
+  color: var(--rm-pitch);
+}
+
+.lt-toggle__btn--active:hover {
+  color: var(--rm-pitch);
 }
 
 

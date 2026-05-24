@@ -7,18 +7,25 @@
 // a forward "Continue → Hub" CTA in place of the back arrow. Activating
 // or clearing the mode also triggers a re-render so the change is
 // visible immediately rather than waiting on the next `game:*` event.
+//
+// View toggle: 'standard' shows league points (P/W/D/L/PD/B/Pts), 'form'
+// shows last-5 pills sorted by form points (3-1-0). Toggle state is
+// per-session, persists across re-renders.
 
 import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { FixtureResult, TeamStanding } from '../types/gameState';
 import { sortStandings } from '../game/leagueTable';
-import { recentForm } from '../game/teamStats';
+import { recentForm, type FormResult } from '../game/teamStats';
 import { eventBus } from '../utils/eventBus';
 
 const PLAYOFF_SPOTS = 4;
 
+type ViewMode = 'standard' | 'form';
+
 let postMatchOnContinue: (() => void) | null = null;
 let renderImpl: (() => void) | null = null;
+let viewMode: ViewMode = 'standard';
 
 export function showLeagueTablePostMatch(onContinue: () => void): void {
   postMatchOnContinue = onContinue;
@@ -44,25 +51,34 @@ function teamCrest(team: RawTeamInput): string {
   return `<div class="lt-crest" style="background:${grad};border:1px solid color-mix(in oklch,${team.color} 45%,transparent)"><span>${initial}</span></div>`;
 }
 
-function standingsRow(
+// "Bath Rugby" → "Bath", "Newcastle Red Bulls" → "Newcastle", etc. The
+// first token is enough to identify every Prem club at a glance and fits
+// inside the trimmed NAME column on a 390px viewport.
+function displayName(team: RawTeamInput | undefined, fallbackId: string): string {
+  if (!team) return fallbackId;
+  return team.name.split(' ')[0];
+}
+
+// Football-style 3-1-0 form points over the last `n` results. Bonus-free
+// so it isolates result quality from try-scoring streaks; matches what
+// most viewers expect when they see a "form" table.
+function formPoints(form: Array<FormResult | null>): number {
+  return form.reduce<number>((sum, r) => sum + (r === 'W' ? 3 : r === 'D' ? 1 : 0), 0);
+}
+
+function standardRow(
   s: TeamStanding,
   rank: number,
   teamsById: Map<string, RawTeamInput>,
   highlight: boolean,
-  results: FixtureResult[],
 ): string {
   const team = teamsById.get(s.teamId);
-  const name = team?.shortName ?? s.teamId;
+  const name = displayName(team, s.teamId);
   const classes = ['lt-row'];
   if (highlight) classes.push('lt-row--me');
   if (rank === PLAYOFF_SPOTS + 1) classes.push('lt-row--zone-break');
   const diff = `${s.pointsDiff >= 0 ? '+' : ''}${s.pointsDiff}`;
   const crest = team ? teamCrest(team) : '<div class="lt-crest"></div>';
-  const form = recentForm(s.teamId, results);
-  const formHtml = form.map(r => {
-    if (!r) return `<span class="lt-fp lt-fp--empty">–</span>`;
-    return `<span class="lt-fp lt-fp--${r.toLowerCase()}">${r}</span>`;
-  }).join('');
   const bonusPoints = s.tryBonus + s.losingBonus;
   return `
     <div class="${classes.join(' ')}">
@@ -76,9 +92,53 @@ function standingsRow(
       <span class="lt-num">${diff}</span>
       <span class="lt-num" title="Bonus points (try bonuses ${s.tryBonus} · losing bonuses ${s.losingBonus})">${bonusPoints}</span>
       <span class="lt-pts">${s.leaguePoints}</span>
-      <span class="lt-form">${formHtml}</span>
     </div>
   `;
+}
+
+function formRow(
+  s: TeamStanding,
+  rank: number,
+  teamsById: Map<string, RawTeamInput>,
+  highlight: boolean,
+  results: FixtureResult[],
+): string {
+  const team = teamsById.get(s.teamId);
+  const name = displayName(team, s.teamId);
+  const classes = ['lt-row'];
+  if (highlight) classes.push('lt-row--me');
+  const crest = team ? teamCrest(team) : '<div class="lt-crest"></div>';
+  const form = recentForm(s.teamId, results);
+  const formHtml = form.map(r => {
+    if (!r) return `<span class="lt-fp lt-fp--empty">–</span>`;
+    return `<span class="lt-fp lt-fp--${r.toLowerCase()}">${r}</span>`;
+  }).join('');
+  const pts = formPoints(form);
+  return `
+    <div class="${classes.join(' ')}">
+      <span class="lt-rank">${rank}</span>
+      ${crest}
+      <span class="lt-name">${name}</span>
+      <span class="lt-form">${formHtml}</span>
+      <span class="lt-pts" title="Form points (W=3, D=1, L=0 over last 5)">${pts}</span>
+    </div>
+  `;
+}
+
+function sortByForm(standings: TeamStanding[], results: FixtureResult[]): TeamStanding[] {
+  return [...standings].sort((a, b) => {
+    const aForm = recentForm(a.teamId, results);
+    const bForm = recentForm(b.teamId, results);
+    const aPts = formPoints(aForm);
+    const bPts = formPoints(bForm);
+    if (aPts !== bPts) return bPts - aPts;
+    // Tiebreak: more wins in the window, then by overall league points
+    // (so two teams with identical form ordering get a sensible fallback).
+    const aWins = aForm.filter(r => r === 'W').length;
+    const bWins = bForm.filter(r => r === 'W').length;
+    if (aWins !== bWins) return bWins - aWins;
+    return b.leaguePoints - a.leaguePoints;
+  });
 }
 
 export function initLeagueTableScreen(
@@ -96,12 +156,37 @@ export function initLeagueTableScreen(
     const state = getGameEngine().getState();
     const playerTeamId = state.player.teamId;
     const totalRounds = state.league.fixtures.reduce((max, f) => Math.max(max, f.round), 0);
-    const sorted = sortStandings(state.league.standings);
-
     const results = state.league.results;
-    const rows = sorted.map((s, i) =>
-      standingsRow(s, i + 1, teamsById, s.teamId === playerTeamId, results)
+
+    const sorted = viewMode === 'standard'
+      ? sortStandings(state.league.standings)
+      : sortByForm(state.league.standings, results);
+
+    const rows = sorted.map((s, i) => viewMode === 'standard'
+      ? standardRow(s, i + 1, teamsById, s.teamId === playerTeamId)
+      : formRow(s, i + 1, teamsById, s.teamId === playerTeamId, results)
     ).join('');
+
+    const headRow = viewMode === 'standard'
+      ? `<div class="lt-head">
+           <span class="lt-rank">#</span>
+           <span class="lt-crest-spacer"></span>
+           <span class="lt-name">Club</span>
+           <span class="lt-num" title="Played">P</span>
+           <span class="lt-num" title="Won">W</span>
+           <span class="lt-num" title="Drawn">D</span>
+           <span class="lt-num" title="Lost">L</span>
+           <span class="lt-num" title="Points difference">PD</span>
+           <span class="lt-num" title="Bonus points (try + losing)">B</span>
+           <span class="lt-pts" title="League points">Pts</span>
+         </div>`
+      : `<div class="lt-head">
+           <span class="lt-rank">#</span>
+           <span class="lt-crest-spacer"></span>
+           <span class="lt-name">Club</span>
+           <span class="lt-form">Last 5</span>
+           <span class="lt-pts" title="Form points (W=3, D=1, L=0)">Pts</span>
+         </div>`;
 
     const inPostMatch = postMatchOnContinue !== null;
     const topbarLeft = inPostMatch
@@ -128,24 +213,25 @@ export function initLeagueTableScreen(
         </div>
         <div class="app-eyebrow">${state.calendar.seasonLabel} · Week ${state.calendar.week} of ${totalRounds}</div>
       </div>
-      <div id="lt-table">
-        <div class="lt-head">
-          <span class="lt-rank">#</span>
-          <span class="lt-crest-spacer"></span>
-          <span class="lt-name">Club</span>
-          <span class="lt-num" title="Played">P</span>
-          <span class="lt-num" title="Won">W</span>
-          <span class="lt-num" title="Drawn">D</span>
-          <span class="lt-num" title="Lost">L</span>
-          <span class="lt-num" title="Points difference">PD</span>
-          <span class="lt-num" title="Bonus points (try + losing)">B</span>
-          <span class="lt-pts" title="League points">Pts</span>
-          <span class="lt-form" title="Last 5 results">Form</span>
-        </div>
+      <div class="lt-toggle" role="tablist">
+        <button class="lt-toggle__btn ${viewMode === 'standard' ? 'lt-toggle__btn--active' : ''}" data-mode="standard" role="tab" aria-selected="${viewMode === 'standard'}">Standard</button>
+        <button class="lt-toggle__btn ${viewMode === 'form' ? 'lt-toggle__btn--active' : ''}" data-mode="form" role="tab" aria-selected="${viewMode === 'form'}">Form</button>
+      </div>
+      <div id="lt-table" data-mode="${viewMode}">
+        ${headRow}
         ${rows}
       </div>
       ${footer}
     `;
+
+    el!.querySelectorAll<HTMLButtonElement>('.lt-toggle__btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const next = btn.dataset.mode as ViewMode;
+        if (next === viewMode) return;
+        viewMode = next;
+        render();
+      });
+    });
 
     if (!inPostMatch) {
       el!.querySelector<HTMLButtonElement>('#lt-back')!.addEventListener('click', () => {

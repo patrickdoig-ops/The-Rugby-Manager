@@ -45,3 +45,21 @@ export const POSITION_TO_GROUP: Record<Position, PositionGroupId> = {
   'Fullback':      'fullbacks',
   'Utility Back':  'centres',
 };
+
+// Depth target per group = 2 × number of starting-XV slots that pull
+// from it (one starter + one direct backup per jersey). Drives the
+// SquadOverviewScreen row count + thin-position threshold so the chart
+// reflects "can we cover starters and bench?". 'all' is the
+// SquadManagement filter chip — never read from this map.
+export const POSITION_GROUP_DEPTH_TARGET: Record<PositionGroupId, number> = {
+  'all':           0,
+  'props':         4, // jerseys 1 + 3
+  'hooker':        2, // jersey 2
+  'locks':         4, // jerseys 4 + 5
+  'looseforwards': 6, // jerseys 6 + 7 + 8
+  'scrumhalves':   2, // jersey 9
+  'flyhalves':     2, // jersey 10
+  'centres':       4, // jerseys 12 + 13
+  'wings':         4, // jerseys 11 + 14
+  'fullbacks':     2, // jersey 15
+};

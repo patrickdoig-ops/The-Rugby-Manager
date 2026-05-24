@@ -14,7 +14,7 @@ import type { RawTeamInput } from '../src/types/teamData';
 import * as teamProfile from '../src/team/teamProfile';
 import { playerOverall } from '../src/engine/RatingEngine';
 import { getAge } from '../src/game/age';
-import { POSITION_GROUPS_ORDER, POSITION_TO_GROUP } from '../src/game/positionGroups';
+import { POSITION_GROUPS_ORDER, POSITION_TO_GROUP, POSITION_GROUP_DEPTH_TARGET } from '../src/game/positionGroups';
 
 import bath         from '../src/data/team-bath.json';
 import bristol      from '../src/data/team-bristol.json';
@@ -63,13 +63,13 @@ for (const group of POSITION_GROUPS_ORDER) {
     .slice()
     .sort((a, b) => playerOverall(b.baseStats, b.position) - playerOverall(a.baseStats, a.position));
   const count = bucket.length;
-  const thin = count < 2;
+  const depthTarget = POSITION_GROUP_DEPTH_TARGET[group.id];
+  const thin = count < depthTarget;
   if (thin) thinCount++;
-  const flag = thin ? '  ⚠ THIN' : '';
-  console.log(`  ${group.label.padEnd(16)} count=${String(count).padStart(2)}${flag}`);
-  const top2 = bucket.slice(0, 2);
-  for (let i = 0; i < 2; i++) {
-    const p = top2[i];
+  const flag = thin ? `  ⚠ THIN (target ${depthTarget})` : '';
+  console.log(`  ${group.label.padEnd(16)} count=${String(count).padStart(2)} (target ${depthTarget})${flag}`);
+  for (let i = 0; i < depthTarget; i++) {
+    const p = bucket[i];
     if (!p) {
       console.log(`    [empty slot — No depth — sign a player]`);
       continue;

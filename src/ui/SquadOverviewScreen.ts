@@ -17,7 +17,7 @@ import type { Player } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
 import { getAge } from '../game/age';
 import {
-  POSITION_GROUPS_ORDER, POSITION_TO_GROUP,
+  POSITION_GROUPS_ORDER, POSITION_TO_GROUP, POSITION_GROUP_DEPTH_TARGET,
   type PositionGroupId,
 } from '../game/positionGroups';
 
@@ -78,10 +78,20 @@ export function initSquadOverviewScreen(
             playerOverall(b.baseStats, b.position) - playerOverall(a.baseStats, a.position),
           );
         const count = bucket.length;
-        const thin = count < 2;
+        // Depth target = 2 × starting-XV slots that pull from this
+        // group (per POSITION_GROUP_DEPTH_TARGET). Section is "thin"
+        // when the squad has fewer players than that target — i.e. the
+        // bench can't be covered from senior depth alone.
+        const depthTarget = POSITION_GROUP_DEPTH_TARGET[group.id];
+        const thin = count < depthTarget;
         if (thin) thinCount++;
 
-        const slots: (Player | null)[] = [bucket[0] ?? null, bucket[1] ?? null];
+        // Fill exactly `depthTarget` slots: actual players (top-OVR)
+        // first, padded with empty placeholders. Players beyond the
+        // depth target still count toward `count` but aren't shown.
+        const slots: (Player | null)[] = [];
+        for (let i = 0; i < depthTarget; i++) slots.push(bucket[i] ?? null);
+
         const rows = slots.map(p => {
           if (!p) {
             return `<div class="so-row so-row--empty">
@@ -110,7 +120,10 @@ export function initSquadOverviewScreen(
           <h3 class="so-h3">
             <span class="so-h3-label">${group.label}</span>
             <span class="so-h3-line"></span>
-            <span class="so-h3-count">${count}${thin ? ' · thin' : ''}</span>
+            <span class="so-h3-count">
+              <span class="so-h3-count-val">${count}</span>
+              <span class="so-h3-count-lbl">Total in squad</span>
+            </span>
           </h3>
           <div class="so-rows">${rows}</div>
         </section>`;

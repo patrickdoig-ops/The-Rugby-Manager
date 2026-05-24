@@ -245,7 +245,7 @@ ModePicker (Squad Builder)
   → unwindPreSeasonTransfers(PRE_SEASON_TRANSFERS_2025_26)     (99 names, RNG-free name match, CONTRACT_TERMINATED(reason: 'pre_season_unwind') per hit)
   → setPreSeasonStep('overview') + saveGame
   → SquadOverviewScreen (read-only depth chart)
-    [9 position-group sections; count + top-2 OVR-banded players per group; amber "thin" flag when count < 2]
+    [9 position-group sections; each renders 2 × starting-XV slots rows (4 props / 2 hookers / 4 locks / 6 loose forwards / 2 SH / 2 FH / 4 centres / 4 wings / 2 FBs), filled top-OVR-first with "No depth" placeholders for empty slots; amber "thin" flag when squad count < that depth target; right-aligned "TOTAL IN SQUAD" stacked badge shows the full count]
   → openSigningWindow({ skipPoaches: true })                   (market: 99 FA offers, 0 Reg 7 offers)
        │
        ├── market populated

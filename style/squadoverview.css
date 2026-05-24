@@ -63,18 +63,42 @@
   background: var(--rm-hairline);
 }
 
+/* Stacked count badge — display number on top + mono "Total in squad"
+ * label underneath, both right-aligned. Number flips to stat-2 amber
+ * when the section is thin (squad below the depth target) so the gap
+ * registers at a glance without needing extra chrome. */
 .so-h3-count {
-  font-family: var(--rm-font-display);
-  font-size: 14px;
-  color: var(--rm-chalk);
-  letter-spacing: 0.02em;
-  font-variant-numeric: tabular-nums;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
   flex-shrink: 0;
+  line-height: 1;
 }
 
-.so-section--thin .so-h3-count {
+.so-h3-count-val {
+  font-family: var(--rm-font-display);
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  color: var(--rm-chalk);
+  font-variant-numeric: tabular-nums;
+}
+
+.so-h3-count-lbl {
+  font-family: var(--rm-font-mono);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--rm-text-muted);
+  text-transform: uppercase;
+}
+
+.so-section--thin .so-h3-count-val {
   color: var(--rm-stat-2);
-  font-size: 11px;
+  text-shadow: 0 0 8px color-mix(in oklch, var(--rm-stat-2) 35%, transparent);
+}
+.so-section--thin .so-h3-count-lbl {
+  color: color-mix(in oklch, var(--rm-stat-2) 80%, var(--rm-text-muted));
 }
 
 /* ─── Player rows ─── */

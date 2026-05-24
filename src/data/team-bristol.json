@@ -142,7 +142,7 @@
       "squadNumber": 4,
       "firstName": "Steele",
       "lastName": "Barker",
-      "dob": null,
+      "dob": "2001-01-12",
       "nationality": "England",
       "position": "Lock",
       "baseStats": {
@@ -424,7 +424,7 @@
       "squadNumber": 16,
       "firstName": "Tomas",
       "lastName": "Gwilliam",
-      "dob": null,
+      "dob": "2002-11-19",
       "nationality": "Wales",
       "position": "Hooker",
       "baseStats": {
@@ -585,7 +585,7 @@
       "squadNumber": 23,
       "firstName": "Josh",
       "lastName": "Carrington",
-      "dob": null,
+      "dob": "2002-04-25",
       "nationality": "England",
       "position": "Wing",
       "baseStats": {
@@ -771,7 +771,7 @@
       "squadNumber": 31,
       "firstName": "Paddy",
       "lastName": "Pearce",
-      "dob": null,
+      "dob": "2004-05-07",
       "nationality": "England",
       "position": "Flanker",
       "baseStats": {
@@ -863,7 +863,7 @@
       "squadNumber": 35,
       "firstName": "Joe",
       "lastName": "Jenkins",
-      "dob": null,
+      "dob": "2003-10-13",
       "nationality": "England",
       "position": "Centre",
       "baseStats": {

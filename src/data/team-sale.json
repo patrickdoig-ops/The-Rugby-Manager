@@ -4,10 +4,10 @@
   "shortName": "SAL",
   "color": "#0a1b40",
   "secondaryColor": "#ffffff",
-  "stadium": "Salford Community Stadium (formerly AJ Bell Stadium)",
+  "stadium": "CorpAcq Stadium (renamed from Salford Community Stadium / AJ Bell Stadium in September 2025)",
   "nickname": "Sharks",
   "founded": 1861,
-  "stadiumCapacity": 12000,
+  "stadiumCapacity": 11404,
   "headCoach": "Alex Sanderson (Director of Rugby since 2021)",
   "honours": "Premiership title 2005-06; European Challenge Cup 2001-02, 2004-05",
   "blurb": "The Manchester defence-first side: line-speed, collision-dominant loose forwards and a physical inside-centre channel, all built to choke teams into errors. Sale are happy to cede possession because they back their defence to win the field-position battle, and George Ford's tempo control gives them clinical execution when they do attack. Tackles, turnovers and territory underpin everything; they are the league's least flashy and most resilient team. Box-kick, chase, tackle, repeat.",
@@ -57,7 +57,7 @@
       "name": "Ben Curry",
       "position": "Flanker",
       "nationality": "England",
-      "blurb": "Sale's captain and a breakdown menace; started England's Six Nations opener alongside his twin and brings the same chop-tackle, jackal-heavy profile that defines Sale's defensive identity",
+      "blurb": "Breakdown menace and former Sale captain (stepped down ahead of 2025-26 with his England-contract availability reduced); started England's Six Nations opener alongside his twin and brings the same chop-tackle, jackal-heavy profile that defines Sale's defensive identity",
       "indexHigh": [
         "tackling",
         "breakdown",
@@ -88,7 +88,7 @@
       "squadNumber": 1,
       "firstName": "James",
       "lastName": "Harper",
-      "dob": null,
+      "dob": "2000-10-16",
       "nationality": "England",
       "position": "Prop",
       "baseStats": {
@@ -111,7 +111,7 @@
       "squadNumber": 2,
       "firstName": "Ethan",
       "lastName": "Caine",
-      "dob": null,
+      "dob": "2001-09-20",
       "nationality": "England",
       "position": "Hooker",
       "baseStats": {
@@ -157,7 +157,7 @@
       "squadNumber": 4,
       "firstName": "Hyron",
       "lastName": "Andrews",
-      "dob": null,
+      "dob": "1995-07-06",
       "nationality": "South Africa",
       "position": "Lock",
       "baseStats": {
@@ -180,7 +180,7 @@
       "squadNumber": 5,
       "firstName": "Ben",
       "lastName": "Bamber",
-      "dob": null,
+      "dob": "2001-01-24",
       "nationality": "England",
       "position": "Lock",
       "baseStats": {
@@ -249,7 +249,7 @@
       "squadNumber": 8,
       "firstName": "Dan",
       "lastName": "du Preez",
-      "dob": null,
+      "dob": "1995-08-05",
       "nationality": "South Africa",
       "position": "Number 8",
       "baseStats": {
@@ -391,7 +391,7 @@
       "squadNumber": 14,
       "firstName": "Obi",
       "lastName": "Ene",
-      "dob": null,
+      "dob": "2003-06-25",
       "nationality": "England",
       "position": "Wing",
       "baseStats": {
@@ -462,7 +462,7 @@
       "squadNumber": 17,
       "firstName": "Si",
       "lastName": "McIntyre",
-      "dob": null,
+      "dob": "1991-03-19",
       "nationality": "England",
       "position": "Prop",
       "baseStats": {
@@ -485,7 +485,7 @@
       "squadNumber": 18,
       "firstName": "Asher",
       "lastName": "Opoku-Fordjour",
-      "dob": null,
+      "dob": "2004-07-16",
       "nationality": "England",
       "position": "Prop",
       "baseStats": {
@@ -508,7 +508,7 @@
       "squadNumber": 19,
       "firstName": "Tom",
       "lastName": "Burrow",
-      "dob": null,
+      "dob": "2005-07-27",
       "nationality": "England",
       "position": "Lock",
       "baseStats": {
@@ -554,7 +554,7 @@
       "squadNumber": 21,
       "firstName": "Raffi",
       "lastName": "Quirke",
-      "dob": null,
+      "dob": "2001-08-18",
       "nationality": "England",
       "position": "Scrum-Half",
       "baseStats": {
@@ -577,7 +577,7 @@
       "squadNumber": 22,
       "firstName": "Tom",
       "lastName": "Curtis",
-      "dob": null,
+      "dob": "2001-07-01",
       "nationality": "England",
       "position": "Fly-Half",
       "baseStats": {
@@ -625,7 +625,7 @@
       "squadNumber": 24,
       "firstName": "Tye",
       "lastName": "Raymont",
-      "dob": null,
+      "dob": "2005-07-19",
       "nationality": "England",
       "position": "Prop",
       "baseStats": {
@@ -648,7 +648,7 @@
       "squadNumber": 25,
       "firstName": "Bevan",
       "lastName": "Rodd",
-      "dob": null,
+      "dob": "2000-08-26",
       "nationality": "England",
       "position": "Prop",
       "baseStats": {
@@ -671,7 +671,7 @@
       "squadNumber": 26,
       "firstName": "Nathan",
       "lastName": "Jibulu",
-      "dob": null,
+      "dob": "2003-01-26",
       "nationality": "England",
       "position": "Hooker",
       "baseStats": {
@@ -717,7 +717,7 @@
       "squadNumber": 28,
       "firstName": "Ernst",
       "lastName": "van Rhyn",
-      "dob": null,
+      "dob": "1997-09-19",
       "nationality": "South Africa",
       "position": "Lock",
       "baseStats": {
@@ -740,7 +740,7 @@
       "squadNumber": 29,
       "firstName": "Jacques",
       "lastName": "Vermeulen",
-      "dob": null,
+      "dob": "1995-02-08",
       "nationality": "South Africa",
       "position": "Flanker",
       "baseStats": {
@@ -809,7 +809,7 @@
       "squadNumber": 32,
       "firstName": "Reuben",
       "lastName": "Logan",
-      "dob": null,
+      "dob": "2005-07-28",
       "nationality": "Scotland",
       "position": "Back Row",
       "baseStats": {
@@ -832,7 +832,7 @@
       "squadNumber": 33,
       "firstName": "Tristan",
       "lastName": "Woodman",
-      "dob": null,
+      "dob": "2004-02-12",
       "nationality": "England",
       "position": "Back Row",
       "baseStats": {
@@ -855,7 +855,7 @@
       "squadNumber": 34,
       "firstName": "Huw",
       "lastName": "Davies",
-      "dob": null,
+      "dob": "2003-11-12",
       "nationality": "Wales",
       "position": "Back Row",
       "baseStats": {
@@ -878,7 +878,7 @@
       "squadNumber": 35,
       "firstName": "Nye",
       "lastName": "Thomas",
-      "dob": null,
+      "dob": "2003-03-24",
       "nationality": "Wales",
       "position": "Scrum-Half",
       "baseStats": {
@@ -901,7 +901,7 @@
       "squadNumber": 36,
       "firstName": "Gus",
       "lastName": "Warr",
-      "dob": null,
+      "dob": "1999-09-24",
       "nationality": "England",
       "position": "Scrum-Half",
       "baseStats": {
@@ -924,7 +924,7 @@
       "squadNumber": 37,
       "firstName": "Ollie",
       "lastName": "Davies",
-      "dob": null,
+      "dob": "2006-12-01",
       "nationality": "England",
       "position": "Fly-Half",
       "baseStats": {
@@ -970,7 +970,7 @@
       "squadNumber": 39,
       "firstName": "Rob",
       "lastName": "du Preez",
-      "dob": null,
+      "dob": "1993-07-30",
       "nationality": "South Africa",
       "position": "Centre",
       "baseStats": {
@@ -1016,7 +1016,7 @@
       "squadNumber": 41,
       "firstName": "Alex",
       "lastName": "Wills",
-      "dob": null,
+      "dob": "2004-02-11",
       "nationality": "England",
       "position": "Wing",
       "baseStats": {
@@ -1039,7 +1039,7 @@
       "squadNumber": 42,
       "firstName": "Luke",
       "lastName": "James",
-      "dob": null,
+      "dob": "1999-03-18",
       "nationality": "England",
       "position": "Fullback",
       "baseStats": {

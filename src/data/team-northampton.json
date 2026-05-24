@@ -29,7 +29,7 @@
       "name": "Fin Smith",
       "position": "Fly-Half",
       "nationality": "England",
-      "blurb": "England's first-choice fly-half and marquee playmaker; ice-cold game manager with a clutch boot (hit the winning drop goal vs Bath in the 83rd minute) who runs Saints' high-tempo, wide-wide attack from a flat alignment",
+      "blurb": "England's first-choice fly-half and marquee playmaker; ice-cold game manager with a clutch boot (opened the scoring with an early drop goal in the 2024 Premiership Final win over Bath) who runs Saints' high-tempo, wide-wide attack from a flat alignment",
       "indexHigh": [
         "kicking",
         "composure",
@@ -508,7 +508,7 @@
       "squadNumber": 19,
       "firstName": "Aiden",
       "lastName": "Ainsworth-Cave",
-      "dob": null,
+      "dob": "2006-07-21",
       "nationality": "England",
       "position": "Lock",
       "baseStats": {
@@ -600,7 +600,7 @@
       "squadNumber": 23,
       "firstName": "Will",
       "lastName": "Glister",
-      "dob": null,
+      "dob": "2005-05-05",
       "nationality": "England",
       "position": "Wing",
       "baseStats": {
@@ -671,7 +671,7 @@
       "squadNumber": 26,
       "firstName": "Ollie",
       "lastName": "Scola",
-      "dob": null,
+      "dob": "2006-02-03",
       "nationality": "England",
       "position": "Prop",
       "baseStats": {
@@ -694,7 +694,7 @@
       "squadNumber": 27,
       "firstName": "Sonny",
       "lastName": "Tonga'uiha",
-      "dob": null,
+      "dob": "2006-08-01",
       "nationality": "England",
       "position": "Prop",
       "baseStats": {
@@ -1108,7 +1108,7 @@
       "squadNumber": 45,
       "firstName": "Jonny",
       "lastName": "Weimann",
-      "dob": null,
+      "dob": "2006-03-28",
       "nationality": "England",
       "position": "Scrum-Half",
       "baseStats": {
@@ -1154,7 +1154,7 @@
       "squadNumber": 47,
       "firstName": "Henry",
       "lastName": "Lumley",
-      "dob": null,
+      "dob": "2007-07-18",
       "nationality": "England",
       "position": "Centre",
       "baseStats": {
@@ -1177,7 +1177,7 @@
       "squadNumber": 48,
       "firstName": "Billy",
       "lastName": "Pasco",
-      "dob": null,
+      "dob": "2005-10-02",
       "nationality": "England",
       "position": "Centre",
       "baseStats": {
@@ -1292,7 +1292,7 @@
       "squadNumber": 53,
       "firstName": "James",
       "lastName": "Pater",
-      "dob": null,
+      "dob": "2007-07-02",
       "nationality": "England",
       "position": "Wing",
       "baseStats": {
@@ -1361,7 +1361,7 @@
       "squadNumber": 56,
       "firstName": "Edoardo",
       "lastName": "Todaro",
-      "dob": null,
+      "dob": "2006-09-24",
       "nationality": "Italy",
       "position": "Wing",
       "baseStats": {

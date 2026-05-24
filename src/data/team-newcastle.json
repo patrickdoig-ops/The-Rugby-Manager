@@ -8,7 +8,7 @@
   "nickname": "Red Bulls (rebranded from \"Falcons\" after Red Bull's August 2025 takeover)",
   "founded": 1877,
   "stadiumCapacity": 10200,
-  "headCoach": "Stephen Jones (interim Head Coach from March 2026 after Alan Dickens departed; Dan McFarland confirmed to take the role from 2026-27)",
+  "headCoach": "Stephen Jones (interim Head Coach from March 2026 after Alan Dickens departed; Dan McFarland publicly linked with the role from 2026-27)",
   "honours": "Premiership title 1997-98; Anglo-Welsh Cup 2000-01, 2003-04",
   "blurb": "Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastle are mid-transformation: heavy investment, aggressive recruitment, and a search for a clearer identity after three straight bottom-of-the-table finishes. Historically a developmental, lower-budget side that fought hard but lacked depth, the Red Bulls era is rebuilding from the ground up. Kingston Park remains home, but the playing identity is still being written — expect them to start the simulator era as the league's weakest squad, with room to grow.",
   "suggestedTactics": {
@@ -82,7 +82,7 @@
       "squadNumber": 2,
       "firstName": "Samson",
       "lastName": "Adejimi",
-      "dob": null,
+      "dob": "2002-02-15",
       "nationality": "England",
       "position": "Hooker",
       "baseStats": {
@@ -105,7 +105,7 @@
       "squadNumber": 3,
       "firstName": "Adam",
       "lastName": "Brocklebank",
-      "dob": null,
+      "dob": "1995-09-06",
       "nationality": "England",
       "position": "Prop",
       "baseStats": {
@@ -128,7 +128,7 @@
       "squadNumber": 4,
       "firstName": "Finn",
       "lastName": "Baker",
-      "dob": null,
+      "dob": "2004-10-17",
       "nationality": "England",
       "position": "Lock",
       "baseStats": {
@@ -151,7 +151,7 @@
       "squadNumber": 5,
       "firstName": "Tim",
       "lastName": "Cardall",
-      "dob": null,
+      "dob": "1997-01-13",
       "nationality": "England",
       "position": "Lock",
       "baseStats": {
@@ -197,7 +197,7 @@
       "squadNumber": 7,
       "firstName": "Tom",
       "lastName": "Gordon",
-      "dob": null,
+      "dob": "1997-01-30",
       "nationality": "Scotland",
       "position": "Flanker",
       "baseStats": {
@@ -243,7 +243,7 @@
       "squadNumber": 9,
       "firstName": "Simon",
       "lastName": "Benitez Cruz",
-      "dob": null,
+      "dob": "1999-09-06",
       "nationality": "Argentina",
       "position": "Scrum-Half",
       "baseStats": {
@@ -266,7 +266,7 @@
       "squadNumber": 10,
       "firstName": "Boeta",
       "lastName": "Chamberlain",
-      "dob": null,
+      "dob": "1999-02-22",
       "nationality": "South Africa",
       "position": "Fly-Half",
       "baseStats": {
@@ -289,7 +289,7 @@
       "squadNumber": 11,
       "firstName": "Joel",
       "lastName": "Grayson",
-      "dob": null,
+      "dob": "2002-04-15",
       "nationality": "England",
       "position": "Wing",
       "baseStats": {
@@ -312,7 +312,7 @@
       "squadNumber": 12,
       "firstName": "Sammy",
       "lastName": "Arnold",
-      "dob": null,
+      "dob": "1996-04-08",
       "nationality": "Ireland",
       "position": "Centre",
       "baseStats": {
@@ -335,7 +335,7 @@
       "squadNumber": 13,
       "firstName": "Max",
       "lastName": "Clark",
-      "dob": null,
+      "dob": "1995-10-03",
       "nationality": "England",
       "position": "Centre",
       "baseStats": {
@@ -432,7 +432,7 @@
       "squadNumber": 17,
       "firstName": "Lou",
       "lastName": "de Bruin",
-      "dob": null,
+      "dob": "1993-02-13",
       "nationality": "South Africa",
       "position": "Prop",
       "baseStats": {
@@ -455,7 +455,7 @@
       "squadNumber": 18,
       "firstName": "Connor",
       "lastName": "Hancock",
-      "dob": null,
+      "dob": "2000-11-10",
       "nationality": "England",
       "position": "Prop",
       "baseStats": {
@@ -478,7 +478,7 @@
       "squadNumber": 19,
       "firstName": "Freddie",
       "lastName": "Clarke",
-      "dob": null,
+      "dob": "1992-10-10",
       "nationality": "England",
       "position": "Lock",
       "baseStats": {
@@ -524,7 +524,7 @@
       "squadNumber": 21,
       "firstName": "Joe",
       "lastName": "Davis",
-      "dob": null,
+      "dob": "2005-12-31",
       "nationality": "England",
       "position": "Scrum-Half",
       "baseStats": {
@@ -570,7 +570,7 @@
       "squadNumber": 23,
       "firstName": "Harrison",
       "lastName": "Obatoyinbo",
-      "dob": null,
+      "dob": "2000-07-15",
       "nationality": "England",
       "position": "Wing",
       "baseStats": {
@@ -664,7 +664,7 @@
       "squadNumber": 27,
       "firstName": "Ollie",
       "lastName": "Fletcher",
-      "dob": null,
+      "dob": "2002-09-09",
       "nationality": "England",
       "position": "Hooker",
       "baseStats": {
@@ -687,7 +687,7 @@
       "squadNumber": 28,
       "firstName": "Bryce",
       "lastName": "Gordon",
-      "dob": null,
+      "dob": "2001-08-06",
       "nationality": "New Zealand",
       "position": "Hooker",
       "baseStats": {
@@ -710,7 +710,7 @@
       "squadNumber": 29,
       "firstName": "George",
       "lastName": "McGuigan",
-      "dob": null,
+      "dob": "1993-03-30",
       "nationality": "England",
       "position": "Hooker",
       "baseStats": {
@@ -756,7 +756,7 @@
       "squadNumber": 31,
       "firstName": "John",
       "lastName": "Hawkins",
-      "dob": null,
+      "dob": "1996-11-11",
       "nationality": "Wales",
       "position": "Lock",
       "baseStats": {
@@ -779,7 +779,7 @@
       "squadNumber": 32,
       "firstName": "Jamie",
       "lastName": "Hodgson",
-      "dob": null,
+      "dob": "1998-03-19",
       "nationality": "Scotland",
       "position": "Lock",
       "baseStats": {
@@ -848,7 +848,7 @@
       "squadNumber": 35,
       "firstName": "Adam",
       "lastName": "Scott",
-      "dob": null,
+      "dob": "2001-11-27",
       "nationality": "England",
       "position": "Lock",
       "baseStats": {
@@ -894,7 +894,7 @@
       "squadNumber": 37,
       "firstName": "Ollie",
       "lastName": "Leatherbarrow",
-      "dob": null,
+      "dob": "2002-04-08",
       "nationality": "England",
       "position": "Back Row",
       "baseStats": {
@@ -963,7 +963,7 @@
       "squadNumber": 40,
       "firstName": "James",
       "lastName": "Elliott",
-      "dob": null,
+      "dob": "1998-08-29",
       "nationality": "England",
       "position": "Scrum-Half",
       "baseStats": {
@@ -1009,7 +1009,7 @@
       "squadNumber": 42,
       "firstName": "Ethan",
       "lastName": "Grayson",
-      "dob": null,
+      "dob": "2004-04-15",
       "nationality": "England",
       "position": "Fly-Half",
       "baseStats": {
@@ -1032,7 +1032,7 @@
       "squadNumber": 43,
       "firstName": "Connor",
       "lastName": "Doherty",
-      "dob": null,
+      "dob": "2000-07-18",
       "nationality": "England",
       "position": "Centre",
       "baseStats": {
@@ -1055,7 +1055,7 @@
       "squadNumber": 44,
       "firstName": "Alex",
       "lastName": "Hearle",
-      "dob": null,
+      "dob": "1998-11-08",
       "nationality": "England",
       "position": "Centre",
       "baseStats": {
@@ -1101,7 +1101,7 @@
       "squadNumber": 46,
       "firstName": "Oliver",
       "lastName": "Spencer",
-      "dob": null,
+      "dob": "2004-02-22",
       "nationality": "England",
       "position": "Centre",
       "baseStats": {
@@ -1124,7 +1124,7 @@
       "squadNumber": 47,
       "firstName": "Sam",
       "lastName": "Waugh",
-      "dob": null,
+      "dob": "2005-07-16",
       "nationality": "England",
       "position": "Centre",
       "baseStats": {

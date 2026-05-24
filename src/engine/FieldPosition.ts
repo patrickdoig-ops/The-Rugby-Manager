@@ -2,7 +2,7 @@ import type { MatchState } from '../types/match';
 import type { PossessionSide } from '../types/engine';
 import type { Player } from '../types/player';
 import type { Team } from '../types/team';
-import { isForwardSlot, isBackSlot } from './Slot';
+import { SLOT, isForwardSlot, isBackSlot } from './Slot';
 
 // Home attacks toward x=100 in the first half, toward x=0 in the second.
 // Teams only swap ends at half-time, never on turnovers.
@@ -106,4 +106,35 @@ export function availableForwards(team: Team, state: MatchState, side: Possessio
 
 export function availableBacks(team: Team, state: MatchState, side: PossessionSide): Player[] {
   return onFieldPlayers(team, state, side).filter(p => isBackSlot(p.id));
+}
+
+// Specialist-slot lookups. Each picks the named slot first when on-field,
+// then degrades gracefully through positionally-sensible alternatives,
+// guaranteeing a Player return so callers don't need their own fallback.
+// A sin-binned / sent-off / injured player is never selected — the chain
+// rolls past them to the next-best on-field option.
+
+export function pickKicker(team: Team, state: MatchState, side: PossessionSide): Player {
+  const onField = onFieldPlayers(team, state, side);
+  return onField.find(p => p.id === SLOT.FLY_HALF)
+      ?? onField.find(p => p.id === SLOT.SCRUM_HALF)
+      ?? onField.find(p => isBackSlot(p.id))
+      ?? onField[0]
+      ?? team.players[0];
+}
+
+export function pickScrumHalf(team: Team, state: MatchState, side: PossessionSide): Player {
+  const onField = onFieldPlayers(team, state, side);
+  return onField.find(p => p.id === SLOT.SCRUM_HALF)
+      ?? onField.find(p => isBackSlot(p.id))
+      ?? onField[0]
+      ?? team.players[0];
+}
+
+export function pickFullback(team: Team, state: MatchState, side: PossessionSide): Player {
+  const onField = onFieldPlayers(team, state, side);
+  return onField.find(p => p.id === SLOT.FULL_BACK)
+      ?? onField.find(p => isBackSlot(p.id))
+      ?? onField[0]
+      ?? team.players[0];
 }

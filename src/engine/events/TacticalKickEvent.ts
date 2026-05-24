@@ -6,15 +6,17 @@ import type { MatchState } from '../../types/match';
 import type { Player } from '../../types/player';
 import { MatchPhase, type AttackingKickSubType } from '../../types/engine';
 import { resolveTacticalKick, resolveFiftyTwentyTwo, resolveAttackingKick } from '../resolvers/KickingResolver';
-import { attackDir, inOwn22, inOwnHalf, inOpposition22At } from '../FieldPosition';
+import { attackDir, inOwn22, inOwnHalf, inOpposition22At, onFieldPlayers, pickKicker, pickFullback } from '../FieldPosition';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
 import { SLOT } from '../Slot';
 
 export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer }: PhaseContext): PhaseResult {
-  const kicker   = attackTeam.players.find(p => p.id === SLOT.FLY_HALF) ?? attackTeam.players.find(p => p.id === SLOT.SCRUM_HALF) ?? attackTeam.players[0];
-  const defender = defendTeam.players.find(p => p.id === SLOT.FULL_BACK) ?? randomPlayer(defendTeam);
+  const attackSide = state.possession;
+  const defendSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
+  const kicker   = pickKicker(attackTeam, state, attackSide);
+  const defender = pickFullback(defendTeam, state, defendSide);
 
   const startedInOwn22 = inOwn22(state);
   const startedInOwnHalf = inOwnHalf(state);
@@ -222,9 +224,9 @@ function handleAttackingKick(
 
   if (res.outcome === 'attacker_wins') {
     // Attacker regathers. Possession stays; chaser carries via KickReturn.
-    const chaserPool = state.possession === 'home'
-      ? state.homeTeam.players.filter(p => p.id === SLOT.WING_11 || p.id === SLOT.CENTRE_13 || p.id === SLOT.WING_14)
-      : state.awayTeam.players.filter(p => p.id === SLOT.WING_11 || p.id === SLOT.CENTRE_13 || p.id === SLOT.WING_14);
+    const attackTeam = state.possession === 'home' ? state.homeTeam : state.awayTeam;
+    const chaserPool = onFieldPlayers(attackTeam, state, state.possession).filter(p =>
+      p.id === SLOT.WING_11 || p.id === SLOT.CENTRE_13 || p.id === SLOT.WING_14);
     const chaser = chaserPool.length > 0 ? chaserPool[rng(0, chaserPool.length - 1)] : kicker;
     events.push({ type: 'KICK_RETURN_CARRIER_SET', player: chaser });
     return {

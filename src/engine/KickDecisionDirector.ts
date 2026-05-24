@@ -5,7 +5,7 @@ import type { MatchPhase } from '../types/engine';
 import type { PhaseResult } from './events/types';
 import { MatchPhase as MatchPhaseEnum } from '../types/engine';
 import { rng } from '../utils/rng';
-import { inOpposition22, inOwn22, inOwnHalf } from './FieldPosition';
+import { inOpposition22, inOwn22, inOwnHalf, availableBacks } from './FieldPosition';
 import { SLOT } from './Slot';
 import {
   KICK_PROBABILITIES,
@@ -80,16 +80,26 @@ function pickFamily(zone: Zone, plan: Plan): Family {
   return 'territory';
 }
 
-function pickKicker(family: Family, attackOnField: Player[], attackTeam: Team): Player {
-  const scrumHalf = attackOnField.find(p => p.id === SLOT.SCRUM_HALF)
-    ?? attackTeam.players.find(p => p.id === SLOT.SCRUM_HALF)
-    ?? attackTeam.players[0];
-  const flyHalf   = attackOnField.find(p => p.id === SLOT.FLY_HALF)
-    ?? attackTeam.players.find(p => p.id === SLOT.FLY_HALF)
-    ?? attackTeam.players[0];
+// Rolls #9-vs-#10 by family-weighted probability and returns whichever
+// halfback is actually on the field. If the rolled choice is sin-binned,
+// the other halfback steps in; if both are off, any on-field back kicks;
+// finally falls through to any on-field player so we never return a
+// player who can't legally take the kick.
+function pickKicker(family: Family, ctx: KickDecisionContext): Player {
+  const { state, attackTeam, attackOnField } = ctx;
+  const scrumHalfOnField = attackOnField.find(p => p.id === SLOT.SCRUM_HALF);
+  const flyHalfOnField   = attackOnField.find(p => p.id === SLOT.FLY_HALF);
 
   const scrumHalfPct = SCRUM_HALF_KICKER_PCT[family];
-  return rng(1, 100) <= scrumHalfPct ? scrumHalf : flyHalf;
+  const preferScrumHalf = rng(1, 100) <= scrumHalfPct;
+  const primary = preferScrumHalf ? scrumHalfOnField : flyHalfOnField;
+  const backup  = preferScrumHalf ? flyHalfOnField   : scrumHalfOnField;
+
+  return primary
+      ?? backup
+      ?? availableBacks(attackTeam, state, state.possession)[0]
+      ?? attackOnField[0]
+      ?? attackTeam.players[0];
 }
 
 export function decideKick(ctx: KickDecisionContext): KickOrCarry {
@@ -113,7 +123,7 @@ export function decideKick(ctx: KickDecisionContext): KickOrCarry {
   if (rng(1, 100) > kickProb) return { kick: false };
 
   const family = pickFamily(zone, plan);
-  const kicker = pickKicker(family, attackOnField, attackTeam);
+  const kicker = pickKicker(family, ctx);
 
   const decision: KickDecision = { kick: true, family, kicker };
 

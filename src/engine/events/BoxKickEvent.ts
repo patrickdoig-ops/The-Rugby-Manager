@@ -6,14 +6,16 @@ import { resolveBoxKick } from '../resolvers/BoxKickResolver';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
-import { attackDir } from '../FieldPosition';
+import { attackDir, onFieldPlayers, pickScrumHalf, pickFullback } from '../FieldPosition';
 import { SLOT } from '../Slot';
 
 export function handleBoxKick({ state, attackTeam, defendTeam, randomPlayer }: PhaseContext): PhaseResult {
-  const scrumHalf  = attackTeam.players.find(p => p.id === SLOT.SCRUM_HALF) ?? attackTeam.players[0];
-  const wingerPool = attackTeam.players.filter(p => p.id === SLOT.WING_11 || p.id === SLOT.WING_14);
+  const attackSide = state.possession;
+  const defendSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
+  const scrumHalf  = pickScrumHalf(attackTeam, state, attackSide);
+  const wingerPool = onFieldPlayers(attackTeam, state, attackSide).filter(p => p.id === SLOT.WING_11 || p.id === SLOT.WING_14);
   const winger     = wingerPool.length > 0 ? wingerPool[rng(0, wingerPool.length - 1)] : randomPlayer(attackTeam);
-  const fullback   = defendTeam.players.find(p => p.id === SLOT.FULL_BACK) ?? randomPlayer(defendTeam);
+  const fullback   = pickFullback(defendTeam, state, defendSide);
   const backfield = defendTeam.tactics.backfieldDefence;
   const fullbackMod = TACTIC_MODIFIERS.boxKickFullbackBonus[backfield];
   // KickDecisionDirector's clearance sub-choice (long_and_on vs
@@ -26,9 +28,6 @@ export function handleBoxKick({ state, attackTeam, defendTeam, randomPlayer }: P
     { type: 'KICK_FROM_HAND', kicker: scrumHalf, metres: res.distance },
     { type: 'BALL_REPOSITIONED', x: clamp(state.ball.x + attackDir(state) * res.distance, 5, 95) },
   ];
-
-  const attackSide = state.possession;
-  const defSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
 
   if (res.outcome === 'goes_to_touch') {
     // Long-and-off clearance found touch. Opposition gets the lineout
@@ -54,7 +53,7 @@ export function handleBoxKick({ state, attackTeam, defendTeam, randomPlayer }: P
   }
 
   if (res.outcome === 'defend_knock_on') {
-    events.push({ type: 'HANDLING_ERROR', side: defSide });
+    events.push({ type: 'HANDLING_ERROR', side: defendSide });
     return {
       nextPhase: MatchPhase.Scrum,
       narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.BoxKick, key: 'defend_knock_on', primary: scrumHalf, secondary: winger }] },
@@ -100,7 +99,7 @@ export function handleBoxKick({ state, attackTeam, defendTeam, randomPlayer }: P
   }
 
   // knock_on — poor kick, fullback drops uncontested
-  events.push({ type: 'HANDLING_ERROR', side: defSide });
+  events.push({ type: 'HANDLING_ERROR', side: defendSide });
   return {
     nextPhase: MatchPhase.Scrum,
     narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.BoxKick, key: 'knock_on', primary: scrumHalf, secondary: fullback }] },

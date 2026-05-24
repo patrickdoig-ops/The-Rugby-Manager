@@ -23,7 +23,7 @@ import type { Team, TeamTactics } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';
 import type { Player, PlayerStats, Position } from '../types/player';
 import { isForward, zeroMatchStats, zeroSeasonStats } from '../types/player';
-import { SLOT } from './Slot';
+import { pickKicker, pickScrumHalf } from './FieldPosition';
 import type { RawPlayer, RawTeamInput } from '../types/teamData';
 import { MatchPhase, type PossessionSide, type KickOffStrategy } from '../types/engine';
 import { eventBus } from '../utils/eventBus';
@@ -569,7 +569,7 @@ export class MatchCoordinator {
 
     if (this.state.phase === MatchPhase.KickOff) {
       const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
-      const kicker = attackTeam.players.find(p => p.id === SLOT.FLY_HALF) ?? attackTeam.players[0];
+      const kicker = pickKicker(attackTeam, this.state, this.state.possession);
       const announceEvent: GameEvent = {
         id: makeId(),
         gameMinute: this.state.clock.gameMinute,
@@ -592,7 +592,7 @@ export class MatchCoordinator {
 
     if (this.state.phase === MatchPhase.BoxKick) {
       const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
-      const scrumHalf = attackTeam.players.find(p => p.id === SLOT.SCRUM_HALF) ?? attackTeam.players[0];
+      const scrumHalf = pickScrumHalf(attackTeam, this.state, this.state.possession);
       const announceEvent: GameEvent = {
         id: makeId(),
         gameMinute: this.state.clock.gameMinute,

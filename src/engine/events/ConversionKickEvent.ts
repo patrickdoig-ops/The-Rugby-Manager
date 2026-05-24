@@ -3,10 +3,10 @@ import type { MatchEvent } from '../../types/matchEvent';
 import { MatchPhase } from '../../types/engine';
 import { resolveGoalKick } from '../resolvers/KickingResolver';
 import { CONVERSION_VALUES } from '../balance';
-import { SLOT } from '../Slot';
+import { pickKicker } from '../FieldPosition';
 
 export function handleConversionKick({ state, attackTeam }: PhaseContext): PhaseResult {
-  const kicker = attackTeam.players.find(p => p.id === SLOT.FLY_HALF) ?? attackTeam.players[0];
+  const kicker = pickKicker(attackTeam, state, state.possession);
   const distFromPosts = Math.abs(state.ball.y - 50) * CONVERSION_VALUES.distanceFromPostsWeight;
   const res = resolveGoalKick(kicker, distFromPosts);
 

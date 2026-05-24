@@ -622,52 +622,6 @@
     {
       "id": 24,
       "squadNumber": 24,
-      "firstName": "Ciaran",
-      "lastName": "Knight",
-      "dob": "1995-08-30",
-      "nationality": "England",
-      "position": "Prop",
-      "baseStats": {
-        "stamina": 69,
-        "strength": 83,
-        "pace": 52,
-        "agility": 57,
-        "handling": 56,
-        "tackling": 74,
-        "breakdown": 75,
-        "kicking": 47,
-        "setPiece": 92,
-        "discipline": 63,
-        "positioning": 67,
-        "composure": 71
-      }
-    },
-    {
-      "id": 25,
-      "squadNumber": 25,
-      "firstName": "Nepo",
-      "lastName": "Laulala",
-      "dob": "1991-10-29",
-      "nationality": "New Zealand",
-      "position": "Prop",
-      "baseStats": {
-        "stamina": 65,
-        "strength": 86,
-        "pace": 49,
-        "agility": 58,
-        "handling": 58,
-        "tackling": 78,
-        "breakdown": 71,
-        "kicking": 45,
-        "setPiece": 87,
-        "discipline": 70,
-        "positioning": 69,
-        "composure": 69
-      }
-    },
-    {
-      "id": 26,
-      "squadNumber": 26,
       "firstName": "Archie",
       "lastName": "McArthur",
       "dob": "2003-06-11",
@@ -689,54 +643,8 @@
       }
     },
     {
-      "id": 27,
-      "squadNumber": 27,
-      "firstName": "Val",
-      "lastName": "Rapava-Ruskin",
-      "dob": "1992-12-12",
-      "nationality": "Georgia",
-      "position": "Prop",
-      "baseStats": {
-        "stamina": 70,
-        "strength": 81,
-        "pace": 52,
-        "agility": 57,
-        "handling": 59,
-        "tackling": 79,
-        "breakdown": 75,
-        "kicking": 43,
-        "setPiece": 92,
-        "discipline": 70,
-        "positioning": 70,
-        "composure": 65
-      }
-    },
-    {
-      "id": 28,
-      "squadNumber": 28,
-      "firstName": "Jack",
-      "lastName": "Singleton",
-      "dob": "1996-08-07",
-      "nationality": "England",
-      "position": "Hooker",
-      "baseStats": {
-        "stamina": 71,
-        "strength": 73,
-        "pace": 60,
-        "agility": 66,
-        "handling": 63,
-        "tackling": 69,
-        "breakdown": 78,
-        "kicking": 50,
-        "setPiece": 82,
-        "discipline": 68,
-        "positioning": 72,
-        "composure": 64
-      }
-    },
-    {
-      "id": 29,
-      "squadNumber": 29,
+      "id": 25,
+      "squadNumber": 25,
       "firstName": "Cameron",
       "lastName": "Jordan",
       "dob": "1996-05-23",
@@ -758,8 +666,31 @@
       }
     },
     {
-      "id": 30,
-      "squadNumber": 30,
+      "id": 26,
+      "squadNumber": 26,
+      "firstName": "Ciaran",
+      "lastName": "Knight",
+      "dob": "1995-08-30",
+      "nationality": "England",
+      "position": "Prop",
+      "baseStats": {
+        "stamina": 69,
+        "strength": 83,
+        "pace": 52,
+        "agility": 57,
+        "handling": 56,
+        "tackling": 74,
+        "breakdown": 75,
+        "kicking": 47,
+        "setPiece": 92,
+        "discipline": 63,
+        "positioning": 67,
+        "composure": 71
+      }
+    },
+    {
+      "id": 27,
+      "squadNumber": 27,
       "firstName": "Freddie",
       "lastName": "Thomas",
       "dob": "1999-07-22",
@@ -781,8 +712,31 @@
       }
     },
     {
-      "id": 31,
-      "squadNumber": 31,
+      "id": 28,
+      "squadNumber": 28,
+      "firstName": "Harry",
+      "lastName": "Taylor",
+      "dob": "2002-01-15",
+      "nationality": "England",
+      "position": "Back Row",
+      "baseStats": {
+        "stamina": 70,
+        "strength": 74,
+        "pace": 67,
+        "agility": 66,
+        "handling": 69,
+        "tackling": 74,
+        "breakdown": 80,
+        "kicking": 61,
+        "setPiece": 76,
+        "discipline": 67,
+        "positioning": 72,
+        "composure": 67
+      }
+    },
+    {
+      "id": 29,
+      "squadNumber": 29,
       "firstName": "Jack",
       "lastName": "Clement",
       "dob": "2001-04-04",
@@ -804,8 +758,77 @@
       }
     },
     {
+      "id": 30,
+      "squadNumber": 30,
+      "firstName": "Jack",
+      "lastName": "Singleton",
+      "dob": "1996-08-07",
+      "nationality": "England",
+      "position": "Hooker",
+      "baseStats": {
+        "stamina": 71,
+        "strength": 73,
+        "pace": 60,
+        "agility": 66,
+        "handling": 63,
+        "tackling": 69,
+        "breakdown": 78,
+        "kicking": 50,
+        "setPiece": 82,
+        "discipline": 68,
+        "positioning": 72,
+        "composure": 64
+      }
+    },
+    {
+      "id": 31,
+      "squadNumber": 31,
+      "firstName": "Nepo",
+      "lastName": "Laulala",
+      "dob": "1991-10-29",
+      "nationality": "New Zealand",
+      "position": "Prop",
+      "baseStats": {
+        "stamina": 65,
+        "strength": 86,
+        "pace": 49,
+        "agility": 58,
+        "handling": 58,
+        "tackling": 78,
+        "breakdown": 71,
+        "kicking": 45,
+        "setPiece": 87,
+        "discipline": 70,
+        "positioning": 69,
+        "composure": 69
+      }
+    },
+    {
       "id": 32,
       "squadNumber": 32,
+      "firstName": "Val",
+      "lastName": "Rapava-Ruskin",
+      "dob": "1992-12-12",
+      "nationality": "Georgia",
+      "position": "Prop",
+      "baseStats": {
+        "stamina": 70,
+        "strength": 81,
+        "pace": 52,
+        "agility": 57,
+        "handling": 59,
+        "tackling": 79,
+        "breakdown": 75,
+        "kicking": 43,
+        "setPiece": 92,
+        "discipline": 70,
+        "positioning": 70,
+        "composure": 65
+      }
+    },
+    {
+      "id": 33,
+      "squadNumber": 33,
       "firstName": "Will",
       "lastName": "Trenholm",
       "dob": "2001-01-06",
@@ -824,29 +847,6 @@
         "discipline": 63,
         "positioning": 69,
         "composure": 63
-      }
-    },
-    {
-      "id": 33,
-      "squadNumber": 33,
-      "firstName": "Harry",
-      "lastName": "Taylor",
-      "dob": "2002-01-15",
-      "nationality": "England",
-      "position": "Back Row",
-      "baseStats": {
-        "stamina": 70,
-        "strength": 74,
-        "pace": 67,
-        "agility": 66,
-        "handling": 69,
-        "tackling": 74,
-        "breakdown": 80,
-        "kicking": 61,
-        "setPiece": 76,
-        "discipline": 67,
-        "positioning": 72,
-        "composure": 67
       }
     },
     {
@@ -875,52 +875,6 @@
     {
       "id": 35,
       "squadNumber": 35,
-      "firstName": "Will",
-      "lastName": "Butler",
-      "dob": "1998-04-17",
-      "nationality": "England",
-      "position": "Centre",
-      "baseStats": {
-        "stamina": 71,
-        "strength": 78,
-        "pace": 77,
-        "agility": 69,
-        "handling": 72,
-        "tackling": 70,
-        "breakdown": 69,
-        "kicking": 66,
-        "setPiece": 63,
-        "discipline": 71,
-        "positioning": 71,
-        "composure": 71
-      }
-    },
-    {
-      "id": 36,
-      "squadNumber": 36,
-      "firstName": "Will",
-      "lastName": "Joseph",
-      "dob": "2003-02-04",
-      "nationality": "England",
-      "position": "Centre",
-      "baseStats": {
-        "stamina": 71,
-        "strength": 72,
-        "pace": 70,
-        "agility": 72,
-        "handling": 71,
-        "tackling": 73,
-        "breakdown": 68,
-        "kicking": 63,
-        "setPiece": 64,
-        "discipline": 64,
-        "positioning": 66,
-        "composure": 69
-      }
-    },
-    {
-      "id": 37,
-      "squadNumber": 37,
       "firstName": "Jake",
       "lastName": "Morris",
       "dob": "2002-05-10",
@@ -942,8 +896,31 @@
       }
     },
     {
-      "id": 38,
-      "squadNumber": 38,
+      "id": 36,
+      "squadNumber": 36,
+      "firstName": "Ollie",
+      "lastName": "Thorley",
+      "dob": "1996-08-23",
+      "nationality": "England",
+      "position": "Wing",
+      "baseStats": {
+        "stamina": 65,
+        "strength": 68,
+        "pace": 79,
+        "agility": 83,
+        "handling": 69,
+        "tackling": 67,
+        "breakdown": 62,
+        "kicking": 63,
+        "setPiece": 56,
+        "discipline": 68,
+        "positioning": 67,
+        "composure": 67
+      }
+    },
+    {
+      "id": 37,
+      "squadNumber": 37,
       "firstName": "Rob",
       "lastName": "Russell",
       "dob": "1998-12-04",
@@ -965,26 +942,49 @@
       }
     },
     {
+      "id": 38,
+      "squadNumber": 38,
+      "firstName": "Will",
+      "lastName": "Butler",
+      "dob": "1998-04-17",
+      "nationality": "England",
+      "position": "Centre",
+      "baseStats": {
+        "stamina": 71,
+        "strength": 78,
+        "pace": 77,
+        "agility": 69,
+        "handling": 72,
+        "tackling": 70,
+        "breakdown": 69,
+        "kicking": 66,
+        "setPiece": 63,
+        "discipline": 71,
+        "positioning": 71,
+        "composure": 71
+      }
+    },
+    {
       "id": 39,
       "squadNumber": 39,
-      "firstName": "Ollie",
-      "lastName": "Thorley",
-      "dob": "1996-08-23",
+      "firstName": "Will",
+      "lastName": "Joseph",
+      "dob": "2003-02-04",
       "nationality": "England",
-      "position": "Wing",
+      "position": "Centre",
       "baseStats": {
-        "stamina": 65,
-        "strength": 68,
-        "pace": 79,
-        "agility": 83,
-        "handling": 69,
-        "tackling": 67,
-        "breakdown": 62,
+        "stamina": 71,
+        "strength": 72,
+        "pace": 70,
+        "agility": 72,
+        "handling": 71,
+        "tackling": 73,
+        "breakdown": 68,
         "kicking": 63,
-        "setPiece": 56,
-        "discipline": 68,
-        "positioning": 67,
-        "composure": 67
+        "setPiece": 64,
+        "discipline": 64,
+        "positioning": 66,
+        "composure": 69
       }
     }
   ]

@@ -187,12 +187,26 @@ function parseTeamDataMd(md) {
       }
     }
 
-    // Squad tables (forwards + backs)
+    // Squad tables — tiered into five sub-tables under `### Squad (2025-26)`:
+    //   **Starting XV — Forwards**    (8 rows: jerseys 1-8 source pool)
+    //   **Starting XV — Backs**       (7 rows: jerseys 9-15 source pool)
+    //   **Bench**                     (8 rows: jerseys 16-23 source pool)
+    //   **Wider squad — Forwards**    (squad players outside the matchday 23)
+    //   **Wider squad — Backs**       (squad players outside the matchday 23)
+    //
+    // Tier = the player's authored role. The generator assigns jersey numbers
+    // within each tier by position. Hard-errors on count mismatch or star not
+    // in Starting XV.
     const squadMatch = body.match(/### Squad \(2025-26\)\s*\n([\s\S]*?)(?=\n---|\n## |$)/);
-    const squad = [];
-    if (squadMatch) {
-      const rows = squadMatch[1].split('\n');
-      for (const row of rows) {
+    if (!squadMatch) throw new Error(`Missing '### Squad (2025-26)' section for ${teamName}`);
+    const squadBlock = squadMatch[1];
+
+    function extractTier(label) {
+      const re = new RegExp(`\\*\\*${label.replace(/[—()]/g, c => '\\' + c)}\\*\\*\\s*\\n([\\s\\S]*?)(?=\\n\\*\\*|\\n---|\\n## |$)`);
+      const m = squadBlock.match(re);
+      if (!m) throw new Error(`Missing '**${label}**' sub-table for ${teamName}`);
+      const out = [];
+      for (const row of m[1].split('\n')) {
         if (!row.startsWith('|')) continue;
         if (/^\|[-\s|]+\|$/.test(row)) continue;
         if (/\|\s*Name\s*\|/i.test(row)) continue;
@@ -200,13 +214,35 @@ function parseTeamDataMd(md) {
         if (cells.length < 5) continue;
         const [name, position, dob, age, nationality] = cells;
         if (!name) continue;
-        squad.push({
+        out.push({
           name,
           position: SIMPLE_FROM_TEAMDATA(position),
           dob: dob || null,
           age: age || null,
           nationality: nationality || 'England',
         });
+      }
+      return out;
+    }
+
+    const startForwards = extractTier('Starting XV — Forwards');
+    const startBacks = extractTier('Starting XV — Backs');
+    const benchTier = extractTier('Bench');
+    const widerForwards = extractTier('Wider squad — Forwards');
+    const widerBacks = extractTier('Wider squad — Backs');
+
+    const starters = [...startForwards, ...startBacks];
+    const widerSquad = [...widerForwards, ...widerBacks];
+
+    if (starters.length !== 15) {
+      throw new Error(`${teamName}: Starting XV has ${starters.length} players (forwards ${startForwards.length} + backs ${startBacks.length}), expected 15.`);
+    }
+    if (benchTier.length !== 8) {
+      throw new Error(`${teamName}: Bench has ${benchTier.length} players, expected 8.`);
+    }
+    for (const star of stars) {
+      if (!starters.some(p => p.name === star.name)) {
+        throw new Error(`${teamName}: Star "${star.name}" is not in the Starting XV tables — stars must be tagged as starters.`);
       }
     }
 
@@ -223,7 +259,9 @@ function parseTeamDataMd(md) {
       suggestedTactics,
       statBias,
       stars,
-      squad,
+      starters,
+      benchTier,
+      widerSquad,
     };
   }
   return teams;
@@ -238,51 +276,46 @@ function splitName(full) {
 }
 
 // ─── Starter / bench / squad allocator ────────────────────────────────────
+//
+// Each tier is parsed straight out of its sub-table in team-data.md, so the
+// tier membership is authored — we just assign jerseys within each tier.
 
-function buildLineup(team) {
+function bucketByPosition(players, stars) {
   const byPos = { Prop: [], Hooker: [], Lock: [], Flanker: [], 'Number 8': [], 'Back Row': [], 'Scrum-Half': [], 'Fly-Half': [], Centre: [], Wing: [], Fullback: [], 'Utility Back': [] };
-  for (const p of team.squad) {
+  for (const p of players) {
     const bucket = byPos[p.position] ?? byPos['Utility Back'];
-    bucket.push({ ...p, isStar: team.stars.some(s => s.name === p.name) });
+    bucket.push({ ...p, isStar: stars.some(s => s.name === p.name) });
   }
-  // Stars first within each bucket
+  // Stars first within each position bucket (drives jersey allocation order).
   for (const list of Object.values(byPos)) list.sort((a, b) => Number(b.isStar) - Number(a.isStar));
-
-  // Distribute Back Row entries into the Flanker / Number 8 buckets so they
-  // can fill jerseys 6/7/8 on the field. Their `position` stays 'Back Row' —
-  // the engine only cares about the jersey number.
+  // Back Row → Flanker/Number 8 redistribution so jerseys 6/7/8 fill cleanly.
   while (byPos['Back Row'].length) {
     const p = byPos['Back Row'].shift();
     if (byPos['Flanker'].length < 4) byPos['Flanker'].push(p);
     else if (byPos['Number 8'].length < 2) byPos['Number 8'].push(p);
     else byPos['Flanker'].push(p);
   }
+  return byPos;
+}
 
-  // Build the 15 starters in canonical jersey order. Position string is taken
-  // verbatim from the player's authored md position (generic — Prop, Lock,
-  // Flanker, Centre, Wing, …) — the engine reads jersey id, not the string.
+function assignStarterJerseys(byPos) {
   const takeFirst = (list) => list.length > 0 ? list.shift() : null;
   const starters = [];
-  // 1 LHP, 2 H, 3 THP
   const propA = takeFirst(byPos.Prop);
   const propB = takeFirst(byPos.Prop);
   starters.push({ ...propA, id: 1 });
   starters.push({ ...takeFirst(byPos.Hooker), id: 2 });
   starters.push({ ...propB, id: 3 });
-  // 4 L1, 5 L2
   starters.push({ ...takeFirst(byPos.Lock), id: 4 });
   starters.push({ ...takeFirst(byPos.Lock), id: 5 });
-  // 6 BSF, 7 OSF, 8 N8 — prefer dedicated N8 for jersey 8 if available
   const flA = takeFirst(byPos.Flanker);
   const flB = takeFirst(byPos.Flanker);
   const n8 = byPos['Number 8'].length > 0 ? takeFirst(byPos['Number 8']) : takeFirst(byPos.Flanker);
   starters.push({ ...flA, id: 6 });
   starters.push({ ...flB, id: 7 });
   starters.push({ ...n8, id: 8 });
-  // 9 SH, 10 FH
   starters.push({ ...takeFirst(byPos['Scrum-Half']), id: 9 });
   starters.push({ ...takeFirst(byPos['Fly-Half']), id: 10 });
-  // 11 LW, 12 IC, 13 OC, 14 RW, 15 FB
   const wingA = takeFirst(byPos.Wing);
   const centreA = takeFirst(byPos.Centre);
   const centreB = takeFirst(byPos.Centre);
@@ -291,20 +324,16 @@ function buildLineup(team) {
   starters.push({ ...centreA, id: 12 });
   starters.push({ ...centreB, id: 13 });
   starters.push({ ...wingB, id: 14 });
-  // FB fallback: dedicated Fullback, else Utility Back, else any remaining Wing
   const fb = byPos.Fullback.length > 0
     ? takeFirst(byPos.Fullback)
     : byPos['Utility Back'].length > 0
       ? takeFirst(byPos['Utility Back'])
       : takeFirst(byPos.Wing);
   starters.push({ ...fb, id: 15 });
+  return starters;
+}
 
-  if (starters.some(s => !s || !s.name)) {
-    throw new Error(`Could not fill all starter slots for team. Missing positions: ${starters.map((s,i)=>!s||!s.name?(i+1):null).filter(Boolean).join(',')}`);
-  }
-
-  // Bench: standard 16-23 layout. `src` is the bucket name (matches the
-  // generic Position values returned by SIMPLE_FROM_TEAMDATA).
+function assignBenchJerseys(byPos) {
   const bench = [];
   const benchSlots = [
     { id: 16, src: 'Hooker'       },
@@ -326,16 +355,27 @@ function buildLineup(team) {
     const p = pool && pool.length > 0 ? pool.shift() : null;
     if (p) bench.push({ ...p, id: slot.id });
   }
+  return bench;
+}
 
-  // Squad — everyone left over. Assign sequential id starting at 24. Position
-  // stays as-authored.
-  const squadExtras = [];
-  let nextId = 24;
-  for (const list of Object.values(byPos)) {
-    for (const p of list) squadExtras.push({ ...p, id: nextId++ });
+function buildLineup(team) {
+  const startersByPos = bucketByPosition(team.starters, team.stars);
+  const starters = assignStarterJerseys(startersByPos);
+  if (starters.some(s => !s || !s.name)) {
+    throw new Error(`Could not fill all starter slots. Missing jerseys: ${starters.map((s,i)=>!s||!s.name?(i+1):null).filter(Boolean).join(',')}`);
   }
 
-  return { starters, bench, squad: squadExtras };
+  const benchByPos = bucketByPosition(team.benchTier, team.stars);
+  const bench = assignBenchJerseys(benchByPos);
+
+  // Wider squad — sequential id from 24, preserving authored row order.
+  const widerSquad = team.widerSquad.map((p, i) => ({
+    ...p,
+    isStar: false,
+    id: 24 + i,
+  }));
+
+  return { starters, bench, squad: widerSquad };
 }
 
 // ─── baseStats generator ──────────────────────────────────────────────────

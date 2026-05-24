@@ -164,20 +164,22 @@ export function initTransferMarketScreen(
       // Cap-warning only applies to NEW commitments — undoing never
       // pushes cap up.
       const wouldExceedCap = !committed && (capUsed + offer.annualWage > effectiveCap);
-      const buttonLabel = signed
-        ? 'Undo Sign'
-        : preAgreed
-          ? 'Undo Pre-Agree'
-          : action === 'sign'
-            ? (wouldExceedCap ? 'Sign (over cap)' : 'Sign')
-            : (wouldExceedCap ? 'Pre-Agree (over cap)' : 'Pre-Agree');
+      // Button label: keep the committed-state label short so it fits the
+      // narrow column (an explicit "Undo Sign" overflowed on mobile). The
+      // red `.tm-sign--undo` styling + the row's faded `.tm-row--committed`
+      // treatment carry the meaning. Over-cap warning is conveyed by the
+      // red border (`.tm-sign--warn`) + the CAP pill in the header — no
+      // need to spell it out in the label.
+      const buttonLabel = signed || preAgreed
+        ? 'Undo'
+        : action === 'sign' ? 'Sign' : 'Pre-Agree';
       const buttonClass = `tm-sign${wouldExceedCap ? ' tm-sign--warn' : ''}${committed ? ' tm-sign--undo' : ''}`;
       const dataAttr = committed
         ? (signed ? `data-unsign="${p.rosterId}"` : `data-cancel="${p.rosterId}"`)
         : `data-${action}="${p.rosterId}"`;
       const ariaLabel = committed
         ? `${signed ? 'Undo signing of' : 'Cancel pre-agreement for'} ${p.firstName} ${p.lastName}`
-        : `${action === 'sign' ? 'Sign' : 'Pre-agree'} ${p.firstName} ${p.lastName}`;
+        : `${action === 'sign' ? 'Sign' : 'Pre-agree'} ${p.firstName} ${p.lastName}${wouldExceedCap ? ' (over cap)' : ''}`;
       const currentClub = action === 'poach'
         ? `<span class="tm-from">← ${teamsById.get(offer.fromClubId)?.shortName ?? offer.fromClubId}</span>`
         : '';
@@ -212,6 +214,13 @@ export function initTransferMarketScreen(
       ? `${team.name} · ${freeAgentRows.length} free agents · build your squad for Round 1`
       : `${team.name} · ${freeAgentRows.length} free agents · ${poachRows.length} approachable`;
 
+    // Preserve scroll position across re-render. Clicking Sign / Undo
+    // triggers a full re-render; without this the list jumps back to the
+    // top, which is disorienting when the user has scrolled to a player
+    // deep in the list.
+    const prevListScroll = el!.querySelector<HTMLDivElement>('#tm-list')?.scrollTop ?? 0;
+    const prevPoachScroll = el!.querySelector<HTMLDivElement>('#tm-poach-list')?.scrollTop ?? 0;
+
     el!.innerHTML = `
       <div class="app-header">
         <div class="app-topbar">
@@ -245,6 +254,11 @@ export function initTransferMarketScreen(
         </button>
       </div>
     `;
+
+    const newList = el!.querySelector<HTMLDivElement>('#tm-list');
+    if (newList && prevListScroll) newList.scrollTop = prevListScroll;
+    const newPoach = el!.querySelector<HTMLDivElement>('#tm-poach-list');
+    if (newPoach && prevPoachScroll) newPoach.scrollTop = prevPoachScroll;
 
     el!.querySelectorAll<HTMLButtonElement>('.tm-head[data-sort]').forEach(btn => {
       btn.addEventListener('click', () => {

@@ -57,7 +57,7 @@
 @media (max-width: 480px) {
   #tm-headrow,
   .tm-row {
-    grid-template-columns: minmax(0, 1fr) 24px 24px 24px 58px 64px;
+    grid-template-columns: minmax(0, 1fr) 24px 24px 24px 58px 72px;
     gap: 6px;
     padding: 8px 10px;
   }

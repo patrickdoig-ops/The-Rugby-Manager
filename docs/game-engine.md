@@ -199,7 +199,7 @@ Persistent contact injuries on the career roster, in-match-triggered and decreme
 
 ## Save format
 
-`SAVE_VERSION = 9` (as of v2.56a). `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`.
+`SAVE_VERSION = 12` (as of v2.113a). `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`.
 
 | Version | Added |
 |---|---|
@@ -210,11 +210,17 @@ Persistent contact injuries on the career roster, in-match-triggered and decreme
 | v6 | Each persisted Player carries `contract` + `reputation` (Phase 2) |
 | v7 | `career.freeAgents` (rosterIds of players whose contracts expired without renewal) + optional `career.market` (MarketState — live offers when a market window is open mid-save, null otherwise). MarketState gains `phase: 'renewals' \| 'signings'`. Lets the player resume on the same offers after a tab close mid-window. |
 | v8 | `career.pendingMoves` (PreAgreement[]) for Phase 6 Reg 7 cross-Prem poaching. The pre-agreed moves persist across saves until activated at the next rollover. |
-| v9 | Each persisted Player gains the optional `injury` field (PlayerInjury — `kind`, `severity`, `weeksRemaining`, `injuredOn`, `isRecurrence`). Absent ⇔ fit. Purely additive — older saves load with `injury` undefined on every player. |
+| v9 | Per-team season aggregates: top-level `teamSeasonStats` map (keyed by teamId — possession / territory / set-piece / attack / defence buckets); each persisted Player gains the optional `injury` field (PlayerInjury — `kind`, `severity`, `weeksRemaining`, `injuredOn`, `isRecurrence`); Player gains `seasonStats` (per-player aggregator backfilled with zeros on older saves). |
+| v10 | `TeamTactics` gains `defensiveLine` (`'blitz' \| 'hybrid' \| 'drift'`). Pre-v10 saves backfill `'hybrid'` (numerically neutral) so the engine never sees undefined. |
+| v11 | `SavedSeasonResult` gains `homeTries` + `awayTries` for the bonus-points system. Pre-v11 rounds were played without try-bonus tracking, so older saves default to 0 — no fabricated retroactive bonuses. |
+| v12 | `career.preSeasonStep` (`'signings' \| 'marquee' \| undefined`) — Squad Builder resumption flag. Set during the pre-season flow at game start (Phase 8), cleared after marquee Continue. Outside Squad Builder this is always undefined and the field is omitted from the payload, so existing in-season saves stay byte-equivalent. |
 
 **Migration on load** (`GameCoordinator.fromSave`):
 
-- v8 → v9: no-op shim. `injury` is optional; older saves just have it absent on every roster Player.
+- v11 → v12: no-op shim. `preSeasonStep` is optional; older saves load with the field absent and `continueGame` routes straight to Hub.
+- v10 → v11: pre-v11 results default `homeTries` / `awayTries` to 0.
+- v9 → v10: `parseSave` backfills `tactics.defensiveLine = 'hybrid'` when absent.
+- v8 → v9: `parseCareer` defaults `teamSeasonStats` to `{}` and back-fills each player's `seasonStats` with zeroes. `injury` is optional and older saves just have it absent on every roster Player.
 - v7 → v8: `parseCareer` defaults `pendingMoves` to `[]`. No data loss — pre-v8 there was no Reg 7 flow so no pending moves existed.
 - v6 → v7: `parseCareer` defaults `freeAgents` to `[]` and `market` to `null` when the older save omits them. v7 saves loaded by v8 code with `market.phase` missing default the phase to `'renewals'` for backward compat.
 - v5 → v6: walk the persisted roster; for any Player missing `contract` or `reputation`, call `contractSeeder.seedContractFields` to backfill. Lossless — the `rngTransfer` stream advances but produces deterministic results for the same root seed.
@@ -223,7 +229,44 @@ Persistent contact injuries on the career roster, in-match-triggered and decreme
 - v2 → v3: legacy path, no schedule snapshot — falls back to current canonical schedule.
 - v1: discarded (predates AI-vs-AI results, league table can't be reconstructed).
 
-The persisted career state always flows through `CAREER_ARCHIVE_RESTORED` (with optional `freeAgents` + `market` + `pendingMoves` fields) so every `state.career.*` write stays inside `applySeasonEvent` — the mutation seam holds even across the load path.
+The persisted career state always flows through `CAREER_ARCHIVE_RESTORED` (with optional `freeAgents` + `market` + `pendingMoves` + `teamSeasonStats` + `preSeasonStep` fields) so every `state.career.*` write stays inside `applySeasonEvent` — the mutation seam holds even across the load path.
+
+## New-game flow: Quick Start vs Squad Builder
+
+`main.ts` routes the user through a Mode Picker after team selection (`src/ui/ModePickerScreen.ts`). The picker has two CTAs:
+
+**Quick Start** — `GameCoordinator.newSeason(teamId, seed, allTeams)` → `saveGame` → Hub. Authored rosters / contracts / marquees stand exactly as seeded. This is the pre-Phase-8 behaviour.
+
+**Squad Builder** (v2.114a) — one-shot pre-season flow at game start only:
+
+```
+ModePicker (Squad Builder)
+  → newSeason()                                                (seeds roster + contracts as Quick Start does)
+  → unwindPreSeasonTransfers(PRE_SEASON_TRANSFERS_2025_26)     (99 names, RNG-free name match, CONTRACT_TERMINATED(reason: 'pre_season_unwind') per hit)
+  → openSigningWindow({ skipPoaches: true })                   (market: 99 FA offers, 0 Reg 7 offers)
+       │
+       ├── market populated
+       │     → setPreSeasonStep('signings') + saveGame
+       │     → TransferMarketScreen (signings-preseason mode)
+       │       [user signs FAs within cap; AI clubs skipped here]
+       │     → closeSigningWindow({ skipPoaches: true })
+       │         · CONTRACT_SIGNED per AI signing
+       │         · MARKET_CLOSED
+       │     → repairAIMarquees()                              (MARQUEE_DESIGNATED for any AI club whose authored marquee was unwound; top-wage pick)
+       │
+       └── (no FA pool) — skip signings, still run repairAIMarquees()
+  → setPreSeasonStep('marquee') + saveGame
+  → ContractsScreen (marquee-edit mode, showContractsMarqueeEdit)
+    [user picks marquee from the post-signings squad; star toggle interactive, Continue CTA]
+  → setPreSeasonStep(null) + saveGame
+  → Hub → Round 1
+```
+
+**Save resumption.** `state.career.preSeasonStep` is set before every `saveGame` during the flow. `continueGame` reads it and routes back to the in-flight screen (`runPreSeasonSignings()` for `'signings'`, `runPreSeasonMarquee()` for `'marquee'`, Hub otherwise). The flag is only ever set between team-selection and Round 1; once the marquee Continue completes the engine clears it. `SAVE_VERSION = 12` accommodates the optional field; older saves load with `preSeasonStep === undefined` and skip straight to Hub.
+
+**Determinism.** Squad Builder consumes an extra signing window's worth of `rngTransfer` (wages for the 99 FAs are seeded via `signingTermsFor`). Quick Start is byte-identical to the pre-Phase-8 behaviour. Both modes are individually deterministic given the same root seed; the existing `npm run verify` harnesses (which test the Quick Start path only) continue to pass unchanged.
+
+The full transfer-system phase summary lives in `docs/transfer-system.md` § "Phase 8 — Squad Builder".
 
 ## Post-match / end-of-season flow
 

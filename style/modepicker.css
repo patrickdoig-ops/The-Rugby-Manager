@@ -1,5 +1,10 @@
+/* Screen-root visibility is owned by screenRouter — toggles inline
+ * `display: none` (hidden) vs `display: ''` (shown, falls back to
+ * browser default `block`). Declaring `display: none` here would
+ * make the fallback ALSO `none`, which silently blanks the screen.
+ * Match the convention used by every other screen-root rule.
+ */
 #mode-picker {
-  display: none;
   width: 100%;
   min-height: 100vh;
   min-height: 100dvh;

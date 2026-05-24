@@ -41,7 +41,10 @@
 #tm-headrow,
 .tm-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) 36px 36px 36px minmax(110px, 1.2fr) 92px;
+  /* WAGE is fixed so NAME absorbs any leftover space. Two flex tracks
+   * (NAME 1.6fr + WAGE 1.2fr) gave WAGE huge empty whitespace and starved
+   * the player-name column at the same time. */
+  grid-template-columns: minmax(0, 1fr) 36px 36px 36px 100px 92px;
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
@@ -54,7 +57,7 @@
 @media (max-width: 480px) {
   #tm-headrow,
   .tm-row {
-    grid-template-columns: minmax(0, 1fr) 26px 26px 26px minmax(64px, 1fr) 72px;
+    grid-template-columns: minmax(0, 1fr) 24px 24px 24px 58px 64px;
     gap: 6px;
     padding: 8px 10px;
   }
@@ -73,8 +76,12 @@
 .tm-head {
   background: transparent;
   border: none;
+  appearance: none;
+  -webkit-appearance: none;
   font-family: var(--rm-font-mono);
   font-size: 9px;
+  font-weight: 400;
+  line-height: 1;
   letter-spacing: 0.14em;
   color: var(--rm-text-dim);
   text-transform: uppercase;
@@ -84,7 +91,8 @@
 }
 
 .tm-head--active { color: var(--rm-pitch); }
-.tm-head.tm-num, .tm-head.tm-wage, .tm-head.tm-sign-col { text-align: right; }
+.tm-head.tm-num, .tm-head.tm-wage { text-align: right; }
+.tm-head.tm-sign-col { text-align: center; }
 
 #tm-list {
   flex: 1;

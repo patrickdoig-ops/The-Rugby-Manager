@@ -20,6 +20,7 @@ import {
   expiringRosterIds, generateRenewalOffers, decideAIOffers, expiryAfterYears,
   decideAISignings, signingTermsFor, isPoachEligible, decideAIPoaches, poachCandidates,
 } from './aiTransferDirector';
+import type { PreSeasonTransfer } from '../data/transfers-2025-26';
 
 export class TransferCoordinator {
   constructor(private state: GameState) {}
@@ -119,6 +120,41 @@ export class TransferCoordinator {
   //
   // Idempotent — no-op if window is already open or there's nothing
   // to offer (no free agents AND no poach candidates).
+  // Squad Builder entry point. Walks the curated 2025-26 inbound
+  // transfer list, name-matches against the live roster, and emits a
+  // CONTRACT_TERMINATED('pre_season_unwind') per hit. Each match
+  // releases the player into state.career.freeAgents — feeding the
+  // pre-season signing window that opens immediately after. RNG-free
+  // (the match is name-driven); the unwind order is fixed by the
+  // input list order, so determinism is preserved.
+  //
+  // Returns { matched, skipped } purely for telemetry / logging. The
+  // caller doesn't act on skipped names — Phase B's audit already
+  // documented why those Wikipedia entries are absent from the seed
+  // roster (foreign / loan / lower-league arrivals).
+  unwindPreSeasonTransfers(transfers: PreSeasonTransfer[]): { matched: number; skipped: number } {
+    const nameIndex = new Map<string, number>();
+    for (const ridStr of Object.keys(this.state.career.roster)) {
+      const rid = Number(ridStr);
+      const p = this.state.career.roster[rid];
+      if (!p) continue;
+      nameIndex.set(`${p.firstName} ${p.lastName}`, rid);
+    }
+    let matched = 0;
+    let skipped = 0;
+    for (const t of transfers) {
+      const rid = nameIndex.get(t.name);
+      if (rid === undefined) { skipped++; continue; }
+      applySeasonEvent(this.state, {
+        type: 'CONTRACT_TERMINATED',
+        rosterId: rid,
+        reason: 'pre_season_unwind',
+      });
+      matched++;
+    }
+    return { matched, skipped };
+  }
+
   openSigningWindow(opts: { skipPoaches?: boolean } = {}): void {
     if (this.state.career.market) return;
     const sortedFAs = [...this.state.career.freeAgents].sort((a, b) => a - b);
@@ -266,7 +302,7 @@ export class TransferCoordinator {
   // players in their final 12 months, then batches OFFER_RESPONDED
   // across every cached offer (accepted iff the rosterId left the
   // free-agent pool / landed on pendingMoves), then fires MARKET_CLOSED.
-  closeSigningWindow(): void {
+  closeSigningWindow(opts: { skipPoaches?: boolean } = {}): void {
     const market = this.state.career.market;
     if (!market || market.phase !== 'signings') return;
     const humanClubId = this.state.player.teamId;
@@ -282,8 +318,9 @@ export class TransferCoordinator {
     }
     // Phase 6: AI poaching pass. Each non-human AI club pre-agrees at
     // most one Reg 7 candidate. Activations happen at the next
-    // rollover via TRANSFER_ACTIVATED.
-    const poaches = decideAIPoaches(this.state, humanClubId);
+    // rollover via TRANSFER_ACTIVATED. Skipped in Squad Builder
+    // pre-season — that window is FA-only by design.
+    const poaches = opts.skipPoaches ? [] : decideAIPoaches(this.state, humanClubId);
     for (const a of poaches) {
       const fromClubId = this.state.career.roster[a.rosterId]?.contract.clubId ?? '';
       applySeasonEvent(this.state, {

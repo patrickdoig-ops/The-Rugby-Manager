@@ -238,6 +238,13 @@ export interface CareerState {
   // them on SEASON_ROLLED_OVER: each agreement turns into a CONTRACT_TERMINATED
   // on the old club + CONTRACT_SIGNED on the new club.
   pendingMoves: PreAgreement[];
+  // Squad Builder mode resumption flag. Set to 'signings' when the
+  // pre-season signing window opens, 'marquee' when that window
+  // closes and the marquee step is pending, undefined otherwise (the
+  // common case — outside Squad Builder, this is always undefined).
+  // continueGame reads this to route the user back to the right
+  // pre-season screen if they closed the tab mid-flow.
+  preSeasonStep?: 'signings' | 'marquee';
 }
 
 export interface GameState {
@@ -433,12 +440,14 @@ export type SeasonEvent =
   | {
       // Removes a player from their current club's squad and adds them
       // to state.career.freeAgents. Used by Phase 4 for unrenewed
-      // expiring contracts ('expired') and Phase 5+ for proactive
-      // releases ('released'). 'retired' would be conceptually valid
-      // but is currently handled separately via PLAYER_RETIRED.
+      // expiring contracts ('expired'), Phase 5+ for proactive
+      // releases ('released'), and Squad Builder mode for unwinding
+      // the 2025-26 inbound transfers ('pre_season_unwind'). 'retired'
+      // would be conceptually valid but is currently handled
+      // separately via PLAYER_RETIRED.
       type: 'CONTRACT_TERMINATED';
       rosterId: number;
-      reason: 'released' | 'expired' | 'retired';
+      reason: 'released' | 'expired' | 'retired' | 'pre_season_unwind';
     }
   | {
       // Signs a free-agent player to a new club. Removes the rosterId
@@ -520,6 +529,7 @@ export type SeasonEvent =
       market?: MarketState | null;
       pendingMoves?: PreAgreement[];
       teamSeasonStats?: Record<string, TeamSeasonStats>;
+      preSeasonStep?: 'signings' | 'marquee';
     }
   | {
       // Persistent injury landed on a roster player. Fired at match
@@ -558,4 +568,11 @@ export type SeasonEvent =
       // re-zeroed. Optional so older event-replay paths (or hand-crafted
       // events in tests) can omit it.
       leaders?: SeasonAwards;
+    }
+  | {
+      // Squad Builder resumption: writes state.career.preSeasonStep so
+      // a Continue from a closed tab can route the user back to the
+      // right pre-season screen. `null` clears the flag (mode complete).
+      type: 'PRE_SEASON_STEP_SET';
+      step: 'signings' | 'marquee' | null;
     };

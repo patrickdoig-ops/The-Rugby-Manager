@@ -42,9 +42,13 @@ const SORT_LABELS: Record<SortKey, string> = {
   name:     'Name',
 };
 
+type Mode = 'hub' | 'marquee-edit';
+
 let sortKey: SortKey = 'wage';
 let sortDir: SortDir = 'desc';
 let sortPanelOpen = false;
+let mode: Mode = 'hub';
+let marqueeEditOnContinue: () => void = () => {};
 let renderImpl: (() => void) | null = null;
 
 function fmtWage(n: number): string {
@@ -175,14 +179,28 @@ export function initContractsScreen(
       `<button class="ct-sort-option${k === sortKey ? ' active' : ''}" data-sort="${k}">${SORT_LABELS[k]}</button>`
     ).join('');
 
+    const leftButton = mode === 'marquee-edit'
+      ? '<div class="app-topbar-spacer"></div>'
+      : `<button id="ct-back" class="app-back" aria-label="Back to hub">
+           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+           <span>Hub</span>
+         </button>`;
+    const titleText = mode === 'marquee-edit' ? 'Choose Your Marquee' : 'Contracts';
+    const footerNote = mode === 'marquee-edit'
+      ? 'Tap a star to set your marquee — their wage is excluded from the cap. You can change it again at the end of the season.'
+      : 'Tap the star to designate a marquee — that wage is excluded from the cap';
+    const continueCta = mode === 'marquee-edit'
+      ? `<button id="ct-continue" class="cta-pulse">
+           <span>Continue</span>
+           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+         </button>`
+      : '';
+
     el!.innerHTML = `
       <div class="app-header">
         <div class="app-topbar">
-          <button id="ct-back" class="app-back" aria-label="Back to hub">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-            <span>Hub</span>
-          </button>
-          <span class="app-title">Contracts</span>
+          ${leftButton}
+          <span class="app-title">${titleText}</span>
           <button id="ct-sort-btn" aria-label="Sort">
             ${SORT_ICON}
             <span>${SORT_LABELS[sortKey]}</span>
@@ -219,11 +237,16 @@ export function initContractsScreen(
       <div id="ct-list">${rows}</div>
 
       <div id="ct-footer">
-        <span id="ct-footer-note">Tap the star to designate a marquee — that wage is excluded from the cap</span>
+        <span id="ct-footer-note">${footerNote}</span>
+        ${continueCta}
       </div>
     `;
 
-    el!.querySelector<HTMLButtonElement>('#ct-back')!.addEventListener('click', () => onBack());
+    if (mode === 'hub') {
+      el!.querySelector<HTMLButtonElement>('#ct-back')!.addEventListener('click', () => onBack());
+    } else {
+      el!.querySelector<HTMLButtonElement>('#ct-continue')!.addEventListener('click', () => marqueeEditOnContinue());
+    }
 
     el!.querySelector<HTMLButtonElement>('#ct-sort-btn')!.addEventListener('click', () => {
       sortPanelOpen = !sortPanelOpen;
@@ -261,6 +284,16 @@ export function initContractsScreen(
 }
 
 export function showContracts(): void {
+  mode = 'hub';
+  renderImpl?.();
+}
+
+// Squad Builder pre-season marquee step. Re-uses the contracts list +
+// interactive star toggle but swaps the back arrow for a Continue CTA
+// that completes the pre-season flow.
+export function showContractsMarqueeEdit(onContinue: () => void): void {
+  mode = 'marquee-edit';
+  marqueeEditOnContinue = onContinue;
   renderImpl?.();
 }
 

@@ -89,6 +89,10 @@ export interface SavedCareer {
   freeAgents?: number[];
   market?: MarketState | null;
   pendingMoves?: PreAgreement[];
+  // v12+: Squad Builder resumption flag. Optional — outside Squad
+  // Builder this is always undefined and the field is omitted from the
+  // payload, so existing in-season saves stay byte-equivalent.
+  preSeasonStep?: 'signings' | 'marquee';
 }
 
 export interface SavedSeason {
@@ -249,6 +253,7 @@ export class GameCoordinator {
         ...(save.career.freeAgents !== undefined ? { freeAgents: save.career.freeAgents } : {}),
         ...(save.career.market !== undefined ? { market: save.career.market } : {}),
         ...(save.career.pendingMoves !== undefined ? { pendingMoves: save.career.pendingMoves } : {}),
+        ...(save.career.preSeasonStep !== undefined ? { preSeasonStep: save.career.preSeasonStep } : {}),
         ...(save.teamSeasonStats !== undefined ? { teamSeasonStats: save.teamSeasonStats } : {}),
       });
     } else {
@@ -313,13 +318,15 @@ export class GameCoordinator {
     this.transfers.openSigningWindow(opts);
   }
 
-  // Squad Builder mode entry point. Phase A scaffolding: the empty
-  // PRE_SEASON_TRANSFERS_2025_26 list means this is a no-op until Phase B
-  // populates the data file. Phase C will replace the loop body with
-  // CONTRACT_TERMINATED emits (reason: 'pre_season_unwind') for each
-  // name-matched roster entry.
-  unwindPreSeasonTransfers(transfers: PreSeasonTransfer[]): void {
-    void transfers;
+  unwindPreSeasonTransfers(transfers: PreSeasonTransfer[]): { matched: number; skipped: number } {
+    return this.transfers.unwindPreSeasonTransfers(transfers);
+  }
+
+  // Squad Builder resumption flag. Writes go through applySeasonEvent
+  // so the mutation boundary holds; the field lives on state.career
+  // and is restored via the save layer.
+  setPreSeasonStep(step: 'signings' | 'marquee' | null): void {
+    applySeasonEvent(this.state, { type: 'PRE_SEASON_STEP_SET', step });
   }
 
   signFreeAgent(rosterId: number): boolean {
@@ -338,8 +345,8 @@ export class GameCoordinator {
     return this.transfers.cancelPreAgreement(rosterId);
   }
 
-  closeSigningWindow(): void {
-    this.transfers.closeSigningWindow();
+  closeSigningWindow(opts: { skipPoaches?: boolean } = {}): void {
+    this.transfers.closeSigningWindow(opts);
   }
 
   getState(): Readonly<GameState> {
@@ -572,6 +579,9 @@ export class GameCoordinator {
             }
           : null,
         pendingMoves: this.state.career.pendingMoves.map(m => ({ ...m })),
+        ...(this.state.career.preSeasonStep !== undefined
+          ? { preSeasonStep: this.state.career.preSeasonStep }
+          : {}),
       },
       teamSeasonStats: Object.fromEntries(
         Object.entries(this.state.league.teamSeasonStats).map(([id, s]) => [id, { ...s }]),

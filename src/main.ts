@@ -42,7 +42,7 @@ import { initTransferMarketScreen, showTransferMarket, showTransferMarketScoutin
 import { initModePickerScreen }    from './ui/ModePickerScreen';
 import { PRE_SEASON_TRANSFERS_2025_26 } from './data/transfers-2025-26';
 import { initRolloverScreen, showRollover }         from './ui/RolloverScreen';
-import { initContractsScreen, showContracts }       from './ui/ContractsScreen';
+import { initContractsScreen, showContracts, showContractsMarqueeEdit } from './ui/ContractsScreen';
 import { initSquadManagementScreen, showSquadManagement } from './ui/SquadManagementScreen';
 import { screenRouter }            from './ui/ScreenRouter';
 import { loadSave, saveGame, clearSave } from './ui/SaveManager';
@@ -216,30 +216,46 @@ document.addEventListener('DOMContentLoaded', () => {
     goHub();
   }
 
-  // Phase A scaffolding. unwindPreSeasonTransfers is a no-op (the data
-  // file is empty) and openSigningWindow returns early when there are no
-  // free agents and no poaches — so today the only behavioural delta vs
-  // Quick Start is the route through the mode picker. Phases B + C will
-  // land the transfer data + marquee step.
+  // Squad Builder: unwind 2025-26 inbound transfers → pre-season
+  // signing window (FA-only) → marquee selection → Hub. Each step
+  // marks state.career.preSeasonStep before saving so a closed tab
+  // resumes at the right screen via continueGame.
   function onSquadBuilder(team: RawTeamInput): void {
     gameEngine = GameCoordinator.newSeason(team.id, generateSeed(), allTeams);
     gameEngine.unwindPreSeasonTransfers(PRE_SEASON_TRANSFERS_2025_26);
-    saveGame(gameEngine.toSavePayload());
     initInSeasonScreens();
+    runPreSeasonSignings();
+  }
+
+  function runPreSeasonSignings(): void {
+    if (!gameEngine) return;
     gameEngine.openSigningWindow({ skipPoaches: true });
-    if (gameEngine.getState().career.market) {
-      saveGame(gameEngine.toSavePayload());
-      showTransferMarketPreSeason(() => {
-        if (!gameEngine) { goHub(); return; }
-        gameEngine.closeSigningWindow();
-        saveGame(gameEngine.toSavePayload());
-        goHub();
-      });
-      screenRouter.show('transfer-market');
-    } else {
-      // No FAs available yet (Phase A) — jump straight to Hub.
-      goHub();
+    if (!gameEngine.getState().career.market) {
+      // Nothing to sign — skip straight to marquee.
+      runPreSeasonMarquee();
+      return;
     }
+    gameEngine.setPreSeasonStep('signings');
+    saveGame(gameEngine.toSavePayload());
+    showTransferMarketPreSeason(() => {
+      if (!gameEngine) { goHub(); return; }
+      gameEngine.closeSigningWindow({ skipPoaches: true });
+      runPreSeasonMarquee();
+    });
+    screenRouter.show('transfer-market');
+  }
+
+  function runPreSeasonMarquee(): void {
+    if (!gameEngine) return;
+    gameEngine.setPreSeasonStep('marquee');
+    saveGame(gameEngine.toSavePayload());
+    showContractsMarqueeEdit(() => {
+      if (!gameEngine) { goHub(); return; }
+      gameEngine.setPreSeasonStep(null);
+      saveGame(gameEngine.toSavePayload());
+      goHub();
+    });
+    screenRouter.show('contracts');
   }
 
   function continueGame(): void {
@@ -255,6 +271,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     gameEngine = GameCoordinator.fromSave(save, allTeams);
     initInSeasonScreens();
+    // Squad Builder mid-pre-season resumption. The flag is only ever set
+    // while the user is between team-selection and Round 1; after marquee
+    // Continue the engine clears it via setPreSeasonStep(null).
+    const step = gameEngine.getState().career.preSeasonStep;
+    if (step === 'signings') {
+      runPreSeasonSignings();
+      return;
+    }
+    if (step === 'marquee') {
+      runPreSeasonMarquee();
+      return;
+    }
     goHub();
   }
 

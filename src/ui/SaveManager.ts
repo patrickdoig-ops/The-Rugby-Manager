@@ -46,8 +46,8 @@ import { zeroTeamSeasonStats } from '../types/gameState';
 import type { TeamTactics } from '../types/team';
 
 const SAVE_KEY = 'rugby-manager-save';
-const SAVE_VERSION = 11;
-const ACCEPTED_VERSIONS = new Set([11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+const SAVE_VERSION = 12;
+const ACCEPTED_VERSIONS = new Set([12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
 
 export type SavedGame = SavedSeason & { version: number };
 
@@ -147,6 +147,9 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
   const pendingMoves = Array.isArray(c.pendingMoves)
     ? (c.pendingMoves as PreAgreement[]).map(m => ({ ...m }))
     : [];
+  const preSeasonStep = c.preSeasonStep === 'signings' || c.preSeasonStep === 'marquee'
+    ? c.preSeasonStep
+    : undefined;
   return {
     seasonsCompleted: c.seasonsCompleted,
     nextRosterId: c.nextRosterId,
@@ -162,6 +165,7 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
     freeAgents,
     market,
     pendingMoves,
+    ...(preSeasonStep !== undefined ? { preSeasonStep } : {}),
   };
 }
 

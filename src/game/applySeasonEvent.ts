@@ -327,6 +327,7 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
           : null;
       }
       if (event.pendingMoves) state.career.pendingMoves = event.pendingMoves.map(m => ({ ...m }));
+      if (event.preSeasonStep !== undefined) state.career.preSeasonStep = event.preSeasonStep;
       if (event.teamSeasonStats) {
         const restored: Record<string, TeamSeasonStats> = {};
         for (const [teamId, stats] of Object.entries(event.teamSeasonStats)) {
@@ -365,6 +366,11 @@ export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
       // TRANSFER_ACTIVATED events fired by careerRollover before this
       // SEASON_ROLLED_OVER; clear the list as a safety net.
       state.career.pendingMoves = [];
+      return;
+    }
+    case 'PRE_SEASON_STEP_SET': {
+      if (event.step === null) delete state.career.preSeasonStep;
+      else state.career.preSeasonStep = event.step;
       return;
     }
     default: {

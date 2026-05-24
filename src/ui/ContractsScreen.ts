@@ -1,7 +1,7 @@
 // Contracts list for the player's club. Reached from the Hub's Contracts
 // tile; back navigates to Hub.
 //
-// **Layout (v2 — per mockups/10-ContractsScreen.html):**
+// **Layout:**
 // Two-line player cards instead of a table — full name + wage on the top
 // line, position · age · tags + expiry on the second. OVR badge anchors
 // the left side (38×38 tiered colour); marquee toggle star sits on the

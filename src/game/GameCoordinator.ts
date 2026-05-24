@@ -349,6 +349,10 @@ export class GameCoordinator {
     this.transfers.closeSigningWindow(opts);
   }
 
+  repairAIMarquees(): void {
+    this.transfers.repairAIMarquees();
+  }
+
   getState(): Readonly<GameState> {
     return this.state;
   }

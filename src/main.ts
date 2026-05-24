@@ -231,7 +231,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!gameEngine) return;
     gameEngine.openSigningWindow({ skipPoaches: true });
     if (!gameEngine.getState().career.market) {
-      // Nothing to sign — skip straight to marquee.
+      // Nothing to sign — skip straight to marquee. Still run the
+      // AI-marquee repair: unwind may have stripped marquees off AI
+      // clubs even if no FA pool resulted.
+      gameEngine.repairAIMarquees();
       runPreSeasonMarquee();
       return;
     }
@@ -240,6 +243,10 @@ document.addEventListener('DOMContentLoaded', () => {
     showTransferMarketPreSeason(() => {
       if (!gameEngine) { goHub(); return; }
       gameEngine.closeSigningWindow({ skipPoaches: true });
+      // Some AI clubs may now have no marquee — their authored marquee
+      // was a 2025-26 in-signing that got unwound. Re-designate top
+      // earner per marquee-less AI club so cap pressure stays sane.
+      gameEngine.repairAIMarquees();
       runPreSeasonMarquee();
     });
     screenRouter.show('transfer-market');

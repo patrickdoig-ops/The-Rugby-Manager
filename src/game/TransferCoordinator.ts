@@ -15,6 +15,7 @@
 // contract (see CLAUDE.md § 4) is preserved.
 
 import type { GameState, TransferOffer } from '../types/gameState';
+import type { Player } from '../types/player';
 import { applySeasonEvent } from './applySeasonEvent';
 import {
   expiringRosterIds, generateRenewalOffers, decideAIOffers, expiryAfterYears,
@@ -354,5 +355,34 @@ export class TransferCoordinator {
       });
     }
     applySeasonEvent(this.state, { type: 'MARKET_CLOSED' });
+  }
+
+  // Squad Builder cleanup. After unwind + close, some AI clubs may
+  // have lost their authored marquee (the marquee was a 2025-26
+  // in-signing that got unwound). Pick the highest-wage player on
+  // each marquee-less AI squad and designate them — top earner is
+  // typically the star and reducing cap pressure most. Skips the
+  // human's club (the user picks theirs in the marquee step).
+  // Called explicitly from the Squad Builder flow; not part of the
+  // end-of-season chain.
+  repairAIMarquees(): void {
+    const humanClubId = this.state.player.teamId;
+    for (const club of this.state.career.clubs) {
+      if (club.id === humanClubId) continue;
+      const players = club.squad
+        .map(rid => this.state.career.roster[rid])
+        .filter((p): p is Player => !!p);
+      if (players.some(p => p.contract.isMarquee)) continue;
+      let top: Player | null = null;
+      for (const p of players) {
+        if (!top || p.contract.annualWage > top.contract.annualWage) top = p;
+      }
+      if (!top) continue;
+      applySeasonEvent(this.state, {
+        type: 'MARQUEE_DESIGNATED',
+        clubId: club.id,
+        rosterId: top.rosterId,
+      });
+    }
   }
 }

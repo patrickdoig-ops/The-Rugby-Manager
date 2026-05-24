@@ -135,16 +135,32 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
 
     // ── Discipline / cards ──────────────────────────────────────────────
     case 'CARD_ISSUED': {
-      if (event.kind === 'yellow') event.player.matchStats.yellowCards++;
-      else                          event.player.matchStats.redCards++;
-      if (event.kind === 'red_full') {
-        state.cards.sentOff[event.side].push(event.player);
-      } else {
-        state.cards.sinBin[event.side].push({
-          player: event.player,
-          kind: event.kind,
-          returnMinute: state.clock.gameMinute + SIN_BIN_DURATION[event.kind],
-        });
+      const kind = event.kind;
+      switch (kind) {
+        case 'yellow':
+          event.player.matchStats.yellowCards++;
+          state.cards.sinBin[event.side].push({
+            player: event.player,
+            kind,
+            returnMinute: state.clock.gameMinute + SIN_BIN_DURATION[kind],
+          });
+          break;
+        case 'red_20':
+          event.player.matchStats.redCards++;
+          state.cards.sinBin[event.side].push({
+            player: event.player,
+            kind,
+            returnMinute: state.clock.gameMinute + SIN_BIN_DURATION[kind],
+          });
+          break;
+        case 'red_full':
+          event.player.matchStats.redCards++;
+          state.cards.sentOff[event.side].push(event.player);
+          break;
+        default: {
+          const _: never = kind;
+          throw new Error(`unhandled CardKind: ${_ as string}`);
+        }
       }
       return;
     }

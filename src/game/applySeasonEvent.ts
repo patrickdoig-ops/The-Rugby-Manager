@@ -7,8 +7,14 @@ import type { Fixture, GameState, SeasonEvent, TeamSeasonStats, TeamStanding } f
 import { zeroStanding, zeroTeamSeasonStats } from '../types/gameState';
 import { zeroSeasonStats } from '../types/player';
 import { LEAGUE_POINTS, SEASON_VALUES } from '../engine/balance';
+import { assertSeasonInvariants } from './seasonInvariants';
 
 export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
+  applySeasonEventBody(state, event);
+  assertSeasonInvariants(state);
+}
+
+function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
   switch (event.type) {
     case 'SEASON_INITIALIZED': {
       state.player.teamId = event.playerTeamId;

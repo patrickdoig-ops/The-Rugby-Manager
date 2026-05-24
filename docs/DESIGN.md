@@ -69,7 +69,6 @@ Fonts are loaded in `index.html` from Google Fonts:
 | Variable | Family | Use |
 |---|---|---|
 | `var(--rm-font-display)` | Anton, Bebas Neue, Impact | Large impact moments: home screen title, scores, CTA labels |
-| `var(--rm-font-editor)` | Instrument Serif, Georgia | Editorial italic moments: scoreboard clock, try commentary, home tagline |
 | `var(--rm-font-body)` | Geist, Helvetica Neue, system-ui | General UI: labels, buttons, navigation |
 | `var(--rm-font-mono)` | JetBrains Mono, ui-monospace | All live numbers, codes, tags, minute stamps |
 

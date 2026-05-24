@@ -2,6 +2,7 @@ import type { MatchState } from '../types/match';
 import type { PossessionSide } from '../types/engine';
 import type { Player } from '../types/player';
 import type { Team } from '../types/team';
+import { isForwardSlot, isBackSlot } from './Slot';
 
 // Home attacks toward x=100 in the first half, toward x=0 in the second.
 // Teams only swap ends at half-time, never on turnovers.
@@ -100,9 +101,9 @@ export function onFieldPlayers(team: Team, state: MatchState, side: PossessionSi
 }
 
 export function availableForwards(team: Team, state: MatchState, side: PossessionSide): Player[] {
-  return onFieldPlayers(team, state, side).filter(p => p.id <= 8);
+  return onFieldPlayers(team, state, side).filter(p => isForwardSlot(p.id));
 }
 
 export function availableBacks(team: Team, state: MatchState, side: PossessionSide): Player[] {
-  return onFieldPlayers(team, state, side).filter(p => p.id >= 9 && p.id <= 15);
+  return onFieldPlayers(team, state, side).filter(p => isBackSlot(p.id));
 }

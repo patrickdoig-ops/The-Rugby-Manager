@@ -5,6 +5,7 @@ import { MatchPhase } from '../../types/engine';
 import { resolveScrum } from '../resolvers/ScrumResolver';
 import { availableForwards, onFieldPlayers } from '../FieldPosition';
 import { rng } from '../../utils/rng';
+import { SLOT, isFrontRowSlot } from '../Slot';
 
 // Random front-row offender for a scrum penalty — props and hooker can all
 // be cited, not just the hooker. Falls back to the hooker (and onward) when
@@ -20,14 +21,14 @@ export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): Ph
 
   const attackForwards = availableForwards(attackTeam, state, attackSide);
   const defendForwards = availableForwards(defendTeam, state, flipSide);
-  const attackFrontRow = attackForwards.filter(p => p.id <= 3);
-  const defendFrontRow = defendForwards.filter(p => p.id <= 3);
+  const attackFrontRow = attackForwards.filter(p => isFrontRowSlot(p.id));
+  const defendFrontRow = defendForwards.filter(p => isFrontRowSlot(p.id));
   // Hooker (#2) — fallback to first available forward, then any on-field player,
   // covering the (extreme) case of all hookers off.
   const attackOnField  = onFieldPlayers(attackTeam, state, attackSide);
   const defendOnField  = onFieldPlayers(defendTeam, state, flipSide);
-  const attackHooker   = attackForwards.find(p => p.id === 2) ?? attackForwards[0] ?? attackOnField[0]!;
-  const defendHooker   = defendForwards.find(p => p.id === 2) ?? defendForwards[0] ?? defendOnField[0]!;
+  const attackHooker   = attackForwards.find(p => p.id === SLOT.HOOKER) ?? attackForwards[0] ?? attackOnField[0]!;
+  const defendHooker   = defendForwards.find(p => p.id === SLOT.HOOKER) ?? defendForwards[0] ?? defendOnField[0]!;
   const res = resolveScrum(attackForwards, defendForwards);
 
   const events: MatchEvent[] = [

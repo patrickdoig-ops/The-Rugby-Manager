@@ -8,6 +8,7 @@ import { attackDir, inOpposition22, inOppositionHalf, metresFromOppositionTryLin
 import { applyMatchEvent } from './applyMatchEvent';
 import { PENALTY_VALUES, TAP_AND_GO_AI } from './balance';
 import { rng } from '../utils/rng';
+import { SLOT } from './Slot';
 
 export interface PenaltyHandlerDeps {
   state: MatchState;
@@ -128,7 +129,7 @@ export class PenaltyHandler {
   private applyPenaltyChoice(choice: PenaltyChoice): void {
     const { state } = this.deps;
     const attackTeam = state.possession === 'home' ? state.homeTeam : state.awayTeam;
-    const kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
+    const kicker = attackTeam.players.find(p => p.id === SLOT.FLY_HALF) ?? attackTeam.players[0];
 
     if (choice === 'kick_for_goal') {
       const tryLine = !state.clock.halfTimeDone

@@ -3,6 +3,7 @@ import type { Player, PlayerStats } from '../types/player';
 import { clamp } from '../utils/math';
 import { rng } from '../utils/rng';
 import { FATIGUE_SCALING, TACTIC_MODIFIERS } from './balance';
+import { isForwardSlot } from './Slot';
 
 export interface FatigueUpdate {
   player: Player;
@@ -37,7 +38,7 @@ export function computeFatigue(team: Team, elapsedMinutes: number, offFieldIds?:
     const decayRate = rng(decayRange[0], decayRange[1]);
     const staminaBase = player.baseStats.stamina;
     let actualDecay = decayRate * (1 - staminaBase / staminaDivisor);
-    if (player.id <= 8) {
+    if (isForwardSlot(player.id)) {
       if (team.tactics.attackingBreakdown === 'pick_and_drive') actualDecay *= forwardMult.pick_and_drive;
       if (team.tactics.defendingBreakdown === 'counter_ruck')   actualDecay *= forwardMult.counter_ruck;
     } else {

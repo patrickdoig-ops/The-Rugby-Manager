@@ -11,6 +11,7 @@ import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
+import { SLOT, isBackSlot } from '../Slot';
 
 const FULL_BACKLINE = 7;
 
@@ -27,8 +28,8 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   // Step 1 — Carrier is always #10 (fly-half); handling gate
   const defSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
   const defendOnField = onFieldPlayers(defendTeam, state, defSide);
-  const carrier   = attackOnField.find(p => p.id === 10) ?? pickPlayer(attackTeam, 10);
-  const scrumHalf = attackOnField.find(p => p.id === 9) ?? attackOnField[0] ?? attackTeam.players[0];
+  const carrier   = attackOnField.find(p => p.id === SLOT.FLY_HALF) ?? pickPlayer(attackTeam, SLOT.FLY_HALF);
+  const scrumHalf = attackOnField.find(p => p.id === SLOT.SCRUM_HALF) ?? attackOnField[0] ?? attackTeam.players[0];
 
   // Defensive line drives the per-pass interception probability and the
   // handling-gate pressure modifier. Hoisted up here so every pass site +
@@ -44,7 +45,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   {
     const intPct = interceptPctBase - (scrumHalf.currentStats.handling - INTERCEPTION_STAT_CENTRE) * INTERCEPTION_HANDLING_WEIGHT;
     if (rng(1, 100) <= intPct) {
-      const backs = defendOnField.filter(p => p.id >= 9);
+      const backs = defendOnField.filter(p => isBackSlot(p.id));
       const interceptor = backs.length > 0
         ? backs[rng(0, backs.length - 1)]
         : (defendOnField[rng(0, Math.max(0, defendOnField.length - 1))] ?? randomPlayer(defendTeam));
@@ -99,14 +100,14 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
   if (goCrashBall) {
     // Crash Ball: #10 → #12 (inside centre)
-    const insideCentre = attackOnField.find(p => p.id === 12) ?? pickPlayer(attackTeam, 12);
+    const insideCentre = attackOnField.find(p => p.id === SLOT.CENTRE_12) ?? pickPlayer(attackTeam, SLOT.CENTRE_12);
     playIntroSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'crash_ball', primary: carrier, secondary: insideCentre });
 
     // Interception roll on the #10 → #12 pass.
     {
       const intPct = interceptPctBase - (carrier.currentStats.handling - INTERCEPTION_STAT_CENTRE) * INTERCEPTION_HANDLING_WEIGHT;
       if (rng(1, 100) <= intPct) {
-        const backs = defendOnField.filter(p => p.id >= 9);
+        const backs = defendOnField.filter(p => isBackSlot(p.id));
         const interceptor = backs.length > 0
           ? backs[rng(0, backs.length - 1)]
           : (defendOnField[rng(0, Math.max(0, defendOnField.length - 1))] ?? randomPlayer(defendTeam));
@@ -144,10 +145,10 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
     events.push({ type: 'PASS_COMPLETED', passer: carrier });
     ballCarrier = insideCentre;
-    defender = defendOnField.find(p => p.id === 12) ?? pickPlayer(defendTeam, 12);
+    defender = defendOnField.find(p => p.id === SLOT.CENTRE_12) ?? pickPlayer(defendTeam, SLOT.CENTRE_12);
   } else {
     // Wide Play: #10 → #13 → random of #11/#14
-    const outsideCentre = attackOnField.find(p => p.id === 13) ?? pickPlayer(attackTeam, 13);
+    const outsideCentre = attackOnField.find(p => p.id === SLOT.CENTRE_13) ?? pickPlayer(attackTeam, SLOT.CENTRE_13);
 
     // Obstruction roll — one chance per wide-play attempt, fired before the
     // first pass so a hit short-circuits the whole sequence. Offender: a
@@ -160,7 +161,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       const offender = attackFwds.length > 0
         ? attackFwds[rng(0, attackFwds.length - 1)]
         : (attackOnField[0] ?? carrier);
-      const obstructionDefender = defendOnField.find(p => p.id === 13) ?? (defendOnField[0] ?? pickPlayer(defendTeam, 13));
+      const obstructionDefender = defendOnField.find(p => p.id === SLOT.CENTRE_13) ?? (defendOnField[0] ?? pickPlayer(defendTeam, SLOT.CENTRE_13));
       events.push({ type: 'PENALTY_AWARDED', offence: 'obstruction', offender, offendingSide: attackSide });
       return {
         nextPhase: MatchPhase.Penalty,
@@ -177,7 +178,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     {
       const intPct = interceptPctBase - (carrier.currentStats.handling - INTERCEPTION_STAT_CENTRE) * INTERCEPTION_HANDLING_WEIGHT;
       if (rng(1, 100) <= intPct) {
-        const backs = defendOnField.filter(p => p.id >= 9);
+        const backs = defendOnField.filter(p => isBackSlot(p.id));
         const interceptor = backs.length > 0
           ? backs[rng(0, backs.length - 1)]
           : (defendOnField[rng(0, Math.max(0, defendOnField.length - 1))] ?? randomPlayer(defendTeam));
@@ -215,7 +216,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
     events.push({ type: 'PASS_COMPLETED', passer: carrier });
 
-    const wingPool = attackOnField.filter(p => p.id === 11 || p.id === 14);
+    const wingPool = attackOnField.filter(p => p.id === SLOT.WING_11 || p.id === SLOT.WING_14);
     const wing = wingPool.length > 0 ? wingPool[rng(0, wingPool.length - 1)] : (attackOnField[rng(0, Math.max(0, attackOnField.length - 1))] ?? randomPlayer(attackTeam));
     playIntroSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'out_the_back', primary: outsideCentre, secondary: wing });
 
@@ -223,7 +224,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     {
       const intPct = interceptPctBase - (outsideCentre.currentStats.handling - INTERCEPTION_STAT_CENTRE) * INTERCEPTION_HANDLING_WEIGHT;
       if (rng(1, 100) <= intPct) {
-        const backs = defendOnField.filter(p => p.id >= 9);
+        const backs = defendOnField.filter(p => isBackSlot(p.id));
         const interceptor = backs.length > 0
           ? backs[rng(0, backs.length - 1)]
           : (defendOnField[rng(0, Math.max(0, defendOnField.length - 1))] ?? randomPlayer(defendTeam));
@@ -261,7 +262,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
     events.push({ type: 'PASS_COMPLETED', passer: outsideCentre });
     ballCarrier = wing;
-    const defWingPool = defendOnField.filter(p => p.id === 11 || p.id === 14);
+    const defWingPool = defendOnField.filter(p => p.id === SLOT.WING_11 || p.id === SLOT.WING_14);
     defender = defWingPool.length > 0 ? defWingPool[rng(0, defWingPool.length - 1)] : (defendOnField[rng(0, Math.max(0, defendOnField.length - 1))] ?? randomPlayer(defendTeam));
   }
 

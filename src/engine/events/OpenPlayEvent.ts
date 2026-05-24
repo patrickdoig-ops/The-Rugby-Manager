@@ -13,6 +13,7 @@ import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
 import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, INJURY, INJURY_KIND_WEIGHTS, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
+import { SLOT, isBackSlot } from '../Slot';
 
 const FULL_BACKLINE = 7;  // jersey ids 9–15
 
@@ -34,13 +35,13 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   // to an outside back. attackingStyle controls the split.
   const defSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
   const defendOnField = onFieldPlayers(defendTeam, state, defSide);
-  const scrumHalf = attackOnField.find(p => p.id === 9) ?? attackOnField[0] ?? attackTeam.players[0];
+  const scrumHalf = attackOnField.find(p => p.id === SLOT.SCRUM_HALF) ?? attackOnField[0] ?? attackTeam.players[0];
   const style = attackTeam.tactics.attackingStyle;
   const goWide = rng(1, 100) > HARD_CARRY_THRESHOLDS[style];
 
   const attackFwds = availableForwards(attackTeam, state, attackSide);
   const carrier   = goWide
-    ? (attackOnField.find(p => p.id === 10) ?? pickPlayer(attackTeam, 10))
+    ? (attackOnField.find(p => p.id === SLOT.FLY_HALF) ?? pickPlayer(attackTeam, SLOT.FLY_HALF))
     : (attackFwds.length > 0 ? attackFwds[rng(0, attackFwds.length - 1)] : (attackOnField[0] ?? randomPlayer(attackTeam)));
   const defender  = defendOnField.length > 0 ? defendOnField[rng(0, defendOnField.length - 1)] : randomPlayer(defendTeam);
 
@@ -59,7 +60,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   if (scrumHalf !== carrier) {
     const intPct = interceptPctBase - (scrumHalf.currentStats.handling - INTERCEPTION_STAT_CENTRE) * INTERCEPTION_HANDLING_WEIGHT;
     if (rng(1, 100) <= intPct) {
-      const backs = defendOnField.filter(p => p.id >= 9);
+      const backs = defendOnField.filter(p => isBackSlot(p.id));
       const interceptor = backs.length > 0
         ? backs[rng(0, backs.length - 1)]
         : (defendOnField[rng(0, Math.max(0, defendOnField.length - 1))] ?? randomPlayer(defendTeam));
@@ -133,7 +134,8 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
     }
 
     // Outside back handling gate (outside centre, both wings, fullback)
-    const obPool = attackOnField.filter(p => [11, 13, 14, 15].includes(p.id));
+    const obPool = attackOnField.filter(p =>
+      p.id === SLOT.WING_11 || p.id === SLOT.CENTRE_13 || p.id === SLOT.WING_14 || p.id === SLOT.FULL_BACK);
     const outsideBack = obPool.length > 0 ? obPool[rng(0, obPool.length - 1)] : (attackOnField[rng(0, Math.max(0, attackOnField.length - 1))] ?? randomPlayer(attackTeam));
     wideIntroSteps = [{ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'out_the_back', primary: carrier, secondary: outsideBack }];
     if (rng(1, 100) <= knockOnPct(outsideBack.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
@@ -158,7 +160,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
     // the scrumHalf → carrier roll up top.
     const intPctWide = interceptPctBase - (carrier.currentStats.handling - INTERCEPTION_STAT_CENTRE) * INTERCEPTION_HANDLING_WEIGHT;
     if (rng(1, 100) <= intPctWide) {
-      const backs = defendOnField.filter(p => p.id >= 9);
+      const backs = defendOnField.filter(p => isBackSlot(p.id));
       const interceptor = backs.length > 0
         ? backs[rng(0, backs.length - 1)]
         : (defendOnField[rng(0, Math.max(0, defendOnField.length - 1))] ?? randomPlayer(defendTeam));

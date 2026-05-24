@@ -10,10 +10,11 @@ import { attackDir, inOwn22, inOwnHalf, inOpposition22At } from '../FieldPositio
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
+import { SLOT } from '../Slot';
 
 export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer }: PhaseContext): PhaseResult {
-  const kicker   = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
-  const defender = defendTeam.players.find(p => p.id === 15) ?? randomPlayer(defendTeam);
+  const kicker   = attackTeam.players.find(p => p.id === SLOT.FLY_HALF) ?? attackTeam.players.find(p => p.id === SLOT.SCRUM_HALF) ?? attackTeam.players[0];
+  const defender = defendTeam.players.find(p => p.id === SLOT.FULL_BACK) ?? randomPlayer(defendTeam);
 
   const startedInOwn22 = inOwn22(state);
   const startedInOwnHalf = inOwnHalf(state);
@@ -222,8 +223,8 @@ function handleAttackingKick(
   if (res.outcome === 'attacker_wins') {
     // Attacker regathers. Possession stays; chaser carries via KickReturn.
     const chaserPool = state.possession === 'home'
-      ? state.homeTeam.players.filter(p => [11, 13, 14].includes(p.id))
-      : state.awayTeam.players.filter(p => [11, 13, 14].includes(p.id));
+      ? state.homeTeam.players.filter(p => p.id === SLOT.WING_11 || p.id === SLOT.CENTRE_13 || p.id === SLOT.WING_14)
+      : state.awayTeam.players.filter(p => p.id === SLOT.WING_11 || p.id === SLOT.CENTRE_13 || p.id === SLOT.WING_14);
     const chaser = chaserPool.length > 0 ? chaserPool[rng(0, chaserPool.length - 1)] : kicker;
     events.push({ type: 'KICK_RETURN_CARRIER_SET', player: chaser });
     return {

@@ -5,22 +5,25 @@ import { resolveKickOff } from '../resolvers/KickOffResolver';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
 import { attackDir } from '../FieldPosition';
+import { SLOT, isForwardSlot } from '../Slot';
 
 export function handleKickOff({ state, attackTeam, defendTeam, randomPlayer, kickOffStrategy }: PhaseContext): PhaseResult {
-  const kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0];
+  const kicker = attackTeam.players.find(p => p.id === SLOT.FLY_HALF) ?? attackTeam.players[0];
 
   let receiver;
   let chaser;
 
   if (kickOffStrategy === 'high_ball') {
-    const pool = defendTeam.players.filter(p => [9, 11, 14, 15].includes(p.id));
+    const pool = defendTeam.players.filter(p =>
+      p.id === SLOT.SCRUM_HALF || p.id === SLOT.WING_11 || p.id === SLOT.WING_14 || p.id === SLOT.FULL_BACK);
     receiver = pool.length > 0 ? pool[rng(0, pool.length - 1)] : randomPlayer(defendTeam);
     chaser   = randomPlayer(attackTeam);
   } else {
-    const fwdPool = defendTeam.players.filter(p => p.id <= 8);
+    const fwdPool = defendTeam.players.filter(p => isForwardSlot(p.id));
     receiver = fwdPool.length > 0 ? fwdPool[rng(0, fwdPool.length - 1)] : randomPlayer(defendTeam);
     if (kickOffStrategy === 'short_kick') {
-      const chaserPool = attackTeam.players.filter(p => [7, 11, 14].includes(p.id));
+      const chaserPool = attackTeam.players.filter(p =>
+        p.id === SLOT.FLANKER_7 || p.id === SLOT.WING_11 || p.id === SLOT.WING_14);
       chaser = chaserPool.length > 0 ? chaserPool[rng(0, chaserPool.length - 1)] : randomPlayer(attackTeam);
     } else {
       chaser = randomPlayer(attackTeam);

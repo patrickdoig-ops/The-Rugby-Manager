@@ -5,6 +5,7 @@ import { resolveLineout } from '../resolvers/LineoutResolver';
 import { rng } from '../../utils/rng';
 import { LINEOUT_VALUES } from '../balance';
 import { availableForwards, onFieldPlayers } from '../FieldPosition';
+import { SLOT } from '../Slot';
 
 export function handleLineout({ state, attackTeam, defendTeam }: PhaseContext): PhaseResult {
   const attackSide = state.possession;
@@ -18,16 +19,16 @@ export function handleLineout({ state, attackTeam, defendTeam }: PhaseContext): 
   const defendFwds   = availableForwards(defendTeam, state, flipSide);
   const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
   const defendOnField = onFieldPlayers(defendTeam, state, flipSide);
-  const hooker       = attackFwds.find(p => p.id === 2) ?? attackFwds[0] ?? attackOnField[0]!;
+  const hooker       = attackFwds.find(p => p.id === SLOT.HOOKER) ?? attackFwds[0] ?? attackOnField[0]!;
   const jumperIds    = LINEOUT_VALUES.jumperIds;
   const chosenId     = jumperIds[rng(0, jumperIds.length - 1)];
   const attackJumper = attackFwds.find(p => p.id === chosenId)
-                    ?? attackFwds.find(p => p.id === 4)
+                    ?? attackFwds.find(p => p.id === SLOT.LOCK_4)
                     ?? attackFwds[0]
                     ?? attackOnField[0]!;
-  const defendJumper = defendFwds.find(p => p.id === 4)
-                    ?? defendFwds.find(p => p.id === 5)
-                    ?? defendFwds.find(p => p.id === 6)
+  const defendJumper = defendFwds.find(p => p.id === SLOT.LOCK_4)
+                    ?? defendFwds.find(p => p.id === SLOT.LOCK_5)
+                    ?? defendFwds.find(p => p.id === SLOT.FLANKER_6)
                     ?? defendFwds[0]
                     ?? defendOnField[0]!;
   const res = resolveLineout(hooker, attackJumper, defendJumper);

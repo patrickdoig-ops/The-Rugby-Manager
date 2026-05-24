@@ -7,12 +7,13 @@ import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
 import { attackDir } from '../FieldPosition';
+import { SLOT } from '../Slot';
 
 export function handleBoxKick({ state, attackTeam, defendTeam, randomPlayer }: PhaseContext): PhaseResult {
-  const scrumHalf  = attackTeam.players.find(p => p.id === 9) ?? attackTeam.players[0];
-  const wingerPool = attackTeam.players.filter(p => p.id === 11 || p.id === 14);
+  const scrumHalf  = attackTeam.players.find(p => p.id === SLOT.SCRUM_HALF) ?? attackTeam.players[0];
+  const wingerPool = attackTeam.players.filter(p => p.id === SLOT.WING_11 || p.id === SLOT.WING_14);
   const winger     = wingerPool.length > 0 ? wingerPool[rng(0, wingerPool.length - 1)] : randomPlayer(attackTeam);
-  const fullback   = defendTeam.players.find(p => p.id === 15) ?? randomPlayer(defendTeam);
+  const fullback   = defendTeam.players.find(p => p.id === SLOT.FULL_BACK) ?? randomPlayer(defendTeam);
   const backfield = defendTeam.tactics.backfieldDefence;
   const fullbackMod = TACTIC_MODIFIERS.boxKickFullbackBonus[backfield];
   // KickDecisionDirector's clearance sub-choice (long_and_on vs

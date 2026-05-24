@@ -8,6 +8,7 @@ import { rng } from '../../utils/rng';
 import { HOME_ADVANTAGE, TACTIC_MODIFIERS, COMMENTARY_CHANCES, BREAKDOWN_PENALTIES, CARRY_HANDOFF_BONUSES } from '../balance';
 import { homeEdge } from '../HomeAdvantage';
 import { availableForwards, onFieldPlayers } from '../FieldPosition';
+import { isBackRowSlot } from '../Slot';
 
 export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext): PhaseResult {
   const attPlan = attackTeam.tactics.attackingBreakdown;
@@ -62,7 +63,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
     supporters.push(...pool.splice(rng(0, pool.length - 1), 1));
   }
 
-  const backRow = defendFwds.filter(p => p.id >= 6 && p.id <= 8);
+  const backRow = defendFwds.filter(p => isBackRowSlot(p.id));
   const jackal  = backRow.length > 0 ? backRow[rng(0, backRow.length - 1)] : (defendOnField[0] ?? defendTeam.players[0]);
   const primary = supporters[0];
 

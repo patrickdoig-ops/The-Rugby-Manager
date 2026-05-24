@@ -8,6 +8,7 @@
 import type { MatchState } from '../types/match';
 import type { Player, PlayerStats } from '../types/player';
 import { MatchPhase } from '../types/engine';
+import { isMatchdaySlot } from './Slot';
 
 const PHASES = new Set<string>(Object.values(MatchPhase));
 
@@ -102,7 +103,7 @@ export function assertInvariants(state: MatchState): void {
     // Injured bucket: every entry must reference a real on-field slot.
     // Duplicates are guarded against in the PLAYER_INJURED_IN_MATCH branch.
     for (const player of state.cards.injured[side]) {
-      if (!(player.id >= 1 && player.id <= 23)) {
+      if (!isMatchdaySlot(player.id)) {
         fail(`cards.injured.${side}.id`, `id=${player.id}`);
       }
     }

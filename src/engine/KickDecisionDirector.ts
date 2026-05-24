@@ -6,6 +6,7 @@ import type { PhaseResult } from './events/types';
 import { MatchPhase as MatchPhaseEnum } from '../types/engine';
 import { rng } from '../utils/rng';
 import { inOpposition22, inOwn22, inOwnHalf } from './FieldPosition';
+import { SLOT } from './Slot';
 import {
   KICK_PROBABILITIES,
   SLOW_BALL_KICK_BONUS,
@@ -80,11 +81,11 @@ function pickFamily(zone: Zone, plan: Plan): Family {
 }
 
 function pickKicker(family: Family, attackOnField: Player[], attackTeam: Team): Player {
-  const scrumHalf = attackOnField.find(p => p.id === 9)
-    ?? attackTeam.players.find(p => p.id === 9)
+  const scrumHalf = attackOnField.find(p => p.id === SLOT.SCRUM_HALF)
+    ?? attackTeam.players.find(p => p.id === SLOT.SCRUM_HALF)
     ?? attackTeam.players[0];
-  const flyHalf   = attackOnField.find(p => p.id === 10)
-    ?? attackTeam.players.find(p => p.id === 10)
+  const flyHalf   = attackOnField.find(p => p.id === SLOT.FLY_HALF)
+    ?? attackTeam.players.find(p => p.id === SLOT.FLY_HALF)
     ?? attackTeam.players[0];
 
   const scrumHalfPct = SCRUM_HALF_KICKER_PCT[family];
@@ -127,12 +128,12 @@ export function decideKick(ctx: KickDecisionContext): KickOrCarry {
 }
 
 // Builds the PhaseResult that transitions to a kick phase. Routing:
-// kicker.id === 9 → BoxKick phase; otherwise → TacticalKick phase.
+// kicker.id === SCRUM_HALF → BoxKick phase; otherwise → TacticalKick phase.
 // Emits KICK_INTENT_SET so the kick handler reads the family + sub-choice
 // from state.pendingKick. The handler is responsible for emitting
 // KICK_INTENT_CLEARED before it returns.
 export function buildKickTransition(decision: KickDecision, sourcePhase: MatchPhase): PhaseResult {
-  const nextPhase = decision.kicker.id === 9 ? MatchPhaseEnum.BoxKick : MatchPhaseEnum.TacticalKick;
+  const nextPhase = decision.kicker.id === SLOT.SCRUM_HALF ? MatchPhaseEnum.BoxKick : MatchPhaseEnum.TacticalKick;
   return {
     nextPhase,
     narration: { steps: [{ kind: 'phase_outcome', phase: sourcePhase, key: 'kick_decision' }] },

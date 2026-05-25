@@ -133,7 +133,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
         </button>
       </div>
 
-      <div id="hub-hero" style="--team-color:${playerTeam.color}">
+      <div id="hub-hero">
         ${crestHtml(playerTeam, 'hub-crest')}
         <h1 id="hub-team-name">${playerTeam.name}</h1>
         <div id="hub-standing">
@@ -184,6 +184,8 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
 
       <div id="hub-footer">${playoffsActive ? playoffFooterHtml() : footerHtml(nextFixture)}</div>
     `;
+
+    el!.style.setProperty('--team-color', playerTeam.color);
 
     el!.querySelector<HTMLButtonElement>('#hub-settings')!.addEventListener('click', () => opts.onSettings());
     el!.querySelector<HTMLButtonElement>('#hub-treatment-room')?.addEventListener('click', () => opts.onSquad());

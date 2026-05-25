@@ -2,7 +2,16 @@
   position: fixed;
   inset: 0;
   z-index: 225;
-  background: var(--rm-bg);
+  background-color: var(--rm-bg);
+  /* Team-colour hue painted on the page itself so it covers topbar +
+     hero in one piece. The settings icon (transparent topbar) floats on
+     top of it. Constrained to ~280px tall so it fades by the time the
+     next-match panel starts. */
+  background-image: radial-gradient(ellipse 110% 100% at 50% 0%,
+    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 16%, transparent) 0%,
+    transparent 70%);
+  background-repeat: no-repeat;
+  background-size: 100% 280px;
   display: flex;
   flex-direction: column;
   padding-top:    env(safe-area-inset-top, 0px);
@@ -38,9 +47,6 @@
   gap: 5px;
   padding: 6px 20px 8px;
   flex-shrink: 0;
-  background-image: radial-gradient(ellipse 110% 100% at 50% 0%,
-    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 16%, transparent) 0%,
-    transparent 70%);
 }
 
 .hub-crest {

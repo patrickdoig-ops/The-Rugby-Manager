@@ -32,7 +32,7 @@
   min-width: 72px;
   justify-content: center;
   -webkit-tap-highlight-color: transparent;
-  transition: border-color 0.12s, color 0.12s;
+  transition: border-color 0.15s, color 0.15s;
 }
 
 #ct-sort-btn svg { pointer-events: none; }
@@ -195,7 +195,7 @@
   gap: 12px;
   padding: 9px 16px;
   border-bottom: 1px solid color-mix(in oklch, var(--rm-border-soft) 45%, transparent);
-  transition: background 0.10s;
+  transition: background 0.15s;
   position: relative;
   -webkit-tap-highlight-color: transparent;
 }
@@ -382,7 +382,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.15s, color 0.15s;
   color: var(--rm-text-faint);
   -webkit-tap-highlight-color: transparent;
 }

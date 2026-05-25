@@ -256,5 +256,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-#so-continue:hover  { background: #009434; }
+@media (hover: hover) {
+  #so-continue:hover  { background: #009434; }
+}
 #so-continue:active { background: #006622; }

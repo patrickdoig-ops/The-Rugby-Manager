@@ -131,5 +131,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.tactics-resume-btn:hover  { background: #009434; }
+@media (hover: hover) {
+  .tactics-resume-btn:hover  { background: #009434; }
+}
 .tactics-resume-btn:active { background: #006622; }

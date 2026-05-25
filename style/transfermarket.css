@@ -195,13 +195,15 @@
   padding: 6px 10px;
   border-radius: 6px;
   cursor: pointer;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.15s, color 0.15s;
   -webkit-tap-highlight-color: transparent;
   white-space: nowrap;
 }
 
-.tm-sign:hover {
-  background: color-mix(in oklch, var(--rm-pitch) 18%, transparent);
+@media (hover: hover) {
+  .tm-sign:hover {
+    background: color-mix(in oklch, var(--rm-pitch) 18%, transparent);
+  }
 }
 
 .tm-sign:active {
@@ -213,8 +215,10 @@
   color: var(--rm-danger);
 }
 
-.tm-sign--warn:hover {
-  background: color-mix(in oklch, var(--rm-danger) 18%, transparent);
+@media (hover: hover) {
+  .tm-sign--warn:hover {
+    background: color-mix(in oklch, var(--rm-danger) 18%, transparent);
+  }
 }
 
 /* In-window commitment: signed or pre-agreed. Button label flips to
@@ -226,10 +230,12 @@
   background: color-mix(in oklch, var(--rm-pitch) 8%, transparent);
 }
 
-.tm-sign--undo:hover {
-  background: color-mix(in oklch, var(--rm-danger) 14%, transparent);
-  border-color: var(--rm-danger);
-  color: var(--rm-danger);
+@media (hover: hover) {
+  .tm-sign--undo:hover {
+    background: color-mix(in oklch, var(--rm-danger) 14%, transparent);
+    border-color: var(--rm-danger);
+    color: var(--rm-danger);
+  }
 }
 
 .tm-row--committed .tm-name,
@@ -309,5 +315,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-#tm-continue:hover  { background: #009434; }
+@media (hover: hover) {
+  #tm-continue:hover  { background: #009434; }
+}
 #tm-continue:active { background: #006622; }

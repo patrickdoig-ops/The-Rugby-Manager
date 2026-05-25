@@ -75,11 +75,13 @@
   border-radius: 10px;
   color: var(--rm-text-muted);
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background 0.15s, border-color 0.15s;
   flex-shrink: 0;
 }
 
-#theme-toggle:hover  { background: var(--rm-surface-2); }
+@media (hover: hover) {
+  #theme-toggle:hover  { background: var(--rm-surface-2); }
+}
 #theme-toggle:active { background: var(--rm-surface-3); }
 
 /* Top-right chrome cluster (theme toggle + settings gear) */
@@ -100,11 +102,13 @@
   border-radius: 10px;
   color: var(--rm-text-muted);
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
   flex-shrink: 0;
 }
 
-#settings-btn:hover  { background: var(--rm-surface-2); color: var(--rm-chalk); }
+@media (hover: hover) {
+  #settings-btn:hover  { background: var(--rm-surface-2); color: var(--rm-chalk); }
+}
 #settings-btn:active { background: var(--rm-surface-3); }
 
 /* ─── Hero block ─── */
@@ -244,12 +248,14 @@
 #start-game-btn svg,
 #continue-game-btn svg { flex-shrink: 0; }
 
-#start-game-btn:hover,
-#continue-game-btn:not(:disabled):hover {
-  background: #009434;
-  box-shadow:
-    0 16px 48px color-mix(in oklch, var(--rm-pitch) 38%, transparent),
-    inset 0 1px 0 rgba(255,255,255,0.3);
+@media (hover: hover) {
+  #start-game-btn:hover,
+  #continue-game-btn:not(:disabled):hover {
+    background: #009434;
+    box-shadow:
+      0 16px 48px color-mix(in oklch, var(--rm-pitch) 38%, transparent),
+      inset 0 1px 0 rgba(255,255,255,0.3);
+  }
 }
 
 #start-game-btn:active,

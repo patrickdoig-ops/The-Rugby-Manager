@@ -77,7 +77,7 @@
 }
 
 .sr-row--win .sr-result { color: var(--rm-pitch); }
-.sr-row--loss .sr-result { color: var(--rm-danger, #d8503e); }
+.sr-row--loss .sr-result { color: var(--rm-danger); }
 
 .sr-wage {
   font-family: var(--rm-font-mono);
@@ -193,8 +193,10 @@
   cursor: pointer;
 }
 
-.tm-footer-secondary:hover {
-  background: var(--rm-surface-3);
+@media (hover: hover) {
+  .tm-footer-secondary:hover {
+    background: var(--rm-surface-3);
+  }
 }
 
 .tm-sign--won {

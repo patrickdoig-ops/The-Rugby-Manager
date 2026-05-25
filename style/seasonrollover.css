@@ -260,7 +260,9 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-#eos-continue:hover,  #roll-continue:hover  { background: #009434; }
+@media (hover: hover) {
+  #eos-continue:hover,  #roll-continue:hover  { background: #009434; }
+}
 #eos-continue:active, #roll-continue:active { background: #006622; }
 
 /* ===== RolloverScreen ===== */

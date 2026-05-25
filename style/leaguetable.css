@@ -172,7 +172,7 @@
   color: var(--rm-text-dim);
   cursor: pointer;
   border-radius: 6px;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.15s, color 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -223,5 +223,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-#lt-continue:hover  { background: #009434; }
+@media (hover: hover) {
+  #lt-continue:hover  { background: #009434; }
+}
 #lt-continue:active { background: #006622; }

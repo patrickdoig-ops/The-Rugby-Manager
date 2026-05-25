@@ -295,7 +295,7 @@
   color: var(--rm-text-dim);
   display: flex;
   align-items: center;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.15s, color 0.15s;
 }
 
 .pm-view-btn svg { pointer-events: none; }
@@ -379,7 +379,7 @@
   align-items: center;
   padding: 7px 8px;
   border-top: 1px solid var(--rm-hairline);
-  transition: background 0.1s;
+  transition: background 0.15s;
 }
 
 button.pm-player-row {
@@ -395,8 +395,10 @@ button.pm-player-row {
   cursor: pointer;
 }
 
-.pm-player-row:hover {
-  background: color-mix(in oklch, var(--rm-surface) 30%, transparent);
+@media (hover: hover) {
+  .pm-player-row:hover {
+    background: color-mix(in oklch, var(--rm-surface) 30%, transparent);
+  }
 }
 
 .pm-num {

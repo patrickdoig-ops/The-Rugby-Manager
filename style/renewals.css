@@ -175,13 +175,15 @@
   border-radius: 6px;
   cursor: pointer;
   min-width: 72px;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
 
-.rn-pick:hover {
-  border-color: var(--rm-text);
-  color: var(--rm-chalk);
+@media (hover: hover) {
+  .rn-pick:hover {
+    border-color: var(--rm-text);
+    color: var(--rm-chalk);
+  }
 }
 
 .rn-pick--active[data-decision="renew"] {
@@ -229,5 +231,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-#rn-continue:hover  { background: #009434; }
+@media (hover: hover) {
+  #rn-continue:hover  { background: #009434; }
+}
 #rn-continue:active { background: #006622; }

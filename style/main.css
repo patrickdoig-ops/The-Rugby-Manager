@@ -575,7 +575,7 @@ html, body {
   font-weight: 600;
   border-radius: 10px;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
   white-space: nowrap;
   display: flex;
   align-items: center;
@@ -648,7 +648,7 @@ html, body {
   border: 1px solid var(--rm-border-soft);
   color: var(--rm-text-dim);
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, color 0.12s, box-shadow 0.12s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
 }
 
 .speed-btn--active {
@@ -771,7 +771,7 @@ html, body {
   margin-bottom: 4px;
   cursor: pointer;
   text-align: left;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .sub-player-btn:hover {
@@ -846,7 +846,7 @@ html, body {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background 0.15s, border-color 0.15s;
   white-space: nowrap;
 }
 

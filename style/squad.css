@@ -45,7 +45,7 @@
   text-transform: uppercase;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.12s, color 0.12s, border-color 0.12s, box-shadow 0.12s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 
 .sq-chip.active {
@@ -132,7 +132,7 @@
   gap: 10px;
   padding: 8px 16px;
   border-bottom: 1px solid color-mix(in oklch, var(--rm-border-soft) 45%, transparent);
-  transition: background 0.10s, outline-color 0.10s;
+  transition: background 0.15s, outline-color 0.15s;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   outline: 1px solid transparent;

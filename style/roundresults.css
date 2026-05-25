@@ -172,5 +172,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-#rr-continue:hover  { background: #009434; }
+@media (hover: hover) {
+  #rr-continue:hover  { background: #009434; }
+}
 #rr-continue:active { background: #006622; }

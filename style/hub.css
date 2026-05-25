@@ -327,7 +327,7 @@
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   color: var(--rm-pitch);
-  transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
   box-shadow: var(--rm-card-shadow);
 }
 

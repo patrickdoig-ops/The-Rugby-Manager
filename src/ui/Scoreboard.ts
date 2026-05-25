@@ -25,17 +25,6 @@ function applyCrests(
   awayCode.style.color = teamTextColor(awayColor);
 }
 
-function popScore(el: HTMLElement, newValue: number, teamColor: string): void {
-  const current = Number(el.textContent?.replace(/^0/, '') || 0);
-  el.textContent = String(newValue).padStart(2, '0');
-  if (newValue <= current) return;
-  el.style.setProperty('--score-kick-color', teamColor);
-  el.classList.remove('score--just-scored', 'score--just-scored-fade');
-  void el.offsetWidth;
-  el.classList.add('score--just-scored');
-  setTimeout(() => el.classList.add('score--just-scored-fade'), 480);
-}
-
 export function initScoreboard(): void {
   const homeCrest    = document.getElementById('home-crest')!;
   const awayCrest    = document.getElementById('away-crest')!;
@@ -49,11 +38,25 @@ export function initScoreboard(): void {
   let crestsSet = false;
   let homeColor = '';
   let awayColor = '';
+  let prevHome = -1;
+  let prevAway = -1;
+
+  function popScore(el: HTMLElement, newValue: number, prevValue: number, teamColor: string): void {
+    el.textContent = String(newValue).padStart(2, '0');
+    if (newValue <= prevValue) return;
+    el.style.setProperty('--score-kick-color', teamColor);
+    el.classList.remove('score--just-scored', 'score--just-scored-fade');
+    void el.offsetWidth;
+    el.classList.add('score--just-scored');
+    setTimeout(() => el.classList.add('score--just-scored-fade'), 480);
+  }
 
   eventBus.on('engine:initialized', () => {
     crestsSet = false;
     homeColor = '';
     awayColor = '';
+    prevHome = -1;
+    prevAway = -1;
   });
 
   eventBus.on('engine:stateChange', ({ state }) => {
@@ -68,8 +71,10 @@ export function initScoreboard(): void {
       );
     }
 
-    popScore(homeScore, state.score.home, homeColor);
-    popScore(awayScore, state.score.away, awayColor);
+    popScore(homeScore, state.score.home, prevHome, homeColor);
+    popScore(awayScore, state.score.away, prevAway, awayColor);
+    prevHome = state.score.home;
+    prevAway = state.score.away;
     if (state.clock.clockInTheRed) {
       const halfTarget = state.clock.halfTimeDone ? CLOCK_VALUES.fullTimeMinute : CLOCK_VALUES.halfTimeMinute;
       clockDisplay.textContent = `${halfTarget}+${Math.floor(state.clock.gameMinute - halfTarget)}′`;

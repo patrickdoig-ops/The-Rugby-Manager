@@ -59,8 +59,9 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'squad-overview':   { elId: 'squad-overview',   shownDisplay: '' },
 };
 
+let _currentScreen: ScreenId | null = null;
+
 export const screenRouter = {
-  _current: null as ScreenId | null,
   show(target: ScreenId): void {
     const targetEl = document.getElementById(SCREENS[target].elId);
     // Fails loudly if a screen id is in the SCREENS map but the matching
@@ -70,8 +71,8 @@ export const screenRouter = {
     if (!targetEl) {
       throw new Error(`screenRouter.show("${target}"): no element with id "${SCREENS[target].elId}" in DOM. Likely a stale cached index.html — try a hard reload.`);
     }
-    const isNewScreen = target !== this._current;
-    this._current = target;
+    const isNewScreen = target !== _currentScreen;
+    _currentScreen = target;
     for (const id of Object.keys(SCREENS) as ScreenId[]) {
       const cfg = SCREENS[id];
       const el = document.getElementById(cfg.elId);

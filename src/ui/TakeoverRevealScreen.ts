@@ -141,13 +141,12 @@ export function initTakeoverRevealScreen(
         const target = mine.boostAmount;
         const duration = 1200;
         const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+        let startTime = 0;
         function tick(now: number) {
-          const elapsed = now - startTime;
-          const t = Math.min(elapsed / duration, 1);
+          const t = Math.min((now - startTime) / duration, 1);
           numEl!.textContent = `£${((target * easeOut(t)) / 1_000_000).toFixed(1)}m`;
           if (t < 1) requestAnimationFrame(tick);
         }
-        let startTime = 0;
         setTimeout(() => {
           startTime = performance.now();
           requestAnimationFrame(tick);

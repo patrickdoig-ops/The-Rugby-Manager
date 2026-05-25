@@ -105,6 +105,34 @@
 
 /* ===== RetentionDecisionScreen ===== */
 
+/* Decide-by deadline pill rendered in .app-eyebrow. Pitch-tinted by
+   default; the --urgent variant tinges amber and pulses to nudge the
+   user when ≤3 days remain. Future-proofed for a real deadline field
+   on MarketState; today defaults to 7 days from market open. */
+.rd-deadline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  margin-left: 10px;
+  border-radius: 8px;
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--rm-pitch);
+  background: color-mix(in oklch, var(--rm-pitch) 14%, transparent);
+  border: 1px solid color-mix(in oklch, var(--rm-pitch) 35%, transparent);
+}
+
+.rd-deadline--urgent {
+  color: var(--rm-amber);
+  background: color-mix(in oklch, var(--rm-amber) 14%, transparent);
+  border-color: color-mix(in oklch, var(--rm-amber) 40%, transparent);
+  animation: rmPulse 2.4s ease-in-out infinite;
+}
+
 .rd-intro {
   padding: 12px 16px;
   font-family: var(--rm-font-body);

@@ -31,6 +31,23 @@ function fmtWage(n: number): string {
   return `£${n}`;
 }
 
+// Days between two ISO calendar dates. Both are 'YYYY-MM-DD'.
+function daysBetween(fromISO: string, toISO: string): number {
+  const from = Date.parse(fromISO);
+  const to = Date.parse(toISO);
+  if (Number.isNaN(from) || Number.isNaN(to)) return 7;
+  return Math.max(0, Math.round((to - from) / 86_400_000));
+}
+
+// Days until the retention deadline. MarketState.deadline is reserved
+// for a future persisted field; until then default to 7 from the
+// market's openedAfterSeason / calendar date — keeps the pill purely
+// decorative but lets us thread it through end-to-end now.
+function deadlineDays(calendarDate: string, marketDeadline: string | null): number {
+  if (marketDeadline) return daysBetween(calendarDate, marketDeadline);
+  return 7;
+}
+
 export function initRetentionDecisionScreen(
   // Always called fresh — see HubScreen for the rationale.
   getGameEngine: () => GameCoordinator,
@@ -126,6 +143,12 @@ export function initRetentionDecisionScreen(
         </div>`;
     }).filter((s): s is string => s !== null).join('');
 
+    const market = state.career.market as (typeof state.career.market & { deadline?: string });
+    const daysLeft = deadlineDays(state.calendar.date, market?.deadline ?? null);
+    const isUrgent = daysLeft <= 3;
+    const daysLabel = daysLeft <= 1 ? 'Last day' : `${daysLeft} days`;
+    const deadlinePill = `<span class="rd-deadline${isUrgent ? ' rd-deadline--urgent' : ''}">Decide before R${state.calendar.week + 1} · ${daysLabel}</span>`;
+
     el!.innerHTML = `
       <div class="app-header">
         <div class="app-topbar">
@@ -133,7 +156,7 @@ export function initRetentionDecisionScreen(
           <span class="app-title">Retention Decisions</span>
           ${capPill}
         </div>
-        <div class="app-eyebrow">${promptRosterIds.length} of your players being approached</div>
+        <div class="app-eyebrow">${promptRosterIds.length} of your players being approached${deadlinePill}</div>
       </div>
 
       <div class="rd-intro">Other clubs have approached your final-year players. Make a retention offer to keep them, or let them go. Players you don't retain may leave at next rollover.</div>

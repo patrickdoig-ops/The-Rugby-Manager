@@ -147,6 +147,14 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     return averageRating(r.seasonStats);
   }
 
+  function cardsFor(p: { rosterId?: number }): { yellow: number; red: number } {
+    if (p.rosterId === undefined) return { yellow: 0, red: 0 };
+    const state = opts.getGameEngine().getState();
+    const r = state.career.roster[p.rosterId];
+    if (!r) return { yellow: 0, red: 0 };
+    return { yellow: r.seasonStats.yellowCards, red: r.seasonStats.redCards };
+  }
+
   function listForTier(tier: Tier): RawPlayer[] {
     return tier === 'starter' ? draftStarters
          : tier === 'bench'   ? draftBench
@@ -459,6 +467,14 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     const injuryBadge = injury
       ? `<span class="injury-badge" title="${injuryKindLabel(injury.kind)} — ${injury.weeksRemaining}w">${injury.weeksRemaining}w</span>`
       : '';
+    const cards = cardsFor(p);
+    const cardBadges =
+      (cards.yellow > 0
+        ? `<span class="sq-card-badge sq-card-badge--yellow" title="${cards.yellow} yellow card${cards.yellow > 1 ? 's' : ''} this season">${cards.yellow > 1 ? cards.yellow : ''}</span>`
+        : '')
+      + (cards.red > 0
+        ? `<span class="sq-card-badge sq-card-badge--red" title="${cards.red} red card${cards.red > 1 ? 's' : ''} this season">${cards.red > 1 ? cards.red : ''}</span>`
+        : '');
     const avr = avrFor(p);
     const avrCell = avr === null
       ? `<div class="sq-avr sq-avr--unrated" title="No appearances yet this season">—</div>`
@@ -474,7 +490,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       <div class="${classes.join(' ')}" data-tier="${tier}" data-squad="${sn}">
         <div class="sq-jersey sq-jersey--${tier}">${jerseyContent}</div>
         <div class="sq-player-info">
-          <span class="sq-player-name sq-player-name--${tier}">${shortName(p)}${injuryBadge ? ' ' + injuryBadge : ''}</span>
+          <span class="sq-player-name sq-player-name--${tier}">${shortName(p)}${injuryBadge ? ' ' + injuryBadge : ''}${cardBadges}</span>
           <span class="sq-player-pos sq-player-pos--${tier}">${p.position}</span>
         </div>
         <div class="sq-ovr ${ovrClass(ovr)}">${ovr}</div>

@@ -17,10 +17,10 @@ export interface OffenceSpec {
 export const OFFENCE_SPEC: Record<PenaltyOffence, OffenceSpec> = {
   breakdown_infringement: { tmoTriggerPct:  0 },
   scrum_infringement:     { tmoTriggerPct:  0 },
-  high_tackle:            { tmoTriggerPct: 60 },
+  high_tackle:            { tmoTriggerPct: 90 },
   offside_at_ruck:        { tmoTriggerPct:  0 },
   obstruction:            { tmoTriggerPct:  0 },
-  dangerous_cleanout:     { tmoTriggerPct: 60 },
+  dangerous_cleanout:     { tmoTriggerPct: 90 },
   not_rolling_away:       { tmoTriggerPct:  0 },
 };
 
@@ -42,9 +42,9 @@ export const HIGH_TACKLE = {
 // OFFENCE_SPEC entry has tmoTriggerPct > 0. Sum to 100. The trigger
 // probability itself is per-offence and lives in OFFENCE_SPEC above.
 export const TMO = {
-  outcomeNoCardPct: 60,
-  outcomeYellowPct: 35,
-  outcomeRed20Pct:  5,
+  outcomeNoCardPct: 25,
+  outcomeYellowPct: 65,
+  outcomeRed20Pct:  10,
 } as const;
 
 // Sin-bin durations in game minutes. Yellow returns; red_20 expires to sentOff

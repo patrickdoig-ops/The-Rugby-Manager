@@ -264,6 +264,31 @@ html, body {
   z-index: 1;
 }
 
+/* Sin-bin / sent-off indicator. Anchored to the crest's bottom edge so
+   the pips sit just below the team monogram. One pip per off-field
+   player; auto-clears as players return via SIN_BIN_RETURNED. */
+.card-stack {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.card-pip {
+  width: 6px;
+  height: 8px;
+  border-radius: 1px;
+  border: 1px solid rgba(0,0,0,0.55);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.45);
+}
+
+.card-pip--yellow { background: #f5c024; }
+.card-pip--red    { background: #d22f2f; }
+
 #home-score-block, #away-score-block {
   display: flex;
   flex-direction: column;
@@ -1172,6 +1197,33 @@ html, body {
   line-height: 1;
   vertical-align: middle;
 }
+
+/* Season-card badge — small coloured rectangle alongside the name, used
+   on squad / contracts lists to surface yellow / red card counts. Count
+   text is omitted for 1 (the pip itself reads as "one"); 2+ shows the
+   number. Mirrors the dimensions of the in-match scoreboard `.card-pip`
+   but with a tabular-num label slot. */
+.sq-card-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 10px;
+  height: 12px;
+  padding: 0 3px;
+  margin-left: 4px;
+  border-radius: 2px;
+  border: 1px solid rgba(0,0,0,0.5);
+  font-family: var(--rm-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(0,0,0,0.78);
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.sq-card-badge--yellow { background: #f5c024; }
+.sq-card-badge--red    { background: #d22f2f; color: rgba(255,255,255,0.92); }
 
 .injury-badge::before {
   content: '';

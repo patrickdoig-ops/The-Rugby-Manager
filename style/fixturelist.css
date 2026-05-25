@@ -41,8 +41,8 @@
 }
 
 .fl-toggle-btn.active {
-  background: var(--rm-pitch);
-  color: var(--rm-bg-deep);
+  background: color-mix(in oklch, var(--rm-pitch) 22%, transparent);
+  color: var(--rm-pitch);
   font-weight: 700;
 }
 

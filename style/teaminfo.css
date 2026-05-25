@@ -15,27 +15,6 @@
     env(safe-area-inset-left, 0px);
 }
 
-#ti-back {
-  position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
-  left: calc(env(safe-area-inset-left, 0px) + 16px);
-  z-index: 260;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  color: var(--rm-text-muted);
-  font-family: var(--rm-font-body);
-  font-size: 13px;
-  cursor: pointer;
-  padding: 6px 0;
-  transition: color 0.15s;
-  -webkit-tap-highlight-color: transparent;
-}
-
-#ti-back svg { pointer-events: none; }
-
 #ti-inner {
   display: flex;
   flex-direction: column;

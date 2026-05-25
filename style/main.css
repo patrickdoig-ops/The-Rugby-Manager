@@ -954,6 +954,32 @@ html, body {
   .app-back:hover { color: var(--rm-text); }
 }
 
+/* Floating back button — for screens that don't use .app-header
+   (ModePicker, TeamInfo, TeamSelector). Same visual treatment as
+   .app-back but positioned absolutely in the top-left. */
+.app-back-floating {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: calc(env(safe-area-inset-left, 0px) + 16px);
+  z-index: 260;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--rm-text-muted);
+  font-family: var(--rm-font-body);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 6px 0;
+  transition: color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.app-back-floating svg { pointer-events: none; }
+@media (hover: hover) {
+  .app-back-floating:hover { color: var(--rm-text); }
+}
+
 .app-title {
   font-family: var(--rm-font-display);
   font-size: 20px;

@@ -67,6 +67,15 @@
   font-weight: 600;
 }
 
+@media (hover: hover) {
+  .lt-row:hover {
+    background: color-mix(in oklch, var(--rm-surface) 80%, var(--rm-surface-2));
+  }
+  .lt-row--me:hover {
+    background: color-mix(in oklch, var(--rm-pitch) 22%, var(--rm-surface));
+  }
+}
+
 .lt-rank { color: var(--rm-text-dim); text-align: right; }
 .lt-crest-spacer { width: var(--crest-xs-size); }
 .lt-crest {

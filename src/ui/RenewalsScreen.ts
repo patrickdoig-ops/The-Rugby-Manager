@@ -131,7 +131,7 @@ export function initRenewalsScreen(
       const isRenew = choice === 'renew';
       const wageDelta = o.annualWage - p.contract.annualWage;
       const deltaSign = wageDelta > 0 ? '+' : '';
-      const deltaCls = wageDelta > 0 ? 'rn-delta-pos' : wageDelta < 0 ? 'rn-delta-neg' : '';
+      const deltaCls = wageDelta > 0 ? 'rn-delta-up' : wageDelta < 0 ? 'rn-delta-down' : '';
       return `
         <div class="rn-row${isRenew ? ' rn-row--renew' : ' rn-row--release'}" data-offer-id="${o.id}">
           <div class="rn-row-main">

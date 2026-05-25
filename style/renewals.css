@@ -151,8 +151,8 @@
   font-size: 10px;
 }
 
-.rn-delta-pos { color: var(--rm-danger); }
-.rn-delta-neg { color: var(--rm-pitch); }
+.rn-delta-up   { color: var(--rm-danger); }   /* wage increased */
+.rn-delta-down { color: var(--rm-pitch); }    /* wage decreased */
 
 .rn-toggle {
   grid-area: toggle;

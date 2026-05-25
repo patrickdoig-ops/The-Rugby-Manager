@@ -1207,6 +1207,27 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
+/* ─── Row-just-changed flash ─── */
+/* Shared "just changed" row flash. Used wherever a row was mutated by the
+   user and the parent re-renders to show the new state. Caller adds the
+   class on the new DOM node and removes it on animationend. */
+@keyframes rowJustChanged {
+  0%   { background: color-mix(in oklch, var(--rm-pitch) 22%, transparent); }
+  60%  { background: color-mix(in oklch, var(--rm-pitch) 8%,  transparent); }
+  100% { background: transparent; }
+}
+@keyframes rowJustChangedDanger {
+  0%   { background: color-mix(in oklch, var(--rm-danger) 22%, transparent); }
+  60%  { background: color-mix(in oklch, var(--rm-danger) 8%,  transparent); }
+  100% { background: transparent; }
+}
+.row-just-changed {
+  animation: rowJustChanged 800ms ease-out;
+}
+.row-just-changed--danger {
+  animation-name: rowJustChangedDanger;
+}
+
 /* ─── Toast pill ─── */
 /* Shared bottom-centre confirmation pill. One element reused across screens
    (squad save, FA signing, contract renewal). Variants swap the border colour

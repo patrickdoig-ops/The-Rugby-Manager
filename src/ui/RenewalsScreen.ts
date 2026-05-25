@@ -210,6 +210,23 @@ export function initRenewalsScreen(
           }
         }
         render();
+
+        // Flash the row that just changed. Pitch flash for renew,
+        // danger flash for release. Removed on animationend so re-render
+        // re-applies cleanly on subsequent toggles.
+        if (decision !== prev) {
+          requestAnimationFrame(() => {
+            const newRow = el!.querySelector<HTMLElement>(`.rn-row[data-offer-id="${offerId}"]`);
+            if (newRow) {
+              const flashClass = decision === 'release' ? 'row-just-changed--danger' : 'row-just-changed';
+              newRow.classList.add('row-just-changed', flashClass);
+              newRow.addEventListener('animationend', function onEnd() {
+                newRow.classList.remove('row-just-changed', flashClass);
+                newRow.removeEventListener('animationend', onEnd);
+              });
+            }
+          });
+        }
       });
     });
 

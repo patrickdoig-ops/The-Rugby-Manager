@@ -86,7 +86,7 @@ export function initTakeoverRevealScreen(
         <div class="tk-hero" style="--team-color:${team.color}">
           ${teamCrest(team, true)}
           <div class="tk-hero-headline">${blurb.headline}</div>
-          <div class="tk-hero-boost">+${fmtMillions(mine.boostAmount)} to wage budget</div>
+          <div class="tk-hero-boost">+<span class="tk-boost-num" data-target="${mine.boostAmount}">£0.0m</span> to wage budget</div>
           <div class="tk-hero-sub">${blurb.sub}</div>
         </div>`;
     })() : '';
@@ -134,6 +134,26 @@ export function initTakeoverRevealScreen(
     el!.querySelector<HTMLButtonElement>('#tk-continue')!.addEventListener('click', () => {
       if (active) active.onContinue();
     });
+
+    if (mine) {
+      const numEl = el!.querySelector<HTMLSpanElement>('.tk-boost-num');
+      if (numEl) {
+        const target = mine.boostAmount;
+        const duration = 1200;
+        const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+        function tick(now: number) {
+          const elapsed = now - startTime;
+          const t = Math.min(elapsed / duration, 1);
+          numEl!.textContent = `£${((target * easeOut(t)) / 1_000_000).toFixed(1)}m`;
+          if (t < 1) requestAnimationFrame(tick);
+        }
+        let startTime = 0;
+        setTimeout(() => {
+          startTime = performance.now();
+          requestAnimationFrame(tick);
+        }, 700);
+      }
+    }
   }
 
   renderImpl = render;

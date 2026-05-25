@@ -143,12 +143,14 @@
 .ts-card-info svg { pointer-events: none; }
 
 .ts-crest {
-  border-radius: 10px;
+  width: var(--crest-md-size);
+  height: var(--crest-md-size);
+  border-radius: var(--crest-md-radius);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--rm-font-display);
-  font-size: 28px;
+  font-size: 22px;
   color: rgba(255,255,255,0.9);
   position: relative;
   flex-shrink: 0;

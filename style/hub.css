@@ -44,9 +44,9 @@
 }
 
 .hub-crest {
-  width: 58px;
-  height: 58px;
-  border-radius: 13px;
+  width: var(--crest-lg-size);
+  height: var(--crest-lg-size);
+  border-radius: var(--crest-lg-radius);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -1,11 +1,11 @@
 import type { RawTeamInput } from '../types/teamData';
 import { computeOverallRating } from '../team/teamProfile';
 
-function crestHtml(initial: string, color: string, size: number): string {
+function crestHtml(initial: string, color: string): string {
   const grad = `linear-gradient(160deg, ${color} 0%, color-mix(in oklch, ${color} 30%, black) 100%)`;
   const glow = `box-shadow: 0 0 18px color-mix(in oklch, ${color} 40%, transparent), inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 20px rgba(0,0,0,0.5);`;
   return `
-    <div class="ts-crest" style="width:${size}px;height:${size}px;background:${grad};border:1.5px solid color-mix(in oklch,${color} 55%,transparent);${glow}">
+    <div class="ts-crest" style="background:${grad};border:1.5px solid color-mix(in oklch,${color} 55%,transparent);${glow}">
       <span>${initial}</span>
     </div>`;
 }
@@ -47,7 +47,7 @@ export function initTeamSelectorScreen(
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             </button>
             <button class="ts-card-select" data-id="${team.id}">
-              ${crestHtml(team.shortName[0] ?? '?', team.color, 64)}
+              ${crestHtml(team.shortName[0] ?? '?', team.color)}
               <div class="ts-card-name">${team.name}</div>
               ${(() => {
                 const ovr = computeOverallRating(team.id);

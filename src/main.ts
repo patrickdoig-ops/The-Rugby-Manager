@@ -345,13 +345,20 @@ document.addEventListener('DOMContentLoaded', () => {
       gameEngine.openSigningWindow();
       if (gameEngine.getState().career.market) {
         saveGame(gameEngine.toSavePayload());
-        showTransferMarket(() => {
+        // Depth-chart checkpoint between Renewals (just closed) and the
+        // signings window. Lets the manager see where they're thin after
+        // releases land, before they decide who to recruit.
+        showSquadOverview(() => {
           if (!gameEngine) { goHub(); return; }
-          gameEngine.closeSigningWindow();
-          saveGame(gameEngine.toSavePayload());
-          proceedToRollover();
+          showTransferMarket(() => {
+            if (!gameEngine) { goHub(); return; }
+            gameEngine.closeSigningWindow();
+            saveGame(gameEngine.toSavePayload());
+            proceedToRollover();
+          });
+          screenRouter.show('transfer-market');
         });
-        screenRouter.show('transfer-market');
+        screenRouter.show('squad-overview');
       } else {
         proceedToRollover();
       }

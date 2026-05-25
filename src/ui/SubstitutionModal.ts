@@ -3,6 +3,7 @@ import type { Player } from '../types/player';
 import { eventBus } from '../utils/eventBus';
 import { shortName } from '../utils/playerName';
 import { teamTextColor } from '../utils/teamColor';
+import { showToast } from './Toast';
 
 type PendingSub = {
   benchSquadNum: number;
@@ -134,9 +135,13 @@ export function renderSubstitutionPanel(container: HTMLElement, team: Team): voi
 
     container.querySelector('#btn-subs-confirm')!.addEventListener('click', () => {
       if (pendingSubs.length === 0) return;
+      // Capture the count before the loop — substitution handlers may
+      // mutate `pendingSubs` downstream and `ui:subsClosed` clears it.
+      const count = pendingSubs.length;
       for (const s of pendingSubs) {
         eventBus.emit('ui:substitution', { benchSquadNum: s.benchSquadNum, fieldSquadNum: s.fieldSquadNum });
       }
+      showToast(`${count} substitution${count === 1 ? '' : 's'} made`);
       eventBus.emit('ui:subsClosed', {});
     });
   }
@@ -184,10 +189,12 @@ export function renderForcedSubstitutionPanel(
 
   container.querySelectorAll<HTMLButtonElement>('.sub-bench-btn').forEach(btn => {
     btn.addEventListener('click', () => {
+      showToast(`${shortName(sentOff)} replaced`);
       onChoice(Number(btn.dataset.squad));
     }, { once: true });
   });
   container.querySelector('#btn-subs-skip')!.addEventListener('click', () => {
+    showToast('Playing short', 'info');
     onChoice(null);
   }, { once: true });
 }

@@ -93,14 +93,18 @@
   opacity: 0.45;
 }
 
-.fl-row--active {
-  border-color: var(--rm-pitch);
-}
-
 .fl-row--me {
   background: color-mix(in oklch, var(--rm-pitch) 12%, var(--rm-surface));
   border-color: color-mix(in oklch, var(--rm-pitch) 28%, var(--rm-border-soft));
 }
+
+.fl-row--active {
+  border-color: var(--rm-pitch);
+  padding: 16px 18px;
+  box-shadow: 0 0 18px color-mix(in oklch, var(--rm-pitch) 14%, transparent);
+}
+
+.fl-row--active .fl-round-num { color: var(--rm-pitch); }
 
 .fl-round {
   display: flex;

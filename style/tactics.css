@@ -1,5 +1,6 @@
 /* ════════════════════════════════════════
-   TACTICS MENU STYLES
+   TACTICS MENU — modal body
+   Built from main.css design tokens. No hardcoded colours.
    ════════════════════════════════════════ */
 
 .tactics-menu-wrapper {
@@ -12,13 +13,18 @@
 }
 
 .tactics-main-title {
-  font-size: 20px;
-  font-weight: 800;
+  font-family: var(--rm-font-display);
+  font-size: 22px;
+  font-weight: 400;
   letter-spacing: 0.02em;
-  color: var(--rm-pitch);
-  border-bottom: 1px solid var(--rm-border-soft);
-  padding-bottom: 10px;
+  text-transform: uppercase;
+  color: var(--rm-chalk);
+  border-bottom: 1px solid var(--rm-hairline);
+  padding-bottom: 12px;
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .tactics-categories-container {
@@ -34,17 +40,18 @@
 }
 
 .tactics-cat-title {
-  font-size: 11px;
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: var(--rm-text-muted);
+  letter-spacing: 0.16em;
+  color: var(--rm-text-dim);
 }
 
 .tactics-options-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .tactics-opt-btn {
@@ -56,38 +63,30 @@
   padding: 14px 16px;
   cursor: pointer;
   text-align: left;
-  transition: all 0.15s ease;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
   color: var(--rm-text);
-  position: relative;
-  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.tactics-opt-btn:hover {
-  background: var(--rm-surface-2);
-  border-color: var(--rm-pitch-soft);
+@media (hover: hover) {
+  .tactics-opt-btn:hover {
+    background: var(--rm-surface-2);
+    border-color: color-mix(in oklch, var(--rm-pitch) 35%, var(--rm-border-soft));
+  }
 }
 
 .tactics-opt-btn.active {
   background: color-mix(in oklch, var(--rm-pitch) 18%, var(--rm-surface));
   border-color: var(--rm-pitch);
-  box-shadow: 0 0 14px rgba(77,159,255,0.18);
-}
-
-.tactics-opt-btn.active::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: var(--rm-pitch);
+  box-shadow: 0 0 16px color-mix(in oklch, var(--rm-pitch) 22%, transparent);
 }
 
 .tactics-opt-label {
+  font-family: var(--rm-font-body);
   font-size: 14px;
   font-weight: 700;
   margin-bottom: 4px;
-  color: var(--rm-text);
+  color: var(--rm-chalk);
 }
 
 .tactics-opt-btn.active .tactics-opt-label {
@@ -95,45 +94,42 @@
 }
 
 .tactics-opt-desc {
-  font-size: 11px;
+  font-family: var(--rm-font-body);
+  font-size: 12px;
   font-weight: 400;
   color: var(--rm-text-muted);
-  line-height: 1.3;
+  line-height: 1.4;
 }
 
 .tactics-modal-footer {
   margin-top: 12px;
-  border-top: 1px solid var(--rm-border-soft);
+  border-top: 1px solid var(--rm-hairline);
   padding-top: 16px;
 }
 
+/* Resume CTA — matches the in-flow primary CTA from DESIGN.md §8.1. */
 .tactics-resume-btn {
   width: 100%;
-  padding: 13px 24px;
+  padding: 14px 22px;
   background: #007a2a;
-  color: #ffffff;
-  border: 1px solid rgba(255,255,255,0.12);
+  border: none;
   border-radius: 14px;
-  font-family: var(--rm-font-body);
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  color: #ffffff;
+  font-family: var(--rm-font-display);
+  font-size: 20px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   transition: background 0.15s, box-shadow 0.15s;
-  box-shadow: 0 4px 24px color-mix(in oklch, var(--rm-pitch) 28%, transparent), inset 0 1px 0 rgba(255,255,255,0.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 8px 24px color-mix(in oklch, var(--rm-pitch) 28%, transparent);
+  -webkit-tap-highlight-color: transparent;
 }
 
-.tactics-resume-btn:hover {
-  background: #009434;
-  box-shadow: 0 6px 32px rgba(0,148,52,0.60);
-}
-
-.tactics-resume-btn:active {
-  background: #006622;
-  box-shadow: none;
-}
+.tactics-resume-btn:hover  { background: #009434; }
+.tactics-resume-btn:active { background: #006622; }

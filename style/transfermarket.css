@@ -33,7 +33,7 @@
 }
 
 .tm-cappill--ok    { border-color: color-mix(in oklch, var(--rm-pitch) 40%, transparent); background: color-mix(in oklch, var(--rm-pitch) 12%, transparent); }
-.tm-cappill--tight { border-color: color-mix(in oklch, #d8a14a 60%, transparent);          background: color-mix(in oklch, #d8a14a 14%, transparent); }
+.tm-cappill--tight { border-color: color-mix(in oklch, var(--rm-amber) 60%, transparent);  background: color-mix(in oklch, var(--rm-amber) 14%, transparent); }
 .tm-cappill--over  { border-color: color-mix(in oklch, var(--rm-danger) 60%, transparent); background: color-mix(in oklch, var(--rm-danger) 16%, transparent); }
 .tm-cappill--over span:first-child { color: var(--rm-danger); }
 .tm-cappill span:last-child { color: var(--rm-chalk); font-weight: 600; }

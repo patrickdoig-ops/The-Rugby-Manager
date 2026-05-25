@@ -38,8 +38,8 @@
 }
 
 .rn-cappill--tight {
-  border-color: color-mix(in oklch, #d8a14a 60%, transparent);
-  background: color-mix(in oklch, #d8a14a 14%, transparent);
+  border-color: color-mix(in oklch, var(--rm-amber) 60%, transparent);
+  background: color-mix(in oklch, var(--rm-amber) 14%, transparent);
 }
 
 .rn-cappill--over {

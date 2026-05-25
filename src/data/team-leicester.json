@@ -14,7 +14,7 @@
   "suggestedTactics": {
     "attackingGamePlan": "kicking",
     "attackingStyle": "keep_it_tight",
-    "attackingBreakdown": "pick_and_drive",
+    "attackingBreakdown": "commit_numbers",
     "defendingBreakdown": "jackal",
     "backfieldDefence": "two_back",
     "defensiveLine": "hybrid"

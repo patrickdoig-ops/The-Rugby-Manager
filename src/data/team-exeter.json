@@ -14,7 +14,7 @@
   "suggestedTactics": {
     "attackingGamePlan": "possession",
     "attackingStyle": "keep_it_tight",
-    "attackingBreakdown": "pick_and_drive",
+    "attackingBreakdown": "commit_numbers",
     "defendingBreakdown": "counter_ruck",
     "backfieldDefence": "one_back",
     "defensiveLine": "blitz"

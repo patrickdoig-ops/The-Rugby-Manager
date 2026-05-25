@@ -70,7 +70,7 @@ At match init (`MatchCoordinator.initMatchState`):
 
 Mid-match the human can swap any dimension via the tactics modal (`ui:tacticsChange` bus event → `TACTICS_UPDATED` `MatchEvent`). The AI has no UI; in-match adjustments are written by `AITacticalDirector` (see below). Both paths share the same mutation seam — `applyMatchEvent` is the only writer of `team.tactics`.
 
-**`AITacticalDirector`** (`src/engine/AITacticalDirector.ts`) is a pure (no RNG) module owned by `MatchCoordinator`. It's instantiated alongside `clock` / `fatigue` and called once per tick — `director.evaluate()` runs *before* `resolvePhase()`, so a tactic change applies to the same tick that triggered it. The director never proposes tactics for the human side; in silent (fully-headless) fixtures the constructor is given `humanSide: undefined` so both teams adapt. Tuning lives in `src/engine/balance/aiDirector.ts`: `scoreGapTrigger` (8 points) and `minutesRemainingTrigger` (15 minutes) gate the flip. Two named intent bundles overlay the team's baseline `suggestedTactics`: `AI_INTENT_CHASING` (possession + wide_wide + wide_play + one_back — trailing late) and `AI_INTENT_PROTECTING` (kicking + keep_it_tight + pick_and_drive + shadow + two_back — leading late). Outside the late-game window or within the score-gap dead band, the director reverts each side to its captured baseline.
+**`AITacticalDirector`** (`src/engine/AITacticalDirector.ts`) is a pure (no RNG) module owned by `MatchCoordinator`. It's instantiated alongside `clock` / `fatigue` and called once per tick — `director.evaluate()` runs *before* `resolvePhase()`, so a tactic change applies to the same tick that triggered it. The director never proposes tactics for the human side; in silent (fully-headless) fixtures the constructor is given `humanSide: undefined` so both teams adapt. Tuning lives in `src/engine/balance/aiDirector.ts`: `scoreGapTrigger` (8 points) and `minutesRemainingTrigger` (15 minutes) gate the flip. Two named intent bundles overlay the team's baseline `suggestedTactics`: `AI_INTENT_CHASING` (possession + wide_wide + minimal_ruck + one_back — trailing late) and `AI_INTENT_PROTECTING` (kicking + keep_it_tight + commit_numbers + shadow + two_back — leading late). Outside the late-game window or within the score-gap dead band, the director reverts each side to its captured baseline.
 
 ### `MatchState` shape
 
@@ -270,7 +270,7 @@ Every cycle, a base decay rate between 4 and 12 is randomly determined. This rat
 
 For forwards (player id ≤ 8), the decay is then multiplied by a tactic factor:
 
-- `attackingBreakdown === 'pick_and_drive'`: ×1.1
+- `attackingBreakdown === 'commit_numbers'`: ×1.1
 - `defendingBreakdown === 'counter_ruck'`: ×1.1
 - Both active: ×1.21 (multiplicative, not additive)
 
@@ -666,22 +666,25 @@ backRow     = defendTeam.players.filter(p => p.id >= 6 && p.id <= 8)
 defendPack  = defendTeam.players.filter(p => p.id <= 8)
 ```
 
-Attacking supporters are sampled at random (without replacement) from the forward pool. The count is set by `attackingBreakdown`: `pick_and_drive` = 4, `balanced` = 3, `wide_play` = 2. The defending jackal is chosen at random from the back row (ids 6–8). The full defending pack (ids 1–8) is also passed for use by the `counter_ruck` branch.
+Attacking supporters are sampled at random (without replacement) from the forward pool. The count is set by `attackingBreakdown`: `commit_numbers` = 4, `balanced` = 3, `minimal_ruck` = 2. The defending jackal is chosen at random from the back row (ids 6–8). The full defending pack (ids 1–8) is also passed for use by the `counter_ruck` branch.
 
 **Tactical Breakdown Commitment (`AttackingBreakdown` & `DefendingBreakdown`):**
-- **Attacking:** Supporter count is driven by `attackTeam.tactics.attackingBreakdown`: `pick_and_drive` commits 4 forwards; `balanced` commits 3 forwards; `wide_play` commits 2 forwards. Body count directly drives ARS via the stacked-score formula — no separate flat bonus.
+- **Attacking:** Supporter count is driven by `attackTeam.tactics.attackingBreakdown`: `commit_numbers` commits 4 forwards; `balanced` commits 3 forwards; `minimal_ruck` commits 2 forwards. Body count directly drives ARS via the stacked-score formula — no separate flat bonus.
 - **Defending:** Strategy is driven by `defendTeam.tactics.defendingBreakdown`:
   - `jackal`: Relies on a single back-row specialist's breakdown stat.
   - `counter_ruck`: The 4 strongest defenders (by `strength×0.6 + breakdown×0.4`) contest the ruck using the stacked-score formula.
   - `shadow`: Concedes ruck ball (DTS = rng(1,10)) to maintain a perfectly aligned defensive line.
 
-**Next-phase carry-over (`state.breakdownMod`):** Committing more players to the ruck leaves fewer available for the next phase. After every breakdown the engine sets `state.breakdownMod.attack` and `state.breakdownMod.defend` which are consumed (and reset to zero) by the very next carry phase (PhasePlay after Breakdown, or FirstPhase/KickReturn in other contexts), where they are applied as modifiers to the evasion and defence scores respectively. **On a line break carry**, the tactic-driven value is further bumped by `CARRY_HANDOFF_BONUSES.lineBreak` (15) — the next carry runs on the front foot, modelling the sustained-attack effect that turns a line break into a try over the next 1-2 phases.
+**Next-phase carry-over (`state.breakdownMod`):** Committing players to the ruck leaves fewer available for the next phase. After every breakdown the engine sets `state.breakdownMod.attack` and `state.breakdownMod.defend` which are consumed (and reset to zero) by the very next carry phase (PhasePlay after Breakdown, or FirstPhase/KickReturn in other contexts), where they are applied as modifiers to the evasion and defence scores respectively.
+- **Defending (`breakdownMod.defend`)**: The tactic-driven value is passed generically to the next phase.
+- **Attacking (`breakdownMod.attack`)**: Only the momentum bonus (`lineBreakHandoff`) is passed generically in state. The tactical modifier (`TACTIC_MODIFIERS.breakdownAttack`) represents the presence/absence of supporting runners in the backline, and therefore **only applies conditionally in OpenPlayEvent if the team attempts to go wide**. If the team keeps it tight (!goWide), this modifier is ignored, creating a direct rock-paper-scissors synergy with `attackingStyle`.
+- **On a line break carry**: `breakdownMod.attack` receives `CARRY_HANDOFF_BONUSES.lineBreak` (15) — the next carry runs on the front foot, modelling the sustained-attack effect that turns a line break into a try over the next 1-2 phases.
 
 | Tactic | Effect on next carry phase |
 |---|---|
-| `pick_and_drive` | attack −8 evasion (forwards still arriving) |
+| `commit_numbers` | attack −20 evasion (ONLY on wide plays; forwards still arriving) |
 | `balanced` | 0 |
-| `wide_play` | attack +8 evasion (extra players on feet outside) |
+| `minimal_ruck` | attack +35 evasion (ONLY on wide plays; extra players on feet outside) |
 | `counter_ruck` | defend −8 (pack committed to ruck) |
 | `jackal` | 0 (one player, line intact) |
 | `shadow` | defend +10 (full defensive line set) |
@@ -723,9 +726,9 @@ Effect of player count on ARS (same-quality supporters, typical stats):
 
 | Tactic | Supporters | Weight sum | ARS multiplier vs average |
 |---|---|---|---|
-| `wide_play` | 2 | 1.6 | ×0.80 |
+| `minimal_ruck` | 2 | 1.6 | ×0.80 |
 | `balanced` | 3 | 2.0 | ×1.00 (baseline) |
-| `pick_and_drive` | 4 | 2.3 | ×1.15 |
+| `commit_numbers` | 4 | 2.3 | ×1.15 |
 
 Both quality (stat values) and quantity (number of bodies) now independently influence the score. A team with specialist breakdown forwards benefits more from committing them to the ruck.
 
@@ -1235,7 +1238,7 @@ OBSTRUCTION_BASE_PCT = 4   // pct per out-the-back attempt (PhasePlay + FirstPha
 **Tactic modifiers** — pct-point shifts on the base trigger rate (`src/engine/balance/tactics.ts`, inside `TACTIC_MODIFIERS`):
 ```ts
 notRollingAwayDefendMod:    { jackal: 1,         counter_ruck: 0, shadow: -2 }
-dangerousCleanoutAttackMod: { pick_and_drive: 2, balanced: 0,    wide_play: -1 }
+dangerousCleanoutAttackMod: { commit_numbers: 2, balanced: 0,    minimal_ruck: -1 }
 obstructionStyleMod:        { keep_it_tight: -2, balanced: 0,    wide_wide: 3 }
 offsideAtRuckDefendMod:     { blitz: 6,          hybrid: 2,      drift: -2 }
 ```
@@ -1520,16 +1523,16 @@ Notes cover both the upside and the downside of a tactic choice — a player sho
 
 | Handler | Trigger | Cause | Chance |
 |---|---|---|---|
-| `BreakdownEvent` | `pick_and_drive` + `clean_ball` | `breakdown_pick_and_drive_clean` | 30% |
+| `BreakdownEvent` | `commit_numbers` + `clean_ball` | `breakdown_commit_numbers_clean` | 30% |
 | `BreakdownEvent` | `shadow` + `clean_ball` conceded | `breakdown_shadow_clean` | 30% |
 | `BreakdownEvent` | `jackal` + `clean_ball` conceded | `breakdown_jackal_clean` | 25% |
-| `BreakdownEvent` | `wide_play` + `slow_ball` | `breakdown_wide_play_slow` | 30% |
+| `BreakdownEvent` | `minimal_ruck` + `slow_ball` | `breakdown_minimal_ruck_slow` | 30% |
 | `BreakdownEvent` | `counter_ruck` + `slow_ball` | `breakdown_counter_ruck_slow` | 30% |
 | `BreakdownEvent` | `jackal` + `turnover` | `breakdown_jackal_turnover` | 35% |
 | `BreakdownEvent` | `counter_ruck` + `turnover` | `breakdown_counter_ruck_turnover` | 30% |
-| `BreakdownEvent` | `wide_play` + `turnover` | `breakdown_wide_play_turnover` | 25% |
-| `BreakdownEvent` | `pick_and_drive` + `penalty_defending` | `breakdown_pick_and_drive_penalty` | 25% |
-| `BreakdownEvent` | `wide_play` + `penalty_defending` | `breakdown_wide_play_penalty` | 25% |
+| `BreakdownEvent` | `minimal_ruck` + `turnover` | `breakdown_minimal_ruck_turnover` | 25% |
+| `BreakdownEvent` | `commit_numbers` + `penalty_defending` | `breakdown_commit_numbers_penalty` | 25% |
+| `BreakdownEvent` | `minimal_ruck` + `penalty_defending` | `breakdown_minimal_ruck_penalty` | 25% |
 | `BreakdownEvent` | `jackal` + `penalty_defending` | `breakdown_jackal_penalty` | 25% |
 | `OpenPlayEvent` / `FirstPhaseEvent` / `KickReturnEvent` | `line_break` + `two_back`/`three_back` defending | `line_break_backfield_thin` | 30% |
 | `TacticalKickEvent` | kick caught + `two_back`/`three_back` | `kick_caught_return_bonus` | 35% |

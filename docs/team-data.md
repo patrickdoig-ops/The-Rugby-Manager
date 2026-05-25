@@ -18,7 +18,7 @@ Related docs: see `CLAUDE.md` "Tactics system" for tactic-effect mechanics, `doc
 |---|---|
 | `attackingGamePlan` | `possession` · `balanced` · `kicking` |
 | `attackingStyle` | `keep_it_tight` · `balanced` · `wide_wide` |
-| `attackingBreakdown` | `pick_and_drive` · `balanced` · `wide_play` |
+| `attackingBreakdown` | `commit_numbers` · `balanced` · `minimal_ruck` |
 | `defendingBreakdown` | `jackal` · `counter_ruck` · `shadow` |
 | `backfieldDefence` | `one_back` · `two_back` · `three_back` |
 | `defensiveLine` | `blitz` · `hybrid` · `drift` |
@@ -68,7 +68,7 @@ A historic west-country club with a cherry-and-white forwards-led identity, defi
 - **Captain:** Tomos Williams (2025-26; confirmed in December 2025 to be joining Saracens at season's end).
 - **Honours:** RFU Cup × 4 (1971-72, 1977-78, 1981-82, 2002-03); European Challenge Cup 2005-06, 2014-15.
 - **Overall rating:** **67/100**
-- **Suggested tactics:** `balanced` · `keep_it_tight` · `pick_and_drive` · `counter_ruck` · `one_back` · `drift`
+- **Suggested tactics:** `balanced` · `keep_it_tight` · `commit_numbers` · `counter_ruck` · `one_back` · `drift`
 - **Stat bias:** high `strength`, `breakdown`, `setPiece`.
 
 ### Star players
@@ -154,7 +154,7 @@ Shaped by the Pat Lam era's "Bristol-Bilbao" expansive ambition, the Bears are t
 - **Captain:** Fitz Harding (long-term extension signed 2023-24).
 - **Honours:** European Challenge Cup 2019-20; RFU Knockout Cup 1982-83; Championship title 2017-18.
 - **Overall rating:** **73/100**
-- **Suggested tactics:** `possession` · `wide_wide` · `wide_play` · `jackal` · `two_back` · `drift`
+- **Suggested tactics:** `possession` · `wide_wide` · `minimal_ruck` · `jackal` · `two_back` · `drift`
 - **Stat bias:** high `pace`, `handling`, `agility`.
 
 ### Star players
@@ -239,7 +239,7 @@ The Welford Road tradition is set-piece power, structured forward-led play, and 
 - **Captain:** Ollie Chessum (appointed September 2025).
 - **Honours:** 11 × English league title (latest 2021-22, most in the modern era); 2 × European Champions Cup (2000-01, 2001-02); Anglo-Welsh Cup × 6.
 - **Overall rating:** **77/100**
-- **Suggested tactics:** `kicking` · `keep_it_tight` · `pick_and_drive` · `jackal` · `two_back` · `hybrid`
+- **Suggested tactics:** `kicking` · `keep_it_tight` · `commit_numbers` · `jackal` · `two_back` · `hybrid`
 - **Stat bias:** high `setPiece`, `tackling`, `discipline`.
 
 ### Star players
@@ -514,7 +514,7 @@ The Rob Baxter long-build identity is phase-heavy possession rugby — pressure 
 - **Captain:** Dafydd Jenkins.
 - **Honours:** 2 × Premiership title (2016-17, 2019-20); European Champions Cup 2019-20; Anglo-Welsh Cup 2013-14.
 - **Overall rating:** **70/100**
-- **Suggested tactics:** `possession` · `keep_it_tight` · `pick_and_drive` · `counter_ruck` · `one_back` · `blitz`
+- **Suggested tactics:** `possession` · `keep_it_tight` · `commit_numbers` · `counter_ruck` · `one_back` · `blitz`
 - **Stat bias:** high `stamina`, `breakdown`, `setPiece`.
 
 ### Star players
@@ -609,7 +609,7 @@ The Twickenham Stoop entertainers and the league's most committed expansive, att
 - **Captain:** Alex Dombrandt (since 2024-25).
 - **Honours:** 2 × Premiership title (2011-12, 2020-21); European Challenge Cup 2010-11; Anglo-Welsh Cup 1987-88, 2012-13.
 - **Overall rating:** **66/100**
-- **Suggested tactics:** `possession` · `wide_wide` · `wide_play` · `jackal` · `one_back` · `drift`
+- **Suggested tactics:** `possession` · `wide_wide` · `minimal_ruck` · `jackal` · `one_back` · `drift`
 - **Stat bias:** high `pace`, `agility`, `handling`.
 
 ### Star players
@@ -793,7 +793,7 @@ The 2023-24 champions under Phil Dowson, Saints are the league's electric attack
 - **Captain:** Fraser Dingwall.
 - **Honours:** 2 × Premiership title (2013-14, 2023-24); European Cup 1999-2000; European Challenge Cup 2008-09, 2014.
 - **Overall rating:** **76/100**
-- **Suggested tactics:** `possession` · `wide_wide` · `wide_play` · `jackal` · `one_back` · `hybrid`
+- **Suggested tactics:** `possession` · `wide_wide` · `minimal_ruck` · `jackal` · `one_back` · `hybrid`
 - **Stat bias:** high `pace`, `handling`, `agility`.
 
 ### Star players

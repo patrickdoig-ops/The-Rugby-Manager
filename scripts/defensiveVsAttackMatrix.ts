@@ -51,7 +51,7 @@ const DEF_TACTICS: DefensiveLine[] = ['blitz', 'hybrid', 'drift'];
 const ATT_VALUES_BY_DIM: Record<AttackingDimension, readonly AttackingValue[]> = {
   attackingStyle:     ['keep_it_tight', 'balanced', 'wide_wide'],
   attackingGamePlan:  ['possession', 'balanced', 'kicking'],
-  attackingBreakdown: ['pick_and_drive', 'balanced', 'wide_play'],
+  attackingBreakdown: ['commit_numbers', 'balanced', 'minimal_ruck'],
 };
 const ATT_VALUES = ATT_VALUES_BY_DIM[ATT_DIMENSION];
 

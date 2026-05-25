@@ -9,26 +9,24 @@
 
 export const TACTIC_MODIFIERS = {
   backfieldLineBreakPenalty:  { three_back: -7,  two_back: -5,  one_back: 0 },
-  // breakdown attack-score mod. pick_and_drive sends more bodies but the
-  // forward-heavy mix is slower (negative score offset, compensated by the
-  // higher breakdownSupporterCount); wide_play commits fewer bodies and
-  // relies on this mod to compensate for the lower stacked attack score.
-  // Tuned in v2.103a from wide_play +8 to +16: with 2 supporters vs
-  // balanced's 3, the stacked-score deficit was ~-15.6 and +8 left
-  // wide_play teams (NOR / BRI / HAR) at margin ~-7.6 vs a jackal
-  // defender, putting them in penalty-defending territory ~23% of
-  // breakdowns. +16 restores parity with balanced so wide_play's
-  // tactical identity (fewer bodies, faster recycle) stops being a
-  // self-inflicted penalty trap. The supporter-count difference still
-  // produces a real downstream effect — fewer cleaners → faster
-  // breakdown → marginally more chance of attacker-side offences elsewhere.
-  breakdownAttack:            { pick_and_drive: -8, wide_play: 16, balanced: 0 },
+  // Line break gain bonus based on backfield cover. one_back has no cover and
+  // concedes massive metres; three_back has a deep safety net and stops breaks early.
+  backfieldLineBreakGainBonus: { three_back: -8, two_back: 0, one_back: 12 },
+  // Breakdown attack evasion mod. This represents the presence (or absence)
+  // of supporting runners in the backline, and therefore ONLY applies
+  // during OpenPlayEvent when the team attempts to go wide (goWide = true).
+  // - commit_numbers (-20): few players left on their feet, easily covered out wide.
+  // - minimal_ruck (+35): massive numbers out wide to exploit space.
+  // If the team keeps it tight (!goWide), this modifier is ignored entirely,
+  // making minimal_ruck a flawed strategy for tight play (all the risk of losing
+  // the ruck with none of the evasion reward).
+  breakdownAttack:            { commit_numbers: -20, minimal_ruck: 35, balanced: 0 },
   breakdownDefend:            { shadow: 10, counter_ruck: -8, jackal: 0 },
-  breakdownSupporterCount:    { pick_and_drive: 4,  wide_play: 2,  balanced: 3 },
+  breakdownSupporterCount:    { commit_numbers: 4,  minimal_ruck: 2,  balanced: 3 },
   boxKickFullbackBonus:       { three_back: 15, two_back: 8,  one_back: 0 },
   tacticalKickTouchReduction: { three_back: 25, two_back: 15, one_back: 0 },
   tacticalKickReturnBonus:    { three_back: 10, two_back: 5,  one_back: 0 },
-  forwardFatigueMultiplier:   { pick_and_drive: 1.1, counter_ruck: 1.1 },
+  forwardFatigueMultiplier:   { commit_numbers: 1.1, counter_ruck: 1.1 },
   // Penalty-rate shifts (in pct points) added to the matching base rate
   // in BREAKDOWN_PENALTIES / OBSTRUCTION_BASE_PCT. Modest values — these
   // dials nudge the trigger rate, they don't dominate it.
@@ -38,9 +36,9 @@ export const TACTIC_MODIFIERS = {
   // tanking top jackalers' post-match ratings hard enough to make them
   // invisible in the leaderboards despite high turnover counts.
   notRollingAwayDefendMod:    { jackal: 1,           counter_ruck: 0,  shadow: -2 },
-  // pick_and_drive puts more bodies into the ruck → more chance one of them
-  // hits illegally; wide_play commits fewer cleaners → less risk.
-  dangerousCleanoutAttackMod: { pick_and_drive: 2,   balanced: 0,      wide_play: -1 },
+  // commit_numbers puts more bodies into the ruck → more chance one of them
+  // hits illegally; minimal_ruck commits fewer cleaners → less risk.
+  dangerousCleanoutAttackMod: { commit_numbers: 2,   balanced: 0,      minimal_ruck: -1 },
   // wide moves rely on screening forwards in front of the receiver — more
   // chances of an obstruction call.
   obstructionStyleMod:        { keep_it_tight: -2,   balanced: 0,      wide_wide: 3 },

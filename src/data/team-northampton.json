@@ -14,7 +14,7 @@
   "suggestedTactics": {
     "attackingGamePlan": "possession",
     "attackingStyle": "wide_wide",
-    "attackingBreakdown": "wide_play",
+    "attackingBreakdown": "minimal_ruck",
     "defendingBreakdown": "jackal",
     "backfieldDefence": "one_back",
     "defensiveLine": "hybrid"

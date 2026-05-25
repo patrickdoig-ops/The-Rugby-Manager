@@ -119,8 +119,8 @@ function baseTactics(style: AttackingStyle): TeamTactics {
     // signal isn't drowned out by territorial kicking exchanges.
     attackingGamePlan:  'possession',
     attackingStyle:     style,
-    attackingBreakdown: style === 'keep_it_tight' ? 'pick_and_drive'
-                      : style === 'wide_wide'     ? 'wide_play'
+    attackingBreakdown: style === 'keep_it_tight' ? 'commit_numbers'
+                      : style === 'wide_wide'     ? 'minimal_ruck'
                       : 'balanced',
     defendingBreakdown: 'jackal',
     backfieldDefence:   'two_back',

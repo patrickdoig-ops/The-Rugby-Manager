@@ -194,11 +194,16 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   const isHardCarry = !goWide;
   const pathCollisionMod = isHardCarry ? TACTIC_MODIFIERS.hardCarryCollisionMod[defensiveLine] : 0;
   const pathEvasionMod   = isHardCarry ? TACTIC_MODIFIERS.hardCarryEvasionMod[defensiveLine]   : 0;
+  
+  // Attacking breakdown evasion synergy: the bonus/penalty for having extra
+  // men out wide ONLY applies if the play actually goes wide.
+  const breakdownWideEvasion = goWide ? TACTIC_MODIFIERS.breakdownAttack[attackTeam.tactics.attackingBreakdown] : 0;
+  
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine] + pathEvasionMod;
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine] + pathCollisionMod;
   const res = resolveOpenPlay(
     ballCarrier, defender,
-    attackMod + ha.attack,
+    attackMod + breakdownWideEvasion + ha.attack,
     defendMod + backfieldPenalty + shortHandedMod + dlEvasion + ha.defend,
     dlCollision,
   );
@@ -209,6 +214,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   // shorter. Applied post-resolve so the resolver stays tactic-pure.
   if (res.outcome === 'line_break') {
     res.gainMetres += TACTIC_MODIFIERS.defensiveLineBreakBonus[defensiveLine];
+    res.gainMetres += TACTIC_MODIFIERS.backfieldLineBreakGainBonus[defendTeam.tactics.backfieldDefence];
   }
 
   events.push({

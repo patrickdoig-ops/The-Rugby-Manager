@@ -23,7 +23,7 @@ export const AI_DIRECTOR_VALUES = {
 export const AI_INTENT_CHASING: TeamTactics = {
   attackingGamePlan:  'possession',
   attackingStyle:     'wide_wide',
-  attackingBreakdown: 'wide_play',
+  attackingBreakdown: 'minimal_ruck',
   defendingBreakdown: 'jackal',
   backfieldDefence:   'one_back',
   defensiveLine:      'blitz',
@@ -37,7 +37,7 @@ export const AI_INTENT_CHASING: TeamTactics = {
 export const AI_INTENT_PROTECTING: TeamTactics = {
   attackingGamePlan:  'kicking',
   attackingStyle:     'keep_it_tight',
-  attackingBreakdown: 'pick_and_drive',
+  attackingBreakdown: 'commit_numbers',
   defendingBreakdown: 'shadow',
   backfieldDefence:   'two_back',
   defensiveLine:      'drift',

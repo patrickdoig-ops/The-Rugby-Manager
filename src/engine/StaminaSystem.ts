@@ -39,7 +39,7 @@ export function computeFatigue(team: Team, elapsedMinutes: number, offFieldIds?:
     const staminaBase = player.baseStats.stamina;
     let actualDecay = decayRate * (1 - staminaBase / staminaDivisor);
     if (isForwardSlot(player.id)) {
-      if (team.tactics.attackingBreakdown === 'pick_and_drive') actualDecay *= forwardMult.pick_and_drive;
+      if (team.tactics.attackingBreakdown === 'commit_numbers') actualDecay *= forwardMult.commit_numbers;
       if (team.tactics.defendingBreakdown === 'counter_ruck')   actualDecay *= forwardMult.counter_ruck;
     } else {
       // Backs (#9–#15) drain by team.tactics.defensiveLine: blitz adds 10 %

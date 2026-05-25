@@ -21,7 +21,7 @@ export function getTacticNoteLines(
         `Three in the backfield means only twelve in the line for ${def} — and there's the gap.`,
       ];
 
-    case 'breakdown_pick_and_drive_clean':
+    case 'breakdown_commit_numbers_clean':
       return [
         'Committing numbers to the ruck is working — the forwards dominate the clearout and win clean ball.',
         "That's the reward for flooding the ruck — quick, clean ball.",
@@ -38,7 +38,7 @@ export function getTacticNoteLines(
         `The jackal threat is still there even when ${def} can't get the turnover — slowing things down.`,
       ];
 
-    case 'breakdown_wide_play_slow':
+    case 'breakdown_minimal_ruck_slow':
       return [
         `The wide game plan is leaving ${att} thin at the ruck — they're having to work hard for this ball.`,
         'A price to pay for the wide-play approach: not enough bodies to secure quick ball there.',
@@ -61,19 +61,19 @@ export function getTacticNoteLines(
         `The counter-ruck overwhelms the opposition and ${def} have turned it over — sheer forward power.`,
       ];
 
-    case 'breakdown_wide_play_turnover':
+    case 'breakdown_minimal_ruck_turnover':
       return [
         `The wide game plan leaves too few at the ruck and ${att} have paid the price — possession gone.`,
         "That's the danger with going wide — not enough bodies to secure that ball.",
       ];
 
-    case 'breakdown_pick_and_drive_penalty':
+    case 'breakdown_commit_numbers_penalty':
       return [
         "Flooding the ruck with forwards is aggressive but they've gone too far — penalty given away.",
         'Too many bodies piling in and the referee has had enough — a penalty against them at the breakdown.',
       ];
 
-    case 'breakdown_wide_play_penalty':
+    case 'breakdown_minimal_ruck_penalty':
       return [
         `With so few at the ruck ${att} struggled to stay legal — and the referee penalises them.`,
       ];

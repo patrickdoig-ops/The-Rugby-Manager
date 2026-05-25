@@ -41,8 +41,9 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
     : 0;
   const attackBonus = lastEvent?.outcome === 'dominant_carry' ? CARRY_HANDOFF_BONUSES.dominantCarry : 0;
 
-  // Next-phase modifier: more players committed to ruck = fewer on feet for the next phase
-  const nextAttackMod = TACTIC_MODIFIERS.breakdownAttack[attPlan] + lineBreakHandoff;
+  // Next-phase modifier: lineBreakHandoff only. The tactic-based evasion
+  // modifiers (breakdownAttack) are now applied conditionally in OpenPlayEvent.
+  const nextAttackMod = lineBreakHandoff;
   const nextDefendMod = TACTIC_MODIFIERS.breakdownDefend[defPlan];
 
   const attackSide = state.possession;
@@ -142,8 +143,8 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
     const steps: NarrationStep[] = [
       { kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'clean_ball', primary, secondary: jackal },
     ];
-    if (attPlan === 'pick_and_drive') {
-      steps.push({ kind: 'tactic_note', cause: 'breakdown_pick_and_drive_clean', chancePct: COMMENTARY_CHANCES.breakdownPickAndDriveClean });
+    if (attPlan === 'commit_numbers') {
+      steps.push({ kind: 'tactic_note', cause: 'breakdown_commit_numbers_clean', chancePct: COMMENTARY_CHANCES.breakdownPickAndDriveClean });
     } else if (defPlan === 'shadow') {
       steps.push({ kind: 'tactic_note', cause: 'breakdown_shadow_clean', chancePct: COMMENTARY_CHANCES.breakdownShadowClean, params: { defendTeamName: defendTeam.name } });
     } else if (defPlan === 'jackal') {
@@ -168,8 +169,8 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
     const steps: NarrationStep[] = [
       { kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'slow_ball', primary, secondary: jackal },
     ];
-    if (attPlan === 'wide_play') {
-      steps.push({ kind: 'tactic_note', cause: 'breakdown_wide_play_slow', chancePct: COMMENTARY_CHANCES.breakdownWidePlaySlow, params: { attackTeamName: attackTeam.name } });
+    if (attPlan === 'minimal_ruck') {
+      steps.push({ kind: 'tactic_note', cause: 'breakdown_minimal_ruck_slow', chancePct: COMMENTARY_CHANCES.breakdownWidePlaySlow, params: { attackTeamName: attackTeam.name } });
     } else if (defPlan === 'counter_ruck') {
       steps.push({ kind: 'tactic_note', cause: 'breakdown_counter_ruck_slow', chancePct: COMMENTARY_CHANCES.breakdownCounterRuckSlow });
     }
@@ -191,8 +192,8 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
       steps.push({ kind: 'tactic_note', cause: 'breakdown_jackal_turnover', chancePct: COMMENTARY_CHANCES.breakdownJackalTurnover, params: { defendTeamName: defendTeam.name } });
     } else if (defPlan === 'counter_ruck') {
       steps.push({ kind: 'tactic_note', cause: 'breakdown_counter_ruck_turnover', chancePct: COMMENTARY_CHANCES.breakdownCounterRuckTurnover, params: { defendTeamName: defendTeam.name } });
-    } else if (attPlan === 'wide_play') {
-      steps.push({ kind: 'tactic_note', cause: 'breakdown_wide_play_turnover', chancePct: COMMENTARY_CHANCES.breakdownWidePlayTurnover, params: { attackTeamName: attackTeam.name } });
+    } else if (attPlan === 'minimal_ruck') {
+      steps.push({ kind: 'tactic_note', cause: 'breakdown_minimal_ruck_turnover', chancePct: COMMENTARY_CHANCES.breakdownWidePlayTurnover, params: { attackTeamName: attackTeam.name } });
     }
     return {
       nextPhase: MatchPhase.PhasePlay,
@@ -213,10 +214,10 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   const penaltySteps: NarrationStep[] = [
     { kind: 'phase_outcome', phase: MatchPhase.Breakdown, key: 'penalty_defending', primary, secondary: jackal },
   ];
-  if (attPlan === 'pick_and_drive') {
-    penaltySteps.push({ kind: 'tactic_note', cause: 'breakdown_pick_and_drive_penalty', chancePct: COMMENTARY_CHANCES.breakdownPickAndDrivePenalty });
-  } else if (attPlan === 'wide_play') {
-    penaltySteps.push({ kind: 'tactic_note', cause: 'breakdown_wide_play_penalty', chancePct: COMMENTARY_CHANCES.breakdownWidePlayPenalty, params: { attackTeamName: attackTeam.name } });
+  if (attPlan === 'commit_numbers') {
+    penaltySteps.push({ kind: 'tactic_note', cause: 'breakdown_commit_numbers_penalty', chancePct: COMMENTARY_CHANCES.breakdownPickAndDrivePenalty });
+  } else if (attPlan === 'minimal_ruck') {
+    penaltySteps.push({ kind: 'tactic_note', cause: 'breakdown_minimal_ruck_penalty', chancePct: COMMENTARY_CHANCES.breakdownWidePlayPenalty, params: { attackTeamName: attackTeam.name } });
   } else if (defPlan === 'jackal') {
     penaltySteps.push({ kind: 'tactic_note', cause: 'breakdown_jackal_penalty', chancePct: COMMENTARY_CHANCES.breakdownJackalPenalty });
   }

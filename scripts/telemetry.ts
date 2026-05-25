@@ -201,7 +201,7 @@ function emptySeasonAgg(): SeasonAgg {
     planAgg.set(plan, { games: 0, tries: 0, kickMetres: 0, possessionPct: 0, pointsFor: 0, pointsAgainst: 0 });
   }
   const bdAgg = new Map<AttackingBreakdown, BdAgg>();
-  for (const bd of ['pick_and_drive', 'balanced', 'wide_play'] as AttackingBreakdown[]) {
+  for (const bd of ['commit_numbers', 'balanced', 'minimal_ruck'] as AttackingBreakdown[]) {
     bdAgg.set(bd, { games: 0, metresCarried: 0, carries: 0, turnoversWon: 0, pointsFor: 0 });
   }
   const bfAgg = new Map<BackfieldDefence, BfAgg>();
@@ -912,7 +912,7 @@ function buildReport(aggs: SeasonAgg[], elapsedMs: number): string {
   lines.push('');
   lines.push('| breakdown | games | carries/g | metres/carry | turnovers won/g | PF/g |');
   lines.push('|---|---:|---:|---:|---:|---:|');
-  for (const bd of ['pick_and_drive', 'balanced', 'wide_play'] as AttackingBreakdown[]) {
+  for (const bd of ['commit_numbers', 'balanced', 'minimal_ruck'] as AttackingBreakdown[]) {
     const games = aggs.reduce((s, a) => s + a.bdAgg.get(bd)!.games, 0);
     if (games === 0) continue;
     const c = aggs.reduce((s, a) => s + a.bdAgg.get(bd)!.carries, 0);

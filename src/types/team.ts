@@ -4,7 +4,7 @@ export type TeamSide = 'home' | 'away';
 
 export type AttackingGamePlan = 'possession' | 'balanced' | 'kicking';
 export type AttackingStyle = 'keep_it_tight' | 'balanced' | 'wide_wide';
-export type AttackingBreakdown = 'pick_and_drive' | 'balanced' | 'wide_play';
+export type AttackingBreakdown = 'commit_numbers' | 'balanced' | 'minimal_ruck';
 export type DefendingBreakdown = 'jackal' | 'counter_ruck' | 'shadow';
 export type BackfieldDefence = 'one_back' | 'two_back' | 'three_back';
 // Defensive line shape — the up-and-back press vs the lateral slide.

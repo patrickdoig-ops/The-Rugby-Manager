@@ -175,16 +175,18 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
       </div>
 
       ${injuredCount > 0 ? `
-        <div id="hub-treatment-room">
+        <button id="hub-treatment-room" type="button" aria-label="View injured players">
           <span class="injury-badge">${injuredCount}</span>
           <span class="hub-treatment-label">${injuredCount === 1 ? 'player' : 'players'} in the treatment room</span>
-        </div>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
       ` : ''}
 
       <div id="hub-footer">${playoffsActive ? playoffFooterHtml() : footerHtml(nextFixture)}</div>
     `;
 
     el!.querySelector<HTMLButtonElement>('#hub-settings')!.addEventListener('click', () => opts.onSettings());
+    el!.querySelector<HTMLButtonElement>('#hub-treatment-room')?.addEventListener('click', () => opts.onSquad());
     for (const t of TILES) {
       if (t.stub) continue;
       el!.querySelector<HTMLButtonElement>(`#${t.id}`)!.addEventListener('click', () => opts[t.handlerKey]());

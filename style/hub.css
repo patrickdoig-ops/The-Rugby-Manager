@@ -80,6 +80,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   line-height: 1;
+  text-shadow: 0 0 24px color-mix(in oklch, var(--team-color, var(--rm-pitch)) 35%, transparent);
 }
 
 #hub-standing {
@@ -416,6 +417,17 @@
   padding: 8px 16px 0;
   font-size: 12px;
   color: var(--rm-text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s;
+}
+
+@media (hover: hover) {
+  #hub-treatment-room:hover {
+    color: var(--rm-text);
+  }
 }
 
 .hub-treatment-label {

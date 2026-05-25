@@ -1114,6 +1114,39 @@ html, body {
   opacity: 0.62;
 }
 
+/* ─── Toast pill ─── */
+/* Shared bottom-centre confirmation pill. One element reused across screens
+   (squad save, FA signing, contract renewal). Variants swap the border colour
+   only — surface + text stay constant so the toast reads identically. */
+.rm-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--safe-bottom) + 16px);
+  transform: translateX(-50%) translateY(20px);
+  z-index: 1000;
+  padding: 11px 22px;
+  border-radius: 999px;
+  background: var(--rm-surface-3);
+  color: var(--rm-chalk);
+  font-family: var(--rm-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid var(--rm-pitch);
+  box-shadow: var(--rm-card-shadow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+.rm-toast--visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+.rm-toast--danger { border-color: var(--rm-danger); }
+.rm-toast--info   { border-color: var(--rm-stat-5); }
+
 /* ─── PreMatch injury banner ─── */
 #pm-injury-banner {
   margin: 0 12px 8px;

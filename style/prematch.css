@@ -267,9 +267,9 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--tc, var(--rm-pitch));
+  background: var(--team-color, var(--rm-pitch));
   border-radius: 1px;
-  box-shadow: 0 0 8px var(--tc, var(--rm-pitch));
+  box-shadow: 0 0 8px var(--team-color, var(--rm-pitch));
 }
 
 /* ─── List / Pitch toggle ─── */

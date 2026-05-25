@@ -145,15 +145,29 @@
   flex: 1 1 auto;
   overflow-y: auto;
   padding: 0 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .rd-row {
   display: grid;
   grid-template-columns: 1.4fr 1.2fr 0.9fr 0.9fr auto;
   align-items: center;
-  gap: 8px;
-  padding: 10px 8px;
-  border-bottom: 1px solid var(--rm-border-soft);
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 12px;
+  transition: border-color 0.15s, background 0.15s, opacity 0.15s;
+}
+
+/* Pitch-tinted variant when the user has lodged a retention bid —
+   mirrors the .rn-row--release / .tm-row--committed treatment for
+   visual continuity across the off-season chain. */
+.rd-row.tm-row--committed {
+  background: color-mix(in oklch, var(--rm-pitch) 8%, var(--rm-surface));
+  border-color: color-mix(in oklch, var(--rm-pitch) 35%, var(--rm-border-soft));
 }
 
 /* Narrow viewports (≤380px / iPhone SE-class): collapse the 5-column row

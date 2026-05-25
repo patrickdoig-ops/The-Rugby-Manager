@@ -25,6 +25,17 @@ function applyCrests(
   awayCode.style.color = teamTextColor(awayColor);
 }
 
+function popScore(el: HTMLElement, newValue: number, teamColor: string): void {
+  const current = Number(el.textContent?.replace(/^0/, '') || 0);
+  el.textContent = String(newValue).padStart(2, '0');
+  if (newValue <= current) return;
+  el.style.setProperty('--score-kick-color', teamColor);
+  el.classList.remove('score--just-scored', 'score--just-scored-fade');
+  void el.offsetWidth;
+  el.classList.add('score--just-scored');
+  setTimeout(() => el.classList.add('score--just-scored-fade'), 480);
+}
+
 export function initScoreboard(): void {
   const homeCrest    = document.getElementById('home-crest')!;
   const awayCrest    = document.getElementById('away-crest')!;
@@ -36,23 +47,29 @@ export function initScoreboard(): void {
   const phaseDisplay = document.getElementById('phase-display')!;
 
   let crestsSet = false;
+  let homeColor = '';
+  let awayColor = '';
 
   eventBus.on('engine:initialized', () => {
     crestsSet = false;
+    homeColor = '';
+    awayColor = '';
   });
 
   eventBus.on('engine:stateChange', ({ state }) => {
     if (!crestsSet) {
       crestsSet = true;
+      homeColor = state.homeTeam.color;
+      awayColor = state.awayTeam.color;
       applyCrests(
         homeCrest, awayCrest, homeCode, awayCode,
-        state.homeTeam.color, state.awayTeam.color,
+        homeColor, awayColor,
         state.homeTeam.shortName, state.awayTeam.shortName,
       );
     }
 
-    homeScore.textContent    = String(state.score.home).padStart(2, '0');
-    awayScore.textContent    = String(state.score.away).padStart(2, '0');
+    popScore(homeScore, state.score.home, homeColor);
+    popScore(awayScore, state.score.away, awayColor);
     if (state.clock.clockInTheRed) {
       const halfTarget = state.clock.halfTimeDone ? CLOCK_VALUES.fullTimeMinute : CLOCK_VALUES.halfTimeMinute;
       clockDisplay.textContent = `${halfTarget}+${Math.floor(state.clock.gameMinute - halfTarget)}′`;

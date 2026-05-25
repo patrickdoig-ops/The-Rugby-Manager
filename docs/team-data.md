@@ -911,8 +911,8 @@ The Manchester defence-first side: line-speed, collision-dominant loose forwards
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| James Harper | Prop | 2000-10-16 | 25 | England |
-| Ethan Caine | Hooker | 2001-09-20 | 24 | England |
+| Bevan Rodd | Prop | 2000-08-26 | 25 | England |
+| Luke Cowan-Dickie | Hooker | 1993-06-20 | 32 | England |
 | Asher Opoku-Fordjour | Prop | 2004-07-16 | 21 | England |
 | Ernst van Rhyn | Lock | 1997-09-19 | 28 | South Africa |
 | Ben Bamber | Lock | 2001-01-24 | 25 | England |
@@ -923,22 +923,22 @@ The Manchester defence-first side: line-speed, collision-dominant loose forwards
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Dom Hanson | Scrum-half |  |  | England |
+| Gus Warr | Scrum-half | 1999-09-24 | 26 | England |
 | George Ford | Fly-half | 1993-03-16 | 33 | England |
 | Tom Roebuck | Wing | 2001-01-07 | 25 | England |
-| Joe Bedlow | Centre | 2002-03-29 | 24 | England |
-| Marius Louw | Centre | 1995-10-24 | 30 | South Africa |
-| Obi Ene | Wing | 2003-06-25 | 22 | England |
+| Rob du Preez | Centre | 1993-07-30 | 32 | South Africa |
+| Rekeiti Ma'asi-White | Centre | 2003-02-03 | 23 | England |
+| Arron Reed | Wing | 1999-07-10 | 26 | Scotland |
 | Joe Carpenter | Full-back | 2001-08-19 | 24 | England |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Luke Cowan-Dickie | Hooker | 1993-06-20 | 32 | England |
+| Nathan Jibulu | Hooker | 2003-01-26 | 23 | England |
 | Si McIntyre | Prop | 1991-03-19 | 35 | England |
 | WillGriff John | Prop | 1992-12-04 | 33 | Wales |
 | Tom Burrow | Lock | 2005-07-27 | 20 | England |
-| Rouban Birch | Flanker |  |  | England |
+| Rouban Birch | Flanker | 1999-09-20 | 26 | England |
 | Raffi Quirke | Scrum-half | 2001-08-18 | 24 | England |
 | Tom Curtis | Fly-half | 2001-07-01 | 24 | England |
 | Tom O'Flaherty | Wing | 1994-07-21 | 31 | England |
@@ -946,15 +946,15 @@ The Manchester defence-first side: line-speed, collision-dominant loose forwards
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Bevan Rodd | Prop | 2000-08-26 | 25 | England |
+| James Harper | Prop | 2000-10-16 | 25 | England |
 | Hyron Andrews | Lock | 1995-07-06 | 30 | South Africa |
 | Huw Davies | Back Row | 2003-11-12 | 22 | Wales |
 | Jacques Vermeulen | Flanker | 1995-02-08 | 31 | South Africa |
-| Jos Gilmore | Back Row |  |  | England |
-| Nathan Jibulu | Hooker | 2003-01-26 | 23 | England |
+| Jos Gilmore | Back Row | 2005-11-25 | 20 | England |
+| Ethan Caine | Hooker | 2001-09-20 | 24 | England |
 | Reuben Logan | Back Row | 2005-07-28 | 20 | Scotland |
 | Sam Dugdale | Back Row | 1999-09-30 | 26 | England |
-| Tadgh McElroy | Hooker |  | 28 | Ireland |
+| Tadgh McElroy | Hooker | 1997-06-16  | 28 | Ireland |
 | Tristan Woodman | Back Row | 2004-02-12 | 22 | England |
 | Tye Raymont | Prop | 2005-07-19 | 20 | England |
 
@@ -962,13 +962,13 @@ The Manchester defence-first side: line-speed, collision-dominant loose forwards
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
 | Alex Wills | Wing | 2004-02-11 | 22 | England |
-| Arron Reed | Wing | 1999-07-10 | 26 | Scotland |
-| Gus Warr | Scrum-half | 1999-09-24 | 26 | England |
+| Dom Hanson | Scrum-half | 2005-12-17 | 20 | England |
 | Luke James | Full-back | 1999-03-18 | 27 | England |
 | Nye Thomas | Scrum-half | 2003-03-24 | 23 | Wales |
 | Ollie Davies | Fly-half | 2006-12-01 | 19 | England |
-| Rekeiti Ma'asi-White | Centre | 2003-02-03 | 23 | England |
-| Rob du Preez | Centre | 1993-07-30 | 32 | South Africa |
+| Joe Bedlow | Centre | 2002-03-29 | 24 | England |
+| Marius Louw | Centre | 1995-10-24 | 30 | South Africa |
+| Obi Ene | Wing | 2003-06-25 | 22 | England |
 
 ---
 
@@ -1038,14 +1038,6 @@ The simulator is calibrated against the real-world standings above — telemetry
 Squad data was compiled in parallel from multiple public sources and has been spot-validated in May 2026. Known caveats for a future cleanup pass:
 
 - **Position normalisation:** Some entries use `Back Row` / `Back row` / specific (`Flanker`, `Number 8`) interchangeably; Newcastle's Freddie Clarke (`Lock/Back row`) and Elliott Obatoyinbo (`Wing/Full-back`) carry a slash for versatility. When this file is wired into the engine, normalise to the position literals used in `src/data/team-*.json`.
-- **Remaining missing DOBs:** Filled where a public source exposed an ISO date; the following entries remain `UNKNOWN` (mostly recent academy intake or players with minimal online footprint):
-  - Newcastle: Rob Palframan, Micky Rewcastle, Charlie Turnbull, Oscar Usher, Nick Greenwood
-  - Sale: Rouban Birch, Jos Gilmore, Dom Hanson
-  - Northampton: Archie Appleby, Jack Lawrence, Charlie Ulcoq, Siep Walta, Aiden Pugh, Freddie St John
-  - Leicester: Diamond Ayiehfor, Tonga Kofe, George Marsh
-  - Saracens: Mak Eke, Vilikesa Nairau
-  - Exeter: Louie Gulley
-  - Bristol: Jimmy Halliwell, Will Ramply
 - **Nationality / position discrepancies to verify** (May 2026 audit pass surfaced these — public sources disagreed with the current doc; not auto-changed, worth a manual call):
   - Archie McArthur (Gloucester) — Wikipedia lists English; doc has Scotland.
   - Tomas Gwilliam (Bristol) — All.Rugby lists English; doc has Wales.

@@ -1,15 +1,22 @@
-// Squad Overview — one-shot screen in the Squad Builder pre-season
-// chain. Sits between the 2025-26 transfer unwind and the pre-season
-// signing window so the user can see which positions are now thin
-// before they start spending cap. Read-only depth chart: for each of
-// the 9 user-facing position groups, shows the count and the two
-// highest-OVR players (name + age + colour-banded OVR badge). Sections
-// with fewer than 2 players are flagged "thin" with an amber accent
-// and a "No depth — sign a player" placeholder slot.
+// Squad Overview — read-only depth chart used in two places: the
+// Squad Builder pre-season chain (between the 2025-26 transfer unwind
+// and the signing window) and the end-of-season chain (between
+// Renewals closing and the signings window opening). Either way, the
+// goal is for the user to see which positions are thin before they
+// start spending cap.
+//
+// For each of the 9 user-facing position groups the section renders
+// every player in that group, top-OVR first (name + age + colour-banded
+// OVR badge). Sections with fewer players than the depth target
+// (POSITION_GROUP_DEPTH_TARGET) are padded with "No depth" placeholder
+// rows up to the target and flagged "thin" with an amber accent.
+// Sections at or above the depth target render all their players with
+// no placeholders — every row you see corresponds to a real player
+// counted in the section header.
 //
 // Module-level setter pattern (matches RolloverScreen / RenewalsScreen).
-// Reads state on every render so resumption (Squad Builder → close tab
-// → Continue) lands on the live post-unwind snapshot.
+// Reads state on every render so resumption (close tab → Continue)
+// lands on the live snapshot.
 
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
@@ -86,11 +93,13 @@ export function initSquadOverviewScreen(
         const thin = count < depthTarget;
         if (thin) thinCount++;
 
-        // Fill exactly `depthTarget` slots: actual players (top-OVR)
-        // first, padded with empty placeholders. Players beyond the
-        // depth target still count toward `count` but aren't shown.
+        // Render every player in the bucket (top-OVR first), then pad
+        // with empty placeholders up to the depth target. When the
+        // bucket exceeds the depth target the section grows; when it
+        // falls short the trailing placeholder rows surface the gap.
+        const slotCount = Math.max(count, depthTarget);
         const slots: (Player | null)[] = [];
-        for (let i = 0; i < depthTarget; i++) slots.push(bucket[i] ?? null);
+        for (let i = 0; i < slotCount; i++) slots.push(bucket[i] ?? null);
 
         const rows = slots.map(p => {
           if (!p) {

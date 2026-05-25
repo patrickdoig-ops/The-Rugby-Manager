@@ -250,7 +250,7 @@
   padding: 10px 12px;
   border: 1px solid var(--rm-hairline);
   border-radius: 6px;
-  background: color-mix(in oklch, var(--rm-surface, #1a1d22) 92%, white);
+  background: var(--rm-surface-2);
   color: var(--rm-text-dim);
   font-size: 11px;
   line-height: 1.4;

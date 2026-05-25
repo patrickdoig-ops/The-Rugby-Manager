@@ -188,7 +188,6 @@
   margin: 0;
   background: var(--rm-surface);
   border: 1px solid var(--rm-border-soft);
-  border-left: 3px solid var(--rm-pitch);
   border-radius: 8px;
   padding: 12px 14px;
 }

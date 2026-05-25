@@ -37,7 +37,7 @@
         "positioning",
         "discipline"
       ],
-      "suggestedRating": 89
+      "suggestedRating": 92
     },
     {
       "name": "Tommy Freeman",
@@ -51,7 +51,7 @@
         "agility",
         "composure"
       ],
-      "suggestedRating": 90
+      "suggestedRating": 91
     },
     {
       "name": "Alex Mitchell",
@@ -303,14 +303,14 @@
         "strength": 67,
         "pace": 72,
         "agility": 72,
-        "handling": 87,
+        "handling": 90,
         "tackling": 69,
         "breakdown": 65,
-        "kicking": 90,
+        "kicking": 93,
         "setPiece": 59,
-        "discipline": 89,
-        "positioning": 89,
-        "composure": 91
+        "discipline": 92,
+        "positioning": 92,
+        "composure": 94
       },
       "contract": {
         "isMarquee": true,
@@ -328,16 +328,16 @@
       "baseStats": {
         "stamina": 73,
         "strength": 67,
-        "pace": 92,
-        "agility": 92,
-        "handling": 88,
+        "pace": 93,
+        "agility": 93,
+        "handling": 89,
         "tackling": 68,
         "breakdown": 63,
         "kicking": 67,
         "setPiece": 58,
         "discipline": 71,
-        "positioning": 90,
-        "composure": 91
+        "positioning": 91,
+        "composure": 92
       }
     },
     {
@@ -389,24 +389,24 @@
     {
       "id": 14,
       "squadNumber": 14,
-      "firstName": "Amena",
-      "lastName": "Caqusau",
-      "dob": "2004-07-17",
-      "nationality": "Scotland",
+      "firstName": "George",
+      "lastName": "Hendy",
+      "dob": "2002-10-15",
+      "nationality": "England",
       "position": "Wing",
       "baseStats": {
-        "stamina": 67,
-        "strength": 67,
-        "pace": 87,
-        "agility": 87,
-        "handling": 81,
-        "tackling": 69,
-        "breakdown": 61,
-        "kicking": 72,
-        "setPiece": 56,
-        "discipline": 73,
-        "positioning": 71,
-        "composure": 72
+        "stamina": 70,
+        "strength": 68,
+        "pace": 91,
+        "agility": 88,
+        "handling": 76,
+        "tackling": 70,
+        "breakdown": 68,
+        "kicking": 71,
+        "setPiece": 59,
+        "discipline": 68,
+        "positioning": 73,
+        "composure": 68
       }
     },
     {
@@ -460,23 +460,23 @@
     {
       "id": 17,
       "squadNumber": 17,
-      "firstName": "Luke",
-      "lastName": "Green",
-      "dob": "2001-05-06",
-      "nationality": "England",
+      "firstName": "Elliot",
+      "lastName": "Millar-Mills",
+      "dob": "1992-07-08",
+      "nationality": "Scotland",
       "position": "Prop",
       "baseStats": {
         "stamina": 70,
         "strength": 79,
-        "pace": 55,
+        "pace": 59,
         "agility": 65,
-        "handling": 65,
-        "tackling": 77,
-        "breakdown": 76,
-        "kicking": 51,
-        "setPiece": 89,
-        "discipline": 70,
-        "positioning": 67,
+        "handling": 68,
+        "tackling": 75,
+        "breakdown": 79,
+        "kicking": 52,
+        "setPiece": 91,
+        "discipline": 72,
+        "positioning": 74,
         "composure": 68
       }
     },
@@ -529,47 +529,47 @@
     {
       "id": 20,
       "squadNumber": 20,
-      "firstName": "Sam",
-      "lastName": "Graham",
-      "dob": "1997-07-06",
-      "nationality": "England",
+      "firstName": "Josh",
+      "lastName": "Kemeny",
+      "dob": "1998-11-29",
+      "nationality": "Australia",
       "position": "Flanker",
       "baseStats": {
-        "stamina": 71,
-        "strength": 81,
-        "pace": 74,
-        "agility": 75,
-        "handling": 71,
-        "tackling": 82,
-        "breakdown": 78,
-        "kicking": 58,
-        "setPiece": 73,
-        "discipline": 70,
-        "positioning": 75,
-        "composure": 68
+        "stamina": 77,
+        "strength": 73,
+        "pace": 72,
+        "agility": 73,
+        "handling": 70,
+        "tackling": 83,
+        "breakdown": 81,
+        "kicking": 62,
+        "setPiece": 72,
+        "discipline": 66,
+        "positioning": 72,
+        "composure": 73
       }
     },
     {
       "id": 21,
       "squadNumber": 21,
-      "firstName": "Tom",
-      "lastName": "James",
-      "dob": "1993-10-12",
+      "firstName": "Archie",
+      "lastName": "McParland",
+      "dob": "2005-02-17",
       "nationality": "England",
       "position": "Scrum-Half",
       "baseStats": {
-        "stamina": 66,
-        "strength": 63,
-        "pace": 80,
-        "agility": 82,
+        "stamina": 73,
+        "strength": 67,
+        "pace": 84,
+        "agility": 75,
         "handling": 79,
-        "tackling": 69,
-        "breakdown": 74,
-        "kicking": 78,
-        "setPiece": 62,
+        "tackling": 71,
+        "breakdown": 73,
+        "kicking": 72,
+        "setPiece": 58,
         "discipline": 72,
-        "positioning": 77,
-        "composure": 71
+        "positioning": 78,
+        "composure": 79
       }
     },
     {
@@ -598,24 +598,24 @@
     {
       "id": 23,
       "squadNumber": 23,
-      "firstName": "Will",
-      "lastName": "Glister",
-      "dob": "2005-05-05",
+      "firstName": "Ollie",
+      "lastName": "Sleightholme",
+      "dob": "2000-04-13",
       "nationality": "England",
       "position": "Wing",
       "baseStats": {
-        "stamina": 73,
-        "strength": 66,
-        "pace": 87,
-        "agility": 83,
-        "handling": 78,
+        "stamina": 71,
+        "strength": 67,
+        "pace": 86,
+        "agility": 85,
+        "handling": 75,
         "tackling": 68,
-        "breakdown": 62,
-        "kicking": 68,
-        "setPiece": 56,
-        "discipline": 68,
+        "breakdown": 66,
+        "kicking": 70,
+        "setPiece": 59,
+        "discipline": 74,
         "positioning": 76,
-        "composure": 69
+        "composure": 67
       }
     }
   ],
@@ -648,7 +648,7 @@
       "squadNumber": 25,
       "firstName": "Archie",
       "lastName": "Appleby",
-      "dob": null,
+      "dob": "2007-01-13",
       "nationality": "England",
       "position": "Back Row",
       "baseStats": {
@@ -694,7 +694,7 @@
       "squadNumber": 27,
       "firstName": "Charlie",
       "lastName": "Ulcoq",
-      "dob": null,
+      "dob": "2006-05-02",
       "nationality": "England",
       "position": "Back Row",
       "baseStats": {
@@ -807,23 +807,23 @@
     {
       "id": 32,
       "squadNumber": 32,
-      "firstName": "Elliot",
-      "lastName": "Millar-Mills",
-      "dob": "1992-07-08",
-      "nationality": "Scotland",
+      "firstName": "Luke",
+      "lastName": "Green",
+      "dob": "2001-05-06",
+      "nationality": "England",
       "position": "Prop",
       "baseStats": {
         "stamina": 70,
         "strength": 79,
-        "pace": 59,
+        "pace": 55,
         "agility": 65,
-        "handling": 68,
-        "tackling": 75,
-        "breakdown": 79,
-        "kicking": 52,
-        "setPiece": 91,
-        "discipline": 72,
-        "positioning": 74,
+        "handling": 65,
+        "tackling": 77,
+        "breakdown": 76,
+        "kicking": 51,
+        "setPiece": 89,
+        "discipline": 70,
+        "positioning": 67,
         "composure": 68
       }
     },
@@ -901,7 +901,7 @@
       "squadNumber": 36,
       "firstName": "Jack",
       "lastName": "Lawrence",
-      "dob": null,
+      "dob": "2007-02-02",
       "nationality": "England",
       "position": "Back Row",
       "baseStats": {
@@ -922,24 +922,24 @@
     {
       "id": 37,
       "squadNumber": 37,
-      "firstName": "Josh",
-      "lastName": "Kemeny",
-      "dob": "1998-11-29",
-      "nationality": "Australia",
+      "firstName": "Sam",
+      "lastName": "Graham",
+      "dob": "1997-07-06",
+      "nationality": "England",
       "position": "Flanker",
       "baseStats": {
-        "stamina": 77,
-        "strength": 73,
-        "pace": 72,
-        "agility": 73,
-        "handling": 70,
-        "tackling": 83,
-        "breakdown": 81,
-        "kicking": 62,
-        "setPiece": 72,
-        "discipline": 66,
-        "positioning": 72,
-        "composure": 73
+        "stamina": 71,
+        "strength": 81,
+        "pace": 74,
+        "agility": 75,
+        "handling": 71,
+        "tackling": 82,
+        "breakdown": 78,
+        "kicking": 58,
+        "setPiece": 73,
+        "discipline": 70,
+        "positioning": 75,
+        "composure": 68
       }
     },
     {
@@ -970,7 +970,7 @@
       "squadNumber": 39,
       "firstName": "Siep",
       "lastName": "Walta",
-      "dob": null,
+      "dob": "2006-09-21",
       "nationality": "Netherlands",
       "position": "Back Row",
       "baseStats": {
@@ -1062,7 +1062,7 @@
       "squadNumber": 43,
       "firstName": "Aiden",
       "lastName": "Pugh",
-      "dob": null,
+      "dob": "2006-09-18",
       "nationality": "England",
       "position": "Scrum-Half",
       "baseStats": {
@@ -1083,24 +1083,24 @@
     {
       "id": 44,
       "squadNumber": 44,
-      "firstName": "Archie",
-      "lastName": "McParland",
-      "dob": "2005-02-17",
+      "firstName": "Tom",
+      "lastName": "James",
+      "dob": "1993-10-12",
       "nationality": "England",
       "position": "Scrum-Half",
       "baseStats": {
-        "stamina": 73,
-        "strength": 67,
-        "pace": 84,
-        "agility": 75,
+        "stamina": 66,
+        "strength": 63,
+        "pace": 80,
+        "agility": 82,
         "handling": 79,
-        "tackling": 71,
-        "breakdown": 73,
-        "kicking": 72,
-        "setPiece": 58,
+        "tackling": 69,
+        "breakdown": 74,
+        "kicking": 78,
+        "setPiece": 62,
         "discipline": 72,
-        "positioning": 78,
-        "composure": 79
+        "positioning": 77,
+        "composure": 71
       }
     },
     {
@@ -1154,7 +1154,7 @@
       "squadNumber": 47,
       "firstName": "Freddie",
       "lastName": "St John",
-      "dob": null,
+      "dob": "2007-11-07",
       "nationality": "England",
       "position": "Centre",
       "baseStats": {
@@ -1175,29 +1175,6 @@
     {
       "id": 48,
       "squadNumber": 48,
-      "firstName": "George",
-      "lastName": "Hendy",
-      "dob": "2002-10-15",
-      "nationality": "England",
-      "position": "Wing",
-      "baseStats": {
-        "stamina": 70,
-        "strength": 68,
-        "pace": 91,
-        "agility": 88,
-        "handling": 76,
-        "tackling": 70,
-        "breakdown": 68,
-        "kicking": 71,
-        "setPiece": 59,
-        "discipline": 68,
-        "positioning": 73,
-        "composure": 68
-      }
-    },
-    {
-      "id": 49,
-      "squadNumber": 49,
       "firstName": "Henry",
       "lastName": "Lumley",
       "dob": "2007-07-18",
@@ -1219,8 +1196,8 @@
       }
     },
     {
-      "id": 50,
-      "squadNumber": 50,
+      "id": 49,
+      "squadNumber": 49,
       "firstName": "James",
       "lastName": "Martin",
       "dob": "1999-07-31",
@@ -1242,8 +1219,8 @@
       }
     },
     {
-      "id": 51,
-      "squadNumber": 51,
+      "id": 50,
+      "squadNumber": 50,
       "firstName": "James",
       "lastName": "Pater",
       "dob": "2007-07-02",
@@ -1265,8 +1242,8 @@
       }
     },
     {
-      "id": 52,
-      "squadNumber": 52,
+      "id": 51,
+      "squadNumber": 51,
       "firstName": "James",
       "lastName": "Ramm",
       "dob": "1998-04-30",
@@ -1288,8 +1265,8 @@
       }
     },
     {
-      "id": 53,
-      "squadNumber": 53,
+      "id": 52,
+      "squadNumber": 52,
       "firstName": "Jonny",
       "lastName": "Weimann",
       "dob": "2006-03-28",
@@ -1311,31 +1288,8 @@
       }
     },
     {
-      "id": 54,
-      "squadNumber": 54,
-      "firstName": "Ollie",
-      "lastName": "Sleightholme",
-      "dob": "2000-04-13",
-      "nationality": "England",
-      "position": "Wing",
-      "baseStats": {
-        "stamina": 71,
-        "strength": 67,
-        "pace": 86,
-        "agility": 85,
-        "handling": 75,
-        "tackling": 68,
-        "breakdown": 66,
-        "kicking": 70,
-        "setPiece": 59,
-        "discipline": 74,
-        "positioning": 76,
-        "composure": 67
-      }
-    },
-    {
-      "id": 55,
-      "squadNumber": 55,
+      "id": 53,
+      "squadNumber": 53,
       "firstName": "Toby",
       "lastName": "Thame",
       "dob": "2003-11-08",
@@ -1357,8 +1311,8 @@
       }
     },
     {
-      "id": 56,
-      "squadNumber": 56,
+      "id": 54,
+      "squadNumber": 54,
       "firstName": "Tom",
       "lastName": "Litchfield",
       "dob": "2002-04-20",
@@ -1376,6 +1330,52 @@
         "setPiece": 61,
         "discipline": 70,
         "positioning": 73,
+        "composure": 69
+      }
+    },
+    {
+      "id": 55,
+      "squadNumber": 55,
+      "firstName": "Amena",
+      "lastName": "Caqusau",
+      "dob": "2004-07-17",
+      "nationality": "Scotland",
+      "position": "Wing",
+      "baseStats": {
+        "stamina": 67,
+        "strength": 67,
+        "pace": 87,
+        "agility": 87,
+        "handling": 81,
+        "tackling": 69,
+        "breakdown": 61,
+        "kicking": 72,
+        "setPiece": 56,
+        "discipline": 73,
+        "positioning": 71,
+        "composure": 72
+      }
+    },
+    {
+      "id": 56,
+      "squadNumber": 56,
+      "firstName": "Will",
+      "lastName": "Glister",
+      "dob": "2005-05-05",
+      "nationality": "England",
+      "position": "Wing",
+      "baseStats": {
+        "stamina": 73,
+        "strength": 66,
+        "pace": 87,
+        "agility": 83,
+        "handling": 78,
+        "tackling": 68,
+        "breakdown": 62,
+        "kicking": 68,
+        "setPiece": 56,
+        "discipline": 68,
+        "positioning": 76,
         "composure": 69
       }
     }

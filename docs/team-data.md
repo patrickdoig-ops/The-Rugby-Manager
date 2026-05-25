@@ -97,7 +97,7 @@ A historic west-country club with a cherry-and-white forwards-led identity, defi
 |---|---|---|---|---|
 | Tomos Williams | Scrum-half | 1994-10-25 | 31 | Wales |
 | Ross Byrne | Fly-half | 1995-03-29 | 31 | Ireland |
-| Will Joseph | Centre / Wing | 2003-02-04 | 23 | England |
+| Will Joseph | Wing | 2003-02-04 | 23 | England |
 | Max Llewellyn | Centre | 1997-09-04 | 28 | Wales |
 | Seb Atkinson | Centre | 2001-08-27 | 24 | England |
 | Ben Loader | Wing | 1999-01-24 | 27 | England |
@@ -284,6 +284,7 @@ The Welford Road tradition is set-piece power, structured forward-led play, and 
 | Olly Cracknell | Flanker | 1994-05-26 | 31 | Wales |
 | Ollie Allan | Scrum-half | 2004-02-04 | 22 | England |
 | James O'Connor | Fly-half | 1990-07-05 | 35 | Australia |
+| Izaia Perese | Centre | 1997-05-17 | 28 | Australia |
 
 
 **Wider squad — Forwards**
@@ -312,7 +313,6 @@ The Welford Road tradition is set-piece power, structured forward-led play, and 
 |---|---|---|---|---|
 | Wilf McCarthy | Centre | 2002-10-08 | 23 | England |
 | Charlie Titcombe | Fly-half | 2001-12-28 | 24 | England |
-| Izaia Perese | Centre | 1997-05-17 | 28 | Australia |
 | Joseph Woodward | Centre | 2003-09-17 | 22 | England |
 | Tom Whiteley | Scrum-half | 1995-12-17 | 30 | England |
 | Will Wand | Centre | 2001-12-31 | 24 | England |
@@ -361,7 +361,7 @@ Under Mark McCall, Saracens have been the league's clinical operator — structu
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
 | Charlie Bracken | Scrum-half | 2003-12-09 | 22 | England |
-| Fergus Burke | Fly-half | 1999-09-03 | 26 | Scotland |
+| Owen Farrell | Fly-half | 1991-09-24 | 34 | England |
 | Rotimi Segun | Wing | 1996-12-28 | 29 | England |
 | Lucio Cinti | Centre | 2000-02-23 | 26 | Argentina |
 | Nick Tompkins | Centre | 1995-02-16 | 31 | Wales |
@@ -377,7 +377,7 @@ Under Mark McCall, Saracens have been the league's clinical operator — structu
 | Hugh Tizard | Lock | 2000-03-31 | 26 | England |
 | Andy Onyeama-Christie | Flanker | 1999-03-22 | 27 | Scotland |
 | Ivan van Zyl | Scrum-half | 1995-06-30 | 30 | South Africa |
-| Owen Farrell | Fly-half | 1991-09-24 | 34 | England |
+| Fergus Burke | Fly-half | 1999-09-03 | 26 | Scotland |
 | Jack Bracken | Wing | 2005-10-15 | 20 | England |
 
 **Wider squad — Forwards**

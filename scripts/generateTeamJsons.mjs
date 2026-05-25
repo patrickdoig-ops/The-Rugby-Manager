@@ -349,6 +349,7 @@ function assignBenchJerseys(byPos) {
     let pool = byPos[slot.src];
     if (!pool || pool.length === 0) {
       if (slot.src === 'Utility Back') pool = byPos.Wing.length ? byPos.Wing : byPos.Fullback.length ? byPos.Fullback : byPos.Centre;
+      else if (slot.src === 'Fly-Half') pool = byPos.Centre.length ? byPos.Centre : byPos.Fullback.length ? byPos.Fullback : byPos.Wing.length ? byPos.Wing : byPos['Scrum-Half'].length ? byPos['Scrum-Half'] : byPos['Utility Back'];
       else if (slot.src === 'Flanker') pool = byPos['Number 8'];
       else if (slot.src === 'Hooker') pool = byPos.Prop;
     }

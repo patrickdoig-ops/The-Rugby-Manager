@@ -81,6 +81,16 @@
   width: 100%;
 }
 
+@media (min-width: 700px) {
+  #ts-inner { max-width: 700px; }
+  #ts-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (min-width: 1000px) {
+  #ts-inner { max-width: 1000px; }
+  #ts-grid { grid-template-columns: repeat(5, 1fr); }
+}
+
 .ts-card {
   position: relative;
   background: var(--rm-surface);

@@ -126,7 +126,7 @@ export function initSquadOverviewScreen(
         }).join('');
 
         const thinHint = thin
-          ? `<div class="so-thin-hint"><strong>Thin at ${group.label}</strong>Only ${count} senior ${group.label.toLowerCase()} on the books. Consider a free-agent signing or promoting from academy.</div>`
+          ? `<div class="so-thin-hint"><strong>Thin at ${group.label}</strong>Only ${count} senior ${group.label.toLowerCase()} on the books. Prioritise transfer targets.</div>`
           : '';
 
         return `<section class="so-section${thin ? ' so-section--thin' : ''}">

@@ -223,6 +223,15 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       return;
     }
 
+    // ── Offload ─────────────────────────────────────────────────────────
+    case 'OFFLOAD_ATTEMPTED':
+      event.offloader.matchStats.offloadsAttempted++;
+      return;
+
+    case 'OFFLOAD_COMPLETED':
+      event.offloader.matchStats.offloadsCompleted++;
+      return;
+
     // ── Passing / breakdown bookkeeping ─────────────────────────────────
     case 'PASS_COMPLETED':
       event.passer.matchStats.passes++;

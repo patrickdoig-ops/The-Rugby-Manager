@@ -12,6 +12,7 @@ import { clamp } from '../../utils/math';
 import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { SLOT, isBackSlot } from '../Slot';
+import { tryOffloadChain } from './offloadChain';
 
 const FULL_BACKLINE = 7;
 
@@ -278,13 +279,34 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   const pathEvasionMod   = goCrashBall ? TACTIC_MODIFIERS.crashBallEvasionMod[defensiveLine]   : 0;
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine] + pathEvasionMod;
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine] + pathCollisionMod;
-  const res = resolveOpenPlay(
-    ballCarrier, defender,
-    attackMod + ha.attack,
-    defendMod + backfieldPenalty + shortHandedMod + dlEvasion + ha.defend,
-    dlCollision,
-  );
+  const baseAttackMod = attackMod + ha.attack;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + ha.defend;
+  let res = resolveOpenPlay(ballCarrier, defender, baseAttackMod, baseDefendMod, dlCollision);
   const direction = attackDir(state);
+
+  let chainNarration: NarrationStep[] = [];
+  if (res.outcome !== 'line_break') {
+    const chain = tryOffloadChain({
+      state, attackTeam, defendTeam, attackSide, defSide,
+      phase: MatchPhase.FirstPhase,
+      initialRes: res, initialCarrier: ballCarrier, initialDefender: defender,
+      baseAttackMod, baseDefendMod, dlCollision, direction,
+    });
+    events.push(...chain.chainEvents);
+    if (chain.knockedOn) {
+      return {
+        nextPhase: MatchPhase.Scrum,
+        narration: { steps: [...playIntroSteps, ...chain.chainNarration] },
+        primaryPlayer: chain.finalCarrier,
+        secondaryPlayer: chain.finalDefender,
+        events,
+      };
+    }
+    res = chain.finalRes;
+    ballCarrier = chain.finalCarrier;
+    defender = chain.finalDefender;
+    chainNarration = chain.chainNarration;
+  }
 
   if (res.outcome === 'line_break') {
     res.gainMetres += TACTIC_MODIFIERS.defensiveLineBreakBonus[defensiveLine];
@@ -301,7 +323,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   });
 
   let nextPhase: MatchPhase;
-  const outcomeSteps: NarrationStep[] = [...playIntroSteps];
+  const outcomeSteps: NarrationStep[] = [...playIntroSteps, ...chainNarration];
 
   // Try check — any forward-progress carry whose projected ballX
   // crosses the attack-direction try line scores. Line breaks AND

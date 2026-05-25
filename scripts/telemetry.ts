@@ -71,6 +71,8 @@ interface ClubAgg {
   rucksHit: number;
   yellowCards: number;
   redCards: number;
+  offloadsAttempted: number;
+  offloadsCompleted: number;
   lineoutSteals: number;
   scrumPenaltiesWon: number;
   // Goal-kicking split (derived from score arithmetic)
@@ -100,7 +102,8 @@ function emptyClubAgg(): ClubAgg {
     knockOns: 0, passes: 0, tacklesAttempted: 0, tacklesMade: 0, dominantTackles: 0,
     turnoversWon: 0, penaltiesConceded: 0,
     kicksFromHand: 0, kickMetres: 0, rucksHit: 0,
-    yellowCards: 0, redCards: 0, lineoutSteals: 0, scrumPenaltiesWon: 0,
+    yellowCards: 0, redCards: 0, offloadsAttempted: 0, offloadsCompleted: 0,
+    lineoutSteals: 0, scrumPenaltiesWon: 0,
     conversionsAttempted: 0, conversionsMade: 0,
     penaltyKicksAttempted: 0, penaltyKicksMade: 0,
     ownLineoutsThrown: 0, ownLineoutsWon: 0,
@@ -137,6 +140,8 @@ interface PlayerAgg {
   yellowCards: number;
   redCards: number;
   ratingSum: number;
+  offloadsAttempted: number;
+  offloadsCompleted: number;
 }
 
 function emptyPlayerAgg(name: string, teamId: string, position: string): PlayerAgg {
@@ -147,6 +152,7 @@ function emptyPlayerAgg(name: string, teamId: string, position: string): PlayerA
     turnoversWon: 0, knockOns: 0, penaltiesConceded: 0,
     kicksFromHand: 0, kickMetres: 0, kicksAtGoal: 0, kicksMade: 0,
     rucksHit: 0, yellowCards: 0, redCards: 0, ratingSum: 0,
+    offloadsAttempted: 0, offloadsCompleted: 0,
   };
 }
 
@@ -255,6 +261,8 @@ function sumPlayersInto(agg: ClubAgg, players: Player[]): void {
     agg.rucksHit += p.matchStats.rucksHit;
     agg.yellowCards += p.matchStats.yellowCards;
     agg.redCards += p.matchStats.redCards;
+    agg.offloadsAttempted += p.matchStats.offloadsAttempted;
+    agg.offloadsCompleted += p.matchStats.offloadsCompleted;
     agg.lineoutSteals += p.matchStats.lineoutSteals;
     agg.scrumPenaltiesWon += p.matchStats.scrumPenaltiesWon;
   }
@@ -289,6 +297,8 @@ function accumulatePlayer(agg: SeasonAgg, p: Player, teamId: string): void {
   pa.rucksHit += p.matchStats.rucksHit;
   pa.yellowCards += p.matchStats.yellowCards;
   pa.redCards += p.matchStats.redCards;
+  pa.offloadsAttempted += p.matchStats.offloadsAttempted;
+  pa.offloadsCompleted += p.matchStats.offloadsCompleted;
   pa.ratingSum += p.rating;
 }
 
@@ -586,6 +596,8 @@ function mergePlayerAggs(aggs: SeasonAgg[]): Map<string, PlayerAgg> {
       m.rucksHit          += pa.rucksHit;
       m.yellowCards       += pa.yellowCards;
       m.redCards          += pa.redCards;
+      m.offloadsAttempted += pa.offloadsAttempted;
+      m.offloadsCompleted += pa.offloadsCompleted;
       m.ratingSum         += pa.ratingSum;
     }
   }
@@ -655,6 +667,8 @@ function buildReport(aggs: SeasonAgg[], elapsedMs: number): string {
   lines.push(`| dominant tackles | ${perMatch(a => totalAcrossClubs(a, 'dominantTackles'))} |`);
   lines.push(`| carries | ${perMatch(a => totalAcrossClubs(a, 'carries'))} |`);
   lines.push(`| line breaks | ${perMatch(a => totalAcrossClubs(a, 'lineBreaks'))} |`);
+  lines.push(`| offloads attempted | ${perMatch(a => totalAcrossClubs(a, 'offloadsAttempted'))} |`);
+  lines.push(`| offloads completed | ${perMatch(a => totalAcrossClubs(a, 'offloadsCompleted'))} |`);
   lines.push(`| passes | ${perMatch(a => totalAcrossClubs(a, 'passes'))} |`);
   lines.push(`| rucks hit | ${perMatch(a => totalAcrossClubs(a, 'rucksHit'))} |`);
   lines.push(`| kicks from hand | ${perMatch(a => totalAcrossClubs(a, 'kicksFromHand'))} |`);
@@ -1010,6 +1024,7 @@ function buildReport(aggs: SeasonAgg[], elapsedMs: number): string {
   appendLeaderboard(lines, 'Top kick metres (total)', everyone, p => p.kickMetres, p => `${p.kickMetres}`);
   appendLeaderboard(lines, 'Worst handlers (knock-ons, total)', everyone, p => p.knockOns, p => `${p.knockOns}`);
   appendLeaderboard(lines, 'Worst discipline (penalties conceded, total)', everyone, p => p.penaltiesConceded, p => `${p.penaltiesConceded}`);
+  appendLeaderboard(lines, 'Top offloaders (completed, total)', everyone, p => p.offloadsCompleted, p => `${p.offloadsCompleted} / ${p.offloadsAttempted}`);
 
   // Goal-kicking accuracy — filter to actual goal kickers
   const goalKickers = everyone.filter(p => p.kicksAtGoal >= 10);

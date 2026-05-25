@@ -57,6 +57,8 @@ export interface PlayerMatchStats {
   rucksHit:               number;
   yellowCards:            number;
   redCards:               number;
+  offloadsAttempted:      number;
+  offloadsCompleted:      number;
 }
 
 // Season-scope aggregates accumulated per fixture (player and silent AI).
@@ -195,6 +197,7 @@ export function zeroMatchStats(): PlayerMatchStats {
     scrumPenaltiesWon: 0, scrumPenaltiesConceded: 0,
     kickMetres: 0, rucksHit: 0,
     yellowCards: 0, redCards: 0,
+    offloadsAttempted: 0, offloadsCompleted: 0,
   };
 }
 

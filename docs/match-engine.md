@@ -616,6 +616,25 @@ defenseScore = (defender.positioning + defender.pace) / 2 + rng(1,20) + (defendM
 
 **Line break chain.** A line break that doesn't score on the first carry hands a sustained-attack edge to the next phase. The `BreakdownEvent` that follows reads `lastEvent.outcome === 'line_break'` and folds `CARRY_HANDOFF_BONUSES.lineBreak` (15) into both the current breakdown's `attackBonus` (cleaner ball) and the post-breakdown `state.breakdownMod.attack` (the very next carry runs with attack +15). The same fork point's `dominant_carry` case adds only `CARRY_HANDOFF_BONUSES.dominantCarry` (6) and only to the current breakdown — no next-phase boost. See [Carry → breakdown handoff constants](#carry--breakdown-handoff-constants) below.
 
+**Step 3.5 — Offload.** A carrier heading into contact (evasion didn't break the line) may unload the ball to a position-matched supporting teammate. Lives in `src/engine/events/offloadChain.ts`; tuning in `src/engine/balance/offload.ts`. All three carry phases call `tryOffloadChain(...)` between the initial `resolveOpenPlay` and the final `CARRY_RESOLVED`.
+
+Each chain link consumes the outcome RNG stream as follows (always — never short-circuited on pool checks, for determinism):
+1. `rng(1, 100)` trigger roll vs `OFFLOAD_VALUES.attemptPct` (20).
+2. Receiver pool: `availableForwards` if carrier is a forward (id ≤ 8), else `availableBacks`, excluding the current carrier. If empty, the link exits.
+3. `rng(0, pool-1)` picks the receiver.
+4. New defender pool: `onFieldPlayers(defendTeam)` excluding the current defender. If empty, the link exits.
+5. `rng(0, defPool-1)` picks the new defender.
+6. Catch gate: `rng(1, 100) <= knockOnPct(catcher.handling, clockInRed) + OFFLOAD_VALUES.catchHandlingPenalty` (catch is +10 harder than a normal pass — under-pressure unload). On knock-on, the chain terminates and the phase short-circuits to a scrum (possession flips via the existing `KNOCK_ON` reducer); catcher gets the `knockOns++` attribution.
+7. On catch: fresh `resolveOpenPlay(catcher, newDefender, baseAttackMod + OFFLOAD_VALUES.secondCarryAttackBonus (10), baseDefendMod, dlCollision)`. The +10 attack bonus on evasion reflects the defensive line scrambling. If the new carry is a line break, the chain exits. Otherwise loops (up to `OFFLOAD_VALUES.maxChain` = 2).
+
+Original carrier stat credit on every chain link (caught or knocked on) lands via an intermediate `CARRY_RESOLVED { metres: 0, outcome: 'play_on' }` — credits the prev carrier `carries++` and the prev defender `tacklesAttempted++` / `tacklesMade++` (the tackle was made; the ball just got away). Telemetry implication: per chain link the defender gets an extra `tacklesAttempted++`, so offload-heavy matches show slightly inflated tackle-attempted counts.
+
+Stat fields on `PlayerMatchStats`: `offloadsAttempted` (bumped on every offload roll that completes a pool pick — i.e. an actual attempt, not a no-pool skip) and `offloadsCompleted` (bumped on successful catch). A separate `PASS_COMPLETED` rides alongside `OFFLOAD_COMPLETED` to credit the pass — same accounting as every other completed pass.
+
+New narration outcome keys: `offload_attempt` (intro step naming offloader + catcher) and `offload_knock_on` (terminal step on failed catch). Successful chains use the existing collision-outcome keys (`line_break`, `dominant_carry`, `play_on`, `dominant_tackle`) on the final carrier's resolution.
+
+**Future: `OffloadStrategy` tactic dimension.** `OFFLOAD_VALUES.attemptPct` becomes `attackTeam.tactics.offloadStrategy` lookup — `cautious` (10) / `balanced` (20) / `offload_freely` (35). Same shape as `HARD_CARRY_THRESHOLDS[attackingStyle]`. No `AITacticalDirector` hook needed initially; per-team `suggestedTactics` would set the baseline.
+
 **Step 4 — Collision:**
 
 ```
@@ -654,8 +673,13 @@ When Out the Back (PhasePlay), Crash Ball, or Wide Play (FirstPhase) paths are t
 | `dominant_carry` | ballCarrier | `defendersBeaten++` |
 | `dominant_tackle` | defender | `tacklesMade++`, `dominantTackles++` |
 | `dominant_carry` or `play_on` | defender | `tacklesMade++` |
+| Offload attempt (chain link, pool non-empty) | offloader | `offloadsAttempted++` |
+| Offload caught | offloader | `offloadsCompleted++`, `passes++` (via separate PASS_COMPLETED) |
+| Offload knocked on | catcher | `knockOns++` (via existing KNOCK_ON reducer) |
+| Offload chain link (intermediate CARRY_RESOLVED) | prev carrier | `carries++` (metres 0) |
+| Offload chain link (intermediate CARRY_RESOLVED) | prev defender | `tacklesAttempted++`, `tacklesMade++` |
 
-KickReturn: total metres = `runMetres + res.gainMetres` (combined into `metresCarried`).
+KickReturn: total metres = `runMetres + res.gainMetres` (combined into `metresCarried`) — but when an offload fires, the new carrier picks up the ball at the contact point and `runMetres` is dropped (only the chain's final-carry metres are credited).
 
 ---
 

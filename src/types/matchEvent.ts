@@ -79,6 +79,16 @@ export type MatchEvent =
   // forced-sub flow.
   | { type: 'PLAYER_INJURED_IN_MATCH'; player: Player; side: PossessionSide; kind: InjuryKind }
 
+  // ── Offload (carrier unloads ball in tackle before going to ground) ──────
+  // Emitted as a pair: ATTEMPTED bumps offloader.offloadsAttempted; COMPLETED
+  // bumps offloader.offloadsCompleted. A separate PASS_COMPLETED rides
+  // alongside COMPLETED to credit the pass (same shape as every other
+  // completed pass in the engine). A failed offload catch emits the
+  // existing KNOCK_ON instead of OFFLOAD_COMPLETED — catcher gets the
+  // knock-on attribution.
+  | { type: 'OFFLOAD_ATTEMPTED'; offloader: Player; catcher: Player; attackSide: PossessionSide }
+  | { type: 'OFFLOAD_COMPLETED'; offloader: Player; catcher: Player; attackSide: PossessionSide }
+
   // ── Passing / breakdown bookkeeping ──────────────────────────────────────
   | { type: 'PASS_COMPLETED'; passer: Player }
   | { type: 'BREAKDOWN_HIT'; players: Player[] }

@@ -89,6 +89,17 @@ const PHASE_PLAY: PhaseBank = {
     'Picked off! {secondary} throws it straight to {primary} — and the cover is way back!',
     '{primary} steps into the channel and snatches it out of the air!',
   ],
+  offload_attempt: [
+    '{primary} gets the offload away to {secondary} in the tackle!',
+    'Out of contact — {primary} pops it up to {secondary} before going to ground!',
+    '{primary} keeps the ball alive, finding {secondary} on the shoulder!',
+    'Brilliant hands from {primary} — offload in the tackle to {secondary}!',
+  ],
+  offload_knock_on: [
+    '{primary} can\'t take the offload from {secondary}! Knock-on — scrum awarded.',
+    'The offload doesn\'t stick — {primary} fumbles it after {secondary} unloads. Knock-on.',
+    '{secondary} gets the offload away but {primary} spills it forward. Scrum to the opposition.',
+  ],
 };
 
 const FIRST_PHASE: PhaseBank = {
@@ -168,6 +179,16 @@ const FIRST_PHASE: PhaseBank = {
     '{primary} jumps the line on the first-phase strike — intercepts {secondary}\'s pass!',
     'The pre-rehearsed move is read by {primary} — he gets in front of the receiver and snatches the ball!',
   ],
+  offload_attempt: [
+    '{primary} gets the offload away to {secondary} off the set-piece strike!',
+    'Out of the tackle — {primary} finds {secondary} with a clever offload!',
+    '{primary} keeps the move alive, offloading to {secondary} on the run!',
+  ],
+  offload_knock_on: [
+    '{primary} drops the offload from {secondary} — knock-on off the set piece!',
+    'The first-phase offload doesn\'t stick — {primary} spills it forward. Scrum.',
+    '{secondary} pops it up but {primary} can\'t hold on. Knock-on.',
+  ],
 };
 
 const KICK_RETURN: PhaseBank = {
@@ -217,6 +238,16 @@ const KICK_RETURN: PhaseBank = {
     'A chaser flies in high on the returner! Penalty {defside} — the arm swung up.',
     'Reckless chase, contact around the neck on the return. Penalty {defside}.',
     'High tackle on the kick return! Hit above the line — {defside} get the penalty.',
+  ],
+  offload_attempt: [
+    '{primary} offloads out of contact on the return — {secondary} takes it on!',
+    'Counter-attack rolls on — {primary} pops it to {secondary} in the tackle!',
+    '{primary} keeps the return alive with an offload to {secondary}!',
+  ],
+  offload_knock_on: [
+    '{primary} drops the offload on the return! Knock-on — scrum awarded.',
+    'The offload doesn\'t stick — {primary} fumbles it from {secondary}. Scrum.',
+    '{secondary} unloads but {primary} can\'t handle it on the counter. Knock-on.',
   ],
 };
 

@@ -11,6 +11,8 @@ import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { HOME_ADVANTAGE, KICK_RETURN_VALUES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
+import { tryOffloadChain } from './offloadChain';
+import type { NarrationStep } from '../../types/narration';
 
 const FULL_BACKLINE = 7;
 
@@ -27,8 +29,8 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
   }
 
   // Step 1 — Carrier is whoever caught the kick; no handling gate
-  const carrier = state.kickReturnCarrier ?? (attackOnField.length > 0 ? attackOnField[rng(0, attackOnField.length - 1)] : randomPlayer(attackTeam));
-  const defender = defendOnField.length > 0 ? defendOnField[rng(0, defendOnField.length - 1)] : randomPlayer(defendTeam);
+  let carrier = state.kickReturnCarrier ?? (attackOnField.length > 0 ? attackOnField[rng(0, attackOnField.length - 1)] : randomPlayer(attackTeam));
+  let defender = defendOnField.length > 0 ? defendOnField[rng(0, defendOnField.length - 1)] : randomPlayer(defendTeam);
 
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;
   const events: MatchEvent[] = [
@@ -51,17 +53,44 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
   const defensiveLine = defendTeam.tactics.defensiveLine;
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine];
-  const res = resolveOpenPlay(
-    carrier, defender,
-    attackMod + ha.attack,
-    defendMod + backfieldPenalty + shortHandedMod + dlEvasion + ha.defend,
-    dlCollision,
-  );
+  const baseAttackMod = attackMod + ha.attack;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + ha.defend;
+  let res = resolveOpenPlay(carrier, defender, baseAttackMod, baseDefendMod, dlCollision);
+  const direction = attackDir(state);
+
+  let chainNarration: NarrationStep[] = [];
+  let chainFired = false;
+  if (res.outcome !== 'line_break') {
+    const chain = tryOffloadChain({
+      state, attackTeam, defendTeam, attackSide, defSide,
+      phase: MatchPhase.KickReturn,
+      initialRes: res, initialCarrier: carrier, initialDefender: defender,
+      baseAttackMod, baseDefendMod, dlCollision, direction,
+    });
+    events.push(...chain.chainEvents);
+    if (chain.knockedOn) {
+      return {
+        nextPhase: MatchPhase.Scrum,
+        narration: { steps: chain.chainNarration },
+        primaryPlayer: chain.finalCarrier,
+        secondaryPlayer: chain.finalDefender,
+        events,
+      };
+    }
+    res = chain.finalRes;
+    carrier = chain.finalCarrier;
+    defender = chain.finalDefender;
+    chainNarration = chain.chainNarration;
+    chainFired = chain.chainFired;
+  }
+
   if (res.outcome === 'line_break') {
     res.gainMetres += TACTIC_MODIFIERS.defensiveLineBreakBonus[defensiveLine];
   }
-  const totalMetres = runMetres + res.gainMetres;
-  const direction = attackDir(state);
+  // runMetres only credit on the original returner's contact metres — when
+  // an offload fires, the new carrier picks up the ball at the contact
+  // point and the kick-return run is already past.
+  const totalMetres = chainFired ? res.gainMetres : runMetres + res.gainMetres;
 
   events.push({
     type: 'CARRY_RESOLVED',
@@ -74,7 +103,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
   });
 
   let nextPhase: MatchPhase;
-  const steps: NarrationDescriptor['steps'] = [];
+  const steps: NarrationDescriptor['steps'] = [...chainNarration];
 
   // Try check — any forward-progress carry whose projected ballX
   // (run metres + carry metres combined) crosses the try line scores.

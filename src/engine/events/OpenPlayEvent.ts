@@ -14,6 +14,7 @@ import { rng } from '../../utils/rng';
 import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, INJURY, INJURY_KIND_WEIGHTS, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { SLOT, isBackSlot } from '../Slot';
+import { tryOffloadChain } from './offloadChain';
 
 const FULL_BACKLINE = 7;  // jersey ids 9–15
 
@@ -43,7 +44,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   const carrier   = goWide
     ? (attackOnField.find(p => p.id === SLOT.FLY_HALF) ?? pickPlayer(attackTeam, SLOT.FLY_HALF))
     : (attackFwds.length > 0 ? attackFwds[rng(0, attackFwds.length - 1)] : (attackOnField[0] ?? randomPlayer(attackTeam)));
-  const defender  = defendOnField.length > 0 ? defendOnField[rng(0, defendOnField.length - 1)] : randomPlayer(defendTeam);
+  let defender = defendOnField.length > 0 ? defendOnField[rng(0, defendOnField.length - 1)] : randomPlayer(defendTeam);
 
   // Defensive line drives both the knock-on pressure modifier (handling
   // gates harder vs blitz) and the per-pass interception probability.
@@ -201,13 +202,34 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine] + pathEvasionMod;
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine] + pathCollisionMod;
-  const res = resolveOpenPlay(
-    ballCarrier, defender,
-    attackMod + breakdownWideEvasion + ha.attack,
-    defendMod + backfieldPenalty + shortHandedMod + dlEvasion + ha.defend,
-    dlCollision,
-  );
+  const baseAttackMod = attackMod + breakdownWideEvasion + ha.attack;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + ha.defend;
+  let res = resolveOpenPlay(ballCarrier, defender, baseAttackMod, baseDefendMod, dlCollision);
   const direction = attackDir(state);
+
+  let chainNarration: NarrationStep[] = [];
+  if (res.outcome !== 'line_break') {
+    const chain = tryOffloadChain({
+      state, attackTeam, defendTeam, attackSide, defSide,
+      phase: MatchPhase.PhasePlay,
+      initialRes: res, initialCarrier: ballCarrier, initialDefender: defender,
+      baseAttackMod, baseDefendMod, dlCollision, direction,
+    });
+    events.push(...chain.chainEvents);
+    if (chain.knockedOn) {
+      return {
+        nextPhase: MatchPhase.Scrum,
+        narration: { steps: [...wideIntroSteps, ...chain.chainNarration] },
+        primaryPlayer: chain.finalCarrier,
+        secondaryPlayer: chain.finalDefender,
+        events,
+      };
+    }
+    res = chain.finalRes;
+    ballCarrier = chain.finalCarrier;
+    defender = chain.finalDefender;
+    chainNarration = chain.chainNarration;
+  }
 
   // Line break gain bonus — blitz cover is behind the runner so a break
   // concedes more metres; drift cover is wide and shallow so the break is
@@ -228,7 +250,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   });
 
   let nextPhase: MatchPhase;
-  const outcomeSteps: NarrationStep[] = [...wideIntroSteps];
+  const outcomeSteps: NarrationStep[] = [...wideIntroSteps, ...chainNarration];
 
   // Try check — any forward-progress carry whose projected ballX
   // crosses the attack-direction try line scores. Line breaks AND

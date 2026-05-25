@@ -16,6 +16,7 @@ export type PhaseOutcomeKey =
   | 'dominant_carry' | 'dominant_carry_try' | 'dominant_tackle' | 'play_on'
   | 'high_tackle_penalty' | 'obstruction_penalty'
   | 'interception'
+  | 'offload_attempt' | 'offload_knock_on'
   // Breakdown
   | 'clean_ball' | 'slow_ball' | 'turnover' | 'penalty_defending'
   | 'offside_at_ruck_penalty' | 'not_rolling_away_penalty' | 'dangerous_cleanout_penalty'

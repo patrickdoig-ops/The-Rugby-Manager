@@ -211,7 +211,7 @@ export function initLeagueTableScreen(
           <span class="app-title">League Table</span>
           <div class="app-topbar-spacer"></div>
         </div>
-        <div class="app-eyebrow">${state.calendar.seasonLabel} · Week ${state.calendar.week} of ${totalRounds}</div>
+        <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
       </div>
       <div class="lt-toggle" role="tablist">
         <button class="lt-toggle__btn ${viewMode === 'standard' ? 'lt-toggle__btn--active' : ''}" data-mode="standard" role="tab" aria-selected="${viewMode === 'standard'}">Standard</button>

@@ -111,6 +111,7 @@ export function initContractsScreen(
     }
 
     const calendarDate = state.calendar.date;
+    const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
     const players: Player[] = club.squad.map(rid => state.career.roster[rid]).filter((p): p is Player => !!p);
     const sorted = sortPlayers(players, calendarDate);
 
@@ -206,7 +207,7 @@ export function initContractsScreen(
             <span>${SORT_LABELS[sortKey]}</span>
           </button>
         </div>
-        <div class="app-eyebrow">${team.name} · ${state.calendar.seasonLabel}</div>
+        <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
       </div>
 
       <div id="ct-cap-section">

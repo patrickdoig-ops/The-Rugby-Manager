@@ -119,7 +119,7 @@ export function initFixtureListScreen(
           <span class="app-title">Season Fixtures</span>
           <div class="app-topbar-spacer"></div>
         </div>
-        <div class="app-eyebrow">${state.calendar.seasonLabel} · ${state.calendar.date} · Week ${state.calendar.week} of ${totalRounds}</div>
+        <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
       </div>
       <div id="fl-toggle" role="tablist">
         <button class="fl-toggle-btn${activeMode === 'team' ? ' active' : ''}" data-mode="team" role="tab">${teamLabel}</button>

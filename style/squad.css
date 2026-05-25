@@ -235,9 +235,9 @@
 /* OVR badge */
 .sq-ovr {
   flex-shrink: 0;
-  width: 34px;
-  height: 30px;
-  border-radius: 7px;
+  width: var(--badge-sm-size);
+  height: var(--badge-sm-size);
+  border-radius: var(--badge-sm-radius);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -329,23 +329,48 @@
   box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.3);
 }
 
-#sq-save {
-  width: 100%;
-  padding: 14px;
-  background: #007a2a;
-  border: none;
-  border-radius: 14px;
-  color: #fff;
+.sq-footer-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.sq-footer-btns button {
+  flex: 1;
+  padding: 13px 8px;
+  border-radius: 12px;
   font-family: var(--rm-font-display);
-  font-size: 20px;
+  font-size: 14px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 6px;
   -webkit-tap-highlight-color: transparent;
+}
+
+#sq-clear {
+  background: transparent;
+  border: 1px solid var(--rm-border-soft);
+  color: var(--rm-text-muted);
+}
+
+#sq-clear:active { opacity: 0.6; }
+
+#sq-auto-pick {
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  color: var(--rm-text);
+}
+
+#sq-auto-pick:active { background: var(--rm-surface-3); }
+
+#sq-save {
+  flex: 1.5;
+  background: #007a2a;
+  border: none;
+  color: #fff;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.25),
     0 4px 20px color-mix(in oklch, var(--rm-pitch) 28%, transparent),

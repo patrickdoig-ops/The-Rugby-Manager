@@ -273,6 +273,26 @@ Every crest carries the same base treatment:
 
 Reference implementations: `.team-crest` in `main.css`, `.hub-crest` in `hub.css`, `.mr-crest` in `matchresult.css`.
 
+### Stat badges
+
+OVR / rating / numeric tiles attached to player rows use a **separate two-step scale**. Same token shape (`--xxx-size` / `--xxx-radius`), declared in `main.css :root`:
+
+| Token | Size | Radius | Use case |
+|---|---|---|---|
+| `--badge-sm` | 34×34 | 8px  | Squad management row OVR (`.sq-ovr`) |
+| `--badge-md` | 42×42 | 10px | Contracts row OVR (`.ct-ovr`), Squad Overview row OVR (`.so-ovr`) |
+
+```css
+.so-ovr {
+  width: var(--badge-md-size);
+  height: var(--badge-md-size);
+  border-radius: var(--badge-md-radius);
+  /* ... colour bands, typography, etc. ... */
+}
+```
+
+Stat badges are square; their inner number uses `--rm-font-mono`. Don't reach for a `--crest-*` token here — crests are gradient-filled and have a darker overlay, badges are tinted-flat and band by value (`.ovr-elite` / `.ovr-good` / etc.).
+
 ---
 
 ## 5. Spacing, layout & elevation

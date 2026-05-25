@@ -93,6 +93,13 @@
   --crest-lg-radius: 13px;
   --crest-xl-size:   88px;
   --crest-xl-radius: 16px;
+
+  /* Stat-badge size scale — OVR / rating tiles on Contracts, Squad,
+     Squad Overview etc. See docs/DESIGN.md §4 "Stat badges". */
+  --badge-sm-size:   34px;
+  --badge-sm-radius: 8px;
+  --badge-md-size:   42px;
+  --badge-md-radius: 10px;
 }
 
 /* Light mode — clean white */
@@ -129,6 +136,13 @@ body.light-mode {
   --pitch-try:  oklch(0.30 0.12 144);
   --pitch-22:   oklch(0.35 0.14 144);
   --pitch-mid:  oklch(0.40 0.16 144);
+
+  /* Stat-badge size scale (mirrors :root — kept for completeness so the
+     light-mode block is self-documenting). */
+  --badge-sm-size:   34px;
+  --badge-sm-radius: 8px;
+  --badge-md-size:   42px;
+  --badge-md-radius: 10px;
 }
 
 /* ════════════════════════════════════════

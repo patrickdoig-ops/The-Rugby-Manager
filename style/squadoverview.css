@@ -129,9 +129,9 @@
  * scoped to .so-ovr so existing screens stay untouched. */
 .so-ovr {
   flex-shrink: 0;
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
+  width: var(--badge-md-size);
+  height: var(--badge-md-size);
+  border-radius: var(--badge-md-radius);
   display: flex;
   flex-direction: column;
   align-items: center;

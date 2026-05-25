@@ -216,9 +216,9 @@
 /* OVR badge — left anchor */
 .ct-ovr {
   flex-shrink: 0;
-  width: 38px;
-  height: 38px;
-  border-radius: 9px;
+  width: var(--badge-md-size);
+  height: var(--badge-md-size);
+  border-radius: var(--badge-md-radius);
   display: flex;
   flex-direction: column;
   align-items: center;

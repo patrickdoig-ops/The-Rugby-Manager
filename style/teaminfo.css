@@ -133,7 +133,8 @@
 .ti-tile-label {
   font-family: var(--rm-font-mono);
   font-size: 10px;
-  letter-spacing: 0.14em;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--rm-text-dim);
 }
@@ -165,7 +166,8 @@
 
 .ti-section-title {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--rm-text-muted);
@@ -236,7 +238,8 @@
 .ti-bias-label {
   font-family: var(--rm-font-mono);
   font-size: 10px;
-  letter-spacing: 0.14em;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--rm-text-dim);
 }

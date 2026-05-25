@@ -740,10 +740,10 @@ html, body {
 /* ─── Substitution modal ─── */
 .sub-section-label {
   font-family: var(--rm-font-mono);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   color: var(--rm-text-dim);
   padding: 8px 0 4px;
   border-top: 1px solid var(--rm-hairline);

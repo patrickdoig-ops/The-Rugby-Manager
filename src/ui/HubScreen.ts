@@ -66,13 +66,14 @@ interface TileSpec {
   iconKey: keyof typeof TILE_ICONS;
   handlerKey: 'onSquad' | 'onFixtures' | 'onLeague' | 'onTraining' | 'onContracts' | 'onTransfers';
   stub?: boolean;
+  sub?: string;
 }
 
 const TILES: TileSpec[] = [
   { id: 'hub-tile-squad',     ariaLabel: 'Squad selector',  label: 'Squad',     iconKey: 'squad',     handlerKey: 'onSquad' },
   { id: 'hub-tile-fixtures',  ariaLabel: 'Fixture list',    label: 'Fixtures',  iconKey: 'fixtures',  handlerKey: 'onFixtures' },
   { id: 'hub-tile-league',    ariaLabel: 'League table',    label: 'League',    iconKey: 'league',    handlerKey: 'onLeague' },
-  { id: 'hub-tile-training',  ariaLabel: 'Training',        label: 'Training',  iconKey: 'training',  handlerKey: 'onTraining',  stub: true },
+  { id: 'hub-tile-training',  ariaLabel: 'Training',        label: 'Training',  iconKey: 'training',  handlerKey: 'onTraining',  stub: true, sub: 'Drills & fitness' },
   { id: 'hub-tile-contracts', ariaLabel: 'Contracts',       label: 'Contracts', iconKey: 'contracts', handlerKey: 'onContracts' },
   { id: 'hub-tile-transfers', ariaLabel: 'Transfer market', label: 'Transfers', iconKey: 'transfers', handlerKey: 'onTransfers' },
 ];
@@ -144,9 +145,10 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
       <div id="hub-grid">
         ${TILES.map(t => `
           <button id="${t.id}" class="hub-tile${t.stub ? ' hub-tile--stub' : ''}" aria-label="${t.ariaLabel}"${t.stub ? ' disabled' : ''}>
-            ${t.stub ? '<span class="hub-tile-soon">Soon</span>' : ''}
+            ${t.stub ? '<span class="hub-tile-soon">Coming</span>' : ''}
             ${TILE_ICONS[t.iconKey]}
             <span class="hub-tile-label">${t.label}</span>
+            ${t.sub ? `<span class="hub-tile-sub">${t.sub}</span>` : ''}
           </button>
         `).join('')}
       </div>

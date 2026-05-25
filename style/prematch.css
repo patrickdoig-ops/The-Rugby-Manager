@@ -461,10 +461,10 @@ button.pm-player-row {
 /* ─── Lineup section headers (Starting XV / Bench) ─── */
 .pm-section-header {
   font-family: var(--rm-font-mono);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   color: var(--rm-text-dim);
   padding: 10px 8px 4px;
   display: flex;

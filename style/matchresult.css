@@ -465,7 +465,7 @@
 
 .mr-stat-bars {
   display: flex;
-  height: 4px;
+  height: 5px;
   border-radius: 2px;
   overflow: hidden;
 }

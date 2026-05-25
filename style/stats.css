@@ -77,10 +77,10 @@
 /* Proportional dual bar */
 .stat-bars {
   display: flex;
-  height: 4px;
+  height: 5px;
   border-radius: 2px;
   overflow: hidden;
-  gap: 1px;
+  gap: 0;
 }
 
 .stat-bar-h,

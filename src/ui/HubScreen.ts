@@ -109,6 +109,11 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
     const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
     const pct = totalRounds > 0 ? (state.calendar.week / totalRounds) * 100 : 0;
     const injuredCount = countInjured(state);
+    const expiringCount = countExpiring(state);
+    const tileBadgeCount: Record<string, number> = {
+      'hub-tile-squad':     injuredCount,
+      'hub-tile-contracts': expiringCount,
+    };
 
     el!.innerHTML = `
       <div id="hub-topbar">
@@ -143,14 +148,17 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
       ${nextMatchHtml(nextFixture, state, teamsById, playerTeam.id)}
 
       <div id="hub-grid">
-        ${TILES.map(t => `
+        ${TILES.map(t => {
+          const badge = tileBadgeCount[t.id] ?? 0;
+          return `
           <button id="${t.id}" class="hub-tile${t.stub ? ' hub-tile--stub' : ''}" aria-label="${t.ariaLabel}"${t.stub ? ' disabled' : ''}>
+            ${badge > 0 ? `<span class="notification-badge" aria-label="${badge} requiring attention">${badge}</span>` : ''}
             ${t.stub ? '<span class="hub-tile-soon">Coming</span>' : ''}
             ${TILE_ICONS[t.iconKey]}
             <span class="hub-tile-label">${t.label}</span>
             ${t.sub ? `<span class="hub-tile-sub">${t.sub}</span>` : ''}
-          </button>
-        `).join('')}
+          </button>`;
+        }).join('')}
       </div>
 
       ${injuredCount > 0 ? `
@@ -248,6 +256,26 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
     let n = 0;
     for (const rid of club.squad) {
       if (state.career.roster[rid]?.injury) n++;
+    }
+    return n;
+  }
+
+  // Count of player-club squad members whose contract expires within the
+  // current season window (≤10 months ahead — mirrors the heuristic used by
+  // ContractsScreen's `expiresThisSeason`). Marquees skipped (they're a
+  // separate decision flow).
+  function countExpiring(state: GameState): number {
+    const club = state.career.clubs.find(c => c.id === state.player.teamId);
+    if (!club) return 0;
+    const today = new Date(state.calendar.date);
+    let n = 0;
+    for (const rid of club.squad) {
+      const p = state.career.roster[rid];
+      if (!p || p.contract.isMarquee) continue;
+      const exp = new Date(p.contract.expiresOn);
+      const monthsAhead = (exp.getUTCFullYear() - today.getUTCFullYear()) * 12
+                        + (exp.getUTCMonth() - today.getUTCMonth());
+      if (monthsAhead >= 0 && monthsAhead <= 10) n++;
     }
     return n;
   }

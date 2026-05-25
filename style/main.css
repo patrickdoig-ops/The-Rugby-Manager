@@ -1114,6 +1114,31 @@ html, body {
   opacity: 0.62;
 }
 
+/* ─── Notification badge ─── */
+/* Small red counter pinned to the top-right of a positioned parent. Hub uses
+   it on the Squad tile (injuries) and the Contracts tile (expiring deals).
+   Sized to be tappable-distinct without dominating the tile icon. */
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--rm-danger);
+  color: var(--rm-chalk);
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+  border: 2px solid var(--rm-bg);
+  box-shadow: 0 0 8px color-mix(in oklch, var(--rm-danger) 45%, transparent);
+  z-index: 2;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ─── Toast pill ─── */
 /* Shared bottom-centre confirmation pill. One element reused across screens
    (squad save, FA signing, contract renewal). Variants swap the border colour

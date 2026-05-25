@@ -155,11 +155,28 @@ export function initTransferMarketScreen(
     // Show every pending offer so already-signed / already-pre-agreed
     // rows render an Undo button; the membership sets above drive the
     // per-row button state.
+    // Drop rows for players who are no longer available after prior
+    // resolution rounds:
+    //   - FA offers: signed by anyone (user OR a rival AI) — they're
+    //     out of state.career.freeAgents.
+    //   - Poach offers: pre-agreed by anyone — they're now in
+    //     state.career.pendingMoves, the deal is locked, no further
+    //     bidding allowed in this window.
+    // Without this filter the row would still render (the cached
+    // offer stays `status: 'pending'` until MARKET_CLOSED), and Make
+    // Offer would silently no-op because submitBid rejects players
+    // who aren't FA / poach-eligible.
     const allRows = market.offers
       .filter(o => o.status === 'pending')
       .map(offer => {
         const p = state.career.roster[offer.rosterId];
         if (!p) return null;
+        const isPoach = offer.fromClubId !== '';
+        if (isPoach) {
+          if (pendingMovesSet.has(offer.rosterId)) return null;
+        } else {
+          if (!freeAgentSet.has(offer.rosterId)) return null;
+        }
         return { offer, p };
       })
       .filter((x): x is { offer: TransferOffer; p: Player } => x !== null)

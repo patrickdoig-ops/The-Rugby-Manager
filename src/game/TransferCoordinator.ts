@@ -432,12 +432,23 @@ export class TransferCoordinator {
     if (!club) return false;
     const headroom = club.salaryBudget - clubBudgetUsage(this.state, userClubId);
     if (headroom <= 0) return false;
-    // Any still-pending offer the user could afford?
+    // Mirrors the TransferMarketScreen row filter: a player who's been
+    // signed (out of freeAgents) or pre-agreed (on pendingMoves) in a
+    // prior round is no longer a viable target this round.
+    const freeAgentSet = new Set(this.state.career.freeAgents);
+    const pendingMovesSet = new Set(this.state.career.pendingMoves.map(m => m.rosterId));
     for (const offer of market.offers) {
       if (offer.status !== 'pending') continue;
       if (offer.annualWage > headroom) continue;
-      // Already on their squad?
+      // Already on the user's squad?
       if (club.squad.includes(offer.rosterId)) continue;
+      // Already gone in a prior round (anyone's signing / pre-agreement)?
+      const isPoach = offer.fromClubId !== '';
+      if (isPoach) {
+        if (pendingMovesSet.has(offer.rosterId)) continue;
+      } else {
+        if (!freeAgentSet.has(offer.rosterId)) continue;
+      }
       // Already a pending bid for this player by the user?
       if (market.bids.some(b =>
         b.rosterId === offer.rosterId && b.clubId === userClubId && b.status === 'pending'

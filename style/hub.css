@@ -278,7 +278,7 @@
   font-family: var(--rm-font-mono);
   font-size: 9px;
   letter-spacing: 0.10em;
-  color: var(--rm-stat-4);
+  color: var(--rm-text-muted);
   text-transform: uppercase;
   padding-top: 5px;
   border-top: 1px solid var(--rm-hairline);

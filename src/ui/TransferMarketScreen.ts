@@ -106,7 +106,13 @@ export function initTransferMarketScreen(
             <div class="app-topbar-spacer"></div>
           </div>
         </div>
-        <div class="tm-empty">No signing window open.</div>
+        <div class="empty-state">
+          <svg class="empty-state__icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
+          </svg>
+          <div class="empty-state__title">No signing window open</div>
+          <div class="empty-state__desc">The transfer window opens after the final round of the season.</div>
+        </div>
         <div id="tm-footer"><button id="tm-continue" class="cta-pulse"><span>Continue</span></button></div>
       `;
       el!.querySelector<HTMLButtonElement>('#tm-continue')!.addEventListener('click', () => activeOnFinish());
@@ -254,7 +260,13 @@ export function initTransferMarketScreen(
       : freeAgentRows.map(({ p, offer }) => renderRow(offer, p, 'sign')).join('');
 
     const poachHtml = poachRows.length === 0
-      ? '<div class="tm-empty tm-empty--small">No contracted players in their final 12 months at other clubs.</div>'
+      ? `<div class="empty-state">
+          <svg class="empty-state__icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
+          </svg>
+          <div class="empty-state__title">No final-12-month contracts around the league</div>
+          <div class="empty-state__desc">Approachable players appear here when their current deal enters its last year.</div>
+        </div>`
       : poachRows.map(({ p, offer }) => renderRow(offer, p, 'poach')).join('');
 
     const headerCell = (key: SortKey, label: string, cls: string): string => {
@@ -434,7 +446,13 @@ export function initTransferMarketScreen(
          </div>`
       : freeAgentRows.map(renderScoutRow).join('');
     const poachHtml = poachRows.length === 0
-      ? '<div class="tm-empty tm-empty--small">No contracted players in their final 12 months at other clubs.</div>'
+      ? `<div class="empty-state">
+          <svg class="empty-state__icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
+          </svg>
+          <div class="empty-state__title">No final-12-month contracts around the league</div>
+          <div class="empty-state__desc">Approachable players appear here when their current deal enters its last year.</div>
+        </div>`
       : poachRows.map(renderScoutRow).join('');
 
     const headerCell = (key: SortKey, label: string, cls: string): string => {

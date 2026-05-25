@@ -196,15 +196,6 @@
   color: var(--rm-danger);
 }
 
-.rn-empty {
-  font-family: var(--rm-font-mono);
-  font-size: 11px;
-  color: var(--rm-text-dim);
-  letter-spacing: 0.06em;
-  text-align: center;
-  text-transform: uppercase;
-  padding: 40px 16px;
-}
 
 #rn-footer {
   flex-shrink: 0;

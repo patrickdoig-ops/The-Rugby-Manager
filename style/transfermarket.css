@@ -266,21 +266,6 @@
   margin-left: 6px;
 }
 
-.tm-empty--small {
-  padding: 16px 16px;
-  font-size: 10px;
-}
-
-.tm-empty {
-  font-family: var(--rm-font-mono);
-  font-size: 11px;
-  color: var(--rm-text-dim);
-  letter-spacing: 0.06em;
-  text-align: center;
-  text-transform: uppercase;
-  padding: 40px 16px;
-}
-
 .tm-scout-banner {
   margin: 10px 16px 0;
   padding: 10px 12px;

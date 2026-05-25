@@ -81,6 +81,16 @@
   --font-mono: var(--rm-font-mono);
 
   --safe-bottom: max(env(safe-area-inset-bottom), 28px);
+
+  /* Crest size scale — single source of truth for all team crest geometry. */
+  --crest-xs-size:   22px;
+  --crest-xs-radius: 5px;
+  --crest-sm-size:   34px;
+  --crest-sm-radius: 8px;
+  --crest-md-size:   44px;
+  --crest-md-radius: 10px;
+  --crest-lg-size:   58px;
+  --crest-lg-radius: 13px;
 }
 
 /* Light mode — clean white */

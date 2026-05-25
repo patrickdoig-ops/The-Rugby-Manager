@@ -934,7 +934,7 @@ html, body {
 
 .app-title {
   font-family: var(--rm-font-display);
-  font-size: 16px;
+  font-size: 20px;
   color: var(--rm-chalk);
   text-transform: uppercase;
   letter-spacing: 0.05em;

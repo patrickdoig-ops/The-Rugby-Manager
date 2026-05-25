@@ -325,13 +325,34 @@
 .ti-squad-details > summary {
   list-style: none;
   cursor: pointer;
+  position: relative;
   padding: 12px 16px;
+  padding-right: 36px;
   font-family: var(--rm-font-mono);
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--rm-text-muted);
   -webkit-tap-highlight-color: transparent;
+}
+
+.ti-squad-details > summary::after {
+  content: '';
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-65%) rotate(45deg);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  opacity: 0.6;
+}
+
+.ti-squad-details[open] > summary::after {
+  transform: translateY(-35%) rotate(-135deg);
+  opacity: 1;
 }
 
 .ti-squad-details > summary::-webkit-details-marker { display: none; }

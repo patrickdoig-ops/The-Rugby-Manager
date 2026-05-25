@@ -152,6 +152,14 @@ export function initContractsScreen(
       if (p.injury) tagParts.push(`<span class="ct-tag ct-tag--injury" title="${fmtInjury(p.injury.kind)} · ${p.injury.weeksRemaining}w remaining">${fmtInjury(p.injury.kind)} · ${p.injury.weeksRemaining}w</span>`);
 
       const star = p.contract.isMarquee ? STAR_FILLED : STAR_OUTLINE;
+      // Marquee toggle is interactive only in the off-season-only
+      // 'marquee-edit' mode. In the in-season 'hub' view the marquee
+      // is fixed — render a non-interactive slot that still shows the
+      // filled star next to the marquee player so the visual marker
+      // stays consistent with the marquee tag inline above.
+      const marqueeEl = mode === 'marquee-edit'
+        ? `<button class="ct-star-btn${p.contract.isMarquee ? ' is-marquee' : ''}" data-marquee-toggle="${p.rosterId}" aria-label="${p.contract.isMarquee ? 'Clear marquee' : 'Designate marquee'}">${star}</button>`
+        : `<span class="ct-marquee-slot${p.contract.isMarquee ? ' is-marquee' : ''}" aria-hidden="true">${p.contract.isMarquee ? STAR_FILLED : ''}</span>`;
 
       return `
         <div class="${classes.join(' ')}" data-roster-id="${p.rosterId}">
@@ -174,7 +182,7 @@ export function initContractsScreen(
               <span class="ct-expiry-block">${fmtExpiry(p.contract.expiresOn)}</span>
             </div>
           </div>
-          <button class="ct-star-btn${p.contract.isMarquee ? ' is-marquee' : ''}" data-marquee-toggle="${p.rosterId}" aria-label="${p.contract.isMarquee ? 'Clear marquee' : 'Designate marquee'}">${star}</button>
+          ${marqueeEl}
         </div>`;
     }).join('');
 
@@ -191,7 +199,7 @@ export function initContractsScreen(
     const titleText = mode === 'marquee-edit' ? 'Choose Your Marquee' : 'Contracts';
     const footerNote = mode === 'marquee-edit'
       ? 'Tap a star to set your marquee — their wage is excluded from the cap. You can change it again at the end of the season.'
-      : 'Tap the star to designate a marquee — that wage is excluded from the cap';
+      : 'Marquee is fixed for the season — their wage is excluded from the salary cap';
     const continueCta = mode === 'marquee-edit'
       ? `<button id="ct-continue" class="cta-pulse">
            <span>Continue</span>
@@ -270,17 +278,19 @@ export function initContractsScreen(
       });
     });
 
-    el!.querySelectorAll<HTMLButtonElement>('.ct-star-btn[data-marquee-toggle]').forEach(btn => {
-      btn.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        const rid = Number(btn.dataset.marqueeToggle);
-        if (!Number.isFinite(rid)) return;
-        const p = state.career.roster[rid];
-        if (!p) return;
-        gameEngine.designateMarquee(playerTeamId, p.contract.isMarquee ? null : rid);
-        render();
+    if (mode === 'marquee-edit') {
+      el!.querySelectorAll<HTMLButtonElement>('.ct-star-btn[data-marquee-toggle]').forEach(btn => {
+        btn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const rid = Number(btn.dataset.marqueeToggle);
+          if (!Number.isFinite(rid)) return;
+          const p = state.career.roster[rid];
+          if (!p) return;
+          gameEngine.designateMarquee(playerTeamId, p.contract.isMarquee ? null : rid);
+          render();
+        });
       });
-    });
+    }
   }
 
   renderImpl = render;

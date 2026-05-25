@@ -368,7 +368,9 @@
   border: 1px solid color-mix(in oklch, var(--rm-danger) 35%, transparent);
 }
 
-/* Marquee star button — far right */
+/* Marquee star button — far right. Used in 'marquee-edit' mode only.
+   The in-season 'hub' view renders .ct-marquee-slot below instead so
+   the marquee can't be changed mid-season. */
 .ct-star-btn {
   flex-shrink: 0;
   width: 32px;
@@ -392,6 +394,22 @@
 @media (hover: hover) {
   .ct-star-btn:hover { background: var(--rm-surface-2); color: var(--rm-pitch); }
 }
+
+/* Read-only marquee indicator — mid-season ('hub') view. Same 32×32
+   slot as .ct-star-btn so the row right-edges align; pitch-green
+   filled star next to the marquee player, empty slot elsewhere. */
+.ct-marquee-slot {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--rm-text-faint);
+}
+
+.ct-marquee-slot.is-marquee { color: var(--rm-pitch); }
+.ct-marquee-slot svg { pointer-events: none; }
 
 /* ── Footer note ── */
 #ct-footer {

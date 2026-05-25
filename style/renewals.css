@@ -109,8 +109,8 @@
 }
 
 .rn-marquee {
-  color: var(--rm-pitch);
-  font-size: 13px;
+  color: var(--rm-amber);
+  vertical-align: -1px;
 }
 
 .rn-meta {

@@ -131,7 +131,7 @@ export function initRenewalsScreen(
       return `
         <div class="rn-row${isRenew ? ' rn-row--renew' : ' rn-row--release'}" data-offer-id="${o.id}">
           <div class="rn-row-main">
-            <span class="rn-name">${p.firstName} ${p.lastName}${o.isMarquee ? ' <span class="rn-marquee">★</span>' : ''}</span>
+            <span class="rn-name">${p.firstName} ${p.lastName}${o.isMarquee ? ' <svg class="rn-marquee" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.637 1.55.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.755-.415-2.211.749-2.305l5.404-.434 2.082-5.005z"/></svg>' : ''}</span>
             <span class="rn-meta">${shortPos(p.position)} · ${age ?? '—'} · OVR ${ovr}</span>
           </div>
           <div class="rn-row-terms">

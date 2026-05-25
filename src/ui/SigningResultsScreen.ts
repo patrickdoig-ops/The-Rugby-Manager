@@ -119,19 +119,20 @@ export function initSigningResultsScreen(
     // Hero summary: net wage spend, OVR delta, count of elite signings.
     // Joiners = new arrivals + retained players (wage commitments);
     // leavers = players poached away (wage savings). OVR delta sums
-    // joiner OVRs minus leaver OVRs. Marquee tile lights up gold for any
-    // elite (≥85 OVR) joiner — the headline-grabbing signings.
+    // joiner OVRs minus leaver OVRs. Elite tile lights up gold for any
+    // ≥85 OVR joiner — the headline-grabbing signings. NB this is NOT
+    // the cap-exempt "marquee" designation; that's a separate concept.
     const joiners = [...userWins, ...retentionWins];
     const leavers = [...retentionMissed, ...retentionLosses];
     const wagesIn  = joiners.reduce((sum, r) => sum + r.wage, 0);
     const wagesOut = leavers.reduce((sum, r) => sum + r.wage, 0);
     const netSpend = wagesIn - wagesOut;
     const ovrDelta = joiners.reduce((s, r) => s + r.ovr, 0) - leavers.reduce((s, r) => s + r.ovr, 0);
-    const marqueeCount = joiners.filter(r => r.ovr >= 85).length;
+    const eliteCount = joiners.filter(r => r.ovr >= 85).length;
 
     const spendCls  = netSpend > 0 ? 'sr-hero-val--neg' : netSpend < 0 ? 'sr-hero-val--pos' : '';
     const ovrCls    = ovrDelta > 0 ? 'sr-hero-val--pos' : ovrDelta < 0 ? 'sr-hero-val--neg' : '';
-    const marqueeCls = marqueeCount > 0 ? 'sr-hero-val--gold' : '';
+    const eliteCls = eliteCount > 0 ? 'sr-hero-val--gold' : '';
     const spendDisplay = netSpend === 0
       ? '£0'
       : `${netSpend > 0 ? '−' : '+'}${fmtWage(Math.abs(netSpend))}`;
@@ -149,9 +150,9 @@ export function initSigningResultsScreen(
           <span class="sr-hero-sub">${joiners.length} in · ${leavers.length} out</span>
         </div>
         <div class="sr-hero-tile">
-          <span class="sr-hero-label">Marquee</span>
-          <span class="sr-hero-val ${marqueeCls}">${marqueeCount}</span>
-          <span class="sr-hero-sub">elite signings (OVR 85+)</span>
+          <span class="sr-hero-label">Elite Signings</span>
+          <span class="sr-hero-val ${eliteCls}">${eliteCount}</span>
+          <span class="sr-hero-sub">OVR 85+</span>
         </div>
       </div>`;
 

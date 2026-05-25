@@ -1087,8 +1087,8 @@ html, body {
   align-items: center;
   gap: 3px;
   padding: 2px 6px;
-  background: color-mix(in oklch, #d8503e 22%, transparent);
-  color: #d8503e;
+  background: color-mix(in oklch, var(--rm-danger) 22%, transparent);
+  color: var(--rm-danger);
   font-family: var(--rm-font-mono);
   font-size: 9px;
   font-weight: 700;
@@ -1208,8 +1208,8 @@ html, body {
 #pm-injury-banner {
   margin: 0 12px 8px;
   padding: 8px 12px;
-  background: color-mix(in oklch, #d8503e 14%, transparent);
-  border: 1px solid color-mix(in oklch, #d8503e 36%, transparent);
+  background: color-mix(in oklch, var(--rm-danger) 14%, transparent);
+  border: 1px solid color-mix(in oklch, var(--rm-danger) 36%, transparent);
   border-radius: 8px;
   font-size: 12px;
   color: var(--rm-text);
@@ -1225,7 +1225,7 @@ html, body {
   justify-content: center;
   width: 18px;
   height: 18px;
-  background: #d8503e;
+  background: var(--rm-danger);
   color: white;
   font-weight: 900;
   border-radius: 50%;

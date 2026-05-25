@@ -301,7 +301,7 @@
 
 /* ─── Injuries summary ─── */
 .mr-card--injuries .mr-card-title {
-  color: #d8503e;
+  color: var(--rm-danger);
 }
 
 .mr-injuries-list {

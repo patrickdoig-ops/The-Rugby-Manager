@@ -147,9 +147,9 @@
 }
 
 .fl-crest {
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
+  width: var(--crest-xs-size);
+  height: var(--crest-xs-size);
+  border-radius: var(--crest-xs-radius);
   display: flex;
   align-items: center;
   justify-content: center;

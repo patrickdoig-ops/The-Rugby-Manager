@@ -68,11 +68,11 @@
 }
 
 .lt-rank { color: var(--rm-text-dim); text-align: right; }
-.lt-crest-spacer { width: 22px; }
+.lt-crest-spacer { width: var(--crest-xs-size); }
 .lt-crest {
-  width: 22px;
-  height: 22px;
-  border-radius: 5px;
+  width: var(--crest-xs-size);
+  height: var(--crest-xs-size);
+  border-radius: var(--crest-xs-radius);
   display: flex;
   align-items: center;
   justify-content: center;

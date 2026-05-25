@@ -40,27 +40,7 @@ const DEFAULT_TACTICS = {
   defensiveLine: 'hybrid',
 };
 
-// ─── 12-stat position template (offsets from baseline) ────────────────────
-//
-// Keyed by the engine's generic Position (`src/types/player.ts`) — the md is
-// the source of truth, no Loosehead/Tighthead, Left/Right Lock etc. split.
-// Flanker numbers blend the old Blindside/Openside profiles; Back Row sits
-// between Flanker and Number 8 since the player could fill 6/7/8.
 
-const POSITION_TEMPLATE = {
-  'Prop':         { stamina:  0, strength: 12, pace: -15, agility: -10, handling: -8, tackling:  8, breakdown:  5, kicking: -20, setPiece: 18, discipline:  0, positioning:  0, composure:  0 },
-  'Hooker':       { stamina:  0, strength:  5, pace: -10, agility:  -5, handling: -2, tackling:  6, breakdown:  6, kicking: -15, setPiece: 15, discipline:  0, positioning:  2, composure:  0 },
-  'Lock':         { stamina:  2, strength: 10, pace: -10, agility:  -8, handling: -5, tackling:  6, breakdown:  4, kicking: -18, setPiece: 18, discipline:  0, positioning:  2, composure:  0 },
-  'Flanker':      { stamina:  5, strength:  7, pace:  -1, agility:   2, handling: -1, tackling: 10, breakdown: 12, kicking: -10, setPiece:  4, discipline:  0, positioning:  4, composure:  0 },
-  'Number 8':     { stamina:  5, strength: 10, pace:   0, agility:   2, handling:  2, tackling:  8, breakdown:  8, kicking:  -8, setPiece:  5, discipline:  0, positioning:  3, composure:  0 },
-  'Back Row':     { stamina:  5, strength:  8, pace:   0, agility:   2, handling:  0, tackling:  9, breakdown: 10, kicking: -10, setPiece:  4, discipline:  0, positioning:  3, composure:  0 },
-  'Scrum-Half':   { stamina:  0, strength: -5, pace:   8, agility:   5, handling:  5, tackling:  0, breakdown:  2, kicking:   5, setPiece:-10, discipline:  2, positioning:  5, composure:  5 },
-  'Fly-Half':     { stamina:  0, strength: -5, pace:   3, agility:   3, handling:  8, tackling: -2, breakdown: -3, kicking:  18, setPiece:-10, discipline:  3, positioning:  5, composure:  8 },
-  'Centre':       { stamina:  2, strength:  5, pace:   6, agility:   5, handling:  5, tackling:  5, breakdown:  0, kicking:  -2, setPiece: -8, discipline:  0, positioning:  3, composure:  2 },
-  'Wing':         { stamina:  0, strength: -3, pace:  15, agility:  12, handling:  5, tackling: -2, breakdown: -5, kicking:  -2, setPiece:-12, discipline:  0, positioning:  3, composure:  0 },
-  'Fullback':     { stamina:  0, strength: -3, pace:   8, agility:   8, handling:  5, tackling:  3, breakdown: -3, kicking:   5, setPiece:-10, discipline:  2, positioning:  8, composure:  3 },
-  'Utility Back': { stamina:  0, strength:  0, pace:   3, agility:   3, handling:  3, tackling:  2, breakdown:  0, kicking:   0, setPiece: -5, discipline:  0, positioning:  3, composure:  2 },
-};
 
 const STAT_KEYS = ['stamina','strength','pace','agility','handling','tackling','breakdown','kicking','setPiece','discipline','positioning','composure'];
 
@@ -85,28 +65,7 @@ const SIMPLE_FROM_TEAMDATA = (s) => {
   return t;
 };
 
-// ─── Deterministic RNG (mulberry32) keyed by team slug + player name ─────
 
-function hash32(str) {
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < str.length; i++) {
-    h = Math.imul(h ^ str.charCodeAt(i), 16777619);
-  }
-  return h >>> 0;
-}
-function mulberry32(seed) {
-  let a = seed >>> 0;
-  return () => {
-    a |= 0; a = (a + 0x6D2B79F5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-function makeRng(seed) {
-  const r = mulberry32(seed);
-  return (lo, hi) => Math.round(lo + r() * (hi - lo));
-}
 
 // ─── Parser ────────────────────────────────────────────────────────────────
 
@@ -211,15 +170,24 @@ function parseTeamDataMd(md) {
         if (/^\|[-\s|]+\|$/.test(row)) continue;
         if (/\|\s*Name\s*\|/i.test(row)) continue;
         const cells = row.split('|').slice(1, -1).map(c => c.trim());
-        if (cells.length < 5) continue;
-        const [name, position, dob, age, nationality] = cells;
+        if (cells.length < 17) continue;
+        const [name, position, dob, age, nationality, ...rawStats] = cells;
         if (!name) continue;
+        
+        const baseStats = {};
+        rawStats.forEach((val, i) => {
+          if (i < STAT_KEYS.length) {
+            baseStats[STAT_KEYS[i]] = parseInt(val, 10);
+          }
+        });
+
         out.push({
           name,
           position: SIMPLE_FROM_TEAMDATA(position),
           dob: dob || null,
           age: age || null,
           nationality: nationality || 'England',
+          baseStats,
         });
       }
       return out;
@@ -379,34 +347,13 @@ function buildLineup(team) {
   return { starters, bench, squad: widerSquad };
 }
 
-// ─── baseStats generator ──────────────────────────────────────────────────
 
-function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, Math.round(v))); }
-
-function genStats(p, team, rng) {
-  const star = team.stars.find(s => s.name === p.name);
-  const tmpl = POSITION_TEMPLATE[p.position];
-  const baseline = 40 + (team.rating / 100) * 40;
-  const stats = {};
-  for (const stat of STAT_KEYS) {
-    if (star && star.indexHigh.includes(stat)) {
-      stats[stat] = clamp(star.rating + rng(-2, 2), 35, 95);
-    } else if (star) {
-      stats[stat] = clamp(baseline + tmpl[stat] + rng(-3, 3), 35, 95);
-    } else {
-      const biasBonus = team.statBias.includes(stat) ? 3 : 0;
-      stats[stat] = clamp(baseline + tmpl[stat] + biasBonus + rng(-4, 4), 35, 95);
-    }
-  }
-  return stats;
-}
 
 // ─── JSON writer ──────────────────────────────────────────────────────────
 
 function buildPlayerJson(p, team) {
   const { firstName, lastName } = splitName(p.name);
-  const rng = makeRng(hash32(`${team.meta.slug}|${p.name}`));
-  const baseStats = genStats(p, team, rng);
+  const baseStats = p.baseStats;
   // Carry the marquee designation + optional hand-authored wage through
   // to the JSON. contractSeeder (src/game/contractSeeder.ts) reads the
   // marquee flag and uses `annualWage` verbatim when present, falling

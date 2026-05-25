@@ -196,7 +196,13 @@ export function initTransferMarketScreen(
     };
 
     const freeAgentHtml = freeAgentRows.length === 0
-      ? '<div class="tm-empty">No free agents available this off-season.</div>'
+      ? `<div class="empty-state">
+           <svg class="empty-state__icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+             <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
+           </svg>
+           <div class="empty-state__title">No free agents available</div>
+           <div class="empty-state__desc">Check back after the next round of fixtures — new players become available as contracts expire across the league.</div>
+         </div>`
       : freeAgentRows.map(({ p, offer }) => renderRow(offer, p, 'sign')).join('');
 
     const poachHtml = poachRows.length === 0
@@ -370,7 +376,13 @@ export function initTransferMarketScreen(
     };
 
     const freeAgentHtml = freeAgentRows.length === 0
-      ? '<div class="tm-empty tm-empty--small">No free agents on the market.</div>'
+      ? `<div class="empty-state">
+           <svg class="empty-state__icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+             <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
+           </svg>
+           <div class="empty-state__title">No free agents on the market</div>
+           <div class="empty-state__desc">The market refreshes between seasons. Watch for contracts entering their final 12 months below.</div>
+         </div>`
       : freeAgentRows.map(renderScoutRow).join('');
     const poachHtml = poachRows.length === 0
       ? '<div class="tm-empty tm-empty--small">No contracted players in their final 12 months at other clubs.</div>'

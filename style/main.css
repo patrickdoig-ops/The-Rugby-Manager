@@ -79,6 +79,8 @@
 
   --font-sans: var(--rm-font-body);
   --font-mono: var(--rm-font-mono);
+
+  --safe-bottom: max(env(safe-area-inset-bottom), 28px);
 }
 
 /* Light mode — clean white */

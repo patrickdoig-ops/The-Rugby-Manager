@@ -609,7 +609,7 @@ button.pm-player-row {
 /* ─── Footer / CTA ─── */
 #pm-footer {
   flex-shrink: 0;
-  padding: 10px 16px max(env(safe-area-inset-bottom), 28px);
+  padding: 10px 16px var(--safe-bottom);
   background: var(--rm-surface);
   border-top: 1px solid var(--rm-hairline);
 }

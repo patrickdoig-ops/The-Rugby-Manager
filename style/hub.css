@@ -391,7 +391,7 @@
 
 #hub-footer {
   flex-shrink: 0;
-  padding: 10px 16px max(env(safe-area-inset-bottom), 28px);
+  padding: 10px 16px var(--safe-bottom);
   background: linear-gradient(180deg,
     transparent 0%,
     color-mix(in oklch, var(--rm-bg-deep) 60%, transparent) 100%);

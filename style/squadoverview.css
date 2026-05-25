@@ -225,7 +225,7 @@
 
 #so-footer {
   flex-shrink: 0;
-  padding: 14px 20px max(env(safe-area-inset-bottom), 28px);
+  padding: 14px 20px var(--safe-bottom);
   border-top: 1px solid var(--rm-hairline);
   background: color-mix(in oklch, var(--rm-bg) 92%, transparent);
   margin-top: auto;

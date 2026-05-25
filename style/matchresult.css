@@ -629,7 +629,7 @@
   position: relative;
   z-index: 1;
   flex-shrink: 0;
-  padding: 14px 18px max(env(safe-area-inset-bottom), 28px);
+  padding: 14px 18px var(--safe-bottom);
   border-top: 1px solid var(--rm-hairline);
   background: linear-gradient(180deg,
     transparent,

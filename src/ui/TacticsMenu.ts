@@ -112,7 +112,13 @@ export function renderTacticsMenu(
   });
 
   if (isModal && onResume) {
-    container.querySelector('#btn-resume-match')?.addEventListener('click', () => {
+    let committing = false;
+    container.querySelector('#btn-resume-match')?.addEventListener('click', async () => {
+      if (committing) return;
+      committing = true;
+      const activeBtns = container.querySelectorAll<HTMLButtonElement>('.tactics-opt-btn.active');
+      activeBtns.forEach(b => b.classList.add('committing'));
+      await new Promise(r => setTimeout(r, 240));
       onResume();
     });
   }

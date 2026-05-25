@@ -81,6 +81,16 @@
   box-shadow: 0 0 16px color-mix(in oklch, var(--rm-pitch) 22%, transparent);
 }
 
+@keyframes tacticsCommitPulse {
+  0%   { box-shadow: 0 0 16px color-mix(in oklch, var(--rm-pitch) 22%, transparent); }
+  50%  { box-shadow: 0 0 32px color-mix(in oklch, var(--rm-pitch) 55%, transparent); }
+  100% { box-shadow: 0 0 16px color-mix(in oklch, var(--rm-pitch) 22%, transparent); }
+}
+
+.tactics-opt-btn.active.committing {
+  animation: tacticsCommitPulse 220ms ease-out;
+}
+
 .tactics-opt-label {
   font-family: var(--rm-font-body);
   font-size: 14px;

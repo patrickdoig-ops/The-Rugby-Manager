@@ -63,7 +63,7 @@
 .eos-h3 {
   font-family: var(--rm-font-mono);
   font-size: 10px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   color: var(--rm-text-muted, var(--rm-text-dim));
   text-transform: uppercase;
   margin: 0 0 10px;
@@ -273,7 +273,7 @@
 .roll-h3 {
   font-family: var(--rm-font-mono);
   font-size: 10px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   color: var(--rm-text-muted, var(--rm-text-dim));
   text-transform: uppercase;
   margin: 0 0 10px;

@@ -13,6 +13,7 @@
 import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { SigningOutcome } from '../game/signingResolver';
+import { playerOverall } from '../engine/RatingEngine';
 
 let activeOnContinue: () => void = () => {};
 let activeOutcomes: SigningOutcome[] = [];
@@ -58,6 +59,7 @@ export function initSigningResultsScreen(
       position: string;
       winnerClubName: string | null;
       wage: number;
+      ovr: number;
       kind: 'free_agent' | 'poach' | 'retention';
     };
     const userWins: Row[] = [];
@@ -70,6 +72,7 @@ export function initSigningResultsScreen(
       const p = state.career.roster[outcome.rosterId];
       if (!p) continue;
       const playerName = `${p.firstName} ${p.lastName}`;
+      const ovr = playerOverall(p.baseStats, p.position);
       const userBid = outcome.bids.find(b => b.clubId === playerClubId);
       const winnerBid = outcome.winnerBid;
       const winnerClubName = winnerBid ? teamsById.get(winnerBid.clubId)?.shortName ?? winnerBid.clubId : null;
@@ -79,12 +82,12 @@ export function initSigningResultsScreen(
         if (winnerBid && winnerBid.id === userBid.id) {
           retentionWins.push({
             rosterId: outcome.rosterId, playerName, position: p.position,
-            winnerClubName, wage: userBid.annualWage, kind: 'retention',
+            winnerClubName, wage: userBid.annualWage, ovr, kind: 'retention',
           });
         } else {
           retentionLosses.push({
             rosterId: outcome.rosterId, playerName, position: p.position,
-            winnerClubName, wage: winnerBid?.annualWage ?? userBid.annualWage, kind: 'retention',
+            winnerClubName, wage: winnerBid?.annualWage ?? userBid.annualWage, ovr, kind: 'retention',
           });
         }
       } else if (userBid) {
@@ -92,12 +95,12 @@ export function initSigningResultsScreen(
         if (winnerBid && winnerBid.id === userBid.id) {
           userWins.push({
             rosterId: outcome.rosterId, playerName, position: p.position,
-            winnerClubName, wage: userBid.annualWage, kind: userBid.kind,
+            winnerClubName, wage: userBid.annualWage, ovr, kind: userBid.kind,
           });
         } else {
           userLosses.push({
             rosterId: outcome.rosterId, playerName, position: p.position,
-            winnerClubName, wage: userBid.annualWage, kind: userBid.kind,
+            winnerClubName, wage: userBid.annualWage, ovr, kind: userBid.kind,
           });
         }
       } else if (p.contract.clubId === playerClubId && outcome.bids.some(b => b.kind === 'poach')) {
@@ -107,11 +110,50 @@ export function initSigningResultsScreen(
         if (winnerBid && winnerBid.clubId !== playerClubId) {
           retentionMissed.push({
             rosterId: outcome.rosterId, playerName, position: p.position,
-            winnerClubName, wage: winnerBid.annualWage, kind: 'poach',
+            winnerClubName, wage: winnerBid.annualWage, ovr, kind: 'poach',
           });
         }
       }
     }
+
+    // Hero summary: net wage spend, OVR delta, count of elite signings.
+    // Joiners = new arrivals + retained players (wage commitments);
+    // leavers = players poached away (wage savings). OVR delta sums
+    // joiner OVRs minus leaver OVRs. Marquee tile lights up gold for any
+    // elite (≥85 OVR) joiner — the headline-grabbing signings.
+    const joiners = [...userWins, ...retentionWins];
+    const leavers = [...retentionMissed, ...retentionLosses];
+    const wagesIn  = joiners.reduce((sum, r) => sum + r.wage, 0);
+    const wagesOut = leavers.reduce((sum, r) => sum + r.wage, 0);
+    const netSpend = wagesIn - wagesOut;
+    const ovrDelta = joiners.reduce((s, r) => s + r.ovr, 0) - leavers.reduce((s, r) => s + r.ovr, 0);
+    const marqueeCount = joiners.filter(r => r.ovr >= 85).length;
+
+    const spendCls  = netSpend > 0 ? 'sr-hero-val--neg' : netSpend < 0 ? 'sr-hero-val--pos' : '';
+    const ovrCls    = ovrDelta > 0 ? 'sr-hero-val--pos' : ovrDelta < 0 ? 'sr-hero-val--neg' : '';
+    const marqueeCls = marqueeCount > 0 ? 'sr-hero-val--gold' : '';
+    const spendDisplay = netSpend === 0
+      ? '£0'
+      : `${netSpend > 0 ? '−' : '+'}${fmtWage(Math.abs(netSpend))}`;
+    const ovrDisplay = ovrDelta === 0 ? '0' : `${ovrDelta > 0 ? '+' : '−'}${Math.abs(ovrDelta)}`;
+    const heroHtml = `
+      <div id="sr-hero">
+        <div class="sr-hero-tile">
+          <span class="sr-hero-label">Net Spend</span>
+          <span class="sr-hero-val ${spendCls}">${spendDisplay}</span>
+          <span class="sr-hero-sub">${netSpend >= 0 ? 'invested' : 'saved'} on wages</span>
+        </div>
+        <div class="sr-hero-tile">
+          <span class="sr-hero-label">OVR Δ</span>
+          <span class="sr-hero-val ${ovrCls}">${ovrDisplay}</span>
+          <span class="sr-hero-sub">${joiners.length} in · ${leavers.length} out</span>
+        </div>
+        <div class="sr-hero-tile">
+          <span class="sr-hero-label">Marquee</span>
+          <span class="sr-hero-val ${marqueeCls}">${marqueeCount}</span>
+          <span class="sr-hero-sub">elite signings (OVR 85+)</span>
+        </div>
+      </div>`;
 
     const renderWinRow = (r: Row): string => `
       <div class="sr-row sr-row--win">
@@ -181,6 +223,8 @@ export function initSigningResultsScreen(
         </div>
         <div class="app-eyebrow">${headlineSummary}</div>
       </div>
+
+      ${heroHtml}
 
       <div id="sr-body">
         ${body}

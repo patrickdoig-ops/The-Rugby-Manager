@@ -3,7 +3,7 @@
 // helper takes the slice it needs as an argument — no module state, no
 // reading from the bus, no subscription to game events.
 
-import type { FixtureResult, TeamStanding } from '../types/gameState';
+import type { FixtureResult, GameState, TeamStanding } from '../types/gameState';
 import { HOME_ADVANTAGE } from '../engine/balance';
 
 export type FormResult = 'W' | 'L' | 'D';
@@ -97,4 +97,26 @@ export function matchSpread(homeRating: number, awayRating: number): { home: num
 // reflects pure rating + form with no home edge.
 export function homeAdvantagePts(neutralVenue = false): number {
   return neutralVenue ? 0 : HOME_ADVANTAGE_PTS;
+}
+
+// Wage commitments that count against a club's salaryBudget.
+// Mirrors the league's cap accounting: non-marquee squad wages + any
+// pre-agreed poaches not yet activated (they're real future
+// liabilities even though the player is still at their old club).
+// Used by the budget pill on Contracts / Renewals / TransferMarket
+// and by the hard-constraint check in TransferCoordinator.
+export function clubBudgetUsage(state: GameState, clubId: string): number {
+  let usage = 0;
+  const club = state.career.clubs.find(c => c.id === clubId);
+  if (club) {
+    for (const rid of club.squad) {
+      const p = state.career.roster[rid];
+      if (!p || p.contract.isMarquee) continue;
+      usage += p.contract.annualWage;
+    }
+  }
+  for (const move of state.career.pendingMoves) {
+    if (move.toClubId === clubId) usage += move.annualWage;
+  }
+  return usage;
 }

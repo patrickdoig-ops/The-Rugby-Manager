@@ -10,6 +10,9 @@
 // fixture — negligible against the per-event mutation work already done.
 
 import type { GameState } from '../types/gameState';
+import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
+
+const SENIOR_CAP_TOTAL = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
 
 function fail(check: string, detail: string): never {
   throw new Error(`Season invariant violated [${check}]: ${detail}`);
@@ -61,6 +64,15 @@ export function assertSeasonInvariants(state: GameState): void {
   // ── Club squads: no duplicates, no orphaned rosterIds, ≤1 marquee ────
   const clubBySquadId = new Map<number, string>();
   for (const club of career.clubs) {
+    // Salary budget never negative, never above the league cap. Floor
+    // is intentionally NOT enforced here — the year-1 seed for Newcastle
+    // (£4.15m) is legitimately below it; the floor only applies after
+    // the first rollover, and even then is enforced by the planner not
+    // by the invariant.
+    assertNonNeg(`clubs[${club.id}].salaryBudget`, club.salaryBudget);
+    if (club.salaryBudget > SENIOR_CAP_TOTAL) {
+      fail(`clubs[${club.id}].salaryBudget`, `${club.salaryBudget} > effective cap ${SENIOR_CAP_TOTAL}`);
+    }
     let marqueeCount = 0;
     for (const rosterId of club.squad) {
       const p = career.roster[rosterId];
@@ -74,6 +86,18 @@ export function assertSeasonInvariants(state: GameState): void {
     }
     if (marqueeCount > 1) {
       fail(`clubs[${club.id}].marquee`, `marqueeCount=${marqueeCount}`);
+    }
+  }
+
+  // ── Takeover history: known clubIds, no duplicates ───────────────────
+  const seenTakeover = new Set<string>();
+  for (const clubId of career.takeoverHistory) {
+    if (seenTakeover.has(clubId)) {
+      fail('takeoverHistory', `duplicate clubId=${clubId}`);
+    }
+    seenTakeover.add(clubId);
+    if (!career.clubs.some(c => c.id === clubId)) {
+      fail('takeoverHistory', `unknown clubId=${clubId} (not in career.clubs)`);
     }
   }
 

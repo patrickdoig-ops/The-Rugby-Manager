@@ -20,6 +20,7 @@ import '../style/stats.css';
 import '../style/prematch.css';
 import '../style/tactics.css';
 import '../style/playoffbracket.css';
+import '../style/budgetreveal.css';
 
 import { buildAppShell }           from './ui/AppShell';
 import { initScoreboard }          from './ui/Scoreboard';
@@ -39,6 +40,8 @@ import { initHubScreen }           from './ui/HubScreen';
 import { initMatchResultScreen }   from './ui/MatchResultScreen';
 import { initRoundResultsScreen, showRoundResults } from './ui/RoundResultsScreen';
 import { initPlayoffBracketScreen, showPlayoffBracket } from './ui/PlayoffBracketScreen';
+import { initBudgetRevealScreen, showBudgetReveal } from './ui/BudgetRevealScreen';
+import { initTakeoverRevealScreen, showTakeoverReveal, type TakeoverEntry } from './ui/TakeoverRevealScreen';
 import { initEndOfSeasonScreen, showEndOfSeason }   from './ui/EndOfSeasonScreen';
 import { initRenewalsScreen, showRenewals }         from './ui/RenewalsScreen';
 import { initTransferMarketScreen, showTransferMarket, showTransferMarketScouting, showTransferMarketPreSeason } from './ui/TransferMarketScreen';
@@ -171,6 +174,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initLeagueTableScreen(getGameEngine, allTeams, goHub);
     initRoundResultsScreen(getGameEngine, allTeams);
     initPlayoffBracketScreen(getGameEngine, allTeams);
+    initBudgetRevealScreen(getGameEngine, allTeams);
+    initTakeoverRevealScreen(getGameEngine, allTeams);
     initEndOfSeasonScreen(getGameEngine, allTeams);
     initRenewalsScreen(getGameEngine, allTeams);
     initTransferMarketScreen(getGameEngine, allTeams);
@@ -230,16 +235,26 @@ document.addEventListener('DOMContentLoaded', () => {
     goHub();
   }
 
-  // Squad Builder: unwind 2025-26 inbound transfers → squad overview
-  // (read-only depth chart) → pre-season signing window (FA-only) →
-  // marquee selection → Hub. Each step marks state.career.preSeasonStep
-  // before saving so a closed tab resumes at the right screen via
-  // continueGame.
+  // Squad Builder: BudgetReveal (year-1 seeded budget) → unwind 2025-26
+  // inbound transfers → squad overview (read-only depth chart) →
+  // pre-season signing window (FA-only) → marquee selection → Hub. Each
+  // step marks state.career.preSeasonStep before saving so a closed tab
+  // resumes at the right screen via continueGame.
   function onSquadBuilder(team: RawTeamInput): void {
     gameEngine = GameCoordinator.newSeason(team.id, generateSeed(), allTeams);
-    gameEngine.unwindPreSeasonTransfers(PRE_SEASON_TRANSFERS_2025_26);
     initInSeasonScreens();
-    runPreSeasonOverview();
+    // Reveal the year-1 owner budget first — no delta or reasons since
+    // this is the seeded value, not a year-on-year adjustment.
+    const club = gameEngine.getState().career.clubs.find(c => c.id === team.id);
+    showBudgetReveal({
+      budget: club?.salaryBudget ?? 0,
+      onContinue: () => {
+        if (!gameEngine) { goHub(); return; }
+        gameEngine.unwindPreSeasonTransfers(PRE_SEASON_TRANSFERS_2025_26);
+        runPreSeasonOverview();
+      },
+    });
+    screenRouter.show('budget-reveal');
   }
 
   function runPreSeasonOverview(): void {
@@ -363,7 +378,11 @@ document.addEventListener('DOMContentLoaded', () => {
         proceedToRollover();
       }
     };
-    showEndOfSeason(() => {
+    // proceedToRenewals: open the renewal window if there are expiring
+    // contracts, then route to RenewalsScreen / TransferMarket / Rollover.
+    // Pulled out so the BudgetReveal + TakeoverReveal can re-use it as
+    // their Continue handler.
+    const proceedToRenewals = (): void => {
       if (!gameEngine) { goHub(); return; }
       gameEngine.openRenewalWindow();
       if (gameEngine.getState().career.market) {
@@ -378,6 +397,39 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         proceedToSignings();
       }
+    };
+
+    showEndOfSeason(() => {
+      if (!gameEngine) { goHub(); return; }
+      // Compute next season's budgets (performance + takeovers) BEFORE
+      // any renewal / signing decisions. The events fire CLUB_BUDGET_SET
+      // for every club + CLUB_TAKEOVER for any Red Bull-style boost.
+      const budgetEvents = gameEngine.prepareBudgetsForNextSeason();
+      saveGame(gameEngine.toSavePayload());
+
+      const userClubId = gameEngine.getState().player.teamId;
+      const userBudgetEv = budgetEvents.find(
+        (e): e is Extract<typeof e, { type: 'CLUB_BUDGET_SET' }> =>
+          e.type === 'CLUB_BUDGET_SET' && e.clubId === userClubId,
+      );
+      const takeoverEntries: TakeoverEntry[] = budgetEvents
+        .filter((e): e is Extract<typeof e, { type: 'CLUB_TAKEOVER' }> => e.type === 'CLUB_TAKEOVER')
+        .map(e => ({ clubId: e.clubId, boostAmount: e.boostAmount, flavor: e.flavor }));
+
+      const afterBudgetReveal = (): void => {
+        if (takeoverEntries.length === 0) { proceedToRenewals(); return; }
+        showTakeoverReveal({ takeovers: takeoverEntries, onContinue: () => proceedToRenewals() });
+        screenRouter.show('takeover-reveal');
+      };
+
+      const userClub = gameEngine.getState().career.clubs.find(c => c.id === userClubId);
+      showBudgetReveal({
+        budget: userClub?.salaryBudget ?? 0,
+        delta: userBudgetEv?.delta,
+        reasons: userBudgetEv?.reasons,
+        onContinue: afterBudgetReveal,
+      });
+      screenRouter.show('budget-reveal');
     });
     screenRouter.show('end-of-season');
   }

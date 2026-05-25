@@ -11,7 +11,7 @@ import type { GameState, TransferOffer } from '../types/gameState';
 import type { Player } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
 import {
-  SENIOR_CAP, EFFECTIVE_CAP_CREDITS, RENEWAL,
+  RENEWAL,
   WAGE_FLOOR, WAGE_ROUNDING_UNIT, AI_SIGNING_POLICY,
 } from '../engine/balance/transfers';
 import { seedContractFields } from './contractSeeder';
@@ -87,15 +87,15 @@ export function decideAIOffers(state: GameState, clubId: string): { acceptIds: s
   //   (includes the expiring players at their current rates).
   //   fixedCap — non-marquee wages AFTER expiring players drop off.
   //
-  // Effective cap = SENIOR_CAP + EFFECTIVE_CAP_CREDITS — the headline
-  // £6.4M plus the HG/EPS/injury dispensation pools every Premiership
-  // club enjoys (modelled flat in v1). Then target =
-  // max(effectiveCap × aiTargetCapUtilisation, preWindowCap):
-  // the lower bound keeps under-cap clubs disciplined; the upper bound
-  // stops over-cap clubs from shedding their entire expiring cohort
-  // the first time a window opens. Renewals' loyalty discount means
-  // most renewals reduce wage anyway, so over-cap clubs gradually
-  // converge.
+  // Target is the club's owner-set salaryBudget (which is itself
+  // already ≤ the league's effective cap). Per-club budgets diverge
+  // post-Phase-9 — Bath spends near £7.8m, Newcastle stays under £6.5m
+  // even after Red Bull. max(budget × aiTargetCapUtilisation,
+  // preWindowCap): the lower bound keeps under-budget clubs disciplined;
+  // the upper bound stops over-budget clubs (legacy migration cases)
+  // from shedding their entire expiring cohort the first time a window
+  // opens. Renewals' loyalty discount means most renewals reduce wage
+  // anyway, so over-budget clubs gradually converge.
   const expiringSet = new Set(market.expiringRosterIds);
   let preWindowCap = 0;
   let fixedCap = 0;
@@ -106,8 +106,7 @@ export function decideAIOffers(state: GameState, clubId: string): { acceptIds: s
     if (expiringSet.has(rid)) continue;
     fixedCap += p.contract.annualWage;
   }
-  const effectiveCap = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
-  const targetCap = Math.max(effectiveCap * RENEWAL.aiTargetCapUtilisation, preWindowCap);
+  const targetCap = Math.max(club.salaryBudget * RENEWAL.aiTargetCapUtilisation, preWindowCap);
   let headroom = targetCap - fixedCap;
 
   const ranked = clubOffers.map(o => {
@@ -190,7 +189,6 @@ export function decideAISignings(state: GameState, humanClubId?: string): AISign
   const signings: AISigning[] = [];
   const taken = new Set<number>();
   const seasonStartYear = parseSeasonStartYear(state.calendar.seasonLabel);
-  const effectiveCap = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
 
   const clubs = [...state.career.clubs].sort((a, b) => a.id.localeCompare(b.id));
   for (const club of clubs) {
@@ -204,7 +202,9 @@ export function decideAISignings(state: GameState, humanClubId?: string): AISign
       if (!p.contract.isMarquee) currentCap += p.contract.annualWage;
       positionCounts.set(p.position, (positionCounts.get(p.position) ?? 0) + 1);
     }
-    let headroom = effectiveCap * AI_SIGNING_POLICY.capTarget - currentCap;
+    // Target the club's own salaryBudget (owner-set), not the league
+    // cap. Bath spends near £7.8m, Newcastle stays much lower.
+    let headroom = club.salaryBudget * AI_SIGNING_POLICY.capTarget - currentCap;
     if (headroom <= 0) continue;
 
     // Score every remaining free agent for this club. Each candidate
@@ -317,7 +317,6 @@ export function decideAIPoaches(state: GameState, humanClubId?: string): Array<{
   const decisions: Array<{ rosterId: number; toClubId: string; annualWage: number; lengthYears: number }> = [];
   const claimed = new Set<number>();
   const seasonStartYear = parseSeasonStartYear(state.calendar.seasonLabel);
-  const effectiveCap = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
   const candidates = poachCandidates(state);
   if (candidates.length === 0) return decisions;
 
@@ -331,7 +330,8 @@ export function decideAIPoaches(state: GameState, humanClubId?: string): Array<{
       if (!p || p.contract.isMarquee) continue;
       currentCap += p.contract.annualWage;
     }
-    const headroom = effectiveCap * AI_SIGNING_POLICY.capTarget - currentCap;
+    // Target the club's owner-set salaryBudget, not the league cap.
+    const headroom = club.salaryBudget * AI_SIGNING_POLICY.capTarget - currentCap;
     if (headroom <= 0) continue;
 
     // Score: overall + position-need bonus, restricted to OVR >= floor.

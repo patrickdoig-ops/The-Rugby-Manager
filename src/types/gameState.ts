@@ -187,9 +187,18 @@ export interface PlayerRef {
 // Per-club roster pointer. `squad` holds rosterIds of every player signed
 // to the club. Order is starters-first then bench then wider squad — the
 // matchday selector consumes it via applyMatchdaySquad.
+//
+// `salaryBudget` is the owner-set cap on non-marquee wages — distinct
+// from the league's effective cap (EFFECTIVE_CAP £7.8m), which is the
+// absolute ceiling. The budget bites first: signings + renewals are
+// hard-constrained against this value (CLAUDE.md § Budgets). Seeded
+// from CLUB_SALARY_BUDGETS_2025_26 at ROSTER_SEEDED, adjusted each
+// rollover by performance via CLUB_BUDGET_SET, and topped up by
+// CLUB_TAKEOVER when a club gets a Red Bull-style cash injection.
 export interface ClubState {
   id: string;
   squad: number[];
+  salaryBudget: number;
 }
 
 // One row of an archived per-category leaderboard — top-N at end of season.
@@ -298,7 +307,27 @@ export interface CareerState {
   // user back to the right pre-season screen if they closed the tab
   // mid-flow.
   preSeasonStep?: 'overview' | 'signings' | 'marquee';
+  // ClubIds that have been taken over (Red Bull at year 2; random
+  // investor takeovers from year 3+). Each club can only be taken over
+  // once in their lifetime — the eligibility check on the random roll
+  // skips clubs already in this list. Stable across saves.
+  takeoverHistory: string[];
 }
+
+// Per-club budget-change reason chips for the BudgetRevealScreen.
+// Carried on the CLUB_BUDGET_SET event so the screen renders the
+// "why" without re-deriving from standings. The reducer doesn't look
+// at this field — it's purely a display payload.
+export type BudgetReason =
+  | { kind: 'position';        value: number }   // final league position 1-10
+  | { kind: 'sf_appearance' }
+  | { kind: 'champion' }
+  | { kind: 'floor_applied' }                    // budget was clamped UP to the floor
+  | { kind: 'cap_applied' };                     // budget was clamped DOWN to the effective cap
+
+// Carried on CLUB_TAKEOVER. 'red_bull' is the hardcoded Newcastle
+// year-2 takeover; 'investor' is the random year-3+ pathway.
+export type TakeoverFlavor = 'red_bull' | 'investor';
 
 export interface GameState {
   calendar: Calendar;
@@ -326,6 +355,7 @@ export function emptyCareerState(): CareerState {
     freeAgents: [],
     market: null,
     pendingMoves: [],
+    takeoverHistory: [],
   };
 }
 
@@ -588,6 +618,10 @@ export type SeasonEvent =
       // means "leave alone" — older saves (pre-v13) omit the field and
       // the reducer doesn't touch state.league.playoffs.
       playoffs?: PlayoffState | null;
+      // v14+: clubIds taken over in prior seasons (Newcastle Red Bull
+      // year 2; random investors year 3+). Undefined on pre-v14 saves;
+      // the reducer leaves the field at its empty default in that case.
+      takeoverHistory?: string[];
     }
   | {
       // Persistent injury landed on a roster player. Fired at match
@@ -661,4 +695,32 @@ export type SeasonEvent =
       // right pre-season screen. `null` clears the flag (mode complete).
       type: 'PRE_SEASON_STEP_SET';
       step: 'overview' | 'signings' | 'marquee' | null;
+    }
+  | {
+      // Sets a single club's salaryBudget for the upcoming season.
+      // Fired once per club at the start of the off-season chain
+      // (after EndOfSeason, before Renewals). `salaryBudget` is the
+      // post-clamp final value — performance-derived base, floored at
+      // BUDGET_VALUES.floor from year 2 onwards, ceilinged at
+      // EFFECTIVE_CAP. `delta` is the change vs the previous budget;
+      // `reasons` is a display-only payload consumed by BudgetRevealScreen.
+      type: 'CLUB_BUDGET_SET';
+      clubId: string;
+      salaryBudget: number;
+      delta: number;
+      reasons: BudgetReason[];
+    }
+  | {
+      // Adds a takeover boost to a single club's salaryBudget. Fired
+      // after all CLUB_BUDGET_SET events so the boost stacks on the
+      // performance-derived value. Clamped at EFFECTIVE_CAP. Hardcoded
+      // for Newcastle at the year-1 → year-2 rollover (`'red_bull'`
+      // flavor); thereafter rolled per club via rngTransfer
+      // (`'investor'` flavor). Adds the clubId to
+      // state.career.takeoverHistory so the club can't be taken over
+      // again in the same career.
+      type: 'CLUB_TAKEOVER';
+      clubId: string;
+      boostAmount: number;
+      flavor: TakeoverFlavor;
     };

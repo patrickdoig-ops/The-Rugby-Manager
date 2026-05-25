@@ -21,6 +21,7 @@ import { zeroMatchStats, zeroSeasonStats } from '../types/player';
 import type { ClubState } from '../types/gameState';
 import type { RawPlayer, RawTeamInput } from '../types/teamData';
 import { seedContractFields } from './contractSeeder';
+import { CLUB_SALARY_BUDGETS_2025_26, SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
 
 export interface SeededRoster {
   roster: Record<number, Player>;
@@ -50,7 +51,11 @@ export function seedRoster(allTeams: RawTeamInput[], seasonStartYear: number): S
     addAll(team.players);
     addAll(team.bench);
     addAll(team.squad);
-    clubs.push({ id: team.id, squad: squadIds });
+    // Seed the per-club salary budget from the table-driven map.
+    // Unknown clubIds default to the effective cap (no constraint) so
+    // future league expansions don't crash here without an entry.
+    const salaryBudget = CLUB_SALARY_BUDGETS_2025_26[team.id] ?? (SENIOR_CAP + EFFECTIVE_CAP_CREDITS);
+    clubs.push({ id: team.id, squad: squadIds, salaryBudget });
   }
 
   return { roster, clubs, nextRosterId: nextId };

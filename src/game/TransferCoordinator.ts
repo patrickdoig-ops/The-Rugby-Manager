@@ -21,6 +21,7 @@ import {
   expiringRosterIds, generateRenewalOffers, decideAIOffers, expiryAfterYears,
   decideAISignings, signingTermsFor, isPoachEligible, decideAIPoaches, poachCandidates,
 } from './aiTransferDirector';
+import { clubBudgetUsage } from './teamStats';
 import type { PreSeasonTransfer } from '../data/transfers-2025-26';
 
 export class TransferCoordinator {
@@ -207,23 +208,35 @@ export class TransferCoordinator {
 
   // User-side sign. Looks up the cached offer for `rosterId` in the
   // open signing window and fires CONTRACT_SIGNED at those terms.
-  // Returns false if no window is open, no cached offer exists, or
-  // the player is no longer a free agent.
-  //
-  // No cap-affordability gate — the user can deliberately overspend.
-  // OFFER_RESPONDED is deferred to closeSigningWindow so the cached
-  // offer stays 'pending' through the window, letting the user undo
-  // via unsignFreeAgent without offer-status drift.
+  // Returns false if no window is open, no cached offer exists, the
+  // player is no longer a free agent, or the signing would breach the
+  // user's club salaryBudget. The budget is a hard constraint — see
+  // CLAUDE.md § Budgets. OFFER_RESPONDED is deferred to
+  // closeSigningWindow so the cached offer stays 'pending' through the
+  // window, letting the user undo via unsignFreeAgent without
+  // offer-status drift.
   signFreeAgent(rosterId: number): boolean {
     const market = this.state.career.market;
     if (!market || market.phase !== 'signings') return false;
     if (!this.state.career.freeAgents.includes(rosterId)) return false;
     const offer = market.offers.find(o => o.rosterId === rosterId && o.status === 'pending');
     if (!offer) return false;
+    const userClubId = this.state.player.teamId;
+    const club = this.state.career.clubs.find(c => c.id === userClubId);
+    if (!club) return false;
+    // Hard budget gate. Marquees are excluded from budget (offer.isMarquee
+    // implies the player would slot into the marquee facility, outside
+    // the cap-relevant pool) — but the cached signing-window offers are
+    // all non-marquee in v1, so the simple add-and-compare check below
+    // covers every real path.
+    if (!offer.isMarquee) {
+      const projected = clubBudgetUsage(this.state, userClubId) + offer.annualWage;
+      if (projected > club.salaryBudget) return false;
+    }
     applySeasonEvent(this.state, {
       type: 'CONTRACT_SIGNED',
       rosterId,
-      clubId: this.state.player.teamId,
+      clubId: userClubId,
       expiresOn: expiryAfterYears(this.state, offer.lengthYears),
       annualWage: offer.annualWage,
     });
@@ -272,6 +285,16 @@ export class TransferCoordinator {
     if (p.contract.clubId === playerClubId) return false;
     const offer = market.offers.find(o => o.rosterId === rosterId && o.status === 'pending');
     if (!offer) return false;
+    // Hard budget gate. Pending poach wages count toward usage via
+    // clubBudgetUsage (the move is a future committed liability even
+    // though the player completes the current season at their old
+    // club).
+    const club = this.state.career.clubs.find(c => c.id === playerClubId);
+    if (!club) return false;
+    if (!offer.isMarquee) {
+      const projected = clubBudgetUsage(this.state, playerClubId) + offer.annualWage;
+      if (projected > club.salaryBudget) return false;
+    }
     applySeasonEvent(this.state, {
       type: 'PRE_AGREEMENT_SIGNED',
       agreement: {

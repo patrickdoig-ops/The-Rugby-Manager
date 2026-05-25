@@ -20,6 +20,8 @@ export type ScreenId =
   | 'match-result'
   | 'round-results'
   | 'playoff-bracket'
+  | 'budget-reveal'
+  | 'takeover-reveal'
   | 'end-of-season'
   | 'renewals'
   | 'transfer-market'
@@ -42,6 +44,8 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'match-result':  { elId: 'match-result',  shownDisplay: 'flex' },
   'round-results': { elId: 'round-results', shownDisplay: '' },
   'playoff-bracket':  { elId: 'playoff-bracket',  shownDisplay: '' },
+  'budget-reveal':    { elId: 'budget-reveal',    shownDisplay: '' },
+  'takeover-reveal':  { elId: 'takeover-reveal',  shownDisplay: '' },
   'end-of-season':    { elId: 'end-of-season',    shownDisplay: '' },
   'renewals':         { elId: 'renewals',         shownDisplay: '' },
   'transfer-market':  { elId: 'transfer-market',  shownDisplay: '' },

@@ -50,9 +50,10 @@ import { collectSeasonEvents, type MatchSnapshot, type PlayerStatsSnapshot } fro
 import { computeRollover } from './careerRollover';
 import { seedContractFields } from './contractSeeder';
 import { TransferCoordinator } from './TransferCoordinator';
+import { computeBudgetEvents } from './budgetPlanner';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed, rngTransfer } from '../utils/rng';
-import { SEASON_VALUES, INJURY_SEVERITY } from '../engine/balance';
+import { SEASON_VALUES, INJURY_SEVERITY, SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
 import type { InjurySeverity } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 import type { RawTeamInput } from '../types/teamData';
@@ -94,6 +95,10 @@ export interface SavedCareer {
   // Builder this is always undefined and the field is omitted from the
   // payload, so existing in-season saves stay byte-equivalent.
   preSeasonStep?: 'overview' | 'signings' | 'marquee';
+  // v14+: clubIds taken over so far (Newcastle Red Bull at year 2;
+  // random investor takeovers from year 3+). Pre-v14 saves migrate as
+  // []. Each taken-over club is excluded from future random rolls.
+  takeoverHistory?: string[];
 }
 
 export interface SavedSeason {
@@ -224,7 +229,15 @@ export class GameCoordinator {
       applySeasonEvent(coord.state, {
         type: 'ROSTER_SEEDED',
         roster: save.career.roster,
-        clubs: save.career.clubs.map(c => ({ id: c.id, squad: [...c.squad] })),
+        // v13 saves omit salaryBudget — default to effective cap so the
+        // load is non-disruptive; the next rollover then recomputes via
+        // computeBudgetEvents so the per-club budgets kick in from then
+        // on. See docs/game-engine.md § "Save format" v13 → v14.
+        clubs: save.career.clubs.map(c => ({
+          id: c.id,
+          squad: [...c.squad],
+          salaryBudget: c.salaryBudget ?? (SENIOR_CAP + EFFECTIVE_CAP_CREDITS),
+        })),
         nextRosterId: save.career.nextRosterId,
       });
       // ROSTER_SEEDED only repopulates the roster + clubs. Cumulative
@@ -242,6 +255,7 @@ export class GameCoordinator {
         ...(save.career.market !== undefined ? { market: save.career.market } : {}),
         ...(save.career.pendingMoves !== undefined ? { pendingMoves: save.career.pendingMoves } : {}),
         ...(save.career.preSeasonStep !== undefined ? { preSeasonStep: save.career.preSeasonStep } : {}),
+        ...(save.career.takeoverHistory !== undefined ? { takeoverHistory: save.career.takeoverHistory } : {}),
         ...(save.teamSeasonStats !== undefined ? { teamSeasonStats: save.teamSeasonStats } : {}),
         ...(save.playoffs !== undefined ? { playoffs: save.playoffs } : {}),
       });
@@ -688,6 +702,17 @@ export class GameCoordinator {
     return out;
   }
 
+  // Computes + applies the next season's salaryBudget per club and any
+  // takeover boosts. Fired in the off-season chain BEFORE renewals so
+  // the player + AI both see the new budgets when making wage
+  // decisions. Returns the events applied so the UI (BudgetRevealScreen
+  // + TakeoverRevealScreen) can render the diff.
+  prepareBudgetsForNextSeason(): SeasonEvent[] {
+    const events = computeBudgetEvents(this.state);
+    for (const ev of events) applySeasonEvent(this.state, ev);
+    return events;
+  }
+
   // Advance the persistent career one full season. Ages every player,
   // resolves retirements via RETIREMENT_CURVE, archives the just-finished
   // standings + season awards, and replaces league.fixtures with a fresh
@@ -720,7 +745,7 @@ export class GameCoordinator {
       career: {
         seasonsCompleted: this.state.career.seasonsCompleted,
         nextRosterId: this.state.career.nextRosterId,
-        clubs: this.state.career.clubs.map(c => ({ id: c.id, squad: [...c.squad] })),
+        clubs: this.state.career.clubs.map(c => ({ id: c.id, squad: [...c.squad], salaryBudget: c.salaryBudget })),
         roster: this.state.career.roster,
         archive: this.state.career.archive.map(a => ({
           seasonLabel: a.seasonLabel,
@@ -750,6 +775,7 @@ export class GameCoordinator {
         ...(this.state.career.preSeasonStep !== undefined
           ? { preSeasonStep: this.state.career.preSeasonStep }
           : {}),
+        takeoverHistory: [...this.state.career.takeoverHistory],
       },
       teamSeasonStats: Object.fromEntries(
         Object.entries(this.state.league.teamSeasonStats).map(([id, s]) => [id, { ...s }]),

@@ -21,7 +21,6 @@ import type { RawTeamInput } from '../types/teamData';
 import type { Player } from '../types/player';
 import type { TransferOffer } from '../types/gameState';
 import { playerOverall } from '../engine/RatingEngine';
-import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance/transfers';
 import { getAge } from '../game/age';
 import { poachCandidates } from './../game/aiTransferDirector';
 import { showToast } from './Toast';
@@ -128,12 +127,15 @@ export function initTransferMarketScreen(
       .filter(m => m.toClubId === playerClubId)
       .reduce((sum, m) => sum + m.annualWage, 0);
     const capUsed = liveSquadCap + pendingPoachCap;
-    const effectiveCap = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
+    // The pill is the owner-set salaryBudget (cap-relevant total). The
+    // league's effective cap sits above as a hard ceiling no budget
+    // exceeds, so showing the smaller number is the right user signal.
+    const budgetCap = club.salaryBudget;
     const capStatus =
-      capUsed > effectiveCap ? 'over' :
-      capUsed > effectiveCap * 0.95 ? 'tight' :
+      capUsed > budgetCap ? 'over' :
+      capUsed > budgetCap * 0.95 ? 'tight' :
       'ok';
-    const capPill = `<span class="tm-cappill tm-cappill--${capStatus}"><span>CAP</span><span>${fmtWage(capUsed)} / ${fmtWage(effectiveCap)}</span></span>`;
+    const capPill = `<span class="tm-cappill tm-cappill--${capStatus}"><span>BUDGET</span><span>${fmtWage(capUsed)} / ${fmtWage(budgetCap)}</span></span>`;
 
     // Split offers into two sections by their fromClubId:
     //   free-agent offers (fromClubId === '') — user can Sign / Undo
@@ -162,9 +164,12 @@ export function initTransferMarketScreen(
       const signed = action === 'sign' && userSquadSet.has(p.rosterId) && !freeAgentSet.has(p.rosterId);
       const preAgreed = action === 'poach' && pendingMovesSet.has(p.rosterId);
       const committed = signed || preAgreed;
-      // Cap-warning only applies to NEW commitments — undoing never
-      // pushes cap up.
-      const wouldExceedCap = !committed && (capUsed + offer.annualWage > effectiveCap);
+      // Budget-warning only applies to NEW commitments — undoing never
+      // pushes the budget up. Budget is a hard constraint: the
+      // engine-side signFreeAgent / preAgreePoach also blocks the move,
+      // so this flag is the user-side mirror that disables the button
+      // pre-emptively.
+      const wouldExceedCap = !committed && (capUsed + offer.annualWage > budgetCap);
       // Button label: keep the committed-state label short so it fits the
       // narrow column (an explicit "Undo Sign" overflowed on mobile). The
       // red `.tm-sign--undo` styling + the row's faded `.tm-row--committed`
@@ -325,7 +330,7 @@ export function initTransferMarketScreen(
   function renderScouting(
     state: ReturnType<GameCoordinator['getState']>,
     team: RawTeamInput,
-    club: { id: string; squad: number[] },
+    club: { id: string; squad: number[]; salaryBudget: number },
     playerClubId: string,
   ): void {
     const calendarDate = state.calendar.date;
@@ -356,12 +361,12 @@ export function initTransferMarketScreen(
       .map(rid => state.career.roster[rid])
       .filter((p): p is Player => !!p && !p.contract.isMarquee)
       .reduce((sum, p) => sum + p.contract.annualWage, 0);
-    const effectiveCap = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
+    const budgetCap = club.salaryBudget;
     const capStatus =
-      capUsed > effectiveCap ? 'over' :
-      capUsed > effectiveCap * 0.95 ? 'tight' :
+      capUsed > budgetCap ? 'over' :
+      capUsed > budgetCap * 0.95 ? 'tight' :
       'ok';
-    const capPill = `<span class="tm-cappill tm-cappill--${capStatus}"><span>CAP</span><span>${fmtWage(capUsed)} / ${fmtWage(effectiveCap)}</span></span>`;
+    const capPill = `<span class="tm-cappill tm-cappill--${capStatus}"><span>BUDGET</span><span>${fmtWage(capUsed)} / ${fmtWage(budgetCap)}</span></span>`;
 
     const renderScoutRow = (it: ScoutItem): string => {
       const age = getAge(it.p.dob, calendarDate);

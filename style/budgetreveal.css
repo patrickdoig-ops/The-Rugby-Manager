@@ -1,0 +1,266 @@
+/* Owner-budget + takeover reveal screens. Sit between EndOfSeason
+ * and Renewals in the post-final off-season chain (plus an extra
+ * BudgetReveal entry point at the start of Squad Builder mode).
+ */
+
+#budget-reveal,
+#takeover-reveal {
+  position: fixed;
+  inset: 0;
+  z-index: 225;
+  background: var(--rm-bg);
+  display: flex;
+  flex-direction: column;
+  padding-top:    env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left:   env(safe-area-inset-left, 0px);
+  padding-right:  env(safe-area-inset-right, 0px);
+  overflow-y: auto;
+}
+
+/* ===== BudgetRevealScreen ===== */
+
+#br-card {
+  margin: 18px 16px 0;
+  padding: 22px 18px 24px;
+  background: linear-gradient(180deg, color-mix(in oklch, var(--team-color, #777) 18%, var(--rm-surface)) 0%, var(--rm-surface) 100%);
+  border: 1px solid color-mix(in oklch, var(--team-color, #777) 40%, var(--rm-border-soft));
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.br-crest {
+  width: 56px; height: 56px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Anton', 'Geist', sans-serif;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  font-size: 22px;
+}
+
+.br-club-name {
+  font-family: 'Anton', 'Geist', sans-serif;
+  font-size: 18px;
+  color: var(--rm-text);
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+
+.br-headline-label {
+  margin-top: 6px;
+  font-family: 'Anton', 'Geist', sans-serif;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  color: var(--rm-text-muted);
+}
+
+.br-headline {
+  font-family: 'Anton', 'Geist', sans-serif;
+  font-size: 44px;
+  color: var(--rm-text);
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.br-delta {
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.br-delta--up   { background: color-mix(in oklch, var(--rm-pitch) 22%, transparent); color: var(--rm-pitch); border: 1px solid color-mix(in oklch, var(--rm-pitch) 50%, transparent); }
+.br-delta--down { background: color-mix(in oklch, var(--rm-danger, #d8503e) 22%, transparent); color: var(--rm-danger, #d8503e); border: 1px solid color-mix(in oklch, var(--rm-danger, #d8503e) 50%, transparent); }
+.br-delta--flat { background: var(--rm-surface-2); color: var(--rm-text-muted); border: 1px solid var(--rm-border-soft); }
+
+.br-reasons {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.br-reason {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--rm-surface-2);
+  color: var(--rm-text-muted);
+  border: 1px solid var(--rm-border-soft);
+  text-transform: uppercase;
+}
+
+.br-usage {
+  margin-top: 14px;
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px;
+  background: var(--rm-bg-deep);
+  border-radius: 10px;
+  border: 1px solid var(--rm-border-soft);
+}
+
+.br-usage-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+.br-usage-label { color: var(--rm-text-muted); }
+.br-usage-val   { color: var(--rm-text); font-weight: 600; }
+.br-usage-val--over { color: var(--rm-danger, #d8503e); }
+
+.br-note {
+  margin: 14px 0 0;
+  text-align: center;
+  font-family: 'Geist', sans-serif;
+  font-size: 12px;
+  color: var(--rm-text-muted);
+  max-width: 340px;
+  line-height: 1.4;
+}
+
+#br-footer {
+  margin-top: auto;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  background: var(--rm-bg);
+  border-top: 1px solid var(--rm-border-soft);
+  display: flex;
+  justify-content: center;
+}
+
+/* ===== TakeoverRevealScreen ===== */
+
+#tk-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1 1 auto;
+}
+
+.tk-hero {
+  background: linear-gradient(180deg, color-mix(in oklch, var(--team-color, #777) 22%, var(--rm-surface)) 0%, var(--rm-surface) 100%);
+  border: 1px solid color-mix(in oklch, var(--team-color, #777) 45%, var(--rm-border-soft));
+  border-radius: 14px;
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 0 30px color-mix(in oklch, var(--team-color, #777) 30%, transparent);
+}
+
+.tk-crest {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Anton', 'Geist', sans-serif;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  flex: 0 0 auto;
+  font-size: 14px;
+}
+
+.tk-crest--lg { width: 56px; height: 56px; border-radius: 12px; font-size: 22px; }
+
+.tk-hero-headline {
+  font-family: 'Anton', 'Geist', sans-serif;
+  font-size: 18px;
+  color: var(--rm-text);
+  letter-spacing: 0.03em;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.tk-hero-boost {
+  font-family: 'Anton', 'Geist', sans-serif;
+  font-size: 28px;
+  color: var(--rm-pitch);
+  letter-spacing: 0.02em;
+}
+
+.tk-hero-sub {
+  font-family: 'Geist', sans-serif;
+  font-size: 13px;
+  color: var(--rm-text-muted);
+  text-align: center;
+  max-width: 360px;
+  line-height: 1.4;
+}
+
+.tk-others-label {
+  font-family: 'Anton', 'Geist', sans-serif;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  color: var(--rm-text-muted);
+  text-align: center;
+  margin-top: 6px;
+}
+
+.tk-others {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tk-other-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+}
+
+.tk-other-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tk-other-headline {
+  font-family: 'Geist', sans-serif;
+  font-size: 13px;
+  color: var(--rm-text);
+}
+
+.tk-other-boost {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--rm-pitch);
+  letter-spacing: 0.04em;
+}
+
+#tk-footer {
+  margin-top: auto;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  background: var(--rm-bg);
+  border-top: 1px solid var(--rm-border-soft);
+  display: flex;
+  justify-content: center;
+}

@@ -27,7 +27,6 @@ import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { Player } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
-import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance/transfers';
 import { getAge } from '../game/age';
 
 type SortKey = 'wage' | 'expiry' | 'ovr' | 'position' | 'age' | 'name';
@@ -118,13 +117,16 @@ export function initContractsScreen(
     const nonMarquee = players.filter(p => !p.contract.isMarquee);
     const marqueePlayer = players.find(p => p.contract.isMarquee);
     const capUsed = nonMarquee.reduce((sum, p) => sum + p.contract.annualWage, 0);
-    const effectiveCap = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
+    // Cap pill renders against the owner's salaryBudget (post-Phase-9),
+    // not the league's effective cap. The league cap still exists as a
+    // harder ceiling but the budget bites first.
+    const budgetCap = club.salaryBudget;
     const capStatus =
-      capUsed > effectiveCap ? 'over' :
-      capUsed > effectiveCap * 0.95 ? 'tight' :
+      capUsed > budgetCap ? 'over' :
+      capUsed > budgetCap * 0.95 ? 'tight' :
       'ok';
-    const capPct = Math.min((capUsed / effectiveCap) * 100, 100);
-    const headroom = effectiveCap - capUsed;
+    const capPct = Math.min((capUsed / budgetCap) * 100, 100);
+    const headroom = budgetCap - capUsed;
 
     const marqueeLabel = marqueePlayer
       ? { text: `${marqueePlayer.lastName} excluded (${fmtWage(marqueePlayer.contract.annualWage)})`, colour: 'var(--rm-pitch)' }
@@ -212,10 +214,10 @@ export function initContractsScreen(
 
       <div id="ct-cap-section">
         <div id="ct-cap-labels">
-          <span id="ct-cap-title">Salary Cap</span>
+          <span id="ct-cap-title">Wage Budget</span>
           <span id="ct-cap-numbers">
             <span class="ct-cap-used">${fmtWage(capUsed)}</span>
-            <span class="ct-cap-total"> / ${fmtWage(effectiveCap)}</span>
+            <span class="ct-cap-total"> / ${fmtWage(budgetCap)}</span>
           </span>
         </div>
         <div id="ct-cap-track">

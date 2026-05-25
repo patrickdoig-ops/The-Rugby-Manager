@@ -6,7 +6,12 @@
 import type { Fixture, GameState, PlayoffMatch, SeasonEvent, TeamSeasonStats, TeamStanding } from '../types/gameState';
 import { zeroStanding, zeroTeamSeasonStats } from '../types/gameState';
 import { zeroSeasonStats } from '../types/player';
-import { LEAGUE_POINTS, SEASON_VALUES } from '../engine/balance';
+import { LEAGUE_POINTS, SEASON_VALUES, SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
+
+// Sum of senior cap + dispensation credits — the league's absolute
+// ceiling on any club's non-marquee wage spend. The takeover boost
+// clamps to this so a Bath-level budget doesn't break through.
+const SENIOR_CAP_TOTAL = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
 import { assertSeasonInvariants } from './seasonInvariants';
 
 export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
@@ -54,7 +59,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
     }
     case 'ROSTER_SEEDED': {
       state.career.roster = event.roster;
-      state.career.clubs = event.clubs.map(c => ({ id: c.id, squad: [...c.squad] }));
+      state.career.clubs = event.clubs.map(c => ({ id: c.id, squad: [...c.squad], salaryBudget: c.salaryBudget }));
       state.career.nextRosterId = event.nextRosterId;
       return;
     }
@@ -343,6 +348,9 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         }
         state.league.teamSeasonStats = restored;
       }
+      if (event.takeoverHistory !== undefined) {
+        state.career.takeoverHistory = [...event.takeoverHistory];
+      }
       if (event.playoffs !== undefined) {
         state.league.playoffs = event.playoffs
           ? {
@@ -438,6 +446,25 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
     case 'PRE_SEASON_STEP_SET': {
       if (event.step === null) delete state.career.preSeasonStep;
       else state.career.preSeasonStep = event.step;
+      return;
+    }
+    case 'CLUB_BUDGET_SET': {
+      const club = state.career.clubs.find(c => c.id === event.clubId);
+      if (!club) return;
+      club.salaryBudget = event.salaryBudget;
+      return;
+    }
+    case 'CLUB_TAKEOVER': {
+      const club = state.career.clubs.find(c => c.id === event.clubId);
+      if (!club) return;
+      // Boost stacks on whatever CLUB_BUDGET_SET set the budget to.
+      // Clamp at EFFECTIVE_CAP — the league-wide ceiling.
+      club.salaryBudget = Math.min(club.salaryBudget + event.boostAmount, SENIOR_CAP_TOTAL);
+      // Record the takeover so the club is excluded from future random
+      // takeover rolls. Defensive against double-add.
+      if (!state.career.takeoverHistory.includes(event.clubId)) {
+        state.career.takeoverHistory.push(event.clubId);
+      }
       return;
     }
     default: {

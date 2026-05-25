@@ -18,7 +18,6 @@ import type { RawTeamInput } from '../types/teamData';
 import type { TransferOffer } from '../types/gameState';
 import type { Player } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
-import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance/transfers';
 import { getAge } from '../game/age';
 import { showToast } from './Toast';
 
@@ -110,10 +109,15 @@ export function initRenewalsScreen(
         projectedCap += o.annualWage;
       }
     }
-    const effectiveCap = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
+    // The owner's salaryBudget is the cap-relevant ceiling — the
+    // league's effective cap (£7.8m) sits above it as a hard limit no
+    // budget can exceed. We pill against the budget; an over-budget
+    // signing is hard-blocked by signFreeAgent / preAgreePoach in the
+    // signing window.
+    const budgetCap = club.salaryBudget;
     const capStatus =
-      projectedCap > effectiveCap ? 'over' :
-      projectedCap > effectiveCap * 0.95 ? 'tight' :
+      projectedCap > budgetCap ? 'over' :
+      projectedCap > budgetCap * 0.95 ? 'tight' :
       'ok';
 
     const renewedCount = myOffers.filter(o => decisions.get(o.id) === 'renew').length;
@@ -147,7 +151,7 @@ export function initRenewalsScreen(
         </div>`;
     }).join('');
 
-    const capPill = `<span class="rn-cappill rn-cappill--${capStatus}"><span>CAP</span><span>${fmtWage(projectedCap)} / ${fmtWage(effectiveCap)}</span></span>`;
+    const capPill = `<span class="rn-cappill rn-cappill--${capStatus}"><span>BUDGET</span><span>${fmtWage(projectedCap)} / ${fmtWage(budgetCap)}</span></span>`;
 
     el!.innerHTML = `
       <div class="app-header">

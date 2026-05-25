@@ -128,7 +128,20 @@ async function runOnce(seed: number): Promise<string> {
 
     let rolloverEvents: unknown[] = [];
     let marketSummary: unknown = null;
+    let budgetSummary: unknown = null;
     if (s < SEASONS - 1) {
+      // Phase 9: prepare next-season budgets (performance + takeovers)
+      // BEFORE renewals so the AI signs against the new owner-set
+      // budget. Hash the resulting events + the post-apply per-club
+      // budget map.
+      const budgetEvents = coord.prepareBudgetsForNextSeason();
+      const clubsAfter = [...coord.getState().career.clubs].sort((a, b) => a.id.localeCompare(b.id));
+      const takeoverHistoryAfter = [...coord.getState().career.takeoverHistory].sort();
+      budgetSummary = {
+        eventCount: budgetEvents.length,
+        budgetMap: clubsAfter.map(c => [c.id, c.salaryBudget]),
+        takeoverHistory: takeoverHistoryAfter,
+      };
       // Phase 4: exercise the renewal window between seasons. AI-only
       // — no user decisions, so the director resolves every offer
       // deterministically against the cap target.
@@ -193,6 +206,7 @@ async function runOnce(seed: number): Promise<string> {
       teamStatsHash,
       seasonStatsHash,
       marketSummary,
+      budgetSummary,
       playoffSummary,
       // Strip large stable fields from the rollover payload — only the
       // PLAYER_RETIRED rosterIds and PLAYER_AGED deltas matter for the

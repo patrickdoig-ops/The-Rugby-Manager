@@ -105,6 +105,65 @@ export const RENEWAL = {
   aiReleaseRatingFloor: 70,
 };
 
+// Per-club salary budgets for 2025/26 — the cap-relevant amount each
+// owner is willing to spend on non-marquee wages. Differs from the
+// league-wide effective cap (£7.8m), which is the absolute ceiling no
+// club can exceed regardless of owner appetite. Sourced from real-world
+// reporting of each club's 2025/26 spend.
+//
+// Midpoints of the published bands. Newcastle's £4.15m sits below the
+// year-2+ floor; the floor only applies from 2026/27 onwards so the
+// seed value stands for the opening season. The Red Bull takeover then
+// lifts them at the year-1→year-2 rollover.
+export const CLUB_SALARY_BUDGETS_2025_26: Record<string, number> = {
+  bath:        7_750_000,
+  bristol:     6_150_000,
+  exeter:      6_500_000,
+  gloucester:  6_100_000,
+  harlequins:  6_700_000,
+  leicester:   6_900_000,
+  newcastle:   4_150_000,
+  northampton: 6_500_000,
+  sale:        7_500_000,
+  saracens:    7_700_000,
+};
+
+// Year-on-year budget adjustment after each completed season.
+//   nextBudget = clamp(
+//     prevBudget
+//       + (5.5 − finalLeaguePosition) × positionDelta
+//       + (semiFinalist ? semiFinalBonus : 0)
+//       + (champion    ? championBonus  : 0),
+//     floor (from year 2 onwards),
+//     EFFECTIVE_CAP
+//   )
+// `floor` is the RPA-mandated minimum salary spend from 2026/27. The
+// 2025/26 seed values are not subject to it (Newcastle starts below).
+// `positionDelta` of £100k means roughly £1m swing top-to-bottom — big
+// enough to feel real over 3-4 seasons, small enough that the league
+// doesn't reshape overnight.
+export const BUDGET_VALUES = {
+  floor:           5_400_000,
+  positionDelta:     100_000,
+  semiFinalBonus:    100_000,
+  championBonus:     200_000,
+};
+
+// Club takeover (new investor / Red Bull style). +£1m to wage budget
+// for the upcoming season, clamped at EFFECTIVE_CAP. Hardcoded for
+// Newcastle Red Bulls at the year-1 → year-2 rollover; thereafter, each
+// not-yet-taken-over club has `randomChancePct`% per rollover.
+//
+// At 4% per club, with 9 eligible clubs in year 3, expected ~0.4
+// takeovers per year league-wide — a takeover roughly every 2-3
+// seasons. Once a club is taken over they're permanently out of the
+// pool.
+export const TAKEOVER_VALUES = {
+  boostAmount:           1_000_000,
+  hardcodedYear2ClubId:  'newcastle',
+  randomChancePct:       4,
+};
+
 // All synthesised wages floor at WAGE_FLOOR and round to the nearest
 // WAGE_ROUNDING_UNIT, so the UI never shows £138,743 and seeded squads
 // can't dip below the RPA rookie rate. WAGE_FLOOR is also the academy

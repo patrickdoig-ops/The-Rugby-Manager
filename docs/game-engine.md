@@ -71,6 +71,8 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 | `SEASON_ROLLED_OVER` | One per rollover, after all `TRANSFER_ACTIVATED` / `PLAYER_AGED` / `PLAYER_RETIRED` / `ACADEMY_GRADUATED` / `FOREIGN_IMPORT_ARRIVED` events for that rollover | Composite: archives just-completed standings + top scorer + MVP + `championTeamId` into `state.career.archive`, resets `league.results` / `league.standings` / `league.playoffs` / per-player `seasonStats`, replaces `league.fixtures` with the regenerated round-robin, sets the new `seasonLabel`, increments `seasonsCompleted`. Clears `state.career.pendingMoves` as a safety net (they were already drained by the preceding `TRANSFER_ACTIVATED` events). |
 | `PLAYOFF_BRACKET_SEEDED` | Once after the last R18 fixture is recorded (via `seedPlayoffBracket`) | Writes `state.league.playoffs` with the two semi-finals (1 v 4, 2 v 3) seeded from `sortStandings(top 4)` and a Final entry with `homeId`/`awayId` null. Idempotent — exits early if the bracket already exists. |
 | `PLAYOFF_RESULT_RECORDED` | One per playoff match — player (via `recordPlayerPlayoffResult`) or AI sim (via `simulatePendingPlayoffMatches`) | Sets `result` on the named match. Cascades: on a SF result, populates the Final's matching slot from the SF winner (SF1 → home, SF2 → away). On the Final's result, sets `championTeamId`. Does NOT touch `league.standings` — playoffs are independent of league points. |
+| `CLUB_BUDGET_SET` | Once per club at the start of the off-season chain (via `prepareBudgetsForNextSeason`) | Sets `state.career.clubs[clubId].salaryBudget` to the post-clamp new value (performance-derived base, floored from year 2 onwards, ceilinged at the effective cap). `delta` + `reasons` carry display payload for the BudgetRevealScreen. |
+| `CLUB_TAKEOVER` | After all `CLUB_BUDGET_SET` events when a club hits the takeover trigger — Newcastle Red Bull at year-1 → year-2 (hardcoded), random investor takeovers from year 3+ (`rngTransfer` rolls) | Adds `boostAmount` (£1m) to the named club's `salaryBudget`, clamped at the effective cap. Pushes the clubId onto `state.career.takeoverHistory` so the club is excluded from future random rolls. |
 
 `GameCoordinator.rollSeason()` returns the applied `SeasonEvent[]` so `main.ts` can hand it to `RolloverScreen` for the post-apply diff render.
 
@@ -141,6 +143,38 @@ Every persistent roster Player carries a `PlayerContract { clubId, expiresOn, an
 - **Cap pill**: 3-state colour-coded against the effective cap — `ok` (≤ 95%, green), `tight` (95–100%, amber), `over` (red, with the `CAP` label highlighted). Cap = Σ non-marquee wages; the marquee slot is genuinely cap-excluded.
 
 Expiring-within-10-months rows get a warning chip — a passive signal heading into the renewal window.
+
+## Club wage budgets (Phase 9)
+
+Each club has its own `salaryBudget` (on `ClubState`) — the owner-set ceiling on cap-relevant wages, distinct from the league-wide effective cap. The cap (£7.8m) sits above as an absolute ceiling no club can exceed; the budget bites first. Seeded from `CLUB_SALARY_BUDGETS_2025_26` in `src/engine/balance/transfers.ts` (real-world reporting; Newcastle £4.15m at the bottom, Bath £7.75m at the top).
+
+**Hard constraint.** `TransferCoordinator.signFreeAgent` and `preAgreePoach` reject the move when it would push `clubBudgetUsage(state, clubId) + offer.annualWage` above `club.salaryBudget`. The UI mirrors this — both `TransferMarketScreen`'s sign / pre-agree buttons and the budget pill flip to `over` before the engine-side block fires. Marquee wages stay excluded from budget accounting (same rule as cap), so a marquee designation never breaches the budget.
+
+**Year-on-year adjustment.** `budgetPlanner.computeBudgetEvents(state)` returns the SeasonEvent stream for the upcoming season — fired by `GameCoordinator.prepareBudgetsForNextSeason()` at the start of the off-season chain (after EndOfSeason, before Renewals). Formula:
+
+```
+nextBudget = clamp(
+  prevBudget
+    + (5.5 − finalLeaguePosition) × BUDGET_VALUES.positionDelta   // ±£100k/position
+    + (semiFinalist ? BUDGET_VALUES.semiFinalBonus : 0)            // +£100k
+    + (champion    ? BUDGET_VALUES.championBonus  : 0),            // +£200k
+  BUDGET_VALUES.floor (year ≥ 2),                                  // £5.4m
+  SENIOR_CAP + EFFECTIVE_CAP_CREDITS,                              // £7.8m
+)
+```
+
+Rounded to the nearest £50k for clean display. `BudgetReason[]` chips on `CLUB_BUDGET_SET` carry the position number, SF / champion flags, and floor / cap-applied markers so the reveal screen can render the breakdown without re-deriving from standings.
+
+**Takeovers.** A `CLUB_TAKEOVER` event lifts a single club's `salaryBudget` by `TAKEOVER_VALUES.boostAmount` (£1m), clamped at the effective cap, and adds the clubId to `state.career.takeoverHistory` so each club can only be taken over once. Two pathways:
+- **Hardcoded year-2 (Newcastle Red Bull).** Fires deterministically at the year-1 → year-2 rollover. Flavor `'red_bull'`. With the £5.4m floor + £1m boost, Newcastle lands at £6.4m for 2026/27.
+- **Random year-3+.** Each club not already in `takeoverHistory` rolls `rngTransfer(1, 100) <= TAKEOVER_VALUES.randomChancePct` (4%). Independent per club, stable alpha-by-clubId iteration so the rngTransfer sequence is reproducible. Multiple takeovers in a single off-season are possible but rare (expected ~0.4/year). Flavor `'investor'`.
+
+**AI behaviour.** `aiTransferDirector`'s three decision paths (`decideAIOffers`, `decideAISignings`, `decideAIPoaches`) all target `club.salaryBudget × RENEWAL.aiTargetCapUtilisation` (or `AI_SIGNING_POLICY.capTarget` for signings/poaches). Big spenders like Bath continue to fill toward £7.8m; budget-constrained clubs like Newcastle stay well under and shop accordingly.
+
+**UI surface.**
+- `BudgetRevealScreen` — "Owner's Budget" card. Two entry points: (1) at the start of Squad Builder mode showing the year-1 seeded budget (no delta / reasons), (2) between EndOfSeason and Renewals each year showing the new budget + delta chip (+/−£Xm) + reason chips ("Finished 4th", "Reached the semi-finals", "Premiership champions", "League minimum applied"). Reads `clubBudgetUsage` to surface "headroom for signings" inline.
+- `TakeoverRevealScreen` — Fires after BudgetReveal when one or more `CLUB_TAKEOVER` events landed this rollover. Player's own club gets a hero card with flavour blurb ("Newcastle Red Bulls taken over by Red Bull"); other clubs render as a "Around the league" list below.
+- Existing pills on `ContractsScreen`, `RenewalsScreen`, `TransferMarketScreen` now compare against `club.salaryBudget` instead of the league-wide effective cap. The `CAP` label is relabelled `BUDGET` in those three locations.
 
 ## End-of-season renewals (Phase 4)
 
@@ -218,7 +252,7 @@ A three-match knockout follows the 18-round Premiership regular season: two semi
 
 ## Save format
 
-`SAVE_VERSION = 13` (as of v2.136a). `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`.
+`SAVE_VERSION = 14` (as of v2.142a). `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`.
 
 | Version | Added |
 |---|---|
@@ -234,9 +268,11 @@ A three-match knockout follows the 18-round Premiership regular season: two semi
 | v11 | `SavedSeasonResult` gains `homeTries` + `awayTries` for the bonus-points system. Pre-v11 rounds were played without try-bonus tracking, so older saves default to 0 — no fabricated retroactive bonuses. |
 | v12 | `career.preSeasonStep` (`'overview' \| 'signings' \| 'marquee' \| undefined`) — Squad Builder resumption flag. Set during the pre-season flow at game start (Phase 8), cleared after marquee Continue. Outside Squad Builder this is always undefined and the field is omitted from the payload, so existing in-season saves stay byte-equivalent. The `'overview'` value was added v2.120a alongside SquadOverviewScreen — `SAVE_VERSION` stays at 12 since the field is purely additive within its optional value range. |
 | v13 | Top-level `playoffs` (`PlayoffState \| undefined`) — the active knockout bracket. Omitted when no bracket is active (mid-regular-season). Each `ArchivedSeason` gains `championTeamId: string \| null`; pre-v13 archive entries load as `null`. Stays at v13 since both additions are purely additive within their optional / nullable shapes. |
+| v14 | `ClubState.salaryBudget` — per-club owner-set budget for cap-relevant wages. Seeded from `CLUB_SALARY_BUDGETS_2025_26` at game start, adjusted each rollover by `prepareBudgetsForNextSeason`. `career.takeoverHistory: string[]` — clubIds taken over (Newcastle Red Bull at year 2 + random investors year 3+); excluded from future random rolls. |
 
 **Migration on load** (`GameCoordinator.fromSave`):
 
+- v13 → v14: pre-v14 clubs default `salaryBudget` to the effective cap (no retroactive constraint — the next rollover then recomputes via `computeBudgetEvents` and the per-club budget kicks in from then on). `takeoverHistory` defaults to `[]` — pre-v14 saves never had a takeover, so a v13 save loaded mid-year-1 still fires the Newcastle Red Bull takeover at the next rollover.
 - v12 → v13: no-op shim. `playoffs` is optional; pre-v13 archives gain `championTeamId: null`. After restoration `continueGame` calls `seedPlayoffBracket()` so a v12 save stuck at "all 18 played, no playoffs" auto-seeds and enters the playoff stage chain.
 - v11 → v12: no-op shim. `preSeasonStep` is optional; older saves load with the field absent and `continueGame` routes straight to Hub.
 - v10 → v11: pre-v11 results default `homeTries` / `awayTries` to 0.
@@ -250,7 +286,7 @@ A three-match knockout follows the 18-round Premiership regular season: two semi
 - v2 → v3: legacy path, no schedule snapshot — falls back to current canonical schedule.
 - v1: discarded (predates AI-vs-AI results, league table can't be reconstructed).
 
-The persisted career state always flows through `CAREER_ARCHIVE_RESTORED` (with optional `freeAgents` + `market` + `pendingMoves` + `teamSeasonStats` + `preSeasonStep` fields) so every `state.career.*` write stays inside `applySeasonEvent` — the mutation seam holds even across the load path.
+The persisted career state always flows through `CAREER_ARCHIVE_RESTORED` (with optional `freeAgents` + `market` + `pendingMoves` + `teamSeasonStats` + `preSeasonStep` + `playoffs` + `takeoverHistory` fields) so every `state.career.*` write stays inside `applySeasonEvent` — the mutation seam holds even across the load path.
 
 ## New-game flow: Quick Start vs Squad Builder
 
@@ -314,6 +350,11 @@ Match → MatchResult → recordPlayerMatchResult + snapshotMatch + saveGame
                        │
                        └── (champion crowned: game:seasonComplete latched)
                              → EndOfSeasonScreen [recap + champion banner]
+                             → prepareBudgetsForNextSeason()                   (Phase 9)
+                                  · CLUB_BUDGET_SET per club (performance-derived)
+                                  · CLUB_TAKEOVER for Newcastle yr2 or random yr3+
+                             → BudgetRevealScreen [owner's budget + delta]
+                             → TakeoverRevealScreen (if any takeover fired)
                              → openRenewalWindow()                            (Phase 4)
                                   │
                                   ├── market populated (expiring offers)

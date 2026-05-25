@@ -46,8 +46,8 @@ import { zeroTeamSeasonStats } from '../types/gameState';
 import type { TeamTactics } from '../types/team';
 
 const SAVE_KEY = 'rugby-manager-save';
-const SAVE_VERSION = 13;
-const ACCEPTED_VERSIONS = new Set([13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+const SAVE_VERSION = 14;
+const ACCEPTED_VERSIONS = new Set([14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
 
 export type SavedGame = SavedSeason & { version: number };
 
@@ -158,10 +158,27 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
   const preSeasonStep = c.preSeasonStep === 'overview' || c.preSeasonStep === 'signings' || c.preSeasonStep === 'marquee'
     ? c.preSeasonStep
     : undefined;
+  // v14+ — takeoverHistory persists which clubs have been taken over.
+  // Pre-v14 saves omit it; load as an empty array (no historical
+  // takeovers known). Newcastle Red Bull then re-fires on the next
+  // year-1→year-2 transition if the save is in season 1.
+  const takeoverHistory = Array.isArray(c.takeoverHistory)
+    ? (c.takeoverHistory as unknown[]).filter((x): x is string => typeof x === 'string')
+    : undefined;
   return {
     seasonsCompleted: c.seasonsCompleted,
     nextRosterId: c.nextRosterId,
-    clubs: (c.clubs as ClubState[]).map(cl => ({ id: cl.id, squad: [...cl.squad] })),
+    // v14+ clubs carry salaryBudget. Pre-v14 saves default each club's
+    // budget to undefined; GameCoordinator.fromSave back-fills to the
+    // effective cap so the load is non-disruptive. The next rollover
+    // then recomputes via computeBudgetEvents.
+    clubs: (c.clubs as ClubState[]).map(cl => ({
+      id: cl.id,
+      squad: [...cl.squad],
+      salaryBudget: typeof (cl as Partial<ClubState>).salaryBudget === 'number'
+        ? (cl as ClubState).salaryBudget
+        : undefined as unknown as number, // backfilled in fromSave
+    })),
     roster: backfillRosterSeasonStats(c.roster as Record<number, Player>),
     archive: (c.archive as ArchivedSeason[]).map(a => ({
       seasonLabel: a.seasonLabel,
@@ -176,6 +193,7 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
     market,
     pendingMoves,
     ...(preSeasonStep !== undefined ? { preSeasonStep } : {}),
+    ...(takeoverHistory !== undefined ? { takeoverHistory } : {}),
   };
 }
 

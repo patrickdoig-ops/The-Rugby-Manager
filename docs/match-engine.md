@@ -186,7 +186,7 @@ Ratings are computed from accumulated per-player statistics, not from event-by-e
 ```
 baseScore = 6.0
 score += tries × 7.0
-score += lineBreaks × 2.5
+score += lineBreaks × 1.2
 score += defendersBeaten × 0.8
 score += turnoversWon × 2.5
 score += dominantTackles × 1.0
@@ -209,7 +209,7 @@ Position bonuses (stacked additively on top of universal):
 | 6–8 (back row) | `turnoversWon × 1.5` (stacked) + `carries × 0.3` |
 | 9 (scrum-half) | `passes × 0.05` |
 | 10 (fly-half) | `kicksFromHand × 0.25` |
-| 11, 14, 15 (wings/fullback) | `lineBreaks × 1.5` (stacked) |
+| 11, 14, 15 (wings/fullback) | `lineBreaks × 0.5` (stacked) |
 
 ```
 rating = clamp(6.0 + score / 10.0, 1.0, 10.0)

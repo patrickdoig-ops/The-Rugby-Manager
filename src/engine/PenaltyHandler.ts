@@ -116,6 +116,7 @@ export class PenaltyHandler {
       });
     });
     if (wasRunning) eventBus.emit('engine:resumed', {});
+    if (!state.engine.isRunning) return;
     this.applyPenaltyChoice(choice);
   }
 

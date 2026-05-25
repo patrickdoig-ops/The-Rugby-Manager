@@ -361,6 +361,7 @@ export class MatchCoordinator {
       if (wasRunning) eventBus.emit('engine:resumed', {});
     }
 
+    if (!this.state.engine.isRunning) return;
     if (benchSquadNum === null) return;
     const benchPlayer = team.bench.find(p => p.squadNumber === benchSquadNum);
     if (!benchPlayer) return;

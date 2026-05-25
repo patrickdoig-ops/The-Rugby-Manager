@@ -13,7 +13,7 @@ export const RATING_WEIGHTS = {
   max: 10.0,
   universal: {
     tries:               7.0,
-    lineBreaks:          2.5,
+    lineBreaks:          1.2,
     defendersBeaten:     0.8,
     turnoversWon:        3.5,
     dominantTackles:     2.0,
@@ -34,7 +34,7 @@ export const RATING_WEIGHTS = {
     backRow:   { extraTurnoverWon: 3.5, carry: 0.5 },
     scrumHalf: { passes: 0.05 },
     flyHalf:   { kicksFromHand: 0.25 },
-    backThree: { extraLineBreak: 1.0 },
+    backThree: { extraLineBreak: 0.5 },
   },
 } as const;
 

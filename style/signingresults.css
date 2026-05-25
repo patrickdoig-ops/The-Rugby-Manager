@@ -32,10 +32,11 @@
 }
 
 .sr-section-h {
-  font-family: var(--rm-font-display);
-  letter-spacing: 0.06em;
-  font-size: 13px;
-  color: var(--rm-text-muted);
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--rm-text-dim);
   margin: 0 0 10px;
   text-transform: uppercase;
 }

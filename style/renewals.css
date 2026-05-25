@@ -43,12 +43,12 @@
 }
 
 .rn-cappill--over {
-  border-color: color-mix(in oklch, var(--rm-danger, #d8503e) 60%, transparent);
-  background: color-mix(in oklch, var(--rm-danger, #d8503e) 16%, transparent);
+  border-color: color-mix(in oklch, var(--rm-danger) 60%, transparent);
+  background: color-mix(in oklch, var(--rm-danger) 16%, transparent);
 }
 
 .rn-cappill--over span:first-child {
-  color: var(--rm-danger, #d8503e);
+  color: var(--rm-danger);
 }
 
 .rn-cappill span:last-child {
@@ -85,7 +85,7 @@
 .rn-row--release {
   background: color-mix(in oklch, var(--rm-surface) 60%, transparent);
   opacity: 0.78;
-  border-color: color-mix(in oklch, var(--rm-danger, #d8503e) 25%, var(--rm-border-soft));
+  border-color: color-mix(in oklch, var(--rm-danger) 25%, var(--rm-border-soft));
 }
 
 .rn-row-main {
@@ -151,7 +151,7 @@
   font-size: 10px;
 }
 
-.rn-delta-pos { color: var(--rm-danger, #d8503e); }
+.rn-delta-pos { color: var(--rm-danger); }
 .rn-delta-neg { color: var(--rm-pitch); }
 
 .rn-toggle {
@@ -191,9 +191,9 @@
 }
 
 .rn-pick--active[data-decision="release"] {
-  border-color: var(--rm-danger, #d8503e);
-  background: color-mix(in oklch, var(--rm-danger, #d8503e) 18%, transparent);
-  color: var(--rm-danger, #d8503e);
+  border-color: var(--rm-danger);
+  background: color-mix(in oklch, var(--rm-danger) 18%, transparent);
+  color: var(--rm-danger);
 }
 
 .rn-empty {

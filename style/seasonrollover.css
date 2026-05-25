@@ -315,7 +315,7 @@
 }
 
 .roll-delta-pos { color: var(--rm-pitch); }
-.roll-delta-neg { color: var(--rm-danger, #d8503e); }
+.roll-delta-neg { color: var(--rm-danger); }
 
 .roll-empty {
   font-family: var(--rm-font-mono);

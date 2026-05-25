@@ -34,8 +34,8 @@
 
 .tm-cappill--ok    { border-color: color-mix(in oklch, var(--rm-pitch) 40%, transparent); background: color-mix(in oklch, var(--rm-pitch) 12%, transparent); }
 .tm-cappill--tight { border-color: color-mix(in oklch, #d8a14a 60%, transparent);          background: color-mix(in oklch, #d8a14a 14%, transparent); }
-.tm-cappill--over  { border-color: color-mix(in oklch, var(--rm-danger, #d8503e) 60%, transparent); background: color-mix(in oklch, var(--rm-danger, #d8503e) 16%, transparent); }
-.tm-cappill--over span:first-child { color: var(--rm-danger, #d8503e); }
+.tm-cappill--over  { border-color: color-mix(in oklch, var(--rm-danger) 60%, transparent); background: color-mix(in oklch, var(--rm-danger) 16%, transparent); }
+.tm-cappill--over span:first-child { color: var(--rm-danger); }
 .tm-cappill span:last-child { color: var(--rm-chalk); font-weight: 600; }
 
 #tm-headrow,
@@ -173,12 +173,12 @@
 }
 
 .tm-sign--warn {
-  border-color: var(--rm-danger, #d8503e);
-  color: var(--rm-danger, #d8503e);
+  border-color: var(--rm-danger);
+  color: var(--rm-danger);
 }
 
 .tm-sign--warn:hover {
-  background: color-mix(in oklch, var(--rm-danger, #d8503e) 18%, transparent);
+  background: color-mix(in oklch, var(--rm-danger) 18%, transparent);
 }
 
 /* In-window commitment: signed or pre-agreed. Button label flips to
@@ -191,9 +191,9 @@
 }
 
 .tm-sign--undo:hover {
-  background: color-mix(in oklch, var(--rm-danger, #d8503e) 14%, transparent);
-  border-color: var(--rm-danger, #d8503e);
-  color: var(--rm-danger, #d8503e);
+  background: color-mix(in oklch, var(--rm-danger) 14%, transparent);
+  border-color: var(--rm-danger);
+  color: var(--rm-danger);
 }
 
 .tm-row--committed .tm-name,

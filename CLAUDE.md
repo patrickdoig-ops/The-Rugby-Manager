@@ -1,7 +1,6 @@
 # CLAUDE.md
 
-Architectural invariants and ways of working for this repo. Lean by design. Read in full at session start. For match-engine internals see **`docs/match-engine.md`**; for the season/career engine see **`docs/game-engine.md`**; for the transfer system roadmap see **`docs/transfer-system.md`**; for visual design see **`docs/DESIGN.md`**.
-
+Architectural invariants and ways of working for this repo. Lean by design. Read in full at session start. For match-engine internals see **`docs/match-engine.md`**; for the season/career engine see **`docs/game-engine.md`**; for the transfer system roadmap see **`docs/transfer-system.md`**; Visual & interaction conventions are in docs/DESIGN.md. Read it before touching CSS or UI components.
 ---
 
 ## 1. Think Before Coding

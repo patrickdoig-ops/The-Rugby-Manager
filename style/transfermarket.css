@@ -94,7 +94,8 @@
 .tm-head.tm-num, .tm-head.tm-wage { text-align: right; }
 .tm-head.tm-sign-col { text-align: center; }
 
-#tm-list {
+#tm-list,
+#tm-poach-list {
   flex: 1;
   overflow-y: auto;
   padding-bottom: 16px;
@@ -326,9 +327,6 @@
   margin-top: 8px;
 }
 
-#tm-poach-list {
-  padding-bottom: 16px;
-}
 
 .tm-from {
   font-family: var(--rm-font-mono);

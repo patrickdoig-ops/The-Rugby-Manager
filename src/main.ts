@@ -621,13 +621,14 @@ document.addEventListener('DOMContentLoaded', () => {
       neutralVenue: match.kind === 'final',
     });
     initSimController(engine);
-    screenRouter.show('app');
 
     const unsub = eventBus.on('engine:finished', ({ state }) => {
       unsub();
       showPlayoffMatchResult(engine, state, match);
     });
+    // Initialise BEFORE revealing #app — see onMatchStart for the rationale.
     engine.initialize();
+    screenRouter.show('app');
   }
 
   function showPlayoffMatchResult(engine: MatchCoordinator, state: MatchState, match: PlayoffMatch): void {
@@ -698,13 +699,17 @@ document.addEventListener('DOMContentLoaded', () => {
   ): void {
     const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: loadTickDelayMs(), playerTactics, humanSide: playerSide });
     initSimController(engine);
-    screenRouter.show('app');
 
     const unsub = eventBus.on('engine:finished', ({ state }) => {
       unsub();
       showMatchResult(engine, state, round);
     });
+    // Initialise BEFORE revealing #app so the scoreboard / commentary / pitch
+    // panels reset on engine:initialized and repaint on the first
+    // engine:stateChange while the screen is still hidden. Otherwise the user
+    // sees the previous match's score / clock / commentary flash for a beat.
     engine.initialize();
+    screenRouter.show('app');
   }
 
   function showMatchResult(engine: MatchCoordinator, state: MatchState, round: number): void {

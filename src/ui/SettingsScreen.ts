@@ -1,4 +1,6 @@
 import { isSfxEnabled, setSfxEnabled, getVolume, setVolume } from './SoundManager';
+import { clearSave } from './SaveManager';
+import { VERSION } from '../version';
 
 // Not yet enabled — a full light-mode CSS pass across every screen file
 // is needed before this ships. HomeScreen.ts gates its theme button behind
@@ -61,6 +63,32 @@ export function initSettingsScreen(onBack: () => void): void {
           </div>
         </div>
       </section>
+
+      <section class="settings-section">
+        <h2 class="settings-section-title">Advanced</h2>
+
+        <div class="settings-row">
+          <label class="settings-row-label">Reset progress</label>
+          <button id="settings-reset" class="settings-danger-btn">Reset</button>
+        </div>
+      </section>
+
+      <section class="settings-section settings-section--meta">
+        <h2 class="settings-section-title">About</h2>
+
+        <div class="settings-meta-row">
+          <span class="settings-row-label">App version</span>
+          <span class="settings-meta-val">${VERSION}</span>
+        </div>
+        <div class="settings-meta-row">
+          <span class="settings-row-label">Build</span>
+          <span class="settings-meta-val">${__BUILD_VERSION__}</span>
+        </div>
+        <div class="settings-meta-row">
+          <span class="settings-row-label">Released</span>
+          <span class="settings-meta-val">${__BUILD_DATE__}</span>
+        </div>
+      </section>
     </div>
   `;
 
@@ -81,6 +109,15 @@ export function initSettingsScreen(onBack: () => void): void {
   volume.addEventListener('input', () => {
     setVolume(Number(volume.value));
     volumeLabel.textContent = volume.value;
+  });
+
+  el.querySelector<HTMLButtonElement>('#settings-reset')!.addEventListener('click', () => {
+    const ok = window.confirm(
+      'Reset all progress?\n\nThis will permanently delete your saved career and start fresh.',
+    );
+    if (!ok) return;
+    clearSave();
+    location.reload();
   });
 
   if (LIGHT_MODE_EXPERIMENTAL) {

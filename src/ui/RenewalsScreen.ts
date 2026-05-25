@@ -20,6 +20,7 @@ import type { Player } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
 import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance/transfers';
 import { getAge } from '../game/age';
+import { showToast } from './Toast';
 
 type Decision = 'renew' | 'release';
 
@@ -179,7 +180,19 @@ export function initRenewalsScreen(
         if (!row) return;
         const offerId = row.dataset.offerId;
         if (!offerId) return;
-        decisions.set(offerId, btn.dataset.decision as Decision);
+        const decision = btn.dataset.decision as Decision;
+        const prev = decisions.get(offerId) ?? 'renew';
+        decisions.set(offerId, decision);
+        if (decision !== prev) {
+          const offer = myOffers.find(o => o.id === offerId);
+          const p = offer ? state.career.roster[offer.rosterId] : undefined;
+          if (p) {
+            showToast(
+              `${p.firstName} ${p.lastName} ${decision === 'renew' ? 'renewed' : 'released'}`,
+              decision === 'renew' ? 'success' : 'danger',
+            );
+          }
+        }
         render();
       });
     });

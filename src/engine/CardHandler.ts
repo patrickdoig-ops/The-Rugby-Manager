@@ -3,17 +3,19 @@ import type { Player } from '../types/player';
 import type { PossessionSide } from '../types/engine';
 import type { CardAnnouncementKey } from '../types/narration';
 import { MatchPhase } from '../types/engine';
-import { eventBus } from '../utils/eventBus';
 import { rng } from '../utils/rng';
 import { makeId } from './eventId';
 import { inOwn22For } from './FieldPosition';
 import { applyMatchEvent } from './applyMatchEvent';
 import { TMO, TEAM_22, OFFENCE_SPEC } from './balance';
+import type { CommentaryStreamer } from './CommentaryStreamer';
 
 export interface CardHandlerDeps {
   state: MatchState;
   humanSide: PossessionSide;
   silent: boolean;
+  // Events route through the streamer so they pace evenly across the tick.
+  streamer: CommentaryStreamer;
 }
 
 // Verdict returned by evaluateNewPenalty so MatchCoordinator knows whether to
@@ -164,7 +166,7 @@ export class CardHandler {
       teamName,
     });
     applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: ev });
-    if (!silent) eventBus.emit('engine:event', { event: ev });
+    if (!silent) this.deps.streamer.enqueue(ev);
   }
 }
 

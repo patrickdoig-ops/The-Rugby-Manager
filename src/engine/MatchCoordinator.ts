@@ -33,6 +33,7 @@ import { PenaltyHandler } from './PenaltyHandler';
 import { CardHandler, buildAnnounce } from './CardHandler';
 import { ClockController } from './ClockController';
 import { FatigueAccumulator } from './FatigueAccumulator';
+import { CommentaryStreamer } from './CommentaryStreamer';
 import { detectEntry22Changes } from './Entry22Tracker';
 import { resolvePhase, draftEvent } from './PhaseRouter';
 import { makeId, resetEventCounter } from './eventId';
@@ -210,6 +211,7 @@ export class MatchCoordinator {
   private fatigue: FatigueAccumulator;
   private director: AITacticalDirector;
   private subDirector: AISubstitutionDirector;
+  private streamer: CommentaryStreamer;
   private busUnsubs: Array<() => void> = [];
   // When a red_20 forced-substitution modal is open and waiting on the
   // manager, the Promise's resolve sits here so destroy() can short-circuit
@@ -237,19 +239,24 @@ export class MatchCoordinator {
     if (opts.commentaryBufferCap !== undefined) {
       applyMatchEvent(this.state, { type: 'COMMENTARY_BUFFER_CAP_SET', value: opts.commentaryBufferCap });
     }
-    this.clock = new ClockController(this.silent);
-    this.fatigue = new FatigueAccumulator(this.state, this.silent);
+    // Streamer must be constructed before the other handlers since they
+    // all enqueue events through it.
+    this.streamer = new CommentaryStreamer(this.silent);
+    this.clock = new ClockController(this.silent, this.streamer);
+    this.fatigue = new FatigueAccumulator(this.state, this.silent, this.streamer);
 
     this.penaltyHandler = new PenaltyHandler({
       state: this.state,
       humanSide: this.humanSide,
       silent: this.silent,
+      streamer: this.streamer,
     });
 
     this.cardHandler = new CardHandler({
       state: this.state,
       humanSide: this.humanSide,
       silent: this.silent,
+      streamer: this.streamer,
     });
 
     // Director adapts AI tactics each tick based on score gap + clock. In
@@ -280,15 +287,20 @@ export class MatchCoordinator {
     }
   }
 
+  // Events are queued in the streamer and flushed evenly across the next
+  // tickDelayMs interval so multi-event ticks (kick-off announce +
+  // resolution, penalty + lineout award, etc.) read as separate beats
+  // rather than a single visual burst. The streamer pairs each event with
+  // a matching `engine:stateChange` emit at flush time, preserving the
+  // existing event-then-stateChange contract.
   private emitEvent(event: GameEvent): void {
-    if (this.silent) return;
-    eventBus.emit('engine:event', { event });
+    this.streamer.enqueue(event);
   }
 
-  private emitStateChange(): void {
-    if (this.silent) return;
-    eventBus.emit('engine:stateChange', { state: this.state });
-  }
+  // No-op kept so the many existing call sites compile unchanged. The
+  // streamer already pairs stateChange with every flushed event; firing
+  // an additional stateChange here would race the paced flush.
+  private emitStateChange(): void { /* handled by streamer */ }
 
   // Releases all per-match resources: cancels the pending tick timer, stops the
   // run flag, and unsubscribes the constructor-registered UI-event handlers.
@@ -306,6 +318,7 @@ export class MatchCoordinator {
       this.pendingForcedSubResolve(null);
       this.pendingForcedSubResolve = null;
     }
+    this.streamer.clear();
     for (const unsub of this.busUnsubs) unsub();
     this.busUnsubs = [];
   }
@@ -344,6 +357,10 @@ export class MatchCoordinator {
     if (this.silent || side !== this.humanSide) {
       benchSquadNum = pickAutoReplacement(team.bench, off);
     } else {
+      // Drain queued events before opening the forced-sub modal so the
+      // user reads the red_20 / injury narration before picking a
+      // replacement.
+      await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
       const wasRunning = this.state.engine.isRunning;
       benchSquadNum = await new Promise<number | null>(resolve => {
         this.pendingForcedSubResolve = resolve;
@@ -477,11 +494,13 @@ export class MatchCoordinator {
   pause(): void {
     applyMatchEvent(this.state, { type: 'IS_RUNNING_SET', value: false });
     if (this.tickTimeout) { clearTimeout(this.tickTimeout); this.tickTimeout = null; }
+    this.streamer.pause();
   }
 
   resume(): void {
     if (this.state.engine.isRunning) return;
     applyMatchEvent(this.state, { type: 'IS_RUNNING_SET', value: true });
+    this.streamer.resume();
     this.scheduleTick(0);
   }
 
@@ -533,6 +552,7 @@ export class MatchCoordinator {
         await this.penaltyHandler.handlePenaltyDecision();
         if (!this.state.engine.isRunning) return;
       }
+      this.streamer.flush(this.state.engine.tickDelayMs, this.state);
       this.scheduleTick(this.state.engine.tickDelayMs);
       return;
     }
@@ -588,6 +608,10 @@ export class MatchCoordinator {
     }
 
     if (this.state.phase === MatchPhase.KickOff) {
+      // Drain queued events before opening the kick-off strategy modal so
+      // the user reads the announce line ("Bath to kick off") before being
+      // asked to pick high/long/short.
+      await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
       this.kickOffStrategy = await this.penaltyHandler.awaitKickOffStrategy();
       if (!this.state.engine.isRunning) return;
     }
@@ -650,12 +674,15 @@ export class MatchCoordinator {
       // next 3 ticks of narrative.
       const verdict = this.cardHandler.evaluateNewPenalty();
       if (verdict === 'tmo') {
-        this.emitStateChange();
+        this.streamer.flush(this.state.engine.tickDelayMs, this.state);
         this.scheduleTick(this.state.engine.tickDelayMs);
         return;
       }
       // 'team22_card' issued an inline yellow before this point; 'none'
       // means no card. Either way, run the penalty decision modal next.
+      // Drain queued events first so the user reads the penalty narration
+      // (and any card announcement) before the modal pops.
+      await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
       await this.penaltyHandler.handlePenaltyDecision();
       if (!this.state.engine.isRunning) return;
       previousPhase = MatchPhase.Penalty;
@@ -668,11 +695,16 @@ export class MatchCoordinator {
         this.clock.triggerHalfTime(this.state);
         if (!this.state.engine.isRunning) return;
       } else {
-        this.clock.endMatch(this.state);
+        await this.clock.endMatch(this.state);
         return;
       }
     }
 
+    // Trigger the paced drain of any events emitted during this tick.
+    // We don't await — the streamer drains in the background over
+    // tickDelayMs, which is the same interval scheduleTick waits before
+    // the next tick. Drain completes naturally before the next tick fires.
+    this.streamer.flush(this.state.engine.tickDelayMs, this.state);
     this.scheduleTick(this.state.engine.tickDelayMs);
   }
 

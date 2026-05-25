@@ -8,6 +8,7 @@ import { attackDir, inOpposition22, inOppositionHalf, metresFromOppositionTryLin
 import { applyMatchEvent } from './applyMatchEvent';
 import { PENALTY_VALUES, TAP_AND_GO_AI } from './balance';
 import { rng } from '../utils/rng';
+import type { CommentaryStreamer } from './CommentaryStreamer';
 
 export interface PenaltyHandlerDeps {
   state: MatchState;
@@ -15,6 +16,8 @@ export interface PenaltyHandlerDeps {
   // Silent mode (headless AI fixture): never prompt; resolve with the same
   // defaults the determinism harness uses (`high_ball` / `kick_for_goal`).
   silent?: boolean;
+  // Events route through the streamer so they pace evenly across the tick.
+  streamer: CommentaryStreamer;
 }
 
 export class PenaltyHandler {
@@ -122,8 +125,9 @@ export class PenaltyHandler {
 
   private emit(name: 'engine:event' | 'engine:stateChange', payload: { event: GameEvent } | { state: MatchState }): void {
     if (this.deps.silent) return;
-    if (name === 'engine:event') eventBus.emit('engine:event', payload as { event: GameEvent });
-    else eventBus.emit('engine:stateChange', payload as { state: MatchState });
+    // engine:stateChange is paired by the streamer with every flushed event;
+    // we only need to forward engine:event emissions through it.
+    if (name === 'engine:event') this.deps.streamer.enqueue((payload as { event: GameEvent }).event);
   }
 
   private applyPenaltyChoice(choice: PenaltyChoice): void {

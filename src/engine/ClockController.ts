@@ -6,22 +6,25 @@ import { rng } from '../utils/rng';
 import { makeId } from './eventId';
 import { applyMatchEvent } from './applyMatchEvent';
 import { CLOCK_VALUES } from './balance';
+import type { CommentaryStreamer } from './CommentaryStreamer';
 
 export class ClockController {
   // `silent` matches headless AI fixtures — suppresses every commentary
   // event and stateChange notification. `engine:finished` is still emitted
   // because the headless caller awaits it to read final scores.
-  constructor(private silent: boolean = false) {}
+  // Events route through the streamer; the streamer pairs each event with
+  // a matching engine:stateChange emit at flush time.
+  constructor(private silent: boolean, private streamer: CommentaryStreamer) {}
 
   private emitEvent(event: GameEvent): void {
     if (this.silent) return;
-    eventBus.emit('engine:event', { event });
+    this.streamer.enqueue(event);
   }
 
-  private emitStateChange(state: MatchState): void {
-    if (this.silent) return;
-    eventBus.emit('engine:stateChange', { state });
-  }
+  // Standalone stateChange emit is handled by the streamer pairing it with
+  // every flushed event. Kept as a no-op so the (now-unnecessary) call
+  // sites below continue to compile.
+  private emitStateChange(_state: MatchState): void { /* handled by streamer */ }
 
   // Advances state.clock.gameMinute via a CLOCK_ADVANCED MatchEvent.
   // Returns the raw timeAdvance so the caller can drive the fatigue accumulator.
@@ -108,7 +111,7 @@ export class ClockController {
     this.emitStateChange(state);
   }
 
-  endMatch(state: MatchState): void {
+  async endMatch(state: MatchState): Promise<void> {
     applyMatchEvent(state, { type: 'MATCH_ENDED' });
     applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.FullTime });
 
@@ -135,7 +138,10 @@ export class ClockController {
     };
     applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: ftEvent });
     this.emitEvent(ftEvent);
-    this.emitStateChange(state);
+    // Drain the streamer before signalling match-end so the result screen
+    // doesn't replace the commentary feed mid-flush. Silent mode short-
+    // circuits the streamer (no events enqueued), so drain is a no-op.
+    if (!this.silent) await this.streamer.flush(state.engine.tickDelayMs, state);
     eventBus.emit('engine:finished', { state });
   }
 }

@@ -12,8 +12,8 @@ import { computeFatigue } from './StaminaSystem';
 import { offFieldIds } from './FieldPosition';
 import { applyMatchEvent } from './applyMatchEvent';
 import { makeId } from './eventId';
-import { eventBus } from '../utils/eventBus';
 import { FATIGUE_SCALING } from './balance';
+import type { CommentaryStreamer } from './CommentaryStreamer';
 
 export class FatigueAccumulator {
   private accumulator = 0;
@@ -22,7 +22,8 @@ export class FatigueAccumulator {
   // commentary emit. The state mutations (FATIGUE_APPLIED, COMMENTARY_LOGGED)
   // still apply through the boundary so headless ratings and player stats stay
   // consistent with the live UI run.
-  constructor(private state: MatchState, private silent: boolean = false) {}
+  // Events route through the streamer so they pace evenly across the tick.
+  constructor(private state: MatchState, private silent: boolean, private streamer: CommentaryStreamer) {}
 
   tick(timeAdvance: number): void {
     this.accumulator += timeAdvance;
@@ -52,7 +53,7 @@ export class FatigueAccumulator {
           narration: { steps: [{ kind: 'announcement', key: 'fatigue_tiredness', primary: player }] },
         };
         applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: fatEvent });
-        if (!this.silent) eventBus.emit('engine:event', { event: fatEvent });
+        if (!this.silent) this.streamer.enqueue(fatEvent);
       }
     }
   }

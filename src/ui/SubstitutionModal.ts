@@ -135,14 +135,42 @@ export function renderSubstitutionPanel(container: HTMLElement, team: Team): voi
 
     container.querySelector('#btn-subs-confirm')!.addEventListener('click', () => {
       if (pendingSubs.length === 0) return;
-      // Capture the count before the loop — substitution handlers may
-      // mutate `pendingSubs` downstream and `ui:subsClosed` clears it.
+
+      // FLIP first: snapshot row positions before the swap.
+      const beforePositions = new Map<number, DOMRect>();
+      for (const sub of pendingSubs) {
+        const benchRow = document.querySelector<HTMLElement>(`.pm-player-row[data-squad="${sub.benchSquadNum}"]`);
+        const fieldRow = document.querySelector<HTMLElement>(`.pm-player-row[data-squad="${sub.fieldSquadNum}"]`);
+        if (benchRow) beforePositions.set(sub.benchSquadNum, benchRow.getBoundingClientRect());
+        if (fieldRow) beforePositions.set(sub.fieldSquadNum, fieldRow.getBoundingClientRect());
+      }
+
       const count = pendingSubs.length;
       for (const s of pendingSubs) {
         eventBus.emit('ui:substitution', { benchSquadNum: s.benchSquadNum, fieldSquadNum: s.fieldSquadNum });
       }
       showToast(`${count} substitution${count === 1 ? '' : 's'} made`);
       eventBus.emit('ui:subsClosed', {});
+
+      // FLIP last: after the parent re-renders, animate rows from old → new.
+      requestAnimationFrame(() => {
+        for (const [squadNum, oldRect] of beforePositions) {
+          const row = document.querySelector<HTMLElement>(`.pm-player-row[data-squad="${squadNum}"]`);
+          if (!row) continue;
+          const newRect = row.getBoundingClientRect();
+          const dy = oldRect.top - newRect.top;
+          if (Math.abs(dy) < 4) continue;
+          row.style.transform = `translateY(${dy}px)`;
+          row.style.transition = 'none';
+          void row.offsetHeight;
+          row.style.transition = 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)';
+          row.style.transform = 'translateY(0)';
+          setTimeout(() => {
+            row.style.transition = '';
+            row.style.transform = '';
+          }, 380);
+        }
+      });
     });
   }
 

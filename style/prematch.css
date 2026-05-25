@@ -197,8 +197,8 @@
 .pm-stake-card {
   padding: 7px 8px;
   border-radius: 8px;
-  background: var(--rm-bg);
-  border: 1px solid var(--rm-hairline);
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
 }
 
 .pm-stake-key {

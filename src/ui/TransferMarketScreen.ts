@@ -28,10 +28,16 @@ import { showToast } from './Toast';
 type SortKey = 'name' | 'pos' | 'age' | 'ovr' | 'wage';
 type SortDir = 'asc' | 'desc';
 type Mode = 'signings' | 'signings-preseason' | 'scouting';
+type Tab = 'free-agents' | 'poach';
 
 let sortKey: SortKey = 'ovr';
 let sortDir: SortDir = 'desc';
 let mode: Mode = 'signings';
+// Free Agents vs Reg 7 toggle. Persists across re-renders within the
+// screen lifetime so submitting an offer doesn't bounce the user back
+// to the FA tab. Reset to 'free-agents' on every show*() entry point
+// since that's the most actionable starting view.
+let activeTab: Tab = 'free-agents';
 let activeOnSubmit: () => void = () => {};
 let activeOnFinish: () => void = () => {};
 let scoutingOnBack: () => void = () => {};
@@ -39,6 +45,7 @@ let renderImpl: (() => void) | null = null;
 
 export function showTransferMarket(onSubmit: () => void, onFinish: () => void): void {
   mode = 'signings';
+  activeTab = 'free-agents';
   activeOnSubmit = onSubmit;
   activeOnFinish = onFinish;
   renderImpl?.();
@@ -46,6 +53,7 @@ export function showTransferMarket(onSubmit: () => void, onFinish: () => void): 
 
 export function showTransferMarketPreSeason(onSubmit: () => void, onFinish: () => void): void {
   mode = 'signings-preseason';
+  activeTab = 'free-agents';
   activeOnSubmit = onSubmit;
   activeOnFinish = onFinish;
   renderImpl?.();
@@ -53,6 +61,7 @@ export function showTransferMarketPreSeason(onSubmit: () => void, onFinish: () =
 
 export function showTransferMarketScouting(onBack: () => void): void {
   mode = 'scouting';
+  activeTab = 'free-agents';
   scoutingOnBack = onBack;
   renderImpl?.();
 }
@@ -292,6 +301,30 @@ export function initTransferMarketScreen(
     const prevListScroll = el!.querySelector<HTMLDivElement>('#tm-list')?.scrollTop ?? 0;
     const prevPoachScroll = el!.querySelector<HTMLDivElement>('#tm-poach-list')?.scrollTop ?? 0;
 
+    // Pre-season has no poach section, so no toggle — render the FA list
+    // straight. In a regular signings window both lists exist; the
+    // segmented toggle gates which one is visible.
+    const showToggle = !isPreSeason;
+    const toggleHtml = showToggle ? `
+      <div class="tm-toggle" role="tablist">
+        <button class="tm-toggle__btn ${activeTab === 'free-agents' ? 'tm-toggle__btn--active' : ''}" data-tab="free-agents" role="tab" aria-selected="${activeTab === 'free-agents'}">Free Agents <span class="tm-toggle__count">${freeAgentRows.length}</span></button>
+        <button class="tm-toggle__btn ${activeTab === 'poach' ? 'tm-toggle__btn--active' : ''}" data-tab="poach" role="tab" aria-selected="${activeTab === 'poach'}">Reg 7 <span class="tm-toggle__count">${poachRows.length}</span></button>
+      </div>
+    ` : '';
+
+    const headerRow = `
+      <div id="tm-headrow">
+        ${headerCell('name', 'NAME', 'tm-name')}
+        ${headerCell('pos',  'POS',  'tm-pos')}
+        ${headerCell('age',  'AGE',  'tm-num')}
+        ${headerCell('ovr',  'OVR',  'tm-num')}
+        ${headerCell('wage', 'WAGE', 'tm-wage')}
+        <span class="tm-head tm-sign-col">ACTION</span>
+      </div>`;
+
+    const showFA = !showToggle || activeTab === 'free-agents';
+    const showPoach = showToggle && activeTab === 'poach';
+
     el!.innerHTML = `
       <div class="app-header">
         <div class="app-topbar">
@@ -302,21 +335,17 @@ export function initTransferMarketScreen(
         <div class="app-eyebrow">${eyebrowText}</div>
       </div>
 
-      <h3 class="tm-section-h">Free Agents</h3>
-      <div id="tm-headrow">
-        ${headerCell('name', 'NAME', 'tm-name')}
-        ${headerCell('pos',  'POS',  'tm-pos')}
-        ${headerCell('age',  'AGE',  'tm-num')}
-        ${headerCell('ovr',  'OVR',  'tm-num')}
-        ${headerCell('wage', 'WAGE', 'tm-wage')}
-        <span class="tm-head tm-sign-col">ACTION</span>
-      </div>
-      <div id="tm-list">${freeAgentHtml}</div>
+      ${toggleHtml}
 
-      ${isPreSeason ? '' : `
-        <h3 class="tm-section-h tm-section-h--poach">Final-12-Month Contracts (Reg 7 Pre-Agreement)</h3>
+      ${showFA ? `
+        ${headerRow}
+        <div id="tm-list">${freeAgentHtml}</div>
+      ` : ''}
+
+      ${showPoach ? `
+        ${headerRow}
         <div id="tm-poach-list">${poachHtml}</div>
-      `}
+      ` : ''}
 
       <div id="tm-footer">
         <button id="tm-finish" class="tm-footer-secondary" aria-label="Finish signing window">
@@ -333,6 +362,15 @@ export function initTransferMarketScreen(
     if (newList && prevListScroll) newList.scrollTop = prevListScroll;
     const newPoach = el!.querySelector<HTMLDivElement>('#tm-poach-list');
     if (newPoach && prevPoachScroll) newPoach.scrollTop = prevPoachScroll;
+
+    el!.querySelectorAll<HTMLButtonElement>('.tm-toggle__btn[data-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const next = btn.dataset.tab as Tab;
+        if (next === activeTab) return;
+        activeTab = next;
+        render();
+      });
+    });
 
     el!.querySelectorAll<HTMLButtonElement>('.tm-head[data-sort]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -465,6 +503,15 @@ export function initTransferMarketScreen(
       return `<button class="tm-head ${cls}${active ? ' tm-head--active' : ''}" data-sort="${key}">${label}${arrowSvg}</button>`;
     };
 
+    const scoutHeaderRow = `
+      <div id="tm-headrow">
+        ${headerCell('name', 'NAME', 'tm-name')}
+        ${headerCell('pos',  'POS',  'tm-pos')}
+        ${headerCell('age',  'AGE',  'tm-num')}
+        ${headerCell('ovr',  'OVR',  'tm-num')}
+        ${headerCell('wage', 'WAGE', 'tm-wage')}
+      </div>`;
+
     el!.innerHTML = `
       <div class="app-header">
         <div class="app-topbar">
@@ -480,18 +527,18 @@ export function initTransferMarketScreen(
 
       <div class="tm-scout-banner">Scouting view — the signing window opens after the final round of the season. Wages shown are players' current deals.</div>
 
-      <h3 class="tm-section-h">Free Agents</h3>
-      <div id="tm-headrow">
-        ${headerCell('name', 'NAME', 'tm-name')}
-        ${headerCell('pos',  'POS',  'tm-pos')}
-        ${headerCell('age',  'AGE',  'tm-num')}
-        ${headerCell('ovr',  'OVR',  'tm-num')}
-        ${headerCell('wage', 'WAGE', 'tm-wage')}
+      <div class="tm-toggle" role="tablist">
+        <button class="tm-toggle__btn ${activeTab === 'free-agents' ? 'tm-toggle__btn--active' : ''}" data-tab="free-agents" role="tab" aria-selected="${activeTab === 'free-agents'}">Free Agents <span class="tm-toggle__count">${freeAgentRows.length}</span></button>
+        <button class="tm-toggle__btn ${activeTab === 'poach' ? 'tm-toggle__btn--active' : ''}" data-tab="poach" role="tab" aria-selected="${activeTab === 'poach'}">Reg 7 <span class="tm-toggle__count">${poachRows.length}</span></button>
       </div>
-      <div id="tm-list">${freeAgentHtml}</div>
 
-      <h3 class="tm-section-h tm-section-h--poach">Final-12-Month Contracts (Reg 7 Approachable)</h3>
-      <div id="tm-poach-list">${poachHtml}</div>
+      ${activeTab === 'free-agents' ? `
+        ${scoutHeaderRow}
+        <div id="tm-list">${freeAgentHtml}</div>
+      ` : `
+        ${scoutHeaderRow}
+        <div id="tm-poach-list">${poachHtml}</div>
+      `}
     `;
 
     el!.querySelectorAll<HTMLButtonElement>('.tm-head[data-sort]').forEach(btn => {
@@ -499,6 +546,14 @@ export function initTransferMarketScreen(
         const key = btn.dataset.sort as SortKey;
         if (key === sortKey) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
         else { sortKey = key; sortDir = defaultDirFor(key); }
+        renderImpl?.();
+      });
+    });
+    el!.querySelectorAll<HTMLButtonElement>('.tm-toggle__btn[data-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const next = btn.dataset.tab as Tab;
+        if (next === activeTab) return;
+        activeTab = next;
         renderImpl?.();
       });
     });

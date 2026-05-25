@@ -256,6 +256,72 @@
   border-top: 1px solid var(--rm-hairline);
 }
 
+/* Free Agents / Reg 7 segmented toggle. Mirrors the .lt-toggle__btn
+   pattern from leaguetable.css — tinted-accent active state, no solid
+   fill, hover gated behind @media (hover: hover) so mobile tap can't
+   leave it stuck-hovered. Count chip inherits the active text colour
+   for a single-source-of-truth read. */
+.tm-toggle {
+  display: flex;
+  gap: 3px;
+  margin: 8px 16px 10px;
+  padding: 3px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.tm-toggle__btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 11px 10px;
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.12s, color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.tm-toggle__btn--active {
+  background: color-mix(in oklch, var(--rm-pitch) 22%, transparent);
+  color: var(--rm-pitch);
+}
+
+.tm-toggle__count {
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--rm-text-dim) 18%, transparent);
+  color: inherit;
+}
+
+.tm-toggle__btn--active .tm-toggle__count {
+  background: color-mix(in oklch, var(--rm-pitch) 28%, transparent);
+}
+
+@media (hover: hover) {
+  .tm-toggle__btn:hover {
+    color: var(--rm-text);
+  }
+  .tm-toggle__btn--active:hover {
+    color: var(--rm-pitch);
+  }
+}
+
 .tm-section-h--poach {
   margin-top: 8px;
 }

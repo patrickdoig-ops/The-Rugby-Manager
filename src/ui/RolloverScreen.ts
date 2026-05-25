@@ -35,10 +35,10 @@ function statDeltaText(deltas: Partial<PlayerStats>): string {
   return (Object.entries(deltas) as [keyof PlayerStats, number][])
     .filter(([, v]) => v !== 0)
     .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
-    .map(([k, v]) => {
+    .map(([k, v], j) => {
       const cls = v > 0 ? 'roll-delta-pos' : 'roll-delta-neg';
       const sign = v > 0 ? '+' : '';
-      return `<span class="${cls}">${statLabel(k)} ${sign}${v}</span>`;
+      return `<span class="${cls}" style="--delta-delay:${j * 80}ms">${statLabel(k)} ${sign}${v}</span>`;
     })
     .join(' ');
 }
@@ -79,16 +79,20 @@ export function initRolloverScreen(
         return bm - am;
       });
 
+    // Stagger delays drive `.roll-row { animation-delay: var(--row-delay) }`
+    // and `.roll-deltas > span { animation-delay: var(--delta-delay) }`. Each
+    // section's stagger restarts at row 0, so squads >7 (the previous
+    // nth-child cap) keep cascading rather than freezing on the last frame.
     const retiredHtml = retirements.length === 0
       ? `<p class="roll-empty">No retirements this off-season.</p>`
-      : retirements.map(e => {
+      : retirements.map((e, i) => {
           if (e.type !== 'PLAYER_RETIRED') return '';
           const p: Player | undefined = state.career.roster[e.rosterId];
           if (!p) return '';
           const age = p.dob ? getAge(p.dob, today) : '—';
           const club = teamsById.get(e.clubId);
           return `
-            <div class="roll-row">
+            <div class="roll-row" style="--row-delay:${i * 60}ms">
               <span class="roll-name">${p.firstName} ${p.lastName}</span>
               <span class="roll-meta">${club?.shortName ?? e.clubId} · ${p.position} · ${age}</span>
             </div>`;
@@ -96,48 +100,48 @@ export function initRolloverScreen(
 
     const agingHtml = playerAgings.length === 0
       ? `<p class="roll-empty">No notable changes for your squad.</p>`
-      : playerAgings.map(e => {
+      : playerAgings.map((e, i) => {
           if (e.type !== 'PLAYER_AGED') return '';
           const p = state.career.roster[e.rosterId];
           if (!p) return '';
           return `
-            <div class="roll-row">
+            <div class="roll-row" style="--row-delay:${i * 60}ms">
               <span class="roll-name">${p.firstName} ${p.lastName}</span>
               <span class="roll-deltas">${statDeltaText(e.statDeltas)}</span>
             </div>`;
         }).join('');
 
-    const academyHtml = academyGrads.map(e => {
+    const academyHtml = academyGrads.map((e, i) => {
       if (e.type !== 'ACADEMY_GRADUATED') return '';
       const p = e.player;
       const ovrSum = Object.values(p.baseStats).reduce((a, b) => a + b, 0);
       const ovr = Math.round(ovrSum / 12);
       return `
-        <div class="roll-row">
+        <div class="roll-row" style="--row-delay:${i * 60}ms">
           <span class="roll-name">${p.firstName} ${p.lastName}</span>
           <span class="roll-meta">${p.position} · OVR ${ovr}</span>
         </div>`;
     }).join('');
 
-    const transfersHtml = inboundTransfers.map(e => {
+    const transfersHtml = inboundTransfers.map((e, i) => {
       if (e.type !== 'TRANSFER_ACTIVATED') return '';
       const p = state.career.roster[e.rosterId];
       if (!p) return '';
       const fromClub = teamsById.get(e.fromClubId);
       return `
-        <div class="roll-row">
+        <div class="roll-row" style="--row-delay:${i * 60}ms">
           <span class="roll-name">${p.firstName} ${p.lastName}</span>
           <span class="roll-meta">${p.position} · from ${fromClub?.shortName ?? e.fromClubId}</span>
         </div>`;
     }).join('');
 
-    const outboundHtml = outboundTransfers.map(e => {
+    const outboundHtml = outboundTransfers.map((e, i) => {
       if (e.type !== 'TRANSFER_ACTIVATED') return '';
       const p = state.career.roster[e.rosterId];
       if (!p) return '';
       const toClub = teamsById.get(e.toClubId);
       return `
-        <div class="roll-row">
+        <div class="roll-row" style="--row-delay:${i * 60}ms">
           <span class="roll-name">${p.firstName} ${p.lastName}</span>
           <span class="roll-meta">${p.position} · to ${toClub?.shortName ?? e.toClubId}</span>
         </div>`;

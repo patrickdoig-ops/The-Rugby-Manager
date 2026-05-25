@@ -312,14 +312,8 @@
 .roll-list .roll-row {
   opacity: 0;
   animation: rollRowIn 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: var(--row-delay, 0ms);
 }
-.roll-list .roll-row:nth-child(1) { animation-delay: 0ms; }
-.roll-list .roll-row:nth-child(2) { animation-delay: 60ms; }
-.roll-list .roll-row:nth-child(3) { animation-delay: 120ms; }
-.roll-list .roll-row:nth-child(4) { animation-delay: 180ms; }
-.roll-list .roll-row:nth-child(5) { animation-delay: 240ms; }
-.roll-list .roll-row:nth-child(6) { animation-delay: 300ms; }
-.roll-list .roll-row:nth-child(n+7) { animation-delay: 360ms; }
 
 .roll-row {
   display: flex;
@@ -370,13 +364,8 @@
   opacity: 0;
   transform: translateY(2px);
   animation: rollDeltaIn 320ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: var(--delta-delay, 0ms);
 }
-.roll-row .roll-deltas > span:nth-child(1) { animation-delay: 0ms; }
-.roll-row .roll-deltas > span:nth-child(2) { animation-delay: 80ms; }
-.roll-row .roll-deltas > span:nth-child(3) { animation-delay: 160ms; }
-.roll-row .roll-deltas > span:nth-child(4) { animation-delay: 240ms; }
-.roll-row .roll-deltas > span:nth-child(5) { animation-delay: 320ms; }
-.roll-row .roll-deltas > span:nth-child(6) { animation-delay: 400ms; }
 
 .roll-delta-pos { color: var(--rm-pitch); }
 .roll-delta-neg { color: var(--rm-danger); }

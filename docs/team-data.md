@@ -83,7 +83,7 @@ A historic west-country club with a cherry-and-white forwards-led identity, defi
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Jono Benz-Salomon | Prop | 2001-03-17 | 25 | England |
+| Val Rapava-Ruskin | Prop | 1992-12-12 | 33 | Georgia |
 | Seb Blake | Hooker | 2002-06-23 | 23 | England |
 | Afolabi Fasogbon | Prop | 2003-12-17 | 22 | Ireland |
 | Hugh Bokenham | Lock | 2001-07-20 | 24 | England |
@@ -97,11 +97,11 @@ A historic west-country club with a cherry-and-white forwards-led identity, defi
 |---|---|---|---|---|
 | Tomos Williams | Scrum-half | 1994-10-25 | 31 | Wales |
 | Ross Byrne | Fly-half | 1995-03-29 | 31 | Ireland |
-| Josh Hathaway | Wing | 2003-09-04 | 22 | England |
+| Will Joseph | Centre | 2003-02-04 | 23 | England |
 | Max Llewellyn | Centre | 1997-09-04 | 28 | Wales |
 | Seb Atkinson | Centre | 2001-08-27 | 24 | England |
 | Ben Loader | Wing | 1999-01-24 | 27 | England |
-| Ben Redshaw | Full-back | 2005-01-10 | 21 | England |
+| George Barton | Utility Back | 1999-09-04 | 26 | England |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality |
@@ -113,7 +113,7 @@ A historic west-country club with a cherry-and-white forwards-led identity, defi
 | James Venter | Flanker | 1995-12-28 | 30 | South Africa |
 | Mike Austin | Scrum-half | 2000-11-30 | 25 | England |
 | Charlie Atkinson | Fly-half | 2001-04-08 | 25 | England |
-| George Barton | Utility Back | 1999-09-04 | 26 | England |
+| Ben Redshaw | Full-back | 2005-01-10 | 21 | England |
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality |
@@ -126,7 +126,7 @@ A historic west-country club with a cherry-and-white forwards-led identity, defi
 | Jack Clement | Back Row | 2001-04-04 | 25 | England |
 | Jack Singleton | Hooker | 1996-08-07 | 29 | England |
 | Nepo Laulala | Prop | 1991-10-29 | 34 | New Zealand |
-| Val Rapava-Ruskin | Prop | 1992-12-12 | 33 | Georgia |
+| Jono Benz-Salomon | Prop | 2001-03-17 | 25 | England |
 | Will Trenholm | Back Row | 2001-01-06 | 25 | England |
 
 **Wider squad — Backs**
@@ -137,7 +137,7 @@ A historic west-country club with a cherry-and-white forwards-led identity, defi
 | Ollie Thorley | Wing | 1996-08-23 | 29 | England |
 | Rob Russell | Wing | 1998-12-04 | 27 | Ireland |
 | Will Butler | Centre | 1998-04-17 | 28 | England |
-| Will Joseph | Centre | 2003-02-04 | 23 | England |
+| Josh Hathaway | Wing | 2003-09-04 | 22 | England |
 
 ---
 
@@ -169,60 +169,60 @@ Shaped by the Pat Lam era's "Bristol-Bilbao" expansive ambition, the Bears are t
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
 | Ellis Genge | Prop | 1995-02-22 | 31 | England |
-| Will Capon | Hooker | 1997-09-01 | 28 | England |
-| Lovejoy Chawatama | Prop | 1991-12-30 | 34 | England |
-| Steele Barker | Lock | 2001-01-12 | 25 | England |
+| Gabriel Oghre | Hooker | 1998-11-21 | 27 | England |
+| George Kloska | Prop | 2002-02-11 | 24 | England |
+| Joe Owen | Lock | 2003-01-23 | 23 | England |
 | Joe Batley | Lock | 1996-09-06 | 29 | England |
 | Fitz Harding | Flanker | 1997-11-29 | 28 | England |
-| Jake Heenan | Flanker | 1992-04-09 | 34 | Ireland |
+| Luka Ivanishvili | Flanker | 1999-12-12 | 26 | Georgia |
 | Viliame Mata | Number 8 | 1991-04-15 | 35 | Fiji |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Kieran Marmion | Scrum-half | 1992-05-29 | 33 | Ireland |
+| Harry Randall | Scrum-half | 1997-10-29 | 28 | England |
 | Tom Jordan | Fly-half | 1998-08-19 | 27 | Scotland |
-| Louis Rees-Zammit | Wing | 2001-02-02 | 25 | Wales |
+| Gabriel Ibitoye | Wing | 1998-04-26 | 28 | England |
 | Sam Bedlow | Centre | 1995-08-08 | 30 | England |
 | Benhard Janse van Rensburg | Centre | 1994-02-09 | 32 | South Africa |
-| Jack Bates | Wing | 2001-09-21 | 24 | England |
-| Noah Heward | Full-back | 2002-03-30 | 24 | England |
+| Kalaveti Ravouvou | Wing | 1996-03-30 | 30 | Fiji |
+| Louis Rees-Zammit | Wing / Full Back | 2001-02-02 | 25 | Wales |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Tomas Gwilliam | Hooker | 2002-11-19 | 23 | Wales |
+| Harry Thacker | Hooker | 1994-04-22 | 32 | England |
+| Max Lahiff | Prop | 1989-09-24 | 36 | England |
 | Sam Grahamslaw | Prop | 1999-08-04 | 26 | Scotland |
-| Jimmy Halliwell | Prop |  |  | England |
-| Joe Owen | Lock | 2003-01-23 | 23 | England |
-| Luka Ivanishvili | Flanker | 1999-12-12 | 26 | Georgia |
-| Max Pepper | Scrum-half | 2001-01-09 | 25 | England |
+| Steele Barker | Lock | 2001-01-12 | 25 | England |
+| Santiago Grondona | Number 8 | 1999-04-15 | 27 | Argentina |
+| Kieran Marmion | Scrum-half | 1992-05-29 | 33 | Ireland |
 | AJ MacGinty | Fly-half | 1989-12-07 | 36 | USA |
 | Josh Carrington | Wing | 2002-04-25 | 24 | England |
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Gabriel Oghre | Hooker | 1998-11-21 | 27 | England |
-| George Kloska | Prop | 2002-02-11 | 24 | England |
-| Harry Thacker | Hooker | 1994-04-22 | 32 | England |
-| Max Lahiff | Prop | 1989-09-24 | 36 | England |
+| Will Capon | Hooker | 1997-09-01 | 28 | England |
+| Lovejoy Chawatama | Prop | 1991-12-30 | 34 | England |
+| Tomas Gwilliam | Hooker | 2002-11-19 | 23 | Wales |
+| Jimmy Halliwell | Prop | 2004-03-31 | 22 | England |
 | Paddy Pearce | Flanker | 2004-05-07 | 22 | England |
 | Pedro Rubiolo | Lock | 2002-03-15 | 24 | Argentina |
-| Santiago Grondona | Number 8 | 1999-04-15 | 27 | Argentina |
+| Jake Heenan | Flanker | 1992-04-09 | 34 | Ireland |
 | Steven Luatua | Flanker | 1991-06-10 | 34 | New Zealand |
-| Will Ramply | Lock |  |  | England |
+| Will Ramply | Lock | 2004-05-25 | 22 | England |
 
 **Wider squad — Backs**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Gabriel Ibitoye | Wing | 1998-04-26 | 28 | England |
-| Harry Randall | Scrum-half | 1997-10-29 | 28 | England |
 | James Williams | Centre | 1998-08-04 | 27 | England |
 | Joe Jenkins | Centre | 2003-10-13 | 22 | England |
-| Kalaveti Ravouvou | Wing | 1996-03-30 | 30 | Fiji |
+| Jack Bates | Wing | 2001-09-21 | 24 | England |
 | Rich Lane | Full-back | 1994-12-22 | 31 | England |
 | Sam Wolstenholme | Scrum-half | 2001-04-19 | 25 | England |
+| Max Pepper | Scrum-half | 2001-01-09 | 25 | England |
+| Noah Heward | Full-back | 2002-03-30 | 24 | England |
 
 ---
 
@@ -244,33 +244,33 @@ The Welford Road tradition is set-piece power, structured forward-led play, and 
 
 ### Star players
 
-- **Freddie Steward** (Full-back, England) — England's first-choice 15 and the Premiership's most dominant aerial operator; reads kick-chase lanes better than anyone and rarely spills under the high ball. Index high: `positioning`, `handling`, `tackling`, `composure`, `kicking`. Suggested rating: **86/100**.
+- **Freddie Steward** (Full-back, England) — England's first-choice 15 and the Premiership's most dominant aerial operator; reads kick-chase lanes better than anyone and rarely spills under the high ball. Index high: `positioning`, `handling`, `tackling`, `composure`, `kicking`. Suggested rating: **82/100**.
 - **Ollie Chessum** (Lock, England) — 2025 Lions Test 2 starter (off the bench in Tests 1 and 3) and the league's most athletic lock-cum-blindside; carries hard, hits rucks at pace, and is a genuine lineout option in both pods. Index high: `strength`, `setPiece`, `stamina`, `tackling`, `breakdown`. Suggested rating: **87/100**. Marquee: yes. Wage: £550k.
 - **Tommy Reffell** (Flanker, Wales) — Wales' premier openside and arguably the Premiership's purest jackal; averaged 6-7 turnovers a game in patches and topped the July Tests for forced turnovers. Index high: `breakdown`, `tackling`, `stamina`, `discipline`, `positioning`. Suggested rating: **84/100**.
-- **Jack van Poortvliet** (Scrum-half, England) — England-capped 9 whose box-kick accuracy and pass speed fit Welford Road's territory-first identity; a sharp tactical kicker who controls the tempo from the base. Index high: `kicking`, `handling`, `positioning`, `composure`, `agility`. Suggested rating: **80/100**.
+- **Jack van Poortvliet** (Scrum-half, England) — England-capped 9 whose box-kick accuracy and pass speed fit Welford Road's territory-first identity; a sharp tactical kicker who controls the tempo from the base. Index high: `kicking`, `handling`, `positioning`, `composure`, `agility`. Suggested rating: **83/100**.
 
 ### Squad (2025-26)
 
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Diamond Ayiehfor | Prop |  | 19 | England |
+| Nicky Smith | Prop | 1994-04-07 | 32 | Wales |
 | Jamie Blamire | Hooker | 1997-12-22 | 28 | England |
-| Tarek Haffar | Prop | 2001-09-13 | 24 | England |
+| Joe Heyes | Prop | 1999-04-13 | 27 | England |
 | Ollie Chessum | Lock | 2000-09-06 | 25 | England |
-| Lewis Chessum | Lock | 2003-02-27 | 23 | England |
+| George Martin | Lock | 2001-06-18 | 24 | England |
 | Tommy Reffell | Flanker | 1999-04-27 | 27 | Wales |
-| Finn Carnduff | Flanker | 2004-03-10 | 22 | England |
-| Hanro Liebenberg | Number 8 | 1995-10-10 | 30 | South Africa |
+| Hanro Liebenberg | Back Row | 1995-10-10 | 30 | South Africa |
+| Emeka Ilione | Back Row | 2002-03-20 | 24 | England |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
 | Jack van Poortvliet | Scrum-half | 2001-05-15 | 25 | England |
-| Orlando Bailey | Fly-half | 2001-09-30 | 24 | England |
-| Gabriel Hamer-Webb | Wing | 2000-11-07 | 25 | England |
+| Billy Searle | Fly-half | 1996-03-25 | 30 | England |
+| Adam Radwan | Wing | 1997-12-30 | 28 | England |
+| Orlando Bailey | Utility Back | 2001-09-30 | 24 | England |
 | Solomone Kata | Centre | 1994-12-03 | 31 | Tonga |
-| Wilf McCarthy | Centre | 2002-10-08 | 23 | England |
 | Ollie Hassell-Collins | Wing | 1999-01-17 | 27 | England |
 | Freddie Steward | Full-back | 2000-12-05 | 25 | England |
 
@@ -278,13 +278,13 @@ The Welford Road tradition is set-piece power, structured forward-led play, and 
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
 | Charlie Clare | Hooker | 1991-12-16 | 34 | England |
-| Joe Heyes | Prop | 1999-04-13 | 27 | England |
+| Tarek Haffar | Prop | 2001-09-13 | 24 | England |
 | Will Hurd | Prop | 1999-06-29 | 26 | Scotland |
 | Cam Henderson | Lock | 2000-01-13 | 26 | Scotland |
 | Olly Cracknell | Flanker | 1994-05-26 | 31 | Wales |
 | Ollie Allan | Scrum-half | 2004-02-04 | 22 | England |
 | James O'Connor | Fly-half | 1990-07-05 | 35 | Australia |
-| Adam Radwan | Wing | 1997-12-30 | 28 | England |
+
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality |
@@ -292,16 +292,16 @@ The Welford Road tradition is set-piece power, structured forward-led play, and 
 | Ale Loman | Prop | 2000-05-15 | 26 | Sweden |
 | Archie van der Flier | Prop | 2002-04-25 | 24 | England |
 | Cameron Miell | Prop | 2004-05-09 | 22 | South Africa |
-| Emeka Ilione | Flanker | 2002-03-20 | 24 | England |
+| Finn Carnduff | Flanker | 2004-03-10 | 22 | England |
 | George Marsh | Back Row |  | 19 | England |
-| George Martin | Lock | 2001-06-18 | 24 | England |
+| Lewis Chessum | Lock | 2003-02-27 | 23 | England |
 | Harry Palmer | Lock | 2005-10-28 | 20 | England |
 | Harry Wells | Lock | 1993-09-29 | 32 | England |
 | James Thompson | Lock | 1999-07-13 | 26 | New Zealand |
 | Joaquin Moro | Flanker | 2001-01-24 | 25 | Argentina |
 | John Stewart | Hooker | 2002-03-08 | 24 | England |
 | Joshua Manz | Back Row | 2004-03-22 | 22 | England |
-| Nicky Smith | Prop | 1994-04-07 | 32 | Wales |
+| Diamond Ayiehfor | Prop |  | 19 | England |
 | Osian Thomas | Lock | 2004-11-30 | 21 | Wales |
 | Tom Manz | Lock | 2001-07-09 | 24 | England |
 | Tonga Kofe | Prop |  | 29 | USA |
@@ -310,12 +310,13 @@ The Welford Road tradition is set-piece power, structured forward-led play, and 
 **Wider squad — Backs**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Billy Searle | Fly-half | 1996-03-25 | 30 | England |
+| Wilf McCarthy | Centre | 2002-10-08 | 23 | England |
 | Charlie Titcombe | Fly-half | 2001-12-28 | 24 | England |
 | Izaia Perese | Centre | 1997-05-17 | 28 | Australia |
 | Joseph Woodward | Centre | 2003-09-17 | 22 | England |
 | Tom Whiteley | Scrum-half | 1995-12-17 | 30 | England |
 | Will Wand | Centre | 2001-12-31 | 24 | England |
+| Gabriel Hamer-Webb | Wing | 2000-11-07 | 25 | England |
 
 ---
 
@@ -338,74 +339,74 @@ Under Mark McCall, Saracens have been the league's clinical operator — structu
 ### Star players
 
 - **Maro Itoje** (Lock, England) — 2025 Lions captain and the first Black skipper in the tour's 137-year history; ran a lineout "clinic" in the series win and remains the gold standard for a modern second row — enforcer, jumper, leader. Index high: `setPiece`, `tackling`, `strength`, `breakdown`, `composure`. Suggested rating: **92/100**. Marquee: yes. Wage: £800k.
-- **Owen Farrell** (Fly-half, England) — Returned from Racing 92 on a two-year playing deal; over 1,200 Test points, five Premiership titles with Sarries, and still the league's most ruthless game-manager off the tee. Index high: `kicking`, `composure`, `positioning`, `discipline`, `tackling`. Suggested rating: **88/100**.
+- **Owen Farrell** (Fly-half, England) — Returned from Racing 92 on a two-year playing deal; over 1,200 Test points, five Premiership titles with Sarries, and still the league's most ruthless game-manager off the tee. Index high: `kicking`, `composure`, `positioning`, `discipline`, `tackling`. Suggested rating: **84/100**.
 - **Ben Earl** (Number 8, England) — 2025 Lions Test back-rower and 2024 England Player of the Year; 73 carries for 419 metres across that Six Nations made him the explosive go-to ball-carrier from the base. Index high: `pace`, `strength`, `stamina`, `handling`, `tackling`. Suggested rating: **88/100**.
-- **Jamie George** (Hooker, England) — Long-time England hooker and former captain; elite throwing accuracy underpins the Sarries lineout and his work rate around the park is a benchmark for the position. Index high: `setPiece`, `tackling`, `breakdown`, `composure`, `discipline`. Suggested rating: **85/100**.
+- **Jamie George** (Hooker, England) — Long-time England hooker and former captain; elite throwing accuracy underpins the Sarries lineout and his work rate around the park is a benchmark for the position. Index high: `setPiece`, `tackling`, `breakdown`, `composure`, `discipline`. Suggested rating: **83/100**.
 
 ### Squad (2025-26)
 
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Harvey Beaton | Prop | 2001-03-15 | 25 | England |
+| Rhys Carre | Prop | 1998-02-08 | 28 | Wales |
 | Jamie George | Hooker | 1990-10-20 | 35 | England |
-| Phil Brantingham | Prop | 2001-10-02 | 24 | England |
+| Marco Riccioni | Prop | 1997-10-19 | 28 | Italy |
 | Maro Itoje | Lock | 1994-10-28 | 31 | England |
 | Nick Isiekwe | Lock | 1998-04-20 | 28 | England |
 | Juan Martin Gonzalez | Flanker | 2000-11-14 | 25 | Argentina |
-| Toby Knight | Flanker | 2002-01-05 | 24 | England |
-| Ben Earl | Number 8 | 1998-01-07 | 28 | England |
+| Ben Earl | Back Row | 1998-01-07 | 28 | England |
+| Tom Willis | Number 8 | 1999-01-18 | 27 | England |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
 | Charlie Bracken | Scrum-half | 2003-12-09 | 22 | England |
-| Owen Farrell | Fly-half | 1991-09-24 | 34 | England |
-| Jack Bracken | Wing | 2005-10-15 | 20 | England |
+| Fergus Burke | Fly-half | 1999-09-03 | 26 | Scotland |
+| Rotimi Segun | Wing | 1996-12-28 | 29 | England |
 | Lucio Cinti | Centre | 2000-02-23 | 26 | Argentina |
-| Angus Hall | Centre | 2005-09-17 | 20 | England |
+| Nick Tompkins | Centre | 1995-02-16 | 31 | Wales |
 | Noah Caluori | Wing | 2006-09-22 | 19 | England |
-| Elliot Daly | Full-back | 1992-10-08 | 33 | England |
+| Elliot Daly | Utility Back | 1992-10-08 | 33 | England |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Eoghan Clarke | Hooker | 1998-06-12 | 27 | Ireland |
-| Rhys Carre | Prop | 1998-02-08 | 28 | Wales |
-| Alec Clarey | Prop | 1994-02-08 | 32 | England |
+| Theo Dan | Hooker | 2000-12-26 | 25 | England |
+| Eroni Mawi | Prop | 1996-02-06 | 30 | Fiji |
+| Marcus Street | Prop | 1999-02-06 | 27 | England |
 | Hugh Tizard | Lock | 2000-03-31 | 26 | England |
 | Andy Onyeama-Christie | Flanker | 1999-03-22 | 27 | Scotland |
-| Gareth Simpson | Scrum-half | 1997-11-02 | 28 | England |
-| Fergus Burke | Fly-half | 1999-09-03 | 26 | Scotland |
-| Tobias Elliott | Wing | 2003-09-16 | 22 | England |
+| Ivan van Zyl | Scrum-half | 1995-06-30 | 30 | South Africa |
+| Owen Farrell | Fly-half | 1991-09-24 | 34 | England |
+| Jack Bracken | Wing | 2005-10-15 | 20 | England |
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
 | Barnaby Merrett | Back Row | 2004-11-22 | 21 | England |
-| Eroni Mawi | Prop | 1996-02-06 | 30 | Fiji |
+| Harvey Beaton | Prop | 2001-03-15 | 25 | England |
+| Alec Clarey | Prop | 1994-02-08 | 32 | England |
+| Phil Brantingham | Prop | 2001-10-02 | 24 | England |
 | James Hadfield | Hooker | 1997-11-27 | 28 | England |
 | James Isaacs | Hooker | 2004-03-28 | 22 | England |
-| Mak Eke | Back Row |  | 22 | England |
-| Marco Riccioni | Prop | 1997-10-19 | 28 | Italy |
-| Marcus Street | Prop | 1999-02-06 | 27 | England |
+| Mak Eke | Back Row | 2003-12-04 | 22 | England |
+| Toby Knight | Flanker | 2002-01-05 | 24 | England |
 | Nathan Michelow | Back Row | 2004-05-16 | 22 | England |
-| Theo Dan | Hooker | 2000-12-26 | 25 | England |
+| Eoghan Clarke | Hooker | 1998-06-12 | 27 | Ireland |
 | Theo McFarland | Back Row | 1995-10-16 | 30 | Samoa |
-| Tom Willis | Number 8 | 1999-01-18 | 27 | England |
-| Vilikesa Nairau | Prop |  | 22 | Fiji |
+| Vilikesa Nairau | Prop | 2002-06-03 | 23 | Fiji |
 
 **Wider squad — Backs**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
 | Alex Lozowski | Centre | 1993-06-30 | 32 | England |
-| Ivan van Zyl | Scrum-half | 1995-06-30 | 30 | South Africa |
 | Louie Johnson | Fly-half | 2003-06-13 | 22 | England |
 | Max Malins | Wing | 1997-01-07 | 29 | England |
-| Nick Tompkins | Centre | 1995-02-16 | 31 | Wales |
 | Olly Hartley | Centre | 2002-02-19 | 24 | England |
-| Rotimi Segun | Wing | 1996-12-28 | 29 | England |
 | Sam Spink | Centre | 1999-10-06 | 26 | England |
+| Tobias Elliott | Wing | 2003-09-16 | 22 | England |
+| Angus Hall | Centre | 2005-09-17 | 20 | England |
+| Gareth Simpson | Scrum-half | 1997-11-02 | 28 | England |
 
 ---
 
@@ -440,9 +441,9 @@ The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at
 |---|---|---|---|---|
 | Thomas du Toit | Prop | 1995-05-05 | 31 | South Africa |
 | Tom Dunn | Hooker | 1992-11-12 | 33 | England |
-| Archie Griffin | Prop | 2001-07-24 | 24 | Wales |
+| Beno Obano | Prop | 1994-10-25 | 31 | England |
 | Charlie Ewels | Lock | 1995-06-29 | 30 | England |
-| Ross Molony | Lock | 1994-05-11 | 32 | Ireland |
+| Ted Hill | Lock / Flanker | 1999-03-26 | 27 | England |
 | Sam Underhill | Flanker | 1996-07-22 | 29 | England |
 | Josh Bayliss | Flanker | 1997-09-18 | 28 | Scotland |
 | Alfie Barbeary | Number 8 | 2000-10-05 | 25 | England |
@@ -453,8 +454,8 @@ The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at
 | Ben Spencer | Scrum-half | 1992-07-31 | 33 | England |
 | Finn Russell | Fly-half | 1992-09-23 | 33 | Scotland |
 | Henry Arundell | Wing | 2002-11-08 | 23 | England |
-| Will Butt | Centre | 2000-01-15 | 26 | England |
-| Chris Harris | Centre | 1990-12-28 | 35 | Scotland |
+| Max Ojomoh | Centre | 2000-09-14 | 25 | England |
+| Ollie Lawrence | Centre | 1999-09-18 | 26 | England |
 | Joe Cokanasiga | Wing | 1997-11-15 | 28 | England |
 | Santi Carreras | Full-back | 1998-03-30 | 28 | Argentina |
 
@@ -462,12 +463,12 @@ The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
 | Dan Frost | Hooker | 1997-04-24 | 29 | England |
-| Beno Obano | Prop | 1994-10-25 | 31 | England |
+| Archie Griffin | Prop | 2001-07-24 | 24 | Wales |
 | Will Stuart | Prop | 1996-07-12 | 29 | England |
 | Quinn Roux | Lock | 1990-10-30 | 35 | Ireland |
-| Thompson Cowan | Flanker | 2002-08-02 | 23 | Wales |
+| Guy Pepper | Flanker | 2003-04-15 | 23 | England |
 | Tom Carr-Smith | Scrum-half | 2002-02-28 | 24 | England |
-| Ciaran Donoghue | Fly-half | 2003-01-07 | 23 | Ireland |
+| Cameron Redpath | Centre | 1999-12-23 | 26 | Scotland |
 | Will Muir | Wing | 1995-10-30 | 30 | England |
 
 **Wider squad — Forwards**
@@ -476,26 +477,27 @@ The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at
 | Ethan Staddon | Flanker | 2002-07-03 | 23 | England |
 | Ewan Richards | Flanker | 2002-04-06 | 24 | England |
 | Francois van Wyk | Prop | 1991-07-30 | 34 | South Africa |
-| Guy Pepper | Flanker | 2003-04-15 | 23 | England |
+| Thompson Cowan | Flanker | 2002-08-02 | 23 | Wales |
+| Ross Molony | Lock | 1994-05-11 | 32 | Ireland |
 | Jaco Coetzee | Number 8 | 1996-06-10 | 29 | South Africa |
 | Jasper Spandler | Hooker | 2003-05-21 | 23 | England |
 | Kieran Verden | Prop | 1998-11-06 | 27 | England |
 | Mikey Summerfield | Prop | 2002-10-30 | 23 | England |
 | Miles Reid | Flanker | 1998-09-05 | 27 | England |
-| Ted Hill | Flanker | 1999-03-26 | 27 | England |
+
 
 **Wider squad — Backs**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
 | Austin Emens | Full-back | 2002-10-09 | 23 | England |
 | Bernard van der Linde | Scrum-half | 2000-11-30 | 25 | South Africa |
-| Cameron Redpath | Centre | 1999-12-23 | 26 | Scotland |
+| Ciaran Donoghue | Fly-half | 2003-01-07 | 23 | Ireland |
 | Louie Hennessey | Centre | 2004-03-29 | 22 | Wales |
-| Max Ojomoh | Centre | 2000-09-14 | 25 | England |
+| Will Butt | Centre | 2000-01-15 | 26 | England |
 | Neil le Roux | Scrum-half | 2003-04-16 | 23 | South Africa |
-| Ollie Lawrence | Centre | 1999-09-18 | 26 | England |
 | Sam Harris | Fly-half | 2003-09-03 | 22 | England |
 | Tom de Glanville | Full-back | 1999-12-10 | 26 | England |
+| Chris Harris | Centre | 1990-12-28 | 35 | Scotland |
 
 ---
 
@@ -517,43 +519,43 @@ The Rob Baxter long-build identity is phase-heavy possession rugby — pressure 
 
 ### Star players
 
-- **Henry Slade** (Centre, England) — 74-cap England 13, the Chiefs' on-field metronome: long passing, pinpoint kicking from hand and elite defensive reads that shut down opposition channels. Said to be in one of his best club seasons. Index high: `handling`, `kicking`, `tackling`, `positioning`, `composure`. Suggested rating: **86/100**.
+- **Henry Slade** (Centre, England) — 74-cap England 13, the Chiefs' on-field metronome: long passing, pinpoint kicking from hand and elite defensive reads that shut down opposition channels. Said to be in one of his best club seasons. Index high: `handling`, `kicking`, `tackling`, `positioning`, `composure`. Suggested rating: **82/100**.
 - **Len Ikitau** (Centre, Australia) — Marquee Wallaby signing from the Brumbies: 39-cap Test 13 with bone-jarring defence, sharp spatial awareness and the carrying power to break gainlines. Already producing standout Premiership performances. Index high: `tackling`, `strength`, `pace`, `positioning`. Suggested rating: **85/100**.
-- **Immanuel Feyi-Waboso** (Wing, England) — Explosive England finisher; a hat-trick on return announced him as one of the league's most dangerous strike runners off both wings, with raw acceleration and aerial bravery. Index high: `pace`, `agility`, `handling`, `strength`. Suggested rating: **83/100**. Marquee: yes. Wage: £500k.
+- **Immanuel Feyi-Waboso** (Wing, England) — Explosive England finisher; a hat-trick on return announced him as one of the league's most dangerous strike runners off both wings, with raw acceleration and aerial bravery. Index high: `pace`, `agility`, `handling`, `strength`. Suggested rating: **86/100**. Marquee: yes. Wage: £500k.
 
 ### Squad (2025-26)
 
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Kwenzo Blose | Prop | 1997-05-12 | 29 | South Africa |
+| Scott Sio | Prop | 1991-10-16 | 34 | Australia |
 | Joseph Dweba | Hooker | 1995-10-25 | 30 | South Africa |
-| Ethan Burger | Prop | 2000-05-23 | 25 | South Africa |
-| Joe Bailey | Lock | 2004-07-06 | 21 | England |
-| Oscar Beckerleg | Lock | 2005-05-11 | 21 | England |
-| Richard Capstick | Flanker | 2000-02-13 | 26 | England |
-| Tom Hooper | Flanker | 2001-01-29 | 25 | Australia |
+| Josh Iosefa-Scott | Prop | 1996-07-16 | 29 | New Zealand |
+| Dafydd Jenkins | Lock | 2002-12-05 | 23 | Wales |
+| Andrea Zambonin | Lock | 2000-09-03 | 25 | Italy |
+| Ethan Roots | Flanker | 1997-11-10 | 28 | England |
+| Christ Tshiunza | Lock / Flanker| 2002-01-09 | 24 | Wales |
 | Greg Fisilau | Number 8 | 2003-07-09 | 22 | England |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Will Becconsall | Scrum-half | 2002-12-20 | 23 | England |
-| Ben Coen | Fly-half | 2005-01-11 | 21 | England |
+| Stephen Varney | Scrum-half | 2001-05-16 | 25 | Italy |
+| Harvey Skinner | Fly-half | 1997-12-31 | 28 | England |
 | Immanuel Feyi-Waboso | Wing | 2002-12-20 | 23 | England |
 | Len Ikitau | Centre | 1998-10-01 | 27 | Australia |
 | Henry Slade | Centre | 1993-03-19 | 33 | England |
 | Paul Brown-Bampoe | Wing | 2002-05-15 | 24 | England |
-| Ben Hammersley | Wing | 2003-05-20 | 23 | England |
+| Olly Woodburn | Wing / Full Back | 1991-11-18 | 34 | England |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Louie Gulley | Hooker |  | 20 | England |
+| Max Norey | Hooker | 1999-08-05 | 26 | England |
 | Will Goodrick-Clarke | Prop | 1996-12-29 | 29 | England |
-| Josh Iosefa-Scott | Prop | 1996-07-16 | 29 | New Zealand |
+| Ethan Burger | Prop | 2000-05-23 | 25 | South Africa |
 | Alfie Bell | Lock | 2003-04-12 | 23 | England |
-| Kane James | Flanker | 2005-03-26 | 21 | England |
+| Rusi Tuima | Flanker | 2000-05-21 | 26 | Fiji |
 | Tom Cairns | Scrum-half | 2002-06-19 | 23 | England |
 | Will Haydon-Wood | Fly-half | 2000-10-27 | 25 | England |
 | Dan John | Wing | 2001-10-04 | 24 | Wales |
@@ -561,36 +563,36 @@ The Rob Baxter long-build identity is phase-heavy possession rugby — pressure 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Andrea Zambonin | Lock | 2000-09-03 | 25 | Italy |
+| Kwenzo Blose | Prop | 1997-05-12 | 29 | South Africa |
 | Bachuki Tchumbadze | Prop | 2001-11-30 | 24 | Georgia |
-| Christ Tshiunza | Lock | 2002-01-09 | 24 | Wales |
-| Dafydd Jenkins | Lock | 2002-12-05 | 23 | Wales |
+| Tom Hooper | Flanker | 2001-01-29 | 25 | Australia |
+| Joe Bailey | Lock | 2004-07-06 | 21 | England |
+| Oscar Beckerleg | Lock | 2005-05-11 | 21 | England |
 | Ehren Painter | Prop | 1998-03-21 | 28 | England |
-| Ethan Roots | Flanker | 1997-11-10 | 28 | England |
+| Richard Capstick | Flanker | 2000-02-13 | 26 | England |
 | Jack Yeandle | Hooker | 1989-12-22 | 36 | England |
 | Jimmy Roots | Prop | 2000-01-31 | 26 | England |
 | Julian Heaven | Hooker | 2000-10-01 | 25 | Australia |
 | Khwezi Mona | Prop | 1992-10-08 | 33 | South Africa |
 | Lewis Pearson | Lock | 1999-10-26 | 26 | England |
 | Martin Moloney | Flanker | 1999-10-19 | 26 | Ireland |
-| Max Norey | Hooker | 1999-08-05 | 26 | England |
+| Louie Gulley | Hooker | 2005-08-04 | 20 | England |
 | Ross Vintcent | Number 8 | 2002-06-05 | 23 | Italy |
-| Rusi Tuima | Flanker | 2000-05-21 | 26 | Fiji |
-| Scott Sio | Prop | 1991-10-16 | 34 | Australia |
+| Kane James | Flanker | 2005-03-26 | 21 | England |
 | Sol Moody | Hooker | 2005-04-16 | 21 | England |
 
 **Wider squad — Backs**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
 | Charlie Chapman | Scrum-half | 1998-12-01 | 27 | England |
-| Harvey Skinner | Fly-half | 1997-12-31 | 28 | England |
+| Ben Coen | Fly-half | 2005-01-11 | 21 | England |
 | Iwan Jenkins | Fly-half | 2003-03-13 | 23 | Wales |
-| Olly Woodburn | Wing | 1991-11-18 | 34 | England |
-| Stephen Varney | Scrum-half | 2001-05-16 | 25 | Italy |
+| Will Becconsall | Scrum-half | 2002-12-20 | 23 | England |
 | Tamati Tua | Centre | 1997-11-26 | 28 | New Zealand |
 | Tommy Wyatt | Wing | 1999-12-14 | 26 | England |
 | Will Rigg | Centre | 2000-03-22 | 26 | England |
 | Zack Wimbush | Centre | 2003-10-24 | 22 | England |
+| Ben Hammersley | Wing | 2003-05-20 | 23 | England |
 
 ---
 
@@ -622,45 +624,45 @@ The Twickenham Stoop entertainers and the league's most committed expansive, att
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
 | Fin Baxter | Prop | 2002-02-12 | 24 | England |
-| Jack Musk | Hooker | 2000-03-04 | 26 | England |
+| Sam Riley | Hooker | 2001-04-23 | 25 | England |
 | Pedro Delgado | Prop | 1997-09-01 | 28 | Argentina |
-| Jonny Green | Lock | 2004-03-16 | 22 | England |
+| Guido Petti | Lock | 1994-11-17 | 31 | Argentina |
 | Joe Launchbury | Lock | 1991-04-12 | 35 | England |
 | Chandler Cunningham-South | Flanker | 2003-03-18 | 23 | England |
-| James Chisholm | Flanker | 1995-08-11 | 30 | England |
+| Jack Kenningham | Flanker | 1999-11-19 | 26 | England |
 | Alex Dombrandt | Number 8 | 1997-04-29 | 29 | England |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Max Green | Scrum-half | 1996-02-13 | 30 | England |
+| Will Porter | Scrum-half | 1998-12-14 | 27 | England |
 | Marcus Smith | Fly-half | 1999-02-14 | 27 | England |
-| Cassius Cleaves | Wing | 2003-03-15 | 23 | England |
+| Cadan Murley | Wing | 1999-07-31 | 26 | England |
 | Oscar Beard | Centre | 2001-11-20 | 24 | England |
-| Bryn Bradley | Centre | 2003-04-17 | 23 | Wales |
+| Luke Northmore | Centre | 1997-03-16 | 29 | England |
 | Rodrigo Isgró | Wing | 1999-03-24 | 27 | Argentina |
-| Cameron Anderson | Full-back | 1999-09-16 | 26 | England |
+| Tyrone Green | Full-back | 1998-03-05 | 28 | South Africa |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Sam Riley | Hooker | 2001-04-23 | 25 | England |
-| Jordan Els | Prop | 1997-06-11 | 28 | South Africa |
+| Jack Musk | Hooker | 2000-03-04 | 26 | England |
+| Harry Williams | Prop | 1991-10-01 | 34 | England |
 | Will Hobson | Prop | 2002-11-09 | 23 | England |
 | Stephan Lewies | Lock | 1992-01-27 | 34 | South Africa |
 | Will Evans | Flanker | 1997-01-28 | 29 | England |
-| Will Porter | Scrum-half | 1998-12-14 | 27 | England |
-| Jamie Benson | Fly-half | 2002-09-23 | 23 | England |
-| Cadan Murley | Wing | 1999-07-31 | 26 | England |
+| Lucas Friday | Scrum-half | 2006-07-13 | 19 | South Africa |
+| Jarrod Evans | Fly-half | 1996-07-25 | 29 | Wales |
+| Cassius Cleaves | Wing | 2003-03-15 | 23 | England |
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
 | Boris Wenger | Prop | 2002-07-01 | 23 | Argentina |
+| Jonny Green | Lock | 2004-03-16 | 22 | England |
 | George Turner | Hooker | 1992-10-08 | 33 | Scotland |
-| Guido Petti | Lock | 1994-11-17 | 31 | Argentina |
-| Harry Williams | Prop | 1991-10-01 | 34 | England |
-| Jack Kenningham | Flanker | 1999-11-19 | 26 | England |
+| Jordan Els | Prop | 1997-06-11 | 28 | South Africa |
+| James Chisholm | Back Row | 1995-08-11 | 30 | England |
 | Jack Walker | Hooker | 1996-05-06 | 30 | England |
 | Kieran Treadwell | Lock | 1995-11-06 | 30 | Ireland |
 | Simon Kerrod | Prop | 1992-08-25 | 33 | England |
@@ -673,12 +675,13 @@ The Twickenham Stoop entertainers and the league's most committed expansive, att
 | Ben Waghorn | Centre | 2004-04-02 | 22 | England |
 | Conor Byrne | Full-back | 2005-07-07 | 20 | England |
 | Hayden Hyde | Centre | 2000-09-15 | 25 | England |
-| Jarrod Evans | Fly-half | 1996-07-25 | 29 | Wales |
-| Luke Northmore | Centre | 1997-03-16 | 29 | England |
+| Jamie Benson | Fly-half | 2002-09-23 | 23 | England |
+| Bryn Bradley | Centre | 2003-04-17 | 23 | Wales |
 | Nick David | Full-back | 1998-11-04 | 27 | England |
 | Sean Kerr | Centre | 2004-11-08 | 21 | England |
 | Stu Townsend | Scrum-half | 1995-10-11 | 30 | England |
-| Tyrone Green | Full-back | 1998-03-05 | 28 | South Africa |
+| Max Green | Scrum-half | 1996-02-13 | 30 | England |
+| Cameron Anderson | Full-back | 1999-09-16 | 26 | England |
 
 ---
 
@@ -725,8 +728,8 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 | Joel Grayson | Wing | 2002-04-15 | 24 | England |
 | Sammy Arnold | Centre | 1996-04-08 | 30 | Ireland |
 | Max Clark | Centre | 1995-10-03 | 30 | England |
-| Nick Greenwood | Wing |  |  | England |
-| Liam Williams | Full-back | 1991-04-09 | 35 | Wales |
+| Liam Williams | Utility Back | 1991-04-09 | 35 | Wales |
+| Josh Hodge | Full-back | 2000-05-23 | 26 | England |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality |
@@ -746,18 +749,18 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 | Adam Scott | Lock | 2001-11-27 | 24 | England |
 | Bryce Gordon | Hooker | 2001-08-06 | 24 | New Zealand |
 | Cam Jordan | Lock | 1999-11-17 | 26 | England |
-| Charlie Turnbull | Back Row |  |  | England |
+| Charlie Turnbull | Back Row | 2005-10-02  | 20 | England |
 | Fergus Lee-Warner | Lock | 1994-02-03 | 32 | Australia |
 | Freddie Lockwood | Back Row | 2000-12-31 | 25 | England |
 | George McGuigan | Hooker | 1993-03-30 | 33 | England |
 | Jamie Hodgson | Lock | 1998-03-19 | 28 | Scotland |
 | John Hawkins | Lock | 1996-11-11 | 29 | Wales |
-| Micky Rewcastle | Prop |  |  | England |
+| Micky Rewcastle | Prop | 2004-05-17 | 21 | England |
 | Murray McCallum | Prop | 1996-03-16 | 30 | Scotland |
 | Ollie Fletcher | Hooker | 2002-09-09 | 23 | England |
 | Ollie Leatherbarrow | Back Row | 2002-04-08 | 24 | England |
-| Oscar Usher | Lock |  |  | England |
-| Rob Palframan | Prop |  |  | England |
+| Oscar Usher | Lock | 2004-06-12 | 21 | England |
+| Rob Palframan | Prop | 1993-12-20 | 32 | England |
 | Sebastian De Chaves | Lock | 1990-10-30 | 35 | South Africa |
 
 **Wider squad — Backs**
@@ -770,7 +773,7 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 | Elliott Obatoyinbo | Wing/Full-back | 1998-10-09 | 27 | England |
 | Ethan Grayson | Fly-half | 2004-04-15 | 22 | England |
 | James Elliott | Scrum-half | 1998-08-29 | 27 | England |
-| Josh Hodge | Full-back | 2000-05-23 | 26 | England |
+| Nathan Greenwood | Wing | 2003-11-20 | 22 | England |
 | Oliver Spencer | Centre | 2004-02-22 | 22 | England |
 | Sam Stuart | Scrum-half | 1991-09-27 | 34 | England |
 | Sam Waugh | Centre | 2005-07-16 | 20 | England |
@@ -795,8 +798,8 @@ The 2023-24 champions under Phil Dowson, Saints are the league's electric attack
 
 ### Star players
 
-- **Fin Smith** (Fly-half, England) — England's first-choice fly-half and marquee playmaker; ice-cold game manager with a clutch boot (opened the scoring with an early drop goal in the 2024 Premiership Final win over Bath) who runs Saints' high-tempo, wide-wide attack from a flat alignment. Index high: `kicking`, `composure`, `handling`, `positioning`, `discipline`. Suggested rating: **89/100**. Marquee: yes. Wage: £600k.
-- **Tommy Freeman** (Wing, England) — England wing and 2025 Lions Test starter; serial hat-trick scorer (four vs Saracens, hat-tricks vs Bath, Clermont, Leinster) and the first Englishman to score in every round of a Six Nations. Aerial dominance, finishing instinct, and centre-grade footwork. Index high: `pace`, `handling`, `positioning`, `agility`, `composure`. Suggested rating: **90/100**.
+- **Fin Smith** (Fly-half, England) — England's first-choice fly-half and marquee playmaker; ice-cold game manager with a clutch boot (opened the scoring with an early drop goal in the 2024 Premiership Final win over Bath) who runs Saints' high-tempo, wide-wide attack from a flat alignment. Index high: `kicking`, `composure`, `handling`, `positioning`, `discipline`. Suggested rating: **92/100**. Marquee: yes. Wage: £600k.
+- **Tommy Freeman** (Wing, England) — England wing and 2025 Lions Test starter; serial hat-trick scorer (four vs Saracens, hat-tricks vs Bath, Clermont, Leinster) and the first Englishman to score in every round of a Six Nations. Aerial dominance, finishing instinct, and centre-grade footwork. Index high: `pace`, `handling`, `positioning`, `agility`, `composure`. Suggested rating: **91/100**.
 - **Alex Mitchell** (Scrum-half, England) — England's sniping starting 9; razor-sharp service, constant running threat around the fringes, and the tempo-setter that lets Saints play heads-up rugby from anywhere. Index high: `pace`, `agility`, `handling`, `positioning`, `stamina`. Suggested rating: **86/100**.
 - **Henry Pollock** (Flanker, England) — Twenty-one-year-old breakthrough sensation; youngest player on the 2025 Lions tour, World Rugby Breakthrough Player nominee. Relentless engine, jackal threat over the ball, and a try-scoring flanker with genuine pace in the wide channels. Index high: `breakdown`, `stamina`, `pace`, `tackling`, `agility`. Suggested rating: **85/100**.
 
@@ -822,40 +825,40 @@ The 2023-24 champions under Phil Dowson, Saints are the league's electric attack
 | Tommy Freeman | Wing | 2001-03-05 | 25 | England |
 | Fraser Dingwall | Centre | 1999-04-07 | 27 | England |
 | Rory Hutchinson | Centre | 1995-01-29 | 31 | Scotland |
-| Amena Caqusau | Wing | 2004-07-17 | 21 | Scotland |
+| George Hendy | Wing | 2002-10-15 | 23 | England |
 | George Furbank | Full-back | 1996-10-17 | 29 | England |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
 | Robbie Smith | Hooker | 1998-09-26 | 27 | Scotland |
-| Luke Green | Prop | 2001-05-06 | 25 | England |
+| Elliot Millar-Mills | Prop | 1992-07-08 | 33 | Scotland |
 | Emmanuel Iyogun | Prop | 2000-11-24 | 25 | England |
 | Aiden Ainsworth-Cave | Lock | 2006-07-21 | 19 | England |
-| Sam Graham | Flanker | 1997-07-06 | 28 | England |
-| Tom James | Scrum-half | 1993-10-12 | 32 | England |
+| Josh Kemeny | Flanker | 1998-11-29 | 27 | Australia |
+| Archie McParland | Scrum-half | 2005-02-17 | 21 | England |
 | Anthony Belleau | Fly-half | 1996-04-08 | 30 | France |
-| Will Glister | Wing | 2005-05-05 | 21 | England |
+| Ollie Sleightholme | Wing | 2000-04-13 | 26 | England |
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
 | Angus Scott-Young | Back Row | 1997-04-23 | 29 | Australia |
-| Archie Appleby | Back Row |  |  | England |
+| Archie Appleby | Back Row | 2007-01-13 | 19 | England |
 | Archie Benson | Lock | 2001-08-18 | 24 | England |
-| Charlie Ulcoq | Back Row |  |  | England |
+| Charlie Ulcoq | Back Row | 2006-05-02 | 20 | England |
 | Chunya Munga | Lock | 2000-09-02 | 25 | England |
 | Cleopas Kundiona | Prop | 1998-12-15 | 27 | Zimbabwe |
 | Craig Wright | Hooker | 2004-05-31 | 21 | England |
 | Ed Prowse | Lock | 2000-10-27 | 25 | England |
-| Elliot Millar-Mills | Prop | 1992-07-08 | 33 | Scotland |
+| Luke Green | Prop | 2001-05-06 | 25 | England |
 | Emeka Atuanya | Lock | 2003-03-17 | 23 | England |
 | Fyn Brown | Back Row | 2002-10-11 | 23 | England |
 | Henry Walker | Hooker | 1998-03-10 | 28 | England |
-| Jack Lawrence | Back Row |  |  | England |
-| Josh Kemeny | Flanker | 1998-11-29 | 27 | Australia |
+| Jack Lawrence | Back Row | 2007-02-02 | 19 | England |
+| Sam Graham | Flanker | 1997-07-06 | 28 | England |
 | Ollie Scola | Prop | 2006-02-03 | 20 | England |
-| Siep Walta | Back Row |  |  | Netherlands |
+| Siep Walta | Back Row | 2006-09-21 | 20 | Netherlands |
 | Sonny Tonga'uiha | Prop | 2006-08-01 | 19 | England |
 | Tom Lockett | Lock | 2002-10-06 | 23 | England |
 | Tom West | Prop | 1996-02-11 | 30 | England |
@@ -863,20 +866,20 @@ The 2023-24 champions under Phil Dowson, Saints are the league's electric attack
 **Wider squad — Backs**
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
-| Aiden Pugh | Scrum-half |  |  | England |
-| Archie McParland | Scrum-half | 2005-02-17 | 21 | England |
+| Aiden Pugh | Scrum-half | 2006-09-18 | 19 | England |
+| Tom James | Scrum-half | 1993-10-12 | 32 | England |
 | Billy Pasco | Centre | 2005-10-02 | 20 | England |
 | Edoardo Todaro | Wing | 2006-09-24 | 19 | Italy |
-| Freddie St John | Centre |  |  | England |
-| George Hendy | Wing | 2002-10-15 | 23 | England |
+| Freddie St John | Centre | 2007-11-07 | 19 | England |
 | Henry Lumley | Centre | 2007-07-18 | 18 | England |
 | James Martin | Wing | 1999-07-31 | 26 | England |
 | James Pater | Wing | 2007-07-02 | 18 | England |
 | James Ramm | Wing | 1998-04-30 | 28 | Australia |
 | Jonny Weimann | Scrum-half | 2006-03-28 | 20 | England |
-| Ollie Sleightholme | Wing | 2000-04-13 | 26 | England |
 | Toby Thame | Centre | 2003-11-08 | 22 | England |
 | Tom Litchfield | Centre | 2002-04-20 | 24 | England |
+| Amena Caqusau | Wing | 2004-07-17 | 21 | Scotland |
+| Will Glister | Wing | 2005-05-05 | 21 | England |
 
 ---
 
@@ -910,8 +913,8 @@ The Manchester defence-first side: line-speed, collision-dominant loose forwards
 |---|---|---|---|---|
 | James Harper | Prop | 2000-10-16 | 25 | England |
 | Ethan Caine | Hooker | 2001-09-20 | 24 | England |
-| WillGriff John | Prop | 1992-12-04 | 33 | Wales |
-| Hyron Andrews | Lock | 1995-07-06 | 30 | South Africa |
+| Asher Opoku-Fordjour | Prop | 2004-07-16 | 21 | England |
+| Ernst van Rhyn | Lock | 1997-09-19 | 28 | South Africa |
 | Ben Bamber | Lock | 2001-01-24 | 25 | England |
 | Ben Curry | Flanker | 1998-06-15 | 27 | England |
 | Tom Curry | Flanker | 1998-06-15 | 27 | England |
@@ -933,7 +936,7 @@ The Manchester defence-first side: line-speed, collision-dominant loose forwards
 |---|---|---|---|---|
 | Luke Cowan-Dickie | Hooker | 1993-06-20 | 32 | England |
 | Si McIntyre | Prop | 1991-03-19 | 35 | England |
-| Asher Opoku-Fordjour | Prop | 2004-07-16 | 21 | England |
+| WillGriff John | Prop | 1992-12-04 | 33 | Wales |
 | Tom Burrow | Lock | 2005-07-27 | 20 | England |
 | Rouban Birch | Flanker |  |  | England |
 | Raffi Quirke | Scrum-half | 2001-08-18 | 24 | England |
@@ -944,7 +947,7 @@ The Manchester defence-first side: line-speed, collision-dominant loose forwards
 | Name | Position | DOB | Age | Nationality |
 |---|---|---|---|---|
 | Bevan Rodd | Prop | 2000-08-26 | 25 | England |
-| Ernst van Rhyn | Lock | 1997-09-19 | 28 | South Africa |
+| Hyron Andrews | Lock | 1995-07-06 | 30 | South Africa |
 | Huw Davies | Back Row | 2003-11-12 | 22 | Wales |
 | Jacques Vermeulen | Flanker | 1995-02-08 | 31 | South Africa |
 | Jos Gilmore | Back Row |  |  | England |

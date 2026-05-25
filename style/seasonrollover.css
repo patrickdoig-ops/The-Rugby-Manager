@@ -387,16 +387,16 @@
 }
 
 .eos-champion-crest {
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
+  width: var(--crest-xl-size);
+  height: var(--crest-xl-size);
+  border-radius: var(--crest-xl-radius);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-family: var(--rm-font-display);
   color: var(--rm-chalk);
   text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-  font-size: 22px;
+  font-size: 36px;
 }
 
 .eos-champion-name {

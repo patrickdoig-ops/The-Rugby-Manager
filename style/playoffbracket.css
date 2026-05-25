@@ -129,8 +129,9 @@
 }
 
 .pb-crest {
-  width: 32px; height: 32px;
-  border-radius: 8px;
+  width: var(--crest-sm-size);
+  height: var(--crest-sm-size);
+  border-radius: var(--crest-sm-radius);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -201,7 +202,12 @@
   color: var(--rm-text-muted);
 }
 
-.pb-champion .pb-crest { width: 56px; height: 56px; font-size: 22px; border-radius: 12px; }
+.pb-champion .pb-crest {
+  width: var(--crest-xl-size);
+  height: var(--crest-xl-size);
+  border-radius: var(--crest-xl-radius);
+  font-size: 36px;
+}
 
 .pb-champion-name {
   font-family: var(--rm-font-display);

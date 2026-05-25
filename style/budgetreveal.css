@@ -34,8 +34,9 @@
 }
 
 .br-crest {
-  width: 56px; height: 56px;
-  border-radius: 12px;
+  width: var(--crest-lg-size);
+  height: var(--crest-lg-size);
+  border-radius: var(--crest-lg-radius);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -173,8 +174,9 @@
 }
 
 .tk-crest {
-  width: 32px; height: 32px;
-  border-radius: 8px;
+  width: var(--crest-sm-size);
+  height: var(--crest-sm-size);
+  border-radius: var(--crest-sm-radius);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -185,7 +187,12 @@
   font-size: 14px;
 }
 
-.tk-crest--lg { width: 56px; height: 56px; border-radius: 12px; font-size: 22px; }
+.tk-crest--lg {
+  width: var(--crest-xl-size);
+  height: var(--crest-xl-size);
+  border-radius: var(--crest-xl-radius);
+  font-size: 36px;
+}
 
 .tk-hero-headline {
   font-family: var(--rm-font-display);

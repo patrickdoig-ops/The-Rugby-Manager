@@ -23,8 +23,8 @@
 #br-card {
   margin: 18px 16px 0;
   padding: 22px 18px 24px;
-  background: linear-gradient(180deg, color-mix(in oklch, var(--team-color, #777) 18%, var(--rm-surface)) 0%, var(--rm-surface) 100%);
-  border: 1px solid color-mix(in oklch, var(--team-color, #777) 40%, var(--rm-border-soft));
+  background: linear-gradient(180deg, color-mix(in oklch, var(--team-color, var(--rm-pitch)) 18%, var(--rm-surface)) 0%, var(--rm-surface) 100%);
+  border: 1px solid color-mix(in oklch, var(--team-color, var(--rm-pitch)) 40%, var(--rm-border-soft));
   border-radius: 14px;
   display: flex;
   flex-direction: column;
@@ -39,14 +39,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Anton', 'Geist', sans-serif;
-  color: #fff;
+  font-family: var(--rm-font-display);
+  color: var(--rm-chalk);
   text-shadow: 0 1px 2px rgba(0,0,0,0.5);
   font-size: 22px;
 }
 
 .br-club-name {
-  font-family: 'Anton', 'Geist', sans-serif;
+  font-family: var(--rm-font-display);
   font-size: 18px;
   color: var(--rm-text);
   letter-spacing: 0.03em;
@@ -55,14 +55,14 @@
 
 .br-headline-label {
   margin-top: 6px;
-  font-family: 'Anton', 'Geist', sans-serif;
+  font-family: var(--rm-font-display);
   letter-spacing: 0.12em;
   font-size: 11px;
   color: var(--rm-text-muted);
 }
 
 .br-headline {
-  font-family: 'Anton', 'Geist', sans-serif;
+  font-family: var(--rm-font-display);
   font-size: 44px;
   color: var(--rm-text);
   letter-spacing: 0.02em;
@@ -75,14 +75,14 @@
   align-items: center;
   padding: 4px 10px;
   border-radius: 999px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--rm-font-mono);
   font-size: 11px;
   letter-spacing: 0.04em;
   font-weight: 600;
 }
 
 .br-delta--up   { background: color-mix(in oklch, var(--rm-pitch) 22%, transparent); color: var(--rm-pitch); border: 1px solid color-mix(in oklch, var(--rm-pitch) 50%, transparent); }
-.br-delta--down { background: color-mix(in oklch, var(--rm-danger, #d8503e) 22%, transparent); color: var(--rm-danger, #d8503e); border: 1px solid color-mix(in oklch, var(--rm-danger, #d8503e) 50%, transparent); }
+.br-delta--down { background: color-mix(in oklch, var(--rm-danger) 22%, transparent); color: var(--rm-danger); border: 1px solid color-mix(in oklch, var(--rm-danger) 50%, transparent); }
 .br-delta--flat { background: var(--rm-surface-2); color: var(--rm-text-muted); border: 1px solid var(--rm-border-soft); }
 
 .br-reasons {
@@ -94,7 +94,7 @@
 }
 
 .br-reason {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--rm-font-mono);
   font-size: 10px;
   letter-spacing: 0.05em;
   padding: 4px 9px;
@@ -122,18 +122,18 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--rm-font-mono);
   font-size: 12px;
 }
 
 .br-usage-label { color: var(--rm-text-muted); }
 .br-usage-val   { color: var(--rm-text); font-weight: 600; }
-.br-usage-val--over { color: var(--rm-danger, #d8503e); }
+.br-usage-val--over { color: var(--rm-danger); }
 
 .br-note {
   margin: 14px 0 0;
   text-align: center;
-  font-family: 'Geist', sans-serif;
+  font-family: var(--rm-font-body);
   font-size: 12px;
   color: var(--rm-text-muted);
   max-width: 340px;
@@ -160,15 +160,15 @@
 }
 
 .tk-hero {
-  background: linear-gradient(180deg, color-mix(in oklch, var(--team-color, #777) 22%, var(--rm-surface)) 0%, var(--rm-surface) 100%);
-  border: 1px solid color-mix(in oklch, var(--team-color, #777) 45%, var(--rm-border-soft));
+  background: linear-gradient(180deg, color-mix(in oklch, var(--team-color, var(--rm-pitch)) 22%, var(--rm-surface)) 0%, var(--rm-surface) 100%);
+  border: 1px solid color-mix(in oklch, var(--team-color, var(--rm-pitch)) 45%, var(--rm-border-soft));
   border-radius: 14px;
   padding: 22px 18px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  box-shadow: 0 0 30px color-mix(in oklch, var(--team-color, #777) 30%, transparent);
+  box-shadow: 0 0 30px color-mix(in oklch, var(--team-color, var(--rm-pitch)) 30%, transparent);
 }
 
 .tk-crest {
@@ -177,8 +177,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Anton', 'Geist', sans-serif;
-  color: #fff;
+  font-family: var(--rm-font-display);
+  color: var(--rm-chalk);
   text-shadow: 0 1px 2px rgba(0,0,0,0.5);
   flex: 0 0 auto;
   font-size: 14px;
@@ -187,7 +187,7 @@
 .tk-crest--lg { width: 56px; height: 56px; border-radius: 12px; font-size: 22px; }
 
 .tk-hero-headline {
-  font-family: 'Anton', 'Geist', sans-serif;
+  font-family: var(--rm-font-display);
   font-size: 18px;
   color: var(--rm-text);
   letter-spacing: 0.03em;
@@ -196,14 +196,14 @@
 }
 
 .tk-hero-boost {
-  font-family: 'Anton', 'Geist', sans-serif;
+  font-family: var(--rm-font-display);
   font-size: 28px;
   color: var(--rm-pitch);
   letter-spacing: 0.02em;
 }
 
 .tk-hero-sub {
-  font-family: 'Geist', sans-serif;
+  font-family: var(--rm-font-body);
   font-size: 13px;
   color: var(--rm-text-muted);
   text-align: center;
@@ -212,7 +212,7 @@
 }
 
 .tk-others-label {
-  font-family: 'Anton', 'Geist', sans-serif;
+  font-family: var(--rm-font-display);
   letter-spacing: 0.12em;
   font-size: 11px;
   color: var(--rm-text-muted);
@@ -244,13 +244,13 @@
 }
 
 .tk-other-headline {
-  font-family: 'Geist', sans-serif;
+  font-family: var(--rm-font-body);
   font-size: 13px;
   color: var(--rm-text);
 }
 
 .tk-other-boost {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--rm-font-mono);
   font-size: 11px;
   color: var(--rm-pitch);
   letter-spacing: 0.04em;

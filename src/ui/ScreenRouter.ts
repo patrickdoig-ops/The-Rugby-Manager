@@ -60,6 +60,7 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
 };
 
 export const screenRouter = {
+  _current: null as ScreenId | null,
   show(target: ScreenId): void {
     const targetEl = document.getElementById(SCREENS[target].elId);
     // Fails loudly if a screen id is in the SCREENS map but the matching
@@ -69,11 +70,24 @@ export const screenRouter = {
     if (!targetEl) {
       throw new Error(`screenRouter.show("${target}"): no element with id "${SCREENS[target].elId}" in DOM. Likely a stale cached index.html — try a hard reload.`);
     }
+    const isNewScreen = target !== this._current;
+    this._current = target;
     for (const id of Object.keys(SCREENS) as ScreenId[]) {
       const cfg = SCREENS[id];
       const el = document.getElementById(cfg.elId);
       if (!el) continue;
       el.style.display = id === target ? cfg.shownDisplay : 'none';
+    }
+    // Fade-up entry animation on screen transitions. Skip 'app' (permanently
+    // mounted live-match shell) and skip initial mount (no prior screen).
+    if (isNewScreen && target !== 'app') {
+      targetEl.classList.remove('screen-entering');
+      void targetEl.offsetWidth;
+      targetEl.classList.add('screen-entering');
+      targetEl.addEventListener('animationend', function onEnd() {
+        targetEl.classList.remove('screen-entering');
+        targetEl.removeEventListener('animationend', onEnd);
+      });
     }
   },
 };

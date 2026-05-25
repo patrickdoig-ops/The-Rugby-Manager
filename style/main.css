@@ -150,6 +150,14 @@ input, textarea, [contenteditable] { user-select: text; }
   outline-offset: 2px;
 }
 
+@keyframes screenEnter {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.screen-entering {
+  animation: screenEnter 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 ::-webkit-scrollbar { display: none; }
 * { scrollbar-width: none; }
 
@@ -979,6 +987,28 @@ html, body {
 @keyframes rmPulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.35; }
+}
+
+@keyframes scoreKick {
+  0% {
+    transform: scale(1);
+    text-shadow: none;
+  }
+  30% {
+    transform: scale(1.28);
+    text-shadow: 0 0 24px var(--score-kick-color, var(--rm-pitch));
+  }
+  100% {
+    transform: scale(1);
+    text-shadow: 0 0 12px var(--score-kick-color, var(--rm-pitch));
+  }
+}
+.score--just-scored {
+  animation: scoreKick 480ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.score--just-scored.score--just-scored-fade {
+  text-shadow: none;
+  transition: text-shadow 800ms ease-out;
 }
 
 /* Primary-CTA breathing glow — applied to start/continue/play-next/etc. */

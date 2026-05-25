@@ -24,6 +24,7 @@ import { playerOverall } from '../engine/RatingEngine';
 import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance/transfers';
 import { getAge } from '../game/age';
 import { poachCandidates } from './../game/aiTransferDirector';
+import { showToast } from './Toast';
 
 type SortKey = 'name' | 'pos' | 'age' | 'ovr' | 'wage';
 type SortDir = 'asc' | 'desc';
@@ -272,7 +273,9 @@ export function initTransferMarketScreen(
       btn.addEventListener('click', () => {
         const rid = Number(btn.dataset.sign);
         if (!Number.isFinite(rid)) return;
+        const p = gameEngine.getState().career.roster[rid];
         gameEngine.signFreeAgent(rid);
+        if (p) showToast(`${p.firstName} ${p.lastName} signed`);
         render();
       });
     });
@@ -288,7 +291,9 @@ export function initTransferMarketScreen(
       btn.addEventListener('click', () => {
         const rid = Number(btn.dataset.poach);
         if (!Number.isFinite(rid)) return;
+        const p = gameEngine.getState().career.roster[rid];
         gameEngine.preAgreePoach(rid);
+        if (p) showToast(`${p.firstName} ${p.lastName} pre-agreed`, 'info');
         render();
       });
     });

@@ -291,8 +291,8 @@ export function initTransferMarketScreen(
     const isPreSeason = mode === 'signings-preseason';
     const title = isPreSeason ? 'Pre-Season' : 'Transfer Market';
     const eyebrowText = isPreSeason
-      ? `${team.name} · ${freeAgentRows.length} free agents · build your squad for Round 1`
-      : `${team.name} · ${freeAgentRows.length} free agents · ${poachRows.length} approachable`;
+      ? `${freeAgentRows.length} free agents · build your squad for Round 1`
+      : `${freeAgentRows.length} free agents · ${poachRows.length} approachable`;
 
     // Preserve scroll position across re-render. Clicking Sign / Undo
     // triggers a full re-render; without this the list jumps back to the

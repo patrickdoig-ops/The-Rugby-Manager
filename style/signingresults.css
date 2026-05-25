@@ -326,6 +326,7 @@
 #tm-footer {
   display: flex;
   gap: 10px;
+  align-items: center;
 }
 
 .tm-footer-secondary {
@@ -345,6 +346,42 @@
   .tm-footer-secondary:hover {
     background: var(--rm-surface-3);
   }
+}
+
+#tm-submit {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 22px;
+  background: #007a2a;
+  border: none;
+  border-radius: 14px;
+  color: #ffffff;
+  font-family: var(--rm-font-display);
+  font-size: 18px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow:
+    0 8px 24px color-mix(in oklch, var(--rm-pitch) 28%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+  transition: background 0.15s, box-shadow 0.15s, opacity 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  #tm-submit:hover:not(:disabled) { background: #009434; }
+}
+#tm-submit:active:not(:disabled) { background: #006622; }
+
+#tm-submit:disabled {
+  background: var(--rm-surface-2);
+  color: var(--rm-text-dim);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .tm-sign--won {

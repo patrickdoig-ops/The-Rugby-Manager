@@ -1,10 +1,13 @@
-/* Mode Picker — follows the Team Selector / Team Info hero pattern per
- * docs/DESIGN.md. Centred hero (crest + chalk title + muted subtitle)
+/* Mode Picker — follows the Team Info hero pattern per docs/DESIGN.md.
+ * Centred hero (rounded-square crest + chalk title + muted subtitle)
  * with the back button position-fixed top-left, two stacked cards
- * below. Team colour is reserved for the crest gradient + glow only;
- * the team name itself is chalk so pure-black-coloured teams (Exeter)
- * stay readable against the dark background. Screen-root visibility
- * is owned by screenRouter — do NOT declare `display: none` here.
+ * below. Crest geometry matches `.ti-crest` (14px radius, ::after
+ * overlay, span z-index lift) so the rounded-square shape stays
+ * consistent across every crest surface in the product. Team colour
+ * is reserved for the crest gradient + glow only; the team name
+ * itself is chalk so pure-black-coloured teams (Exeter) stay
+ * readable against the dark background. Screen-root visibility is
+ * owned by screenRouter — do NOT declare `display: none` here.
  */
 
 #mode-picker {
@@ -70,13 +73,29 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 14px;
   font-family: var(--rm-font-display);
   color: var(--rm-chalk);
   letter-spacing: 0.04em;
   font-size: 38px;
   text-shadow: 0 1px 2px rgba(0,0,0,0.4);
   margin-bottom: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.mp-crest::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.18) 100%);
+  pointer-events: none;
+}
+
+.mp-crest span {
+  position: relative;
+  z-index: 1;
 }
 
 #mp-eyebrow {

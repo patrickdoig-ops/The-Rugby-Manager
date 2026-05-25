@@ -248,20 +248,6 @@
   border-color: color-mix(in oklch, var(--rm-stat-1) 25%, transparent);
 }
 
-/* Empty state */
-.sq-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 40px 20px;
-  color: var(--rm-text-faint);
-  font-family: var(--rm-font-mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
 /* ─── Footer ─── */
 #sq-footer {
   flex-shrink: 0;

@@ -202,7 +202,13 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
 
     const totalFiltered = fStarters.length + fBench.length + fSquadW.length;
     const listHtml = totalFiltered === 0
-      ? `<div class="sq-empty">No players in this group</div>`
+      ? `<div class="empty-state">
+           <svg class="empty-state__icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+             <path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h18M6 12h12M10 19.5h4"/>
+           </svg>
+           <div class="empty-state__title">No players in this group</div>
+           <div class="empty-state__desc">Try a different position filter, or tap All to see your full squad.</div>
+         </div>`
       : [
           section('Starting XV', fStarters, 'starter'),
           section('Bench',       fBench,    'bench'),

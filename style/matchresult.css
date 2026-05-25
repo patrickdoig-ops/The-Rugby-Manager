@@ -344,7 +344,7 @@
 }
 
 .mr-scorers-divider {
-  background: var(--rm-border-soft);
+  background: var(--rm-hairline);
 }
 
 .mr-scorers-team {

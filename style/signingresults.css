@@ -344,12 +344,42 @@
 }
 
 #rd-footer {
-  padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
-  background: var(--rm-bg);
-  border-top: 1px solid var(--rm-border-soft);
-  display: flex;
-  justify-content: center;
+  flex-shrink: 0;
+  padding: 14px 20px var(--safe-bottom);
+  border-top: 1px solid var(--rm-hairline);
+  background: color-mix(in oklch, var(--rm-bg) 92%, transparent);
+  margin-top: auto;
 }
+
+#rd-continue {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 22px;
+  background: #007a2a;
+  border: none;
+  border-radius: 14px;
+  color: #ffffff;
+  font-family: var(--rm-font-display);
+  font-size: 20px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow:
+    0 8px 24px color-mix(in oklch, var(--rm-pitch) 28%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+  transition: background 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  #rd-continue:hover { background: #009434; }
+}
+#rd-continue:active { background: #006622; }
 
 /* ===== TransferMarketScreen footer — two CTAs (Submit + Finish) ===== */
 

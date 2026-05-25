@@ -69,11 +69,18 @@ export const WAGE_NOISE = { min: 0.88, max: 1.12 };
 
 // Contract-length distribution by age band. Numbers are cumulative
 // probabilities — pick a uniform rngTransfer roll and find the first
-// bucket it falls into.
+// bucket it falls into. Five bands so academy graduates, prime-age
+// players, peak veterans, declining 30+ pros, and twilight 33+
+// players each get a realistic spread. Modelled after Premiership
+// Rugby reality: clubs lock young talent on 3-year deals, taper
+// length down sharply through 30+, and almost never offer 3-year
+// terms to 33+ players.
 export const CONTRACT_LENGTH = {
-  under25: { p1: 0.10, p2: 0.40 },   // (rest) → 3yr
-  age25to30: { p1: 0.20, p2: 0.60 }, // (rest) → 3yr
-  age30plus: { p1: 0.50, p2: 0.80 }, // (rest) → 3yr
+  under23:   { p1: 0.05, p2: 0.30 },   // 5% 1yr, 25% 2yr, 70% 3yr
+  age23to26: { p1: 0.05, p2: 0.30 },   // 5% 1yr, 25% 2yr, 70% 3yr
+  age27to29: { p1: 0.15, p2: 0.55 },   // 15% 1yr, 40% 2yr, 45% 3yr
+  age30to32: { p1: 0.40, p2: 0.85 },   // 40% 1yr, 45% 2yr, 15% 3yr
+  age33plus: { p1: 0.80, p2: 1.00 },   // 80% 1yr, 20% 2yr, 0% 3yr
 };
 
 // Reputation seeding. Linear nudge from overall rating, with a marquee

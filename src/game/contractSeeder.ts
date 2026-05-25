@@ -27,6 +27,12 @@ import { getAge, seasonOpenIso } from './age';
 export interface SeededContractFields {
   contract: PlayerContract;
   reputation: number;
+  // The age-banded length picked for this contract (1-3). Returned so
+  // callers (renewal/signing/poach/retention flows) don't have to
+  // re-derive it from date arithmetic — that path is off-by-one when
+  // the previous contract just ended (currentExpiry and seasonStartYear
+  // collide and the subtraction loses a year).
+  lengthYears: number;
 }
 
 export function seedContractFields(
@@ -54,7 +60,7 @@ export function seedContractFields(
     (contract.isMarquee ? REPUTATION_SEED.marqueeBonus : 0)
   );
 
-  return { contract, reputation };
+  return { contract, reputation, lengthYears };
 }
 
 function synthesizeWage(raw: RawPlayer, overall: number): number {
@@ -84,11 +90,19 @@ function wageFromRating(overall: number): number {
 
 function pickLength(raw: RawPlayer, overall: number, seasonStartYear: number): number {
   const age = currentAgeForLengthHeuristic(raw, overall, seasonStartYear);
-  const bucket = age < 25
-    ? CONTRACT_LENGTH.under25
-    : age < 30
-      ? CONTRACT_LENGTH.age25to30
-      : CONTRACT_LENGTH.age30plus;
+  // Five-band age curve. Under-23s and 23-26s skew heavily long
+  // (clubs locking in development upside). 27-29 is the balanced
+  // peak band. 30-32 tapers shorter; 33+ is almost exclusively
+  // 1-year deals.
+  const bucket = age < 23
+    ? CONTRACT_LENGTH.under23
+    : age < 27
+      ? CONTRACT_LENGTH.age23to26
+      : age < 30
+        ? CONTRACT_LENGTH.age27to29
+        : age < 33
+          ? CONTRACT_LENGTH.age30to32
+          : CONTRACT_LENGTH.age33plus;
   const roll = rngTransferRaw();
   if (roll < bucket.p1) return 1;
   if (roll < bucket.p2) return 2;

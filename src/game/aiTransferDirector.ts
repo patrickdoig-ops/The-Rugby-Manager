@@ -57,7 +57,10 @@ export function generateRenewalOffers(state: GameState): TransferOffer[] {
       fromClubId: p.contract.clubId,
       rosterId: rid,
       annualWage: renewalWage,
-      lengthYears: yearsBetween(p.contract.expiresOn, fresh.contract.expiresOn),
+      // Use the length the seeder picked by age band. The previous
+      // yearsBetween(currentExpiry, freshExpiry) lost a year because
+      // both dates anchored against the same season-end.
+      lengthYears: fresh.lengthYears,
       isMarquee: p.contract.isMarquee,
       status: 'pending',
     });
@@ -154,12 +157,6 @@ function makeOfferId(seasonsCompleted: number, clubId: string, rid: number): str
   return `r${seasonsCompleted}_${clubId}_${rid}`;
 }
 
-function yearsBetween(currentExpiry: string, newExpiry: string): number {
-  const a = parseInt(currentExpiry.slice(0, 4), 10);
-  const b = parseInt(newExpiry.slice(0, 4), 10);
-  if (Number.isNaN(a) || Number.isNaN(b)) return 1;
-  return Math.max(1, Math.min(3, b - a));
-}
 
 // --- Free-agent signings (Phase 5) ---
 
@@ -234,7 +231,8 @@ export function decideAISignings(state: GameState, humanClubId?: string): AISign
       if (signedThisClub >= AI_SIGNING_POLICY.perClubLimit) break;
       const wage = fresh.contract.annualWage;
       if (wage > headroom) continue;
-      const lengthYears = yearsBetween(p.contract.expiresOn || `${seasonStartYear + 1}-06-30`, fresh.contract.expiresOn) || 2;
+      void p; // p available if needed by future heuristics
+      const lengthYears = fresh.lengthYears;
       signings.push({
         rosterId: rid,
         clubId: club.id,
@@ -264,7 +262,7 @@ export function signingTermsFor(
   if (!p) return null;
   const seasonStartYear = parseSeasonStartYear(state.calendar.seasonLabel);
   const fresh = seedContractFields(p, clubId, seasonStartYear);
-  const lengthYears = yearsBetween(p.contract.expiresOn || `${seasonStartYear + 1}-06-30`, fresh.contract.expiresOn) || 2;
+  const lengthYears = fresh.lengthYears;
   return {
     annualWage: fresh.contract.annualWage,
     lengthYears,
@@ -360,14 +358,11 @@ export function decideAIPoaches(state: GameState, humanClubId?: string): Array<{
 
     const top = ranked[0];
     if (!top) continue;
-    const lengthYears = Math.max(1, Math.min(3,
-      parseInt(top.fresh.contract.expiresOn.slice(0, 4), 10) - parseInt(top.p.contract.expiresOn.slice(0, 4), 10)
-    )) || 2;
     decisions.push({
       rosterId: top.p.rosterId,
       toClubId: club.id,
       annualWage: top.fresh.contract.annualWage,
-      lengthYears,
+      lengthYears: top.fresh.lengthYears,
     });
     claimed.add(top.p.rosterId);
   }
@@ -572,8 +567,7 @@ export function decideAIRetentions(state: GameState, humanClubId?: string): Tran
       rosterId: rid,
       clubId: currentClubId,
       annualWage: retentionWage,
-      lengthYears: Math.max(1, parseInt(fresh.contract.expiresOn.slice(0, 4), 10)
-                                 - parseInt(p.contract.expiresOn.slice(0, 4), 10)) || 2,
+      lengthYears: fresh.lengthYears,
       kind: 'retention',
       status: 'pending',
     });
@@ -600,8 +594,8 @@ export function retentionTermsFor(
     WAGE_FLOOR,
     Math.round(fresh.contract.annualWage * (1 - RENEWAL.loyaltyDiscount) / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT,
   );
-  const lengthYears = Math.max(1, parseInt(fresh.contract.expiresOn.slice(0, 4), 10)
-                                   - parseInt(p.contract.expiresOn.slice(0, 4), 10)) || 2;
+  void p; // baseline kept for parity with prior bug-prone math
+  const lengthYears = fresh.lengthYears;
   return {
     annualWage: retentionWage,
     lengthYears,

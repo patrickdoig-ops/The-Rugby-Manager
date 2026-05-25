@@ -248,14 +248,21 @@ document.addEventListener('DOMContentLoaded', () => {
   function onSquadBuilder(team: RawTeamInput): void {
     gameEngine = GameCoordinator.newSeason(team.id, generateSeed(), allTeams);
     initInSeasonScreens();
-    // Reveal the year-1 owner budget first — no delta or reasons since
+    // Unwind the 2025-26 inbound transfers FIRST so the Owner's Budget
+    // reveal sees the post-unwind squad. Without this, the budget pill
+    // includes wages for players who are about to be released into the
+    // FA pool, which renders as "over budget" and contradicts the
+    // headroom shown on the very next screen (SquadOverview / Transfer
+    // Market). The unwind doesn't touch salaryBudget itself, so the
+    // headline number on the reveal is unchanged.
+    gameEngine.unwindPreSeasonTransfers(PRE_SEASON_TRANSFERS_2025_26);
+    // Reveal the year-1 owner budget — no delta or reasons since
     // this is the seeded value, not a year-on-year adjustment.
     const club = gameEngine.getState().career.clubs.find(c => c.id === team.id);
     showBudgetReveal({
       budget: club?.salaryBudget ?? 0,
       onContinue: () => {
         if (!gameEngine) { goHub(); return; }
-        gameEngine.unwindPreSeasonTransfers(PRE_SEASON_TRANSFERS_2025_26);
         runPreSeasonOverview();
       },
     });

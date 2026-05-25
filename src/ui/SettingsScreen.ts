@@ -1,8 +1,5 @@
 import { isSfxEnabled, setSfxEnabled, getVolume, setVolume } from './SoundManager';
 
-// Experimental — set to true once a full light-mode pass is done across
-// every screen-specific CSS file. HomeScreen.ts gates its theme button
-// behind a matching constant; flip both to enable.
 const LIGHT_MODE_EXPERIMENTAL = false;
 
 function backIcon(): string {

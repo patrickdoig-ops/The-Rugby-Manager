@@ -123,24 +123,7 @@ export interface SavedSeason {
 
 // Deep clone the roster index for save serialisation — every Player and
 // its nested PlayerStats / PlayerMatchStats / PlayerSeasonStats. Skip
-// volatile per-match fields (currentStats / fatiguePct / rating / x / y /
-// matchStats / formModifier) by passing through baseStats only and
-// re-zeroing the others on load via initPlayer; but for v5 we keep the
-// full Player shape so the load path is uniform. Idle defaults are safe.
-function serializeRoster(roster: Record<number, Player>): Record<number, Player> {
-  const out: Record<number, Player> = {};
-  for (const k of Object.keys(roster)) {
-    const p = roster[Number(k)];
-    out[Number(k)] = {
-      ...p,
-      baseStats: { ...p.baseStats },
-      currentStats: { ...p.currentStats },
-      matchStats: { ...p.matchStats },
-      seasonStats: { ...p.seasonStats },
-    };
-  }
-  return out;
-}
+
 
 function emptyState(): GameState {
   return {
@@ -558,7 +541,7 @@ export class GameCoordinator {
         seasonsCompleted: this.state.career.seasonsCompleted,
         nextRosterId: this.state.career.nextRosterId,
         clubs: this.state.career.clubs.map(c => ({ id: c.id, squad: [...c.squad] })),
-        roster: serializeRoster(this.state.career.roster),
+        roster: this.state.career.roster,
         archive: this.state.career.archive.map(a => ({
           seasonLabel: a.seasonLabel,
           standings: a.standings.map(s => ({ ...s })),

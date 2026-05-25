@@ -54,20 +54,16 @@ export function computeFatigue(team: Team, elapsedMinutes: number, offFieldIds?:
     }
 
     const base = player.baseStats;
-    const stats: PlayerStats = { ...base };
+    const newCurrentStats: PlayerStats = { ...base };
 
     // Tiers iterate high → low; each tier overwrites prior tier's value for any stat it lists.
     for (const tier of tiers) {
       if (newFatiguePct < tier.threshold) {
         for (const [stat, mult] of Object.entries(tier.multipliers) as [keyof PlayerStats, number][]) {
-          stats[stat] = Math.round(base[stat] * mult);
+          newCurrentStats[stat] = clamp(Math.round(base[stat] * mult), 1, 100);
         }
       }
     }
-
-    const newCurrentStats = Object.fromEntries(
-      Object.entries(stats).map(([k, v]) => [k, clamp(v as number, 1, 100)])
-    ) as unknown as PlayerStats;
 
     updates.push({ player, newFatiguePct, newCurrentStats });
   }

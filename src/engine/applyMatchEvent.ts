@@ -405,7 +405,7 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
     // ── Fatigue ─────────────────────────────────────────────────────────
     case 'FATIGUE_APPLIED':
       event.player.fatiguePct = event.newFatiguePct;
-      event.player.currentStats = { ...event.newCurrentStats };
+      event.player.currentStats = event.newCurrentStats;
       return;
 
     // ── Tactics & subs ──────────────────────────────────────────────────

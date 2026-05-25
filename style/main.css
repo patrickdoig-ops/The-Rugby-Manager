@@ -852,7 +852,9 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 14px 12px;
+  /* 16px V padding lands the button at ~46px tall, clearing the 44px
+     Apple-HIG tap-target floor that 14px V padding (=42px) missed. */
+  padding: 16px 12px;
   border-radius: 10px;
   font-family: var(--rm-font-body);
   font-size: 12px;

@@ -56,6 +56,8 @@ export function initRolloverScreen(
   function render(): void {
     const state: GameState = getGameEngine().getState();
     const today = state.calendar.date;
+    const playerTeam = teamsById.get(state.player.teamId);
+    if (playerTeam) el!.style.setProperty('--team-color', playerTeam.color);
 
     const retirements = activeEvents.filter(e => e.type === 'PLAYER_RETIRED');
     const agings = activeEvents.filter(e => e.type === 'PLAYER_AGED');

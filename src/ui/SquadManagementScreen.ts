@@ -31,6 +31,7 @@ import { playerOverall } from '../engine/RatingEngine';
 import { POSITION_GROUPS_ORDER, POSITION_TO_GROUP, type PositionGroupId } from '../game/positionGroups';
 import { shortName } from '../utils/playerName';
 import { saveGame } from './SaveManager';
+import { showToast } from './Toast';
 import { eventBus } from '../utils/eventBus';
 
 export interface InitSquadManagementOpts {
@@ -300,6 +301,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         ge.setPlayerMatchdaySquad(extractMatchdaySquad(playerTeam));
         saveGame(ge.toSavePayload());
         dirty = false;
+        showToast('Squad saved');
         opts.onBack();
       });
     }

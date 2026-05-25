@@ -25,6 +25,8 @@ export type ScreenId =
   | 'end-of-season'
   | 'renewals'
   | 'transfer-market'
+  | 'retention-decision'
+  | 'signing-results'
   | 'rollover'
   | 'contracts'
   | 'squad-management'
@@ -49,6 +51,8 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'end-of-season':    { elId: 'end-of-season',    shownDisplay: '' },
   'renewals':         { elId: 'renewals',         shownDisplay: '' },
   'transfer-market':  { elId: 'transfer-market',  shownDisplay: '' },
+  'retention-decision': { elId: 'retention-decision', shownDisplay: '' },
+  'signing-results':  { elId: 'signing-results',  shownDisplay: '' },
   'rollover':         { elId: 'rollover',         shownDisplay: '' },
   'contracts':        { elId: 'contracts',        shownDisplay: '' },
   'squad-management': { elId: 'squad-management', shownDisplay: '' },

@@ -263,6 +263,42 @@ export interface MarketState {
   openedAfterSeason: string;  // seasonLabel of the just-completed season
   expiringRosterIds: number[]; // empty during the signings phase
   offers: TransferOffer[];
+  // Competing bids submitted within the signing window. Each Make Offer
+  // (user) or AI bid pass creates entries here; resolution at the end
+  // of each round picks winners by appeal score. Always present so the
+  // reducer can append unconditionally; renewal-phase markets keep an
+  // empty array. v15+ field.
+  bids: TransferBid[];
+}
+
+// A single club's bid for a free agent / poach candidate / retention.
+// Multiple bids per player are expected (the whole point — competitive
+// bidding). All bids for one player share the same `annualWage` (the
+// player's asking wage from market.offers); appeal scoring picks the
+// winner, not wage size.
+//
+// `kind` discriminates:
+//   - 'free_agent' : bid for a player in state.career.freeAgents
+//   - 'poach'      : Reg 7 pre-agreement attempt (player at another club's
+//                    final-12-month roster). Wins activate at the next
+//                    rollover via PRE_AGREEMENT_SIGNED → TRANSFER_ACTIVATED.
+//   - 'retention'  : the player's current club bidding to keep them
+//                    against an external poach. Wins fire CONTRACT_EXTENDED
+//                    in place — player stays put with a new deal.
+//
+// `status`:
+//   - 'pending'    : in play, will be resolved at the next Submit
+//   - 'won'        : resolution awarded this bid (signing fired)
+//   - 'lost'       : resolution went to a different club (wage refunded)
+//   - 'withdrawn'  : user clicked Withdraw before resolution
+export interface TransferBid {
+  id: string;                                      // deterministic from (rosterId, clubId)
+  rosterId: number;
+  clubId: string;
+  annualWage: number;
+  lengthYears: number;
+  kind: 'free_agent' | 'poach' | 'retention';
+  status: 'pending' | 'won' | 'lost' | 'withdrawn';
 }
 
 // Cross-Prem pre-agreement (Phase 6 / Reg 7). A player whose contract
@@ -723,4 +759,28 @@ export type SeasonEvent =
       clubId: string;
       boostAmount: number;
       flavor: TakeoverFlavor;
+    }
+  | {
+      // Adds a competing bid for a player in the active signing window.
+      // Fired both by the user (Make Offer) and by the AI's per-round
+      // bid pass. The bid id is deterministic from (rosterId, clubId,
+      // round) so re-submitting after a withdraw doesn't duplicate
+      // (the reducer skips duplicates).
+      type: 'BID_SUBMITTED';
+      bid: TransferBid;
+    }
+  | {
+      // Removes a pending bid. User-driven (Withdraw button) for now;
+      // AI bids are not withdrawn between submission and resolution.
+      type: 'BID_WITHDRAWN';
+      bidId: string;
+    }
+  | {
+      // Marks a pending bid as won or lost. Fired in batch at
+      // resolveSigningRound. The winning bid for each contested player
+      // also triggers the appropriate contract event (CONTRACT_SIGNED /
+      // PRE_AGREEMENT_SIGNED / CONTRACT_EXTENDED) — see the resolver.
+      type: 'BID_RESOLVED';
+      bidId: string;
+      outcome: 'won' | 'lost';
     };

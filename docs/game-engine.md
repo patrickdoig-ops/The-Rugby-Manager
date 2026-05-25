@@ -81,12 +81,15 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 | Variant | When fired | What it does |
 |---|---|---|
 | `MARQUEE_DESIGNATED` | User taps the star on `ContractsScreen` (or AI auto-pick in future phases) | Clears `contract.isMarquee` on the prior marquee in the named club's squad, then sets it on the new `rosterId` (or leaves cleared when `rosterId === null`). |
-| `MARKET_OPENED` | `GameCoordinator.openRenewalWindow` (phase: `'renewals'`) and `openSigningWindow` (phase: `'signings'`) | Populates `state.career.market` with the discriminated phase + relevant rosterId list + one cached `TransferOffer` per relevant player (expiring players for renewals; free agents + Reg 7 poach candidates for signings), each `status: 'pending'`. |
+| `MARKET_OPENED` | `GameCoordinator.openRenewalWindow` (phase: `'renewals'`) and `openSigningWindow` (phase: `'signings'`) | Populates `state.career.market` with the discriminated phase + relevant rosterId list + one cached `TransferOffer` per relevant player (expiring players for renewals; free agents + Reg 7 poach candidates for signings), each `status: 'pending'`. v15+ also initialises `bids: []`. |
 | `OFFER_SENT` | Reserved for proactive offers; the open-window flows seed offers via `MARKET_OPENED` directly | Idempotent on duplicate IDs — appends to `market.offers`. |
 | `OFFER_RESPONDED` | Per offer in `closeRenewalWindow` (one for every pending offer, in stable order) | Flips the offer's `status` to `'accepted'` or `'rejected'`, with optional `rejectionReason`. |
-| `CONTRACT_EXTENDED` | Per accepted renewal in `closeRenewalWindow` | Updates the player's `contract.expiresOn` + `contract.annualWage` in place. `clubId` unchanged (renewal stays with current club). |
+| `BID_SUBMITTED` | User Make Offer / Retain on TransferMarketScreen / RetentionDecisionScreen; AI bid + auto-retention passes inside `resolveSigningRound` and the final `closeSigningWindow` | Appends a `TransferBid` to `market.bids`. Idempotent on duplicate IDs. |
+| `BID_WITHDRAWN` | User Withdraw (any bid kind) | Marks the bid `status: 'withdrawn'`; the wage reservation lifts (no longer counted by `clubBudgetUsage`). |
+| `BID_RESOLVED` | Per pending bid at the end of each Submit round | Flips the bid `status` to `'won'` / `'lost'`. The winning bid for each contested player is paired with a `CONTRACT_SIGNED` / `PRE_AGREEMENT_SIGNED` / `CONTRACT_EXTENDED` event in the same batch. |
+| `CONTRACT_EXTENDED` | Per accepted renewal in `closeRenewalWindow`; per winning retention bid in `resolveSigningRound` | Updates the player's `contract.expiresOn` + `contract.annualWage` in place. `clubId` unchanged (player stays with current club). |
 | `CONTRACT_TERMINATED` | Per rejected renewal (`reason: 'expired'`); proactive releases use `'released'`; `PLAYER_RETIRED` is a separate path | Removes the rosterId from `ClubState.squad`, clears any `isMarquee` flag, appends to `state.career.freeAgents` (unless `reason: 'retired'`), and clears `contract.clubId` so downstream lookups don't show the player as still attached. |
-| `MARKET_CLOSED` | `GameCoordinator.closeRenewalWindow` and `closeSigningWindow` — fires after all per-window contract events | Clears `state.career.market` (sets to null). |
+| `MARKET_CLOSED` | `GameCoordinator.closeRenewalWindow` and `closeSigningWindow` — fires after all per-window contract + bid events | Clears `state.career.market` (sets to null). |
 
 **Signing + poaching + supply layer (Phases 5-7 of the transfer-system roadmap):**
 
@@ -193,17 +196,39 @@ Determinism: `openRenewalWindow` is the only consumer of `rngTransfer` in the ma
 
 Tuning constants live in `RENEWAL` (`src/engine/balance/transfers.ts`): `loyaltyDiscount` (current club discount on demanded wage), `aiTargetCapUtilisation` (under-cap clubs aim for this fraction of effective cap), `aiReleaseRatingFloor` (below this OVR, expiring players are at risk regardless of cap headroom).
 
-## Free-agent signings + Reg 7 poaching (Phases 5 + 6)
+## Competitive signings (Phases 5 + 6 + 10)
 
-After the renewal window closes, the signing window opens. Architecture:
+After the renewal window closes, the signing window opens. Multi-round competitive bidding — every Make Offer + AI bid pass creates `TransferBid`s that resolve by appeal score (squad OVR + position need + ambition + loyalty), not first-come-first-served. The window loops until the user clicks Finish.
 
-1. **`GameCoordinator.openSigningWindow()`** — emits `MARKET_OPENED(phase: 'signings')` with **one cached `TransferOffer` per free agent and per Reg 7 poach candidate**, in a single stable-rosterId order: free agents first (every rosterId in `state.career.freeAgents`), then poach candidates (`aiTransferDirector.poachCandidates(state)` filtered to exclude the player's own club). Each offer's wage is `signingTermsFor(state, rosterId, playerClubId)`, which calls `contractSeeder.seedContractFields` and so advances `rngTransfer` twice per candidate. Caching the offers on `state.career.market.offers` is load-bearing: subsequent UI re-renders + `signFreeAgent` / `preAgreePoach` reads + the AI close pass all see identical terms, so the `rngTransfer` stream is never replayed mid-window.
-2. **`TransferMarketScreen`** — splits offers into two sections by `offer.fromClubId` (`''` = free-agent, else poach). Sortable by name / pos / age / OVR / wage with a live projected-cap pill (includes wages of pending poach pre-agreements that haven't yet activated on the squad). Committed rows flip their button to "Undo Sign" / "Undo Pre-Agree" — calling `unsignFreeAgent` / `cancelPreAgreement` — so the user can revise any decision until they Continue. No cap-affordability gate — the user can deliberately overspend.
-3. **`GameCoordinator.signFreeAgent(rosterId)`** fires `CONTRACT_SIGNED` at the cached terms — the player joins the user's club immediately. **`preAgreePoach(rosterId)`** fires `PRE_AGREEMENT_SIGNED` which pushes a `PreAgreement` onto `state.career.pendingMoves`; the player completes the current season at their existing club, then `careerRollover.computeRollover` fires `TRANSFER_ACTIVATED` on rollover (atomic squad swap, no `freeAgents` touch).
-4. **`GameCoordinator.closeSigningWindow()`** runs `decideAISignings(state, humanClubId)` (greedy by `overall + position-need × 10`, capped at `AI_SIGNINGS_PER_CLUB_LIMIT = 4` per club, `AI_SIGN_CAP_TARGET = 0.92` of effective cap, no OVR floor since the pool is largely sub-70 — score keeps quality ahead of squad-filler) firing `CONTRACT_SIGNED` per accepted, then `decideAIPoaches(state, humanClubId)` (max 1 per non-human AI club, OVR ≥ `aiReleaseRatingFloor`) firing `PRE_AGREEMENT_SIGNED` per accepted. Finally `MARKET_CLOSED`.
-5. **`rollSeason()`** runs next, processing `TRANSFER_ACTIVATED` events for every pending move before aging / retirement.
+**Bid layer.** `MarketState.bids: TransferBid[]` (v15+) carries every bid in the active window — pending, won, lost, or withdrawn. `TransferBid.kind` discriminates `'free_agent'` / `'poach'` / `'retention'`. All bids for a player share the same `annualWage` (cached on `market.offers` at window open); appeal decides the winner, not wage size.
 
-Determinism: every wage decision flows through cached offers seeded once at `openSigningWindow`; the AI close pass reads the same cache. The 3-season `checkSeasonDeterminism` harness exercises both windows between each pair of seasons and hashes the combined offer list + post-window free-agents pool.
+**Per-round flow** — one Submit press in the TransferMarketScreen:
+
+1. **User submits offers.** `submitBid(rosterId)` adds a `TransferBid` for the user's club (kind inferred from FA pool vs poach eligibility). Hard budget gate: pending bid wages count toward `clubBudgetUsage`, so the user can't make offers that would breach budget. Withdraw → `BID_WITHDRAWN`, wage refunded.
+2. **AI bid pass.** `decideAIBids(state, humanClubId)` walks non-human clubs in alpha order, each picks its top remaining targets (score = `overall + position-need × 10`, OVR ≥ `aiReleaseRatingFloor`, budget-headroom-gated). Per-round re-evaluation: if a club lost their preferred player to a rival last round, this round they bid on the next-best.
+3. **AI auto-retention pass.** `decideAIRetentions(state, humanClubId)` walks every AI club whose own final-year player is under poach attack. Retention wage = `freshMarket × (1 - loyaltyDiscount)` (mirrors renewal terms). Headroom-gated against the retaining club's own budget.
+4. **User retention prompt** *(if any of the user's players is being poached)*. The `RetentionDecisionScreen` lists at-risk players with a per-row Retain toggle. `submitRetentionBid(rosterId)` adds a retention `TransferBid` for the user's club; budget gate uses `(newWage - oldWage)` as the delta since the retention replaces (not stacks on) the existing wage.
+5. **Resolution.** `signingResolver.resolveSigningRound(state)` walks rosterIds in ascending order; for each player with ≥1 pending bid, computes `appealScore(state, bid, player)` for each bidder, picks the highest, fires `BID_RESOLVED` per bid + the appropriate contract event for the winner (`CONTRACT_SIGNED` / `PRE_AGREEMENT_SIGNED` / `CONTRACT_EXTENDED`). Ties break by lower `clubId`.
+6. **Results screen.** `SigningResultsScreen` shows the user's outcomes — new signings, missed-out (lost-to-X), retained, lost-to-rival, players-let-go.
+7. **Loop or finish.** Continue from results returns to `TransferMarketScreen` if the user still has budget headroom AND viable candidates (`hasViableSigningOptions()` is true); otherwise auto-advances to `closeSigningWindow()`.
+
+**Appeal scoring** (`signingResolver.appealScore`):
+
+```
+appeal(club, player) =
+    squadAvgOvr        × ovrWeight       (~65-80 → 65-80 pts)
+  + positionShortage   × needWeight      (0-3 → 0-15 pts)
+  + (5.5 - lastSeasonPosition) × ambitionWeight   (±9 pts)
+  + (isCurrentClub ? loyaltyBonus : 0)             (+8 pts)
+```
+
+Constants in `balance/transfers.ts::APPEAL_WEIGHTS`. Squad OVR is the dominant signal — strong clubs win contested bids by default, but a desperate need at a mid-table club outweighs a small OVR edge, and the player's current club gets a loyalty edge on retention bids.
+
+**Closing the window.** `closeSigningWindow()` runs one final AI bid + auto-retention + resolution pass so AI clubs that never had a chance to bid in any round still get to fill their squads, then flips offer statuses (accepted iff the rosterId left `freeAgents` / landed on `pendingMoves`) and fires `MARKET_CLOSED`. The bids array is reset at the next `MARKET_OPENED`.
+
+**`rollSeason()`** runs next, processing `TRANSFER_ACTIVATED` events for every pending move before aging / retirement.
+
+Determinism: every wage decision flows through cached offers seeded once at `openSigningWindow`; the AI bid passes read those cached terms. Appeal scoring is fully deterministic (no RNG). The 3-season `checkSeasonDeterminism` harness now exercises a user-bid round + a Finish-pass per season and hashes the resolved outcomes.
 
 ## Generated supply (Phase 7)
 
@@ -252,7 +277,7 @@ A three-match knockout follows the 18-round Premiership regular season: two semi
 
 ## Save format
 
-`SAVE_VERSION = 14` (as of v2.142a). `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`.
+`SAVE_VERSION = 15` (as of v2.144a). `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`.
 
 | Version | Added |
 |---|---|
@@ -269,6 +294,7 @@ A three-match knockout follows the 18-round Premiership regular season: two semi
 | v12 | `career.preSeasonStep` (`'overview' \| 'signings' \| 'marquee' \| undefined`) — Squad Builder resumption flag. Set during the pre-season flow at game start (Phase 8), cleared after marquee Continue. Outside Squad Builder this is always undefined and the field is omitted from the payload, so existing in-season saves stay byte-equivalent. The `'overview'` value was added v2.120a alongside SquadOverviewScreen — `SAVE_VERSION` stays at 12 since the field is purely additive within its optional value range. |
 | v13 | Top-level `playoffs` (`PlayoffState \| undefined`) — the active knockout bracket. Omitted when no bracket is active (mid-regular-season). Each `ArchivedSeason` gains `championTeamId: string \| null`; pre-v13 archive entries load as `null`. Stays at v13 since both additions are purely additive within their optional / nullable shapes. |
 | v14 | `ClubState.salaryBudget` — per-club owner-set budget for cap-relevant wages. Seeded from `CLUB_SALARY_BUDGETS_2025_26` at game start, adjusted each rollover by `prepareBudgetsForNextSeason`. `career.takeoverHistory: string[]` — clubIds taken over (Newcastle Red Bull at year 2 + random investors year 3+); excluded from future random rolls. |
+| v15 | `MarketState.bids: TransferBid[]` — competing bids in the active signing window (Phase 10 competitive signings). Pre-v15 saves load with `bids: []` and any prior in-window signings are already committed via `CONTRACT_SIGNED`. |
 
 **Migration on load** (`GameCoordinator.fromSave`):
 

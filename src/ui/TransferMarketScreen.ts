@@ -32,19 +32,22 @@ type Mode = 'signings' | 'signings-preseason' | 'scouting';
 let sortKey: SortKey = 'ovr';
 let sortDir: SortDir = 'desc';
 let mode: Mode = 'signings';
-let activeOnContinue: () => void = () => {};
+let activeOnSubmit: () => void = () => {};
+let activeOnFinish: () => void = () => {};
 let scoutingOnBack: () => void = () => {};
 let renderImpl: (() => void) | null = null;
 
-export function showTransferMarket(onContinue: () => void): void {
+export function showTransferMarket(onSubmit: () => void, onFinish: () => void): void {
   mode = 'signings';
-  activeOnContinue = onContinue;
+  activeOnSubmit = onSubmit;
+  activeOnFinish = onFinish;
   renderImpl?.();
 }
 
-export function showTransferMarketPreSeason(onContinue: () => void): void {
+export function showTransferMarketPreSeason(onSubmit: () => void, onFinish: () => void): void {
   mode = 'signings-preseason';
-  activeOnContinue = onContinue;
+  activeOnSubmit = onSubmit;
+  activeOnFinish = onFinish;
   renderImpl?.();
 }
 
@@ -106,7 +109,7 @@ export function initTransferMarketScreen(
         <div class="tm-empty">No signing window open.</div>
         <div id="tm-footer"><button id="tm-continue" class="cta-pulse"><span>Continue</span></button></div>
       `;
-      el!.querySelector<HTMLButtonElement>('#tm-continue')!.addEventListener('click', () => activeOnContinue());
+      el!.querySelector<HTMLButtonElement>('#tm-continue')!.addEventListener('click', () => activeOnFinish());
       return;
     }
 
@@ -114,11 +117,17 @@ export function initTransferMarketScreen(
     const freeAgentSet = new Set(state.career.freeAgents);
     const pendingMovesSet = new Set(state.career.pendingMoves.map(m => m.rosterId));
     const userSquadSet = new Set(club.squad);
+    // User's currently-pending bids (the ones reserving budget).
+    const userBidRosterIds = new Set(
+      market.bids
+        .filter(b => b.clubId === playerClubId && b.status === 'pending' && b.kind !== 'retention')
+        .map(b => b.rosterId),
+    );
 
     // Cap projection includes already-signed free agents (live on the
-    // squad through their CONTRACT_SIGNED) AND pre-agreed poach wages
-    // (live on pendingMoves but not yet on the squad — they'd otherwise
-    // sneak past the pill until activation at rollover).
+    // squad through their CONTRACT_SIGNED), pre-agreed poach wages (on
+    // pendingMoves), AND pending bids reserved against the budget.
+    // Mirrors clubBudgetUsage on the engine side.
     const liveSquadCap = club.squad
       .map(rid => state.career.roster[rid])
       .filter(p => p && !p.contract.isMarquee)
@@ -126,7 +135,10 @@ export function initTransferMarketScreen(
     const pendingPoachCap = state.career.pendingMoves
       .filter(m => m.toClubId === playerClubId)
       .reduce((sum, m) => sum + m.annualWage, 0);
-    const capUsed = liveSquadCap + pendingPoachCap;
+    const pendingBidsCap = market.bids
+      .filter(b => b.clubId === playerClubId && b.status === 'pending' && b.kind !== 'retention')
+      .reduce((sum, b) => sum + b.annualWage, 0);
+    const capUsed = liveSquadCap + pendingPoachCap + pendingBidsCap;
     // The pill is the owner-set salaryBudget (cap-relevant total). The
     // league's effective cap sits above as a hard ceiling no budget
     // exceeds, so showing the smaller number is the right user signal.
@@ -161,42 +173,56 @@ export function initTransferMarketScreen(
     const renderRow = (offer: TransferOffer, p: Player, action: 'sign' | 'poach'): string => {
       const age = getAge(p.dob, calendarDate);
       const ovr = playerOverall(p.baseStats, p.position);
-      const signed = action === 'sign' && userSquadSet.has(p.rosterId) && !freeAgentSet.has(p.rosterId);
-      const preAgreed = action === 'poach' && pendingMovesSet.has(p.rosterId);
-      const committed = signed || preAgreed;
-      // Budget-warning only applies to NEW commitments — undoing never
-      // pushes the budget up. Budget is a hard constraint: the
-      // engine-side signFreeAgent / preAgreePoach also blocks the move,
-      // so this flag is the user-side mirror that disables the button
-      // pre-emptively.
-      const wouldExceedCap = !committed && (capUsed + offer.annualWage > budgetCap);
-      // Button label: keep the committed-state label short so it fits the
-      // narrow column (an explicit "Undo Sign" overflowed on mobile). The
-      // red `.tm-sign--undo` styling + the row's faded `.tm-row--committed`
-      // treatment carry the meaning. Over-cap warning is conveyed by the
-      // red border (`.tm-sign--warn`) + the CAP pill in the header — no
-      // need to spell it out in the label.
-      const buttonLabel = signed || preAgreed
-        ? 'Undo'
-        : action === 'sign' ? 'Sign' : 'Pre-Agree';
-      const buttonClass = `tm-sign${wouldExceedCap ? ' tm-sign--warn' : ''}${committed ? ' tm-sign--undo' : ''}`;
-      const dataAttr = committed
-        ? (signed ? `data-unsign="${p.rosterId}"` : `data-cancel="${p.rosterId}"`)
-        : `data-${action}="${p.rosterId}"`;
-      const ariaLabel = committed
-        ? `${signed ? 'Undo signing of' : 'Cancel pre-agreement for'} ${p.firstName} ${p.lastName}`
-        : `${action === 'sign' ? 'Sign' : 'Pre-agree'} ${p.firstName} ${p.lastName}${wouldExceedCap ? ' (over cap)' : ''}`;
+      // "Committed" no longer means signed — under the bid model it means
+      // the user has a pending bid for this player (reserving budget,
+      // awaiting resolution). Resolved winners get filtered out below
+      // (they're on the squad / pendingMoves, no longer in offers as
+      // pending), so this only fires for bids still in play.
+      const alreadySigned = action === 'sign' && userSquadSet.has(p.rosterId) && !freeAgentSet.has(p.rosterId);
+      const alreadyPreAgreed = action === 'poach' && pendingMovesSet.has(p.rosterId);
+      const alreadyWon = alreadySigned || alreadyPreAgreed;
+      const hasPendingBid = userBidRosterIds.has(p.rosterId);
+      // Budget warning: only fires for NEW bids (existing pending bids
+      // already reserve their wage; withdrawing never breaches budget).
+      const wouldExceedCap = !hasPendingBid && !alreadyWon && (capUsed + offer.annualWage > budgetCap);
+      // Button states:
+      //   - "Make Offer" — no bid yet, can afford
+      //   - "Make Offer" (warn class) — no bid yet, would breach budget
+      //   - "Withdraw" — pending bid by user, awaiting resolution
+      //   - "Signed" / "Pre-Agreed" — already won at a prior resolution
+      //     (read-only chip; row is faded)
+      let buttonLabel: string;
+      let buttonClass: string;
+      let dataAttr: string;
+      let ariaLabel: string;
+      if (alreadyWon) {
+        buttonLabel = action === 'sign' ? 'Signed' : 'Pre-Agreed';
+        buttonClass = 'tm-sign tm-sign--won';
+        dataAttr = `data-won="${p.rosterId}"`;
+        ariaLabel = `${action === 'sign' ? 'Signed' : 'Pre-agreed'} ${p.firstName} ${p.lastName}`;
+      } else if (hasPendingBid) {
+        buttonLabel = 'Withdraw';
+        buttonClass = 'tm-sign tm-sign--undo';
+        dataAttr = `data-withdraw="${p.rosterId}"`;
+        ariaLabel = `Withdraw offer for ${p.firstName} ${p.lastName}`;
+      } else {
+        buttonLabel = 'Make Offer';
+        buttonClass = `tm-sign${wouldExceedCap ? ' tm-sign--warn' : ''}`;
+        dataAttr = `data-bid="${p.rosterId}"`;
+        ariaLabel = `Make offer for ${p.firstName} ${p.lastName}${wouldExceedCap ? ' (over budget)' : ''}`;
+      }
+      const committedClass = hasPendingBid || alreadyWon ? ' tm-row--committed' : '';
       const currentClub = action === 'poach'
         ? `<span class="tm-from">← ${teamsById.get(offer.fromClubId)?.shortName ?? offer.fromClubId}</span>`
         : '';
       return `
-        <div class="tm-row${committed ? ' tm-row--committed' : ''}" data-roster-id="${p.rosterId}">
+        <div class="tm-row${committedClass}" data-roster-id="${p.rosterId}">
           <span class="tm-name">${p.firstName} ${p.lastName}${currentClub}</span>
           <span class="tm-pos">${shortPos(p.position)}</span>
           <span class="tm-num">${age ?? '—'}</span>
           <span class="tm-num">${ovr}</span>
           <span class="tm-wage">${fmtWage(offer.annualWage)} <span class="tm-len">× ${offer.lengthYears}y</span></span>
-          <button class="${buttonClass}" ${dataAttr} aria-label="${ariaLabel}">${buttonLabel}</button>
+          <button class="${buttonClass}" ${dataAttr} aria-label="${ariaLabel}"${alreadyWon ? ' disabled' : ''}>${buttonLabel}</button>
         </div>`;
     };
 
@@ -264,8 +290,11 @@ export function initTransferMarketScreen(
       `}
 
       <div id="tm-footer">
-        <button id="tm-continue" class="cta-pulse">
-          <span>Continue</span>
+        <button id="tm-finish" class="tm-footer-secondary" aria-label="Finish signing window">
+          <span>Finish</span>
+        </button>
+        <button id="tm-submit" class="cta-pulse" ${userBidRosterIds.size === 0 ? 'disabled' : ''}>
+          <span>${userBidRosterIds.size === 0 ? 'Submit offers' : `Submit ${userBidRosterIds.size} offer${userBidRosterIds.size === 1 ? '' : 's'}`}</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
         </button>
       </div>
@@ -284,43 +313,26 @@ export function initTransferMarketScreen(
         render();
       });
     });
-    el!.querySelectorAll<HTMLButtonElement>('.tm-sign[data-sign]').forEach(btn => {
+    el!.querySelectorAll<HTMLButtonElement>('.tm-sign[data-bid]').forEach(btn => {
       btn.addEventListener('click', () => {
-        const rid = Number(btn.dataset.sign);
+        const rid = Number(btn.dataset.bid);
         if (!Number.isFinite(rid)) return;
         const p = gameEngine.getState().career.roster[rid];
-        gameEngine.signFreeAgent(rid);
-        if (p) showToast(`${p.firstName} ${p.lastName} signed`);
+        const ok = gameEngine.submitBid(rid);
+        if (ok && p) showToast(`Offer made for ${p.firstName} ${p.lastName}`, 'info');
         render();
       });
     });
-    el!.querySelectorAll<HTMLButtonElement>('.tm-sign[data-unsign]').forEach(btn => {
+    el!.querySelectorAll<HTMLButtonElement>('.tm-sign[data-withdraw]').forEach(btn => {
       btn.addEventListener('click', () => {
-        const rid = Number(btn.dataset.unsign);
+        const rid = Number(btn.dataset.withdraw);
         if (!Number.isFinite(rid)) return;
-        gameEngine.unsignFreeAgent(rid);
+        gameEngine.withdrawBid(rid);
         render();
       });
     });
-    el!.querySelectorAll<HTMLButtonElement>('.tm-sign[data-poach]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const rid = Number(btn.dataset.poach);
-        if (!Number.isFinite(rid)) return;
-        const p = gameEngine.getState().career.roster[rid];
-        gameEngine.preAgreePoach(rid);
-        if (p) showToast(`${p.firstName} ${p.lastName} pre-agreed`, 'info');
-        render();
-      });
-    });
-    el!.querySelectorAll<HTMLButtonElement>('.tm-sign[data-cancel]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const rid = Number(btn.dataset.cancel);
-        if (!Number.isFinite(rid)) return;
-        gameEngine.cancelPreAgreement(rid);
-        render();
-      });
-    });
-    el!.querySelector<HTMLButtonElement>('#tm-continue')!.addEventListener('click', () => activeOnContinue());
+    el!.querySelector<HTMLButtonElement>('#tm-submit')!.addEventListener('click', () => activeOnSubmit());
+    el!.querySelector<HTMLButtonElement>('#tm-finish')!.addEventListener('click', () => activeOnFinish());
   }
 
   // Mid-season scouting view. Read-only — no Sign / Pre-Agree buttons,

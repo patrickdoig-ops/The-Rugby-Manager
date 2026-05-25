@@ -160,9 +160,12 @@ async function runOnce(seed: number): Promise<string> {
         const freeAgentsAfter = [...coord.getState().career.freeAgents].sort((a, b) => a - b);
         marketSummary = { ...marketSummary as object, freeAgentsAfterRenewals: freeAgentsAfter };
       }
-      // Phase 5: signing window. AI-only — humanClubId still 'bath',
-      // but the harness doesn't sign anyone, so the AI's decideAISignings
-      // resolves every other club's signings deterministically.
+      // Phase 5+10: signing window. Drive one user-bid round to
+      // exercise the competitive resolution path, then Finish to
+      // trigger the final AI fill-up + close. The user (bath) bids
+      // on the top-3 most-affordable free agents and on any final-
+      // year contracted player they can afford — covers free-agent,
+      // poach, and retention paths through the resolver.
       coord.openSigningWindow();
       const signingMarket = coord.getState().career.market;
       if (signingMarket) {
@@ -174,6 +177,23 @@ async function runOnce(seed: number): Promise<string> {
           ...marketSummary as object,
           signingOfferHash: createHash('sha256').update(offerHashSource.join('\n')).digest('hex'),
         };
+        // User-bid pass: pick the 3 cheapest pending offers and bid.
+        const cheapestOffers = signingMarket.offers
+          .filter(o => o.status === 'pending')
+          .sort((a, b) => a.annualWage - b.annualWage)
+          .slice(0, 3);
+        for (const o of cheapestOffers) coord.submitBid(o.rosterId);
+        // AI bid + retention + resolve one round.
+        coord.runAIBidPass();
+        coord.runAIRetentionPass();
+        const outcomes = coord.resolveSigningRound();
+        const outcomesHash = createHash('sha256').update(JSON.stringify(outcomes.map(o => ({
+          rosterId: o.rosterId,
+          winner: o.winnerBid?.clubId ?? null,
+          kind: o.winnerBid?.kind ?? null,
+        })))).digest('hex');
+        marketSummary = { ...marketSummary as object, roundOutcomesHash: outcomesHash };
+        // Finish — final AI fill-up + close.
         coord.closeSigningWindow();
         const freeAgentsLeft = [...coord.getState().career.freeAgents].sort((a, b) => a - b);
         marketSummary = { ...marketSummary as object, freeAgentsAfterSignings: freeAgentsLeft };

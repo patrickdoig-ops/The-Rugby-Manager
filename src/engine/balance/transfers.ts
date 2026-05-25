@@ -164,6 +164,43 @@ export const TAKEOVER_VALUES = {
   randomChancePct:       4,
 };
 
+// Appeal-score weights for competitive signings. Each contested
+// player's winning club = max appeal(club, player); ties break by
+// lower clubId.
+//
+//   appeal(club, player) =
+//       squadAvgOvr        × ovrWeight
+//     + positionShortage   × needWeight
+//     + (5.5 - lastPos)    × ambitionWeight
+//     + (isCurrentClub ? loyaltyBonus : 0)
+//
+// Tuning rationale:
+//   - ovrWeight 1.0: squadAvgOvr ranges ~65-80 across the league, so
+//     a 5pt OVR gap → 5 appeal pts. The dominant term — top clubs win
+//     most contests.
+//   - needWeight 5: positionShortage is capped at ~3 (more than 3
+//     short means the club is in trouble); a desperate need adds up to
+//     15 appeal pts — beats a 5pt OVR gap, lets mid-table clubs win
+//     when filling a hole.
+//   - ambitionWeight 2: (5.5-lastPos) ∈ [-4.5, +4.5], so up to ±9
+//     appeal pts — final-position champions edge slightly more
+//     attractive than mid-table.
+//   - loyaltyBonus 8: a retention bid by the player's current club
+//     beats a slightly stronger external club. Big enough to matter,
+//     small enough to lose to a clearly better destination.
+export const APPEAL_WEIGHTS = {
+  ovrWeight:       1.0,
+  needWeight:      5.0,
+  ambitionWeight:  2.0,
+  loyaltyBonus:    8.0,
+  // Target squad headcount per position — clubs short of this in a
+  // given position get a higher needShortage value. Mirrors the
+  // AI_SIGNING_POLICY value but pulled out so signing + bidding share
+  // it cleanly. Lower than AI_SIGNING_POLICY.targetPerPosition so
+  // appeal-need only fires when the club is genuinely thin.
+  needTargetPerPosition: 2,
+};
+
 // All synthesised wages floor at WAGE_FLOOR and round to the nearest
 // WAGE_ROUNDING_UNIT, so the UI never shows £138,743 and seeded squads
 // can't dip below the RPA rookie rate. WAGE_FLOOR is also the academy

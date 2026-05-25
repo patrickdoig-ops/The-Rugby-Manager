@@ -1,0 +1,205 @@
+/* Signing Results + Retention Decision — paired post-resolution screens. */
+
+#signing-results,
+#retention-decision {
+  position: fixed;
+  inset: 0;
+  z-index: 225;
+  background: var(--rm-bg);
+  display: flex;
+  flex-direction: column;
+  padding-top:    env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left:   env(safe-area-inset-left, 0px);
+  padding-right:  env(safe-area-inset-right, 0px);
+  overflow: hidden;
+}
+
+/* ===== SigningResultsScreen ===== */
+
+#sr-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 0 16px 14px;
+}
+
+.sr-section {
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-top: 14px;
+}
+
+.sr-section-h {
+  font-family: var(--rm-font-display);
+  letter-spacing: 0.06em;
+  font-size: 13px;
+  color: var(--rm-text-muted);
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.sr-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  border-top: 1px solid var(--rm-border-soft);
+}
+
+.sr-row:first-of-type {
+  border-top: none;
+}
+
+.sr-name {
+  font-family: var(--rm-font-body);
+  font-size: 14px;
+  color: var(--rm-text);
+}
+
+.sr-pos {
+  display: inline-block;
+  margin-left: 6px;
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--rm-text-muted);
+}
+
+.sr-result {
+  font-family: var(--rm-font-display);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--rm-text-muted);
+  text-transform: uppercase;
+}
+
+.sr-row--win .sr-result { color: var(--rm-pitch); }
+.sr-row--loss .sr-result { color: var(--rm-danger, #d8503e); }
+
+.sr-wage {
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  color: var(--rm-text-muted);
+  min-width: 64px;
+  text-align: right;
+}
+
+.sr-empty {
+  text-align: center;
+  color: var(--rm-text-muted);
+  padding: 40px 16px;
+  font-family: var(--rm-font-body);
+}
+
+#sr-footer {
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  background: var(--rm-bg);
+  border-top: 1px solid var(--rm-border-soft);
+  display: flex;
+  justify-content: center;
+}
+
+/* ===== RetentionDecisionScreen ===== */
+
+.rd-intro {
+  padding: 12px 16px;
+  font-family: var(--rm-font-body);
+  font-size: 13px;
+  color: var(--rm-text-muted);
+  line-height: 1.4;
+}
+
+#rd-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 0 16px 14px;
+}
+
+.rd-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1.2fr 0.9fr 0.9fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--rm-border-soft);
+}
+
+.rd-name {
+  font-family: var(--rm-font-body);
+  font-size: 14px;
+  color: var(--rm-text);
+}
+
+.rd-meta,
+.rd-poacher {
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  color: var(--rm-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.rd-poacher {
+  color: var(--rm-amber);
+}
+
+.rd-wage {
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  color: var(--rm-text);
+  text-align: right;
+}
+
+.rd-delta {
+  display: block;
+  font-size: 10px;
+  color: var(--rm-text-muted);
+}
+
+.rd-empty {
+  text-align: center;
+  color: var(--rm-text-muted);
+  padding: 40px 16px;
+  font-family: var(--rm-font-body);
+}
+
+#rd-footer {
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  background: var(--rm-bg);
+  border-top: 1px solid var(--rm-border-soft);
+  display: flex;
+  justify-content: center;
+}
+
+/* ===== TransferMarketScreen footer — two CTAs (Submit + Finish) ===== */
+
+#tm-footer {
+  display: flex;
+  gap: 10px;
+}
+
+.tm-footer-secondary {
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border);
+  color: var(--rm-text);
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-family: var(--rm-font-display);
+  letter-spacing: 0.05em;
+  font-size: 14px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.tm-footer-secondary:hover {
+  background: var(--rm-surface-3);
+}
+
+.tm-sign--won {
+  background: color-mix(in oklch, var(--rm-pitch) 18%, transparent);
+  border-color: color-mix(in oklch, var(--rm-pitch) 40%, transparent);
+  color: var(--rm-pitch);
+  cursor: default;
+}

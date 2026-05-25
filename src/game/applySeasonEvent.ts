@@ -192,6 +192,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         openedAfterSeason: state.calendar.seasonLabel,
         expiringRosterIds: [...event.expiringRosterIds],
         offers: event.offers.map(o => ({ ...o })),
+        bids: [],
       };
       return;
     }
@@ -336,6 +337,8 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
               openedAfterSeason: event.market.openedAfterSeason,
               expiringRosterIds: [...event.market.expiringRosterIds],
               offers: event.market.offers.map(o => ({ ...o })),
+              // Pre-v15 saves predate the bids field; default to empty.
+              bids: (event.market.bids ?? []).map(b => ({ ...b })),
             }
           : null;
       }
@@ -465,6 +468,32 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       if (!state.career.takeoverHistory.includes(event.clubId)) {
         state.career.takeoverHistory.push(event.clubId);
       }
+      return;
+    }
+    case 'BID_SUBMITTED': {
+      if (!state.career.market) return;
+      // Idempotent on duplicate IDs — re-submitting an existing bid is a
+      // no-op. UI usually withdraws first, but a double-click on Make
+      // Offer shouldn't double-up.
+      if (state.career.market.bids.some(b => b.id === event.bid.id)) return;
+      state.career.market.bids.push({ ...event.bid });
+      return;
+    }
+    case 'BID_WITHDRAWN': {
+      if (!state.career.market) return;
+      const bid = state.career.market.bids.find(b => b.id === event.bidId);
+      if (!bid) return;
+      bid.status = 'withdrawn';
+      return;
+    }
+    case 'BID_RESOLVED': {
+      if (!state.career.market) return;
+      const bid = state.career.market.bids.find(b => b.id === event.bidId);
+      if (!bid) return;
+      // Only flip pending → won/lost. Already-resolved or withdrawn
+      // bids are left alone (defensive).
+      if (bid.status !== 'pending') return;
+      bid.status = event.outcome;
       return;
     }
     default: {

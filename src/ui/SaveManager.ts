@@ -39,15 +39,15 @@
 // v1 saves are discarded — they predate AI-vs-AI results.
 
 import type { SavedCareer, SavedSeason, SavedSeasonResult } from '../game/GameCoordinator';
-import type { ArchivedSeason, ClubState, Fixture, MarketState, PlayerRef, PlayoffMatch, PlayoffState, PreAgreement, SeasonAwards, TeamSeasonStats, TransferOffer } from '../types/gameState';
+import type { ArchivedSeason, ClubState, Fixture, MarketState, PlayerRef, PlayoffMatch, PlayoffState, PreAgreement, SeasonAwards, TeamSeasonStats, TransferBid, TransferOffer } from '../types/gameState';
 import type { Player, PlayerSeasonStats } from '../types/player';
 import { zeroSeasonStats } from '../types/player';
 import { zeroTeamSeasonStats } from '../types/gameState';
 import type { TeamTactics } from '../types/team';
 
 const SAVE_KEY = 'rugby-manager-save';
-const SAVE_VERSION = 14;
-const ACCEPTED_VERSIONS = new Set([14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+const SAVE_VERSION = 15;
+const ACCEPTED_VERSIONS = new Set([15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
 
 export type SavedGame = SavedSeason & { version: number };
 
@@ -308,11 +308,17 @@ function parseMarket(raw: unknown): MarketState | null {
   // v7 saves predate the phase field; default to 'renewals' so a save
   // mid-window resumes on the correct screen.
   const phase: 'renewals' | 'signings' = m.phase === 'signings' ? 'signings' : 'renewals';
+  // v15+ field. Pre-v15 saves omit the array; default empty so the
+  // resumed window has no competing bids in flight (any pre-v15 mid-
+  // window signings were already applied as CONTRACT_SIGNED — the new
+  // bid layer just starts fresh).
+  const bids = Array.isArray(m.bids) ? (m.bids as TransferBid[]).map(b => ({ ...b })) : [];
   return {
     phase,
     openedAfterSeason: m.openedAfterSeason,
     expiringRosterIds: m.expiringRosterIds.filter((n): n is number => typeof n === 'number'),
     offers: (m.offers as TransferOffer[]).map(o => ({ ...o })),
+    bids,
   };
 }
 

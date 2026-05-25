@@ -20,6 +20,7 @@ import '../style/stats.css';
 import '../style/prematch.css';
 import '../style/tactics.css';
 import '../style/playoffbracket.css';
+import '../style/signingresults.css';
 import '../style/budgetreveal.css';
 
 import { buildAppShell }           from './ui/AppShell';
@@ -45,6 +46,8 @@ import { initTakeoverRevealScreen, showTakeoverReveal, type TakeoverEntry } from
 import { initEndOfSeasonScreen, showEndOfSeason }   from './ui/EndOfSeasonScreen';
 import { initRenewalsScreen, showRenewals }         from './ui/RenewalsScreen';
 import { initTransferMarketScreen, showTransferMarket, showTransferMarketScouting, showTransferMarketPreSeason } from './ui/TransferMarketScreen';
+import { initSigningResultsScreen, showSigningResults } from './ui/SigningResultsScreen';
+import { initRetentionDecisionScreen, showRetentionDecision } from './ui/RetentionDecisionScreen';
 import { initModePickerScreen }    from './ui/ModePickerScreen';
 import { initSquadOverviewScreen, showSquadOverview } from './ui/SquadOverviewScreen';
 import { PRE_SEASON_TRANSFERS_2025_26 } from './data/transfers-2025-26';
@@ -179,6 +182,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initEndOfSeasonScreen(getGameEngine, allTeams);
     initRenewalsScreen(getGameEngine, allTeams);
     initTransferMarketScreen(getGameEngine, allTeams);
+    initSigningResultsScreen(getGameEngine, allTeams);
+    initRetentionDecisionScreen(getGameEngine, allTeams);
     initRolloverScreen(getGameEngine, allTeams);
     initContractsScreen(getGameEngine, allTeams, goHub);
     initSquadManagementScreen({ getGameEngine, allTeams, onBack: goHub });
@@ -278,7 +283,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     gameEngine.setPreSeasonStep('signings');
     saveGame(gameEngine.toSavePayload());
-    showTransferMarketPreSeason(() => {
+    // Pre-season signing flow uses the same competitive loop as the
+    // mid-season chain, but the openSigningWindow was opened with
+    // skipPoaches so there are no Reg 7 candidates and therefore no
+    // retention decisions. Close call also takes skipPoaches.
+    const runPreSeasonRound = (): void => {
+      if (!gameEngine) { goHub(); return; }
+      gameEngine.runAIBidPass();
+      // No retentions in pre-season (no poach bids), but call the pass
+      // for shape symmetry — it's a no-op when no poaches are in flight.
+      gameEngine.runAIRetentionPass();
+      saveGame(gameEngine.toSavePayload());
+      const outcomes = gameEngine.resolveSigningRound();
+      saveGame(gameEngine.toSavePayload());
+      showSigningResults(outcomes, () => {
+        if (!gameEngine) { goHub(); return; }
+        if (gameEngine.hasViableSigningOptions()) {
+          showPreSeasonLoop();
+        } else {
+          finishPreSeasonWindow();
+        }
+      });
+      screenRouter.show('signing-results');
+    };
+    const finishPreSeasonWindow = (): void => {
       if (!gameEngine) { goHub(); return; }
       gameEngine.closeSigningWindow({ skipPoaches: true });
       // Some AI clubs may now have no marquee — their authored marquee
@@ -286,8 +314,12 @@ document.addEventListener('DOMContentLoaded', () => {
       // earner per marquee-less AI club so cap pressure stays sane.
       gameEngine.repairAIMarquees();
       runPreSeasonMarquee();
-    });
-    screenRouter.show('transfer-market');
+    };
+    const showPreSeasonLoop = (): void => {
+      showTransferMarketPreSeason(runPreSeasonRound, finishPreSeasonWindow);
+      screenRouter.show('transfer-market');
+    };
+    showPreSeasonLoop();
   }
 
   function runPreSeasonMarquee(): void {
@@ -355,6 +387,58 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       screenRouter.show('rollover');
     };
+    // Drives the competitive signing loop:
+    //   - Show TransferMarketScreen. User makes offers, then presses
+    //     Submit (resolves one round, looping back here) or Finish
+    //     (closes the window, advancing to rollover).
+    //   - On Submit: runRound() handles AI bids + retention decisions
+    //     (with the user prompted via RetentionDecisionScreen if any of
+    //     their players are under poach attack) + resolution + results.
+    //   - After results: auto-finish if no viable next round, otherwise
+    //     loop back to TransferMarketScreen.
+    const runSigningLoop = (onFinishCallback: () => void): void => {
+      const runRound = (): void => {
+        if (!gameEngine) { onFinishCallback(); return; }
+        // AI bid pass (free agents + poaches) then AI auto-retention.
+        gameEngine.runAIBidPass();
+        gameEngine.runAIRetentionPass();
+        saveGame(gameEngine.toSavePayload());
+        const userPrompts = gameEngine.getUserRetentionPrompts();
+        const proceedToResolve = (): void => {
+          if (!gameEngine) { onFinishCallback(); return; }
+          const outcomes = gameEngine.resolveSigningRound();
+          saveGame(gameEngine.toSavePayload());
+          showSigningResults(outcomes, () => {
+            if (!gameEngine) { onFinishCallback(); return; }
+            // Loop back unless the user has nothing left to offer.
+            if (gameEngine.hasViableSigningOptions()) {
+              showLoop();
+            } else {
+              finishWindow();
+            }
+          });
+          screenRouter.show('signing-results');
+        };
+        if (userPrompts.length > 0) {
+          showRetentionDecision(proceedToResolve);
+          screenRouter.show('retention-decision');
+        } else {
+          proceedToResolve();
+        }
+      };
+      const finishWindow = (): void => {
+        if (!gameEngine) { onFinishCallback(); return; }
+        gameEngine.closeSigningWindow();
+        saveGame(gameEngine.toSavePayload());
+        onFinishCallback();
+      };
+      const showLoop = (): void => {
+        showTransferMarket(runRound, finishWindow);
+        screenRouter.show('transfer-market');
+      };
+      showLoop();
+    };
+
     const proceedToSignings = (): void => {
       if (!gameEngine) { goHub(); return; }
       gameEngine.openSigningWindow();
@@ -365,13 +449,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // releases land, before they decide who to recruit.
         showSquadOverview(() => {
           if (!gameEngine) { goHub(); return; }
-          showTransferMarket(() => {
-            if (!gameEngine) { goHub(); return; }
-            gameEngine.closeSigningWindow();
-            saveGame(gameEngine.toSavePayload());
-            proceedToRollover();
-          });
-          screenRouter.show('transfer-market');
+          runSigningLoop(proceedToRollover);
         });
         screenRouter.show('squad-overview');
       } else {

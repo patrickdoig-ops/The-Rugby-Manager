@@ -348,6 +348,45 @@ export class GameCoordinator {
     return this.transfers.cancelPreAgreement(rosterId);
   }
 
+  // Competitive signing flow (Phase 10) — thin delegates onto
+  // TransferCoordinator. UI calls these between rounds; per-method
+  // docs live on the TransferCoordinator class.
+  submitBid(rosterId: number): boolean {
+    return this.transfers.submitBid(rosterId);
+  }
+
+  withdrawBid(rosterId: number): boolean {
+    return this.transfers.withdrawBid(rosterId);
+  }
+
+  submitRetentionBid(rosterId: number): boolean {
+    return this.transfers.submitRetentionBid(rosterId);
+  }
+
+  withdrawRetentionBid(rosterId: number): boolean {
+    return this.transfers.withdrawRetentionBid(rosterId);
+  }
+
+  getUserRetentionPrompts(): number[] {
+    return this.transfers.getUserRetentionPrompts();
+  }
+
+  runAIBidPass(): void {
+    this.transfers.runAIBidPass();
+  }
+
+  runAIRetentionPass(): void {
+    this.transfers.runAIRetentionPass();
+  }
+
+  resolveSigningRound() {
+    return this.transfers.resolveSigningRound();
+  }
+
+  hasViableSigningOptions(): boolean {
+    return this.transfers.hasViableSigningOptions();
+  }
+
   closeSigningWindow(opts: { skipPoaches?: boolean } = {}): void {
     this.transfers.closeSigningWindow(opts);
   }
@@ -769,6 +808,7 @@ export class GameCoordinator {
               openedAfterSeason: this.state.career.market.openedAfterSeason,
               expiringRosterIds: [...this.state.career.market.expiringRosterIds],
               offers: this.state.career.market.offers.map(o => ({ ...o })),
+              bids: this.state.career.market.bids.map(b => ({ ...b })),
             }
           : null,
         pendingMoves: this.state.career.pendingMoves.map(m => ({ ...m })),

@@ -102,9 +102,11 @@ export function homeAdvantagePts(neutralVenue = false): number {
 // Wage commitments that count against a club's salaryBudget.
 // Mirrors the league's cap accounting: non-marquee squad wages + any
 // pre-agreed poaches not yet activated (they're real future
-// liabilities even though the player is still at their old club).
-// Used by the budget pill on Contracts / Renewals / TransferMarket
-// and by the hard-constraint check in TransferCoordinator.
+// liabilities even though the player is still at their old club) +
+// pending bids (reserved against the budget so the user can't make
+// more offers than they can pay for; refunded when bids resolve as
+// lost). Used by the budget pill on Contracts / Renewals /
+// TransferMarket and by the hard-constraint check in TransferCoordinator.
 export function clubBudgetUsage(state: GameState, clubId: string): number {
   let usage = 0;
   const club = state.career.clubs.find(c => c.id === clubId);
@@ -117,6 +119,20 @@ export function clubBudgetUsage(state: GameState, clubId: string): number {
   }
   for (const move of state.career.pendingMoves) {
     if (move.toClubId === clubId) usage += move.annualWage;
+  }
+  // Pending bids reserve their wage against the budget. Retention bids
+  // (current-club bidding to keep their own player) are excluded —
+  // the player's existing wage is already counted via the squad loop
+  // above, and the retention's new wage replaces (rather than stacks
+  // on) that wage if the bid wins. Lost retention bids release no
+  // reservation; the existing wage commitment is unchanged.
+  if (state.career.market) {
+    for (const bid of state.career.market.bids) {
+      if (bid.status !== 'pending') continue;
+      if (bid.clubId !== clubId) continue;
+      if (bid.kind === 'retention') continue;
+      usage += bid.annualWage;
+    }
   }
   return usage;
 }

@@ -14,13 +14,15 @@
 // `GameCoordinator` so the `getGameEngine: () => GameCoordinator` getter
 // contract (see CLAUDE.md § 4) is preserved.
 
-import type { GameState, TransferOffer } from '../types/gameState';
+import type { GameState, SeasonEvent, TransferBid, TransferOffer } from '../types/gameState';
 import type { Player } from '../types/player';
 import { applySeasonEvent } from './applySeasonEvent';
 import {
   expiringRosterIds, generateRenewalOffers, decideAIOffers, expiryAfterYears,
   decideAISignings, signingTermsFor, isPoachEligible, decideAIPoaches, poachCandidates,
+  decideAIBids, decideAIRetentions, decideAIFinalSignings, retentionTermsFor,
 } from './aiTransferDirector';
+import { resolveSigningRound, type SigningOutcome } from './signingResolver';
 import { clubBudgetUsage } from './teamStats';
 import type { PreSeasonTransfer } from '../data/transfers-2025-26';
 
@@ -206,158 +208,279 @@ export class TransferCoordinator {
     });
   }
 
-  // User-side sign. Looks up the cached offer for `rosterId` in the
-  // open signing window and fires CONTRACT_SIGNED at those terms.
+  // User-side bid submission. Adds a TransferBid for the user's club
+  // on the named player. The wage is taken from the cached offer
+  // (same for every bidder — appeal score is what decides, not wage
+  // size). Bid sits pending until resolveSigningRound() picks the
+  // winner among all bidders for that player.
+  //
+  // Hard budget gate: the projected wage usage (existing commitments +
+  // pending bids + this bid) must fit under the user's salaryBudget.
+  // The budget is reserved on submission; if the bid loses at
+  // resolution, the reservation lifts automatically via BID_RESOLVED.
+  //
   // Returns false if no window is open, no cached offer exists, the
-  // player is no longer a free agent, or the signing would breach the
-  // user's club salaryBudget. The budget is a hard constraint — see
-  // CLAUDE.md § Budgets. OFFER_RESPONDED is deferred to
-  // closeSigningWindow so the cached offer stays 'pending' through the
-  // window, letting the user undo via unsignFreeAgent without
-  // offer-status drift.
+  // player is no longer in the pool (FA / poach-eligible as
+  // appropriate), the user already has a pending bid for this player,
+  // or the budget would breach.
   signFreeAgent(rosterId: number): boolean {
+    return this.submitBid(rosterId);
+  }
+
+  // Reverses an in-window bid by withdrawing it. Returns false when no
+  // pending bid by the user exists for this player. Refunds the wage
+  // reservation immediately (clubBudgetUsage now sees one less pending
+  // bid).
+  unsignFreeAgent(rosterId: number): boolean {
+    return this.withdrawBid(rosterId);
+  }
+
+  // User-side Reg 7 poach — same model as signFreeAgent; the kind is
+  // inferred inside submitBid from whether the player is a FA or a
+  // poach candidate.
+  preAgreePoach(rosterId: number): boolean {
+    return this.submitBid(rosterId);
+  }
+
+  cancelPreAgreement(rosterId: number): boolean {
+    return this.withdrawBid(rosterId);
+  }
+
+  // Unified bid submission. FAs and poach candidates funnel through
+  // here — the kind is inferred from market state. Budget-gated.
+  submitBid(rosterId: number): boolean {
     const market = this.state.career.market;
     if (!market || market.phase !== 'signings') return false;
-    if (!this.state.career.freeAgents.includes(rosterId)) return false;
     const offer = market.offers.find(o => o.rosterId === rosterId && o.status === 'pending');
     if (!offer) return false;
     const userClubId = this.state.player.teamId;
     const club = this.state.career.clubs.find(c => c.id === userClubId);
     if (!club) return false;
-    // Hard budget gate. Marquees are excluded from budget (offer.isMarquee
-    // implies the player would slot into the marquee facility, outside
-    // the cap-relevant pool) — but the cached signing-window offers are
-    // all non-marquee in v1, so the simple add-and-compare check below
-    // covers every real path.
+    const p = this.state.career.roster[rosterId];
+    if (!p) return false;
+
+    // Can't bid on a player already on your own squad (defensive — the
+    // UI shouldn't render the button, but cover the path).
+    if (club.squad.includes(rosterId)) return false;
+
+    // Already has a pending bid from this club? No-op (treat as
+    // idempotent).
+    if (market.bids.some(b =>
+      b.rosterId === rosterId && b.clubId === userClubId && b.status === 'pending'
+    )) return false;
+
+    // Determine kind. FA → kind: 'free_agent'. Anything else (and
+    // player is poach-eligible at another club) → 'poach'.
+    let kind: TransferBid['kind'];
+    if (this.state.career.freeAgents.includes(rosterId)) {
+      kind = 'free_agent';
+    } else if (isPoachEligible(p, this.state.calendar.date) && p.contract.clubId && p.contract.clubId !== userClubId) {
+      kind = 'poach';
+    } else {
+      return false;
+    }
+
+    // Hard budget gate.
     if (!offer.isMarquee) {
       const projected = clubBudgetUsage(this.state, userClubId) + offer.annualWage;
       if (projected > club.salaryBudget) return false;
     }
-    applySeasonEvent(this.state, {
-      type: 'CONTRACT_SIGNED',
+
+    const bid: TransferBid = {
+      id: `b${this.state.career.seasonsCompleted}_${userClubId}_${rosterId}`,
       rosterId,
       clubId: userClubId,
-      expiresOn: expiryAfterYears(this.state, offer.lengthYears),
       annualWage: offer.annualWage,
-    });
+      lengthYears: offer.lengthYears,
+      kind,
+      status: 'pending',
+    };
+    applySeasonEvent(this.state, { type: 'BID_SUBMITTED', bid });
     return true;
   }
 
-  // Reverses an in-window signFreeAgent: player returns to freeAgents,
-  // contract.clubId clears. Only valid while the signing window is open
-  // (after MARKET_CLOSED the cached offer is gone). Returns false if
-  // the rosterId isn't on the user's squad — guards against unrelated
-  // squad members being released through this path.
-  unsignFreeAgent(rosterId: number): boolean {
+  // Withdraw the user's pending bid (any kind) for the named player.
+  // No-op if none exists.
+  withdrawBid(rosterId: number): boolean {
+    const market = this.state.career.market;
+    if (!market || market.phase !== 'signings') return false;
+    const userClubId = this.state.player.teamId;
+    const bid = market.bids.find(b =>
+      b.rosterId === rosterId && b.clubId === userClubId && b.status === 'pending'
+    );
+    if (!bid) return false;
+    applySeasonEvent(this.state, { type: 'BID_WITHDRAWN', bidId: bid.id });
+    return true;
+  }
+
+  // User-side retention bid. Submitted only via the RetentionDecision
+  // screen, after an external poach bid has landed on the named
+  // player. Wage = renewal-rate (loyalty-discounted); the budget
+  // accounting treats it as an in-place replacement of the player's
+  // existing wage (retention bids are excluded from clubBudgetUsage's
+  // pending-bid sum — see teamStats).
+  submitRetentionBid(rosterId: number): boolean {
     const market = this.state.career.market;
     if (!market || market.phase !== 'signings') return false;
     const p = this.state.career.roster[rosterId];
     if (!p) return false;
-    const playerClubId = this.state.player.teamId;
-    if (p.contract.clubId !== playerClubId) return false;
-    const club = this.state.career.clubs.find(c => c.id === playerClubId);
-    if (!club || !club.squad.includes(rosterId)) return false;
-    applySeasonEvent(this.state, {
-      type: 'CONTRACT_TERMINATED',
-      rosterId,
-      reason: 'released',
-    });
-    return true;
-  }
+    const userClubId = this.state.player.teamId;
+    if (p.contract.clubId !== userClubId) return false;
 
-  // User-side Reg 7 poach. Pre-agrees a move for a contracted player
-  // currently at another club whose deal is in its final 12 months.
-  // The move activates at the next rollover via TRANSFER_ACTIVATED
-  // (not immediately) — the player completes the current season at
-  // their existing club.
-  //
-  // Reads from the cached signing-window offers (state.career.market)
-  // so the wage matches what the user saw on TransferMarketScreen.
-  // Returns false if no signing window is open, the player isn't
-  // poach-eligible, or no cached offer exists.
-  preAgreePoach(rosterId: number): boolean {
-    const market = this.state.career.market;
-    if (!market || market.phase !== 'signings') return false;
-    const p = this.state.career.roster[rosterId];
-    if (!p) return false;
-    if (!isPoachEligible(p, this.state.calendar.date)) return false;
-    const playerClubId = this.state.player.teamId;
-    if (p.contract.clubId === playerClubId) return false;
-    const offer = market.offers.find(o => o.rosterId === rosterId && o.status === 'pending');
-    if (!offer) return false;
-    // Hard budget gate. Pending poach wages count toward usage via
-    // clubBudgetUsage (the move is a future committed liability even
-    // though the player completes the current season at their old
-    // club).
-    const club = this.state.career.clubs.find(c => c.id === playerClubId);
+    // Player must be under poach attack (≥1 pending poach bid against them).
+    const underAttack = market.bids.some(b =>
+      b.rosterId === rosterId && b.kind === 'poach' && b.status === 'pending'
+    );
+    if (!underAttack) return false;
+
+    // No-op if already a pending retention bid by this club.
+    if (market.bids.some(b =>
+      b.rosterId === rosterId && b.kind === 'retention' && b.status === 'pending'
+    )) return false;
+
+    const terms = retentionTermsFor(this.state, rosterId);
+    if (!terms) return false;
+
+    // Hard budget gate. Retention costs are net deltas
+    // (newWage - oldWage); use the same projection as the AI's
+    // auto-retention pass.
+    const club = this.state.career.clubs.find(c => c.id === userClubId);
     if (!club) return false;
-    if (!offer.isMarquee) {
-      const projected = clubBudgetUsage(this.state, playerClubId) + offer.annualWage;
-      if (projected > club.salaryBudget) return false;
-    }
-    applySeasonEvent(this.state, {
-      type: 'PRE_AGREEMENT_SIGNED',
-      agreement: {
-        rosterId,
-        fromClubId: p.contract.clubId,
-        toClubId: playerClubId,
-        annualWage: offer.annualWage,
-        lengthYears: offer.lengthYears,
-      },
-    });
+    const wageDelta = terms.annualWage - p.contract.annualWage;
+    const projected = clubBudgetUsage(this.state, userClubId) + Math.max(0, wageDelta);
+    if (projected > club.salaryBudget) return false;
+
+    const bid: TransferBid = {
+      id: `r${this.state.career.seasonsCompleted}_${userClubId}_${rosterId}`,
+      rosterId,
+      clubId: userClubId,
+      annualWage: terms.annualWage,
+      lengthYears: terms.lengthYears,
+      kind: 'retention',
+      status: 'pending',
+    };
+    applySeasonEvent(this.state, { type: 'BID_SUBMITTED', bid });
     return true;
   }
 
-  // Reverses an in-window preAgreePoach: drops the pending move so the
-  // player won't switch clubs at rollover. Only valid while the signing
-  // window is open and the pending move belongs to the user's club.
-  cancelPreAgreement(rosterId: number): boolean {
+  withdrawRetentionBid(rosterId: number): boolean {
     const market = this.state.career.market;
     if (!market || market.phase !== 'signings') return false;
-    const playerClubId = this.state.player.teamId;
-    const move = this.state.career.pendingMoves.find(m => m.rosterId === rosterId);
-    if (!move || move.toClubId !== playerClubId) return false;
-    applySeasonEvent(this.state, { type: 'PRE_AGREEMENT_CANCELLED', rosterId });
+    const userClubId = this.state.player.teamId;
+    const bid = market.bids.find(b =>
+      b.rosterId === rosterId && b.clubId === userClubId && b.kind === 'retention' && b.status === 'pending'
+    );
+    if (!bid) return false;
+    applySeasonEvent(this.state, { type: 'BID_WITHDRAWN', bidId: bid.id });
     return true;
   }
 
-  // Closes the signing window. Runs the AI signing pass over whatever
-  // free agents remain, then the AI poaching pass over contracted
-  // players in their final 12 months, then batches OFFER_RESPONDED
-  // across every cached offer (accepted iff the rosterId left the
-  // free-agent pool / landed on pendingMoves), then fires MARKET_CLOSED.
+  // Rosters of the user's final-year players currently under poach
+  // attack — surfaces the list the RetentionDecisionScreen needs to
+  // render. Walks pending poach bids; one rosterId per player even if
+  // multiple clubs are bidding.
+  getUserRetentionPrompts(): number[] {
+    const market = this.state.career.market;
+    if (!market || market.phase !== 'signings') return [];
+    const userClubId = this.state.player.teamId;
+    const seen = new Set<number>();
+    for (const bid of market.bids) {
+      if (bid.status !== 'pending') continue;
+      if (bid.kind !== 'poach') continue;
+      const p = this.state.career.roster[bid.rosterId];
+      if (!p) continue;
+      if (p.contract.clubId !== userClubId) continue;
+      seen.add(bid.rosterId);
+    }
+    return [...seen].sort((a, b) => a - b);
+  }
+
+  // One round of competitive resolution: AI clubs bid → AI auto-retains
+  // its own at-risk players → resolver picks winners by appeal → events
+  // fire in order. The user submits any retention bids of their own
+  // BEFORE calling this method (typically via the RetentionDecision
+  // screen between submitBidPass and resolve). Returns the per-player
+  // outcomes for SigningResultsScreen.
+  runAIBidPass(): void {
+    const bids = decideAIBids(this.state, this.state.player.teamId);
+    for (const bid of bids) {
+      applySeasonEvent(this.state, { type: 'BID_SUBMITTED', bid });
+    }
+  }
+
+  runAIRetentionPass(): void {
+    const bids = decideAIRetentions(this.state, this.state.player.teamId);
+    for (const bid of bids) {
+      applySeasonEvent(this.state, { type: 'BID_SUBMITTED', bid });
+    }
+  }
+
+  resolveSigningRound(): SigningOutcome[] {
+    const { events, outcomes } = resolveSigningRound(this.state);
+    for (const ev of events) applySeasonEvent(this.state, ev);
+    return outcomes;
+  }
+
+  // True when the user still has budget headroom AND viable candidates
+  // remain. The signing-window loop calls this between rounds to
+  // decide whether to auto-finish or hand control back to the user.
+  hasViableSigningOptions(): boolean {
+    const market = this.state.career.market;
+    if (!market || market.phase !== 'signings') return false;
+    const userClubId = this.state.player.teamId;
+    const club = this.state.career.clubs.find(c => c.id === userClubId);
+    if (!club) return false;
+    const headroom = club.salaryBudget - clubBudgetUsage(this.state, userClubId);
+    if (headroom <= 0) return false;
+    // Any still-pending offer the user could afford?
+    for (const offer of market.offers) {
+      if (offer.status !== 'pending') continue;
+      if (offer.annualWage > headroom) continue;
+      // Already on their squad?
+      if (club.squad.includes(offer.rosterId)) continue;
+      // Already a pending bid for this player by the user?
+      if (market.bids.some(b =>
+        b.rosterId === offer.rosterId && b.clubId === userClubId && b.status === 'pending'
+      )) continue;
+      return true;
+    }
+    return false;
+  }
+
+  // Closes the signing window. Runs one final AI bid + auto-retention +
+  // resolution pass so every AI club gets a last shot at the leftover
+  // pool, then flips offer statuses to their terminal state and fires
+  // MARKET_CLOSED.
+  //
+  // `skipPoaches` is the Squad Builder mode (pre-season FA-only): no
+  // Reg 7 poaching during year-1 setup. The `decideAIFinalSignings`
+  // pass naturally filters poaches when this is true via the offer
+  // pool seeded by openSigningWindow.
   closeSigningWindow(opts: { skipPoaches?: boolean } = {}): void {
     const market = this.state.career.market;
     if (!market || market.phase !== 'signings') return;
     const humanClubId = this.state.player.teamId;
-    const signings = decideAISignings(this.state, humanClubId);
-    for (const s of signings) {
-      applySeasonEvent(this.state, {
-        type: 'CONTRACT_SIGNED',
-        rosterId: s.rosterId,
-        clubId: s.clubId,
-        expiresOn: s.expiresOn,
-        annualWage: s.annualWage,
-      });
+
+    // Final AI bid pass — even if the user clicked Finish without
+    // submitting offers, every AI club gets a chance to fill any
+    // remaining roster gaps. decideAIFinalSignings produces TransferBids
+    // (not direct signings), so the resolver still picks winners
+    // properly when AI clubs end up bidding on the same player.
+    void opts;
+    const finalBids = decideAIFinalSignings(this.state, humanClubId);
+    for (const bid of finalBids) {
+      applySeasonEvent(this.state, { type: 'BID_SUBMITTED', bid });
     }
-    // Phase 6: AI poaching pass. Each non-human AI club pre-agrees at
-    // most one Reg 7 candidate. Activations happen at the next
-    // rollover via TRANSFER_ACTIVATED. Skipped in Squad Builder
-    // pre-season — that window is FA-only by design.
-    const poaches = opts.skipPoaches ? [] : decideAIPoaches(this.state, humanClubId);
-    for (const a of poaches) {
-      const fromClubId = this.state.career.roster[a.rosterId]?.contract.clubId ?? '';
-      applySeasonEvent(this.state, {
-        type: 'PRE_AGREEMENT_SIGNED',
-        agreement: {
-          rosterId: a.rosterId,
-          fromClubId,
-          toClubId: a.toClubId,
-          annualWage: a.annualWage,
-          lengthYears: a.lengthYears,
-        },
-      });
+    // AI auto-retains anyone the new bids put under attack.
+    const retentions = decideAIRetentions(this.state, humanClubId);
+    for (const bid of retentions) {
+      applySeasonEvent(this.state, { type: 'BID_SUBMITTED', bid });
     }
+    // Resolve everything that's still pending — this round + anything
+    // dragged in from prior rounds the user never advanced.
+    const { events } = resolveSigningRound(this.state);
+    for (const ev of events) applySeasonEvent(this.state, ev);
+
     // Flip every cached offer to its terminal status so the seam
     // matches the renewal-window flow. Free-agent offers (fromClubId
     // === '') accept iff the rosterId is no longer in freeAgents;

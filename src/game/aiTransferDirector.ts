@@ -7,7 +7,7 @@
 // Phase 4 surface: only own-club renewals. Phase 5+ adds free-agent
 // signings + cross-club poaching using the same TransferOffer shape.
 
-import type { GameState, TransferOffer } from '../types/gameState';
+import type { GameState, TransferBid, TransferOffer } from '../types/gameState';
 import type { Player } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
 import {
@@ -16,6 +16,7 @@ import {
 } from '../engine/balance/transfers';
 import { seedContractFields } from './contractSeeder';
 import { parseSeasonStartYear } from './age';
+import { clubBudgetUsage } from './teamStats';
 
 // Rosters players whose contract expires on or before 30 June of the
 // just-completed season's end year. Stable rosterId-ascending order.
@@ -372,4 +373,254 @@ export function decideAIPoaches(state: GameState, humanClubId?: string): Array<{
   }
 
   return decisions;
+}
+
+// --- Competitive bidding (Phase 10) ---
+//
+// Replaces the direct CONTRACT_SIGNED / PRE_AGREEMENT_SIGNED path in
+// decideAISignings + decideAIPoaches with bid-then-resolve. Each AI
+// club's per-round pass picks targets they could afford + need + are
+// good enough to want, and produces a TransferBid for each. The
+// resolver later picks winners by appeal score.
+//
+// Per-round logic: AI clubs evaluate from scratch each round given the
+// CURRENT state of the market + their squad + their own pending bids.
+// If they lost their top target last round to a rival, this round they
+// pick the next-best. Stable alpha-by-clubId iteration keeps the
+// rngTransfer sequence deterministic.
+
+// Single AI bid pass — produces the bids every non-human AI club wants
+// to submit this round. Pending bids the AI has already in flight
+// count toward the club's budget headroom so they don't double-up on
+// the same player or blow their budget across two clubs.
+//
+// `humanClubId` is excluded (the human submits their own bids via UI).
+// Pass undefined in headless contexts to let every club bid.
+export function decideAIBids(state: GameState, humanClubId?: string): TransferBid[] {
+  const out: TransferBid[] = [];
+  const market = state.career.market;
+  if (!market || market.phase !== 'signings') return out;
+  const seasonsCompleted = state.career.seasonsCompleted;
+
+  // Set of bids already in the pool (user's + previous-round AI's +
+  // this round's earlier clubs). Each AI club walks the still-available
+  // candidates and picks targets considering THIS club's own headroom.
+  // A player already targeted by an AI is still fair game for another
+  // club to bid on — that's the whole point of competition.
+
+  // Stable alpha order for iteration → deterministic per-round bid
+  // sequence (rngTransfer is consumed inside seedContractFields).
+  const clubs = [...state.career.clubs].sort((a, b) => a.id.localeCompare(b.id));
+  for (const club of clubs) {
+    if (club.id === humanClubId) continue;
+
+    // Headroom snapshot includes the club's own pending bids (already
+    // reserved by clubBudgetUsage) plus any signed players. The club
+    // can keep adding bids up to its signing-target ceiling.
+    const budgetTarget = club.salaryBudget * AI_SIGNING_POLICY.capTarget;
+    let headroom = budgetTarget - clubBudgetUsage(state, club.id);
+    if (headroom <= 0) continue;
+
+    // Position counts: starters + bench + wider squad members give a
+    // need signal. Players already on pending bids by this club bump
+    // the count too (they'd fill the slot if won), so the club doesn't
+    // pile bids on the same position.
+    const positionCounts = new Map<string, number>();
+    for (const rid of club.squad) {
+      const p = state.career.roster[rid];
+      if (!p) continue;
+      positionCounts.set(p.position, (positionCounts.get(p.position) ?? 0) + 1);
+    }
+    for (const bid of market.bids) {
+      if (bid.clubId !== club.id) continue;
+      if (bid.status !== 'pending') continue;
+      if (bid.kind === 'retention') continue;
+      const p = state.career.roster[bid.rosterId];
+      if (!p) continue;
+      positionCounts.set(p.position, (positionCounts.get(p.position) ?? 0) + 1);
+    }
+
+    // Build the candidate list — every player with a market.offer who:
+    //   - is still in the FA pool (for free_agent offers) OR
+    //   - is still poach-eligible at another club (for poach offers)
+    //   - doesn't already have a pending bid from THIS club (no self-doubling)
+    //   - rates above the bidding floor (aiReleaseRatingFloor)
+    const myPendingTargets = new Set(
+      market.bids
+        .filter(b => b.clubId === club.id && b.status === 'pending')
+        .map(b => b.rosterId),
+    );
+    const freeAgentSet = new Set(state.career.freeAgents);
+    const pendingMovesSet = new Set(state.career.pendingMoves.map(m => m.rosterId));
+
+    const candidates = market.offers
+      .filter(o => o.status === 'pending')
+      .map(offer => {
+        const p = state.career.roster[offer.rosterId];
+        if (!p) return null;
+        if (myPendingTargets.has(offer.rosterId)) return null;
+        const overall = playerOverall(p.baseStats, p.position);
+        if (overall < RENEWAL.aiReleaseRatingFloor) return null;
+        const isFreeAgent = offer.fromClubId === '';
+        if (isFreeAgent) {
+          if (!freeAgentSet.has(offer.rosterId)) return null;
+        } else {
+          // Poach: only eligible if player is still at their old club
+          // and not already pre-agreed.
+          if (p.contract.clubId === club.id) return null; // can't poach your own
+          if (p.contract.clubId === '') return null;      // they became a FA mid-window
+          if (pendingMovesSet.has(offer.rosterId)) return null;
+        }
+        // Score: same overall + need formula as direct signings.
+        const need = Math.max(0, AI_SIGNING_POLICY.targetPerPosition - (positionCounts.get(p.position) ?? 0));
+        const score = overall + need * AI_SIGNING_POLICY.positionNeedWeight;
+        return { offer, p, overall, score, isFreeAgent };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null)
+      .sort((a, b) => b.score - a.score || a.offer.rosterId - b.offer.rosterId);
+
+    let bidsThisClub = 0;
+    for (const { offer, p, isFreeAgent } of candidates) {
+      if (bidsThisClub >= AI_SIGNING_POLICY.perClubLimit) break;
+      if (offer.annualWage > headroom) continue;
+      out.push({
+        id: bidId(seasonsCompleted, offer.rosterId, club.id),
+        rosterId: offer.rosterId,
+        clubId: club.id,
+        annualWage: offer.annualWage,
+        lengthYears: offer.lengthYears,
+        kind: isFreeAgent ? 'free_agent' : 'poach',
+        status: 'pending',
+      });
+      headroom -= offer.annualWage;
+      positionCounts.set(p.position, (positionCounts.get(p.position) ?? 0) + 1);
+      bidsThisClub += 1;
+    }
+  }
+
+  return out;
+}
+
+// AI auto-retention pass for non-human clubs. For each AI club whose
+// own player is being poached this round, decide whether to bid to
+// retain. Uses renewal-style wage (fresh-market × loyaltyDiscount).
+//
+// Excluded: bids by the player's current club itself (you don't bid on
+// your own player from the poach path), and bids where the current
+// club has no budget headroom. Walks at-risk players in rosterId
+// order; the same club can retain multiple if they can afford it.
+export function decideAIRetentions(state: GameState, humanClubId?: string): TransferBid[] {
+  const out: TransferBid[] = [];
+  const market = state.career.market;
+  if (!market || market.phase !== 'signings') return out;
+
+  // At-risk rosterIds: players targeted by ≥1 pending poach bid.
+  const atRiskByPlayer = new Map<number, string>();  // rosterId → current clubId
+  for (const bid of market.bids) {
+    if (bid.status !== 'pending') continue;
+    if (bid.kind !== 'poach') continue;
+    const p = state.career.roster[bid.rosterId];
+    if (!p) continue;
+    if (atRiskByPlayer.has(bid.rosterId)) continue;
+    atRiskByPlayer.set(bid.rosterId, p.contract.clubId);
+  }
+
+  // Walk in rosterId order, picking up the club's auto-retention decision.
+  const seasonsCompleted = state.career.seasonsCompleted;
+  const sortedRosterIds = [...atRiskByPlayer.keys()].sort((a, b) => a - b);
+
+  // Track per-club retention reservations for headroom accounting
+  // (multiple of a club's own players could be at risk in the same
+  // round).
+  const retentionReservedByClub = new Map<string, number>();
+
+  for (const rid of sortedRosterIds) {
+    const currentClubId = atRiskByPlayer.get(rid)!;
+    if (currentClubId === humanClubId) continue; // user picks themselves
+    const p = state.career.roster[rid];
+    if (!p) continue;
+    const club = state.career.clubs.find(c => c.id === currentClubId);
+    if (!club) continue;
+
+    const overall = playerOverall(p.baseStats, p.position);
+    if (overall < RENEWAL.aiReleaseRatingFloor) continue; // not worth keeping
+
+    // Skip if this AI club is already a bidder on this player (defensive).
+    if (market.bids.some(b =>
+      b.rosterId === rid && b.clubId === currentClubId && b.status === 'pending'
+    )) continue;
+
+    // Wage: fresh-market × loyalty-discount (mirrors generateRenewalOffers).
+    const seasonStartYear = parseSeasonStartYear(state.calendar.seasonLabel);
+    const fresh = seedContractFields(p, currentClubId, seasonStartYear);
+    const retentionWage = Math.max(
+      WAGE_FLOOR,
+      Math.round(fresh.contract.annualWage * (1 - RENEWAL.loyaltyDiscount) / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT,
+    );
+    // Retention replaces the existing wage commitment; budget delta is
+    // (newWage - oldWage). Negative delta means the retention costs
+    // LESS than what the club already pays — never blocks on budget.
+    const wageDelta = retentionWage - p.contract.annualWage;
+    const reserved = retentionReservedByClub.get(currentClubId) ?? 0;
+    const budgetTarget = club.salaryBudget * AI_SIGNING_POLICY.capTarget;
+    // Use the standard usage (excludes retentions). Add delta + reserved.
+    const projected = clubBudgetUsage(state, currentClubId) + reserved + wageDelta;
+    if (projected > budgetTarget) continue;
+
+    out.push({
+      id: bidId(seasonsCompleted, rid, currentClubId),
+      rosterId: rid,
+      clubId: currentClubId,
+      annualWage: retentionWage,
+      lengthYears: Math.max(1, parseInt(fresh.contract.expiresOn.slice(0, 4), 10)
+                                 - parseInt(p.contract.expiresOn.slice(0, 4), 10)) || 2,
+      kind: 'retention',
+      status: 'pending',
+    });
+    if (wageDelta > 0) retentionReservedByClub.set(currentClubId, reserved + wageDelta);
+  }
+
+  return out;
+}
+
+// Returns the wage + length terms for a retention offer (current club
+// retaining their own player from a poach). Used by the user-side UI
+// to show "Retain (£X / Y years)" before the user commits. Returns
+// null if the player isn't at the named club or no terms can be
+// computed.
+export function retentionTermsFor(
+  state: GameState,
+  rosterId: number,
+): { annualWage: number; lengthYears: number; expiresOn: string } | null {
+  const p = state.career.roster[rosterId];
+  if (!p || !p.contract.clubId) return null;
+  const seasonStartYear = parseSeasonStartYear(state.calendar.seasonLabel);
+  const fresh = seedContractFields(p, p.contract.clubId, seasonStartYear);
+  const retentionWage = Math.max(
+    WAGE_FLOOR,
+    Math.round(fresh.contract.annualWage * (1 - RENEWAL.loyaltyDiscount) / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT,
+  );
+  const lengthYears = Math.max(1, parseInt(fresh.contract.expiresOn.slice(0, 4), 10)
+                                   - parseInt(p.contract.expiresOn.slice(0, 4), 10)) || 2;
+  return {
+    annualWage: retentionWage,
+    lengthYears,
+    expiresOn: expiryAfterYears(state, lengthYears),
+  };
+}
+
+// Final fill-up after the user clicks Finish. AI clubs that didn't
+// bid in any round get one last shot — same logic as a per-round bid
+// pass, but the results immediately commit (no resolver pass) since
+// the window is closing.
+//
+// Returns the bids the closer should apply via the resolver one more
+// time (so retentions can still oppose them); the closer wires them
+// in alongside any final user activity.
+export function decideAIFinalSignings(state: GameState, humanClubId?: string): TransferBid[] {
+  return decideAIBids(state, humanClubId);
+}
+
+function bidId(seasonsCompleted: number, rosterId: number, clubId: string): string {
+  return `b${seasonsCompleted}_${clubId}_${rosterId}`;
 }

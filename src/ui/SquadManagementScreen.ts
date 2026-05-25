@@ -26,6 +26,7 @@ import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput, RawPlayer } from '../types/teamData';
 import type { Position, PlayerInjury } from '../types/player';
 import { applyMatchdaySquad, extractMatchdaySquad } from '../game/playerSquad';
+import { selectBestMatchdaySquad } from '../game/autoSelect';
 import { buildTeamFromRoster } from '../game/rosterTeamBuilder';
 import { playerOverall } from '../engine/RatingEngine';
 import { averageRating } from '../game/seasonLeaderboards';
@@ -99,6 +100,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
   let activeGroup: GroupId = 'all';
   let dirty = false;
   let discardOpen = false;
+  let detailView = false;
 
   function resetDraftFromState(): void {
     const state = opts.getGameEngine().getState();
@@ -115,6 +117,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     activeGroup = 'all';
     dirty = false;
     discardOpen = false;
+    detailView = false;
   }
 
   // Look up the persistent injury (if any) for a draft row by name. Keys
@@ -200,6 +203,36 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     selection = null;
   }
 
+  function clearTeam(): void {
+    const all = [...draftStarters, ...draftBench, ...draftSquad];
+    draftStarters = [];
+    draftBench = [];
+    draftSquad = all.map((p, i) => ({ ...p, id: 24 + i, squadNumber: 24 + i }));
+    dirty = true;
+    selection = null;
+  }
+
+  function autoPick(): void {
+    const state = opts.getGameEngine().getState();
+    const teamJson = teamsById.get(state.player.teamId);
+    if (!teamJson) return;
+    const club = state.career.clubs.find(c => c.id === teamJson.id);
+    if (!club) return;
+    const rosterIds = selectBestMatchdaySquad(state.career.roster, club.squad);
+    if (rosterIds.length < 23) return;
+    const refs = rosterIds.map(rid => {
+      const p = state.career.roster[rid];
+      return { firstName: p.firstName, lastName: p.lastName };
+    });
+    const fresh = buildTeamFromRoster(state, teamJson);
+    const applied = applyMatchdaySquad(fresh, refs);
+    draftStarters = (applied.players as RawPlayer[]).map(p => ({ ...p }));
+    draftBench    = ((applied.bench ?? []) as RawPlayer[]).map(p => ({ ...p }));
+    draftSquad    = ((applied.squad ?? []) as RawPlayer[]).map(p => ({ ...p }));
+    dirty = true;
+    selection = null;
+  }
+
   function render(): void {
     if (!el) return;
 
@@ -250,7 +283,9 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
             <span>Hub</span>
           </button>
           <span class="app-title">Squad</span>
-          <div class="app-topbar-spacer"></div>
+          <button id="sq-view-toggle" class="sq-view-toggle${detailView ? ' sq-view-toggle--active' : ''}" aria-label="${detailView ? 'Switch to summary view' : 'Switch to detailed view'}">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="2" fill="currentColor" stroke="none"/></svg>
+          </button>
         </div>
         <div class="app-eyebrow">${teamJson.name} · ${seasonLabel} · Round ${round}</div>
       </div>
@@ -259,10 +294,20 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       <div id="sq-list">${listHtml}</div>
 
       <div id="sq-footer">
-        <button id="sq-save" class="cta-pulse"${saveDisabled}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none" aria-hidden="true"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          Save Squad
-        </button>
+        <div class="sq-footer-btns">
+          <button id="sq-clear">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+            Clear
+          </button>
+          <button id="sq-auto-pick">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            Auto-Pick
+          </button>
+          <button id="sq-save" class="cta-pulse"${saveDisabled}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none" aria-hidden="true"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Save
+          </button>
+        </div>
       </div>
 
       ${confirmHtml}
@@ -314,6 +359,24 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       } else {
         opts.onBack();
       }
+    });
+
+    // View toggle
+    el.querySelector<HTMLButtonElement>('#sq-view-toggle')!.addEventListener('click', () => {
+      detailView = !detailView;
+      render();
+    });
+
+    // Clear button
+    el.querySelector<HTMLButtonElement>('#sq-clear')!.addEventListener('click', () => {
+      clearTeam();
+      render();
+    });
+
+    // Auto-Pick button
+    el.querySelector<HTMLButtonElement>('#sq-auto-pick')!.addEventListener('click', () => {
+      autoPick();
+      render();
     });
 
     // Save button
@@ -372,6 +435,15 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     `;
   }
 
+  const STAT_COLS = [
+    { key: 'stamina',     lbl: 'STM' }, { key: 'strength',    lbl: 'STR' },
+    { key: 'pace',        lbl: 'PAC' }, { key: 'agility',     lbl: 'AGI' },
+    { key: 'handling',    lbl: 'HND' }, { key: 'tackling',    lbl: 'TKL' },
+    { key: 'breakdown',   lbl: 'BRK' }, { key: 'kicking',     lbl: 'KCK' },
+    { key: 'setPiece',    lbl: 'SET' }, { key: 'discipline',  lbl: 'DIS' },
+    { key: 'positioning', lbl: 'POS' }, { key: 'composure',   lbl: 'CMP' },
+  ];
+
   function playerRow(p: RawPlayer, tier: Tier): string {
     const ovr = playerOverall(p.baseStats, p.position);
     const sn  = p.squadNumber ?? p.id;
@@ -383,6 +455,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     if (isSelected) classes.push('sq-player--selected');
     if (isSwapTarget) classes.push('sq-player--swap-target');
     if (injury) classes.push('row-injured');
+    if (detailView) classes.push('sq-player--detail');
     const injuryBadge = injury
       ? `<span class="injury-badge" title="${injuryKindLabel(injury.kind)} — ${injury.weeksRemaining}w">${injury.weeksRemaining}w</span>`
       : '';
@@ -390,6 +463,13 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     const avrCell = avr === null
       ? `<div class="sq-avr sq-avr--unrated" title="No appearances yet this season">—</div>`
       : `<div class="sq-avr ${ratingClass(avr)}">${avr.toFixed(1)}</div>`;
+    const statsGrid = detailView ? `
+      <div class="sq-stats-grid">
+        ${STAT_COLS.map(({ key, lbl }) => {
+          const v = (p.baseStats as unknown as Record<string, number>)[key] ?? 0;
+          return `<div class="sq-stat-cell ${ovrClass(v)}"><span class="sq-stat-lbl">${lbl}</span><span class="sq-stat-val">${v}</span></div>`;
+        }).join('')}
+      </div>` : '';
     return `
       <div class="${classes.join(' ')}" data-tier="${tier}" data-squad="${sn}">
         <div class="sq-jersey sq-jersey--${tier}">${jerseyContent}</div>
@@ -399,6 +479,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         </div>
         <div class="sq-ovr ${ovrClass(ovr)}">${ovr}</div>
         ${avrCell}
+        ${statsGrid}
       </div>
     `;
   }

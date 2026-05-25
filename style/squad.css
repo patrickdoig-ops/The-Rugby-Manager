@@ -385,6 +385,75 @@
   box-shadow: none;
 }
 
+/* ─── View toggle (topbar right slot) ─── */
+.sq-view-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  color: var(--rm-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s, background 0.15s;
+}
+
+.sq-view-toggle:active { background: var(--rm-surface-2); }
+
+.sq-view-toggle--active {
+  color: var(--rm-pitch);
+  filter: drop-shadow(0 0 6px color-mix(in oklch, var(--rm-pitch) 50%, transparent));
+}
+
+/* ─── Detail stat grid ─── */
+.sq-player--detail {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  row-gap: 6px;
+}
+
+.sq-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  flex-basis: 100%;
+  padding-left: 40px; /* jersey width (30px) + row gap (10px) */
+  padding-bottom: 2px;
+}
+
+.sq-stat-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.sq-stat-lbl {
+  font-family: var(--rm-font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rm-text-faint);
+}
+
+.sq-stat-val {
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Inherit colour from the ovrClass on the parent .sq-stat-cell */
+.sq-stat-cell.ovr-elite   .sq-stat-val { color: var(--rm-stat-3); }
+.sq-stat-cell.ovr-good    .sq-stat-val { color: var(--rm-stat-4); }
+.sq-stat-cell.ovr-avg     .sq-stat-val { color: var(--rm-stat-5); }
+.sq-stat-cell.ovr-poor    .sq-stat-val { color: var(--rm-stat-2); }
+.sq-stat-cell.ovr-veryPoor .sq-stat-val { color: var(--rm-stat-1); }
+
 /* ─── Discard confirm sheet ─── */
 .sq-discard-backdrop {
   position: fixed;

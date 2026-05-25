@@ -363,9 +363,9 @@
 }
 
 .ct-tag--injury {
-  background: color-mix(in oklch, var(--rm-amber) 14%, transparent);
-  color: var(--rm-amber);
-  border: 1px solid color-mix(in oklch, var(--rm-amber) 28%, transparent);
+  background: color-mix(in oklch, var(--rm-danger) 16%, transparent);
+  color: var(--rm-danger);
+  border: 1px solid color-mix(in oklch, var(--rm-danger) 35%, transparent);
 }
 
 /* Marquee star button — far right */

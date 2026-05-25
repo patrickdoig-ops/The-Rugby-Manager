@@ -7,6 +7,8 @@ import type { Team } from '../types/team';
 import type { Player } from '../types/player';
 import { shortName } from '../utils/playerName';
 import { teamTextColor } from '../utils/teamColor';
+import { launchConfetti } from './Confetti';
+import { playCue } from './SoundManager';
 
 export interface NextFixturePreview {
   opponentName:      string;
@@ -350,6 +352,18 @@ export function initMatchResultScreen(
       </button>
     </div>
   `;
+
+  playCue('whistle');
+
+  const isHumanHome = state.engine.humanSide === 'home';
+  const humanScore = isHumanHome ? score.home : score.away;
+  const oppScore   = isHumanHome ? score.away : score.home;
+  if (humanScore > oppScore) {
+    const margin = humanScore - oppScore;
+    const intensity = margin <= 5 ? 'light' : margin >= 21 ? 'storm' : 'normal';
+    const humanTeam = isHumanHome ? homeTeam : awayTeam;
+    setTimeout(() => launchConfetti(humanTeam.color, intensity), 300);
+  }
 
   const btn = el.querySelector<HTMLButtonElement>('#mr-continue')!;
   btn.addEventListener('click', () => {

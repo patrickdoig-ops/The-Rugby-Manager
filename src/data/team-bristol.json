@@ -17,7 +17,8 @@
     "attackingBreakdown": "minimal_ruck",
     "defendingBreakdown": "jackal",
     "backfieldDefence": "two_back",
-    "defensiveLine": "drift"
+    "defensiveLine": "drift",
+    "offloadStrategy": "balanced"
   },
   "statBias": [
     "pace",

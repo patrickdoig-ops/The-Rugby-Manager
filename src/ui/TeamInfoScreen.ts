@@ -14,6 +14,7 @@ const TACTIC_LABELS: Record<keyof TeamTactics, Record<string, string>> = {
   defendingBreakdown:{ jackal: 'Jackal Steal', counter_ruck: 'Counter Ruck', shadow: 'Shadow Line' },
   backfieldDefence:  { one_back: 'One Back', two_back: 'Two Back', three_back: 'Three Back' },
   defensiveLine:     { blitz: 'Blitz', hybrid: 'Hybrid', drift: 'Drift' },
+  offloadStrategy:   { cautious: 'Cautious', balanced: 'Balanced', offload_freely: 'Offload Freely' },
 };
 
 const TACTIC_DIM_LABELS: Record<keyof TeamTactics, string> = {
@@ -23,6 +24,7 @@ const TACTIC_DIM_LABELS: Record<keyof TeamTactics, string> = {
   defendingBreakdown: 'Defensive breakdown',
   backfieldDefence:   'Backfield',
   defensiveLine:      'Defensive line',
+  offloadStrategy:    'Offload strategy',
 };
 
 function crestHtml(initial: string, color: string): string {

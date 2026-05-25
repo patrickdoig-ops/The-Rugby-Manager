@@ -20,7 +20,7 @@ import { eventBus } from '../src/utils/eventBus.js';
 import { applyStarBoost } from '../src/team/applyStarBoost.js';
 import type { TeamJson } from '../src/team/teamProfile.js';
 import type { RawTeamInput } from '../src/types/teamData.js';
-import type { TeamTactics, AttackingGamePlan, AttackingBreakdown, BackfieldDefence, DefensiveLine } from '../src/types/team.js';
+import type { TeamTactics, AttackingGamePlan, AttackingBreakdown, BackfieldDefence, DefensiveLine, OffloadStrategy } from '../src/types/team.js';
 import type { MatchState } from '../src/types/match.js';
 import type { Player } from '../src/types/player.js';
 import { MatchPhase } from '../src/types/engine.js';
@@ -161,6 +161,7 @@ interface PlanAgg { games: number; tries: number; kickMetres: number; possession
 interface BdAgg   { games: number; metresCarried: number; carries: number; turnoversWon: number; pointsFor: number; }
 interface BfAgg   { games: number; concededLineBreaks: number; concededKickMetres: number; pointsAgainst: number; }
 interface DlAgg   { games: number; concededLineBreaks: number; dominantTacklesMade: number; concededMetresCarried: number; concededCarries: number; pointsAgainst: number; }
+interface OffAgg  { games: number; offloadsAttempted: number; offloadsCompleted: number; lineBreaks: number; knockOns: number; tries: number; pointsFor: number; }
 
 interface SeasonAgg {
   clubs: Map<string, ClubAgg>;
@@ -196,6 +197,7 @@ interface SeasonAgg {
   bdAgg:   Map<AttackingBreakdown, BdAgg>;
   bfAgg:   Map<BackfieldDefence, BfAgg>;
   dlAgg:   Map<DefensiveLine, DlAgg>;
+  offAgg:  Map<OffloadStrategy, OffAgg>;
 }
 
 function emptySeasonAgg(): SeasonAgg {
@@ -218,6 +220,10 @@ function emptySeasonAgg(): SeasonAgg {
   for (const dl of ['blitz', 'hybrid', 'drift'] as DefensiveLine[]) {
     dlAgg.set(dl, { games: 0, concededLineBreaks: 0, dominantTacklesMade: 0, concededMetresCarried: 0, concededCarries: 0, pointsAgainst: 0 });
   }
+  const offAgg = new Map<OffloadStrategy, OffAgg>();
+  for (const off of ['cautious', 'balanced', 'offload_freely'] as OffloadStrategy[]) {
+    offAgg.set(off, { games: 0, offloadsAttempted: 0, offloadsCompleted: 0, lineBreaks: 0, knockOns: 0, tries: 0, pointsFor: 0 });
+  }
 
   return {
     clubs,
@@ -237,7 +243,7 @@ function emptySeasonAgg(): SeasonAgg {
     phaseCount: new Map<MatchPhase, number>(),
     tryOrigin: new Map<MatchPhase, number>(),
     totalTries: 0,
-    planAgg, bdAgg, bfAgg, dlAgg,
+    planAgg, bdAgg, bfAgg, dlAgg, offAgg,
   };
 }
 
@@ -306,20 +312,24 @@ function accumulatePlayer(agg: SeasonAgg, p: Player, teamId: string): void {
 function sumSideMatchStats(team: 'home' | 'away', state: MatchState): {
   tries: number; lineBreaks: number; kickMetres: number;
   metresCarried: number; carries: number; turnoversWon: number;
-  dominantTackles: number;
+  dominantTackles: number; knockOns: number;
+  offloadsAttempted: number; offloadsCompleted: number;
   possessionPct: number;
 } {
   const t = team === 'home' ? state.homeTeam : state.awayTeam;
   const all = [...t.players, ...t.substitutedOff];
   const r = all.reduce((acc, p) => ({
-    tries:           acc.tries           + p.matchStats.tries,
-    lineBreaks:      acc.lineBreaks      + p.matchStats.lineBreaks,
-    kickMetres:      acc.kickMetres      + p.matchStats.kickMetres,
-    metresCarried:   acc.metresCarried   + p.matchStats.metresCarried,
-    carries:         acc.carries         + p.matchStats.carries,
-    turnoversWon:    acc.turnoversWon    + p.matchStats.turnoversWon,
-    dominantTackles: acc.dominantTackles + p.matchStats.dominantTackles,
-  }), { tries: 0, lineBreaks: 0, kickMetres: 0, metresCarried: 0, carries: 0, turnoversWon: 0, dominantTackles: 0 });
+    tries:             acc.tries             + p.matchStats.tries,
+    lineBreaks:        acc.lineBreaks        + p.matchStats.lineBreaks,
+    kickMetres:        acc.kickMetres        + p.matchStats.kickMetres,
+    metresCarried:     acc.metresCarried     + p.matchStats.metresCarried,
+    carries:           acc.carries           + p.matchStats.carries,
+    turnoversWon:      acc.turnoversWon      + p.matchStats.turnoversWon,
+    dominantTackles:   acc.dominantTackles   + p.matchStats.dominantTackles,
+    knockOns:          acc.knockOns          + p.matchStats.knockOns,
+    offloadsAttempted: acc.offloadsAttempted + p.matchStats.offloadsAttempted,
+    offloadsCompleted: acc.offloadsCompleted + p.matchStats.offloadsCompleted,
+  }), { tries: 0, lineBreaks: 0, kickMetres: 0, metresCarried: 0, carries: 0, turnoversWon: 0, dominantTackles: 0, knockOns: 0, offloadsAttempted: 0, offloadsCompleted: 0 });
   const possTotal = state.stats.possession.home + state.stats.possession.away || 1;
   return { ...r, possessionPct: 100 * state.stats.possession[team] / possTotal };
 }
@@ -491,6 +501,15 @@ function aggregateMatch(
     dl.concededCarries       += opp.carries;
     dl.dominantTacklesMade   += mine.dominantTackles;
     dl.pointsAgainst         += oppScore;
+
+    const off = agg.offAgg.get(tactics.offloadStrategy)!;
+    off.games++;
+    off.offloadsAttempted += mine.offloadsAttempted;
+    off.offloadsCompleted += mine.offloadsCompleted;
+    off.lineBreaks        += mine.lineBreaks;
+    off.knockOns          += mine.knockOns;
+    off.tries             += mine.tries;
+    off.pointsFor         += myScore;
   }
 
   for (const p of homeAllPlayers) accumulatePlayer(agg, p, home.id);
@@ -966,6 +985,23 @@ function buildReport(aggs: SeasonAgg[], elapsedMs: number): string {
     const pa = aggs.reduce((s, a) => s + a.dlAgg.get(dl)!.pointsAgainst, 0);
     const mpc = c > 0 ? m / c : 0;
     lines.push(`| ${dl} | ${games} | ${fmt(lb/games)} | ${fmt(dt/games)} | ${fmt(mpc, 2)} | ${fmt(pa/games)} |`);
+  }
+  lines.push('');
+
+  lines.push('## offloadStrategy slice');
+  lines.push('');
+  lines.push('| strategy | games | offloads att/g | catch % | line breaks/g | knock-ons/g | tries/g | PF/g |');
+  lines.push('|---|---:|---:|---:|---:|---:|---:|---:|');
+  for (const off of ['cautious', 'balanced', 'offload_freely'] as OffloadStrategy[]) {
+    const games = aggs.reduce((s, a) => s + a.offAgg.get(off)!.games, 0);
+    if (games === 0) continue;
+    const oa = aggs.reduce((s, a) => s + a.offAgg.get(off)!.offloadsAttempted, 0);
+    const oc = aggs.reduce((s, a) => s + a.offAgg.get(off)!.offloadsCompleted, 0);
+    const lb = aggs.reduce((s, a) => s + a.offAgg.get(off)!.lineBreaks, 0);
+    const ko = aggs.reduce((s, a) => s + a.offAgg.get(off)!.knockOns, 0);
+    const tr = aggs.reduce((s, a) => s + a.offAgg.get(off)!.tries, 0);
+    const pf = aggs.reduce((s, a) => s + a.offAgg.get(off)!.pointsFor, 0);
+    lines.push(`| ${off} | ${games} | ${fmt(oa/games)} | ${pct(oc, oa)} | ${fmt(lb/games)} | ${fmt(ko/games)} | ${fmt(tr/games)} | ${fmt(pf/games)} |`);
   }
   lines.push('');
 

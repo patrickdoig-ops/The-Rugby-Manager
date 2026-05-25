@@ -618,8 +618,10 @@ defenseScore = (defender.positioning + defender.pace) / 2 + rng(1,20) + (defendM
 
 **Step 3.5 — Offload.** A carrier heading into contact (evasion didn't break the line) may unload the ball to a position-matched supporting teammate. Lives in `src/engine/events/offloadChain.ts`; tuning in `src/engine/balance/offload.ts`. All three carry phases call `tryOffloadChain(...)` between the initial `resolveOpenPlay` and the final `CARRY_RESOLVED`.
 
+The trigger rate is the attacking team's `tactics.offloadStrategy` dimension on `TeamTactics` — `cautious` (8%), `balanced` (20%), `offload_freely` (35%). The manager picks via the tactics modal (`OFFLOAD_STRATEGY_OPTIONS` in `TacticsMenu.ts`); the AI sits on the team's authored `suggestedTactics.offloadStrategy` baseline, flipping to `offload_freely` inside `AI_INTENT_CHASING` (trailing late) or `cautious` inside `AI_INTENT_PROTECTING` (leading late) via the standard `AITacticalDirector` overlay.
+
 Each chain link consumes the outcome RNG stream as follows (always — never short-circuited on pool checks, for determinism):
-1. `rng(1, 100)` trigger roll vs `OFFLOAD_VALUES.attemptPct` (20).
+1. `rng(1, 100)` trigger roll vs `OFFLOAD_VALUES.attemptPctByStrategy[attackTeam.tactics.offloadStrategy]`.
 2. Receiver pool: `availableForwards` if carrier is a forward (id ≤ 8), else `availableBacks`, excluding the current carrier. If empty, the link exits.
 3. `rng(0, pool-1)` picks the receiver.
 4. New defender pool: `onFieldPlayers(defendTeam)` excluding the current defender. If empty, the link exits.
@@ -632,8 +634,6 @@ Original carrier stat credit on every chain link (caught or knocked on) lands vi
 Stat fields on `PlayerMatchStats`: `offloadsAttempted` (bumped on every offload roll that completes a pool pick — i.e. an actual attempt, not a no-pool skip) and `offloadsCompleted` (bumped on successful catch). A separate `PASS_COMPLETED` rides alongside `OFFLOAD_COMPLETED` to credit the pass — same accounting as every other completed pass.
 
 New narration outcome keys: `offload_attempt` (intro step naming offloader + catcher) and `offload_knock_on` (terminal step on failed catch). Successful chains use the existing collision-outcome keys (`line_break`, `dominant_carry`, `play_on`, `dominant_tackle`) on the final carrier's resolution.
-
-**Future: `OffloadStrategy` tactic dimension.** `OFFLOAD_VALUES.attemptPct` becomes `attackTeam.tactics.offloadStrategy` lookup — `cautious` (10) / `balanced` (20) / `offload_freely` (35). Same shape as `HARD_CARRY_THRESHOLDS[attackingStyle]`. No `AITacticalDirector` hook needed initially; per-team `suggestedTactics` would set the baseline.
 
 **Step 4 — Collision:**
 

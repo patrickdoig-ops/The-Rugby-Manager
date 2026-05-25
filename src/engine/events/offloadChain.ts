@@ -68,12 +68,13 @@ export function tryOffloadChain(args: OffloadChainArgs): OffloadChainResult {
   let currentCarrier = initialCarrier;
   let currentDefender = initialDefender;
   let chainFired = false;
+  const attemptPct = OFFLOAD_VALUES.attemptPctByStrategy[attackTeam.tactics.offloadStrategy];
 
   for (let link = 0; link < OFFLOAD_VALUES.maxChain; link++) {
     // Trigger roll always consumed — keeps RNG sequence determinism-stable
     // regardless of pool availability.
     const triggerRoll = rng(1, 100);
-    if (triggerRoll > OFFLOAD_VALUES.attemptPct) break;
+    if (triggerRoll > attemptPct) break;
 
     const catcher = pickReceiver(currentCarrier, attackTeam, state, attackSide);
     if (!catcher) break;

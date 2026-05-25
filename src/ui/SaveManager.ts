@@ -46,7 +46,7 @@ import { zeroTeamSeasonStats } from '../types/gameState';
 import type { TeamTactics } from '../types/team';
 
 const SAVE_KEY = 'rugby-manager-save';
-const SAVE_VERSION = 16;
+const SAVE_VERSION = 17;
 const ACCEPTED_VERSIONS = new Set([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
 
 export type SavedGame = SavedSeason & { version: number };
@@ -75,14 +75,16 @@ export function loadSave(): SavedSeason | null {
     // v4+ persists pre-match preferences (tactics + matchday squad).
     // v10 added `defensiveLine` to TeamTactics; older saves get 'hybrid'
     // (numerically neutral) backfilled so the engine doesn't see undefined.
-    // The cast to Partial<TeamTactics> reflects the runtime truth — JSON
-    // from a pre-v10 save genuinely lacks the field, even though the
+    // v17 added `offloadStrategy`; older saves get 'balanced' for the same
+    // reason. The cast to Partial<TeamTactics> reflects the runtime truth —
+    // JSON from a pre-vN save genuinely lacks the field, even though the
     // SavedGame type pretends it's required.
     const tactics: TeamTactics | undefined =
       parsed.version >= 4 && parsed.tactics
         ? {
             ...(parsed.tactics as Partial<TeamTactics>),
-            defensiveLine: (parsed.tactics as Partial<TeamTactics>).defensiveLine ?? 'hybrid',
+            defensiveLine:   (parsed.tactics as Partial<TeamTactics>).defensiveLine   ?? 'hybrid',
+            offloadStrategy: (parsed.tactics as Partial<TeamTactics>).offloadStrategy ?? 'balanced',
           } as TeamTactics
         : undefined;
     const matchdaySquad: PlayerRef[] | undefined =

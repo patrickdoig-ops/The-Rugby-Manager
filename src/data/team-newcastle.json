@@ -17,7 +17,8 @@
     "attackingBreakdown": "balanced",
     "defendingBreakdown": "jackal",
     "backfieldDefence": "one_back",
-    "defensiveLine": "hybrid"
+    "defensiveLine": "hybrid",
+    "offloadStrategy": "balanced"
   },
   "statBias": [
     "stamina",

@@ -27,6 +27,7 @@ export const AI_INTENT_CHASING: TeamTactics = {
   defendingBreakdown: 'jackal',
   backfieldDefence:   'one_back',
   defensiveLine:      'blitz',
+  offloadStrategy:    'offload_freely',
 };
 
 // PROTECTING: a team leading late kicks for territory, keeps it tight in
@@ -41,4 +42,5 @@ export const AI_INTENT_PROTECTING: TeamTactics = {
   defendingBreakdown: 'shadow',
   backfieldDefence:   'two_back',
   defensiveLine:      'drift',
+  offloadStrategy:    'cautious',
 };

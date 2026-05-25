@@ -17,7 +17,8 @@
     "attackingBreakdown": "commit_numbers",
     "defendingBreakdown": "jackal",
     "backfieldDefence": "two_back",
-    "defensiveLine": "hybrid"
+    "defensiveLine": "hybrid",
+    "offloadStrategy": "balanced"
   },
   "statBias": [
     "setPiece",

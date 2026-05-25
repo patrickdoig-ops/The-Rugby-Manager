@@ -1,5 +1,5 @@
 import { eventBus } from '../utils/eventBus';
-import type { TeamTactics, AttackingGamePlan, AttackingStyle, AttackingBreakdown, DefendingBreakdown, BackfieldDefence, DefensiveLine } from '../types/team';
+import type { TeamTactics, AttackingGamePlan, AttackingStyle, AttackingBreakdown, DefendingBreakdown, BackfieldDefence, DefensiveLine, OffloadStrategy } from '../types/team';
 
 interface OptionDef<T> {
   value: T;
@@ -43,6 +43,12 @@ const DEFENSIVE_LINE_OPTIONS: OptionDef<DefensiveLine>[] = [
   { value: 'drift',  label: 'Drift',  desc: 'Lateral slide that channels the attack toward touch. Safer: fewer line breaks. Concedes more metres on inside carries.' },
 ];
 
+const OFFLOAD_STRATEGY_OPTIONS: OptionDef<OffloadStrategy>[] = [
+  { value: 'cautious',       label: 'Cautious',       desc: 'Keep the ball off the deck — carriers go to ground rather than risk the offload. Fewer knock-ons.' },
+  { value: 'balanced',       label: 'Balanced',       desc: 'Offload when it\'s on, recycle when it isn\'t. The default tempo.' },
+  { value: 'offload_freely', label: 'Offload Freely', desc: 'Keep the ball alive in contact. More metres and broken-field chances, more knock-ons.' },
+];
+
 export function renderTacticsMenu(
   container: HTMLElement,
   initialTactics: TeamTactics,
@@ -80,6 +86,7 @@ export function renderTacticsMenu(
         ${renderCategory('Attacking Game Plan', 'attackingGamePlan', ATTACK_PLAN_OPTIONS)}
         ${renderCategory('Attacking Style', 'attackingStyle', ATTACKING_STYLE_OPTIONS)}
         ${renderCategory('Attacking Breakdown', 'attackingBreakdown', ATTACK_RUCK_OPTIONS)}
+        ${renderCategory('Offload Strategy', 'offloadStrategy', OFFLOAD_STRATEGY_OPTIONS)}
         ${renderCategory('Defending Breakdown', 'defendingBreakdown', DEFEND_RUCK_OPTIONS)}
         ${renderCategory('Backfield Defence', 'backfieldDefence', BACKFIELD_OPTIONS)}
         ${renderCategory('Defensive Line', 'defensiveLine', DEFENSIVE_LINE_OPTIONS)}

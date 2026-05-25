@@ -14,6 +14,12 @@ export type BackfieldDefence = 'one_back' | 'two_back' | 'three_back';
 //           regular carries; eats wide attacks.
 // hybrid  : mix of the two — numerically neutral middle ground.
 export type DefensiveLine = 'blitz' | 'drift' | 'hybrid';
+// Offload appetite — drives the in-contact unload roll between evasion
+// and collision. cautious teams keep the ball off the deck and recycle;
+// offload_freely teams keep it alive at the cost of more knock-ons.
+// Per-strategy attempt % lives in OFFLOAD_VALUES.attemptPctByStrategy
+// (src/engine/balance/offload.ts).
+export type OffloadStrategy = 'cautious' | 'balanced' | 'offload_freely';
 
 export interface TeamTactics {
   attackingGamePlan: AttackingGamePlan;
@@ -22,6 +28,7 @@ export interface TeamTactics {
   defendingBreakdown: DefendingBreakdown;
   backfieldDefence: BackfieldDefence;
   defensiveLine: DefensiveLine;
+  offloadStrategy: OffloadStrategy;
 }
 
 export interface Team {
@@ -44,5 +51,6 @@ export const DEFAULT_TACTICS: TeamTactics = {
   defendingBreakdown: 'jackal',
   backfieldDefence: 'one_back',
   defensiveLine: 'hybrid',
+  offloadStrategy: 'balanced',
 };
 

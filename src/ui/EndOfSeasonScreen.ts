@@ -184,7 +184,8 @@ export function initEndOfSeasonScreen(
     return `
       <div class="eos-leader eos-leader--empty">
         <div class="eos-leader-label">${label}</div>
-        <div class="eos-leader-name">—</div>
+        <div class="eos-leader-name eos-leader-name--empty">No qualifying players</div>
+        <div class="eos-leader-meta">Minimum appearance threshold not met</div>
       </div>`;
   }
 

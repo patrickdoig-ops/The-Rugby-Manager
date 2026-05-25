@@ -152,8 +152,10 @@
 }
 
 .ti-tile-foot {
-  font-family: var(--rm-font-body);
-  font-size: 11px;
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
   color: var(--rm-text-muted);
 }
 
@@ -257,7 +259,7 @@
   font-family: var(--rm-font-mono);
   font-size: 10px;
   letter-spacing: 0.06em;
-  text-transform: lowercase;
+  text-transform: uppercase;
   color: var(--rm-pitch);
   background: color-mix(in oklch, var(--rm-pitch) 14%, transparent);
   border: 1px solid color-mix(in oklch, var(--rm-pitch) 30%, transparent);

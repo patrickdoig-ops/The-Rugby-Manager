@@ -200,6 +200,13 @@
   letter-spacing: 0.03em;
 }
 
+.eos-leader-name--empty {
+  font-family: var(--rm-font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--rm-text-muted);
+}
+
 .eos-leader-meta {
   font-family: var(--rm-font-mono);
   font-size: 10px;
@@ -338,13 +345,13 @@
 .roll-delta-neg { color: var(--rm-danger); }
 
 .roll-empty {
-  font-family: var(--rm-font-mono);
-  font-size: 11px;
-  color: var(--rm-text-dim);
-  letter-spacing: 0.06em;
+  font-family: var(--rm-font-body);
+  font-size: 13px;
+  color: var(--rm-text-muted);
+  letter-spacing: 0;
   text-align: center;
-  text-transform: uppercase;
-  padding: 14px 0;
+  text-transform: none;
+  padding: 18px 0;
 }
 
 /* ===== EndOfSeasonScreen — champion banner ===== */

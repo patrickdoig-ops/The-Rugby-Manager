@@ -35,6 +35,7 @@ function syncThemeBtn(btn: HTMLButtonElement): void {
   const light = document.body.classList.contains('light-mode');
   btn.innerHTML = light ? moonIcon() : sunIcon();
   btn.setAttribute('aria-label', light ? 'Switch to dark mode' : 'Switch to light mode');
+  btn.setAttribute('aria-pressed', light ? 'true' : 'false');
 }
 
 function pitchLinesSvg(): string {

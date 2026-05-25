@@ -427,3 +427,55 @@
   text-transform: uppercase;
   color: var(--rm-text-faint);
 }
+
+/* Marquee-edit mode: longer instructional copy + Continue CTA. Stack
+   the note above the button with readable body styling, since the
+   hub-mode mono uppercase treatment is hostile to a full sentence. */
+#ct-footer.ct-footer--marquee {
+  padding: 14px 20px var(--safe-bottom);
+  background: color-mix(in oklch, var(--rm-bg) 92%, transparent);
+  border-top: 1px solid var(--rm-hairline);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+#ct-footer.ct-footer--marquee #ct-footer-note {
+  font-family: var(--rm-font-body);
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--rm-text-muted);
+  line-height: 1.4;
+  max-width: 360px;
+}
+
+#ct-continue {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 22px;
+  background: #007a2a;
+  border: none;
+  border-radius: 14px;
+  color: #ffffff;
+  font-family: var(--rm-font-display);
+  font-size: 20px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow:
+    0 8px 24px color-mix(in oklch, var(--rm-pitch) 28%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+  transition: background 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  #ct-continue:hover { background: #009434; }
+}
+#ct-continue:active { background: #006622; }

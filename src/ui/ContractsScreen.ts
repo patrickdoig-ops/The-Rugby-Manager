@@ -247,7 +247,7 @@ export function initContractsScreen(
 
       <div id="ct-list">${rows}</div>
 
-      <div id="ct-footer">
+      <div id="ct-footer" class="${mode === 'marquee-edit' ? 'ct-footer--marquee' : ''}">
         <span id="ct-footer-note">${footerNote}</span>
         ${continueCta}
       </div>

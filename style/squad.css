@@ -66,9 +66,10 @@
 
 /* Section separator */
 .sq-section-head {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 10px;
   align-items: center;
-  gap: 8px;
   padding: 10px 16px 5px;
   position: sticky;
   top: 0;
@@ -88,12 +89,13 @@
 }
 
 .sq-section-line {
-  flex: 1;
+  grid-column: 2;
   height: 1px;
   background: var(--rm-border-soft);
 }
 
 .sq-section-count {
+  grid-column: 3;
   font-family: var(--rm-font-mono);
   font-size: 9px;
   color: var(--rm-text-faint);
@@ -104,6 +106,7 @@
    10px gap so the two labels line up over the two row badges below
    regardless of the section-head's 8px outer gap. */
 .sq-col-headers {
+  grid-column: 4;
   display: flex;
   gap: 10px;
   align-items: center;

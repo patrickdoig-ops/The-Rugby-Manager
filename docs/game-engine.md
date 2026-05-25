@@ -230,6 +230,33 @@ Constants in `balance/transfers.ts::APPEAL_WEIGHTS`. Squad OVR is the dominant s
 
 Determinism: every wage decision flows through cached offers seeded once at `openSigningWindow`; the AI bid passes read those cached terms. Appeal scoring is fully deterministic (no RNG). The 3-season `checkSeasonDeterminism` harness now exercises a user-bid round + a Finish-pass per season and hashes the resolved outcomes.
 
+## Mid-season free-agent signings
+
+Free agents aren't contractually restricted, so the user can sign them at any point during the season — Hub → Transfers opens an interactive signings market. Separate lifecycle from the off-season window; no AI competition (free agents are looking for work, not playing one club off against another).
+
+**Lifecycle** (`TransferCoordinator`):
+
+- `openMidseasonSigningWindow()` — builds `TransferOffer[]` from `state.career.freeAgents` minus any rosterIds on `state.career.midseasonRejections` cooldown. Skips Reg 7 candidates entirely. Fires `MARKET_OPENED({ phase: 'signings-midseason', ... })`. Idempotent on a market that's already open. Empty FA pool → no-op, the navigation handler routes back to Hub.
+- `closeMidseasonSigningWindow()` — fires `MARKET_CLOSED`. No AI pass — mid-season has no competing bidders, so any user bids that didn't get submitted just vanish with the market.
+- `runMidseasonSigning(): SigningOutcome[]` — walks the user's pending bids rosterId-ascending. For each: roll a `rngTransfer()` against the appeal-based acceptance probability. Accept → `BID_RESOLVED({ won })` + `CONTRACT_SIGNED`. Decline → `BID_RESOLVED({ lost })` + `MIDSEASON_OFFER_REJECTED({ weekUntilClear: currentWeek + 1 })`. Returns `SigningOutcome[]` for `SigningResultsScreen`.
+
+**Acceptance probability** (`src/game/midseasonSigningResolver.ts::midseasonAcceptanceProbability`). Pure function over the same `appealScore` the off-season uses:
+
+```
+t = clamp01((appealScore − appealFloor) / (appealCeiling − appealFloor))
+probability = acceptanceFloor + t × (acceptanceCeiling − acceptanceFloor)
+```
+
+Tuned via `balance/transfers.ts::MIDSEASON_SIGNING`. Default range: a weak club has at least a 30% chance with any FA; even a top club caps at 90% (no FA is a sure thing). The four constants (`acceptanceFloor`, `acceptanceCeiling`, `appealFloor`, `appealCeiling`) can be dialled independently.
+
+**Cooldown**. `state.career.midseasonRejections: Record<rosterId, weekUntilClear>`. A declined player is locked until `state.calendar.week` reaches the stored value. WEEK_ADVANCED prunes aged-out entries; SEASON_ROLLED_OVER clears the whole map (the FA pool reshuffles, so per-rosterId locks become stale). The UI renders cooldowned rows with a disabled "Not interested" chip in the action column.
+
+**Navigation**. `main.ts::goTransfersMidseason` — open → show TransferMarket (mode `'signings-midseason'`) → Submit → resolve + close + SigningResults → Hub. Finish closes the market without submitting. `continueGame` resumption: if the loaded save has `state.career.market.phase === 'signings-midseason'`, route straight back to `goTransfersMidseason` (the `openMidseasonSigningWindow` no-op preserves the existing market).
+
+**Determinism**. Mid-season signings consume `rngTransfer` (one roll per submitted bid in rosterId-ascending order). The match + season determinism harnesses don't exercise mid-season signings — they remain off-season-only — so adding this surface left both hashes unchanged.
+
+**Out of scope (v1).** AI clubs don't sign free agents mid-season — keeps the FA pool stable enough for the user to plan around. Mid-season Reg 7 / cross-Prem poaching stays deliberately closed (final-12-month rules are off-season-only). Mid-season marquee re-designation is handled via the existing Contracts screen toggle.
+
 ## Generated supply (Phase 7)
 
 `src/game/personaGenerator.ts::generatePersona(seed, calendarDate)` produces a deterministic `Player` from `rngTransfer`:
@@ -277,7 +304,7 @@ A three-match knockout follows the 18-round Premiership regular season: two semi
 
 ## Save format
 
-`SAVE_VERSION = 15` (as of v2.144a). `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`.
+`SAVE_VERSION = 16` (as of v2.166a). `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`.
 
 | Version | Added |
 |---|---|
@@ -295,9 +322,11 @@ A three-match knockout follows the 18-round Premiership regular season: two semi
 | v13 | Top-level `playoffs` (`PlayoffState \| undefined`) — the active knockout bracket. Omitted when no bracket is active (mid-regular-season). Each `ArchivedSeason` gains `championTeamId: string \| null`; pre-v13 archive entries load as `null`. Stays at v13 since both additions are purely additive within their optional / nullable shapes. |
 | v14 | `ClubState.salaryBudget` — per-club owner-set budget for cap-relevant wages. Seeded from `CLUB_SALARY_BUDGETS_2025_26` at game start, adjusted each rollover by `prepareBudgetsForNextSeason`. `career.takeoverHistory: string[]` — clubIds taken over (Newcastle Red Bull at year 2 + random investors year 3+); excluded from future random rolls. |
 | v15 | `MarketState.bids: TransferBid[]` — competing bids in the active signing window (Phase 10 competitive signings). Pre-v15 saves load with `bids: []` and any prior in-window signings are already committed via `CONTRACT_SIGNED`. |
+| v16 | `MarketState.phase` gains `'signings-midseason'`. `career.midseasonRejections: Record<rosterId, weekUntilClear>` — per-player one-round cooldown after a mid-season free-agent declines. WEEK_ADVANCED prunes aged-out entries; SEASON_ROLLED_OVER clears them all. Pre-v16 saves migrate as `{}`. |
 
 **Migration on load** (`GameCoordinator.fromSave`):
 
+- v15 → v16: `parseCareer` defaults `midseasonRejections` to `{}`. `parseMarket` accepts the new `'signings-midseason'` phase value; pre-v16 saves never wrote it. No retroactive cooldowns — the player can immediately re-approach anyone after a v15→v16 load.
 - v13 → v14: pre-v14 clubs default `salaryBudget` to the effective cap (no retroactive constraint — the next rollover then recomputes via `computeBudgetEvents` and the per-club budget kicks in from then on). `takeoverHistory` defaults to `[]` — pre-v14 saves never had a takeover, so a v13 save loaded mid-year-1 still fires the Newcastle Red Bull takeover at the next rollover.
 - v12 → v13: no-op shim. `playoffs` is optional; pre-v13 archives gain `championTeamId: null`. After restoration `continueGame` calls `seedPlayoffBracket()` so a v12 save stuck at "all 18 played, no playoffs" auto-seeds and enters the playoff stage chain.
 - v11 → v12: no-op shim. `preSeasonStep` is optional; older saves load with the field absent and `continueGame` routes straight to Hub.
@@ -312,7 +341,7 @@ A three-match knockout follows the 18-round Premiership regular season: two semi
 - v2 → v3: legacy path, no schedule snapshot — falls back to current canonical schedule.
 - v1: discarded (predates AI-vs-AI results, league table can't be reconstructed).
 
-The persisted career state always flows through `CAREER_ARCHIVE_RESTORED` (with optional `freeAgents` + `market` + `pendingMoves` + `teamSeasonStats` + `preSeasonStep` + `playoffs` + `takeoverHistory` fields) so every `state.career.*` write stays inside `applySeasonEvent` — the mutation seam holds even across the load path.
+The persisted career state always flows through `CAREER_ARCHIVE_RESTORED` (with optional `freeAgents` + `market` + `pendingMoves` + `teamSeasonStats` + `preSeasonStep` + `playoffs` + `takeoverHistory` + `midseasonRejections` fields) so every `state.career.*` write stays inside `applySeasonEvent` — the mutation seam holds even across the load path.
 
 ## New-game flow: Quick Start vs Squad Builder
 

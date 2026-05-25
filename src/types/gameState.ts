@@ -252,14 +252,19 @@ export interface TransferOffer {
 // MARKET_CLOSED. Persisted in v7+ saves so closing the tab mid-window
 // resumes at the same state.
 //
-// `phase` discriminates renewal-window from signing-window. The two
-// phases share the same MarketState shape but populate `offers`
-// differently — renewals get one offer per expiring player league-wide;
-// signings get one offer per free agent (the asking wage every club
-// will see). v7 saves load with `phase` defaulting to 'renewals' for
-// backward compat.
+// `phase` discriminates the market kinds:
+//   'renewals'          — end-of-season renewal window; one offer per
+//                         expiring player league-wide.
+//   'signings'          — end-of-season free-agent + Reg 7 window; one
+//                         offer per free agent + poach candidate.
+//   'signings-midseason' — Hub → Transfers mid-season free-agent
+//                         signings. Free-agent offers only; no Reg 7.
+//                         User-only bids (no AI competition mid-season).
+// v7 saves load with `phase` defaulting to 'renewals' for backward
+// compat. v15 saves with phase === 'signings' continue to work; v16
+// added the third variant.
 export interface MarketState {
-  phase: 'renewals' | 'signings';
+  phase: 'renewals' | 'signings' | 'signings-midseason';
   openedAfterSeason: string;  // seasonLabel of the just-completed season
   expiringRosterIds: number[]; // empty during the signings phase
   offers: TransferOffer[];
@@ -348,6 +353,12 @@ export interface CareerState {
   // once in their lifetime — the eligibility check on the random roll
   // skips clubs already in this list. Stable across saves.
   takeoverHistory: string[];
+  // Mid-season free-agent rejection cooldowns. Keyed by rosterId; the
+  // value is the earliest state.calendar.week at which the player can
+  // be re-approached. WEEK_ADVANCED prunes entries that have aged out;
+  // SEASON_ROLLED_OVER clears the whole map (rejections don't survive
+  // the rollover, since the FA pool itself gets reshuffled).
+  midseasonRejections: Record<number, number>;
 }
 
 // Per-club budget-change reason chips for the BudgetRevealScreen.
@@ -392,6 +403,7 @@ export function emptyCareerState(): CareerState {
     market: null,
     pendingMoves: [],
     takeoverHistory: [],
+    midseasonRejections: {},
   };
 }
 
@@ -511,18 +523,18 @@ export type SeasonEvent =
       rosterId: number | null;
     }
   | {
-      // Opens an end-of-season market window. Two phases share the
-      // shape:
-      //   'renewals' — seeded by openRenewalWindow with one offer per
-      //     expiring player league-wide (status 'pending'). User decides
-      //     for own club; AI auto-resolves for the rest at close.
-      //   'signings' — seeded by openSigningWindow (after renewals
-      //     close) with one offer per free agent (the asking wage every
-      //     club is quoted against). User signs at the listed terms;
-      //     AI signs at close from what's left.
+      // Opens a market window. Three phases share the shape:
+      //   'renewals' — end-of-season; one offer per expiring player
+      //     league-wide. User decides for own club; AI auto-resolves
+      //     for the rest at close.
+      //   'signings' — end-of-season; one offer per free agent + Reg 7
+      //     poach candidate. Competitive bidding round-by-round.
+      //   'signings-midseason' — Hub → Transfers; one offer per free
+      //     agent (no Reg 7). User-only bids; rejected players go on
+      //     career.midseasonRejections for a one-week cooldown.
       type: 'MARKET_OPENED';
-      phase: 'renewals' | 'signings';
-      expiringRosterIds: number[]; // empty when phase === 'signings'
+      phase: 'renewals' | 'signings' | 'signings-midseason';
+      expiringRosterIds: number[]; // empty when phase is a signings variant
       offers: TransferOffer[];
     }
   | {
@@ -658,6 +670,9 @@ export type SeasonEvent =
       // year 2; random investors year 3+). Undefined on pre-v14 saves;
       // the reducer leaves the field at its empty default in that case.
       takeoverHistory?: string[];
+      // v16+: per-rosterId mid-season cooldown map. Undefined on pre-v16
+      // saves; the reducer leaves the field at {} in that case.
+      midseasonRejections?: Record<number, number>;
     }
   | {
       // Persistent injury landed on a roster player. Fired at match
@@ -783,4 +798,14 @@ export type SeasonEvent =
       type: 'BID_RESOLVED';
       bidId: string;
       outcome: 'won' | 'lost';
+    }
+  | {
+      // Mid-season free-agent declined the user's offer. Writes a
+      // cooldown entry on career.midseasonRejections so the UI can lock
+      // the row until the next WEEK_ADVANCED. `weekUntilClear` is the
+      // first calendar.week value at which the player becomes
+      // approachable again (typically currentWeek + 1).
+      type: 'MIDSEASON_OFFER_REJECTED';
+      rosterId: number;
+      weekUntilClear: number;
     };

@@ -242,6 +242,29 @@ export const LENGTH_HEURISTIC_AGE = {
   defaultAge: 25,
 };
 
+// Mid-season free-agent signings (Hub → Transfers). No competition
+// (the player gets a single yes/no from the user's club), so the
+// engine maps the appealScore through a clamped linear function to
+// produce an acceptance probability.
+//
+//   t = clamp01((appealScore - appealFloor) / (appealCeiling - appealFloor))
+//   probability = acceptanceFloor + t × (acceptanceCeiling - acceptanceFloor)
+//
+// Tuning rationale:
+//   - acceptanceFloor 0.30: even a weak club has a real chance of
+//     landing a free agent (FAs are looking for work).
+//   - acceptanceCeiling 0.90: even a top club's offer can be snubbed
+//     by an elite FA holding out for a champion or a Six Nations move.
+//   - appealFloor / Ceiling map the score range observed in practice
+//     (squad averages ~65-80 OVR + need + ambition + loyalty bonus)
+//     onto the [floor, ceiling] band.
+export const MIDSEASON_SIGNING = {
+  acceptanceFloor:   0.30,
+  acceptanceCeiling: 0.90,
+  appealFloor:        60,
+  appealCeiling:     120,
+};
+
 // AI signing policy for the free-agent + cross-club poaching windows
 // (Phases 5-6). Pure policy parameters — no RNG involved.
 //

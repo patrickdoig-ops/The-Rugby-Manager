@@ -99,6 +99,10 @@ export interface SavedCareer {
   // random investor takeovers from year 3+). Pre-v14 saves migrate as
   // []. Each taken-over club is excluded from future random rolls.
   takeoverHistory?: string[];
+  // v16+: per-rosterId mid-season FA rejection cooldown. Pre-v16 saves
+  // migrate as {} (no historical cooldowns known). Cleared at the next
+  // SEASON_ROLLED_OVER along with the FA pool reshuffle.
+  midseasonRejections?: Record<number, number>;
 }
 
 export interface SavedSeason {
@@ -256,6 +260,7 @@ export class GameCoordinator {
         ...(save.career.pendingMoves !== undefined ? { pendingMoves: save.career.pendingMoves } : {}),
         ...(save.career.preSeasonStep !== undefined ? { preSeasonStep: save.career.preSeasonStep } : {}),
         ...(save.career.takeoverHistory !== undefined ? { takeoverHistory: save.career.takeoverHistory } : {}),
+        ...(save.career.midseasonRejections !== undefined ? { midseasonRejections: save.career.midseasonRejections } : {}),
         ...(save.teamSeasonStats !== undefined ? { teamSeasonStats: save.teamSeasonStats } : {}),
         ...(save.playoffs !== undefined ? { playoffs: save.playoffs } : {}),
       });
@@ -389,6 +394,20 @@ export class GameCoordinator {
 
   closeSigningWindow(opts: { skipPoaches?: boolean } = {}): void {
     this.transfers.closeSigningWindow(opts);
+  }
+
+  // Mid-season FA signings (Hub → Transfers). Pure delegates onto
+  // TransferCoordinator; per-method docs live there.
+  openMidseasonSigningWindow(): void {
+    this.transfers.openMidseasonSigningWindow();
+  }
+
+  closeMidseasonSigningWindow(): void {
+    this.transfers.closeMidseasonSigningWindow();
+  }
+
+  runMidseasonSigning() {
+    return this.transfers.runMidseasonSigning();
   }
 
   repairAIMarquees(): void {
@@ -816,6 +835,7 @@ export class GameCoordinator {
           ? { preSeasonStep: this.state.career.preSeasonStep }
           : {}),
         takeoverHistory: [...this.state.career.takeoverHistory],
+        midseasonRejections: { ...this.state.career.midseasonRejections },
       },
       teamSeasonStats: Object.fromEntries(
         Object.entries(this.state.league.teamSeasonStats).map(([id, s]) => [id, { ...s }]),

@@ -47,6 +47,15 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       state.calendar.week += 1;
       const nextRoundDate = earliestDateForRound(state.league.fixtures, state.calendar.week);
       state.calendar.date = nextRoundDate ?? addDays(state.calendar.date, SEASON_VALUES.weekLengthDays);
+      // Prune mid-season FA rejection cooldowns that have aged out:
+      // an entry with weekUntilClear ≤ current week is now approachable
+      // again.
+      for (const key of Object.keys(state.career.midseasonRejections)) {
+        const rid = Number(key);
+        if (state.career.midseasonRejections[rid] <= state.calendar.week) {
+          delete state.career.midseasonRejections[rid];
+        }
+      }
       return;
     }
     case 'PLAYER_TACTICS_SET': {
@@ -354,6 +363,9 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       if (event.takeoverHistory !== undefined) {
         state.career.takeoverHistory = [...event.takeoverHistory];
       }
+      if (event.midseasonRejections !== undefined) {
+        state.career.midseasonRejections = { ...event.midseasonRejections };
+      }
       if (event.playoffs !== undefined) {
         state.league.playoffs = event.playoffs
           ? {
@@ -401,6 +413,10 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       // TRANSFER_ACTIVATED events fired by careerRollover before this
       // SEASON_ROLLED_OVER; clear the list as a safety net.
       state.career.pendingMoves = [];
+      // Mid-season rejection cooldowns don't survive the rollover —
+      // the FA pool itself gets reshuffled, so the per-rosterId locks
+      // become stale.
+      state.career.midseasonRejections = {};
       return;
     }
     case 'PLAYOFF_BRACKET_SEEDED': {
@@ -494,6 +510,10 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       // bids are left alone (defensive).
       if (bid.status !== 'pending') return;
       bid.status = event.outcome;
+      return;
+    }
+    case 'MIDSEASON_OFFER_REJECTED': {
+      state.career.midseasonRejections[event.rosterId] = event.weekUntilClear;
       return;
     }
     default: {

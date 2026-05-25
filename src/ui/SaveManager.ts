@@ -46,8 +46,8 @@ import { zeroTeamSeasonStats } from '../types/gameState';
 import type { TeamTactics } from '../types/team';
 
 const SAVE_KEY = 'rugby-manager-save';
-const SAVE_VERSION = 15;
-const ACCEPTED_VERSIONS = new Set([15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+const SAVE_VERSION = 16;
+const ACCEPTED_VERSIONS = new Set([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
 
 export type SavedGame = SavedSeason & { version: number };
 
@@ -165,6 +165,18 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
   const takeoverHistory = Array.isArray(c.takeoverHistory)
     ? (c.takeoverHistory as unknown[]).filter((x): x is string => typeof x === 'string')
     : undefined;
+  // v16+ — mid-season FA rejection cooldowns. Pre-v16 saves omit it;
+  // load as {} (no historical cooldowns known). Defensive filter on
+  // value type so a malformed entry can't poison the runtime.
+  const midseasonRejections = typeof c.midseasonRejections === 'object'
+    && c.midseasonRejections !== null
+    && !Array.isArray(c.midseasonRejections)
+    ? Object.fromEntries(
+        Object.entries(c.midseasonRejections as Record<string, unknown>)
+          .filter(([k, v]) => Number.isFinite(Number(k)) && typeof v === 'number')
+          .map(([k, v]) => [Number(k), v as number]),
+      )
+    : undefined;
   return {
     seasonsCompleted: c.seasonsCompleted,
     nextRosterId: c.nextRosterId,
@@ -194,6 +206,7 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
     pendingMoves,
     ...(preSeasonStep !== undefined ? { preSeasonStep } : {}),
     ...(takeoverHistory !== undefined ? { takeoverHistory } : {}),
+    ...(midseasonRejections !== undefined ? { midseasonRejections } : {}),
   };
 }
 
@@ -306,8 +319,12 @@ function parseMarket(raw: unknown): MarketState | null {
   if (!Array.isArray(m.expiringRosterIds)) return null;
   if (!Array.isArray(m.offers)) return null;
   // v7 saves predate the phase field; default to 'renewals' so a save
-  // mid-window resumes on the correct screen.
-  const phase: 'renewals' | 'signings' = m.phase === 'signings' ? 'signings' : 'renewals';
+  // mid-window resumes on the correct screen. v16+ added the mid-season
+  // signings variant.
+  const phase: MarketState['phase'] =
+    m.phase === 'signings'           ? 'signings'
+  : m.phase === 'signings-midseason' ? 'signings-midseason'
+  :                                    'renewals';
   // v15+ field. Pre-v15 saves omit the array; default empty so the
   // resumed window has no competing bids in flight (any pre-v15 mid-
   // window signings were already applied as CONTRACT_SIGNED — the new

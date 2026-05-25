@@ -1,18 +1,17 @@
-// Two-mode screen:
+// Three-mode screen:
 //
 // 1. 'signings' (off-season). Reached from RenewalsScreen's Continue
 //    CTA. openSigningWindow has pre-computed one TransferOffer per
-//    free agent + poach candidate on state.career.market. Reading
-//    from the cached offers — rather than calling signingTermsFor
-//    per render — keeps rngTransfer stable across re-renders.
+//    free agent + poach candidate on state.career.market. Competitive
+//    bidding round-by-round.
 //
-// 2. 'scouting' (mid-season). Reached from the Hub Transfers tile.
-//    state.career.market is null. Rows are derived live from
-//    state.career.freeAgents + poachCandidates(state), with no
-//    Sign / Pre-Agree buttons. We deliberately do NOT call
-//    signingTermsFor here — it advances rngTransfer and would
-//    perturb the next signing window's offers. Current wage +
-//    contract expiry stand in as cost hints.
+// 2. 'signings-preseason' (Squad Builder). Same flow as 'signings',
+//    FA-only (no Reg 7 in pre-season).
+//
+// 3. 'signings-midseason' (Hub → Transfers). User submits FA offers;
+//    each is rolled against the appeal-score-based acceptance
+//    probability. No AI competition, no Reg 7. Single round →
+//    SigningResults → Hub.
 //
 // Module-level setter pattern (matches RenewalsScreen / RolloverScreen).
 
@@ -22,12 +21,11 @@ import type { Player } from '../types/player';
 import type { TransferOffer } from '../types/gameState';
 import { playerOverall } from '../engine/RatingEngine';
 import { getAge } from '../game/age';
-import { poachCandidates } from './../game/aiTransferDirector';
 import { showToast } from './Toast';
 
 type SortKey = 'name' | 'pos' | 'age' | 'ovr' | 'wage';
 type SortDir = 'asc' | 'desc';
-type Mode = 'signings' | 'signings-preseason' | 'scouting';
+type Mode = 'signings' | 'signings-preseason' | 'signings-midseason';
 type Tab = 'free-agents' | 'poach';
 
 let sortKey: SortKey = 'ovr';
@@ -40,7 +38,6 @@ let mode: Mode = 'signings';
 let activeTab: Tab = 'free-agents';
 let activeOnSubmit: () => void = () => {};
 let activeOnFinish: () => void = () => {};
-let scoutingOnBack: () => void = () => {};
 let renderImpl: (() => void) | null = null;
 
 export function showTransferMarket(onSubmit: () => void, onFinish: () => void): void {
@@ -59,10 +56,11 @@ export function showTransferMarketPreSeason(onSubmit: () => void, onFinish: () =
   renderImpl?.();
 }
 
-export function showTransferMarketScouting(onBack: () => void): void {
-  mode = 'scouting';
+export function showTransferMarketMidseason(onSubmit: () => void, onFinish: () => void): void {
+  mode = 'signings-midseason';
   activeTab = 'free-agents';
-  scoutingOnBack = onBack;
+  activeOnSubmit = onSubmit;
+  activeOnFinish = onFinish;
   renderImpl?.();
 }
 
@@ -100,13 +98,9 @@ export function initTransferMarketScreen(
     const club = state.career.clubs.find(c => c.id === playerClubId);
     if (!team || !club) return;
 
-    if (mode === 'scouting') {
-      renderScouting(state, team, club, playerClubId);
-      return;
-    }
-
     const market = state.career.market;
-    if (!market || market.phase !== 'signings') {
+    const isSigningPhase = !!market && (market.phase === 'signings' || market.phase === 'signings-midseason');
+    if (!market || !isSigningPhase) {
       el!.innerHTML = `
         <div class="app-header">
           <div class="app-topbar">
@@ -119,8 +113,8 @@ export function initTransferMarketScreen(
           <svg class="empty-state__icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
           </svg>
-          <div class="empty-state__title">No signing window open</div>
-          <div class="empty-state__desc">The transfer window opens after the final round of the season.</div>
+          <div class="empty-state__title">No free agents available</div>
+          <div class="empty-state__desc">Check back after the next round of fixtures — new players become available as contracts expire across the league.</div>
         </div>
         <div id="tm-footer"><button id="tm-continue" class="cta-pulse"><span>Continue</span></button></div>
       `;
@@ -202,6 +196,8 @@ export function initTransferMarketScreen(
     const freeAgentRows = allRows.filter(r => r.offer.fromClubId === '');
     const poachRows = allRows.filter(r => r.offer.fromClubId !== '');
 
+    const isMidseason = market.phase === 'signings-midseason';
+    const currentWeek = state.calendar.week;
     const renderRow = (offer: TransferOffer, p: Player, action: 'sign' | 'poach'): string => {
       const age = getAge(p.dob, calendarDate);
       const ovr = playerOverall(p.baseStats, p.position);
@@ -214,15 +210,25 @@ export function initTransferMarketScreen(
       const alreadyPreAgreed = action === 'poach' && pendingMovesSet.has(p.rosterId);
       const alreadyWon = alreadySigned || alreadyPreAgreed;
       const hasPendingBid = userBidRosterIds.has(p.rosterId);
+      // Mid-season FA cooldown — a player who just declined the user's
+      // offer is locked behind a "Not interested" chip until WEEK_ADVANCED
+      // prunes the entry. Only applies mid-season (off-season has no
+      // cooldown — the appealScore there is the gate).
+      const cooldownLock = isMidseason
+        && action === 'sign'
+        && (state.career.midseasonRejections[p.rosterId] ?? 0) > currentWeek;
       // Budget warning: only fires for NEW bids (existing pending bids
       // already reserve their wage; withdrawing never breaches budget).
-      const wouldExceedCap = !hasPendingBid && !alreadyWon && (capUsed + offer.annualWage > budgetCap);
+      const wouldExceedCap = !hasPendingBid && !alreadyWon && !cooldownLock
+        && (capUsed + offer.annualWage > budgetCap);
       // Button states:
       //   - "Make Offer" — no bid yet, can afford
       //   - "Make Offer" (warn class) — no bid yet, would breach budget
       //   - "Withdraw" — pending bid by user, awaiting resolution
       //   - "Signed" / "Pre-Agreed" — already won at a prior resolution
       //     (read-only chip; row is faded)
+      //   - "Not interested" — mid-season cooldown after a recent decline
+      //     (disabled chip; row is faded)
       let buttonLabel: string;
       let buttonClass: string;
       let dataAttr: string;
@@ -232,6 +238,11 @@ export function initTransferMarketScreen(
         buttonClass = 'tm-sign tm-sign--won';
         dataAttr = `data-won="${p.rosterId}"`;
         ariaLabel = `${action === 'sign' ? 'Signed' : 'Pre-agreed'} ${p.firstName} ${p.lastName}`;
+      } else if (cooldownLock) {
+        buttonLabel = 'Not interested';
+        buttonClass = 'tm-sign tm-sign--cooldown';
+        dataAttr = `data-cooldown="${p.rosterId}"`;
+        ariaLabel = `${p.firstName} ${p.lastName} declined recently — try again next round`;
       } else if (hasPendingBid) {
         buttonLabel = 'Withdraw';
         buttonClass = 'tm-sign tm-sign--undo';
@@ -243,7 +254,7 @@ export function initTransferMarketScreen(
         dataAttr = `data-bid="${p.rosterId}"`;
         ariaLabel = `Make offer for ${p.firstName} ${p.lastName}${wouldExceedCap ? ' (over budget)' : ''}`;
       }
-      const committedClass = hasPendingBid || alreadyWon ? ' tm-row--committed' : '';
+      const committedClass = hasPendingBid || alreadyWon || cooldownLock ? ' tm-row--committed' : '';
       const currentClub = action === 'poach'
         ? `<span class="tm-from">← ${teamsById.get(offer.fromClubId)?.shortName ?? offer.fromClubId}</span>`
         : '';
@@ -254,7 +265,7 @@ export function initTransferMarketScreen(
           <span class="tm-num">${age ?? '—'}</span>
           <span class="tm-num">${ovr}</span>
           <span class="tm-wage">${fmtWage(offer.annualWage)} <span class="tm-len">× ${offer.lengthYears}y</span></span>
-          <button class="${buttonClass}" ${dataAttr} aria-label="${ariaLabel}"${alreadyWon ? ' disabled' : ''}>${buttonLabel}</button>
+          <button class="${buttonClass}" ${dataAttr} aria-label="${ariaLabel}"${alreadyWon || cooldownLock ? ' disabled' : ''}>${buttonLabel}</button>
         </div>`;
     };
 
@@ -289,10 +300,12 @@ export function initTransferMarketScreen(
     };
 
     const isPreSeason = mode === 'signings-preseason';
-    const title = isPreSeason ? 'Pre-Season' : 'Transfer Market';
+    const title = isPreSeason ? 'Pre-Season' : 'Transfers';
     const eyebrowText = isPreSeason
       ? `${freeAgentRows.length} free agents · build your squad for Round 1`
-      : `${freeAgentRows.length} free agents · ${poachRows.length} approachable`;
+      : isMidseason
+        ? `${freeAgentRows.length} free agents available`
+        : `${freeAgentRows.length} free agents · ${poachRows.length} approachable`;
 
     // Preserve scroll position across re-render. Clicking Sign / Undo
     // triggers a full re-render; without this the list jumps back to the
@@ -301,10 +314,11 @@ export function initTransferMarketScreen(
     const prevListScroll = el!.querySelector<HTMLDivElement>('#tm-list')?.scrollTop ?? 0;
     const prevPoachScroll = el!.querySelector<HTMLDivElement>('#tm-poach-list')?.scrollTop ?? 0;
 
-    // Pre-season has no poach section, so no toggle — render the FA list
-    // straight. In a regular signings window both lists exist; the
-    // segmented toggle gates which one is visible.
-    const showToggle = !isPreSeason;
+    // Pre-season and mid-season have no Reg 7 section, so no toggle —
+    // render the FA list straight. In a regular off-season signings
+    // window both lists exist; the segmented toggle gates which is
+    // visible.
+    const showToggle = !isPreSeason && !isMidseason;
     const toggleHtml = showToggle ? `
       <div class="tm-toggle" role="tablist">
         <button class="tm-toggle__btn ${activeTab === 'free-agents' ? 'tm-toggle__btn--active' : ''}" data-tab="free-agents" role="tab" aria-selected="${activeTab === 'free-agents'}">Free Agents <span class="tm-toggle__count">${freeAgentRows.length}</span></button>
@@ -413,176 +427,7 @@ export function initTransferMarketScreen(
     el!.querySelector<HTMLButtonElement>('#tm-finish')!.addEventListener('click', () => activeOnFinish());
   }
 
-  // Mid-season scouting view. Read-only — no Sign / Pre-Agree buttons,
-  // no rngTransfer consumption (current wage + expiry stand in as cost
-  // hints). Calling signingTermsFor here would advance the transfer
-  // stream and shift the next signing window's offers.
-  function renderScouting(
-    state: ReturnType<GameCoordinator['getState']>,
-    team: RawTeamInput,
-    club: { id: string; squad: number[]; salaryBudget: number },
-    playerClubId: string,
-  ): void {
-    const calendarDate = state.calendar.date;
-    const pendingSet = new Set(state.career.pendingMoves.map(m => m.rosterId));
-
-    type ScoutItem = { p: Player; currentWage: number; expiresOn: string; kind: 'free-agent' | 'poach' };
-    const items: ScoutItem[] = [];
-    for (const rid of state.career.freeAgents) {
-      const p = state.career.roster[rid];
-      if (!p) continue;
-      items.push({ p, currentWage: p.contract.annualWage, expiresOn: p.contract.expiresOn, kind: 'free-agent' });
-    }
-    for (const rid of poachCandidates(state)) {
-      const p = state.career.roster[rid];
-      if (!p) continue;
-      if (p.contract.clubId === playerClubId) continue; // can't approach own squad
-      if (pendingSet.has(rid)) continue; // already pre-agreed elsewhere
-      items.push({ p, currentWage: p.contract.annualWage, expiresOn: p.contract.expiresOn, kind: 'poach' });
-    }
-    items.sort((a, b) => {
-      const cmp = compareScout(a, b, calendarDate);
-      return sortDir === 'asc' ? cmp : -cmp;
-    });
-    const freeAgentRows = items.filter(it => it.kind === 'free-agent');
-    const poachRows = items.filter(it => it.kind === 'poach');
-
-    const capUsed = club.squad
-      .map(rid => state.career.roster[rid])
-      .filter((p): p is Player => !!p && !p.contract.isMarquee)
-      .reduce((sum, p) => sum + p.contract.annualWage, 0);
-    const budgetCap = club.salaryBudget;
-    const capStatus =
-      capUsed > budgetCap ? 'over' :
-      capUsed > budgetCap * 0.95 ? 'tight' :
-      'ok';
-    const capPill = `<span class="tm-cappill tm-cappill--${capStatus}"><span>BUDGET</span><span>${fmtWage(capUsed)} / ${fmtWage(budgetCap)}</span></span>`;
-
-    const renderScoutRow = (it: ScoutItem): string => {
-      const age = getAge(it.p.dob, calendarDate);
-      const ovr = playerOverall(it.p.baseStats, it.p.position);
-      const clubLabel = it.kind === 'poach'
-        ? `<span class="tm-from">← ${teamsById.get(it.p.contract.clubId)?.shortName ?? it.p.contract.clubId}</span>`
-        : '<span class="tm-from">Free Agent</span>';
-      return `
-        <div class="tm-row" data-roster-id="${it.p.rosterId}">
-          <span class="tm-name">${it.p.firstName} ${it.p.lastName}${clubLabel}</span>
-          <span class="tm-pos">${shortPos(it.p.position)}</span>
-          <span class="tm-num">${age ?? '—'}</span>
-          <span class="tm-num">${ovr}</span>
-          <span class="tm-wage">${fmtWage(it.currentWage)} <span class="tm-len">current</span></span>
-        </div>`;
-    };
-
-    const freeAgentHtml = freeAgentRows.length === 0
-      ? `<div class="empty-state">
-           <svg class="empty-state__icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-             <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
-           </svg>
-           <div class="empty-state__title">No free agents on the market</div>
-           <div class="empty-state__desc">The market refreshes between seasons. Watch for contracts entering their final 12 months below.</div>
-         </div>`
-      : freeAgentRows.map(renderScoutRow).join('');
-    const poachHtml = poachRows.length === 0
-      ? `<div class="empty-state">
-          <svg class="empty-state__icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
-          </svg>
-          <div class="empty-state__title">No final-12-month contracts around the league</div>
-          <div class="empty-state__desc">Approachable players appear here when their current deal enters its last year.</div>
-        </div>`
-      : poachRows.map(renderScoutRow).join('');
-
-    const headerCell = (key: SortKey, label: string, cls: string): string => {
-      const active = key === sortKey;
-      const arrowSvg = active
-        ? (sortDir === 'asc'
-            ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-1px;margin-left:3px"><path d="m18 15-6-6-6 6"/></svg>`
-            : `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-1px;margin-left:3px"><path d="m6 9 6 6 6-6"/></svg>`)
-        : '';
-      return `<button class="tm-head ${cls}${active ? ' tm-head--active' : ''}" data-sort="${key}">${label}${arrowSvg}</button>`;
-    };
-
-    const scoutHeaderRow = `
-      <div id="tm-headrow">
-        ${headerCell('name', 'NAME', 'tm-name')}
-        ${headerCell('pos',  'POS',  'tm-pos')}
-        ${headerCell('age',  'AGE',  'tm-num')}
-        ${headerCell('ovr',  'OVR',  'tm-num')}
-        ${headerCell('wage', 'WAGE', 'tm-wage')}
-      </div>`;
-
-    el!.innerHTML = `
-      <div class="app-header">
-        <div class="app-topbar">
-          <button id="tm-back" class="app-back" aria-label="Back to hub">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-            <span>Hub</span>
-          </button>
-          <span class="app-title">Transfer Market</span>
-          ${capPill}
-        </div>
-        <div class="app-eyebrow">${team.name} · ${freeAgentRows.length} free agents · ${poachRows.length} approachable</div>
-      </div>
-
-      <div class="tm-scout-banner">Scouting view — the signing window opens after the final round of the season. Wages shown are players' current deals.</div>
-
-      <div class="tm-toggle" role="tablist">
-        <button class="tm-toggle__btn ${activeTab === 'free-agents' ? 'tm-toggle__btn--active' : ''}" data-tab="free-agents" role="tab" aria-selected="${activeTab === 'free-agents'}">Free Agents <span class="tm-toggle__count">${freeAgentRows.length}</span></button>
-        <button class="tm-toggle__btn ${activeTab === 'poach' ? 'tm-toggle__btn--active' : ''}" data-tab="poach" role="tab" aria-selected="${activeTab === 'poach'}">Reg 7 <span class="tm-toggle__count">${poachRows.length}</span></button>
-      </div>
-
-      ${activeTab === 'free-agents' ? `
-        ${scoutHeaderRow}
-        <div id="tm-list">${freeAgentHtml}</div>
-      ` : `
-        ${scoutHeaderRow}
-        <div id="tm-poach-list">${poachHtml}</div>
-      `}
-    `;
-
-    el!.querySelectorAll<HTMLButtonElement>('.tm-head[data-sort]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const key = btn.dataset.sort as SortKey;
-        if (key === sortKey) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-        else { sortKey = key; sortDir = defaultDirFor(key); }
-        renderImpl?.();
-      });
-    });
-    el!.querySelectorAll<HTMLButtonElement>('.tm-toggle__btn[data-tab]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const next = btn.dataset.tab as Tab;
-        if (next === activeTab) return;
-        activeTab = next;
-        renderImpl?.();
-      });
-    });
-    el!.querySelector<HTMLButtonElement>('#tm-back')!.addEventListener('click', () => scoutingOnBack());
-  }
-
   renderImpl = render;
-}
-
-function compareScout(
-  a: { p: Player; currentWage: number },
-  b: { p: Player; currentWage: number },
-  calendarDate: string,
-): number {
-  switch (sortKey) {
-    case 'name':
-      return `${a.p.lastName} ${a.p.firstName}`.localeCompare(`${b.p.lastName} ${b.p.firstName}`);
-    case 'pos':
-      return a.p.position.localeCompare(b.p.position);
-    case 'age': {
-      const aa = getAge(a.p.dob, calendarDate) ?? 999;
-      const bb = getAge(b.p.dob, calendarDate) ?? 999;
-      return aa - bb;
-    }
-    case 'ovr':
-      return playerOverall(a.p.baseStats, a.p.position) - playerOverall(b.p.baseStats, b.p.position);
-    case 'wage':
-      return a.currentWage - b.currentWage;
-  }
 }
 
 function defaultDirFor(key: SortKey): SortDir {

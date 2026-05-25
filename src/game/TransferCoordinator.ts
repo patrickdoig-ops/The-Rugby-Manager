@@ -23,6 +23,7 @@ import {
   decideAIBids, decideAIRetentions, decideAIFinalSignings, retentionTermsFor,
 } from './aiTransferDirector';
 import { resolveSigningRound, type SigningOutcome } from './signingResolver';
+import { resolveMidseasonSigning } from './midseasonSigningResolver';
 import { clubBudgetUsage } from './teamStats';
 import type { PreSeasonTransfer } from '../data/transfers-2025-26';
 
@@ -248,9 +249,13 @@ export class TransferCoordinator {
 
   // Unified bid submission. FAs and poach candidates funnel through
   // here — the kind is inferred from market state. Budget-gated.
+  // Accepts both off-season 'signings' and Hub-entered
+  // 'signings-midseason' phases. Mid-season additionally enforces the
+  // per-player rejection cooldown (career.midseasonRejections).
   submitBid(rosterId: number): boolean {
     const market = this.state.career.market;
-    if (!market || market.phase !== 'signings') return false;
+    if (!market) return false;
+    if (market.phase !== 'signings' && market.phase !== 'signings-midseason') return false;
     const offer = market.offers.find(o => o.rosterId === rosterId && o.status === 'pending');
     if (!offer) return false;
     const userClubId = this.state.player.teamId;
@@ -269,8 +274,19 @@ export class TransferCoordinator {
       b.rosterId === rosterId && b.clubId === userClubId && b.status === 'pending'
     )) return false;
 
+    // Mid-season cooldown gate: a player who just declined an offer
+    // sits behind a "Not interested this week" lock until WEEK_ADVANCED
+    // prunes the entry. Off-season ignores this — that cooldown is a
+    // mid-season-only concept.
+    if (market.phase === 'signings-midseason') {
+      const lock = this.state.career.midseasonRejections[rosterId];
+      if (lock !== undefined && lock > this.state.calendar.week) return false;
+    }
+
     // Determine kind. FA → kind: 'free_agent'. Anything else (and
-    // player is poach-eligible at another club) → 'poach'.
+    // player is poach-eligible at another club) → 'poach'. Mid-season
+    // markets carry only FA offers, so the poach branch is unreachable
+    // there (the offer lookup above would have already returned).
     let kind: TransferBid['kind'];
     if (this.state.career.freeAgents.includes(rosterId)) {
       kind = 'free_agent';
@@ -303,7 +319,8 @@ export class TransferCoordinator {
   // No-op if none exists.
   withdrawBid(rosterId: number): boolean {
     const market = this.state.career.market;
-    if (!market || market.phase !== 'signings') return false;
+    if (!market) return false;
+    if (market.phase !== 'signings' && market.phase !== 'signings-midseason') return false;
     const userClubId = this.state.player.teamId;
     const bid = market.bids.find(b =>
       b.rosterId === rosterId && b.clubId === userClubId && b.status === 'pending'
@@ -512,6 +529,76 @@ export class TransferCoordinator {
       });
     }
     applySeasonEvent(this.state, { type: 'MARKET_CLOSED' });
+  }
+
+  // ===== Mid-season free-agent signings (Hub → Transfers) =====
+  //
+  // Independent lifecycle from the off-season window — different phase
+  // value, no Reg 7 candidates, no AI competition. The player either
+  // accepts the user's offer or declines and goes on cooldown until
+  // the next WEEK_ADVANCED. See src/game/midseasonSigningResolver.ts
+  // for the acceptance roll and docs/transfer-system.md for the flow.
+
+  // Opens a mid-season FA-only signing market. Excludes cooldowned
+  // rosterIds (anyone the user has already approached and been
+  // declined this week). Idempotent: re-opening while a market is
+  // already live is a no-op. If the post-filter FA pool is empty, the
+  // window doesn't open at all so the navigation handler can route
+  // straight back to Hub.
+  openMidseasonSigningWindow(): void {
+    if (this.state.career.market) return;
+    const week = this.state.calendar.week;
+    const rejections = this.state.career.midseasonRejections;
+    const eligibleFAs = this.state.career.freeAgents
+      .filter(rid => {
+        const lock = rejections[rid];
+        return lock === undefined || lock <= week;
+      })
+      .sort((a, b) => a - b);
+    if (eligibleFAs.length === 0) return;
+
+    const offers: TransferOffer[] = [];
+    const seasonsCompleted = this.state.career.seasonsCompleted;
+    for (const rid of eligibleFAs) {
+      const terms = signingTermsFor(this.state, rid, this.state.player.teamId);
+      if (!terms) continue;
+      offers.push({
+        id: `m${seasonsCompleted}_w${week}_fa_${rid}`,
+        fromClubId: '',
+        rosterId: rid,
+        annualWage: terms.annualWage,
+        lengthYears: terms.lengthYears,
+        isMarquee: false,
+        status: 'pending',
+      });
+    }
+    if (offers.length === 0) return;
+    applySeasonEvent(this.state, {
+      type: 'MARKET_OPENED',
+      phase: 'signings-midseason',
+      expiringRosterIds: [],
+      offers,
+    });
+  }
+
+  // Closes a mid-season FA window. No AI pass — mid-season has no
+  // competing bidders, so any pending bids the user didn't submit just
+  // disappear with the market. Idempotent on an already-closed market.
+  closeMidseasonSigningWindow(): void {
+    if (!this.state.career.market) return;
+    if (this.state.career.market.phase !== 'signings-midseason') return;
+    applySeasonEvent(this.state, { type: 'MARKET_CLOSED' });
+  }
+
+  // Resolves every pending user bid against the appeal-score-driven
+  // acceptance probability. Returns SigningOutcome[] for
+  // SigningResultsScreen. Caller is responsible for calling
+  // closeMidseasonSigningWindow afterwards (the chain is single-shot:
+  // submit → results → hub, no looping back).
+  runMidseasonSigning(): SigningOutcome[] {
+    const { events, outcomes } = resolveMidseasonSigning(this.state);
+    for (const ev of events) applySeasonEvent(this.state, ev);
+    return outcomes;
   }
 
   // Squad Builder cleanup. After unwind + close, some AI clubs may

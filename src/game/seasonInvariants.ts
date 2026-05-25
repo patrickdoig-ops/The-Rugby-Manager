@@ -117,6 +117,16 @@ export function assertSeasonInvariants(state: GameState): void {
     }
   }
 
+  // ── Mid-season rejection cooldowns: orphans + sane week values ───────
+  for (const key of Object.keys(career.midseasonRejections)) {
+    const rosterId = Number(key);
+    if (!career.roster[rosterId]) {
+      fail('midseasonRejections', `orphaned rosterId=${rosterId} (not in roster)`);
+    }
+    const weekUntilClear = career.midseasonRejections[rosterId];
+    assertNonNegInt(`midseasonRejections.weekUntilClear[${rosterId}]`, weekUntilClear);
+  }
+
   // ── Pending moves (Reg 7): orphans + wage sanity ─────────────────────
   for (const move of career.pendingMoves) {
     if (!career.roster[move.rosterId]) {

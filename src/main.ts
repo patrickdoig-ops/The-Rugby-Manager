@@ -46,7 +46,7 @@ import { initBudgetRevealScreen, showBudgetReveal } from './ui/BudgetRevealScree
 import { initTakeoverRevealScreen, showTakeoverReveal, type TakeoverEntry } from './ui/TakeoverRevealScreen';
 import { initEndOfSeasonScreen, showEndOfSeason }   from './ui/EndOfSeasonScreen';
 import { initRenewalsScreen, showRenewals }         from './ui/RenewalsScreen';
-import { initTransferMarketScreen, showTransferMarket, showTransferMarketScouting, showTransferMarketPreSeason } from './ui/TransferMarketScreen';
+import { initTransferMarketScreen, showTransferMarket, showTransferMarketMidseason, showTransferMarketPreSeason } from './ui/TransferMarketScreen';
 import { initSigningResultsScreen, showSigningResults } from './ui/SigningResultsScreen';
 import { initRetentionDecisionScreen, showRetentionDecision } from './ui/RetentionDecisionScreen';
 import { initModePickerScreen }    from './ui/ModePickerScreen';
@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onSquad:    goSquad,
       onTraining: () => { /* placeholder until Training screen lands */ },
       onContracts: goContracts,
-      onTransfers: goTransfersScouting,
+      onTransfers: goTransfersMidseason,
       onSettings: goSettingsFromHub,
     });
     initFixtureListScreen(getGameEngine, allTeams, goHub);
@@ -229,8 +229,39 @@ document.addEventListener('DOMContentLoaded', () => {
     screenRouter.show('squad-management');
   }
 
-  function goTransfersScouting(): void {
-    showTransferMarketScouting(goHub);
+  // Hub → Transfers. Opens an interactive mid-season FA market: user
+  // queues offers, hits Submit, each is rolled against an appeal-based
+  // acceptance probability, results flow into SigningResults → Hub.
+  // Rejected players go on a one-round cooldown
+  // (career.midseasonRejections). The Reg 7 tab is hidden mid-season
+  // — Reg 7 pre-agreements stay an off-season concept.
+  function goTransfersMidseason(): void {
+    if (!gameEngine) return;
+    gameEngine.openMidseasonSigningWindow();
+    // No FA pool (or every FA on cooldown) → openMidseasonSigningWindow
+    // leaves state.career.market null. Nothing to show — drop back to
+    // the Hub with a toast hint instead of an empty-state screen.
+    if (!gameEngine.getState().career.market) {
+      goHub();
+      return;
+    }
+    saveGame(gameEngine.toSavePayload());
+    const onSubmit = (): void => {
+      if (!gameEngine) { goHub(); return; }
+      const outcomes = gameEngine.runMidseasonSigning();
+      gameEngine.closeMidseasonSigningWindow();
+      saveGame(gameEngine.toSavePayload());
+      showSigningResults(outcomes, () => goHub());
+      screenRouter.show('signing-results');
+    };
+    const onFinish = (): void => {
+      if (gameEngine) {
+        gameEngine.closeMidseasonSigningWindow();
+        saveGame(gameEngine.toSavePayload());
+      }
+      goHub();
+    };
+    showTransferMarketMidseason(onSubmit, onFinish);
     screenRouter.show('transfer-market');
   }
 
@@ -382,6 +413,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (step === 'marquee') {
       runPreSeasonMarquee();
+      return;
+    }
+    // Mid-season signing window mid-flow → resume on the same screen.
+    // openMidseasonSigningWindow is idempotent so the existing market
+    // is preserved; the onSubmit/onFinish closures are re-bound.
+    const liveMarket = gameEngine.getState().career.market;
+    if (liveMarket && liveMarket.phase === 'signings-midseason') {
+      goTransfersMidseason();
       return;
     }
     goHub();

@@ -239,6 +239,18 @@
   }
 }
 
+/* Mid-season FA rejection cooldown. Player declined the user's last
+   offer; row is locked behind a disabled chip until WEEK_ADVANCED
+   prunes the entry. Muted treatment to read as "unavailable" without
+   shouting like the warn variant. */
+.tm-sign--cooldown {
+  border-color: var(--rm-border-soft);
+  color: var(--rm-text-dim);
+  background: transparent;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 .tm-row--committed .tm-name,
 .tm-row--committed .tm-pos,
 .tm-row--committed .tm-num,

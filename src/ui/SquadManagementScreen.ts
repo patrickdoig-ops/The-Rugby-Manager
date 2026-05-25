@@ -28,6 +28,7 @@ import type { Position, PlayerInjury } from '../types/player';
 import { applyMatchdaySquad, extractMatchdaySquad } from '../game/playerSquad';
 import { buildTeamFromRoster } from '../game/rosterTeamBuilder';
 import { playerOverall } from '../engine/RatingEngine';
+import { averageRating } from '../game/seasonLeaderboards';
 import { POSITION_GROUPS_ORDER, POSITION_TO_GROUP, type PositionGroupId } from '../game/positionGroups';
 import { shortName } from '../utils/playerName';
 import { saveGame } from './SaveManager';
@@ -53,6 +54,16 @@ function ovrClass(ovr: number): string {
   if (ovr >= 70) return 'ovr-avg';
   if (ovr >= 62) return 'ovr-poor';
   return 'ovr-veryPoor';
+}
+
+// Match-rating colour bands — mirrors MatchResultScreen.ts thresholds so
+// the AVR badge here reads identically to the per-match rating column on
+// the post-match screen.
+function ratingClass(r: number): string {
+  if (r >= 7.5) return 'rating-high';
+  if (r >= 5.5) return 'rating-mid';
+  if (r >= 3.5) return 'rating-low';
+  return 'rating-poor';
 }
 
 function injuryKindLabel(kind: PlayerInjury['kind']): string {
@@ -119,6 +130,18 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       if (r && r.firstName === p.firstName && r.lastName === p.lastName) return r.injury;
     }
     return undefined;
+  }
+
+  // Average match rating for a draft-row player. Returns null when the
+  // player has no appearances this season — distinguishes "0.0 because
+  // untouched" from a genuinely poor rating so the row can render an em
+  // dash with no colour band instead of binning into rating-poor.
+  function avrFor(p: { rosterId?: number }): number | null {
+    if (p.rosterId === undefined) return null;
+    const state = opts.getGameEngine().getState();
+    const r = state.career.roster[p.rosterId];
+    if (!r || r.seasonStats.appearances === 0) return null;
+    return averageRating(r.seasonStats);
   }
 
   function listForTier(tier: Tier): RawPlayer[] {
@@ -340,6 +363,10 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         <span class="sq-section-label">${label}</span>
         <div class="sq-section-line"></div>
         <span class="sq-section-count">${items.length}</span>
+        <div class="sq-col-headers">
+          <span class="sq-col-header sq-col-header--ovr">OVR</span>
+          <span class="sq-col-header sq-col-header--avr">AVR</span>
+        </div>
       </div>
       ${rows}
     `;
@@ -359,6 +386,10 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     const injuryBadge = injury
       ? `<span class="injury-badge" title="${injuryKindLabel(injury.kind)} — ${injury.weeksRemaining}w">${injury.weeksRemaining}w</span>`
       : '';
+    const avr = avrFor(p);
+    const avrCell = avr === null
+      ? `<div class="sq-avr sq-avr--unrated" title="No appearances yet this season">—</div>`
+      : `<div class="sq-avr ${ratingClass(avr)}">${avr.toFixed(1)}</div>`;
     return `
       <div class="${classes.join(' ')}" data-tier="${tier}" data-squad="${sn}">
         <div class="sq-jersey sq-jersey--${tier}">${jerseyContent}</div>
@@ -367,6 +398,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
           <span class="sq-player-pos sq-player-pos--${tier}">${p.position}</span>
         </div>
         <div class="sq-ovr ${ovrClass(ovr)}">${ovr}</div>
+        ${avrCell}
       </div>
     `;
   }

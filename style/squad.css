@@ -99,6 +99,29 @@
   color: var(--rm-text-faint);
 }
 
+/* Column headers right-anchored over the OVR / AVR badge stack. Widths
+   match .sq-ovr (34px) and .sq-avr (40px); the wrapper carries its own
+   10px gap so the two labels line up over the two row badges below
+   regardless of the section-head's 8px outer gap. */
+.sq-col-headers {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.sq-col-header {
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--rm-text-faint);
+  text-align: center;
+}
+
+.sq-col-header--ovr { width: 34px; }
+.sq-col-header--avr { width: 40px; }
+
 /* Player row */
 .sq-player {
   display: flex;
@@ -246,6 +269,52 @@
   color: var(--rm-stat-1);
   background: color-mix(in oklch, var(--rm-stat-1) 10%, var(--rm-surface-2));
   border-color: color-mix(in oklch, var(--rm-stat-1) 25%, transparent);
+}
+
+/* AVR badge — mirrors .sq-ovr at 40px so a "8.4" / "10.0" reads cleanly.
+   Colour bands key off the match-rating scale (mirrors the rating-* bands
+   on .mr-player-rating in matchresult.css); --unrated swaps in an em dash
+   for roster members who haven't played a match this season. */
+.sq-avr {
+  flex-shrink: 0;
+  width: 40px;
+  height: 30px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+}
+
+.sq-avr.rating-high {
+  color: var(--rm-stat-3);
+  background: color-mix(in oklch, var(--rm-stat-3) 12%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-3) 28%, transparent);
+  text-shadow: 0 0 10px color-mix(in oklch, var(--rm-stat-3) 50%, transparent);
+}
+.sq-avr.rating-mid {
+  color: var(--rm-stat-4);
+  background: color-mix(in oklch, var(--rm-stat-4) 12%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-4) 28%, transparent);
+}
+.sq-avr.rating-low {
+  color: var(--rm-stat-5);
+  background: color-mix(in oklch, var(--rm-stat-5) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-5) 25%, transparent);
+}
+.sq-avr.rating-poor {
+  color: var(--rm-stat-2);
+  background: color-mix(in oklch, var(--rm-stat-2) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-2) 25%, transparent);
+}
+
+.sq-avr--unrated {
+  color: var(--rm-text-faint);
+  background: transparent;
 }
 
 /* ─── Footer ─── */

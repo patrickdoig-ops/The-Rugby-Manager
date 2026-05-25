@@ -97,7 +97,7 @@ A historic west-country club with a cherry-and-white forwards-led identity, defi
 |---|---|---|---|---|
 | Tomos Williams | Scrum-half | 1994-10-25 | 31 | Wales |
 | Ross Byrne | Fly-half | 1995-03-29 | 31 | Ireland |
-| Will Joseph | Centre | 2003-02-04 | 23 | England |
+| Will Joseph | Centre / Wing | 2003-02-04 | 23 | England |
 | Max Llewellyn | Centre | 1997-09-04 | 28 | Wales |
 | Seb Atkinson | Centre | 2001-08-27 | 24 | England |
 | Ben Loader | Wing | 1999-01-24 | 27 | England |
@@ -269,7 +269,7 @@ The Welford Road tradition is set-piece power, structured forward-led play, and 
 | Jack van Poortvliet | Scrum-half | 2001-05-15 | 25 | England |
 | Billy Searle | Fly-half | 1996-03-25 | 30 | England |
 | Adam Radwan | Wing | 1997-12-30 | 28 | England |
-| Orlando Bailey | Utility Back | 2001-09-30 | 24 | England |
+| Orlando Bailey | Centre | 2001-09-30 | 24 | England |
 | Solomone Kata | Centre | 1994-12-03 | 31 | Tonga |
 | Ollie Hassell-Collins | Wing | 1999-01-17 | 27 | England |
 | Freddie Steward | Full-back | 2000-12-05 | 25 | England |
@@ -534,7 +534,7 @@ The Rob Baxter long-build identity is phase-heavy possession rugby — pressure 
 | Dafydd Jenkins | Lock | 2002-12-05 | 23 | Wales |
 | Andrea Zambonin | Lock | 2000-09-03 | 25 | Italy |
 | Ethan Roots | Flanker | 1997-11-10 | 28 | England |
-| Christ Tshiunza | Lock / Flanker| 2002-01-09 | 24 | Wales |
+| Christ Tshiunza | Flanker| 2002-01-09 | 24 | Wales |
 | Greg Fisilau | Number 8 | 2003-07-09 | 22 | England |
 
 **Starting XV — Backs**
@@ -728,7 +728,7 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 | Joel Grayson | Wing | 2002-04-15 | 24 | England |
 | Sammy Arnold | Centre | 1996-04-08 | 30 | Ireland |
 | Max Clark | Centre | 1995-10-03 | 30 | England |
-| Liam Williams | Utility Back | 1991-04-09 | 35 | Wales |
+| Liam Williams | Wing | 1991-04-09 | 35 | Wales |
 | Josh Hodge | Full-back | 2000-05-23 | 26 | England |
 
 **Bench**

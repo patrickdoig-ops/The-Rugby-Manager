@@ -2,6 +2,11 @@
 // slider) are intentionally NOT wired to engine state — they exist so the
 // screen is laid out and reachable. Wire them up when audio/preferences land.
 
+// Experimental — set to true once a full light-mode pass is done across
+// every screen-specific CSS file. HomeScreen.ts gates its theme button
+// behind a matching constant; flip both to enable.
+const LIGHT_MODE_EXPERIMENTAL = false;
+
 function backIcon(): string {
   return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -25,6 +30,7 @@ export function initSettingsScreen(onBack: () => void): void {
     </div>
 
     <div id="settings-body">
+      ${LIGHT_MODE_EXPERIMENTAL ? `
       <section class="settings-section">
         <h2 class="settings-section-title">Display</h2>
 
@@ -36,6 +42,7 @@ export function initSettingsScreen(onBack: () => void): void {
           </label>
         </div>
       </section>
+      ` : ''}
 
       <section class="settings-section">
         <h2 class="settings-section-title">Audio</h2>
@@ -69,19 +76,21 @@ export function initSettingsScreen(onBack: () => void): void {
     volumeLabel.textContent = volume.value;
   });
 
-  const themeInput = el.querySelector<HTMLInputElement>('#settings-theme')!;
-  const THEME_KEY = 'rugby-manager-theme';
+  if (LIGHT_MODE_EXPERIMENTAL) {
+    const themeInput = el.querySelector<HTMLInputElement>('#settings-theme')!;
+    const THEME_KEY = 'rugby-manager-theme';
 
-  // Reflect current state on mount
-  themeInput.checked = document.body.classList.contains('light-mode');
+    // Reflect current state on mount
+    themeInput.checked = document.body.classList.contains('light-mode');
 
-  themeInput.addEventListener('change', () => {
-    if (themeInput.checked) {
-      document.body.classList.add('light-mode');
-      localStorage.setItem(THEME_KEY, 'light');
-    } else {
-      document.body.classList.remove('light-mode');
-      localStorage.setItem(THEME_KEY, 'dark');
-    }
-  });
+    themeInput.addEventListener('change', () => {
+      if (themeInput.checked) {
+        document.body.classList.add('light-mode');
+        localStorage.setItem(THEME_KEY, 'light');
+      } else {
+        document.body.classList.remove('light-mode');
+        localStorage.setItem(THEME_KEY, 'dark');
+      }
+    });
+  }
 }

@@ -4,6 +4,11 @@ import type { RawTeamInput } from '../types/teamData';
 import type { SavedSeason, SavedSeasonResult } from '../game/GameCoordinator';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 
+// Experimental — set to true once a full light-mode pass is done across
+// every screen-specific CSS file. SettingsScreen.ts gates its Display
+// section behind a matching constant; flip both to enable.
+const LIGHT_MODE_EXPERIMENTAL = false;
+
 const THEME_KEY = 'rugby-manager-theme';
 
 function sunIcon(): string {
@@ -173,7 +178,13 @@ export function initHomeScreen(
   if (!el) return;
 
   // Restore the user's preferred theme from the previous session.
-  if (localStorage.getItem(THEME_KEY) === 'light') {
+  // While the experimental flag is OFF we force-clear any previously
+  // stored "light" preference so users who toggled it earlier aren't
+  // stranded on a half-finished light theme.
+  if (!LIGHT_MODE_EXPERIMENTAL && localStorage.getItem(THEME_KEY) === 'light') {
+    localStorage.removeItem(THEME_KEY);
+    document.body.classList.remove('light-mode');
+  } else if (LIGHT_MODE_EXPERIMENTAL && localStorage.getItem(THEME_KEY) === 'light') {
     document.body.classList.add('light-mode');
   }
 
@@ -190,7 +201,7 @@ export function initHomeScreen(
         <span class="home-status-text">2025/26 Season</span>
       </div>
       <div id="home-chrome-actions">
-        <button id="theme-toggle"></button>
+        ${LIGHT_MODE_EXPERIMENTAL ? '<button id="theme-toggle"></button>' : ''}
         <button id="settings-btn" aria-label="Settings">${gearIcon()}</button>
       </div>
     </div>
@@ -223,14 +234,16 @@ export function initHomeScreen(
     </div>
   `;
 
-  const themeBtn = el.querySelector<HTMLButtonElement>('#theme-toggle')!;
-  syncThemeBtn(themeBtn);
-
-  themeBtn.addEventListener('click', () => {
-    document.body.classList.toggle('light-mode');
-    localStorage.setItem(THEME_KEY, document.body.classList.contains('light-mode') ? 'light' : 'dark');
+  if (LIGHT_MODE_EXPERIMENTAL) {
+    const themeBtn = el.querySelector<HTMLButtonElement>('#theme-toggle')!;
     syncThemeBtn(themeBtn);
-  });
+
+    themeBtn.addEventListener('click', () => {
+      document.body.classList.toggle('light-mode');
+      localStorage.setItem(THEME_KEY, document.body.classList.contains('light-mode') ? 'light' : 'dark');
+      syncThemeBtn(themeBtn);
+    });
+  }
 
   el.querySelector<HTMLButtonElement>('#start-game-btn')!.addEventListener('click', () => {
     if (hasSave && ctx) {

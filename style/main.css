@@ -91,6 +91,8 @@
   --crest-md-radius: 10px;
   --crest-lg-size:   58px;
   --crest-lg-radius: 13px;
+  --crest-xl-size:   88px;
+  --crest-xl-radius: 16px;
 }
 
 /* Light mode — clean white */

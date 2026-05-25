@@ -247,6 +247,7 @@ Team crests appear at **exactly four sizes**. There is no fifth size; if you nee
 | `--crest-sm` | 34×34 | 8px | 15px | Next-match cards, live scoreboard, pre-match summary header |
 | `--crest-md` | 44×44 | 10px | 22px | Match Result hero, Pre-Match split-screen, Team Selector cards |
 | `--crest-lg` | 58×58 | 13px | 28px | Hub hero, end-of-season standings highlight |
+| `--crest-xl` | 88×88 | 16px | 36px | Team Info hero, Mode Picker hero |
 
 ### Implementation
 

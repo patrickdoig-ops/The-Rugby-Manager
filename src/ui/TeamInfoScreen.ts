@@ -105,7 +105,7 @@ export function initTeamInfoScreen(
 
     <div id="ti-inner">
       <header id="ti-hero">
-        ${crestHtml(profile.shortName[0] ?? '?', profile.color, 96)}
+        ${crestHtml(profile.shortName[0] ?? '?', profile.color, 88)}
         <h2 id="ti-name">${profile.name}</h2>
         <div id="ti-code">${[
           profile.nickname ? shortNickname(profile.nickname) : null,

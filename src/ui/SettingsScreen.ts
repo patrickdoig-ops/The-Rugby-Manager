@@ -1,6 +1,4 @@
-// Skeleton settings screen. Rendered fields (sound effects toggle, volume
-// slider) are intentionally NOT wired to engine state — they exist so the
-// screen is laid out and reachable. Wire them up when audio/preferences land.
+import { isSfxEnabled, setSfxEnabled, getVolume, setVolume } from './SoundManager';
 
 // Experimental — set to true once a full light-mode pass is done across
 // every screen-specific CSS file. HomeScreen.ts gates its theme button
@@ -50,7 +48,7 @@ export function initSettingsScreen(onBack: () => void): void {
         <div class="settings-row">
           <label class="settings-row-label" for="settings-sfx">Sound effects</label>
           <label class="settings-toggle">
-            <input type="checkbox" id="settings-sfx" checked />
+            <input type="checkbox" id="settings-sfx" />
             <span class="settings-toggle-track"></span>
           </label>
         </div>
@@ -70,9 +68,18 @@ export function initSettingsScreen(onBack: () => void): void {
     onBack();
   });
 
+  const sfxInput = el.querySelector<HTMLInputElement>('#settings-sfx')!;
   const volume = el.querySelector<HTMLInputElement>('#settings-volume')!;
   const volumeLabel = el.querySelector<HTMLElement>('.settings-slider-value')!;
+
+  sfxInput.checked = isSfxEnabled();
+  const initialVol = Math.round(getVolume() * 100);
+  volume.value = String(initialVol);
+  volumeLabel.textContent = String(initialVol);
+
+  sfxInput.addEventListener('change', () => setSfxEnabled(sfxInput.checked));
   volume.addEventListener('input', () => {
+    setVolume(Number(volume.value));
     volumeLabel.textContent = volume.value;
   });
 

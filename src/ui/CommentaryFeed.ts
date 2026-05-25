@@ -4,6 +4,7 @@ import type { GameEvent } from '../types/match';
 import type { Player } from '../types/player';
 import { renderNarration } from '../commentary/CommentaryRenderer';
 import { teamTextColor } from '../utils/teamColor';
+import { playCue } from './SoundManager';
 
 const PHASE_CLASS: Partial<Record<MatchPhase, string>> = {
   [MatchPhase.TryScored]:     'event-try',
@@ -118,6 +119,8 @@ export function initCommentaryFeed(): void {
   });
 
   eventBus.on('engine:event', ({ event }) => {
+    if (event.phase === MatchPhase.TryScored) playCue('crowdRoar');
+
     const text = renderNarration(event);
     if (!text.trim()) return;
 

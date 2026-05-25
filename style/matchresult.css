@@ -76,14 +76,16 @@
 }
 
 .mr-crest {
+  width: var(--crest-md-size);
+  height: var(--crest-md-size);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
+  border-radius: var(--crest-md-radius);
   position: relative;
   overflow: hidden;
   font-family: var(--rm-font-display);
-  font-size: 30px;
+  font-size: 22px;
   color: rgba(255,255,255,0.95);
 }
 

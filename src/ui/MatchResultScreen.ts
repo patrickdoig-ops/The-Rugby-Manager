@@ -35,10 +35,9 @@ function teamMetres(team: Team): number {
   return all.reduce((sum, p) => sum + p.matchStats.metresCarried + p.matchStats.kickMetres, 0);
 }
 
-function crestHtml(team: Team, size = 64): string {
+function crestHtml(team: Team): string {
   const initial = team.shortName[0] ?? '?';
   return `<div class="mr-crest" style="
-    width:${size}px;height:${size}px;
     background:linear-gradient(160deg,${team.color} 0%,color-mix(in oklch,${team.color} 30%,black) 100%);
     box-shadow: 0 0 26px color-mix(in oklch, ${team.color} 50%, transparent), inset 0 1px 0 rgba(255,255,255,0.20), 0 6px 20px rgba(0,0,0,0.5);
   "><span>${initial}</span></div>`;
@@ -319,7 +318,7 @@ export function initMatchResultScreen(
 
       <div class="mr-versus">
         <div class="mr-versus-team">
-          ${crestHtml(homeTeam, 64)}
+          ${crestHtml(homeTeam)}
           <div class="mr-versus-name">${homeTeam.name}</div>
         </div>
         <div class="mr-scoreline">
@@ -328,7 +327,7 @@ export function initMatchResultScreen(
           <span class="mr-score mr-score--${!homeWinning ? 'winner' : 'loser'}">${score.away}</span>
         </div>
         <div class="mr-versus-team">
-          ${crestHtml(awayTeam, 64)}
+          ${crestHtml(awayTeam)}
           <div class="mr-versus-name">${awayTeam.name}</div>
         </div>
       </div>

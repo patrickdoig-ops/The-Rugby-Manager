@@ -91,7 +91,9 @@
 }
 
 .pm-crest {
-  border-radius: 8px;
+  width: var(--crest-md-size);
+  height: var(--crest-md-size);
+  border-radius: var(--crest-md-radius);
   display: flex;
   align-items: center;
   justify-content: center;

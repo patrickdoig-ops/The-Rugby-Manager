@@ -117,6 +117,20 @@ export function initEndOfSeasonScreen(
     const mvpCard = mvpPlayer ? leaderCard('SEASON MVP', mvpPlayer, teamsById.get(clubOf(state, mvpPlayer.rosterId) ?? ''),
       `${(mvpPlayer.seasonStats.ratingSum / mvpPlayer.seasonStats.appearances).toFixed(2)} avg · ${mvpPlayer.seasonStats.appearances} apps`) : leaderEmpty('SEASON MVP');
 
+    const championId = state.league.playoffs?.championTeamId ?? null;
+    const championTeam = championId ? teamsById.get(championId) : undefined;
+    const championIsMe = championId !== null && championId === playerId;
+    const championSection = championTeam
+      ? `
+        <section class="eos-section eos-champion-section">
+          <div class="eos-champion${championIsMe ? ' eos-champion--me' : ''}" style="--team-color:${championTeam.color}">
+            <div class="eos-champion-label">PREMIERSHIP CHAMPIONS</div>
+            <div class="eos-champion-crest" style="background:linear-gradient(160deg,${championTeam.color} 0%,color-mix(in oklch,${championTeam.color} 30%,black) 100%);border:1px solid color-mix(in oklch,${championTeam.color} 45%,transparent)">${championTeam.shortName[0] ?? '?'}</div>
+            <div class="eos-champion-name">${championTeam.name}</div>
+          </div>
+        </section>`
+      : '';
+
     el!.innerHTML = `
       <div class="app-header">
         <div class="app-topbar">
@@ -126,6 +140,8 @@ export function initEndOfSeasonScreen(
         </div>
         <div class="app-eyebrow">${state.calendar.seasonLabel}</div>
       </div>
+
+      ${championSection}
 
       <div id="eos-grid">
         <section class="eos-section eos-standings">

@@ -126,6 +126,53 @@ export interface League {
   // Per-team season aggregates accumulated post-match. Keyed by teamId
   // (RawTeamInput.id). Re-zeroed at SEASON_ROLLED_OVER.
   teamSeasonStats: Record<string, TeamSeasonStats>;
+  // Knockout playoffs that follow the regular season. Null while regular
+  // fixtures are still being played and after SEASON_ROLLED_OVER resets
+  // the slate. Seeded by PLAYOFF_BRACKET_SEEDED once the final regular-
+  // season fixture is recorded; populated by PLAYOFF_RESULT_RECORDED as
+  // the three knockout matches resolve.
+  playoffs: PlayoffState | null;
+}
+
+// One of the three knockout matches. `homeSeed`/`awaySeed` are the team's
+// rank in the final regular-season standings (1-4) — recorded at seed
+// time so the bracket UI can render "1 v 4" / "2 v 3" badges. For the
+// final, both seeds are null since the matchup is SF-winner-derived.
+//
+// The final's venue is neutral (Twickenham) — engine-side this is
+// signalled via state.engine.neutralVenue, set by MatchCoordinator from
+// the call site rather than read off this shape.
+export interface PlayoffMatch {
+  kind: 'semifinal_1' | 'semifinal_2' | 'final';
+  homeId: string | null;
+  awayId: string | null;
+  homeSeed: 1 | 2 | 3 | 4 | null;
+  awaySeed: 1 | 2 | 3 | 4 | null;
+  // ISO yyyy-mm-dd. Set at bracket-seed time. SFs synthesised at
+  // R18+6 days, final at R18+13 days, anchored to the real-world
+  // Premiership playoff cadence.
+  date: string;
+  result?: {
+    homeScore: number;
+    awayScore: number;
+    homeTries: number;
+    awayTries: number;
+    // 'home' / 'away' when the player's team is in the match; null for
+    // pure AI ties.
+    playerSide: 'home' | 'away' | null;
+  };
+}
+
+export interface PlayoffState {
+  // Fixed pair ordering: index 0 is semifinal_1 (1v4), index 1 is
+  // semifinal_2 (2v3). The reducer relies on this index → kind mapping
+  // when cascading SF winners into the final.
+  semifinals: [PlayoffMatch, PlayoffMatch];
+  final: PlayoffMatch;
+  // Set by PLAYOFF_RESULT_RECORDED when the final resolves. Lives here
+  // while the playoffs are active; archived onto ArchivedSeason at
+  // SEASON_ROLLED_OVER, after which `playoffs` resets to null.
+  championTeamId: string | null;
 }
 
 // Stable reference to a real player across save/load and across raw-team
@@ -169,6 +216,10 @@ export interface ArchivedSeason {
   topScorerRosterId: number | null;   // kept for back-compat; equals leaders.topTries[0]?.rosterId
   mvpRosterId: number | null;         // kept for back-compat; equals leaders.topRating[0]?.rosterId
   leaders?: SeasonAwards;             // top-3 per category. Optional so v8 archives load.
+  // The playoff champion (Premiership Final winner) for this season.
+  // Null when archived without a playoff run — covers pre-v13 saves
+  // whose archive entries predate the playoffs system.
+  championTeamId: string | null;
 }
 
 // A renewal / signing offer surfaced during the end-of-season market
@@ -532,6 +583,11 @@ export type SeasonEvent =
       pendingMoves?: PreAgreement[];
       teamSeasonStats?: Record<string, TeamSeasonStats>;
       preSeasonStep?: 'overview' | 'signings' | 'marquee';
+      // v13+: the active playoff bracket. null when no bracket exists
+      // (regular season is mid-flight or has not yet started). Undefined
+      // means "leave alone" — older saves (pre-v13) omit the field and
+      // the reducer doesn't touch state.league.playoffs.
+      playoffs?: PlayoffState | null;
     }
   | {
       // Persistent injury landed on a roster player. Fired at match
@@ -566,10 +622,38 @@ export type SeasonEvent =
       archivedStandings: TeamStanding[];
       topScorerRosterId: number | null;
       mvpRosterId: number | null;
+      // The playoff champion for the just-completed season. Sourced from
+      // state.league.playoffs.championTeamId by computeRollover. Null
+      // when the season ended without playoffs (legacy path) so the
+      // archive entry is still consistent.
+      championTeamId: string | null;
       // Top-3 per category captured before the roster's seasonStats are
       // re-zeroed. Optional so older event-replay paths (or hand-crafted
       // events in tests) can omit it.
       leaders?: SeasonAwards;
+    }
+  | {
+      // Seeds the knockout bracket from the final regular-season standings
+      // (top 4). Fired once by GameCoordinator after the last R18 fixture
+      // is recorded. Idempotent — if state.league.playoffs is already
+      // set, the reducer no-ops.
+      type: 'PLAYOFF_BRACKET_SEEDED';
+      semifinals: [PlayoffMatch, PlayoffMatch];
+      final: PlayoffMatch;
+    }
+  | {
+      // Records the result of one knockout match. The reducer cascades:
+      //   - on a SF result, once both SFs are complete, the final's
+      //     homeId/awayId are set from the SF winners (SF1 → home,
+      //     SF2 → away).
+      //   - on the final's result, championTeamId is set.
+      type: 'PLAYOFF_RESULT_RECORDED';
+      kind: 'semifinal_1' | 'semifinal_2' | 'final';
+      homeScore: number;
+      awayScore: number;
+      homeTries: number;
+      awayTries: number;
+      playerSide: 'home' | 'away' | null;
     }
   | {
       // Squad Builder resumption: writes state.career.preSeasonStep so

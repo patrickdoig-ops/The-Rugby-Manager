@@ -32,6 +32,7 @@ export function simulateFixture(
   away: RawTeamInput,
   rootSeed: number,
   round: number,
+  opts: { neutralVenue?: boolean } = {},
 ): Promise<SimulatedFixtureResult> {
   const seed = deriveFixtureSeed(rootSeed, round, home.id, away.id);
   return new Promise(resolve => {
@@ -39,6 +40,7 @@ export function simulateFixture(
       tickDelayMs: 0,
       seed,
       silent: true,
+      ...(opts.neutralVenue ? { neutralVenue: true } : {}),
     });
     const off = eventBus.on('engine:finished', ({ state }) => {
       off();

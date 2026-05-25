@@ -204,6 +204,20 @@ function renderLineupPanel(
   `;
 }
 
+export interface PreMatchPlayoffContext {
+  // Header label override, e.g. "Premiership Final · Twickenham" or
+  // "Premiership Semi-Final · 1 v 4". Replaces the "Match Preview ·
+  // Round N" string for playoff matches.
+  contextLabel: string;
+  // Neutral venue collapses HOME_ADVANTAGE_PTS in the spread tile so the
+  // SPREAD pill mirrors what the engine will compute (homeEdge short-
+  // circuits when state.engine.neutralVenue is true).
+  neutralVenue: boolean;
+  // Back-button target label override. Defaults to "Hub" — playoff entry
+  // comes from PlayoffBracketScreen, so the back arrow returns there.
+  backLabel?: string;
+}
+
 export function initPreMatchScreen(
   home: RawTeam,
   away: RawTeam,
@@ -212,6 +226,7 @@ export function initPreMatchScreen(
   gameEngine: GameCoordinator,
   onStart: (configuredHome: RawTeam, configuredAway: RawTeam, playerTactics: TeamTactics) => void,
   onBack: () => void,
+  playoffContext?: PreMatchPlayoffContext,
 ): void {
   const screen = document.getElementById('pre-match')!;
   screen.classList.remove('pm-exit');
@@ -281,8 +296,11 @@ export function initPreMatchScreen(
   const awayTeam = playerSide === 'home' ? oppTeam : playerTeam;
   const homeStanding = state.league.standings.find(s => s.teamId === homeTeam.id);
   const awayStanding = state.league.standings.find(s => s.teamId === awayTeam.id);
+  // Neutral venue (Premiership final at Twickenham) — no home advantage
+  // baked into the spread. Mirrors what homeEdge() returns engine-side.
+  const homeEdgePts = playoffContext?.neutralVenue ? 0 : HOME_ADVANTAGE_PTS;
   const homeEffective = computeOverallRating(homeTeam.id)
-    + HOME_ADVANTAGE_PTS
+    + homeEdgePts
     + formAdjustment(homeStanding, state.league.standings);
   const awayEffective = computeOverallRating(awayTeam.id)
     + formAdjustment(awayStanding, state.league.standings);
@@ -312,11 +330,11 @@ export function initPreMatchScreen(
   screen.innerHTML = `
     <div id="pm-header">
       <div id="pm-topbar">
-        <button id="pm-back" class="app-back" aria-label="Back to hub">
+        <button id="pm-back" class="app-back" aria-label="Back">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          <span>Hub</span>
+          <span>${playoffContext?.backLabel ?? 'Hub'}</span>
         </button>
-        <span id="pm-context-label">Match Preview · Round ${roundNumber}</span>
+        <span id="pm-context-label">${playoffContext?.contextLabel ?? `Match Preview · Round ${roundNumber}`}</span>
         <div style="width:60px"></div>
       </div>
 

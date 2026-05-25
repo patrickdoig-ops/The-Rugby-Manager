@@ -21,6 +21,11 @@ export interface InitHubScreenOpts {
   getGameEngine: () => GameCoordinator;
   allTeams: RawTeamInput[];
   onPlayMatch: (homeTeam: RawTeamInput, awayTeam: RawTeamInput, playerSide: 'home' | 'away', round: number) => void;
+  // Entry into the playoff stage chain. Called when the regular season
+  // is over and state.league.playoffs is active. main.ts decides what to
+  // show next (PlayoffBracketScreen with sim CTA, or PreMatch for the
+  // player's next playoff match).
+  onPlayoffs:  () => void;
   onSquad:     () => void;
   onFixtures:  () => void;
   onLeague:    () => void;
@@ -100,6 +105,14 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
     if (!playerTeam) return;
 
     const nextFixture = opts.getGameEngine().getCurrentFixture();
+    // The bracket exists from the moment the final regular-round fixture
+    // resolves until SEASON_ROLLED_OVER clears it. While it exists, the
+    // "Go to next match" CTA is replaced with "Continue to playoffs",
+    // which enters the playoff orchestrator (sim AI matches, play the
+    // player's next match, or route into the end-of-season chain when
+    // the champion has been crowned).
+    const playoffs = state.league.playoffs;
+    const playoffsActive = playoffs !== null;
 
     const sorted = sortStandings(state.league.standings);
     const rankIdx = sorted.findIndex(s => s.teamId === playerTeam.id);
@@ -145,7 +158,9 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
         </div>
       </div>
 
-      ${nextMatchHtml(nextFixture, state, teamsById, playerTeam.id)}
+      ${playoffsActive
+        ? playoffsHtml(playoffs!, teamsById, playerTeam.id)
+        : nextMatchHtml(nextFixture, state, teamsById, playerTeam.id)}
 
       <div id="hub-grid">
         ${TILES.map(t => {
@@ -168,7 +183,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
         </div>
       ` : ''}
 
-      <div id="hub-footer">${footerHtml(nextFixture)}</div>
+      <div id="hub-footer">${playoffsActive ? playoffFooterHtml() : footerHtml(nextFixture)}</div>
     `;
 
     el!.querySelector<HTMLButtonElement>('#hub-settings')!.addEventListener('click', () => opts.onSettings());
@@ -176,7 +191,9 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
       if (t.stub) continue;
       el!.querySelector<HTMLButtonElement>(`#${t.id}`)!.addEventListener('click', () => opts[t.handlerKey]());
     }
-    if (nextFixture) {
+    if (playoffsActive) {
+      el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => opts.onPlayoffs());
+    } else if (nextFixture) {
       el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => {
         const home = teamsById.get(nextFixture.homeId)!;
         const away = teamsById.get(nextFixture.awayId)!;
@@ -184,6 +201,81 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
         opts.onPlayMatch(home, away, playerSide, nextFixture.round);
       });
     }
+  }
+
+  function playoffsHtml(
+    playoffs: import('../types/gameState').PlayoffState,
+    byId: Map<string, RawTeamInput>,
+    playerId: string,
+  ): string {
+    // Champion already crowned but the user hasn't been through the
+    // end-of-season chain yet — surface that explicitly so the CTA is
+    // self-explanatory.
+    if (playoffs.championTeamId !== null) {
+      const champion = byId.get(playoffs.championTeamId);
+      if (champion) {
+        return `
+          <div id="hub-next-match">
+            <div class="hub-nm-label">SEASON COMPLETE</div>
+            <div class="hub-nm-fixture" style="justify-content:center">
+              ${crestHtml(champion, 'nm-crest')}
+              <span class="hub-nm-name">${champion.name} Champions</span>
+            </div>
+          </div>`;
+      }
+    }
+    const playerMatch = opts.getGameEngine().getPlayerPlayoffMatch();
+    const stageLabel = playoffs.semifinals.every(m => m.result) ? 'FINAL' : 'SEMI-FINALS';
+    const subline = playerMatch
+      ? (playerMatch.kind === 'final'
+          ? 'Premiership Final · Twickenham'
+          : `Semi-Final · ${playerMatch.homeSeed} v ${playerMatch.awaySeed}`)
+      : 'You are not in this stage';
+    // Surface the player's pending match (if any), otherwise a static
+    // "Playoffs in progress" card. Crests rendered only when both teams
+    // are known.
+    if (playerMatch && playerMatch.homeId && playerMatch.awayId) {
+      const home = byId.get(playerMatch.homeId);
+      const away = byId.get(playerMatch.awayId);
+      if (!home || !away) return '';
+      const isHome = playerMatch.homeId === playerId;
+      const venueLabel = playerMatch.kind === 'final'
+        ? 'NEUTRAL'
+        : (isHome ? 'HOME' : 'AWAY');
+      const venueName = playerMatch.kind === 'final'
+        ? 'TWICKENHAM'
+        : (isHome ? home : away).stadium.split('(')[0].trim().toUpperCase();
+      return `
+        <div id="hub-next-match">
+          <div class="hub-nm-label">${stageLabel} · ${formatDateShort(playerMatch.date)}</div>
+          <div class="hub-nm-fixture">
+            <div class="hub-nm-side hub-nm-side--home${isHome ? ' hub-nm-side--me' : ''}">
+              ${crestHtml(home, 'nm-crest')}
+              <span class="hub-nm-name">${home.shortName}</span>
+            </div>
+            <span class="hub-nm-vs">vs</span>
+            <div class="hub-nm-side hub-nm-side--away${!isHome ? ' hub-nm-side--me' : ''}">
+              <span class="hub-nm-name">${away.shortName}</span>
+              ${crestHtml(away, 'nm-crest')}
+            </div>
+          </div>
+          <div class="hub-nm-meta">${venueLabel} · ${venueName}</div>
+          <div class="hub-nm-spread">${subline}</div>
+        </div>`;
+    }
+    return `
+      <div id="hub-next-match">
+        <div class="hub-nm-label">PREMIERSHIP PLAYOFFS · ${stageLabel}</div>
+        <div class="hub-nm-meta">${subline}</div>
+      </div>`;
+  }
+
+  function playoffFooterHtml(): string {
+    return `
+      <button id="hub-play-next" class="cta-pulse" aria-label="Continue to playoffs">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>
+        <span>Continue to playoffs</span>
+      </button>`;
   }
 
   function nextMatchHtml(fixture: Fixture | null, state: GameState, byId: Map<string, RawTeamInput>, playerId: string): string {
@@ -285,6 +377,8 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
   eventBus.on('game:initialized',     ({ state }) => render(state));
   eventBus.on('game:fixtureRecorded', ({ state }) => render(state));
   eventBus.on('game:weekAdvanced',    ({ state }) => render(state));
+  eventBus.on('game:bracketSeeded',   ({ state }) => render(state));
+  eventBus.on('game:playoffsUpdated', ({ state }) => render(state));
 
   render(opts.getGameEngine().getState());
 }

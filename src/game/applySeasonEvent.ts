@@ -3,7 +3,7 @@
 // variant has a single branch, and the exhaustive `default: const _: never`
 // catches missing branches at compile time when SeasonEvent grows.
 
-import type { Fixture, GameState, SeasonEvent, TeamSeasonStats, TeamStanding } from '../types/gameState';
+import type { Fixture, GameState, PlayoffMatch, SeasonEvent, TeamSeasonStats, TeamStanding } from '../types/gameState';
 import { zeroStanding, zeroTeamSeasonStats } from '../types/gameState';
 import { zeroSeasonStats } from '../types/player';
 import { LEAGUE_POINTS, SEASON_VALUES } from '../engine/balance';
@@ -26,6 +26,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       state.league.results = [];
       state.league.standings = event.teamIds.map(zeroStanding);
       state.league.teamSeasonStats = Object.fromEntries(event.teamIds.map(id => [id, zeroTeamSeasonStats()]));
+      state.league.playoffs = null;
       return;
     }
     case 'FIXTURE_RESULT_RECORDED': {
@@ -319,6 +320,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         standings: a.standings.map(s => ({ ...s })),
         topScorerRosterId: a.topScorerRosterId,
         mvpRosterId: a.mvpRosterId,
+        championTeamId: a.championTeamId ?? null,
         ...(a.leaders ? { leaders: cloneLeaders(a.leaders) } : {}),
       }));
       if (event.freeAgents) state.career.freeAgents = [...event.freeAgents];
@@ -341,6 +343,18 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         }
         state.league.teamSeasonStats = restored;
       }
+      if (event.playoffs !== undefined) {
+        state.league.playoffs = event.playoffs
+          ? {
+              semifinals: [
+                { ...event.playoffs.semifinals[0], ...(event.playoffs.semifinals[0].result ? { result: { ...event.playoffs.semifinals[0].result } } : {}) },
+                { ...event.playoffs.semifinals[1], ...(event.playoffs.semifinals[1].result ? { result: { ...event.playoffs.semifinals[1].result } } : {}) },
+              ],
+              final: { ...event.playoffs.final, ...(event.playoffs.final.result ? { result: { ...event.playoffs.final.result } } : {}) },
+              championTeamId: event.playoffs.championTeamId,
+            }
+          : null;
+      }
       return;
     }
     case 'SEASON_ROLLED_OVER': {
@@ -349,6 +363,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         standings: event.archivedStandings.map(s => ({ ...s })),
         topScorerRosterId: event.topScorerRosterId,
         mvpRosterId: event.mvpRosterId,
+        championTeamId: event.championTeamId,
         ...(event.leaders ? { leaders: cloneLeaders(event.leaders) } : {}),
       });
       state.career.seasonsCompleted += 1;
@@ -368,10 +383,56 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       for (const teamId of Object.keys(state.league.teamSeasonStats)) {
         state.league.teamSeasonStats[teamId] = zeroTeamSeasonStats();
       }
+      // Clear the playoff bracket — the new season has not yet earned one.
+      // championTeamId has already been carried into the archive entry above.
+      state.league.playoffs = null;
       // Pending moves should already have been processed via
       // TRANSFER_ACTIVATED events fired by careerRollover before this
       // SEASON_ROLLED_OVER; clear the list as a safety net.
       state.career.pendingMoves = [];
+      return;
+    }
+    case 'PLAYOFF_BRACKET_SEEDED': {
+      // Idempotent — once seeded, the bracket is fixed for the season.
+      if (state.league.playoffs !== null) return;
+      state.league.playoffs = {
+        semifinals: [
+          { ...event.semifinals[0] },
+          { ...event.semifinals[1] },
+        ],
+        final: { ...event.final },
+        championTeamId: null,
+      };
+      return;
+    }
+    case 'PLAYOFF_RESULT_RECORDED': {
+      const playoffs = state.league.playoffs;
+      if (!playoffs) return;
+      const target = pickPlayoffMatch(playoffs, event.kind);
+      if (!target) return;
+      if (target.result) return; // already recorded
+      target.result = {
+        homeScore: event.homeScore,
+        awayScore: event.awayScore,
+        homeTries: event.homeTries,
+        awayTries: event.awayTries,
+        playerSide: event.playerSide,
+      };
+      // Cascade: when a SF resolves, populate the final's matching slot
+      // from the SF winner. SF1 winner takes the final's home slot, SF2
+      // winner takes the away slot — mirrors the bracket diagram.
+      if (event.kind === 'semifinal_1' || event.kind === 'semifinal_2') {
+        const winnerId = playoffWinnerId(target);
+        if (winnerId !== null) {
+          if (event.kind === 'semifinal_1') playoffs.final.homeId = winnerId;
+          else                              playoffs.final.awayId = winnerId;
+        }
+      }
+      // Cascade: when the final resolves, write the champion.
+      if (event.kind === 'final') {
+        const winnerId = playoffWinnerId(target);
+        if (winnerId !== null) playoffs.championTeamId = winnerId;
+      }
       return;
     }
     case 'PRE_SEASON_STEP_SET': {
@@ -385,6 +446,27 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       return;
     }
   }
+}
+
+function pickPlayoffMatch(
+  playoffs: { semifinals: [PlayoffMatch, PlayoffMatch]; final: PlayoffMatch },
+  kind: 'semifinal_1' | 'semifinal_2' | 'final',
+): PlayoffMatch | null {
+  if (kind === 'semifinal_1') return playoffs.semifinals[0];
+  if (kind === 'semifinal_2') return playoffs.semifinals[1];
+  if (kind === 'final')       return playoffs.final;
+  return null;
+}
+
+// Winner's teamId from a resolved playoff match. Ties intentionally fall
+// to the home side: knockout rugby has no draws (extra time + golden
+// point) but the model doesn't simulate that yet, so the home-side
+// fallback gives a stable result without adding a separate "draw"
+// branch. Returns null when the match is unresolved or its team slots
+// are still empty.
+function playoffWinnerId(match: PlayoffMatch): string | null {
+  if (!match.result || !match.homeId || !match.awayId) return null;
+  return match.result.homeScore >= match.result.awayScore ? match.homeId : match.awayId;
 }
 
 function cloneLeaders(l: import('../types/gameState').SeasonAwards): import('../types/gameState').SeasonAwards {

@@ -63,6 +63,42 @@ async function simulateSeason(coord: GameCoordinator, teamsById: Map<string, Raw
     const sim = await simulateFixture(home, away, state.seed, next.round);
     await coord.recordPlayerMatchResult(next.round, sim.homeScore, sim.awayScore, sim.snapshot);
   }
+  // After the final regular fixture, the engine has already seeded the
+  // bracket (via recordPlayerMatchResult). Drive the knockouts headlessly
+  // so the championship layer gets determinism coverage too. The
+  // harness has no UI seam, so player-involved playoff matches go
+  // through the same silent sim path as AI-only ones via
+  // simulatePendingPlayoffMatches (the method skips player matches; we
+  // pick them up directly here).
+  await playOutPlayoffs(coord);
+}
+
+async function playOutPlayoffs(coord: GameCoordinator): Promise<void> {
+  // Silent: each stage may contain at most 2 SFs + 1 Final, and at most
+  // one of the SFs (and the final) may be the player's match.
+  for (const stage of ['sf', 'final'] as const) {
+    // Player matches in this stage — drive each through the headless
+    // playoff path used by the live UI's recordPlayerPlayoffResult.
+    while (true) {
+      const m = coord.getPlayerPlayoffMatch();
+      if (!m) break;
+      if (stage === 'sf' && m.kind === 'final') break;
+      if (stage === 'final' && (m.kind === 'semifinal_1' || m.kind === 'semifinal_2')) break;
+      if (!m.homeId || !m.awayId) break;
+      const state = coord.getState();
+      const home = buildAutoSelectedTeamFromRoster(state, lookupTeam(m.homeId)!);
+      const away = buildAutoSelectedTeamFromRoster(state, lookupTeam(m.awayId)!);
+      const pseudoRound = stage === 'sf' ? 19 : 20;
+      const sim = await simulateFixture(home, away, state.seed, pseudoRound, { neutralVenue: m.kind === 'final' });
+      await coord.recordPlayerPlayoffResult(m.kind, sim.homeScore, sim.awayScore, sim.snapshot);
+    }
+    // Then sim every remaining AI match in this stage.
+    await coord.simulatePendingPlayoffMatches(stage);
+  }
+}
+
+function lookupTeam(teamId: string): RawTeamInput | undefined {
+  return allTeams.find(t => t.id === teamId);
 }
 
 async function runOnce(seed: number): Promise<string> {
@@ -132,6 +168,24 @@ async function runOnce(seed: number): Promise<string> {
       rolloverEvents = coord.rollSeason();
     }
 
+    // Snapshot the playoff bracket too — every score, the cascaded final
+    // matchup, and the eventual champion. The bracket clears at
+    // SEASON_ROLLED_OVER, so we read it here while it's still populated.
+    const playoffs = preRolloverState.league.playoffs;
+    const playoffSummary = playoffs ? {
+      championTeamId: playoffs.championTeamId,
+      semifinals: playoffs.semifinals.map(m => ({
+        kind: m.kind,
+        homeId: m.homeId, awayId: m.awayId,
+        homeSeed: m.homeSeed, awaySeed: m.awaySeed,
+        result: m.result ? { ...m.result } : null,
+      })),
+      final: {
+        homeId: playoffs.final.homeId, awayId: playoffs.final.awayId,
+        result: playoffs.final.result ? { ...playoffs.final.result } : null,
+      },
+    } : null;
+
     seasonSnapshots.push({
       seasonLabel,
       finalStandings,
@@ -139,6 +193,7 @@ async function runOnce(seed: number): Promise<string> {
       teamStatsHash,
       seasonStatsHash,
       marketSummary,
+      playoffSummary,
       // Strip large stable fields from the rollover payload — only the
       // PLAYER_RETIRED rosterIds and PLAYER_AGED deltas matter for the
       // determinism contract; SEASON_ROLLED_OVER's fixture list is

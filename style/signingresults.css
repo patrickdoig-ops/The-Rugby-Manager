@@ -192,6 +192,41 @@
 
 .rd-poacher {
   color: var(--rm-amber);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Overlapping crest stack — up to 3 club crests rendered inline next
+   to the textual "N clubs" / "{ShortName}" label. 18px tiles, 4px
+   overlap via negative margin, 1.5px surface-coloured border to fake
+   a notch between adjacent crests. The `.team-crest` reuse picks up
+   the shared gradient + ::after overlay treatment from main.css. */
+.rd-poacher-crest-stack {
+  display: inline-flex;
+  align-items: center;
+}
+
+.rd-poacher-crest-stack .team-crest {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  font-size: 9px;
+  border: 1.5px solid var(--rm-surface);
+  margin-left: -4px;
+}
+
+.rd-poacher-crest-stack .team-crest:first-child {
+  margin-left: 0;
+}
+
+.rd-poacher-overflow {
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--rm-amber);
+  margin-left: 4px;
 }
 
 .rd-wage {

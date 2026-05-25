@@ -118,13 +118,20 @@ export function initRetentionDecisionScreen(
       // (they're already in the reserved sum via clubBudgetUsage).
       const projectedIfRetain = baseUsage + Math.max(0, wageDelta);
       const wouldExceedCap = !isRetaining && projectedIfRetain > budgetCap;
-      // Find the poacher(s) so we can name them.
+      // Find the poacher club objects so we can render an inline crest stack.
       const poachers = (state.career.market?.bids ?? [])
         .filter(b => b.rosterId === rid && b.kind === 'poach' && b.status === 'pending')
-        .map(b => teamsById.get(b.clubId)?.shortName ?? b.clubId);
-      const poacherLabel = poachers.length === 1
-        ? `${poachers[0]} interested`
+        .map(b => teamsById.get(b.clubId))
+        .filter((t): t is RawTeamInput => !!t);
+      const crestStackHtml = poachers.slice(0, 3).map(t => {
+        const grad = `linear-gradient(160deg, ${t.color} 0%, color-mix(in oklch, ${t.color} 30%, black) 100%)`;
+        return `<span class="team-crest" style="background:${grad}"><span>${t.shortName[0] ?? '?'}</span></span>`;
+      }).join('');
+      const overflowHtml = poachers.length > 3 ? `<span class="rd-poacher-overflow">+${poachers.length - 3}</span>` : '';
+      const poacherInline = poachers.length === 1
+        ? `${poachers[0].shortName} interested`
         : `${poachers.length} clubs interested`;
+      const poacherHtml = `<span class="rd-poacher-crest-stack">${crestStackHtml}${overflowHtml}</span><span>${poacherInline}</span>`;
 
       const buttonLabel = isRetaining ? 'Withdraw' : 'Retain';
       const buttonClass = `tm-sign${wouldExceedCap ? ' tm-sign--warn' : ''}${isRetaining ? ' tm-sign--undo' : ''}`;
@@ -137,7 +144,7 @@ export function initRetentionDecisionScreen(
         <div class="rd-row${isRetaining ? ' tm-row--committed' : ''}" data-roster-id="${rid}">
           <span class="rd-name">${p.firstName} ${p.lastName}</span>
           <span class="rd-meta">${p.position} · ${ovr} OVR · ${age ?? '—'}</span>
-          <span class="rd-poacher">${poacherLabel}</span>
+          <span class="rd-poacher">${poacherHtml}</span>
           <span class="rd-wage">${fmtWage(terms.annualWage)} <span class="rd-delta">(${wageDeltaStr})</span></span>
           <button class="${buttonClass}" ${dataAttr}${wouldExceedCap ? ' disabled' : ''}>${buttonLabel}</button>
         </div>`;

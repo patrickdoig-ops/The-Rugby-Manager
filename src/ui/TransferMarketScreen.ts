@@ -335,9 +335,20 @@ export function initTransferMarketScreen(
         const rid = Number(btn.dataset.bid);
         if (!Number.isFinite(rid)) return;
         const p = gameEngine.getState().career.roster[rid];
+        const isPoach = !!btn.closest('#tm-poach-list');
         const ok = gameEngine.submitBid(rid);
         if (ok && p) showToast(`Offer made for ${p.firstName} ${p.lastName}`, 'info');
         render();
+        requestAnimationFrame(() => {
+          const newRow = el!.querySelector<HTMLDivElement>(`.tm-row[data-roster-id="${rid}"]`);
+          if (newRow && ok) {
+            newRow.style.setProperty('--tm-tag-label', isPoach ? "'REG 7'" : "'OFFER'");
+            newRow.style.setProperty('--tm-tag-color', isPoach ? 'var(--rm-stat-5)' : 'var(--rm-pitch)');
+            newRow.classList.add('tm-row--just-signed');
+            setTimeout(() => newRow.classList.add('tm-row--tag-fading'), 1400);
+            setTimeout(() => newRow.classList.remove('tm-row--just-signed', 'tm-row--tag-fading'), 1900);
+          }
+        });
       });
     });
     el!.querySelectorAll<HTMLButtonElement>('.tm-sign[data-withdraw]').forEach(btn => {

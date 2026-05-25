@@ -102,6 +102,42 @@
 
 .tm-row {
   border-bottom: 1px solid var(--rm-hairline);
+  position: relative;
+}
+
+@keyframes tmRowFlash {
+  0%   { background: color-mix(in oklch, var(--rm-pitch) 22%, transparent); }
+  100% { background: transparent; }
+}
+.tm-row--just-signed {
+  animation: tmRowFlash 700ms ease-out;
+}
+@keyframes tmTagWipe {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.tm-row--just-signed::after {
+  content: var(--tm-tag-label, 'OFFER');
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  background: var(--tm-tag-color, var(--rm-pitch));
+  color: var(--rm-bg-deep);
+  font-family: var(--rm-font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  padding: 3px 7px;
+  border-radius: 4px;
+  animation: tmTagWipe 220ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+  pointer-events: none;
+  z-index: 5;
+}
+.tm-row--just-signed.tm-row--tag-fading::after {
+  opacity: 0;
+  transform: translateY(-50%) translateX(6px);
+  transition: opacity 280ms ease-out, transform 280ms ease-out;
 }
 
 .tm-name {

@@ -26,6 +26,18 @@ export function initSettingsScreen(onBack: () => void): void {
 
     <div id="settings-body">
       <section class="settings-section">
+        <h2 class="settings-section-title">Display</h2>
+
+        <div class="settings-row">
+          <label class="settings-row-label" for="settings-theme">Light mode</label>
+          <label class="settings-toggle">
+            <input type="checkbox" id="settings-theme" />
+            <span class="settings-toggle-track"></span>
+          </label>
+        </div>
+      </section>
+
+      <section class="settings-section">
         <h2 class="settings-section-title">Audio</h2>
 
         <div class="settings-row">
@@ -44,8 +56,6 @@ export function initSettingsScreen(onBack: () => void): void {
           </div>
         </div>
       </section>
-
-      <p class="settings-note">More options coming soon.</p>
     </div>
   `;
 
@@ -57,5 +67,21 @@ export function initSettingsScreen(onBack: () => void): void {
   const volumeLabel = el.querySelector<HTMLElement>('.settings-slider-value')!;
   volume.addEventListener('input', () => {
     volumeLabel.textContent = volume.value;
+  });
+
+  const themeInput = el.querySelector<HTMLInputElement>('#settings-theme')!;
+  const THEME_KEY = 'rugby-manager-theme';
+
+  // Reflect current state on mount
+  themeInput.checked = document.body.classList.contains('light-mode');
+
+  themeInput.addEventListener('change', () => {
+    if (themeInput.checked) {
+      document.body.classList.add('light-mode');
+      localStorage.setItem(THEME_KEY, 'light');
+    } else {
+      document.body.classList.remove('light-mode');
+      localStorage.setItem(THEME_KEY, 'dark');
+    }
   });
 }

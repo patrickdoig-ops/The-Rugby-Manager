@@ -128,6 +128,26 @@
   border-bottom: 1px solid var(--rm-border-soft);
 }
 
+/* Narrow viewports (≤380px / iPhone SE-class): collapse the 5-column row
+   into a 2-column areas layout so every text field gets its own line
+   alongside a centred action button. Keeps the desktop / standard-mobile
+   grid intact via the cascade. */
+@media (max-width: 380px) {
+  .rd-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "name    button"
+      "meta    button"
+      "poacher button"
+      "wage    button";
+  }
+  .rd-name    { grid-area: name; }
+  .rd-meta    { grid-area: meta; }
+  .rd-poacher { grid-area: poacher; }
+  .rd-wage    { grid-area: wage; text-align: left; }
+  .rd-row .tm-sign { grid-area: button; align-self: center; }
+}
+
 .rd-name {
   font-family: var(--rm-font-body);
   font-size: 14px;

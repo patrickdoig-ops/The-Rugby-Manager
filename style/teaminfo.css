@@ -33,12 +33,14 @@
 }
 
 .ti-crest {
-  border-radius: 14px;
+  width: var(--crest-xl-size);
+  height: var(--crest-xl-size);
+  border-radius: var(--crest-xl-radius);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--rm-font-display);
-  font-size: 44px;
+  font-size: 36px;
   color: rgba(255, 255, 255, 0.92);
   position: relative;
   flex-shrink: 0;

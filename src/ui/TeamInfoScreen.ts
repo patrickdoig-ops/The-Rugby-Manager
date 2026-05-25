@@ -25,10 +25,10 @@ const TACTIC_DIM_LABELS: Record<keyof TeamTactics, string> = {
   defensiveLine:      'Defensive line',
 };
 
-function crestHtml(initial: string, color: string, size: number): string {
+function crestHtml(initial: string, color: string): string {
   const grad = `linear-gradient(160deg, ${color} 0%, color-mix(in oklch, ${color} 30%, black) 100%)`;
   return `
-    <div class="ti-crest" style="width:${size}px;height:${size}px;background:${grad};border:2px solid color-mix(in oklch,${color} 55%,transparent)">
+    <div class="ti-crest" style="background:${grad};border:2px solid color-mix(in oklch,${color} 55%,transparent)">
       <span>${initial}</span>
     </div>`;
 }
@@ -105,7 +105,7 @@ export function initTeamInfoScreen(
 
     <div id="ti-inner">
       <header id="ti-hero">
-        ${crestHtml(profile.shortName[0] ?? '?', profile.color, 88)}
+        ${crestHtml(profile.shortName[0] ?? '?', profile.color)}
         <h2 id="ti-name">${profile.name}</h2>
         <div id="ti-code">${[
           profile.nickname ? shortNickname(profile.nickname) : null,

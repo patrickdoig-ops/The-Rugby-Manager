@@ -141,6 +141,40 @@ export function assertSeasonInvariants(state: GameState): void {
     assertNonNegInt(`standings[${s.teamId}].leaguePoints`, s.leaguePoints);
   }
 
+  // ── Playoff bracket (when active) ────────────────────────────────────
+  const playoffs = state.league.playoffs;
+  if (playoffs) {
+    if (playoffs.semifinals[0].kind !== 'semifinal_1') {
+      fail('playoffs.semifinals[0].kind', `${playoffs.semifinals[0].kind}`);
+    }
+    if (playoffs.semifinals[1].kind !== 'semifinal_2') {
+      fail('playoffs.semifinals[1].kind', `${playoffs.semifinals[1].kind}`);
+    }
+    if (playoffs.final.kind !== 'final') {
+      fail('playoffs.final.kind', `${playoffs.final.kind}`);
+    }
+    for (const m of [playoffs.semifinals[0], playoffs.semifinals[1], playoffs.final]) {
+      if (m.result) {
+        assertNonNegInt(`playoffs.${m.kind}.homeScore`, m.result.homeScore);
+        assertNonNegInt(`playoffs.${m.kind}.awayScore`, m.result.awayScore);
+        assertNonNegInt(`playoffs.${m.kind}.homeTries`, m.result.homeTries);
+        assertNonNegInt(`playoffs.${m.kind}.awayTries`, m.result.awayTries);
+      }
+    }
+    // championTeamId, when set, must match the final's winner.
+    if (playoffs.championTeamId !== null) {
+      if (!playoffs.final.result || !playoffs.final.homeId || !playoffs.final.awayId) {
+        fail('playoffs.championTeamId', `set without a resolved final`);
+      }
+      const winner = playoffs.final.result.homeScore >= playoffs.final.result.awayScore
+        ? playoffs.final.homeId
+        : playoffs.final.awayId;
+      if (playoffs.championTeamId !== winner) {
+        fail('playoffs.championTeamId', `champion=${playoffs.championTeamId} winner=${winner}`);
+      }
+    }
+  }
+
   // ── Team season stats: per-club counters + set-piece win <= thrown ───
   for (const teamId of Object.keys(state.league.teamSeasonStats)) {
     const t = state.league.teamSeasonStats[teamId];

@@ -41,5 +41,10 @@ export interface AppEvents {
   'game:fixtureRecorded': { result: FixtureResult; state: GameState };
   'game:weekAdvanced':    { state: GameState };
   'game:seasonComplete':  { state: GameState };
+  // Playoffs (Premiership final + semi-finals). bracketSeeded fires once
+  // after the final regular-season fixture; playoffsUpdated fires per
+  // PLAYOFF_RESULT_RECORDED so the bracket screen + hub re-render.
+  'game:bracketSeeded':   { state: GameState };
+  'game:playoffsUpdated': { state: GameState };
 }
 

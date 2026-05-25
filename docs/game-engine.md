@@ -16,7 +16,7 @@ Match-scope writes flow through `applyMatchEvent`; **season-scope writes flow th
 
 | Module | Responsibility |
 |---|---|
-| `GameCoordinator.ts` | Public API (`newSeason`, `fromSave`, `getState`, `getCurrentFixture`, `recordPlayerMatchResult`, `rollSeason`, `toSavePayload`, plus the market-window methods listed below). Owns the `GameState`. The "tick" of the game engine is a player match completing: `recordPlayerMatchResult` applies the player's score, headlessly simulates the other fixtures of the round, runs `seasonStatsCollector` over each, then advances the week. Emits `game:seasonComplete` when the final round resolves. |
+| `GameCoordinator.ts` | Public API (`newSeason`, `fromSave`, `getState`, `getCurrentFixture`, `recordPlayerMatchResult`, `seedPlayoffBracket`, `getPlayerPlayoffMatch`, `recordPlayerPlayoffResult`, `simulatePendingPlayoffMatches`, `rollSeason`, `toSavePayload`, plus the market-window methods listed below). Owns the `GameState`. The "tick" of the game engine is a player match completing: `recordPlayerMatchResult` applies the player's score, headlessly simulates the other fixtures of the round, runs `seasonStatsCollector` over each, then advances the week. Once the last R18 fixture is recorded it also seeds the playoff bracket and emits `game:bracketSeeded`; `game:seasonComplete` then fires later, after the Premiership final resolves. |
 | `TransferCoordinator.ts` | Off-season market collaborator owned by `GameCoordinator`. Holds the same `GameState` reference; implements `designateMarquee`, `openRenewalWindow`, `closeRenewalWindow`, `openSigningWindow`, `signFreeAgent`, `unsignFreeAgent`, `preAgreePoach`, `cancelPreAgreement`, `closeSigningWindow`. `GameCoordinator` exposes thin delegating methods of the same names so the `getGameEngine: () => GameCoordinator` getter contract (CLAUDE.md § 4) is preserved — screens never see the collaborator directly. All writes flow through `applySeasonEvent`. |
 | `applySeasonEvent.ts` | **Single mutation seam.** Reducer over `SeasonEvent` (`src/types/gameState.ts`); see the full variant list in the next section. Same `default: const _: never = event;` exhaustiveness contract as `applyMatchEvent`. |
 | `rosterSeeder.ts` | `seedRoster(allTeams, seasonStartYear)` — one-shot at `newSeason` / v4-save migration. Walks every `RawTeamInput`, allocates a globally-unique `rosterId` per player, builds `state.career.roster` + `ClubState[]`. Defers wage/expiry/reputation to `contractSeeder.seedContractFields`. |
@@ -68,7 +68,9 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 | `INJURY_TICK_ADVANCED` | Per injured roster player at the start of `recordPlayerMatchResult` (before the round's new injuries are added) | Decrements `roster[rosterId].injury.weeksRemaining` by one (floor 0). No RNG. |
 | `PLAYER_RECOVERED` | When an injury's `weeksRemaining` would hit 0 after the tick | Clears `roster[rosterId].injury`. Fired in the same pass as the final `INJURY_TICK_ADVANCED`. |
 | `CAREER_ARCHIVE_RESTORED` | `fromSave` only | Restores `seasonsCompleted`, `archive`, plus the v7+ optional `freeAgents` + `market` fields and the v8+ optional `pendingMoves`. Keeps every `state.career.*` write inside `applySeasonEvent` so the mutation seam holds across the load path. |
-| `SEASON_ROLLED_OVER` | One per rollover, after all `TRANSFER_ACTIVATED` / `PLAYER_AGED` / `PLAYER_RETIRED` / `ACADEMY_GRADUATED` / `FOREIGN_IMPORT_ARRIVED` events for that rollover | Composite: archives just-completed standings + top scorer + MVP into `state.career.archive`, resets `league.results` / `league.standings` / per-player `seasonStats`, replaces `league.fixtures` with the regenerated round-robin, sets the new `seasonLabel`, increments `seasonsCompleted`. Clears `state.career.pendingMoves` as a safety net (they were already drained by the preceding `TRANSFER_ACTIVATED` events). |
+| `SEASON_ROLLED_OVER` | One per rollover, after all `TRANSFER_ACTIVATED` / `PLAYER_AGED` / `PLAYER_RETIRED` / `ACADEMY_GRADUATED` / `FOREIGN_IMPORT_ARRIVED` events for that rollover | Composite: archives just-completed standings + top scorer + MVP + `championTeamId` into `state.career.archive`, resets `league.results` / `league.standings` / `league.playoffs` / per-player `seasonStats`, replaces `league.fixtures` with the regenerated round-robin, sets the new `seasonLabel`, increments `seasonsCompleted`. Clears `state.career.pendingMoves` as a safety net (they were already drained by the preceding `TRANSFER_ACTIVATED` events). |
+| `PLAYOFF_BRACKET_SEEDED` | Once after the last R18 fixture is recorded (via `seedPlayoffBracket`) | Writes `state.league.playoffs` with the two semi-finals (1 v 4, 2 v 3) seeded from `sortStandings(top 4)` and a Final entry with `homeId`/`awayId` null. Idempotent — exits early if the bracket already exists. |
+| `PLAYOFF_RESULT_RECORDED` | One per playoff match — player (via `recordPlayerPlayoffResult`) or AI sim (via `simulatePendingPlayoffMatches`) | Sets `result` on the named match. Cascades: on a SF result, populates the Final's matching slot from the SF winner (SF1 → home, SF2 → away). On the Final's result, sets `championTeamId`. Does NOT touch `league.standings` — playoffs are independent of league points. |
 
 `GameCoordinator.rollSeason()` returns the applied `SeasonEvent[]` so `main.ts` can hand it to `RolloverScreen` for the post-apply diff render.
 
@@ -97,14 +99,16 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 
 ## UI events
 
-The game engine emits four `game:*` events through `src/utils/eventBus.ts`. UI modules subscribe and re-render; the game engine never imports any UI module.
+The game engine emits six `game:*` events through `src/utils/eventBus.ts`. UI modules subscribe and re-render; the game engine never imports any UI module.
 
 | Event | Payload | Subscribers |
 |---|---|---|
 | `game:initialized` | `{ state: GameState }` | `FixtureListScreen` (initial render after `newSeason` / `fromSave`) |
 | `game:fixtureRecorded` | `{ result: FixtureResult; state: GameState }` | `FixtureListScreen`, `RoundResultsScreen` (re-render as each headless AI fixture resolves) |
 | `game:weekAdvanced` | `{ state: GameState }` | `FixtureListScreen` (calendar header) |
-| `game:seasonComplete` | `{ state: GameState }` | `main.ts` latches a flag; the post-match Continue chain reroutes through `EndOfSeasonScreen` → optional `RenewalsScreen` → optional `TransferMarketScreen` → `RolloverScreen` |
+| `game:bracketSeeded` | `{ state: GameState }` | `main.ts` latches `bracketSeededPending`; `HubScreen` + `PlayoffBracketScreen` re-render. Fires once after the final R18 fixture is recorded (via `seedPlayoffBracket`). |
+| `game:playoffsUpdated` | `{ state: GameState }` | `HubScreen` + `PlayoffBracketScreen` re-render. Fires after every `PLAYOFF_RESULT_RECORDED` (player or AI) so the bracket UI shows the cascade fill in. |
+| `game:seasonComplete` | `{ state: GameState }` | `main.ts` latches `seasonCompletePending`; the post-match Continue chain reroutes through `EndOfSeasonScreen` → optional `RenewalsScreen` → optional `TransferMarketScreen` → `RolloverScreen`. Now fires only after the Premiership final resolves (no longer the end of the last regular round). |
 
 ## Career: roster + identity model
 
@@ -199,9 +203,22 @@ Persistent contact injuries on the career roster, in-match-triggered and decreme
   - **Human side** (`PreMatchScreen`, `SquadManagementScreen`): `buildTeamFromRoster` produces a fit-first partition; `applyMatchdaySquad(team, savedSquad, repair)` then layers the manager's curated lineup on top. When the saved squad contains an injured player, `repairInjuredMatchdaySquad` swaps just those slots for the best same-position replacement from the wider club roster — fit slots stay locked. PreMatchScreen surfaces a banner naming the players who were forced out; SquadManagementScreen shows the injury badge + rejects swaps that would move an injured player into starters / bench.
 - **Calibration**: ~1.87 injuries / match across both teams at `INJURY.basePctPerTackle = 8.0`. Tuning in `src/engine/balance/injuries.ts`; calibration target band is 1.8-2.2.
 
+## Playoffs
+
+A three-match knockout follows the 18-round Premiership regular season: two semi-finals (1 v 4 and 2 v 3) the week after R18, and a Final at Twickenham one week later. Top 4 by `sortStandings` (league points → diff → for, identical to the league-table sort).
+
+- **State.** Lives on `state.league.playoffs` as `PlayoffState { semifinals: [PlayoffMatch, PlayoffMatch], final: PlayoffMatch, championTeamId: string | null }`. Null while the regular season is still in flight; seeded by `PLAYOFF_BRACKET_SEEDED` when the last R18 fixture is recorded; cleared by `SEASON_ROLLED_OVER` after the champion has been archived. The reducer for `PLAYOFF_BRACKET_SEEDED` is idempotent — a second call is a no-op.
+- **Reducer cascade.** `PLAYOFF_RESULT_RECORDED { kind, ... }` writes the result on the named match. When a SF resolves, the reducer also populates the final's matching slot from the SF winner (SF1 → home, SF2 → away). When the Final resolves, `championTeamId` is set. Ties fall to the home side — no extra time / golden point in v1.
+- **Coordinator surface.** `seedPlayoffBracket()` (auto-called from `recordPlayerMatchResult` after the last R18 fixture; idempotent). `getPlayerPlayoffMatch()` returns the player's next unresolved playoff match or null. `recordPlayerPlayoffResult(kind, homeScore, awayScore, snapshot)` is the playoff analogue of `recordPlayerMatchResult` — same idempotency guard + injury tick + per-player + per-team stats accumulation, but writes through `PLAYOFF_RESULT_RECORDED` so league standings are untouched. `simulatePendingPlayoffMatches(stage)` runs (silent) every pending AI-vs-AI match in the named stage (`'sf'` or `'final'`).
+- **Determinism.** Each playoff match derives its match seed from `deriveFixtureSeed(rootSeed, pseudoRound, homeId, awayId)` with pseudo-round 19 for SFs and 20 for the Final — same hashing pipeline as regular fixtures, so a given root seed produces an identical bracket every run. Verified by `scripts/checkSeasonDeterminism.ts` which now walks each season through to the Final.
+- **Neutral venue.** The Final is played at Twickenham — `state.engine.neutralVenue` is set by `MatchCoordinator` (constructor opt) when the kind is `'final'`. `homeEdge(state, mod)` short-circuits to `{ attack: 0, defend: 0 }` so the `HOME_ADVANTAGE` carry / breakdown bump zeroes out. `teamStats.homeAdvantagePts(neutral)` mirrors this for the PreMatch SPREAD tile so prediction and simulation agree.
+- **UI surface.** `PlayoffBracketScreen` (`src/ui/PlayoffBracketScreen.ts`) renders the live bracket — two SF cards + a centred Final card + a champion banner once crowned. CTA label adapts: "Continue" → play the player's next match or enter EndOfSeason; "Watch the Semi-Finals" / "Watch the Final" → silent-sim the pending AI matches and re-render. `main.ts::runPlayoffStage()` is the state-driven orchestrator that decides what to show next on every entry. `HubScreen` re-routes the "Go to next match" tile to `runPlayoffStage` whenever the bracket is active.
+- **Per-player + per-team stats.** Playoff matches contribute to `Player.seasonStats` and `state.league.teamSeasonStats` exactly like regular matches — `seasonStatsCollector.snapshotMatch` runs over every playoff fixture (live + silent). Top scorer / MVP / leaderboards in `EndOfSeasonScreen` include playoff contributions.
+- **Archive.** `ArchivedSeason.championTeamId` records the winner. Older archives (pre-v13 saves with no playoff history) load as `null`.
+
 ## Save format
 
-`SAVE_VERSION = 12` (as of v2.113a). `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`.
+`SAVE_VERSION = 13` (as of v2.136a). `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`.
 
 | Version | Added |
 |---|---|
@@ -216,9 +233,11 @@ Persistent contact injuries on the career roster, in-match-triggered and decreme
 | v10 | `TeamTactics` gains `defensiveLine` (`'blitz' \| 'hybrid' \| 'drift'`). Pre-v10 saves backfill `'hybrid'` (numerically neutral) so the engine never sees undefined. |
 | v11 | `SavedSeasonResult` gains `homeTries` + `awayTries` for the bonus-points system. Pre-v11 rounds were played without try-bonus tracking, so older saves default to 0 — no fabricated retroactive bonuses. |
 | v12 | `career.preSeasonStep` (`'overview' \| 'signings' \| 'marquee' \| undefined`) — Squad Builder resumption flag. Set during the pre-season flow at game start (Phase 8), cleared after marquee Continue. Outside Squad Builder this is always undefined and the field is omitted from the payload, so existing in-season saves stay byte-equivalent. The `'overview'` value was added v2.120a alongside SquadOverviewScreen — `SAVE_VERSION` stays at 12 since the field is purely additive within its optional value range. |
+| v13 | Top-level `playoffs` (`PlayoffState \| undefined`) — the active knockout bracket. Omitted when no bracket is active (mid-regular-season). Each `ArchivedSeason` gains `championTeamId: string \| null`; pre-v13 archive entries load as `null`. Stays at v13 since both additions are purely additive within their optional / nullable shapes. |
 
 **Migration on load** (`GameCoordinator.fromSave`):
 
+- v12 → v13: no-op shim. `playoffs` is optional; pre-v13 archives gain `championTeamId: null`. After restoration `continueGame` calls `seedPlayoffBracket()` so a v12 save stuck at "all 18 played, no playoffs" auto-seeds and enters the playoff stage chain.
 - v11 → v12: no-op shim. `preSeasonStep` is optional; older saves load with the field absent and `continueGame` routes straight to Hub.
 - v10 → v11: pre-v11 results default `homeTries` / `awayTries` to 0.
 - v9 → v10: `parseSave` backfills `tactics.defensiveLine = 'hybrid'` when absent.
@@ -281,10 +300,20 @@ The post-match Continue chain in `main.ts`:
 Match → MatchResult → recordPlayerMatchResult + snapshotMatch + saveGame
                      → RoundResults → LeagueTable (post-match mode) →
                        │
-                       ├── (season ongoing) → Hub
+                       ├── (regular season ongoing) → Hub
                        │
-                       └── (season complete: game:seasonComplete latched)
-                             → EndOfSeasonScreen [recap]
+                       ├── (last R18 fixture just resolved: game:bracketSeeded latched)
+                       │     → runPlayoffStage() — state-driven orchestrator that:
+                       │       · shows PlayoffBracketScreen on every entry (CTA label adapts)
+                       │       · if player has a pending match → PreMatchScreen (with
+                       │         contextLabel + neutralVenue for the Final) → MatchResult
+                       │         → recordPlayerPlayoffResult → runPlayoffStage()
+                       │       · else simulatePendingPlayoffMatches('sf' | 'final') silently
+                       │         → game:playoffsUpdated → runPlayoffStage()
+                       │       · once championTeamId is set, falls through to the chain below
+                       │
+                       └── (champion crowned: game:seasonComplete latched)
+                             → EndOfSeasonScreen [recap + champion banner]
                              → openRenewalWindow()                            (Phase 4)
                                   │
                                   ├── market populated (expiring offers)

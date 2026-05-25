@@ -34,9 +34,10 @@
 
 import type {
   ArchivedSeason, ClubState,
-  Fixture, FixtureResult, GameState, MarketState, PlayerRef, PreAgreement, SeasonEvent, SeasonSchedule,
+  Fixture, FixtureResult, GameState, MarketState, PlayerRef, PlayoffMatch, PlayoffState, PreAgreement, SeasonEvent, SeasonSchedule,
 } from '../types/gameState';
 import { emptyCareerState } from '../types/gameState';
+import { sortStandings } from './leagueTable';
 import type { Player } from '../types/player';
 import type { TeamTactics } from '../types/team';
 import { applySeasonEvent } from './applySeasonEvent';
@@ -119,6 +120,10 @@ export interface SavedSeason {
   // bucket per club. Absent on v8 and older — fromSave falls through to
   // the zeroed buckets created by SEASON_INITIALIZED.
   teamSeasonStats?: Record<string, import('../types/gameState').TeamSeasonStats>;
+  // v13+: the active playoff bracket. Top-level (not under `career`)
+  // because it lives on `state.league.playoffs`. null when no bracket
+  // is active (e.g. mid-regular-season); absent on pre-v13 saves.
+  playoffs?: PlayoffState | null;
 }
 
 // Deep clone the roster index for save serialisation — every Player and
@@ -128,7 +133,7 @@ export interface SavedSeason {
 function emptyState(): GameState {
   return {
     calendar: { date: SEASON_VALUES.startDate, week: 1, seasonLabel: '' },
-    league: { fixtures: [], results: [], standings: [], teamSeasonStats: {} },
+    league: { fixtures: [], results: [], standings: [], teamSeasonStats: {}, playoffs: null },
     player: { teamId: '' },
     seed: 0,
     career: emptyCareerState(),
@@ -238,6 +243,7 @@ export class GameCoordinator {
         ...(save.career.pendingMoves !== undefined ? { pendingMoves: save.career.pendingMoves } : {}),
         ...(save.career.preSeasonStep !== undefined ? { preSeasonStep: save.career.preSeasonStep } : {}),
         ...(save.teamSeasonStats !== undefined ? { teamSeasonStats: save.teamSeasonStats } : {}),
+        ...(save.playoffs !== undefined ? { playoffs: save.playoffs } : {}),
       });
     } else {
       const seeded = seedRoster(allTeams, parseSeasonStartYear(coord.state.calendar.seasonLabel));
@@ -444,10 +450,184 @@ export class GameCoordinator {
     applySeasonEvent(this.state, { type: 'WEEK_ADVANCED' });
     eventBus.emit('game:weekAdvanced', { state: this.state });
 
-    // No more player fixtures after this round → fire the season-complete
-    // signal so the post-match Continue chain (LeagueTable → ...) reroutes
-    // through EndOfSeasonScreen instead of landing back on Hub.
-    if (this.getCurrentFixture() === null) {
+    // Last regular-season fixture just resolved → seed the playoff
+    // bracket from the final standings. game:bracketSeeded is the post-
+    // match chain's trigger to route through PlayoffBracketScreen
+    // instead of straight to Hub. The end-of-season chain (EndOfSeason
+    // → Renewals → Signings → Rollover) is now triggered later, after
+    // the Premiership final resolves and fires game:seasonComplete.
+    if (this.allRegularFixturesPlayed() && this.state.league.playoffs === null) {
+      this.seedPlayoffBracket();
+    }
+  }
+
+  // True when every fixture in league.fixtures (regular season) has a
+  // result. Plays the role getCurrentFixture() === null used to play,
+  // but is league-wide rather than player-only — the bracket seeds off
+  // the league's final standings, not just the player's results.
+  private allRegularFixturesPlayed(): boolean {
+    return this.state.league.fixtures.every(f =>
+      this.state.league.results.some(r =>
+        r.round === f.round && r.homeId === f.homeId && r.awayId === f.awayId
+      )
+    );
+  }
+
+  // Seeds the bracket from the final regular-season standings (top 4).
+  // Idempotent — exits early if already seeded or the regular season
+  // isn't done. Public so the determinism harness can call it directly.
+  seedPlayoffBracket(): void {
+    if (this.state.league.playoffs !== null) return;
+    if (!this.allRegularFixturesPlayed()) return;
+    const top4 = sortStandings(this.state.league.standings).slice(0, 4);
+    if (top4.length < 4) return;
+    const [s1, s2, s3, s4] = top4;
+    // Real-world Premiership cadence: SFs the weekend after R18, final
+    // the weekend after the SFs. Anchored to the last R18 fixture date
+    // when available; falls back to the current calendar date.
+    const r18LastDate = this.state.league.fixtures
+      .filter(f => f.round === 18 && f.date)
+      .map(f => f.date!)
+      .sort()
+      .pop() ?? this.state.calendar.date;
+    const sfDate    = addDaysIso(r18LastDate, 6);
+    const finalDate = addDaysIso(r18LastDate, 13);
+    const semifinals: [PlayoffMatch, PlayoffMatch] = [
+      {
+        kind: 'semifinal_1',
+        homeId: s1.teamId, awayId: s4.teamId,
+        homeSeed: 1, awaySeed: 4,
+        date: sfDate,
+      },
+      {
+        kind: 'semifinal_2',
+        homeId: s2.teamId, awayId: s3.teamId,
+        homeSeed: 2, awaySeed: 3,
+        date: sfDate,
+      },
+    ];
+    const final: PlayoffMatch = {
+      kind: 'final',
+      homeId: null, awayId: null,
+      homeSeed: null, awaySeed: null,
+      date: finalDate,
+    };
+    applySeasonEvent(this.state, { type: 'PLAYOFF_BRACKET_SEEDED', semifinals, final });
+    eventBus.emit('game:bracketSeeded', { state: this.state });
+  }
+
+  // Returns the next unresolved playoff match where the player's team is
+  // involved, walking SF1 → SF2 → Final. Null when the player is not in
+  // playoffs or their playoff run is complete (lost an SF, or won the
+  // Final). The Final entry can still be returned with homeId/awayId
+  // unset — call sites should treat that as "not yet decided".
+  getPlayerPlayoffMatch(): PlayoffMatch | null {
+    const playoffs = this.state.league.playoffs;
+    if (!playoffs) return null;
+    const playerId = this.state.player.teamId;
+    const isPlayer = (m: PlayoffMatch): boolean =>
+      (m.homeId === playerId || m.awayId === playerId) && !m.result;
+    if (isPlayer(playoffs.semifinals[0])) return playoffs.semifinals[0];
+    if (isPlayer(playoffs.semifinals[1])) return playoffs.semifinals[1];
+    if (isPlayer(playoffs.final))         return playoffs.final;
+    return null;
+  }
+
+  // Records the player's playoff result. Mirrors recordPlayerMatchResult's
+  // shape (idempotency guard, injury tick + roll, per-player + per-team
+  // stats accumulation) but writes through PLAYOFF_RESULT_RECORDED instead
+  // of FIXTURE_RESULT_RECORDED, so league standings are not touched.
+  // Fires game:seasonComplete when the final resolves.
+  async recordPlayerPlayoffResult(
+    kind: 'semifinal_1' | 'semifinal_2' | 'final',
+    homeScore: number,
+    awayScore: number,
+    snapshot: MatchSnapshot,
+  ): Promise<void> {
+    const playoffs = this.state.league.playoffs;
+    if (!playoffs) throw new Error('No active playoff bracket');
+    const target = kind === 'semifinal_1' ? playoffs.semifinals[0]
+                 : kind === 'semifinal_2' ? playoffs.semifinals[1]
+                 : playoffs.final;
+    if (target.result) return; // idempotency guard
+    if (!target.homeId || !target.awayId) {
+      throw new Error(`Playoff match ${kind} has no teams yet`);
+    }
+
+    // Injury tick — represents the week of rest between matches. Same
+    // pattern as recordPlayerMatchResult so cumulative recovery is
+    // continuous across regular season → playoffs.
+    for (const ev of this.tickInjuryEvents()) {
+      applySeasonEvent(this.state, ev);
+    }
+
+    const playerSide: 'home' | 'away' = target.homeId === this.state.player.teamId ? 'home' : 'away';
+    applySeasonEvent(this.state, {
+      type: 'PLAYOFF_RESULT_RECORDED',
+      kind,
+      homeScore,
+      awayScore,
+      homeTries: snapshot.homeSummary.tries,
+      awayTries: snapshot.awaySummary.tries,
+      playerSide,
+    });
+    for (const ev of collectSeasonEvents(snapshot)) {
+      applySeasonEvent(this.state, ev);
+    }
+    for (const ev of this.rollNewInjuryEvents(snapshot.playerSnapshots)) {
+      applySeasonEvent(this.state, ev);
+    }
+    eventBus.emit('game:playoffsUpdated', { state: this.state });
+
+    if (this.state.league.playoffs?.championTeamId !== null && this.state.league.playoffs?.championTeamId !== undefined) {
+      eventBus.emit('game:seasonComplete', { state: this.state });
+    }
+  }
+
+  // Sims (silent) every pending AI-vs-AI match in the given stage.
+  // Stage 'sf' covers SF1 + SF2; stage 'final' covers the Final. Skips
+  // any match the player's team is in — those go through
+  // recordPlayerPlayoffResult instead. Fires game:playoffsUpdated for
+  // each, plus game:seasonComplete once the Final resolves.
+  async simulatePendingPlayoffMatches(stage: 'sf' | 'final'): Promise<void> {
+    const playoffs = this.state.league.playoffs;
+    if (!playoffs) return;
+    const playerId = this.state.player.teamId;
+    const matches = stage === 'sf'
+      ? [playoffs.semifinals[0], playoffs.semifinals[1]]
+      : [playoffs.final];
+    const pseudoRound = stage === 'sf' ? 19 : 20;
+    for (const match of matches) {
+      if (match.result) continue;
+      if (!match.homeId || !match.awayId) continue;
+      if (match.homeId === playerId || match.awayId === playerId) continue;
+      const homeJson = this.teamsById.get(match.homeId);
+      const awayJson = this.teamsById.get(match.awayId);
+      if (!homeJson || !awayJson) continue;
+      const home = buildAutoSelectedTeamFromRoster(this.state, homeJson);
+      const away = buildAutoSelectedTeamFromRoster(this.state, awayJson);
+      const sim = await simulateFixture(
+        home, away, this.state.seed, pseudoRound,
+        { neutralVenue: match.kind === 'final' },
+      );
+      applySeasonEvent(this.state, {
+        type: 'PLAYOFF_RESULT_RECORDED',
+        kind: match.kind,
+        homeScore: sim.homeScore,
+        awayScore: sim.awayScore,
+        homeTries:  sim.snapshot.homeSummary.tries,
+        awayTries:  sim.snapshot.awaySummary.tries,
+        playerSide: null,
+      });
+      for (const ev of collectSeasonEvents(sim.snapshot)) {
+        applySeasonEvent(this.state, ev);
+      }
+      for (const ev of this.rollNewInjuryEvents(sim.snapshot.playerSnapshots)) {
+        applySeasonEvent(this.state, ev);
+      }
+      eventBus.emit('game:playoffsUpdated', { state: this.state });
+    }
+    if (this.state.league.playoffs?.championTeamId !== null && this.state.league.playoffs?.championTeamId !== undefined) {
       eventBus.emit('game:seasonComplete', { state: this.state });
     }
   }
@@ -547,6 +727,7 @@ export class GameCoordinator {
           standings: a.standings.map(s => ({ ...s })),
           topScorerRosterId: a.topScorerRosterId,
           mvpRosterId: a.mvpRosterId,
+          championTeamId: a.championTeamId,
           ...(a.leaders
             ? { leaders: {
                 topTries:   a.leaders.topTries.map(l => ({ ...l })),
@@ -573,8 +754,28 @@ export class GameCoordinator {
       teamSeasonStats: Object.fromEntries(
         Object.entries(this.state.league.teamSeasonStats).map(([id, s]) => [id, { ...s }]),
       ),
+      // Persist the live playoff bracket only when it exists — keeps the
+      // save payload byte-equivalent for the common in-season case.
+      ...(this.state.league.playoffs
+        ? { playoffs: clonePlayoffs(this.state.league.playoffs) }
+        : {}),
     };
   }
+}
+
+// Deep-ish clone of a PlayoffState for the save payload. Shallow on the
+// PlayoffMatch level, with a fresh `result` object so a downstream
+// reader's mutation can't reach back into our state.
+function clonePlayoffs(p: PlayoffState): PlayoffState {
+  const cloneMatch = (m: PlayoffMatch): PlayoffMatch => ({
+    ...m,
+    ...(m.result ? { result: { ...m.result } } : {}),
+  });
+  return {
+    semifinals: [cloneMatch(p.semifinals[0]), cloneMatch(p.semifinals[1])],
+    final: cloneMatch(p.final),
+    championTeamId: p.championTeamId,
+  };
 }
 
 // Picks a severity bucket from a per-kind weight table. Uses rngTransfer
@@ -588,5 +789,12 @@ function pickSeverity(weights: Record<InjurySeverity, number>): InjurySeverity {
   cum += weights.moderate;
   if (roll <= cum) return 'moderate';
   return 'severe';
+}
+
+// Add n days to an ISO yyyy-mm-dd date and return the same shape.
+function addDaysIso(iso: string, days: number): string {
+  const d = new Date(iso);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 

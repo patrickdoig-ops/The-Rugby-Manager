@@ -90,3 +90,11 @@ export function matchSpread(homeRating: number, awayRating: number): { home: num
   const home = Math.round(awayRating - homeRating);
   return { home, away: -home };
 }
+
+// Convenience — home-advantage points to fold into the home side's
+// effective rating before calling matchSpread. Returns 0 when the
+// fixture is at a neutral venue (Premiership final) so the spread
+// reflects pure rating + form with no home edge.
+export function homeAdvantagePts(neutralVenue = false): number {
+  return neutralVenue ? 0 : HOME_ADVANTAGE_PTS;
+}

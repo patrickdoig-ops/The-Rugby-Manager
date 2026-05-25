@@ -101,6 +101,12 @@ export interface MatchState {
     // (300, sized for the live commentary feed); telemetry runs raise it so
     // the full event log survives for offline analysis.
     commentaryBufferCap: number;
+    // True when the fixture is played at a neutral venue (the Premiership
+    // final at Twickenham). Read by homeEdge() — when true, the
+    // HOME_ADVANTAGE attack/defend bump zeroes out and neither side gets
+    // the home edge. Defaults to false; set by MatchCoordinator from
+    // the playoff-final call site.
+    neutralVenue: boolean;
   };
   phase: MatchPhase;
   possession: PossessionSide;

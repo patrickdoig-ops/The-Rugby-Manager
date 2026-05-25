@@ -19,6 +19,7 @@ import '../style/commentary.css';
 import '../style/stats.css';
 import '../style/prematch.css';
 import '../style/tactics.css';
+import '../style/playoffbracket.css';
 
 import { buildAppShell }           from './ui/AppShell';
 import { initScoreboard }          from './ui/Scoreboard';
@@ -37,6 +38,7 @@ import { initLeagueTableScreen, showLeagueTable, showLeagueTablePostMatch } from
 import { initHubScreen }           from './ui/HubScreen';
 import { initMatchResultScreen }   from './ui/MatchResultScreen';
 import { initRoundResultsScreen, showRoundResults } from './ui/RoundResultsScreen';
+import { initPlayoffBracketScreen, showPlayoffBracket } from './ui/PlayoffBracketScreen';
 import { initEndOfSeasonScreen, showEndOfSeason }   from './ui/EndOfSeasonScreen';
 import { initRenewalsScreen, showRenewals }         from './ui/RenewalsScreen';
 import { initTransferMarketScreen, showTransferMarket, showTransferMarketScouting, showTransferMarketPreSeason } from './ui/TransferMarketScreen';
@@ -53,6 +55,7 @@ import { MatchCoordinator }        from './engine/MatchCoordinator';
 import type { RawTeamInput }       from './types/teamData';
 import type { TeamTactics }        from './types/team';
 import type { MatchState }         from './types/match';
+import type { PlayoffMatch }       from './types/gameState';
 import * as teamProfile            from './team/teamProfile';
 import type { TeamJson }           from './team/teamProfile';
 import { applyStarBoost }          from './team/applyStarBoost';
@@ -108,6 +111,10 @@ document.addEventListener('DOMContentLoaded', () => {
     return gameEngine;
   };
   let seasonCompletePending = false;
+  // Latched on game:bracketSeeded so the post-final-regular-round
+  // Continue chain detours through PlayoffBracketScreen rather than
+  // straight back to Hub. Cleared once the chain enters runPlayoffStage.
+  let bracketSeededPending = false;
 
   function goHome(): void {
     // Re-init so the Continue button state reflects the latest save (e.g. just
@@ -151,6 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
       getGameEngine,
       allTeams,
       onPlayMatch: onPlayRound,
+      onPlayoffs: runPlayoffStage,
       onFixtures: goFixtures,
       onLeague:   goLeagueTable,
       onSquad:    goSquad,
@@ -162,6 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initFixtureListScreen(getGameEngine, allTeams, goHub);
     initLeagueTableScreen(getGameEngine, allTeams, goHub);
     initRoundResultsScreen(getGameEngine, allTeams);
+    initPlayoffBracketScreen(getGameEngine, allTeams);
     initEndOfSeasonScreen(getGameEngine, allTeams);
     initRenewalsScreen(getGameEngine, allTeams);
     initTransferMarketScreen(getGameEngine, allTeams);
@@ -170,10 +179,12 @@ document.addEventListener('DOMContentLoaded', () => {
     initSquadManagementScreen({ getGameEngine, allTeams, onBack: goHub });
     initSquadOverviewScreen(getGameEngine, allTeams);
 
-    // The post-match Continue chain (LeagueTable → ...) reads this flag.
-    // GameCoordinator emits game:seasonComplete after the last round's
-    // WEEK_ADVANCED; we latch it here and clear it once the chain has
-    // routed through EndOfSeason → Rollover.
+    // The post-match Continue chain (LeagueTable → ...) reads these flags.
+    // game:bracketSeeded fires after the last regular-season fixture —
+    // routes through PlayoffBracketScreen instead of straight to Hub.
+    // game:seasonComplete fires once the Premiership final resolves —
+    // routes through EndOfSeason → Renewals → Signings → Rollover.
+    eventBus.on('game:bracketSeeded',  () => { bracketSeededPending = true; });
     eventBus.on('game:seasonComplete', () => { seasonCompletePending = true; });
   }
 
@@ -290,6 +301,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     gameEngine = GameCoordinator.fromSave(save, allTeams);
     initInSeasonScreens();
+    // v12 → v13 shim: a save made after R18 but pre-playoffs era won't
+    // have a bracket field. Seed it now if conditions are met (no-op
+    // when the bracket is already restored, or when the regular season
+    // isn't done yet).
+    gameEngine.seedPlayoffBracket();
     // Squad Builder mid-pre-season resumption. The flag is only ever set
     // while the user is between team-selection and Round 1; after marquee
     // Continue the engine clears it via setPreSeasonStep(null).
@@ -307,6 +323,178 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     goHub();
+  }
+
+  // Off-season chain after the playoff final resolves. Identical to the
+  // pre-playoffs end-of-season flow — EndOfSeason → Renewals → Signings
+  // → Rollover → Hub. Each market window is skipped when empty (the
+  // open*Window calls leave state.career.market null in that case).
+  function runEndOfSeasonChain(): void {
+    const proceedToRollover = (): void => {
+      if (!gameEngine) { goHub(); return; }
+      const rolloverEvents = gameEngine.rollSeason();
+      saveGame(gameEngine.toSavePayload());
+      showRollover(rolloverEvents, () => {
+        if (gameEngine) saveGame(gameEngine.toSavePayload());
+        goHub();
+      });
+      screenRouter.show('rollover');
+    };
+    const proceedToSignings = (): void => {
+      if (!gameEngine) { goHub(); return; }
+      gameEngine.openSigningWindow();
+      if (gameEngine.getState().career.market) {
+        saveGame(gameEngine.toSavePayload());
+        showTransferMarket(() => {
+          if (!gameEngine) { goHub(); return; }
+          gameEngine.closeSigningWindow();
+          saveGame(gameEngine.toSavePayload());
+          proceedToRollover();
+        });
+        screenRouter.show('transfer-market');
+      } else {
+        proceedToRollover();
+      }
+    };
+    showEndOfSeason(() => {
+      if (!gameEngine) { goHub(); return; }
+      gameEngine.openRenewalWindow();
+      if (gameEngine.getState().career.market) {
+        saveGame(gameEngine.toSavePayload());
+        showRenewals((decisions) => {
+          if (!gameEngine) { goHub(); return; }
+          gameEngine.closeRenewalWindow(decisions);
+          saveGame(gameEngine.toSavePayload());
+          proceedToSignings();
+        });
+        screenRouter.show('renewals');
+      } else {
+        proceedToSignings();
+      }
+    });
+    screenRouter.show('end-of-season');
+  }
+
+  // Routes the playoff chain. State-driven — picks the next action based
+  // on the live bracket: play the player's pending match, sim the AI
+  // matches in the current stage, or run the end-of-season chain when
+  // the champion has been crowned. Re-enters itself after every state
+  // change until the chain bottoms out.
+  function runPlayoffStage(): void {
+    if (!gameEngine) { goHub(); return; }
+    const state = gameEngine.getState();
+    const playoffs = state.league.playoffs;
+    if (!playoffs) { goHub(); return; }
+
+    // 1. Champion decided → off-season chain.
+    if (playoffs.championTeamId !== null) {
+      if (seasonCompletePending) seasonCompletePending = false;
+      showPlayoffBracket(() => runEndOfSeasonChain(), 'Continue');
+      screenRouter.show('playoff-bracket');
+      return;
+    }
+
+    // 2. Player has a pending playoff match → show bracket then PreMatch.
+    const playerMatch = gameEngine.getPlayerPlayoffMatch();
+    if (playerMatch && playerMatch.homeId && playerMatch.awayId) {
+      showPlayoffBracket(() => onPlayPlayoff(playerMatch), 'Continue');
+      screenRouter.show('playoff-bracket');
+      return;
+    }
+
+    // 3. AI-only matches pending in the current stage → sim them.
+    const stage: 'sf' | 'final' = playoffs.semifinals.every(m => m.result)
+      ? 'final'
+      : 'sf';
+    const ctaLabel = stage === 'sf' ? 'Watch the Semi-Finals' : 'Watch the Final';
+    showPlayoffBracket(async () => {
+      if (!gameEngine) { goHub(); return; }
+      await gameEngine.simulatePendingPlayoffMatches(stage);
+      saveGame(gameEngine.toSavePayload());
+      runPlayoffStage();
+    }, ctaLabel);
+    screenRouter.show('playoff-bracket');
+  }
+
+  function onPlayPlayoff(match: PlayoffMatch): void {
+    if (!gameEngine) return;
+    if (!match.homeId || !match.awayId) return;
+    const state = gameEngine.getState();
+    const homeTeam = allTeams.find(t => t.id === match.homeId);
+    const awayTeam = allTeams.find(t => t.id === match.awayId);
+    if (!homeTeam || !awayTeam) return;
+    const playerSide: 'home' | 'away' = match.homeId === state.player.teamId ? 'home' : 'away';
+    const rosteredHome = playerSide === 'home'
+      ? buildTeamFromRoster(state, homeTeam)
+      : buildAutoSelectedTeamFromRoster(state, homeTeam);
+    const rosteredAway = playerSide === 'away'
+      ? buildTeamFromRoster(state, awayTeam)
+      : buildAutoSelectedTeamFromRoster(state, awayTeam);
+    const isFinal = match.kind === 'final';
+    const contextLabel = isFinal
+      ? 'Premiership Final · Twickenham'
+      : `Premiership Semi-Final · ${match.homeSeed} v ${match.awaySeed}`;
+    initPreMatchScreen(
+      rosteredHome,
+      rosteredAway,
+      playerSide,
+      0, // round is unused in playoff mode — context label overrides it
+      gameEngine,
+      (configuredHome, configuredAway, playerTactics) => {
+        if (gameEngine) {
+          const playerConfigured = playerSide === 'home' ? configuredHome : configuredAway;
+          gameEngine.setPlayerTactics(playerTactics);
+          gameEngine.setPlayerMatchdaySquad(extractMatchdaySquad(playerConfigured));
+          saveGame(gameEngine.toSavePayload());
+        }
+        onPlayoffMatchStart(configuredHome, configuredAway, playerSide, match, playerTactics);
+      },
+      runPlayoffStage,
+      { contextLabel, neutralVenue: isFinal, backLabel: 'Bracket' },
+    );
+    screenRouter.show('pre-match');
+  }
+
+  function onPlayoffMatchStart(
+    configuredHome: RawTeamInput,
+    configuredAway: RawTeamInput,
+    playerSide: 'home' | 'away',
+    match: PlayoffMatch,
+    playerTactics: TeamTactics,
+  ): void {
+    const engine = new MatchCoordinator(configuredHome, configuredAway, {
+      tickDelayMs: loadTickDelayMs(),
+      playerTactics,
+      humanSide: playerSide,
+      neutralVenue: match.kind === 'final',
+    });
+    initSimController(engine);
+    screenRouter.show('app');
+
+    const unsub = eventBus.on('engine:finished', ({ state }) => {
+      unsub();
+      showPlayoffMatchResult(engine, state, match);
+    });
+    engine.initialize();
+  }
+
+  function showPlayoffMatchResult(engine: MatchCoordinator, state: MatchState, match: PlayoffMatch): void {
+    // No "next fixture" tile on the playoff result screen — the bracket
+    // is the canonical "what's next" surface. Pass null so MatchResult's
+    // peek tile collapses.
+    initMatchResultScreen(state, 0, null, async () => {
+      const snapshot = snapshotMatch(state, state.homeTeam.id, state.awayTeam.id);
+      engine.destroy();
+      if (gameEngine) {
+        await gameEngine.recordPlayerPlayoffResult(match.kind, state.score.home, state.score.away, snapshot);
+        saveGame(gameEngine.toSavePayload());
+      }
+      // Back into the orchestrator. State now reflects the new result;
+      // the next iteration picks the right next step (next match, sim
+      // pending stage, or end-of-season chain).
+      runPlayoffStage();
+    });
+    screenRouter.show('match-result');
   }
 
   function onPlayRound(homeTeam: RawTeamInput, awayTeam: RawTeamInput, playerSide: 'home' | 'away', round: number): void {
@@ -406,62 +594,14 @@ document.addEventListener('DOMContentLoaded', () => {
         saveGame(gameEngine.toSavePayload());
       }
       // Post-match nav chain. Normally: RoundResults → LeagueTable → Hub.
-      // If GameCoordinator latched `seasonCompletePending` during
-      // recordPlayerMatchResult (final round just resolved), the chain
-      // detours through the off-season screens:
-      //   LeagueTable → EndOfSeason
-      //               → (Renewals?)
-      //               → (TransferMarket?)
-      //               → Rollover → Hub.
-      // Each window screen is skipped when its market would be empty
-      // (openRenewalWindow / openSigningWindow leave state.career.market
-      // null in that case).
-      const proceedToRollover = (): void => {
-        if (!gameEngine) { goHub(); return; }
-        const rolloverEvents = gameEngine.rollSeason();
-        saveGame(gameEngine.toSavePayload());
-        showRollover(rolloverEvents, () => {
-          if (gameEngine) saveGame(gameEngine.toSavePayload());
-          goHub();
-        });
-        screenRouter.show('rollover');
-      };
-      const proceedToSignings = (): void => {
-        if (!gameEngine) { goHub(); return; }
-        gameEngine.openSigningWindow();
-        if (gameEngine.getState().career.market) {
-          saveGame(gameEngine.toSavePayload());
-          showTransferMarket(() => {
-            if (!gameEngine) { goHub(); return; }
-            gameEngine.closeSigningWindow();
-            saveGame(gameEngine.toSavePayload());
-            proceedToRollover();
-          });
-          screenRouter.show('transfer-market');
-        } else {
-          proceedToRollover();
-        }
-      };
+      // If `bracketSeededPending` was latched during
+      // recordPlayerMatchResult (final regular-season fixture just
+      // resolved), the chain detours through PlayoffBracketScreen →
+      // playoff stages → EndOfSeason → Renewals → Signings → Rollover.
       const onLeagueContinue = (): void => {
-        if (seasonCompletePending) {
-          seasonCompletePending = false;
-          showEndOfSeason(() => {
-            if (!gameEngine) { goHub(); return; }
-            gameEngine.openRenewalWindow();
-            if (gameEngine.getState().career.market) {
-              saveGame(gameEngine.toSavePayload());
-              showRenewals((decisions) => {
-                if (!gameEngine) { goHub(); return; }
-                gameEngine.closeRenewalWindow(decisions);
-                saveGame(gameEngine.toSavePayload());
-                proceedToSignings();
-              });
-              screenRouter.show('renewals');
-            } else {
-              proceedToSignings();
-            }
-          });
-          screenRouter.show('end-of-season');
+        if (bracketSeededPending) {
+          bracketSeededPending = false;
+          runPlayoffStage();
         } else {
           goHub();
         }

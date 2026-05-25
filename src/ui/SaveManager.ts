@@ -39,15 +39,15 @@
 // v1 saves are discarded — they predate AI-vs-AI results.
 
 import type { SavedCareer, SavedSeason, SavedSeasonResult } from '../game/GameCoordinator';
-import type { ArchivedSeason, ClubState, Fixture, MarketState, PlayerRef, PreAgreement, SeasonAwards, TeamSeasonStats, TransferOffer } from '../types/gameState';
+import type { ArchivedSeason, ClubState, Fixture, MarketState, PlayerRef, PlayoffMatch, PlayoffState, PreAgreement, SeasonAwards, TeamSeasonStats, TransferOffer } from '../types/gameState';
 import type { Player, PlayerSeasonStats } from '../types/player';
 import { zeroSeasonStats } from '../types/player';
 import { zeroTeamSeasonStats } from '../types/gameState';
 import type { TeamTactics } from '../types/team';
 
 const SAVE_KEY = 'rugby-manager-save';
-const SAVE_VERSION = 12;
-const ACCEPTED_VERSIONS = new Set([12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+const SAVE_VERSION = 13;
+const ACCEPTED_VERSIONS = new Set([13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
 
 export type SavedGame = SavedSeason & { version: number };
 
@@ -99,6 +99,13 @@ export function loadSave(): SavedSeason | null {
     const teamSeasonStats = parsed.version >= 9 && typeof parsed.teamSeasonStats === 'object' && parsed.teamSeasonStats
       ? parseTeamSeasonStats(parsed.teamSeasonStats as Record<string, unknown>)
       : undefined;
+    // v13+ persists the playoff bracket (if active) at the top level of
+    // the save. Pre-v13 saves never had one; they load with playoffs
+    // undefined and the engine starts the bracket fresh after the last
+    // R18 fixture is recorded.
+    const playoffs = parsed.version >= 13 && parsed.playoffs !== undefined
+      ? parsePlayoffs(parsed.playoffs)
+      : undefined;
     return {
       playerTeamId: parsed.playerTeamId,
       seed: parsed.seed >>> 0,
@@ -122,6 +129,7 @@ export function loadSave(): SavedSeason | null {
       ...(matchdaySquad !== undefined ? { matchdaySquad } : {}),
       ...(career !== undefined ? { career } : {}),
       ...(teamSeasonStats !== undefined ? { teamSeasonStats } : {}),
+      ...(playoffs !== undefined ? { playoffs } : {}),
     };
   } catch {
     return null;
@@ -160,6 +168,8 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
       standings: a.standings.map(s => ({ ...s })),
       topScorerRosterId: a.topScorerRosterId,
       mvpRosterId: a.mvpRosterId,
+      // v13+ field; pre-v13 archive entries omit it and load as null.
+      championTeamId: a.championTeamId ?? null,
       ...(a.leaders ? { leaders: cloneLeaders(a.leaders) } : {}),
     })),
     freeAgents,
@@ -217,6 +227,58 @@ function parseTeamSeasonStats(raw: Record<string, unknown>): Record<string, Team
     out[teamId] = stats;
   }
   return out;
+}
+
+// Best-effort structural parse of the v13+ playoff envelope. Returns
+// null when the saved field is null (no bracket active). Returns
+// undefined when the shape is malformed so callers fall through to "no
+// playoff state restored" rather than corrupting league.playoffs.
+function parsePlayoffs(raw: unknown): PlayoffState | null | undefined {
+  if (raw === null) return null;
+  if (typeof raw !== 'object') return undefined;
+  const p = raw as Record<string, unknown>;
+  if (!Array.isArray(p.semifinals) || p.semifinals.length !== 2) return undefined;
+  if (typeof p.final !== 'object' || p.final === null) return undefined;
+  const sf1 = parsePlayoffMatch(p.semifinals[0], 'semifinal_1');
+  const sf2 = parsePlayoffMatch(p.semifinals[1], 'semifinal_2');
+  const fin = parsePlayoffMatch(p.final, 'final');
+  if (!sf1 || !sf2 || !fin) return undefined;
+  return {
+    semifinals: [sf1, sf2],
+    final: fin,
+    championTeamId: typeof p.championTeamId === 'string' ? p.championTeamId : null,
+  };
+}
+
+function parsePlayoffMatch(raw: unknown, expectedKind: PlayoffMatch['kind']): PlayoffMatch | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const m = raw as Record<string, unknown>;
+  if (m.kind !== expectedKind) return null;
+  if (typeof m.date !== 'string') return null;
+  const homeId = typeof m.homeId === 'string' ? m.homeId : null;
+  const awayId = typeof m.awayId === 'string' ? m.awayId : null;
+  const homeSeed = m.homeSeed === 1 || m.homeSeed === 2 || m.homeSeed === 3 || m.homeSeed === 4 ? m.homeSeed : null;
+  const awaySeed = m.awaySeed === 1 || m.awaySeed === 2 || m.awaySeed === 3 || m.awaySeed === 4 ? m.awaySeed : null;
+  const result = parsePlayoffResult(m.result);
+  return {
+    kind: expectedKind,
+    homeId, awayId, homeSeed, awaySeed,
+    date: m.date,
+    ...(result ? { result } : {}),
+  };
+}
+
+function parsePlayoffResult(raw: unknown): PlayoffMatch['result'] | undefined {
+  if (typeof raw !== 'object' || raw === null) return undefined;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.homeScore !== 'number' || typeof r.awayScore !== 'number') return undefined;
+  return {
+    homeScore: r.homeScore,
+    awayScore: r.awayScore,
+    homeTries: typeof r.homeTries === 'number' ? r.homeTries : 0,
+    awayTries: typeof r.awayTries === 'number' ? r.awayTries : 0,
+    playerSide: r.playerSide === 'home' || r.playerSide === 'away' ? r.playerSide : null,
+  };
 }
 
 function parseMarket(raw: unknown): MarketState | null {

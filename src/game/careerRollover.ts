@@ -127,6 +127,7 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
     newSeasonStartYear,
   );
   const archivedStandings: TeamStanding[] = state.league.standings.map(s => ({ ...s }));
+  const championTeamId = state.league.playoffs?.championTeamId ?? null;
 
   events.push({
     type: 'SEASON_ROLLED_OVER',
@@ -135,6 +136,7 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
     archivedStandings,
     topScorerRosterId,
     mvpRosterId,
+    championTeamId,
     leaders,
   });
 

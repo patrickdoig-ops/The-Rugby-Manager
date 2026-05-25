@@ -18,7 +18,7 @@
     "defendingBreakdown": "shadow",
     "backfieldDefence": "one_back",
     "defensiveLine": "blitz",
-    "offloadStrategy": "balanced"
+    "offloadStrategy": "cautious"
   },
   "statBias": [
     "tackling",

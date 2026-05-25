@@ -95,7 +95,6 @@
 
 .fl-row--active {
   border-color: var(--rm-pitch);
-  box-shadow: inset 0 0 0 1px var(--rm-pitch);
 }
 
 .fl-row--me {

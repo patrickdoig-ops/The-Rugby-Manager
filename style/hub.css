@@ -200,9 +200,9 @@
 }
 
 .nm-crest {
-  width: 34px;
-  height: 34px;
-  border-radius: 7px;
+  width: var(--crest-sm-size);
+  height: var(--crest-sm-size);
+  border-radius: var(--crest-sm-radius);
   display: flex;
   align-items: center;
   justify-content: center;

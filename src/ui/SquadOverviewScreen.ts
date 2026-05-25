@@ -125,6 +125,10 @@ export function initSquadOverviewScreen(
           </div>`;
         }).join('');
 
+        const thinHint = thin
+          ? `<div class="so-thin-hint"><strong>Thin at ${group.label}</strong>Only ${count} senior ${group.label.toLowerCase()} on the books. Consider a free-agent signing or promoting from academy.</div>`
+          : '';
+
         return `<section class="so-section${thin ? ' so-section--thin' : ''}">
           <h3 class="so-h3">
             <span class="so-h3-label">${group.label}</span>
@@ -135,6 +139,7 @@ export function initSquadOverviewScreen(
             </span>
           </h3>
           <div class="so-rows">${rows}</div>
+          ${thinHint}
         </section>`;
       }).join('');
 

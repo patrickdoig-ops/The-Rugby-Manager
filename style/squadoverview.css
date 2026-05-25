@@ -101,6 +101,29 @@
   color: color-mix(in oklch, var(--rm-stat-2) 80%, var(--rm-text-muted));
 }
 
+.so-thin-hint {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: color-mix(in oklch, var(--rm-stat-2) 8%, transparent);
+  border: 1px solid color-mix(in oklch, var(--rm-stat-2) 25%, transparent);
+  border-radius: 8px;
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  color: color-mix(in oklch, var(--rm-stat-2) 70%, var(--rm-text));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.so-thin-hint strong {
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rm-stat-2);
+}
+
 /* ─── Player rows ─── */
 
 .so-rows {

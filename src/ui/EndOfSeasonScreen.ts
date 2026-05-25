@@ -95,6 +95,8 @@ export function initEndOfSeasonScreen(
     const playerId = state.player.teamId;
     const playerRank = sorted.findIndex(s => s.teamId === playerId) + 1;
     const playerStanding = sorted.find(s => s.teamId === playerId);
+    const playerTeam = teamsById.get(playerId);
+    if (playerTeam) el!.style.setProperty('--team-color', playerTeam.color);
 
     const standingsHtml = sorted.map((s, i) => {
       const team = teamsById.get(s.teamId);

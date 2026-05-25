@@ -15,6 +15,26 @@
   overflow: hidden;
 }
 
+#end-of-season::before,
+#rollover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 100% 50% at 50% 0%,
+    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 14%, transparent) 0%,
+    transparent 65%
+  );
+  z-index: 0;
+}
+
+#end-of-season > *,
+#rollover > * {
+  position: relative;
+  z-index: 1;
+}
+
 /* ===== EndOfSeasonScreen ===== */
 
 #eos-grid {

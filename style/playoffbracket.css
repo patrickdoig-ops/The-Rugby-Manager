@@ -62,14 +62,14 @@
 }
 
 .pb-card-label {
-  font-family: 'Anton', 'Geist', sans-serif;
+  font-family: var(--rm-font-display);
   letter-spacing: 0.05em;
   font-size: 11px;
   color: var(--rm-text-muted);
 }
 
 .pb-date {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--rm-font-mono);
   font-size: 10px;
   color: var(--rm-text-muted);
   letter-spacing: 0.04em;
@@ -103,7 +103,7 @@
 .pb-side--me .pb-name { color: var(--rm-text); }
 
 .pb-name {
-  font-family: 'Anton', 'Geist', sans-serif;
+  font-family: var(--rm-font-display);
   font-size: 15px;
   letter-spacing: 0.03em;
   white-space: nowrap;
@@ -112,7 +112,7 @@
 }
 
 .pb-seed {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--rm-font-mono);
   font-size: 10px;
   font-weight: 700;
   width: 18px;
@@ -133,8 +133,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Anton', 'Geist', sans-serif;
-  color: #fff;
+  font-family: var(--rm-font-display);
+  color: var(--rm-chalk);
   text-shadow: 0 1px 2px rgba(0,0,0,0.5);
   flex: 0 0 auto;
   font-size: 14px;
@@ -147,7 +147,7 @@
 }
 
 .pb-score {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--rm-font-mono);
   font-size: 18px;
   font-weight: 700;
   color: var(--rm-text);
@@ -158,7 +158,7 @@
 .pb-score--empty { color: var(--rm-text-muted); font-weight: 400; }
 
 .pb-vs {
-  font-family: 'Instrument Serif', serif;
+  font-family: var(--rm-font-editor);
   font-style: italic;
   font-size: 13px;
   color: var(--rm-text-muted);
@@ -169,7 +169,7 @@
 }
 
 .pb-venue {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--rm-font-mono);
   font-size: 10px;
   letter-spacing: 0.05em;
   color: var(--rm-text-muted);
@@ -193,7 +193,7 @@
 }
 
 .pb-champion-label {
-  font-family: 'Anton', 'Geist', sans-serif;
+  font-family: var(--rm-font-display);
   letter-spacing: 0.12em;
   font-size: 12px;
   color: var(--rm-text-muted);
@@ -202,7 +202,7 @@
 .pb-champion .pb-crest { width: 56px; height: 56px; font-size: 22px; border-radius: 12px; }
 
 .pb-champion-name {
-  font-family: 'Anton', 'Geist', sans-serif;
+  font-family: var(--rm-font-display);
   font-size: 22px;
   color: var(--rm-text);
   letter-spacing: 0.04em;

@@ -124,7 +124,7 @@ export function initEndOfSeasonScreen(
       ? `
         <section class="eos-section eos-champion-section">
           <div class="eos-champion${championIsMe ? ' eos-champion--me' : ''}" style="--team-color:${championTeam.color}">
-            <div class="eos-champion-label">PREMIERSHIP CHAMPIONS</div>
+            <div class="eos-champion-label"><span class="eos-label-text">PREMIERSHIP CHAMPIONS</span></div>
             <div class="eos-champion-crest" style="background:linear-gradient(160deg,${championTeam.color} 0%,color-mix(in oklch,${championTeam.color} 30%,black) 100%);border:1px solid color-mix(in oklch,${championTeam.color} 45%,transparent)">${championTeam.shortName[0] ?? '?'}</div>
             <div class="eos-champion-name">${championTeam.name}</div>
           </div>
@@ -168,6 +168,20 @@ export function initEndOfSeasonScreen(
     `;
 
     el!.querySelector<HTMLButtonElement>('#eos-continue')!.addEventListener('click', () => activeOnContinue());
+
+    const labelText = el!.querySelector<HTMLSpanElement>('.eos-label-text');
+    if (labelText) {
+      const full = labelText.textContent ?? '';
+      labelText.textContent = '';
+      let i = 0;
+      function typeNext() {
+        if (i >= full.length) return;
+        labelText!.textContent = full.slice(0, i + 1);
+        i++;
+        setTimeout(typeNext, 32);
+      }
+      setTimeout(typeNext, 200);
+    }
   }
 
   function leaderCard(label: string, p: Player, team: RawTeamInput | undefined, metric: string): string {

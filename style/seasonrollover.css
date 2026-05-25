@@ -302,6 +302,23 @@
   gap: 6px;
 }
 
+@keyframes rollRowIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.roll-list .roll-row {
+  opacity: 0;
+  animation: rollRowIn 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.roll-list .roll-row:nth-child(1) { animation-delay: 0ms; }
+.roll-list .roll-row:nth-child(2) { animation-delay: 60ms; }
+.roll-list .roll-row:nth-child(3) { animation-delay: 120ms; }
+.roll-list .roll-row:nth-child(4) { animation-delay: 180ms; }
+.roll-list .roll-row:nth-child(5) { animation-delay: 240ms; }
+.roll-list .roll-row:nth-child(6) { animation-delay: 300ms; }
+.roll-list .roll-row:nth-child(n+7) { animation-delay: 360ms; }
+
 .roll-row {
   display: flex;
   align-items: center;
@@ -331,6 +348,12 @@
   text-transform: uppercase;
 }
 
+@keyframes rollDeltaIn {
+  0%   { opacity: 0; transform: translateY(2px); filter: brightness(2); }
+  60%  { opacity: 1; transform: translateY(0); filter: brightness(2); }
+  100% { opacity: 1; transform: translateY(0); filter: brightness(1); }
+}
+
 .roll-deltas {
   display: flex;
   gap: 8px;
@@ -340,6 +363,18 @@
   text-transform: uppercase;
   flex-wrap: wrap;
 }
+
+.roll-deltas > span {
+  opacity: 0;
+  transform: translateY(2px);
+  animation: rollDeltaIn 320ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.roll-row .roll-deltas > span:nth-child(1) { animation-delay: 0ms; }
+.roll-row .roll-deltas > span:nth-child(2) { animation-delay: 80ms; }
+.roll-row .roll-deltas > span:nth-child(3) { animation-delay: 160ms; }
+.roll-row .roll-deltas > span:nth-child(4) { animation-delay: 240ms; }
+.roll-row .roll-deltas > span:nth-child(5) { animation-delay: 320ms; }
+.roll-row .roll-deltas > span:nth-child(6) { animation-delay: 400ms; }
 
 .roll-delta-pos { color: var(--rm-pitch); }
 .roll-delta-neg { color: var(--rm-danger); }
@@ -363,6 +398,23 @@
   margin: 14px 16px 0;
 }
 
+@keyframes eosChampionEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes eosWashSwell {
+  to { opacity: 1; }
+}
+@keyframes eosCrestPop {
+  0%   { transform: scale(0.4); opacity: 0; }
+  60%  { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes eosNameRise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .eos-champion {
   background: linear-gradient(180deg, color-mix(in oklch, var(--team-color) 22%, var(--rm-surface)) 0%, var(--rm-surface) 100%);
   border: 1px solid color-mix(in oklch, var(--team-color) 45%, var(--rm-border-soft));
@@ -372,7 +424,25 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  animation: eosChampionEnter 800ms cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+  overflow: hidden;
 }
+
+.eos-champion::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 100% at 50% 50%,
+    color-mix(in oklch, var(--team-color) 28%, transparent) 0%,
+    transparent 70%);
+  opacity: 0;
+  animation: eosWashSwell 1400ms ease-out 200ms forwards;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.eos-champion > * { position: relative; z-index: 1; }
 
 .eos-champion--me {
   box-shadow: 0 0 26px color-mix(in oklch, var(--team-color) 35%, transparent);
@@ -397,6 +467,7 @@
   color: var(--rm-chalk);
   text-shadow: 0 1px 2px rgba(0,0,0,0.5);
   font-size: 36px;
+  animation: eosCrestPop 700ms cubic-bezier(0.34, 1.56, 0.64, 1) 400ms backwards;
 }
 
 .eos-champion-name {
@@ -405,4 +476,5 @@
   color: var(--rm-text);
   letter-spacing: 0.04em;
   text-align: center;
+  animation: eosNameRise 600ms cubic-bezier(0.22, 1, 0.36, 1) 900ms backwards;
 }

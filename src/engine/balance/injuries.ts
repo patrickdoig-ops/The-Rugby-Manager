@@ -18,12 +18,16 @@ import type { Position, InjuryKind, InjurySeverity } from '../../types/player';
 
 export const INJURY = {
   // Trigger probability per resolved tackle outcome. Calibrated so a
-  // typical match lands ~2 injuries across both teams. The OpenPlay
-  // resolver fires the roll ~22 times per match (PHASE_PLAY phases that
-  // produce a true tackle outcome, i.e. not a line break), so a 7%
-  // baseline × dominant-tackle / position / fatigue multipliers lands
-  // close to the 80-90 / 1000-player-hours epidemiology target.
-  basePctPerTackle:    8.0,         // % — consumed via rng(1, 10000) <= basePct * 100
+  // typical match lands ~1.5 injuries across both teams, ~14 per club
+  // per 18-round season. The OpenPlay resolver fires the roll ~22 times
+  // per match (PHASE_PLAY phases that produce a true tackle outcome,
+  // i.e. not a line break); the dominant-tackle / position / fatigue
+  // multipliers stack on top. Was 8.0 (~2.0 per match, ~18.5 per club
+  // per season) — dropped to 6.0 in v2.153a after audit showed the
+  // cumulative time-loss load (~120 player-weeks/club/season) ran
+  // ~1.5× real Premiership rates and the per-match cadence felt
+  // constant. Re-run `npx tsx scripts/injuryAudit.ts` after any change.
+  basePctPerTackle:    6.0,         // % — consumed via rng(1, 10000) <= basePct * 100
 
   // Big-hit injuries are disproportionately frequent on dominant tackles
   // — the carrier gets driven backwards or the tackler leads with a high

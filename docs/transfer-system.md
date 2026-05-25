@@ -185,24 +185,39 @@ All season-scope writes continue to flow through `applySeasonEvent` (see CLAUDE.
     roster: Record<number, Player>;
     clubs: ClubState[];
     nextRosterId: number; }
-| { type: 'PLAYER_SEASON_STATS_ACCUMULATED';   // ✅ post-fixture aggregator
+| { type: 'PLAYER_SEASON_STATS_ACCUMULATED';   // ✅ post-fixture aggregator (per player)
     rosterId: number;
     statsDelta: { /* every PlayerSeasonStats field */ }; }
+| { type: 'TEAM_SEASON_STATS_ACCUMULATED';     // ✅ post-fixture aggregator (per team, two per match)
+    teamId: string;
+    statsDelta: Partial<TeamSeasonStats>; }
 | { type: 'PLAYER_AGED';              // ✅ rosterId-keyed (not playerId)
     rosterId: number;
     statDeltas: Partial<PlayerStats>; }       // dob unchanged — age derived from calendar
 | { type: 'PLAYER_RETIRED';           // ✅ rosterId removed from ClubState.squad; Player record retained
     rosterId: number;
     clubId: string; }
-| { type: 'SEASON_ROLLED_OVER';       // ✅ composite — archives standings, regenerates fixtures, resets seasonStats
+| { type: 'PLAYER_INJURED';           // ✅ match teardown — severity + weeks rolled from rngTransfer
+    rosterId: number;
+    kind: InjuryKind;
+    severity: InjurySeverity;
+    weeksRemaining: number;
+    injuredOn: string;
+    isRecurrence: boolean; }
+| { type: 'INJURY_TICK_ADVANCED';     // ✅ per injured player at start of recordPlayerMatchResult
+    rosterId: number; }
+| { type: 'PLAYER_RECOVERED';         // ✅ fires when weeksRemaining hits 0
+    rosterId: number; }
+| { type: 'SEASON_ROLLED_OVER';       // ✅ composite — archives standings + leaders, regenerates fixtures, resets per-player + per-team seasonStats
     newSeasonLabel: string;
     newFixtures: Fixture[];
     archivedStandings: TeamStanding[];
     topScorerRosterId: number | null;
-    mvpRosterId: number | null; }
+    mvpRosterId: number | null;
+    leaders?: SeasonAwards; }                  // top-3 per category snapshot
 ```
 
-`SEASON_ROLLED_OVER` is the one big event; the aging and retirement events fire in a loop inside `careerRollover.computeRollover` before it. `GameCoordinator.rollSeason()` applies them then returns the events list so the UI can render the diff.
+`SEASON_ROLLED_OVER` is the one big event; the aging, retirement, and supply events fire in a loop inside `careerRollover.computeRollover` before it. `GameCoordinator.rollSeason()` applies them then returns the events list so the UI can render the diff.
 
 ### Contract-phase variants ✅ live (Phases 3–4)
 
@@ -242,8 +257,11 @@ All season-scope writes continue to flow through `applySeasonEvent` (see CLAUDE.
     annualWage: number; }
 | { type: 'PRE_AGREEMENT_SIGNED';               // Reg 7 — deferred activation
     agreement: PreAgreement; }
+| { type: 'PRE_AGREEMENT_CANCELLED';            // UI undo on TransferMarketScreen
+    rosterId: number; }
 | { type: 'TRANSFER_ACTIVATED';                 // rollover-time activation of a pending move
     rosterId: number;
+    fromClubId: string;
     toClubId: string;
     annualWage: number;
     expiresOn: string; }
@@ -258,6 +276,30 @@ All season-scope writes continue to flow through `applySeasonEvent` (see CLAUDE.
 | { type: 'FOREIGN_IMPORT_ARRIVED';
     player: Player; }              // unsigned → joins freeAgents pool
 ```
+
+### Pre-season-phase variant ✅ live (Phase 8)
+
+```ts
+| { type: 'PRE_SEASON_STEP_SET';                // Squad Builder save-resumption flag
+    step: 'overview' | 'signings' | 'marquee' | undefined; }
+```
+
+Set before every `saveGame` during the Squad Builder pre-season flow (overview → signings → marquee). `continueGame` reads it and routes back to the in-flight screen after a mid-pre-season tab close; cleared once the marquee Continue completes.
+
+### System variant ✅ live (load path)
+
+```ts
+| { type: 'CAREER_ARCHIVE_RESTORED';            // fromSave only
+    seasonsCompleted: number;
+    archive: ArchivedSeason[];
+    freeAgents?: number[];                       // v7+
+    market?: MarketState | null;                 // v7+
+    pendingMoves?: PreAgreement[];               // v8+
+    teamSeasonStats?: Record<string, TeamSeasonStats>;  // v9+
+    preSeasonStep?: 'overview' | 'signings' | 'marquee'; }  // v12+
+```
+
+Keeps every `state.career.*` write inside `applySeasonEvent` even across the load path — the mutation seam holds.
 
 The exhaustive `default: const _: never = event` contract is preserved at every step.
 
@@ -319,8 +361,12 @@ Each landing milestone bumps `SAVE_VERSION` in `src/ui/SaveManager.ts`. The orig
 | v6 | ✅ shipped v2.23a | Contracts: `PlayerContract` + `reputation` embedded on each persisted Player |
 | v7 | ✅ shipped v2.36a | Market: `freeAgents[]` (rosterId[]) + optional `MarketState` if a renewal window is open mid-save. `MarketState.phase` discriminates renewals from signings (defaults to `'renewals'` on older v7 loads) |
 | v8 | ✅ shipped v2.43a | Reg 7: `pendingMoves[]` (PreAgreement[]) for cross-Prem pre-agreements that activate at the next rollover |
+| v9 | ✅ shipped | Per-team season aggregates (`teamSeasonStats` keyed by teamId — possession / territory / set-piece / attack / defence buckets); each persisted Player gains optional `injury` field (PlayerInjury — kind / severity / weeksRemaining / injuredOn / isRecurrence); Player gains `seasonStats` (per-player aggregator backfilled with zeroes on older saves) |
+| v10 | ✅ shipped | `TeamTactics` gains `defensiveLine` (`'blitz' \| 'hybrid' \| 'drift'`). Pre-v10 saves backfill `'hybrid'` (numerically neutral) so the engine never sees undefined |
+| v11 | ✅ shipped | `SavedSeasonResult` gains `homeTries` + `awayTries` for the bonus-points system. Pre-v11 rounds were played without try-bonus tracking; older saves default both to 0 |
+| v12 | ✅ shipped v2.113a | Squad Builder resumption: `career.preSeasonStep` (`'overview' \| 'signings' \| 'marquee' \| undefined`). Outside the pre-season flow the field is undefined and omitted from the payload, so in-season saves stay byte-equivalent |
 
-Migrations are auto on load. v7 → v8 defaults `pendingMoves` to `[]`. v6 → v7 defaults `freeAgents` to `[]` and `market` to `null`. v5 → v6 walks the persisted roster and runs `contractSeeder.seedContractFields` for any Player missing contract / reputation fields. v4 → v5 seeds a fresh roster from JSONs (lossless — pre-v5 had zero per-player evolution). v2 → v3 → v4 cascades use earlier-version restore paths. v1 saves are discarded. Every restore flows through `CAREER_ARCHIVE_RESTORED` (with optional `freeAgents` + `market` + `pendingMoves`) so the `applySeasonEvent` seam holds across the load path.
+Migrations are auto on load. v11 → v12 is a no-op shim (`preSeasonStep` optional; older saves route straight to Hub on `continueGame`). v10 → v11 defaults `homeTries` / `awayTries` to 0 on every persisted FixtureResult. v9 → v10 backfills `tactics.defensiveLine = 'hybrid'` when absent. v8 → v9 defaults `teamSeasonStats` to `{}` and back-fills each player's `seasonStats` with zeroes on the v9 fields. v7 → v8 defaults `pendingMoves` to `[]`. v6 → v7 defaults `freeAgents` to `[]` and `market` to `null`. v5 → v6 walks the persisted roster and runs `contractSeeder.seedContractFields` for any Player missing contract / reputation fields. v4 → v5 seeds a fresh roster from JSONs (lossless — pre-v5 had zero per-player evolution). v2 → v3 → v4 cascades use earlier-version restore paths. v1 saves are discarded. Every restore flows through `CAREER_ARCHIVE_RESTORED` (with optional `freeAgents` + `market` + `pendingMoves` + `teamSeasonStats` + `preSeasonStep`) so the `applySeasonEvent` seam holds across the load path.
 
 ---
 

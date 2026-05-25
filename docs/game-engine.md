@@ -53,6 +53,7 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 | `WEEK_ADVANCED` | After all fixtures of a round are applied | `calendar.week += 1`; `calendar.date` jumps to the earliest date in the new round (falls back to `+SEASON_VALUES.weekLengthDays` for generated schedules). |
 | `PLAYER_TACTICS_SET` | `PreMatchScreen` Kick Off | Clones the chosen `TeamTactics` into `state.player.tactics` so the next match opens with them as the default. |
 | `PLAYER_MATCHDAY_SQUAD_SET` | `PreMatchScreen` Kick Off; `SquadManagementScreen` Save Squad | Persists the matchday 23 as `PlayerRef[]` (firstName + lastName pairs) so squad selection survives mid-match tab close. Both callers round-trip through the same `state.player.matchdaySquad` field. |
+| `PRE_SEASON_STEP_SET` | Each step of the Squad Builder pre-season flow (overview → signings → marquee), before `saveGame` | Sets / clears `state.career.preSeasonStep` (`'overview' \| 'signings' \| 'marquee' \| undefined`) so `continueGame` can route back to the in-flight screen after a mid-pre-season tab close. Cleared once the marquee Continue completes; outside Squad Builder the field stays undefined and is omitted from the save payload. |
 
 **Career layer (Phase 1 of the transfer-system roadmap):**
 
@@ -60,6 +61,7 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 |---|---|---|
 | `ROSTER_SEEDED` | One-shot at `newSeason` / v4-save migration | Populates `state.career.roster` keyed by `rosterId`, `ClubState[]`, `nextRosterId`. Source data is the JSON-loaded `RawTeamInput[]` post-`applyStarBoost`. |
 | `PLAYER_SEASON_STATS_ACCUMULATED` | Per player per fixture (live + silent AI) | Adds the per-match delta to `roster[rosterId].seasonStats`. Drives top-scorer / MVP cards in `EndOfSeasonScreen`. |
+| `TEAM_SEASON_STATS_ACCUMULATED` | Two events per fixture (home + away side) in `recordPlayerMatchResult` and every silent AI fixture | Adds the per-match delta to `state.league.teamSeasonStats[teamId]` — possession / territory / set-piece win rates / attack / defence / kicking / discipline buckets keyed by teamId. Read by `seasonLeaderboards.teamLeaderboard` for per-club season aggregates. Lazy-initialised: the map starts empty and gets a `zeroTeamSeasonStats()` entry on first write per team. |
 | `PLAYER_AGED` | Per player per rollover | Applies `Partial<PlayerStats>` deltas to `baseStats` (clamped 1-99). Driven by `AGE_CURVES` + `STAT_NOISE` Gaussian noise from `rngTransfer`. |
 | `PLAYER_RETIRED` | Per retiring player per rollover | Removes `rosterId` from `ClubState.squad`. The `Player` record stays in `state.career.roster` for archive references. |
 | `PLAYER_INJURED` | Per in-match injury at match teardown (player + every AI fixture) | Writes `state.career.roster[rosterId].injury` with kind / severity / weeksRemaining / injuredOn / isRecurrence. Severity + weeks rolled via `rngTransfer` from `INJURY_SEVERITY[kind]`. Snapshots are walked rosterId-ascending so the RNG call order is stable. |

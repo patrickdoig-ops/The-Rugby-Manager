@@ -41,7 +41,7 @@ The engine is split across files in `src/engine/`. `MatchCoordinator` owns the p
 | `invariants.ts` | `assertInvariants(state)` — runtime tripwire called after every `applyMatchEvent` mutation. Checks live numeric/structural ranges the type system can't express (score ≥ 0 + integer, ball in `[0,100]`, every player's fatigue/rating/currentStats in range). Always-on; the cost is O(matchday squad) per mutation. |
 | `StaminaSystem.ts` | Pure `computeFatigue(team, elapsedMinutes)` — returns `{updates, newlyTired}` without writing to players; `FatigueAccumulator` emits the resulting `FATIGUE_APPLIED` events. |
 | `RatingEngine.ts` | Pure `computeRating(player)` — called by `applyMatchEvent` when a `RATINGS_RECALCULATED` event is reduced. |
-| `balance/` | **Single source of truth for every gameplay tuning number.** One file per concern (`scoring`, `kicking`, `openPlay`, `breakdown`, `scrum`, `lineout`, `fatigue`, `rating`, `tactics`, `clock`, `commentary`, `discipline`, `homeAdvantage`, `aiDirector`, `season`) re-exported through `balance/index.ts`. Resolvers, events, and systems import from here; no tuning literals live elsewhere. |
+| `balance/` | **Single source of truth for every gameplay tuning number.** One file per concern (`scoring`, `kicking`, `kickDecision`, `openPlay`, `breakdown`, `scrum`, `lineout`, `fatigue`, `rating`, `tactics`, `clock`, `commentary`, `discipline`, `homeAdvantage`, `injuries`, `aiDirector`, `aiSubs`, `season`) re-exported through `balance/index.ts`. (`career` + `transfers` also live here but are consumed only by the game engine — see `docs/game-engine.md`.) Resolvers, events, and systems import from here; no tuning literals live elsewhere. |
 
 All emit UI side-effects through the shared `src/utils/eventBus.ts` singleton; event IDs come from the monotonic counter in `src/engine/eventId.ts`. The current phase lives solely on `state.phase`; all transitions go through the `PHASE_CHANGED` `MatchEvent` (no separate state-machine class). `PhaseContext` (`src/engine/events/types.ts`) is the minimal closure passed to handlers — `{ state, attackTeam, defendTeam, randomPlayer, pickPlayer, draftEvent, kickOffStrategy }`. Field-position helpers (`attackDir`, `inOwn22`, `isTryScoredAt`, …) are pure functions in `FieldPosition.ts` that handlers import directly with `state`.
 
@@ -57,7 +57,7 @@ All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.cu
 
 ### Balance constants
 
-Every number listed in the resolver formulas, tactic modifier tables, fatigue tiers, and rating weights below is defined under `src/engine/balance/` — one file per concern (`scoring`, `kicking`, `openPlay`, `breakdown`, `scrum`, `lineout`, `fatigue`, `rating`, `tactics`, `clock`, `commentary`, `discipline`, `homeAdvantage`, `aiDirector`, `season`), re-exported through `balance/index.ts`. The doc below shows the current values; the `balance/` directory is the canonical place to read or change them. `scoring.ts` holds the laws-of-the-game point values (try 5, conversion 2, penalty goal 3); `commentary.ts` also holds `COMMENTARY_BUFFER_CAP` (the soft cap on `state.events`).
+Every number listed in the resolver formulas, tactic modifier tables, fatigue tiers, and rating weights below is defined under `src/engine/balance/` — one file per concern (`scoring`, `kicking`, `kickDecision`, `openPlay`, `breakdown`, `scrum`, `lineout`, `fatigue`, `rating`, `tactics`, `clock`, `commentary`, `discipline`, `homeAdvantage`, `injuries`, `aiDirector`, `aiSubs`, `season`), re-exported through `balance/index.ts`. (`career` + `transfers` also live in the same directory but are consumed only by the game engine.) The doc below shows the current values; the `balance/` directory is the canonical place to read or change them. `scoring.ts` holds the laws-of-the-game point values (try 5, conversion 2, penalty goal 3); `commentary.ts` also holds `COMMENTARY_BUFFER_CAP` (the soft cap on `state.events`).
 
 ### Tactics: who picks what
 
@@ -287,13 +287,16 @@ Each `if` block overwrites the previous, so the final matching block wins.
 | < 90% | strength | × 0.90 |
 | < 80% | tackling | × 0.80 |
 | < 70% | pace, agility | × 0.75 |
-| < 70% | handling, discipline, composure, setPiece, breakdown | × 0.80 |
+| < 70% | handling | × 0.95 |
+| < 70% | discipline, composure, setPiece, breakdown | × 0.80 |
 | < 70% | strength | × 0.70 |
 | < 50% | pace, agility | × 0.55 |
-| < 50% | handling, discipline, composure, setPiece, breakdown | × 0.60 |
+| < 50% | handling | × 0.85 |
+| < 50% | discipline, composure, setPiece, breakdown | × 0.60 |
 | < 50% | strength | × 0.50 |
 | < 30% | pace, agility | × 0.35 |
-| < 30% | handling, discipline, composure | × 0.40 |
+| < 30% | handling | × 0.70 |
+| < 30% | discipline, composure | × 0.40 |
 | < 30% | tackling | × 0.40 |
 | < 30% | setPiece, breakdown | × 0.30 |
 | < 30% | strength | × 0.30 |

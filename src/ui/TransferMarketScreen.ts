@@ -211,8 +211,12 @@ export function initTransferMarketScreen(
 
     const headerCell = (key: SortKey, label: string, cls: string): string => {
       const active = key === sortKey;
-      const arrow = active ? (sortDir === 'asc' ? '▲' : '▼') : '';
-      return `<button class="tm-head ${cls}${active ? ' tm-head--active' : ''}" data-sort="${key}">${label}${arrow ? ` ${arrow}` : ''}</button>`;
+      const arrowSvg = active
+        ? (sortDir === 'asc'
+            ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-1px;margin-left:3px"><path d="m18 15-6-6-6 6"/></svg>`
+            : `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-1px;margin-left:3px"><path d="m6 9 6 6 6-6"/></svg>`)
+        : '';
+      return `<button class="tm-head ${cls}${active ? ' tm-head--active' : ''}" data-sort="${key}">${label}${arrowSvg}</button>`;
     };
 
     const isPreSeason = mode === 'signings-preseason';
@@ -390,8 +394,12 @@ export function initTransferMarketScreen(
 
     const headerCell = (key: SortKey, label: string, cls: string): string => {
       const active = key === sortKey;
-      const arrow = active ? (sortDir === 'asc' ? '▲' : '▼') : '';
-      return `<button class="tm-head ${cls}${active ? ' tm-head--active' : ''}" data-sort="${key}">${label}${arrow ? ` ${arrow}` : ''}</button>`;
+      const arrowSvg = active
+        ? (sortDir === 'asc'
+            ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-1px;margin-left:3px"><path d="m18 15-6-6-6 6"/></svg>`
+            : `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-1px;margin-left:3px"><path d="m6 9 6 6 6-6"/></svg>`)
+        : '';
+      return `<button class="tm-head ${cls}${active ? ' tm-head--active' : ''}" data-sort="${key}">${label}${arrowSvg}</button>`;
     };
 
     el!.innerHTML = `

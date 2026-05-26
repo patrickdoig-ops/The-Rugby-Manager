@@ -17,7 +17,7 @@ function tacklePct(t: { attempted: number; made: number }): string {
 function setPieceSuccess(s: { won: number; thrown?: number; putIn?: number }): string {
   const total = s.thrown ?? s.putIn ?? 0;
   if (total === 0) return '—';
-  return `${s.won}/${total} (${Math.round((s.won / total) * 100)}%)`;
+  return `${s.won}/${total}`;
 }
 
 function teamMetres(team: MatchState['homeTeam'], key: 'metresCarried' | 'kickMetres'): number {

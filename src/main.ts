@@ -31,6 +31,7 @@ import { preloadAllCues, playCue } from './ui/SoundManager';
 import { initScoreboard }          from './ui/Scoreboard';
 import { initPitchStrip }          from './ui/PitchStrip';
 import { initCommentaryFeed }      from './ui/CommentaryFeed';
+import { initCrashOverlay }        from './ui/CrashOverlay';
 import { initStatsPanel }          from './ui/StatsPanel';
 import { initSimController }       from './ui/SimController';
 import { initModalManager }        from './ui/ModalManager';
@@ -113,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initCommentaryFeed();
   initStatsPanel();
   initModalManager();
+  initCrashOverlay();
 
   teamProfile.init(allTeamsRaw);
 

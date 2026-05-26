@@ -533,6 +533,48 @@ export class MatchCoordinator {
   }
 
   private async tick(): Promise<void> {
+    // Silent fixtures (telemetry, determinism harness, headless AI sims)
+    // must propagate exceptions so CI sees them. Live mode catches and
+    // surfaces the error through `engine:error` so the UI can render a
+    // copy-pastable crash overlay instead of silently freezing.
+    if (this.silent) {
+      await this.tickBody();
+      return;
+    }
+    try {
+      await this.tickBody();
+    } catch (err) {
+      this.reportTickCrash(err);
+    }
+  }
+
+  private reportTickCrash(err: unknown): void {
+    const message = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error && err.stack ? err.stack : '(no stack)';
+    const lastEvents = this.state.events.slice(-5).map(e => {
+      const step = e.narration?.steps[0];
+      const key = step && 'key' in step ? step.key : '(no key)';
+      return `${e.gameMinute.toFixed(0)}' ${e.phase} ${key}`;
+    });
+    if (this.state.engine.isRunning) {
+      applyMatchEvent(this.state, { type: 'IS_RUNNING_SET', value: false });
+    }
+    if (this.tickTimeout) {
+      clearTimeout(this.tickTimeout);
+      this.tickTimeout = null;
+    }
+    eventBus.emit('engine:error', {
+      message,
+      stack,
+      clockMinute: this.state.clock.gameMinute,
+      phase: this.state.phase,
+      possession: this.state.possession,
+      score: { home: this.state.score.home, away: this.state.score.away },
+      lastEvents,
+    });
+  }
+
+  private async tickBody(): Promise<void> {
     this.tickTimeout = null;
     if (!this.state.engine.isRunning) return;
 

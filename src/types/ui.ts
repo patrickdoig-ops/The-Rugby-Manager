@@ -35,6 +35,19 @@ export interface AppEvents {
   // agency over Play / Pause / Tactics / Subs while paused.
   'engine:autoPaused':  { reason: 'half_time' };
   'engine:finished':    { state: MatchState };
+  // Fired when MatchCoordinator.tick() throws in live mode. Carries the
+  // error message + stack + key state context so the UI can render a
+  // copy-pastable crash overlay. Silent fixtures don't catch — the
+  // determinism / telemetry harnesses surface failures to CI directly.
+  'engine:error':       {
+    message: string;
+    stack: string;
+    clockMinute: number;
+    phase: string;
+    possession: 'home' | 'away';
+    score: { home: number; away: number };
+    lastEvents: string[];
+  };
   'ui:speedChange':     { delayMs: number };
   'ui:tacticsChange':   { teamId: string; tactics: TeamTactics };
   'ui:openTacticsModal':{ tactics: TeamTactics; teamId: 'home' | 'away' };

@@ -1389,3 +1389,75 @@ html, body {
 .pm-injury-text {
   flex: 1;
 }
+
+/* ─── Crash overlay ─── */
+.crash-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 200;
+}
+
+.crash-overlay-panel {
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 12px;
+  padding: 20px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 8px 48px rgba(0,0,0,0.65);
+}
+
+.crash-overlay-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ff6b6b;
+}
+
+.crash-overlay-body {
+  flex: 1;
+  overflow: auto;
+  margin: 0;
+  padding: 12px;
+  background: rgba(0,0,0,0.4);
+  border-radius: 6px;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+
+.crash-overlay-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.crash-overlay-copy,
+.crash-overlay-dismiss {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--rm-border-soft);
+  background: var(--rm-surface-1);
+  color: var(--rm-text);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.crash-overlay-copy {
+  background: #007a2a;
+  border-color: #006622;
+  color: #fff;
+}

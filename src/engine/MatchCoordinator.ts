@@ -211,6 +211,13 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
 export class MatchCoordinator {
   private state: MatchState;
   private tickTimeout: ReturnType<typeof setTimeout> | null = null;
+  // Phase at the start of the most recently completed tick. Drives the
+  // cross-tick set-piece announcement: when a tick begins in Lineout or
+  // Scrum and the previous tick started in a different phase, fire
+  // `set_piece_award` BEFORE resolvePhase. Defers the announcement out of
+  // the busy penalty / knock-on tick into the calmer set-piece tick that
+  // follows, evening commentary pacing.
+  private prevTickStartPhase: MatchPhase | null = null;
   private kickOffStrategy: KickOffStrategy = 'high_ball';
   private humanSide: 'home' | 'away';
   private penaltyHandler: PenaltyHandler;
@@ -638,6 +645,37 @@ export class MatchCoordinator {
     });
 
     let previousPhase = this.state.phase;
+    // Frozen snapshot for the prevTickStartPhase update at end of tick.
+    // Distinct from `previousPhase` which gets reassigned inside the
+    // Penalty branch below.
+    const phaseAtTickStart = this.state.phase;
+
+    // Cross-tick set-piece entry: a tick starting in Lineout or Scrum
+    // whose predecessor was a different phase fires the announcement here,
+    // before resolvePhase. Replaces the old end-of-tick award branch — the
+    // award now lands in the SAME tick that resolves the set piece rather
+    // than tacking onto the previous tick. Evens out commentary pacing
+    // around penalties (kick_to_touch → lineout) and knock-ons
+    // (open play → scrum). The first tick has prevTickStartPhase=null and
+    // the match opens in KickOff, so this never fires at kickoff.
+    if ((this.state.phase === MatchPhase.Lineout || this.state.phase === MatchPhase.Scrum) &&
+        this.prevTickStartPhase !== null &&
+        this.prevTickStartPhase !== this.state.phase) {
+      const phaseName = this.state.phase === MatchPhase.Lineout ? 'Lineout' : 'Scrum';
+      const teamName = (this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam).name;
+      const awardEvent: GameEvent = {
+        id: makeId(),
+        gameMinute: this.state.clock.gameMinute,
+        phase: this.state.phase,
+        side: this.state.possession,
+        sideName: teamName,
+        ballX: this.state.ball.x,
+        ballY: this.state.ball.y,
+        narration: { steps: [{ kind: 'announcement', key: 'set_piece_award', params: { phaseName, teamName } }] },
+      };
+      applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: awardEvent });
+      this.emitEvent(awardEvent);
+    }
 
     if (this.state.phase === MatchPhase.KickOff) {
       const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
@@ -699,24 +737,6 @@ export class MatchCoordinator {
     this.emitEvent(event);
     this.emitStateChange();
 
-    if ((this.state.phase === MatchPhase.Lineout && previousPhase !== MatchPhase.Lineout) ||
-        (this.state.phase === MatchPhase.Scrum && previousPhase !== MatchPhase.Scrum)) {
-      const phaseName = this.state.phase === MatchPhase.Lineout ? 'Lineout' : 'Scrum';
-      const teamName = (this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam).name;
-      const awardEvent: GameEvent = {
-        id: makeId(),
-        gameMinute: this.state.clock.gameMinute,
-        phase: this.state.phase,
-        side: this.state.possession,
-        sideName: teamName,
-        ballX: this.state.ball.x,
-        ballY: this.state.ball.y,
-        narration: { steps: [{ kind: 'announcement', key: 'set_piece_award', params: { phaseName, teamName } }] },
-      };
-      applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: awardEvent });
-      this.emitEvent(awardEvent);
-    }
-
     if (this.state.phase === MatchPhase.Penalty) {
       // CardHandler runs before PenaltyHandler so a TMO review can preempt
       // the penalty modal. 'tmo' verdict transitions phase to TmoReview;
@@ -763,6 +783,11 @@ export class MatchCoordinator {
       eventBus.emit('engine:autoPaused', { reason: 'half_time' });
       return;
     }
+
+    // Stash this tick's starting phase so the next tick can detect a
+    // cross-tick set-piece entry. Must be the snapshot — state.phase has
+    // mutated several times during the tick body.
+    this.prevTickStartPhase = phaseAtTickStart;
 
     // Trigger the paced drain of any events emitted during this tick.
     // We don't await — the streamer drains in the background over

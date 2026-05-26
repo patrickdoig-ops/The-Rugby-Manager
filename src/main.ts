@@ -5,6 +5,7 @@ import '../style/teamselector.css';
 import '../style/teaminfo.css';
 import '../style/fixturelist.css';
 import '../style/leaguetable.css';
+import '../style/leaguestats.css';
 import '../style/hub.css';
 import '../style/matchresult.css';
 import '../style/roundresults.css';
@@ -38,6 +39,9 @@ import { initTeamSelectorScreen }  from './ui/TeamSelectorScreen';
 import { initTeamInfoScreen }      from './ui/TeamInfoScreen';
 import { initFixtureListScreen }   from './ui/FixtureListScreen';
 import { initLeagueTableScreen, showLeagueTable, showLeagueTablePostMatch } from './ui/LeagueTableScreen';
+import { initLeagueMenuScreen } from './ui/LeagueMenuScreen';
+import { initTeamStatsScreen, showTeamStats } from './ui/TeamStatsScreen';
+import { initPlayerStatsScreen, showPlayerStats } from './ui/PlayerStatsScreen';
 import { initHubScreen }           from './ui/HubScreen';
 import { initMatchResultScreen }   from './ui/MatchResultScreen';
 import { initRoundResultsScreen, showRoundResults } from './ui/RoundResultsScreen';
@@ -164,15 +168,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Reads the live calendar date so ages reflect the current point in
   // the season, and rebuilds the team from the career roster so the
   // squad list shows the actual current players (signings, retirements,
-  // aging, injuries all reflected). Back navigates to the League
-  // Table, which preserves its own mode (standard / form / post-match)
-  // across the round-trip.
-  function goTeamInfoMidSeason(team: RawTeamInput): void {
+  // aging, injuries all reflected). `onBack` lets the caller choose
+  // the return target — League Table, Team Stats, or Player Stats —
+  // so each entry point hops back to the screen the user came from.
+  function goTeamInfoMidSeason(team: RawTeamInput, onBack: () => void = goLeagueTable): void {
     if (!gameEngine) return;
     const profile = teamProfile.getProfile(team.id);
     const state = gameEngine.getState();
     const liveTeam = buildTeamFromRoster(state, team);
-    initTeamInfoScreen(profile, liveTeam, state.calendar.date, goLeagueTable);
+    initTeamInfoScreen(profile, liveTeam, state.calendar.date, onBack);
     screenRouter.show('team-info');
   }
 
@@ -190,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onPlayMatch: onPlayRound,
       onPlayoffs: runPlayoffStage,
       onFixtures: goFixtures,
-      onLeague:   goLeagueTable,
+      onLeague:   goLeagueMenu,
       onSquad:    goSquad,
       onTraining: () => { /* placeholder until Training screen lands */ },
       onContracts: goContracts,
@@ -198,10 +202,32 @@ document.addEventListener('DOMContentLoaded', () => {
       onSettings: goSettingsFromHub,
     });
     initFixtureListScreen(getGameEngine, allTeams, goHub);
-    initLeagueTableScreen(getGameEngine, allTeams, goHub, (teamId) => {
+    // The League sub-menu sits between the Hub's League tile and the
+    // three leaves (Table / Team Stats / Player Stats). Each leaf's
+    // back arrow returns here; this screen's back arrow returns to
+    // Hub. Row clicks on any leaf jump to TeamInfo for that club; the
+    // teamInfo back arrow returns to whichever leaf opened it.
+    initLeagueMenuScreen({
+      getGameEngine,
+      onBack: goHub,
+      onTable:       goLeagueTable,
+      onTeamStats:   goTeamStats,
+      onPlayerStats: goPlayerStats,
+    });
+    initLeagueTableScreen(getGameEngine, allTeams, goLeagueMenu, (teamId) => {
       const teamJson = allTeams.find(t => t.id === teamId);
       if (!teamJson) return;
-      goTeamInfoMidSeason(teamJson);
+      goTeamInfoMidSeason(teamJson, goLeagueTable);
+    });
+    initTeamStatsScreen(getGameEngine, allTeams, goLeagueMenu, (teamId) => {
+      const teamJson = allTeams.find(t => t.id === teamId);
+      if (!teamJson) return;
+      goTeamInfoMidSeason(teamJson, goTeamStats);
+    });
+    initPlayerStatsScreen(getGameEngine, allTeams, goLeagueMenu, (teamId) => {
+      const teamJson = allTeams.find(t => t.id === teamId);
+      if (!teamJson) return;
+      goTeamInfoMidSeason(teamJson, goPlayerStats);
     });
     initRoundResultsScreen(getGameEngine, allTeams);
     initPlayoffBracketScreen(getGameEngine, allTeams);
@@ -237,6 +263,20 @@ document.addEventListener('DOMContentLoaded', () => {
   function goLeagueTable(): void {
     showLeagueTable();
     screenRouter.show('league-table');
+  }
+
+  function goLeagueMenu(): void {
+    screenRouter.show('league-menu');
+  }
+
+  function goTeamStats(): void {
+    showTeamStats();
+    screenRouter.show('team-stats');
+  }
+
+  function goPlayerStats(): void {
+    showPlayerStats();
+    screenRouter.show('player-stats');
   }
 
   function goContracts(): void {

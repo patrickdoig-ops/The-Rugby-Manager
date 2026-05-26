@@ -112,8 +112,8 @@ The game engine emits six `game:*` events through `src/utils/eventBus.ts`. UI mo
 | Event | Payload | Subscribers |
 |---|---|---|
 | `game:initialized` | `{ state: GameState }` | `FixtureListScreen` (initial render after `newSeason` / `fromSave`) |
-| `game:fixtureRecorded` | `{ result: FixtureResult; state: GameState }` | `FixtureListScreen`, `RoundResultsScreen` (re-render as each headless AI fixture resolves) |
-| `game:weekAdvanced` | `{ state: GameState }` | `FixtureListScreen` (calendar header) |
+| `game:fixtureRecorded` | `{ result: FixtureResult; state: GameState }` | `FixtureListScreen`, `RoundResultsScreen`, `HubScreen`, `LeagueTableScreen`, `TeamStatsScreen`, `PlayerStatsScreen` (re-render as each headless AI fixture resolves; stats screens pick up the fresh per-team / per-player aggregates from `state.league.teamSeasonStats` + `state.career.roster[*].seasonStats`) |
+| `game:weekAdvanced` | `{ state: GameState }` | `FixtureListScreen` (calendar header), `HubScreen` (expiring-contracts badge refresh as deals tick into the 6-month window), `LeagueTableScreen` / `TeamStatsScreen` / `PlayerStatsScreen` (re-derive season-position eyebrow) |
 | `game:bracketSeeded` | `{ state: GameState }` | `main.ts` latches `bracketSeededPending`; `HubScreen` + `PlayoffBracketScreen` re-render. Fires once after the final R18 fixture is recorded (via `seedPlayoffBracket`). |
 | `game:playoffsUpdated` | `{ state: GameState }` | `HubScreen` + `PlayoffBracketScreen` re-render. Fires after every `PLAYOFF_RESULT_RECORDED` (player or AI) so the bracket UI shows the cascade fill in. |
 | `game:seasonComplete` | `{ state: GameState }` | `main.ts` latches `seasonCompletePending`; the post-match Continue chain reroutes through `EndOfSeasonScreen` → optional `RenewalsScreen` → optional `TransferMarketScreen` → `RolloverScreen`. Now fires only after the Premiership final resolves (no longer the end of the last regular round). |
@@ -148,7 +148,7 @@ Every persistent roster Player carries a `PlayerContract { clubId, expiresOn, an
 - **Marquee toggle**: tap the star column on any row. Going through `MARQUEE_DESIGNATED` so the previous marquee on the same club has their flag cleared automatically.
 - **Cap pill**: 3-state colour-coded against the effective cap — `ok` (≤ 95%, green), `tight` (95–100%, amber), `over` (red, with the `CAP` label highlighted). Cap = Σ non-marquee wages; the marquee slot is genuinely cap-excluded.
 
-Expiring-within-10-months rows get a warning chip — a passive signal heading into the renewal window.
+Expiring-within-`EXPIRING_CONTRACT_WINDOW_MONTHS`-months rows get an "Expiring" chip — a passive signal heading into the renewal window. The same threshold (6 months, in `src/engine/balance/transfers.ts`) drives the red `.notification-badge` count on the Hub's Contracts tile (`HubScreen.countExpiringContracts`). Pre-agreed Reg 7 leavers (in `state.career.pendingMoves` with `toClubId !== userClubId`) are excluded from the badge count — there's nothing to act on for them.
 
 ## Club wage budgets (Phase 9)
 
@@ -281,6 +281,16 @@ Fired during `careerRollover.computeRollover` after retirement / aging passes, i
 
 Per-rollover roster growth ~32 players. Sustains the league population indefinitely against aging + retirement attrition.
 
+## Statistics surface (League sub-menu)
+
+Hub → League opens `LeagueMenuScreen` (`src/ui/LeagueMenuScreen.ts`) — a three-tile sub-menu that branches into the existing standings view plus two analytics screens added in v2.184a.
+
+- **`LeagueTableScreen`** — standings + form view. Rows are clickable (since v2.180a) and open `TeamInfoScreen` for the tapped club via `goTeamInfoMidSeason(team, goLeagueTable)` in `main.ts`. Built from the live career roster + calendar date, so the squad list reflects current signings / aging / injuries (unlike the frozen-JSON Team Selector entry).
+- **`TeamStatsScreen`** (`src/ui/TeamStatsScreen.ts`) — sortable per-team aggregates grouped into category chips (Attack / Defence / Kicking / Set Piece / Possession / Discipline). Each category renders a focused 3-5 column table over all 10 clubs. Default sort is descending on the headline column; clicking any column header re-sorts. Row click opens `TeamInfoScreen` with `goTeamStats` as the back target. Data flow: pure read from `state.league.teamSeasonStats` via `seasonLeaderboards.teamSeasonStat / teamPossessionPct / teamTerritoryPct`; derived percentages (tackle %, lineout %, scrum %, m/kick, pts per 22m entry) computed inline.
+- **`PlayerStatsScreen`** (`src/ui/PlayerStatsScreen.ts`) — top-10 leaderboards across 10 categories (Tries, Carries, Metres, Line Breaks, Tackles, Turnovers, Kick Metres, Goal Kicking, Avg Rating, Yellow Cards). Category chips swap the visible list. Goal Kicking and Avg Rating both gate on `SEASON_AWARDS.mvpMinAppearances = 5` so a 1-app player can't shoot to the top; Goal Kicking additionally requires ≥5 attempts. Row click opens `TeamInfoScreen` for that player's club with `goPlayerStats` as the back target. Data flow: pure read via `seasonLeaderboards.playerLeaderboard(key, limit)` for the 9 counted categories + `leaderboardAvgRating(state, minApps, limit)` for the rating category; goal-kicking has its own inline reducer over `state.career.roster` since it surfaces a derived ratio.
+
+Both stats screens re-render on `game:fixtureRecorded` + `game:weekAdvanced` + `game:initialized`, the same triggers used by `LeagueTableScreen`. Zero engine work was needed to ship this surface — all data is already accumulated post-fixture into `PlayerSeasonStats` + `TeamSeasonStats`. **Known gap (carried over):** the engine doesn't split goal-kicks by kind (conversion / penalty / drop) at the player level — `PlayerSeasonStats.conversions / penaltiesScored / dropGoals` remain reserved-but-zero. The Player Stats screen labels the Goal Kicking category as "Kicks made / attempted" rather than "Conversion %" to surface this honestly.
+
 ## Injuries
 
 Persistent contact injuries on the career roster, in-match-triggered and decremented round-by-round until recovery. Match-engine internals (the in-match `cards.injured` bucket, the per-tackle roll, the shared forced-sub flow) live in `docs/match-engine.md` § Injuries. Season-scope mechanics:
@@ -371,13 +381,13 @@ A three-match knockout follows the 18-round Premiership regular season: two semi
 | v14 | `ClubState.salaryBudget` — per-club owner-set budget for cap-relevant wages. Seeded from `CLUB_SALARY_BUDGETS_2025_26` at game start, adjusted each rollover by `prepareBudgetsForNextSeason`. `career.takeoverHistory: string[]` — clubIds taken over (Newcastle Red Bull at year 2 + random investors year 3+); excluded from future random rolls. |
 | v15 | `MarketState.bids: TransferBid[]` — competing bids in the active signing window (Phase 10 competitive signings). Pre-v15 saves load with `bids: []` and any prior in-window signings are already committed via `CONTRACT_SIGNED`. |
 | v16 | `MarketState.phase` gains `'signings-midseason'`. `career.midseasonRejections: Record<rosterId, weekUntilClear>` — per-player one-round cooldown after a mid-season free-agent declines. WEEK_ADVANCED prunes aged-out entries; SEASON_ROLLED_OVER clears them all. Pre-v16 saves migrate as `{}`. |
-| v17 | `TeamTactics` gains `offloadStrategy` (`'cautious' \| 'balanced' \| 'offload_freely'`). Pre-v17 saves backfill `'balanced'` (numerically neutral). |
+| v17 | `TeamTactics` gains `offloadStrategy` (`'cautious' \| 'balanced' \| 'offload_freely'`). Pre-v17 saves backfill `'balanced'` (numerically neutral) so the engine never sees undefined — same shape as the v9 → v10 `defensiveLine` migration. |
 | v18 | Training system. Each persisted Player gains `condition: number` (0-100, inter-match freshness — snapshotted from final in-match fatigue, modulated weekly by training). Top-level `training?: TrainingPlan` carries the manager's last chosen plan. Pre-v18 saves back-fill `condition: 100` on every roster entry and load with `training: undefined` (TrainingScreen falls back to `DEFAULT_TRAINING_PLAN`). |
 
 **Migration on load** (`GameCoordinator.fromSave`):
 
 - v17 → v18: `backfillRosterSeasonStats` also writes `condition: 100` on every roster Player that lacks the field. The top-level `training` field is optional — pre-v18 saves load with it undefined and `TrainingScreen` resolves to `DEFAULT_TRAINING_PLAN`. No retroactive condition state is fabricated: a v17 save mid-season resumes with everyone at full freshness, and the next post-match training week begins evolving condition.
-- v16 → v17: `parseSave` backfills `tactics.offloadStrategy = 'balanced'` when absent.
+- v16 → v17: `parseSave` backfills `tactics.offloadStrategy = 'balanced'` when absent on the persisted tactics blob.
 - v15 → v16: `parseCareer` defaults `midseasonRejections` to `{}`. `parseMarket` accepts the new `'signings-midseason'` phase value; pre-v16 saves never wrote it. No retroactive cooldowns — the player can immediately re-approach anyone after a v15→v16 load.
 - v13 → v14: pre-v14 clubs default `salaryBudget` to the effective cap (no retroactive constraint — the next rollover then recomputes via `computeBudgetEvents` and the per-club budget kicks in from then on). `takeoverHistory` defaults to `[]` — pre-v14 saves never had a takeover, so a v13 save loaded mid-year-1 still fires the Newcastle Red Bull takeover at the next rollover.
 - v12 → v13: no-op shim. `playoffs` is optional; pre-v13 archives gain `championTeamId: null`. After restoration `continueGame` calls `seedPlayoffBracket()` so a v12 save stuck at "all 18 played, no playoffs" auto-seeds and enters the playoff stage chain.

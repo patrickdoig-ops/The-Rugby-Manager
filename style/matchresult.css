@@ -507,6 +507,56 @@
   overflow: hidden;
 }
 
+/* Extended stat rows — revealed when the user expands the Key Stats
+   card. Five summary rows visible by default; tapping "Show all stats"
+   reveals the rest (22 entries, errors, lineouts, scrums, penalties
+   conceded, etc.). */
+.mr-stat-row--extended {
+  display: none;
+}
+
+.mr-stats-card--expanded .mr-stat-row--extended {
+  display: block;
+}
+
+.mr-stats-toggle {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: 1px solid var(--rm-hairline);
+  border-radius: 8px;
+  color: var(--rm-text-dim);
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .mr-stats-toggle:hover {
+    color: var(--rm-text);
+    border-color: var(--rm-border-soft);
+    background: color-mix(in oklch, var(--rm-pitch) 6%, transparent);
+  }
+}
+
+.mr-stats-toggle-icon {
+  transition: transform 0.2s ease;
+}
+
+.mr-stats-card--expanded .mr-stats-toggle-icon {
+  transform: rotate(180deg);
+}
+
 .mr-stat-bar-h,
 .mr-stat-bar-a {
   height: 100%;

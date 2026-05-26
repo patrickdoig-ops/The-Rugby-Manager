@@ -59,7 +59,27 @@ export const TACTIC_MODIFIERS = {
   boxKickFullbackBonus:       { three_back: 10, two_back: 8,  one_back: 0 },
   tacticalKickTouchReduction: { three_back: 18, two_back: 15, one_back: 0 },
   tacticalKickReturnBonus:    { three_back:  7, two_back: 5,  one_back: 0 },
-  forwardFatigueMultiplier:   { commit_numbers: 1.1, counter_ruck: 1.1 },
+  // Forward fatigue multiplier — applied per tick in StaminaSystem. Keyed
+  // on three orthogonal tactic dimensions: attackingBreakdown (4-supporter
+  // ruckers tire), defendingBreakdown (counter-rucking forwards tire), and
+  // attackingGamePlan (possession-style teams that keep carrying into
+  // contact tire). The three multiplications compound — a counter_ruck +
+  // possession team would push 1.1 × 1.05 = 1.155×.
+  //
+  // possession: 1.05 added in v2.184a after the v2.181a controlled mirror
+  // match showed possession at +3.8 margin vs balanced with NO defensive
+  // cost. The 5% extra forward fatigue is the real-rugby trade-off for
+  // running the ball through multiple phases — combines with the
+  // gamePlanHandlingPressure knock-on penalty below.
+  forwardFatigueMultiplier:   { commit_numbers: 1.1, counter_ruck: 1.1, possession: 1.05 },
+  // Possession-style handling-error pressure. Added on top of
+  // defensiveLineHandlingPressure when computing knockOnPct at each carry
+  // / outside-back pass site in OpenPlayEvent. Models "carrying repeatedly
+  // into contact creates more drop opportunities". 2pp is conservative —
+  // with ~30 carries/match and a base ~5% knock-on rate, this generates
+  // ~0.6 extra knock-ons per possession-side per match. Translates to
+  // -1 to -1.5 PF/g, the second half of the possession-plan rebalance.
+  gamePlanHandlingPressure:   { possession: 2, balanced: 0, kicking: 0 },
   // Penalty-rate shifts (in pct points) added to the matching base rate
   // in BREAKDOWN_PENALTIES / OBSTRUCTION_BASE_PCT. Modest values — these
   // dials nudge the trigger rate, they don't dominate it.

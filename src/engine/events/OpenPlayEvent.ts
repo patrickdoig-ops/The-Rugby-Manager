@@ -50,7 +50,12 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   // gates harder vs blitz) and the per-pass interception probability.
   // Hoisted above the gates so every check below sees the same value.
   const defensiveLine = defendTeam.tactics.defensiveLine;
-  const pressureMod   = TACTIC_MODIFIERS.defensiveLineHandlingPressure[defensiveLine];
+  // Per-carry knock-on rate shift. Combines the defender's defensiveLine
+  // pressure with the attacker's gameplan-driven handling pressure
+  // (possession-plan teams carry more, drop more — v2.184a rebalance).
+  // Both terms are pp added on top of the base knockOnPct.
+  const pressureMod   = TACTIC_MODIFIERS.defensiveLineHandlingPressure[defensiveLine]
+                      + TACTIC_MODIFIERS.gamePlanHandlingPressure[attackTeam.tactics.attackingGamePlan];
   const interceptPctBase = INTERCEPTION_BASE_PCT + TACTIC_MODIFIERS.interceptionMod[defensiveLine];
 
   const events: MatchEvent[] = [];

@@ -45,15 +45,16 @@ import type { PreSeasonTransfer } from '../data/transfers-2025-26';
 import { simulateFixture } from './simulateFixture';
 import { seedRoster } from './rosterSeeder';
 import { buildAutoSelectedTeamFromRoster } from './rosterTeamBuilder';
-import { parseSeasonStartYear } from './age';
+import { parseSeasonStartYear, seasonOpenIso } from './age';
 import { collectSeasonEvents, type MatchSnapshot, type PlayerStatsSnapshot } from './seasonStatsCollector';
 import { computeRollover } from './careerRollover';
+import { generatePersona } from './personaGenerator';
 import { seedContractFields } from './contractSeeder';
 import { TransferCoordinator } from './TransferCoordinator';
 import { computeBudgetEvents } from './budgetPlanner';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed, rngTransfer } from '../utils/rng';
-import { SEASON_VALUES, INJURY_SEVERITY, SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
+import { SEASON_VALUES, INJURY_SEVERITY, SENIOR_CAP, EFFECTIVE_CAP_CREDITS, STARTER_FA_POOL } from '../engine/balance';
 import type { InjurySeverity } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 import type { RawTeamInput } from '../types/teamData';
@@ -180,15 +181,40 @@ export class GameCoordinator {
       teamIds: allTeams.map(t => t.id),
       schedule,
     });
-    const seeded = seedRoster(allTeams, parseSeasonStartYear(coord.state.calendar.seasonLabel));
+    const seasonStartYear = parseSeasonStartYear(coord.state.calendar.seasonLabel);
+    const seeded = seedRoster(allTeams, seasonStartYear);
     applySeasonEvent(coord.state, {
       type: 'ROSTER_SEEDED',
       roster: seeded.roster,
       clubs: seeded.clubs,
       nextRosterId: seeded.nextRosterId,
     });
+    // Seed a small starter free-agent pool so Hub → Transfers has
+    // something to scout from day one. Uses the same persona generator
+    // as the rollover-time foreign imports; lower rating ceiling +
+    // wider age band gives a journeyman feel. fromSave skips this —
+    // the saved state already carries whatever FA pool the career has
+    // since accumulated.
+    coord.seedStarterFreeAgentPool(seasonStartYear);
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
+  }
+
+  // Generates STARTER_FA_POOL.count free agents via personaGenerator
+  // and applies one FOREIGN_IMPORT_ARRIVED per persona. RNG flows
+  // through rngTransfer so seed → identical pool every run.
+  private seedStarterFreeAgentPool(seasonStartYear: number): void {
+    const count = rngTransfer(STARTER_FA_POOL.count.min, STARTER_FA_POOL.count.max);
+    const calendarAnchor = seasonOpenIso(seasonStartYear);
+    let nextRid = this.state.career.nextRosterId;
+    for (let i = 0; i < count; i++) {
+      const player = generatePersona(
+        { rosterId: nextRid, ageBand: STARTER_FA_POOL.ageBand, ratingBand: STARTER_FA_POOL.ratingBand },
+        calendarAnchor,
+      );
+      applySeasonEvent(this.state, { type: 'FOREIGN_IMPORT_ARRIVED', player });
+      nextRid += 1;
+    }
   }
 
   static fromSave(

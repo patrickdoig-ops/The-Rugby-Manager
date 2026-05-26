@@ -238,14 +238,13 @@ document.addEventListener('DOMContentLoaded', () => {
   function goTransfersMidseason(): void {
     if (!gameEngine) return;
     gameEngine.openMidseasonSigningWindow();
-    // No FA pool (or every FA on cooldown) → openMidseasonSigningWindow
-    // leaves state.career.market null. Nothing to show — drop back to
-    // the Hub with a toast hint instead of an empty-state screen.
-    if (!gameEngine.getState().career.market) {
-      goHub();
-      return;
+    // Empty FA pool (or every FA on cooldown) → openMidseasonSigningWindow
+    // leaves state.career.market null. We still navigate to the screen
+    // so the user sees the empty state + a Continue button back to the
+    // Hub, rather than the tile silently round-tripping.
+    if (gameEngine.getState().career.market) {
+      saveGame(gameEngine.toSavePayload());
     }
-    saveGame(gameEngine.toSavePayload());
     const onSubmit = (): void => {
       if (!gameEngine) { goHub(); return; }
       const outcomes = gameEngine.runMidseasonSigning();

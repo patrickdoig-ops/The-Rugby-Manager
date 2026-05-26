@@ -88,11 +88,14 @@ export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy
   applyMatchEvent(state, { type: 'RATINGS_RECALCULATED' });
 
   const isConversion = phaseAtStart === MatchPhase.ConversionKick;
-  // Poor kick-off swaps possession (receiving team gets the scrum at halfway),
-  // but the event narration is from the kicker's perspective — preserve the
-  // pre-swap side so the row colour & side-name match the kicker, not the receiver.
-  const isPoorKickOffSwap = phaseAtStart === MatchPhase.KickOff && state.possession !== sideAtStart;
-  const preserveSide = isConversion || isPoorKickOffSwap;
+  // Conversion is the only phase whose narration is from the pre-swap
+  // possession side: the kicker just scored, possession then flips to set
+  // up the kick-off restart, but the event still belongs to the scoring
+  // team. Kick-off outcomes (poor_kick / clean_receive) DO swap to the
+  // receiver — and their {primary} + {side} both refer to the receiver
+  // now in possession ("Scrum awarded to {side} at halfway", "Great start
+  // for {side}"), so they must read state.possession after the swap.
+  const preserveSide = isConversion;
   // Carry phases that score a try emit with TryScored phase so they get the try highlight.
   // All other events use the phase being resolved (phaseAtStart), not the next phase.
   const isCarryToTry = (

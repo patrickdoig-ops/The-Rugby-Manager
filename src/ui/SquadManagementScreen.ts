@@ -304,6 +304,12 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     const saveDisabled = !dirty ? ' disabled' : '';
     const confirmHtml = discardOpen ? discardConfirmHtml() : '';
 
+    // Preserve scroll position across re-render. Tapping a row triggers
+    // render() (selection-state change), which rewrites el.innerHTML —
+    // without this, the freshly-mounted #sq-list resets to scrollTop 0
+    // and the user gets bounced to the top of the squad.
+    const prevScroll = el.querySelector<HTMLDivElement>('#sq-list')?.scrollTop ?? 0;
+
     el.style.setProperty('--team-color', teamJson.color);
     el.innerHTML = `
       <div class="app-header">
@@ -342,6 +348,13 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
 
       ${confirmHtml}
     `;
+
+    // Restore scroll position captured above the innerHTML rewrite so
+    // selection / swap re-renders feel in-place.
+    if (prevScroll) {
+      const newList = el.querySelector<HTMLDivElement>('#sq-list');
+      if (newList) newList.scrollTop = prevScroll;
+    }
 
     // Filter chips
     el.querySelectorAll<HTMLButtonElement>('.sq-chip').forEach(btn => {

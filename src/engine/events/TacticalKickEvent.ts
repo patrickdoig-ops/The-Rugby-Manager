@@ -23,11 +23,13 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer
   const originalBallX = state.ball.x;
   const intent = state.pendingKick;
 
+  const plan = attackTeam.tactics.attackingGamePlan;
+
   // Deliberate 50/22 attempt — branches out of the regular tactical-kick
   // path because success math is gated by the defending team's backfield
   // posture, not the standard touch-finder probability table.
   if (intent?.family === 'fifty_22' && startedInOwnHalf) {
-    return handleFiftyTwentyTwoAttempt(state, kicker, defender, defendTeam.tactics.backfieldDefence, originalBallX);
+    return handleFiftyTwentyTwoAttempt(state, kicker, defender, defendTeam.tactics.backfieldDefence, originalBallX, plan);
   }
 
   // Attacking kick — cross-field or grubber from #10 in / near the
@@ -47,11 +49,17 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer
   const goesOutOnTheFull = rng(1, 100) <= res.outOnTheFullProbability;
   const goesToTouch      = !goesOutOnTheFull && rng(1, 100) <= Math.max(0, res.touchProbability - touchReduction + defensiveLineKickMod);
 
+  // Gameplan distance bonus — a team on the `kicking` plan kicks longer
+  // from #10 (territory + clearance routed through TacticalKick); other
+  // plans see no bonus. Applied AFTER the touch / out-on-the-full rolls
+  // so it only affects how far the ball travels, not whether it finds
+  // touch (the resolver's touch probability already handled that).
+  const kickDistance = res.distance + TACTIC_MODIFIERS.gamePlanKickDistanceBonus[plan];
   const kickDir = attackDir(state);
-  const newBallX = clamp(state.ball.x + kickDir * res.distance, 5, 95);
+  const newBallX = clamp(state.ball.x + kickDir * kickDistance, 5, 95);
 
   const events: MatchEvent[] = [
-    { type: 'KICK_FROM_HAND', kicker, metres: res.distance },
+    { type: 'KICK_FROM_HAND', kicker, metres: kickDistance },
     { type: 'BALL_REPOSITIONED', x: newBallX },
   ];
 
@@ -145,8 +153,10 @@ function handleFiftyTwentyTwoAttempt(
   defender: Player,
   defenderBackfield: BackfieldDefence,
   originalBallX: number,
+  plan: 'possession' | 'balanced' | 'kicking',
 ): PhaseResult {
-  const res = resolveFiftyTwentyTwo(kicker, defenderBackfield);
+  const successBonus = TACTIC_MODIFIERS.gamePlanFiftyTwentyTwoBonus[plan];
+  const res = resolveFiftyTwentyTwo(kicker, defenderBackfield, successBonus);
   const kickDir = attackDir(state);
   const newBallX = clamp(state.ball.x + kickDir * res.distance, 5, 95);
 

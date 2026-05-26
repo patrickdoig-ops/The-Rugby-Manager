@@ -36,6 +36,19 @@ export const TACTIC_MODIFIERS = {
   // commit_numbers stays at 0 — it already wins more rucks via the
   // headcount-driven body-weight stack, no further reward needed.
   breakdownArsMod:            { commit_numbers: 0,   minimal_ruck: 6,  balanced: 0 },
+  // Territory bonuses for the `kicking` attacking gameplan. Wired into
+  // TacticalKickEvent and resolveFiftyTwentyTwo so a team committed to a
+  // kicking style gets:
+  //   * Longer territory + clearance kicks from #10 (+5m to res.distance)
+  //   * Higher deliberate 50:22 success rate (+8pp to baseSuccessPct)
+  // Box kicks (#9) and goal kicks are unaffected — those are situational
+  // calls that don't track a "we're going to play a kicking game" identity.
+  // The +5m / +8pp magnitudes are tuned to bring the `kicking` plan out
+  // of its slightly-negative margin (v2.181a controlled mirror match
+  // measured -0.9 vs balanced) without making it dominant; expected
+  // headline effect is ~+1.5 to +3 margin gain on a kicking-plan team.
+  gamePlanKickDistanceBonus:  { possession: 0, balanced: 0, kicking: 5 },
+  gamePlanFiftyTwentyTwoBonus:{ possession: 0, balanced: 0, kicking: 8 },
   // Trimmed in v2.181a — the controlled mirror-match experiment
   // (scripts/tacticsExperiment.ts) showed three_back giving home a +4.2
   // margin advantage over one_back, driven primarily by the kicking-game

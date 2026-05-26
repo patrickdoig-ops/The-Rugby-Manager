@@ -35,11 +35,20 @@ export interface FiftyTwoTwoResolution {
   distance: number;
 }
 
-export function resolveFiftyTwentyTwo(kicker: Player, defenderBackfield: BackfieldDefence): FiftyTwoTwoResolution {
+export function resolveFiftyTwentyTwo(
+  kicker: Player,
+  defenderBackfield: BackfieldDefence,
+  // Additional success-rate boost from the kicking team's gameplan
+  // (TACTIC_MODIFIERS.gamePlanFiftyTwentyTwoBonus). A team committed to a
+  // kicking style backs themselves on the corner kick more often — the
+  // gate stays defender-backfield-dominant, this just nudges the
+  // distribution.
+  planBonus: number = 0,
+): FiftyTwoTwoResolution {
   const V = FIFTY_22_VALUES;
   const baseSuccess = V.baseSuccessPct[defenderBackfield];
   const statMod = (kicker.currentStats.kicking - V.kickerStatPivot) * V.kickerStatWeight;
-  const successPct = Math.max(1, Math.min(85, baseSuccess + statMod));
+  const successPct = Math.max(1, Math.min(85, baseSuccess + statMod + planBonus));
   const distance = rng(V.attemptDistance[0], V.attemptDistance[1]);
 
   if (rng(1, 100) <= successPct) {

@@ -4,12 +4,12 @@
 // inline in index.html for first-paint timing and stays separate.
 
 const TICK_DELAY_KEY        = 'rugby-manager-tick-delay-ms';
-const DEFAULT_TICK_DELAY_MS = 2000;
-// Bounds match the slider's min/max in AppShell.ts. A saved value outside
-// the range falls back to the default — defense against a hand-edited
-// localStorage entry rather than a real path.
+const DEFAULT_TICK_DELAY_MS = 2500;
+// Bounds bracket the speed buttons' data-ms range in AppShell.ts (currently
+// 400ms at 4× → 5000ms at ½×). A saved value outside the range falls back
+// to the default — defense against a hand-edited localStorage entry.
 const MIN_TICK_DELAY_MS = 100;
-const MAX_TICK_DELAY_MS = 4000;
+const MAX_TICK_DELAY_MS = 5000;
 
 export function loadTickDelayMs(): number {
   try {

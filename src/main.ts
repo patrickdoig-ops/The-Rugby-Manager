@@ -23,6 +23,7 @@ import '../style/tactics.css';
 import '../style/playoffbracket.css';
 import '../style/signingresults.css';
 import '../style/budgetreveal.css';
+import '../style/training.css';
 
 import { buildAppShell }           from './ui/AppShell';
 import { preloadAllCues, playCue } from './ui/SoundManager';
@@ -59,6 +60,7 @@ import { PRE_SEASON_TRANSFERS_2025_26 } from './data/transfers-2025-26';
 import { initRolloverScreen, showRollover }         from './ui/RolloverScreen';
 import { initContractsScreen, showContracts, showContractsMarqueeEdit } from './ui/ContractsScreen';
 import { initSquadManagementScreen, showSquadManagement } from './ui/SquadManagementScreen';
+import { initTrainingScreen, showTrainingPostMatch, showTrainingMidweek } from './ui/TrainingScreen';
 import { screenRouter }            from './ui/ScreenRouter';
 import { loadSave, saveGame, clearSave } from './ui/SaveManager';
 import { loadTickDelayMs }           from './ui/uiPrefs';
@@ -196,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onFixtures: goFixtures,
       onLeague:   goLeagueMenu,
       onSquad:    goSquad,
-      onTraining: () => { /* placeholder until Training screen lands */ },
+      onTraining: goTrainingMidweek,
       onContracts: goContracts,
       onTransfers: goTransfersMidseason,
       onSettings: goSettingsFromHub,
@@ -242,6 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initContractsScreen(getGameEngine, allTeams, goHub);
     initSquadManagementScreen({ getGameEngine, allTeams, onBack: goHub });
     initSquadOverviewScreen(getGameEngine, allTeams);
+    initTrainingScreen(getGameEngine);
 
     // The post-match Continue chain (LeagueTable → ...) reads these flags.
     // game:bracketSeeded fires after the last regular-season fixture —
@@ -287,6 +290,17 @@ document.addEventListener('DOMContentLoaded', () => {
   function goSquad(): void {
     showSquadManagement();
     screenRouter.show('squad-management');
+  }
+
+  // Hub → Training. Mid-week edit of next round's training plan. The
+  // Back button persists the plan without applying training (training
+  // itself runs only via the post-match chain) and returns to Hub.
+  function goTrainingMidweek(): void {
+    showTrainingMidweek(() => {
+      if (gameEngine) saveGame(gameEngine.toSavePayload());
+      goHub();
+    });
+    screenRouter.show('training');
   }
 
   // Hub → Transfers. Opens an interactive mid-season FA market: user
@@ -848,17 +862,22 @@ document.addEventListener('DOMContentLoaded', () => {
         await gameEngine.recordPlayerMatchResult(round, state.score.home, state.score.away, snapshot);
         saveGame(gameEngine.toSavePayload());
       }
-      // Post-match nav chain. Normally: RoundResults → LeagueTable → Hub.
-      // If `bracketSeededPending` was latched during
-      // recordPlayerMatchResult (final regular-season fixture just
-      // resolved), the chain detours through PlayoffBracketScreen →
-      // playoff stages → EndOfSeason → Renewals → Signings → Rollover.
+      // Post-match nav chain. Normally:
+      //   RoundResults → LeagueTable → TrainingScreen → Hub.
+      // The TrainingScreen step is skipped when `bracketSeededPending`
+      // is latched (final regular-season fixture just resolved — the
+      // off-season chain handles rollover-time attribute drift, no
+      // training between R18 and the playoffs).
       const onLeagueContinue = (): void => {
         if (bracketSeededPending) {
           bracketSeededPending = false;
           runPlayoffStage();
         } else {
-          goHub();
+          showTrainingPostMatch(() => {
+            if (gameEngine) saveGame(gameEngine.toSavePayload());
+            goHub();
+          });
+          screenRouter.show('training');
         }
       };
       showRoundResults(round, () => {

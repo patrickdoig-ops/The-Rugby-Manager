@@ -51,5 +51,11 @@ export interface AppEvents {
   // PLAYOFF_RESULT_RECORDED so the bracket screen + hub re-render.
   'game:bracketSeeded':   { state: GameState };
   'game:playoffsUpdated': { state: GameState };
+  // Fires after GameCoordinator.applyTrainingWeek completes — every roster
+  // player's condition + (possibly) baseStats have been mutated, so any
+  // screen that surfaces those fields should re-render. Lives on the
+  // game:* track because training is a season-scope mutation, not an
+  // in-match one.
+  'game:trainingApplied': { state: GameState };
 }
 

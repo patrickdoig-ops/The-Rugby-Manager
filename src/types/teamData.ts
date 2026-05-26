@@ -24,7 +24,7 @@ import type { TeamTactics } from './team';
 export type RawPlayer = Omit<Player,
   'currentStats' | 'fatiguePct' | 'rating' | 'x' | 'y' | 'squadNumber'
   | 'rosterId' | 'seasonStats' | 'matchStats' | 'formModifier'
-  | 'contract' | 'reputation'
+  | 'contract' | 'reputation' | 'condition'
 > & {
   squadNumber?: number;
   rosterId?: number;
@@ -34,6 +34,11 @@ export type RawPlayer = Omit<Player,
   // re-derives a matchday RawTeamInput from the persisted roster.
   contract?: Partial<PlayerContract>;
   reputation?: number;
+  // Inter-match freshness, threaded through by rosterTeamBuilder so
+  // MatchCoordinator.initPlayer can use it as the starting fatiguePct.
+  // Absent on the raw JSON path (legacy fixtures, tests) where the
+  // engine defaults to 100.
+  condition?: number;
 };
 
 export type RawTeamInput = {

@@ -10,6 +10,7 @@
 
 import type { TeamTactics } from './team';
 import type { InjuryKind, InjurySeverity, Player, PlayerStats } from './player';
+import type { TrainingPlan } from './training';
 
 export interface Fixture {
   round: number;
@@ -387,6 +388,10 @@ export interface GameState {
     // PLAYER_MATCHDAY_SQUAD_SET and consumed only by PreMatchScreen.
     tactics?: TeamTactics;
     matchdaySquad?: PlayerRef[]; // length 23: slots 1-15 starters, 16-23 bench
+    // Manager's training plan for the current week. Undefined ⇔ fall back to
+    // DEFAULT_TRAINING_PLAN. Persists between weeks (last week's choice is
+    // next week's default). Set via PLAYER_TRAINING_PLAN_SET.
+    training?: TrainingPlan;
   };
   seed: number;
   career: CareerState;
@@ -808,4 +813,32 @@ export type SeasonEvent =
       type: 'MIDSEASON_OFFER_REJECTED';
       rosterId: number;
       weekUntilClear: number;
+    }
+  | {
+      // Writes state.player.training. Same shape + semantics as
+      // PLAYER_TACTICS_SET: persists the manager's choice so it becomes
+      // next week's default.
+      type: 'PLAYER_TRAINING_PLAN_SET';
+      plan: TrainingPlan;
+    }
+  | {
+      // Applies one week of training to a single roster player. Reducer
+      // adds conditionDelta to Player.condition (clamped 0-100) and each
+      // statDelta to the matching baseStats key (clamped 1-99). Same
+      // shape as PLAYER_AGED for stats; the condition field is the new
+      // inter-match freshness layer.
+      type: 'PLAYER_TRAINED';
+      rosterId: number;
+      conditionDelta: number;
+      statDeltas: Partial<PlayerStats>;
+    }
+  | {
+      // Match-end snapshot of one player's final fatigue, persisted back
+      // to the roster as their inter-match condition. Set, not add.
+      // Emitted by collectConditionEvents for every player who took the
+      // field; bench players who didn't appear get no event and keep
+      // their accumulated condition.
+      type: 'PLAYER_CONDITION_UPDATED';
+      rosterId: number;
+      condition: number;
     };

@@ -2,10 +2,17 @@
 // Screen's "Continue Game" button can resume mid-season after a browser
 // close. Schema is versioned — bump SAVE_VERSION whenever the shape changes.
 //
-// v9 (current) adds the injury system. Persistent injury state lives on
-// each roster Player as the optional `injury` field (PlayerInjury —
-// kind, severity, weeksRemaining, injuredOn, isRecurrence). Absent ⇔
-// fit. Decremented weekly on WEEK_ADVANCED; cleared by PLAYER_RECOVERED.
+// v18 (current) adds the training system. Adds `Player.condition` on every
+// roster Player (0-100, persistent inter-match freshness) and an optional
+// `training?: TrainingPlan` field at the top level (manager's last
+// training-week choice). Pre-v18 saves load with condition back-filled to
+// 100 on every roster entry and training undefined — TrainingScreen
+// resolves both via its DEFAULT_TRAINING_PLAN fallback.
+//
+// v9 added the injury system. Persistent injury state lives on each
+// roster Player as the optional `injury` field (PlayerInjury — kind,
+// severity, weeksRemaining, injuredOn, isRecurrence). Absent ⇔ fit.
+// Decremented weekly on WEEK_ADVANCED; cleared by PLAYER_RECOVERED.
 // Older saves load with every player at `injury: undefined` — purely
 // additive, no migration shim needed.
 //
@@ -44,10 +51,11 @@ import type { Player, PlayerSeasonStats } from '../types/player';
 import { zeroSeasonStats } from '../types/player';
 import { zeroTeamSeasonStats } from '../types/gameState';
 import type { TeamTactics } from '../types/team';
+import type { TrainingPlan } from '../types/training';
 
 const SAVE_KEY = 'rugby-manager-save';
-const SAVE_VERSION = 17;
-const ACCEPTED_VERSIONS = new Set([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+const SAVE_VERSION = 18;
+const ACCEPTED_VERSIONS = new Set([17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
 
 export type SavedGame = SavedSeason & { version: number };
 
@@ -91,6 +99,13 @@ export function loadSave(): SavedSeason | null {
       parsed.version >= 4 && Array.isArray(parsed.matchdaySquad) && parsed.matchdaySquad.length === 23
         ? parsed.matchdaySquad.map(r => ({ firstName: r.firstName, lastName: r.lastName }))
         : undefined;
+    // v18+ persists the manager's last training plan. Pre-v18 saves omit
+    // the field; TrainingScreen falls back to DEFAULT_TRAINING_PLAN on
+    // first render after load.
+    const training: TrainingPlan | undefined =
+      parsed.version >= 18 && parsed.training && isValidTrainingPlan(parsed.training)
+        ? { ...parsed.training }
+        : undefined;
     // v5+ persists the full career snapshot. v4 and older fall through —
     // GameCoordinator.fromSave seeds a fresh roster from JSONs.
     const career: SavedCareer | undefined =
@@ -129,6 +144,7 @@ export function loadSave(): SavedSeason | null {
       ...(fixtures !== undefined ? { fixtures } : {}),
       ...(tactics !== undefined ? { tactics } : {}),
       ...(matchdaySquad !== undefined ? { matchdaySquad } : {}),
+      ...(training !== undefined ? { training } : {}),
       ...(career !== undefined ? { career } : {}),
       ...(teamSeasonStats !== undefined ? { teamSeasonStats } : {}),
       ...(playoffs !== undefined ? { playoffs } : {}),
@@ -216,23 +232,39 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
 // shape only carried 11 fields (appearances / tries / 2 cards / 3 goal-kick
 // reserves / 3 tackle-flavoured + ratingSum). Newer fields (carries,
 // metresCarried, line breaks, etc.) default to 0 so applySeasonEvent's
-// additive deltas don't NaN out on the next match.
+// additive deltas don't NaN out on the next match. v18 also back-fills
+// `condition: 100` for every roster entry (training-system addition).
 function backfillRosterSeasonStats(roster: Record<number, Player>): Record<number, Player> {
   const zero = zeroSeasonStats();
   for (const k of Object.keys(roster)) {
     const p = roster[Number(k)];
     if (!p.seasonStats) {
       p.seasonStats = { ...zero };
-      continue;
+    } else {
+      const merged: PlayerSeasonStats = { ...zero };
+      for (const f of Object.keys(zero) as (keyof PlayerSeasonStats)[]) {
+        const v = p.seasonStats[f];
+        if (typeof v === 'number') merged[f] = v;
+      }
+      p.seasonStats = merged;
     }
-    const merged: PlayerSeasonStats = { ...zero };
-    for (const f of Object.keys(zero) as (keyof PlayerSeasonStats)[]) {
-      const v = p.seasonStats[f];
-      if (typeof v === 'number') merged[f] = v;
-    }
-    p.seasonStats = merged;
+    if (typeof p.condition !== 'number') p.condition = 100;
   }
   return roster;
+}
+
+// Validate a candidate TrainingPlan from save JSON — fall through to
+// undefined (and let DEFAULT_TRAINING_PLAN take over) rather than trust
+// arbitrary user-edited JSON straight into the engine.
+function isValidTrainingPlan(raw: unknown): raw is TrainingPlan {
+  if (typeof raw !== 'object' || raw === null) return false;
+  const r = raw as Record<string, unknown>;
+  const intensities = ['rest', 'light', 'medium', 'high'];
+  const fwd = ['set_piece', 'strength', 'stamina', 'handling'];
+  const bck = ['tackling', 'defensive_organisation', 'attacking_skills', 'kicking'];
+  return typeof r.intensity === 'string'      && intensities.includes(r.intensity)
+      && typeof r.forwardsFocus === 'string'  && fwd.includes(r.forwardsFocus)
+      && typeof r.backsFocus === 'string'     && bck.includes(r.backsFocus);
 }
 
 function cloneLeaders(l: SeasonAwards): SeasonAwards {

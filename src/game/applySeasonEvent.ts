@@ -516,6 +516,27 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       state.career.midseasonRejections[event.rosterId] = event.weekUntilClear;
       return;
     }
+    case 'PLAYER_TRAINING_PLAN_SET': {
+      state.player.training = { ...event.plan };
+      return;
+    }
+    case 'PLAYER_TRAINED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.condition = Math.max(0, Math.min(100, p.condition + event.conditionDelta));
+      for (const [stat, delta] of Object.entries(event.statDeltas)) {
+        if (delta === undefined) continue;
+        const k = stat as keyof typeof p.baseStats;
+        p.baseStats[k] = Math.max(1, Math.min(99, p.baseStats[k] + delta));
+      }
+      return;
+    }
+    case 'PLAYER_CONDITION_UPDATED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.condition = Math.max(0, Math.min(100, event.condition));
+      return;
+    }
     default: {
       const _: never = event;
       void _;

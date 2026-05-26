@@ -174,6 +174,12 @@ export interface Player {
   rating: number;
   x: number;
   y: number;
+  // Persistent inter-match freshness, 0-100. Seeded at 100; snapshotted from
+  // each player's final in-match fatigue via PLAYER_CONDITION_UPDATED, then
+  // adjusted weekly by training (PLAYER_TRAINED). Read at MatchCoordinator.
+  // initPlayer time as the starting fatiguePct, so a tired starter actually
+  // starts the next match tired.
+  condition: number;
   // Career-scope persistent injury (only meaningful on the roster Player).
   // Optional ⇔ player is fit. Decremented on WEEK_ADVANCED, cleared by
   // PLAYER_RECOVERED. See PlayerInjury above.

@@ -97,6 +97,10 @@ function initPlayer(raw: RawPlayer & { rosterId?: number }): Player {
   for (const key of Object.keys(current) as (keyof PlayerStats)[]) {
     current[key] = Math.max(1, Math.min(100, current[key] + form));
   }
+  // Carry-over freshness from the previous match (set via PLAYER_CONDITION_UPDATED
+  // at match-end, persisted on the roster). Falls back to 100 for JSON
+  // imports / legacy paths that don't thread it through.
+  const startingFatigue = raw.condition ?? 100;
   return {
     ...raw,
     squadNumber: raw.squadNumber ?? raw.id,
@@ -113,10 +117,11 @@ function initPlayer(raw: RawPlayer & { rosterId?: number }): Player {
     matchStats: zeroMatchStats(),
     seasonStats: zeroSeasonStats(),
     formModifier: form,
-    fatiguePct: 100,
+    fatiguePct: startingFatigue,
     rating: 6.0,
     x: 50,
     y: 50,
+    condition: startingFatigue,
   };
 }
 

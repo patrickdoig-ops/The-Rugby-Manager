@@ -33,7 +33,8 @@ export type ScreenId =
   | 'rollover'
   | 'contracts'
   | 'squad-management'
-  | 'squad-overview';
+  | 'squad-overview'
+  | 'training';
 
 const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'home':          { elId: 'home-screen',   shownDisplay: '' },
@@ -63,6 +64,7 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'contracts':        { elId: 'contracts',        shownDisplay: '' },
   'squad-management': { elId: 'squad-management', shownDisplay: '' },
   'squad-overview':   { elId: 'squad-overview',   shownDisplay: '' },
+  'training':         { elId: 'training',         shownDisplay: '' },
 };
 
 let _currentScreen: ScreenId | null = null;

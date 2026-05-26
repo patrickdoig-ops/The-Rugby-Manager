@@ -154,6 +154,23 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     if (!r) return { yellow: 0, red: 0 };
     return { yellow: r.seasonStats.yellowCards, red: r.seasonStats.redCards };
   }
+  void cardsFor; // retained as a future hook; no longer surfaced as a per-row badge.
+
+  function conditionFor(p: { rosterId?: number }): number | null {
+    if (p.rosterId === undefined) return null;
+    const state = opts.getGameEngine().getState();
+    const r = state.career.roster[p.rosterId];
+    if (!r) return null;
+    return r.condition;
+  }
+
+  function conditionClass(c: number): string {
+    if (c >= 90) return 'con-elite';
+    if (c >= 75) return 'con-good';
+    if (c >= 55) return 'con-avg';
+    if (c >= 35) return 'con-poor';
+    return 'con-veryPoor';
+  }
 
   function listForTier(tier: Tier): RawPlayer[] {
     return tier === 'starter' ? draftStarters
@@ -436,6 +453,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         <span class="sq-section-count">${items.length}</span>
         <div class="sq-col-headers">
           <span class="sq-col-header sq-col-header--ovr">OVR</span>
+          <span class="sq-col-header sq-col-header--con">CON</span>
           <span class="sq-col-header sq-col-header--avr">AVR</span>
         </div>
       </div>
@@ -467,14 +485,10 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     const injuryBadge = injury
       ? `<span class="injury-badge" title="${injuryKindLabel(injury.kind)} — ${injury.weeksRemaining}w">${injury.weeksRemaining}w</span>`
       : '';
-    const cards = cardsFor(p);
-    const cardBadges =
-      (cards.yellow > 0
-        ? `<span class="sq-card-badge sq-card-badge--yellow" title="${cards.yellow} yellow card${cards.yellow > 1 ? 's' : ''} this season">${cards.yellow > 1 ? cards.yellow : ''}</span>`
-        : '')
-      + (cards.red > 0
-        ? `<span class="sq-card-badge sq-card-badge--red" title="${cards.red} red card${cards.red > 1 ? 's' : ''} this season">${cards.red > 1 ? cards.red : ''}</span>`
-        : '');
+    const condition = conditionFor(p);
+    const conditionCell = condition === null
+      ? `<div class="sq-con sq-con--unrated" title="No condition data">—</div>`
+      : `<div class="sq-con ${conditionClass(condition)}" title="Current condition">${Math.round(condition)}%</div>`;
     const avr = avrFor(p);
     const avrCell = avr === null
       ? `<div class="sq-avr sq-avr--unrated" title="No appearances yet this season">—</div>`
@@ -490,10 +504,11 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       <div class="${classes.join(' ')}" data-tier="${tier}" data-squad="${sn}">
         <div class="sq-jersey sq-jersey--${tier}">${jerseyContent}</div>
         <div class="sq-player-info">
-          <span class="sq-player-name sq-player-name--${tier}">${shortName(p)}${injuryBadge ? ' ' + injuryBadge : ''}${cardBadges}</span>
+          <span class="sq-player-name sq-player-name--${tier}">${shortName(p)}${injuryBadge ? ' ' + injuryBadge : ''}</span>
           <span class="sq-player-pos sq-player-pos--${tier}">${p.position}</span>
         </div>
         <div class="sq-ovr ${ovrClass(ovr)}">${ovr}</div>
+        ${conditionCell}
         ${avrCell}
         ${statsGrid}
       </div>

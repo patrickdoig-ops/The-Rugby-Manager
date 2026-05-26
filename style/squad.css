@@ -123,6 +123,7 @@
 }
 
 .sq-col-header--ovr { width: 34px; }
+.sq-col-header--con { width: 40px; }
 .sq-col-header--avr { width: 40px; }
 
 /* Player row */
@@ -316,6 +317,57 @@
 }
 
 .sq-avr--unrated {
+  color: var(--rm-text-faint);
+  background: transparent;
+}
+
+/* CON badge — current player condition as a percentage. Same dimensions
+   as .sq-avr so the OVR / CON / AVR triplet reads as a tidy row of
+   badges. Colour bands key off the freshness scale rather than the
+   rating scale: high condition shows the rm-pitch green, mid amber,
+   low rm-danger. */
+.sq-con {
+  flex-shrink: 0;
+  width: 40px;
+  height: 30px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+}
+
+.sq-con.con-elite {
+  color: var(--rm-stat-3);
+  background: color-mix(in oklch, var(--rm-stat-3) 12%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-3) 28%, transparent);
+}
+.sq-con.con-good {
+  color: var(--rm-stat-4);
+  background: color-mix(in oklch, var(--rm-stat-4) 12%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-4) 28%, transparent);
+}
+.sq-con.con-avg {
+  color: var(--rm-stat-5);
+  background: color-mix(in oklch, var(--rm-stat-5) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-5) 25%, transparent);
+}
+.sq-con.con-poor {
+  color: var(--rm-stat-2);
+  background: color-mix(in oklch, var(--rm-stat-2) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-2) 25%, transparent);
+}
+.sq-con.con-veryPoor {
+  color: var(--rm-stat-1);
+  background: color-mix(in oklch, var(--rm-stat-1) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-1) 25%, transparent);
+}
+
+.sq-con--unrated {
   color: var(--rm-text-faint);
   background: transparent;
 }

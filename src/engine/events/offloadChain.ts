@@ -6,7 +6,7 @@ import type { MatchState } from '../../types/match';
 import type { Team } from '../../types/team';
 import type { OpenPlayResolution } from '../resolvers/OpenPlayResolver';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
-import { availableForwards, availableBacks, onFieldPlayers } from '../FieldPosition';
+import { availableForwards, availableBacks, pickPrimaryDefender, pickAssistTackler } from '../FieldPosition';
 import { rng } from '../../utils/rng';
 import { OFFLOAD_VALUES, knockOnPct } from '../balance';
 import { isForwardSlot } from '../Slot';
@@ -79,9 +79,11 @@ export function tryOffloadChain(args: OffloadChainArgs): OffloadChainResult {
     const catcher = pickReceiver(currentCarrier, attackTeam, state, attackSide);
     if (!catcher) break;
 
-    const defendOnField = onFieldPlayers(defendTeam, state, defSide).filter(p => p !== currentDefender);
-    if (defendOnField.length === 0) break;
-    const newDefender = defendOnField[rng(0, defendOnField.length - 1)];
+    // Channel-aware: defender drawn from the table matching the catcher's
+    // channel (close / midfield / wide), excluding the previous chain
+    // defender. Falls back to any other on-field defender if the weighted
+    // pool is empty.
+    const newDefender = pickPrimaryDefender(defendTeam, state, defSide, catcher, currentDefender);
 
     chainNarration.push({ kind: 'phase_outcome', phase, key: 'offload_attempt', primary: currentCarrier, secondary: catcher });
     chainEvents.push({ type: 'OFFLOAD_ATTEMPTED', offloader: currentCarrier, catcher, attackSide });
@@ -91,7 +93,8 @@ export function tryOffloadChain(args: OffloadChainArgs): OffloadChainResult {
 
     // Original carrier credit lands the same way whether catch succeeds or
     // fails: a play_on CARRY_RESOLVED with metres 0 — carries++ on prev
-    // carrier, tacklesMade++ on prev defender, no ball-position change.
+    // carrier, tacklesMade++ on prev defender. The intermediate link is
+    // always a made tackle, so it gets an assist too.
     chainEvents.push({
       type: 'CARRY_RESOLVED',
       carrier: currentCarrier,
@@ -100,6 +103,7 @@ export function tryOffloadChain(args: OffloadChainArgs): OffloadChainResult {
       direction,
       outcome: 'play_on',
       defSide,
+      assistTackler: pickAssistTackler(defendTeam, state, defSide, currentDefender),
     });
 
     if (catchRoll <= catchPct) {

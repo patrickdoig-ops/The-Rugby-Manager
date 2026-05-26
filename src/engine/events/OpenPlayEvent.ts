@@ -7,7 +7,7 @@ import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
-import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender } from '../FieldPosition';
+import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler } from '../FieldPosition';
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
@@ -187,6 +187,13 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
     ballCarrier = outsideBack;
   }
 
+  // Channel-aware primary defender — picked AFTER ballCarrier is finalised
+  // (the goWide branch above swaps it to the outsideBack). The early-pick
+  // `defender` from line 47 stays in scope for any KO / obstruction
+  // narration that fired before this point (those paths don't emit
+  // CARRY_RESOLVED, so the swap doesn't affect tackle stats).
+  defender = pickPrimaryDefender(defendTeam, state, defSide, ballCarrier);
+
   // Step 3 — Evasion → Step 4 Collision (handling gate already cleared)
   const ha = homeEdge(state, HOME_ADVANTAGE.carryMod);
   // defensiveLine was hoisted up top for the pressure / interception
@@ -254,6 +261,10 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
     ? pickCoverDefender(defendTeam, state, defSide)
     : undefined;
 
+  const assistTackler = (res.outcome === 'dominant_carry' || res.outcome === 'play_on' || res.outcome === 'dominant_tackle')
+    ? pickAssistTackler(defendTeam, state, defSide, defender)
+    : undefined;
+
   events.push({
     type: 'CARRY_RESOLVED',
     carrier: ballCarrier,
@@ -263,6 +274,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
     outcome: res.outcome,
     defSide,
     coverTackler,
+    assistTackler,
   });
 
   let nextPhase: MatchPhase;

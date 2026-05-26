@@ -97,6 +97,16 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
           state.stats.tackles[defSide].made++;
           break;
       }
+      // Assist tackler — second player credited on every made outcome.
+      // Bumps both attempted and made (player + team) so the team-level
+      // made ≤ attempted invariant stays balanced.
+      if (event.assistTackler
+          && (outcome === 'dominant_carry' || outcome === 'play_on' || outcome === 'dominant_tackle')) {
+        event.assistTackler.matchStats.tacklesAttempted++;
+        event.assistTackler.matchStats.tacklesMade++;
+        state.stats.tackles[defSide].attempted++;
+        state.stats.tackles[defSide].made++;
+      }
       return;
     }
 

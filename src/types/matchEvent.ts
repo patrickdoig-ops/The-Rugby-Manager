@@ -29,6 +29,11 @@ export type MatchEvent =
       // initial defender keeps their missed tackle (tacklesAttempted only).
       // Set only when outcome === 'line_break' && !tryScored.
       coverTackler?: Player;
+      // Second defender arriving in support — credited with tacklesAttempted++
+      // and tacklesMade++ alongside the primary on every made outcome
+      // (dominant_carry / play_on / dominant_tackle). Drawn from defending
+      // forwards (back row + locks heavy). Not set on line_break.
+      assistTackler?: Player;
     }
 
   // ── Errors / turnovers ───────────────────────────────────────────────────

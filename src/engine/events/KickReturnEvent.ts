@@ -5,7 +5,7 @@ import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
-import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, pickCoverDefender } from '../FieldPosition';
+import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, pickCoverDefender, pickKickReturnDefender, pickAssistTackler } from '../FieldPosition';
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
@@ -20,7 +20,6 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
   const attackSide = state.possession;
   const defSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
   const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
-  const defendOnField = onFieldPlayers(defendTeam, state, defSide);
 
   // Step 0 — Kick or carry decision (see KickDecisionDirector)
   const decision = decideKick({ state, attackTeam, attackOnField });
@@ -28,9 +27,11 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
     return buildKickTransition(decision, MatchPhase.KickReturn);
   }
 
-  // Step 1 — Carrier is whoever caught the kick; no handling gate
+  // Step 1 — Carrier is whoever caught the kick; no handling gate.
+  // Defender is drawn from the chase pack — back-row + hookers do most of
+  // the chase-and-tackle work (flat forward-weighted, no carrier awareness).
   let carrier = state.kickReturnCarrier ?? (attackOnField.length > 0 ? attackOnField[rng(0, attackOnField.length - 1)] : randomPlayer(attackTeam));
-  let defender = defendOnField.length > 0 ? defendOnField[rng(0, defendOnField.length - 1)] : randomPlayer(defendTeam);
+  let defender = pickKickReturnDefender(defendTeam, state, defSide);
 
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;
   const events: MatchEvent[] = [
@@ -102,6 +103,10 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
     ? pickCoverDefender(defendTeam, state, defSide)
     : undefined;
 
+  const assistTackler = (res.outcome === 'dominant_carry' || res.outcome === 'play_on' || res.outcome === 'dominant_tackle')
+    ? pickAssistTackler(defendTeam, state, defSide, defender)
+    : undefined;
+
   events.push({
     type: 'CARRY_RESOLVED',
     carrier,
@@ -111,6 +116,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
     outcome: res.outcome,
     defSide,
     coverTackler,
+    assistTackler,
   });
 
   let nextPhase: MatchPhase;

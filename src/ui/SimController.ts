@@ -118,6 +118,16 @@ export function initSimController(engine: MatchCoordinator): void {
     btnSubs.disabled    = false;
   }));
 
+  // Half-time auto-pause: engine stopped itself, user must press Play to
+  // start the second half. Distinct from engine:paused (modal hand-off)
+  // because the user keeps full control of Play / Pause / Tactics / Subs.
+  unsubs.push(eventBus.on('engine:autoPaused', () => {
+    btnPlay.disabled    = false;
+    btnPause.disabled   = true;
+    btnTactics.disabled = false;
+    btnSubs.disabled    = false;
+  }));
+
   unsubs.push(eventBus.on('ui:tacticsClosed', () => {
     btnTactics.disabled = false;
     btnSubs.disabled    = false;

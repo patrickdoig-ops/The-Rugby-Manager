@@ -29,6 +29,11 @@ export interface AppEvents {
   'engine:stateChange': { state: MatchState };
   'engine:paused':      { payload: ModalPayload };
   'engine:resumed':     Record<string, never>;
+  // Engine paused itself outside a modal hand-off — currently fires at the
+  // half-time whistle so the user has to press Play to start the second
+  // half. Distinct from `engine:paused` (modal) because the user keeps
+  // agency over Play / Pause / Tactics / Subs while paused.
+  'engine:autoPaused':  { reason: 'half_time' };
   'engine:finished':    { state: MatchState };
   'ui:speedChange':     { delayMs: number };
   'ui:tacticsChange':   { teamId: string; tactics: TeamTactics };

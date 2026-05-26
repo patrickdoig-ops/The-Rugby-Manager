@@ -689,6 +689,7 @@ export class MatchCoordinator {
       previousPhase = MatchPhase.Penalty;
     }
 
+    const wasHalfTimeDone = this.state.clock.halfTimeDone;
     if (!this.state.clock.clockInTheRed) {
       this.clock.checkClockInRed(this.state);
     } else if (wasInRed && this.clock.shouldEndPeriod(this.state, previousPhase)) {
@@ -699,6 +700,19 @@ export class MatchCoordinator {
         await this.clock.endMatch(this.state);
         return;
       }
+    }
+
+    // Half-time auto-pause. When triggerHalfTime fires on this tick, drain
+    // the commentary queue so the user reads the half-time line, then pause
+    // the engine and signal SimController to flip the buttons back to
+    // playable. The user clicks Play to start the second half. Skipped in
+    // silent mode so headless harnesses (determinism, telemetry, AI
+    // fixtures) blow straight through to full-time.
+    if (!this.silent && !wasHalfTimeDone && this.state.clock.halfTimeDone) {
+      await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+      this.pause();
+      eventBus.emit('engine:autoPaused', { reason: 'half_time' });
+      return;
     }
 
     // Trigger the paced drain of any events emitted during this tick.

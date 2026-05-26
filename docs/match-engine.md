@@ -114,6 +114,7 @@ The engine emits five UI-bound events through `src/utils/eventBus.ts`. UI module
 | `engine:event` | `{ event: GameEvent }` | CommentaryFeed (renders narration) |
 | `engine:paused` | `{ payload: ModalPayload }` | ModalManager (penalty_choice / kickoff_choice / forced_substitution_choice — red_20-expired sub picker — / tactics / sub modal), SimController (button gating) |
 | `engine:resumed` | `{}` | ModalManager, SimController |
+| `engine:autoPaused` | `{ reason: 'half_time' }` | SimController (re-enables Play, disables Pause). Fires once per match after the half-time line drains so the user has to press Play to start the second half. Skipped in silent mode. |
 | `engine:finished` | `{ state: MatchState }` | `main.ts` (shows match-result overlay) |
 
 **Tick ordering:** within a single tick, `engine:event` fires **before** `engine:stateChange`. UI subscribers that depend on cached state from the prior tick will always have a valid cache by the time an event arrives.

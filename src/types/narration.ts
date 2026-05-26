@@ -42,7 +42,7 @@ export type PhaseOutcomeKey =
   | 'try_lead' | 'try_extend_lead' | 'try_level' | 'try_trail'
   // ConversionKick & Penalty
   | 'success' | 'miss'
-  | 'kick_for_goal' | 'kick_to_touch' | 'tap_and_go' | 'tap_and_kick_dead';
+  | 'kick_for_goal' | 'kick_to_touch' | 'kick_to_touch_missed' | 'tap_and_go' | 'tap_and_kick_dead';
 
 export type TacticNoteCause =
   | 'line_break_backfield_thin'

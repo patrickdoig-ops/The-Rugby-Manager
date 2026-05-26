@@ -2,7 +2,7 @@ import type { Player } from '../../types/player';
 import type { KickResult, AttackingKickSubType } from '../../types/engine';
 import type { BackfieldDefence } from '../../types/team';
 import { rng } from '../../utils/rng';
-import { TACTICAL_KICK_VALUES, GOAL_KICK_VALUES, FIFTY_22_VALUES, ATTACKING_KICK_VALUES } from '../balance';
+import { TACTICAL_KICK_VALUES, GOAL_KICK_VALUES, FIFTY_22_VALUES, ATTACKING_KICK_VALUES, PENALTY_KICK_TO_TOUCH_VALUES } from '../balance';
 
 export interface KickingResolution {
   kickScore: number;
@@ -20,6 +20,29 @@ export function resolveTacticalKick(kicker: Player): KickingResolution {
     distance:                goodKick ? rng(V.goodKickDistance[0], V.goodKickDistance[1]) : rng(V.poorKickDistance[0], V.poorKickDistance[1]),
     outOnTheFullProbability: goodKick ? V.goodKickOutOnFullProb : V.poorKickOutOnFullProb,
     touchProbability:        goodKick ? V.goodKickTouchProb     : V.poorKickTouchProb,
+  };
+}
+
+// Penalty kick to touch. From a penalty, the kicking team retains the
+// throw from anywhere on the field — no own-22 gate (unlike tactical
+// kicks). The only failure mode is the ball NOT finding touch, in
+// which case it stays in field and the opposition counter-attacks.
+// Two-stage roll: kicker quality decides good vs poor kick (distance
+// band + touch-finding probability both shift), then a touch roll.
+export interface PenaltyKickToTouchResolution {
+  kickScore:  number;
+  distance:   number;
+  findsTouch: boolean;
+}
+
+export function resolvePenaltyKickToTouch(kicker: Player): PenaltyKickToTouchResolution {
+  const V = PENALTY_KICK_TO_TOUCH_VALUES;
+  const kickScore = kicker.currentStats.kicking + rng(1, 20);
+  const goodKick  = kickScore >= V.goodKickThreshold;
+  return {
+    kickScore,
+    distance:   goodKick ? rng(V.goodKickDistance[0], V.goodKickDistance[1]) : rng(V.poorKickDistance[0], V.poorKickDistance[1]),
+    findsTouch: rng(1, 100) <= (goodKick ? V.goodKickTouchPct : V.poorKickTouchPct),
   };
 }
 

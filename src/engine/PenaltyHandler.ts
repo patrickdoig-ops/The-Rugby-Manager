@@ -1,10 +1,10 @@
 import type { MatchState, GameEvent } from '../types/match';
 import { MatchPhase, type PenaltyChoice, type KickOffStrategy } from '../types/engine';
-import { resolveGoalKick } from './resolvers/KickingResolver';
+import { resolveGoalKick, resolvePenaltyKickToTouch } from './resolvers/KickingResolver';
 import { eventBus } from '../utils/eventBus';
 import { clamp } from '../utils/math';
 import { makeId } from './eventId';
-import { attackDir, inOpposition22, inOppositionHalf, metresFromOppositionTryLine, pickKicker } from './FieldPosition';
+import { attackDir, inOpposition22, inOppositionHalf, metresFromOppositionTryLine, pickKicker, pickFullback } from './FieldPosition';
 import { applyMatchEvent } from './applyMatchEvent';
 import { PENALTY_VALUES, TAP_AND_GO_AI } from './balance';
 import { rng } from '../utils/rng';
@@ -173,13 +173,27 @@ export class PenaltyHandler {
       applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.KickOff });
 
     } else if (choice === 'kick_to_touch') {
+      // The kick_to_touch path no longer teleports a flat 20m forward.
+      // Distance is rolled from kicker quality + RNG (resolvePenaltyKickToTouch),
+      // and a touch-finding roll decides whether the kick reaches the
+      // sideline at all. On miss, possession swaps and the opposition
+      // counter-attacks via KickReturn — a real penalty-to-touch cost
+      // that didn't exist pre-v2.183a.
+      const res = resolvePenaltyKickToTouch(kicker);
+      const defendSide: 'home' | 'away' = state.possession === 'home' ? 'away' : 'home';
+      const defendTeam = state.possession === 'home' ? state.awayTeam : state.homeTeam;
+      const defender = pickFullback(defendTeam, state, defendSide);
+
       if (state.clock.clockInTheRed) {
         applyMatchEvent(state, { type: 'PENALTY_KICK_TO_TOUCH_FLAG_SET', value: true });
       }
+      applyMatchEvent(state, { type: 'KICK_FROM_HAND', kicker, metres: res.distance });
       applyMatchEvent(state, {
         type: 'BALL_REPOSITIONED',
-        x: clamp(state.ball.x + attackDir(state) * PENALTY_VALUES.kickToTouchDistance, 5, 95),
+        x: clamp(state.ball.x + attackDir(state) * res.distance, 5, 95),
       });
+
+      const outcomeKey = res.findsTouch ? 'kick_to_touch' : 'kick_to_touch_missed';
       const penEvent: GameEvent = {
         id: makeId(),
         gameMinute: state.clock.gameMinute,
@@ -189,26 +203,33 @@ export class PenaltyHandler {
         primaryPlayer: kicker,
         ballX: state.ball.x,
         ballY: state.ball.y,
-        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: 'kick_to_touch', primary: kicker }] },
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: outcomeKey, primary: kicker }] },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
       this.emit('engine:event', { event: penEvent });
 
-      const teamName = (state.possession === 'home' ? state.homeTeam : state.awayTeam).name;
-      const awardEvent: GameEvent = {
-        id: makeId(),
-        gameMinute: state.clock.gameMinute,
-        phase: MatchPhase.Lineout,
-        side: state.possession,
-        sideName: teamName,
-        ballX: state.ball.x,
-        ballY: state.ball.y,
-        narration: { steps: [{ kind: 'announcement', key: 'set_piece_award', params: { phaseName: 'Lineout', teamName } }] },
-      };
-      applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: awardEvent });
-      this.emit('engine:event', { event: awardEvent });
-
-      applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.Lineout });
+      if (res.findsTouch) {
+        // Found touch — attacking team retains the throw at the new ball position.
+        const teamName = (state.possession === 'home' ? state.homeTeam : state.awayTeam).name;
+        const awardEvent: GameEvent = {
+          id: makeId(),
+          gameMinute: state.clock.gameMinute,
+          phase: MatchPhase.Lineout,
+          side: state.possession,
+          sideName: teamName,
+          ballX: state.ball.x,
+          ballY: state.ball.y,
+          narration: { steps: [{ kind: 'announcement', key: 'set_piece_award', params: { phaseName: 'Lineout', teamName } }] },
+        };
+        applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: awardEvent });
+        this.emit('engine:event', { event: awardEvent });
+        applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.Lineout });
+      } else {
+        // Missed touch — opposition gather and counter-attack via KickReturn.
+        applyMatchEvent(state, { type: 'POSSESSION_SWAPPED' });
+        applyMatchEvent(state, { type: 'KICK_RETURN_CARRIER_SET', player: defender });
+        applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.KickReturn });
+      }
 
     } else if (choice === 'tap_and_kick_dead') {
       const penEvent: GameEvent = {

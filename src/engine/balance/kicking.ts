@@ -82,7 +82,29 @@ export const CONVERSION_VALUES = {
 export const PENALTY_VALUES = {
   goalKickTryLineOffsetWeight:     0.2,
   goalKickDistanceFromPostsWeight: 0.3,
-  kickToTouchDistance: 20,
+} as const;
+
+// Penalty kick to touch. From a penalty, the kicking team retains the
+// throw at the resulting lineout — anywhere on the field, not just
+// inside their own 22 (which is the rule for kicks from open play).
+// The only failure mode is missing touch entirely: the ball stays in
+// field and the opposition counter-attacks via KickReturn.
+//
+// Distance scales with kicker quality (kicker.kicking + rng(1,20) vs
+// goodKickThreshold = 25 — same threshold as tactical kicks, so most
+// #10s clear it comfortably). Touch probability gates whether the
+// deliberate corner kick actually finds the sideline.
+//
+// Replaced the pre-v2.183a flat 20m teleport (kickToTouchDistance: 20)
+// which gave every kicker the same gain regardless of stat. The new
+// expected distance of ~32-35m matches real-world Premiership data
+// for attacking penalty kicks to the corner.
+export const PENALTY_KICK_TO_TOUCH_VALUES = {
+  goodKickThreshold: 25,
+  goodKickDistance:  [25, 45],
+  poorKickDistance:  [10, 20],
+  goodKickTouchPct:  90,    // clinical kick — finds touch 9 times out of 10
+  poorKickTouchPct:  40,    // poor kick — over half stay in field
 } as const;
 
 // Kick-return run gain (Step 2 in handleKickReturn): the carrier wins the

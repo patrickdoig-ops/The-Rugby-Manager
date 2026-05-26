@@ -539,6 +539,12 @@ const PENALTY: PhaseBank = {
   kick_to_touch: [
     '{primary} kicks to the corner — {side} opt for the lineout.',
     'Into touch from {primary} — the lineout is set deep in opposition territory.',
+    '{primary} finds touch beautifully — {side} have a lineout up the field.',
+  ],
+  kick_to_touch_missed: [
+    '{primary} aims for touch but the ball stays in field — counter on!',
+    'Sliced kick from {primary} — the ball doesn\'t make touch and the opposition gather.',
+    '{primary}\'s touch kick falls short — the opposition can run it back.',
   ],
   tap_and_go: [
     '{primary} taps and goes — {side} opt to run it!',

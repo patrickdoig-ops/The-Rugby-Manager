@@ -5,7 +5,7 @@ import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
-import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks } from '../FieldPosition';
+import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, pickCoverDefender } from '../FieldPosition';
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
@@ -92,6 +92,16 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
   // point and the kick-return run is already past.
   const totalMetres = chainFired ? res.gainMetres : runMetres + res.gainMetres;
 
+  // Try check hoisted above CARRY_RESOLVED so the cover-tackler pick can
+  // be gated on a non-try line break.
+  const projectedBallX = clamp(state.ball.x + direction * totalMetres, 0, 100);
+  const canScore = res.outcome === 'line_break' || res.outcome === 'dominant_carry';
+  const tryScored = canScore && isTryScoredAt(projectedBallX, attackSide, state.clock.halfTimeDone);
+
+  const coverTackler = res.outcome === 'line_break' && !tryScored
+    ? pickCoverDefender(defendTeam, state, defSide)
+    : undefined;
+
   events.push({
     type: 'CARRY_RESOLVED',
     carrier,
@@ -100,18 +110,11 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
     direction,
     outcome: res.outcome,
     defSide,
+    coverTackler,
   });
 
   let nextPhase: MatchPhase;
   const steps: NarrationDescriptor['steps'] = [...chainNarration];
-
-  // Try check — any forward-progress carry whose projected ballX
-  // (run metres + carry metres combined) crosses the try line scores.
-  // Line breaks AND dominant carries qualify. See OpenPlayEvent for
-  // the full rationale.
-  const projectedBallX = clamp(state.ball.x + direction * totalMetres, 0, 100);
-  const canScore = res.outcome === 'line_break' || res.outcome === 'dominant_carry';
-  const tryScored = canScore && isTryScoredAt(projectedBallX, attackSide, state.clock.halfTimeDone);
 
   if (tryScored) {
     nextPhase = MatchPhase.TryScored;
@@ -124,6 +127,9 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
   } else if (res.outcome === 'line_break') {
     nextPhase = MatchPhase.Breakdown;
     steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'line_break', primary: carrier, secondary: defender });
+    if (coverTackler) {
+      steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'cover_tackle', primary: carrier, secondary: coverTackler });
+    }
     if (backfieldPenalty < 0) {
       steps.push({
         kind: 'tactic_note',

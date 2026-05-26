@@ -664,7 +664,7 @@ collisionDefend = (defender.tackling + defender.strength) / 2 + rng(1,20)
 
 All outcomes → Breakdown.
 
-**Tackle statistics:** `tackles.attempted` is incremented for `dominant_tackle`, `dominant_carry`, `play_on`, and `line_break`. `tackles.made` is only incremented for `dominant_tackle`, `dominant_carry`, and `play_on`. Line breaks therefore count as a missed tackle, lowering the tackle % displayed in the stats panel.
+**Tackle statistics:** `tackles.attempted` is incremented for `dominant_tackle`, `dominant_carry`, `play_on`, and `line_break` — credited to the initial defender. `tackles.made` is incremented for `dominant_tackle`, `dominant_carry`, and `play_on` (same initial defender). On a `line_break` that **does not** reach the try line, a cover tackler is selected via `pickCoverDefender(defendTeam, state, defSide)` (`src/engine/FieldPosition.ts`) — weighted pick over the on-field back three (fullback 60%, each wing 20%, degrading to any on-field back) — and credited with `tacklesMade++` plus the team-level `tackles[defSide].made++`. The initial defender keeps the missed tackle. The cover tackler does **not** receive an additional `tacklesAttempted` for this carry — the attempted side of the ledger stays bound to the initial defender, preserving `made ≤ attempted` at both team and player scope. Line breaks that score a try credit no cover tackle (carrier reaches the line).
 
 ### Commentary
 
@@ -684,6 +684,7 @@ When Out the Back (PhasePlay), Crash Ball, or Wide Play (FirstPhase) paths are t
 | all four collision outcomes | ballCarrier | `carries++`, `metresCarried += gainMetres` |
 | all four collision outcomes | defender | `tacklesAttempted++` |
 | `line_break` | ballCarrier | `lineBreaks++`, `defendersBeaten++` |
+| `line_break` (non-try only) | coverTackler (FB 60% / wing 20% each) | `tacklesMade++` |
 | `dominant_carry` | ballCarrier | `defendersBeaten++` |
 | `dominant_tackle` | defender | `tacklesMade++`, `dominantTackles++` |
 | `dominant_carry` or `play_on` | defender | `tacklesMade++` |

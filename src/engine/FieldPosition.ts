@@ -3,6 +3,7 @@ import type { PossessionSide } from '../types/engine';
 import type { Player } from '../types/player';
 import type { Team } from '../types/team';
 import { SLOT, isForwardSlot, isBackSlot } from './Slot';
+import { rng } from '../utils/rng';
 
 // Home attacks toward x=100 in the first half, toward x=0 in the second.
 // Teams only swap ends at half-time, never on turnovers.
@@ -137,4 +138,32 @@ export function pickFullback(team: Team, state: MatchState, side: PossessionSide
       ?? onField.find(p => isBackSlot(p.id))
       ?? onField[0]
       ?? team.players[0];
+}
+
+// Weighted pick over the on-field back three (fullback + wings). Used by the
+// carry handlers to credit a cover tackler on non-try line breaks. Fullback
+// 60%, each wing 20%, re-normalised over whichever of the three are on field.
+// Degrades through any on-field back / any on-field player. Consumes one
+// outcome-stream rng() call when at least one back-three player is available.
+export function pickCoverDefender(team: Team, state: MatchState, side: PossessionSide): Player {
+  const onField = onFieldPlayers(team, state, side);
+  const fb = onField.find(p => p.id === SLOT.FULL_BACK);
+  const w11 = onField.find(p => p.id === SLOT.WING_11);
+  const w14 = onField.find(p => p.id === SLOT.WING_14);
+
+  const candidates: Array<{ p: Player; w: number }> = [];
+  if (fb)  candidates.push({ p: fb,  w: 60 });
+  if (w11) candidates.push({ p: w11, w: 20 });
+  if (w14) candidates.push({ p: w14, w: 20 });
+
+  if (candidates.length > 0) {
+    const total = candidates.reduce((s, c) => s + c.w, 0);
+    let roll = rng(1, total);
+    for (const c of candidates) {
+      if (roll <= c.w) return c.p;
+      roll -= c.w;
+    }
+    return candidates[candidates.length - 1].p;
+  }
+  return onField.find(p => isBackSlot(p.id)) ?? onField[0] ?? team.players[0];
 }

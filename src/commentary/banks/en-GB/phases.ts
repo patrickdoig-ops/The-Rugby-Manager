@@ -36,6 +36,12 @@ const PHASE_PLAY: PhaseBank = {
     '{primary} punches a hole through {defside}\'s defence! A major gain in open play!',
     '{primary} bursts clear! {defside}\'s defensive line is broken — {side} are on the move!',
   ],
+  cover_tackle: [
+    '…but {secondary} sweeps across and hauls {primary} down before the line!',
+    '{secondary} closes the gap and makes the saving tackle on {primary}.',
+    '{primary} is finally brought down by {secondary} — last line of defence holds.',
+    'Tremendous recovery tackle from {secondary} — he stops {primary} in his tracks.',
+  ],
   line_break_try: [
     'TRY! {primary} finds the line and goes over! {side} have their points!',
     'TRY! {primary} is through and touches down — {side} score!',
@@ -131,6 +137,12 @@ const FIRST_PHASE: PhaseBank = {
     '{primary} finds the space and he\'s gone! The set piece has created a huge opportunity!',
     '{primary} splits {defside}\'s defence wide open! Outstanding first-phase execution from {side}!',
   ],
+  cover_tackle: [
+    '…but {secondary} scrambles across to drag {primary} down short of the line!',
+    'Brilliant cover defence from {secondary} — he finishes the tackle on {primary}.',
+    '{primary} is hauled in by {secondary} — the last line of defence does its job.',
+    '{secondary} reads the danger and makes the cover tackle on {primary}.',
+  ],
   line_break_try: [
     'TRY! {primary} explodes off the set piece and goes over! {side} score!',
     'TRY! First-phase perfection from {side} — {primary} touches down!',
@@ -202,6 +214,12 @@ const KICK_RETURN: PhaseBank = {
     'Superb counter from {primary} — he\'s broken the cover and he\'s running into space!',
     '{primary} makes a line break from the return! {side} are flying!',
     '{primary} sidesteps the first chaser and bursts clear! The return has turned into something special!',
+  ],
+  cover_tackle: [
+    '…but the last chaser, {secondary}, gets across and brings {primary} down!',
+    '{secondary} tracks back and makes the saving tackle on {primary}.',
+    'The cover from {defside} arrives — {secondary} hauls {primary} to ground.',
+    '{primary} is dragged down by {secondary} — the counter-attack is halted.',
   ],
   line_break_try: [
     'TRY! {primary} turns the return into points — an outstanding counter-attack!',

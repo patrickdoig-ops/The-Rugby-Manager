@@ -75,6 +75,12 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
         case 'line_break':
           carrier.matchStats.lineBreaks++;
           carrier.matchStats.defendersBeaten++;
+          // Non-try line break: cover defender finishes the tackle.
+          // Initial defender keeps the missed tackle (attempted only).
+          if (event.coverTackler) {
+            event.coverTackler.matchStats.tacklesMade++;
+            state.stats.tackles[defSide].made++;
+          }
           break;
         case 'dominant_carry':
           carrier.matchStats.defendersBeaten++;

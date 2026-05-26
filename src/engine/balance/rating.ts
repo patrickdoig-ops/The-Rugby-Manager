@@ -125,6 +125,39 @@ export const TIER_CALIBRATION = {
   squad:   -5,
 } as const;
 
+// Premiership-quality floor applied AFTER tier calibration but BEFORE star
+// boost. Models the real-world constraint that any player named to a
+// matchday squad has met a baseline professional standard for the role —
+// even on a struggling team, the bench prop can still scrum, the bench
+// wing can still run. Without this floor, weak teams' depth players
+// dragged down every per-tick mechanic (scrum, breakdown, tackle, lineout)
+// and produced the runaway feedback loop visible in v2.179a-v2.188a
+// telemetry (Newcastle 2-4 wins from 90, tackle % 58.9%).
+//
+// Two-band per tier:
+//   * keyStatMin   — for stats with PLAYER_OVERALL_WEIGHTS[pos] >= 1.0
+//                    (the role's defining attributes — Prop's setPiece,
+//                    Wing's pace, Fly-Half's kicking)
+//   * relevantMin  — for other non-irrelevant stats (0.5 <= weight < 1.0,
+//                    or stats with no listed weight, defaulting to 1.0)
+//
+// Irrelevant stats (kicking for forwards, setPiece for backs) keep their
+// existing `STAR_BOOST.irrelevantStatMax` cap — the floor never touches
+// those. Stars skip the floor entirely; their iteration boost dominates.
+//
+// Authored values in docs/team-data.md already meet these floors as of
+// v2.193a, so the floor is a safety net for future edits rather than a
+// runtime transformer for current data.
+export const BENCH_QUALITY_FLOOR = {
+  keyStatMin:  78,
+  relevantMin: 65,
+} as const;
+
+export const SQUAD_QUALITY_FLOOR = {
+  keyStatMin:  72,
+  relevantMin: 60,
+} as const;
+
 // Stats that don't belong to a position's skillset at all — value clamped to
 // `STAR_BOOST.irrelevantStatMax` at spawn, weight 0 in the OVR formula above.
 // Forwards have no kicking skill; backs have no scrum/lineout skill.

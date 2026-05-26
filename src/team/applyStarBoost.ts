@@ -30,6 +30,8 @@ import {
   IRRELEVANT_STATS,
   LEAGUE_STAT_CEILINGS,
   PLAYER_STAT_OVERRIDES,
+  BENCH_QUALITY_FLOOR,
+  SQUAD_QUALITY_FLOOR,
 } from '../engine/balance';
 
 type RosterEntry = TeamJson['players'][number] & {
@@ -71,12 +73,36 @@ function applyTierCalibration(p: RosterEntry, tier: Tier, isStar: boolean): Rost
   const irrelevant = new Set(IRRELEVANT_STATS[p.position] ?? []);
   const shift = isStar ? 0 : TIER_CALIBRATION[tier];
   const stats = { ...p.baseStats };
+  const weights = PLAYER_OVERALL_WEIGHTS[p.position];
+  // Bench / squad non-stars are floored to Premiership matchday quality
+  // for their role's key stats — see BENCH_QUALITY_FLOOR / SQUAD_QUALITY_FLOOR
+  // commentary in balance/rating.ts. Starters and stars skip the floor;
+  // the floor never lifts above the per-stat ceiling.
+  //
+  // Classification:
+  //   KEY     — explicit weight > 1.0 (position's defining stats):
+  //             keyStatMin
+  //   MEDIUM  — stat not in weights table (defaults to 1.0 in playerOverall)
+  //             or listed with value = 1.0: relevantMin
+  //   LOW     — explicit weight 0 < w < 1.0 (e.g. prop's pace 0.2): NO floor
+  //   IRRELEVANT — listed in IRRELEVANT_STATS: keeps the existing cap (15)
+  const floor = !isStar && tier === 'bench' ? BENCH_QUALITY_FLOOR
+              : !isStar && tier === 'squad' ? SQUAD_QUALITY_FLOOR
+              : null;
   for (const k of Object.keys(stats) as (keyof PlayerStats)[]) {
     if (irrelevant.has(k)) {
       if (stats[k] > STAR_BOOST.irrelevantStatMax) stats[k] = STAR_BOOST.irrelevantStatMax;
     } else {
       const cap = statCap(p, k);
-      stats[k] = Math.max(STAR_BOOST.statHardFloor, Math.min(cap, stats[k] + shift));
+      let v = Math.min(cap, stats[k] + shift);
+      if (floor) {
+        const w = weights[k];
+        const minForStat = w === undefined || w === 1.0 ? floor.relevantMin
+                         : w > 1.0                       ? floor.keyStatMin
+                         : null; // LOW: no floor
+        if (minForStat !== null && v < minForStat) v = Math.min(cap, minForStat);
+      }
+      stats[k] = Math.max(STAR_BOOST.statHardFloor, v);
     }
   }
   return { ...p, baseStats: stats };

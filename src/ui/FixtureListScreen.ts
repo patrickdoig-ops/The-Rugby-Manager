@@ -41,11 +41,16 @@ export function initFixtureListScreen(
     );
   }
 
-  function fixtureRow(fixture: Fixture, result: FixtureResult | undefined, nextRound: number, playerTeamId: string): string {
+  function fixtureRow(fixture: Fixture, result: FixtureResult | undefined, nextRound: number, playerTeamId: string, mode: Mode): string {
     const home = teamsById.get(fixture.homeId)!;
     const away = teamsById.get(fixture.awayId)!;
     const isComplete = !!result;
-    const isActive = !isComplete && fixture.round === nextRound;
+    // Active highlight only fires in 'team' mode where it points to the
+    // player's upcoming match. In 'next' and 'all' tabs every row in
+    // the current round would otherwise glow green — visual noise
+    // since the round headers / "Next round" tab already convey the
+    // context.
+    const isActive = !isComplete && fixture.round === nextRound && mode === 'team';
     const isMine = !isActive && (fixture.homeId === playerTeamId || fixture.awayId === playerTeamId);
     const stateCls = isComplete ? 'fl-row--complete' : isActive ? 'fl-row--active' : 'fl-row--locked';
     const meCls = isMine ? ' fl-row--me' : '';
@@ -78,13 +83,13 @@ export function initFixtureListScreen(
 
     if (activeMode === 'team') {
       const mine = sorted.filter(f => f.homeId === playerTeamId || f.awayId === playerTeamId);
-      return mine.map(f => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId)).join('');
+      return mine.map(f => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId, activeMode)).join('');
     }
 
     if (activeMode === 'next') {
       if (nextRound === -1) return `<div class="fl-empty">Season complete</div>`;
       const fixtures = sorted.filter(f => f.round === nextRound);
-      return fixtures.map(f => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId)).join('');
+      return fixtures.map(f => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId, activeMode)).join('');
     }
 
     // 'all' — group by round with a section header per block.
@@ -95,7 +100,7 @@ export function initFixtureListScreen(
     }
     return [...byRound.entries()].map(([round, fs]) => `
       <div class="fl-round-header">Round ${round}</div>
-      ${fs.map(f => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId)).join('')}
+      ${fs.map(f => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId, activeMode)).join('')}
     `).join('');
   }
 

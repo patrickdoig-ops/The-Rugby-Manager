@@ -28,7 +28,7 @@
 
 import type { Fixture, GameState, SeasonEvent, TeamStanding } from '../types/gameState';
 import type { Player, PlayerStats, PlayerSeasonStats } from '../types/player';
-import { isForward } from '../types/player';
+import { isForward, PLAYER_STAT_KEYS } from '../types/player';
 import type { SeasonAwards, SeasonLeader } from '../types/gameState';
 import { AGE_CURVES, STAT_NOISE, RETIREMENT_CURVE, SEASON_AWARDS, ACADEMY_SUPPLY, IMPORT_SUPPLY } from '../engine/balance/career';
 import { SEASON_VALUES } from '../engine/balance';
@@ -147,7 +147,7 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
 
 function developStats(p: Player, ageInNewSeason: number): Partial<PlayerStats> {
   const deltas: Partial<PlayerStats> = {};
-  for (const k of Object.keys(p.baseStats) as (keyof PlayerStats)[]) {
+  for (const k of PLAYER_STAT_KEYS) {
     const curve = AGE_CURVES[k];
     const base = ageInNewSeason < curve.peakAge ? curve.growthPerYear : -curve.declinePerYear;
     const noise = clampedNormal(STAT_NOISE.stddev, STAT_NOISE.clamp);

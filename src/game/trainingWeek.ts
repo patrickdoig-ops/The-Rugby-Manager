@@ -15,7 +15,7 @@
 
 import type { ClubState, GameState, SeasonEvent } from '../types/gameState';
 import type { PlayerStats } from '../types/player';
-import { isForward } from '../types/player';
+import { isForward, PLAYER_STAT_KEYS } from '../types/player';
 import type { TrainingPlan } from '../types/training';
 import {
   BACKS_FOCUS_STATS, DEVELOPMENT, FORWARDS_FOCUS_STATS,
@@ -25,12 +25,6 @@ import { INJURY_SEVERITY } from '../engine/balance/injuries';
 import { rngTransfer, rngTransferRaw } from '../utils/rng';
 import { pickPlan as pickAIPlan } from './aiTrainingDirector';
 import { getAge, parseSeasonStartYear, seasonOpenIso } from './age';
-
-const ALL_STAT_KEYS: (keyof PlayerStats)[] = [
-  'stamina', 'strength', 'pace', 'agility',
-  'handling', 'tackling', 'breakdown', 'kicking',
-  'setPiece', 'discipline', 'positioning', 'composure',
-];
 
 const TRAINING_INJURY_KINDS = ['muscle_strain', 'ligament_sprain', 'knock'] as const;
 type TrainingInjuryKind = typeof TRAINING_INJURY_KINDS[number];
@@ -85,11 +79,11 @@ function pushClubTrainingEvents(
     const ageInNewSeason = p.dob ? (getAge(p.dob, seasonOpenDate) ?? 25) : 25;
     const ageMul = ageMultiplier(ageInNewSeason);
 
-    // Development rolls — one per stat per player. Walk ALL_STAT_KEYS
+    // Development rolls — one per stat per player. Walk PLAYER_STAT_KEYS
     // (stable order) so the rngTransfer sequence is identical across
     // seasons / clubs / players that pick the same focus.
     const statDeltas: Partial<PlayerStats> = {};
-    for (const stat of ALL_STAT_KEYS) {
+    for (const stat of PLAYER_STAT_KEYS) {
       const isFocus = stat === focus[0] || stat === focus[1];
       const multiplier = isFocus ? DEVELOPMENT.focusMultiplier : DEVELOPMENT.unfocusedMultiplier;
       const chance = intensity.developmentChance * multiplier * ageMul;

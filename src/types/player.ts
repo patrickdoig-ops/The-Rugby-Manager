@@ -30,6 +30,18 @@ export interface PlayerStats {
   composure: number;
 }
 
+// Canonical PlayerStats key order. Consumers that drive an RNG stream
+// while iterating stats (trainingWeek, careerRollover.developStats) MUST
+// walk this array rather than Object.keys(baseStats) — the latter
+// happens to work today because every baseStats object is constructed
+// in this same order, but one save-format change away from a silent
+// determinism desync.
+export const PLAYER_STAT_KEYS: (keyof PlayerStats)[] = [
+  'stamina', 'strength', 'pace', 'agility',
+  'handling', 'tackling', 'breakdown', 'kicking',
+  'setPiece', 'discipline', 'positioning', 'composure',
+];
+
 export interface PlayerMatchStats {
   carries:                number;
   metresCarried:          number;

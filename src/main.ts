@@ -160,6 +160,22 @@ document.addEventListener('DOMContentLoaded', () => {
     screenRouter.show('team-info');
   }
 
+  // Mid-season entry into the TeamInfo screen from the League Table.
+  // Reads the live calendar date so ages reflect the current point in
+  // the season, and rebuilds the team from the career roster so the
+  // squad list shows the actual current players (signings, retirements,
+  // aging, injuries all reflected). Back navigates to the League
+  // Table, which preserves its own mode (standard / form / post-match)
+  // across the round-trip.
+  function goTeamInfoMidSeason(team: RawTeamInput): void {
+    if (!gameEngine) return;
+    const profile = teamProfile.getProfile(team.id);
+    const state = gameEngine.getState();
+    const liveTeam = buildTeamFromRoster(state, team);
+    initTeamInfoScreen(profile, liveTeam, state.calendar.date, goLeagueTable);
+    screenRouter.show('team-info');
+  }
+
   // Initialise the three in-season screens (Hub, Fixtures, League) for the
   // current game engine instance. Done once per game so each screen registers
   // its game:* event subscriptions exactly once; later navigations between
@@ -182,7 +198,11 @@ document.addEventListener('DOMContentLoaded', () => {
       onSettings: goSettingsFromHub,
     });
     initFixtureListScreen(getGameEngine, allTeams, goHub);
-    initLeagueTableScreen(getGameEngine, allTeams, goHub);
+    initLeagueTableScreen(getGameEngine, allTeams, goHub, (teamId) => {
+      const teamJson = allTeams.find(t => t.id === teamId);
+      if (!teamJson) return;
+      goTeamInfoMidSeason(teamJson);
+    });
     initRoundResultsScreen(getGameEngine, allTeams);
     initPlayoffBracketScreen(getGameEngine, allTeams);
     initBudgetRevealScreen(getGameEngine, allTeams);

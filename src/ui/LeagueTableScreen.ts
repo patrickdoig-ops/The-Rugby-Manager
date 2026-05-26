@@ -80,8 +80,12 @@ function standardRow(
   const diff = `${s.pointsDiff >= 0 ? '+' : ''}${s.pointsDiff}`;
   const crest = team ? teamCrest(team) : '<div class="lt-crest"></div>';
   const bonusPoints = s.tryBonus + s.losingBonus;
+  // Click target: data-team-id is read by the click + keydown handlers
+  // in init. role=button + tabindex make the div keyboard-accessible
+  // without changing the existing grid layout.
+  const label = team ? `View ${team.name} info` : `View ${s.teamId} info`;
   return `
-    <div class="${classes.join(' ')}">
+    <div class="${classes.join(' ')}" role="button" tabindex="0" data-team-id="${s.teamId}" aria-label="${label}">
       <span class="lt-rank">${rank}</span>
       ${crest}
       <span class="lt-name">${name}</span>
@@ -114,8 +118,9 @@ function formRow(
     return `<span class="lt-fp lt-fp--${r.toLowerCase()}">${r}</span>`;
   }).join('');
   const pts = formPoints(form);
+  const label = team ? `View ${team.name} info` : `View ${s.teamId} info`;
   return `
-    <div class="${classes.join(' ')}">
+    <div class="${classes.join(' ')}" role="button" tabindex="0" data-team-id="${s.teamId}" aria-label="${label}">
       <span class="lt-rank">${rank}</span>
       ${crest}
       <span class="lt-name">${name}</span>
@@ -146,6 +151,12 @@ export function initLeagueTableScreen(
   getGameEngine: () => GameCoordinator,
   allTeams: RawTeamInput[],
   onBack: () => void,
+  // Row click → open the named team's TeamInfo screen. main.ts owns
+  // the navigation target; the screen just emits the teamId. Same
+  // behaviour in both standard + form view modes, and in post-match
+  // mode (the back arrow from TeamInfo re-shows this screen in its
+  // current mode, including the post-match Continue chain).
+  onTeamClick: (teamId: string) => void,
 ): void {
   const el = document.getElementById('league-table');
   if (!el) return;
@@ -244,6 +255,21 @@ export function initLeagueTableScreen(
         fn();
       });
     }
+
+    // Row click → TeamInfo. Both pointer + keyboard (Enter / Space)
+    // paths fire the same callback; rows carry role="button" + tabindex
+    // so they're focusable in the page tab order.
+    el!.querySelectorAll<HTMLElement>('.lt-row[data-team-id]').forEach(row => {
+      const teamId = row.dataset.teamId;
+      if (!teamId) return;
+      row.addEventListener('click', () => onTeamClick(teamId));
+      row.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onTeamClick(teamId);
+        }
+      });
+    });
   }
 
   renderImpl = render;

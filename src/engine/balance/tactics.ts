@@ -23,9 +23,29 @@ export const TACTIC_MODIFIERS = {
   breakdownAttack:            { commit_numbers: -20, minimal_ruck: 35, balanced: 0 },
   breakdownDefend:            { shadow: 10, counter_ruck: -8, jackal: 0 },
   breakdownSupporterCount:    { commit_numbers: 4,  minimal_ruck: 2,  balanced: 3 },
-  boxKickFullbackBonus:       { three_back: 15, two_back: 8,  one_back: 0 },
-  tacticalKickTouchReduction: { three_back: 25, two_back: 15, one_back: 0 },
-  tacticalKickReturnBonus:    { three_back: 10, two_back: 5,  one_back: 0 },
+  // Compensating bonus added to the BREAKDOWN attack score (ars) to offset
+  // the supporter-count headcount deficit baked into the body-weights
+  // stack ([1.0, 0.6, 0.4, 0.3] in BREAKDOWN_VALUES.bodyWeights). minimal_ruck
+  // with 2 supporters produces ~80% of balanced's ruck score from the
+  // stacked-bodies formula alone — enough to push penalty_defending
+  // outcomes ~4× higher and bleed possession by ~7pp in the v2.179a
+  // controlled mirror-match experiment (scripts/tacticsComboExperiment.ts).
+  // The +6 here models "fewer ruckers but each one knows their role and
+  // hits harder" — pulls minimal_ruck back to ~95% of balanced parity at
+  // the ruck so the +35 evasion bonus on wide play can actually pay off.
+  // commit_numbers stays at 0 — it already wins more rucks via the
+  // headcount-driven body-weight stack, no further reward needed.
+  breakdownArsMod:            { commit_numbers: 0,   minimal_ruck: 6,  balanced: 0 },
+  // Trimmed in v2.181a — the controlled mirror-match experiment
+  // (scripts/tacticsExperiment.ts) showed three_back giving home a +4.2
+  // margin advantage over one_back, driven primarily by the kicking-game
+  // dominance these three bonuses compound. Two_back stays at its
+  // established mid-range values; three_back gets a smaller incremental
+  // step over two_back so the choice between them turns on opposition
+  // matchup, not raw effectiveness.
+  boxKickFullbackBonus:       { three_back: 10, two_back: 8,  one_back: 0 },
+  tacticalKickTouchReduction: { three_back: 18, two_back: 15, one_back: 0 },
+  tacticalKickReturnBonus:    { three_back:  7, two_back: 5,  one_back: 0 },
   forwardFatigueMultiplier:   { commit_numbers: 1.1, counter_ruck: 1.1 },
   // Penalty-rate shifts (in pct points) added to the matching base rate
   // in BREAKDOWN_PENALTIES / OBSTRUCTION_BASE_PCT. Modest values — these

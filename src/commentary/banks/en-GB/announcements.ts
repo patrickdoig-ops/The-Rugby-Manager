@@ -136,6 +136,12 @@ const TEAM_22_WARNING: readonly string[] = [
   'Captain summoned — referee\'s warning over repeat infringements inside the 22.',
 ];
 
+const SCRUM_RESET_CAP: readonly string[] = [
+  "Three resets — the referee's lost patience. Penalty awarded.",
+  "That's the limit — three wheels and the official calls it. Penalty.",
+  "Referee's had enough of the resets — penalty from the third wheel.",
+];
+
 const INJURY_OFF: readonly string[] = [
   '{primary} is down — and looks to be hurt. The physio is on.',
   'Bad news for {primary} — staying down after that contact, waving for the doctor.',
@@ -177,6 +183,8 @@ export function getAnnouncementTemplate(
     }
     case 'set_piece_award':
       return `${params.phaseName ?? 'Set piece'} awarded to ${params.teamName ?? 'the team'}.`;
+    case 'scrum_reset_cap':
+      return pickRandom(SCRUM_RESET_CAP);
     case 'try_location_central':
       return pickRandom(TRY_LOCATION_CENTRAL);
     case 'try_location_close':

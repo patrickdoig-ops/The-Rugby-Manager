@@ -301,16 +301,20 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
           event.attackFrontRow.forEach(p => { p.matchStats.scrumPenaltiesWon++; });
           event.defendFrontRow.forEach(p => { p.matchStats.scrumPenaltiesConceded++; });
           state.stats.scrums[event.possessionSideAfter]++;
+          state.consecutiveWheels = 0;
           break;
         case 'stable_win':
           state.stats.scrums[event.possessionSideAfter]++;
+          state.consecutiveWheels = 0;
           break;
         case 'wheel':
+          state.consecutiveWheels++;
           break;
         case 'defending_dominant_penalty':
           event.defendFrontRow.forEach(p => { p.matchStats.scrumPenaltiesWon++; });
           event.attackFrontRow.forEach(p => { p.matchStats.scrumPenaltiesConceded++; });
           state.stats.scrums[event.possessionSideAfter]++;
+          state.consecutiveWheels = 0;
           break;
       }
       state.stats.ownScrums[event.attackSide].putIn++;

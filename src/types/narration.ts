@@ -88,6 +88,7 @@ export type AnnouncementKey =
   | 'set_piece_award'
   | 'try_location_central' | 'try_location_close'
   | 'try_location_wide'    | 'try_location_corner'
+  | 'scrum_reset_cap'
   | CardAnnouncementKey;
 
 export interface TacticNoteParams {

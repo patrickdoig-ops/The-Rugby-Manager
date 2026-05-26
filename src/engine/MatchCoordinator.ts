@@ -197,6 +197,7 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
       teamWarned22:  { home: false, away: false },
       injured:       { home: [], away: [] },
     },
+    consecutiveWheels: 0,
   };
 }
 

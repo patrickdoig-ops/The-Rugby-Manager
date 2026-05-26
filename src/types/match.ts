@@ -138,4 +138,12 @@ export interface MatchState {
   // by TMO_REVIEW_RESOLVED on the 3rd tick. Optional because it's only set
   // mid-review.
   tmoReview?: TmoReviewState;
+  // Count of consecutive wheel outcomes in the current scrum sequence.
+  // Incremented by the SCRUM_RESOLVED reducer when outcome === 'wheel';
+  // reset to 0 on any other scrum outcome. handleScrum reads this to cap
+  // runaway wheel chains — once `SCRUM_VALUES.wheelCap` prior wheels have
+  // accumulated, the next wheel is promoted to a penalty (by 3rd-contest
+  // margin). The counter resets naturally when the scrum sequence ends,
+  // so the next time a scrum is awarded it starts at 0.
+  consecutiveWheels: number;
 }

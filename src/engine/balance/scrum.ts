@@ -34,4 +34,10 @@ export const SCRUM_VALUES = {
   // For evenly-matched packs the natural pen rate is already low so this
   // rarely fires.
   ownPutInRescuePct: 70,
+  // Cap on consecutive wheels in a single scrum sequence. After this many
+  // prior wheels, the next wheel is promoted to a penalty (the resolver's
+  // 3rd-contest margin picks the side). 2 means "wheel, reset, wheel, reset
+  // — third reset gets cited". Counter lives at state.consecutiveWheels and
+  // resets the moment a scrum resolves to anything other than wheel.
+  wheelCap: 2,
 } as const;

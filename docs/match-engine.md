@@ -820,6 +820,8 @@ The defending pack's final score is subtracted from the attacking pack's final s
 
 Attacker:defender penalty ratio ~1.8:1 — reflects the real-rugby put-in advantage. Effective per-scrum-sequence penalty rate (accounting for wheel re-rolls): `0.118 / (1 − 0.196) ≈ 14.7%`. All thresholds in `SCRUM_VALUES` (`balance/scrum.ts`).
 
+**Wheel cap.** Consecutive wheels in a single scrum sequence are bounded by `SCRUM_VALUES.wheelCap` (currently `2`). The counter lives at `state.consecutiveWheels` — incremented by the `SCRUM_RESOLVED` reducer when `outcome === 'wheel'`, reset to 0 on any other scrum outcome, so a fresh scrum sequence always starts at 0. Once the counter has hit the cap, the next wheel-band resolution is promoted to a penalty: `attacking_dominant_penalty` when the 3rd-contest `margin >= 0`, `defending_dominant_penalty` otherwise. The natural penalty branches stay untouched; the promoted branch prepends a `scrum_reset_cap` announcement step so the commentary flags why the penalty fired ("Three resets — the referee's lost patience. Penalty awarded.").
+
 ### Ball movement
 
 None.

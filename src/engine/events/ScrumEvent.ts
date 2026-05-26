@@ -1,11 +1,13 @@
 import type { PhaseContext, PhaseResult } from './types';
 import type { MatchEvent } from '../../types/matchEvent';
+import type { NarrationStep } from '../../types/narration';
 import type { Player } from '../../types/player';
 import { MatchPhase } from '../../types/engine';
 import { resolveScrum } from '../resolvers/ScrumResolver';
 import { availableForwards, onFieldPlayers } from '../FieldPosition';
 import { rng } from '../../utils/rng';
 import { SLOT, isFrontRowSlot } from '../Slot';
+import { SCRUM_VALUES } from '../balance';
 
 // Random front-row offender for a scrum penalty — props and hooker can all
 // be cited, not just the hooker. Falls back to the hooker (and onward) when
@@ -31,9 +33,27 @@ export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): Ph
   const defendHooker   = defendForwards.find(p => p.id === SLOT.HOOKER) ?? defendForwards[0] ?? defendOnField[0]!;
   const res = resolveScrum(attackForwards, defendForwards);
 
+  // Wheel cap: after SCRUM_VALUES.wheelCap consecutive wheels in this scrum
+  // sequence, a wheel-band 3rd contest is promoted to a penalty. Side is
+  // picked by margin on THIS resolve — whichever pack was pushing harder
+  // gets the call, mirroring how a referee cites the side being driven
+  // backwards. capFired feeds the prepended commentary step in the two
+  // penalty branches so the user sees why a penalty appeared instead of
+  // yet another reset. state.consecutiveWheels is maintained by the
+  // SCRUM_RESOLVED reducer; reset to 0 by any non-wheel outcome, so the
+  // next scrum sequence starts fresh.
+  const capFired = res.result === 'wheel' && state.consecutiveWheels >= SCRUM_VALUES.wheelCap;
+  if (capFired) {
+    res.result = res.margin >= 0 ? 'attacking_dominant_penalty' : 'defending_dominant_penalty';
+  }
+
   const events: MatchEvent[] = [
     { type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 },
   ];
+
+  const capStep: NarrationStep | null = capFired
+    ? { kind: 'announcement', key: 'scrum_reset_cap' }
+    : null;
 
   if (res.result === 'attacking_dominant_penalty') {
     // Cite a random member of the offending side's front row (prop or hooker)
@@ -54,9 +74,12 @@ export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): Ph
       offender: defendOffender,
       offendingSide: flipSide,
     });
+    const steps: NarrationStep[] = [];
+    if (capStep) steps.push(capStep);
+    steps.push({ kind: 'phase_outcome', phase: MatchPhase.Scrum, key: 'attacking_dominant_penalty', primary: defendOffender, secondary: attackHooker });
     return {
       nextPhase: MatchPhase.Penalty,
-      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Scrum, key: 'attacking_dominant_penalty', primary: defendOffender, secondary: attackHooker }] },
+      narration: { steps },
       primaryPlayer: attackHooker,
       secondaryPlayer: defendOffender,
       events,
@@ -113,9 +136,12 @@ export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): Ph
     offender: attackOffender,
     offendingSide: attackSide,
   });
+  const steps: NarrationStep[] = [];
+  if (capStep) steps.push(capStep);
+  steps.push({ kind: 'phase_outcome', phase: MatchPhase.Scrum, key: 'defending_dominant_penalty', primary: attackOffender, secondary: defendHooker });
   return {
     nextPhase: MatchPhase.Penalty,
-    narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Scrum, key: 'defending_dominant_penalty', primary: attackOffender, secondary: defendHooker }] },
+    narration: { steps },
     primaryPlayer: defendHooker,
     secondaryPlayer: attackOffender,
     events,

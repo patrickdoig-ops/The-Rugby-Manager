@@ -365,6 +365,14 @@
 .mr-card-pip--yellow { background: #f5c024; }
 .mr-card-pip--red    { background: #d22f2f; }
 
+/* Pip-before-name spacing inside the two-column Cards layout (the
+   scorer-row reuse doesn't carry the flex gap the old inline entry
+   wrapper provided). */
+.mr-scorer-name .mr-card-pip {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
 /* ─── Try scorers ─── */
 .mr-scorers-grid {
   display: grid;

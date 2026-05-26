@@ -104,49 +104,79 @@ function renderCardsLine(state: MatchState): string {
   // who were later subbed off live in team.substitutedOff, so the list
   // has to span both buckets. matchStats.{yellowCards,redCards} is the
   // source of truth (incremented by CARD_ISSUED in applyMatchEvent).
-  type Row = { p: Player; team: Team; kind: 'yellow' | 'red' };
-  const rows: Row[] = [];
-  for (const team of [state.homeTeam, state.awayTeam]) {
+  type Row = { p: Player; kind: 'yellow' | 'red' };
+  function teamRows(team: Team): Row[] {
+    const out: Row[] = [];
     for (const p of [...team.players, ...team.substitutedOff]) {
-      if (p.matchStats.yellowCards > 0) rows.push({ p, team, kind: 'yellow' });
-      if (p.matchStats.redCards > 0)    rows.push({ p, team, kind: 'red'    });
+      if (p.matchStats.yellowCards > 0) out.push({ p, kind: 'yellow' });
+      if (p.matchStats.redCards > 0)    out.push({ p, kind: 'red'    });
     }
+    return out;
   }
-  if (rows.length === 0) return '';
-  const entries = rows.map(r => `
-    <span class="mr-card-entry">
-      <span class="mr-card-pip mr-card-pip--${r.kind}"></span>
-      <span class="mr-card-name" style="color:${teamTextColor(r.team.color)}">${shortName(r.p)}</span>
-    </span>
-  `).join('<span class="mr-injury-sep">·</span>');
+  const homeRows = teamRows(state.homeTeam);
+  const awayRows = teamRows(state.awayTeam);
+  if (homeRows.length === 0 && awayRows.length === 0) return '';
+  function column(rows: Row[]): string {
+    if (rows.length === 0) return '<span class="mr-no-scorers">—</span>';
+    return rows.map(r => `
+      <div class="mr-scorer-row">
+        <span class="mr-scorer-name"><span class="mr-card-pip mr-card-pip--${r.kind}"></span>${shortName(r.p)}</span>
+      </div>
+    `).join('');
+  }
   return `
     <section class="mr-card mr-card--cards">
       <h2 class="mr-card-title">Cards</h2>
-      <div class="mr-injuries-list">${entries}</div>
+      <div class="mr-scorers-grid">
+        <div class="mr-scorers-team">
+          <div class="mr-scorers-team-label" style="color:${teamTextColor(state.homeTeam.color)}">${state.homeTeam.shortName}</div>
+          ${column(homeRows)}
+        </div>
+        <div class="mr-scorers-divider"></div>
+        <div class="mr-scorers-team">
+          <div class="mr-scorers-team-label" style="color:${teamTextColor(state.awayTeam.color)}">${state.awayTeam.shortName}</div>
+          ${column(awayRows)}
+        </div>
+      </div>
     </section>
   `;
 }
 
 function renderInjuriesLine(state: MatchState): string {
-  const everyone: Array<{ p: Player; team: Team }> = [
-    ...state.homeTeam.players.map(p => ({ p, team: state.homeTeam })),
-    ...state.homeTeam.substitutedOff.map(p => ({ p, team: state.homeTeam })),
-    ...state.awayTeam.players.map(p => ({ p, team: state.awayTeam })),
-    ...state.awayTeam.substitutedOff.map(p => ({ p, team: state.awayTeam })),
-  ];
-  const injured = everyone.filter(e => e.p.pendingInjuryKind);
-  if (injured.length === 0) return '';
-  const entries = injured.map(e => {
-    const kindLabel = e.p.pendingInjuryKind!.replace(/_/g, ' ');
-    return `<span class="mr-injury-entry">
-      <span class="mr-injury-name" style="color:${teamTextColor(e.team.color)}">${shortName(e.p)}</span>
-      <span class="mr-injury-kind">${kindLabel}</span>
-    </span>`;
-  }).join('<span class="mr-injury-sep">·</span>');
+  type Row = { p: Player; kind: string };
+  function teamRows(team: Team): Row[] {
+    const out: Row[] = [];
+    for (const p of [...team.players, ...team.substitutedOff]) {
+      if (p.pendingInjuryKind) out.push({ p, kind: p.pendingInjuryKind.replace(/_/g, ' ') });
+    }
+    return out;
+  }
+  const homeRows = teamRows(state.homeTeam);
+  const awayRows = teamRows(state.awayTeam);
+  if (homeRows.length === 0 && awayRows.length === 0) return '';
+  function column(rows: Row[]): string {
+    if (rows.length === 0) return '<span class="mr-no-scorers">—</span>';
+    return rows.map(r => `
+      <div class="mr-scorer-row">
+        <span class="mr-scorer-name">${shortName(r.p)}</span>
+        <span class="mr-injury-kind">${r.kind}</span>
+      </div>
+    `).join('');
+  }
   return `
     <section class="mr-card mr-card--injuries">
       <h2 class="mr-card-title">Injuries</h2>
-      <div class="mr-injuries-list">${entries}</div>
+      <div class="mr-scorers-grid">
+        <div class="mr-scorers-team">
+          <div class="mr-scorers-team-label" style="color:${teamTextColor(state.homeTeam.color)}">${state.homeTeam.shortName}</div>
+          ${column(homeRows)}
+        </div>
+        <div class="mr-scorers-divider"></div>
+        <div class="mr-scorers-team">
+          <div class="mr-scorers-team-label" style="color:${teamTextColor(state.awayTeam.color)}">${state.awayTeam.shortName}</div>
+          ${column(awayRows)}
+        </div>
+      </div>
     </section>
   `;
 }

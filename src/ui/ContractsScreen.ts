@@ -28,6 +28,7 @@ import type { GameCoordinator } from '../game/GameCoordinator';
 import type { Player } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
 import { getAge } from '../game/age';
+import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
 
 type SortKey = 'wage' | 'expiry' | 'ovr' | 'position' | 'age' | 'name';
 type SortDir = 'asc' | 'desc';
@@ -63,13 +64,13 @@ function fmtExpiry(iso: string): string {
   return `${months[d.getUTCMonth()]} '${String(d.getUTCFullYear()).slice(2)}`;
 }
 
-function expiresThisSeason(expiresOn: string, calendarDate: string): boolean {
+function isExpiringSoon(expiresOn: string, calendarDate: string): boolean {
   if (!expiresOn) return false;
   const exp = new Date(expiresOn);
   const today = new Date(calendarDate);
   const monthsAhead = (exp.getUTCFullYear() - today.getUTCFullYear()) * 12
                     + (exp.getUTCMonth() - today.getUTCMonth());
-  return monthsAhead >= 0 && monthsAhead <= 10;
+  return monthsAhead >= 0 && monthsAhead <= EXPIRING_CONTRACT_WINDOW_MONTHS;
 }
 
 function ovrClass(ovr: number): string {
@@ -139,7 +140,7 @@ export function initContractsScreen(
     const rows = sorted.map(p => {
       const overall = playerOverall(p.baseStats, p.position);
       const age = getAge(p.dob, calendarDate);
-      const expiring = expiresThisSeason(p.contract.expiresOn, calendarDate);
+      const expiring = isExpiringSoon(p.contract.expiresOn, calendarDate);
 
       const classes = ['ct-player'];
       if (p.contract.isMarquee) classes.push('ct-player--marquee');

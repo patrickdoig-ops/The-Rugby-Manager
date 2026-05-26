@@ -86,8 +86,14 @@ function injuryKindLabel(kind: PlayerInjury['kind']): string {
 }
 
 let renderImpl: (() => void) | null = null;
+// One-shot back-target override. Cleared after the user navigates back —
+// so a future plain showSquadManagement() call falls back to the
+// init-time onBack (Hub). The PreMatch flow uses this to bring the user
+// back to the line-up step instead of Hub.
+let activeOnBack: (() => void) | null = null;
 
-export function showSquadManagement(): void {
+export function showSquadManagement(onBack?: () => void): void {
+  activeOnBack = onBack ?? null;
   renderImpl?.();
 }
 
@@ -106,6 +112,15 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
   let dirty = false;
   let discardOpen = false;
   let detailView = false;
+
+  // Honour a one-shot back override if showSquadManagement set one,
+  // then clear it so the next plain show falls back to the init-time
+  // onBack target (Hub).
+  function triggerBack(): void {
+    const target = activeOnBack ?? opts.onBack;
+    activeOnBack = null;
+    target();
+  }
 
   function resetDraftFromState(): void {
     const state = opts.getGameEngine().getState();
@@ -400,7 +415,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         discardOpen = true;
         render();
       } else {
-        opts.onBack();
+        triggerBack();
       }
     });
 
@@ -437,7 +452,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         saveGame(ge.toSavePayload());
         dirty = false;
         showToast('Squad saved');
-        opts.onBack();
+        triggerBack();
       });
     }
 
@@ -454,7 +469,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       });
       el.querySelector<HTMLButtonElement>('#sq-discard-confirm')!.addEventListener('click', () => {
         discardOpen = false;
-        opts.onBack();
+        triggerBack();
       });
       const backdrop = el.querySelector<HTMLDivElement>('#sq-discard-backdrop');
       backdrop?.addEventListener('click', (e) => {

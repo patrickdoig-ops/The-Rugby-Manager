@@ -35,7 +35,7 @@ import { initCrashOverlay }        from './ui/CrashOverlay';
 import { initStatsPanel }          from './ui/StatsPanel';
 import { initSimController }       from './ui/SimController';
 import { initModalManager }        from './ui/ModalManager';
-import { initPreMatchScreen }      from './ui/PreMatchScreen';
+import { initPreMatchScreen, showPreMatchAtStep } from './ui/PreMatchScreen';
 import { initHomeScreen }          from './ui/HomeScreen';
 import { initSettingsScreen }      from './ui/SettingsScreen';
 import { initTeamSelectorScreen }  from './ui/TeamSelectorScreen';
@@ -329,6 +329,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function goSquad(): void {
     showSquadManagement();
+    screenRouter.show('squad-management');
+  }
+
+  // PreMatch → Edit Squad shortcut. Opens Squad Management with a
+  // one-shot back override so the user lands back on the My Line-Up
+  // step instead of Hub.
+  function goSquadFromPreMatch(): void {
+    showSquadManagement(() => {
+      showPreMatchAtStep('mine');
+      screenRouter.show('pre-match');
+    });
     screenRouter.show('squad-management');
   }
 
@@ -755,6 +766,11 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       runPlayoffStage,
       { contextLabel, neutralVenue: isFinal, backLabel: 'Bracket' },
+      goSquadFromPreMatch,
+      (rosterId, returnStep) => goPlayerProfile(rosterId, () => {
+        showPreMatchAtStep(returnStep);
+        screenRouter.show('pre-match');
+      }),
     );
     screenRouter.show('pre-match');
   }
@@ -838,6 +854,12 @@ document.addEventListener('DOMContentLoaded', () => {
         onMatchStart(configuredHome, configuredAway, playerSide, round, playerTactics);
       },
       goHub,
+      undefined,
+      goSquadFromPreMatch,
+      (rosterId, returnStep) => goPlayerProfile(rosterId, () => {
+        showPreMatchAtStep(returnStep);
+        screenRouter.show('pre-match');
+      }),
     );
     screenRouter.show('pre-match');
   }

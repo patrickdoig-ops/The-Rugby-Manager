@@ -1,0 +1,538 @@
+/* Player profile screen + the shared .player-link inline button used
+ * across every screen that surfaces a clickable player name.
+ *
+ * Layered the same way as TeamInfoScreen — fixed-positioned overlay,
+ * scrollable inner, floating back arrow. The radar + grouped bars give
+ * the FM-style attribute density without losing the FIFA-style visual
+ * hook of a polygon at a glance.
+ */
+
+/* ─── Inline player link (used everywhere a name is clickable) ─── */
+
+.player-link {
+  cursor: pointer;
+  color: inherit;
+  border-bottom: 1px dashed color-mix(in oklch, var(--rm-pitch) 45%, transparent);
+  transition: color 0.12s, border-color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .player-link:hover {
+    color: var(--rm-pitch);
+    border-bottom-color: var(--rm-pitch);
+  }
+}
+
+.player-link:focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--rm-pitch) 65%, transparent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ─── Player profile screen shell ─── */
+
+#player-profile {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  background: var(--rm-bg);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding:
+    env(safe-area-inset-top, 0px)
+    env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
+}
+
+.pp-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 56px 20px 40px;
+  width: 100%;
+  max-width: 540px;
+}
+
+/* ─── Header ─── */
+
+.pp-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 14px;
+}
+
+.pp-id {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pp-id-line1 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--rm-font-display);
+  font-size: clamp(22px, 6vw, 28px);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--rm-chalk);
+  line-height: 1.0;
+}
+
+.pp-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pp-marquee {
+  display: inline-flex;
+  align-items: center;
+  color: gold;
+  filter: drop-shadow(0 0 4px color-mix(in oklch, gold 35%, transparent));
+}
+
+.pp-id-line2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rm-text-muted);
+}
+
+.pp-pos {
+  color: var(--rm-text);
+  font-weight: 600;
+}
+
+.pp-meta-sep {
+  color: var(--rm-text-faint);
+}
+
+.pp-id-line3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--rm-font-body);
+  font-size: 13px;
+  color: var(--rm-text);
+  margin-top: 2px;
+}
+
+.pp-id-line3--fa {
+  color: var(--rm-text-muted);
+  font-style: italic;
+}
+
+.pp-club-crest {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-display);
+  color: #fff;
+  font-size: 11px;
+  flex: 0 0 auto;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+
+.pp-club-crest--lg {
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  border-radius: 8px;
+}
+
+.pp-club-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pp-ovr-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border);
+  flex: 0 0 auto;
+}
+
+.pp-ovr-val {
+  font-family: var(--rm-font-display);
+  font-size: 28px;
+  line-height: 1.0;
+  color: var(--rm-chalk);
+}
+
+.pp-ovr-lbl {
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--rm-text-muted);
+  margin-top: 2px;
+}
+
+/* OVR-class colour bands — mirror the same scale used on Contracts /
+ * SquadManagement so the badge reads identically here. */
+.pp-ovr-badge.ovr-elite    { background: color-mix(in oklch, oklch(0.78 0.18 70) 22%, var(--rm-surface-2)); border-color: color-mix(in oklch, oklch(0.78 0.18 70) 45%, var(--rm-border)); }
+.pp-ovr-badge.ovr-elite    .pp-ovr-val { color: oklch(0.88 0.20 70); }
+.pp-ovr-badge.ovr-good     { background: color-mix(in oklch, var(--rm-pitch) 18%, var(--rm-surface-2)); border-color: color-mix(in oklch, var(--rm-pitch) 40%, var(--rm-border)); }
+.pp-ovr-badge.ovr-good     .pp-ovr-val { color: var(--rm-pitch); }
+.pp-ovr-badge.ovr-avg      .pp-ovr-val { color: var(--rm-text); }
+.pp-ovr-badge.ovr-poor     .pp-ovr-val { color: var(--rm-text-muted); }
+.pp-ovr-badge.ovr-veryPoor .pp-ovr-val { color: var(--rm-text-dim); }
+
+/* ─── Identity pips ─── */
+
+.pp-identity {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.pp-pip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+}
+
+.pp-pip-label {
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rm-text-muted);
+}
+
+.pp-pip-val {
+  font-family: var(--rm-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rm-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pp-pip--ok .pp-pip-val    { color: var(--rm-pitch); }
+.pp-pip--tight .pp-pip-val { color: oklch(0.78 0.15 70); }
+.pp-pip--low .pp-pip-val   { color: oklch(0.72 0.20 25); }
+
+.pp-pip--injury {
+  background: color-mix(in oklch, oklch(0.72 0.20 25) 12%, var(--rm-surface));
+  border-color: color-mix(in oklch, oklch(0.72 0.20 25) 35%, var(--rm-border-soft));
+}
+.pp-pip--injury .pp-pip-val { color: oklch(0.78 0.18 25); }
+
+/* ─── Section heading shared across attribute / season / history blocks ─── */
+
+.pp-section-title {
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--rm-text-muted);
+  margin: 0 0 10px;
+}
+
+/* ─── Attributes block (radar + bars) ─── */
+
+.pp-attr-block {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  padding: 16px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 14px;
+}
+
+@media (min-width: 480px) {
+  .pp-attr-block { grid-template-columns: minmax(220px, 260px) 1fr; align-items: start; }
+}
+
+.pp-radar-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pp-radar {
+  width: 100%;
+  max-width: 260px;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.pp-radar-ring {
+  fill: none;
+  stroke: var(--rm-border-soft);
+  stroke-width: 1;
+  opacity: 0.55;
+}
+
+.pp-radar-spoke {
+  stroke: var(--rm-border-soft);
+  stroke-width: 1;
+  opacity: 0.35;
+}
+
+.pp-radar-shape {
+  fill: color-mix(in oklch, var(--rm-pitch) 28%, transparent);
+  stroke: var(--rm-pitch);
+  stroke-width: 1.5;
+  filter: drop-shadow(0 0 8px color-mix(in oklch, var(--rm-pitch) 35%, transparent));
+}
+
+.pp-radar-label {
+  fill: var(--rm-text-muted);
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+.pp-radar-label--irrelevant {
+  fill: var(--rm-text-faint);
+  opacity: 0.45;
+}
+
+.pp-attr-cols {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pp-attr-group-label {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+  margin: 0 0 6px;
+}
+
+.pp-attr-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 64px 30px;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.pp-attr-short {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--rm-text-muted);
+  letter-spacing: 0.05em;
+}
+
+.pp-attr-label {
+  font-family: var(--rm-font-body);
+  font-size: 12px;
+  color: var(--rm-text);
+}
+
+.pp-attr-bar {
+  height: 6px;
+  background: var(--rm-surface-3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.pp-attr-bar-fill {
+  height: 100%;
+  background: var(--rm-pitch);
+  border-radius: 3px;
+}
+
+.pp-attr-val {
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--rm-text);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-attr-row--ovr-elite    .pp-attr-bar-fill { background: oklch(0.82 0.19 70); }
+.pp-attr-row--ovr-good     .pp-attr-bar-fill { background: var(--rm-pitch); }
+.pp-attr-row--ovr-avg      .pp-attr-bar-fill { background: color-mix(in oklch, var(--rm-pitch) 60%, var(--rm-text-muted)); }
+.pp-attr-row--ovr-poor     .pp-attr-bar-fill { background: var(--rm-text-dim); }
+.pp-attr-row--ovr-veryPoor .pp-attr-bar-fill { background: var(--rm-text-faint); }
+
+.pp-attr-row--irrelevant { opacity: 0.40; }
+.pp-attr-row--irrelevant .pp-attr-bar-fill { background: var(--rm-text-faint); }
+
+/* ─── Current-season stats grid ─── */
+
+.pp-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 8px;
+}
+
+.pp-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+}
+
+.pp-stat-label {
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rm-text-muted);
+}
+
+.pp-stat-val {
+  font-family: var(--rm-font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--rm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-stat-val.rating-high { color: var(--rm-pitch); }
+.pp-stat-val.rating-mid  { color: var(--rm-text); }
+.pp-stat-val.rating-low  { color: oklch(0.72 0.16 50); }
+.pp-stat-val.rating-poor { color: oklch(0.66 0.20 25); }
+
+/* ─── Career history table ─── */
+
+.pp-hist-table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.pp-hist-head,
+.pp-hist-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1.2fr 0.5fr 0.5fr 0.6fr;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 4px;
+}
+
+.pp-hist-head {
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+  border-bottom: 1px solid var(--rm-border-soft);
+  padding-bottom: 8px;
+  margin-bottom: 2px;
+}
+
+.pp-hist-season {
+  font-family: var(--rm-font-body);
+  font-size: 12px;
+  color: var(--rm-text);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pp-hist-current-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  background: color-mix(in oklch, var(--rm-pitch) 25%, var(--rm-surface-2));
+  color: var(--rm-pitch);
+  border-radius: 999px;
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.pp-hist-row--current {
+  background: color-mix(in oklch, var(--rm-pitch) 8%, transparent);
+  border-radius: 8px;
+}
+
+.pp-hist-club {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  color: var(--rm-text-muted);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.pp-hist-club-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pp-hist-num {
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  color: var(--rm-text);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-hist-rating {
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--rm-text);
+}
+
+.pp-hist-rating.rating-high { color: var(--rm-pitch); }
+.pp-hist-rating.rating-low  { color: oklch(0.72 0.16 50); }
+.pp-hist-rating.rating-poor { color: oklch(0.66 0.20 25); }
+
+.pp-hist-empty {
+  text-align: center;
+  color: var(--rm-text-muted);
+  padding: 24px 16px;
+  font-family: var(--rm-font-body);
+  font-size: 13px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 12px;
+}

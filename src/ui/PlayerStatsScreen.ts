@@ -12,6 +12,7 @@ import type { Player } from '../types/player';
 import { playerLeaderboard, leaderboardAvgRating, type PlayerLeaderKey } from '../game/seasonLeaderboards';
 import { SEASON_AWARDS } from '../engine/balance/career';
 import { eventBus } from '../utils/eventBus';
+import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 
 type CategoryKind =
   | { kind: 'count';   key: PlayerLeaderKey }
@@ -116,7 +117,11 @@ export function initPlayerStatsScreen(
   getGameEngine: () => GameCoordinator,
   allTeams: RawTeamInput[],
   onBack: () => void,
-  onPlayerClick: (teamId: string) => void,
+  // Tap anywhere on the row except the player name → that player's
+  // club info (legacy behaviour, preserved). Tap the player name → the
+  // player's profile.
+  onTeamClick: (teamId: string) => void,
+  onPlayerProfileClick: (rosterId: number) => void,
 ): void {
   const el = document.getElementById('player-stats');
   if (!el) return;
@@ -178,7 +183,7 @@ export function initPlayerStatsScreen(
           return `
             <div class="ps-row${isMyClub ? ' ps-row--me' : ''}" role="button" tabindex="0" data-team-id="${r.clubId ?? ''}" aria-label="${label}">
               <span class="ps-rank">${i + 1}</span>
-              <span class="ps-name">${r.player.firstName} ${r.player.lastName}</span>
+              <span class="ps-name">${playerLinkHtml(`${r.player.firstName} ${r.player.lastName}`, r.player.rosterId)}</span>
               ${clubBadge(r.clubId)}
               <span class="ps-pos">${r.player.position}</span>
               <span class="ps-val">${cat.format(r.player)}${secondaryVal ? `<span class="ps-val-sub">${secondaryVal}</span>` : ''}</span>
@@ -221,14 +226,17 @@ export function initPlayerStatsScreen(
     el!.querySelectorAll<HTMLElement>('.ps-row[data-team-id]').forEach(row => {
       const teamId = row.dataset.teamId;
       if (!teamId) return;
-      row.addEventListener('click', () => onPlayerClick(teamId));
+      row.addEventListener('click', () => onTeamClick(teamId));
       row.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onPlayerClick(teamId);
+          onTeamClick(teamId);
         }
       });
     });
+    // Player-name links sit inside each row but their click handler
+    // stops propagation so the outer row's team-click doesn't also fire.
+    wirePlayerLinks(el!, onPlayerProfileClick);
   }
 
   renderImpl = render;

@@ -24,6 +24,7 @@ import '../style/playoffbracket.css';
 import '../style/signingresults.css';
 import '../style/budgetreveal.css';
 import '../style/training.css';
+import '../style/player-profile.css';
 
 import { buildAppShell }           from './ui/AppShell';
 import { preloadAllCues, playCue } from './ui/SoundManager';
@@ -43,6 +44,7 @@ import { initLeagueTableScreen, showLeagueTable, showLeagueTablePostMatch } from
 import { initLeagueMenuScreen } from './ui/LeagueMenuScreen';
 import { initTeamStatsScreen, showTeamStats } from './ui/TeamStatsScreen';
 import { initPlayerStatsScreen, showPlayerStats } from './ui/PlayerStatsScreen';
+import { initPlayerProfileScreen, showPlayerProfile } from './ui/PlayerProfileScreen';
 import { initHubScreen }           from './ui/HubScreen';
 import { initMatchResultScreen }   from './ui/MatchResultScreen';
 import { initRoundResultsScreen, showRoundResults } from './ui/RoundResultsScreen';
@@ -178,7 +180,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const profile = teamProfile.getProfile(team.id);
     const state = gameEngine.getState();
     const liveTeam = buildTeamFromRoster(state, team);
-    initTeamInfoScreen(profile, liveTeam, state.calendar.date, onBack);
+    // Row click → player profile, with back returning here.
+    initTeamInfoScreen(profile, liveTeam, state.calendar.date, onBack, (rosterId) => {
+      goPlayerProfile(rosterId, () => goTeamInfoMidSeason(team, onBack));
+    });
     screenRouter.show('team-info');
   }
 
@@ -226,23 +231,45 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!teamJson) return;
       goTeamInfoMidSeason(teamJson, goTeamStats);
     });
-    initPlayerStatsScreen(getGameEngine, allTeams, goLeagueMenu, (teamId) => {
-      const teamJson = allTeams.find(t => t.id === teamId);
-      if (!teamJson) return;
-      goTeamInfoMidSeason(teamJson, goPlayerStats);
-    });
+    initPlayerStatsScreen(getGameEngine, allTeams, goLeagueMenu,
+      (teamId) => {
+        const teamJson = allTeams.find(t => t.id === teamId);
+        if (!teamJson) return;
+        goTeamInfoMidSeason(teamJson, goPlayerStats);
+      },
+      (rosterId) => goPlayerProfile(rosterId, goPlayerStats),
+    );
+    initPlayerProfileScreen(getGameEngine, allTeams);
     initRoundResultsScreen(getGameEngine, allTeams);
     initPlayoffBracketScreen(getGameEngine, allTeams);
     initBudgetRevealScreen(getGameEngine, allTeams);
     initTakeoverRevealScreen(getGameEngine, allTeams);
     initEndOfSeasonScreen(getGameEngine, allTeams);
-    initRenewalsScreen(getGameEngine, allTeams);
-    initTransferMarketScreen(getGameEngine, allTeams);
-    initSigningResultsScreen(getGameEngine, allTeams);
-    initRetentionDecisionScreen(getGameEngine, allTeams);
+    // Going to the profile from any off-season screen doesn't mutate
+    // career state, so the back path just re-shows the existing DOM —
+    // partial selections / toggles survive the round-trip.
+    initRenewalsScreen(getGameEngine, allTeams, (rosterId) => {
+      goPlayerProfile(rosterId, () => screenRouter.show('renewals'));
+    });
+    initTransferMarketScreen(getGameEngine, allTeams, (rosterId) => {
+      goPlayerProfile(rosterId, () => screenRouter.show('transfer-market'));
+    });
+    initSigningResultsScreen(getGameEngine, allTeams, (rosterId) => {
+      goPlayerProfile(rosterId, () => screenRouter.show('signing-results'));
+    });
+    initRetentionDecisionScreen(getGameEngine, allTeams, (rosterId) => {
+      goPlayerProfile(rosterId, () => screenRouter.show('retention-decision'));
+    });
     initRolloverScreen(getGameEngine, allTeams);
-    initContractsScreen(getGameEngine, allTeams, goHub);
-    initSquadManagementScreen({ getGameEngine, allTeams, onBack: goHub });
+    initContractsScreen(getGameEngine, allTeams, goHub, (rosterId) => {
+      goPlayerProfile(rosterId, goContracts);
+    });
+    initSquadManagementScreen({
+      getGameEngine,
+      allTeams,
+      onBack: goHub,
+      onPlayerClick: (rosterId) => goPlayerProfile(rosterId, goSquad),
+    });
     initSquadOverviewScreen(getGameEngine, allTeams);
     initTrainingScreen(getGameEngine);
 
@@ -280,6 +307,17 @@ document.addEventListener('DOMContentLoaded', () => {
   function goPlayerStats(): void {
     showPlayerStats();
     screenRouter.show('player-stats');
+  }
+
+  // Opens the profile for one player. `onBack` is origin-aware (mirrors
+  // goTeamInfoMidSeason from v2.180a) — the calling screen passes its
+  // own re-entry helper so the back arrow returns to wherever you came
+  // from (Contracts, PlayerStats leaderboards, TeamInfo squad rows, etc).
+  // Safe to call any time in the in-season window — the screen pulls
+  // live state and the profile renders the player's current status.
+  function goPlayerProfile(rosterId: number, onBack: () => void): void {
+    showPlayerProfile(rosterId, onBack);
+    screenRouter.show('player-profile');
   }
 
   function goContracts(): void {

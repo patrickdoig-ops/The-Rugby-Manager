@@ -889,6 +889,9 @@ export class GameCoordinator {
                 topRating:  a.leaders.topRating.map(l => ({ ...l })),
               } }
             : {}),
+          ...(a.playerSeasonHistory
+            ? { playerSeasonHistory: clonePlayerHistoryForSave(a.playerSeasonHistory) }
+            : {}),
         })),
         freeAgents: [...this.state.career.freeAgents],
         market: this.state.career.market
@@ -917,6 +920,14 @@ export class GameCoordinator {
         : {}),
     };
   }
+}
+
+function clonePlayerHistoryForSave(
+  h: Record<number, import('../types/gameState').ArchivedPlayerSeason>,
+): Record<number, import('../types/gameState').ArchivedPlayerSeason> {
+  const out: Record<number, import('../types/gameState').ArchivedPlayerSeason> = {};
+  for (const k of Object.keys(h)) out[Number(k)] = { ...h[Number(k)] };
+  return out;
 }
 
 // Deep-ish clone of a PlayoffState for the save payload. Shallow on the

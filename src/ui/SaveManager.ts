@@ -2,7 +2,14 @@
 // Screen's "Continue Game" button can resume mid-season after a browser
 // close. Schema is versioned — bump SAVE_VERSION whenever the shape changes.
 //
-// v18 (current) adds the training system. Adds `Player.condition` on every
+// v19 (current) adds per-player season history on every ArchivedSeason
+// entry — `playerSeasonHistory: Record<rosterId, ArchivedPlayerSeason>`.
+// Drives PlayerProfileScreen's Career History table. Pre-v19 archive
+// entries load with the field undefined — the profile renders an empty
+// Career History column for those historical seasons. New rollovers
+// always populate it.
+//
+// v18 added the training system. Adds `Player.condition` on every
 // roster Player (0-100, persistent inter-match freshness) and an optional
 // `training?: TrainingPlan` field at the top level (manager's last
 // training-week choice). Pre-v18 saves load with condition back-filled to
@@ -46,7 +53,7 @@
 // v1 saves are discarded — they predate AI-vs-AI results.
 
 import type { SavedCareer, SavedSeason, SavedSeasonResult } from '../game/GameCoordinator';
-import type { ArchivedSeason, ClubState, Fixture, MarketState, PlayerRef, PlayoffMatch, PlayoffState, PreAgreement, SeasonAwards, TeamSeasonStats, TransferBid, TransferOffer } from '../types/gameState';
+import type { ArchivedPlayerSeason, ArchivedSeason, ClubState, Fixture, MarketState, PlayerRef, PlayoffMatch, PlayoffState, PreAgreement, SeasonAwards, TeamSeasonStats, TransferBid, TransferOffer } from '../types/gameState';
 import type { Player, PlayerSeasonStats } from '../types/player';
 import { zeroSeasonStats } from '../types/player';
 import { zeroTeamSeasonStats } from '../types/gameState';
@@ -54,8 +61,8 @@ import type { TeamTactics } from '../types/team';
 import type { TrainingPlan } from '../types/training';
 
 const SAVE_KEY = 'rugby-manager-save';
-const SAVE_VERSION = 18;
-const ACCEPTED_VERSIONS = new Set([17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+const SAVE_VERSION = 19;
+const ACCEPTED_VERSIONS = new Set([18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
 
 export type SavedGame = SavedSeason & { version: number };
 
@@ -218,6 +225,10 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
       // v13+ field; pre-v13 archive entries omit it and load as null.
       championTeamId: a.championTeamId ?? null,
       ...(a.leaders ? { leaders: cloneLeaders(a.leaders) } : {}),
+      // v19+ field. Pre-v19 archive entries omit the map; the profile
+      // screen's Career History row for that season then renders an
+      // em-dash placeholder. New rollovers always populate it.
+      ...(a.playerSeasonHistory ? { playerSeasonHistory: clonePlayerHistory(a.playerSeasonHistory) } : {}),
     })),
     freeAgents,
     market,
@@ -274,6 +285,18 @@ function cloneLeaders(l: SeasonAwards): SeasonAwards {
     topTackles: l.topTackles.map(x => ({ ...x })),
     topRating:  l.topRating.map(x => ({ ...x })),
   };
+}
+
+function clonePlayerHistory(h: Record<number, ArchivedPlayerSeason>): Record<number, ArchivedPlayerSeason> {
+  const out: Record<number, ArchivedPlayerSeason> = {};
+  for (const k of Object.keys(h)) {
+    const rid = Number(k);
+    if (!Number.isFinite(rid)) continue;
+    const v = h[rid];
+    if (typeof v !== 'object' || v === null) continue;
+    out[rid] = { ...v };
+  }
+  return out;
 }
 
 // v9+ team-season-stats parse. Defensive against malformed entries —

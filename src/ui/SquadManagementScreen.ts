@@ -35,12 +35,17 @@ import { shortName } from '../utils/playerName';
 import { saveGame } from './SaveManager';
 import { showToast } from './Toast';
 import { eventBus } from '../utils/eventBus';
+import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 
 export interface InitSquadManagementOpts {
   // Always called fresh — see HubScreen for the rationale.
   getGameEngine: () => GameCoordinator;
   allTeams: RawTeamInput[];
   onBack: () => void;
+  // Tap player name → profile. Tap anywhere else on the row → two-tap
+  // swap (existing behaviour). The link handler stops propagation so
+  // these two interactions don't collide.
+  onPlayerClick?: (rosterId: number) => void;
 }
 
 type Tier = 'starter' | 'bench' | 'squad';
@@ -423,6 +428,11 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       });
     }
 
+    // Player-name links — wired last so they're attached after the
+    // row click listener above. The link's own click stopPropagation
+    // prevents the outer row swap from also firing.
+    if (opts.onPlayerClick) wirePlayerLinks(el, opts.onPlayerClick);
+
     // Discard confirm
     if (discardOpen) {
       el.querySelector<HTMLButtonElement>('#sq-discard-cancel')!.addEventListener('click', () => {
@@ -500,11 +510,18 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
           return `<div class="sq-stat-cell ${ovrClass(v)}"><span class="sq-stat-lbl">${lbl}</span><span class="sq-stat-val">${v}</span></div>`;
         }).join('')}
       </div>` : '';
+    // Names get a profile-link only when the draft row carries a
+    // rosterId (every row built from buildTeamFromRoster does). The
+    // injury badge sits outside the link so a tap on it doesn't open
+    // the profile.
+    const nameInner = opts.onPlayerClick && typeof p.rosterId === 'number'
+      ? playerLinkHtml(shortName(p), p.rosterId)
+      : shortName(p);
     return `
       <div class="${classes.join(' ')}" data-tier="${tier}" data-squad="${sn}">
         <div class="sq-jersey sq-jersey--${tier}">${jerseyContent}</div>
         <div class="sq-player-info">
-          <span class="sq-player-name sq-player-name--${tier}">${shortName(p)}${injuryBadge ? ' ' + injuryBadge : ''}</span>
+          <span class="sq-player-name sq-player-name--${tier}">${nameInner}${injuryBadge ? ' ' + injuryBadge : ''}</span>
           <span class="sq-player-pos sq-player-pos--${tier}">${p.position}</span>
         </div>
         <div class="sq-ovr ${ovrClass(ovr)}">${ovr}</div>

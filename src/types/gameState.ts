@@ -218,6 +218,30 @@ export interface SeasonAwards {
   topRating:   SeasonLeader[];  // by ratingSum / appearances, min appearances guard
 }
 
+// Per-player season snapshot archived at SEASON_ROLLED_OVER. Keyed by
+// rosterId on the parent ArchivedSeason.playerSeasonHistory map. Captures
+// the headline numbers + the club the player was at that season-end so
+// PlayerProfileScreen's Career History table can render a "club at the
+// time" column even after the player moves clubs in subsequent years.
+// Players with zero appearances are omitted from the map to keep the
+// payload small (a 480-player league has ~100 unused bench / wider squad
+// players that never see the pitch in any given season).
+export interface ArchivedPlayerSeason {
+  clubId: string;            // contract.clubId at the moment of archive
+  apps: number;
+  ratingSum: number;         // avg = ratingSum / apps
+  tries: number;
+  carries: number;
+  metresCarried: number;
+  lineBreaks: number;
+  tackles: number;
+  turnoversWon: number;
+  kicksMade: number;
+  kicksAtGoal: number;
+  yellowCards: number;
+  redCards: number;
+}
+
 // End-of-season snapshot — final standings + awards. Appended on every
 // SEASON_ROLLED_OVER for the season just completed.
 export interface ArchivedSeason {
@@ -230,6 +254,13 @@ export interface ArchivedSeason {
   // Null when archived without a playoff run — covers pre-v13 saves
   // whose archive entries predate the playoffs system.
   championTeamId: string | null;
+  // Per-player season snapshot, keyed by rosterId. Only players who
+  // took the field (apps > 0) are present. Optional so v18 and older
+  // archive entries load without the field — PlayerProfileScreen
+  // renders an empty Career History for historical seasons in that
+  // case. v19+ saves always include it (possibly empty for a
+  // played-but-recorded-zero edge case).
+  playerSeasonHistory?: Record<number, ArchivedPlayerSeason>;
 }
 
 // A renewal / signing offer surfaced during the end-of-season market
@@ -721,6 +752,11 @@ export type SeasonEvent =
       // re-zeroed. Optional so older event-replay paths (or hand-crafted
       // events in tests) can omit it.
       leaders?: SeasonAwards;
+      // Per-player season snapshot captured before seasonStats are
+      // re-zeroed. Drives PlayerProfileScreen's Career History table.
+      // Optional so older event-replay paths can omit it; the archive
+      // entry then renders an empty history column on the profile.
+      playerSeasonHistory?: Record<number, ArchivedPlayerSeason>;
     }
   | {
       // Seeds the knockout bracket from the final regular-season standings

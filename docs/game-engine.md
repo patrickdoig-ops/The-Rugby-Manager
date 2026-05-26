@@ -291,6 +291,17 @@ Hub → League opens `LeagueMenuScreen` (`src/ui/LeagueMenuScreen.ts`) — a thr
 
 Both stats screens re-render on `game:fixtureRecorded` + `game:weekAdvanced` + `game:initialized`, the same triggers used by `LeagueTableScreen`. Zero engine work was needed to ship this surface — all data is already accumulated post-fixture into `PlayerSeasonStats` + `TeamSeasonStats`. **Known gap (carried over):** the engine doesn't split goal-kicks by kind (conversion / penalty / drop) at the player level — `PlayerSeasonStats.conversions / penaltiesScored / dropGoals` remain reserved-but-zero. The Player Stats screen labels the Goal Kicking category as "Kicks made / attempted" rather than "Conversion %" to surface this honestly.
 
+## Player profiles
+
+Per-player detail screen reached by tapping any player name across the in-season surfaces (live as of v2.192a).
+
+- **Click surface.** Player names render as `.player-link` (`src/ui/components/playerLink.ts` — `playerLinkHtml(name, rosterId)` + `wirePlayerLinks(root, onClick)`). Eight surfaces wired in v1: `TeamInfoScreen` (mid-season squad rows), `ContractsScreen`, `SquadManagementScreen`, `PlayerStatsScreen` leaderboards, `TransferMarketScreen` (FA + Reg 7), `RenewalsScreen`, `RetentionDecisionScreen`, `SigningResultsScreen`. Each surface threads an `onPlayerClick(rosterId)` from `main.ts` that routes through `goPlayerProfile(rosterId, onBack)`. The `onBack` callback is screen-specific so the profile's back arrow returns to wherever the user came from — mirrors the `goTeamInfoMidSeason(team, onBack)` origin-aware pattern from v2.180a. Defer surfaces (different lifecycle, follow-up): in-match `StatsPanel`, `CommentaryFeed`, `MatchResultScreen` ratings, `PreMatchScreen` lineup.
+- **Screen.** `PlayerProfileScreen` (`src/ui/PlayerProfileScreen.ts`). Layout: header (name, position chip, age, nationality, club crest + name, big OVR badge) → identity row (contract expiry, annual wage, condition, reputation, optional injury chip) → attributes block (12-axis SVG hex radar + grouped attribute bars — Physical / Skill / Mental columns, position-irrelevant stats greyed out per `IRRELEVANT_STATS[position]`) → current-season counters (only rendered when `appearances > 0`) → Career History table.
+- **Career History.** One row per past archived season from `state.career.archive[*].playerSeasonHistory[rosterId]`. Columns: Season / Club at the time (crest + short name) / Apps / Tries / Avg Rating. Plus the current season's live tally as an "In progress" pinned top-row when `appearances > 0`. Pre-v19 archive entries omit the map; the profile renders an em-dash row for those legacy seasons. Players with no recorded appearances in any archived season + no current-season apps get the "First season — history will appear after the first match" empty state.
+- **Data source.** Pure reads from `state.career.roster[rosterId]` + `state.career.archive[*].playerSeasonHistory[rosterId]` + `state.career.clubs[*].squad` (for the current-club lookup). No engine extension beyond the new archive snapshot — current OVR through `playerOverall(baseStats, position)` from `RatingEngine`; age through `getAge(dob, calendar.date)`.
+- **Snapshot pipeline.** `careerRollover.computeRollover` calls `snapshotPlayerHistory(state)` before `SEASON_ROLLED_OVER` fires. Iterates `state.career.roster` rosterId-ascending, skipping players with `appearances === 0`. Captures `contract.clubId` at the moment of the snapshot — so a player who moves clubs in subsequent seasons still shows the right crest on each historical row. The new payload field flows through `applySeasonEvent` (`SEASON_ROLLED_OVER` apply branch) and is restored via `CAREER_ARCHIVE_RESTORED` on load.
+- **Live refresh.** Subscribes to `game:fixtureRecorded` + `game:weekAdvanced` + `game:initialized` so an in-progress current-season tally updates while the screen is open. No `game:seasonRolledOver` subscription — opening the profile post-rollover already re-runs `render()` via `showPlayerProfile`.
+
 ## Injuries
 
 Persistent contact injuries on the career roster, in-match-triggered and decremented round-by-round until recovery. Match-engine internals (the in-match `cards.injured` bucket, the per-tackle roll, the shared forced-sub flow) live in `docs/match-engine.md` § Injuries. Season-scope mechanics:
@@ -362,7 +373,7 @@ A three-match knockout follows the 18-round Premiership regular season: two semi
 
 ## Save format
 
-`SAVE_VERSION = 18` (as of v2.185a). `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`.
+`SAVE_VERSION = 19` (as of v2.192a). `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`.
 
 | Version | Added |
 |---|---|
@@ -383,9 +394,11 @@ A three-match knockout follows the 18-round Premiership regular season: two semi
 | v16 | `MarketState.phase` gains `'signings-midseason'`. `career.midseasonRejections: Record<rosterId, weekUntilClear>` — per-player one-round cooldown after a mid-season free-agent declines. WEEK_ADVANCED prunes aged-out entries; SEASON_ROLLED_OVER clears them all. Pre-v16 saves migrate as `{}`. |
 | v17 | `TeamTactics` gains `offloadStrategy` (`'cautious' \| 'balanced' \| 'offload_freely'`). Pre-v17 saves backfill `'balanced'` (numerically neutral) so the engine never sees undefined — same shape as the v9 → v10 `defensiveLine` migration. |
 | v18 | Training system. Each persisted Player gains `condition: number` (0-100, inter-match freshness — snapshotted from final in-match fatigue, modulated weekly by training). Top-level `training?: TrainingPlan` carries the manager's last chosen plan. Pre-v18 saves back-fill `condition: 100` on every roster entry and load with `training: undefined` (TrainingScreen falls back to `DEFAULT_TRAINING_PLAN`). |
+| v19 | `ArchivedSeason.playerSeasonHistory?: Record<rosterId, ArchivedPlayerSeason>` — per-player end-of-season snapshot (clubId at the time, apps, ratingSum, tries, carries, metres, line breaks, tackles, turnovers, kicksMade/At, yellow / red cards). Drives `PlayerProfileScreen`'s Career History table. Pre-v19 archive entries load with the field undefined; the profile renders an em-dash row for those historical seasons. New rollovers always populate it. |
 
 **Migration on load** (`GameCoordinator.fromSave`):
 
+- v18 → v19: no-op shim. `playerSeasonHistory` is optional on every `ArchivedSeason` entry. Pre-v19 archives load with the field undefined — the next rollover populates it for the season just completed; older historical seasons stay sparse and the profile screen surfaces an em-dash placeholder for them. The same `cloneLeaders`-style defensive copy in `SaveManager.parseCareer` ferries the field through.
 - v17 → v18: `backfillRosterSeasonStats` also writes `condition: 100` on every roster Player that lacks the field. The top-level `training` field is optional — pre-v18 saves load with it undefined and `TrainingScreen` resolves to `DEFAULT_TRAINING_PLAN`. No retroactive condition state is fabricated: a v17 save mid-season resumes with everyone at full freshness, and the next post-match training week begins evolving condition.
 - v16 → v17: `parseSave` backfills `tactics.offloadStrategy = 'balanced'` when absent on the persisted tactics blob.
 - v15 → v16: `parseCareer` defaults `midseasonRejections` to `{}`. `parseMarket` accepts the new `'signings-midseason'` phase value; pre-v16 saves never wrote it. No retroactive cooldowns — the player can immediately re-approach anyone after a v15→v16 load.

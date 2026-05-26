@@ -4,6 +4,7 @@ import { computeOverallRating } from '../team/teamProfile';
 import { playerOverall } from '../engine/RatingEngine';
 import type { RawTeamInput } from '../types/teamData';
 import { getAge } from '../game/age';
+import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 
 type RawPlayer = RawTeamInput['players'][number];
 
@@ -74,10 +75,18 @@ function squadRow(p: RawPlayer, currentDate: string): string {
   const name = `${p.firstName} ${p.lastName}`.trim();
   const age = getAge(p.dob, currentDate);
   const ageLabel = age === null ? '—' : `${age}`;
+  // Mid-season entries come from buildTeamFromRoster (with rosterId set);
+  // pre-game team-selector entries come straight from the JSON (no
+  // rosterId), in which case the name renders as plain text without a
+  // profile link — the profile screen needs the career roster to work.
+  const hasRosterId = typeof p.rosterId === 'number';
+  const nameHtml = hasRosterId
+    ? playerLinkHtml(name, p.rosterId as number)
+    : name;
   return `
     <div class="ti-squad-row">
       <div class="ti-squad-num">${p.squadNumber ?? p.id}</div>
-      <div class="ti-squad-name">${name}</div>
+      <div class="ti-squad-name">${nameHtml}</div>
       <div class="ti-squad-pos">${p.position}</div>
       <div class="ti-squad-age">${ageLabel}</div>
       <div class="ti-squad-ovr">${ovr}</div>
@@ -89,6 +98,11 @@ export function initTeamInfoScreen(
   rawTeam: RawTeamInput,
   currentDate: string,
   onBack: () => void,
+  // Optional: only wired on mid-season entry (when buildTeamFromRoster
+  // gives every row a rosterId). Pre-game (team-selector) entries pass
+  // undefined — player names render as plain text and the squad list is
+  // a read-only browse.
+  onPlayerClick?: (rosterId: number) => void,
 ): void {
   const el = document.getElementById('team-info');
   if (!el) return;
@@ -192,4 +206,8 @@ export function initTeamInfoScreen(
   el.querySelector<HTMLButtonElement>('#ti-back')!.addEventListener('click', () => {
     onBack();
   });
+
+  if (onPlayerClick) {
+    wirePlayerLinks(el, onPlayerClick);
+  }
 }

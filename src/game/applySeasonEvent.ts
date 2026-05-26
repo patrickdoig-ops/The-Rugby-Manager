@@ -337,6 +337,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         mvpRosterId: a.mvpRosterId,
         championTeamId: a.championTeamId ?? null,
         ...(a.leaders ? { leaders: cloneLeaders(a.leaders) } : {}),
+        ...(a.playerSeasonHistory ? { playerSeasonHistory: clonePlayerHistory(a.playerSeasonHistory) } : {}),
       }));
       if (event.freeAgents) state.career.freeAgents = [...event.freeAgents];
       if (event.market !== undefined) {
@@ -388,6 +389,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         mvpRosterId: event.mvpRosterId,
         championTeamId: event.championTeamId,
         ...(event.leaders ? { leaders: cloneLeaders(event.leaders) } : {}),
+        ...(event.playerSeasonHistory ? { playerSeasonHistory: clonePlayerHistory(event.playerSeasonHistory) } : {}),
       });
       state.career.seasonsCompleted += 1;
       state.calendar.seasonLabel = event.newSeasonLabel;
@@ -573,6 +575,16 @@ function cloneLeaders(l: import('../types/gameState').SeasonAwards): import('../
     topTackles: l.topTackles.map(x => ({ ...x })),
     topRating:  l.topRating.map(x => ({ ...x })),
   };
+}
+
+function clonePlayerHistory(
+  h: Record<number, import('../types/gameState').ArchivedPlayerSeason>,
+): Record<number, import('../types/gameState').ArchivedPlayerSeason> {
+  const out: Record<number, import('../types/gameState').ArchivedPlayerSeason> = {};
+  for (const k of Object.keys(h)) {
+    out[Number(k)] = { ...h[Number(k)] };
+  }
+  return out;
 }
 
 function findOrCreate(standings: TeamStanding[], teamId: string): TeamStanding {

@@ -12,7 +12,7 @@ export type PhaseOutcomeKey =
   | 'clean_receive' | 'poor_kick' | 'short_kick_retain' | 'knock_on'
   // PhasePlay / FirstPhase / KickReturn shared
   | 'kick_decision' | 'out_the_back' | 'crash_ball'
-  | 'line_break' | 'line_break_try'
+  | 'line_break' | 'line_break_try' | 'cover_tackle'
   | 'dominant_carry' | 'dominant_carry_try' | 'dominant_tackle' | 'play_on'
   | 'high_tackle_penalty' | 'obstruction_penalty'
   | 'interception'

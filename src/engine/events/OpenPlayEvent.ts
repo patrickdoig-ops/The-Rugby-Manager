@@ -7,7 +7,7 @@ import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
-import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards } from '../FieldPosition';
+import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler } from '../FieldPosition';
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
@@ -187,6 +187,13 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
     ballCarrier = outsideBack;
   }
 
+  // Channel-aware primary defender — picked AFTER ballCarrier is finalised
+  // (the goWide branch above swaps it to the outsideBack). The early-pick
+  // `defender` from line 47 stays in scope for any KO / obstruction
+  // narration that fired before this point (those paths don't emit
+  // CARRY_RESOLVED, so the swap doesn't affect tackle stats).
+  defender = pickPrimaryDefender(defendTeam, state, defSide, ballCarrier);
+
   // Step 3 — Evasion → Step 4 Collision (handling gate already cleared)
   const ha = homeEdge(state, HOME_ADVANTAGE.carryMod);
   // defensiveLine was hoisted up top for the pressure / interception
@@ -244,6 +251,20 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
     res.gainMetres += TACTIC_MODIFIERS.backfieldLineBreakGainBonus[defendTeam.tactics.backfieldDefence];
   }
 
+  // Try check hoisted above CARRY_RESOLVED so the cover-tackler pick can
+  // be gated on a non-try line break.
+  const projectedBallX = clamp(state.ball.x + direction * res.gainMetres, 0, 100);
+  const canScore = res.outcome === 'line_break' || res.outcome === 'dominant_carry';
+  const tryScored = canScore && isTryScoredAt(projectedBallX, attackSide, state.clock.halfTimeDone);
+
+  const coverTackler = res.outcome === 'line_break' && !tryScored
+    ? pickCoverDefender(defendTeam, state, defSide)
+    : undefined;
+
+  const assistTackler = (res.outcome === 'dominant_carry' || res.outcome === 'play_on' || res.outcome === 'dominant_tackle')
+    ? pickAssistTackler(defendTeam, state, defSide, defender)
+    : undefined;
+
   events.push({
     type: 'CARRY_RESOLVED',
     carrier: ballCarrier,
@@ -252,20 +273,12 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
     direction,
     outcome: res.outcome,
     defSide,
+    coverTackler,
+    assistTackler,
   });
 
   let nextPhase: MatchPhase;
   const outcomeSteps: NarrationStep[] = [...wideIntroSteps, ...chainNarration];
-
-  // Try check — any forward-progress carry whose projected ballX
-  // crosses the attack-direction try line scores. Line breaks AND
-  // dominant carries both qualify (a centre crash that reaches the
-  // line scores just the same as a winger break). play_on and
-  // dominant_tackle don't score: play_on metres are too short to
-  // matter from > 5m out, dominant_tackle is by definition pushed back.
-  const projectedBallX = clamp(state.ball.x + direction * res.gainMetres, 0, 100);
-  const canScore = res.outcome === 'line_break' || res.outcome === 'dominant_carry';
-  const tryScored = canScore && isTryScoredAt(projectedBallX, attackSide, state.clock.halfTimeDone);
 
   if (tryScored) {
     nextPhase = MatchPhase.TryScored;
@@ -278,6 +291,9 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   } else if (res.outcome === 'line_break') {
     nextPhase = MatchPhase.Breakdown;
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'line_break', primary: ballCarrier, secondary: defender });
+    if (coverTackler) {
+      outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'cover_tackle', primary: ballCarrier, secondary: coverTackler });
+    }
     if (backfieldPenalty < 0) {
       outcomeSteps.push({
         kind: 'tactic_note',

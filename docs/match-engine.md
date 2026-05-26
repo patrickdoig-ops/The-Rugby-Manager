@@ -643,7 +643,7 @@ Each chain link consumes the outcome RNG stream as follows (always — never sho
 6. Catch gate: `rng(1, 100) <= knockOnPct(catcher.handling, clockInRed) + OFFLOAD_VALUES.catchHandlingPenalty` (catch is +10 harder than a normal pass — under-pressure unload). On knock-on, the chain terminates and the phase short-circuits to a scrum (possession flips via the existing `KNOCK_ON` reducer); catcher gets the `knockOns++` attribution.
 7. On catch: fresh `resolveOpenPlay(catcher, newDefender, baseAttackMod + OFFLOAD_VALUES.secondCarryAttackBonus (10), baseDefendMod, dlCollision)`. The +10 attack bonus on evasion reflects the defensive line scrambling. If the new carry is a line break, the chain exits. Otherwise loops (up to `OFFLOAD_VALUES.maxChain` = 2).
 
-Original carrier stat credit on every chain link (caught or knocked on) lands via an intermediate `CARRY_RESOLVED { metres: 0, outcome: 'play_on' }` — credits the prev carrier `carries++` and the prev defender `tacklesAttempted++` / `tacklesMade++` (the tackle was made; the ball just got away). Telemetry implication: per chain link the defender gets an extra `tacklesAttempted++`, so offload-heavy matches show slightly inflated tackle-attempted counts.
+Original carrier stat credit on every chain link (caught or knocked on) lands via an intermediate `CARRY_RESOLVED { metres: 0, outcome: 'play_on' }` — credits the prev carrier `carries++` and the prev defender `tacklesAttempted++` / `tacklesMade++` (the tackle was made; the ball just got away). The intermediate event also carries an `assistTackler` drawn from the forward-weighted assist pool (back row + locks heavy, hooker occasional), so each chain link credits two defenders per the standard made-tackle accounting. Telemetry implication: per chain link the primary defender gets an extra `tacklesAttempted++` plus the assist gets `tacklesAttempted++` and `tacklesMade++`, so offload-heavy matches show slightly inflated tackle-attempted counts. The new-link defender (next iteration's `currentDefender`) is drawn via `pickPrimaryDefender(defendTeam, state, defSide, catcher, currentDefender)` — channel-aware on the new carrier's slot, excluding the just-picked defender.
 
 Stat fields on `PlayerMatchStats`: `offloadsAttempted` (bumped on every offload roll that completes a pool pick — i.e. an actual attempt, not a no-pool skip) and `offloadsCompleted` (bumped on successful catch). A separate `PASS_COMPLETED` rides alongside `OFFLOAD_COMPLETED` to credit the pass — same accounting as every other completed pass.
 
@@ -664,7 +664,16 @@ collisionDefend = (defender.tackling + defender.strength) / 2 + rng(1,20)
 
 All outcomes → Breakdown.
 
-**Tackle statistics:** `tackles.attempted` is incremented for `dominant_tackle`, `dominant_carry`, `play_on`, and `line_break`. `tackles.made` is only incremented for `dominant_tackle`, `dominant_carry`, and `play_on`. Line breaks therefore count as a missed tackle, lowering the tackle % displayed in the stats panel.
+**Tackle statistics:** `tackles.attempted` is incremented for `dominant_tackle`, `dominant_carry`, `play_on`, and `line_break` — credited to the **primary** defender (picked via `pickPrimaryDefender` — channel-aware, see below). `tackles.made` is incremented for `dominant_tackle`, `dominant_carry`, and `play_on` (same primary defender). On a `line_break` that **does not** reach the try line, a cover tackler is selected via `pickCoverDefender(defendTeam, state, defSide)` (`src/engine/FieldPosition.ts`) — weighted pick over the on-field back three (fullback 60%, each wing 20%, degrading to any on-field back) — and credited with `tacklesMade++` plus the team-level `tackles[defSide].made++`. The initial defender keeps the missed tackle.
+
+**Channel-aware primary defender** (`pickPrimaryDefender(team, state, side, carrier)`). The defender on every `CARRY_RESOLVED`-emitting carry path is drawn from a weighted pool chosen by the carrier's matchday slot — replacing the historical uniform-random pick that biased tackle leaderboards toward backs. Three channels (tables in `src/engine/balance/tackling.ts`):
+- **Hard channel** (carrier slot 1-9 — forward carry or scrum-half pickup): back row × 18/18/15, locks × 14/14, front row × 7/8/7, plus token close-channel centres × 4/3.
+- **Midfield channel** (carrier #10 or #12): centres × 18/12, back row × 12/12/8, fly-half × 3, locks × 4/4.
+- **Wide channel** (carrier #11/#13/#14/#15): wings × 18/18, fullback × 14, centre 13 × 12, back row × 3/3.
+
+KickReturn uses a **flat forward-weighted** chase-pack table (`pickKickReturnDefender`) — back row × 18/18/14, hookers × 10, locks × 10/10, props × 6/6, wings × 4/4, fullback × 3 — with no carrier awareness. The offload chain calls `pickPrimaryDefender` per chain link using the new catcher as the channel input, with the previous defender excluded via the optional `exclude` parameter.
+
+**Assist tackler.** Every made outcome (`dominant_carry`, `play_on`, `dominant_tackle`) credits a second defender — the support player arriving at contact. Drawn via `pickAssistTackler(team, state, side, primary)` from a forward-heavy table (back row × 20/20/15, locks × 10/10, hooker × 5) excluding the primary. The reducer bumps `tacklesAttempted++` AND `tacklesMade++` on both player and team scope, keeping the team-level `made ≤ attempted` invariant balanced. Line breaks credit no assist (cover tackler already handles the non-try finisher). Assists are stat-only — no commentary fires for them, since they happen on the majority of carries and would flood the feed.
 
 ### Commentary
 
@@ -682,11 +691,13 @@ When Out the Back (PhasePlay), Crash Ball, or Wide Play (FirstPhase) paths are t
 | Wide Play path clears outsideCentre gate | carrier (#10) | `passes++` |
 | Wide Play path clears wing gate | outsideCentre | `passes++` |
 | all four collision outcomes | ballCarrier | `carries++`, `metresCarried += gainMetres` |
-| all four collision outcomes | defender | `tacklesAttempted++` |
+| all four collision outcomes | primary defender (channel-aware pick) | `tacklesAttempted++` |
 | `line_break` | ballCarrier | `lineBreaks++`, `defendersBeaten++` |
+| `line_break` (non-try only) | coverTackler (FB 60% / wing 20% each) | `tacklesMade++` |
 | `dominant_carry` | ballCarrier | `defendersBeaten++` |
-| `dominant_tackle` | defender | `tacklesMade++`, `dominantTackles++` |
-| `dominant_carry` or `play_on` | defender | `tacklesMade++` |
+| `dominant_tackle` | primary defender | `tacklesMade++`, `dominantTackles++` |
+| `dominant_carry` or `play_on` | primary defender | `tacklesMade++` |
+| `dominant_carry` / `play_on` / `dominant_tackle` | assist tackler (forward-weighted) | `tacklesAttempted++`, `tacklesMade++` |
 | Offload attempt (chain link, pool non-empty) | offloader | `offloadsAttempted++` |
 | Offload caught | offloader | `offloadsCompleted++`, `passes++` (via separate PASS_COMPLETED) |
 | Offload knocked on | catcher | `knockOns++` (via existing KNOCK_ON reducer) |

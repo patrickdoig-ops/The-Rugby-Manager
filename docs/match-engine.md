@@ -1075,6 +1075,82 @@ If the ball **does not** go into touch at all, the defending fullback catches th
 
 ---
 
+## Maul
+
+A driving-maul phase reachable only from a clean lineout catch (`LineoutEvent.ts` clean_catch branch). Eight available attacking forwards push against eight available defending forwards; a successful drive advances the ball, can score a try if it crosses the line, and ends either with the ball going to the backs (FirstPhase), the defenders winning the contest cleanly (turnover scrum), or the defenders illegally collapsing the drive (penalty, often a yellow card near their own try line).
+
+### When this phase happens
+
+The maul gate (`MAUL_GATE` in `balance/maul.ts`) is rolled inside `handleLineout` after `resolveLineout` returns `clean_catch`. Probability is zone-driven (distance to the opposition try line) with an attacking-style modifier:
+
+| Zone (metres to opp try line) | Base | `keep_it_tight` (+20pp) | `wide_wide` (-20pp) |
+|---|---:|---:|---:|
+| Own half (> 50m) | 0% | 0% | 0% |
+| Opposition half (22–50m) | 5% | 25% | 0% |
+| Opposition 22 (10–22m) | 35% | 55% | 15% |
+| Inside opp 10m | 80% | 100% | 60% |
+
+Same gate fires for human and AI — no modal.
+
+### Resolution
+
+Mirrors the scrum's pack-score formula. `MaulResolver.packScore` is a **sum** of `(strength × 0.55 + setPiece × 0.45)` per forward, so a pack down a man (sin-binned, sent off, in-match injured) loses ~12% of its score and is materially weaker. Discipline doesn't enter the score directly — it shows up in stage 2 as a collapse bias.
+
+Two-stage outcome:
+
+1. **Strength margin** (`attackScore + rng(1, 50)` vs `defendScore + rng(1, 50)`):
+   - `margin > 0` → attackers winning the push → continue to stage 2.
+   - `margin ≤ 0` → defenders stop the maul cleanly → `maul_held` (turnover scrum to defenders, no ground gained).
+2. **Cynical-collapse roll** (only on positive margin):
+   - `collapsePct = clamp((margin × 0.30) + (max(0, 50 − defendDiscipline) × 0.50), 0, 60)`
+   - On hit → `maul_collapse_penalty` (defending side cited, attacking team gets the penalty).
+   - On miss → `maul_won` (attacking team gains ground).
+
+On `maul_won`, the gain distribution is:
+- 90% chance: `rng(5, 10)` metres (the normal driving-maul band).
+- 10% chance: `rng(15, 25)` metres (the highlight-reel long drive).
+
+The handler then projects the new ball position (`state.ball.x + attackDir(state) * gainMetres`) and checks `isTryScoredAt`. If true → `nextPhase: TryScored` with the hooker as `primaryPlayer` (so `handleTryScored` credits the try to the hooker). Otherwise → `nextPhase: FirstPhase`.
+
+### Outcome table (equal packs, calibration target)
+
+| Outcome | Probability | Next phase | Possession |
+|---|---:|---|---|
+| `maul_won` | ~45% | FirstPhase (or TryScored if it crossed the line) | attacking side retains |
+| `maul_held` | ~50% | Scrum | flips to defending side |
+| `maul_collapse_penalty` | ~5% | Penalty | attacking side keeps (and gets the penalty) |
+
+Mismatched packs skew sharply: a strong pack mauling a weak defender drives `maul_won` to ~70%+ and lifts collapse to ~20-25%; a weak pack mauling a strong defender lands mostly in `maul_held`.
+
+### Cards
+
+`maul_collapse` is in `OFFENCE_SPEC` (`balance/discipline.ts`) with `tmoTriggerPct: 0` — TMO is bypassed. `CardHandler.evaluateNewPenalty` has a dedicated `maul_collapse` branch that runs a **direct** zone-scaled yellow check (`MAUL_COLLAPSE_YELLOW`) before falling through to the standard penalty modal:
+
+| Zone (defender's distance to own try line) | Direct yellow % |
+|---|---:|
+| Inside 5m | 70% |
+| Inside 22m | 30% |
+| Opposition half | 5% |
+| Own half | 0% |
+
+The team-22 cumulative rule still applies on top (a maul_collapse inside the defender's own 22 also bumps the team-22 counter and can trigger a forced yellow on a 4th defensive penalty).
+
+### Ball movement
+
+On `maul_won`: `BALL_REPOSITIONED { x: clamp(state.ball.x + attackDir(state) * gainMetres, 0, 100) }`. On the other two outcomes: ball stays where the lineout was.
+
+### Stat increments
+
+| Outcome | Stats |
+|---|---|
+| `maul_won` | `state.stats.mauls[attackSide]++`, `state.stats.maulMetres[attackSide] += gainMetres` |
+| `maul_collapse_penalty` | `state.stats.mauls[attackSide]++` (counted as a completed maul attempt); penalty offender's `penaltiesConceded++` via the `PENALTY_AWARDED` reducer |
+| `maul_held` | none — held mauls become turnover scrums and aren't counted as completed mauls |
+
+No per-player maul stats today (see CLAUDE.md "Maul phase" future-work bullet for the deferred fields).
+
+---
+
 ## Penalty
 
 ### How a penalty arises

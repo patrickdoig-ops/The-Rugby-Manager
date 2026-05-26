@@ -22,6 +22,9 @@ export const OFFENCE_SPEC: Record<PenaltyOffence, OffenceSpec> = {
   obstruction:            { tmoTriggerPct:  0 },
   dangerous_cleanout:     { tmoTriggerPct: 90 },
   not_rolling_away:       { tmoTriggerPct:  0 },
+  // maul_collapse uses a direct yellow path inside CardHandler, NOT TMO.
+  // Keep tmoTriggerPct at 0 — see MAUL_COLLAPSE_YELLOW in balance/maul.ts.
+  maul_collapse:          { tmoTriggerPct:  0 },
 };
 
 // High tackle probability per completed tackle attempt. Combines the

@@ -180,6 +180,8 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
       scrums:   { home: 0, away: 0 },
       lineouts: { home: 0, away: 0 },
       tries:    { home: 0, away: 0 },
+      mauls:    { home: 0, away: 0 },
+      maulMetres: { home: 0, away: 0 },
       ownLineouts: { home: { thrown: 0, won: 0 }, away: { thrown: 0, won: 0 } },
       ownScrums:   { home: { putIn: 0, won: 0 }, away: { putIn: 0, won: 0 } },
       entries22: {

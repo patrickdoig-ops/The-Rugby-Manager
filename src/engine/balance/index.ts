@@ -18,6 +18,7 @@ export * from './offload';
 export * from './breakdown';
 export * from './scrum';
 export * from './lineout';
+export * from './maul';
 export * from './fatigue';
 export * from './rating';
 export * from './tactics';

@@ -117,6 +117,19 @@ export type MatchEvent =
       attackSide: PossessionSide;       // side that put the ball in (pre-flip)
       possessionSideAfter: PossessionSide;
     }
+  | {
+      type: 'MAUL_RESOLVED';
+      outcome: 'maul_won' | 'maul_held' | 'maul_collapse_penalty';
+      attackForwards: Player[];
+      defendForwards: Player[];
+      attackSide: PossessionSide;       // side that caught the lineout (pre-flip)
+      possessionSideAfter: PossessionSide;
+      // Metres advanced by the maul before it ended. Positive on maul_won
+      // (the attacking side drove forward); 0 on maul_held and
+      // maul_collapse_penalty. Adds into state.stats.maulMetres for the
+      // attacking side via the MAUL_RESOLVED reducer.
+      gainMetres: number;
+    }
 
   // ── Kicking ──────────────────────────────────────────────────────────────
   | { type: 'KICK_FROM_HAND'; kicker: Player; metres: number }

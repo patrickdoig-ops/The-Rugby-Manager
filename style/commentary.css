@@ -87,6 +87,9 @@
 /* Lineout */
 .event-lineout .event-tag { color: var(--blue); }
 
+/* Maul */
+.event-maul .event-tag { color: var(--rm-amber); }
+
 /* Half/Full time */
 .event-halftime .event-tag,
 .event-fulltime  .event-tag { color: var(--purple); }

@@ -57,6 +57,12 @@ export interface MatchStats {
   scrums:     { home: number; away: number };
   lineouts:   { home: number; away: number };
   tries:      { home: number; away: number };
+  // Mauls completed (excludes maul_held turnovers — same convention as
+  // `scrums`, which only counts a scrum once it produces a usable
+  // possession decision). `maulMetres` is total ground gained from
+  // successful drives by the side that caught the lineout.
+  mauls:      { home: number; away: number };
+  maulMetres: { home: number; away: number };
   ownLineouts: { home: { thrown: number; won: number }; away: { thrown: number; won: number } };
   ownScrums:   { home: { putIn: number; won: number };  away: { putIn: number; won: number } };
   entries22:   {

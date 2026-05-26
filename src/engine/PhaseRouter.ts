@@ -11,6 +11,7 @@ import { handleKickReturn }     from './events/KickReturnEvent';
 import { handleBreakdown }      from './events/BreakdownEvent';
 import { handleScrum }          from './events/ScrumEvent';
 import { handleLineout }        from './events/LineoutEvent';
+import { handleMaul }           from './events/MaulEvent';
 import { handleTacticalKick }   from './events/TacticalKickEvent';
 import { handleBoxKick }        from './events/BoxKickEvent';
 import { handleTryScored }      from './events/TryScoredEvent';
@@ -24,6 +25,7 @@ const PHASE_HANDLERS: Partial<Record<MatchPhase, (ctx: PhaseContext) => PhaseRes
   [MatchPhase.Breakdown]:      handleBreakdown,
   [MatchPhase.Scrum]:          handleScrum,
   [MatchPhase.Lineout]:        handleLineout,
+  [MatchPhase.Maul]:           handleMaul,
   [MatchPhase.TacticalKick]:   handleTacticalKick,
   [MatchPhase.BoxKick]:        handleBoxKick,
   [MatchPhase.TryScored]:      handleTryScored,
@@ -101,7 +103,8 @@ export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy
   const isCarryToTry = (
     phaseAtStart === MatchPhase.PhasePlay ||
     phaseAtStart === MatchPhase.FirstPhase ||
-    phaseAtStart === MatchPhase.KickReturn
+    phaseAtStart === MatchPhase.KickReturn ||
+    phaseAtStart === MatchPhase.Maul
   ) && result.nextPhase === MatchPhase.TryScored;
   const eventPhase = isCarryToTry ? MatchPhase.TryScored : phaseAtStart;
   const sideName = preserveSide ? sideNameAtStart : (state.possession === 'home' ? state.homeTeam : state.awayTeam).name;

@@ -358,6 +358,7 @@ html, body {
 .phase-badge.phase-try     { color: var(--rm-amber);  background: color-mix(in oklch, var(--rm-amber) 14%, transparent); border-color: color-mix(in oklch, var(--rm-amber) 45%, transparent); }
 .phase-badge.phase-penalty { color: var(--rm-stat-1); background: color-mix(in oklch, var(--rm-stat-1) 14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-1) 45%, transparent); }
 .phase-badge.phase-scrum   { color: var(--rm-pitch);  background: color-mix(in oklch, var(--rm-pitch) 14%, transparent); border-color: color-mix(in oklch, var(--rm-pitch) 45%, transparent); }
+.phase-badge.phase-maul    { color: var(--rm-amber);  background: color-mix(in oklch, var(--rm-amber) 14%, transparent); border-color: color-mix(in oklch, var(--rm-amber) 45%, transparent); }
 .phase-badge.phase-kick    { color: var(--blue);       background: color-mix(in oklch, var(--blue) 12%, transparent);     border-color: color-mix(in oklch, var(--blue) 45%, transparent); }
 .phase-badge.phase-terminal{ color: var(--purple);     background: color-mix(in oklch, var(--purple) 14%, transparent);   border-color: color-mix(in oklch, var(--purple) 45%, transparent); }
 

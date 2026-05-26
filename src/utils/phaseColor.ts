@@ -6,6 +6,7 @@ export function phaseClass(phase: MatchPhase): string {
     case MatchPhase.ConversionKick:   return 'phase-try';
     case MatchPhase.Penalty:          return 'phase-penalty';
     case MatchPhase.Scrum:            return 'phase-scrum';
+    case MatchPhase.Maul:             return 'phase-maul';
     case MatchPhase.Lineout:
     case MatchPhase.BoxKick:
     case MatchPhase.TacticalKick:

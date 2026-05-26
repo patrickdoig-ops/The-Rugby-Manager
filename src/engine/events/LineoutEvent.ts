@@ -3,9 +3,30 @@ import type { MatchEvent } from '../../types/matchEvent';
 import { MatchPhase } from '../../types/engine';
 import { resolveLineout } from '../resolvers/LineoutResolver';
 import { rng } from '../../utils/rng';
-import { LINEOUT_VALUES } from '../balance';
-import { availableForwards, onFieldPlayers } from '../FieldPosition';
+import { LINEOUT_VALUES, MAUL_GATE } from '../balance';
+import { availableForwards, onFieldPlayers, metresFromOppositionTryLine } from '../FieldPosition';
 import { SLOT } from '../Slot';
+import type { MatchState } from '../../types/match';
+import type { Team } from '../../types/team';
+
+// Maul-vs-FirstPhase gate after a clean lineout catch. Zone-driven base
+// probability modified by the attacking team's attackingStyle. Same gate
+// fires for human and AI — no modal. Tuning lives in MAUL_GATE
+// (balance/maul.ts); see the maul docs for the table.
+function maulGatePct(state: MatchState, attackTeam: Team): number {
+  const dist = metresFromOppositionTryLine(state);
+  let base: number;
+  if (dist <= 10)      base = MAUL_GATE.opp10mPct;
+  else if (dist <= 22) base = MAUL_GATE.opp22Pct;
+  else if (dist <= 50) base = MAUL_GATE.oppHalfPct;
+  else                 base = MAUL_GATE.ownHalfPct;
+
+  const style = attackTeam.tactics.attackingStyle;
+  const bias = style === 'keep_it_tight' ? MAUL_GATE.keepItTightBias
+             : style === 'wide_wide'     ? MAUL_GATE.wideWideBias
+             :                              MAUL_GATE.balancedBias;
+  return Math.max(0, Math.min(100, base + bias));
+}
 
 export function handleLineout({ state, attackTeam, defendTeam }: PhaseContext): PhaseResult {
   const attackSide = state.possession;
@@ -59,8 +80,15 @@ export function handleLineout({ state, attackTeam, defendTeam }: PhaseContext): 
       hooker, attackJumper, defendJumper,
       attackSide, possessionSideAfter: attackSide,
     });
+    // Maul gate. Zone × attackingStyle → either drive the maul (Maul
+    // phase) or transfer the ball straight to the backs (FirstPhase).
+    // The lineout narration fires either way; the maul gets its own
+    // commentary on the next tick when handleMaul resolves.
+    const nextPhase = rng(1, 100) <= maulGatePct(state, attackTeam)
+      ? MatchPhase.Maul
+      : MatchPhase.FirstPhase;
     return {
-      nextPhase: MatchPhase.FirstPhase,
+      nextPhase,
       // narration step's secondary is the hooker (thrower) for {secondary} interpolation;
       // PhaseResult.secondaryPlayer is the defend jumper (the contested defender) for stats.
       narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Lineout, key: 'clean_catch', primary: attackJumper, secondary: hooker }] },

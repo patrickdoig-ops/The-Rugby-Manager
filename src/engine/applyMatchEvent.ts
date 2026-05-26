@@ -324,6 +324,20 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       state.possession = event.possessionSideAfter;
       return;
 
+    case 'MAUL_RESOLVED':
+      // Team-level maul counters. `mauls` increments for any resolution
+      // that produced a possession decision (won or collapse-penalty); a
+      // held maul that turns over to scrum isn't counted as a completed
+      // maul, mirroring the scrums convention. `maulMetres` accumulates
+      // the gained ground on the attacking side (gainMetres is 0 for
+      // held / collapse, so no special branching needed).
+      if (event.outcome === 'maul_won' || event.outcome === 'maul_collapse_penalty') {
+        state.stats.mauls[event.attackSide]++;
+      }
+      state.stats.maulMetres[event.attackSide] += event.gainMetres;
+      state.possession = event.possessionSideAfter;
+      return;
+
     // ── Kicking ─────────────────────────────────────────────────────────
     case 'KICK_FROM_HAND':
       event.kicker.matchStats.kicksFromHand++;

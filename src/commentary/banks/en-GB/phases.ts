@@ -369,6 +369,30 @@ const LINEOUT: PhaseBank = {
   ],
 };
 
+const MAUL: PhaseBank = {
+  maul_won: [
+    '{side} drive the maul forward — big work from the pack with {primary} at the back.',
+    'The maul is set and it\'s rumbling on! {side} gain valuable ground.',
+    'Powerful drive from {side} — the defending pack can\'t halt the momentum.',
+    '{primary} controls at the back as the maul trundles up the pitch.',
+  ],
+  maul_held: [
+    '{side} stop the maul dead in its tracks — ball locked in, scrum turnover!',
+    'The maul collapses to a halt — referee calls "use it" but the ball isn\'t there. Turnover scrum.',
+    'Brilliant defensive work — {primary} and his pack hold the maul up and earn the turnover scrum.',
+  ],
+  maul_collapse_penalty: [
+    'The maul is brought down illegally! {primary} is cited — penalty to the attacking side.',
+    'Referee\'s arm goes up — {primary} pulled the maul down. Penalty awarded.',
+    'Cynical play from {primary} — collapsing the maul under pressure. Penalty.',
+  ],
+  maul_try: [
+    'Over they go! {primary} grounds it at the back of a driving maul!',
+    'TRY! {primary} crashes over from the back of the maul!',
+    'The maul rumbles over the line — {primary} touches down for the try!',
+  ],
+};
+
 const BOX_KICK: PhaseBank = {
   announce: [
     '{primary} picks up from the back of the ruck — he\'s going to box kick!',
@@ -539,6 +563,7 @@ export const PHASE_BANKS: Partial<Record<MatchPhase, PhaseBank>> = {
   [MatchPhase.Breakdown]:      BREAKDOWN,
   [MatchPhase.Scrum]:          SCRUM,
   [MatchPhase.Lineout]:        LINEOUT,
+  [MatchPhase.Maul]:           MAUL,
   [MatchPhase.BoxKick]:        BOX_KICK,
   [MatchPhase.TacticalKick]:   TACTICAL_KICK,
   [MatchPhase.TryScored]:      TRY_SCORED,

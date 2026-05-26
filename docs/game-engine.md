@@ -315,10 +315,10 @@ A weekly choice between matches: trades off short-term freshness for long-term a
 - **Match-engine integration.** `MatchCoordinator.initPlayer` reads `raw.condition ?? 100` as the starting `fatiguePct`, so a tired starter actually starts the next match tired. Fatigue then decays from that starting point as it did before. Fatigue tiers in `FATIGUE_SCALING` apply from minute zero — a player at 50% condition is already in the "<50%" tier and gets the corresponding stat penalties throughout the match. Bench substitutes who didn't appear in the prior match come on at their accumulated condition (no event emitted for them, so the value just sticks).
 
 - **The four intensities** (`src/engine/balance/training.ts::INTENSITY_EFFECTS`). v1 baseline:
-  - **Rest** — `+50` condition, 0% development, 0% injury risk.
-  - **Light** — `+30` condition, 8% base development chance per stat, 0.1% injury risk per player.
-  - **Medium** — `+15` condition, 18% development chance, 0.4% injury risk.
-  - **High** — `-5` condition, 32% development chance, 1.2% injury risk.
+  - **Rest** — `+90` condition, 0% development, 0% injury risk.
+  - **Light** — `+60` condition, 8% base development chance per stat, 0.1% injury risk per player.
+  - **Medium** — `+40` condition, 18% development chance, 0.4% injury risk.
+  - **High** — `+20` condition, 32% development chance, 1.2% injury risk.
 
 - **The eight focuses.** Each focus picks two `PlayerStats` keys to develop faster. `FORWARDS_FOCUS_STATS` and `BACKS_FOCUS_STATS` in `balance/training.ts` hold the mapping:
   - Forwards: `set_piece` → setPiece + strength, `strength` → strength + tackling, `stamina` → stamina + handling, `handling` → handling + composure.

@@ -20,10 +20,10 @@ import type {
 //                       INJURY_RISK.conditionMultiplier as condition drops)
 export const INTENSITY_EFFECTS: Record<TrainingIntensity,
   { conditionDelta: number; developmentChance: number; injuryRisk: number }> = {
-  rest:   { conditionDelta: +50, developmentChance: 0.00, injuryRisk: 0.000 },
-  light:  { conditionDelta: +30, developmentChance: 0.08, injuryRisk: 0.001 },
-  medium: { conditionDelta: +15, developmentChance: 0.18, injuryRisk: 0.004 },
-  high:   { conditionDelta:  -5, developmentChance: 0.32, injuryRisk: 0.012 },
+  rest:   { conditionDelta: +90, developmentChance: 0.00, injuryRisk: 0.000 },
+  light:  { conditionDelta: +60, developmentChance: 0.08, injuryRisk: 0.001 },
+  medium: { conditionDelta: +40, developmentChance: 0.18, injuryRisk: 0.004 },
+  high:   { conditionDelta: +20, developmentChance: 0.32, injuryRisk: 0.012 },
 };
 
 // Focus → the two PlayerStats keys that get the development boost. Forwards

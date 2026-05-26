@@ -52,7 +52,17 @@ export function resolveBreakdown(
       .slice(0, counterRuckTop);
     dts = stackedScore(top4, 'strength', 'breakdown') + rng(1, 20);
   } else if (defPlan === 'shadow') {
-    dts = rng(1, 10);
+    // Shadow defenders sprint back into the defensive line rather than
+    // contest the ruck — the base contest is minimal. The wide rng band
+    // captures occasional "scrappy ball" outcomes where the attacking
+    // side fumbles the placement, the ball squirts out the side, or
+    // late-arriving defenders scoop it up. Calibrated in v2.188a from
+    // rng(1, 10) (literal zero turnovers — Saracens / Sale showed 0.0
+    // breakdown turnovers across 450 fixtures) to rng(1, 90), giving a
+    // low but non-zero rate (~0.3 TO/match for shadow-defending teams)
+    // while preserving the design intent that shadow rarely wins the
+    // physical contest.
+    dts = rng(1, 90);
   } else {
     // jackal
     dts = jackal.currentStats.breakdown * jackalLeadWeight

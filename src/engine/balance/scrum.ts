@@ -29,11 +29,19 @@ export const SCRUM_VALUES = {
   wheelMargin:        -36,
   // Soft floor on own-put-in retention. When the natural margin produces a
   // defending_dominant_penalty, the resolver re-rolls at this rate to a wheel
-  // (reset scrum, no possession change). Stops a much weaker pack from losing
-  // literally every own scrum and lifts the floor to roughly 70%+ league-wide.
-  // For evenly-matched packs the natural pen rate is already low so this
-  // rarely fires.
-  ownPutInRescuePct: 70,
+  // (reset scrum, no possession change). Lifted in v2.188a from 70 → 85
+  // after telemetry showed Newcastle's scrum win % stuck at 69% (real-world
+  // bottom-club floor ~80%). Combined with weakPackStableWinPct below to
+  // give a fully-weak pack ~80% own-put-in win rate league-wide.
+  ownPutInRescuePct: 85,
+  // Hard floor on own-put-in retention. After the rescue check above leaves
+  // a defending_dominant_penalty result, this gives a second-chance
+  // conversion straight to stable_win (possession retained, sequence ends).
+  // Models "ref calls the put-in team's ball anyway after a messy scrum
+  // they were never going to win cleanly". Together with ownPutInRescuePct
+  // this stops weak packs (Newcastle, Sale) entering the runaway
+  // possession-loss feedback loop visible across v2.179a-v2.184a telemetry.
+  weakPackStableWinPct: 30,
   // Cap on consecutive wheels in a single scrum sequence. After this many
   // prior wheels, the next wheel is promoted to a penalty (the resolver's
   // 3rd-contest margin picks the side). 2 means "wheel, reset, wheel, reset

@@ -39,6 +39,13 @@ const MAX_ENTRIES       = 30;
 const STEP_STAGGER_MS   = 350;  // gap between staggered narration steps within a key-moment event
 const HERO_DWELL_MS     = 600;  // window after a hero entry where the strap holds against routine entries
 
+// Phase-outcome keys that mark the headline beat of a staggered hero event.
+// Steps preceding the headline render without the phase tag (buildup pass
+// commentary shouldn't read as a TRY before the try is declared).
+const HEADLINE_OUTCOME_KEYS: ReadonlySet<string> = new Set([
+  'line_break_try', 'dominant_carry_try', 'maul_try',
+]);
+
 function colorizePlayer(text: string, player: Player, color: string): string {
   const surname = player.lastName;
   const label = `${surname} (#${player.squadNumber})`;
@@ -105,13 +112,13 @@ export function initCommentaryFeed(): void {
   }
   armTeamCache();
 
-  function buildEntry(event: GameEvent, text: string): HTMLDivElement {
+  function buildEntry(event: GameEvent, text: string, showTag: boolean): HTMLDivElement {
     const entry = document.createElement('div');
-    const phaseClass = PHASE_CLASS[event.phase] ?? '';
+    const phaseClass = showTag ? (PHASE_CLASS[event.phase] ?? '') : '';
     entry.className = `commentary-entry possession-${event.side} ${phaseClass}`.trim();
 
     const minute = Math.floor(event.gameMinute);
-    const tag    = TAG_MAP[event.phase] ?? '·';
+    const tag    = showTag ? (TAG_MAP[event.phase] ?? '·') : '·';
     let html = deduplicatePlayerRefs(text);
 
     for (const { player, color } of allPlayersWithColor) {
@@ -129,13 +136,13 @@ export function initCommentaryFeed(): void {
     return entry;
   }
 
-  type QueuedStep = { event: GameEvent; text: string; hero: boolean };
+  type QueuedStep = { event: GameEvent; text: string; hero: boolean; showTag: boolean };
   let stepQueue: QueuedStep[] = [];
   let stepDrainTimer: ReturnType<typeof setTimeout> | null = null;
   let lastHeroAt = 0;
 
-  function pushEntry(event: GameEvent, text: string, hero: boolean): void {
-    const entry = buildEntry(event, text);
+  function pushEntry(event: GameEvent, text: string, hero: boolean, showTag: boolean): void {
+    const entry = buildEntry(event, text, showTag);
     if (hero) entry.classList.add('commentary-entry--hero');
     feed.insertBefore(entry, feed.firstChild);
     while (feed.children.length > MAX_ENTRIES && feed.lastChild) {
@@ -144,9 +151,6 @@ export function initCommentaryFeed(): void {
     const now = Date.now();
     const heroProtected = now - lastHeroAt < HERO_DWELL_MS;
     if (hero || !heroProtected) {
-      // Surface the possession-side team colour to CSS so the strap underline
-      // and glow render in team colour. The class possession-${side} on the
-      // entry itself is the same signal but CSS variables read cleaner here.
       const color = event.side === 'home' ? homeTeamColor : awayTeamColor;
       if (color) latest.style.setProperty('--possession-color', color);
       latest.replaceChildren(entry.cloneNode(true));
@@ -158,7 +162,7 @@ export function initCommentaryFeed(): void {
     stepDrainTimer = null;
     const next = stepQueue.shift();
     if (!next) return;
-    pushEntry(next.event, next.text, next.hero);
+    pushEntry(next.event, next.text, next.hero, next.showTag);
     if (stepQueue.length > 0) {
       stepDrainTimer = setTimeout(drainNext, STEP_STAGGER_MS);
     }
@@ -192,15 +196,23 @@ export function initCommentaryFeed(): void {
     const hero = isHeroEvent(event);
     const shouldStagger = hero && steps.length > 1;
 
+    // Headline index = the first phase_outcome step whose key signals the
+    // event's outcome (e.g. line_break_try). Steps before it are buildup
+    // play-by-play and render without the phase tag so the TRY badge
+    // doesn't appear on the lead-up passes.
+    const headlineIdx = steps.findIndex(s =>
+      s.step.kind === 'phase_outcome' && HEADLINE_OUTCOME_KEYS.has(s.step.key));
+    const buildupCount = headlineIdx > 0 ? headlineIdx : 0;
+
     if (!shouldStagger) {
-      const text = steps.join(' ');
+      const text = steps.map(s => s.text).join(' ');
       if (!text.trim()) return;
-      pushEntry(event, text, hero);
+      pushEntry(event, text, hero, true);
       return;
     }
 
-    for (const text of steps) {
-      stepQueue.push({ event, text, hero: true });
+    for (let i = 0; i < steps.length; i++) {
+      stepQueue.push({ event, text: steps[i].text, hero: true, showTag: i >= buildupCount });
     }
     if (stepDrainTimer === null) drainNext();
   });

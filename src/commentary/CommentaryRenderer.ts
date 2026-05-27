@@ -57,12 +57,17 @@ function renderStep(step: NarrationStep, event: RenderableEvent, used: Set<strin
   return interpolate(tpl, event.sideName, event.defSideName, step.primary, step.secondary);
 }
 
-export function renderNarrationSteps(event: RenderableEvent): string[] {
-  const parts: string[] = [];
+export interface RenderedStep {
+  text: string;
+  step: NarrationStep;
+}
+
+export function renderNarrationSteps(event: RenderableEvent): RenderedStep[] {
+  const parts: RenderedStep[] = [];
   const used = new Set<string>();
   for (const step of event.narration.steps) {
-    const s = renderStep(step, event, used);
-    if (s) parts.push(s);
+    const text = renderStep(step, event, used);
+    if (text) parts.push({ text, step });
   }
   return parts;
 }

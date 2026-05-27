@@ -41,27 +41,27 @@ const SUBSTITUTION: readonly string[] = [
 ];
 
 const TRY_LOCATION_CENTRAL: readonly string[] = [
-  'Right under the posts — a routine conversion to come.',
-  "Touched down between the sticks — the kicker won't ask for an easier one.",
-  'Grounded under the uprights — kindly placed for the conversion.',
+  'Touched down right under the posts.',
+  'Grounded between the uprights.',
+  'Dotted down directly beneath the sticks.',
 ];
 
 const TRY_LOCATION_CLOSE: readonly string[] = [
-  'Close to the posts — comfortable kick for the conversion.',
-  'Just off-centre — should be a routine two more.',
-  'Inside the 15-metre channel — the kicker will fancy it.',
+  'Touched down just off-centre.',
+  'Grounded inside the 15-metre channel.',
+  'Dotted down close to the posts.',
 ];
 
 const TRY_LOCATION_WIDE: readonly string[] = [
-  "Out wide — that's a tougher conversion in front of the kicker.",
-  'Wide of the posts — no gimme for the kicker.',
-  'Scored out toward the touchline — testing angle for the conversion.',
+  'Touched down out wide near the touchline.',
+  'Grounded in the 15-metre channel out wide.',
+  'Dotted down out toward the touchline.',
 ];
 
 const TRY_LOCATION_CORNER: readonly string[] = [
-  'Right in the corner — an enormous ask for the kicker.',
-  'Touched down at the corner flag — the conversion is almost impossible from there.',
-  'In the corner — the kicker will need every bit of range and angle.',
+  'Grounded right at the corner flag.',
+  'Touched down in the corner.',
+  'Dotted down just inside the corner.',
 ];
 
 const TRY_REFEREE_SIGNAL: readonly string[] = [

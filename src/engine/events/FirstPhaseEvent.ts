@@ -352,7 +352,6 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     const y = tryLandingY(attackTeam.tactics.attackingStyle);
     events.push({ type: 'BALL_REPOSITIONED', y });
     outcomeSteps.push({ kind: 'announcement', key: `try_location_${tryLocationBand(y)}` });
-    outcomeSteps.push({ kind: 'announcement', key: 'try_referee_signal' });
   } else if (res.outcome === 'line_break') {
     nextPhase = MatchPhase.Breakdown;
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'line_break', primary: ballCarrier, secondary: defender });

@@ -111,7 +111,11 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
   let activeGroup: GroupId = 'all';
   let dirty = false;
   let discardOpen = false;
-  let detailView = false;
+  // Per-row 12-stat expand state. Keyed by `${tier}-${squadNum}` since the
+  // row's identity is the slot + tier (rosterId would shift on swap).
+  // Cleared on swap (via performSwap) since the slot's player has changed.
+  const expandedRows = new Set<string>();
+  function expandKey(tier: Tier, squadNum: number): string { return `${tier}-${squadNum}`; }
 
   // Honour a one-shot back override if showSquadManagement set one,
   // then clear it so the next plain show falls back to the init-time
@@ -137,7 +141,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     activeGroup = 'all';
     dirty = false;
     discardOpen = false;
-    detailView = false;
+    expandedRows.clear();
   }
 
   // Look up the persistent injury (if any) for a draft row by name. Keys
@@ -334,9 +338,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
             <span>Hub</span>
           </button>
           <span class="app-title">Squad</span>
-          <button id="sq-view-toggle" class="sq-view-toggle${detailView ? ' sq-view-toggle--active' : ''}" aria-label="${detailView ? 'Switch to summary view' : 'Switch to detailed view'}">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="2" fill="currentColor" stroke="none"/></svg>
-          </button>
+          <div class="app-topbar-spacer"></div>
         </div>
         <div class="app-eyebrow">${teamJson.name} · ${seasonLabel} · Round ${round}</div>
       </div>
@@ -419,10 +421,19 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       }
     });
 
-    // View toggle
-    el.querySelector<HTMLButtonElement>('#sq-view-toggle')!.addEventListener('click', () => {
-      detailView = !detailView;
-      render();
+    // Per-row 12-stat expand chevron — stopPropagation so the row's
+    // swap-source click doesn't also fire when toggling the panel.
+    el.querySelectorAll<HTMLButtonElement>('.sq-expand-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tier = btn.dataset.tier as Tier | undefined;
+        const sn   = Number(btn.dataset.squad);
+        if (!tier || Number.isNaN(sn)) return;
+        const key = expandKey(tier, sn);
+        if (expandedRows.has(key)) expandedRows.delete(key);
+        else expandedRows.add(key);
+        render();
+      });
     });
 
     // Clear button
@@ -515,11 +526,12 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     const isSwapTarget = selection !== null && !isSelected;
     const jerseyContent = tier === 'squad' ? '—' : String(sn);
     const injury = injuryFor(p);
+    const expanded = expandedRows.has(expandKey(tier, sn));
     const classes = ['sq-player', `sq-player--${tier}`];
     if (isSelected) classes.push('sq-player--selected');
     if (isSwapTarget) classes.push('sq-player--swap-target');
     if (injury) classes.push('row-injured');
-    if (detailView) classes.push('sq-player--detail');
+    if (expanded) classes.push('sq-player--expanded');
     const injuryBadge = injury
       ? `<span class="injury-badge" title="${injuryKindLabel(injury.kind)} — ${injury.weeksRemaining}w">${injury.weeksRemaining}w</span>`
       : '';
@@ -531,13 +543,17 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     const avrCell = avr === null
       ? `<div class="sq-avr sq-avr--unrated" title="No appearances yet this season">—</div>`
       : `<div class="sq-avr ${ratingClass(avr)}">${avr.toFixed(1)}</div>`;
-    const statsGrid = detailView ? `
+    const statsGrid = `
       <div class="sq-stats-grid">
         ${STAT_COLS.map(({ key, lbl }) => {
           const v = (p.baseStats as unknown as Record<string, number>)[key] ?? 0;
           return `<div class="sq-stat-cell ${ovrClass(v)}"><span class="sq-stat-lbl">${lbl}</span><span class="sq-stat-val">${v}</span></div>`;
         }).join('')}
-      </div>` : '';
+      </div>`;
+    const chevron = `
+      <button class="sq-expand-btn" data-tier="${tier}" data-squad="${sn}" aria-label="${expanded ? 'Hide attributes' : 'Show attributes'}" aria-expanded="${expanded}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>`;
     // Names get a profile-link only when the draft row carries a
     // rosterId (every row built from buildTeamFromRoster does). The
     // injury badge sits outside the link so a tap on it doesn't open
@@ -556,7 +572,10 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         <div class="sq-ovr ${ovrClass(ovr)}">${ovr}</div>
         ${conditionCell}
         ${avrCell}
-        ${statsGrid}
+        ${chevron}
+        <div class="row-expand-panel sq-expand" data-expanded="${expanded}">
+          <div class="row-expand-inner">${statsGrid}</div>
+        </div>
       </div>
     `;
   }

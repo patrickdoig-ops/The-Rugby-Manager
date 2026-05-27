@@ -207,6 +207,84 @@ input, textarea, [contenteditable] { user-select: text; }
   }
 }
 
+/* ════════════════════════════════════════
+   Form pip — shared W/D/L token. Sizes:
+     --sm 12px (default — LeagueTable, FixtureList, RoundResults)
+     --md 22px (Hub next-match card, PreMatch-equivalent)
+   See docs/DESIGN.md §4 "Form pip".
+   ════════════════════════════════════════ */
+
+.form-pip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  font-family: var(--rm-font-mono);
+  font-weight: 700;
+}
+.form-pip--sm { width: 12px; height: 12px; border-radius: 2px; font-size: 8px; }
+.form-pip--md { width: 22px; height: 22px; border-radius: 6px; font-size: 11px; }
+.form-pip--w     { background: color-mix(in oklch, var(--rm-stat-4) 22%, transparent); color: var(--rm-stat-4); }
+.form-pip--l     { background: color-mix(in oklch, var(--rm-stat-1) 22%, transparent); color: var(--rm-stat-1); }
+.form-pip--d     { background: color-mix(in oklch, var(--rm-text-dim) 18%, transparent); color: var(--rm-text-dim); }
+.form-pip--empty { background: transparent; color: var(--rm-text-faint); border: 1px solid var(--rm-hairline); }
+
+.form-pip-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.form-pip-strip--md { gap: 5px; }
+
+/* ════════════════════════════════════════
+   Row tap-to-expand — shared pattern.
+   The row carries data-expanded="true|false"; the sibling
+   .row-expand-panel reveals via a grid-row tween. Per-screen styling
+   layers on top (.ct-expand, .tm-expand, .rr-expand, .sq-expand).
+   ════════════════════════════════════════ */
+
+.row-expand-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--rm-duration-row) var(--rm-ease-out);
+  overflow: hidden;
+}
+.row-expand-panel > .row-expand-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+.row-expand-panel[data-expanded="true"] {
+  grid-template-rows: 1fr;
+}
+
+.row-expand-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--rm-text-dim);
+  cursor: pointer;
+  transition: transform var(--rm-duration-row) var(--rm-ease-out), color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.row-expand-chevron[aria-expanded="true"] {
+  transform: rotate(180deg);
+  color: var(--rm-chalk);
+}
+@media (hover: hover) {
+  .row-expand-chevron:hover { color: var(--rm-chalk); background: var(--rm-surface-2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row-expand-panel { transition: none; }
+  .row-expand-chevron { transition: none; }
+}
+
 ::-webkit-scrollbar { display: none; }
 * { scrollbar-width: none; }
 

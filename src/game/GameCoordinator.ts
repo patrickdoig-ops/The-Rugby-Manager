@@ -531,6 +531,8 @@ export class GameCoordinator {
       homeTries: snapshot.homeSummary.tries,
       awayTries: snapshot.awaySummary.tries,
       playerSide,
+      homeStats: snapshot.homeSummary,
+      awayStats: snapshot.awaySummary,
     };
     applySeasonEvent(this.state, { type: 'FIXTURE_RESULT_RECORDED', result });
     for (const ev of collectSeasonEvents(snapshot)) {
@@ -568,6 +570,8 @@ export class GameCoordinator {
         homeTries: sim.snapshot.homeSummary.tries,
         awayTries: sim.snapshot.awaySummary.tries,
         playerSide: null,
+        homeStats: sim.snapshot.homeSummary,
+        awayStats: sim.snapshot.awaySummary,
       };
       applySeasonEvent(this.state, { type: 'FIXTURE_RESULT_RECORDED', result: aiResult });
       for (const ev of collectSeasonEvents(sim.snapshot)) {

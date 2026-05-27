@@ -30,6 +30,8 @@ import { playerOverall } from '../engine/RatingEngine';
 import { getAge } from '../game/age';
 import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
+import { createRowExpander } from './components/rowExpand';
+import { averageRating } from '../game/seasonLeaderboards';
 
 type SortKey = 'wage' | 'expiry' | 'ovr' | 'position' | 'age' | 'name';
 type SortDir = 'asc' | 'desc';
@@ -104,6 +106,15 @@ export function initContractsScreen(
 
   const teamsById = new Map(allTeams.map(t => [t.id, t]));
 
+  // Per-row expand controller — keyed by rosterId. Closed by default;
+  // survives sort/marquee toggles via the module-level Set inside the
+  // controller. The marquee-edit screen mode disables expand so taps
+  // on the row body always reach the star toggle.
+  const expander = createRowExpander({
+    rowSelector: '.ct-player',
+    onChange: () => render(),
+  });
+
   function render(): void {
     const gameEngine = getGameEngine();
     const state = gameEngine.getState();
@@ -171,28 +182,42 @@ export function initContractsScreen(
       const nameHtml = onPlayerClick
         ? playerLinkHtml(`${p.firstName} ${p.lastName}`, p.rosterId)
         : `${p.firstName} ${p.lastName}`;
+      const rowId = String(p.rosterId);
+      // Expand suppressed in marquee-edit pre-season step — the star
+      // toggle is the only interaction we want exposed there.
+      const isExpandable = mode === 'hub';
+      const isExpanded = isExpandable && expander.isExpanded(rowId);
+      if (isExpandable) classes.push('ct-player--expandable');
+      const expandPanel = isExpandable
+        ? `<div class="row-expand-panel ct-expand" data-expanded="${isExpanded}">
+             <div class="row-expand-inner">${ctExpandHtml(p, capUsed, budgetCap)}</div>
+           </div>`
+        : '';
       return `
-        <div class="${classes.join(' ')}" style="--row-delay: ${rowDelay}ms">
-          <div class="ct-ovr ${ovrClass(overall)}">
-            <span class="ct-ovr-val">${overall}</span>
-            <span class="ct-ovr-lbl">OVR</span>
-          </div>
-          <div class="ct-player-body">
-            <div class="ct-row1">
-              <span class="ct-player-name">${nameHtml}</span>
-              <span class="ct-wage">${fmtWage(p.contract.annualWage)}</span>
+        <div class="${classes.join(' ')}" data-row-id="${rowId}" style="--row-delay: ${rowDelay}ms">
+          <div class="ct-player-main">
+            <div class="ct-ovr ${ovrClass(overall)}">
+              <span class="ct-ovr-val">${overall}</span>
+              <span class="ct-ovr-lbl">OVR</span>
             </div>
-            <div class="ct-row2">
-              <span class="ct-player-meta">
-                <span>${p.position}</span>
-                <span class="ct-meta-sep">·</span>
-                <span>Age ${age ?? '—'}</span>
-                ${tagParts.length ? `<span class="ct-meta-sep">·</span>${tagParts.join('')}` : ''}
-              </span>
-              <span class="ct-expiry-block">${fmtExpiry(p.contract.expiresOn)}</span>
+            <div class="ct-player-body">
+              <div class="ct-row1">
+                <span class="ct-player-name">${nameHtml}</span>
+                <span class="ct-wage">${fmtWage(p.contract.annualWage)}</span>
+              </div>
+              <div class="ct-row2">
+                <span class="ct-player-meta">
+                  <span>${p.position}</span>
+                  <span class="ct-meta-sep">·</span>
+                  <span>Age ${age ?? '—'}</span>
+                  ${tagParts.length ? `<span class="ct-meta-sep">·</span>${tagParts.join('')}` : ''}
+                </span>
+                <span class="ct-expiry-block">${fmtExpiry(p.contract.expiresOn)}</span>
+              </div>
             </div>
+            ${marqueeEl}
           </div>
-          ${marqueeEl}
+          ${expandPanel}
         </div>`;
     }).join('');
 
@@ -303,9 +328,60 @@ export function initContractsScreen(
     }
 
     if (onPlayerClick) wirePlayerLinks(el!, onPlayerClick);
+
+    if (mode === 'hub') {
+      const list = el!.querySelector<HTMLElement>('#ct-list');
+      if (list) expander.attach(list);
+    }
   }
 
   renderImpl = render;
+}
+
+function ctExpandHtml(p: Player, capUsed: number, budgetCap: number): string {
+  const annual = p.contract.annualWage;
+  const monthly = annual / 12;
+  const capPct = budgetCap > 0 ? (annual / budgetCap) * 100 : 0;
+  const ss = p.seasonStats;
+  const avr = ss.appearances > 0 ? averageRating(ss) : null;
+  const condition = Math.round(p.condition ?? 0);
+  // Form modifier sits roughly in -0.05..+0.05 today; map to a 0-100
+  // bar centred at 50 for the visualisation. Multiplying by 1000 gives
+  // a visible swing; clamped at 0/100 either side.
+  const formScore = Math.max(0, Math.min(100, 50 + ((p.formModifier ?? 0) * 1000)));
+  void capUsed;
+  return `
+    <div class="ct-expand-grid">
+      <div class="ct-expand-block ct-expand-wage">
+        <div class="ct-expand-label">WAGE</div>
+        <div class="ct-expand-rows">
+          <div class="ct-expand-row"><span>Annual</span><strong>${fmtWage(annual)}</strong></div>
+          <div class="ct-expand-row"><span>Monthly</span><strong>${fmtWage(monthly)}</strong></div>
+          <div class="ct-expand-row"><span>% of budget</span><strong>${capPct.toFixed(1)}%</strong></div>
+        </div>
+      </div>
+      <div class="ct-expand-block ct-expand-stats">
+        <div class="ct-expand-label">THIS SEASON</div>
+        <div class="ct-expand-stats-grid">
+          <div class="ct-mini-stat"><span>${ss.appearances}</span><label>Apps</label></div>
+          <div class="ct-mini-stat"><span>${ss.tries}</span><label>Tries</label></div>
+          <div class="ct-mini-stat"><span>${ss.tackles}</span><label>Tackles</label></div>
+          <div class="ct-mini-stat"><span>${avr !== null ? avr.toFixed(1) : '—'}</span><label>Avg rate</label></div>
+        </div>
+      </div>
+      <div class="ct-expand-block ct-expand-bars">
+        <div class="ct-expand-bar-row">
+          <div class="ct-expand-bar-label">CONDITION</div>
+          <div class="ct-expand-bar"><div class="ct-expand-bar-fill" style="width:${condition}%"></div></div>
+          <div class="ct-expand-bar-val">${condition}</div>
+        </div>
+        <div class="ct-expand-bar-row">
+          <div class="ct-expand-bar-label">FORM</div>
+          <div class="ct-expand-bar"><div class="ct-expand-bar-fill ct-expand-bar-fill--form" style="width:${formScore.toFixed(0)}%"></div></div>
+          <div class="ct-expand-bar-val">${(p.formModifier ?? 0) >= 0 ? '+' : ''}${((p.formModifier ?? 0) * 100).toFixed(1)}%</div>
+        </div>
+      </div>
+    </div>`;
 }
 
 export function showContracts(): void {

@@ -10,8 +10,9 @@
 
 import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
-import type { Fixture, FixtureResult, GameState } from '../types/gameState';
+import type { Fixture, FixtureResult, GameState, TeamSeasonStats } from '../types/gameState';
 import { eventBus } from '../utils/eventBus';
+import { createRowExpander } from './components/rowExpand';
 
 let activeRound = 1;
 let activeOnContinue: () => void = () => {};
@@ -39,6 +40,15 @@ export function initRoundResultsScreen(
   if (!el) return;
 
   const teamsById = new Map(allTeams.map(t => [t.id, t]));
+
+  // Per-fixture expand controller. Re-renders when a row toggles —
+  // module-level state survives `game:fixtureRecorded` re-renders too,
+  // so a fixture the user expanded stays expanded as the rest of the
+  // round fills in.
+  const expander = createRowExpander({
+    rowSelector: '.rr-row',
+    onChange: () => render(),
+  });
 
   function roundFixtures(state: GameState): Array<{ fixture: Fixture; result: FixtureResult | undefined }> {
     return state.league.fixtures
@@ -73,8 +83,12 @@ export function initRoundResultsScreen(
              <div style="width:${ap.toFixed(1)}%;background:${away.color};opacity:${result.awayScore >= result.homeScore ? 1 : 0.45}"></div>
            </div>`
         : `<div class="rr-margin-bar rr-margin-bar--pending"></div>`;
+      const rowId = `${fixture.homeId}-${fixture.awayId}-${fixture.round}`;
+      const isExpanded = expander.isExpanded(rowId);
+      const expandPanel = renderExpandPanel(result, home.color, away.color);
+      const expandable = !!result;
       return `
-        <div class="rr-row${isPlayer ? ' rr-row--me' : ''}" style="--row-delay: ${rowDelay}ms">
+        <div class="rr-row${isPlayer ? ' rr-row--me' : ''}${expandable ? ' rr-row--expandable' : ''}" data-row-id="${rowId}" style="--row-delay: ${rowDelay}ms">
           <div class="rr-fixture-line">
             <div class="rr-team rr-team--home">
               ${crest(home)}
@@ -86,8 +100,14 @@ export function initRoundResultsScreen(
               <span class="rr-team-name">${away.shortName}</span>
               ${crest(away)}
             </div>
+            ${expandable ? `<span class="rr-expand-cue" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>` : ''}
           </div>
           ${marginBar}
+          <div class="row-expand-panel rr-expand" data-expanded="${isExpanded}">
+            <div class="row-expand-inner">${expandPanel}</div>
+          </div>
         </div>
       `;
     }).join('');
@@ -113,10 +133,68 @@ export function initRoundResultsScreen(
     el!.querySelector<HTMLButtonElement>('#rr-continue')!.addEventListener('click', () => {
       activeOnContinue();
     });
+
+    const list = el!.querySelector<HTMLElement>('#rr-list');
+    if (list) expander.attach(list);
   }
 
   renderImpl = render;
 
   // Re-render as each headless AI fixture resolves so pending scores fill in.
   eventBus.on('game:fixtureRecorded', () => render());
+}
+
+// Tug-of-war row for one stat pair. Centred zero — both bars grow
+// outward from the middle by their respective shares.
+function tugRow(label: string, homeVal: number, awayVal: number, homeColor: string, awayColor: string): string {
+  const total = homeVal + awayVal;
+  const hp = total > 0 ? (homeVal / total) * 100 : 50;
+  const ap = total > 0 ? (awayVal / total) * 100 : 50;
+  return `
+    <div class="rr-tug">
+      <div class="rr-tug-val rr-tug-val--home">${Math.round(hp)}%</div>
+      <div class="rr-tug-track">
+        <div class="rr-tug-fill" style="width:${hp.toFixed(1)}%;background:${homeColor}"></div>
+        <div class="rr-tug-fill rr-tug-fill--away" style="width:${ap.toFixed(1)}%;background:${awayColor}"></div>
+      </div>
+      <div class="rr-tug-val rr-tug-val--away">${Math.round(ap)}%</div>
+      <div class="rr-tug-label">${label}</div>
+    </div>`;
+}
+
+function setPieceRatio(won: number, attempts: number): number {
+  return attempts > 0 ? (won / attempts) : 0;
+}
+
+function renderExpandPanel(result: FixtureResult | undefined, homeColor: string, awayColor: string): string {
+  if (!result) return '';
+  const h = result.homeStats;
+  const a = result.awayStats;
+  if (!h || !a) {
+    return `<div class="rr-expand-empty">Detailed stats not recorded for this fixture.</div>`;
+  }
+  // Possession + territory pull from seconds; set-piece pulls from
+  // won-vs-attempts ratios scaled to 100 each so the tug widths are
+  // comparable. Lineouts: home % of own lineouts won vs away % of
+  // their own lineouts won — same for scrums.
+  const possession = tugRow('POSSESSION',
+    h.possessionSeconds, a.possessionSeconds, homeColor, awayColor);
+  const territory = tugRow('TERRITORY',
+    h.territorySeconds, a.territorySeconds, homeColor, awayColor);
+  const linePct = (s: TeamSeasonStats) => Math.round(setPieceRatio(s.lineoutsWon, s.lineoutsThrown) * 100);
+  const scrumPct = (s: TeamSeasonStats) => Math.round(setPieceRatio(s.scrumsWon, s.scrumsPutIn) * 100);
+  // Tug-of-war needs comparable raw values. For set-piece accuracy we
+  // pass the percentages themselves — that puts both bars in the same
+  // 0-100 frame and the relative widths reflect who was tidier on
+  // their own ball. Falls back to a 50/50 mid-bar when both teams have
+  // zero attempts (a possible silent-fixture edge case).
+  const lineouts = tugRow('LINEOUTS', linePct(h), linePct(a), homeColor, awayColor);
+  const scrums   = tugRow('SCRUMS',   scrumPct(h), scrumPct(a), homeColor, awayColor);
+  return `
+    <div class="rr-expand-grid">
+      ${possession}
+      ${territory}
+      ${lineouts}
+      ${scrums}
+    </div>`;
 }

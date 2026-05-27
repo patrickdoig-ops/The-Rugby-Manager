@@ -17,6 +17,7 @@ import type { GameCoordinator } from '../game/GameCoordinator';
 import type { FixtureResult, TeamStanding } from '../types/gameState';
 import { sortStandings } from '../game/leagueTable';
 import { recentForm, type FormResult } from '../game/teamStats';
+import { renderFormPipStrip } from './components/formPip';
 import { eventBus } from '../utils/eventBus';
 
 const PLAYOFF_SPOTS = 4;
@@ -114,10 +115,7 @@ function formRow(
   if (highlight) classes.push('lt-row--me');
   const crest = team ? teamCrest(team) : '<div class="lt-crest"></div>';
   const form = recentForm(s.teamId, results);
-  const formHtml = form.map(r => {
-    if (!r) return `<span class="lt-fp lt-fp--empty">–</span>`;
-    return `<span class="lt-fp lt-fp--${r.toLowerCase()}">${r}</span>`;
-  }).join('');
+  const formHtml = renderFormPipStrip(form, 'sm');
   const pts = formPoints(form);
   const label = team ? `View ${team.name} info` : `View ${s.teamId} info`;
   const rowDelay = Math.min(rank - 1, 16) * 25;

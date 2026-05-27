@@ -40,6 +40,12 @@ export interface FixtureResult {
   homeTries: number;
   awayTries: number;
   playerSide: 'home' | 'away' | null;
+  // Per-fixture team stats snapshot. Populated at fixture-record time
+  // from MatchSnapshot.homeSummary / awaySummary so RoundResults can
+  // surface possession / territory / set-piece breakdowns on tap-expand.
+  // Optional because v19 saves don't carry it (back-filled undefined).
+  homeStats?: TeamSeasonStats;
+  awayStats?: TeamSeasonStats;
 }
 
 export interface TeamStanding {

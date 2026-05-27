@@ -128,7 +128,6 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 2px;
 }
 
 .lt-head .lt-form {
@@ -138,21 +137,7 @@
   color: var(--rm-text-dim);
 }
 
-.lt-fp {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--rm-font-mono);
-  font-size: 8px;
-  font-weight: 700;
-}
-.lt-fp--w { background: color-mix(in oklch, var(--rm-stat-4) 22%, transparent); color: var(--rm-stat-4); }
-.lt-fp--l { background: color-mix(in oklch, var(--rm-stat-1) 22%, transparent); color: var(--rm-stat-1); }
-.lt-fp--d { background: color-mix(in oklch, var(--rm-text-dim) 18%, transparent); color: var(--rm-text-dim); }
-.lt-fp--empty { background: transparent; color: var(--rm-text-faint); border: 1px solid var(--rm-hairline); }
+/* Pip token lives in main.css (`.form-pip*`). */
 
 .lt-row--zone-break {
   border-top: 2px solid color-mix(in oklch, var(--rm-stat-1) 42%, transparent) !important;

@@ -61,8 +61,8 @@ import type { TeamTactics } from '../types/team';
 import type { TrainingPlan } from '../types/training';
 
 const SAVE_KEY = 'rugby-manager-save';
-const SAVE_VERSION = 19;
-const ACCEPTED_VERSIONS = new Set([18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+const SAVE_VERSION = 20;
+const ACCEPTED_VERSIONS = new Set([19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
 
 export type SavedGame = SavedSeason & { version: number };
 

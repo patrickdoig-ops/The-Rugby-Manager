@@ -13,8 +13,45 @@ import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { Fixture, FixtureResult, GameState } from '../types/gameState';
 import { eventBus } from '../utils/eventBus';
+import { recentForm, type FormResult } from '../game/teamStats';
+import { renderFormPipStrip } from './components/formPip';
 
 type Mode = 'team' | 'next' | 'all';
+
+const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DAY_ABBR   = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function shortFixtureDate(iso: string | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return `${DAY_ABBR[d.getUTCDay()]} ${d.getUTCDate()} ${MONTH_ABBR[d.getUTCMonth()]}`;
+}
+
+function daysBetween(fromIso: string, toIso: string | undefined): number | null {
+  if (!toIso) return null;
+  const from = new Date(fromIso).getTime();
+  const to   = new Date(toIso).getTime();
+  if (isNaN(from) || isNaN(to)) return null;
+  return Math.round((to - from) / 86_400_000);
+}
+
+function countdownLabel(days: number | null): string | null {
+  if (days === null) return null;
+  if (days < 0) return null;
+  if (days === 0) return 'TODAY';
+  if (days === 1) return 'TOMORROW';
+  return `KICKS OFF IN ${days} DAYS`;
+}
+
+// Form computed against results that played BEFORE this fixture's round
+// — so a deep-round preview row shows the form going INTO that round,
+// not a team's full-season form. For the upcoming next round this is
+// identical to a straight recentForm() call; for played rounds it
+// gives the historical context at the time of the match.
+function formBeforeRound(teamId: string, round: number, results: FixtureResult[]): Array<FormResult | null> {
+  return recentForm(teamId, results.filter(r => r.round < round));
+}
 
 function miniCrest(team: RawTeamInput): string {
   const grad = `linear-gradient(160deg, ${team.color} 0%, color-mix(in oklch, ${team.color} 30%, black) 100%)`;
@@ -41,7 +78,7 @@ export function initFixtureListScreen(
     );
   }
 
-  function fixtureRow(fixture: Fixture, result: FixtureResult | undefined, nextRound: number, playerTeamId: string, mode: Mode, index: number): string {
+  function fixtureRow(fixture: Fixture, result: FixtureResult | undefined, nextRound: number, playerTeamId: string, mode: Mode, index: number, results: FixtureResult[], today: string): string {
     const home = teamsById.get(fixture.homeId)!;
     const away = teamsById.get(fixture.awayId)!;
     const isComplete = !!result;
@@ -57,6 +94,19 @@ export function initFixtureListScreen(
     const midEl = isComplete
       ? `<span class="fl-score">${result.homeScore}–${result.awayScore}</span>`
       : `<span class="fl-vs">vs</span>`;
+    const homeForm = renderFormPipStrip(formBeforeRound(fixture.homeId, fixture.round, results), 'sm');
+    const awayForm = renderFormPipStrip(formBeforeRound(fixture.awayId, fixture.round, results), 'sm');
+    // Active row in team mode gets a date row at the bottom — short
+    // weekday + day-of-month and a countdown chip. Skipped for
+    // completed / locked rows to keep the list dense.
+    const days = isActive ? daysBetween(today, fixture.date) : null;
+    const countdown = countdownLabel(days);
+    const dateLine = isActive
+      ? `<div class="fl-date-row">
+           ${fixture.date ? `<span class="fl-date-pill">${shortFixtureDate(fixture.date)}</span>` : ''}
+           ${countdown ? `<span class="fl-countdown-chip">${countdown}</span>` : ''}
+         </div>`
+      : '';
     const rowDelay = Math.min(index, 16) * 25;
     return `
       <div class="fl-row ${stateCls}${meCls}" style="--row-delay: ${rowDelay}ms">
@@ -68,34 +118,41 @@ export function initFixtureListScreen(
           <div class="fl-team fl-team--home">
             ${miniCrest(home)}
             <span class="fl-team-name">${home.shortName}</span>
+            ${homeForm}
           </div>
           ${midEl}
           <div class="fl-team fl-team--away">
+            ${awayForm}
             <span class="fl-team-name">${away.shortName}</span>
             ${miniCrest(away)}
           </div>
         </div>
+        ${dateLine}
       </div>
     `;
   }
 
   function listHtml(state: GameState, nextRound: number, playerTeamId: string): string {
     const sorted = [...state.league.fixtures].sort((a, b) => a.round - b.round);
+    const results = state.league.results;
+    const today = state.calendar.date;
 
     if (activeMode === 'team') {
       const mine = sorted.filter(f => f.homeId === playerTeamId || f.awayId === playerTeamId);
-      return mine.map((f, i) => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId, activeMode, i)).join('');
+      return mine.map((f, i) => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId, activeMode, i, results, today)).join('');
     }
 
     if (activeMode === 'next') {
       if (nextRound === -1) return `<div class="fl-empty">Season complete</div>`;
       const fixtures = sorted.filter(f => f.round === nextRound);
-      return fixtures.map((f, i) => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId, activeMode, i)).join('');
+      return fixtures.map((f, i) => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId, activeMode, i, results, today)).join('');
     }
 
     // 'all' — group by round with a section header per block. The
     // stagger index runs across the whole list so the bottom of long
-    // groups still caps cleanly at the 16-row delay ceiling.
+    // groups still caps cleanly at the 16-row delay ceiling. The
+    // next-round group is wrapped in `.fl-round-band` with a NEXT
+    // ROUND chip so the upcoming round reads as a discrete block.
     const byRound = new Map<number, Fixture[]>();
     for (const f of sorted) {
       if (!byRound.has(f.round)) byRound.set(f.round, []);
@@ -103,7 +160,21 @@ export function initFixtureListScreen(
     }
     let runningIdx = 0;
     return [...byRound.entries()].map(([round, fs]) => {
-      const body = fs.map(f => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId, activeMode, runningIdx++)).join('');
+      const body = fs.map(f => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId, activeMode, runningIdx++, results, today)).join('');
+      const isNext = round === nextRound;
+      if (isNext) {
+        const firstDate = fs.find(f => f.date)?.date;
+        const dateLabel = firstDate ? shortFixtureDate(firstDate).toUpperCase() : '';
+        return `
+          <div class="fl-round-band">
+            <div class="fl-round-header fl-round-header--next">
+              <span class="fl-next-chip">NEXT ROUND</span>
+              <span>Round ${round}</span>
+              ${dateLabel ? `<span class="fl-round-date">${dateLabel}</span>` : ''}
+            </div>
+            ${body}
+          </div>`;
+      }
       return `<div class="fl-round-header">Round ${round}</div>${body}`;
     }).join('');
   }

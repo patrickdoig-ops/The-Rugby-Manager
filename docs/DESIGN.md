@@ -293,6 +293,25 @@ OVR / rating / numeric tiles attached to player rows use a **separate two-step s
 
 Stat badges are square; their inner number uses `--rm-font-mono`. Don't reach for a `--crest-*` token here — crests are gradient-filled and have a darker overlay, badges are tinted-flat and band by value (`.ovr-elite` / `.ovr-good` / etc.).
 
+### 4.7 Form pip
+
+Shared W/D/L pip used across LeagueTable, FixtureList rows, Hub next-match card, RoundResults. Single base class with size + state modifiers in `style/main.css`:
+
+```css
+.form-pip                     /* base */
+.form-pip--sm                 /* 12px — LeagueTable, FixtureList */
+.form-pip--md                 /* 22px — Hub next-match card */
+.form-pip--w / .form-pip--l / .form-pip--d / .form-pip--empty
+```
+
+The render helper is `src/ui/components/formPip.ts::renderFormPipStrip(form, size)`. Always pass the array from `recentForm()` in `src/game/teamStats.ts` (oldest at index 0, most recent at index n-1, padded left with null). Use `--sm` on dense list rows, `--md` on hero / centre-stage cards. PreMatch keeps its own larger `.pm-form-pin` since the scout card's palette is bespoke.
+
+### 4.8 Row tap-to-expand
+
+In-list rows that have rich underlying data but render a single line at rest can opt into the shared expand pattern. The row carries `data-row-id="..."`, with a sibling `.row-expand-panel` div that toggles via `data-expanded="true"`. The reveal tweens via `grid-template-rows: 0fr → 1fr` (no `max-height` hack). The shared controller `src/ui/components/rowExpand.ts::createRowExpander({ rowSelector, onChange })` owns the per-screen `Set<rowId>` and the delegated click handler. Buttons, links, and `.player-link` inside the row automatically bypass the toggle.
+
+Today's adopters: ContractsScreen (`.ct-expand`), TransferMarketScreen (`.tm-expand`), RoundResultsScreen (`.rr-expand`), SquadManagementScreen (`.sq-expand`). SquadManagement uses an opt-in `.sq-expand-btn` chevron because the row body itself is the swap-source target. Other screens treat the row body as the tap area.
+
 ---
 
 ## 5. Spacing, layout & elevation

@@ -373,7 +373,7 @@ A three-match knockout follows the 18-round Premiership regular season: two semi
 
 ## Save format
 
-`SAVE_VERSION = 19` (as of v2.192a). `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`.
+`SAVE_VERSION = 20` (as of v2.227a). `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`.
 
 | Version | Added |
 |---|---|
@@ -395,9 +395,11 @@ A three-match knockout follows the 18-round Premiership regular season: two semi
 | v17 | `TeamTactics` gains `offloadStrategy` (`'cautious' \| 'balanced' \| 'offload_freely'`). Pre-v17 saves backfill `'balanced'` (numerically neutral) so the engine never sees undefined — same shape as the v9 → v10 `defensiveLine` migration. |
 | v18 | Training system. Each persisted Player gains `condition: number` (0-100, inter-match freshness — snapshotted from final in-match fatigue, modulated weekly by training). Top-level `training?: TrainingPlan` carries the manager's last chosen plan. Pre-v18 saves back-fill `condition: 100` on every roster entry and load with `training: undefined` (TrainingScreen falls back to `DEFAULT_TRAINING_PLAN`). |
 | v19 | `ArchivedSeason.playerSeasonHistory?: Record<rosterId, ArchivedPlayerSeason>` — per-player end-of-season snapshot (clubId at the time, apps, ratingSum, tries, carries, metres, line breaks, tackles, turnovers, kicksMade/At, yellow / red cards). Drives `PlayerProfileScreen`'s Career History table. Pre-v19 archive entries load with the field undefined; the profile renders an em-dash row for those historical seasons. New rollovers always populate it. |
+| v20 | `FixtureResult.homeStats?: TeamSeasonStats` + `awayStats?: TeamSeasonStats` — per-fixture snapshot of `MatchSnapshot.homeSummary` / `awaySummary` taken at the moment the result is recorded (possession seconds, territory seconds, lineouts thrown / won, scrums put in / won, attack + defence + kicking + discipline counters). Drives RoundResultsScreen's tap-to-expand match-stats panel. Pre-v20 results load with both fields undefined — the expand panel renders "Detailed stats not recorded for this fixture" for those rounds. New rounds always populate the fields via `recordPlayerMatchResult` + the silent-fixture path in the same function. |
 
 **Migration on load** (`GameCoordinator.fromSave`):
 
+- v19 → v20: no-op shim. `homeStats` / `awayStats` are optional on every persisted `FixtureResult`. Pre-v20 results load with both fields undefined and the RoundResults expand panel falls back to the placeholder copy. New fixtures recorded after the migration populate the fields the same way as a fresh game.
 - v18 → v19: no-op shim. `playerSeasonHistory` is optional on every `ArchivedSeason` entry. Pre-v19 archives load with the field undefined — the next rollover populates it for the season just completed; older historical seasons stay sparse and the profile screen surfaces an em-dash placeholder for them. The same `cloneLeaders`-style defensive copy in `SaveManager.parseCareer` ferries the field through.
 - v17 → v18: `backfillRosterSeasonStats` also writes `condition: 100` on every roster Player that lacks the field. The top-level `training` field is optional — pre-v18 saves load with it undefined and `TrainingScreen` resolves to `DEFAULT_TRAINING_PLAN`. No retroactive condition state is fabricated: a v17 save mid-season resumes with everyone at full freshness, and the next post-match training week begins evolving condition.
 - v16 → v17: `parseSave` backfills `tactics.offloadStrategy = 'balanced'` when absent on the persisted tactics blob.

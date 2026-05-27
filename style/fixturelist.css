@@ -149,6 +149,19 @@
   flex-direction: row-reverse;
 }
 
+/* Form pip strip in fl-row: tighter gap to home/away name, sat outside
+   the crest so the eye groups [crest+name | pips] rather than the
+   pips floating mid-row. The strip uses .form-pip-strip's own
+   inline-flex; the .fl-team flex container places it adjacent to the
+   team-name. */
+.fl-team .form-pip-strip {
+  margin-inline-start: 6px;
+}
+.fl-team--away .form-pip-strip {
+  margin-inline-start: 0;
+  margin-inline-end: 6px;
+}
+
 .fl-crest {
   width: var(--crest-xs-size);
   height: var(--crest-xs-size);
@@ -202,5 +215,85 @@
   color: var(--rm-chalk);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
+}
+
+/* Active-row date line — kick-off date + countdown chip. Spans both
+   columns of the .fl-row grid so it slots under the matchup cleanly. */
+.fl-date-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed color-mix(in oklch, var(--rm-pitch) 30%, transparent);
+}
+.fl-date-pill {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  background: var(--rm-surface-2);
+  color: var(--rm-text);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 6px;
+}
+.fl-countdown-chip {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  background: color-mix(in oklch, var(--rm-pitch) 22%, transparent);
+  color: var(--rm-pitch);
+  border: 1px solid color-mix(in oklch, var(--rm-pitch) 40%, transparent);
+  border-radius: 999px;
+}
+
+/* Next-round band on the 'all' view. Frames the upcoming round's
+   fixtures so the eye lands there first. */
+.fl-round-band {
+  position: relative;
+  margin: 14px -8px;
+  padding: 6px 8px 10px;
+  background: color-mix(in oklch, var(--rm-pitch) 4%, transparent);
+  border: 1px solid color-mix(in oklch, var(--rm-pitch) 25%, transparent);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fl-round-header--next {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px 0;
+  color: var(--rm-text);
+}
+.fl-next-chip {
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  padding: 3px 9px;
+  background: var(--rm-pitch);
+  color: var(--rm-bg-deep);
+  border-radius: 999px;
+}
+.fl-round-date {
+  margin-left: auto;
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--rm-text-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fl-round-band {
+    background: var(--rm-surface);
+  }
 }
 

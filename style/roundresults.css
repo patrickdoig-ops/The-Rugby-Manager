@@ -176,3 +176,97 @@
   #rr-continue:hover  { background: #009434; }
 }
 #rr-continue:active { background: #006622; }
+
+/* ── Tap-to-expand match stats ── */
+
+.rr-row--expandable { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+@media (hover: hover) {
+  .rr-row--expandable:hover {
+    border-color: color-mix(in oklch, var(--rm-pitch) 35%, var(--rm-border-soft));
+  }
+}
+
+.rr-expand-cue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  width: 18px;
+  height: 18px;
+  color: var(--rm-text-dim);
+  transition: transform var(--rm-duration-row) var(--rm-ease-out), color 0.15s;
+  flex-shrink: 0;
+}
+.rr-row:has(.row-expand-panel[data-expanded="true"]) .rr-expand-cue {
+  transform: rotate(180deg);
+  color: var(--rm-chalk);
+}
+
+.rr-expand .row-expand-inner {
+  padding-top: 12px;
+  margin-top: 8px;
+  border-top: 1px dashed color-mix(in oklch, var(--rm-border-soft) 60%, transparent);
+}
+
+.rr-expand-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rr-expand-empty {
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--rm-text-dim);
+  text-align: center;
+  padding: 10px 0 4px;
+  text-transform: uppercase;
+}
+
+/* Tug-of-war stat row — home % | bar | away % above the label. */
+.rr-tug {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 4px 10px;
+}
+.rr-tug-val {
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--rm-text);
+}
+.rr-tug-val--home { text-align: right; }
+.rr-tug-val--away { text-align: left; }
+
+.rr-tug-track {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 8px;
+  background: color-mix(in oklch, var(--rm-bg) 60%, transparent);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.rr-tug-fill {
+  height: 100%;
+  opacity: 0.85;
+}
+.rr-tug-fill:first-child { transform-origin: right center; }
+.rr-tug-fill--away { transform-origin: left center; }
+
+.rr-tug-label {
+  grid-column: 1 / -1;
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--rm-text-dim);
+  text-align: center;
+  text-transform: uppercase;
+}

@@ -23,6 +23,11 @@ import { playerOverall } from '../engine/RatingEngine';
 import { getAge } from '../game/age';
 import { showToast } from './Toast';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
+import { createRowExpander } from './components/rowExpand';
+import { appealScore } from '../game/signingResolver';
+import { averageRating } from '../game/seasonLeaderboards';
+import { APPEAL_WEIGHTS } from '../engine/balance/transfers';
+import type { TransferBid, GameState } from '../types/gameState';
 
 type SortKey = 'name' | 'pos' | 'age' | 'ovr' | 'wage';
 type SortDir = 'asc' | 'desc';
@@ -94,6 +99,15 @@ export function initTransferMarketScreen(
   if (!el) return;
 
   const teamsById = new Map(allTeams.map(t => [t.id, t]));
+
+  // Per-row expand — keyed by rosterId. Only the row body opens the
+  // panel; Make Offer / Withdraw / player-link clicks bypass the
+  // controller via the standard button/.player-link rule in
+  // rowExpand.ts.
+  const expander = createRowExpander({
+    rowSelector: '.tm-row',
+    onChange: () => render(),
+  });
 
   function render(): void {
     const gameEngine = getGameEngine();
@@ -267,14 +281,22 @@ export function initTransferMarketScreen(
         ? playerLinkHtml(`${p.firstName} ${p.lastName}`, p.rosterId)
         : `${p.firstName} ${p.lastName}`;
       const rowDelay = Math.min(index, 16) * 25;
+      const rowId = String(p.rosterId);
+      const isExpanded = expander.isExpanded(rowId);
+      const expandPanel = renderTmExpandPanel(state, p, offer, playerClubId, action);
       return `
-        <div class="tm-row${committedClass}" style="--row-delay: ${rowDelay}ms">
-          <span class="tm-name">${nameInner}${currentClub}</span>
-          <span class="tm-pos">${shortPos(p.position)}</span>
-          <span class="tm-num">${age ?? '—'}</span>
-          <span class="tm-num">${ovr}</span>
-          <span class="tm-wage">${fmtWage(offer.annualWage)} <span class="tm-len">× ${offer.lengthYears}y</span></span>
-          <button class="${buttonClass}" ${dataAttr} aria-label="${ariaLabel}"${alreadyWon || cooldownLock ? ' disabled' : ''}>${buttonLabel}</button>
+        <div class="tm-row${committedClass}" data-row-id="${rowId}" style="--row-delay: ${rowDelay}ms">
+          <div class="tm-row-main">
+            <span class="tm-name">${nameInner}${currentClub}</span>
+            <span class="tm-pos">${shortPos(p.position)}</span>
+            <span class="tm-num">${age ?? '—'}</span>
+            <span class="tm-num">${ovr}</span>
+            <span class="tm-wage">${fmtWage(offer.annualWage)} <span class="tm-len">× ${offer.lengthYears}y</span></span>
+            <button class="${buttonClass}" ${dataAttr} aria-label="${ariaLabel}"${alreadyWon || cooldownLock ? ' disabled' : ''}>${buttonLabel}</button>
+          </div>
+          <div class="row-expand-panel tm-expand" data-expanded="${isExpanded}">
+            <div class="row-expand-inner">${expandPanel}</div>
+          </div>
         </div>`;
     };
 
@@ -436,9 +458,109 @@ export function initTransferMarketScreen(
     el!.querySelector<HTMLButtonElement>('#tm-finish')!.addEventListener('click', () => activeOnFinish());
 
     if (onPlayerClick) wirePlayerLinks(el!, onPlayerClick);
+
+    const list = el!.querySelector<HTMLElement>('#tm-list');
+    if (list) expander.attach(list);
   }
 
   renderImpl = render;
+}
+
+// Expand panel for a target player: appeal score breakdown for the
+// user's club + condition/injury + season stats + reputation bar.
+// `appealScore` is the real resolver function from signingResolver.ts;
+// we construct a hypothetical bid with the user's clubId so the score
+// matches what an actual submitted bid would carry into the resolver.
+function renderTmExpandPanel(
+  state: GameState,
+  p: Player,
+  offer: TransferOffer,
+  userClubId: string,
+  action: 'sign' | 'poach',
+): string {
+  const hypotheticalBid: TransferBid = {
+    id: `preview-${p.rosterId}-${userClubId}`,
+    rosterId: p.rosterId,
+    clubId: userClubId,
+    annualWage: offer.annualWage,
+    lengthYears: offer.lengthYears,
+    kind: action === 'sign' ? 'free_agent' : 'poach',
+    status: 'pending',
+  };
+  const appeal = appealScore(state, hypotheticalBid, p);
+
+  // Per-term breakdown — mirror the resolver formula so the UI is a
+  // faithful read of why this club appeals (or not). Read straight off
+  // the same APPEAL_WEIGHTS the resolver uses.
+  const club = state.career.clubs.find(c => c.id === userClubId);
+  const squad = club?.squad ?? [];
+  let ovrSum = 0;
+  let ovrCount = 0;
+  for (const rid of squad) {
+    const sp = state.career.roster[rid];
+    if (!sp) continue;
+    ovrSum += playerOverall(sp.baseStats, sp.position);
+    ovrCount += 1;
+  }
+  const squadAvgOvr = ovrCount > 0 ? ovrSum / ovrCount : 0;
+  let positionCount = 0;
+  for (const rid of squad) {
+    const sp = state.career.roster[rid];
+    if (sp && sp.position === p.position) positionCount += 1;
+  }
+  const positionShortage = Math.max(0, Math.min(3, APPEAL_WEIGHTS.needTargetPerPosition - positionCount));
+  const lastSeasonPosition = state.career.archive.length > 0
+    ? (state.career.archive[state.career.archive.length - 1].standings.findIndex(s => s.teamId === userClubId) + 1) || 11
+    : (state.league.standings.findIndex(s => s.teamId === userClubId) + 1) || 11;
+  const isCurrentClub = p.contract.clubId === userClubId;
+
+  const ovrTerm = squadAvgOvr * APPEAL_WEIGHTS.ovrWeight;
+  const needTerm = positionShortage * APPEAL_WEIGHTS.needWeight;
+  const ambitionTerm = (5.5 - lastSeasonPosition) * APPEAL_WEIGHTS.ambitionWeight;
+  const loyaltyTerm = isCurrentClub ? APPEAL_WEIGHTS.loyaltyBonus : 0;
+
+  const ss = p.seasonStats;
+  const avr = ss.appearances > 0 ? averageRating(ss) : null;
+  const reputation = p.reputation ?? 50;
+  const condition = Math.round(p.condition ?? 100);
+  const injuryLine = p.injury
+    ? `<div class="tm-expand-injury">Injured · ${p.injury.kind.replace(/_/g, ' ')} · ${p.injury.weeksRemaining}w</div>`
+    : '';
+
+  return `
+    <div class="tm-expand-grid">
+      <div class="tm-expand-block">
+        <div class="tm-expand-label">YOUR APPEAL · ${appeal.toFixed(1)}</div>
+        <div class="tm-appeal-rows">
+          <div class="tm-appeal-row"><span>Squad strength</span><strong>${ovrTerm >= 0 ? '+' : ''}${ovrTerm.toFixed(1)}</strong></div>
+          <div class="tm-appeal-row"><span>Position need</span><strong>${needTerm >= 0 ? '+' : ''}${needTerm.toFixed(1)}</strong></div>
+          <div class="tm-appeal-row"><span>League standing</span><strong>${ambitionTerm >= 0 ? '+' : ''}${ambitionTerm.toFixed(1)}</strong></div>
+          ${loyaltyTerm > 0 ? `<div class="tm-appeal-row"><span>Loyalty</span><strong>+${loyaltyTerm.toFixed(1)}</strong></div>` : ''}
+        </div>
+      </div>
+      <div class="tm-expand-block">
+        <div class="tm-expand-label">THIS SEASON</div>
+        <div class="tm-stats-grid">
+          <div class="tm-mini-stat"><span>${ss.appearances}</span><label>Apps</label></div>
+          <div class="tm-mini-stat"><span>${ss.tries}</span><label>Tries</label></div>
+          <div class="tm-mini-stat"><span>${ss.tackles}</span><label>Tackles</label></div>
+          <div class="tm-mini-stat"><span>${avr !== null ? avr.toFixed(1) : '—'}</span><label>Avg rate</label></div>
+        </div>
+        ${injuryLine}
+      </div>
+      <div class="tm-expand-block tm-expand-bars">
+        <div class="tm-bar-row">
+          <div class="tm-bar-label">CONDITION</div>
+          <div class="tm-bar"><div class="tm-bar-fill" style="width:${condition}%"></div></div>
+          <div class="tm-bar-val">${condition}</div>
+        </div>
+        <div class="tm-bar-row">
+          <div class="tm-bar-label">REPUTATION</div>
+          <div class="tm-bar"><div class="tm-bar-fill tm-bar-fill--rep" style="width:${reputation}%"></div></div>
+          <div class="tm-bar-val">${reputation}</div>
+        </div>
+      </div>
+    </div>`;
 }
 
 function defaultDirFor(key: SortKey): SortDir {

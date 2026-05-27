@@ -12,8 +12,9 @@ import type { Fixture, GameState } from '../types/gameState';
 import { eventBus } from '../utils/eventBus';
 import { sortStandings } from '../game/leagueTable';
 import { computeOverallRating } from '../team/teamProfile';
-import { formAdjustment, matchSpread, HOME_ADVANTAGE_PTS } from '../game/teamStats';
+import { formAdjustment, matchSpread, HOME_ADVANTAGE_PTS, recentForm } from '../game/teamStats';
 import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
+import { renderFormPipStrip } from './components/formPip';
 
 export interface InitHubScreenOpts {
   // Always called fresh — the GameCoordinator reference can swap when the
@@ -312,9 +313,20 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
       spreadLabel = `${spreadIcon}<span>${away.shortName} favoured · ${spread.home} pts</span>`;
     }
 
+    const homeFormHtml = renderFormPipStrip(recentForm(home.id, state.league.results), 'md');
+    const awayFormHtml = renderFormPipStrip(recentForm(away.id, state.league.results), 'md');
+
+    // Kick-off countdown — derived from fixture.date vs the user's
+    // calendar.date. Hidden when the fixture has no date (legacy gen
+    // fixtures fall back to +7d steps with no per-round dates).
+    const kickoffChip = countdownChip(state.calendar.date, fixture.date);
+
     return `
       <div id="hub-next-match">
-        <div class="hub-nm-label">NEXT MATCH · ROUND ${fixture.round} · ${formatDateShort(state.calendar.date)}</div>
+        <div class="hub-nm-label">
+          <span>NEXT MATCH · ROUND ${fixture.round} · ${formatDateShort(state.calendar.date)}</span>
+          ${kickoffChip}
+        </div>
         <div class="hub-nm-fixture">
           <div class="hub-nm-side hub-nm-side--home${playerHome ? ' hub-nm-side--me' : ''}">
             ${crestHtml(home, 'nm-crest')}
@@ -326,10 +338,28 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
             ${crestHtml(away, 'nm-crest')}
           </div>
         </div>
+        <div class="hub-nm-form-row">
+          <div class="hub-nm-form hub-nm-form--home">${homeFormHtml}</div>
+          <div class="hub-nm-form hub-nm-form--away">${awayFormHtml}</div>
+        </div>
         <div class="hub-nm-meta">${venueLabel} · ${venueName}</div>
         <div class="hub-nm-spread">${spreadLabel}</div>
       </div>
     `;
+  }
+
+  function countdownChip(todayIso: string, fixtureDate: string | undefined): string {
+    if (!fixtureDate) return '';
+    const today = new Date(todayIso).getTime();
+    const target = new Date(fixtureDate).getTime();
+    if (isNaN(today) || isNaN(target)) return '';
+    const days = Math.round((target - today) / 86_400_000);
+    if (days < 0) return '';
+    let label: string;
+    if (days === 0) label = 'TODAY';
+    else if (days === 1) label = 'TOMORROW';
+    else label = `IN ${days} DAYS`;
+    return `<span class="hub-nm-countdown">${label}</span>`;
   }
 
   function footerHtml(fixture: Fixture | null): string {

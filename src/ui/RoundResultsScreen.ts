@@ -106,7 +106,7 @@ export function initRoundResultsScreen(
           </div>
           ${marginBar}
           <div class="row-expand-panel rr-expand" data-expanded="${isExpanded}">
-            <div class="row-expand-inner">${expandPanel}</div>
+            <div class="row-expand-inner"><div class="rr-expand-body">${expandPanel}</div></div>
           </div>
         </div>
       `;

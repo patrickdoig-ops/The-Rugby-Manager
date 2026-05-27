@@ -475,7 +475,7 @@
 .sq-expand {
   flex-basis: 100%;
 }
-.sq-expand .row-expand-inner {
+.sq-expand-body {
   padding: 8px 0 6px;
 }
 

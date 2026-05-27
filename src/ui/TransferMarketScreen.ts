@@ -295,7 +295,7 @@ export function initTransferMarketScreen(
             <button class="${buttonClass}" ${dataAttr} aria-label="${ariaLabel}"${alreadyWon || cooldownLock ? ' disabled' : ''}>${buttonLabel}</button>
           </div>
           <div class="row-expand-panel tm-expand" data-expanded="${isExpanded}">
-            <div class="row-expand-inner">${expandPanel}</div>
+            <div class="row-expand-inner"><div class="tm-expand-body">${expandPanel}</div></div>
           </div>
         </div>`;
     };

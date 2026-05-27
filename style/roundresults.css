@@ -202,7 +202,7 @@
   color: var(--rm-chalk);
 }
 
-.rr-expand .row-expand-inner {
+.rr-expand-body {
   padding-top: 12px;
   margin-top: 8px;
   border-top: 1px dashed color-mix(in oklch, var(--rm-border-soft) 60%, transparent);

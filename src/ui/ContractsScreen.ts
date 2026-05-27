@@ -190,7 +190,7 @@ export function initContractsScreen(
       if (isExpandable) classes.push('ct-player--expandable');
       const expandPanel = isExpandable
         ? `<div class="row-expand-panel ct-expand" data-expanded="${isExpanded}">
-             <div class="row-expand-inner">${ctExpandHtml(p, capUsed, budgetCap)}</div>
+             <div class="row-expand-inner"><div class="ct-expand-body">${ctExpandHtml(p, capUsed, budgetCap)}</div></div>
            </div>`
         : '';
       return `

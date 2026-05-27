@@ -574,7 +574,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         ${avrCell}
         ${chevron}
         <div class="row-expand-panel sq-expand" data-expanded="${expanded}">
-          <div class="row-expand-inner">${statsGrid}</div>
+          <div class="row-expand-inner"><div class="sq-expand-body">${statsGrid}</div></div>
         </div>
       </div>
     `;

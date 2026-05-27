@@ -44,8 +44,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
-  padding: 6px 20px 8px;
+  gap: 3px;
+  padding: 4px 20px 6px;
   flex-shrink: 0;
 }
 
@@ -61,7 +61,7 @@
   color: rgba(255, 255, 255, 0.95);
   position: relative;
   flex-shrink: 0;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .hub-crest::after {
@@ -171,13 +171,13 @@
   flex-shrink: 0;
   position: relative;
   margin: 0 16px 6px;
-  padding: 10px 14px;
+  padding: 8px 14px;
   background: var(--rm-surface);
   border: 1px solid var(--rm-border-soft);
   border-radius: 14px;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 5px;
   box-shadow: var(--rm-card-shadow);
 }
 
@@ -222,24 +222,18 @@
   border: 1px solid color-mix(in oklch, var(--rm-pitch) 40%, transparent);
 }
 
-/* Form pip rows under the next-match versus block. Two columns laid
-   on a centered axis so the home strip aligns under its crest+name
-   and the away strip under its own — sized to match the .hub-nm-side
-   geometry (crest + short name). */
-.hub-nm-form-row {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 10px;
-  align-items: center;
-  margin-top: 4px;
-}
-.hub-nm-form {
+/* Form pip strip sits inline below each team's short name within
+   .hub-nm-side, so no separate row is needed. */
+.hub-nm-side-info {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
 }
-.hub-nm-form--home { justify-content: flex-end; }
-.hub-nm-form--away { justify-content: flex-start; grid-column: 3; }
-/* The middle column (matching .hub-nm-vs's width) is reserved by the
-   1fr / auto / 1fr template — no element needed there. */
+.hub-nm-side--away .hub-nm-side-info {
+  align-items: flex-end;
+}
 
 .nm-crest {
   width: var(--crest-sm-size);

@@ -313,8 +313,8 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
       spreadLabel = `${spreadIcon}<span>${away.shortName} favoured · ${spread.home} pts</span>`;
     }
 
-    const homeFormHtml = renderFormPipStrip(recentForm(home.id, state.league.results), 'md');
-    const awayFormHtml = renderFormPipStrip(recentForm(away.id, state.league.results), 'md');
+    const homeFormHtml = renderFormPipStrip(recentForm(home.id, state.league.results), 'sm');
+    const awayFormHtml = renderFormPipStrip(recentForm(away.id, state.league.results), 'sm');
 
     // Kick-off countdown — derived from fixture.date vs the user's
     // calendar.date. Hidden when the fixture has no date (legacy gen
@@ -330,17 +330,19 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
         <div class="hub-nm-fixture">
           <div class="hub-nm-side hub-nm-side--home${playerHome ? ' hub-nm-side--me' : ''}">
             ${crestHtml(home, 'nm-crest')}
-            <span class="hub-nm-name">${home.shortName}</span>
+            <div class="hub-nm-side-info">
+              <span class="hub-nm-name">${home.shortName}</span>
+              ${homeFormHtml}
+            </div>
           </div>
           <span class="hub-nm-vs">vs</span>
           <div class="hub-nm-side hub-nm-side--away${!playerHome ? ' hub-nm-side--me' : ''}">
-            <span class="hub-nm-name">${away.shortName}</span>
+            <div class="hub-nm-side-info">
+              <span class="hub-nm-name">${away.shortName}</span>
+              ${awayFormHtml}
+            </div>
             ${crestHtml(away, 'nm-crest')}
           </div>
-        </div>
-        <div class="hub-nm-form-row">
-          <div class="hub-nm-form hub-nm-form--home">${homeFormHtml}</div>
-          <div class="hub-nm-form hub-nm-form--away">${awayFormHtml}</div>
         </div>
         <div class="hub-nm-meta">${venueLabel} · ${venueName}</div>
         <div class="hub-nm-spread">${spreadLabel}</div>

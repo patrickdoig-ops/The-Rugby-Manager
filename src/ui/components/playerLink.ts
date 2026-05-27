@@ -26,8 +26,15 @@ export function playerLinkHtml(name: string, rosterId: number): string {
 // Scoped to .player-link so callers that already use data-roster-id on
 // other elements (e.g. ContractsScreen rows, SquadManagement player
 // rows) aren't accidentally wired up.
+//
+// Idempotent on the same element via `data-link-wired="1"` — a screen
+// that re-renders without recreating its DOM subtree calls
+// wirePlayerLinks again, and the second pass skips already-wired
+// links instead of stacking duplicate click handlers (which would
+// fire the callback N times per click).
 export function wirePlayerLinks(root: ParentNode, onClick: (rosterId: number) => void): void {
   root.querySelectorAll<HTMLElement>('.player-link[data-roster-id]').forEach(el => {
+    if (el.dataset.linkWired === '1') return;
     const rid = Number(el.dataset.rosterId);
     if (!Number.isFinite(rid)) return;
     el.addEventListener('click', (ev) => {
@@ -41,5 +48,6 @@ export function wirePlayerLinks(root: ParentNode, onClick: (rosterId: number) =>
         onClick(rid);
       }
     });
+    el.dataset.linkWired = '1';
   });
 }

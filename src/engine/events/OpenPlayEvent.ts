@@ -425,7 +425,9 @@ function resolvePickAndGo(
   // Downgrade line_break → dominant_carry; pick-and-go can't break the line.
   const outcome: 'play_on' | 'dominant_carry' | 'dominant_tackle' =
     res.outcome === 'line_break' ? 'dominant_carry' : res.outcome;
-  const gainMetres = clamp(res.gainMetres, 0, 4);
+  // 1-4m floor: even a stuffed pick-and-go drives at least a metre at the
+  // ruck base — defenders absorb but the ball still moves forward.
+  const gainMetres = clamp(res.gainMetres, 1, 4);
   const direction = attackDir(state);
 
   const assistTackler = pickAssistTackler(defendTeam, state, defSide, defender);

@@ -4,7 +4,7 @@
 
 export const HARD_CARRY_THRESHOLDS = {
   keep_it_tight: 95,
-  balanced:      85,
+  balanced:      70,
   wide_wide:     50,
 } as const;
 

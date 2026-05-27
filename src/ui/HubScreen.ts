@@ -265,7 +265,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
             </div>
           </div>
           <div class="hub-nm-meta">${venueLabel} · ${venueName}</div>
-          <div class="hub-nm-spread">${subline}</div>
+          <div class="hub-nm-subline">${subline}</div>
         </div>`;
     }
     return `

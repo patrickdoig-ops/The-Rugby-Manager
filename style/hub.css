@@ -281,11 +281,11 @@
   text-align: center;
 }
 
-.hub-nm-spread {
+.hub-nm-spread,
+.hub-nm-subline {
   font-family: var(--rm-font-mono);
   font-size: 9px;
   letter-spacing: 0.10em;
-  color: var(--rm-text-muted);
   text-transform: uppercase;
   padding-top: 5px;
   border-top: 1px solid var(--rm-hairline);
@@ -294,6 +294,9 @@
   justify-content: center;
   gap: 5px;
 }
+
+.hub-nm-spread  { color: var(--rm-stat-5); }
+.hub-nm-subline { color: var(--rm-text-muted); }
 
 .hub-nm-spread svg {
   flex-shrink: 0;

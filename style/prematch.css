@@ -94,11 +94,10 @@
 }
 
 .pm-versus-sep {
-  font-family: var(--rm-font-mono);
-  font-size: 10px;
-  letter-spacing: 0.12em;
+  font-family: var(--rm-font-editor);
+  font-style: italic;
+  font-size: 14px;
   color: var(--rm-text-dim);
-  text-transform: uppercase;
 }
 
 /* Crest scales — small variant for the mini versus banner. */

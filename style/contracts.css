@@ -18,10 +18,11 @@
   display: flex;
   align-items: center;
   gap: 5px;
+  min-height: 40px;
   background: var(--rm-surface-2);
   border: 1px solid var(--rm-border-soft);
   border-radius: 8px;
-  padding: 5px 9px;
+  padding: 5px 12px;
   font-family: var(--rm-font-mono);
   font-size: 9px;
   font-weight: 700;
@@ -170,7 +171,7 @@
   color: var(--rm-text-muted);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .ct-sort-option.active {
@@ -373,8 +374,8 @@
    the marquee can't be changed mid-season. */
 .ct-star-btn {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 8px;
   border: none;
   background: none;

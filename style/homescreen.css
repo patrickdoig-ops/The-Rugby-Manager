@@ -63,28 +63,7 @@
   text-transform: uppercase;
 }
 
-/* Theme toggle */
-#theme-toggle {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in oklch, var(--rm-surface) 60%, transparent);
-  border: 1px solid var(--rm-border);
-  border-radius: 10px;
-  color: var(--rm-text-muted);
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-  flex-shrink: 0;
-}
-
-@media (hover: hover) {
-  #theme-toggle:hover  { background: var(--rm-surface-2); }
-}
-#theme-toggle:active { background: var(--rm-surface-3); }
-
-/* Top-right chrome cluster (theme toggle + settings gear) */
+/* Top-right chrome cluster (settings gear) */
 #home-chrome-actions {
   display: flex;
   align-items: center;
@@ -92,8 +71,8 @@
 }
 
 #settings-btn {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;

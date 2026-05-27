@@ -178,7 +178,9 @@ input, textarea, [contenteditable] { user-select: text; }
 .screen-entering .ts-row,
 .screen-entering .rn-row,
 .screen-entering .sr-row,
-.screen-entering .sq-player {
+.screen-entering .sq-player,
+.screen-entering .so-row,
+.screen-entering .pb-card {
   animation: rmRowEnter var(--rm-duration-row) var(--rm-ease-out) var(--row-delay, 0ms) both;
 }
 
@@ -1012,7 +1014,8 @@ html, body {
   gap: 12px;
 }
 
-.app-back {
+.app-back,
+.app-back-floating {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1027,36 +1030,22 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 
-.app-back svg { pointer-events: none; }
+.app-back svg,
+.app-back-floating svg { pointer-events: none; }
 
 @media (hover: hover) {
-  .app-back:hover { color: var(--rm-text); }
+  .app-back:hover,
+  .app-back-floating:hover { color: var(--rm-text); }
 }
 
-/* Floating back button — for screens that don't use .app-header
-   (ModePicker, TeamInfo, TeamSelector). Same visual treatment as
-   .app-back but positioned absolutely in the top-left. */
+/* Floating variant — used by screens that don't use .app-header
+   (ModePicker, TeamInfo, TeamSelector). Same visual treatment, fixed
+   to the top-left. */
 .app-back-floating {
   position: fixed;
   top: calc(env(safe-area-inset-top, 0px) + 12px);
   left: calc(env(safe-area-inset-left, 0px) + 16px);
   z-index: 260;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  color: var(--rm-text-muted);
-  font-family: var(--rm-font-body);
-  font-size: 13px;
-  cursor: pointer;
-  padding: 6px 0;
-  transition: color 0.15s;
-  -webkit-tap-highlight-color: transparent;
-}
-.app-back-floating svg { pointer-events: none; }
-@media (hover: hover) {
-  .app-back-floating:hover { color: var(--rm-text); }
 }
 
 .app-title {
@@ -1173,15 +1162,17 @@ html, body {
 
   #ctrl-bar { gap: 12px; }
 
-  .ctrl-btn:hover:not(:disabled) {
-    background: var(--rm-surface-3);
-    border-color: var(--rm-border);
-  }
+  @media (hover: hover) {
+    .ctrl-btn:hover:not(:disabled) {
+      background: var(--rm-surface-3);
+      border-color: var(--rm-border);
+    }
 
-  .ctrl-btn.primary:hover:not(:disabled) {
-    background: #009434;
-    border-color: #009434;
-    box-shadow: 0 0 20px color-mix(in oklch, var(--rm-pitch) 55%, transparent);
+    .ctrl-btn.primary:hover:not(:disabled) {
+      background: #009434;
+      border-color: #009434;
+      box-shadow: 0 0 20px color-mix(in oklch, var(--rm-pitch) 55%, transparent);
+    }
   }
 
   /* Modal as centred dialog on desktop */
@@ -1199,17 +1190,19 @@ html, body {
     to   { transform: scale(1);    opacity: 1; }
   }
 
-  .modal-choice-btn:hover {
-    background: var(--rm-surface-2);
-    border-color: var(--rm-pitch);
-  }
+  @media (hover: hover) {
+    .modal-choice-btn:hover {
+      background: var(--rm-surface-2);
+      border-color: var(--rm-pitch);
+    }
 
-  .sub-action-cancel:hover {
-    background: var(--rm-surface-3);
-  }
+    .sub-action-cancel:hover {
+      background: var(--rm-surface-3);
+    }
 
-  .sub-action-confirm:not(:disabled):hover {
-    background: #009434;
+    .sub-action-confirm:not(:disabled):hover {
+      background: #009434;
+    }
   }
 }
 

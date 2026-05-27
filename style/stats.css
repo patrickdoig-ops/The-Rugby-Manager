@@ -247,4 +247,4 @@
   mask-position: center;
 }
 
-.player-table .td-tries { color: var(--rm-stat-5); font-weight: 700; }
+.player-table .td-tries { color: var(--rm-amber); font-weight: 700; }

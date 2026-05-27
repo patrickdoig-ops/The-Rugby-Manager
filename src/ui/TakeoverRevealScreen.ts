@@ -76,7 +76,7 @@ export function initTakeoverRevealScreen(
     const mine = active.takeovers.find(t => t.clubId === playerId);
     const others = active.takeovers.filter(t => t.clubId !== playerId);
     const playerTeam = teamsById.get(playerId);
-    el!.style.setProperty('--team-color', playerTeam?.color ?? '#777');
+    if (playerTeam) el!.style.setProperty('--team-color', playerTeam.color);
 
     const heroCard = mine ? (() => {
       const team = teamsById.get(mine.clubId);

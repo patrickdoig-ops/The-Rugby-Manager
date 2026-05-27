@@ -133,6 +133,7 @@
 }
 
 .settings-danger-btn {
+  min-height: 40px;
   font-family: var(--rm-font-mono);
   font-size: 11px;
   font-weight: 700;

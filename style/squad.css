@@ -176,7 +176,7 @@
   background: linear-gradient(155deg,
     var(--team-color, var(--rm-pitch)) 0%,
     color-mix(in oklch, var(--team-color, var(--rm-pitch)) 52%, black) 100%);
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--rm-chalk);
   box-shadow:
     0 0 12px color-mix(in oklch, var(--team-color, var(--rm-pitch)) 40%, transparent),
     0 2px 6px rgba(0, 0, 0, 0.4),
@@ -584,12 +584,12 @@
 }
 
 .sq-discard-confirm {
-  background: var(--rm-stat-1);
+  background: var(--rm-danger);
   border: none;
-  color: #fff;
+  color: var(--rm-chalk);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 4px 16px color-mix(in oklch, var(--rm-stat-1) 28%, transparent);
+    0 4px 16px color-mix(in oklch, var(--rm-danger) 28%, transparent);
 }
 
 .sq-discard-confirm:active { filter: brightness(0.9); }

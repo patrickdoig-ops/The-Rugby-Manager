@@ -41,7 +41,7 @@
   justify-content: center;
   font-family: var(--rm-font-display);
   font-size: 36px;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--rm-chalk);
   position: relative;
   flex-shrink: 0;
   box-shadow: 0 12px 32px color-mix(in oklch, var(--rm-bg-deep) 60%, transparent);

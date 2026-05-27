@@ -101,9 +101,10 @@ export function initSquadOverviewScreen(
         const slots: (Player | null)[] = [];
         for (let i = 0; i < slotCount; i++) slots.push(bucket[i] ?? null);
 
-        const rows = slots.map(p => {
+        const rows = slots.map((p, i) => {
+          const delay = `style="--row-delay:${i * 25}ms"`;
           if (!p) {
-            return `<div class="so-row so-row--empty">
+            return `<div class="so-row so-row--empty" ${delay}>
               <div class="so-ovr so-ovr--empty"><span class="so-ovr-val">—</span></div>
               <div class="so-row-body">
                 <div class="so-row-name">No depth</div>
@@ -113,7 +114,7 @@ export function initSquadOverviewScreen(
           }
           const ovr = playerOverall(p.baseStats, p.position);
           const age = getAge(p.dob, calendarDate);
-          return `<div class="so-row">
+          return `<div class="so-row" ${delay}>
             <div class="so-ovr ${ovrClass(ovr)}">
               <span class="so-ovr-val">${ovr}</span>
               <span class="so-ovr-lbl">OVR</span>

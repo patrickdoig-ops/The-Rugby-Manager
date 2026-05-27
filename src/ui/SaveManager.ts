@@ -385,15 +385,44 @@ function parseMarket(raw: unknown): MarketState | null {
   // v15+ field. Pre-v15 saves omit the array; default empty so the
   // resumed window has no competing bids in flight (any pre-v15 mid-
   // window signings were already applied as CONTRACT_SIGNED — the new
-  // bid layer just starts fresh).
-  const bids = Array.isArray(m.bids) ? (m.bids as TransferBid[]).map(b => ({ ...b })) : [];
+  // bid layer just starts fresh). Each bid is structurally validated
+  // before being trusted — a truncated / hand-edited save with malformed
+  // bid objects would otherwise carry undefined fields straight into
+  // runtime state.
+  const bids = Array.isArray(m.bids)
+    ? (m.bids as unknown[]).filter(isValidBid).map(b => ({ ...b }))
+    : [];
+  // Same validation pass for offers — same risk surface from a v6+
+  // partial / corrupt save.
+  const offers = (m.offers as unknown[]).filter(isValidOffer).map(o => ({ ...o }));
   return {
     phase,
     openedAfterSeason: m.openedAfterSeason,
     expiringRosterIds: m.expiringRosterIds.filter((n): n is number => typeof n === 'number'),
-    offers: (m.offers as TransferOffer[]).map(o => ({ ...o })),
+    offers,
     bids,
   };
+}
+
+function isValidBid(b: unknown): b is TransferBid {
+  if (typeof b !== 'object' || b === null) return false;
+  const o = b as Record<string, unknown>;
+  return typeof o.id === 'string'
+      && typeof o.rosterId === 'number'
+      && typeof o.clubId === 'string'
+      && typeof o.kind === 'string'
+      && typeof o.annualWage === 'number'
+      && typeof o.lengthYears === 'number'
+      && typeof o.status === 'string';
+}
+
+function isValidOffer(o: unknown): o is TransferOffer {
+  if (typeof o !== 'object' || o === null) return false;
+  const r = o as Record<string, unknown>;
+  return typeof r.id === 'string'
+      && typeof r.rosterId === 'number'
+      && typeof r.annualWage === 'number'
+      && typeof r.lengthYears === 'number';
 }
 
 export function saveGame(save: SavedSeason): void {

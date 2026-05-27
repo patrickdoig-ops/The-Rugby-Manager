@@ -47,8 +47,8 @@ export const TACTIC_MODIFIERS = {
   // of its slightly-negative margin (v2.181a controlled mirror match
   // measured -0.9 vs balanced) without making it dominant; expected
   // headline effect is ~+1.5 to +3 margin gain on a kicking-plan team.
-  gamePlanKickDistanceBonus:  { possession: 0, balanced: 0, kicking: 5 },
-  gamePlanFiftyTwentyTwoBonus:{ possession: 0, balanced: 0, kicking: 8 },
+  gamePlanKickDistanceBonus:  { possession: 0, balanced: 0, kicking: 3 },
+  gamePlanFiftyTwentyTwoBonus:{ possession: 0, balanced: 0, kicking: 4 },
   // Trimmed in v2.181a — the controlled mirror-match experiment
   // (scripts/tacticsExperiment.ts) showed three_back giving home a +4.2
   // margin advantage over one_back, driven primarily by the kicking-game

@@ -3,6 +3,14 @@ import type { PossessionSide } from '../types/engine';
 import type { Player } from '../types/player';
 import type { Team } from '../types/team';
 import { SLOT, isForwardSlot, isBackSlot } from './Slot';
+import { rng } from '../utils/rng';
+import {
+  HARD_CARRY_DEFENDER_WEIGHTS,
+  MIDFIELD_CARRY_DEFENDER_WEIGHTS,
+  WIDE_CARRY_DEFENDER_WEIGHTS,
+  KICK_RETURN_DEFENDER_WEIGHTS,
+  ASSIST_TACKLER_WEIGHTS,
+} from './balance/tackling';
 
 // Home attacks toward x=100 in the first half, toward x=0 in the second.
 // Teams only swap ends at half-time, never on turnovers.
@@ -137,4 +145,102 @@ export function pickFullback(team: Team, state: MatchState, side: PossessionSide
       ?? onField.find(p => isBackSlot(p.id))
       ?? onField[0]
       ?? team.players[0];
+}
+
+// Shared weighted-pick over an on-field pool. Walks the pool, sums each
+// player's weight from the table (slots missing from the table contribute
+// 0 and are never picked), and rolls once on the outcome stream. Returns
+// undefined when the weighted pool is empty so callers can decide their
+// own fallback.
+function pickWeighted(
+  pool: Player[],
+  weights: Readonly<Partial<Record<number, number>>>,
+  exclude?: Player,
+): Player | undefined {
+  const cands: Array<{ p: Player; w: number }> = [];
+  for (const p of pool) {
+    if (p === exclude) continue;
+    const w = weights[p.id];
+    if (w && w > 0) cands.push({ p, w });
+  }
+  if (cands.length === 0) return undefined;
+  const total = cands.reduce((s, c) => s + c.w, 0);
+  let roll = rng(1, total);
+  for (const c of cands) {
+    if (roll <= c.w) return c.p;
+    roll -= c.w;
+  }
+  return cands[cands.length - 1].p;
+}
+
+// Map carrier slot to the channel weights for the primary defender pick.
+// Forwards (1-8) and scrum-half (9) → hard channel; fly-half (10) and
+// inside centre (12) → midfield; outside centre (13), wings (11/14),
+// fullback (15) → wide.
+function carrierChannelWeights(carrierSlot: number): Readonly<Partial<Record<number, number>>> {
+  if (carrierSlot <= SLOT.SCRUM_HALF) return HARD_CARRY_DEFENDER_WEIGHTS;
+  if (carrierSlot === SLOT.FLY_HALF || carrierSlot === SLOT.CENTRE_12) return MIDFIELD_CARRY_DEFENDER_WEIGHTS;
+  return WIDE_CARRY_DEFENDER_WEIGHTS;
+}
+
+// Channel-aware primary defender pick. Used by OpenPlay, FirstPhase, and
+// the offload chain. Carrier slot picks the channel weight table; the
+// on-field defenders are then weighted-picked from that table. The optional
+// `exclude` skips a specific player (offload chain uses this to avoid the
+// previous defender on consecutive chain links). Degrades through any other
+// on-field defender if the weighted pool is empty.
+export function pickPrimaryDefender(team: Team, state: MatchState, side: PossessionSide, carrier: Player, exclude?: Player): Player {
+  const onField = onFieldPlayers(team, state, side);
+  return pickWeighted(onField, carrierChannelWeights(carrier.id), exclude)
+      ?? onField.find(p => p !== exclude)
+      ?? onField[0]
+      ?? team.players[0];
+}
+
+// Assist tackler — forward-weighted (back-row + locks heavy, hooker
+// occasional). Excludes the primary defender. Degrades to any other
+// on-field forward, then any other on-field player.
+export function pickAssistTackler(team: Team, state: MatchState, side: PossessionSide, primary: Player): Player {
+  const onField = onFieldPlayers(team, state, side);
+  return pickWeighted(onField, ASSIST_TACKLER_WEIGHTS, primary)
+      ?? onField.find(p => isForwardSlot(p.id) && p !== primary)
+      ?? onField.find(p => p !== primary)
+      ?? team.players[0];
+}
+
+// Flat forward-weighted defender for kick returns — chase pack mostly
+// forwards regardless of where the returner is on the field.
+export function pickKickReturnDefender(team: Team, state: MatchState, side: PossessionSide): Player {
+  const onField = onFieldPlayers(team, state, side);
+  return pickWeighted(onField, KICK_RETURN_DEFENDER_WEIGHTS)
+      ?? onField[0]
+      ?? team.players[0];
+}
+
+// Weighted pick over the on-field back three (fullback + wings). Used by the
+// carry handlers to credit a cover tackler on non-try line breaks. Fullback
+// 60%, each wing 20%, re-normalised over whichever of the three are on field.
+// Degrades through any on-field back / any on-field player. Consumes one
+// outcome-stream rng() call when at least one back-three player is available.
+export function pickCoverDefender(team: Team, state: MatchState, side: PossessionSide): Player {
+  const onField = onFieldPlayers(team, state, side);
+  const fb = onField.find(p => p.id === SLOT.FULL_BACK);
+  const w11 = onField.find(p => p.id === SLOT.WING_11);
+  const w14 = onField.find(p => p.id === SLOT.WING_14);
+
+  const candidates: Array<{ p: Player; w: number }> = [];
+  if (fb)  candidates.push({ p: fb,  w: 60 });
+  if (w11) candidates.push({ p: w11, w: 20 });
+  if (w14) candidates.push({ p: w14, w: 20 });
+
+  if (candidates.length > 0) {
+    const total = candidates.reduce((s, c) => s + c.w, 0);
+    let roll = rng(1, total);
+    for (const c of candidates) {
+      if (roll <= c.w) return c.p;
+      roll -= c.w;
+    }
+    return candidates[candidates.length - 1].p;
+  }
+  return onField.find(p => isBackSlot(p.id)) ?? onField[0] ?? team.players[0];
 }

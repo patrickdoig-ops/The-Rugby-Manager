@@ -94,10 +94,10 @@ export function buildAppShell(): void {
           <span class="ctrl-btn-badge" id="subs-badge" hidden></span>
         </button>
         <div class="speed-presets" role="group" aria-label="Simulation speed">
-          <button class="speed-btn" data-ms="3000" aria-label="Half speed">½×</button>
-          <button class="speed-btn speed-btn--active" data-ms="1500" aria-label="Normal speed">1×</button>
-          <button class="speed-btn" data-ms="600" aria-label="Double speed">2×</button>
-          <button class="speed-btn" data-ms="200" aria-label="Quadruple speed">4×</button>
+          <button class="speed-btn" data-ms="5000" aria-label="Half speed">½×</button>
+          <button class="speed-btn speed-btn--active" data-ms="2500" aria-label="Normal speed">1×</button>
+          <button class="speed-btn" data-ms="1000" aria-label="Double speed">2×</button>
+          <button class="speed-btn" data-ms="400" aria-label="Quadruple speed">4×</button>
         </div>
       </div>
     </div>

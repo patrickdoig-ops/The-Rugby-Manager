@@ -209,20 +209,11 @@ export class PenaltyHandler {
       this.emit('engine:event', { event: penEvent });
 
       if (res.findsTouch) {
-        // Found touch — attacking team retains the throw at the new ball position.
-        const teamName = (state.possession === 'home' ? state.homeTeam : state.awayTeam).name;
-        const awardEvent: GameEvent = {
-          id: makeId(),
-          gameMinute: state.clock.gameMinute,
-          phase: MatchPhase.Lineout,
-          side: state.possession,
-          sideName: teamName,
-          ballX: state.ball.x,
-          ballY: state.ball.y,
-          narration: { steps: [{ kind: 'announcement', key: 'set_piece_award', params: { phaseName: 'Lineout', teamName } }] },
-        };
-        applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: awardEvent });
-        this.emit('engine:event', { event: awardEvent });
+        // Found touch — attacking team retains the throw at the new ball
+        // position. The set_piece_award announcement is fired by
+        // MatchCoordinator's cross-tick detector at the start of the next
+        // tick (Lineout), so the penalty tick stays at 1 commentary event
+        // instead of bursting 2.
         applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.Lineout });
       } else {
         // Missed touch — opposition gather and counter-attack via KickReturn.

@@ -13,7 +13,7 @@ import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForw
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
-import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, INJURY, INJURY_KIND_WEIGHTS, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS, PICK_AND_GO_PCT } from '../balance';
+import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, HARD_CARRY_LINE_BREAK_UPGRADE_PCT, HARD_CARRY_LINE_BREAK_METRES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, INJURY, INJURY_KIND_WEIGHTS, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS, PICK_AND_GO_PCT } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { SLOT, isBackSlot } from '../Slot';
 import { tryOffloadChain } from './offloadChain';
@@ -260,6 +260,19 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
     ballCarrier = chain.finalCarrier;
     defender = chain.finalDefender;
     chainNarration = chain.chainNarration;
+  }
+
+  // Hard-carry line-break upgrade — forwards rarely clear the standard
+  // line-break margin on raw stats. A small upgrade on a dominant_carry
+  // outcome lets back-row + props occasionally feature on the line-break
+  // / try-scorer leaderboards. Hard-carry path only (the wide path's
+  // existing line-break math already produces wing/FB breaks). Gain re-
+  // rolls into a smaller range than wide-line-breaks (close-channel cover
+  // tracks back faster than a fullback in the 15m channel).
+  if (!goWide && res.outcome === 'dominant_carry'
+      && rng(1, 100) <= HARD_CARRY_LINE_BREAK_UPGRADE_PCT) {
+    res.outcome = 'line_break';
+    res.gainMetres = rng(HARD_CARRY_LINE_BREAK_METRES[0], HARD_CARRY_LINE_BREAK_METRES[1]);
   }
 
   // Line break gain bonus — blitz cover is behind the runner so a break

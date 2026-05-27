@@ -525,6 +525,10 @@ On the wide path, a second handling gate (same threshold) fires on the outside b
 
 **Steps 3–4 — Evasion → Collision** — see [Shared Evasion/Collision](#shared-evasioncollision) below.
 
+**Step 4b — Hard-carry line-break upgrade (post-resolve, hard-carry path only)**
+
+Forwards rarely clear the standard `lineBreakMargin` of 15 on raw stats (low pace / agility), so the line-break + try-scorer leaderboards used to be all-back. A small post-roll upgrade on the hard-carry path lets a back-row or prop occasionally puncture the gain line off a ruck: if `outcome === 'dominant_carry'` (the carrier already won the contact) and a `rng(1, 100) <= HARD_CARRY_LINE_BREAK_UPGRADE_PCT` (12%) check passes, the outcome flips to `line_break` with `gainMetres` re-rolled into `HARD_CARRY_LINE_BREAK_METRES` (8-18m — smaller than the wide-line-break 20-45m range because close-channel cover tracks back faster than a fullback in the 15m channel). The existing line-break gain bonus (defensive line + backfield) then stacks on top. Tuning: both constants in `src/engine/balance/openPlay.ts`. Wide path is unaffected (wide carriers already produce line-breaks through the standard margin check).
+
 ---
 
 ### FirstPhase

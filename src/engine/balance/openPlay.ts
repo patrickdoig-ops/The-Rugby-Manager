@@ -8,6 +8,22 @@ export const HARD_CARRY_THRESHOLDS = {
   wide_wide:     50,
 } as const;
 
+// Hard-carry line-break upgrade: forwards rarely clear the standard line-
+// break margin on raw stats (low pace / agility), so the top line-breakers
+// + try-scorers leaderboards end up all-back. A small post-roll upgrade on
+// the hard-carry path lets a back-row or prop occasionally puncture the
+// gain line off a ruck — physically the "dominant collision that the
+// tackler couldn't even slow" pattern. Fires only on dominant_carry
+// outcomes (the carrier already won the contact); play_on / dominant_
+// tackle are not upgradeable.
+export const HARD_CARRY_LINE_BREAK_UPGRADE_PCT = 12;
+
+// Gain range when a hard-carry line-break upgrade fires. Smaller than the
+// wide-line-break range (20-45m) because the close-channel cover (back
+// row + #12 covering across) tracks back faster than a fullback in the
+// 15m channel.
+export const HARD_CARRY_LINE_BREAK_METRES = [8, 18] as const;
+
 // Quadratic handling gate. Per-check KO probability = gap² / 100, where
 // gap = max(0, zeroRiskHandling − handling). Above zeroRiskHandling the
 // rate is identically zero — elite playmakers don't drop clean ball. Below,

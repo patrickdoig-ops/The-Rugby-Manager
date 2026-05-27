@@ -1081,6 +1081,8 @@ function buildReport(aggs: SeasonAgg[], elapsedMs: number): string {
   const everyone = allPlayers; // alias for clarity
 
   appendLeaderboard(lines, 'Top try scorers (total)', everyone, p => p.tries, p => `${p.tries}`);
+  appendLeaderboard(lines, 'Top carriers (count, total)', everyone, p => p.carries, p => `${p.carries}`);
+  appendPositionCarryBreakdown(lines, everyone, totalFixtures);
   appendLeaderboard(lines, 'Top metres carried (total)', everyone, p => p.metresCarried, p => `${p.metresCarried}`);
   appendLeaderboard(lines, 'Top line-breakers (total)', everyone, p => p.lineBreaks, p => `${p.lineBreaks}`);
   appendLeaderboard(lines, 'Top defenders beaten (total)', everyone, p => p.defendersBeaten, p => `${p.defendersBeaten}`);
@@ -1116,6 +1118,59 @@ function leaguePoints(aggs: SeasonAgg[], teamId: string): number {
   const tb = sumClubField(aggs, teamId, 'tryBonusPoints');
   const lb = sumClubField(aggs, teamId, 'losingBonusPoints');
   return w * 4 + d * 2 + tb + lb;
+}
+
+// Carries-by-position aggregate. Surfaces the within-forward redistribution
+// (back row + props now heavy, hooker rare) that the count-by-position
+// numbers verify but the metres-carried leaderboard hides (line breaks
+// dominate metres, so back-three always tops it).
+const POSITION_GROUP_ORDER: ReadonlyArray<{ label: string; positions: string[]; isForward: boolean }> = [
+  { label: 'Back row', positions: ['Flanker', 'Number 8', 'Back Row'], isForward: true  },
+  { label: 'Props',    positions: ['Prop'],                              isForward: true  },
+  { label: 'Locks',    positions: ['Lock'],                              isForward: true  },
+  { label: 'Hooker',   positions: ['Hooker'],                            isForward: true  },
+  { label: 'Centres',  positions: ['Centre'],                            isForward: false },
+  { label: 'Wings',    positions: ['Wing'],                              isForward: false },
+  { label: 'Fullback', positions: ['Fullback'],                          isForward: false },
+  { label: 'Fly-Half', positions: ['Fly-Half'],                          isForward: false },
+  { label: 'Scrum-Half', positions: ['Scrum-Half'],                      isForward: false },
+  { label: 'Utility',  positions: ['Utility Back'],                      isForward: false },
+];
+
+function appendPositionCarryBreakdown(
+  lines: string[],
+  pool: PlayerAgg[],
+  totalFixtures: number,
+): void {
+  const totals = new Map<string, number>();
+  let forwardTotal = 0;
+  let backTotal = 0;
+  let leagueTotal = 0;
+  for (const group of POSITION_GROUP_ORDER) {
+    let n = 0;
+    for (const p of pool) {
+      if (group.positions.includes(p.position)) n += p.carries;
+    }
+    totals.set(group.label, n);
+    leagueTotal += n;
+    if (group.isForward) forwardTotal += n;
+    else                 backTotal += n;
+  }
+  // Per-match figures divide by totalFixtures because the carry counts
+  // already sum both teams in every match (player aggregator runs across
+  // home + away rosters).
+  lines.push('### Carries by position group');
+  lines.push('');
+  lines.push('| group | carries | per match (both teams) | share |');
+  lines.push('|---|---:|---:|---:|');
+  for (const group of POSITION_GROUP_ORDER) {
+    const n = totals.get(group.label)!;
+    if (n === 0) continue;
+    lines.push(`| ${group.label} | ${n} | ${fmt(n / totalFixtures)} | ${pct(n, leagueTotal)} |`);
+  }
+  lines.push(`| **Forwards subtotal** | ${forwardTotal} | ${fmt(forwardTotal / totalFixtures)} | ${pct(forwardTotal, leagueTotal)} |`);
+  lines.push(`| **Backs subtotal** | ${backTotal} | ${fmt(backTotal / totalFixtures)} | ${pct(backTotal, leagueTotal)} |`);
+  lines.push('');
 }
 
 function appendLeaderboard(

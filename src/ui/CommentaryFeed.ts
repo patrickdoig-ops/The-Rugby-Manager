@@ -6,11 +6,15 @@ import { renderNarrationSteps } from '../commentary/CommentaryRenderer';
 import { teamTextColor } from '../utils/teamColor';
 import { playCue } from './SoundManager';
 import { isHeroEvent } from './keyMoment';
+import { loadCommentaryFilter, saveCommentaryFilter, type CfFilter } from './uiPrefs';
 
 const PHASE_CLASS: Partial<Record<MatchPhase, string>> = {
   [MatchPhase.TryScored]:     'event-try',
   [MatchPhase.Penalty]:       'event-penalty',
   [MatchPhase.ConversionKick]:'event-conversion',
+  [MatchPhase.KickAtGoal]:    'event-kickatgoal',
+  [MatchPhase.BoxKick]:       'event-kick',
+  [MatchPhase.TacticalKick]:  'event-kick',
   [MatchPhase.Scrum]:         'event-scrum',
   [MatchPhase.Lineout]:       'event-lineout',
   [MatchPhase.Maul]:          'event-maul',
@@ -85,9 +89,60 @@ function deduplicatePlayerRefs(text: string): string {
   return result.replace(/([.!?]\s+)(he|him)\b/g, (_, punc, p) => punc + p[0].toUpperCase() + p.slice(1));
 }
 
+// Filter chip → phase-class mapping is enforced by CSS rules in
+// `style/commentary.css` (`.cf-feed--filter-X .commentary-entry:not(.event-Y)
+// { display: none }`). Keep the chip list in sync with that stylesheet.
+// Card-bearing entries don't get a dedicated chip — cards announce inside
+// Penalty / TmoReview events (no MatchPhase.Card exists). The Pens chip
+// covers those moments.
+const FILTER_CHIPS: ReadonlyArray<{ id: CfFilter; label: string }> = [
+  { id: 'all',       label: 'All' },
+  { id: 'tries',     label: 'Tries' },
+  { id: 'penalties', label: 'Pens' },
+  { id: 'kicks',     label: 'Kicks' },
+  { id: 'setpieces', label: 'Set Pieces' },
+  { id: 'subs',      label: 'Subs' },
+];
+
 export function initCommentaryFeed(): void {
   const feed   = document.getElementById('commentary-feed')!;
   const latest = document.getElementById('latest-commentary')!;
+  const panel  = document.getElementById('panel-commentary')!;
+
+  // Filter chip bar — injected once at init, sticky across matches via
+  // localStorage. Placed above the feed inside its parent panel so the
+  // dashboard view (where commentary occupies the left column) renders
+  // the chips at the top of the column.
+  let currentFilter: CfFilter = loadCommentaryFilter();
+  const filterBar = document.createElement('div');
+  filterBar.className = 'cf-filter-bar';
+  filterBar.innerHTML = FILTER_CHIPS.map(c =>
+    `<button type="button" class="cf-chip${c.id === currentFilter ? ' cf-chip--active' : ''}" data-cf-filter="${c.id}">${c.label}</button>`
+  ).join('');
+  panel.insertBefore(filterBar, feed);
+
+  function applyFilterClass(): void {
+    feed.classList.forEach(c => {
+      if (c.startsWith('cf-feed--filter-')) feed.classList.remove(c);
+    });
+    if (currentFilter !== 'all') {
+      feed.classList.add(`cf-feed--filter-${currentFilter}`);
+    }
+  }
+  applyFilterClass();
+
+  filterBar.addEventListener('click', (e) => {
+    const target = (e.target as HTMLElement | null)?.closest<HTMLButtonElement>('[data-cf-filter]');
+    if (!target) return;
+    const next = target.dataset.cfFilter as CfFilter | undefined;
+    if (!next || next === currentFilter) return;
+    currentFilter = next;
+    saveCommentaryFilter(next);
+    filterBar.querySelectorAll<HTMLButtonElement>('.cf-chip').forEach(btn => {
+      btn.classList.toggle('cf-chip--active', btn.dataset.cfFilter === currentFilter);
+    });
+    applyFilterClass();
+  });
 
   let allPlayersWithColor: Array<{ player: Player; color: string }> = [];
   let homeTeamName = '';
@@ -118,6 +173,11 @@ export function initCommentaryFeed(): void {
     const entry = document.createElement('div');
     const phaseClass = showTag ? (PHASE_CLASS[event.phase] ?? '') : '';
     entry.className = `commentary-entry possession-${event.side} ${phaseClass}`.trim();
+
+    // Team-tinted left border picks up the attacking side's text colour.
+    // Read by `.commentary-entry { border-left: 3px solid var(--possession-color, …) }`.
+    const possessionColor = event.side === 'home' ? homeTeamColor : awayTeamColor;
+    if (possessionColor) entry.style.setProperty('--possession-color', possessionColor);
 
     const minute = Math.floor(event.gameMinute);
     const tag    = showTag ? (TAG_MAP[event.phase] ?? '·') : '·';

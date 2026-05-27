@@ -668,6 +668,17 @@ Format: `<CAP> £5.8M / £6.4M` — label uppercase mono dim, value mono chalk.
 
 Apply `.team-crest--xs/sm/md/lg` or screen-specific variants that consume the canonical scale tokens.
 
+### 8.8 In-match shell
+
+The live-match panel inherits the same design-system tokens as the in-season screens. Four conventions are load-bearing:
+
+1. **Animated stat bars.** `.stat-bar-h` / `.stat-bar-a` use `transition: width var(--rm-duration-row) var(--rm-ease-out)` so possession / territory swings glide between values. Inline `style.width="${pct}%"` mutation still happens every tick — the transition lives entirely in CSS.
+2. **Winner-flip flash.** When the leading side on a stat row flips, the row briefly highlights via a pitch-green underline pulse (`.stat-row--changed::after`). The flash auto-clears after 600ms. Driven by the StatsPanel module comparing previous vs new `WinnerSide` per `data-stat-id`. Reduced-motion: animation disabled, no pulse.
+3. **Expandable player rows.** Every player card on the live-match Dashboard / Players view is tap-to-expand using the shared `createRowExpander` controller. Collapsed shows jersey + name + fatigue bar + live rating badge + chevron. Expanded reveals 8 mini-stats (Carries · Metres · Passes · Tackles · Missed · Rucks · Turnovers · Kicks) plus a live OVR + form-mod context strip. Keyed by `rosterId` so the expand state survives substitutions and the per-tick patch path. Padding lives on `.sp-expand-body` (the wrapper inside `.row-expand-inner`) so the grid-row tween truly collapses to zero height — never put padding on `.row-expand-inner` itself.
+4. **Commentary filter chips + team-tinted entries.** A six-chip filter bar (`.cf-filter-bar`) sits above the commentary feed: All / Tries / Pens / Kicks / Set Pieces / Subs. Selection is sticky across matches via `loadCommentaryFilter()` in `uiPrefs.ts`. Each entry sets `--possession-color` inline to the attacking team's text colour, surfaced as a 3px `border-left` on `.commentary-entry`. The amber `.event-try` left-border still wins on hero try entries by virtue of cascade order.
+
+The shared `createRowExpander` + `.row-expand-panel` pattern from §4.8 is the only correct way to add new expandable rows to the live panel — do not invent a screen-specific `max-height` toggle.
+
 ---
 
 ## 9. Light mode policy

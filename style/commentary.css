@@ -8,12 +8,67 @@
   padding: 0 8px 4px;
 }
 
+/* ─── Filter chip bar replaces the generic "COMMENTARY" panel-header
+       since the chips themselves communicate the panel's identity. ─── */
+#panel-commentary > .panel-header { display: none; }
+
+.cf-filter-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 8px 7px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--rm-hairline);
+  background: color-mix(in oklch, var(--rm-surface) 60%, transparent);
+}
+
+.cf-filter-bar::-webkit-scrollbar { display: none; }
+
+.cf-chip {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  color: var(--rm-text-muted);
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.cf-chip--active {
+  background: color-mix(in oklch, var(--rm-pitch) 22%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-pitch) 55%, transparent);
+  color: var(--rm-chalk);
+}
+
+@media (hover: hover) {
+  .cf-chip:hover { color: var(--rm-chalk); }
+}
+
+/* ─── Per-filter hide rules. Each rule hides every non-matching entry
+       when its filter is active. Kept colocated for easy maintenance. ─── */
+#commentary-feed.cf-feed--filter-tries     .commentary-entry:not(.event-try)        { display: none; }
+#commentary-feed.cf-feed--filter-penalties .commentary-entry:not(.event-penalty)    { display: none; }
+#commentary-feed.cf-feed--filter-kicks     .commentary-entry:not(.event-kick):not(.event-conversion):not(.event-kickatgoal) { display: none; }
+#commentary-feed.cf-feed--filter-setpieces .commentary-entry:not(.event-scrum):not(.event-lineout):not(.event-maul) { display: none; }
+#commentary-feed.cf-feed--filter-subs      .commentary-entry:not(.event-sub)        { display: none; }
+
 .commentary-entry {
   display: grid;
   grid-template-columns: 30px 34px 1fr;
   gap: 6px;
-  padding: 9px 2px;
+  padding: 9px 2px 9px 8px;
   border-bottom: 1px solid var(--rm-hairline);
+  border-left: 3px solid var(--possession-color, var(--rm-pitch));
   animation: entryIn 0.22s cubic-bezier(0.22, 1, 0.36, 1);
   align-items: start;
 }

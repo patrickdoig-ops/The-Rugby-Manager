@@ -40,6 +40,30 @@
 .stat-row {
   padding: 5px 0;
   border-bottom: 1px solid var(--rm-hairline);
+  position: relative;
+}
+
+/* Brief pop when the winning side flips. The pseudo-element overlays a
+   pitch-green underline glow that decays; the row itself stays static. */
+.stat-row--changed::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent,
+    color-mix(in oklch, var(--rm-pitch) 70%, transparent) 50%,
+    transparent);
+  animation: statRowFlash 600ms var(--rm-ease-out) forwards;
+  pointer-events: none;
+}
+
+@keyframes statRowFlash {
+  0%   { opacity: 0; }
+  20%  { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 .stat-row-header {
@@ -66,8 +90,8 @@
 .stat-label {
   text-align: center;
   font-family: var(--rm-font-mono);
-  font-size: 8px;
-  font-weight: 500;
+  font-size: 9px;
+  font-weight: 600;
   color: var(--rm-text-dim);
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -86,6 +110,9 @@
 .stat-bar-h,
 .stat-bar-a {
   height: 100%;
+  transition:
+    width var(--rm-duration-row) var(--rm-ease-out),
+    opacity 0.25s ease;
 }
 
 /* ─── Player stats panel ─── */
@@ -96,31 +123,111 @@
 }
 
 .player-stat-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  border-bottom: 1px solid var(--rm-hairline);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.player-stat-row-main {
   display: grid;
-  grid-template-columns: 22px 1fr 36px 28px;
-  grid-template-rows: auto auto;
-  gap: 3px 5px;
+  grid-template-columns: 22px 1fr 56px 36px 22px;
+  gap: 3px 6px;
   align-items: center;
   padding: 5px 2px;
-  border-bottom: 1px solid var(--rm-hairline);
+  cursor: pointer;
 }
 
-.player-stat-chips {
-  grid-column: 1 / -1;
+@media (hover: hover) {
+  .player-stat-row:hover .player-stat-row-main {
+    background: color-mix(in oklch, var(--rm-surface-2) 50%, transparent);
+  }
+}
+
+.sp-chevron {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+}
+
+/* Expand panel chrome — padding lives on .sp-expand-body so when the
+   grid item collapses to 0fr the panel truly hides. */
+.sp-expand .row-expand-inner {
+  background: color-mix(in oklch, var(--rm-bg-deep) 25%, transparent);
+}
+.sp-expand-body {
+  padding: 6px 8px 8px;
+  border-top: 1px dashed color-mix(in oklch, var(--rm-border-soft) 50%, transparent);
+}
+
+.sp-expand-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px 8px;
+}
+
+.sp-expand-stat {
   display: flex;
-  gap: 6px;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 2px 0;
 }
 
-.chip {
+.sp-stat-val {
+  font-family: var(--rm-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--rm-chalk);
+}
+
+.sp-stat-label {
   font-family: var(--rm-font-mono);
   font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
   color: var(--rm-text-dim);
-  white-space: nowrap;
 }
 
-.chip-try {
-  color: var(--rm-stat-5);
+.sp-expand-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+  justify-content: center;
+}
+
+.sp-context-pip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sp-context-pip--accent {
+  background: color-mix(in oklch, var(--rm-amber) 14%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-amber) 40%, transparent);
+}
+
+.sp-context-label {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+}
+
+.sp-context-val {
   font-weight: 700;
+  color: var(--rm-chalk);
 }
 
 /* Jersey number */
@@ -248,3 +355,9 @@
 }
 
 .player-table .td-tries { color: var(--rm-amber); font-weight: 700; }
+
+@media (prefers-reduced-motion: reduce) {
+  .stat-bar-h,
+  .stat-bar-a { transition: none; }
+  .stat-row--changed::after { animation: none; opacity: 0; }
+}

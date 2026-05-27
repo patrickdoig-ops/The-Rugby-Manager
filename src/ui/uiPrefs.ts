@@ -1,8 +1,8 @@
 // User-facing UI preferences kept in localStorage with their own lifecycle —
 // per-user, never cleared on team-switch (so they're not part of SaveManager).
-// Today this is the match tick delay plus the key-moment auto-pause / auto-slow
-// toggles; theme persistence is bootstrapped inline in index.html for first-paint
-// timing and stays separate.
+// Today this is the match tick delay, the key-moment auto-pause / auto-slow
+// toggles, and the live-match commentary filter; theme persistence is
+// bootstrapped inline in index.html for first-paint timing and stays separate.
 
 const TICK_DELAY_KEY        = 'rugby-manager-tick-delay-ms';
 const DEFAULT_TICK_DELAY_MS = 2500;
@@ -67,6 +67,32 @@ export function loadAutoSlowEnabled(): boolean {
 export function saveAutoSlowEnabled(on: boolean): void {
   try {
     localStorage.setItem(AUTO_SLOW_KEY, on ? 'on' : 'off');
+  } catch {
+    // localStorage disabled / quota exceeded — silent.
+  }
+}
+
+// Commentary feed filter — single-select, sticky across matches. Maps to
+// the `.commentary-entry .event-*` phase classes the feed already emits.
+const CF_FILTER_KEY = 'rugby-manager-cf-filter';
+export const CF_FILTER_VALUES = ['all', 'tries', 'penalties', 'kicks', 'setpieces', 'subs'] as const;
+export type CfFilter = typeof CF_FILTER_VALUES[number];
+
+export function loadCommentaryFilter(): CfFilter {
+  try {
+    const raw = localStorage.getItem(CF_FILTER_KEY);
+    if (raw && (CF_FILTER_VALUES as readonly string[]).includes(raw)) {
+      return raw as CfFilter;
+    }
+    return 'all';
+  } catch {
+    return 'all';
+  }
+}
+
+export function saveCommentaryFilter(f: CfFilter): void {
+  try {
+    localStorage.setItem(CF_FILTER_KEY, f);
   } catch {
     // localStorage disabled / quota exceeded — silent.
   }

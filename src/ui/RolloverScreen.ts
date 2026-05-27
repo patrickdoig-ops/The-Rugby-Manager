@@ -15,6 +15,9 @@ import type { RawTeamInput } from '../types/teamData';
 import type { GameState, SeasonEvent } from '../types/gameState';
 import type { Player, PlayerStats } from '../types/player';
 import { getAge } from '../game/age';
+import { animateCounter } from './components/counterUp';
+
+const BREAKOUT_OVR_THRESHOLD = 80;
 
 let activeEvents: SeasonEvent[] = [];
 let activeOnContinue: () => void = () => {};
@@ -112,17 +115,38 @@ export function initRolloverScreen(
             </div>`;
         }).join('');
 
-    const academyHtml = academyGrads.map((e, i) => {
-      if (e.type !== 'ACADEMY_GRADUATED') return '';
+    // Compute per-grad OVRs once; pick the highest as a candidate
+    // breakout-talent hero (only when OVR clears the threshold).
+    const academyWithOvr = academyGrads.flatMap(e => {
+      if (e.type !== 'ACADEMY_GRADUATED') return [];
       const p = e.player;
       const ovrSum = Object.values(p.baseStats).reduce((a, b) => a + b, 0);
       const ovr = Math.round(ovrSum / 12);
-      return `
+      return [{ event: e, player: p, ovr }];
+    });
+    const breakout = academyWithOvr
+      .filter(g => g.ovr >= BREAKOUT_OVR_THRESHOLD)
+      .sort((a, b) => b.ovr - a.ovr)[0];
+    const breakoutRosterId = breakout?.player.rosterId;
+
+    const breakoutHtml = breakout && playerTeam ? `
+      <section class="roll-section">
+        <div class="roll-breakout" style="--team-color:${playerTeam.color}">
+          <div class="roll-breakout-eyebrow">BREAKOUT TALENT</div>
+          <div class="roll-breakout-crest" style="background:linear-gradient(160deg,${playerTeam.color} 0%,color-mix(in oklch,${playerTeam.color} 30%,black) 100%);border:1px solid color-mix(in oklch,${playerTeam.color} 45%,transparent)"><span>${playerTeam.shortName[0] ?? '?'}</span></div>
+          <div class="roll-breakout-name">${breakout.player.firstName} ${breakout.player.lastName}</div>
+          <div class="roll-breakout-meta">${breakout.player.position} · ${playerTeam.shortName} Academy</div>
+          <div class="roll-breakout-ovr">OVR <span data-counter-ovr="${breakout.ovr}">0</span></div>
+        </div>
+      </section>` : '';
+
+    const academyHtml = academyWithOvr
+      .filter(g => g.player.rosterId !== breakoutRosterId)
+      .map((g, i) => `
         <div class="roll-row" style="--row-delay:${i * 60}ms">
-          <span class="roll-name">${p.firstName} ${p.lastName}</span>
-          <span class="roll-meta">${p.position} · OVR ${ovr}</span>
-        </div>`;
-    }).join('');
+          <span class="roll-name">${g.player.firstName} ${g.player.lastName}</span>
+          <span class="roll-meta">${g.player.position} · OVR <span data-counter-ovr="${g.ovr}" data-counter-delay="${i * 60 + 380}">0</span></span>
+        </div>`).join('');
 
     const transfersHtml = inboundTransfers.map((e, i) => {
       if (e.type !== 'TRANSFER_ACTIVATED') return '';
@@ -175,9 +199,11 @@ export function initRolloverScreen(
         <div class="roll-list">${outboundHtml}</div>
       </section>` : ''}
 
-      ${academyGrads.length > 0 ? `
+      ${breakoutHtml}
+
+      ${academyGrads.length > 0 && academyHtml ? `
       <section class="roll-section">
-        <h3 class="roll-h3">Academy Graduates <span class="roll-count">${academyGrads.length}</span></h3>
+        <h3 class="roll-h3">Academy Graduates <span class="roll-count">${academyWithOvr.length - (breakout ? 1 : 0)}</span></h3>
         <div class="roll-list">${academyHtml}</div>
       </section>` : ''}
 
@@ -195,6 +221,18 @@ export function initRolloverScreen(
     `;
 
     el!.querySelector<HTMLButtonElement>('#roll-continue')!.addEventListener('click', () => activeOnContinue());
+
+    // Counter-up academy OVRs. The breakout-talent hero card runs a
+    // slightly longer tween at a 700ms delay so it lands after the
+    // card's scale-pop entry; in-list grads use their per-row delay.
+    el!.querySelectorAll<HTMLElement>('[data-counter-ovr]').forEach(node => {
+      const target = Number(node.dataset.counterOvr ?? '0');
+      const delay  = node.dataset.counterDelay !== undefined
+        ? Number(node.dataset.counterDelay)
+        : 700;
+      const duration = delay === 700 ? 900 : 600;
+      animateCounter(node, 0, target, v => `${Math.round(v)}`, { duration, delay });
+    });
   }
 
   renderImpl = render;

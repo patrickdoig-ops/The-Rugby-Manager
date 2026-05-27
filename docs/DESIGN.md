@@ -494,6 +494,27 @@ The CSS rule is gated by the parent `.screen-entering` class, so rows only anima
 
 Under `prefers-reduced-motion: reduce`, both screen transforms and row stagger collapse to a single 80ms opacity fade (`@keyframes rmFadeOnly`). Movement-sensitive users still get a subtle transition cue; nothing slides, nothing staggers. The reduced-motion override at the bottom of the motion section in `style/main.css` is the single source of truth — add new opt-in row classes to its selector list in lockstep with §7.8.
 
+Reward-moment screens (§7.10) own their own reduced-motion blocks in `style/budgetreveal.css` and `style/seasonrollover.css` since their hero / pop / trophy keyframes live in those files. Confetti and counter-up tweens self-check the media query in code (see `src/ui/components/counterUp.ts` and the gates in `EndOfSeasonScreen.ts` / `TakeoverRevealScreen.ts`).
+
+### 7.10 Reward-moment choreography (Budget, Takeover, EOS, Rollover)
+
+Four screens are once-a-year peaks and use a shared celebration recipe rather than the generic page-enter pattern:
+
+| Surface | Counter-up | Stagger | Scale-pop hero | Sound | Confetti |
+|---|---|---|---|---|---|
+| BudgetReveal | budget headline | reason chips | `tkHeroEnter` on `.br-card` (already shipped) | — | — |
+| TakeoverReveal | `.tk-boost-num` (player's own card) | `.tk-other-row` (league-wide) | `tkCrestPop` on `.tk-crest--lg`; newspaper-framing on `.tk-hero` | `uiClick` ~250ms | `launchConfetti(playerColor, 'normal')` when player owns the takeover |
+| EOS | every standings row's points + every "your season" stat | `.eos-row`, `.eos-leader` (gold/silver/bronze leader cards in sequence) | `eosChampionEnter` + `eosCrestPop` + `eosNameRise` + `eosWashSwell` (kept from prior work); new `rmTrophyPop` on the inline trophy SVG | `whistle` on enter; `crowdRoar` ~800ms when player is champion | `launchConfetti(playerColor, 'storm')` ~700ms when player is champion (replaces the 14-dot CSS effect, which is now reserved for AI-champion seasons) |
+| Rollover | academy OVRs (hero + inline) | existing `.roll-row` stagger | new `.roll-breakout` hero card (only when an academy grad ≥ 80 OVR) | — | — |
+
+Numbers tween from 0 via `animateCounter()` in `src/ui/components/counterUp.ts` — single easing (`1 - (1 - t)^3`), default 1200ms, snaps to final under reduced motion. Use it via inline `data-counter-*` attributes on numeric cells so the render path stays string-based.
+
+Sound cues come from the existing three-cue palette (`whistle`, `crowdRoar`, `uiClick`) — no new audio assets. Audio plays under reduced motion (audio is independent of motion).
+
+Confetti calls (`Confetti.ts`) are reserved for two moments only: player-as-champion at EOS (storm) and player-owned takeover (normal). Both are gated by a `prefers-reduced-motion` check in the calling code.
+
+Iconography: gold trophy SVG inline next to the EOS champion's name; gold/silver/bronze medal SVGs left of the top-3 standings ranks; newspaper-framing eyebrow ("BREAKING" red for Red Bull / "BOARDROOM" green for investor) + faux byline on the takeover hero card; "BREAKOUT TALENT" eyebrow on the Rollover hero card.
+
 ---
 
 ## 8. Component patterns

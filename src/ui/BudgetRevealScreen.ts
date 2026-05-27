@@ -17,6 +17,7 @@ import type { RawTeamInput } from '../types/teamData';
 import type { BudgetReason } from '../types/gameState';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import { clubBudgetUsage } from '../game/teamStats';
+import { animateCounter } from './components/counterUp';
 
 interface RevealPayload {
   // Display amount in pounds. Sourced from ClubState.salaryBudget at the
@@ -93,7 +94,7 @@ export function initBudgetRevealScreen(
           : `<span class="br-delta br-delta--down">${fmtMillions(active.delta)}</span>`;
 
     const reasonChips = (active.reasons ?? [])
-      .map(r => `<span class="br-reason">${reasonLabel(r)}</span>`)
+      .map((r, i) => `<span class="br-reason" style="--row-delay:${Math.min(i, 8) * 80}ms">${reasonLabel(r)}</span>`)
       .join('');
 
     el!.innerHTML = `
@@ -110,7 +111,7 @@ export function initBudgetRevealScreen(
         ${teamCrest(team)}
         <div class="br-club-name">${team.name}</div>
         <div class="br-headline-label">WAGE BUDGET</div>
-        <div class="br-headline">${fmtMillions(active.budget)}</div>
+        <div class="br-headline" data-counter-budget>${fmtMillions(0)}</div>
         ${deltaChip}
         ${reasonChips ? `<div class="br-reasons">${reasonChips}</div>` : ''}
         <div class="br-usage">
@@ -136,6 +137,13 @@ export function initBudgetRevealScreen(
     el!.querySelector<HTMLButtonElement>('#br-continue')!.addEventListener('click', () => {
       if (active) active.onContinue();
     });
+
+    // Counter-up the headline budget figure. 600ms delay so it lands
+    // after the .br-card tkHeroEnter animation (600ms).
+    const budgetEl = el!.querySelector<HTMLElement>('[data-counter-budget]');
+    if (budgetEl) {
+      animateCounter(budgetEl, 0, active.budget, fmtMillions, { duration: 1200, delay: 600 });
+    }
   }
 
   renderImpl = render;

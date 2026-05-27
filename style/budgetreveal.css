@@ -106,6 +106,16 @@
   color: var(--rm-text-muted);
   border: 1px solid var(--rm-border-soft);
   text-transform: uppercase;
+  /* Cascade entry — delay set inline per chip via --row-delay. The
+     hero card's tkHeroEnter (600ms) plus the budget counter-up (1200ms
+     starting at 600ms) means chips start landing while the counter
+     finishes — chips read as "and here's why". */
+  animation: rmRowEnter var(--rm-duration-row) var(--rm-ease-out) calc(var(--row-delay, 0ms) + 1400ms) both;
+}
+
+.br-delta {
+  /* Scale-pop entrance after the counter-up settles. */
+  animation: tkCrestPop 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 1700ms backwards;
 }
 
 .br-usage {
@@ -309,3 +319,70 @@
   letter-spacing: 0.04em;
 }
 
+/* Stagger the league-wide takeover rows after the hero card lands.
+   Delay is inline per row via --row-delay. */
+.tk-other-row {
+  animation: rmRowEnter var(--rm-duration-row) var(--rm-ease-out) calc(var(--row-delay, 0ms) + 900ms) both;
+}
+
+/* ── Newspaper framing on the takeover hero card ──
+   Adds an editorial accent above the headline and a faux byline below
+   the boost figure. The hero text already lands via tkHeroEnter on the
+   parent — these inner elements stay opacity:1 so they don't compete. */
+.tk-hero-eyebrow {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--rm-danger);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid color-mix(in oklch, var(--rm-danger) 35%, transparent);
+}
+.tk-hero-eyebrow::before,
+.tk-hero-eyebrow::after {
+  content: '';
+  display: inline-block;
+  width: 22px;
+  height: 1px;
+  background: color-mix(in oklch, var(--rm-danger) 60%, transparent);
+}
+.tk-hero--investor .tk-hero-eyebrow {
+  color: var(--rm-pitch);
+  border-bottom-color: color-mix(in oklch, var(--rm-pitch) 35%, transparent);
+}
+.tk-hero--investor .tk-hero-eyebrow::before,
+.tk-hero--investor .tk-hero-eyebrow::after {
+  background: color-mix(in oklch, var(--rm-pitch) 60%, transparent);
+}
+
+/* Lift the headline to display-font scale for the newspaper feel. */
+.tk-hero .tk-hero-headline {
+  font-size: 26px;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+  max-width: 380px;
+}
+
+.tk-hero-byline {
+  font-family: var(--rm-font-editor);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--rm-text-muted);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #br-card,
+  .br-reason,
+  .br-delta,
+  .tk-hero,
+  .tk-crest--lg,
+  .tk-other-row {
+    animation: rmFadeOnly 80ms ease-out both !important;
+    animation-delay: 0ms !important;
+  }
+}

@@ -544,3 +544,123 @@
   text-align: center;
   animation: eosNameRise 600ms cubic-bezier(0.22, 1, 0.36, 1) 1100ms backwards;
 }
+
+/* ── Trophy + medals ── */
+.eos-champion-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+}
+.eos-trophy {
+  color: var(--rm-amber);
+  filter: drop-shadow(0 2px 6px color-mix(in oklch, var(--rm-amber) 35%, transparent));
+  animation: rmTrophyPop 500ms cubic-bezier(0.34, 1.56, 0.64, 1) 1300ms backwards;
+}
+@keyframes rmTrophyPop {
+  0%   { transform: scale(0.4) rotate(-18deg); opacity: 0; }
+  60%  { transform: scale(1.2) rotate(8deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
+}
+
+.eos-rank {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.eos-medal--gold   { color: var(--rm-amber); }
+.eos-medal--silver { color: oklch(0.78 0.012 90); }
+.eos-medal--bronze { color: oklch(0.55 0.10 60); }
+.eos-medal {
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+  flex: 0 0 auto;
+}
+
+/* ── Standings + leader-card entrance choreography ── */
+.eos-row {
+  animation: rmRowEnter var(--rm-duration-row) var(--rm-ease-out) calc(var(--row-delay, 0ms) + 200ms) both;
+}
+.eos-leader {
+  animation: eosCrestPop 500ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--leader-delay, 1400ms)) backwards;
+}
+.eos-leaders > .eos-leader:nth-child(1) { --leader-delay: 1400ms; }
+.eos-leaders > .eos-leader:nth-child(2) { --leader-delay: 1600ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .eos-trophy,
+  .eos-row,
+  .eos-leader,
+  .eos-champion-name,
+  .eos-champion-season,
+  .eos-champion-label,
+  .eos-champion-crest,
+  .eos-confetti,
+  .eos-confetti span,
+  .roll-breakout {
+    animation: rmFadeOnly 80ms ease-out both !important;
+    animation-delay: 0ms !important;
+  }
+}
+
+/* ── Rollover breakout-talent hero ── */
+.roll-breakout {
+  margin: 0 0 4px;
+  padding: 18px 16px 16px;
+  background: linear-gradient(180deg, color-mix(in oklch, var(--team-color, var(--rm-pitch)) 22%, var(--rm-surface)) 0%, var(--rm-surface) 100%);
+  border: 1px solid color-mix(in oklch, var(--team-color, var(--rm-pitch)) 45%, var(--rm-border-soft));
+  border-radius: 14px;
+  box-shadow: 0 0 22px color-mix(in oklch, var(--team-color, var(--rm-pitch)) 22%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  animation: eosCrestPop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) 200ms backwards;
+}
+.roll-breakout-eyebrow {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--rm-amber);
+}
+.roll-breakout-crest {
+  width: var(--crest-lg-size);
+  height: var(--crest-lg-size);
+  border-radius: var(--crest-lg-radius);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-display);
+  font-size: 22px;
+  color: var(--rm-chalk);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.roll-breakout-name {
+  font-family: var(--rm-font-display);
+  font-size: 22px;
+  color: var(--rm-text);
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+.roll-breakout-meta {
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--rm-text-muted);
+  text-transform: uppercase;
+}
+.roll-breakout-ovr {
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--rm-pitch);
+  margin-top: 4px;
+}
+.roll-breakout-ovr span {
+  font-family: var(--rm-font-display);
+  font-size: 24px;
+  letter-spacing: 0.02em;
+  color: var(--rm-text);
+  margin-left: 4px;
+}

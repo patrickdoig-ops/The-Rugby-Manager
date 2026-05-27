@@ -16,6 +16,9 @@
 import type { RawTeamInput } from '../types/teamData';
 import type { TakeoverFlavor } from '../types/gameState';
 import type { GameCoordinator } from '../game/GameCoordinator';
+import { animateCounter } from './components/counterUp';
+import { launchConfetti } from './Confetti';
+import { playCue } from './SoundManager';
 
 export interface TakeoverEntry {
   clubId: string;
@@ -40,16 +43,20 @@ function fmtMillions(amount: number): string {
   return `£${(amount / 1_000_000).toFixed(1)}m`;
 }
 
-function flavorBlurb(flavor: TakeoverFlavor, clubName: string): { headline: string; sub: string } {
+function flavorBlurb(flavor: TakeoverFlavor, clubName: string): { eyebrow: string; headline: string; sub: string; byline: string } {
   if (flavor === 'red_bull') {
     return {
+      eyebrow: 'Breaking',
       headline: `${clubName} taken over by Red Bull`,
       sub: 'A high-profile global investor steps in. The owner has signed off on a wage-budget bump for next season.',
+      byline: 'Telegraph Sport · Boardroom desk',
     };
   }
   return {
+    eyebrow: 'Boardroom',
     headline: `${clubName} taken over by a new investor`,
     sub: 'Fresh capital arrives in the boardroom. The owner has signed off on a wage-budget bump for next season.',
+    byline: 'Telegraph Sport · Boardroom desk',
   };
 }
 
@@ -82,24 +89,28 @@ export function initTakeoverRevealScreen(
       const team = teamsById.get(mine.clubId);
       if (!team) return '';
       const blurb = flavorBlurb(mine.flavor, team.name);
+      const flavorClass = mine.flavor === 'red_bull' ? ' tk-hero--redbull' : ' tk-hero--investor';
       return `
-        <div class="tk-hero" style="--team-color:${team.color}">
+        <div class="tk-hero${flavorClass}" style="--team-color:${team.color}">
+          <div class="tk-hero-eyebrow">${blurb.eyebrow}</div>
           ${teamCrest(team, true)}
           <div class="tk-hero-headline">${blurb.headline}</div>
-          <div class="tk-hero-boost">+<span class="tk-boost-num" data-target="${mine.boostAmount}">£0.0m</span> to wage budget</div>
+          <div class="tk-hero-boost">+<span class="tk-boost-num">£0.0m</span> to wage budget</div>
           <div class="tk-hero-sub">${blurb.sub}</div>
+          <div class="tk-hero-byline">${blurb.byline}</div>
         </div>`;
     })() : '';
 
     const otherCards = others.length === 0 ? '' : `
       <div class="tk-others-label">${mine ? 'ALSO IN THE LEAGUE' : 'AROUND THE LEAGUE'}</div>
       <div class="tk-others">
-        ${others.map(t => {
+        ${others.map((t, i) => {
           const team = teamsById.get(t.clubId);
           if (!team) return '';
           const blurb = flavorBlurb(t.flavor, team.name);
+          const rowDelay = Math.min(i, 8) * 60;
           return `
-            <div class="tk-other-row">
+            <div class="tk-other-row" style="--row-delay:${rowDelay}ms">
               ${teamCrest(team)}
               <div class="tk-other-text">
                 <div class="tk-other-headline">${blurb.headline}</div>
@@ -138,20 +149,17 @@ export function initTakeoverRevealScreen(
     if (mine) {
       const numEl = el!.querySelector<HTMLSpanElement>('.tk-boost-num');
       if (numEl) {
-        const target = mine.boostAmount;
-        const duration = 1200;
-        const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
-        let startTime = 0;
-        function tick(now: number) {
-          const t = Math.min((now - startTime) / duration, 1);
-          numEl!.textContent = `£${((target * easeOut(t)) / 1_000_000).toFixed(1)}m`;
-          if (t < 1) requestAnimationFrame(tick);
-        }
-        setTimeout(() => {
-          startTime = performance.now();
-          requestAnimationFrame(tick);
-        }, 700);
+        animateCounter(numEl, 0, mine.boostAmount, fmtMillions, { duration: 1200, delay: 700 });
       }
+      // Player's own club taken over — fire confetti + a soft chime.
+      // Confetti is gated by prefers-reduced-motion; the chime always
+      // plays (audio is not motion per the v2.220a policy).
+      const prm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+      const myTeam = teamsById.get(mine.clubId);
+      if (!prm && myTeam) {
+        window.setTimeout(() => launchConfetti(myTeam.color, 'normal'), 300);
+      }
+      window.setTimeout(() => playCue('uiClick'), 250);
     }
   }
 

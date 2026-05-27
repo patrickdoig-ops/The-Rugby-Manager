@@ -43,7 +43,10 @@ import { AITacticalDirector } from './AITacticalDirector';
 import { AISubstitutionDirector } from './AISubstitutionDirector';
 import { COMMENTARY_BUFFER_CAP } from './balance';
 
-function deepCloneStats(s: PlayerStats): PlayerStats {
+// Shallow copy — PlayerStats fields are all primitives, so spread is a
+// full clone. (Renamed from deepCloneStats in v2.253a — "deep" was
+// misleading.)
+function cloneStats(s: PlayerStats): PlayerStats {
   return { ...s };
 }
 
@@ -94,7 +97,7 @@ function pickAutoReplacement(bench: Player[], off: Player): number | null {
 // career-scope code can correlate match performance.
 function initPlayer(raw: RawPlayer & { rosterId?: number }): Player {
   const form = rngForm();
-  const current = deepCloneStats(raw.baseStats);
+  const current = cloneStats(raw.baseStats);
   for (const key of Object.keys(current) as (keyof PlayerStats)[]) {
     current[key] = Math.max(1, Math.min(100, current[key] + form));
   }
@@ -113,7 +116,7 @@ function initPlayer(raw: RawPlayer & { rosterId?: number }): Player {
       annualWage: raw.contract?.annualWage ?? 0,
       isMarquee:  raw.contract?.isMarquee  ?? false,
     },
-    baseStats: deepCloneStats(raw.baseStats),
+    baseStats: cloneStats(raw.baseStats),
     currentStats: current,
     matchStats: zeroMatchStats(),
     seasonStats: zeroSeasonStats(),

@@ -27,8 +27,8 @@
   pointer-events: none;
   background: repeating-linear-gradient(180deg,
     transparent 0, transparent 32px,
-    color-mix(in oklch, var(--rm-pitch-soft, var(--rm-pitch)) 28%, transparent) 32px,
-    color-mix(in oklch, var(--rm-pitch-soft, var(--rm-pitch)) 28%, transparent) 33px);
+    color-mix(in oklch, var(--rm-pitch-soft) 28%, transparent) 32px,
+    color-mix(in oklch, var(--rm-pitch-soft) 28%, transparent) 33px);
   opacity: 0.18;
 }
 

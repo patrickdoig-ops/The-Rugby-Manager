@@ -321,6 +321,29 @@ const KICK_OFF: PhaseBank = {
   ],
 };
 
+const DROP_OUT_22: PhaseBank = {
+  announce: [
+    '{primary} drops back to the 22 to restart play.',
+    '{side} take the drop-out from their own 22 — {primary} on the boot.',
+    '{primary} sets himself on the 22 for the drop-out.',
+  ],
+  clean_receive: [
+    '{primary} takes the drop-out cleanly — {side} have possession in good field position.',
+    'The drop-out hangs in the air and {primary} pouches it. Strong attacking platform for {side}.',
+    'Lovely catch from {primary} off the drop-out — {side} look to attack.',
+  ],
+  knock_on: [
+    '{primary} drops the catch off the drop-out — knock-on! Scrum to the kicking side.',
+    'Spilled by {primary} under pressure from {secondary} — knock-on from the drop-out.',
+    '{primary} can\'t hold it — the drop-out is fumbled and the kicking team get the scrum.',
+  ],
+  poor_kick: [
+    '{primary}\'s drop-out fails to clear the 22 — scrum to {side} for the infringement.',
+    'A poor drop-kick from {primary} doesn\'t make the 22m line. {side} get the put-in.',
+    'Shanked drop-out from {primary} — doesn\'t travel far enough. Scrum to {side}.',
+  ],
+};
+
 const BREAKDOWN: PhaseBank = {
   clean_ball: [
     'Quick ball from the ruck! {side} move it wide immediately.',
@@ -599,6 +622,7 @@ const PENALTY: PhaseBank = {
 
 export const PHASE_BANKS: Partial<Record<MatchPhase, PhaseBank>> = {
   [MatchPhase.KickOff]:        KICK_OFF,
+  [MatchPhase.DropOut22]:      DROP_OUT_22,
   [MatchPhase.PhasePlay]:      PHASE_PLAY,
   [MatchPhase.FirstPhase]:     FIRST_PHASE,
   [MatchPhase.KickReturn]:     KICK_RETURN,

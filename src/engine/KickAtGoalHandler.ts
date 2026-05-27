@@ -16,6 +16,7 @@ import { MatchPhase } from '../types/engine';
 import { makeId } from './eventId';
 import { applyMatchEvent } from './applyMatchEvent';
 import { resolveGoalKick } from './resolvers/KickingResolver';
+import { ownTwentyTwoX } from './FieldPosition';
 import type { CommentaryStreamer } from './CommentaryStreamer';
 
 export interface KickAtGoalHandlerDeps {
@@ -77,11 +78,18 @@ export class KickAtGoalHandler {
     applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: resolveEvent });
     if (!silent) this.deps.streamer.enqueue(resolveEvent);
 
-    // Restart play: kickoff from halfway. Same mutations both ConversionKickEvent
-    // and PenaltyHandler.applyPenaltyChoice used to apply inline.
+    // Restart play. Missed penalty → defending team takes a 22 drop-out from
+    // their own 22 (World Rugby rule). Everything else (successful penalty,
+    // either conversion outcome) → halfway kick-off restart, same as before.
     applyMatchEvent(state, { type: 'POSSESSION_SWAPPED' });
-    applyMatchEvent(state, { type: 'BALL_REPOSITIONED', x: 50, y: 50 });
-    applyMatchEvent(state, { type: 'KICK_AT_GOAL_RESOLVED' });
-    applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.KickOff });
+    if (kag.kind === 'penalty' && !res.success) {
+      applyMatchEvent(state, { type: 'BALL_REPOSITIONED', x: ownTwentyTwoX(state), y: 50 });
+      applyMatchEvent(state, { type: 'KICK_AT_GOAL_RESOLVED' });
+      applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.DropOut22 });
+    } else {
+      applyMatchEvent(state, { type: 'BALL_REPOSITIONED', x: 50, y: 50 });
+      applyMatchEvent(state, { type: 'KICK_AT_GOAL_RESOLVED' });
+      applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.KickOff });
+    }
   }
 }

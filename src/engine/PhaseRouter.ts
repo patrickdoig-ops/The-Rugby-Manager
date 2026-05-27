@@ -5,6 +5,7 @@ import { makeId } from './eventId';
 import type { PhaseContext, PhaseResult } from './events/types';
 import { applyMatchEvent } from './applyMatchEvent';
 import { handleKickOff }        from './events/KickOffEvent';
+import { handleDropOut }        from './events/DropOutEvent';
 import { handlePhasePlay }      from './events/OpenPlayEvent';
 import { handleFirstPhase }     from './events/FirstPhaseEvent';
 import { handleKickReturn }     from './events/KickReturnEvent';
@@ -19,6 +20,7 @@ import { handleConversionKick } from './events/ConversionKickEvent';
 
 const PHASE_HANDLERS: Partial<Record<MatchPhase, (ctx: PhaseContext) => PhaseResult>> = {
   [MatchPhase.KickOff]:        handleKickOff,
+  [MatchPhase.DropOut22]:      handleDropOut,
   [MatchPhase.PhasePlay]:      handlePhasePlay,
   [MatchPhase.FirstPhase]:     handleFirstPhase,
   [MatchPhase.KickReturn]:     handleKickReturn,

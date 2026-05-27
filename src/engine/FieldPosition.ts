@@ -83,6 +83,15 @@ export function inOwnHalf(state: MatchState): boolean {
   return homeAttacksRight ? ballX >= 50 : ballX <= 50;
 }
 
+// X-coordinate of the current possessor's own 22m line. Used by
+// KickAtGoalHandler to place the ball at the defending team's 22 for a
+// drop-out after a missed penalty (post POSSESSION_SWAPPED).
+export function ownTwentyTwoX(state: MatchState): number {
+  const homeAttacksRight = !state.clock.halfTimeDone;
+  if (state.possession === 'home') return homeAttacksRight ? 22 : 78;
+  return homeAttacksRight ? 78 : 22;
+}
+
 // Possession-agnostic variant of inOwn22 — checks whether the ball is in the
 // specified side's own 22, regardless of who currently has the ball. Used by
 // CardHandler to detect "team conceded a penalty while defending in own 22".

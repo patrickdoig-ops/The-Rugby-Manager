@@ -628,12 +628,32 @@ export class MatchCoordinator {
     }
 
     // KickAtGoal micro-phase: entry handler emitted kicker_steps_up and
-    // parked here. Resolve the kick, transition to KickOff. Mirrors the
-    // TMO branch shape.
+    // parked here. Resolve the kick, transition to KickOff (or DropOut22 on
+    // a missed penalty). Mirrors the TMO branch shape.
     if (this.state.phase === MatchPhase.KickAtGoal) {
       this.kickAtGoalHandler.advance();
       this.emitStateChange();
       this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+
+      // Any goal kick (penalty or conversion, success or miss) resolved while
+      // the clock is in the red ends the period — no restart played. World
+      // Rugby rule: time off after the kick.
+      if (this.state.clock.clockInTheRed) {
+        if (!this.state.clock.halfTimeDone) {
+          this.clock.triggerHalfTime(this.state);
+          if (!this.state.engine.isRunning) return;
+          if (!this.silent) {
+            await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+            this.pause();
+            eventBus.emit('engine:autoPaused', { reason: 'half_time' });
+            return;
+          }
+        } else {
+          await this.clock.endMatch(this.state);
+          return;
+        }
+      }
+
       this.scheduleTick(this.nextTickDelay());
       return;
     }
@@ -701,19 +721,20 @@ export class MatchCoordinator {
       this.emitEvent(awardEvent);
     }
 
-    if (this.state.phase === MatchPhase.KickOff) {
+    if (this.state.phase === MatchPhase.KickOff || this.state.phase === MatchPhase.DropOut22) {
       const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
       const kicker = pickKicker(attackTeam, this.state, this.state.possession);
+      const phase = this.state.phase;
       const announceEvent: GameEvent = {
         id: makeId(),
         gameMinute: this.state.clock.gameMinute,
-        phase: MatchPhase.KickOff,
+        phase,
         side: this.state.possession,
         sideName: attackTeam.name,
         primaryPlayer: kicker,
         ballX: this.state.ball.x,
         ballY: this.state.ball.y,
-        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.KickOff, key: 'announce', primary: kicker }] },
+        narration: { steps: [{ kind: 'phase_outcome', phase, key: 'announce', primary: kicker }] },
       };
       applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
       this.emitEvent(announceEvent);

@@ -10,7 +10,8 @@ export function phaseClass(phase: MatchPhase): string {
     case MatchPhase.Lineout:
     case MatchPhase.BoxKick:
     case MatchPhase.TacticalKick:
-    case MatchPhase.KickOff:          return 'phase-kick';
+    case MatchPhase.KickOff:
+    case MatchPhase.DropOut22:        return 'phase-kick';
     case MatchPhase.HalfTime:
     case MatchPhase.FullTime:         return 'phase-terminal';
     default:                          return '';

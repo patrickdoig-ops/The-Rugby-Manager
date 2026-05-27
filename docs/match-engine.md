@@ -467,6 +467,37 @@ else            → clean_receive
 
 ---
 
+## 22m Drop-Out
+
+`MatchPhase.DropOut22`, handler `src/engine/events/DropOutEvent.ts`, resolver `src/engine/resolvers/DropOutResolver.ts`. Reached only after a missed penalty kick at goal — `KickAtGoalHandler.advance()` swaps possession to the defending team, repositions the ball to that team's own 22m line via `ownTwentyTwoX(state)`, and transitions to `DropOut22`. World Rugby rule: defending team restarts with a 22 drop-out, not a halfway kick-off.
+
+Mirrors `KickOff` exactly except:
+
+- **No strategy choice.** Drop-outs are a single fixed drop-kick model — no `awaitKickOffStrategy` modal in `MatchCoordinator`.
+- **Kicker stands at own 22**, not halfway. Ball-position math uses `state.ball.x + attackDir(state) * distance` (kick-off uses `50 + ...`).
+- **Receiver pool is the back three + scrum-half** (forwards chase, backs catch the aerial drop-kick).
+- **`poor_kick`** = drop-kick failed to clear the 22m line (distance < `DROP_OUT_VALUES.distance.autoPoorIfUnder` = 22). Scrum to receiving team at the spot of the kick.
+
+Outcome family is identical to kick-off (`KickOffResult` union; `short_kick_retain` is unreachable today because the resolver has no short-kick branch). Commentary lives in `DROP_OUT_22` bank in `src/commentary/banks/en-GB/phases.ts` keyed by the same `PhaseOutcomeKey` values (`announce`, `clean_receive`, `knock_on`, `poor_kick`).
+
+### Outcome summary
+
+| Result | Possession | ballX | Next phase |
+|---|---|---|---|
+| `poor_kick` | flip to receiving team | unchanged (kicker's 22) | Scrum |
+| `knock_on` | stays with kicking team | landing position | Scrum |
+| `clean_receive` | flip to receiving team | landing position | KickReturn |
+
+### Stat increments
+
+| Outcome | Player | Stat |
+|---|---|---|
+| every drop-out | kicker | `kicksFromHand++` |
+
+Tuning constants: `DROP_OUT_VALUES` in `src/engine/balance/dropOut.ts`.
+
+---
+
 ## Carry Phases (PhasePlay / FirstPhase / KickReturn)
 
 Three phases share a common evasion/collision resolver but have distinct player selection, play-structure, and preliminary steps. Each is a separate handler in its own file, routing to the matching `MatchPhase` enum for commentary.
@@ -1279,7 +1310,7 @@ success        = score ≥ 120
 Both lateral angle (`ballY`) and distance from the try line (`ballX`) contribute to difficulty. A central kick close to the posts has `distFromPosts ≈ 0`; a wide kick from distance can push `distFromPosts` to 30+, adding ~9 points of penalty.
 
 On success: +3 points, possession flips, ballX resets to 50, → KickOff.
-On miss: no score, possession flips, ballX resets to 50, → KickOff.
+On miss: no score, possession flips to defending team, ballX resets to **defending team's own 22m line**, → **DropOut22** (World Rugby rule — defending team restarts with a 22 drop-out, not a halfway kick-off).
 
 Stat increments: `kicker.kicksAtGoal++`; on success `kicksMade++`; on miss `kicksMissed++`.
 
@@ -1636,6 +1667,8 @@ The period ends only when the ball goes dead. `shouldEndPeriod` returns `true` o
 | `state.phase === KickOff && prevPhase === Penalty` | Penalty goal kick attempt (success or miss) |
 
 **Penalty kick-to-touch exception:** When the home team chooses `kick_to_touch` on a penalty during the red, `state.clock.penaltyKickToTouchLineout` is set to `true`. `shouldEndPeriod` detects this, clears the flag, and returns `false` — the subsequent lineout does not end the period. This allows the attacking team to take the lineout and keep playing.
+
+**KickAtGoal short-circuit:** `MatchCoordinator.tickBody` checks `state.clock.clockInTheRed` immediately after `kickAtGoalHandler.advance()` runs and ends the period there — bypassing `shouldEndPeriod` entirely. World Rugby rule: any goal kick (conversion or penalty, success or miss) resolved while the clock is in the red ends the period without a restart kick-off (or drop-out, for a missed penalty). The handler still transitions phase to `KickOff` / `DropOut22` first, but `triggerHalfTime` / `endMatch` immediately overrides it.
 
 ### Triggering half-time / full-time
 

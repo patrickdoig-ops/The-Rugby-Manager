@@ -12,6 +12,7 @@
 
 export * from './scoring';
 export * from './kicking';
+export * from './dropOut';
 export * from './kickDecision';
 export * from './openPlay';
 export * from './offload';

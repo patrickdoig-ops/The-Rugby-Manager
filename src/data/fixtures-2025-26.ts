@@ -146,3 +146,54 @@ export const PREMIERSHIP_2025_26: SeasonSchedule = {
     { round: 18, date: '2026-06-06', homeId: 'sale',        awayId: 'bristol'     },
   ],
 };
+
+// Module-load assertion: the static fixture list must be a complete
+// double round-robin for 10 clubs (90 fixtures = 18 rounds × 5 fixtures;
+// each pair plays each other twice — once at home, once away). A manual
+// edit that drops, duplicates, or mis-rounds a fixture trips this at
+// import time rather than silently breaking the season.
+(function assertScheduleShape(): void {
+  const fixtures = PREMIERSHIP_2025_26.fixtures;
+  if (fixtures.length !== 90) {
+    throw new Error(`PREMIERSHIP_2025_26: expected 90 fixtures, got ${fixtures.length}`);
+  }
+  const perRound = new Map<number, number>();
+  const pairCounts = new Map<string, number>();
+  const teams = new Set<string>();
+  for (const f of fixtures) {
+    perRound.set(f.round, (perRound.get(f.round) ?? 0) + 1);
+    if (f.homeId === f.awayId) {
+      throw new Error(`PREMIERSHIP_2025_26: self-fixture ${f.homeId} vs ${f.awayId} round=${f.round}`);
+    }
+    const key = `${f.homeId}|${f.awayId}`;
+    pairCounts.set(key, (pairCounts.get(key) ?? 0) + 1);
+    teams.add(f.homeId);
+    teams.add(f.awayId);
+  }
+  if (teams.size !== 10) {
+    throw new Error(`PREMIERSHIP_2025_26: expected 10 teams, got ${teams.size}`);
+  }
+  for (const [round, count] of perRound) {
+    if (count !== 5) {
+      throw new Error(`PREMIERSHIP_2025_26: round ${round} has ${count} fixtures (expected 5)`);
+    }
+  }
+  // Each ordered (home, away) pair appears exactly once across the season.
+  for (const [pair, count] of pairCounts) {
+    if (count !== 1) {
+      throw new Error(`PREMIERSHIP_2025_26: ordered pair ${pair} appears ${count} times`);
+    }
+  }
+  // And every unordered pair appears twice (home + away leg).
+  const unordered = new Map<string, number>();
+  for (const pair of pairCounts.keys()) {
+    const [a, b] = pair.split('|');
+    const k = a < b ? `${a}|${b}` : `${b}|${a}`;
+    unordered.set(k, (unordered.get(k) ?? 0) + 1);
+  }
+  for (const [pair, count] of unordered) {
+    if (count !== 2) {
+      throw new Error(`PREMIERSHIP_2025_26: unordered pair ${pair} appears ${count} times (expected 2)`);
+    }
+  }
+})();

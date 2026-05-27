@@ -47,7 +47,7 @@ export function resolveBoxKick(
     // Touch-finder attempt. Success scales with kicker accuracy. A
     // botched touch-finder falls through to the standard contestable
     // path (defending team catches uncontested or contests in air).
-    const touchPct = Math.max(20, Math.min(85, scrumHalf.currentStats.kicking - 10));
+    const touchPct = Math.max(V.touchFinderMinPct, Math.min(V.touchFinderMaxPct, scrumHalf.currentStats.kicking + V.touchFinderKickerStatOffset));
     if (rng(1, 100) <= touchPct) {
       return { quality: 'touch_finder', kickScore, distance: V.veryGoodKickDistance, outcome: 'goes_to_touch' };
     }

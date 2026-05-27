@@ -505,7 +505,12 @@ export class MatchCoordinator {
     };
     applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: tossEvent });
     this.emitEvent(tossEvent);
-    this.emitStateChange();
+    // Fire a synchronous stateChange so the UI repaints to the fresh
+    // kickoff state (score 0-0, players in starting positions, empty stats)
+    // BEFORE `#app` is revealed. The streamer-paced flush only happens
+    // during `tick()`; without this direct emit, the DOM would still show
+    // the previous match's final frame until the user pressed Play.
+    if (!this.silent) eventBus.emit('engine:stateChange', { state: this.state });
   }
 
   start(): void {

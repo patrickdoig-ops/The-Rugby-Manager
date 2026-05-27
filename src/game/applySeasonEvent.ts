@@ -49,13 +49,14 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       state.calendar.date = nextRoundDate ?? addDays(state.calendar.date, SEASON_VALUES.weekLengthDays);
       // Prune mid-season FA rejection cooldowns that have aged out:
       // an entry with weekUntilClear ≤ current week is now approachable
-      // again.
-      for (const key of Object.keys(state.career.midseasonRejections)) {
-        const rid = Number(key);
-        if (state.career.midseasonRejections[rid] <= state.calendar.week) {
-          delete state.career.midseasonRejections[rid];
-        }
-      }
+      // again. Rebuild via Object.fromEntries rather than deleting from
+      // the object during iteration — same behaviour, defensive against
+      // a future iteration-style refactor.
+      const week = state.calendar.week;
+      state.career.midseasonRejections = Object.fromEntries(
+        Object.entries(state.career.midseasonRejections)
+          .filter(([, w]) => w > week),
+      );
       return;
     }
     case 'PLAYER_TACTICS_SET': {

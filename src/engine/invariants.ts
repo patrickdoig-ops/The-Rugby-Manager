@@ -9,6 +9,7 @@ import type { MatchState } from '../types/match';
 import type { Player, PlayerStats } from '../types/player';
 import { MatchPhase } from '../types/engine';
 import { isMatchdaySlot } from './Slot';
+import { invariantsEnabled } from '../utils/invariantsMode';
 
 const PHASES = new Set<string>(Object.values(MatchPhase));
 
@@ -40,6 +41,7 @@ function assertPlayer(p: Player, location: string): void {
 }
 
 export function assertInvariants(state: MatchState): void {
+  if (!invariantsEnabled()) return;
   // Score
   if (!(state.score.home >= 0) || !Number.isInteger(state.score.home)) {
     fail('score.home', `${state.score.home}`);

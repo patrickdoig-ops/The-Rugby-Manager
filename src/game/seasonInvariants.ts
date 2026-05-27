@@ -11,6 +11,7 @@
 
 import type { GameState } from '../types/gameState';
 import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
+import { invariantsEnabled } from '../utils/invariantsMode';
 
 const SENIOR_CAP_TOTAL = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
 
@@ -27,6 +28,7 @@ function assertNonNegInt(name: string, v: number): void {
 }
 
 export function assertSeasonInvariants(state: GameState): void {
+  if (!invariantsEnabled()) return;
   const career = state.career;
 
   // ── Roster + rosterId integrity ──────────────────────────────────────

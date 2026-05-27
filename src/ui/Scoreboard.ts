@@ -3,8 +3,15 @@ import { CLOCK_VALUES } from '../engine/balance';
 import { teamTextColor } from '../utils/teamColor';
 import { phaseClass } from '../utils/phaseColor';
 import type { MatchState } from '../types/match';
-import type { PossessionSide } from '../types/engine';
+import { MatchPhase, type PossessionSide } from '../types/engine';
 import { shortName } from '../utils/playerName';
+
+// Short labels for phases whose underscore-replaced names overflow the
+// scoreboard pill at narrow viewports. Falls back to a plain
+// `state.phase.replace(/_/g, ' ')` for every other phase.
+const PHASE_LABEL: Partial<Record<MatchPhase, string>> = {
+  [MatchPhase.ConversionKick]: 'CONVERSION',
+};
 
 function applyCrests(
   homeCrest: HTMLElement, awayCrest: HTMLElement,
@@ -108,7 +115,7 @@ export function initScoreboard(): void {
       clockDisplay.textContent = `${Math.floor(state.clock.gameMinute)}′`;
       clockDisplay.style.color = '';
     }
-    phaseDisplay.textContent = state.phase.replace(/_/g, ' ');
+    phaseDisplay.textContent = PHASE_LABEL[state.phase] ?? state.phase.replace(/_/g, ' ');
     phaseDisplay.className   = `phase-badge ${phaseClass(state.phase)}`;
     renderCardStack(homeCards, state, 'home');
     renderCardStack(awayCards, state, 'away');

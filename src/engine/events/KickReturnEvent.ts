@@ -140,6 +140,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
     const y = tryLandingY(attackTeam.tactics.attackingStyle);
     events.push({ type: 'BALL_REPOSITIONED', y });
     steps.push({ kind: 'announcement', key: `try_location_${tryLocationBand(y)}` });
+    steps.push({ kind: 'announcement', key: 'try_referee_signal' });
   } else if (res.outcome === 'line_break') {
     nextPhase = MatchPhase.Breakdown;
     steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'line_break', primary: carrier, secondary: defender });

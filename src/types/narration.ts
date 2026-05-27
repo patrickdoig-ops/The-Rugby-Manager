@@ -72,6 +72,7 @@ export type TacticNoteCause =
 export type CardAnnouncementKey =
   | 'tmo_intervenes'   | 'tmo_reviewing'
   | 'tmo_decision_no_card' | 'tmo_decision_yellow' | 'tmo_decision_red_20'
+  | 'card_ref_summons'
   | 'card_yellow' | 'card_red_20' | 'card_red_full'
   | 'sin_bin_returned'
   | 'red_20_replacement_done' | 'red_20_no_replacement'
@@ -90,6 +91,7 @@ export type AnnouncementKey =
   | 'set_piece_award'
   | 'try_location_central' | 'try_location_close'
   | 'try_location_wide'    | 'try_location_corner'
+  | 'try_referee_signal'   | 'try_aftermath'
   | 'scrum_reset_cap'
   | CardAnnouncementKey;
 

@@ -1313,6 +1313,8 @@ The card system layers on top of the penalty seam. Whenever `PENALTY_AWARDED` fi
 
 2. **Per-offence TMO.** If the team-22 rule didn't already card, CardHandler looks up `OFFENCE_SPEC[last.offence].tmoTriggerPct` and rolls `rng(1,100) <= triggerPct`. Two offences carry a non-zero trigger today: `high_tackle` (90 %) and `dangerous_cleanout` (90 %). On a hit, a single `rng(1,100)` is bucketed by the global `TMO.outcomeNoCardPct / outcomeYellowPct / outcomeRed20Pct` weights (25/65/10) to pre-roll the outcome. In live mode this enters `MatchPhase.TmoReview` for 3 narrative ticks; in silent mode the narrative is collapsed and the card is applied inline — RNG order is identical so determinism is preserved. **Adding a TMO-eligible offence is a one-line edit** to the `OFFENCE_SPEC` registry — no `CardHandler` change.
 
+**Direct cards** (team-22 rule path, maul-collapse path) issue a two-step narration event: a `card_ref_summons` announcement prepended before the `card_yellow` / `card_red_20` / `card_red_full` line, so `CommentaryFeed` stagger-reveals "ref calls player over → card shown" as two paced beats. TMO-triggered cards are deliberately left as single-step — the 3-tick TMO review (`tmo_intervenes` → `tmo_reviewing` → `tmo_decision_*`) is itself the build-up. `buildAnnounce` accepts an optional `prependKey` arg; `issueCard` passes `summons: true` from the team-22 / maul-collapse paths and `false` from the TMO paths.
+
 ### TMO review tick anatomy
 
 | Tick | What happens | Clock |
@@ -1553,7 +1555,7 @@ stats.tries[possession]++
 
 ### Score-context commentary
 
-`TryScoredEvent` emits a single `phase_outcome` narration step keyed off the pre/post-try lead so every try lands a second beat after the carry's "TRY!" line. `try_extend_lead` when the scoring side was already ahead; `try_lead` when the try moves them from level-or-behind into the lead; `try_level` when it closes the gap to zero; `try_trail` when it cuts the deficit but the scoring side is still behind. Templates live in `src/commentary/banks/en-GB/phases.ts` under the `TryScored` block.
+`TryScoredEvent` emits two narration steps so every try produces a paced reveal: (1) a `phase_outcome` step keyed off the pre/post-try lead (`try_lead` / `try_extend_lead` / `try_level` / `try_trail`), then (2) an `announcement` step with key `try_aftermath` for the crowd / momentum reaction. The carry phases (`OpenPlayEvent`, `FirstPhaseEvent`, `KickReturnEvent`, `MaulEvent`) also append a `try_referee_signal` announcement after the try-location step on their try branches — so a full try unfolds across two events as `[line_break_try | dominant_carry_try | maul_try, try_location_*, try_referee_signal]` then `[try_*, try_aftermath]`. `CommentaryFeed` detects these as hero events and stagger-reveals the steps ~350ms apart with team-colour hero treatment on the `#latest-commentary` strap. Templates live in `src/commentary/banks/en-GB/phases.ts` (`TryScored` block) and `announcements.ts` (`try_referee_signal`, `try_aftermath` arrays).
 
 ---
 

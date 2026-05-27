@@ -64,6 +64,22 @@ const TRY_LOCATION_CORNER: readonly string[] = [
   'In the corner — the kicker will need every bit of range and angle.',
 ];
 
+const TRY_REFEREE_SIGNAL: readonly string[] = [
+  "Arm straight up from the referee — try given.",
+  'No question about it — the official signals the try.',
+  "Referee's call is clear — that's a try.",
+  'Confirmed by the referee — try awarded.',
+  'Up goes the arm — the try stands.',
+];
+
+const TRY_AFTERMATH: readonly string[] = [
+  'The home support are on their feet.',
+  'A huge roar around the ground.',
+  '{side} fans are in raptures.',
+  'Heads in hands on the opposition bench.',
+  'You can feel the momentum shifting around the stadium.',
+];
+
 const TMO_INTERVENES: readonly string[] = [
   'The TMO is in the referee\'s ear — they want to take a closer look at that tackle.',
   'TMO check! The official upstairs has flagged a concern with the tackle technique.',
@@ -94,6 +110,14 @@ const TMO_DECISION_RED_20: readonly string[] = [
   '"Head contact, no mitigation — 20-minute red." A serious blow for the team.',
   'Twenty-minute red! Referee says no mitigation. The team can replace after twenty.',
   'It\'s a 20-minute red card — off the field, replacement available after twenty.',
+];
+
+const CARD_REF_SUMMONS: readonly string[] = [
+  'The referee calls {primary} over.',
+  '{primary} is brought across — the referee has seen enough.',
+  'Word with the captain first — {primary} is summoned.',
+  '{primary} walks over knowing what is coming.',
+  'The referee reaches for the pocket — {primary} is called in.',
 ];
 
 const CARD_YELLOW: readonly string[] = [
@@ -193,6 +217,10 @@ export function getAnnouncementTemplate(
       return pickRandom(TRY_LOCATION_WIDE);
     case 'try_location_corner':
       return pickRandom(TRY_LOCATION_CORNER);
+    case 'try_referee_signal':
+      return pickRandom(TRY_REFEREE_SIGNAL);
+    case 'try_aftermath':
+      return pickRandom(TRY_AFTERMATH);
     case 'tmo_intervenes':
       return pickRandom(TMO_INTERVENES);
     case 'tmo_reviewing':
@@ -203,6 +231,8 @@ export function getAnnouncementTemplate(
       return pickRandom(TMO_DECISION_YELLOW);
     case 'tmo_decision_red_20':
       return pickRandom(TMO_DECISION_RED_20);
+    case 'card_ref_summons':
+      return pickRandom(CARD_REF_SUMMONS);
     case 'card_yellow':
       return pickRandom(CARD_YELLOW);
     case 'card_red_20': {

@@ -594,6 +594,26 @@ html, body {
   overflow: hidden;
 }
 
+/* Hero treatment — applied to entries from key-moment events (try, card, TMO,
+   full-time). Only the strap is styled; feed log entries stay routine so the
+   strap is the single signal that something dramatic just happened. */
+#latest-commentary .commentary-entry--hero {
+  border-bottom: 2px solid var(--possession-color, var(--rm-pitch));
+  box-shadow: 0 0 16px color-mix(in oklch,
+    var(--possession-color, var(--rm-pitch)) 35%, transparent);
+  animation: heroPop 250ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+#latest-commentary .commentary-entry--hero .event-text {
+  font-size: 1.3em;
+  font-weight: 600;
+}
+
+@keyframes heroPop {
+  0%   { transform: scale(0.96); opacity: 0; }
+  60%  { transform: scale(1.02); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 #panel-commentary,
 #panel-stats,
 #panel-players {

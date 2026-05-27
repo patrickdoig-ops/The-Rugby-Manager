@@ -2,9 +2,10 @@ import { eventBus } from '../utils/eventBus';
 import { MatchPhase } from '../types/engine';
 import type { GameEvent } from '../types/match';
 import type { Player } from '../types/player';
-import { renderNarration } from '../commentary/CommentaryRenderer';
+import { renderNarrationSteps } from '../commentary/CommentaryRenderer';
 import { teamTextColor } from '../utils/teamColor';
 import { playCue } from './SoundManager';
+import { isHeroEvent } from './keyMoment';
 
 const PHASE_CLASS: Partial<Record<MatchPhase, string>> = {
   [MatchPhase.TryScored]:     'event-try',
@@ -34,7 +35,9 @@ const TAG_MAP: Partial<Record<MatchPhase, string>> = {
   [MatchPhase.Substitution]:  'SUB',
 };
 
-const MAX_ENTRIES = 30;
+const MAX_ENTRIES       = 30;
+const STEP_STAGGER_MS   = 350;  // gap between staggered narration steps within a key-moment event
+const HERO_DWELL_MS     = 600;  // window after a hero entry where the strap holds against routine entries
 
 function colorizePlayer(text: string, player: Player, color: string): string {
   const surname = player.lastName;
@@ -126,14 +129,56 @@ export function initCommentaryFeed(): void {
     return entry;
   }
 
+  type QueuedStep = { event: GameEvent; text: string; hero: boolean };
+  let stepQueue: QueuedStep[] = [];
+  let stepDrainTimer: ReturnType<typeof setTimeout> | null = null;
+  let lastHeroAt = 0;
+
+  function pushEntry(event: GameEvent, text: string, hero: boolean): void {
+    const entry = buildEntry(event, text);
+    if (hero) entry.classList.add('commentary-entry--hero');
+    feed.insertBefore(entry, feed.firstChild);
+    while (feed.children.length > MAX_ENTRIES && feed.lastChild) {
+      feed.removeChild(feed.lastChild);
+    }
+    const now = Date.now();
+    const heroProtected = now - lastHeroAt < HERO_DWELL_MS;
+    if (hero || !heroProtected) {
+      // Surface the possession-side team colour to CSS so the strap underline
+      // and glow render in team colour. The class possession-${side} on the
+      // entry itself is the same signal but CSS variables read cleaner here.
+      const color = event.side === 'home' ? homeTeamColor : awayTeamColor;
+      if (color) latest.style.setProperty('--possession-color', color);
+      latest.replaceChildren(entry.cloneNode(true));
+      if (hero) lastHeroAt = now;
+    }
+  }
+
+  function drainNext(): void {
+    stepDrainTimer = null;
+    const next = stepQueue.shift();
+    if (!next) return;
+    pushEntry(next.event, next.text, next.hero);
+    if (stepQueue.length > 0) {
+      stepDrainTimer = setTimeout(drainNext, STEP_STAGGER_MS);
+    }
+  }
+
   eventBus.on('engine:initialized', () => {
     feed.innerHTML = '';
     latest.innerHTML = '';
+    latest.style.removeProperty('--possession-color');
     allPlayersWithColor = [];
     homeTeamName = '';
     awayTeamName = '';
     homeTeamColor = '';
     awayTeamColor = '';
+    stepQueue = [];
+    if (stepDrainTimer !== null) {
+      clearTimeout(stepDrainTimer);
+      stepDrainTimer = null;
+    }
+    lastHeroAt = 0;
     unsubTeams?.();
     armTeamCache();
   });
@@ -141,16 +186,22 @@ export function initCommentaryFeed(): void {
   eventBus.on('engine:event', ({ event }) => {
     if (event.phase === MatchPhase.TryScored) playCue('crowdRoar');
 
-    const text = renderNarration(event);
-    if (!text.trim()) return;
+    const steps = renderNarrationSteps(event);
+    if (steps.length === 0) return;
 
-    const entry = buildEntry(event, text);
-    feed.insertBefore(entry, feed.firstChild);
+    const hero = isHeroEvent(event);
+    const shouldStagger = hero && steps.length > 1;
 
-    while (feed.children.length > MAX_ENTRIES && feed.lastChild) {
-      feed.removeChild(feed.lastChild);
+    if (!shouldStagger) {
+      const text = steps.join(' ');
+      if (!text.trim()) return;
+      pushEntry(event, text, hero);
+      return;
     }
 
-    latest.replaceChildren(entry.cloneNode(true));
+    for (const text of steps) {
+      stepQueue.push({ event, text, hero: true });
+    }
+    if (stepDrainTimer === null) drainNext();
   });
 }

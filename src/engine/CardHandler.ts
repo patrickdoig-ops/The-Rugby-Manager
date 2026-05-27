@@ -1,7 +1,7 @@
 import type { MatchState, GameEvent } from '../types/match';
 import type { Player } from '../types/player';
 import type { PossessionSide } from '../types/engine';
-import type { CardAnnouncementKey } from '../types/narration';
+import type { CardAnnouncementKey, NarrationStep } from '../types/narration';
 import { MatchPhase } from '../types/engine';
 import { rng } from '../utils/rng';
 import { makeId } from './eventId';
@@ -49,7 +49,7 @@ export class CardHandler {
       // yellow"). A 5th/6th/7th in the same match doesn't card again — the
       // first yellow already cost the team a player, that's the punishment.
       if (count === TEAM_22.cardAt) {
-        this.issueCard(last.offender, last.offendingSide, 'yellow');
+        this.issueCard(last.offender, last.offendingSide, 'yellow', true);
         return 'team22_card';
       }
       if (count === TEAM_22.warnAt && !state.cards.teamWarned22[last.offendingSide]) {
@@ -69,7 +69,7 @@ export class CardHandler {
     if (last.offence === 'maul_collapse') {
       const pct = pickMaulCollapseYellowPct(metresFromOppositionTryLine(state));
       if (rng(1, 100) <= pct) {
-        this.issueCard(last.offender, last.offendingSide, 'yellow');
+        this.issueCard(last.offender, last.offendingSide, 'yellow', true);
       }
       // Either way, return 'none' — the maul-collapse path doesn't enter
       // TMO review, and the penalty modal still fires next.
@@ -93,7 +93,7 @@ export class CardHandler {
         const decisionKey = `tmo_decision_${outcome}` as const;
         this.emitAnnouncement(decisionKey, last.offendingSide, last.offender);
         if (outcome !== 'no_card') {
-          this.issueCard(last.offender, last.offendingSide, outcome);
+          this.issueCard(last.offender, last.offendingSide, outcome, false);
         }
         return 'none';
       }
@@ -134,7 +134,7 @@ export class CardHandler {
     }
     // step 3 — apply card + clear + transition back to Penalty
     if (review.outcome !== 'no_card') {
-      this.issueCard(review.offender, review.offendingSide, review.outcome);
+      this.issueCard(review.offender, review.offendingSide, review.outcome, false);
     }
     applyMatchEvent(state, { type: 'TMO_REVIEW_RESOLVED' });
     applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.Penalty });
@@ -163,16 +163,21 @@ export class CardHandler {
     return expiredRed20;
   }
 
-  private issueCard(player: Player, side: PossessionSide, kind: 'yellow' | 'red_20' | 'red_full'): void {
+  // `summons` is true on the direct-card paths (team-22 rule, maul collapse) —
+  // prepends a "ref calls the player over" beat so the CommentaryFeed's step
+  // stagger reveals "summons → card_shown" as two paced lines. False on the
+  // TMO-triggered paths because the 3-tick tmo_intervenes/reviewing/decision
+  // sequence is itself the build-up; another summons beat would over-egg it.
+  private issueCard(player: Player, side: PossessionSide, kind: 'yellow' | 'red_20' | 'red_full', summons: boolean): void {
     const { state } = this.deps;
     applyMatchEvent(state, { type: 'CARD_ISSUED', player, side, kind });
     const key = kind === 'yellow' ? 'card_yellow'
               : kind === 'red_20' ? 'card_red_20'
               :                     'card_red_full';
-    this.emitAnnouncement(key, side, player);
+    this.emitAnnouncement(key, side, player, summons ? 'card_ref_summons' : undefined);
   }
 
-  private emitAnnouncement(key: Parameters<typeof buildAnnounce>[0]['key'], side: PossessionSide, primary?: Player): void {
+  private emitAnnouncement(key: Parameters<typeof buildAnnounce>[0]['key'], side: PossessionSide, primary?: Player, prependKey?: CardAnnouncementKey): void {
     const { state, silent } = this.deps;
     const teamName = (side === 'home' ? state.homeTeam : state.awayTeam).name;
     const ev = buildAnnounce({
@@ -181,6 +186,7 @@ export class CardHandler {
       side,
       primary,
       teamName,
+      prependKey,
     });
     applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: ev });
     if (!silent) this.deps.streamer.enqueue(ev);
@@ -214,10 +220,19 @@ interface AnnounceArgs {
   primary?: Player;
   secondary?: Player;
   teamName: string;
+  // Optional prepended announcement step. Used by the direct-card path to land
+  // a "ref calls the player over" beat before the card-shown line — the
+  // CommentaryFeed step-stagger queue then reveals them ~350ms apart.
+  prependKey?: CardAnnouncementKey;
 }
 
 export function buildAnnounce(args: AnnounceArgs): GameEvent {
-  const { key, state, side, primary, secondary, teamName } = args;
+  const { key, state, side, primary, secondary, teamName, prependKey } = args;
+  const steps: NarrationStep[] = [];
+  if (prependKey) {
+    steps.push({ kind: 'announcement', key: prependKey, primary, secondary, params: { teamName } });
+  }
+  steps.push({ kind: 'announcement', key, primary, secondary, params: { teamName } });
   return {
     id: makeId(),
     gameMinute: state.clock.gameMinute,
@@ -228,8 +243,6 @@ export function buildAnnounce(args: AnnounceArgs): GameEvent {
     secondaryPlayer: secondary,
     ballX: state.ball.x,
     ballY: state.ball.y,
-    narration: {
-      steps: [{ kind: 'announcement', key, primary, secondary, params: { teamName } }],
-    },
+    narration: { steps },
   };
 }

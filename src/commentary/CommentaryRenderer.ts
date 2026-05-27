@@ -57,12 +57,12 @@ function renderStep(step: NarrationStep, event: RenderableEvent, used: Set<strin
   return interpolate(tpl, event.sideName, event.defSideName, step.primary, step.secondary);
 }
 
-export function renderNarration(event: RenderableEvent): string {
+export function renderNarrationSteps(event: RenderableEvent): string[] {
   const parts: string[] = [];
   const used = new Set<string>();
   for (const step of event.narration.steps) {
     const s = renderStep(step, event, used);
     if (s) parts.push(s);
   }
-  return parts.join(' ');
+  return parts;
 }

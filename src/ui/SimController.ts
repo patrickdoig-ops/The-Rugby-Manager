@@ -1,30 +1,16 @@
 import type { MatchCoordinator } from '../engine/MatchCoordinator';
-import type { GameEvent } from '../types/match';
-import { MatchPhase } from '../types/engine';
 import { eventBus } from '../utils/eventBus';
 import {
   loadTickDelayMs, saveTickDelayMs,
   loadAutoPauseEnabled, saveAutoPauseEnabled,
   loadAutoSlowEnabled,  saveAutoSlowEnabled,
 } from './uiPrefs';
+import { isAutoPauseEvent } from './keyMoment';
 
 let unsubs: Array<() => void> = [];
 
-// Key-moment classifier — events that warrant a forced beat in the broadcast.
-const KEY_PHASES = new Set<MatchPhase>([MatchPhase.TryScored, MatchPhase.FullTime]);
-const KEY_ANNOUNCEMENT_KEYS = new Set<string>([
-  'card_yellow', 'card_red_20', 'card_red_full', 'tmo_intervenes',
-]);
 const SLOW_MS          = 2500;  // 1× preset
 const SLOW_DURATION_MS = 5000;  // ~2 ticks at 1×; plenty for a commentary beat
-
-function isKeyMoment(event: GameEvent): boolean {
-  if (KEY_PHASES.has(event.phase)) return true;
-  for (const step of event.narration.steps) {
-    if (step.kind === 'announcement' && KEY_ANNOUNCEMENT_KEYS.has(step.key)) return true;
-  }
-  return false;
-}
 
 export function initSimController(engine: MatchCoordinator): void {
   // Re-init is per-match; clean up the previous match's eventBus subscriptions
@@ -215,7 +201,7 @@ export function initSimController(engine: MatchCoordinator): void {
 
   unsubs.push(eventBus.on('engine:event', ({ event }) => {
     if (!engine.getState().engine.isRunning) return;
-    if (!isKeyMoment(event)) return;
+    if (!isAutoPauseEvent(event)) return;
     if (chkPause.checked) {
       engine.pause();
       btnPlay.disabled  = false;

@@ -62,7 +62,12 @@ export function handleMaul({ state, attackTeam, defendTeam }: PhaseContext): Pha
     if (tryScored) {
       return {
         nextPhase: MatchPhase.TryScored,
-        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Maul, key: 'maul_try', primary: attackHooker }] },
+        narration: {
+          steps: [
+            { kind: 'phase_outcome', phase: MatchPhase.Maul, key: 'maul_try', primary: attackHooker },
+            { kind: 'announcement', key: 'try_referee_signal' },
+          ],
+        },
         primaryPlayer: attackHooker,
         secondaryPlayer: defendHooker,
         events,

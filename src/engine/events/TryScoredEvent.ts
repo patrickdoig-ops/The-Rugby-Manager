@@ -27,6 +27,7 @@ export function handleTryScored({ state, attackTeam, randomPlayer }: PhaseContex
     narration: {
       steps: [
         { kind: 'phase_outcome', phase: MatchPhase.TryScored, key, primary: scorer },
+        { kind: 'announcement', key: 'try_aftermath' },
       ],
     },
     primaryPlayer: scorer,

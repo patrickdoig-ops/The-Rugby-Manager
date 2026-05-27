@@ -1,6 +1,6 @@
 import type { MatchState, GameEvent } from '../types/match';
 import { MatchPhase, type PenaltyChoice, type KickOffStrategy } from '../types/engine';
-import { resolveGoalKick, resolvePenaltyKickToTouch } from './resolvers/KickingResolver';
+import { resolvePenaltyKickToTouch } from './resolvers/KickingResolver';
 import { eventBus } from '../utils/eventBus';
 import { clamp } from '../utils/math';
 import { makeId } from './eventId';
@@ -136,18 +136,19 @@ export class PenaltyHandler {
     const kicker = pickKicker(attackTeam, state, state.possession);
 
     if (choice === 'kick_for_goal') {
+      // Enter the KickAtGoal micro-phase: emit the kicker_steps_up beat and
+      // defer the actual kick resolution to KickAtGoalHandler.advance() on
+      // the next tick. MatchCoordinator.nextTickDelay() applies the shorter
+      // inter-tick gap so the build-up doesn't burn a full sim tick.
       const tryLine = !state.clock.halfTimeDone
         ? (state.possession === 'home' ? 100 : 0)
         : (state.possession === 'home' ? 0 : 100);
       const distFromPosts = Math.abs(state.ball.y - 50) * PENALTY_VALUES.goalKickDistanceFromPostsWeight
                           + Math.abs(state.ball.x - tryLine) * PENALTY_VALUES.goalKickTryLineOffsetWeight;
-      const res = resolveGoalKick(kicker, distFromPosts);
 
-      const side = state.possession;
-      applyMatchEvent(state, { type: 'PENALTY_GOAL_KICKED', kicker, side, success: res.success });
-      applyMatchEvent(state, { type: 'RATINGS_RECALCULATED' });
+      applyMatchEvent(state, { type: 'KICK_AT_GOAL_STARTED', kicker, kind: 'penalty', distFromPosts });
 
-      const penEvent: GameEvent = {
+      const entryEvent: GameEvent = {
         id: makeId(),
         gameMinute: state.clock.gameMinute,
         phase: MatchPhase.Penalty,
@@ -159,21 +160,13 @@ export class PenaltyHandler {
         narration: {
           steps: [
             { kind: 'announcement', key: 'kicker_steps_up', primary: kicker },
-            {
-              kind: 'phase_outcome',
-              phase: MatchPhase.Penalty,
-              key: res.success ? 'kick_for_goal' : 'miss',
-              primary: kicker,
-            },
           ],
         },
       };
-      applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
-      this.emit('engine:event', { event: penEvent });
+      applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: entryEvent });
+      this.emit('engine:event', { event: entryEvent });
 
-      applyMatchEvent(state, { type: 'POSSESSION_SWAPPED' });
-      applyMatchEvent(state, { type: 'BALL_REPOSITIONED', x: 50, y: 50 });
-      applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.KickOff });
+      applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.KickAtGoal });
 
     } else if (choice === 'kick_to_touch') {
       // The kick_to_touch path no longer teleports a flat 20m forward.

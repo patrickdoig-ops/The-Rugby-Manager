@@ -12,6 +12,7 @@ export enum MatchPhase {
   Penalty        = 'PENALTY',
   TmoReview      = 'TMO_REVIEW',
   ConversionKick = 'CONVERSION_KICK',
+  KickAtGoal     = 'KICK_AT_GOAL',
   TryScored      = 'TRY_SCORED',
   HalfTime       = 'HALF_TIME',
   FullTime       = 'FULL_TIME',

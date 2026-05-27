@@ -31,6 +31,7 @@ import { colorsClash } from '../utils/teamColor';
 import { rngForm, setMatchSeed, rng, generateSeed } from '../utils/rng';
 import { PenaltyHandler } from './PenaltyHandler';
 import { CardHandler, buildAnnounce } from './CardHandler';
+import { KickAtGoalHandler } from './KickAtGoalHandler';
 import { ClockController } from './ClockController';
 import { FatigueAccumulator } from './FatigueAccumulator';
 import { CommentaryStreamer } from './CommentaryStreamer';
@@ -222,6 +223,7 @@ export class MatchCoordinator {
   private humanSide: 'home' | 'away';
   private penaltyHandler: PenaltyHandler;
   private cardHandler: CardHandler;
+  private kickAtGoalHandler: KickAtGoalHandler;
   private clock: ClockController;
   private fatigue: FatigueAccumulator;
   private director: AITacticalDirector;
@@ -270,6 +272,12 @@ export class MatchCoordinator {
     this.cardHandler = new CardHandler({
       state: this.state,
       humanSide: this.humanSide,
+      silent: this.silent,
+      streamer: this.streamer,
+    });
+
+    this.kickAtGoalHandler = new KickAtGoalHandler({
+      state: this.state,
       silent: this.silent,
       streamer: this.streamer,
     });
@@ -610,7 +618,18 @@ export class MatchCoordinator {
         if (!this.state.engine.isRunning) return;
       }
       this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-      this.scheduleTick(this.state.engine.tickDelayMs);
+      this.scheduleTick(this.nextTickDelay());
+      return;
+    }
+
+    // KickAtGoal micro-phase: entry handler emitted kicker_steps_up and
+    // parked here. Resolve the kick, transition to KickOff. Mirrors the
+    // TMO branch shape.
+    if (this.state.phase === MatchPhase.KickAtGoal) {
+      this.kickAtGoalHandler.advance();
+      this.emitStateChange();
+      this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+      this.scheduleTick(this.nextTickDelay());
       return;
     }
 
@@ -745,7 +764,7 @@ export class MatchCoordinator {
       const verdict = this.cardHandler.evaluateNewPenalty();
       if (verdict === 'tmo') {
         this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-        this.scheduleTick(this.state.engine.tickDelayMs);
+        this.scheduleTick(this.nextTickDelay());
         return;
       }
       // 'team22_card' issued an inline yellow before this point; 'none'
@@ -794,7 +813,25 @@ export class MatchCoordinator {
     // tickDelayMs, which is the same interval scheduleTick waits before
     // the next tick. Drain completes naturally before the next tick fires.
     this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-    this.scheduleTick(this.state.engine.tickDelayMs);
+    this.scheduleTick(this.nextTickDelay());
+  }
+
+  // Custom inter-tick delay for the KickAtGoal micro-phase: when the previous
+  // tick parked the engine in KickAtGoal (kicker_steps_up entry beat lands,
+  // resolve is deferred to the next tick), use a shorter delay so the build-up
+  // doesn't consume a full sim tick. Scales with the user's chosen tickDelayMs
+  // so faster sim speeds still feel cohesive; clamp keeps a visible split at
+  // 4× and prevents a 3-second drag at ½×. Constants live inline (no balance
+  // file needed — pure UI rhythm).
+  private nextTickDelay(): number {
+    const tickDelayMs = this.state.engine.tickDelayMs;
+    if (this.state.phase === MatchPhase.KickAtGoal) {
+      const KICK_BUILD_UP_FRACTION = 0.6;
+      const KICK_BUILD_UP_MIN_MS   = 300;
+      const KICK_BUILD_UP_MAX_MS   = 1200;
+      return Math.max(KICK_BUILD_UP_MIN_MS, Math.min(KICK_BUILD_UP_MAX_MS, tickDelayMs * KICK_BUILD_UP_FRACTION));
+    }
+    return tickDelayMs;
   }
 
 }

@@ -32,6 +32,10 @@ const HERO_PHASE_OUTCOME_KEYS = new Set<string>([
 // reads as the dramatic resolution.
 const HERO_ANNOUNCEMENT_KEYS = new Set<string>([
   'tmo_decision_yellow', 'tmo_decision_red_20', 'tmo_decision_no_card',
+  // KickAtGoal micro-phase: the entry tick is a single kicker_steps_up step,
+  // so it can't qualify via "2+ steps" — the announcement key gates hero on
+  // its own. The resolve tick is hero via HERO_PHASE_OUTCOME_KEYS already.
+  'kicker_steps_up',
 ]);
 
 export function isAutoPauseEvent(event: GameEvent): boolean {

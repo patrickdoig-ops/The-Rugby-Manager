@@ -1571,9 +1571,20 @@ kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0]
 
 Always the fly-half.
 
-### Narration
+### Narration and the KickAtGoal micro-phase
 
-`ConversionKickEvent` emits two narration steps: a `kicker_steps_up` announcement step (kicker addresses the ball) followed by the `success` / `miss` `phase_outcome`. `CommentaryFeed`'s hero set treats both `success` and `miss` `phase_outcome` keys as hero entries, so the kick is stagger-revealed as "kicker steps up → kick result" with team-colour hero styling on the strap. The penalty goal-kick branch in `PenaltyHandler.handlePenaltyDecision` uses the same `kicker_steps_up` prepend before the `kick_for_goal` / `miss` outcome.
+Goal kicks (conversions + penalty goal kicks) resolve through a 2-tick micro-phase that mirrors the TMO frozen-clock pattern:
+
+| Tick | Action | Clock |
+|---|---|---|
+| A | Entry handler (`ConversionKickEvent.handleConversionKick` or `PenaltyHandler.applyPenaltyChoice`'s `kick_for_goal` branch) picks the kicker, computes `distFromPosts`, applies `KICK_AT_GOAL_STARTED`, transitions phase to `KickAtGoal`. Emits a single-step `kicker_steps_up` announcement event. **No kick resolution yet.** | Running |
+| B | `MatchCoordinator.tick` sees `phase === KickAtGoal`, calls `KickAtGoalHandler.advance()`. Rolls the goal kick (`resolveGoalKick`), applies `CONVERSION_KICKED` / `PENALTY_GOAL_KICKED`, emits a 2-step `[kicker_compose, success | miss | kick_for_goal]` event that `CommentaryFeed` stagger-reveals (~350 ms apart). Applies `POSSESSION_SWAPPED` + `BALL_REPOSITIONED { x: 50, y: 50 }` + `KICK_AT_GOAL_RESOLVED` + `PHASE_CHANGED` to `KickOff`. | **Frozen** (`ClockController.advanceMinute` returns 0 when `phase === KickAtGoal`) |
+
+The inter-tick delay between A and B is shorter than `tickDelayMs` so the build-up doesn't burn a full sim tick. `MatchCoordinator.nextTickDelay()` returns `clamp(300, 1200, tickDelayMs × 0.6)` when `phase === KickAtGoal`. At 1× (2500 ms tick) the build-up is 1500 ms; at 4× (400 ms tick) it floors at 300 ms; at ½× (5000 ms tick) it caps at 1200 ms. Total kick experience including the 350 ms intra-event stagger: ~1.85 s at 1×, ~0.65 s at 4×.
+
+Hero detection: the entry event is single-step but the `kicker_steps_up` announcement key is in `HERO_ANNOUNCEMENT_KEYS` so the strap entry still glows. The resolve event has `success` / `miss` / `kick_for_goal` in `HERO_PHASE_OUTCOME_KEYS` so both steps stagger-reveal as hero. Neither tick auto-pauses — the micro-phase is the dramatic beat itself.
+
+State lives at `state.kickAtGoal: KickAtGoalState | undefined` (`{ kicker, kind: 'conversion' | 'penalty', distFromPosts }`). `assertInvariants` validates the optional block when present. The same `KickAtGoalHandler.advance()` resolves both conversion and penalty goal kicks, branching on `kind`.
 
 ### Resolution
 

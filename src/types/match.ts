@@ -30,6 +30,12 @@ export interface TmoReviewState {
   offendingSide: PossessionSide;
 }
 
+export interface KickAtGoalState {
+  kicker: Player;
+  kind: 'conversion' | 'penalty';
+  distFromPosts: number;
+}
+
 // Set by the PENALTY_AWARDED reducer; read by PenaltyHandler and CardHandler.
 // `preFlipPossession` is the side that had the ball before this PENALTY_AWARDED
 // flipped possession — used by CardHandler to compute wasDefending.
@@ -144,6 +150,7 @@ export interface MatchState {
   // by TMO_REVIEW_RESOLVED on the 3rd tick. Optional because it's only set
   // mid-review.
   tmoReview?: TmoReviewState;
+  kickAtGoal?: KickAtGoalState;
   // Count of consecutive wheel outcomes in the current scrum sequence.
   // Incremented by the SCRUM_RESOLVED reducer when outcome === 'wheel';
   // reset to 0 on any other scrum outcome. handleScrum reads this to cap

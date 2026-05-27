@@ -89,6 +89,15 @@ const KICKER_STEPS_UP: readonly string[] = [
   'Stadium falls silent as {primary} settles over the ball.',
 ];
 
+const KICKER_COMPOSE: readonly string[] = [
+  '{primary} draws a breath. Eyes fixed on the posts.',
+  '{primary} pauses... and steps in.',
+  'A hush around the ground. {primary} is ready.',
+  '{primary} takes one last look at the posts.',
+  'Silence. {primary} starts his run-up.',
+  '{primary} settles. Here it comes.',
+];
+
 const MAUL_DRIVE_STRONG: readonly string[] = [
   'The maul is rolling — the defence cannot hold it.',
   '{side} are driving this on with real intent.',
@@ -248,6 +257,8 @@ export function getAnnouncementTemplate(
       return pickRandom(TRY_AFTERMATH);
     case 'kicker_steps_up':
       return pickRandom(KICKER_STEPS_UP);
+    case 'kicker_compose':
+      return pickRandom(KICKER_COMPOSE);
     case 'maul_drive_strong':
       return pickRandom(MAUL_DRIVE_STRONG);
     case 'tmo_intervenes':

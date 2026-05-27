@@ -1,30 +1,26 @@
 import type { PhaseContext, PhaseResult } from './types';
 import type { MatchEvent } from '../../types/matchEvent';
 import { MatchPhase } from '../../types/engine';
-import { resolveGoalKick } from '../resolvers/KickingResolver';
 import { CONVERSION_VALUES } from '../balance';
 import { pickKicker } from '../FieldPosition';
 
+// Entry tick of the KickAtGoal micro-phase for a try conversion. Emits the
+// kicker_steps_up beat and parks the engine in KickAtGoal; KickAtGoalHandler
+// resolves the kick on the next (frozen-clock) tick. The shorter inter-tick
+// delay is set by MatchCoordinator.nextTickDelay() when phase === KickAtGoal.
 export function handleConversionKick({ state, attackTeam }: PhaseContext): PhaseResult {
   const kicker = pickKicker(attackTeam, state, state.possession);
   const distFromPosts = Math.abs(state.ball.y - 50) * CONVERSION_VALUES.distanceFromPostsWeight;
-  const res = resolveGoalKick(kicker, distFromPosts);
-
-  const side = state.possession;
-  const key = res.success ? 'success' : 'miss';
 
   const events: MatchEvent[] = [
-    { type: 'CONVERSION_KICKED', kicker, side, success: res.success },
-    { type: 'POSSESSION_SWAPPED' },
-    { type: 'BALL_REPOSITIONED', x: 50, y: 50 },
+    { type: 'KICK_AT_GOAL_STARTED', kicker, kind: 'conversion', distFromPosts },
   ];
 
   return {
-    nextPhase: MatchPhase.KickOff,
+    nextPhase: MatchPhase.KickAtGoal,
     narration: {
       steps: [
         { kind: 'announcement', key: 'kicker_steps_up', primary: kicker },
-        { kind: 'phase_outcome', phase: MatchPhase.ConversionKick, key, primary: kicker },
       ],
     },
     primaryPlayer: kicker,

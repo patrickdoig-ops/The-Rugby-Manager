@@ -223,6 +223,18 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       state.tmoReview = undefined;
       return;
 
+    case 'KICK_AT_GOAL_STARTED':
+      state.kickAtGoal = {
+        kicker: event.kicker,
+        kind: event.kind,
+        distFromPosts: event.distFromPosts,
+      };
+      return;
+
+    case 'KICK_AT_GOAL_RESOLVED':
+      state.kickAtGoal = undefined;
+      return;
+
     // ── Injuries ────────────────────────────────────────────────────────
     case 'PLAYER_INJURED_IN_MATCH': {
       // Defensive: a duplicate emit (same player twice in one match)

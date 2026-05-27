@@ -28,11 +28,13 @@ export class ClockController {
 
   // Advances state.clock.gameMinute via a CLOCK_ADVANCED MatchEvent.
   // Returns the raw timeAdvance so the caller can drive the fatigue accumulator.
-  // During MatchPhase.TmoReview the clock is frozen — TMO is a real-time stop,
-  // so we skip both the rng roll and the CLOCK_ADVANCED emit and return 0.
-  // Fatigue accumulator then drains nothing this tick, matching live behaviour.
+  // During MatchPhase.TmoReview and MatchPhase.KickAtGoal the clock is frozen —
+  // these are real-time stops (TMO is the official-at-the-screen pause, KickAtGoal
+  // is the goal-kick build-up), so we skip the rng roll and the CLOCK_ADVANCED
+  // emit and return 0. Fatigue accumulator drains nothing this tick.
   advanceMinute(state: MatchState): number {
-    if (state.phase === MatchPhase.TmoReview) return 0;
+    if (state.phase === MatchPhase.TmoReview)  return 0;
+    if (state.phase === MatchPhase.KickAtGoal) return 0;
     const C = CLOCK_VALUES;
     const timeAdvance = C.baseAdvance + rng(C.rngMin, C.rngMax) / C.rngDivisor;
     applyMatchEvent(state, { type: 'CLOCK_ADVANCED', delta: timeAdvance });
@@ -79,7 +81,11 @@ export class ClockController {
     }
     // Try scored and conversion taken → kickoff restart
     if (state.phase === MatchPhase.KickOff && prevPhase === MatchPhase.ConversionKick) return true;
-    // Penalty goal kick (success or miss) → kickoff restart
+    // Penalty goal kick or conversion resolved via KickAtGoal micro-phase →
+    // kickoff restart. KickAtGoalHandler.advance transitions phase to KickOff,
+    // so prevPhase at the next tick is KickAtGoal.
+    if (state.phase === MatchPhase.KickOff && prevPhase === MatchPhase.KickAtGoal) return true;
+    // Penalty tap-and-kick-dead (clock-killing kick to touch) → kickoff restart
     if (state.phase === MatchPhase.KickOff && prevPhase === MatchPhase.Penalty) return true;
     return false;
   }

@@ -80,6 +80,13 @@ export type MatchEvent =
   | { type: 'TMO_REVIEW_TICK_ADVANCED' }
   | { type: 'TMO_REVIEW_RESOLVED' }
 
+  // KickAtGoal micro-phase. STARTED parks the kicker + kind + pre-computed
+  // distance on state.kickAtGoal while the engine pauses one tick for the
+  // build-up. RESOLVED clears it after KickAtGoalHandler.advance() rolls
+  // the kick outcome and transitions phase to KickOff.
+  | { type: 'KICK_AT_GOAL_STARTED'; kicker: Player; kind: 'conversion' | 'penalty'; distFromPosts: number }
+  | { type: 'KICK_AT_GOAL_RESOLVED' }
+
   // ── Injuries ─────────────────────────────────────────────────────────────
   // Fired from a phase resolver (today only OpenPlayEvent's tackle outcome)
   // when an injury roll triggers. Reducer pushes the player into

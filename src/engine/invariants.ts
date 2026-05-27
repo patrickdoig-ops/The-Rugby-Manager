@@ -131,6 +131,15 @@ export function assertInvariants(state: MatchState): void {
       fail('tmoReview.step', `${step}`);
     }
   }
+  if (state.kickAtGoal) {
+    const kag = state.kickAtGoal;
+    if (kag.kind !== 'conversion' && kag.kind !== 'penalty') {
+      fail('kickAtGoal.kind', `${kag.kind}`);
+    }
+    if (!Number.isFinite(kag.distFromPosts) || kag.distFromPosts < 0) {
+      fail('kickAtGoal.distFromPosts', `${kag.distFromPosts}`);
+    }
+  }
 
   // Match stats — every counter is a non-negative integer. tackles.made and
   // ownLineouts.won / ownScrums.won can never exceed their attempted / thrown

@@ -83,12 +83,11 @@ export function initRoundResultsScreen(
           <div class="rr-fixture-line">
             <div class="rr-team rr-team--home">
               ${crest(home)}
-              <span class="rr-team-name">${home.shortName}</span>
-              <span class="rr-venue-pill">H</span>
+              <span class="rr-team-name">${home.name.split(' ')[0]}</span>
             </div>
             ${mid}
             <div class="rr-team rr-team--away">
-              <span class="rr-team-name">${away.shortName}</span>
+              <span class="rr-team-name">${away.name.split(' ')[0]}</span>
               ${crest(away)}
             </div>
             ${expandable ? `<span class="rr-expand-cue" aria-hidden="true">

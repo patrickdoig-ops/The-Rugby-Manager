@@ -151,6 +151,8 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
     case 'PLAYER_RETIRED': {
       const club = state.career.clubs.find(c => c.id === event.clubId);
       if (club) club.squad = club.squad.filter(id => id !== event.rosterId);
+      // Drop any dangling pre-agreement — a retired player can't move.
+      state.career.pendingMoves = state.career.pendingMoves.filter(m => m.rosterId !== event.rosterId);
       return;
     }
     case 'PLAYER_INJURED': {
@@ -185,13 +187,20 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         const p = state.career.roster[rid];
         if (p && p.contract.isMarquee) p.contract.isMarquee = false;
       }
-      // Designate the new marquee, if one was specified and the player
-      // is actually in this club's squad.
+      // Designate the new marquee. Fail loud if the caller passed a
+      // rosterId that's not on this club's squad — that's a logic bug,
+      // not a recoverable race (designation only happens from
+      // ContractsScreen on Hub, where the squad doesn't mutate under
+      // the user). Silent-skip would desync the UI from state.
       if (event.rosterId !== null) {
         const target = state.career.roster[event.rosterId];
-        if (target && club.squad.includes(event.rosterId)) {
-          target.contract.isMarquee = true;
+        if (!target) {
+          throw new Error(`MARQUEE_DESIGNATED: rosterId=${event.rosterId} not in roster`);
         }
+        if (!club.squad.includes(event.rosterId)) {
+          throw new Error(`MARQUEE_DESIGNATED: rosterId=${event.rosterId} not in ${event.clubId} squad`);
+        }
+        target.contract.isMarquee = true;
       }
       return;
     }
@@ -243,6 +252,10 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       // Marquees clear their flag on departure — slot is now free for
       // the club to re-designate.
       if (p.contract.isMarquee) p.contract.isMarquee = false;
+      // Drop any dangling pre-agreement — a terminated player can't
+      // move on the old contract, and the rollover-time TRANSFER_ACTIVATED
+      // would otherwise revive a contract that just ended.
+      state.career.pendingMoves = state.career.pendingMoves.filter(m => m.rosterId !== event.rosterId);
       if (event.reason !== 'retired') {
         if (!state.career.freeAgents.includes(event.rosterId)) {
           state.career.freeAgents.push(event.rosterId);

@@ -172,7 +172,7 @@ FullTime     → (terminal)
 ```
 
 Three carry phases share an evasion/collision resolver but have distinct player selection and structure:
-- **PhasePlay** — runs after Breakdown; hard carry / out-the-back decision picks the carrier (weighted forward on the hard carry — back row + props heavy, locks second, hooker rare; fly-half → outside back on the wide path)
+- **PhasePlay** — runs after Breakdown; optional pick-and-go branch (back row / prop drives 0-4m from the ruck base) rolls first, otherwise the hard-carry / out-the-back decision picks the carrier (weighted forward on the hard carry — back row + props heavy, locks second, hooker rare; fly-half → outside back on the wide path)
 - **FirstPhase** — runs after Scrum, Lineout, or a tap-and-go penalty; carrier always #10; crash ball or wide play
 - **KickReturn** — runs after KickOff, BoxKick, or TacticalKick; catcher fields the kick, then a tactics-keyed pod-pickup roll may swap the carrier to a back-row pod runner before the run step
 
@@ -483,12 +483,26 @@ If a kick is decided, the phase transitions to `BoxKick` (#9 kicker) or `Tactica
 
 Runs after `Breakdown` (recycled possession).
 
+**Step 0b — Pick and Go**
+
+Rolled BEFORE the hard-carry / wide decision. On hit, a back-row or prop picks the ball at the base of the ruck and drives 0-4m into contact. No pass (no scrum-half pop, no interception, no carrier handling gate), no offload chain, no line break, no try — always lands at Breakdown.
+
+| `attackingStyle` | Pick & Go |
+|---|---|
+| `keep_it_tight` | 30% |
+| `balanced` | 12% |
+| `wide_wide` | 3% |
+
+Carrier pool (`PICK_AND_GO_WEIGHTS` in `src/engine/balance/carrying.ts`): back row 18/18/15 + props 8/8 only — hooker is at the ruck and locks usually bind / cleanout, so neither is eligible. Resolves via `resolvePickAndGo(...)` in `OpenPlayEvent.ts`: reuses `resolveOpenPlay` for outcome generation (carrier stats still drive quality), then downgrades any `line_break` outcome to `dominant_carry` and clamps `gainMetres` to `[0, 4]`. Emits `CARRY_RESOLVED` with one of `pick_and_go_play_on` / `pick_and_go_dominant_carry` / `pick_and_go_dominant_tackle` and always returns `nextPhase: Breakdown` (or `Penalty` on a high-tackle infringement). Assist tackler is credited via `pickAssistTackler` exactly as for a regular hard carry.
+
+If the pick-and-go gate fires but no eligible forward is on the field (rare — every back-row + prop binned / sent off), the handler falls through to the regular hard-carry / wide decision below.
+
 **Step 1 — Hard Carry / Out the Back decision**
 
 | `attackingStyle` | Hard Carry | Out the Back |
 |---|---|---|
-| `keep_it_tight` | 90% | 10% |
-| `balanced` | 70% | 30% |
+| `keep_it_tight` | 95% | 5% |
+| `balanced` | 85% | 15% |
 | `wide_wide` | 50% | 50% |
 
 The decision picks the carrier:
@@ -501,7 +515,7 @@ carrier  = goWide ? pickPlayer(attackTeam, 10) : pickHardCarrier(attackTeam, sta
 defender = randomPlayer(defendTeam)
 ```
 
-Tuning: `HARD_CARRIER_WEIGHTS` in `src/engine/balance/carrying.ts`. The forward pool falls through `availableForwards` first → any on-field player → `team.players[0]` if every weighted slot is binned / sent off.
+Tuning: `HARD_CARRY_THRESHOLDS` in `src/engine/balance/openPlay.ts` (shared with FirstPhase's crash-ball / wide-play split); `HARD_CARRIER_WEIGHTS` in `src/engine/balance/carrying.ts`. The forward pool falls through `availableForwards` first → any on-field player → `team.players[0]` if every weighted slot is binned / sent off.
 
 **Step 2 — Carrier handling gate**
 
@@ -531,8 +545,8 @@ Driven by `attackingStyle` using the same thresholds as the Hard Carry / Out the
 
 | `attackingStyle` | Crash Ball | Wide Play |
 |---|---|---|
-| `keep_it_tight` | 90% | 10% |
-| `balanced` | 70% | 30% |
+| `keep_it_tight` | 95% | 5% |
+| `balanced` | 85% | 15% |
 | `wide_wide` | 50% | 50% |
 
 **Crash Ball path** (#10 → #12):

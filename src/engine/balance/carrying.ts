@@ -25,3 +25,21 @@ export const POD_PICKUP_PCT: Readonly<Record<AttackingStyle, number>> = {
   balanced: 30,
   wide_wide: 15,
 };
+
+// Pick-and-go carrier pool: forward picks the ball at the base of a ruck
+// and drives. Back row + props only — hooker is at the ruck, locks usually
+// bind / cleanout. Weights mirror the hard-carry table's back-row dominance
+// but exclude locks + hooker.
+export const PICK_AND_GO_WEIGHTS: Readonly<Partial<Record<number, number>>> = {
+  1: 8, 3: 8,              // props
+  6: 18, 7: 18, 8: 15,     // back row
+};
+
+// Probability that PhasePlay goes pick-and-go (rolled BEFORE the
+// hard-carry / wide decision). Tight teams grind through phases; wide
+// teams almost never pick-and-go.
+export const PICK_AND_GO_PCT: Readonly<Record<AttackingStyle, number>> = {
+  keep_it_tight: 30,
+  balanced: 12,
+  wide_wide: 3,
+};

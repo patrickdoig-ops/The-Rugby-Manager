@@ -14,6 +14,7 @@ import {
 import {
   HARD_CARRIER_WEIGHTS,
   POD_PICKUP_WEIGHTS,
+  PICK_AND_GO_WEIGHTS,
 } from './balance/carrying';
 
 // Home attacks toward x=100 in the first half, toward x=0 in the second.
@@ -246,6 +247,19 @@ export function pickPodCarrier(
 ): Player | undefined {
   const fwds = availableForwards(team, state, side);
   return pickWeighted(fwds, POD_PICKUP_WEIGHTS, exclude);
+}
+
+// PhasePlay pick-and-go carrier — back row + props only (hooker is at the
+// ruck, locks bind / cleanout). Returns undefined when none of those slots
+// are on the field; caller falls through to the regular hard-carry / wide
+// decision so we never silently substitute a hooker or lock.
+export function pickPickAndGoCarrier(
+  team: Team,
+  state: MatchState,
+  side: PossessionSide,
+): Player | undefined {
+  const fwds = availableForwards(team, state, side);
+  return pickWeighted(fwds, PICK_AND_GO_WEIGHTS);
 }
 
 // Weighted pick over the on-field back three (fullback + wings). Used by the

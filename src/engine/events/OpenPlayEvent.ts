@@ -3,15 +3,17 @@ import type { MatchEvent } from '../../types/matchEvent';
 import type { NarrationStep } from '../../types/narration';
 import type { Player, InjuryKind } from '../../types/player';
 import type { PossessionSide } from '../../types/engine';
+import type { MatchState } from '../../types/match';
+import type { Team } from '../../types/team';
 import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
-import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler, pickHardCarrier } from '../FieldPosition';
+import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler, pickHardCarrier, pickPickAndGoCarrier } from '../FieldPosition';
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
-import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, INJURY, INJURY_KIND_WEIGHTS, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS } from '../balance';
+import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, INJURY, INJURY_KIND_WEIGHTS, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS, PICK_AND_GO_PCT } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { SLOT, isBackSlot } from '../Slot';
 import { tryOffloadChain } from './offloadChain';
@@ -28,6 +30,19 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   const decision = decideKick({ state, attackTeam, attackOnField });
   if (decision.kick) {
     return buildKickTransition(decision, MatchPhase.PhasePlay);
+  }
+
+  // Step 0b — Pick and Go: rolled before the hard-carry / wide decision.
+  // On hit, a back-row or prop picks the ball at the base of the ruck and
+  // drives 0-4m into contact. No pass (no scrum-half pop, no interception,
+  // no handling gate), no offload chain, no line break, no try — always
+  // lands at Breakdown. Falls through to the regular decision below if no
+  // eligible forward is on the field.
+  if (rng(1, 100) <= PICK_AND_GO_PCT[attackTeam.tactics.attackingStyle]) {
+    const pagCarrier = pickPickAndGoCarrier(attackTeam, state, attackSide);
+    if (pagCarrier) {
+      return resolvePickAndGo(state, attackTeam, defendTeam, attackSide, pagCarrier);
+    }
   }
 
   // Step 1 — Hard Carry / Out the Back decision happens FIRST so we can
@@ -370,6 +385,90 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
     primaryPlayer: ballCarrier,
     secondaryPlayer: defender,
     outcome: res.outcome,
+    events,
+  };
+}
+
+// Pick-and-go branch — self-contained carry resolution for a forward
+// picking the ball at the base of the ruck. Reuses resolveOpenPlay for
+// outcome generation so the carrier's stats still drive quality, but
+// downgrades any line_break to dominant_carry (defenders are committed,
+// the line can't be broken from a ruck pick) and clamps gain to 0-4m.
+// Skips the interception roll, knock-on gate, offload chain, and try-
+// scoring branch; always lands at Breakdown (or Penalty on a high tackle).
+function resolvePickAndGo(
+  state: MatchState,
+  attackTeam: Team,
+  defendTeam: Team,
+  attackSide: PossessionSide,
+  carrier: Player,
+): PhaseResult {
+  const defSide: PossessionSide = attackSide === 'home' ? 'away' : 'home';
+  const { attack: attackMod, defend: defendMod } = state.breakdownMod;
+  const events: MatchEvent[] = [
+    { type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 },
+  ];
+
+  const defender = pickPrimaryDefender(defendTeam, state, defSide, carrier);
+  const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[defendTeam.tactics.backfieldDefence];
+  const missingBacks = FULL_BACKLINE - availableBacks(defendTeam, state, defSide).length;
+  const shortHandedMod = missingBacks * SHORT_HANDED.missingBackDefendPenalty;
+
+  const ha = homeEdge(state, HOME_ADVANTAGE.carryMod);
+  const defensiveLine = defendTeam.tactics.defensiveLine;
+  const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];
+  const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine];
+  const baseAttackMod = attackMod + ha.attack;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + ha.defend;
+  const res = resolveOpenPlay(carrier, defender, baseAttackMod, baseDefendMod, dlCollision);
+
+  // Downgrade line_break → dominant_carry; pick-and-go can't break the line.
+  const outcome: 'play_on' | 'dominant_carry' | 'dominant_tackle' =
+    res.outcome === 'line_break' ? 'dominant_carry' : res.outcome;
+  const gainMetres = clamp(res.gainMetres, 0, 4);
+  const direction = attackDir(state);
+
+  const assistTackler = pickAssistTackler(defendTeam, state, defSide, defender);
+
+  events.push({
+    type: 'CARRY_RESOLVED',
+    carrier,
+    defender,
+    metres: gainMetres,
+    direction,
+    outcome,
+    defSide,
+    coverTackler: undefined,
+    assistTackler,
+  });
+
+  const outcomeKey: 'pick_and_go_play_on' | 'pick_and_go_dominant_carry' | 'pick_and_go_dominant_tackle' =
+    outcome === 'dominant_carry'  ? 'pick_and_go_dominant_carry'
+  : outcome === 'dominant_tackle' ? 'pick_and_go_dominant_tackle'
+  :                                 'pick_and_go_play_on';
+  const steps: NarrationStep[] = [
+    { kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: outcomeKey, primary: carrier, secondary: defender },
+  ];
+
+  let nextPhase: MatchPhase = MatchPhase.Breakdown;
+  if (tackleInfringement(defender) === 'high_tackle') {
+    events.push({ type: 'PENALTY_AWARDED', offence: 'high_tackle', offender: defender, offendingSide: defSide });
+    steps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'high_tackle_penalty', primary: defender, secondary: carrier });
+    nextPhase = MatchPhase.Penalty;
+  }
+
+  const injuryEvent = rollMatchInjury(outcome, carrier, defender, attackSide, defSide);
+  if (injuryEvent) {
+    events.push(injuryEvent);
+    steps.push({ kind: 'announcement', key: 'injury_off', primary: injuryEvent.player });
+  }
+
+  return {
+    nextPhase,
+    narration: { steps },
+    primaryPlayer: carrier,
+    secondaryPlayer: defender,
+    outcome,
     events,
   };
 }

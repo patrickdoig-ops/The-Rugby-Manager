@@ -14,6 +14,7 @@ export type PhaseOutcomeKey =
   | 'kick_decision' | 'out_the_back' | 'crash_ball'
   | 'line_break' | 'line_break_try' | 'cover_tackle'
   | 'dominant_carry' | 'dominant_carry_try' | 'dominant_tackle' | 'play_on'
+  | 'pick_and_go_play_on' | 'pick_and_go_dominant_carry' | 'pick_and_go_dominant_tackle'
   | 'high_tackle_penalty' | 'obstruction_penalty'
   | 'interception'
   | 'offload_attempt' | 'offload_knock_on'

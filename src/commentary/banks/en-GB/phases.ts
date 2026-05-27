@@ -72,6 +72,24 @@ const PHASE_PLAY: PhaseBank = {
     'Hard carry from {primary}. He earns a few metres before {secondary} makes the tackle.',
     '{primary} goes to ground after contact. The ball is available.',
   ],
+  pick_and_go_play_on: [
+    '{primary} picks from the base and drives into contact.',
+    '{primary} takes it short off the ruck — quick recycle for {side}.',
+    '{primary} picks and goes, dragging in defenders.',
+    'Forward pod work from {side}: {primary} drives a metre or two.',
+  ],
+  pick_and_go_dominant_carry: [
+    '{primary} picks at the base and crashes over the gain line — strong carry.',
+    '{primary} drives 2-3 metres from a pick-and-go. Front-foot ball for {side}.',
+    'Powerful pick from {primary}, defenders dragged back behind the ruck.',
+    '{primary} picks and goes hard — {side} on the front foot.',
+  ],
+  pick_and_go_dominant_tackle: [
+    '{secondary} wraps {primary} up at the ruck edge — no momentum on the pick.',
+    '{secondary} reads the pick-and-go and stops {primary} dead.',
+    '{primary} picks but {secondary} is straight in to lock him up.',
+    '{secondary} drives {primary} back at the base — {defside} win the collision.',
+  ],
   high_tackle_penalty: [
     // Templates avoid referencing {primary} / {secondary} — both are
     // already named in the preceding carry-outcome step, and the

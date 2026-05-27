@@ -14,7 +14,7 @@
 import type { GameState, SeasonEvent, TransferBid } from '../types/gameState';
 import type { Player } from '../types/player';
 import { sortStandings } from './leagueTable';
-import { APPEAL_WEIGHTS } from '../engine/balance/transfers';
+import { APPEAL_WEIGHTS, HISTORICAL_POSITIONS } from '../engine/balance/transfers';
 import { expiryAfterYears } from './aiTransferDirector';
 
 // Per-player outcome consumed by SigningResultsScreen. `winnerBid` is
@@ -69,10 +69,8 @@ export function appealScore(
   }
   const positionShortage = Math.max(0, Math.min(3, APPEAL_WEIGHTS.needTargetPerPosition - positionCount));
 
-  // Ambition: last season's league position. Champions / top-half clubs
-  // are more attractive destinations. Uses prior-season archived
-  // standings when available; falls back to current standings mid-season.
-  const lastSeasonPosition = positionInArchive(state, club.id);
+  // Ambition: weighted average of recent league positions (2/3 + 1/3).
+  const lastSeasonPosition = weightedLeaguePosition(state, club.id);
 
   // Loyalty: retention bid by the player's current club gets a fixed
   // bonus to model the player's mild "devil you know" preference.
@@ -190,19 +188,40 @@ function overallFor(p: Player): number {
   return Math.round((s.strength + s.pace + s.handling + s.tackling + s.composure) / 5);
 }
 
-// Player's club's position in the most-recently-archived season. Falls
-// back to current standings when no archive exists (year 1, post-
-// regular-season but pre-rollover). Defaults to 5.5 (middle of a
-// 10-team league) when neither is available.
-function positionInArchive(state: GameState, clubId: string): number {
-  const lastArchive = state.career.archive[state.career.archive.length - 1];
-  if (lastArchive) {
-    const sorted = sortStandings(lastArchive.standings);
+// Weighted average of the two most recent seasons' positions for a club.
+// Recent season = 2/3 weight, older season = 1/3 weight.
+// Season sources (most-to-least recent):
+//   archiveLen ≥ 2 → both from in-game archive
+//   archiveLen = 1 → archived S1 + historical 2024-25
+//   archiveLen = 0 → historical 2024-25 + historical 2023-24
+// Falls back to 5.5 (mid-table) only when no data exists.
+export function weightedLeaguePosition(state: GameState, clubId: string): number {
+  const hist = HISTORICAL_POSITIONS[clubId];
+  const archiveLen = state.career.archive.length;
+
+  function archivePos(i: number): number | null {
+    const arch = state.career.archive[i];
+    if (!arch) return null;
+    const sorted = sortStandings(arch.standings);
     const idx = sorted.findIndex(s => s.teamId === clubId);
-    if (idx >= 0) return idx + 1;
+    return idx >= 0 ? idx + 1 : null;
   }
-  const sorted = sortStandings(state.league.standings);
-  const idx = sorted.findIndex(s => s.teamId === clubId);
-  if (idx >= 0) return idx + 1;
+
+  let recent: number | null;
+  let older: number | null;
+
+  if (archiveLen >= 2) {
+    recent = archivePos(archiveLen - 1);
+    older  = archivePos(archiveLen - 2);
+  } else if (archiveLen === 1) {
+    recent = archivePos(0);
+    older  = hist?.pos2425 ?? null;
+  } else {
+    recent = hist?.pos2425 ?? null;
+    older  = hist?.pos2324 ?? null;
+  }
+
+  if (recent !== null && older !== null) return (2 / 3) * recent + (1 / 3) * older;
+  if (recent !== null) return recent;
   return 5.5;
 }

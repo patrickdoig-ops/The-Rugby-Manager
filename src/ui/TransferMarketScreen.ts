@@ -24,7 +24,7 @@ import { getAge } from '../game/age';
 import { showToast } from './Toast';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 import { createRowExpander } from './components/rowExpand';
-import { appealScore } from '../game/signingResolver';
+import { appealScore, weightedLeaguePosition } from '../game/signingResolver';
 import { averageRating } from '../game/seasonLeaderboards';
 import { APPEAL_WEIGHTS } from '../engine/balance/transfers';
 import type { TransferBid, GameState } from '../types/gameState';
@@ -509,9 +509,7 @@ function renderTmExpandPanel(
     if (sp && sp.position === p.position) positionCount += 1;
   }
   const positionShortage = Math.max(0, Math.min(3, APPEAL_WEIGHTS.needTargetPerPosition - positionCount));
-  const lastSeasonPosition = state.career.archive.length > 0
-    ? (state.career.archive[state.career.archive.length - 1].standings.findIndex(s => s.teamId === userClubId) + 1) || 11
-    : (state.league.standings.findIndex(s => s.teamId === userClubId) + 1) || 11;
+  const lastSeasonPosition = weightedLeaguePosition(state, userClubId);
   const isCurrentClub = p.contract.clubId === userClubId;
 
   const ovrTerm = squadAvgOvr * APPEAL_WEIGHTS.ovrWeight;

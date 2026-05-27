@@ -219,11 +219,21 @@ After the renewal window closes, the signing window opens. Multi-round competiti
 
 ```
 appeal(club, player) =
-    squadAvgOvr        × ovrWeight       (~65-80 → 65-80 pts)
-  + positionShortage   × needWeight      (0-3 → 0-15 pts)
-  + (5.5 - lastSeasonPosition) × ambitionWeight   (±9 pts)
-  + (isCurrentClub ? loyaltyBonus : 0)             (+8 pts)
+    squadAvgOvr              × ovrWeight       (~65-80 → 65-80 pts)
+  + positionShortage         × needWeight      (0-3 → 0-15 pts)
+  + (5.5 - weightedPosition) × ambitionWeight  (±9 pts)
+  + (isCurrentClub ? loyaltyBonus : 0)          (+8 pts)
 ```
+
+`weightedPosition` (`signingResolver.weightedLeaguePosition`) is a **2/3 + 1/3 weighted average** of the two most recent seasons' final league positions — recent season weighted 2/3, older 1/3. Season sources in recency order:
+
+| Archive depth | Recent (2/3) | Older (1/3) |
+|---|---|---|
+| 0 in-game seasons | 2024-25 historical | 2023-24 historical |
+| 1 in-game season | archived S1 | 2024-25 historical |
+| 2+ in-game seasons | last archived | penultimate archived |
+
+Historical positions stored in `HISTORICAL_POSITIONS` (`balance/transfers.ts`). Falls back to 5.5 (mid-table) only for clubs absent from all sources.
 
 Constants in `balance/transfers.ts::APPEAL_WEIGHTS`. Squad OVR is the dominant signal — strong clubs win contested bids by default, but a desperate need at a mid-table club outweighs a small OVR edge, and the player's current club gets a loyalty edge on retention bids.
 

@@ -336,7 +336,7 @@ Under Mark McCall, Saracens have been the league's clinical operator — structu
 - **Captain:** Maro Itoje.
 - **Honours:** 6 × Premiership title (latest 2022-23); 3 × European Champions Cup (2015-16, 2016-17, 2018-19).
 - **Overall rating:** **74/100**
-- **Suggested tactics:** `kicking` · `balanced` · `balanced` · `shadow` · `two_back` · `blitz` · `cautious`
+- **Suggested tactics:** `kicking` · `balanced` · `balanced` · `jackal` · `two_back` · `blitz` · `cautious`
 - **Stat bias:** high `tackling`, `positioning`, `composure`.
 
 ### Star players
@@ -899,7 +899,7 @@ The Manchester defence-first side: line-speed, collision-dominant loose forwards
 - **Captain:** Ernst van Rhyn (2025-26; succeeded Ben Curry, who stepped down with his England-contract availability reduced).
 - **Honours:** Premiership title 2005-06; European Challenge Cup 2001-02, 2004-05.
 - **Overall rating:** **68/100**
-- **Suggested tactics:** `kicking` · `keep_it_tight` · `balanced` · `shadow` · `one_back` · `blitz` · `cautious`
+- **Suggested tactics:** `kicking` · `keep_it_tight` · `balanced` · `jackal` · `one_back` · `blitz` · `cautious`
 - **Stat bias:** high `tackling`, `strength`, `kicking`.
 
 ### Star players

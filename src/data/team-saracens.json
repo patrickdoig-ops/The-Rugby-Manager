@@ -15,7 +15,7 @@
     "attackingGamePlan": "kicking",
     "attackingStyle": "balanced",
     "attackingBreakdown": "balanced",
-    "defendingBreakdown": "shadow",
+    "defendingBreakdown": "jackal",
     "backfieldDefence": "two_back",
     "defensiveLine": "blitz",
     "offloadStrategy": "cautious"

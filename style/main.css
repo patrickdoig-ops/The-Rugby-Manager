@@ -775,9 +775,11 @@ html, body {
   transition: background 0.15s, border-color 0.15s;
 }
 
-.sub-player-btn:hover {
-  background: var(--rm-surface-3);
-  border-color: var(--rm-border);
+@media (hover: hover) {
+  .sub-player-btn:hover {
+    background: var(--rm-surface-3);
+    border-color: var(--rm-border);
+  }
 }
 
 .sub-player-btn.sub-selected {

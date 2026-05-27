@@ -59,6 +59,9 @@ import { zeroSeasonStats } from '../types/player';
 import { zeroTeamSeasonStats } from '../types/gameState';
 import type { TeamTactics } from '../types/team';
 import type { TrainingPlan } from '../types/training';
+import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
+
+const DEFAULT_SALARY_BUDGET = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
 
 const SAVE_KEY = 'rugby-manager-save';
 const SAVE_VERSION = 20;
@@ -205,16 +208,15 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
   return {
     seasonsCompleted: c.seasonsCompleted,
     nextRosterId: c.nextRosterId,
-    // v14+ clubs carry salaryBudget. Pre-v14 saves default each club's
-    // budget to undefined; GameCoordinator.fromSave back-fills to the
-    // effective cap so the load is non-disruptive. The next rollover
-    // then recomputes via computeBudgetEvents.
-    clubs: (c.clubs as ClubState[]).map(cl => ({
-      id: cl.id,
-      squad: [...cl.squad],
-      salaryBudget: typeof (cl as Partial<ClubState>).salaryBudget === 'number'
-        ? (cl as ClubState).salaryBudget
-        : undefined as unknown as number, // backfilled in fromSave
+    // v14+ clubs carry salaryBudget. Pre-v14 saves default to the
+    // effective cap right here so the parse output is always
+    // well-typed — no `undefined as unknown as number` lies leaking
+    // into GameCoordinator.fromSave. The next rollover recomputes
+    // via computeBudgetEvents.
+    clubs: (c.clubs as Partial<ClubState>[]).map(cl => ({
+      id: cl.id as string,
+      squad: [...(cl.squad ?? [])],
+      salaryBudget: typeof cl.salaryBudget === 'number' ? cl.salaryBudget : DEFAULT_SALARY_BUDGET,
     })),
     roster: backfillRosterSeasonStats(c.roster as Record<number, Player>),
     archive: (c.archive as ArchivedSeason[]).map(a => ({

@@ -830,6 +830,9 @@ export class MatchCoordinator {
   // file needed — pure UI rhythm).
   private nextTickDelay(): number {
     const tickDelayMs = this.state.engine.tickDelayMs;
+    // Silent mode (telemetry, determinism harness, headless AI fixtures) has no
+    // UI rhythm to honour — skip the KickAtGoal build-up floor entirely.
+    if (this.silent) return tickDelayMs;
     if (this.state.phase === MatchPhase.KickAtGoal) {
       const KICK_BUILD_UP_FRACTION = 0.6;
       const KICK_BUILD_UP_MIN_MS   = 300;

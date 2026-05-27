@@ -618,6 +618,15 @@
 
 /* ── Lineup row tap-to-expand panel ── */
 
+/* The shared grid-template-rows: 0fr collapse doesn't always clip
+   reliably on Safari iOS — override with display toggle for this panel. */
+.pm-lineup-expand {
+  display: none;
+}
+.pm-lineup-expand[data-expanded="true"] {
+  display: block;
+}
+
 .pm-lineup-expand .row-expand-inner {
   padding: 10px 0 12px 48px; /* indent to align with name column (jersey 36px + gap 12px) */
 }

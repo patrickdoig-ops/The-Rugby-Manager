@@ -74,15 +74,6 @@ export function initRoundResultsScreen(
       const mid = result
         ? `<span class="rr-score">${result.homeScore}–${result.awayScore}</span>`
         : `<span class="rr-pending">…</span>`;
-      const total = result ? result.homeScore + result.awayScore : 0;
-      const hp = total > 0 ? (result!.homeScore / total) * 100 : 50;
-      const ap = 100 - hp;
-      const marginBar = result
-        ? `<div class="rr-margin-bar">
-             <div style="width:${hp.toFixed(1)}%;background:${home.color};opacity:${result.homeScore >= result.awayScore ? 1 : 0.45}"></div>
-             <div style="width:${ap.toFixed(1)}%;background:${away.color};opacity:${result.awayScore >= result.homeScore ? 1 : 0.45}"></div>
-           </div>`
-        : `<div class="rr-margin-bar rr-margin-bar--pending"></div>`;
       const rowId = `${fixture.homeId}-${fixture.awayId}-${fixture.round}`;
       const isExpanded = expander.isExpanded(rowId);
       const expandPanel = renderExpandPanel(result, home.color, away.color);
@@ -104,7 +95,6 @@ export function initRoundResultsScreen(
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </span>` : ''}
           </div>
-          ${marginBar}
           <div class="row-expand-panel rr-expand" data-expanded="${isExpanded}">
             <div class="row-expand-inner"><div class="rr-expand-body">${expandPanel}</div></div>
           </div>

@@ -345,9 +345,18 @@
 }
 
 @keyframes rollDeltaIn {
-  0%   { opacity: 0; transform: translateY(2px); filter: brightness(2); }
-  60%  { opacity: 1; transform: translateY(0); filter: brightness(2); }
-  100% { opacity: 1; transform: translateY(0); filter: brightness(1); }
+  0%   { opacity: 0; translate: 0 2px; filter: brightness(2); }
+  60%  { opacity: 1; translate: 0 0;   filter: brightness(2); }
+  100% { opacity: 1; translate: 0 0;   filter: brightness(1); }
+}
+
+/* Large stat deltas (|v| >= 4) get an additional scale-pop alongside
+   the reveal — same spring as scoreKick. Uses individual `scale:`
+   property so it composes with rollDeltaIn's `translate:` without
+   either animation clobbering the other's transform. */
+@keyframes rollDeltaPop {
+  0%   { scale: 1.35; }
+  100% { scale: 1; }
 }
 
 .roll-deltas {
@@ -362,8 +371,15 @@
 
 .roll-deltas > span {
   opacity: 0;
-  transform: translateY(2px);
+  translate: 0 2px;
   animation: rollDeltaIn 320ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: var(--delta-delay, 0ms);
+}
+
+.roll-deltas > span.roll-delta--major {
+  animation:
+    rollDeltaIn  320ms cubic-bezier(0.22, 1, 0.36, 1) backwards,
+    rollDeltaPop 200ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
   animation-delay: var(--delta-delay, 0ms);
 }
 

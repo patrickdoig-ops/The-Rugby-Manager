@@ -37,8 +37,9 @@ function statDeltaText(deltas: Partial<PlayerStats>): string {
     .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
     .map(([k, v], j) => {
       const cls = v > 0 ? 'roll-delta-pos' : 'roll-delta-neg';
+      const major = Math.abs(v) >= 4 ? ' roll-delta--major' : '';
       const sign = v > 0 ? '+' : '';
-      return `<span class="${cls}" style="--delta-delay:${j * 80}ms">${statLabel(k)} ${sign}${v}</span>`;
+      return `<span class="${cls}${major}" style="--delta-delay:${j * 80}ms">${statLabel(k)} ${sign}${v}</span>`;
     })
     .join(' ');
 }

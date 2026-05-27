@@ -339,7 +339,7 @@
 /* ─── Cards summary — same list shell as Injuries but a coloured pip
    stands in for the injury-kind sub-label. */
 .mr-card--cards .mr-card-title {
-  color: #f5c024;
+  color: var(--rm-card-yellow);
 }
 
 .mr-card-entry {
@@ -362,8 +362,8 @@
   flex-shrink: 0;
 }
 
-.mr-card-pip--yellow { background: #f5c024; }
-.mr-card-pip--red    { background: #d22f2f; }
+.mr-card-pip--yellow { background: var(--rm-card-yellow); }
+.mr-card-pip--red    { background: var(--rm-card-red); }
 
 /* Pip-before-name spacing inside the two-column Cards layout (the
    scorer-row reuse doesn't carry the flex gap the old inline entry
@@ -494,8 +494,8 @@
 
 .mr-stat-label .hint {
   font-family: var(--rm-font-mono);
-  font-size: 8px;
-  letter-spacing: 0.14em;
+  font-size: 10px;
+  letter-spacing: 0.16em;
   color: var(--rm-text-faint);
   text-transform: uppercase;
 }

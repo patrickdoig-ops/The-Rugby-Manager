@@ -89,9 +89,9 @@
 
 .so-h3-count-lbl {
   font-family: var(--rm-font-mono);
-  font-size: 8px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   color: var(--rm-text-muted);
   text-transform: uppercase;
 }
@@ -175,7 +175,7 @@
 
 .so-ovr-lbl {
   font-family: var(--rm-font-mono);
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.10em;
   text-transform: uppercase;

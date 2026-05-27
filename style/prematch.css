@@ -88,7 +88,7 @@
 
 .pm-versus-code {
   font-family: var(--rm-font-display);
-  font-size: 16px;
+  font-size: 18px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -495,9 +495,9 @@
 
 .pm-watch-stat-lbl {
   font-family: var(--rm-font-mono);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   color: var(--rm-text-faint);
   text-transform: uppercase;
 }

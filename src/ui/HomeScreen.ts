@@ -162,7 +162,7 @@ export function initHomeScreen(
     </div>
 
     <div id="home-hero">
-      <div class="home-eyebrow">&#9658;&nbsp; A Simulated Rugby Season</div>
+      <div class="home-eyebrow"><svg width="9" height="10" viewBox="0 0 9 10" fill="currentColor" aria-hidden="true" style="vertical-align:-1px;margin-right:6px"><path d="M0 0 L9 5 L0 10 Z"/></svg>A Simulated Rugby Season</div>
       <h1 id="home-title">Rugby<br>Manager</h1>
       <div class="home-version-row">
         <span class="home-version-badge">v${VERSION}</span>

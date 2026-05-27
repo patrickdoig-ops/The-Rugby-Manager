@@ -38,12 +38,13 @@ export function launchConfetti(
   }
   resize();
 
+  const root = getComputedStyle(document.documentElement);
   const palette = [
     teamColor,
-    'oklch(0.97 0.008 90)',
+    root.getPropertyValue('--rm-chalk').trim(),
     teamColor,
     teamColor,
-    'oklch(0.76 0.21 144)',
+    root.getPropertyValue('--rm-pitch').trim(),
   ];
 
   const particles: Particle[] = [];

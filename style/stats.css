@@ -234,8 +234,17 @@
 
 .player-table .player-subbed td { opacity: 0.4; }
 .player-table .player-subbed td:nth-child(2)::after {
-  content: ' \2193';
-  font-size: 7px;
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 4px;
+  vertical-align: -1px;
+  background: currentColor;
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3'><path d='M12 4v16M5 13l7 7 7-7'/></svg>");
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
 }
 
 .player-table .td-tries { color: var(--rm-stat-5); font-weight: 700; }

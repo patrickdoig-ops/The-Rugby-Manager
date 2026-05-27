@@ -194,8 +194,8 @@
 
 /* OVR-class colour bands — mirror the same scale used on Contracts /
  * SquadManagement so the badge reads identically here. */
-.pp-ovr-badge.ovr-elite    { background: color-mix(in oklch, oklch(0.78 0.18 70) 22%, var(--rm-surface-2)); border-color: color-mix(in oklch, oklch(0.78 0.18 70) 45%, var(--rm-border)); }
-.pp-ovr-badge.ovr-elite    .pp-ovr-val { color: oklch(0.88 0.20 70); }
+.pp-ovr-badge.ovr-elite    { background: color-mix(in oklch, var(--rm-stat-3) 22%, var(--rm-surface-2)); border-color: color-mix(in oklch, var(--rm-stat-3) 45%, var(--rm-border)); }
+.pp-ovr-badge.ovr-elite    .pp-ovr-val { color: var(--rm-stat-3); }
 .pp-ovr-badge.ovr-good     { background: color-mix(in oklch, var(--rm-pitch) 18%, var(--rm-surface-2)); border-color: color-mix(in oklch, var(--rm-pitch) 40%, var(--rm-border)); }
 .pp-ovr-badge.ovr-good     .pp-ovr-val { color: var(--rm-pitch); }
 .pp-ovr-badge.ovr-avg      .pp-ovr-val { color: var(--rm-text); }
@@ -239,14 +239,14 @@
 }
 
 .pp-pip--ok .pp-pip-val    { color: var(--rm-pitch); }
-.pp-pip--tight .pp-pip-val { color: oklch(0.78 0.15 70); }
-.pp-pip--low .pp-pip-val   { color: oklch(0.72 0.20 25); }
+.pp-pip--tight .pp-pip-val { color: var(--rm-amber); }
+.pp-pip--low .pp-pip-val   { color: var(--rm-stat-1); }
 
 .pp-pip--injury {
-  background: color-mix(in oklch, oklch(0.72 0.20 25) 12%, var(--rm-surface));
-  border-color: color-mix(in oklch, oklch(0.72 0.20 25) 35%, var(--rm-border-soft));
+  background: color-mix(in oklch, var(--rm-stat-1) 12%, var(--rm-surface));
+  border-color: color-mix(in oklch, var(--rm-stat-1) 35%, var(--rm-border-soft));
 }
-.pp-pip--injury .pp-pip-val { color: oklch(0.78 0.18 25); }
+.pp-pip--injury .pp-pip-val { color: var(--rm-stat-1); }
 
 /* ─── Section heading shared across attribute / season / history blocks ─── */
 
@@ -380,7 +380,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.pp-attr-row--ovr-elite    .pp-attr-bar-fill { background: oklch(0.82 0.19 70); }
+.pp-attr-row--ovr-elite    .pp-attr-bar-fill { background: var(--rm-stat-3); }
 .pp-attr-row--ovr-good     .pp-attr-bar-fill { background: var(--rm-pitch); }
 .pp-attr-row--ovr-avg      .pp-attr-bar-fill { background: color-mix(in oklch, var(--rm-pitch) 60%, var(--rm-text-muted)); }
 .pp-attr-row--ovr-poor     .pp-attr-bar-fill { background: var(--rm-text-dim); }
@@ -425,8 +425,8 @@
 
 .pp-stat-val.rating-high { color: var(--rm-pitch); }
 .pp-stat-val.rating-mid  { color: var(--rm-text); }
-.pp-stat-val.rating-low  { color: oklch(0.72 0.16 50); }
-.pp-stat-val.rating-poor { color: oklch(0.66 0.20 25); }
+.pp-stat-val.rating-low  { color: var(--rm-stat-2); }
+.pp-stat-val.rating-poor { color: var(--rm-stat-1); }
 
 /* ─── Career history table ─── */
 
@@ -523,8 +523,8 @@
 }
 
 .pp-hist-rating.rating-high { color: var(--rm-pitch); }
-.pp-hist-rating.rating-low  { color: oklch(0.72 0.16 50); }
-.pp-hist-rating.rating-poor { color: oklch(0.66 0.20 25); }
+.pp-hist-rating.rating-low  { color: var(--rm-stat-2); }
+.pp-hist-rating.rating-poor { color: var(--rm-stat-1); }
 
 .pp-hist-empty {
   text-align: center;

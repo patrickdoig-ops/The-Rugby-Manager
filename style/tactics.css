@@ -47,10 +47,10 @@
 }
 
 .tactics-section-title {
-  font-family: var(--rm-font-display);
-  font-size: 14px;
-  font-weight: 400;
-  letter-spacing: 0.08em;
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--rm-chalk);
   margin: 0;
@@ -311,9 +311,10 @@
   border-top: 1px solid var(--rm-hairline);
   color: var(--rm-text);
   padding: 14px;
-  font-family: var(--rm-font-display);
-  font-size: 14px;
-  letter-spacing: 0.05em;
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
   text-transform: uppercase;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;

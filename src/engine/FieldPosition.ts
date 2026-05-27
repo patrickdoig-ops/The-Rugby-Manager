@@ -11,6 +11,10 @@ import {
   KICK_RETURN_DEFENDER_WEIGHTS,
   ASSIST_TACKLER_WEIGHTS,
 } from './balance/tackling';
+import {
+  HARD_CARRIER_WEIGHTS,
+  POD_PICKUP_WEIGHTS,
+} from './balance/carrying';
 
 // Home attacks toward x=100 in the first half, toward x=0 in the second.
 // Teams only swap ends at half-time, never on turnovers.
@@ -215,6 +219,33 @@ export function pickKickReturnDefender(team: Team, state: MatchState, side: Poss
   return pickWeighted(onField, KICK_RETURN_DEFENDER_WEIGHTS)
       ?? onField[0]
       ?? team.players[0];
+}
+
+// PhasePlay hard-carry forward pick. Weighted so back row + props dominate,
+// locks second, hooker rare. Degrades through any available forward → any
+// on-field player → team[0] if every weighted slot is binned / sent off.
+export function pickHardCarrier(team: Team, state: MatchState, side: PossessionSide): Player {
+  const fwds = availableForwards(team, state, side);
+  return pickWeighted(fwds, HARD_CARRIER_WEIGHTS)
+      ?? fwds[0]
+      ?? onFieldPlayers(team, state, side)[0]
+      ?? team.players[0];
+}
+
+// KickReturn pod-pickup carrier — weighted pick from back row + locks. The
+// optional `exclude` lets the caller skip the catcher (defensive against
+// future kick resolvers that set a forward as the kickReturnCarrier; today
+// the catcher is always a back). Returns undefined when no eligible pod
+// runner is on the field — caller falls back to "catcher keeps the ball"
+// so we never silently substitute a prop / hooker.
+export function pickPodCarrier(
+  team: Team,
+  state: MatchState,
+  side: PossessionSide,
+  exclude?: Player,
+): Player | undefined {
+  const fwds = availableForwards(team, state, side);
+  return pickWeighted(fwds, POD_PICKUP_WEIGHTS, exclude);
 }
 
 // Weighted pick over the on-field back three (fullback + wings). Used by the

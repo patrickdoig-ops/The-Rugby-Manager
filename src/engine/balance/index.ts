@@ -34,3 +34,4 @@ export * from './transfers';
 export * from './injuries';
 export * from './training';
 export * from './tackling';
+export * from './carrying';

@@ -172,9 +172,9 @@ FullTime     → (terminal)
 ```
 
 Three carry phases share an evasion/collision resolver but have distinct player selection and structure:
-- **PhasePlay** — runs after Breakdown; hard carry / out-the-back decision picks the carrier (random forward on the hard carry, fly-half → outside back on the wide path)
+- **PhasePlay** — runs after Breakdown; hard carry / out-the-back decision picks the carrier (weighted forward on the hard carry — back row + props heavy, locks second, hooker rare; fly-half → outside back on the wide path)
 - **FirstPhase** — runs after Scrum, Lineout, or a tap-and-go penalty; carrier always #10; crash ball or wide play
-- **KickReturn** — runs after KickOff, BoxKick, or TacticalKick; carrier is whoever caught the kick; run step before evasion/collision
+- **KickReturn** — runs after KickOff, BoxKick, or TacticalKick; catcher fields the kick, then a tactics-keyed pod-pickup roll may swap the carrier to a back-row pod runner before the run step
 
 The transition table above is documentary; the engine no longer enforces it at runtime. All transitions go through `PHASE_CHANGED` applied via `applyMatchEvent`.
 
@@ -493,13 +493,15 @@ Runs after `Breakdown` (recycled possession).
 
 The decision picks the carrier:
 
-- **Hard Carry:** carrier is a random forward (ids 1–8). Scrum-half → forward, then straight into contact.
+- **Hard Carry:** carrier is a forward (ids 1–8) chosen via `pickHardCarrier(attackTeam, state, attackSide)` — weighted pick over `availableForwards` using `HARD_CARRIER_WEIGHTS` (back row 18/18/15 + props 12/12 + locks 8/8 + hooker 4). Back row + props dominate the carry leaderboard; locks second; hooker rare. Scrum-half → forward, then straight into contact.
 - **Out the Back:** carrier is the fly-half (id 10). Scrum-half → fly-half → outside back (random from ids 11, 13, 14, 15); `ballCarrier = outsideBack`.
 
 ```typescript
-carrier  = goWide ? pickPlayer(attackTeam, 10) : randomForward(attackTeam)
+carrier  = goWide ? pickPlayer(attackTeam, 10) : pickHardCarrier(attackTeam, state, attackSide)
 defender = randomPlayer(defendTeam)
 ```
+
+Tuning: `HARD_CARRIER_WEIGHTS` in `src/engine/balance/carrying.ts`. The forward pool falls through `availableForwards` first → any on-field player → `team.players[0]` if every weighted slot is binned / sent off.
 
 **Step 2 — Carrier handling gate**
 
@@ -555,10 +557,18 @@ On any knock-on: possession flips, scrum awarded, dropping player −0.45. The `
 
 Runs after `KickOff`, `BoxKick`, or `TacticalKick`. The carrier is **whoever caught the kick** in the prior phase, tracked via `state.kickReturnCarrier` (set by each kick handler before transitioning to `KickReturn`, cleared at the start of this handler). Falls back to `randomPlayer(attackTeam)` if unset.
 
+**Pod pickup.** After the catcher is identified, a tactics-keyed roll may swap the carrier to a trailing back-row pod runner — the catcher pops the ball off rather than running it themselves. Probability is `POD_PICKUP_PCT[attackingStyle]` (`keep_it_tight` 50% / `balanced` 30% / `wide_wide` 15%); on hit, `pickPodCarrier(attackTeam, state, attackSide, catcher)` picks a weighted forward over back-row + locks only (`POD_PICKUP_WEIGHTS`: back row 18/18/15, locks 6/6 — props + hooker excluded, they're trailing in midfield). Falls through to the catcher when no eligible pod runner is on the field. The swap is silent — no extra commentary line; downstream phase outcome commentary (`line_break` / `dominant_tackle` / `play_on` / `dominant_carry`) names the pod runner automatically via `primary: carrier`.
+
 ```typescript
 carrier  = state.kickReturnCarrier ?? randomPlayer(attackTeam)
-defender = randomPlayer(defendTeam)   // any of the 15
+if (rng(1, 100) <= POD_PICKUP_PCT[attackTeam.tactics.attackingStyle]) {
+  const pod = pickPodCarrier(attackTeam, state, attackSide, carrier)
+  if (pod) carrier = pod
+}
+defender = pickKickReturnDefender(defendTeam, state, defSide)   // chase pack
 ```
+
+`runMetres` (Step 2) uses the swapped carrier's pace/agility — the pod runner is the one running into contact, so their stats drive the kick-return run. The catcher's brief return-and-pop isn't modelled separately (consistent with the per-phase abstraction elsewhere). Tuning: `POD_PICKUP_PCT` + `POD_PICKUP_WEIGHTS` in `src/engine/balance/carrying.ts`.
 
 `kickReturnCarrier` sources by prior phase:
 

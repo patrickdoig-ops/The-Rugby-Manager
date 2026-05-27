@@ -5,11 +5,11 @@ import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
-import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, pickCoverDefender, pickKickReturnDefender, pickAssistTackler } from '../FieldPosition';
+import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, pickCoverDefender, pickKickReturnDefender, pickAssistTackler, pickPodCarrier } from '../FieldPosition';
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
-import { HOME_ADVANTAGE, KICK_RETURN_VALUES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED } from '../balance';
+import { HOME_ADVANTAGE, KICK_RETURN_VALUES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, POD_PICKUP_PCT } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { tryOffloadChain } from './offloadChain';
 import type { NarrationStep } from '../../types/narration';
@@ -31,6 +31,16 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
   // Defender is drawn from the chase pack — back-row + hookers do most of
   // the chase-and-tackle work (flat forward-weighted, no carrier awareness).
   let carrier = state.kickReturnCarrier ?? (attackOnField.length > 0 ? attackOnField[rng(0, attackOnField.length - 1)] : randomPlayer(attackTeam));
+
+  // Pod pickup — catcher (typically FB / wing) pops to a trailing back-row
+  // pod runner who actually takes contact. Tactics-keyed: tight teams build
+  // platforms more, expansive teams let the backs run. Falls through to the
+  // catcher when no back-row / lock is on the field.
+  if (rng(1, 100) <= POD_PICKUP_PCT[attackTeam.tactics.attackingStyle]) {
+    const pod = pickPodCarrier(attackTeam, state, attackSide, carrier);
+    if (pod) carrier = pod;
+  }
+
   let defender = pickKickReturnDefender(defendTeam, state, defSide);
 
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;

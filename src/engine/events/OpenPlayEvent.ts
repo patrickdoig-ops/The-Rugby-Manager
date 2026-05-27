@@ -7,7 +7,7 @@ import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
-import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler } from '../FieldPosition';
+import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler, pickHardCarrier } from '../FieldPosition';
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
@@ -41,9 +41,13 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   const goWide = rng(1, 100) > HARD_CARRY_THRESHOLDS[style];
 
   const attackFwds = availableForwards(attackTeam, state, attackSide);
+  // Hard-carry path picks from the forward pool weighted so back row + props
+  // dominate (locks second, hooker rare); wide path keeps the fly-half as the
+  // first receiver. `attackFwds` is still consumed by the obstruction-offender
+  // pool inside the goWide branch below.
   const carrier   = goWide
     ? (attackOnField.find(p => p.id === SLOT.FLY_HALF) ?? pickPlayer(attackTeam, SLOT.FLY_HALF))
-    : (attackFwds.length > 0 ? attackFwds[rng(0, attackFwds.length - 1)] : (attackOnField[0] ?? randomPlayer(attackTeam)));
+    : pickHardCarrier(attackTeam, state, attackSide);
   let defender = defendOnField.length > 0 ? defendOnField[rng(0, defendOnField.length - 1)] : randomPlayer(defendTeam);
 
   // Defensive line drives both the knock-on pressure modifier (handling

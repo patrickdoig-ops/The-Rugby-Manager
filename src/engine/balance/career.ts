@@ -85,3 +85,15 @@ export const IMPORT_SUPPLY = {
   ageBand:     { min: 23, max: 30 },
   ratingBand:  { min: 65, max: 88 },
 };
+
+// Starter free-agent pool seeded once at game start (newSeason) so the
+// Hub → Transfers tile has something to scout from day one rather than
+// silently bouncing back. Same generator as foreign imports — journeyman
+// rating band, slightly wider age, larger volume. Skipped at fromSave
+// (the saved state already carries whatever FA pool the career has
+// accumulated since opening day).
+export const STARTER_FA_POOL = {
+  count:       { min: 12, max: 18 },
+  ageBand:     { min: 23, max: 32 },
+  ratingBand:  { min: 65, max: 85 },
+};

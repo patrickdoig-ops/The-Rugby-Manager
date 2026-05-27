@@ -10,6 +10,7 @@
 
 import type { TeamTactics } from './team';
 import type { InjuryKind, InjurySeverity, Player, PlayerStats } from './player';
+import type { TrainingPlan } from './training';
 
 export interface Fixture {
   round: number;
@@ -217,6 +218,30 @@ export interface SeasonAwards {
   topRating:   SeasonLeader[];  // by ratingSum / appearances, min appearances guard
 }
 
+// Per-player season snapshot archived at SEASON_ROLLED_OVER. Keyed by
+// rosterId on the parent ArchivedSeason.playerSeasonHistory map. Captures
+// the headline numbers + the club the player was at that season-end so
+// PlayerProfileScreen's Career History table can render a "club at the
+// time" column even after the player moves clubs in subsequent years.
+// Players with zero appearances are omitted from the map to keep the
+// payload small (a 480-player league has ~100 unused bench / wider squad
+// players that never see the pitch in any given season).
+export interface ArchivedPlayerSeason {
+  clubId: string;            // contract.clubId at the moment of archive
+  apps: number;
+  ratingSum: number;         // avg = ratingSum / apps
+  tries: number;
+  carries: number;
+  metresCarried: number;
+  lineBreaks: number;
+  tackles: number;
+  turnoversWon: number;
+  kicksMade: number;
+  kicksAtGoal: number;
+  yellowCards: number;
+  redCards: number;
+}
+
 // End-of-season snapshot — final standings + awards. Appended on every
 // SEASON_ROLLED_OVER for the season just completed.
 export interface ArchivedSeason {
@@ -229,6 +254,13 @@ export interface ArchivedSeason {
   // Null when archived without a playoff run — covers pre-v13 saves
   // whose archive entries predate the playoffs system.
   championTeamId: string | null;
+  // Per-player season snapshot, keyed by rosterId. Only players who
+  // took the field (apps > 0) are present. Optional so v18 and older
+  // archive entries load without the field — PlayerProfileScreen
+  // renders an empty Career History for historical seasons in that
+  // case. v19+ saves always include it (possibly empty for a
+  // played-but-recorded-zero edge case).
+  playerSeasonHistory?: Record<number, ArchivedPlayerSeason>;
 }
 
 // A renewal / signing offer surfaced during the end-of-season market
@@ -387,6 +419,10 @@ export interface GameState {
     // PLAYER_MATCHDAY_SQUAD_SET and consumed only by PreMatchScreen.
     tactics?: TeamTactics;
     matchdaySquad?: PlayerRef[]; // length 23: slots 1-15 starters, 16-23 bench
+    // Manager's training plan for the current week. Undefined ⇔ fall back to
+    // DEFAULT_TRAINING_PLAN. Persists between weeks (last week's choice is
+    // next week's default). Set via PLAYER_TRAINING_PLAN_SET.
+    training?: TrainingPlan;
   };
   seed: number;
   career: CareerState;
@@ -716,6 +752,11 @@ export type SeasonEvent =
       // re-zeroed. Optional so older event-replay paths (or hand-crafted
       // events in tests) can omit it.
       leaders?: SeasonAwards;
+      // Per-player season snapshot captured before seasonStats are
+      // re-zeroed. Drives PlayerProfileScreen's Career History table.
+      // Optional so older event-replay paths can omit it; the archive
+      // entry then renders an empty history column on the profile.
+      playerSeasonHistory?: Record<number, ArchivedPlayerSeason>;
     }
   | {
       // Seeds the knockout bracket from the final regular-season standings
@@ -808,4 +849,32 @@ export type SeasonEvent =
       type: 'MIDSEASON_OFFER_REJECTED';
       rosterId: number;
       weekUntilClear: number;
+    }
+  | {
+      // Writes state.player.training. Same shape + semantics as
+      // PLAYER_TACTICS_SET: persists the manager's choice so it becomes
+      // next week's default.
+      type: 'PLAYER_TRAINING_PLAN_SET';
+      plan: TrainingPlan;
+    }
+  | {
+      // Applies one week of training to a single roster player. Reducer
+      // adds conditionDelta to Player.condition (clamped 0-100) and each
+      // statDelta to the matching baseStats key (clamped 1-99). Same
+      // shape as PLAYER_AGED for stats; the condition field is the new
+      // inter-match freshness layer.
+      type: 'PLAYER_TRAINED';
+      rosterId: number;
+      conditionDelta: number;
+      statDeltas: Partial<PlayerStats>;
+    }
+  | {
+      // Match-end snapshot of one player's final fatigue, persisted back
+      // to the roster as their inter-match condition. Set, not add.
+      // Emitted by collectConditionEvents for every player who took the
+      // field; bench players who didn't appear get no event and keep
+      // their accumulated condition.
+      type: 'PLAYER_CONDITION_UPDATED';
+      rosterId: number;
+      condition: number;
     };

@@ -1,6 +1,7 @@
 import type { Player } from '../../types/player';
 import type { CollisionResult } from '../../types/engine';
 import { rng } from '../../utils/rng';
+import { clamp } from '../../utils/math';
 import { OPEN_PLAY_VALUES } from '../balance';
 
 export type OpenPlayOutcome =
@@ -34,7 +35,15 @@ export function resolveOpenPlay(
   const defenseScore  = (defender.currentStats.positioning * V.positioningWeight + defender.currentStats.pace * V.paceWeight + defender.currentStats.tackling * V.defenderTacklingLineBreakWeight) + rng(1, 20) + defendMod;
 
   if (evasionScore - defenseScore >= V.lineBreakMargin) {
-    return { outcome: 'line_break', gainMetres: rng(V.lineBreakMetres[0], V.lineBreakMetres[1]), evasionScore, defenseScore, collisionAttack: 0, collisionDefend: 0 };
+    // Pace-scaled gain. Wings (~pace 90+) keep the full 20-45m range;
+    // slower carriers (props/locks) see the range compressed because
+    // defenders chase back faster than the carrier can run forward.
+    const P = V.LINE_BREAK_PACE;
+    const t = clamp((attacker.currentStats.pace - P.paceAtFloorGain) / (P.paceAtFullGain - P.paceAtFloorGain), 0, 1);
+    const paceFactor = P.paceFactorMin + t * (P.paceFactorMax - P.paceFactorMin);
+    const raw = rng(V.lineBreakMetres[0], V.lineBreakMetres[1]) * paceFactor;
+    const gainMetres = Math.max(P.minGainMetres, Math.round(raw));
+    return { outcome: 'line_break', gainMetres, evasionScore, defenseScore, collisionAttack: 0, collisionDefend: 0 };
   }
 
   // Collision check

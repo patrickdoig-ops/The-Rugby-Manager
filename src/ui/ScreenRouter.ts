@@ -15,6 +15,10 @@ export type ScreenId =
   | 'hub'
   | 'fixture-list'
   | 'league-table'
+  | 'league-menu'
+  | 'team-stats'
+  | 'player-stats'
+  | 'player-profile'
   | 'pre-match'
   | 'app'
   | 'match-result'
@@ -30,7 +34,8 @@ export type ScreenId =
   | 'rollover'
   | 'contracts'
   | 'squad-management'
-  | 'squad-overview';
+  | 'squad-overview'
+  | 'training';
 
 const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'home':          { elId: 'home-screen',   shownDisplay: '' },
@@ -41,6 +46,10 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'hub':           { elId: 'hub',           shownDisplay: '' },
   'fixture-list':  { elId: 'fixture-list',  shownDisplay: '' },
   'league-table':  { elId: 'league-table',  shownDisplay: '' },
+  'league-menu':   { elId: 'league-menu',   shownDisplay: '' },
+  'team-stats':    { elId: 'team-stats',    shownDisplay: '' },
+  'player-stats':  { elId: 'player-stats',  shownDisplay: '' },
+  'player-profile':{ elId: 'player-profile',shownDisplay: '' },
   'pre-match':     { elId: 'pre-match',     shownDisplay: '' },
   'app':           { elId: 'app',           shownDisplay: '' },
   'match-result':  { elId: 'match-result',  shownDisplay: 'flex' },
@@ -57,6 +66,7 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'contracts':        { elId: 'contracts',        shownDisplay: '' },
   'squad-management': { elId: 'squad-management', shownDisplay: '' },
   'squad-overview':   { elId: 'squad-overview',   shownDisplay: '' },
+  'training':         { elId: 'training',         shownDisplay: '' },
 };
 
 let _currentScreen: ScreenId | null = null;

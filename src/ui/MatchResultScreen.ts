@@ -104,49 +104,79 @@ function renderCardsLine(state: MatchState): string {
   // who were later subbed off live in team.substitutedOff, so the list
   // has to span both buckets. matchStats.{yellowCards,redCards} is the
   // source of truth (incremented by CARD_ISSUED in applyMatchEvent).
-  type Row = { p: Player; team: Team; kind: 'yellow' | 'red' };
-  const rows: Row[] = [];
-  for (const team of [state.homeTeam, state.awayTeam]) {
+  type Row = { p: Player; kind: 'yellow' | 'red' };
+  function teamRows(team: Team): Row[] {
+    const out: Row[] = [];
     for (const p of [...team.players, ...team.substitutedOff]) {
-      if (p.matchStats.yellowCards > 0) rows.push({ p, team, kind: 'yellow' });
-      if (p.matchStats.redCards > 0)    rows.push({ p, team, kind: 'red'    });
+      if (p.matchStats.yellowCards > 0) out.push({ p, kind: 'yellow' });
+      if (p.matchStats.redCards > 0)    out.push({ p, kind: 'red'    });
     }
+    return out;
   }
-  if (rows.length === 0) return '';
-  const entries = rows.map(r => `
-    <span class="mr-card-entry">
-      <span class="mr-card-pip mr-card-pip--${r.kind}"></span>
-      <span class="mr-card-name" style="color:${teamTextColor(r.team.color)}">${shortName(r.p)}</span>
-    </span>
-  `).join('<span class="mr-injury-sep">·</span>');
+  const homeRows = teamRows(state.homeTeam);
+  const awayRows = teamRows(state.awayTeam);
+  if (homeRows.length === 0 && awayRows.length === 0) return '';
+  function column(rows: Row[]): string {
+    if (rows.length === 0) return '<span class="mr-no-scorers">—</span>';
+    return rows.map(r => `
+      <div class="mr-scorer-row">
+        <span class="mr-scorer-name"><span class="mr-card-pip mr-card-pip--${r.kind}"></span>${shortName(r.p)}</span>
+      </div>
+    `).join('');
+  }
   return `
     <section class="mr-card mr-card--cards">
       <h2 class="mr-card-title">Cards</h2>
-      <div class="mr-injuries-list">${entries}</div>
+      <div class="mr-scorers-grid">
+        <div class="mr-scorers-team">
+          <div class="mr-scorers-team-label" style="color:${teamTextColor(state.homeTeam.color)}">${state.homeTeam.shortName}</div>
+          ${column(homeRows)}
+        </div>
+        <div class="mr-scorers-divider"></div>
+        <div class="mr-scorers-team">
+          <div class="mr-scorers-team-label" style="color:${teamTextColor(state.awayTeam.color)}">${state.awayTeam.shortName}</div>
+          ${column(awayRows)}
+        </div>
+      </div>
     </section>
   `;
 }
 
 function renderInjuriesLine(state: MatchState): string {
-  const everyone: Array<{ p: Player; team: Team }> = [
-    ...state.homeTeam.players.map(p => ({ p, team: state.homeTeam })),
-    ...state.homeTeam.substitutedOff.map(p => ({ p, team: state.homeTeam })),
-    ...state.awayTeam.players.map(p => ({ p, team: state.awayTeam })),
-    ...state.awayTeam.substitutedOff.map(p => ({ p, team: state.awayTeam })),
-  ];
-  const injured = everyone.filter(e => e.p.pendingInjuryKind);
-  if (injured.length === 0) return '';
-  const entries = injured.map(e => {
-    const kindLabel = e.p.pendingInjuryKind!.replace(/_/g, ' ');
-    return `<span class="mr-injury-entry">
-      <span class="mr-injury-name" style="color:${teamTextColor(e.team.color)}">${shortName(e.p)}</span>
-      <span class="mr-injury-kind">${kindLabel}</span>
-    </span>`;
-  }).join('<span class="mr-injury-sep">·</span>');
+  type Row = { p: Player; kind: string };
+  function teamRows(team: Team): Row[] {
+    const out: Row[] = [];
+    for (const p of [...team.players, ...team.substitutedOff]) {
+      if (p.pendingInjuryKind) out.push({ p, kind: p.pendingInjuryKind.replace(/_/g, ' ') });
+    }
+    return out;
+  }
+  const homeRows = teamRows(state.homeTeam);
+  const awayRows = teamRows(state.awayTeam);
+  if (homeRows.length === 0 && awayRows.length === 0) return '';
+  function column(rows: Row[]): string {
+    if (rows.length === 0) return '<span class="mr-no-scorers">—</span>';
+    return rows.map(r => `
+      <div class="mr-scorer-row">
+        <span class="mr-scorer-name">${shortName(r.p)}</span>
+        <span class="mr-injury-kind">${r.kind}</span>
+      </div>
+    `).join('');
+  }
   return `
     <section class="mr-card mr-card--injuries">
       <h2 class="mr-card-title">Injuries</h2>
-      <div class="mr-injuries-list">${entries}</div>
+      <div class="mr-scorers-grid">
+        <div class="mr-scorers-team">
+          <div class="mr-scorers-team-label" style="color:${teamTextColor(state.homeTeam.color)}">${state.homeTeam.shortName}</div>
+          ${column(homeRows)}
+        </div>
+        <div class="mr-scorers-divider"></div>
+        <div class="mr-scorers-team">
+          <div class="mr-scorers-team-label" style="color:${teamTextColor(state.awayTeam.color)}">${state.awayTeam.shortName}</div>
+          ${column(awayRows)}
+        </div>
+      </div>
     </section>
   `;
 }
@@ -196,6 +226,14 @@ function renderStatsCard(state: MatchState): string {
 
   const homeMetres = teamMetres(homeTeam);
   const awayMetres = teamMetres(awayTeam);
+  const hRunM  = teamStat(homeTeam, 'metresCarried');
+  const aRunM  = teamStat(awayTeam, 'metresCarried');
+  const hKickM = teamStat(homeTeam, 'kickMetres');
+  const aKickM = teamStat(awayTeam, 'kickMetres');
+  const hMissed = Math.max(0, stats.tackles.home.attempted - stats.tackles.home.made);
+  const aMissed = Math.max(0, stats.tackles.away.attempted - stats.tackles.away.made);
+  const hPens = teamStat(homeTeam, 'penaltiesConceded');
+  const aPens = teamStat(awayTeam, 'penaltiesConceded');
 
   const rows: Array<{
     label:   string;
@@ -205,12 +243,26 @@ function renderStatsCard(state: MatchState): string {
     homeNum: number;
     awayNum: number;
     invert?: boolean;
+    extended?: boolean;
   }> = [
     { label: 'Possession', homeVal: pct(stats.possession.home, stats.possession.away), awayVal: pct(stats.possession.away, stats.possession.home), homeNum: stats.possession.home, awayNum: stats.possession.away },
     { label: 'Territory',  homeVal: pct(stats.territory.home, stats.territory.away),   awayVal: pct(stats.territory.away, stats.territory.home),   homeNum: stats.territory.home,  awayNum: stats.territory.away },
     { label: 'Tries',      homeVal: String(stats.tries.home),                          awayVal: String(stats.tries.away),                          homeNum: stats.tries.home,      awayNum: stats.tries.away },
     { label: 'Metres',     homeVal: `${homeMetres}m`,                                  awayVal: `${awayMetres}m`,                                  homeNum: homeMetres,            awayNum: awayMetres },
     { label: 'Tackle %',   homeVal: tacklePctLabel(stats.tackles.home),                awayVal: tacklePctLabel(stats.tackles.away),                homeNum: stats.tackles.home.made, awayNum: stats.tackles.away.made },
+    // ↓ shown only when the "Show all stats" toggle is expanded.
+    { label: '22 entries',     homeVal: String(stats.entries22.home.count),  awayVal: String(stats.entries22.away.count),  homeNum: stats.entries22.home.count, awayNum: stats.entries22.away.count, extended: true },
+    { label: 'Points / entry', homeVal: pointsPerEntry(stats.entries22.home), awayVal: pointsPerEntry(stats.entries22.away), homeNum: stats.entries22.home.pointsScored, awayNum: stats.entries22.away.pointsScored, extended: true },
+    { label: 'Run metres',     homeVal: `${hRunM}m`,                          awayVal: `${aRunM}m`,                          homeNum: hRunM,                       awayNum: aRunM,                       extended: true },
+    { label: 'Kick metres',    homeVal: `${hKickM}m`,                         awayVal: `${aKickM}m`,                         homeNum: hKickM,                      awayNum: aKickM,                      extended: true },
+    { label: 'Errors',         homeVal: String(stats.handlingErrors.home),    awayVal: String(stats.handlingErrors.away),    homeNum: stats.handlingErrors.home,   awayNum: stats.handlingErrors.away,   invert: true, extended: true },
+    { label: 'Tackles made',   homeVal: String(stats.tackles.home.made),      awayVal: String(stats.tackles.away.made),      homeNum: stats.tackles.home.made,     awayNum: stats.tackles.away.made,     extended: true },
+    { label: 'Missed tackles', homeVal: String(hMissed),                      awayVal: String(aMissed),                      homeNum: hMissed,                     awayNum: aMissed,                     invert: true, extended: true },
+    { label: 'Lineouts',       homeVal: String(stats.lineouts.home),          awayVal: String(stats.lineouts.away),          homeNum: stats.lineouts.home,         awayNum: stats.lineouts.away,         extended: true },
+    { label: 'Lineout success', homeVal: setPieceLabel(stats.ownLineouts.home), awayVal: setPieceLabel(stats.ownLineouts.away), homeNum: stats.ownLineouts.home.won, awayNum: stats.ownLineouts.away.won, extended: true },
+    { label: 'Scrums',         homeVal: String(stats.scrums.home),            awayVal: String(stats.scrums.away),            homeNum: stats.scrums.home,           awayNum: stats.scrums.away,           extended: true },
+    { label: 'Scrum success',  homeVal: setPieceLabel(stats.ownScrums.home),   awayVal: setPieceLabel(stats.ownScrums.away),   homeNum: stats.ownScrums.home.won,   awayNum: stats.ownScrums.away.won,   extended: true },
+    { label: 'Penalties conceded', homeVal: String(hPens),                    awayVal: String(aPens),                        homeNum: hPens,                       awayNum: aPens,                       invert: true, extended: true },
   ];
 
   const rowsHtml = rows.map(r => {
@@ -223,7 +275,7 @@ function renderStatsCard(state: MatchState): string {
       ? `<span class="mr-stat-label"><span class="key">${r.label}</span><span class="hint">${r.hint}</span></span>`
       : `<span class="mr-stat-label"><span class="key">${r.label}</span></span>`;
     return `
-      <div class="mr-stat-row">
+      <div class="mr-stat-row${r.extended ? ' mr-stat-row--extended' : ''}">
         <div class="mr-stat-row-header">
           <span class="mr-stat-val${hWins ? ' mr-stat-winner' : ''}">${r.homeVal}</span>
           ${labelHtml}
@@ -238,7 +290,7 @@ function renderStatsCard(state: MatchState): string {
   }).join('');
 
   return `
-    <section class="mr-card">
+    <section class="mr-card mr-stats-card">
       <h2 class="mr-card-title">Key Stats</h2>
       <div class="mr-stats-header">
         <span class="mr-stats-team-code" style="color:${hc}">${homeTeam.shortName}</span>
@@ -246,8 +298,30 @@ function renderStatsCard(state: MatchState): string {
         <span class="mr-stats-team-code" style="color:${ac}">${awayTeam.shortName}</span>
       </div>
       ${rowsHtml}
+      <button class="mr-stats-toggle" aria-expanded="false" type="button">
+        <span class="mr-stats-toggle-label">Show all stats</span>
+        <svg class="mr-stats-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
     </section>
   `;
+}
+
+function teamStat(team: Team, key: 'metresCarried' | 'kickMetres' | 'penaltiesConceded'): number {
+  let sum = 0;
+  for (const p of team.players) sum += p.matchStats[key];
+  for (const p of team.substitutedOff) sum += p.matchStats[key];
+  return sum;
+}
+
+function setPieceLabel(s: { won: number; thrown?: number; putIn?: number }): string {
+  const total = s.thrown ?? s.putIn ?? 0;
+  if (total === 0) return '—';
+  return `${s.won}/${total}`;
+}
+
+function pointsPerEntry(e: { count: number; pointsScored: number }): string {
+  if (e.count === 0) return '—';
+  return (e.pointsScored / e.count).toFixed(1);
 }
 
 function tacklePctLabel(t: { attempted: number; made: number }): string {
@@ -402,4 +476,18 @@ export function initMatchResultScreen(
     btn.querySelector<HTMLSpanElement>('.mr-continue-label')!.textContent = `Simulating round ${round}…`;
     onContinue();
   });
+
+  // Expand/collapse toggle on the Key Stats card. Hidden rows live in
+  // .mr-stat-row--extended; CSS keys off .mr-stats-card--expanded on
+  // the section.
+  const statsCard = el.querySelector<HTMLElement>('.mr-stats-card');
+  const statsToggle = el.querySelector<HTMLButtonElement>('.mr-stats-toggle');
+  if (statsCard && statsToggle) {
+    statsToggle.addEventListener('click', () => {
+      const expanded = statsCard.classList.toggle('mr-stats-card--expanded');
+      statsToggle.setAttribute('aria-expanded', String(expanded));
+      const label = statsToggle.querySelector<HTMLSpanElement>('.mr-stats-toggle-label');
+      if (label) label.textContent = expanded ? 'Show key stats' : 'Show all stats';
+    });
+  }
 }

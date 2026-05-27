@@ -26,9 +26,9 @@
 // (Six Nations). Keeps the calendar feeling real without needing a
 // hand-authored schedule for years 2+.
 
-import type { Fixture, GameState, SeasonEvent, TeamStanding } from '../types/gameState';
+import type { ArchivedPlayerSeason, Fixture, GameState, SeasonEvent, TeamStanding } from '../types/gameState';
 import type { Player, PlayerStats, PlayerSeasonStats } from '../types/player';
-import { isForward } from '../types/player';
+import { isForward, PLAYER_STAT_KEYS } from '../types/player';
 import type { SeasonAwards, SeasonLeader } from '../types/gameState';
 import { AGE_CURVES, STAT_NOISE, RETIREMENT_CURVE, SEASON_AWARDS, ACADEMY_SUPPLY, IMPORT_SUPPLY } from '../engine/balance/career';
 import { SEASON_VALUES } from '../engine/balance';
@@ -128,6 +128,7 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
   );
   const archivedStandings: TeamStanding[] = state.league.standings.map(s => ({ ...s }));
   const championTeamId = state.league.playoffs?.championTeamId ?? null;
+  const playerSeasonHistory = snapshotPlayerHistory(state);
 
   events.push({
     type: 'SEASON_ROLLED_OVER',
@@ -138,16 +139,48 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
     mvpRosterId,
     championTeamId,
     leaders,
+    playerSeasonHistory,
   });
 
   return events;
+}
+
+// Per-player season snapshot captured before SEASON_ROLLED_OVER zeroes
+// state.career.roster[*].seasonStats. Skips players with no appearances
+// to keep the payload tight (a 480-player league has many wider-squad
+// players who never see the pitch). Iterates rosterId-ascending so the
+// JSON serialisation order is stable for save-roundtrip determinism.
+function snapshotPlayerHistory(state: GameState): Record<number, ArchivedPlayerSeason> {
+  const out: Record<number, ArchivedPlayerSeason> = {};
+  const rosterIds = Object.keys(state.career.roster).map(Number).sort((a, b) => a - b);
+  for (const rid of rosterIds) {
+    const p = state.career.roster[rid];
+    const s = p.seasonStats;
+    if (s.appearances === 0) continue;
+    out[rid] = {
+      clubId: p.contract.clubId,
+      apps: s.appearances,
+      ratingSum: s.ratingSum,
+      tries: s.tries,
+      carries: s.carries,
+      metresCarried: s.metresCarried,
+      lineBreaks: s.lineBreaks,
+      tackles: s.tackles,
+      turnoversWon: s.turnoversWon,
+      kicksMade: s.kicksMade,
+      kicksAtGoal: s.kicksAtGoal,
+      yellowCards: s.yellowCards,
+      redCards: s.redCards,
+    };
+  }
+  return out;
 }
 
 // --- Stat development ---
 
 function developStats(p: Player, ageInNewSeason: number): Partial<PlayerStats> {
   const deltas: Partial<PlayerStats> = {};
-  for (const k of Object.keys(p.baseStats) as (keyof PlayerStats)[]) {
+  for (const k of PLAYER_STAT_KEYS) {
     const curve = AGE_CURVES[k];
     const base = ageInNewSeason < curve.peakAge ? curve.growthPerYear : -curve.declinePerYear;
     const noise = clampedNormal(STAT_NOISE.stddev, STAT_NOISE.clamp);

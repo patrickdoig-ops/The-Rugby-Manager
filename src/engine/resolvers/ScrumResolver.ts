@@ -39,13 +39,18 @@ export function resolveScrum(attackForwards: Player[], defendForwards: Player[])
   else if (margin > wheelMargin) result = 'wheel';
   else result = 'defending_dominant_penalty';
 
-  // Own-put-in floor (see SCRUM_VALUES.ownPutInRescuePct). A much weaker
-  // pack would otherwise lose nearly every own scrum to a dominant pen;
-  // rescue most of those into a wheel reset (no possession change) so the
-  // floor lands around 70%+ league-wide. For evenly-matched packs the
-  // natural pen rate is low so the rescue rarely fires.
-  if (result === 'defending_dominant_penalty' && rng(1, 100) <= SCRUM_VALUES.ownPutInRescuePct) {
-    result = 'wheel';
+  // Own-put-in floor — two-stage rescue for defending_dominant_penalty.
+  // Stage 1 (ownPutInRescuePct): convert to wheel (reset scrum, possession
+  // retained, sequence continues). Stage 2 (weakPackStableWinPct): if stage
+  // 1 didn't rescue, with a small probability convert directly to
+  // stable_win (sequence ends, possession retained). Together these keep
+  // even fully-weak packs around 80% own-put-in retention league-wide.
+  if (result === 'defending_dominant_penalty') {
+    if (rng(1, 100) <= SCRUM_VALUES.ownPutInRescuePct) {
+      result = 'wheel';
+    } else if (rng(1, 100) <= SCRUM_VALUES.weakPackStableWinPct) {
+      result = 'stable_win';
+    }
   }
 
   return { result, attackScore, defendScore, margin };

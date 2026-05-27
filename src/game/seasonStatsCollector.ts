@@ -22,6 +22,10 @@ export interface PlayerStatsSnapshot {
   // single-field touch on PlayerMatchStats, no fanout here.
   matchStats: PlayerMatchStats;
   rating: number;
+  // Final in-match fatigue, snapshotted before teardown. Persisted back to
+  // the roster's `condition` field via PLAYER_CONDITION_UPDATED so the next
+  // match starts at this level (instead of always at 100).
+  finalFatiguePct: number;
   // In-match injury, if the player picked one up. Severity + weeks are
   // rolled later via rngTransfer inside GameCoordinator (career stream).
   // Undefined for the typical case where the player finishes fit.
@@ -56,6 +60,7 @@ export function snapshotMatch(state: MatchState, homeTeamId: string, awayTeamId:
       rosterId: p.rosterId,
       matchStats: { ...p.matchStats },
       rating: p.rating,
+      finalFatiguePct: p.fatiguePct,
       ...(p.pendingInjuryKind ? { injuryKind: p.pendingInjuryKind } : {}),
     }));
 
@@ -159,4 +164,17 @@ export function collectSeasonEvents(snap: MatchSnapshot): SeasonEvent[] {
   );
 
   return events;
+}
+
+// Match-end snapshot of each player's final fatigue, persisted back to the
+// roster as their inter-match condition. One event per player who took the
+// field; bench players who never came on keep their accumulated condition
+// (no event emitted for them). Same snapshot shape as collectSeasonEvents
+// so the call site is symmetric.
+export function collectConditionEvents(snap: MatchSnapshot): SeasonEvent[] {
+  return snap.playerSnapshots.map(s => ({
+    type: 'PLAYER_CONDITION_UPDATED' as const,
+    rosterId: s.rosterId,
+    condition: s.finalFatiguePct,
+  }));
 }

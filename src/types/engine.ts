@@ -6,6 +6,7 @@ export enum MatchPhase {
   Breakdown      = 'BREAKDOWN',
   Scrum          = 'SCRUM',
   Lineout        = 'LINEOUT',
+  Maul           = 'MAUL',
   TacticalKick   = 'TACTICAL_KICK',
   BoxKick        = 'BOX_KICK',
   Penalty        = 'PENALTY',
@@ -23,6 +24,7 @@ export type KickOffStrategy = 'high_ball' | 'short_kick' | 'grubber';
 export type BreakdownResult = 'clean_ball' | 'slow_ball' | 'turnover' | 'penalty_defending';
 export type ScrumResult     = 'stable_win' | 'wheel' | 'attacking_dominant_penalty' | 'defending_dominant_penalty';
 export type LineoutResult   = 'clean_catch' | 'steal' | 'scrappy_knock_on' | 'crooked_throw';
+export type MaulResult      = 'maul_won' | 'maul_held' | 'maul_collapse_penalty';
 export type KickOffResult   = 'clean_receive' | 'knock_on' | 'short_kick_retain' | 'poor_kick';
 export type CollisionResult = 'dominant_carry' | 'dominant_tackle' | 'broken_tackle';
 export type KickResult      = 'good_kick' | 'poor_kick' | 'knock_on_catch';
@@ -59,7 +61,8 @@ export type PenaltyOffence =
   | 'offside_at_ruck'
   | 'obstruction'
   | 'dangerous_cleanout'
-  | 'not_rolling_away';
+  | 'not_rolling_away'
+  | 'maul_collapse';
 
 // Card severity. Yellow = 10-min sin-bin, returns. red_20 = 20-min sin-bin,
 // no return but team may sub from bench. red_full = permanent sent off

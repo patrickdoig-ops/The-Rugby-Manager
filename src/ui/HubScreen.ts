@@ -13,6 +13,7 @@ import { eventBus } from '../utils/eventBus';
 import { sortStandings } from '../game/leagueTable';
 import { computeOverallRating } from '../team/teamProfile';
 import { formAdjustment, matchSpread, HOME_ADVANTAGE_PTS } from '../game/teamStats';
+import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
 
 export interface InitHubScreenOpts {
   // Always called fresh — the GameCoordinator reference can swap when the
@@ -78,7 +79,7 @@ const TILES: TileSpec[] = [
   { id: 'hub-tile-squad',     ariaLabel: 'Squad selector',  label: 'Squad',     iconKey: 'squad',     handlerKey: 'onSquad' },
   { id: 'hub-tile-fixtures',  ariaLabel: 'Fixture list',    label: 'Fixtures',  iconKey: 'fixtures',  handlerKey: 'onFixtures' },
   { id: 'hub-tile-league',    ariaLabel: 'League table',    label: 'League',    iconKey: 'league',    handlerKey: 'onLeague' },
-  { id: 'hub-tile-training',  ariaLabel: 'Training',        label: 'Training',  iconKey: 'training',  handlerKey: 'onTraining',  stub: true, sub: 'Drills & fitness' },
+  { id: 'hub-tile-training',  ariaLabel: 'Training',        label: 'Training',  iconKey: 'training',  handlerKey: 'onTraining' },
   { id: 'hub-tile-contracts', ariaLabel: 'Contracts',       label: 'Contracts', iconKey: 'contracts', handlerKey: 'onContracts' },
   { id: 'hub-tile-transfers', ariaLabel: 'Transfer market', label: 'Transfers', iconKey: 'transfers', handlerKey: 'onTransfers' },
 ];
@@ -122,8 +123,10 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
     const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
     const pct = totalRounds > 0 ? (state.calendar.week / totalRounds) * 100 : 0;
     const injuredCount = countInjured(state);
+    const expiringCount = countExpiringContracts(state);
     const tileBadgeCount: Record<string, number> = {
       'hub-tile-squad':     injuredCount,
+      'hub-tile-contracts': expiringCount,
     };
 
     el!.innerHTML = `
@@ -350,6 +353,33 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
     let n = 0;
     for (const rid of club.squad) {
       if (state.career.roster[rid]?.injury) n++;
+    }
+    return n;
+  }
+
+  // Count of the user's players whose contracts fall within the
+  // expiry window (default 6 months) — surfaces on the Contracts tile
+  // as a "act now" nudge. Pre-agreed Reg 7 leavers are excluded
+  // because the user can't act on them.
+  function countExpiringContracts(state: GameState): number {
+    const club = state.career.clubs.find(c => c.id === state.player.teamId);
+    if (!club) return 0;
+    const today = new Date(state.calendar.date);
+    const leaving = new Set(
+      state.career.pendingMoves
+        .filter(m => m.toClubId !== state.player.teamId)
+        .map(m => m.rosterId),
+    );
+    let n = 0;
+    for (const rid of club.squad) {
+      if (leaving.has(rid)) continue;
+      const p = state.career.roster[rid];
+      const expiresOn = p?.contract.expiresOn;
+      if (!expiresOn) continue;
+      const exp = new Date(expiresOn);
+      const monthsAhead = (exp.getUTCFullYear() - today.getUTCFullYear()) * 12
+                        + (exp.getUTCMonth() - today.getUTCMonth());
+      if (monthsAhead >= 0 && monthsAhead <= EXPIRING_CONTRACT_WINDOW_MONTHS) n++;
     }
     return n;
   }

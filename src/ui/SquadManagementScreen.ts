@@ -35,12 +35,17 @@ import { shortName } from '../utils/playerName';
 import { saveGame } from './SaveManager';
 import { showToast } from './Toast';
 import { eventBus } from '../utils/eventBus';
+import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 
 export interface InitSquadManagementOpts {
   // Always called fresh — see HubScreen for the rationale.
   getGameEngine: () => GameCoordinator;
   allTeams: RawTeamInput[];
   onBack: () => void;
+  // Tap player name → profile. Tap anywhere else on the row → two-tap
+  // swap (existing behaviour). The link handler stops propagation so
+  // these two interactions don't collide.
+  onPlayerClick?: (rosterId: number) => void;
 }
 
 type Tier = 'starter' | 'bench' | 'squad';
@@ -81,8 +86,14 @@ function injuryKindLabel(kind: PlayerInjury['kind']): string {
 }
 
 let renderImpl: (() => void) | null = null;
+// One-shot back-target override. Cleared after the user navigates back —
+// so a future plain showSquadManagement() call falls back to the
+// init-time onBack (Hub). The PreMatch flow uses this to bring the user
+// back to the line-up step instead of Hub.
+let activeOnBack: (() => void) | null = null;
 
-export function showSquadManagement(): void {
+export function showSquadManagement(onBack?: () => void): void {
+  activeOnBack = onBack ?? null;
   renderImpl?.();
 }
 
@@ -101,6 +112,15 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
   let dirty = false;
   let discardOpen = false;
   let detailView = false;
+
+  // Honour a one-shot back override if showSquadManagement set one,
+  // then clear it so the next plain show falls back to the init-time
+  // onBack target (Hub).
+  function triggerBack(): void {
+    const target = activeOnBack ?? opts.onBack;
+    activeOnBack = null;
+    target();
+  }
 
   function resetDraftFromState(): void {
     const state = opts.getGameEngine().getState();
@@ -153,6 +173,23 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     const r = state.career.roster[p.rosterId];
     if (!r) return { yellow: 0, red: 0 };
     return { yellow: r.seasonStats.yellowCards, red: r.seasonStats.redCards };
+  }
+  void cardsFor; // retained as a future hook; no longer surfaced as a per-row badge.
+
+  function conditionFor(p: { rosterId?: number }): number | null {
+    if (p.rosterId === undefined) return null;
+    const state = opts.getGameEngine().getState();
+    const r = state.career.roster[p.rosterId];
+    if (!r) return null;
+    return r.condition;
+  }
+
+  function conditionClass(c: number): string {
+    if (c >= 90) return 'con-elite';
+    if (c >= 75) return 'con-good';
+    if (c >= 55) return 'con-avg';
+    if (c >= 35) return 'con-poor';
+    return 'con-veryPoor';
   }
 
   function listForTier(tier: Tier): RawPlayer[] {
@@ -282,6 +319,12 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     const saveDisabled = !dirty ? ' disabled' : '';
     const confirmHtml = discardOpen ? discardConfirmHtml() : '';
 
+    // Preserve scroll position across re-render. Tapping a row triggers
+    // render() (selection-state change), which rewrites el.innerHTML —
+    // without this, the freshly-mounted #sq-list resets to scrollTop 0
+    // and the user gets bounced to the top of the squad.
+    const prevScroll = el.querySelector<HTMLDivElement>('#sq-list')?.scrollTop ?? 0;
+
     el.style.setProperty('--team-color', teamJson.color);
     el.innerHTML = `
       <div class="app-header">
@@ -320,6 +363,13 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
 
       ${confirmHtml}
     `;
+
+    // Restore scroll position captured above the innerHTML rewrite so
+    // selection / swap re-renders feel in-place.
+    if (prevScroll) {
+      const newList = el.querySelector<HTMLDivElement>('#sq-list');
+      if (newList) newList.scrollTop = prevScroll;
+    }
 
     // Filter chips
     el.querySelectorAll<HTMLButtonElement>('.sq-chip').forEach(btn => {
@@ -365,7 +415,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         discardOpen = true;
         render();
       } else {
-        opts.onBack();
+        triggerBack();
       }
     });
 
@@ -402,9 +452,14 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         saveGame(ge.toSavePayload());
         dirty = false;
         showToast('Squad saved');
-        opts.onBack();
+        triggerBack();
       });
     }
+
+    // Player-name links — wired last so they're attached after the
+    // row click listener above. The link's own click stopPropagation
+    // prevents the outer row swap from also firing.
+    if (opts.onPlayerClick) wirePlayerLinks(el, opts.onPlayerClick);
 
     // Discard confirm
     if (discardOpen) {
@@ -414,7 +469,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       });
       el.querySelector<HTMLButtonElement>('#sq-discard-confirm')!.addEventListener('click', () => {
         discardOpen = false;
-        opts.onBack();
+        triggerBack();
       });
       const backdrop = el.querySelector<HTMLDivElement>('#sq-discard-backdrop');
       backdrop?.addEventListener('click', (e) => {
@@ -436,6 +491,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         <span class="sq-section-count">${items.length}</span>
         <div class="sq-col-headers">
           <span class="sq-col-header sq-col-header--ovr">OVR</span>
+          <span class="sq-col-header sq-col-header--con">CON</span>
           <span class="sq-col-header sq-col-header--avr">AVR</span>
         </div>
       </div>
@@ -467,14 +523,10 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     const injuryBadge = injury
       ? `<span class="injury-badge" title="${injuryKindLabel(injury.kind)} — ${injury.weeksRemaining}w">${injury.weeksRemaining}w</span>`
       : '';
-    const cards = cardsFor(p);
-    const cardBadges =
-      (cards.yellow > 0
-        ? `<span class="sq-card-badge sq-card-badge--yellow" title="${cards.yellow} yellow card${cards.yellow > 1 ? 's' : ''} this season">${cards.yellow > 1 ? cards.yellow : ''}</span>`
-        : '')
-      + (cards.red > 0
-        ? `<span class="sq-card-badge sq-card-badge--red" title="${cards.red} red card${cards.red > 1 ? 's' : ''} this season">${cards.red > 1 ? cards.red : ''}</span>`
-        : '');
+    const condition = conditionFor(p);
+    const conditionCell = condition === null
+      ? `<div class="sq-con sq-con--unrated" title="No condition data">—</div>`
+      : `<div class="sq-con ${conditionClass(condition)}" title="Current condition">${Math.round(condition)}%</div>`;
     const avr = avrFor(p);
     const avrCell = avr === null
       ? `<div class="sq-avr sq-avr--unrated" title="No appearances yet this season">—</div>`
@@ -486,14 +538,22 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
           return `<div class="sq-stat-cell ${ovrClass(v)}"><span class="sq-stat-lbl">${lbl}</span><span class="sq-stat-val">${v}</span></div>`;
         }).join('')}
       </div>` : '';
+    // Names get a profile-link only when the draft row carries a
+    // rosterId (every row built from buildTeamFromRoster does). The
+    // injury badge sits outside the link so a tap on it doesn't open
+    // the profile.
+    const nameInner = opts.onPlayerClick && typeof p.rosterId === 'number'
+      ? playerLinkHtml(shortName(p), p.rosterId)
+      : shortName(p);
     return `
       <div class="${classes.join(' ')}" data-tier="${tier}" data-squad="${sn}">
         <div class="sq-jersey sq-jersey--${tier}">${jerseyContent}</div>
         <div class="sq-player-info">
-          <span class="sq-player-name sq-player-name--${tier}">${shortName(p)}${injuryBadge ? ' ' + injuryBadge : ''}${cardBadges}</span>
+          <span class="sq-player-name sq-player-name--${tier}">${nameInner}${injuryBadge ? ' ' + injuryBadge : ''}</span>
           <span class="sq-player-pos sq-player-pos--${tier}">${p.position}</span>
         </div>
         <div class="sq-ovr ${ovrClass(ovr)}">${ovr}</div>
+        ${conditionCell}
         ${avrCell}
         ${statsGrid}
       </div>

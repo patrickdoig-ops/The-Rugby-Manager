@@ -17,6 +17,12 @@ export const OFFLOAD_VALUES = {
     offload_freely:  35,
   } as Record<OffloadStrategy, number>,
   maxChain:                2,
-  catchHandlingPenalty:    10,
+  // Lifted from 10 to 13 in v2.181a after the controlled mirror-match
+  // experiment showed offload_freely +2.6 margin vs balanced with the
+  // knock-on rate barely moving — the supposed handling gate wasn't
+  // biting. The +3 here is a gentle nudge (offload_freely sees ~3.6
+  // completed offloads/match in the experiment; raising the catch-gate
+  // penalty turns a chunk of those into knock-ons).
+  catchHandlingPenalty:    13,
   secondCarryAttackBonus:  10,
 } as const;

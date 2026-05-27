@@ -40,20 +40,23 @@ import { emptyCareerState } from '../types/gameState';
 import { sortStandings } from './leagueTable';
 import type { Player } from '../types/player';
 import type { TeamTactics } from '../types/team';
+import type { TrainingPlan } from '../types/training';
 import { applySeasonEvent } from './applySeasonEvent';
 import type { PreSeasonTransfer } from '../data/transfers-2025-26';
 import { simulateFixture } from './simulateFixture';
 import { seedRoster } from './rosterSeeder';
 import { buildAutoSelectedTeamFromRoster } from './rosterTeamBuilder';
-import { parseSeasonStartYear } from './age';
-import { collectSeasonEvents, type MatchSnapshot, type PlayerStatsSnapshot } from './seasonStatsCollector';
+import { parseSeasonStartYear, seasonOpenIso } from './age';
+import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot, type PlayerStatsSnapshot } from './seasonStatsCollector';
+import { computeTrainingWeek } from './trainingWeek';
 import { computeRollover } from './careerRollover';
+import { generatePersona } from './personaGenerator';
 import { seedContractFields } from './contractSeeder';
 import { TransferCoordinator } from './TransferCoordinator';
 import { computeBudgetEvents } from './budgetPlanner';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed, rngTransfer } from '../utils/rng';
-import { SEASON_VALUES, INJURY_SEVERITY, SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
+import { SEASON_VALUES, INJURY_SEVERITY, SENIOR_CAP, EFFECTIVE_CAP_CREDITS, STARTER_FA_POOL } from '../engine/balance';
 import type { InjurySeverity } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 import type { RawTeamInput } from '../types/teamData';
@@ -121,6 +124,10 @@ export interface SavedSeason {
   // first Kick Off.
   tactics?: TeamTactics;
   matchdaySquad?: PlayerRef[];
+  // v18+: persisted training plan from the last training-week screen.
+  // Undefined on a fresh save / pre-v18 load — TrainingScreen falls back
+  // to DEFAULT_TRAINING_PLAN.
+  training?: TrainingPlan;
   // v5+: persistent roster + career history. v4 loads seed fresh from
   // JSONs since pre-v5 there has been zero per-player evolution to
   // preserve.
@@ -180,15 +187,40 @@ export class GameCoordinator {
       teamIds: allTeams.map(t => t.id),
       schedule,
     });
-    const seeded = seedRoster(allTeams, parseSeasonStartYear(coord.state.calendar.seasonLabel));
+    const seasonStartYear = parseSeasonStartYear(coord.state.calendar.seasonLabel);
+    const seeded = seedRoster(allTeams, seasonStartYear);
     applySeasonEvent(coord.state, {
       type: 'ROSTER_SEEDED',
       roster: seeded.roster,
       clubs: seeded.clubs,
       nextRosterId: seeded.nextRosterId,
     });
+    // Seed a small starter free-agent pool so Hub → Transfers has
+    // something to scout from day one. Uses the same persona generator
+    // as the rollover-time foreign imports; lower rating ceiling +
+    // wider age band gives a journeyman feel. fromSave skips this —
+    // the saved state already carries whatever FA pool the career has
+    // since accumulated.
+    coord.seedStarterFreeAgentPool(seasonStartYear);
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
+  }
+
+  // Generates STARTER_FA_POOL.count free agents via personaGenerator
+  // and applies one FOREIGN_IMPORT_ARRIVED per persona. RNG flows
+  // through rngTransfer so seed → identical pool every run.
+  private seedStarterFreeAgentPool(seasonStartYear: number): void {
+    const count = rngTransfer(STARTER_FA_POOL.count.min, STARTER_FA_POOL.count.max);
+    const calendarAnchor = seasonOpenIso(seasonStartYear);
+    let nextRid = this.state.career.nextRosterId;
+    for (let i = 0; i < count; i++) {
+      const player = generatePersona(
+        { rosterId: nextRid, ageBand: STARTER_FA_POOL.ageBand, ratingBand: STARTER_FA_POOL.ratingBand },
+        calendarAnchor,
+      );
+      applySeasonEvent(this.state, { type: 'FOREIGN_IMPORT_ARRIVED', player });
+      nextRid += 1;
+    }
   }
 
   static fromSave(
@@ -290,6 +322,9 @@ export class GameCoordinator {
     if (save.matchdaySquad) {
       applySeasonEvent(coord.state, { type: 'PLAYER_MATCHDAY_SQUAD_SET', squad: save.matchdaySquad });
     }
+    if (save.training) {
+      applySeasonEvent(coord.state, { type: 'PLAYER_TRAINING_PLAN_SET', plan: save.training });
+    }
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
   }
@@ -300,6 +335,28 @@ export class GameCoordinator {
 
   setPlayerMatchdaySquad(squad: PlayerRef[]): void {
     applySeasonEvent(this.state, { type: 'PLAYER_MATCHDAY_SQUAD_SET', squad });
+  }
+
+  // Applies one week of training league-wide. Emits one PLAYER_TRAINING_PLAN_SET
+  // (so the manager's choice persists) then walks every club (id-ascending) and
+  // every player on each club's squad (rosterId-ascending), firing one
+  // PLAYER_TRAINED per non-injured player plus optional PLAYER_INJURED from
+  // training-injury rolls. AI clubs get their plan from aiTrainingDirector.
+  // RNG flows through rngTransfer; stable iteration order keeps it
+  // deterministic across runs. Called by TrainingScreen's Continue handler
+  // in the post-match navigation chain (between LeagueTable and Hub).
+  applyTrainingWeek(userPlan: TrainingPlan): void {
+    for (const ev of computeTrainingWeek(this.state, userPlan)) {
+      applySeasonEvent(this.state, ev);
+    }
+    eventBus.emit('game:trainingApplied', { state: this.state });
+  }
+
+  // Persists the manager's training plan without executing training. Used
+  // by the Hub-tile mid-week entry into TrainingScreen — the user is
+  // editing next week's default, not running an extra session.
+  setPlayerTrainingPlan(plan: TrainingPlan): void {
+    applySeasonEvent(this.state, { type: 'PLAYER_TRAINING_PLAN_SET', plan });
   }
 
   // ===== Off-season market (Phases 2-7) =====
@@ -479,6 +536,9 @@ export class GameCoordinator {
     for (const ev of collectSeasonEvents(snapshot)) {
       applySeasonEvent(this.state, ev);
     }
+    for (const ev of collectConditionEvents(snapshot)) {
+      applySeasonEvent(this.state, ev);
+    }
     for (const ev of this.rollNewInjuryEvents(snapshot.playerSnapshots)) {
       applySeasonEvent(this.state, ev);
     }
@@ -511,6 +571,9 @@ export class GameCoordinator {
       };
       applySeasonEvent(this.state, { type: 'FIXTURE_RESULT_RECORDED', result: aiResult });
       for (const ev of collectSeasonEvents(sim.snapshot)) {
+        applySeasonEvent(this.state, ev);
+      }
+      for (const ev of collectConditionEvents(sim.snapshot)) {
         applySeasonEvent(this.state, ev);
       }
       for (const ev of this.rollNewInjuryEvents(sim.snapshot.playerSnapshots)) {
@@ -646,6 +709,9 @@ export class GameCoordinator {
     for (const ev of collectSeasonEvents(snapshot)) {
       applySeasonEvent(this.state, ev);
     }
+    for (const ev of collectConditionEvents(snapshot)) {
+      applySeasonEvent(this.state, ev);
+    }
     for (const ev of this.rollNewInjuryEvents(snapshot.playerSnapshots)) {
       applySeasonEvent(this.state, ev);
     }
@@ -692,6 +758,9 @@ export class GameCoordinator {
         playerSide: null,
       });
       for (const ev of collectSeasonEvents(sim.snapshot)) {
+        applySeasonEvent(this.state, ev);
+      }
+      for (const ev of collectConditionEvents(sim.snapshot)) {
         applySeasonEvent(this.state, ev);
       }
       for (const ev of this.rollNewInjuryEvents(sim.snapshot.playerSnapshots)) {
@@ -800,6 +869,7 @@ export class GameCoordinator {
       ...(this.state.player.matchdaySquad
         ? { matchdaySquad: this.state.player.matchdaySquad.map(r => ({ ...r })) }
         : {}),
+      ...(this.state.player.training ? { training: { ...this.state.player.training } } : {}),
       career: {
         seasonsCompleted: this.state.career.seasonsCompleted,
         nextRosterId: this.state.career.nextRosterId,
@@ -818,6 +888,9 @@ export class GameCoordinator {
                 topTackles: a.leaders.topTackles.map(l => ({ ...l })),
                 topRating:  a.leaders.topRating.map(l => ({ ...l })),
               } }
+            : {}),
+          ...(a.playerSeasonHistory
+            ? { playerSeasonHistory: clonePlayerHistoryForSave(a.playerSeasonHistory) }
             : {}),
         })),
         freeAgents: [...this.state.career.freeAgents],
@@ -847,6 +920,14 @@ export class GameCoordinator {
         : {}),
     };
   }
+}
+
+function clonePlayerHistoryForSave(
+  h: Record<number, import('../types/gameState').ArchivedPlayerSeason>,
+): Record<number, import('../types/gameState').ArchivedPlayerSeason> {
+  const out: Record<number, import('../types/gameState').ArchivedPlayerSeason> = {};
+  for (const k of Object.keys(h)) out[Number(k)] = { ...h[Number(k)] };
+  return out;
 }
 
 // Deep-ish clone of a PlayoffState for the save payload. Shallow on the

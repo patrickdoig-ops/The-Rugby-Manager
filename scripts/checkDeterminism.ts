@@ -73,8 +73,15 @@ function runOnce(seed: number): Promise<string> {
       }
     });
 
+    // Half-time auto-pause is a UI affordance — the harness immediately
+    // restarts the engine so we run straight through to full-time.
+    const offAutoPaused = eventBus.on('engine:autoPaused', () => {
+      engine.start();
+    });
+
     const offFinished = eventBus.on('engine:finished', () => {
       offPaused();
+      offAutoPaused();
       offFinished();
       const state = engine.getState();
       const snapshot = {

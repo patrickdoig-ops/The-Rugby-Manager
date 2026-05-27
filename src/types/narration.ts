@@ -25,6 +25,8 @@ export type PhaseOutcomeKey =
   | 'attacking_dominant_penalty' | 'defending_dominant_penalty'
   // Lineout
   | 'clean_catch' | 'crooked_throw' | 'steal' | 'scrappy_knock_on'
+  // Maul
+  | 'maul_won' | 'maul_held' | 'maul_collapse_penalty' | 'maul_try'
   // BoxKick
   | 'attack_retain' | 'defend_knock_on'
   | 'defend_catch_contested' | 'defend_catch'
@@ -40,7 +42,7 @@ export type PhaseOutcomeKey =
   | 'try_lead' | 'try_extend_lead' | 'try_level' | 'try_trail'
   // ConversionKick & Penalty
   | 'success' | 'miss'
-  | 'kick_for_goal' | 'kick_to_touch' | 'tap_and_go' | 'tap_and_kick_dead';
+  | 'kick_for_goal' | 'kick_to_touch' | 'kick_to_touch_missed' | 'tap_and_go' | 'tap_and_kick_dead';
 
 export type TacticNoteCause =
   | 'line_break_backfield_thin'
@@ -88,6 +90,7 @@ export type AnnouncementKey =
   | 'set_piece_award'
   | 'try_location_central' | 'try_location_close'
   | 'try_location_wide'    | 'try_location_corner'
+  | 'scrum_reset_cap'
   | CardAnnouncementKey;
 
 export interface TacticNoteParams {

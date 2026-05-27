@@ -30,9 +30,13 @@ export function buildAppShell(): void {
         <span class="end-label" id="home-end-label">HOME</span>
         <div id="pitch-field">
           <div class="pitch-line line-home-try"></div>
+          <div class="pitch-line line-home-5m"></div>
           <div class="pitch-line line-home-22"></div>
+          <div class="pitch-line line-home-10m"></div>
           <div class="pitch-line line-halfway"></div>
+          <div class="pitch-line line-away-10m"></div>
           <div class="pitch-line line-away-22"></div>
+          <div class="pitch-line line-away-5m"></div>
           <div class="pitch-line line-away-try"></div>
           <div id="ball-marker"></div>
           <span id="attack-label"></span>

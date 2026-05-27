@@ -58,6 +58,16 @@
   background: var(--rm-surface);
   border: 1px solid var(--rm-border-soft);
   box-shadow: var(--rm-card-shadow);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Keyboard focus ring — only when the user is navigating with the
+ * keyboard, not when they click. Matches design-system convention
+ * elsewhere. */
+.lt-row:focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--rm-pitch) 65%, transparent);
+  outline-offset: 2px;
 }
 
 .lt-row--me {

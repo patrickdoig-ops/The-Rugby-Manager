@@ -73,6 +73,9 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 | `PLAYOFF_RESULT_RECORDED` | One per playoff match — player (via `recordPlayerPlayoffResult`) or AI sim (via `simulatePendingPlayoffMatches`) | Sets `result` on the named match. Cascades: on a SF result, populates the Final's matching slot from the SF winner (SF1 → home, SF2 → away). On the Final's result, sets `championTeamId`. Does NOT touch `league.standings` — playoffs are independent of league points. |
 | `CLUB_BUDGET_SET` | Once per club at the start of the off-season chain (via `prepareBudgetsForNextSeason`) | Sets `state.career.clubs[clubId].salaryBudget` to the post-clamp new value (performance-derived base, floored from year 2 onwards, ceilinged at the effective cap). `delta` + `reasons` carry display payload for the BudgetRevealScreen. |
 | `CLUB_TAKEOVER` | After all `CLUB_BUDGET_SET` events when a club hits the takeover trigger — Newcastle Red Bull at year-1 → year-2 (hardcoded), random investor takeovers from year 3+ (`rngTransfer` rolls) | Adds `boostAmount` (£1m) to the named club's `salaryBudget`, clamped at the effective cap. Pushes the clubId onto `state.career.takeoverHistory` so the club is excluded from future random rolls. |
+| `PLAYER_TRAINING_PLAN_SET` | TrainingScreen Continue (post-match) and TrainingScreen Back (Hub mid-week) | Clones the chosen `TrainingPlan` (`intensity` + `forwardsFocus` + `backsFocus`) into `state.player.training` so the next training week opens with it as the default. |
+| `PLAYER_TRAINED` | Per non-injured roster player league-wide, once per training week (post-match TrainingScreen Continue → `applyTrainingWeek`) | Applies `conditionDelta` to `Player.condition` (clamped 0-100) plus `Partial<PlayerStats>` deltas to `baseStats` (clamped 1-99). Shape mirrors `PLAYER_AGED` for the stats half. RNG via `rngTransfer`; iteration is club id-ascending → roster id-ascending. |
+| `PLAYER_CONDITION_UPDATED` | Per player who took the field, once per fixture (live + silent AI + playoffs) | Snapshots that player's final in-match fatigue back to `Player.condition` (set, not add). MatchCoordinator.initPlayer then reads it as the starting `fatiguePct` for the next match. Bench players who didn't appear get no event and keep their accumulated condition. |
 
 `GameCoordinator.rollSeason()` returns the applied `SeasonEvent[]` so `main.ts` can hand it to `RolloverScreen` for the post-apply diff render.
 
@@ -109,8 +112,8 @@ The game engine emits six `game:*` events through `src/utils/eventBus.ts`. UI mo
 | Event | Payload | Subscribers |
 |---|---|---|
 | `game:initialized` | `{ state: GameState }` | `FixtureListScreen` (initial render after `newSeason` / `fromSave`) |
-| `game:fixtureRecorded` | `{ result: FixtureResult; state: GameState }` | `FixtureListScreen`, `RoundResultsScreen` (re-render as each headless AI fixture resolves) |
-| `game:weekAdvanced` | `{ state: GameState }` | `FixtureListScreen` (calendar header) |
+| `game:fixtureRecorded` | `{ result: FixtureResult; state: GameState }` | `FixtureListScreen`, `RoundResultsScreen`, `HubScreen`, `LeagueTableScreen`, `TeamStatsScreen`, `PlayerStatsScreen` (re-render as each headless AI fixture resolves; stats screens pick up the fresh per-team / per-player aggregates from `state.league.teamSeasonStats` + `state.career.roster[*].seasonStats`) |
+| `game:weekAdvanced` | `{ state: GameState }` | `FixtureListScreen` (calendar header), `HubScreen` (expiring-contracts badge refresh as deals tick into the 6-month window), `LeagueTableScreen` / `TeamStatsScreen` / `PlayerStatsScreen` (re-derive season-position eyebrow) |
 | `game:bracketSeeded` | `{ state: GameState }` | `main.ts` latches `bracketSeededPending`; `HubScreen` + `PlayoffBracketScreen` re-render. Fires once after the final R18 fixture is recorded (via `seedPlayoffBracket`). |
 | `game:playoffsUpdated` | `{ state: GameState }` | `HubScreen` + `PlayoffBracketScreen` re-render. Fires after every `PLAYOFF_RESULT_RECORDED` (player or AI) so the bracket UI shows the cascade fill in. |
 | `game:seasonComplete` | `{ state: GameState }` | `main.ts` latches `seasonCompletePending`; the post-match Continue chain reroutes through `EndOfSeasonScreen` → optional `RenewalsScreen` → optional `TransferMarketScreen` → `RolloverScreen`. Now fires only after the Premiership final resolves (no longer the end of the last regular round). |
@@ -145,7 +148,7 @@ Every persistent roster Player carries a `PlayerContract { clubId, expiresOn, an
 - **Marquee toggle**: tap the star column on any row. Going through `MARQUEE_DESIGNATED` so the previous marquee on the same club has their flag cleared automatically.
 - **Cap pill**: 3-state colour-coded against the effective cap — `ok` (≤ 95%, green), `tight` (95–100%, amber), `over` (red, with the `CAP` label highlighted). Cap = Σ non-marquee wages; the marquee slot is genuinely cap-excluded.
 
-Expiring-within-10-months rows get a warning chip — a passive signal heading into the renewal window.
+Expiring-within-`EXPIRING_CONTRACT_WINDOW_MONTHS`-months rows get an "Expiring" chip — a passive signal heading into the renewal window. The same threshold (6 months, in `src/engine/balance/transfers.ts`) drives the red `.notification-badge` count on the Hub's Contracts tile (`HubScreen.countExpiringContracts`). Pre-agreed Reg 7 leavers (in `state.career.pendingMoves` with `toClubId !== userClubId`) are excluded from the badge count — there's nothing to act on for them.
 
 ## Club wage budgets (Phase 9)
 
@@ -234,9 +237,11 @@ Determinism: every wage decision flows through cached offers seeded once at `ope
 
 Free agents aren't contractually restricted, so the user can sign them at any point during the season — Hub → Transfers opens an interactive signings market. Separate lifecycle from the off-season window; no AI competition (free agents are looking for work, not playing one club off against another).
 
+**Starter FA pool.** `GameCoordinator.newSeason` seeds `STARTER_FA_POOL.count` free agents (default 12-18) via `personaGenerator.generatePersona`, applied as `FOREIGN_IMPORT_ARRIVED` events. This runs once per new game (Quick Start AND Squad Builder); fromSave skips it since the saved career already carries whatever pool has accumulated. Without this seed, a fresh Quick Start save has zero free agents on the books until the first end-of-season cycle, and Hub → Transfers would land on an empty-state screen. The Squad Builder flow then layers `unwindPreSeasonTransfers` on top, growing the pool with the curated 2025-26 inbound transfers.
+
 **Lifecycle** (`TransferCoordinator`):
 
-- `openMidseasonSigningWindow()` — builds `TransferOffer[]` from `state.career.freeAgents` minus any rosterIds on `state.career.midseasonRejections` cooldown. Skips Reg 7 candidates entirely. Fires `MARKET_OPENED({ phase: 'signings-midseason', ... })`. Idempotent on a market that's already open. Empty FA pool → no-op, the navigation handler routes back to Hub.
+- `openMidseasonSigningWindow()` — builds `TransferOffer[]` from `state.career.freeAgents` minus any rosterIds on `state.career.midseasonRejections` cooldown. Skips Reg 7 candidates entirely. Fires `MARKET_OPENED({ phase: 'signings-midseason', ... })`. Idempotent on a market that's already open. Empty FA pool → no-op, the navigation handler still routes to TransferMarketScreen which falls through to its empty-state render with a Continue button back to the Hub.
 - `closeMidseasonSigningWindow()` — fires `MARKET_CLOSED`. No AI pass — mid-season has no competing bidders, so any user bids that didn't get submitted just vanish with the market.
 - `runMidseasonSigning(): SigningOutcome[]` — walks the user's pending bids rosterId-ascending. For each: roll a `rngTransfer()` against the appeal-based acceptance probability. Accept → `BID_RESOLVED({ won })` + `CONTRACT_SIGNED`. Decline → `BID_RESOLVED({ lost })` + `MIDSEASON_OFFER_REJECTED({ weekUntilClear: currentWeek + 1 })`. Returns `SigningOutcome[]` for `SigningResultsScreen`.
 
@@ -276,6 +281,27 @@ Fired during `careerRollover.computeRollover` after retirement / aging passes, i
 
 Per-rollover roster growth ~32 players. Sustains the league population indefinitely against aging + retirement attrition.
 
+## Statistics surface (League sub-menu)
+
+Hub → League opens `LeagueMenuScreen` (`src/ui/LeagueMenuScreen.ts`) — a three-tile sub-menu that branches into the existing standings view plus two analytics screens added in v2.184a.
+
+- **`LeagueTableScreen`** — standings + form view. Rows are clickable (since v2.180a) and open `TeamInfoScreen` for the tapped club via `goTeamInfoMidSeason(team, goLeagueTable)` in `main.ts`. Built from the live career roster + calendar date, so the squad list reflects current signings / aging / injuries (unlike the frozen-JSON Team Selector entry).
+- **`TeamStatsScreen`** (`src/ui/TeamStatsScreen.ts`) — sortable per-team aggregates grouped into category chips (Attack / Defence / Kicking / Set Piece / Possession / Discipline). Each category renders a focused 3-5 column table over all 10 clubs. Default sort is descending on the headline column; clicking any column header re-sorts. Row click opens `TeamInfoScreen` with `goTeamStats` as the back target. Data flow: pure read from `state.league.teamSeasonStats` via `seasonLeaderboards.teamSeasonStat / teamPossessionPct / teamTerritoryPct`; derived percentages (tackle %, lineout %, scrum %, m/kick, pts per 22m entry) computed inline.
+- **`PlayerStatsScreen`** (`src/ui/PlayerStatsScreen.ts`) — top-10 leaderboards across 10 categories (Tries, Carries, Metres, Line Breaks, Tackles, Turnovers, Kick Metres, Goal Kicking, Avg Rating, Yellow Cards). Category chips swap the visible list. Goal Kicking and Avg Rating both gate on `SEASON_AWARDS.mvpMinAppearances = 5` so a 1-app player can't shoot to the top; Goal Kicking additionally requires ≥5 attempts. Row click opens `TeamInfoScreen` for that player's club with `goPlayerStats` as the back target. Data flow: pure read via `seasonLeaderboards.playerLeaderboard(key, limit)` for the 9 counted categories + `leaderboardAvgRating(state, minApps, limit)` for the rating category; goal-kicking has its own inline reducer over `state.career.roster` since it surfaces a derived ratio.
+
+Both stats screens re-render on `game:fixtureRecorded` + `game:weekAdvanced` + `game:initialized`, the same triggers used by `LeagueTableScreen`. Zero engine work was needed to ship this surface — all data is already accumulated post-fixture into `PlayerSeasonStats` + `TeamSeasonStats`. **Known gap (carried over):** the engine doesn't split goal-kicks by kind (conversion / penalty / drop) at the player level — `PlayerSeasonStats.conversions / penaltiesScored / dropGoals` remain reserved-but-zero. The Player Stats screen labels the Goal Kicking category as "Kicks made / attempted" rather than "Conversion %" to surface this honestly.
+
+## Player profiles
+
+Per-player detail screen reached by tapping any player name across the in-season surfaces (live as of v2.192a).
+
+- **Click surface.** Player names render as `.player-link` (`src/ui/components/playerLink.ts` — `playerLinkHtml(name, rosterId)` + `wirePlayerLinks(root, onClick)`). Eight surfaces wired in v1: `TeamInfoScreen` (mid-season squad rows), `ContractsScreen`, `SquadManagementScreen`, `PlayerStatsScreen` leaderboards, `TransferMarketScreen` (FA + Reg 7), `RenewalsScreen`, `RetentionDecisionScreen`, `SigningResultsScreen`. Each surface threads an `onPlayerClick(rosterId)` from `main.ts` that routes through `goPlayerProfile(rosterId, onBack)`. The `onBack` callback is screen-specific so the profile's back arrow returns to wherever the user came from — mirrors the `goTeamInfoMidSeason(team, onBack)` origin-aware pattern from v2.180a. Defer surfaces (different lifecycle, follow-up): in-match `StatsPanel`, `CommentaryFeed`, `MatchResultScreen` ratings, `PreMatchScreen` lineup.
+- **Screen.** `PlayerProfileScreen` (`src/ui/PlayerProfileScreen.ts`). Layout: header (name, position chip, age, nationality, club crest + name, big OVR badge) → identity row (contract expiry, annual wage, condition, reputation, optional injury chip) → attributes block (12-axis SVG hex radar + grouped attribute bars — Physical / Skill / Mental columns, position-irrelevant stats greyed out per `IRRELEVANT_STATS[position]`) → current-season counters (only rendered when `appearances > 0`) → Career History table.
+- **Career History.** One row per past archived season from `state.career.archive[*].playerSeasonHistory[rosterId]`. Columns: Season / Club at the time (crest + short name) / Apps / Tries / Avg Rating. Plus the current season's live tally as an "In progress" pinned top-row when `appearances > 0`. Pre-v19 archive entries omit the map; the profile renders an em-dash row for those legacy seasons. Players with no recorded appearances in any archived season + no current-season apps get the "First season — history will appear after the first match" empty state.
+- **Data source.** Pure reads from `state.career.roster[rosterId]` + `state.career.archive[*].playerSeasonHistory[rosterId]` + `state.career.clubs[*].squad` (for the current-club lookup). No engine extension beyond the new archive snapshot — current OVR through `playerOverall(baseStats, position)` from `RatingEngine`; age through `getAge(dob, calendar.date)`.
+- **Snapshot pipeline.** `careerRollover.computeRollover` calls `snapshotPlayerHistory(state)` before `SEASON_ROLLED_OVER` fires. Iterates `state.career.roster` rosterId-ascending, skipping players with `appearances === 0`. Captures `contract.clubId` at the moment of the snapshot — so a player who moves clubs in subsequent seasons still shows the right crest on each historical row. The new payload field flows through `applySeasonEvent` (`SEASON_ROLLED_OVER` apply branch) and is restored via `CAREER_ARCHIVE_RESTORED` on load.
+- **Live refresh.** Subscribes to `game:fixtureRecorded` + `game:weekAdvanced` + `game:initialized` so an in-progress current-season tally updates while the screen is open. No `game:seasonRolledOver` subscription — opening the profile post-rollover already re-runs `render()` via `showPlayerProfile`.
+
 ## Injuries
 
 Persistent contact injuries on the career roster, in-match-triggered and decremented round-by-round until recovery. Match-engine internals (the in-match `cards.injured` bucket, the per-tackle roll, the shared forced-sub flow) live in `docs/match-engine.md` § Injuries. Season-scope mechanics:
@@ -288,6 +314,49 @@ Persistent contact injuries on the career roster, in-match-triggered and decreme
   - **AI side** (silent fixtures in `GameCoordinator.recordPlayerMatchResult`, AI opponent in `PreMatchScreen` + live human match): `buildAutoSelectedTeamFromRoster` (`src/game/rosterTeamBuilder.ts`) routes through `selectBestMatchdaySquad` (`src/game/autoSelect.ts`) every match week. The 23 are re-derived from the current roster by best-OVR-per-position using `SLOT_SPECS` — primary slot first (e.g. Lock at 4 / 5 / 19), then fallback chain (Back Row covers Flanker / Number 8; Utility Back covers any back slot). Ensures AI teams always field their strongest available 23 and the matchday lineup reflects the roster evolving across seasons. Falls back to `buildTeamFromRoster` if the club has fewer than 23 fit players.
   - **Human side** (`PreMatchScreen`, `SquadManagementScreen`): `buildTeamFromRoster` produces a fit-first partition; `applyMatchdaySquad(team, savedSquad, repair)` then layers the manager's curated lineup on top. When the saved squad contains an injured player, `repairInjuredMatchdaySquad` swaps just those slots for the best same-position replacement from the wider club roster — fit slots stay locked. PreMatchScreen surfaces a banner naming the players who were forced out; SquadManagementScreen shows the injury badge + rejects swaps that would move an injured player into starters / bench.
 - **Calibration**: ~1.87 injuries / match across both teams at `INJURY.basePctPerTackle = 8.0`. Tuning in `src/engine/balance/injuries.ts`; calibration target band is 1.8-2.2.
+
+## Training
+
+A weekly choice between matches: trades off short-term freshness for long-term attribute growth, with team-level forwards / backs focuses driving which stats develop. Sits in the post-match Continue chain between LeagueTable and Hub; the Hub's Training tile re-enters the same screen in mid-week mode for editing next round's plan without applying it.
+
+- **State.** Two surfaces:
+  - `state.player.training?: TrainingPlan` — manager's last-saved plan (`intensity` + `forwardsFocus` + `backsFocus`). Undefined ⇔ `TrainingScreen` falls back to `DEFAULT_TRAINING_PLAN` (`'medium' / 'set_piece' / 'tackling'`). Set via `PLAYER_TRAINING_PLAN_SET`; persists across saves.
+  - `Player.condition: number` — 0-100, persistent inter-match freshness, on every roster Player. Seeded at 100. Snapshotted from final in-match `fatiguePct` via `PLAYER_CONDITION_UPDATED` after every fixture (live + silent AI + playoffs). Drifts back up under light/rest training, drops under high intensity, holds roughly stable on medium for a regular starter.
+
+- **Match-engine integration.** `MatchCoordinator.initPlayer` reads `raw.condition ?? 100` as the starting `fatiguePct`, so a tired starter actually starts the next match tired. Fatigue then decays from that starting point as it did before. Fatigue tiers in `FATIGUE_SCALING` apply from minute zero — a player at 50% condition is already in the "<50%" tier and gets the corresponding stat penalties throughout the match. Bench substitutes who didn't appear in the prior match come on at their accumulated condition (no event emitted for them, so the value just sticks).
+
+- **The four intensities** (`src/engine/balance/training.ts::INTENSITY_EFFECTS`). v1 baseline:
+  - **Rest** — `+90` condition, 0% development, 0% injury risk.
+  - **Light** — `+60` condition, 8% base development chance per stat, 0.1% injury risk per player.
+  - **Medium** — `+40` condition, 18% development chance, 0.4% injury risk.
+  - **High** — `+20` condition, 32% development chance, 1.2% injury risk.
+
+- **The eight focuses.** Each focus picks two `PlayerStats` keys to develop faster. `FORWARDS_FOCUS_STATS` and `BACKS_FOCUS_STATS` in `balance/training.ts` hold the mapping:
+  - Forwards: `set_piece` → setPiece + strength, `strength` → strength + tackling, `stamina` → stamina + handling, `handling` → handling + composure.
+  - Backs: `tackling` → tackling + positioning, `defensive_organisation` → positioning + discipline, `attacking_skills` → pace + agility, `kicking` → kicking + composure.
+  - Forwards focus applies to players with `isForward(position) === true`; backs focus to the rest. Split is by `Player.position` (stable across substitutions / matchday curation).
+
+- **Development math** (`src/game/trainingWeek.ts::computeTrainingWeek`). Per non-injured roster player per training week, per stat:
+  - `chance = INTENSITY_EFFECTS[intensity].developmentChance × multiplier × DEVELOPMENT.ageBands[ageBand]`
+  - `multiplier = DEVELOPMENT.focusMultiplier (3.0)` when the stat is one of the player's group focus pair; `DEVELOPMENT.unfocusedMultiplier (0.25)` otherwise. So unfocused stats still drift slowly.
+  - `ageBand`: 1.6× under 23, 1.0× at 24-28, 0.6× at 29-32, 0.25× at 33+. Mirrors the `AGE_CURVES` shape — younger players gain more from training.
+  - A successful roll = `+1` to that stat (`TRAINING_STAT_DELTA`). The apply-event branch clamps to `[1, 99]` — same as `PLAYER_AGED`.
+
+- **Training injuries.** Per player per week, after the development pass, one `rngTransfer` roll against `injuryChance = INTENSITY_EFFECTS[intensity].injuryRisk × conditionRiskMultiplier(condition)`. On a hit, `rngTransfer` picks one of `muscle_strain` / `ligament_sprain` / `knock` (no concussions / fractures from training), reads `INJURY_SEVERITY[kind]` for severity weights + week bands, and emits a `PLAYER_INJURED` event — the same shape used by in-match injuries, so the existing `INJURY_TICK_ADVANCED` / `PLAYER_RECOVERED` loop handles recovery identically. `INJURY_RISK.conditionMultiplier (1.5)` means a player at 0% condition is 1.5× more injury-prone than one at 100%; linear interpolation in between.
+
+- **AI training director** (`src/game/aiTrainingDirector.ts::pickPlan`). Pure, RNG-driven via `rngTransfer`. For each AI club (id-ascending), picks an intensity weighted by:
+  - Squad average condition below `AI_TRAINING.squadConditionTiredThreshold (70%)` → rest/light bias.
+  - Recent 3-match win rate below `AI_TRAINING.poorFormWinRateThreshold (0.34)` → high bias (chasing form).
+  - Else → balanced (medium-biased) baseline.
+  - Forwards + backs focuses are then picked uniformly across their respective sets via two more `rngTransfer` calls. A third throwaway roll keeps the per-club call count fixed at 3 regardless of which intensity branch was hit.
+
+- **Coordinator surface.** `GameCoordinator.applyTrainingWeek(plan)` is the only entry point. It calls `computeTrainingWeek(state, plan)` (pure), applies each returned event through `applySeasonEvent`, then emits `game:trainingApplied`. Called by `TrainingScreen`'s Continue button. Determinism: clubs iterated id-ascending, roster ids numeric-ascending — same stable order as `careerRollover.computeRollover`.
+
+- **`setPlayerTrainingPlan(plan)`** is the lighter-weight setter used by the Hub mid-week edit path. Single `PLAYER_TRAINING_PLAN_SET` event, no execution, no `rngTransfer` consumption — the plan just becomes next round's default.
+
+- **Determinism + RNG**. All training rolls flow through `rngTransfer` (the career stream), independent of match outcomes. Adding a training week to a season does NOT shift match RNG. Stable iteration order (clubs id-ascending → roster ids numeric-ascending → stats in `ALL_STAT_KEYS` insertion order) keeps the call sequence reproducible.
+
+- **Why baseStats and not a sharpness layer?** FC Career Mode keeps attribute growth separate from per-week sharpness; FM blends both with hidden CA/PA caps. We chose the FM-style blend without the hidden caps — `baseStats` drift directly under training (clamped by the existing `[1, 99]` invariant + per-player overrides in `PLAYER_STAT_OVERRIDES`). The result: a young player on focused training noticeably outgrows their cohort over a season, on top of the existing `PLAYER_AGED` rollover drift.
 
 ## Playoffs
 
@@ -304,7 +373,7 @@ A three-match knockout follows the 18-round Premiership regular season: two semi
 
 ## Save format
 
-`SAVE_VERSION = 16` (as of v2.166a). `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`.
+`SAVE_VERSION = 19` (as of v2.192a). `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`.
 
 | Version | Added |
 |---|---|
@@ -323,9 +392,15 @@ A three-match knockout follows the 18-round Premiership regular season: two semi
 | v14 | `ClubState.salaryBudget` — per-club owner-set budget for cap-relevant wages. Seeded from `CLUB_SALARY_BUDGETS_2025_26` at game start, adjusted each rollover by `prepareBudgetsForNextSeason`. `career.takeoverHistory: string[]` — clubIds taken over (Newcastle Red Bull at year 2 + random investors year 3+); excluded from future random rolls. |
 | v15 | `MarketState.bids: TransferBid[]` — competing bids in the active signing window (Phase 10 competitive signings). Pre-v15 saves load with `bids: []` and any prior in-window signings are already committed via `CONTRACT_SIGNED`. |
 | v16 | `MarketState.phase` gains `'signings-midseason'`. `career.midseasonRejections: Record<rosterId, weekUntilClear>` — per-player one-round cooldown after a mid-season free-agent declines. WEEK_ADVANCED prunes aged-out entries; SEASON_ROLLED_OVER clears them all. Pre-v16 saves migrate as `{}`. |
+| v17 | `TeamTactics` gains `offloadStrategy` (`'cautious' \| 'balanced' \| 'offload_freely'`). Pre-v17 saves backfill `'balanced'` (numerically neutral) so the engine never sees undefined — same shape as the v9 → v10 `defensiveLine` migration. |
+| v18 | Training system. Each persisted Player gains `condition: number` (0-100, inter-match freshness — snapshotted from final in-match fatigue, modulated weekly by training). Top-level `training?: TrainingPlan` carries the manager's last chosen plan. Pre-v18 saves back-fill `condition: 100` on every roster entry and load with `training: undefined` (TrainingScreen falls back to `DEFAULT_TRAINING_PLAN`). |
+| v19 | `ArchivedSeason.playerSeasonHistory?: Record<rosterId, ArchivedPlayerSeason>` — per-player end-of-season snapshot (clubId at the time, apps, ratingSum, tries, carries, metres, line breaks, tackles, turnovers, kicksMade/At, yellow / red cards). Drives `PlayerProfileScreen`'s Career History table. Pre-v19 archive entries load with the field undefined; the profile renders an em-dash row for those historical seasons. New rollovers always populate it. |
 
 **Migration on load** (`GameCoordinator.fromSave`):
 
+- v18 → v19: no-op shim. `playerSeasonHistory` is optional on every `ArchivedSeason` entry. Pre-v19 archives load with the field undefined — the next rollover populates it for the season just completed; older historical seasons stay sparse and the profile screen surfaces an em-dash placeholder for them. The same `cloneLeaders`-style defensive copy in `SaveManager.parseCareer` ferries the field through.
+- v17 → v18: `backfillRosterSeasonStats` also writes `condition: 100` on every roster Player that lacks the field. The top-level `training` field is optional — pre-v18 saves load with it undefined and `TrainingScreen` resolves to `DEFAULT_TRAINING_PLAN`. No retroactive condition state is fabricated: a v17 save mid-season resumes with everyone at full freshness, and the next post-match training week begins evolving condition.
+- v16 → v17: `parseSave` backfills `tactics.offloadStrategy = 'balanced'` when absent on the persisted tactics blob.
 - v15 → v16: `parseCareer` defaults `midseasonRejections` to `{}`. `parseMarket` accepts the new `'signings-midseason'` phase value; pre-v16 saves never wrote it. No retroactive cooldowns — the player can immediately re-approach anyone after a v15→v16 load.
 - v13 → v14: pre-v14 clubs default `salaryBudget` to the effective cap (no retroactive constraint — the next rollover then recomputes via `computeBudgetEvents` and the per-club budget kicks in from then on). `takeoverHistory` defaults to `[]` — pre-v14 saves never had a takeover, so a v13 save loaded mid-year-1 still fires the Newcastle Red Bull takeover at the next rollover.
 - v12 → v13: no-op shim. `playoffs` is optional; pre-v13 archives gain `championTeamId: null`. After restoration `continueGame` calls `seedPlayoffBracket()` so a v12 save stuck at "all 18 played, no playoffs" auto-seeds and enters the playoff stage chain.
@@ -341,7 +416,7 @@ A three-match knockout follows the 18-round Premiership regular season: two semi
 - v2 → v3: legacy path, no schedule snapshot — falls back to current canonical schedule.
 - v1: discarded (predates AI-vs-AI results, league table can't be reconstructed).
 
-The persisted career state always flows through `CAREER_ARCHIVE_RESTORED` (with optional `freeAgents` + `market` + `pendingMoves` + `teamSeasonStats` + `preSeasonStep` + `playoffs` + `takeoverHistory` + `midseasonRejections` fields) so every `state.career.*` write stays inside `applySeasonEvent` — the mutation seam holds even across the load path.
+The persisted career state always flows through `CAREER_ARCHIVE_RESTORED` (with optional `freeAgents` + `market` + `pendingMoves` + `teamSeasonStats` + `preSeasonStep` + `playoffs` + `takeoverHistory` + `midseasonRejections` fields) so every `state.career.*` write stays inside `applySeasonEvent` — the mutation seam holds even across the load path. The v18 `training` field lives on `state.player` (not under `career`); it's restored via a separate `PLAYER_TRAINING_PLAN_SET` event during `fromSave`, mirroring the existing `PLAYER_TACTICS_SET` / `PLAYER_MATCHDAY_SQUAD_SET` restore path.
 
 ## New-game flow: Quick Start vs Squad Builder
 
@@ -391,7 +466,13 @@ The post-match Continue chain in `main.ts`:
 Match → MatchResult → recordPlayerMatchResult + snapshotMatch + saveGame
                      → RoundResults → LeagueTable (post-match mode) →
                        │
-                       ├── (regular season ongoing) → Hub
+                       ├── (regular season ongoing)
+                       │     → TrainingScreen (post-match mode)
+                       │       Continue → applyTrainingWeek(plan) emits
+                       │         · PLAYER_TRAINING_PLAN_SET (persists default)
+                       │         · PLAYER_TRAINED per non-injured player league-wide
+                       │         · PLAYER_INJURED per training-injury roll
+                       │       → game:trainingApplied → saveGame → Hub
                        │
                        ├── (last R18 fixture just resolved: game:bracketSeeded latched)
                        │     → runPlayoffStage() — state-driven orchestrator that:

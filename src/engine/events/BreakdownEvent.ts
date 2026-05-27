@@ -115,7 +115,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
     };
   }
 
-  const res = resolveBreakdown(supporters, jackal, defPlan, defendPack, attackBonus + ha.attack, ha.defend);
+  const res = resolveBreakdown(supporters, jackal, defPlan, defendPack, attackBonus + ha.attack + TACTIC_MODIFIERS.breakdownArsMod[attPlan], ha.defend);
 
   // 3. offside_at_ruck — defender, post-resolve, fires ONLY on the
   //    transitions that put the ball back into phase play (clean_ball /

@@ -98,5 +98,6 @@ function rawFromRosterPlayer(p: Player, slot: number): RawPlayer {
     nationality: p.nationality,
     position: p.position,
     baseStats: { ...p.baseStats },
+    condition: p.condition,
   };
 }

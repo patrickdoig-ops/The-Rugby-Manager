@@ -57,6 +57,12 @@ export interface MatchStats {
   scrums:     { home: number; away: number };
   lineouts:   { home: number; away: number };
   tries:      { home: number; away: number };
+  // Mauls completed (excludes maul_held turnovers — same convention as
+  // `scrums`, which only counts a scrum once it produces a usable
+  // possession decision). `maulMetres` is total ground gained from
+  // successful drives by the side that caught the lineout.
+  mauls:      { home: number; away: number };
+  maulMetres: { home: number; away: number };
   ownLineouts: { home: { thrown: number; won: number }; away: { thrown: number; won: number } };
   ownScrums:   { home: { putIn: number; won: number };  away: { putIn: number; won: number } };
   entries22:   {
@@ -138,4 +144,12 @@ export interface MatchState {
   // by TMO_REVIEW_RESOLVED on the 3rd tick. Optional because it's only set
   // mid-review.
   tmoReview?: TmoReviewState;
+  // Count of consecutive wheel outcomes in the current scrum sequence.
+  // Incremented by the SCRUM_RESOLVED reducer when outcome === 'wheel';
+  // reset to 0 on any other scrum outcome. handleScrum reads this to cap
+  // runaway wheel chains — once `SCRUM_VALUES.wheelCap` prior wheels have
+  // accumulated, the next wheel is promoted to a penalty (by 3rd-contest
+  // margin). The counter resets naturally when the scrum sequence ends,
+  // so the next time a scrum is awarded it starts at 0.
+  consecutiveWheels: number;
 }

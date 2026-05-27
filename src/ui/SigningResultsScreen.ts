@@ -14,6 +14,7 @@ import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { SigningOutcome } from '../game/signingResolver';
 import { playerOverall } from '../engine/RatingEngine';
+import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 
 let activeOnContinue: () => void = () => {};
 let activeOutcomes: SigningOutcome[] = [];
@@ -35,6 +36,9 @@ export function initSigningResultsScreen(
   // Always called fresh — see HubScreen for the rationale.
   getGameEngine: () => GameCoordinator,
   allTeams: RawTeamInput[],
+  // Tap player name → profile. Continue CTA is a separate footer
+  // button so it isn't affected.
+  onPlayerClick?: (rosterId: number) => void,
 ): void {
   const el = document.getElementById('signing-results');
   if (!el) return;
@@ -156,15 +160,18 @@ export function initSigningResultsScreen(
         </div>
       </div>`;
 
+    const nameHtml = (r: Row): string => onPlayerClick
+      ? playerLinkHtml(r.playerName, r.rosterId)
+      : r.playerName;
     const renderWinRow = (r: Row): string => `
       <div class="sr-row sr-row--win">
-        <span class="sr-name">${r.playerName} <span class="sr-pos">${r.position}</span></span>
+        <span class="sr-name">${nameHtml(r)} <span class="sr-pos">${r.position}</span></span>
         <span class="sr-result">${kindToLabel(r.kind, 'won')}</span>
         <span class="sr-wage">${fmtWage(r.wage)}</span>
       </div>`;
     const renderLossRow = (r: Row): string => `
       <div class="sr-row sr-row--loss">
-        <span class="sr-name">${r.playerName} <span class="sr-pos">${r.position}</span></span>
+        <span class="sr-name">${nameHtml(r)} <span class="sr-pos">${r.position}</span></span>
         <span class="sr-result">Lost to ${r.winnerClubName ?? '—'}</span>
         <span class="sr-wage">${fmtWage(r.wage)}</span>
       </div>`;
@@ -240,6 +247,8 @@ export function initSigningResultsScreen(
     `;
 
     el!.querySelector<HTMLButtonElement>('#sr-continue')!.addEventListener('click', () => activeOnContinue());
+
+    if (onPlayerClick) wirePlayerLinks(el!, onPlayerClick);
   }
 
   renderImpl = render;

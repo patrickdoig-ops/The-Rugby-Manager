@@ -159,6 +159,7 @@ export function generatePersona(seed: PersonaSeed, calendarDate: string): Player
     rating: 6.0,
     x: 50,
     y: 50,
+    condition: 100,
   };
 }
 

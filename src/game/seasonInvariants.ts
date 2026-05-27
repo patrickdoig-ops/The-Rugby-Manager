@@ -48,6 +48,9 @@ export function assertSeasonInvariants(state: GameState): void {
     if (p.injury) {
       assertNonNegInt(`roster.injury.weeksRemaining[${rosterId}]`, p.injury.weeksRemaining);
     }
+    if (!(p.condition >= 0) || !(p.condition <= 100)) {
+      fail(`roster.condition[${rosterId}]`, `${p.condition}`);
+    }
     const s = p.seasonStats;
     assertNonNegInt(`roster.seasonStats.appearances[${rosterId}]`, s.appearances);
     assertNonNegInt(`roster.seasonStats.tries[${rosterId}]`, s.tries);

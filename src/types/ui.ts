@@ -29,7 +29,25 @@ export interface AppEvents {
   'engine:stateChange': { state: MatchState };
   'engine:paused':      { payload: ModalPayload };
   'engine:resumed':     Record<string, never>;
+  // Engine paused itself outside a modal hand-off — currently fires at the
+  // half-time whistle so the user has to press Play to start the second
+  // half. Distinct from `engine:paused` (modal) because the user keeps
+  // agency over Play / Pause / Tactics / Subs while paused.
+  'engine:autoPaused':  { reason: 'half_time' };
   'engine:finished':    { state: MatchState };
+  // Fired when MatchCoordinator.tick() throws in live mode. Carries the
+  // error message + stack + key state context so the UI can render a
+  // copy-pastable crash overlay. Silent fixtures don't catch — the
+  // determinism / telemetry harnesses surface failures to CI directly.
+  'engine:error':       {
+    message: string;
+    stack: string;
+    clockMinute: number;
+    phase: string;
+    possession: 'home' | 'away';
+    score: { home: number; away: number };
+    lastEvents: string[];
+  };
   'ui:speedChange':     { delayMs: number };
   'ui:tacticsChange':   { teamId: string; tactics: TeamTactics };
   'ui:openTacticsModal':{ tactics: TeamTactics; teamId: 'home' | 'away' };
@@ -46,5 +64,11 @@ export interface AppEvents {
   // PLAYOFF_RESULT_RECORDED so the bracket screen + hub re-render.
   'game:bracketSeeded':   { state: GameState };
   'game:playoffsUpdated': { state: GameState };
+  // Fires after GameCoordinator.applyTrainingWeek completes — every roster
+  // player's condition + (possibly) baseStats have been mutated, so any
+  // screen that surfaces those fields should re-render. Lives on the
+  // game:* track because training is a season-scope mutation, not an
+  // in-match one.
+  'game:trainingApplied': { state: GameState };
 }
 

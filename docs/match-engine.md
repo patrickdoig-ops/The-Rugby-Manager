@@ -114,6 +114,7 @@ The engine emits five UI-bound events through `src/utils/eventBus.ts`. UI module
 | `engine:event` | `{ event: GameEvent }` | CommentaryFeed (renders narration) |
 | `engine:paused` | `{ payload: ModalPayload }` | ModalManager (penalty_choice / kickoff_choice / forced_substitution_choice — red_20-expired sub picker — / tactics / sub modal), SimController (button gating) |
 | `engine:resumed` | `{}` | ModalManager, SimController |
+| `engine:autoPaused` | `{ reason: 'half_time' }` | SimController (re-enables Play, disables Pause). Fires once per match after the half-time line drains so the user has to press Play to start the second half. Skipped in silent mode. |
 | `engine:finished` | `{ state: MatchState }` | `main.ts` (shows match-result overlay) |
 
 **Tick ordering:** within a single tick, `engine:event` fires **before** `engine:stateChange`. UI subscribers that depend on cached state from the prior tick will always have a valid cache by the time an event arrives.
@@ -611,8 +612,21 @@ defenseScore = (defender.positioning + defender.pace) / 2 + rng(1,20) + (defendM
 
 | Margin | Result | Gain |
 |---|---|---|
-| ≥ 15 | `line_break` → Breakdown (or TryScored if `isTryScoredAt(ballX + dir × gain)`) | `rng(20, 45)` m (`OPEN_PLAY_VALUES.lineBreakMetres`) |
+| ≥ 15 | `line_break` → Breakdown (or TryScored if `isTryScoredAt(ballX + dir × gain)`) | `rng(20, 45)` m × pace factor, floored at 5m (`OPEN_PLAY_VALUES.lineBreakMetres` + `LINE_BREAK_PACE`) |
 | < 15 | Proceed to Step 4 | — |
+
+**Pace-scaled gain (v2.196a).** The carrier's `currentStats.pace` scales the random 20-45m range multiplicatively. Linear interpolation between two anchors lives in `OPEN_PLAY_VALUES.LINE_BREAK_PACE`: `pace 90 → factor 1.0` (wings keep the full range), `pace 40 → factor 0.25` (a prop's break collapses to ~5-11m as defenders chase back). Below the floor the factor clamps to `paceFactorMin = 0.25`; above the ceiling the factor clamps to `paceFactorMax = 1.0`. The result is then floored at `minGainMetres = 5`. Tactic mods (`defensiveLineBreakBonus`, `backfieldLineBreakGainBonus`) stack additively on top in the event handlers — they model defensive positional failure, not attacker speed, so even a prop benefits when the cover is out of position. Fatigue feeds in naturally because `currentStats.pace` already drops with stamina decay.
+
+Predicted gain ranges by carrier (before tactic mods, validated v2.196a):
+
+| Carrier (typical pace) | Factor | Range |
+|---|---:|---|
+| Wing pace 95 | 1.00 | 20-45m |
+| Centre pace 80 | 0.85 | 17-38m |
+| Back-rower pace 70 | 0.70 | 14-31m |
+| Lock pace 60 | 0.55 | 11-25m |
+| Prop pace 50 | 0.40 | 8-18m |
+| Prop pace 40 | 0.25 | 5-11m |
 
 **Line break chain.** A line break that doesn't score on the first carry hands a sustained-attack edge to the next phase. The `BreakdownEvent` that follows reads `lastEvent.outcome === 'line_break'` and folds `CARRY_HANDOFF_BONUSES.lineBreak` (15) into both the current breakdown's `attackBonus` (cleaner ball) and the post-breakdown `state.breakdownMod.attack` (the very next carry runs with attack +15). The same fork point's `dominant_carry` case adds only `CARRY_HANDOFF_BONUSES.dominantCarry` (6) and only to the current breakdown — no next-phase boost. See [Carry → breakdown handoff constants](#carry--breakdown-handoff-constants) below.
 
@@ -819,6 +833,8 @@ The defending pack's final score is subtracted from the attacking pack's final s
 | ≤ −36 | `defending_dominant_penalty` → Penalty (possession flips to defending team) | **4.2%** |
 
 Attacker:defender penalty ratio ~1.8:1 — reflects the real-rugby put-in advantage. Effective per-scrum-sequence penalty rate (accounting for wheel re-rolls): `0.118 / (1 − 0.196) ≈ 14.7%`. All thresholds in `SCRUM_VALUES` (`balance/scrum.ts`).
+
+**Wheel cap.** Consecutive wheels in a single scrum sequence are bounded by `SCRUM_VALUES.wheelCap` (currently `2`). The counter lives at `state.consecutiveWheels` — incremented by the `SCRUM_RESOLVED` reducer when `outcome === 'wheel'`, reset to 0 on any other scrum outcome, so a fresh scrum sequence always starts at 0. Once the counter has hit the cap, the next wheel-band resolution is promoted to a penalty: `attacking_dominant_penalty` when the 3rd-contest `margin >= 0`, `defending_dominant_penalty` otherwise. The natural penalty branches stay untouched; the promoted branch prepends a `scrum_reset_cap` announcement step so the commentary flags why the penalty fired ("Three resets — the referee's lost patience. Penalty awarded.").
 
 ### Ball movement
 
@@ -1069,6 +1085,82 @@ If the ball **does not** go into touch at all, the defending fullback catches th
 | Outcome | Player | Stats |
 |---|---|---|
 | every tactical kick | kicker | `kicksFromHand++`, `kickMetres += res.distance` |
+
+---
+
+## Maul
+
+A driving-maul phase reachable only from a clean lineout catch (`LineoutEvent.ts` clean_catch branch). Eight available attacking forwards push against eight available defending forwards; a successful drive advances the ball, can score a try if it crosses the line, and ends either with the ball going to the backs (FirstPhase), the defenders winning the contest cleanly (turnover scrum), or the defenders illegally collapsing the drive (penalty, often a yellow card near their own try line).
+
+### When this phase happens
+
+The maul gate (`MAUL_GATE` in `balance/maul.ts`) is rolled inside `handleLineout` after `resolveLineout` returns `clean_catch`. Probability is zone-driven (distance to the opposition try line) with an attacking-style modifier:
+
+| Zone (metres to opp try line) | Base | `keep_it_tight` (+20pp) | `wide_wide` (-20pp) |
+|---|---:|---:|---:|
+| Own half (> 50m) | 0% | 0% | 0% |
+| Opposition half (22–50m) | 5% | 25% | 0% |
+| Opposition 22 (10–22m) | 35% | 55% | 15% |
+| Inside opp 10m | 80% | 100% | 60% |
+
+Same gate fires for human and AI — no modal.
+
+### Resolution
+
+Mirrors the scrum's pack-score formula. `MaulResolver.packScore` is a **sum** of `(strength × 0.55 + setPiece × 0.45)` per forward, so a pack down a man (sin-binned, sent off, in-match injured) loses ~12% of its score and is materially weaker. Discipline doesn't enter the score directly — it shows up in stage 2 as a collapse bias.
+
+Two-stage outcome:
+
+1. **Strength margin** (`attackScore + rng(1, 50)` vs `defendScore + rng(1, 50)`):
+   - `margin > 0` → attackers winning the push → continue to stage 2.
+   - `margin ≤ 0` → defenders stop the maul cleanly → `maul_held` (turnover scrum to defenders, no ground gained).
+2. **Cynical-collapse roll** (only on positive margin):
+   - `collapsePct = clamp((margin × 0.30) + (max(0, 50 − defendDiscipline) × 0.50), 0, 60)`
+   - On hit → `maul_collapse_penalty` (defending side cited, attacking team gets the penalty).
+   - On miss → `maul_won` (attacking team gains ground).
+
+On `maul_won`, the gain distribution is:
+- 90% chance: `rng(5, 10)` metres (the normal driving-maul band).
+- 10% chance: `rng(15, 25)` metres (the highlight-reel long drive).
+
+The handler then projects the new ball position (`state.ball.x + attackDir(state) * gainMetres`) and checks `isTryScoredAt`. If true → `nextPhase: TryScored` with the hooker as `primaryPlayer` (so `handleTryScored` credits the try to the hooker). Otherwise → `nextPhase: FirstPhase`.
+
+### Outcome table (equal packs, calibration target)
+
+| Outcome | Probability | Next phase | Possession |
+|---|---:|---|---|
+| `maul_won` | ~45% | FirstPhase (or TryScored if it crossed the line) | attacking side retains |
+| `maul_held` | ~50% | Scrum | flips to defending side |
+| `maul_collapse_penalty` | ~5% | Penalty | attacking side keeps (and gets the penalty) |
+
+Mismatched packs skew sharply: a strong pack mauling a weak defender drives `maul_won` to ~70%+ and lifts collapse to ~20-25%; a weak pack mauling a strong defender lands mostly in `maul_held`.
+
+### Cards
+
+`maul_collapse` is in `OFFENCE_SPEC` (`balance/discipline.ts`) with `tmoTriggerPct: 0` — TMO is bypassed. `CardHandler.evaluateNewPenalty` has a dedicated `maul_collapse` branch that runs a **direct** zone-scaled yellow check (`MAUL_COLLAPSE_YELLOW`) before falling through to the standard penalty modal:
+
+| Zone (defender's distance to own try line) | Direct yellow % |
+|---|---:|
+| Inside 5m | 70% |
+| Inside 22m | 30% |
+| Opposition half | 5% |
+| Own half | 0% |
+
+The team-22 cumulative rule still applies on top (a maul_collapse inside the defender's own 22 also bumps the team-22 counter and can trigger a forced yellow on a 4th defensive penalty).
+
+### Ball movement
+
+On `maul_won`: `BALL_REPOSITIONED { x: clamp(state.ball.x + attackDir(state) * gainMetres, 0, 100) }`. On the other two outcomes: ball stays where the lineout was.
+
+### Stat increments
+
+| Outcome | Stats |
+|---|---|
+| `maul_won` | `state.stats.mauls[attackSide]++`, `state.stats.maulMetres[attackSide] += gainMetres` |
+| `maul_collapse_penalty` | `state.stats.mauls[attackSide]++` (counted as a completed maul attempt); penalty offender's `penaltiesConceded++` via the `PENALTY_AWARDED` reducer |
+| `maul_held` | none — held mauls become turnover scrums and aren't counted as completed mauls |
+
+No per-player maul stats today (see CLAUDE.md "Maul phase" future-work bullet for the deferred fields).
 
 ---
 

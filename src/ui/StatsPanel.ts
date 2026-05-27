@@ -17,10 +17,10 @@ function tacklePct(t: { attempted: number; made: number }): string {
 function setPieceSuccess(s: { won: number; thrown?: number; putIn?: number }): string {
   const total = s.thrown ?? s.putIn ?? 0;
   if (total === 0) return '—';
-  return `${s.won}/${total} (${Math.round((s.won / total) * 100)}%)`;
+  return `${s.won}/${total}`;
 }
 
-function teamMetres(team: MatchState['homeTeam'], key: 'metresCarried' | 'kickMetres'): number {
+function teamSum(team: MatchState['homeTeam'], key: 'metresCarried' | 'kickMetres' | 'penaltiesConceded'): number {
   let sum = 0;
   for (const p of team.players) sum += p.matchStats[key];
   for (const p of team.substitutedOff) sum += p.matchStats[key];
@@ -37,12 +37,14 @@ function renderStats(state: MatchState): string {
   const hc = teamTextColor(homeTeam.color);
   const ac = teamTextColor(awayTeam.color);
 
-  const hRunM = teamMetres(homeTeam, 'metresCarried');
-  const aRunM = teamMetres(awayTeam, 'metresCarried');
-  const hKickM = teamMetres(homeTeam, 'kickMetres');
-  const aKickM = teamMetres(awayTeam, 'kickMetres');
+  const hRunM = teamSum(homeTeam, 'metresCarried');
+  const aRunM = teamSum(awayTeam, 'metresCarried');
+  const hKickM = teamSum(homeTeam, 'kickMetres');
+  const aKickM = teamSum(awayTeam, 'kickMetres');
   const hMissed = Math.max(0, stats.tackles.home.attempted - stats.tackles.home.made);
   const aMissed = Math.max(0, stats.tackles.away.attempted - stats.tackles.away.made);
+  const hPens = teamSum(homeTeam, 'penaltiesConceded');
+  const aPens = teamSum(awayTeam, 'penaltiesConceded');
 
   const rows: Array<{
     label: string;
@@ -60,6 +62,7 @@ function renderStats(state: MatchState): string {
     { label: 'Run metres',     homeVal: String(hRunM),  awayVal: String(aRunM),  homeNum: hRunM,  awayNum: aRunM },
     { label: 'Kick metres',    homeVal: String(hKickM), awayVal: String(aKickM), homeNum: hKickM, awayNum: aKickM },
     { label: 'Errors',         homeVal: String(stats.handlingErrors.home), awayVal: String(stats.handlingErrors.away), homeNum: stats.handlingErrors.home, awayNum: stats.handlingErrors.away, invert: true },
+    { label: 'Penalties conceded', homeVal: String(hPens), awayVal: String(aPens), homeNum: hPens, awayNum: aPens, invert: true },
     { label: 'Tackle %',       homeVal: tacklePct(stats.tackles.home), awayVal: tacklePct(stats.tackles.away), homeNum: stats.tackles.home.made, awayNum: stats.tackles.away.made },
     { label: 'Tackles made',   homeVal: String(stats.tackles.home.made), awayVal: String(stats.tackles.away.made), homeNum: stats.tackles.home.made, awayNum: stats.tackles.away.made },
     { label: 'Missed tackles', homeVal: String(hMissed), awayVal: String(aMissed), homeNum: hMissed, awayNum: aMissed, invert: true },
@@ -202,10 +205,12 @@ function updatePlayerStatsDOM(container: HTMLElement, state: MatchState): void {
 
 function statsKey(state: MatchState): string {
   const s = state.stats;
-  const hRunM = teamMetres(state.homeTeam, 'metresCarried');
-  const aRunM = teamMetres(state.awayTeam, 'metresCarried');
-  const hKickM = teamMetres(state.homeTeam, 'kickMetres');
-  const aKickM = teamMetres(state.awayTeam, 'kickMetres');
+  const hRunM = teamSum(state.homeTeam, 'metresCarried');
+  const aRunM = teamSum(state.awayTeam, 'metresCarried');
+  const hKickM = teamSum(state.homeTeam, 'kickMetres');
+  const aKickM = teamSum(state.awayTeam, 'kickMetres');
+  const hPens = teamSum(state.homeTeam, 'penaltiesConceded');
+  const aPens = teamSum(state.awayTeam, 'penaltiesConceded');
   return `${s.possession.home},${s.possession.away},${s.territory.home},${s.territory.away},`
        + `${s.tackles.home.made},${s.tackles.home.attempted},${s.tackles.away.made},${s.tackles.away.attempted},`
        + `${s.handlingErrors.home},${s.handlingErrors.away},${s.tries.home},${s.tries.away},`
@@ -213,7 +218,7 @@ function statsKey(state: MatchState): string {
        + `${s.ownLineouts.home.thrown},${s.ownLineouts.home.won},${s.ownLineouts.away.thrown},${s.ownLineouts.away.won},`
        + `${s.ownScrums.home.putIn},${s.ownScrums.home.won},${s.ownScrums.away.putIn},${s.ownScrums.away.won},`
        + `${s.entries22.home.count},${s.entries22.home.pointsScored},${s.entries22.away.count},${s.entries22.away.pointsScored},`
-       + `${hRunM},${aRunM},${hKickM},${aKickM}`;
+       + `${hRunM},${aRunM},${hKickM},${aKickM},${hPens},${aPens}`;
 }
 
 // ─── Player detail table ───────────────────────────────────────────────────

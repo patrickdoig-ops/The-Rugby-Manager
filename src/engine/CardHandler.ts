@@ -5,9 +5,9 @@ import type { CardAnnouncementKey } from '../types/narration';
 import { MatchPhase } from '../types/engine';
 import { rng } from '../utils/rng';
 import { makeId } from './eventId';
-import { inOwn22For } from './FieldPosition';
+import { inOwn22For, metresFromOppositionTryLine } from './FieldPosition';
 import { applyMatchEvent } from './applyMatchEvent';
-import { TMO, TEAM_22, OFFENCE_SPEC } from './balance';
+import { TMO, TEAM_22, OFFENCE_SPEC, MAUL_COLLAPSE_YELLOW } from './balance';
 import type { CommentaryStreamer } from './CommentaryStreamer';
 
 export interface CardHandlerDeps {
@@ -57,6 +57,23 @@ export class CardHandler {
         this.emitAnnouncement('team_22_warning', last.offendingSide);
         // fall through to TMO/normal-penalty path
       }
+    }
+
+    // Maul collapse — direct yellow (no TMO narrative) at a zone-scaled
+    // probability. The penalty itself was already awarded by handleMaul;
+    // this branch only decides whether the offender additionally sees
+    // yellow. After PENALTY_AWARDED has fired, state.possession is the
+    // team that WON the penalty (the attacking maul side), so
+    // metresFromOppositionTryLine reads the distance to the DEFENDING
+    // team's own try line — i.e. how close to scoring the collapse was.
+    if (last.offence === 'maul_collapse') {
+      const pct = pickMaulCollapseYellowPct(metresFromOppositionTryLine(state));
+      if (rng(1, 100) <= pct) {
+        this.issueCard(last.offender, last.offendingSide, 'yellow');
+      }
+      // Either way, return 'none' — the maul-collapse path doesn't enter
+      // TMO review, and the penalty modal still fires next.
+      return 'none';
     }
 
     // TMO gate. The per-offence trigger probability lives in OFFENCE_SPEC
@@ -176,6 +193,18 @@ function pickTmoOutcome(): TmoOutcome {
   if (roll <= TMO.outcomeNoCardPct) return 'no_card';
   if (roll <= TMO.outcomeNoCardPct + TMO.outcomeYellowPct) return 'yellow';
   return 'red_20';
+}
+
+// Yellow card probability for a maul_collapse, keyed by how close to the
+// defending team's own try line the collapse happened. The mapping comes
+// from MAUL_COLLAPSE_YELLOW (balance/maul.ts) — direct percentages, no
+// TMO bucketing — so the closer to the line, the more likely cynical
+// play gets carded.
+function pickMaulCollapseYellowPct(metresToOppTryLine: number): number {
+  if (metresToOppTryLine <= 5)  return MAUL_COLLAPSE_YELLOW.inside5mPct;
+  if (metresToOppTryLine <= 22) return MAUL_COLLAPSE_YELLOW.inside22Pct;
+  if (metresToOppTryLine <= 50) return MAUL_COLLAPSE_YELLOW.inOppHalfPct;
+  return MAUL_COLLAPSE_YELLOW.ownHalfPct;
 }
 
 interface AnnounceArgs {

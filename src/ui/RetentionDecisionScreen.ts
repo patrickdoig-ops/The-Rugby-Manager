@@ -16,6 +16,7 @@ import { playerOverall } from '../engine/RatingEngine';
 import { getAge } from '../game/age';
 import { retentionTermsFor } from '../game/aiTransferDirector';
 import { clubBudgetUsage } from '../game/teamStats';
+import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 
 let activeOnContinue: () => void = () => {};
 let renderImpl: (() => void) | null = null;
@@ -52,6 +53,9 @@ export function initRetentionDecisionScreen(
   // Always called fresh — see HubScreen for the rationale.
   getGameEngine: () => GameCoordinator,
   allTeams: RawTeamInput[],
+  // Tap player name → profile. Retain/Withdraw buttons are separate
+  // row children and aren't affected by the link click.
+  onPlayerClick?: (rosterId: number) => void,
 ): void {
   const el = document.getElementById('retention-decision');
   if (!el) return;
@@ -140,9 +144,12 @@ export function initRetentionDecisionScreen(
         ? `+${fmtWage(wageDelta)}/y`
         : wageDelta < 0 ? `-${fmtWage(-wageDelta)}/y` : `same`;
 
+      const nameInner = onPlayerClick
+        ? playerLinkHtml(`${p.firstName} ${p.lastName}`, rid)
+        : `${p.firstName} ${p.lastName}`;
       return `
-        <div class="rd-row${isRetaining ? ' tm-row--committed' : ''}" data-roster-id="${rid}">
-          <span class="rd-name">${p.firstName} ${p.lastName}</span>
+        <div class="rd-row${isRetaining ? ' tm-row--committed' : ''}">
+          <span class="rd-name">${nameInner}</span>
           <span class="rd-meta">${p.position} · ${ovr} OVR · ${age ?? '—'}</span>
           <span class="rd-poacher">${poacherHtml}</span>
           <span class="rd-wage">${fmtWage(terms.annualWage)} <span class="rd-delta">(${wageDeltaStr})</span></span>
@@ -195,6 +202,8 @@ export function initRetentionDecisionScreen(
       });
     });
     el!.querySelector<HTMLButtonElement>('#rd-continue')!.addEventListener('click', () => activeOnContinue());
+
+    if (onPlayerClick) wirePlayerLinks(el!, onPlayerClick);
   }
 
   renderImpl = render;

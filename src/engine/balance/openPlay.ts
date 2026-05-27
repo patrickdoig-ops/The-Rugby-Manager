@@ -105,6 +105,28 @@ export const OPEN_PLAY_VALUES = {
   // (applied in BreakdownEvent, see balance/breakdown.ts) — closes the
   // score with one more phase.
   lineBreakMetres: [20, 45],
+  // Pace-scaled line-break gain (v2.196a). Wing-level pace (90) keeps the
+  // 20-45m calibration above; slower carriers scale the random range
+  // downward multiplicatively (compresses both ends — slow carriers can't
+  // hit the upper bound). Models "defenders chase back to catch the slower
+  // carrier before they get long ground". minGainMetres floors the result
+  // so a line_break outcome still advances the ball at least 5m — by
+  // definition a line break has cleared the line.
+  //
+  // Predicted gain ranges before tactic mods stack:
+  //   Wing pace 95:    factor 1.00  →  20-45m (unchanged)
+  //   Centre pace 80:  factor 0.85  →  17-38m
+  //   Back-row pace 70: factor 0.70 →  14-31m
+  //   Lock pace 60:    factor 0.55  →  11-25m
+  //   Prop pace 50:    factor 0.40  →  8-18m
+  //   Prop pace 40:    factor 0.25  →  5-11m
+  LINE_BREAK_PACE: {
+    paceAtFullGain:   90,
+    paceAtFloorGain:  40,
+    paceFactorMin:    0.25,
+    paceFactorMax:    1.0,
+    minGainMetres:    5,
+  },
   dominantCarryMargin:  5,
   dominantCarryMetres:  [3, 8],
   dominantTackleMargin: -5,

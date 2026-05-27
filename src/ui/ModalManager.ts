@@ -11,6 +11,7 @@ const OFFENCE_LABELS: Record<PenaltyOffence, string> = {
   obstruction:            'Obstruction',
   dangerous_cleanout:     'Dangerous clean-out',
   not_rolling_away:       'Not rolling away',
+  maul_collapse:          'Maul collapse',
 };
 
 const CHOICE_LABELS: Record<PenaltyChoice, string> = {

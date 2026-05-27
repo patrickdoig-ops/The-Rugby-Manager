@@ -112,6 +112,13 @@ export const RENEWAL = {
   aiReleaseRatingFloor: 70,
 };
 
+// Window (in months from now) within which a contract is considered
+// "expiring" for UI surfacing purposes — the Hub Contracts badge and
+// the ContractsScreen's "Expiring" tag both key off this. Aligned
+// with the mid-season renewal trigger window so the UI signals
+// match the underlying gameplay seam.
+export const EXPIRING_CONTRACT_WINDOW_MONTHS = 6;
+
 // Per-club salary budgets for 2025/26 — the cap-relevant amount each
 // owner is willing to spend on non-marquee wages. Differs from the
 // league-wide effective cap (£7.8m), which is the absolute ceiling no

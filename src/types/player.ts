@@ -30,6 +30,18 @@ export interface PlayerStats {
   composure: number;
 }
 
+// Canonical PlayerStats key order. Consumers that drive an RNG stream
+// while iterating stats (trainingWeek, careerRollover.developStats) MUST
+// walk this array rather than Object.keys(baseStats) — the latter
+// happens to work today because every baseStats object is constructed
+// in this same order, but one save-format change away from a silent
+// determinism desync.
+export const PLAYER_STAT_KEYS: (keyof PlayerStats)[] = [
+  'stamina', 'strength', 'pace', 'agility',
+  'handling', 'tackling', 'breakdown', 'kicking',
+  'setPiece', 'discipline', 'positioning', 'composure',
+];
+
 export interface PlayerMatchStats {
   carries:                number;
   metresCarried:          number;
@@ -174,6 +186,12 @@ export interface Player {
   rating: number;
   x: number;
   y: number;
+  // Persistent inter-match freshness, 0-100. Seeded at 100; snapshotted from
+  // each player's final in-match fatigue via PLAYER_CONDITION_UPDATED, then
+  // adjusted weekly by training (PLAYER_TRAINED). Read at MatchCoordinator.
+  // initPlayer time as the starting fatiguePct, so a tired starter actually
+  // starts the next match tired.
+  condition: number;
   // Career-scope persistent injury (only meaningful on the roster Player).
   // Optional ⇔ player is fit. Decremented on WEEK_ADVANCED, cleared by
   // PLAYER_RECOVERED. See PlayerInjury above.

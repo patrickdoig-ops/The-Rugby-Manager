@@ -301,22 +301,40 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
           event.attackFrontRow.forEach(p => { p.matchStats.scrumPenaltiesWon++; });
           event.defendFrontRow.forEach(p => { p.matchStats.scrumPenaltiesConceded++; });
           state.stats.scrums[event.possessionSideAfter]++;
+          state.consecutiveWheels = 0;
           break;
         case 'stable_win':
           state.stats.scrums[event.possessionSideAfter]++;
+          state.consecutiveWheels = 0;
           break;
         case 'wheel':
+          state.consecutiveWheels++;
           break;
         case 'defending_dominant_penalty':
           event.defendFrontRow.forEach(p => { p.matchStats.scrumPenaltiesWon++; });
           event.attackFrontRow.forEach(p => { p.matchStats.scrumPenaltiesConceded++; });
           state.stats.scrums[event.possessionSideAfter]++;
+          state.consecutiveWheels = 0;
           break;
       }
       state.stats.ownScrums[event.attackSide].putIn++;
       if (event.possessionSideAfter === event.attackSide) {
         state.stats.ownScrums[event.attackSide].won++;
       }
+      state.possession = event.possessionSideAfter;
+      return;
+
+    case 'MAUL_RESOLVED':
+      // Team-level maul counters. `mauls` increments for any resolution
+      // that produced a possession decision (won or collapse-penalty); a
+      // held maul that turns over to scrum isn't counted as a completed
+      // maul, mirroring the scrums convention. `maulMetres` accumulates
+      // the gained ground on the attacking side (gainMetres is 0 for
+      // held / collapse, so no special branching needed).
+      if (event.outcome === 'maul_won' || event.outcome === 'maul_collapse_penalty') {
+        state.stats.mauls[event.attackSide]++;
+      }
+      state.stats.maulMetres[event.attackSide] += event.gainMetres;
       state.possession = event.possessionSideAfter;
       return;
 

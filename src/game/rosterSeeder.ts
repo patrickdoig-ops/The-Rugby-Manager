@@ -91,5 +91,6 @@ function hydratePersistentPlayer(
     rating: 6.0,
     x: 50,
     y: 50,
+    condition: 100,
   };
 }

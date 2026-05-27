@@ -85,6 +85,12 @@ interface ClubAgg {
   ownLineoutsWon: number;
   ownScrumsPutIn: number;
   ownScrumsWon: number;
+  // Mauls — set-piece-style team-level counters from state.stats.
+  // `maulsCompleted` counts won + collapse_penalty (held becomes a turnover
+  // scrum, doesn't count as a completed maul). `maulMetres` is total ground
+  // gained by the attacking side from successful drives.
+  maulsCompleted: number;
+  maulMetres: number;
   possessionTicks: number;
   territoryTicks: number;
   totalTicks: number;
@@ -108,6 +114,7 @@ function emptyClubAgg(): ClubAgg {
     penaltyKicksAttempted: 0, penaltyKicksMade: 0,
     ownLineoutsThrown: 0, ownLineoutsWon: 0,
     ownScrumsPutIn: 0, ownScrumsWon: 0,
+    maulsCompleted: 0, maulMetres: 0,
     possessionTicks: 0, territoryTicks: 0, totalTicks: 0,
     handlingErrors: 0,
     entries22Count: 0, entries22Points: 0,
@@ -384,6 +391,10 @@ function aggregateMatch(
   homeAgg.ownScrumsWon      += state.stats.ownScrums.home.won;
   awayAgg.ownScrumsPutIn    += state.stats.ownScrums.away.putIn;
   awayAgg.ownScrumsWon      += state.stats.ownScrums.away.won;
+  homeAgg.maulsCompleted    += state.stats.mauls.home;
+  homeAgg.maulMetres        += state.stats.maulMetres.home;
+  awayAgg.maulsCompleted    += state.stats.mauls.away;
+  awayAgg.maulMetres        += state.stats.maulMetres.away;
   homeAgg.possessionTicks += state.stats.possession.home;
   awayAgg.possessionTicks += state.stats.possession.away;
   homeAgg.territoryTicks  += state.stats.territory.home;
@@ -693,6 +704,8 @@ function buildReport(aggs: SeasonAgg[], elapsedMs: number): string {
   lines.push(`| kicks from hand | ${perMatch(a => totalAcrossClubs(a, 'kicksFromHand'))} |`);
   lines.push(`| scrums (set) | ${perMatch(a => totalAcrossClubs(a, 'ownScrumsPutIn'))} |`);
   lines.push(`| lineouts (set) | ${perMatch(a => totalAcrossClubs(a, 'ownLineoutsThrown'))} |`);
+  lines.push(`| mauls (completed) | ${perMatch(a => totalAcrossClubs(a, 'maulsCompleted'))} |`);
+  lines.push(`| maul metres | ${perMatch(a => totalAcrossClubs(a, 'maulMetres'))} |`);
   lines.push(`| yellow cards | ${perMatch(a => totalAcrossClubs(a, 'yellowCards'))} |`);
   lines.push(`| red cards | ${perMatch(a => totalAcrossClubs(a, 'redCards'))} |`);
   lines.push(`| TMO triggers | ${perMatch(a => a.tmoTriggers)} |`);
@@ -782,6 +795,24 @@ function buildReport(aggs: SeasonAgg[], elapsedMs: number): string {
     // full credit so individual ratings stay unchanged.
     const spw = sumClubField(aggs, c.id, 'scrumPenaltiesWon') / 3;
     lines.push(`| ${c.shortName} | ${fmt(olt/games)} | ${pct(olw, olt)} | ${fmt(ls/games)} | ${fmt(osp/games)} | ${pct(osw, osp)} | ${fmt(spw/games)} |`);
+  }
+  lines.push('');
+
+  // ── Per-club mauls ──────────────────────────────────────────────────────
+  // Mauls fire after a clean lineout catch and a zone-driven gate
+  // (MAUL_GATE). Counted on the attacking side only — won + collapse_pen
+  // outcomes. Held mauls become turnover scrums and are NOT counted here
+  // (mirrors the scrums convention). Metres are the gained ground from
+  // successful drives.
+  lines.push('## Per-club mauls');
+  lines.push('');
+  lines.push('| Club | Mauls/g | Maul metres/g | m / completed maul |');
+  lines.push('|---|---:|---:|---:|');
+  for (const c of sortedClubs) {
+    const games = totalGames(aggs, c.id);
+    const m  = sumClubField(aggs, c.id, 'maulsCompleted');
+    const mm = sumClubField(aggs, c.id, 'maulMetres');
+    lines.push(`| ${c.shortName} | ${fmt(m/games)} | ${fmt(mm/games)} | ${m > 0 ? fmt(mm/m) : '—'} |`);
   }
   lines.push('');
 

@@ -5,6 +5,7 @@ import '../style/teamselector.css';
 import '../style/teaminfo.css';
 import '../style/fixturelist.css';
 import '../style/leaguetable.css';
+import '../style/leaguestats.css';
 import '../style/hub.css';
 import '../style/matchresult.css';
 import '../style/roundresults.css';
@@ -22,22 +23,29 @@ import '../style/tactics.css';
 import '../style/playoffbracket.css';
 import '../style/signingresults.css';
 import '../style/budgetreveal.css';
+import '../style/training.css';
+import '../style/player-profile.css';
 
 import { buildAppShell }           from './ui/AppShell';
 import { preloadAllCues, playCue } from './ui/SoundManager';
 import { initScoreboard }          from './ui/Scoreboard';
 import { initPitchStrip }          from './ui/PitchStrip';
 import { initCommentaryFeed }      from './ui/CommentaryFeed';
+import { initCrashOverlay }        from './ui/CrashOverlay';
 import { initStatsPanel }          from './ui/StatsPanel';
 import { initSimController }       from './ui/SimController';
 import { initModalManager }        from './ui/ModalManager';
-import { initPreMatchScreen }      from './ui/PreMatchScreen';
+import { initPreMatchScreen, showPreMatchAtStep } from './ui/PreMatchScreen';
 import { initHomeScreen }          from './ui/HomeScreen';
 import { initSettingsScreen }      from './ui/SettingsScreen';
 import { initTeamSelectorScreen }  from './ui/TeamSelectorScreen';
 import { initTeamInfoScreen }      from './ui/TeamInfoScreen';
 import { initFixtureListScreen }   from './ui/FixtureListScreen';
 import { initLeagueTableScreen, showLeagueTable, showLeagueTablePostMatch } from './ui/LeagueTableScreen';
+import { initLeagueMenuScreen } from './ui/LeagueMenuScreen';
+import { initTeamStatsScreen, showTeamStats } from './ui/TeamStatsScreen';
+import { initPlayerStatsScreen, showPlayerStats } from './ui/PlayerStatsScreen';
+import { initPlayerProfileScreen, showPlayerProfile } from './ui/PlayerProfileScreen';
 import { initHubScreen }           from './ui/HubScreen';
 import { initMatchResultScreen }   from './ui/MatchResultScreen';
 import { initRoundResultsScreen, showRoundResults } from './ui/RoundResultsScreen';
@@ -55,6 +63,7 @@ import { PRE_SEASON_TRANSFERS_2025_26 } from './data/transfers-2025-26';
 import { initRolloverScreen, showRollover }         from './ui/RolloverScreen';
 import { initContractsScreen, showContracts, showContractsMarqueeEdit } from './ui/ContractsScreen';
 import { initSquadManagementScreen, showSquadManagement } from './ui/SquadManagementScreen';
+import { initTrainingScreen, showTrainingPostMatch, showTrainingMidweek } from './ui/TrainingScreen';
 import { screenRouter }            from './ui/ScreenRouter';
 import { loadSave, saveGame, clearSave } from './ui/SaveManager';
 import { loadTickDelayMs }           from './ui/uiPrefs';
@@ -105,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initCommentaryFeed();
   initStatsPanel();
   initModalManager();
+  initCrashOverlay();
 
   teamProfile.init(allTeamsRaw);
 
@@ -160,6 +170,25 @@ document.addEventListener('DOMContentLoaded', () => {
     screenRouter.show('team-info');
   }
 
+  // Mid-season entry into the TeamInfo screen from the League Table.
+  // Reads the live calendar date so ages reflect the current point in
+  // the season, and rebuilds the team from the career roster so the
+  // squad list shows the actual current players (signings, retirements,
+  // aging, injuries all reflected). `onBack` lets the caller choose
+  // the return target — League Table, Team Stats, or Player Stats —
+  // so each entry point hops back to the screen the user came from.
+  function goTeamInfoMidSeason(team: RawTeamInput, onBack: () => void = goLeagueTable): void {
+    if (!gameEngine) return;
+    const profile = teamProfile.getProfile(team.id);
+    const state = gameEngine.getState();
+    const liveTeam = buildTeamFromRoster(state, team);
+    // Row click → player profile, with back returning here.
+    initTeamInfoScreen(profile, liveTeam, state.calendar.date, onBack, (rosterId) => {
+      goPlayerProfile(rosterId, () => goTeamInfoMidSeason(team, onBack));
+    });
+    screenRouter.show('team-info');
+  }
+
   // Initialise the three in-season screens (Hub, Fixtures, League) for the
   // current game engine instance. Done once per game so each screen registers
   // its game:* event subscriptions exactly once; later navigations between
@@ -174,28 +203,77 @@ document.addEventListener('DOMContentLoaded', () => {
       onPlayMatch: onPlayRound,
       onPlayoffs: runPlayoffStage,
       onFixtures: goFixtures,
-      onLeague:   goLeagueTable,
+      onLeague:   goLeagueMenu,
       onSquad:    goSquad,
-      onTraining: () => { /* placeholder until Training screen lands */ },
+      onTraining: goTrainingMidweek,
       onContracts: goContracts,
       onTransfers: goTransfersMidseason,
       onSettings: goSettingsFromHub,
     });
     initFixtureListScreen(getGameEngine, allTeams, goHub);
-    initLeagueTableScreen(getGameEngine, allTeams, goHub);
+    // The League sub-menu sits between the Hub's League tile and the
+    // three leaves (Table / Team Stats / Player Stats). Each leaf's
+    // back arrow returns here; this screen's back arrow returns to
+    // Hub. Row clicks on any leaf jump to TeamInfo for that club; the
+    // teamInfo back arrow returns to whichever leaf opened it.
+    initLeagueMenuScreen({
+      getGameEngine,
+      onBack: goHub,
+      onTable:       goLeagueTable,
+      onTeamStats:   goTeamStats,
+      onPlayerStats: goPlayerStats,
+    });
+    initLeagueTableScreen(getGameEngine, allTeams, goLeagueMenu, (teamId) => {
+      const teamJson = allTeams.find(t => t.id === teamId);
+      if (!teamJson) return;
+      goTeamInfoMidSeason(teamJson, goLeagueTable);
+    });
+    initTeamStatsScreen(getGameEngine, allTeams, goLeagueMenu, (teamId) => {
+      const teamJson = allTeams.find(t => t.id === teamId);
+      if (!teamJson) return;
+      goTeamInfoMidSeason(teamJson, goTeamStats);
+    });
+    initPlayerStatsScreen(getGameEngine, allTeams, goLeagueMenu,
+      (teamId) => {
+        const teamJson = allTeams.find(t => t.id === teamId);
+        if (!teamJson) return;
+        goTeamInfoMidSeason(teamJson, goPlayerStats);
+      },
+      (rosterId) => goPlayerProfile(rosterId, goPlayerStats),
+    );
+    initPlayerProfileScreen(getGameEngine, allTeams);
     initRoundResultsScreen(getGameEngine, allTeams);
     initPlayoffBracketScreen(getGameEngine, allTeams);
     initBudgetRevealScreen(getGameEngine, allTeams);
     initTakeoverRevealScreen(getGameEngine, allTeams);
     initEndOfSeasonScreen(getGameEngine, allTeams);
-    initRenewalsScreen(getGameEngine, allTeams);
-    initTransferMarketScreen(getGameEngine, allTeams);
-    initSigningResultsScreen(getGameEngine, allTeams);
-    initRetentionDecisionScreen(getGameEngine, allTeams);
+    // Going to the profile from any off-season screen doesn't mutate
+    // career state, so the back path just re-shows the existing DOM —
+    // partial selections / toggles survive the round-trip.
+    initRenewalsScreen(getGameEngine, allTeams, (rosterId) => {
+      goPlayerProfile(rosterId, () => screenRouter.show('renewals'));
+    });
+    initTransferMarketScreen(getGameEngine, allTeams, (rosterId) => {
+      goPlayerProfile(rosterId, () => screenRouter.show('transfer-market'));
+    });
+    initSigningResultsScreen(getGameEngine, allTeams, (rosterId) => {
+      goPlayerProfile(rosterId, () => screenRouter.show('signing-results'));
+    });
+    initRetentionDecisionScreen(getGameEngine, allTeams, (rosterId) => {
+      goPlayerProfile(rosterId, () => screenRouter.show('retention-decision'));
+    });
     initRolloverScreen(getGameEngine, allTeams);
-    initContractsScreen(getGameEngine, allTeams, goHub);
-    initSquadManagementScreen({ getGameEngine, allTeams, onBack: goHub });
+    initContractsScreen(getGameEngine, allTeams, goHub, (rosterId) => {
+      goPlayerProfile(rosterId, goContracts);
+    });
+    initSquadManagementScreen({
+      getGameEngine,
+      allTeams,
+      onBack: goHub,
+      onPlayerClick: (rosterId) => goPlayerProfile(rosterId, goSquad),
+    });
     initSquadOverviewScreen(getGameEngine, allTeams);
+    initTrainingScreen(getGameEngine);
 
     // The post-match Continue chain (LeagueTable → ...) reads these flags.
     // game:bracketSeeded fires after the last regular-season fixture —
@@ -219,6 +297,31 @@ document.addEventListener('DOMContentLoaded', () => {
     screenRouter.show('league-table');
   }
 
+  function goLeagueMenu(): void {
+    screenRouter.show('league-menu');
+  }
+
+  function goTeamStats(): void {
+    showTeamStats();
+    screenRouter.show('team-stats');
+  }
+
+  function goPlayerStats(): void {
+    showPlayerStats();
+    screenRouter.show('player-stats');
+  }
+
+  // Opens the profile for one player. `onBack` is origin-aware (mirrors
+  // goTeamInfoMidSeason from v2.180a) — the calling screen passes its
+  // own re-entry helper so the back arrow returns to wherever you came
+  // from (Contracts, PlayerStats leaderboards, TeamInfo squad rows, etc).
+  // Safe to call any time in the in-season window — the screen pulls
+  // live state and the profile renders the player's current status.
+  function goPlayerProfile(rosterId: number, onBack: () => void): void {
+    showPlayerProfile(rosterId, onBack);
+    screenRouter.show('player-profile');
+  }
+
   function goContracts(): void {
     showContracts();
     screenRouter.show('contracts');
@@ -227,6 +330,28 @@ document.addEventListener('DOMContentLoaded', () => {
   function goSquad(): void {
     showSquadManagement();
     screenRouter.show('squad-management');
+  }
+
+  // PreMatch → Edit Squad shortcut. Opens Squad Management with a
+  // one-shot back override so the user lands back on the My Line-Up
+  // step instead of Hub.
+  function goSquadFromPreMatch(): void {
+    showSquadManagement(() => {
+      showPreMatchAtStep('mine');
+      screenRouter.show('pre-match');
+    });
+    screenRouter.show('squad-management');
+  }
+
+  // Hub → Training. Mid-week edit of next round's training plan. The
+  // Back button persists the plan without applying training (training
+  // itself runs only via the post-match chain) and returns to Hub.
+  function goTrainingMidweek(): void {
+    showTrainingMidweek(() => {
+      if (gameEngine) saveGame(gameEngine.toSavePayload());
+      goHub();
+    });
+    screenRouter.show('training');
   }
 
   // Hub → Transfers. Opens an interactive mid-season FA market: user
@@ -238,14 +363,13 @@ document.addEventListener('DOMContentLoaded', () => {
   function goTransfersMidseason(): void {
     if (!gameEngine) return;
     gameEngine.openMidseasonSigningWindow();
-    // No FA pool (or every FA on cooldown) → openMidseasonSigningWindow
-    // leaves state.career.market null. Nothing to show — drop back to
-    // the Hub with a toast hint instead of an empty-state screen.
-    if (!gameEngine.getState().career.market) {
-      goHub();
-      return;
+    // Empty FA pool (or every FA on cooldown) → openMidseasonSigningWindow
+    // leaves state.career.market null. We still navigate to the screen
+    // so the user sees the empty state + a Continue button back to the
+    // Hub, rather than the tile silently round-tripping.
+    if (gameEngine.getState().career.market) {
+      saveGame(gameEngine.toSavePayload());
     }
-    saveGame(gameEngine.toSavePayload());
     const onSubmit = (): void => {
       if (!gameEngine) { goHub(); return; }
       const outcomes = gameEngine.runMidseasonSigning();
@@ -642,6 +766,11 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       runPlayoffStage,
       { contextLabel, neutralVenue: isFinal, backLabel: 'Bracket' },
+      goSquadFromPreMatch,
+      (rosterId, returnStep) => goPlayerProfile(rosterId, () => {
+        showPreMatchAtStep(returnStep);
+        screenRouter.show('pre-match');
+      }),
     );
     screenRouter.show('pre-match');
   }
@@ -725,6 +854,12 @@ document.addEventListener('DOMContentLoaded', () => {
         onMatchStart(configuredHome, configuredAway, playerSide, round, playerTactics);
       },
       goHub,
+      undefined,
+      goSquadFromPreMatch,
+      (rosterId, returnStep) => goPlayerProfile(rosterId, () => {
+        showPreMatchAtStep(returnStep);
+        screenRouter.show('pre-match');
+      }),
     );
     screenRouter.show('pre-match');
   }
@@ -789,17 +924,22 @@ document.addEventListener('DOMContentLoaded', () => {
         await gameEngine.recordPlayerMatchResult(round, state.score.home, state.score.away, snapshot);
         saveGame(gameEngine.toSavePayload());
       }
-      // Post-match nav chain. Normally: RoundResults → LeagueTable → Hub.
-      // If `bracketSeededPending` was latched during
-      // recordPlayerMatchResult (final regular-season fixture just
-      // resolved), the chain detours through PlayoffBracketScreen →
-      // playoff stages → EndOfSeason → Renewals → Signings → Rollover.
+      // Post-match nav chain. Normally:
+      //   RoundResults → LeagueTable → TrainingScreen → Hub.
+      // The TrainingScreen step is skipped when `bracketSeededPending`
+      // is latched (final regular-season fixture just resolved — the
+      // off-season chain handles rollover-time attribute drift, no
+      // training between R18 and the playoffs).
       const onLeagueContinue = (): void => {
         if (bracketSeededPending) {
           bracketSeededPending = false;
           runPlayoffStage();
         } else {
-          goHub();
+          showTrainingPostMatch(() => {
+            if (gameEngine) saveGame(gameEngine.toSavePayload());
+            goHub();
+          });
+          screenRouter.show('training');
         }
       };
       showRoundResults(round, () => {

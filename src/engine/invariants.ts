@@ -65,6 +65,23 @@ export function assertInvariants(state: MatchState): void {
   // Clock
   if (!(state.clock.gameMinute >= 0)) fail('clock.gameMinute', `${state.clock.gameMinute}`);
 
+  // Scrum wheel counter — reset to 0 by every non-wheel outcome and capped
+  // by handleScrum, so a value above wheelCap means a missing reset path.
+  if (!Number.isInteger(state.consecutiveWheels) || state.consecutiveWheels < 0) {
+    fail('consecutiveWheels', `${state.consecutiveWheels}`);
+  }
+
+  // Maul counters — `mauls` increments per resolved drive (won or
+  // collapse-penalty), `maulMetres` accumulates gained ground.
+  for (const side of ['home', 'away'] as const) {
+    if (!Number.isInteger(state.stats.mauls[side]) || state.stats.mauls[side] < 0) {
+      fail(`stats.mauls.${side}`, `${state.stats.mauls[side]}`);
+    }
+    if (!(state.stats.maulMetres[side] >= 0)) {
+      fail(`stats.maulMetres.${side}`, `${state.stats.maulMetres[side]}`);
+    }
+  }
+
   // Players — starting XV, bench, and players already subbed off all keep
   // valid fatigue/rating/currentStats; the substitutedOff list is read by the
   // rating engine on full-time and serialised into save data, so it can't carry

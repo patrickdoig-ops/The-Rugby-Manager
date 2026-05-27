@@ -28,6 +28,8 @@ import type { GameCoordinator } from '../game/GameCoordinator';
 import type { Player } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
 import { getAge } from '../game/age';
+import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
+import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 
 type SortKey = 'wage' | 'expiry' | 'ovr' | 'position' | 'age' | 'name';
 type SortDir = 'asc' | 'desc';
@@ -63,13 +65,13 @@ function fmtExpiry(iso: string): string {
   return `${months[d.getUTCMonth()]} '${String(d.getUTCFullYear()).slice(2)}`;
 }
 
-function expiresThisSeason(expiresOn: string, calendarDate: string): boolean {
+function isExpiringSoon(expiresOn: string, calendarDate: string): boolean {
   if (!expiresOn) return false;
   const exp = new Date(expiresOn);
   const today = new Date(calendarDate);
   const monthsAhead = (exp.getUTCFullYear() - today.getUTCFullYear()) * 12
                     + (exp.getUTCMonth() - today.getUTCMonth());
-  return monthsAhead >= 0 && monthsAhead <= 10;
+  return monthsAhead >= 0 && monthsAhead <= EXPIRING_CONTRACT_WINDOW_MONTHS;
 }
 
 function ovrClass(ovr: number): string {
@@ -92,6 +94,10 @@ export function initContractsScreen(
   getGameEngine: () => GameCoordinator,
   allTeams: RawTeamInput[],
   onBack: () => void,
+  // Tap-name → player profile. Marquee toggle (a separate target on
+  // the row) takes precedence — its handler stops propagation so the
+  // outer player-link click doesn't fire.
+  onPlayerClick?: (rosterId: number) => void,
 ): void {
   const el = document.getElementById('contracts');
   if (!el) return;
@@ -139,7 +145,7 @@ export function initContractsScreen(
     const rows = sorted.map(p => {
       const overall = playerOverall(p.baseStats, p.position);
       const age = getAge(p.dob, calendarDate);
-      const expiring = expiresThisSeason(p.contract.expiresOn, calendarDate);
+      const expiring = isExpiringSoon(p.contract.expiresOn, calendarDate);
 
       const classes = ['ct-player'];
       if (p.contract.isMarquee) classes.push('ct-player--marquee');
@@ -161,15 +167,18 @@ export function initContractsScreen(
         ? `<button class="ct-star-btn${p.contract.isMarquee ? ' is-marquee' : ''}" data-marquee-toggle="${p.rosterId}" aria-label="${p.contract.isMarquee ? 'Clear marquee' : 'Designate marquee'}">${star}</button>`
         : `<span class="ct-marquee-slot${p.contract.isMarquee ? ' is-marquee' : ''}" aria-hidden="true">${p.contract.isMarquee ? STAR_FILLED : ''}</span>`;
 
+      const nameHtml = onPlayerClick
+        ? playerLinkHtml(`${p.firstName} ${p.lastName}`, p.rosterId)
+        : `${p.firstName} ${p.lastName}`;
       return `
-        <div class="${classes.join(' ')}" data-roster-id="${p.rosterId}">
+        <div class="${classes.join(' ')}">
           <div class="ct-ovr ${ovrClass(overall)}">
             <span class="ct-ovr-val">${overall}</span>
             <span class="ct-ovr-lbl">OVR</span>
           </div>
           <div class="ct-player-body">
             <div class="ct-row1">
-              <span class="ct-player-name">${p.firstName} ${p.lastName}</span>
+              <span class="ct-player-name">${nameHtml}</span>
               <span class="ct-wage">${fmtWage(p.contract.annualWage)}</span>
             </div>
             <div class="ct-row2">
@@ -291,6 +300,8 @@ export function initContractsScreen(
         });
       });
     }
+
+    if (onPlayerClick) wirePlayerLinks(el!, onPlayerClick);
   }
 
   renderImpl = render;

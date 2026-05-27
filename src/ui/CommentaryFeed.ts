@@ -12,6 +12,7 @@ const PHASE_CLASS: Partial<Record<MatchPhase, string>> = {
   [MatchPhase.ConversionKick]:'event-conversion',
   [MatchPhase.Scrum]:         'event-scrum',
   [MatchPhase.Lineout]:       'event-lineout',
+  [MatchPhase.Maul]:          'event-maul',
   [MatchPhase.KickOff]:       'event-kickoff',
   [MatchPhase.HalfTime]:      'event-halftime',
   [MatchPhase.FullTime]:      'event-fulltime',
@@ -24,6 +25,7 @@ const TAG_MAP: Partial<Record<MatchPhase, string>> = {
   [MatchPhase.ConversionKick]:'CON',
   [MatchPhase.Scrum]:         'SCR',
   [MatchPhase.Lineout]:       'LNO',
+  [MatchPhase.Maul]:          'MAL',
   [MatchPhase.KickOff]:       'KO',
   [MatchPhase.BoxKick]:       'KICK',
   [MatchPhase.TacticalKick]:  'KICK',
@@ -40,17 +42,35 @@ function colorizePlayer(text: string, player: Player, color: string): string {
   return text.split(label).join(`<span style="color:${color};font-weight:700">${label}</span>`);
 }
 
+// Prepositions that take an object-case pronoun ("him"), not subject
+// case ("he"). Keep the list focused on the prepositions that actually
+// show up in the commentary banks — anything outside this set falls
+// through to the subject default.
+const OBJECT_PREPOSITIONS = new Set([
+  'to', 'from', 'with', 'for', 'by', 'at', 'off', 'into',
+  'past', 'behind', 'around', 'on', 'in', 'against', 'through',
+  'over', 'under',
+]);
+
 function deduplicatePlayerRefs(text: string): string {
   const seen = new Set<string>();
   let result = text.replace(
     /[A-Z][A-Za-z'-]* \(#\d{1,2}\)/g,
-    (match) => {
-      if (seen.has(match)) return 'he';
-      seen.add(match);
-      return match;
+    (match, offset: number) => {
+      if (!seen.has(match)) {
+        seen.add(match);
+        return match;
+      }
+      // Second mention → pronoun. Look at the immediately preceding
+      // word: "offloading to Smith (#10)" → "offloading to him", but
+      // "Smith (#10) carries" → "He carries".
+      const lookback = text.slice(Math.max(0, offset - 24), offset).toLowerCase();
+      const lastWord = lookback.match(/\b([a-z]+)\s+$/)?.[1];
+      return lastWord && OBJECT_PREPOSITIONS.has(lastWord) ? 'him' : 'he';
     },
   );
-  return result.replace(/([.!?]\s+)he\b/g, (_, punc) => punc + 'He');
+  // Capitalise either pronoun when it lands at the start of a sentence.
+  return result.replace(/([.!?]\s+)(he|him)\b/g, (_, punc, p) => punc + p[0].toUpperCase() + p.slice(1));
 }
 
 export function initCommentaryFeed(): void {

@@ -22,6 +22,7 @@ import type { TransferOffer } from '../types/gameState';
 import { playerOverall } from '../engine/RatingEngine';
 import { getAge } from '../game/age';
 import { showToast } from './Toast';
+import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 
 type SortKey = 'name' | 'pos' | 'age' | 'ovr' | 'wage';
 type SortDir = 'asc' | 'desc';
@@ -84,6 +85,10 @@ export function initTransferMarketScreen(
   // Always called fresh — see HubScreen for the rationale.
   getGameEngine: () => GameCoordinator,
   allTeams: RawTeamInput[],
+  // Tap player name → profile. Make-Offer / Withdraw / Cooldown
+  // buttons are separate row children, so the row-stopping nature of
+  // the player-link click doesn't reach them.
+  onPlayerClick?: (rosterId: number) => void,
 ): void {
   const el = document.getElementById('transfer-market');
   if (!el) return;
@@ -258,9 +263,12 @@ export function initTransferMarketScreen(
       const currentClub = action === 'poach'
         ? `<span class="tm-from">← ${teamsById.get(offer.fromClubId)?.shortName ?? offer.fromClubId}</span>`
         : '';
+      const nameInner = onPlayerClick
+        ? playerLinkHtml(`${p.firstName} ${p.lastName}`, p.rosterId)
+        : `${p.firstName} ${p.lastName}`;
       return `
-        <div class="tm-row${committedClass}" data-roster-id="${p.rosterId}">
-          <span class="tm-name">${p.firstName} ${p.lastName}${currentClub}</span>
+        <div class="tm-row${committedClass}">
+          <span class="tm-name">${nameInner}${currentClub}</span>
           <span class="tm-pos">${shortPos(p.position)}</span>
           <span class="tm-num">${age ?? '—'}</span>
           <span class="tm-num">${ovr}</span>
@@ -425,6 +433,8 @@ export function initTransferMarketScreen(
     });
     el!.querySelector<HTMLButtonElement>('#tm-submit')!.addEventListener('click', () => activeOnSubmit());
     el!.querySelector<HTMLButtonElement>('#tm-finish')!.addEventListener('click', () => activeOnFinish());
+
+    if (onPlayerClick) wirePlayerLinks(el!, onPlayerClick);
   }
 
   renderImpl = render;

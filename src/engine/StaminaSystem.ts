@@ -41,6 +41,7 @@ export function computeFatigue(team: Team, elapsedMinutes: number, offFieldIds?:
     if (isForwardSlot(player.id)) {
       if (team.tactics.attackingBreakdown === 'commit_numbers') actualDecay *= forwardMult.commit_numbers;
       if (team.tactics.defendingBreakdown === 'counter_ruck')   actualDecay *= forwardMult.counter_ruck;
+      if (team.tactics.attackingGamePlan   === 'possession')    actualDecay *= forwardMult.possession;
     } else {
       // Backs (#9–#15) drain by team.tactics.defensiveLine: blitz adds 10 %
       // for the up-and-back motion, drift takes 5 % off the rate, hybrid is

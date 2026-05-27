@@ -97,6 +97,10 @@ function initPlayer(raw: RawPlayer & { rosterId?: number }): Player {
   for (const key of Object.keys(current) as (keyof PlayerStats)[]) {
     current[key] = Math.max(1, Math.min(100, current[key] + form));
   }
+  // Carry-over freshness from the previous match (set via PLAYER_CONDITION_UPDATED
+  // at match-end, persisted on the roster). Falls back to 100 for JSON
+  // imports / legacy paths that don't thread it through.
+  const startingFatigue = raw.condition ?? 100;
   return {
     ...raw,
     squadNumber: raw.squadNumber ?? raw.id,
@@ -113,10 +117,11 @@ function initPlayer(raw: RawPlayer & { rosterId?: number }): Player {
     matchStats: zeroMatchStats(),
     seasonStats: zeroSeasonStats(),
     formModifier: form,
-    fatiguePct: 100,
+    fatiguePct: startingFatigue,
     rating: 6.0,
     x: 50,
     y: 50,
+    condition: startingFatigue,
   };
 }
 
@@ -180,6 +185,8 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
       scrums:   { home: 0, away: 0 },
       lineouts: { home: 0, away: 0 },
       tries:    { home: 0, away: 0 },
+      mauls:    { home: 0, away: 0 },
+      maulMetres: { home: 0, away: 0 },
       ownLineouts: { home: { thrown: 0, won: 0 }, away: { thrown: 0, won: 0 } },
       ownScrums:   { home: { putIn: 0, won: 0 }, away: { putIn: 0, won: 0 } },
       entries22: {
@@ -197,6 +204,7 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
       teamWarned22:  { home: false, away: false },
       injured:       { home: [], away: [] },
     },
+    consecutiveWheels: 0,
   };
 }
 
@@ -525,6 +533,48 @@ export class MatchCoordinator {
   }
 
   private async tick(): Promise<void> {
+    // Silent fixtures (telemetry, determinism harness, headless AI sims)
+    // must propagate exceptions so CI sees them. Live mode catches and
+    // surfaces the error through `engine:error` so the UI can render a
+    // copy-pastable crash overlay instead of silently freezing.
+    if (this.silent) {
+      await this.tickBody();
+      return;
+    }
+    try {
+      await this.tickBody();
+    } catch (err) {
+      this.reportTickCrash(err);
+    }
+  }
+
+  private reportTickCrash(err: unknown): void {
+    const message = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error && err.stack ? err.stack : '(no stack)';
+    const lastEvents = this.state.events.slice(-5).map(e => {
+      const step = e.narration?.steps[0];
+      const key = step && 'key' in step ? step.key : '(no key)';
+      return `${e.gameMinute.toFixed(0)}' ${e.phase} ${key}`;
+    });
+    if (this.state.engine.isRunning) {
+      applyMatchEvent(this.state, { type: 'IS_RUNNING_SET', value: false });
+    }
+    if (this.tickTimeout) {
+      clearTimeout(this.tickTimeout);
+      this.tickTimeout = null;
+    }
+    eventBus.emit('engine:error', {
+      message,
+      stack,
+      clockMinute: this.state.clock.gameMinute,
+      phase: this.state.phase,
+      possession: this.state.possession,
+      score: { home: this.state.score.home, away: this.state.score.away },
+      lastEvents,
+    });
+  }
+
+  private async tickBody(): Promise<void> {
     this.tickTimeout = null;
     if (!this.state.engine.isRunning) return;
 
@@ -688,6 +738,7 @@ export class MatchCoordinator {
       previousPhase = MatchPhase.Penalty;
     }
 
+    const wasHalfTimeDone = this.state.clock.halfTimeDone;
     if (!this.state.clock.clockInTheRed) {
       this.clock.checkClockInRed(this.state);
     } else if (wasInRed && this.clock.shouldEndPeriod(this.state, previousPhase)) {
@@ -698,6 +749,19 @@ export class MatchCoordinator {
         await this.clock.endMatch(this.state);
         return;
       }
+    }
+
+    // Half-time auto-pause. When triggerHalfTime fires on this tick, drain
+    // the commentary queue so the user reads the half-time line, then pause
+    // the engine and signal SimController to flip the buttons back to
+    // playable. The user clicks Play to start the second half. Skipped in
+    // silent mode so headless harnesses (determinism, telemetry, AI
+    // fixtures) blow straight through to full-time.
+    if (!this.silent && !wasHalfTimeDone && this.state.clock.halfTimeDone) {
+      await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+      this.pause();
+      eventBus.emit('engine:autoPaused', { reason: 'half_time' });
+      return;
     }
 
     // Trigger the paced drain of any events emitted during this tick.

@@ -37,6 +37,9 @@
 .so-section--thin {
   border-color: color-mix(in oklch, var(--rm-stat-2) 35%, var(--rm-border-soft));
   background: color-mix(in oklch, var(--rm-stat-2) 5%, var(--rm-surface));
+  box-shadow:
+    var(--rm-card-shadow),
+    0 0 18px color-mix(in oklch, var(--rm-stat-2) 12%, transparent);
 }
 
 /* ─── Section header (label · divider · count) ─── */

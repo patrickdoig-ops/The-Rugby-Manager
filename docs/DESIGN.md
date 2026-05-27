@@ -310,7 +310,7 @@ The render helper is `src/ui/components/formPip.ts::renderFormPipStrip(form, siz
 
 In-list rows that have rich underlying data but render a single line at rest can opt into the shared expand pattern. The row carries `data-row-id="..."`, with a sibling `.row-expand-panel` div that toggles via `data-expanded="true"`. The reveal tweens via `grid-template-rows: 0fr → 1fr` (no `max-height` hack). The shared controller `src/ui/components/rowExpand.ts::createRowExpander({ rowSelector, onChange })` owns the per-screen `Set<rowId>` and the delegated click handler. Buttons, links, and `.player-link` inside the row automatically bypass the toggle.
 
-Today's adopters: ContractsScreen (`.ct-expand`), TransferMarketScreen (`.tm-expand`), RoundResultsScreen (`.rr-expand`), SquadManagementScreen (`.sq-expand`). SquadManagement uses an opt-in `.sq-expand-btn` chevron because the row body itself is the swap-source target. Other screens treat the row body as the tap area.
+Today's adopters: ContractsScreen (`.ct-expand`), TransferMarketScreen (`.tm-expand`), RoundResultsScreen (`.rr-expand`), SquadManagementScreen (`.sq-expand`), PreMatchScreen lineup rows (`.pm-lineup-expand` — both Mine and Opp steps). SquadManagement uses an opt-in `.sq-expand-btn` chevron because the row body itself is the swap-source target. PreMatch uses the shared `.row-expand-chevron` at the row end (it's a high-density read screen — the chevron makes the affordance visible without competing with the jersey/name centre-of-attention). Other screens treat the row body as the tap area.
 
 ---
 

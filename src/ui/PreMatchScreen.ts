@@ -34,7 +34,10 @@ import { applyMatchdaySquad, makeInjuredPredicate } from '../game/playerSquad';
 import { buildTeamFromRoster, buildAutoSelectedTeamFromRoster } from '../game/rosterTeamBuilder';
 import { teamPossessionPct, teamTerritoryPct, averageRating } from '../game/seasonLeaderboards';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
+import { createRowExpander } from './components/rowExpand';
 import type { GameCoordinator } from '../game/GameCoordinator';
+import type { GameState } from '../types/gameState';
+import type { PlayerInjury } from '../types/player';
 
 type RawPlayer = {
   id: number;
@@ -118,19 +121,90 @@ function formatMatchDate(iso: string | undefined): string {
   return `${DOW_ABBR[d.getUTCDay()]} ${String(d.getUTCDate()).padStart(2,'0')} ${MONTH_ABBR[d.getUTCMonth()]}`;
 }
 
-function renderLineupRow(p: RawPlayer, color: string, onProfile: boolean): string {
+function renderLineupRow(
+  p: RawPlayer,
+  color: string,
+  onProfile: boolean,
+  state: GameState,
+  expanded: boolean,
+): string {
   const num = getSquadNum(p);
   const surname = shortName(p);
   const nameHtml = onProfile && p.rosterId !== undefined
     ? playerLinkHtml(surname, p.rosterId)
     : surname;
+  // Expand only meaningful when the row maps back to a roster entry —
+  // the deterministic-harness path supplies players without rosterId.
+  const expandable = p.rosterId !== undefined;
+  const rosterEntry = expandable ? state.career.roster[p.rosterId!] : undefined;
+  const rowAttrs = expandable ? ` data-row-id="rid-${p.rosterId}"` : '';
+  const chevron = expandable
+    ? `<button type="button" class="row-expand-chevron pm-lineup-chevron" aria-expanded="${expanded}" aria-label="${expanded ? 'Hide details' : 'Show details'}">
+         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+       </button>`
+    : '';
+  const expandBody = expandable && rosterEntry
+    ? `<div class="row-expand-panel pm-lineup-expand" data-expanded="${expanded}">
+         <div class="row-expand-inner">${renderLineupExpand(p, rosterEntry)}</div>
+       </div>`
+    : '';
   return `
-    <div class="pm-lineup-row">
-      <span class="pm-lineup-num" style="color:${teamTextColor(color)}">${String(num).padStart(2,'0')}</span>
-      <span class="pm-lineup-name">${nameHtml}</span>
-      <span class="pm-lineup-pos">${p.position}</span>
+    <div class="pm-lineup-row${expandable ? ' pm-lineup-row--expandable' : ''}"${rowAttrs}>
+      <div class="pm-lineup-row-main">
+        <span class="pm-lineup-num" style="color:${teamTextColor(color)}">${String(num).padStart(2,'0')}</span>
+        <span class="pm-lineup-name">${nameHtml}</span>
+        <span class="pm-lineup-pos">${p.position}</span>
+        ${chevron}
+      </div>
+      ${expandBody}
     </div>
   `;
+}
+
+// Per-row expand content: OVR, condition bar, season mini-stats, form
+// delta + injury chip when present. Sourced from the roster entry —
+// the matchday RawPlayer is a slim copy, the persistent state lives
+// behind `rosterId`.
+function renderLineupExpand(p: RawPlayer, r: import('../types/player').Player): string {
+  const ovr = playerOverall(p.baseStats, p.position);
+  const condition = Math.round(r.condition ?? 100);
+  const ss = r.seasonStats;
+  const avr = ss.appearances > 0 ? averageRating(ss) : null;
+  const avrPct = avr !== null ? Math.max(0, Math.min(100, (avr / 10) * 100)) : 0;
+  const formPctRaw = (r.formModifier ?? 0) * 100;
+  const formLabel = `${formPctRaw >= 0 ? '+' : ''}${formPctRaw.toFixed(1)}%`;
+  const injuryChip = r.injury ? injuryChipHtml(r.injury) : '';
+  return `
+    <div class="pm-expand-grid">
+      <div class="pm-expand-bar-row">
+        <div class="pm-expand-bar-label">OVR</div>
+        <div class="pm-expand-bar"><div class="pm-expand-bar-fill" style="width:${ovr}%"></div></div>
+        <div class="pm-expand-bar-val">${ovr}</div>
+      </div>
+      <div class="pm-expand-bar-row">
+        <div class="pm-expand-bar-label">CONDITION</div>
+        <div class="pm-expand-bar"><div class="pm-expand-bar-fill" style="width:${condition}%"></div></div>
+        <div class="pm-expand-bar-val">${condition}%</div>
+      </div>
+      <div class="pm-expand-bar-row">
+        <div class="pm-expand-bar-label">AVG RATING</div>
+        <div class="pm-expand-bar"><div class="pm-expand-bar-fill pm-expand-bar-fill--rating" style="width:${avrPct.toFixed(0)}%"></div></div>
+        <div class="pm-expand-bar-val">${avr !== null ? avr.toFixed(1) : '—'}</div>
+      </div>
+      <div class="pm-expand-stats">
+        <div class="pm-expand-stat"><span>${ss.appearances}</span><label>Apps</label></div>
+        <div class="pm-expand-stat"><span>${ss.tries}</span><label>Tries</label></div>
+        <div class="pm-expand-stat"><span>${ss.tackles}</span><label>Tackles</label></div>
+        <div class="pm-expand-stat"><span>${formLabel}</span><label>Form</label></div>
+      </div>
+      ${injuryChip}
+    </div>
+  `;
+}
+
+function injuryChipHtml(inj: PlayerInjury): string {
+  const kind = inj.kind.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return `<div class="pm-expand-injury">${kind} · ${inj.weeksRemaining}w remaining</div>`;
 }
 
 function renderLineupBody(
@@ -143,13 +217,16 @@ function renderLineupBody(
   roundLabel: string,
   showEditSquad: boolean,
   hasOnProfile: boolean,
+  state: GameState,
+  isExpanded: (rosterId: number) => boolean,
 ): string {
   const hc = teamTextColor(team.color);
   const editSquadLink = showEditSquad
     ? `<button class="pm-edit-squad" id="pm-edit-squad" type="button">Edit Squad</button>`
     : '';
-  const startersHtml = starters.map(p => renderLineupRow(p, team.color, hasOnProfile)).join('');
-  const benchHtml    = bench.map(p => renderLineupRow(p, team.color, hasOnProfile)).join('');
+  const rowExpanded = (p: RawPlayer): boolean => p.rosterId !== undefined && isExpanded(p.rosterId);
+  const startersHtml = starters.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p))).join('');
+  const benchHtml    = bench.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p))).join('');
   const metaParts = [stadium, matchDate, roundLabel].filter(Boolean).join(' · ');
   return `
     <div class="pm-lineup-card">
@@ -429,6 +506,17 @@ export function initPreMatchScreen(
   const STEP_ORDER: Step[] = ['mine', 'opp', 'scout', 'tactics'];
   function stepIndex(): number { return STEP_ORDER.indexOf(step); }
 
+  // ── Per-row lineup-expand controller ─────────────────────────────────
+  // Keyed by rosterId so expansion state survives step changes (Mine
+  // → Opp → back to Mine keeps the same row open). The controller's
+  // Set lives in this closure; the click handler is re-attached after
+  // every render() because innerHTML is reset on each step.
+  const lineupExpander = createRowExpander({
+    rowSelector: '.pm-lineup-row',
+    onChange: () => render(),
+  });
+  const isRowExpanded = (rosterId: number): boolean => lineupExpander.isExpanded(`rid-${rosterId}`);
+
   function topBarHtml(): string {
     const backLabel = step === 'mine'
       ? (playoffContext?.backLabel ?? 'Hub')
@@ -495,10 +583,10 @@ export function initPreMatchScreen(
 
   function bodyHtml(): string {
     if (step === 'mine') {
-      return renderLineupBody('LINE-UP', playerTeam, playerStarters, playerBench, stadiumName, matchDate, roundLabel, !!onEditSquad, !!onPlayerProfile);
+      return renderLineupBody('LINE-UP', playerTeam, playerStarters, playerBench, stadiumName, matchDate, roundLabel, !!onEditSquad, !!onPlayerProfile, state, isRowExpanded);
     }
     if (step === 'opp') {
-      return renderLineupBody('LINE-UP', oppTeam, oppStarters, oppBench, stadiumName, matchDate, roundLabel, false, !!onPlayerProfile);
+      return renderLineupBody('LINE-UP', oppTeam, oppStarters, oppBench, stadiumName, matchDate, roundLabel, false, !!onPlayerProfile, state, isRowExpanded);
     }
     if (step === 'scout') {
       return renderScoutBody(oppTeam, oppTeam.shortName, scoutData);
@@ -574,6 +662,16 @@ export function initPreMatchScreen(
     if ((step === 'mine' || step === 'opp') && onPlayerProfile) {
       const currentStep = step;
       wirePlayerLinks(screen, (rosterId) => onPlayerProfile(rosterId, currentStep));
+    }
+
+    // Re-attach the row-expand delegated handler. The controller's
+    // expansion Set survives this re-attach; only the click listener
+    // needs rebinding because the previous render's innerHTML was
+    // wiped. Scoped per step to the active lineup card so a stray tap
+    // outside doesn't bubble.
+    if (step === 'mine' || step === 'opp') {
+      const card = screen.querySelector<HTMLElement>('.pm-lineup-card');
+      if (card) lineupExpander.attach(card);
     }
   }
 

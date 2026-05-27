@@ -158,9 +158,20 @@ export function renderTacticsMenu(
     container.querySelector('#btn-resume-match')?.addEventListener('click', async () => {
       if (committing) return;
       committing = true;
+      // Spatial confirmation: flash the .tactics-category rows whose
+      // selection differs from the value the modal opened with, so the
+      // user sees "your Defensive Line changed" before the modal closes.
+      const changedKeys = (Object.keys(currentTactics) as (keyof TeamTactics)[])
+        .filter(k => currentTactics[k] !== initialTactics[k]);
+      changedKeys.forEach(k => {
+        container.querySelector<HTMLElement>(`.tactics-category[data-cat="${k}"]`)
+          ?.classList.add('row-just-changed');
+      });
       const activeBtns = container.querySelectorAll<HTMLButtonElement>('.tactics-opt-btn.active');
       activeBtns.forEach(b => b.classList.add('committing'));
-      await new Promise(r => setTimeout(r, 240));
+      // Wait long enough for the row flash to land when there were changes;
+      // otherwise the original 240ms covers the button pulse alone.
+      await new Promise(r => setTimeout(r, changedKeys.length > 0 ? 500 : 240));
       onResume();
     });
   }

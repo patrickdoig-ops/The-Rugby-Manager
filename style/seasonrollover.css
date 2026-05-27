@@ -517,3 +517,14 @@
   text-align: center;
   animation: eosNameRise 600ms cubic-bezier(0.22, 1, 0.36, 1) 900ms backwards;
 }
+
+.eos-champion-season {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--rm-text-muted);
+  text-transform: uppercase;
+  text-align: center;
+  animation: eosNameRise 600ms cubic-bezier(0.22, 1, 0.36, 1) 1100ms backwards;
+}

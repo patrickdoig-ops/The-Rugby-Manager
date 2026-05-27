@@ -462,18 +462,27 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       };
       // Cascade: when a SF resolves, populate the final's matching slot
       // from the SF winner. SF1 winner takes the final's home slot, SF2
-      // winner takes the away slot — mirrors the bracket diagram.
+      // winner takes the away slot — mirrors the bracket diagram. Guarded
+      // against double-population: the slot only writes when currently
+      // null, so a stray replay of the same event can't overwrite a
+      // committed final.
       if (event.kind === 'semifinal_1' || event.kind === 'semifinal_2') {
         const winnerId = playoffWinnerId(target);
         if (winnerId !== null) {
-          if (event.kind === 'semifinal_1') playoffs.final.homeId = winnerId;
-          else                              playoffs.final.awayId = winnerId;
+          if (event.kind === 'semifinal_1' && playoffs.final.homeId === null) {
+            playoffs.final.homeId = winnerId;
+          } else if (event.kind === 'semifinal_2' && playoffs.final.awayId === null) {
+            playoffs.final.awayId = winnerId;
+          }
         }
       }
-      // Cascade: when the final resolves, write the champion.
+      // Cascade: when the final resolves, write the champion. Same
+      // double-population guard as the SF cascade.
       if (event.kind === 'final') {
         const winnerId = playoffWinnerId(target);
-        if (winnerId !== null) playoffs.championTeamId = winnerId;
+        if (winnerId !== null && playoffs.championTeamId === null) {
+          playoffs.championTeamId = winnerId;
+        }
       }
       return;
     }

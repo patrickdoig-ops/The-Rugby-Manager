@@ -107,12 +107,18 @@ export function resolveSigningRound(state: GameState): ResolveResult {
     if (!player) continue;
     const bids = bidsByRoster.get(rid)!;
 
-    // Score each bid. Highest wins; tie-break by lower clubId.
+    // Score each bid. Highest wins; tie-break by lower clubId using
+    // localeCompare so the ordering is explicit and locale-stable.
+    // Today's clubIds are English-letter slugs (`bath`, `exeter`, …) so
+    // the result matches a naive `<` compare, but localeCompare makes
+    // the intent unambiguous and survives a future ID format change.
     let winner: TransferBid | null = null;
     let bestScore = -Infinity;
     for (const bid of bids) {
       const score = appealScore(state, bid, player);
-      if (score > bestScore || (score === bestScore && winner && bid.clubId < winner.clubId)) {
+      const wins = score > bestScore
+        || (score === bestScore && winner !== null && bid.clubId.localeCompare(winner.clubId) < 0);
+      if (wins) {
         bestScore = score;
         winner = bid;
       }

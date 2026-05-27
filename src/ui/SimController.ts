@@ -1,8 +1,30 @@
 import type { MatchCoordinator } from '../engine/MatchCoordinator';
+import type { GameEvent } from '../types/match';
+import { MatchPhase } from '../types/engine';
 import { eventBus } from '../utils/eventBus';
-import { loadTickDelayMs, saveTickDelayMs } from './uiPrefs';
+import {
+  loadTickDelayMs, saveTickDelayMs,
+  loadAutoPauseEnabled, saveAutoPauseEnabled,
+  loadAutoSlowEnabled,  saveAutoSlowEnabled,
+} from './uiPrefs';
 
 let unsubs: Array<() => void> = [];
+
+// Key-moment classifier — events that warrant a forced beat in the broadcast.
+const KEY_PHASES = new Set<MatchPhase>([MatchPhase.TryScored, MatchPhase.FullTime]);
+const KEY_ANNOUNCEMENT_KEYS = new Set<string>([
+  'card_yellow', 'card_red_20', 'card_red_full', 'tmo_intervenes',
+]);
+const SLOW_MS          = 2500;  // 1× preset
+const SLOW_DURATION_MS = 5000;  // ~2 ticks at 1×; plenty for a commentary beat
+
+function isKeyMoment(event: GameEvent): boolean {
+  if (KEY_PHASES.has(event.phase)) return true;
+  for (const step of event.narration.steps) {
+    if (step.kind === 'announcement' && KEY_ANNOUNCEMENT_KEYS.has(step.key)) return true;
+  }
+  return false;
+}
 
 export function initSimController(engine: MatchCoordinator): void {
   // Re-init is per-match; clean up the previous match's eventBus subscriptions
@@ -156,6 +178,61 @@ export function initSimController(engine: MatchCoordinator): void {
   }));
 
   unsubs.push(eventBus.on('engine:stateChange', () => syncSubsBadge()));
+
+  // ─── Auto-pause / auto-slow on key moments ───
+  const cogBtn   = document.getElementById('btn-auto-settings') as HTMLButtonElement;
+  const popover  = document.getElementById('auto-settings-popover') as HTMLDivElement;
+  const chkPause = document.getElementById('chk-auto-pause')  as HTMLInputElement;
+  const chkSlow  = document.getElementById('chk-auto-slow')   as HTMLInputElement;
+
+  chkPause.checked = loadAutoPauseEnabled();
+  chkSlow.checked  = loadAutoSlowEnabled();
+
+  function closePopover(): void {
+    popover.hidden = true;
+    cogBtn.classList.remove('is-open');
+    cogBtn.setAttribute('aria-expanded', 'false');
+  }
+  cogBtn.onclick = (e) => {
+    e.stopPropagation();
+    const open = popover.hidden;
+    popover.hidden = !open;
+    cogBtn.classList.toggle('is-open', open);
+    cogBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+  popover.addEventListener('click', (e) => e.stopPropagation());
+  const outsideClick = (): void => { if (!popover.hidden) closePopover(); };
+  document.addEventListener('click', outsideClick);
+  unsubs.push(() => document.removeEventListener('click', outsideClick));
+
+  chkPause.onchange = () => saveAutoPauseEnabled(chkPause.checked);
+  chkSlow.onchange  = () => saveAutoSlowEnabled(chkSlow.checked);
+
+  let slowTimeout: ReturnType<typeof setTimeout> | null = null;
+  unsubs.push(() => {
+    if (slowTimeout !== null) { clearTimeout(slowTimeout); slowTimeout = null; }
+  });
+
+  unsubs.push(eventBus.on('engine:event', ({ event }) => {
+    if (!engine.getState().engine.isRunning) return;
+    if (!isKeyMoment(event)) return;
+    if (chkPause.checked) {
+      engine.pause();
+      btnPlay.disabled  = false;
+      btnPause.disabled = true;
+      return;
+    }
+    if (chkSlow.checked) {
+      if (slowTimeout !== null) clearTimeout(slowTimeout);
+      engine.setTickDelay(SLOW_MS);
+      slowTimeout = setTimeout(() => {
+        slowTimeout = null;
+        if (engine.getState().engine.tickDelayMs === SLOW_MS) {
+          engine.setTickDelay(loadTickDelayMs());
+        }
+      }, SLOW_DURATION_MS);
+    }
+  }));
 
   const views = ['dashboard', 'commentary', 'stats', 'players'] as const;
   const viewBtns = views.map(v => document.getElementById(`btn-view-${v}`) as HTMLButtonElement);

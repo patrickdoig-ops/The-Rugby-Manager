@@ -1,7 +1,8 @@
 // User-facing UI preferences kept in localStorage with their own lifecycle —
 // per-user, never cleared on team-switch (so they're not part of SaveManager).
-// Today this is just the match tick delay; theme persistence is bootstrapped
-// inline in index.html for first-paint timing and stays separate.
+// Today this is the match tick delay plus the key-moment auto-pause / auto-slow
+// toggles; theme persistence is bootstrapped inline in index.html for first-paint
+// timing and stays separate.
 
 const TICK_DELAY_KEY        = 'rugby-manager-tick-delay-ms';
 const DEFAULT_TICK_DELAY_MS = 2500;
@@ -10,6 +11,9 @@ const DEFAULT_TICK_DELAY_MS = 2500;
 // to the default — defense against a hand-edited localStorage entry.
 const MIN_TICK_DELAY_MS = 100;
 const MAX_TICK_DELAY_MS = 5000;
+
+const AUTO_PAUSE_KEY = 'rugby-manager-auto-pause';
+const AUTO_SLOW_KEY  = 'rugby-manager-auto-slow';
 
 export function loadTickDelayMs(): number {
   try {
@@ -30,5 +34,40 @@ export function saveTickDelayMs(ms: number): void {
     localStorage.setItem(TICK_DELAY_KEY, String(ms));
   } catch {
     // localStorage disabled / quota exceeded — silent for MVP.
+  }
+}
+
+// Auto-pause defaults ON: a first-time user gets the most dramatic experience.
+export function loadAutoPauseEnabled(): boolean {
+  try {
+    return localStorage.getItem(AUTO_PAUSE_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+export function saveAutoPauseEnabled(on: boolean): void {
+  try {
+    localStorage.setItem(AUTO_PAUSE_KEY, on ? 'on' : 'off');
+  } catch {
+    // localStorage disabled / quota exceeded — silent.
+  }
+}
+
+// Auto-slow defaults OFF: with auto-pause on by default, slow is the
+// alternative-mode escape hatch for users who'd rather not click.
+export function loadAutoSlowEnabled(): boolean {
+  try {
+    return localStorage.getItem(AUTO_SLOW_KEY) === 'on';
+  } catch {
+    return false;
+  }
+}
+
+export function saveAutoSlowEnabled(on: boolean): void {
+  try {
+    localStorage.setItem(AUTO_SLOW_KEY, on ? 'on' : 'off');
+  } catch {
+    // localStorage disabled / quota exceeded — silent.
   }
 }

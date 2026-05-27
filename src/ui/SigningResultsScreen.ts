@@ -32,6 +32,45 @@ function fmtWage(n: number): string {
   return `£${n}`;
 }
 
+function fmtSpend(n: number): string {
+  if (n === 0) return '£0';
+  return `${n > 0 ? '−' : '+'}${fmtWage(Math.abs(n))}`;
+}
+
+function fmtOvrDelta(n: number): string {
+  if (n === 0) return '0';
+  return `${n > 0 ? '+' : '−'}${Math.abs(n)}`;
+}
+
+function fmtCount(n: number): string {
+  return `${n}`;
+}
+
+// Counter odometer: animates element text from 0 to target over the given
+// duration with easeOutCubic. The current numeric value is rounded toward
+// target each frame; the formatter renders it. Fires once after a delay
+// so the entry stagger across tiles is visually distinct.
+function animateCounter(
+  el: HTMLElement,
+  target: number,
+  format: (n: number) => string,
+  duration: number,
+  delay: number,
+): void {
+  el.textContent = format(0);
+  if (target === 0) return;
+  window.setTimeout(() => {
+    const start = performance.now();
+    const tick = (now: number): void => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = format(Math.round(target * eased));
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, delay);
+}
+
 export function initSigningResultsScreen(
   // Always called fresh — see HubScreen for the rationale.
   getGameEngine: () => GameCoordinator,
@@ -249,6 +288,11 @@ export function initSigningResultsScreen(
     el!.querySelector<HTMLButtonElement>('#sr-continue')!.addEventListener('click', () => activeOnContinue());
 
     if (onPlayerClick) wirePlayerLinks(el!, onPlayerClick);
+
+    const tiles = el!.querySelectorAll<HTMLElement>('#sr-hero .sr-hero-val');
+    if (tiles[0]) animateCounter(tiles[0], netSpend,   fmtSpend,    400, 0);
+    if (tiles[1]) animateCounter(tiles[1], ovrDelta,   fmtOvrDelta, 400, 120);
+    if (tiles[2]) animateCounter(tiles[2], eliteCount, fmtCount,    400, 240);
   }
 
   renderImpl = render;

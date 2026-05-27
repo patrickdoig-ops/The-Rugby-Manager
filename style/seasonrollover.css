@@ -437,7 +437,55 @@
 
 .eos-champion--me {
   box-shadow: 0 0 26px color-mix(in oklch, var(--team-color) 35%, transparent);
+  overflow: visible;
 }
+
+/* Championship confetti — pure CSS burst from the crest area when the
+   player wins. 14 dots scatter outward in colour-cycled team/amber/white.
+   Triggers once after the crest pop (700ms delay) and fades over 1.2s. */
+.eos-confetti {
+  position: absolute;
+  top: 90px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.eos-confetti span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 1px;
+  background: var(--c);
+  opacity: 0;
+  animation: eosConfetti 1200ms cubic-bezier(0.22, 1, 0.36, 1) 700ms forwards;
+}
+
+@keyframes eosConfetti {
+  0%   { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  15%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); }
+}
+
+.eos-confetti span:nth-child(1)  { --dx:  90px; --dy: -36px; --rot:  220deg; --c: var(--team-color); }
+.eos-confetti span:nth-child(2)  { --dx:  61px; --dy:  43px; --rot:  -90deg; --c: var(--rm-amber);   }
+.eos-confetti span:nth-child(3)  { --dx:  42px; --dy:  91px; --rot:  140deg; --c: var(--rm-chalk);   }
+.eos-confetti span:nth-child(4)  { --dx:   0px; --dy:  80px; --rot:   60deg; --c: var(--team-color); }
+.eos-confetti span:nth-child(5)  { --dx: -40px; --dy:  86px; --rot: -200deg; --c: var(--rm-amber);   }
+.eos-confetti span:nth-child(6)  { --dx: -54px; --dy:  45px; --rot:  100deg; --c: var(--rm-chalk);   }
+.eos-confetti span:nth-child(7)  { --dx:-108px; --dy:  19px; --rot: -130deg; --c: var(--team-color); }
+.eos-confetti span:nth-child(8)  { --dx: -80px; --dy: -29px; --rot:  180deg; --c: var(--rm-amber);   }
+.eos-confetti span:nth-child(9)  { --dx: -67px; --dy: -67px; --rot:  -70deg; --c: var(--rm-chalk);   }
+.eos-confetti span:nth-child(10) { --dx: -19px; --dy: -73px; --rot:  240deg; --c: var(--team-color); }
+.eos-confetti span:nth-child(11) { --dx:  26px; --dy: -97px; --rot: -150deg; --c: var(--rm-amber);   }
+.eos-confetti span:nth-child(12) { --dx:  51px; --dy: -61px; --rot:   80deg; --c: var(--rm-chalk);   }
+.eos-confetti span:nth-child(13) { --dx:  82px; --dy: -38px; --rot: -210deg; --c: var(--team-color); }
+.eos-confetti span:nth-child(14) { --dx:  70px; --dy:  -6px; --rot:  120deg; --c: var(--rm-amber);   }
 
 .eos-champion-label {
   font-family: var(--rm-font-mono);

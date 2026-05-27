@@ -44,6 +44,16 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  animation: srTileEnter 400ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.sr-hero-tile:nth-child(1) { animation-delay: 0ms; }
+.sr-hero-tile:nth-child(2) { animation-delay: 120ms; }
+.sr-hero-tile:nth-child(3) { animation-delay: 240ms; }
+
+@keyframes srTileEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .sr-hero-label {

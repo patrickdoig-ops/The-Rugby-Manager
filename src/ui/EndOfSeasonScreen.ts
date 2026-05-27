@@ -120,6 +120,9 @@ export function initEndOfSeasonScreen(
     const championId = state.league.playoffs?.championTeamId ?? null;
     const championTeam = championId ? teamsById.get(championId) : undefined;
     const championIsMe = championId !== null && championId === playerId;
+    const confettiHtml = championIsMe
+      ? `<div class="eos-confetti" aria-hidden="true">${'<span></span>'.repeat(14)}</div>`
+      : '';
     const championSection = championTeam
       ? `
         <section class="eos-section eos-champion-section">
@@ -127,6 +130,7 @@ export function initEndOfSeasonScreen(
             <div class="eos-champion-label"><span class="eos-label-text">PREMIERSHIP CHAMPIONS</span></div>
             <div class="eos-champion-crest" style="background:linear-gradient(160deg,${championTeam.color} 0%,color-mix(in oklch,${championTeam.color} 30%,black) 100%);border:1px solid color-mix(in oklch,${championTeam.color} 45%,transparent)">${championTeam.shortName[0] ?? '?'}</div>
             <div class="eos-champion-name">${championTeam.name}</div>
+            ${confettiHtml}
           </div>
         </section>`
       : '';

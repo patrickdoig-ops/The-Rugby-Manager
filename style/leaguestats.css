@@ -148,8 +148,10 @@
 }
 
 .ts-name {
-  font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--rm-text);
   overflow: hidden;
   white-space: nowrap;
@@ -225,7 +227,7 @@
 
 .ps-row {
   display: grid;
-  grid-template-columns: 22px 1.4fr 1fr auto auto;
+  grid-template-columns: 22px 1fr auto auto auto;
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
@@ -263,8 +265,8 @@
 }
 
 .ps-name {
-  font-family: var(--rm-font-body);
-  font-size: 14px;
+  font-family: var(--rm-font-mono);
+  font-size: 13px;
   color: var(--rm-text);
   overflow: hidden;
   white-space: nowrap;
@@ -297,7 +299,8 @@
   font-family: var(--rm-font-mono);
   font-size: 11px;
   color: var(--rm-text-muted);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;

@@ -134,7 +134,7 @@ export function initPlayerStatsScreen(
     if (!team) return `<span class="ps-club">${teamId}</span>`;
     const grad = `linear-gradient(160deg, ${team.color} 0%, color-mix(in oklch, ${team.color} 30%, black) 100%)`;
     const initial = team.shortName[0] ?? '?';
-    return `<span class="ps-club"><span class="ps-club-dot" style="background:${grad}"><span>${initial}</span></span><span class="ps-club-name">${team.shortName}</span></span>`;
+    return `<span class="ps-club"><span class="ps-club-dot" style="background:${grad}"><span>${initial}</span></span><span class="ps-club-name">${team.name.split(' ')[0]}</span></span>`;
   }
 
   function buildRows(state: GameState, cat: CategorySpec): Array<{ player: Player; clubId: string | null }> {

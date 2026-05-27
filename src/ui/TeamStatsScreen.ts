@@ -200,7 +200,7 @@ export function initTeamStatsScreen(
         <div class="ts-row${isMe ? ' ts-row--me' : ''}" role="button" tabindex="0" data-team-id="${r.team.id}" aria-label="${label}" style="--row-delay: ${rowDelay}ms">
           <span class="ts-rank">${i + 1}</span>
           ${teamCrest(r.team)}
-          <span class="ts-name">${r.team.shortName}</span>
+          <span class="ts-name">${r.team.name.split(' ')[0]}</span>
           ${cells}
         </div>`;
     }).join('');

@@ -170,7 +170,8 @@ export function initRetentionDecisionScreen(
           <span class="app-title">Retention Decisions</span>
           ${capPill}
         </div>
-        <div class="app-eyebrow">${promptRosterIds.length} of your players being approached${deadlinePill}</div>
+        <div class="app-eyebrow">${promptRosterIds.length} of your players being approached</div>
+        <div class="rd-deadline-row">${deadlinePill}</div>
       </div>
 
       <div class="rd-intro">Other clubs have approached your final-year players. Make a retention offer to keep them, or let them go. Players you don't retain may leave at next rollover.</div>

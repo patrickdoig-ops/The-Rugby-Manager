@@ -189,12 +189,17 @@
    default; the --urgent variant tinges amber and pulses to nudge the
    user when ≤3 days remain. Future-proofed for a real deadline field
    on MarketState; today defaults to 7 days from market open. */
+.rd-deadline-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
+}
+
 .rd-deadline {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  margin-left: 10px;
   border-radius: 8px;
   font-family: var(--rm-font-mono);
   font-size: 10px;

@@ -383,10 +383,10 @@
 }
 
 .hub-tile-label {
-  font-family: var(--rm-font-body);
+  font-family: var(--rm-font-mono);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.10em;
   text-transform: uppercase;
   color: var(--rm-chalk);
 }

@@ -463,9 +463,9 @@
 
 .eos-champion-name {
   font-family: var(--rm-font-display);
-  font-size: 22px;
+  font-size: clamp(32px, 8vw, 48px);
   color: var(--rm-text);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-align: center;
   animation: eosNameRise 600ms cubic-bezier(0.22, 1, 0.36, 1) 900ms backwards;
 }

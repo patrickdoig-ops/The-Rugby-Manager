@@ -11,16 +11,16 @@ export const TACTIC_MODIFIERS = {
   backfieldLineBreakPenalty:  { three_back: -7,  two_back: -5,  one_back: 0 },
   // Line break gain bonus based on backfield cover. one_back has no cover and
   // concedes massive metres; three_back has a deep safety net and stops breaks early.
-  backfieldLineBreakGainBonus: { three_back: -8, two_back: 0, one_back: 12 },
+  backfieldLineBreakGainBonus: { three_back: -8, two_back: 0, one_back: 6 },
   // Breakdown attack evasion mod. This represents the presence (or absence)
   // of supporting runners in the backline, and therefore ONLY applies
   // during OpenPlayEvent when the team attempts to go wide (goWide = true).
   // - commit_numbers (-20): few players left on their feet, easily covered out wide.
-  // - minimal_ruck (+35): massive numbers out wide to exploit space.
+  // - minimal_ruck (+22): massive numbers out wide to exploit space.
   // If the team keeps it tight (!goWide), this modifier is ignored entirely,
   // making minimal_ruck a flawed strategy for tight play (all the risk of losing
   // the ruck with none of the evasion reward).
-  breakdownAttack:            { commit_numbers: -20, minimal_ruck: 35, balanced: 0 },
+  breakdownAttack:            { commit_numbers: -20, minimal_ruck: 22, balanced: 0 },
   breakdownDefend:            { shadow: 10, counter_ruck: -8, jackal: 0 },
   breakdownSupporterCount:    { commit_numbers: 4,  minimal_ruck: 2,  balanced: 3 },
   // Compensating bonus added to the BREAKDOWN attack score (ars) to offset
@@ -57,7 +57,7 @@ export const TACTIC_MODIFIERS = {
   // step over two_back so the choice between them turns on opposition
   // matchup, not raw effectiveness.
   boxKickFullbackBonus:       { three_back: 10, two_back: 8,  one_back: 0 },
-  tacticalKickTouchReduction: { three_back: 18, two_back: 15, one_back: 0 },
+  tacticalKickTouchReduction: { three_back: 18, two_back: 10, one_back: 0 },
   tacticalKickReturnBonus:    { three_back:  7, two_back: 5,  one_back: 0 },
   // Forward fatigue multiplier — applied per tick in StaminaSystem. Keyed
   // on three orthogonal tactic dimensions: attackingBreakdown (4-supporter

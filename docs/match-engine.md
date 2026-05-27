@@ -1551,6 +1551,10 @@ stats.tries[possession]++
 
 `scorer.matchStats.tries++`
 
+### Score-context commentary
+
+`TryScoredEvent` emits a single `phase_outcome` narration step keyed off the pre/post-try lead so every try lands a second beat after the carry's "TRY!" line. `try_extend_lead` when the scoring side was already ahead; `try_lead` when the try moves them from level-or-behind into the lead; `try_level` when it closes the gap to zero; `try_trail` when it cuts the deficit but the scoring side is still behind. Templates live in `src/commentary/banks/en-GB/phases.ts` under the `TryScored` block.
+
 ---
 
 ## Conversion Kick

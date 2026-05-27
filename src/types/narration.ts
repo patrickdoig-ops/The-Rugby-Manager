@@ -38,8 +38,7 @@ export type PhaseOutcomeKey =
   // Attacking kicks (cross-field aerial, grubber through the line)
   | 'cross_field_caught' | 'cross_field_contested' | 'cross_field_dead'
   | 'grubber_regathered' | 'grubber_collected' | 'grubber_dead'
-  // TryScored (try_lead / try_extend_lead / try_level / try_trail templates exist
-  // in CommentaryEngine but TryScoredEvent currently emits no commentary)
+  // TryScored — TryScoredEvent picks one of these from the pre/post-try lead.
   | 'try_lead' | 'try_extend_lead' | 'try_level' | 'try_trail'
   // ConversionKick & Penalty
   | 'success' | 'miss'

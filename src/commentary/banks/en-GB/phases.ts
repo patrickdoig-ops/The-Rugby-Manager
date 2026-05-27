@@ -533,25 +533,25 @@ const TACTICAL_KICK: PhaseBank = {
 
 const TRY_SCORED: PhaseBank = {
   try_lead: [
-    'TRY! {primary} touches down — and {side} take the lead!',
-    'TRY! What a score from {primary}! {side} are in front!',
-    'TRY! {primary} crashes over — {side} snatch the lead!',
+    '{primary} touches down — and {side} take the lead!',
+    'What a score from {primary}! {side} are in front!',
+    '{primary} crashes over — {side} snatch the lead!',
   ],
   try_extend_lead: [
-    'TRY! {primary} crashes over! {side} extending their advantage!',
-    'TRY! {primary} touches down — the lead is growing for {side}!',
-    'TRY! More misery for the opposition as {primary} goes over!',
+    '{primary} crashes over — {side} extending their advantage!',
+    '{primary} touches down — the lead is growing for {side}!',
+    'More misery for the opposition as {primary} goes over!',
   ],
   try_level: [
-    'TRY! {primary} touches down — and {side} draw level!',
-    'TRY! A brilliant finish from {primary}! The scores are level!',
-    'TRY! {primary} scores and it\'s all square! This match is wide open!',
+    '{primary} touches down — and {side} draw level!',
+    'A brilliant finish from {primary}! The scores are level!',
+    '{primary} scores and it\'s all square! This match is wide open!',
   ],
   try_trail: [
-    'TRY! {primary} goes over — {side} pulling one back but still behind!',
-    'TRY! A much needed score from {primary}! {side} cutting the deficit!',
-    'TRY! {primary} crashes over — {side} giving themselves a chance!',
-    'TRY! {primary} squeezes over! {side} closing the gap!',
+    '{primary} goes over — {side} still pulling one back!',
+    'A much needed score from {primary}! {side} cutting the deficit!',
+    '{primary} crashes over — {side} giving themselves a chance!',
+    '{primary} squeezes over! {side} closing the gap!',
   ],
 };
 

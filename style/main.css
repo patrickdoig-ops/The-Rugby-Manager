@@ -609,7 +609,7 @@ html, body {
 #panel-bottom.view-dashboard #panel-commentary {
   grid-area: commentary;
   overflow-y: auto;
-  border-right: 1px solid var(--rm-hairline);
+  border-right: 1px solid var(--rm-border-soft);
 }
 #panel-bottom.view-dashboard #panel-stats {
   grid-area: stats;

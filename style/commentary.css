@@ -9,7 +9,11 @@
 }
 
 /* ─── Filter chip bar replaces the generic "COMMENTARY" panel-header
-       since the chips themselves communicate the panel's identity. ─── */
+       since the chips themselves communicate the panel's identity.
+       Solid surface-2 background + bottom rule + a right rule in the
+       dashboard 2-column layout so the bar reads as a self-contained
+       commentary-column header rather than bleeding under the adjacent
+       Match Stats panel. ─── */
 #panel-commentary > .panel-header { display: none; }
 
 .cf-filter-bar {
@@ -17,11 +21,18 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 6px 8px 7px;
+  padding: 6px 10px 7px;
   overflow-x: auto;
   scrollbar-width: none;
-  border-bottom: 1px solid var(--rm-hairline);
-  background: color-mix(in oklch, var(--rm-surface) 60%, transparent);
+  background: var(--rm-surface-2);
+  border-bottom: 1px solid var(--rm-border-soft);
+}
+
+/* When the commentary column shares the top row with the stats panel
+   (dashboard view only), reinforce the column divider with a stronger
+   right edge on the chip bar itself so the boundary reads at a glance. */
+#panel-bottom.view-dashboard .cf-filter-bar {
+  border-right: 1px solid var(--rm-border);
 }
 
 .cf-filter-bar::-webkit-scrollbar { display: none; }
@@ -30,7 +41,7 @@
   flex-shrink: 0;
   padding: 3px 9px;
   border-radius: 999px;
-  background: var(--rm-surface-2);
+  background: var(--rm-surface);
   border: 1px solid var(--rm-border-soft);
   color: var(--rm-text-muted);
   font-family: var(--rm-font-mono);

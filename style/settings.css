@@ -148,9 +148,11 @@
   transition: background 0.15s, border-color 0.15s;
 }
 
-.settings-danger-btn:hover {
-  background: color-mix(in oklch, var(--rm-danger) 18%, transparent);
-  border-color: var(--rm-danger);
+@media (hover: hover) {
+  .settings-danger-btn:hover {
+    background: color-mix(in oklch, var(--rm-danger) 18%, transparent);
+    border-color: var(--rm-danger);
+  }
 }
 
 .settings-danger-btn:active {

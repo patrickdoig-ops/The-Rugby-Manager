@@ -41,7 +41,7 @@ export function initFixtureListScreen(
     );
   }
 
-  function fixtureRow(fixture: Fixture, result: FixtureResult | undefined, nextRound: number, playerTeamId: string, mode: Mode): string {
+  function fixtureRow(fixture: Fixture, result: FixtureResult | undefined, nextRound: number, playerTeamId: string, mode: Mode, index: number): string {
     const home = teamsById.get(fixture.homeId)!;
     const away = teamsById.get(fixture.awayId)!;
     const isComplete = !!result;
@@ -57,8 +57,9 @@ export function initFixtureListScreen(
     const midEl = isComplete
       ? `<span class="fl-score">${result.homeScore}–${result.awayScore}</span>`
       : `<span class="fl-vs">vs</span>`;
+    const rowDelay = Math.min(index, 16) * 25;
     return `
-      <div class="fl-row ${stateCls}${meCls}">
+      <div class="fl-row ${stateCls}${meCls}" style="--row-delay: ${rowDelay}ms">
         <div class="fl-round">
           <span class="fl-round-label">RND</span>
           <span class="fl-round-num">${fixture.round}</span>
@@ -83,25 +84,28 @@ export function initFixtureListScreen(
 
     if (activeMode === 'team') {
       const mine = sorted.filter(f => f.homeId === playerTeamId || f.awayId === playerTeamId);
-      return mine.map(f => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId, activeMode)).join('');
+      return mine.map((f, i) => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId, activeMode, i)).join('');
     }
 
     if (activeMode === 'next') {
       if (nextRound === -1) return `<div class="fl-empty">Season complete</div>`;
       const fixtures = sorted.filter(f => f.round === nextRound);
-      return fixtures.map(f => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId, activeMode)).join('');
+      return fixtures.map((f, i) => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId, activeMode, i)).join('');
     }
 
-    // 'all' — group by round with a section header per block.
+    // 'all' — group by round with a section header per block. The
+    // stagger index runs across the whole list so the bottom of long
+    // groups still caps cleanly at the 16-row delay ceiling.
     const byRound = new Map<number, Fixture[]>();
     for (const f of sorted) {
       if (!byRound.has(f.round)) byRound.set(f.round, []);
       byRound.get(f.round)!.push(f);
     }
-    return [...byRound.entries()].map(([round, fs]) => `
-      <div class="fl-round-header">Round ${round}</div>
-      ${fs.map(f => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId, activeMode)).join('')}
-    `).join('');
+    let runningIdx = 0;
+    return [...byRound.entries()].map(([round, fs]) => {
+      const body = fs.map(f => fixtureRow(f, resultFor(state, f), nextRound, playerTeamId, activeMode, runningIdx++)).join('');
+      return `<div class="fl-round-header">Round ${round}</div>${body}`;
+    }).join('');
   }
 
   function render(): void {

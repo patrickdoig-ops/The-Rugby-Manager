@@ -56,10 +56,11 @@ export function initRoundResultsScreen(
     const playerTeamId = state.player.teamId;
     const fixtures = roundFixtures(state);
 
-    const rowsHtml = fixtures.map(({ fixture, result }) => {
+    const rowsHtml = fixtures.map(({ fixture, result }, i) => {
       const home = teamsById.get(fixture.homeId)!;
       const away = teamsById.get(fixture.awayId)!;
       const isPlayer = fixture.homeId === playerTeamId || fixture.awayId === playerTeamId;
+      const rowDelay = Math.min(i, 16) * 25;
       const mid = result
         ? `<span class="rr-score">${result.homeScore}–${result.awayScore}</span>`
         : `<span class="rr-pending">…</span>`;
@@ -73,7 +74,7 @@ export function initRoundResultsScreen(
            </div>`
         : `<div class="rr-margin-bar rr-margin-bar--pending"></div>`;
       return `
-        <div class="rr-row${isPlayer ? ' rr-row--me' : ''}">
+        <div class="rr-row${isPlayer ? ' rr-row--me' : ''}" style="--row-delay: ${rowDelay}ms">
           <div class="rr-fixture-line">
             <div class="rr-team rr-team--home">
               ${crest(home)}

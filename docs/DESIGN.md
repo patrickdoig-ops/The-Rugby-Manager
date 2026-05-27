@@ -449,6 +449,51 @@ All `:hover` rules that could leave a "stuck" state on mobile tap **must** be wr
 
 Do not write top-level `:hover` rules for any element a user might tap on mobile.
 
+### 7.6 Motion tokens
+
+Four custom properties on `:root` formalise the screen-transition + row-stagger choreography. Use these tokens rather than reintroducing bare durations or easing curves in screen-specific CSS.
+
+```css
+:root {
+  --rm-ease-out:        cubic-bezier(0.22, 1, 0.36, 1);  /* screen + row entry */
+  --rm-ease-in-out:     cubic-bezier(0.4, 0, 0.2, 1);    /* reserved for cross-fades */
+  --rm-duration-screen: 220ms;                            /* screen-enter window */
+  --rm-duration-row:    240ms;                            /* per-row stagger window */
+  --rm-stagger-step:    25ms;                             /* delay between adjacent rows */
+}
+```
+
+### 7.7 Screen transitions (directional)
+
+Forward navigation slides in from the right (FM / mobile-native convention); back slides in from the left. Old screen hides instantly under the new one — no exit animation. The previous flat fade-up (`screenEnter`) is preserved as the first-mount fallback only.
+
+```
+forward  →  translateX(24px)  → translateX(0)  + fade  220ms ease-out
+back     →  translateX(-24px) → translateX(0)  + fade  220ms ease-out
+```
+
+Direction is set by the caller at `screenRouter.show(id, { direction })` (default `'forward'`). In `main.ts`, sub-screen back-arrows pass `'back'`; hub-tile and post-match Continue chain pass the default. The post-match chain (`RoundResults → LeagueTable → Training → Hub`) is semantically forward, even though it lands back on Hub — progressing through the season is forward motion.
+
+`ScreenRouter` writes `data-direction="forward"` or `data-direction="back"` on the entering screen and adds `.screen-entering`. Both are cleaned up by a single `setTimeout(700)` — the timer must outlive the longest row-stagger window, because row animations are gated on the parent class.
+
+### 7.8 List stagger
+
+Row entry on screen change uses a `--row-delay` custom property set inline per row. The delay step is `--rm-stagger-step` (25ms); the per-row anim is `--rm-duration-row` (240ms). The index is capped at 16, giving a 400ms ceiling on stagger total + 240ms anim ≈ 640ms — comfortably within the 700ms class lifetime.
+
+Pattern (mechanical, identical across screens):
+
+```ts
+rows.map((r, i) => `
+  <div class="fl-row" style="--row-delay: ${Math.min(i, 16) * 25}ms">…</div>
+`).join('')
+```
+
+The CSS rule is gated by the parent `.screen-entering` class, so rows only animate on first paint after a screen change — filter / sort / data-event re-renders inside an already-mounted screen do **not** restagger. Opt-in classes today: `.fl-row`, `.ct-player`, `.lt-row`, `.tm-row`, `.rr-row`, `.ps-row`, `.ts-row`, `.rn-row`, `.sr-row`, `.sq-player`. Add new row classes to the combined selector in `style/main.css` to opt them in.
+
+### 7.9 Reduced motion
+
+Under `prefers-reduced-motion: reduce`, both screen transforms and row stagger collapse to a single 80ms opacity fade (`@keyframes rmFadeOnly`). Movement-sensitive users still get a subtle transition cue; nothing slides, nothing staggers. The reduced-motion override at the bottom of the motion section in `style/main.css` is the single source of truth — add new opt-in row classes to its selector list in lockstep with §7.8.
+
 ---
 
 ## 8. Component patterns

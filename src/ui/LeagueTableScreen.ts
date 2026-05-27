@@ -84,8 +84,9 @@ function standardRow(
   // in init. role=button + tabindex make the div keyboard-accessible
   // without changing the existing grid layout.
   const label = team ? `View ${team.name} info` : `View ${s.teamId} info`;
+  const rowDelay = Math.min(rank - 1, 16) * 25;
   return `
-    <div class="${classes.join(' ')}" role="button" tabindex="0" data-team-id="${s.teamId}" aria-label="${label}">
+    <div class="${classes.join(' ')}" role="button" tabindex="0" data-team-id="${s.teamId}" aria-label="${label}" style="--row-delay: ${rowDelay}ms">
       <span class="lt-rank">${rank}</span>
       ${crest}
       <span class="lt-name">${name}</span>
@@ -119,8 +120,9 @@ function formRow(
   }).join('');
   const pts = formPoints(form);
   const label = team ? `View ${team.name} info` : `View ${s.teamId} info`;
+  const rowDelay = Math.min(rank - 1, 16) * 25;
   return `
-    <div class="${classes.join(' ')}" role="button" tabindex="0" data-team-id="${s.teamId}" aria-label="${label}">
+    <div class="${classes.join(' ')}" role="button" tabindex="0" data-team-id="${s.teamId}" aria-label="${label}" style="--row-delay: ${rowDelay}ms">
       <span class="lt-rank">${rank}</span>
       ${crest}
       <span class="lt-name">${name}</span>

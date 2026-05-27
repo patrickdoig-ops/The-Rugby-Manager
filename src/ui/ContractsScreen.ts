@@ -142,10 +142,11 @@ export function initContractsScreen(
       ? `${fmtWage(headroom)} headroom`
       : `${fmtWage(-headroom)} over`;
 
-    const rows = sorted.map(p => {
+    const rows = sorted.map((p, i) => {
       const overall = playerOverall(p.baseStats, p.position);
       const age = getAge(p.dob, calendarDate);
       const expiring = isExpiringSoon(p.contract.expiresOn, calendarDate);
+      const rowDelay = Math.min(i, 16) * 25;
 
       const classes = ['ct-player'];
       if (p.contract.isMarquee) classes.push('ct-player--marquee');
@@ -171,7 +172,7 @@ export function initContractsScreen(
         ? playerLinkHtml(`${p.firstName} ${p.lastName}`, p.rosterId)
         : `${p.firstName} ${p.lastName}`;
       return `
-        <div class="${classes.join(' ')}">
+        <div class="${classes.join(' ')}" style="--row-delay: ${rowDelay}ms">
           <div class="ct-ovr ${ovrClass(overall)}">
             <span class="ct-ovr-val">${overall}</span>
             <span class="ct-ovr-lbl">OVR</span>

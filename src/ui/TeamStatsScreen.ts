@@ -195,8 +195,9 @@ export function initTeamStatsScreen(
       const isMe = r.team.id === playerTeamId;
       const cells = cat.columns.map(col => `<span class="ts-col ts-val">${col.display(r.stats)}</span>`).join('');
       const label = `View ${r.team.name} info`;
+      const rowDelay = Math.min(i, 16) * 25;
       return `
-        <div class="ts-row${isMe ? ' ts-row--me' : ''}" role="button" tabindex="0" data-team-id="${r.team.id}" aria-label="${label}">
+        <div class="ts-row${isMe ? ' ts-row--me' : ''}" role="button" tabindex="0" data-team-id="${r.team.id}" aria-label="${label}" style="--row-delay: ${rowDelay}ms">
           <span class="ts-rank">${i + 1}</span>
           ${teamCrest(r.team)}
           <span class="ts-name">${r.team.shortName}</span>

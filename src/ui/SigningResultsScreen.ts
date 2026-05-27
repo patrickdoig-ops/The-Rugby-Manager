@@ -202,14 +202,14 @@ export function initSigningResultsScreen(
     const nameHtml = (r: Row): string => onPlayerClick
       ? playerLinkHtml(r.playerName, r.rosterId)
       : r.playerName;
-    const renderWinRow = (r: Row): string => `
-      <div class="sr-row sr-row--win">
+    const renderWinRow = (r: Row, i: number): string => `
+      <div class="sr-row sr-row--win" style="--row-delay: ${Math.min(i, 16) * 25}ms">
         <span class="sr-name">${nameHtml(r)} <span class="sr-pos">${r.position}</span></span>
         <span class="sr-result">${kindToLabel(r.kind, 'won')}</span>
         <span class="sr-wage">${fmtWage(r.wage)}</span>
       </div>`;
-    const renderLossRow = (r: Row): string => `
-      <div class="sr-row sr-row--loss">
+    const renderLossRow = (r: Row, i: number): string => `
+      <div class="sr-row sr-row--loss" style="--row-delay: ${Math.min(i, 16) * 25}ms">
         <span class="sr-name">${nameHtml(r)} <span class="sr-pos">${r.position}</span></span>
         <span class="sr-result">Lost to ${r.winnerClubName ?? '—'}</span>
         <span class="sr-wage">${fmtWage(r.wage)}</span>

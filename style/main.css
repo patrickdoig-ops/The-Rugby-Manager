@@ -50,6 +50,13 @@
     0 2px 8px rgba(0, 0, 0, 0.55),
     0 8px 28px rgba(0, 0, 0, 0.35);
 
+  /* — Motion language tokens. Screen-transition + list-stagger choreography. — */
+  --rm-ease-out:          cubic-bezier(0.22, 1, 0.36, 1);
+  --rm-ease-in-out:       cubic-bezier(0.4, 0, 0.2, 1);
+  --rm-duration-screen:   220ms;
+  --rm-duration-row:      240ms;
+  --rm-stagger-step:      25ms;
+
   /* — Legacy tokens remapped to new palette — */
   --bg:       var(--rm-bg);
   --surface:  var(--rm-surface);
@@ -121,12 +128,76 @@ input, textarea, [contenteditable] { user-select: text; }
   outline-offset: 2px;
 }
 
+/* ════════════════════════════════════════
+   Motion: screen transitions (directional)
+   ════════════════════════════════════════ */
+
 @keyframes screenEnter {
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes screenEnterForward {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes screenEnterBack {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes rmRowEnter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes rmFadeOnly {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 .screen-entering {
-  animation: screenEnter 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: screenEnter 180ms var(--rm-ease-out);
+}
+.screen-entering[data-direction="forward"] {
+  animation: screenEnterForward var(--rm-duration-screen) var(--rm-ease-out) both;
+}
+.screen-entering[data-direction="back"] {
+  animation: screenEnterBack var(--rm-duration-screen) var(--rm-ease-out) both;
+}
+
+/* Row stagger: applies only while the parent screen is entering, so
+   filter/sort/event re-renders inside an already-mounted screen don't
+   restagger. Per-row delay is set inline via `--row-delay`. */
+.screen-entering .fl-row,
+.screen-entering .ct-player,
+.screen-entering .lt-row,
+.screen-entering .tm-row,
+.screen-entering .rr-row,
+.screen-entering .ps-row,
+.screen-entering .ts-row,
+.screen-entering .rn-row,
+.screen-entering .sr-row,
+.screen-entering .sq-player {
+  animation: rmRowEnter var(--rm-duration-row) var(--rm-ease-out) var(--row-delay, 0ms) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-entering,
+  .screen-entering[data-direction="forward"],
+  .screen-entering[data-direction="back"] {
+    animation: rmFadeOnly 80ms ease-out both;
+  }
+  .screen-entering .fl-row,
+  .screen-entering .ct-row1,
+  .screen-entering .ct-row2,
+  .screen-entering .lt-row,
+  .screen-entering .tm-row,
+  .screen-entering .rr-row,
+  .screen-entering .ps-row,
+  .screen-entering .ts-row,
+  .screen-entering .rn-row,
+  .screen-entering .sr-row {
+    animation: rmFadeOnly 80ms ease-out both;
+    animation-delay: 0ms !important;
+  }
 }
 
 ::-webkit-scrollbar { display: none; }

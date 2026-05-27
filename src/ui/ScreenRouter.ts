@@ -69,10 +69,23 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'training':         { elId: 'training',         shownDisplay: '' },
 };
 
+export type NavDirection = 'forward' | 'back';
+export interface ShowOptions { direction?: NavDirection }
+
 let _currentScreen: ScreenId | null = null;
 
+// Class-and-attribute cleanup window. Must outlive the longest row-stagger
+// animation (last row's `--row-delay` of ~400ms + 240ms row anim ≈ 640ms),
+// because the row rule is gated on the parent `.screen-entering` class.
+const ENTER_CLEANUP_MS = 700;
+
+// Per-element cleanup-timer map so a rapid re-show of the same screen
+// cancels the stale timer rather than letting it strip the freshly-applied
+// `.screen-entering` class out from under the in-flight animation.
+const cleanupTimers = new WeakMap<HTMLElement, number>();
+
 export const screenRouter = {
-  show(target: ScreenId): void {
+  show(target: ScreenId, opts?: ShowOptions): void {
     const targetEl = document.getElementById(SCREENS[target].elId);
     // Fails loudly if a screen id is in the SCREENS map but the matching
     // <div id="…"> isn't in the DOM — otherwise screenRouter.show silently
@@ -82,6 +95,7 @@ export const screenRouter = {
       throw new Error(`screenRouter.show("${target}"): no element with id "${SCREENS[target].elId}" in DOM. Likely a stale cached index.html — try a hard reload.`);
     }
     const isNewScreen = target !== _currentScreen;
+    const isFirstMount = _currentScreen === null;
     _currentScreen = target;
     for (const id of Object.keys(SCREENS) as ScreenId[]) {
       const cfg = SCREENS[id];
@@ -89,16 +103,29 @@ export const screenRouter = {
       if (!el) continue;
       el.style.display = id === target ? cfg.shownDisplay : 'none';
     }
-    // Fade-up entry animation on screen transitions. Skip 'app' (permanently
-    // mounted live-match shell) and skip initial mount (no prior screen).
-    if (isNewScreen && target !== 'app') {
+    // Directional entry animation on screen transitions. Skip 'app'
+    // (permanently mounted live-match shell) and skip initial mount
+    // (no prior screen — avoids an unwanted slide on first boot).
+    if (isNewScreen && !isFirstMount && target !== 'app') {
+      const direction: NavDirection = opts?.direction ?? 'forward';
+      const pending = cleanupTimers.get(targetEl);
+      if (pending !== undefined) {
+        window.clearTimeout(pending);
+        cleanupTimers.delete(targetEl);
+      }
       targetEl.classList.remove('screen-entering');
+      delete targetEl.dataset.direction;
       void targetEl.offsetWidth;
+      targetEl.dataset.direction = direction;
       targetEl.classList.add('screen-entering');
-      targetEl.addEventListener('animationend', function onEnd() {
+      // Timer-based cleanup rather than `animationend` — the row-stagger
+      // window outlives the screen's own animation.
+      const timerId = window.setTimeout(() => {
         targetEl.classList.remove('screen-entering');
-        targetEl.removeEventListener('animationend', onEnd);
-      });
+        delete targetEl.dataset.direction;
+        cleanupTimers.delete(targetEl);
+      }, ENTER_CLEANUP_MS);
+      cleanupTimers.set(targetEl, timerId);
     }
   },
 };

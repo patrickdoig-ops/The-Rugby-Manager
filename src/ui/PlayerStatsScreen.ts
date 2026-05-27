@@ -180,8 +180,9 @@ export function initPlayerStatsScreen(
           const isMyClub = r.clubId === playerClubId;
           const label = `View ${r.player.firstName} ${r.player.lastName} club info`;
           const secondaryVal = cat.secondary?.(r.player);
+          const rowDelay = Math.min(i, 16) * 25;
           return `
-            <div class="ps-row${isMyClub ? ' ps-row--me' : ''}" role="button" tabindex="0" data-team-id="${r.clubId ?? ''}" aria-label="${label}">
+            <div class="ps-row${isMyClub ? ' ps-row--me' : ''}" role="button" tabindex="0" data-team-id="${r.clubId ?? ''}" aria-label="${label}" style="--row-delay: ${rowDelay}ms">
               <span class="ps-rank">${i + 1}</span>
               <span class="ps-name">${playerLinkHtml(`${r.player.firstName} ${r.player.lastName}`, r.player.rosterId)}</span>
               ${clubBadge(r.clubId)}

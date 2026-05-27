@@ -203,7 +203,7 @@ export function initTransferMarketScreen(
 
     const isMidseason = market.phase === 'signings-midseason';
     const currentWeek = state.calendar.week;
-    const renderRow = (offer: TransferOffer, p: Player, action: 'sign' | 'poach'): string => {
+    const renderRow = (offer: TransferOffer, p: Player, action: 'sign' | 'poach', index: number): string => {
       const age = getAge(p.dob, calendarDate);
       const ovr = playerOverall(p.baseStats, p.position);
       // "Committed" no longer means signed — under the bid model it means
@@ -266,8 +266,9 @@ export function initTransferMarketScreen(
       const nameInner = onPlayerClick
         ? playerLinkHtml(`${p.firstName} ${p.lastName}`, p.rosterId)
         : `${p.firstName} ${p.lastName}`;
+      const rowDelay = Math.min(index, 16) * 25;
       return `
-        <div class="tm-row${committedClass}">
+        <div class="tm-row${committedClass}" style="--row-delay: ${rowDelay}ms">
           <span class="tm-name">${nameInner}${currentClub}</span>
           <span class="tm-pos">${shortPos(p.position)}</span>
           <span class="tm-num">${age ?? '—'}</span>
@@ -285,7 +286,7 @@ export function initTransferMarketScreen(
            <div class="empty-state__title">No free agents available</div>
            <div class="empty-state__desc">Check back after the next round of fixtures — new players become available as contracts expire across the league.</div>
          </div>`
-      : freeAgentRows.map(({ p, offer }) => renderRow(offer, p, 'sign')).join('');
+      : freeAgentRows.map(({ p, offer }, i) => renderRow(offer, p, 'sign', i)).join('');
 
     const poachHtml = poachRows.length === 0
       ? `<div class="empty-state">
@@ -295,7 +296,7 @@ export function initTransferMarketScreen(
           <div class="empty-state__title">No final-12-month contracts around the league</div>
           <div class="empty-state__desc">Approachable players appear here when their current deal enters its last year.</div>
         </div>`
-      : poachRows.map(({ p, offer }) => renderRow(offer, p, 'poach')).join('');
+      : poachRows.map(({ p, offer }, i) => renderRow(offer, p, 'poach', i)).join('');
 
     const headerCell = (key: SortKey, label: string, cls: string): string => {
       const active = key === sortKey;

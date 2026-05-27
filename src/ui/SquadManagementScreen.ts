@@ -311,9 +311,9 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
            <div class="empty-state__desc">Try a different position filter, or tap All to see your full squad.</div>
          </div>`
       : [
-          section('Starting XV', fStarters, 'starter'),
-          section('Bench',       fBench,    'bench'),
-          section('Wider Squad', fSquadW,   'squad'),
+          section('Starting XV', fStarters, 'starter', 0),
+          section('Bench',       fBench,    'bench',   fStarters.length),
+          section('Wider Squad', fSquadW,   'squad',   fStarters.length + fBench.length),
         ].join('');
 
     const saveDisabled = !dirty ? ' disabled' : '';
@@ -481,9 +481,9 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     }
   }
 
-  function section(label: string, items: RawPlayer[], tier: Tier): string {
+  function section(label: string, items: RawPlayer[], tier: Tier, baseIndex: number): string {
     if (items.length === 0) return '';
-    const rows = items.map(p => playerRow(p, tier)).join('');
+    const rows = items.map((p, i) => playerRow(p, tier, baseIndex + i)).join('');
     return `
       <div class="sq-section-head">
         <span class="sq-section-label">${label}</span>
@@ -508,7 +508,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     { key: 'positioning', lbl: 'POS' }, { key: 'composure',   lbl: 'CMP' },
   ];
 
-  function playerRow(p: RawPlayer, tier: Tier): string {
+  function playerRow(p: RawPlayer, tier: Tier, index: number): string {
     const ovr = playerOverall(p.baseStats, p.position);
     const sn  = p.squadNumber ?? p.id;
     const isSelected = selection !== null && selection.tier === tier && selection.squadNum === sn;
@@ -545,8 +545,9 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     const nameInner = opts.onPlayerClick && typeof p.rosterId === 'number'
       ? playerLinkHtml(shortName(p), p.rosterId)
       : shortName(p);
+    const rowDelay = Math.min(index, 16) * 25;
     return `
-      <div class="${classes.join(' ')}" data-tier="${tier}" data-squad="${sn}">
+      <div class="${classes.join(' ')}" data-tier="${tier}" data-squad="${sn}" style="--row-delay: ${rowDelay}ms">
         <div class="sq-jersey sq-jersey--${tier}">${jerseyContent}</div>
         <div class="sq-player-info">
           <span class="sq-player-name sq-player-name--${tier}">${nameInner}${injuryBadge ? ' ' + injuryBadge : ''}</span>

@@ -140,26 +140,34 @@ document.addEventListener('DOMContentLoaded', () => {
   // straight back to Hub. Cleared once the chain enters runPlayoffStage.
   let bracketSeededPending = false;
 
-  function goHome(): void {
+  // `direction` defaults to 'forward'. Back-paths (Settings → Home,
+  // TeamSelector → Home, end-of-game → Home) pass 'back' to get the
+  // FM-style edge slide in from the left.
+  function goHome(direction: 'forward' | 'back' = 'back'): void {
     // Re-init so the Continue button state reflects the latest save (e.g. just
     // returned from a season the user is now resuming).
-    initHomeScreen(goTeamSelector, continueGame, goSettingsFromHome, allTeams);
-    screenRouter.show('home');
+    initHomeScreen(() => goTeamSelector('forward'), continueGame, goSettingsFromHome, allTeams);
+    screenRouter.show('home', { direction });
   }
 
   function goSettingsFromHome(): void {
-    initSettingsScreen(goHome);
+    initSettingsScreen(() => goHome('back'));
     screenRouter.show('settings');
   }
 
   function goSettingsFromHub(): void {
-    initSettingsScreen(goHub);
+    initSettingsScreen(() => goHub('back'));
     screenRouter.show('settings');
   }
 
-  function goTeamSelector(): void {
-    initTeamSelectorScreen(allTeams, onTeamPicked, goHome, (team) => goTeamInfo(team, goTeamSelector));
-    screenRouter.show('team-selector');
+  function goTeamSelector(direction: 'forward' | 'back' = 'forward'): void {
+    initTeamSelectorScreen(
+      allTeams,
+      onTeamPicked,
+      () => goHome('back'),
+      (team) => goTeamInfo(team, () => goTeamSelector('back')),
+    );
+    screenRouter.show('team-selector', { direction });
   }
 
   function goTeamInfo(team: RawTeamInput, onBack: () => void): void {
@@ -210,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onTransfers: goTransfersMidseason,
       onSettings: goSettingsFromHub,
     });
-    initFixtureListScreen(getGameEngine, allTeams, goHub);
+    initFixtureListScreen(getGameEngine, allTeams, () => goHub('back'));
     // The League sub-menu sits between the Hub's League tile and the
     // three leaves (Table / Team Stats / Player Stats). Each leaf's
     // back arrow returns here; this screen's back arrow returns to
@@ -218,28 +226,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // teamInfo back arrow returns to whichever leaf opened it.
     initLeagueMenuScreen({
       getGameEngine,
-      onBack: goHub,
+      onBack: () => goHub('back'),
       onTable:       goLeagueTable,
       onTeamStats:   goTeamStats,
       onPlayerStats: goPlayerStats,
     });
-    initLeagueTableScreen(getGameEngine, allTeams, goLeagueMenu, (teamId) => {
+    initLeagueTableScreen(getGameEngine, allTeams, () => goLeagueMenu('back'), (teamId) => {
       const teamJson = allTeams.find(t => t.id === teamId);
       if (!teamJson) return;
-      goTeamInfoMidSeason(teamJson, goLeagueTable);
+      goTeamInfoMidSeason(teamJson, () => goLeagueTable('back'));
     });
-    initTeamStatsScreen(getGameEngine, allTeams, goLeagueMenu, (teamId) => {
+    initTeamStatsScreen(getGameEngine, allTeams, () => goLeagueMenu('back'), (teamId) => {
       const teamJson = allTeams.find(t => t.id === teamId);
       if (!teamJson) return;
-      goTeamInfoMidSeason(teamJson, goTeamStats);
+      goTeamInfoMidSeason(teamJson, () => goTeamStats('back'));
     });
-    initPlayerStatsScreen(getGameEngine, allTeams, goLeagueMenu,
+    initPlayerStatsScreen(getGameEngine, allTeams, () => goLeagueMenu('back'),
       (teamId) => {
         const teamJson = allTeams.find(t => t.id === teamId);
         if (!teamJson) return;
-        goTeamInfoMidSeason(teamJson, goPlayerStats);
+        goTeamInfoMidSeason(teamJson, () => goPlayerStats('back'));
       },
-      (rosterId) => goPlayerProfile(rosterId, goPlayerStats),
+      (rosterId) => goPlayerProfile(rosterId, () => goPlayerStats('back')),
     );
     initPlayerProfileScreen(getGameEngine, allTeams);
     initRoundResultsScreen(getGameEngine, allTeams);
@@ -251,26 +259,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // career state, so the back path just re-shows the existing DOM —
     // partial selections / toggles survive the round-trip.
     initRenewalsScreen(getGameEngine, allTeams, (rosterId) => {
-      goPlayerProfile(rosterId, () => screenRouter.show('renewals'));
+      goPlayerProfile(rosterId, () => screenRouter.show('renewals', { direction: 'back' }));
     });
     initTransferMarketScreen(getGameEngine, allTeams, (rosterId) => {
-      goPlayerProfile(rosterId, () => screenRouter.show('transfer-market'));
+      goPlayerProfile(rosterId, () => screenRouter.show('transfer-market', { direction: 'back' }));
     });
     initSigningResultsScreen(getGameEngine, allTeams, (rosterId) => {
-      goPlayerProfile(rosterId, () => screenRouter.show('signing-results'));
+      goPlayerProfile(rosterId, () => screenRouter.show('signing-results', { direction: 'back' }));
     });
     initRetentionDecisionScreen(getGameEngine, allTeams, (rosterId) => {
-      goPlayerProfile(rosterId, () => screenRouter.show('retention-decision'));
+      goPlayerProfile(rosterId, () => screenRouter.show('retention-decision', { direction: 'back' }));
     });
     initRolloverScreen(getGameEngine, allTeams);
-    initContractsScreen(getGameEngine, allTeams, goHub, (rosterId) => {
-      goPlayerProfile(rosterId, goContracts);
+    initContractsScreen(getGameEngine, allTeams, () => goHub('back'), (rosterId) => {
+      goPlayerProfile(rosterId, () => goContracts('back'));
     });
     initSquadManagementScreen({
       getGameEngine,
       allTeams,
-      onBack: goHub,
-      onPlayerClick: (rosterId) => goPlayerProfile(rosterId, goSquad),
+      onBack: () => goHub('back'),
+      onPlayerClick: (rosterId) => goPlayerProfile(rosterId, () => goSquad('back')),
     });
     initSquadOverviewScreen(getGameEngine, allTeams);
     initTrainingScreen(getGameEngine);
@@ -284,31 +292,36 @@ document.addEventListener('DOMContentLoaded', () => {
     eventBus.on('game:seasonComplete', () => { seasonCompletePending = true; });
   }
 
-  function goHub(): void {
-    screenRouter.show('hub');
+  // The handful of Hub-and-League navigation helpers below are reused both
+  // as forward navigations (Hub tile click) and as the back target from
+  // deeper screens (Player Profile back, Team Info back, sub-menu back).
+  // They take a direction; default to 'forward' for Hub-tile callers, and
+  // the deeper-screen registration sites pass 'back' explicitly.
+  function goHub(direction: 'forward' | 'back' = 'forward'): void {
+    screenRouter.show('hub', { direction });
   }
 
-  function goFixtures(): void {
-    screenRouter.show('fixture-list');
+  function goFixtures(direction: 'forward' | 'back' = 'forward'): void {
+    screenRouter.show('fixture-list', { direction });
   }
 
-  function goLeagueTable(): void {
+  function goLeagueTable(direction: 'forward' | 'back' = 'forward'): void {
     showLeagueTable();
-    screenRouter.show('league-table');
+    screenRouter.show('league-table', { direction });
   }
 
-  function goLeagueMenu(): void {
-    screenRouter.show('league-menu');
+  function goLeagueMenu(direction: 'forward' | 'back' = 'forward'): void {
+    screenRouter.show('league-menu', { direction });
   }
 
-  function goTeamStats(): void {
+  function goTeamStats(direction: 'forward' | 'back' = 'forward'): void {
     showTeamStats();
-    screenRouter.show('team-stats');
+    screenRouter.show('team-stats', { direction });
   }
 
-  function goPlayerStats(): void {
+  function goPlayerStats(direction: 'forward' | 'back' = 'forward'): void {
     showPlayerStats();
-    screenRouter.show('player-stats');
+    screenRouter.show('player-stats', { direction });
   }
 
   // Opens the profile for one player. `onBack` is origin-aware (mirrors
@@ -322,14 +335,14 @@ document.addEventListener('DOMContentLoaded', () => {
     screenRouter.show('player-profile');
   }
 
-  function goContracts(): void {
+  function goContracts(direction: 'forward' | 'back' = 'forward'): void {
     showContracts();
-    screenRouter.show('contracts');
+    screenRouter.show('contracts', { direction });
   }
 
-  function goSquad(): void {
+  function goSquad(direction: 'forward' | 'back' = 'forward'): void {
     showSquadManagement();
-    screenRouter.show('squad-management');
+    screenRouter.show('squad-management', { direction });
   }
 
   // PreMatch → Edit Squad shortcut. Opens Squad Management with a
@@ -338,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function goSquadFromPreMatch(): void {
     showSquadManagement(() => {
       showPreMatchAtStep('mine');
-      screenRouter.show('pre-match');
+      screenRouter.show('pre-match', { direction: 'back' });
     });
     screenRouter.show('squad-management');
   }
@@ -349,7 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function goTrainingMidweek(): void {
     showTrainingMidweek(() => {
       if (gameEngine) saveGame(gameEngine.toSavePayload());
-      goHub();
+      goHub('back');
     });
     screenRouter.show('training');
   }
@@ -390,7 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function onTeamPicked(team: RawTeamInput): void {
-    initModePickerScreen(team, () => onQuickStart(team), () => onSquadBuilder(team), goTeamSelector);
+    initModePickerScreen(team, () => onQuickStart(team), () => onSquadBuilder(team), () => goTeamSelector('back'));
     screenRouter.show('mode-picker');
   }
 
@@ -769,7 +782,7 @@ document.addEventListener('DOMContentLoaded', () => {
       goSquadFromPreMatch,
       (rosterId, returnStep) => goPlayerProfile(rosterId, () => {
         showPreMatchAtStep(returnStep);
-        screenRouter.show('pre-match');
+        screenRouter.show('pre-match', { direction: 'back' });
       }),
     );
     screenRouter.show('pre-match');
@@ -853,12 +866,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         onMatchStart(configuredHome, configuredAway, playerSide, round, playerTactics);
       },
-      goHub,
+      () => goHub('back'),
       undefined,
       goSquadFromPreMatch,
       (rosterId, returnStep) => goPlayerProfile(rosterId, () => {
         showPreMatchAtStep(returnStep);
-        screenRouter.show('pre-match');
+        screenRouter.show('pre-match', { direction: 'back' });
       }),
     );
     screenRouter.show('pre-match');

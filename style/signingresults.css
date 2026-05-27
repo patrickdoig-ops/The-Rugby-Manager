@@ -120,7 +120,7 @@
 }
 
 .sr-result {
-  font-family: var(--rm-font-display);
+  font-family: var(--rm-font-mono);
   font-size: 12px;
   letter-spacing: 0.06em;
   color: var(--rm-text-muted);

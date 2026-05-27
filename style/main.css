@@ -1269,6 +1269,27 @@ html, body {
 .cta-pulse:disabled { animation: none; }
 
 /* ════════════════════════════════════════
+   NARROW PHONE (< 480px) — compact controls
+   ════════════════════════════════════════ */
+
+@media (max-width: 479px) {
+  #ctrl-bar {
+    gap: 5px;
+    padding: 6px 8px;
+  }
+
+  .ctrl-btn:not(.primary) {
+    min-width: 34px;
+    min-height: 34px;
+  }
+
+  .speed-btn {
+    padding: 0 6px;
+    height: 28px;
+  }
+}
+
+/* ════════════════════════════════════════
    DESKTOP (≥ 700px)
    ════════════════════════════════════════ */
 

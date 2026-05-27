@@ -114,8 +114,8 @@
 }
 
 .tr-chip--active {
-  background: var(--team-color, var(--rm-accent, #007a2a));
-  border-color: var(--team-color, var(--rm-accent, #007a2a));
+  background: var(--team-color, #007a2a);
+  border-color: var(--team-color, #007a2a);
   color: #fff;
 }
 

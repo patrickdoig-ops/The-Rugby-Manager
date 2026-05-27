@@ -102,49 +102,6 @@
   --badge-md-radius: 10px;
 }
 
-/* Light mode — clean white */
-body.light-mode {
-  --rm-bg:          oklch(0.98 0.004 150);
-  --rm-bg-deep:     oklch(0.96 0.005 150);
-  --rm-surface:     oklch(1.0 0 0);
-  --rm-surface-2:   oklch(0.96 0.003 150);
-  --rm-surface-3:   oklch(0.93 0.005 150);
-  --rm-border:      oklch(0.85 0.006 150);
-  --rm-border-soft: oklch(0.88 0.005 150);
-  --rm-hairline:    color-mix(in oklch, oklch(0.1 0.01 150) 10%, transparent);
-  --rm-chalk:       oklch(0.12 0.012 150);
-  --rm-text:        oklch(0.15 0.012 150);
-  --rm-text-muted:  oklch(0.40 0.012 150);
-  --rm-text-dim:    oklch(0.55 0.012 150);
-  --rm-text-faint:  oklch(0.70 0.010 150);
-  --rm-pitch:       oklch(0.46 0.18 144);
-  --rm-pitch-deep:  oklch(0.35 0.15 144);
-  --rm-pitch-soft:  oklch(0.88 0.06 144);
-  --rm-pitch-glow:  color-mix(in oklch, oklch(0.46 0.18 144) 20%, transparent);
-  --rm-amber:       oklch(0.55 0.16 62);
-  --rm-danger:      oklch(0.52 0.22 25);
-  --rm-danger-deep: oklch(0.40 0.20 25);
-  --rm-stat-1:      oklch(0.46 0.20 25);
-  --rm-stat-2:      oklch(0.55 0.18 55);
-  --rm-stat-3:      oklch(0.50 0.16 95);
-  --rm-stat-4:      oklch(0.46 0.18 144);
-  --rm-stat-5:      oklch(0.44 0.16 175);
-  --blue:       oklch(0.50 0.20 248);
-  --blue-dark:  oklch(0.35 0.15 248);
-  --blue-light: oklch(0.90 0.06 248);
-  --purple:     oklch(0.50 0.25 302);
-  --pitch-try:  oklch(0.30 0.12 144);
-  --pitch-22:   oklch(0.35 0.14 144);
-  --pitch-mid:  oklch(0.40 0.16 144);
-
-  /* Stat-badge size scale (mirrors :root — kept for completeness so the
-     light-mode block is self-documenting). */
-  --badge-sm-size:   34px;
-  --badge-sm-radius: 8px;
-  --badge-md-size:   42px;
-  --badge-md-radius: 10px;
-}
-
 /* ════════════════════════════════════════
    RESET & GLOBALS
    ════════════════════════════════════════ */

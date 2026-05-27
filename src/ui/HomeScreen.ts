@@ -4,40 +4,6 @@ import type { RawTeamInput } from '../types/teamData';
 import type { SavedSeason, SavedSeasonResult } from '../game/GameCoordinator';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 
-// Experimental — set to true once a full light-mode pass is done across
-// every screen-specific CSS file. SettingsScreen.ts gates its Display
-// section behind a matching constant; flip both to enable.
-const LIGHT_MODE_EXPERIMENTAL = false;
-
-const THEME_KEY = 'rugby-manager-theme';
-
-function sunIcon(): string {
-  return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <circle cx="12" cy="12" r="5"/>
-    <line x1="12" y1="1" x2="12" y2="3"/>
-    <line x1="12" y1="21" x2="12" y2="23"/>
-    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-    <line x1="1" y1="12" x2="3" y2="12"/>
-    <line x1="21" y1="12" x2="23" y2="12"/>
-    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-  </svg>`;
-}
-
-function moonIcon(): string {
-  return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-  </svg>`;
-}
-
-function syncThemeBtn(btn: HTMLButtonElement): void {
-  const light = document.body.classList.contains('light-mode');
-  btn.innerHTML = light ? moonIcon() : sunIcon();
-  btn.setAttribute('aria-label', light ? 'Switch to dark mode' : 'Switch to light mode');
-  btn.setAttribute('aria-pressed', light ? 'true' : 'false');
-}
-
 function pitchLinesSvg(): string {
   return `<svg class="home-pitch-lines" aria-hidden="true" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
     <defs>
@@ -178,17 +144,6 @@ export function initHomeScreen(
   const el = document.getElementById('home-screen');
   if (!el) return;
 
-  // Restore the user's preferred theme from the previous session.
-  // While the experimental flag is OFF we force-clear any previously
-  // stored "light" preference so users who toggled it earlier aren't
-  // stranded on a half-finished light theme.
-  if (!LIGHT_MODE_EXPERIMENTAL && localStorage.getItem(THEME_KEY) === 'light') {
-    localStorage.removeItem(THEME_KEY);
-    document.body.classList.remove('light-mode');
-  } else if (LIGHT_MODE_EXPERIMENTAL && localStorage.getItem(THEME_KEY) === 'light') {
-    document.body.classList.add('light-mode');
-  }
-
   const save = loadSave();
   const hasSave = save !== null;
   const ctx = save ? buildSaveContext(save, allTeams) : null;
@@ -202,7 +157,6 @@ export function initHomeScreen(
         <span class="home-status-text">2025/26 Season</span>
       </div>
       <div id="home-chrome-actions">
-        ${LIGHT_MODE_EXPERIMENTAL ? '<button id="theme-toggle"></button>' : ''}
         <button id="settings-btn" aria-label="Settings">${gearIcon()}</button>
       </div>
     </div>
@@ -234,17 +188,6 @@ export function initHomeScreen(
       </button>
     </div>
   `;
-
-  if (LIGHT_MODE_EXPERIMENTAL) {
-    const themeBtn = el.querySelector<HTMLButtonElement>('#theme-toggle')!;
-    syncThemeBtn(themeBtn);
-
-    themeBtn.addEventListener('click', () => {
-      document.body.classList.toggle('light-mode');
-      localStorage.setItem(THEME_KEY, document.body.classList.contains('light-mode') ? 'light' : 'dark');
-      syncThemeBtn(themeBtn);
-    });
-  }
 
   el.querySelector<HTMLButtonElement>('#start-game-btn')!.addEventListener('click', () => {
     if (hasSave && ctx) {

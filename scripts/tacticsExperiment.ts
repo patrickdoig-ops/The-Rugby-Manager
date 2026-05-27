@@ -39,10 +39,18 @@ const CONDITIONS: Condition[] = [
   { dimension: 'attackingGamePlan',   value: 'balanced',       isControl: true  },
   { dimension: 'attackingGamePlan',   value: 'possession',     isControl: false },
   { dimension: 'attackingGamePlan',   value: 'kicking',        isControl: false },
+  // attackingStyle: keep_it_tight / balanced / wide_wide
+  { dimension: 'attackingStyle',      value: 'balanced',       isControl: true  },
+  { dimension: 'attackingStyle',      value: 'keep_it_tight',  isControl: false },
+  { dimension: 'attackingStyle',      value: 'wide_wide',      isControl: false },
   // attackingBreakdown: commit_numbers / balanced / minimal_ruck
   { dimension: 'attackingBreakdown',  value: 'balanced',       isControl: true  },
   { dimension: 'attackingBreakdown',  value: 'commit_numbers', isControl: false },
   { dimension: 'attackingBreakdown',  value: 'minimal_ruck',   isControl: false },
+  // defendingBreakdown: jackal / counter_ruck / shadow
+  { dimension: 'defendingBreakdown',  value: 'jackal',         isControl: true  },
+  { dimension: 'defendingBreakdown',  value: 'counter_ruck',   isControl: false },
+  { dimension: 'defendingBreakdown',  value: 'shadow',         isControl: false },
   // backfieldDefence: one_back / two_back / three_back
   { dimension: 'backfieldDefence',    value: 'one_back',       isControl: true  },
   { dimension: 'backfieldDefence',    value: 'two_back',       isControl: false },
@@ -98,7 +106,7 @@ async function runMatch(homeTactic: { dim: keyof TeamTactics; val: string }, see
   away.suggestedTactics = { ...DEFAULT_TACTICS };
 
   return new Promise(resolve => {
-    const engine = new MatchCoordinator(home, away, { tickDelayMs: 0, seed, silent: true });
+    const engine = new MatchCoordinator(home, away, { tickDelayMs: 0, seed, silent: true, neutralVenue: true });
     const off = eventBus.on('engine:finished', () => {
       off();
       const state = engine.getState();
@@ -176,7 +184,7 @@ async function main() {
   console.log(`#`);
 
   // Group conditions by dimension so we can compute deltas vs the in-group control.
-  const dims = ['attackingGamePlan', 'attackingBreakdown', 'backfieldDefence', 'defensiveLine', 'offloadStrategy'] as const;
+  const dims = ['attackingGamePlan', 'attackingStyle', 'attackingBreakdown', 'defendingBreakdown', 'backfieldDefence', 'defensiveLine', 'offloadStrategy'] as const;
 
   const results = new Map<string, Agg>();
   for (const c of CONDITIONS) results.set(`${c.dimension}:${c.value}`, newAgg());

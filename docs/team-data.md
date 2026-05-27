@@ -701,7 +701,7 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 - **Captain:** George McGuigan.
 - **Honours:** Premiership title 1997-98; Anglo-Welsh Cup 2000-01, 2003-04.
 - **Overall rating:** **55/100**
-- **Suggested tactics:** `balanced` · `balanced` · `balanced` · `jackal` · `one_back` · `hybrid` · `cautious`
+- **Suggested tactics:** `balanced` · `balanced` · `balanced` · `jackal` · `three_back` · `hybrid` · `cautious`
 - **Stat bias:** modest across the board (rebuild status); slight lean toward `stamina` and `discipline`.
 
 ### Star players

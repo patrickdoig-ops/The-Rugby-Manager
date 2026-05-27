@@ -16,7 +16,7 @@
     "attackingStyle": "balanced",
     "attackingBreakdown": "balanced",
     "defendingBreakdown": "jackal",
-    "backfieldDefence": "one_back",
+    "backfieldDefence": "three_back",
     "defensiveLine": "hybrid",
     "offloadStrategy": "cautious"
   },

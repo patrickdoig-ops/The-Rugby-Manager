@@ -404,9 +404,13 @@ html, body {
   pointer-events: none;
 }
 .line-home-try  { left: 8%;  background: rgba(255,255,255,0.5); }
+.line-home-5m   { left: 12%; background: repeating-linear-gradient(to bottom, rgba(255,255,255,0.3) 0px, rgba(255,255,255,0.3) 3px, transparent 3px, transparent 6px); }
 .line-home-22   { left: 24%; background: rgba(255,255,255,0.25); }
+.line-home-10m  { left: 42%; background: repeating-linear-gradient(to bottom, rgba(255,255,255,0.3) 0px, rgba(255,255,255,0.3) 4px, transparent 4px, transparent 8px); }
 .line-halfway   { left: 50%; background: rgba(255,255,255,0.8); }
+.line-away-10m  { right: 42%; background: repeating-linear-gradient(to bottom, rgba(255,255,255,0.3) 0px, rgba(255,255,255,0.3) 4px, transparent 4px, transparent 8px); }
 .line-away-22   { right: 24%; background: rgba(255,255,255,0.25); }
+.line-away-5m   { right: 12%; background: repeating-linear-gradient(to bottom, rgba(255,255,255,0.3) 0px, rgba(255,255,255,0.3) 3px, transparent 3px, transparent 6px); }
 .line-away-try  { right: 8%; background: rgba(255,255,255,0.5); }
 
 #ball-marker {

@@ -2,11 +2,6 @@ import { isSfxEnabled, setSfxEnabled, getVolume, setVolume } from './SoundManage
 import { clearSave } from './SaveManager';
 import { VERSION } from '../version';
 
-// Not yet enabled — a full light-mode CSS pass across every screen file
-// is needed before this ships. HomeScreen.ts gates its theme button behind
-// the same constant; flip both together.
-const LIGHT_MODE_EXPERIMENTAL = false;
-
 function backIcon(): string {
   return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -30,20 +25,6 @@ export function initSettingsScreen(onBack: () => void): void {
     </div>
 
     <div id="settings-body">
-      ${LIGHT_MODE_EXPERIMENTAL ? `
-      <section class="settings-section">
-        <h2 class="settings-section-title">Display</h2>
-
-        <div class="settings-row">
-          <label class="settings-row-label" for="settings-theme">Light mode</label>
-          <label class="settings-toggle">
-            <input type="checkbox" id="settings-theme" />
-            <span class="settings-toggle-track"></span>
-          </label>
-        </div>
-      </section>
-      ` : ''}
-
       <section class="settings-section">
         <h2 class="settings-section-title">Audio</h2>
 
@@ -119,22 +100,4 @@ export function initSettingsScreen(onBack: () => void): void {
     clearSave();
     location.reload();
   });
-
-  if (LIGHT_MODE_EXPERIMENTAL) {
-    const themeInput = el.querySelector<HTMLInputElement>('#settings-theme')!;
-    const THEME_KEY = 'rugby-manager-theme';
-
-    // Reflect current state on mount
-    themeInput.checked = document.body.classList.contains('light-mode');
-
-    themeInput.addEventListener('change', () => {
-      if (themeInput.checked) {
-        document.body.classList.add('light-mode');
-        localStorage.setItem(THEME_KEY, 'light');
-      } else {
-        document.body.classList.remove('light-mode');
-        localStorage.setItem(THEME_KEY, 'dark');
-      }
-    });
-  }
 }

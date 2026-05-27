@@ -188,8 +188,9 @@
 }
 
 .fl-vs {
-  font-family: var(--rm-font-body);
-  font-size: 11px;
+  font-family: var(--rm-font-editor);
+  font-style: italic;
+  font-size: 13px;
   color: var(--rm-text-dim);
   flex-shrink: 0;
 }

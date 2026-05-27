@@ -64,7 +64,7 @@
   font-family: var(--rm-font-mono);
   font-size: 10px;
   letter-spacing: 0.16em;
-  color: var(--rm-text-muted, var(--rm-text-dim));
+  color: var(--rm-text-muted);
   text-transform: uppercase;
   margin: 0 0 10px;
 }
@@ -283,7 +283,7 @@
   font-family: var(--rm-font-mono);
   font-size: 10px;
   letter-spacing: 0.16em;
-  color: var(--rm-text-muted, var(--rm-text-dim));
+  color: var(--rm-text-muted);
   text-transform: uppercase;
   margin: 0 0 10px;
   display: flex;

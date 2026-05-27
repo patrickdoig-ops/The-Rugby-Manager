@@ -181,7 +181,7 @@ export function initSimController(engine: MatchCoordinator): void {
   }
   cogBtn.onclick = (e) => {
     e.stopPropagation();
-    const open = popover.hidden;
+    const open = !!popover.hidden;
     popover.hidden = !open;
     cogBtn.classList.toggle('is-open', open);
     cogBtn.setAttribute('aria-expanded', open ? 'true' : 'false');

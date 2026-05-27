@@ -1164,6 +1164,8 @@ On `maul_won`, the gain distribution is:
 
 The handler then projects the new ball position (`state.ball.x + attackDir(state) * gainMetres`) and checks `isTryScoredAt`. If true → `nextPhase: TryScored` with the hooker as `primaryPlayer` (so `handleTryScored` credits the try to the hooker). Otherwise → `nextPhase: FirstPhase`.
 
+**Maul try narration** is a 3-step event: `maul_drive_strong` announcement (the build), `maul_try` phase_outcome (the grounding — hooker credited), then `try_referee_signal` announcement (ref signal). `CommentaryFeed` stagger-reveals the trio as paced hero beats.
+
 ### Outcome table (equal packs, calibration target)
 
 | Outcome | Probability | Next phase | Possession |
@@ -1321,7 +1323,7 @@ The card system layers on top of the penalty seam. Whenever `PENALTY_AWARDED` fi
 |---|---|---|
 | N | Phase event emits PENALTY_AWARDED + commentary (e.g. "High tackle! Penalty!" from the carry handler, or "Reckless clear-out!" from BreakdownEvent). Phase → Penalty. CardHandler.evaluateNewPenalty looks up `OFFENCE_SPEC[offence].tmoTriggerPct`, rolls TMO, pre-rolls outcome, applies TMO_REVIEW_STARTED + phase → TmoReview, emits `tmo_intervenes`. | Running until this tick |
 | N+1 | CardHandler.advanceTmoReview emits `tmo_reviewing`, applies TMO_REVIEW_TICK_ADVANCED (step 1 → 2). | **Stopped** (ClockController.advanceMinute returns 0 when phase === TmoReview) |
-| N+2 | Emits `tmo_decision_<outcome>` announcement, applies TMO_REVIEW_TICK_ADVANCED (step 2 → 3). | Stopped |
+| N+2 | Emits a 2-step `[tmo_ref_returns, tmo_decision_<outcome>]` announcement (CommentaryFeed stagger-reveals "official back on pitch → verdict"); applies TMO_REVIEW_TICK_ADVANCED (step 2 → 3). | Stopped |
 | N+3 | If outcome ≠ no_card: emits CARD_ISSUED + `card_<kind>` announcement. Applies TMO_REVIEW_RESOLVED + phase → Penalty. | Stopped |
 | N+4 | PenaltyHandler shows the existing penalty modal (kick for goal / kick to touch / tap). Play resumes. | Resumes |
 
@@ -1568,6 +1570,10 @@ kicker = attackTeam.players.find(p => p.id === 10) ?? attackTeam.players[0]
 ```
 
 Always the fly-half.
+
+### Narration
+
+`ConversionKickEvent` emits two narration steps: a `kicker_steps_up` announcement step (kicker addresses the ball) followed by the `success` / `miss` `phase_outcome`. `CommentaryFeed`'s hero set treats both `success` and `miss` `phase_outcome` keys as hero entries, so the kick is stagger-revealed as "kicker steps up → kick result" with team-colour hero styling on the strap. The penalty goal-kick branch in `PenaltyHandler.handlePenaltyDecision` uses the same `kicker_steps_up` prepend before the `kick_for_goal` / `miss` outcome.
 
 ### Resolution
 

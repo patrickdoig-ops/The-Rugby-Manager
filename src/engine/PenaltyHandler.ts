@@ -157,12 +157,15 @@ export class PenaltyHandler {
         ballX: state.ball.x,
         ballY: state.ball.y,
         narration: {
-          steps: [{
-            kind: 'phase_outcome',
-            phase: MatchPhase.Penalty,
-            key: res.success ? 'kick_for_goal' : 'miss',
-            primary: kicker,
-          }],
+          steps: [
+            { kind: 'announcement', key: 'kicker_steps_up', primary: kicker },
+            {
+              kind: 'phase_outcome',
+              phase: MatchPhase.Penalty,
+              key: res.success ? 'kick_for_goal' : 'miss',
+              primary: kicker,
+            },
+          ],
         },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });

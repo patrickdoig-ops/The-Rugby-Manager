@@ -64,6 +64,7 @@ export function handleMaul({ state, attackTeam, defendTeam }: PhaseContext): Pha
         nextPhase: MatchPhase.TryScored,
         narration: {
           steps: [
+            { kind: 'announcement', key: 'maul_drive_strong' },
             { kind: 'phase_outcome', phase: MatchPhase.Maul, key: 'maul_try', primary: attackHooker },
             { kind: 'announcement', key: 'try_referee_signal' },
           ],

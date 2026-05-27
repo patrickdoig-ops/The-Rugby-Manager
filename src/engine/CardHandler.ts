@@ -91,7 +91,7 @@ export class CardHandler {
         // outcomes by walking these keys).
         this.emitAnnouncement('tmo_intervenes', last.offendingSide, last.offender);
         const decisionKey = `tmo_decision_${outcome}` as const;
-        this.emitAnnouncement(decisionKey, last.offendingSide, last.offender);
+        this.emitAnnouncement(decisionKey, last.offendingSide, last.offender, 'tmo_ref_returns');
         if (outcome !== 'no_card') {
           this.issueCard(last.offender, last.offendingSide, outcome, false);
         }
@@ -126,9 +126,12 @@ export class CardHandler {
       return;
     }
     if (review.step === 2) {
-      // Step 2 narrates the decision; step 3 applies the card.
+      // Step 2 narrates the decision; step 3 applies the card. The prepended
+      // `tmo_ref_returns` beat lets CommentaryFeed stagger-reveal the verdict
+      // as "official back on pitch → verdict" — adds suspense on the moment
+      // that decides whether a card lands.
       const key = `tmo_decision_${review.outcome}` as const;
-      this.emitAnnouncement(key, review.offendingSide, review.offender);
+      this.emitAnnouncement(key, review.offendingSide, review.offender, 'tmo_ref_returns');
       applyMatchEvent(state, { type: 'TMO_REVIEW_TICK_ADVANCED' });
       return;
     }

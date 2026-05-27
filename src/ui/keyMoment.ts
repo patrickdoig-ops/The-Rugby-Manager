@@ -14,11 +14,24 @@ const KEY_ANNOUNCEMENT_KEYS = new Set<string>([
   'tmo_intervenes',
 ]);
 
-// Hero-only — the carry-phase try outcomes. Detected on `phase_outcome` steps.
-// We don't add these to KEY_ANNOUNCEMENT_KEYS because auto-pause must fire
-// exactly once per try (on the TryScored event), not also on the carry phase.
+// Hero-only — the carry-phase try outcomes plus goal-kick outcomes. Detected
+// on `phase_outcome` steps. We don't add these to KEY_ANNOUNCEMENT_KEYS
+// because auto-pause should fire exactly once per try (on TryScored) and
+// not at all on conversions / penalty goal kicks (which the user is already
+// watching unfold). `success` / `miss` are emitted by ConversionKickEvent;
+// `kick_for_goal` / `miss` by the PenaltyHandler goal-kick branch.
 const HERO_PHASE_OUTCOME_KEYS = new Set<string>([
   'line_break_try', 'dominant_carry_try', 'maul_try',
+  'success', 'miss', 'kick_for_goal',
+]);
+
+// Announcement keys that warrant hero treatment without triggering auto-pause.
+// The TMO verdict announcements land mid-review, after the user has already
+// been auto-paused once on `tmo_intervenes`; re-pausing on the verdict would
+// double-stop a single moment. Hero styling still applies so the verdict line
+// reads as the dramatic resolution.
+const HERO_ANNOUNCEMENT_KEYS = new Set<string>([
+  'tmo_decision_yellow', 'tmo_decision_red_20', 'tmo_decision_no_card',
 ]);
 
 export function isAutoPauseEvent(event: GameEvent): boolean {
@@ -33,6 +46,7 @@ export function isHeroEvent(event: GameEvent): boolean {
   if (isAutoPauseEvent(event)) return true;
   for (const step of event.narration.steps) {
     if (step.kind === 'phase_outcome' && HERO_PHASE_OUTCOME_KEYS.has(step.key)) return true;
+    if (step.kind === 'announcement'   && HERO_ANNOUNCEMENT_KEYS.has(step.key))   return true;
   }
   return false;
 }

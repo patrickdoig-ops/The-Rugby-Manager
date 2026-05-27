@@ -71,6 +71,7 @@ export type TacticNoteCause =
 // without the two having to stay in lockstep by hand.
 export type CardAnnouncementKey =
   | 'tmo_intervenes'   | 'tmo_reviewing'
+  | 'tmo_ref_returns'
   | 'tmo_decision_no_card' | 'tmo_decision_yellow' | 'tmo_decision_red_20'
   | 'card_ref_summons'
   | 'card_yellow' | 'card_red_20' | 'card_red_full'
@@ -92,6 +93,8 @@ export type AnnouncementKey =
   | 'try_location_central' | 'try_location_close'
   | 'try_location_wide'    | 'try_location_corner'
   | 'try_referee_signal'   | 'try_aftermath'
+  | 'kicker_steps_up'
+  | 'maul_drive_strong'
   | 'scrum_reset_cap'
   | CardAnnouncementKey;
 

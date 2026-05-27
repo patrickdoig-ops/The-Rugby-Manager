@@ -80,6 +80,23 @@ const TRY_AFTERMATH: readonly string[] = [
   'You can feel the momentum shifting around the stadium.',
 ];
 
+const KICKER_STEPS_UP: readonly string[] = [
+  '{primary} stands over the ball.',
+  '{primary} takes a few steps back, composing himself.',
+  'The kicker {primary} lines it up.',
+  'Tee placed. {primary} runs through his routine.',
+  '{primary} addresses the kick.',
+  'Stadium falls silent as {primary} settles over the ball.',
+];
+
+const MAUL_DRIVE_STRONG: readonly string[] = [
+  'The maul is rolling — the defence cannot hold it.',
+  '{side} are driving this on with real intent.',
+  'The pack is over the gain line, edging closer to the line.',
+  'Massive shove from the {side} forwards — they smell a try.',
+  'The drive is on — defenders backpedalling, ball secure at the back.',
+];
+
 const TMO_INTERVENES: readonly string[] = [
   'The TMO is in the referee\'s ear — they want to take a closer look at that tackle.',
   'TMO check! The official upstairs has flagged a concern with the tackle technique.',
@@ -92,6 +109,14 @@ const TMO_REVIEWING: readonly string[] = [
   'Big screen footage running back — the official is checking head contact.',
   'They\'re looking at the point of contact in slow motion.',
   'Replay rolling — referee and TMO going through it together.',
+];
+
+const TMO_REF_RETURNS: readonly string[] = [
+  'The referee is back on the pitch — verdict coming.',
+  'Decision time. The official steps away from the screen.',
+  'Mind made up — the referee returns to the players.',
+  'The official has reached a verdict.',
+  'The referee has seen enough — back to the action.',
 ];
 
 const TMO_DECISION_NO_CARD: readonly string[] = [
@@ -221,10 +246,16 @@ export function getAnnouncementTemplate(
       return pickRandom(TRY_REFEREE_SIGNAL);
     case 'try_aftermath':
       return pickRandom(TRY_AFTERMATH);
+    case 'kicker_steps_up':
+      return pickRandom(KICKER_STEPS_UP);
+    case 'maul_drive_strong':
+      return pickRandom(MAUL_DRIVE_STRONG);
     case 'tmo_intervenes':
       return pickRandom(TMO_INTERVENES);
     case 'tmo_reviewing':
       return pickRandom(TMO_REVIEWING);
+    case 'tmo_ref_returns':
+      return pickRandom(TMO_REF_RETURNS);
     case 'tmo_decision_no_card':
       return pickRandom(TMO_DECISION_NO_CARD);
     case 'tmo_decision_yellow':

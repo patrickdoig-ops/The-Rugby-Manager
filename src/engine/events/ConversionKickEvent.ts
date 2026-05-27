@@ -21,7 +21,12 @@ export function handleConversionKick({ state, attackTeam }: PhaseContext): Phase
 
   return {
     nextPhase: MatchPhase.KickOff,
-    narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.ConversionKick, key, primary: kicker }] },
+    narration: {
+      steps: [
+        { kind: 'announcement', key: 'kicker_steps_up', primary: kicker },
+        { kind: 'phase_outcome', phase: MatchPhase.ConversionKick, key, primary: kicker },
+      ],
+    },
     primaryPlayer: kicker,
     events,
   };

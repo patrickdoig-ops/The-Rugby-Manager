@@ -215,6 +215,24 @@ export const APPEAL_WEIGHTS = {
   needTargetPerPosition: 2,
 };
 
+// Per-club final league positions for the two pre-game seasons.
+// Used by weightedLeaguePosition when no in-game archived season exists yet.
+// Keyed by team id (matches the "id" field in each team-*.json).
+// 2023-24: NOR 1, BAT 2, SAL 3, SAR 4, BRI 5, HAR 6, EXE 7, LEI 8, GLO 9, NEW 10
+// 2024-25: BAT 1, LEI 2, SAL 3, BRI 4, GLO 5, SAR 6, HAR 7, NOR 8, EXE 9, NEW 10
+export const HISTORICAL_POSITIONS: Record<string, { pos2324: number; pos2425: number }> = {
+  northampton: { pos2324: 1,  pos2425: 8  },
+  bath:        { pos2324: 2,  pos2425: 1  },
+  sale:        { pos2324: 3,  pos2425: 3  },
+  saracens:    { pos2324: 4,  pos2425: 6  },
+  bristol:     { pos2324: 5,  pos2425: 4  },
+  harlequins:  { pos2324: 6,  pos2425: 7  },
+  exeter:      { pos2324: 7,  pos2425: 9  },
+  leicester:   { pos2324: 8,  pos2425: 2  },
+  gloucester:  { pos2324: 9,  pos2425: 5  },
+  newcastle:   { pos2324: 10, pos2425: 10 },
+};
+
 // All synthesised wages floor at WAGE_FLOOR and round to the nearest
 // WAGE_ROUNDING_UNIT, so the UI never shows £138,743 and seeded squads
 // can't dip below the RPA rookie rate. WAGE_FLOOR is also the academy

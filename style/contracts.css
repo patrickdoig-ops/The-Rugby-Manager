@@ -101,7 +101,7 @@
 }
 
 #ct-cap-fill.over {
-  background: linear-gradient(90deg, oklch(0.40 0.18 25), var(--rm-stat-1));
+  background: linear-gradient(90deg, var(--rm-danger-deep), var(--rm-stat-1));
   box-shadow: 0 0 8px color-mix(in oklch, var(--rm-stat-1) 45%, transparent);
 }
 

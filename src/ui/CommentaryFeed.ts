@@ -100,8 +100,6 @@ const FILTER_CHIPS: ReadonlyArray<{ id: CfFilter; label: string }> = [
   { id: 'tries',     label: 'Tries' },
   { id: 'penalties', label: 'Pens' },
   { id: 'kicks',     label: 'Kicks' },
-  { id: 'setpieces', label: 'Set Pieces' },
-  { id: 'subs',      label: 'Subs' },
 ];
 
 export function initCommentaryFeed(): void {

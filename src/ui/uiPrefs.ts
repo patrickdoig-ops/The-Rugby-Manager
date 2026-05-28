@@ -75,7 +75,7 @@ export function saveAutoSlowEnabled(on: boolean): void {
 // Commentary feed filter — single-select, sticky across matches. Maps to
 // the `.commentary-entry .event-*` phase classes the feed already emits.
 const CF_FILTER_KEY = 'rugby-manager-cf-filter';
-export const CF_FILTER_VALUES = ['all', 'tries', 'penalties', 'kicks', 'setpieces', 'subs'] as const;
+export const CF_FILTER_VALUES = ['all', 'tries', 'penalties', 'kicks'] as const;
 export type CfFilter = typeof CF_FILTER_VALUES[number];
 
 export function loadCommentaryFilter(): CfFilter {

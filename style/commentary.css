@@ -70,8 +70,6 @@
 #commentary-feed.cf-feed--filter-tries     .commentary-entry:not(.event-try)        { display: none; }
 #commentary-feed.cf-feed--filter-penalties .commentary-entry:not(.event-penalty)    { display: none; }
 #commentary-feed.cf-feed--filter-kicks     .commentary-entry:not(.event-kick):not(.event-conversion):not(.event-kickatgoal) { display: none; }
-#commentary-feed.cf-feed--filter-setpieces .commentary-entry:not(.event-scrum):not(.event-lineout):not(.event-maul) { display: none; }
-#commentary-feed.cf-feed--filter-subs      .commentary-entry:not(.event-sub)        { display: none; }
 
 .commentary-entry {
   display: grid;

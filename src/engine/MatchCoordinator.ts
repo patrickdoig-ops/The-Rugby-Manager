@@ -608,37 +608,7 @@ export class MatchCoordinator {
     this.fatigue.tick(timeAdvance);
 
     if (this.state.phase === MatchPhase.TmoReview) { await this.tickTmoReview(); return; }
-
-    // KickAtGoal micro-phase: entry handler emitted kicker_steps_up and
-    // parked here. Resolve the kick, transition to KickOff (or DropOut22 on
-    // a missed penalty). Mirrors the TMO branch shape.
-    if (this.state.phase === MatchPhase.KickAtGoal) {
-      this.kickAtGoalHandler.advance();
-      this.emitStateChange();
-      this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-
-      // Any goal kick (penalty or conversion, success or miss) resolved while
-      // the clock is in the red ends the period — no restart played. World
-      // Rugby rule: time off after the kick.
-      if (this.state.clock.clockInTheRed) {
-        if (!this.state.clock.halfTimeDone) {
-          this.clock.triggerHalfTime(this.state);
-          if (!this.state.engine.isRunning) return;
-          if (!this.silent) {
-            await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-            this.pause();
-            eventBus.emit('engine:autoPaused', { reason: 'half_time' });
-            return;
-          }
-        } else {
-          await this.clock.endMatch(this.state);
-          return;
-        }
-      }
-
-      this.scheduleTick(this.nextTickDelay());
-      return;
-    }
+    if (this.state.phase === MatchPhase.KickAtGoal) { await this.tickKickAtGoal(); return; }
 
     // Sin-bin scan: returnMinute is gameMinute-based and the clock just
     // advanced (or didn't, if we were in TMO — handled above). Yellow
@@ -821,6 +791,37 @@ export class MatchCoordinator {
     // tickDelayMs, which is the same interval scheduleTick waits before
     // the next tick. Drain completes naturally before the next tick fires.
     this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+    this.scheduleTick(this.nextTickDelay());
+  }
+
+  // KickAtGoal micro-phase: entry handler emitted kicker_steps_up and
+  // parked here. Resolve the kick, transition to KickOff (or DropOut22 on
+  // a missed penalty). Mirrors the TMO branch shape. Terminal: schedules,
+  // pauses, or ends the match internally.
+  private async tickKickAtGoal(): Promise<void> {
+    this.kickAtGoalHandler.advance();
+    this.emitStateChange();
+    this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+
+    // Any goal kick (penalty or conversion, success or miss) resolved while
+    // the clock is in the red ends the period — no restart played. World
+    // Rugby rule: time off after the kick.
+    if (this.state.clock.clockInTheRed) {
+      if (!this.state.clock.halfTimeDone) {
+        this.clock.triggerHalfTime(this.state);
+        if (!this.state.engine.isRunning) return;
+        if (!this.silent) {
+          await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+          this.pause();
+          eventBus.emit('engine:autoPaused', { reason: 'half_time' });
+          return;
+        }
+      } else {
+        await this.clock.endMatch(this.state);
+        return;
+      }
+    }
+
     this.scheduleTick(this.nextTickDelay());
   }
 

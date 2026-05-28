@@ -114,6 +114,26 @@
   50%      { opacity: 1; }
 }
 
+/* ── Position delta chip (player row only) ─────────────────────────── */
+.rr-score-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.rr-pos-delta {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.rr-pos-delta--up   { color: var(--rm-pitch); }
+.rr-pos-delta--down { color: var(--rm-danger); }
+.rr-pos-delta--same { color: var(--rm-text-dim); }
+
 .rr-venue-pill {
   font-family: var(--rm-font-mono);
   font-size: 8px;

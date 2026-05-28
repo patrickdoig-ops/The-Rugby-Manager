@@ -13,6 +13,7 @@ import type { GameCoordinator } from '../game/GameCoordinator';
 import type { Fixture, FixtureResult, GameState, TeamSeasonStats } from '../types/gameState';
 import { eventBus } from '../utils/eventBus';
 import { createRowExpander } from './components/rowExpand';
+import { sortStandings, computeStandingsFromResults } from '../game/leagueTable';
 
 let activeRound = 1;
 let activeOnContinue: () => void = () => {};
@@ -22,6 +23,19 @@ export function showRoundResults(round: number, onContinue: () => void): void {
   activeRound = round;
   activeOnContinue = onContinue;
   renderImpl?.();
+}
+
+function renderPosDelta(state: GameState, playerTeamId: string, round: number): string {
+  const prevResults = state.league.results.filter(r => r.round < round);
+  if (prevResults.length === 0) return '';
+  const posBefore = sortStandings(computeStandingsFromResults(prevResults))
+    .findIndex(s => s.teamId === playerTeamId) + 1;
+  const posAfter = sortStandings(state.league.standings)
+    .findIndex(s => s.teamId === playerTeamId) + 1;
+  const delta = posBefore - posAfter;
+  if (delta > 0) return `<span class="rr-pos-delta rr-pos-delta--up">↑ ${delta}</span>`;
+  if (delta < 0) return `<span class="rr-pos-delta rr-pos-delta--down">↓ ${Math.abs(delta)}</span>`;
+  return `<span class="rr-pos-delta rr-pos-delta--same">—</span>`;
 }
 
 function crest(team: RawTeamInput): string {
@@ -71,9 +85,12 @@ export function initRoundResultsScreen(
       const away = teamsById.get(fixture.awayId)!;
       const isPlayer = fixture.homeId === playerTeamId || fixture.awayId === playerTeamId;
       const rowDelay = Math.min(i, 16) * 25;
-      const mid = result
+      const scoreSpan = result
         ? `<span class="rr-score">${result.homeScore}–${result.awayScore}</span>`
         : `<span class="rr-pending">…</span>`;
+      const mid = (isPlayer && result)
+        ? `<div class="rr-score-col">${scoreSpan}${renderPosDelta(state, playerTeamId, activeRound)}</div>`
+        : scoreSpan;
       const rowId = `${fixture.homeId}-${fixture.awayId}-${fixture.round}`;
       const isExpanded = expander.isExpanded(rowId);
       const expandPanel = renderExpandPanel(result, home.color, away.color);

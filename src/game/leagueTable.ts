@@ -2,7 +2,8 @@
 // Standings themselves are mutated only via applySeasonEvent
 // (FIXTURE_RESULT_RECORDED).
 
-import type { TeamStanding } from '../types/gameState';
+import type { FixtureResult, TeamStanding } from '../types/gameState';
+import { LEAGUE_POINTS } from '../engine/balance';
 
 // Premiership ordering: league points, then points difference, then points for.
 // Relies on Array.prototype.sort being stable (ES2019+) so that fully tied
@@ -18,4 +19,31 @@ export function sortStandings(standings: readonly TeamStanding[]): TeamStanding[
 
 export function findStanding(standings: readonly TeamStanding[], teamId: string): TeamStanding | undefined {
   return standings.find(s => s.teamId === teamId);
+}
+
+// Recomputes standings from a slice of results without touching live state.
+// Used by RoundResultsScreen to derive the pre-round position for the delta chip.
+export function computeStandingsFromResults(results: readonly FixtureResult[]): TeamStanding[] {
+  const map = new Map<string, TeamStanding>();
+  const get = (id: string): TeamStanding => {
+    if (!map.has(id)) map.set(id, { teamId: id, played: 0, won: 0, drawn: 0, lost: 0,
+      pointsFor: 0, pointsAgainst: 0, pointsDiff: 0, tryBonus: 0, losingBonus: 0, leaguePoints: 0 });
+    return map.get(id)!;
+  };
+  for (const r of results) {
+    applyResult(get(r.homeId), r.homeScore, r.awayScore, r.homeTries,  r.homeScore - r.awayScore);
+    applyResult(get(r.awayId), r.awayScore, r.homeScore, r.awayTries, -(r.homeScore - r.awayScore));
+  }
+  return [...map.values()];
+}
+
+function applyResult(s: TeamStanding, pf: number, pa: number, tries: number, margin: number): void {
+  s.played++; s.pointsFor += pf; s.pointsAgainst += pa; s.pointsDiff = s.pointsFor - s.pointsAgainst;
+  if (margin > 0)        { s.won++;   s.leaguePoints += LEAGUE_POINTS.win; }
+  else if (margin === 0) { s.drawn++; s.leaguePoints += LEAGUE_POINTS.draw; }
+  else {
+    s.lost++; s.leaguePoints += LEAGUE_POINTS.loss;
+    if (-margin <= LEAGUE_POINTS.losingBonusThreshold) { s.leaguePoints += LEAGUE_POINTS.losingBonusPoints; s.losingBonus++; }
+  }
+  if (tries >= LEAGUE_POINTS.tryBonusThreshold) { s.leaguePoints += LEAGUE_POINTS.tryBonusPoints; s.tryBonus++; }
 }

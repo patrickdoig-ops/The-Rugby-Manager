@@ -135,6 +135,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 1;
   min-width: 0;
 }
 
@@ -142,24 +143,20 @@
   display: flex;
   align-items: center;
   gap: 7px;
+  flex: 1;
   min-width: 0;
 }
 
-.fl-team--away {
-  flex-direction: row-reverse;
+.fl-team-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
 }
 
-/* Form pip strip in fl-row: tighter gap to home/away name, sat outside
-   the crest so the eye groups [crest+name | pips] rather than the
-   pips floating mid-row. The strip uses .form-pip-strip's own
-   inline-flex; the .fl-team flex container places it adjacent to the
-   team-name. */
-.fl-team .form-pip-strip {
-  margin-inline-start: 6px;
-}
-.fl-team--away .form-pip-strip {
-  margin-inline-start: 0;
-  margin-inline-end: 6px;
+.fl-team-body--away {
+  align-items: flex-end;
 }
 
 .fl-crest {
@@ -298,7 +295,10 @@
 }
 
 #fixture-list .app-header {
-  background: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 18%, var(--rm-surface));
-  border-bottom-color: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 35%, transparent);
+  background: linear-gradient(180deg,
+    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 75%, oklch(0.08 0.008 150)) 0%,
+    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 38%, oklch(0.08 0.008 150)) 100%
+  );
+  border-bottom-color: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 45%, transparent);
 }
 

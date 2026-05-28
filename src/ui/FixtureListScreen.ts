@@ -117,13 +117,17 @@ export function initFixtureListScreen(
         <div class="fl-matchup">
           <div class="fl-team fl-team--home">
             ${miniCrest(home)}
-            <span class="fl-team-name">${home.shortName}</span>
-            ${homeForm}
+            <span class="fl-team-body">
+              <span class="fl-team-name">${home.shortName}</span>
+              ${homeForm}
+            </span>
           </div>
           ${midEl}
           <div class="fl-team fl-team--away">
-            ${awayForm}
-            <span class="fl-team-name">${away.shortName}</span>
+            <span class="fl-team-body fl-team-body--away">
+              <span class="fl-team-name">${away.shortName}</span>
+              ${awayForm}
+            </span>
             ${miniCrest(away)}
           </div>
         </div>

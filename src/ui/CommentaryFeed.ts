@@ -42,7 +42,7 @@ const TAG_MAP: Partial<Record<MatchPhase, string>> = {
 };
 
 const MAX_ENTRIES       = 30;
-const STEP_STAGGER_MS   = 350;  // gap between staggered narration steps within a key-moment event
+const STEP_STAGGER_MS   = 500;  // gap between staggered narration steps within a key-moment event
 const HERO_DWELL_MS     = 600;  // window after a hero entry where the strap holds against routine entries
 
 // Phase-outcome keys that mark the headline beat of a staggered hero event.

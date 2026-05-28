@@ -3,6 +3,11 @@
   inset: 0;
   z-index: 250;
   background: var(--rm-bg);
+  background-image: radial-gradient(
+    ellipse 160% 55% at 50% -5%,
+    color-mix(in oklch, var(--rm-pitch) 10%, transparent) 0%,
+    transparent 62%
+  );
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -15,41 +20,82 @@
     env(safe-area-inset-left, 0px);
 }
 
+/* Pitch-line atmosphere — covers the first viewport height only */
+.ts-pitch-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.12;
+}
+
 #ts-inner {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 36px;
-  padding: 24px 20px;
+  gap: 20px;
+  padding: 60px 16px 56px;
   width: 100%;
   max-width: 480px;
 }
 
 #ts-header {
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
 
-#ts-eyebrow {
+.ts-season-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px 5px 9px;
+  background: color-mix(in oklch, var(--rm-pitch) 10%, transparent);
+  border: 1px solid color-mix(in oklch, var(--rm-pitch) 28%, transparent);
+  border-radius: 999px;
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: 9px;
   letter-spacing: 0.14em;
-  color: var(--rm-pitch);
   text-transform: uppercase;
-  margin-bottom: 8px;
+  color: var(--rm-pitch);
+}
+
+.ts-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rm-pitch);
+  box-shadow: 0 0 7px var(--rm-pitch);
+  flex-shrink: 0;
+  animation: tsDotPulse 2s ease-in-out infinite;
+}
+
+@keyframes tsDotPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
 }
 
 #ts-title {
   font-family: var(--rm-font-display);
-  font-size: clamp(32px, 10vw, 48px);
+  font-size: clamp(36px, 11vw, 46px);
   color: var(--rm-chalk);
-  line-height: 0.95;
-  margin: 0 0 10px;
+  line-height: 0.92;
+  margin: 0;
   text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 #ts-subtitle {
-  font-family: var(--rm-font-body);
-  font-size: 14px;
+  font-family: var(--rm-font-editor);
+  font-style: italic;
+  font-size: 15px;
   color: var(--rm-text-muted);
   margin: 0;
 }
@@ -57,164 +103,222 @@
 #ts-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
 }
 
 @media (min-width: 700px) {
   #ts-inner { max-width: 700px; }
-  #ts-grid { grid-template-columns: repeat(3, 1fr); }
+  #ts-grid  { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (min-width: 1000px) {
   #ts-inner { max-width: 1000px; }
-  #ts-grid { grid-template-columns: repeat(5, 1fr); }
+  #ts-grid  { grid-template-columns: repeat(5, 1fr); }
 }
 
+/* ── Team cards — full-bleed colour ── */
 .ts-card {
   position: relative;
-  background: var(--rm-surface);
-  border: 1px solid var(--rm-border-soft);
-  border-radius: 14px;
-  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 4px 16px rgba(0, 0, 0, 0.55),
+    0 10px 36px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  animation: tsCardIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: transform 0.14s, box-shadow 0.18s;
   -webkit-tap-highlight-color: transparent;
-  box-shadow: var(--rm-card-shadow);
 }
 
+/* Studio-light shine at top */
+.ts-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 8px;
+  right: 8px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28) 50%, transparent);
+  z-index: 2;
+}
+
+/* Radial highlight from top-centre */
+.ts-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 55% at 50% 0%, rgba(255, 255, 255, 0.09) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Staggered floodlight entrance */
+.ts-card:nth-child(1)  { animation-delay: 0.04s; }
+.ts-card:nth-child(2)  { animation-delay: 0.09s; }
+.ts-card:nth-child(3)  { animation-delay: 0.14s; }
+.ts-card:nth-child(4)  { animation-delay: 0.19s; }
+.ts-card:nth-child(5)  { animation-delay: 0.24s; }
+.ts-card:nth-child(6)  { animation-delay: 0.29s; }
+.ts-card:nth-child(7)  { animation-delay: 0.34s; }
+.ts-card:nth-child(8)  { animation-delay: 0.39s; }
+.ts-card:nth-child(9)  { animation-delay: 0.44s; }
+.ts-card:nth-child(10) { animation-delay: 0.49s; }
+
+@keyframes tsCardIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); filter: brightness(0.55); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    filter: brightness(1);    }
+}
+
+@media (hover: hover) {
+  .ts-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 0 1.5px rgba(255, 255, 255, 0.24),
+      0 8px 28px rgba(0, 0, 0, 0.55),
+      0 16px 52px rgba(0, 0, 0, 0.35),
+      0 0 36px color-mix(in oklch, var(--tc, var(--rm-pitch)) 28%, transparent);
+  }
+}
+
+.ts-card:active { transform: scale(0.97); transition-duration: 0.06s; }
+
+/* Full-height select button */
 .ts-card-select {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 20px 12px;
   width: 100%;
+  min-height: 164px;
   background: transparent;
   border: none;
-  border-radius: 14px;
+  padding: 0;
   cursor: pointer;
-  text-align: center;
   color: inherit;
   font: inherit;
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Name area — team colour bleeds here */
+.ts-name-area {
+  flex: 1;
+  padding: 18px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 3px;
+  position: relative;
+  z-index: 2;
+}
+
+.ts-team-primary {
+  font-family: var(--rm-font-display);
+  font-size: 26px;
+  color: rgba(255, 255, 255, 0.96);
+  line-height: 0.92;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ts-team-secondary {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.48);
+  line-height: 1;
+}
+
+/* Footer — semi-transparent dark overlay */
+.ts-card-footer {
+  background: rgba(0, 0, 0, 0.42);
+  padding: 9px 14px 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.10);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.ts-ovr-group {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.ts-ovr-value {
+  font-family: var(--rm-font-display);
+  font-size: 26px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ts-ovr-label {
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+/* Tier pills */
+.ts-tier {
+  font-family: var(--rm-font-mono);
+  font-size: 7.5px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.ts-tier--elite   { color: var(--rm-stat-3); background: color-mix(in oklch, var(--rm-stat-3) 14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-3) 32%, transparent); }
+.ts-tier--strong  { color: var(--rm-pitch);  background: color-mix(in oklch, var(--rm-pitch)  14%, transparent); border-color: color-mix(in oklch, var(--rm-pitch)  32%, transparent); }
+.ts-tier--mid     { color: var(--rm-stat-5); background: color-mix(in oklch, var(--rm-stat-5) 14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-5) 32%, transparent); }
+.ts-tier--rebuild { color: var(--rm-amber);  background: color-mix(in oklch, var(--rm-amber)  14%, transparent); border-color: color-mix(in oklch, var(--rm-amber)  32%, transparent); }
+.ts-tier--underdog{ color: var(--rm-stat-1); background: color-mix(in oklch, var(--rm-stat-1) 14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-1) 32%, transparent); }
+
+/* Info button — top-right of each card */
 .ts-card-info {
   position: absolute;
-  top: 0;
-  right: 0;
-  width: 44px;
-  height: 44px;
-  margin: -6px -6px 0 0;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.52);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 50%;
-  color: var(--rm-text-dim);
   cursor: pointer;
-  z-index: 1;
-  transition: color 0.15s, background 0.15s;
+  z-index: 3;
+  transition: background 0.15s, color 0.15s;
   -webkit-tap-highlight-color: transparent;
-}
-
-.ts-card-info:active {
-  background: var(--rm-surface-3);
-  color: var(--rm-chalk);
-}
-
-@media (hover: hover) {
-  .ts-card-info:hover {
-    color: var(--rm-chalk);
-    background: var(--rm-surface-3);
-  }
 }
 
 .ts-card-info svg { pointer-events: none; }
 
-.ts-crest {
-  width: var(--crest-md-size);
-  height: var(--crest-md-size);
-  border-radius: var(--crest-md-radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--rm-font-display);
-  font-size: 22px;
-  color: var(--rm-chalk);
-  position: relative;
-  flex-shrink: 0;
-}
-
-.ts-crest::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.18) 100%);
-}
-
-.ts-crest span {
-  position: relative;
-  z-index: 1;
-}
-
-.ts-card-name {
-  font-family: var(--rm-font-body);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--rm-chalk);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-.ts-card-ovr {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin-top: 2px;
-}
-
-.ts-card-ovr-label {
-  font-family: var(--rm-font-mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  color: var(--rm-text-dim);
-  text-transform: uppercase;
-}
-
-.ts-card-ovr-value {
-  font-family: var(--rm-font-display);
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--rm-chalk);
-  line-height: 1;
-}
-
-.ts-card-cta {
-  font-family: var(--rm-font-body);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--rm-pitch);
-  margin-top: 2px;
-}
-
-.ts-card-select:active {
-  background: var(--rm-surface-3);
-  border-radius: 14px;
+.ts-card-info:active {
+  background: rgba(0, 0, 0, 0.60);
+  color: rgba(255, 255, 255, 0.92);
 }
 
 @media (hover: hover) {
-  .ts-card:hover {
-    border-color: var(--rm-pitch);
-    box-shadow: 0 0 20px color-mix(in oklch, var(--rm-pitch) 18%, transparent);
-  }
-  .ts-card-select:hover {
-    background: var(--rm-surface-2);
-    border-radius: 14px;
+  .ts-card-info:hover {
+    background: rgba(0, 0, 0, 0.60);
+    color: rgba(255, 255, 255, 0.92);
   }
 }

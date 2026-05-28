@@ -1,21 +1,50 @@
 import type { RawTeamInput } from '../types/teamData';
 import { computeOverallRating } from '../team/teamProfile';
 
-function crestHtml(initial: string, color: string): string {
-  const grad = `linear-gradient(160deg, ${color} 0%, color-mix(in oklch, ${color} 30%, black) 100%)`;
-  const glow = `box-shadow: 0 0 18px color-mix(in oklch, ${color} 40%, transparent), inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 20px rgba(0,0,0,0.5);`;
-  return `
-    <div class="ts-crest" style="background:${grad};border:1.5px solid color-mix(in oklch,${color} 55%,transparent);${glow}">
-      <span>${initial}</span>
-    </div>`;
+function ovrColor(r: number): string {
+  if (r >= 85) return 'var(--rm-stat-3)';
+  if (r >= 78) return 'var(--rm-stat-4)';
+  if (r >= 70) return 'var(--rm-stat-5)';
+  if (r >= 62) return 'var(--rm-stat-2)';
+  return 'var(--rm-stat-1)';
 }
 
-function ovrColor(r: number): string {
-  if (r >= 85) return 'var(--rm-stat-3)'; // gold — elite
-  if (r >= 78) return 'var(--rm-stat-4)'; // green — good
-  if (r >= 70) return 'var(--rm-stat-5)'; // cyan — above avg
-  if (r >= 62) return 'var(--rm-stat-2)'; // amber — below avg
-  return 'var(--rm-stat-1)';              // red — poor
+function tierLabel(ovr: number): string {
+  if (ovr >= 85) return 'Title Favourites';
+  if (ovr >= 78) return 'Playoffs Push';
+  if (ovr >= 70) return 'Mid Table';
+  if (ovr >= 62) return 'Rebuilding';
+  return 'Underdog';
+}
+
+function tierClass(ovr: number): string {
+  if (ovr >= 85) return 'elite';
+  if (ovr >= 78) return 'strong';
+  if (ovr >= 70) return 'mid';
+  if (ovr >= 62) return 'rebuild';
+  return 'underdog';
+}
+
+function pitchLinesSvg(): string {
+  return `<svg class="ts-pitch-lines" aria-hidden="true" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <linearGradient id="tsLv" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"  stop-color="white" stop-opacity="0"/>
+        <stop offset="35%" stop-color="white" stop-opacity="0.7"/>
+        <stop offset="65%" stop-color="white" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="white" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="tsLh" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%"  stop-color="white" stop-opacity="0"/>
+        <stop offset="50%" stop-color="white" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="white" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <line x1="195" y1="0"   x2="195" y2="844" stroke="url(#tsLv)" stroke-width="0.7"/>
+    <line x1="0"   y1="211" x2="390" y2="211" stroke="url(#tsLh)" stroke-width="0.5"/>
+    <line x1="0"   y1="633" x2="390" y2="633" stroke="url(#tsLh)" stroke-width="0.5"/>
+    <circle cx="195" cy="422" r="90" stroke="url(#tsLv)" stroke-width="0.7" fill="none"/>
+  </svg>`;
 }
 
 export function initTeamSelectorScreen(
@@ -30,34 +59,48 @@ export function initTeamSelectorScreen(
   const sortedTeams = [...teams].sort((a, b) => a.name.localeCompare(b.name));
 
   el.innerHTML = `
+    ${pitchLinesSvg()}
     <button id="ts-back" class="app-back-floating" aria-label="Back">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
       <span>Lobby</span>
     </button>
     <div id="ts-inner">
       <div id="ts-header">
-        <div id="ts-eyebrow">2025/26 Season · New Manager</div>
-        <h2 id="ts-title">Choose Your Team</h2>
-        <p id="ts-subtitle">Select the side you want to manage</p>
+        <div class="ts-season-pill">
+          <span class="ts-live-dot"></span>
+          2025/26 · Premiership
+        </div>
+        <h2 id="ts-title">Choose<br>Your Team</h2>
+        <p id="ts-subtitle">Pick the club you'll manage this season</p>
       </div>
       <div id="ts-grid">
-        ${sortedTeams.map(team => `
-          <div class="ts-card" data-id="${team.id}">
+        ${sortedTeams.map(team => {
+          const ovr = computeOverallRating(team.id);
+          const c = ovrColor(ovr);
+          const eliteShadow = ovr >= 85 ? `text-shadow:0 0 12px color-mix(in oklch,var(--rm-stat-3) 40%,transparent);` : '';
+          const [primary, ...rest] = team.name.split(' ');
+          const secondary = rest.join(' ');
+          const bg = `linear-gradient(150deg,${team.color} 0%,color-mix(in oklch,${team.color} 45%,oklch(0.10 0.010 150)) 100%)`;
+          return `
+          <div class="ts-card" data-id="${team.id}" style="--tc:${team.color};background:${bg}">
             <button class="ts-card-info" data-id="${team.id}" aria-label="Team info">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
             </button>
             <button class="ts-card-select" data-id="${team.id}">
-              ${crestHtml(team.shortName[0] ?? '?', team.color)}
-              <div class="ts-card-name">${team.name}</div>
-              ${(() => {
-                const ovr = computeOverallRating(team.id);
-                const c = ovrColor(ovr);
-                const eliteShadow = ovr >= 85 ? `text-shadow: 0 0 8px color-mix(in oklch, var(--rm-stat-3) 28%, transparent);` : '';
-                return `<div class="ts-card-ovr"><span class="ts-card-ovr-label">OVR</span><span class="ts-card-ovr-value" style="color:${c};${eliteShadow}">${ovr}</span></div>`;
-              })()}
+              <div class="ts-name-area">
+                <div class="ts-team-primary">${primary}</div>
+                ${secondary ? `<div class="ts-team-secondary">${secondary}</div>` : ''}
+              </div>
+              <div class="ts-card-footer">
+                <div class="ts-ovr-group">
+                  <span class="ts-ovr-value" style="color:${c};${eliteShadow}">${ovr}</span>
+                  <span class="ts-ovr-label">OVR</span>
+                </div>
+                <div class="ts-tier ts-tier--${tierClass(ovr)}">${tierLabel(ovr)}</div>
+              </div>
             </button>
-          </div>
-        `).join('')}
+          </div>`;
+        }).join('')}
       </div>
     </div>
   `;

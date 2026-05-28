@@ -607,83 +607,10 @@ export class MatchCoordinator {
 
     this.fatigue.tick(timeAdvance);
 
-    // TMO review: clock is frozen (advanceMinute returned 0) and play is
-    // suspended. Steps 1 + 2 narrate and bail. Step 3 applies CARD_ISSUED,
-    // resolves the review, and transitions phase back to Penalty — we then
-    // run the penalty modal in the SAME tick so the next tick starts in a
-    // phase resolvePhase() can handle. Without this fall-through the next
-    // tick enters resolvePhase with phase=Penalty and the game stalls on
-    // the TMO outcome. evaluateNewPenalty is deliberately NOT re-called
-    // here: the team-22 counter was bumped on the original Penalty tick
-    // before TMO began, and re-running would either double-bump or
-    // re-trigger TMO.
-    if (this.state.phase === MatchPhase.TmoReview) {
-      this.cardHandler.advanceTmoReview();
-      this.emitStateChange();
-      // advanceTmoReview may have mutated state.phase (step 3 → Penalty);
-      // cast to defeat the narrowing TS inherited from the outer condition.
-      if ((this.state.phase as MatchPhase) === MatchPhase.Penalty) {
-        await this.penaltyHandler.handlePenaltyDecision();
-        if (!this.state.engine.isRunning) return;
-      }
-      this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-      this.scheduleTick(this.nextTickDelay());
-      return;
-    }
+    if (this.state.phase === MatchPhase.TmoReview) { await this.tickTmoReview(); return; }
+    if (this.state.phase === MatchPhase.KickAtGoal) { await this.tickKickAtGoal(); return; }
 
-    // KickAtGoal micro-phase: entry handler emitted kicker_steps_up and
-    // parked here. Resolve the kick, transition to KickOff (or DropOut22 on
-    // a missed penalty). Mirrors the TMO branch shape.
-    if (this.state.phase === MatchPhase.KickAtGoal) {
-      this.kickAtGoalHandler.advance();
-      this.emitStateChange();
-      this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-
-      // Any goal kick (penalty or conversion, success or miss) resolved while
-      // the clock is in the red ends the period — no restart played. World
-      // Rugby rule: time off after the kick.
-      if (this.state.clock.clockInTheRed) {
-        if (!this.state.clock.halfTimeDone) {
-          this.clock.triggerHalfTime(this.state);
-          if (!this.state.engine.isRunning) return;
-          if (!this.silent) {
-            await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-            this.pause();
-            eventBus.emit('engine:autoPaused', { reason: 'half_time' });
-            return;
-          }
-        } else {
-          await this.clock.endMatch(this.state);
-          return;
-        }
-      }
-
-      this.scheduleTick(this.nextTickDelay());
-      return;
-    }
-
-    // Sin-bin scan: returnMinute is gameMinute-based and the clock just
-    // advanced (or didn't, if we were in TMO — handled above). Yellow
-    // expirations are inline; red_20 expirations queue a forced-sub flow.
-    const expiredRed20 = this.cardHandler.scanSinBinReturns();
-    for (const exp of expiredRed20) {
-      await this.runForcedSubstitution(exp.player, exp.side, 'red_20');
-      if (!this.state.engine.isRunning) return;
-    }
-
-    // Injury forced-sub flow: any player pushed onto state.cards.injured by
-    // a PLAYER_INJURED_IN_MATCH on the previous tick's phase resolution gets
-    // a replacement here (mirrors red_20 expiry). The bench player runs on;
-    // SUBSTITUTION_APPLIED clears cards.injured so onFieldPlayers stops
-    // filtering the slot. Players whose pendingInjuryKind is set but bench
-    // was empty stay in cards.injured for the rest of the match — the team
-    // plays short, and the teardown severity roll still finds them via the
-    // pendingInjuryKind flag.
-    const pendingInjurySubs = this.collectPendingInjurySubs();
-    for (const exp of pendingInjurySubs) {
-      await this.runForcedSubstitution(exp.player, exp.side, 'injury');
-      if (!this.state.engine.isRunning) return;
-    }
+    if (await this.processForcedSubstitutions()) return;
 
     const homeInOppHalf = !this.state.clock.halfTimeDone ? this.state.ball.x > 50 : this.state.ball.x < 50;
     applyMatchEvent(this.state, {
@@ -698,6 +625,102 @@ export class MatchCoordinator {
     // Penalty branch below.
     const phaseAtTickStart = this.state.phase;
 
+    if (await this.prepareEnteringPhase()) return;
+
+    // AI tactical adaptation runs before resolvePhase so the new tactics
+    // take effect on the very tick that meets the trigger condition. The
+    // sub director runs next so a fresh replacement participates in the
+    // same tick's resolver.
+    this.director.evaluate();
+    this.subDirector.evaluate();
+
+    const event = resolvePhase(this.state, this.kickOffStrategy);
+    applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event });
+
+    detectEntry22Changes(this.state);
+
+    this.emitEvent(event);
+    this.emitStateChange();
+
+    if (this.state.phase === MatchPhase.Penalty) {
+      // CardHandler runs before PenaltyHandler so a TMO review can preempt
+      // the penalty modal. 'tmo' verdict transitions phase to TmoReview;
+      // we bail this tick and let the TmoReview branch above drive the
+      // next 3 ticks of narrative.
+      const verdict = this.cardHandler.evaluateNewPenalty();
+      if (verdict === 'tmo') {
+        this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+        this.scheduleTick(this.nextTickDelay());
+        return;
+      }
+      // 'team22_card' issued an inline yellow before this point; 'none'
+      // means no card. Either way, run the penalty decision modal next.
+      // Drain queued events first so the user reads the penalty narration
+      // (and any card announcement) before the modal pops.
+      await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+      await this.penaltyHandler.handlePenaltyDecision();
+      if (!this.state.engine.isRunning) return;
+      previousPhase = MatchPhase.Penalty;
+    }
+
+    if (await this.handleEndOfPeriod(wasInRed, previousPhase)) return;
+
+    // Stash this tick's starting phase so the next tick can detect a
+    // cross-tick set-piece entry. Must be the snapshot — state.phase has
+    // mutated several times during the tick body.
+    this.prevTickStartPhase = phaseAtTickStart;
+
+    // Trigger the paced drain of any events emitted during this tick.
+    // We don't await — the streamer drains in the background over
+    // tickDelayMs, which is the same interval scheduleTick waits before
+    // the next tick. Drain completes naturally before the next tick fires.
+    this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+    this.scheduleTick(this.nextTickDelay());
+  }
+
+  // End-of-period handling: clock-in-the-red check, period end
+  // (triggerHalfTime / endMatch), and the live-mode half-time auto-pause.
+  // `wasInRed` is the pre-advance clock snapshot; `previousPhase` is the
+  // (possibly Penalty-reassigned) phase fed to shouldEndPeriod. Returns
+  // true when the tick has terminated (match ended, or half-time paused
+  // the engine) — caller returns without scheduling. Returns false to let
+  // the orchestrator stash + schedule the next tick (incl. the silent
+  // half-time case, which plays straight on into the second half).
+  private async handleEndOfPeriod(wasInRed: boolean, previousPhase: MatchPhase): Promise<boolean> {
+    const wasHalfTimeDone = this.state.clock.halfTimeDone;
+    if (!this.state.clock.clockInTheRed) {
+      this.clock.checkClockInRed(this.state);
+    } else if (wasInRed && this.clock.shouldEndPeriod(this.state, previousPhase)) {
+      if (!this.state.clock.halfTimeDone) {
+        this.clock.triggerHalfTime(this.state);
+        if (!this.state.engine.isRunning) return true;
+      } else {
+        await this.clock.endMatch(this.state);
+        return true;
+      }
+    }
+
+    // Half-time auto-pause. When triggerHalfTime fires on this tick, drain
+    // the commentary queue so the user reads the half-time line, then pause
+    // the engine and signal SimController to flip the buttons back to
+    // playable. The user clicks Play to start the second half. Skipped in
+    // silent mode so headless harnesses (determinism, telemetry, AI
+    // fixtures) blow straight through to full-time.
+    if (!this.silent && !wasHalfTimeDone && this.state.clock.halfTimeDone) {
+      await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+      this.pause();
+      eventBus.emit('engine:autoPaused', { reason: 'half_time' });
+      return true;
+    }
+    return false;
+  }
+
+  // Pre-resolution narration for the phase about to resolve: the cross-tick
+  // set-piece award, the KickOff / DropOut22 kicker announce, the KickOff
+  // strategy modal, and the BoxKick announce. Returns true if the KickOff
+  // modal left the engine paused (caller returns without scheduling);
+  // false to continue the tick.
+  private async prepareEnteringPhase(): Promise<boolean> {
     // Cross-tick set-piece entry: a tick starting in Lineout or Scrum
     // whose predecessor was a different phase fires the announcement here,
     // before resolvePhase. Replaces the old end-of-tick award branch — the
@@ -750,7 +773,7 @@ export class MatchCoordinator {
       // asked to pick high/long/short.
       await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
       this.kickOffStrategy = await this.penaltyHandler.awaitKickOffStrategy();
-      if (!this.state.engine.isRunning) return;
+      if (!this.state.engine.isRunning) return true;
     }
 
     if (this.state.phase === MatchPhase.BoxKick) {
@@ -770,78 +793,90 @@ export class MatchCoordinator {
       applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
       this.emitEvent(announceEvent);
     }
+    return false;
+  }
 
-    // AI tactical adaptation runs before resolvePhase so the new tactics
-    // take effect on the very tick that meets the trigger condition. The
-    // sub director runs next so a fresh replacement participates in the
-    // same tick's resolver.
-    this.director.evaluate();
-    this.subDirector.evaluate();
-
-    const event = resolvePhase(this.state, this.kickOffStrategy);
-    applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event });
-
-    detectEntry22Changes(this.state);
-
-    this.emitEvent(event);
-    this.emitStateChange();
-
-    if (this.state.phase === MatchPhase.Penalty) {
-      // CardHandler runs before PenaltyHandler so a TMO review can preempt
-      // the penalty modal. 'tmo' verdict transitions phase to TmoReview;
-      // we bail this tick and let the TmoReview branch above drive the
-      // next 3 ticks of narrative.
-      const verdict = this.cardHandler.evaluateNewPenalty();
-      if (verdict === 'tmo') {
-        this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-        this.scheduleTick(this.nextTickDelay());
-        return;
-      }
-      // 'team22_card' issued an inline yellow before this point; 'none'
-      // means no card. Either way, run the penalty decision modal next.
-      // Drain queued events first so the user reads the penalty narration
-      // (and any card announcement) before the modal pops.
-      await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-      await this.penaltyHandler.handlePenaltyDecision();
-      if (!this.state.engine.isRunning) return;
-      previousPhase = MatchPhase.Penalty;
+  // Sin-bin + injury forced-substitution scans, run after the clock
+  // advances but before phase resolution. Returns true if the engine was
+  // paused mid-substitution (human forced-sub modal) — the caller must
+  // then return without scheduling. Returns false to continue the tick.
+  private async processForcedSubstitutions(): Promise<boolean> {
+    // Sin-bin scan: returnMinute is gameMinute-based and the clock just
+    // advanced (or didn't, if we were in TMO — handled above). Yellow
+    // expirations are inline; red_20 expirations queue a forced-sub flow.
+    const expiredRed20 = this.cardHandler.scanSinBinReturns();
+    for (const exp of expiredRed20) {
+      await this.runForcedSubstitution(exp.player, exp.side, 'red_20');
+      if (!this.state.engine.isRunning) return true;
     }
 
-    const wasHalfTimeDone = this.state.clock.halfTimeDone;
-    if (!this.state.clock.clockInTheRed) {
-      this.clock.checkClockInRed(this.state);
-    } else if (wasInRed && this.clock.shouldEndPeriod(this.state, previousPhase)) {
+    // Injury forced-sub flow: any player pushed onto state.cards.injured by
+    // a PLAYER_INJURED_IN_MATCH on the previous tick's phase resolution gets
+    // a replacement here (mirrors red_20 expiry). The bench player runs on;
+    // SUBSTITUTION_APPLIED clears cards.injured so onFieldPlayers stops
+    // filtering the slot. Players whose pendingInjuryKind is set but bench
+    // was empty stay in cards.injured for the rest of the match — the team
+    // plays short, and the teardown severity roll still finds them via the
+    // pendingInjuryKind flag.
+    const pendingInjurySubs = this.collectPendingInjurySubs();
+    for (const exp of pendingInjurySubs) {
+      await this.runForcedSubstitution(exp.player, exp.side, 'injury');
+      if (!this.state.engine.isRunning) return true;
+    }
+    return false;
+  }
+
+  // KickAtGoal micro-phase: entry handler emitted kicker_steps_up and
+  // parked here. Resolve the kick, transition to KickOff (or DropOut22 on
+  // a missed penalty). Mirrors the TMO branch shape. Terminal: schedules,
+  // pauses, or ends the match internally.
+  private async tickKickAtGoal(): Promise<void> {
+    this.kickAtGoalHandler.advance();
+    this.emitStateChange();
+    this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+
+    // Any goal kick (penalty or conversion, success or miss) resolved while
+    // the clock is in the red ends the period — no restart played. World
+    // Rugby rule: time off after the kick.
+    if (this.state.clock.clockInTheRed) {
       if (!this.state.clock.halfTimeDone) {
         this.clock.triggerHalfTime(this.state);
         if (!this.state.engine.isRunning) return;
+        if (!this.silent) {
+          await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+          this.pause();
+          eventBus.emit('engine:autoPaused', { reason: 'half_time' });
+          return;
+        }
       } else {
         await this.clock.endMatch(this.state);
         return;
       }
     }
 
-    // Half-time auto-pause. When triggerHalfTime fires on this tick, drain
-    // the commentary queue so the user reads the half-time line, then pause
-    // the engine and signal SimController to flip the buttons back to
-    // playable. The user clicks Play to start the second half. Skipped in
-    // silent mode so headless harnesses (determinism, telemetry, AI
-    // fixtures) blow straight through to full-time.
-    if (!this.silent && !wasHalfTimeDone && this.state.clock.halfTimeDone) {
-      await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-      this.pause();
-      eventBus.emit('engine:autoPaused', { reason: 'half_time' });
-      return;
+    this.scheduleTick(this.nextTickDelay());
+  }
+
+  // TMO review: clock is frozen (advanceMinute returned 0) and play is
+  // suspended. Steps 1 + 2 narrate and bail. Step 3 applies CARD_ISSUED,
+  // resolves the review, and transitions phase back to Penalty — we then
+  // run the penalty modal in the SAME tick so the next tick starts in a
+  // phase resolvePhase() can handle. Without this fall-through the next
+  // tick enters resolvePhase with phase=Penalty and the game stalls on
+  // the TMO outcome. evaluateNewPenalty is deliberately NOT re-called
+  // here: the team-22 counter was bumped on the original Penalty tick
+  // before TMO began, and re-running would either double-bump or
+  // re-trigger TMO. Terminal: always schedules the next tick or returns
+  // paused.
+  private async tickTmoReview(): Promise<void> {
+    this.cardHandler.advanceTmoReview();
+    this.emitStateChange();
+    // advanceTmoReview may have mutated state.phase (step 3 → Penalty);
+    // cast to defeat the narrowing TS inherited from the outer condition.
+    if ((this.state.phase as MatchPhase) === MatchPhase.Penalty) {
+      await this.penaltyHandler.handlePenaltyDecision();
+      if (!this.state.engine.isRunning) return;
     }
-
-    // Stash this tick's starting phase so the next tick can detect a
-    // cross-tick set-piece entry. Must be the snapshot — state.phase has
-    // mutated several times during the tick body.
-    this.prevTickStartPhase = phaseAtTickStart;
-
-    // Trigger the paced drain of any events emitted during this tick.
-    // We don't await — the streamer drains in the background over
-    // tickDelayMs, which is the same interval scheduleTick waits before
-    // the next tick. Drain completes naturally before the next tick fires.
     this.streamer.flush(this.state.engine.tickDelayMs, this.state);
     this.scheduleTick(this.nextTickDelay());
   }

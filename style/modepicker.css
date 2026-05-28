@@ -1,13 +1,6 @@
-/* Mode Picker — follows the Team Info hero pattern per docs/DESIGN.md.
- * Centred hero (rounded-square crest + chalk title + muted subtitle)
- * with the back button position-fixed top-left, two stacked cards
- * below. Crest geometry matches `.ti-crest` (14px radius, ::after
- * overlay, span z-index lift) so the rounded-square shape stays
- * consistent across every crest surface in the product. Team colour
- * is reserved for the crest gradient + glow only; the team name
- * itself is chalk so pure-black-coloured teams (Exeter) stay
- * readable against the dark background. Screen-root visibility is
- * owned by screenRouter — do NOT declare `display: none` here.
+/* Mode Picker — sits between Team Selector and Hub on the new-game path.
+ * Background uses --team-color (set inline from team.color) for the
+ * stadium-glow gradient. Screen-root visibility owned by screenRouter.
  */
 
 #mode-picker {
@@ -15,6 +8,11 @@
   inset: 0;
   z-index: 250;
   background: var(--rm-bg);
+  background-image: radial-gradient(
+    ellipse 120% 65% at 50% -5%,
+    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 28%, transparent) 0%,
+    transparent 65%
+  );
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -45,35 +43,6 @@
   text-align: center;
 }
 
-.mp-crest {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 14px;
-  font-family: var(--rm-font-display);
-  color: var(--rm-chalk);
-  letter-spacing: 0.04em;
-  font-size: 38px;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
-  margin-bottom: 4px;
-  position: relative;
-  overflow: hidden;
-}
-
-.mp-crest::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.18) 100%);
-  pointer-events: none;
-}
-
-.mp-crest span {
-  position: relative;
-  z-index: 1;
-}
-
 #mp-eyebrow {
   font-family: var(--rm-font-mono);
   font-size: 11px;
@@ -84,12 +53,13 @@
 
 #mp-title {
   font-family: var(--rm-font-display);
-  font-size: clamp(32px, 9vw, 44px);
+  font-size: clamp(44px, 14vw, 64px);
   color: var(--rm-chalk);
-  line-height: 0.95;
+  line-height: 0.92;
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.02em;
+  text-shadow: 0 0 48px color-mix(in oklch, var(--team-color, var(--rm-pitch)) 35%, transparent);
 }
 
 #mp-subtitle {
@@ -125,7 +95,7 @@
 
 @media (hover: hover) {
   .mp-card:hover {
-    border-color: color-mix(in oklch, var(--rm-pitch) 35%, var(--rm-border-soft));
+    border-color: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 35%, var(--rm-border-soft));
     background: var(--rm-surface-2);
     transform: translateY(-1px);
   }

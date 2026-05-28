@@ -8,16 +8,6 @@
 
 import type { RawTeamInput } from '../types/teamData';
 
-function crestHtml(team: RawTeamInput, sizePx: number): string {
-  const grad = `linear-gradient(160deg, ${team.color} 0%, color-mix(in oklch, ${team.color} 30%, black) 100%)`;
-  const glow = `box-shadow: 0 0 22px color-mix(in oklch, ${team.color} 40%, transparent), inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 22px rgba(0,0,0,0.5);`;
-  const initial = team.shortName[0] ?? '?';
-  return `
-    <div class="mp-crest" style="width:${sizePx}px;height:${sizePx}px;background:${grad};border:1.5px solid color-mix(in oklch,${team.color} 55%,transparent);${glow}">
-      <span>${initial}</span>
-    </div>`;
-}
-
 export function initModePickerScreen(
   team: RawTeamInput,
   onQuickStart: () => void,
@@ -35,7 +25,6 @@ export function initModePickerScreen(
 
     <div id="mp-inner">
       <div id="mp-header">
-        ${crestHtml(team, 88)}
         <div id="mp-eyebrow">2025/26 Season</div>
         <h2 id="mp-title">${team.name}</h2>
         <p id="mp-subtitle">Choose how you want to start</p>
@@ -60,6 +49,8 @@ export function initModePickerScreen(
       </div>
     </div>
   `;
+
+  el.style.setProperty('--team-color', team.color);
 
   el.querySelector<HTMLButtonElement>('#mp-back')!.addEventListener('click', () => onBack());
   el.querySelector<HTMLButtonElement>('.mp-card[data-mode="quick"]')!.addEventListener('click', () => onQuickStart());

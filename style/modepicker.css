@@ -9,9 +9,10 @@
   z-index: 250;
   background: var(--rm-bg);
   background-image: radial-gradient(
-    ellipse 120% 65% at 50% -5%,
-    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 28%, transparent) 0%,
-    transparent 65%
+    ellipse 200% 130% at 50% 0%,
+    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 80%, oklch(0.08 0.008 150)) 0%,
+    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 38%, oklch(0.08 0.008 150)) 50%,
+    var(--rm-bg) 88%
   );
   display: flex;
   align-items: flex-start;

@@ -377,10 +377,10 @@
   --tile-accent: var(--rm-pitch);
   position: relative;
   background:
-    linear-gradient(168deg,
-      color-mix(in oklch, var(--tile-accent) 7%, var(--rm-surface-2)) 0%,
-      var(--rm-surface) 60%);
-  border: 1px solid var(--rm-border-soft);
+    linear-gradient(160deg,
+      color-mix(in oklch, var(--tile-accent) 55%, var(--rm-bg-deep)) 0%,
+      color-mix(in oklch, var(--tile-accent) 35%, var(--rm-bg-deep)) 100%);
+  border: 1px solid color-mix(in oklch, var(--tile-accent) 65%, transparent);
   border-radius: 13px;
   padding: 12px 10px;
   min-height: 78px;
@@ -391,40 +391,21 @@
   gap: 8px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  color: var(--tile-accent);
-  transition: transform 150ms var(--rm-ease-out), border-color 150ms ease, box-shadow 150ms ease;
+  color: var(--rm-chalk);
+  transition: transform 150ms var(--rm-ease-out), background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.07),
-    0 2px 8px rgba(0, 0, 0, 0.55),
-    0 10px 30px rgba(0, 0, 0, 0.32);
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 2px 8px color-mix(in oklch, var(--tile-accent) 25%, rgba(0, 0, 0, 0.4)),
+    0 10px 30px rgba(0, 0, 0, 0.35);
 }
 
-/* Per-function accent — coherent family, varied hue */
+/* Per-function accent */
 #hub-tile-squad     { --tile-accent: var(--rm-pitch); }
 #hub-tile-fixtures  { --tile-accent: var(--blue); }
 #hub-tile-league    { --tile-accent: var(--rm-stat-3); }
 #hub-tile-training  { --tile-accent: var(--rm-stat-5); }
 #hub-tile-contracts { --tile-accent: var(--rm-amber); }
 #hub-tile-transfers { --tile-accent: oklch(0.72 0.15 300); }
-
-/* Icon medallion — gives each tile colour identity + depth */
-.hub-tile-ico {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background:
-    radial-gradient(120% 120% at 50% 0%,
-      color-mix(in oklch, var(--tile-accent) 34%, transparent) 0%,
-      color-mix(in oklch, var(--tile-accent) 16%, transparent) 100%);
-  border: 1px solid color-mix(in oklch, var(--tile-accent) 42%, transparent);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 2px 10px color-mix(in oklch, var(--tile-accent) 26%, transparent);
-  transition: box-shadow 150ms ease, transform 150ms var(--rm-ease-out);
-}
 
 .hub-tile--stub {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
@@ -441,7 +422,7 @@
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.08em;
-  color: var(--rm-text-dim);
+  color: rgba(255, 255, 255, 0.6);
   text-transform: uppercase;
   margin-top: 2px;
 }
@@ -479,8 +460,12 @@
 
 .hub-tile:active {
   transform: translateY(1px);
+  background:
+    linear-gradient(160deg,
+      color-mix(in oklch, var(--tile-accent) 42%, var(--rm-bg-deep)) 0%,
+      color-mix(in oklch, var(--tile-accent) 26%, var(--rm-bg-deep)) 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
@@ -492,17 +477,15 @@
 @media (hover: hover) {
   .hub-tile:hover {
     transform: translateY(-2px);
-    border-color: color-mix(in oklch, var(--tile-accent) 45%, var(--rm-border));
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.09),
-      0 4px 12px rgba(0, 0, 0, 0.5),
-      0 14px 36px rgba(0, 0, 0, 0.34);
-  }
-  .hub-tile:hover .hub-tile-ico {
-    transform: translateY(-1px);
+    background:
+      linear-gradient(160deg,
+        color-mix(in oklch, var(--tile-accent) 68%, var(--rm-bg-deep)) 0%,
+        color-mix(in oklch, var(--tile-accent) 48%, var(--rm-bg-deep)) 100%);
+    border-color: color-mix(in oklch, var(--tile-accent) 80%, transparent);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.16),
-      0 4px 14px color-mix(in oklch, var(--tile-accent) 38%, transparent);
+      0 4px 12px color-mix(in oklch, var(--tile-accent) 35%, rgba(0, 0, 0, 0.4)),
+      0 14px 36px rgba(0, 0, 0, 0.38);
   }
   #hub-settings:hover { color: var(--rm-text); }
   #hub-play-next:hover { background: var(--rm-cta-hover); }

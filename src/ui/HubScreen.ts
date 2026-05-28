@@ -188,7 +188,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
           <button id="${t.id}" class="hub-tile${t.stub ? ' hub-tile--stub' : ''}" aria-label="${t.ariaLabel}"${t.stub ? ' disabled' : ''}>
             ${badge > 0 ? `<span class="notification-badge" aria-label="${badge} requiring attention">${badge}</span>` : ''}
             ${t.stub ? '<span class="hub-tile-soon">Coming</span>' : ''}
-            <span class="hub-tile-ico">${TILE_ICONS[t.iconKey]}</span>
+            ${TILE_ICONS[t.iconKey]}
             <span class="hub-tile-label">${t.label}</span>
             ${t.sub ? `<span class="hub-tile-sub">${t.sub}</span>` : ''}
           </button>`;

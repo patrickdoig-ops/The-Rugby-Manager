@@ -6,14 +6,18 @@
 // production was — a quiet stretch and a 5-event penalty tick both read out
 // at the same rhythm.
 //
-// Cadence: each beat is shown `beatGap` after the previous one, where
-// `beatGap = tickDelayMs × COMMENTARY_PACING.beatGapFraction` — a fixed gap,
-// NOT derived from buffer depth. The producer runs ahead (see
-// MatchCoordinator's run-ahead throttle, which reads bufferDepth()/beatGap())
-// keeping a small cushion of beats so the presenter never starves; the
-// cushion is drained to empty at each human-decision boundary (penalty /
-// kick-off / forced-sub modal, half-time, full-time) via an awaited flush so
-// the user reads the lead-up before the prompt.
+// Cadence: the paced unit is the narration LINE, not the beat. After draining
+// a beat the presenter waits `lineGap × (steps in that beat)` before the next,
+// where `lineGap = tickDelayMs × COMMENTARY_PACING.lineGapFraction`. The feed's
+// multi-step reveal staggers the lines WITHIN a multi-step beat at the same
+// lineGap, so the next beat arrives exactly one lineGap after the last line of
+// the current one — a quiet single-line beat and a five-line try sequence read
+// out at one steady line rhythm rather than trickle-then-burst. The producer
+// runs ahead (see MatchCoordinator's run-ahead throttle, which reads
+// bufferDepth()/beatGap()) keeping a small cushion of beats so the presenter
+// never starves; the cushion is drained to empty at each human-decision
+// boundary (penalty / kick-off / forced-sub modal, half-time, full-time) via
+// an awaited flush so the user reads the lead-up before the prompt.
 //
 // Each beat carries a DisplaySnapshot captured at production time (the world
 // frame — score, clock, ball, possession, cards). On drain we emit
@@ -77,8 +81,16 @@ export class CommentaryStreamer {
     return this.buffer.length;
   }
 
-  // Steady wall-clock gap between beats, given the live tickDelayMs. Also the
-  // poll interval the producer waits when its look-ahead buffer is full.
+  // Per-line wall-clock gap, given the live tickDelayMs — the steady cadence
+  // every narration line is shown at (the gap after a beat scales by its line
+  // count; see drainOne).
+  private lineGap(): number {
+    return this.tickDelayMs * COMMENTARY_PACING.lineGapFraction;
+  }
+
+  // Reference "typical beat drain time" given the live tickDelayMs. Used by the
+  // producer as its run-ahead poll interval / look-ahead lag unit — NOT the
+  // line cadence (that's lineGap, scaled per beat in drainOne).
   beatGap(): number {
     return this.tickDelayMs * COMMENTARY_PACING.beatGapFraction;
   }
@@ -146,7 +158,12 @@ export class CommentaryStreamer {
       this.resolveDrain();
       return;
     }
-    this.scheduleNext(this.beatGap());
+    // Wait one lineGap per narration line in the beat just shown, so the feed
+    // (which staggers a multi-step beat's lines at the same lineGap) finishes
+    // revealing them before the next beat lands — keeping the line cadence even
+    // across single- and multi-line beats. `max(1, …)` guards an empty-step beat.
+    const lineCount = Math.max(1, event.narration.steps.length);
+    this.scheduleNext(this.lineGap() * lineCount);
   }
 
   private scheduleNext(delay: number): void {

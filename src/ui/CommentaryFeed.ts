@@ -45,11 +45,13 @@ const TAG_MAP: Partial<Record<MatchPhase, string>> = {
 const MAX_ENTRIES       = 30;
 const HERO_DWELL_MS     = 600;  // window after a hero entry where the strap holds against routine entries
 
-// Gap between staggered narration steps within a key-moment event. Derived
-// from the live tickDelayMs (refreshed on ui:speedChange) so step reveals
-// scale with the speed slider in step with the presenter's beat cadence,
-// rather than the old fixed 500ms that desynced at non-1× speeds.
-let stepStaggerMs = Math.round(loadTickDelayMs() * COMMENTARY_PACING.stepGapFraction);
+// Gap between staggered narration steps within a multi-step event. The SAME
+// per-line gap the presenter (CommentaryStreamer) paces beats by, so the lines
+// of a multi-step beat reveal at exactly the steady line cadence and the next
+// beat lands one gap after the last of them — no trickle-then-burst. Derived
+// from the live tickDelayMs (refreshed on ui:speedChange) so it tracks the
+// speed slider in lockstep with the presenter.
+let stepStaggerMs = Math.round(loadTickDelayMs() * COMMENTARY_PACING.lineGapFraction);
 
 // Phase-outcome keys that mark the headline beat of a staggered hero event.
 // Steps preceding the headline render without the phase tag (buildup pass
@@ -255,7 +257,7 @@ export function initCommentaryFeed(): void {
 
   // Keep the step stagger in step with the speed slider (presenter cadence).
   eventBus.on('ui:speedChange', ({ delayMs }) => {
-    stepStaggerMs = Math.round(delayMs * COMMENTARY_PACING.stepGapFraction);
+    stepStaggerMs = Math.round(delayMs * COMMENTARY_PACING.lineGapFraction);
   });
 
   eventBus.on('engine:event', ({ event }) => {

@@ -34,24 +34,28 @@ export const COMMENTARY_BUFFER_CAP = 300;
 // the multi-step feed reveal drain. Expressed as fractions of the live
 // tickDelayMs so the whole feed scales coherently with the speed slider.
 export const COMMENTARY_PACING = {
-  // Wall-clock gap between two beats, as a fraction of tickDelayMs. With the
-  // producer running ahead (step 4), the presenter drains at this steady rate
-  // independent of how bursty production was. Calibrated against the measured
-  // ~1.63 beats/tick so total match wall-time stays ≈ the pre-step-4 duration
-  // (tickDelayMs × beats/tick per tick ≈ tickDelayMs × beatGapFraction per
-  // beat): 0.6 ≈ 1 / 1.63. Lower = snappier feed (and shorter match), higher
-  // = slower.
-  beatGapFraction: 0.6,
+  // Wall-clock gap between two narration LINES, as a fraction of tickDelayMs —
+  // the single dial that sets the visible cadence. The presenter drains a beat
+  // then waits lineGap × (steps in that beat) before the next, and the feed's
+  // multi-step reveal staggers at the same lineGap, so a quiet single-line beat
+  // and the five lines of a try sequence read out at ONE steady line rhythm
+  // rather than the old trickle-then-burst (where beats were paced but a beat
+  // was sometimes 1 line and sometimes 5). Calibrated so a beat still spans
+  // ≈ the old 0.6-tick window on average: 0.46 ≈ 0.6 / 1.30 (measured
+  // ~1.30 steps/beat), keeping total match wall-time ≈ the pre-decoupling
+  // duration. Lower = snappier feed (and shorter match), higher = slower.
+  lineGapFraction: 0.46,
   // How many beats the producer may run ahead of the presenter. A small
-  // cushion that lets the presenter drain at the steady beatGap even though
+  // cushion that lets the presenter drain at the steady cadence even though
   // production is bursty; the producer tops it up between human-decision
   // boundaries (where the buffer is drained to present before the prompt).
-  // The presentation lag is lookaheadBeats × beatGap. MUST be > 0 — at 0 the
-  // producer would never produce.
+  // A beat drains in ≈ lineGap × avg-steps ≈ beatGap, so the presentation lag
+  // is ≈ lookaheadBeats × beatGap. MUST be > 0 — at 0 the producer would never
+  // produce.
   lookaheadBeats: 4,
-  // Gap between narration steps within a single multi-step event (try
-  // build-up, TMO, direct cards), as a fraction of tickDelayMs. Replaces the
-  // old fixed 500ms so step reveals track the sim speed like beats do
-  // (0.2 × the 2500ms default ≈ the historical 500ms feel at 1×).
-  stepGapFraction: 0.2,
+  // Reference "typical beat drain time" as a fraction of tickDelayMs, used as
+  // the producer's run-ahead poll interval and the look-ahead lag unit. NOT
+  // the line cadence (that's lineGapFraction) — it's the coarse buffering
+  // heuristic: ≈ lineGapFraction × the measured ~1.30 steps/beat.
+  beatGapFraction: 0.6,
 } as const;

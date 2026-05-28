@@ -112,6 +112,15 @@
   align-items: center;
 }
 
+/* Spacer matching the 32px expand button + 10px gap so the OVR/CON/AVR
+   labels sit directly above their respective data badges. */
+.sq-col-headers::after {
+  content: '';
+  display: block;
+  width: 32px;
+  flex-shrink: 0;
+}
+
 .sq-col-header {
   font-family: var(--rm-font-mono);
   font-size: 9px;

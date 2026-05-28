@@ -138,8 +138,11 @@ function saveCardHtml(ctx: SaveContext): string {
   const progressPct = Math.round((ctx.week / ctx.totalRounds) * 100);
   const rankStr = ctx.rank > 0 ? `${ctx.rank}${ordinalSuffix(ctx.rank)}` : '—';
   return `
-    <div id="home-save-card">
-      <span class="save-card-label">&#9658;&nbsp; Continue Career</span>
+    <button id="home-save-card" type="button">
+      <div class="save-card-label">
+        <span>&#9658;&nbsp; Continue Career</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </div>
       <div class="save-card-main">
         <span class="save-card-team">${ctx.teamName}</span>
         <div class="save-card-stats">
@@ -163,7 +166,7 @@ function saveCardHtml(ctx: SaveContext): string {
           <div class="save-progress-fill" style="width:${progressPct}%"></div>
         </div>
       </div>
-    </div>
+    </button>
   `;
 }
 
@@ -246,10 +249,6 @@ export function initHomeScreen(
     ${ctx ? saveCardHtml(ctx) : ''}
 
     <div id="home-cta">
-      <button id="continue-game-btn"${hasSave ? '' : ' disabled'} class="${hasSave ? '' : 'home-cta--disabled'}">
-        <span class="btn-label">Continue</span>
-        ${arrowIcon()}
-      </button>
       <button id="start-game-btn" class="cta-pulse">
         <span class="btn-label">Start New Game</span>
         ${arrowIcon()}
@@ -283,9 +282,7 @@ export function initHomeScreen(
     onSettings();
   });
 
-  const continueBtn = el.querySelector<HTMLButtonElement>('#continue-game-btn')!;
-  continueBtn.addEventListener('click', () => {
-    if (continueBtn.disabled) return;
+  el.querySelector<HTMLButtonElement>('#home-save-card')?.addEventListener('click', () => {
     onContinue();
   });
 }

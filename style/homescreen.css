@@ -232,7 +232,7 @@
   font-style: normal;
 }
 
-/* ─── Save context card ─── */
+/* ─── Save context card — tappable CTA for Continue Career ─── */
 #home-save-card {
   position: relative;
   z-index: 2;
@@ -250,9 +250,35 @@
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.04),
     0 4px 16px rgba(0,0,0,0.4);
+  /* button reset */
+  width: calc(100% - 48px);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  #home-save-card:hover {
+    border-color: color-mix(in oklch, var(--rm-pitch) 55%, var(--rm-border-soft));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      0 4px 24px rgba(0,0,0,0.5),
+      0 0 0 1px color-mix(in oklch, var(--rm-pitch) 18%, transparent);
+  }
+}
+
+#home-save-card:active {
+  transform: scale(0.99);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 2px 8px rgba(0,0,0,0.4);
 }
 
 .save-card-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-family: var(--rm-font-mono);
   font-size: 9px;
   letter-spacing: 0.14em;
@@ -380,35 +406,6 @@
   }
 }
 
-/* Secondary: Continue — ghost bordered */
-#continue-game-btn {
-  width: 100%;
-  min-height: 52px;
-  background: none;
-  border: 1px solid var(--rm-border-soft);
-  border-radius: 14px;
-  color: var(--rm-text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 22px;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
-}
-
-@media (hover: hover) {
-  #continue-game-btn:not(:disabled):hover {
-    border-color: color-mix(in oklch, var(--rm-pitch) 35%, var(--rm-border-soft));
-    color: var(--rm-text);
-  }
-}
-
-#continue-game-btn.home-cta--disabled,
-#continue-game-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
 #start-game-btn .btn-label {
   font-family: var(--rm-font-display);
   font-size: 28px;
@@ -416,15 +413,7 @@
   text-transform: uppercase;
 }
 
-#continue-game-btn .btn-label {
-  font-family: var(--rm-font-display);
-  font-size: 22px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-#start-game-btn svg,
-#continue-game-btn svg { flex-shrink: 0; }
+#start-game-btn svg { flex-shrink: 0; }
 
 /* ─── Overwrite confirmation modal ─── */
 .home-confirm-backdrop {

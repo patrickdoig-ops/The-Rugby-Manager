@@ -31,15 +31,24 @@ export const COMMENTARY_CHANCES = {
 export const COMMENTARY_BUFFER_CAP = 300;
 
 // Presenter pacing — how the commentary beat buffer (CommentaryStreamer) and
-// the multi-step feed reveal drain. Both expressed as fractions of the live
+// the multi-step feed reveal drain. Expressed as fractions of the live
 // tickDelayMs so the whole feed scales coherently with the speed slider.
 export const COMMENTARY_PACING = {
-  // Floor on the gap between two beats, as a fraction of tickDelayMs. Caps how
-  // tightly a burst (multi-event tick) can compress — beyond this floor the
-  // overflow carries forward into the next tick's idle window instead of
-  // firing several lines in one visual burst. The presenter targets
-  // tickDelayMs / bufferDepth per beat, clamped to [floor, tickDelayMs].
-  minGapFraction: 1 / 3,
+  // Wall-clock gap between two beats, as a fraction of tickDelayMs. With the
+  // producer running ahead (step 4), the presenter drains at this steady rate
+  // independent of how bursty production was. Calibrated against the measured
+  // ~1.63 beats/tick so total match wall-time stays ≈ the pre-step-4 duration
+  // (tickDelayMs × beats/tick per tick ≈ tickDelayMs × beatGapFraction per
+  // beat): 0.6 ≈ 1 / 1.63. Lower = snappier feed (and shorter match), higher
+  // = slower.
+  beatGapFraction: 0.6,
+  // How many beats the producer may run ahead of the presenter. A small
+  // cushion that lets the presenter drain at the steady beatGap even though
+  // production is bursty; the producer tops it up between human-decision
+  // boundaries (where the buffer is drained to present before the prompt).
+  // The presentation lag is lookaheadBeats × beatGap. MUST be > 0 — at 0 the
+  // producer would never produce.
+  lookaheadBeats: 4,
   // Gap between narration steps within a single multi-step event (try
   // build-up, TMO, direct cards), as a fraction of tickDelayMs. Replaces the
   // old fixed 500ms so step reveals track the sim speed like beats do

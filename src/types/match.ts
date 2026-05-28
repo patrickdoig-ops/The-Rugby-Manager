@@ -123,6 +123,16 @@ export interface DisplaySnapshot {
   ballX: number;
   ballY: number;
   cards: { home: DisplayCards; away: DisplayCards };
+  // Team-stats summary block (StatsPanel's stat rows). A structured copy of
+  // MatchState.stats taken at production time. Per-player data is NOT snapshot
+  // (StatsPanel's player list + detail table read live state); only these
+  // three player-derived totals the summary rows need are pre-aggregated.
+  stats: MatchStats;
+  aggregates: {
+    runMetres:         { home: number; away: number };
+    kickMetres:        { home: number; away: number };
+    penaltiesConceded: { home: number; away: number };
+  };
 }
 
 // One unit the presenter shows: a GameEvent paired with the DisplaySnapshot

@@ -1,34 +1,33 @@
 // The match presenter: a beat buffer drained at a single steady cadence.
 //
-// The engine emits one event per phase resolution, but a single tick can
-// produce several (kick-off announce + kick resolution, penalty + card +
-// lineout award, etc). Rather than firing them all in one visual burst, each
-// is enqueued as a Beat (event + display snapshot) and the presenter drains
-// the buffer at a steady, floored gap.
+// The engine (producer) resolves phases as fast as it can and enqueues each
+// resulting GameEvent as a Beat (event + display snapshot). The presenter
+// drains the buffer at a steady wall-clock gap, decoupled from how bursty
+// production was — a quiet stretch and a 5-event penalty tick both read out
+// at the same rhythm.
 //
-// Cadence: per beat the gap targets `tickDelayMs / bufferDepth` clamped to
-// `[minGap, tickDelayMs]`, where `minGap = tickDelayMs × minGapFraction`. So
-// a quiet 1-beat tick shows its line at the tick rate; a multi-beat burst
-// drains faster but never tighter than the floor, and any overflow is NOT
-// reset per tick — it carries forward into the next (likely quieter) tick's
-// idle window. Deeper buffer → smaller gap (down to the floor) → faster
-// catch-up, so the backlog stays bounded without the engine running ahead of
-// the feed. (When step 4 decouples the producer from the tick timer, this
-// same buffer is what it fills ahead; today the producer still drives one
-// tick per tickDelayMs, so cadence stays in lockstep with production.)
+// Cadence: each beat is shown `beatGap` after the previous one, where
+// `beatGap = tickDelayMs × COMMENTARY_PACING.beatGapFraction` — a fixed gap,
+// NOT derived from buffer depth. The producer runs ahead (see
+// MatchCoordinator's run-ahead throttle, which reads bufferDepth()/beatGap())
+// keeping a small cushion of beats so the presenter never starves; the
+// cushion is drained to empty at each human-decision boundary (penalty /
+// kick-off / forced-sub modal, half-time, full-time) via an awaited flush so
+// the user reads the lead-up before the prompt.
 //
 // Each beat carries a DisplaySnapshot captured at production time (the world
 // frame — score, clock, ball, possession, cards). On drain we emit
 // `engine:event` followed by `engine:stateChange` carrying that snapshot
 // alongside the live state reference, preserving the event-before-state
-// contract. Panels that read the snapshot (Scoreboard, PitchStrip) track the
-// line being narrated rather than the live state; StatsPanel still reads the
-// live state for its per-player tables.
+// contract. Panels that read the snapshot (Scoreboard, PitchStrip, StatsPanel
+// summary) track the line being narrated rather than the live (ahead) state;
+// StatsPanel's per-player tables still read the live state.
 //
 // Silent mode (headless AI fixtures, determinism harness, telemetry)
 // bypasses the presenter entirely — the engine's existing `if (silent)
 // return` guards in each emit site already gate this; the presenter adds
-// its own check as a safety net.
+// its own check as a safety net, and the run-ahead throttle is skipped so
+// silent fixtures run flat-out.
 
 import { eventBus } from '../utils/eventBus';
 import type { GameEvent, MatchState, Beat } from '../types/match';
@@ -45,7 +44,11 @@ export class CommentaryStreamer {
   // Live tickDelayMs, refreshed on every flush — the basis for the cadence.
   private tickDelayMs = 0;
   private liveState: MatchState | null = null;
-  private drainResolvers: Array<() => void> = [];
+  // A single promise per drain cycle, resolved when the buffer empties. All
+  // flush() callers within one cycle share it, so the per-tick (non-awaited)
+  // flushes don't accumulate one resolver each while the producer runs ahead.
+  private drainPromise: Promise<void> | null = null;
+  private drainPromiseResolve: (() => void) | null = null;
   private readonly silent: boolean;
   // Live MatchState reference (stable for the match lifetime — assigned once
   // in MatchCoordinator's constructor, never reassigned). Read at enqueue
@@ -63,27 +66,40 @@ export class CommentaryStreamer {
     if (this.silent) return;
     // Snapshot the display frame NOW (production time) so the paced drain
     // emits the world-state as it was when this event happened, not the live
-    // state — which, once the producer runs ahead of the presenter, is
-    // further along than the line being narrated.
+    // state — which, with the producer running ahead, is further along than
+    // the line being narrated.
     this.buffer.push({ event, display: buildDisplaySnapshot(this.state) });
+  }
+
+  // Current number of buffered (not-yet-shown) beats. Read by the producer's
+  // run-ahead throttle.
+  bufferDepth(): number {
+    return this.buffer.length;
+  }
+
+  // Steady wall-clock gap between beats, given the live tickDelayMs. Also the
+  // poll interval the producer waits when its look-ahead buffer is full.
+  beatGap(): number {
+    return this.tickDelayMs * COMMENTARY_PACING.beatGapFraction;
   }
 
   // Starts (or continues) draining the buffer. Returns a promise that resolves
   // when the buffer empties — await before opening a modal so the user reads
   // the commentary that led to it. For the background drain at end-of-tick,
-  // don't await; the presenter paces in the background and the next tick has
-  // tickDelayMs to absorb it. If a drain is already in flight, this just
-  // refreshes tickDelayMs / liveState and lets the running loop pick up the
-  // newly-enqueued beats (overflow carries forward rather than resetting).
+  // don't await; the presenter paces in the background while the producer tops
+  // the buffer back up. If a drain is already in flight, this just refreshes
+  // tickDelayMs / liveState and lets the running loop pick up the new beats.
   flush(tickDelayMs: number, state: MatchState): Promise<void> {
     if (this.silent || this.buffer.length === 0) return Promise.resolve();
     this.tickDelayMs = tickDelayMs;
     this.liveState = state;
-    const p = new Promise<void>(resolve => { this.drainResolvers.push(resolve); });
+    if (!this.drainPromise) {
+      this.drainPromise = new Promise<void>(resolve => { this.drainPromiseResolve = resolve; });
+    }
     // Kick the loop only when idle — a running drain already covers the new
     // beats, and a fresh first beat fires immediately (no leading gap).
     if (this.drainTimer === null && !this.paused) this.drainOne();
-    return p;
+    return this.drainPromise;
   }
 
   // Pause: stop the drain timer, remember how long until the next beat would
@@ -104,16 +120,17 @@ export class CommentaryStreamer {
   }
 
   // Wipe buffered beats and pending timers. Called on new match init so beats
-  // from a prior match don't leak into the next.
+  // from a prior match don't leak into the next. Resolves any pending drain
+  // promise so an awaiting modal flow doesn't hang after teardown.
   clear(): void {
     if (this.drainTimer) {
       clearTimeout(this.drainTimer);
       this.drainTimer = null;
     }
     this.buffer = [];
-    this.drainResolvers.splice(0);
     this.liveState = null;
     this.paused = false;
+    this.resolveDrain();
   }
 
   private drainOne(): void {
@@ -129,17 +146,7 @@ export class CommentaryStreamer {
       this.resolveDrain();
       return;
     }
-    this.scheduleNext(this.nextGap());
-  }
-
-  // Steady, floored gap to the next beat: tickDelayMs / remainingDepth, clamped
-  // to [minGap, tickDelayMs]. A lone remaining beat dwells ~one tick (matching
-  // the production rate); a deep backlog drains at the floor and carries any
-  // remainder into the next tick.
-  private nextGap(): number {
-    const minGap = this.tickDelayMs * COMMENTARY_PACING.minGapFraction;
-    const gap = this.tickDelayMs / this.buffer.length;
-    return Math.max(minGap, Math.min(this.tickDelayMs, gap));
+    this.scheduleNext(this.beatGap());
   }
 
   private scheduleNext(delay: number): void {
@@ -149,7 +156,9 @@ export class CommentaryStreamer {
   }
 
   private resolveDrain(): void {
-    const resolvers = this.drainResolvers.splice(0);
-    for (const r of resolvers) r();
+    const resolve = this.drainPromiseResolve;
+    this.drainPromise = null;
+    this.drainPromiseResolve = null;
+    if (resolve) resolve();
   }
 }

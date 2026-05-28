@@ -42,7 +42,7 @@ import { makeId, resetEventCounter } from './eventId';
 import { applyMatchEvent } from './applyMatchEvent';
 import { AITacticalDirector } from './AITacticalDirector';
 import { AISubstitutionDirector } from './AISubstitutionDirector';
-import { COMMENTARY_BUFFER_CAP } from './balance';
+import { COMMENTARY_BUFFER_CAP, COMMENTARY_PACING } from './balance';
 
 // Shallow copy — PlayerStats fields are all primitives, so spread is a
 // full clone. (Renamed from deepCloneStats in v2.253a — "deep" was
@@ -603,6 +603,17 @@ export class MatchCoordinator {
     this.tickTimeout = null;
     if (!this.state.engine.isRunning) return;
 
+    // Run-ahead throttle (live mode only): the producer resolves phases far
+    // faster than the presenter narrates them, so cap how far it leads. When
+    // the look-ahead buffer is full, re-check at the beat cadence instead of
+    // producing. This is a poll (setTimeout re-check), NOT a wait on a
+    // presenter promise, so it can never deadlock. Silent fixtures have no
+    // presenter (buffer stays empty) and run flat-out.
+    if (!this.silent && this.streamer.bufferDepth() >= COMMENTARY_PACING.lookaheadBeats) {
+      this.scheduleTick(this.streamer.beatGap());
+      return;
+    }
+
     const wasInRed = this.state.clock.clockInTheRed;
     const timeAdvance = this.clock.advanceMinute(this.state);
 
@@ -671,12 +682,13 @@ export class MatchCoordinator {
     // mutated several times during the tick body.
     this.prevTickStartPhase = phaseAtTickStart;
 
-    // Trigger the paced drain of any events emitted during this tick.
-    // We don't await — the streamer drains in the background over
-    // tickDelayMs, which is the same interval scheduleTick waits before
-    // the next tick. Drain completes naturally before the next tick fires.
+    // Hand this tick's beats to the presenter (non-awaited — it paces them in
+    // the background while the producer races on). In live mode schedule the
+    // next tick ASAP; the run-ahead throttle at tickBody's top caps how far we
+    // actually get. Silent fixtures keep the existing tickDelay schedule (no
+    // presenter to pace against).
     this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-    this.scheduleTick(this.nextTickDelay());
+    this.scheduleTick(this.silent ? this.nextTickDelay() : 0);
   }
 
   // End-of-period handling: clock-in-the-red check, period end

@@ -3,7 +3,7 @@ import { shortName } from '../utils/playerName';
 import { teamTextColor } from '../utils/teamColor';
 import { playerOverall } from '../engine/RatingEngine';
 import { createRowExpander } from './components/rowExpand';
-import type { MatchState } from '../types/match';
+import type { MatchState, DisplaySnapshot } from '../types/match';
 
 function pct(a: number, b: number): string {
   const total = a + b;
@@ -22,13 +22,6 @@ function setPieceSuccess(s: { won: number; thrown?: number; putIn?: number }): s
   return `${s.won}/${total}`;
 }
 
-function teamSum(team: MatchState['homeTeam'], key: 'metresCarried' | 'kickMetres' | 'penaltiesConceded'): number {
-  let sum = 0;
-  for (const p of team.players) sum += p.matchStats[key];
-  for (const p of team.substitutedOff) sum += p.matchStats[key];
-  return sum;
-}
-
 function pointsPerEntry(e: { count: number; pointsScored: number }): string {
   if (e.count === 0) return '—';
   return (e.pointsScored / e.count).toFixed(1);
@@ -44,16 +37,16 @@ interface StatRowSpec {
   invert?: boolean;
 }
 
-function buildStatRows(state: MatchState): StatRowSpec[] {
-  const { stats, homeTeam, awayTeam } = state;
-  const hRunM = teamSum(homeTeam, 'metresCarried');
-  const aRunM = teamSum(awayTeam, 'metresCarried');
-  const hKickM = teamSum(homeTeam, 'kickMetres');
-  const aKickM = teamSum(awayTeam, 'kickMetres');
+function buildStatRows(d: DisplaySnapshot): StatRowSpec[] {
+  const { stats, aggregates } = d;
+  const hRunM = aggregates.runMetres.home;
+  const aRunM = aggregates.runMetres.away;
+  const hKickM = aggregates.kickMetres.home;
+  const aKickM = aggregates.kickMetres.away;
   const hMissed = Math.max(0, stats.tackles.home.attempted - stats.tackles.home.made);
   const aMissed = Math.max(0, stats.tackles.away.attempted - stats.tackles.away.made);
-  const hPens = teamSum(homeTeam, 'penaltiesConceded');
-  const aPens = teamSum(awayTeam, 'penaltiesConceded');
+  const hPens = aggregates.penaltiesConceded.home;
+  const aPens = aggregates.penaltiesConceded.away;
 
   return [
     { id: 'possession',       label: 'Possession',     homeVal: pct(stats.possession.home, stats.possession.away),   awayVal: pct(stats.possession.away, stats.possession.home),   homeNum: stats.possession.home, awayNum: stats.possession.away },
@@ -85,11 +78,10 @@ function winnerOf(r: StatRowSpec): WinnerSide {
   return homeBeats ? 'home' : 'away';
 }
 
-function renderStats(state: MatchState): string {
-  const { homeTeam, awayTeam } = state;
+function renderStats(d: DisplaySnapshot, homeTeam: MatchState['homeTeam'], awayTeam: MatchState['awayTeam']): string {
   const hc = teamTextColor(homeTeam.color);
   const ac = teamTextColor(awayTeam.color);
-  const rows = buildStatRows(state);
+  const rows = buildStatRows(d);
 
   const rowsHtml = rows.map(r => {
     const total = r.homeNum + r.awayNum;
@@ -256,14 +248,14 @@ function updatePlayerStatsDOM(container: HTMLElement, state: MatchState): boolea
   return true;
 }
 
-function statsKey(state: MatchState): string {
-  const s = state.stats;
-  const hRunM = teamSum(state.homeTeam, 'metresCarried');
-  const aRunM = teamSum(state.awayTeam, 'metresCarried');
-  const hKickM = teamSum(state.homeTeam, 'kickMetres');
-  const aKickM = teamSum(state.awayTeam, 'kickMetres');
-  const hPens = teamSum(state.homeTeam, 'penaltiesConceded');
-  const aPens = teamSum(state.awayTeam, 'penaltiesConceded');
+function statsKey(d: DisplaySnapshot): string {
+  const s = d.stats;
+  const hRunM = d.aggregates.runMetres.home;
+  const aRunM = d.aggregates.runMetres.away;
+  const hKickM = d.aggregates.kickMetres.home;
+  const aKickM = d.aggregates.kickMetres.away;
+  const hPens = d.aggregates.penaltiesConceded.home;
+  const aPens = d.aggregates.penaltiesConceded.away;
   return `${s.possession.home},${s.possession.away},${s.territory.home},${s.territory.away},`
        + `${s.tackles.home.made},${s.tackles.home.attempted},${s.tackles.away.made},${s.tackles.away.attempted},`
        + `${s.handlingErrors.home},${s.handlingErrors.away},${s.tries.home},${s.tries.away},`
@@ -378,18 +370,22 @@ export function initStatsPanel(): void {
     playerExpander.collapseAll();
   });
 
-  eventBus.on('engine:stateChange', ({ state }) => {
+  eventBus.on('engine:stateChange', ({ state, display }) => {
     lastStateRef = state;
 
-    const key = statsKey(state);
+    // Summary stat rows read the per-event snapshot (beat-time), so they track
+    // the narrated line even while the producer runs ahead. The per-player
+    // list + detail table below read live state (the documented compromise —
+    // per-player snapshots would be squad-sized allocations per beat).
+    const key = statsKey(display);
     if (key !== lastStatsKey) {
       lastStatsKey = key;
       // Compute the new winners BEFORE the re-render so we can flash the
       // freshly-rendered rows whose winner has flipped.
-      const newRows = buildStatRows(state);
+      const newRows = buildStatRows(display);
       const newWinners = new Map<string, WinnerSide>(newRows.map(r => [r.id, winnerOf(r)]));
 
-      statsContent.innerHTML = renderStats(state);
+      statsContent.innerHTML = renderStats(display, state.homeTeam, state.awayTeam);
 
       if (prevWinners !== null) {
         for (const [id, win] of newWinners) {

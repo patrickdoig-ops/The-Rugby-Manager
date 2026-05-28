@@ -40,7 +40,8 @@ import { emptyCareerState } from '../types/gameState';
 import { sortStandings } from './leagueTable';
 import type { Player } from '../types/player';
 import type { TeamTactics } from '../types/team';
-import type { TrainingPlan } from '../types/training';
+import type { TrainingPlan, TrainingWeekResult, PlayerTrainingResult } from '../types/training';
+import type { PlayerStats } from '../types/player';
 import { applySeasonEvent } from './applySeasonEvent';
 import type { PreSeasonTransfer } from '../data/transfers-2025-26';
 import { simulateFixture } from './simulateFixture';
@@ -297,11 +298,56 @@ export class GameCoordinator {
   // RNG flows through rngTransfer; stable iteration order keeps it
   // deterministic across runs. Called by TrainingScreen's Continue handler
   // in the post-match navigation chain (between LeagueTable and Hub).
-  applyTrainingWeek(userPlan: TrainingPlan): void {
-    for (const ev of computeTrainingWeek(this.state, userPlan)) {
-      applySeasonEvent(this.state, ev);
+  // Returns per-player results for PostTrainingResultsScreen.
+  applyTrainingWeek(userPlan: TrainingPlan): TrainingWeekResult {
+    const events = computeTrainingWeek(this.state, userPlan);
+
+    // Snapshot condition + only the stats that will change per trained player,
+    // before mutating state. This lets us compute true clamped deltas after.
+    const beforeSnap = new Map<number, { condition: number; stats: Partial<PlayerStats> }>();
+    for (const ev of events) {
+      if (ev.type !== 'PLAYER_TRAINED') continue;
+      const p = this.state.career.roster[ev.rosterId];
+      if (!p) continue;
+      const stats: Partial<PlayerStats> = {};
+      for (const k of Object.keys(ev.statDeltas) as (keyof PlayerStats)[]) {
+        stats[k] = p.baseStats[k];
+      }
+      beforeSnap.set(ev.rosterId, { condition: p.condition ?? 100, stats });
     }
+
+    // Collect which players get a new injury during this training session.
+    const newlyInjured = new Set<number>();
+    for (const ev of events) {
+      if (ev.type === 'PLAYER_INJURED') newlyInjured.add(ev.rosterId);
+    }
+
+    for (const ev of events) applySeasonEvent(this.state, ev);
+
+    // Build results from before/after comparison — only actual gains survive
+    // (stats clamped at 99 during apply show as 0 and are omitted).
+    const players: PlayerTrainingResult[] = [];
+    for (const ev of events) {
+      if (ev.type !== 'PLAYER_TRAINED') continue;
+      const p = this.state.career.roster[ev.rosterId];
+      const snap = beforeSnap.get(ev.rosterId);
+      if (!p || !snap) continue;
+      const statDeltas: Partial<PlayerStats> = {};
+      for (const k of Object.keys(snap.stats) as (keyof PlayerStats)[]) {
+        const gain = (p.baseStats[k] ?? 0) - (snap.stats[k] ?? 0);
+        if (gain > 0) statDeltas[k] = gain;
+      }
+      players.push({
+        rosterId: ev.rosterId,
+        conditionBefore: snap.condition,
+        conditionAfter: p.condition ?? 100,
+        statDeltas,
+        newlyInjured: newlyInjured.has(ev.rosterId),
+      });
+    }
+
     eventBus.emit('game:trainingApplied', { state: this.state });
+    return { plan: userPlan, players };
   }
 
   // Persists the manager's training plan without executing training. Used

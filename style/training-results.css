@@ -1,0 +1,235 @@
+/* Post-training results screen. Slot in the post-match chain after
+   TrainingScreen (between Training and Hub). */
+
+#training-results {
+  position: fixed;
+  inset: 0;
+  z-index: 225;
+  background: var(--rm-bg);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding-top:    env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left:   env(safe-area-inset-left, 0px);
+  padding-right:  env(safe-area-inset-right, 0px);
+}
+
+/* ── Plan summary bar ───────────────────────────────────────────────── */
+
+.trs-plan-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--rm-surface);
+  border-bottom: 1px solid var(--rm-border-soft);
+  flex-wrap: wrap;
+}
+
+.trs-plan-sep {
+  color: var(--rm-text-dim);
+  font-size: 12px;
+}
+
+.trs-plan-chip {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rm-text-muted);
+}
+
+.trs-intensity-rest,
+.trs-intensity-light  { color: var(--rm-pitch); }
+.trs-intensity-medium { color: var(--rm-amber); }
+.trs-intensity-high   { color: var(--rm-danger); }
+
+/* ── Summary row ───────────────────────────────────────────────────── */
+
+.trs-summary {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--rm-border-soft);
+}
+
+.trs-sum-sep {
+  color: var(--rm-text-dim);
+  font-size: 12px;
+}
+
+.trs-sum-gains {
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--rm-pitch);
+}
+
+.trs-sum-injuries {
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--rm-danger);
+}
+
+.trs-sum-sat {
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--rm-text-muted);
+}
+
+.trs-no-news {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  font-family: var(--rm-font-mono);
+  font-size: 12px;
+  color: var(--rm-text-muted);
+  border-bottom: 1px solid var(--rm-border-soft);
+}
+
+/* ── Scrollable content area ───────────────────────────────────────── */
+
+.trs-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 16px;
+}
+
+/* ── Sections ────────────────────────────────────────────────────── */
+
+.trs-section {
+  border-bottom: 1px solid var(--rm-border-soft);
+}
+
+.trs-section-title {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rm-text-muted);
+  padding: 10px 16px 6px;
+}
+
+.trs-section-title--warn {
+  color: var(--rm-danger);
+}
+
+/* ── Player rows ─────────────────────────────────────────────────── */
+
+.trs-row {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--rm-hairline);
+  animation: trsRowIn 180ms var(--row-delay, 0ms) both;
+}
+
+@keyframes trsRowIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.trs-row-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.trs-pos {
+  font-family: var(--rm-font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+  flex-shrink: 0;
+}
+
+.trs-cond {
+  margin-left: auto;
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--rm-text-muted);
+  flex-shrink: 0;
+}
+
+.trs-cond--up { color: var(--rm-pitch); }
+
+.trs-arrow {
+  color: var(--rm-text-dim);
+  margin: 0 2px;
+}
+
+.trs-row-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ── Attribute gain chip ─────────────────────────────────────────── */
+
+.trs-gain {
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--rm-pitch);
+  background: var(--rm-pitch-soft);
+  border-radius: 4px;
+  padding: 2px 6px;
+  animation: trsChipIn 240ms var(--delta-delay, 0ms) both;
+}
+
+@keyframes trsChipIn {
+  from { opacity: 0; transform: translateY(3px) scale(0.92); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ── Injury tag ──────────────────────────────────────────────────── */
+
+.trs-injury-tag {
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--rm-danger);
+  background: color-mix(in oklch, var(--rm-danger) 12%, transparent);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+/* ── Condition-only note & sat-out note ─────────────────────────── */
+
+.trs-cond-summary,
+.trs-sat-out {
+  padding: 12px 16px;
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  color: var(--rm-text-muted);
+  border-bottom: 1px solid var(--rm-hairline);
+}
+
+/* ── Footer CTA ──────────────────────────────────────────────────── */
+
+#trs-footer {
+  flex-shrink: 0;
+  padding: 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  background: var(--rm-bg);
+  border-top: 1px solid var(--rm-border-soft);
+}
+
+#trs-footer .cta-pulse {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}

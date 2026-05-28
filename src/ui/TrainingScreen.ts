@@ -17,21 +17,21 @@
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import type {
-  BacksFocus, ForwardsFocus, TrainingIntensity, TrainingPlan,
+  BacksFocus, ForwardsFocus, TrainingIntensity, TrainingPlan, TrainingWeekResult,
 } from '../types/training';
 import { DEFAULT_TRAINING_PLAN } from '../types/training';
 import { isForward } from '../types/player';
 import { eventBus } from '../utils/eventBus';
 
 type Mode =
-  | { kind: 'post_match'; onContinue: () => void }
+  | { kind: 'post_match'; onContinue: (results: TrainingWeekResult) => void }
   | { kind: 'mid_week';   onBack:     () => void };
 
 let activeMode: Mode | null = null;
 let draftPlan: TrainingPlan = { ...DEFAULT_TRAINING_PLAN };
 let renderImpl: (() => void) | null = null;
 
-export function showTrainingPostMatch(onContinue: () => void): void {
+export function showTrainingPostMatch(onContinue: (results: TrainingWeekResult) => void): void {
   activeMode = { kind: 'post_match', onContinue };
   renderImpl?.();
 }
@@ -185,9 +185,9 @@ export function initTrainingScreen(
         // applyTrainingWeek emits game:trainingApplied which will fire
         // re-render here while still on screen, but we navigate away
         // immediately so it's effectively a no-op.
-        engine.applyTrainingWeek({ ...draftPlan });
+        const results = engine.applyTrainingWeek({ ...draftPlan });
         draftHydrated = false; // next entry re-reads from state
-        mode.onContinue();
+        mode.onContinue(results);
       });
     } else {
       el!.querySelector<HTMLButtonElement>('#tr-back')!.addEventListener('click', () => {

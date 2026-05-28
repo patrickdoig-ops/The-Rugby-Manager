@@ -31,3 +31,21 @@ export const DEFAULT_TRAINING_PLAN: TrainingPlan = {
   forwardsFocus: 'set_piece',
   backsFocus: 'tackling',
 };
+
+// Per-player result after one training week. Only produced for players who
+// were fit to train (no pre-existing injury). statDeltas reflects actual
+// post-clamp gains — a +1 that was absorbed by the 99 ceiling is omitted.
+export interface PlayerTrainingResult {
+  rosterId: number;
+  conditionBefore: number;
+  conditionAfter: number;
+  statDeltas: Partial<import('./player').PlayerStats>;
+  newlyInjured: boolean;
+}
+
+// League-wide results returned by GameCoordinator.applyTrainingWeek.
+// The screen filters results.players to the user's club squad.
+export interface TrainingWeekResult {
+  plan: TrainingPlan;
+  players: PlayerTrainingResult[];
+}

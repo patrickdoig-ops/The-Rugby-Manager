@@ -24,6 +24,7 @@ import '../style/playoffbracket.css';
 import '../style/signingresults.css';
 import '../style/budgetreveal.css';
 import '../style/training.css';
+import '../style/training-results.css';
 import '../style/player-profile.css';
 
 import { buildAppShell }           from './ui/AppShell';
@@ -64,6 +65,7 @@ import { initRolloverScreen, showRollover }         from './ui/RolloverScreen';
 import { initContractsScreen, showContracts, showContractsMarqueeEdit } from './ui/ContractsScreen';
 import { initSquadManagementScreen, showSquadManagement } from './ui/SquadManagementScreen';
 import { initTrainingScreen, showTrainingPostMatch, showTrainingMidweek } from './ui/TrainingScreen';
+import { initPostTrainingResultsScreen, showPostTrainingResults } from './ui/PostTrainingResultsScreen';
 import { screenRouter }            from './ui/ScreenRouter';
 import { loadSave, saveGame, clearSave } from './ui/SaveManager';
 import { loadTickDelayMs }           from './ui/uiPrefs';
@@ -282,6 +284,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     initSquadOverviewScreen(getGameEngine, allTeams);
     initTrainingScreen(getGameEngine, allTeams);
+    initPostTrainingResultsScreen(getGameEngine, allTeams, (rosterId) => {
+      goPlayerProfile(rosterId, () => screenRouter.show('training-results', { direction: 'back' }));
+    });
 
     // The post-match Continue chain (LeagueTable → ...) reads these flags.
     // game:bracketSeeded fires after the last regular-season fixture —
@@ -948,9 +953,12 @@ document.addEventListener('DOMContentLoaded', () => {
           bracketSeededPending = false;
           runPlayoffStage();
         } else {
-          showTrainingPostMatch(() => {
-            if (gameEngine) saveGame(gameEngine.toSavePayload());
-            goHub();
+          showTrainingPostMatch((results) => {
+            showPostTrainingResults(results, () => {
+              if (gameEngine) saveGame(gameEngine.toSavePayload());
+              goHub();
+            });
+            screenRouter.show('training-results');
           });
           screenRouter.show('training');
         }

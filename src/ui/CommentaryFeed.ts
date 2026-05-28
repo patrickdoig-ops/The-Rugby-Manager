@@ -6,7 +6,8 @@ import { renderNarrationSteps } from '../commentary/CommentaryRenderer';
 import { teamTextColor } from '../utils/teamColor';
 import { playCue } from './SoundManager';
 import { isHeroEvent } from './keyMoment';
-import { loadCommentaryFilter, saveCommentaryFilter, type CfFilter } from './uiPrefs';
+import { loadCommentaryFilter, saveCommentaryFilter, loadTickDelayMs, type CfFilter } from './uiPrefs';
+import { COMMENTARY_PACING } from '../engine/balance';
 
 const PHASE_CLASS: Partial<Record<MatchPhase, string>> = {
   [MatchPhase.TryScored]:     'event-try',
@@ -42,8 +43,13 @@ const TAG_MAP: Partial<Record<MatchPhase, string>> = {
 };
 
 const MAX_ENTRIES       = 30;
-const STEP_STAGGER_MS   = 500;  // gap between staggered narration steps within a key-moment event
 const HERO_DWELL_MS     = 600;  // window after a hero entry where the strap holds against routine entries
+
+// Gap between staggered narration steps within a key-moment event. Derived
+// from the live tickDelayMs (refreshed on ui:speedChange) so step reveals
+// scale with the speed slider in step with the presenter's beat cadence,
+// rather than the old fixed 500ms that desynced at non-1× speeds.
+let stepStaggerMs = Math.round(loadTickDelayMs() * COMMENTARY_PACING.stepGapFraction);
 
 // Phase-outcome keys that mark the headline beat of a staggered hero event.
 // Steps preceding the headline render without the phase tag (buildup pass
@@ -226,7 +232,7 @@ export function initCommentaryFeed(): void {
     if (!next) return;
     pushEntry(next.event, next.text, next.hero, next.showTag);
     if (stepQueue.length > 0) {
-      stepDrainTimer = setTimeout(drainNext, STEP_STAGGER_MS);
+      stepDrainTimer = setTimeout(drainNext, stepStaggerMs);
     }
   }
 
@@ -247,6 +253,11 @@ export function initCommentaryFeed(): void {
     lastHeroAt = 0;
     unsubTeams?.();
     armTeamCache();
+  });
+
+  // Keep the step stagger in step with the speed slider (presenter cadence).
+  eventBus.on('ui:speedChange', ({ delayMs }) => {
+    stepStaggerMs = Math.round(delayMs * COMMENTARY_PACING.stepGapFraction);
   });
 
   eventBus.on('engine:event', ({ event }) => {

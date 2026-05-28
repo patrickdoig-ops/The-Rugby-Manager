@@ -125,6 +125,14 @@ export interface DisplaySnapshot {
   cards: { home: DisplayCards; away: DisplayCards };
 }
 
+// One unit the presenter shows: a GameEvent paired with the DisplaySnapshot
+// captured when it was produced. CommentaryStreamer's beat buffer holds
+// these; draining one emits `engine:event` + `engine:stateChange`.
+export interface Beat {
+  event: GameEvent;
+  display: DisplaySnapshot;
+}
+
 export interface MatchState {
   clock: {
     gameMinute: number;

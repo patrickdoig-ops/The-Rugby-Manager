@@ -6,7 +6,7 @@
 // pre-match SPREAD tile so the prediction and the simulation agree.
 //
 // Calibration target: ~57% home win-rate across the full double round-
-// robin (`npm run telemetry`), matching real-rugby Premiership history.
+// robin (`npm run telemetry`), matching real-rugby league history.
 //
 // Values are notably bigger than the pre-v2.48a 2/1 because the
 // PenaltyHandler silent-mode bug was inflating home wins by ~11 pp on

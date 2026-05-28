@@ -1,4 +1,4 @@
-// 2025/26 Gallagher Premiership fixture list.
+// 2025/26 season fixture list.
 //
 // Authoritative schedule transcribed from docs/prem-fixtures-2025-26.md (the
 // user-supplied final list). Every fixture carries its real date so the
@@ -13,7 +13,7 @@
 import type { SeasonSchedule } from '../types/gameState';
 
 export const PREMIERSHIP_2025_26: SeasonSchedule = {
-  seasonLabel: '2025/26 Premiership',
+  seasonLabel: '2025/26 Season',
   fixtures: [
     // Round 1 — 25–28 September 2025
     { round: 1,  date: '2025-09-25', homeId: 'sale',        awayId: 'gloucester'  },

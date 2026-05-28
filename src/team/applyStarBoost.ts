@@ -74,7 +74,7 @@ function applyTierCalibration(p: RosterEntry, tier: Tier, isStar: boolean): Rost
   const shift = isStar ? 0 : TIER_CALIBRATION[tier];
   const stats = { ...p.baseStats };
   const weights = PLAYER_OVERALL_WEIGHTS[p.position];
-  // Bench / squad non-stars are floored to Premiership matchday quality
+  // Bench / squad non-stars are floored to league matchday quality
   // for their role's key stats — see BENCH_QUALITY_FLOOR / SQUAD_QUALITY_FLOOR
   // commentary in balance/rating.ts. Starters and stars skip the floor;
   // the floor never lifts above the per-stat ceiling.

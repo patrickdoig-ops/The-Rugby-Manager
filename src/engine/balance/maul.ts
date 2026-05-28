@@ -44,7 +44,7 @@ export const MAUL_VALUES = {
   disciplinePivot:              50,
   maxCollapsePct:               60,
   // Gain distribution on maul_won. Base drive is 5-10m; ~10% of wins
-  // chain into a long drive (15-25m). Real-world Premiership driving
+  // chain into a long drive (15-25m). Real-world league driving
   // mauls average ~7m; the long drives that show up on highlight reels
   // are the rare cases the soft floor models.
   baseGainMin:        5,

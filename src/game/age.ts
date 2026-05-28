@@ -31,7 +31,7 @@ export function seasonOpenIso(seasonStartYear: number): string {
   return `${seasonStartYear}-${mm}-${dd}`;
 }
 
-// "2025/26 Premiership" → 2025. Falls back to the current calendar year
+// "2025/26 Season" → 2025. Falls back to the current calendar year
 // when the label doesn't carry a 4-digit prefix — never happens for
 // fixture-list-generated labels but defensive against malformed saves.
 export function parseSeasonStartYear(label: string): number {

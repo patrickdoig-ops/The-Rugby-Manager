@@ -5,7 +5,7 @@
 import type { FixtureResult, TeamStanding } from '../types/gameState';
 import { LEAGUE_POINTS } from '../engine/balance';
 
-// Premiership ordering: league points, then points difference, then points for.
+// league ordering: league points, then points difference, then points for.
 // Relies on Array.prototype.sort being stable (ES2019+) so that fully tied
 // teams retain their relative source order — important for the playoff
 // bracket seeding which calls sortStandings(top 4).

@@ -23,7 +23,7 @@ export const SCRUM_VALUES = {
   //   margin < -35          →  defending penalty   (~4.2%)
   // Attacker-favoured ~1.8:1 reflects the real-rugby put-in advantage.
   // Effective per-scrum-sequence penalty rate (wheel re-rolls factored)
-  // is ~14.7% — Premiership real-world is roughly 10-15% per scrum.
+  // is ~14.7% — league real-world is roughly 10-15% per scrum.
   attackPenaltyMargin: 30,
   stableWinMargin:    -16,
   wheelMargin:        -36,

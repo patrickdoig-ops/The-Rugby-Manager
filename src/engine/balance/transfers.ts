@@ -3,7 +3,7 @@
 // reserved for future phases (cap enforcement, renewal flows, free-
 // agent / approach modelling).
 //
-// Source for the wage tier anchors: 2025/26 RFU Premiership cap +
+// Source for the wage tier anchors: 2025/26 RFU league cap +
 // 2020-21 RPA averages, surveyed in docs/transfer-system.md §2.
 // Numbers are v1 baselines — refine when the market actually opens.
 
@@ -71,7 +71,7 @@ export const WAGE_NOISE = { min: 0.88, max: 1.12 };
 // probabilities — pick a uniform rngTransfer roll and find the first
 // bucket it falls into. Five bands so academy graduates, prime-age
 // players, peak veterans, declining 30+ pros, and twilight 33+
-// players each get a realistic spread. Modelled after Premiership
+// players each get a realistic spread. Modelled after league
 // Rugby reality: clubs lock young talent on 3-year deals, taper
 // length down sharply through 30+, and almost never offer 3-year
 // terms to 33+ players.

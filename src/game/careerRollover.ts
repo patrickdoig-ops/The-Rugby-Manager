@@ -121,7 +121,7 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
   const leaders = computeAwards(state);
   const topScorerRosterId = leaders.topTries[0]?.rosterId ?? null;
   const mvpRosterId       = leaders.topRating[0]?.rosterId ?? null;
-  const newSeasonLabel = `${newSeasonStartYear}/${(newSeasonStartYear + 1).toString().slice(2)} Premiership`;
+  const newSeasonLabel = `${newSeasonStartYear}/${(newSeasonStartYear + 1).toString().slice(2)} Season`;
   const newFixtures = dateRounds(
     generateFixtures(state.player.teamId, allTeamIds),
     newSeasonStartYear,

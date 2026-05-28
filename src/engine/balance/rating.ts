@@ -125,7 +125,7 @@ export const TIER_CALIBRATION = {
   squad:   -5,
 } as const;
 
-// Premiership-quality floor applied AFTER tier calibration but BEFORE star
+// league-quality floor applied AFTER tier calibration but BEFORE star
 // boost. Models the real-world constraint that any player named to a
 // matchday squad has met a baseline professional standard for the role —
 // even on a struggling team, the bench prop can still scrum, the bench

@@ -9,7 +9,7 @@
   "founded": 1876,
   "stadiumCapacity": 10500,
   "headCoach": "Mark McCall (Director of Rugby since 2010; stepping down end of 2025-26, with Brendan Venter to take over for 2026-27)",
-  "honours": "6 × Premiership title (latest 2022-23); 3 × European Champions Cup (2015-16, 2016-17, 2018-19)",
+  "honours": "6 × league title (latest 2022-23); 3 × European Champions Cup (2015-16, 2016-17, 2018-19)",
   "blurb": "Under Mark McCall, Saracens have been the league's clinical operator — structure, precision and physical dominance executed to a finer tolerance than anyone else. The \"Wolfpack\" defence with its aggressive line-speed and choke tackles is the signature, paired with a smart kicking game that turns territory into points. They are ruthless game managers: ahead late, they will close a match out with possession and field position rather than tries. Calm under pressure, brutal in the collision.",
   "suggestedTactics": {
     "attackingGamePlan": "kicking",
@@ -44,7 +44,7 @@
       "name": "Owen Farrell",
       "position": "Fly-Half",
       "nationality": "England",
-      "blurb": "Returned from Racing 92 on a two-year playing deal; over 1,200 Test points, five Premiership titles with Sarries, and still the league's most ruthless game-manager off the tee",
+      "blurb": "Returned from Racing 92 on a two-year playing deal; over 1,200 Test points, five league titles with Sarries, and still the league's most ruthless game-manager off the tee",
       "indexHigh": [
         "kicking",
         "composure",

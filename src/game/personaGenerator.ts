@@ -15,7 +15,7 @@ import { rngTransfer, rngTransferRaw } from '../utils/rng';
 import { WAGE_BY_RATING, POSITION_SCARCITY, WAGE_FLOOR, WAGE_ROUNDING_UNIT, PERSONA_CONTRACT_LENGTH_YEARS, PERSONA_REPUTATION } from '../engine/balance/transfers';
 import { ACADEMY_SUPPLY } from '../engine/balance/career';
 
-// First names + surnames per nationality. Drawn from Premiership-era
+// First names + surnames per nationality. Drawn from league-era
 // rosters to feel idiomatic; not exhaustive.
 const NAME_POOLS = {
   English: {
@@ -63,7 +63,7 @@ const NAME_POOLS = {
 type Nationality = keyof typeof NAME_POOLS;
 
 const NATIONALITY_BY_CLUB: Record<string, Nationality[]> = {
-  // Premiership clubs lean English with a sprinkle of overseas. Academy
+  // league clubs lean English with a sprinkle of overseas. Academy
   // grads weight heavily English; foreign imports lean overseas.
   bath:        ['English', 'English', 'English', 'Welsh', 'Scottish', 'Irish'],
   bristol:     ['English', 'English', 'English', 'Welsh', 'Fiji'],

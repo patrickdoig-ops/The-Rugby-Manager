@@ -286,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // The post-match Continue chain (LeagueTable → ...) reads these flags.
     // game:bracketSeeded fires after the last regular-season fixture —
     // routes through PlayoffBracketScreen instead of straight to Hub.
-    // game:seasonComplete fires once the Premiership final resolves —
+    // game:seasonComplete fires once the season final resolves —
     // routes through EndOfSeason → Renewals → Signings → Rollover.
     eventBus.on('game:bracketSeeded',  () => { bracketSeededPending = true; });
     eventBus.on('game:seasonComplete', () => { seasonCompletePending = true; });
@@ -760,8 +760,8 @@ document.addEventListener('DOMContentLoaded', () => {
       : buildAutoSelectedTeamFromRoster(state, awayTeam);
     const isFinal = match.kind === 'final';
     const contextLabel = isFinal
-      ? 'Premiership Final · Twickenham'
-      : `Premiership Semi-Final · ${match.homeSeed} v ${match.awaySeed}`;
+      ? 'Season Final · Twickenham'
+      : `Season Semi-Final · ${match.homeSeed} v ${match.awaySeed}`;
     initPreMatchScreen(
       rosteredHome,
       rosteredAway,

@@ -1,4 +1,4 @@
-// Premiership knockout bracket — two semi-finals and a final at Twickenham.
+// Season knockout bracket — two semi-finals and a final at Twickenham.
 // Reached from the post-match Continue chain after the last regular-season
 // fixture is recorded, then re-entered after every playoff result so the
 // player can see the cascade fill in. CTA label adapts to the next action:
@@ -165,7 +165,7 @@ export function initPlayoffBracketScreen(
       <div class="app-header">
         <div class="app-topbar">
           <div class="app-topbar-spacer"></div>
-          <span class="app-title">Premiership Playoffs</span>
+          <span class="app-title">Season Playoffs</span>
           <div class="app-topbar-spacer"></div>
         </div>
         <div class="app-eyebrow">${state.calendar.seasonLabel} · ${bracketSubtitle(playoffs)}</div>

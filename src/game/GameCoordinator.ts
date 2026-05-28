@@ -546,7 +546,7 @@ export class GameCoordinator {
     // match chain's trigger to route through PlayoffBracketScreen
     // instead of straight to Hub. The end-of-season chain (EndOfSeason
     // → Renewals → Signings → Rollover) is now triggered later, after
-    // the Premiership final resolves and fires game:seasonComplete.
+    // the season final resolves and fires game:seasonComplete.
     if (this.allRegularFixturesPlayed() && this.state.league.playoffs === null) {
       this.seedPlayoffBracket();
     }
@@ -573,7 +573,7 @@ export class GameCoordinator {
     const top4 = sortStandings(this.state.league.standings).slice(0, 4);
     if (top4.length < 4) return;
     const [s1, s2, s3, s4] = top4;
-    // Real-world Premiership cadence: SFs the weekend after R18, final
+    // Real-world league cadence: SFs the weekend after R18, final
     // the weekend after the SFs. Anchored to the last R18 fixture date
     // when available; falls back to the current calendar date.
     const r18LastDate = this.state.league.fixtures

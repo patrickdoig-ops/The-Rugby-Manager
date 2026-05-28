@@ -246,7 +246,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
     const stageLabel = playoffs.semifinals.every(m => m.result) ? 'FINAL' : 'SEMI-FINALS';
     const subline = playerMatch
       ? (playerMatch.kind === 'final'
-          ? 'Premiership Final · Twickenham'
+          ? 'Season Final · Twickenham'
           : `Semi-Final · ${playerMatch.homeSeed} v ${playerMatch.awaySeed}`)
       : 'You are not in this stage';
     // Surface the player's pending match (if any), otherwise a static

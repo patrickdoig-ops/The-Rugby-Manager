@@ -25,7 +25,7 @@ export const INJURY = {
   // multipliers stack on top. Was 8.0 (~2.0 per match, ~18.5 per club
   // per season) — dropped to 6.0 in v2.153a after audit showed the
   // cumulative time-loss load (~120 player-weeks/club/season) ran
-  // ~1.5× real Premiership rates and the per-match cadence felt
+  // ~1.5× real league rates and the per-match cadence felt
   // constant. Re-run `npx tsx scripts/injuryAudit.ts` after any change.
   basePctPerTackle:    6.0,         // % — consumed via rng(1, 10000) <= basePct * 100
 

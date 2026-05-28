@@ -157,7 +157,7 @@ export interface PlayoffMatch {
   awaySeed: 1 | 2 | 3 | 4 | null;
   // ISO yyyy-mm-dd. Set at bracket-seed time. SFs synthesised at
   // R18+6 days, final at R18+13 days, anchored to the real-world
-  // Premiership playoff cadence.
+  // season playoff cadence.
   date: string;
   result?: {
     homeScore: number;
@@ -256,7 +256,7 @@ export interface ArchivedSeason {
   topScorerRosterId: number | null;   // kept for back-compat; equals leaders.topTries[0]?.rosterId
   mvpRosterId: number | null;         // kept for back-compat; equals leaders.topRating[0]?.rosterId
   leaders?: SeasonAwards;             // top-3 per category. Optional so v8 archives load.
-  // The playoff champion (Premiership Final winner) for this season.
+  // The playoff champion (league Final winner) for this season.
   // Null when archived without a playoff run — covers pre-v13 saves
   // whose archive entries predate the playoffs system.
   championTeamId: string | null;

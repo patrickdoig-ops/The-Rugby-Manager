@@ -82,7 +82,7 @@ export const GOAL_KICK_VALUES = {
   // Each +1 to the threshold ≈ −1pp success rate across the rng range, so this
   // dial is the cleanest league-wide accuracy lever. Calibrated to land the
   // top kicker (~95 kicking) around 80% and the league at ~75% conversions /
-  // ~78% penalties — closer to Premiership real-world (~70% / ~78%) than the
+  // ~78% penalties — closer to league real-world (~70% / ~78%) than the
   // 90%+ values we had at 120.
   successThreshold: 135,
 } as const;
@@ -109,7 +109,7 @@ export const PENALTY_VALUES = {
 //
 // Replaced the pre-v2.183a flat 20m teleport (kickToTouchDistance: 20)
 // which gave every kicker the same gain regardless of stat. The new
-// expected distance of ~32-35m matches real-world Premiership data
+// expected distance of ~32-35m matches real-world league data
 // for attacking penalty kicks to the corner.
 export const PENALTY_KICK_TO_TOUCH_VALUES = {
   goodKickThreshold: 25,

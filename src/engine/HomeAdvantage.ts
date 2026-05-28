@@ -8,7 +8,7 @@
 import type { MatchState } from '../types/match';
 
 export function homeEdge(state: MatchState, mod: number): { attack: number; defend: number } {
-  // Neutral venue (Premiership final at Twickenham) — neither side gets the
+  // Neutral venue (season final at Twickenham) — neither side gets the
   // home edge. Short-circuits before reading possession.
   if (state.engine.neutralVenue) return { attack: 0, defend: 0 };
   const homeAttacking = state.possession === 'home';

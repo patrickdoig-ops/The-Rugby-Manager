@@ -25,7 +25,7 @@ export const LEAGUE_POINTS = {
   win: 4,
   draw: 2,
   loss: 0,
-  // Gallagher Premiership bonus points:
+  // Gallagher league bonus points:
   //   tryBonus    — scored ≥ 4 tries in the match (regardless of result)
   //   losingBonus — lost by 7 match-points or fewer
   // Both stack: a team that loses by 7 but scores 4 tries gets 2 BP.

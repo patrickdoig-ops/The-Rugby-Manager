@@ -610,28 +610,7 @@ export class MatchCoordinator {
     if (this.state.phase === MatchPhase.TmoReview) { await this.tickTmoReview(); return; }
     if (this.state.phase === MatchPhase.KickAtGoal) { await this.tickKickAtGoal(); return; }
 
-    // Sin-bin scan: returnMinute is gameMinute-based and the clock just
-    // advanced (or didn't, if we were in TMO — handled above). Yellow
-    // expirations are inline; red_20 expirations queue a forced-sub flow.
-    const expiredRed20 = this.cardHandler.scanSinBinReturns();
-    for (const exp of expiredRed20) {
-      await this.runForcedSubstitution(exp.player, exp.side, 'red_20');
-      if (!this.state.engine.isRunning) return;
-    }
-
-    // Injury forced-sub flow: any player pushed onto state.cards.injured by
-    // a PLAYER_INJURED_IN_MATCH on the previous tick's phase resolution gets
-    // a replacement here (mirrors red_20 expiry). The bench player runs on;
-    // SUBSTITUTION_APPLIED clears cards.injured so onFieldPlayers stops
-    // filtering the slot. Players whose pendingInjuryKind is set but bench
-    // was empty stay in cards.injured for the rest of the match — the team
-    // plays short, and the teardown severity roll still finds them via the
-    // pendingInjuryKind flag.
-    const pendingInjurySubs = this.collectPendingInjurySubs();
-    for (const exp of pendingInjurySubs) {
-      await this.runForcedSubstitution(exp.player, exp.side, 'injury');
-      if (!this.state.engine.isRunning) return;
-    }
+    if (await this.processForcedSubstitutions()) return;
 
     const homeInOppHalf = !this.state.clock.halfTimeDone ? this.state.ball.x > 50 : this.state.ball.x < 50;
     applyMatchEvent(this.state, {
@@ -792,6 +771,36 @@ export class MatchCoordinator {
     // the next tick. Drain completes naturally before the next tick fires.
     this.streamer.flush(this.state.engine.tickDelayMs, this.state);
     this.scheduleTick(this.nextTickDelay());
+  }
+
+  // Sin-bin + injury forced-substitution scans, run after the clock
+  // advances but before phase resolution. Returns true if the engine was
+  // paused mid-substitution (human forced-sub modal) — the caller must
+  // then return without scheduling. Returns false to continue the tick.
+  private async processForcedSubstitutions(): Promise<boolean> {
+    // Sin-bin scan: returnMinute is gameMinute-based and the clock just
+    // advanced (or didn't, if we were in TMO — handled above). Yellow
+    // expirations are inline; red_20 expirations queue a forced-sub flow.
+    const expiredRed20 = this.cardHandler.scanSinBinReturns();
+    for (const exp of expiredRed20) {
+      await this.runForcedSubstitution(exp.player, exp.side, 'red_20');
+      if (!this.state.engine.isRunning) return true;
+    }
+
+    // Injury forced-sub flow: any player pushed onto state.cards.injured by
+    // a PLAYER_INJURED_IN_MATCH on the previous tick's phase resolution gets
+    // a replacement here (mirrors red_20 expiry). The bench player runs on;
+    // SUBSTITUTION_APPLIED clears cards.injured so onFieldPlayers stops
+    // filtering the slot. Players whose pendingInjuryKind is set but bench
+    // was empty stay in cards.injured for the rest of the match — the team
+    // plays short, and the teardown severity roll still finds them via the
+    // pendingInjuryKind flag.
+    const pendingInjurySubs = this.collectPendingInjurySubs();
+    for (const exp of pendingInjurySubs) {
+      await this.runForcedSubstitution(exp.player, exp.side, 'injury');
+      if (!this.state.engine.isRunning) return true;
+    }
+    return false;
   }
 
   // KickAtGoal micro-phase: entry handler emitted kicker_steps_up and

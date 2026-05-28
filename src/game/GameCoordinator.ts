@@ -51,12 +51,12 @@ import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot, type P
 import { computeTrainingWeek } from './trainingWeek';
 import { computeRollover } from './careerRollover';
 import { generatePersona } from './personaGenerator';
-import { seedContractFields } from './contractSeeder';
+import { resolveSchedule, backfillCareerContracts, buildRosterSeededEvent, buildCareerArchiveRestoredEvent } from './saveMigration';
 import { TransferCoordinator } from './TransferCoordinator';
 import { computeBudgetEvents } from './budgetPlanner';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed, rngTransfer } from '../utils/rng';
-import { SEASON_VALUES, INJURY_SEVERITY, SENIOR_CAP, EFFECTIVE_CAP_CREDITS, STARTER_FA_POOL } from '../engine/balance';
+import { SEASON_VALUES, INJURY_SEVERITY, STARTER_FA_POOL } from '../engine/balance';
 import type { InjurySeverity } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 import type { RawTeamInput } from '../types/teamData';
@@ -230,72 +230,24 @@ export class GameCoordinator {
   ): GameCoordinator {
     const coord = new GameCoordinator(allTeams);
     setCareerSeed(save.seed);
-    // Prefer the saved schedule when present (v3+); fall back to the
-    // current canonical one for legacy v2 saves that pre-date the field.
-    const effectiveSchedule: SeasonSchedule = save.fixtures
-      ? { seasonLabel: save.seasonLabel ?? schedule.seasonLabel, fixtures: save.fixtures.map(f => ({ ...f })) }
-      : schedule;
     applySeasonEvent(coord.state, {
       type: 'SEASON_INITIALIZED',
       playerTeamId: save.playerTeamId,
       seed: save.seed >>> 0,
       teamIds: allTeams.map(t => t.id),
-      schedule: effectiveSchedule,
+      schedule: resolveSchedule(save, schedule),
     });
     // v5+ saves carry the persistent roster + career archive directly.
     // v4 and older predate the roster; seed fresh from JSONs (lossless —
-    // pre-v5 there was zero per-player evolution to preserve).
+    // pre-v5 there was zero per-player evolution to preserve). The
+    // version-ladder back-fill (contracts, budgets, optional market /
+    // playoff layers) lives in saveMigration.ts; these calls just replay
+    // the resulting events through the season mutation boundary.
     if (save.career) {
-      // v5 → v6 backfill. Saved Players from a v5-era career lack the
-      // `contract` + `reputation` fields added in Phase 2. Synthesise
-      // them via contractSeeder so the loaded career is usable on v6
-      // code paths (ContractsScreen, etc.). The seasonStartYear is
-      // derived from the saved season label.
       const seasonStartYear = parseSeasonStartYear(save.seasonLabel ?? coord.state.calendar.seasonLabel);
-      const rosterIds = Object.keys(save.career.roster).map(Number).sort((a, b) => a - b);
-      for (const rid of rosterIds) {
-        const p = save.career.roster[rid];
-        if (!p.contract || !p.contract.expiresOn) {
-          const club = save.career.clubs.find(c => c.squad.includes(rid));
-          const { contract, reputation } = seedContractFields(p, club?.id ?? '', seasonStartYear);
-          p.contract = contract;
-          if (typeof p.reputation !== 'number') p.reputation = reputation;
-        }
-      }
-      applySeasonEvent(coord.state, {
-        type: 'ROSTER_SEEDED',
-        roster: save.career.roster,
-        // v13 saves omit salaryBudget — default to effective cap so the
-        // load is non-disruptive; the next rollover then recomputes via
-        // computeBudgetEvents so the per-club budgets kick in from then
-        // on. See docs/game-engine.md § "Save format" v13 → v14.
-        clubs: save.career.clubs.map(c => ({
-          id: c.id,
-          squad: [...c.squad],
-          salaryBudget: c.salaryBudget ?? (SENIOR_CAP + EFFECTIVE_CAP_CREDITS),
-        })),
-        nextRosterId: save.career.nextRosterId,
-      });
-      // ROSTER_SEEDED only repopulates the roster + clubs. Cumulative
-      // career counters (seasonsCompleted, archive) and the market
-      // layer (freeAgents + market) are restored through
-      // CAREER_ARCHIVE_RESTORED so every state.career.* write stays
-      // inside applySeasonEvent — no mutation-boundary carveout. v5/v6
-      // saves omit freeAgents + market; the event handler leaves them
-      // at their emptyCareerState defaults in that case.
-      applySeasonEvent(coord.state, {
-        type: 'CAREER_ARCHIVE_RESTORED',
-        seasonsCompleted: save.career.seasonsCompleted,
-        archive: save.career.archive,
-        ...(save.career.freeAgents !== undefined ? { freeAgents: save.career.freeAgents } : {}),
-        ...(save.career.market !== undefined ? { market: save.career.market } : {}),
-        ...(save.career.pendingMoves !== undefined ? { pendingMoves: save.career.pendingMoves } : {}),
-        ...(save.career.preSeasonStep !== undefined ? { preSeasonStep: save.career.preSeasonStep } : {}),
-        ...(save.career.takeoverHistory !== undefined ? { takeoverHistory: save.career.takeoverHistory } : {}),
-        ...(save.career.midseasonRejections !== undefined ? { midseasonRejections: save.career.midseasonRejections } : {}),
-        ...(save.teamSeasonStats !== undefined ? { teamSeasonStats: save.teamSeasonStats } : {}),
-        ...(save.playoffs !== undefined ? { playoffs: save.playoffs } : {}),
-      });
+      backfillCareerContracts(save.career, seasonStartYear);
+      applySeasonEvent(coord.state, buildRosterSeededEvent(save.career));
+      applySeasonEvent(coord.state, buildCareerArchiveRestoredEvent(save));
     } else {
       const seeded = seedRoster(allTeams, parseSeasonStartYear(coord.state.calendar.seasonLabel));
       applySeasonEvent(coord.state, {

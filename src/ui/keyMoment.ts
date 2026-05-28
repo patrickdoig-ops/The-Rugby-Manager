@@ -33,9 +33,11 @@ const HERO_PHASE_OUTCOME_KEYS = new Set<string>([
 const HERO_ANNOUNCEMENT_KEYS = new Set<string>([
   'tmo_decision_yellow', 'tmo_decision_red_20', 'tmo_decision_no_card',
   // KickAtGoal micro-phase: the entry tick is a single kicker_steps_up step,
-  // so it can't qualify via "2+ steps" — the announcement key gates hero on
-  // its own. The resolve tick is hero via HERO_PHASE_OUTCOME_KEYS already.
-  'kicker_steps_up',
+  // and the resolve tick is split into a single kicker_compose beat then a
+  // single success/miss beat — each a one-step event, so neither qualifies via
+  // "2+ steps". Both announcement keys gate hero on their own here (the result
+  // beat is hero via HERO_PHASE_OUTCOME_KEYS) so the whole goal-kick glows.
+  'kicker_steps_up', 'kicker_compose',
 ]);
 
 export function isAutoPauseEvent(event: GameEvent): boolean {

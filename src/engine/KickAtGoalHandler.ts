@@ -11,6 +11,7 @@
 // the same shape as CardHandler.advanceTmoReview().
 
 import type { MatchState, GameEvent } from '../types/match';
+import type { NarrationStep } from '../types/narration';
 import type { PossessionSide } from '../types/engine';
 import { MatchPhase } from '../types/engine';
 import { makeId } from './eventId';
@@ -30,7 +31,8 @@ export class KickAtGoalHandler {
 
   // Called once per tick when state.phase === MatchPhase.KickAtGoal.
   // Resolves the goal kick that the entry handler deferred, emits the
-  // 2-step resolve event, applies all mutations, and transitions to KickOff.
+  // compose + result beats around the score mutation, applies all mutations,
+  // and transitions to KickOff.
   advance(): void {
     const { state, silent } = this.deps;
     const kag = state.kickAtGoal;
@@ -39,15 +41,6 @@ export class KickAtGoalHandler {
     const side: PossessionSide = state.possession;
     const teamName = (side === 'home' ? state.homeTeam : state.awayTeam).name;
     const res = resolveGoalKick(kag.kicker, kag.distFromPosts);
-
-    // Score event (conversion vs penalty goal — two separate MatchEvent
-    // variants today; reducers handle the score increment + stats).
-    if (kag.kind === 'conversion') {
-      applyMatchEvent(state, { type: 'CONVERSION_KICKED', kicker: kag.kicker, side, success: res.success });
-    } else {
-      applyMatchEvent(state, { type: 'PENALTY_GOAL_KICKED', kicker: kag.kicker, side, success: res.success });
-    }
-    applyMatchEvent(state, { type: 'RATINGS_RECALCULATED' });
 
     // The phase_outcome step's `phase` is the semantic phase the result
     // belongs to (ConversionKick or Penalty), NOT KickAtGoal — that's how
@@ -59,7 +52,7 @@ export class KickAtGoalHandler {
       ? (res.success ? 'success' : 'miss')
       : (res.success ? 'kick_for_goal' : 'miss');
 
-    const resolveEvent: GameEvent = {
+    const makeBeat = (steps: NarrationStep[]): GameEvent => ({
       id: makeId(),
       gameMinute: state.clock.gameMinute,
       phase: semanticPhase,
@@ -68,15 +61,34 @@ export class KickAtGoalHandler {
       primaryPlayer: kag.kicker,
       ballX: state.ball.x,
       ballY: state.ball.y,
-      narration: {
-        steps: [
-          { kind: 'announcement', key: 'kicker_compose', primary: kag.kicker },
-          { kind: 'phase_outcome', phase: semanticPhase, key: resultKey, primary: kag.kicker },
-        ],
-      },
-    };
-    applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: resolveEvent });
-    if (!silent) this.deps.streamer.enqueue(resolveEvent);
+      narration: { steps },
+    });
+
+    // The compose line and the result line are TWO beats with the score
+    // mutation between them. The display snapshot is captured at enqueue time
+    // (CommentaryStreamer.enqueue), so the compose beat — enqueued before the
+    // score event — shows the pre-kick score, and the result beat shows the
+    // new score. Were both lines one beat, the single per-beat snapshot would
+    // carry the new score onto the "lines it up…" line, ticking the scoreboard
+    // a full lineGap before "…it's there!" was read (and pre-revealing
+    // make/miss). The two beats still drain one lineGap apart, so the visible
+    // pacing is unchanged.
+    const composeEvent = makeBeat([{ kind: 'announcement', key: 'kicker_compose', primary: kag.kicker }]);
+    applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: composeEvent });
+    if (!silent) this.deps.streamer.enqueue(composeEvent);
+
+    // Score event (conversion vs penalty goal — two separate MatchEvent
+    // variants today; reducers handle the score increment + stats).
+    if (kag.kind === 'conversion') {
+      applyMatchEvent(state, { type: 'CONVERSION_KICKED', kicker: kag.kicker, side, success: res.success });
+    } else {
+      applyMatchEvent(state, { type: 'PENALTY_GOAL_KICKED', kicker: kag.kicker, side, success: res.success });
+    }
+    applyMatchEvent(state, { type: 'RATINGS_RECALCULATED' });
+
+    const resultEvent = makeBeat([{ kind: 'phase_outcome', phase: semanticPhase, key: resultKey, primary: kag.kicker }]);
+    applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: resultEvent });
+    if (!silent) this.deps.streamer.enqueue(resultEvent);
 
     // Restart play. Missed penalty → defending team takes a 22 drop-out from
     // their own 22 (World Rugby rule). Everything else (successful penalty,

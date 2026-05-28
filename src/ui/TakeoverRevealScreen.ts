@@ -47,7 +47,7 @@ function flavorBlurb(flavor: TakeoverFlavor, clubName: string): { eyebrow: strin
   if (flavor === 'red_bull') {
     return {
       eyebrow: 'Breaking',
-      headline: `${clubName} taken over by Red Bull`,
+      headline: `New investors take over ${clubName}`,
       sub: 'A high-profile global investor steps in. The owner has signed off on a wage-budget bump for next season.',
       byline: 'Telegraph Sport · Boardroom desk',
     };

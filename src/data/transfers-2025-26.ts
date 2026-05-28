@@ -37,8 +37,8 @@ export const PRE_SEASON_TRANSFERS_2025_26: PreSeasonTransfer[] = [
   { name: 'Chris Harris',           fromClub: 'Gloucester' },
   // Bristol Bears
   { name: 'Tom Jordan',             fromClub: 'Glasgow Warriors' },
-  { name: 'Pedro Rubiolo',          fromClub: 'Newcastle Red Bulls' },
-  { name: 'Max Pepper',             fromClub: 'Newcastle Red Bulls' },
+  { name: 'Pedro Rubiolo',          fromClub: 'Newcastle Falcons' },
+  { name: 'Max Pepper',             fromClub: 'Newcastle Falcons' },
   { name: 'Josh Carrington',        fromClub: 'Cardiff Metropolitan University' },
   { name: 'Will Ramply',            fromClub: 'University of Nottingham' },
   { name: 'Luka Ivanishvili',       fromClub: 'Black Lion' },
@@ -59,7 +59,7 @@ export const PRE_SEASON_TRANSFERS_2025_26: PreSeasonTransfer[] = [
   { name: 'Ben Loader',             fromClub: 'Stormers' },
   { name: 'James Venter',           fromClub: 'Sharks' },
   { name: 'Jack Innard',            fromClub: 'Exeter Chiefs' },
-  { name: 'Ben Redshaw',            fromClub: 'Newcastle Red Bulls' },
+  { name: 'Ben Redshaw',            fromClub: 'Newcastle Falcons' },
   { name: 'Jack Mann',              fromClub: 'Glasgow Warriors' },
   { name: 'Will Trenholm',          fromClub: 'Harlequins' },
   { name: 'Mike Austin',            fromClub: 'Hartpury University' },
@@ -83,7 +83,7 @@ export const PRE_SEASON_TRANSFERS_2025_26: PreSeasonTransfer[] = [
   { name: 'Pedro Delgado',          fromClub: 'Dogos' },
   { name: 'Sean Kerr',              fromClub: 'Academy (promoted)' },
   // Leicester Tigers
-  { name: 'Jamie Blamire',          fromClub: 'Newcastle Red Bulls' },
+  { name: 'Jamie Blamire',          fromClub: 'Newcastle Falcons' },
   { name: 'Tarek Haffar',           fromClub: 'Northampton Saints' },
   { name: 'Wilf McCarthy',          fromClub: 'Hartpury University' },
   { name: 'Joaquin Moro',           fromClub: 'Pampas XV' },
@@ -100,7 +100,7 @@ export const PRE_SEASON_TRANSFERS_2025_26: PreSeasonTransfer[] = [
   { name: 'John Stewart',           fromClub: 'Bath' },
   { name: 'James Thompson',         fromClub: 'Chiefs (NZ)' },
   { name: 'Tonga Kofe',             fromClub: 'Utah Warriors' },
-  // Newcastle Red Bulls
+  // Newcastle Falcons
   { name: 'Ethan Grayson',          fromClub: 'San Diego Legion' },
   { name: 'Connor Doherty',         fromClub: 'Sale Sharks' },
   { name: 'George McGuigan',        fromClub: 'Ospreys' },
@@ -123,7 +123,7 @@ export const PRE_SEASON_TRANSFERS_2025_26: PreSeasonTransfer[] = [
   { name: 'Cleopas Kundiona',       fromClub: 'Nevers' },
   { name: 'Amena Caqusau',          fromClub: 'Glasgow Warriors' },
   { name: 'Danilo Fischetti',       fromClub: 'Zebre Parma' },
-  { name: 'Callum Chick',           fromClub: 'Newcastle Red Bulls' },
+  { name: 'Callum Chick',           fromClub: 'Newcastle Falcons' },
   { name: 'Anthony Belleau',        fromClub: 'Clermont' },
   { name: 'JJ van der Mescht',      fromClub: 'Stade Français' },
   { name: 'James Martin',           fromClub: 'Coventry' },

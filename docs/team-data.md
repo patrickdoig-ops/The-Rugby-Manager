@@ -233,7 +233,7 @@ Shaped by the Pat Lam era's "Bristol-Bilbao" expansive ambition, the Bears are t
 
 The Welford Road tradition is set-piece power, structured forward-led play, and hard-nosed defence built on discipline. Tigers historically squeeze the game through scrum and maul dominance, accurate exit kicking, and a defensive line that gives nothing cheap. Their attack is built off forward platform first, with the backs called on to finish rather than create from scratch. Recent rebuilds have softened the edges, but the identity remains: territory, set piece, pressure.
 
-- **Home ground:** Mattioli Woods Welford Road (commonly "Welford Road").
+- **Home ground:** Welford Road.
 - **Club colours:** `#1c5e3f` / `#ffffff`
 - **Nickname:** Tigers.
 - **Founded:** 1880.
@@ -327,7 +327,7 @@ The Welford Road tradition is set-piece power, structured forward-led play, and 
 
 Under Mark McCall, Saracens have been the league's clinical operator — structure, precision and physical dominance executed to a finer tolerance than anyone else. The "Wolfpack" defence with its aggressive line-speed and choke tackles is the signature, paired with a smart kicking game that turns territory into points. They are ruthless game managers: ahead late, they will close a match out with possession and field position rather than tries. Calm under pressure, brutal in the collision.
 
-- **Home ground:** StoneX Stadium (formerly Allianz Park).
+- **Home ground:** Barnet Copthall Stadium.
 - **Club colours:** `#000000` / `#ed1c24`
 - **Nickname:** Sarries (the "Wolfpack" defensive identity).
 - **Founded:** 1876.
@@ -688,13 +688,13 @@ The Twickenham Stoop entertainers and the league's most committed expansive, att
 
 ---
 
-## Newcastle Red Bulls
+## Newcastle Falcons
 
-Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastle are mid-transformation: heavy investment, aggressive recruitment, and a search for a clearer identity after three straight bottom-of-the-table finishes. Historically a developmental, lower-budget side that fought hard but lacked depth, the Red Bulls era is rebuilding from the ground up. Kingston Park remains home, but the playing identity is still being written — expect them to start the simulator era as the league's weakest squad, with room to grow.
+Newcastle Falcons are a side rebuilding after three straight bottom-of-the-table finishes. Historically a developmental, lower-budget club that fought hard but lacked the depth of the top sides, the Falcons are working to recapture their late-nineties glory. Kingston Park remains home, but the playing identity is still being written — expect them to start the simulator era as the league's weakest squad, with room to grow.
 
 - **Home ground:** Kingston Park.
 - **Club colours:** `#000000` / `#dc1e25`
-- **Nickname:** Red Bulls (rebranded from "Falcons" after Red Bull's August 2025 takeover).
+- **Nickname:** Falcons.
 - **Founded:** 1877 (as Gosforth FC).
 - **Stadium capacity:** 10,200.
 - **Head coach:** Stephen Jones (interim Head Coach from March 2026 after Alan Dickens departed; Dan McFarland publicly linked with the role from 2026-27).
@@ -706,7 +706,7 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 
 ### Star players
 
-- **Liam Williams** (Full-back, Wales) — 93-cap Wales legend and two-tour Lion; the marquee Red-Bull-era signing whose world-class aerial work and broken-field counter-attack give Newcastle their first genuine back-three threat in years. Index high: `positioning`, `handling`, `composure`, `agility`, `pace`. Suggested rating: **84/100**. Marquee: yes.
+- **Liam Williams** (Full-back, Wales) — 93-cap Wales legend and two-tour Lion; a marquee signing whose world-class aerial work and broken-field counter-attack give Newcastle their first genuine back-three threat in years. Index high: `positioning`, `handling`, `composure`, `agility`, `pace`. Suggested rating: **84/100**. Marquee: yes.
 - **Amanaki Mafi** (Number 8, Japan) — 29-cap Brave Blossom and 2015 World Cup hero against South Africa; powerful go-forward ball-carrier with footwork and an offloading game built to get a struggling pack over the gainline. Index high: `strength`, `handling`, `breakdown`, `stamina`, `tackling`. Suggested rating: **80/100**.
 
 ### Squad (2025-26)
@@ -787,7 +787,7 @@ Newly rebranded from the Falcons after Red Bull's August 2025 takeover, Newcastl
 
 The 2023-24 champions under Phil Dowson, Saints are the league's electric attacking outfit — willing to play from anywhere on the pitch and devastating in transition. Fin Smith conducts a heads-up backline that scores tries from deep, off turnover ball and from set-piece strike plays in equal measure. Their forwards are mobile and link-friendly rather than collision-first, designed to win quick ball and feed the runners. When they get rolling they put 40+ on teams; when the platform wobbles, the structure shows cracks.
 
-- **Home ground:** cinch Stadium at Franklin's Gardens (commonly "Franklin's Gardens").
+- **Home ground:** Franklin's Gardens.
 - **Club colours:** `#00563f` / `#000000`
 - **Nickname:** Saints.
 - **Founded:** 1880.
@@ -890,7 +890,7 @@ The 2023-24 champions under Phil Dowson, Saints are the league's electric attack
 
 The Manchester defence-first side: line-speed, collision-dominant loose forwards and a physical inside-centre channel, all built to choke teams into errors. Sale are happy to cede possession because they back their defence to win the field-position battle, and George Ford's tempo control gives them clinical execution when they do attack. Tackles, turnovers and territory underpin everything; they are the league's least flashy and most resilient team. Box-kick, chase, tackle, repeat.
 
-- **Home ground:** CorpAcq Stadium (renamed from Salford Community Stadium / AJ Bell Stadium in September 2025).
+- **Home ground:** Salford Community Stadium.
 - **Club colours:** `#0a1b40` / `#ffffff`
 - **Nickname:** Sharks.
 - **Founded:** 1861 — one of the world's oldest surviving rugby clubs.
@@ -1051,5 +1051,5 @@ Squad data was compiled in parallel from multiple public sources and has been sp
   - Paddy Pearce (Bristol) — primary position Lock per public sources; doc has Flanker.
   - Sam Waugh (Newcastle) — public sources list full-back; doc has Centre.
   - James Pater (Northampton) — primary position full-back per public sources; doc has Wing.
-- **Newcastle Red Bulls:** Post-takeover (Aug 2025) recruitment has been heavy and the squad is in flux; expect this list to be the least stable of the ten.
+- **Newcastle Falcons:** The squad has been in flux with heavy recruitment in recent seasons; expect this list to be the least stable of the ten.
 - **Gloucester / Newcastle name clash:** Cameron Jordan (Lock, Gloucester, b. 1996-05-23) and Cam Jordan (Lock, Newcastle, b. 1999-11-17) are distinct players — different DOBs, both English locks.

@@ -3,15 +3,12 @@
   inset: 0;
   z-index: 225;
   background-color: var(--rm-bg);
-  /* Team-colour hue painted on the page itself so it covers topbar +
-     hero in one piece. The settings icon (transparent topbar) floats on
-     top of it. Constrained to ~280px tall so it fades by the time the
-     next-match panel starts. */
-  background-image: radial-gradient(ellipse 110% 100% at 50% 0%,
-    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 16%, transparent) 0%,
-    transparent 70%);
-  background-repeat: no-repeat;
-  background-size: 100% 280px;
+  background-image: radial-gradient(
+    ellipse 200% 130% at 50% 0%,
+    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 80%, oklch(0.08 0.008 150)) 0%,
+    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 38%, oklch(0.08 0.008 150)) 50%,
+    var(--rm-bg) 88%
+  );
   display: flex;
   flex-direction: column;
   padding-top:    env(safe-area-inset-top, 0px);
@@ -44,8 +41,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 4px 20px 6px;
+  gap: 6px;
+  padding: 8px 20px 8px;
   flex-shrink: 0;
 }
 
@@ -80,13 +77,13 @@
 #hub-team-name {
   margin: 0;
   font-family: var(--rm-font-display);
-  font-size: 22px;
+  font-size: clamp(30px, 9vw, 44px);
   font-weight: 400;
-  color: var(--rm-chalk);
+  color: #ffffff;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  line-height: 1;
-  text-shadow: 0 0 24px color-mix(in oklch, var(--team-color, var(--rm-pitch)) 35%, transparent);
+  letter-spacing: 0.03em;
+  line-height: 0.95;
+  text-align: center;
 }
 
 #hub-standing {

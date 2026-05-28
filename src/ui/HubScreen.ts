@@ -139,7 +139,6 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
       </div>
 
       <div id="hub-hero">
-        ${crestHtml(playerTeam, 'hub-crest')}
         <h1 id="hub-team-name">${playerTeam.name}</h1>
         <div id="hub-standing">
           <div class="hub-standing-item">

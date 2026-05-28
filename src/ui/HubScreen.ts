@@ -179,7 +179,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
           <span class="hub-alert-text">${[injuredCount > 0 ? `${injuredCount} in treatment room` : '', expiringCount > 0 ? `${expiringCount} expiring contracts` : ''].filter(Boolean).join(' · ')}</span>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
         </button>
-      ` : ''}
+      ` : '<div id="hub-alert-banner" aria-hidden="true" style="visibility:hidden"></div>'}
 
       <div id="hub-grid">
         ${TILES.map(t => {

@@ -7,21 +7,46 @@ import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 function pitchLinesSvg(): string {
   return `<svg class="home-pitch-lines" aria-hidden="true" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
     <defs>
-      <linearGradient id="lineFadeV" x1="0" y1="0" x2="0" y2="1">
+      <linearGradient id="hsLineFadeV" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%"  stop-color="white" stop-opacity="0"/>
-        <stop offset="45%" stop-color="white" stop-opacity="0.9"/>
+        <stop offset="35%" stop-color="white" stop-opacity="1"/>
+        <stop offset="65%" stop-color="white" stop-opacity="1"/>
         <stop offset="100%" stop-color="white" stop-opacity="0"/>
       </linearGradient>
-      <linearGradient id="lineFadeH" x1="0" y1="0" x2="1" y2="0">
+      <linearGradient id="hsLineFadeH" x1="0" y1="0" x2="1" y2="0">
         <stop offset="0%"  stop-color="white" stop-opacity="0"/>
-        <stop offset="50%" stop-color="white" stop-opacity="0.9"/>
+        <stop offset="50%" stop-color="white" stop-opacity="1"/>
+        <stop offset="100%" stop-color="white" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="hsLineFadeHF" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%"  stop-color="white" stop-opacity="0"/>
+        <stop offset="50%" stop-color="white" stop-opacity="0.55"/>
         <stop offset="100%" stop-color="white" stop-opacity="0"/>
       </linearGradient>
     </defs>
-    <line x1="195" y1="0"   x2="195" y2="844" stroke="url(#lineFadeV)" stroke-width="0.8"/>
-    <line x1="0"   y1="211" x2="390" y2="211" stroke="url(#lineFadeH)" stroke-width="0.6"/>
-    <line x1="0"   y1="633" x2="390" y2="633" stroke="url(#lineFadeH)" stroke-width="0.6"/>
-    <circle cx="195" cy="422" r="90" stroke="url(#lineFadeV)" stroke-width="0.8" fill="none"/>
+    <!-- Centre line -->
+    <line x1="195" y1="0"   x2="195" y2="844" stroke="url(#hsLineFadeV)"  stroke-width="0.7"/>
+    <!-- Try lines -->
+    <line x1="0"   y1="80"  x2="390" y2="80"  stroke="url(#hsLineFadeH)"  stroke-width="0.8"/>
+    <line x1="0"   y1="764" x2="390" y2="764" stroke="url(#hsLineFadeH)"  stroke-width="0.8"/>
+    <!-- 22m lines -->
+    <line x1="0"   y1="210" x2="390" y2="210" stroke="url(#hsLineFadeH)"  stroke-width="0.55"/>
+    <line x1="0"   y1="634" x2="390" y2="634" stroke="url(#hsLineFadeH)"  stroke-width="0.55"/>
+    <!-- 10m lines (faint) -->
+    <line x1="0"   y1="310" x2="390" y2="310" stroke="url(#hsLineFadeHF)" stroke-width="0.45"/>
+    <line x1="0"   y1="534" x2="390" y2="534" stroke="url(#hsLineFadeHF)" stroke-width="0.45"/>
+    <!-- Halfway circle -->
+    <circle cx="195" cy="422" r="80" stroke="url(#hsLineFadeV)" stroke-width="0.7" fill="none"/>
+    <!-- Centre spot -->
+    <circle cx="195" cy="422" r="3" fill="white" opacity="0.6"/>
+    <!-- Goal posts top -->
+    <line x1="168" y1="0"   x2="168" y2="55"  stroke="url(#hsLineFadeV)"  stroke-width="0.6"/>
+    <line x1="222" y1="0"   x2="222" y2="55"  stroke="url(#hsLineFadeV)"  stroke-width="0.6"/>
+    <line x1="155" y1="38"  x2="235" y2="38"  stroke="url(#hsLineFadeHF)" stroke-width="0.6"/>
+    <!-- Goal posts bottom -->
+    <line x1="168" y1="844" x2="168" y2="789" stroke="url(#hsLineFadeV)"  stroke-width="0.6"/>
+    <line x1="222" y1="844" x2="222" y2="789" stroke="url(#hsLineFadeV)"  stroke-width="0.6"/>
+    <line x1="155" y1="806" x2="235" y2="806" stroke="url(#hsLineFadeHF)" stroke-width="0.6"/>
   </svg>`;
 }
 
@@ -88,6 +113,7 @@ interface SaveContext {
   totalRounds: number;
   rank: number;
   pts: number;
+  seasonLabel: string;
 }
 
 function buildSaveContext(save: SavedSeason, allTeams: RawTeamInput[]): SaveContext | null {
@@ -104,13 +130,48 @@ function buildSaveContext(save: SavedSeason, allTeams: RawTeamInput[]): SaveCont
     totalRounds,
     rank: rankIdx + 1,
     pts: player?.pts ?? 0,
+    seasonLabel: save.seasonLabel ?? '2025/26',
   };
+}
+
+function saveCardHtml(ctx: SaveContext): string {
+  const progressPct = Math.round((ctx.week / ctx.totalRounds) * 100);
+  const rankStr = ctx.rank > 0 ? `${ctx.rank}${ordinalSuffix(ctx.rank)}` : '—';
+  return `
+    <div id="home-save-card">
+      <span class="save-card-label">&#9658;&nbsp; Continue Career</span>
+      <div class="save-card-main">
+        <span class="save-card-team">${ctx.teamName}</span>
+        <div class="save-card-stats">
+          ${ctx.rank > 0 ? `
+          <div class="save-stat">
+            <span class="save-stat-val">${rankStr}</span>
+            <span class="save-stat-lbl">Position</span>
+          </div>` : ''}
+          <div class="save-stat">
+            <span class="save-stat-val">${ctx.pts}</span>
+            <span class="save-stat-lbl">Points</span>
+          </div>
+        </div>
+      </div>
+      <div class="save-card-footer">
+        <div class="save-card-meta">
+          <span class="save-card-season">${ctx.seasonLabel}</span>
+          <span>Wk ${ctx.week} / ${ctx.totalRounds}</span>
+        </div>
+        <div class="save-progress-track">
+          <div class="save-progress-fill" style="width:${progressPct}%"></div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function confirmModalHtml(ctx: SaveContext): string {
   return `
     <div class="home-confirm-backdrop" id="home-confirm-backdrop">
       <div class="home-confirm">
+        <div class="home-confirm-handle"></div>
         <div class="home-confirm-title">Start New Game?</div>
         <div class="home-confirm-body">This will permanently delete your save — ${ctx.teamName}, Week ${ctx.week}${ctx.rank > 0 ? `, ${ctx.rank}${ordinalSuffix(ctx.rank)} place` : ''}. This cannot be undone.</div>
         <div class="home-confirm-actions">
@@ -147,6 +208,7 @@ export function initHomeScreen(
   const save = loadSave();
   const hasSave = save !== null;
   const ctx = save ? buildSaveContext(save, allTeams) : null;
+  const statusLabel = ctx?.seasonLabel ?? '2025/26';
 
   el.innerHTML = `
     ${pitchLinesSvg()}
@@ -154,37 +216,43 @@ export function initHomeScreen(
     <div id="home-chrome">
       <div id="home-status">
         <span class="home-live-dot"></span>
-        <span class="home-status-text">2025/26 Season</span>
+        <span class="home-status-text">${statusLabel} Season</span>
       </div>
       <div id="home-chrome-actions">
+        <span class="home-chrome-version">v${VERSION}</span>
         <button id="settings-btn" aria-label="Settings">${gearIcon()}</button>
       </div>
     </div>
 
     <div id="home-hero">
       <div class="home-eyebrow"><svg width="9" height="10" viewBox="0 0 9 10" fill="currentColor" aria-hidden="true" style="vertical-align:-1px;margin-right:6px"><path d="M0 0 L9 5 L0 10 Z"/></svg>For rugby fans, by a rugby fan</div>
-      <h1 id="home-title">The<br>Rugby<br>Manager</h1>
-      <div class="home-version-row">
-        <span class="home-version-badge">v${VERSION}</span>
-        <span class="home-version-hr"></span>
+      <h1 id="home-title">
+        <span class="title-pre">The</span>
+        <span class="title-top">Rugby</span>
+        <span class="title-bottom">Manager</span>
+      </h1>
+      <div class="home-broadcast-strip">
+        <span class="broadcast-item">10 Teams</span>
+        <span class="broadcast-sep"></span>
+        <span class="broadcast-item">18 Rounds</span>
+        <span class="broadcast-sep"></span>
+        <span class="broadcast-item broadcast-item--hi">Career Mode</span>
       </div>
       <p id="home-tagline">
-        <strong>Build your squad. Call the shots.</strong>
-        Every phase, every decision, every point.
+        <strong>Build your squad.<br>Call the shots.</strong>
       </p>
     </div>
 
+    ${ctx ? saveCardHtml(ctx) : ''}
+
     <div id="home-cta">
+      <button id="continue-game-btn"${hasSave ? '' : ' disabled'} class="${hasSave ? '' : 'home-cta--disabled'}">
+        <span class="btn-label">Continue</span>
+        ${arrowIcon()}
+      </button>
       <button id="start-game-btn" class="cta-pulse">
         <span class="btn-label">Start New Game</span>
         ${arrowIcon()}
-      </button>
-      <button id="continue-game-btn"${hasSave ? '' : ' disabled'} class="${hasSave ? '' : 'home-cta--disabled'}">
-        <div class="continue-btn-row">
-          <span class="btn-label">Continue</span>
-          ${arrowIcon()}
-        </div>
-        ${ctx ? `<span class="home-save-context">${ctx.teamName} · Wk ${ctx.week} / ${ctx.totalRounds}${ctx.rank > 0 ? ` · ${ctx.rank}${ordinalSuffix(ctx.rank)}` : ''} · ${ctx.pts} pts</span>` : ''}
       </button>
     </div>
   `;

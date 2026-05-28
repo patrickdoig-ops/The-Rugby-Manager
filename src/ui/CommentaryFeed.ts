@@ -256,7 +256,7 @@ export function initCommentaryFeed(): void {
     if (steps.length === 0) return;
 
     const hero = isHeroEvent(event);
-    const shouldStagger = hero && steps.length > 1;
+    const shouldStagger = steps.length > 1;
 
     // Headline index = the first phase_outcome step whose key signals the
     // event's outcome (e.g. line_break_try). Steps before it are buildup
@@ -274,7 +274,7 @@ export function initCommentaryFeed(): void {
     }
 
     for (let i = 0; i < steps.length; i++) {
-      stepQueue.push({ event, text: steps[i].text, hero: true, showTag: i >= buildupCount });
+      stepQueue.push({ event, text: steps[i].text, hero, showTag: i >= buildupCount });
     }
     if (stepDrainTimer === null) drainNext();
   });

@@ -283,11 +283,12 @@
   white-space: nowrap;
 }
 
-.ts-tier--elite   { color: var(--rm-stat-3); background: color-mix(in oklch, var(--rm-stat-3) 14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-3) 32%, transparent); }
-.ts-tier--strong  { color: var(--rm-pitch);  background: color-mix(in oklch, var(--rm-pitch)  14%, transparent); border-color: color-mix(in oklch, var(--rm-pitch)  32%, transparent); }
-.ts-tier--mid     { color: var(--rm-stat-5); background: color-mix(in oklch, var(--rm-stat-5) 14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-5) 32%, transparent); }
-.ts-tier--rebuild { color: var(--rm-amber);  background: color-mix(in oklch, var(--rm-amber)  14%, transparent); border-color: color-mix(in oklch, var(--rm-amber)  32%, transparent); }
-.ts-tier--underdog{ color: var(--rm-stat-1); background: color-mix(in oklch, var(--rm-stat-1) 14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-1) 32%, transparent); }
+.ts-tier--elite     { color: var(--rm-stat-3); background: color-mix(in oklch, var(--rm-stat-3) 14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-3) 32%, transparent); }
+.ts-tier--strong    { color: var(--rm-pitch);  background: color-mix(in oklch, var(--rm-pitch)  14%, transparent); border-color: color-mix(in oklch, var(--rm-pitch)  32%, transparent); }
+.ts-tier--mid       { color: var(--rm-stat-5); background: color-mix(in oklch, var(--rm-stat-5) 14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-5) 32%, transparent); }
+.ts-tier--rebuild   { color: var(--rm-amber);  background: color-mix(in oklch, var(--rm-amber)  14%, transparent); border-color: color-mix(in oklch, var(--rm-amber)  32%, transparent); }
+.ts-tier--developing{ color: var(--rm-stat-2); background: color-mix(in oklch, var(--rm-stat-2) 14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-2) 32%, transparent); }
+.ts-tier--underdog  { color: var(--rm-stat-1); background: color-mix(in oklch, var(--rm-stat-1) 14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-1) 32%, transparent); }
 
 /* Info button — top-right of each card */
 .ts-card-info {

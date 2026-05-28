@@ -25,6 +25,12 @@ function tierClass(ovr: number): string {
   return 'underdog';
 }
 
+const TIER_OVERRIDES: Record<string, { label: string; cls: string }> = {
+  'Gloucester':  { label: 'Rebuilding',  cls: 'rebuild'    },
+  'Harlequins':  { label: 'Rebuilding',  cls: 'rebuild'    },
+  'Newcastle':   { label: 'Developing',  cls: 'developing' },
+};
+
 function pitchLinesSvg(): string {
   return `<svg class="ts-pitch-lines" aria-hidden="true" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
     <defs>
@@ -66,10 +72,6 @@ export function initTeamSelectorScreen(
     </button>
     <div id="ts-inner">
       <div id="ts-header">
-        <div class="ts-season-pill">
-          <span class="ts-live-dot"></span>
-          2025/26 · Premiership
-        </div>
         <h2 id="ts-title">Choose<br>Your Team</h2>
         <p id="ts-subtitle">Pick the club you'll manage this season</p>
       </div>
@@ -80,6 +82,9 @@ export function initTeamSelectorScreen(
           const eliteShadow = ovr >= 85 ? `text-shadow:0 0 12px color-mix(in oklch,var(--rm-stat-3) 40%,transparent);` : '';
           const [primary, ...rest] = team.name.split(' ');
           const secondary = rest.join(' ');
+          const override = TIER_OVERRIDES[primary];
+          const tLabel = override ? override.label : tierLabel(ovr);
+          const tClass = override ? override.cls  : tierClass(ovr);
           const bg = `linear-gradient(150deg,${team.color} 0%,color-mix(in oklch,${team.color} 45%,oklch(0.10 0.010 150)) 100%)`;
           return `
           <div class="ts-card" data-id="${team.id}" style="--tc:${team.color};background:${bg}">
@@ -96,7 +101,7 @@ export function initTeamSelectorScreen(
                   <span class="ts-ovr-value" style="color:${c};${eliteShadow}">${ovr}</span>
                   <span class="ts-ovr-label">OVR</span>
                 </div>
-                <div class="ts-tier ts-tier--${tierClass(ovr)}">${tierLabel(ovr)}</div>
+                <div class="ts-tier ts-tier--${tClass}">${tLabel}</div>
               </div>
             </button>
           </div>`;

@@ -607,29 +607,7 @@ export class MatchCoordinator {
 
     this.fatigue.tick(timeAdvance);
 
-    // TMO review: clock is frozen (advanceMinute returned 0) and play is
-    // suspended. Steps 1 + 2 narrate and bail. Step 3 applies CARD_ISSUED,
-    // resolves the review, and transitions phase back to Penalty — we then
-    // run the penalty modal in the SAME tick so the next tick starts in a
-    // phase resolvePhase() can handle. Without this fall-through the next
-    // tick enters resolvePhase with phase=Penalty and the game stalls on
-    // the TMO outcome. evaluateNewPenalty is deliberately NOT re-called
-    // here: the team-22 counter was bumped on the original Penalty tick
-    // before TMO began, and re-running would either double-bump or
-    // re-trigger TMO.
-    if (this.state.phase === MatchPhase.TmoReview) {
-      this.cardHandler.advanceTmoReview();
-      this.emitStateChange();
-      // advanceTmoReview may have mutated state.phase (step 3 → Penalty);
-      // cast to defeat the narrowing TS inherited from the outer condition.
-      if ((this.state.phase as MatchPhase) === MatchPhase.Penalty) {
-        await this.penaltyHandler.handlePenaltyDecision();
-        if (!this.state.engine.isRunning) return;
-      }
-      this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-      this.scheduleTick(this.nextTickDelay());
-      return;
-    }
+    if (this.state.phase === MatchPhase.TmoReview) { await this.tickTmoReview(); return; }
 
     // KickAtGoal micro-phase: entry handler emitted kicker_steps_up and
     // parked here. Resolve the kick, transition to KickOff (or DropOut22 on
@@ -842,6 +820,30 @@ export class MatchCoordinator {
     // We don't await — the streamer drains in the background over
     // tickDelayMs, which is the same interval scheduleTick waits before
     // the next tick. Drain completes naturally before the next tick fires.
+    this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+    this.scheduleTick(this.nextTickDelay());
+  }
+
+  // TMO review: clock is frozen (advanceMinute returned 0) and play is
+  // suspended. Steps 1 + 2 narrate and bail. Step 3 applies CARD_ISSUED,
+  // resolves the review, and transitions phase back to Penalty — we then
+  // run the penalty modal in the SAME tick so the next tick starts in a
+  // phase resolvePhase() can handle. Without this fall-through the next
+  // tick enters resolvePhase with phase=Penalty and the game stalls on
+  // the TMO outcome. evaluateNewPenalty is deliberately NOT re-called
+  // here: the team-22 counter was bumped on the original Penalty tick
+  // before TMO began, and re-running would either double-bump or
+  // re-trigger TMO. Terminal: always schedules the next tick or returns
+  // paused.
+  private async tickTmoReview(): Promise<void> {
+    this.cardHandler.advanceTmoReview();
+    this.emitStateChange();
+    // advanceTmoReview may have mutated state.phase (step 3 → Penalty);
+    // cast to defeat the narrowing TS inherited from the outer condition.
+    if ((this.state.phase as MatchPhase) === MatchPhase.Penalty) {
+      await this.penaltyHandler.handlePenaltyDecision();
+      if (!this.state.engine.isRunning) return;
+    }
     this.streamer.flush(this.state.engine.tickDelayMs, this.state);
     this.scheduleTick(this.nextTickDelay());
   }

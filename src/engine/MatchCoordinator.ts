@@ -625,78 +625,7 @@ export class MatchCoordinator {
     // Penalty branch below.
     const phaseAtTickStart = this.state.phase;
 
-    // Cross-tick set-piece entry: a tick starting in Lineout or Scrum
-    // whose predecessor was a different phase fires the announcement here,
-    // before resolvePhase. Replaces the old end-of-tick award branch — the
-    // award now lands in the SAME tick that resolves the set piece rather
-    // than tacking onto the previous tick. Evens out commentary pacing
-    // around penalties (kick_to_touch → lineout) and knock-ons
-    // (open play → scrum). The first tick has prevTickStartPhase=null and
-    // the match opens in KickOff, so this never fires at kickoff.
-    if ((this.state.phase === MatchPhase.Lineout || this.state.phase === MatchPhase.Scrum) &&
-        this.prevTickStartPhase !== null &&
-        this.prevTickStartPhase !== this.state.phase) {
-      const phaseName = this.state.phase === MatchPhase.Lineout ? 'Lineout' : 'Scrum';
-      const teamName = (this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam).name;
-      const awardEvent: GameEvent = {
-        id: makeId(),
-        gameMinute: this.state.clock.gameMinute,
-        phase: this.state.phase,
-        side: this.state.possession,
-        sideName: teamName,
-        ballX: this.state.ball.x,
-        ballY: this.state.ball.y,
-        narration: { steps: [{ kind: 'announcement', key: 'set_piece_award', params: { phaseName, teamName } }] },
-      };
-      applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: awardEvent });
-      this.emitEvent(awardEvent);
-    }
-
-    if (this.state.phase === MatchPhase.KickOff || this.state.phase === MatchPhase.DropOut22) {
-      const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
-      const kicker = pickKicker(attackTeam, this.state, this.state.possession);
-      const phase = this.state.phase;
-      const announceEvent: GameEvent = {
-        id: makeId(),
-        gameMinute: this.state.clock.gameMinute,
-        phase,
-        side: this.state.possession,
-        sideName: attackTeam.name,
-        primaryPlayer: kicker,
-        ballX: this.state.ball.x,
-        ballY: this.state.ball.y,
-        narration: { steps: [{ kind: 'phase_outcome', phase, key: 'announce', primary: kicker }] },
-      };
-      applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
-      this.emitEvent(announceEvent);
-    }
-
-    if (this.state.phase === MatchPhase.KickOff) {
-      // Drain queued events before opening the kick-off strategy modal so
-      // the user reads the announce line ("Bath to kick off") before being
-      // asked to pick high/long/short.
-      await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-      this.kickOffStrategy = await this.penaltyHandler.awaitKickOffStrategy();
-      if (!this.state.engine.isRunning) return;
-    }
-
-    if (this.state.phase === MatchPhase.BoxKick) {
-      const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
-      const scrumHalf = pickScrumHalf(attackTeam, this.state, this.state.possession);
-      const announceEvent: GameEvent = {
-        id: makeId(),
-        gameMinute: this.state.clock.gameMinute,
-        phase: MatchPhase.BoxKick,
-        side: this.state.possession,
-        sideName: attackTeam.name,
-        primaryPlayer: scrumHalf,
-        ballX: this.state.ball.x,
-        ballY: this.state.ball.y,
-        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.BoxKick, key: 'announce', primary: scrumHalf }] },
-      };
-      applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
-      this.emitEvent(announceEvent);
-    }
+    if (await this.prepareEnteringPhase()) return;
 
     // AI tactical adaptation runs before resolvePhase so the new tactics
     // take effect on the very tick that meets the trigger condition. The
@@ -771,6 +700,87 @@ export class MatchCoordinator {
     // the next tick. Drain completes naturally before the next tick fires.
     this.streamer.flush(this.state.engine.tickDelayMs, this.state);
     this.scheduleTick(this.nextTickDelay());
+  }
+
+  // Pre-resolution narration for the phase about to resolve: the cross-tick
+  // set-piece award, the KickOff / DropOut22 kicker announce, the KickOff
+  // strategy modal, and the BoxKick announce. Returns true if the KickOff
+  // modal left the engine paused (caller returns without scheduling);
+  // false to continue the tick.
+  private async prepareEnteringPhase(): Promise<boolean> {
+    // Cross-tick set-piece entry: a tick starting in Lineout or Scrum
+    // whose predecessor was a different phase fires the announcement here,
+    // before resolvePhase. Replaces the old end-of-tick award branch — the
+    // award now lands in the SAME tick that resolves the set piece rather
+    // than tacking onto the previous tick. Evens out commentary pacing
+    // around penalties (kick_to_touch → lineout) and knock-ons
+    // (open play → scrum). The first tick has prevTickStartPhase=null and
+    // the match opens in KickOff, so this never fires at kickoff.
+    if ((this.state.phase === MatchPhase.Lineout || this.state.phase === MatchPhase.Scrum) &&
+        this.prevTickStartPhase !== null &&
+        this.prevTickStartPhase !== this.state.phase) {
+      const phaseName = this.state.phase === MatchPhase.Lineout ? 'Lineout' : 'Scrum';
+      const teamName = (this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam).name;
+      const awardEvent: GameEvent = {
+        id: makeId(),
+        gameMinute: this.state.clock.gameMinute,
+        phase: this.state.phase,
+        side: this.state.possession,
+        sideName: teamName,
+        ballX: this.state.ball.x,
+        ballY: this.state.ball.y,
+        narration: { steps: [{ kind: 'announcement', key: 'set_piece_award', params: { phaseName, teamName } }] },
+      };
+      applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: awardEvent });
+      this.emitEvent(awardEvent);
+    }
+
+    if (this.state.phase === MatchPhase.KickOff || this.state.phase === MatchPhase.DropOut22) {
+      const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
+      const kicker = pickKicker(attackTeam, this.state, this.state.possession);
+      const phase = this.state.phase;
+      const announceEvent: GameEvent = {
+        id: makeId(),
+        gameMinute: this.state.clock.gameMinute,
+        phase,
+        side: this.state.possession,
+        sideName: attackTeam.name,
+        primaryPlayer: kicker,
+        ballX: this.state.ball.x,
+        ballY: this.state.ball.y,
+        narration: { steps: [{ kind: 'phase_outcome', phase, key: 'announce', primary: kicker }] },
+      };
+      applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
+      this.emitEvent(announceEvent);
+    }
+
+    if (this.state.phase === MatchPhase.KickOff) {
+      // Drain queued events before opening the kick-off strategy modal so
+      // the user reads the announce line ("Bath to kick off") before being
+      // asked to pick high/long/short.
+      await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+      this.kickOffStrategy = await this.penaltyHandler.awaitKickOffStrategy();
+      if (!this.state.engine.isRunning) return true;
+    }
+
+    if (this.state.phase === MatchPhase.BoxKick) {
+      const attackTeam = this.state.possession === 'home' ? this.state.homeTeam : this.state.awayTeam;
+      const scrumHalf = pickScrumHalf(attackTeam, this.state, this.state.possession);
+      const announceEvent: GameEvent = {
+        id: makeId(),
+        gameMinute: this.state.clock.gameMinute,
+        phase: MatchPhase.BoxKick,
+        side: this.state.possession,
+        sideName: attackTeam.name,
+        primaryPlayer: scrumHalf,
+        ballX: this.state.ball.x,
+        ballY: this.state.ball.y,
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.BoxKick, key: 'announce', primary: scrumHalf }] },
+      };
+      applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: announceEvent });
+      this.emitEvent(announceEvent);
+    }
+    return false;
   }
 
   // Sin-bin + injury forced-substitution scans, run after the clock

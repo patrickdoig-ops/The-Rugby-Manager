@@ -132,7 +132,7 @@
 /* ── Footer CTA ─────────────────────────────────────────────────────── */
 #tr-footer {
   margin-top: auto;
-  padding: 16px;
+  padding: 16px 16px var(--safe-bottom);
   flex-shrink: 0;
 }
 

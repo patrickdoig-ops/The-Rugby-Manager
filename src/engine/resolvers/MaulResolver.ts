@@ -25,9 +25,9 @@ function packScore(forwards: Player[]): number {
 }
 
 // Average — discipline is a per-player attribute. Empty pack falls back
-// to 50 (the neutral pivot) so the term contributes zero.
+// to the discipline pivot so the term contributes zero.
 function packDiscipline(forwards: Player[]): number {
-  if (forwards.length === 0) return 50;
+  if (forwards.length === 0) return MAUL_VALUES.disciplinePivot;
   return forwards.reduce((sum, p) => sum + p.currentStats.discipline, 0) / forwards.length;
 }
 
@@ -49,7 +49,7 @@ export function resolveMaul(attackForwards: Player[], defendForwards: Player[]):
     // crack. Otherwise the maul gets the metres.
     const defDisc = packDiscipline(defendForwards);
     const pressureTerm = margin * collapseFromMarginWeight;
-    const disciplineTerm = Math.max(0, 50 - defDisc) * collapseFromDisciplineWeight;
+    const disciplineTerm = Math.max(0, MAUL_VALUES.disciplinePivot - defDisc) * collapseFromDisciplineWeight;
     const collapsePct = Math.min(maxCollapsePct, pressureTerm + disciplineTerm);
     if (rng(1, 100) <= collapsePct) {
       result = 'maul_collapse_penalty';

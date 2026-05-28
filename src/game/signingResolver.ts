@@ -46,27 +46,22 @@ export function appealScore(
 
   // Squad-average OVR — the prestige proxy. Skips marquees so a single
   // £600k star doesn't dominate a thin squad's average. Falls back to 0
-  // for empty squads (defensive).
+  // for empty squads (defensive). Position shortage at the offering
+  // club walked in the same loop — lower count = bigger need = higher
+  // appeal. Capped at 3 so a brand-new club doesn't accidentally win
+  // every bid via huge need scores.
   let ovrSum = 0;
   let ovrCount = 0;
-  for (const rid of club.squad) {
-    const p = state.career.roster[rid];
-    if (!p) continue;
-    const overall = overallFor(p);
-    ovrSum += overall;
-    ovrCount += 1;
-  }
-  const squadAvgOvr = ovrCount > 0 ? ovrSum / ovrCount : 0;
-
-  // Position shortage at the offering club. Lower count = bigger need
-  // = higher appeal. Capped at 3 so a brand-new club doesn't
-  // accidentally win every bid via huge need scores.
   let positionCount = 0;
   for (const rid of club.squad) {
     const p = state.career.roster[rid];
     if (!p) continue;
     if (p.position === player.position) positionCount += 1;
+    if (p.contract.isMarquee) continue;
+    ovrSum += overallFor(p);
+    ovrCount += 1;
   }
+  const squadAvgOvr = ovrCount > 0 ? ovrSum / ovrCount : 0;
   const positionShortage = Math.max(0, Math.min(3, APPEAL_WEIGHTS.needTargetPerPosition - positionCount));
 
   // Ambition: weighted average of recent league positions (2/3 + 1/3).
@@ -112,12 +107,18 @@ export function resolveSigningRound(state: GameState): ResolveResult {
     if (!player) continue;
     const bids = bidsByRoster.get(rid)!;
 
-    // Score each bid. Highest wins; tie-break by lower clubId.
+    // Score each bid. Highest wins; tie-break by lower clubId using
+    // localeCompare so the ordering is explicit and locale-stable.
+    // Today's clubIds are English-letter slugs (`bath`, `exeter`, …) so
+    // the result matches a naive `<` compare, but localeCompare makes
+    // the intent unambiguous and survives a future ID format change.
     let winner: TransferBid | null = null;
     let bestScore = -Infinity;
     for (const bid of bids) {
       const score = appealScore(state, bid, player);
-      if (score > bestScore || (score === bestScore && winner && bid.clubId < winner.clubId)) {
+      const wins = score > bestScore
+        || (score === bestScore && winner !== null && bid.clubId.localeCompare(winner.clubId) < 0);
+      if (wins) {
         bestScore = score;
         winner = bid;
       }

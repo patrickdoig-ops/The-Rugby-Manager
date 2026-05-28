@@ -11,6 +11,7 @@
 
 import type { GameState } from '../types/gameState';
 import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
+import { invariantsEnabled } from '../utils/invariantsMode';
 
 const SENIOR_CAP_TOTAL = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
 
@@ -27,6 +28,7 @@ function assertNonNegInt(name: string, v: number): void {
 }
 
 export function assertSeasonInvariants(state: GameState): void {
+  if (!invariantsEnabled()) return;
   const career = state.career;
 
   // ── Roster + rosterId integrity ──────────────────────────────────────
@@ -44,6 +46,11 @@ export function assertSeasonInvariants(state: GameState): void {
     if (!p.firstName || !p.lastName) {
       fail('roster.name', `rosterId=${rosterId} firstName="${p.firstName}" lastName="${p.lastName}"`);
     }
+    // Player.dob is intentionally nullable — the seed data has some
+    // legacy entries where the real-world DOB isn't published. Those
+    // players legitimately skip aging + retirement in careerRollover
+    // (the `if (!p.dob) continue;` guard there is documented behaviour,
+    // not a bug). Invariant deliberately does not enforce dob presence.
     assertNonNeg(`roster.contract.annualWage[${rosterId}]`, p.contract.annualWage);
     if (p.injury) {
       assertNonNegInt(`roster.injury.weeksRemaining[${rosterId}]`, p.injury.weeksRemaining);
@@ -165,6 +172,7 @@ export function assertSeasonInvariants(state: GameState): void {
   }
 
   // ── League standings: derivation invariants ──────────────────────────
+  let totalPlayed = 0;
   for (const s of state.league.standings) {
     if (s.played !== s.won + s.drawn + s.lost) {
       fail(`standings[${s.teamId}].played`, `played=${s.played} W=${s.won} D=${s.drawn} L=${s.lost}`);
@@ -176,6 +184,14 @@ export function assertSeasonInvariants(state: GameState): void {
     assertNonNeg(`standings[${s.teamId}].pointsFor`, s.pointsFor);
     assertNonNeg(`standings[${s.teamId}].pointsAgainst`, s.pointsAgainst);
     assertNonNegInt(`standings[${s.teamId}].leaguePoints`, s.leaguePoints);
+    totalPlayed += s.played;
+  }
+  // League-wide sanity: Σ(played) must equal 2 × results.length (each
+  // fixture contributes one played row to home + one to away). A bug
+  // that records the same fixture twice satisfies the per-team check
+  // but breaks this global one.
+  if (totalPlayed !== 2 * state.league.results.length) {
+    fail('standings.totalPlayed', `Σplayed=${totalPlayed} expected=${2 * state.league.results.length} (2 × results=${state.league.results.length})`);
   }
 
   // ── Playoff bracket (when active) ────────────────────────────────────

@@ -11,7 +11,7 @@ export type TackleInfringement = 'high_tackle';
 export function tackleInfringement(defender: Player): TackleInfringement | undefined {
   const H = HIGH_TACKLE;
   const pct = Math.max(H.minPct, H.basePct
-    + (50 - defender.currentStats.tackling)   * H.tacklingWeight
-    + (50 - defender.currentStats.discipline) * H.disciplineWeight);
+    + (H.statPivot - defender.currentStats.tackling)   * H.tacklingWeight
+    + (H.statPivot - defender.currentStats.discipline) * H.disciplineWeight);
   return rng(1, 100) <= pct ? 'high_tackle' : undefined;
 }

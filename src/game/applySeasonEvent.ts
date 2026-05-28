@@ -49,13 +49,14 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       state.calendar.date = nextRoundDate ?? addDays(state.calendar.date, SEASON_VALUES.weekLengthDays);
       // Prune mid-season FA rejection cooldowns that have aged out:
       // an entry with weekUntilClear ≤ current week is now approachable
-      // again.
-      for (const key of Object.keys(state.career.midseasonRejections)) {
-        const rid = Number(key);
-        if (state.career.midseasonRejections[rid] <= state.calendar.week) {
-          delete state.career.midseasonRejections[rid];
-        }
-      }
+      // again. Rebuild via Object.fromEntries rather than deleting from
+      // the object during iteration — same behaviour, defensive against
+      // a future iteration-style refactor.
+      const week = state.calendar.week;
+      state.career.midseasonRejections = Object.fromEntries(
+        Object.entries(state.career.midseasonRejections)
+          .filter(([, w]) => w > week),
+      );
       return;
     }
     case 'PLAYER_TACTICS_SET': {
@@ -151,6 +152,8 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
     case 'PLAYER_RETIRED': {
       const club = state.career.clubs.find(c => c.id === event.clubId);
       if (club) club.squad = club.squad.filter(id => id !== event.rosterId);
+      // Drop any dangling pre-agreement — a retired player can't move.
+      state.career.pendingMoves = state.career.pendingMoves.filter(m => m.rosterId !== event.rosterId);
       return;
     }
     case 'PLAYER_INJURED': {
@@ -185,13 +188,20 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         const p = state.career.roster[rid];
         if (p && p.contract.isMarquee) p.contract.isMarquee = false;
       }
-      // Designate the new marquee, if one was specified and the player
-      // is actually in this club's squad.
+      // Designate the new marquee. Fail loud if the caller passed a
+      // rosterId that's not on this club's squad — that's a logic bug,
+      // not a recoverable race (designation only happens from
+      // ContractsScreen on Hub, where the squad doesn't mutate under
+      // the user). Silent-skip would desync the UI from state.
       if (event.rosterId !== null) {
         const target = state.career.roster[event.rosterId];
-        if (target && club.squad.includes(event.rosterId)) {
-          target.contract.isMarquee = true;
+        if (!target) {
+          throw new Error(`MARQUEE_DESIGNATED: rosterId=${event.rosterId} not in roster`);
         }
+        if (!club.squad.includes(event.rosterId)) {
+          throw new Error(`MARQUEE_DESIGNATED: rosterId=${event.rosterId} not in ${event.clubId} squad`);
+        }
+        target.contract.isMarquee = true;
       }
       return;
     }
@@ -243,6 +253,10 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       // Marquees clear their flag on departure — slot is now free for
       // the club to re-designate.
       if (p.contract.isMarquee) p.contract.isMarquee = false;
+      // Drop any dangling pre-agreement — a terminated player can't
+      // move on the old contract, and the rollover-time TRANSFER_ACTIVATED
+      // would otherwise revive a contract that just ended.
+      state.career.pendingMoves = state.career.pendingMoves.filter(m => m.rosterId !== event.rosterId);
       if (event.reason !== 'retired') {
         if (!state.career.freeAgents.includes(event.rosterId)) {
           state.career.freeAgents.push(event.rosterId);
@@ -449,18 +463,27 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       };
       // Cascade: when a SF resolves, populate the final's matching slot
       // from the SF winner. SF1 winner takes the final's home slot, SF2
-      // winner takes the away slot — mirrors the bracket diagram.
+      // winner takes the away slot — mirrors the bracket diagram. Guarded
+      // against double-population: the slot only writes when currently
+      // null, so a stray replay of the same event can't overwrite a
+      // committed final.
       if (event.kind === 'semifinal_1' || event.kind === 'semifinal_2') {
         const winnerId = playoffWinnerId(target);
         if (winnerId !== null) {
-          if (event.kind === 'semifinal_1') playoffs.final.homeId = winnerId;
-          else                              playoffs.final.awayId = winnerId;
+          if (event.kind === 'semifinal_1' && playoffs.final.homeId === null) {
+            playoffs.final.homeId = winnerId;
+          } else if (event.kind === 'semifinal_2' && playoffs.final.awayId === null) {
+            playoffs.final.awayId = winnerId;
+          }
         }
       }
-      // Cascade: when the final resolves, write the champion.
+      // Cascade: when the final resolves, write the champion. Same
+      // double-population guard as the SF cascade.
       if (event.kind === 'final') {
         const winnerId = playoffWinnerId(target);
-        if (winnerId !== null) playoffs.championTeamId = winnerId;
+        if (winnerId !== null && playoffs.championTeamId === null) {
+          playoffs.championTeamId = winnerId;
+        }
       }
       return;
     }

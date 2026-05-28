@@ -21,6 +21,13 @@ export interface CardsState {
   // are rolled at match teardown via rngTransfer; this in-match list does
   // not carry duration.
   injured:       { home: Player[];      away: Player[] };
+  // Monotonic counter bumped by applyMatchEvent on every mutation that
+  // changes sinBin / sentOff / injured contents (CARD_ISSUED,
+  // SIN_BIN_RETURNED, RED_20_EXPIRED, PLAYER_INJURED_IN_MATCH,
+  // SUBSTITUTION_APPLIED). Lets FieldPosition.offFieldIds memoize the
+  // derived Set per (cards object, side) so the ~10-15 calls per tick
+  // share one allocation instead of rebuilding each time.
+  version: number;
 }
 
 export interface TmoReviewState {

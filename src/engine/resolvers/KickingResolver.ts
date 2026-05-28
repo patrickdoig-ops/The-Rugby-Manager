@@ -71,7 +71,7 @@ export function resolveFiftyTwentyTwo(
   const V = FIFTY_22_VALUES;
   const baseSuccess = V.baseSuccessPct[defenderBackfield];
   const statMod = (kicker.currentStats.kicking - V.kickerStatPivot) * V.kickerStatWeight;
-  const successPct = Math.max(1, Math.min(85, baseSuccess + statMod + planBonus));
+  const successPct = Math.max(V.successPctMin, Math.min(V.successPctMax, baseSuccess + statMod + planBonus));
   const distance = rng(V.attemptDistance[0], V.attemptDistance[1]);
 
   if (rng(1, 100) <= successPct) {
@@ -97,7 +97,7 @@ export function resolveAttackingKick(subType: AttackingKickSubType, kicker: Play
   const V = ATTACKING_KICK_VALUES[subType === 'cross_field' ? 'crossField' : 'grubber'];
   const distance = rng(V.distance[0], V.distance[1]);
   const statMod = (kicker.currentStats.kicking - V.kickerStatPivot) * V.kickerStatWeight;
-  const attackerWinsPct = Math.max(5, Math.min(60, V.attackerWinsBase + statMod));
+  const attackerWinsPct = Math.max(ATTACKING_KICK_VALUES.attackerWinsMinPct, Math.min(ATTACKING_KICK_VALUES.attackerWinsMaxPct, V.attackerWinsBase + statMod));
   const deadPct = V.deadBase;
   const roll = rng(1, 100);
   if (roll <= attackerWinsPct) return { outcome: 'attacker_wins', distance };

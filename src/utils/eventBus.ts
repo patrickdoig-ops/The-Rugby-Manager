@@ -17,7 +17,16 @@ class TypedEventBus {
 
   emit<K extends keyof AppEvents>(event: K, data: AppEvents[K]): void {
     const handlers = this.listeners.get(event) ?? [];
-    for (const h of handlers) h(data as unknown);
+    // Isolate each listener — a throw from one (e.g. a UI render bug) must
+    // not starve later subscribers of this same emit. Surface the error to
+    // the console rather than swallow it silently.
+    for (const h of handlers) {
+      try {
+        h(data as unknown);
+      } catch (err) {
+        console.error(`eventBus: listener for "${String(event)}" threw`, err);
+      }
+    }
   }
 }
 

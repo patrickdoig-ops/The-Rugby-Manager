@@ -59,6 +59,9 @@ import { zeroSeasonStats } from '../types/player';
 import { zeroTeamSeasonStats } from '../types/gameState';
 import type { TeamTactics } from '../types/team';
 import type { TrainingPlan } from '../types/training';
+import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
+
+const DEFAULT_SALARY_BUDGET = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
 
 const SAVE_KEY = 'rugby-manager-save';
 const SAVE_VERSION = 20;
@@ -205,16 +208,15 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
   return {
     seasonsCompleted: c.seasonsCompleted,
     nextRosterId: c.nextRosterId,
-    // v14+ clubs carry salaryBudget. Pre-v14 saves default each club's
-    // budget to undefined; GameCoordinator.fromSave back-fills to the
-    // effective cap so the load is non-disruptive. The next rollover
-    // then recomputes via computeBudgetEvents.
-    clubs: (c.clubs as ClubState[]).map(cl => ({
-      id: cl.id,
-      squad: [...cl.squad],
-      salaryBudget: typeof (cl as Partial<ClubState>).salaryBudget === 'number'
-        ? (cl as ClubState).salaryBudget
-        : undefined as unknown as number, // backfilled in fromSave
+    // v14+ clubs carry salaryBudget. Pre-v14 saves default to the
+    // effective cap right here so the parse output is always
+    // well-typed — no `undefined as unknown as number` lies leaking
+    // into GameCoordinator.fromSave. The next rollover recomputes
+    // via computeBudgetEvents.
+    clubs: (c.clubs as Partial<ClubState>[]).map(cl => ({
+      id: cl.id as string,
+      squad: [...(cl.squad ?? [])],
+      salaryBudget: typeof cl.salaryBudget === 'number' ? cl.salaryBudget : DEFAULT_SALARY_BUDGET,
     })),
     roster: backfillRosterSeasonStats(c.roster as Record<number, Player>),
     archive: (c.archive as ArchivedSeason[]).map(a => ({
@@ -385,15 +387,44 @@ function parseMarket(raw: unknown): MarketState | null {
   // v15+ field. Pre-v15 saves omit the array; default empty so the
   // resumed window has no competing bids in flight (any pre-v15 mid-
   // window signings were already applied as CONTRACT_SIGNED — the new
-  // bid layer just starts fresh).
-  const bids = Array.isArray(m.bids) ? (m.bids as TransferBid[]).map(b => ({ ...b })) : [];
+  // bid layer just starts fresh). Each bid is structurally validated
+  // before being trusted — a truncated / hand-edited save with malformed
+  // bid objects would otherwise carry undefined fields straight into
+  // runtime state.
+  const bids = Array.isArray(m.bids)
+    ? (m.bids as unknown[]).filter(isValidBid).map(b => ({ ...b }))
+    : [];
+  // Same validation pass for offers — same risk surface from a v6+
+  // partial / corrupt save.
+  const offers = (m.offers as unknown[]).filter(isValidOffer).map(o => ({ ...o }));
   return {
     phase,
     openedAfterSeason: m.openedAfterSeason,
     expiringRosterIds: m.expiringRosterIds.filter((n): n is number => typeof n === 'number'),
-    offers: (m.offers as TransferOffer[]).map(o => ({ ...o })),
+    offers,
     bids,
   };
+}
+
+function isValidBid(b: unknown): b is TransferBid {
+  if (typeof b !== 'object' || b === null) return false;
+  const o = b as Record<string, unknown>;
+  return typeof o.id === 'string'
+      && typeof o.rosterId === 'number'
+      && typeof o.clubId === 'string'
+      && typeof o.kind === 'string'
+      && typeof o.annualWage === 'number'
+      && typeof o.lengthYears === 'number'
+      && typeof o.status === 'string';
+}
+
+function isValidOffer(o: unknown): o is TransferOffer {
+  if (typeof o !== 'object' || o === null) return false;
+  const r = o as Record<string, unknown>;
+  return typeof r.id === 'string'
+      && typeof r.rosterId === 'number'
+      && typeof r.annualWage === 'number'
+      && typeof r.lengthYears === 'number';
 }
 
 export function saveGame(save: SavedSeason): void {

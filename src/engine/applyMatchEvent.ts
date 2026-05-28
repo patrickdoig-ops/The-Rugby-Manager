@@ -178,6 +178,7 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
           throw new Error(`unhandled CardKind: ${_ as string}`);
         }
       }
+      state.cards.version++;
       return;
     }
 
@@ -185,6 +186,7 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       const bin = state.cards.sinBin[event.side];
       const idx = bin.findIndex(e => e.player === event.player);
       if (idx >= 0) bin.splice(idx, 1);
+      state.cards.version++;
       return;
     }
 
@@ -193,6 +195,7 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       const idx = bin.findIndex(e => e.player === event.player);
       if (idx >= 0) bin.splice(idx, 1);
       state.cards.sentOff[event.side].push(event.player);
+      state.cards.version++;
       return;
     }
 
@@ -244,6 +247,7 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       const bucket = state.cards.injured[event.side];
       if (!bucket.some(p => p === event.player)) {
         bucket.push(event.player);
+        state.cards.version++;
       }
       if (!event.player.pendingInjuryKind) {
         event.player.pendingInjuryKind = event.kind;
@@ -501,6 +505,7 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       const injured = state.cards.injured[event.teamSide];
       const injIdx = injured.findIndex(p => p === off);
       if (injIdx >= 0) injured.splice(injIdx, 1);
+      if (sentIdx >= 0 || injIdx >= 0) state.cards.version++;
       return;
     }
 

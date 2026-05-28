@@ -38,6 +38,10 @@ export const HIGH_TACKLE = {
   basePct:          8,
   tacklingWeight:   0.1,
   disciplineWeight: 0.1,
+  // Stat pivot for both tackling and discipline terms — 50 = neutral.
+  // (Same value as BREAKDOWN_VALUES.disciplinePivot and MAUL_VALUES.disciplinePivot
+  // by design; if you want to drift them apart, change one without the others.)
+  statPivot:        50,
   minPct:           2.5,
 } as const;
 

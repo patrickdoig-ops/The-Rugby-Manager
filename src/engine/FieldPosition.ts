@@ -106,11 +106,33 @@ export function inOwn22For(state: MatchState, side: PossessionSide): boolean {
 // red_20 serving time) plus sentOff (red_full, or red_20 after expiry with no
 // sub available) plus injured (in-match injury, no return). Used by
 // onFieldPlayers / availableForwards / availableBacks.
+//
+// Memoised per (cards object, side) and gated on cards.version. The 10-15
+// calls per tick (FatigueAccumulator, AISubstitutionDirector, every resolver
+// and picker chain) used to each rebuild the Set; now they share one
+// allocation until applyMatchEvent bumps the version. WeakMap-keyed on the
+// cards object so a finished match's cache is GC'd with the state.
+interface OffFieldCacheEntry {
+  version: number;
+  home?: Set<number>;
+  away?: Set<number>;
+}
+const offFieldCache = new WeakMap<MatchState['cards'], OffFieldCacheEntry>();
+
 export function offFieldIds(state: MatchState, side: PossessionSide): Set<number> {
+  const cards = state.cards;
+  let entry = offFieldCache.get(cards);
+  if (!entry || entry.version !== cards.version) {
+    entry = { version: cards.version };
+    offFieldCache.set(cards, entry);
+  }
+  const cached = entry[side];
+  if (cached) return cached;
   const ids = new Set<number>();
-  for (const entry of state.cards.sinBin[side])   ids.add(entry.player.id);
-  for (const player of state.cards.sentOff[side]) ids.add(player.id);
-  for (const player of state.cards.injured[side]) ids.add(player.id);
+  for (const e of cards.sinBin[side])   ids.add(e.player.id);
+  for (const p of cards.sentOff[side])  ids.add(p.id);
+  for (const p of cards.injured[side])  ids.add(p.id);
+  entry[side] = ids;
   return ids;
 }
 

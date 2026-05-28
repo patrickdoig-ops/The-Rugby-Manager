@@ -38,7 +38,10 @@ export const MAUL_VALUES = {
   // weak defender still mostly gains ground; the weak defender
   // occasionally cracks under sustained pressure.
   collapseFromMarginWeight:     0.30,   // pp per +1 of margin (above 0)
-  collapseFromDisciplineWeight: 0.50,   // pp per (50 - defendDiscipline)
+  collapseFromDisciplineWeight: 0.50,   // pp per (disciplinePivot - defendDiscipline)
+  // Stat pivot for the discipline term — 50 = neutral. Same value as
+  // BREAKDOWN_VALUES.disciplinePivot and HIGH_TACKLE.statPivot by design.
+  disciplinePivot:              50,
   maxCollapsePct:               60,
   // Gain distribution on maul_won. Base drive is 5-10m; ~10% of wins
   // chain into a long drive (15-25m). Real-world Premiership driving

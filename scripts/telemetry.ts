@@ -18,6 +18,11 @@ import { MatchCoordinator } from '../src/engine/MatchCoordinator.js';
 import { deriveFixtureSeed } from '../src/game/derive.js';
 import { eventBus } from '../src/utils/eventBus.js';
 import { applyStarBoost } from '../src/team/applyStarBoost.js';
+import { setInvariantsEnabled } from '../src/utils/invariantsMode.js';
+
+// Tuning runs are correctness-checked elsewhere (npm run verify). Skip the
+// per-event tripwire sweep so the 450-fixture pass stays fast.
+setInvariantsEnabled(false);
 import type { TeamJson } from '../src/team/teamProfile.js';
 import type { RawTeamInput } from '../src/types/teamData.js';
 import type { TeamTactics, AttackingGamePlan, AttackingBreakdown, BackfieldDefence, DefensiveLine, OffloadStrategy } from '../src/types/team.js';

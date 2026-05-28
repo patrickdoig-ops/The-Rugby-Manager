@@ -26,6 +26,13 @@ export const BOX_KICK_VALUES = {
   veryGoodKickDistance:      20,
   poorKickFarDistance:       30,
   poorKickShortDistance:     8,
+  // Touch-finder (long_and_off clearance) success probability — kicker's
+  // `kicking` stat shifted by `touchFinderKickerStatOffset` then clamped
+  // to [touchFinderMinPct, touchFinderMaxPct]. A weak scrum-half can
+  // still miss touch; an elite kicker tops out below certainty.
+  touchFinderKickerStatOffset: -10,
+  touchFinderMinPct:           20,
+  touchFinderMaxPct:           85,
 } as const;
 
 export const TACTICAL_KICK_VALUES = {
@@ -61,6 +68,11 @@ export const FIFTY_22_VALUES = {
   // Distance the 50/22 attempt covers when it doesn't succeed (still a
   // good kick, just didn't land in the corner).
   attemptDistance: [35, 55],
+  // Clamp on the final success percent — keeps an elite kicker against
+  // a one-back backfield from approaching certainty, and an average
+  // kicker against a three-back backfield from dropping to ~0.
+  successPctMin: 1,
+  successPctMax: 85,
 } as const;
 
 export const GOAL_KICK_VALUES = {
@@ -138,4 +150,9 @@ export const ATTACKING_KICK_VALUES = {
     kickerStatPivot:    70,
     kickerStatWeight:   0.3,
   },
+  // Shared clamp on attacker-wins percent after kicker-stat modifier.
+  // Stops an elite kicker against weak cover from approaching certainty
+  // and a poor kicker against the back three from dropping to zero.
+  attackerWinsMinPct: 5,
+  attackerWinsMaxPct: 60,
 } as const;

@@ -374,8 +374,12 @@
 }
 
 .hub-tile {
+  --tile-accent: var(--rm-pitch);
   position: relative;
-  background: var(--rm-surface);
+  background:
+    linear-gradient(168deg,
+      color-mix(in oklch, var(--tile-accent) 7%, var(--rm-surface-2)) 0%,
+      var(--rm-surface) 60%);
   border: 1px solid var(--rm-border-soft);
   border-radius: 13px;
   padding: 12px 10px;
@@ -384,12 +388,42 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 8px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  color: var(--rm-pitch);
-  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
-  box-shadow: var(--rm-card-shadow);
+  color: var(--tile-accent);
+  transition: transform 150ms var(--rm-ease-out), border-color 150ms ease, box-shadow 150ms ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 2px 8px rgba(0, 0, 0, 0.55),
+    0 10px 30px rgba(0, 0, 0, 0.32);
+}
+
+/* Per-function accent — coherent family, varied hue */
+#hub-tile-squad     { --tile-accent: var(--rm-pitch); }
+#hub-tile-fixtures  { --tile-accent: var(--blue); }
+#hub-tile-league    { --tile-accent: var(--rm-stat-3); }
+#hub-tile-training  { --tile-accent: var(--rm-stat-5); }
+#hub-tile-contracts { --tile-accent: var(--rm-amber); }
+#hub-tile-transfers { --tile-accent: oklch(0.72 0.15 300); }
+
+/* Icon medallion — gives each tile colour identity + depth */
+.hub-tile-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background:
+    radial-gradient(120% 120% at 50% 0%,
+      color-mix(in oklch, var(--tile-accent) 34%, transparent) 0%,
+      color-mix(in oklch, var(--tile-accent) 16%, transparent) 100%);
+  border: 1px solid color-mix(in oklch, var(--tile-accent) 42%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 2px 10px color-mix(in oklch, var(--tile-accent) 26%, transparent);
+  transition: box-shadow 150ms ease, transform 150ms var(--rm-ease-out);
 }
 
 .hub-tile--stub {
@@ -435,27 +469,40 @@
 }
 
 .hub-tile-label {
-  font-family: var(--rm-font-mono);
+  font-family: var(--rm-font-body);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.10em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--rm-chalk);
 }
 
 .hub-tile:active {
-  background: var(--rm-surface-3);
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 .hub-tile:focus-visible {
-  outline: 2px solid var(--rm-pitch);
+  outline: 2px solid var(--tile-accent);
   outline-offset: 2px;
 }
 
 @media (hover: hover) {
   .hub-tile:hover {
-    background: var(--rm-surface-2);
-    border-color: var(--rm-border);
+    transform: translateY(-2px);
+    border-color: color-mix(in oklch, var(--tile-accent) 45%, var(--rm-border));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.09),
+      0 4px 12px rgba(0, 0, 0, 0.5),
+      0 14px 36px rgba(0, 0, 0, 0.34);
+  }
+  .hub-tile:hover .hub-tile-ico {
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      0 4px 14px color-mix(in oklch, var(--tile-accent) 38%, transparent);
   }
   #hub-settings:hover { color: var(--rm-text); }
   #hub-play-next:hover { background: var(--rm-cta-hover); }

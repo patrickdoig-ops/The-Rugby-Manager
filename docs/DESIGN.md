@@ -1,7 +1,7 @@
 # DESIGN.md — Rugby Manager Design System
 
 > **System name:** Match Day Editorial v2.1
-> **Last revised:** May 2026 (after UI Audit v2.0)
+> **Last revised:** May 2026 (v2.274a team-colour theming rollout)
 > **Status:** Authoritative. This document supersedes any conflicting guidance in older mockup notes or screen comments.
 
 ---
@@ -122,11 +122,12 @@ Each accent colour has **exactly one semantic role**. Do not reuse for unrelated
 
 | Token | Semantic | Used for |
 |---|---|---|
-| `--rm-pitch` | Primary / active / alive | CTAs, active tabs, selected rows, brand moments, hub hero, eyebrows |
+| `--rm-pitch` | Primary / active / alive | CTAs, active tabs, selected rows, brand moments, hub hero, eyebrows; fallback when `--team-color` is unset |
 | `--rm-amber` | Performance reward | MOTM badges, top scorer callouts, milestone notifications, salary-cap "tight" state |
 | `--rm-danger` | Negative health/discipline | Injuries, expiring contracts, red-card markers, over-cap state, release confirmations |
 | `--rm-stat-3` (gold) | Quantitative elite | Player overall ratings ≥ 85 |
 | `--rm-stat-5` (cyan) | Analytical/predictive | Match spread predictions, statistical callouts, trending indicators |
+| `--team-color` | Manager's team identity | Screen background gradients (Tier 1/2), active interactive tints, jersey badges — see §2.5 |
 
 ### 2.4 The one allowed hex
 
@@ -153,17 +154,88 @@ const screenEl = document.getElementById('hub');
 screenEl.style.setProperty('--team-color', team.color);
 ```
 
-Then in CSS, reference with a fallback to pitch:
+**Every in-season screen that shows the manager's own team data sets `--team-color` in JS.** League-neutral screens (LeagueTable, LeagueMenu, TeamStats, PlayerStats) do not — they display multi-club data and personalising them with the manager's colour would be misleading.
+
+#### 2.5.1 sRGB colour-mixing rule
+
+**Always use `in srgb` when mixing `--team-color` with a dark anchor.** Never use `in oklch` for team-colour gradients.
+
+`oklch` interpolation rotates between competing hues, causing Gloucester red and Harlequins purple to drift through muddy orange/brown midpoints. `srgb` mixing with `black` scales all RGB components proportionally, preserving the team's hue and saturation at every stop.
 
 ```css
-.hub-crest {
-  background: linear-gradient(160deg,
-    var(--team-color, var(--rm-pitch)),
-    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 30%, black));
+/* Correct */
+color-mix(in srgb, var(--team-color, var(--rm-pitch)) 80%, black)
+
+/* Wrong — hue drift on red/purple teams */
+color-mix(in oklch, var(--team-color, var(--rm-pitch)) 80%, oklch(0.08 0 0))
+```
+
+Always include `var(--rm-pitch)` as the `--team-color` fallback. This keeps the pattern valid on any screen that hasn't received the JS `setProperty` call yet.
+
+#### 2.5.2 Two-tier application system
+
+Team colour is applied at two intensity levels depending on how prominent the team identity should be:
+
+**Tier 1 — Full-screen radial gradient** (Hub, ModePicker, PreMatch)
+
+The entire screen background carries the team colour as a dominant wash at the top, fading to `--rm-bg` by 88%. Used on screens where team identity is the primary visual statement.
+
+```css
+background-image: radial-gradient(
+  ellipse 200% 130% at 50% 0%,
+  color-mix(in srgb, var(--team-color, var(--rm-pitch)) 80%, black) 0%,
+  color-mix(in srgb, var(--team-color, var(--rm-pitch)) 38%, black) 50%,
+  var(--rm-bg) 88%
+);
+```
+
+**Tier 2 — Tinted app-header** (FixtureList, Contracts, SquadManagement, SquadOverview, Training, Renewals, TransferMarket, RoundResults, SigningResults, RetentionDecision)
+
+Only the `.app-header` block carries the team colour. The list/content area beneath uses the standard dark background. The screen-root ID scopes the override so it doesn't bleed into other screens.
+
+```css
+#screen-id .app-header {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 75%, black) 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 38%, black) 100%
+  );
+  border-bottom-color: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 45%, transparent);
 }
 ```
 
-The fallback to `--rm-pitch` is acceptable here because team colour is genuinely runtime-dynamic, unlike system tokens.
+The 75→38% linear gradient gives the header a top-heavy glow that transitions downward without a visible hard edge where it meets the content.
+
+#### 2.5.3 Interactive element tinting
+
+Active/selected controls within a team-colour screen — filter chips, position tabs, active toggles — receive a low-percentage team-colour tint to stay visually consistent with the header without competing with it.
+
+```css
+.sq-chip.active {
+  background: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 22%, var(--rm-surface-2));
+  border-color: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 60%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--team-color, var(--rm-pitch)) 18%, transparent);
+}
+```
+
+Keep the tint percentage low (18–22% background, 40–60% border) so the team colour reads as contextual accent, not a competing primary accent.
+
+#### 2.5.4 Team-coloured jersey badges
+
+Starter jersey number badges (`.sq-jersey--starter`) use a linear gradient from full team colour to a darkened mix, with a matching glow shadow:
+
+```css
+.sq-jersey--starter {
+  background: linear-gradient(155deg,
+    var(--team-color, var(--rm-pitch)) 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 52%, black) 100%);
+  box-shadow:
+    0 0 12px color-mix(in srgb, var(--team-color, var(--rm-pitch)) 40%, transparent),
+    0 2px 6px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+```
+
+Bench jersey badges use the neutral surface treatment — team colour on bench slots would flatten the starter/bench visual hierarchy.
 
 ---
 
@@ -194,6 +266,7 @@ The fallback to `--rm-pitch` is acceptable here because team colour is genuinely
 | 72px | Match Result winner's score |
 | 44–52px | Match Result loser's score, hero scores |
 | 42px | Live scoreboard score |
+| clamp(30px, 9vw, 44px) | Hub team name (`#hub-team-name`) — fluid, centred, pure `#ffffff` |
 | 28px | Home screen CTA, modal title |
 | 20–22px | In-flow CTA labels, screen titles in hub-hero |
 | 20px | `.app-title` in shared header |
@@ -246,7 +319,7 @@ Team crests appear at **exactly four sizes**. There is no fifth size; if you nee
 | `--crest-xs` | 22×22 | 5px | 11px | League table rows, round results, fixture list rows |
 | `--crest-sm` | 34×34 | 8px | 15px | Next-match cards, live scoreboard, pre-match summary header |
 | `--crest-md` | 44×44 | 10px | 22px | Match Result hero, Pre-Match split-screen, Team Selector cards |
-| `--crest-lg` | 58×58 | 13px | 28px | Hub hero, end-of-season standings highlight |
+| `--crest-lg` | 58×58 | 13px | 28px | End-of-season standings highlight |
 | `--crest-xl` | 88×88 | 16px | 36px | Team Info hero, Mode Picker hero |
 
 ### Implementation
@@ -808,6 +881,8 @@ A non-exhaustive list of things that have been flagged in past audits and **must
 - ❌ Using `--rm-stat-4` (green) for accent text alongside `--rm-pitch` — they're the same hue
 - ❌ Amber (`--rm-amber`) for injuries (red `--rm-danger` is correct)
 - ❌ Red (`--rm-danger`) for performance rewards (amber `--rm-amber` is correct)
+- ❌ `in oklch` for `--team-color` gradients — use `in srgb` with `black` to preserve hue on red/purple teams
+- ❌ Setting `--team-color` on league-neutral screens (LeagueTable, TeamStats, PlayerStats) — multi-club views should not be personalised with the manager's team colour
 - ❌ Bright gradients, soft pastels, photo backgrounds, leather textures
 - ❌ Filler content / dummy sections / placeholder copy
 - ❌ Exclamation marks in product copy
@@ -828,7 +903,10 @@ Reach for the existing reference implementations:
 | Toast | `src/ui/Toast.ts` + `.rm-toast` in `main.css` |
 | Notification badge | `.notification-badge` + Hub tile usage |
 | Crest at any size | Read the four `--crest-*` token values, pick the right one |
-| Team-colour atmospheric wash | `#hub-hero` background-image, `#end-of-season::before` |
+| Tier 1 full-screen team-colour gradient | `#hub` or `#pre-match` `background-image` in `hub.css` / `prematch.css` |
+| Tier 2 tinted app-header team-colour | `#contracts .app-header` in `contracts.css` |
+| Team-coloured active chip / filter | `.sq-chip.active` in `squad.css` |
+| Team-coloured jersey badge | `.sq-jersey--starter` in `squad.css` |
 
 When the existing implementations contradict each other, **this document is correct** and the implementation is the bug.
 

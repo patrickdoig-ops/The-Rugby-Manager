@@ -192,6 +192,12 @@ export interface Player {
   // initPlayer time as the starting fatiguePct, so a tired starter actually
   // starts the next match tired.
   condition: number;
+  // Soft OVR ceiling seeded at game-start (OVR + age-based headroom via
+  // POTENTIAL_HEADROOM in balance/career.ts). Growth in both rollover and
+  // training is scaled down to near-zero as the player's OVR approaches this
+  // value. Decline fires at full rate regardless. Optional for back-compat
+  // with pre-v21 saves (SaveManager back-fills it on load).
+  potential?: number;
   // Career-scope persistent injury (only meaningful on the roster Player).
   // Optional ⇔ player is fit. Decremented on WEEK_ADVANCED, cleared by
   // PLAYER_RECOVERED. See PlayerInjury above.

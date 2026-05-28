@@ -23,6 +23,8 @@ import {
   BACKS_FOCUS_STATS, DEVELOPMENT, FORWARDS_FOCUS_STATS,
   INJURY_RISK, INTENSITY_EFFECTS, TRAINING_STAT_DELTA,
 } from '../engine/balance/training';
+import { proximityMultiplier } from '../engine/balance/career';
+import { playerOverall } from '../engine/RatingEngine';
 import { INJURY_SEVERITY } from '../engine/balance/injuries';
 import { rngTransfer, rngTransferRaw } from '../utils/rng';
 import { pickPlan as pickAIPlan } from './aiTrainingDirector';
@@ -90,6 +92,7 @@ function pushClubTrainingEvents(
     const focus: [keyof PlayerStats, keyof PlayerStats] = isForward(p.position) ? fwdFocus : bckFocus;
     const ageInNewSeason = p.dob ? (getAge(p.dob, seasonOpenDate) ?? 25) : 25;
     const ageMul = ageMultiplier(ageInNewSeason);
+    const proxMul = proximityMultiplier(p.potential, playerOverall(p.baseStats, p.position));
 
     // Development rolls — one per stat per player. Walk PLAYER_STAT_KEYS
     // (stable order) so the rngTransfer sequence is identical across
@@ -98,7 +101,7 @@ function pushClubTrainingEvents(
     for (const stat of PLAYER_STAT_KEYS) {
       const isFocus = stat === focus[0] || stat === focus[1];
       const multiplier = isFocus ? DEVELOPMENT.focusMultiplier : DEVELOPMENT.unfocusedMultiplier;
-      const chance = intensity.developmentChance * multiplier * ageMul;
+      const chance = intensity.developmentChance * multiplier * ageMul * proxMul;
       if (chance > 0 && rngTransferRaw() < chance) {
         statDeltas[stat] = TRAINING_STAT_DELTA;
       }

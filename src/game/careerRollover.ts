@@ -30,7 +30,8 @@ import type { ArchivedPlayerSeason, Fixture, GameState, SeasonEvent, TeamStandin
 import type { Player, PlayerStats, PlayerSeasonStats } from '../types/player';
 import { isForward, PLAYER_STAT_KEYS } from '../types/player';
 import type { SeasonAwards, SeasonLeader } from '../types/gameState';
-import { AGE_CURVES, STAT_NOISE, RETIREMENT_CURVE, SEASON_AWARDS, ACADEMY_SUPPLY, IMPORT_SUPPLY } from '../engine/balance/career';
+import { AGE_CURVES, STAT_NOISE, RETIREMENT_CURVE, SEASON_AWARDS, ACADEMY_SUPPLY, IMPORT_SUPPLY, proximityMultiplier, appearancesMultiplier } from '../engine/balance/career';
+import { playerOverall } from '../engine/RatingEngine';
 import { SEASON_VALUES } from '../engine/balance';
 import { getAge, parseSeasonStartYear, seasonOpenIso } from './age';
 import { generateFixtures } from './fixtures';
@@ -180,11 +181,18 @@ function snapshotPlayerHistory(state: GameState): Record<number, ArchivedPlayerS
 
 function developStats(p: Player, ageInNewSeason: number): Partial<PlayerStats> {
   const deltas: Partial<PlayerStats> = {};
+  const ovr = playerOverall(p.baseStats, p.position);
+  const proxMul = proximityMultiplier(p.potential, ovr);
+  const appsMul = appearancesMultiplier(p.seasonStats.appearances);
   for (const k of PLAYER_STAT_KEYS) {
     const curve = AGE_CURVES[k];
-    const base = ageInNewSeason < curve.peakAge ? curve.growthPerYear : -curve.declinePerYear;
+    const isGrowth = ageInNewSeason < curve.peakAge;
+    const base = isGrowth ? curve.growthPerYear : -curve.declinePerYear;
+    // Growth is modulated by proximity to ceiling and match experience.
+    // Decline fires at full rate regardless of either.
+    const scaledBase = isGrowth ? base * proxMul * appsMul : base;
     const noise = clampedNormal(STAT_NOISE.stddev, STAT_NOISE.clamp);
-    const delta = Math.round(base + noise);
+    const delta = Math.round(scaledBase + noise);
     if (delta !== 0) deltas[k] = delta;
   }
   return deltas;

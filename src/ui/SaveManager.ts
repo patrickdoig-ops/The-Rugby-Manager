@@ -60,12 +60,14 @@ import { zeroTeamSeasonStats } from '../types/gameState';
 import type { TeamTactics } from '../types/team';
 import type { TrainingPlan } from '../types/training';
 import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
+import { playerOverall } from '../engine/RatingEngine';
+import { getAge } from '../game/age';
 
 const DEFAULT_SALARY_BUDGET = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
 
 const SAVE_KEY = 'rugby-manager-save';
-const SAVE_VERSION = 20;
-const ACCEPTED_VERSIONS = new Set([19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+const SAVE_VERSION = 21;
+const ACCEPTED_VERSIONS = new Set([20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
 
 export type SavedGame = SavedSeason & { version: number };
 
@@ -262,6 +264,13 @@ function backfillRosterSeasonStats(roster: Record<number, Player>): Record<numbe
       p.seasonStats = merged;
     }
     if (typeof p.condition !== 'number') p.condition = 100;
+    if (typeof p.potential !== 'number') {
+      const todayIso = new Date().toISOString().slice(0, 10);
+      const ageNow = p.dob ? (getAge(p.dob, todayIso) ?? 28) : 28;
+      const ovr = playerOverall(p.baseStats, p.position);
+      const headroom = ageNow <= 21 ? 8 : ageNow <= 24 ? 5 : ageNow <= 28 ? 2 : 1;
+      p.potential = Math.min(99, ovr + headroom);
+    }
   }
   return roster;
 }

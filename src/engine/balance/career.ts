@@ -9,26 +9,84 @@ import type { PlayerStats } from '../../types/player';
 // declines thereafter. `growthPerYear` and `declinePerYear` are pre-noise
 // expected deltas; `STAT_NOISE` adds per-player jitter.
 //
-// Calibration:
-//   Physical stats (pace, agility) peak early (~25) and fall faster.
-//   Composite/cerebral stats (composure, positioning, discipline) hold
-//   longer (peak 32–33) and decline slowly. Set-piece and kicking sit in
-//   the middle — they need physical baseline but reward experience.
+// Calibration (v2.284a):
+//   Growth rates halved from v1 baselines so rollover and training are
+//   roughly equal contributors. Physical decline steepened (pace 1.2→1.5),
+//   mental decline flattened (composure 0.2→0.1) to widen the career arc.
 export const AGE_CURVES: Record<keyof PlayerStats,
   { peakAge: number; growthPerYear: number; declinePerYear: number }> = {
-  pace:        { peakAge: 25, growthPerYear: 1.5, declinePerYear: 1.2 },
-  agility:     { peakAge: 26, growthPerYear: 1.4, declinePerYear: 1.0 },
-  stamina:     { peakAge: 27, growthPerYear: 1.2, declinePerYear: 0.8 },
-  strength:    { peakAge: 28, growthPerYear: 1.0, declinePerYear: 0.7 },
-  tackling:    { peakAge: 29, growthPerYear: 0.8, declinePerYear: 0.5 },
-  breakdown:   { peakAge: 29, growthPerYear: 0.8, declinePerYear: 0.5 },
-  handling:    { peakAge: 30, growthPerYear: 0.7, declinePerYear: 0.4 },
-  setPiece:    { peakAge: 30, growthPerYear: 0.7, declinePerYear: 0.4 },
-  discipline:  { peakAge: 32, growthPerYear: 0.5, declinePerYear: 0.3 },
-  positioning: { peakAge: 32, growthPerYear: 0.5, declinePerYear: 0.3 },
-  kicking:     { peakAge: 31, growthPerYear: 0.6, declinePerYear: 0.3 },
-  composure:   { peakAge: 33, growthPerYear: 0.4, declinePerYear: 0.2 },
+  pace:        { peakAge: 25, growthPerYear: 0.80, declinePerYear: 1.50 },
+  agility:     { peakAge: 26, growthPerYear: 0.70, declinePerYear: 1.20 },
+  stamina:     { peakAge: 27, growthPerYear: 0.60, declinePerYear: 0.80 },
+  strength:    { peakAge: 28, growthPerYear: 0.50, declinePerYear: 0.70 },
+  tackling:    { peakAge: 29, growthPerYear: 0.40, declinePerYear: 0.50 },
+  breakdown:   { peakAge: 29, growthPerYear: 0.40, declinePerYear: 0.50 },
+  handling:    { peakAge: 30, growthPerYear: 0.35, declinePerYear: 0.35 },
+  setPiece:    { peakAge: 30, growthPerYear: 0.35, declinePerYear: 0.35 },
+  kicking:     { peakAge: 31, growthPerYear: 0.30, declinePerYear: 0.30 },
+  discipline:  { peakAge: 32, growthPerYear: 0.25, declinePerYear: 0.20 },
+  positioning: { peakAge: 32, growthPerYear: 0.25, declinePerYear: 0.20 },
+  composure:   { peakAge: 33, growthPerYear: 0.20, declinePerYear: 0.10 },
 };
+
+// Age-banded headroom (OVR points above current) seeded once per player at
+// game-start and persona-generation. rngTransfer(min, max) picks within the
+// band. Young players have significant room to grow; veterans are already near
+// their ceiling.
+export const POTENTIAL_HEADROOM: {
+  maxAge: number; min: number; max: number;
+}[] = [
+  { maxAge: 21, min: 8,  max: 20 },
+  { maxAge: 24, min: 3,  max: 12 },
+  { maxAge: 28, min: 1,  max:  6 },
+  { maxAge: 99, min: 0,  max:  3 },
+];
+
+// Growth multiplier applied when a player approaches their OVR ceiling
+// (potential). Interpolated linearly between anchors. Applied to rollover
+// growth and training development chance — never to decline.
+// Sorted ascending by headroom; headroom = potential - currentOvr.
+export const PROXIMITY_CURVE: { headroom: number; mul: number }[] = [
+  { headroom:  0, mul: 0.10 },
+  { headroom:  3, mul: 0.25 },
+  { headroom:  6, mul: 0.50 },
+  { headroom: 10, mul: 0.80 },
+  { headroom: 15, mul: 1.00 },
+];
+
+// Match-appearances multiplier applied to rollover growth only (not decline,
+// not training). Sorted descending by minApps so the first matching entry wins.
+export const APPEARANCES_CURVE: { minApps: number; mul: number }[] = [
+  { minApps: 16, mul: 1.20 },
+  { minApps: 11, mul: 1.00 },
+  { minApps:  5, mul: 0.70 },
+  { minApps:  0, mul: 0.40 },
+];
+
+// Pure helpers — shared by careerRollover and trainingWeek.
+
+export function proximityMultiplier(potential: number | undefined, ovr: number): number {
+  if (potential === undefined) return 1.0;
+  const headroom = Math.max(0, potential - ovr);
+  const c = PROXIMITY_CURVE;
+  if (headroom >= c[c.length - 1].headroom) return c[c.length - 1].mul;
+  if (headroom <= c[0].headroom) return c[0].mul;
+  for (let i = 0; i < c.length - 1; i++) {
+    const lo = c[i], hi = c[i + 1];
+    if (headroom >= lo.headroom && headroom <= hi.headroom) {
+      const t = (headroom - lo.headroom) / (hi.headroom - lo.headroom);
+      return lo.mul + t * (hi.mul - lo.mul);
+    }
+  }
+  return 1.0;
+}
+
+export function appearancesMultiplier(apps: number): number {
+  for (const { minApps, mul } of APPEARANCES_CURVE) {
+    if (apps >= minApps) return mul;
+  }
+  return APPEARANCES_CURVE[APPEARANCES_CURVE.length - 1].mul;
+}
 
 // Standard deviation + clamp for the Gaussian noise added to each
 // per-stat delta. Drives some players developing better/worse than the

@@ -22,6 +22,10 @@ import type { ClubState } from '../types/gameState';
 import type { RawPlayer, RawTeamInput } from '../types/teamData';
 import { seedContractFields } from './contractSeeder';
 import { CLUB_SALARY_BUDGETS_2025_26, SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
+import { POTENTIAL_HEADROOM } from '../engine/balance/career';
+import { playerOverall } from '../engine/RatingEngine';
+import { getAge, seasonOpenIso } from './age';
+import { rngTransfer } from '../utils/rng';
 
 export interface SeededRoster {
   roster: Record<number, Player>;
@@ -68,6 +72,10 @@ function hydratePersistentPlayer(
   seasonStartYear: number,
 ): Player {
   const { contract, reputation } = seedContractFields(raw, clubId, seasonStartYear);
+  const ovr = playerOverall(raw.baseStats, raw.position);
+  const age = raw.dob ? (getAge(raw.dob, seasonOpenIso(seasonStartYear)) ?? 25) : 25;
+  const band = POTENTIAL_HEADROOM.find(b => age <= b.maxAge) ?? POTENTIAL_HEADROOM[POTENTIAL_HEADROOM.length - 1];
+  const potential = Math.min(99, ovr + rngTransfer(band.min, band.max));
   return {
     id: raw.id,
     rosterId,
@@ -92,5 +100,6 @@ function hydratePersistentPlayer(
     x: 50,
     y: 50,
     condition: 100,
+    potential,
   };
 }

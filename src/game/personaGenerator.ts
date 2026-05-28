@@ -13,7 +13,8 @@ import type { Player, Position, PlayerStats } from '../types/player';
 import { zeroMatchStats, zeroSeasonStats } from '../types/player';
 import { rngTransfer, rngTransferRaw } from '../utils/rng';
 import { WAGE_BY_RATING, POSITION_SCARCITY, WAGE_FLOOR, WAGE_ROUNDING_UNIT, PERSONA_CONTRACT_LENGTH_YEARS, PERSONA_REPUTATION } from '../engine/balance/transfers';
-import { ACADEMY_SUPPLY } from '../engine/balance/career';
+import { ACADEMY_SUPPLY, POTENTIAL_HEADROOM } from '../engine/balance/career';
+import { playerOverall } from '../engine/RatingEngine';
 
 // First names + surnames per nationality. Drawn from league-era
 // rosters to feel idiomatic; not exhaustive.
@@ -117,6 +118,9 @@ export function generatePersona(seed: PersonaSeed, calendarDate: string): Player
   // Stats: pick target overall in the band, distribute around it.
   const targetOverall = rngTransfer(seed.ratingBand.min, seed.ratingBand.max);
   const baseStats = generateStats(targetOverall);
+  const ovr = playerOverall(baseStats, position);
+  const headroomBand = POTENTIAL_HEADROOM.find(b => age <= b.maxAge) ?? POTENTIAL_HEADROOM[POTENTIAL_HEADROOM.length - 1];
+  const potential = Math.min(99, ovr + rngTransfer(headroomBand.min, headroomBand.max));
 
   // Wage: derived from rating + position scarcity, no noise (predictable
   // for academy graduates on a fixed rookie rate).
@@ -160,6 +164,7 @@ export function generatePersona(seed: PersonaSeed, calendarDate: string): Player
     x: 50,
     y: 50,
     condition: 100,
+    potential,
   };
 }
 

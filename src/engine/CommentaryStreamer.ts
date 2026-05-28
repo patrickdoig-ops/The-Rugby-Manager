@@ -60,6 +60,14 @@ export class CommentaryStreamer {
   private readonly state: MatchState;
   private paused = false;
   private pauseRemainingMs = 0;
+  // Earliest wall-clock time the next line may be emitted — `lineGap × lines`
+  // after the previous emit. Enforced even when the buffer empties between
+  // beats (the drain loop stops, but the gap owed by the last line carries
+  // over to the next beat, which may be produced a tick or two later). Without
+  // this, a beat produced just after the buffer drained empty — the lineout
+  // that follows a penalty-to-touch, the set-piece award after a knock-on —
+  // fires back-to-back with the previous line instead of one lineGap later.
+  private nextAllowedAt = 0;
 
   constructor(silent: boolean, state: MatchState) {
     this.silent = silent;
@@ -109,8 +117,11 @@ export class CommentaryStreamer {
       this.drainPromise = new Promise<void>(resolve => { this.drainPromiseResolve = resolve; });
     }
     // Kick the loop only when idle — a running drain already covers the new
-    // beats, and a fresh first beat fires immediately (no leading gap).
-    if (this.drainTimer === null && !this.paused) this.drainOne();
+    // beats. The kick honours the gap owed by the last emitted line, so the
+    // first beat after the buffer drained empty doesn't fire back-to-back with
+    // it; a genuinely idle stretch (e.g. modal think-time) leaves nextAllowedAt
+    // in the past, so it still appears promptly.
+    if (this.drainTimer === null && !this.paused) this.kickDrain();
     return this.drainPromise;
   }
 
@@ -142,7 +153,18 @@ export class CommentaryStreamer {
     this.buffer = [];
     this.liveState = null;
     this.paused = false;
+    this.nextAllowedAt = 0;
     this.resolveDrain();
+  }
+
+  // Resume an idle drain after the owed inter-line gap. Called from flush when
+  // no drain timer is running: if the gap from the last emit has already
+  // elapsed, drain now; otherwise schedule the remainder so the next line lands
+  // a full lineGap after the previous one.
+  private kickDrain(): void {
+    const wait = this.nextAllowedAt - Date.now();
+    if (wait <= 0) this.drainOne();
+    else this.scheduleNext(wait);
   }
 
   private drainOne(): void {
@@ -154,16 +176,19 @@ export class CommentaryStreamer {
     const { event, display } = this.buffer.shift()!;
     eventBus.emit('engine:event', { event });
     if (this.liveState) eventBus.emit('engine:stateChange', { state: this.liveState, display });
+    // Owe one lineGap per narration line in the beat just shown, so the feed
+    // (which staggers a multi-step beat's lines at the same lineGap) finishes
+    // revealing them before the next beat lands — keeping the line cadence even
+    // across single- and multi-line beats. Set before the empty-buffer return
+    // so the gap carries over to a beat produced in a later tick (see
+    // kickDrain). `max(1, …)` guards an empty-step beat.
+    const gap = this.lineGap() * Math.max(1, event.narration.steps.length);
+    this.nextAllowedAt = Date.now() + gap;
     if (this.buffer.length === 0) {
       this.resolveDrain();
       return;
     }
-    // Wait one lineGap per narration line in the beat just shown, so the feed
-    // (which staggers a multi-step beat's lines at the same lineGap) finishes
-    // revealing them before the next beat lands — keeping the line cadence even
-    // across single- and multi-line beats. `max(1, …)` guards an empty-step beat.
-    const lineCount = Math.max(1, event.narration.steps.length);
-    this.scheduleNext(this.lineGap() * lineCount);
+    this.scheduleNext(gap);
   }
 
   private scheduleNext(delay: number): void {

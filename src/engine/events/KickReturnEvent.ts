@@ -65,7 +65,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine];
   const baseAttackMod = attackMod + ha.attack;
-  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + ha.defend;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend;
   let res = resolveOpenPlay(carrier, defender, baseAttackMod, baseDefendMod, dlCollision);
   const direction = attackDir(state);
 

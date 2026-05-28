@@ -14,6 +14,15 @@ export const BREAKDOWN_VALUES = {
   slowBallMargin:   -8,
   turnoverMargin:   -14,
   counterRuckTop:   4,
+  // Flat dampener subtracted from the counter-ruck turnover score (dts) in
+  // BreakdownResolver. The controlled mirror experiment
+  // (scripts/tacticsExperiment.ts) showed counter_ruck at +11.5 margin —
+  // by far the most dominant tactic — because stacking the top-4 forwards'
+  // strength into dts wins turnovers + forces penalties with no offsetting
+  // cost. Dropping a whole body (counterRuckTop 4 → 3) overshot to −4.3,
+  // so this continuous −7 dampener tunes it back toward a small positive
+  // reward (~+1 margin) befitting a high-commitment defensive choice.
+  counterRuckDtsMod: -7,
   jackalLeadWeight: 0.7,
   jackalSupportWeight: 0.3,
 } as const;

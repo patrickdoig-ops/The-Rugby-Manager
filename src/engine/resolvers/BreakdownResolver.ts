@@ -50,7 +50,7 @@ export function resolveBreakdown(
         (a.currentStats.strength * BREAKDOWN_VALUES.leadWeight + a.currentStats.breakdown * BREAKDOWN_VALUES.supportWeight)
       )
       .slice(0, counterRuckTop);
-    dts = stackedScore(top4, 'strength', 'breakdown') + rng(1, 20);
+    dts = stackedScore(top4, 'strength', 'breakdown') + rng(1, 20) + BREAKDOWN_VALUES.counterRuckDtsMod;
   } else if (defPlan === 'shadow') {
     // Shadow defenders sprint back into the defensive line rather than
     // contest the ruck — the base contest is minimal. The wide rng band

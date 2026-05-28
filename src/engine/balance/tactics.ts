@@ -22,6 +22,19 @@ export const TACTIC_MODIFIERS = {
   // the ruck with none of the evasion reward).
   breakdownAttack:            { commit_numbers: -20, minimal_ruck: 22, balanced: 0 },
   breakdownDefend:            { shadow: 10, counter_ruck: -8, jackal: 0 },
+  // Tackle-success bonus added to the carry's defenceScore (the line-break
+  // / evasion check) on EVERY carry, keyed on the defending team's
+  // defendingBreakdown. Distinct from breakdownDefend above, which only
+  // reaches the single carry immediately after a breakdown via
+  // state.breakdownMod. shadow defenders sprint back into the line rather
+  // than contest the ruck, so they generate almost no turnovers
+  // (BreakdownResolver dts = rng(1,90)) — the controlled mirror experiment
+  // (scripts/tacticsExperiment.ts) measured shadow at -6.5 margin, the
+  // weakest defensive tactic. This compensating bonus models the upside of
+  // a fully-manned, organised defensive line: harder to break, more tackles
+  // completed. jackal / counter_ruck commit bodies to the contest and don't
+  // get the line-integrity bonus.
+  defendingBreakdownTackleMod: { shadow: 6, counter_ruck: 0, jackal: 0 },
   breakdownSupporterCount:    { commit_numbers: 4,  minimal_ruck: 2,  balanced: 3 },
   // Compensating bonus added to the BREAKDOWN attack score (ars) to offset
   // the supporter-count headcount deficit baked into the body-weights

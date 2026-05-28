@@ -283,7 +283,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine] + pathEvasionMod;
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine] + pathCollisionMod;
   const baseAttackMod = attackMod + ha.attack;
-  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + ha.defend;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend;
   let res = resolveOpenPlay(ballCarrier, defender, baseAttackMod, baseDefendMod, dlCollision);
   const direction = attackDir(state);
 

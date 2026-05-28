@@ -234,7 +234,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine] + pathEvasionMod;
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine] + pathCollisionMod;
   const baseAttackMod = attackMod + breakdownWideEvasion + ha.attack;
-  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + ha.defend;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend;
   let res = resolveOpenPlay(ballCarrier, defender, baseAttackMod, baseDefendMod, dlCollision);
   const direction = attackDir(state);
 
@@ -432,7 +432,7 @@ function resolvePickAndGo(
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine];
   const baseAttackMod = attackMod + ha.attack;
-  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + ha.defend;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend;
   const res = resolveOpenPlay(carrier, defender, baseAttackMod, baseDefendMod, dlCollision);
 
   // Downgrade line_break → dominant_carry; pick-and-go can't break the line.

@@ -10,8 +10,8 @@
   background: var(--rm-bg);
   background-image: radial-gradient(
     ellipse 200% 130% at 50% 0%,
-    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 80%, oklch(0.08 0 0)) 0%,
-    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 38%, oklch(0.08 0 0)) 50%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 80%, black) 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 38%, black) 50%,
     var(--rm-bg) 88%
   );
   display: flex;
@@ -95,7 +95,7 @@
 
 @media (hover: hover) {
   .mp-card:hover {
-    border-color: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 35%, var(--rm-border-soft));
+    border-color: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 35%, var(--rm-border-soft));
     background: var(--rm-surface-2);
     transform: translateY(-1px);
   }

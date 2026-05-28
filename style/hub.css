@@ -5,8 +5,8 @@
   background-color: var(--rm-bg);
   background-image: radial-gradient(
     ellipse 200% 130% at 50% 0%,
-    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 80%, oklch(0.08 0 0)) 0%,
-    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 38%, oklch(0.08 0 0)) 50%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 80%, black) 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 38%, black) 50%,
     var(--rm-bg) 88%
   );
   display: flex;
@@ -110,7 +110,7 @@
   font-family: var(--rm-font-display);
   font-size: 20px;
   line-height: 1;
-  text-shadow: 0 0 16px color-mix(in oklch, var(--team-color, var(--rm-pitch)) 55%, transparent);
+  text-shadow: 0 0 16px color-mix(in srgb, var(--team-color, var(--rm-pitch)) 55%, transparent);
 }
 
 .hub-standing-val--chalk {

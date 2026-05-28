@@ -49,10 +49,10 @@
 }
 
 .sq-chip.active {
-  background: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 22%, var(--rm-surface-2));
-  border-color: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 60%, transparent);
+  background: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 22%, var(--rm-surface-2));
+  border-color: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 60%, transparent);
   color: var(--rm-chalk);
-  box-shadow: 0 0 10px color-mix(in oklch, var(--team-color, var(--rm-pitch)) 18%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--team-color, var(--rm-pitch)) 18%, transparent);
 }
 
 /* ─── Player list ─── */
@@ -184,10 +184,10 @@
 .sq-jersey--starter {
   background: linear-gradient(155deg,
     var(--team-color, var(--rm-pitch)) 0%,
-    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 52%, black) 100%);
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 52%, black) 100%);
   color: var(--rm-chalk);
   box-shadow:
-    0 0 12px color-mix(in oklch, var(--team-color, var(--rm-pitch)) 40%, transparent),
+    0 0 12px color-mix(in srgb, var(--team-color, var(--rm-pitch)) 40%, transparent),
     0 2px 6px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
@@ -613,8 +613,8 @@
 
 #squad-management .app-header {
   background: linear-gradient(180deg,
-    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 75%, oklch(0.08 0 0)) 0%,
-    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 38%, oklch(0.08 0 0)) 100%
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 75%, black) 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 38%, black) 100%
   );
-  border-bottom-color: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 45%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 45%, transparent);
 }

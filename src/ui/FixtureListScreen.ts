@@ -118,14 +118,14 @@ export function initFixtureListScreen(
           <div class="fl-team fl-team--home">
             ${miniCrest(home)}
             <span class="fl-team-body">
-              <span class="fl-team-name">${home.shortName}</span>
+              <span class="fl-team-name">${home.name.split(' ')[0]}</span>
               ${homeForm}
             </span>
           </div>
           ${midEl}
           <div class="fl-team fl-team--away">
             <span class="fl-team-body fl-team-body--away">
-              <span class="fl-team-name">${away.shortName}</span>
+              <span class="fl-team-name">${away.name.split(' ')[0]}</span>
               ${awayForm}
             </span>
             ${miniCrest(away)}
@@ -191,7 +191,7 @@ export function initFixtureListScreen(
     const totalRounds = state.league.fixtures.reduce((max, f) => Math.max(max, f.round), 0);
     const nextFixture = gameEngine.getCurrentFixture();
     const nextRound = nextFixture?.round ?? -1;
-    const teamLabel = playerTeam?.shortName ?? 'My team';
+    const teamLabel = playerTeam ? playerTeam.name.split(' ')[0] : 'My team';
 
     if (playerTeam) el!.style.setProperty('--team-color', playerTeam.color);
     el!.innerHTML = `

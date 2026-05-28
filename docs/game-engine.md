@@ -407,7 +407,16 @@ A three-match knockout follows the 18-round Premiership regular season: two semi
 | v19 | `ArchivedSeason.playerSeasonHistory?: Record<rosterId, ArchivedPlayerSeason>` — per-player end-of-season snapshot (clubId at the time, apps, ratingSum, tries, carries, metres, line breaks, tackles, turnovers, kicksMade/At, yellow / red cards). Drives `PlayerProfileScreen`'s Career History table. Pre-v19 archive entries load with the field undefined; the profile renders an em-dash row for those historical seasons. New rollovers always populate it. |
 | v20 | `FixtureResult.homeStats?: TeamSeasonStats` + `awayStats?: TeamSeasonStats` — per-fixture snapshot of `MatchSnapshot.homeSummary` / `awaySummary` taken at the moment the result is recorded (possession seconds, territory seconds, lineouts thrown / won, scrums put in / won, attack + defence + kicking + discipline counters). Drives RoundResultsScreen's tap-to-expand match-stats panel. Pre-v20 results load with both fields undefined — the expand panel renders "Detailed stats not recorded for this fixture" for those rounds. New rounds always populate the fields via `recordPlayerMatchResult` + the silent-fixture path in the same function. |
 
-**Migration on load** (`GameCoordinator.fromSave`):
+**Migration on load** (`GameCoordinator.fromSave`). The version-ladder
+back-fill computation — schedule resolution, the v5→v6 contract synthesis,
+the pre-v14 budget default, and the optional market/playoff layer
+inclusion — lives in `src/game/saveMigration.ts` as pure functions
+(`resolveSchedule`, `backfillCareerContracts`, `buildRosterSeededEvent`,
+`buildCareerArchiveRestoredEvent`). `fromSave` calls them to produce the
+event payloads, then replays those through `applySeasonEvent`, so the
+deserialisation concern stays out of the orchestrator while the season
+mutation boundary (GameCoordinator as the sole `applySeasonEvent` caller)
+is preserved.
 
 - v19 → v20: no-op shim. `homeStats` / `awayStats` are optional on every persisted `FixtureResult`. Pre-v20 results load with both fields undefined and the RoundResults expand panel falls back to the placeholder copy. New fixtures recorded after the migration populate the fields the same way as a fresh game.
 - v18 → v19: no-op shim. `playerSeasonHistory` is optional on every `ArchivedSeason` entry. Pre-v19 archives load with the field undefined — the next rollover populates it for the season just completed; older historical seasons stay sparse and the profile screen surfaces an em-dash placeholder for them. The same `cloneLeaders`-style defensive copy in `SaveManager.parseCareer` ferries the field through.

@@ -206,7 +206,7 @@
   padding: 18px 14px 12px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 3px;
   position: relative;
   z-index: 2;

@@ -28,7 +28,7 @@ export const INTENSITY_EFFECTS: Record<TrainingIntensity,
   { conditionPerDay: number; developmentChance: number; injuryRisk: number }> = {
   rest:   { conditionPerDay: +13, developmentChance: 0.000, injuryRisk: 0.000 },
   light:  { conditionPerDay: +9,  developmentChance: 0.008, injuryRisk: 0.001 },
-  medium: { conditionPerDay: +6,  developmentChance: 0.018, injuryRisk: 0.004 },
+  medium: { conditionPerDay: +6.5, developmentChance: 0.018, injuryRisk: 0.004 },
   high:   { conditionPerDay: +3,  developmentChance: 0.032, injuryRisk: 0.012 },
 };
 

@@ -241,9 +241,6 @@ export function initHomeScreen(
         <span class="broadcast-sep"></span>
         <span class="broadcast-item broadcast-item--hi">Career Mode</span>
       </div>
-      <p id="home-tagline">
-        <strong>Build your squad.<br>Call the shots.</strong>
-      </p>
     </div>
 
     ${ctx ? saveCardHtml(ctx) : ''}

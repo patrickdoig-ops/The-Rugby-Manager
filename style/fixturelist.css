@@ -296,8 +296,8 @@
 
 #fixture-list .app-header {
   background: linear-gradient(180deg,
-    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 75%, oklch(0.08 0.008 150)) 0%,
-    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 38%, oklch(0.08 0.008 150)) 100%
+    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 75%, oklch(0.08 0 0)) 0%,
+    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 38%, oklch(0.08 0 0)) 100%
   );
   border-bottom-color: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 45%, transparent);
 }

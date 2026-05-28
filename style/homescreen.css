@@ -79,7 +79,7 @@
   font-family: var(--rm-font-mono);
   font-size: 10px;
   letter-spacing: 0.22em;
-  color: var(--rm-text-dim);
+  color: var(--rm-chalk);
   text-transform: uppercase;
 }
 
@@ -164,7 +164,7 @@
 .title-pre {
   display: block;
   font-size: clamp(36px, 10vw, 46px);
-  color: var(--rm-text-dim);
+  color: var(--rm-chalk);
   letter-spacing: 0.08em;
   margin-bottom: 2px;
 }
@@ -202,7 +202,7 @@
   font-size: 9px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--rm-text-dim);
+  color: var(--rm-chalk);
   padding: 0 12px;
   white-space: nowrap;
 }
@@ -222,7 +222,7 @@
   font-style: italic;
   font-size: 20px;
   line-height: 1.3;
-  color: var(--rm-text-muted);
+  color: var(--rm-chalk);
   max-width: 320px;
   margin: 0;
 }

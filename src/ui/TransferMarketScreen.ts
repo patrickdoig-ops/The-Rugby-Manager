@@ -370,6 +370,7 @@ export function initTransferMarketScreen(
     const showFA = !showToggle || activeTab === 'free-agents';
     const showPoach = showToggle && activeTab === 'poach';
 
+    if (team) el!.style.setProperty('--team-color', team.color);
     el!.innerHTML = `
       <div class="app-header">
         <div class="app-topbar">

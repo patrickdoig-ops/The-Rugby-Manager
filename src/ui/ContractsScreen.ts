@@ -242,6 +242,7 @@ export function initContractsScreen(
          </button>`
       : '';
 
+    el!.style.setProperty('--team-color', team.color);
     el!.innerHTML = `
       <div class="app-header">
         <div class="app-topbar">

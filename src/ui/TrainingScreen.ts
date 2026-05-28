@@ -15,6 +15,7 @@
 // `game:weekAdvanced` so condition pills reflect live state.
 
 import type { GameCoordinator } from '../game/GameCoordinator';
+import type { RawTeamInput } from '../types/teamData';
 import type {
   BacksFocus, ForwardsFocus, TrainingIntensity, TrainingPlan,
 } from '../types/training';
@@ -73,13 +74,18 @@ const BACKS_FOCUSES: FocusCopy<BacksFocus>[] = [
 export function initTrainingScreen(
   // Always called fresh — see HubScreen for the rationale.
   getGameEngine: () => GameCoordinator,
+  allTeams: RawTeamInput[],
 ): void {
   const el = document.getElementById('training');
   if (!el) return;
 
+  const teamsById = new Map(allTeams.map(t => [t.id, t]));
+
   function render(): void {
     const engine = getGameEngine();
     const state = engine.getState();
+    const playerTeam = teamsById.get(state.player.teamId);
+    if (playerTeam) el!.style.setProperty('--team-color', playerTeam.color);
     const mode = activeMode;
     if (!mode) return;
     // Hydrate the working draft from persisted state at first render

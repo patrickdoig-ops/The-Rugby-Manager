@@ -476,3 +476,9 @@
   color: var(--rm-pitch);
   cursor: default;
 }
+
+#signing-results .app-header,
+#retention-decision .app-header {
+  background: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 18%, var(--rm-surface));
+  border-bottom-color: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 35%, transparent);
+}

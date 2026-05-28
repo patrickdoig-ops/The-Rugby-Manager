@@ -148,6 +148,7 @@ export function initSquadOverviewScreen(
       ? `${team.name} · ${state.calendar.seasonLabel} · ${thinCount} ${thinCount === 1 ? 'position' : 'positions'} thin`
       : `${team.name} · ${state.calendar.seasonLabel}`;
 
+    el!.style.setProperty('--team-color', team.color);
     el!.innerHTML = `
       <div class="app-header">
         <div class="app-topbar">

@@ -189,6 +189,7 @@ export function initFixtureListScreen(
     const nextRound = nextFixture?.round ?? -1;
     const teamLabel = playerTeam?.shortName ?? 'My team';
 
+    if (playerTeam) el!.style.setProperty('--team-color', playerTeam.color);
     el!.innerHTML = `
       <div class="app-header">
         <div class="app-topbar">

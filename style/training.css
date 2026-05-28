@@ -167,3 +167,8 @@
     background: #009434;
   }
 }
+
+#training .app-header {
+  background: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 18%, var(--rm-surface));
+  border-bottom-color: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 35%, transparent);
+}

@@ -235,3 +235,8 @@
   #rn-continue:hover  { background: #009434; }
 }
 #rn-continue:active { background: #006622; }
+
+#renewals .app-header {
+  background: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 18%, var(--rm-surface));
+  border-bottom-color: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 35%, transparent);
+}

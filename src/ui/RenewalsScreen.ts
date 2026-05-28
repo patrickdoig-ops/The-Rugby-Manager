@@ -167,6 +167,7 @@ export function initRenewalsScreen(
 
     const capPill = `<span class="rn-cappill rn-cappill--${capStatus}"><span>BUDGET</span><span>${fmtWage(projectedCap)} / ${fmtWage(budgetCap)}</span></span>`;
 
+    el!.style.setProperty('--team-color', team.color);
     el!.innerHTML = `
       <div class="app-header">
         <div class="app-topbar">

@@ -601,3 +601,8 @@
 }
 
 .sq-discard-confirm:active { filter: brightness(0.9); }
+
+#squad-management .app-header {
+  background: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 18%, var(--rm-surface));
+  border-bottom-color: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 35%, transparent);
+}

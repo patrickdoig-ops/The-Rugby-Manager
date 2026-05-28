@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onPlayerClick: (rosterId) => goPlayerProfile(rosterId, () => goSquad('back')),
     });
     initSquadOverviewScreen(getGameEngine, allTeams);
-    initTrainingScreen(getGameEngine);
+    initTrainingScreen(getGameEngine, allTeams);
 
     // The post-match Continue chain (LeagueTable → ...) reads these flags.
     // game:bracketSeeded fires after the last regular-season fixture —

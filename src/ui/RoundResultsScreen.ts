@@ -118,6 +118,8 @@ export function initRoundResultsScreen(
       `;
     }).join('');
 
+    const playerTeam = teamsById.get(playerTeamId);
+    if (playerTeam) el!.style.setProperty('--team-color', playerTeam.color);
     el!.innerHTML = `
       <div class="app-header">
         <div class="app-topbar">

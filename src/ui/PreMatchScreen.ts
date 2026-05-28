@@ -372,6 +372,7 @@ export function initPreMatchScreen(
 
   const playerTeam = playerSide === 'home' ? home : away;
   const oppTeam    = playerSide === 'home' ? away : home;
+  screen.style.setProperty('--team-color', playerTeam.color);
 
   const state = gameEngine.getState();
   const savedTactics = state.player.tactics;

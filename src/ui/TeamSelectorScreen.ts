@@ -73,7 +73,7 @@ export function initTeamSelectorScreen(
     <div id="ts-inner">
       <div id="ts-header">
         <h2 id="ts-title">Choose<br>Your Team</h2>
-        <p id="ts-subtitle">Pick the club you'll manage this season</p>
+        <p id="ts-subtitle">Pick the club you'll manage</p>
       </div>
       <div id="ts-grid">
         ${sortedTeams.map(team => {

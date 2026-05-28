@@ -376,10 +376,7 @@
 .hub-tile {
   --tile-accent: var(--team-color, var(--rm-pitch));
   position: relative;
-  background:
-    linear-gradient(160deg,
-      color-mix(in oklch, var(--tile-accent) 55%, var(--rm-bg-deep)) 0%,
-      color-mix(in oklch, var(--tile-accent) 35%, var(--rm-bg-deep)) 100%);
+  background: color-mix(in oklch, var(--tile-accent) 45%, var(--rm-bg-deep));
   border: 1px solid color-mix(in oklch, var(--tile-accent) 65%, transparent);
   border-radius: 13px;
   padding: 12px 10px;
@@ -453,10 +450,7 @@
 
 .hub-tile:active {
   transform: translateY(1px);
-  background:
-    linear-gradient(160deg,
-      color-mix(in oklch, var(--tile-accent) 42%, var(--rm-bg-deep)) 0%,
-      color-mix(in oklch, var(--tile-accent) 26%, var(--rm-bg-deep)) 100%);
+  background: color-mix(in oklch, var(--tile-accent) 35%, var(--rm-bg-deep));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 1px 4px rgba(0, 0, 0, 0.5);
@@ -470,10 +464,7 @@
 @media (hover: hover) {
   .hub-tile:hover {
     transform: translateY(-2px);
-    background:
-      linear-gradient(160deg,
-        color-mix(in oklch, var(--tile-accent) 68%, var(--rm-bg-deep)) 0%,
-        color-mix(in oklch, var(--tile-accent) 48%, var(--rm-bg-deep)) 100%);
+    background: color-mix(in oklch, var(--tile-accent) 58%, var(--rm-bg-deep));
     border-color: color-mix(in oklch, var(--tile-accent) 80%, transparent);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.16),

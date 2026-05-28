@@ -95,7 +95,7 @@
   font-family: var(--rm-font-mono);
   font-size: 9px;
   letter-spacing: 0.12em;
-  color: var(--rm-text-faint);
+  color: var(--rm-chalk);
   background: color-mix(in oklch, var(--rm-surface) 55%, transparent);
   border: 1px solid var(--rm-border-soft);
   border-radius: 20px;

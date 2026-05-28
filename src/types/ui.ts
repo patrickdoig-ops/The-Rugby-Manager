@@ -1,5 +1,5 @@
 import type { PenaltyChoice, PenaltyContext, KickOffStrategy, PossessionSide } from './engine';
-import type { GameEvent, MatchState } from './match';
+import type { GameEvent, MatchState, DisplaySnapshot } from './match';
 import type { Team, TeamTactics } from './team';
 import type { Player } from './player';
 import type { FixtureResult, GameState } from './gameState';
@@ -26,7 +26,7 @@ export type ModalPayload =
 export interface AppEvents {
   'engine:initialized': Record<string, never>;
   'engine:event':       { event: GameEvent };
-  'engine:stateChange': { state: MatchState };
+  'engine:stateChange': { state: MatchState; display: DisplaySnapshot };
   'engine:paused':      { payload: ModalPayload };
   'engine:resumed':     Record<string, never>;
   // Engine paused itself outside a modal hand-off — currently fires at the

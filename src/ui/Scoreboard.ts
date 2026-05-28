@@ -2,9 +2,8 @@ import { eventBus } from '../utils/eventBus';
 import { CLOCK_VALUES } from '../engine/balance';
 import { teamTextColor } from '../utils/teamColor';
 import { phaseClass } from '../utils/phaseColor';
-import type { MatchState } from '../types/match';
-import { MatchPhase, type PossessionSide } from '../types/engine';
-import { shortName } from '../utils/playerName';
+import type { DisplayCards } from '../types/match';
+import { MatchPhase } from '../types/engine';
 
 // Short labels for phases whose underscore-replaced names overflow the
 // scoreboard pill at narrow viewports. Falls back to a plain
@@ -35,9 +34,8 @@ function applyCrests(
   awayCode.style.color = teamTextColor(awayColor);
 }
 
-function renderCardStack(stack: HTMLElement, state: MatchState, side: PossessionSide): void {
-  const sinBin = state.cards.sinBin[side];
-  const sentOff = state.cards.sentOff[side];
+function renderCardStack(stack: HTMLElement, cards: DisplayCards): void {
+  const { sinBin, sentOff } = cards;
   if (sinBin.length === 0 && sentOff.length === 0) {
     if (stack.childElementCount > 0) stack.innerHTML = '';
     return;
@@ -45,10 +43,10 @@ function renderCardStack(stack: HTMLElement, state: MatchState, side: Possession
   const pips: string[] = [];
   for (const entry of sinBin) {
     const cls = entry.kind === 'yellow' ? 'card-pip--yellow' : 'card-pip--red';
-    pips.push(`<span class="card-pip ${cls}" title="${shortName(entry.player)} — ${entry.kind === 'yellow' ? 'sin bin' : '20-min red'}"></span>`);
+    pips.push(`<span class="card-pip ${cls}" title="${entry.name} — ${entry.kind === 'yellow' ? 'sin bin' : '20-min red'}"></span>`);
   }
-  for (const p of sentOff) {
-    pips.push(`<span class="card-pip card-pip--red" title="${shortName(p)} — sent off"></span>`);
+  for (const name of sentOff) {
+    pips.push(`<span class="card-pip card-pip--red" title="${name} — sent off"></span>`);
   }
   stack.innerHTML = pips.join('');
 }
@@ -91,7 +89,10 @@ export function initScoreboard(): void {
     awayCards.innerHTML = '';
   });
 
-  eventBus.on('engine:stateChange', ({ state }) => {
+  eventBus.on('engine:stateChange', ({ state, display }) => {
+    // Team identity (crests, colours, codes) is fixed for the match — read
+    // once off live state. Everything volatile reads the per-event snapshot
+    // so the scoreboard tracks the line being narrated.
     if (!crestsSet) {
       crestsSet = true;
       homeColor = state.homeTeam.color;
@@ -103,21 +104,21 @@ export function initScoreboard(): void {
       );
     }
 
-    popScore(homeScore, state.score.home, prevHome, homeColor);
-    popScore(awayScore, state.score.away, prevAway, awayColor);
-    prevHome = state.score.home;
-    prevAway = state.score.away;
-    if (state.clock.clockInTheRed) {
-      const halfTarget = state.clock.halfTimeDone ? CLOCK_VALUES.fullTimeMinute : CLOCK_VALUES.halfTimeMinute;
-      clockDisplay.textContent = `${halfTarget}+${Math.floor(state.clock.gameMinute - halfTarget)}′`;
+    popScore(homeScore, display.score.home, prevHome, homeColor);
+    popScore(awayScore, display.score.away, prevAway, awayColor);
+    prevHome = display.score.home;
+    prevAway = display.score.away;
+    if (display.clockInTheRed) {
+      const halfTarget = display.halfTimeDone ? CLOCK_VALUES.fullTimeMinute : CLOCK_VALUES.halfTimeMinute;
+      clockDisplay.textContent = `${halfTarget}+${Math.floor(display.gameMinute - halfTarget)}′`;
       clockDisplay.style.color = 'var(--rm-coral)';
     } else {
-      clockDisplay.textContent = `${Math.floor(state.clock.gameMinute)}′`;
+      clockDisplay.textContent = `${Math.floor(display.gameMinute)}′`;
       clockDisplay.style.color = '';
     }
-    phaseDisplay.textContent = PHASE_LABEL[state.phase] ?? state.phase.replace(/_/g, ' ');
-    phaseDisplay.className   = `phase-badge ${phaseClass(state.phase)}`;
-    renderCardStack(homeCards, state, 'home');
-    renderCardStack(awayCards, state, 'away');
+    phaseDisplay.textContent = PHASE_LABEL[display.phase] ?? display.phase.replace(/_/g, ' ');
+    phaseDisplay.className   = `phase-badge ${phaseClass(display.phase)}`;
+    renderCardStack(homeCards, display.cards.home);
+    renderCardStack(awayCards, display.cards.away);
   });
 }

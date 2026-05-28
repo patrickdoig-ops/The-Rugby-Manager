@@ -35,6 +35,7 @@ import { KickAtGoalHandler } from './KickAtGoalHandler';
 import { ClockController } from './ClockController';
 import { FatigueAccumulator } from './FatigueAccumulator';
 import { CommentaryStreamer } from './CommentaryStreamer';
+import { buildDisplaySnapshot } from './displaySnapshot';
 import { detectEntry22Changes } from './Entry22Tracker';
 import { resolvePhase, draftEvent } from './PhaseRouter';
 import { makeId, resetEventCounter } from './eventId';
@@ -262,7 +263,7 @@ export class MatchCoordinator {
     }
     // Streamer must be constructed before the other handlers since they
     // all enqueue events through it.
-    this.streamer = new CommentaryStreamer(this.silent);
+    this.streamer = new CommentaryStreamer(this.silent, this.state);
     this.clock = new ClockController(this.silent, this.streamer);
     this.fatigue = new FatigueAccumulator(this.state, this.silent, this.streamer);
 
@@ -514,7 +515,7 @@ export class MatchCoordinator {
     // BEFORE `#app` is revealed. The streamer-paced flush only happens
     // during `tick()`; without this direct emit, the DOM would still show
     // the previous match's final frame until the user pressed Play.
-    if (!this.silent) eventBus.emit('engine:stateChange', { state: this.state });
+    if (!this.silent) eventBus.emit('engine:stateChange', { state: this.state, display: buildDisplaySnapshot(this.state) });
   }
 
   start(): void {

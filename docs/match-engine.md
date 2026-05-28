@@ -110,7 +110,7 @@ The engine emits five UI-bound events through `src/utils/eventBus.ts`. UI module
 | Event | Payload | Subscribers |
 |---|---|---|
 | `engine:initialized` | `{}` | Scoreboard, PitchStrip, StatsPanel, CommentaryFeed — reset per-match caches |
-| `engine:stateChange` | `{ state: MatchState }` | Scoreboard, StatsPanel, PitchStrip; CommentaryFeed (one-shot for team-colour cache) |
+| `engine:stateChange` | `{ state: MatchState; display: DisplaySnapshot }` | Scoreboard + PitchStrip read `display` (the world frame, snapshot at event-production time); StatsPanel reads live `state` (per-player tables); CommentaryFeed (one-shot for team-colour cache) |
 | `engine:event` | `{ event: GameEvent }` | CommentaryFeed (renders narration) |
 | `engine:paused` | `{ payload: ModalPayload }` | ModalManager (penalty_choice / kickoff_choice / forced_substitution_choice — red_20-expired sub picker — / tactics / sub modal), SimController (button gating) |
 | `engine:resumed` | `{}` | ModalManager, SimController |
@@ -120,6 +120,8 @@ The engine emits five UI-bound events through `src/utils/eventBus.ts`. UI module
 **Tick ordering:** within a single tick, `engine:event` fires **before** `engine:stateChange`. UI subscribers that depend on cached state from the prior tick will always have a valid cache by the time an event arrives.
 
 **Subscription lifetime:** `eventBus.on()` returns an unsubscribe function. UI subscriptions registered at startup are intentionally permanent for the page lifetime. One-shots (e.g. `CommentaryFeed` caching team colours on first `engine:stateChange`) call the returned unsub explicitly.
+
+**Display snapshot.** `engine:stateChange` carries a `DisplaySnapshot` (`src/engine/displaySnapshot.ts`, type in `src/types/match.ts`) alongside the live `MatchState`. The snapshot is the "world frame" — `gameMinute`, `halfTimeDone`, `clockInTheRed`, `phase`, `possession`, `score`, flat `ballX`/`ballY`, and the scoreboard card pips — captured by `CommentaryStreamer.enqueue` at event-**production** time (not flush time). `Scoreboard` and `PitchStrip` read `display`, so each line's visible frame matches the line being narrated rather than the end-of-tick state (e.g. the score pops exactly on the TRY line, not before). Per-player data (ratings, fatigue, per-player matchStats) is deliberately **not** snapshot — `StatsPanel` continues to read live `state` for its summary + player tables. This is steps 1–2 of decoupling the commentary feed from the simulation tick: it lets the visible frame track the narrated beat, the foundation for a later producer/presenter split where the sim runs ahead of the feed. Silent fixtures bypass the streamer entirely, so no snapshot is built and determinism is unaffected.
 
 UI→engine direction is one channel: `SimController` is the only UI module that calls engine methods (`start`, `pause`, `resume`, `setTickDelay`). Substitutions and tactics changes go through `ui:substitution` / `ui:tacticsChange` bus events; `MatchCoordinator` subscribes to these in its constructor and unsubscribes in `destroy()` (called from `main.ts` after the match-result overlay closes).
 

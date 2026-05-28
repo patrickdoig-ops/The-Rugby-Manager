@@ -11,10 +11,13 @@
 // lines land 300ms apart; at 4x with tickDelayMs ≈ 150ms they land 75ms
 // apart. Speed selection IS the cadence — no separate constant.
 //
-// Each enqueued event is paired with the live engine state reference. On
-// flush we emit `engine:event` followed by `engine:stateChange`,
-// preserving the existing event-before-state contract that StatsPanel /
-// Scoreboard already rely on.
+// Each enqueued event is paired with a DisplaySnapshot captured at
+// production time (the "world frame" — score, clock, ball, possession,
+// cards). On flush we emit `engine:event` followed by `engine:stateChange`
+// carrying that snapshot alongside the live state reference, preserving the
+// event-before-state contract. Panels that read the snapshot (Scoreboard,
+// PitchStrip) therefore track the line being narrated rather than the live
+// state; StatsPanel still reads the live state for its per-player tables.
 //
 // Silent mode (headless AI fixtures, determinism harness, telemetry)
 // bypasses the streamer entirely — the engine's existing `if (silent)
@@ -22,10 +25,11 @@
 // its own check as a safety net.
 
 import { eventBus } from '../utils/eventBus';
-import type { GameEvent, MatchState } from '../types/match';
+import type { GameEvent, MatchState, DisplaySnapshot } from '../types/match';
+import { buildDisplaySnapshot } from './displaySnapshot';
 
 export class CommentaryStreamer {
-  private queue: GameEvent[] = [];
+  private queue: Array<{ event: GameEvent; display: DisplaySnapshot }> = [];
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   // Absolute timestamp at which the currently-scheduled flush would fire.
   // Used by pause() to compute how much time remains so resume() can
@@ -35,16 +39,25 @@ export class CommentaryStreamer {
   private liveState: MatchState | null = null;
   private drainResolvers: Array<() => void> = [];
   private readonly silent: boolean;
+  // Live MatchState reference (stable for the match lifetime — assigned once
+  // in MatchCoordinator's constructor, never reassigned). Read at enqueue
+  // time to snapshot the world frame for each event.
+  private readonly state: MatchState;
   private paused = false;
   private pauseRemainingMs = 0;
 
-  constructor(silent: boolean) {
+  constructor(silent: boolean, state: MatchState) {
     this.silent = silent;
+    this.state = state;
   }
 
   enqueue(event: GameEvent): void {
     if (this.silent) return;
-    this.queue.push(event);
+    // Snapshot the display frame NOW (production time) so the paced flush
+    // emits the world-state as it was when this event happened, not the
+    // live state — which, once the producer runs ahead of the presenter,
+    // is further along than the line being narrated.
+    this.queue.push({ event, display: buildDisplaySnapshot(this.state) });
   }
 
   // Schedules the queued events to flush evenly across tickDelayMs. Returns
@@ -101,9 +114,9 @@ export class CommentaryStreamer {
       this.resolveDrain();
       return;
     }
-    const event = this.queue.shift()!;
+    const { event, display } = this.queue.shift()!;
     eventBus.emit('engine:event', { event });
-    if (this.liveState) eventBus.emit('engine:stateChange', { state: this.liveState });
+    if (this.liveState) eventBus.emit('engine:stateChange', { state: this.liveState, display });
     if (this.queue.length === 0) {
       this.resolveDrain();
       return;

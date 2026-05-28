@@ -24,13 +24,16 @@ export function initPitchStrip(): void {
     lastHalfTimeDone = null;
   });
 
-  eventBus.on('engine:stateChange', ({ state }) => {
-    ballMarker.style.left = `${state.ball.x}%`;
+  eventBus.on('engine:stateChange', ({ state, display }) => {
+    // Ball position, half, and possession read the per-event snapshot so the
+    // marker tracks the narrated line; team identity (colours, shortNames)
+    // is fixed for the match and read off live state.
+    ballMarker.style.left = `${display.ballX}%`;
 
-    if (state.clock.halfTimeDone !== lastHalfTimeDone) {
-      lastHalfTimeDone = state.clock.halfTimeDone;
-      const leftTeam  = !state.clock.halfTimeDone ? state.homeTeam : state.awayTeam;
-      const rightTeam = !state.clock.halfTimeDone ? state.awayTeam : state.homeTeam;
+    if (display.halfTimeDone !== lastHalfTimeDone) {
+      lastHalfTimeDone = display.halfTimeDone;
+      const leftTeam  = !display.halfTimeDone ? state.homeTeam : state.awayTeam;
+      const rightTeam = !display.halfTimeDone ? state.awayTeam : state.homeTeam;
 
       homeEndLabel.style.color = leftTeam.color;
       homeEndLabel.textContent = leftTeam.shortName;
@@ -38,9 +41,9 @@ export function initPitchStrip(): void {
       awayEndLabel.textContent = rightTeam.shortName;
     }
 
-    const attackingTeam    = state.possession === 'home' ? state.homeTeam : state.awayTeam;
-    const homeAttacksRight = !state.clock.halfTimeDone;
-    const arrow = state.possession === 'home'
+    const attackingTeam    = display.possession === 'home' ? state.homeTeam : state.awayTeam;
+    const homeAttacksRight = !display.halfTimeDone;
+    const arrow = display.possession === 'home'
       ? (homeAttacksRight ? '→' : '←')
       : (homeAttacksRight ? '←' : '→');
 

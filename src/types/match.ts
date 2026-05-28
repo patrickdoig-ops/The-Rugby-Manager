@@ -99,6 +99,32 @@ export interface GameEvent {
   outcome?: string;
 }
 
+// Scoreboard card pips, snapshot per side. `name` is the pre-formatted
+// shortName for the pip tooltip; `sentOff` carries names only (no kind —
+// always a red pip).
+export interface DisplayCards {
+  sinBin:  { name: string; kind: 'yellow' | 'red_20' }[];
+  sentOff: string[];
+}
+
+// Per-event "world frame" the visual panels render, snapshot at event-
+// production time so the commentary feed can be driven independently of the
+// live MatchState (which, once the sim runs ahead of the feed, is further
+// along than the line being narrated). Per CLAUDE.md §3, snapshot DTOs keep
+// flat ballX/ballY scalars. Per-player data (matchStats, ratings, fatigue)
+// is deliberately NOT captured here — StatsPanel's tables read live state.
+export interface DisplaySnapshot {
+  gameMinute: number;
+  halfTimeDone: boolean;
+  clockInTheRed: boolean;
+  phase: MatchPhase;
+  possession: PossessionSide;
+  score: Score;
+  ballX: number;
+  ballY: number;
+  cards: { home: DisplayCards; away: DisplayCards };
+}
+
 export interface MatchState {
   clock: {
     gameMinute: number;

@@ -44,7 +44,7 @@ This is the **single source of truth** for visual and interaction design in the 
 - **Dark canvas + pitch-green accent + amber for reward + red for danger.** That's the palette.
 - **Anton for display, Geist for body, JetBrains Mono for data, Instrument Serif for editorial italics.** That's the type system.
 - **Heroicons SVG only.** No emoji. No Unicode glyphs as icons.
-- **One CTA colour pinned in hex: `#007a2a`.** Everything else is a token.
+- **Primary CTA colour via `--rm-cta` / `--rm-cta-hover` / `--rm-cta-active`.** Everything is a token.
 
 ---
 
@@ -55,7 +55,7 @@ This is the **single source of truth** for visual and interaction design in the 
 All colours are declared in `style/main.css` `:root` using **oklch** for perceptual uniformity. Every token has a `body.light-mode` counterpart in the same file.
 
 **You may never:**
-- Declare a colour outside `main.css :root` (with the single exception of `#007a2a` for the primary CTA)
+- Declare a colour outside `main.css :root`
 - Use a hex code, `rgb()`, `rgba()`, or named colour (`white`, `red`) inline in screen CSS or TS
 - Use `var(--token, #fallback)` syntax — fallbacks hide missing declarations
 
@@ -92,6 +92,9 @@ All colours are declared in `style/main.css` `:root` using **oklch** for percept
 | `--rm-pitch-deep` | oklch(0.55 0.18 144) | Hover/active variants, gradient bottom |
 | `--rm-pitch-soft` | oklch(0.30 0.08 144) | Pitch-line gradients, subtle field references |
 | `--rm-pitch-glow` | color-mix variant | Box-shadow glows |
+| `--rm-cta` | oklch(0.47 0.18 144) | **Primary CTA fill** — all green action buttons |
+| `--rm-cta-hover` | oklch(0.54 0.19 144) | CTA hover state |
+| `--rm-cta-active` | oklch(0.40 0.15 144) | CTA pressed/active state |
 | `--rm-amber` | oklch(0.74 0.16 62) | **Performance reward** — MOTM, top performer, milestone |
 | `--rm-amber-deep` | oklch(0.58 0.16 50) | Gradient bottom |
 | `--rm-danger` | oklch(0.60 0.20 25) | **Negative health/discipline** — injury, expiring contract, red card |

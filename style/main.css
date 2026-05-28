@@ -27,6 +27,10 @@
   --rm-pitch-soft:  oklch(0.30 0.08 144);
   --rm-pitch-glow:  color-mix(in oklch, oklch(0.76 0.21 144) 38%, transparent);
 
+  --rm-cta:         oklch(0.47 0.18 144);
+  --rm-cta-hover:   oklch(0.54 0.19 144);
+  --rm-cta-active:  oklch(0.40 0.15 144);
+
   --rm-amber:       oklch(0.74 0.16 62);
   --rm-amber-deep:  oklch(0.58 0.16 50);
 
@@ -791,8 +795,8 @@ html, body {
 
 /* Play — pitch green */
 .ctrl-btn.primary {
-  background: #007a2a;
-  border-color: #007a2a;
+  background: var(--rm-cta);
+  border-color: var(--rm-cta);
   color: #ffffff;
   width: 44px;
   height: 44px;
@@ -1088,14 +1092,14 @@ html, body {
 }
 
 .sub-action-confirm {
-  background: #007a2a;
+  background: var(--rm-cta);
   border: 1px solid transparent;
   color: #ffffff;
   box-shadow: 0 4px 16px color-mix(in oklch, var(--rm-pitch) 22%, transparent);
 }
 
 .sub-action-confirm:not(:disabled):active {
-  background: #006622;
+  background: var(--rm-cta-active);
   box-shadow: none;
 }
 
@@ -1335,8 +1339,8 @@ html, body {
     }
 
     .ctrl-btn.primary:hover:not(:disabled) {
-      background: #009434;
-      border-color: #009434;
+      background: var(--rm-cta-hover);
+      border-color: var(--rm-cta-hover);
       box-shadow: 0 0 20px color-mix(in oklch, var(--rm-pitch) 55%, transparent);
     }
   }
@@ -1367,7 +1371,7 @@ html, body {
     }
 
     .sub-action-confirm:not(:disabled):hover {
-      background: #009434;
+      background: var(--rm-cta-hover);
     }
   }
 }
@@ -1653,7 +1657,7 @@ html, body {
 }
 
 .crash-overlay-copy {
-  background: #007a2a;
-  border-color: #006622;
+  background: var(--rm-cta);
+  border-color: var(--rm-cta-active);
   color: #fff;
 }

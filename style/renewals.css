@@ -215,7 +215,7 @@
   justify-content: center;
   gap: 10px;
   padding: 14px 22px;
-  background: #007a2a;
+  background: var(--rm-cta);
   border: none;
   border-radius: 14px;
   color: #ffffff;
@@ -232,9 +232,9 @@
 }
 
 @media (hover: hover) {
-  #rn-continue:hover  { background: #009434; }
+  #rn-continue:hover  { background: var(--rm-cta-hover); }
 }
-#rn-continue:active { background: #006622; }
+#rn-continue:active { background: var(--rm-cta-active); }
 
 #renewals .app-header {
   background: linear-gradient(180deg,

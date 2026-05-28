@@ -266,7 +266,7 @@
   justify-content: center;
   gap: 10px;
   padding: 14px 22px;
-  background: #007a2a;
+  background: var(--rm-cta);
   border: none;
   border-radius: 14px;
   color: #ffffff;
@@ -283,9 +283,9 @@
 }
 
 @media (hover: hover) {
-  #so-continue:hover  { background: #009434; }
+  #so-continue:hover  { background: var(--rm-cta-hover); }
 }
-#so-continue:active { background: #006622; }
+#so-continue:active { background: var(--rm-cta-active); }
 
 #squad-overview .app-header {
   background: linear-gradient(180deg,

@@ -375,7 +375,7 @@
   justify-content: center;
   gap: 10px;
   padding: 14px 22px;
-  background: #007a2a;
+  background: var(--rm-cta);
   border: none;
   border-radius: 14px;
   color: #ffffff;
@@ -392,9 +392,9 @@
 }
 
 @media (hover: hover) {
-  #tm-continue:hover  { background: #009434; }
+  #tm-continue:hover  { background: var(--rm-cta-hover); }
 }
-#tm-continue:active { background: #006622; }
+#tm-continue:active { background: var(--rm-cta-active); }
 
 /* ── Tap-to-expand wrapping ── */
 

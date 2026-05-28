@@ -55,7 +55,7 @@
 #mp-title {
   font-family: var(--rm-font-display);
   font-size: clamp(44px, 14vw, 64px);
-  color: #ffffff;
+  color: var(--rm-chalk);
   line-height: 0.92;
   margin: 0;
   text-transform: uppercase;

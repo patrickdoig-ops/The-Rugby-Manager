@@ -234,7 +234,7 @@
   justify-content: center;
   gap: 10px;
   padding: 14px 22px;
-  background: #007a2a;
+  background: var(--rm-cta);
   border: none;
   border-radius: 14px;
   color: #ffffff;
@@ -251,9 +251,9 @@
 }
 
 @media (hover: hover) {
-  #pb-continue:hover { background: #009434; }
+  #pb-continue:hover { background: var(--rm-cta-hover); }
 }
-#pb-continue:active { background: #006622; }
+#pb-continue:active { background: var(--rm-cta-active); }
 
 #pb-empty {
   text-align: center;

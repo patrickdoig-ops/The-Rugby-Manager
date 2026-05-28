@@ -72,7 +72,11 @@ export function initPostTrainingResultsScreen(
     );
     const satOutCount = userClub.squad.filter(rid => !trainedIds.has(rid)).length;
 
-    const gainsCount  = withGains.length;
+    // Split gains: standout = 2+ stat gains (notable); single = exactly 1
+    const standout   = withGains.filter(p => Object.keys(p.statDeltas).length >= 2);
+    const singleGain = withGains.filter(p => Object.keys(p.statDeltas).length === 1);
+
+    const totalStatGains = withGains.reduce((s, p) => s + Object.keys(p.statDeltas).length, 0);
     const injuryCount = userTrained.filter(p => p.newlyInjured).length;
 
     let avgBefore = 0;
@@ -83,8 +87,10 @@ export function initPostTrainingResultsScreen(
     }
 
     function condSpan(r: PlayerTrainingResult): string {
-      const cls = r.conditionAfter > r.conditionBefore ? ' trs-cond--up' : '';
-      return `<span class="trs-cond${cls}">${r.conditionBefore}%<span class="trs-arrow">→</span>${r.conditionAfter}%</span>`;
+      const before = Math.round(r.conditionBefore);
+      const after  = Math.round(r.conditionAfter);
+      const cls = after > before ? ' trs-cond--up' : '';
+      return `<span class="trs-cond${cls}">${before}%<span class="trs-arrow">→</span>${after}%</span>`;
     }
 
     function gainRow(r: PlayerTrainingResult, i: number): string {
@@ -108,6 +114,26 @@ export function initPostTrainingResultsScreen(
         </div>`;
     }
 
+    function compactGainRow(r: PlayerTrainingResult, i: number): string {
+      const p = state.career.roster[r.rosterId];
+      if (!p) return '';
+      const name = `${p.firstName} ${p.lastName}`;
+      const [[k, v]] = Object.entries(r.statDeltas) as [keyof PlayerStats, number][];
+      const injTag = r.newlyInjured && p.injury
+        ? `<span class="trs-injury-tag">⚠ ${injuryLabel(p.injury.kind)}</span>`
+        : '';
+      return `
+        <div class="trs-row trs-row--compact" style="--row-delay:${i * 20}ms">
+          <div class="trs-row-inline">
+            ${playerLinkHtml(name, r.rosterId)}
+            <span class="trs-pos">${p.position}</span>
+            <span class="trs-gain">+${v} ${statLabel(k)}</span>
+            ${injTag}
+            ${condSpan(r)}
+          </div>
+        </div>`;
+    }
+
     function injuryRow(r: PlayerTrainingResult, i: number): string {
       const p = state.career.roster[r.rosterId];
       if (!p) return '';
@@ -127,9 +153,9 @@ export function initPostTrainingResultsScreen(
     }
 
     const summaryParts: string[] = [];
-    if (gainsCount  > 0) summaryParts.push(`<span class="trs-sum-gains">${gainsCount} ${gainsCount === 1 ? 'gain' : 'gains'}</span>`);
-    if (injuryCount > 0) summaryParts.push(`<span class="trs-sum-injuries">${injuryCount} ${injuryCount === 1 ? 'injury' : 'injuries'}</span>`);
-    if (satOutCount > 0) summaryParts.push(`<span class="trs-sum-sat">${satOutCount} sat out</span>`);
+    if (totalStatGains > 0) summaryParts.push(`<span class="trs-sum-gains">${totalStatGains} ${totalStatGains === 1 ? 'stat gain' : 'stat gains'}</span>`);
+    if (injuryCount    > 0) summaryParts.push(`<span class="trs-sum-injuries">${injuryCount} ${injuryCount === 1 ? 'injury' : 'injuries'}</span>`);
+    if (satOutCount    > 0) summaryParts.push(`<span class="trs-sum-sat">${satOutCount} sat out</span>`);
 
     el!.innerHTML = `
       <div class="app-header">
@@ -157,11 +183,19 @@ export function initPostTrainingResultsScreen(
       }
 
       <div class="trs-content">
-        ${withGains.length > 0 ? `
+        ${standout.length > 0 ? `
           <section class="trs-section">
-            <h2 class="trs-section-title">Attribute gains — ${gainsCount}</h2>
+            <h2 class="trs-section-title">${singleGain.length > 0 ? 'Standout gains' : 'Attribute gains'} — ${standout.length} ${standout.length === 1 ? 'player' : 'players'}</h2>
             <div class="trs-list">
-              ${withGains.map((r, i) => gainRow(r, i)).join('')}
+              ${standout.map((r, i) => gainRow(r, i)).join('')}
+            </div>
+          </section>` : ''}
+
+        ${singleGain.length > 0 ? `
+          <section class="trs-section">
+            <h2 class="trs-section-title">${standout.length > 0 ? 'Also improved' : 'Attribute gains'} — ${singleGain.length} ${singleGain.length === 1 ? 'player' : 'players'}</h2>
+            <div class="trs-list">
+              ${singleGain.map((r, i) => compactGainRow(r, i)).join('')}
             </div>
           </section>` : ''}
 

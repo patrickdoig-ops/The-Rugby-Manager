@@ -194,6 +194,26 @@
   to   { opacity: 1; transform: none; }
 }
 
+/* ── Compact one-liner row (single-gain players) ────────────────── */
+
+.trs-row--compact {
+  padding: 7px 16px;
+}
+
+.trs-row-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trs-row-inline .player-link {
+  font-size: 13px;
+}
+
+.trs-row-inline .trs-cond {
+  margin-left: auto;
+}
+
 /* ── Injury tag ──────────────────────────────────────────────────── */
 
 .trs-injury-tag {

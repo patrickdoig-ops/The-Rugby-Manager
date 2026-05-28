@@ -46,6 +46,7 @@
 .trs-intensity-light  { color: var(--rm-pitch); }
 .trs-intensity-medium { color: var(--rm-amber); }
 .trs-intensity-high   { color: var(--rm-danger); }
+.trs-block-chip       { color: var(--rm-chalk); }
 
 /* ── Summary row ───────────────────────────────────────────────────── */
 

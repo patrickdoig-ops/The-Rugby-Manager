@@ -43,9 +43,12 @@ export interface PlayerTrainingResult {
   newlyInjured: boolean;
 }
 
-// League-wide results returned by GameCoordinator.applyTrainingWeek.
-// The screen filters results.players to the user's club squad.
+// League-wide results returned by GameCoordinator.applyTrainingBlock.
+// `plan` is the final week's plan (focus is shared across the block);
+// `weeks` is the number of training weeks the gap spanned. The screen
+// filters results.players to the user's club squad.
 export interface TrainingWeekResult {
   plan: TrainingPlan;
   players: PlayerTrainingResult[];
+  weeks: number;
 }

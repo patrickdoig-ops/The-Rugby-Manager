@@ -1,13 +1,15 @@
-// Pure builder for the SeasonEvent stream that applies one week of
-// training league-wide. Mirrors careerRollover.computeRollover: reads the
-// current state, computes events, returns them; the caller
-// (GameCoordinator.applyTrainingWeek) routes them through applySeasonEvent.
+// Pure builder for the SeasonEvent stream that applies one training week
+// (one period of a block) league-wide. Mirrors careerRollover.computeRollover:
+// reads the current state, computes events, returns them; the caller
+// (GameCoordinator.applyTrainingBlock) routes them through applySeasonEvent,
+// once per period of the gap until the next match.
 //
 // Inputs:
 //   - state: current GameState (read-only)
 //   - userPlan: the manager's chosen plan for the player's club. AI clubs
 //     get their own plan via aiTrainingDirector.pickPlan inside this
 //     function.
+//   - periodDays: rest days this period spans — condition recovers per day.
 //
 // RNG: rngTransfer (career stream). Stable iteration order — clubs
 // id-ascending, roster ids numeric-ascending — keeps the call sequence
@@ -29,7 +31,16 @@ import { getAge, parseSeasonStartYear, seasonOpenIso } from './age';
 const TRAINING_INJURY_KINDS = ['muscle_strain', 'ligament_sprain', 'knock'] as const;
 type TrainingInjuryKind = typeof TRAINING_INJURY_KINDS[number];
 
-export function computeTrainingWeek(state: GameState, userPlan: TrainingPlan): SeasonEvent[] {
+// One training period. `periodDays` is how many rest days this period
+// spans — condition recovery scales with it (daily), while development +
+// injury rolls fire once for the period (per week). For a single-week gap
+// the period spans the actual 6/7/8-day turnaround; a multi-week block is
+// split into ~7-day periods by splitGapIntoPeriods (see trainingCalendar).
+export function computeTrainingWeek(
+  state: GameState,
+  userPlan: TrainingPlan,
+  periodDays: number,
+): SeasonEvent[] {
   const events: SeasonEvent[] = [];
   const userClubId = state.player.teamId;
   const seasonStartYear = parseSeasonStartYear(state.calendar.seasonLabel);
@@ -47,7 +58,7 @@ export function computeTrainingWeek(state: GameState, userPlan: TrainingPlan): S
     const plan = club.id === userClubId
       ? userPlan
       : pickAIPlan(state, club);
-    pushClubTrainingEvents(events, state, club, plan, seasonOpen, injuredOn);
+    pushClubTrainingEvents(events, state, club, plan, periodDays, seasonOpen, injuredOn);
   }
 
   return events;
@@ -58,6 +69,7 @@ function pushClubTrainingEvents(
   state: GameState,
   club: ClubState,
   plan: TrainingPlan,
+  periodDays: number,
   seasonOpenDate: string,
   injuredOn: string,
 ): void {
@@ -95,7 +107,7 @@ function pushClubTrainingEvents(
     out.push({
       type: 'PLAYER_TRAINED',
       rosterId: rid,
-      conditionDelta: intensity.conditionDelta,
+      conditionDelta: intensity.conditionPerDay * periodDays,
       statDeltas,
     });
 

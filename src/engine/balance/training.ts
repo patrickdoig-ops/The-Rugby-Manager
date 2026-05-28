@@ -1,5 +1,5 @@
-// Training-system tuning. Drives applyTrainingWeek + aiTrainingDirector +
-// rollTrainingInjuryEvents. All numbers are v1 baselines — re-balance via
+// Training-system tuning. Drives applyTrainingBlock + computeTrainingWeek +
+// aiTrainingDirector. All numbers are v1 baselines — re-balance via
 // telemetry once a multi-season pass exists.
 //
 // Calibration target: a regular starter (≈ 50% condition cost per match)
@@ -12,18 +12,24 @@ import type {
 } from '../../types/training';
 
 // Intensity → per-player effect bundle.
-//   conditionDelta    — added to Player.condition (clamped 0-100)
-//   developmentChance — base probability per stat per week (focused stats
-//                       multiply by DEVELOPMENT.focusMultiplier; unfocused
-//                       by DEVELOPMENT.unfocusedMultiplier)
-//   injuryRisk        — base probability per player per week (scaled by
-//                       INJURY_RISK.conditionMultiplier as condition drops)
+//   conditionPerDay   — condition recovered per rest day (added to
+//                       Player.condition, clamped 0-100). Daily so a longer
+//                       gap between matches recovers more freshness — an
+//                       8-day turnaround beats a 6-day one at equal intensity,
+//                       and lighter sessions recover more per day than heavy.
+//   developmentChance — base probability per stat per training week (focused
+//                       stats multiply by DEVELOPMENT.focusMultiplier;
+//                       unfocused by DEVELOPMENT.unfocusedMultiplier). Per
+//                       week, not per day: a focused session either lands a
+//                       +1 or it doesn't, once per week of the gap.
+//   injuryRisk        — base probability per player per training week (scaled
+//                       by INJURY_RISK.conditionMultiplier as condition drops)
 export const INTENSITY_EFFECTS: Record<TrainingIntensity,
-  { conditionDelta: number; developmentChance: number; injuryRisk: number }> = {
-  rest:   { conditionDelta: +90, developmentChance: 0.00, injuryRisk: 0.000 },
-  light:  { conditionDelta: +60, developmentChance: 0.08, injuryRisk: 0.001 },
-  medium: { conditionDelta: +40, developmentChance: 0.18, injuryRisk: 0.004 },
-  high:   { conditionDelta: +20, developmentChance: 0.32, injuryRisk: 0.012 },
+  { conditionPerDay: number; developmentChance: number; injuryRisk: number }> = {
+  rest:   { conditionPerDay: +13, developmentChance: 0.00, injuryRisk: 0.000 },
+  light:  { conditionPerDay: +9,  developmentChance: 0.08, injuryRisk: 0.001 },
+  medium: { conditionPerDay: +6,  developmentChance: 0.18, injuryRisk: 0.004 },
+  high:   { conditionPerDay: +3,  developmentChance: 0.32, injuryRisk: 0.012 },
 };
 
 // Focus → the two PlayerStats keys that get the development boost. Forwards

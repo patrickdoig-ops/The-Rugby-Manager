@@ -50,6 +50,7 @@ import { buildAutoSelectedTeamFromRoster } from './rosterTeamBuilder';
 import { parseSeasonStartYear, seasonOpenIso } from './age';
 import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot, type PlayerStatsSnapshot } from './seasonStatsCollector';
 import { computeTrainingWeek } from './trainingWeek';
+import { upcomingGap, splitGapIntoPeriods } from './trainingCalendar';
 import { computeRollover } from './careerRollover';
 import { generatePersona } from './personaGenerator';
 import { resolveSchedule, backfillCareerContracts, buildRosterSeededEvent, buildCareerArchiveRestoredEvent } from './saveMigration';
@@ -290,64 +291,81 @@ export class GameCoordinator {
     applySeasonEvent(this.state, { type: 'PLAYER_MATCHDAY_SQUAD_SET', squad });
   }
 
-  // Applies one week of training league-wide. Emits one PLAYER_TRAINING_PLAN_SET
-  // (so the manager's choice persists) then walks every club (id-ascending) and
-  // every player on each club's squad (rosterId-ascending), firing one
-  // PLAYER_TRAINED per non-injured player plus optional PLAYER_INJURED from
-  // training-injury rolls. AI clubs get their plan from aiTrainingDirector.
-  // RNG flows through rngTransfer; stable iteration order keeps it
-  // deterministic across runs. Called by TrainingScreen's Continue handler
-  // in the post-match navigation chain (between LeagueTable and Hub).
-  // Returns per-player results for PostTrainingResultsScreen.
-  applyTrainingWeek(userPlan: TrainingPlan): TrainingWeekResult {
-    const events = computeTrainingWeek(this.state, userPlan);
+  // Applies a training block — one entry in `weeks` per discrete training
+  // week of the gap until the player's next match (length === upcomingGap
+  // weeks; the UI renders one card per week). The gap's real day count is
+  // split into ~7-day periods (splitGapIntoPeriods); condition recovers per
+  // day across each period's span while development + injury rolls fire once
+  // per period. Each period emits one PLAYER_TRAINING_PLAN_SET (last wins as
+  // the persisted default) then one PLAYER_TRAINED per non-injured player
+  // league-wide plus optional PLAYER_INJURED; AI clubs get their plan from
+  // aiTrainingDirector, re-picked per period. RNG flows through rngTransfer;
+  // stable iteration order keeps it deterministic. Returns per-player
+  // results merged across the block for PostTrainingResultsScreen.
+  applyTrainingBlock(weeks: TrainingPlan[]): TrainingWeekResult {
+    const n = Math.max(1, weeks.length);
+    const { days } = upcomingGap(this.state);
+    const spans = splitGapIntoPeriods(days, n);
 
-    // Snapshot condition + only the stats that will change per trained player,
-    // before mutating state. This lets us compute true clamped deltas after.
-    const beforeSnap = new Map<number, { condition: number; stats: Partial<PlayerStats> }>();
-    for (const ev of events) {
-      if (ev.type !== 'PLAYER_TRAINED') continue;
-      const p = this.state.career.roster[ev.rosterId];
-      if (!p) continue;
-      const stats: Partial<PlayerStats> = {};
-      for (const k of Object.keys(ev.statDeltas) as (keyof PlayerStats)[]) {
-        stats[k] = p.baseStats[k];
+    // Per-player accumulator merged across periods. conditionBefore is
+    // captured the first period a player trains; conditionAfter tracks the
+    // latest; statDeltas sum; newlyInjured latches on any period.
+    const acc = new Map<number, PlayerTrainingResult>();
+
+    for (let i = 0; i < n; i++) {
+      const plan = weeks[i] ?? weeks[weeks.length - 1];
+      const events = computeTrainingWeek(this.state, plan, spans[i]);
+
+      // Snapshot the to-be-changed stats per trained player before applying.
+      const beforeSnap = new Map<number, { condition: number; stats: Partial<PlayerStats> }>();
+      for (const ev of events) {
+        if (ev.type !== 'PLAYER_TRAINED') continue;
+        const p = this.state.career.roster[ev.rosterId];
+        if (!p) continue;
+        const stats: Partial<PlayerStats> = {};
+        for (const k of Object.keys(ev.statDeltas) as (keyof PlayerStats)[]) {
+          stats[k] = p.baseStats[k];
+        }
+        beforeSnap.set(ev.rosterId, { condition: p.condition ?? 100, stats });
       }
-      beforeSnap.set(ev.rosterId, { condition: p.condition ?? 100, stats });
-    }
 
-    // Collect which players get a new injury during this training session.
-    const newlyInjured = new Set<number>();
-    for (const ev of events) {
-      if (ev.type === 'PLAYER_INJURED') newlyInjured.add(ev.rosterId);
-    }
-
-    for (const ev of events) applySeasonEvent(this.state, ev);
-
-    // Build results from before/after comparison — only actual gains survive
-    // (stats clamped at 99 during apply show as 0 and are omitted).
-    const players: PlayerTrainingResult[] = [];
-    for (const ev of events) {
-      if (ev.type !== 'PLAYER_TRAINED') continue;
-      const p = this.state.career.roster[ev.rosterId];
-      const snap = beforeSnap.get(ev.rosterId);
-      if (!p || !snap) continue;
-      const statDeltas: Partial<PlayerStats> = {};
-      for (const k of Object.keys(snap.stats) as (keyof PlayerStats)[]) {
-        const gain = (p.baseStats[k] ?? 0) - (snap.stats[k] ?? 0);
-        if (gain > 0) statDeltas[k] = gain;
+      const injuredThisPeriod = new Set<number>();
+      for (const ev of events) {
+        if (ev.type === 'PLAYER_INJURED') injuredThisPeriod.add(ev.rosterId);
       }
-      players.push({
-        rosterId: ev.rosterId,
-        conditionBefore: snap.condition,
-        conditionAfter: p.condition ?? 100,
-        statDeltas,
-        newlyInjured: newlyInjured.has(ev.rosterId),
-      });
+
+      for (const ev of events) applySeasonEvent(this.state, ev);
+
+      for (const ev of events) {
+        if (ev.type !== 'PLAYER_TRAINED') continue;
+        const p = this.state.career.roster[ev.rosterId];
+        const snap = beforeSnap.get(ev.rosterId);
+        if (!p || !snap) continue;
+        const existing = acc.get(ev.rosterId);
+        const entry = existing ?? {
+          rosterId: ev.rosterId,
+          conditionBefore: snap.condition,
+          conditionAfter: p.condition ?? 100,
+          statDeltas: {},
+          newlyInjured: false,
+        };
+        // Real (post-clamp) gains for this period, summed into the block total.
+        for (const k of Object.keys(snap.stats) as (keyof PlayerStats)[]) {
+          const gain = (p.baseStats[k] ?? 0) - (snap.stats[k] ?? 0);
+          if (gain > 0) entry.statDeltas[k] = (entry.statDeltas[k] ?? 0) + gain;
+        }
+        entry.conditionAfter = p.condition ?? 100;
+        if (injuredThisPeriod.has(ev.rosterId)) entry.newlyInjured = true;
+        acc.set(ev.rosterId, entry);
+      }
     }
 
     eventBus.emit('game:trainingApplied', { state: this.state });
-    return { plan: userPlan, players };
+    return {
+      plan: weeks[weeks.length - 1],
+      players: [...acc.values()],
+      weeks: n,
+    };
   }
 
   // Persists the manager's training plan without executing training. Used
@@ -511,12 +529,17 @@ export class GameCoordinator {
     if (alreadyRecorded) return;
 
     // Injury recovery tick — runs before any new injuries from this round
-    // get added. Represents the week of rest between rounds: every player
-    // currently injured decrements weeksRemaining by 1; players whose
-    // counter would reach 0 fire PLAYER_RECOVERED instead. Order is
+    // get added. Represents the rest between the player's previous match and
+    // this one: every injured player decrements weeksRemaining by 1 per week
+    // of the gap (PLAYER_RECOVERED when a counter hits 0), so a long
+    // international window (e.g. ~8 weeks across the Six Nations break) heals
+    // proportionally more than a normal 1-week turnaround. Order is
     // rosterId-ascending so the season-determinism harness stays clean.
-    for (const ev of this.tickInjuryEvents()) {
-      applySeasonEvent(this.state, ev);
+    const recoveryWeeks = upcomingGap(this.state).weeks;
+    for (let w = 0; w < recoveryWeeks; w++) {
+      for (const ev of this.tickInjuryEvents()) {
+        applySeasonEvent(this.state, ev);
+      }
     }
 
     const playerSide: 'home' | 'away' = fixture.homeId === this.state.player.teamId ? 'home' : 'away';

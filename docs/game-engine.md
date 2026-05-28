@@ -74,7 +74,7 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 | `CLUB_BUDGET_SET` | Once per club at the start of the off-season chain (via `prepareBudgetsForNextSeason`) | Sets `state.career.clubs[clubId].salaryBudget` to the post-clamp new value (performance-derived base, floored from year 2 onwards, ceilinged at the effective cap). `delta` + `reasons` carry display payload for the BudgetRevealScreen. |
 | `CLUB_TAKEOVER` | After all `CLUB_BUDGET_SET` events when a club hits the takeover trigger — Newcastle Red Bull at year-1 → year-2 (hardcoded), random investor takeovers from year 3+ (`rngTransfer` rolls) | Adds `boostAmount` (£1m) to the named club's `salaryBudget`, clamped at the effective cap. Pushes the clubId onto `state.career.takeoverHistory` so the club is excluded from future random rolls. |
 | `PLAYER_TRAINING_PLAN_SET` | TrainingScreen Continue (post-match) and TrainingScreen Back (Hub mid-week) | Clones the chosen `TrainingPlan` (`intensity` + `forwardsFocus` + `backsFocus`) into `state.player.training` so the next training week opens with it as the default. |
-| `PLAYER_TRAINED` | Per non-injured roster player league-wide, once per training week (post-match TrainingScreen Continue → `applyTrainingWeek`) | Applies `conditionDelta` to `Player.condition` (clamped 0-100) plus `Partial<PlayerStats>` deltas to `baseStats` (clamped 1-99). Shape mirrors `PLAYER_AGED` for the stats half. RNG via `rngTransfer`; iteration is club id-ascending → roster id-ascending. |
+| `PLAYER_TRAINED` | Per non-injured roster player league-wide, once per training week of the gap (post-match TrainingScreen Continue → `applyTrainingBlock`) | Applies `conditionDelta` to `Player.condition` (clamped 0-100) plus `Partial<PlayerStats>` deltas to `baseStats` (clamped 1-99). `conditionDelta = conditionPerDay × the period's day-span` (condition recovers daily). Shape mirrors `PLAYER_AGED` for the stats half. RNG via `rngTransfer`; iteration is club id-ascending → roster id-ascending. |
 | `PLAYER_CONDITION_UPDATED` | Per player who took the field, once per fixture (live + silent AI + playoffs) | Snapshots that player's final in-match fatigue back to `Player.condition` (set, not add). MatchCoordinator.initPlayer then reads it as the starting `fatiguePct` for the next match. Bench players who didn't appear get no event and keep their accumulated condition. |
 
 `GameCoordinator.rollSeason()` returns the applied `SeasonEvent[]` so `main.ts` can hand it to `RolloverScreen` for the post-apply diff render.
@@ -318,7 +318,7 @@ Persistent contact injuries on the career roster, in-match-triggered and decreme
 
 - **State**: `Player.injury?: { kind, severity, weeksRemaining, injuredOn, isRecurrence }` on the career-roster Player (absent ⇔ fit).
 - **Severity roll**: `GameCoordinator.rollNewInjuryEvents(snapshots)` reads `snapshot.injuryKind` (surfaced by `snapshotMatch`) and rolls severity + weeks via `rngTransfer`. Walks snapshots rosterId-ascending so the career-stream consumption is stable.
-- **Recovery tick**: `GameCoordinator.tickInjuryEvents()` runs at the start of `recordPlayerMatchResult` (after the re-entry guard, before any new fixture is recorded). Pure RNG-free walk over `state.career.roster`; emits `INJURY_TICK_ADVANCED` for every injured player and `PLAYER_RECOVERED` for any whose counter hits zero. Order: tick → record fixtures → roll new injuries → `WEEK_ADVANCED`. A player injured at round N retains full `weeksRemaining` into round N+1.
+- **Recovery tick**: `GameCoordinator.tickInjuryEvents()` runs at the start of `recordPlayerMatchResult` (after the re-entry guard, before any new fixture is recorded). Pure RNG-free walk over `state.career.roster`; emits `INJURY_TICK_ADVANCED` for every injured player and `PLAYER_RECOVERED` for any whose counter hits zero. It's looped `upcomingGap(state).weeks` times — the number of whole weeks between the player's previous and upcoming match (`src/game/trainingCalendar.ts`), so a long international window (≈8 weeks across the Six Nations break) heals proportionally more than a normal 1-week turnaround. A 6-day and 8-day gap both round to one week. Order: tick × N → record fixtures → roll new injuries → `WEEK_ADVANCED`.
 - **Persistence**: injuries survive saves (v9+) and season rollovers (a 26-week ACL in May continues counting down through summer). `careerRollover` doesn't touch the injury field; `SEASON_ROLLED_OVER` resets `seasonStats` but not `injury`.
 - **Roster build / squad selection**: split by side.
   - **AI side** (silent fixtures in `GameCoordinator.recordPlayerMatchResult`, AI opponent in `PreMatchScreen` + live human match): `buildAutoSelectedTeamFromRoster` (`src/game/rosterTeamBuilder.ts`) routes through `selectBestMatchdaySquad` (`src/game/autoSelect.ts`) every match week. The 23 are re-derived from the current roster by best-OVR-per-position using `SLOT_SPECS` — primary slot first (e.g. Lock at 4 / 5 / 19), then fallback chain (Back Row covers Flanker / Number 8; Utility Back covers any back slot). Ensures AI teams always field their strongest available 23 and the matchday lineup reflects the roster evolving across seasons. Falls back to `buildTeamFromRoster` if the club has fewer than 23 fit players.
@@ -327,19 +327,21 @@ Persistent contact injuries on the career roster, in-match-triggered and decreme
 
 ## Training
 
-A weekly choice between matches: trades off short-term freshness for long-term attribute growth, with team-level forwards / backs focuses driving which stats develop. Sits in the post-match Continue chain between LeagueTable and Hub; the Hub's Training tile re-enters the same screen in mid-week mode for editing next round's plan without applying it.
+A choice between matches: trades off short-term freshness for long-term attribute growth, with team-level forwards / backs focuses driving which stats develop. Sits in the post-match Continue chain between LeagueTable and the TrainingResults screen; the Hub's Training tile re-enters the same screen in mid-week mode for editing next round's plan without applying it.
+
+**Week-at-a-time blocks.** The gap until the player's next match is rarely exactly 7 days — normal turnarounds run 6-9 days (Fri/Sat/Sun kick-offs) and the Autumn Nations / Six Nations breaks span 3-8 weeks. The post-match screen renders one card per *training week* of the gap (`upcomingGap(state).weeks = round(days/7)`, min 1), each with its own intensity; forwards/backs focus is shared across the block. The real day count is split into ~7-day periods by `splitGapIntoPeriods` (`src/game/trainingCalendar.ts`). **Condition recovers per day** (so an 8-day gap recovers more than a 6-day one at equal intensity), while development and injury rolls fire once per period (per week). A short single-week turnaround (≤6 days) defaults to Light with an advisory banner; a multi-week break flags the development window. These defaults are advisory only — the manager can override every week.
 
 - **State.** Two surfaces:
   - `state.player.training?: TrainingPlan` — manager's last-saved plan (`intensity` + `forwardsFocus` + `backsFocus`). Undefined ⇔ `TrainingScreen` falls back to `DEFAULT_TRAINING_PLAN` (`'medium' / 'set_piece' / 'tackling'`). Set via `PLAYER_TRAINING_PLAN_SET`; persists across saves.
-  - `Player.condition: number` — 0-100, persistent inter-match freshness, on every roster Player. Seeded at 100. Snapshotted from final in-match `fatiguePct` via `PLAYER_CONDITION_UPDATED` after every fixture (live + silent AI + playoffs). Drifts back up under light/rest training, drops under high intensity, holds roughly stable on medium for a regular starter.
+  - `Player.condition: number` — 0-100, persistent inter-match freshness, on every roster Player. Seeded at 100. Snapshotted from final in-match `fatiguePct` via `PLAYER_CONDITION_UPDATED` after every fixture (live + silent AI + playoffs). Recovers `conditionPerDay × rest days` each training period (lighter intensities recover more per day), so more rest = more freshness.
 
 - **Match-engine integration.** `MatchCoordinator.initPlayer` reads `raw.condition ?? 100` as the starting `fatiguePct`, so a tired starter actually starts the next match tired. Fatigue then decays from that starting point as it did before. Fatigue tiers in `FATIGUE_SCALING` apply from minute zero — a player at 50% condition is already in the "<50%" tier and gets the corresponding stat penalties throughout the match. Bench substitutes who didn't appear in the prior match come on at their accumulated condition (no event emitted for them, so the value just sticks).
 
-- **The four intensities** (`src/engine/balance/training.ts::INTENSITY_EFFECTS`). v1 baseline:
-  - **Rest** — `+90` condition, 0% development, 0% injury risk.
-  - **Light** — `+60` condition, 8% base development chance per stat, 0.1% injury risk per player.
-  - **Medium** — `+40` condition, 18% development chance, 0.4% injury risk.
-  - **High** — `+20` condition, 32% development chance, 1.2% injury risk.
+- **The four intensities** (`src/engine/balance/training.ts::INTENSITY_EFFECTS`). Condition is **per day**; development + injury are per training week. v1 baseline:
+  - **Rest** — `+13` condition/day, 0% development, 0% injury risk.
+  - **Light** — `+9` condition/day, 8% base development chance per stat per week, 0.1% injury risk per player per week.
+  - **Medium** — `+6` condition/day, 18% development chance, 0.4% injury risk.
+  - **High** — `+3` condition/day, 32% development chance, 1.2% injury risk.
 
 - **The eight focuses.** Each focus picks two `PlayerStats` keys to develop faster. `FORWARDS_FOCUS_STATS` and `BACKS_FOCUS_STATS` in `balance/training.ts` hold the mapping:
   - Forwards: `set_piece` → setPiece + strength, `strength` → strength + tackling, `stamina` → stamina + handling, `handling` → handling + composure.
@@ -360,7 +362,7 @@ A weekly choice between matches: trades off short-term freshness for long-term a
   - Else → balanced (medium-biased) baseline.
   - Forwards + backs focuses are then picked uniformly across their respective sets via two more `rngTransfer` calls. A third throwaway roll keeps the per-club call count fixed at 3 regardless of which intensity branch was hit.
 
-- **Coordinator surface.** `GameCoordinator.applyTrainingWeek(plan)` is the only entry point. It calls `computeTrainingWeek(state, plan)` (pure), applies each returned event through `applySeasonEvent`, then emits `game:trainingApplied`. Called by `TrainingScreen`'s Continue button. Determinism: clubs iterated id-ascending, roster ids numeric-ascending — same stable order as `careerRollover.computeRollover`.
+- **Coordinator surface.** `GameCoordinator.applyTrainingBlock(weeks: TrainingPlan[])` is the entry point. It derives the per-period day-spans from `upcomingGap` + `splitGapIntoPeriods`, then for each period calls `computeTrainingWeek(state, plan, periodDays)` (pure), applies each returned event through `applySeasonEvent`, and accumulates per-player results (summed stat gains, condition before/after, newly-injured latch). Emits `game:trainingApplied` once at the end and returns a `TrainingWeekResult { plan, players, weeks }` for `PostTrainingResultsScreen`. Called by `TrainingScreen`'s Continue button. Determinism: clubs iterated id-ascending, roster ids numeric-ascending — same stable order as `careerRollover.computeRollover`. Training is UI-only (not exercised by `checkSeasonDeterminism`), so the block loop is additive to the harness; the engine-side multi-week injury tick *is* covered and stays deterministic because the week count comes from fixed fixture dates.
 
 - **`setPlayerTrainingPlan(plan)`** is the lighter-weight setter used by the Hub mid-week edit path. Single `PLAYER_TRAINING_PLAN_SET` event, no execution, no `rngTransfer` consumption — the plan just becomes next round's default.
 
@@ -488,12 +490,12 @@ Match → MatchResult → recordPlayerMatchResult + snapshotMatch + saveGame
                      → RoundResults → LeagueTable (post-match mode) →
                        │
                        ├── (regular season ongoing)
-                       │     → TrainingScreen (post-match mode)
-                       │       Continue → applyTrainingWeek(plan) emits
+                       │     → TrainingScreen (post-match block: 1 card per week of the gap)
+                       │       Continue → applyTrainingBlock(weeks[]) — per period:
                        │         · PLAYER_TRAINING_PLAN_SET (persists default)
                        │         · PLAYER_TRAINED per non-injured player league-wide
                        │         · PLAYER_INJURED per training-injury roll
-                       │       → game:trainingApplied → saveGame → Hub
+                       │       → game:trainingApplied → TrainingResults → saveGame → Hub
                        │
                        ├── (last R18 fixture just resolved: game:bracketSeeded latched)
                        │     → runPlayoffStage() — state-driven orchestrator that:

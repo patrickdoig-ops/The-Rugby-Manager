@@ -5,9 +5,9 @@
 // is never touched.
 //
 // Determinism: caller iterates clubs in id-ascending order (see
-// applyTrainingWeek in GameCoordinator); each pickPlan call advances
-// rngTransfer the same number of times regardless of inputs so a different
-// roster shape doesn't shift the sequence.
+// computeTrainingWeek, driven by applyTrainingBlock in GameCoordinator);
+// each pickPlan call advances rngTransfer the same number of times
+// regardless of inputs so a different roster shape doesn't shift the sequence.
 
 import type { ClubState, GameState } from '../types/gameState';
 import type { BacksFocus, ForwardsFocus, TrainingIntensity, TrainingPlan } from '../types/training';

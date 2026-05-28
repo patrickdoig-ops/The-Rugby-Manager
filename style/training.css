@@ -55,6 +55,91 @@
   color: var(--rm-text-muted);
 }
 
+/* Projected freshness after the block, shown next to current freshness. */
+.tr-cond-proj {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--rm-pitch);
+}
+
+/* ── Advisory banner (short-week / long-break nudge) ────────────────── */
+.tr-banner {
+  margin: 12px 16px 0;
+  padding: 10px 12px;
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--rm-text-muted);
+  background: var(--rm-surface-2);
+  border-left: 3px solid var(--rm-pitch);
+  border-radius: 6px;
+}
+
+.tr-banner--warn {
+  color: var(--rm-chalk);
+  border-left-color: var(--rm-amber);
+}
+
+/* ── Per-week block cards ───────────────────────────────────────────── */
+.tr-weeks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px 4px;
+}
+
+.tr-week-card {
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 12px;
+  padding: 10px 12px 12px;
+}
+
+.tr-week-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 9px;
+}
+
+.tr-week-title {
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rm-chalk);
+}
+
+.tr-week-days {
+  font-family: var(--rm-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--rm-text-muted);
+}
+
+/* Compact 4-across intensity chips inside week cards so a multi-week
+   block stays scannable. */
+.tr-week-card .tr-chip-row {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.tr-week-card .tr-chip {
+  min-height: auto;
+  padding: 8px 4px;
+  align-items: center;
+  text-align: center;
+}
+
+.tr-week-card .tr-chip-label {
+  font-size: 11px;
+}
+
+.tr-week-card .tr-chip-blurb {
+  display: none;
+}
+
 /* ── Section headers + chip rows ────────────────────────────────────── */
 .tr-section {
   padding: 14px 16px 4px;

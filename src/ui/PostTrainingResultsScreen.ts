@@ -142,7 +142,9 @@ export function initPostTrainingResultsScreen(
       </div>
 
       <div class="trs-plan-bar">
-        <span class="trs-plan-chip trs-intensity-${results.plan.intensity}">${results.plan.intensity.toUpperCase()}</span>
+        ${results.weeks > 1
+          ? `<span class="trs-plan-chip trs-block-chip">${results.weeks}-WEEK BLOCK</span>`
+          : `<span class="trs-plan-chip trs-intensity-${results.plan.intensity}">${results.plan.intensity.toUpperCase()}</span>`}
         <span class="trs-plan-sep">·</span>
         <span class="trs-plan-chip">Fwds: ${focusLabel(results.plan.forwardsFocus)}</span>
         <span class="trs-plan-sep">·</span>
@@ -151,7 +153,7 @@ export function initPostTrainingResultsScreen(
 
       ${summaryParts.length > 0
         ? `<div class="trs-summary">${summaryParts.join('<span class="trs-sum-sep">·</span>')}</div>`
-        : `<div class="trs-no-news">No attribute gains this week.</div>`
+        : `<div class="trs-no-news">No attribute gains this ${results.weeks > 1 ? 'block' : 'week'}.</div>`
       }
 
       <div class="trs-content">

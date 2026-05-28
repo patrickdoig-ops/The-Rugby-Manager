@@ -8,7 +8,7 @@
 
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
-import type { Fixture, GameState } from '../types/gameState';
+import type { Fixture, FixtureResult, GameState } from '../types/gameState';
 import { eventBus } from '../utils/eventBus';
 import { sortStandings } from '../game/leagueTable';
 import { computeOverallRating } from '../team/teamProfile';
@@ -125,6 +125,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
     const pct = totalRounds > 0 ? (state.calendar.week / totalRounds) * 100 : 0;
     const injuredCount = countInjured(state);
     const expiringCount = countExpiringContracts(state);
+    const lastRes = lastPlayerResult(playerTeam.id, state.league.results);
     const tileBadgeCount: Record<string, number> = {
       'hub-tile-squad':     injuredCount,
       'hub-tile-contracts': expiringCount,
@@ -153,16 +154,33 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
             <span class="hub-standing-val hub-standing-val--chalk hub-standing-val--record">${standing?.won ?? 0}W–${standing?.lost ?? 0}L</span>
             <span class="hub-standing-label">Record</span>
           </div>
+          ${lastRes ? `
+          <div class="hub-standing-item">
+            <span class="hub-standing-val hub-standing-val--last hub-standing-val--${lastRes.outcome}">${lastRes.outcome === 'win' ? 'W' : lastRes.outcome === 'loss' ? 'L' : 'D'} ${lastRes.score}</span>
+            <span class="hub-standing-label">Last</span>
+          </div>` : ''}
         </div>
         <div id="hub-meta">
-          <div id="hub-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
-          <div id="hub-progress"><div id="hub-progress-fill" style="width:${pct.toFixed(1)}%"></div></div>
+          <div id="hub-eyebrow">${state.calendar.seasonLabel}</div>
+          <div id="hub-progress-wrap">
+            <span class="hub-progress-wk">WK ${state.calendar.week}</span>
+            <div id="hub-progress"><div id="hub-progress-fill" style="width:${pct.toFixed(1)}%"></div></div>
+            <span class="hub-progress-total">R${totalRounds}</span>
+          </div>
         </div>
       </div>
 
       ${playoffsActive
         ? playoffsHtml(playoffs!, teamsById, playerTeam.id)
         : nextMatchHtml(nextFixture, state, teamsById, playerTeam.id)}
+
+      ${(injuredCount > 0 || expiringCount > 0) ? `
+        <button id="hub-alert-banner" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008z"/></svg>
+          <span class="hub-alert-text">${[injuredCount > 0 ? `${injuredCount} in treatment room` : '', expiringCount > 0 ? `${expiringCount} expiring contracts` : ''].filter(Boolean).join(' · ')}</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+      ` : ''}
 
       <div id="hub-grid">
         ${TILES.map(t => {
@@ -178,21 +196,16 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
         }).join('')}
       </div>
 
-      ${injuredCount > 0 ? `
-        <button id="hub-treatment-room" type="button" aria-label="View injured players">
-          <span class="injury-badge">${injuredCount}</span>
-          <span class="hub-treatment-label">${injuredCount === 1 ? 'player' : 'players'} in the treatment room</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
-        </button>
-      ` : ''}
-
       <div id="hub-footer">${playoffsActive ? playoffFooterHtml() : footerHtml(nextFixture)}</div>
     `;
 
     el!.style.setProperty('--team-color', playerTeam.color);
 
     el!.querySelector<HTMLButtonElement>('#hub-settings')!.addEventListener('click', () => opts.onSettings());
-    el!.querySelector<HTMLButtonElement>('#hub-treatment-room')?.addEventListener('click', () => opts.onSquad());
+    el!.querySelector<HTMLButtonElement>('#hub-alert-banner')?.addEventListener('click', () => {
+      if (injuredCount > 0) opts.onSquad();
+      else opts.onContracts();
+    });
     for (const t of TILES) {
       if (t.stub) continue;
       el!.querySelector<HTMLButtonElement>(`#${t.id}`)!.addEventListener('click', () => opts[t.handlerKey]());
@@ -414,6 +427,18 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
       if (monthsAhead >= 0 && monthsAhead <= EXPIRING_CONTRACT_WINDOW_MONTHS) n++;
     }
     return n;
+  }
+
+  function lastPlayerResult(teamId: string, results: FixtureResult[]): { outcome: 'win' | 'draw' | 'loss'; score: string } | null {
+    for (let i = results.length - 1; i >= 0; i--) {
+      const r = results[i];
+      if (r.homeId !== teamId && r.awayId !== teamId) continue;
+      const isHome = r.homeId === teamId;
+      const my = isHome ? r.homeScore : r.awayScore;
+      const opp = isHome ? r.awayScore : r.homeScore;
+      return { outcome: my > opp ? 'win' : my < opp ? 'loss' : 'draw', score: `${my}–${opp}` };
+    }
+    return null;
   }
 
   // Re-render whenever the season state changes — date, week, next-fixture

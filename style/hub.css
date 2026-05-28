@@ -374,7 +374,7 @@
 }
 
 .hub-tile {
-  --tile-accent: var(--rm-pitch);
+  --tile-accent: var(--team-color, var(--rm-pitch));
   position: relative;
   background:
     linear-gradient(160deg,
@@ -399,13 +399,6 @@
     0 10px 30px rgba(0, 0, 0, 0.35);
 }
 
-/* Per-function accent */
-#hub-tile-squad     { --tile-accent: var(--rm-pitch); }
-#hub-tile-fixtures  { --tile-accent: var(--blue); }
-#hub-tile-league    { --tile-accent: var(--rm-stat-3); }
-#hub-tile-training  { --tile-accent: var(--rm-stat-5); }
-#hub-tile-contracts { --tile-accent: var(--rm-amber); }
-#hub-tile-transfers { --tile-accent: oklch(0.72 0.15 300); }
 
 .hub-tile--stub {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);

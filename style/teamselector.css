@@ -203,7 +203,7 @@
 /* Name area — team colour bleeds here */
 .ts-name-area {
   flex: 1;
-  padding: 18px 14px 12px;
+  padding: 28px 14px 8px;
   display: flex;
   flex-direction: column;
   justify-content: center;

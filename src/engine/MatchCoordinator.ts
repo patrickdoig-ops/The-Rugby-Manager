@@ -663,16 +663,40 @@ export class MatchCoordinator {
       previousPhase = MatchPhase.Penalty;
     }
 
+    if (await this.handleEndOfPeriod(wasInRed, previousPhase)) return;
+
+    // Stash this tick's starting phase so the next tick can detect a
+    // cross-tick set-piece entry. Must be the snapshot — state.phase has
+    // mutated several times during the tick body.
+    this.prevTickStartPhase = phaseAtTickStart;
+
+    // Trigger the paced drain of any events emitted during this tick.
+    // We don't await — the streamer drains in the background over
+    // tickDelayMs, which is the same interval scheduleTick waits before
+    // the next tick. Drain completes naturally before the next tick fires.
+    this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+    this.scheduleTick(this.nextTickDelay());
+  }
+
+  // End-of-period handling: clock-in-the-red check, period end
+  // (triggerHalfTime / endMatch), and the live-mode half-time auto-pause.
+  // `wasInRed` is the pre-advance clock snapshot; `previousPhase` is the
+  // (possibly Penalty-reassigned) phase fed to shouldEndPeriod. Returns
+  // true when the tick has terminated (match ended, or half-time paused
+  // the engine) — caller returns without scheduling. Returns false to let
+  // the orchestrator stash + schedule the next tick (incl. the silent
+  // half-time case, which plays straight on into the second half).
+  private async handleEndOfPeriod(wasInRed: boolean, previousPhase: MatchPhase): Promise<boolean> {
     const wasHalfTimeDone = this.state.clock.halfTimeDone;
     if (!this.state.clock.clockInTheRed) {
       this.clock.checkClockInRed(this.state);
     } else if (wasInRed && this.clock.shouldEndPeriod(this.state, previousPhase)) {
       if (!this.state.clock.halfTimeDone) {
         this.clock.triggerHalfTime(this.state);
-        if (!this.state.engine.isRunning) return;
+        if (!this.state.engine.isRunning) return true;
       } else {
         await this.clock.endMatch(this.state);
-        return;
+        return true;
       }
     }
 
@@ -686,20 +710,9 @@ export class MatchCoordinator {
       await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
       this.pause();
       eventBus.emit('engine:autoPaused', { reason: 'half_time' });
-      return;
+      return true;
     }
-
-    // Stash this tick's starting phase so the next tick can detect a
-    // cross-tick set-piece entry. Must be the snapshot — state.phase has
-    // mutated several times during the tick body.
-    this.prevTickStartPhase = phaseAtTickStart;
-
-    // Trigger the paced drain of any events emitted during this tick.
-    // We don't await — the streamer drains in the background over
-    // tickDelayMs, which is the same interval scheduleTick waits before
-    // the next tick. Drain completes naturally before the next tick fires.
-    this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-    this.scheduleTick(this.nextTickDelay());
+    return false;
   }
 
   // Pre-resolution narration for the phase about to resolve: the cross-tick

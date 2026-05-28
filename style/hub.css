@@ -458,7 +458,7 @@
     border-color: var(--rm-border);
   }
   #hub-settings:hover { color: var(--rm-text); }
-  #hub-play-next:hover { background: #009434; }
+  #hub-play-next:hover { background: var(--rm-cta-hover); }
 }
 
 #hub-footer {
@@ -510,7 +510,7 @@
   gap: 10px;
   width: 100%;
   padding: 13px;
-  background: #007a2a;
+  background: var(--rm-cta);
   border: none;
   border-radius: 14px;
   color: #ffffff;
@@ -525,7 +525,7 @@
 
 #hub-play-next svg { pointer-events: none; }
 
-#hub-play-next:active { background: #006622; }
+#hub-play-next:active { background: var(--rm-cta-active); }
 
 #hub-season-done {
   text-align: center;

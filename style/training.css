@@ -199,8 +199,8 @@
 }
 
 .tr-chip--active {
-  background: var(--team-color, #007a2a);
-  border-color: var(--team-color, #007a2a);
+  background: var(--team-color, var(--rm-cta));
+  border-color: var(--team-color, var(--rm-cta));
   color: #fff;
 }
 
@@ -234,7 +234,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #fff;
-  background: #007a2a;
+  background: var(--rm-cta);
   border: none;
   border-radius: 14px;
   cursor: pointer;
@@ -243,13 +243,13 @@
 
 #tr-continue:active,
 #tr-back:active {
-  background: #006622;
+  background: var(--rm-cta-active);
 }
 
 @media (hover: hover) {
   #tr-continue:hover,
   #tr-back:hover {
-    background: #009434;
+    background: var(--rm-cta-hover);
   }
 }
 

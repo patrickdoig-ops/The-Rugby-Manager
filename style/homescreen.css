@@ -500,7 +500,7 @@
 }
 
 .home-confirm-proceed {
-  background: #007a2a;
+  background: var(--rm-cta);
   border: none;
   color: #fff;
   box-shadow:
@@ -508,4 +508,4 @@
     0 4px 16px color-mix(in oklch, var(--rm-pitch) 28%, transparent);
 }
 
-.home-confirm-proceed:active { background: #006622; }
+.home-confirm-proceed:active { background: var(--rm-cta-active); }

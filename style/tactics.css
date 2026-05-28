@@ -335,7 +335,7 @@
 .tactics-resume-btn {
   width: 100%;
   padding: 14px 22px;
-  background: #007a2a;
+  background: var(--rm-cta);
   border: none;
   border-radius: 14px;
   color: #ffffff;
@@ -356,6 +356,6 @@
 }
 
 @media (hover: hover) {
-  .tactics-resume-btn:hover  { background: #009434; }
+  .tactics-resume-btn:hover  { background: var(--rm-cta-hover); }
 }
-.tactics-resume-btn:active { background: #006622; }
+.tactics-resume-btn:active { background: var(--rm-cta-active); }

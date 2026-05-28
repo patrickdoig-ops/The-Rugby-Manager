@@ -172,7 +172,7 @@
   justify-content: center;
   gap: 10px;
   padding: 14px 22px;
-  background: #007a2a;
+  background: var(--rm-cta);
   border: none;
   border-radius: 14px;
   color: #ffffff;
@@ -189,9 +189,9 @@
 }
 
 @media (hover: hover) {
-  #sr-continue:hover { background: #009434; }
+  #sr-continue:hover { background: var(--rm-cta-hover); }
 }
-#sr-continue:active { background: #006622; }
+#sr-continue:active { background: var(--rm-cta-active); }
 
 /* ===== RetentionDecisionScreen ===== */
 
@@ -385,7 +385,7 @@
   justify-content: center;
   gap: 10px;
   padding: 14px 22px;
-  background: #007a2a;
+  background: var(--rm-cta);
   border: none;
   border-radius: 14px;
   color: #ffffff;
@@ -402,9 +402,9 @@
 }
 
 @media (hover: hover) {
-  #rd-continue:hover { background: #009434; }
+  #rd-continue:hover { background: var(--rm-cta-hover); }
 }
-#rd-continue:active { background: #006622; }
+#rd-continue:active { background: var(--rm-cta-active); }
 
 /* ===== TransferMarketScreen footer — two CTAs (Submit + Finish) ===== */
 
@@ -441,7 +441,7 @@
   justify-content: center;
   gap: 10px;
   padding: 14px 22px;
-  background: #007a2a;
+  background: var(--rm-cta);
   border: none;
   border-radius: 14px;
   color: #ffffff;
@@ -458,9 +458,9 @@
 }
 
 @media (hover: hover) {
-  #tm-submit:hover:not(:disabled) { background: #009434; }
+  #tm-submit:hover:not(:disabled) { background: var(--rm-cta-hover); }
 }
-#tm-submit:active:not(:disabled) { background: #006622; }
+#tm-submit:active:not(:disabled) { background: var(--rm-cta-active); }
 
 #tm-submit:disabled {
   background: var(--rm-surface-2);

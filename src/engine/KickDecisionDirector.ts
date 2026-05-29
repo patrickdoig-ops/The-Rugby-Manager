@@ -14,6 +14,7 @@ import {
   SCRUM_HALF_KICKER_PCT,
   LONG_AND_OFF_PCT,
   CROSS_FIELD_VS_GRUBBER_PCT,
+  RED_CLOCK_CLOSEOUT,
   type Plan,
   type Zone,
   type Family,
@@ -102,11 +103,45 @@ function pickKicker(family: Family, ctx: KickDecisionContext): Player {
       ?? attackTeam.players[0];
 }
 
+// Full-time red clock: the next stoppage ends the match, so kick-or-carry is
+// a game-management call. Returns a forced decision (kick to touch / carry) or
+// null to defer to the normal territory logic. Applies to both sides — the
+// human's open-play kicks are already auto-decided here (the manager sets the
+// game plan, not individual kicks).
+function redClockCloseout(ctx: KickDecisionContext, zone: Zone): KickOrCarry | null {
+  const { state } = ctx;
+  if (!state.clock.clockInTheRed || !state.clock.halfTimeDone) return null;
+
+  const opp = state.possession === 'home' ? 'away' : 'home';
+  const margin = state.score[state.possession] - state.score[opp];
+
+  // Trailing or level → keep the ball alive, never kick it to the opposition.
+  if (margin <= 0) return { kick: false };
+
+  // Slender lead camped in the opp 22 → keep attacking for the try / bonus /
+  // bigger margin rather than closing out.
+  const C = RED_CLOCK_CLOSEOUT;
+  if (zone === 'opp22' && margin <= C.keepAttackingMaxMargin) return null;
+
+  // Leading → roll to kick to touch and end the game. A miss falls through to
+  // the normal logic (keeps some variety).
+  const ownHalfBonus = (zone === 'own22' || zone === 'ownHalf') ? C.ownHalfBonusPct : 0;
+  const closeOutPct = Math.min(C.closeOutMaxPct, C.closeOutBasePct + margin * C.marginStepPct + ownHalfBonus);
+  if (rng(1, 100) <= closeOutPct) {
+    const kicker = pickKicker('clearance', ctx);
+    return { kick: true, family: 'clearance', kicker, clearanceStyle: 'long_and_off' };
+  }
+  return null;
+}
+
 export function decideKick(ctx: KickDecisionContext): KickOrCarry {
   const { state, attackTeam, attackOnField } = ctx;
   const plan = attackTeam.tactics.attackingGamePlan;
   const probs = KICK_PROBABILITIES[plan];
   const zone = fieldZone(state);
+
+  const closeout = redClockCloseout(ctx, zone);
+  if (closeout) return closeout;
 
   // Base kick probability — same KICK_PROBABILITIES[plan][zone] table as
   // pre-v2.83a. (The zone enum is more granular than the table — own22 +

@@ -1016,6 +1016,27 @@ Unified kick-or-carry decision module (src/engine/KickDecisionDirector.ts) — r
 
 Outputs `{ kick: true, family, kicker, clearanceStyle?, attackingSubType? }` (or `{ kick: false }`). `buildKickTransition()` then composes the PhaseResult: `nextPhase = BoxKick (#9)` or `TacticalKick (#10)`, emits `KICK_INTENT_SET` so the kick handler reads the family + sub-choice from `state.pendingKick` and branches resolver math.
 
+### Red-clock game management
+
+Before the territory tree runs, `decideKick` checks `redClockCloseout()` — a full-time-only override (`state.clock.clockInTheRed && state.clock.halfTimeDone`, so it never fires before half time). When the next stoppage will end the match, kick-or-carry becomes a game-management call keyed off the score margin of the team in possession:
+
+```
+margin = score[possession] − score[opponent]
+- margin <= 0 (trailing or level): return { kick: false } — keep the ball
+  alive, never kick it to the opposition (a draw is treated like a loss).
+- margin > 0 (leading):
+    - in opp 22 with margin <= keepAttackingMaxMargin (7): defer to the
+      normal tree — keep attacking for the try / bonus / bigger margin.
+    - otherwise roll closeOutPct = min(closeOutMaxPct,
+      closeOutBasePct + margin·marginStepPct + (own half ? ownHalfBonusPct : 0)):
+        - hit  → force { family: 'clearance', clearanceStyle: 'long_and_off' }
+                 → kick to touch → Lineout stoppage → endMatch.
+        - miss → defer to the normal tree (variety; a botched touch-finder
+                 just continues play).
+```
+
+The closeout is probabilistic and scales with the lead (bigger lead / deeper position = more eager to kick out). It applies to **both sides** — open-play kicks are already auto-decided here for the human team too (the manager sets the game plan, not individual kicks). Constants live in `RED_CLOCK_CLOSEOUT` (`balance/kickDecision.ts`). Mirrors the `PenaltyHandler` `tap_and_kick_dead` precedent for late penalties.
+
 ### State carriers
 
 - **`state.lastBallQuality: BallQuality`** — set by Breakdown clean/slow outcomes; reset to 'clean' on any `PHASE_CHANGED` that doesn't transition to `PhasePlay`. Feeds the slow-ball bonus in step 2.

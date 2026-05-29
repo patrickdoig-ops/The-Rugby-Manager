@@ -1,4 +1,5 @@
 import { isSfxEnabled, setSfxEnabled, getVolume, setVolume } from './SoundManager';
+import { isHapticsEnabled, setHapticsEnabled } from './HapticsManager';
 import { clearSave } from './SaveManager';
 import { VERSION } from '../version';
 import {
@@ -46,6 +47,14 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves
             <input type="range" id="settings-volume" min="0" max="100" value="70" />
             <span class="settings-slider-value">70</span>
           </div>
+        </div>
+
+        <div class="settings-row">
+          <label class="settings-row-label" for="settings-haptics">Haptic feedback</label>
+          <label class="settings-toggle">
+            <input type="checkbox" id="settings-haptics" />
+            <span class="settings-toggle-track"></span>
+          </label>
         </div>
       </section>
 
@@ -124,6 +133,10 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves
     setVolume(Number(volume.value));
     volumeLabel.textContent = volume.value;
   });
+
+  const hapticsInput = el.querySelector<HTMLInputElement>('#settings-haptics')!;
+  hapticsInput.checked = isHapticsEnabled();
+  hapticsInput.addEventListener('change', () => setHapticsEnabled(hapticsInput.checked));
 
   const autoPause = el.querySelector<HTMLInputElement>('#settings-autopause')!;
   const autoSlow  = el.querySelector<HTMLInputElement>('#settings-autoslow')!;

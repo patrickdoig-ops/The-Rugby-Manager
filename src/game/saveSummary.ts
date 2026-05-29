@@ -75,7 +75,7 @@ export function buildSaveContext(save: SavedSeason, allTeams: RawTeamInput[]): S
   const rankIdx = standings.findIndex(s => s.teamId === save.playerTeamId);
   const player = rankIdx >= 0 ? standings[rankIdx] : null;
   return {
-    teamName: team.shortName,
+    teamName: team.name,
     week: save.currentWeek,
     totalRounds,
     rank: rankIdx + 1,

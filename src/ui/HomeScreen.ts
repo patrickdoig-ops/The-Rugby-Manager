@@ -34,10 +34,7 @@ function pitchLinesSvg(): string {
     <!-- 10m lines (faint) -->
     <line x1="0"   y1="310" x2="390" y2="310" stroke="url(#hsLineFadeHF)" stroke-width="0.45"/>
     <line x1="0"   y1="534" x2="390" y2="534" stroke="url(#hsLineFadeHF)" stroke-width="0.45"/>
-    <!-- Halfway circle -->
-    <circle cx="195" cy="422" r="80" stroke="url(#hsLineFadeV)" stroke-width="0.7" fill="none"/>
-    <!-- Centre spot -->
-    <circle cx="195" cy="422" r="3" fill="white" opacity="0.6"/>
+    <!-- Halfway line (no circle — rugby pitch has no centre circle) -->
     <!-- Goal posts top -->
     <line x1="168" y1="0"   x2="168" y2="55"  stroke="url(#hsLineFadeV)"  stroke-width="0.6"/>
     <line x1="222" y1="0"   x2="222" y2="55"  stroke="url(#hsLineFadeV)"  stroke-width="0.6"/>
@@ -141,7 +138,7 @@ export function initHomeScreen(
     <div id="home-chrome">
       <div id="home-status">
         <span class="home-live-dot"></span>
-        <span class="home-status-text">${statusLabel} Season</span>
+        <span class="home-status-text">${statusLabel}</span>
       </div>
       <div id="home-chrome-actions">
         <span class="home-chrome-version">v${VERSION}</span>

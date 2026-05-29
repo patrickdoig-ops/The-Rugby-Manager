@@ -85,10 +85,6 @@ function parseTeamDataMd(md) {
 
     const body = lines.slice(1).join('\n');
 
-    // Narrative blurb — first non-empty paragraph above the bullet list.
-    const blurbMatch = body.match(/^\s*([\s\S]*?)\n\n-\s/);
-    const blurb = blurbMatch ? blurbMatch[1].replace(/\n/g, ' ').trim() : '';
-
     const stadiumMatch = body.match(/\*\*Home ground:\*\*\s*(.+?)\.\s*$/m);
     const coloursMatch = body.match(/\*\*Club colours:\*\*\s*`(#[0-9a-fA-F]{6})`\s*\/\s*`(#[0-9a-fA-F]{6})`/);
     if (!coloursMatch) throw new Error(`Missing 'Club colours:' line for ${teamName}`);
@@ -226,7 +222,6 @@ function parseTeamDataMd(md) {
       headCoach: headCoachMatch ? headCoachMatch[1].trim() : undefined,
       honours: honoursMatch ? honoursMatch[1].trim().replace(/\.$/, '') : undefined,
       rating: ratingMatch ? parseInt(ratingMatch[1], 10) : undefined,
-      blurb,
       suggestedTactics,
       statBias,
       stars,
@@ -396,7 +391,6 @@ function buildTeamJson(teamName, team) {
     stadiumCapacity: team.stadiumCapacity,
     headCoach: team.headCoach,
     honours: team.honours,
-    blurb: team.blurb,
     suggestedTactics: team.suggestedTactics,
     statBias: team.statBias,
     stars: team.stars.map(s => ({

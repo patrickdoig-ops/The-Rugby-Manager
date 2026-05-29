@@ -59,7 +59,6 @@ export function init(rawTeams: TeamJson[]): void {
       stadiumCapacity: t.stadiumCapacity,
       headCoach: t.headCoach,
       honours: t.honours,
-      blurb: t.blurb,
       suggestedTactics: t.suggestedTactics,
       statBias: t.statBias,
       stars: t.stars,

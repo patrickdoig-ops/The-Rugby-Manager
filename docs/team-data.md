@@ -60,8 +60,6 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 
 ## Gloucester
 
-A historic west-country club with a cherry-and-white forwards-led identity, defined by the close, vocal "Shed" at Kingsholm. Gloucester traditionally make their living from a robust, hard-carrying pack, set-piece confrontation and direct lines through the middle. The backline is functional rather than expansive, leaning on power runners to punch holes that fast support can exploit. At their best they are abrasive, physical and uncompromising at the breakdown; at their worst they over-rely on the forwards when a wider game is needed.
-
 - **Home ground:** Kingsholm Stadium (the famous "Shed" terrace).
 - **Club colours:** `#c8102e` / `#ffffff`
 - **Nickname:** Cherry & Whites.
@@ -146,8 +144,6 @@ A historic west-country club with a cherry-and-white forwards-led identity, defi
 
 ## Bristol Bears
 
-Shaped by the Pat Lam era's "Bristol-Bilbao" expansive ambition, the Bears are the league's most ball-in-hand, high-tempo side, willing to attack from anywhere on the pitch. They prize width, offloads and pace over territorial caution, and will gladly trade penalties for tempo. Their forwards are built for carrying and linking rather than maul dominance, and they often outscore opponents in shootouts. The flip side is risk: turnovers and defensive lapses come with the style.
-
 - **Home ground:** Ashton Gate.
 - **Club colours:** `#003087` / `#c8102e`
 - **Nickname:** The Bears (rebranded from Bristol in 2018).
@@ -230,8 +226,6 @@ Shaped by the Pat Lam era's "Bristol-Bilbao" expansive ambition, the Bears are t
 ---
 
 ## Leicester Tigers
-
-The Welford Road tradition is set-piece power, structured forward-led play, and hard-nosed defence built on discipline. Tigers historically squeeze the game through scrum and maul dominance, accurate exit kicking, and a defensive line that gives nothing cheap. Their attack is built off forward platform first, with the backs called on to finish rather than create from scratch. Recent rebuilds have softened the edges, but the identity remains: territory, set piece, pressure.
 
 - **Home ground:** Welford Road.
 - **Club colours:** `#1c5e3f` / `#ffffff`
@@ -325,8 +319,6 @@ The Welford Road tradition is set-piece power, structured forward-led play, and 
 
 ## Saracens
 
-Under Mark McCall, Saracens have been the league's clinical operator — structure, precision and physical dominance executed to a finer tolerance than anyone else. The "Wolfpack" defence with its aggressive line-speed and choke tackles is the signature, paired with a smart kicking game that turns territory into points. They are ruthless game managers: ahead late, they will close a match out with possession and field position rather than tries. Calm under pressure, brutal in the collision.
-
 - **Home ground:** Barnet Copthall Stadium.
 - **Club colours:** `#000000` / `#a01018`
 - **Nickname:** Sarries (the "Wolfpack" defensive identity).
@@ -414,8 +406,6 @@ Under Mark McCall, Saracens have been the league's clinical operator — structu
 ---
 
 ## Bath
-
-The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at 10 and Santi Carreras at 15, with strong ball-playing centres giving Bath multiple distributors at the line. Their best rugby blends forward dominance and territory with a backline that can shift the point of attack at will. Russell's growing pragmatism has added game management to the flair, though some 2025-26 criticism has pointed to conservative five-metre pick-and-drive over their expansive instincts. At full song, they balance heft up front with the league's most creative half-back axis.
 
 - **Home ground:** The Recreation Ground (commonly "The Rec").
 - **Club colours:** `#0033a0` / `#ffffff`
@@ -505,8 +495,6 @@ The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at
 ---
 
 ## Exeter Chiefs
-
-The Rob Baxter long-build identity is phase-heavy possession rugby — pressure and patience, suffocating teams with multiple phases and field position before striking. The driving maul is a signature weapon and the forwards are built for relentless go-forward over flashy carries. Chiefs cede little territory, kick smartly and trust their fitness to wear opponents down. They are mid-rebuild after the peak title-winning era, but the DNA — disciplined, methodical, set-piece confident — is intact.
 
 - **Home ground:** Sandy Park.
 - **Club colours:** `#000000` / `#ffffff`
@@ -601,8 +589,6 @@ The Rob Baxter long-build identity is phase-heavy possession rugby — pressure 
 
 ## Harlequins
 
-The Twickenham Stoop entertainers and the league's most committed expansive, attacking side. Built around Marcus Smith's creative range — cross-field kicks, late drop-goal nous, footwork at first receiver — Quins play fast-paced running rugby and back themselves to outscore anyone. Their forwards are mobile and carry-friendly rather than maul-monsters, and they thrive on broken-field rugby and counter-attack. The trade-off is defensive vulnerability when the tempo turns against them.
-
 - **Home ground:** The Stoop.
 - **Club colours:** `#73144a` / `#23bcad`
 - **Nickname:** Quins.
@@ -689,8 +675,6 @@ The Twickenham Stoop entertainers and the league's most committed expansive, att
 ---
 
 ## Newcastle Falcons
-
-Newcastle Falcons are a side rebuilding after three straight bottom-of-the-table finishes. Historically a developmental, lower-budget club that fought hard but lacked the depth of the top sides, the Falcons are working to recapture their late-nineties glory. Kingston Park remains home, but the playing identity is still being written — expect them to start the simulator era as the league's weakest squad, with room to grow.
 
 - **Home ground:** Kingston Park.
 - **Club colours:** `#000000` / `#c8a84b`
@@ -784,8 +768,6 @@ Newcastle Falcons are a side rebuilding after three straight bottom-of-the-table
 ---
 
 ## Northampton Saints
-
-The 2023-24 champions under Phil Dowson, Saints are the league's electric attacking outfit — willing to play from anywhere on the pitch and devastating in transition. Fin Smith conducts a heads-up backline that scores tries from deep, off turnover ball and from set-piece strike plays in equal measure. Their forwards are mobile and link-friendly rather than collision-first, designed to win quick ball and feed the runners. When they get rolling they put 40+ on teams; when the platform wobbles, the structure shows cracks.
 
 - **Home ground:** Franklin's Gardens.
 - **Club colours:** `#00563f` / `#000000`
@@ -887,8 +869,6 @@ The 2023-24 champions under Phil Dowson, Saints are the league's electric attack
 ---
 
 ## Sale Sharks
-
-The Manchester defence-first side: line-speed, collision-dominant loose forwards and a physical inside-centre channel, all built to choke teams into errors. Sale are happy to cede possession because they back their defence to win the field-position battle, and George Ford's tempo control gives them clinical execution when they do attack. Tackles, turnovers and territory underpin everything; they are the league's least flashy and most resilient team. Box-kick, chase, tackle, repeat.
 
 - **Home ground:** Salford Community Stadium.
 - **Club colours:** `#0a1b40` / `#ffffff`

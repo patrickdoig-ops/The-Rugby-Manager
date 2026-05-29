@@ -141,13 +141,6 @@ export function initTeamInfoScreen(
         ` : ''}
       </section>
 
-      ${profile.blurb ? `
-        <section class="ti-section">
-          <h3 class="ti-section-title">About</h3>
-          <p class="ti-blurb">${profile.blurb}</p>
-        </section>
-      ` : ''}
-
       <section class="ti-section">
         <h3 class="ti-section-title">Playing style</h3>
         <div class="ti-tactics-grid">${tacticsChips(profile.suggestedTactics)}</div>

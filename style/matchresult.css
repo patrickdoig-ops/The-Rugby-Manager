@@ -737,7 +737,7 @@
   background: var(--rm-cta);
   border: none;
   border-radius: 14px;
-  color: #ffffff;
+  color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
   font-size: 20px;
   letter-spacing: 0.04em;
@@ -770,7 +770,7 @@
   height: 16px;
   border-radius: 50%;
   border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: #ffffff;
+  border-top-color: var(--rm-on-accent);
   animation: mrSpin 0.8s linear infinite;
 }
 

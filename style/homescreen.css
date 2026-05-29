@@ -502,7 +502,7 @@
 .home-confirm-proceed {
   background: var(--rm-cta);
   border: none;
-  color: #fff;
+  color: var(--rm-on-accent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 4px 16px color-mix(in oklch, var(--rm-pitch) 28%, transparent);

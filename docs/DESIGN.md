@@ -132,19 +132,30 @@ Each accent colour has **exactly one semantic role**. Do not reuse for unrelated
 | `--rm-stat-5` (cyan) | Analytical/predictive | Match spread predictions, statistical callouts, trending indicators |
 | `--team-color` | Manager's team identity | Screen background gradients (Tier 1/2), active interactive tints, jersey badges — see §2.5 |
 
-### 2.4 The one allowed hex
+### 2.4 Sanctioned constants
 
-The primary CTA green `#007a2a` is intentionally pinned and may appear inline. This is the only exception to "no hex outside `main.css :root`."
+Two values are intentionally pinned and may appear inline. All other hardcoded colours are forbidden outside `main.css :root`.
+
+**`#007a2a`** — primary CTA green. Pinned for native-shell status-bar tinting and manifest theme-color, where a CSS variable cannot reach.
+
+**`--rm-on-accent: oklch(0.99 0 0)`** — text/icon colour on any `--rm-cta` or team-colour accent surface. Near-white in oklch, expressed as a token so a single edit covers every CTA label if the accent palette ever shifts. Use `var(--rm-on-accent)` for `color` on all green CTA buttons and accent chips — never `#fff` or `#ffffff` inline.
 
 ```css
 /* OK */
 #hub-play-next {
   background: #007a2a;
 }
+.some-cta {
+  background: var(--rm-cta);
+  color: var(--rm-on-accent);
+}
 
 /* NOT OK */
 .something-else {
   background: #d8503e; /* should be var(--rm-danger) */
+}
+.another-cta {
+  color: #ffffff; /* should be var(--rm-on-accent) */
 }
 ```
 
@@ -623,7 +634,7 @@ The full-width green action button. Pinned colour: `#007a2a`.
   background: #007a2a;
   border: none;
   border-radius: 14px;
-  color: #ffffff;
+  color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
   font-size: 20px;             /* hero context: 28px */
   letter-spacing: 0.04em;
@@ -848,7 +859,7 @@ See §5.3. Minimum 40px, prefer 44px.
 A non-exhaustive list of things that have been flagged in past audits and **must not return**:
 
 - ❌ Emoji or Unicode glyphs as icons (★, ▲, ▼, ✓, ⚠)
-- ❌ Hex codes outside `main.css :root` (with the single `#007a2a` exception)
+- ❌ Hex codes outside `main.css :root` (with the two sanctioned constants — see §2.4)
 - ❌ `var(--token, #fallback)` syntax — fix the token declaration instead
 - ❌ Token names that don't exist in `:root` (e.g. referencing `--rm-danger` before it was declared)
 - ❌ Cards using a background darker than their parent (inverted depth)

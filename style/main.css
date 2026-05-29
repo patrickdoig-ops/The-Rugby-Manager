@@ -30,6 +30,7 @@
   --rm-cta:         oklch(0.47 0.18 144);
   --rm-cta-hover:   oklch(0.54 0.19 144);
   --rm-cta-active:  oklch(0.40 0.15 144);
+  --rm-on-accent:   oklch(0.99 0 0);
 
   --rm-amber:       oklch(0.74 0.16 62);
   --rm-amber-deep:  oklch(0.58 0.16 50);
@@ -814,7 +815,7 @@ html, body {
 .ctrl-btn.primary {
   background: var(--rm-cta);
   border-color: var(--rm-cta);
-  color: #ffffff;
+  color: var(--rm-on-accent);
   width: 44px;
   height: 44px;
   box-shadow: 0 0 16px color-mix(in oklch, var(--rm-pitch) 45%, transparent);
@@ -1111,7 +1112,7 @@ html, body {
 .sub-action-confirm {
   background: var(--rm-cta);
   border: 1px solid transparent;
-  color: #ffffff;
+  color: var(--rm-on-accent);
   box-shadow: 0 4px 16px color-mix(in oklch, var(--rm-pitch) 22%, transparent);
 }
 
@@ -1676,5 +1677,5 @@ html, body {
 .crash-overlay-copy {
   background: var(--rm-cta);
   border-color: var(--rm-cta-active);
-  color: #fff;
+  color: var(--rm-on-accent);
 }

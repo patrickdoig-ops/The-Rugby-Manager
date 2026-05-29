@@ -206,7 +206,7 @@
 .tr-chip--active {
   background: var(--team-color-tile, var(--team-color, var(--rm-cta)));
   border-color: var(--team-color-tile, var(--team-color, var(--rm-cta)));
-  color: #fff;
+  color: var(--rm-on-accent);
 }
 
 .tr-chip--active .tr-chip-blurb {
@@ -238,7 +238,7 @@
   font-size: 20px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #fff;
+  color: var(--rm-on-accent);
   background: var(--rm-cta);
   border: none;
   border-radius: 14px;

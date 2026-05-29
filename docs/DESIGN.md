@@ -326,7 +326,7 @@ If your section label deviates, it's wrong. The 8px labels found in the May 2026
 
 ## 4. Crest scale
 
-Team crests appear at **exactly four sizes**. There is no fifth size; if you need one between two steps, choose the larger.
+Team crests appear at **exactly five sizes**. If you need one between two steps, choose the larger.
 
 | Token | Size | Radius | Font-size | Use case |
 |---|---|---|---|---|

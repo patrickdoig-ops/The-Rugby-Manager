@@ -49,14 +49,14 @@ function flavorBlurb(flavor: TakeoverFlavor, clubName: string): { eyebrow: strin
       eyebrow: 'Breaking',
       headline: `New investors take over ${clubName}`,
       sub: 'A high-profile global investor steps in. The owner has signed off on a wage-budget bump for next season.',
-      byline: 'Telegraph Sport · Boardroom desk',
+      byline: 'The Sports Gazette · Boardroom desk',
     };
   }
   return {
     eyebrow: 'Boardroom',
     headline: `${clubName} taken over by a new investor`,
     sub: 'Fresh capital arrives in the boardroom. The owner has signed off on a wage-budget bump for next season.',
-    byline: 'Telegraph Sport · Boardroom desk',
+    byline: 'The Sports Gazette · Boardroom desk',
   };
 }
 

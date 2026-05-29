@@ -283,7 +283,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
     }
     return `
       <div id="hub-next-match">
-        <div class="hub-nm-label">PREMIERSHIP PLAYOFFS · ${stageLabel}</div>
+        <div class="hub-nm-label">LEAGUE PLAYOFFS · ${stageLabel}</div>
         <div class="hub-nm-meta">${subline}</div>
       </div>`;
   }

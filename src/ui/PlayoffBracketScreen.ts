@@ -113,7 +113,7 @@ function championBannerHtml(playoffs: PlayoffState, teamsById: Map<string, RawTe
   const isMe = playoffs.championTeamId === playerId;
   return `
     <div class="pb-champion${isMe ? ' pb-champion--me' : ''}" style="--team-color:${champion.color}">
-      <div class="pb-champion-label">PREMIERSHIP CHAMPIONS</div>
+      <div class="pb-champion-label">LEAGUE CHAMPIONS</div>
       ${crestHtml(champion)}
       <div class="pb-champion-name">${champion.name}</div>
     </div>`;

@@ -365,7 +365,7 @@ A flat per-match tilt toward the side currently occupying the `homeTeam` slot in
 | Open-play carry | `FirstPhaseEvent`, `OpenPlayEvent`, `KickReturnEvent` | `homeEdge` is added to the `attackMod` / `defendMod` passed into `resolveOpenPlay`. Bumps evasion / defence rolls on the home side. |
 | Breakdown | `BreakdownEvent` | `homeEdge` is added to the `attackBonus` / `defendBonus` passed into `resolveBreakdown`. Bumps `ars` (when home is attacking the ruck) or `dts` (when home is defending). |
 
-**Calibration:** tuned via `npm run telemetry` against the real-rugby Premiership home win-rate of ~57%. Current values produce **57.8% home wins · 37.8% away wins · 4.4% draws** across the 90-fixture pass, with an average home margin of 5.5 points. The headline `spreadPts: 3` is the betting-market-style baseline for a typical matchup; the larger simulated margin reflects the compounding effect of two channels across an 80-minute match.
+**Calibration:** tuned via `npm run telemetry` against the real-rugby League home win-rate of ~57%. Current values produce **57.8% home wins · 37.8% away wins · 4.4% draws** across the 90-fixture pass, with an average home margin of 5.5 points. The headline `spreadPts: 3` is the betting-market-style baseline for a typical matchup; the larger simulated margin reflects the compounding effect of two channels across an 80-minute match.
 
 What's **not** modelled today: referee tilt on marginal penalties, kicker accuracy bump at home, travel fatigue for the away side. Each could be added as an extra channel with its own `HOME_ADVANTAGE.*` knob and re-tuning pass.
 
@@ -895,7 +895,7 @@ packDiscipline = avg(discipline) across the on-field forwards
 finalScore     = packScore + (packDiscipline − 50)×1.2 + rng(1,50)
 ```
 
-`packScore` is a **sum**, not an average — so a pack a man down (forward in the sin-bin or sent off) loses ~12% of its score (~72 from a ~576 base) and is materially weaker at the scrum. `onFieldPlayers(team, state, side)` filters out sin-binned / sent-off forwards before the pack is assembled. `packDiscipline` stays as an average (per-player attribute, not a pack aggregate). `rng(1,50)` per side gives a margin distribution that's triangular on `[-49, +49]` with peak at 0; tuned with the bucket thresholds below to land scrum penalty rates inside the real-Premiership 10-15%-per-scrum band.
+`packScore` is a **sum**, not an average — so a pack a man down (forward in the sin-bin or sent off) loses ~12% of its score (~72 from a ~576 base) and is materially weaker at the scrum. `onFieldPlayers(team, state, side)` filters out sin-binned / sent-off forwards before the pack is assembled. `packDiscipline` stays as an average (per-player attribute, not a pack aggregate). `rng(1,50)` per side gives a margin distribution that's triangular on `[-49, +49]` with peak at 0; tuned with the bucket thresholds below to land scrum penalty rates inside the real-League 10-15%-per-scrum band.
 
 The defending pack's final score is subtracted from the attacking pack's final score to determine the margin:
 
@@ -1470,7 +1470,7 @@ OPEN_PLAY_VALUES.lineBreakMetres = [20, 45]   // gain on a line_break carry; was
 | dangerous_cleanout | 0.41 | 3.3 % |
 | **Total** | **12.45** | 100 % |
 
-Yellow cards: 0.32 / match · Red_20: 0.10 / match · TMO triggers: 0.71 / match. Real Premiership is ~18-22 pens/match — the new constants are dials if a tighter realism target is wanted.
+Yellow cards: 0.32 / match · Red_20: 0.10 / match · TMO triggers: 0.71 / match. Real League is ~18-22 pens/match — the new constants are dials if a tighter realism target is wanted.
 
 ---
 

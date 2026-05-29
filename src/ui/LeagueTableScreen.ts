@@ -52,7 +52,7 @@ function teamCrest(team: RawTeamInput): string {
   return `<div class="lt-crest" style="background:${grad};border:1px solid color-mix(in oklch,${team.color} 45%,transparent)"><span>${initial}</span></div>`;
 }
 
-// "Bath Rugby" → "Bath", "Newcastle Red Bulls" → "Newcastle", etc. The
+// "Bath Rugby" → "Bath", "Newcastle Falcons" → "Newcastle", etc. The
 // first token is enough to identify every Prem club at a glance and fits
 // inside the trimmed NAME column on a 390px viewport.
 function displayName(team: RawTeamInput | undefined, fallbackId: string): string {

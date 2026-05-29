@@ -65,8 +65,8 @@ const CANDIDATES: { name: string; fromClub: string; toClub: string }[] = [
 
   // --- Bristol Bears ---
   { name: 'Tom Jordan',             fromClub: 'Glasgow Warriors',                       toClub: 'bristol' },
-  { name: 'Pedro Rubiolo',          fromClub: 'Newcastle Red Bulls',                    toClub: 'bristol' },
-  { name: 'Max Pepper',             fromClub: 'Newcastle Red Bulls',                    toClub: 'bristol' },
+  { name: 'Pedro Rubiolo',          fromClub: 'Newcastle Falcons',                    toClub: 'bristol' },
+  { name: 'Max Pepper',             fromClub: 'Newcastle Falcons',                    toClub: 'bristol' },
   { name: 'Josh Carrington',        fromClub: 'Cardiff Metropolitan University',        toClub: 'bristol' },
   { name: 'Will Ramply',            fromClub: 'University of Nottingham',               toClub: 'bristol' },
   { name: 'Luka Ivanishvili',       fromClub: 'Black Lion',                             toClub: 'bristol' },
@@ -97,7 +97,7 @@ const CANDIDATES: { name: string; fromClub: string; toClub: string }[] = [
   { name: 'Ben Loader',             fromClub: 'Stormers',                          toClub: 'gloucester' },
   { name: 'James Venter',           fromClub: 'Sharks',                            toClub: 'gloucester' },
   { name: 'Jack Innard',            fromClub: 'Exeter Chiefs',                     toClub: 'gloucester' },
-  { name: 'Ben Redshaw',            fromClub: 'Newcastle Red Bulls',               toClub: 'gloucester' },
+  { name: 'Ben Redshaw',            fromClub: 'Newcastle Falcons',               toClub: 'gloucester' },
   { name: 'Jack Mann',              fromClub: 'Glasgow Warriors',                  toClub: 'gloucester' },
   { name: 'Will Trenholm',          fromClub: 'Harlequins',                        toClub: 'gloucester' },
   { name: 'Mike Austin',            fromClub: 'Hartpury University',               toClub: 'gloucester' },
@@ -134,7 +134,7 @@ const CANDIDATES: { name: string; fromClub: string; toClub: string }[] = [
   { name: 'Luke Yendle',            fromClub: 'Dragons (short-term deal)',           toClub: 'harlequins' },
 
   // --- Leicester Tigers ---
-  { name: 'Jamie Blamire',          fromClub: 'Newcastle Red Bulls',                 toClub: 'leicester' },
+  { name: 'Jamie Blamire',          fromClub: 'Newcastle Falcons',                 toClub: 'leicester' },
   { name: 'Tarek Haffar',           fromClub: 'Northampton Saints',                  toClub: 'leicester' },
   { name: 'Wilf McCarthy',          fromClub: 'Hartpury University',                 toClub: 'leicester' },
   { name: 'Joaquin Moro',           fromClub: 'Pampas XV',                           toClub: 'leicester' },
@@ -154,7 +154,7 @@ const CANDIDATES: { name: string; fromClub: string; toClub: string }[] = [
   { name: 'Ryan Crowley',           fromClub: 'Chinnor',                             toClub: 'leicester' },
   { name: 'Hamish Watson',          fromClub: 'Edinburgh (short-term loan)',         toClub: 'leicester' },
 
-  // --- Newcastle Red Bulls ---
+  // --- Newcastle Falcons ---
   { name: 'Ethan Grayson',          fromClub: 'San Diego Legion',                    toClub: 'newcastle' },
   { name: 'Connor Doherty',         fromClub: 'Sale Sharks',                         toClub: 'newcastle' },
   { name: 'George McGuigan',        fromClub: 'Ospreys',                             toClub: 'newcastle' },
@@ -182,7 +182,7 @@ const CANDIDATES: { name: string; fromClub: string; toClub: string }[] = [
   { name: 'Cleopas Kundiona',       fromClub: 'Nevers',                              toClub: 'northampton' },
   { name: 'Amena Caqusau',          fromClub: 'Glasgow Warriors',                    toClub: 'northampton' },
   { name: 'Danilo Fischetti',       fromClub: 'Zebre Parma',                         toClub: 'northampton' },
-  { name: 'Callum Chick',           fromClub: 'Newcastle Red Bulls',                 toClub: 'northampton' },
+  { name: 'Callum Chick',           fromClub: 'Newcastle Falcons',                 toClub: 'northampton' },
   { name: 'Anthony Belleau',        fromClub: 'Clermont',                            toClub: 'northampton' },
   { name: 'JJ van der Mescht',      fromClub: 'Stade Français',                      toClub: 'northampton' },
   { name: 'James Martin',           fromClub: 'Coventry',                            toClub: 'northampton' },
@@ -194,7 +194,7 @@ const CANDIDATES: { name: string; fromClub: string; toClub: string }[] = [
   { name: 'Marius Louw',            fromClub: 'Lions',                               toClub: 'sale' },
   { name: 'Jacques Vermeulen',      fromClub: 'Exeter Chiefs',                       toClub: 'sale' },
   { name: 'Reuben Logan',           fromClub: 'Northampton Saints',                  toClub: 'sale' },
-  { name: 'Patrick Hogg',           fromClub: 'Newcastle Red Bulls',                 toClub: 'sale' },
+  { name: 'Patrick Hogg',           fromClub: 'Newcastle Falcons',                 toClub: 'sale' },
   { name: 'Regan Grace',            fromClub: 'Cardiff (short-term deal)',           toClub: 'sale' },
   { name: 'Gurshwin Wehr',          fromClub: 'Griquas (short-term loan)',           toClub: 'sale' },
 
@@ -204,7 +204,7 @@ const CANDIDATES: { name: string; fromClub: string; toClub: string }[] = [
   { name: 'Vilikesa Nairau',        fromClub: 'Coventry',                            toClub: 'saracens' },
   { name: 'Tietie Tuimauga',        fromClub: 'Montauban',                           toClub: 'saracens' },
   { name: 'Owen Farrell',           fromClub: 'Racing 92',                           toClub: 'saracens' },
-  { name: 'Cammy Hutchison',        fromClub: 'Newcastle Red Bulls (short-term loan)', toClub: 'saracens' },
+  { name: 'Cammy Hutchison',        fromClub: 'Newcastle Falcons (short-term loan)', toClub: 'saracens' },
   { name: "Totoa Auva'a",           fromClub: "Lauli'i Lions",                       toClub: 'saracens' },
 ];
 

@@ -5,7 +5,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 
-A browser-based, event-driven Rugby Union match and career simulator built with vanilla TypeScript and CSS. Manage a Gallagher Premiership club through matches, seasons, transfers, training, and playoffs — all in the browser, no backend required.
+A browser-based, event-driven Rugby Union match and career simulator built with vanilla TypeScript and CSS. Manage a League club through matches, seasons, transfers, training, and playoffs — all in the browser, no backend required.
 
 **Live demo:** https://patrickdoig-ops.github.io/Rugby-Simulator-/
 
@@ -23,11 +23,11 @@ A browser-based, event-driven Rugby Union match and career simulator built with 
 - **Stamina, fatigue and injuries** — per-player condition decays during a match and carries forward to the next; in-match injuries flow into the season-scope injury system.
 
 ### Career mode
-- **Full 2025/26 Premiership season** — 90 fixtures across 18 rounds with real ISO dates, Autumn Nations and Six Nations breaks, semifinals and a final at Twickenham.
+- **Full 2025/26 League season** — 90 fixtures across 18 rounds with real ISO dates, Autumn Nations and Six Nations breaks, semifinals and a final at Twickenham.
 - **Persistent rosters** — every player carries a globally unique `rosterId`, accumulating season stats and aging year-over-year.
 - **Contracts and salary cap** — £6.4M senior cap + £1.4M dispensation, marquee exclusions, hand-authored marquee per club, interactive cap pill.
 - **Owner budgets** — per-club wage budgets set by prior-season performance, Newcastle Red Bull takeover at year-2, random investor takeovers from year-3+.
-- **Competitive signings** — multi-round bid market with appeal-score resolution, AI clubs target their own budgets, Reg 7 cross-Premiership poaching for final-year players.
+- **Competitive signings** — multi-round bid market with appeal-score resolution, AI clubs target their own budgets, Reg 7 cross-League poaching for final-year players.
 - **Mid-season free-agent signings** — interactive Hub flow with appeal-based acceptance rolls and per-player cooldowns.
 - **Training** — manager-set training plans drive weekly attribute drift and condition recovery for the entire squad.
 - **Playoffs** — top-4 bracket after Round 18, semifinals followed by a neutral-venue final.
@@ -104,7 +104,7 @@ There is no test or lint command — TypeScript strict mode is the primary corre
 │   │   ├── simulateFixture.ts     # Headless AI fixture sims
 │   │   └── …                      # Transfers, training, rollover, leaderboards
 │   ├── ui/                        # All DOM-touching code
-│   ├── data/                      # Team JSONs (10 Premiership clubs) + 2025/26 fixtures
+│   ├── data/                      # Team JSONs (10 League clubs) + 2025/26 fixtures
 │   ├── types/                     # Shared type definitions
 │   ├── utils/                     # eventBus, rng streams, save/load
 │   └── main.ts                    # App entry point
@@ -150,8 +150,8 @@ The codebase is heavily documented to maintain strict architectural and design g
 - **[`docs/game-engine.md`](./docs/game-engine.md)** — Season engine reference: `GameCoordinator`, fixtures, headless AI sims, league standings, save format.
 - **[`docs/transfer-system.md`](./docs/transfer-system.md)** — Transfer system roadmap and open implementation questions.
 - **[`docs/DESIGN.md`](./docs/DESIGN.md)** — Visual design system: colours, fonts, spacing, component patterns.
-- **[`docs/team-data.md`](./docs/team-data.md)** — Source of truth for the 10 Premiership team JSONs. Regenerate with `node scripts/generateTeamJsons.mjs`.
-- **[`docs/prem-fixtures-2025-26.md`](./docs/prem-fixtures-2025-26.md)** — Authoritative 2025/26 Premiership schedule.
+- **[`docs/team-data.md`](./docs/team-data.md)** — Source of truth for the 10 League team JSONs. Regenerate with `node scripts/generateTeamJsons.mjs`.
+- **[`docs/prem-fixtures-2025-26.md`](./docs/prem-fixtures-2025-26.md)** — Authoritative 2025/26 League schedule.
 
 ---
 

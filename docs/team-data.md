@@ -1,8 +1,8 @@
-# Team Data — Gallagher Premiership Profiles
+# Team Data — League Profiles
 
-This file is the canonical, human-readable reference for each Gallagher Premiership club's identity. Each profile summarises a team's playing style, signature gameplay features, and core DNA in 4–5 lines, with a suggested mapping to the in-game `TeamTactics` dimensions, a hint on which player stats should be biased for that club's character, and the 2025-26 senior first-team squad.
+This file is the canonical, human-readable reference for each League club's identity. Each profile summarises a team's playing style, signature gameplay features, and core DNA in 4–5 lines, with a suggested mapping to the in-game `TeamTactics` dimensions, a hint on which player stats should be biased for that club's character, and the 2025-26 senior first-team squad.
 
-The simulator ships all 10 Premiership clubs. This file is the source of truth for team identity, stars, and rosters — `scripts/generateTeamJsons.mjs` parses it to produce the `src/data/team-*.json` files the engine loads.
+The simulator ships all 10 League clubs. This file is the source of truth for team identity, stars, and rosters — `scripts/generateTeamJsons.mjs` parses it to produce the `src/data/team-*.json` files the engine loads.
 
 **Squad data note:** Squad lists are compiled from public sources (club websites, Wikipedia, Ultimate Rugby, RugbyPass) as of May 2026. Coverage is best-effort: DOBs and ages are filled where available, blank where not. The data has not been manually validated against current club rosters — see "Data notes" at the bottom of this file for known caveats (likely transfer artifacts, duplicate listings, possible retirees).
 
@@ -53,7 +53,7 @@ seasonScore   = (leaguePoints / matchesPlayed) / 5.0 × 100
 overallRating = round( 0.6 × seasonScore_25_26 + 0.4 × seasonScore_24_25 )
 ```
 
-Premiership ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend leans on the current season while still respecting prior-season form. Snapshot inputs and the per-team math are documented in "Rating inputs" at the bottom of this file.
+League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend leans on the current season while still respecting prior-season form. Snapshot inputs and the per-team math are documented in "Rating inputs" at the bottom of this file.
 *(Note: `Overall rating`, `Stat bias`, and star-player `Index high` were previously used to procedurally generate stats. They are now retained purely for flavor and reference, as all stats are manually authored).*
 
 ---
@@ -693,7 +693,7 @@ The Twickenham Stoop entertainers and the league's most committed expansive, att
 Newcastle Falcons are a side rebuilding after three straight bottom-of-the-table finishes. Historically a developmental, lower-budget club that fought hard but lacked the depth of the top sides, the Falcons are working to recapture their late-nineties glory. Kingston Park remains home, but the playing identity is still being written — expect them to start the simulator era as the league's weakest squad, with room to grow.
 
 - **Home ground:** Kingston Park.
-- **Club colours:** `#000000` / `#dc1e25`
+- **Club colours:** `#000000` / `#c8a84b`
 - **Nickname:** Falcons.
 - **Founded:** 1877 (as Gosforth FC).
 - **Stadium capacity:** 10,200.

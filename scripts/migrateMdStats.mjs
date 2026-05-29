@@ -15,7 +15,7 @@ const TEAM_META = {
   'Bath':                  { slug: 'bath' },
   'Exeter Chiefs':         { slug: 'exeter' },
   'Harlequins':            { slug: 'harlequins' },
-  'Newcastle Red Bulls':   { slug: 'newcastle' },
+  'Newcastle Falcons':   { slug: 'newcastle' },
   'Northampton Saints':    { slug: 'northampton' },
   'Sale Sharks':           { slug: 'sale' },
 };

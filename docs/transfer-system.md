@@ -31,7 +31,7 @@ Career mode is the umbrella; rollover is the prerequisite.
 
 - **Per-player HG/EPS cap-credit tagging** — credit pools are modelled flat per-club in v1 (`CAP_CREDITS` in `balance/transfers.ts` sums to `EFFECTIVE_CAP_CREDITS = £1.4M`, applied flat to every club). The real PRL rules tag specific players as HG / EPS internationals and apply credits on their wages individually. The flat model gets the league inside its effective cap; per-player tagging is a refinement.
 - **PGP / hybrid RFU contracts** — modelled as a flat top-up later, if at all.
-- **EQP quota** (15 EQP avg in matchday 23). A real Premiership rule but adds compositional constraint; defer.
+- **EQP quota** (15 EQP avg in matchday 23). A real League rule but adds compositional constraint; defer.
 - **Long-term injury system** and injury-dispensation cap relief.
 - **Mid-season transfers / buyouts** (Farrell-from-Racing style). Rare in reality; defer.
 - **Loan system** (max 3 loanees per matchday squad). Defer.
@@ -63,7 +63,7 @@ Condensed reference of the rules being modelled. Full citations in the research 
 |---|---|
 | Marquee international | £600k–£800k+ |
 | Established Test starter | £200k–£400k |
-| Premiership regular starter | £120k–£200k |
+| League regular starter | £120k–£200k |
 | Senior squad / rotation | £60k–£120k |
 | 2020/21 senior average | £171k (adjust up; sets a sanity check) |
 | Academy graduate (rookie fixed) | £18.2k–£20.2k (RPA agreement, 2-year deals) |
@@ -376,7 +376,7 @@ Each landing milestone bumps `SAVE_VERSION` in `src/ui/SaveManager.ts`. The orig
 | v10 | ✅ shipped | `TeamTactics` gains `defensiveLine` (`'blitz' \| 'hybrid' \| 'drift'`). Pre-v10 saves backfill `'hybrid'` (numerically neutral) so the engine never sees undefined |
 | v11 | ✅ shipped | `SavedSeasonResult` gains `homeTries` + `awayTries` for the bonus-points system. Pre-v11 rounds were played without try-bonus tracking; older saves default both to 0 |
 | v12 | ✅ shipped v2.113a | Squad Builder resumption: `career.preSeasonStep` (`'overview' \| 'signings' \| 'marquee' \| undefined`). Outside the pre-season flow the field is undefined and omitted from the payload, so in-season saves stay byte-equivalent |
-| v13 | ✅ shipped v2.136a | Premiership playoffs: top-level `playoffs` (`PlayoffState \| undefined`) — the active knockout bracket. Each `ArchivedSeason` gains `championTeamId: string \| null`; pre-v13 archive entries load as `null` |
+| v13 | ✅ shipped v2.136a | League playoffs: top-level `playoffs` (`PlayoffState \| undefined`) — the active knockout bracket. Each `ArchivedSeason` gains `championTeamId: string \| null`; pre-v13 archive entries load as `null` |
 | v14 | ✅ shipped v2.142a | Club salary budgets: `ClubState.salaryBudget` (owner-set non-marquee wage ceiling, distinct from the league cap); `career.takeoverHistory: string[]` (clubIds taken over — Newcastle Red Bull year 2, random investors year 3+; excluded from future random rolls) |
 
 Migrations are auto on load. v13 → v14 defaults `salaryBudget` to the effective cap (no retroactive constraint; the next rollover then re-computes via `computeBudgetEvents`) and `takeoverHistory` to `[]` (so a year-1 v13 save still fires the Newcastle takeover at the next rollover). v12 → v13 is a no-op shim (`playoffs` optional; archive entries gain `championTeamId: null`; `continueGame` calls `seedPlayoffBracket()` so a v12 save stuck at "all 18 played, no playoffs" auto-seeds and routes into the playoff chain). v11 → v12 is a no-op shim (`preSeasonStep` optional; older saves route straight to Hub on `continueGame`). v10 → v11 defaults `homeTries` / `awayTries` to 0 on every persisted FixtureResult. v9 → v10 backfills `tactics.defensiveLine = 'hybrid'` when absent. v8 → v9 defaults `teamSeasonStats` to `{}` and back-fills each player's `seasonStats` with zeroes on the v9 fields. v7 → v8 defaults `pendingMoves` to `[]`. v6 → v7 defaults `freeAgents` to `[]` and `market` to `null`. v5 → v6 walks the persisted roster and runs `contractSeeder.seedContractFields` for any Player missing contract / reputation fields. v4 → v5 seeds a fresh roster from JSONs (lossless — pre-v5 had zero per-player evolution). v2 → v3 → v4 cascades use earlier-version restore paths. v1 saves are discarded. Every restore flows through `CAREER_ARCHIVE_RESTORED` (with optional `freeAgents` + `market` + `pendingMoves` + `teamSeasonStats` + `preSeasonStep` + `playoffs` + `takeoverHistory`) so the `applySeasonEvent` seam holds across the load path.
@@ -513,7 +513,7 @@ Resolved during Phases 1 + 2:
 Still open:
 
 2. **Reputation drift.** Phase 2 seeded reputation from rating + marquee bonus only. Silverware-driven drift across seasons — probably +N for squads finishing top 4 or winning the title, scaled by appearances — lands in Phase 3+ alongside the `MARQUEE_DESIGNATED` flow.
-5. **Squad size limits.** Premiership senior squad is ~40. v1: no enforcement — trust the cap to bound the AI implicitly. Revisit if AI builds 60-man squads under Phase 5's free-agent flow.
+5. **Squad size limits.** League senior squad is ~40. v1: no enforcement — trust the cap to bound the AI implicitly. Revisit if AI builds 60-man squads under Phase 5's free-agent flow.
 6. **Human-team affordability warning.** Pre-window warning UI for when projected next-season cap exceeds limit at current renewal offers. Phase 4 work alongside the renewal modal.
 7. **Owner cash / transfer budget.** Distinct from cap. v1 sketch: flat seasonal budget per club, reset each year. Could later layer gate receipts / sponsor income. Phase 5+.
 

@@ -65,7 +65,7 @@
 #mp-subtitle {
   font-family: var(--rm-font-body);
   font-size: 14px;
-  color: var(--rm-text-muted);
+  color: var(--rm-chalk);
   margin: 0;
 }
 
@@ -82,29 +82,34 @@
   align-items: flex-start;
   gap: 8px;
   padding: 18px 20px;
-  background: var(--rm-surface);
-  border: 1px solid var(--rm-border-soft);
+  background: var(--team-color, var(--rm-pitch));
+  border: 1px solid color-mix(in oklch, var(--team-color, var(--rm-pitch)) 65%, transparent);
   border-radius: 12px;
-  color: var(--rm-text);
+  color: var(--rm-chalk);
   cursor: pointer;
   text-align: left;
-  box-shadow: var(--rm-card-shadow);
-  transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 2px 8px color-mix(in oklch, var(--team-color, var(--rm-pitch)) 25%, rgba(0, 0, 0, 0.4)),
+    0 10px 30px rgba(0, 0, 0, 0.35);
+  transition: background 0.15s ease, transform 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
 @media (hover: hover) {
   .mp-card:hover {
-    border-color: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 35%, var(--rm-border-soft));
-    background: var(--rm-surface-2);
-    transform: translateY(-1px);
+    background: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 80%, white);
+    transform: translateY(-2px);
   }
 }
 
-.mp-card:active { transform: translateY(0); }
+.mp-card:active {
+  background: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 75%, black);
+  transform: translateY(1px);
+}
 
 .mp-card-icon {
-  color: var(--rm-text-muted);
+  color: var(--rm-chalk);
   margin-bottom: 2px;
 }
 
@@ -120,5 +125,5 @@
   font-family: var(--rm-font-body);
   font-size: 13px;
   line-height: 1.45;
-  color: var(--rm-text-muted);
+  color: rgba(255, 255, 255, 0.8);
 }

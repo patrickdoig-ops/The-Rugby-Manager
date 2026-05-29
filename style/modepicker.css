@@ -99,7 +99,7 @@
 
 @media (hover: hover) {
   .mp-card:hover {
-    background: color-mix(in srgb, var(--team-color-tile, var(--team-color, var(--rm-pitch))) 80%, black);
+    background: color-mix(in srgb, var(--team-color-tile, var(--team-color, var(--rm-pitch))) 88%, var(--rm-on-accent));
     transform: translateY(-2px);
   }
 }

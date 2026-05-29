@@ -28,7 +28,7 @@ import { shortName } from '../utils/playerName';
 import { teamTextColor } from '../utils/teamColor';
 import type { RawTeamInput } from '../types/teamData';
 import { playerOverall } from '../engine/RatingEngine';
-import { isOutOfPosition, SLOT_POSITION } from '../engine/balance';
+import { oopSeverity, oopPenaltyPct, SLOT_POSITION } from '../engine/balance';
 import { computeOverallRating } from '../team/teamProfile';
 import { recentForm, headToHead, matchSpread, formAdjustment, HOME_ADVANTAGE_PTS, type FormResult } from '../game/teamStats';
 import { applyMatchdaySquad, makeInjuredPredicate } from '../game/playerSquad';
@@ -135,9 +135,10 @@ function renderLineupRow(
   // Out-of-position warning — only on the user's own starting XV (slots 1-15),
   // where the familiarity penalty (balance/positionFamiliarity.ts) bites at
   // kick-off. flagOop gates it to the editable "mine" lineup.
-  const oop = flagOop && isOutOfPosition(p.position, num);
-  const oopBadge = oop
-    ? `<span class="pm-oop-badge" title="Out of position — natural ${p.position}, selected at ${SLOT_POSITION[num]} (reduced effectiveness)">OOP</span>`
+  const sev = flagOop ? oopSeverity(p.position, num) : null;
+  const sevLabel = { mild: 'minor', moderate: 'notable', severe: 'major' };
+  const oopBadge = sev
+    ? `<span class="pm-oop-badge pm-oop-badge--${sev}" title="Out of position (${sevLabel[sev]}, −${oopPenaltyPct(p.position, num)}%) — natural ${p.position}, selected at ${SLOT_POSITION[num]}">OOP</span>`
     : '';
   const nameHtml = onProfile && p.rosterId !== undefined
     ? playerLinkHtml(surname, p.rosterId)

@@ -88,3 +88,24 @@ export function slotFamiliarity(natural: Position, slotId: number): number {
 export function isOutOfPosition(natural: Position, slotId: number): boolean {
   return slotFamiliarity(natural, slotId) < 1.0;
 }
+
+export type OopSeverity = 'mild' | 'moderate' | 'severe';
+
+// Severity band for the out-of-position warning chip, by familiarity multiplier:
+//   mild     ≥ 0.90  (≤ 10% hit — adjacent cover, e.g. flanker at №8, wing at FB)
+//   moderate ≥ 0.84  (10-16% hit — a real reposition, e.g. centre at fly-half)
+//   severe   < 0.84  (front-row swap 0.78, makeshift 0.72 — a liability)
+// Returns null when there's no penalty (natural / versatile cluster slot).
+export function oopSeverity(natural: Position, slotId: number): OopSeverity | null {
+  const mult = slotFamiliarity(natural, slotId);
+  if (mult >= 1.0) return null;
+  if (mult >= 0.90) return 'mild';
+  if (mult >= 0.84) return 'moderate';
+  return 'severe';
+}
+
+// Whole-number penalty percentage for the slot (e.g. 0.78 -> 22), for tooltips.
+export function oopPenaltyPct(natural: Position, slotId: number): number {
+  return Math.round((1 - slotFamiliarity(natural, slotId)) * 100);
+}
+

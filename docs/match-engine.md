@@ -370,7 +370,7 @@ A player filling a jersey slot that isn't their natural position takes an **effe
 - **Back row** is interchangeable: `Flanker↔Number 8 = 0.96`. The versatile **`Back Row`** label is **natural (1.0)** at flanker/№8 — it represents a loose forward at home anywhere in 6/7/8 (used by authored XVs).
 - **Backs:** `Centre↔Wing = 0.92`, `Wing↔Fullback = 0.93`, `Fly-Half→Centre = 0.90`, `Scrum-Half↔Fly-Half = 0.88`. The **`Utility Back`** label is **natural (1.0)** across 10/12/13/11/14/15, with only the specialist scrum-half role penalised (`0.90`).
 
-`isOutOfPosition(natural, slotId)` (`= slotFamiliarity < 1.0`) drives the amber **OOP** chip on the player's own starting XV in `SquadManagementScreen` and `PreMatchScreen`. Tying it to the penalty means a versatile cluster player (Back Row at flanker, Utility Back at fullback) is never flagged. The warning is non-blocking — the manager may still field the player.
+`oopSeverity(natural, slotId)` (mild `≥ 0.90` / moderate `≥ 0.84` / severe `< 0.84`, or `null` at `1.0`) drives the **OOP** chip on the player's own starting XV in `SquadManagementScreen` and `PreMatchScreen`, colour-coded amber → orange → red so the manager can read the cost at a glance; `oopPenaltyPct(...)` adds the magnitude (e.g. `−22%`) to the tooltip. Tying the chip to the penalty means a versatile cluster player (Back Row at flanker, Utility Back at fullback) is never flagged. The warning is non-blocking — the manager may still field the player.
 
 The penalty stacks with the existing position-weighted OVR (a centre at fly-half is doubly disadvantaged: low base kicking *and* the familiarity hit) and with the form modifier and fatigue, since all three operate on the same `currentStats` path.
 

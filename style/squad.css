@@ -244,6 +244,7 @@
 
 /* Out-of-position warning chip */
 .sq-oop-badge {
+  --oop-c: var(--rm-amber);
   display: inline-block;
   margin-left: 6px;
   padding: 0 4px;
@@ -252,10 +253,14 @@
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: var(--rm-amber);
-  background: color-mix(in oklch, var(--rm-amber) 14%, transparent);
-  border: 1px solid color-mix(in oklch, var(--rm-amber) 45%, transparent);
+  color: var(--oop-c);
+  background: color-mix(in oklch, var(--oop-c) 14%, transparent);
+  border: 1px solid color-mix(in oklch, var(--oop-c) 45%, transparent);
 }
+/* Severity: mild (amber) -> moderate (orange) -> severe (red) */
+.sq-oop-badge--mild     { --oop-c: var(--rm-amber); }
+.sq-oop-badge--moderate { --oop-c: var(--rm-amber-deep); }
+.sq-oop-badge--severe   { --oop-c: var(--rm-danger); }
 
 /* OVR badge */
 .sq-ovr {

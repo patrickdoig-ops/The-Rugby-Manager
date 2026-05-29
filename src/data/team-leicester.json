@@ -1,6 +1,6 @@
 {
   "id": "leicester",
-  "name": "Leicester Tigers",
+  "name": "Leicester",
   "shortName": "LEI",
   "color": "#1c5e3f",
   "secondaryColor": "#ffffff",
@@ -9,7 +9,6 @@
   "founded": 1880,
   "stadiumCapacity": 25849,
   "headCoach": "Geoff Parling (Head Coach since August 2025, succeeding Michael Cheika)",
-  "honours": "11 × English league title (latest 2021-22, most in the modern era); 2 × European Champions Cup (2000-01, 2001-02); Anglo-Welsh Cup × 6",
   "suggestedTactics": {
     "attackingGamePlan": "kicking",
     "attackingStyle": "keep_it_tight",
@@ -29,7 +28,6 @@
       "name": "Freddie Steward",
       "position": "Fullback",
       "nationality": "England",
-      "blurb": "England's first-choice 15 and the league's most dominant aerial operator; reads kick-chase lanes better than anyone and rarely spills under the high ball",
       "indexHigh": [
         "positioning",
         "handling",
@@ -43,7 +41,6 @@
       "name": "Ollie Chessum",
       "position": "Lock",
       "nationality": "England",
-      "blurb": "2025 Lions Test 2 starter (off the bench in Tests 1 and 3) and the league's most athletic lock-cum-blindside; carries hard, hits rucks at pace, and is a genuine lineout option in both pods",
       "indexHigh": [
         "strength",
         "setPiece",
@@ -57,7 +54,6 @@
       "name": "Tommy Reffell",
       "position": "Flanker",
       "nationality": "Wales",
-      "blurb": "Wales' premier openside and arguably the league's purest jackal; averaged 6-7 turnovers a game in patches and topped the July Tests for forced turnovers",
       "indexHigh": [
         "breakdown",
         "tackling",
@@ -71,7 +67,6 @@
       "name": "Jack van Poortvliet",
       "position": "Scrum-Half",
       "nationality": "England",
-      "blurb": "England-capped 9 whose box-kick accuracy and pass speed fit Welford Road's territory-first identity; a sharp tactical kicker who controls the tempo from the base",
       "indexHigh": [
         "kicking",
         "handling",

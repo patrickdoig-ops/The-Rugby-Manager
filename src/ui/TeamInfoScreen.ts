@@ -61,7 +61,6 @@ function starCard(s: StarPlayerMeta): string {
         <div class="ti-star-rating">${s.suggestedRating}</div>
       </div>
       <div class="ti-star-meta">${s.position} · ${s.nationality}</div>
-      <div class="ti-star-blurb">${s.blurb}</div>
       ${indexHigh ? `<div class="ti-star-pills">${indexHigh}</div>` : ''}
     </div>`;
 }
@@ -156,13 +155,6 @@ export function initTeamInfoScreen(
         <section class="ti-section">
           <h3 class="ti-section-title">Star players</h3>
           <div class="ti-stars">${profile.stars.map(starCard).join('')}</div>
-        </section>
-      ` : ''}
-
-      ${profile.honours ? `
-        <section class="ti-section">
-          <h3 class="ti-section-title">Honours</h3>
-          <p class="ti-honours">${profile.honours}</p>
         </section>
       ` : ''}
 

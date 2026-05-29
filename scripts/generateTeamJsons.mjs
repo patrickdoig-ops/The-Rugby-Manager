@@ -20,7 +20,7 @@ const TEAM_META = {
   'Bristol Bears':         { slug: 'bristol',      shortName: 'BRI' },
   'Leicester Tigers':      { slug: 'leicester',    shortName: 'LEI' },
   'Saracens':              { slug: 'saracens',     shortName: 'SAR' },
-  'Bath Rugby':            { slug: 'bath',         shortName: 'BAT' },
+  'Bath':                  { slug: 'bath',         shortName: 'BAT' },
   'Exeter Chiefs':         { slug: 'exeter',       shortName: 'EXE' },
   'Harlequins':            { slug: 'harlequins',   shortName: 'HAR' },
   'Newcastle Red Bulls':   { slug: 'newcastle',    shortName: 'NEW' },

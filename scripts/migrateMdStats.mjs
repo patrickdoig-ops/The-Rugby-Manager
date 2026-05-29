@@ -12,7 +12,7 @@ const TEAM_META = {
   'Bristol Bears':         { slug: 'bristol' },
   'Leicester Tigers':      { slug: 'leicester' },
   'Saracens':              { slug: 'saracens' },
-  'Bath Rugby':            { slug: 'bath' },
+  'Bath':                  { slug: 'bath' },
   'Exeter Chiefs':         { slug: 'exeter' },
   'Harlequins':            { slug: 'harlequins' },
   'Newcastle Red Bulls':   { slug: 'newcastle' },

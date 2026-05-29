@@ -191,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function goSettingsFromHub(): void {
-    initSettingsScreen(() => goHub('back'));
+    initSettingsScreen(() => goHub('back'), () => goHome('back'));
     screenRouter.show('settings');
   }
 

@@ -8,7 +8,7 @@ function backIcon(): string {
   </svg>`;
 }
 
-export function initSettingsScreen(onBack: () => void): void {
+export function initSettingsScreen(onBack: () => void, onReset = onBack): void {
   const el = document.getElementById('settings');
   if (!el) return;
 
@@ -98,6 +98,6 @@ export function initSettingsScreen(onBack: () => void): void {
     );
     if (!ok) return;
     clearSave();
-    location.reload();
+    onReset();
   });
 }

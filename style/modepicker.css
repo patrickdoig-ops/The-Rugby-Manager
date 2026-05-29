@@ -110,14 +110,12 @@
 }
 
 .mp-card-icon {
-  color: var(--rm-chalk);
   margin-bottom: 2px;
 }
 
 .mp-card-title {
   font-family: var(--rm-font-display);
   font-size: var(--rm-fs-22);
-  color: var(--rm-chalk);
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }

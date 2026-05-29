@@ -539,6 +539,11 @@ export class MatchCoordinator {
 
   setTickDelay(ms: number): void {
     applyMatchEvent(this.state, { type: 'TICK_DELAY_SET', value: ms });
+    // The presenter paces off its own cached tickDelayMs (refreshed on flush).
+    // While run-ahead-throttled the producer stops flushing, so push the new
+    // speed straight into the streamer or a live speed change (incl. auto-slow
+    // on key moments) wouldn't reach the on-screen cadence.
+    this.streamer.setTickDelay(ms);
     if (this.state.engine.isRunning && this.tickTimeout) {
       clearTimeout(this.tickTimeout);
       this.scheduleTick(ms);

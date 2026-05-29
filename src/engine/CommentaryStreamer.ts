@@ -125,6 +125,16 @@ export class CommentaryStreamer {
     return this.drainPromise;
   }
 
+  // Live speed change (SimController speed buttons / auto-slow on key moments).
+  // The visible cadence is paced off this cached tickDelayMs, normally refreshed
+  // only on flush(). While the producer is run-ahead-throttled it stops calling
+  // flush(), so a speed change wouldn't reach the presenter until production
+  // resumes — updating it directly here makes the NEXT line gap honour the new
+  // speed immediately. Mirrors how pause() reaches the streamer directly.
+  setTickDelay(ms: number): void {
+    this.tickDelayMs = ms;
+  }
+
   // Pause: stop the drain timer, remember how long until the next beat would
   // have fired so resume() can pick up the same beat.
   pause(): void {

@@ -4,7 +4,6 @@ export interface StarPlayerMeta {
   name: string;
   position: string;
   nationality: string;
-  blurb: string;
   indexHigh: string[];
   suggestedRating: number;
 }
@@ -24,7 +23,6 @@ export interface TeamProfile {
   stadiumCapacity?: number;
   headCoach?: string;
   honours?: string;
-  blurb: string;
   suggestedTactics: TeamTactics;
   statBias: string[];
   stars: StarPlayerMeta[];

@@ -21,6 +21,7 @@
   "dependencies": {
     "@capacitor/core": "^6.2.1",
     "@capacitor/ios": "^6.2.1",
+    "@capacitor/splash-screen": "^6.0.4",
     "@fontsource/anton": "^5.2.7",
     "@fontsource/geist-sans": "^5.2.5",
     "@fontsource/instrument-serif": "^5.2.8",

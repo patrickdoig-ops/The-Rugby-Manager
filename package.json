@@ -5,13 +5,21 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:cap": "tsc && vite build --mode capacitor",
+    "cap:sync": "npm run build:cap && cap sync ios",
+    "cap:ios": "npm run build:cap && cap sync ios && cap open ios",
     "preview": "vite preview",
     "verify": "tsx scripts/checkDeterminism.ts && tsx scripts/checkSeasonDeterminism.ts",
     "telemetry": "tsx scripts/telemetry.ts"
   },
   "devDependencies": {
+    "@capacitor/cli": "^6.2.1",
     "tsx": "^4.19.0",
     "typescript": "^5.4.0",
     "vite": "^5.2.0"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.2.1",
+    "@capacitor/ios": "^6.2.1"
   }
 }

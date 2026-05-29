@@ -71,7 +71,10 @@ The dev server prints a local URL (typically `http://localhost:5173/Rugby-Simula
 | Command | Purpose |
 |---|---|
 | `npm run dev` | Start the Vite dev server with hot reload. |
-| `npm run build` | Type-check (`tsc`) and produce a production build in `dist/`. |
+| `npm run build` | Type-check (`tsc`) and produce a production build in `dist/` (GitHub Pages base). |
+| `npm run build:cap` | Same build with a relative base, for the Capacitor native shell. |
+| `npm run cap:sync` | `build:cap` then `cap sync ios` — copies `dist/` into the iOS project. |
+| `npm run cap:ios` | `cap:sync` then `cap open ios` — opens the Xcode workspace (macOS only). |
 | `npm run preview` | Serve the built `dist/` folder locally. |
 | `npm run verify` | Run match and season determinism harnesses (`scripts/checkDeterminism.ts`, `scripts/checkSeasonDeterminism.ts`). Both must pass before every commit. |
 | `npm run telemetry` | Generate the balance and realism report (450-fixture, 5-seed sweep) to stdout. CI also runs this on every push to `main` and commits the result to `telemetry/latest.md`. |
@@ -160,6 +163,10 @@ The codebase is heavily documented to maintain strict architectural and design g
 The production build deploys to GitHub Pages automatically on every push to `main` via `.github/workflows/deploy.yml`. The Vite `base` path is `/Rugby-Simulator-/` — do not change it or asset URLs break in production.
 
 A second workflow (`.github/workflows/telemetry.yml`) runs the telemetry harness on every push to `main` and commits the regenerated report to `telemetry/latest.md`.
+
+### iOS (Capacitor)
+
+The same web build is wrapped as a native iOS app via [Capacitor](https://capacitorjs.com/) for App Store distribution (`capacitor.config.ts`, app id `com.patrickdoig.rugbymanager`). The committed `ios/` Xcode project excludes synced web assets and Pods via its `.gitignore`, so after cloning, run `npm run cap:sync` once to populate it. Building, signing, and archiving for the App Store require a Mac with Xcode and CocoaPods; `npm run cap:ios` opens the workspace there. The `--mode capacitor` build emits a relative asset base so URLs resolve under `capacitor://localhost`.
 
 ---
 

@@ -5,10 +5,13 @@ type Cue = 'whistle' | 'crowdRoar' | 'uiClick';
 const SFX_KEY    = 'rugby-manager-sfx';
 const VOLUME_KEY = 'rugby-manager-volume';
 
+// Base-relative so the cues resolve under both the GitHub Pages sub-path
+// (/Rugby-Simulator-/) and the Capacitor native origin (capacitor://localhost).
+const BASE = import.meta.env.BASE_URL;
 const sources: Record<Cue, string> = {
-  whistle:   '/Rugby-Simulator-/audio/whistle.mp3',
-  crowdRoar: '/Rugby-Simulator-/audio/crowd-roar.mp3',
-  uiClick:   '/Rugby-Simulator-/audio/ui-click.mp3',
+  whistle:   `${BASE}audio/whistle.mp3`,
+  crowdRoar: `${BASE}audio/crowd-roar.mp3`,
+  uiClick:   `${BASE}audio/ui-click.mp3`,
 };
 
 const cache: Partial<Record<Cue, HTMLAudioElement>> = {};

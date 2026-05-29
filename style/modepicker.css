@@ -82,7 +82,7 @@
   align-items: flex-start;
   gap: 8px;
   padding: 18px 20px;
-  background: var(--team-color, var(--rm-pitch));
+  background: var(--team-color-tile, var(--team-color, var(--rm-pitch)));
   border: 1px solid color-mix(in oklch, var(--team-color, var(--rm-pitch)) 65%, transparent);
   border-radius: 12px;
   color: var(--rm-chalk);
@@ -98,13 +98,13 @@
 
 @media (hover: hover) {
   .mp-card:hover {
-    background: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 80%, white);
+    background: color-mix(in oklch, var(--team-color-tile, var(--team-color, var(--rm-pitch))) 80%, white);
     transform: translateY(-2px);
   }
 }
 
 .mp-card:active {
-  background: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 75%, black);
+  background: color-mix(in oklch, var(--team-color-tile, var(--team-color, var(--rm-pitch))) 75%, black);
   transform: translateY(1px);
 }
 

@@ -7,6 +7,7 @@
 // data file.
 
 import type { RawTeamInput } from '../types/teamData';
+import { injectTeamColors } from './teamColors';
 
 export function initModePickerScreen(
   team: RawTeamInput,
@@ -50,7 +51,7 @@ export function initModePickerScreen(
     </div>
   `;
 
-  el.style.setProperty('--team-color', team.color);
+  injectTeamColors(el, team);
 
   el.querySelector<HTMLButtonElement>('#mp-back')!.addEventListener('click', () => onBack());
   el.querySelector<HTMLButtonElement>('.mp-card[data-mode="quick"]')!.addEventListener('click', () => onQuickStart());

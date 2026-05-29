@@ -26,6 +26,7 @@ import { isForward } from '../types/player';
 import { INTENSITY_EFFECTS } from '../engine/balance';
 import { upcomingGap, splitGapIntoPeriods } from '../game/trainingCalendar';
 import { eventBus } from '../utils/eventBus';
+import { injectTeamColors } from './teamColors';
 
 const SHORT_WEEK_DAYS = 6; // turnaround at or below this nudges toward Light
 
@@ -93,7 +94,7 @@ export function initTrainingScreen(
     const engine = getGameEngine();
     const state = engine.getState();
     const playerTeam = teamsById.get(state.player.teamId);
-    if (playerTeam) el!.style.setProperty('--team-color', playerTeam.color);
+    if (playerTeam) injectTeamColors(el!, playerTeam);
     const mode = activeMode;
     if (!mode) return;
 

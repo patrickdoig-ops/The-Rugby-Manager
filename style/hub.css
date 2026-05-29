@@ -374,7 +374,7 @@
 }
 
 .hub-tile {
-  --tile-accent: var(--team-color, var(--rm-pitch));
+  --tile-accent: var(--team-color-tile, var(--team-color, var(--rm-pitch)));
   position: relative;
   background: var(--tile-accent);
   border: 1px solid color-mix(in oklch, var(--tile-accent) 65%, transparent);

@@ -15,6 +15,7 @@ import { computeOverallRating } from '../team/teamProfile';
 import { formAdjustment, matchSpread, HOME_ADVANTAGE_PTS, recentForm } from '../game/teamStats';
 import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
 import { renderFormPipStrip } from './components/formPip';
+import { injectTeamColors } from './teamColors';
 
 export interface InitHubScreenOpts {
   // Always called fresh — the GameCoordinator reference can swap when the
@@ -197,7 +198,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
       <div id="hub-footer">${playoffsActive ? playoffFooterHtml() : footerHtml(nextFixture)}</div>
     `;
 
-    el!.style.setProperty('--team-color', playerTeam.color);
+    injectTeamColors(el!, playerTeam);
 
     el!.querySelector<HTMLButtonElement>('#hub-settings')!.addEventListener('click', () => opts.onSettings());
     el!.querySelector<HTMLButtonElement>('#hub-alert-banner')?.addEventListener('click', () => {

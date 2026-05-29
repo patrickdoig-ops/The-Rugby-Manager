@@ -603,7 +603,7 @@ The Rob Baxter long-build identity is phase-heavy possession rugby — pressure 
 
 The Twickenham Stoop entertainers and the league's most committed expansive, attacking side. Built around Marcus Smith's creative range — cross-field kicks, late drop-goal nous, footwork at first receiver — Quins play fast-paced running rugby and back themselves to outscore anyone. Their forwards are mobile and carry-friendly rather than maul-monsters, and they thrive on broken-field rugby and counter-attack. The trade-off is defensive vulnerability when the tempo turns against them.
 
-- **Home ground:** Twickenham Stoop (commonly "The Stoop").
+- **Home ground:** The Stoop.
 - **Club colours:** `#73144a` / `#23bcad`
 - **Nickname:** Quins.
 - **Founded:** 1866 — one of the league's oldest clubs.

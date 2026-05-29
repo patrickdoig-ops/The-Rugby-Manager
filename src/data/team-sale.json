@@ -1,6 +1,6 @@
 {
   "id": "sale",
-  "name": "Sale Sharks",
+  "name": "Sale",
   "shortName": "SAL",
   "color": "#0a1b40",
   "secondaryColor": "#ffffff",
@@ -10,7 +10,6 @@
   "stadiumCapacity": 11404,
   "headCoach": "Alex Sanderson (Director of Rugby since 2021)",
   "honours": "League title 2005-06; European Challenge Cup 2001-02, 2004-05",
-  "blurb": "The Manchester defence-first side: line-speed, collision-dominant loose forwards and a physical inside-centre channel, all built to choke teams into errors. Sale are happy to cede possession because they back their defence to win the field-position battle, and George Ford's tempo control gives them clinical execution when they do attack. Tackles, turnovers and territory underpin everything; they are the league's least flashy and most resilient team. Box-kick, chase, tackle, repeat.",
   "suggestedTactics": {
     "attackingGamePlan": "kicking",
     "attackingStyle": "keep_it_tight",
@@ -30,7 +29,6 @@
       "name": "Tom Curry",
       "position": "Flanker",
       "nationality": "England",
-      "blurb": "Lions Test starter at openside on the 2025 Australia tour; relentless jackal threat and the \"engine\" of England's back row, with brutal tackle work-rate even after wrist surgery",
       "indexHigh": [
         "tackling",
         "breakdown",
@@ -44,7 +42,6 @@
       "name": "George Ford",
       "position": "Fly-Half",
       "nationality": "England",
-      "blurb": "England's first-choice 10 through the 10-Test winning run; ice-cold game manager with a stunning 50-22 kicking game and tempo control that underpins Sale's territory-first identity",
       "indexHigh": [
         "kicking",
         "composure",
@@ -58,7 +55,6 @@
       "name": "Ben Curry",
       "position": "Flanker",
       "nationality": "England",
-      "blurb": "Breakdown menace and former Sale captain (stepped down ahead of 2025-26 with his England-contract availability reduced); started England's Six Nations opener alongside his twin and brings the same chop-tackle, jackal-heavy profile that defines Sale's defensive identity",
       "indexHigh": [
         "tackling",
         "breakdown",
@@ -72,7 +68,6 @@
       "name": "Tom Roebuck",
       "position": "Wing",
       "nationality": "England",
-      "blurb": "England wing in red-hot form (three tries in the 57-5 win over Newcastle); silky footwork, deceptive power in the carry and a genuine aerial threat that turns Sale's kick-chase into points",
       "indexHigh": [
         "pace",
         "handling",

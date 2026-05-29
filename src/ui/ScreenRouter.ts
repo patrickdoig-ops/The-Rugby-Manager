@@ -37,7 +37,8 @@ export type ScreenId =
   | 'squad-management'
   | 'squad-overview'
   | 'training'
-  | 'training-results';
+  | 'training-results'
+  | 'achievements';
 
 const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'home':          { elId: 'home-screen',   shownDisplay: '' },
@@ -71,6 +72,7 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'squad-overview':   { elId: 'squad-overview',   shownDisplay: '' },
   'training':         { elId: 'training',         shownDisplay: '' },
   'training-results': { elId: 'training-results', shownDisplay: '' },
+  'achievements':     { elId: 'achievements',     shownDisplay: '' },
 };
 
 export type NavDirection = 'forward' | 'back';

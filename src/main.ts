@@ -43,6 +43,7 @@ import '../style/training.css';
 import '../style/training-results.css';
 import '../style/player-profile.css';
 import '../style/saves.css';
+import '../style/achievements.css';
 
 import { buildAppShell }           from './ui/AppShell';
 import { preloadAllCues, playCue } from './ui/SoundManager';
@@ -86,6 +87,9 @@ import { initContractsScreen, showContracts, showContractsMarqueeEdit } from './
 import { initSquadManagementScreen, showSquadManagement } from './ui/SquadManagementScreen';
 import { initTrainingScreen, showTrainingPostMatch, showTrainingMidweek } from './ui/TrainingScreen';
 import { initPostTrainingResultsScreen, showPostTrainingResults } from './ui/PostTrainingResultsScreen';
+import { initAchievementsScreen, showAchievements }  from './ui/AchievementsScreen';
+import { initAchievementEngine }   from './achievements/AchievementEngine';
+import { getGameCenter }           from './achievements/GameCenterBridge';
 import { screenRouter }            from './ui/ScreenRouter';
 import { loadSave, saveGame, clearSave, migrateLegacySave } from './ui/SaveManager';
 import { installBackupMirror, reconcileBackups } from './ui/saveBackup';
@@ -273,6 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onTraining: goTrainingMidweek,
       onContracts: goContracts,
       onTransfers: goTransfersMidseason,
+      onAchievements: goAchievements,
       onSettings: goSettingsFromHub,
     });
     initFixtureListScreen(getGameEngine, allTeams, () => goHub('back'));
@@ -342,6 +347,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initPostTrainingResultsScreen(getGameEngine, allTeams, (rosterId) => {
       goPlayerProfile(rosterId, () => screenRouter.show('training-results', { direction: 'back' }));
     });
+    initAchievementsScreen(() => goHub('back'));
+    // Achievements listen to game:* events and read live state through the
+    // getter, so the engine swaps cleanly on New Game. Subscriptions are
+    // permanent — registered once here like the in-season screens.
+    initAchievementEngine(() => getGameEngine().getState());
 
     // The post-match Continue chain (LeagueTable → ...) reads these flags.
     // game:bracketSeeded fires after the last regular-season fixture —
@@ -398,6 +408,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function goContracts(direction: 'forward' | 'back' = 'forward'): void {
     showContracts();
     screenRouter.show('contracts', { direction });
+  }
+
+  function goAchievements(direction: 'forward' | 'back' = 'forward'): void {
+    showAchievements();
+    screenRouter.show('achievements', { direction });
   }
 
   function goSquad(direction: 'forward' | 'back' = 'forward'): void {
@@ -1044,6 +1059,9 @@ document.addEventListener('DOMContentLoaded', () => {
       requestAnimationFrame(() => requestAnimationFrame(() => {
         void SplashScreen.hide({ fadeOutDuration: 250 });
       }));
+      // Sign the player into Game Centre so achievement reports land. No-op
+      // until the native GameCenter plugin ships; fails soft otherwise.
+      void getGameCenter().authenticate();
     }
   };
 

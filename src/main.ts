@@ -29,6 +29,7 @@ import '../style/player-profile.css';
 
 import { buildAppShell }           from './ui/AppShell';
 import { preloadAllCues, playCue } from './ui/SoundManager';
+import { initAudioDirector }       from './ui/audio/AudioDirector';
 import { initScoreboard }          from './ui/Scoreboard';
 import { initPitchStrip }          from './ui/PitchStrip';
 import { initCommentaryFeed }      from './ui/CommentaryFeed';
@@ -105,6 +106,7 @@ const allTeams = allTeamsRaw as unknown as RawTeamInput[];
 document.addEventListener('DOMContentLoaded', () => {
   buildAppShell();
   preloadAllCues();
+  initAudioDirector();
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
     if (target.closest('button, .hub-tile, .ts-card, .mp-card')) {

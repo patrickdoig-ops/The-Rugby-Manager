@@ -59,7 +59,7 @@ type Step = 'mine' | 'opp' | 'scout' | 'tactics';
 // pull both screens onto a shared helper file. Same labels TacticsMenu
 // uses on its compact pills.
 const TACTIC_LABELS: Record<keyof TeamTactics, Record<string, string>> = {
-  attackingGamePlan:  { possession: 'Possession', balanced: 'Balanced', kicking: 'Territorial' },
+  attackingGamePlan:  { kicking: 'Territorial', balanced: 'Balanced', possession: 'Possession' },
   attackingStyle:     { keep_it_tight: 'Keep It Tight', balanced: 'Balanced', wide_wide: 'Wide Wide' },
   attackingBreakdown: { commit_numbers: 'Commit Numbers', balanced: 'Balanced Ruck', minimal_ruck: 'Minimal Ruck' },
   defendingBreakdown: { jackal: 'Jackal Steal', counter_ruck: 'Counter Ruck', shadow: 'Shadow Line' },

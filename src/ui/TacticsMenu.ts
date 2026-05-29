@@ -8,9 +8,9 @@ interface OptionDef<T> {
 }
 
 const ATTACK_PLAN_OPTIONS: OptionDef<AttackingGamePlan>[] = [
-  { value: 'possession', label: 'Possession', desc: 'Patient phase play, minimal kicking, keep ball in hand.' },
-  { value: 'balanced',   label: 'Balanced',   desc: 'Mixed kick/carry approach adapting dynamically to pitch zone.' },
   { value: 'kicking',    label: 'Territorial', desc: 'Frequent tactical kicking to play the game in opposition territory.' },
+  { value: 'balanced',   label: 'Balanced',    desc: 'Mixed kick/carry approach adapting dynamically to pitch zone.' },
+  { value: 'possession', label: 'Possession',  desc: 'Patient phase play, minimal kicking, keep ball in hand.' },
 ];
 
 const ATTACKING_STYLE_OPTIONS: OptionDef<AttackingStyle>[] = [

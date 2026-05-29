@@ -277,7 +277,6 @@ document.addEventListener('DOMContentLoaded', () => {
       onTraining: goTrainingMidweek,
       onContracts: goContracts,
       onTransfers: goTransfersMidseason,
-      onAchievements: goAchievements,
       onSettings: goSettingsFromHub,
     });
     initFixtureListScreen(getGameEngine, allTeams, () => goHub('back'));
@@ -288,10 +287,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // teamInfo back arrow returns to whichever leaf opened it.
     initLeagueMenuScreen({
       getGameEngine,
-      onBack: () => goHub('back'),
-      onTable:       goLeagueTable,
-      onTeamStats:   goTeamStats,
-      onPlayerStats: goPlayerStats,
+      onBack:         () => goHub('back'),
+      onTable:        goLeagueTable,
+      onTeamStats:    goTeamStats,
+      onPlayerStats:  goPlayerStats,
+      onAchievements: goAchievements,
     });
     initLeagueTableScreen(getGameEngine, allTeams, () => goLeagueMenu('back'), (teamId) => {
       const teamJson = allTeams.find(t => t.id === teamId);
@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initPostTrainingResultsScreen(getGameEngine, allTeams, (rosterId) => {
       goPlayerProfile(rosterId, () => screenRouter.show('training-results', { direction: 'back' }));
     });
-    initAchievementsScreen(() => goHub('back'));
+    initAchievementsScreen(() => goLeagueMenu('back'));
     // Achievements listen to game:* events and read live state through the
     // getter, so the engine swaps cleanly on New Game. Subscriptions are
     // permanent — registered once here like the in-season screens.

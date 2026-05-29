@@ -43,8 +43,8 @@
   --rm-stat-4:      oklch(0.76 0.20 144);
   --rm-stat-5:      oklch(0.82 0.18 175);
 
-  --rm-card-yellow: #f5c024;
-  --rm-card-red:    #d22f2f;
+  --rm-card-yellow: oklch(0.81 0.16 88);
+  --rm-card-red:    oklch(0.57 0.21 27);
 
   --rm-font-display: 'Anton', 'Bebas Neue', Impact, sans-serif;
   --rm-font-editor:  'Instrument Serif', 'Georgia', serif;

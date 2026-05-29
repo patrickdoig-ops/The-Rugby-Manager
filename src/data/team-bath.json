@@ -4,12 +4,11 @@
   "shortName": "BAT",
   "color": "#0033a0",
   "secondaryColor": "#ffffff",
-  "stadium": "The Recreation Ground (commonly \"The Rec\")",
+  "stadium": "The Rec",
   "nickname": "The Blue, Black and Whites",
   "founded": 1865,
   "stadiumCapacity": 14500,
   "headCoach": "Johann van Graan (Head of Rugby since 2022, contracted to 2030)",
-  "honours": "7 × English league title (latest 2024-25); 10 × RFU Cup (1984–1996 dynasty); European Challenge Cup 2007-08",
   "suggestedTactics": {
     "attackingGamePlan": "balanced",
     "attackingStyle": "balanced",

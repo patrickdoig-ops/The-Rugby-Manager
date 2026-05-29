@@ -22,7 +22,6 @@ export interface TeamProfile {
   nickname?: string;
   stadiumCapacity?: number;
   headCoach?: string;
-  honours?: string;
   suggestedTactics: TeamTactics;
   statBias: string[];
   stars: StarPlayerMeta[];

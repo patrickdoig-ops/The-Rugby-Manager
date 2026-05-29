@@ -67,7 +67,6 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Stadium capacity:** 16,115.
 - **Head coach:** George Skivington (Head Coach; returned to the role March 2026 after serving as Director of Rugby from September 2023, having previously been Head Coach from 2020).
 - **Captain:** Tomos Williams (2025-26; confirmed in December 2025 to be joining Saracens at season's end).
-- **Honours:** RFU Cup × 4 (1971-72, 1977-78, 1981-82, 2002-03); European Challenge Cup 2005-06, 2014-15.
 - **Overall rating:** **67/100**
 - **Suggested tactics:** `balanced` · `keep_it_tight` · `commit_numbers` · `counter_ruck` · `one_back` · `drift` · `cautious`
 - **Stat bias:** high `strength`, `breakdown`, `setPiece`.
@@ -151,7 +150,6 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Stadium capacity:** 27,000 (shared with Bristol City FC).
 - **Head coach:** Pat Lam (Director of Rugby since 2017).
 - **Captain:** Fitz Harding (long-term extension signed 2023-24).
-- **Honours:** European Challenge Cup 2019-20; RFU Knockout Cup 1982-83; Championship title 2017-18.
 - **Overall rating:** **73/100**
 - **Suggested tactics:** `possession` · `wide_wide` · `minimal_ruck` · `jackal` · `two_back` · `drift` · `offload_freely`
 - **Stat bias:** high `pace`, `handling`, `agility`.
@@ -234,7 +232,6 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Stadium capacity:** 25,849 (the largest club-owned rugby ground in England).
 - **Head coach:** Geoff Parling (Head Coach since August 2025, succeeding Michael Cheika).
 - **Captain:** Ollie Chessum (appointed September 2025).
-- **Honours:** 11 × English league title (latest 2021-22, most in the modern era); 2 × European Champions Cup (2000-01, 2001-02); Anglo-Welsh Cup × 6.
 - **Overall rating:** **77/100**
 - **Suggested tactics:** `kicking` · `keep_it_tight` · `commit_numbers` · `jackal` · `two_back` · `hybrid` · `cautious`
 - **Stat bias:** high `setPiece`, `tackling`, `discipline`.
@@ -326,7 +323,6 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Stadium capacity:** 10,500.
 - **Head coach:** Mark McCall (Director of Rugby since 2010; stepping down end of 2025-26, with Brendan Venter to take over for 2026-27).
 - **Captain:** Maro Itoje.
-- **Honours:** 6 × league title (latest 2022-23); 3 × European Champions Cup (2015-16, 2016-17, 2018-19).
 - **Overall rating:** **74/100**
 - **Suggested tactics:** `kicking` · `balanced` · `balanced` · `jackal` · `two_back` · `blitz` · `cautious`
 - **Stat bias:** high `tackling`, `positioning`, `composure`.
@@ -407,14 +403,13 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 
 ## Bath
 
-- **Home ground:** The Recreation Ground (commonly "The Rec").
+- **Home ground:** The Rec.
 - **Club colours:** `#0033a0` / `#ffffff`
 - **Nickname:** The Blue, Black and Whites.
 - **Founded:** 1865 — one of the oldest rugby clubs in England.
 - **Stadium capacity:** 14,500 (18,000-seat rebuild approved September 2025).
 - **Head coach:** Johann van Graan (Head of Rugby since 2022, contracted to 2030).
 - **Captain:** Ben Spencer.
-- **Honours:** 7 × English league title (latest 2024-25); 10 × RFU Cup (1984–1996 dynasty); European Challenge Cup 2007-08.
 - **Overall rating:** **79/100**
 - **Suggested tactics:** `balanced` · `balanced` · `balanced` · `jackal` · `two_back` · `hybrid` · `cautious`
 - **Stat bias:** high `handling`, `kicking`, `composure`.
@@ -503,7 +498,6 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Stadium capacity:** 15,600.
 - **Head coach:** Rob Baxter (Director of Rugby since 2009 — the league's longest-serving head coach).
 - **Captain:** Dafydd Jenkins.
-- **Honours:** 2 × league title (2016-17, 2019-20); European Champions Cup 2019-20; Anglo-Welsh Cup 2013-14.
 - **Overall rating:** **70/100**
 - **Suggested tactics:** `possession` · `keep_it_tight` · `commit_numbers` · `counter_ruck` · `one_back` · `blitz` · `cautious`
 - **Stat bias:** high `stamina`, `breakdown`, `setPiece`.
@@ -589,14 +583,13 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 
 ## Harlequins
 
-- **Home ground:** Twickenham Stoop (commonly "The Stoop").
+- **Home ground:** The Stoop.
 - **Club colours:** `#73144a` / `#23bcad`
 - **Nickname:** Quins.
 - **Founded:** 1866 — one of the league's oldest clubs.
 - **Stadium capacity:** 14,800.
 - **Head coach:** Jason Gilmore (Head Coach since September 2025, promoted from defence coach after Danny Wilson's late departure to Wales).
 - **Captain:** Alex Dombrandt (since 2024-25).
-- **Honours:** 2 × league title (2011-12, 2020-21); European Challenge Cup 2010-11; Anglo-Welsh Cup 1987-88, 2012-13.
 - **Overall rating:** **66/100**
 - **Suggested tactics:** `possession` · `wide_wide` · `minimal_ruck` · `jackal` · `one_back` · `drift` · `offload_freely`
 - **Stat bias:** high `pace`, `agility`, `handling`.
@@ -683,7 +676,6 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Stadium capacity:** 10,200.
 - **Head coach:** Stephen Jones (interim Head Coach from March 2026 after Alan Dickens departed; Dan McFarland publicly linked with the role from 2026-27).
 - **Captain:** George McGuigan.
-- **Honours:** League title 1997-98; Anglo-Welsh Cup 2000-01, 2003-04.
 - **Overall rating:** **55/100**
 - **Suggested tactics:** `balanced` · `balanced` · `balanced` · `jackal` · `three_back` · `hybrid` · `cautious`
 - **Stat bias:** modest across the board (rebuild status); slight lean toward `stamina` and `discipline`.
@@ -776,7 +768,6 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Stadium capacity:** 15,249.
 - **Head coach:** Phil Dowson (Director of Rugby since 2022).
 - **Captain:** Fraser Dingwall.
-- **Honours:** 2 × league title (2013-14, 2023-24); European Cup 1999-2000; European Challenge Cup 2008-09, 2014.
 - **Overall rating:** **76/100**
 - **Suggested tactics:** `possession` · `wide_wide` · `minimal_ruck` · `jackal` · `one_back` · `hybrid` · `balanced`
 - **Stat bias:** high `pace`, `handling`, `agility`.
@@ -877,7 +868,6 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Stadium capacity:** 11,404 (shared with Salford Red Devils RL).
 - **Head coach:** Alex Sanderson (Director of Rugby since 2021).
 - **Captain:** Ernst van Rhyn (2025-26; succeeded Ben Curry, who stepped down with his England-contract availability reduced).
-- **Honours:** League title 2005-06; European Challenge Cup 2001-02, 2004-05.
 - **Overall rating:** **68/100**
 - **Suggested tactics:** `kicking` · `keep_it_tight` · `balanced` · `jackal` · `one_back` · `blitz` · `cautious`
 - **Stat bias:** high `tackling`, `strength`, `kicking`.

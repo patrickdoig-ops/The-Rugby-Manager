@@ -4,12 +4,11 @@
   "shortName": "HAR",
   "color": "#73144a",
   "secondaryColor": "#23bcad",
-  "stadium": "Twickenham Stoop (commonly \"The Stoop\")",
+  "stadium": "The Stoop",
   "nickname": "Quins",
   "founded": 1866,
   "stadiumCapacity": 14800,
   "headCoach": "Jason Gilmore (Head Coach since September 2025, promoted from defence coach after Danny Wilson's late departure to Wales)",
-  "honours": "2 × league title (2011-12, 2020-21); European Challenge Cup 2010-11; Anglo-Welsh Cup 1987-88, 2012-13",
   "suggestedTactics": {
     "attackingGamePlan": "possession",
     "attackingStyle": "wide_wide",

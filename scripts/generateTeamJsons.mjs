@@ -92,7 +92,6 @@ function parseTeamDataMd(md) {
     const foundedMatch   = body.match(/\*\*Founded:\*\*\s*(\d{4})/);
     const capacityMatch  = body.match(/\*\*Stadium capacity:\*\*\s*([\d,]+)/);
     const headCoachMatch = body.match(/\*\*Head coach:\*\*\s*(.+?)\.\s*$/m);
-    const honoursMatch   = body.match(/\*\*Honours:\*\*\s*(.+?)\s*$/m);
     const ratingMatch = body.match(/\*\*Overall rating:\*\*\s*\*\*(\d+)\/100\*\*/);
     const statBiasMatch = body.match(/\*\*Stat bias:\*\*\s*(.+)$/m);
     const tacticsMatch = body.match(/\*\*Suggested tactics:\*\*\s*(.+)$/m);
@@ -219,7 +218,6 @@ function parseTeamDataMd(md) {
       founded: foundedMatch ? parseInt(foundedMatch[1], 10) : undefined,
       stadiumCapacity: capacityMatch ? parseInt(capacityMatch[1].replace(/,/g, ''), 10) : undefined,
       headCoach: headCoachMatch ? headCoachMatch[1].trim() : undefined,
-      honours: honoursMatch ? honoursMatch[1].trim().replace(/\.$/, '') : undefined,
       rating: ratingMatch ? parseInt(ratingMatch[1], 10) : undefined,
       suggestedTactics,
       statBias,
@@ -389,7 +387,6 @@ function buildTeamJson(teamName, team) {
     founded: team.founded,
     stadiumCapacity: team.stadiumCapacity,
     headCoach: team.headCoach,
-    honours: team.honours,
     suggestedTactics: team.suggestedTactics,
     statBias: team.statBias,
     stars: team.stars.map(s => ({

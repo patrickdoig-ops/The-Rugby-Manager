@@ -158,13 +158,6 @@ export function initTeamInfoScreen(
         </section>
       ` : ''}
 
-      ${profile.honours ? `
-        <section class="ti-section">
-          <h3 class="ti-section-title">Honours</h3>
-          <p class="ti-honours">${profile.honours}</p>
-        </section>
-      ` : ''}
-
       <section class="ti-section">
         <h3 class="ti-section-title">Squad</h3>
         <details class="ti-squad-details">

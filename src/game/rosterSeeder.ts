@@ -21,7 +21,10 @@ import { zeroMatchStats, zeroSeasonStats } from '../types/player';
 import type { ClubState } from '../types/gameState';
 import type { RawPlayer, RawTeamInput } from '../types/teamData';
 import { seedContractFields } from './contractSeeder';
-import { CLUB_SALARY_BUDGETS_2025_26, SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
+import {
+  CLUB_SALARY_BUDGETS_2025_26, SENIOR_CAP, EFFECTIVE_CAP_CREDITS,
+  WAGE_FLOOR, WAGE_ROUNDING_UNIT,
+} from '../engine/balance';
 import { POTENTIAL_HEADROOM } from '../engine/balance/career';
 import { playerOverall } from '../engine/RatingEngine';
 import { getAge, seasonOpenIso } from './age';
@@ -59,10 +62,55 @@ export function seedRoster(allTeams: RawTeamInput[], seasonStartYear: number): S
     // Unknown clubIds default to the effective cap (no constraint) so
     // future league expansions don't crash here without an entry.
     const salaryBudget = CLUB_SALARY_BUDGETS_2025_26[team.id] ?? (SENIOR_CAP + EFFECTIVE_CAP_CREDITS);
+    // Scale the authored 2025/26 squad's wages so a full roster consumes
+    // exactly its owner budget — otherwise high-budget clubs start with
+    // free headroom and the user could sign free agents without selling.
+    normalizeClubWagesToBudget(roster, squadIds, salaryBudget);
     clubs.push({ id: team.id, squad: squadIds, salaryBudget });
   }
 
   return { roster, clubs, nextRosterId: nextId };
+}
+
+// Uniformly scales a club's non-marquee wages so their sum equals the
+// club's salaryBudget (marquee wages sit outside the budget, same as
+// clubBudgetUsage / the cap). Preserves the rating-driven relative wage
+// structure; absorbs the rounding residual into the top earner so a full
+// seeded roster lands exactly on budget (zero headroom). Pure,
+// RNG-free — runs after contract seeding, so it never perturbs the
+// rngTransfer stream.
+function normalizeClubWagesToBudget(
+  roster: Record<number, Player>,
+  squadIds: number[],
+  salaryBudget: number,
+): void {
+  const ids = squadIds.filter(id => !roster[id].contract.isMarquee);
+  if (ids.length === 0) return;
+  const current = ids.reduce((sum, id) => sum + roster[id].contract.annualWage, 0);
+  if (current <= 0) return;
+
+  const scale = salaryBudget / current;
+  for (const id of ids) {
+    const scaled = roster[id].contract.annualWage * scale;
+    roster[id].contract.annualWage = Math.max(
+      WAGE_FLOOR,
+      Math.round(scaled / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT,
+    );
+  }
+
+  // Rounding leaves a small residual (a multiple of WAGE_ROUNDING_UNIT);
+  // fold it into the highest-paid non-marquee player so the total hits
+  // the budget exactly.
+  const sum = ids.reduce((s, id) => s + roster[id].contract.annualWage, 0);
+  const residual = salaryBudget - sum;
+  if (residual !== 0) {
+    const topId = ids.reduce((best, id) =>
+      roster[id].contract.annualWage > roster[best].contract.annualWage ? id : best, ids[0]);
+    roster[topId].contract.annualWage = Math.max(
+      WAGE_FLOOR,
+      roster[topId].contract.annualWage + residual,
+    );
+  }
 }
 
 function hydratePersistentPlayer(

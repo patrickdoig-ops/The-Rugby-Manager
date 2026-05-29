@@ -160,9 +160,6 @@
   letter-spacing: 0.01em;
   line-height: 1.2;
   color: var(--rm-chalk);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   display: block;
   width: 100%;
 }

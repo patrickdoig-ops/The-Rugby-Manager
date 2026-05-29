@@ -768,7 +768,26 @@ The shared `createRowExpander` + `.row-expand-panel` pattern from §4.8 is the o
 
 ---
 
-## 9. Content & copy
+## 9. Light mode (deferred)
+
+Light mode is **out of scope for now.** The game is dark-only until a dedicated implementation pass is ready. Do not add `body.light-mode` overrides, `prefers-color-scheme` media queries, or theme-toggle UI.
+
+### 9.1 What this means today
+
+- `style/main.css` tokens are dark-only. There is no `body.light-mode` ruleset.
+- `index.html` carries a gated pre-paint script (commented out). When light mode ships, uncomment the `localStorage` check there and build out the `body.light-mode` token overrides.
+- The LocalStorage key is `rugby-manager-theme`; the class is `light-mode`. These names are reserved — do not repurpose them.
+
+### 9.2 When light mode lands
+
+1. Declare `body.light-mode { ... }` token overrides for every surface / text / border token in `main.css`.
+2. Un-comment the pre-paint script in `index.html` so the class is applied before first paint.
+3. Add a theme toggle to Settings and wire it to `uiPrefs.ts` (`saveTheme` / `loadTheme`).
+4. Delete this "deferred" section and replace it with the live policy (token rules, shadow migration notes, team-colour pass-through).
+
+---
+
+## 10. Content & copy
 
 ### 10.1 Filler is forbidden
 

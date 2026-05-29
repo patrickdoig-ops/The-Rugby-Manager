@@ -4,9 +4,12 @@ import { VERSION } from '../version';
 import {
   loadAutoPauseEnabled, saveAutoPauseEnabled,
   loadAutoSlowEnabled, saveAutoSlowEnabled,
-  loadTextScale, saveTextScale, applyTextScale,
   TEXT_SCALE_VALUES, TEXT_SCALE_LABELS,
 } from './uiPrefs';
+import {
+  setManualTextScale, setFollowSystem, setTextScaleChangeHandler,
+  isFollowingSystem, systemFollowAvailable, getEffectiveTextScale,
+} from './textScale';
 
 function backIcon(): string {
   return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -53,6 +56,15 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack): void {
 
       <section class="settings-section">
         <h2 class="settings-section-title">Accessibility</h2>
+
+        ${systemFollowAvailable() ? `
+        <div class="settings-row">
+          <label class="settings-row-label" for="settings-followsystem">Follow system text size</label>
+          <label class="settings-toggle">
+            <input type="checkbox" id="settings-followsystem" />
+            <span class="settings-toggle-track"></span>
+          </label>
+        </div>` : ''}
 
         <div class="settings-row settings-row--stack">
           <label class="settings-row-label">Text size</label>
@@ -114,6 +126,7 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack): void {
   `;
 
   el.querySelector<HTMLButtonElement>('#settings-back')!.addEventListener('click', () => {
+    setTextScaleChangeHandler(null);   // detach — this render is going away
     onBack();
   });
 
@@ -141,22 +154,39 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack): void {
 
   const textScaleGroup = el.querySelector<HTMLElement>('#settings-textscale')!;
   const segButtons = Array.from(textScaleGroup.querySelectorAll<HTMLButtonElement>('.settings-seg-btn'));
-  const markActive = (scale: number) => {
+  const followInput = el.querySelector<HTMLInputElement>('#settings-followsystem');
+  // Snap the effective scale (which, when following the system, may sit between
+  // the discrete steps) to the nearest step for the active highlight.
+  const nearestStep = (scale: number) =>
+    TEXT_SCALE_VALUES.reduce((a, b) => (Math.abs(b - scale) < Math.abs(a - scale) ? b : a));
+  const refresh = () => {
+    const following = isFollowingSystem() && systemFollowAvailable();
+    const active = nearestStep(getEffectiveTextScale());
     for (const btn of segButtons) {
-      const on = Number(btn.dataset.scale) === scale;
+      const on = Number(btn.dataset.scale) === active;
       btn.classList.toggle('is-active', on);
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.disabled = following;
     }
+    textScaleGroup.classList.toggle('is-disabled', following);
+    if (followInput) followInput.checked = following;
   };
-  markActive(loadTextScale());
-  for (const btn of segButtons) {
-    btn.addEventListener('click', () => {
-      const scale = Number(btn.dataset.scale);
-      applyTextScale(scale);   // live preview — rescales the whole app, including this screen
-      saveTextScale(scale);
-      markActive(scale);
+  if (followInput) {
+    followInput.addEventListener('change', () => {
+      setFollowSystem(followInput.checked);   // live — rescales the whole app, including this screen
+      refresh();
     });
   }
+  for (const btn of segButtons) {
+    btn.addEventListener('click', () => {
+      if (btn.disabled) return;
+      setManualTextScale(Number(btn.dataset.scale));
+      refresh();
+    });
+  }
+  // Live-update the highlight if the system size changes while Settings is open.
+  setTextScaleChangeHandler(() => refresh());
+  refresh();
 
   el.querySelector<HTMLButtonElement>('#settings-reset')!.addEventListener('click', () => {
     const ok = window.confirm(

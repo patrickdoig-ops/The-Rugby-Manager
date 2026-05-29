@@ -162,6 +162,16 @@
   color: var(--rm-on-accent);
 }
 
+/* Following the system size — manual segments are read-only (the active one
+   still reflects the resolved system scale). */
+.settings-segmented.is-disabled {
+  opacity: 0.5;
+}
+
+.settings-seg-btn:disabled {
+  cursor: default;
+}
+
 @media (hover: hover) {
   .settings-seg-btn:not(.is-active):hover {
     color: var(--rm-chalk);

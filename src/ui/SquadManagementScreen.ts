@@ -29,7 +29,7 @@ import { applyMatchdaySquad, extractMatchdaySquad } from '../game/playerSquad';
 import { selectBestMatchdaySquad } from '../game/autoSelect';
 import { buildTeamFromRoster } from '../game/rosterTeamBuilder';
 import { playerOverall } from '../engine/RatingEngine';
-import { isOutOfPosition, SLOT_POSITION } from '../engine/balance';
+import { oopSeverity, oopPenaltyPct, SLOT_POSITION } from '../engine/balance';
 import { averageRating } from '../game/seasonLeaderboards';
 import { POSITION_GROUPS_ORDER, POSITION_TO_GROUP, type PositionGroupId } from '../game/positionGroups';
 import { shortName } from '../utils/playerName';
@@ -528,9 +528,10 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     // the familiarity penalty (balance/positionFamiliarity.ts) is applied at
     // kick-off. Bench cover is judged by where the player actually subs in,
     // not their bench slot, so it's not flagged here.
-    const oop = tier === 'starter' && isOutOfPosition(p.position, sn);
-    const oopBadge = oop
-      ? `<span class="sq-oop-badge" title="Out of position — natural ${p.position}, selected at ${SLOT_POSITION[sn]} (reduced effectiveness)">OOP</span>`
+    const sev = tier === 'starter' ? oopSeverity(p.position, sn) : null;
+    const sevLabel = { mild: 'minor', moderate: 'notable', severe: 'major' };
+    const oopBadge = sev
+      ? `<span class="sq-oop-badge sq-oop-badge--${sev}" title="Out of position (${sevLabel[sev]}, −${oopPenaltyPct(p.position, sn)}%) — natural ${p.position}, selected at ${SLOT_POSITION[sn]}">OOP</span>`
       : '';
     const avr = avrFor(p);
     const avrCell = avr === null

@@ -328,6 +328,7 @@
 
 /* Out-of-position warning chip */
 .pm-oop-badge {
+  --oop-c: var(--rm-amber);
   display: inline-block;
   margin-left: 6px;
   padding: 0 4px;
@@ -336,10 +337,14 @@
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: var(--rm-amber);
-  background: color-mix(in oklch, var(--rm-amber) 14%, transparent);
-  border: 1px solid color-mix(in oklch, var(--rm-amber) 45%, transparent);
+  color: var(--oop-c);
+  background: color-mix(in oklch, var(--oop-c) 14%, transparent);
+  border: 1px solid color-mix(in oklch, var(--oop-c) 45%, transparent);
 }
+/* Severity: mild (amber) -> moderate (orange) -> severe (red) */
+.pm-oop-badge--mild     { --oop-c: var(--rm-amber); }
+.pm-oop-badge--moderate { --oop-c: var(--rm-amber-deep); }
+.pm-oop-badge--severe   { --oop-c: var(--rm-danger); }
 
 /* Bench rows slightly dimmer than the starting XV. */
 .pm-lineup-section + .pm-lineup-section .pm-lineup-name { color: var(--rm-text); }

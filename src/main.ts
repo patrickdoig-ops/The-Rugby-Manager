@@ -102,6 +102,7 @@ import { SEASON_VALUES }           from './engine/balance';
 import { generateSeed }            from './utils/rng';
 import { eventBus }                from './utils/eventBus';
 import { Capacitor }              from '@capacitor/core';
+import { SplashScreen }           from '@capacitor/splash-screen';
 
 import bathRaw         from './data/team-bath.json';
 import bristolRaw      from './data/team-bristol.json';
@@ -1006,4 +1007,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initHomeScreen(goTeamSelector, continueGame, goSettingsFromHome, allTeams);
   screenRouter.show('home');
+
+  // Native splash holds (launchAutoHide:false) until the home screen has
+  // painted, then fades out — no white flash, no spinner. No-op on web.
+  if (Capacitor.isNativePlatform()) {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      void SplashScreen.hide({ fadeOutDuration: 250 });
+    }));
+  }
 });

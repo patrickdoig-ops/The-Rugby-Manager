@@ -1,4 +1,5 @@
 import { eventBus } from '../utils/eventBus';
+import { colorOnDark } from './teamColors';
 
 const BALL_SVG = `<svg width="26" height="16" viewBox="0 0 30 18" style="display:block">
   <ellipse cx="15" cy="9" rx="14" ry="7.5" fill="var(--rm-amber)"
@@ -35,9 +36,9 @@ export function initPitchStrip(): void {
       const leftTeam  = !display.halfTimeDone ? state.homeTeam : state.awayTeam;
       const rightTeam = !display.halfTimeDone ? state.awayTeam : state.homeTeam;
 
-      homeEndLabel.style.color = leftTeam.color;
+      homeEndLabel.style.color = colorOnDark(leftTeam.color);
       homeEndLabel.textContent = leftTeam.shortName;
-      awayEndLabel.style.color = rightTeam.color;
+      awayEndLabel.style.color = colorOnDark(rightTeam.color);
       awayEndLabel.textContent = rightTeam.shortName;
     }
 

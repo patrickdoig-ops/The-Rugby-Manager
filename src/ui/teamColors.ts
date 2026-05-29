@@ -4,6 +4,13 @@
 // and chips remain visible against the dark UI surface.
 // For light tile fills (e.g. white) the text variable flips to near-black so
 // labels remain readable.
+
+// Returns a colour that is readable on a dark background.
+// Near-black primaries return white; all others return the primary colour.
+export function colorOnDark(color: string): string {
+  return isNearBlack(color) ? '#ffffff' : color;
+}
+
 export function injectTeamColors(
   el: HTMLElement,
   team: { color: string; secondaryColor: string },

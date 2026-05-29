@@ -624,6 +624,11 @@ html, body {
   grid-area: players;
   overflow-y: auto;
 }
+#panel-bottom.view-dashboard #panel-stats .panel-header,
+#panel-bottom.view-dashboard #panel-players .panel-header {
+  font-size: 9px;
+  padding: 5px 12px;
+}
 
 /* Commentary only */
 #panel-bottom.view-commentary {

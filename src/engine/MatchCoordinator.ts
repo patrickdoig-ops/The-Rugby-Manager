@@ -42,7 +42,8 @@ import { makeId, resetEventCounter } from './eventId';
 import { applyMatchEvent } from './applyMatchEvent';
 import { AITacticalDirector } from './AITacticalDirector';
 import { AISubstitutionDirector } from './AISubstitutionDirector';
-import { COMMENTARY_BUFFER_CAP, COMMENTARY_PACING } from './balance';
+import { COMMENTARY_BUFFER_CAP, COMMENTARY_PACING, slotFamiliarity } from './balance';
+import { STARTING_XV_MAX } from './Slot';
 
 // Shallow copy — PlayerStats fields are all primitives, so spread is a
 // full clone. (Renamed from deepCloneStats in v2.253a — "deep" was
@@ -98,7 +99,21 @@ function pickAutoReplacement(bench: Player[], off: Player): number | null {
 // career-scope code can correlate match performance.
 function initPlayer(raw: RawPlayer & { rosterId?: number }): Player {
   const form = rngForm();
-  const current = cloneStats(raw.baseStats);
+  // Out-of-position penalty. A starter (slot 1-15) filling a jersey that isn't
+  // their natural position takes an effective-stat hit, scaled onto this
+  // player's *per-match* baseStats clone (the roster record is untouched).
+  // StaminaSystem re-derives currentStats from baseStats every tick, so the
+  // penalty must live on the clone, not just the initial currentStats. Bench
+  // players (slot 16-23) stay unscaled here — they get scaled at sub time when
+  // SUBSTITUTION_APPLIED reveals the field slot they actually take.
+  const base = cloneStats(raw.baseStats);
+  const posMult = raw.id <= STARTING_XV_MAX ? slotFamiliarity(raw.position, raw.id) : 1.0;
+  if (posMult !== 1.0) {
+    for (const key of Object.keys(base) as (keyof PlayerStats)[]) {
+      base[key] = Math.max(1, Math.min(100, Math.round(base[key] * posMult)));
+    }
+  }
+  const current = cloneStats(base);
   for (const key of Object.keys(current) as (keyof PlayerStats)[]) {
     current[key] = Math.max(1, Math.min(100, current[key] + form));
   }
@@ -117,7 +132,7 @@ function initPlayer(raw: RawPlayer & { rosterId?: number }): Player {
       annualWage: raw.contract?.annualWage ?? 0,
       isMarquee:  raw.contract?.isMarquee  ?? false,
     },
-    baseStats: cloneStats(raw.baseStats),
+    baseStats: base,
     currentStats: current,
     matchStats: zeroMatchStats(),
     seasonStats: zeroSeasonStats(),

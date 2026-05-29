@@ -22,6 +22,7 @@ export * from './lineout';
 export * from './maul';
 export * from './fatigue';
 export * from './rating';
+export * from './positionFamiliarity';
 export * from './tactics';
 export * from './aiDirector';
 export * from './aiSubs';

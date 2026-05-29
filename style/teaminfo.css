@@ -67,14 +67,6 @@
   letter-spacing: 0.02em;
 }
 
-#ti-code {
-  font-family: var(--rm-font-mono);
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  color: var(--rm-text-muted);
-  text-transform: uppercase;
-}
-
 /* ─── Tiles (rating + form) ───────────────────────────────────── */
 
 .ti-tiles {

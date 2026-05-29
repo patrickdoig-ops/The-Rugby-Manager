@@ -40,10 +40,6 @@ function shortCoach(coach: string): string {
   return coach.split('(')[0].trim().replace(/[,;]\s*$/, '');
 }
 
-function shortNickname(nickname: string): string {
-  return nickname.split('(')[0].trim();
-}
-
 function tacticsChips(t: TeamTactics): string {
   return (Object.keys(TACTIC_DIM_LABELS) as (keyof TeamTactics)[]).map(dim => {
     const value = t[dim];
@@ -123,10 +119,6 @@ export function initTeamInfoScreen(
       <header id="ti-hero">
         ${crestHtml(profile.shortName[0] ?? '?', profile.color)}
         <h2 id="ti-name">${profile.name}</h2>
-        <div id="ti-code">${[
-          profile.nickname ? shortNickname(profile.nickname) : null,
-          profile.founded ? `Est. ${profile.founded}` : null,
-        ].filter(Boolean).join(' · ')}</div>
       </header>
 
       <section class="ti-tiles">

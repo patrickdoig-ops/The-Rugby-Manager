@@ -21,7 +21,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 6px 10px 7px;
+  padding: 3px 10px 4px;
   overflow-x: auto;
   scrollbar-width: none;
   background: var(--rm-surface-2);
@@ -39,7 +39,7 @@
 
 .cf-chip {
   flex-shrink: 0;
-  padding: 3px 9px;
+  padding: 2px 9px;
   border-radius: 999px;
   background: var(--rm-surface);
   border: 1px solid var(--rm-border-soft);

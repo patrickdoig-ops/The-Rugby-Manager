@@ -152,6 +152,9 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
     case 'PLAYER_RETIRED': {
       const club = state.career.clubs.find(c => c.id === event.clubId);
       if (club) club.squad = club.squad.filter(id => id !== event.rosterId);
+      // Free-agent retirements (clubId '') and any released player must also
+      // leave the free-agent pool, else they remain signable after retiring.
+      state.career.freeAgents = state.career.freeAgents.filter(id => id !== event.rosterId);
       // Drop any dangling pre-agreement — a retired player can't move.
       state.career.pendingMoves = state.career.pendingMoves.filter(m => m.rosterId !== event.rosterId);
       return;
@@ -522,9 +525,14 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
     }
     case 'BID_WITHDRAWN': {
       if (!state.career.market) return;
-      const bid = state.career.market.bids.find(b => b.id === event.bidId);
-      if (!bid) return;
-      bid.status = 'withdrawn';
+      // Remove the bid outright rather than flagging it 'withdrawn'. Bid IDs
+      // are deterministic per (season, club, player), so a left-behind
+      // withdrawn bid would block a re-submit on the same player (the
+      // BID_SUBMITTED duplicate-ID guard would reject it while submitBid
+      // reported success). No reader inspects the 'withdrawn' status, and
+      // clubBudgetUsage only sums pending bids, so removal is equivalent
+      // for accounting and unblocks the re-bid path.
+      state.career.market.bids = state.career.market.bids.filter(b => b.id !== event.bidId);
       return;
     }
     case 'BID_RESOLVED': {

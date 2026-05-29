@@ -120,7 +120,9 @@ function initPlayer(raw: RawPlayer & { rosterId?: number }): Player {
   // Carry-over freshness from the previous match (set via PLAYER_CONDITION_UPDATED
   // at match-end, persisted on the roster). Falls back to 100 for JSON
   // imports / legacy paths that don't thread it through.
-  const startingFatigue = raw.condition ?? 100;
+  // Clamp to the invariant's legal [0,100] range — guards against a corrupt or
+  // mis-migrated persisted `condition` crashing the first assertInvariants at kickoff.
+  const startingFatigue = Math.max(0, Math.min(100, raw.condition ?? 100));
   return {
     ...raw,
     squadNumber: raw.squadNumber ?? raw.id,
@@ -583,7 +585,16 @@ export class MatchCoordinator {
     // surfaces the error through `engine:error` so the UI can render a
     // copy-pastable crash overlay instead of silently freezing.
     if (this.silent) {
-      await this.tickBody();
+      try {
+        await this.tickBody();
+      } catch (err) {
+        // Emit engine:error so the in-app headless-fixture path (simulateFixture)
+        // can REJECT its promise instead of hanging the caller's await forever,
+        // then rethrow so telemetry/experiment scripts that drive a silent engine
+        // directly still fail loudly (they don't subscribe to engine:error).
+        this.reportTickCrash(err);
+        throw err;
+      }
       return;
     }
     try {

@@ -35,19 +35,34 @@ export function simulateFixture(
   opts: { neutralVenue?: boolean } = {},
 ): Promise<SimulatedFixtureResult> {
   const seed = deriveFixtureSeed(rootSeed, round, home.id, away.id);
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     const engine = new MatchCoordinator(home, away, {
       tickDelayMs: 0,
       seed,
       silent: true,
       ...(opts.neutralVenue ? { neutralVenue: true } : {}),
     });
-    const off = eventBus.on('engine:finished', ({ state }) => {
-      off();
+    let settled = false;
+    const offFinished = eventBus.on('engine:finished', ({ state }) => {
+      if (settled) return;
+      settled = true;
+      offFinished();
+      offError();
       const { home: homeScore, away: awayScore } = state.score;
       const snapshot = snapshotMatch(state, home.id, away.id);
       engine.destroy();
       resolve({ homeScore, awayScore, snapshot });
+    });
+    // A silent-fixture crash rethrows into a detached setTimeout, so the
+    // caller's await could never settle. Reject on engine:error instead, so
+    // the season flow surfaces a crash overlay rather than a frozen spinner.
+    const offError = eventBus.on('engine:error', ({ message }) => {
+      if (settled) return;
+      settled = true;
+      offFinished();
+      offError();
+      engine.destroy();
+      reject(new Error(`Silent fixture ${home.id} v ${away.id} crashed: ${message}`));
     });
     engine.initialize();
     engine.start();

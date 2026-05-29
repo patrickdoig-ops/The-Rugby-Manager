@@ -29,7 +29,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   // Step 1 — Carrier is always #10 (fly-half); handling gate
   const defSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
   const defendOnField = onFieldPlayers(defendTeam, state, defSide);
-  const carrier   = attackOnField.find(p => p.id === SLOT.FLY_HALF) ?? pickPlayer(attackTeam, SLOT.FLY_HALF);
+  const carrier   = attackOnField.find(p => p.id === SLOT.FLY_HALF) ?? attackOnField[0] ?? attackTeam.players[0];
   const scrumHalf = attackOnField.find(p => p.id === SLOT.SCRUM_HALF) ?? attackOnField[0] ?? attackTeam.players[0];
 
   // Defensive line drives the per-pass interception probability and the
@@ -101,7 +101,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
   if (goCrashBall) {
     // Crash Ball: #10 → #12 (inside centre)
-    const insideCentre = attackOnField.find(p => p.id === SLOT.CENTRE_12) ?? pickPlayer(attackTeam, SLOT.CENTRE_12);
+    const insideCentre = attackOnField.find(p => p.id === SLOT.CENTRE_12) ?? attackOnField[0] ?? attackTeam.players[0];
     playIntroSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'crash_ball', primary: carrier, secondary: insideCentre });
 
     // Interception roll on the #10 → #12 pass.
@@ -151,7 +151,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     defender = pickPrimaryDefender(defendTeam, state, defSide, ballCarrier);
   } else {
     // Wide Play: #10 → #13 → random of #11/#14
-    const outsideCentre = attackOnField.find(p => p.id === SLOT.CENTRE_13) ?? pickPlayer(attackTeam, SLOT.CENTRE_13);
+    const outsideCentre = attackOnField.find(p => p.id === SLOT.CENTRE_13) ?? attackOnField[0] ?? attackTeam.players[0];
 
     // Obstruction roll — one chance per wide-play attempt, fired before the
     // first pass so a hit short-circuits the whole sequence. Offender: a

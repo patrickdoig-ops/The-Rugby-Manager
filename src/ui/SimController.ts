@@ -186,7 +186,12 @@ export function initSimController(engine: MatchCoordinator): void {
     cogBtn.classList.toggle('is-open', open);
     cogBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
   };
-  popover.addEventListener('click', (e) => e.stopPropagation());
+  // popover lives in the persistent AppShell; initSimController runs once per
+  // match, so register the removal on unsubs to avoid accumulating an
+  // identical stopPropagation listener every match across a session.
+  const stopProp = (e: Event): void => e.stopPropagation();
+  popover.addEventListener('click', stopProp);
+  unsubs.push(() => popover.removeEventListener('click', stopProp));
   const outsideClick = (): void => { if (!popover.hidden) closePopover(); };
   document.addEventListener('click', outsideClick);
   unsubs.push(() => document.removeEventListener('click', outsideClick));

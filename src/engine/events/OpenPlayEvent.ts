@@ -20,7 +20,7 @@ import { tryOffloadChain } from './offloadChain';
 
 const FULL_BACKLINE = 7;  // jersey ids 9–15
 
-export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, pickPlayer }: PhaseContext): PhaseResult {
+export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }: PhaseContext): PhaseResult {
   const attackSide = state.possession;
   const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
 
@@ -61,7 +61,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, p
   // first receiver. `attackFwds` is still consumed by the obstruction-offender
   // pool inside the goWide branch below.
   const carrier   = goWide
-    ? (attackOnField.find(p => p.id === SLOT.FLY_HALF) ?? pickPlayer(attackTeam, SLOT.FLY_HALF))
+    ? (attackOnField.find(p => p.id === SLOT.FLY_HALF) ?? attackOnField[0] ?? attackTeam.players[0])
     : pickHardCarrier(attackTeam, state, attackSide);
   let defender = defendOnField.length > 0 ? defendOnField[rng(0, defendOnField.length - 1)] : randomPlayer(defendTeam);
 

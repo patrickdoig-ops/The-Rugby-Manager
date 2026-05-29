@@ -606,7 +606,17 @@ document.addEventListener('DOMContentLoaded', () => {
       goHome();
       return;
     }
-    gameEngine = GameCoordinator.fromSave(save, allTeams);
+    try {
+      gameEngine = GameCoordinator.fromSave(save, allTeams);
+    } catch (err) {
+      // A structurally-parsed save can still trip an invariant on load (e.g.
+      // corrupt result scores → NaN standings). Surface it and bounce home
+      // rather than leaving a dead "Continue" button; the save is preserved
+      // so a future build can attempt the load again.
+      console.error('Failed to load save:', err);
+      goHome();
+      return;
+    }
     initInSeasonScreens();
     // v12 → v13 shim: a save made after R18 but pre-playoffs era won't
     // have a bracket field. Seed it now if conditions are met (no-op

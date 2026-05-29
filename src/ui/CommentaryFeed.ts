@@ -4,7 +4,6 @@ import type { GameEvent } from '../types/match';
 import type { Player } from '../types/player';
 import { renderNarrationSteps } from '../commentary/CommentaryRenderer';
 import { teamTextColor } from '../utils/teamColor';
-import { playCue } from './SoundManager';
 import { isHeroEvent } from './keyMoment';
 import { loadCommentaryFilter, saveCommentaryFilter, loadTickDelayMs, type CfFilter } from './uiPrefs';
 import { COMMENTARY_PACING } from '../engine/balance';
@@ -261,8 +260,6 @@ export function initCommentaryFeed(): void {
   });
 
   eventBus.on('engine:event', ({ event }) => {
-    if (event.phase === MatchPhase.TryScored) playCue('crowdRoar');
-
     const steps = renderNarrationSteps(event);
     if (steps.length === 0) return;
 

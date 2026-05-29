@@ -76,6 +76,16 @@ export interface ShowOptions { direction?: NavDirection }
 
 let _currentScreen: ScreenId | null = null;
 
+// Observers notified whenever the visible screen changes (fired once per
+// transition, not on a re-show of the same screen). Used by AudioDirector to
+// drive per-screen music beds. Kept generic so ScreenRouter has no UI-audio
+// dependency.
+const showObservers = new Set<(id: ScreenId) => void>();
+export function onScreenShow(cb: (id: ScreenId) => void): () => void {
+  showObservers.add(cb);
+  return () => { showObservers.delete(cb); };
+}
+
 // Class-and-attribute cleanup window. Must outlive the longest row-stagger
 // animation (last row's `--row-delay` of ~400ms + 240ms row anim ≈ 640ms),
 // because the row rule is gated on the parent `.screen-entering` class.
@@ -99,6 +109,11 @@ export const screenRouter = {
     const isNewScreen = target !== _currentScreen;
     const isFirstMount = _currentScreen === null;
     _currentScreen = target;
+    if (isNewScreen) {
+      for (const obs of showObservers) {
+        try { obs(target); } catch (err) { console.error('onScreenShow observer threw', err); }
+      }
+    }
     for (const id of Object.keys(SCREENS) as ScreenId[]) {
       const cfg = SCREENS[id];
       const el = document.getElementById(cfg.elId);

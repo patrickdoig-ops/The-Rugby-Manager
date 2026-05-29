@@ -2,6 +2,17 @@
 // Screen's "Continue Game" button can resume mid-season after a browser
 // close. Schema is versioned — bump SAVE_VERSION whenever the shape changes.
 //
+// Storage layout (since the named-slots feature): three fixed slots
+// (rugby-manager-save-{1,2,3}) plus an active-slot pointer
+// (rugby-manager-active-slot). Each slot envelope is the flat SavedGame plus
+// `slotName` + `savedAt` — a storage concern, NOT a game-schema bump, so
+// SAVE_VERSION is unaffected. The legacy single-save key (rugby-manager-save)
+// is folded into slot 1 once by migrateLegacySave() at boot. The public
+// loadSave()/saveGame()/clearSave() functions are thin wrappers that target the
+// active slot, preserving the original autosave contract for every call site.
+// The native iCloud-backup mirror lives in saveBackup.ts and hooks in via
+// setSlotWriteHook — SaveManager itself has no Capacitor dependency.
+//
 // v19 (current) adds per-player season history on every ArchivedSeason
 // entry — `playerSeasonHistory: Record<rosterId, ArchivedPlayerSeason>`.
 // Drives PlayerProfileScreen's Career History table. Pre-v19 archive
@@ -65,17 +76,53 @@ import { getAge } from '../game/age';
 
 const DEFAULT_SALARY_BUDGET = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
 
-const SAVE_KEY = 'rugby-manager-save';
+// Pre-slot single-save key (v21 and earlier). Migrated into slot 1 on first
+// boot by migrateLegacySave(), then removed.
+const LEGACY_KEY = 'rugby-manager-save';
+// Three fixed named slots. The envelope adds `slotName` + `savedAt` alongside
+// the existing flat SavedGame fields — the game-state SAVE_VERSION is
+// unchanged (the slot wrapper is a storage concern, not a schema change).
+export type SlotId = 1 | 2 | 3;
+export const SLOT_IDS: readonly SlotId[] = [1, 2, 3];
+const SLOT_KEY: Record<SlotId, string> = {
+  1: 'rugby-manager-save-1',
+  2: 'rugby-manager-save-2',
+  3: 'rugby-manager-save-3',
+};
+const ACTIVE_KEY = 'rugby-manager-active-slot';
 const SAVE_VERSION = 21;
-const ACCEPTED_VERSIONS = new Set([20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+// The current version is always accepted (the older entries are the migratable
+// past). Including SAVE_VERSION here is load-bearing — without it a freshly
+// written save is rejected on the very next load.
+const ACCEPTED_VERSIONS = new Set([SAVE_VERSION, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
 
-export type SavedGame = SavedSeason & { version: number };
+export type SavedGame = SavedSeason & { version: number; slotName?: string; savedAt?: number };
 
-export function loadSave(): SavedSeason | null {
-  const raw = localStorage.getItem(SAVE_KEY);
-  if (!raw) return null;
+// Metadata for the Saves screen — `save` is null for an empty slot.
+export interface SlotInfo {
+  id: SlotId;
+  name: string;
+  savedAt: number | null;
+  save: SavedSeason | null;
+}
+
+function defaultSlotName(id: SlotId): string {
+  return `Save ${id}`;
+}
+
+// Fired after a slot's raw JSON is written to localStorage so the native
+// backup layer (saveBackup.ts) can mirror it to disk. Decouples SaveManager
+// from Capacitor — set once at boot via setSlotWriteHook, no-op on web.
+let slotWriteHook: ((id: SlotId, raw: string) => void) | null = null;
+export function setSlotWriteHook(fn: ((id: SlotId, raw: string) => void) | null): void {
+  slotWriteHook = fn;
+}
+
+// Parse a raw SavedGame object into a validated SavedSeason. Shared by every
+// slot loader (and the legacy-save migration). Returns null on any structural
+// problem so callers fall back to "no save" rather than corrupting state.
+function parseSavedGame(parsed: SavedGame): SavedSeason | null {
   try {
-    const parsed = JSON.parse(raw) as SavedGame;
     if (!ACCEPTED_VERSIONS.has(parsed.version)) return null;
     if (typeof parsed.playerTeamId !== 'string') return null;
     if (typeof parsed.seed !== 'number') return null;
@@ -436,19 +483,167 @@ function isValidOffer(o: unknown): o is TransferOffer {
       && typeof r.lengthYears === 'number';
 }
 
-export function saveGame(save: SavedSeason): void {
-  const payload: SavedGame = { version: SAVE_VERSION, ...save };
+// ── Slot storage ──────────────────────────────────────────────────────────
+
+// Raw localStorage accessors — the native backup layer (saveBackup.ts) reads
+// and writes through these so all key knowledge stays here.
+export function getRawSlot(id: SlotId): string | null {
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+    return localStorage.getItem(SLOT_KEY[id]);
   } catch {
-    // Storage full / disabled / private mode — silent for MVP.
+    return null;
+  }
+}
+
+// Write a raw envelope string straight into a slot, firing the mirror hook.
+// Used by the backup reconcile path (disk → localStorage) and by saveToSlot.
+export function setRawSlot(id: SlotId, raw: string): void {
+  try {
+    localStorage.setItem(SLOT_KEY[id], raw);
+    slotWriteHook?.(id, raw);
+  } catch {
+    // Best-effort — used by the backup-reconcile path. saveToSlot owns the
+    // user-facing failure on the explicit-save path.
+  }
+}
+
+export function getActiveSlot(): SlotId {
+  try {
+    const v = Number(localStorage.getItem(ACTIVE_KEY));
+    if (v === 1 || v === 2 || v === 3) return v;
+  } catch {
+    // ignore
+  }
+  return 1;
+}
+
+export function setActiveSlot(id: SlotId): void {
+  try {
+    localStorage.setItem(ACTIVE_KEY, String(id));
+  } catch {
+    // ignore
+  }
+}
+
+// Read just the envelope metadata (name + timestamp) without a full parse.
+function readEnvelope(id: SlotId): SavedGame | null {
+  const raw = getRawSlot(id);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as SavedGame;
+  } catch {
+    return null;
+  }
+}
+
+export function loadSlot(id: SlotId): SavedSeason | null {
+  const env = readEnvelope(id);
+  if (!env) return null;
+  return parseSavedGame(env);
+}
+
+// Validate + parse a raw envelope string (from an imported file). Returns the
+// migrated SavedSeason, or null if the JSON / version / shape is unusable.
+export function parseRawSave(raw: string): SavedSeason | null {
+  try {
+    return parseSavedGame(JSON.parse(raw) as SavedGame);
+  } catch {
+    return null;
+  }
+}
+
+export function slotInfo(id: SlotId): SlotInfo {
+  const env = readEnvelope(id);
+  const save = env ? parseSavedGame(env) : null;
+  return {
+    id,
+    name: (env && typeof env.slotName === 'string' && env.slotName.trim()) || defaultSlotName(id),
+    savedAt: env && typeof env.savedAt === 'number' ? env.savedAt : null,
+    save,
+  };
+}
+
+export function listSlots(): SlotInfo[] {
+  return SLOT_IDS.map(slotInfo);
+}
+
+// Write a game into a slot, preserving the slot's existing name unless a new
+// one is supplied. Throws on quota failure so the UI can surface it (the
+// legacy saveGame wrapper swallows it to preserve the old autosave contract).
+export function saveToSlot(id: SlotId, save: SavedSeason, name?: string): void {
+  const existing = readEnvelope(id);
+  const slotName = (name ?? existing?.slotName ?? defaultSlotName(id));
+  const payload: SavedGame = { version: SAVE_VERSION, slotName, savedAt: Date.now(), ...save };
+  const raw = JSON.stringify(payload);
+  localStorage.setItem(SLOT_KEY[id], raw);
+  slotWriteHook?.(id, raw);
+}
+
+export function clearSlot(id: SlotId): void {
+  try {
+    localStorage.removeItem(SLOT_KEY[id]);
+    slotWriteHook?.(id, '');
+  } catch {
+    // ignore
+  }
+}
+
+export function renameSlot(id: SlotId, name: string): void {
+  const env = readEnvelope(id);
+  if (!env) return;
+  env.slotName = name.trim() || defaultSlotName(id);
+  const raw = JSON.stringify(env);
+  setRawSlot(id, raw);
+}
+
+// One-shot: fold a pre-slot single save into slot 1 if no slot is occupied.
+// Called once at boot before the first Home render.
+export function migrateLegacySave(): void {
+  let legacy: string | null = null;
+  try {
+    legacy = localStorage.getItem(LEGACY_KEY);
+  } catch {
+    return;
+  }
+  if (!legacy) return;
+  const anyOccupied = SLOT_IDS.some(id => getRawSlot(id) !== null);
+  if (!anyOccupied) {
+    try {
+      const env = JSON.parse(legacy) as SavedGame;
+      if (parseSavedGame(env)) {
+        env.slotName = defaultSlotName(1);
+        env.savedAt = Date.now();
+        setRawSlot(1, JSON.stringify(env));
+        setActiveSlot(1);
+      }
+    } catch {
+      // Corrupt legacy save — drop it below.
+    }
+  }
+  try {
+    localStorage.removeItem(LEGACY_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+// ── Active-slot wrappers (preserve the original autosave contract) ──────────
+// The ~15 autosave call sites in main.ts and HomeScreen's Continue card use
+// these unchanged — they now simply target the active slot.
+
+export function loadSave(): SavedSeason | null {
+  return loadSlot(getActiveSlot());
+}
+
+export function saveGame(save: SavedSeason): void {
+  try {
+    saveToSlot(getActiveSlot(), save);
+  } catch {
+    // Storage full / disabled / private mode. Autosave stays silent to keep
+    // the old contract; the explicit Save action surfaces failures via toast.
   }
 }
 
 export function clearSave(): void {
-  try {
-    localStorage.removeItem(SAVE_KEY);
-  } catch {
-    // ignore
-  }
+  clearSlot(getActiveSlot());
 }

@@ -1,8 +1,7 @@
 import { VERSION } from '../version';
 import { loadSave, clearSave } from './SaveManager';
 import type { RawTeamInput } from '../types/teamData';
-import type { SavedSeason, SavedSeasonResult } from '../game/GameCoordinator';
-import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
+import { buildSaveContext, ordinalSuffix, type SaveContext } from '../game/saveSummary';
 
 function pitchLinesSvg(): string {
   return `<svg class="home-pitch-lines" aria-hidden="true" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
@@ -54,84 +53,6 @@ function arrowIcon(): string {
   return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path d="M5 12h14M13 5l7 7-7 7"/>
   </svg>`;
-}
-
-function ordinalSuffix(n: number): string {
-  const v = n % 100;
-  if (v >= 11 && v <= 13) return 'th';
-  switch (n % 10) {
-    case 1: return 'st';
-    case 2: return 'nd';
-    case 3: return 'rd';
-    default: return 'th';
-  }
-}
-
-// Approximate league standings from saved fixture results. The save's
-// SavedSeasonResult only carries scores (not tries), so we omit the
-// 4-try bonus that real standings include. Wins/draws/losing-bonus are
-// faithful, so the rank is correct in the typical case and at most a
-// position or two off when bonus-try points cluster — fine for a teaser.
-interface SimpleStanding {
-  teamId: string;
-  pts: number;
-  pf: number;
-  pa: number;
-}
-
-function approximateStandings(teamIds: string[], results: SavedSeasonResult[]): SimpleStanding[] {
-  const map = new Map<string, SimpleStanding>(
-    teamIds.map(id => [id, { teamId: id, pts: 0, pf: 0, pa: 0 }]),
-  );
-  for (const r of results) {
-    const home = map.get(r.homeId);
-    const away = map.get(r.awayId);
-    if (!home || !away) continue;
-    home.pf += r.homeScore;  home.pa += r.awayScore;
-    away.pf += r.awayScore;  away.pa += r.homeScore;
-    const margin = Math.abs(r.homeScore - r.awayScore);
-    if (r.homeScore > r.awayScore) {
-      home.pts += 4;
-      if (margin <= 7) away.pts += 1;
-    } else if (r.awayScore > r.homeScore) {
-      away.pts += 4;
-      if (margin <= 7) home.pts += 1;
-    } else {
-      home.pts += 2;
-      away.pts += 2;
-    }
-  }
-  return [...map.values()].sort((a, b) => {
-    if (b.pts !== a.pts) return b.pts - a.pts;
-    return (b.pf - b.pa) - (a.pf - a.pa);
-  });
-}
-
-interface SaveContext {
-  teamName: string;
-  week: number;
-  totalRounds: number;
-  rank: number;
-  pts: number;
-  seasonLabel: string;
-}
-
-function buildSaveContext(save: SavedSeason, allTeams: RawTeamInput[]): SaveContext | null {
-  const team = allTeams.find(t => t.id === save.playerTeamId);
-  if (!team) return null;
-  const totalRounds = (save.fixtures ?? PREMIERSHIP_2025_26.fixtures)
-    .reduce((m, f) => Math.max(m, f.round), 0);
-  const standings = approximateStandings(allTeams.map(t => t.id), save.results);
-  const rankIdx = standings.findIndex(s => s.teamId === save.playerTeamId);
-  const player = rankIdx >= 0 ? standings[rankIdx] : null;
-  return {
-    teamName: team.shortName,
-    week: save.currentWeek,
-    totalRounds,
-    rank: rankIdx + 1,
-    pts: player?.pts ?? 0,
-    seasonLabel: save.seasonLabel ?? '2025/26',
-  };
 }
 
 function saveCardHtml(ctx: SaveContext): string {
@@ -204,6 +125,7 @@ export function initHomeScreen(
   onContinue: () => void,
   onSettings: () => void,
   allTeams: RawTeamInput[] = [],
+  onSaves: () => void = () => {},
 ): void {
   const el = document.getElementById('home-screen');
   if (!el) return;
@@ -250,6 +172,7 @@ export function initHomeScreen(
         <span class="btn-label">Start New Game</span>
         ${arrowIcon()}
       </button>
+      <button id="home-saves-btn" type="button">Manage Saves</button>
     </div>
   `;
 
@@ -281,5 +204,9 @@ export function initHomeScreen(
 
   el.querySelector<HTMLButtonElement>('#home-save-card')?.addEventListener('click', () => {
     onContinue();
+  });
+
+  el.querySelector<HTMLButtonElement>('#home-saves-btn')!.addEventListener('click', () => {
+    onSaves();
   });
 }

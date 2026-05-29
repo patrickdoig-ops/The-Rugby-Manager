@@ -390,7 +390,27 @@ A three-match knockout follows the 18-round League regular season: two semi-fina
 
 ## Save format
 
-`SAVE_VERSION = 20` (as of v2.227a). `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`.
+`SAVE_VERSION = 21`. `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`. **`ACCEPTED_VERSIONS` must always include `SAVE_VERSION`** — it's seeded as `new Set([SAVE_VERSION, 20, … 2])`; the older entries are the migratable past. (Omitting the current version silently rejects every freshly-written save on the next load — the regression this guard prevents.)
+
+**Slot storage layout.** Saves live in three fixed, renameable slots —
+`rugby-manager-save-{1,2,3}` in `localStorage` — plus an active-slot pointer
+`rugby-manager-active-slot`. Each slot envelope is the flat `SavedGame` plus
+`slotName` + `savedAt` (a storage concern, **not** a game-schema bump, so
+`SAVE_VERSION` is unaffected). Autosave (the ~15 `saveGame` call sites) and the
+Home Continue card target the **active** slot via thin wrappers
+(`loadSave`/`saveGame`/`clearSave` → `loadSlot`/`saveToSlot`/`clearSlot` of the
+active id). The pre-slot single-save key (`rugby-manager-save`) is folded into
+slot 1 once at boot by `migrateLegacySave()`. The Saves screen
+(`src/ui/SavesScreen.ts`, reachable from Home and Settings) manages slots: load
+(switches active), Save here (manual snapshot into any slot), rename, delete,
+and export / import. **Native iCloud backup** lives in `src/ui/saveBackup.ts`
+(Capacitor-only, no-op on web): every slot write mirrors to the iOS Documents
+directory (`saves/slot-{id}.json`, included in the device's iCloud Backup and
+not OS-evicted), `reconcileBackups()` restores from disk at boot when a slot is
+missing locally (reinstall / eviction), and `exportSlot` / `importToSlot` hand a
+slot's JSON to the iOS Share Sheet / file picker (Blob download / `<input
+type=file>` on web). SaveManager has no Capacitor dependency — the mirror hooks
+in via `setSlotWriteHook`.
 
 | Version | Added |
 |---|---|

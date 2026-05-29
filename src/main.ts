@@ -42,6 +42,7 @@ import '../style/budgetreveal.css';
 import '../style/training.css';
 import '../style/training-results.css';
 import '../style/player-profile.css';
+import '../style/saves.css';
 
 import { buildAppShell }           from './ui/AppShell';
 import { preloadAllCues, playCue } from './ui/SoundManager';
@@ -56,6 +57,7 @@ import { initModalManager }        from './ui/ModalManager';
 import { initPreMatchScreen, showPreMatchAtStep } from './ui/PreMatchScreen';
 import { initHomeScreen }          from './ui/HomeScreen';
 import { initSettingsScreen }      from './ui/SettingsScreen';
+import { initSavesScreen }         from './ui/SavesScreen';
 import { initTeamSelectorScreen }  from './ui/TeamSelectorScreen';
 import { initTeamInfoScreen }      from './ui/TeamInfoScreen';
 import { initFixtureListScreen }   from './ui/FixtureListScreen';
@@ -84,7 +86,8 @@ import { initSquadManagementScreen, showSquadManagement } from './ui/SquadManage
 import { initTrainingScreen, showTrainingPostMatch, showTrainingMidweek } from './ui/TrainingScreen';
 import { initPostTrainingResultsScreen, showPostTrainingResults } from './ui/PostTrainingResultsScreen';
 import { screenRouter }            from './ui/ScreenRouter';
-import { loadSave, saveGame, clearSave } from './ui/SaveManager';
+import { loadSave, saveGame, clearSave, migrateLegacySave } from './ui/SaveManager';
+import { installBackupMirror, reconcileBackups } from './ui/saveBackup';
 import { loadTickDelayMs }           from './ui/uiPrefs';
 import { MatchCoordinator }        from './engine/MatchCoordinator';
 import type { RawTeamInput }       from './types/teamData';
@@ -181,17 +184,34 @@ document.addEventListener('DOMContentLoaded', () => {
   function goHome(direction: 'forward' | 'back' = 'back'): void {
     // Re-init so the Continue button state reflects the latest save (e.g. just
     // returned from a season the user is now resuming).
-    initHomeScreen(() => goTeamSelector('forward'), continueGame, goSettingsFromHome, allTeams);
+    initHomeScreen(() => goTeamSelector('forward'), continueGame, goSettingsFromHome, allTeams,
+      () => goSaves(() => goHome('back')));
     screenRouter.show('home', { direction });
   }
 
+  // Save-slot management. `onBack` returns to wherever the user came from
+  // (Home, or Settings reached from Home / Hub). onLoad resumes the active
+  // slot; onNewGame begins team selection in the (now-active) slot.
+  function goSaves(onBack: () => void): void {
+    initSavesScreen({
+      allTeams,
+      getGameEngine: () => gameEngine,
+      onLoad: () => continueGame(),
+      onNewGame: () => goTeamSelector('forward'),
+      onBack,
+    });
+    screenRouter.show('saves', { direction: 'forward' });
+  }
+
   function goSettingsFromHome(): void {
-    initSettingsScreen(() => goHome('back'));
+    initSettingsScreen(() => goHome('back'), () => goHome('back'),
+      () => goSaves(goSettingsFromHome));
     screenRouter.show('settings');
   }
 
   function goSettingsFromHub(): void {
-    initSettingsScreen(() => goHub('back'), () => goHome('back'));
+    initSettingsScreen(() => goHub('back'), () => goHome('back'),
+      () => goSaves(goSettingsFromHub));
     screenRouter.show('settings');
   }
 
@@ -1005,14 +1025,28 @@ document.addEventListener('DOMContentLoaded', () => {
     screenRouter.show('match-result');
   }
 
-  initHomeScreen(goTeamSelector, continueGame, goSettingsFromHome, allTeams);
-  screenRouter.show('home');
+  // Wire the native backup mirror so every slot write is copied to the iOS
+  // Documents directory (iCloud-backed). No-op on web.
+  installBackupMirror();
 
-  // Native splash holds (launchAutoHide:false) until the home screen has
-  // painted, then fades out — no white flash, no spinner. No-op on web.
-  if (Capacitor.isNativePlatform()) {
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      void SplashScreen.hide({ fadeOutDuration: 250 });
-    }));
-  }
+  const renderHome = (): void => {
+    // Fold any pre-slot single save into slot 1 once a slot is free.
+    migrateLegacySave();
+    initHomeScreen(goTeamSelector, continueGame, goSettingsFromHome, allTeams,
+      () => goSaves(() => goHome('back')));
+    screenRouter.show('home');
+
+    // Native splash holds (launchAutoHide:false) until the home screen has
+    // painted, then fades out — no white flash, no spinner. No-op on web.
+    if (Capacitor.isNativePlatform()) {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        void SplashScreen.hide({ fadeOutDuration: 250 });
+      }));
+    }
+  };
+
+  // On native, restore any slot present on disk but missing in localStorage
+  // (reinstall / OS-eviction) before the first Home render. Instant no-op on
+  // web — reconcileBackups returns immediately off-platform.
+  void reconcileBackups().then(renderHome, renderHome);
 });

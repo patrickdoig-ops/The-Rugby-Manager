@@ -415,6 +415,29 @@
 
 #start-game-btn svg { flex-shrink: 0; }
 
+/* Secondary: Manage Saves — quiet ghost button under the primary CTA */
+#home-saves-btn {
+  width: 100%;
+  height: 44px;
+  background: transparent;
+  border: 1px solid color-mix(in oklch, var(--rm-chalk) 22%, transparent);
+  border-radius: 12px;
+  color: color-mix(in oklch, var(--rm-chalk) 80%, transparent);
+  font-family: var(--rm-font-ui, inherit);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 0.12s, background 0.12s, border-color 0.12s;
+}
+#home-saves-btn:active { transform: scale(0.985); }
+@media (hover: hover) {
+  #home-saves-btn:hover {
+    background: color-mix(in oklch, var(--rm-chalk) 8%, transparent);
+    border-color: color-mix(in oklch, var(--rm-chalk) 38%, transparent);
+  }
+}
+
 /* ─── Overwrite confirmation modal ─── */
 .home-confirm-backdrop {
   position: fixed;

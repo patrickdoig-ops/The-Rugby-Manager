@@ -12,7 +12,7 @@ function backIcon(): string {
   </svg>`;
 }
 
-export function initSettingsScreen(onBack: () => void, onReset = onBack): void {
+export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves: () => void = () => {}): void {
   const el = document.getElementById('settings');
   if (!el) return;
 
@@ -70,6 +70,15 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack): void {
       </section>
 
       <section class="settings-section">
+        <h2 class="settings-section-title">Saves</h2>
+
+        <div class="settings-row">
+          <label class="settings-row-label">Manage saves &amp; backup</label>
+          <button id="settings-saves" class="settings-secondary-btn">Open</button>
+        </div>
+      </section>
+
+      <section class="settings-section">
         <h2 class="settings-section-title">Advanced</h2>
 
         <div class="settings-row">
@@ -122,6 +131,10 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack): void {
   autoSlow.checked  = loadAutoSlowEnabled();
   autoPause.addEventListener('change', () => saveAutoPauseEnabled(autoPause.checked));
   autoSlow.addEventListener('change', () => saveAutoSlowEnabled(autoSlow.checked));
+
+  el.querySelector<HTMLButtonElement>('#settings-saves')!.addEventListener('click', () => {
+    onSaves();
+  });
 
   el.querySelector<HTMLButtonElement>('#settings-reset')!.addEventListener('click', () => {
     const ok = window.confirm(

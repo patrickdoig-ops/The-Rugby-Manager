@@ -9,6 +9,7 @@
 export type ScreenId =
   | 'home'
   | 'settings'
+  | 'saves'
   | 'team-selector'
   | 'team-info'
   | 'mode-picker'
@@ -41,6 +42,7 @@ export type ScreenId =
 const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'home':          { elId: 'home-screen',   shownDisplay: '' },
   'settings':      { elId: 'settings',      shownDisplay: '' },
+  'saves':         { elId: 'saves',         shownDisplay: '' },
   'team-selector': { elId: 'team-selector', shownDisplay: '' },
   'team-info':     { elId: 'team-info',     shownDisplay: '' },
   'mode-picker':   { elId: 'mode-picker',   shownDisplay: '' },

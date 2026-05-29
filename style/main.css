@@ -381,24 +381,32 @@ html, body {
   z-index: 1;
 }
 
-/* Sin-bin / sent-off indicator. Anchored to the crest's bottom edge so
-   the pips sit just below the team monogram. One pip per off-field
-   player; auto-clears as players return via SIN_BIN_RETURNED. */
-.card-stack {
-  position: absolute;
-  bottom: -6px;
-  left: 50%;
-  transform: translateX(-50%);
+/* Crest + card-pip column. The card-stack sits outside the overflow:hidden
+   crest so pips are fully visible below it. */
+.crest-group {
   display: flex;
-  gap: 2px;
-  z-index: 2;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+/* Sin-bin / sent-off indicator. One pip per off-field player;
+   auto-clears as players return via SIN_BIN_RETURNED. */
+.card-stack {
+  display: flex;
+  gap: 3px;
   pointer-events: none;
 }
 
+.card-stack:empty {
+  display: none;
+}
+
 .card-pip {
-  width: 6px;
-  height: 8px;
-  border-radius: 1px;
+  width: 10px;
+  height: 14px;
+  border-radius: 2px;
   border: 1px solid rgba(0,0,0,0.55);
   box-shadow: 0 1px 2px rgba(0,0,0,0.45);
 }

@@ -3,8 +3,10 @@ export function buildAppShell(): void {
   app.innerHTML = `
     <div id="scoreboard">
       <div id="score-home">
-        <div class="team-crest" id="home-crest">
-          <span></span>
+        <div class="crest-group">
+          <div class="team-crest" id="home-crest">
+            <span></span>
+          </div>
           <div class="card-stack" id="home-cards"></div>
         </div>
         <div id="home-score-block">
@@ -21,8 +23,10 @@ export function buildAppShell(): void {
           <div class="team-code" id="away-code"></div>
           <span class="score" id="away-score">00</span>
         </div>
-        <div class="team-crest" id="away-crest">
-          <span></span>
+        <div class="crest-group">
+          <div class="team-crest" id="away-crest">
+            <span></span>
+          </div>
           <div class="card-stack" id="away-cards"></div>
         </div>
       </div>

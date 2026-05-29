@@ -88,3 +88,20 @@ export const LONG_AND_OFF_PCT: Record<Zone, number> = {
 // short-kick-through plays.
 // Percent likelihood of cross_field.
 export const CROSS_FIELD_VS_GRUBBER_PCT = 65;
+
+// Red-clock game management (full time only). When state.clock.clockInTheRed
+// is set in the second half, the next stoppage ends the match, so kick-or-
+// carry becomes a game-management decision rather than a territory one:
+//   - Trailing or level team → keep the ball alive (never kick it away).
+//   - Leading team → kick to touch to end the game (the resulting Lineout is
+//     the stoppage that triggers endMatch). Probability scales with the lead
+//     and is higher from deep, but a slender lead camped in the opp 22 keeps
+//     attacking for the try / bonus point / bigger margin.
+// Mirrors the existing PenaltyHandler tap_and_kick_dead precedent.
+export const RED_CLOCK_CLOSEOUT = {
+  closeOutBasePct: 70,        // base chance a leading team kicks to touch
+  marginStepPct: 5,           // + per point of lead
+  closeOutMaxPct: 95,         // clamp — never fully robotic
+  ownHalfBonusPct: 15,        // more eager to kick the ball out from deep
+  keepAttackingMaxMargin: 7,  // slender lead in opp 22 → keep playing
+};

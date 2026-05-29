@@ -41,6 +41,7 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       event.kicker.matchStats.kicksAtGoal++;
       if (event.success) {
         event.kicker.matchStats.kicksMade++;
+        event.kicker.matchStats.conversionsMade++;
         state.score[event.side] += SCORE_VALUES.conversion;
         if (state.stats.entries22[event.side].active) {
           state.stats.entries22[event.side].pointsScored += SCORE_VALUES.conversion;
@@ -54,6 +55,7 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       event.kicker.matchStats.kicksAtGoal++;
       if (event.success) {
         event.kicker.matchStats.kicksMade++;
+        event.kicker.matchStats.penaltiesMade++;
         state.score[event.side] += SCORE_VALUES.penaltyGoal;
         if (state.stats.entries22[event.side].active) {
           state.stats.entries22[event.side].pointsScored += SCORE_VALUES.penaltyGoal;

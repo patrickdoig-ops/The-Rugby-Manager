@@ -130,11 +130,8 @@ export function collectSeasonEvents(snap: MatchSnapshot): SeasonEvent[] {
         lineBreaks:             m.lineBreaks,
         defendersBeaten:        m.defendersBeaten,
         passes:                 m.passes,
-        // Goal-kicking split (conversion vs penalty vs drop) isn't tagged
-        // at the player level today — see CLAUDE.md known gap. kicksMade
-        // is the lumped total for now.
-        conversions:            0,
-        penaltiesScored:        0,
+        conversions:            m.conversionsMade,
+        penaltiesScored:        m.penaltiesMade,
         dropGoals:              0,
         kicksFromHand:          m.kicksFromHand,
         kickMetres:             m.kickMetres,

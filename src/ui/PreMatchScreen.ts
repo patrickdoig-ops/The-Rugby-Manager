@@ -28,6 +28,7 @@ import { shortName } from '../utils/playerName';
 import { teamTextColor } from '../utils/teamColor';
 import type { RawTeamInput } from '../types/teamData';
 import { playerOverall } from '../engine/RatingEngine';
+import { isOutOfPosition, SLOT_POSITION } from '../engine/balance';
 import { computeOverallRating } from '../team/teamProfile';
 import { recentForm, headToHead, matchSpread, formAdjustment, HOME_ADVANTAGE_PTS, type FormResult } from '../game/teamStats';
 import { applyMatchdaySquad, makeInjuredPredicate } from '../game/playerSquad';
@@ -127,9 +128,17 @@ function renderLineupRow(
   onProfile: boolean,
   state: GameState,
   expanded: boolean,
+  flagOop: boolean,
 ): string {
   const num = getSquadNum(p);
   const surname = shortName(p);
+  // Out-of-position warning — only on the user's own starting XV (slots 1-15),
+  // where the familiarity penalty (balance/positionFamiliarity.ts) bites at
+  // kick-off. flagOop gates it to the editable "mine" lineup.
+  const oop = flagOop && isOutOfPosition(p.position, num);
+  const oopBadge = oop
+    ? `<span class="pm-oop-badge" title="Out of position — natural ${p.position}, selected at ${SLOT_POSITION[num]} (reduced effectiveness)">OOP</span>`
+    : '';
   const nameHtml = onProfile && p.rosterId !== undefined
     ? playerLinkHtml(surname, p.rosterId)
     : surname;
@@ -153,7 +162,7 @@ function renderLineupRow(
       <div class="pm-lineup-row-main">
         <span class="pm-lineup-num" style="color:${teamTextColor(color)}">${String(num).padStart(2,'0')}</span>
         <span class="pm-lineup-name">${nameHtml}</span>
-        <span class="pm-lineup-pos">${p.position}</span>
+        <span class="pm-lineup-pos">${p.position}${oopBadge}</span>
         ${chevron}
       </div>
       ${expandBody}
@@ -225,8 +234,8 @@ function renderLineupBody(
     ? `<button class="pm-edit-squad" id="pm-edit-squad" type="button">Edit Squad</button>`
     : '';
   const rowExpanded = (p: RawPlayer): boolean => p.rosterId !== undefined && isExpanded(p.rosterId);
-  const startersHtml = starters.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p))).join('');
-  const benchHtml    = bench.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p))).join('');
+  const startersHtml = starters.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p), showEditSquad)).join('');
+  const benchHtml    = bench.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p), false)).join('');
   const metaParts = [stadium, matchDate, roundLabel].filter(Boolean).join(' · ');
   return `
     <div class="pm-lineup-card">

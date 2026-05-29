@@ -5,7 +5,8 @@ import { clamp } from '../utils/math';
 import { attackDir } from './FieldPosition';
 import { computeRating } from './RatingEngine';
 import { assertInvariants } from './invariants';
-import { CLOCK_VALUES, SCORE_VALUES, SIN_BIN_DURATION } from './balance';
+import { CLOCK_VALUES, SCORE_VALUES, SIN_BIN_DURATION, positionFamiliarity } from './balance';
+import type { PlayerStats } from '../types/player';
 
 // The single function permitted to mutate MatchState (or any Player field).
 // Every handler / orchestrator builds an array of MatchEvent and routes them
@@ -484,6 +485,19 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
     case 'SUBSTITUTION_APPLIED': {
       const team = event.teamSide === 'home' ? state.homeTeam : state.awayTeam;
       const { off, on, benchIdx, fieldIdx } = event;
+      // Out-of-position penalty for the incoming player. Computed from their
+      // natural position (`on.position`) vs the slot's role (`off.position`)
+      // *before* the position reassignment below overwrites it. The bench
+      // player's match-clone baseStats were left unscaled at initPlayer, so
+      // this is their first and only scale. Mirrors the starter path in
+      // MatchCoordinator.initPlayer — see balance/positionFamiliarity.ts.
+      const subMult = positionFamiliarity(on.position, off.position);
+      if (subMult !== 1.0) {
+        for (const key of Object.keys(on.baseStats) as (keyof PlayerStats)[]) {
+          on.baseStats[key] = clamp(Math.round(on.baseStats[key] * subMult), 1, 100);
+          on.currentStats[key] = clamp(Math.round(on.currentStats[key] * subMult), 1, 100);
+        }
+      }
       on.id = off.id;
       on.position = off.position;
       on.x = off.x;

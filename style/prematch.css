@@ -326,6 +326,21 @@
   text-transform: uppercase;
 }
 
+/* Out-of-position warning chip */
+.pm-oop-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-family: var(--rm-font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--rm-amber);
+  background: color-mix(in oklch, var(--rm-amber) 14%, transparent);
+  border: 1px solid color-mix(in oklch, var(--rm-amber) 45%, transparent);
+}
+
 /* Bench rows slightly dimmer than the starting XV. */
 .pm-lineup-section + .pm-lineup-section .pm-lineup-name { color: var(--rm-text); }
 

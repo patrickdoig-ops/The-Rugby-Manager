@@ -352,6 +352,30 @@ current[stat] = clamp(baseStats[stat] + formModifier, 1, 100)
 
 ---
 
+## Position Familiarity (out-of-position penalty)
+
+**Source:** `src/engine/balance/positionFamiliarity.ts`; applied in `initPlayer()` (`src/engine/MatchCoordinator.ts`) and the `SUBSTITUTION_APPLIED` branch of `applyMatchEvent`.
+
+A player filling a jersey slot that isn't their natural position takes an **effective-stat penalty**. Pure, RNG-free, deterministic — so silent AI fixtures and the determinism harnesses see the identical penalty as live play.
+
+**Mechanism.** The penalty is a multiplier applied to the player's **per-match `baseStats` clone** (the roster record is never touched). It lives on `baseStats` — not just the initial `currentStats` — because `StaminaSystem.computeFatigue` re-derives `currentStats` from `baseStats` every tick; a penalty baked only into the initial `currentStats` would be wiped on tick one. With the clone scaled, the penalty flows automatically into every resolver (which all read `currentStats`) with **zero resolver edits** and no new `MatchEvent` variant.
+
+- **Starters (slots 1–15):** scaled in `initPlayer` by `slotFamiliarity(naturalPosition, slotId)`.
+- **Bench (slots 16–23):** left unscaled at `initPlayer` — they aren't on the field. When a sub comes on, the `SUBSTITUTION_APPLIED` branch scales the incoming player's `baseStats` + `currentStats` by `positionFamiliarity(on.position [natural], off.position [the slot's role])`, computed **before** `on.position = off.position` overwrites the natural label. This is the sub's first and only scale.
+
+**Familiarity table.** `SLOT_POSITION` maps each jersey to its target role (1/3→Prop, 2→Hooker, 4/5→Lock, 6/7→Flanker, 8→Number 8, 9→Scrum-Half, 10→Fly-Half, 11/14→Wing, 12/13→Centre, 15→Fullback). `POSITION_FAMILIARITY[natural][target]` gives the multiplier; a self-match is `1.0`, any unlisted pair is **makeshift** (`MAKESHIFT_MULT = 0.72`). Highlights:
+
+- **Front row** is near-immovable: `Prop↔Hooker = 0.78`, everything else makeshift (`0.72`) — a back in the front row is a liability, so the SUM-based scrum/lineout pack scores collapse naturally.
+- **Locks** cover blindside/№8 at `0.88`.
+- **Back row** is interchangeable: `Flanker↔Number 8 = 0.96`. The versatile **`Back Row`** label is **natural (1.0)** at flanker/№8 — it represents a loose forward at home anywhere in 6/7/8 (used by authored XVs).
+- **Backs:** `Centre↔Wing = 0.92`, `Wing↔Fullback = 0.93`, `Fly-Half→Centre = 0.90`, `Scrum-Half↔Fly-Half = 0.88`. The **`Utility Back`** label is **natural (1.0)** across 10/12/13/11/14/15, with only the specialist scrum-half role penalised (`0.90`).
+
+`isOutOfPosition(natural, slotId)` (`= slotFamiliarity < 1.0`) drives the amber **OOP** chip on the player's own starting XV in `SquadManagementScreen` and `PreMatchScreen`. Tying it to the penalty means a versatile cluster player (Back Row at flanker, Utility Back at fullback) is never flagged. The warning is non-blocking — the manager may still field the player.
+
+The penalty stacks with the existing position-weighted OVR (a centre at fly-half is doubly disadvantaged: low base kicking *and* the familiarity hit) and with the form modifier and fatigue, since all three operate on the same `currentStats` path.
+
+---
+
 ## Home Advantage
 
 **Source:** `HOME_ADVANTAGE` constants in `src/engine/balance/homeAdvantage.ts`; resolved per call site via `homeEdge(state, mod)` in `src/engine/HomeAdvantage.ts`.

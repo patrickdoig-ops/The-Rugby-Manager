@@ -242,6 +242,21 @@
 .sq-player-pos--bench   { color: var(--rm-text-dim); }
 .sq-player-pos--squad   { color: var(--rm-text-faint); }
 
+/* Out-of-position warning chip */
+.sq-oop-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-family: var(--rm-font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--rm-amber);
+  background: color-mix(in oklch, var(--rm-amber) 14%, transparent);
+  border: 1px solid color-mix(in oklch, var(--rm-amber) 45%, transparent);
+}
+
 /* OVR badge */
 .sq-ovr {
   flex-shrink: 0;

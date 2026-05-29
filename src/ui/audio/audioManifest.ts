@@ -67,7 +67,7 @@ export type AudioTrigger =
 export interface AudioAsset {
   /** Stable cue id. Becomes the SoundManager key; also the asset filename stem. */
   id: string;
-  /** Path served at runtime. Vite base is /Rugby-Simulator-/; files live in public/audio/. */
+  /** Path served at runtime, prefixed with the Vite base. Files live in public/audio/. */
   file: string;
   channel: AudioChannel;
   /** True for continuous beds (crowd, music) played on a looping channel. */
@@ -86,7 +86,9 @@ export interface AudioAsset {
   variants?: number;
 }
 
-const AUDIO_DIR = '/Rugby-Simulator-/audio';
+// Base-relative so cues resolve under both the GitHub Pages sub-path
+// (/Rugby-Simulator-/) and the Capacitor native origin (capacitor://localhost).
+const AUDIO_DIR = `${import.meta.env.BASE_URL}audio`;
 
 // ════════════════════════════════════════════════════════════════════════════
 // TIER 1 — MATCH-DAY CORE

@@ -72,13 +72,97 @@ const TRY_REFEREE_SIGNAL: readonly string[] = [
   'Up goes the arm — the try stands.',
 ];
 
-const TRY_AFTERMATH: readonly string[] = [
+// try_aftermath is split into venue- and situation-aware pools. {side} is the
+// scoring team, {defside} the conceding team (interpolated by the renderer).
+// The pool is chosen by getAnnouncementTemplate from the TryAftermathContext
+// the engine attaches, so a home roar never fires for an away try and the
+// momentum-shift phrasing only appears when there's a genuine swing.
+
+// Home team scored at home — the crowd erupts.
+const TRY_AFTERMATH_HOME: readonly string[] = [
   'The home support are on their feet.',
   'A huge roar around the ground.',
   '{side} fans are in raptures.',
-  'Heads in hands on the opposition bench.',
-  'You can feel the momentum shifting around the stadium.',
+  'The home crowd roars its approval.',
+  'Heads in hands on the {defside} bench.',
 ];
+
+// Home team scored at home AND it swings the game — add the momentum note.
+const TRY_AFTERMATH_HOME_SWING: readonly string[] = [
+  'The home support are on their feet — you can feel the momentum shifting their way.',
+  'A huge roar around the ground as the tide turns for {side}.',
+  '{side} fans are in raptures — the momentum is with the home side now.',
+  'The home crowd senses the shift — they roar {side} on.',
+];
+
+// Home team scored late in a tight game — peak noise.
+const TRY_AFTERMATH_HOME_LATE: readonly string[] = [
+  'The stadium erupts! The home crowd can barely believe it at this stage.',
+  'Bedlam around the ground — the home support are going wild.',
+  'A deafening roar — {side} have the home faithful on their feet in the closing stages.',
+];
+
+// Away team scored — the travelling support celebrate, the home crowd hushed.
+const TRY_AFTERMATH_AWAY: readonly string[] = [
+  'The travelling {side} support are celebrating in the corner.',
+  'A pocket of noise from the away end — the home crowd has gone quiet.',
+  '{side} fans are in raptures, but it\'s a subdued home support.',
+  'Silence around most of the ground, save for the away following.',
+  'Heads in hands in the home stands.',
+];
+
+// Away team scored AND it swings the game — momentum note, home crowd silenced.
+const TRY_AFTERMATH_AWAY_SWING: readonly string[] = [
+  'The away end erupts — and you can feel the momentum swinging {side}\'s way.',
+  'The travelling {side} fans roar as the momentum shifts in their favour.',
+  'A hush falls over the home crowd — the momentum is with {side} now.',
+  '{side} have silenced the home support — the tide is turning.',
+];
+
+// Away team scored late in a tight game — stunned home stadium.
+const TRY_AFTERMATH_AWAY_LATE: readonly string[] = [
+  'The away corner goes wild while a stunned home crowd looks on in silence.',
+  'You could hear a pin drop in the home stands — the {side} fans are in dreamland.',
+  'The travelling support can\'t believe it — the home stadium is shellshocked at this stage.',
+];
+
+// Neutral venue (the playoff final) — no home/away framing.
+const TRY_AFTERMATH_NEUTRAL: readonly string[] = [
+  'A roar around the stadium as {side} cross.',
+  '{side} fans are in raptures.',
+  'Heads in hands on the {defside} bench.',
+  'Both ends of the stadium making themselves heard.',
+];
+
+// Neutral venue, late drama — peak noise on the big stage.
+const TRY_AFTERMATH_NEUTRAL_LATE: readonly string[] = [
+  'The stadium erupts — what a moment for {side} at this stage of the final!',
+  'A deafening roar — {side} have struck at the death.',
+  'Pandemonium in the stands as {side} score with the clock ticking down.',
+];
+
+// Margin already beyond doubt — muted reaction whoever scored.
+const TRY_AFTERMATH_BLOWOUT: readonly string[] = [
+  'A polite ripple of applause — the result is long since beyond doubt.',
+  '{side} add another, but the crowd has gone quiet — this one\'s done.',
+  'Little reaction around the ground; the contest was settled some time ago.',
+  'A consolation as much as anything — the stands are emptying.',
+];
+
+function pickTryAftermath(ctx: AnnouncementParams['tryAftermath']): string {
+  // No context (shouldn't happen for try_aftermath, but stay safe) → neutral.
+  if (!ctx) return pickRandom(TRY_AFTERMATH_NEUTRAL);
+  if (ctx.isBlowout) return pickRandom(TRY_AFTERMATH_BLOWOUT);
+  if (ctx.neutralVenue) {
+    return pickRandom(ctx.isLateDrama ? TRY_AFTERMATH_NEUTRAL_LATE : TRY_AFTERMATH_NEUTRAL);
+  }
+  if (ctx.scoringSideIsHome) {
+    if (ctx.isLateDrama) return pickRandom(TRY_AFTERMATH_HOME_LATE);
+    return pickRandom(ctx.isSwing ? TRY_AFTERMATH_HOME_SWING : TRY_AFTERMATH_HOME);
+  }
+  if (ctx.isLateDrama) return pickRandom(TRY_AFTERMATH_AWAY_LATE);
+  return pickRandom(ctx.isSwing ? TRY_AFTERMATH_AWAY_SWING : TRY_AFTERMATH_AWAY);
+}
 
 const KICKER_STEPS_UP: readonly string[] = [
   '{primary} stands over the ball.',
@@ -254,7 +338,7 @@ export function getAnnouncementTemplate(
     case 'try_referee_signal':
       return pickRandom(TRY_REFEREE_SIGNAL);
     case 'try_aftermath':
-      return pickRandom(TRY_AFTERMATH);
+      return pickTryAftermath(params.tryAftermath);
     case 'kicker_steps_up':
       return pickRandom(KICKER_STEPS_UP);
     case 'kicker_compose':

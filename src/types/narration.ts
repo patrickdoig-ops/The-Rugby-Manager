@@ -105,6 +105,27 @@ export interface TacticNoteParams {
   backfieldDefence?: BackfieldDefence;
 }
 
+// Game context for the try_aftermath crowd reaction. Computed by
+// TryScoredEvent from the (pre-try) state and the projected lead; consumed by
+// getAnnouncementTemplate to pick a venue- and situation-appropriate pool so a
+// home roar never fires for an away try, and "momentum is shifting" only fires
+// on a genuine swing.
+export interface TryAftermathContext {
+  // True when the scoring side is the home team (state.possession === 'home').
+  scoringSideIsHome: boolean;
+  // True at a neutral venue (the playoff final) — no home/away crowd framing.
+  neutralVenue: boolean;
+  // True when the try meaningfully shifts the balance (took the lead, drew
+  // level, or clawed the deficit back) — i.e. NOT 'try_extend_lead'. Gates the
+  // momentum-shift phrasing.
+  isSwing: boolean;
+  // True when the post-try margin is so large the result is beyond doubt —
+  // the crowd reaction is subdued regardless of who scored.
+  isBlowout: boolean;
+  // True when a swing try lands late in a close game — peak-noise reaction.
+  isLateDrama: boolean;
+}
+
 export interface AnnouncementParams {
   phaseName?: string;
   teamName?: string;
@@ -112,6 +133,7 @@ export interface AnnouncementParams {
   awayName?: string;
   homeScore?: number;
   awayScore?: number;
+  tryAftermath?: TryAftermathContext;
 }
 
 // Some announcements (sin-bin return, replacement done) need to mention a

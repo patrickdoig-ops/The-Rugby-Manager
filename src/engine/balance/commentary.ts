@@ -26,6 +26,22 @@ export const COMMENTARY_CHANCES = {
   blitzInterception:            45,
 } as const;
 
+// Context thresholds for the try_aftermath crowd reaction. Used by
+// TryScoredEvent to classify a try into the blowout / late-drama buckets that
+// getAnnouncementTemplate picks its pool from. Render-time only — they shape
+// flavour text, never an in-play outcome.
+export const TRY_AFTERMATH_CONTEXT = {
+  // Absolute post-try scoreline margin at or beyond which the result is
+  // beyond doubt: the crowd reaction is muted regardless of which side scored.
+  blowoutMargin: 22,
+  // Game minute at or beyond which a swing try in a close game counts as
+  // "late drama" — the peak-noise crowd reaction.
+  lateGameMinute: 70,
+  // Absolute post-try margin at or within which a late try is still in the
+  // balance (a close game). Beyond it a late try isn't drama.
+  lateDramaMargin: 8,
+} as const;
+
 // Soft cap on the in-state commentary buffer (state.events). Older entries
 // are spliced off the front when the buffer overflows.
 export const COMMENTARY_BUFFER_CAP = 300;

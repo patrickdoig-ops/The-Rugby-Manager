@@ -445,7 +445,7 @@
   font-weight: 400;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--rm-chalk);
+  color: var(--team-color-tile-text, var(--rm-chalk));
 }
 
 .hub-tile:active {

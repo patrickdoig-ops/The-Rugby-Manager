@@ -13,6 +13,7 @@
 // playCue/settings API the existing call sites depend on.
 
 import { AUDIO_MANIFEST, type AudioAsset, type AudioChannel } from './audio/audioManifest';
+import { synthesize } from './audio/synth';
 
 const SFX_KEY    = 'rugby-manager-sfx';
 const VOLUME_KEY = 'rugby-manager-volume';
@@ -141,13 +142,19 @@ export function playId(id: string): void {
   if (!c) return;
   void c.resume();
   void loadBuffer(id).then(buf => {
-    if (!buf || !isSfxEnabled()) return;
+    if (!isSfxEnabled()) return;
     const g = channelGain(asset.channel);
     if (!g) return;
-    const src = c.createBufferSource();
-    src.buffer = buf;
-    src.connect(g);
-    src.start();
+    if (buf) {
+      const src = c.createBufferSource();
+      src.buffer = buf;
+      src.connect(g);
+      src.start();
+      return;
+    }
+    // No audio file present — fall back to procedural synthesis (no-op if the
+    // cue has no generator). A real file dropped at asset.file always wins.
+    synthesize(c, g, id);
   });
 }
 

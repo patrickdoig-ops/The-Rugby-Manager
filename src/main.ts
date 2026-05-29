@@ -85,6 +85,7 @@ import { snapshotMatch }           from './game/seasonStatsCollector';
 import { SEASON_VALUES }           from './engine/balance';
 import { generateSeed }            from './utils/rng';
 import { eventBus }                from './utils/eventBus';
+import { Capacitor }              from '@capacitor/core';
 
 import bathRaw         from './data/team-bath.json';
 import bristolRaw      from './data/team-bristol.json';
@@ -103,7 +104,20 @@ const allTeamsRaw = ([
 ] as unknown as TeamJson[]).map(applyStarBoost);
 const allTeams = allTeamsRaw as unknown as RawTeamInput[];
 
+// Native (Capacitor) shell only: lock pinch / double-tap zoom and tag <html>
+// so the wrapped app doesn't behave like a zoomable browser page. No-op on the
+// web build, which keeps its accessible zoom.
+function configureNativeShell(): void {
+  if (!Capacitor.isNativePlatform()) return;
+  document.documentElement.classList.add('native-app');
+  document.querySelector('meta[name="viewport"]')?.setAttribute(
+    'content',
+    'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover',
+  );
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  configureNativeShell();
   buildAppShell();
   preloadAllCues();
   initAudioDirector();

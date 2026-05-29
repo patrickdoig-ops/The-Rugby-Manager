@@ -23,7 +23,7 @@
   pointer-events: none;
   background: radial-gradient(
     ellipse 100% 50% at 50% 0%,
-    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 14%, transparent) 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 14%, transparent) 0%,
     transparent 65%
   );
   z-index: 0;
@@ -423,8 +423,8 @@
 }
 
 .eos-champion {
-  background: linear-gradient(180deg, color-mix(in oklch, var(--team-color) 22%, var(--rm-surface)) 0%, var(--rm-surface) 100%);
-  border: 1px solid color-mix(in oklch, var(--team-color) 45%, var(--rm-border-soft));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--team-color) 22%, black) 0%, var(--rm-surface) 100%);
+  border: 1px solid color-mix(in srgb, var(--team-color) 45%, black);
   border-radius: 14px;
   padding: 16px;
   display: flex;
@@ -441,7 +441,7 @@
   position: absolute;
   inset: 0;
   background: radial-gradient(ellipse 80% 100% at 50% 50%,
-    color-mix(in oklch, var(--team-color) 28%, transparent) 0%,
+    color-mix(in srgb, var(--team-color) 28%, transparent) 0%,
     transparent 70%);
   opacity: 0;
   animation: eosWashSwell 1400ms ease-out 200ms forwards;
@@ -452,7 +452,7 @@
 .eos-champion > * { position: relative; z-index: 1; }
 
 .eos-champion--me {
-  box-shadow: 0 0 26px color-mix(in oklch, var(--team-color) 35%, transparent);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--team-color) 35%, transparent);
   overflow: visible;
 }
 
@@ -606,10 +606,10 @@
 .roll-breakout {
   margin: 0 0 4px;
   padding: 18px 16px 16px;
-  background: linear-gradient(180deg, color-mix(in oklch, var(--team-color, var(--rm-pitch)) 22%, var(--rm-surface)) 0%, var(--rm-surface) 100%);
-  border: 1px solid color-mix(in oklch, var(--team-color, var(--rm-pitch)) 45%, var(--rm-border-soft));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--team-color, var(--rm-pitch)) 22%, black) 0%, var(--rm-surface) 100%);
+  border: 1px solid color-mix(in srgb, var(--team-color, var(--rm-pitch)) 45%, black);
   border-radius: 14px;
-  box-shadow: 0 0 22px color-mix(in oklch, var(--team-color, var(--rm-pitch)) 22%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--team-color, var(--rm-pitch)) 22%, transparent);
   display: flex;
   flex-direction: column;
   align-items: center;

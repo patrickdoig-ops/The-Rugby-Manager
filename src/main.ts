@@ -46,6 +46,7 @@ import '../style/player-profile.css';
 import { buildAppShell }           from './ui/AppShell';
 import { preloadAllCues, playCue } from './ui/SoundManager';
 import { initAudioDirector }       from './ui/audio/AudioDirector';
+import { initHapticsDirector }     from './ui/haptics/HapticsDirector';
 import { initScoreboard }          from './ui/Scoreboard';
 import { initPitchStrip }          from './ui/PitchStrip';
 import { initCommentaryFeed }      from './ui/CommentaryFeed';
@@ -138,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
   buildAppShell();
   preloadAllCues();
   initAudioDirector();
+  initHapticsDirector();
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
     if (target.closest('button, .hub-tile, .ts-card, .mp-card')) {

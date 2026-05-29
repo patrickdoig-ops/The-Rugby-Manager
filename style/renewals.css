@@ -218,7 +218,7 @@
   background: var(--rm-cta);
   border: none;
   border-radius: 14px;
-  color: #ffffff;
+  color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
   font-size: 20px;
   letter-spacing: 0.06em;

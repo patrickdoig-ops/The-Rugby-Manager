@@ -180,8 +180,8 @@
 }
 
 .pb-champion {
-  background: linear-gradient(180deg, color-mix(in oklch, var(--team-color) 22%, var(--rm-surface)) 0%, var(--rm-surface) 100%);
-  border: 1px solid color-mix(in oklch, var(--team-color) 45%, var(--rm-border-soft));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--team-color) 22%, black) 0%, var(--rm-surface) 100%);
+  border: 1px solid color-mix(in srgb, var(--team-color) 45%, black);
   border-radius: 14px;
   padding: 18px;
   display: flex;
@@ -192,7 +192,7 @@
 }
 
 .pb-champion--me {
-  box-shadow: 0 0 24px color-mix(in oklch, var(--team-color) 35%, transparent);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--team-color) 35%, transparent);
 }
 
 .pb-champion-label {
@@ -238,7 +238,7 @@
   background: var(--rm-cta);
   border: none;
   border-radius: 14px;
-  color: #ffffff;
+  color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
   font-size: 20px;
   letter-spacing: 0.06em;

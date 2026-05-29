@@ -1,8 +1,7 @@
 // User-facing UI preferences kept in localStorage with their own lifecycle —
 // per-user, never cleared on team-switch (so they're not part of SaveManager).
 // Today this is the match tick delay, the key-moment auto-pause / auto-slow
-// toggles, and the live-match commentary filter; theme persistence is
-// bootstrapped inline in index.html for first-paint timing and stays separate.
+// toggles, and the live-match commentary filter.
 
 const TICK_DELAY_KEY        = 'rugby-manager-tick-delay-ms';
 const DEFAULT_TICK_DELAY_MS = 2500;

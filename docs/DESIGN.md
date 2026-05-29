@@ -52,7 +52,7 @@ This is the **single source of truth** for visual and interaction design in the 
 
 ### 2.1 Token architecture
 
-All colours are declared in `style/main.css` `:root` using **oklch** for perceptual uniformity. Every token has a `body.light-mode` counterpart in the same file.
+All colours are declared in `style/main.css` `:root` using **oklch** for perceptual uniformity. The game is dark-mode only.
 
 **You may never:**
 - Declare a colour outside `main.css :root`
@@ -61,7 +61,7 @@ All colours are declared in `style/main.css` `:root` using **oklch** for percept
 
 **You should:**
 - Reach for `color-mix(in oklch, var(--token) X%, transparent)` for tints
-- Add new tokens to `:root` (and `body.light-mode`) when an existing one doesn't fit, rather than hardcoding
+- Add new tokens to `:root` when an existing one doesn't fit, rather than hardcoding
 
 ### 2.2 Canonical tokens
 
@@ -132,19 +132,30 @@ Each accent colour has **exactly one semantic role**. Do not reuse for unrelated
 | `--rm-stat-5` (cyan) | Analytical/predictive | Match spread predictions, statistical callouts, trending indicators |
 | `--team-color` | Manager's team identity | Screen background gradients (Tier 1/2), active interactive tints, jersey badges — see §2.5 |
 
-### 2.4 The one allowed hex
+### 2.4 Sanctioned constants
 
-The primary CTA green `#007a2a` is intentionally pinned and may appear inline. This is the only exception to "no hex outside `main.css :root`."
+Two values are intentionally pinned and may appear inline. All other hardcoded colours are forbidden outside `main.css :root`.
+
+**`#007a2a`** — primary CTA green. Pinned for native-shell status-bar tinting and manifest theme-color, where a CSS variable cannot reach.
+
+**`--rm-on-accent: oklch(0.99 0 0)`** — text/icon colour on any `--rm-cta` or team-colour accent surface. Near-white in oklch, expressed as a token so a single edit covers every CTA label if the accent palette ever shifts. Use `var(--rm-on-accent)` for `color` on all green CTA buttons and accent chips — never `#fff` or `#ffffff` inline.
 
 ```css
 /* OK */
 #hub-play-next {
   background: #007a2a;
 }
+.some-cta {
+  background: var(--rm-cta);
+  color: var(--rm-on-accent);
+}
 
 /* NOT OK */
 .something-else {
   background: #d8503e; /* should be var(--rm-danger) */
+}
+.another-cta {
+  color: #ffffff; /* should be var(--rm-on-accent) */
 }
 ```
 
@@ -428,8 +439,6 @@ For glowing accents (e.g. an MOTM hero), layer additional shadows:
 }
 ```
 
-> **Light-mode caveat:** The current shadow stack is dark-calibrated. When the light-mode pass lands (C4), shadow rgba values will be parameterised via new tokens. Until then, treat the shadow as dark-only.
-
 ### 5.3 Tap targets
 
 - **Minimum 40px tall** for any interactive control (button, toggle, pill).
@@ -625,7 +634,7 @@ The full-width green action button. Pinned colour: `#007a2a`.
   background: #007a2a;
   border: none;
   border-radius: 14px;
-  color: #ffffff;
+  color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
   font-size: 20px;             /* hero context: 28px */
   letter-spacing: 0.04em;
@@ -757,24 +766,7 @@ The shared `createRowExpander` + `.row-expand-panel` pattern from §4.8 is the o
 
 ---
 
-## 9. Light mode policy
-
-Light mode is **a first-class feature, not an afterthought.** Any new CSS rule that uses a colour MUST work in both modes.
-
-### 9.1 Rules
-
-1. **Every colour token must have a `body.light-mode` override** in `main.css`. Adding a token in dark-only is forbidden.
-2. **No hardcoded `rgba(0,0,0,*)` or `rgba(255,255,255,*)`** outside `main.css`. Use mode-aware tokens.
-3. **Shadow opacities** are currently dark-calibrated and will be migrated to parameterised tokens. Until that lands (tracked as C4 in `docs/ui-audit-tasks/`), the light-mode toggle is gated behind an experimental flag.
-4. **Team brand colours** are inherently mode-agnostic and pass through unchanged via `--team-color`.
-
-### 9.2 Current state
-
-The light-mode toggle is hidden in production until the full pass completes. See `docs/ui-audit-tasks/C4-light-mode.md` for the planned migration.
-
----
-
-## 10. Content & copy
+## 9. Content & copy
 
 ### 10.1 Filler is forbidden
 
@@ -867,7 +859,7 @@ See §5.3. Minimum 40px, prefer 44px.
 A non-exhaustive list of things that have been flagged in past audits and **must not return**:
 
 - ❌ Emoji or Unicode glyphs as icons (★, ▲, ▼, ✓, ⚠)
-- ❌ Hex codes outside `main.css :root` (with the single `#007a2a` exception)
+- ❌ Hex codes outside `main.css :root` (with the two sanctioned constants — see §2.4)
 - ❌ `var(--token, #fallback)` syntax — fix the token declaration instead
 - ❌ Token names that don't exist in `:root` (e.g. referencing `--rm-danger` before it was declared)
 - ❌ Cards using a background darker than their parent (inverted depth)

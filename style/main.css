@@ -30,6 +30,7 @@
   --rm-cta:         oklch(0.47 0.18 144);
   --rm-cta-hover:   oklch(0.54 0.19 144);
   --rm-cta-active:  oklch(0.40 0.15 144);
+  --rm-on-accent:   oklch(0.99 0 0);
 
   --rm-amber:       oklch(0.74 0.16 62);
   --rm-amber-deep:  oklch(0.58 0.16 50);
@@ -43,8 +44,8 @@
   --rm-stat-4:      oklch(0.76 0.20 144);
   --rm-stat-5:      oklch(0.82 0.18 175);
 
-  --rm-card-yellow: #f5c024;
-  --rm-card-red:    #d22f2f;
+  --rm-card-yellow: oklch(0.81 0.16 88);
+  --rm-card-red:    oklch(0.57 0.21 27);
 
   --rm-font-display: 'Anton', 'Bebas Neue', Impact, sans-serif;
   --rm-font-editor:  'Instrument Serif', 'Georgia', serif;
@@ -814,15 +815,15 @@ html, body {
 .ctrl-btn.primary {
   background: var(--rm-cta);
   border-color: var(--rm-cta);
-  color: #ffffff;
+  color: var(--rm-on-accent);
   width: 44px;
   height: 44px;
   box-shadow: 0 0 16px color-mix(in oklch, var(--rm-pitch) 45%, transparent);
 }
 
 .ctrl-btn.primary:active:not(:disabled) {
-  background: #005e20;
-  border-color: #005e20;
+  background: var(--rm-cta-active);
+  border-color: var(--rm-cta-active);
   box-shadow: none;
 }
 
@@ -1111,7 +1112,7 @@ html, body {
 .sub-action-confirm {
   background: var(--rm-cta);
   border: 1px solid transparent;
-  color: #ffffff;
+  color: var(--rm-on-accent);
   box-shadow: 0 4px 16px color-mix(in oklch, var(--rm-pitch) 22%, transparent);
 }
 
@@ -1676,5 +1677,5 @@ html, body {
 .crash-overlay-copy {
   background: var(--rm-cta);
   border-color: var(--rm-cta-active);
-  color: #fff;
+  color: var(--rm-on-accent);
 }

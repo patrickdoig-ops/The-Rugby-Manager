@@ -11,8 +11,8 @@
   background: var(--rm-bg);
   background-image: radial-gradient(
     ellipse 200% 55% at 50% 0%,
-    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 70%, black) 0%,
-    color-mix(in oklch, var(--team-color, var(--rm-pitch)) 25%, black) 45%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 70%, black) 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 25%, black) 45%,
     transparent 80%
   );
   display: flex;
@@ -30,8 +30,8 @@
 #br-card {
   margin: 18px 16px 0;
   padding: 22px 18px 24px;
-  background: linear-gradient(180deg, color-mix(in oklch, var(--team-color, var(--rm-pitch)) 18%, var(--rm-surface)) 0%, var(--rm-surface) 100%);
-  border: 1px solid color-mix(in oklch, var(--team-color, var(--rm-pitch)) 40%, var(--rm-border-soft));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--team-color, var(--rm-pitch)) 18%, black) 0%, var(--rm-surface) 100%);
+  border: 1px solid color-mix(in srgb, var(--team-color, var(--rm-pitch)) 40%, black);
   border-radius: 14px;
   display: flex;
   flex-direction: column;
@@ -182,7 +182,7 @@
   background: var(--rm-cta);
   border: none;
   border-radius: 14px;
-  color: #ffffff;
+  color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
   font-size: 20px;
   letter-spacing: 0.06em;
@@ -221,15 +221,15 @@
 }
 
 .tk-hero {
-  background: linear-gradient(180deg, color-mix(in oklch, var(--team-color, var(--rm-pitch)) 22%, var(--rm-surface)) 0%, var(--rm-surface) 100%);
-  border: 1px solid color-mix(in oklch, var(--team-color, var(--rm-pitch)) 45%, var(--rm-border-soft));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--team-color, var(--rm-pitch)) 22%, black) 0%, var(--rm-surface) 100%);
+  border: 1px solid color-mix(in srgb, var(--team-color, var(--rm-pitch)) 45%, black);
   border-radius: 14px;
   padding: 22px 18px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  box-shadow: 0 0 30px color-mix(in oklch, var(--team-color, var(--rm-pitch)) 30%, transparent);
+  box-shadow: 0 0 30px color-mix(in srgb, var(--team-color, var(--rm-pitch)) 30%, transparent);
   animation: tkHeroEnter 600ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 

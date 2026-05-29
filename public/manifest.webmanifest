@@ -1,0 +1,19 @@
+{
+  "name": "Rugby Manager",
+  "short_name": "Rugby MGR",
+  "description": "Build and manage your Premiership rugby team to glory.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#040704",
+  "theme_color": "#040704",
+  "orientation": "portrait",
+  "categories": ["games", "sports"],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

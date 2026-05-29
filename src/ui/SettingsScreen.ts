@@ -1,6 +1,10 @@
 import { isSfxEnabled, setSfxEnabled, getVolume, setVolume } from './SoundManager';
 import { clearSave } from './SaveManager';
 import { VERSION } from '../version';
+import {
+  loadAutoPauseEnabled, saveAutoPauseEnabled,
+  loadAutoSlowEnabled, saveAutoSlowEnabled,
+} from './uiPrefs';
 
 function backIcon(): string {
   return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -42,6 +46,26 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack): void {
             <input type="range" id="settings-volume" min="0" max="100" value="70" />
             <span class="settings-slider-value">70</span>
           </div>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h2 class="settings-section-title">Match</h2>
+
+        <div class="settings-row">
+          <label class="settings-row-label" for="settings-autopause">Auto-pause on key moments</label>
+          <label class="settings-toggle">
+            <input type="checkbox" id="settings-autopause" />
+            <span class="settings-toggle-track"></span>
+          </label>
+        </div>
+
+        <div class="settings-row">
+          <label class="settings-row-label" for="settings-autoslow">Auto-slow to 1× on key moments</label>
+          <label class="settings-toggle">
+            <input type="checkbox" id="settings-autoslow" />
+            <span class="settings-toggle-track"></span>
+          </label>
         </div>
       </section>
 
@@ -91,6 +115,13 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack): void {
     setVolume(Number(volume.value));
     volumeLabel.textContent = volume.value;
   });
+
+  const autoPause = el.querySelector<HTMLInputElement>('#settings-autopause')!;
+  const autoSlow  = el.querySelector<HTMLInputElement>('#settings-autoslow')!;
+  autoPause.checked = loadAutoPauseEnabled();
+  autoSlow.checked  = loadAutoSlowEnabled();
+  autoPause.addEventListener('change', () => saveAutoPauseEnabled(autoPause.checked));
+  autoSlow.addEventListener('change', () => saveAutoSlowEnabled(autoSlow.checked));
 
   el.querySelector<HTMLButtonElement>('#settings-reset')!.addEventListener('click', () => {
     const ok = window.confirm(

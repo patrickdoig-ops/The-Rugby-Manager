@@ -348,18 +348,8 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
 
       <div id="sq-footer">
         <div class="sq-footer-btns">
-          <button id="sq-clear">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-            Clear
-          </button>
-          <button id="sq-auto-pick">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-            Auto-Pick
-          </button>
-          <button id="sq-save" class="cta-pulse"${saveDisabled}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none" aria-hidden="true"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            Save
-          </button>
+          <button id="sq-auto-pick">Auto-Pick</button>
+          <button id="sq-save" class="cta-pulse"${saveDisabled}>Save</button>
         </div>
       </div>
 
@@ -434,12 +424,6 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         else expandedRows.add(key);
         render();
       });
-    });
-
-    // Clear button
-    el.querySelector<HTMLButtonElement>('#sq-clear')!.addEventListener('click', () => {
-      clearTeam();
-      render();
     });
 
     // Auto-Pick button

@@ -396,42 +396,36 @@
 }
 
 .sq-footer-btns button {
-  flex: 1;
-  padding: 13px 8px;
-  border-radius: 12px;
-  font-family: var(--rm-font-mono);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.10em;
+  padding: 14px 8px;
+  border-radius: 14px;
+  font-family: var(--rm-font-display);
+  font-size: 20px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  border: none;
   -webkit-tap-highlight-color: transparent;
 }
 
-#sq-clear {
-  background: transparent;
-  border: 1px solid var(--rm-border-soft);
-  color: var(--rm-text-muted);
-}
-
-#sq-clear:active { opacity: 0.6; }
-
 #sq-auto-pick {
+  flex: 1;
   background: var(--rm-surface-2);
   border: 1px solid var(--rm-border-soft);
-  color: var(--rm-text);
+  color: var(--rm-chalk);
 }
 
 #sq-auto-pick:active { background: var(--rm-surface-3); }
 
+@media (hover: hover) {
+  #sq-auto-pick:hover { background: var(--rm-surface-3); }
+}
+
 #sq-save {
-  flex: 1.5;
+  flex: 2;
   background: var(--rm-cta);
-  border: none;
   color: #fff;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.25),
@@ -440,6 +434,10 @@
 }
 
 #sq-save:active:not(:disabled) { background: var(--rm-cta-active); }
+
+@media (hover: hover) {
+  #sq-save:hover:not(:disabled) { background: var(--rm-cta-hover); }
+}
 
 #sq-save:disabled {
   opacity: 0.4;

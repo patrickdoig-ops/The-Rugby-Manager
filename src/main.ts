@@ -85,7 +85,7 @@ import { initTrainingScreen, showTrainingPostMatch, showTrainingMidweek } from '
 import { initPostTrainingResultsScreen, showPostTrainingResults } from './ui/PostTrainingResultsScreen';
 import { screenRouter }            from './ui/ScreenRouter';
 import { loadSave, saveGame, clearSave } from './ui/SaveManager';
-import { loadTickDelayMs }           from './ui/uiPrefs';
+import { loadTickDelayMs, applyTextScale } from './ui/uiPrefs';
 import { MatchCoordinator }        from './engine/MatchCoordinator';
 import type { RawTeamInput }       from './types/teamData';
 import type { TeamTactics }        from './types/team';
@@ -135,6 +135,7 @@ function configureNativeShell(): void {
 
 document.addEventListener('DOMContentLoaded', () => {
   configureNativeShell();
+  applyTextScale();           // accessibility text scale — before any render
   buildAppShell();
   preloadAllCues();
   initAudioDirector();

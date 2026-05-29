@@ -4,6 +4,8 @@ import { VERSION } from '../version';
 import {
   loadAutoPauseEnabled, saveAutoPauseEnabled,
   loadAutoSlowEnabled, saveAutoSlowEnabled,
+  loadTextScale, saveTextScale, applyTextScale,
+  TEXT_SCALE_VALUES, TEXT_SCALE_LABELS,
 } from './uiPrefs';
 
 function backIcon(): string {
@@ -47,6 +49,20 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack): void {
             <span class="settings-slider-value">70</span>
           </div>
         </div>
+      </section>
+
+      <section class="settings-section">
+        <h2 class="settings-section-title">Accessibility</h2>
+
+        <div class="settings-row settings-row--stack">
+          <label class="settings-row-label">Text size</label>
+          <div class="settings-segmented" id="settings-textscale" role="group" aria-label="Text size">
+            ${TEXT_SCALE_VALUES.map((scale, i) =>
+              `<button type="button" class="settings-seg-btn" data-scale="${scale}">${TEXT_SCALE_LABELS[i]}</button>`,
+            ).join('')}
+          </div>
+        </div>
+        <p class="settings-sample">The quick brown fox jumps over the lazy dog.</p>
       </section>
 
       <section class="settings-section">
@@ -122,6 +138,25 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack): void {
   autoSlow.checked  = loadAutoSlowEnabled();
   autoPause.addEventListener('change', () => saveAutoPauseEnabled(autoPause.checked));
   autoSlow.addEventListener('change', () => saveAutoSlowEnabled(autoSlow.checked));
+
+  const textScaleGroup = el.querySelector<HTMLElement>('#settings-textscale')!;
+  const segButtons = Array.from(textScaleGroup.querySelectorAll<HTMLButtonElement>('.settings-seg-btn'));
+  const markActive = (scale: number) => {
+    for (const btn of segButtons) {
+      const on = Number(btn.dataset.scale) === scale;
+      btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+  };
+  markActive(loadTextScale());
+  for (const btn of segButtons) {
+    btn.addEventListener('click', () => {
+      const scale = Number(btn.dataset.scale);
+      applyTextScale(scale);   // live preview — rescales the whole app, including this screen
+      saveTextScale(scale);
+      markActive(scale);
+    });
+  }
 
   el.querySelector<HTMLButtonElement>('#settings-reset')!.addEventListener('click', () => {
     const ok = window.confirm(

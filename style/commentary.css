@@ -45,7 +45,7 @@
   border: 1px solid var(--rm-border-soft);
   color: var(--rm-text-muted);
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   letter-spacing: 0.10em;
   text-transform: uppercase;
@@ -91,7 +91,7 @@
 .event-minute {
   font-family: var(--rm-font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 500;
   color: var(--rm-text-dim);
   padding-top: 2px;
@@ -107,7 +107,7 @@
 /* Event type tag */
 .event-tag {
   font-family: var(--rm-font-mono);
-  font-size: 8px;
+  font-size: var(--rm-fs-8);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -118,7 +118,7 @@
 
 /* Commentary text */
 .event-text {
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   line-height: 1.45;
   color: var(--rm-text);
 }
@@ -134,7 +134,7 @@
 .event-try .event-tag  { color: var(--rm-amber); font-weight: 700; }
 .event-try .event-text {
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   font-weight: 600;
   color: var(--rm-text);
 }

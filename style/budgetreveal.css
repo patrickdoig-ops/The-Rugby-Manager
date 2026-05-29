@@ -51,12 +51,12 @@
   font-family: var(--rm-font-display);
   color: var(--rm-chalk);
   text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-  font-size: 22px;
+  font-size: var(--rm-fs-22);
 }
 
 .br-club-name {
   font-family: var(--rm-font-display);
-  font-size: 18px;
+  font-size: var(--rm-fs-18);
   color: var(--rm-text);
   letter-spacing: 0.03em;
   text-align: center;
@@ -65,7 +65,7 @@
 .br-headline-label {
   margin-top: 6px;
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.16em;
   color: var(--rm-text-muted);
@@ -73,7 +73,7 @@
 
 .br-headline {
   font-family: var(--rm-font-display);
-  font-size: 44px;
+  font-size: var(--rm-fs-44);
   color: var(--rm-text);
   letter-spacing: 0.02em;
   line-height: 1;
@@ -86,7 +86,7 @@
   padding: 4px 10px;
   border-radius: 999px;
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   letter-spacing: 0.04em;
   font-weight: 600;
 }
@@ -105,7 +105,7 @@
 
 .br-reason {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.05em;
   padding: 4px 9px;
   border-radius: 999px;
@@ -143,7 +143,7 @@
   justify-content: space-between;
   align-items: center;
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
 }
 
 .br-usage-label { color: var(--rm-text-muted); }
@@ -154,7 +154,7 @@
   margin: 14px 0 0;
   text-align: center;
   font-family: var(--rm-font-body);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   color: var(--rm-text-muted);
   max-width: 340px;
   line-height: 1.4;
@@ -184,7 +184,7 @@
   border-radius: 14px;
   color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
@@ -244,20 +244,20 @@
   color: var(--rm-chalk);
   text-shadow: 0 1px 2px rgba(0,0,0,0.5);
   flex: 0 0 auto;
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
 }
 
 .tk-crest--lg {
   width: var(--crest-xl-size);
   height: var(--crest-xl-size);
   border-radius: var(--crest-xl-radius);
-  font-size: 36px;
+  font-size: var(--rm-fs-36);
   animation: tkCrestPop 700ms cubic-bezier(0.34, 1.56, 0.64, 1) 200ms backwards;
 }
 
 .tk-hero-headline {
   font-family: var(--rm-font-display);
-  font-size: 18px;
+  font-size: var(--rm-fs-18);
   color: var(--rm-text);
   letter-spacing: 0.03em;
   text-align: center;
@@ -266,14 +266,14 @@
 
 .tk-hero-boost {
   font-family: var(--rm-font-display);
-  font-size: 28px;
+  font-size: var(--rm-fs-28);
   color: var(--rm-pitch);
   letter-spacing: 0.02em;
 }
 
 .tk-hero-sub {
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   color: var(--rm-text-muted);
   text-align: center;
   max-width: 360px;
@@ -282,7 +282,7 @@
 
 .tk-others-label {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.16em;
   color: var(--rm-text-muted);
@@ -315,13 +315,13 @@
 
 .tk-other-headline {
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   color: var(--rm-text);
 }
 
 .tk-other-boost {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   color: var(--rm-pitch);
   letter-spacing: 0.04em;
 }
@@ -338,7 +338,7 @@
    parent — these inner elements stay opacity:1 so they don't compete. */
 .tk-hero-eyebrow {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -368,7 +368,7 @@
 
 /* Lift the headline to display-font scale for the newspaper feel. */
 .tk-hero .tk-hero-headline {
-  font-size: 26px;
+  font-size: var(--rm-fs-26);
   letter-spacing: 0.02em;
   line-height: 1.15;
   max-width: 380px;
@@ -377,7 +377,7 @@
 .tk-hero-byline {
   font-family: var(--rm-font-editor);
   font-style: italic;
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   color: var(--rm-text-muted);
   text-align: center;
 }

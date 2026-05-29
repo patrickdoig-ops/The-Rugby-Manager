@@ -27,7 +27,7 @@
 
 .trx-hero-eyebrow {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -55,7 +55,7 @@
 
 .trx-num {
   font-family: var(--rm-font-display);
-  font-size: 72px;
+  font-size: var(--rm-fs-72);
   line-height: 0.82;
   color: var(--rm-chalk);
   letter-spacing: 0.01em;
@@ -70,7 +70,7 @@
 
 .trx-headline-label {
   font-family: var(--rm-font-display);
-  font-size: 21px;
+  font-size: var(--rm-fs-21);
   line-height: 0.92;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -80,13 +80,13 @@
 .trx-headline-label span {
   display: block;
   color: var(--rm-text-muted);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
 }
 
 .trx-hero-sub {
   font-family: var(--rm-font-editor);
   font-style: italic;
-  font-size: 15px;
+  font-size: var(--rm-fs-15);
   color: var(--rm-text-muted);
   margin-top: 12px;
 }
@@ -102,7 +102,7 @@
 
 .trx-plan-chip {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -133,7 +133,7 @@
 
 .trx-section-title {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -187,7 +187,7 @@
   align-items: center;
   justify-content: center;
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   font-weight: 700;
   color: var(--rm-bg-deep);
   background: var(--rm-pitch);
@@ -200,7 +200,7 @@
 /* player-link inside cards */
 #training-results .player-link {
   font-family: var(--rm-font-body);
-  font-size: 15px;
+  font-size: var(--rm-fs-15);
   font-weight: 600;
   color: var(--rm-chalk);
   text-decoration: none;
@@ -211,7 +211,7 @@
 
 .trx-pos {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -233,7 +233,7 @@
 
 .trx-gain {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   font-weight: 700;
   letter-spacing: 0.02em;
   color: var(--rm-pitch);
@@ -246,7 +246,7 @@
   gap: 4px;
 }
 
-.trx-gain b { font-size: 12px; }
+.trx-gain b { font-size: var(--rm-fs-12); }
 
 .trx-gain--hero {
   color: var(--rm-bg-deep);
@@ -265,7 +265,7 @@
 
 .trx-cond-label {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -305,7 +305,7 @@
 
 .trx-cond-val {
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   font-weight: 700;
   color: var(--rm-text);
   flex-shrink: 0;
@@ -314,7 +314,7 @@
   gap: 5px;
 }
 
-.trx-cond-delta { font-size: 10px; color: var(--rm-pitch); }
+.trx-cond-delta { font-size: var(--rm-fs-10); color: var(--rm-pitch); }
 .trx-cond-val--down .trx-cond-delta { color: var(--rm-danger); }
 
 /* ── Compact "also improved" row ─────────────────────────────────────── */
@@ -331,12 +331,12 @@
   animation: trxIn 220ms var(--d, 0ms) both;
 }
 
-.trx-mini .player-link { font-size: 14px; }
+.trx-mini .player-link { font-size: var(--rm-fs-14); }
 .trx-mini .trx-gain { margin-left: auto; }
 
 .trx-mini-cond {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   font-weight: 700;
   color: var(--rm-text-muted);
   flex-shrink: 0;
@@ -359,12 +359,12 @@
 }
 
 .trx-injury svg { flex-shrink: 0; color: var(--rm-danger); }
-.trx-injury .player-link { font-size: 14px; }
+.trx-injury .player-link { font-size: var(--rm-fs-14); }
 
 .trx-injury-tag {
   margin-left: auto;
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -377,7 +377,7 @@
 
 .trx-injury-cond {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   font-weight: 700;
   color: var(--rm-danger);
 }
@@ -402,14 +402,14 @@
 
 .trx-recovery-label {
   font-family: var(--rm-font-body);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   font-weight: 600;
   color: var(--rm-chalk);
 }
 
 .trx-recovery-count {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -418,7 +418,7 @@
 
 .trx-recovery-note {
   font-family: var(--rm-font-mono);
-  font-size: 10.5px;
+  font-size: calc(10.5px * var(--rm-text-scale));
   color: var(--rm-text-muted);
   margin-bottom: 12px;
 }
@@ -459,7 +459,7 @@
 
 .trx-recovery-val {
   font-family: var(--rm-font-display);
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   color: var(--rm-chalk);
   flex-shrink: 0;
   display: flex;
@@ -470,7 +470,7 @@
 .trx-recovery-val em {
   font-style: normal;
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   font-weight: 700;
   color: var(--rm-pitch);
 }
@@ -484,7 +484,7 @@
   margin-top: 10px;
   padding: 0 4px;
   font-family: var(--rm-font-mono);
-  font-size: 10.5px;
+  font-size: calc(10.5px * var(--rm-text-scale));
   color: var(--rm-text-dim);
 }
 
@@ -512,7 +512,7 @@
   border-radius: 14px;
   color: var(--rm-chalk);
   font-family: var(--rm-font-display);
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;

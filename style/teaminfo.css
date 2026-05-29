@@ -41,7 +41,7 @@
   align-items: center;
   justify-content: center;
   font-family: var(--rm-font-display);
-  font-size: 36px;
+  font-size: var(--rm-fs-36);
   color: var(--rm-chalk);
   position: relative;
   flex-shrink: 0;
@@ -60,7 +60,7 @@
 
 #ti-name {
   font-family: var(--rm-font-display);
-  font-size: clamp(28px, 8vw, 40px);
+  font-size: clamp(calc(28px * var(--rm-text-scale)), 8vw, calc(40px * var(--rm-text-scale)));
   color: var(--rm-chalk);
   line-height: 0.95;
   margin: 0;
@@ -82,7 +82,7 @@
 
 .ti-tile-sm .ti-tile-value {
   font-family: var(--rm-font-body);
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0;
@@ -107,7 +107,7 @@
 
 .ti-tile-label {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -116,7 +116,7 @@
 
 .ti-tile-value {
   font-family: var(--rm-font-display);
-  font-size: 36px;
+  font-size: var(--rm-fs-36);
   color: var(--rm-chalk);
   line-height: 1;
 }
@@ -127,7 +127,7 @@
 
 .ti-tile-foot {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.10em;
   text-transform: uppercase;
   color: var(--rm-text-muted);
@@ -143,7 +143,7 @@
 
 .ti-section-title {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -153,7 +153,7 @@
 
 .ti-blurb {
   font-family: var(--rm-font-body);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   line-height: 1.55;
   color: var(--rm-text);
   margin: 0;
@@ -161,7 +161,7 @@
 
 .ti-honours {
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   line-height: 1.6;
   color: var(--rm-text);
   margin: 0;
@@ -191,7 +191,7 @@
 
 .ti-tactic-dim {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--rm-text-dim);
@@ -199,7 +199,7 @@
 
 .ti-tactic-val {
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   font-weight: 600;
   color: var(--rm-chalk);
 }
@@ -214,7 +214,7 @@
 
 .ti-bias-label {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -231,7 +231,7 @@
   display: inline-flex;
   align-items: center;
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--rm-pitch);
@@ -268,21 +268,21 @@
 
 .ti-star-name {
   font-family: var(--rm-font-body);
-  font-size: 15px;
+  font-size: var(--rm-fs-15);
   font-weight: 600;
   color: var(--rm-chalk);
 }
 
 .ti-star-rating {
   font-family: var(--rm-font-display);
-  font-size: 22px;
+  font-size: var(--rm-fs-22);
   color: var(--rm-pitch);
   line-height: 1;
 }
 
 .ti-star-meta {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--rm-text-dim);
@@ -290,7 +290,7 @@
 
 .ti-star-blurb {
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   line-height: 1.5;
   color: var(--rm-text);
 }
@@ -322,7 +322,7 @@
   padding: 12px 16px;
   padding-right: 36px;
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--rm-text-muted);
@@ -364,12 +364,12 @@
   padding: 8px 16px;
   border-top: 1px solid var(--rm-hairline);
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
 }
 
 .ti-squad-age {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   color: var(--rm-text-dim);
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -379,7 +379,7 @@
 
 .ti-squad-num {
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   color: var(--rm-text-dim);
   text-align: right;
 }
@@ -388,7 +388,7 @@
 
 .ti-squad-pos {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--rm-text-muted);
@@ -396,7 +396,7 @@
 
 .ti-squad-ovr {
   font-family: var(--rm-font-display);
-  font-size: 16px;
+  font-size: var(--rm-fs-16);
   color: var(--rm-pitch);
   text-align: right;
 }

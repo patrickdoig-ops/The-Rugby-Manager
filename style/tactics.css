@@ -20,7 +20,7 @@
 
 .tactics-main-title {
   font-family: var(--rm-font-display);
-  font-size: 22px;
+  font-size: var(--rm-fs-22);
   font-weight: 400;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -48,7 +48,7 @@
 
 .tactics-section-title {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -74,7 +74,7 @@
 
 .tactics-cat-title {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.16em;
@@ -155,7 +155,7 @@
 
 .tactics-opt-label {
   font-family: var(--rm-font-body);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   font-weight: 600;
   letter-spacing: 0.01em;
   line-height: 1.2;
@@ -174,7 +174,7 @@
 @media (max-width: 360px) {
   /* Tight viewports: scale labels down before truncating. */
   .tactics-opt-btn   { padding: 10px 6px; }
-  .tactics-opt-label { font-size: 11px; }
+  .tactics-opt-label { font-size: var(--rm-fs-11); }
 }
 
 /* ── Per-category info modal ── */
@@ -219,7 +219,7 @@
 
 .tactics-info-title {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -231,7 +231,7 @@
   background: transparent;
   border: none;
   color: var(--rm-text-muted);
-  font-size: 22px;
+  font-size: var(--rm-fs-22);
   line-height: 1;
   padding: 0 4px;
   cursor: pointer;
@@ -277,7 +277,7 @@
 
 .tactics-info-opt-label {
   font-family: var(--rm-font-body);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   font-weight: 700;
   margin-bottom: 4px;
   color: var(--rm-chalk);
@@ -294,12 +294,12 @@
 .tactics-info-opt-tick {
   color: var(--rm-pitch);
   font-weight: 700;
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
 }
 
 .tactics-info-opt-desc {
   font-family: var(--rm-font-body);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   font-weight: 400;
   color: var(--rm-text-muted);
   line-height: 1.4;
@@ -312,7 +312,7 @@
   color: var(--rm-text);
   padding: 14px;
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   font-weight: 700;
   letter-spacing: 0.10em;
   text-transform: uppercase;
@@ -340,7 +340,7 @@
   border-radius: 14px;
   color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;

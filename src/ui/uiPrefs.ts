@@ -71,6 +71,40 @@ export function saveAutoSlowEnabled(on: boolean): void {
   }
 }
 
+// Accessibility text scale — single multiplier applied to the --rm-text-scale
+// CSS custom property, which every font-size token (--rm-fs-*) is derived from.
+// Discrete iOS Dynamic Type-style steps: Default / Large / Larger / Largest.
+const TEXT_SCALE_KEY = 'rugby-manager-text-scale';
+export const TEXT_SCALE_VALUES = [1, 1.15, 1.3, 1.45] as const;
+export const TEXT_SCALE_LABELS = ['Default', 'Large', 'Larger', 'Largest'] as const;
+const DEFAULT_TEXT_SCALE = 1;
+
+export function loadTextScale(): number {
+  try {
+    const raw = localStorage.getItem(TEXT_SCALE_KEY);
+    if (raw === null) return DEFAULT_TEXT_SCALE;
+    const n = Number(raw);
+    if ((TEXT_SCALE_VALUES as readonly number[]).includes(n)) return n;
+    return DEFAULT_TEXT_SCALE;
+  } catch {
+    return DEFAULT_TEXT_SCALE;
+  }
+}
+
+export function saveTextScale(scale: number): void {
+  try {
+    localStorage.setItem(TEXT_SCALE_KEY, String(scale));
+  } catch {
+    // localStorage disabled / quota exceeded — silent.
+  }
+}
+
+// Writes the multiplier onto :root so every --rm-fs-* token rescales at once.
+// Called once at boot (main.ts) and live on each Settings change.
+export function applyTextScale(scale: number = loadTextScale()): void {
+  document.documentElement.style.setProperty('--rm-text-scale', String(scale));
+}
+
 // Commentary feed filter — single-select, sticky across matches. Maps to
 // the `.commentary-entry .event-*` phase classes the feed already emits.
 const CF_FILTER_KEY = 'rugby-manager-cf-filter';

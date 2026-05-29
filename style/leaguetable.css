@@ -20,7 +20,7 @@
   flex-direction: column;
   gap: 4px;
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   font-variant-numeric: tabular-nums;
 }
 
@@ -46,7 +46,7 @@
   color: var(--rm-text-dim);
   text-transform: uppercase;
   letter-spacing: 0.10em;
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   border-bottom: 1px solid var(--rm-border-soft);
   border-radius: 0;
   padding: 6px 10px;
@@ -96,7 +96,7 @@
   align-items: center;
   justify-content: center;
   font-family: var(--rm-font-display);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   color: rgba(255, 255, 255, 0.92);
   position: relative;
   flex-shrink: 0;
@@ -132,7 +132,7 @@
 
 .lt-head .lt-form {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.10em;
   color: var(--rm-text-dim);
 }
@@ -160,7 +160,7 @@
   border: none;
   padding: 11px 10px;
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -207,7 +207,7 @@
   border-radius: 14px;
   color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;

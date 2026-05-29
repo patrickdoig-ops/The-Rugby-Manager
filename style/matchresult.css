@@ -52,7 +52,7 @@
 
 .mr-eyebrow {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -85,7 +85,7 @@
   position: relative;
   overflow: hidden;
   font-family: var(--rm-font-display);
-  font-size: 22px;
+  font-size: var(--rm-fs-22);
   color: rgba(255,255,255,0.95);
 }
 
@@ -104,7 +104,7 @@
 
 .mr-versus-name {
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--rm-chalk);
@@ -125,19 +125,19 @@
 }
 
 .mr-score--winner {
-  font-size: 72px;
+  font-size: var(--rm-fs-72);
   color: var(--rm-chalk);
   text-shadow: 0 0 48px color-mix(in oklch, var(--mr-win, var(--rm-pitch)) 60%, transparent);
 }
 
 .mr-score--loser {
-  font-size: 44px;
+  font-size: var(--rm-fs-44);
   color: color-mix(in oklch, var(--rm-text) 65%, var(--mr-lose, var(--rm-text-muted)));
   text-shadow: 0 0 20px color-mix(in oklch, var(--mr-lose, transparent) 28%, transparent);
 }
 
 .mr-score-sep {
-  font-size: 30px;
+  font-size: var(--rm-fs-30);
   color: var(--rm-text-faint);
 }
 
@@ -177,7 +177,7 @@
 
 .motm-num {
   font-family: var(--rm-font-display);
-  font-size: 40px;
+  font-size: var(--rm-fs-40);
   line-height: 1;
   color: var(--rm-amber);
   text-shadow: 0 0 18px color-mix(in oklch, var(--rm-amber) 55%, transparent);
@@ -200,7 +200,7 @@
   align-items: center;
   gap: 5px;
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -213,7 +213,7 @@
 
 .motm-name {
   font-family: var(--rm-font-mono);
-  font-size: 16px;
+  font-size: var(--rm-fs-16);
   font-weight: 700;
   color: var(--rm-chalk);
   text-transform: uppercase;
@@ -231,7 +231,7 @@
   align-items: baseline;
   gap: 0 6px;
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.04em;
   color: var(--rm-text-muted);
   margin-top: 5px;
@@ -250,7 +250,7 @@
 
 .motm-rating {
   font-family: var(--rm-font-mono);
-  font-size: 26px;
+  font-size: var(--rm-fs-26);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -275,7 +275,7 @@
 
 .mr-card-title {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -310,7 +310,7 @@
   align-items: center;
   gap: 6px 10px;
   font-family: var(--rm-font-body);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
 }
 
 .mr-injury-entry {
@@ -325,7 +325,7 @@
 
 .mr-injury-kind {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.04em;
   text-transform: lowercase;
   color: var(--rm-text-dim);
@@ -392,7 +392,7 @@
 
 .mr-scorers-team-label {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -408,14 +408,14 @@
 
 .mr-scorer-name {
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   font-weight: 600;
   color: var(--rm-chalk);
 }
 
 .mr-scorer-events {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--rm-pitch);
@@ -423,7 +423,7 @@
 
 .mr-no-scorers {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   color: var(--rm-text-dim);
 }
 
@@ -437,7 +437,7 @@
 
 .mr-stats-team-code {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -463,7 +463,7 @@
 
 .mr-stat-val {
   font-family: var(--rm-font-mono);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   font-variant-numeric: tabular-nums;
   color: var(--rm-text-muted);
 }
@@ -485,7 +485,7 @@
 
 .mr-stat-label .key {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   letter-spacing: 0.18em;
   color: var(--rm-text-dim);
   text-transform: uppercase;
@@ -494,7 +494,7 @@
 
 .mr-stat-label .hint {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.16em;
   color: var(--rm-text-faint);
   text-transform: uppercase;
@@ -532,7 +532,7 @@
   border-radius: 8px;
   color: var(--rm-text-dim);
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -578,7 +578,7 @@
 
 .mr-player-num {
   font-family: var(--rm-font-mono);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   font-weight: 700;
   text-align: center;
   font-variant-numeric: tabular-nums;
@@ -586,7 +586,7 @@
 
 .mr-player-name {
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   color: var(--rm-chalk);
   white-space: nowrap;
   overflow: hidden;
@@ -595,7 +595,7 @@
 
 .mr-player-pos {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   letter-spacing: 0.18em;
   color: var(--rm-text-dim);
   text-transform: uppercase;
@@ -612,7 +612,7 @@
 
 .mr-player-rating {
   font-family: var(--rm-font-mono);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -664,7 +664,7 @@
   align-items: center;
   justify-content: center;
   font-family: var(--rm-font-display);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   color: rgba(255,255,255,0.92);
   position: relative;
   overflow: hidden;
@@ -691,7 +691,7 @@
 
 .mr-upnext-eyebrow {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -700,7 +700,7 @@
 
 .mr-upnext-line {
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   font-weight: 600;
   color: var(--rm-chalk);
   white-space: nowrap;
@@ -739,7 +739,7 @@
   border-radius: 14px;
   color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;

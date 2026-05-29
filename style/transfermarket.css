@@ -23,7 +23,7 @@
   border: 1px solid var(--rm-border-soft);
   border-radius: 8px;
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.08em;
   color: var(--rm-text-dim);
   text-transform: uppercase;
@@ -62,9 +62,9 @@
     padding: 8px 10px;
   }
   .tm-len { display: none; } /* drop "× 1y" suffix — every offer is 1y in pre-season */
-  .tm-sign { padding: 6px 6px; font-size: 9px; letter-spacing: 0.04em; }
-  .tm-name { font-size: 11px; }
-  .tm-wage { font-size: 11px; }
+  .tm-sign { padding: 6px 6px; font-size: var(--rm-fs-9); letter-spacing: 0.04em; }
+  .tm-name { font-size: var(--rm-fs-11); }
+  .tm-wage { font-size: var(--rm-fs-11); }
 }
 
 #tm-headrow {
@@ -79,7 +79,7 @@
   appearance: none;
   -webkit-appearance: none;
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 400;
   line-height: 1;
   letter-spacing: 0.14em;
@@ -126,7 +126,7 @@
   background: var(--tm-tag-color, var(--rm-pitch));
   color: var(--rm-bg-deep);
   font-family: var(--rm-font-mono);
-  font-size: 8px;
+  font-size: var(--rm-fs-8);
   font-weight: 700;
   letter-spacing: 0.14em;
   padding: 3px 7px;
@@ -143,7 +143,7 @@
 
 .tm-name {
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--rm-chalk);
@@ -155,7 +155,7 @@
 
 .tm-pos {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.06em;
   color: var(--rm-text-dim);
   text-transform: uppercase;
@@ -163,7 +163,7 @@
 
 .tm-num {
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   color: var(--rm-text);
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -171,7 +171,7 @@
 
 .tm-wage {
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   font-weight: 600;
   color: var(--rm-chalk);
   font-variant-numeric: tabular-nums;
@@ -181,7 +181,7 @@
 .tm-len {
   color: var(--rm-text-dim);
   font-weight: 400;
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
 }
 
 .tm-sign {
@@ -189,7 +189,7 @@
   border: 1px solid var(--rm-pitch);
   color: var(--rm-pitch);
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -260,7 +260,7 @@
 
 .tm-section-h {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.14em;
   color: var(--rm-text-muted);
   text-transform: uppercase;
@@ -291,7 +291,7 @@
   border: none;
   padding: 11px 10px;
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -313,7 +313,7 @@
 
 .tm-toggle__count {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   padding: 1px 6px;
@@ -342,7 +342,7 @@
 
 .tm-from {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   letter-spacing: 0.08em;
   color: var(--rm-text-dim);
   margin-left: 6px;
@@ -355,7 +355,7 @@
   border-radius: 6px;
   background: var(--rm-surface-2);
   color: var(--rm-text-dim);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   line-height: 1.4;
 }
 
@@ -379,7 +379,7 @@
   border-radius: 14px;
   color: var(--rm-chalk);
   font-family: var(--rm-font-display);
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
@@ -404,7 +404,7 @@
   border-radius: 14px;
   color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
@@ -440,7 +440,7 @@
   border-radius: 14px;
   color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
@@ -504,7 +504,7 @@
 .tm-expand-block { display: flex; flex-direction: column; gap: 6px; }
 .tm-expand-label {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   letter-spacing: 0.18em;
   color: var(--rm-text-dim);
@@ -514,7 +514,7 @@
   display: flex;
   justify-content: space-between;
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
 }
 .tm-appeal-row > span { color: var(--rm-text-dim); }
 .tm-appeal-row > strong { color: var(--rm-chalk); font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -535,14 +535,14 @@
 }
 .tm-mini-stat span {
   font-family: var(--rm-font-display);
-  font-size: 18px;
+  font-size: var(--rm-fs-18);
   color: var(--rm-chalk);
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
 }
 .tm-mini-stat label {
   font-family: var(--rm-font-mono);
-  font-size: 8px;
+  font-size: var(--rm-fs-8);
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--rm-text-dim);
@@ -551,7 +551,7 @@
 }
 .tm-expand-injury {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.08em;
   color: var(--rm-danger);
   text-transform: uppercase;
@@ -565,7 +565,7 @@
 }
 .tm-bar-label {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--rm-text-dim);
@@ -586,7 +586,7 @@
 }
 .tm-bar-val {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--rm-chalk);

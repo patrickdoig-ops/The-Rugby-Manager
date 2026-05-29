@@ -67,7 +67,7 @@
   border-radius: 999px;
   color: var(--rm-text-muted);
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -117,7 +117,7 @@
   text-transform: uppercase;
   letter-spacing: 0.10em;
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   border-bottom: 1px solid var(--rm-border-soft);
   border-radius: 0;
@@ -129,7 +129,7 @@
   text-align: right;
   font-family: var(--rm-font-mono);
   color: var(--rm-text-muted);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
 }
 
 .ts-crest {
@@ -141,7 +141,7 @@
   justify-content: center;
   font-family: var(--rm-font-display);
   color: var(--rm-chalk);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   text-shadow: 0 1px 2px rgba(0,0,0,0.4);
 }
 
@@ -151,7 +151,7 @@
 
 .ts-name {
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--rm-text);
@@ -213,7 +213,7 @@
 
 .ts-val {
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
 }
 
 /* ===== Player Stats list ===== */
@@ -263,12 +263,12 @@
   text-align: right;
   font-family: var(--rm-font-mono);
   color: var(--rm-text-muted);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
 }
 
 .ps-name {
   font-family: var(--rm-font-mono);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   color: var(--rm-text);
   overflow: hidden;
   white-space: nowrap;
@@ -292,14 +292,14 @@
   justify-content: center;
   font-family: var(--rm-font-display);
   color: var(--rm-chalk);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   flex: 0 0 auto;
   text-shadow: 0 1px 2px rgba(0,0,0,0.4);
 }
 
 .ps-club-name {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   color: var(--rm-text-muted);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -310,7 +310,7 @@
 
 .ps-pos {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   color: var(--rm-text-muted);
   letter-spacing: 0.05em;
 }
@@ -321,7 +321,7 @@
   align-items: flex-end;
   gap: 1px;
   font-family: var(--rm-font-mono);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   font-weight: 700;
   color: var(--rm-text);
   font-variant-numeric: tabular-nums;
@@ -329,7 +329,7 @@
 }
 
 .ps-val-sub {
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 500;
   color: var(--rm-text-muted);
 }

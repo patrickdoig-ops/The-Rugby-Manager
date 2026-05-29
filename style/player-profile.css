@@ -84,7 +84,7 @@
   align-items: center;
   gap: 6px;
   font-family: var(--rm-font-display);
-  font-size: clamp(22px, 6vw, 28px);
+  font-size: clamp(calc(22px * var(--rm-text-scale)), 6vw, calc(28px * var(--rm-text-scale)));
   letter-spacing: 0.01em;
   text-transform: uppercase;
   color: var(--rm-chalk);
@@ -108,7 +108,7 @@
   align-items: center;
   gap: 6px;
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--rm-text-muted);
@@ -128,7 +128,7 @@
   align-items: center;
   gap: 8px;
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   color: var(--rm-text);
   margin-top: 2px;
 }
@@ -147,7 +147,7 @@
   justify-content: center;
   font-family: var(--rm-font-display);
   color: var(--rm-chalk);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   flex: 0 0 auto;
   text-shadow: 0 1px 2px rgba(0,0,0,0.4);
 }
@@ -155,7 +155,7 @@
 .pp-club-crest--lg {
   width: 32px;
   height: 32px;
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   border-radius: 8px;
 }
 
@@ -180,14 +180,14 @@
 
 .pp-ovr-val {
   font-family: var(--rm-font-display);
-  font-size: 28px;
+  font-size: var(--rm-fs-28);
   line-height: 1.0;
   color: var(--rm-chalk);
 }
 
 .pp-ovr-lbl {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   letter-spacing: 0.08em;
   color: var(--rm-text-muted);
   margin-top: 2px;
@@ -223,7 +223,7 @@
 
 .pp-pip-label {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--rm-text-muted);
@@ -231,7 +231,7 @@
 
 .pp-pip-val {
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   font-weight: 600;
   color: var(--rm-text);
   white-space: nowrap;
@@ -253,7 +253,7 @@
 
 .pp-section-title {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   letter-spacing: 0.10em;
   text-transform: uppercase;
   color: var(--rm-text-muted);
@@ -312,7 +312,7 @@
 .pp-radar-label {
   fill: var(--rm-text-muted);
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.06em;
   font-weight: 700;
 }
@@ -330,7 +330,7 @@
 
 .pp-attr-group-label {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.10em;
   text-transform: uppercase;
   color: var(--rm-text-dim);
@@ -347,7 +347,7 @@
 
 .pp-attr-short {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   color: var(--rm-text-muted);
   letter-spacing: 0.05em;
@@ -355,7 +355,7 @@
 
 .pp-attr-label {
   font-family: var(--rm-font-body);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   color: var(--rm-text);
 }
 
@@ -374,7 +374,7 @@
 
 .pp-attr-val {
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   font-weight: 700;
   color: var(--rm-text);
   text-align: right;
@@ -410,7 +410,7 @@
 
 .pp-stat-label {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--rm-text-muted);
@@ -418,7 +418,7 @@
 
 .pp-stat-val {
   font-family: var(--rm-font-mono);
-  font-size: 16px;
+  font-size: var(--rm-fs-16);
   font-weight: 700;
   color: var(--rm-text);
   font-variant-numeric: tabular-nums;
@@ -452,7 +452,7 @@
 
 .pp-hist-head {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--rm-text-dim);
@@ -463,7 +463,7 @@
 
 .pp-hist-season {
   font-family: var(--rm-font-body);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   color: var(--rm-text);
   overflow: hidden;
   white-space: nowrap;
@@ -478,7 +478,7 @@
   color: var(--rm-pitch);
   border-radius: 999px;
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   vertical-align: middle;
@@ -494,7 +494,7 @@
   align-items: center;
   gap: 6px;
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   color: var(--rm-text-muted);
   overflow: hidden;
   min-width: 0;
@@ -508,7 +508,7 @@
 
 .pp-hist-num {
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   color: var(--rm-text);
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -516,7 +516,7 @@
 
 .pp-hist-rating {
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   font-weight: 700;
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -532,7 +532,7 @@
   color: var(--rm-text-muted);
   padding: 24px 16px;
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   background: var(--rm-surface);
   border: 1px solid var(--rm-border-soft);
   border-radius: 12px;

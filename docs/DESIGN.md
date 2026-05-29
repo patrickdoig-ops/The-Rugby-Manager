@@ -305,6 +305,33 @@ Bench jersey badges use the neutral surface treatment — team colour on bench s
 | 9px | 0.18em | Pill labels, sub-metadata |
 | 8px | 0.18em | Smallest mono — column headers, footnotes |
 
+#### Type tokens & Dynamic Type scaling
+
+**Every `font-size` references a token, never a raw px value.** The scale above is realised
+as `--rm-fs-*` custom properties in `style/main.css` `:root` (`--rm-fs-8` … `--rm-fs-72`, one
+per size in the scale). Each is `calc(Npx * var(--rm-text-scale))`, so a single multiplier —
+`--rm-text-scale` — rescales all type at once (iOS Dynamic Type-style accessibility support).
+
+```css
+--rm-text-scale: 1;                              /* default; Settings overrides at runtime */
+--rm-fs-14: calc(14px * var(--rm-text-scale));   /* body base — html/body bind to this */
+```
+
+- **Use the tokens.** New CSS must use `font-size: var(--rm-fs-N)` (or `calc(Npx * var(--rm-text-scale))`
+  for an off-ladder half-pixel value, and `clamp(calc(Apx * var(--rm-text-scale)), Bvw, calc(Cpx * var(--rm-text-scale)))`
+  for fluid hero display). Never hardcode `font-size: Npx` — it would silently opt out of the
+  accessibility scale.
+- **The multiplier is user-driven.** Settings → Accessibility offers discrete manual steps
+  (Default / Large / Larger / Largest → `1 / 1.15 / 1.3 / 1.45`) and, on the native iOS shell, a
+  "Follow system text size" toggle. The controller is `src/ui/textScale.ts`: it owns the effective
+  scale, persists the choice via `src/ui/uiPrefs.ts`, and writes `:root` through `applyTextScale()`.
+  Because `:root` carries a static `--rm-text-scale: 1`, first paint is correct before JS runs.
+- **Native Dynamic Type follow (iOS).** The `DynamicType` Capacitor plugin
+  (`ios/App/App/DynamicTypePlugin.swift`, JS bridge `src/native/dynamicType.ts`) reports
+  `UIContentSizeCategory` and emits live changes; `textScale.ts` maps each category onto the
+  multiplier, clamped to `1.5` so the largest accessibility sizes can't break layouts. Auto mode is
+  the native default; on web it resolves to `1` (no system source), so the web build is unchanged.
+
 ### 3.4 The section label standard
 
 **Every section label across the product uses this exact treatment:**

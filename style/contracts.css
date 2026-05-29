@@ -24,7 +24,7 @@
   border-radius: 8px;
   padding: 5px 12px;
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -59,7 +59,7 @@
 
 #ct-cap-title {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -68,7 +68,7 @@
 
 #ct-cap-numbers {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   font-weight: 700;
   letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
@@ -127,7 +127,7 @@
   align-items: center;
   gap: 5px;
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -164,7 +164,7 @@
   background: var(--rm-surface);
   border: 1px solid var(--rm-border-soft);
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.10em;
   text-transform: uppercase;
@@ -230,13 +230,13 @@
 
 .ct-ovr-val {
   font-family: var(--rm-font-display);
-  font-size: 16px;
+  font-size: var(--rm-fs-16);
   line-height: 1;
 }
 
 .ct-ovr-lbl {
   font-family: var(--rm-font-mono);
-  font-size: 8px;
+  font-size: var(--rm-fs-8);
   font-weight: 700;
   letter-spacing: 0.10em;
   text-transform: uppercase;
@@ -285,7 +285,7 @@
 
 .ct-player-name {
   font-family: var(--rm-font-body);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   font-weight: 600;
   color: var(--rm-chalk);
   white-space: nowrap;
@@ -297,7 +297,7 @@
 .ct-wage {
   flex-shrink: 0;
   font-family: var(--rm-font-mono);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   font-weight: 700;
   letter-spacing: 0.02em;
   color: var(--rm-chalk);
@@ -318,7 +318,7 @@
   min-width: 0;
   flex-wrap: wrap;
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--rm-text-dim);
@@ -335,7 +335,7 @@
   align-items: center;
   gap: 5px;
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.06em;
   color: var(--rm-text-dim);
   font-variant-numeric: tabular-nums;
@@ -345,7 +345,7 @@
   padding: 2px 5px;
   border-radius: 4px;
   font-family: var(--rm-font-mono);
-  font-size: 8px;
+  font-size: var(--rm-fs-8);
   font-weight: 700;
   letter-spacing: 0.10em;
   text-transform: uppercase;
@@ -423,7 +423,7 @@
 
 #ct-footer-note {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   letter-spacing: 0.10em;
   text-transform: uppercase;
   color: var(--rm-text-faint);
@@ -444,7 +444,7 @@
 
 #ct-footer.ct-footer--marquee #ct-footer-note {
   font-family: var(--rm-font-body);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   letter-spacing: 0;
   text-transform: none;
   color: var(--rm-text-muted);
@@ -465,7 +465,7 @@
   border-radius: 14px;
   color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
@@ -531,7 +531,7 @@
 }
 .ct-expand-label {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   letter-spacing: 0.18em;
   color: var(--rm-text-dim);
@@ -542,7 +542,7 @@
   justify-content: space-between;
   align-items: baseline;
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
 }
 .ct-expand-row > span { color: var(--rm-text-dim); }
 .ct-expand-row > strong { color: var(--rm-chalk); font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -563,14 +563,14 @@
 }
 .ct-mini-stat span {
   font-family: var(--rm-font-display);
-  font-size: 18px;
+  font-size: var(--rm-fs-18);
   color: var(--rm-chalk);
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
 }
 .ct-mini-stat label {
   font-family: var(--rm-font-mono);
-  font-size: 8px;
+  font-size: var(--rm-fs-8);
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--rm-text-dim);
@@ -586,7 +586,7 @@
 }
 .ct-expand-bar-label {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--rm-text-dim);
@@ -608,7 +608,7 @@
 }
 .ct-expand-bar-val {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--rm-chalk);

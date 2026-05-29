@@ -94,6 +94,7 @@ import { screenRouter }            from './ui/ScreenRouter';
 import { loadSave, saveGame, clearSave, migrateLegacySave } from './ui/SaveManager';
 import { installBackupMirror, reconcileBackups } from './ui/saveBackup';
 import { loadTickDelayMs }           from './ui/uiPrefs';
+import { initTextScale }             from './ui/textScale';
 import { MatchCoordinator }        from './engine/MatchCoordinator';
 import type { RawTeamInput }       from './types/teamData';
 import type { TeamTactics }        from './types/team';
@@ -143,6 +144,7 @@ function configureNativeShell(): void {
 
 document.addEventListener('DOMContentLoaded', () => {
   configureNativeShell();
+  initTextScale();            // accessibility text scale — before any render
   buildAppShell();
   preloadAllCues();
   initAudioDirector();

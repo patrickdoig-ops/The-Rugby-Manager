@@ -62,7 +62,7 @@
   border: 1px solid color-mix(in oklch, var(--rm-pitch) 28%, transparent);
   border-radius: 999px;
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--rm-pitch);
@@ -85,7 +85,7 @@
 
 #ts-title {
   font-family: var(--rm-font-display);
-  font-size: clamp(36px, 11vw, 46px);
+  font-size: clamp(calc(36px * var(--rm-text-scale)), 11vw, calc(46px * var(--rm-text-scale)));
   color: var(--rm-chalk);
   line-height: 0.92;
   margin: 0;
@@ -96,7 +96,7 @@
 #ts-subtitle {
   font-family: var(--rm-font-editor);
   font-style: italic;
-  font-size: 15px;
+  font-size: var(--rm-fs-15);
   color: var(--rm-text-muted);
   margin: 0;
 }
@@ -215,7 +215,7 @@
 
 .ts-team-primary {
   font-family: var(--rm-font-display);
-  font-size: 26px;
+  font-size: var(--rm-fs-26);
   color: rgba(255, 255, 255, 0.96);
   line-height: 0.92;
   text-transform: uppercase;
@@ -228,7 +228,7 @@
 
 .ts-team-secondary {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -258,14 +258,14 @@
 
 .ts-ovr-value {
   font-family: var(--rm-font-display);
-  font-size: 26px;
+  font-size: var(--rm-fs-26);
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
 .ts-ovr-label {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.38);
@@ -274,7 +274,7 @@
 /* Tier pills */
 .ts-tier {
   font-family: var(--rm-font-mono);
-  font-size: 7.5px;
+  font-size: calc(7.5px * var(--rm-text-scale));
   letter-spacing: 0.10em;
   text-transform: uppercase;
   padding: 2px 7px;

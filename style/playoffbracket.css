@@ -64,7 +64,7 @@
 
 .pb-card-label {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.16em;
   color: var(--rm-text-muted);
@@ -72,7 +72,7 @@
 
 .pb-date {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   color: var(--rm-text-muted);
   letter-spacing: 0.04em;
 }
@@ -106,7 +106,7 @@
 
 .pb-name {
   font-family: var(--rm-font-display);
-  font-size: 15px;
+  font-size: var(--rm-fs-15);
   letter-spacing: 0.03em;
   white-space: nowrap;
   overflow: hidden;
@@ -115,7 +115,7 @@
 
 .pb-seed {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   width: 18px;
   height: 18px;
@@ -140,7 +140,7 @@
   color: var(--rm-chalk);
   text-shadow: 0 1px 2px rgba(0,0,0,0.5);
   flex: 0 0 auto;
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
 }
 
 .pb-crest--tbc {
@@ -151,7 +151,7 @@
 
 .pb-score {
   font-family: var(--rm-font-mono);
-  font-size: 18px;
+  font-size: var(--rm-fs-18);
   font-weight: 700;
   color: var(--rm-text);
   min-width: 26px;
@@ -163,7 +163,7 @@
 .pb-vs {
   font-family: var(--rm-font-editor);
   font-style: italic;
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   color: var(--rm-text-muted);
 }
 
@@ -173,7 +173,7 @@
 
 .pb-venue {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.05em;
   color: var(--rm-text-muted);
   text-transform: uppercase;
@@ -197,7 +197,7 @@
 
 .pb-champion-label {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.16em;
   color: var(--rm-text-muted);
@@ -207,12 +207,12 @@
   width: var(--crest-xl-size);
   height: var(--crest-xl-size);
   border-radius: var(--crest-xl-radius);
-  font-size: 36px;
+  font-size: var(--rm-fs-36);
 }
 
 .pb-champion-name {
   font-family: var(--rm-font-display);
-  font-size: clamp(22px, 5vw, 32px);
+  font-size: clamp(calc(22px * var(--rm-text-scale)), 5vw, calc(32px * var(--rm-text-scale)));
   color: var(--rm-text);
   letter-spacing: 0.04em;
   text-align: center;
@@ -240,7 +240,7 @@
   border-radius: 14px;
   color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;

@@ -71,6 +71,62 @@ export function saveAutoSlowEnabled(on: boolean): void {
   }
 }
 
+// Accessibility text scale — a single multiplier applied to the --rm-text-scale
+// CSS custom property, which every font-size token (--rm-fs-*) is derived from.
+// Two persisted pieces: the manual fixed-size choice (discrete iOS Dynamic
+// Type-style steps) and the mode (follow the iOS system size, or use the manual
+// choice). Orchestration + the system bridge live in src/ui/textScale.ts.
+const TEXT_SCALE_KEY = 'rugby-manager-text-scale';
+const TEXT_SCALE_MODE_KEY = 'rugby-manager-text-scale-mode';
+export const TEXT_SCALE_VALUES = [1, 1.15, 1.3, 1.45] as const;
+export const TEXT_SCALE_LABELS = ['Default', 'Large', 'Larger', 'Largest'] as const;
+const DEFAULT_TEXT_SCALE = 1;
+export type TextScaleMode = 'auto' | 'manual';
+
+export function loadManualTextScale(): number {
+  try {
+    const raw = localStorage.getItem(TEXT_SCALE_KEY);
+    if (raw === null) return DEFAULT_TEXT_SCALE;
+    const n = Number(raw);
+    if ((TEXT_SCALE_VALUES as readonly number[]).includes(n)) return n;
+    return DEFAULT_TEXT_SCALE;
+  } catch {
+    return DEFAULT_TEXT_SCALE;
+  }
+}
+
+export function saveManualTextScale(scale: number): void {
+  try {
+    localStorage.setItem(TEXT_SCALE_KEY, String(scale));
+  } catch {
+    // localStorage disabled / quota exceeded — silent.
+  }
+}
+
+// Defaults to 'auto' so a native shell follows the iOS system size out of the
+// box; on web 'auto' resolves to scale 1 (no system source), so the web build's
+// behaviour is unchanged.
+export function loadTextScaleMode(): TextScaleMode {
+  try {
+    return localStorage.getItem(TEXT_SCALE_MODE_KEY) === 'manual' ? 'manual' : 'auto';
+  } catch {
+    return 'auto';
+  }
+}
+
+export function saveTextScaleMode(mode: TextScaleMode): void {
+  try {
+    localStorage.setItem(TEXT_SCALE_MODE_KEY, mode);
+  } catch {
+    // localStorage disabled / quota exceeded — silent.
+  }
+}
+
+// Writes the multiplier onto :root so every --rm-fs-* token rescales at once.
+export function applyTextScale(scale: number): void {
+  document.documentElement.style.setProperty('--rm-text-scale', String(scale));
+}
+
 // Commentary feed filter — single-select, sticky across matches. Maps to
 // the `.commentary-entry .event-*` phase classes the feed already emits.
 const CF_FILTER_KEY = 'rugby-manager-cf-filter';

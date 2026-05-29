@@ -26,7 +26,7 @@
 }
 
 .saves-intro {
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--rm-text-scale));
   line-height: 1.55;
   color: var(--rm-text-muted);
   margin: 0 0 2px;
@@ -56,7 +56,7 @@
 }
 .saves-slot-name {
   font-family: var(--rm-font-display);
-  font-size: 19px;
+  font-size: var(--rm-fs-19);
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--rm-chalk);
@@ -64,7 +64,7 @@
 .saves-name-input {
   flex: 1;
   font-family: var(--rm-font-display);
-  font-size: 18px;
+  font-size: var(--rm-fs-18);
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--rm-chalk);
@@ -74,7 +74,7 @@
   padding: 6px 10px;
 }
 .saves-active-badge {
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -87,14 +87,14 @@
 
 .saves-slot-body { margin-bottom: 14px; }
 .saves-slot-empty {
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   color: var(--rm-text-muted);
   font-style: italic;
 }
 .saves-slot-team {
   display: block;
   font-family: var(--rm-font-display);
-  font-size: 24px;
+  font-size: var(--rm-fs-24);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--rm-chalk);
@@ -109,7 +109,7 @@
 }
 .saves-chip {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--rm-text-muted);
@@ -120,7 +120,7 @@
 }
 .saves-slot-sub {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--rm-text-dim);
@@ -137,7 +137,7 @@
   padding: 11px 12px;
   border-radius: 10px;
   font-family: var(--rm-font-display);
-  font-size: 15px;
+  font-size: var(--rm-fs-15);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   cursor: pointer;
@@ -150,7 +150,7 @@
 .saves-act:active { transform: scale(0.97); }
 .saves-act--primary {
   flex-basis: 100%;
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   background: var(--rm-cta);
   border: none;
   color: var(--rm-on-accent);
@@ -199,14 +199,14 @@
 }
 .rm-confirm-title {
   font-family: var(--rm-font-display);
-  font-size: 26px;
+  font-size: var(--rm-fs-26);
   text-transform: uppercase;
   color: var(--rm-chalk);
   margin-bottom: 8px;
   letter-spacing: 0.04em;
 }
 .rm-confirm-body {
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   color: var(--rm-text-muted);
   margin-bottom: 22px;
   line-height: 1.55;
@@ -217,7 +217,7 @@
   padding: 13px;
   border-radius: 12px;
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;

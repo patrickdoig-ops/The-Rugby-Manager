@@ -52,6 +52,40 @@
   --rm-font-body:    'Geist Sans', 'Helvetica Neue', system-ui, sans-serif;
   --rm-font-mono:    'JetBrains Mono', ui-monospace, Menlo, monospace;
 
+  /* — Accessibility text scale (iOS Dynamic Type-style). Single multiplier:
+       Settings writes 1 / 1.15 / 1.3 / 1.45 onto :root at runtime; default 1
+       keeps first paint correct before JS runs. See docs/DESIGN.md §3. — */
+  --rm-text-scale: 1;
+
+  /* — Type scale. Every font-size in the app references one of these tokens so
+       --rm-text-scale can scale all type at once. New CSS must use these, never
+       a raw px font-size. — */
+  --rm-fs-8:  calc(8px  * var(--rm-text-scale));
+  --rm-fs-9:  calc(9px  * var(--rm-text-scale));
+  --rm-fs-10: calc(10px * var(--rm-text-scale));
+  --rm-fs-11: calc(11px * var(--rm-text-scale));
+  --rm-fs-12: calc(12px * var(--rm-text-scale));
+  --rm-fs-13: calc(13px * var(--rm-text-scale));
+  --rm-fs-14: calc(14px * var(--rm-text-scale));
+  --rm-fs-15: calc(15px * var(--rm-text-scale));
+  --rm-fs-16: calc(16px * var(--rm-text-scale));
+  --rm-fs-18: calc(18px * var(--rm-text-scale));
+  --rm-fs-19: calc(19px * var(--rm-text-scale));
+  --rm-fs-20: calc(20px * var(--rm-text-scale));
+  --rm-fs-21: calc(21px * var(--rm-text-scale));
+  --rm-fs-22: calc(22px * var(--rm-text-scale));
+  --rm-fs-24: calc(24px * var(--rm-text-scale));
+  --rm-fs-26: calc(26px * var(--rm-text-scale));
+  --rm-fs-28: calc(28px * var(--rm-text-scale));
+  --rm-fs-30: calc(30px * var(--rm-text-scale));
+  --rm-fs-32: calc(32px * var(--rm-text-scale));
+  --rm-fs-36: calc(36px * var(--rm-text-scale));
+  --rm-fs-40: calc(40px * var(--rm-text-scale));
+  --rm-fs-42: calc(42px * var(--rm-text-scale));
+  --rm-fs-44: calc(44px * var(--rm-text-scale));
+  --rm-fs-52: calc(52px * var(--rm-text-scale));
+  --rm-fs-72: calc(72px * var(--rm-text-scale));
+
   /* — Card elevation: inner top highlight + close shadow + ambient lift — */
   --rm-card-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.055),
@@ -231,8 +265,8 @@ input, textarea, [contenteditable] { user-select: text; }
   font-family: var(--rm-font-mono);
   font-weight: 700;
 }
-.form-pip--sm { width: 12px; height: 12px; border-radius: 2px; font-size: 8px; }
-.form-pip--md { width: 22px; height: 22px; border-radius: 6px; font-size: 11px; }
+.form-pip--sm { width: 12px; height: 12px; border-radius: 2px; font-size: var(--rm-fs-8); }
+.form-pip--md { width: 22px; height: 22px; border-radius: 6px; font-size: var(--rm-fs-11); }
 .form-pip--w     { background: color-mix(in oklch, var(--rm-stat-4) 22%, transparent); color: var(--rm-stat-4); }
 .form-pip--l     { background: color-mix(in oklch, var(--rm-stat-1) 22%, transparent); color: var(--rm-stat-1); }
 .form-pip--d     { background: color-mix(in oklch, var(--rm-text-dim) 18%, transparent); color: var(--rm-text-dim); }
@@ -302,7 +336,7 @@ html, body {
   background: var(--rm-bg);
   color: var(--rm-text);
   font-family: var(--rm-font-body);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   font-weight: 400;
   line-height: 1.4;
   overflow: hidden;
@@ -363,7 +397,7 @@ html, body {
   align-items: center;
   justify-content: center;
   font-family: var(--rm-font-display);
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   color: var(--rm-chalk);
   letter-spacing: -0.02em;
   flex-shrink: 0;
@@ -430,7 +464,7 @@ html, body {
 
 .team-code {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   letter-spacing: 0.16em;
   font-weight: 700;
   text-transform: uppercase;
@@ -441,7 +475,7 @@ html, body {
 .score {
   font-family: var(--rm-font-display);
   font-variant-numeric: tabular-nums;
-  font-size: 42px;
+  font-size: var(--rm-fs-42);
   font-weight: 400;
   color: var(--rm-chalk);
   line-height: 0.9;
@@ -460,7 +494,7 @@ html, body {
 #clock-display {
   font-family: var(--rm-font-editor);
   font-style: italic;
-  font-size: 24px;
+  font-size: var(--rm-fs-24);
   color: var(--rm-pitch);
   line-height: 1;
   text-align: center;
@@ -469,7 +503,7 @@ html, body {
 /* Phase badge — pill */
 .phase-badge {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.16em;
@@ -503,7 +537,7 @@ html, body {
 
 .end-label {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -560,7 +594,7 @@ html, body {
   right: 0;
   text-align: center;
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   letter-spacing: 0.2em;
   color: rgba(255,255,255,0.75);
   text-transform: uppercase;
@@ -601,7 +635,7 @@ html, body {
 
 .view-btn-label {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.16em;
   text-transform: uppercase;
   line-height: 1;
@@ -639,7 +673,7 @@ html, body {
 }
 #panel-bottom.view-dashboard #panel-stats .panel-header,
 #panel-bottom.view-dashboard #panel-players .panel-header {
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   padding: 5px 12px;
 }
 
@@ -727,7 +761,7 @@ html, body {
   border-bottom: 1px solid var(--rm-border-soft);
   padding: 6px 12px;
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.16em;
@@ -770,7 +804,7 @@ html, body {
   background: var(--rm-surface-2);
   color: var(--rm-text-muted);
   font-family: var(--rm-font-body);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   font-weight: 600;
   border-radius: 10px;
   cursor: pointer;
@@ -791,7 +825,7 @@ html, body {
   background: var(--rm-amber);
   color: var(--rm-bg-deep);
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -838,7 +872,7 @@ html, body {
 
 .speed-btn {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   font-weight: 700;
   padding: 0 9px;
   height: 32px;
@@ -889,7 +923,7 @@ html, body {
   align-items: center;
   gap: 8px;
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   color: var(--rm-text);
   cursor: pointer;
   user-select: none;
@@ -938,7 +972,7 @@ html, body {
 
 .modal-title {
   font-family: var(--rm-font-display);
-  font-size: 26px;
+  font-size: var(--rm-fs-26);
   font-weight: 400;
   letter-spacing: 0.01em;
   text-transform: uppercase;
@@ -948,7 +982,7 @@ html, body {
 
 .modal-subtitle {
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   color: var(--rm-text-muted);
   margin-bottom: 20px;
 }
@@ -976,7 +1010,7 @@ html, body {
 
 .choice-label {
   font-family: var(--rm-font-body);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   font-weight: 700;
   letter-spacing: 0.01em;
   margin-bottom: 3px;
@@ -985,7 +1019,7 @@ html, body {
 
 .choice-desc {
   font-family: var(--rm-font-body);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   color: var(--rm-text-muted);
   line-height: 1.4;
 }
@@ -993,7 +1027,7 @@ html, body {
 /* ─── Substitution modal ─── */
 .sub-section-label {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.16em;
@@ -1039,13 +1073,13 @@ html, body {
 .sub-num {
   font-family: var(--rm-font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   text-align: center;
 }
 
 .sub-name {
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   font-weight: 700;
   color: var(--rm-chalk);
   white-space: nowrap;
@@ -1054,7 +1088,7 @@ html, body {
 }
 
 .sub-pos {
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   color: var(--rm-text-dim);
   white-space: nowrap;
 }
@@ -1067,7 +1101,7 @@ html, body {
 }
 
 .sub-empty {
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   color: var(--rm-text-dim);
   padding: 8px 0;
   text-align: center;
@@ -1090,7 +1124,7 @@ html, body {
   padding: 16px 12px;
   border-radius: 10px;
   font-family: var(--rm-font-body);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -1141,7 +1175,7 @@ html, body {
 }
 
 .sub-pending-text {
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   color: var(--rm-chalk);
   font-family: var(--rm-font-body);
 }
@@ -1154,7 +1188,7 @@ html, body {
   background: none;
   border: none;
   color: var(--rm-text-dim);
-  font-size: 16px;
+  font-size: var(--rm-fs-16);
   line-height: 1;
   cursor: pointer;
   padding: 0 2px;
@@ -1191,7 +1225,7 @@ html, body {
   border: none;
   color: var(--rm-text-muted);
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   cursor: pointer;
   padding: 6px 0;
   transition: color 0.15s;
@@ -1218,7 +1252,7 @@ html, body {
 
 .app-title {
   font-family: var(--rm-font-display);
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   color: var(--rm-chalk);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1238,7 +1272,7 @@ html, body {
   margin-top: 8px;
   text-align: center;
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.14em;
   color: var(--rm-pitch);
   text-transform: uppercase;
@@ -1333,10 +1367,10 @@ html, body {
     padding: 12px 28px 12px;
   }
 
-  .score { font-size: 52px; }
-  #clock-display { font-size: 30px; }
-  .team-crest { width: var(--crest-sm-size); height: var(--crest-sm-size); font-size: 18px; }
-  .phase-badge { max-width: 180px; font-size: 9px; }
+  .score { font-size: var(--rm-fs-52); }
+  #clock-display { font-size: var(--rm-fs-30); }
+  .team-crest { width: var(--crest-sm-size); height: var(--crest-sm-size); font-size: var(--rm-fs-18); }
+  .phase-badge { max-width: 180px; font-size: var(--rm-fs-9); }
 
   #view-toggle-bar { grid-area: toggles; }
 
@@ -1408,7 +1442,7 @@ html, body {
   background: color-mix(in oklch, var(--rm-danger) 22%, transparent);
   color: var(--rm-danger);
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   letter-spacing: 0.06em;
   border-radius: 4px;
@@ -1434,7 +1468,7 @@ html, body {
   border: 1px solid rgba(0,0,0,0.5);
   font-family: var(--rm-font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   color: rgba(0,0,0,0.78);
   vertical-align: middle;
@@ -1483,13 +1517,13 @@ html, body {
 }
 .empty-state__title {
   font-family: var(--rm-font-body);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   font-weight: 600;
   color: var(--rm-text-muted);
 }
 .empty-state__desc {
   font-family: var(--rm-font-body);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   color: var(--rm-text-dim);
   max-width: 280px;
   line-height: 1.55;
@@ -1510,7 +1544,7 @@ html, body {
   background: var(--rm-danger);
   color: var(--rm-chalk);
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   line-height: 14px;
   text-align: center;
@@ -1556,7 +1590,7 @@ html, body {
   background: var(--rm-surface-3);
   color: var(--rm-chalk);
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   font-weight: 600;
   letter-spacing: 0.01em;
   border: 1px solid var(--rm-pitch);
@@ -1581,7 +1615,7 @@ html, body {
   background: color-mix(in oklch, var(--rm-danger) 14%, transparent);
   border: 1px solid color-mix(in oklch, var(--rm-danger) 36%, transparent);
   border-radius: 8px;
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   color: var(--rm-text);
   display: flex;
   align-items: flex-start;
@@ -1600,7 +1634,7 @@ html, body {
   font-weight: 900;
   border-radius: 50%;
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   line-height: 1;
 }
 
@@ -1637,7 +1671,7 @@ html, body {
 }
 
 .crash-overlay-title {
-  font-size: 18px;
+  font-size: var(--rm-fs-18);
   font-weight: 700;
   color: var(--rm-danger);
 }
@@ -1650,7 +1684,7 @@ html, body {
   background: rgba(0,0,0,0.4);
   border-radius: 6px;
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   line-height: 1.4;
   white-space: pre-wrap;
   word-break: break-word;
@@ -1670,7 +1704,7 @@ html, body {
   border: 1px solid var(--rm-border-soft);
   background: var(--rm-surface);
   color: var(--rm-text);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   cursor: pointer;
 }
 

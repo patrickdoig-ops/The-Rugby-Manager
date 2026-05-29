@@ -8,11 +8,16 @@
   background: var(--rm-bg);
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow: hidden;
   padding-top:    env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
   padding-left:   env(safe-area-inset-left, 0px);
   padding-right:  env(safe-area-inset-right, 0px);
+}
+
+#tr-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
 }
 
 /* ── Squad freshness pill ───────────────────────────────────────────── */
@@ -216,9 +221,9 @@
 
 /* ── Footer CTA ─────────────────────────────────────────────────────── */
 #tr-footer {
-  margin-top: auto;
-  padding: 16px 16px var(--safe-bottom);
   flex-shrink: 0;
+  padding: 16px 16px var(--safe-bottom);
+  border-top: 1px solid var(--rm-hairline);
 }
 
 #tr-continue,

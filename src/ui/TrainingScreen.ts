@@ -183,33 +183,35 @@ function renderPostMatch(
       <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week}</div>
     </div>
 
-    <div id="tr-condition">
-      <div class="tr-cond-row">
-        <span class="tr-cond-label">Squad freshness</span>
-        <span class="tr-cond-val tr-cond-val--${freshnessClass(avgCondition)}">${avgCondition}% <span class="tr-cond-proj">→ ${projected}%</span></span>
+    <div id="tr-body">
+      <div id="tr-condition">
+        <div class="tr-cond-row">
+          <span class="tr-cond-label">Squad freshness</span>
+          <span class="tr-cond-val tr-cond-val--${freshnessClass(avgCondition)}">${avgCondition}% <span class="tr-cond-proj">→ ${projected}%</span></span>
+        </div>
+        ${lowCondition.length > 0
+          ? `<div class="tr-cond-low">Tired: ${lowCondition.join(' · ')}</div>`
+          : `<div class="tr-cond-low">No tired players.</div>`}
       </div>
-      ${lowCondition.length > 0
-        ? `<div class="tr-cond-low">Tired: ${lowCondition.join(' · ')}</div>`
-        : `<div class="tr-cond-low">No tired players.</div>`}
+
+      ${banner}
+
+      <div class="tr-weeks">${weekCards}</div>
+
+      <section class="tr-section">
+        <h2 class="tr-section-title">Forwards focus · ${fwdCount} players</h2>
+        <div class="tr-chip-row" id="tr-fwd-row">
+          ${FORWARDS_FOCUSES.map(f => focusChip('fwd', f, draftPlan.forwardsFocus)).join('')}
+        </div>
+      </section>
+
+      <section class="tr-section">
+        <h2 class="tr-section-title">Backs focus · ${bckCount} players</h2>
+        <div class="tr-chip-row" id="tr-bck-row">
+          ${BACKS_FOCUSES.map(f => focusChip('bck', f, draftPlan.backsFocus)).join('')}
+        </div>
+      </section>
     </div>
-
-    ${banner}
-
-    <div class="tr-weeks">${weekCards}</div>
-
-    <section class="tr-section">
-      <h2 class="tr-section-title">Forwards focus · ${fwdCount} players</h2>
-      <div class="tr-chip-row" id="tr-fwd-row">
-        ${FORWARDS_FOCUSES.map(f => focusChip('fwd', f, draftPlan.forwardsFocus)).join('')}
-      </div>
-    </section>
-
-    <section class="tr-section">
-      <h2 class="tr-section-title">Backs focus · ${bckCount} players</h2>
-      <div class="tr-chip-row" id="tr-bck-row">
-        ${BACKS_FOCUSES.map(f => focusChip('bck', f, draftPlan.backsFocus)).join('')}
-      </div>
-    </section>
 
     <div id="tr-footer">
       <button id="tr-continue" class="cta-pulse">
@@ -253,36 +255,38 @@ function renderMidWeek(
       <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week}</div>
     </div>
 
-    <div id="tr-condition">
-      <div class="tr-cond-row">
-        <span class="tr-cond-label">Squad freshness</span>
-        <span class="tr-cond-val tr-cond-val--${freshnessClass(avgCondition)}">${avgCondition}%</span>
+    <div id="tr-body">
+      <div id="tr-condition">
+        <div class="tr-cond-row">
+          <span class="tr-cond-label">Squad freshness</span>
+          <span class="tr-cond-val tr-cond-val--${freshnessClass(avgCondition)}">${avgCondition}%</span>
+        </div>
+        ${lowCondition.length > 0
+          ? `<div class="tr-cond-low">Tired: ${lowCondition.join(' · ')}</div>`
+          : `<div class="tr-cond-low">No tired players.</div>`}
       </div>
-      ${lowCondition.length > 0
-        ? `<div class="tr-cond-low">Tired: ${lowCondition.join(' · ')}</div>`
-        : `<div class="tr-cond-low">No tired players.</div>`}
+
+      <section class="tr-section">
+        <h2 class="tr-section-title">Default intensity</h2>
+        <div class="tr-chip-row" id="tr-intensity-row">
+          ${INTENSITIES.map(i => intensityChip(i, draftPlan.intensity)).join('')}
+        </div>
+      </section>
+
+      <section class="tr-section">
+        <h2 class="tr-section-title">Forwards focus · ${fwdCount} players</h2>
+        <div class="tr-chip-row" id="tr-fwd-row">
+          ${FORWARDS_FOCUSES.map(f => focusChip('fwd', f, draftPlan.forwardsFocus)).join('')}
+        </div>
+      </section>
+
+      <section class="tr-section">
+        <h2 class="tr-section-title">Backs focus · ${bckCount} players</h2>
+        <div class="tr-chip-row" id="tr-bck-row">
+          ${BACKS_FOCUSES.map(f => focusChip('bck', f, draftPlan.backsFocus)).join('')}
+        </div>
+      </section>
     </div>
-
-    <section class="tr-section">
-      <h2 class="tr-section-title">Default intensity</h2>
-      <div class="tr-chip-row" id="tr-intensity-row">
-        ${INTENSITIES.map(i => intensityChip(i, draftPlan.intensity)).join('')}
-      </div>
-    </section>
-
-    <section class="tr-section">
-      <h2 class="tr-section-title">Forwards focus · ${fwdCount} players</h2>
-      <div class="tr-chip-row" id="tr-fwd-row">
-        ${FORWARDS_FOCUSES.map(f => focusChip('fwd', f, draftPlan.forwardsFocus)).join('')}
-      </div>
-    </section>
-
-    <section class="tr-section">
-      <h2 class="tr-section-title">Backs focus · ${bckCount} players</h2>
-      <div class="tr-chip-row" id="tr-bck-row">
-        ${BACKS_FOCUSES.map(f => focusChip('bck', f, draftPlan.backsFocus)).join('')}
-      </div>
-    </section>
 
     <div id="tr-footer">
       <button id="tr-back" class="cta-pulse">

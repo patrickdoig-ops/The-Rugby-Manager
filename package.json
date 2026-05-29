@@ -20,6 +20,10 @@
   },
   "dependencies": {
     "@capacitor/core": "^6.2.1",
-    "@capacitor/ios": "^6.2.1"
+    "@capacitor/ios": "^6.2.1",
+    "@fontsource/anton": "^5.2.7",
+    "@fontsource/geist-sans": "^5.2.5",
+    "@fontsource/instrument-serif": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8"
   }
 }

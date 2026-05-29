@@ -48,7 +48,7 @@
 
   --rm-font-display: 'Anton', 'Bebas Neue', Impact, sans-serif;
   --rm-font-editor:  'Instrument Serif', 'Georgia', serif;
-  --rm-font-body:    'Geist', 'Helvetica Neue', system-ui, sans-serif;
+  --rm-font-body:    'Geist Sans', 'Helvetica Neue', system-ui, sans-serif;
   --rm-font-mono:    'JetBrains Mono', ui-monospace, Menlo, monospace;
 
   /* — Card elevation: inner top highlight + close shadow + ambient lift — */

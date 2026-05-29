@@ -822,8 +822,8 @@ html, body {
 }
 
 .ctrl-btn.primary:active:not(:disabled) {
-  background: #005e20;
-  border-color: #005e20;
+  background: var(--rm-cta-active);
+  border-color: var(--rm-cta-active);
   box-shadow: none;
 }
 

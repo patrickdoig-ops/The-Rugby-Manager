@@ -68,12 +68,10 @@ function renderMotmHero(state: MatchState): string {
   const { player } = motm;
   const stats = player.matchStats;
 
-  // Stat line — T · K · tackles · metres. We can't split conversions from
-  // penalties (engine doesn't tag the kick type), so K is the lumped
-  // kicksMade count. Tackles fills the slot where C/P would otherwise sit.
   const cells: string[] = [];
   if (stats.tries > 0) cells.push(`${stats.tries} T`);
-  if (stats.kicksMade > 0) cells.push(`${stats.kicksMade} K`);
+  if (stats.conversionsMade > 0) cells.push(`${stats.conversionsMade}C`);
+  if (stats.penaltiesMade > 0) cells.push(`${stats.penaltiesMade}P`);
   if (stats.tacklesMade > 0) cells.push(`${stats.tacklesMade} tackles`);
   if (stats.metresCarried > 0) cells.push(`${stats.metresCarried}m carried`);
 
@@ -185,14 +183,17 @@ function renderScorers(state: MatchState): string {
   function lines(team: Team): string {
     const all = [...team.players, ...team.substitutedOff];
     const rows = all
-      .filter(p => p.matchStats.tries > 0 || p.matchStats.kicksMade > 0)
+      .filter(p => p.matchStats.tries > 0 || p.matchStats.conversionsMade > 0 || p.matchStats.penaltiesMade > 0)
       .map(p => {
         const ev: string[] = [];
         if (p.matchStats.tries) {
           ev.push(p.matchStats.tries > 1 ? `${p.matchStats.tries}×T` : 'T');
         }
-        if (p.matchStats.kicksMade) {
-          ev.push(`${p.matchStats.kicksMade}K`);
+        if (p.matchStats.conversionsMade) {
+          ev.push(`${p.matchStats.conversionsMade}C`);
+        }
+        if (p.matchStats.penaltiesMade) {
+          ev.push(`${p.matchStats.penaltiesMade}P`);
         }
         return `<div class="mr-scorer-row">
           <span class="mr-scorer-name">${shortName(p)}</span>

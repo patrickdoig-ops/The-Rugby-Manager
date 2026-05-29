@@ -34,9 +34,11 @@
   #lm-grid { grid-template-columns: 1fr; }
 }
 
-/* Tiles inherit .hub-tile from style/hub.css — keeps the visual
- * language identical to the parent Hub. No tile-local overrides
- * needed today. */
+/* Tiles inherit .hub-tile from style/hub.css but use the darker CTA
+ * green rather than the full-brightness pitch green. */
+#lm-grid .hub-tile {
+  --tile-accent: var(--rm-cta);
+}
 
 /* ===== Shared category chips (Team Stats + Player Stats) ===== */
 

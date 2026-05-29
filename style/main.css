@@ -48,7 +48,7 @@
 
   --rm-font-display: 'Anton', 'Bebas Neue', Impact, sans-serif;
   --rm-font-editor:  'Instrument Serif', 'Georgia', serif;
-  --rm-font-body:    'Geist', 'Helvetica Neue', system-ui, sans-serif;
+  --rm-font-body:    'Geist Sans', 'Helvetica Neue', system-ui, sans-serif;
   --rm-font-mono:    'JetBrains Mono', ui-monospace, Menlo, monospace;
 
   /* — Card elevation: inner top highlight + close shadow + ambient lift — */
@@ -126,6 +126,10 @@
   padding: 0;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  /* Suppress the iOS long-press callout (Copy / Look Up / Share) and image
+     drag — UI chrome shouldn't behave like selectable web content. */
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
 }
 
 input, textarea, [contenteditable] { user-select: text; }

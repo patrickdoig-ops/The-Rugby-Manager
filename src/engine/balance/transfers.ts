@@ -165,7 +165,7 @@ export const BUDGET_VALUES = {
 
 // Club takeover (new investor / Red Bull style). +£1m to wage budget
 // for the upcoming season, clamped at EFFECTIVE_CAP. Hardcoded for
-// Newcastle Red Bulls at the year-1 → year-2 rollover; thereafter, each
+// Newcastle Falcons at the year-1 → year-2 rollover; thereafter, each
 // not-yet-taken-over club has `randomChancePct`% per rollover.
 //
 // At 4% per club, with 9 eligible clubs in year 3, expected ~0.4

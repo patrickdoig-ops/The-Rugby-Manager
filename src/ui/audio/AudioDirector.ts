@@ -94,6 +94,12 @@ function routeMatchEvent(event: GameEvent): void {
     if (k.endsWith('_penalty')) { playId('whistle.penalty'); break; }
   }
 
+  // Scrum penalties buckle the front row — the collapse thud plays before the
+  // penalty whistle above resolves.
+  if (keys.has('attacking_dominant_penalty') || keys.has('defending_dominant_penalty')) {
+    playId('impact.scrum.collapse');
+  }
+
   if (keys.has('knock_on')) { playId('whistle.stoppage'); playId('crowd.groan'); }
   if (keys.has('scrappy_knock_on') || keys.has('crooked_throw')) playId('crowd.groan');
 

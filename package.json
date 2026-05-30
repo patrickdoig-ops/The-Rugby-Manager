@@ -10,7 +10,8 @@
     "cap:ios": "npm run build:cap && cap sync ios && cap open ios",
     "preview": "vite preview",
     "verify": "tsx scripts/checkDeterminism.ts && tsx scripts/checkSeasonDeterminism.ts",
-    "telemetry": "tsx scripts/telemetry.ts"
+    "telemetry": "tsx scripts/telemetry.ts",
+    "audio:check": "tsx scripts/validateAudioManifest.ts"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.2.1",

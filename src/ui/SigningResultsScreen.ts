@@ -15,13 +15,18 @@ import type { GameCoordinator } from '../game/GameCoordinator';
 import type { SigningOutcome } from '../game/signingResolver';
 import { playerOverall } from '../engine/RatingEngine';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
+import { playId } from './SoundManager';
 
 let activeOnContinue: () => void = () => {};
 let activeOutcomes: SigningOutcome[] = [];
 let renderImpl: (() => void) | null = null;
+// One sting per appearance — render() can re-run, so gate on this and reset it
+// when the screen is freshly shown.
+let audioPlayed = false;
 
 export function showSigningResults(outcomes: SigningOutcome[], onContinue: () => void): void {
   activeOutcomes = outcomes;
+  audioPlayed = false;
   activeOnContinue = onContinue;
   renderImpl?.();
 }
@@ -217,6 +222,13 @@ export function initSigningResultsScreen(
 
     const totalBids = userWins.length + userLosses.length + retentionWins.length + retentionLosses.length;
     const totalWon = userWins.length + retentionWins.length;
+
+    // Deal-done chime if the user landed anyone this round, else a deflating
+    // tone for a wasted round. Silent when the user made no bids at all.
+    if (!audioPlayed && totalBids > 0) {
+      audioPlayed = true;
+      playId(totalWon > 0 ? 'stinger.signing.success' : 'stinger.bid.lost');
+    }
     const headlineSummary = totalBids > 0
       ? `${totalWon} won · ${totalBids - totalWon} lost`
       : 'No offers in this round';

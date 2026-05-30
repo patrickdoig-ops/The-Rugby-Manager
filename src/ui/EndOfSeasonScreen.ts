@@ -16,7 +16,7 @@ import { sortStandings } from '../game/leagueTable';
 import { SEASON_AWARDS } from '../engine/balance/career';
 import { animateCounter } from './components/counterUp';
 import { launchConfetti } from './Confetti';
-import { playCue } from './SoundManager';
+import { playId } from './SoundManager';
 
 let activeOnContinue: () => void = () => {};
 let renderImpl: (() => void) | null = null;
@@ -233,15 +233,11 @@ export function initEndOfSeasonScreen(
       }, { duration: 900, delay });
     });
 
-    // Sound: whistle on screen enter (end of season). When the player
-    // is champion, layer a crowd roar at the moment the champion banner
-    // peaks (~800ms after screen enter). The roar fires even under
-    // prefers-reduced-motion — audio is independent of motion per
-    // the v2.220a policy.
-    window.setTimeout(() => playCue('whistle'), 100);
-    if (championIsMe) {
-      window.setTimeout(() => playCue('crowdRoar'), 800);
-    }
+    // Sound: the award flourish on the standings/MVP reveal. The champion
+    // fanfare (stinger.champion) has already fired on game:seasonComplete, so
+    // this screen plays the awards sting. Fires even under prefers-reduced-
+    // motion — audio is independent of motion per the v2.220a policy.
+    window.setTimeout(() => playId('stinger.award'), 100);
 
     // Confetti.ts canvas burst reserved for player-as-champion only.
     // Suppressed under reduced motion.

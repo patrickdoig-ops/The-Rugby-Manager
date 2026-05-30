@@ -18,6 +18,7 @@ import type { BudgetReason } from '../types/gameState';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import { clubBudgetUsage } from '../game/teamStats';
 import { animateCounter } from './components/counterUp';
+import { playId } from './SoundManager';
 
 interface RevealPayload {
   // Display amount in pounds. Sourced from ClubState.salaryBudget at the
@@ -36,6 +37,11 @@ let renderImpl: (() => void) | null = null;
 
 export function showBudgetReveal(payload: RevealPayload): void {
   active = payload;
+  // Off-season reveal carries a delta → ledger sting by direction. The year-1
+  // informational reveal has no delta, so it stays silent.
+  if (payload.delta !== undefined && payload.delta !== 0) {
+    playId(payload.delta > 0 ? 'stinger.budget.up' : 'stinger.budget.down');
+  }
   renderImpl?.();
 }
 

@@ -18,7 +18,7 @@ import type { TakeoverFlavor } from '../types/gameState';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import { animateCounter } from './components/counterUp';
 import { launchConfetti } from './Confetti';
-import { playCue } from './SoundManager';
+import { playId } from './SoundManager';
 
 export interface TakeoverEntry {
   clubId: string;
@@ -159,7 +159,7 @@ export function initTakeoverRevealScreen(
       if (!prm && myTeam) {
         window.setTimeout(() => launchConfetti(myTeam.color, 'normal'), 300);
       }
-      window.setTimeout(() => playCue('uiClick'), 250);
+      window.setTimeout(() => playId('stinger.takeover'), 250);
     }
   }
 

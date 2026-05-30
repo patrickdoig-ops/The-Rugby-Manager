@@ -8,7 +8,7 @@ import type { Player } from '../types/player';
 import { shortName } from '../utils/playerName';
 import { teamTextColor } from '../utils/teamColor';
 import { launchConfetti } from './Confetti';
-import { playCue } from './SoundManager';
+import { playId } from './SoundManager';
 
 export interface NextFixturePreview {
   opponentName:      string;
@@ -457,11 +457,10 @@ export function initMatchResultScreen(
     </div>
   `;
 
-  playCue('whistle');
-
   const isHumanHome = state.engine.humanSide === 'home';
   const humanScore = isHumanHome ? score.home : score.away;
   const oppScore   = isHumanHome ? score.away : score.home;
+  playId(humanScore > oppScore ? 'music.result.win' : 'music.result.loss');
   if (humanScore > oppScore) {
     const margin = humanScore - oppScore;
     const intensity = margin <= 5 ? 'light' : margin >= 21 ? 'storm' : 'normal';

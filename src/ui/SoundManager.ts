@@ -9,8 +9,9 @@
 // both persisted in localStorage.
 //
 // The routing layer (which game/match/screen moment fires which cue) lives in
-// src/ui/audio/AudioDirector.ts. This module is just the engine + the legacy
-// playCue/settings API the existing call sites depend on.
+// src/ui/audio/AudioDirector.ts (match + season) and src/ui/audio/uiSounds.ts
+// (DOM interactions). This module is just the engine + the settings API; cues
+// are played by id via playId / playBed.
 
 import { AUDIO_MANIFEST, type AudioAsset, type AudioChannel } from './audio/audioManifest';
 import { synthesize } from './audio/synth';
@@ -30,15 +31,6 @@ const CHANNEL_MIX: Record<AudioChannel, number> = {
   'ui':             0.47,
   'stinger':        0.9,
   'music':          0.45,
-};
-
-// Legacy cue names mapped onto manifest ids so the pre-existing call sites
-// (main.ts UI click, MatchResultScreen, EndOfSeasonScreen, TakeoverRevealScreen)
-// keep working through the new engine without edits.
-const LEGACY_CUE: Record<string, string> = {
-  uiClick:   'ui.click.primary',
-  whistle:   'whistle.full_time',
-  crowdRoar: 'crowd.try.routine',
 };
 
 const byId = new Map<string, AudioAsset>();
@@ -271,10 +263,4 @@ export function preloadAllCues(): void {
   const unlock = (): void => { void getCtx()?.resume(); };
   window.addEventListener('pointerdown', unlock, { once: true });
   window.addEventListener('keydown', unlock, { once: true });
-}
-
-/** Legacy 3-cue API — maps onto manifest ids. */
-export function playCue(cue: 'whistle' | 'crowdRoar' | 'uiClick'): void {
-  const id = LEGACY_CUE[cue];
-  if (id) playId(id);
 }

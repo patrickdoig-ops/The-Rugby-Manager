@@ -568,9 +568,11 @@ export function initPreMatchScreen(
                    : step === 'scout'   ? 'Choose Tactics'
                    :                       'Start Match';
     const id = isLast ? 'pm-start' : 'pm-next';
+    // The final step (Start Match) is a commit action → the confirm cue.
+    const sfx = isLast ? ' data-sfx="confirm"' : '';
     return `
       <div id="pm-footer">
-        <button id="${id}" class="cta-pulse" type="button">
+        <button id="${id}" class="cta-pulse" type="button"${sfx}>
           <span class="btn-label">${ctaLabel}</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
         </button>

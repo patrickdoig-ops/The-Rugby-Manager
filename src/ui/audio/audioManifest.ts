@@ -533,6 +533,7 @@ const MUSIC: AudioAsset[] = [
     trigger: { on: 'screen', id: 'match-result (player won)' },
     description: 'Upbeat victory sting on the result screen when the managed side won.',
     elevenLabsPrompt: 'A short triumphant victory musical sting, uplifting brass and strings flourish, celebratory and bright, resolving cleanly',
+    variants: 3,
   },
   {
     id: 'music.result.loss',

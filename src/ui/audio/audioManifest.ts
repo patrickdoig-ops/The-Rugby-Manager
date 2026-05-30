@@ -554,16 +554,6 @@ const MUSIC: AudioAsset[] = [
     elevenLabsPrompt: 'A short subdued reflective musical sting, melancholy soft strings and piano, dignified disappointment, gentle fade',
     variants: 5,
   },
-  {
-    id: 'music.transfer',
-    file: `${AUDIO_DIR}/music/transfer.mp3`,
-    channel: 'music',
-    loop: true,
-    priority: 2,
-    trigger: { on: 'screen', id: 'transfer-market' },
-    description: 'Busy "deadline-day" bed — ticking, purposeful. Covers transfer-market, renewals, signing-results, contracts.',
-    elevenLabsPrompt: 'A busy purposeful instrumental bed with a steady ticking clock pulse and tense muted strings, transfer deadline-day urgency, focused seamless looping',
-  },
 ];
 
 // ════════════════════════════════════════════════════════════════════════════

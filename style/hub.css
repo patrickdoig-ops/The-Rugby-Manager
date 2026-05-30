@@ -490,6 +490,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
+  margin-bottom: 6px;
   min-height: 44px;
   background: color-mix(in oklch, var(--rm-amber) 10%, transparent);
   border: none;

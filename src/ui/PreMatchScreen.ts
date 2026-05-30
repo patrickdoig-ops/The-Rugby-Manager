@@ -458,10 +458,11 @@ export function initPreMatchScreen(
   // chip set never empties out for legacy team JSONs.
   const oppTactics: TeamTactics = { ...DEFAULT_TACTICS, ...(oppTeam.suggestedTactics ?? {}) };
 
-  // Players to Watch — rank opponent's matchday squad. Mid-season:
-  // average match rating × appearances (ratingSum is a proxy). Round 1
-  // / no appearances: position-weighted OVR. Top 3.
-  const oppMatchday: RawPlayer[] = [...oppStarters, ...oppBench];
+  // Players to Watch — rank opponent's starting XV only. Bench players
+  // are cover, not pre-match threats. Mid-season: average match rating ×
+  // appearances (ratingSum is a proxy). Round 1 / no appearances:
+  // position-weighted OVR. Top 3.
+  const oppMatchday: RawPlayer[] = [...oppStarters];
   const threatRows = oppMatchday.map(p => {
     const seasonStats = p.rosterId !== undefined ? state.career.roster[p.rosterId]?.seasonStats : undefined;
     const appearances = seasonStats?.appearances ?? 0;

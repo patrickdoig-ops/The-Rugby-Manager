@@ -19,13 +19,21 @@ import { synthesize } from './audio/synth';
 const SFX_KEY    = 'rugby-manager-sfx';
 const VOLUME_KEY = 'rugby-manager-volume';
 
-const BED_FADE_S = 0.8; // cross-fade duration for looping beds
+const BED_FADE_S = 0.8; // cross-fade duration when switching between beds
+
+// Looping beds are not played with src.loop = true: MP3 encoder padding bakes a
+// sliver of silence into the decoded buffer, so a whole-buffer loop has an
+// audible gap at every seam. Instead each bed self-schedules overlapping copies
+// of the buffer that crossfade across the seam (BED_LOOP_XF_S), so the wrap is
+// never heard. Crowd ambience is diffuse, so the overlap is inaudible.
+const BED_LOOP_XF_S = 1.0;         // overlap crossfade at the loop seam
+const BED_SCHED_LOOKAHEAD_S = 0.5; // schedule the next overlapping cycle this far ahead
 
 // Per-channel base level relative to master — keeps continuous beds sitting
 // under the one-shot reactions/whistles that punch through them.
 const CHANNEL_MIX: Record<AudioChannel, number> = {
-  'whistle':        0.4,
-  'crowd-bed':      0.5,
+  'whistle':        1.0,
+  'crowd-bed':      0.4,
   'crowd-reaction': 0.9,
   'impact':         0.8,
   'ui':             0.47,
@@ -46,7 +54,18 @@ const loading = new Map<string, Promise<AudioBuffer | null>>();
 
 // One active looping bed per channel, plus the id we're transitioning toward
 // (guards against a race when two playBed calls land before the buffer loads).
-interface ActiveBed { src: AudioBufferSourceNode; gain: GainNode; id: string }
+// `gain` is the bed's master node (drives the switch crossfade + stop); each
+// overlapping seam-crossfade cycle feeds its own gain into it. `sources` tracks
+// the live cycle nodes (up to two during a seam) so stop can halt them all, and
+// `timer` is the lookahead handle that schedules the next cycle.
+interface ActiveBed {
+  gain: GainNode;
+  id: string;
+  buffer: AudioBuffer;
+  sources: Set<AudioBufferSourceNode>;
+  timer: number | null;
+  stopped: boolean;
+}
 const beds = new Map<AudioChannel, ActiveBed>();
 const pendingBed = new Map<AudioChannel, string>();
 
@@ -134,15 +153,47 @@ function fadeOutBed(ch: AudioChannel): void {
   const cur = beds.get(ch);
   if (!c || !cur) return;
   beds.delete(ch);
+  cur.stopped = true; // stops the scheduler from queueing any further cycle
+  if (cur.timer !== null) { clearTimeout(cur.timer); cur.timer = null; }
   try {
     const now = c.currentTime;
     cur.gain.gain.cancelScheduledValues(now);
     cur.gain.gain.setValueAtTime(cur.gain.gain.value, now);
     cur.gain.gain.linearRampToValueAtTime(0, now + BED_FADE_S);
-    cur.src.stop(now + BED_FADE_S + 0.05);
+    for (const src of cur.sources) {
+      try { src.stop(now + BED_FADE_S + 0.05); } catch { /* already stopped */ }
+    }
   } catch {
     /* source already stopped — ignore */
   }
+}
+
+// Schedule one playthrough of a looping bed's buffer at `startTime`, then queue
+// the next one to begin BED_LOOP_XF_S before this one ends so their crossfades
+// overlap and the loop seam is never audible. Self-reschedules via a lookahead
+// timer until the bed is stopped.
+function scheduleBedCycle(c: AudioContext, bed: ActiveBed, startTime: number): void {
+  if (bed.stopped) return;
+  const dur = bed.buffer.duration;
+  const xf = Math.min(BED_LOOP_XF_S, dur / 4); // guard against very short beds
+  const src = c.createBufferSource();
+  src.buffer = bed.buffer;
+  const g = c.createGain();
+  src.connect(g);
+  g.connect(bed.gain);
+  // Seam envelope: fade in over xf, hold, fade out over xf. The next cycle's
+  // fade-in covers this cycle's fade-out.
+  g.gain.setValueAtTime(0, startTime);
+  g.gain.linearRampToValueAtTime(1, startTime + xf);
+  g.gain.setValueAtTime(1, startTime + dur - xf);
+  g.gain.linearRampToValueAtTime(0, startTime + dur);
+  src.start(startTime);
+  src.stop(startTime + dur + 0.05);
+  bed.sources.add(src);
+  src.onended = () => { bed.sources.delete(src); };
+  const nextStart = startTime + dur - xf;
+  const delayMs = Math.max(0, (nextStart - c.currentTime - BED_SCHED_LOOKAHEAD_S) * 1000);
+  bed.timer = window.setTimeout(() => scheduleBedCycle(c, bed, nextStart), delayMs);
 }
 
 // ── Public engine API ────────────────────────────────────────────────────────
@@ -204,13 +255,10 @@ export function playBed(id: string): void {
     const g = c.createGain();
     g.gain.setValueAtTime(0, now);
     g.connect(parent);
-    const src = c.createBufferSource();
-    src.buffer = buf;
-    src.loop = true;
-    src.connect(g);
-    src.start();
     g.gain.linearRampToValueAtTime(1, now + BED_FADE_S);
-    beds.set(ch, { src, gain: g, id });
+    const bed: ActiveBed = { gain: g, id, buffer: buf, sources: new Set(), timer: null, stopped: false };
+    beds.set(ch, bed);
+    scheduleBedCycle(c, bed, now); // seam-crossfaded loop (no src.loop — see BED_LOOP_XF_S)
   });
 }
 

@@ -495,27 +495,9 @@ const UI: AudioAsset[] = [
   },
 ];
 
+// Menus and pre-match are intentionally silent — no music.home / music.prematch.
+// The live match runs the crowd bed; off-screen surfaces play stingers only.
 const MUSIC: AudioAsset[] = [
-  {
-    id: 'music.home',
-    file: `${AUDIO_DIR}/music/home.mp3`,
-    channel: 'music',
-    loop: true,
-    priority: 2,
-    trigger: { on: 'screen', id: 'home' },
-    description: 'Signature title theme — grand, aspirational, broadcast-rugby feel. Seamless loop.',
-    elevenLabsPrompt: 'An aspirational grand orchestral sports anthem, uplifting strings and brass with a broadcast rugby theme feel, hopeful and epic, seamless looping instrumental',
-  },
-  {
-    id: 'music.prematch',
-    file: `${AUDIO_DIR}/music/prematch.mp3`,
-    channel: 'music',
-    loop: true,
-    priority: 2,
-    trigger: { on: 'screen', id: 'pre-match' },
-    description: 'Anticipatory build — tunnel walk energy. Hands over to the crowd bed on Kick Off.',
-    elevenLabsPrompt: 'An anticipatory building instrumental, driving percussion and rising strings, pre-match tunnel-walk tension and adrenaline, energetic seamless looping',
-  },
   {
     id: 'music.result.win',
     file: `${AUDIO_DIR}/music/result-win.mp3`,

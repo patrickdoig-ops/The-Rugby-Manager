@@ -173,6 +173,22 @@ const SYNTH: Record<string, Generator> = {
     noiseBurst(c, d, c.currentTime, 0.04, 0.45, 450, 1.0);
     tone(c, d, 'sine', 110, c.currentTime, 0.06, 0.30);
   },
+  // Front-row crunch on engagement: a heavy low thud (bodies binding) plus a
+  // short mid burst (the "set" hit).
+  'impact.scrum.engage': (c, d) => {
+    const now = c.currentTime;
+    tone(c, d, 'sine', 150, now, 0.22, 0.45, 58);
+    noiseBurst(c, d, now, 0.09, 0.32, 320, 0.8);
+    noiseBurst(c, d, now + 0.04, 0.06, 0.20, 520, 0.9);
+  },
+  // Grinding forward drive: a sustained low rumble under a slow churn of
+  // band-passed noise (boots working the turf).
+  'impact.maul.drive': (c, d) => {
+    const now = c.currentTime;
+    tone(c, d, 'sine', 78, now, 0.55, 0.34, 64);
+    noiseBurst(c, d, now,        0.30, 0.16, 240, 0.7);
+    noiseBurst(c, d, now + 0.22, 0.28, 0.14, 300, 0.7);
+  },
 };
 
 /** Synthesize `id` onto `dest`. Returns false if no generator exists for it. */

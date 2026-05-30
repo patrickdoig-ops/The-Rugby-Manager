@@ -46,8 +46,9 @@ import '../style/saves.css';
 import '../style/achievements.css';
 
 import { buildAppShell }           from './ui/AppShell';
-import { preloadAllCues, playCue } from './ui/SoundManager';
+import { preloadAllCues }          from './ui/SoundManager';
 import { initAudioDirector }       from './ui/audio/AudioDirector';
+import { initUiSounds }            from './ui/audio/uiSounds';
 import { initHapticsDirector }     from './ui/haptics/HapticsDirector';
 import { initScoreboard }          from './ui/Scoreboard';
 import { initPitchStrip }          from './ui/PitchStrip';
@@ -149,12 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
   preloadAllCues();
   initAudioDirector();
   initHapticsDirector();
-  document.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement;
-    if (target.closest('button, .hub-tile, .ts-card, .mp-card')) {
-      playCue('uiClick');
-    }
-  });
+  initUiSounds();
   initScoreboard();
   initPitchStrip();
   initCommentaryFeed();

@@ -17,13 +17,10 @@ import { playId, playBed, stopBed } from '../SoundManager';
 
 // Screen → looping music bed. 'app' (live match) is deliberately absent: the
 // match runs the crowd bed instead, started/stopped by the engine lifecycle
-// handlers below. Screens with no entry keep music silent (stopBed).
+// handlers below. Menus, pre-match, and the hub are intentionally silent — they
+// have no entry, so routeScreen falls through to stopBed. Only the off-season
+// market chain carries a music bed.
 const SCREEN_MUSIC: Partial<Record<ScreenId, string>> = {
-  'home':           'music.home',
-  'settings':       'music.home',
-  'team-selector':  'music.home',
-  'mode-picker':    'music.home',
-  'pre-match':      'music.prematch',
   'transfer-market':'music.transfer',
   'renewals':       'music.transfer',
   'retention-decision':'music.transfer',

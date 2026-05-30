@@ -370,6 +370,7 @@ html, body {
     var(--rm-bg) 100%);
   border-bottom: 1px solid var(--rm-hairline);
   padding: 10px 16px 10px;
+  padding-top:   max(10px, env(safe-area-inset-top, 0px));
   padding-left:  max(16px, env(safe-area-inset-left));
   padding-right: max(16px, env(safe-area-inset-right));
   box-shadow: 0 4px 24px rgba(0,0,0,0.4);
@@ -1207,6 +1208,7 @@ html, body {
   border-bottom: 1px solid var(--rm-border-soft);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
   padding: 12px 16px 9px;
+  padding-top: max(12px, env(safe-area-inset-top, 0px));
 }
 
 .app-topbar {

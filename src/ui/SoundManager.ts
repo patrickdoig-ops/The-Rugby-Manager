@@ -1,36 +1,31 @@
-// Manifest-driven Web Audio engine.
+// Manifest-driven audio engine.
 //
-// Builds a small mixing graph — per-channel GainNodes feeding a master gain —
-// and plays cues by their manifest id (src/ui/audio/audioManifest.ts). Buffers
-// are fetched + decoded lazily on first use; a missing / undecodable file
-// caches as null and silently no-ops, so the engine works before the assets
-// are sourced. Looping beds (crowd ambience, screen music) cross-fade within
-// their channel. Playback is gated behind the SFX preference + master volume,
-// both persisted in localStorage.
+// One-shot cues (whistles, impacts, crowd reactions, stingers) route through a
+// Web Audio graph — per-channel GainNodes → master gain — with buffers fetched
+// and decoded lazily on first use. A missing / undecodable file caches as null
+// and silently no-ops (falls back to procedural synthesis where a generator
+// exists).
 //
-// The routing layer (which game/match/screen moment fires which cue) lives in
-// src/ui/audio/AudioDirector.ts (match + season) and src/ui/audio/uiSounds.ts
-// (DOM interactions). This module is just the engine + the settings API; cues
-// are played by id via playId / playBed.
+// Looping ambient beds use HTMLAudioElement with loop=true instead of the Web
+// Audio decode pipeline. On iOS WKWebView (Capacitor) large buffers decoded via
+// decodeAudioData (>~500 KB compressed → ~20 MB PCM) fail silently; bed-engaged
+// at 909 KB is the primary victim. HTMLAudioElement hands off decoding + looping
+// to the native audio layer, bypassing this limit entirely. Volume cross-fades
+// are driven by a setInterval ramp on el.volume rather than gainNode automation,
+// keeping beds independent of the AudioContext run/suspend lifecycle.
 
 import { AUDIO_MANIFEST, type AudioAsset, type AudioChannel } from './audio/audioManifest';
 import { synthesize } from './audio/synth';
 
-const SFX_KEY    = 'rugby-manager-sfx';
-const VOLUME_KEY = 'rugby-manager-volume';
+const SFX_UI_KEY    = 'rugby-manager-sfx-ui';
+const SFX_MATCH_KEY = 'rugby-manager-sfx-match';
+const VOLUME_KEY    = 'rugby-manager-volume';
 
-const BED_FADE_S = 0.8; // cross-fade duration when switching between beds
+const BED_FADE_S           = 0.8;  // cross-fade duration when switching beds
+const BED_FADE_STEPS       = 20;   // setInterval updates per second during a fade
+const BED_FADE_INTERVAL_MS = 1000 / BED_FADE_STEPS;
 
-// Looping beds are not played with src.loop = true: MP3 encoder padding bakes a
-// sliver of silence into the decoded buffer, so a whole-buffer loop has an
-// audible gap at every seam. Instead each bed self-schedules overlapping copies
-// of the buffer that crossfade across the seam (BED_LOOP_XF_S), so the wrap is
-// never heard. Crowd ambience is diffuse, so the overlap is inaudible.
-const BED_LOOP_XF_S = 1.0;         // overlap crossfade at the loop seam
-const BED_SCHED_LOOKAHEAD_S = 0.5; // schedule the next overlapping cycle this far ahead
-
-// Per-channel base level relative to master — keeps continuous beds sitting
-// under the one-shot reactions/whistles that punch through them.
+// Per-channel base level relative to master.
 const CHANNEL_MIX: Record<AudioChannel, number> = {
   'whistle':        1.0,
   'crowd-bed':      0.4,
@@ -38,36 +33,27 @@ const CHANNEL_MIX: Record<AudioChannel, number> = {
   'impact':         0.8,
   'ui':             0.47,
   'stinger':        0.9,
+  'stinger-season': 0.9,
   'music':          0.45,
 };
+
+// Channels that belong to live-match audio. Everything else is UI / season audio.
+const MATCH_CHANNELS: ReadonlySet<AudioChannel> = new Set([
+  'whistle', 'crowd-bed', 'crowd-reaction', 'impact', 'stinger', 'music',
+]);
+
+function isChannelEnabled(ch: AudioChannel): boolean {
+  return MATCH_CHANNELS.has(ch) ? isMatchSfxEnabled() : isUiSfxEnabled();
+}
 
 const byId = new Map<string, AudioAsset>();
 for (const a of AUDIO_MANIFEST) byId.set(a.id, a);
 
+// ── Web Audio graph (one-shots only) ─────────────────────────────────────────
+
 let ctx: AudioContext | null = null;
 let masterGain: GainNode | null = null;
 const channelGains = new Map<AudioChannel, GainNode>();
-
-// Decoded buffers: AudioBuffer once loaded, null once a load has failed/missed.
-const buffers = new Map<string, AudioBuffer | null>();
-const loading = new Map<string, Promise<AudioBuffer | null>>();
-
-// One active looping bed per channel, plus the id we're transitioning toward
-// (guards against a race when two playBed calls land before the buffer loads).
-// `gain` is the bed's master node (drives the switch crossfade + stop); each
-// overlapping seam-crossfade cycle feeds its own gain into it. `sources` tracks
-// the live cycle nodes (up to two during a seam) so stop can halt them all, and
-// `timer` is the lookahead handle that schedules the next cycle.
-interface ActiveBed {
-  gain: GainNode;
-  id: string;
-  buffer: AudioBuffer;
-  sources: Set<AudioBufferSourceNode>;
-  timer: number | null;
-  stopped: boolean;
-}
-const beds = new Map<AudioChannel, ActiveBed>();
-const pendingBed = new Map<AudioChannel, string>();
 
 function getCtx(): AudioContext | null {
   if (ctx) return ctx;
@@ -92,8 +78,10 @@ function channelGain(ch: AudioChannel): GainNode | null {
   return g;
 }
 
-// Fetch and decode a file, keyed independently of the manifest id so variant
-// takes (boot-punt-2.mp3, tackle-soft-3.mp3 …) get their own cache slots.
+// Decoded buffers: AudioBuffer once loaded, null once a load has failed/missed.
+const buffers = new Map<string, AudioBuffer | null>();
+const loading  = new Map<string, Promise<AudioBuffer | null>>();
+
 function loadBufferAt(key: string, file: string): Promise<AudioBuffer | null> {
   const cached = buffers.get(key);
   if (cached !== undefined) return Promise.resolve(cached);
@@ -110,8 +98,7 @@ function loadBufferAt(key: string, file: string): Promise<AudioBuffer | null> {
       buffers.set(key, buf);
       return buf;
     } catch {
-      // Missing or undecodable — cache the miss and stay silent. This is the
-      // expected path until the asset files are added under public/audio/.
+      // Missing or undecodable — cache the miss and stay silent.
       buffers.set(key, null);
       return null;
     } finally {
@@ -122,16 +109,10 @@ function loadBufferAt(key: string, file: string): Promise<AudioBuffer | null> {
   return p;
 }
 
-function loadBuffer(id: string): Promise<AudioBuffer | null> {
-  const asset = byId.get(id);
-  if (!asset) { buffers.set(id, null); return Promise.resolve(null); }
-  return loadBufferAt(id, asset.file);
-}
-
-// ── Variant selection ────────────────────────────────────────────────────────
+// ── Variant selection ─────────────────────────────────────────────────────────
 // Tracks the last take played per asset so the same take is never repeated
-// back-to-back. Uses plain Math.random() — this is UI-only code, not the
-// engine, so it is intentionally outside the seeded rng streams.
+// back-to-back. Uses plain Math.random() — UI-only code, not the engine.
+
 const lastTake = new Map<string, number>();
 
 function pickVariant(id: string, count: number): number {
@@ -143,66 +124,62 @@ function pickVariant(id: string, count: number): number {
   return take;
 }
 
-// Take 1 → base file (e.g. boot-punt.mp3); take N → boot-punt-N.mp3.
 function variantFile(baseFile: string, take: number): string {
   return take <= 1 ? baseFile : baseFile.replace(/\.mp3$/, `-${take}.mp3`);
 }
 
-function fadeOutBed(ch: AudioChannel): void {
-  const c = ctx;
-  const cur = beds.get(ch);
-  if (!c || !cur) return;
-  beds.delete(ch);
-  cur.stopped = true; // stops the scheduler from queueing any further cycle
-  if (cur.timer !== null) { clearTimeout(cur.timer); cur.timer = null; }
-  try {
-    const now = c.currentTime;
-    cur.gain.gain.cancelScheduledValues(now);
-    cur.gain.gain.setValueAtTime(cur.gain.gain.value, now);
-    cur.gain.gain.linearRampToValueAtTime(0, now + BED_FADE_S);
-    for (const src of cur.sources) {
-      try { src.stop(now + BED_FADE_S + 0.05); } catch { /* already stopped */ }
-    }
-  } catch {
-    /* source already stopped — ignore */
-  }
+// ── HTML-element bed engine ───────────────────────────────────────────────────
+// HTMLAudioElement with loop=true: the browser / OS decodes and loops natively
+// without allocating a PCM buffer in JS memory. el.volume drives the cross-fade
+// instead of a gainNode, keeping beds independent of AudioContext state.
+
+interface HtmlBed {
+  el: HTMLAudioElement;
+  id: string;
+  ch: AudioChannel;
+  fadeTimer: ReturnType<typeof setInterval> | null;
+  stopped: boolean;
+}
+const htmlBeds    = new Map<AudioChannel, HtmlBed>();
+const htmlPending = new Map<AudioChannel, string>();
+
+function htmlTargetVol(ch: AudioChannel): number {
+  return getVolume() * CHANNEL_MIX[ch];
 }
 
-// Schedule one playthrough of a looping bed's buffer at `startTime`, then queue
-// the next one to begin BED_LOOP_XF_S before this one ends so their crossfades
-// overlap and the loop seam is never audible. Self-reschedules via a lookahead
-// timer until the bed is stopped.
-function scheduleBedCycle(c: AudioContext, bed: ActiveBed, startTime: number): void {
-  if (bed.stopped) return;
-  const dur = bed.buffer.duration;
-  const xf = Math.min(BED_LOOP_XF_S, dur / 4); // guard against very short beds
-  const src = c.createBufferSource();
-  src.buffer = bed.buffer;
-  const g = c.createGain();
-  src.connect(g);
-  g.connect(bed.gain);
-  // Seam envelope: fade in over xf, hold, fade out over xf. The next cycle's
-  // fade-in covers this cycle's fade-out.
-  g.gain.setValueAtTime(0, startTime);
-  g.gain.linearRampToValueAtTime(1, startTime + xf);
-  g.gain.setValueAtTime(1, startTime + dur - xf);
-  g.gain.linearRampToValueAtTime(0, startTime + dur);
-  src.start(startTime);
-  src.stop(startTime + dur + 0.05);
-  bed.sources.add(src);
-  src.onended = () => { bed.sources.delete(src); };
-  const nextStart = startTime + dur - xf;
-  const delayMs = Math.max(0, (nextStart - c.currentTime - BED_SCHED_LOOKAHEAD_S) * 1000);
-  bed.timer = window.setTimeout(() => scheduleBedCycle(c, bed, nextStart), delayMs);
+function clearFade(bed: HtmlBed): void {
+  if (bed.fadeTimer !== null) { clearInterval(bed.fadeTimer); bed.fadeTimer = null; }
 }
 
-// ── Public engine API ────────────────────────────────────────────────────────
+function fadeBedIn(bed: HtmlBed): void {
+  clearFade(bed);
+  const target = htmlTargetVol(bed.ch);
+  const step   = target / (BED_FADE_S * BED_FADE_STEPS);
+  bed.fadeTimer = setInterval(() => {
+    if (bed.stopped) { clearFade(bed); return; }
+    bed.el.volume = Math.min(target, bed.el.volume + step);
+    if (bed.el.volume >= target - step / 2) clearFade(bed);
+  }, BED_FADE_INTERVAL_MS);
+}
 
-/** Play a one-shot (or, if the asset is a loop, hand off to playBed) by id. */
+function fadeBedOut(bed: HtmlBed): void {
+  clearFade(bed);
+  const startVol = bed.el.volume;
+  if (startVol <= 0) { bed.el.pause(); return; }
+  const step = startVol / (BED_FADE_S * BED_FADE_STEPS);
+  bed.fadeTimer = setInterval(() => {
+    bed.el.volume = Math.max(0, bed.el.volume - step);
+    if (bed.el.volume <= 0) { clearFade(bed); bed.el.pause(); }
+  }, BED_FADE_INTERVAL_MS);
+}
+
+// ── Public engine API ─────────────────────────────────────────────────────────
+
+/** Play a one-shot (or redirect to playBed for loop assets) by id. */
 export function playId(id: string): void {
-  if (!isSfxEnabled()) return;
   const asset = byId.get(id);
   if (!asset) return;
+  if (!isChannelEnabled(asset.channel)) return;
   if (asset.loop) { playBed(id); return; }
   const c = getCtx();
   if (!c) return;
@@ -211,7 +188,7 @@ export function playId(id: string): void {
   const key  = take <= 1 ? id : `${id}:${take}`;
   const file = variantFile(asset.file, take);
   void loadBufferAt(key, file).then(buf => {
-    if (!isSfxEnabled()) return;
+    if (!isChannelEnabled(asset.channel)) return;
     const g = channelGain(asset.channel);
     if (!g) return;
     if (buf) {
@@ -221,68 +198,88 @@ export function playId(id: string): void {
       src.start();
       return;
     }
-    // No audio file present — fall back to procedural synthesis (no-op if the
-    // cue has no generator). A real file dropped at asset.file always wins.
+    // No file present — fall back to procedural synthesis if a generator exists.
     synthesize(c, g, id);
   });
 }
 
 /** Cross-fade the given looping bed in on its channel (no-op if already live). */
 export function playBed(id: string): void {
-  if (!isSfxEnabled()) return;
   const asset = byId.get(id);
   if (!asset) return;
+  if (!isChannelEnabled(asset.channel)) return;
   const ch = asset.channel;
-  if (beds.get(ch)?.id === id || pendingBed.get(ch) === id) return;
-  // Pick a variant take once for the full loop duration. pendingBed and beds
-  // still track the base id so the no-op guard above works correctly on
-  // subsequent calls while this bed is already playing.
+  if (htmlBeds.get(ch)?.id === id || htmlPending.get(ch) === id) return;
+
+  // Fade out the current bed on this channel before the new one begins.
+  const prev = htmlBeds.get(ch);
+  if (prev) { htmlBeds.delete(ch); prev.stopped = true; fadeBedOut(prev); }
+  htmlPending.set(ch, id);
+
   const take = pickVariant(id, asset.variants ?? 1);
-  const key  = take <= 1 ? id : `${id}:${take}`;
   const file = variantFile(asset.file, take);
-  pendingBed.set(ch, id);
-  const c = getCtx();
-  if (!c) return;
-  void c.resume();
-  void loadBufferAt(key, file).then(buf => {
-    if (pendingBed.get(ch) !== id) return; // superseded by a later playBed/stopBed
-    pendingBed.delete(ch);
-    if (!buf || !isSfxEnabled()) return;
-    const parent = channelGain(ch);
-    if (!parent) return;
-    fadeOutBed(ch); // ramp the outgoing bed down as the new one comes up
-    const now = c.currentTime;
-    const g = c.createGain();
-    g.gain.setValueAtTime(0, now);
-    g.connect(parent);
-    g.gain.linearRampToValueAtTime(1, now + BED_FADE_S);
-    const bed: ActiveBed = { gain: g, id, buffer: buf, sources: new Set(), timer: null, stopped: false };
-    beds.set(ch, bed);
-    scheduleBedCycle(c, bed, now); // seam-crossfaded loop (no src.loop — see BED_LOOP_XF_S)
+  const el   = new Audio(file);
+  el.loop    = true;
+  el.volume  = 0;
+  const bed: HtmlBed = { el, id, ch, fadeTimer: null, stopped: false };
+
+  let activated = false;
+  const activate = (): void => {
+    if (activated) return;
+    activated = true;
+    if (htmlPending.get(ch) !== id) { el.pause(); return; } // superseded
+    htmlPending.delete(ch);
+    if (!isChannelEnabled(ch)) { el.pause(); return; }
+    htmlBeds.set(ch, bed);
+    fadeBedIn(bed);
+  };
+
+  // el.play() on iOS requires a prior user-gesture unlock (handled in
+  // preloadAllCues). If it's blocked, wait for canplaythrough and retry once.
+  void el.play().then(activate).catch(() => {
+    el.addEventListener('canplaythrough', () => {
+      void el.play().then(activate).catch(() => {});
+    }, { once: true });
   });
 }
 
 /** Fade out and stop the bed on a channel. */
 export function stopBed(ch: AudioChannel): void {
-  pendingBed.delete(ch);
-  fadeOutBed(ch);
+  htmlPending.delete(ch);
+  const bed = htmlBeds.get(ch);
+  if (!bed) return;
+  htmlBeds.delete(ch);
+  bed.stopped = true;
+  fadeBedOut(bed);
 }
 
 /** Fade out every active bed (e.g. on mute). */
 export function stopAllBeds(): void {
-  for (const ch of [...beds.keys()]) fadeOutBed(ch);
-  pendingBed.clear();
+  for (const ch of [...htmlBeds.keys()]) stopBed(ch);
+  htmlPending.clear();
 }
 
-// ── Settings / lifecycle (back-compatible with the previous SoundManager) ────
+// ── Settings / lifecycle ──────────────────────────────────────────────────────
 
-export function isSfxEnabled(): boolean {
-  return localStorage.getItem(SFX_KEY) !== 'off';
+export function isUiSfxEnabled(): boolean {
+  return localStorage.getItem(SFX_UI_KEY) !== 'off';
 }
 
-export function setSfxEnabled(on: boolean): void {
-  localStorage.setItem(SFX_KEY, on ? 'on' : 'off');
-  if (!on) stopAllBeds();
+export function setUiSfxEnabled(on: boolean): void {
+  localStorage.setItem(SFX_UI_KEY, on ? 'on' : 'off');
+  // No UI-channel beds exist today, so nothing to stop on disable.
+}
+
+export function isMatchSfxEnabled(): boolean {
+  return localStorage.getItem(SFX_MATCH_KEY) !== 'off';
+}
+
+export function setMatchSfxEnabled(on: boolean): void {
+  localStorage.setItem(SFX_MATCH_KEY, on ? 'on' : 'off');
+  if (!on) {
+    // Stop any live match beds (crowd ambient, TMO drone).
+    for (const ch of MATCH_CHANNELS) stopBed(ch);
+  }
 }
 
 export function getVolume(): number {
@@ -295,20 +292,37 @@ export function getVolume(): number {
 export function setVolume(percent: number): void {
   const clamped = Math.max(0, Math.min(100, percent));
   localStorage.setItem(VOLUME_KEY, String(clamped));
+  const masterVol = clamped / 100;
   if (masterGain && ctx) {
-    masterGain.gain.setValueAtTime(clamped / 100, ctx.currentTime);
+    masterGain.gain.setValueAtTime(masterVol, ctx.currentTime);
+  }
+  // Sync any non-fading HTML beds to the new master level.
+  for (const bed of htmlBeds.values()) {
+    if (!bed.stopped && bed.fadeTimer === null) {
+      bed.el.volume = masterVol * CHANNEL_MIX[bed.ch];
+    }
   }
 }
 
 // Arms the AudioContext unlock on the first user gesture (browser autoplay
-// policy keeps it suspended until then). Named preloadAllCues for back-compat
-// with main.ts; it no longer eagerly fetches (buffers load lazily on first
-// play, avoiding a request storm for not-yet-sourced assets).
+// policy). Also fires a silent HTMLAudioElement probe from within the same
+// gesture handler, which grants the iOS WKWebView audio-session permission for
+// all subsequent el.play() calls — including the crowd bed after navigation.
 let unlockArmed = false;
 export function preloadAllCues(): void {
   if (unlockArmed || typeof window === 'undefined') return;
   unlockArmed = true;
-  const unlock = (): void => { void getCtx()?.resume(); };
+  const unlock = (): void => {
+    void getCtx()?.resume();
+    // iOS HTMLAudioElement unlock: play a short silent file from the user-gesture
+    // context. Any file works; whistle.stoppage (9.8 KB) is the smallest asset.
+    const probeAsset = byId.get('whistle.stoppage');
+    if (probeAsset) {
+      const probe = new Audio(probeAsset.file);
+      probe.volume = 0;
+      void probe.play().catch(() => {});
+    }
+  };
   window.addEventListener('pointerdown', unlock, { once: true });
-  window.addEventListener('keydown', unlock, { once: true });
+  window.addEventListener('keydown',     unlock, { once: true });
 }

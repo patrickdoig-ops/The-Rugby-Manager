@@ -215,7 +215,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function goSettingsFromHub(): void {
     initSettingsScreen(() => goHub('back'), () => goHome('back'),
-      () => goSaves(goSettingsFromHub));
+      () => goSaves(goSettingsFromHub),
+      () => {
+        if (gameEngine) saveGame(gameEngine.toSavePayload());
+        goHome('back');
+      });
     screenRouter.show('settings');
   }
 

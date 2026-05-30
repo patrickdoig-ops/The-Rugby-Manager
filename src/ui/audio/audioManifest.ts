@@ -28,7 +28,8 @@ import type { MatchEvent } from '../../types/matchEvent';
 //   crowd-reaction  — one-shot crowd swells layered over the bed
 //   impact          — close-mic'd pitch sounds (tackle, scrum, boot)
 //   ui              — interface feedback
-//   stinger         — short musical/dramatic accents (cards, TMO, season beats)
+//   stinger         — in-match dramatic accents (TMO, cards, injury)
+//   stinger-season  — off-screen season beats (playoff reveal, champion, budget, transfers)
 //   music           — looping screen themes
 export type AudioChannel =
   | 'whistle'
@@ -37,6 +38,7 @@ export type AudioChannel =
   | 'impact'
   | 'ui'
   | 'stinger'
+  | 'stinger-season'
   | 'music';
 
 // Sourcing priority. 1 = match-day core (build these first — the match feels
@@ -572,7 +574,7 @@ const SEASON_STINGERS: AudioAsset[] = [
   {
     id: 'stinger.playoff_reveal',
     file: `${AUDIO_DIR}/stinger/playoff-reveal.mp3`,
-    channel: 'stinger',
+    channel: 'stinger-season',
     loop: false,
     priority: 3,
     trigger: { on: 'gameEvent', name: 'game:bracketSeeded' },
@@ -582,7 +584,7 @@ const SEASON_STINGERS: AudioAsset[] = [
   {
     id: 'stinger.champion',
     file: `${AUDIO_DIR}/stinger/champion.mp3`,
-    channel: 'stinger',
+    channel: 'stinger-season',
     loop: false,
     priority: 3,
     trigger: { on: 'gameEvent', name: 'game:seasonComplete (championTeamId crowned)' },
@@ -592,7 +594,7 @@ const SEASON_STINGERS: AudioAsset[] = [
   {
     id: 'stinger.award',
     file: `${AUDIO_DIR}/stinger/award.mp3`,
-    channel: 'stinger',
+    channel: 'stinger-season',
     loop: false,
     priority: 3,
     trigger: { on: 'screen', id: 'end-of-season (MVP / top scorer reveal)' },
@@ -602,7 +604,7 @@ const SEASON_STINGERS: AudioAsset[] = [
   {
     id: 'stinger.budget.up',
     file: `${AUDIO_DIR}/stinger/budget-up.mp3`,
-    channel: 'stinger',
+    channel: 'stinger-season',
     loop: false,
     priority: 3,
     trigger: { on: 'screen', id: 'budget-reveal (positive delta)' },
@@ -612,7 +614,7 @@ const SEASON_STINGERS: AudioAsset[] = [
   {
     id: 'stinger.budget.down',
     file: `${AUDIO_DIR}/stinger/budget-down.mp3`,
-    channel: 'stinger',
+    channel: 'stinger-season',
     loop: false,
     priority: 3,
     trigger: { on: 'screen', id: 'budget-reveal (negative delta)' },
@@ -622,7 +624,7 @@ const SEASON_STINGERS: AudioAsset[] = [
   {
     id: 'stinger.takeover',
     file: `${AUDIO_DIR}/stinger/takeover.mp3`,
-    channel: 'stinger',
+    channel: 'stinger-season',
     loop: false,
     priority: 3,
     trigger: { on: 'screen', id: 'takeover-reveal' },
@@ -632,7 +634,7 @@ const SEASON_STINGERS: AudioAsset[] = [
   {
     id: 'stinger.signing.success',
     file: `${AUDIO_DIR}/stinger/signing-success.mp3`,
-    channel: 'stinger',
+    channel: 'stinger-season',
     loop: false,
     priority: 3,
     trigger: { on: 'gameEvent', name: 'game: bid won (CONTRACT_SIGNED / BID_RESOLVED won)' },
@@ -642,7 +644,7 @@ const SEASON_STINGERS: AudioAsset[] = [
   {
     id: 'stinger.bid.lost',
     file: `${AUDIO_DIR}/stinger/bid-lost.mp3`,
-    channel: 'stinger',
+    channel: 'stinger-season',
     loop: false,
     priority: 3,
     trigger: { on: 'gameEvent', name: 'game: bid lost (BID_RESOLVED lost)' },
@@ -652,7 +654,7 @@ const SEASON_STINGERS: AudioAsset[] = [
   {
     id: 'stinger.retired',
     file: `${AUDIO_DIR}/stinger/retired.mp3`,
-    channel: 'stinger',
+    channel: 'stinger-season',
     loop: false,
     priority: 3,
     trigger: { on: 'gameEvent', name: 'game:seasonRolledOver (PLAYER_RETIRED)' },

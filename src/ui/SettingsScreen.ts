@@ -1,4 +1,4 @@
-import { isSfxEnabled, setSfxEnabled, getVolume, setVolume } from './SoundManager';
+import { isUiSfxEnabled, setUiSfxEnabled, isMatchSfxEnabled, setMatchSfxEnabled, getVolume, setVolume } from './SoundManager';
 import { isHapticsEnabled, setHapticsEnabled } from './HapticsManager';
 import { clearSave } from './SaveManager';
 import { VERSION } from '../version';
@@ -18,7 +18,7 @@ function backIcon(): string {
   </svg>`;
 }
 
-export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves: () => void = () => {}): void {
+export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves: () => void = () => {}, onSaveAndHome: (() => void) | null = null): void {
   const el = document.getElementById('settings');
   if (!el) return;
 
@@ -39,9 +39,17 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves
         <h2 class="settings-section-title">Audio</h2>
 
         <div class="settings-row">
-          <label class="settings-row-label" for="settings-sfx">Sound effects</label>
+          <label class="settings-row-label" for="settings-sfx-ui">UI sound effects</label>
           <label class="settings-toggle">
-            <input type="checkbox" id="settings-sfx" />
+            <input type="checkbox" id="settings-sfx-ui" />
+            <span class="settings-toggle-track"></span>
+          </label>
+        </div>
+
+        <div class="settings-row">
+          <label class="settings-row-label" for="settings-sfx-match">Match sound effects</label>
+          <label class="settings-toggle">
+            <input type="checkbox" id="settings-sfx-match" />
             <span class="settings-toggle-track"></span>
           </label>
         </div>
@@ -109,6 +117,12 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves
       <section class="settings-section">
         <h2 class="settings-section-title">Saves</h2>
 
+        ${onSaveAndHome ? `
+        <div class="settings-row">
+          <label class="settings-row-label">Save and back to Home</label>
+          <button id="settings-save-home" class="settings-secondary-btn">Save</button>
+        </div>` : ''}
+
         <div class="settings-row">
           <label class="settings-row-label">Manage saves &amp; backup</label>
           <button id="settings-saves" class="settings-secondary-btn">Open</button>
@@ -148,16 +162,19 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves
     onBack();
   });
 
-  const sfxInput = el.querySelector<HTMLInputElement>('#settings-sfx')!;
-  const volume = el.querySelector<HTMLInputElement>('#settings-volume')!;
-  const volumeLabel = el.querySelector<HTMLElement>('.settings-slider-value')!;
+  const sfxUiInput    = el.querySelector<HTMLInputElement>('#settings-sfx-ui')!;
+  const sfxMatchInput = el.querySelector<HTMLInputElement>('#settings-sfx-match')!;
+  const volume        = el.querySelector<HTMLInputElement>('#settings-volume')!;
+  const volumeLabel   = el.querySelector<HTMLElement>('.settings-slider-value')!;
 
-  sfxInput.checked = isSfxEnabled();
+  sfxUiInput.checked    = isUiSfxEnabled();
+  sfxMatchInput.checked = isMatchSfxEnabled();
   const initialVol = Math.round(getVolume() * 100);
   volume.value = String(initialVol);
   volumeLabel.textContent = String(initialVol);
 
-  sfxInput.addEventListener('change', () => setSfxEnabled(sfxInput.checked));
+  sfxUiInput.addEventListener('change',    () => setUiSfxEnabled(sfxUiInput.checked));
+  sfxMatchInput.addEventListener('change', () => setMatchSfxEnabled(sfxMatchInput.checked));
   volume.addEventListener('input', () => {
     setVolume(Number(volume.value));
     volumeLabel.textContent = volume.value;
@@ -173,6 +190,13 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves
   autoSlow.checked  = loadAutoSlowEnabled();
   autoPause.addEventListener('change', () => saveAutoPauseEnabled(autoPause.checked));
   autoSlow.addEventListener('change', () => saveAutoSlowEnabled(autoSlow.checked));
+
+  if (onSaveAndHome) {
+    el.querySelector<HTMLButtonElement>('#settings-save-home')!.addEventListener('click', () => {
+      setTextScaleChangeHandler(null);
+      onSaveAndHome();
+    });
+  }
 
   el.querySelector<HTMLButtonElement>('#settings-saves')!.addEventListener('click', () => {
     onSaves();

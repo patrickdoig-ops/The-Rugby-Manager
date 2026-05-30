@@ -234,6 +234,11 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
 export class MatchCoordinator {
   private state: MatchState;
   private tickTimeout: ReturnType<typeof setTimeout> | null = null;
+  // Single-flight guard: true while a tickBody() is in flight (incl. parked on
+  // an internal await such as the pre-penalty streamer flush or a forced-sub
+  // modal). Stops a resume()-triggered scheduleTick from starting a SECOND
+  // concurrent tickBody — see the comment in tick().
+  private ticking = false;
   // Phase at the start of the most recently completed tick. Drives the
   // cross-tick set-piece announcement: when a tick begins in Lineout or
   // Scrum and the previous tick started in a different phase, fire
@@ -589,27 +594,34 @@ export class MatchCoordinator {
   }
 
   private async tick(): Promise<void> {
-    // Silent fixtures (telemetry, determinism harness, headless AI sims)
-    // must propagate exceptions so CI sees them. Live mode catches and
-    // surfaces the error through `engine:error` so the UI can render a
-    // copy-pastable crash overlay instead of silently freezing.
-    if (this.silent) {
-      try {
-        await this.tickBody();
-      } catch (err) {
-        // Emit engine:error so the in-app headless-fixture path (simulateFixture)
-        // can REJECT its promise instead of hanging the caller's await forever,
-        // then rethrow so telemetry/experiment scripts that drive a silent engine
-        // directly still fail loudly (they don't subscribe to engine:error).
-        this.reportTickCrash(err);
-        throw err;
-      }
-      return;
-    }
+    // Re-entrancy guard. A live tick can park mid-body on an internal `await`
+    // (the pre-penalty streamer flush at the top of the Penalty branch, a
+    // forced-sub modal) while isRunning stays true and the Subs / Tactics
+    // buttons stay enabled. If the manager opens Subs in that window then
+    // closes it, SimController calls resume() → scheduleTick(0), which would
+    // otherwise start a SECOND tickBody concurrently with the parked one — and
+    // that second run hits resolvePhase() with state.phase still === Penalty
+    // (the parked tick hasn't applied the decision yet), throwing "No phase
+    // handler registered for PENALTY". One tickBody at a time; the in-flight
+    // tick reschedules the next when it completes.
+    if (this.ticking) return;
+    this.ticking = true;
+    // Silent fixtures (telemetry, determinism harness, headless AI sims) must
+    // propagate exceptions so CI sees them. Live mode catches and surfaces the
+    // error through `engine:error` so the UI can render a copy-pastable crash
+    // overlay instead of silently freezing.
     try {
       await this.tickBody();
     } catch (err) {
+      // Emit engine:error so the in-app headless-fixture path (simulateFixture)
+      // can REJECT its promise instead of hanging the caller's await forever.
       this.reportTickCrash(err);
+      // Rethrow in silent mode so telemetry/experiment scripts that drive a
+      // silent engine directly still fail loudly (they don't subscribe to
+      // engine:error).
+      if (this.silent) throw err;
+    } finally {
+      this.ticking = false;
     }
   }
 

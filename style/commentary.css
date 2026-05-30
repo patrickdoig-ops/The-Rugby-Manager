@@ -168,3 +168,19 @@
 
 /* Substitution */
 .event-sub .event-tag { color: var(--rm-text-muted); }
+
+/* Yellow card */
+.event-card-yellow {
+  background: color-mix(in oklch, var(--rm-card-yellow) 12%, transparent);
+  border-left-color: color-mix(in oklch, var(--rm-card-yellow) 70%, transparent);
+}
+.event-card-yellow .event-tag  { color: var(--rm-card-yellow); font-weight: 700; }
+.event-card-yellow .event-text { font-weight: 600; }
+
+/* Red card */
+.event-card-red {
+  background: color-mix(in oklch, var(--rm-card-red) 12%, transparent);
+  border-left-color: color-mix(in oklch, var(--rm-card-red) 70%, transparent);
+}
+.event-card-red .event-tag  { color: var(--rm-card-red); font-weight: 700; }
+.event-card-red .event-text { font-weight: 600; }

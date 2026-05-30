@@ -17,6 +17,8 @@
 		A084ECDBA7D38E1E42DFC39D /* Pods_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF277DCFFFF123FFC6DF26C7 /* Pods_App.framework */; };
 		D7A1C0DE0000000000000001 /* DynamicTypePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A1C0DE0000000000000002 /* DynamicTypePlugin.swift */; };
 		D7A1C0DE0000000000000003 /* DynamicTypePlugin.m in Sources */ = {isa = PBXBuildFile; fileRef = D7A1C0DE0000000000000004 /* DynamicTypePlugin.m */; };
+		D7A1C0DF0000000000000001 /* GameCenterPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A1C0DF0000000000000002 /* GameCenterPlugin.swift */; };
+		D7A1C0DF0000000000000003 /* GameCenterPlugin.m in Sources */ = {isa = PBXBuildFile; fileRef = D7A1C0DF0000000000000004 /* GameCenterPlugin.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +35,9 @@
 		AF51FD2D460BCFE21FA515B2 /* Pods-App.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.release.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.release.xcconfig"; sourceTree = "<group>"; };
 		D7A1C0DE0000000000000002 /* DynamicTypePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicTypePlugin.swift; sourceTree = "<group>"; };
 		D7A1C0DE0000000000000004 /* DynamicTypePlugin.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DynamicTypePlugin.m; sourceTree = "<group>"; };
+		D7A1C0DF0000000000000002 /* GameCenterPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameCenterPlugin.swift; sourceTree = "<group>"; };
+		D7A1C0DF0000000000000004 /* GameCenterPlugin.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GameCenterPlugin.m; sourceTree = "<group>"; };
+		D7A1C0E00000000000000005 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		FC68EB0AF532CFC21C3344DD /* Pods-App.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.debug.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -81,6 +86,9 @@
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				D7A1C0DE0000000000000002 /* DynamicTypePlugin.swift */,
 				D7A1C0DE0000000000000004 /* DynamicTypePlugin.m */,
+				D7A1C0DF0000000000000002 /* GameCenterPlugin.swift */,
+				D7A1C0DF0000000000000004 /* GameCenterPlugin.m */,
+				D7A1C0E00000000000000005 /* App.entitlements */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -219,6 +227,8 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				D7A1C0DE0000000000000001 /* DynamicTypePlugin.swift in Sources */,
 				D7A1C0DE0000000000000003 /* DynamicTypePlugin.m in Sources */,
+				D7A1C0DF0000000000000001 /* GameCenterPlugin.swift in Sources */,
+				D7A1C0DF0000000000000003 /* GameCenterPlugin.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -367,7 +377,9 @@
 			baseConfigurationReference = FC68EB0AF532CFC21C3344DD /* Pods-App.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "$(GAME_CENTER_ENTITLEMENTS)";
 				CODE_SIGN_STYLE = Automatic;
+				GAME_CENTER_ENTITLEMENTS = "";
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = TP46AL3WL9;
 				INFOPLIST_FILE = App/Info.plist;
@@ -396,7 +408,9 @@
 			baseConfigurationReference = AF51FD2D460BCFE21FA515B2 /* Pods-App.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "$(GAME_CENTER_ENTITLEMENTS)";
 				CODE_SIGN_STYLE = Automatic;
+				GAME_CENTER_ENTITLEMENTS = "";
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = TP46AL3WL9;
 				INFOPLIST_FILE = App/Info.plist;

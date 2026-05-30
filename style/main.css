@@ -931,7 +931,17 @@ html, body {
   padding: 4px 0;
 }
 
-.auto-settings-row input[type="checkbox"] {
+.auto-settings-title {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rm-text-muted);
+  padding-bottom: 2px;
+}
+
+.auto-settings-row input[type="radio"] {
   width: 16px;
   height: 16px;
   accent-color: var(--rm-pitch);

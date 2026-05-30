@@ -2,8 +2,7 @@ import type { MatchCoordinator } from '../engine/MatchCoordinator';
 import { eventBus } from '../utils/eventBus';
 import {
   loadTickDelayMs, saveTickDelayMs,
-  loadAutoPauseEnabled, saveAutoPauseEnabled,
-  loadAutoSlowEnabled,  saveAutoSlowEnabled,
+  loadKeyMomentMode, saveKeyMomentMode, type KeyMomentMode,
 } from './uiPrefs';
 import { isAutoPauseEvent } from './keyMoment';
 
@@ -168,14 +167,15 @@ export function initSimController(engine: MatchCoordinator): void {
 
   unsubs.push(eventBus.on('engine:stateChange', () => syncSubsBadge()));
 
-  // ─── Auto-pause / auto-slow on key moments ───
-  const cogBtn   = document.getElementById('btn-auto-settings') as HTMLButtonElement;
-  const popover  = document.getElementById('auto-settings-popover') as HTMLDivElement;
-  const chkPause = document.getElementById('chk-auto-pause')  as HTMLInputElement;
-  const chkSlow  = document.getElementById('chk-auto-slow')   as HTMLInputElement;
+  // ─── Key-moment mode (off / slow / pause) ───
+  const cogBtn  = document.getElementById('btn-auto-settings') as HTMLButtonElement;
+  const popover = document.getElementById('auto-settings-popover') as HTMLDivElement;
+  const kmRadios = Array.from(
+    document.querySelectorAll<HTMLInputElement>('input[name="key-moment-mode"]'),
+  );
 
-  chkPause.checked = loadAutoPauseEnabled();
-  chkSlow.checked  = loadAutoSlowEnabled();
+  const initMode = loadKeyMomentMode();
+  for (const r of kmRadios) r.checked = r.value === initMode;
 
   function closePopover(): void {
     popover.hidden = true;
@@ -199,8 +199,9 @@ export function initSimController(engine: MatchCoordinator): void {
   document.addEventListener('click', outsideClick);
   unsubs.push(() => document.removeEventListener('click', outsideClick));
 
-  chkPause.onchange = () => saveAutoPauseEnabled(chkPause.checked);
-  chkSlow.onchange  = () => saveAutoSlowEnabled(chkSlow.checked);
+  for (const r of kmRadios) {
+    r.onchange = () => { if (r.checked) saveKeyMomentMode(r.value as KeyMomentMode); };
+  }
 
   let slowTimeout: ReturnType<typeof setTimeout> | null = null;
   unsubs.push(() => {
@@ -210,13 +211,14 @@ export function initSimController(engine: MatchCoordinator): void {
   unsubs.push(eventBus.on('engine:event', ({ event }) => {
     if (!engine.getState().engine.isRunning) return;
     if (!isAutoPauseEvent(event)) return;
-    if (chkPause.checked) {
+    const mode = kmRadios.find(r => r.checked)?.value ?? 'off';
+    if (mode === 'pause') {
       engine.pause();
       btnPlay.disabled  = false;
       btnPause.disabled = true;
       return;
     }
-    if (chkSlow.checked) {
+    if (mode === 'slow') {
       if (slowTimeout !== null) clearTimeout(slowTimeout);
       engine.setTickDelay(SLOW_MS);
       slowTimeout = setTimeout(() => {

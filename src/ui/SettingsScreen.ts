@@ -3,8 +3,7 @@ import { isHapticsEnabled, setHapticsEnabled } from './HapticsManager';
 import { clearSave } from './SaveManager';
 import { VERSION } from '../version';
 import {
-  loadAutoPauseEnabled, saveAutoPauseEnabled,
-  loadAutoSlowEnabled, saveAutoSlowEnabled,
+  loadKeyMomentMode, saveKeyMomentMode, type KeyMomentMode,
   TEXT_SCALE_VALUES, TEXT_SCALE_LABELS,
 } from './uiPrefs';
 import {
@@ -97,20 +96,13 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves
       <section class="settings-section">
         <h2 class="settings-section-title">Match</h2>
 
-        <div class="settings-row">
-          <label class="settings-row-label" for="settings-autopause">Auto-pause on key moments</label>
-          <label class="settings-toggle">
-            <input type="checkbox" id="settings-autopause" />
-            <span class="settings-toggle-track"></span>
-          </label>
-        </div>
-
-        <div class="settings-row">
-          <label class="settings-row-label" for="settings-autoslow">Auto-slow to 1× on key moments</label>
-          <label class="settings-toggle">
-            <input type="checkbox" id="settings-autoslow" />
-            <span class="settings-toggle-track"></span>
-          </label>
+        <div class="settings-row settings-row--stack">
+          <label class="settings-row-label">Key moments</label>
+          <div class="settings-segmented" id="settings-keymoment" role="group" aria-label="Key moment behaviour">
+            <button type="button" class="settings-seg-btn" data-mode="off">Off</button>
+            <button type="button" class="settings-seg-btn" data-mode="slow">Slow</button>
+            <button type="button" class="settings-seg-btn" data-mode="pause">Pause</button>
+          </div>
         </div>
       </section>
 
@@ -184,12 +176,23 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves
   hapticsInput.checked = isHapticsEnabled();
   hapticsInput.addEventListener('change', () => setHapticsEnabled(hapticsInput.checked));
 
-  const autoPause = el.querySelector<HTMLInputElement>('#settings-autopause')!;
-  const autoSlow  = el.querySelector<HTMLInputElement>('#settings-autoslow')!;
-  autoPause.checked = loadAutoPauseEnabled();
-  autoSlow.checked  = loadAutoSlowEnabled();
-  autoPause.addEventListener('change', () => saveAutoPauseEnabled(autoPause.checked));
-  autoSlow.addEventListener('change', () => saveAutoSlowEnabled(autoSlow.checked));
+  const kmGroup = el.querySelector<HTMLElement>('#settings-keymoment')!;
+  const kmBtns  = Array.from(kmGroup.querySelectorAll<HTMLButtonElement>('.settings-seg-btn'));
+  const refreshKm = (mode: KeyMomentMode) => {
+    for (const btn of kmBtns) {
+      const on = btn.dataset.mode === mode;
+      btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+  };
+  refreshKm(loadKeyMomentMode());
+  for (const btn of kmBtns) {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode as KeyMomentMode;
+      saveKeyMomentMode(mode);
+      refreshKm(mode);
+    });
+  }
 
   if (onSaveAndHome) {
     el.querySelector<HTMLButtonElement>('#settings-save-home')!.addEventListener('click', () => {

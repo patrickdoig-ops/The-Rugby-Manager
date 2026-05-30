@@ -1,7 +1,7 @@
 // User-facing UI preferences kept in localStorage with their own lifecycle —
 // per-user, never cleared on team-switch (so they're not part of SaveManager).
-// Today this is the match tick delay, the key-moment auto-pause / auto-slow
-// toggles, and the live-match commentary filter.
+// Today this is the match tick delay, the key-moment mode, and the live-match
+// commentary filter.
 
 const TICK_DELAY_KEY        = 'rugby-manager-tick-delay-ms';
 const DEFAULT_TICK_DELAY_MS = 2500;
@@ -11,8 +11,12 @@ const DEFAULT_TICK_DELAY_MS = 2500;
 const MIN_TICK_DELAY_MS = 100;
 const MAX_TICK_DELAY_MS = 5000;
 
-const AUTO_PAUSE_KEY = 'rugby-manager-auto-pause';
-const AUTO_SLOW_KEY  = 'rugby-manager-auto-slow';
+// Legacy keys — read-only, used only for one-time migration below.
+const _LEGACY_AUTO_PAUSE_KEY = 'rugby-manager-auto-pause';
+const _LEGACY_AUTO_SLOW_KEY  = 'rugby-manager-auto-slow';
+
+const KEY_MOMENT_KEY = 'rugby-manager-key-moment';
+export type KeyMomentMode = 'off' | 'slow' | 'pause';
 
 export function loadTickDelayMs(): number {
   try {
@@ -36,36 +40,26 @@ export function saveTickDelayMs(ms: number): void {
   }
 }
 
-// Auto-pause defaults ON: a first-time user gets the most dramatic experience.
-export function loadAutoPauseEnabled(): boolean {
+// Defaults to 'pause': first-time users get the most dramatic experience.
+// Migrates one-shot from the legacy two-boolean storage on first read.
+export function loadKeyMomentMode(): KeyMomentMode {
   try {
-    return localStorage.getItem(AUTO_PAUSE_KEY) !== 'off';
+    const stored = localStorage.getItem(KEY_MOMENT_KEY);
+    if (stored === 'off' || stored === 'slow' || stored === 'pause') return stored;
+    // One-time migration from legacy keys.
+    const legacyPause = localStorage.getItem(_LEGACY_AUTO_PAUSE_KEY);
+    const legacySlow  = localStorage.getItem(_LEGACY_AUTO_SLOW_KEY);
+    if (legacyPause !== 'off') return 'pause';   // was on by default
+    if (legacySlow  === 'on')  return 'slow';
+    return 'off';
   } catch {
-    return true;
+    return 'pause';
   }
 }
 
-export function saveAutoPauseEnabled(on: boolean): void {
+export function saveKeyMomentMode(mode: KeyMomentMode): void {
   try {
-    localStorage.setItem(AUTO_PAUSE_KEY, on ? 'on' : 'off');
-  } catch {
-    // localStorage disabled / quota exceeded — silent.
-  }
-}
-
-// Auto-slow defaults OFF: with auto-pause on by default, slow is the
-// alternative-mode escape hatch for users who'd rather not click.
-export function loadAutoSlowEnabled(): boolean {
-  try {
-    return localStorage.getItem(AUTO_SLOW_KEY) === 'on';
-  } catch {
-    return false;
-  }
-}
-
-export function saveAutoSlowEnabled(on: boolean): void {
-  try {
-    localStorage.setItem(AUTO_SLOW_KEY, on ? 'on' : 'off');
+    localStorage.setItem(KEY_MOMENT_KEY, mode);
   } catch {
     // localStorage disabled / quota exceeded — silent.
   }

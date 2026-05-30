@@ -42,8 +42,10 @@ const CHANNEL_MIX: Record<AudioChannel, number> = {
 };
 
 // Channels that belong to live-match audio. Everything else is UI / season audio.
+// 'music' is intentionally excluded — result stingers and transfer screen beds
+// should follow the UI SFX toggle, not the match SFX toggle.
 const MATCH_CHANNELS: ReadonlySet<AudioChannel> = new Set([
-  'whistle', 'crowd-bed', 'crowd-reaction', 'impact', 'stinger', 'music',
+  'whistle', 'crowd-bed', 'crowd-reaction', 'impact', 'stinger',
 ]);
 
 function isChannelEnabled(ch: AudioChannel): boolean {
@@ -52,6 +54,12 @@ function isChannelEnabled(ch: AudioChannel): boolean {
 
 const byId = new Map<string, AudioAsset>();
 for (const a of AUDIO_MANIFEST) byId.set(a.id, a);
+
+const fileToChannel = new Map<string, AudioChannel>();
+for (const a of AUDIO_MANIFEST) {
+  const takes = a.variants ?? 1;
+  for (let t = 1; t <= takes; t++) fileToChannel.set(variantFile(a.file, t), a.channel);
+}
 
 // ── One-shot pool ─────────────────────────────────────────────────────────────
 // Each distinct file keeps a small pool of HTMLAudioElements. A play reuses an
@@ -170,6 +178,25 @@ export function playId(id: string): void {
   el.volume = vol;
   try { el.currentTime = 0; } catch { /* not yet seekable — ignore */ }
   void el.play().catch(() => {});
+}
+
+/** Return the audio channel for a cue id, or undefined if unknown. */
+export function channelOf(id: string): AudioChannel | undefined {
+  return byId.get(id)?.channel;
+}
+
+/** Stop all currently-playing one-shot pool elements on the given channel.
+ *  Used by AudioDirector to interrupt stale crowd reactions at higher speeds. */
+export function stopOneShotsForChannel(ch: AudioChannel): void {
+  for (const [file, pool] of oneShotPool) {
+    if (fileToChannel.get(file) !== ch) continue;
+    for (const el of pool) {
+      if (!el.paused && !el.ended) {
+        el.pause();
+        try { el.currentTime = 0; } catch { /* not yet seekable */ }
+      }
+    }
+  }
 }
 
 /** Cross-fade the given looping bed in on its channel (no-op if already live). */

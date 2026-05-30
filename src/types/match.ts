@@ -129,6 +129,7 @@ export interface DisplaySnapshot {
   // three player-derived totals the summary rows need are pre-aggregated.
   stats: MatchStats;
   aggregates: {
+    carries:           { home: number; away: number };
     runMetres:         { home: number; away: number };
     kickMetres:        { home: number; away: number };
     penaltiesConceded: { home: number; away: number };

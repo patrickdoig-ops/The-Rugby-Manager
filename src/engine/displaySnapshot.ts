@@ -41,7 +41,7 @@ function cloneStats(s: MatchStats): MatchStats {
 
 // Sum of a per-player matchStats key across a team's on-field + subbed-off
 // players (matches StatsPanel's historical teamSum for the summary rows).
-function teamSum(team: Team, key: 'metresCarried' | 'kickMetres' | 'penaltiesConceded' | 'offloadsCompleted'): number {
+function teamSum(team: Team, key: 'carries' | 'metresCarried' | 'kickMetres' | 'penaltiesConceded' | 'offloadsCompleted'): number {
   let sum = 0;
   for (const p of team.players) sum += p.matchStats[key];
   for (const p of team.substitutedOff) sum += p.matchStats[key];
@@ -64,6 +64,7 @@ export function buildDisplaySnapshot(state: MatchState): DisplaySnapshot {
     },
     stats: cloneStats(state.stats),
     aggregates: {
+      carries:           { home: teamSum(state.homeTeam, 'carries'),          away: teamSum(state.awayTeam, 'carries') },
       runMetres:         { home: teamSum(state.homeTeam, 'metresCarried'),    away: teamSum(state.awayTeam, 'metresCarried') },
       kickMetres:        { home: teamSum(state.homeTeam, 'kickMetres'),       away: teamSum(state.awayTeam, 'kickMetres') },
       penaltiesConceded: { home: teamSum(state.homeTeam, 'penaltiesConceded'), away: teamSum(state.awayTeam, 'penaltiesConceded') },

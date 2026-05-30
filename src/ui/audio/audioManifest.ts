@@ -652,6 +652,7 @@ const SEASON_STINGERS: AudioAsset[] = [
     trigger: { on: 'gameEvent', name: 'game:seasonRolledOver (PLAYER_RETIRED)' },
     description: 'Wistful, respectful sting for a player retiring — surfaced on RolloverScreen.',
     elevenLabsPrompt: 'A wistful respectful musical sting, gentle warm strings with a touch of nostalgia and a soft piano note, a dignified farewell, brief',
+    variants: 3,
   },
   {
     id: 'stinger.injury',

@@ -1217,12 +1217,24 @@ html, body {
   background: var(--rm-surface);
   border-bottom: 1px solid var(--rm-border-soft);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
-  padding: 12px 16px 9px;
-  padding-top: max(12px, env(safe-area-inset-top, 0px));
+  padding: 6px 16px 6px;
+  padding-top: max(6px, env(safe-area-inset-top, 0px));
 }
 
 html.native-app .app-header {
-  padding-bottom: 4px;
+  padding-bottom: 3px;
+}
+
+/* Avoid doubling the top safe-area inset on native. Every in-season screen
+   wrapper applies env(safe-area-inset-top), and the .app-header it contains
+   *also* applies it via its own padding-top — stacking to ~2× the notch /
+   Dynamic Island height, which is why native headers read as double-tall.
+   The header owns the inset (it sits directly under the notch), so zero the
+   wrapper's top inset wherever it directly holds one. Web is unaffected
+   (inset resolves to 0). !important beats the id-specificity wrapper rules;
+   the padding-top longhand also overrides any `padding:` shorthand inset. */
+:has(> .app-header) {
+  padding-top: 0 !important;
 }
 
 .app-topbar {

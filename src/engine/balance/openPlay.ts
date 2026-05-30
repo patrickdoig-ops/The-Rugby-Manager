@@ -8,6 +8,17 @@ export const HARD_CARRY_THRESHOLDS = {
   wide_wide:     50,
 } as const;
 
+export const CRASH_BALL_THRESHOLDS = {
+  keep_it_tight: 85,
+  balanced:      65,
+  wide_wide:     30,
+} as const;
+
+// Gain range when a crash-ball results in a line break. Tighter than the
+// standard pace-scaled range (20-45m) — fullback + flanker converge quickly
+// on the narrow midfield channel and contain the break.
+export const CRASH_BALL_LINE_BREAK_METRES = [5, 15] as const;
+
 // Hard-carry line-break upgrade: forwards rarely clear the standard line-
 // break margin on raw stats (low pace / agility), so the top line-breakers
 // + try-scorers leaderboards end up all-back. A small post-roll upgrade on
@@ -22,7 +33,7 @@ export const HARD_CARRY_LINE_BREAK_UPGRADE_PCT = 12;
 // wide-line-break range (20-45m) because the close-channel cover (back
 // row + #12 covering across) tracks back faster than a fullback in the
 // 15m channel.
-export const HARD_CARRY_LINE_BREAK_METRES = [8, 18] as const;
+export const HARD_CARRY_LINE_BREAK_METRES = [5, 10] as const;
 
 // Quadratic handling gate. Per-check KO probability = gap² / 100, where
 // gap = max(0, zeroRiskHandling − handling). Above zeroRiskHandling the
@@ -131,15 +142,15 @@ export const OPEN_PLAY_VALUES = {
   //
   // Predicted gain ranges before tactic mods stack:
   //   Wing pace 95:    factor 1.00  →  20-45m (unchanged)
-  //   Centre pace 80:  factor 0.85  →  17-38m
-  //   Back-row pace 70: factor 0.70 →  14-31m
-  //   Lock pace 60:    factor 0.55  →  11-25m
-  //   Prop pace 50:    factor 0.40  →  8-18m
-  //   Prop pace 40:    factor 0.25  →  5-11m
+  //   Centre pace 80:  factor 0.80  →  16-36m
+  //   Back-row pace 70: factor 0.60 →  12-27m
+  //   Lock pace 60:    factor 0.40  →  8-18m
+  //   Prop pace 50:    factor 0.20  →  5-9m (floored)
+  //   Prop pace 40:    factor 0.00  →  5m (floored)
   LINE_BREAK_PACE: {
     paceAtFullGain:   90,
     paceAtFloorGain:  40,
-    paceFactorMin:    0.25,
+    paceFactorMin:    0.0,
     paceFactorMax:    1.0,
     minGainMetres:    5,
   },

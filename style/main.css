@@ -160,14 +160,21 @@
   margin: 0;
   padding: 0;
   -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
   user-select: none;
   /* Suppress the iOS long-press callout (Copy / Look Up / Share) and image
-     drag — UI chrome shouldn't behave like selectable web content. */
+     drag — UI chrome shouldn't behave like selectable web content. The
+     -webkit- prefix is load-bearing on the Capacitor WKWebView: without it
+     iOS still grants long-press selection handles, making the app feel like a
+     web page rather than a native build. */
   -webkit-touch-callout: none;
   -webkit-user-drag: none;
 }
 
-input, textarea, [contenteditable] { user-select: text; }
+input, textarea, [contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
 
 :focus-visible {
   outline: 2px solid var(--rm-pitch);
@@ -1716,7 +1723,9 @@ html.native-app .app-header {
   line-height: 1.4;
   white-space: pre-wrap;
   word-break: break-word;
+  -webkit-user-select: text;
   user-select: text;
+  -webkit-touch-callout: default;
 }
 
 .crash-overlay-actions {

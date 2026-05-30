@@ -563,6 +563,14 @@ export class MatchCoordinator {
 
   resume(): void {
     if (this.state.engine.isRunning) return;
+    // The producer can race ahead to full-time (endMatch → MATCH_ENDED sets
+    // isRunning false + phase FullTime) while the presenter is still draining
+    // the beat buffer and the Subs/Tactics buttons stay live. A Subs close in
+    // that window calls resume(); without this guard it would flip isRunning
+    // back to true and schedule a tick that resolvePhase()s the terminal
+    // FullTime phase → "No phase handler registered for FULL_TIME". The match
+    // is over — don't restart it.
+    if (this.state.phase === MatchPhase.FullTime) return;
     applyMatchEvent(this.state, { type: 'IS_RUNNING_SET', value: true });
     this.streamer.resume();
     this.scheduleTick(0);
@@ -655,6 +663,11 @@ export class MatchCoordinator {
   private async tickBody(): Promise<void> {
     this.tickTimeout = null;
     if (!this.state.engine.isRunning) return;
+    // Backstop: once endMatch has run, phase is the terminal FullTime, which
+    // has no resolvePhase handler. isRunning is normally false by now, but a
+    // stray resume() (Subs close while the producer is parked in endMatch's
+    // buffer drain) can flip it back to true — bail before resolvePhase().
+    if (this.state.phase === MatchPhase.FullTime) return;
 
     // Run-ahead throttle (live mode only): the producer resolves phases far
     // faster than the presenter narrates them, so cap how far it leads. When

@@ -9,7 +9,7 @@ import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForw
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
-import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS } from '../balance';
+import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, CRASH_BALL_THRESHOLDS, CRASH_BALL_LINE_BREAK_METRES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { SLOT, isBackSlot } from '../Slot';
 import { tryOffloadChain } from './offloadChain';
@@ -91,7 +91,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
   // Step 2 — Crash Ball or Wide Play
   const style = attackTeam.tactics.attackingStyle;
-  const goCrashBall = rng(1, 100) <= HARD_CARRY_THRESHOLDS[style];
+  const goCrashBall = rng(1, 100) <= CRASH_BALL_THRESHOLDS[style];
 
   let ballCarrier;
   let defender;
@@ -286,6 +286,12 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend;
   let res = resolveOpenPlay(ballCarrier, defender, baseAttackMod, baseDefendMod, dlCollision);
   const direction = attackDir(state);
+
+  // Crash-ball line breaks are contained by the converging fullback + flanker
+  // — re-roll gain into the tighter channel range.
+  if (goCrashBall && res.outcome === 'line_break') {
+    res.gainMetres = rng(CRASH_BALL_LINE_BREAK_METRES[0], CRASH_BALL_LINE_BREAK_METRES[1]);
+  }
 
   let chainNarration: NarrationStep[] = [];
   if (res.outcome !== 'line_break') {

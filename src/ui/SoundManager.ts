@@ -4,7 +4,9 @@
 // Web Audio graph — per-channel GainNodes → master gain — with buffers fetched
 // and decoded lazily on first use. A missing / undecodable file caches as null
 // and silently no-ops (falls back to procedural synthesis where a generator
-// exists).
+// exists). On iOS WKWebView the graph is unlocked by starting a silent buffer
+// source from the first user gesture (preloadAllCues) — resume() alone is not
+// enough there and leaves every one-shot silent.
 //
 // Looping ambient beds use HTMLAudioElement with loop=true instead of the Web
 // Audio decode pipeline. On iOS WKWebView (Capacitor) large buffers decoded via
@@ -313,7 +315,21 @@ export function preloadAllCues(): void {
   if (unlockArmed || typeof window === 'undefined') return;
   unlockArmed = true;
   const unlock = (): void => {
-    void getCtx()?.resume();
+    const c = getCtx();
+    void c?.resume();
+    // iOS WKWebView Web Audio unlock: resume() alone leaves the AudioContext
+    // reporting 'running' but routes no audio to the OS — every one-shot cue
+    // stays silent. Starting a 1-frame silent buffer source from inside the
+    // user-gesture handler engages the output route for all later playId calls.
+    if (c) {
+      try {
+        const buf = c.createBuffer(1, 1, c.sampleRate);
+        const src = c.createBufferSource();
+        src.buffer = buf;
+        src.connect(c.destination);
+        src.start(0);
+      } catch { /* unlock best-effort */ }
+    }
     // iOS HTMLAudioElement unlock: play a short silent file from the user-gesture
     // context. Any file works; whistle.stoppage (9.8 KB) is the smallest asset.
     const probeAsset = byId.get('whistle.stoppage');

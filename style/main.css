@@ -1221,6 +1221,10 @@ html, body {
   padding-top: max(12px, env(safe-area-inset-top, 0px));
 }
 
+html.native-app .app-header {
+  padding-bottom: 4px;
+}
+
 .app-topbar {
   display: grid;
   grid-template-columns: 1fr auto 1fr;

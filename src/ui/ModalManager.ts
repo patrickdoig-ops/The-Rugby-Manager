@@ -122,8 +122,8 @@ export function initModalManager(): void {
     overlay.classList.remove('hidden');
   });
 
-  eventBus.on('ui:openSubsModal', ({ team }) => {
-    renderSubstitutionPanel(box, team);
+  eventBus.on('ui:openSubsModal', ({ team, offFieldPlayerIds }) => {
+    renderSubstitutionPanel(box, team, offFieldPlayerIds);
     overlay.classList.remove('hidden');
   });
 

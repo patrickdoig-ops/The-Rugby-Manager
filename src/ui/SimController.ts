@@ -69,7 +69,15 @@ export function initSimController(engine: MatchCoordinator): void {
     const side = engine.getHumanSide();
     const state = engine.getState();
     const team = side === 'home' ? state.homeTeam : state.awayTeam;
-    eventBus.emit('ui:openSubsModal', { team });
+    // Sin-binned / sent-off players still occupy their slot in team.players but
+    // must not be replaceable — the engine rejects such a sub, and the modal
+    // hides them so the manager never sees a no-op option. Injured players are
+    // removed via the forced-sub flow, so they aren't here at modal-open time.
+    const offFieldPlayerIds = [
+      ...state.cards.sinBin[side].map(e => e.player.id),
+      ...state.cards.sentOff[side].map(p => p.id),
+    ];
+    eventBus.emit('ui:openSubsModal', { team, offFieldPlayerIds });
   };
 
   // Sync the speed presets to the persisted preference on every match start.

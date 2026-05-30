@@ -19,7 +19,8 @@ function ratingClass(r: number): string {
   return 'rating-poor';
 }
 
-export function renderSubstitutionPanel(container: HTMLElement, team: Team): void {
+export function renderSubstitutionPanel(container: HTMLElement, team: Team, offFieldPlayerIds: number[] = []): void {
+  const offField = new Set(offFieldPlayerIds);
   const color = teamTextColor(team.color);
   const pendingSubs: PendingSub[] = [];
   let selectedBenchSquadNum: number | null = null;
@@ -29,7 +30,7 @@ export function renderSubstitutionPanel(container: HTMLElement, team: Team): voi
     const pendingFieldNums = new Set(pendingSubs.map(s => s.fieldSquadNum));
 
     const availBench = team.bench.filter(p => !pendingBenchNums.has(p.squadNumber));
-    const availField = team.players.filter(p => !pendingFieldNums.has(p.squadNumber));
+    const availField = team.players.filter(p => !pendingFieldNums.has(p.squadNumber) && !offField.has(p.id));
 
     const benchRows = availBench.length > 0
       ? availBench.map(p => {

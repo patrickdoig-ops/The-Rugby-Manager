@@ -119,6 +119,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         tries:             cur.tries             + d.tries,
         lineBreaks:        cur.lineBreaks        + d.lineBreaks,
         defendersBeaten:   cur.defendersBeaten   + d.defendersBeaten,
+        offloadsCompleted: cur.offloadsCompleted + d.offloadsCompleted,
         carries:           cur.carries           + d.carries,
         metresCarried:     cur.metresCarried     + d.metresCarried,
         tacklesAttempted:  cur.tacklesAttempted  + d.tacklesAttempted,

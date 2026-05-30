@@ -55,6 +55,7 @@ function buildStatRows(d: DisplaySnapshot): StatRowSpec[] {
     { id: 'entries22',        label: '22 entries',     homeVal: String(stats.entries22.home.count), awayVal: String(stats.entries22.away.count), homeNum: stats.entries22.home.count, awayNum: stats.entries22.away.count },
     { id: 'pointsPerEntry',   label: 'Points / entry', homeVal: pointsPerEntry(stats.entries22.home), awayVal: pointsPerEntry(stats.entries22.away), homeNum: stats.entries22.home.pointsScored, awayNum: stats.entries22.away.pointsScored },
     { id: 'runMetres',        label: 'Run metres',     homeVal: String(hRunM),  awayVal: String(aRunM),  homeNum: hRunM,  awayNum: aRunM },
+    { id: 'offloads',         label: 'Offloads',       homeVal: String(aggregates.offloads.home), awayVal: String(aggregates.offloads.away), homeNum: aggregates.offloads.home, awayNum: aggregates.offloads.away },
     { id: 'kickMetres',       label: 'Kick metres',    homeVal: String(hKickM), awayVal: String(aKickM), homeNum: hKickM, awayNum: aKickM },
     { id: 'errors',           label: 'Errors',         homeVal: String(stats.handlingErrors.home), awayVal: String(stats.handlingErrors.away), homeNum: stats.handlingErrors.home, awayNum: stats.handlingErrors.away, invert: true },
     { id: 'penaltiesConceded',label: 'Penalties conceded', homeVal: String(hPens), awayVal: String(aPens), homeNum: hPens, awayNum: aPens, invert: true },

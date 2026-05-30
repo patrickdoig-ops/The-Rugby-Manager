@@ -132,6 +132,7 @@ export interface DisplaySnapshot {
     runMetres:         { home: number; away: number };
     kickMetres:        { home: number; away: number };
     penaltiesConceded: { home: number; away: number };
+    offloads:          { home: number; away: number };
   };
 }
 

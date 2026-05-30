@@ -88,6 +88,7 @@ export interface PlayerSeasonStats {
   metresCarried:          number;
   lineBreaks:             number;
   defendersBeaten:        number;
+  offloadsCompleted:      number;
   passes:                 number;
   // Goal kicking
   conversions:            number;
@@ -227,7 +228,7 @@ export function zeroMatchStats(): PlayerMatchStats {
 export function zeroSeasonStats(): PlayerSeasonStats {
   return {
     appearances: 0,
-    tries: 0, carries: 0, metresCarried: 0, lineBreaks: 0, defendersBeaten: 0, passes: 0,
+    tries: 0, carries: 0, metresCarried: 0, lineBreaks: 0, defendersBeaten: 0, offloadsCompleted: 0, passes: 0,
     conversions: 0, penaltiesScored: 0, dropGoals: 0,
     kicksFromHand: 0, kickMetres: 0, kicksAtGoal: 0, kicksMade: 0,
     tackles: 0, missedTackles: 0, dominantTackles: 0, turnoversWon: 0,

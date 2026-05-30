@@ -79,7 +79,7 @@
   font-family: var(--rm-font-display);
   font-size: clamp(calc(30px * var(--rm-text-scale)), 9vw, calc(44px * var(--rm-text-scale)));
   font-weight: 400;
-  color: #ffffff;
+  color: var(--rm-on-accent);
   text-transform: uppercase;
   letter-spacing: 0.03em;
   line-height: 0.95;

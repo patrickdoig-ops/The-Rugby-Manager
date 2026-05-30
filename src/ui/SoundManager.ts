@@ -16,7 +16,10 @@
 // UI / match SFX prefs + master volume, all persisted in localStorage.
 
 import { AUDIO_MANIFEST, type AudioAsset, type AudioChannel } from './audio/audioManifest';
-import { preloadNativeOneShots, playNativeOneShot } from './audio/nativeAudioBridge';
+import {
+  preloadNativeOneShots, playNativeOneShot,
+  preloadNativeBeds, nativeBedAvailable, playNativeBed, setNativeBedVolume, stopNativeBed,
+} from './audio/nativeAudioBridge';
 
 const SFX_UI_KEY    = 'rugby-manager-sfx-ui';
 const SFX_MATCH_KEY = 'rugby-manager-sfx-match';
@@ -107,6 +110,11 @@ interface HtmlBed {
 const htmlBeds    = new Map<AudioChannel, HtmlBed>();
 const htmlPending = new Map<AudioChannel, string>();
 
+// Native iOS beds, one per channel. Tracks the asset id + file currently looping
+// so playBed can no-op a re-trigger of the same bed (routeMatchEvent re-asks for
+// the engaged bed on every event) and stop a superseded one on a channel switch.
+const nativeBeds = new Map<AudioChannel, { id: string; file: string }>();
+
 function htmlTargetVol(ch: AudioChannel): number {
   return getVolume() * CHANNEL_MIX[ch];
 }
@@ -170,6 +178,19 @@ export function playBed(id: string): void {
   if (!asset) return;
   if (!isChannelEnabled(asset.channel)) return;
   const ch = asset.channel;
+
+  // Native iOS: loop the bed through AVAudioPlayer so CHANNEL_MIX + master
+  // volume apply (the HTML path's el.volume is ignored on iOS). Falls through
+  // to the HTML engine below on web / if the bed wasn't preloaded natively.
+  if (nativeBedAvailable(asset.file)) {
+    if (nativeBeds.get(ch)?.id === id) return; // already looping this bed
+    const prev = nativeBeds.get(ch);
+    if (prev) stopNativeBed(prev.file);
+    nativeBeds.set(ch, { id, file: asset.file });
+    playNativeBed(asset.file, htmlTargetVol(ch));
+    return;
+  }
+
   if (htmlBeds.get(ch)?.id === id || htmlPending.get(ch) === id) return;
 
   // Fade out the current bed on this channel before the new one begins.
@@ -206,6 +227,8 @@ export function playBed(id: string): void {
 
 /** Fade out and stop the bed on a channel. */
 export function stopBed(ch: AudioChannel): void {
+  const nb = nativeBeds.get(ch);
+  if (nb) { nativeBeds.delete(ch); stopNativeBed(nb.file); }
   htmlPending.delete(ch);
   const bed = htmlBeds.get(ch);
   if (!bed) return;
@@ -216,7 +239,7 @@ export function stopBed(ch: AudioChannel): void {
 
 /** Fade out every active bed (e.g. on mute). */
 export function stopAllBeds(): void {
-  for (const ch of [...htmlBeds.keys()]) stopBed(ch);
+  for (const ch of [...htmlBeds.keys(), ...nativeBeds.keys()]) stopBed(ch);
   htmlPending.clear();
 }
 
@@ -261,6 +284,8 @@ export function setVolume(percent: number): void {
       bed.el.volume = masterVol * CHANNEL_MIX[bed.ch];
     }
   }
+  // Native iOS beds respect setVolume — push the new master level straight in.
+  for (const [ch, nb] of nativeBeds) setNativeBedVolume(nb.file, masterVol * CHANNEL_MIX[ch]);
 }
 
 // A genuinely silent 0.1s WAV, used as the unlock probe. iOS WKWebView ignores
@@ -297,12 +322,15 @@ export function preloadAllCues(): void {
   // natively — match SFX stay on HTMLAudioElement, kept warm by the crowd bed.
   // Each variant take is its own native asset. No-op on the web.
   const uiFiles: string[] = [];
+  const bedFiles: string[] = [];
   for (const a of AUDIO_MANIFEST) {
-    if (a.loop || a.channel !== 'ui') continue;
+    if (a.loop) { bedFiles.push(a.file); continue; } // beds loop natively (volume-controllable on iOS)
+    if (a.channel !== 'ui') continue;
     const takes = a.variants ?? 1;
     for (let t = 1; t <= takes; t++) uiFiles.push(variantFile(a.file, t));
   }
   void preloadNativeOneShots(uiFiles);
+  void preloadNativeBeds(bedFiles);
   const probeSrc = silentWavDataUri();
   const unlock = (): void => {
     const probe = new Audio(probeSrc);

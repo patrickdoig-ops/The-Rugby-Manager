@@ -86,3 +86,58 @@ export function playNativeOneShot(file: string, volume: number): boolean {
   }
   return true;
 }
+
+// ── Looping beds (crowd ambience, TMO drone, off-season music) ──────────────────
+// Routed natively for the same reason as UI one-shots PLUS a second one:
+// HTMLAudioElement.volume is ignored on iOS WKWebView, so the per-channel
+// CHANNEL_MIX (crowd bed at 0.32) and the master-volume slider never reach a
+// bed on the HTML path — the continuous crowd loop plays at full volume and
+// drowns the action. AVAudioPlayer.setVolume is respected, so going native
+// restores the mix and master-volume control on the one sound that runs the
+// whole match. Falls through to the HTML bed engine on web.
+
+const preloadedBeds = new Set<string>();
+
+/** Preload looping bed files into native players. No-op off native. */
+export async function preloadNativeBeds(files: readonly string[]): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+  for (const file of files) {
+    if (preloadedBeds.has(file)) continue;
+    try {
+      await NativeAudio.preload({
+        assetId: file,
+        assetPath: bundlePath(file),
+        audioChannelNum: 1, // one looping instance per bed
+        isUrl: false,
+      });
+      preloadedBeds.add(file);
+    } catch (err) {
+      console.warn('NativeAudio bed preload failed', file, err);
+    }
+  }
+}
+
+/** True if this bed file preloaded natively — the caller should use the native path. */
+export function nativeBedAvailable(file: string): boolean {
+  return preloadedBeds.has(file);
+}
+
+/** Start (or restart) a looping bed at the given volume. */
+export function playNativeBed(file: string, volume: number): void {
+  if (!preloadedBeds.has(file)) return;
+  void NativeAudio.setVolume({ assetId: file, volume })
+    .catch(() => {})
+    .finally(() => { void NativeAudio.loop({ assetId: file }).catch(() => {}); });
+}
+
+/** Update a live bed's volume (master-slider / mix change). */
+export function setNativeBedVolume(file: string, volume: number): void {
+  if (!preloadedBeds.has(file)) return;
+  void NativeAudio.setVolume({ assetId: file, volume }).catch(() => {});
+}
+
+/** Stop a looping bed. */
+export function stopNativeBed(file: string): void {
+  if (!preloadedBeds.has(file)) return;
+  void NativeAudio.stop({ assetId: file }).catch(() => {});
+}

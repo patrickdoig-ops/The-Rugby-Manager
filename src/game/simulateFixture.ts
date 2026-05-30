@@ -10,6 +10,7 @@
 // (rootSeed, round, homeId, awayId) always produces the same score.
 
 import { MatchCoordinator } from '../engine/MatchCoordinator';
+import { HEADLESS_COMMENTARY_BUFFER_CAP } from '../engine/balance';
 import type { RawTeamInput } from '../types/teamData';
 import { eventBus } from '../utils/eventBus';
 import { deriveFixtureSeed } from './derive';
@@ -40,6 +41,10 @@ export function simulateFixture(
       tickDelayMs: 0,
       seed,
       silent: true,
+      // Nothing reads this fixture's commentary log (snapshotMatch pulls from
+      // state.stats), so keep the events buffer tiny to avoid the 300-ref
+      // per-event splice churn.
+      commentaryBufferCap: HEADLESS_COMMENTARY_BUFFER_CAP,
       ...(opts.neutralVenue ? { neutralVenue: true } : {}),
     });
     let settled = false;

@@ -46,6 +46,14 @@ export const TRY_AFTERMATH_CONTEXT = {
 // are spliced off the front when the buffer overflows.
 export const COMMENTARY_BUFFER_CAP = 300;
 
+// Headless in-app AI fixtures (simulateFixture) never read state.events — the
+// season-stats snapshot pulls from state.stats, not the commentary log. Only
+// the carry→try / carry→breakdown handlers read events[length-1], so any cap
+// ≥ 1 is behaviour-identical. 16 keeps a small scrollback for crash diagnostics
+// (reportTickCrash slices the last 5) while reducing the per-event splice from
+// a 300-ref shift to a 16-ref shift across ~6,500 events/match.
+export const HEADLESS_COMMENTARY_BUFFER_CAP = 16;
+
 // Presenter pacing — how the commentary beat buffer (CommentaryStreamer) and
 // the multi-step feed reveal drain. Expressed as fractions of the live
 // tickDelayMs so the whole feed scales coherently with the speed slider.

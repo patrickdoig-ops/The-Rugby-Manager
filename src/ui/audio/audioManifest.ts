@@ -507,17 +507,6 @@ const MUSIC: AudioAsset[] = [
     elevenLabsPrompt: 'An aspirational grand orchestral sports anthem, uplifting strings and brass with a broadcast rugby theme feel, hopeful and epic, seamless looping instrumental',
   },
   {
-    id: 'music.hub',
-    file: `${AUDIO_DIR}/music/hub.mp3`,
-    channel: 'music',
-    loop: true,
-    priority: 2,
-    trigger: { on: 'screen', id: 'hub' },
-    description: 'Calm, focused planning bed. Covers the in-season management screens (hub, fixtures, league, squad, training, contracts).',
-    elevenLabsPrompt: 'A calm focused ambient underscore, gentle pulsing synth pads with soft piano, contemplative management-game planning mood, unobtrusive seamless looping instrumental',
-    variants: 3,
-  },
-  {
     id: 'music.prematch',
     file: `${AUDIO_DIR}/music/prematch.mp3`,
     channel: 'music',

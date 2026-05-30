@@ -275,6 +275,22 @@ Tuned via `balance/transfers.ts::MIDSEASON_SIGNING`. Default range: a weak club 
 
 **Out of scope (v1).** AI clubs don't sign free agents mid-season — keeps the FA pool stable enough for the user to plan around. Mid-season Reg 7 / cross-Prem poaching stays deliberately closed (final-12-month rules are off-season-only). Mid-season marquee re-designation is handled via the existing Contracts screen toggle.
 
+## Mid-season early contract renewal
+
+Reached inline from the Hub's **Contracts** tile — the same screen the expiring-contract alert routes to. Each expiring own-squad player's tap-to-expand panel carries an **Offer Renewal** button. Unlike every other market flow this is **not** a window: no `MARKET_OPENED`, no screen lifecycle, no AI competition. One click = one offer.
+
+**Flow.** `ContractsScreen`'s button calls back into `main.ts`, which calls `gameEngine.offerEarlyRenewal(rosterId)` then `saveGame(...)` so a re-signing survives a closed tab. The method (`TransferCoordinator.offerEarlyRenewal`) returns an `EarlyRenewalResult` (`accepted` / `declined` / `ineligible`); the screen toasts the outcome and re-renders.
+
+**Eligibility.** Player must be on the user's squad, inside the rolling `EXPIRING_CONTRACT_WINDOW_MONTHS` window (the shared `isContractExpiringSoon` helper in `age.ts` — same predicate the "Expiring" tag uses, so the button and the badge never disagree), and not on cooldown. No active market window may be open.
+
+**Terms.** `retentionTermsFor(state, rosterId)` — the same loyalty-discounted wage + age-banded length the end-of-season renewal window would generate (`fresh-market × (1 - RENEWAL.loyaltyDiscount)`). The wage can't be previewed in the UI without advancing `rngTransfer`, so it's revealed in the result toast.
+
+**Budget.** Net gate: `clubBudgetUsage − currentWage + newWage ≤ salaryBudget` (the renewal replaces the existing wage). Marquee wages sit outside the budget and skip the check.
+
+**Acceptance.** Reuses `midseasonAcceptanceProbability` with a synthetic `kind: 'retention'` bid, so the own-club loyalty bonus in `appealScore` applies — a star at a struggling club can still decline. A `rngTransfer(1, 1000)/1000` roll below the probability fires `CONTRACT_EXTENDED`; otherwise `MIDSEASON_OFFER_REJECTED` writes a cooldown of `calendar.week + RENEWAL.earlyRenewalCooldownWeeks` (4 rounds) onto `state.career.midseasonRejections`, pruned by `WEEK_ADVANCED`.
+
+**Determinism / save.** Consumes `rngTransfer` draws (wage seed + acceptance roll) but is user-only — the harness never calls it, so `verify` is unaffected. No new `SeasonEvent` variant and no SAVE_VERSION bump (reuses `CONTRACT_EXTENDED`, `MIDSEASON_OFFER_REJECTED`, and the existing `midseasonRejections` map). AI clubs get no voluntary early renewals in v1 — they still renew at season's end and defend mid-deal poaches.
+
 ## Generated supply (Phase 7)
 
 `src/game/personaGenerator.ts::generatePersona(seed, calendarDate)` produces a deterministic `Player` from `rngTransfer`:

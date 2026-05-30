@@ -27,11 +27,12 @@ import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { Player } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
-import { getAge } from '../game/age';
-import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
+import { getAge, isContractExpiringSoon } from '../game/age';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 import { createRowExpander } from './components/rowExpand';
 import { averageRating } from '../game/seasonLeaderboards';
+import { showToast } from './Toast';
+import type { EarlyRenewalResult } from '../game/TransferCoordinator';
 
 type SortKey = 'wage' | 'expiry' | 'ovr' | 'position' | 'age' | 'name';
 type SortDir = 'asc' | 'desc';
@@ -67,15 +68,6 @@ function fmtExpiry(iso: string): string {
   return `${months[d.getUTCMonth()]} '${String(d.getUTCFullYear()).slice(2)}`;
 }
 
-function isExpiringSoon(expiresOn: string, calendarDate: string): boolean {
-  if (!expiresOn) return false;
-  const exp = new Date(expiresOn);
-  const today = new Date(calendarDate);
-  const monthsAhead = (exp.getUTCFullYear() - today.getUTCFullYear()) * 12
-                    + (exp.getUTCMonth() - today.getUTCMonth());
-  return monthsAhead >= 0 && monthsAhead <= EXPIRING_CONTRACT_WINDOW_MONTHS;
-}
-
 function ovrClass(ovr: number): string {
   if (ovr >= 85) return 'ovr-elite';
   if (ovr >= 78) return 'ovr-good';
@@ -85,6 +77,19 @@ function ovrClass(ovr: number): string {
 
 function fmtInjury(kind: string): string {
   return kind.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function showRenewalToast(result: EarlyRenewalResult, player: Player | undefined): void {
+  const name = player ? player.lastName : 'Player';
+  if (result.status === 'accepted') {
+    showToast(`${name} re-signed — ${fmtWage(result.wage)}/yr · ${result.lengthYears}yr`, 'success');
+  } else if (result.status === 'declined') {
+    showToast(`${name} turned down the early renewal`, 'info');
+  } else if (result.reason === 'over_budget') {
+    showToast(`Not enough wage budget to renew ${name}`, 'danger');
+  } else {
+    showToast(`Can't renew ${name} right now`, 'info');
+  }
 }
 
 const STAR_FILLED = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.637 1.55.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.755-.415-2.211.749-2.305l5.404-.434 2.082-5.005z"/></svg>`;
@@ -100,6 +105,10 @@ export function initContractsScreen(
   // the row) takes precedence — its handler stops propagation so the
   // outer player-link click doesn't fire.
   onPlayerClick?: (rosterId: number) => void,
+  // Offer a mid-season early renewal to an expiring own-squad player.
+  // Mutates + saves engine-side (in main.ts); returns the outcome so
+  // the screen can toast + re-render. Only wired in the in-season hub.
+  onOfferRenewal?: (rosterId: number) => EarlyRenewalResult,
 ): void {
   const el = document.getElementById('contracts');
   if (!el) return;
@@ -156,7 +165,7 @@ export function initContractsScreen(
     const rows = sorted.map((p, i) => {
       const overall = playerOverall(p.baseStats, p.position);
       const age = getAge(p.dob, calendarDate);
-      const expiring = isExpiringSoon(p.contract.expiresOn, calendarDate);
+      const expiring = isContractExpiringSoon(p.contract.expiresOn, calendarDate);
       const rowDelay = Math.min(i, 16) * 25;
 
       const classes = ['ct-player'];
@@ -188,9 +197,20 @@ export function initContractsScreen(
       const isExpandable = mode === 'hub';
       const isExpanded = isExpandable && expander.isExpanded(rowId);
       if (isExpandable) classes.push('ct-player--expandable');
+      // Mid-season early-renewal CTA — only for expiring players in the
+      // in-season hub view. A recent decline shows the cooldown lock
+      // instead of an actionable button (career.midseasonRejections
+      // holds the round the player is approachable again).
+      const cooldownUntil = state.career.midseasonRejections[p.rosterId];
+      const onCooldown = cooldownUntil !== undefined && cooldownUntil > state.calendar.week;
+      const renewHtml = (onOfferRenewal && mode === 'hub' && expiring)
+        ? (onCooldown
+            ? `<button class="ct-renew-btn" disabled>Approached · back WK ${cooldownUntil}</button>`
+            : `<button class="ct-renew-btn" data-renew="${p.rosterId}">Offer Renewal</button>`)
+        : '';
       const expandPanel = isExpandable
         ? `<div class="row-expand-panel ct-expand" data-expanded="${isExpanded}">
-             <div class="row-expand-inner"><div class="ct-expand-body">${ctExpandHtml(p, capUsed, budgetCap)}</div></div>
+             <div class="row-expand-inner"><div class="ct-expand-body">${ctExpandHtml(p, capUsed, budgetCap, renewHtml)}</div></div>
            </div>`
         : '';
       return `
@@ -333,13 +353,30 @@ export function initContractsScreen(
     if (mode === 'hub') {
       const list = el!.querySelector<HTMLElement>('#ct-list');
       if (list) expander.attach(list);
+      // Early-renewal CTA. Lives inside the expand panel; the row-expand
+      // controller already ignores <button> clicks, so this never
+      // toggles the row. Engine mutate + save happen in the callback
+      // (main.ts); we toast the outcome and re-render so the button
+      // reflects the new contract / cooldown state.
+      el!.querySelectorAll<HTMLButtonElement>('.ct-renew-btn[data-renew]').forEach(btn => {
+        btn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          if (!onOfferRenewal) return;
+          const rid = Number(btn.dataset.renew);
+          if (!Number.isFinite(rid)) return;
+          const player = getGameEngine().getState().career.roster[rid];
+          const result = onOfferRenewal(rid);
+          showRenewalToast(result, player);
+          render();
+        });
+      });
     }
   }
 
   renderImpl = render;
 }
 
-function ctExpandHtml(p: Player, capUsed: number, budgetCap: number): string {
+function ctExpandHtml(p: Player, capUsed: number, budgetCap: number, renewHtml: string): string {
   const annual = p.contract.annualWage;
   const monthly = annual / 12;
   const capPct = budgetCap > 0 ? (annual / budgetCap) * 100 : 0;
@@ -382,7 +419,8 @@ function ctExpandHtml(p: Player, capUsed: number, budgetCap: number): string {
           <div class="ct-expand-bar-val">${(p.formModifier ?? 0) >= 0 ? '+' : ''}${((p.formModifier ?? 0) * 100).toFixed(1)}%</div>
         </div>
       </div>
-    </div>`;
+    </div>
+    ${renewHtml ? `<div class="ct-renew-row">${renewHtml}</div>` : ''}`;
 }
 
 export function showContracts(): void {

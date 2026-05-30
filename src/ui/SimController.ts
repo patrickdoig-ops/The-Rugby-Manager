@@ -35,7 +35,7 @@ export function initSimController(engine: MatchCoordinator): void {
   let wasPausedBeforeSubs    = false;
 
   btnPlay.onclick = () => {
-    engine.start();
+    engine.resume();
     btnPlay.disabled  = true;
     btnPause.disabled = false;
   };

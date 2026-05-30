@@ -1,10 +1,8 @@
 import type { MatchCoordinator } from '../engine/MatchCoordinator';
 import { eventBus } from '../utils/eventBus';
-import {
-  loadTickDelayMs, saveTickDelayMs,
-  loadKeyMomentMode, saveKeyMomentMode, type KeyMomentMode,
-} from './uiPrefs';
+import { loadTickDelayMs, saveTickDelayMs, loadKeyMomentMode } from './uiPrefs';
 import { isAutoPauseEvent } from './keyMoment';
+import { renderMatchSettingsPanel } from './MatchSettingsPanel';
 
 let unsubs: Array<() => void> = [];
 
@@ -56,7 +54,8 @@ export function initSimController(engine: MatchCoordinator): void {
     const side = engine.getHumanSide();
     const state = engine.getState();
     const team = side === 'home' ? state.homeTeam : state.awayTeam;
-    eventBus.emit('ui:openTacticsModal', { tactics: team.tactics, teamId: side });
+    const oppTeam = side === 'home' ? state.awayTeam : state.homeTeam;
+    eventBus.emit('ui:openTacticsModal', { tactics: team.tactics, teamId: side, oppTactics: oppTeam.tactics });
   };
 
   btnSubs.onclick = () => {
@@ -112,6 +111,7 @@ export function initSimController(engine: MatchCoordinator): void {
     btnPause.disabled   = true;
     btnTactics.disabled = true;
     btnSubs.disabled    = true;
+    closeSettings();
   }));
 
   unsubs.push(eventBus.on('engine:paused', () => {
@@ -167,41 +167,33 @@ export function initSimController(engine: MatchCoordinator): void {
 
   unsubs.push(eventBus.on('engine:stateChange', () => syncSubsBadge()));
 
-  // ─── Key-moment mode (off / slow / pause) ───
-  const cogBtn  = document.getElementById('btn-auto-settings') as HTMLButtonElement;
-  const popover = document.getElementById('auto-settings-popover') as HTMLDivElement;
-  const kmRadios = Array.from(
-    document.querySelectorAll<HTMLInputElement>('input[name="key-moment-mode"]'),
-  );
+  // ─── Settings overlay ───
+  const cogBtn         = document.getElementById('btn-auto-settings') as HTMLButtonElement;
+  const settingsOverlay = document.getElementById('match-settings-overlay') as HTMLDivElement;
 
-  const initMode = loadKeyMomentMode();
-  for (const r of kmRadios) r.checked = r.value === initMode;
-
-  function closePopover(): void {
-    popover.hidden = true;
+  function openSettings(): void {
+    renderMatchSettingsPanel(settingsOverlay, closeSettings);
+    settingsOverlay.classList.remove('hidden');
+    cogBtn.classList.add('is-open');
+    cogBtn.setAttribute('aria-expanded', 'true');
+  }
+  function closeSettings(): void {
+    settingsOverlay.classList.add('hidden');
     cogBtn.classList.remove('is-open');
     cogBtn.setAttribute('aria-expanded', 'false');
   }
+
   cogBtn.onclick = (e) => {
     e.stopPropagation();
-    const open = !!popover.hidden;
-    popover.hidden = !open;
-    cogBtn.classList.toggle('is-open', open);
-    cogBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (settingsOverlay.classList.contains('hidden')) openSettings();
+    else closeSettings();
   };
-  // popover lives in the persistent AppShell; initSimController runs once per
-  // match, so register the removal on unsubs to avoid accumulating an
-  // identical stopPropagation listener every match across a session.
-  const stopProp = (e: Event): void => e.stopPropagation();
-  popover.addEventListener('click', stopProp);
-  unsubs.push(() => popover.removeEventListener('click', stopProp));
-  const outsideClick = (): void => { if (!popover.hidden) closePopover(); };
-  document.addEventListener('click', outsideClick);
-  unsubs.push(() => document.removeEventListener('click', outsideClick));
-
-  for (const r of kmRadios) {
-    r.onchange = () => { if (r.checked) saveKeyMomentMode(r.value as KeyMomentMode); };
-  }
+  // Close when tapping the backdrop (the overlay itself, not the sheet inside it).
+  const backdropClick = (e: MouseEvent) => {
+    if (e.target === settingsOverlay) closeSettings();
+  };
+  settingsOverlay.addEventListener('click', backdropClick);
+  unsubs.push(() => settingsOverlay.removeEventListener('click', backdropClick));
 
   let slowTimeout: ReturnType<typeof setTimeout> | null = null;
   unsubs.push(() => {
@@ -211,7 +203,7 @@ export function initSimController(engine: MatchCoordinator): void {
   unsubs.push(eventBus.on('engine:event', ({ event }) => {
     if (!engine.getState().engine.isRunning) return;
     if (!isAutoPauseEvent(event)) return;
-    const mode = kmRadios.find(r => r.checked)?.value ?? 'off';
+    const mode = loadKeyMomentMode();
     if (mode === 'pause') {
       engine.pause();
       btnPlay.disabled  = false;

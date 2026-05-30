@@ -21,7 +21,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 3px 10px 4px;
+  padding: 3px 10px 3px;
   overflow-x: auto;
   scrollbar-width: none;
   background: var(--rm-surface-2);

@@ -543,6 +543,7 @@ const MUSIC: AudioAsset[] = [
     trigger: { on: 'screen', id: 'match-result (player lost)' },
     description: 'Subdued / reflective sting when the managed side lost or drew.',
     elevenLabsPrompt: 'A short subdued reflective musical sting, melancholy soft strings and piano, dignified disappointment, gentle fade',
+    variants: 5,
   },
   {
     id: 'music.transfer',

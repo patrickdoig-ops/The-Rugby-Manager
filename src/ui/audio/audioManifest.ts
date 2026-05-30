@@ -515,7 +515,7 @@ const MUSIC: AudioAsset[] = [
     trigger: { on: 'screen', id: 'hub' },
     description: 'Calm, focused planning bed. Covers the in-season management screens (hub, fixtures, league, squad, training, contracts).',
     elevenLabsPrompt: 'A calm focused ambient underscore, gentle pulsing synth pads with soft piano, contemplative management-game planning mood, unobtrusive seamless looping instrumental',
-    variants: 4,
+    variants: 3,
   },
   {
     id: 'music.prematch',

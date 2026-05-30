@@ -1,6 +1,6 @@
 # Rugby Simulator — Marketing Blurb
 
-**Live demo:** https://patrickdoig-ops.github.io/Rugby-Simulator-/
+**Live demo:** https://patrickdoig-ops.github.io/The-Rugby-Manager/
 
 ---
 

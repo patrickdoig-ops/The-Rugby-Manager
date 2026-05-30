@@ -1,7 +1,7 @@
 #!/bin/bash
 # organise-audio.sh
 # Copies & renames downloaded Freesound files into the correct public/audio/ folders.
-# Run from the Rugby-Simulator- project root:
+# Run from the The-Rugby-Manager project root:
 #   bash organise-audio.sh
 
 set -e

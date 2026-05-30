@@ -1,7 +1,7 @@
 # Rugby Simulator
 
-[![Deploy to GitHub Pages](https://github.com/patrickdoig-ops/Rugby-Simulator-/actions/workflows/deploy.yml/badge.svg)](https://github.com/patrickdoig-ops/Rugby-Simulator-/actions/workflows/deploy.yml)
-[![Telemetry](https://github.com/patrickdoig-ops/Rugby-Simulator-/actions/workflows/telemetry.yml/badge.svg)](https://github.com/patrickdoig-ops/Rugby-Simulator-/actions/workflows/telemetry.yml)
+[![Deploy to GitHub Pages](https://github.com/patrickdoig-ops/The-Rugby-Manager/actions/workflows/deploy.yml/badge.svg)](https://github.com/patrickdoig-ops/The-Rugby-Manager/actions/workflows/deploy.yml)
+[![Telemetry](https://github.com/patrickdoig-ops/The-Rugby-Manager/actions/workflows/telemetry.yml/badge.svg)](https://github.com/patrickdoig-ops/The-Rugby-Manager/actions/workflows/telemetry.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 
@@ -13,7 +13,7 @@ Pick **any club in the English top flight** and step into the manager's office. 
 
 No download. No account. No backend. Just open it and play, free, in your browser.
 
-### ▶ [**Play now**](https://patrickdoig-ops.github.io/Rugby-Simulator-/)
+### ▶ [**Play now**](https://patrickdoig-ops.github.io/The-Rugby-Manager/)
 
 ---
 
@@ -47,7 +47,7 @@ Run a complete top-flight campaign — fixtures, international breaks, semifinal
 - **Your save is yours** — progress autosaves locally in your browser; no account, no sign-in, no servers.
 - **Pick up where you left off** — saves carry across seasons, and older saves keep working as the game updates.
 
-> Just want to play? **[Open the game](https://patrickdoig-ops.github.io/Rugby-Simulator-/)** — everything below is for developers and the curious.
+> Just want to play? **[Open the game](https://patrickdoig-ops.github.io/The-Rugby-Manager/)** — everything below is for developers and the curious.
 
 ---
 
@@ -98,13 +98,13 @@ A browser-based, event-driven Rugby Union match and career simulator built with 
 Requires Node.js 20+ and npm.
 
 ```bash
-git clone https://github.com/patrickdoig-ops/Rugby-Simulator-.git
-cd Rugby-Simulator-
+git clone https://github.com/patrickdoig-ops/The-Rugby-Manager.git
+cd The-Rugby-Manager
 npm install
 npm run dev
 ```
 
-The dev server prints a local URL (typically `http://localhost:5173/Rugby-Simulator-/`). Open it in a browser; saves persist in `localStorage`.
+The dev server prints a local URL (typically `http://localhost:5173/The-Rugby-Manager/`). Open it in a browser; saves persist in `localStorage`.
 
 ---
 
@@ -202,7 +202,7 @@ The codebase is heavily documented to maintain strict architectural and design g
 
 ### Deployment
 
-The production build deploys to GitHub Pages automatically on every push to `main` via `.github/workflows/deploy.yml`. The Vite `base` path is `/Rugby-Simulator-/` — do not change it or asset URLs break in production.
+The production build deploys to GitHub Pages automatically on every push to `main` via `.github/workflows/deploy.yml`. The Vite `base` path is `/The-Rugby-Manager/` — do not change it or asset URLs break in production.
 
 A second workflow (`.github/workflows/telemetry.yml`) runs the telemetry harness on every push to `main` and commits the regenerated report to `telemetry/latest.md`.
 

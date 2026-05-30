@@ -138,7 +138,7 @@ npm run telemetry # balance + realism report (scripts/telemetry.ts) — 90-fixtu
 
 No tests or linters. TypeScript strict mode is the primary correctness check. Both `npm run build` and `npm run verify` must pass cleanly before every commit.
 
-**Deploy (web):** push to `main`. GitHub Actions builds and deploys to GitHub Pages. The Vite base path is `/Rugby-Simulator-/` for the default `npm run build` — do not change that or asset URLs break in production. `vite.config.ts` switches `base` to `./` only under `--mode capacitor` (`npm run build:cap`); the GitHub Pages path is untouched.
+**Deploy (web):** push to `main`. GitHub Actions builds and deploys to GitHub Pages. The Vite base path is `/The-Rugby-Manager/` for the default `npm run build` — do not change that or asset URLs break in production. `vite.config.ts` switches `base` to `./` only under `--mode capacitor` (`npm run build:cap`); the GitHub Pages path is untouched.
 
 **Native iOS (Capacitor).** The web app is wrapped for the App Store via Capacitor (`capacitor.config.ts`, appId `com.patrickdoig.rugbymanager`). The `ios/` Xcode project is committed; its `.gitignore` excludes the synced web assets (`App/App/public`), `Pods`, and build output, so a fresh clone must run `npm run cap:sync` before opening Xcode. Building / signing / archiving for the App Store requires a Mac with Xcode + CocoaPods — `cap add ios` and `cap sync` scaffold and copy on any platform, but `pod install` and `xcodebuild` are Mac-only (they no-op with a warning elsewhere). Asset paths must stay base-relative (use `import.meta.env.BASE_URL`, see `SoundManager.ts`) so they resolve under `capacitor://localhost`.
 

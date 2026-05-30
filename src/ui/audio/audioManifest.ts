@@ -87,7 +87,7 @@ export interface AudioAsset {
 }
 
 // Base-relative so cues resolve under both the GitHub Pages sub-path
-// (/Rugby-Simulator-/) and the Capacitor native origin (capacitor://localhost).
+// (/The-Rugby-Manager/) and the Capacitor native origin (capacitor://localhost).
 const AUDIO_DIR = `${import.meta.env.BASE_URL}audio`;
 
 // ════════════════════════════════════════════════════════════════════════════

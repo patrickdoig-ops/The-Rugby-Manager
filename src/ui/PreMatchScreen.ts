@@ -573,8 +573,9 @@ export function initPreMatchScreen(
                    : step === 'scout'   ? 'Choose Tactics'
                    :                       'Start Match';
     const id = isLast ? 'pm-start' : 'pm-next';
-    // The final step (Start Match) is a commit action → the confirm cue.
-    const sfx = isLast ? ' data-sfx="confirm"' : '';
+    // Start Match is silent — we want the stadium bed to fade in cleanly on the
+    // live-match screen with no UI cue layered over it.
+    const sfx = isLast ? ' data-sfx="none"' : '';
     return `
       <div id="pm-footer">
         <button id="${id}" class="cta-pulse" type="button"${sfx}>

@@ -43,7 +43,11 @@ export function initUiSounds(): void {
 
     const tagged = target.closest<HTMLElement>('[data-sfx]');
     if (tagged) {
-      playId(SFX_BY_DATA[tagged.dataset.sfx ?? ''] ?? 'ui.click.primary');
+      const val = tagged.dataset.sfx ?? '';
+      // `data-sfx="none"` deliberately silences the click — e.g. Kick Off, where
+      // we want the stadium bed to fade in cleanly with no UI cue over it.
+      if (val === 'none') return;
+      playId(SFX_BY_DATA[val] ?? 'ui.click.primary');
       return;
     }
     if (target.closest('.app-back, .app-back-floating')) { playId('ui.click.back'); return; }

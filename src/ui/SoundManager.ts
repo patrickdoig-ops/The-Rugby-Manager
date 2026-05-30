@@ -16,6 +16,7 @@
 // UI / match SFX prefs + master volume, all persisted in localStorage.
 
 import { AUDIO_MANIFEST, type AudioAsset, type AudioChannel } from './audio/audioManifest';
+import { preloadNativeOneShots, playNativeOneShot } from './audio/nativeAudioBridge';
 
 const SFX_UI_KEY    = 'rugby-manager-sfx-ui';
 const SFX_MATCH_KEY = 'rugby-manager-sfx-match';
@@ -146,8 +147,13 @@ export function playId(id: string): void {
   if (asset.loop) { playBed(id); return; }
   const take = pickVariant(id, asset.variants ?? 1);
   const file = variantFile(asset.file, take);
+  const vol  = getVolume() * CHANNEL_MIX[asset.channel];
+  // On native iOS, UI one-shots play through preloaded AVAudioPlayers (near-zero
+  // latency). Returns false on web / if the cue wasn't preloaded — fall through
+  // to the HTMLAudioElement path below.
+  if (playNativeOneShot(file, vol)) return;
   const el = acquireOneShot(file);
-  el.volume = getVolume() * CHANNEL_MIX[asset.channel];
+  el.volume = vol;
   try { el.currentTime = 0; } catch { /* not yet seekable — ignore */ }
   void el.play().catch(() => {});
 }
@@ -279,6 +285,18 @@ let unlockArmed = false;
 export function preloadAllCues(): void {
   if (unlockArmed || typeof window === 'undefined') return;
   unlockArmed = true;
+
+  // Native iOS: preload UI one-shots into AVAudioPlayers up front so menu taps
+  // fire instantly (no cold-route lag). Only the `ui` channel is routed
+  // natively — match SFX stay on HTMLAudioElement, kept warm by the crowd bed.
+  // Each variant take is its own native asset. No-op on the web.
+  const uiFiles: string[] = [];
+  for (const a of AUDIO_MANIFEST) {
+    if (a.loop || a.channel !== 'ui') continue;
+    const takes = a.variants ?? 1;
+    for (let t = 1; t <= takes; t++) uiFiles.push(variantFile(a.file, t));
+  }
+  void preloadNativeOneShots(uiFiles);
   const probeSrc = silentWavDataUri();
   const unlock = (): void => {
     const probe = new Audio(probeSrc);

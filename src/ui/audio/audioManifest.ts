@@ -368,6 +368,7 @@ const IMPACT: AudioAsset[] = [
     priority: 1,
     trigger: { on: 'matchEvent', type: 'KICK_AT_GOAL_RESOLVED', when: 'optional flavour on a narrow miss' },
     description: 'Hollow "clank" of ball off the upright. Optional colour — only on near-miss goal kicks.',
+    variants: 3,
     elevenLabsPrompt: 'A hollow metallic clank of a rugby ball striking the aluminium goal upright, resonant ringing thud, brief, outdoor',
   },
 ];

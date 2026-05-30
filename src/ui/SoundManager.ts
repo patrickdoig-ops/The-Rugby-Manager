@@ -27,7 +27,7 @@ const CHANNEL_MIX: Record<AudioChannel, number> = {
   'crowd-bed':      0.5,
   'crowd-reaction': 0.9,
   'impact':         0.8,
-  'ui':             0.7,
+  'ui':             0.47,
   'stinger':        0.9,
   'music':          0.45,
 };

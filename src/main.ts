@@ -46,8 +46,9 @@ import '../style/saves.css';
 import '../style/achievements.css';
 
 import { buildAppShell }           from './ui/AppShell';
-import { preloadAllCues, playCue } from './ui/SoundManager';
+import { preloadAllCues }          from './ui/SoundManager';
 import { initAudioDirector }       from './ui/audio/AudioDirector';
+import { initUiSounds }            from './ui/audio/uiSounds';
 import { initHapticsDirector }     from './ui/haptics/HapticsDirector';
 import { initScoreboard }          from './ui/Scoreboard';
 import { initPitchStrip }          from './ui/PitchStrip';
@@ -94,6 +95,7 @@ import { screenRouter }            from './ui/ScreenRouter';
 import { loadSave, saveGame, clearSave, migrateLegacySave } from './ui/SaveManager';
 import { installBackupMirror, reconcileBackups } from './ui/saveBackup';
 import { loadTickDelayMs }           from './ui/uiPrefs';
+import { initTextScale }             from './ui/textScale';
 import { MatchCoordinator }        from './engine/MatchCoordinator';
 import type { RawTeamInput }       from './types/teamData';
 import type { TeamTactics }        from './types/team';
@@ -143,16 +145,12 @@ function configureNativeShell(): void {
 
 document.addEventListener('DOMContentLoaded', () => {
   configureNativeShell();
+  initTextScale();            // accessibility text scale — before any render
   buildAppShell();
   preloadAllCues();
   initAudioDirector();
   initHapticsDirector();
-  document.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement;
-    if (target.closest('button, .hub-tile, .ts-card, .mp-card')) {
-      playCue('uiClick');
-    }
-  });
+  initUiSounds();
   initScoreboard();
   initPitchStrip();
   initCommentaryFeed();
@@ -217,7 +215,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function goSettingsFromHub(): void {
     initSettingsScreen(() => goHub('back'), () => goHome('back'),
-      () => goSaves(goSettingsFromHub));
+      () => goSaves(goSettingsFromHub),
+      () => {
+        if (gameEngine) saveGame(gameEngine.toSavePayload());
+        goHome('back');
+      });
     screenRouter.show('settings');
   }
 
@@ -335,6 +337,14 @@ document.addEventListener('DOMContentLoaded', () => {
     initRolloverScreen(getGameEngine, allTeams);
     initContractsScreen(getGameEngine, allTeams, () => goHub('back'), (rosterId) => {
       goPlayerProfile(rosterId, () => goContracts('back'));
+    }, (rosterId) => {
+      // Mid-season early renewal: mutate + persist engine-side so a
+      // re-signing survives a tab close. The screen handles the toast +
+      // re-render from the returned outcome.
+      const engine = getGameEngine();
+      const result = engine.offerEarlyRenewal(rosterId);
+      saveGame(engine.toSavePayload());
+      return result;
     });
     initSquadManagementScreen({
       getGameEngine,
@@ -604,7 +614,17 @@ document.addEventListener('DOMContentLoaded', () => {
       goHome();
       return;
     }
-    gameEngine = GameCoordinator.fromSave(save, allTeams);
+    try {
+      gameEngine = GameCoordinator.fromSave(save, allTeams);
+    } catch (err) {
+      // A structurally-parsed save can still trip an invariant on load (e.g.
+      // corrupt result scores → NaN standings). Surface it and bounce home
+      // rather than leaving a dead "Continue" button; the save is preserved
+      // so a future build can attempt the load again.
+      console.error('Failed to load save:', err);
+      goHome();
+      return;
+    }
     initInSeasonScreens();
     // v12 → v13 shim: a save made after R18 but pre-playoffs era won't
     // have a bracket field. Seed it now if conditions are met (no-op

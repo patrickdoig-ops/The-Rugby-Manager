@@ -28,7 +28,8 @@ import type { MatchEvent } from '../../types/matchEvent';
 //   crowd-reaction  — one-shot crowd swells layered over the bed
 //   impact          — close-mic'd pitch sounds (tackle, scrum, boot)
 //   ui              — interface feedback
-//   stinger         — short musical/dramatic accents (cards, TMO, season beats)
+//   stinger         — in-match dramatic accents (TMO, cards, injury)
+//   stinger-season  — off-screen season beats (playoff reveal, champion, budget, transfers)
 //   music           — looping screen themes
 export type AudioChannel =
   | 'whistle'
@@ -37,6 +38,7 @@ export type AudioChannel =
   | 'impact'
   | 'ui'
   | 'stinger'
+  | 'stinger-season'
   | 'music';
 
 // Sourcing priority. 1 = match-day core (build these first — the match feels
@@ -87,7 +89,7 @@ export interface AudioAsset {
 }
 
 // Base-relative so cues resolve under both the GitHub Pages sub-path
-// (/Rugby-Simulator-/) and the Capacitor native origin (capacitor://localhost).
+// (/The-Rugby-Manager/) and the Capacitor native origin (capacitor://localhost).
 const AUDIO_DIR = `${import.meta.env.BASE_URL}audio`;
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -115,6 +117,7 @@ const WHISTLE: AudioAsset[] = [
     trigger: { on: 'matchEvent', type: 'PENALTY_AWARDED' },
     description: 'Firm single blast, slightly longer/harder than a stoppage pip — the "that\'s a penalty" tone.',
     elevenLabsPrompt: 'A single firm, authoritative blast of a referee whistle, slightly drawn out and decisive, outdoor stadium, clean and dry',
+    variants: 2,
   },
   {
     id: 'whistle.try',
@@ -125,6 +128,17 @@ const WHISTLE: AudioAsset[] = [
     trigger: { on: 'matchEvent', type: 'TRY_SCORED' },
     description: 'Long single blast + arm-aloft signal feel. Plays under/just before the try roar.',
     elevenLabsPrompt: 'One long, emphatic blast of a referee whistle signalling a score, confident and sustained, outdoor rugby stadium',
+    variants: 2,
+  },
+  {
+    id: 'whistle.kickoff',
+    file: `${AUDIO_DIR}/whistle/kickoff.mp3`,
+    channel: 'whistle',
+    loop: false,
+    priority: 1,
+    trigger: { on: 'phase', phase: MatchPhase.KickOff },
+    description: 'Single short peep to start play — match start, second-half restart, and post-score restarts.',
+    elevenLabsPrompt: 'A single clear peep of a referee whistle to start play, brief and clean, outdoor pitch, no crowd',
   },
   {
     id: 'whistle.half_time',
@@ -178,6 +192,17 @@ const CROWD_BED: AudioAsset[] = [
     trigger: { on: 'state', description: 'Attack inside opposition 22, goal-line defence, kick at goal run-up, or clock-in-red.' },
     description: 'Seamless loop. Rising anticipatory swell — building "ooooh" energy. Cross-faded in for high-pressure passages.',
     elevenLabsPrompt: 'A large stadium crowd rising in nervous anticipation, a sustained building collective "ooooh", expectant tension swelling and holding, seamless looping ambience',
+    variants: 3,
+  },
+  {
+    id: 'crowd.bed.chant',
+    file: `${AUDIO_DIR}/crowd/bed-chant.mp3`,
+    channel: 'crowd-bed',
+    loop: true,
+    priority: 2,
+    trigger: { on: 'state', description: 'Half-time interval — the crowd fills the break with a terrace chant.' },
+    description: 'Seamless loop. A rhythmic terrace chant with claps. Cross-faded in over the half-time pause, replaced by the tier bed on resume.',
+    elevenLabsPrompt: 'A rugby crowd singing a wordless rhythmic terrace chant, a low loopable "oh-oh-oh" stadium song with claps, thousands of voices in unison, seamless looping ambience, no music',
   },
 ];
 
@@ -282,7 +307,17 @@ const CROWD_REACTION: AudioAsset[] = [
     trigger: { on: 'matchEvent', type: 'CARD_ISSUED' },
     description: 'Gasp turning to boos/jeers as the card comes out. Use a heavier mix for red_20 than yellow.',
     elevenLabsPrompt: 'A crowd reacting with a sharp collective gasp that turns into scattered boos and jeers as a referee shows a card, outdoor stadium',
-    variants: 2,
+    variants: 3,
+  },
+  {
+    id: 'crowd.fulltime_reaction',
+    file: `${AUDIO_DIR}/crowd/fulltime-reaction.mp3`,
+    channel: 'crowd-reaction',
+    loop: false,
+    priority: 1,
+    trigger: { on: 'phase', phase: MatchPhase.FullTime },
+    description: 'Sustained applause/cheer swell at the final whistle, layered over whistle.full_time.',
+    elevenLabsPrompt: 'A stadium crowd breaking into sustained applause and cheering at the final whistle, warm appreciative roar settling into clapping, no music',
   },
 ];
 
@@ -368,6 +403,7 @@ const IMPACT: AudioAsset[] = [
     priority: 1,
     trigger: { on: 'matchEvent', type: 'KICK_AT_GOAL_RESOLVED', when: 'optional flavour on a narrow miss' },
     description: 'Hollow "clank" of ball off the upright. Optional colour — only on near-miss goal kicks.',
+    variants: 3,
     elevenLabsPrompt: 'A hollow metallic clank of a rugby ball striking the aluminium goal upright, resonant ringing thud, brief, outdoor',
   },
 ];
@@ -382,6 +418,7 @@ const TMO: AudioAsset[] = [
     trigger: { on: 'matchEvent', type: 'TMO_REVIEW_STARTED' },
     description: 'Low suspense drone, loops across the 3-tick review window. Stop on TMO_REVIEW_RESOLVED.',
     elevenLabsPrompt: 'A low suspenseful droning tension bed, deep sustained synth hum with a subtle slow pulse, ominous anticipation, seamless looping, no melody',
+    variants: 2,
   },
   {
     id: 'stinger.tmo.no_card',
@@ -492,37 +529,9 @@ const UI: AudioAsset[] = [
   },
 ];
 
+// Menus and pre-match are intentionally silent — no music.home / music.prematch.
+// The live match runs the crowd bed; off-screen surfaces play stingers only.
 const MUSIC: AudioAsset[] = [
-  {
-    id: 'music.home',
-    file: `${AUDIO_DIR}/music/home.mp3`,
-    channel: 'music',
-    loop: true,
-    priority: 2,
-    trigger: { on: 'screen', id: 'home' },
-    description: 'Signature title theme — grand, aspirational, broadcast-rugby feel. Seamless loop.',
-    elevenLabsPrompt: 'An aspirational grand orchestral sports anthem, uplifting strings and brass with a broadcast rugby theme feel, hopeful and epic, seamless looping instrumental',
-  },
-  {
-    id: 'music.hub',
-    file: `${AUDIO_DIR}/music/hub.mp3`,
-    channel: 'music',
-    loop: true,
-    priority: 2,
-    trigger: { on: 'screen', id: 'hub' },
-    description: 'Calm, focused planning bed. Covers the in-season management screens (hub, fixtures, league, squad, training, contracts).',
-    elevenLabsPrompt: 'A calm focused ambient underscore, gentle pulsing synth pads with soft piano, contemplative management-game planning mood, unobtrusive seamless looping instrumental',
-  },
-  {
-    id: 'music.prematch',
-    file: `${AUDIO_DIR}/music/prematch.mp3`,
-    channel: 'music',
-    loop: true,
-    priority: 2,
-    trigger: { on: 'screen', id: 'pre-match' },
-    description: 'Anticipatory build — tunnel walk energy. Hands over to the crowd bed on Kick Off.',
-    elevenLabsPrompt: 'An anticipatory building instrumental, driving percussion and rising strings, pre-match tunnel-walk tension and adrenaline, energetic seamless looping',
-  },
   {
     id: 'music.result.win',
     file: `${AUDIO_DIR}/music/result-win.mp3`,
@@ -532,6 +541,7 @@ const MUSIC: AudioAsset[] = [
     trigger: { on: 'screen', id: 'match-result (player won)' },
     description: 'Upbeat victory sting on the result screen when the managed side won.',
     elevenLabsPrompt: 'A short triumphant victory musical sting, uplifting brass and strings flourish, celebratory and bright, resolving cleanly',
+    variants: 3,
   },
   {
     id: 'music.result.loss',
@@ -542,16 +552,7 @@ const MUSIC: AudioAsset[] = [
     trigger: { on: 'screen', id: 'match-result (player lost)' },
     description: 'Subdued / reflective sting when the managed side lost or drew.',
     elevenLabsPrompt: 'A short subdued reflective musical sting, melancholy soft strings and piano, dignified disappointment, gentle fade',
-  },
-  {
-    id: 'music.transfer',
-    file: `${AUDIO_DIR}/music/transfer.mp3`,
-    channel: 'music',
-    loop: true,
-    priority: 2,
-    trigger: { on: 'screen', id: 'transfer-market' },
-    description: 'Busy "deadline-day" bed — ticking, purposeful. Covers transfer-market, renewals, signing-results, contracts.',
-    elevenLabsPrompt: 'A busy purposeful instrumental bed with a steady ticking clock pulse and tense muted strings, transfer deadline-day urgency, focused seamless looping',
+    variants: 5,
   },
 ];
 
@@ -563,7 +564,7 @@ const SEASON_STINGERS: AudioAsset[] = [
   {
     id: 'stinger.playoff_reveal',
     file: `${AUDIO_DIR}/stinger/playoff-reveal.mp3`,
-    channel: 'stinger',
+    channel: 'stinger-season',
     loop: false,
     priority: 3,
     trigger: { on: 'gameEvent', name: 'game:bracketSeeded' },
@@ -573,7 +574,7 @@ const SEASON_STINGERS: AudioAsset[] = [
   {
     id: 'stinger.champion',
     file: `${AUDIO_DIR}/stinger/champion.mp3`,
-    channel: 'stinger',
+    channel: 'stinger-season',
     loop: false,
     priority: 3,
     trigger: { on: 'gameEvent', name: 'game:seasonComplete (championTeamId crowned)' },
@@ -583,7 +584,7 @@ const SEASON_STINGERS: AudioAsset[] = [
   {
     id: 'stinger.award',
     file: `${AUDIO_DIR}/stinger/award.mp3`,
-    channel: 'stinger',
+    channel: 'stinger-season',
     loop: false,
     priority: 3,
     trigger: { on: 'screen', id: 'end-of-season (MVP / top scorer reveal)' },
@@ -593,7 +594,7 @@ const SEASON_STINGERS: AudioAsset[] = [
   {
     id: 'stinger.budget.up',
     file: `${AUDIO_DIR}/stinger/budget-up.mp3`,
-    channel: 'stinger',
+    channel: 'stinger-season',
     loop: false,
     priority: 3,
     trigger: { on: 'screen', id: 'budget-reveal (positive delta)' },
@@ -603,7 +604,7 @@ const SEASON_STINGERS: AudioAsset[] = [
   {
     id: 'stinger.budget.down',
     file: `${AUDIO_DIR}/stinger/budget-down.mp3`,
-    channel: 'stinger',
+    channel: 'stinger-season',
     loop: false,
     priority: 3,
     trigger: { on: 'screen', id: 'budget-reveal (negative delta)' },
@@ -613,7 +614,7 @@ const SEASON_STINGERS: AudioAsset[] = [
   {
     id: 'stinger.takeover',
     file: `${AUDIO_DIR}/stinger/takeover.mp3`,
-    channel: 'stinger',
+    channel: 'stinger-season',
     loop: false,
     priority: 3,
     trigger: { on: 'screen', id: 'takeover-reveal' },
@@ -623,7 +624,7 @@ const SEASON_STINGERS: AudioAsset[] = [
   {
     id: 'stinger.signing.success',
     file: `${AUDIO_DIR}/stinger/signing-success.mp3`,
-    channel: 'stinger',
+    channel: 'stinger-season',
     loop: false,
     priority: 3,
     trigger: { on: 'gameEvent', name: 'game: bid won (CONTRACT_SIGNED / BID_RESOLVED won)' },
@@ -633,7 +634,7 @@ const SEASON_STINGERS: AudioAsset[] = [
   {
     id: 'stinger.bid.lost',
     file: `${AUDIO_DIR}/stinger/bid-lost.mp3`,
-    channel: 'stinger',
+    channel: 'stinger-season',
     loop: false,
     priority: 3,
     trigger: { on: 'gameEvent', name: 'game: bid lost (BID_RESOLVED lost)' },
@@ -643,12 +644,13 @@ const SEASON_STINGERS: AudioAsset[] = [
   {
     id: 'stinger.retired',
     file: `${AUDIO_DIR}/stinger/retired.mp3`,
-    channel: 'stinger',
+    channel: 'stinger-season',
     loop: false,
     priority: 3,
     trigger: { on: 'gameEvent', name: 'game:seasonRolledOver (PLAYER_RETIRED)' },
     description: 'Wistful, respectful sting for a player retiring — surfaced on RolloverScreen.',
     elevenLabsPrompt: 'A wistful respectful musical sting, gentle warm strings with a touch of nostalgia and a soft piano note, a dignified farewell, brief',
+    variants: 3,
   },
   {
     id: 'stinger.injury',
@@ -659,6 +661,7 @@ const SEASON_STINGERS: AudioAsset[] = [
     trigger: { on: 'matchEvent', type: 'PLAYER_INJURED_IN_MATCH' },
     description: 'Brief concern stinger as a player goes down injured. Low, not alarming.',
     elevenLabsPrompt: 'A brief tense concern sting, a low subtle uneasy tone with a soft minor swell, worried but not alarming, short',
+    variants: 4,
   },
 ];
 

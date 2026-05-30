@@ -61,7 +61,7 @@
   align-items: center;
   justify-content: center;
   font-family: var(--rm-font-display);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   color: rgba(255,255,255,0.92);
   position: relative;
   flex-shrink: 0;
@@ -82,7 +82,7 @@
 
 .rr-team-name {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   letter-spacing: 0.10em;
   color: var(--rm-text);
   text-transform: uppercase;
@@ -93,7 +93,7 @@
 
 .rr-score {
   font-family: var(--rm-font-mono);
-  font-size: 16px;
+  font-size: var(--rm-fs-16);
   font-weight: 700;
   color: var(--rm-chalk);
   font-variant-numeric: tabular-nums;
@@ -102,7 +102,7 @@
 
 .rr-pending {
   font-family: var(--rm-font-mono);
-  font-size: 16px;
+  font-size: var(--rm-fs-16);
   color: var(--rm-text-dim);
   letter-spacing: 0.2em;
   flex-shrink: 0;
@@ -125,7 +125,7 @@
 
 .rr-pos-delta {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.05em;
 }
@@ -136,7 +136,7 @@
 
 .rr-venue-pill {
   font-family: var(--rm-font-mono);
-  font-size: 8px;
+  font-size: var(--rm-fs-8);
   font-weight: 700;
   letter-spacing: 0.12em;
   padding: 2px 6px;
@@ -169,7 +169,7 @@
   border-radius: 14px;
   color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
@@ -232,7 +232,7 @@
 
 .rr-expand-empty {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   letter-spacing: 0.08em;
   color: var(--rm-text-dim);
   text-align: center;
@@ -250,7 +250,7 @@
 }
 .rr-tug-val {
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--rm-text);
@@ -279,7 +279,7 @@
 .rr-tug-label {
   grid-column: 1 / -1;
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   letter-spacing: 0.18em;
   color: var(--rm-text-dim);

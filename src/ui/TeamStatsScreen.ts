@@ -53,6 +53,8 @@ const CATEGORIES: CategorySpec[] = [
                                         value: s => s.lineBreaks,      display: s => fmtInt(s.lineBreaks) },
       { id: 'db',      label: 'DB',     ariaTitle: 'Defenders beaten',
                                         value: s => s.defendersBeaten, display: s => fmtInt(s.defendersBeaten) },
+      { id: 'offloads',label: 'OFFLD', ariaTitle: 'Offloads completed',
+                                        value: s => s.offloadsCompleted, display: s => fmtInt(s.offloadsCompleted) },
     ],
   },
   {

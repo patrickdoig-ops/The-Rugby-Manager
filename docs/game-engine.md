@@ -2,7 +2,7 @@
 
 Source of truth for the season + career engine — the sibling to the match engine. Where the match engine (`src/engine/`) owns a single match's state machine through `applyMatchEvent`, the **game engine** (`src/game/`) owns everything outside that: the calendar / fixtures / results / standings for the live season, the persistent roster carried across seasons, contracts, rollover (aging, retirement, transfer activations, academy + import intake, fixture regen), and the save schema. Its single mutation seam is `applySeasonEvent`, mirroring the architectural pattern of its match-engine sibling.
 
-For match-engine internals (simulation loop, phase resolvers, fatigue, commentary) see `docs/match-engine.md`. For the transfer system roadmap (all seven phases now live; remaining open questions) see `docs/transfer-system.md`.
+For match-engine internals (simulation loop, phase resolvers, fatigue, commentary) see `docs/match-engine.md`. For the transfer system roadmap (all ten phases now live; remaining open questions) see `docs/transfer-system.md`.
 
 ## Maintaining this doc
 
@@ -107,7 +107,7 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 
 ## UI events
 
-The game engine emits six `game:*` events through `src/utils/eventBus.ts`. UI modules subscribe and re-render; the game engine never imports any UI module.
+The game engine emits seven `game:*` events through `src/utils/eventBus.ts`. UI modules subscribe and re-render; the game engine never imports any UI module.
 
 | Event | Payload | Subscribers |
 |---|---|---|
@@ -117,6 +117,7 @@ The game engine emits six `game:*` events through `src/utils/eventBus.ts`. UI mo
 | `game:bracketSeeded` | `{ state: GameState }` | `main.ts` latches `bracketSeededPending`; `HubScreen` + `PlayoffBracketScreen` re-render. Fires once after the final R18 fixture is recorded (via `seedPlayoffBracket`). |
 | `game:playoffsUpdated` | `{ state: GameState }` | `HubScreen` + `PlayoffBracketScreen` re-render. Fires after every `PLAYOFF_RESULT_RECORDED` (player or AI) so the bracket UI shows the cascade fill in. |
 | `game:seasonComplete` | `{ state: GameState }` | `main.ts` latches `seasonCompletePending`; the post-match Continue chain reroutes through `EndOfSeasonScreen` → optional `RenewalsScreen` → optional `TransferMarketScreen` → `RolloverScreen`. Now fires only after the League final resolves (no longer the end of the last regular round). |
+| `game:trainingApplied` | `{ state: GameState }` | `TrainingScreen` (triggers the post-training results display after `applyTrainingBlock` completes); `AchievementEngine` (evaluates post-training achievement predicates). Fired once at the end of `GameCoordinator.applyTrainingBlock` after all per-player `PLAYER_TRAINED` events have been applied. |
 
 ## Career: roster + identity model
 
@@ -274,6 +275,22 @@ Tuned via `balance/transfers.ts::MIDSEASON_SIGNING`. Default range: a weak club 
 
 **Out of scope (v1).** AI clubs don't sign free agents mid-season — keeps the FA pool stable enough for the user to plan around. Mid-season Reg 7 / cross-Prem poaching stays deliberately closed (final-12-month rules are off-season-only). Mid-season marquee re-designation is handled via the existing Contracts screen toggle.
 
+## Mid-season early contract renewal
+
+Reached inline from the Hub's **Contracts** tile — the same screen the expiring-contract alert routes to. Each expiring own-squad player's tap-to-expand panel carries an **Offer Renewal** button. Unlike every other market flow this is **not** a window: no `MARKET_OPENED`, no screen lifecycle, no AI competition. One click = one offer.
+
+**Flow.** `ContractsScreen`'s button calls back into `main.ts`, which calls `gameEngine.offerEarlyRenewal(rosterId)` then `saveGame(...)` so a re-signing survives a closed tab. The method (`TransferCoordinator.offerEarlyRenewal`) returns an `EarlyRenewalResult` (`accepted` / `declined` / `ineligible`); the screen toasts the outcome and re-renders.
+
+**Eligibility.** Player must be on the user's squad, inside the rolling `EXPIRING_CONTRACT_WINDOW_MONTHS` window (the shared `isContractExpiringSoon` helper in `age.ts` — same predicate the "Expiring" tag uses, so the button and the badge never disagree), and not on cooldown. No active market window may be open.
+
+**Terms.** `retentionTermsFor(state, rosterId)` — the same loyalty-discounted wage + age-banded length the end-of-season renewal window would generate (`fresh-market × (1 - RENEWAL.loyaltyDiscount)`). The wage can't be previewed in the UI without advancing `rngTransfer`, so it's revealed in the result toast.
+
+**Budget.** Net gate: `clubBudgetUsage − currentWage + newWage ≤ salaryBudget` (the renewal replaces the existing wage). Marquee wages sit outside the budget and skip the check.
+
+**Acceptance.** Reuses `midseasonAcceptanceProbability` with a synthetic `kind: 'retention'` bid, so the own-club loyalty bonus in `appealScore` applies — a star at a struggling club can still decline. A `rngTransfer(1, 1000)/1000` roll below the probability fires `CONTRACT_EXTENDED`; otherwise `MIDSEASON_OFFER_REJECTED` writes a cooldown of `calendar.week + RENEWAL.earlyRenewalCooldownWeeks` (4 rounds) onto `state.career.midseasonRejections`, pruned by `WEEK_ADVANCED`.
+
+**Determinism / save.** Consumes `rngTransfer` draws (wage seed + acceptance roll) but is user-only — the harness never calls it, so `verify` is unaffected. No new `SeasonEvent` variant and no SAVE_VERSION bump (reuses `CONTRACT_EXTENDED`, `MIDSEASON_OFFER_REJECTED`, and the existing `midseasonRejections` map). AI clubs get no voluntary early renewals in v1 — they still renew at season's end and defend mid-deal poaches.
+
 ## Generated supply (Phase 7)
 
 `src/game/personaGenerator.ts::generatePersona(seed, calendarDate)` produces a deterministic `Player` from `rngTransfer`:
@@ -342,7 +359,7 @@ A choice between matches: trades off short-term freshness for long-term attribut
 - **The four intensities** (`src/engine/balance/training.ts::INTENSITY_EFFECTS`). Condition is **per day**; development + injury are per training week. v1 baseline:
   - **Rest** — `+13` condition/day, 0% development, 0% injury risk.
   - **Light** — `+9` condition/day, 8% base development chance per stat per week, 0.1% injury risk per player per week.
-  - **Medium** — `+6` condition/day, 18% development chance, 0.4% injury risk.
+  - **Medium** — `+6.5` condition/day, 18% development chance, 0.4% injury risk.
   - **High** — `+3` condition/day, 32% development chance, 1.2% injury risk.
 
 - **The eight focuses.** Each focus picks two `PlayerStats` keys to develop faster. `FORWARDS_FOCUS_STATS` and `BACKS_FOCUS_STATS` in `balance/training.ts` hold the mapping:
@@ -577,7 +594,7 @@ Save is committed at four points across the off-season: after `openRenewalWindow
 
 ## Roadmap
 
-All seven transfer-system phases are live on main: 1 (rollover, v2.22a), 2 (read-only contracts, v2.23a), 3 (interactive marquee + cap, v2.36a), 4 (end-of-season renewals, v2.36a), 5 (free-agent signings), 6 (Reg 7 cross-Prem poaching), and 7 (generated player supply — academy + foreign imports) (5/6/7 all v2.43a). Remaining work is refinement, not roadmap: per-player HG/EPS cap tagging (replacing the flat `CAP_CREDITS` pool), reputation drift from silverware, transfer budgets distinct from cap, squad size limits, mid-season transfers / loans / buyouts. See **`docs/transfer-system.md`** § "Open implementation questions" for the running list.
+All ten transfer-system phases are live on main: 1 (rollover, v2.22a), 2 (read-only contracts, v2.23a), 3 (interactive marquee + cap, v2.36a), 4 (end-of-season renewals, v2.36a), 5 (free-agent signings), 6 (Reg 7 cross-Prem poaching), and 7 (generated player supply — academy + foreign imports) (5/6/7 all v2.43a), 8 (Squad Builder pre-season mode, v2.114a), 9 (club wage budgets + takeovers, v2.142a), 10 (competitive multi-round signing window, v2.144a). Remaining work is refinement, not roadmap: per-player HG/EPS cap tagging (replacing the flat `CAP_CREDITS` pool), reputation drift from silverware, transfer budgets distinct from cap, squad size limits, mid-season transfers / loans / buyouts. See **`docs/transfer-system.md`** § "Open implementation questions" for the running list.
 
 ### Future: human-side "Auto-Select" button
 

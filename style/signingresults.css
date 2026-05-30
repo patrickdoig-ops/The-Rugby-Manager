@@ -58,7 +58,7 @@
 
 .sr-hero-label {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -67,7 +67,7 @@
 
 .sr-hero-val {
   font-family: var(--rm-font-display);
-  font-size: 32px;
+  font-size: var(--rm-fs-32);
   line-height: 1;
   color: var(--rm-chalk);
   font-variant-numeric: tabular-nums;
@@ -79,7 +79,7 @@
 
 .sr-hero-sub {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   color: var(--rm-text-muted);
 }
 
@@ -93,7 +93,7 @@
 
 .sr-section-h {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.16em;
   color: var(--rm-text-dim);
@@ -116,7 +116,7 @@
 
 .sr-name {
   font-family: var(--rm-font-body);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   color: var(--rm-text);
 }
 
@@ -124,14 +124,14 @@
   display: inline-block;
   margin-left: 6px;
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.05em;
   color: var(--rm-text-muted);
 }
 
 .sr-result {
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   letter-spacing: 0.06em;
   color: var(--rm-text-muted);
   text-transform: uppercase;
@@ -142,7 +142,7 @@
 
 .sr-wage {
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   color: var(--rm-text-muted);
   min-width: 64px;
   text-align: right;
@@ -177,7 +177,7 @@
   border-radius: 14px;
   color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
@@ -212,7 +212,7 @@
   padding: 6px 10px;
   border-radius: 8px;
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.10em;
   text-transform: uppercase;
@@ -231,7 +231,7 @@
 .rd-intro {
   padding: 12px 16px;
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   color: var(--rm-text-muted);
   line-height: 1.4;
 }
@@ -287,14 +287,14 @@
 
 .rd-name {
   font-family: var(--rm-font-body);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   color: var(--rm-text);
 }
 
 .rd-meta,
 .rd-poacher {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   color: var(--rm-text-muted);
   letter-spacing: 0.04em;
 }
@@ -328,7 +328,7 @@
   width: 18px;
   height: 18px;
   border-radius: 4px;
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   border: 1.5px solid var(--rm-surface);
   margin-left: -4px;
   animation: rdCrestStackIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
@@ -340,7 +340,7 @@
 
 .rd-poacher-overflow {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--rm-amber);
@@ -350,14 +350,14 @@
 
 .rd-wage {
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   color: var(--rm-text);
   text-align: right;
 }
 
 .rd-delta {
   display: block;
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   color: var(--rm-text-muted);
 }
 
@@ -390,7 +390,7 @@
   border-radius: 14px;
   color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
@@ -423,7 +423,7 @@
   font-family: var(--rm-font-mono);
   font-weight: 700;
   letter-spacing: 0.10em;
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   text-transform: uppercase;
   cursor: pointer;
 }
@@ -446,7 +446,7 @@
   border-radius: 14px;
   color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
-  font-size: 18px;
+  font-size: var(--rm-fs-18);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;

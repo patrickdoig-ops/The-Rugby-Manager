@@ -1,11 +1,8 @@
 import type { MatchCoordinator } from '../engine/MatchCoordinator';
 import { eventBus } from '../utils/eventBus';
-import {
-  loadTickDelayMs, saveTickDelayMs,
-  loadAutoPauseEnabled, saveAutoPauseEnabled,
-  loadAutoSlowEnabled,  saveAutoSlowEnabled,
-} from './uiPrefs';
+import { loadTickDelayMs, saveTickDelayMs, loadKeyMomentMode } from './uiPrefs';
 import { isAutoPauseEvent } from './keyMoment';
+import { renderMatchSettingsPanel } from './MatchSettingsPanel';
 
 let unsubs: Array<() => void> = [];
 
@@ -35,13 +32,14 @@ export function initSimController(engine: MatchCoordinator): void {
   let wasPausedBeforeSubs    = false;
 
   btnPlay.onclick = () => {
-    engine.start();
+    engine.resume();
     btnPlay.disabled  = true;
     btnPause.disabled = false;
   };
 
   btnPause.onclick = () => {
     engine.pause();
+    eventBus.emit('ui:matchPaused', {});
     btnPlay.disabled  = false;
     btnPause.disabled = true;
   };
@@ -49,18 +47,21 @@ export function initSimController(engine: MatchCoordinator): void {
   btnTactics.onclick = () => {
     wasPausedBeforeTactics = !engine.getState().engine.isRunning;
     engine.pause();
+    eventBus.emit('ui:matchPaused', {});
     btnPlay.disabled    = false;
     btnPause.disabled   = true;
     btnTactics.disabled = true;
     const side = engine.getHumanSide();
     const state = engine.getState();
     const team = side === 'home' ? state.homeTeam : state.awayTeam;
-    eventBus.emit('ui:openTacticsModal', { tactics: team.tactics, teamId: side });
+    const oppTeam = side === 'home' ? state.awayTeam : state.homeTeam;
+    eventBus.emit('ui:openTacticsModal', { tactics: team.tactics, teamId: side, oppTactics: oppTeam.tactics });
   };
 
   btnSubs.onclick = () => {
     wasPausedBeforeSubs = !engine.getState().engine.isRunning;
     engine.pause();
+    eventBus.emit('ui:matchPaused', {});
     btnPlay.disabled    = false;
     btnPause.disabled   = true;
     btnSubs.disabled    = true;
@@ -68,7 +69,15 @@ export function initSimController(engine: MatchCoordinator): void {
     const side = engine.getHumanSide();
     const state = engine.getState();
     const team = side === 'home' ? state.homeTeam : state.awayTeam;
-    eventBus.emit('ui:openSubsModal', { team });
+    // Sin-binned / sent-off players still occupy their slot in team.players but
+    // must not be replaceable — the engine rejects such a sub, and the modal
+    // hides them so the manager never sees a no-op option. Injured players are
+    // removed via the forced-sub flow, so they aren't here at modal-open time.
+    const offFieldPlayerIds = [
+      ...state.cards.sinBin[side].map(e => e.player.id),
+      ...state.cards.sentOff[side].map(p => p.id),
+    ];
+    eventBus.emit('ui:openSubsModal', { team, offFieldPlayerIds });
   };
 
   // Sync the speed presets to the persisted preference on every match start.
@@ -110,6 +119,7 @@ export function initSimController(engine: MatchCoordinator): void {
     btnPause.disabled   = true;
     btnTactics.disabled = true;
     btnSubs.disabled    = true;
+    closeSettings();
   }));
 
   unsubs.push(eventBus.on('engine:paused', () => {
@@ -165,34 +175,33 @@ export function initSimController(engine: MatchCoordinator): void {
 
   unsubs.push(eventBus.on('engine:stateChange', () => syncSubsBadge()));
 
-  // ─── Auto-pause / auto-slow on key moments ───
-  const cogBtn   = document.getElementById('btn-auto-settings') as HTMLButtonElement;
-  const popover  = document.getElementById('auto-settings-popover') as HTMLDivElement;
-  const chkPause = document.getElementById('chk-auto-pause')  as HTMLInputElement;
-  const chkSlow  = document.getElementById('chk-auto-slow')   as HTMLInputElement;
+  // ─── Settings overlay ───
+  const cogBtn         = document.getElementById('btn-auto-settings') as HTMLButtonElement;
+  const settingsOverlay = document.getElementById('match-settings-overlay') as HTMLDivElement;
 
-  chkPause.checked = loadAutoPauseEnabled();
-  chkSlow.checked  = loadAutoSlowEnabled();
-
-  function closePopover(): void {
-    popover.hidden = true;
+  function openSettings(): void {
+    renderMatchSettingsPanel(settingsOverlay, closeSettings);
+    settingsOverlay.classList.remove('hidden');
+    cogBtn.classList.add('is-open');
+    cogBtn.setAttribute('aria-expanded', 'true');
+  }
+  function closeSettings(): void {
+    settingsOverlay.classList.add('hidden');
     cogBtn.classList.remove('is-open');
     cogBtn.setAttribute('aria-expanded', 'false');
   }
+
   cogBtn.onclick = (e) => {
     e.stopPropagation();
-    const open = !!popover.hidden;
-    popover.hidden = !open;
-    cogBtn.classList.toggle('is-open', open);
-    cogBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (settingsOverlay.classList.contains('hidden')) openSettings();
+    else closeSettings();
   };
-  popover.addEventListener('click', (e) => e.stopPropagation());
-  const outsideClick = (): void => { if (!popover.hidden) closePopover(); };
-  document.addEventListener('click', outsideClick);
-  unsubs.push(() => document.removeEventListener('click', outsideClick));
-
-  chkPause.onchange = () => saveAutoPauseEnabled(chkPause.checked);
-  chkSlow.onchange  = () => saveAutoSlowEnabled(chkSlow.checked);
+  // Close when tapping the backdrop (the overlay itself, not the sheet inside it).
+  const backdropClick = (e: MouseEvent) => {
+    if (e.target === settingsOverlay) closeSettings();
+  };
+  settingsOverlay.addEventListener('click', backdropClick);
+  unsubs.push(() => settingsOverlay.removeEventListener('click', backdropClick));
 
   let slowTimeout: ReturnType<typeof setTimeout> | null = null;
   unsubs.push(() => {
@@ -202,13 +211,14 @@ export function initSimController(engine: MatchCoordinator): void {
   unsubs.push(eventBus.on('engine:event', ({ event }) => {
     if (!engine.getState().engine.isRunning) return;
     if (!isAutoPauseEvent(event)) return;
-    if (chkPause.checked) {
+    const mode = loadKeyMomentMode();
+    if (mode === 'pause') {
       engine.pause();
       btnPlay.disabled  = false;
       btnPause.disabled = true;
       return;
     }
-    if (chkSlow.checked) {
+    if (mode === 'slow') {
       if (slowTimeout !== null) clearTimeout(slowTimeout);
       engine.setTickDelay(SLOW_MS);
       slowTimeout = setTimeout(() => {

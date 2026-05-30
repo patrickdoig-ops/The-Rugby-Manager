@@ -52,7 +52,7 @@
 
 #pm-context-label {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -94,7 +94,7 @@
 
 .pm-versus-code {
   font-family: var(--rm-font-display);
-  font-size: 18px;
+  font-size: var(--rm-fs-18);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -102,7 +102,7 @@
 .pm-versus-sep {
   font-family: var(--rm-font-editor);
   font-style: italic;
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   color: var(--rm-text-dim);
 }
 
@@ -121,7 +121,7 @@
   width: 28px;
   height: 28px;
   border-radius: 7px;
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
 }
 
 /* ── Injury banner (only on 'mine' step) ── */
@@ -134,7 +134,7 @@
   border: 1px solid color-mix(in oklch, var(--rm-danger) 35%, transparent);
   border-radius: 10px;
   font-family: var(--rm-font-body);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   color: var(--rm-text);
   line-height: 1.4;
 }
@@ -149,7 +149,7 @@
   color: var(--rm-bg-deep);
   border-radius: 4px;
   font-family: var(--rm-font-display);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -195,7 +195,7 @@
 
 .pm-lineup-title {
   font-family: var(--rm-font-display);
-  font-size: 36px;
+  font-size: var(--rm-fs-36);
   font-weight: 400;
   line-height: 1;
   letter-spacing: 0.02em;
@@ -209,7 +209,7 @@
   border-radius: 999px;
   color: var(--rm-text-dim);
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -229,7 +229,7 @@
 
 .pm-lineup-team {
   font-family: var(--rm-font-display);
-  font-size: 18px;
+  font-size: var(--rm-fs-18);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   line-height: 1.1;
@@ -237,7 +237,7 @@
 
 .pm-lineup-meta {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--rm-text-faint);
@@ -251,7 +251,7 @@
 
 .pm-lineup-section-label {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.16em;
   color: var(--rm-text-dim);
@@ -299,7 +299,7 @@
 
 .pm-lineup-num {
   font-family: var(--rm-font-mono);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
@@ -307,7 +307,7 @@
 
 .pm-lineup-name {
   font-family: var(--rm-font-body);
-  font-size: 15px;
+  font-size: var(--rm-fs-15);
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -319,12 +319,32 @@
 
 .pm-lineup-pos {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 600;
   letter-spacing: 0.10em;
   color: var(--rm-text-muted);
   text-transform: uppercase;
 }
+
+/* Out-of-position warning chip */
+.pm-oop-badge {
+  --oop-c: var(--rm-amber);
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-8);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--oop-c);
+  background: color-mix(in oklch, var(--oop-c) 14%, transparent);
+  border: 1px solid color-mix(in oklch, var(--oop-c) 45%, transparent);
+}
+/* Severity: mild (amber) -> moderate (orange) -> severe (red) */
+.pm-oop-badge--mild     { --oop-c: var(--rm-amber); }
+.pm-oop-badge--moderate { --oop-c: var(--rm-amber-deep); }
+.pm-oop-badge--severe   { --oop-c: var(--rm-danger); }
 
 /* Bench rows slightly dimmer than the starting XV. */
 .pm-lineup-section + .pm-lineup-section .pm-lineup-name { color: var(--rm-text); }
@@ -349,7 +369,7 @@
 
 .pm-scout-section-label {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.16em;
   color: var(--rm-text-dim);
@@ -377,7 +397,7 @@
 
 .pm-scout-meta-lbl {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--rm-text-faint);
@@ -386,7 +406,7 @@
 
 .pm-scout-meta-val {
   font-family: var(--rm-font-display);
-  font-size: 18px;
+  font-size: var(--rm-fs-18);
   letter-spacing: 0.02em;
   color: var(--rm-chalk);
   line-height: 1.1;
@@ -394,7 +414,7 @@
 
 .pm-scout-meta-sub {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   letter-spacing: 0.12em;
   color: var(--rm-text-faint);
   text-transform: uppercase;
@@ -414,7 +434,7 @@
   height: 22px;
   border-radius: 6px;
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   font-weight: 700;
   color: var(--rm-chalk);
 }
@@ -438,7 +458,7 @@
   background: var(--rm-bg);
   border-radius: 999px;
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -447,7 +467,7 @@
 
 .pm-scout-note {
   font-family: var(--rm-font-body);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   font-style: italic;
   color: var(--rm-text-faint);
   margin: 4px 0 0;
@@ -473,7 +493,7 @@
 
 .pm-watch-num {
   font-family: var(--rm-font-mono);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -487,7 +507,7 @@
 
 .pm-watch-name {
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   font-weight: 700;
   color: var(--rm-chalk);
   letter-spacing: 0.02em;
@@ -499,7 +519,7 @@
 
 .pm-watch-pos {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 600;
   letter-spacing: 0.10em;
   color: var(--rm-text-muted);
@@ -515,7 +535,7 @@
 
 .pm-watch-stat-val {
   font-family: var(--rm-font-mono);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--rm-pitch);
@@ -523,7 +543,7 @@
 
 .pm-watch-stat-lbl {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.16em;
   color: var(--rm-text-faint);
@@ -550,7 +570,7 @@
 
 .pm-trend-val {
   font-family: var(--rm-font-display);
-  font-size: 22px;
+  font-size: var(--rm-fs-22);
   letter-spacing: 0.02em;
   color: var(--rm-chalk);
   font-variant-numeric: tabular-nums;
@@ -558,7 +578,7 @@
 
 .pm-trend-lbl {
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   letter-spacing: 0.12em;
   color: var(--rm-text-faint);
@@ -567,7 +587,7 @@
 
 .pm-scout-sub {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.08em;
   color: var(--rm-text-faint);
   text-transform: uppercase;
@@ -577,7 +597,7 @@
 
 .pm-empty {
   font-family: var(--rm-font-body);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   color: var(--rm-text-faint);
   text-align: center;
   padding: 14px 0;
@@ -606,7 +626,7 @@
   border-radius: 14px;
   color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
@@ -651,7 +671,7 @@
 }
 .pm-expand-bar-label {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--rm-text-dim);
@@ -673,7 +693,7 @@
 }
 .pm-expand-bar-val {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--rm-chalk);
@@ -697,14 +717,14 @@
 }
 .pm-expand-stat span {
   font-family: var(--rm-font-display);
-  font-size: 16px;
+  font-size: var(--rm-fs-16);
   color: var(--rm-chalk);
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
 }
 .pm-expand-stat label {
   font-family: var(--rm-font-mono);
-  font-size: 8px;
+  font-size: var(--rm-fs-8);
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--rm-text-dim);
@@ -714,7 +734,7 @@
 
 .pm-expand-injury {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.08em;
   color: var(--rm-danger);
   text-transform: uppercase;

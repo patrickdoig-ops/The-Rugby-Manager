@@ -1,6 +1,6 @@
 {
   "id": "exeter",
-  "name": "Exeter Chiefs",
+  "name": "Exeter",
   "shortName": "EXE",
   "color": "#000000",
   "secondaryColor": "#ffffff",
@@ -9,8 +9,6 @@
   "founded": 1871,
   "stadiumCapacity": 15600,
   "headCoach": "Rob Baxter (Director of Rugby since 2009 — the league's longest-serving head coach)",
-  "honours": "2 × league title (2016-17, 2019-20); European Champions Cup 2019-20; Anglo-Welsh Cup 2013-14",
-  "blurb": "The Rob Baxter long-build identity is phase-heavy possession rugby — pressure and patience, suffocating teams with multiple phases and field position before striking. The driving maul is a signature weapon and the forwards are built for relentless go-forward over flashy carries. Chiefs cede little territory, kick smartly and trust their fitness to wear opponents down. They are mid-rebuild after the peak title-winning era, but the DNA — disciplined, methodical, set-piece confident — is intact.",
   "suggestedTactics": {
     "attackingGamePlan": "possession",
     "attackingStyle": "keep_it_tight",
@@ -30,7 +28,6 @@
       "name": "Henry Slade",
       "position": "Centre",
       "nationality": "England",
-      "blurb": "74-cap England 13, the Chiefs' on-field metronome: long passing, pinpoint kicking from hand and elite defensive reads that shut down opposition channels. Said to be in one of his best club seasons",
       "indexHigh": [
         "handling",
         "kicking",
@@ -44,7 +41,6 @@
       "name": "Len Ikitau",
       "position": "Centre",
       "nationality": "Australia",
-      "blurb": "Marquee Wallaby signing from the Brumbies: 39-cap Test 13 with bone-jarring defence, sharp spatial awareness and the carrying power to break gainlines. Already producing standout league performances",
       "indexHigh": [
         "tackling",
         "strength",
@@ -57,7 +53,6 @@
       "name": "Immanuel Feyi-Waboso",
       "position": "Wing",
       "nationality": "England",
-      "blurb": "Explosive England finisher; a hat-trick on return announced him as one of the league's most dangerous strike runners off both wings, with raw acceleration and aerial bravery",
       "indexHigh": [
         "pace",
         "agility",

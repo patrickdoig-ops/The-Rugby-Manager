@@ -75,10 +75,13 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
     }
 
     if (shouldRetire(p, ageInNewSeason)) {
+      // A free agent is on no club squad. Previously this branch only emitted
+      // for squad members, so free agents never retired — they kept aging
+      // forever, bloating the FA pool with unsignable 35+yo "zombies" across
+      // seasons. Emit for both: clubId '' marks a free-agent retirement (the
+      // reducer skips the squad-removal step and drops them from freeAgents).
       const club = state.career.clubs.find(c => c.squad.includes(rid));
-      if (club) {
-        events.push({ type: 'PLAYER_RETIRED', rosterId: rid, clubId: club.id });
-      }
+      events.push({ type: 'PLAYER_RETIRED', rosterId: rid, clubId: club?.id ?? '' });
     }
   }
 

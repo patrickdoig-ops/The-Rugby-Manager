@@ -28,6 +28,7 @@ import { shortName } from '../utils/playerName';
 import { teamTextColor } from '../utils/teamColor';
 import type { RawTeamInput } from '../types/teamData';
 import { playerOverall } from '../engine/RatingEngine';
+import { oopSeverity, oopPenaltyPct, SLOT_POSITION } from '../engine/balance';
 import { computeOverallRating } from '../team/teamProfile';
 import { recentForm, headToHead, matchSpread, formAdjustment, HOME_ADVANTAGE_PTS, type FormResult } from '../game/teamStats';
 import { applyMatchdaySquad, makeInjuredPredicate } from '../game/playerSquad';
@@ -127,9 +128,18 @@ function renderLineupRow(
   onProfile: boolean,
   state: GameState,
   expanded: boolean,
+  flagOop: boolean,
 ): string {
   const num = getSquadNum(p);
   const surname = shortName(p);
+  // Out-of-position warning — only on the user's own starting XV (slots 1-15),
+  // where the familiarity penalty (balance/positionFamiliarity.ts) bites at
+  // kick-off. flagOop gates it to the editable "mine" lineup.
+  const sev = flagOop ? oopSeverity(p.position, num) : null;
+  const sevLabel = { mild: 'minor', moderate: 'notable', severe: 'major' };
+  const oopBadge = sev
+    ? `<span class="pm-oop-badge pm-oop-badge--${sev}" title="Out of position (${sevLabel[sev]}, −${oopPenaltyPct(p.position, num)}%) — natural ${p.position}, selected at ${SLOT_POSITION[num]}">OOP</span>`
+    : '';
   const nameHtml = onProfile && p.rosterId !== undefined
     ? playerLinkHtml(surname, p.rosterId)
     : surname;
@@ -153,7 +163,7 @@ function renderLineupRow(
       <div class="pm-lineup-row-main">
         <span class="pm-lineup-num" style="color:${teamTextColor(color)}">${String(num).padStart(2,'0')}</span>
         <span class="pm-lineup-name">${nameHtml}</span>
-        <span class="pm-lineup-pos">${p.position}</span>
+        <span class="pm-lineup-pos">${p.position}${oopBadge}</span>
         ${chevron}
       </div>
       ${expandBody}
@@ -225,8 +235,8 @@ function renderLineupBody(
     ? `<button class="pm-edit-squad" id="pm-edit-squad" type="button">Edit Squad</button>`
     : '';
   const rowExpanded = (p: RawPlayer): boolean => p.rosterId !== undefined && isExpanded(p.rosterId);
-  const startersHtml = starters.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p))).join('');
-  const benchHtml    = bench.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p))).join('');
+  const startersHtml = starters.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p), showEditSquad)).join('');
+  const benchHtml    = bench.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p), false)).join('');
   const metaParts = [stadium, matchDate, roundLabel].filter(Boolean).join(' · ');
   return `
     <div class="pm-lineup-card">
@@ -351,6 +361,7 @@ export interface PreMatchPlayoffContext {
 // arrows call this to land back on the right pre-match step without
 // re-running the full data build.
 let renderImpl: ((step: Step) => void) | null = null;
+let teardownSession: (() => void) | null = null;
 export function showPreMatchAtStep(step: Step): void {
   renderImpl?.(step);
 }
@@ -367,6 +378,9 @@ export function initPreMatchScreen(
   onEditSquad?: () => void,
   onPlayerProfile?: (rosterId: number, returnStep: Step) => void,
 ): void {
+  teardownSession?.();
+  teardownSession = null;
+
   const screen = document.getElementById('pre-match')!;
   screen.classList.remove('pm-exit');
 
@@ -444,10 +458,11 @@ export function initPreMatchScreen(
   // chip set never empties out for legacy team JSONs.
   const oppTactics: TeamTactics = { ...DEFAULT_TACTICS, ...(oppTeam.suggestedTactics ?? {}) };
 
-  // Players to Watch — rank opponent's matchday squad. Mid-season:
-  // average match rating × appearances (ratingSum is a proxy). Round 1
-  // / no appearances: position-weighted OVR. Top 3.
-  const oppMatchday: RawPlayer[] = [...oppStarters, ...oppBench];
+  // Players to Watch — rank opponent's starting XV only. Bench players
+  // are cover, not pre-match threats. Mid-season: average match rating ×
+  // appearances (ratingSum is a proxy). Round 1 / no appearances:
+  // position-weighted OVR. Top 3.
+  const oppMatchday: RawPlayer[] = [...oppStarters];
   const threatRows = oppMatchday.map(p => {
     const seasonStats = p.rosterId !== undefined ? state.career.roster[p.rosterId]?.seasonStats : undefined;
     const appearances = seasonStats?.appearances ?? 0;
@@ -501,6 +516,7 @@ export function initPreMatchScreen(
   const unsubTactics = eventBus.on('ui:tacticsChange', ({ teamId, tactics }) => {
     if (teamId === playerSide) chosenTactics = tactics;
   });
+  teardownSession = () => { unsubTactics(); renderImpl = null; };
 
   // ── Step state machine ───────────────────────────────────────────────
   let step: Step = 'mine';
@@ -558,9 +574,12 @@ export function initPreMatchScreen(
                    : step === 'scout'   ? 'Choose Tactics'
                    :                       'Start Match';
     const id = isLast ? 'pm-start' : 'pm-next';
+    // Start Match is silent — we want the stadium bed to fade in cleanly on the
+    // live-match screen with no UI cue layered over it.
+    const sfx = isLast ? ' data-sfx="none"' : '';
     return `
       <div id="pm-footer">
-        <button id="${id}" class="cta-pulse" type="button">
+        <button id="${id}" class="cta-pulse" type="button"${sfx}>
           <span class="btn-label">${ctaLabel}</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
         </button>
@@ -616,8 +635,8 @@ export function initPreMatchScreen(
     // Back arrow — decrements step, or invokes caller's onBack at step 0.
     screen.querySelector<HTMLButtonElement>('#pm-back')!.addEventListener('click', () => {
       if (step === 'mine') {
-        unsubTactics();
-        renderImpl = null;
+        teardownSession?.();
+        teardownSession = null;
         onBack();
         return;
       }
@@ -631,8 +650,8 @@ export function initPreMatchScreen(
       screen.querySelector<HTMLButtonElement>('#pm-start')!.addEventListener('click', () => {
         screen.classList.add('pm-exit');
         setTimeout(() => {
-          unsubTactics();
-          renderImpl = null;
+          teardownSession?.();
+          teardownSession = null;
           // Lineups are view-only here — pass the original rosters through
           // unchanged. Squad edits land via SquadManagement.
           const configuredHome = playerSide === 'home'

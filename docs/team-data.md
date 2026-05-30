@@ -60,8 +60,6 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 
 ## Gloucester
 
-A historic west-country club with a cherry-and-white forwards-led identity, defined by the close, vocal "Shed" at Kingsholm. Gloucester traditionally make their living from a robust, hard-carrying pack, set-piece confrontation and direct lines through the middle. The backline is functional rather than expansive, leaning on power runners to punch holes that fast support can exploit. At their best they are abrasive, physical and uncompromising at the breakdown; at their worst they over-rely on the forwards when a wider game is needed.
-
 - **Home ground:** Kingsholm Stadium (the famous "Shed" terrace).
 - **Club colours:** `#c8102e` / `#ffffff`
 - **Nickname:** Cherry & Whites.
@@ -69,17 +67,16 @@ A historic west-country club with a cherry-and-white forwards-led identity, defi
 - **Stadium capacity:** 16,115.
 - **Head coach:** George Skivington (Head Coach; returned to the role March 2026 after serving as Director of Rugby from September 2023, having previously been Head Coach from 2020).
 - **Captain:** Tomos Williams (2025-26; confirmed in December 2025 to be joining Saracens at season's end).
-- **Honours:** RFU Cup × 4 (1971-72, 1977-78, 1981-82, 2002-03); European Challenge Cup 2005-06, 2014-15.
 - **Overall rating:** **67/100**
 - **Suggested tactics:** `balanced` · `keep_it_tight` · `commit_numbers` · `counter_ruck` · `one_back` · `drift` · `cautious`
 - **Stat bias:** high `strength`, `breakdown`, `setPiece`.
 
 ### Star players
 
-- **Ross Byrne** (Fly-half, Ireland) — Headline signing from Leinster and the province's third all-time top points scorer (1,156 pts), bringing four URC titles and a Champions Cup pedigree to Kingsholm as the new tactical conductor. Index high: `kicking`, `composure`, `positioning`, `discipline`, `handling`. Suggested rating: **86/100**.
-- **Tomos Williams** (Scrum-half, Wales) — Gloucester's 2025-26 club captain and reigning Rugby Player of the Season; 69-cap Wales 9 and 2025 Lions tourist who scored twice against the Western Force in Perth before a hamstring injury cut his tour short. A sniping running threat, sharp service and tempo control from the base — confirmed in December 2025 to be joining Saracens at season's end. Index high: `pace`, `agility`, `handling`, `composure`, `positioning`. Suggested rating: **87/100**. Marquee: yes. Wage: £550k.
-- **Max Llewellyn** (Centre, Wales) — Big-bodied 13 who broke into the Wales midfield during the 2025 Six Nations (scored his first Test try vs Scotland) and gives Gloucester a power-runner gainline option through the middle channel. Index high: `strength`, `tackling`, `handling`, `pace`. Suggested rating: **82/100**.
-- **Lewis Ludlow** (Flanker, England) — Former long-serving Gloucester captain and England A skipper; relentless openside whose breakdown work-rate and tackle volume have anchored the cherry-and-whites' defensive identity for years. Index high: `breakdown`, `tackling`, `stamina`, `discipline`, `positioning`. Suggested rating: **83/100**.
+- **Ross Byrne** (Fly-half, Ireland) Index high: `kicking`, `composure`, `positioning`, `discipline`, `handling`. Suggested rating: **86/100**.
+- **Tomos Williams** (Scrum-half, Wales) Index high: `pace`, `agility`, `handling`, `composure`, `positioning`. Suggested rating: **87/100**. Marquee: yes. Wage: £550k.
+- **Max Llewellyn** (Centre, Wales) Index high: `strength`, `tackling`, `handling`, `pace`. Suggested rating: **82/100**.
+- **Lewis Ludlow** (Flanker, England) Index high: `breakdown`, `tackling`, `stamina`, `discipline`, `positioning`. Suggested rating: **83/100**.
 
 ### Squad (2025-26)
 
@@ -144,9 +141,7 @@ A historic west-country club with a cherry-and-white forwards-led identity, defi
 
 ---
 
-## Bristol Bears
-
-Shaped by the Pat Lam era's "Bristol-Bilbao" expansive ambition, the Bears are the league's most ball-in-hand, high-tempo side, willing to attack from anywhere on the pitch. They prize width, offloads and pace over territorial caution, and will gladly trade penalties for tempo. Their forwards are built for carrying and linking rather than maul dominance, and they often outscore opponents in shootouts. The flip side is risk: turnovers and defensive lapses come with the style.
+## Bristol
 
 - **Home ground:** Ashton Gate.
 - **Club colours:** `#003087` / `#c8102e`
@@ -155,16 +150,15 @@ Shaped by the Pat Lam era's "Bristol-Bilbao" expansive ambition, the Bears are t
 - **Stadium capacity:** 27,000 (shared with Bristol City FC).
 - **Head coach:** Pat Lam (Director of Rugby since 2017).
 - **Captain:** Fitz Harding (long-term extension signed 2023-24).
-- **Honours:** European Challenge Cup 2019-20; RFU Knockout Cup 1982-83; Championship title 2017-18.
 - **Overall rating:** **73/100**
 - **Suggested tactics:** `possession` · `wide_wide` · `minimal_ruck` · `jackal` · `two_back` · `drift` · `offload_freely`
 - **Stat bias:** high `pace`, `handling`, `agility`.
 
 ### Star players
 
-- **Ellis Genge** (Prop, England) — Lions Test starter on the 2025 tour to Australia and dubbed the "form player in the world" by Ben Youngs; world-class loosehead scrummager and Bristol's vice-captain whose ball-carrying sets the tempo. Index high: `strength`, `setPiece`, `breakdown`, `tackling`, `stamina`. Suggested rating: **91/100**.
-- **Louis Rees-Zammit** (Wing, Wales) — Returned from the NFL in summer 2025 and lit up the PREM with six tries in eight, clocking 23.57mph against Leicester; 32-cap Wales finisher with elite top-end pace and a 2021 Lions tourist's pedigree. Index high: `pace`, `agility`, `handling`, `positioning`. Suggested rating: **88/100**. Marquee: yes. Wage: £550k.
-- **Viliame Mata** (Number 8, Fiji) — Long-time Edinburgh enforcer turned Bristol No.8; offloading, ball-playing back-rower whose footwork and tip-on game perfectly fit Pat Lam's wide-wide system. Index high: `strength`, `handling`, `breakdown`, `agility`, `stamina`. Suggested rating: **85/100**.
+- **Ellis Genge** (Prop, England) Index high: `strength`, `setPiece`, `breakdown`, `tackling`, `stamina`. Suggested rating: **91/100**.
+- **Louis Rees-Zammit** (Wing, Wales) Index high: `pace`, `agility`, `handling`, `positioning`. Suggested rating: **88/100**. Marquee: yes. Wage: £550k.
+- **Viliame Mata** (Number 8, Fiji) Index high: `strength`, `handling`, `breakdown`, `agility`, `stamina`. Suggested rating: **85/100**.
 
 ### Squad (2025-26)
 
@@ -229,9 +223,7 @@ Shaped by the Pat Lam era's "Bristol-Bilbao" expansive ambition, the Bears are t
 
 ---
 
-## Leicester Tigers
-
-The Welford Road tradition is set-piece power, structured forward-led play, and hard-nosed defence built on discipline. Tigers historically squeeze the game through scrum and maul dominance, accurate exit kicking, and a defensive line that gives nothing cheap. Their attack is built off forward platform first, with the backs called on to finish rather than create from scratch. Recent rebuilds have softened the edges, but the identity remains: territory, set piece, pressure.
+## Leicester
 
 - **Home ground:** Welford Road.
 - **Club colours:** `#1c5e3f` / `#ffffff`
@@ -240,17 +232,16 @@ The Welford Road tradition is set-piece power, structured forward-led play, and 
 - **Stadium capacity:** 25,849 (the largest club-owned rugby ground in England).
 - **Head coach:** Geoff Parling (Head Coach since August 2025, succeeding Michael Cheika).
 - **Captain:** Ollie Chessum (appointed September 2025).
-- **Honours:** 11 × English league title (latest 2021-22, most in the modern era); 2 × European Champions Cup (2000-01, 2001-02); Anglo-Welsh Cup × 6.
 - **Overall rating:** **77/100**
 - **Suggested tactics:** `kicking` · `keep_it_tight` · `commit_numbers` · `jackal` · `two_back` · `hybrid` · `cautious`
 - **Stat bias:** high `setPiece`, `tackling`, `discipline`.
 
 ### Star players
 
-- **Freddie Steward** (Full-back, England) — England's first-choice 15 and the league's most dominant aerial operator; reads kick-chase lanes better than anyone and rarely spills under the high ball. Index high: `positioning`, `handling`, `tackling`, `composure`, `kicking`. Suggested rating: **82/100**.
-- **Ollie Chessum** (Lock, England) — 2025 Lions Test 2 starter (off the bench in Tests 1 and 3) and the league's most athletic lock-cum-blindside; carries hard, hits rucks at pace, and is a genuine lineout option in both pods. Index high: `strength`, `setPiece`, `stamina`, `tackling`, `breakdown`. Suggested rating: **87/100**. Marquee: yes. Wage: £550k.
-- **Tommy Reffell** (Flanker, Wales) — Wales' premier openside and arguably the league's purest jackal; averaged 6-7 turnovers a game in patches and topped the July Tests for forced turnovers. Index high: `breakdown`, `tackling`, `stamina`, `discipline`, `positioning`. Suggested rating: **84/100**.
-- **Jack van Poortvliet** (Scrum-half, England) — England-capped 9 whose box-kick accuracy and pass speed fit Welford Road's territory-first identity; a sharp tactical kicker who controls the tempo from the base. Index high: `kicking`, `handling`, `positioning`, `composure`, `agility`. Suggested rating: **83/100**.
+- **Freddie Steward** (Full-back, England) Index high: `positioning`, `handling`, `tackling`, `composure`, `kicking`. Suggested rating: **82/100**.
+- **Ollie Chessum** (Lock, England) Index high: `strength`, `setPiece`, `stamina`, `tackling`, `breakdown`. Suggested rating: **87/100**. Marquee: yes. Wage: £550k.
+- **Tommy Reffell** (Flanker, Wales) Index high: `breakdown`, `tackling`, `stamina`, `discipline`, `positioning`. Suggested rating: **84/100**.
+- **Jack van Poortvliet** (Scrum-half, England) Index high: `kicking`, `handling`, `positioning`, `composure`, `agility`. Suggested rating: **83/100**.
 
 ### Squad (2025-26)
 
@@ -325,8 +316,6 @@ The Welford Road tradition is set-piece power, structured forward-led play, and 
 
 ## Saracens
 
-Under Mark McCall, Saracens have been the league's clinical operator — structure, precision and physical dominance executed to a finer tolerance than anyone else. The "Wolfpack" defence with its aggressive line-speed and choke tackles is the signature, paired with a smart kicking game that turns territory into points. They are ruthless game managers: ahead late, they will close a match out with possession and field position rather than tries. Calm under pressure, brutal in the collision.
-
 - **Home ground:** Barnet Copthall Stadium.
 - **Club colours:** `#000000` / `#a01018`
 - **Nickname:** Sarries (the "Wolfpack" defensive identity).
@@ -334,17 +323,16 @@ Under Mark McCall, Saracens have been the league's clinical operator — structu
 - **Stadium capacity:** 10,500.
 - **Head coach:** Mark McCall (Director of Rugby since 2010; stepping down end of 2025-26, with Brendan Venter to take over for 2026-27).
 - **Captain:** Maro Itoje.
-- **Honours:** 6 × league title (latest 2022-23); 3 × European Champions Cup (2015-16, 2016-17, 2018-19).
 - **Overall rating:** **74/100**
 - **Suggested tactics:** `kicking` · `balanced` · `balanced` · `jackal` · `two_back` · `blitz` · `cautious`
 - **Stat bias:** high `tackling`, `positioning`, `composure`.
 
 ### Star players
 
-- **Maro Itoje** (Lock, England) — 2025 Lions captain and the first Black skipper in the tour's 137-year history; ran a lineout "clinic" in the series win and remains the gold standard for a modern second row — enforcer, jumper, leader. Index high: `setPiece`, `tackling`, `strength`, `breakdown`, `composure`. Suggested rating: **92/100**. Marquee: yes. Wage: £800k.
-- **Owen Farrell** (Fly-half, England) — Returned from Racing 92 on a two-year playing deal; over 1,200 Test points, five league titles with Sarries, and still the league's most ruthless game-manager off the tee. Index high: `kicking`, `composure`, `positioning`, `discipline`, `tackling`. Suggested rating: **84/100**.
-- **Ben Earl** (Number 8, England) — 2025 Lions Test back-rower and 2024 England Player of the Year; 73 carries for 419 metres across that Six Nations made him the explosive go-to ball-carrier from the base. Index high: `pace`, `strength`, `stamina`, `handling`, `tackling`. Suggested rating: **88/100**.
-- **Jamie George** (Hooker, England) — Long-time England hooker and former captain; elite throwing accuracy underpins the Sarries lineout and his work rate around the park is a benchmark for the position. Index high: `setPiece`, `tackling`, `breakdown`, `composure`, `discipline`. Suggested rating: **83/100**.
+- **Maro Itoje** (Lock, England) Index high: `setPiece`, `tackling`, `strength`, `breakdown`, `composure`. Suggested rating: **92/100**. Marquee: yes. Wage: £800k.
+- **Owen Farrell** (Fly-half, England) Index high: `kicking`, `composure`, `positioning`, `discipline`, `tackling`. Suggested rating: **84/100**.
+- **Ben Earl** (Number 8, England) Index high: `pace`, `strength`, `stamina`, `handling`, `tackling`. Suggested rating: **88/100**.
+- **Jamie George** (Hooker, England) Index high: `setPiece`, `tackling`, `breakdown`, `composure`, `discipline`. Suggested rating: **83/100**.
 
 ### Squad (2025-26)
 
@@ -415,27 +403,24 @@ Under Mark McCall, Saracens have been the league's clinical operator — structu
 
 ## Bath
 
-The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at 10 and Santi Carreras at 15, with strong ball-playing centres giving Bath multiple distributors at the line. Their best rugby blends forward dominance and territory with a backline that can shift the point of attack at will. Russell's growing pragmatism has added game management to the flair, though some 2025-26 criticism has pointed to conservative five-metre pick-and-drive over their expansive instincts. At full song, they balance heft up front with the league's most creative half-back axis.
-
-- **Home ground:** The Recreation Ground (commonly "The Rec").
+- **Home ground:** The Rec.
 - **Club colours:** `#0033a0` / `#ffffff`
 - **Nickname:** The Blue, Black and Whites.
 - **Founded:** 1865 — one of the oldest rugby clubs in England.
 - **Stadium capacity:** 14,500 (18,000-seat rebuild approved September 2025).
 - **Head coach:** Johann van Graan (Head of Rugby since 2022, contracted to 2030).
 - **Captain:** Ben Spencer.
-- **Honours:** 7 × English league title (latest 2024-25); 10 × RFU Cup (1984–1996 dynasty); European Challenge Cup 2007-08.
 - **Overall rating:** **79/100**
 - **Suggested tactics:** `balanced` · `balanced` · `balanced` · `jackal` · `two_back` · `hybrid` · `cautious`
 - **Stat bias:** high `handling`, `kicking`, `composure`.
 
 ### Star players
 
-- **Thomas du Toit** (Prop, South Africa) — 2025 World Rugby Dream Team prop and the Springboks' first-choice loosehead; a destructive scrum technician whose mobility, abrasive breakdown work and high-volume ball-carrying set him apart from any other prop in the world game. Springbok pillar in the 2023 Rugby World Cup defence; signed for Bath from Sale ahead of 2024-25 and became the cornerstone of the championship-winning pack. Index high: `setPiece`, `strength`, `breakdown`, `tackling`, `stamina`. Suggested rating: **93/100**.
-- **Finn Russell** (Fly-half, Scotland) — Scotland captain and three-time Lion; the creative fulcrum of Bath's title defence with audacious passing range, sublime kicking from the tee and in play, and a newly mature game-management edge. Not a pure speed merchant but his footwork, body angles and step in the line are world-class. Index high: `handling`, `kicking`, `composure`, `positioning`, `agility`. Suggested rating: **92/100**. Marquee: yes. Wage: £1m.
-- **Ben Spencer** (Scrum-half, England) — Bath club captain and the experienced general at the base who lifted the 2024-25 season trophy. Spent a decade at Saracens winning multiple league and Champions Cup titles before joining Bath in 2020; capped by England across two World Cup cycles and a late call-up to the 2021 Lions tour of South Africa. An elite box-kicker with a metronomic service and sharp tactical brain, his territorial control and tempo management are the perfect foil for Russell's creativity. Index high: `kicking`, `composure`, `positioning`, `discipline`, `handling`. Suggested rating: **85/100**.
-- **Sam Underhill** (Flanker, England) — One of the league's most feared defensive forwards: timing, technique and ferocity on the chop tackle, with a relentless work-rate around the breakdown. Index high: `tackling`, `breakdown`, `strength`, `stamina`. Suggested rating: **86/100**.
-- **Santi Carreras** (Full-back, Argentina) — Pumas' starting fly-half slotting in at 15 to give Bath a second playmaker; aerial security, a beautiful left boot and the footwork to step into the line as a second-receiver. Index high: `handling`, `kicking`, `agility`, `positioning`. Suggested rating: **84/100**.
+- **Thomas du Toit** (Prop, South Africa) Index high: `setPiece`, `strength`, `breakdown`, `tackling`, `stamina`. Suggested rating: **93/100**.
+- **Finn Russell** (Fly-half, Scotland) Index high: `handling`, `kicking`, `composure`, `positioning`, `agility`. Suggested rating: **92/100**. Marquee: yes. Wage: £1m.
+- **Ben Spencer** (Scrum-half, England) Index high: `kicking`, `composure`, `positioning`, `discipline`, `handling`. Suggested rating: **85/100**.
+- **Sam Underhill** (Flanker, England) Index high: `tackling`, `breakdown`, `strength`, `stamina`. Suggested rating: **86/100**.
+- **Santi Carreras** (Full-back, Argentina) Index high: `handling`, `kicking`, `agility`, `positioning`. Suggested rating: **84/100**.
 
 ### Squad (2025-26)
 
@@ -504,9 +489,7 @@ The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at
 
 ---
 
-## Exeter Chiefs
-
-The Rob Baxter long-build identity is phase-heavy possession rugby — pressure and patience, suffocating teams with multiple phases and field position before striking. The driving maul is a signature weapon and the forwards are built for relentless go-forward over flashy carries. Chiefs cede little territory, kick smartly and trust their fitness to wear opponents down. They are mid-rebuild after the peak title-winning era, but the DNA — disciplined, methodical, set-piece confident — is intact.
+## Exeter
 
 - **Home ground:** Sandy Park.
 - **Club colours:** `#000000` / `#ffffff`
@@ -515,16 +498,15 @@ The Rob Baxter long-build identity is phase-heavy possession rugby — pressure 
 - **Stadium capacity:** 15,600.
 - **Head coach:** Rob Baxter (Director of Rugby since 2009 — the league's longest-serving head coach).
 - **Captain:** Dafydd Jenkins.
-- **Honours:** 2 × league title (2016-17, 2019-20); European Champions Cup 2019-20; Anglo-Welsh Cup 2013-14.
 - **Overall rating:** **70/100**
 - **Suggested tactics:** `possession` · `keep_it_tight` · `commit_numbers` · `counter_ruck` · `one_back` · `blitz` · `cautious`
 - **Stat bias:** high `stamina`, `breakdown`, `setPiece`.
 
 ### Star players
 
-- **Henry Slade** (Centre, England) — 74-cap England 13, the Chiefs' on-field metronome: long passing, pinpoint kicking from hand and elite defensive reads that shut down opposition channels. Said to be in one of his best club seasons. Index high: `handling`, `kicking`, `tackling`, `positioning`, `composure`. Suggested rating: **82/100**.
-- **Len Ikitau** (Centre, Australia) — Marquee Wallaby signing from the Brumbies: 39-cap Test 13 with bone-jarring defence, sharp spatial awareness and the carrying power to break gainlines. Already producing standout league performances. Index high: `tackling`, `strength`, `pace`, `positioning`. Suggested rating: **85/100**.
-- **Immanuel Feyi-Waboso** (Wing, England) — Explosive England finisher; a hat-trick on return announced him as one of the league's most dangerous strike runners off both wings, with raw acceleration and aerial bravery. Index high: `pace`, `agility`, `handling`, `strength`. Suggested rating: **86/100**. Marquee: yes. Wage: £500k.
+- **Henry Slade** (Centre, England) Index high: `handling`, `kicking`, `tackling`, `positioning`, `composure`. Suggested rating: **82/100**.
+- **Len Ikitau** (Centre, Australia) Index high: `tackling`, `strength`, `pace`, `positioning`. Suggested rating: **85/100**.
+- **Immanuel Feyi-Waboso** (Wing, England) Index high: `pace`, `agility`, `handling`, `strength`. Suggested rating: **86/100**. Marquee: yes. Wage: £500k.
 
 ### Squad (2025-26)
 
@@ -601,25 +583,22 @@ The Rob Baxter long-build identity is phase-heavy possession rugby — pressure 
 
 ## Harlequins
 
-The Twickenham Stoop entertainers and the league's most committed expansive, attacking side. Built around Marcus Smith's creative range — cross-field kicks, late drop-goal nous, footwork at first receiver — Quins play fast-paced running rugby and back themselves to outscore anyone. Their forwards are mobile and carry-friendly rather than maul-monsters, and they thrive on broken-field rugby and counter-attack. The trade-off is defensive vulnerability when the tempo turns against them.
-
-- **Home ground:** Twickenham Stoop (commonly "The Stoop").
+- **Home ground:** The Stoop.
 - **Club colours:** `#73144a` / `#23bcad`
 - **Nickname:** Quins.
 - **Founded:** 1866 — one of the league's oldest clubs.
 - **Stadium capacity:** 14,800.
 - **Head coach:** Jason Gilmore (Head Coach since September 2025, promoted from defence coach after Danny Wilson's late departure to Wales).
 - **Captain:** Alex Dombrandt (since 2024-25).
-- **Honours:** 2 × league title (2011-12, 2020-21); European Challenge Cup 2010-11; Anglo-Welsh Cup 1987-88, 2012-13.
 - **Overall rating:** **66/100**
 - **Suggested tactics:** `possession` · `wide_wide` · `minimal_ruck` · `jackal` · `one_back` · `drift` · `offload_freely`
 - **Stat bias:** high `pace`, `agility`, `handling`.
 
 ### Star players
 
-- **Marcus Smith** (Fly-half, England) — England fly-half and British & Irish Lion; the creative fulcrum of the Quins attack with electric footwork at first receiver, cross-field-kick threat, and late drop-goal nous. The heartbeat of the league's most expansive side. Index high: `handling`, `agility`, `kicking`, `composure`, `pace`. Suggested rating: **90/100**. Marquee: yes. Wage: £525k.
-- **Alex Dombrandt** (Number 8, England) — England No.8 and Quins captain; a powerful one-out ball-carrier with soft hands in tight space who anchors the back row both as a link-man in the wide channels and as a defensive presence over the ball. Index high: `strength`, `handling`, `breakdown`, `tackling`, `stamina`. Suggested rating: **84/100**.
-- **Chandler Cunningham-South** (Flanker, England) — Destructive 6ft 5in England back-rower built for collisions; ferocious ball-carrying and tackling, with an improving lineout-steal game adding a third string to a profile already feared at the breakdown. Index high: `strength`, `tackling`, `breakdown`, `setPiece`, `stamina`. Suggested rating: **83/100**.
+- **Marcus Smith** (Fly-half, England) Index high: `handling`, `agility`, `kicking`, `composure`, `pace`. Suggested rating: **90/100**. Marquee: yes. Wage: £525k.
+- **Alex Dombrandt** (Number 8, England) Index high: `strength`, `handling`, `breakdown`, `tackling`, `stamina`. Suggested rating: **84/100**.
+- **Chandler Cunningham-South** (Flanker, England) Index high: `strength`, `tackling`, `breakdown`, `setPiece`, `stamina`. Suggested rating: **83/100**.
 
 ### Squad (2025-26)
 
@@ -688,9 +667,7 @@ The Twickenham Stoop entertainers and the league's most committed expansive, att
 
 ---
 
-## Newcastle Falcons
-
-Newcastle Falcons are a side rebuilding after three straight bottom-of-the-table finishes. Historically a developmental, lower-budget club that fought hard but lacked the depth of the top sides, the Falcons are working to recapture their late-nineties glory. Kingston Park remains home, but the playing identity is still being written — expect them to start the simulator era as the league's weakest squad, with room to grow.
+## Newcastle
 
 - **Home ground:** Kingston Park.
 - **Club colours:** `#000000` / `#c8a84b`
@@ -699,15 +676,14 @@ Newcastle Falcons are a side rebuilding after three straight bottom-of-the-table
 - **Stadium capacity:** 10,200.
 - **Head coach:** Stephen Jones (interim Head Coach from March 2026 after Alan Dickens departed; Dan McFarland publicly linked with the role from 2026-27).
 - **Captain:** George McGuigan.
-- **Honours:** League title 1997-98; Anglo-Welsh Cup 2000-01, 2003-04.
 - **Overall rating:** **55/100**
 - **Suggested tactics:** `balanced` · `balanced` · `balanced` · `jackal` · `three_back` · `hybrid` · `cautious`
 - **Stat bias:** modest across the board (rebuild status); slight lean toward `stamina` and `discipline`.
 
 ### Star players
 
-- **Liam Williams** (Full-back, Wales) — 93-cap Wales legend and two-tour Lion; a marquee signing whose world-class aerial work and broken-field counter-attack give Newcastle their first genuine back-three threat in years. Index high: `positioning`, `handling`, `composure`, `agility`, `pace`. Suggested rating: **84/100**. Marquee: yes.
-- **Amanaki Mafi** (Number 8, Japan) — 29-cap Brave Blossom and 2015 World Cup hero against South Africa; powerful go-forward ball-carrier with footwork and an offloading game built to get a struggling pack over the gainline. Index high: `strength`, `handling`, `breakdown`, `stamina`, `tackling`. Suggested rating: **80/100**.
+- **Liam Williams** (Full-back, Wales) Index high: `positioning`, `handling`, `composure`, `agility`, `pace`. Suggested rating: **84/100**. Marquee: yes.
+- **Amanaki Mafi** (Number 8, Japan) Index high: `strength`, `handling`, `breakdown`, `stamina`, `tackling`. Suggested rating: **80/100**.
 
 ### Squad (2025-26)
 
@@ -783,9 +759,7 @@ Newcastle Falcons are a side rebuilding after three straight bottom-of-the-table
 
 ---
 
-## Northampton Saints
-
-The 2023-24 champions under Phil Dowson, Saints are the league's electric attacking outfit — willing to play from anywhere on the pitch and devastating in transition. Fin Smith conducts a heads-up backline that scores tries from deep, off turnover ball and from set-piece strike plays in equal measure. Their forwards are mobile and link-friendly rather than collision-first, designed to win quick ball and feed the runners. When they get rolling they put 40+ on teams; when the platform wobbles, the structure shows cracks.
+## Northampton
 
 - **Home ground:** Franklin's Gardens.
 - **Club colours:** `#00563f` / `#000000`
@@ -794,17 +768,16 @@ The 2023-24 champions under Phil Dowson, Saints are the league's electric attack
 - **Stadium capacity:** 15,249.
 - **Head coach:** Phil Dowson (Director of Rugby since 2022).
 - **Captain:** Fraser Dingwall.
-- **Honours:** 2 × league title (2013-14, 2023-24); European Cup 1999-2000; European Challenge Cup 2008-09, 2014.
 - **Overall rating:** **76/100**
 - **Suggested tactics:** `possession` · `wide_wide` · `minimal_ruck` · `jackal` · `one_back` · `hybrid` · `balanced`
 - **Stat bias:** high `pace`, `handling`, `agility`.
 
 ### Star players
 
-- **Fin Smith** (Fly-half, England) — England's first-choice fly-half and marquee playmaker; ice-cold game manager with a clutch boot (opened the scoring with an early drop goal in the 2024 season final win over Bath) who runs Saints' high-tempo, wide-wide attack from a flat alignment. Index high: `kicking`, `composure`, `handling`, `positioning`, `discipline`. Suggested rating: **92/100**. Marquee: yes. Wage: £600k.
-- **Tommy Freeman** (Wing, England) — England wing and 2025 Lions Test starter; serial hat-trick scorer (four vs Saracens, hat-tricks vs Bath, Clermont, Leinster) and the first Englishman to score in every round of a Six Nations. Aerial dominance, finishing instinct, and centre-grade footwork. Index high: `pace`, `handling`, `positioning`, `agility`, `composure`. Suggested rating: **91/100**.
-- **Alex Mitchell** (Scrum-half, England) — England's sniping starting 9; razor-sharp service, constant running threat around the fringes, and the tempo-setter that lets Saints play heads-up rugby from anywhere. Index high: `pace`, `agility`, `handling`, `positioning`, `stamina`. Suggested rating: **86/100**.
-- **Henry Pollock** (Flanker, England) — Twenty-one-year-old breakthrough sensation; youngest player on the 2025 Lions tour, World Rugby Breakthrough Player nominee. Relentless engine, jackal threat over the ball, and a try-scoring flanker with genuine pace in the wide channels. Index high: `breakdown`, `stamina`, `pace`, `tackling`, `agility`. Suggested rating: **85/100**.
+- **Fin Smith** (Fly-half, England) Index high: `kicking`, `composure`, `handling`, `positioning`, `discipline`. Suggested rating: **92/100**. Marquee: yes. Wage: £600k.
+- **Tommy Freeman** (Wing, England) Index high: `pace`, `handling`, `positioning`, `agility`, `composure`. Suggested rating: **91/100**.
+- **Alex Mitchell** (Scrum-half, England) Index high: `pace`, `agility`, `handling`, `positioning`, `stamina`. Suggested rating: **86/100**.
+- **Henry Pollock** (Flanker, England) Index high: `breakdown`, `stamina`, `pace`, `tackling`, `agility`. Suggested rating: **85/100**.
 
 ### Squad (2025-26)
 
@@ -886,9 +859,7 @@ The 2023-24 champions under Phil Dowson, Saints are the league's electric attack
 
 ---
 
-## Sale Sharks
-
-The Manchester defence-first side: line-speed, collision-dominant loose forwards and a physical inside-centre channel, all built to choke teams into errors. Sale are happy to cede possession because they back their defence to win the field-position battle, and George Ford's tempo control gives them clinical execution when they do attack. Tackles, turnovers and territory underpin everything; they are the league's least flashy and most resilient team. Box-kick, chase, tackle, repeat.
+## Sale
 
 - **Home ground:** Salford Community Stadium.
 - **Club colours:** `#0a1b40` / `#ffffff`
@@ -897,17 +868,16 @@ The Manchester defence-first side: line-speed, collision-dominant loose forwards
 - **Stadium capacity:** 11,404 (shared with Salford Red Devils RL).
 - **Head coach:** Alex Sanderson (Director of Rugby since 2021).
 - **Captain:** Ernst van Rhyn (2025-26; succeeded Ben Curry, who stepped down with his England-contract availability reduced).
-- **Honours:** League title 2005-06; European Challenge Cup 2001-02, 2004-05.
 - **Overall rating:** **68/100**
 - **Suggested tactics:** `kicking` · `keep_it_tight` · `balanced` · `jackal` · `one_back` · `blitz` · `cautious`
 - **Stat bias:** high `tackling`, `strength`, `kicking`.
 
 ### Star players
 
-- **Tom Curry** (Flanker, England) — Lions Test starter at openside on the 2025 Australia tour; relentless jackal threat and the "engine" of England's back row, with brutal tackle work-rate even after wrist surgery. Index high: `tackling`, `breakdown`, `stamina`, `strength`, `positioning`. Suggested rating: **91/100**.
-- **George Ford** (Fly-half, England) — England's first-choice 10 through the 10-Test winning run; ice-cold game manager with a stunning 50-22 kicking game and tempo control that underpins Sale's territory-first identity. Index high: `kicking`, `composure`, `positioning`, `handling`, `discipline`. Suggested rating: **90/100**. Marquee: yes. Wage: £750k.
-- **Ben Curry** (Flanker, England) — Breakdown menace and former Sale captain (stepped down ahead of 2025-26 with his England-contract availability reduced); started England's Six Nations opener alongside his twin and brings the same chop-tackle, jackal-heavy profile that defines Sale's defensive identity. Index high: `tackling`, `breakdown`, `stamina`, `strength`, `discipline`. Suggested rating: **86/100**.
-- **Tom Roebuck** (Wing, England) — England wing in red-hot form (three tries in the 57-5 win over Newcastle); silky footwork, deceptive power in the carry and a genuine aerial threat that turns Sale's kick-chase into points. Index high: `pace`, `handling`, `agility`, `strength`, `positioning`. Suggested rating: **84/100**.
+- **Tom Curry** (Flanker, England) Index high: `tackling`, `breakdown`, `stamina`, `strength`, `positioning`. Suggested rating: **91/100**.
+- **George Ford** (Fly-half, England) Index high: `kicking`, `composure`, `positioning`, `handling`, `discipline`. Suggested rating: **90/100**. Marquee: yes. Wage: £750k.
+- **Ben Curry** (Flanker, England) Index high: `tackling`, `breakdown`, `stamina`, `strength`, `discipline`. Suggested rating: **86/100**.
+- **Tom Roebuck** (Wing, England) Index high: `pace`, `handling`, `agility`, `strength`, `positioning`. Suggested rating: **84/100**.
 
 ### Squad (2025-26)
 

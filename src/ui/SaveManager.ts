@@ -90,11 +90,15 @@ const SLOT_KEY: Record<SlotId, string> = {
   3: 'rugby-manager-save-3',
 };
 const ACTIVE_KEY = 'rugby-manager-active-slot';
-const SAVE_VERSION = 21;
+const SAVE_VERSION = 23;
 // The current version is always accepted (the older entries are the migratable
 // past). Including SAVE_VERSION here is load-bearing — without it a freshly
 // written save is rejected on the very next load.
-const ACCEPTED_VERSIONS = new Set([SAVE_VERSION, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+// v23: added careerRngOffset to SavedSeason. Absent on older saves → treated
+//      as 0 (generator resets to position 0 on load, same behaviour as before).
+// v22: added offloadsCompleted to PlayerSeasonStats and TeamSeasonStats.
+//      No back-fill needed — zeroSeasonStats / zeroTeamSeasonStats default to 0.
+const ACCEPTED_VERSIONS = new Set([SAVE_VERSION, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
 
 export type SavedGame = SavedSeason & { version: number; slotName?: string; savedAt?: number };
 
@@ -128,6 +132,18 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
     if (typeof parsed.seed !== 'number') return null;
     if (typeof parsed.currentWeek !== 'number') return null;
     if (!Array.isArray(parsed.results)) return null;
+    // Each recorded result must carry numeric scores / round and string team
+    // ids. A non-numeric score (corrupt or hand-edited save) would otherwise
+    // flow into FIXTURE_RESULT_RECORDED → NaN standings, which either trips
+    // assertSeasonInvariants on load or silently poisons the league table.
+    // Reject the whole save (treated as "no save") rather than corrupt state.
+    if (!parsed.results.every(r =>
+      typeof r.round === 'number' &&
+      typeof r.homeId === 'string' &&
+      typeof r.awayId === 'string' &&
+      typeof r.homeScore === 'number' &&
+      typeof r.awayScore === 'number'
+    )) return null;
     // v3+ includes the schedule snapshot; v2 omits it and GameCoordinator
     // falls back to the canonical PREMIERSHIP_2025_26 during fromSave.
     const fixtures: Fixture[] | undefined =

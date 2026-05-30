@@ -18,10 +18,23 @@ import { eventBus } from '../utils/eventBus';
 let activeOnContinue: () => void = () => {};
 let activeCtaLabel: string = 'Continue';
 let renderImpl: (() => void) | null = null;
+// Re-entry guard. The continue CTA can trigger an async AI playoff sim; a
+// fast double-tap would otherwise record a result twice on the same bracket
+// slot (the mid-sim game:playoffsUpdated re-render re-creates the button, so
+// disabling the element alone wouldn't survive). Stays latched until the next
+// stage re-arms onContinue via showPlayoffBracket.
+let continuing = false;
+
+function fireContinue(): void {
+  if (continuing) return;
+  continuing = true;
+  activeOnContinue();
+}
 
 export function showPlayoffBracket(onContinue: () => void, ctaLabel = 'Continue'): void {
   activeOnContinue = onContinue;
   activeCtaLabel = ctaLabel;
+  continuing = false;
   renderImpl?.();
 }
 
@@ -157,7 +170,7 @@ export function initPlayoffBracketScreen(
         <div id="pb-footer">
           <button id="pb-continue" class="cta-pulse"><span>${activeCtaLabel}</span></button>
         </div>`;
-      el!.querySelector<HTMLButtonElement>('#pb-continue')!.addEventListener('click', () => activeOnContinue());
+      el!.querySelector<HTMLButtonElement>('#pb-continue')!.addEventListener('click', () => fireContinue());
       return;
     }
 
@@ -189,7 +202,7 @@ export function initPlayoffBracketScreen(
         </button>
       </div>`;
 
-    el!.querySelector<HTMLButtonElement>('#pb-continue')!.addEventListener('click', () => activeOnContinue());
+    el!.querySelector<HTMLButtonElement>('#pb-continue')!.addEventListener('click', () => fireContinue());
   }
 
   renderImpl = render;

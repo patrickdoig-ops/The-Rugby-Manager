@@ -9,8 +9,6 @@
   "founded": 1873,
   "stadiumCapacity": 16115,
   "headCoach": "George Skivington (Head Coach; returned to the role March 2026 after serving as Director of Rugby from September 2023, having previously been Head Coach from 2020)",
-  "honours": "RFU Cup × 4 (1971-72, 1977-78, 1981-82, 2002-03); European Challenge Cup 2005-06, 2014-15",
-  "blurb": "A historic west-country club with a cherry-and-white forwards-led identity, defined by the close, vocal \"Shed\" at Kingsholm. Gloucester traditionally make their living from a robust, hard-carrying pack, set-piece confrontation and direct lines through the middle. The backline is functional rather than expansive, leaning on power runners to punch holes that fast support can exploit. At their best they are abrasive, physical and uncompromising at the breakdown; at their worst they over-rely on the forwards when a wider game is needed.",
   "suggestedTactics": {
     "attackingGamePlan": "balanced",
     "attackingStyle": "keep_it_tight",
@@ -30,7 +28,6 @@
       "name": "Ross Byrne",
       "position": "Fly-Half",
       "nationality": "Ireland",
-      "blurb": "Headline signing from Leinster and the province's third all-time top points scorer (1,156 pts), bringing four URC titles and a Champions Cup pedigree to Kingsholm as the new tactical conductor",
       "indexHigh": [
         "kicking",
         "composure",
@@ -44,7 +41,6 @@
       "name": "Tomos Williams",
       "position": "Scrum-Half",
       "nationality": "Wales",
-      "blurb": "Gloucester's 2025-26 club captain and reigning Rugby Player of the Season; 69-cap Wales 9 and 2025 Lions tourist who scored twice against the Western Force in Perth before a hamstring injury cut his tour short. A sniping running threat, sharp service and tempo control from the base — confirmed in December 2025 to be joining Saracens at season's end",
       "indexHigh": [
         "pace",
         "agility",
@@ -58,7 +54,6 @@
       "name": "Max Llewellyn",
       "position": "Centre",
       "nationality": "Wales",
-      "blurb": "Big-bodied 13 who broke into the Wales midfield during the 2025 Six Nations (scored his first Test try vs Scotland) and gives Gloucester a power-runner gainline option through the middle channel",
       "indexHigh": [
         "strength",
         "tackling",
@@ -71,7 +66,6 @@
       "name": "Lewis Ludlow",
       "position": "Flanker",
       "nationality": "England",
-      "blurb": "Former long-serving Gloucester captain and England A skipper; relentless openside whose breakdown work-rate and tackle volume have anchored the cherry-and-whites' defensive identity for years",
       "indexHigh": [
         "breakdown",
         "tackling",

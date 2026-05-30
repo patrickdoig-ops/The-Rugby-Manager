@@ -16,6 +16,7 @@ import type { GameState, SeasonEvent } from '../types/gameState';
 import type { Player, PlayerStats } from '../types/player';
 import { getAge } from '../game/age';
 import { animateCounter } from './components/counterUp';
+import { playId } from './SoundManager';
 
 const BREAKOUT_OVR_THRESHOLD = 80;
 
@@ -26,6 +27,8 @@ let renderImpl: (() => void) | null = null;
 export function showRollover(events: SeasonEvent[], onContinue: () => void): void {
   activeEvents = events;
   activeOnContinue = onContinue;
+  // A wistful sting if anyone retired this off-season (once, not per player).
+  if (events.some(e => e.type === 'PLAYER_RETIRED')) playId('stinger.retired');
   renderImpl?.();
 }
 

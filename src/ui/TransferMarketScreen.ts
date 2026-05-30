@@ -22,6 +22,7 @@ import type { TransferOffer } from '../types/gameState';
 import { playerOverall } from '../engine/RatingEngine';
 import { getAge } from '../game/age';
 import { showToast } from './Toast';
+import { playId } from './SoundManager';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 import { createRowExpander } from './components/rowExpand';
 import { appealScore, weightedLeaguePosition } from '../game/signingResolver';
@@ -434,6 +435,7 @@ export function initTransferMarketScreen(
         const isPoach = !!btn.closest('#tm-poach-list');
         const ok = gameEngine.submitBid(rid);
         if (ok && p) showToast(`Offer made for ${p.firstName} ${p.lastName}`, 'info');
+        else if (!ok) playId('ui.error'); // bid rejected (e.g. over budget)
         render();
         requestAnimationFrame(() => {
           const newRow = el!.querySelector<HTMLDivElement>(`.tm-row[data-roster-id="${rid}"]`);

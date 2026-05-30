@@ -1,11 +1,15 @@
-import { isSfxEnabled, setSfxEnabled, getVolume, setVolume } from './SoundManager';
+import { isUiSfxEnabled, setUiSfxEnabled, isMatchSfxEnabled, setMatchSfxEnabled, getVolume, setVolume } from './SoundManager';
 import { isHapticsEnabled, setHapticsEnabled } from './HapticsManager';
 import { clearSave } from './SaveManager';
 import { VERSION } from '../version';
 import {
-  loadAutoPauseEnabled, saveAutoPauseEnabled,
-  loadAutoSlowEnabled, saveAutoSlowEnabled,
+  loadKeyMomentMode, saveKeyMomentMode, type KeyMomentMode,
+  TEXT_SCALE_VALUES, TEXT_SCALE_LABELS,
 } from './uiPrefs';
+import {
+  setManualTextScale, setFollowSystem, setTextScaleChangeHandler,
+  isFollowingSystem, systemFollowAvailable, getEffectiveTextScale,
+} from './textScale';
 
 function backIcon(): string {
   return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -13,7 +17,7 @@ function backIcon(): string {
   </svg>`;
 }
 
-export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves: () => void = () => {}): void {
+export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves: () => void = () => {}, onSaveAndHome: (() => void) | null = null): void {
   const el = document.getElementById('settings');
   if (!el) return;
 
@@ -34,9 +38,17 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves
         <h2 class="settings-section-title">Audio</h2>
 
         <div class="settings-row">
-          <label class="settings-row-label" for="settings-sfx">Sound effects</label>
+          <label class="settings-row-label" for="settings-sfx-ui">UI sound effects</label>
           <label class="settings-toggle">
-            <input type="checkbox" id="settings-sfx" />
+            <input type="checkbox" id="settings-sfx-ui" />
+            <span class="settings-toggle-track"></span>
+          </label>
+        </div>
+
+        <div class="settings-row">
+          <label class="settings-row-label" for="settings-sfx-match">Match sound effects</label>
+          <label class="settings-toggle">
+            <input type="checkbox" id="settings-sfx-match" />
             <span class="settings-toggle-track"></span>
           </label>
         </div>
@@ -59,27 +71,49 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves
       </section>
 
       <section class="settings-section">
+        <h2 class="settings-section-title">Accessibility</h2>
+
+        ${systemFollowAvailable() ? `
+        <div class="settings-row">
+          <label class="settings-row-label" for="settings-followsystem">Follow system text size</label>
+          <label class="settings-toggle">
+            <input type="checkbox" id="settings-followsystem" />
+            <span class="settings-toggle-track"></span>
+          </label>
+        </div>` : ''}
+
+        <div class="settings-row settings-row--stack">
+          <label class="settings-row-label">Text size</label>
+          <div class="settings-segmented" id="settings-textscale" role="group" aria-label="Text size">
+            ${TEXT_SCALE_VALUES.map((scale, i) =>
+              `<button type="button" class="settings-seg-btn" data-scale="${scale}">${TEXT_SCALE_LABELS[i]}</button>`,
+            ).join('')}
+          </div>
+        </div>
+        <p class="settings-sample">The quick brown fox jumps over the lazy dog.</p>
+      </section>
+
+      <section class="settings-section">
         <h2 class="settings-section-title">Match</h2>
 
-        <div class="settings-row">
-          <label class="settings-row-label" for="settings-autopause">Auto-pause on key moments</label>
-          <label class="settings-toggle">
-            <input type="checkbox" id="settings-autopause" />
-            <span class="settings-toggle-track"></span>
-          </label>
-        </div>
-
-        <div class="settings-row">
-          <label class="settings-row-label" for="settings-autoslow">Auto-slow to 1× on key moments</label>
-          <label class="settings-toggle">
-            <input type="checkbox" id="settings-autoslow" />
-            <span class="settings-toggle-track"></span>
-          </label>
+        <div class="settings-row settings-row--stack">
+          <label class="settings-row-label">Key moments</label>
+          <div class="settings-segmented" id="settings-keymoment" role="group" aria-label="Key moment behaviour">
+            <button type="button" class="settings-seg-btn" data-mode="off">Off</button>
+            <button type="button" class="settings-seg-btn" data-mode="slow">Slow</button>
+            <button type="button" class="settings-seg-btn" data-mode="pause">Pause</button>
+          </div>
         </div>
       </section>
 
       <section class="settings-section">
         <h2 class="settings-section-title">Saves</h2>
+
+        ${onSaveAndHome ? `
+        <div class="settings-row">
+          <label class="settings-row-label">Save and back to Home</label>
+          <button id="settings-save-home" class="settings-secondary-btn">Save</button>
+        </div>` : ''}
 
         <div class="settings-row">
           <label class="settings-row-label">Manage saves &amp; backup</label>
@@ -116,19 +150,23 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves
   `;
 
   el.querySelector<HTMLButtonElement>('#settings-back')!.addEventListener('click', () => {
+    setTextScaleChangeHandler(null);   // detach — this render is going away
     onBack();
   });
 
-  const sfxInput = el.querySelector<HTMLInputElement>('#settings-sfx')!;
-  const volume = el.querySelector<HTMLInputElement>('#settings-volume')!;
-  const volumeLabel = el.querySelector<HTMLElement>('.settings-slider-value')!;
+  const sfxUiInput    = el.querySelector<HTMLInputElement>('#settings-sfx-ui')!;
+  const sfxMatchInput = el.querySelector<HTMLInputElement>('#settings-sfx-match')!;
+  const volume        = el.querySelector<HTMLInputElement>('#settings-volume')!;
+  const volumeLabel   = el.querySelector<HTMLElement>('.settings-slider-value')!;
 
-  sfxInput.checked = isSfxEnabled();
+  sfxUiInput.checked    = isUiSfxEnabled();
+  sfxMatchInput.checked = isMatchSfxEnabled();
   const initialVol = Math.round(getVolume() * 100);
   volume.value = String(initialVol);
   volumeLabel.textContent = String(initialVol);
 
-  sfxInput.addEventListener('change', () => setSfxEnabled(sfxInput.checked));
+  sfxUiInput.addEventListener('change',    () => setUiSfxEnabled(sfxUiInput.checked));
+  sfxMatchInput.addEventListener('change', () => setMatchSfxEnabled(sfxMatchInput.checked));
   volume.addEventListener('input', () => {
     setVolume(Number(volume.value));
     volumeLabel.textContent = volume.value;
@@ -138,16 +176,70 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves
   hapticsInput.checked = isHapticsEnabled();
   hapticsInput.addEventListener('change', () => setHapticsEnabled(hapticsInput.checked));
 
-  const autoPause = el.querySelector<HTMLInputElement>('#settings-autopause')!;
-  const autoSlow  = el.querySelector<HTMLInputElement>('#settings-autoslow')!;
-  autoPause.checked = loadAutoPauseEnabled();
-  autoSlow.checked  = loadAutoSlowEnabled();
-  autoPause.addEventListener('change', () => saveAutoPauseEnabled(autoPause.checked));
-  autoSlow.addEventListener('change', () => saveAutoSlowEnabled(autoSlow.checked));
+  const kmGroup = el.querySelector<HTMLElement>('#settings-keymoment')!;
+  const kmBtns  = Array.from(kmGroup.querySelectorAll<HTMLButtonElement>('.settings-seg-btn'));
+  const refreshKm = (mode: KeyMomentMode) => {
+    for (const btn of kmBtns) {
+      const on = btn.dataset.mode === mode;
+      btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+  };
+  refreshKm(loadKeyMomentMode());
+  for (const btn of kmBtns) {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode as KeyMomentMode;
+      saveKeyMomentMode(mode);
+      refreshKm(mode);
+    });
+  }
+
+  if (onSaveAndHome) {
+    el.querySelector<HTMLButtonElement>('#settings-save-home')!.addEventListener('click', () => {
+      setTextScaleChangeHandler(null);
+      onSaveAndHome();
+    });
+  }
 
   el.querySelector<HTMLButtonElement>('#settings-saves')!.addEventListener('click', () => {
     onSaves();
   });
+
+  const textScaleGroup = el.querySelector<HTMLElement>('#settings-textscale')!;
+  const segButtons = Array.from(textScaleGroup.querySelectorAll<HTMLButtonElement>('.settings-seg-btn'));
+  const followInput = el.querySelector<HTMLInputElement>('#settings-followsystem');
+  // Snap the effective scale (which, when following the system, may sit between
+  // the discrete steps) to the nearest step for the active highlight.
+  const nearestStep = (scale: number) =>
+    TEXT_SCALE_VALUES.reduce((a, b) => (Math.abs(b - scale) < Math.abs(a - scale) ? b : a));
+  const refresh = () => {
+    const following = isFollowingSystem() && systemFollowAvailable();
+    const active = nearestStep(getEffectiveTextScale());
+    for (const btn of segButtons) {
+      const on = Number(btn.dataset.scale) === active;
+      btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.disabled = following;
+    }
+    textScaleGroup.classList.toggle('is-disabled', following);
+    if (followInput) followInput.checked = following;
+  };
+  if (followInput) {
+    followInput.addEventListener('change', () => {
+      setFollowSystem(followInput.checked);   // live — rescales the whole app, including this screen
+      refresh();
+    });
+  }
+  for (const btn of segButtons) {
+    btn.addEventListener('click', () => {
+      if (btn.disabled) return;
+      setManualTextScale(Number(btn.dataset.scale));
+      refresh();
+    });
+  }
+  // Live-update the highlight if the system size changes while Settings is open.
+  setTextScaleChangeHandler(() => refresh());
+  refresh();
 
   el.querySelector<HTMLButtonElement>('#settings-reset')!.addEventListener('click', () => {
     const ok = window.confirm(

@@ -4,13 +4,11 @@
   "shortName": "BAT",
   "color": "#0033a0",
   "secondaryColor": "#ffffff",
-  "stadium": "The Recreation Ground (commonly \"The Rec\")",
+  "stadium": "The Rec",
   "nickname": "The Blue, Black and Whites",
   "founded": 1865,
   "stadiumCapacity": 14500,
   "headCoach": "Johann van Graan (Head of Rugby since 2022, contracted to 2030)",
-  "honours": "7 × English league title (latest 2024-25); 10 × RFU Cup (1984–1996 dynasty); European Challenge Cup 2007-08",
-  "blurb": "The 2024-25 champions, built around a dual-playmaker backline of Finn Russell at 10 and Santi Carreras at 15, with strong ball-playing centres giving Bath multiple distributors at the line. Their best rugby blends forward dominance and territory with a backline that can shift the point of attack at will. Russell's growing pragmatism has added game management to the flair, though some 2025-26 criticism has pointed to conservative five-metre pick-and-drive over their expansive instincts. At full song, they balance heft up front with the league's most creative half-back axis.",
   "suggestedTactics": {
     "attackingGamePlan": "balanced",
     "attackingStyle": "balanced",
@@ -30,7 +28,6 @@
       "name": "Thomas du Toit",
       "position": "Prop",
       "nationality": "South Africa",
-      "blurb": "2025 World Rugby Dream Team prop and the Springboks' first-choice loosehead; a destructive scrum technician whose mobility, abrasive breakdown work and high-volume ball-carrying set him apart from any other prop in the world game. Springbok pillar in the 2023 Rugby World Cup defence; signed for Bath from Sale ahead of 2024-25 and became the cornerstone of the championship-winning pack",
       "indexHigh": [
         "setPiece",
         "strength",
@@ -44,7 +41,6 @@
       "name": "Finn Russell",
       "position": "Fly-Half",
       "nationality": "Scotland",
-      "blurb": "Scotland captain and three-time Lion; the creative fulcrum of Bath's title defence with audacious passing range, sublime kicking from the tee and in play, and a newly mature game-management edge. Not a pure speed merchant but his footwork, body angles and step in the line are world-class",
       "indexHigh": [
         "handling",
         "kicking",
@@ -58,7 +54,6 @@
       "name": "Ben Spencer",
       "position": "Scrum-Half",
       "nationality": "England",
-      "blurb": "Bath club captain and the experienced general at the base who lifted the 2024-25 season trophy. Spent a decade at Saracens winning multiple league and Champions Cup titles before joining Bath in 2020; capped by England across two World Cup cycles and a late call-up to the 2021 Lions tour of South Africa. An elite box-kicker with a metronomic service and sharp tactical brain, his territorial control and tempo management are the perfect foil for Russell's creativity",
       "indexHigh": [
         "kicking",
         "composure",
@@ -72,7 +67,6 @@
       "name": "Sam Underhill",
       "position": "Flanker",
       "nationality": "England",
-      "blurb": "One of the league's most feared defensive forwards: timing, technique and ferocity on the chop tackle, with a relentless work-rate around the breakdown",
       "indexHigh": [
         "tackling",
         "breakdown",
@@ -85,7 +79,6 @@
       "name": "Santi Carreras",
       "position": "Fullback",
       "nationality": "Argentina",
-      "blurb": "Pumas' starting fly-half slotting in at 15 to give Bath a second playmaker; aerial security, a beautiful left boot and the footwork to step into the line as a second-receiver",
       "indexHigh": [
         "handling",
         "kicking",

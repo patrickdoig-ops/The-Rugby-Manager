@@ -1,15 +1,16 @@
 // Cross-platform seam for Apple Game Centre. The achievements engine talks to
 // this interface only — it never imports GameKit or touches Capacitor plugins
-// directly. On the web (and on native until the Swift plugin lands) the no-op
-// implementation is used, so unlocking an achievement still pops the in-app
-// toast and persists locally; only the Game Centre report is skipped.
+// directly. On the web the no-op implementation is used, so unlocking an
+// achievement still pops the in-app toast and persists locally; only the Game
+// Centre report is skipped.
 //
-// Native follow-up (needs a Mac + Xcode, see the plan): add a `GameCenter`
-// Capacitor plugin under ios/ that implements authenticate / reportAchievement
-// / showAchievements via GKLocalPlayer + GKAchievement +
-// GKGameCenterViewController, and create matching achievement identifiers in
-// App Store Connect (one per `gcId` in achievementDefs.ts). No JS change is
-// needed when it lands — `registerPlugin('GameCenter')` already targets it.
+// On native iOS the seam targets the `GameCenter` Capacitor plugin
+// (ios/App/App/GameCenterPlugin.swift) — authenticate / reportAchievement /
+// showAchievements via GKLocalPlayer + GKAchievement + GKGameCenterViewController.
+// Each call is still wrapped below so a Game Centre failure (player not signed
+// in, no network, achievement id not yet created in App Store Connect) degrades
+// to a console.warn rather than an unhandled rejection. The App Store Connect
+// achievement identifiers must match the `gcId` values in achievementDefs.ts.
 
 import { Capacitor, registerPlugin } from '@capacitor/core';
 

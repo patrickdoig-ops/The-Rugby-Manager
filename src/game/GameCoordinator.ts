@@ -54,10 +54,10 @@ import { upcomingGap, splitGapIntoPeriods } from './trainingCalendar';
 import { computeRollover } from './careerRollover';
 import { generatePersona } from './personaGenerator';
 import { resolveSchedule, backfillCareerContracts, buildRosterSeededEvent, buildCareerArchiveRestoredEvent } from './saveMigration';
-import { TransferCoordinator } from './TransferCoordinator';
+import { TransferCoordinator, type EarlyRenewalResult } from './TransferCoordinator';
 import { computeBudgetEvents } from './budgetPlanner';
 import { eventBus } from '../utils/eventBus';
-import { setCareerSeed, rngTransfer } from '../utils/rng';
+import { setCareerSeed, rngTransfer, getTransferCallCount, advanceTransferTo } from '../utils/rng';
 import { SEASON_VALUES, INJURY_SEVERITY, STARTER_FA_POOL } from '../engine/balance';
 import type { InjurySeverity } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
@@ -130,6 +130,9 @@ export interface SavedSeason {
   // Undefined on a fresh save / pre-v18 load — TrainingScreen falls back
   // to DEFAULT_TRAINING_PLAN.
   training?: TrainingPlan;
+  // v23+: number of rngTransfer calls consumed so far this season. Absent on
+  // older saves — treated as 0 (same behaviour as before this fix was added).
+  careerRngOffset?: number;
   // v5+: persistent roster + career history. v4 loads seed fresh from
   // JSONs since pre-v5 there has been zero per-player evolution to
   // preserve.
@@ -232,6 +235,7 @@ export class GameCoordinator {
   ): GameCoordinator {
     const coord = new GameCoordinator(allTeams);
     setCareerSeed(save.seed);
+    advanceTransferTo(save.careerRngOffset ?? 0);
     applySeasonEvent(coord.state, {
       type: 'SEASON_INITIALIZED',
       playerTeamId: save.playerTeamId,
@@ -481,6 +485,12 @@ export class GameCoordinator {
 
   runMidseasonSigning() {
     return this.transfers.runMidseasonSigning();
+  }
+
+  // Mid-season early contract renewal (Hub → Contracts). One-shot
+  // voluntary renewal of an expiring own-squad player — delegate.
+  offerEarlyRenewal(rosterId: number): EarlyRenewalResult {
+    return this.transfers.offerEarlyRenewal(rosterId);
   }
 
   repairAIMarquees(): void {
@@ -895,6 +905,7 @@ export class GameCoordinator {
         ? { matchdaySquad: this.state.player.matchdaySquad.map(r => ({ ...r })) }
         : {}),
       ...(this.state.player.training ? { training: { ...this.state.player.training } } : {}),
+      careerRngOffset: getTransferCallCount(),
       career: {
         seasonsCompleted: this.state.career.seasonsCompleted,
         nextRosterId: this.state.career.nextRosterId,

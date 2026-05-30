@@ -3,6 +3,7 @@ import { MatchPhase } from '../types/engine';
 import type { GameEvent } from '../types/match';
 import type { Player } from '../types/player';
 import { renderNarrationSteps } from '../commentary/CommentaryRenderer';
+import type { NarrationStep } from '../types/narration';
 import { teamTextColor } from '../utils/teamColor';
 import { isHeroEvent } from './keyMoment';
 import { loadCommentaryFilter, saveCommentaryFilter, loadTickDelayMs, type CfFilter } from './uiPrefs';
@@ -174,10 +175,19 @@ export function initCommentaryFeed(): void {
   }
   armTeamCache();
 
-  function buildEntry(event: GameEvent, text: string, showTag: boolean): HTMLDivElement {
+  function cardClass(step: NarrationStep | undefined): string {
+    if (step?.kind !== 'announcement') return '';
+    const k = step.key;
+    if (k === 'card_yellow' || k === 'tmo_decision_yellow') return 'event-card-yellow';
+    if (k === 'card_red_20' || k === 'tmo_decision_red_20' || k === 'card_red_full') return 'event-card-red';
+    return '';
+  }
+
+  function buildEntry(event: GameEvent, text: string, showTag: boolean, cardStep?: NarrationStep): HTMLDivElement {
     const entry = document.createElement('div');
     const phaseClass = showTag ? (PHASE_CLASS[event.phase] ?? '') : '';
-    entry.className = `commentary-entry possession-${event.side} ${phaseClass}`.trim();
+    const cc = cardClass(cardStep);
+    entry.className = `commentary-entry possession-${event.side} ${phaseClass} ${cc}`.trim();
 
     // Team-tinted left border picks up the attacking side's text colour.
     // Read by `.commentary-entry { border-left: 3px solid var(--possession-color, …) }`.
@@ -203,13 +213,13 @@ export function initCommentaryFeed(): void {
     return entry;
   }
 
-  type QueuedStep = { event: GameEvent; text: string; hero: boolean; showTag: boolean };
+  type QueuedStep = { event: GameEvent; text: string; hero: boolean; showTag: boolean; cardStep?: NarrationStep };
   let stepQueue: QueuedStep[] = [];
   let stepDrainTimer: ReturnType<typeof setTimeout> | null = null;
   let lastHeroAt = 0;
 
-  function pushEntry(event: GameEvent, text: string, hero: boolean, showTag: boolean): void {
-    const entry = buildEntry(event, text, showTag);
+  function pushEntry(event: GameEvent, text: string, hero: boolean, showTag: boolean, cardStep?: NarrationStep): void {
+    const entry = buildEntry(event, text, showTag, cardStep);
     if (hero) entry.classList.add('commentary-entry--hero');
     feed.insertBefore(entry, feed.firstChild);
     while (feed.children.length > MAX_ENTRIES && feed.lastChild) {
@@ -229,7 +239,7 @@ export function initCommentaryFeed(): void {
     stepDrainTimer = null;
     const next = stepQueue.shift();
     if (!next) return;
-    pushEntry(next.event, next.text, next.hero, next.showTag);
+    pushEntry(next.event, next.text, next.hero, next.showTag, next.cardStep);
     if (stepQueue.length > 0) {
       stepDrainTimer = setTimeout(drainNext, stepStaggerMs);
     }
@@ -277,12 +287,12 @@ export function initCommentaryFeed(): void {
     if (!shouldStagger) {
       const text = steps.map(s => s.text).join(' ');
       if (!text.trim()) return;
-      pushEntry(event, text, hero, true);
+      pushEntry(event, text, hero, true, steps[0]?.step);
       return;
     }
 
     for (let i = 0; i < steps.length; i++) {
-      stepQueue.push({ event, text: steps[i].text, hero, showTag: i >= buildupCount });
+      stepQueue.push({ event, text: steps[i].text, hero, showTag: i >= buildupCount, cardStep: steps[i].step });
     }
     if (stepDrainTimer === null) drainNext();
   });

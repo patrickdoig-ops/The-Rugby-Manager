@@ -67,6 +67,13 @@ export function assertInvariants(state: MatchState): void {
   // Clock
   if (!(state.clock.gameMinute >= 0)) fail('clock.gameMinute', `${state.clock.gameMinute}`);
 
+  // Breakdown modifier — a transient per-phase {attack, defend} pair set by
+  // BREAKDOWN_MOD_SET. Always finite small numbers from balance constants; a
+  // NaN/Infinity leaking in (e.g. an unguarded division in a resolver) would
+  // silently corrupt every downstream carry/breakdown roll rather than throw.
+  if (!Number.isFinite(state.breakdownMod.attack)) fail('breakdownMod.attack', `${state.breakdownMod.attack}`);
+  if (!Number.isFinite(state.breakdownMod.defend)) fail('breakdownMod.defend', `${state.breakdownMod.defend}`);
+
   // Scrum wheel counter — reset to 0 by every non-wheel outcome and capped
   // by handleScrum, so a value above wheelCap means a missing reset path.
   if (!Number.isInteger(state.consecutiveWheels) || state.consecutiveWheels < 0) {

@@ -5,7 +5,8 @@ import { clamp } from '../utils/math';
 import { attackDir } from './FieldPosition';
 import { computeRating } from './RatingEngine';
 import { assertInvariants } from './invariants';
-import { CLOCK_VALUES, SCORE_VALUES, SIN_BIN_DURATION } from './balance';
+import { CLOCK_VALUES, SCORE_VALUES, SIN_BIN_DURATION, positionFamiliarity } from './balance';
+import type { PlayerStats } from '../types/player';
 
 // The single function permitted to mutate MatchState (or any Player field).
 // Every handler / orchestrator builds an array of MatchEvent and routes them
@@ -26,6 +27,21 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
 
     // ── Scoring ──────────────────────────────────────────────────────────
     case 'TRY_SCORED': {
+      // Tripwire: the scorer must belong to the side being credited. event.side
+      // (= possession at the carry) drives the 5 points and the home/away crowd
+      // narration; event.scorer is the carrier threaded via PENDING_TRY_SCORER_SET.
+      // If the two disagree the try lands on the wrong player's sheet while the
+      // points go to the right team — surface it here, not on the scoreboard.
+      // Membership is checked against the full matchday squad (XV + bench +
+      // subbed-off) since a substitute keeps their bench squadNumber.
+      const credited = event.side === 'home' ? state.homeTeam : state.awayTeam;
+      if (!credited.players.includes(event.scorer)
+          && !credited.bench.includes(event.scorer)
+          && !credited.substitutedOff.includes(event.scorer)) {
+        throw new Error(
+          `Invariant violated [TRY_SCORED.scorer]: scorer squad#${event.scorer.squadNumber} not on ${event.side} matchday squad`,
+        );
+      }
       event.scorer.matchStats.tries++;
       state.score[event.side] += SCORE_VALUES.try;
       state.stats.tries[event.side]++;
@@ -41,6 +57,7 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       event.kicker.matchStats.kicksAtGoal++;
       if (event.success) {
         event.kicker.matchStats.kicksMade++;
+        event.kicker.matchStats.conversionsMade++;
         state.score[event.side] += SCORE_VALUES.conversion;
         if (state.stats.entries22[event.side].active) {
           state.stats.entries22[event.side].pointsScored += SCORE_VALUES.conversion;
@@ -54,6 +71,7 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       event.kicker.matchStats.kicksAtGoal++;
       if (event.success) {
         event.kicker.matchStats.kicksMade++;
+        event.kicker.matchStats.penaltiesMade++;
         state.score[event.side] += SCORE_VALUES.penaltyGoal;
         if (state.stats.entries22[event.side].active) {
           state.stats.entries22[event.side].pointsScored += SCORE_VALUES.penaltyGoal;
@@ -385,6 +403,10 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       state.kickReturnCarrier = event.player;
       return;
 
+    case 'PENDING_TRY_SCORER_SET':
+      state.pendingTryScorer = event.scorer;
+      return;
+
     // ── Possession & phase ──────────────────────────────────────────────
     case 'POSSESSION_SWAPPED':
       state.possession = state.possession === 'home' ? 'away' : 'home';
@@ -482,6 +504,19 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
     case 'SUBSTITUTION_APPLIED': {
       const team = event.teamSide === 'home' ? state.homeTeam : state.awayTeam;
       const { off, on, benchIdx, fieldIdx } = event;
+      // Out-of-position penalty for the incoming player. Computed from their
+      // natural position (`on.position`) vs the slot's role (`off.position`)
+      // *before* the position reassignment below overwrites it. The bench
+      // player's match-clone baseStats were left unscaled at initPlayer, so
+      // this is their first and only scale. Mirrors the starter path in
+      // MatchCoordinator.initPlayer — see balance/positionFamiliarity.ts.
+      const subMult = positionFamiliarity(on.position, off.position);
+      if (subMult !== 1.0) {
+        for (const key of Object.keys(on.baseStats) as (keyof PlayerStats)[]) {
+          on.baseStats[key] = clamp(Math.round(on.baseStats[key] * subMult), 1, 100);
+          on.currentStats[key] = clamp(Math.round(on.currentStats[key] * subMult), 1, 100);
+        }
+      }
       on.id = off.id;
       on.position = off.position;
       on.x = off.x;

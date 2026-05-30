@@ -13,6 +13,7 @@ let outcomeRand: () => number = mulberry32(1);
 let formRand: () => number = mulberry32(2);
 let commentaryRand: () => number = mulberry32(3);
 let transferRand: () => number = mulberry32(4);
+let transferCallCount = 0;
 
 export function setMatchSeed(seed: number): void {
   const s = seed >>> 0;
@@ -28,6 +29,20 @@ export function setMatchSeed(seed: number): void {
 export function setCareerSeed(seed: number): void {
   const s = seed >>> 0;
   transferRand = mulberry32(s ^ 0x27D4EB2F);
+  transferCallCount = 0;
+}
+
+export function getTransferCallCount(): number {
+  return transferCallCount;
+}
+
+// Fast-forward the career stream to position n. Used by fromSave() to resume
+// a mid-season stream at the same offset it was at when the game was saved.
+export function advanceTransferTo(n: number): void {
+  while (transferCallCount < n) {
+    transferRand();
+    transferCallCount++;
+  }
 }
 
 // The only Math.random() call in the engine. Used when MatchCoordinator
@@ -60,9 +75,11 @@ export function commentaryChance(pct: number): boolean {
 }
 
 export function rngTransferRaw(): number {
+  transferCallCount++;
   return transferRand();
 }
 
 export function rngTransfer(min: number, max: number): number {
+  transferCallCount++;
   return Math.floor(transferRand() * (max - min + 1)) + min;
 }

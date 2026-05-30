@@ -8,7 +8,7 @@ import type { Player } from '../types/player';
 import { shortName } from '../utils/playerName';
 import { teamTextColor } from '../utils/teamColor';
 import { launchConfetti } from './Confetti';
-import { playCue } from './SoundManager';
+import { playId } from './SoundManager';
 
 export interface NextFixturePreview {
   opponentName:      string;
@@ -68,12 +68,10 @@ function renderMotmHero(state: MatchState): string {
   const { player } = motm;
   const stats = player.matchStats;
 
-  // Stat line — T · K · tackles · metres. We can't split conversions from
-  // penalties (engine doesn't tag the kick type), so K is the lumped
-  // kicksMade count. Tackles fills the slot where C/P would otherwise sit.
   const cells: string[] = [];
   if (stats.tries > 0) cells.push(`${stats.tries} T`);
-  if (stats.kicksMade > 0) cells.push(`${stats.kicksMade} K`);
+  if (stats.conversionsMade > 0) cells.push(`${stats.conversionsMade}C`);
+  if (stats.penaltiesMade > 0) cells.push(`${stats.penaltiesMade}P`);
   if (stats.tacklesMade > 0) cells.push(`${stats.tacklesMade} tackles`);
   if (stats.metresCarried > 0) cells.push(`${stats.metresCarried}m carried`);
 
@@ -185,14 +183,17 @@ function renderScorers(state: MatchState): string {
   function lines(team: Team): string {
     const all = [...team.players, ...team.substitutedOff];
     const rows = all
-      .filter(p => p.matchStats.tries > 0 || p.matchStats.kicksMade > 0)
+      .filter(p => p.matchStats.tries > 0 || p.matchStats.conversionsMade > 0 || p.matchStats.penaltiesMade > 0)
       .map(p => {
         const ev: string[] = [];
         if (p.matchStats.tries) {
           ev.push(p.matchStats.tries > 1 ? `${p.matchStats.tries}×T` : 'T');
         }
-        if (p.matchStats.kicksMade) {
-          ev.push(`${p.matchStats.kicksMade}K`);
+        if (p.matchStats.conversionsMade) {
+          ev.push(`${p.matchStats.conversionsMade}C`);
+        }
+        if (p.matchStats.penaltiesMade) {
+          ev.push(`${p.matchStats.penaltiesMade}P`);
         }
         return `<div class="mr-scorer-row">
           <span class="mr-scorer-name">${shortName(p)}</span>
@@ -226,6 +227,8 @@ function renderStatsCard(state: MatchState): string {
 
   const homeMetres = teamMetres(homeTeam);
   const awayMetres = teamMetres(awayTeam);
+  const hCarries = teamStat(homeTeam, 'carries');
+  const aCarries = teamStat(awayTeam, 'carries');
   const hRunM  = teamStat(homeTeam, 'metresCarried');
   const aRunM  = teamStat(awayTeam, 'metresCarried');
   const hKickM = teamStat(homeTeam, 'kickMetres');
@@ -253,7 +256,8 @@ function renderStatsCard(state: MatchState): string {
     // ↓ shown only when the "Show all stats" toggle is expanded.
     { label: '22 entries',     homeVal: String(stats.entries22.home.count),  awayVal: String(stats.entries22.away.count),  homeNum: stats.entries22.home.count, awayNum: stats.entries22.away.count, extended: true },
     { label: 'Points / entry', homeVal: pointsPerEntry(stats.entries22.home), awayVal: pointsPerEntry(stats.entries22.away), homeNum: stats.entries22.home.pointsScored, awayNum: stats.entries22.away.pointsScored, extended: true },
-    { label: 'Run metres',     homeVal: `${hRunM}m`,                          awayVal: `${aRunM}m`,                          homeNum: hRunM,                       awayNum: aRunM,                       extended: true },
+    { label: 'Carries',        homeVal: String(hCarries),                     awayVal: String(aCarries),                     homeNum: hCarries,                    awayNum: aCarries,                    extended: true },
+    { label: 'Carry metres',   homeVal: `${hRunM}m`,                          awayVal: `${aRunM}m`,                          homeNum: hRunM,                       awayNum: aRunM,                       extended: true },
     { label: 'Kick metres',    homeVal: `${hKickM}m`,                         awayVal: `${aKickM}m`,                         homeNum: hKickM,                      awayNum: aKickM,                      extended: true },
     { label: 'Errors',         homeVal: String(stats.handlingErrors.home),    awayVal: String(stats.handlingErrors.away),    homeNum: stats.handlingErrors.home,   awayNum: stats.handlingErrors.away,   invert: true, extended: true },
     { label: 'Tackles made',   homeVal: String(stats.tackles.home.made),      awayVal: String(stats.tackles.away.made),      homeNum: stats.tackles.home.made,     awayNum: stats.tackles.away.made,     extended: true },
@@ -306,7 +310,7 @@ function renderStatsCard(state: MatchState): string {
   `;
 }
 
-function teamStat(team: Team, key: 'metresCarried' | 'kickMetres' | 'penaltiesConceded'): number {
+function teamStat(team: Team, key: 'carries' | 'metresCarried' | 'kickMetres' | 'penaltiesConceded'): number {
   let sum = 0;
   for (const p of team.players) sum += p.matchStats[key];
   for (const p of team.substitutedOff) sum += p.matchStats[key];
@@ -456,11 +460,10 @@ export function initMatchResultScreen(
     </div>
   `;
 
-  playCue('whistle');
-
   const isHumanHome = state.engine.humanSide === 'home';
   const humanScore = isHumanHome ? score.home : score.away;
   const oppScore   = isHumanHome ? score.away : score.home;
+  playId(humanScore > oppScore ? 'music.result.win' : 'music.result.loss');
   if (humanScore > oppScore) {
     const margin = humanScore - oppScore;
     const intensity = margin <= 5 ? 'light' : margin >= 21 ? 'storm' : 'normal';

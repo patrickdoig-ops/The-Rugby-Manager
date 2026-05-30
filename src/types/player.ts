@@ -59,6 +59,8 @@ export interface PlayerMatchStats {
   kicksAtGoal:            number;
   kicksMade:              number;
   kicksMissed:            number;
+  conversionsMade:        number;
+  penaltiesMade:          number;
   lineoutThrows:          number;
   lineoutWins:            number;
   lineoutCatches:         number;
@@ -78,10 +80,6 @@ export interface PlayerMatchStats {
 // leaderboards in src/game/seasonLeaderboards.ts. `ratingSum` is an
 // accumulator: avg rating = ratingSum / appearances.
 //
-// `conversions` / `penaltiesScored` / `dropGoals` are reserved fields —
-// they remain 0 today because the engine doesn't tag a goal kick as
-// conversion vs penalty vs drop at the player level. See the
-// "Goal-kicking gap" note in CLAUDE.md.
 export interface PlayerSeasonStats {
   appearances:            number;
   // Attack
@@ -90,8 +88,9 @@ export interface PlayerSeasonStats {
   metresCarried:          number;
   lineBreaks:             number;
   defendersBeaten:        number;
+  offloadsCompleted:      number;
   passes:                 number;
-  // Goal kicking (split fields reserved — see comment above)
+  // Goal kicking
   conversions:            number;
   penaltiesScored:        number;
   dropGoals:              number;
@@ -217,6 +216,7 @@ export function zeroMatchStats(): PlayerMatchStats {
     knockOns: 0, passes: 0, tacklesAttempted: 0, tacklesMade: 0,
     dominantTackles: 0, turnoversWon: 0, penaltiesConceded: 0, tries: 0,
     kicksFromHand: 0, kicksAtGoal: 0, kicksMade: 0, kicksMissed: 0,
+    conversionsMade: 0, penaltiesMade: 0,
     lineoutThrows: 0, lineoutWins: 0, lineoutCatches: 0, lineoutSteals: 0,
     scrumPenaltiesWon: 0, scrumPenaltiesConceded: 0,
     kickMetres: 0, rucksHit: 0,
@@ -228,7 +228,7 @@ export function zeroMatchStats(): PlayerMatchStats {
 export function zeroSeasonStats(): PlayerSeasonStats {
   return {
     appearances: 0,
-    tries: 0, carries: 0, metresCarried: 0, lineBreaks: 0, defendersBeaten: 0, passes: 0,
+    tries: 0, carries: 0, metresCarried: 0, lineBreaks: 0, defendersBeaten: 0, offloadsCompleted: 0, passes: 0,
     conversions: 0, penaltiesScored: 0, dropGoals: 0,
     kicksFromHand: 0, kickMetres: 0, kicksAtGoal: 0, kicksMade: 0,
     tackles: 0, missedTackles: 0, dominantTackles: 0, turnoversWon: 0,

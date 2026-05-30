@@ -81,8 +81,10 @@ export function initModalManager(): void {
     if (payload.type !== 'penalty_choice') return;
 
     const { context, onChoice } = payload;
-    const zone = context.inOpposition22 ? 'in the opposition 22' : 'in the opposition half';
     const offenceLabel = OFFENCE_LABELS[context.offence];
+    const homeAttacksRight = !context.halfTimeDone;
+    const oppTryLineX = (context.attackingSide === 'home') === homeAttacksRight ? 95 : 5;
+    const metresOut = Math.max(0, Math.abs(oppTryLineX - context.ballX));
 
     const choices: PenaltyChoice[] = ['kick_for_goal', 'kick_to_touch', 'tap_and_go'];
     if (context.clockInTheRed) choices.push('tap_and_kick_dead');
@@ -90,7 +92,7 @@ export function initModalManager(): void {
     box.innerHTML = `
       <h2 class="modal-title">Penalty awarded</h2>
       <p class="modal-subtitle">${offenceLabel} — ${context.offenderPosition} ${context.offenderName}</p>
-      <p class="modal-subtitle">${context.attackingSide === 'home' ? 'Home' : 'Away'} team — ${zone}</p>
+      <p class="modal-subtitle">${context.attackingSide === 'home' ? 'Home' : 'Away'} team — ${metresOut}m from the try line</p>
       <div class="modal-choices">
         ${choices.map(key => `
           <button class="modal-choice-btn" data-choice="${key}">
@@ -112,16 +114,16 @@ export function initModalManager(): void {
     });
   });
 
-  eventBus.on('ui:openTacticsModal', ({ tactics, teamId }) => {
+  eventBus.on('ui:openTacticsModal', ({ tactics, teamId, oppTactics }) => {
     renderTacticsMenu(box, tactics, teamId, true, () => {
       overlay.classList.add('hidden');
       eventBus.emit('ui:tacticsClosed', {});
-    });
+    }, oppTactics);
     overlay.classList.remove('hidden');
   });
 
-  eventBus.on('ui:openSubsModal', ({ team }) => {
-    renderSubstitutionPanel(box, team);
+  eventBus.on('ui:openSubsModal', ({ team, offFieldPlayerIds }) => {
+    renderSubstitutionPanel(box, team, offFieldPlayerIds);
     overlay.classList.remove('hidden');
   });
 

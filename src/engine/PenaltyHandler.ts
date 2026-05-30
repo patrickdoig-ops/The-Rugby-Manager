@@ -1,12 +1,13 @@
 import type { MatchState, GameEvent } from '../types/match';
 import { MatchPhase, type PenaltyChoice, type KickOffStrategy } from '../types/engine';
 import { resolvePenaltyKickToTouch } from './resolvers/KickingResolver';
+import { resolveOpenPlay } from './resolvers/OpenPlayResolver';
 import { eventBus } from '../utils/eventBus';
 import { clamp } from '../utils/math';
 import { makeId } from './eventId';
-import { attackDir, inOpposition22, inOppositionHalf, metresFromOppositionTryLine, pickKicker, pickFullback } from './FieldPosition';
+import { attackDir, inOpposition22, inOppositionHalf, isTryScoredAt, metresFromOppositionTryLine, onFieldPlayers, pickHardCarrier, pickKicker, pickFullback, pickPrimaryDefender } from './FieldPosition';
 import { applyMatchEvent } from './applyMatchEvent';
-import { PENALTY_VALUES, TAP_AND_GO_AI } from './balance';
+import { PENALTY_VALUES, TAP_AND_GO_AI, TACTIC_MODIFIERS } from './balance';
 import { rng } from '../utils/rng';
 import type { CommentaryStreamer } from './CommentaryStreamer';
 
@@ -235,21 +236,64 @@ export class PenaltyHandler {
       applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.Lineout });
 
     } else {
-      // tap_and_go
+      // tap_and_go — resolved as a forward hard carry. The defence is
+      // retreating 10m so no breakdown mod is needed; hard-carry tactic
+      // mods still apply for the defensive line shape.
+      const attackSide = state.possession;
+      const defendSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
+      const defendTeam = attackSide === 'home' ? state.awayTeam : state.homeTeam;
+      const carrier = pickHardCarrier(attackTeam, state, attackSide);
+      const defender = pickPrimaryDefender(defendTeam, state, defendSide, carrier);
+      const defensiveLine = defendTeam.tactics.defensiveLine;
+      const collisionMod = TACTIC_MODIFIERS.hardCarryCollisionMod[defensiveLine];
+      const evasionMod   = TACTIC_MODIFIERS.hardCarryEvasionMod[defensiveLine]
+                         + TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];
+      const dlCollision  = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine] + collisionMod;
+      const res = resolveOpenPlay(carrier, defender, evasionMod, 0, dlCollision);
+      const direction = attackDir(state);
+      const gainMetres = res.gainMetres;
+
+      const outcome: 'line_break' | 'dominant_carry' | 'dominant_tackle' | 'play_on' =
+        res.outcome === 'line_break'       ? 'line_break'
+        : res.outcome === 'dominant_carry' ? 'dominant_carry'
+        : res.outcome === 'dominant_tackle' ? 'dominant_tackle'
+        : 'play_on';
+      applyMatchEvent(state, {
+        type: 'CARRY_RESOLVED',
+        carrier,
+        defender,
+        metres: Math.max(0, gainMetres),
+        direction,
+        outcome,
+        defSide: defendSide,
+      });
+      applyMatchEvent(state, {
+        type: 'BALL_REPOSITIONED',
+        x: clamp(state.ball.x + direction * gainMetres, 0, 100),
+      });
+
+      const tryScored = isTryScoredAt(state.ball.x, attackSide, state.clock.halfTimeDone);
       const penEvent: GameEvent = {
         id: makeId(),
         gameMinute: state.clock.gameMinute,
         phase: MatchPhase.Penalty,
-        side: state.possession,
-        sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
-        primaryPlayer: kicker,
+        side: attackSide,
+        sideName: attackTeam.name,
+        primaryPlayer: carrier,
+        secondaryPlayer: defender,
         ballX: state.ball.x,
         ballY: state.ball.y,
-        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: 'tap_and_go', primary: kicker }] },
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: 'tap_and_go', primary: carrier, secondary: defender }] },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
       this.emit('engine:event', { event: penEvent });
-      applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.FirstPhase });
+
+      if (tryScored) {
+        applyMatchEvent(state, { type: 'TRY_SCORED', scorer: carrier, side: attackSide });
+        applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.ConversionKick });
+      } else {
+        applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.PhasePlay });
+      }
     }
 
     this.emit('engine:stateChange', { state });

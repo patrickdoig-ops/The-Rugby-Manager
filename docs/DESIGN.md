@@ -305,6 +305,33 @@ Bench jersey badges use the neutral surface treatment — team colour on bench s
 | 9px | 0.18em | Pill labels, sub-metadata |
 | 8px | 0.18em | Smallest mono — column headers, footnotes |
 
+#### Type tokens & Dynamic Type scaling
+
+**Every `font-size` references a token, never a raw px value.** The scale above is realised
+as `--rm-fs-*` custom properties in `style/main.css` `:root` (`--rm-fs-8` … `--rm-fs-72`, one
+per size in the scale). Each is `calc(Npx * var(--rm-text-scale))`, so a single multiplier —
+`--rm-text-scale` — rescales all type at once (iOS Dynamic Type-style accessibility support).
+
+```css
+--rm-text-scale: 1;                              /* default; Settings overrides at runtime */
+--rm-fs-14: calc(14px * var(--rm-text-scale));   /* body base — html/body bind to this */
+```
+
+- **Use the tokens.** New CSS must use `font-size: var(--rm-fs-N)` (or `calc(Npx * var(--rm-text-scale))`
+  for an off-ladder half-pixel value, and `clamp(calc(Apx * var(--rm-text-scale)), Bvw, calc(Cpx * var(--rm-text-scale)))`
+  for fluid hero display). Never hardcode `font-size: Npx` — it would silently opt out of the
+  accessibility scale.
+- **The multiplier is user-driven.** Settings → Accessibility offers discrete manual steps
+  (Default / Large / Larger / Largest → `1 / 1.15 / 1.3 / 1.45`) and, on the native iOS shell, a
+  "Follow system text size" toggle. The controller is `src/ui/textScale.ts`: it owns the effective
+  scale, persists the choice via `src/ui/uiPrefs.ts`, and writes `:root` through `applyTextScale()`.
+  Because `:root` carries a static `--rm-text-scale: 1`, first paint is correct before JS runs.
+- **Native Dynamic Type follow (iOS).** The `DynamicType` Capacitor plugin
+  (`ios/App/App/DynamicTypePlugin.swift`, JS bridge `src/native/dynamicType.ts`) reports
+  `UIContentSizeCategory` and emits live changes; `textScale.ts` maps each category onto the
+  multiplier, clamped to `1.5` so the largest accessibility sizes can't break layouts. Auto mode is
+  the native default; on web it resolves to `1` (no system source), so the web build is unchanged.
+
 ### 3.4 The section label standard
 
 **Every section label across the product uses this exact treatment:**
@@ -326,7 +353,7 @@ If your section label deviates, it's wrong. The 8px labels found in the May 2026
 
 ## 4. Crest scale
 
-Team crests appear at **exactly four sizes**. There is no fifth size; if you need one between two steps, choose the larger.
+Team crests appear at **exactly five sizes**. If you need one between two steps, choose the larger.
 
 | Token | Size | Radius | Font-size | Use case |
 |---|---|---|---|---|
@@ -613,7 +640,7 @@ Four screens are once-a-year peaks and use a shared celebration recipe rather th
 
 Numbers tween from 0 via `animateCounter()` in `src/ui/components/counterUp.ts` — single easing (`1 - (1 - t)^3`), default 1200ms, snaps to final under reduced motion. Use it via inline `data-counter-*` attributes on numeric cells so the render path stays string-based.
 
-Sound is a manifest-driven Web Audio engine. `src/ui/audio/audioManifest.ts` is the catalogue — every cue's id, file (`public/audio/…`), mix channel (`whistle` / `crowd-bed` / `crowd-reaction` / `impact` / `ui` / `stinger` / `music`), loop flag, trigger, and an ElevenLabs generation prompt. `src/ui/SoundManager.ts` is the engine: per-channel GainNodes under a master gain, lazy fetch+decode (a missing file caches null and no-ops, so it runs before assets are sourced), cross-faded loop beds (crowd ambience + screen music), persisted enable/volume, AudioContext unlocked on first gesture. `src/ui/audio/AudioDirector.ts` is the single router — it subscribes to `engine:event` (match cues keyed off `phase` + narration step keys, plus crowd-bed intensity), `engine:initialized` / `engine:finished` (crowd bed lifecycle), `game:bracketSeeded` / `game:seasonComplete` (season stingers), and `screenRouter.onScreenShow` (per-screen music). UI never calls the engine directly except the global click cue in `main.ts`; the legacy `playCue('whistle'|'crowdRoar'|'uiClick')` API still works, mapped onto manifest ids. Audio plays under reduced motion (audio is independent of motion).
+Sound is a manifest-driven Web Audio engine. `src/ui/audio/audioManifest.ts` is the catalogue — every cue's id, file (`public/audio/…`), mix channel (`whistle` / `crowd-bed` / `crowd-reaction` / `impact` / `ui` / `stinger` / `music`), loop flag, trigger, and an ElevenLabs generation prompt. `src/ui/SoundManager.ts` is the engine: per-channel GainNodes under a master gain, lazy fetch+decode (a missing file caches null and no-ops, so it runs before assets are sourced), cross-faded loop beds (crowd ambience + screen music), persisted enable/volume, AudioContext unlocked on first gesture. When a cue's file is missing the engine falls back to **procedural synthesis** (`src/ui/audio/synth.ts`) — Web Audio generators for the tonal/percussive cues (all `ui.*`, all `whistle.*`, plus rough placeholders for a few simple stingers/impacts) so clicks and whistles work with zero assets; a real recording dropped at the cue's path always wins. Crowd / music cues have no generator and stay silent until sampled. `src/ui/audio/AudioDirector.ts` is the single router — it subscribes to `engine:event` (match cues keyed off `phase` + narration step keys, plus crowd-bed intensity), `engine:initialized` / `engine:finished` (crowd bed lifecycle), `game:bracketSeeded` / `game:seasonComplete` (season stingers), and `screenRouter.onScreenShow` (per-screen music). UI never calls the engine directly except the global click cue in `main.ts`; the legacy `playCue('whistle'|'crowdRoar'|'uiClick')` API still works, mapped onto manifest ids. Audio plays under reduced motion (audio is independent of motion).
 
 Haptics mirror the audio split on the same event-bus seam. `src/ui/HapticsManager.ts` is the engine — a 7-entry `HapticPattern` map (`try` / `card` / `goal_made` / `goal_miss` / `tmo` / `whistle_half` / `whistle_full`), each routed to a native iOS Taptic call (`@capacitor/haptics` `impact` / `notification`, fire-and-forget) or a `navigator.vibrate` web fallback, gated by `Capacitor.isNativePlatform()` and a persisted enable flag (`isHapticsEnabled` / `setHapticsEnabled`, defaults on, Settings → Audio toggle). `src/ui/haptics/HapticsDirector.ts` is the single router — subscribes to `engine:event` only and fires at most one pattern per event for the big moments (tries, cards + TMO verdicts, TMO intervention, goal-kick made/missed, half/full-time whistles), keyed off the same `phase` + narration step keys the AudioDirector reads. Silent AI fixtures don't emit `engine:event`, so haptics never fire off the live path.
 

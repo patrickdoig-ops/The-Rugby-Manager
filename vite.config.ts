@@ -12,10 +12,10 @@ const buildDate = new Date().toISOString().slice(0, 10);
 export default defineConfig(({ mode }) => ({
   root: '.',
   publicDir: 'public',
-  // GitHub Pages serves from the /Rugby-Simulator-/ sub-path; the Capacitor
+  // GitHub Pages serves from the /The-Rugby-Manager/ sub-path; the Capacitor
   // native shell serves from the bundle root (capacitor://localhost), so it
   // needs relative asset URLs. `npm run build:cap` passes `--mode capacitor`.
-  base: mode === 'capacitor' ? './' : '/Rugby-Simulator-/',
+  base: mode === 'capacitor' ? './' : '/The-Rugby-Manager/',
   build: { outDir: 'dist', target: 'es2022' },
   define: {
     __BUILD_VERSION__: JSON.stringify(buildVersion),

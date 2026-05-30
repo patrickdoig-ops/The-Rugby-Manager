@@ -26,9 +26,33 @@ export const COMMENTARY_CHANCES = {
   blitzInterception:            45,
 } as const;
 
+// Context thresholds for the try_aftermath crowd reaction. Used by
+// TryScoredEvent to classify a try into the blowout / late-drama buckets that
+// getAnnouncementTemplate picks its pool from. Render-time only — they shape
+// flavour text, never an in-play outcome.
+export const TRY_AFTERMATH_CONTEXT = {
+  // Absolute post-try scoreline margin at or beyond which the result is
+  // beyond doubt: the crowd reaction is muted regardless of which side scored.
+  blowoutMargin: 22,
+  // Game minute at or beyond which a swing try in a close game counts as
+  // "late drama" — the peak-noise crowd reaction.
+  lateGameMinute: 70,
+  // Absolute post-try margin at or within which a late try is still in the
+  // balance (a close game). Beyond it a late try isn't drama.
+  lateDramaMargin: 8,
+} as const;
+
 // Soft cap on the in-state commentary buffer (state.events). Older entries
 // are spliced off the front when the buffer overflows.
 export const COMMENTARY_BUFFER_CAP = 300;
+
+// Headless in-app AI fixtures (simulateFixture) never read state.events — the
+// season-stats snapshot pulls from state.stats, not the commentary log. Only
+// the carry→try / carry→breakdown handlers read events[length-1], so any cap
+// ≥ 1 is behaviour-identical. 16 keeps a small scrollback for crash diagnostics
+// (reportTickCrash slices the last 5) while reducing the per-event splice from
+// a 300-ref shift to a 16-ref shift across ~6,500 events/match.
+export const HEADLESS_COMMENTARY_BUFFER_CAP = 16;
 
 // Presenter pacing — how the commentary beat buffer (CommentaryStreamer) and
 // the multi-step feed reveal drain. Expressed as fractions of the live

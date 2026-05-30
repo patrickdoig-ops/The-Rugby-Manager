@@ -16,16 +16,16 @@ const OUT_DIR = resolve(ROOT, 'src/data');
 
 // Colours are parsed from each team's `Club colours:` line in docs/team-data.md.
 const TEAM_META = {
-  'Gloucester':            { slug: 'gloucester',   shortName: 'GLO' },
-  'Bristol Bears':         { slug: 'bristol',      shortName: 'BRI' },
-  'Leicester Tigers':      { slug: 'leicester',    shortName: 'LEI' },
-  'Saracens':              { slug: 'saracens',     shortName: 'SAR' },
-  'Bath':                  { slug: 'bath',         shortName: 'BAT' },
-  'Exeter Chiefs':         { slug: 'exeter',       shortName: 'EXE' },
-  'Harlequins':            { slug: 'harlequins',   shortName: 'HAR' },
-  'Newcastle Falcons':   { slug: 'newcastle',    shortName: 'NEW' },
-  'Northampton Saints':    { slug: 'northampton',  shortName: 'NOR' },
-  'Sale Sharks':           { slug: 'sale',         shortName: 'SAL' },
+  'Gloucester':   { slug: 'gloucester',  shortName: 'GLO' },
+  'Bristol':      { slug: 'bristol',     shortName: 'BRI' },
+  'Leicester':    { slug: 'leicester',   shortName: 'LEI' },
+  'Saracens':     { slug: 'saracens',    shortName: 'SAR' },
+  'Bath':         { slug: 'bath',        shortName: 'BAT' },
+  'Exeter':       { slug: 'exeter',      shortName: 'EXE' },
+  'Harlequins':   { slug: 'harlequins',  shortName: 'HAR' },
+  'Newcastle':    { slug: 'newcastle',   shortName: 'NEW' },
+  'Northampton':  { slug: 'northampton', shortName: 'NOR' },
+  'Sale':         { slug: 'sale',        shortName: 'SAL' },
 };
 
 // Map md tactics literals to TeamTactics dimensions in fixed order:
@@ -85,10 +85,6 @@ function parseTeamDataMd(md) {
 
     const body = lines.slice(1).join('\n');
 
-    // Narrative blurb — first non-empty paragraph above the bullet list.
-    const blurbMatch = body.match(/^\s*([\s\S]*?)\n\n-\s/);
-    const blurb = blurbMatch ? blurbMatch[1].replace(/\n/g, ' ').trim() : '';
-
     const stadiumMatch = body.match(/\*\*Home ground:\*\*\s*(.+?)\.\s*$/m);
     const coloursMatch = body.match(/\*\*Club colours:\*\*\s*`(#[0-9a-fA-F]{6})`\s*\/\s*`(#[0-9a-fA-F]{6})`/);
     if (!coloursMatch) throw new Error(`Missing 'Club colours:' line for ${teamName}`);
@@ -96,7 +92,6 @@ function parseTeamDataMd(md) {
     const foundedMatch   = body.match(/\*\*Founded:\*\*\s*(\d{4})/);
     const capacityMatch  = body.match(/\*\*Stadium capacity:\*\*\s*([\d,]+)/);
     const headCoachMatch = body.match(/\*\*Head coach:\*\*\s*(.+?)\.\s*$/m);
-    const honoursMatch   = body.match(/\*\*Honours:\*\*\s*(.+?)\s*$/m);
     const ratingMatch = body.match(/\*\*Overall rating:\*\*\s*\*\*(\d+)\/100\*\*/);
     const statBiasMatch = body.match(/\*\*Stat bias:\*\*\s*(.+)$/m);
     const tacticsMatch = body.match(/\*\*Suggested tactics:\*\*\s*(.+)$/m);
@@ -113,7 +108,7 @@ function parseTeamDataMd(md) {
       vals.forEach((v, i) => { if (i < TACTIC_KEYS.length) suggestedTactics[TACTIC_KEYS[i]] = v; });
     }
 
-    // Star players — entry line "- **Name** (Position, Nationality) — blurb. Index high: ... Suggested rating: NN/100. [Marquee: yes.]"
+    // Star players — entry line "- **Name** (Position, Nationality) Index high: ... Suggested rating: NN/100. [Marquee: yes.]"
     // The trailing `Marquee: yes` annotation is optional; one per team picks
     // the cap-excluded marquee slot. Anyone without it gets isMarquee=false
     // and the seeder synthesises a normal in-cap wage.
@@ -122,9 +117,9 @@ function parseTeamDataMd(md) {
     if (starsBlockMatch) {
       const starLines = starsBlockMatch[1].split('\n').filter(l => l.startsWith('- **'));
       for (const line of starLines) {
-        const m = line.match(/^- \*\*([^*]+)\*\*\s*\(([^,]+),\s*([^)]+)\)\s*[—-]\s*(.+?)\s*Index high:\s*(.+?)\.\s*Suggested rating:\s*\*\*(\d+)\/100\*\*/);
+        const m = line.match(/^- \*\*([^*]+)\*\*\s*\(([^,]+),\s*([^)]+)\)\s*Index high:\s*(.+?)\.\s*Suggested rating:\s*\*\*(\d+)\/100\*\*/);
         if (!m) continue;
-        const indexHigh = [...m[5].matchAll(/`(\w+)`/g)].map(x => x[1]);
+        const indexHigh = [...m[4].matchAll(/`(\w+)`/g)].map(x => x[1]);
         const isMarquee = /Marquee:\s*yes/i.test(line);
         // Optional `Wage: £Xm.` or `Wage: £NNNk.` override — used to land
         // hand-tuned marquee wages above what the formulaic seeder would
@@ -140,9 +135,8 @@ function parseTeamDataMd(md) {
           name: m[1].trim(),
           position: SIMPLE_FROM_TEAMDATA(m[2]),
           nationality: m[3].trim(),
-          blurb: m[4].trim().replace(/\.$/, ''),
           indexHigh,
-          rating: parseInt(m[6], 10),
+          rating: parseInt(m[5], 10),
           isMarquee,
           annualWage,
         });
@@ -224,9 +218,7 @@ function parseTeamDataMd(md) {
       founded: foundedMatch ? parseInt(foundedMatch[1], 10) : undefined,
       stadiumCapacity: capacityMatch ? parseInt(capacityMatch[1].replace(/,/g, ''), 10) : undefined,
       headCoach: headCoachMatch ? headCoachMatch[1].trim() : undefined,
-      honours: honoursMatch ? honoursMatch[1].trim().replace(/\.$/, '') : undefined,
       rating: ratingMatch ? parseInt(ratingMatch[1], 10) : undefined,
-      blurb,
       suggestedTactics,
       statBias,
       stars,
@@ -395,15 +387,12 @@ function buildTeamJson(teamName, team) {
     founded: team.founded,
     stadiumCapacity: team.stadiumCapacity,
     headCoach: team.headCoach,
-    honours: team.honours,
-    blurb: team.blurb,
     suggestedTactics: team.suggestedTactics,
     statBias: team.statBias,
     stars: team.stars.map(s => ({
       name: s.name,
       position: s.position,
       nationality: s.nationality,
-      blurb: s.blurb,
       indexHigh: s.indexHigh,
       suggestedRating: s.rating,
     })),

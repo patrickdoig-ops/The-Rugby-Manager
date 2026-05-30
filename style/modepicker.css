@@ -47,7 +47,7 @@
 
 #mp-eyebrow {
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   letter-spacing: 0.14em;
   color: var(--rm-pitch);
   text-transform: uppercase;
@@ -55,7 +55,7 @@
 
 #mp-title {
   font-family: var(--rm-font-display);
-  font-size: clamp(44px, 14vw, 64px);
+  font-size: clamp(calc(44px * var(--rm-text-scale)), 14vw, calc(64px * var(--rm-text-scale)));
   color: var(--rm-chalk);
   line-height: 0.92;
   margin: 0;
@@ -65,7 +65,7 @@
 
 #mp-subtitle {
   font-family: var(--rm-font-body);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   color: var(--rm-chalk);
   margin: 0;
 }
@@ -110,21 +110,19 @@
 }
 
 .mp-card-icon {
-  color: var(--rm-chalk);
   margin-bottom: 2px;
 }
 
 .mp-card-title {
   font-family: var(--rm-font-display);
-  font-size: 22px;
-  color: var(--rm-chalk);
+  font-size: var(--rm-fs-22);
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
 .mp-card-body {
   font-family: var(--rm-font-body);
-  font-size: 13px;
+  font-size: var(--rm-fs-13);
   line-height: 1.45;
   color: color-mix(in srgb, var(--team-color-tile-text, #ffffff) 80%, transparent);
 }

@@ -97,6 +97,7 @@ function deriveTeamSummary(state: MatchState, side: 'home' | 'away'): TeamSeason
     tries:             state.stats.tries[side],
     lineBreaks:        sum(m => m.lineBreaks),
     defendersBeaten:   sum(m => m.defendersBeaten),
+    offloadsCompleted: sum(m => m.offloadsCompleted),
     carries:           sum(m => m.carries),
     metresCarried:     sum(m => m.metresCarried),
     tacklesAttempted:  state.stats.tackles[side].attempted,
@@ -129,12 +130,10 @@ export function collectSeasonEvents(snap: MatchSnapshot): SeasonEvent[] {
         metresCarried:          m.metresCarried,
         lineBreaks:             m.lineBreaks,
         defendersBeaten:        m.defendersBeaten,
+        offloadsCompleted:      m.offloadsCompleted,
         passes:                 m.passes,
-        // Goal-kicking split (conversion vs penalty vs drop) isn't tagged
-        // at the player level today — see CLAUDE.md known gap. kicksMade
-        // is the lumped total for now.
-        conversions:            0,
-        penaltiesScored:        0,
+        conversions:            m.conversionsMade,
+        penaltiesScored:        m.penaltiesMade,
         dropGoals:              0,
         kicksFromHand:          m.kicksFromHand,
         kickMetres:             m.kickMetres,

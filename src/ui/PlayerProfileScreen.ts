@@ -346,7 +346,7 @@ export function initPlayerProfileScreen(
       const avg = entry && entry.apps > 0 ? entry.ratingSum / entry.apps : null;
       historyRows.push(`
         <div class="pp-hist-row">
-          <span class="pp-hist-season">${arch.seasonLabel}</span>
+          <span class="pp-hist-season">${arch.seasonLabel.replace(/ Season$/, '')}</span>
           <span class="pp-hist-club">${clubAtTime ? clubCrest(clubAtTime, 'sm') + `<span class="pp-hist-club-name">${clubAtTime.shortName}</span>` : '<span class="pp-hist-club-name">—</span>'}</span>
           <span class="pp-hist-num">${apps || '—'}</span>
           <span class="pp-hist-num">${entry?.tries ?? '—'}</span>
@@ -356,7 +356,7 @@ export function initPlayerProfileScreen(
     if (cur.appearances > 0) {
       historyRows.push(`
         <div class="pp-hist-row pp-hist-row--current">
-          <span class="pp-hist-season">${state.calendar.seasonLabel}<span class="pp-hist-current-tag">In progress</span></span>
+          <span class="pp-hist-season">${state.calendar.seasonLabel.replace(/ Season$/, '')}<span class="pp-hist-current-tag">In progress</span></span>
           <span class="pp-hist-club">${team ? clubCrest(team, 'sm') + `<span class="pp-hist-club-name">${team.shortName}</span>` : '<span class="pp-hist-club-name">—</span>'}</span>
           <span class="pp-hist-num">${cur.appearances}</span>
           <span class="pp-hist-num">${cur.tries}</span>

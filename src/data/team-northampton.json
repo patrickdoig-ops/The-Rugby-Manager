@@ -1,6 +1,6 @@
 {
   "id": "northampton",
-  "name": "Northampton Saints",
+  "name": "Northampton",
   "shortName": "NOR",
   "color": "#00563f",
   "secondaryColor": "#000000",
@@ -9,8 +9,6 @@
   "founded": 1880,
   "stadiumCapacity": 15249,
   "headCoach": "Phil Dowson (Director of Rugby since 2022)",
-  "honours": "2 × league title (2013-14, 2023-24); European Cup 1999-2000; European Challenge Cup 2008-09, 2014",
-  "blurb": "The 2023-24 champions under Phil Dowson, Saints are the league's electric attacking outfit — willing to play from anywhere on the pitch and devastating in transition. Fin Smith conducts a heads-up backline that scores tries from deep, off turnover ball and from set-piece strike plays in equal measure. Their forwards are mobile and link-friendly rather than collision-first, designed to win quick ball and feed the runners. When they get rolling they put 40+ on teams; when the platform wobbles, the structure shows cracks.",
   "suggestedTactics": {
     "attackingGamePlan": "possession",
     "attackingStyle": "wide_wide",
@@ -30,7 +28,6 @@
       "name": "Fin Smith",
       "position": "Fly-Half",
       "nationality": "England",
-      "blurb": "England's first-choice fly-half and marquee playmaker; ice-cold game manager with a clutch boot (opened the scoring with an early drop goal in the 2024 season final win over Bath) who runs Saints' high-tempo, wide-wide attack from a flat alignment",
       "indexHigh": [
         "kicking",
         "composure",
@@ -44,7 +41,6 @@
       "name": "Tommy Freeman",
       "position": "Wing",
       "nationality": "England",
-      "blurb": "England wing and 2025 Lions Test starter; serial hat-trick scorer (four vs Saracens, hat-tricks vs Bath, Clermont, Leinster) and the first Englishman to score in every round of a Six Nations. Aerial dominance, finishing instinct, and centre-grade footwork",
       "indexHigh": [
         "pace",
         "handling",
@@ -58,7 +54,6 @@
       "name": "Alex Mitchell",
       "position": "Scrum-Half",
       "nationality": "England",
-      "blurb": "England's sniping starting 9; razor-sharp service, constant running threat around the fringes, and the tempo-setter that lets Saints play heads-up rugby from anywhere",
       "indexHigh": [
         "pace",
         "agility",
@@ -72,7 +67,6 @@
       "name": "Henry Pollock",
       "position": "Flanker",
       "nationality": "England",
-      "blurb": "Twenty-one-year-old breakthrough sensation; youngest player on the 2025 Lions tour, World Rugby Breakthrough Player nominee. Relentless engine, jackal threat over the ball, and a try-scoring flanker with genuine pace in the wide channels",
       "indexHigh": [
         "breakdown",
         "stamina",

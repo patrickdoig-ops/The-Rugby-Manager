@@ -61,7 +61,7 @@ Every number listed in the resolver formulas, tactic modifier tables, fatigue ti
 
 ### Tactics: who picks what
 
-`TeamTactics` (`src/types/team.ts`) is a five-dimension object: `attackingGamePlan`, `attackingStyle`, `attackingBreakdown`, `defendingBreakdown`, `backfieldDefence`. Every resolver reads it from `attackTeam.tactics.X` / `defendTeam.tactics.X` directly — no separate "intent" layer.
+`TeamTactics` (`src/types/team.ts`) is a seven-dimension object: `attackingGamePlan`, `attackingStyle`, `attackingBreakdown`, `defendingBreakdown`, `backfieldDefence`, `defensiveLine`, `offloadStrategy`. Every resolver reads it from `attackTeam.tactics.X` / `defendTeam.tactics.X` directly — no separate "intent" layer.
 
 At match init (`MatchCoordinator.initMatchState`):
 - **Human side** uses `playerTactics` if supplied (the object passed from `PreMatchScreen.onStart`), otherwise falls back to the team's `suggestedTactics`.
@@ -349,6 +349,30 @@ current[stat] = clamp(baseStats[stat] + formModifier, 1, 100)
 `baseStats` is untouched. Fatigue then degrades `currentStats` from this form-adjusted base throughout the match. A player with `formModifier = +8` starts with all attributes elevated by 8 points; one with `formModifier = −6` starts 6 points below baseline in every stat.
 
 `formModifier` is hidden from the UI — it is stored on `Player` for engine purposes but no UI module reads it.
+
+---
+
+## Position Familiarity (out-of-position penalty)
+
+**Source:** `src/engine/balance/positionFamiliarity.ts`; applied in `initPlayer()` (`src/engine/MatchCoordinator.ts`) and the `SUBSTITUTION_APPLIED` branch of `applyMatchEvent`.
+
+A player filling a jersey slot that isn't their natural position takes an **effective-stat penalty**. Pure, RNG-free, deterministic — so silent AI fixtures and the determinism harnesses see the identical penalty as live play.
+
+**Mechanism.** The penalty is a multiplier applied to the player's **per-match `baseStats` clone** (the roster record is never touched). It lives on `baseStats` — not just the initial `currentStats` — because `StaminaSystem.computeFatigue` re-derives `currentStats` from `baseStats` every tick; a penalty baked only into the initial `currentStats` would be wiped on tick one. With the clone scaled, the penalty flows automatically into every resolver (which all read `currentStats`) with **zero resolver edits** and no new `MatchEvent` variant.
+
+- **Starters (slots 1–15):** scaled in `initPlayer` by `slotFamiliarity(naturalPosition, slotId)`.
+- **Bench (slots 16–23):** left unscaled at `initPlayer` — they aren't on the field. When a sub comes on, the `SUBSTITUTION_APPLIED` branch scales the incoming player's `baseStats` + `currentStats` by `positionFamiliarity(on.position [natural], off.position [the slot's role])`, computed **before** `on.position = off.position` overwrites the natural label. This is the sub's first and only scale.
+
+**Familiarity table.** `SLOT_POSITION` maps each jersey to its target role (1/3→Prop, 2→Hooker, 4/5→Lock, 6/7→Flanker, 8→Number 8, 9→Scrum-Half, 10→Fly-Half, 11/14→Wing, 12/13→Centre, 15→Fullback). `POSITION_FAMILIARITY[natural][target]` gives the multiplier; a self-match is `1.0`, any unlisted pair is **makeshift** (`MAKESHIFT_MULT = 0.72`). Highlights:
+
+- **Front row** is near-immovable: `Prop↔Hooker = 0.78`, everything else makeshift (`0.72`) — a back in the front row is a liability, so the SUM-based scrum/lineout pack scores collapse naturally.
+- **Locks** cover blindside/№8 at `0.88`.
+- **Back row** is interchangeable: `Flanker↔Number 8 = 0.96`. The versatile **`Back Row`** label is **natural (1.0)** at flanker/№8 — it represents a loose forward at home anywhere in 6/7/8 (used by authored XVs).
+- **Backs:** `Centre↔Wing = 0.92`, `Wing↔Fullback = 0.93`, `Fly-Half→Centre = 0.90`, `Scrum-Half↔Fly-Half = 0.88`. The **`Utility Back`** label is **natural (1.0)** across 10/12/13/11/14/15, with only the specialist scrum-half role penalised (`0.90`).
+
+`oopSeverity(natural, slotId)` (mild `≥ 0.90` / moderate `≥ 0.84` / severe `< 0.84`, or `null` at `1.0`) drives the **OOP** chip on the player's own starting XV in `SquadManagementScreen` and `PreMatchScreen`, colour-coded amber → orange → red so the manager can read the cost at a glance; `oopPenaltyPct(...)` adds the magnitude (e.g. `−22%`) to the tooltip. Tying the chip to the penalty means a versatile cluster player (Back Row at flanker, Utility Back at fullback) is never flagged. The warning is non-blocking — the manager may still field the player.
+
+The penalty stacks with the existing position-weighted OVR (a centre at fly-half is doubly disadvantaged: low base kicking *and* the familiarity hit) and with the form modifier and fatigue, since all three operate on the same `currentStats` path.
 
 ---
 
@@ -1278,8 +1302,8 @@ The `PenaltyOffence` taxonomy (`src/types/engine.ts`) covers seven offences. Add
 | `breakdown_infringement` | `BreakdownEvent` (post-resolve `penalty_defending` branch) | `supporters[0]` from the attacking team | breakdown margin ≤ −15 (attacker infringes at the ruck) | no |
 | `scrum_infringement` (attacking_dominant_penalty) | `ScrumEvent` | defending hooker | scrum margin > 15 (defending pack collapses) | no |
 | `scrum_infringement` (defending_dominant_penalty) | `ScrumEvent` | attacking hooker | scrum margin ≤ −15 (attacking pack collapses) | no |
-| `high_tackle` | `OpenPlayEvent` / `FirstPhaseEvent` / `KickReturnEvent` | the defender who attempted the tackle | `tackleInfringement(defender)` returns `'high_tackle'`, gated to non-line-break collisions | **60 %** |
-| `dangerous_cleanout` | `BreakdownEvent` (pre-resolve) | random `supporter` from the attacking team | `rng(1,100) ≤ BREAKDOWN_PENALTIES.dangerousCleanoutBasePct + TACTIC_MODIFIERS.dangerousCleanoutAttackMod[attPlan]` | **60 %** |
+| `high_tackle` | `OpenPlayEvent` / `FirstPhaseEvent` / `KickReturnEvent` | the defender who attempted the tackle | `tackleInfringement(defender)` returns `'high_tackle'`, gated to non-line-break collisions | **90 %** |
+| `dangerous_cleanout` | `BreakdownEvent` (pre-resolve) | random `supporter` from the attacking team | `rng(1,100) ≤ BREAKDOWN_PENALTIES.dangerousCleanoutBasePct + TACTIC_MODIFIERS.dangerousCleanoutAttackMod[attPlan]` | **90 %** |
 | `not_rolling_away` | `BreakdownEvent` (pre-resolve) | the jackal (defending back-row over the ball) | `rng(1,100) ≤ BREAKDOWN_PENALTIES.notRollingAwayBasePct + TACTIC_MODIFIERS.notRollingAwayDefendMod[defPlan]` | no |
 | `offside_at_ruck` | `BreakdownEvent` (post-resolve, on `clean_ball` or `slow_ball` only) | random on-field defender | `rng(1,100) ≤ BREAKDOWN_PENALTIES.offsideAtRuckBasePct` (flat — future defensive-tactic hook documented inline) | no |
 | `obstruction` | `OpenPlayEvent` / `FirstPhaseEvent` (in the out-the-back branch) | random attacking forward (the screening forward) | `rng(1,100) ≤ OBSTRUCTION_BASE_PCT + TACTIC_MODIFIERS.obstructionStyleMod[attackingStyle]` | no |
@@ -1614,6 +1638,8 @@ stats.tries[possession]++
 ### Score-context commentary
 
 `TryScoredEvent` emits two steps: (1) a `phase_outcome` step keyed off the lead the try produces — `try_lead` (newly ahead, was level or trailing) / `try_extend_lead` (already ahead) / `try_level` (draws level) / `try_trail` (still behind) — then (2) an `announcement` step with key `try_aftermath` (crowd / momentum reaction). The handler is read-only (`TRY_SCORED` is applied by `PhaseRouter` after it returns), so `state.score` is still the pre-try score; `tryLeadKey` projects the 5 try points forward to classify the lead (the conversion hasn't happened yet, so only the try counts). The carry phases (`OpenPlayEvent`, `FirstPhaseEvent`, `KickReturnEvent`, `MaulEvent`) carry the grounding lines, appending a `try_referee_signal` announcement after the try-location step on their try branches — so a full try unfolds across two events as `[line_break_try | dominant_carry_try | maul_try, try_location_*, try_referee_signal]` then `[try_lead | try_extend_lead | try_level | try_trail, try_aftermath]`. **Score timing:** the carry beat is enqueued before `TRY_SCORED` applies, so its display snapshot still shows the pre-try score ("he's over!"); `TRY_SCORED` (+5) applies when the `TryScored` phase resolves the following tick, so the score lands on the lead-line beat — one beat after the grounding, reading like the referee awarding it. `CommentaryFeed` detects these as hero events and stagger-reveals the steps at the steady per-line gap (`tickDelayMs × COMMENTARY_PACING.lineGapFraction` — the same `lineGap` the presenter paces beats by) with team-colour hero treatment on the `#latest-commentary` strap. Templates live in `src/commentary/banks/en-GB/phases.ts` (`TryScored` block) and `announcements.ts` (`try_referee_signal`, `try_aftermath` arrays).
+
+**`try_aftermath` is context-aware.** The handler attaches a `TryAftermathContext` (`src/types/narration.ts`) to the announcement step's `params.tryAftermath`, computed from the pre-try state: `scoringSideIsHome` (`state.possession === 'home'`), `neutralVenue` (`state.engine.neutralVenue`), `isSwing` (`leadKey !== 'try_extend_lead'`), `isBlowout` (post-try absolute margin ≥ `TRY_AFTERMATH_CONTEXT.blowoutMargin`), and `isLateDrama` (not a blowout, `gameMinute ≥ lateGameMinute`, margin ≤ `lateDramaMargin`). `getAnnouncementTemplate` routes these through `pickTryAftermath` to one of nine pools: blowout (subdued, beyond doubt — wins precedence) → neutral / neutral-late → home / home-swing / home-late → away / away-swing / away-late. This fixes the old single-pool bug where a home-crowd roar could fire for an away try, an away try drew the same "huge roar" as a home try, and the momentum-shift line fired even on `try_extend_lead`. Away pools deliberately read quieter (travelling-support pocket, hushed home crowd); momentum phrasing only lives in `_swing` / `_late` pools. The selection happens at render time on the commentary RNG stream — no effect on engine determinism. Thresholds live in `src/engine/balance/commentary.ts` (`TRY_AFTERMATH_CONTEXT`).
 
 ---
 

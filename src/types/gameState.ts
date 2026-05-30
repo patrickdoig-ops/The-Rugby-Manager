@@ -90,6 +90,7 @@ export interface TeamSeasonStats {
   tries:              number;
   lineBreaks:         number;
   defendersBeaten:    number;
+  offloadsCompleted:  number;
   carries:            number;
   metresCarried:      number;
   // Defence
@@ -117,7 +118,7 @@ export function zeroTeamSeasonStats(): TeamSeasonStats {
   return {
     matchesPlayed: 0,
     possessionSeconds: 0, territorySeconds: 0, matchSeconds: 0,
-    tries: 0, lineBreaks: 0, defendersBeaten: 0, carries: 0, metresCarried: 0,
+    tries: 0, lineBreaks: 0, defendersBeaten: 0, offloadsCompleted: 0, carries: 0, metresCarried: 0,
     tacklesAttempted: 0, tacklesMade: 0, turnoversWon: 0,
     kicksFromHand: 0, kickMetres: 0,
     lineoutsThrown: 0, lineoutsWon: 0, scrumsPutIn: 0, scrumsWon: 0,

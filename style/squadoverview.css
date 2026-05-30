@@ -46,7 +46,7 @@
 
 .so-h3 {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.16em;
   color: var(--rm-text-muted);
   text-transform: uppercase;
@@ -81,7 +81,7 @@
 
 .so-h3-count-val {
   font-family: var(--rm-font-display);
-  font-size: 18px;
+  font-size: var(--rm-fs-18);
   letter-spacing: 0.02em;
   color: var(--rm-chalk);
   font-variant-numeric: tabular-nums;
@@ -89,7 +89,7 @@
 
 .so-h3-count-lbl {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.16em;
   color: var(--rm-text-muted);
@@ -111,7 +111,7 @@
   border: 1px solid color-mix(in oklch, var(--rm-stat-2) 25%, transparent);
   border-radius: 8px;
   font-family: var(--rm-font-mono);
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   color: color-mix(in oklch, var(--rm-stat-2) 70%, var(--rm-text));
   display: flex;
   flex-direction: column;
@@ -120,7 +120,7 @@
 
 .so-thin-hint strong {
   font-family: var(--rm-font-mono);
-  font-size: 12px;
+  font-size: var(--rm-fs-12);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -168,14 +168,14 @@
 
 .so-ovr-val {
   font-family: var(--rm-font-display);
-  font-size: 18px;
+  font-size: var(--rm-fs-18);
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
 .so-ovr-lbl {
   font-family: var(--rm-font-mono);
-  font-size: 8px;
+  font-size: var(--rm-fs-8);
   font-weight: 700;
   letter-spacing: 0.10em;
   text-transform: uppercase;
@@ -211,7 +211,7 @@
   border-color: color-mix(in oklch, var(--rm-stat-2) 25%, transparent);
 }
 .so-ovr--empty .so-ovr-val {
-  font-size: 22px;
+  font-size: var(--rm-fs-22);
 }
 
 /* Row body */
@@ -226,7 +226,7 @@
 
 .so-row-name {
   font-family: var(--rm-font-body);
-  font-size: 14px;
+  font-size: var(--rm-fs-14);
   font-weight: 600;
   color: var(--rm-chalk);
   white-space: nowrap;
@@ -241,7 +241,7 @@
 
 .so-row-meta {
   font-family: var(--rm-font-mono);
-  font-size: 10px;
+  font-size: var(--rm-fs-10);
   letter-spacing: 0.06em;
   color: var(--rm-text-dim);
   text-transform: uppercase;
@@ -271,7 +271,7 @@
   border-radius: 14px;
   color: var(--rm-on-accent);
   font-family: var(--rm-font-display);
-  font-size: 20px;
+  font-size: var(--rm-fs-20);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;

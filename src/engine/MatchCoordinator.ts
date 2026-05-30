@@ -23,7 +23,7 @@ import type { Team, TeamTactics } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';
 import type { Player, PlayerStats, Position } from '../types/player';
 import { isForward, zeroMatchStats, zeroSeasonStats } from '../types/player';
-import { pickKicker, pickScrumHalf } from './FieldPosition';
+import { pickKicker, pickScrumHalf, offFieldIds } from './FieldPosition';
 import type { RawPlayer, RawTeamInput } from '../types/teamData';
 import { MatchPhase, type PossessionSide, type KickOffStrategy } from '../types/engine';
 import { eventBus } from '../utils/eventBus';
@@ -42,7 +42,8 @@ import { makeId, resetEventCounter } from './eventId';
 import { applyMatchEvent } from './applyMatchEvent';
 import { AITacticalDirector } from './AITacticalDirector';
 import { AISubstitutionDirector } from './AISubstitutionDirector';
-import { COMMENTARY_BUFFER_CAP, COMMENTARY_PACING } from './balance';
+import { COMMENTARY_BUFFER_CAP, COMMENTARY_PACING, slotFamiliarity } from './balance';
+import { STARTING_XV_MAX } from './Slot';
 
 // Shallow copy — PlayerStats fields are all primitives, so spread is a
 // full clone. (Renamed from deepCloneStats in v2.253a — "deep" was
@@ -98,14 +99,30 @@ function pickAutoReplacement(bench: Player[], off: Player): number | null {
 // career-scope code can correlate match performance.
 function initPlayer(raw: RawPlayer & { rosterId?: number }): Player {
   const form = rngForm();
-  const current = cloneStats(raw.baseStats);
+  // Out-of-position penalty. A starter (slot 1-15) filling a jersey that isn't
+  // their natural position takes an effective-stat hit, scaled onto this
+  // player's *per-match* baseStats clone (the roster record is untouched).
+  // StaminaSystem re-derives currentStats from baseStats every tick, so the
+  // penalty must live on the clone, not just the initial currentStats. Bench
+  // players (slot 16-23) stay unscaled here — they get scaled at sub time when
+  // SUBSTITUTION_APPLIED reveals the field slot they actually take.
+  const base = cloneStats(raw.baseStats);
+  const posMult = raw.id <= STARTING_XV_MAX ? slotFamiliarity(raw.position, raw.id) : 1.0;
+  if (posMult !== 1.0) {
+    for (const key of Object.keys(base) as (keyof PlayerStats)[]) {
+      base[key] = Math.max(1, Math.min(100, Math.round(base[key] * posMult)));
+    }
+  }
+  const current = cloneStats(base);
   for (const key of Object.keys(current) as (keyof PlayerStats)[]) {
     current[key] = Math.max(1, Math.min(100, current[key] + form));
   }
   // Carry-over freshness from the previous match (set via PLAYER_CONDITION_UPDATED
   // at match-end, persisted on the roster). Falls back to 100 for JSON
   // imports / legacy paths that don't thread it through.
-  const startingFatigue = raw.condition ?? 100;
+  // Clamp to the invariant's legal [0,100] range — guards against a corrupt or
+  // mis-migrated persisted `condition` crashing the first assertInvariants at kickoff.
+  const startingFatigue = Math.max(0, Math.min(100, raw.condition ?? 100));
   return {
     ...raw,
     squadNumber: raw.squadNumber ?? raw.id,
@@ -117,7 +134,7 @@ function initPlayer(raw: RawPlayer & { rosterId?: number }): Player {
       annualWage: raw.contract?.annualWage ?? 0,
       isMarquee:  raw.contract?.isMarquee  ?? false,
     },
-    baseStats: cloneStats(raw.baseStats),
+    baseStats: base,
     currentStats: current,
     matchStats: zeroMatchStats(),
     seasonStats: zeroSeasonStats(),
@@ -217,6 +234,11 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
 export class MatchCoordinator {
   private state: MatchState;
   private tickTimeout: ReturnType<typeof setTimeout> | null = null;
+  // Single-flight guard: true while a tickBody() is in flight (incl. parked on
+  // an internal await such as the pre-penalty streamer flush or a forced-sub
+  // modal). Stops a resume()-triggered scheduleTick from starting a SECOND
+  // concurrent tickBody — see the comment in tick().
+  private ticking = false;
   // Phase at the start of the most recently completed tick. Drives the
   // cross-tick set-piece announcement: when a tick begins in Lineout or
   // Scrum and the previous tick started in a different phase, fire
@@ -463,6 +485,16 @@ export class MatchCoordinator {
     const sub = team.bench[benchIdx];
     const off = team.players[fieldIdx];
 
+    // A sin-binned (or sent-off) player is temporarily off the field but still
+    // occupies their slot in team.players — they must NOT be replaceable, or the
+    // manager could quietly swap in a fresh player and erase the numerical
+    // disadvantage the card is meant to impose. The forced-sub flow for an
+    // expired red_20 goes through runForcedSubstitution, not here, so this guard
+    // is safe. Injured players ARE replaceable, but they leave via
+    // runForcedSubstitution too, so by the time a normal sub runs they're no
+    // longer in offFieldIds.
+    if (offFieldIds(this.state, side).has(off.id)) return;
+
     applyMatchEvent(this.state, {
       type: 'SUBSTITUTION_APPLIED',
       off, on: sub, teamSide: side, benchIdx, fieldIdx,
@@ -521,7 +553,16 @@ export class MatchCoordinator {
   start(): void {
     if (this.state.engine.isRunning) return;
     applyMatchEvent(this.state, { type: 'IS_RUNNING_SET', value: true });
+    if (this.silent) { void this.runSilent(); return; }
     this.scheduleTick(0);
+  }
+
+  // Silent-mode driver: loops tickBody() synchronously (all awaits inside
+  // resolve as microtasks, no setTimeout overhead) until isRunning goes false.
+  private async runSilent(): Promise<void> {
+    while (this.state.engine.isRunning) {
+      await this.tickBody();
+    }
   }
 
   pause(): void {
@@ -532,6 +573,14 @@ export class MatchCoordinator {
 
   resume(): void {
     if (this.state.engine.isRunning) return;
+    // The producer can race ahead to full-time (endMatch → MATCH_ENDED sets
+    // isRunning false + phase FullTime) while the presenter is still draining
+    // the beat buffer and the Subs/Tactics buttons stay live. A Subs close in
+    // that window calls resume(); without this guard it would flip isRunning
+    // back to true and schedule a tick that resolvePhase()s the terminal
+    // FullTime phase → "No phase handler registered for FULL_TIME". The match
+    // is over — don't restart it.
+    if (this.state.phase === MatchPhase.FullTime) return;
     applyMatchEvent(this.state, { type: 'IS_RUNNING_SET', value: true });
     this.streamer.resume();
     this.scheduleTick(0);
@@ -539,6 +588,11 @@ export class MatchCoordinator {
 
   setTickDelay(ms: number): void {
     applyMatchEvent(this.state, { type: 'TICK_DELAY_SET', value: ms });
+    // The presenter paces off its own cached tickDelayMs (refreshed on flush).
+    // While run-ahead-throttled the producer stops flushing, so push the new
+    // speed straight into the streamer or a live speed change (incl. auto-slow
+    // on key moments) wouldn't reach the on-screen cadence.
+    this.streamer.setTickDelay(ms);
     if (this.state.engine.isRunning && this.tickTimeout) {
       clearTimeout(this.tickTimeout);
       this.scheduleTick(ms);
@@ -558,18 +612,34 @@ export class MatchCoordinator {
   }
 
   private async tick(): Promise<void> {
-    // Silent fixtures (telemetry, determinism harness, headless AI sims)
-    // must propagate exceptions so CI sees them. Live mode catches and
-    // surfaces the error through `engine:error` so the UI can render a
-    // copy-pastable crash overlay instead of silently freezing.
-    if (this.silent) {
-      await this.tickBody();
-      return;
-    }
+    // Re-entrancy guard. A live tick can park mid-body on an internal `await`
+    // (the pre-penalty streamer flush at the top of the Penalty branch, a
+    // forced-sub modal) while isRunning stays true and the Subs / Tactics
+    // buttons stay enabled. If the manager opens Subs in that window then
+    // closes it, SimController calls resume() → scheduleTick(0), which would
+    // otherwise start a SECOND tickBody concurrently with the parked one — and
+    // that second run hits resolvePhase() with state.phase still === Penalty
+    // (the parked tick hasn't applied the decision yet), throwing "No phase
+    // handler registered for PENALTY". One tickBody at a time; the in-flight
+    // tick reschedules the next when it completes.
+    if (this.ticking) return;
+    this.ticking = true;
+    // Silent fixtures (telemetry, determinism harness, headless AI sims) must
+    // propagate exceptions so CI sees them. Live mode catches and surfaces the
+    // error through `engine:error` so the UI can render a copy-pastable crash
+    // overlay instead of silently freezing.
     try {
       await this.tickBody();
     } catch (err) {
+      // Emit engine:error so the in-app headless-fixture path (simulateFixture)
+      // can REJECT its promise instead of hanging the caller's await forever.
       this.reportTickCrash(err);
+      // Rethrow in silent mode so telemetry/experiment scripts that drive a
+      // silent engine directly still fail loudly (they don't subscribe to
+      // engine:error).
+      if (this.silent) throw err;
+    } finally {
+      this.ticking = false;
     }
   }
 
@@ -591,6 +661,7 @@ export class MatchCoordinator {
     eventBus.emit('engine:error', {
       message,
       stack,
+      seed: this.state.engine.seed,
       clockMinute: this.state.clock.gameMinute,
       phase: this.state.phase,
       possession: this.state.possession,
@@ -602,6 +673,11 @@ export class MatchCoordinator {
   private async tickBody(): Promise<void> {
     this.tickTimeout = null;
     if (!this.state.engine.isRunning) return;
+    // Backstop: once endMatch has run, phase is the terminal FullTime, which
+    // has no resolvePhase handler. isRunning is normally false by now, but a
+    // stray resume() (Subs close while the producer is parked in endMatch's
+    // buffer drain) can flip it back to true — bail before resolvePhase().
+    if (this.state.phase === MatchPhase.FullTime) return;
 
     // Run-ahead throttle (live mode only): the producer resolves phases far
     // faster than the presenter narrates them, so cap how far it leads. When
@@ -662,7 +738,7 @@ export class MatchCoordinator {
       const verdict = this.cardHandler.evaluateNewPenalty();
       if (verdict === 'tmo') {
         this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-        this.scheduleTick(this.nextTickDelay());
+        if (!this.silent) this.scheduleTick(this.nextTickDelay());
         return;
       }
       // 'team22_card' issued an inline yellow before this point; 'none'
@@ -688,7 +764,7 @@ export class MatchCoordinator {
     // actually get. Silent fixtures keep the existing tickDelay schedule (no
     // presenter to pace against).
     this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-    this.scheduleTick(this.silent ? this.nextTickDelay() : 0);
+    if (!this.silent) this.scheduleTick(0);
   }
 
   // End-of-period handling: clock-in-the-red check, period end
@@ -867,7 +943,7 @@ export class MatchCoordinator {
       }
     }
 
-    this.scheduleTick(this.nextTickDelay());
+    if (!this.silent) this.scheduleTick(this.nextTickDelay());
   }
 
   // TMO review: clock is frozen (advanceMinute returned 0) and play is
@@ -891,7 +967,7 @@ export class MatchCoordinator {
       if (!this.state.engine.isRunning) return;
     }
     this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-    this.scheduleTick(this.nextTickDelay());
+    if (!this.silent) this.scheduleTick(this.nextTickDelay());
   }
 
   // Custom inter-tick delay for the KickAtGoal micro-phase: when the previous

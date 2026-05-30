@@ -42,6 +42,7 @@ export interface AppEvents {
   'engine:error':       {
     message: string;
     stack: string;
+    seed: number;
     clockMinute: number;
     phase: string;
     possession: 'home' | 'away';
@@ -49,10 +50,11 @@ export interface AppEvents {
     lastEvents: string[];
   };
   'ui:speedChange':     { delayMs: number };
+  'ui:matchPaused':     Record<string, never>;
   'ui:tacticsChange':   { teamId: string; tactics: TeamTactics };
-  'ui:openTacticsModal':{ tactics: TeamTactics; teamId: 'home' | 'away' };
+  'ui:openTacticsModal':{ tactics: TeamTactics; teamId: 'home' | 'away'; oppTactics: TeamTactics };
   'ui:tacticsClosed':   Record<string, never>;
-  'ui:openSubsModal':   { team: Team };
+  'ui:openSubsModal':   { team: Team; offFieldPlayerIds: number[] };
   'ui:substitution':    { benchSquadNum: number; fieldSquadNum: number };
   'ui:subsClosed':      Record<string, never>;
   'game:initialized':     { state: GameState };

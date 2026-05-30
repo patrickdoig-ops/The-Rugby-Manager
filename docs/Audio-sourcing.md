@@ -17,7 +17,7 @@ before use.
   beds (crowd ambience + music). Where a cue lists a `variants` count, slice
   multiple takes from one longer recording.
 - **Drop location.** Final files go under `public/audio/...` at the exact path in
-  each manifest asset's `file` field (Vite serves them at `/Rugby-Simulator-/audio/…`).
+  each manifest asset's `file` field (Vite serves them at `/The-Rugby-Manager/audio/…`).
 
 ## Best-value packs
 

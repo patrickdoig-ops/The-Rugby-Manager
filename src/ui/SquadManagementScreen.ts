@@ -29,6 +29,7 @@ import { applyMatchdaySquad, extractMatchdaySquad } from '../game/playerSquad';
 import { selectBestMatchdaySquad } from '../game/autoSelect';
 import { buildTeamFromRoster } from '../game/rosterTeamBuilder';
 import { playerOverall } from '../engine/RatingEngine';
+import { oopSeverity, oopPenaltyPct, SLOT_POSITION } from '../engine/balance';
 import { averageRating } from '../game/seasonLeaderboards';
 import { POSITION_GROUPS_ORDER, POSITION_TO_GROUP, type PositionGroupId } from '../game/positionGroups';
 import { shortName } from '../utils/playerName';
@@ -523,6 +524,15 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     const conditionCell = condition === null
       ? `<div class="sq-con sq-con--unrated" title="No condition data">—</div>`
       : `<div class="sq-con ${conditionClass(condition)}" title="Current condition">${Math.round(condition)}%</div>`;
+    // Out-of-position warning — only on the starting XV (slots 1-15), where
+    // the familiarity penalty (balance/positionFamiliarity.ts) is applied at
+    // kick-off. Bench cover is judged by where the player actually subs in,
+    // not their bench slot, so it's not flagged here.
+    const sev = tier === 'starter' ? oopSeverity(p.position, sn) : null;
+    const sevLabel = { mild: 'minor', moderate: 'notable', severe: 'major' };
+    const oopBadge = sev
+      ? `<span class="sq-oop-badge sq-oop-badge--${sev}" title="Out of position (${sevLabel[sev]}, −${oopPenaltyPct(p.position, sn)}%) — natural ${p.position}, selected at ${SLOT_POSITION[sn]}">OOP</span>`
+      : '';
     const avr = avrFor(p);
     const avrCell = avr === null
       ? `<div class="sq-avr sq-avr--unrated" title="No appearances yet this season">—</div>`
@@ -551,7 +561,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         <div class="sq-jersey sq-jersey--${tier}">${jerseyContent}</div>
         <div class="sq-player-info">
           <span class="sq-player-name sq-player-name--${tier}">${nameInner}${injuryBadge ? ' ' + injuryBadge : ''}</span>
-          <span class="sq-player-pos sq-player-pos--${tier}">${p.position}</span>
+          <span class="sq-player-pos sq-player-pos--${tier}">${p.position}${oopBadge}</span>
         </div>
         <div class="sq-ovr ${ovrClass(ovr)}">${ovr}</div>
         ${conditionCell}

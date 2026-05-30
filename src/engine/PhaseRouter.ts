@@ -85,6 +85,16 @@ export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy
   // the handler can make to MatchState / player stats.
   for (const e of result.events) applyMatchEvent(state, e);
 
+  // A carry that crossed the line transitions to TryScored with the scorer as
+  // its primaryPlayer. Thread that player through state so handleTryScored reads
+  // it next tick rather than re-deriving from the event log — an AI sub can land
+  // between the two ticks and leave an opponent's substitution at the log tail.
+  // Single chokepoint for every carry handler (PhasePlay / FirstPhase /
+  // KickReturn / Maul). See pendingTryScorer in match.ts.
+  if (result.nextPhase === MatchPhase.TryScored && result.primaryPlayer) {
+    applyMatchEvent(state, { type: 'PENDING_TRY_SCORER_SET', scorer: result.primaryPlayer });
+  }
+
   // Phase transition is its own MatchEvent — applyMatchEvent owns state.phase.
   applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: result.nextPhase });
 

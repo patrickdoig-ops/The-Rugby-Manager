@@ -42,6 +42,7 @@ export interface AppEvents {
   'engine:error':       {
     message: string;
     stack: string;
+    seed: number;
     clockMinute: number;
     phase: string;
     possession: 'home' | 'away';

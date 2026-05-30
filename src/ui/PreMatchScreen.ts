@@ -361,6 +361,7 @@ export interface PreMatchPlayoffContext {
 // arrows call this to land back on the right pre-match step without
 // re-running the full data build.
 let renderImpl: ((step: Step) => void) | null = null;
+let teardownSession: (() => void) | null = null;
 export function showPreMatchAtStep(step: Step): void {
   renderImpl?.(step);
 }
@@ -377,6 +378,9 @@ export function initPreMatchScreen(
   onEditSquad?: () => void,
   onPlayerProfile?: (rosterId: number, returnStep: Step) => void,
 ): void {
+  teardownSession?.();
+  teardownSession = null;
+
   const screen = document.getElementById('pre-match')!;
   screen.classList.remove('pm-exit');
 
@@ -511,6 +515,7 @@ export function initPreMatchScreen(
   const unsubTactics = eventBus.on('ui:tacticsChange', ({ teamId, tactics }) => {
     if (teamId === playerSide) chosenTactics = tactics;
   });
+  teardownSession = () => { unsubTactics(); renderImpl = null; };
 
   // ── Step state machine ───────────────────────────────────────────────
   let step: Step = 'mine';
@@ -628,8 +633,8 @@ export function initPreMatchScreen(
     // Back arrow — decrements step, or invokes caller's onBack at step 0.
     screen.querySelector<HTMLButtonElement>('#pm-back')!.addEventListener('click', () => {
       if (step === 'mine') {
-        unsubTactics();
-        renderImpl = null;
+        teardownSession?.();
+        teardownSession = null;
         onBack();
         return;
       }
@@ -643,8 +648,8 @@ export function initPreMatchScreen(
       screen.querySelector<HTMLButtonElement>('#pm-start')!.addEventListener('click', () => {
         screen.classList.add('pm-exit');
         setTimeout(() => {
-          unsubTactics();
-          renderImpl = null;
+          teardownSession?.();
+          teardownSession = null;
           // Lineups are view-only here — pass the original rosters through
           // unchanged. Squad edits land via SquadManagement.
           const configuredHome = playerSide === 'home'

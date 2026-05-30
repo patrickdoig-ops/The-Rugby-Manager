@@ -538,7 +538,16 @@ export class MatchCoordinator {
   start(): void {
     if (this.state.engine.isRunning) return;
     applyMatchEvent(this.state, { type: 'IS_RUNNING_SET', value: true });
+    if (this.silent) { void this.runSilent(); return; }
     this.scheduleTick(0);
+  }
+
+  // Silent-mode driver: loops tickBody() synchronously (all awaits inside
+  // resolve as microtasks, no setTimeout overhead) until isRunning goes false.
+  private async runSilent(): Promise<void> {
+    while (this.state.engine.isRunning) {
+      await this.tickBody();
+    }
   }
 
   pause(): void {
@@ -622,6 +631,7 @@ export class MatchCoordinator {
     eventBus.emit('engine:error', {
       message,
       stack,
+      seed: this.state.engine.seed,
       clockMinute: this.state.clock.gameMinute,
       phase: this.state.phase,
       possession: this.state.possession,
@@ -693,7 +703,7 @@ export class MatchCoordinator {
       const verdict = this.cardHandler.evaluateNewPenalty();
       if (verdict === 'tmo') {
         this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-        this.scheduleTick(this.nextTickDelay());
+        if (!this.silent) this.scheduleTick(this.nextTickDelay());
         return;
       }
       // 'team22_card' issued an inline yellow before this point; 'none'
@@ -719,7 +729,7 @@ export class MatchCoordinator {
     // actually get. Silent fixtures keep the existing tickDelay schedule (no
     // presenter to pace against).
     this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-    this.scheduleTick(this.silent ? this.nextTickDelay() : 0);
+    if (!this.silent) this.scheduleTick(0);
   }
 
   // End-of-period handling: clock-in-the-red check, period end
@@ -898,7 +908,7 @@ export class MatchCoordinator {
       }
     }
 
-    this.scheduleTick(this.nextTickDelay());
+    if (!this.silent) this.scheduleTick(this.nextTickDelay());
   }
 
   // TMO review: clock is frozen (advanceMinute returned 0) and play is
@@ -922,7 +932,7 @@ export class MatchCoordinator {
       if (!this.state.engine.isRunning) return;
     }
     this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-    this.scheduleTick(this.nextTickDelay());
+    if (!this.silent) this.scheduleTick(this.nextTickDelay());
   }
 
   // Custom inter-tick delay for the KickAtGoal micro-phase: when the previous

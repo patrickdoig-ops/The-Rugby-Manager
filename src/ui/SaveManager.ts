@@ -90,13 +90,15 @@ const SLOT_KEY: Record<SlotId, string> = {
   3: 'rugby-manager-save-3',
 };
 const ACTIVE_KEY = 'rugby-manager-active-slot';
-const SAVE_VERSION = 22;
+const SAVE_VERSION = 23;
 // The current version is always accepted (the older entries are the migratable
 // past). Including SAVE_VERSION here is load-bearing — without it a freshly
 // written save is rejected on the very next load.
+// v23: added careerRngOffset to SavedSeason. Absent on older saves → treated
+//      as 0 (generator resets to position 0 on load, same behaviour as before).
 // v22: added offloadsCompleted to PlayerSeasonStats and TeamSeasonStats.
 //      No back-fill needed — zeroSeasonStats / zeroTeamSeasonStats default to 0.
-const ACCEPTED_VERSIONS = new Set([SAVE_VERSION, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+const ACCEPTED_VERSIONS = new Set([SAVE_VERSION, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
 
 export type SavedGame = SavedSeason & { version: number; slotName?: string; savedAt?: number };
 

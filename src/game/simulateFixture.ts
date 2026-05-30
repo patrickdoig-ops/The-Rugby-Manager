@@ -44,7 +44,7 @@ export function simulateFixture(
     });
     let settled = false;
     const offFinished = eventBus.on('engine:finished', ({ state }) => {
-      if (settled) return;
+      if (state.engine.seed !== seed || settled) return;
       settled = true;
       offFinished();
       offError();
@@ -56,8 +56,8 @@ export function simulateFixture(
     // A silent-fixture crash rethrows into a detached setTimeout, so the
     // caller's await could never settle. Reject on engine:error instead, so
     // the season flow surfaces a crash overlay rather than a frozen spinner.
-    const offError = eventBus.on('engine:error', ({ message }) => {
-      if (settled) return;
+    const offError = eventBus.on('engine:error', ({ seed: errSeed, message }) => {
+      if (errSeed !== seed || settled) return;
       settled = true;
       offFinished();
       offError();

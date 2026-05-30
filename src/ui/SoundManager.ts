@@ -191,11 +191,17 @@ export function playBed(id: string): void {
   if (!asset) return;
   const ch = asset.channel;
   if (beds.get(ch)?.id === id || pendingBed.get(ch) === id) return;
+  // Pick a variant take once for the full loop duration. pendingBed and beds
+  // still track the base id so the no-op guard above works correctly on
+  // subsequent calls while this bed is already playing.
+  const take = pickVariant(id, asset.variants ?? 1);
+  const key  = take <= 1 ? id : `${id}:${take}`;
+  const file = variantFile(asset.file, take);
   pendingBed.set(ch, id);
   const c = getCtx();
   if (!c) return;
   void c.resume();
-  void loadBuffer(id).then(buf => {
+  void loadBufferAt(key, file).then(buf => {
     if (pendingBed.get(ch) !== id) return; // superseded by a later playBed/stopBed
     pendingBed.delete(ch);
     if (!buf || !isSfxEnabled()) return;

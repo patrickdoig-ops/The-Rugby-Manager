@@ -382,6 +382,7 @@ const TMO: AudioAsset[] = [
     trigger: { on: 'matchEvent', type: 'TMO_REVIEW_STARTED' },
     description: 'Low suspense drone, loops across the 3-tick review window. Stop on TMO_REVIEW_RESOLVED.',
     elevenLabsPrompt: 'A low suspenseful droning tension bed, deep sustained synth hum with a subtle slow pulse, ominous anticipation, seamless looping, no melody',
+    variants: 2,
   },
   {
     id: 'stinger.tmo.no_card',

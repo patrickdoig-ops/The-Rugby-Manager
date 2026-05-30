@@ -181,6 +181,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Continue chain detours through PlayoffBracketScreen rather than
   // straight back to Hub. Cleared once the chain enters runPlayoffStage.
   let bracketSeededPending = false;
+  // Set after the player records a playoff result; cleared when the training
+  // week shown before the next playoff match begins. Ensures players get a
+  // full training week between each playoff match (SF → Final), matching the
+  // regular-season rhythm.
+  let playoffTrainingPending = false;
 
   // `direction` defaults to 'forward'. Back-paths (Settings → Home,
   // TeamSelector → Home, end-of-game → Home) pass 'back' to get the
@@ -368,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // routes through PlayoffBracketScreen instead of straight to Hub.
     // game:seasonComplete fires once the season final resolves —
     // routes through EndOfSeason → Renewals → Signings → Rollover.
-    eventBus.on('game:bracketSeeded',  () => { bracketSeededPending = true; });
+    eventBus.on('game:bracketSeeded',  () => { bracketSeededPending = true; playoffTrainingPending = false; });
     eventBus.on('game:seasonComplete', () => { seasonCompletePending = true; });
   }
 
@@ -817,10 +822,26 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // 2. Player has a pending playoff match → show bracket then PreMatch.
+    // 2. Player has a pending playoff match → show bracket, then a training
+    //    week (if coming from a playoff result) before PreMatch.
     const playerMatch = gameEngine.getPlayerPlayoffMatch();
     if (playerMatch && playerMatch.homeId && playerMatch.awayId) {
-      showPlayoffBracket(() => onPlayPlayoff(playerMatch), 'Continue');
+      const goToMatch = () => onPlayPlayoff(playerMatch);
+      const onBracketContinue = playoffTrainingPending
+        ? () => {
+            playoffTrainingPending = false;
+            const label = playerMatch.kind === 'final' ? 'Final' : 'Semi-Final';
+            showTrainingPostMatch((results) => {
+              showPostTrainingResults(results, () => {
+                if (gameEngine) saveGame(gameEngine.toSavePayload());
+                goToMatch();
+              });
+              screenRouter.show('training-results');
+            }, label);
+            screenRouter.show('training');
+          }
+        : goToMatch;
+      showPlayoffBracket(onBracketContinue, 'Continue');
       screenRouter.show('playoff-bracket');
       return;
     }
@@ -920,7 +941,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       // Back into the orchestrator. State now reflects the new result;
       // the next iteration picks the right next step (next match, sim
-      // pending stage, or end-of-season chain).
+      // pending stage, or end-of-season chain). Flag a training week
+      // so the player recovers before their next playoff match (if any).
+      playoffTrainingPending = true;
       runPlayoffStage();
     });
     screenRouter.show('match-result');
@@ -1032,26 +1055,29 @@ document.addEventListener('DOMContentLoaded', () => {
         await gameEngine.recordPlayerMatchResult(round, state.score.home, state.score.away, snapshot);
         saveGame(gameEngine.toSavePayload());
       }
-      // Post-match nav chain. Normally:
-      //   RoundResults → LeagueTable → TrainingScreen → Hub.
-      // The TrainingScreen step is skipped when `bracketSeededPending`
-      // is latched (final regular-season fixture just resolved — the
-      // off-season chain handles rollover-time attribute drift, no
-      // training between R18 and the playoffs).
+      // Post-match nav chain: RoundResults → LeagueTable → TrainingScreen →
+      // Hub (regular season) or PlayoffBracket (after the final regular round).
       const onLeagueContinue = (): void => {
-        if (bracketSeededPending) {
-          bracketSeededPending = false;
-          runPlayoffStage();
-        } else {
-          showTrainingPostMatch((results) => {
-            showPostTrainingResults(results, () => {
-              if (gameEngine) saveGame(gameEngine.toSavePayload());
-              goHub();
-            });
-            screenRouter.show('training-results');
-          });
-          screenRouter.show('training');
-        }
+        const isPlayoffEntry = bracketSeededPending;
+        // Determine a playoff-context label for the training screen eyebrow.
+        // Qualifiers see "Semi-Final"; non-qualifiers see "Playoffs".
+        const playoffLabel = isPlayoffEntry && gameEngine
+          ? (() => {
+              const s = gameEngine.getState();
+              const poffs = s.league.playoffs;
+              return poffs?.semifinals.some(
+                m => m.homeId === s.player.teamId || m.awayId === s.player.teamId,
+              ) ? 'Semi-Final' : 'Playoffs';
+            })()
+          : undefined;
+        const afterTraining = isPlayoffEntry
+          ? () => { bracketSeededPending = false; runPlayoffStage(); }
+          : () => { if (gameEngine) saveGame(gameEngine.toSavePayload()); goHub(); };
+        showTrainingPostMatch((results) => {
+          showPostTrainingResults(results, afterTraining);
+          screenRouter.show('training-results');
+        }, playoffLabel);
+        screenRouter.show('training');
       };
       showRoundResults(round, () => {
         showLeagueTablePostMatch(onLeagueContinue);

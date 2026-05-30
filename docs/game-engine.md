@@ -542,11 +542,19 @@ Match → MatchResult → recordPlayerMatchResult + snapshotMatch + saveGame
                        │       → game:trainingApplied → TrainingResults → saveGame → Hub
                        │
                        ├── (last R18 fixture just resolved: game:bracketSeeded latched)
-                       │     → runPlayoffStage() — state-driven orchestrator that:
+                       │     → TrainingScreen [same as regular season; eyebrow shows
+                       │         "Semi-Final" for qualifiers, "Playoffs" for others]
+                       │     → TrainingResults → runPlayoffStage()
+                       │         — state-driven orchestrator that:
                        │       · shows PlayoffBracketScreen on every entry (CTA label adapts)
-                       │       · if player has a pending match → PreMatchScreen (with
-                       │         contextLabel + neutralVenue for the Final) → MatchResult
-                       │         → recordPlayerPlayoffResult → runPlayoffStage()
+                       │       · if player has a pending match and a training week is
+                       │         pending (playoffTrainingPending flag): bracket Continue
+                       │         → TrainingScreen [eyebrow "Semi-Final" or "Final"]
+                       │         → TrainingResults → PreMatchScreen → MatchResult
+                       │         → recordPlayerPlayoffResult → playoffTrainingPending=true
+                       │         → runPlayoffStage()
+                       │       · if player has a pending match and no training pending:
+                       │         bracket Continue → PreMatchScreen directly
                        │       · else simulatePendingPlayoffMatches('sf' | 'final') silently
                        │         → game:playoffsUpdated → runPlayoffStage()
                        │       · once championTeamId is set, falls through to the chain below

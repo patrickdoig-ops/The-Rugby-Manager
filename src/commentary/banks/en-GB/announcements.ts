@@ -141,18 +141,29 @@ const TRY_AFTERMATH_NEUTRAL_LATE: readonly string[] = [
   'Pandemonium in the stands as {side} score with the clock ticking down.',
 ];
 
-// Margin already beyond doubt — muted reaction whoever scored.
+// Margin already beyond doubt — muted reaction. Used when the side that's
+// already well ahead extends the lead, so no "consolation" framing.
 const TRY_AFTERMATH_BLOWOUT: readonly string[] = [
   'A polite ripple of applause — the result is long since beyond doubt.',
   '{side} add another, but the crowd has gone quiet — this one\'s done.',
   'Little reaction around the ground; the contest was settled some time ago.',
+];
+
+// Margin already beyond doubt and the trailing side scored — a genuine
+// consolation. In a blowout a single try can't flip the lead, so isSwing
+// here means the scoring side is still well behind.
+const TRY_AFTERMATH_BLOWOUT_CONSOLATION: readonly string[] = [
   'A consolation as much as anything — the stands are emptying.',
+  '{side} get one back, but it\'s far too little, too late.',
+  'A late score for {side} with the game long gone.',
 ];
 
 function pickTryAftermath(ctx: AnnouncementParams['tryAftermath']): string {
   // No context (shouldn't happen for try_aftermath, but stay safe) → neutral.
   if (!ctx) return pickRandom(TRY_AFTERMATH_NEUTRAL);
-  if (ctx.isBlowout) return pickRandom(TRY_AFTERMATH_BLOWOUT);
+  if (ctx.isBlowout) {
+    return pickRandom(ctx.isSwing ? TRY_AFTERMATH_BLOWOUT_CONSOLATION : TRY_AFTERMATH_BLOWOUT);
+  }
   if (ctx.neutralVenue) {
     return pickRandom(ctx.isLateDrama ? TRY_AFTERMATH_NEUTRAL_LATE : TRY_AFTERMATH_NEUTRAL);
   }

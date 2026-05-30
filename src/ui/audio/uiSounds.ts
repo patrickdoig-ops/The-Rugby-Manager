@@ -2,7 +2,7 @@
 // AudioDirector (match/season cues): this one listens to the document rather
 // than the event bus, since clicks/toggles/slider drags have no engine event.
 //
-// Routing precedence on click:
+// Routing precedence on pointerdown:
 //   1. An explicit `data-sfx="…"` on the nearest ancestor wins (the override
 //      hook — tag commit CTAs with data-sfx="confirm", etc.).
 //   2. Back / cancel controls (.app-back / .app-back-floating) → click.back.
@@ -33,7 +33,11 @@ export function initUiSounds(): void {
   if (inited) return;
   inited = true;
 
-  document.addEventListener('click', (e) => {
+  // pointerdown, not click: on touch devices `click` fires only after
+  // touchend + a tap-disambiguation wait (~300ms+ on iOS WKWebView), so a
+  // click-bound cue lags the finger noticeably. pointerdown fires the instant
+  // contact is made and covers mouse + touch alike.
+  document.addEventListener('pointerdown', (e) => {
     const target = e.target as HTMLElement | null;
     if (!target) return;
 

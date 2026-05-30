@@ -34,27 +34,6 @@ function routeScreen(id: ScreenId): void {
   else stopBed('music');
 }
 
-// Crowd-bed intensity tier for an event's world frame. Inside either 22 or a
-// goal-kick build-up → tension; live open play → engaged; everything else
-// (set pieces, restarts, stoppages) → idle.
-function crowdBedFor(event: GameEvent, keys: Set<string>): string {
-  if (keys.has('kicker_steps_up') ||
-      event.phase === MatchPhase.KickAtGoal ||
-      event.phase === MatchPhase.ConversionKick) {
-    return 'crowd.bed.tension';
-  }
-  if (event.ballX >= 78 || event.ballX <= 22) return 'crowd.bed.tension';
-  switch (event.phase) {
-    case MatchPhase.PhasePlay:
-    case MatchPhase.FirstPhase:
-    case MatchPhase.KickReturn:
-    case MatchPhase.Breakdown:
-      return 'crowd.bed.engaged';
-    default:
-      return 'crowd.bed.idle';
-  }
-}
-
 function routeMatchEvent(event: GameEvent): void {
   // Collect the outcome / announcement keys (the tactic_note step variant
   // carries a `cause`, not a `key`, so it's skipped).
@@ -63,8 +42,11 @@ function routeMatchEvent(event: GameEvent): void {
     if (s.kind === 'phase_outcome' || s.kind === 'announcement') keys.add(s.key);
   }
 
-  // Continuous atmosphere — crossfade the crowd bed toward the current tier.
-  playBed(crowdBedFor(event, keys));
+  // A single continuous crowd bed runs under the whole match — no per-event tier
+  // switching, so the ambience never wobbles or cuts. This is a no-op once the
+  // engaged bed is live; it also restores it after a pause or half-time (both
+  // drop to idle) on the first event of the resumed half.
+  playBed('crowd.bed.engaged');
 
   // ── Phase-anchored cues (whistles + set-piece impacts) ──────────────────
   switch (event.phase) {
@@ -72,8 +54,15 @@ function routeMatchEvent(event: GameEvent): void {
       playId('whistle.kickoff');
       break;
     case MatchPhase.TryScored:
-      playId('whistle.try');
-      playId(keys.has('try_level') || keys.has('try_trail') ? 'crowd.try.huge' : 'crowd.try.routine');
+      // The engine tags TWO consecutive events as TryScored — the carry/maul
+      // that crosses the line (for the commentary highlight) then the try
+      // resolution. Only the resolution carries a try_* lead key, so anchor the
+      // whistle + roar to it; otherwise both would fire twice per try.
+      if (keys.has('try_lead') || keys.has('try_level') ||
+          keys.has('try_trail') || keys.has('try_extend_lead')) {
+        playId('whistle.try');
+        playId(keys.has('try_level') || keys.has('try_trail') ? 'crowd.try.huge' : 'crowd.try.routine');
+      }
       break;
     case MatchPhase.HalfTime:
       playId('whistle.half_time');
@@ -83,10 +72,13 @@ function routeMatchEvent(event: GameEvent): void {
       playId('crowd.fulltime_reaction');
       break;
     case MatchPhase.Scrum:
-      playId('impact.scrum.engage');
+      // A set piece fires TWO events with the same phase: the "set_piece_award"
+      // announcement then the resolution. Skip the announcement so the engage /
+      // throw sound plays once.
+      if (!keys.has('set_piece_award')) playId('impact.scrum.engage');
       break;
     case MatchPhase.Lineout:
-      playId('impact.lineout.throw');
+      if (!keys.has('set_piece_award')) playId('impact.lineout.throw');
       break;
     case MatchPhase.BoxKick:
     case MatchPhase.TacticalKick:
@@ -116,9 +108,12 @@ function routeMatchEvent(event: GameEvent): void {
   if (keys.has('turnover')) playId('crowd.cheer.turnover');
   if (keys.has('maul_won') || keys.has('maul_try')) playId('impact.maul.drive');
 
-  // Goal kicks.
+  // Goal kicks. Conversion made → key 'success'; penalty goal made → key
+  // 'kick_for_goal'; either miss → key 'miss'. A successful penalty goal gets
+  // the referee's whistle (awards the points), distinct from a conversion.
   if (keys.has('kicker_steps_up')) playId('crowd.clap_build');
   if (keys.has('success')) playId('crowd.goal.success');
+  if (keys.has('kick_for_goal')) { playId('whistle.penalty'); playId('crowd.goal.success'); }
   if (keys.has('miss')) playId('crowd.goal.miss');
 
   // Cards & TMO. The review drone is a bed on the stinger channel started when
@@ -144,12 +139,11 @@ export function initAudioDirector(): void {
   onScreenShow(routeScreen);
 
   // Match lifecycle: open the crowd bed at kickoff, close it (and any lingering
-  // TMO drone) at the final whistle. A user pause drops to idle; half-time
-  // (engine:autoPaused) fills the interval with the terrace chant. The next
-  // engine:event on resume crossfades back to the right tier naturally.
-  eventBus.on('engine:initialized', () => playBed('crowd.bed.idle'));
+  // TMO drone) at the final whistle. A user pause and half-time (engine:autoPaused)
+  // both drop to idle; the next engine:event on resume crossfades engaged back in.
+  eventBus.on('engine:initialized', () => playBed('crowd.bed.engaged'));
   eventBus.on('ui:matchPaused',     () => playBed('crowd.bed.idle'));
-  eventBus.on('engine:autoPaused',  () => playBed('crowd.bed.chant'));
+  eventBus.on('engine:autoPaused',  () => playBed('crowd.bed.idle'));
   eventBus.on('engine:finished',    () => { stopBed('crowd-bed'); stopBed('stinger'); });
   eventBus.on('engine:event', ({ event }) => routeMatchEvent(event));
 

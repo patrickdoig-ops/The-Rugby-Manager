@@ -14,19 +14,23 @@ import type { GameEvent } from '../../types/match';
 import { playHaptic } from '../HapticsManager';
 
 function routeMatchEvent(event: GameEvent): void {
-  // Phase-anchored moments take priority — a try / final whistle is the headline.
-  switch (event.phase) {
-    case MatchPhase.TryScored: playHaptic('try'); return;
-    case MatchPhase.FullTime:  playHaptic('whistle_full'); return;
-    case MatchPhase.HalfTime:  playHaptic('whistle_half'); return;
-    default: break;
-  }
-
   // Collect the outcome / announcement keys (tactic_note steps carry a `cause`,
   // not a `key`, so they're skipped) — same pass AudioDirector uses.
   const keys = new Set<string>();
   for (const s of event.narration.steps) {
     if (s.kind === 'phase_outcome' || s.kind === 'announcement') keys.add(s.key);
+  }
+
+  // Phase-anchored moments take priority — a try / final whistle is the headline.
+  // A try fires TWO consecutive TryScored events (carry highlight + resolution);
+  // only the resolution carries a try_* lead key, so gate on it to buzz once.
+  const isTryResolution = keys.has('try_lead') || keys.has('try_level') ||
+                          keys.has('try_trail') || keys.has('try_extend_lead');
+  switch (event.phase) {
+    case MatchPhase.TryScored: if (isTryResolution) playHaptic('try'); return;
+    case MatchPhase.FullTime:  playHaptic('whistle_full'); return;
+    case MatchPhase.HalfTime:  playHaptic('whistle_half'); return;
+    default: break;
   }
 
   // Cards (direct + TMO verdict) outrank the kick/tmo-intervention buzzes.

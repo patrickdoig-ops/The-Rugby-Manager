@@ -23,7 +23,7 @@ import type { Team, TeamTactics } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';
 import type { Player, PlayerStats, Position } from '../types/player';
 import { isForward, zeroMatchStats, zeroSeasonStats } from '../types/player';
-import { pickKicker, pickScrumHalf } from './FieldPosition';
+import { pickKicker, pickScrumHalf, offFieldIds } from './FieldPosition';
 import type { RawPlayer, RawTeamInput } from '../types/teamData';
 import { MatchPhase, type PossessionSide, type KickOffStrategy } from '../types/engine';
 import { eventBus } from '../utils/eventBus';
@@ -484,6 +484,16 @@ export class MatchCoordinator {
 
     const sub = team.bench[benchIdx];
     const off = team.players[fieldIdx];
+
+    // A sin-binned (or sent-off) player is temporarily off the field but still
+    // occupies their slot in team.players — they must NOT be replaceable, or the
+    // manager could quietly swap in a fresh player and erase the numerical
+    // disadvantage the card is meant to impose. The forced-sub flow for an
+    // expired red_20 goes through runForcedSubstitution, not here, so this guard
+    // is safe. Injured players ARE replaceable, but they leave via
+    // runForcedSubstitution too, so by the time a normal sub runs they're no
+    // longer in offFieldIds.
+    if (offFieldIds(this.state, side).has(off.id)) return;
 
     applyMatchEvent(this.state, {
       type: 'SUBSTITUTION_APPLIED',

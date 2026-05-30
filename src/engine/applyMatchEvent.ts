@@ -27,6 +27,21 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
 
     // ── Scoring ──────────────────────────────────────────────────────────
     case 'TRY_SCORED': {
+      // Tripwire: the scorer must belong to the side being credited. event.side
+      // (= possession at the carry) drives the 5 points and the home/away crowd
+      // narration; event.scorer is the carrier threaded via PENDING_TRY_SCORER_SET.
+      // If the two disagree the try lands on the wrong player's sheet while the
+      // points go to the right team — surface it here, not on the scoreboard.
+      // Membership is checked against the full matchday squad (XV + bench +
+      // subbed-off) since a substitute keeps their bench squadNumber.
+      const credited = event.side === 'home' ? state.homeTeam : state.awayTeam;
+      if (!credited.players.includes(event.scorer)
+          && !credited.bench.includes(event.scorer)
+          && !credited.substitutedOff.includes(event.scorer)) {
+        throw new Error(
+          `Invariant violated [TRY_SCORED.scorer]: scorer squad#${event.scorer.squadNumber} not on ${event.side} matchday squad`,
+        );
+      }
       event.scorer.matchStats.tries++;
       state.score[event.side] += SCORE_VALUES.try;
       state.stats.tries[event.side]++;
@@ -386,6 +401,10 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
 
     case 'KICK_RETURN_CARRIER_SET':
       state.kickReturnCarrier = event.player;
+      return;
+
+    case 'PENDING_TRY_SCORER_SET':
+      state.pendingTryScorer = event.scorer;
       return;
 
     // ── Possession & phase ──────────────────────────────────────────────

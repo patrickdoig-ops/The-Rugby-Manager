@@ -660,6 +660,7 @@ const SEASON_STINGERS: AudioAsset[] = [
     trigger: { on: 'matchEvent', type: 'PLAYER_INJURED_IN_MATCH' },
     description: 'Brief concern stinger as a player goes down injured. Low, not alarming.',
     elevenLabsPrompt: 'A brief tense concern sting, a low subtle uneasy tone with a soft minor swell, worried but not alarming, short',
+    variants: 4,
   },
 ];
 

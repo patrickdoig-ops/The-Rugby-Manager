@@ -81,37 +81,60 @@ function channelGain(ch: AudioChannel): GainNode | null {
   return g;
 }
 
-function loadBuffer(id: string): Promise<AudioBuffer | null> {
-  const cached = buffers.get(id);
+// Fetch and decode a file, keyed independently of the manifest id so variant
+// takes (boot-punt-2.mp3, tackle-soft-3.mp3 …) get their own cache slots.
+function loadBufferAt(key: string, file: string): Promise<AudioBuffer | null> {
+  const cached = buffers.get(key);
   if (cached !== undefined) return Promise.resolve(cached);
-  const inflight = loading.get(id);
+  const inflight = loading.get(key);
   if (inflight) return inflight;
-
-  const asset = byId.get(id);
   const c = getCtx();
-  if (!asset || !c) {
-    buffers.set(id, null);
-    return Promise.resolve(null);
-  }
+  if (!c) { buffers.set(key, null); return Promise.resolve(null); }
   const p = (async (): Promise<AudioBuffer | null> => {
     try {
-      const res = await fetch(asset.file);
+      const res = await fetch(file);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const arr = await res.arrayBuffer();
       const buf = await c.decodeAudioData(arr);
-      buffers.set(id, buf);
+      buffers.set(key, buf);
       return buf;
     } catch {
       // Missing or undecodable — cache the miss and stay silent. This is the
       // expected path until the asset files are added under public/audio/.
-      buffers.set(id, null);
+      buffers.set(key, null);
       return null;
     } finally {
-      loading.delete(id);
+      loading.delete(key);
     }
   })();
-  loading.set(id, p);
+  loading.set(key, p);
   return p;
+}
+
+function loadBuffer(id: string): Promise<AudioBuffer | null> {
+  const asset = byId.get(id);
+  if (!asset) { buffers.set(id, null); return Promise.resolve(null); }
+  return loadBufferAt(id, asset.file);
+}
+
+// ── Variant selection ────────────────────────────────────────────────────────
+// Tracks the last take played per asset so the same take is never repeated
+// back-to-back. Uses plain Math.random() — this is UI-only code, not the
+// engine, so it is intentionally outside the seeded rng streams.
+const lastTake = new Map<string, number>();
+
+function pickVariant(id: string, count: number): number {
+  if (count <= 1) return 1;
+  const last = lastTake.get(id) ?? 0;
+  let take: number;
+  do { take = Math.floor(Math.random() * count) + 1; } while (take === last);
+  lastTake.set(id, take);
+  return take;
+}
+
+// Take 1 → base file (e.g. boot-punt.mp3); take N → boot-punt-N.mp3.
+function variantFile(baseFile: string, take: number): string {
+  return take <= 1 ? baseFile : baseFile.replace(/\.mp3$/, `-${take}.mp3`);
 }
 
 function fadeOutBed(ch: AudioChannel): void {
@@ -141,7 +164,10 @@ export function playId(id: string): void {
   const c = getCtx();
   if (!c) return;
   void c.resume();
-  void loadBuffer(id).then(buf => {
+  const take = pickVariant(id, asset.variants ?? 1);
+  const key  = take <= 1 ? id : `${id}:${take}`;
+  const file = variantFile(asset.file, take);
+  void loadBufferAt(key, file).then(buf => {
     if (!isSfxEnabled()) return;
     const g = channelGain(asset.channel);
     if (!g) return;

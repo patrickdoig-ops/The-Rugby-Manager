@@ -178,7 +178,7 @@ const CROWD_BED: AudioAsset[] = [
     trigger: { on: 'state', description: 'Attack inside opposition 22, goal-line defence, kick at goal run-up, or clock-in-red.' },
     description: 'Seamless loop. Rising anticipatory swell — building "ooooh" energy. Cross-faded in for high-pressure passages.',
     elevenLabsPrompt: 'A large stadium crowd rising in nervous anticipation, a sustained building collective "ooooh", expectant tension swelling and holding, seamless looping ambience',
-    variants: 4,
+    variants: 3,
   },
 ];
 

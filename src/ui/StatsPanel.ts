@@ -39,6 +39,8 @@ interface StatRowSpec {
 
 function buildStatRows(d: DisplaySnapshot): StatRowSpec[] {
   const { stats, aggregates } = d;
+  const hCarries = aggregates.carries.home;
+  const aCarries = aggregates.carries.away;
   const hRunM = aggregates.runMetres.home;
   const aRunM = aggregates.runMetres.away;
   const hKickM = aggregates.kickMetres.home;
@@ -54,7 +56,8 @@ function buildStatRows(d: DisplaySnapshot): StatRowSpec[] {
     { id: 'tries',            label: 'Tries',          homeVal: String(stats.tries.home),    awayVal: String(stats.tries.away),    homeNum: stats.tries.home,    awayNum: stats.tries.away },
     { id: 'entries22',        label: '22 entries',     homeVal: String(stats.entries22.home.count), awayVal: String(stats.entries22.away.count), homeNum: stats.entries22.home.count, awayNum: stats.entries22.away.count },
     { id: 'pointsPerEntry',   label: 'Points / entry', homeVal: pointsPerEntry(stats.entries22.home), awayVal: pointsPerEntry(stats.entries22.away), homeNum: stats.entries22.home.pointsScored, awayNum: stats.entries22.away.pointsScored },
-    { id: 'runMetres',        label: 'Run metres',     homeVal: String(hRunM),  awayVal: String(aRunM),  homeNum: hRunM,  awayNum: aRunM },
+    { id: 'carries',          label: 'Carries',        homeVal: String(hCarries), awayVal: String(aCarries), homeNum: hCarries, awayNum: aCarries },
+    { id: 'runMetres',        label: 'Carry metres',   homeVal: String(hRunM),  awayVal: String(aRunM),  homeNum: hRunM,  awayNum: aRunM },
     { id: 'offloads',         label: 'Offloads',       homeVal: String(aggregates.offloads.home), awayVal: String(aggregates.offloads.away), homeNum: aggregates.offloads.home, awayNum: aggregates.offloads.away },
     { id: 'kickMetres',       label: 'Kick metres',    homeVal: String(hKickM), awayVal: String(aKickM), homeNum: hKickM, awayNum: aKickM },
     { id: 'errors',           label: 'Errors',         homeVal: String(stats.handlingErrors.home), awayVal: String(stats.handlingErrors.away), homeNum: stats.handlingErrors.home, awayNum: stats.handlingErrors.away, invert: true },

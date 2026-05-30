@@ -955,6 +955,74 @@ html, body {
   cursor: pointer;
 }
 
+/* ─── In-match settings overlay ─── */
+.match-settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 50;
+  padding-bottom: var(--safe-bottom);
+}
+
+.match-settings-overlay.hidden { display: none; }
+
+.msp-sheet {
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 -8px 48px rgba(0,0,0,0.65);
+  animation: sheetUp 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.msp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--rm-hairline);
+  position: sticky;
+  top: 0;
+  background: var(--rm-surface-2);
+  z-index: 1;
+}
+
+.msp-title {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-22);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--rm-chalk);
+  margin: 0;
+}
+
+.msp-close {
+  background: transparent;
+  border: none;
+  color: var(--rm-text-muted);
+  font-size: var(--rm-fs-24);
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .msp-close:hover { color: var(--rm-text); }
+}
+
+.msp-body {
+  padding: 0 20px 20px;
+}
+
 /* ─── Modal ─── */
 #modal-overlay {
   position: fixed;

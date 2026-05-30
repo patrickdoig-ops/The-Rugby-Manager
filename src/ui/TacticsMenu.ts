@@ -49,10 +49,6 @@ const OFFLOAD_STRATEGY_OPTIONS: OptionDef<OffloadStrategy>[] = [
   { value: 'offload_freely', label: 'Offload Freely', desc: 'Keep the ball alive in contact. More metres and broken-field chances, more knock-ons.' },
 ];
 
-// Per-dimension metadata keyed by TeamTactics field — title shown in the
-// inline category header and inside the info modal, plus the option set.
-// Order in each section follows the original screen layout so muscle
-// memory is preserved.
 interface CategoryMeta {
   title: string;
   options: OptionDef<string>[];
@@ -69,10 +65,6 @@ const META: Record<keyof TeamTactics, CategoryMeta> = {
 
 const INFO_ICON_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="11" x2="12" y2="16"></line><circle cx="12" cy="7.75" r="0.6" fill="currentColor" stroke="none"></circle></svg>`;
 
-// Categories visually grouped into two sections (Attacking / Defensive).
-// The category list within each section is rendered in the same order as
-// META so the per-screen scan reads top-to-bottom: game plan → style →
-// breakdown → offload, then defensive breakdown → backfield → line.
 const ATTACK_KEYS:  (keyof TeamTactics)[] = ['attackingGamePlan', 'attackingStyle', 'attackingBreakdown', 'offloadStrategy'];
 const DEFENCE_KEYS: (keyof TeamTactics)[] = ['defendingBreakdown', 'backfieldDefence', 'defensiveLine'];
 
@@ -82,12 +74,15 @@ export function renderTacticsMenu(
   teamId: 'home' | 'away' = 'home',
   isModal = false,
   onResume?: () => void,
+  oppTactics?: TeamTactics,
 ): void {
   let currentTactics: TeamTactics = { ...initialTactics };
+  const showToggle = isModal && oppTactics != null;
+  let activeTab: 'mine' | 'opp' = 'mine';
 
-  function renderCategory(key: keyof TeamTactics): string {
+  function renderCategory(key: keyof TeamTactics, tactics: TeamTactics, readOnly: boolean): string {
     const meta = META[key];
-    const selected = currentTactics[key] as string;
+    const selected = tactics[key] as string;
     return `
       <div class="tactics-category" data-cat="${key}">
         <div class="tactics-cat-header">
@@ -96,7 +91,7 @@ export function renderTacticsMenu(
         </div>
         <div class="tactics-options-grid">
           ${meta.options.map(opt => `
-            <button class="tactics-opt-btn ${selected === opt.value ? 'active' : ''}" data-cat="${key}" data-val="${opt.value}" type="button">
+            <button class="tactics-opt-btn ${selected === opt.value ? 'active' : ''} ${readOnly ? 'readonly' : ''}" data-cat="${key}" data-val="${opt.value}" type="button">
               <span class="tactics-opt-label">${opt.label}</span>
             </button>
           `).join('')}
@@ -105,21 +100,31 @@ export function renderTacticsMenu(
     `;
   }
 
-  function renderSection(title: string, keys: (keyof TeamTactics)[]): string {
+  function renderSection(title: string, keys: (keyof TeamTactics)[], tactics: TeamTactics, readOnly: boolean): string {
     return `
       <div class="tactics-section">
         <h2 class="tactics-section-title">${title}</h2>
-        ${keys.map(renderCategory).join('')}
+        ${keys.map(k => renderCategory(k, tactics, readOnly)).join('')}
       </div>
     `;
+  }
+
+  function categoriesHTML(tactics: TeamTactics, readOnly: boolean): string {
+    return renderSection('Attacking', ATTACK_KEYS, tactics, readOnly)
+      + renderSection('Defensive', DEFENCE_KEYS, tactics, readOnly);
   }
 
   container.innerHTML = `
     <div class="tactics-menu-wrapper ${isModal ? 'modal-view' : ''}">
       ${isModal ? `<h2 class="tactics-main-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18" style="vertical-align:-3px;margin-right:8px"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/></svg>Tactical Adjustments</h2>` : ''}
+      ${showToggle ? `
+        <div class="tactics-team-toggle">
+          <button class="tactics-team-toggle__btn tactics-team-toggle__btn--active" data-tab="mine" type="button">My Team</button>
+          <button class="tactics-team-toggle__btn" data-tab="opp" type="button">Opposition</button>
+        </div>
+      ` : ''}
       <div class="tactics-categories-container">
-        ${renderSection('Attacking', ATTACK_KEYS)}
-        ${renderSection('Defensive', DEFENCE_KEYS)}
+        ${categoriesHTML(currentTactics, false)}
       </div>
       ${isModal ? `
         <div class="tactics-modal-footer">
@@ -129,8 +134,6 @@ export function renderTacticsMenu(
     </div>
   `;
 
-  // Apply a selection — same code path whether the user tapped an inline
-  // pill or chose an option from inside the info modal.
   function applySelection(cat: keyof TeamTactics, val: string): void {
     currentTactics = { ...currentTactics, [cat]: val } as TeamTactics;
     eventBus.emit('ui:tacticsChange', { teamId, tactics: currentTactics });
@@ -138,29 +141,57 @@ export function renderTacticsMenu(
     siblings.forEach(sib => sib.classList.toggle('active', sib.dataset.val === val));
   }
 
-  container.querySelectorAll<HTMLButtonElement>('.tactics-opt-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const cat = btn.dataset.cat as keyof TeamTactics;
-      const val = btn.dataset.val as string;
-      applySelection(cat, val);
+  function bindInteraction(): void {
+    container.querySelectorAll<HTMLButtonElement>('.tactics-opt-btn:not(.readonly)').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cat = btn.dataset.cat as keyof TeamTactics;
+        const val = btn.dataset.val as string;
+        applySelection(cat, val);
+      });
     });
-  });
 
-  container.querySelectorAll<HTMLButtonElement>('.tactics-info-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const cat = btn.dataset.info as keyof TeamTactics;
-      openInfoModal(container, cat, currentTactics[cat] as string, val => applySelection(cat, val));
+    container.querySelectorAll<HTMLButtonElement>('.tactics-info-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cat = btn.dataset.info as keyof TeamTactics;
+        const readOnly = activeTab === 'opp';
+        const tactics = readOnly ? oppTactics! : currentTactics;
+        openInfoModal(container, cat, tactics[cat] as string, readOnly ? undefined : v => applySelection(cat, v), readOnly);
+      });
     });
-  });
+  }
+
+  function rebuildCategories(): void {
+    const readOnly = activeTab === 'opp';
+    const tactics = readOnly ? oppTactics! : currentTactics;
+    const el = container.querySelector<HTMLElement>('.tactics-categories-container');
+    if (!el) return;
+    el.innerHTML = categoriesHTML(tactics, readOnly);
+    bindInteraction();
+  }
+
+  function switchTab(tab: 'mine' | 'opp'): void {
+    activeTab = tab;
+    rebuildCategories();
+    container.querySelectorAll<HTMLButtonElement>('.tactics-team-toggle__btn').forEach(btn => {
+      btn.classList.toggle('tactics-team-toggle__btn--active', btn.dataset.tab === tab);
+    });
+  }
+
+  bindInteraction();
+
+  if (showToggle) {
+    container.querySelectorAll<HTMLButtonElement>('.tactics-team-toggle__btn').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab as 'mine' | 'opp'));
+    });
+  }
 
   if (isModal && onResume) {
     let committing = false;
     container.querySelector('#btn-resume-match')?.addEventListener('click', async () => {
       if (committing) return;
       committing = true;
-      // Spatial confirmation: flash the .tactics-category rows whose
-      // selection differs from the value the modal opened with, so the
-      // user sees "your Defensive Line changed" before the modal closes.
+      // Snap back to My Team so the change-flash targets the correct rows.
+      if (activeTab === 'opp') switchTab('mine');
       const changedKeys = (Object.keys(currentTactics) as (keyof TeamTactics)[])
         .filter(k => currentTactics[k] !== initialTactics[k]);
       changedKeys.forEach(k => {
@@ -169,23 +200,18 @@ export function renderTacticsMenu(
       });
       const activeBtns = container.querySelectorAll<HTMLButtonElement>('.tactics-opt-btn.active');
       activeBtns.forEach(b => b.classList.add('committing'));
-      // Wait long enough for the row flash to land when there were changes;
-      // otherwise the original 240ms covers the button pulse alone.
       await new Promise(r => setTimeout(r, changedKeys.length > 0 ? 500 : 240));
       onResume();
     });
   }
 }
 
-// Per-category info modal. Lists all 3 options for the dimension with
-// their descriptions and lets the user select from there. Appended into
-// the TacticsMenu's container so it stacks above the in-match modal via
-// its own z-index without escaping the menu's scoping.
 function openInfoModal(
   container: HTMLElement,
   cat: keyof TeamTactics,
   currentValue: string,
-  onSelect: (val: string) => void,
+  onSelect: ((val: string) => void) | undefined,
+  readOnly = false,
 ): void {
   const meta = META[cat];
   if (!meta) return;
@@ -203,8 +229,8 @@ function openInfoModal(
         ${meta.options.map(opt => {
           const isActive = opt.value === currentValue;
           return `
-            <button class="tactics-info-opt ${isActive ? 'active' : ''}" data-val="${opt.value}" type="button">
-              <span class="tactics-info-opt-label">${opt.label}${isActive ? '<span class="tactics-info-opt-tick" aria-hidden="true">✓</span>' : ''}</span>
+            <button class="tactics-info-opt ${isActive ? 'active' : ''} ${readOnly ? 'readonly' : ''}" data-val="${opt.value}" type="button">
+              <span class="tactics-info-opt-label">${opt.label}${isActive ? `<span class="tactics-info-opt-tick" aria-hidden="true">✓</span>` : ''}</span>
               <span class="tactics-info-opt-desc">${opt.desc}</span>
             </button>
           `;
@@ -222,11 +248,14 @@ function openInfoModal(
   modal.querySelector('.tactics-info-backdrop')?.addEventListener('click', close);
   modal.querySelector('.tactics-info-close')?.addEventListener('click', close);
   modal.querySelector('.tactics-info-done')?.addEventListener('click', close);
-  modal.querySelectorAll<HTMLButtonElement>('.tactics-info-opt').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const val = btn.dataset.val;
-      if (val !== undefined) onSelect(val);
-      close();
+
+  if (!readOnly) {
+    modal.querySelectorAll<HTMLButtonElement>('.tactics-info-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = btn.dataset.val;
+        if (val !== undefined && onSelect) onSelect(val);
+        close();
+      });
     });
-  });
+  }
 }

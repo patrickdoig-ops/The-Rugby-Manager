@@ -129,6 +129,7 @@ export interface DisplaySnapshot {
   // three player-derived totals the summary rows need are pre-aggregated.
   stats: MatchStats;
   aggregates: {
+    carries:           { home: number; away: number };
     runMetres:         { home: number; away: number };
     kickMetres:        { home: number; away: number };
     penaltiesConceded: { home: number; away: number };
@@ -191,6 +192,12 @@ export interface MatchState {
   // the kick resolves.
   pendingKick?: PendingKick;
   kickReturnCarrier?: Player;
+  // try-scorer handle: the carrier who crossed the line, set by PhaseRouter when
+  // a carry transitions to TryScored and read by handleTryScored the next tick.
+  // Threaded through state (not re-derived from the event log) because an AI
+  // substitution can land between the two ticks and push the opponent's sub onto
+  // the tail of state.events.
+  pendingTryScorer?: Player;
   // Set by the PENALTY_AWARDED reducer; read by PenaltyHandler to enrich the
   // PenaltyContext that crosses the bus boundary to the modal. Overwritten on
   // every new penalty award; never cleared.

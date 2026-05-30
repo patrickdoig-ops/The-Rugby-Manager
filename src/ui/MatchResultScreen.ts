@@ -227,6 +227,8 @@ function renderStatsCard(state: MatchState): string {
 
   const homeMetres = teamMetres(homeTeam);
   const awayMetres = teamMetres(awayTeam);
+  const hCarries = teamStat(homeTeam, 'carries');
+  const aCarries = teamStat(awayTeam, 'carries');
   const hRunM  = teamStat(homeTeam, 'metresCarried');
   const aRunM  = teamStat(awayTeam, 'metresCarried');
   const hKickM = teamStat(homeTeam, 'kickMetres');
@@ -254,7 +256,8 @@ function renderStatsCard(state: MatchState): string {
     // ↓ shown only when the "Show all stats" toggle is expanded.
     { label: '22 entries',     homeVal: String(stats.entries22.home.count),  awayVal: String(stats.entries22.away.count),  homeNum: stats.entries22.home.count, awayNum: stats.entries22.away.count, extended: true },
     { label: 'Points / entry', homeVal: pointsPerEntry(stats.entries22.home), awayVal: pointsPerEntry(stats.entries22.away), homeNum: stats.entries22.home.pointsScored, awayNum: stats.entries22.away.pointsScored, extended: true },
-    { label: 'Run metres',     homeVal: `${hRunM}m`,                          awayVal: `${aRunM}m`,                          homeNum: hRunM,                       awayNum: aRunM,                       extended: true },
+    { label: 'Carries',        homeVal: String(hCarries),                     awayVal: String(aCarries),                     homeNum: hCarries,                    awayNum: aCarries,                    extended: true },
+    { label: 'Carry metres',   homeVal: `${hRunM}m`,                          awayVal: `${aRunM}m`,                          homeNum: hRunM,                       awayNum: aRunM,                       extended: true },
     { label: 'Kick metres',    homeVal: `${hKickM}m`,                         awayVal: `${aKickM}m`,                         homeNum: hKickM,                      awayNum: aKickM,                      extended: true },
     { label: 'Errors',         homeVal: String(stats.handlingErrors.home),    awayVal: String(stats.handlingErrors.away),    homeNum: stats.handlingErrors.home,   awayNum: stats.handlingErrors.away,   invert: true, extended: true },
     { label: 'Tackles made',   homeVal: String(stats.tackles.home.made),      awayVal: String(stats.tackles.away.made),      homeNum: stats.tackles.home.made,     awayNum: stats.tackles.away.made,     extended: true },
@@ -307,7 +310,7 @@ function renderStatsCard(state: MatchState): string {
   `;
 }
 
-function teamStat(team: Team, key: 'metresCarried' | 'kickMetres' | 'penaltiesConceded'): number {
+function teamStat(team: Team, key: 'carries' | 'metresCarried' | 'kickMetres' | 'penaltiesConceded'): number {
   let sum = 0;
   for (const p of team.players) sum += p.matchStats[key];
   for (const p of team.substitutedOff) sum += p.matchStats[key];

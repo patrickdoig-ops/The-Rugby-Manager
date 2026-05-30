@@ -17,11 +17,15 @@ function tryLeadKey(scoringScore: number, oppScore: number): PhaseOutcomeKey {
 }
 
 export function handleTryScored({ state, attackTeam, randomPlayer }: PhaseContext): PhaseResult {
-  const lastEvent = state.events[state.events.length - 1];
-  const scorer = lastEvent?.primaryPlayer ?? randomPlayer(attackTeam);
+  // The carrier who crossed the line is threaded through state by PhaseRouter
+  // (see pendingTryScorer in match.ts). Reading it back off the event log is
+  // unsafe: an AI sub can land between that tick and this one, leaving an
+  // opponent's substitution at the tail of the log.
+  const scorer = state.pendingTryScorer ?? randomPlayer(attackTeam);
 
   const events: MatchEvent[] = [
     { type: 'TRY_SCORED', scorer, side: state.possession },
+    { type: 'PENDING_TRY_SCORER_SET', scorer: undefined },
   ];
 
   const oppSide = state.possession === 'home' ? 'away' : 'home';

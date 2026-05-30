@@ -86,13 +86,7 @@ function routeMatchEvent(event: GameEvent): void {
   }
 
   // Continuous atmosphere — crossfade the crowd bed toward the current tier.
-  // This runs even when paused so the stadium stays alive.
   playBed(crowdBedFor(event, keys));
-
-  // One-shot cues (whistles, impacts, crowd reactions) are suppressed while
-  // paused. The presenter drains buffered beats after a pause, so without this
-  // guard those cues would fire even though the engine has stopped ticking.
-  if (!matchRunning) return;
 
   // ── Phase-anchored cues (whistles + set-piece impacts) ──────────────────
   switch (event.phase) {
@@ -160,12 +154,6 @@ function routeMatchEvent(event: GameEvent): void {
   if (keys.has('injury_off')) playId('stinger.injury');
 }
 
-// True only while the engine is actively ticking. Buffered beats can still
-// arrive on engine:event after the user pauses (the presenter drains ahead of
-// the producer), so one-shot cues are gated behind this flag. The crowd bed
-// is exempt — the atmosphere stays live while paused.
-let matchRunning = false;
-
 let inited = false;
 export function initAudioDirector(): void {
   if (inited) return;
@@ -175,11 +163,8 @@ export function initAudioDirector(): void {
 
   // Match lifecycle: open the crowd bed at kickoff, close it (and any lingering
   // TMO drone) at the final whistle.
-  eventBus.on('engine:initialized', () => { matchRunning = false; playBed('crowd.bed.idle'); });
-  eventBus.on('engine:resumed',     () => { matchRunning = true; });
-  eventBus.on('engine:paused',      () => { matchRunning = false; });
-  eventBus.on('engine:autoPaused',  () => { matchRunning = false; });
-  eventBus.on('engine:finished',    () => { matchRunning = false; stopBed('crowd-bed'); stopBed('stinger'); });
+  eventBus.on('engine:initialized', () => playBed('crowd.bed.idle'));
+  eventBus.on('engine:finished',    () => { stopBed('crowd-bed'); stopBed('stinger'); });
   eventBus.on('engine:event', ({ event }) => routeMatchEvent(event));
 
   // Season beats.

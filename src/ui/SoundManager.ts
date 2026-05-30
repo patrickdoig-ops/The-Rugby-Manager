@@ -23,7 +23,7 @@ const BED_FADE_S = 0.8; // cross-fade duration for looping beds
 // Per-channel base level relative to master — keeps continuous beds sitting
 // under the one-shot reactions/whistles that punch through them.
 const CHANNEL_MIX: Record<AudioChannel, number> = {
-  'whistle':        1.0,
+  'whistle':        0.75,
   'crowd-bed':      0.5,
   'crowd-reaction': 0.9,
   'impact':         0.8,

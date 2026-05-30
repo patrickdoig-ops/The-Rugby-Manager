@@ -115,6 +115,7 @@ const WHISTLE: AudioAsset[] = [
     trigger: { on: 'matchEvent', type: 'PENALTY_AWARDED' },
     description: 'Firm single blast, slightly longer/harder than a stoppage pip — the "that\'s a penalty" tone.',
     elevenLabsPrompt: 'A single firm, authoritative blast of a referee whistle, slightly drawn out and decisive, outdoor stadium, clean and dry',
+    variants: 2,
   },
   {
     id: 'whistle.try',
@@ -125,6 +126,17 @@ const WHISTLE: AudioAsset[] = [
     trigger: { on: 'matchEvent', type: 'TRY_SCORED' },
     description: 'Long single blast + arm-aloft signal feel. Plays under/just before the try roar.',
     elevenLabsPrompt: 'One long, emphatic blast of a referee whistle signalling a score, confident and sustained, outdoor rugby stadium',
+    variants: 2,
+  },
+  {
+    id: 'whistle.kickoff',
+    file: `${AUDIO_DIR}/whistle/kickoff.mp3`,
+    channel: 'whistle',
+    loop: false,
+    priority: 1,
+    trigger: { on: 'phase', phase: MatchPhase.KickOff },
+    description: 'Single short peep to start play — match start, second-half restart, and post-score restarts.',
+    elevenLabsPrompt: 'A single clear peep of a referee whistle to start play, brief and clean, outdoor pitch, no crowd',
   },
   {
     id: 'whistle.half_time',
@@ -179,6 +191,16 @@ const CROWD_BED: AudioAsset[] = [
     description: 'Seamless loop. Rising anticipatory swell — building "ooooh" energy. Cross-faded in for high-pressure passages.',
     elevenLabsPrompt: 'A large stadium crowd rising in nervous anticipation, a sustained building collective "ooooh", expectant tension swelling and holding, seamless looping ambience',
     variants: 3,
+  },
+  {
+    id: 'crowd.bed.chant',
+    file: `${AUDIO_DIR}/crowd/bed-chant.mp3`,
+    channel: 'crowd-bed',
+    loop: true,
+    priority: 2,
+    trigger: { on: 'state', description: 'Half-time interval — the crowd fills the break with a terrace chant.' },
+    description: 'Seamless loop. A rhythmic terrace chant with claps. Cross-faded in over the half-time pause, replaced by the tier bed on resume.',
+    elevenLabsPrompt: 'A rugby crowd singing a wordless rhythmic terrace chant, a low loopable "oh-oh-oh" stadium song with claps, thousands of voices in unison, seamless looping ambience, no music',
   },
 ];
 
@@ -284,6 +306,16 @@ const CROWD_REACTION: AudioAsset[] = [
     description: 'Gasp turning to boos/jeers as the card comes out. Use a heavier mix for red_20 than yellow.',
     elevenLabsPrompt: 'A crowd reacting with a sharp collective gasp that turns into scattered boos and jeers as a referee shows a card, outdoor stadium',
     variants: 3,
+  },
+  {
+    id: 'crowd.fulltime_reaction',
+    file: `${AUDIO_DIR}/crowd/fulltime-reaction.mp3`,
+    channel: 'crowd-reaction',
+    loop: false,
+    priority: 1,
+    trigger: { on: 'phase', phase: MatchPhase.FullTime },
+    description: 'Sustained applause/cheer swell at the final whistle, layered over whistle.full_time.',
+    elevenLabsPrompt: 'A stadium crowd breaking into sustained applause and cheering at the final whistle, warm appreciative roar settling into clapping, no music',
   },
 ];
 

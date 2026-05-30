@@ -68,6 +68,9 @@ function routeMatchEvent(event: GameEvent): void {
 
   // ── Phase-anchored cues (whistles + set-piece impacts) ──────────────────
   switch (event.phase) {
+    case MatchPhase.KickOff:
+      playId('whistle.kickoff');
+      break;
     case MatchPhase.TryScored:
       playId('whistle.try');
       playId(keys.has('try_level') || keys.has('try_trail') ? 'crowd.try.huge' : 'crowd.try.routine');
@@ -77,6 +80,7 @@ function routeMatchEvent(event: GameEvent): void {
       break;
     case MatchPhase.FullTime:
       playId('whistle.full_time');
+      playId('crowd.fulltime_reaction');
       break;
     case MatchPhase.Scrum:
       playId('impact.scrum.engage');
@@ -140,11 +144,12 @@ export function initAudioDirector(): void {
   onScreenShow(routeScreen);
 
   // Match lifecycle: open the crowd bed at kickoff, close it (and any lingering
-  // TMO drone) at the final whistle. Drop to idle on any pause — the next
-  // engine:event on resume will crossfade back to the right tier naturally.
+  // TMO drone) at the final whistle. A user pause drops to idle; half-time
+  // (engine:autoPaused) fills the interval with the terrace chant. The next
+  // engine:event on resume crossfades back to the right tier naturally.
   eventBus.on('engine:initialized', () => playBed('crowd.bed.idle'));
   eventBus.on('ui:matchPaused',     () => playBed('crowd.bed.idle'));
-  eventBus.on('engine:autoPaused',  () => playBed('crowd.bed.idle'));
+  eventBus.on('engine:autoPaused',  () => playBed('crowd.bed.chant'));
   eventBus.on('engine:finished',    () => { stopBed('crowd-bed'); stopBed('stinger'); });
   eventBus.on('engine:event', ({ event }) => routeMatchEvent(event));
 

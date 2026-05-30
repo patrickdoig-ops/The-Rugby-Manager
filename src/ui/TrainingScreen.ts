@@ -31,7 +31,7 @@ import { injectTeamColors } from './teamColors';
 const SHORT_WEEK_DAYS = 6; // turnaround at or below this nudges toward Light
 
 type Mode =
-  | { kind: 'post_match'; onContinue: (results: TrainingWeekResult) => void }
+  | { kind: 'post_match'; onContinue: (results: TrainingWeekResult) => void; playoffLabel?: string }
   | { kind: 'mid_week';   onBack:     () => void };
 
 let activeMode: Mode | null = null;
@@ -40,8 +40,8 @@ let draftWeekIntensities: TrainingIntensity[] = [];          // post-match per-w
 let draftHydrated = false;
 let renderImpl: (() => void) | null = null;
 
-export function showTrainingPostMatch(onContinue: (results: TrainingWeekResult) => void): void {
-  activeMode = { kind: 'post_match', onContinue };
+export function showTrainingPostMatch(onContinue: (results: TrainingWeekResult) => void, playoffLabel?: string): void {
+  activeMode = { kind: 'post_match', onContinue, playoffLabel };
   renderImpl?.();
 }
 
@@ -174,6 +174,10 @@ function renderPostMatch(
       </div>
     </section>`).join('');
 
+  const eyebrow = mode.playoffLabel
+    ? `${state.calendar.seasonLabel} · ${mode.playoffLabel}`
+    : `${state.calendar.seasonLabel} · WK ${state.calendar.week}`;
+
   el.innerHTML = `
     <div class="app-header">
       <div class="app-topbar">
@@ -181,7 +185,7 @@ function renderPostMatch(
         <span class="app-title">${gap.weeks > 1 ? 'Training Block' : 'Training Week'}</span>
         <div class="app-topbar-spacer"></div>
       </div>
-      <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week}</div>
+      <div class="app-eyebrow">${eyebrow}</div>
     </div>
 
     <div id="tr-body">

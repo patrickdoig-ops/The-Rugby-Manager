@@ -21,7 +21,6 @@ import { playId, playBed, stopBed } from '../SoundManager';
 // have no entry, so routeScreen falls through to stopBed. Only the off-season
 // market chain carries a music bed.
 const SCREEN_MUSIC: Partial<Record<ScreenId, string>> = {
-  'transfer-market':'music.transfer',
   'renewals':       'music.transfer',
   'retention-decision':'music.transfer',
   'signing-results':'music.transfer',

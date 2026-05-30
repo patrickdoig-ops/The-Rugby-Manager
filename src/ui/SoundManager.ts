@@ -1,23 +1,21 @@
-// Manifest-driven audio engine.
+// Manifest-driven audio engine — every cue plays through HTMLAudioElement.
 //
-// One-shot cues (whistles, impacts, crowd reactions, stingers) route through a
-// Web Audio graph — per-channel GainNodes → master gain — with buffers fetched
-// and decoded lazily on first use. A missing / undecodable file caches as null
-// and silently no-ops (falls back to procedural synthesis where a generator
-// exists). On iOS WKWebView the graph is unlocked by starting a silent buffer
-// source from the first user gesture (preloadAllCues) — resume() alone is not
-// enough there and leaves every one-shot silent.
+// One-shot cues (whistles, impacts, crowd reactions, stingers, UI) play through
+// a small per-file pool of HTMLAudioElements; looping beds (crowd ambience,
+// screen music, TMO drone) use a dedicated element with loop=true and a
+// setInterval volume ramp for cross-fades.
 //
-// Looping ambient beds use HTMLAudioElement with loop=true instead of the Web
-// Audio decode pipeline. On iOS WKWebView (Capacitor) large buffers decoded via
-// decodeAudioData (>~500 KB compressed → ~20 MB PCM) fail silently; bed-engaged
-// at 909 KB is the primary victim. HTMLAudioElement hands off decoding + looping
-// to the native audio layer, bypassing this limit entirely. Volume cross-fades
-// are driven by a setInterval ramp on el.volume rather than gainNode automation,
-// keeping beds independent of the AudioContext run/suspend lifecycle.
+// Why not Web Audio: on iOS WKWebView (Capacitor) the AudioContext path is
+// unreliable. decodeAudioData fails silently for large bed buffers (bed-engaged
+// at 909 KB → ~20 MB PCM), and one-shots stay silent even after resume() because
+// the OS output route never engages without an in-gesture buffer-source start.
+// HTMLAudioElement hands decoding + playback to the native audio layer, which a
+// single iOS audio-session unlock (a silent element played from the first user
+// gesture in preloadAllCues) makes reliable for every subsequent play — beds and
+// one-shots alike, including after navigation. Playback is gated behind the split
+// UI / match SFX prefs + master volume, all persisted in localStorage.
 
 import { AUDIO_MANIFEST, type AudioAsset, type AudioChannel } from './audio/audioManifest';
-import { synthesize } from './audio/synth';
 
 const SFX_UI_KEY    = 'rugby-manager-sfx-ui';
 const SFX_MATCH_KEY = 'rugby-manager-sfx-match';
@@ -30,7 +28,7 @@ const BED_FADE_INTERVAL_MS = 1000 / BED_FADE_STEPS;
 // Per-channel base level relative to master.
 const CHANNEL_MIX: Record<AudioChannel, number> = {
   'whistle':        1.0,
-  'crowd-bed':      0.4,
+  'crowd-bed':      0.32,
   'crowd-reaction': 0.9,
   'impact':         0.8,
   'ui':             0.47,
@@ -51,64 +49,27 @@ function isChannelEnabled(ch: AudioChannel): boolean {
 const byId = new Map<string, AudioAsset>();
 for (const a of AUDIO_MANIFEST) byId.set(a.id, a);
 
-// ── Web Audio graph (one-shots only) ─────────────────────────────────────────
+// ── One-shot pool ─────────────────────────────────────────────────────────────
+// Each distinct file keeps a small pool of HTMLAudioElements. A play reuses an
+// idle (paused / ended) element if one exists, else grows the pool up to
+// ONE_SHOT_POOL_MAX; past that it spawns a transient element (kept alive by the
+// play() promise, GC'd once it ends). Reuse avoids re-buffering latency and keeps
+// the live element count bounded — important on iOS WKWebView, which caps
+// concurrent media elements.
 
-let ctx: AudioContext | null = null;
-let masterGain: GainNode | null = null;
-const channelGains = new Map<AudioChannel, GainNode>();
+const ONE_SHOT_POOL_MAX = 4;
+const oneShotPool = new Map<string, HTMLAudioElement[]>();
 
-function getCtx(): AudioContext | null {
-  if (ctx) return ctx;
-  if (typeof window === 'undefined' || typeof window.AudioContext === 'undefined') return null;
-  ctx = new AudioContext();
-  masterGain = ctx.createGain();
-  masterGain.gain.value = getVolume();
-  masterGain.connect(ctx.destination);
-  return ctx;
-}
-
-function channelGain(ch: AudioChannel): GainNode | null {
-  const c = getCtx();
-  if (!c || !masterGain) return null;
-  let g = channelGains.get(ch);
-  if (!g) {
-    g = c.createGain();
-    g.gain.value = CHANNEL_MIX[ch];
-    g.connect(masterGain);
-    channelGains.set(ch, g);
+function acquireOneShot(file: string): HTMLAudioElement {
+  let pool = oneShotPool.get(file);
+  if (!pool) { pool = []; oneShotPool.set(file, pool); }
+  for (const el of pool) {
+    if (el.paused || el.ended) return el;
   }
-  return g;
-}
-
-// Decoded buffers: AudioBuffer once loaded, null once a load has failed/missed.
-const buffers = new Map<string, AudioBuffer | null>();
-const loading  = new Map<string, Promise<AudioBuffer | null>>();
-
-function loadBufferAt(key: string, file: string): Promise<AudioBuffer | null> {
-  const cached = buffers.get(key);
-  if (cached !== undefined) return Promise.resolve(cached);
-  const inflight = loading.get(key);
-  if (inflight) return inflight;
-  const c = getCtx();
-  if (!c) { buffers.set(key, null); return Promise.resolve(null); }
-  const p = (async (): Promise<AudioBuffer | null> => {
-    try {
-      const res = await fetch(file);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const arr = await res.arrayBuffer();
-      const buf = await c.decodeAudioData(arr);
-      buffers.set(key, buf);
-      return buf;
-    } catch {
-      // Missing or undecodable — cache the miss and stay silent.
-      buffers.set(key, null);
-      return null;
-    } finally {
-      loading.delete(key);
-    }
-  })();
-  loading.set(key, p);
-  return p;
+  const el = new Audio(file);
+  el.preload = 'auto';
+  if (pool.length < ONE_SHOT_POOL_MAX) pool.push(el);
+  return el;
 }
 
 // ── Variant selection ─────────────────────────────────────────────────────────
@@ -183,26 +144,12 @@ export function playId(id: string): void {
   if (!asset) return;
   if (!isChannelEnabled(asset.channel)) return;
   if (asset.loop) { playBed(id); return; }
-  const c = getCtx();
-  if (!c) return;
-  void c.resume();
   const take = pickVariant(id, asset.variants ?? 1);
-  const key  = take <= 1 ? id : `${id}:${take}`;
   const file = variantFile(asset.file, take);
-  void loadBufferAt(key, file).then(buf => {
-    if (!isChannelEnabled(asset.channel)) return;
-    const g = channelGain(asset.channel);
-    if (!g) return;
-    if (buf) {
-      const src = c.createBufferSource();
-      src.buffer = buf;
-      src.connect(g);
-      src.start();
-      return;
-    }
-    // No file present — fall back to procedural synthesis if a generator exists.
-    synthesize(c, g, id);
-  });
+  const el = acquireOneShot(file);
+  el.volume = getVolume() * CHANNEL_MIX[asset.channel];
+  try { el.currentTime = 0; } catch { /* not yet seekable — ignore */ }
+  void el.play().catch(() => {});
 }
 
 /** Cross-fade the given looping bed in on its channel (no-op if already live). */
@@ -295,10 +242,8 @@ export function setVolume(percent: number): void {
   const clamped = Math.max(0, Math.min(100, percent));
   localStorage.setItem(VOLUME_KEY, String(clamped));
   const masterVol = clamped / 100;
-  if (masterGain && ctx) {
-    masterGain.gain.setValueAtTime(masterVol, ctx.currentTime);
-  }
-  // Sync any non-fading HTML beds to the new master level.
+  // Sync any non-fading HTML beds to the new master level. One-shots pick up the
+  // new level on their next play.
   for (const bed of htmlBeds.values()) {
     if (!bed.stopped && bed.fadeTimer === null) {
       bed.el.volume = masterVol * CHANNEL_MIX[bed.ch];
@@ -306,38 +251,38 @@ export function setVolume(percent: number): void {
   }
 }
 
-// Arms the AudioContext unlock on the first user gesture (browser autoplay
-// policy). Also fires a silent HTMLAudioElement probe from within the same
-// gesture handler, which grants the iOS WKWebView audio-session permission for
-// all subsequent el.play() calls — including the crowd bed after navigation.
+// A genuinely silent 0.1s WAV, used as the unlock probe. iOS WKWebView ignores
+// HTMLAudioElement.volume, so a volume=0 probe on a real cue (e.g. a whistle)
+// plays at full volume — audibly, on the first user gesture. A silent asset
+// unlocks the audio session with no output. Built once as a data URI so it ships
+// no binary and is immune to base-path resolution.
+function silentWavDataUri(): string {
+  const sampleRate = 8000, samples = 800, dataSize = samples * 2;
+  const buf = new ArrayBuffer(44 + dataSize);
+  const v = new DataView(buf);
+  const str = (off: number, s: string): void => { for (let i = 0; i < s.length; i++) v.setUint8(off + i, s.charCodeAt(i)); };
+  str(0, 'RIFF'); v.setUint32(4, 36 + dataSize, true); str(8, 'WAVE');
+  str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sampleRate, true); v.setUint32(28, sampleRate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  str(36, 'data'); v.setUint32(40, dataSize, true); // samples left zero ⇒ silence
+  let bin = '';
+  const bytes = new Uint8Array(buf);
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return `data:audio/wav;base64,${btoa(bin)}`;
+}
+
+// Arms the iOS WKWebView audio-session unlock on the first user gesture. Playing
+// a silent HTMLAudioElement from inside the gesture handler grants permission for
+// every subsequent el.play() — one-shots and beds alike — including after
+// navigation. (On the desktop web build this is a harmless silent probe.)
 let unlockArmed = false;
 export function preloadAllCues(): void {
   if (unlockArmed || typeof window === 'undefined') return;
   unlockArmed = true;
+  const probeSrc = silentWavDataUri();
   const unlock = (): void => {
-    const c = getCtx();
-    void c?.resume();
-    // iOS WKWebView Web Audio unlock: resume() alone leaves the AudioContext
-    // reporting 'running' but routes no audio to the OS — every one-shot cue
-    // stays silent. Starting a 1-frame silent buffer source from inside the
-    // user-gesture handler engages the output route for all later playId calls.
-    if (c) {
-      try {
-        const buf = c.createBuffer(1, 1, c.sampleRate);
-        const src = c.createBufferSource();
-        src.buffer = buf;
-        src.connect(c.destination);
-        src.start(0);
-      } catch { /* unlock best-effort */ }
-    }
-    // iOS HTMLAudioElement unlock: play a short silent file from the user-gesture
-    // context. Any file works; whistle.stoppage (9.8 KB) is the smallest asset.
-    const probeAsset = byId.get('whistle.stoppage');
-    if (probeAsset) {
-      const probe = new Audio(probeAsset.file);
-      probe.volume = 0;
-      void probe.play().catch(() => {});
-    }
+    const probe = new Audio(probeSrc);
+    void probe.play().catch(() => {});
   };
   window.addEventListener('pointerdown', unlock, { once: true });
   window.addEventListener('keydown',     unlock, { once: true });

@@ -49,6 +49,7 @@ export interface AppEvents {
     lastEvents: string[];
   };
   'ui:speedChange':     { delayMs: number };
+  'ui:matchPaused':     Record<string, never>;
   'ui:tacticsChange':   { teamId: string; tactics: TeamTactics };
   'ui:openTacticsModal':{ tactics: TeamTactics; teamId: 'home' | 'away' };
   'ui:tacticsClosed':   Record<string, never>;

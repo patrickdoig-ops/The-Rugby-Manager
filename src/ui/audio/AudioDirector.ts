@@ -143,8 +143,11 @@ export function initAudioDirector(): void {
   onScreenShow(routeScreen);
 
   // Match lifecycle: open the crowd bed at kickoff, close it (and any lingering
-  // TMO drone) at the final whistle.
+  // TMO drone) at the final whistle. Drop to idle on any pause — the next
+  // engine:event on resume will crossfade back to the right tier naturally.
   eventBus.on('engine:initialized', () => playBed('crowd.bed.idle'));
+  eventBus.on('ui:matchPaused',     () => playBed('crowd.bed.idle'));
+  eventBus.on('engine:autoPaused',  () => playBed('crowd.bed.idle'));
   eventBus.on('engine:finished',    () => { stopBed('crowd-bed'); stopBed('stinger'); });
   eventBus.on('engine:event', ({ event }) => routeMatchEvent(event));
 

@@ -42,6 +42,7 @@ export function initSimController(engine: MatchCoordinator): void {
 
   btnPause.onclick = () => {
     engine.pause();
+    eventBus.emit('ui:matchPaused', {});
     btnPlay.disabled  = false;
     btnPause.disabled = true;
   };
@@ -49,6 +50,7 @@ export function initSimController(engine: MatchCoordinator): void {
   btnTactics.onclick = () => {
     wasPausedBeforeTactics = !engine.getState().engine.isRunning;
     engine.pause();
+    eventBus.emit('ui:matchPaused', {});
     btnPlay.disabled    = false;
     btnPause.disabled   = true;
     btnTactics.disabled = true;
@@ -61,6 +63,7 @@ export function initSimController(engine: MatchCoordinator): void {
   btnSubs.onclick = () => {
     wasPausedBeforeSubs = !engine.getState().engine.isRunning;
     engine.pause();
+    eventBus.emit('ui:matchPaused', {});
     btnPlay.disabled    = false;
     btnPause.disabled   = true;
     btnSubs.disabled    = true;

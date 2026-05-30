@@ -131,9 +131,15 @@ function fadeBedOut(bed: HtmlBed): void {
   const startVol = bed.el.volume;
   if (startVol <= 0) { bed.el.pause(); return; }
   const step = startVol / (BED_FADE_S * BED_FADE_STEPS);
+  // Count steps rather than waiting for el.volume to reach 0: iOS WKWebView
+  // ignores HTMLAudioElement.volume (see preloadAllCues note), so the volume
+  // readback never crosses 0 there and the element would loop forever. After
+  // the fade's worth of ticks we pause unconditionally — the audible stop is
+  // load-bearing (the crowd bed must die at full-time), the fade is cosmetic.
+  let ticksLeft = Math.ceil(BED_FADE_S * BED_FADE_STEPS);
   bed.fadeTimer = setInterval(() => {
     bed.el.volume = Math.max(0, bed.el.volume - step);
-    if (bed.el.volume <= 0) { clearFade(bed); bed.el.pause(); }
+    if (bed.el.volume <= 0 || --ticksLeft <= 0) { clearFade(bed); bed.el.pause(); }
   }, BED_FADE_INTERVAL_MS);
 }
 

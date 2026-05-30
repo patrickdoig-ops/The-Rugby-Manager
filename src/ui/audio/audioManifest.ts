@@ -282,7 +282,7 @@ const CROWD_REACTION: AudioAsset[] = [
     trigger: { on: 'matchEvent', type: 'CARD_ISSUED' },
     description: 'Gasp turning to boos/jeers as the card comes out. Use a heavier mix for red_20 than yellow.',
     elevenLabsPrompt: 'A crowd reacting with a sharp collective gasp that turns into scattered boos and jeers as a referee shows a card, outdoor stadium',
-    variants: 2,
+    variants: 3,
   },
 ];
 

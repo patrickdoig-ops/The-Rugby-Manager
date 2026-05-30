@@ -15,14 +15,38 @@
 import type { MatchState } from '../types/match';
 import type { TeamTactics, TeamSide } from '../types/team';
 import { applyMatchEvent } from './applyMatchEvent';
-import { AI_DIRECTOR_VALUES, AI_INTENT_CHASING, AI_INTENT_PROTECTING, CLOCK_VALUES } from './balance';
+import { AI_DIRECTOR_VALUES, AI_INTENT_CHASING, AI_INTENT_PROTECTING, CLOCK_VALUES, HUMAN_RESPONSE_RULES, TACTIC_ORDERS } from './balance';
 
 function tacticsEqual(a: TeamTactics, b: TeamTactics): boolean {
   return a.attackingGamePlan === b.attackingGamePlan
     && a.attackingStyle === b.attackingStyle
     && a.attackingBreakdown === b.attackingBreakdown
     && a.defendingBreakdown === b.defendingBreakdown
-    && a.backfieldDefence === b.backfieldDefence;
+    && a.backfieldDefence === b.backfieldDefence
+    && a.defensiveLine === b.defensiveLine
+    && a.offloadStrategy === b.offloadStrategy;
+}
+
+// Reads the human side's current tactics and returns a copy of aiBaseline with
+// up to one dimension per rule nudged ±1 step. Each dimension is clamped to
+// [baselineIndex - 1, baselineIndex + 1] so club identity is always preserved.
+// Conflicting rules on the same AI dimension cancel out (sum → 0 → no change).
+function computeHumanResponse(humanTactics: TeamTactics, aiBaseline: TeamTactics): TeamTactics {
+  const accumulated: Partial<Record<keyof TeamTactics, number>> = {};
+  for (const rule of HUMAN_RESPONSE_RULES) {
+    if ((humanTactics[rule.humanDimension] as string) === rule.humanValue) {
+      accumulated[rule.aiDimension] = (accumulated[rule.aiDimension] ?? 0) + rule.delta;
+    }
+  }
+  const result: TeamTactics = { ...aiBaseline };
+  for (const [dimStr, sum] of Object.entries(accumulated) as [keyof TeamTactics, number][]) {
+    if (sum === 0) continue;
+    const order = TACTIC_ORDERS[dimStr];
+    const baseIdx = order.indexOf(aiBaseline[dimStr] as string);
+    const newIdx = Math.max(0, Math.min(order.length - 1, baseIdx + Math.sign(sum)));
+    (result as unknown as Record<string, string>)[dimStr] = order[newIdx];
+  }
+  return result;
 }
 
 export class AITacticalDirector {
@@ -59,14 +83,25 @@ export class AITacticalDirector {
 
   private pickIntent(side: TeamSide): TeamTactics {
     const minutesRemaining = CLOCK_VALUES.fullTimeMinute - this.state.clock.gameMinute;
-    if (minutesRemaining > AI_DIRECTOR_VALUES.minutesRemainingTrigger) {
-      return this.baseline[side];
+
+    // Late-game score gap: CHASING / PROTECTING fully override everything else.
+    if (minutesRemaining <= AI_DIRECTOR_VALUES.minutesRemainingTrigger) {
+      const myScore  = this.state.score[side];
+      const oppScore = side === 'home' ? this.state.score.away : this.state.score.home;
+      const gap = myScore - oppScore;
+      if (gap <= -AI_DIRECTOR_VALUES.scoreGapTrigger) return AI_INTENT_CHASING;
+      if (gap >=  AI_DIRECTOR_VALUES.scoreGapTrigger) return AI_INTENT_PROTECTING;
     }
-    const myScore  = this.state.score[side];
-    const oppScore = side === 'home' ? this.state.score.away : this.state.score.home;
-    const gap = myScore - oppScore;
-    if (gap <= -AI_DIRECTOR_VALUES.scoreGapTrigger) return AI_INTENT_CHASING;
-    if (gap >=  AI_DIRECTOR_VALUES.scoreGapTrigger) return AI_INTENT_PROTECTING;
+
+    // From minute 20 onwards, nudge up to one step per dimension in response to
+    // what the human side is running. Only applies when there is a human side —
+    // headless fixtures have no opponent to react to.
+    if (this.state.clock.gameMinute >= AI_DIRECTOR_VALUES.humanResponseMinute
+        && this.humanSide !== undefined) {
+      const humanTeam = this.humanSide === 'home' ? this.state.homeTeam : this.state.awayTeam;
+      return computeHumanResponse(humanTeam.tactics, this.baseline[side]);
+    }
+
     return this.baseline[side];
   }
 }

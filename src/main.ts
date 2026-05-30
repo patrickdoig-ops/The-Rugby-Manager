@@ -337,6 +337,14 @@ document.addEventListener('DOMContentLoaded', () => {
     initRolloverScreen(getGameEngine, allTeams);
     initContractsScreen(getGameEngine, allTeams, () => goHub('back'), (rosterId) => {
       goPlayerProfile(rosterId, () => goContracts('back'));
+    }, (rosterId) => {
+      // Mid-season early renewal: mutate + persist engine-side so a
+      // re-signing survives a tab close. The screen handles the toast +
+      // re-render from the returned outcome.
+      const engine = getGameEngine();
+      const result = engine.offerEarlyRenewal(rosterId);
+      saveGame(engine.toSavePayload());
+      return result;
     });
     initSquadManagementScreen({
       getGameEngine,

@@ -54,7 +54,7 @@ import { upcomingGap, splitGapIntoPeriods } from './trainingCalendar';
 import { computeRollover } from './careerRollover';
 import { generatePersona } from './personaGenerator';
 import { resolveSchedule, backfillCareerContracts, buildRosterSeededEvent, buildCareerArchiveRestoredEvent } from './saveMigration';
-import { TransferCoordinator } from './TransferCoordinator';
+import { TransferCoordinator, type EarlyRenewalResult } from './TransferCoordinator';
 import { computeBudgetEvents } from './budgetPlanner';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed, rngTransfer, getTransferCallCount, advanceTransferTo } from '../utils/rng';
@@ -485,6 +485,12 @@ export class GameCoordinator {
 
   runMidseasonSigning() {
     return this.transfers.runMidseasonSigning();
+  }
+
+  // Mid-season early contract renewal (Hub → Contracts). One-shot
+  // voluntary renewal of an expiring own-squad player — delegate.
+  offerEarlyRenewal(rosterId: number): EarlyRenewalResult {
+    return this.transfers.offerEarlyRenewal(rosterId);
   }
 
   repairAIMarquees(): void {

@@ -10,6 +10,21 @@
 // collapse here.
 
 import { SEASON_VALUES } from '../engine/balance';
+import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
+
+// True when `expiresOn` falls inside the rolling
+// EXPIRING_CONTRACT_WINDOW_MONTHS window measured from `fromDate`.
+// Shared by the Contracts screen's "Expiring" tag/badge and the
+// mid-season early-renewal eligibility gate so the UI signal and the
+// gameplay seam can never disagree.
+export function isContractExpiringSoon(expiresOn: string, fromDate: string): boolean {
+  if (!expiresOn) return false;
+  const exp = new Date(expiresOn);
+  const today = new Date(fromDate);
+  const monthsAhead = (exp.getUTCFullYear() - today.getUTCFullYear()) * 12
+                    + (exp.getUTCMonth() - today.getUTCMonth());
+  return monthsAhead >= 0 && monthsAhead <= EXPIRING_CONTRACT_WINDOW_MONTHS;
+}
 
 export function getAge(dobIso: string | null, nowIso: string): number | null {
   if (!dobIso) return null;

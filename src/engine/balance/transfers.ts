@@ -106,10 +106,15 @@ export const REPUTATION_SEED = {
 //   every expiring player who scores above this rating. Below it, the
 //   player is at risk regardless of cap — keeps the league from
 //   hoarding fringe pros forever.
+// `earlyRenewalCooldownWeeks`: when a player declines a mid-season
+//   early-renewal offer (Hub → Contracts), they're locked from further
+//   offers for this many rounds (written to career.midseasonRejections,
+//   pruned by WEEK_ADVANCED) so the user can't spam-retry the roll.
 export const RENEWAL = {
   loyaltyDiscount: 0.10,
   aiTargetCapUtilisation: 0.95,
   aiReleaseRatingFloor: 70,
+  earlyRenewalCooldownWeeks: 4,
 };
 
 // Window (in months from now) within which a contract is considered

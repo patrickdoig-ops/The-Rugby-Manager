@@ -23,9 +23,20 @@ import {
   decideAIBids, decideAIRetentions, decideAIFinalSignings, retentionTermsFor,
 } from './aiTransferDirector';
 import { resolveSigningRound, type SigningOutcome } from './signingResolver';
-import { resolveMidseasonSigning } from './midseasonSigningResolver';
+import { resolveMidseasonSigning, midseasonAcceptanceProbability } from './midseasonSigningResolver';
 import { clubBudgetUsage } from './teamStats';
+import { isContractExpiringSoon } from './age';
+import { RENEWAL } from '../engine/balance/transfers';
+import { rngTransfer } from '../utils/rng';
 import type { PreSeasonTransfer } from '../data/transfers-2025-26';
+
+// Outcome of a one-shot mid-season early renewal (Hub → Contracts).
+// `accepted` carries the agreed terms for the toast; `declined` carries
+// the cooldown week; `ineligible` explains why nothing happened.
+export type EarlyRenewalResult =
+  | { status: 'accepted'; wage: number; lengthYears: number }
+  | { status: 'declined'; cooldownUntilWeek: number }
+  | { status: 'ineligible'; reason: 'not_expiring' | 'on_cooldown' | 'over_budget' | 'not_on_squad' | 'market_open' };
 
 export class TransferCoordinator {
   constructor(private state: GameState) {}
@@ -599,6 +610,93 @@ export class TransferCoordinator {
     const { events, outcomes } = resolveMidseasonSigning(this.state);
     for (const ev of events) applySeasonEvent(this.state, ev);
     return outcomes;
+  }
+
+  // ===== Mid-season early contract renewal (Hub → Contracts) =====
+  //
+  // Inline, one-shot voluntary renewal of one of the user's OWN players
+  // whose contract sits inside the rolling EXPIRING_CONTRACT_WINDOW_MONTHS
+  // window. Unlike the end-of-season renewal window this isn't a market
+  // — no screen lifecycle, no AI competition. Terms are the same
+  // loyalty-discounted offer the EOS window would generate
+  // (retentionTermsFor); acceptance is the appeal-score roll the
+  // mid-season FA path uses (midseasonAcceptanceProbability), so a star
+  // eyeing a bigger move can still say no. A decline locks the player
+  // behind a RENEWAL.earlyRenewalCooldownWeeks cooldown on
+  // career.midseasonRejections (pruned by WEEK_ADVANCED) so the roll
+  // can't be spammed.
+  //
+  // Accept → CONTRACT_EXTENDED; decline → MIDSEASON_OFFER_REJECTED. No
+  // new event variant, no save-format bump. Consumes rngTransfer draws
+  // (one for the wage seed, one for the acceptance roll) — user-initiated,
+  // same precedent as the mid-season FA signing; the determinism harness
+  // never calls this so `verify` is unaffected. An over-budget bail still
+  // costs the wage-seed draw (the wage can't be known without it); that
+  // divergence is harmless and user-driven.
+  offerEarlyRenewal(rosterId: number): EarlyRenewalResult {
+    // Never while an off-season / mid-season market window is open.
+    if (this.state.career.market) return { status: 'ineligible', reason: 'market_open' };
+
+    const userClubId = this.state.player.teamId;
+    const club = this.state.career.clubs.find(c => c.id === userClubId);
+    const p = this.state.career.roster[rosterId];
+    if (!club || !p) return { status: 'ineligible', reason: 'not_on_squad' };
+    if (p.contract.clubId !== userClubId || !club.squad.includes(rosterId)) {
+      return { status: 'ineligible', reason: 'not_on_squad' };
+    }
+
+    // Eligibility: inside the same expiring window the UI surfaces.
+    if (!isContractExpiringSoon(p.contract.expiresOn, this.state.calendar.date)) {
+      return { status: 'ineligible', reason: 'not_expiring' };
+    }
+
+    // Cooldown: a recent decline locks the player out for a few rounds.
+    const lock = this.state.career.midseasonRejections[rosterId];
+    if (lock !== undefined && lock > this.state.calendar.week) {
+      return { status: 'ineligible', reason: 'on_cooldown' };
+    }
+
+    // Loyalty-discounted terms (advances rngTransfer via the seeder).
+    const terms = retentionTermsFor(this.state, rosterId);
+    if (!terms) return { status: 'ineligible', reason: 'not_on_squad' };
+
+    // Net budget gate — the renewal replaces the player's current wage,
+    // so only the delta counts. Marquee wages sit outside the budget.
+    if (!p.contract.isMarquee) {
+      const projected = clubBudgetUsage(this.state, userClubId) - p.contract.annualWage + terms.annualWage;
+      if (projected > club.salaryBudget) return { status: 'ineligible', reason: 'over_budget' };
+    }
+
+    // Appeal-score acceptance roll (own-club loyalty bonus applies via
+    // the 'retention' kind).
+    const bid: TransferBid = {
+      id: `r${this.state.career.seasonsCompleted}_${userClubId}_${rosterId}`,
+      rosterId,
+      clubId: userClubId,
+      annualWage: terms.annualWage,
+      lengthYears: terms.lengthYears,
+      kind: 'retention',
+      status: 'pending',
+    };
+    const probability = midseasonAcceptanceProbability(this.state, bid, p);
+    const roll = rngTransfer(1, 1000) / 1000;
+    if (roll <= probability) {
+      applySeasonEvent(this.state, {
+        type: 'CONTRACT_EXTENDED',
+        rosterId,
+        newExpiresOn: terms.expiresOn,
+        newAnnualWage: terms.annualWage,
+      });
+      return { status: 'accepted', wage: terms.annualWage, lengthYears: terms.lengthYears };
+    }
+
+    const cooldownUntilWeek = this.state.calendar.week + RENEWAL.earlyRenewalCooldownWeeks;
+    applySeasonEvent(this.state, {
+      type: 'MIDSEASON_OFFER_REJECTED',
+      rosterId,
+      weekUntilClear: cooldownUntilWeek,
+    });
+    return { status: 'declined', cooldownUntilWeek };
   }
 
   // Squad Builder cleanup. After unwind + close, some AI clubs may

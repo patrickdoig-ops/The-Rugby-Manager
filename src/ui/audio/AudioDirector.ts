@@ -50,7 +50,13 @@ function routeMatchEvent(event: GameEvent): void {
   // ── Phase-anchored cues (whistles + set-piece impacts) ──────────────────
   switch (event.phase) {
     case MatchPhase.KickOff:
-      playId('whistle.kickoff');
+      // A kick-off fires up to three KickOff-phase events — the coin toss, the
+      // "X to kick off" announce, then the resolution. Anchor the single whistle
+      // to the resolution so it plays once, at the kick, not per event.
+      // (knock_on is excluded — it already triggers whistle.stoppage below.)
+      if (keys.has('clean_receive') || keys.has('poor_kick') || keys.has('short_kick_retain')) {
+        playId('whistle.kickoff');
+      }
       break;
     case MatchPhase.TryScored:
       // The engine tags TWO consecutive events as TryScored — the carry/maul

@@ -123,6 +123,23 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
     });
   }
 
+  // --- Discipline concern ---
+  const DISCIPLINE_YELLOW_THRESHOLD = 2;
+  for (const rid of club.squad) {
+    const p = state.career.roster[rid];
+    if (!p || p.seasonStats.yellowCards < DISCIPLINE_YELLOW_THRESHOLD) continue;
+    const name = `${p.firstName} ${p.lastName}`;
+    const yellows = p.seasonStats.yellowCards;
+    items.push({
+      id: `disc:${season}:${rid}`,
+      category: 'squad',
+      priority: 45,
+      subject: `${name} — discipline concern`,
+      body: `${name} has collected ${yellows} yellow card${yellows !== 1 ? 's' : ''} this season. Another offence risks a citing or suspension at a critical point in the campaign.`,
+      deepLink: 'squad',
+    });
+  }
+
   // --- Form collapse ---
   const myForm = recentForm(teamId, state.league.results, 3);
   const recentThree = myForm.filter((r): r is FormResult => r !== null);
@@ -226,6 +243,46 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
           priority: 30,
           subject: `Scout report — Round ${nextFixture.round} vs ${opp.name}`,
           body: sentences.join(' '),
+          deepLink: 'fixtures',
+        });
+      }
+    }
+  }
+
+  // --- Home attendance ---
+  const myTeam = allTeams.find(t => t.id === teamId);
+  if (myTeam?.stadiumCapacity) {
+    const lastHomeResult = state.league.results
+      .filter(r => r.homeId === teamId && r.attendance != null)
+      .sort((a, b) => b.round - a.round)[0];
+
+    if (lastHomeResult?.attendance != null) {
+      const matchedFixture = state.league.fixtures.find(
+        f => f.homeId === teamId && f.round === lastHomeResult.round,
+      );
+      const capacity = matchedFixture?.venueCapacity ?? myTeam.stadiumCapacity;
+      const venueName = matchedFixture?.venue ?? myTeam.stadium;
+      const fillRate = lastHomeResult.attendance / capacity;
+
+      const SELLOUT_THRESHOLD = 0.97;
+      const POOR_THRESHOLD    = 0.65;
+
+      if (fillRate >= SELLOUT_THRESHOLD) {
+        items.push({
+          id: `attendance:${season}:r${lastHomeResult.round}`,
+          category: 'match',
+          priority: 15,
+          subject: `Sellout at ${venueName}`,
+          body: `${lastHomeResult.attendance.toLocaleString()} supporters filled ${venueName} for Round ${lastHomeResult.round} — a full house and the atmosphere to match.`,
+          deepLink: 'fixtures',
+        });
+      } else if (fillRate < POOR_THRESHOLD) {
+        items.push({
+          id: `attendance:${season}:r${lastHomeResult.round}`,
+          category: 'match',
+          priority: 15,
+          subject: 'Crowd below expectations',
+          body: `Attendance at ${venueName} was at ${Math.round(fillRate * 100)}% capacity for Round ${lastHomeResult.round}. Better home performances will bring the fans back.`,
           deepLink: 'fixtures',
         });
       }

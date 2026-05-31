@@ -263,6 +263,7 @@ export class MatchCoordinator {
   // it (resolve(null) → "no replacement chosen, play short") rather than
   // leaving the Promise pending after teardown.
   private pendingForcedSubResolve: ((n: number | null) => void) | null = null;
+  private pendingSubQueue: Array<{ side: 'home' | 'away'; benchSquadNum: number; fieldSquadNum: number }> = [];
   // Silent matches suppress every engine event except `engine:finished`
   // (which the headless caller awaits) so the live UI stays inert while a
   // background AI fixture runs. PenaltyHandler short-circuits modal prompts
@@ -321,7 +322,9 @@ export class MatchCoordinator {
     this.subDirector = new AISubstitutionDirector(
       this.state,
       this.silent ? undefined : this.humanSide,
-      (side, benchSquadNum, fieldSquadNum) => this.substitute(side, benchSquadNum, fieldSquadNum),
+      this.silent
+        ? (side, benchSquadNum, fieldSquadNum) => this.substitute(side, benchSquadNum, fieldSquadNum)
+        : (side, benchSquadNum, fieldSquadNum) => this.queueSubstitute(side, benchSquadNum, fieldSquadNum),
     );
 
     if (!this.silent) {
@@ -332,7 +335,7 @@ export class MatchCoordinator {
           }
         }),
         eventBus.on('ui:substitution', ({ benchSquadNum, fieldSquadNum }) => {
-          this.substitute(this.humanSide, benchSquadNum, fieldSquadNum);
+          this.queueSubstitute(this.humanSide, benchSquadNum, fieldSquadNum);
         }),
       );
     }
@@ -369,6 +372,7 @@ export class MatchCoordinator {
       this.pendingForcedSubResolve(null);
       this.pendingForcedSubResolve = null;
     }
+    this.pendingSubQueue = [];
     this.streamer.clear();
     for (const unsub of this.busUnsubs) unsub();
     this.busUnsubs = [];
@@ -527,6 +531,25 @@ export class MatchCoordinator {
     this.emitStateChange();
   }
 
+  private queueSubstitute(side: 'home' | 'away', benchSquadNum: number, fieldSquadNum: number): void {
+    if (!this.pendingSubQueue.some(s => s.side === side && s.fieldSquadNum === fieldSquadNum)) {
+      this.pendingSubQueue.push({ side, benchSquadNum, fieldSquadNum });
+    }
+  }
+
+  private isNaturalBreak(): boolean {
+    const p = this.state.phase;
+    return p === MatchPhase.Scrum || p === MatchPhase.Lineout
+      || p === MatchPhase.KickOff || p === MatchPhase.DropOut22
+      || p === MatchPhase.ConversionKick || p === MatchPhase.TryScored;
+  }
+
+  private flushPendingSubQueue(): void {
+    const queue = this.pendingSubQueue.splice(0);
+    for (const { side, benchSquadNum, fieldSquadNum } of queue) {
+      this.substitute(side, benchSquadNum, fieldSquadNum);
+    }
+  }
 
   initialize(): void {
     if (!this.silent) eventBus.emit('engine:initialized', {});
@@ -716,6 +739,15 @@ export class MatchCoordinator {
     const phaseAtTickStart = this.state.phase;
 
     if (await this.prepareEnteringPhase()) return;
+
+    // In live matches, flush any pending subs at natural breaks in play
+    // (scrum, lineout, kickoff, dropout, conversion, try scored). Subs made
+    // mid-open-play sit in the queue and are applied here so they take effect
+    // on the same tick that resolves the set piece. Forced subs (injury /
+    // red_20) bypass the queue entirely and are applied immediately.
+    if (!this.silent && this.isNaturalBreak()) {
+      this.flushPendingSubQueue();
+    }
 
     // AI tactical adaptation runs before resolvePhase so the new tactics
     // take effect on the very tick that meets the trigger condition. The

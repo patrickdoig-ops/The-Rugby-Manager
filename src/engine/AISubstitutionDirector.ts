@@ -55,24 +55,31 @@ export class AISubstitutionDirector {
       const team = side === 'home' ? this.state.homeTeam : this.state.awayTeam;
       // Keep subbing until either the bench is empty, no starter is still
       // tired, or no remaining bench player covers the tired starter's slot.
-      // substitute() mutates team.players and team.bench in place, so each
-      // pass re-evaluates against the updated rosters.
+      // In immediate mode (silent fixtures), substitute() mutates team.players
+      // and team.bench in place, so each pass re-evaluates against the updated
+      // rosters. In queued mode (live matches), substitute() doesn't mutate
+      // state, so queuedThisTick tracks players decided in this call so the
+      // loop terminates when all eligible tired players have been queued.
+      const queuedThisTick = new Set<number>();
       while (team.bench.length > 0) {
-        const tired = this.pickTiredCandidate(team, side);
+        const tired = this.pickTiredCandidate(team, side, queuedThisTick);
         if (!tired) break;
         const replacement = this.pickReplacement(team.bench, tired);
         if (!replacement) break;
         this.substitute(side, replacement.squadNumber, tired.squadNumber);
+        queuedThisTick.add(tired.squadNumber);
       }
     }
   }
 
-  // Most-fatigued on-field player below the threshold. Ties broken by id
-  // ascending so iteration is stable across runs.
-  private pickTiredCandidate(team: Team, side: PossessionSide): Player | null {
+  // Most-fatigued on-field player below the threshold, excluding any already
+  // queued this evaluate() call. Ties broken by id ascending so iteration is
+  // stable across runs.
+  private pickTiredCandidate(team: Team, side: PossessionSide, exclude: Set<number>): Player | null {
     const onField = onFieldPlayers(team, this.state, side);
     let best: Player | null = null;
     for (const p of onField) {
+      if (exclude.has(p.squadNumber)) continue;
       if (p.fatiguePct > AI_SUBS_VALUES.fatigueThreshold) continue;
       if (!best || p.fatiguePct < best.fatiguePct || (p.fatiguePct === best.fatiguePct && p.id < best.id)) {
         best = p;

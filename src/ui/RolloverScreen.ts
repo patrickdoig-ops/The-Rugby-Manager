@@ -66,9 +66,9 @@ export function initRolloverScreen(
     const playerTeam = teamsById.get(state.player.teamId);
     if (playerTeam) el!.style.setProperty('--team-color', playerTeam.color);
 
-    const retirements = activeEvents.filter(e => e.type === 'PLAYER_RETIRED');
-    const agings = activeEvents.filter(e => e.type === 'PLAYER_AGED');
     const myClubId = state.player.teamId;
+    const retirements = activeEvents.filter(e => e.type === 'PLAYER_RETIRED' && e.clubId === myClubId);
+    const agings = activeEvents.filter(e => e.type === 'PLAYER_AGED');
     const academyGrads = activeEvents.filter(e => e.type === 'ACADEMY_GRADUATED' && e.clubId === myClubId);
     const inboundTransfers = activeEvents.filter(e => e.type === 'TRANSFER_ACTIVATED' && e.toClubId === myClubId);
     const outboundTransfers = activeEvents.filter(e => e.type === 'TRANSFER_ACTIVATED' && e.fromClubId === myClubId);

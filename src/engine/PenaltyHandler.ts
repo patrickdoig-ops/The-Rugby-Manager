@@ -180,6 +180,7 @@ export class PenaltyHandler {
       const defendSide: 'home' | 'away' = state.possession === 'home' ? 'away' : 'home';
       const defendTeam = state.possession === 'home' ? state.awayTeam : state.homeTeam;
       const defender = pickFullback(defendTeam, state, defendSide);
+      const kickFromOppositionHalf = inOppositionHalf(state);
 
       if (state.clock.clockInTheRed) {
         applyMatchEvent(state, { type: 'PENALTY_KICK_TO_TOUCH_FLAG_SET', value: true });
@@ -190,7 +191,15 @@ export class PenaltyHandler {
         x: clamp(state.ball.x + attackDir(state) * res.distance, 5, 95),
       });
 
-      const outcomeKey = res.findsTouch ? 'kick_to_touch' : 'kick_to_touch_missed';
+      let outcomeKey: 'kick_to_touch' | 'kick_to_touch_close' | 'kick_to_touch_long' | 'kick_to_touch_missed';
+      let landingMetres: number | undefined;
+      if (res.findsTouch && kickFromOppositionHalf) {
+        landingMetres = metresFromOppositionTryLine(state);
+        outcomeKey = landingMetres <= 10 ? 'kick_to_touch_close' : 'kick_to_touch_long';
+      } else {
+        outcomeKey = res.findsTouch ? 'kick_to_touch' : 'kick_to_touch_missed';
+      }
+
       const penEvent: GameEvent = {
         id: makeId(),
         gameMinute: state.clock.gameMinute,
@@ -200,7 +209,7 @@ export class PenaltyHandler {
         primaryPlayer: kicker,
         ballX: state.ball.x,
         ballY: state.ball.y,
-        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: outcomeKey, primary: kicker }] },
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: outcomeKey, primary: kicker, metres: landingMetres }] },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
       this.emit('engine:event', { event: penEvent });

@@ -22,12 +22,14 @@ function interpolate(
   defSideName: string | undefined,
   primary: Player | undefined,
   secondary: Player | undefined,
+  metres?: number,
 ): string {
   return template
     .replace(/{primary}/g,   playerLabel(primary,   'the player'))
     .replace(/{secondary}/g, playerLabel(secondary, 'the defender'))
     .replace(/{side}/g,      sideName)
-    .replace(/{defside}/g,   defSideName ?? 'the opposition');
+    .replace(/{defside}/g,   defSideName ?? 'the opposition')
+    .replace(/{metres}/g,    metres != null ? String(metres) : '?');
 }
 
 function renderStep(step: NarrationStep, event: RenderableEvent, used: Set<string>): string | null {
@@ -43,7 +45,7 @@ function renderStep(step: NarrationStep, event: RenderableEvent, used: Set<strin
     const pool = fresh.length > 0 ? fresh : lines;
     const picked = pickRandom(pool);
     used.add(picked);
-    return interpolate(picked, event.sideName, event.defSideName, step.primary, step.secondary);
+    return interpolate(picked, event.sideName, event.defSideName, step.primary, step.secondary, step.metres);
   }
   if (step.kind === 'tactic_note') {
     if (!commentaryChance(step.chancePct)) return null;

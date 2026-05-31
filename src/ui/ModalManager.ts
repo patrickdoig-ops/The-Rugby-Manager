@@ -83,7 +83,7 @@ export function initModalManager(): void {
     const { context, onChoice } = payload;
     const offenceLabel = OFFENCE_LABELS[context.offence];
     const homeAttacksRight = !context.halfTimeDone;
-    const oppTryLineX = (context.attackingSide === 'home') === homeAttacksRight ? 95 : 5;
+    const oppTryLineX = (context.attackingSide === 'home') === homeAttacksRight ? 100 : 0;
     const metresOut = Math.max(0, Math.abs(oppTryLineX - context.ballX));
 
     const choices: PenaltyChoice[] = ['kick_for_goal', 'kick_to_touch', 'tap_and_go'];

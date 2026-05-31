@@ -1380,11 +1380,11 @@ Stat increments: `kicker.kicksAtGoal++`; on success `kicksMade++`; on miss `kick
 
 ### Choice: kick_to_touch
 
-The ball is moved 20 metres down the pitch towards the opposition try line.
+`resolvePenaltyKickToTouch(kicker)` rolls `kickScore = kicker.currentStats.kicking + rng(1, 20)`. A good kick (score ≥ 25) travels 25–45m and finds touch 90% of the time; a poor kick travels 10–20m and finds touch 40% of the time. `BALL_REPOSITIONED` moves `state.ball.x` by `attackDir × distance` (clamped to [5, 95]).
 
-Possession is retained. The lineout is awarded to the kicking team 20 units further up the pitch.
+**Finds touch:** possession retained; phase transitions to `Lineout`. Commentary key is distance-aware when the penalty was awarded in the opposition half: `kick_to_touch_close` (landing ≤10m from the try line) or `kick_to_touch_long` (>10m). Own-half penalties that find touch use the plain `kick_to_touch` key. Both distance keys interpolate `{metres}` from the `NarrationStep.metres` field (the exact landing distance from `metresFromOppositionTryLine` at emission time).
 
-**Future development:** the metres gained from kicking to touch should be variable, driven by the kicker's kicking stat, composure, and pitch location.
+**Misses touch:** `POSSESSION_SWAPPED`, `KICK_RETURN_CARRIER_SET` (fullback), phase → `KickReturn`. Commentary key: `kick_to_touch_missed`.
 
 ### Choice: tap_and_go
 
@@ -1831,7 +1831,7 @@ Commentary text is produced by `src/commentary/CommentaryRenderer.ts` from the s
 
 `src/types/narration.ts` defines `NarrationDescriptor { steps: NarrationStep[] }`. Each `NarrationStep` is one of:
 
-- `{ kind: 'phase_outcome', phase, key, primary?, secondary? }` — the dominant variant. `key` is a `PhaseOutcomeKey` (e.g. `knock_on`, `line_break`, `crash_ball`, `clean_ball`, `wheel`, `defend_catch_contested`, `fifty_twenty_two`, `tap_and_go`, …).
+- `{ kind: 'phase_outcome', phase, key, primary?, secondary?, metres? }` — the dominant variant. `key` is a `PhaseOutcomeKey` (e.g. `knock_on`, `line_break`, `crash_ball`, `clean_ball`, `wheel`, `defend_catch_contested`, `fifty_twenty_two`, `tap_and_go`, …). `metres` is an optional integer used by distance-aware keys such as `kick_to_touch_close` / `kick_to_touch_long`.
 - `{ kind: 'tactic_note', cause, chancePct, params? }` — flavour text gated by a `pickRandom`-driven chance roll. `cause` is a `TacticNoteCause` (e.g. `line_break_backfield_thin`, `breakdown_jackal_turnover`, `boxkick_backfield_caught`).
 - `{ kind: 'announcement', key, primary?, secondary?, params? }` — non-phase commentary (substitutions, fatigue, clock-in-red, half-time, full-time, set-piece-award).
 
@@ -1840,7 +1840,7 @@ Composite commentary (e.g. PhasePlay's "out the back" prefix + outcome + tactic 
 ### Renderer (`src/commentary/CommentaryRenderer.ts`)
 
 `renderNarration(event)` walks `event.narration.steps[]` and renders each step:
-- `phase_outcome` → look up `PHASE_BANKS[step.phase][step.key]`, pick a template via `pickRandom` (commentary stream), interpolate `{primary}`/`{secondary}`/`{side}`/`{defside}` tokens.
+- `phase_outcome` → look up `PHASE_BANKS[step.phase][step.key]`, pick a template via `pickRandom` (commentary stream), interpolate `{primary}`/`{secondary}`/`{side}`/`{defside}`/`{metres}` tokens. `{metres}` is populated from `NarrationStep.metres` (an optional integer on the `phase_outcome` variant); currently set only by the `kick_to_touch_close` / `kick_to_touch_long` penalty keys, where it holds the exact landing distance from the opposition try line in metres.
 - `tactic_note` → roll `commentaryChance(step.chancePct)`. On pass, look up lines via `getTacticNoteLines(cause, params)` and `pickRandom` one.
 - `announcement` → look up the template via `getAnnouncementTemplate(key, params)`, interpolate.
 

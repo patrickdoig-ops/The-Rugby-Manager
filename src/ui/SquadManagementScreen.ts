@@ -37,6 +37,7 @@ import { saveGame } from './SaveManager';
 import { showToast } from './Toast';
 import { eventBus } from '../utils/eventBus';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
+import { playHaptic } from './HapticsManager';
 
 export interface InitSquadManagementOpts {
   // Always called fresh — see HubScreen for the rationale.
@@ -251,6 +252,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     toList[toIdx]     = { ...fromPlayer, id: toId,   squadNumber: toId };
     dirty = true;
     selection = null;
+    playHaptic('ui_medium');
   }
 
   function clearTeam(): void {
@@ -383,6 +385,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         // Same row clicked again → deselect
         if (selection && selection.tier === tier && selection.squadNum === sn) {
           selection = null;
+          playHaptic('ui_light');
           render();
           return;
         }
@@ -392,6 +395,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         // wider-squad player, etc.
         if (selection === null) {
           selection = { tier, squadNum: sn };
+          playHaptic('ui_light');
           render();
           return;
         }

@@ -33,6 +33,7 @@ import { createRowExpander } from './components/rowExpand';
 import { averageRating } from '../game/seasonLeaderboards';
 import { showToast } from './Toast';
 import type { EarlyRenewalResult } from '../game/TransferCoordinator';
+import { playHaptic } from './HapticsManager';
 
 type SortKey = 'wage' | 'expiry' | 'ovr' | 'position' | 'age' | 'name';
 type SortDir = 'asc' | 'desc';
@@ -342,6 +343,7 @@ export function initContractsScreen(
           if (!Number.isFinite(rid)) return;
           const p = state.career.roster[rid];
           if (!p) return;
+          playHaptic('ui_light');
           gameEngine.designateMarquee(playerTeamId, p.contract.isMarquee ? null : rid);
           render();
         });

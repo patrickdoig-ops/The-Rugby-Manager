@@ -17,7 +17,9 @@ export type HapticPattern =
   | 'goal_miss'
   | 'tmo'
   | 'whistle_half'
-  | 'whistle_full';
+  | 'whistle_full'
+  | 'ui_light'
+  | 'ui_medium';
 
 // Web fallback patterns (ms, or [vibrate, pause, vibrate…]) for navigator.vibrate.
 // iOS Safari ignores these; the native plugin handles iOS instead.
@@ -29,6 +31,8 @@ const WEB_PATTERN: Record<HapticPattern, number | number[]> = {
   tmo:          20,
   whistle_half: [30, 40, 30],
   whistle_full: [50, 60, 50, 60, 50],
+  ui_light:     10,
+  ui_medium:    20,
 };
 
 // Native (iOS Taptic Engine) — fire-and-forget; we never await the promise so a
@@ -44,10 +48,12 @@ function playNative(pattern: HapticPattern): void {
       break;
     case 'goal_made':
     case 'whistle_half':
+    case 'ui_medium':
       void Haptics.impact({ style: ImpactStyle.Medium });
       break;
     case 'goal_miss':
     case 'tmo':
+    case 'ui_light':
       void Haptics.impact({ style: ImpactStyle.Light });
       break;
   }

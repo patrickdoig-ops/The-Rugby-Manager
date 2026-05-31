@@ -816,7 +816,7 @@ html, body {
   font-weight: 600;
   border-radius: 10px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.15s;
   white-space: nowrap;
   display: flex;
   align-items: center;
@@ -846,6 +846,7 @@ html, body {
 
 .ctrl-btn:active:not(:disabled) {
   background: var(--rm-surface-3);
+  transform: scale(0.98);
 }
 
 .ctrl-btn:disabled {
@@ -1215,7 +1216,7 @@ html, body {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
   white-space: nowrap;
 }
 
@@ -1227,6 +1228,7 @@ html, body {
 
 .sub-action-cancel:active {
   background: var(--rm-surface-3);
+  transform: scale(0.98);
 }
 
 .sub-action-confirm {
@@ -1239,6 +1241,7 @@ html, body {
 .sub-action-confirm:not(:disabled):active {
   background: var(--rm-cta-active);
   box-shadow: none;
+  transform: scale(0.98);
 }
 
 .sub-action-confirm:disabled {

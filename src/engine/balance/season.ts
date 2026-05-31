@@ -21,6 +21,23 @@ export const SEASON_VALUES = {
   internationalSkipDays:     28,
 } as const;
 
+// Permanent geographical rivalry pairs used by generateFixtures to concentrate
+// all derbies into two dedicated rounds per season.
+// Order within each pair is the canonical direction for even-numbered seasons;
+// generateFixtures randomises per-pair per season via rngTransfer.
+export const RIVALRY_PAIRS: [string, string][] = [
+  ['bath',        'gloucester'  ], // West Country
+  ['bristol',     'exeter'      ], // West Country
+  ['leicester',   'northampton' ], // East Midlands
+  ['harlequins',  'saracens'    ], // London
+  ['sale',        'newcastle'   ], // Northern
+];
+
+// Round positions for the two derby rounds.
+// FIRST  = Derby Weekend (early season).
+// SECOND = Big Match Weekend — strict home/away rematch of FIRST.
+export const DERBY_ROUND_POSITIONS = { first: 3, second: 12 } as const;
+
 // Named round labels for the 2025-26 Gallagher Premiership season.
 // Displayed in the fixture list and Hub next-match header.
 // Rounds 15-18 all carry "The Run In" — the post-Six Nations playoff sprint.

@@ -660,75 +660,68 @@ document.addEventListener('DOMContentLoaded', () => {
       goTransfersMidseason();
       return;
     }
+    // Resume mid-off-season: rollSeason() already ran (playoffs cleared)
+    // but the renewals or signings window is still open. Skip straight to
+    // the open market rather than landing on Hub with an orphaned market.
+    if (liveMarket && (liveMarket.phase === 'renewals' || liveMarket.phase === 'signings')) {
+      resumeOffSeasonMarket();
+      return;
+    }
     goHub();
   }
 
-  // Off-season chain after the playoff final resolves. Identical to the
-  // pre-playoffs end-of-season flow — EndOfSeason → Renewals → Signings
-  // → Rollover → Hub. Each market window is skipped when empty (the
-  // open*Window calls leave state.career.market null in that case).
-  function runEndOfSeasonChain(): void {
-    const proceedToRollover = (): void => {
-      if (!gameEngine) { goHub(); return; }
-      const rolloverEvents = gameEngine.rollSeason();
+  // Shared competitive signing loop used by both the normal off-season
+  // chain and the mid-off-season resume path. Drives:
+  //   TransferMarket → (AI bid pass + retention → resolve → results)*
+  //   → closeSigningWindow → onFinishCallback
+  function runOffSeasonSigningLoop(onFinishCallback: () => void): void {
+    const runRound = (): void => {
+      if (!gameEngine) { onFinishCallback(); return; }
+      // AI bid pass (free agents + poaches) then AI auto-retention.
+      gameEngine.runAIBidPass();
+      gameEngine.runAIRetentionPass();
       saveGame(gameEngine.toSavePayload());
-      showRollover(rolloverEvents, () => {
-        if (gameEngine) saveGame(gameEngine.toSavePayload());
-        goHub();
-      });
-      screenRouter.show('rollover');
-    };
-    // Drives the competitive signing loop:
-    //   - Show TransferMarketScreen. User makes offers, then presses
-    //     Submit (resolves one round, looping back here) or Finish
-    //     (closes the window, advancing to rollover).
-    //   - On Submit: runRound() handles AI bids + retention decisions
-    //     (with the user prompted via RetentionDecisionScreen if any of
-    //     their players are under poach attack) + resolution + results.
-    //   - After results: auto-finish if no viable next round, otherwise
-    //     loop back to TransferMarketScreen.
-    const runSigningLoop = (onFinishCallback: () => void): void => {
-      const runRound = (): void => {
+      const userPrompts = gameEngine.getUserRetentionPrompts();
+      const proceedToResolve = (): void => {
         if (!gameEngine) { onFinishCallback(); return; }
-        // AI bid pass (free agents + poaches) then AI auto-retention.
-        gameEngine.runAIBidPass();
-        gameEngine.runAIRetentionPass();
+        const outcomes = gameEngine.resolveSigningRound();
         saveGame(gameEngine.toSavePayload());
-        const userPrompts = gameEngine.getUserRetentionPrompts();
-        const proceedToResolve = (): void => {
+        showSigningResults(outcomes, () => {
           if (!gameEngine) { onFinishCallback(); return; }
-          const outcomes = gameEngine.resolveSigningRound();
-          saveGame(gameEngine.toSavePayload());
-          showSigningResults(outcomes, () => {
-            if (!gameEngine) { onFinishCallback(); return; }
-            // Loop back unless the user has nothing left to offer.
-            if (gameEngine.hasViableSigningOptions()) {
-              showLoop();
-            } else {
-              finishWindow();
-            }
-          });
-          screenRouter.show('signing-results');
-        };
-        if (userPrompts.length > 0) {
-          showRetentionDecision(proceedToResolve);
-          screenRouter.show('retention-decision');
-        } else {
-          proceedToResolve();
-        }
+          if (gameEngine.hasViableSigningOptions()) {
+            showLoop();
+          } else {
+            finishWindow();
+          }
+        });
+        screenRouter.show('signing-results');
       };
-      const finishWindow = (): void => {
-        if (!gameEngine) { onFinishCallback(); return; }
-        gameEngine.closeSigningWindow();
-        saveGame(gameEngine.toSavePayload());
-        onFinishCallback();
-      };
-      const showLoop = (): void => {
-        showTransferMarket(runRound, finishWindow);
-        screenRouter.show('transfer-market');
-      };
-      showLoop();
+      if (userPrompts.length > 0) {
+        showRetentionDecision(proceedToResolve);
+        screenRouter.show('retention-decision');
+      } else {
+        proceedToResolve();
+      }
     };
+    const finishWindow = (): void => {
+      if (!gameEngine) { onFinishCallback(); return; }
+      gameEngine.closeSigningWindow();
+      saveGame(gameEngine.toSavePayload());
+      onFinishCallback();
+    };
+    const showLoop = (): void => {
+      showTransferMarket(runRound, finishWindow);
+      screenRouter.show('transfer-market');
+    };
+    showLoop();
+  }
+
+  // Off-season chain after the playoff final resolves.
+  // Chain: EndOfSeason → BudgetReveal → (TakeoverReveal) → Rollover
+  //        → Renewals → SquadOverview → Signings → Hub.
+  // Each market window is skipped when empty (the open*Window calls
+  // leave state.career.market null in that case).
+  function runEndOfSeasonChain(): void {
 
     const proceedToSignings = (): void => {
       if (!gameEngine) { goHub(); return; }
@@ -740,17 +733,19 @@ document.addEventListener('DOMContentLoaded', () => {
         // releases land, before they decide who to recruit.
         showSquadOverview(() => {
           if (!gameEngine) { goHub(); return; }
-          runSigningLoop(proceedToRollover);
+          runOffSeasonSigningLoop(() => {
+            if (gameEngine) saveGame(gameEngine.toSavePayload());
+            goHub();
+          });
         });
         screenRouter.show('squad-overview');
       } else {
-        proceedToRollover();
+        if (gameEngine) saveGame(gameEngine.toSavePayload());
+        goHub();
       }
     };
     // proceedToRenewals: open the renewal window if there are expiring
-    // contracts, then route to RenewalsScreen / TransferMarket / Rollover.
-    // Pulled out so the BudgetReveal + TakeoverReveal can re-use it as
-    // their Continue handler.
+    // contracts, then route to RenewalsScreen → Signings → Hub.
     const proceedToRenewals = (): void => {
       if (!gameEngine) { goHub(); return; }
       gameEngine.openRenewalWindow();
@@ -767,11 +762,21 @@ document.addEventListener('DOMContentLoaded', () => {
         proceedToSignings();
       }
     };
+    // proceedToRollover: apply the rollover (aging, retirements, academy
+    // graduates) and show the Off-Season recap screen before renewals /
+    // signings. Declared after proceedToRenewals so the reference is valid.
+    const proceedToRollover = (): void => {
+      if (!gameEngine) { goHub(); return; }
+      const rolloverEvents = gameEngine.rollSeason();
+      saveGame(gameEngine.toSavePayload());
+      showRollover(rolloverEvents, proceedToRenewals);
+      screenRouter.show('rollover');
+    };
 
     showEndOfSeason(() => {
       if (!gameEngine) { goHub(); return; }
       // Compute next season's budgets (performance + takeovers) BEFORE
-      // any renewal / signing decisions. The events fire CLUB_BUDGET_SET
+      // the rollover zeroes out standings. Events fire CLUB_BUDGET_SET
       // for every club + CLUB_TAKEOVER for any Red Bull-style boost.
       const budgetEvents = gameEngine.prepareBudgetsForNextSeason();
       saveGame(gameEngine.toSavePayload());
@@ -786,8 +791,8 @@ document.addEventListener('DOMContentLoaded', () => {
         .map(e => ({ clubId: e.clubId, boostAmount: e.boostAmount, flavor: e.flavor }));
 
       const afterBudgetReveal = (): void => {
-        if (takeoverEntries.length === 0) { proceedToRenewals(); return; }
-        showTakeoverReveal({ takeovers: takeoverEntries, onContinue: () => proceedToRenewals() });
+        if (takeoverEntries.length === 0) { proceedToRollover(); return; }
+        showTakeoverReveal({ takeovers: takeoverEntries, onContinue: () => proceedToRollover() });
         screenRouter.show('takeover-reveal');
       };
 
@@ -801,6 +806,57 @@ document.addEventListener('DOMContentLoaded', () => {
       screenRouter.show('budget-reveal');
     });
     screenRouter.show('end-of-season');
+  }
+
+  // Resume handler for saves made mid-off-season (renewals or signings
+  // market open). Called from continueGame when the loaded save has an
+  // active off-season market. Picks up the chain at the right step and
+  // completes it: renewals screen (if renewals phase) → signings → Hub.
+  // rollSeason() has already run (state.league.playoffs is null), so we
+  // must NOT call it again — only the market windows remain.
+  function resumeOffSeasonMarket(): void {
+    if (!gameEngine) { goHub(); return; }
+    const market = gameEngine.getState().career.market;
+
+    const afterSignings = (): void => {
+      if (gameEngine) saveGame(gameEngine.toSavePayload());
+      goHub();
+    };
+
+    const resumeSignings = (): void => {
+      if (!gameEngine) { goHub(); return; }
+      gameEngine.openSigningWindow(); // no-op: market already open
+      if (gameEngine.getState().career.market) {
+        runOffSeasonSigningLoop(afterSignings);
+      } else {
+        afterSignings();
+      }
+    };
+
+    if (market?.phase === 'renewals') {
+      showRenewals((decisions) => {
+        if (!gameEngine) { goHub(); return; }
+        gameEngine.closeRenewalWindow(decisions);
+        saveGame(gameEngine.toSavePayload());
+        // Open signings as normal — openSigningWindow is idempotent.
+        gameEngine.openSigningWindow();
+        if (gameEngine.getState().career.market) {
+          saveGame(gameEngine.toSavePayload());
+          showSquadOverview(() => {
+            if (!gameEngine) { goHub(); return; }
+            runOffSeasonSigningLoop(afterSignings);
+          });
+          screenRouter.show('squad-overview');
+        } else {
+          afterSignings();
+        }
+      });
+      screenRouter.show('renewals');
+    } else if (market?.phase === 'signings') {
+      resumeSignings();
+    } else {
+      goHub();
+    }
   }
 
   // Routes the playoff chain. State-driven — picks the next action based

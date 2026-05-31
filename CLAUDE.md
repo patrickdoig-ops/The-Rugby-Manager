@@ -111,6 +111,25 @@ Streams are independent — adding a commentary line cannot shift outcome rolls;
 
 ---
 
+## 7. Worktree & Branch Integrity
+
+**Each session owns exactly one branch. Never let sessions bleed into each other.**
+
+This repo is often worked on across multiple concurrent Claude Code sessions using git worktrees. Without discipline, sessions clobber each other's branches or commit to the wrong one. These rules are non-negotiable:
+
+- **At session start, run `git branch --show-current` and confirm it matches the feature you were asked to work on.** If the branch is wrong (e.g. `main` when you expected a feature branch, or vice versa), stop and tell the user before touching any files.
+- **Never commit directly to `main` unless the user explicitly says "commit to main".** Feature work goes on a dedicated branch. The default assumption is: if you're in a worktree, you're on a feature branch.
+- **Never merge, rebase, or cherry-pick across branches without explicit instruction.** If two sessions' branches need to be combined, the user decides how — don't guess.
+- **Before any `git push`, confirm the remote target branch matches the local branch.** `git push origin HEAD` is safe; `git push origin HEAD:main` is not without explicit sign-off.
+- **Do not run `git fetch` / `git pull` mid-task unless the user asks.** Pulling in a shared branch mid-session can silently overwrite local work or shift the base under an in-flight rebase.
+- **Never run `git checkout`, `git switch`, or `git worktree add` inside a session** — worktrees are set up by the user or by the harness before the session starts. If the working directory looks wrong, say so rather than trying to fix it.
+- **Treat an unexpected dirty working tree as a signal to pause.** Untracked files, stashed changes, or an unexpected branch tip all mean something else happened here. Investigate (`git status`, `git log -5`) and report before making any further changes.
+- **One coherent feature per commit; each commit must build clean.** Don't batch unrelated changes into a single commit to avoid merge headaches later. If `npm run build` or `npm run verify` fails, fix it before committing.
+
+The diagnostic command to run when anything feels off: `git status && git log --oneline -5 && git branch -vv`.
+
+---
+
 ## Where to look
 
 | Topic | Source of truth |

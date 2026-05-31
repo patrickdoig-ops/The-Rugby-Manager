@@ -47,7 +47,7 @@ All emit UI side-effects through the shared `src/utils/eventBus.ts` singleton; e
 
 ### Mutation boundary: `MatchEvent` and `applyMatchEvent`
 
-All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.currentStats`, and `player.rating` flow through one function: `applyMatchEvent(state, event)` in `src/engine/applyMatchEvent.ts`. The `MatchEvent` discriminated union (`src/types/matchEvent.ts`) defines every kind of mutation the engine performs — domain events like `TRY_SCORED`, `KNOCK_ON`, `CARRY_RESOLVED`, `LINEOUT_RESOLVED`, `SCRUM_RESOLVED`, `BREAKDOWN_HIT`, `TURNOVER_AT_BREAKDOWN`, `PENALTY_AWARDED`, `CARD_ISSUED`, `SIN_BIN_RETURNED`, `RED_20_EXPIRED`, `TEAM_PENALTY_22_RECORDED`, `TEAM_22_WARNING_ISSUED`, `TMO_REVIEW_STARTED`/`TICK_ADVANCED`/`RESOLVED`, plus structural events like `BALL_REPOSITIONED`, `POSSESSION_SWAPPED`, `PHASE_CHANGED`, `COMMENTARY_LOGGED`, `RATINGS_RECALCULATED`. Phase handlers in `src/engine/events/` are read-only over state: they read, compute, and return `PhaseResult { ..., events: MatchEvent[] }`. `PhaseRouter.resolvePhase()` applies the queue through `applyMatchEvent` before composing the outgoing `GameEvent`. Orchestrators (`MatchCoordinator`, `ClockController`, `PenaltyHandler`, `CardHandler`) apply events directly through `applyMatchEvent` for non-phase mutations (clock, half-time, penalty choice, cards, sub flow, tactics). UI bus emissions (`eventBus.emit('engine:event'|'engine:stateChange'|…)`) are pure side effects that fire alongside, and are **not** part of the `MatchEvent` boundary.
+All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.currentStats`, and `player.rating` flow through one function: `applyMatchEvent(state, event)` in `src/engine/applyMatchEvent.ts`. The `MatchEvent` discriminated union (`src/types/matchEvent.ts`) defines every kind of mutation the engine performs — domain events like `TRY_SCORED`, `KNOCK_ON`, `CARRY_RESOLVED`, `INTERCEPTION`, `LINEOUT_RESOLVED`, `SCRUM_RESOLVED`, `MAUL_RESOLVED`, `BREAKDOWN_HIT`, `TURNOVER_AT_BREAKDOWN`, `PENALTY_AWARDED`, `CARD_ISSUED`, `SIN_BIN_RETURNED`, `RED_20_EXPIRED`, `TEAM_PENALTY_22_RECORDED`, `TEAM_22_WARNING_ISSUED`, `TMO_REVIEW_STARTED`/`TICK_ADVANCED`/`RESOLVED`, `OFFLOAD_ATTEMPTED`/`COMPLETED`, `FIFTY_22_ATTEMPTED`, `PLAYER_INJURED_IN_MATCH`, plus structural events like `BALL_REPOSITIONED`, `POSSESSION_SWAPPED`, `PHASE_CHANGED`, `COMMENTARY_LOGGED`, `RATINGS_RECALCULATED`. Phase handlers in `src/engine/events/` are read-only over state: they read, compute, and return `PhaseResult { ..., events: MatchEvent[] }`. `PhaseRouter.resolvePhase()` applies the queue through `applyMatchEvent` before composing the outgoing `GameEvent`. Orchestrators (`MatchCoordinator`, `ClockController`, `PenaltyHandler`, `CardHandler`) apply events directly through `applyMatchEvent` for non-phase mutations (clock, half-time, penalty choice, cards, sub flow, tactics). UI bus emissions (`eventBus.emit('engine:event'|'engine:stateChange'|…)`) are pure side effects that fire alongside, and are **not** part of the `MatchEvent` boundary.
 
 `applyMatchEvent` uses a `default: const _: never = event;` exhaustiveness check, so adding a new `MatchEvent` variant without a handling branch is a compile error.
 
@@ -105,7 +105,7 @@ Snapshot DTOs intentionally **stay scalar** — they are frozen log rows, not li
 
 ### UI Event Bus Contract
 
-The engine emits five UI-bound events through `src/utils/eventBus.ts`. UI modules subscribe to react; the engine never imports any UI module.
+The engine emits the following UI-bound events through `src/utils/eventBus.ts`. UI modules subscribe to react; the engine never imports any UI module.
 
 | Event | Payload | Subscribers |
 |---|---|---|
@@ -116,6 +116,7 @@ The engine emits five UI-bound events through `src/utils/eventBus.ts`. UI module
 | `engine:resumed` | `{}` | ModalManager, SimController |
 | `engine:autoPaused` | `{ reason: 'half_time' }` | SimController (re-enables Play, disables Pause). Fires once per match after the half-time line drains so the user has to press Play to start the second half. Skipped in silent mode. |
 | `engine:finished` | `{ state: MatchState }` | `main.ts` (shows match-result overlay) |
+| `engine:error` | `{ error: Error; context?: string }` | `main.ts` (renders a copy-pastable crash report; also caught by `simulateFixture` on the headless-fixture path). Fired from the `MatchCoordinator` tick's top-level `catch` block — surfaces unhandled throws that would otherwise be silently swallowed by `setTimeout`. |
 
 **Tick ordering:** within a single tick, `engine:event` fires **before** `engine:stateChange`. UI subscribers that depend on cached state from the prior tick will always have a valid cache by the time an event arrives.
 
@@ -193,8 +194,8 @@ baseScore = 6.0
 score += tries × 7.0
 score += lineBreaks × 1.2
 score += defendersBeaten × 0.8
-score += turnoversWon × 2.5
-score += dominantTackles × 1.0
+score += turnoversWon × 3.5
+score += dominantTackles × 2.0
 score += tacklesMade × 0.35
 score += kicksMade × 1.0
 score += metresCarried × 0.05
@@ -202,16 +203,18 @@ score -= knockOns × 1.5
 score -= (tacklesAttempted − tacklesMade) × 0.5   // missed tackles
 score -= penaltiesConceded × 1.2                  // breakdown penalties only
 score -= kicksMissed × 0.75
+score -= yellowCards × 5.0                         // 10-min sin-bin tanks the rating
+score -= redCards × 15.0                           // sending-off is match-ruining
 ```
 
 Position bonuses (stacked additively on top of universal):
 
 | Player id | Bonus |
 |---|---|
-| 2 (hooker) | `(lineoutWins / lineoutThrows − 0.75) × 20` when lineoutThrows > 0 |
-| 4, 5 (locks) | `lineoutCatches × 1.5` + `lineoutSteals × 3.0` |
+| 2 (hooker) | `(lineoutWins / lineoutThrows − 0.75) × 25` when lineoutThrows > 0 |
+| 4, 5 (locks) | `lineoutCatches × 2.0` + `lineoutSteals × 4.5` |
 | 1–3 (front row) | `scrumPenaltiesWon × 2.5` − `scrumPenaltiesConceded × 2.5` |
-| 6–8 (back row) | `turnoversWon × 1.5` (stacked) + `carries × 0.3` |
+| 6–8 (back row) | `turnoversWon × 3.5` (extra, stacked on top of universal 3.5) + `carries × 0.5` |
 | 9 (scrum-half) | `passes × 0.05` |
 | 10 (fly-half) | `kicksFromHand × 0.25` |
 | 11, 14, 15 (wings/fullback) | `lineBreaks × 0.5` (stacked) |
@@ -689,6 +692,18 @@ All three phases call `resolveOpenPlay(ballCarrier, defender, attackMod, defendM
 | `one_back` | 0 |
 | `two_back` | −5 |
 | `three_back` | −10 |
+
+**Try-Line Defence proximity penalty (`TRY_LINE_DEFENCE` in `src/engine/balance/carrying.ts`):**
+
+Inside the opposition 22, compressed space penalises attacker evasion and rewards defender collision-resistance. Applied via `tryLineDefenceBonus()` in `FieldPosition.ts`; consumed by `OpenPlayEvent`, `FirstPhaseEvent`, and the `PenaltyHandler` tap-and-go path.
+
+| Zone | Outer edge | Evasion penalty (attacker) | Collision resist (defender) |
+|---|---|---|---|
+| Opposition 22 (outer) | 22m from try line | −2 | +3 |
+| Red zone | 10m from try line | −3 | +6 |
+| Goal-line defence | 5m from try line | −6 | +10 |
+
+The modifiers are applied additively on top of `attackMod` / `defendMod` before the evasion roll; the collision-resist bump is added to `defendMod` in the collision step.
 
 **Step 3 — Evasion:**
 

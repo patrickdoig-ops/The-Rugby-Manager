@@ -48,6 +48,7 @@ export type RawTeamInput = {
   color: string;
   secondaryColor: string;
   stadium: string;
+  stadiumCapacity?: number;
   players: RawPlayer[];
   bench?: RawPlayer[];
   squad?: RawPlayer[];

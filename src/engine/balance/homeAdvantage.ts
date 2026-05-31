@@ -23,4 +23,15 @@ export const HOME_ADVANTAGE = {
   // (~1 unit ≈ 1 point of effective rating in resolver-margin terms).
   carryMod:     2,  // FirstPhase / PhasePlay / KickReturn → resolveOpenPlay
   breakdownMod: 3,  // BreakdownEvent → resolveBreakdown
+
+  // Crowd-scale: multiplier applied to carryMod / breakdownMod based on the
+  // venue's fill rate. Linear from crowdScaleMin (at crowdFillMin) to
+  // crowdScaleMax (at 1.0). Calibrated so scale(crowdFillNeutral) ≈ 1.0 —
+  // at the league-average fill rate (~0.79) the base mods are unchanged,
+  // preserving the ~57% home win-rate. A sold-out ground lifts the edge by
+  // ×1.30; a sparse crowd (55% fill) cuts it to ×0.65.
+  crowdFillMin:     0.55, // mirrors ATTENDANCE.minFillRate
+  crowdFillNeutral: 0.79, // league-average — default when no standings data
+  crowdScaleMin:    0.65,
+  crowdScaleMax:    1.30,
 } as const;

@@ -56,6 +56,7 @@ import { generatePersona } from './personaGenerator';
 import { resolveSchedule, backfillCareerContracts, buildRosterSeededEvent, buildCareerArchiveRestoredEvent } from './saveMigration';
 import { TransferCoordinator, type EarlyRenewalResult } from './TransferCoordinator';
 import { computeBudgetEvents } from './budgetPlanner';
+import { computeAttendance } from './attendance';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed, rngTransfer, getTransferCallCount, advanceTransferTo } from '../utils/rng';
 import { SEASON_VALUES, INJURY_SEVERITY, STARTER_FA_POOL } from '../engine/balance';
@@ -564,6 +565,7 @@ export class GameCoordinator {
     }
 
     const playerSide: 'home' | 'away' = fixture.homeId === this.state.player.teamId ? 'home' : 'away';
+    const homeJson = this.teamsById.get(fixture.homeId);
     const result: FixtureResult = {
       round,
       homeId: fixture.homeId,
@@ -575,6 +577,9 @@ export class GameCoordinator {
       playerSide,
       homeStats: snapshot.homeSummary,
       awayStats: snapshot.awaySummary,
+      attendance: homeJson?.stadiumCapacity
+        ? computeAttendance(fixture, homeJson.stadiumCapacity, this.state.league.standings, this.state.league.results)
+        : undefined,
     };
     applySeasonEvent(this.state, { type: 'FIXTURE_RESULT_RECORDED', result });
     for (const ev of collectSeasonEvents(snapshot)) {
@@ -602,7 +607,10 @@ export class GameCoordinator {
       if (!homeJson || !awayJson) continue;
       const home = buildAutoSelectedTeamFromRoster(this.state, homeJson);
       const away = buildAutoSelectedTeamFromRoster(this.state, awayJson);
-      const sim = await simulateFixture(home, away, this.state.seed, f.round);
+      const homeFillRate = homeJson.stadiumCapacity
+        ? computeAttendance(f, homeJson.stadiumCapacity, this.state.league.standings, this.state.league.results) / homeJson.stadiumCapacity
+        : undefined;
+      const sim = await simulateFixture(home, away, this.state.seed, f.round, { homeFillRate });
       const aiResult: FixtureResult = {
         round: f.round,
         homeId: f.homeId,
@@ -614,6 +622,9 @@ export class GameCoordinator {
         playerSide: null,
         homeStats: sim.snapshot.homeSummary,
         awayStats: sim.snapshot.awaySummary,
+        attendance: homeJson?.stadiumCapacity
+          ? computeAttendance(f, homeJson.stadiumCapacity, this.state.league.standings, this.state.league.results)
+          : undefined,
       };
       applySeasonEvent(this.state, { type: 'FIXTURE_RESULT_RECORDED', result: aiResult });
       for (const ev of collectSeasonEvents(sim.snapshot)) {

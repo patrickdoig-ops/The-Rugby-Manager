@@ -172,6 +172,11 @@ export interface MatchState {
     // the home edge. Defaults to false; set by MatchCoordinator from
     // the playoff-final call site.
     neutralVenue: boolean;
+    // Home venue fill rate (attendance / capacity) at kick-off, used by
+    // homeEdge() to scale carryMod / breakdownMod. Defaults to the
+    // league-average (~0.79) when no standings data is available (e.g.
+    // determinism harnesses, test fixtures).
+    homeFillRate: number;
   };
   phase: MatchPhase;
   possession: PossessionSide;

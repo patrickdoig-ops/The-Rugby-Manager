@@ -42,7 +42,7 @@ import { makeId, resetEventCounter } from './eventId';
 import { applyMatchEvent } from './applyMatchEvent';
 import { AITacticalDirector } from './AITacticalDirector';
 import { AISubstitutionDirector } from './AISubstitutionDirector';
-import { COMMENTARY_BUFFER_CAP, COMMENTARY_PACING, slotFamiliarity } from './balance';
+import { COMMENTARY_BUFFER_CAP, COMMENTARY_PACING, slotFamiliarity, HOME_ADVANTAGE } from './balance';
 import { STARTING_XV_MAX } from './Slot';
 
 // Shallow copy — PlayerStats fields are all primitives, so spread is a
@@ -163,7 +163,7 @@ function buildTeam(raw: RawTeamInput, tactics?: TeamTactics, kitColor?: string):
   };
 }
 
-function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayMs: number, seed: number, playerTactics?: TeamTactics, humanSide: 'home' | 'away' = 'home', neutralVenue = false): MatchState {
+function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayMs: number, seed: number, playerTactics?: TeamTactics, humanSide: 'home' | 'away' = 'home', neutralVenue = false, homeFillRate: number = HOME_ADVANTAGE.crowdFillNeutral): MatchState {
   return {
     clock: {
       gameMinute: 0,
@@ -180,6 +180,7 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
       humanSide,
       commentaryBufferCap: COMMENTARY_BUFFER_CAP,
       neutralVenue,
+      homeFillRate,
     },
     phase: MatchPhase.KickOff,
     score: { home: 0, away: 0 },
@@ -271,7 +272,7 @@ export class MatchCoordinator {
   constructor(
     homeRaw: RawTeamInput,
     awayRaw: RawTeamInput,
-    opts: { tickDelayMs?: number; homeTactics?: TeamTactics; playerTactics?: TeamTactics; humanSide?: 'home' | 'away'; seed?: number; silent?: boolean; commentaryBufferCap?: number; neutralVenue?: boolean } = {},
+    opts: { tickDelayMs?: number; homeTactics?: TeamTactics; playerTactics?: TeamTactics; humanSide?: 'home' | 'away'; seed?: number; silent?: boolean; commentaryBufferCap?: number; neutralVenue?: boolean; homeFillRate?: number } = {},
   ) {
     const seed = (opts.seed ?? generateSeed()) >>> 0;
     setMatchSeed(seed);
@@ -279,7 +280,7 @@ export class MatchCoordinator {
     this.humanSide = opts.humanSide ?? 'home';
     this.silent = opts.silent ?? false;
     const tactics = opts.playerTactics ?? opts.homeTactics;
-    this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, seed, tactics, this.humanSide, opts.neutralVenue ?? false);
+    this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, seed, tactics, this.humanSide, opts.neutralVenue ?? false, opts.homeFillRate);
     if (opts.commentaryBufferCap !== undefined) {
       applyMatchEvent(this.state, { type: 'COMMENTARY_BUFFER_CAP_SET', value: opts.commentaryBufferCap });
     }

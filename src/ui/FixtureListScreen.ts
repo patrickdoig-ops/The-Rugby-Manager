@@ -106,7 +106,7 @@ export function initFixtureListScreen(
       ? `<div class="fl-date-row">
            ${fixture.date ? `<span class="fl-date-pill">${shortFixtureDate(fixture.date)}</span>` : ''}
            ${countdown ? `<span class="fl-countdown-chip">${countdown}</span>` : ''}
-           ${fixture.venue ? `<span class="fl-venue-chip">${fixture.venue.toUpperCase()}</span>` : ''}
+           ${fixture.venue ? `<span class="fl-venue-chip">${fixture.venue.toUpperCase()}${fixture.venueCapacity ? ` · ${fixture.venueCapacity.toLocaleString()}` : ''}</span>` : ''}
          </div>`
       : '';
     const rowDelay = Math.min(index, 16) * 25;

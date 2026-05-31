@@ -24,9 +24,11 @@ export interface Fixture {
   // Drives the visual badge on fixture rows in the fixture list.
   isDerby?: true;
   // Alternative venue name when a match is played outside the home club's
-  // regular ground (e.g. "Allianz Stadium, Twickenham"). Home advantage is
-  // unchanged — the larger venue is still a home fixture.
+  // regular ground. Home advantage is unchanged — the larger venue is still
+  // a home fixture.
   venue?: string;
+  // Capacity of the alternative venue, shown as display-only flavour.
+  venueCapacity?: number;
 }
 
 export interface SeasonSchedule {

@@ -359,7 +359,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
             ${crestHtml(away, 'nm-crest')}
           </div>
         </div>
-        <div class="hub-nm-meta">${venueLabel} · ${venueName}</div>
+        <div class="hub-nm-meta">${venueLabel} · ${venueName}${fixture.venueCapacity ? ` · ${fixture.venueCapacity.toLocaleString()}` : ''}</div>
         <div class="hub-nm-spread">${spreadLabel}</div>
       </div>
     `;

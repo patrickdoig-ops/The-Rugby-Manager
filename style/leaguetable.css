@@ -87,6 +87,24 @@
 }
 
 .lt-rank { color: var(--rm-text-dim); text-align: right; }
+
+/* Position-movement indicator shown in post-match mode for all teams. */
+.lt-rank--has-delta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  line-height: 1;
+}
+.lt-rank-num { color: var(--rm-text-dim); }
+.lt-delta {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1;
+}
+.lt-delta--up   { color: var(--rm-pitch); }
+.lt-delta--down { color: var(--rm-danger); }
 .lt-crest-spacer { width: var(--crest-xs-size); }
 .lt-crest {
   width: var(--crest-xs-size);

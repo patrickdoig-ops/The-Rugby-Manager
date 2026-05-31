@@ -15,7 +15,7 @@
 import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { FixtureResult, TeamStanding } from '../types/gameState';
-import { sortStandings } from '../game/leagueTable';
+import { sortStandings, computeStandingsFromResults } from '../game/leagueTable';
 import { recentForm, type FormResult } from '../game/teamStats';
 import { renderFormPipStrip } from './components/formPip';
 import { eventBus } from '../utils/eventBus';
@@ -74,6 +74,7 @@ function standardRow(
   teamsById: Map<string, RawTeamInput>,
   highlight: boolean,
   zoneBreak: boolean,
+  delta: number | null,
 ): string {
   const team = teamsById.get(s.teamId);
   const name = displayName(team, s.teamId);
@@ -83,14 +84,11 @@ function standardRow(
   const diff = `${s.pointsDiff >= 0 ? '+' : ''}${s.pointsDiff}`;
   const crest = team ? teamCrest(team) : '<div class="lt-crest"></div>';
   const bonusPoints = s.tryBonus + s.losingBonus;
-  // Click target: data-team-id is read by the click + keydown handlers
-  // in init. role=button + tabindex make the div keyboard-accessible
-  // without changing the existing grid layout.
   const label = team ? `View ${team.name} info` : `View ${s.teamId} info`;
   const rowDelay = Math.min(rank - 1, 16) * 25;
   return `
     <div class="${classes.join(' ')}" role="button" tabindex="0" data-team-id="${s.teamId}" aria-label="${label}" style="--row-delay: ${rowDelay}ms">
-      <span class="lt-rank">${rank}</span>
+      ${rankCell(rank, delta)}
       ${crest}
       <span class="lt-name">${name}</span>
       <span class="lt-num">${s.played}</span>
@@ -110,6 +108,7 @@ function formRow(
   teamsById: Map<string, RawTeamInput>,
   highlight: boolean,
   results: FixtureResult[],
+  delta: number | null,
 ): string {
   const team = teamsById.get(s.teamId);
   const name = displayName(team, s.teamId);
@@ -123,13 +122,37 @@ function formRow(
   const rowDelay = Math.min(rank - 1, 16) * 25;
   return `
     <div class="${classes.join(' ')}" role="button" tabindex="0" data-team-id="${s.teamId}" aria-label="${label}" style="--row-delay: ${rowDelay}ms">
-      <span class="lt-rank">${rank}</span>
+      ${rankCell(rank, delta)}
       ${crest}
       <span class="lt-name">${name}</span>
       <span class="lt-form">${formHtml}</span>
       <span class="lt-pts" title="Form points (W=3, D=1, L=0 over last 5)">${pts}</span>
     </div>
   `;
+}
+
+function rankCell(rank: number, delta: number | null): string {
+  if (delta === null || delta === 0) return `<span class="lt-rank">${rank}</span>`;
+  const dir = delta > 0 ? 'up' : 'down';
+  const arrow = delta > 0 ? `↑${delta}` : `↓${Math.abs(delta)}`;
+  return `<span class="lt-rank lt-rank--has-delta">
+    <span class="lt-rank-num">${rank}</span><span class="lt-delta lt-delta--${dir}">${arrow}</span>
+  </span>`;
+}
+
+function computePositionDeltas(
+  prevResults: readonly FixtureResult[],
+  currentStandings: readonly TeamStanding[],
+): Map<string, number> {
+  const prevSorted = sortStandings(computeStandingsFromResults(prevResults));
+  const curSorted = sortStandings(currentStandings);
+  const deltas = new Map<string, number>();
+  for (let i = 0; i < curSorted.length; i++) {
+    const { teamId } = curSorted[i];
+    const prevIdx = prevSorted.findIndex(s => s.teamId === teamId);
+    deltas.set(teamId, prevIdx === -1 ? 0 : (prevIdx + 1) - (i + 1));
+  }
+  return deltas;
 }
 
 function sortByForm(standings: TeamStanding[], results: FixtureResult[]): TeamStanding[] {
@@ -170,6 +193,19 @@ export function initLeagueTableScreen(
     const playerTeamId = state.player.teamId;
     const totalRounds = state.league.fixtures.reduce((max, f) => Math.max(max, f.round), 0);
     const results = state.league.results;
+    const inPostMatch = postMatchOnContinue !== null;
+
+    // In post-match mode, compute how each team's position changed as a result
+    // of the round that was just completed. calendar.week is already the next
+    // round at this point, so justCompleted = week - 1.
+    let posDeltas: Map<string, number> | null = null;
+    if (inPostMatch) {
+      const justCompleted = state.calendar.week - 1;
+      const prevResults = results.filter(r => r.round < justCompleted);
+      if (prevResults.length > 0) {
+        posDeltas = computePositionDeltas(prevResults, state.league.standings);
+      }
+    }
 
     const sorted = viewMode === 'standard'
       ? sortStandings(state.league.standings)
@@ -180,18 +216,19 @@ export function initLeagueTableScreen(
 
     const rows = sorted.map((s, i) => {
       const rank = i + 1;
+      const delta = posDeltas?.get(s.teamId) ?? null;
       if (viewMode === 'standard') {
         // During The Run In, replace the CSS zone-break border with an
         // explicit playoff separator so we can label it.
         const zoneBreak = !isRunIn && rank === PLAYOFF_SPOTS + 1;
-        const row = standardRow(s, rank, teamsById, s.teamId === playerTeamId, zoneBreak);
+        const row = standardRow(s, rank, teamsById, s.teamId === playerTeamId, zoneBreak, delta);
         if (isRunIn && rank === PLAYOFF_SPOTS) {
           const label = `PLAYOFF PLACES · ${roundsLeft} ROUND${roundsLeft === 1 ? '' : 'S'} TO GO`;
           return row + `<div class="lt-playoff-sep">${label}</div>`;
         }
         return row;
       }
-      return formRow(s, rank, teamsById, s.teamId === playerTeamId, results);
+      return formRow(s, rank, teamsById, s.teamId === playerTeamId, results, delta);
     }).join('');
 
     const headRow = viewMode === 'standard'
@@ -215,7 +252,6 @@ export function initLeagueTableScreen(
            <span class="lt-pts" title="Form points (W=3, D=1, L=0)">Pts</span>
          </div>`;
 
-    const inPostMatch = postMatchOnContinue !== null;
     const topbarLeft = inPostMatch
       ? `<div class="app-topbar-spacer"></div>`
       : `<button id="lt-back" class="app-back" aria-label="Back to hub">

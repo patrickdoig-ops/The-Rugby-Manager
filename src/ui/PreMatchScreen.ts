@@ -33,6 +33,7 @@ import { computeOverallRating } from '../team/teamProfile';
 import { recentForm, headToHead, matchSpread, formAdjustment, HOME_ADVANTAGE_PTS, type FormResult } from '../game/teamStats';
 import { computeAttendance } from '../game/attendance';
 import { applyMatchdaySquad, makeInjuredPredicate } from '../game/playerSquad';
+import { restUnavailableIds } from '../game/internationalDutyEngine';
 import { buildTeamFromRoster, buildAutoSelectedTeamFromRoster } from '../game/rosterTeamBuilder';
 import { teamPossessionPct, teamTerritoryPct, averageRating } from '../game/seasonLeaderboards';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
@@ -401,9 +402,13 @@ export function initPreMatchScreen(
   const humanRosterBased = buildTeamFromRoster(state, humanTeamJson);
   const oppRosterBased   = buildAutoSelectedTeamFromRoster(state, oppTeamJson);
   const club = state.career.clubs.find(c => c.id === humanTeamJson.id);
-  const repair = club ? { roster: state.career.roster, clubSquadIds: club.squad } : undefined;
+  // Players who must be rested this round (PGA international-duty obligation,
+  // forced) are treated exactly like injured players: excluded from the
+  // auto-repaired matchday squad and flagged unavailable for display.
+  const restUnavailable = club ? restUnavailableIds(state, humanTeamJson.id) : undefined;
+  const repair = club ? { roster: state.career.roster, clubSquadIds: club.squad, unavailableIds: restUnavailable } : undefined;
   const humanApplied = applyMatchdaySquad(humanRosterBased, savedSquad, repair);
-  const isInjured = club ? makeInjuredPredicate(state.career.roster, club.squad) : undefined;
+  const isInjured = club ? makeInjuredPredicate(state.career.roster, club.squad, restUnavailable) : undefined;
   const injuredSavedRefs = (savedSquad && isInjured)
     ? savedSquad.filter(ref => isInjured(ref))
     : [];

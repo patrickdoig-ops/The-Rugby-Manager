@@ -83,11 +83,12 @@ interface Ranked {
 function rankFit(
   roster: Record<number, Player>,
   clubSquadIds: number[],
+  unavailableIds?: ReadonlySet<number>,
 ): Ranked[] {
   const out: Ranked[] = [];
   for (const rid of clubSquadIds) {
     const p = roster[rid];
-    if (!p || p.injury) continue;
+    if (!p || p.injury || unavailableIds?.has(rid)) continue;
     out.push({
       rosterId: rid,
       position: p.position,
@@ -136,8 +137,9 @@ function pickForSlot(
 export function selectBestMatchdaySquad(
   roster: Record<number, Player>,
   clubSquadIds: number[],
+  unavailableIds?: ReadonlySet<number>,
 ): number[] {
-  const pool = rankFit(roster, clubSquadIds);
+  const pool = rankFit(roster, clubSquadIds, unavailableIds);
   const used = new Set<number>();
   const result: number[] = [];
   for (const spec of SLOT_SPECS) {
@@ -163,9 +165,10 @@ export function repairInjuredMatchdaySquad(
   currentRosterIds: number[],
   roster: Record<number, Player>,
   clubSquadIds: number[],
+  unavailableIds?: ReadonlySet<number>,
 ): number[] {
   if (currentRosterIds.length !== 23) {
-    return selectBestMatchdaySquad(roster, clubSquadIds);
+    return selectBestMatchdaySquad(roster, clubSquadIds, unavailableIds);
   }
 
   const used = new Set<number>();
@@ -175,7 +178,7 @@ export function repairInjuredMatchdaySquad(
   for (let i = 0; i < 23; i++) {
     const rid = currentRosterIds[i];
     const p = roster[rid];
-    if (p && !p.injury) {
+    if (p && !p.injury && !unavailableIds?.has(rid)) {
       result[i] = rid;
       used.add(rid);
     } else {
@@ -185,7 +188,7 @@ export function repairInjuredMatchdaySquad(
 
   if (needs.length === 0) return result;
 
-  const pool = rankFit(roster, clubSquadIds);
+  const pool = rankFit(roster, clubSquadIds, unavailableIds);
   for (const idx of needs) {
     const pick = pickForSlot(SLOT_SPECS[idx], pool, used);
     if (pick) {

@@ -24,10 +24,11 @@
 
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput, RawPlayer } from '../types/teamData';
-import type { Position, PlayerInjury } from '../types/player';
+import type { Position, PlayerInjury, RestObligation } from '../types/player';
 import { applyMatchdaySquad, extractMatchdaySquad } from '../game/playerSquad';
 import { selectBestMatchdaySquad } from '../game/autoSelect';
 import { buildTeamFromRoster } from '../game/rosterTeamBuilder';
+import { restUnavailableIds } from '../game/internationalDutyEngine';
 import { playerOverall } from '../engine/RatingEngine';
 import { oopSeverity, oopPenaltyPct, SLOT_POSITION } from '../engine/balance';
 import { averageRating } from '../game/seasonLeaderboards';
@@ -134,7 +135,9 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     if (!teamJson) return;
     const fresh = buildTeamFromRoster(state, teamJson);
     const club = state.career.clubs.find(c => c.id === teamJson.id);
-    const repair = club ? { roster: state.career.roster, clubSquadIds: club.squad } : undefined;
+    // Forced international-duty rest is treated like injury for auto-repair.
+    const restUnavailable = club ? restUnavailableIds(state, teamJson.id) : undefined;
+    const repair = club ? { roster: state.career.roster, clubSquadIds: club.squad, unavailableIds: restUnavailable } : undefined;
     const applied = applyMatchdaySquad(fresh, state.player.matchdaySquad, repair);
     draftStarters = (applied.players as RawPlayer[]).map(p => ({ ...p }));
     draftBench    = ((applied.bench ?? []) as RawPlayer[]).map(p => ({ ...p }));
@@ -157,6 +160,19 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     for (const rid of club.squad) {
       const r = state.career.roster[rid];
       if (r && r.firstName === p.firstName && r.lastName === p.lastName) return r.injury;
+    }
+    return undefined;
+  }
+
+  // Active PGA rest obligation for a draft row (international duty). Surfaced
+  // as a "REST" badge so the manager can plan which window round to sit them.
+  function restObligationFor(p: { firstName: string; lastName: string }): RestObligation | undefined {
+    const state = opts.getGameEngine().getState();
+    const club = state.career.clubs.find(c => c.id === state.player.teamId);
+    if (!club) return undefined;
+    for (const rid of club.squad) {
+      const r = state.career.roster[rid];
+      if (r && r.firstName === p.firstName && r.lastName === p.lastName) return r.restObligation;
     }
     return undefined;
   }
@@ -524,6 +540,10 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     const injuryBadge = injury
       ? `<span class="injury-badge" title="${injuryKindLabel(injury.kind)} — ${injury.weeksRemaining}w">${injury.weeksRemaining}w</span>`
       : '';
+    const rest = !injury ? restObligationFor(p) : undefined;
+    const restBadge = rest
+      ? `<span class="rest-badge" title="International duty — must be rested in one of rounds ${rest.eligibleRounds.join(', ')}">REST</span>`
+      : '';
     const condition = conditionFor(p);
     const conditionCell = condition === null
       ? `<div class="sq-con sq-con--unrated" title="No condition data">—</div>`
@@ -564,7 +584,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       <div class="${classes.join(' ')}" data-tier="${tier}" data-squad="${sn}" style="--row-delay: ${rowDelay}ms">
         <div class="sq-jersey sq-jersey--${tier}">${jerseyContent}</div>
         <div class="sq-player-info">
-          <span class="sq-player-name sq-player-name--${tier}">${nameInner}${injuryBadge ? ' ' + injuryBadge : ''}</span>
+          <span class="sq-player-name sq-player-name--${tier}">${nameInner}${injuryBadge ? ' ' + injuryBadge : ''}${restBadge ? ' ' + restBadge : ''}</span>
           <span class="sq-player-pos sq-player-pos--${tier}">${p.position}${oopBadge}</span>
         </div>
         <div class="sq-ovr ${ovrClass(ovr)}">${ovr}</div>

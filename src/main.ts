@@ -88,6 +88,7 @@ import { initContractsScreen, showContracts, showContractsMarqueeEdit } from './
 import { initSquadManagementScreen, showSquadManagement } from './ui/SquadManagementScreen';
 import { initTrainingScreen, showTrainingPostMatch, showTrainingMidweek } from './ui/TrainingScreen';
 import { initPostTrainingResultsScreen, showPostTrainingResults } from './ui/PostTrainingResultsScreen';
+import { initInternationalBreakScreen, showInternationalBreak } from './ui/InternationalBreakScreen';
 import { initAchievementsScreen, showAchievements }  from './ui/AchievementsScreen';
 import { initInboxScreen } from './ui/InboxScreen';
 import { initAchievementEngine }   from './achievements/AchievementEngine';
@@ -364,6 +365,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initTrainingScreen(getGameEngine, allTeams);
     initPostTrainingResultsScreen(getGameEngine, allTeams, (rosterId) => {
       goPlayerProfile(rosterId, () => screenRouter.show('training-results', { direction: 'back' }));
+    });
+    initInternationalBreakScreen(getGameEngine, allTeams, (rosterId) => {
+      goPlayerProfile(rosterId, () => screenRouter.show('international-break', { direction: 'back' }));
     });
     initAchievementsScreen(() => goLeagueMenu('back'));
     // Achievements listen to game:* events and read live state through the
@@ -1154,7 +1158,16 @@ document.addEventListener('DOMContentLoaded', () => {
           ? () => { bracketSeededPending = false; runPlayoffStage(); }
           : () => { if (gameEngine) saveGame(gameEngine.toSavePayload()); goHub(); };
         showTrainingPostMatch((results) => {
-          showPostTrainingResults(results, afterTraining);
+          // At an international break the training result carries a summary;
+          // slot the International Break screen between training results and
+          // the chain's next step (Hub / playoffs).
+          const afterResults = results.international
+            ? () => {
+                showInternationalBreak(results.international!, afterTraining);
+                screenRouter.show('international-break');
+              }
+            : afterTraining;
+          showPostTrainingResults(results, afterResults);
           screenRouter.show('training-results');
         }, playoffLabel);
         screenRouter.show('training');

@@ -82,6 +82,25 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
     });
   }
 
+  // --- International-duty rest obligations ---
+  const obligated = club.squad
+    .map(rid => state.career.roster[rid])
+    .filter((p): p is Player => !!p && !!p.restObligation);
+  if (obligated.length > 0) {
+    const listed = obligated.slice(0, 3).map(p => p.lastName);
+    const extra = obligated.length > 3 ? ` and ${obligated.length - 3} more` : '';
+    const rounds = obligated[0].restObligation!.eligibleRounds;
+    const rangeLabel = rounds.length > 1 ? `one of rounds ${rounds[0]}–${rounds[rounds.length - 1]}` : `round ${rounds[0]}`;
+    items.push({
+      id: `intlrest:${season}:w${state.calendar.week}`,
+      category: 'squad',
+      priority: 72,
+      subject: `${obligated.length} player${obligated.length !== 1 ? 's' : ''} need rest after international duty`,
+      body: `${listed.join(', ')}${extra} featured heavily for England and must be rested in ${rangeLabel} under the Professional Game Agreement. Plan your selections accordingly.`,
+      deepLink: 'squad',
+    });
+  }
+
   // --- Expiring contracts ---
   const leaving = new Set(
     state.career.pendingMoves

@@ -141,6 +141,26 @@ export type InjuryKind =
 
 export type InjurySeverity = 'mild' | 'moderate' | 'severe';
 
+// The two international windows that overlap the Premiership season and pull
+// players away from their clubs. 'autumn' = Autumn Nations Series in November
+// (England / Wales / Scotland + the Springbok northern tour); 'six_nations' =
+// the Six Nations in Feb–March (England / Wales / Scotland — South Africa is
+// absent). The Premiership pauses during both, so the effects land when the
+// players return for Round 6 / Round 11.
+export type InternationalWindow = 'autumn' | 'six_nations';
+
+// PGA-style rest obligation carried by an *England* international who featured
+// heavily in an international block. The player must sit out at least one of
+// `eligibleRounds`; the engine force-excludes them on the last (human club) /
+// first (AI club) eligible round if they haven't already been rested. Cleared
+// by REST_OBLIGATION_RESOLVED the moment they're rested and en masse at
+// SEASON_ROLLED_OVER. England players only — the PGA is an RFU/Premiership
+// agreement, so Welsh / Scottish / South African returnees never carry one.
+export interface RestObligation {
+  window: InternationalWindow;
+  eligibleRounds: number[];      // the up-to-three Premiership rounds the rest may fall in
+}
+
 // Career-scope persistent injury record. Lives on the career-roster Player
 // (state.career.roster[rosterId].injury). Written at match teardown by
 // PLAYER_INJURED, decremented weekly by INJURY_TICK_ADVANCED, cleared by
@@ -206,6 +226,20 @@ export interface Player {
   // events with severity rolled via rngTransfer. Never serialised; absent
   // outside of an in-progress match.
   pendingInjuryKind?: InjuryKind;
+  // Transient call-up flag: present only while the player is away with their
+  // national team during an international break (set + cleared inside
+  // GameCoordinator.applyTrainingBlock). Drives the training-skip for the
+  // break so internationals get no club condition recovery / development.
+  // Never serialised — like pendingInjuryKind.
+  internationalDuty?: { window: InternationalWindow };
+  // Persistent PGA rest obligation (England internationals only). Set on
+  // return by PLAYER_RETURNED_FROM_DUTY, cleared by REST_OBLIGATION_RESOLVED.
+  // Absent ⇔ no obligation. See RestObligation.
+  restObligation?: RestObligation;
+  // Career-scope international appearances accumulated across windows. Bumped
+  // by PLAYER_CALLED_UP. Optional ⇔ never selected; powers a PlayerProfile
+  // stat and lets the duty engine evolve a sense of history over seasons.
+  internationalCaps?: number;
 }
 
 // Identity element for PlayerMatchStats — co-located with the type so adding

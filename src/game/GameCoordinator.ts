@@ -40,7 +40,7 @@ import { emptyCareerState } from '../types/gameState';
 import { sortStandings } from './leagueTable';
 import type { Player } from '../types/player';
 import type { TeamTactics } from '../types/team';
-import type { TrainingPlan, TrainingWeekResult, PlayerTrainingResult } from '../types/training';
+import type { TrainingPlan, TrainingWeekResult, PlayerTrainingResult, InternationalBreakSummary } from '../types/training';
 import type { PlayerStats } from '../types/player';
 import { applySeasonEvent } from './applySeasonEvent';
 import type { PreSeasonTransfer } from '../data/transfers-2025-26';
@@ -51,6 +51,11 @@ import { parseSeasonStartYear, seasonOpenIso } from './age';
 import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot, type PlayerStatsSnapshot } from './seasonStatsCollector';
 import { computeTrainingWeek } from './trainingWeek';
 import { upcomingGap, splitGapIntoPeriods } from './trainingCalendar';
+import {
+  isInternationalBreak, selectInternationalSquads, buildCallUpEvents,
+  resolveInternationalBreak, reconcileRestObligations, lionsConditionEvents,
+  type CallUp,
+} from './internationalDutyEngine';
 import { computeRollover } from './careerRollover';
 import { generatePersona } from './personaGenerator';
 import { resolveSchedule, backfillCareerContracts, buildRosterSeededEvent, buildCareerArchiveRestoredEvent } from './saveMigration';
@@ -204,6 +209,13 @@ export class GameCoordinator {
       clubs: seeded.clubs,
       nextRosterId: seeded.nextRosterId,
     });
+    // B&I Lions 2025 return: the 2025/26 opener only. Curated Australia-tour
+    // members in the seeded roster start under-cooked (reduced condition) from
+    // a shortened pre-season. RNG-free, so it doesn't perturb the FA-pool seed
+    // below. The next Lions tour (2029) is out of scope.
+    if (seasonStartYear === 2025) {
+      for (const ev of lionsConditionEvents(coord.state)) applySeasonEvent(coord.state, ev);
+    }
     // Seed a small starter free-agent pool so Hub → Transfers has
     // something to scout from day one. Uses the same persona generator
     // as the rollover-time foreign imports; lower rating ceiling +
@@ -299,6 +311,28 @@ export class GameCoordinator {
     applySeasonEvent(this.state, { type: 'PLAYER_MATCHDAY_SQUAD_SET', squad });
   }
 
+  // rosterIds of the human club's persisted matchday 23 (mapped from the
+  // saved PlayerRef[] by name). Used by the rest-obligation reconciliation to
+  // tell whether an obligated player featured this round. Empty when no squad
+  // is persisted yet.
+  private humanMatchdaySquadIds(): Set<number> {
+    const out = new Set<number>();
+    const md = this.state.player.matchdaySquad;
+    if (!md) return out;
+    const club = this.state.career.clubs.find(c => c.id === this.state.player.teamId);
+    if (!club) return out;
+    const idByName = new Map<string, number>();
+    for (const rid of club.squad) {
+      const p = this.state.career.roster[rid];
+      if (p) idByName.set(`${p.firstName}|${p.lastName}`, rid);
+    }
+    for (const ref of md) {
+      const rid = idByName.get(`${ref.firstName}|${ref.lastName}`);
+      if (rid !== undefined) out.add(rid);
+    }
+    return out;
+  }
+
   // Applies a training block — one entry in `weeks` per discrete training
   // week of the gap until the player's next match (length === upcomingGap
   // weeks; the UI renders one card per week). The gap's real day count is
@@ -314,6 +348,17 @@ export class GameCoordinator {
     const n = Math.max(1, weeks.length);
     const { days } = upcomingGap(this.state);
     const spans = splitGapIntoPeriods(days, n);
+
+    // International break: select the national squads and flag them BEFORE the
+    // training loop so computeTrainingWeek skips them (they're away — no club
+    // training, no condition recovery / development). Their returns are
+    // resolved after the block. League-wide; AI clubs lose their players too.
+    const intlWindow = isInternationalBreak(this.state);
+    let intlCallUps: CallUp[] = [];
+    if (intlWindow) {
+      intlCallUps = selectInternationalSquads(this.state, intlWindow);
+      for (const ev of buildCallUpEvents(intlCallUps, intlWindow)) applySeasonEvent(this.state, ev);
+    }
 
     // Per-player accumulator merged across periods. conditionBefore is
     // captured the first period a player trains; conditionAfter tracks the
@@ -368,11 +413,22 @@ export class GameCoordinator {
       }
     }
 
+    // Resolve international returns after the training block: reduced
+    // condition, possible injury, and (England heavy-load) a PGA rest
+    // obligation. Builds the summary for the International Break screen.
+    let international: InternationalBreakSummary | undefined;
+    if (intlWindow) {
+      const resolved = resolveInternationalBreak(this.state, intlCallUps, intlWindow);
+      for (const ev of resolved.events) applySeasonEvent(this.state, ev);
+      international = resolved.summary;
+    }
+
     eventBus.emit('game:trainingApplied', { state: this.state });
     return {
       plan: weeks[weeks.length - 1],
       players: [...acc.values()],
       weeks: n,
+      ...(international ? { international } : {}),
     };
   }
 
@@ -637,6 +693,14 @@ export class GameCoordinator {
         applySeasonEvent(this.state, ev);
       }
       eventBus.emit('game:fixtureRecorded', { result: aiResult, state: this.state });
+    }
+
+    // Reconcile PGA rest obligations for the round just played (calendar.week
+    // still points at this round). A player whose obligation covered this
+    // round and who didn't feature has satisfied it. Runs before
+    // WEEK_ADVANCED so the round number is correct.
+    for (const ev of reconcileRestObligations(this.state, this.humanMatchdaySquadIds())) {
+      applySeasonEvent(this.state, ev);
     }
 
     applySeasonEvent(this.state, { type: 'WEEK_ADVANCED' });

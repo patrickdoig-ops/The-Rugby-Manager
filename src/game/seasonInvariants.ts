@@ -61,6 +61,16 @@ export function assertSeasonInvariants(state: GameState): void {
     if (p.potential !== undefined && !(p.potential >= 1 && Number.isFinite(p.potential))) {
       fail(`roster.potential[${rosterId}]`, `${p.potential}`);
     }
+    if (p.restObligation) {
+      if (p.restObligation.eligibleRounds.length === 0) {
+        fail(`roster.restObligation[${rosterId}]`, `empty eligibleRounds`);
+      }
+      for (const r of p.restObligation.eligibleRounds) {
+        if (!(r >= 1) || !Number.isInteger(r)) {
+          fail(`roster.restObligation.eligibleRounds[${rosterId}]`, `${r}`);
+        }
+      }
+    }
     const s = p.seasonStats;
     assertNonNegInt(`roster.seasonStats.appearances[${rosterId}]`, s.appearances);
     assertNonNegInt(`roster.seasonStats.tries[${rosterId}]`, s.tries);

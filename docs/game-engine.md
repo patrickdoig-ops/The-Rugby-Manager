@@ -75,7 +75,10 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 | `CLUB_TAKEOVER` | After all `CLUB_BUDGET_SET` events when a club hits the takeover trigger — Newcastle Red Bull at year-1 → year-2 (hardcoded), random investor takeovers from year 3+ (`rngTransfer` rolls) | Adds `boostAmount` (£1m) to the named club's `salaryBudget`, clamped at the effective cap. Pushes the clubId onto `state.career.takeoverHistory` so the club is excluded from future random rolls. |
 | `PLAYER_TRAINING_PLAN_SET` | TrainingScreen Continue (post-match) and TrainingScreen Back (Hub mid-week) | Clones the chosen `TrainingPlan` (`intensity` + `forwardsFocus` + `backsFocus`) into `state.player.training` so the next training week opens with it as the default. |
 | `PLAYER_TRAINED` | Per non-injured roster player league-wide, once per training week of the gap (post-match TrainingScreen Continue → `applyTrainingBlock`) | Applies `conditionDelta` to `Player.condition` (clamped 0-100) plus `Partial<PlayerStats>` deltas to `baseStats` (clamped 1-99). `conditionDelta = conditionPerDay × the period's day-span` (condition recovers daily). Shape mirrors `PLAYER_AGED` for the stats half. RNG via `rngTransfer`; iteration is club id-ascending → roster id-ascending. |
-| `PLAYER_CONDITION_UPDATED` | Per player who took the field, once per fixture (live + silent AI + playoffs) | Snapshots that player's final in-match fatigue back to `Player.condition` (set, not add). MatchCoordinator.initPlayer then reads it as the starting `fatiguePct` for the next match. Bench players who didn't appear get no event and keep their accumulated condition. |
+| `PLAYER_CONDITION_UPDATED` | Per player who took the field, once per fixture (live + silent AI + playoffs); also one per matched 2025 Lions tourist at the 2025/26 `newSeason` | Snapshots that player's final in-match fatigue back to `Player.condition` (set, not add). MatchCoordinator.initPlayer then reads it as the starting `fatiguePct` for the next match. Bench players who didn't appear get no event and keep their accumulated condition. |
+| `PLAYER_CALLED_UP` | Per selected player league-wide at an international break, inside `applyTrainingBlock` | Sets the transient `Player.internationalDuty = { window }` flag (so the break's training block skips them) and bumps `Player.internationalCaps`. Window-specific nations: Autumn = England/Wales/Scotland/South Africa; Six Nations = England/Wales/Scotland. |
+| `PLAYER_RETURNED_FROM_DUTY` | Per call-up after the break's training block, inside `applyTrainingBlock` | Clears `internationalDuty`, sets the reduced return `condition` (set, not add), and — when `restEligibleRounds` is present (England heavy-load only) — sets `Player.restObligation`. Any return injury fires as a separate `PLAYER_INJURED`. |
+| `REST_OBLIGATION_RESOLVED` | Per obligated player who didn't feature in an in-window round, in `recordPlayerMatchResult` (before `WEEK_ADVANCED`) | Clears `Player.restObligation` — the player has satisfied the PGA rest requirement (human: not in the matchday 23; AI: force-rested at the return round). |
 
 `GameCoordinator.rollSeason()` returns the applied `SeasonEvent[]` so `main.ts` can hand it to `RolloverScreen` for the post-apply diff render.
 
@@ -393,6 +396,22 @@ A choice between matches: trades off short-term freshness for long-term attribut
 
 - **Why baseStats and not a sharpness layer?** FC Career Mode keeps attribute growth separate from per-week sharpness; FM blends both with hidden CA/PA caps. We chose the FM-style blend — `baseStats` drift directly under training (clamped by the existing `[1, 99]` invariant + per-player overrides in `PLAYER_STAT_OVERRIDES`), with `potential` acting as the soft PA ceiling. The result: a young player on focused training noticeably outgrows their cohort over a season, while older players who've hit their ceiling plateau and begin to decline.
 
+## International Duty
+
+The 2025/26 schedule pauses the Premiership during two international windows — the **Autumn Nations Series** (the 34-day gap between Round 5 and the Round 6 return) and the **Six Nations** (the 57-day gap between Round 10 and the Round 11 return). During each block a slice of every club's squad is away on national duty. Engine + tuning live in `src/game/internationalDutyEngine.ts` (pure builders, RNG via `rngTransfer`) and `src/engine/balance/international.ts`.
+
+- **Windows + nations (`INTERNATIONAL_WINDOWS`).** `autumn` (returnRound 6, 4 Tests, nations England/Wales/Scotland/South Africa — the Springboks tour the north in November) and `six_nations` (returnRound 11, 5 Tests, England/Wales/Scotland — South Africa is absent; Ireland & France select from Irish provinces / the Top 14, not the Prem, so they're not modelled). `isInternationalBreak(state)` returns the window whose `returnRound === calendar.week` (checked at `applyTrainingBlock`, where `calendar.week` is the post-break round).
+
+- **Selection (`selectInternationalSquads`, RNG-free).** For each modelled nation, every rostered player whose `nationality` matches (via `NATION_ALIASES` — accepts the authored country form `"England"` and the persona-generator demonym `"English"`) and clears the nation's `ovrThreshold` is ranked OVR-desc (tie-break rosterId-asc) and capped at `squadCap` (England 28; Wales/Scotland/SA 12). `selectionRank` (1 = first choice) drives the load model.
+
+- **Effects (folded into `GameCoordinator.applyTrainingBlock`).** At a break it (1) `selectInternationalSquads` → emits `PLAYER_CALLED_UP` per player (sets the transient `internationalDuty` flag); (2) runs the normal training block — `computeTrainingWeek` skips `internationalDuty` players exactly like injured ones, so internationals get **no** club condition recovery / development while everyone else recovers over the long gap; (3) `resolveInternationalBreak` → per call-up (rosterId-asc) rolls `minutesPct` from rank, a reduced return `condition` (moderate: full-load ~55-70), an injury chance (`~8-12%` × minutesPct, reusing `INJURY_SEVERITY`), and — England heavy-load only — a `restObligation`; emits `PLAYER_RETURNED_FROM_DUTY` (+ `PLAYER_INJURED`). Returns an `InternationalBreakSummary` riding on `TrainingWeekResult.international` for the **International Break screen** (`src/ui/InternationalBreakScreen.ts`, inserted into the post-match chain after PostTrainingResults).
+
+- **PGA rest rule (England only).** A player whose `minutesPct ≥ restMinutesThreshold` (0.65) gets `restObligation = { window, eligibleRounds }` — human clubs get the 3-round window `[returnRound, +1, +2]`, AI clubs a single `[returnRound]`. `mustRestThisRound(p, state)` is the forced-exclusion test (human: current round === `max(eligibleRounds)` — last chance; AI: === `min` — auto-rest at the return round); `restUnavailableIds(state, clubId)` collects them for the squad builders / repair / display predicates, which treat a must-rest player exactly like an injured one. `reconcileRestObligations` runs in `recordPlayerMatchResult` before `WEEK_ADVANCED`: a player who didn't feature in an in-window round (human: not in `state.player.matchdaySquad`; AI: force-rested) has satisfied the rule → `REST_OBLIGATION_RESOLVED`. Obligations also clear en masse at `SEASON_ROLLED_OVER`; `internationalCaps` accumulate across seasons.
+
+- **B&I Lions 2025 (season-open, one-shot).** At the 2025/26 `newSeason` only, `lionsConditionEvents` name-matches the curated `LIONS_2025_TOURISTS` list (`src/data/lions-2025.ts`) against the seeded roster and emits a `PLAYER_CONDITION_UPDATED` setting each to `LIONS_RETURN_CONDITION` (78) — an under-cooked start from a shortened pre-season. RNG-free; gated on `seasonStartYear === 2025` so it never re-fires on rollover (the next Lions tour, 2029, is out of scope).
+
+- **Determinism.** All duty rolls flow through `rngTransfer`, consumed only at break weeks in `applyTrainingBlock` (no consumption on non-break weeks), so existing match/season RNG is undisturbed. Training (and therefore the break path) is UI-only — `checkSeasonDeterminism` records matches but never trains — so the duty engine is additive to the harness, which stays green.
+
 ## Playoffs
 
 A three-match knockout follows the 18-round League regular season: two semi-finals (1 v 4 and 2 v 3) the week after R18, and a Final at Twickenham one week later. Top 4 by `sortStandings` (league points → diff → for, identical to the league-table sort).
@@ -408,7 +427,7 @@ A three-match knockout follows the 18-round League regular season: two semi-fina
 
 ## Save format
 
-`SAVE_VERSION = 24`. `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`. **`ACCEPTED_VERSIONS` must always include `SAVE_VERSION`** — it's seeded as `new Set([SAVE_VERSION, 23, 22, … 2])`; the older entries are the migratable past. (Omitting the current version silently rejects every freshly-written save on the next load — the regression this guard prevents.)
+`SAVE_VERSION = 25`. `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`. **`ACCEPTED_VERSIONS` must always include `SAVE_VERSION`** — it's seeded as `new Set([SAVE_VERSION, 24, 23, … 2])`; the older entries are the migratable past. (Omitting the current version silently rejects every freshly-written save on the next load — the regression this guard prevents.)
 
 **Slot storage layout.** Saves live in three fixed, renameable slots —
 `rugby-manager-save-{1,2,3}` in `localStorage` — plus an active-slot pointer
@@ -455,6 +474,7 @@ in via `setSlotWriteHook`.
 | v22 | `offloadsCompleted` added to both `PlayerSeasonStats` and `TeamSeasonStats`. Pre-v22 saves load with the field absent — `zeroSeasonStats()` / `zeroTeamSeasonStats()` default to 0, so the additive delta in `PLAYER_SEASON_STATS_ACCUMULATED` / `TEAM_SEASON_STATS_ACCUMULATED` starts from a clean baseline. No back-fill required. |
 | v23 | `careerRngOffset: number` added to `SavedSeason`. Tracks the consumed position of the `rngTransfer` stream at the moment of save so re-loads resume from the exact same generator position (previously the generator reset to 0 on load, causing the first post-load `rngTransfer` call to produce the same value as the very first call of the career). Pre-v23 saves default to 0 — the old behaviour, no regression. |
 | v24 | `career.activePoachedIds: number[]` — rosterIds of the user's own players who are currently under active background poach assessment (written by `POACH_THREATS_SET`, read by `HubScreen` to drive the Transfers tile badge count). Pre-v24 saves load as `[]`; the badge updates after the next round when `WEEK_ADVANCED` triggers a fresh threat assessment. |
+| v25 | International duty. Each roster Player gains optional `restObligation?: { window, eligibleRounds }` (PGA rest rule, England only) and `internationalCaps?: number` (career appearances). Both optional → pre-v25 saves load with them `undefined` (no obligation, no caps); no back-fill needed. The transient `internationalDuty` flag is never serialised (set + cleared inside one `applyTrainingBlock` call, like `pendingInjuryKind`). |
 
 **Migration on load** (`GameCoordinator.fromSave`). The version-ladder
 back-fill computation — schedule resolution, the v5→v6 contract synthesis,
@@ -615,6 +635,7 @@ A derived briefing surface that surfaces actionable alerts from the current `Gam
 | Category | Trigger | `deepLink` |
 |---|---|---|
 | `medical` | Any squad player with `Player.injury` set | `squad` |
+| `squad` | Any squad player carrying a `restObligation` (international-duty PGA rest rule) | `squad` |
 | `contracts` | Any squad player whose `contract.expiresOn` falls within `EXPIRING_CONTRACT_WINDOW_MONTHS` (6) of today (pre-agreed Reg 7 leavers excluded) | `contracts` |
 | `transfers` | Any squad player in `state.career.activePoachedIds` | `transfers` |
 | `match` | The next unplayed fixture has `isDerby: true` | `fixtures` |

@@ -21,6 +21,19 @@ export const SEASON_VALUES = {
   internationalSkipDays:     28,
 } as const;
 
+// Named round labels for the 2025-26 Gallagher Premiership season.
+// Displayed in the fixture list and Hub next-match header.
+// Rounds 15-18 all carry "The Run In" — the post-Six Nations playoff sprint.
+export const ROUND_LABELS: Record<number, string> = {
+  3:  'Derby Weekend',
+  8:  'Christmas Fixtures',
+  12: 'Big Match Weekend',
+  15: 'The Run In',
+  16: 'The Run In',
+  17: 'The Run In',
+  18: 'The Run In',
+};
+
 export const LEAGUE_POINTS = {
   win: 4,
   draw: 2,

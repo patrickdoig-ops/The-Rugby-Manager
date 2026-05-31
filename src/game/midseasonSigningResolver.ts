@@ -15,9 +15,9 @@
 
 import type { GameState, SeasonEvent, TransferBid } from '../types/gameState';
 import type { Player } from '../types/player';
-import { appealScore, type SigningOutcome } from './signingResolver';
+import { appealScore, wageSatisfaction, type SigningOutcome } from './signingResolver';
 import { expiryAfterYears } from './aiTransferDirector';
-import { MIDSEASON_SIGNING } from '../engine/balance/transfers';
+import { MIDSEASON_SIGNING, WAGE_NEGOTIATION } from '../engine/balance/transfers';
 import { rngTransfer } from '../utils/rng';
 
 export interface MidseasonResolveResult {
@@ -25,19 +25,52 @@ export interface MidseasonResolveResult {
   outcomes: SigningOutcome[];
 }
 
-// Map an appealScore to an acceptance probability in
-// [MIDSEASON_SIGNING.acceptanceFloor, MIDSEASON_SIGNING.acceptanceCeiling].
-// Pure — exported so tuning + future telemetry can inspect it.
+// Map an appealScore (+ wage satisfaction) to an acceptance probability
+// in [MIDSEASON_SIGNING.acceptanceFloor, MIDSEASON_SIGNING.acceptanceCeiling].
+// `askingWage` is the player's expected wage (the offer's annualWage);
+// the bid's annualWage is what the user offered. A higher offer lifts
+// the score and so the probability. Pure — exported so tuning + the UI
+// wage-modal read can call it with the same inputs the engine uses.
 export function midseasonAcceptanceProbability(
   state: GameState,
   bid: TransferBid,
   player: Player,
+  askingWage: number,
 ): number {
-  const score = appealScore(state, bid, player);
+  const score = appealScore(state, bid, player) + wageSatisfaction(bid.annualWage, askingWage);
   const { appealFloor, appealCeiling, acceptanceFloor, acceptanceCeiling } = MIDSEASON_SIGNING;
   const span = appealCeiling - appealFloor;
   const t = span > 0 ? Math.max(0, Math.min(1, (score - appealFloor) / span)) : 0;
   return acceptanceFloor + t * (acceptanceCeiling - acceptanceFloor);
+}
+
+// Acceptance probability for a USER renewal / early-renewal offer.
+// Folds the wage term into the mid-season appeal→probability map, then
+// clamps: an offer at or above asking is near-certain (loyalty floor), a
+// lowball never below the underpay floor. Pure + RNG-free — shared by
+// the coordinator's renewal paths and the wage-modal UI read so the chip
+// the user sees matches the engine's roll. `askingWage` here can be the
+// real loyalty-discounted rate or an RNG-free estimate for previews.
+export function renewalAcceptProbability(
+  state: GameState,
+  bid: TransferBid,
+  player: Player,
+  askingWage: number,
+  offeredWage: number,
+): number {
+  const base = midseasonAcceptanceProbability(state, bid, player, askingWage);
+  if (offeredWage >= askingWage) return Math.max(base, WAGE_NEGOTIATION.renewalLoyaltyFloorProb);
+  return Math.max(base, WAGE_NEGOTIATION.renewalUnderpayFloorProb);
+}
+
+// UI helper — bucket an acceptance probability into a coarse label so
+// the wage-offer modal can show "Likely / Uncertain / Unlikely" without
+// duplicating any of the probability math. Thresholds are display-only.
+export type AcceptanceLabel = 'likely' | 'uncertain' | 'unlikely';
+export function acceptanceLabel(probability: number): AcceptanceLabel {
+  if (probability >= 0.75) return 'likely';
+  if (probability >= 0.40) return 'uncertain';
+  return 'unlikely';
 }
 
 // Resolves every pending user bid on the mid-season market. One
@@ -58,7 +91,12 @@ export function resolveMidseasonSigning(state: GameState): MidseasonResolveResul
   for (const bid of pendingUserBids) {
     const player = state.career.roster[bid.rosterId];
     if (!player) continue;
-    const probability = midseasonAcceptanceProbability(state, bid, player);
+    // Asking wage = the offer the window opened with; the bid carries
+    // the user's chosen wage. Fallback to the bid wage (neutral) if the
+    // offer is somehow missing.
+    const offer = market.offers.find(o => o.rosterId === bid.rosterId);
+    const askingWage = offer?.annualWage ?? bid.annualWage;
+    const probability = midseasonAcceptanceProbability(state, bid, player, askingWage);
     // rngTransfer(1, 1000) / 1000 → uniform [0.001, 1] roll. Below the
     // probability threshold accepts; otherwise declines.
     const roll = rngTransfer(1, 1000) / 1000;

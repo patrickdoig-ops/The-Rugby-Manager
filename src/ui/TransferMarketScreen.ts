@@ -25,9 +25,12 @@ import { showToast } from './Toast';
 import { playId } from './SoundManager';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 import { createRowExpander } from './components/rowExpand';
-import { appealScore, weightedLeaguePosition } from '../game/signingResolver';
+import { appealScore, weightedLeaguePosition, wageSatisfaction } from '../game/signingResolver';
+import { midseasonAcceptanceProbability } from '../game/midseasonSigningResolver';
 import { averageRating } from '../game/seasonLeaderboards';
-import { APPEAL_WEIGHTS } from '../engine/balance/transfers';
+import { clubBudgetUsage } from '../game/teamStats';
+import { APPEAL_WEIGHTS, WAGE_FLOOR, WAGE_ROUNDING_UNIT, WAGE_NEGOTIATION } from '../engine/balance/transfers';
+import { wageOfferModal, budgetLineFor, readFromProbability, type WageRead } from './components/wageOfferModal';
 import type { TransferBid, GameState } from '../types/gameState';
 
 type SortKey = 'name' | 'pos' | 'age' | 'ovr' | 'wage';
@@ -214,7 +217,9 @@ export function initTransferMarketScreen(
         return sortDir === 'asc' ? cmp : -cmp;
       });
     const freeAgentRows = allRows.filter(r => r.offer.fromClubId === '');
-    const poachRows = allRows.filter(r => r.offer.fromClubId !== '');
+    // Reg 7 list excludes the user's own players — those offers exist so
+    // rival AI clubs can approach them, but you can't poach yourself.
+    const poachRows = allRows.filter(r => r.offer.fromClubId !== '' && !userSquadSet.has(r.p.rosterId));
 
     const isMidseason = market.phase === 'signings-midseason';
     const currentWeek = state.calendar.week;
@@ -428,14 +433,43 @@ export function initTransferMarketScreen(
       });
     });
     el!.querySelectorAll<HTMLButtonElement>('.tm-sign[data-bid]').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const rid = Number(btn.dataset.bid);
         if (!Number.isFinite(rid)) return;
-        const p = gameEngine.getState().career.roster[rid];
+        const state = gameEngine.getState();
+        const p = state.career.roster[rid];
+        const offer = state.career.market?.offers.find(o => o.rosterId === rid);
+        if (!p || !offer) return;
         const isPoach = !!btn.closest('#tm-poach-list');
-        const ok = gameEngine.submitBid(rid);
-        if (ok && p) showToast(`Offer made for ${p.firstName} ${p.lastName}`, 'info');
-        else if (!ok) playId('ui.error'); // bid rejected (e.g. over budget)
+
+        // Negotiate the wage before committing the bid. The slider spans
+        // a lowball floor up to the user's affordable ceiling; default is
+        // the asking wage. Cancel leaves the row untouched.
+        const clubId = state.player.teamId;
+        const club = state.career.clubs.find(c => c.id === clubId);
+        const budgetCap = club?.salaryBudget ?? 0;
+        const usage = clubBudgetUsage(state, clubId);
+        const headroom = budgetCap - usage;
+        const asking = offer.annualWage;
+        const minWage = Math.max(WAGE_FLOOR, Math.round(asking * 0.6 / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT);
+        const maxWage = Math.max(asking, Math.min(asking * 1.5, headroom));
+        const read = wageReadFor(mode, state, offer, p, clubId);
+
+        const chosen = await wageOfferModal({
+          playerName: `${p.firstName} ${p.lastName}`,
+          askingWage: asking,
+          minWage,
+          maxWage,
+          initialWage: asking,
+          confirmLabel: isPoach ? 'Pre-Agree' : 'Make Offer',
+          read,
+          budgetLine: (wage: number) => budgetLineFor(usage + wage, budgetCap),
+        });
+        if (chosen === null) return;
+
+        const ok = gameEngine.submitBid(rid, chosen);
+        if (ok) showToast(`Offer made for ${p.firstName} ${p.lastName}`, 'info');
+        else playId('ui.error'); // bid rejected (e.g. over budget)
         render();
         requestAnimationFrame(() => {
           const newRow = el!.querySelector<HTMLDivElement>(`.tm-row[data-roster-id="${rid}"]`);
@@ -467,6 +501,40 @@ export function initTransferMarketScreen(
   }
 
   renderImpl = render;
+}
+
+// Live acceptance read for the wage modal, computed from the SAME engine
+// helpers the resolver uses so the chip the user sees predicts the
+// outcome. Mid-season is probabilistic (acceptanceLabel); off-season is
+// competitive, so the read is wage-relative with an explicit caveat that
+// rival bids also decide it.
+function wageReadFor(
+  mode: Mode,
+  state: GameState,
+  offer: TransferOffer,
+  player: Player,
+  clubId: string,
+): (wage: number) => WageRead {
+  const asking = offer.annualWage;
+  if (mode === 'signings-midseason') {
+    return (wage: number): WageRead => {
+      const bid: TransferBid = {
+        id: 'preview', rosterId: offer.rosterId, clubId,
+        annualWage: wage, lengthYears: offer.lengthYears,
+        kind: 'free_agent', status: 'pending',
+      };
+      return readFromProbability(midseasonAcceptanceProbability(state, bid, player, asking));
+    };
+  }
+  // Off-season competitive: outcome also depends on rival clubs, so the
+  // read reflects the wage strength only.
+  return (wage: number): WageRead => {
+    const ratio = asking > 0 ? wage / asking : 1;
+    if (ratio < WAGE_NEGOTIATION.reservationFloorRatio) return { label: 'May hold out', tone: 'bad' };
+    if (ratio < 1) return { label: 'Below asking', tone: 'warn' };
+    if (wageSatisfaction(wage, asking) >= WAGE_NEGOTIATION.maxBonus * 0.6) return { label: 'Strong offer', tone: 'good' };
+    return { label: 'Competitive', tone: 'neutral' };
+  };
 }
 
 // Expand panel for a target player: appeal score breakdown for the

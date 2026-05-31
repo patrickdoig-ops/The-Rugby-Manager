@@ -329,6 +329,7 @@ function parseMarket(raw: unknown): MarketState | null {
   const phase: MarketState['phase'] =
     m.phase === 'signings'           ? 'signings'
   : m.phase === 'signings-midseason' ? 'signings-midseason'
+  : m.phase === 'poach-midseason'    ? 'poach-midseason'
   :                                    'renewals';
   const bids = Array.isArray(m.bids)
     ? (m.bids as unknown[]).filter(isValidBid).map(b => ({ ...b }))

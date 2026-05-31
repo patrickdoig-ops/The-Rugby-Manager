@@ -72,6 +72,16 @@ function synthesizeWage(raw: RawPlayer, overall: number): number {
   return Math.max(WAGE_FLOOR, Math.round(wage / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT);
 }
 
+// Noise-free midpoint of the market wage for a rating + position — the
+// deterministic, RNG-FREE counterpart to synthesizeWage. UI previews
+// (the wage-negotiation modal) need an expected wage WITHOUT advancing
+// the rngTransfer stream, which a real seedContractFields call would do.
+export function estimateMarketWage(overall: number, position: string): number {
+  const base = wageFromRating(overall);
+  const scarcity = POSITION_SCARCITY[position] ?? 1.0;
+  return Math.max(WAGE_FLOOR, Math.round(base * scarcity / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT);
+}
+
 // Piecewise-linear lookup between the anchor points. Below the lowest
 // or above the highest, clamp to the endpoint.
 function wageFromRating(overall: number): number {

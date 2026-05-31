@@ -31,8 +31,13 @@ import { getAge, isContractExpiringSoon } from '../game/age';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 import { createRowExpander } from './components/rowExpand';
 import { averageRating } from '../game/seasonLeaderboards';
+import { estimateMarketWage } from '../game/contractSeeder';
+import { renewalAcceptProbability } from '../game/midseasonSigningResolver';
+import { RENEWAL, WAGE_FLOOR, WAGE_ROUNDING_UNIT } from '../engine/balance/transfers';
+import { wageOfferModal, budgetLineFor, readFromProbability, type WageRead } from './components/wageOfferModal';
 import { showToast } from './Toast';
 import type { EarlyRenewalResult } from '../game/TransferCoordinator';
+import type { TransferBid } from '../types/gameState';
 import { playHaptic } from './HapticsManager';
 
 type SortKey = 'wage' | 'expiry' | 'ovr' | 'position' | 'age' | 'name';
@@ -106,10 +111,11 @@ export function initContractsScreen(
   // the row) takes precedence — its handler stops propagation so the
   // outer player-link click doesn't fire.
   onPlayerClick?: (rosterId: number) => void,
-  // Offer a mid-season early renewal to an expiring own-squad player.
-  // Mutates + saves engine-side (in main.ts); returns the outcome so
-  // the screen can toast + re-render. Only wired in the in-season hub.
-  onOfferRenewal?: (rosterId: number) => EarlyRenewalResult,
+  // Offer a mid-season early renewal to an expiring own-squad player at
+  // a negotiated wage. Mutates + saves engine-side (in main.ts); returns
+  // the outcome so the screen can toast + re-render. Only wired in the
+  // in-season hub.
+  onOfferRenewal?: (rosterId: number, offeredWage?: number) => EarlyRenewalResult,
 ): void {
   const el = document.getElementById('contracts');
   if (!el) return;
@@ -361,13 +367,42 @@ export function initContractsScreen(
       // (main.ts); we toast the outcome and re-render so the button
       // reflects the new contract / cooldown state.
       el!.querySelectorAll<HTMLButtonElement>('.ct-renew-btn[data-renew]').forEach(btn => {
-        btn.addEventListener('click', (ev) => {
+        btn.addEventListener('click', async (ev) => {
           ev.stopPropagation();
           if (!onOfferRenewal) return;
           const rid = Number(btn.dataset.renew);
           if (!Number.isFinite(rid)) return;
-          const player = getGameEngine().getState().career.roster[rid];
-          const result = onOfferRenewal(rid);
+          const st = getGameEngine().getState();
+          const player = st.career.roster[rid];
+          if (!player) return;
+          // RNG-free estimate of the loyalty-discounted asking wage — the
+          // real terms (and their rngTransfer draw) are computed inside
+          // offerEarlyRenewal; this is only the modal anchor + read.
+          const ovr = playerOverall(player.baseStats, player.position);
+          const estMarket = estimateMarketWage(ovr, player.position);
+          const asking = Math.max(WAGE_FLOOR, Math.round(estMarket * (1 - RENEWAL.loyaltyDiscount) / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT);
+          const currentWage = player.contract.annualWage;
+          const maxAffordable = budgetCap - capUsed + currentWage;
+          const minWage = Math.max(WAGE_FLOOR, Math.round(asking * 0.7 / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT);
+          const maxWage = Math.max(asking, Math.min(asking * 1.4, maxAffordable));
+          const chosen = await wageOfferModal({
+            playerName: `${player.firstName} ${player.lastName}`,
+            askingWage: asking,
+            minWage,
+            maxWage,
+            initialWage: asking,
+            confirmLabel: 'Offer',
+            read: (wage: number): WageRead => {
+              const bid: TransferBid = {
+                id: 'preview', rosterId: rid, clubId: st.player.teamId,
+                annualWage: wage, lengthYears: 2, kind: 'retention', status: 'pending',
+              };
+              return readFromProbability(renewalAcceptProbability(st, bid, player, asking, wage));
+            },
+            budgetLine: (wage: number) => budgetLineFor(capUsed + Math.max(0, wage - currentWage), budgetCap),
+          });
+          if (chosen === null) return;
+          const result = onOfferRenewal(rid, chosen);
           showRenewalToast(result, player);
           render();
         });

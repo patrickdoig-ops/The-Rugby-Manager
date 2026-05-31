@@ -24,11 +24,14 @@ import {
   assessAIPoachThreats,
 } from './aiTransferDirector';
 import { resolveSigningRound, type SigningOutcome } from './signingResolver';
+import { estimateMarketWage } from './contractSeeder';
 import { playerOverall } from '../engine/RatingEngine';
-import { resolveMidseasonSigning, midseasonAcceptanceProbability } from './midseasonSigningResolver';
+import {
+  resolveMidseasonSigning, midseasonAcceptanceProbability, renewalAcceptProbability,
+} from './midseasonSigningResolver';
 import { clubBudgetUsage } from './teamStats';
 import { isContractExpiringSoon } from './age';
-import { RENEWAL } from '../engine/balance/transfers';
+import { RENEWAL, WAGE_FLOOR, WAGE_ROUNDING_UNIT, MIDSEASON_POACH } from '../engine/balance/transfers';
 import { rngTransfer } from '../utils/rng';
 import type { PreSeasonTransfer } from '../data/transfers-2025-26';
 
@@ -39,6 +42,15 @@ export type EarlyRenewalResult =
   | { status: 'accepted'; wage: number; lengthYears: number }
   | { status: 'declined'; cooldownUntilWeek: number }
   | { status: 'ineligible'; reason: 'not_expiring' | 'on_cooldown' | 'over_budget' | 'not_on_squad' | 'market_open' };
+
+// Clamp a user-chosen wage to a legal value: finite, ≥ WAGE_FLOOR,
+// rounded to WAGE_ROUNDING_UNIT. Falls back to the supplied default
+// (the asking wage) when nothing valid was passed.
+function normalizeOfferedWage(wage: number | undefined, fallback: number): number {
+  if (wage === undefined || !Number.isFinite(wage)) return fallback;
+  const rounded = Math.round(wage / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT;
+  return Math.max(WAGE_FLOOR, rounded);
+}
 
 export class TransferCoordinator {
   constructor(private state: GameState) {}
@@ -75,7 +87,17 @@ export class TransferCoordinator {
   // `userDecisions` keys are offer IDs (only those belonging to the
   // player's club take effect); values are 'renew' or 'release'. Any
   // unsupplied offer falls back to the AI default for its club.
-  closeRenewalWindow(userDecisions: Record<string, 'renew' | 'release'> = {}): void {
+  //
+  // `userWages` (optional) is a per-offer-ID chosen renewal wage. A user
+  // 'renew' at or above the offer's asking wage is a certain accept
+  // (preserving the prior behaviour); a lowball below asking is rolled
+  // (the player may walk into free agency). The harness calls this with
+  // both args defaulted to {}, so it takes zero rolls — byte-identical
+  // to before. AI clubs always renew at the asking wage (no roll).
+  closeRenewalWindow(
+    userDecisions: Record<string, 'renew' | 'release'> = {},
+    userWages: Record<string, number> = {},
+  ): void {
     const market = this.state.career.market;
     if (!market) return;
     const playerClubId = this.state.player.teamId;
@@ -88,29 +110,62 @@ export class TransferCoordinator {
       for (const id of acceptIds) decisions.set(id, true);
       for (const id of rejectIds) decisions.set(id, false);
     }
+    // Per-offer chosen wage for the user's negotiated renewals.
+    const userWageById = new Map<string, number>();
     for (const [id, choice] of Object.entries(userDecisions)) {
       const offer = market.offers.find(o => o.id === id);
       if (offer && offer.fromClubId === playerClubId) {
         decisions.set(id, choice === 'renew');
+        if (choice === 'renew' && userWages[id] !== undefined) {
+          userWageById.set(id, normalizeOfferedWage(userWages[id], offer.annualWage));
+        }
       }
     }
 
     // Apply in the offer-list order so the event log is stable.
     for (const offer of market.offers) {
       if (offer.status !== 'pending') continue;
-      const accept = decisions.get(offer.id) ?? false;
+      let accept = decisions.get(offer.id) ?? false;
+      // Wage applied on accept — the user's negotiated figure when set,
+      // otherwise the offer's asking wage.
+      const renewWage = userWageById.get(offer.id) ?? offer.annualWage;
+
+      // User lowball: a renewal below asking isn't guaranteed. Roll once
+      // (user-only — the harness supplies no wages so this never fires
+      // headless). At/above asking stays a certain accept.
+      let lowballRejected = false;
+      if (accept && offer.fromClubId === playerClubId && renewWage < offer.annualWage) {
+        const p = this.state.career.roster[offer.rosterId];
+        if (p) {
+          const bid: TransferBid = {
+            id: `r${this.state.career.seasonsCompleted}_${playerClubId}_${offer.rosterId}`,
+            rosterId: offer.rosterId,
+            clubId: playerClubId,
+            annualWage: renewWage,
+            lengthYears: offer.lengthYears,
+            kind: 'retention',
+            status: 'pending',
+          };
+          const probability = renewalAcceptProbability(this.state, bid, p, offer.annualWage, renewWage);
+          const roll = rngTransfer(1, 1000) / 1000;
+          accept = roll <= probability;
+          lowballRejected = !accept;
+        }
+      }
+
+      const rejectReason: 'wage' | 'cap_overcommit' = lowballRejected ? 'wage' : 'cap_overcommit';
       applySeasonEvent(this.state, {
         type: 'OFFER_RESPONDED',
         offerId: offer.id,
         accept,
-        ...(accept ? {} : { reason: 'cap_overcommit' as const }),
+        ...(accept ? {} : { reason: rejectReason }),
       });
       if (accept) {
         applySeasonEvent(this.state, {
           type: 'CONTRACT_EXTENDED',
           rosterId: offer.rosterId,
           newExpiresOn: expiryAfterYears(this.state, offer.lengthYears),
-          newAnnualWage: offer.annualWage,
+          newAnnualWage: renewWage,
         });
       } else {
         applySeasonEvent(this.state, {
@@ -176,11 +231,12 @@ export class TransferCoordinator {
   openSigningWindow(opts: { skipPoaches?: boolean } = {}): void {
     if (this.state.career.market) return;
     const sortedFAs = [...this.state.career.freeAgents].sort((a, b) => a - b);
-    const poaches = opts.skipPoaches ? [] : poachCandidates(this.state).filter(rid => {
-      const p = this.state.career.roster[rid];
-      // Skip player's own club's players (can't poach yourself).
-      return p && p.contract.clubId !== this.state.player.teamId;
-    });
+    // Every poach-eligible player league-wide gets an offer — INCLUDING
+    // the user's own final-year players, so rival AI clubs can approach
+    // them (the user defends via the RetentionDecisionScreen). The user
+    // can't poach their own (submitBid rejects own-squad rosterIds, and
+    // TransferMarketScreen hides them from the Reg 7 tab).
+    const poaches = opts.skipPoaches ? [] : poachCandidates(this.state);
     if (sortedFAs.length === 0 && poaches.length === 0) return;
 
     const offers: TransferOffer[] = [];
@@ -237,8 +293,8 @@ export class TransferCoordinator {
   // player is no longer in the pool (FA / poach-eligible as
   // appropriate), the user already has a pending bid for this player,
   // or the budget would breach.
-  signFreeAgent(rosterId: number): boolean {
-    return this.submitBid(rosterId);
+  signFreeAgent(rosterId: number, offeredWage?: number): boolean {
+    return this.submitBid(rosterId, offeredWage);
   }
 
   // Reverses an in-window bid by withdrawing it. Returns false when no
@@ -252,8 +308,8 @@ export class TransferCoordinator {
   // User-side Reg 7 poach — same model as signFreeAgent; the kind is
   // inferred inside submitBid from whether the player is a FA or a
   // poach candidate.
-  preAgreePoach(rosterId: number): boolean {
-    return this.submitBid(rosterId);
+  preAgreePoach(rosterId: number, offeredWage?: number): boolean {
+    return this.submitBid(rosterId, offeredWage);
   }
 
   cancelPreAgreement(rosterId: number): boolean {
@@ -265,12 +321,16 @@ export class TransferCoordinator {
   // Accepts both off-season 'signings' and Hub-entered
   // 'signings-midseason' phases. Mid-season additionally enforces the
   // per-player rejection cooldown (career.midseasonRejections).
-  submitBid(rosterId: number): boolean {
+  submitBid(rosterId: number, offeredWage?: number): boolean {
     const market = this.state.career.market;
     if (!market) return false;
     if (market.phase !== 'signings' && market.phase !== 'signings-midseason') return false;
     const offer = market.offers.find(o => o.rosterId === rosterId && o.status === 'pending');
     if (!offer) return false;
+    // The offer's annualWage is the player's asking wage; the user may
+    // bid a different figure. Overpaying lifts the bid's appeal (it can
+    // beat a stronger rival); a deep lowball risks the reservation gate.
+    const bidWage = normalizeOfferedWage(offeredWage, offer.annualWage);
     const userClubId = this.state.player.teamId;
     const club = this.state.career.clubs.find(c => c.id === userClubId);
     if (!club) return false;
@@ -309,9 +369,9 @@ export class TransferCoordinator {
       return false;
     }
 
-    // Hard budget gate.
+    // Hard budget gate — against the wage the user actually offered.
     if (!offer.isMarquee) {
-      const projected = clubBudgetUsage(this.state, userClubId) + offer.annualWage;
+      const projected = clubBudgetUsage(this.state, userClubId) + bidWage;
       if (projected > club.salaryBudget) return false;
     }
 
@@ -319,7 +379,7 @@ export class TransferCoordinator {
       id: `b${this.state.career.seasonsCompleted}_${userClubId}_${rosterId}`,
       rosterId,
       clubId: userClubId,
-      annualWage: offer.annualWage,
+      annualWage: bidWage,
       lengthYears: offer.lengthYears,
       kind,
       status: 'pending',
@@ -349,9 +409,9 @@ export class TransferCoordinator {
   // accounting treats it as an in-place replacement of the player's
   // existing wage (retention bids are excluded from clubBudgetUsage's
   // pending-bid sum — see teamStats).
-  submitRetentionBid(rosterId: number): boolean {
+  submitRetentionBid(rosterId: number, offeredWage?: number): boolean {
     const market = this.state.career.market;
-    if (!market || market.phase !== 'signings') return false;
+    if (!market || (market.phase !== 'signings' && market.phase !== 'poach-midseason')) return false;
     const p = this.state.career.roster[rosterId];
     if (!p) return false;
     const userClubId = this.state.player.teamId;
@@ -368,15 +428,34 @@ export class TransferCoordinator {
       b.rosterId === rosterId && b.kind === 'retention' && b.status === 'pending'
     )) return false;
 
-    const terms = retentionTermsFor(this.state, rosterId);
-    if (!terms) return false;
+    // Asking baseline = the player's poach offer × loyalty-discount, the
+    // SAME figure the resolver scores retention bids against (so a
+    // default retention is wage-neutral) and RNG-free. Length from the
+    // offer too. Falls back to retentionTermsFor only if the offer is
+    // somehow missing.
+    const offer = market.offers.find(o => o.rosterId === rosterId);
+    let askingWage: number;
+    let lengthYears: number;
+    if (offer) {
+      askingWage = Math.max(WAGE_FLOOR, Math.round(
+        offer.annualWage * (1 - RENEWAL.loyaltyDiscount) / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT);
+      lengthYears = offer.lengthYears;
+    } else {
+      const terms = retentionTermsFor(this.state, rosterId);
+      if (!terms) return false;
+      askingWage = terms.annualWage;
+      lengthYears = terms.lengthYears;
+    }
+    // Default to the asking rate; the user can pay over it to out-appeal
+    // the poacher in the resolver.
+    const retentionWage = normalizeOfferedWage(offeredWage, askingWage);
 
     // Hard budget gate. Retention costs are net deltas
     // (newWage - oldWage); use the same projection as the AI's
     // auto-retention pass.
     const club = this.state.career.clubs.find(c => c.id === userClubId);
     if (!club) return false;
-    const wageDelta = terms.annualWage - p.contract.annualWage;
+    const wageDelta = retentionWage - p.contract.annualWage;
     const projected = clubBudgetUsage(this.state, userClubId) + Math.max(0, wageDelta);
     if (projected > club.salaryBudget) return false;
 
@@ -384,8 +463,8 @@ export class TransferCoordinator {
       id: `r${this.state.career.seasonsCompleted}_${userClubId}_${rosterId}`,
       rosterId,
       clubId: userClubId,
-      annualWage: terms.annualWage,
-      lengthYears: terms.lengthYears,
+      annualWage: retentionWage,
+      lengthYears,
       kind: 'retention',
       status: 'pending',
     };
@@ -395,7 +474,7 @@ export class TransferCoordinator {
 
   withdrawRetentionBid(rosterId: number): boolean {
     const market = this.state.career.market;
-    if (!market || market.phase !== 'signings') return false;
+    if (!market || (market.phase !== 'signings' && market.phase !== 'poach-midseason')) return false;
     const userClubId = this.state.player.teamId;
     const bid = market.bids.find(b =>
       b.rosterId === rosterId && b.clubId === userClubId && b.kind === 'retention' && b.status === 'pending'
@@ -411,7 +490,7 @@ export class TransferCoordinator {
   // multiple clubs are bidding.
   getUserRetentionPrompts(): number[] {
     const market = this.state.career.market;
-    if (!market || market.phase !== 'signings') return [];
+    if (!market || (market.phase !== 'signings' && market.phase !== 'poach-midseason')) return [];
     const userClubId = this.state.player.teamId;
     const seen = new Set<number>();
     for (const bid of market.bids) {
@@ -480,7 +559,10 @@ export class TransferCoordinator {
         kind: 'retention',
         status: 'pending',
       };
-      const probability = midseasonAcceptanceProbability(this.state, bid, candidate);
+      // AI early renewals offer the plain loyalty rate (no premium), so
+      // asking == offered and the wage term is neutral — behaviour
+      // identical to before negotiation was added.
+      const probability = midseasonAcceptanceProbability(this.state, bid, candidate, terms.annualWage);
       const roll = rngTransfer(1, 1000) / 1000;
       if (roll <= probability) {
         applySeasonEvent(this.state, {
@@ -679,6 +761,87 @@ export class TransferCoordinator {
     applySeasonEvent(this.state, { type: 'MARKET_CLOSED' });
   }
 
+  // ===== Mid-season Reg 7 poaching of the user's players =====
+  //
+  // A rival AI club approaches one or more of the user's final-year
+  // players mid-season. The user defends via RetentionDecisionScreen
+  // (retain — paying up via the wage modal — or let them go); an
+  // un-retained player pre-agrees to leave at the next rollover. Live
+  // only — orchestrated by main.ts on a cadence; the headless harness
+  // never opens it. RNG-FREE throughout (offers use estimateMarketWage,
+  // AI bids use the closed-form aiBidWage, resolution is appeal-based),
+  // so it never perturbs the career rngTransfer stream.
+  //
+  // Opens a 'poach-midseason' market seeded with one offer per at-risk
+  // user player + the AI poach bids. No-op (leaves market null) if a
+  // window is already open or no AI club has the appetite/budget to
+  // poach. If offers were seeded but no AI actually bid, the window is
+  // closed again immediately so the caller sees no market.
+  openMidseasonPoachWindow(): void {
+    if (this.state.career.market) return;
+    // Cadence: at most once every N rounds. calendar.week is the upcoming
+    // round, so week % N === 0 fires after rounds N-1, 2N-1, … (e.g. with
+    // N=4: upcoming weeks 4, 8, 12, 16 — clear of the R6/R11 breaks).
+    if (this.state.calendar.week % MIDSEASON_POACH.cadenceRounds !== 0) return;
+    const userClubId = this.state.player.teamId;
+    const atRisk = assessAIPoachThreats(this.state, userClubId);
+    if (atRisk.length === 0) return;
+
+    const offers: TransferOffer[] = [];
+    const seasonsCompleted = this.state.career.seasonsCompleted;
+    const week = this.state.calendar.week;
+    for (const rid of atRisk) {
+      const p = this.state.career.roster[rid];
+      if (!p) continue;
+      const ovr = playerOverall(p.baseStats, p.position);
+      offers.push({
+        id: `mp${seasonsCompleted}_w${week}_${rid}`,
+        fromClubId: userClubId,           // poached FROM the user's club
+        rosterId: rid,
+        annualWage: estimateMarketWage(ovr, p.position),  // RNG-free asking
+        lengthYears: MIDSEASON_POACH.lengthYears,
+        isMarquee: false,
+        status: 'pending',
+      });
+    }
+    if (offers.length === 0) return;
+    applySeasonEvent(this.state, {
+      type: 'MARKET_OPENED',
+      phase: 'poach-midseason',
+      expiringRosterIds: [],
+      offers,
+    });
+
+    // AI poach bids (RNG-free aiBidWage). decideAIBids skips the user's
+    // own club, so only rivals bid on the seeded offers; every bid is a
+    // poach (the offers are all the user's own players).
+    const bids = decideAIBids(this.state, userClubId);
+    for (const bid of bids) {
+      applySeasonEvent(this.state, { type: 'BID_SUBMITTED', bid });
+    }
+
+    // No rival actually bid (budget / squad depth) — no real approach,
+    // so close the window again and leave the caller with no market.
+    if (!bids.some(b => b.kind === 'poach')) {
+      applySeasonEvent(this.state, { type: 'MARKET_CLOSED' });
+    }
+  }
+
+  // Resolves the mid-season poach window: the user's retention bids (if
+  // any) compete with the AI poach bids by appeal score. Poach winners
+  // fire PRE_AGREEMENT_SIGNED (the player leaves at the next rollover);
+  // a retained player fires CONTRACT_EXTENDED. Then MARKET_CLOSED.
+  // Returns the per-player outcomes for SigningResultsScreen. Idempotent
+  // / safe if the window already closed.
+  closeMidseasonPoachWindow(): SigningOutcome[] {
+    const market = this.state.career.market;
+    if (!market || market.phase !== 'poach-midseason') return [];
+    const { events, outcomes } = resolveSigningRound(this.state);
+    for (const ev of events) applySeasonEvent(this.state, ev);
+    applySeasonEvent(this.state, { type: 'MARKET_CLOSED' });
+    return outcomes;
+  }
+
   // Resolves every pending user bid against the appeal-score-driven
   // acceptance probability. Returns SigningOutcome[] for
   // SigningResultsScreen. Caller is responsible for calling
@@ -711,7 +874,7 @@ export class TransferCoordinator {
   // never calls this so `verify` is unaffected. An over-budget bail still
   // costs the wage-seed draw (the wage can't be known without it); that
   // divergence is harmless and user-driven.
-  offerEarlyRenewal(rosterId: number): EarlyRenewalResult {
+  offerEarlyRenewal(rosterId: number, offeredWage?: number): EarlyRenewalResult {
     // Never while an off-season / mid-season market window is open.
     if (this.state.career.market) return { status: 'ineligible', reason: 'market_open' };
 
@@ -734,38 +897,52 @@ export class TransferCoordinator {
       return { status: 'ineligible', reason: 'on_cooldown' };
     }
 
-    // Loyalty-discounted terms (advances rngTransfer via the seeder).
+    // Loyalty-discounted terms (advances rngTransfer via the seeder) —
+    // used for the contract length + expiry only. The asking wage is the
+    // RNG-FREE estimate (estimateMarketWage × loyalty discount), the same
+    // figure ContractsScreen anchors its modal + acceptance chip on, so
+    // the engine's accept threshold matches what the user was shown. (The
+    // noisy terms.annualWage would diverge from the estimate by up to the
+    // WAGE_NOISE spread, turning an at-asking default into a silent
+    // lowball.) The user may offer over the asking to raise the odds, or
+    // under it to save cap at the risk of a decline.
     const terms = retentionTermsFor(this.state, rosterId);
     if (!terms) return { status: 'ineligible', reason: 'not_on_squad' };
+    const ovr = playerOverall(p.baseStats, p.position);
+    const asking = Math.max(WAGE_FLOOR, Math.round(
+      estimateMarketWage(ovr, p.position) * (1 - RENEWAL.loyaltyDiscount) / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT);
+    const renewWage = normalizeOfferedWage(offeredWage, asking);
 
     // Net budget gate — the renewal replaces the player's current wage,
     // so only the delta counts. Marquee wages sit outside the budget.
     if (!p.contract.isMarquee) {
-      const projected = clubBudgetUsage(this.state, userClubId) - p.contract.annualWage + terms.annualWage;
+      const projected = clubBudgetUsage(this.state, userClubId) - p.contract.annualWage + renewWage;
       if (projected > club.salaryBudget) return { status: 'ineligible', reason: 'over_budget' };
     }
 
     // Appeal-score acceptance roll (own-club loyalty bonus applies via
-    // the 'retention' kind).
+    // the 'retention' kind). The wage term lifts/lowers the odds; an
+    // offer at or above asking is clamped near-certain via the loyalty
+    // floor, a lowball never below the underpay floor.
     const bid: TransferBid = {
       id: `r${this.state.career.seasonsCompleted}_${userClubId}_${rosterId}`,
       rosterId,
       clubId: userClubId,
-      annualWage: terms.annualWage,
+      annualWage: renewWage,
       lengthYears: terms.lengthYears,
       kind: 'retention',
       status: 'pending',
     };
-    const probability = midseasonAcceptanceProbability(this.state, bid, p);
+    const probability = renewalAcceptProbability(this.state, bid, p, asking, renewWage);
     const roll = rngTransfer(1, 1000) / 1000;
     if (roll <= probability) {
       applySeasonEvent(this.state, {
         type: 'CONTRACT_EXTENDED',
         rosterId,
         newExpiresOn: terms.expiresOn,
-        newAnnualWage: terms.annualWage,
+        newAnnualWage: renewWage,
       });
-      return { status: 'accepted', wage: terms.annualWage, lengthYears: terms.lengthYears };
+      return { status: 'accepted', wage: renewWage, lengthYears: terms.lengthYears };
     }
 
     const cooldownUntilWeek = this.state.calendar.week + RENEWAL.earlyRenewalCooldownWeeks;

@@ -346,12 +346,13 @@ document.addEventListener('DOMContentLoaded', () => {
     initRolloverScreen(getGameEngine, allTeams);
     initContractsScreen(getGameEngine, allTeams, () => goHub('back'), (rosterId) => {
       goPlayerProfile(rosterId, () => goContracts('back'));
-    }, (rosterId) => {
+    }, (rosterId, offeredWage) => {
       // Mid-season early renewal: mutate + persist engine-side so a
       // re-signing survives a tab close. The screen handles the toast +
-      // re-render from the returned outcome.
+      // re-render from the returned outcome. The wage is the user's
+      // negotiated figure from the offer modal.
       const engine = getGameEngine();
-      const result = engine.offerEarlyRenewal(rosterId);
+      const result = engine.offerEarlyRenewal(rosterId, offeredWage);
       saveGame(engine.toSavePayload());
       return result;
     });
@@ -682,6 +683,12 @@ document.addEventListener('DOMContentLoaded', () => {
       goTransfersMidseason();
       return;
     }
+    // Mid-season poach window mid-flow (tab closed on the retention
+    // screen) → resume the decision, then back to Hub.
+    if (liveMarket && liveMarket.phase === 'poach-midseason') {
+      runMidseasonPoachDecision(() => goHub());
+      return;
+    }
     // Resume mid-off-season: rollSeason() already ran (playoffs cleared)
     // but the renewals or signings window is still open. Skip straight to
     // the open market rather than landing on Hub with an orphaned market.
@@ -690,6 +697,42 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     goHub();
+  }
+
+  // Mid-season Reg 7 poach. Opens the window (self-gates on cadence +
+  // whether any rival actually approaches one of the user's players). If
+  // it opened, runs the retention decision; otherwise continues straight
+  // through. Slotted into the post-match chain after the training step.
+  function maybeRunMidseasonPoach(onDone: () => void): void {
+    if (!gameEngine) { onDone(); return; }
+    gameEngine.openMidseasonPoachWindow();
+    const market = gameEngine.getState().career.market;
+    if (!market || market.phase !== 'poach-midseason') { onDone(); return; }
+    saveGame(gameEngine.toSavePayload()); // persist the open window (resumable)
+    runMidseasonPoachDecision(onDone);
+  }
+
+  // Drives the open 'poach-midseason' market to a conclusion: show the
+  // RetentionDecision screen (user retains — paying up — or lets players
+  // go), then resolve + show the outcome, then continue. Reused by the
+  // post-match chain and the closed-tab resume path.
+  function runMidseasonPoachDecision(onDone: () => void): void {
+    if (!gameEngine) { onDone(); return; }
+    const prompts = gameEngine.getUserRetentionPrompts();
+    if (prompts.length === 0) {
+      gameEngine.closeMidseasonPoachWindow();
+      saveGame(gameEngine.toSavePayload());
+      onDone();
+      return;
+    }
+    showRetentionDecision(() => {
+      if (!gameEngine) { onDone(); return; }
+      const outcomes = gameEngine.closeMidseasonPoachWindow();
+      saveGame(gameEngine.toSavePayload());
+      showSigningResults(outcomes, onDone);
+      screenRouter.show('signing-results');
+    });
+    screenRouter.show('retention-decision');
   }
 
   // Shared competitive signing loop used by both the normal off-season
@@ -773,9 +816,9 @@ document.addEventListener('DOMContentLoaded', () => {
       gameEngine.openRenewalWindow();
       if (gameEngine.getState().career.market) {
         saveGame(gameEngine.toSavePayload());
-        showRenewals((decisions) => {
+        showRenewals((decisions, wages) => {
           if (!gameEngine) { goHub(); return; }
-          gameEngine.closeRenewalWindow(decisions);
+          gameEngine.closeRenewalWindow(decisions, wages);
           saveGame(gameEngine.toSavePayload());
           proceedToSignings();
         });
@@ -856,9 +899,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     if (market?.phase === 'renewals') {
-      showRenewals((decisions) => {
+      showRenewals((decisions, wages) => {
         if (!gameEngine) { goHub(); return; }
-        gameEngine.closeRenewalWindow(decisions);
+        gameEngine.closeRenewalWindow(decisions, wages);
         saveGame(gameEngine.toSavePayload());
         // Open signings as normal — openSigningWindow is idempotent.
         gameEngine.openSigningWindow();
@@ -1155,9 +1198,13 @@ document.addEventListener('DOMContentLoaded', () => {
               ) ? 'Semi-Final' : 'Playoffs';
             })()
           : undefined;
+        // Normal in-season rounds detour through a mid-season Reg 7 poach
+        // window when a rival approaches one of the user's players (the
+        // window self-gates on cadence + threats). Playoff-entry rounds
+        // skip straight to the bracket.
         const afterTraining = isPlayoffEntry
           ? () => { bracketSeededPending = false; runPlayoffStage(); }
-          : () => { if (gameEngine) saveGame(gameEngine.toSavePayload()); goHub(); };
+          : () => maybeRunMidseasonPoach(() => { if (gameEngine) saveGame(gameEngine.toSavePayload()); goHub(); });
         showTrainingPostMatch((results) => {
           // At an international break the training result carries a summary;
           // slot the International Break screen between training results and

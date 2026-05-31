@@ -19,8 +19,12 @@ import type { TransferOffer } from '../types/gameState';
 import type { Player } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
 import { getAge } from '../game/age';
+import { renewalAcceptProbability } from '../game/midseasonSigningResolver';
+import { WAGE_FLOOR, WAGE_ROUNDING_UNIT } from '../engine/balance/transfers';
+import { wageOfferModal, budgetLineFor, readFromProbability, type WageRead } from './components/wageOfferModal';
 import { showToast } from './Toast';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
+import type { TransferBid } from '../types/gameState';
 
 type Decision = 'renew' | 'release';
 
@@ -28,12 +32,19 @@ type Decision = 'renew' | 'release';
 // state; mutated by row toggle clicks. The parent handler reads it on
 // Continue and feeds it to closeRenewalWindow.
 let decisions: Map<string, Decision> = new Map();
-let activeOnContinue: (decisions: Record<string, Decision>) => void = () => {};
+// Per-offer negotiated wage (offer ID → wage). Empty unless the user
+// adjusted a row away from its asking wage; passed to closeRenewalWindow
+// so a lowball is rolled. A renewal kept at asking takes no roll.
+let wages: Map<string, number> = new Map();
+let activeOnContinue: (decisions: Record<string, Decision>, wages: Record<string, number>) => void = () => {};
 let renderImpl: (() => void) | null = null;
 
-export function showRenewals(onContinue: (decisions: Record<string, Decision>) => void): void {
+export function showRenewals(
+  onContinue: (decisions: Record<string, Decision>, wages: Record<string, number>) => void,
+): void {
   activeOnContinue = onContinue;
   decisions = new Map();
+  wages = new Map();
   renderImpl?.();
 }
 
@@ -91,7 +102,7 @@ export function initRenewalsScreen(
         </div>
         <div id="rn-footer"><button id="rn-continue" class="cta-pulse"><span>Continue</span></button></div>
       `;
-      el!.querySelector<HTMLButtonElement>('#rn-continue')!.addEventListener('click', () => activeOnContinue({}));
+      el!.querySelector<HTMLButtonElement>('#rn-continue')!.addEventListener('click', () => activeOnContinue({}, {}));
       return;
     }
 
@@ -116,7 +127,7 @@ export function initRenewalsScreen(
     }
     for (const o of myOffers) {
       if (decisions.get(o.id) === 'renew' && !o.isMarquee) {
-        projectedCap += o.annualWage;
+        projectedCap += wages.get(o.id) ?? o.annualWage;
       }
     }
     // The owner's salaryBudget is the cap-relevant ceiling — the
@@ -139,10 +150,12 @@ export function initRenewalsScreen(
       const ovr = playerOverall(p.baseStats, p.position);
       const choice = decisions.get(o.id) ?? 'renew';
       const isRenew = choice === 'renew';
+      const offerWage = wages.get(o.id) ?? o.annualWage;
       const rowDelay = Math.min(i, 16) * 25;
-      const wageDelta = o.annualWage - p.contract.annualWage;
+      const wageDelta = offerWage - p.contract.annualWage;
       const deltaSign = wageDelta > 0 ? '+' : '';
       const deltaCls = wageDelta > 0 ? 'rn-delta-up' : wageDelta < 0 ? 'rn-delta-down' : '';
+      const negotiated = offerWage !== o.annualWage;
       const nameInner = onPlayerClick
         ? playerLinkHtml(`${p.firstName} ${p.lastName}`, p.rosterId)
         : `${p.firstName} ${p.lastName}`;
@@ -155,7 +168,7 @@ export function initRenewalsScreen(
           <div class="rn-row-terms">
             <span class="rn-current">${fmtWage(p.contract.annualWage)}</span>
             <span class="rn-arrow">→</span>
-            <span class="rn-new">${fmtWage(o.annualWage)} <span class="rn-len">× ${o.lengthYears}y</span></span>
+            <button class="rn-new rn-adjust${negotiated ? ' rn-adjust--set' : ''}" data-adjust="${o.id}"${isRenew ? '' : ' disabled'}>${fmtWage(offerWage)} <span class="rn-len">× ${o.lengthYears}y</span></button>
             ${wageDelta !== 0 ? `<span class="${deltaCls}">${deltaSign}${fmtWage(Math.abs(wageDelta))}</span>` : ''}
           </div>
           <div class="rn-toggle" role="group" aria-label="Renewal decision">
@@ -239,8 +252,47 @@ export function initRenewalsScreen(
       });
     });
 
+    // Wire the per-row wage adjust (renew rows only). Opens the offer
+    // modal; the chosen wage feeds the projection + the lowball roll.
+    el!.querySelectorAll<HTMLButtonElement>('.rn-adjust[data-adjust]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const offerId = btn.dataset.adjust;
+        if (!offerId) return;
+        const offer = myOffers.find(o => o.id === offerId);
+        const p = offer ? state.career.roster[offer.rosterId] : undefined;
+        if (!offer || !p) return;
+        const asking = offer.annualWage;
+        const current = wages.get(offerId) ?? asking;
+        // Project the cap excluding this offer's current contribution so
+        // the budget line reflects swapping in the new wage.
+        const capWithoutThis = projectedCap - (decisions.get(offerId) === 'renew' ? current : 0);
+        const minWage = Math.max(WAGE_FLOOR, Math.round(asking * 0.7 / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT);
+        const maxWage = Math.max(asking, Math.min(asking * 1.3, budgetCap - capWithoutThis));
+        const chosen = await wageOfferModal({
+          playerName: `${p.firstName} ${p.lastName}`,
+          askingWage: asking,
+          minWage,
+          maxWage,
+          initialWage: current,
+          confirmLabel: 'Set wage',
+          read: (wage: number): WageRead => {
+            const bid: TransferBid = {
+              id: 'preview', rosterId: offer.rosterId, clubId: playerClubId,
+              annualWage: wage, lengthYears: offer.lengthYears, kind: 'retention', status: 'pending',
+            };
+            return readFromProbability(renewalAcceptProbability(state, bid, p, asking, wage), 'May walk');
+          },
+          budgetLine: (wage: number) => budgetLineFor(capWithoutThis + wage, budgetCap),
+        });
+        if (chosen === null) return;
+        if (chosen === asking) wages.delete(offerId);
+        else wages.set(offerId, chosen);
+        render();
+      });
+    });
+
     el!.querySelector<HTMLButtonElement>('#rn-continue')!.addEventListener('click', () => {
-      activeOnContinue(Object.fromEntries(decisions));
+      activeOnContinue(Object.fromEntries(decisions), Object.fromEntries(wages));
     });
 
     if (onPlayerClick) wirePlayerLinks(el!, onPlayerClick);

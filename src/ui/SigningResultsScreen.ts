@@ -112,6 +112,7 @@ export function initSigningResultsScreen(
     };
     const userWins: Row[] = [];
     const userLosses: Row[] = [];
+    const userHeldOut: Row[] = [];
     const retentionWins: Row[] = [];
     const retentionLosses: Row[] = [];
     const retentionMissed: Row[] = [];
@@ -144,6 +145,13 @@ export function initSigningResultsScreen(
           userWins.push({
             rosterId: outcome.rosterId, playerName, position: p.position,
             winnerClubName, wage: userBid.annualWage, ovr, kind: userBid.kind,
+          });
+        } else if (outcome.heldOut) {
+          // The best offer (the user's, unopposed) fell below the
+          // player's reservation wage — they held out rather than sign.
+          userHeldOut.push({
+            rosterId: outcome.rosterId, playerName, position: p.position,
+            winnerClubName: null, wage: userBid.annualWage, ovr, kind: userBid.kind,
           });
         } else {
           userLosses.push({
@@ -219,6 +227,12 @@ export function initSigningResultsScreen(
         <span class="sr-result">Lost to ${r.winnerClubName ?? '—'}</span>
         <span class="sr-wage">${fmtWage(r.wage)}</span>
       </div>`;
+    const renderHeldOutRow = (r: Row, i: number): string => `
+      <div class="sr-row sr-row--loss" style="--row-delay: ${Math.min(i, 16) * 25}ms">
+        <span class="sr-name">${nameHtml(r)} <span class="sr-pos">${r.position}</span></span>
+        <span class="sr-result">Held out</span>
+        <span class="sr-wage">${fmtWage(r.wage)}</span>
+      </div>`;
 
     const totalBids = userWins.length + userLosses.length + retentionWins.length + retentionLosses.length;
     const totalWon = userWins.length + retentionWins.length;
@@ -246,6 +260,13 @@ export function initSigningResultsScreen(
         <section class="sr-section">
           <h3 class="sr-section-h">Missed out (${userLosses.length})</h3>
           ${userLosses.map(renderLossRow).join('')}
+        </section>`);
+    }
+    if (userHeldOut.length > 0) {
+      sections.push(`
+        <section class="sr-section">
+          <h3 class="sr-section-h">Held out — wage too low (${userHeldOut.length})</h3>
+          ${userHeldOut.map(renderHeldOutRow).join('')}
         </section>`);
     }
     if (retentionWins.length > 0) {

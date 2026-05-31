@@ -247,3 +247,55 @@
   background: var(--rm-danger, oklch(0.55 0.2 25));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
+
+/* ─── Wage-offer modal content (.rm-wage-*), shares .rm-confirm shell ─── */
+.rm-wage-asks {
+  font-size: var(--rm-fs-13);
+  color: var(--rm-text-muted);
+  margin-bottom: 6px;
+}
+.rm-wage-asks strong { color: var(--rm-chalk); font-weight: 700; }
+.rm-wage-value {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-26);
+  color: var(--rm-chalk);
+  letter-spacing: 0.02em;
+  margin-bottom: 10px;
+}
+.rm-wage-slider {
+  width: 100%;
+  height: 4px;
+  accent-color: var(--rm-pitch);
+  cursor: pointer;
+  margin-bottom: 14px;
+}
+.rm-wage-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+.rm-wage-chip {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--rm-border-soft);
+}
+.rm-wage-chip--good    { color: var(--rm-pitch);  border-color: color-mix(in oklch, var(--rm-pitch) 50%, transparent);  background: color-mix(in oklch, var(--rm-pitch) 12%, transparent); }
+.rm-wage-chip--warn    { color: var(--rm-amber);  border-color: color-mix(in oklch, var(--rm-amber) 55%, transparent);  background: color-mix(in oklch, var(--rm-amber) 14%, transparent); }
+.rm-wage-chip--bad     { color: var(--rm-danger); border-color: color-mix(in oklch, var(--rm-danger) 55%, transparent); background: color-mix(in oklch, var(--rm-danger) 14%, transparent); }
+.rm-wage-chip--neutral { color: var(--rm-text-muted); }
+.rm-wage-budget {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+  color: var(--rm-text-muted);
+  text-align: right;
+}
+.rm-wage-budget--tight { color: var(--rm-amber); }
+.rm-wage-budget--over  { color: var(--rm-danger); }
+.rm-confirm-proceed:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }

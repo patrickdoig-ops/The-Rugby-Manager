@@ -14,9 +14,18 @@ import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import { playerOverall } from '../engine/RatingEngine';
 import { getAge } from '../game/age';
-import { retentionTermsFor } from '../game/aiTransferDirector';
 import { clubBudgetUsage } from '../game/teamStats';
+import { RENEWAL, WAGE_FLOOR, WAGE_ROUNDING_UNIT, WAGE_NEGOTIATION } from '../engine/balance/transfers';
+import { wageOfferModal, budgetLineFor, type WageRead } from './components/wageOfferModal';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
+
+// RNG-free retention asking wage = the player's poach offer wage ×
+// loyalty-discount, matching the resolver's retention baseline. Never
+// calls retentionTermsFor (which would advance rngTransfer in render).
+function retentionAskingWage(offerWage: number): number {
+  return Math.max(WAGE_FLOOR, Math.round(
+    offerWage * (1 - RENEWAL.loyaltyDiscount) / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT);
+}
 
 let activeOnContinue: () => void = () => {};
 let renderImpl: (() => void) | null = null;
@@ -111,11 +120,12 @@ export function initRetentionDecisionScreen(
     const rows = promptRosterIds.map(rid => {
       const p = state.career.roster[rid];
       if (!p) return null;
-      const terms = retentionTermsFor(state, rid);
-      if (!terms) return null;
+      const offer = state.career.market?.offers.find(o => o.rosterId === rid);
+      if (!offer) return null;
+      const asking = retentionAskingWage(offer.annualWage);
       const ovr = playerOverall(p.baseStats, p.position);
       const age = getAge(p.dob, calendarDate);
-      const wageDelta = terms.annualWage - p.contract.annualWage;
+      const wageDelta = asking - p.contract.annualWage;
       const isRetaining = userRetentions.has(rid);
       // Budget gate: a NEW retention would breach if the projected
       // delta pushes over budget. Existing retentions never breach
@@ -152,7 +162,7 @@ export function initRetentionDecisionScreen(
           <span class="rd-name">${nameInner}</span>
           <span class="rd-meta">${p.position} · ${ovr} OVR · ${age ?? '—'}</span>
           <span class="rd-poacher">${poacherHtml}</span>
-          <span class="rd-wage">${fmtWage(terms.annualWage)} <span class="rd-delta">(${wageDeltaStr})</span></span>
+          <span class="rd-wage">${fmtWage(asking)} <span class="rd-delta">(${wageDeltaStr})</span></span>
           <button class="${buttonClass}" ${dataAttr}${wouldExceedCap ? ' disabled' : ''}>${buttonLabel}</button>
         </div>`;
     }).filter((s): s is string => s !== null).join('');
@@ -186,11 +196,42 @@ export function initRetentionDecisionScreen(
       </div>
     `;
 
+    // Retain — opens the wage modal. The retention competes with the
+    // poacher's bid by appeal score, so paying over the asking rate
+    // (offer × loyalty-discount) raises the player's preference for
+    // staying. Read is wage-strength (the outcome also depends on the
+    // rival's appeal), no holdout framing — retention winners can't hold
+    // out. RNG-free: asking + read use the cached offer, not a fresh seed.
     el!.querySelectorAll<HTMLButtonElement>('.tm-sign[data-retain]').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const rid = Number(btn.dataset.retain);
         if (!Number.isFinite(rid)) return;
-        gameEngine.submitRetentionBid(rid);
+        const p = state.career.roster[rid];
+        const offer = state.career.market?.offers.find(o => o.rosterId === rid);
+        if (!p || !offer) return;
+        const asking = retentionAskingWage(offer.annualWage);
+        const currentWage = p.contract.annualWage;
+        const maxAffordable = budgetCap - baseUsage + currentWage; // net-delta budget
+        const minWage = Math.max(WAGE_FLOOR, Math.round(asking * 0.8 / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT);
+        const maxWage = Math.max(asking, Math.min(asking * 1.4, maxAffordable));
+        const chosen = await wageOfferModal({
+          playerName: `${p.firstName} ${p.lastName}`,
+          askingWage: asking,
+          minWage,
+          maxWage,
+          initialWage: asking,
+          confirmLabel: 'Retain',
+          read: (wage: number): WageRead => {
+            const ratio = asking > 0 ? wage / asking : 1;
+            if (ratio > 1) return { label: 'Strong offer', tone: 'good' };
+            if (ratio >= 1) return { label: 'Standard', tone: 'neutral' };
+            if (ratio >= WAGE_NEGOTIATION.reservationFloorRatio) return { label: 'Below market', tone: 'warn' };
+            return { label: 'Weak vs rival', tone: 'bad' };
+          },
+          budgetLine: (wage: number) => budgetLineFor(baseUsage + Math.max(0, wage - currentWage), budgetCap),
+        });
+        if (chosen === null) return;
+        gameEngine.submitRetentionBid(rid, chosen);
         render();
       });
     });

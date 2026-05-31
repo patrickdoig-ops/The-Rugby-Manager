@@ -310,11 +310,15 @@ export interface TransferOffer {
 //   'signings-midseason' — Hub → Transfers mid-season free-agent
 //                         signings. Free-agent offers only; no Reg 7.
 //                         User-only bids (no AI competition mid-season).
+//   'poach-midseason'   — mid-season Reg 7 approach window; one offer per
+//                         the user's own at-risk player, AI poach bids
+//                         pre-submitted, user retains or lets them
+//                         pre-agree to leave at the next rollover.
 // v7 saves load with `phase` defaulting to 'renewals' for backward
 // compat. v15 saves with phase === 'signings' continue to work; v16
 // added the third variant.
 export interface MarketState {
-  phase: 'renewals' | 'signings' | 'signings-midseason';
+  phase: 'renewals' | 'signings' | 'signings-midseason' | 'poach-midseason';
   openedAfterSeason: string;  // seasonLabel of the just-completed season
   expiringRosterIds: number[]; // empty during the signings phase
   offers: TransferOffer[];
@@ -591,8 +595,10 @@ export type SeasonEvent =
       //   'signings-midseason' — Hub → Transfers; one offer per free
       //     agent (no Reg 7). User-only bids; rejected players go on
       //     career.midseasonRejections for a one-week cooldown.
+      //   'poach-midseason' — mid-season Reg 7; one offer per the user's
+      //     own at-risk player, AI poach bids pre-submitted at open.
       type: 'MARKET_OPENED';
-      phase: 'renewals' | 'signings' | 'signings-midseason';
+      phase: 'renewals' | 'signings' | 'signings-midseason' | 'poach-midseason';
       expiringRosterIds: number[]; // empty when phase is a signings variant
       offers: TransferOffer[];
     }

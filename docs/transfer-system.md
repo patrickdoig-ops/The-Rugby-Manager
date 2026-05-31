@@ -287,7 +287,7 @@ All season-scope writes continue to flow through `applySeasonEvent` (see CLAUDE.
     rosterIds: number[]; }            // user's players currently under background poach threat
 ```
 
-`POACH_THREATS_SET` overwrites `state.career.activePoachedIds` with the rosterIds of the user's own players who are under active cross-Prem poach assessment this week. The Hub's Transfers tile badge reads `activePoachedIds.length`. No market window needs to be open — the assessment runs silently every round.
+`POACH_THREATS_SET` overwrites `state.career.activePoachedIds` with the rosterIds of the user's own players who are under active cross-Prem poach assessment this week. The Hub's Transfers tile badge reads `activePoachedIds.length`. No market window needs to be open — the assessment runs silently every round. As of v1.11b this background badge is the *warning*; the actual mid-season approach materialises every `MIDSEASON_POACH.cadenceRounds` rounds via the `'poach-midseason'` window (see `docs/game-engine.md` § "Mid-season poaching of the user's players"), where the user retains or lets the player pre-agree to leave.
 
 Hub → Transfers opens an interactive signings market (`MARKET_OPENED({ phase: 'signings-midseason' })`) with FA-only offers. The user queues bids and submits a single round; `runMidseasonSigning` rolls each against an appeal-based acceptance probability (`midseasonAcceptanceProbability`, `balance/transfers.ts::MIDSEASON_SIGNING`). Accept fires `BID_RESOLVED({ won })` + `CONTRACT_SIGNED`; decline fires `BID_RESOLVED({ lost })` + `MIDSEASON_OFFER_REJECTED({ weekUntilClear: currentWeek + 1 })`. The cooldown entry lives on `state.career.midseasonRejections`; `WEEK_ADVANCED` prunes aged-out entries, `SEASON_ROLLED_OVER` clears the whole map. No AI competition mid-season — the FA pool is the user's to work with until the off-season redistributes it.
 
@@ -328,6 +328,10 @@ All stat-development RNG (Phase 1 — `clampedNormal` in `careerRollover.ts`), r
 
 `scripts/checkSeasonDeterminism.ts` runs a 3-season career with fixed seed, exercises both `openRenewalWindow` + `closeRenewalWindow` and `openSigningWindow` + `closeSigningWindow` between each pair of seasons (AI-only, no user decisions), snapshots per-season standings + results + the full SeasonEvent stream + renewal + signing offer hashes + post-window free-agents pool + final-state roster baseStats + seasonsCompleted, and asserts byte-equal hash on a second run. A career with a given seed produces an identical final league table + roster + retirement list + transfer activity every run.
 
+**Salary negotiation (v1.10b)** is determinism-safe by construction: (a) the off-season wage term (`wageSatisfaction`) and reservation gate are pure arithmetic, no RNG; (b) the AI competitive premium `aiBidWage` AND the AI retention wage (`decideAIRetentions`, derived from the cached offer × loyalty-discount) are closed-form functions of cached offer / OVR / need and **never** call `seedContractFields`/`rngTransfer` (`decideAIBids` still consumes zero draws; the retention path dropped its prior `seedContractFields` call); (c) the user-side renewal acceptance rolls (`renewalAcceptProbability` + `rngTransfer`) fire only when the user supplies a wage below asking, so the AI-only harness takes none. UI previews that need an expected wage use the RNG-free `contractSeeder.estimateMarketWage` instead of advancing the stream; the wage baseline shown to the user always equals the baseline the engine scores against (retention = `offer × (1-discount)`, early renewal = `estimateMarketWage × (1-discount)`).
+
+**Poaching the user's players (v1.11b)** is likewise determinism-safe. Off-season: `openSigningWindow` now includes the user's own final-year players in the poach-offer pool (one extra `signingTermsFor` draw each — a deliberate off-season re-baseline), so AI clubs bid on them and `RetentionDecisionScreen` becomes reachable. Mid-season: the `'poach-midseason'` window is **live-only** (orchestrated by `main.ts`, never the headless harness) and **entirely RNG-free** — offers via `estimateMarketWage`, AI bids via the closed-form `aiBidWage`, resolution via the deterministic appeal contest — so it cannot perturb the career stream even though `checkSeasonDeterminism` doesn't drive it. A pre-agreed player is removed from `expiringRosterIds` + `assessAIPoachThreats` so the same player can't be double-handled across windows.
+
 ---
 
 ## 6. UI surface
@@ -335,8 +339,9 @@ All stat-development RNG (Phase 1 — `clampedNormal` in `careerRollover.ts`), r
 | Screen | Status | Triggered from | Purpose |
 |---|---|---|---|
 | **EndOfSeasonScreen** | ✅ live (v2.22a) | Auto, after final-round result | Final table + your-season summary + top scorer + MVP cards |
-| **RenewalsScreen** | ✅ live (v2.36a) | After EndOfSeason if expiring contracts exist | Per-row Renew/Release toggle on the player's expiring squad with live projected-cap pill |
-| **TransferMarketScreen** | ✅ live (v2.43a) | After Renewals if free agents or Reg 7 poach candidates exist | Two sections — free agents (Sign) + final-12-month contracted (Pre-Agree). Sortable by name/pos/age/OVR/wage, live cap pill |
+| **RenewalsScreen** | ✅ live (v2.36a) | After EndOfSeason if expiring contracts exist | Per-row Renew/Release toggle + tap-to-negotiate wage (v1.10b) on the player's expiring squad with live projected-cap pill |
+| **TransferMarketScreen** | ✅ live (v2.43a) | After Renewals if free agents or Reg 7 poach candidates exist | Two sections — free agents (Sign) + final-12-month contracted (Pre-Agree). Make Offer opens the wage-negotiation modal (v1.10b). Sortable by name/pos/age/OVR/wage, live cap pill |
+| **wageOfferModal** | ✅ live (v1.10b) | Any bid / renew action | Slider sheet (`src/ui/components/wageOfferModal.ts`) for the offered wage, with a live Likely/Uncertain/Unlikely acceptance chip + budget line |
 | **RolloverScreen** | ✅ live (v2.22a) | After TransferMarket (or directly after Renewals/EndOfSeason if windows skipped) | Retirements + per-player aging deltas + inbound transfers + academy graduates; "Begin {next season}" CTA |
 | **ContractsScreen** | ✅ live (v2.36a) | Hub → Contracts tile | Sortable squad list — name / pos / age / OVR / wage / expiry / marquee badge. Interactive marquee toggle + 3-state cap pill |
 
@@ -500,6 +505,8 @@ Resolved during Phases 1 + 2:
 1. ✅ **Wage formula calibration.** Shipped as `WAGE_BY_RATING` (piecewise-linear anchor table) × `POSITION_SCARCITY` × `WAGE_NOISE` in `src/engine/balance/transfers.ts`. No age multiplier in the formula yet — length distribution is age-banded instead. Numbers will retune once Phase 4 telemetry exists.
 3. ✅ **Retirement curve shape.** Shipped as `RETIREMENT_CURVE` in `src/engine/balance/career.ts` — forwards skew one year later than backs at every age bucket, 100% retirement at 38 (forwards) / 37 (backs).
 4. ✅ **Stat development curve per stat.** Shipped as `AGE_CURVES` in `src/engine/balance/career.ts` — pace/agility peak 25-26 with the steepest decline, composure/kicking/positioning hold to 31-33 with the shallowest.
+8. ✅ **Salary negotiation (v1.10b).** Offered wage is no longer fixed — `wageSatisfaction(offered, asking)` (`signingResolver.ts`, tuned by `WAGE_NEGOTIATION`) feeds the `appealScore` seam across every window: off-season competitive (wage term + reservation holdout gate, deterministic), mid-season FA + user renewals (folded into the acceptance probability + `renewalAcceptProbability` clamps). AI bids carry a deterministic premium (`aiBidWage`). See §5 + `docs/game-engine.md`. No save bump.
+9. ✅ **Poaching the user's players (v1.11b).** Rival AI clubs approach the user's final-year players off-season (`openSigningWindow` includes them → `RetentionDecisionScreen`) and mid-season (the live-only, RNG-free `'poach-midseason'` window every `MIDSEASON_POACH.cadenceRounds` rounds). A successful approach is a pre-agreement (player leaves at rollover); the user defends via the wage modal. See `docs/game-engine.md` § "Mid-season poaching of the user's players". No save bump (additive `MarketState.phase`).
 
 Still open:
 

@@ -600,6 +600,18 @@ const PENALTY: PhaseBank = {
     'Into touch from {primary} — the lineout is set deep in opposition territory.',
     '{primary} finds touch beautifully — {side} have a lineout up the field.',
   ],
+  kick_to_touch_close: [
+    'Great kick from {primary} — only {metres}m from the opposition try line.',
+    '{primary} finds touch superbly — the lineout is just {metres}m from the line.',
+    'What a touch-finder from {primary}! {side} have a lineout {metres}m out.',
+    'Excellent kick by {primary} — {side} are only {metres}m from the try line.',
+  ],
+  kick_to_touch_long: [
+    'Into touch from {primary} — still {metres}m to go.',
+    '{primary} finds touch, but {side} still have {metres}m to cover.',
+    'The kick finds touch — the lineout is {metres}m from the opposition line.',
+    '{primary} gets the ball into touch — {metres}m from the try line from here.',
+  ],
   kick_to_touch_missed: [
     '{primary} aims for touch but the ball stays in field — counter on!',
     'Sliced kick from {primary} — the ball doesn\'t make touch and the opposition gather.',

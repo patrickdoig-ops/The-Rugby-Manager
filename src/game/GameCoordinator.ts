@@ -108,6 +108,9 @@ export interface SavedCareer {
   // migrate as {} (no historical cooldowns known). Cleared at the next
   // SEASON_ROLLED_OVER along with the FA pool reshuffle.
   midseasonRejections?: Record<number, number>;
+  // v24+: rosterIds of the user's players currently under AI poach threat.
+  // Pre-v24 saves migrate as []; the badge updates after the next round.
+  activePoachedIds?: number[];
 }
 
 export interface SavedSeason {
@@ -461,6 +464,14 @@ export class GameCoordinator {
     this.transfers.runAIRetentionPass();
   }
 
+  runAIMidseasonPoachPass(): void {
+    this.transfers.runAIMidseasonPoachPass();
+  }
+
+  updatePoachThreats(): void {
+    this.transfers.updatePoachThreats();
+  }
+
   resolveSigningRound() {
     return this.transfers.resolveSigningRound();
   }
@@ -619,6 +630,19 @@ export class GameCoordinator {
 
     applySeasonEvent(this.state, { type: 'WEEK_ADVANCED' });
     eventBus.emit('game:weekAdvanced', { state: this.state });
+
+    // Background poach-threat assessment — RNG-free, runs every round.
+    // Keeps the Hub Transfers badge current without the user opening
+    // the screen first.
+    if (!this.state.career.market) {
+      this.transfers.updatePoachThreats();
+    }
+
+    // AI early-renewal cadence: every 4 rounds, each AI club attempts to
+    // lock in its best expiring player before the off-season window.
+    if (this.state.calendar.week % 4 === 1) {
+      this.transfers.runAIEarlyRenewals();
+    }
 
     // Last regular-season fixture just resolved → seed the playoff
     // bracket from the final standings. game:bracketSeeded is the post-
@@ -945,6 +969,7 @@ export class GameCoordinator {
           : {}),
         takeoverHistory: [...this.state.career.takeoverHistory],
         midseasonRejections: { ...this.state.career.midseasonRejections },
+        activePoachedIds: [...this.state.career.activePoachedIds],
       },
       teamSeasonStats: Object.fromEntries(
         Object.entries(this.state.league.teamSeasonStats).map(([id, s]) => [id, { ...s }]),

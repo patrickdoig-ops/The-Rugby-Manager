@@ -21,8 +21,10 @@ import {
   expiringRosterIds, generateRenewalOffers, decideAIOffers, expiryAfterYears,
   decideAISignings, signingTermsFor, isPoachEligible, decideAIPoaches, poachCandidates,
   decideAIBids, decideAIRetentions, decideAIFinalSignings, retentionTermsFor,
+  assessAIPoachThreats,
 } from './aiTransferDirector';
 import { resolveSigningRound, type SigningOutcome } from './signingResolver';
+import { playerOverall } from '../engine/RatingEngine';
 import { resolveMidseasonSigning, midseasonAcceptanceProbability } from './midseasonSigningResolver';
 import { clubBudgetUsage } from './teamStats';
 import { isContractExpiringSoon } from './age';
@@ -443,6 +445,80 @@ export class TransferCoordinator {
     }
   }
 
+  // AI mid-season early renewal cadence (called every 4 rounds). Each AI
+  // club attempts to lock in its highest-OVR expiring player before the
+  // off-season window. Mirrors offerEarlyRenewal but for all AI clubs.
+  runAIEarlyRenewals(): void {
+    if (this.state.career.market) return;
+    const userClubId = this.state.player.teamId;
+    const clubs = [...this.state.career.clubs].sort((a, b) => a.id.localeCompare(b.id));
+    for (const club of clubs) {
+      if (club.id === userClubId) continue;
+      const candidate = club.squad
+        .map(rid => this.state.career.roster[rid])
+        .filter((p): p is Player => {
+          if (!p) return false;
+          if (!isContractExpiringSoon(p.contract.expiresOn, this.state.calendar.date)) return false;
+          const lock = this.state.career.midseasonRejections[p.rosterId];
+          if (lock !== undefined && lock > this.state.calendar.week) return false;
+          return playerOverall(p.baseStats, p.position) >= RENEWAL.aiReleaseRatingFloor;
+        })
+        .sort((a, b) => playerOverall(b.baseStats, b.position) - playerOverall(a.baseStats, a.position))[0];
+      if (!candidate) continue;
+      const terms = retentionTermsFor(this.state, candidate.rosterId);
+      if (!terms) continue;
+      if (!candidate.contract.isMarquee) {
+        const projected = clubBudgetUsage(this.state, club.id) - candidate.contract.annualWage + terms.annualWage;
+        if (projected > club.salaryBudget) continue;
+      }
+      const bid: TransferBid = {
+        id: `ar${this.state.career.seasonsCompleted}_${club.id}_${candidate.rosterId}`,
+        rosterId: candidate.rosterId,
+        clubId: club.id,
+        annualWage: terms.annualWage,
+        lengthYears: terms.lengthYears,
+        kind: 'retention',
+        status: 'pending',
+      };
+      const probability = midseasonAcceptanceProbability(this.state, bid, candidate);
+      const roll = rngTransfer(1, 1000) / 1000;
+      if (roll <= probability) {
+        applySeasonEvent(this.state, {
+          type: 'CONTRACT_EXTENDED',
+          rosterId: candidate.rosterId,
+          newExpiresOn: terms.expiresOn,
+          newAnnualWage: terms.annualWage,
+        });
+      } else {
+        applySeasonEvent(this.state, {
+          type: 'MIDSEASON_OFFER_REJECTED',
+          rosterId: candidate.rosterId,
+          weekUntilClear: this.state.calendar.week + RENEWAL.earlyRenewalCooldownWeeks,
+        });
+      }
+    }
+  }
+
+  // Mid-season AI poaching pass. Like runAIBidPass but restricted to
+  // poach bids only — AI clubs do not sign free agents mid-season, which
+  // keeps the FA pool stable for the user to plan around.
+  runAIMidseasonPoachPass(): void {
+    const bids = decideAIBids(this.state, this.state.player.teamId)
+      .filter(b => b.kind === 'poach');
+    for (const bid of bids) {
+      applySeasonEvent(this.state, { type: 'BID_SUBMITTED', bid });
+    }
+  }
+
+  // Background threat assessment — called at WEEK_ADVANCED. RNG-free;
+  // safe to run in the deterministic path. Writes POACH_THREATS_SET so
+  // the Hub Transfers badge stays current without the user opening the
+  // screen.
+  updatePoachThreats(): void {
+    const rosterIds = assessAIPoachThreats(this.state, this.state.player.teamId);
+    applySeasonEvent(this.state, { type: 'POACH_THREATS_SET', rosterIds });
+  }
+
   resolveSigningRound(): SigningOutcome[] {
     const { events, outcomes } = resolveSigningRound(this.state);
     for (const ev of events) applySeasonEvent(this.state, ev);
@@ -590,6 +666,8 @@ export class TransferCoordinator {
       expiringRosterIds: [],
       offers,
     });
+    // User is now handling threats via the market — clear the badge.
+    applySeasonEvent(this.state, { type: 'POACH_THREATS_SET', rosterIds: [] });
   }
 
   // Closes a mid-season FA window. No AI pass — mid-season has no

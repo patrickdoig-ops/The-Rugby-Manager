@@ -82,6 +82,7 @@ export function buildCareerArchiveRestoredEvent(save: SavedSeason): Extract<Seas
     ...(career.preSeasonStep !== undefined ? { preSeasonStep: career.preSeasonStep } : {}),
     ...(career.takeoverHistory !== undefined ? { takeoverHistory: career.takeoverHistory } : {}),
     ...(career.midseasonRejections !== undefined ? { midseasonRejections: career.midseasonRejections } : {}),
+    ...(career.activePoachedIds !== undefined ? { activePoachedIds: career.activePoachedIds } : {}),
     ...(save.teamSeasonStats !== undefined ? { teamSeasonStats: save.teamSeasonStats } : {}),
     ...(save.playoffs !== undefined ? { playoffs: save.playoffs } : {}),
   };

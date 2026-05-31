@@ -301,6 +301,41 @@ export function poachCandidates(state: GameState): number[] {
   return ids.sort((a, b) => a - b);
 }
 
+// Background poach-threat assessment. RNG-free: uses each player's
+// existing contract wage as a cost proxy (no seedContractFields call)
+// so it is safe to run inside the deterministic WEEK_ADVANCED path.
+//
+// Returns the rosterIds of the user's own players that at least one AI
+// club has the appetite and budget to poach. "Appetite" means the player
+// is poach-eligible, above the OVR release floor, and the club's salary
+// budget (at the AI cap target) has headroom for a wage at the player's
+// current rate. This is intentionally conservative — a club with exactly
+// zero headroom won't trigger the badge.
+export function assessAIPoachThreats(state: GameState, humanClubId: string): number[] {
+  const userClub = state.career.clubs.find(c => c.id === humanClubId);
+  if (!userClub) return [];
+  const threatened: number[] = [];
+  for (const rid of userClub.squad) {
+    const p = state.career.roster[rid];
+    if (!p) continue;
+    if (p.contract.isMarquee) continue;
+    if (!isPoachEligible(p, state.calendar.date)) continue;
+    if (playerOverall(p.baseStats, p.position) < RENEWAL.aiReleaseRatingFloor) continue;
+    const hasInterestedClub = state.career.clubs.some(club => {
+      if (club.id === humanClubId) return false;
+      let currentCap = 0;
+      for (const squadRid of club.squad) {
+        const sp = state.career.roster[squadRid];
+        if (!sp || sp.contract.isMarquee) continue;
+        currentCap += sp.contract.annualWage;
+      }
+      return club.salaryBudget * AI_SIGNING_POLICY.capTarget - currentCap >= p.contract.annualWage;
+    });
+    if (hasInterestedClub) threatened.push(rid);
+  }
+  return threatened.sort((a, b) => a - b);
+}
+
 // AI poaching pass: per club, score available poach candidates and
 // pre-agree the top scorer if cap fits AND the player's OVR is above
 // the floor + the candidate isn't already pre-agreed by an earlier

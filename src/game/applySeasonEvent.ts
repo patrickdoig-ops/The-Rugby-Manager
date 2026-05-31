@@ -385,6 +385,9 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       if (event.midseasonRejections !== undefined) {
         state.career.midseasonRejections = { ...event.midseasonRejections };
       }
+      if (event.activePoachedIds !== undefined) {
+        state.career.activePoachedIds = [...event.activePoachedIds];
+      }
       if (event.playoffs !== undefined) {
         state.league.playoffs = event.playoffs
           ? {
@@ -548,6 +551,10 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
     }
     case 'MIDSEASON_OFFER_REJECTED': {
       state.career.midseasonRejections[event.rosterId] = event.weekUntilClear;
+      return;
+    }
+    case 'POACH_THREATS_SET': {
+      state.career.activePoachedIds = [...event.rosterIds];
       return;
     }
     case 'PLAYER_TRAINING_PLAN_SET': {

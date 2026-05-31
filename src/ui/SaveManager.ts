@@ -90,15 +90,17 @@ const SLOT_KEY: Record<SlotId, string> = {
   3: 'rugby-manager-save-3',
 };
 const ACTIVE_KEY = 'rugby-manager-active-slot';
-const SAVE_VERSION = 23;
+const SAVE_VERSION = 24;
 // The current version is always accepted (the older entries are the migratable
 // past). Including SAVE_VERSION here is load-bearing — without it a freshly
 // written save is rejected on the very next load.
+// v24: added activePoachedIds to CareerState. Absent on older saves → defaults
+//      to [] (no threats known; badge will update after the next round).
 // v23: added careerRngOffset to SavedSeason. Absent on older saves → treated
 //      as 0 (generator resets to position 0 on load, same behaviour as before).
 // v22: added offloadsCompleted to PlayerSeasonStats and TeamSeasonStats.
 //      No back-fill needed — zeroSeasonStats / zeroTeamSeasonStats default to 0.
-const ACCEPTED_VERSIONS = new Set([SAVE_VERSION, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+const ACCEPTED_VERSIONS = new Set([SAVE_VERSION, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
 
 export type SavedGame = SavedSeason & { version: number; slotName?: string; savedAt?: number };
 
@@ -270,6 +272,11 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
           .map(([k, v]) => [Number(k), v as number]),
       )
     : undefined;
+  // v24+ — active poach threats assessed in the background. Pre-v24 saves
+  // omit this; load as [] and the badge updates after the next round.
+  const activePoachedIds = Array.isArray(c.activePoachedIds)
+    ? (c.activePoachedIds as unknown[]).filter((x): x is number => typeof x === 'number')
+    : [];
   return {
     seasonsCompleted: c.seasonsCompleted,
     nextRosterId: c.nextRosterId,
@@ -303,6 +310,7 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
     ...(preSeasonStep !== undefined ? { preSeasonStep } : {}),
     ...(takeoverHistory !== undefined ? { takeoverHistory } : {}),
     ...(midseasonRejections !== undefined ? { midseasonRejections } : {}),
+    activePoachedIds,
   };
 }
 

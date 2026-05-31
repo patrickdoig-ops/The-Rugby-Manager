@@ -398,6 +398,10 @@ export interface CareerState {
   // SEASON_ROLLED_OVER clears the whole map (rejections don't survive
   // the rollover, since the FA pool itself gets reshuffled).
   midseasonRejections: Record<number, number>;
+  // RosterIds of the user's own players currently under AI poach threat
+  // (assessed at each WEEK_ADVANCED). Drives the Transfers tile badge on
+  // the Hub. Cleared when the mid-season market opens and at rollover.
+  activePoachedIds: number[];
 }
 
 // Per-club budget-change reason chips for the BudgetRevealScreen.
@@ -447,6 +451,7 @@ export function emptyCareerState(): CareerState {
     pendingMoves: [],
     takeoverHistory: [],
     midseasonRejections: {},
+    activePoachedIds: [],
   };
 }
 
@@ -716,6 +721,9 @@ export type SeasonEvent =
       // v16+: per-rosterId mid-season cooldown map. Undefined on pre-v16
       // saves; the reducer leaves the field at {} in that case.
       midseasonRejections?: Record<number, number>;
+      // v24+: background poach-threat list. Undefined on pre-v24 saves;
+      // the reducer leaves the field at [] in that case.
+      activePoachedIds?: number[];
     }
   | {
       // Persistent injury landed on a roster player. Fired at match
@@ -856,6 +864,13 @@ export type SeasonEvent =
       type: 'MIDSEASON_OFFER_REJECTED';
       rosterId: number;
       weekUntilClear: number;
+    }
+  | {
+      // Replaces state.career.activePoachedIds with the supplied list.
+      // Fired at WEEK_ADVANCED (background threat assessment) and with []
+      // when the mid-season market opens. Also cleared at SEASON_ROLLED_OVER.
+      type: 'POACH_THREATS_SET';
+      rosterIds: number[];
     }
   | {
       // Writes state.player.training. Same shape + semantics as

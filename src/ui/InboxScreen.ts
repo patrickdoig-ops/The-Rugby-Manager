@@ -26,6 +26,13 @@ const CATEGORY_LABELS: Record<InboxItem['category'], string> = {
   squad:     'Squad',
 };
 
+// Called by goInbox() in main.ts when the user actively opens the screen.
+// Marks all current items as read so the hub unread badge clears on next render.
+let _markCurrentAsRead: (() => void) | undefined;
+export function markInboxRead(): void {
+  _markCurrentAsRead?.();
+}
+
 export function initInboxScreen(opts: InitInboxScreenOpts): void {
   const el = document.getElementById('inbox');
   if (!el) return;
@@ -36,8 +43,6 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
 
   function render(state: GameState): void {
     const items = buildAssistantReport(state, opts.allTeams);
-    const key = saveKey(state);
-    markRead(key, items.map(i => i.id));
 
     const playerTeam = opts.allTeams.find(t => t.id === state.player.teamId);
     if (playerTeam) injectTeamColors(el!, playerTeam);
@@ -108,6 +113,11 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
       const link = btn.dataset.link as NonNullable<InboxItem['deepLink']>;
       btn.addEventListener('click', () => deepLinkHandlers[link]?.());
     });
+
+    // Update the mark-read closure so it always seals the current item set.
+    const key = saveKey(state);
+    const ids = items.map(i => i.id);
+    _markCurrentAsRead = () => markRead(key, ids);
   }
 
   eventBus.on('game:initialized',     ({ state }) => render(state));

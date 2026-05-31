@@ -89,7 +89,7 @@ import { initSquadManagementScreen, showSquadManagement } from './ui/SquadManage
 import { initTrainingScreen, showTrainingPostMatch, showTrainingMidweek } from './ui/TrainingScreen';
 import { initPostTrainingResultsScreen, showPostTrainingResults } from './ui/PostTrainingResultsScreen';
 import { initAchievementsScreen, showAchievements }  from './ui/AchievementsScreen';
-import { initInboxScreen } from './ui/InboxScreen';
+import { initInboxScreen, markInboxRead } from './ui/InboxScreen';
 import { initAchievementEngine }   from './achievements/AchievementEngine';
 import { getGameCenter }           from './achievements/GameCenterBridge';
 import { screenRouter }            from './ui/ScreenRouter';
@@ -444,6 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function goInbox(direction: 'forward' | 'back' = 'forward'): void {
+    markInboxRead();
     screenRouter.show('inbox', { direction });
   }
 

@@ -115,4 +115,6 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
   eventBus.on('game:weekAdvanced',    ({ state }) => render(state));
   eventBus.on('game:bracketSeeded',   ({ state }) => render(state));
   eventBus.on('game:playoffsUpdated', ({ state }) => render(state));
+
+  render(opts.getGameEngine().getState());
 }

@@ -2,66 +2,14 @@
 // Screen's "Continue Game" button can resume mid-season after a browser
 // close. Schema is versioned — bump SAVE_VERSION whenever the shape changes.
 //
-// Storage layout (since the named-slots feature): three fixed slots
-// (rugby-manager-save-{1,2,3}) plus an active-slot pointer
-// (rugby-manager-active-slot). Each slot envelope is the flat SavedGame plus
-// `slotName` + `savedAt` — a storage concern, NOT a game-schema bump, so
-// SAVE_VERSION is unaffected. The legacy single-save key (rugby-manager-save)
-// is folded into slot 1 once by migrateLegacySave() at boot. The public
+// Storage layout: three fixed slots (rugby-manager-save-{1,2,3}) plus an
+// active-slot pointer (rugby-manager-active-slot). Each slot envelope adds
+// `slotName` + `savedAt` alongside the flat SavedGame fields — a storage
+// concern, NOT a game-schema bump, so SAVE_VERSION is unaffected. The public
 // loadSave()/saveGame()/clearSave() functions are thin wrappers that target the
 // active slot, preserving the original autosave contract for every call site.
 // The native iCloud-backup mirror lives in saveBackup.ts and hooks in via
 // setSlotWriteHook — SaveManager itself has no Capacitor dependency.
-//
-// v19 (current) adds per-player season history on every ArchivedSeason
-// entry — `playerSeasonHistory: Record<rosterId, ArchivedPlayerSeason>`.
-// Drives PlayerProfileScreen's Career History table. Pre-v19 archive
-// entries load with the field undefined — the profile renders an empty
-// Career History column for those historical seasons. New rollovers
-// always populate it.
-//
-// v18 added the training system. Adds `Player.condition` on every
-// roster Player (0-100, persistent inter-match freshness) and an optional
-// `training?: TrainingPlan` field at the top level (manager's last
-// training-week choice). Pre-v18 saves load with condition back-filled to
-// 100 on every roster entry and training undefined — TrainingScreen
-// resolves both via its DEFAULT_TRAINING_PLAN fallback.
-//
-// v9 added the injury system. Persistent injury state lives on each
-// roster Player as the optional `injury` field (PlayerInjury — kind,
-// severity, weeksRemaining, injuredOn, isRecurrence). Absent ⇔ fit.
-// Decremented weekly on WEEK_ADVANCED; cleared by PLAYER_RECOVERED.
-// Older saves load with every player at `injury: undefined` — purely
-// additive, no migration shim needed.
-//
-// v7 extended v6 with the Phase 4 market layer — state.career.
-// freeAgents (rosterIds whose contracts expired without renewal) and an
-// optional state.career.market (open during the end-of-season renewal
-// window, null otherwise). Mid-window saves let the player resume on
-// the same offers; closed-window saves carry forward the accumulating
-// free-agent pool for Phase 5+ to consume.
-//
-// v6 extended v5 with PlayerContract + reputation embedded in each
-// persisted roster Player. Loading a v5 save triggers a per-player
-// backfill in GameCoordinator.fromSave via contractSeeder. v6 saves
-// load on v7 with freeAgents / market defaulting to [] / null.
-//
-// v5 extended v4 with a persistent career snapshot —
-// state.career.roster (every player, with current baseStats), per-club
-// squad pointers, archived standings + awards from prior seasons, and the
-// seasonsCompleted / nextRosterId allocator. Lets the career span multiple
-// seasons with stat development and retirements that survive a tab close.
-//
-// v4 extended v3 with persisted pre-match choices — `tactics` and
-// `matchdaySquad` — that carry forward as defaults for the next match.
-//
-// v3 extended v2 with `seasonLabel` and `fixtures` snapshots so the schedule
-// the user saw at save time is reconstructed verbatim on load.
-//
-// v2 stored the minimal slice for replay (playerTeamId, seed, currentWeek,
-// results).
-//
-// v1 saves are discarded — they predate AI-vs-AI results.
 
 import type { SavedCareer, SavedSeason, SavedSeasonResult } from '../game/GameCoordinator';
 import type { ArchivedPlayerSeason, ArchivedSeason, ClubState, Fixture, MarketState, PlayerRef, PlayoffMatch, PlayoffState, PreAgreement, SeasonAwards, TeamSeasonStats, TransferBid, TransferOffer } from '../types/gameState';
@@ -71,14 +19,9 @@ import { zeroTeamSeasonStats } from '../types/gameState';
 import type { TeamTactics } from '../types/team';
 import type { TrainingPlan } from '../types/training';
 import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
-import { playerOverall } from '../engine/RatingEngine';
-import { getAge } from '../game/age';
 
 const DEFAULT_SALARY_BUDGET = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
 
-// Pre-slot single-save key (v21 and earlier). Migrated into slot 1 on first
-// boot by migrateLegacySave(), then removed.
-const LEGACY_KEY = 'rugby-manager-save';
 // Three fixed named slots. The envelope adds `slotName` + `savedAt` alongside
 // the existing flat SavedGame fields — the game-state SAVE_VERSION is
 // unchanged (the slot wrapper is a storage concern, not a schema change).
@@ -90,21 +33,10 @@ const SLOT_KEY: Record<SlotId, string> = {
   3: 'rugby-manager-save-3',
 };
 const ACTIVE_KEY = 'rugby-manager-active-slot';
-const SAVE_VERSION = 25;
-// The current version is always accepted (the older entries are the migratable
-// past). Including SAVE_VERSION here is load-bearing — without it a freshly
-// written save is rejected on the very next load.
-// v25: added restObligation + internationalCaps to roster Player (international
-//      duty). Both optional → older saves load with them undefined (no
-//      obligation, no caps); no back-fill needed. The transient internationalDuty
-//      flag is never serialised.
-// v24: added activePoachedIds to CareerState. Absent on older saves → defaults
-//      to [] (no threats known; badge will update after the next round).
-// v23: added careerRngOffset to SavedSeason. Absent on older saves → treated
-//      as 0 (generator resets to position 0 on load, same behaviour as before).
-// v22: added offloadsCompleted to PlayerSeasonStats and TeamSeasonStats.
-//      No back-fill needed — zeroSeasonStats / zeroTeamSeasonStats default to 0.
-const ACCEPTED_VERSIONS = new Set([SAVE_VERSION, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+const SAVE_VERSION = 1;
+// Including SAVE_VERSION here is load-bearing — without it a freshly written
+// save is rejected on the very next load.
+const ACCEPTED_VERSIONS = new Set([SAVE_VERSION]);
 
 export type SavedGame = SavedSeason & { version: number; slotName?: string; savedAt?: number };
 
@@ -129,8 +61,8 @@ export function setSlotWriteHook(fn: ((id: SlotId, raw: string) => void) | null)
 }
 
 // Parse a raw SavedGame object into a validated SavedSeason. Shared by every
-// slot loader (and the legacy-save migration). Returns null on any structural
-// problem so callers fall back to "no save" rather than corrupting state.
+// slot loader (and parseRawSave). Returns null on any structural problem so
+// callers fall back to "no save" rather than corrupting state.
 function parseSavedGame(parsed: SavedGame): SavedSeason | null {
   try {
     if (!ACCEPTED_VERSIONS.has(parsed.version)) return null;
@@ -138,11 +70,11 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
     if (typeof parsed.seed !== 'number') return null;
     if (typeof parsed.currentWeek !== 'number') return null;
     if (!Array.isArray(parsed.results)) return null;
+    if (!Array.isArray(parsed.fixtures)) return null;
+    if (!parsed.career) return null;
     // Each recorded result must carry numeric scores / round and string team
     // ids. A non-numeric score (corrupt or hand-edited save) would otherwise
-    // flow into FIXTURE_RESULT_RECORDED → NaN standings, which either trips
-    // assertSeasonInvariants on load or silently poisons the league table.
-    // Reject the whole save (treated as "no save") rather than corrupt state.
+    // flow into FIXTURE_RESULT_RECORDED → NaN standings.
     if (!parsed.results.every(r =>
       typeof r.round === 'number' &&
       typeof r.homeId === 'string' &&
@@ -150,67 +82,35 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
       typeof r.homeScore === 'number' &&
       typeof r.awayScore === 'number'
     )) return null;
-    // v3+ includes the schedule snapshot; v2 omits it and GameCoordinator
-    // falls back to the canonical PREMIERSHIP_2025_26 during fromSave.
-    const fixtures: Fixture[] | undefined =
-      parsed.version >= 3 && Array.isArray(parsed.fixtures)
-        ? parsed.fixtures.map(f => ({
-            round: f.round,
-            homeId: f.homeId,
-            awayId: f.awayId,
-            ...(f.date !== undefined ? { date: f.date } : {}),
-          }))
-        : undefined;
-    // v4+ persists pre-match preferences (tactics + matchday squad).
-    // v10 added `defensiveLine` to TeamTactics; older saves get 'hybrid'
-    // (numerically neutral) backfilled so the engine doesn't see undefined.
-    // v17 added `offloadStrategy`; older saves get 'balanced' for the same
-    // reason. The cast to Partial<TeamTactics> reflects the runtime truth —
-    // JSON from a pre-vN save genuinely lacks the field, even though the
-    // SavedGame type pretends it's required.
-    const tactics: TeamTactics | undefined =
-      parsed.version >= 4 && parsed.tactics
-        ? {
-            ...(parsed.tactics as Partial<TeamTactics>),
-            defensiveLine:   (parsed.tactics as Partial<TeamTactics>).defensiveLine   ?? 'hybrid',
-            offloadStrategy: (parsed.tactics as Partial<TeamTactics>).offloadStrategy ?? 'balanced',
-          } as TeamTactics
-        : undefined;
+    const fixtures: Fixture[] = parsed.fixtures.map(f => ({
+      round: f.round,
+      homeId: f.homeId,
+      awayId: f.awayId,
+      ...(f.date !== undefined ? { date: f.date } : {}),
+    }));
+    const tactics: TeamTactics | undefined = parsed.tactics
+      ? { ...parsed.tactics } as TeamTactics
+      : undefined;
     const matchdaySquad: PlayerRef[] | undefined =
-      parsed.version >= 4 && Array.isArray(parsed.matchdaySquad) && parsed.matchdaySquad.length === 23
+      Array.isArray(parsed.matchdaySquad) && parsed.matchdaySquad.length === 23
         ? parsed.matchdaySquad.map(r => ({ firstName: r.firstName, lastName: r.lastName }))
         : undefined;
-    // v18+ persists the manager's last training plan. Pre-v18 saves omit
-    // the field; TrainingScreen falls back to DEFAULT_TRAINING_PLAN on
-    // first render after load.
     const training: TrainingPlan | undefined =
-      parsed.version >= 18 && parsed.training && isValidTrainingPlan(parsed.training)
+      parsed.training && isValidTrainingPlan(parsed.training)
         ? { ...parsed.training }
         : undefined;
-    // v5+ persists the full career snapshot. v4 and older fall through —
-    // GameCoordinator.fromSave seeds a fresh roster from JSONs.
-    const career: SavedCareer | undefined =
-      parsed.version >= 5 && parsed.career ? parseCareer(parsed.career) : undefined;
-    // v9+ persists the per-team season aggregates. v8 and older load
-    // without it; SEASON_INITIALIZED + CAREER_ARCHIVE_RESTORED leave the
-    // map empty / zeroed for those saves.
-    const teamSeasonStats = parsed.version >= 9 && typeof parsed.teamSeasonStats === 'object' && parsed.teamSeasonStats
+    const career = parseCareer(parsed.career);
+    if (!career) return null;
+    const teamSeasonStats = typeof parsed.teamSeasonStats === 'object' && parsed.teamSeasonStats
       ? parseTeamSeasonStats(parsed.teamSeasonStats as Record<string, unknown>)
       : undefined;
-    // v13+ persists the playoff bracket (if active) at the top level of
-    // the save. Pre-v13 saves never had one; they load with playoffs
-    // undefined and the engine starts the bracket fresh after the last
-    // R18 fixture is recorded.
-    const playoffs = parsed.version >= 13 && parsed.playoffs !== undefined
+    const playoffs = parsed.playoffs !== undefined
       ? parsePlayoffs(parsed.playoffs)
       : undefined;
     return {
       playerTeamId: parsed.playerTeamId,
       seed: parsed.seed >>> 0,
       currentWeek: parsed.currentWeek,
-      // v11 adds homeTries/awayTries for the bonus-points system. Pre-v11
-      // saves default to 0 — those rounds were played without try-bonus
-      // tracking, so we don't fabricate retroactive bonuses.
       results: parsed.results.map(r => ({
         round: r.round,
         homeId: r.homeId,
@@ -222,11 +122,11 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
         awayTries: typeof r.awayTries === 'number' ? r.awayTries : 0,
       } satisfies SavedSeasonResult)),
       ...(parsed.seasonLabel !== undefined ? { seasonLabel: parsed.seasonLabel } : {}),
-      ...(fixtures !== undefined ? { fixtures } : {}),
+      fixtures,
       ...(tactics !== undefined ? { tactics } : {}),
       ...(matchdaySquad !== undefined ? { matchdaySquad } : {}),
       ...(training !== undefined ? { training } : {}),
-      ...(career !== undefined ? { career } : {}),
+      career,
       ...(teamSeasonStats !== undefined ? { teamSeasonStats } : {}),
       ...(playoffs !== undefined ? { playoffs } : {}),
     };
@@ -235,10 +135,9 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
   }
 }
 
-// Best-effort structural parse of the v5+ career envelope. Returns
-// undefined if any required field is missing — callers (fromSave) then
-// fall through to fresh-seed behaviour rather than corrupting state.
-// v7 adds optional freeAgents + market.
+// Best-effort structural parse of the career envelope. Returns undefined if
+// any required field is missing — callers (fromSave) then fall through to
+// fresh-seed behaviour rather than corrupting state.
 function parseCareer(raw: unknown): SavedCareer | undefined {
   if (typeof raw !== 'object' || raw === null) return undefined;
   const c = raw as Record<string, unknown>;
@@ -257,16 +156,9 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
   const preSeasonStep = c.preSeasonStep === 'overview' || c.preSeasonStep === 'signings' || c.preSeasonStep === 'marquee'
     ? c.preSeasonStep
     : undefined;
-  // v14+ — takeoverHistory persists which clubs have been taken over.
-  // Pre-v14 saves omit it; load as an empty array (no historical
-  // takeovers known). Newcastle Red Bull then re-fires on the next
-  // year-1→year-2 transition if the save is in season 1.
   const takeoverHistory = Array.isArray(c.takeoverHistory)
     ? (c.takeoverHistory as unknown[]).filter((x): x is string => typeof x === 'string')
     : undefined;
-  // v16+ — mid-season FA rejection cooldowns. Pre-v16 saves omit it;
-  // load as {} (no historical cooldowns known). Defensive filter on
-  // value type so a malformed entry can't poison the runtime.
   const midseasonRejections = typeof c.midseasonRejections === 'object'
     && c.midseasonRejections !== null
     && !Array.isArray(c.midseasonRejections)
@@ -276,19 +168,12 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
           .map(([k, v]) => [Number(k), v as number]),
       )
     : undefined;
-  // v24+ — active poach threats assessed in the background. Pre-v24 saves
-  // omit this; load as [] and the badge updates after the next round.
   const activePoachedIds = Array.isArray(c.activePoachedIds)
     ? (c.activePoachedIds as unknown[]).filter((x): x is number => typeof x === 'number')
     : [];
   return {
     seasonsCompleted: c.seasonsCompleted,
     nextRosterId: c.nextRosterId,
-    // v14+ clubs carry salaryBudget. Pre-v14 saves default to the
-    // effective cap right here so the parse output is always
-    // well-typed — no `undefined as unknown as number` lies leaking
-    // into GameCoordinator.fromSave. The next rollover recomputes
-    // via computeBudgetEvents.
     clubs: (c.clubs as Partial<ClubState>[]).map(cl => ({
       id: cl.id as string,
       squad: [...(cl.squad ?? [])],
@@ -300,12 +185,8 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
       standings: a.standings.map(s => ({ ...s })),
       topScorerRosterId: a.topScorerRosterId,
       mvpRosterId: a.mvpRosterId,
-      // v13+ field; pre-v13 archive entries omit it and load as null.
       championTeamId: a.championTeamId ?? null,
       ...(a.leaders ? { leaders: cloneLeaders(a.leaders) } : {}),
-      // v19+ field. Pre-v19 archive entries omit the map; the profile
-      // screen's Career History row for that season then renders an
-      // em-dash placeholder. New rollovers always populate it.
       ...(a.playerSeasonHistory ? { playerSeasonHistory: clonePlayerHistory(a.playerSeasonHistory) } : {}),
     })),
     freeAgents,
@@ -318,12 +199,9 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
   };
 }
 
-// Backfill new PlayerSeasonStats fields onto an old-save roster. The v8
-// shape only carried 11 fields (appearances / tries / 2 cards / 3 goal-kick
-// reserves / 3 tackle-flavoured + ratingSum). Newer fields (carries,
-// metresCarried, line breaks, etc.) default to 0 so applySeasonEvent's
-// additive deltas don't NaN out on the next match. v18 also back-fills
-// `condition: 100` for every roster entry (training-system addition).
+// Ensure all PlayerSeasonStats fields exist on every roster entry (guards
+// against corrupt or hand-edited saves where a field was written as a
+// non-numeric value).
 function backfillRosterSeasonStats(roster: Record<number, Player>): Record<number, Player> {
   const zero = zeroSeasonStats();
   for (const k of Object.keys(roster)) {
@@ -331,21 +209,11 @@ function backfillRosterSeasonStats(roster: Record<number, Player>): Record<numbe
     if (!p.seasonStats) {
       p.seasonStats = { ...zero };
     } else {
-      const merged: PlayerSeasonStats = { ...zero };
       for (const f of Object.keys(zero) as (keyof PlayerSeasonStats)[]) {
-        const v = p.seasonStats[f];
-        if (typeof v === 'number') merged[f] = v;
+        if (typeof p.seasonStats[f] !== 'number') p.seasonStats[f] = 0;
       }
-      p.seasonStats = merged;
     }
     if (typeof p.condition !== 'number') p.condition = 100;
-    if (typeof p.potential !== 'number') {
-      const todayIso = new Date().toISOString().slice(0, 10);
-      const ageNow = p.dob ? (getAge(p.dob, todayIso) ?? 28) : 28;
-      const ovr = playerOverall(p.baseStats, p.position);
-      const headroom = ageNow <= 21 ? 8 : ageNow <= 24 ? 5 : ageNow <= 28 ? 2 : 1;
-      p.potential = Math.min(99, ovr + headroom);
-    }
   }
   return roster;
 }
@@ -385,8 +253,7 @@ function clonePlayerHistory(h: Record<number, ArchivedPlayerSeason>): Record<num
   return out;
 }
 
-// v9+ team-season-stats parse. Defensive against malformed entries —
-// any non-numeric field falls back to the zero default.
+// Defensive against malformed entries — any non-numeric field falls back to 0.
 function parseTeamSeasonStats(raw: Record<string, unknown>): Record<string, TeamSeasonStats> {
   const out: Record<string, TeamSeasonStats> = {};
   const zero = zeroTeamSeasonStats();
@@ -403,10 +270,8 @@ function parseTeamSeasonStats(raw: Record<string, unknown>): Record<string, Team
   return out;
 }
 
-// Best-effort structural parse of the v13+ playoff envelope. Returns
-// null when the saved field is null (no bracket active). Returns
-// undefined when the shape is malformed so callers fall through to "no
-// playoff state restored" rather than corrupting league.playoffs.
+// Returns null when no bracket is active. Returns undefined when the shape is
+// malformed so callers fall through to "no playoff state restored".
 function parsePlayoffs(raw: unknown): PlayoffState | null | undefined {
   if (raw === null) return null;
   if (typeof raw !== 'object') return undefined;
@@ -461,25 +326,13 @@ function parseMarket(raw: unknown): MarketState | null {
   if (typeof m.openedAfterSeason !== 'string') return null;
   if (!Array.isArray(m.expiringRosterIds)) return null;
   if (!Array.isArray(m.offers)) return null;
-  // v7 saves predate the phase field; default to 'renewals' so a save
-  // mid-window resumes on the correct screen. v16+ added the mid-season
-  // signings variant.
   const phase: MarketState['phase'] =
     m.phase === 'signings'           ? 'signings'
   : m.phase === 'signings-midseason' ? 'signings-midseason'
   :                                    'renewals';
-  // v15+ field. Pre-v15 saves omit the array; default empty so the
-  // resumed window has no competing bids in flight (any pre-v15 mid-
-  // window signings were already applied as CONTRACT_SIGNED — the new
-  // bid layer just starts fresh). Each bid is structurally validated
-  // before being trusted — a truncated / hand-edited save with malformed
-  // bid objects would otherwise carry undefined fields straight into
-  // runtime state.
   const bids = Array.isArray(m.bids)
     ? (m.bids as unknown[]).filter(isValidBid).map(b => ({ ...b }))
     : [];
-  // Same validation pass for offers — same risk surface from a v6+
-  // partial / corrupt save.
   const offers = (m.offers as unknown[]).filter(isValidOffer).map(o => ({ ...o }));
   return {
     phase,
@@ -571,7 +424,7 @@ export function loadSlot(id: SlotId): SavedSeason | null {
 }
 
 // Validate + parse a raw envelope string (from an imported file). Returns the
-// migrated SavedSeason, or null if the JSON / version / shape is unusable.
+// validated SavedSeason, or null if the JSON / version / shape is unusable.
 export function parseRawSave(raw: string): SavedSeason | null {
   try {
     return parseSavedGame(JSON.parse(raw) as SavedGame);
@@ -622,37 +475,6 @@ export function renameSlot(id: SlotId, name: string): void {
   env.slotName = name.trim() || defaultSlotName(id);
   const raw = JSON.stringify(env);
   setRawSlot(id, raw);
-}
-
-// One-shot: fold a pre-slot single save into slot 1 if no slot is occupied.
-// Called once at boot before the first Home render.
-export function migrateLegacySave(): void {
-  let legacy: string | null = null;
-  try {
-    legacy = localStorage.getItem(LEGACY_KEY);
-  } catch {
-    return;
-  }
-  if (!legacy) return;
-  const anyOccupied = SLOT_IDS.some(id => getRawSlot(id) !== null);
-  if (!anyOccupied) {
-    try {
-      const env = JSON.parse(legacy) as SavedGame;
-      if (parseSavedGame(env)) {
-        env.slotName = defaultSlotName(1);
-        env.savedAt = Date.now();
-        setRawSlot(1, JSON.stringify(env));
-        setActiveSlot(1);
-      }
-    } catch {
-      // Corrupt legacy save — drop it below.
-    }
-  }
-  try {
-    localStorage.removeItem(LEGACY_KEY);
-  } catch {
-    // ignore
-  }
 }
 
 // ── Active-slot wrappers (preserve the original autosave contract) ──────────

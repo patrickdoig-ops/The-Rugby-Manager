@@ -356,11 +356,22 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
         body = 'The board expects playoff rugby this season. A top-four finish would be a strong start and set us up well going forward.';
       }
     } else {
-      const lastPos = sortStandings(lastSeason.standings).findIndex(s => s.teamId === teamId) + 1;
+      const lastPosIdx = sortStandings(lastSeason.standings).findIndex(s => s.teamId === teamId);
+      const lastPos = lastPosIdx >= 0 ? lastPosIdx + 1 : null;
       const wasChampion = lastSeason.championTeamId === teamId;
 
       if (wasChampion) {
         body = 'Last season was everything we hoped for. The board\'s expectation is simple — defend the title. Nothing less will do.';
+      } else if (lastPos === null) {
+        // Defensive fallback — team not found in archived standings.
+        // Mirrors the year-1 text so the message is always coherent.
+        if (ambition === 'title') {
+          body = 'The board\'s expectation is clear — we are here to compete for silverware. A playoff place is the floor, and the title is the ambition.';
+        } else if (ambition === 'topHalf') {
+          body = 'The board understands this is a year of building. A top-half finish would be a solid foundation — avoid the wooden spoon and show the fans we are heading in the right direction.';
+        } else {
+          body = 'The board expects playoff rugby this season. A top-four finish would be a strong start and set us up well going forward.';
+        }
       } else if (ambition === 'title') {
         if (lastPos <= 2) {
           body = `Finishing ${ordinal(lastPos)} last season was a strong result but the board wants to go all the way. Bring home the title this time.`;

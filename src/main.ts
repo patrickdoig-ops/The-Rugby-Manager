@@ -90,11 +90,11 @@ import { initTrainingScreen, showTrainingPostMatch, showTrainingMidweek } from '
 import { initPostTrainingResultsScreen, showPostTrainingResults } from './ui/PostTrainingResultsScreen';
 import { initInternationalBreakScreen, showInternationalBreak } from './ui/InternationalBreakScreen';
 import { initAchievementsScreen, showAchievements }  from './ui/AchievementsScreen';
-import { initInboxScreen } from './ui/InboxScreen';
+import { initInboxScreen, markInboxRead } from './ui/InboxScreen';
 import { initAchievementEngine }   from './achievements/AchievementEngine';
 import { getGameCenter }           from './achievements/GameCenterBridge';
 import { screenRouter }            from './ui/ScreenRouter';
-import { loadSave, saveGame, clearSave, migrateLegacySave } from './ui/SaveManager';
+import { loadSave, saveGame, clearSave } from './ui/SaveManager';
 import { installBackupMirror, reconcileBackups } from './ui/saveBackup';
 import { loadTickDelayMs }           from './ui/uiPrefs';
 import { initTextScale }             from './ui/textScale';
@@ -448,6 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function goInbox(direction: 'forward' | 'back' = 'forward'): void {
+    markInboxRead();
     screenRouter.show('inbox', { direction });
   }
 
@@ -1186,8 +1187,6 @@ document.addEventListener('DOMContentLoaded', () => {
   installBackupMirror();
 
   const renderHome = (): void => {
-    // Fold any pre-slot single save into slot 1 once a slot is free.
-    migrateLegacySave();
     initHomeScreen(goTeamSelector, continueGame, goSettingsFromHome, allTeams,
       () => goSaves(() => goHome('back')));
     screenRouter.show('home');

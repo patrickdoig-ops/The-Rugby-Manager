@@ -6,6 +6,7 @@ import { playerOverall } from '../engine/RatingEngine';
 import { recentForm } from './teamStats';
 import type { FormResult } from './teamStats';
 import { teamSeasonStat } from './seasonLeaderboards';
+import type { TeamTactics } from '../types/team';
 import { sortStandings } from './leagueTable';
 import { getAge } from './age';
 import { playoffRaceStatus } from './playoffRace';
@@ -59,6 +60,24 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
       priority: 80,
       subject: `${name} is injured`,
       body: `${name} is out for approximately ${weeks} week${weeks !== 1 ? 's' : ''}. Check the squad for cover.`,
+      deepLink: 'squad',
+    });
+  }
+
+  // --- B&I Lions returnees (2025/26 season-open post-tour stand-down) ---
+  const lionsBack = club.squad
+    .map(rid => state.career.roster[rid])
+    .filter((p): p is Player => !!p && p.lionsReturnRound !== undefined && state.calendar.week < p.lionsReturnRound!);
+  if (lionsBack.length > 0) {
+    const returnRound = lionsBack[0].lionsReturnRound!;
+    const listed = lionsBack.map(p => `${p.lastName} (${Math.round(p.condition)}%)`).slice(0, 6).join(', ');
+    const extra = lionsBack.length > 6 ? `, plus ${lionsBack.length - 6} more` : '';
+    items.push({
+      id: `lions:${season}`,
+      category: 'medical',
+      priority: 78,
+      subject: `${lionsBack.length} player${lionsBack.length !== 1 ? 's' : ''} back from the British & Irish Lions`,
+      body: `${listed}${extra} have returned from the 2025 Lions tour of Australia. Under the Professional Game Agreement's mandatory post-tour rest they are unavailable until Round ${returnRound} and will come back short of full match fitness. Line up cover for the opening rounds.`,
       deepLink: 'squad',
     });
   }
@@ -209,55 +228,113 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
   if (nextFixture) {
     const oppId = nextFixture.homeId === teamId ? nextFixture.awayId : nextFixture.homeId;
     const opp = allTeams.find(t => t.id === oppId);
-    const oppStats = teamSeasonStat(state, oppId);
 
-    if (opp && oppStats.matchesPlayed >= 2) {
-      const sorted = sortStandings(state.league.standings);
-      const oppPos = sorted.findIndex(s => s.teamId === oppId) + 1;
-      const oppForm = recentForm(oppId, state.league.results, 5);
-      const streak = currentStreak(oppForm);
-
+    if (opp) {
+      const oppStats = teamSeasonStat(state, oppId);
       const sentences: string[] = [];
 
-      // Context — league position + current streak
-      if (oppPos > 0) {
-        if (streak && streak.type === 'W' && streak.count >= 3) {
-          sentences.push(`${opp.name} arrive on a ${streak.count}-match winning run and sit ${ordinal(oppPos)} in the table.`);
-        } else if (streak && streak.type === 'L' && streak.count >= 3) {
-          sentences.push(`${opp.name} have lost ${streak.count} in a row and are down to ${ordinal(oppPos)}.`);
-        } else {
-          sentences.push(`${opp.name} are ${ordinal(oppPos)} in the table.`);
+      // Tactical identity — fires from Round 1
+      const oppTactics = opp.suggestedTactics;
+      if (oppTactics) {
+        const tacticInsights: [keyof TeamTactics, Record<string, string>][] = [
+          ['attackingStyle', {
+            keep_it_tight: "They'll look to grind through the forwards. A strong jackal presence at the breakdown should slow their ball.",
+            wide_wide: "They'll look to move the ball wide quickly. A disciplined drift line with depth in the backfield should limit their space.",
+          }],
+          ['attackingGamePlan', {
+            possession: "They prioritise ball retention — sustained defensive pressure and breakdown discipline can force errors.",
+            kicking: "Expect a territory-first approach. A reliable kick-return game and strong chase line will be essential.",
+          }],
+          ['defensiveLine', {
+            blitz: "Their defensive line rushes up hard — the channel behind it opens up; a chip or grubber over the top could be effective.",
+            drift: "They drift across defensively — attack the short side and the fringes to exploit that lateral movement.",
+          }],
+          ['offloadStrategy', {
+            offload_freely: "They keep the ball alive in contact aggressively. Secondary defenders must wrap the carrier tightly to shut down offload opportunities.",
+          }],
+          ['attackingBreakdown', {
+            minimal_ruck: "They play at pace through the breakdown — our defensive line must reset quickly.",
+            commit_numbers: "They slow the game down at the ruck — good jackaling opportunities could turn possession in our favour.",
+          }],
+        ];
+
+        let tacticCount = 0;
+        for (const [dim, insights] of tacticInsights) {
+          if (tacticCount >= 2) break;
+          const val = oppTactics[dim] as string;
+          if (val === 'balanced' || val === 'hybrid') continue;
+          const insight = insights[val];
+          if (insight) { sentences.push(insight); tacticCount++; }
+        }
+
+        if (tacticCount === 0) {
+          sentences.push("They play a balanced game with no strong tactical identity — discipline and execution across the park will be the deciding factor.");
         }
       }
 
-      // Set piece — one notable strength or weakness
-      const lineoutPct = oppStats.lineoutsThrown > 0
-        ? (oppStats.lineoutsWon / oppStats.lineoutsThrown) * 100 : 0;
-      const scrumPct = oppStats.scrumsPutIn > 0
-        ? (oppStats.scrumsWon / oppStats.scrumsPutIn) * 100 : 0;
+      // Stat-based observations — gated on matchesPlayed >= 2
+      if (oppStats.matchesPlayed >= 2) {
+        const sorted = sortStandings(state.league.standings);
+        const oppPos = sorted.findIndex(s => s.teamId === oppId) + 1;
+        const oppForm = recentForm(oppId, state.league.results, 5);
+        const streak = currentStreak(oppForm);
 
-      if (lineoutPct >= 82 && oppStats.lineoutsThrown >= 8) {
-        sentences.push(`Their lineout is a weapon — ${Math.round(lineoutPct)}% success rate this season.`);
-      } else if (lineoutPct < 65 && oppStats.lineoutsThrown >= 8) {
-        sentences.push(`Their lineout has been unreliable — only ${Math.round(lineoutPct)}% won. Look to disrupt at the tail.`);
-      } else if (scrumPct >= 82 && oppStats.scrumsPutIn >= 6) {
-        sentences.push(`They dominate at the scrum — winning ${Math.round(scrumPct)}% of their own ball.`);
-      } else if (scrumPct < 58 && oppStats.scrumsPutIn >= 6) {
-        sentences.push(`Their scrum has been under pressure — only ${Math.round(scrumPct)}% won. A physical front row could be decisive.`);
-      }
+        if (oppPos > 0) {
+          if (streak && streak.type === 'W' && streak.count >= 3) {
+            sentences.push(`${opp.name} arrive on a ${streak.count}-match winning run and sit ${ordinal(oppPos)} in the table.`);
+          } else if (streak && streak.type === 'L' && streak.count >= 3) {
+            sentences.push(`${opp.name} have lost ${streak.count} in a row and are down to ${ordinal(oppPos)}.`);
+          } else {
+            sentences.push(`${opp.name} are ${ordinal(oppPos)} in the table.`);
+          }
+        }
 
-      // Risk or opportunity — discipline, attack threat, or defensive leaks
-      const cardsPerGame = (oppStats.yellowCards + oppStats.redCards) / oppStats.matchesPlayed;
-      const triesPerGame = oppStats.tries / oppStats.matchesPlayed;
-      const tacklePct = oppStats.tacklesAttempted > 0
-        ? (oppStats.tacklesMade / oppStats.tacklesAttempted) * 100 : 0;
+        const lineoutPct = oppStats.lineoutsThrown > 0
+          ? (oppStats.lineoutsWon / oppStats.lineoutsThrown) * 100 : 0;
+        const scrumPct = oppStats.scrumsPutIn > 0
+          ? (oppStats.scrumsWon / oppStats.scrumsPutIn) * 100 : 0;
 
-      if (cardsPerGame >= 1.5) {
-        sentences.push(`Discipline has been a problem for them — ${oppStats.yellowCards} yellows this season. Pressure them at the breakdown.`);
-      } else if (triesPerGame >= 4.5) {
-        sentences.push(`Their attack has been prolific — ${triesPerGame.toFixed(1)} tries per game. The defensive line must be disciplined.`);
-      } else if (tacklePct < 80 && oppStats.tacklesAttempted >= 40) {
-        sentences.push(`Their defence has been leaky — ${Math.round(tacklePct)}% tackle completion. Target the wide channels.`);
+        if (lineoutPct >= 82 && oppStats.lineoutsThrown >= 8) {
+          sentences.push(`Their lineout is a weapon — ${Math.round(lineoutPct)}% success rate this season.`);
+        } else if (lineoutPct < 65 && oppStats.lineoutsThrown >= 8) {
+          sentences.push(`Their lineout has been unreliable — only ${Math.round(lineoutPct)}% won. Look to disrupt at the tail.`);
+        } else if (scrumPct >= 82 && oppStats.scrumsPutIn >= 6) {
+          sentences.push(`They dominate at the scrum — winning ${Math.round(scrumPct)}% of their own ball.`);
+        } else if (scrumPct < 58 && oppStats.scrumsPutIn >= 6) {
+          sentences.push(`Their scrum has been under pressure — only ${Math.round(scrumPct)}% won. A physical front row could be decisive.`);
+        }
+
+        const cardsPerGame = (oppStats.yellowCards + oppStats.redCards) / oppStats.matchesPlayed;
+        const triesPerGame = oppStats.tries / oppStats.matchesPlayed;
+        const tacklePct = oppStats.tacklesAttempted > 0
+          ? (oppStats.tacklesMade / oppStats.tacklesAttempted) * 100 : 0;
+
+        if (cardsPerGame >= 1.5) {
+          sentences.push(`Discipline has been a problem for them — ${oppStats.yellowCards} yellows this season. Pressure them at the breakdown.`);
+        } else if (triesPerGame >= 4.5) {
+          sentences.push(`Their attack has been prolific — ${triesPerGame.toFixed(1)} tries per game. The defensive line must be disciplined.`);
+        } else if (tacklePct < 80 && oppStats.tacklesAttempted >= 40) {
+          sentences.push(`Their defence has been leaky — ${Math.round(tacklePct)}% tackle completion. Target the wide channels.`);
+        }
+
+        // Player threat
+        const oppClub = state.career.clubs.find(c => c.id === oppId);
+        if (oppClub) {
+          const oppRoster = oppClub.squad
+            .map(rid => state.career.roster[rid])
+            .filter((p): p is Player => !!p);
+          const topTrier = [...oppRoster].sort((a, b) => b.seasonStats.tries - a.seasonStats.tries)[0];
+          if (topTrier && topTrier.seasonStats.tries >= 2) {
+            const tries = topTrier.seasonStats.tries;
+            sentences.push(`Watch ${topTrier.firstName} ${topTrier.lastName} — ${tries} tries this season and a genuine threat.`);
+          } else {
+            const topBreaker = [...oppRoster].sort((a, b) => b.seasonStats.lineBreaks - a.seasonStats.lineBreaks)[0];
+            if (topBreaker && topBreaker.seasonStats.lineBreaks >= 3) {
+              const lb = topBreaker.seasonStats.lineBreaks;
+              sentences.push(`${topBreaker.firstName} ${topBreaker.lastName} has made ${lb} line breaks this season — a constant danger with ball in hand.`);
+            }
+          }
+        }
       }
 
       if (sentences.length > 0) {
@@ -266,7 +343,7 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
           category: 'match',
           priority: 30,
           subject: `Scout report — Round ${nextFixture.round} vs ${opp.name}`,
-          body: sentences.join(' '),
+          body: sentences.slice(0, 5).join(' '),
           deepLink: 'fixtures',
         });
       }

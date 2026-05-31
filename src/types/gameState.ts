@@ -948,4 +948,14 @@ export type SeasonEvent =
       // GameCoordinator.recordPlayerMatchResult.
       type: 'REST_OBLIGATION_RESOLVED';
       rosterId: number;
+    }
+  | {
+      // 2025/26 season-open seed for a returning 2025 B&I Lions tourist.
+      // Reducer sets `Player.lionsReturnRound` (post-tour rest end) and the
+      // reduced return `condition`. Fired once per matched tourist at
+      // GameCoordinator.newSeason.
+      type: 'LIONS_RETURN_SET';
+      rosterId: number;
+      availableFromRound: number;
+      condition: number;
     };

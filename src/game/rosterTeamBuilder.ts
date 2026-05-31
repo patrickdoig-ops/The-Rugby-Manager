@@ -19,7 +19,7 @@ import type { GameState } from '../types/gameState';
 import type { Player } from '../types/player';
 import type { RawPlayer, RawTeamInput } from '../types/teamData';
 import { selectBestMatchdaySquad } from './autoSelect';
-import { restUnavailableIds } from './internationalDutyEngine';
+import { selectionUnavailableIds } from './internationalDutyEngine';
 
 export function buildTeamFromRoster(state: GameState, teamJson: RawTeamInput): RawTeamInput {
   const club = state.career.clubs.find(c => c.id === teamJson.id);
@@ -29,7 +29,7 @@ export function buildTeamFromRoster(state: GameState, teamJson: RawTeamInput): R
   // injured / rest-obligated last. Slots are assigned 1..N over the
   // partitioned list, so unavailable players sink to the wider-squad section
   // and the auto-built 23 only contains available players.
-  const unavailable = restUnavailableIds(state, teamJson.id);
+  const unavailable = selectionUnavailableIds(state, teamJson.id);
   const fit: number[] = [];
   const injured: number[] = [];
   for (const rid of club.squad) {
@@ -68,7 +68,7 @@ export function buildAutoSelectedTeamFromRoster(
   const club = state.career.clubs.find(c => c.id === teamJson.id);
   if (!club) return teamJson;
 
-  const unavailable = restUnavailableIds(state, teamJson.id);
+  const unavailable = selectionUnavailableIds(state, teamJson.id);
   const selected = selectBestMatchdaySquad(state.career.roster, club.squad, unavailable);
   if (selected.length !== 23) return buildTeamFromRoster(state, teamJson);
 

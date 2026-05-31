@@ -28,7 +28,7 @@ import type { Position, PlayerInjury, RestObligation } from '../types/player';
 import { applyMatchdaySquad, extractMatchdaySquad } from '../game/playerSquad';
 import { selectBestMatchdaySquad } from '../game/autoSelect';
 import { buildTeamFromRoster } from '../game/rosterTeamBuilder';
-import { restUnavailableIds } from '../game/internationalDutyEngine';
+import { selectionUnavailableIds } from '../game/internationalDutyEngine';
 import { playerOverall } from '../engine/RatingEngine';
 import { oopSeverity, oopPenaltyPct, SLOT_POSITION } from '../engine/balance';
 import { averageRating } from '../game/seasonLeaderboards';
@@ -135,8 +135,9 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     if (!teamJson) return;
     const fresh = buildTeamFromRoster(state, teamJson);
     const club = state.career.clubs.find(c => c.id === teamJson.id);
-    // Forced international-duty rest is treated like injury for auto-repair.
-    const restUnavailable = club ? restUnavailableIds(state, teamJson.id) : undefined;
+    // Selection-unavailable players (forced international-duty rest or a Lions
+    // post-tour stand-down) are treated like injury for auto-repair.
+    const restUnavailable = club ? selectionUnavailableIds(state, teamJson.id) : undefined;
     const repair = club ? { roster: state.career.roster, clubSquadIds: club.squad, unavailableIds: restUnavailable } : undefined;
     const applied = applyMatchdaySquad(fresh, state.player.matchdaySquad, repair);
     draftStarters = (applied.players as RawPlayer[]).map(p => ({ ...p }));
@@ -173,6 +174,24 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     for (const rid of club.squad) {
       const r = state.career.roster[rid];
       if (r && r.firstName === p.firstName && r.lastName === p.lastName) return r.restObligation;
+    }
+    return undefined;
+  }
+
+  // The Premiership round a 2025 Lions returnee becomes available, if they're
+  // still on the post-tour stand-down this round. Surfaced with the same REST
+  // pill as the international-duty obligation above.
+  function lionsStandDownFor(p: { firstName: string; lastName: string }): number | undefined {
+    const state = opts.getGameEngine().getState();
+    const club = state.career.clubs.find(c => c.id === state.player.teamId);
+    if (!club) return undefined;
+    for (const rid of club.squad) {
+      const r = state.career.roster[rid];
+      if (r && r.firstName === p.firstName && r.lastName === p.lastName) {
+        return (r.lionsReturnRound !== undefined && state.calendar.week < r.lionsReturnRound)
+          ? r.lionsReturnRound
+          : undefined;
+      }
     }
     return undefined;
   }
@@ -260,7 +279,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     // Advisory rounds (earlier in the window) are not in this set, so the
     // manager can still freely select them.
     const state = opts.getGameEngine().getState();
-    const forcedRest = restUnavailableIds(state, state.player.teamId);
+    const forcedRest = selectionUnavailableIds(state, state.player.teamId);
     const fromRest = fromPlayer.rosterId !== undefined && forcedRest.has(fromPlayer.rosterId);
     const toRest   = toPlayer.rosterId   !== undefined && forcedRest.has(toPlayer.rosterId);
     const intoMatchday = (tier: Tier): boolean => tier === 'starter' || tier === 'bench';
@@ -294,7 +313,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     if (!teamJson) return;
     const club = state.career.clubs.find(c => c.id === teamJson.id);
     if (!club) return;
-    const rosterIds = selectBestMatchdaySquad(state.career.roster, club.squad, restUnavailableIds(state, teamJson.id));
+    const rosterIds = selectBestMatchdaySquad(state.career.roster, club.squad, selectionUnavailableIds(state, teamJson.id));
     if (rosterIds.length < 23) return;
     const refs = rosterIds.map(rid => {
       const p = state.career.roster[rid];
@@ -549,9 +568,12 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       ? `<span class="injury-badge" title="${injuryKindLabel(injury.kind)} — ${injury.weeksRemaining}w">${injury.weeksRemaining}w</span>`
       : '';
     const rest = !injury ? restObligationFor(p) : undefined;
+    const lionsRound = !injury && !rest ? lionsStandDownFor(p) : undefined;
     const restBadge = rest
       ? `<span class="rest-badge" title="International duty — must be rested in one of rounds ${rest.eligibleRounds.join(', ')}">REST</span>`
-      : '';
+      : lionsRound !== undefined
+        ? `<span class="rest-badge" title="British &amp; Irish Lions — post-tour rest, unavailable until Round ${lionsRound}">REST</span>`
+        : '';
     const condition = conditionFor(p);
     const conditionCell = condition === null
       ? `<div class="sq-con sq-con--unrated" title="No condition data">—</div>`

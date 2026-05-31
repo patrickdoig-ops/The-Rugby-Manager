@@ -92,6 +92,12 @@ function pushClubTrainingEvents(
     // an international break — no condition recovery, no development. Their
     // return is resolved separately in GameCoordinator.applyTrainingBlock.
     if (p.internationalDuty) continue;
+    // 2025 B&I Lions returnees serving the post-tour stand-down skip club
+    // training *through* their return round (`week <= lionsReturnRound`), so
+    // they come back at the reduced seed condition and build fitness from the
+    // following week. They become selectable a round earlier (`week <
+    // lionsReturnRound`, see selectionUnavailableIds).
+    if (p.lionsReturnRound !== undefined && state.calendar.week <= p.lionsReturnRound) continue;
 
     const focus: [keyof PlayerStats, keyof PlayerStats] = isForward(p.position) ? fwdFocus : bckFocus;
     const ageInNewSeason = p.dob ? (getAge(p.dob, seasonOpenDate) ?? 25) : 25;

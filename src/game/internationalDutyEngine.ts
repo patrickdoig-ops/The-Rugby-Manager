@@ -16,15 +16,17 @@
 //   4. resolveInternationalBreak → PLAYER_RETURNED_FROM_DUTY (+ PLAYER_INJURED)
 //      per player, plus an InternationalBreakSummary for the break screen.
 //
-// Squad-selection exclusion (mustRestThisRound / restUnavailableIds) and the
-// per-round obligation reconciliation (reconcileRestObligations) live here too.
+// Squad-selection exclusion (mustRestThisRound / lionsUnavailable rolled into
+// selectionUnavailableIds) and the per-round obligation reconciliation
+// (reconcileRestObligations) live here too.
 
 import type { GameState, SeasonEvent } from '../types/gameState';
 import type { Player, InternationalWindow } from '../types/player';
 import type { InternationalBreakSummary, InternationalCallUpResult } from '../types/training';
 import {
   INTERNATIONAL_WINDOWS, NATIONS, INTERNATIONAL_LOAD,
-  INTERNATIONAL_INJURY_KINDS, PGA_REST_NATION, LIONS_RETURN_CONDITION,
+  INTERNATIONAL_INJURY_KINDS, PGA_REST_NATION,
+  LIONS_RETURN_CONDITION, LIONS_RETURN_CONDITION_NOISE, LIONS_RETURN_ROUND,
 } from '../engine/balance/international';
 import { INJURY_SEVERITY } from '../engine/balance/injuries';
 import type { InjurySeverity } from '../types/player';
@@ -231,15 +233,24 @@ export function mustRestThisRound(p: Player, state: GameState): boolean {
   return round === trigger;
 }
 
-// rosterIds in a club's squad who must be rested this round. Treated exactly
-// like injured players by the squad builders / repair / display predicates.
-export function restUnavailableIds(state: GameState, clubId: string): Set<number> {
+// True while a 2025 B&I Lions tourist is serving their post-tour stand-down
+// (unavailable for selection until `lionsReturnRound`).
+export function lionsUnavailable(p: Player, week: number): boolean {
+  return p.lionsReturnRound !== undefined && week < p.lionsReturnRound;
+}
+
+// rosterIds in a club's squad who are unavailable for selection this round by
+// policy (PGA forced rest after international duty, or a Lions post-tour
+// stand-down). Treated exactly like injured players by the squad builders /
+// repair / display predicates. Injury itself is checked separately (p.injury).
+export function selectionUnavailableIds(state: GameState, clubId: string): Set<number> {
   const out = new Set<number>();
   const club = state.career.clubs.find(c => c.id === clubId);
   if (!club) return out;
+  const week = state.calendar.week;
   for (const rid of club.squad) {
     const p = state.career.roster[rid];
-    if (p && mustRestThisRound(p, state)) out.add(rid);
+    if (p && (mustRestThisRound(p, state) || lionsUnavailable(p, week))) out.add(rid);
   }
   return out;
 }
@@ -282,17 +293,28 @@ export function reconcileRestObligations(state: GameState, humanMatchdayIds: Rea
 // ===== B&I Lions 2025 season-open seeding =====
 
 // Name-matches LIONS_2025_TOURISTS against the seeded roster and returns a
-// PLAYER_CONDITION_UPDATED per match, setting each tourist's starting
-// condition to LIONS_RETURN_CONDITION. RNG-free. One-shot at the 2025/26
-// season open.
-export function lionsConditionEvents(state: GameState): SeasonEvent[] {
+// LIONS_RETURN_SET per match, marking each tourist as on post-tour stand-down
+// until LIONS_RETURN_ROUND and seeding a per-player return condition centred on
+// LIONS_RETURN_CONDITION with ±LIONS_RETURN_CONDITION_NOISE of rngTransfer
+// spread. Walked rosterId-ascending so the roll sequence is reproducible.
+// One-shot at the 2025/26 season open.
+export function lionsReturnEvents(state: GameState): SeasonEvent[] {
   const wanted = new Set(LIONS_2025_TOURISTS.map(l => `${l.firstName}|${l.lastName}`.toLowerCase()));
   const out: SeasonEvent[] = [];
   const ids = Object.keys(state.career.roster).map(Number).sort((a, b) => a - b);
   for (const rid of ids) {
     const p = state.career.roster[rid];
     if (wanted.has(`${p.firstName}|${p.lastName}`.toLowerCase())) {
-      out.push({ type: 'PLAYER_CONDITION_UPDATED', rosterId: rid, condition: LIONS_RETURN_CONDITION });
+      const condition = clamp(
+        LIONS_RETURN_CONDITION + rngTransfer(-LIONS_RETURN_CONDITION_NOISE, LIONS_RETURN_CONDITION_NOISE),
+        0, 100,
+      );
+      out.push({
+        type: 'LIONS_RETURN_SET',
+        rosterId: rid,
+        availableFromRound: LIONS_RETURN_ROUND,
+        condition,
+      });
     }
   }
   return out;

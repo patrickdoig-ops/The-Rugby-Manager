@@ -14,6 +14,7 @@ import { sortStandings } from '../game/leagueTable';
 import { computeOverallRating } from '../team/teamProfile';
 import { formAdjustment, matchSpread, HOME_ADVANTAGE_PTS, recentForm } from '../game/teamStats';
 import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
+import { ROUND_LABELS } from '../engine/balance/season';
 import { renderFormPipStrip } from './components/formPip';
 import { injectTeamColors } from './teamColors';
 
@@ -336,7 +337,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
     return `
       <div id="hub-next-match">
         <div class="hub-nm-label">
-          <span>NEXT MATCH · ROUND ${fixture.round} · ${formatDateShort(state.calendar.date)}</span>
+          <span>NEXT MATCH · ROUND ${fixture.round}${ROUND_LABELS[fixture.round] ? ` — ${ROUND_LABELS[fixture.round].toUpperCase()}` : ''} · ${formatDateShort(state.calendar.date)}</span>
           ${kickoffChip}
         </div>
         <div class="hub-nm-fixture">

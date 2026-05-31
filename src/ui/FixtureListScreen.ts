@@ -15,6 +15,7 @@ import type { Fixture, FixtureResult, GameState } from '../types/gameState';
 import { eventBus } from '../utils/eventBus';
 import { recentForm, type FormResult } from '../game/teamStats';
 import { renderFormPipStrip } from './components/formPip';
+import { ROUND_LABELS } from '../engine/balance/season';
 
 type Mode = 'team' | 'next' | 'all';
 
@@ -173,13 +174,14 @@ export function initFixtureListScreen(
           <div class="fl-round-band">
             <div class="fl-round-header fl-round-header--next">
               <span class="fl-next-chip">NEXT ROUND</span>
-              <span>Round ${round}</span>
+              <span>Round ${round}${ROUND_LABELS[round] ? ` — ${ROUND_LABELS[round]}` : ''}</span>
               ${dateLabel ? `<span class="fl-round-date">${dateLabel}</span>` : ''}
             </div>
             ${body}
           </div>`;
       }
-      return `<div class="fl-round-header">Round ${round}</div>${body}`;
+      const label = ROUND_LABELS[round] ? ` — ${ROUND_LABELS[round]}` : '';
+      return `<div class="fl-round-header">Round ${round}${label}</div>${body}`;
     }).join('');
   }
 

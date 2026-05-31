@@ -94,7 +94,7 @@ import { initInboxScreen } from './ui/InboxScreen';
 import { initAchievementEngine }   from './achievements/AchievementEngine';
 import { getGameCenter }           from './achievements/GameCenterBridge';
 import { screenRouter }            from './ui/ScreenRouter';
-import { loadSave, saveGame, clearSave, migrateLegacySave } from './ui/SaveManager';
+import { loadSave, saveGame, clearSave } from './ui/SaveManager';
 import { installBackupMirror, reconcileBackups } from './ui/saveBackup';
 import { loadTickDelayMs }           from './ui/uiPrefs';
 import { initTextScale }             from './ui/textScale';
@@ -1186,8 +1186,6 @@ document.addEventListener('DOMContentLoaded', () => {
   installBackupMirror();
 
   const renderHome = (): void => {
-    // Fold any pre-slot single save into slot 1 once a slot is free.
-    migrateLegacySave();
     initHomeScreen(goTeamSelector, continueGame, goSettingsFromHome, allTeams,
       () => goSaves(() => goHome('back')));
     screenRouter.show('home');

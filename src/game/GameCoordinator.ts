@@ -58,7 +58,7 @@ import {
 } from './internationalDutyEngine';
 import { computeRollover } from './careerRollover';
 import { generatePersona } from './personaGenerator';
-import { resolveSchedule, backfillCareerContracts, buildRosterSeededEvent, buildCareerArchiveRestoredEvent } from './saveMigration';
+import { buildRosterSeededEvent, buildCareerArchiveRestoredEvent } from './saveMigration';
 import { TransferCoordinator, type EarlyRenewalResult } from './TransferCoordinator';
 import { computeBudgetEvents } from './budgetPlanner';
 import { computeAttendance } from './attendance';
@@ -76,23 +76,10 @@ export type SavedSeasonResult = {
   playerSide: 'home' | 'away' | null;
   homeScore: number;
   awayScore: number;
-  // Added in save v11 for the bonus-points system. Pre-v11 saves default
-  // both to 0 on load (no retroactive try-bonus award), see SaveManager.
   homeTries: number;
   awayTries: number;
 };
 
-// v5+: persistent career snapshot — every player's current baseStats +
-// the per-club squad pointers. Absent on v4 and older saves; fromSave
-// seeds a fresh roster from the JSONs in that case.
-//
-// v7 adds the optional market layer: `freeAgents` (rosterIds of players
-// whose contracts expired without renewal) and `market` (the live
-// state of an open market window, null when closed). v5/v6 loads
-// default both to []/null via emptyCareerState.
-//
-// v8 adds `pendingMoves` (PreAgreement[]) for Phase 6 cross-Prem
-// poaching. Activated at the next rollover.
 export interface SavedCareer {
   seasonsCompleted: number;
   nextRosterId: number;
@@ -102,20 +89,9 @@ export interface SavedCareer {
   freeAgents?: number[];
   market?: MarketState | null;
   pendingMoves?: PreAgreement[];
-  // v12+: Squad Builder resumption flag. Optional — outside Squad
-  // Builder this is always undefined and the field is omitted from the
-  // payload, so existing in-season saves stay byte-equivalent.
   preSeasonStep?: 'overview' | 'signings' | 'marquee';
-  // v14+: clubIds taken over so far (Newcastle Red Bull at year 2;
-  // random investor takeovers from year 3+). Pre-v14 saves migrate as
-  // []. Each taken-over club is excluded from future random rolls.
   takeoverHistory?: string[];
-  // v16+: per-rosterId mid-season FA rejection cooldown. Pre-v16 saves
-  // migrate as {} (no historical cooldowns known). Cleared at the next
-  // SEASON_ROLLED_OVER along with the FA pool reshuffle.
   midseasonRejections?: Record<number, number>;
-  // v24+: rosterIds of the user's players currently under AI poach threat.
-  // Pre-v24 saves migrate as []; the badge updates after the next round.
   activePoachedIds?: number[];
 }
 
@@ -124,35 +100,16 @@ export interface SavedSeason {
   seed: number;
   currentWeek: number;
   results: SavedSeasonResult[];
-  // The fixture list and season label captured at save time. Restored
-  // verbatim on load so an edit to the canonical schedule (e.g. fixture
-  // re-arrangement) does not corrupt an in-progress season. Optional on
-  // the type so legacy v2 saves can still be migrated by SaveManager.
+  // Fixture list and season label captured at save time — restored verbatim
+  // so an edit to the canonical schedule doesn't corrupt an in-progress season.
   seasonLabel?: string;
   fixtures?: Fixture[];
-  // v4+: persisted pre-match choices that carry forward as defaults for
-  // the next match. Both undefined on a fresh season; populated after the
-  // first Kick Off.
   tactics?: TeamTactics;
   matchdaySquad?: PlayerRef[];
-  // v18+: persisted training plan from the last training-week screen.
-  // Undefined on a fresh save / pre-v18 load — TrainingScreen falls back
-  // to DEFAULT_TRAINING_PLAN.
   training?: TrainingPlan;
-  // v23+: number of rngTransfer calls consumed so far this season. Absent on
-  // older saves — treated as 0 (same behaviour as before this fix was added).
   careerRngOffset?: number;
-  // v5+: persistent roster + career history. v4 loads seed fresh from
-  // JSONs since pre-v5 there has been zero per-player evolution to
-  // preserve.
   career?: SavedCareer;
-  // v9+: per-team season aggregates. Keyed by teamId; one TeamSeasonStats
-  // bucket per club. Absent on v8 and older — fromSave falls through to
-  // the zeroed buckets created by SEASON_INITIALIZED.
   teamSeasonStats?: Record<string, import('../types/gameState').TeamSeasonStats>;
-  // v13+: the active playoff bracket. Top-level (not under `career`)
-  // because it lives on `state.league.playoffs`. null when no bracket
-  // is active (e.g. mid-regular-season); absent on pre-v13 saves.
   playoffs?: PlayoffState | null;
 }
 
@@ -257,27 +214,13 @@ export class GameCoordinator {
       playerTeamId: save.playerTeamId,
       seed: save.seed >>> 0,
       teamIds: allTeams.map(t => t.id),
-      schedule: resolveSchedule(save, schedule),
+      schedule: save.fixtures
+        ? { seasonLabel: save.seasonLabel ?? schedule.seasonLabel, fixtures: save.fixtures.map(f => ({ ...f })) }
+        : schedule,
     });
-    // v5+ saves carry the persistent roster + career archive directly.
-    // v4 and older predate the roster; seed fresh from JSONs (lossless —
-    // pre-v5 there was zero per-player evolution to preserve). The
-    // version-ladder back-fill (contracts, budgets, optional market /
-    // playoff layers) lives in saveMigration.ts; these calls just replay
-    // the resulting events through the season mutation boundary.
     if (save.career) {
-      const seasonStartYear = parseSeasonStartYear(save.seasonLabel ?? coord.state.calendar.seasonLabel);
-      backfillCareerContracts(save.career, seasonStartYear);
       applySeasonEvent(coord.state, buildRosterSeededEvent(save.career));
       applySeasonEvent(coord.state, buildCareerArchiveRestoredEvent(save));
-    } else {
-      const seeded = seedRoster(allTeams, parseSeasonStartYear(coord.state.calendar.seasonLabel));
-      applySeasonEvent(coord.state, {
-        type: 'ROSTER_SEEDED',
-        roster: seeded.roster,
-        clubs: seeded.clubs,
-        nextRosterId: seeded.nextRosterId,
-      });
     }
     // Replay results in round order, then advance week to match the snapshot.
     const ordered = [...save.results].sort((a, b) => a.round - b.round);

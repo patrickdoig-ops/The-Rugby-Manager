@@ -45,6 +45,7 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
   if (!club) return [];
 
   const today = new Date(state.calendar.date);
+  const myTeam = allTeams.find(t => t.id === teamId);
 
   // --- Injuries ---
   for (const rid of club.squad) {
@@ -250,7 +251,6 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
   }
 
   // --- Home attendance ---
-  const myTeam = allTeams.find(t => t.id === teamId);
   if (myTeam?.stadiumCapacity) {
     const lastHomeResult = state.league.results
       .filter(r => r.homeId === teamId && r.attendance != null)
@@ -319,7 +319,6 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
 
   // --- Chairman's season objectives (WK1 only) ---
   if (state.calendar.week === 1) {
-    const myTeam = allTeams.find(t => t.id === teamId);
     const ambition = myTeam?.boardAmbition ?? 'playoffs';
     const lastSeason = state.career.archive[state.career.archive.length - 1];
 
@@ -377,6 +376,108 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
       body,
       deepLink: 'league',
     });
+  }
+
+  // --- Chairman's block report (fires on first round after an international break) ---
+  if (state.calendar.week > 1) {
+    const prevRoundDates = state.league.fixtures
+      .filter(f => f.round === state.calendar.week - 1 && f.date)
+      .map(f => new Date(f.date!).getTime());
+    const currRoundDates = state.league.fixtures
+      .filter(f => f.round === state.calendar.week && f.date)
+      .map(f => new Date(f.date!).getTime());
+
+    if (prevRoundDates.length && currRoundDates.length) {
+      const gapDays = (Math.min(...currRoundDates) - Math.max(...prevRoundDates)) / 86_400_000;
+
+      if (gapDays > 18) {
+        const ambition = myTeam?.boardAmbition ?? 'playoffs';
+        const sorted = sortStandings(state.league.standings);
+        const pos = sorted.findIndex(s => s.teamId === teamId) + 1;
+        const standing = sorted.find(s => s.teamId === teamId);
+        const played = standing?.played ?? 0;
+        const wins   = standing?.won    ?? 0;
+
+        const form5    = recentForm(teamId, state.league.results, 5);
+        const played5  = form5.filter((r): r is FormResult => r !== null).length;
+        const wins5    = form5.filter(r => r === 'W').length;
+
+        // Average home fill rate over the last four home results with attendance data
+        let avgFillRate: number | null = null;
+        if (myTeam?.stadiumCapacity) {
+          const recentHome = state.league.results
+            .filter(r => r.homeId === teamId && r.attendance != null)
+            .sort((a, b) => b.round - a.round)
+            .slice(0, 4);
+          if (recentHome.length >= 2) {
+            const total = recentHome.reduce((sum, r) => {
+              const fix = state.league.fixtures.find(f => f.homeId === teamId && f.round === r.round);
+              const cap = fix?.venueCapacity ?? myTeam!.stadiumCapacity!;
+              return sum + r.attendance! / cap;
+            }, 0);
+            avgFillRate = total / recentHome.length;
+          }
+        }
+
+        const sentences: string[] = [];
+
+        // Strand 1 — position + record (always present)
+        if (pos > 0 && played > 0) {
+          sentences.push(
+            `We go into this break ${ordinal(pos)} in the league with ${wins} win${wins !== 1 ? 's' : ''} from ${played} game${played !== 1 ? 's' : ''}.`
+          );
+        }
+
+        // Strand 2 — form (only surface if notably good or bad)
+        if (played5 >= 3) {
+          if (wins5 >= 4) {
+            sentences.push(`The form coming into this break has been excellent — ${wins5} wins from our last ${played5}.`);
+          } else if (wins5 <= 1) {
+            sentences.push(`Recent form has been a concern — ${wins5 === 0 ? 'no' : String(wins5)} win${wins5 !== 1 ? 's' : ''} from our last ${played5} fixtures.`);
+          }
+        }
+
+        // Strand 3 — attendance (only surface if clearly high or low)
+        if (avgFillRate !== null) {
+          if (avgFillRate >= 0.90) {
+            sentences.push(`The home crowds have been excellent — averaging ${Math.round(avgFillRate * 100)}% capacity.`);
+          } else if (avgFillRate < 0.65) {
+            sentences.push(`Home attendances have been disappointing at ${Math.round(avgFillRate * 100)}% capacity. Results on the pitch will bring the fans back.`);
+          }
+        }
+
+        // Strand 4 — chairman's assessment (always present)
+        const isAhead  = (ambition === 'title'    && pos <= 2)
+                       || (ambition === 'playoffs' && pos <= 2)
+                       || (ambition === 'topHalf'  && pos <= 4);
+        const onTrack  = (ambition === 'title'    && pos <= 4)
+                       || (ambition === 'playoffs' && pos <= 4)
+                       || (ambition === 'topHalf'  && pos <= 7);
+
+        if (isAhead && wins5 >= 3) {
+          sentences.push(`This is exactly what the board wanted to see. Keep building.`);
+        } else if (isAhead) {
+          sentences.push(`The position is encouraging. Let's maintain that momentum.`);
+        } else if (onTrack) {
+          sentences.push(`We are where we need to be. The board expects us to push on from here.`);
+        } else if (ambition === 'topHalf' && pos <= 8) {
+          sentences.push(`The board would like to see us moving up the table. There is still time, but we need a response.`);
+        } else if (pos <= 6) {
+          sentences.push(`We're not far off the pace, but the board expects more from the second half of the season.`);
+        } else {
+          sentences.push(`This is below where we need to be. The board is expecting a significant improvement when the season resumes.`);
+        }
+
+        items.push({
+          id: `chairman-block:${season}:r${state.calendar.week}`,
+          category: 'league',
+          priority: 85,
+          subject: 'Chairman\'s message — mid-season review',
+          body: sentences.join(' '),
+          deepLink: 'league',
+        });
+      }
+    }
   }
 
   // --- Playoff race status ---

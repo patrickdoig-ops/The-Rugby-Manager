@@ -173,5 +173,9 @@ export function initAudioDirector(): void {
 
   // Season beats.
   eventBus.on('game:bracketSeeded',  () => playId('stinger.playoff_reveal'));
-  eventBus.on('game:seasonComplete', () => playId('stinger.champion'));
+  eventBus.on('game:seasonComplete', ({ state }) => {
+    if (state.league.playoffs?.championTeamId === state.player.teamId) {
+      playId('stinger.champion');
+    }
+  });
 }

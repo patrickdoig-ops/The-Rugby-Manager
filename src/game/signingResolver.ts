@@ -14,7 +14,7 @@
 import type { GameState, SeasonEvent, TransferBid } from '../types/gameState';
 import type { Player } from '../types/player';
 import { sortStandings } from './leagueTable';
-import { APPEAL_WEIGHTS, HISTORICAL_POSITIONS, WAGE_NEGOTIATION } from '../engine/balance/transfers';
+import { APPEAL_WEIGHTS, HISTORICAL_POSITIONS, WAGE_NEGOTIATION, RENEWAL, WAGE_ROUNDING_UNIT } from '../engine/balance/transfers';
 import { expiryAfterYears } from './aiTransferDirector';
 
 // Per-player outcome consumed by SigningResultsScreen. `winnerBid` is
@@ -140,17 +140,26 @@ export function resolveSigningRound(state: GameState): ResolveResult {
     if (!player) continue;
     const bids = bidsByRoster.get(rid)!;
     const askingWage = askingByRoster.get(rid) ?? 0;
+    // The cached offer is the full-market rate (FA / poach). A retention
+    // bid is quoted at the loyalty-discounted rate, so its wage baseline
+    // is that discounted figure — otherwise a default retention would
+    // carry a spurious wage penalty on top of the loyalty bonus that
+    // already models the player accepting less to stay.
+    const retentionAsk = Math.round(
+      askingWage * (1 - RENEWAL.loyaltyDiscount) / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT;
+    const askFor = (bid: TransferBid): number => bid.kind === 'retention' ? retentionAsk : askingWage;
 
     // Score each bid = club appeal + wage satisfaction (how the offered
-    // wage compares to asking). Highest wins; tie-break by lower clubId
-    // using localeCompare so the ordering is explicit and locale-stable.
-    // Today's clubIds are English-letter slugs (`bath`, `exeter`, …) so
-    // the result matches a naive `<` compare, but localeCompare makes
-    // the intent unambiguous and survives a future ID format change.
+    // wage compares to that bid's asking baseline). Highest wins;
+    // tie-break by lower clubId using localeCompare so the ordering is
+    // explicit and locale-stable. Today's clubIds are English-letter
+    // slugs (`bath`, `exeter`, …) so the result matches a naive `<`
+    // compare, but localeCompare makes the intent unambiguous and
+    // survives a future ID format change.
     let winner: TransferBid | null = null;
     let bestScore = -Infinity;
     for (const bid of bids) {
-      const score = appealScore(state, bid, player) + wageSatisfaction(bid.annualWage, askingWage);
+      const score = appealScore(state, bid, player) + wageSatisfaction(bid.annualWage, askFor(bid));
       const wins = score > bestScore
         || (score === bestScore && winner !== null && bid.clubId.localeCompare(winner.clubId) < 0);
       if (wins) {
@@ -163,11 +172,17 @@ export function resolveSigningRound(state: GameState): ResolveResult {
       continue;
     }
 
-    // Reservation gate: even the best offer must clear the player's
+    // Reservation gate: a FA / poach winner must clear the player's
     // reservation wage (asking × reservationFloorRatio). A deep lowball
-    // — even unopposed — makes the player hold out rather than sign.
-    // Every bid is marked lost and no contract event fires.
-    if (askingWage > 0 && winner.annualWage / askingWage < WAGE_NEGOTIATION.reservationFloorRatio) {
+    // — even unopposed — makes the player hold out rather than sign;
+    // every bid is marked lost and no contract event fires. Retention
+    // winners are exempt: the current club keeping a player doesn't
+    // trigger a holdout (a severe lowball there simply loses the appeal
+    // contest to the poacher instead), and exempting them avoids a
+    // false holdout from wage-noise between the offer + retention rates.
+    if (winner.kind !== 'retention'
+        && askingWage > 0
+        && winner.annualWage / askingWage < WAGE_NEGOTIATION.reservationFloorRatio) {
       for (const bid of bids) {
         events.push({ type: 'BID_RESOLVED', bidId: bid.id, outcome: 'lost' });
       }

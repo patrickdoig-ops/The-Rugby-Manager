@@ -5,6 +5,7 @@
 #stats-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 4px 8px 6px;
 }
 
@@ -96,6 +97,19 @@
   text-transform: uppercase;
   letter-spacing: 0.12em;
   white-space: nowrap;
+}
+
+/* Narrow dashboard right column: tighter value cols + wrappable labels.
+   30px value cols leave ~72px for the label; 0.06em spacing fits ~12 chars
+   per line so multi-word labels wrap rather than overflow. */
+#panel-bottom.view-dashboard .stat-row-header {
+  grid-template-columns: 30px minmax(0, 1fr) 30px;
+  align-items: center;
+}
+#panel-bottom.view-dashboard .stat-label {
+  white-space: normal;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
 }
 
 /* Proportional dual bar */

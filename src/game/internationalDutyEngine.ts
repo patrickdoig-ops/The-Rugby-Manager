@@ -266,7 +266,14 @@ export function reconcileRestObligations(state: GameState, humanMatchdayIds: Rea
     }
     if (!ob.eligibleRounds.includes(round)) continue;
     const isHuman = p.contract.clubId === state.player.teamId;
-    const rested = isHuman ? !humanMatchdayIds.has(rid) : round === Math.min(...ob.eligibleRounds);
+    // Fail closed for the human club when the matchday squad is unknown (no
+    // squad persisted / name-mapping failed → empty set): we can't tell who
+    // featured, so don't resolve here. A real persisted 23 always yields a
+    // non-empty set; the forced rest on the final round + the post-window
+    // safety net above still guarantee the obligation eventually clears.
+    const rested = isHuman
+      ? (humanMatchdayIds.size > 0 && !humanMatchdayIds.has(rid))
+      : round === Math.min(...ob.eligibleRounds);
     if (rested) out.push({ type: 'REST_OBLIGATION_RESOLVED', rosterId: rid });
   }
   return out;

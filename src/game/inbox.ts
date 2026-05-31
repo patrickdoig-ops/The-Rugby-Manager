@@ -89,7 +89,11 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
   if (obligated.length > 0) {
     const listed = obligated.slice(0, 3).map(p => p.lastName);
     const extra = obligated.length > 3 ? ` and ${obligated.length - 3} more` : '';
-    const rounds = obligated[0].restObligation!.eligibleRounds;
+    // Show only the rounds still ahead, so the label tightens to "round 8" on
+    // the final eligible round rather than always reading the full window.
+    const allRounds = obligated[0].restObligation!.eligibleRounds;
+    const ahead = allRounds.filter(r => r >= state.calendar.week);
+    const rounds = ahead.length > 0 ? ahead : allRounds;
     const rangeLabel = rounds.length > 1 ? `one of rounds ${rounds[0]}–${rounds[rounds.length - 1]}` : `round ${rounds[0]}`;
     items.push({
       id: `intlrest:${season}:w${state.calendar.week}`,

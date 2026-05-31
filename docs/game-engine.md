@@ -113,10 +113,10 @@ The game engine emits seven `game:*` events through `src/utils/eventBus.ts`. UI 
 | Event | Payload | Subscribers |
 |---|---|---|
 | `game:initialized` | `{ state: GameState }` | `FixtureListScreen` (initial render after `newSeason` / `fromSave`) |
-| `game:fixtureRecorded` | `{ result: FixtureResult; state: GameState }` | `FixtureListScreen`, `RoundResultsScreen`, `HubScreen`, `LeagueTableScreen`, `TeamStatsScreen`, `PlayerStatsScreen` (re-render as each headless AI fixture resolves; stats screens pick up the fresh per-team / per-player aggregates from `state.league.teamSeasonStats` + `state.career.roster[*].seasonStats`) |
-| `game:weekAdvanced` | `{ state: GameState }` | `FixtureListScreen` (calendar header), `HubScreen` (expiring-contracts badge refresh as deals tick into the 6-month window), `LeagueTableScreen` / `TeamStatsScreen` / `PlayerStatsScreen` (re-derive season-position eyebrow) |
-| `game:bracketSeeded` | `{ state: GameState }` | `main.ts` latches `bracketSeededPending`; `HubScreen` + `PlayoffBracketScreen` re-render. Fires once after the final R18 fixture is recorded (via `seedPlayoffBracket`). |
-| `game:playoffsUpdated` | `{ state: GameState }` | `HubScreen` + `PlayoffBracketScreen` re-render. Fires after every `PLAYOFF_RESULT_RECORDED` (player or AI) so the bracket UI shows the cascade fill in. |
+| `game:fixtureRecorded` | `{ result: FixtureResult; state: GameState }` | `FixtureListScreen`, `RoundResultsScreen`, `HubScreen`, `LeagueTableScreen`, `TeamStatsScreen`, `PlayerStatsScreen`, `InboxScreen` (re-render as each headless AI fixture resolves; stats screens pick up the fresh per-team / per-player aggregates from `state.league.teamSeasonStats` + `state.career.roster[*].seasonStats`) |
+| `game:weekAdvanced` | `{ state: GameState }` | `FixtureListScreen` (calendar header), `HubScreen` (expiring-contracts badge refresh as deals tick into the 6-month window), `LeagueTableScreen` / `TeamStatsScreen` / `PlayerStatsScreen` (re-derive season-position eyebrow), `InboxScreen` |
+| `game:bracketSeeded` | `{ state: GameState }` | `main.ts` latches `bracketSeededPending`; `HubScreen` + `PlayoffBracketScreen` + `InboxScreen` re-render. Fires once after the final R18 fixture is recorded (via `seedPlayoffBracket`). |
+| `game:playoffsUpdated` | `{ state: GameState }` | `HubScreen` + `PlayoffBracketScreen` + `InboxScreen` re-render. Fires after every `PLAYOFF_RESULT_RECORDED` (player or AI) so the bracket UI shows the cascade fill in. |
 | `game:seasonComplete` | `{ state: GameState }` | `main.ts` latches `seasonCompletePending`; the post-match Continue chain reroutes through `EndOfSeasonScreen` → optional `RenewalsScreen` → optional `TransferMarketScreen` → `RolloverScreen`. Now fires only after the League final resolves (no longer the end of the last regular round). |
 | `game:trainingApplied` | `{ state: GameState }` | `TrainingScreen` (triggers the post-training results display after `applyTrainingBlock` completes); `AchievementEngine` (evaluates post-training achievement predicates). Fired once at the end of `GameCoordinator.applyTrainingBlock` after all per-player `PLAYER_TRAINED` events have been applied. |
 
@@ -603,6 +603,28 @@ Match → MatchResult → recordPlayerMatchResult + snapshotMatch + saveGame
 `game:seasonComplete` fires from `recordPlayerMatchResult` after the final round's `WEEK_ADVANCED` when `getCurrentFixture() === null`. `main.ts` latches it; the LeagueTable Continue handler checks and routes accordingly. `rollSeason()` is the one and only caller of `careerRollover.computeRollover` in production; the headless `checkSeasonDeterminism` harness calls it directly between season simulations (and also exercises both `openRenewalWindow` + `closeRenewalWindow` and `openSigningWindow` + `closeSigningWindow` with AI-only decisions).
 
 Save is committed at four points across the off-season: after `openRenewalWindow` (mid-window resume), after `closeRenewalWindow` (captures the renewal decisions), after `closeSigningWindow` (captures signings + pre-agreements), and after `rollSeason` (captures aging / retirements / activated transfers / academy + import intake / new fixtures).
+
+## Assistant's Report / Inbox
+
+A derived briefing surface that surfaces actionable alerts from the current `GameState` without any new state or persistence.
+
+**Model.** `src/game/inbox.ts::buildAssistantReport(state, allTeams)` is a pure function. It walks the roster and league state and returns `InboxItem[]` sorted by `priority` (higher = more important). No `SeasonEvent`, no `SAVE_VERSION` bump, no `GameState` change.
+
+**Message sources (v1):**
+
+| Category | Trigger | `deepLink` |
+|---|---|---|
+| `medical` | Any squad player with `Player.injury` set | `squad` |
+| `contracts` | Any squad player whose `contract.expiresOn` falls within `EXPIRING_CONTRACT_WINDOW_MONTHS` (6) of today (pre-agreed Reg 7 leavers excluded) | `contracts` |
+| `transfers` | Any squad player in `state.career.activePoachedIds` | `transfers` |
+| `match` | The next unplayed fixture has `isDerby: true` | `fixtures` |
+| `league` | Playoff race clinch or elimination (via `src/game/playoffRace.ts::playoffRaceStatus`) — suppressed while `state.league.playoffs !== null` | `league` |
+
+**Playoff race math.** `playoffRaceStatus(state, teamId)` computes each team's maximum achievable points (`currentPts + MAX_LP_PER_GAME × gamesRemaining`, where `MAX_LP_PER_GAME = 5 = win + tryBonus`). `securedTop4` fires when fewer than 4 opponents can match the player's current points. `securedTop2` fires when fewer than 2 can. `eliminated` fires when ≥ 4 opponents already exceed the player's best-case total.
+
+**Read-set persistence.** `src/ui/inboxRead.ts` maintains a `ReadMap` in `localStorage` under `'rugby-manager-inbox-read'` keyed by `${teamId}:${seed}`. `markRead(key, ids)` runs on every render of `InboxScreen`, so items are marked read the moment the user opens the report. `countUnread(key, items)` drives the badge on the Hub teaser. The read-set survives `clearSave()` (like Game Centre achievements) but is naturally per-save because the key includes the root seed.
+
+**Navigation.** The Hub `#hub-alert-banner` shows the top unread item (subject line + unread count badge). Clicking opens `InboxScreen` (`inbox`). Each `InboxItem` with a `deepLink` has a button (e.g. "Go to Contracts") that navigates directly to the relevant management screen. `InboxScreen` is initialised once in `initInSeasonScreens` and re-renders on `game:initialized`, `game:fixtureRecorded`, `game:weekAdvanced`, `game:bracketSeeded`, and `game:playoffsUpdated`.
 
 ## Roadmap
 

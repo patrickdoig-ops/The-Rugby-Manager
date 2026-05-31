@@ -89,6 +89,7 @@ import { initSquadManagementScreen, showSquadManagement } from './ui/SquadManage
 import { initTrainingScreen, showTrainingPostMatch, showTrainingMidweek } from './ui/TrainingScreen';
 import { initPostTrainingResultsScreen, showPostTrainingResults } from './ui/PostTrainingResultsScreen';
 import { initAchievementsScreen, showAchievements }  from './ui/AchievementsScreen';
+import { initInboxScreen } from './ui/InboxScreen';
 import { initAchievementEngine }   from './achievements/AchievementEngine';
 import { getGameCenter }           from './achievements/GameCenterBridge';
 import { screenRouter }            from './ui/ScreenRouter';
@@ -285,6 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onContracts: goContracts,
       onTransfers: goTransfersMidseason,
       onSettings: goSettingsFromHub,
+      onInbox:    goInbox,
     });
     initFixtureListScreen(getGameEngine, allTeams, () => goHub('back'));
     // The League sub-menu sits between the Hub's League tile and the
@@ -367,6 +369,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // getter, so the engine swaps cleanly on New Game. Subscriptions are
     // permanent — registered once here like the in-season screens.
     initAchievementEngine(() => getGameEngine().getState());
+    initInboxScreen({
+      getGameEngine,
+      allTeams,
+      onBack:      () => goHub('back'),
+      onSquad:     goSquad,
+      onContracts: goContracts,
+      onTransfers: goTransfersMidseason,
+      onFixtures:  goFixtures,
+      onLeague:    goLeagueMenu,
+    });
 
     // The post-match Continue chain (LeagueTable → ...) reads these flags.
     // game:bracketSeeded fires after the last regular-season fixture —
@@ -428,6 +440,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function goAchievements(direction: 'forward' | 'back' = 'forward'): void {
     showAchievements();
     screenRouter.show('achievements', { direction });
+  }
+
+  function goInbox(direction: 'forward' | 'back' = 'forward'): void {
+    screenRouter.show('inbox', { direction });
   }
 
   function goSquad(direction: 'forward' | 'back' = 'forward'): void {

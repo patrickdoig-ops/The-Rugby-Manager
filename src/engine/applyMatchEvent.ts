@@ -275,6 +275,17 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       return;
     }
 
+    case 'INJURY_STRANDED': {
+      const injured = state.cards.injured[event.teamSide];
+      const injIdx = injured.findIndex(p => p === event.player);
+      if (injIdx >= 0) {
+        injured.splice(injIdx, 1);
+        state.cards.sentOff[event.teamSide].push(event.player);
+        state.cards.version++;
+      }
+      return;
+    }
+
     // ── Offload ─────────────────────────────────────────────────────────
     case 'OFFLOAD_ATTEMPTED':
       event.offloader.matchStats.offloadsAttempted++;

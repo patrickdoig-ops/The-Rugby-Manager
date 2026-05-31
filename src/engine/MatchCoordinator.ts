@@ -400,6 +400,7 @@ export class MatchCoordinator {
       });
       applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: ev });
       this.emitEvent(ev);
+      applyMatchEvent(this.state, { type: 'INJURY_STRANDED', player: off, teamSide: side });
       return;
     }
 

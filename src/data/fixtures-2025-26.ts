@@ -30,11 +30,11 @@ export const PREMIERSHIP_2025_26: SeasonSchedule = {
     { round: 2,  date: '2025-10-05', homeId: 'gloucester',  awayId: 'northampton' },
 
     // Round 3 — 10–12 October 2025 (Derby Weekend)
-    { round: 3,  date: '2025-10-10', homeId: 'sale',        awayId: 'newcastle'   },
-    { round: 3,  date: '2025-10-11', homeId: 'bristol',     awayId: 'exeter'      },
-    { round: 3,  date: '2025-10-11', homeId: 'northampton', awayId: 'leicester'   },
-    { round: 3,  date: '2025-10-11', homeId: 'bath',        awayId: 'gloucester'  },
-    { round: 3,  date: '2025-10-12', homeId: 'harlequins',  awayId: 'saracens'    },
+    { round: 3,  date: '2025-10-10', homeId: 'sale',        awayId: 'newcastle',   isDerby: true },
+    { round: 3,  date: '2025-10-11', homeId: 'bristol',     awayId: 'exeter',      isDerby: true },
+    { round: 3,  date: '2025-10-11', homeId: 'northampton', awayId: 'leicester',   isDerby: true },
+    { round: 3,  date: '2025-10-11', homeId: 'bath',        awayId: 'gloucester',  isDerby: true },
+    { round: 3,  date: '2025-10-12', homeId: 'harlequins',  awayId: 'saracens',    isDerby: true },
 
     // Round 4 — 17–19 October 2025
     { round: 4,  date: '2025-10-17', homeId: 'gloucester',  awayId: 'bristol'     },

@@ -20,6 +20,9 @@ export interface Fixture {
   // when present, the calendar advances to per-round dates rather than the
   // flat +7-day fallback in applySeasonEvent.
   date?: string;
+  // Set on the two dedicated derby rounds (Derby Weekend + Big Match Weekend).
+  // Drives the visual badge on fixture rows in the fixture list.
+  isDerby?: true;
 }
 
 export interface SeasonSchedule {

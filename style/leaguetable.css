@@ -143,6 +143,19 @@
   border-top: 2px solid color-mix(in oklch, var(--rm-stat-1) 42%, transparent) !important;
 }
 
+/* Injected between 4th and 5th place during The Run In (rounds 15-18).
+   Replaces the CSS zone-break border with a labelled amber divider. */
+.lt-playoff-sep {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--rm-amber);
+  padding: 10px 8px 4px;
+  border-bottom: 1px solid color-mix(in oklch, var(--rm-amber) 30%, transparent);
+}
+
 /* Standard / Form view toggle — segmented pill control above the table. */
 .lt-toggle {
   display: flex;

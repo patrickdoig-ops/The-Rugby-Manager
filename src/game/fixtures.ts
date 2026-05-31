@@ -48,8 +48,8 @@ export function generateFixtures(
     const flipped = rngTransfer(0, 1) < flipThreshold;
     const homeA = flipped ? rival : canonical;
     const awayA = flipped ? canonical : rival;
-    derbyA.push({ round: DERBY_ROUND_POSITIONS.first,  homeId: homeA, awayId: awayA });
-    derbyB.push({ round: DERBY_ROUND_POSITIONS.second, homeId: awayA, awayId: homeA });
+    derbyA.push({ round: DERBY_ROUND_POSITIONS.first,  homeId: homeA, awayId: awayA, isDerby: true });
+    derbyB.push({ round: DERBY_ROUND_POSITIONS.second, homeId: awayA, awayId: homeA, isDerby: true });
   }
 
   // Phase 2 — 16 non-derby rounds from the remaining 80 fixtures.

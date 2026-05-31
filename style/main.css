@@ -683,7 +683,7 @@ html, body {
 #panel-bottom.view-dashboard #panel-stats .panel-header,
 #panel-bottom.view-dashboard #panel-players .panel-header {
   font-size: var(--rm-fs-9);
-  padding: 5px 12px;
+  padding: 6px 12px;
 }
 
 /* Commentary only */

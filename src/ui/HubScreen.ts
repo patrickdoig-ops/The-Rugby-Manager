@@ -190,7 +190,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
               <button id="hub-alert-banner" type="button">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51-4.66-2.51m-4.839 2.51 4.66-2.51M3.75 9l3-3.75M20.25 9l-3-3.75M12 3.75v.75M12 18.75V21m-8.25-3h1.5m13.5 0h1.5"/></svg>
                 <span class="hub-alert-text">
-                  <span class="hub-alert-from">Assistant's Report</span>
+                  <span class="hub-alert-from">Inbox</span>
                   <span class="hub-alert-subject">${topItem.subject}</span>
                 </span>
                 ${unread > 0 ? `<span class="hub-alert-badge">${unread}</span>` : ''}
@@ -460,6 +460,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
   eventBus.on('game:initialized',     ({ state }) => render(state));
   eventBus.on('game:fixtureRecorded', ({ state }) => render(state));
   eventBus.on('game:weekAdvanced',    ({ state }) => render(state));
+  eventBus.on('game:trainingApplied', ({ state }) => render(state));
   eventBus.on('game:bracketSeeded',   ({ state }) => render(state));
   eventBus.on('game:playoffsUpdated', ({ state }) => render(state));
 

@@ -417,7 +417,7 @@ export class GameCoordinator {
     // condition, possible injury, and (England heavy-load) a PGA rest
     // obligation. Builds the summary for the International Break screen.
     let international: InternationalBreakSummary | undefined;
-    if (intlWindow) {
+    if (intlWindow && intlCallUps.length > 0) {
       const resolved = resolveInternationalBreak(this.state, intlCallUps, intlWindow);
       for (const ev of resolved.events) applySeasonEvent(this.state, ev);
       international = resolved.summary;
@@ -614,8 +614,15 @@ export class GameCoordinator {
     // proportionally more than a normal 1-week turnaround. Order is
     // rosterId-ascending so the season-determinism harness stays clean.
     const recoveryWeeks = upcomingGap(this.state).weeks;
+    // Only heal injuries that pre-date this rest gap. Injuries picked up during
+    // the gap (training / international duty, dated at the upcoming round)
+    // shouldn't be retroactively recovered by the gap they happened within.
+    const prevFixture = this.state.league.fixtures.find(f =>
+      f.round === round - 1 && (f.homeId === this.state.player.teamId || f.awayId === this.state.player.teamId)
+    );
+    const gapStartIso = prevFixture?.date;
     for (let w = 0; w < recoveryWeeks; w++) {
-      for (const ev of this.tickInjuryEvents()) {
+      for (const ev of this.tickInjuryEvents(gapStartIso)) {
         applySeasonEvent(this.state, ev);
       }
     }
@@ -943,12 +950,19 @@ export class GameCoordinator {
   // Decrement every roster player's `injury.weeksRemaining` by one; fire
   // PLAYER_RECOVERED for any whose counter would reach zero. No RNG —
   // pure walk in rosterId order.
-  private tickInjuryEvents(): SeasonEvent[] {
+  // gapStartIso, when supplied, scopes the tick to injuries sustained at or
+  // before the start of the rest gap (the previous match). Injuries sustained
+  // *during* the gap — training injuries and international-duty injuries, both
+  // dated at the upcoming round — are skipped so a long gap (e.g. the ~5-week
+  // Autumn / ~8-week Six Nations break) doesn't retroactively heal an injury
+  // that only just happened.
+  private tickInjuryEvents(gapStartIso?: string): SeasonEvent[] {
     const out: SeasonEvent[] = [];
     const rosterIds = Object.keys(this.state.career.roster).map(Number).sort((a, b) => a - b);
     for (const rid of rosterIds) {
       const p = this.state.career.roster[rid];
       if (!p.injury) continue;
+      if (gapStartIso && p.injury.injuredOn > gapStartIso) continue;
       if (p.injury.weeksRemaining <= 1) {
         // Decrement to 0 then clear the field. INJURY_TICK_ADVANCED runs
         // first so the per-event trace shows the decrement step.

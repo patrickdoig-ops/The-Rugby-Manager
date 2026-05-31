@@ -79,6 +79,9 @@ export function selectInternationalSquads(state: GameState, window: Internationa
   for (const rid of rostered) {
     const p = state.career.roster[rid];
     if (!p) continue;
+    // Injured players aren't called up — they're already unavailable, and a
+    // call-up would otherwise overwrite their condition / existing injury.
+    if (p.injury) continue;
     const nationKey = nationKeyForPlayer(p, spec.nations);
     if (!nationKey) continue;
     const ovr = playerOverall(p.baseStats, p.position);
@@ -254,7 +257,14 @@ export function reconcileRestObligations(state: GameState, humanMatchdayIds: Rea
   for (const rid of ids) {
     const p = state.career.roster[rid];
     const ob = p.restObligation;
-    if (!ob || !ob.eligibleRounds.includes(round)) continue;
+    if (!ob) continue;
+    // Safety net: once the whole window has passed, drop the obligation even
+    // if it was never formally satisfied (e.g. a manual selection override).
+    if (round > Math.max(...ob.eligibleRounds)) {
+      out.push({ type: 'REST_OBLIGATION_RESOLVED', rosterId: rid });
+      continue;
+    }
+    if (!ob.eligibleRounds.includes(round)) continue;
     const isHuman = p.contract.clubId === state.player.teamId;
     const rested = isHuman ? !humanMatchdayIds.has(rid) : round === Math.min(...ob.eligibleRounds);
     if (rested) out.push({ type: 'REST_OBLIGATION_RESOLVED', rosterId: rid });

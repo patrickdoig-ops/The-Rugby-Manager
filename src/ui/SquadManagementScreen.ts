@@ -255,8 +255,16 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     const toPlayer   = toList[toIdx];
     const fromInj = injuryFor(fromPlayer);
     const toInj   = injuryFor(toPlayer);
+    // Players forced to rest this round (international duty, final eligible
+    // round) are blocked from the matchday too — same treatment as injury.
+    // Advisory rounds (earlier in the window) are not in this set, so the
+    // manager can still freely select them.
+    const state = opts.getGameEngine().getState();
+    const forcedRest = restUnavailableIds(state, state.player.teamId);
+    const fromRest = fromPlayer.rosterId !== undefined && forcedRest.has(fromPlayer.rosterId);
+    const toRest   = toPlayer.rosterId   !== undefined && forcedRest.has(toPlayer.rosterId);
     const intoMatchday = (tier: Tier): boolean => tier === 'starter' || tier === 'bench';
-    if ((fromInj && intoMatchday(toTier)) || (toInj && intoMatchday(fromTier))) {
+    if (((fromInj || fromRest) && intoMatchday(toTier)) || ((toInj || toRest) && intoMatchday(fromTier))) {
       // No mutation; silently deselect. (Future: surface a brief toast.)
       selection = null;
       return;
@@ -286,7 +294,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     if (!teamJson) return;
     const club = state.career.clubs.find(c => c.id === teamJson.id);
     if (!club) return;
-    const rosterIds = selectBestMatchdaySquad(state.career.roster, club.squad);
+    const rosterIds = selectBestMatchdaySquad(state.career.roster, club.squad, restUnavailableIds(state, teamJson.id));
     if (rosterIds.length < 23) return;
     const refs = rosterIds.map(rid => {
       const p = state.career.roster[rid];

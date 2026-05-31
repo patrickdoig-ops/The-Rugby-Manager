@@ -1,15 +1,40 @@
 import type { GameState } from '../types/gameState';
 import type { RawTeamInput } from '../types/teamData';
+import type { Player } from '../types/player';
 import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
+import { playerOverall } from '../engine/RatingEngine';
+import { recentForm } from './teamStats';
+import type { FormResult } from './teamStats';
+import { teamSeasonStat } from './seasonLeaderboards';
+import { sortStandings } from './leagueTable';
+import { getAge } from './age';
 import { playoffRaceStatus } from './playoffRace';
 
 export interface InboxItem {
   id: string;
-  category: 'league' | 'medical' | 'transfers' | 'contracts' | 'match';
+  category: 'league' | 'medical' | 'squad' | 'transfers' | 'contracts' | 'match';
   priority: number;
   subject: string;
   body: string;
   deepLink?: 'squad' | 'contracts' | 'transfers' | 'fixtures' | 'league';
+}
+
+function ordinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+}
+
+function currentStreak(form: Array<FormResult | null>): { type: FormResult; count: number } | null {
+  const actual = form.filter((r): r is FormResult => r !== null);
+  if (actual.length === 0) return null;
+  const last = actual[actual.length - 1];
+  let count = 1;
+  for (let i = actual.length - 2; i >= 0; i--) {
+    if (actual[i] === last) count++;
+    else break;
+  }
+  return { type: last, count };
 }
 
 export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[]): InboxItem[] {
@@ -18,6 +43,8 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
   const season = state.calendar.seasonLabel;
   const club = state.career.clubs.find(c => c.id === teamId);
   if (!club) return [];
+
+  const today = new Date(state.calendar.date);
 
   // --- Injuries ---
   for (const rid of club.squad) {
@@ -35,13 +62,31 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
     });
   }
 
+  // --- Squad fatigue ---
+  const FATIGUE_THRESHOLD = 70;
+  const tiredPlayers = club.squad
+    .map(rid => state.career.roster[rid])
+    .filter((p): p is Player => !!p && !p.injury && p.condition < FATIGUE_THRESHOLD);
+
+  if (tiredPlayers.length >= 3) {
+    const listed = tiredPlayers.slice(0, 3).map(p => p.lastName);
+    const extra = tiredPlayers.length > 3 ? ` and ${tiredPlayers.length - 3} more` : '';
+    items.push({
+      id: `fatigue:${season}:w${state.calendar.week}`,
+      category: 'medical',
+      priority: 50,
+      subject: `${tiredPlayers.length} players below match fitness`,
+      body: `${listed.join(', ')}${extra} are below ${FATIGUE_THRESHOLD}% condition. Consider adjusting training intensity or rotating the squad ahead of the next fixture.`,
+      deepLink: 'squad',
+    });
+  }
+
   // --- Expiring contracts ---
   const leaving = new Set(
     state.career.pendingMoves
       .filter(m => m.toClubId !== teamId)
       .map(m => m.rosterId),
   );
-  const today = new Date(state.calendar.date);
   for (const rid of club.squad) {
     if (leaving.has(rid)) continue;
     const p = state.career.roster[rid];
@@ -78,6 +123,23 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
     });
   }
 
+  // --- Form collapse ---
+  const myForm = recentForm(teamId, state.league.results, 3);
+  const recentThree = myForm.filter((r): r is FormResult => r !== null);
+  if (recentThree.length === 3 && recentThree.every(r => r === 'L')) {
+    const lastMatch = state.league.results
+      .filter(r => r.homeId === teamId || r.awayId === teamId)
+      .sort((a, b) => b.round - a.round)[0];
+    items.push({
+      id: `collapse:${season}:r${lastMatch?.round ?? 0}`,
+      category: 'league',
+      priority: 70,
+      subject: 'Three-match losing run',
+      body: 'We have lost our last three fixtures. A response is needed — consider reviewing tactics and squad rotation ahead of the next match.',
+      deepLink: 'league',
+    });
+  }
+
   // --- Derby / big match preview ---
   const playedRounds = new Set(
     state.league.results
@@ -99,6 +161,102 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
       subject: `Derby week — ${oppName}`,
       body: `Round ${nextFixture.round} is a Derby fixture against ${oppName}. These matches always carry extra intensity and pressure. Make sure the squad is ready.`,
       deepLink: 'fixtures',
+    });
+  }
+
+  // --- Scout report ---
+  if (nextFixture) {
+    const oppId = nextFixture.homeId === teamId ? nextFixture.awayId : nextFixture.homeId;
+    const opp = allTeams.find(t => t.id === oppId);
+    const oppStats = teamSeasonStat(state, oppId);
+
+    if (opp && oppStats.matchesPlayed >= 2) {
+      const sorted = sortStandings(state.league.standings);
+      const oppPos = sorted.findIndex(s => s.teamId === oppId) + 1;
+      const oppForm = recentForm(oppId, state.league.results, 5);
+      const streak = currentStreak(oppForm);
+
+      const sentences: string[] = [];
+
+      // Context — league position + current streak
+      if (oppPos > 0) {
+        if (streak && streak.type === 'W' && streak.count >= 3) {
+          sentences.push(`${opp.name} arrive on a ${streak.count}-match winning run and sit ${ordinal(oppPos)} in the table.`);
+        } else if (streak && streak.type === 'L' && streak.count >= 3) {
+          sentences.push(`${opp.name} have lost ${streak.count} in a row and are down to ${ordinal(oppPos)}.`);
+        } else {
+          sentences.push(`${opp.name} are ${ordinal(oppPos)} in the table.`);
+        }
+      }
+
+      // Set piece — one notable strength or weakness
+      const lineoutPct = oppStats.lineoutsThrown > 0
+        ? (oppStats.lineoutsWon / oppStats.lineoutsThrown) * 100 : 0;
+      const scrumPct = oppStats.scrumsPutIn > 0
+        ? (oppStats.scrumsWon / oppStats.scrumsPutIn) * 100 : 0;
+
+      if (lineoutPct >= 82 && oppStats.lineoutsThrown >= 8) {
+        sentences.push(`Their lineout is a weapon — ${Math.round(lineoutPct)}% success rate this season.`);
+      } else if (lineoutPct < 65 && oppStats.lineoutsThrown >= 8) {
+        sentences.push(`Their lineout has been unreliable — only ${Math.round(lineoutPct)}% won. Look to disrupt at the tail.`);
+      } else if (scrumPct >= 82 && oppStats.scrumsPutIn >= 6) {
+        sentences.push(`They dominate at the scrum — winning ${Math.round(scrumPct)}% of their own ball.`);
+      } else if (scrumPct < 58 && oppStats.scrumsPutIn >= 6) {
+        sentences.push(`Their scrum has been under pressure — only ${Math.round(scrumPct)}% won. A physical front row could be decisive.`);
+      }
+
+      // Risk or opportunity — discipline, attack threat, or defensive leaks
+      const cardsPerGame = (oppStats.yellowCards + oppStats.redCards) / oppStats.matchesPlayed;
+      const triesPerGame = oppStats.tries / oppStats.matchesPlayed;
+      const tacklePct = oppStats.tacklesAttempted > 0
+        ? (oppStats.tacklesMade / oppStats.tacklesAttempted) * 100 : 0;
+
+      if (cardsPerGame >= 1.5) {
+        sentences.push(`Discipline has been a problem for them — ${oppStats.yellowCards} yellows this season. Pressure them at the breakdown.`);
+      } else if (triesPerGame >= 4.5) {
+        sentences.push(`Their attack has been prolific — ${triesPerGame.toFixed(1)} tries per game. The defensive line must be disciplined.`);
+      } else if (tacklePct < 80 && oppStats.tacklesAttempted >= 40) {
+        sentences.push(`Their defence has been leaky — ${Math.round(tacklePct)}% tackle completion. Target the wide channels.`);
+      }
+
+      if (sentences.length > 0) {
+        items.push({
+          id: `scout:${season}:r${nextFixture.round}`,
+          category: 'match',
+          priority: 30,
+          subject: `Scout report — Round ${nextFixture.round} vs ${opp.name}`,
+          body: sentences.join(' '),
+          deepLink: 'fixtures',
+        });
+      }
+    }
+  }
+
+  // --- Rising prospects ---
+  const PROSPECT_MAX_AGE    = 24;
+  const PROSPECT_MIN_GAP    = 10;
+  const PROSPECT_MIN_APPS   = 3;
+  const PROSPECT_MIN_RATING = 7.0;
+
+  for (const rid of club.squad) {
+    const p = state.career.roster[rid];
+    if (!p || !p.potential || p.injury) continue;
+    const age = getAge(p.dob, state.calendar.date);
+    if (!age || age > PROSPECT_MAX_AGE) continue;
+    const ovr = playerOverall(p.baseStats, p.position);
+    if (p.potential - ovr < PROSPECT_MIN_GAP) continue;
+    const apps = p.seasonStats.appearances;
+    if (apps < PROSPECT_MIN_APPS) continue;
+    const avgRating = p.seasonStats.ratingSum / apps;
+    if (avgRating < PROSPECT_MIN_RATING) continue;
+    const name = `${p.firstName} ${p.lastName}`;
+    items.push({
+      id: `prospect:${season}:${rid}`,
+      category: 'squad',
+      priority: 25,
+      subject: `${name} is emerging`,
+      body: `At ${age}, ${name} is averaging ${avgRating.toFixed(1)} from ${apps} appearance${apps !== 1 ? 's' : ''} this season. With significant development potential, this is a player to build around.`,
+      deepLink: 'squad',
     });
   }
 

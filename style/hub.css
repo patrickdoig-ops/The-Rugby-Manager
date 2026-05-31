@@ -616,7 +616,8 @@
 }
 
 .inbox-item--league,
-.inbox-item--match {
+.inbox-item--match,
+.inbox-item--squad {
   border-left-color: var(--rm-pitch);
 }
 

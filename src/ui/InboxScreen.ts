@@ -23,6 +23,7 @@ const CATEGORY_LABELS: Record<InboxItem['category'], string> = {
   transfers: 'Transfers',
   contracts: 'Contracts',
   match:     'Next Match',
+  squad:     'Squad',
 };
 
 export function initInboxScreen(opts: InitInboxScreenOpts): void {

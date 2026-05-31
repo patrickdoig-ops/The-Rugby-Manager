@@ -15,7 +15,7 @@ import { computeOverallRating } from '../team/teamProfile';
 import { formAdjustment, matchSpread, HOME_ADVANTAGE_PTS, recentForm } from '../game/teamStats';
 import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
 import { buildAssistantReport } from '../game/inbox';
-import { loadReadIds, countUnread } from './inboxRead';
+import { countUnread } from './inboxRead';
 import { ROUND_LABELS } from '../engine/balance/season';
 import { renderFormPipStrip } from './components/formPip';
 import { injectTeamColors } from './teamColors';
@@ -184,8 +184,8 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
           const sk = `${state.player.teamId}:${state.seed}`;
           const inboxItems = buildAssistantReport(state, opts.allTeams);
           const unread = countUnread(sk, inboxItems);
-          const topItem = inboxItems.find(i => !loadReadIds(sk).has(i.id));
-          if (unread > 0 && topItem) {
+          const topItem = inboxItems[0];
+          if (topItem) {
             return `
               <button id="hub-alert-banner" type="button">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51-4.66-2.51m-4.839 2.51 4.66-2.51M3.75 9l3-3.75M20.25 9l-3-3.75M12 3.75v.75M12 18.75V21m-8.25-3h1.5m13.5 0h1.5"/></svg>
@@ -193,7 +193,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
                   <span class="hub-alert-from">Assistant's Report</span>
                   <span class="hub-alert-subject">${topItem.subject}</span>
                 </span>
-                ${unread > 1 ? `<span class="hub-alert-badge">${unread}</span>` : ''}
+                ${unread > 0 ? `<span class="hub-alert-badge">${unread}</span>` : ''}
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
               </button>`;
           }

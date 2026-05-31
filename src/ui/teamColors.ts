@@ -30,5 +30,5 @@ function luminance(hex: string): number {
 }
 
 function isNearBlack(hex: string): boolean {
-  return luminance(hex) < 0.01;
+  return luminance(hex) < 0.02;
 }

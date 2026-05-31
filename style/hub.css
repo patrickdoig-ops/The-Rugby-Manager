@@ -639,11 +639,15 @@
   cursor: pointer;
   box-shadow: 0 4px 14px color-mix(in oklch, var(--rm-pitch) 28%, transparent);
   -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s, background 0.15s;
 }
 
 #hub-play-next svg { pointer-events: none; }
 
-#hub-play-next:active { background: var(--rm-cta-active); }
+#hub-play-next:active { 
+  background: var(--rm-cta-active); 
+  transform: scale(0.98);
+}
 
 #hub-season-done {
   text-align: center;

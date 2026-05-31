@@ -82,5 +82,9 @@ export const INTERNATIONAL_INJURY_KINDS: InjuryKind[] = ['muscle_strain', 'ligam
 // unavailable until LIONS_RETURN_ROUND and seeded at LIONS_RETURN_CONDITION,
 // recovering once they rejoin club training. One-shot at GameCoordinator.
 // newSeason; the next Lions tour (2029) is out of scope.
+// Return condition is centred on LIONS_RETURN_CONDITION with ±NOISE of
+// rngTransfer spread, so tourists come back at a realistic range of fitness
+// (some closer to match-ready, others rustier) rather than all on one value.
 export const LIONS_RETURN_CONDITION = 78;
+export const LIONS_RETURN_CONDITION_NOISE = 10;   // → returns land in [68, 88]
 export const LIONS_RETURN_ROUND = 3;

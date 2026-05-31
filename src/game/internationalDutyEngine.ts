@@ -25,7 +25,8 @@ import type { Player, InternationalWindow } from '../types/player';
 import type { InternationalBreakSummary, InternationalCallUpResult } from '../types/training';
 import {
   INTERNATIONAL_WINDOWS, NATIONS, INTERNATIONAL_LOAD,
-  INTERNATIONAL_INJURY_KINDS, PGA_REST_NATION, LIONS_RETURN_CONDITION, LIONS_RETURN_ROUND,
+  INTERNATIONAL_INJURY_KINDS, PGA_REST_NATION,
+  LIONS_RETURN_CONDITION, LIONS_RETURN_CONDITION_NOISE, LIONS_RETURN_ROUND,
 } from '../engine/balance/international';
 import { INJURY_SEVERITY } from '../engine/balance/injuries';
 import type { InjurySeverity } from '../types/player';
@@ -293,8 +294,10 @@ export function reconcileRestObligations(state: GameState, humanMatchdayIds: Rea
 
 // Name-matches LIONS_2025_TOURISTS against the seeded roster and returns a
 // LIONS_RETURN_SET per match, marking each tourist as on post-tour stand-down
-// until LIONS_RETURN_ROUND and seeding the reduced LIONS_RETURN_CONDITION.
-// RNG-free. One-shot at the 2025/26 season open.
+// until LIONS_RETURN_ROUND and seeding a per-player return condition centred on
+// LIONS_RETURN_CONDITION with ±LIONS_RETURN_CONDITION_NOISE of rngTransfer
+// spread. Walked rosterId-ascending so the roll sequence is reproducible.
+// One-shot at the 2025/26 season open.
 export function lionsReturnEvents(state: GameState): SeasonEvent[] {
   const wanted = new Set(LIONS_2025_TOURISTS.map(l => `${l.firstName}|${l.lastName}`.toLowerCase()));
   const out: SeasonEvent[] = [];
@@ -302,11 +305,15 @@ export function lionsReturnEvents(state: GameState): SeasonEvent[] {
   for (const rid of ids) {
     const p = state.career.roster[rid];
     if (wanted.has(`${p.firstName}|${p.lastName}`.toLowerCase())) {
+      const condition = clamp(
+        LIONS_RETURN_CONDITION + rngTransfer(-LIONS_RETURN_CONDITION_NOISE, LIONS_RETURN_CONDITION_NOISE),
+        0, 100,
+      );
       out.push({
         type: 'LIONS_RETURN_SET',
         rosterId: rid,
         availableFromRound: LIONS_RETURN_ROUND,
-        condition: LIONS_RETURN_CONDITION,
+        condition,
       });
     }
   }

@@ -166,13 +166,6 @@ export class GameCoordinator {
       clubs: seeded.clubs,
       nextRosterId: seeded.nextRosterId,
     });
-    // B&I Lions 2025 return: the 2025/26 opener only. Curated Australia-tour
-    // members in the seeded roster start under-cooked (reduced condition) from
-    // a shortened pre-season. RNG-free, so it doesn't perturb the FA-pool seed
-    // below. The next Lions tour (2029) is out of scope.
-    if (seasonStartYear === 2025) {
-      for (const ev of lionsReturnEvents(coord.state)) applySeasonEvent(coord.state, ev);
-    }
     // Seed a small starter free-agent pool so Hub → Transfers has
     // something to scout from day one. Uses the same persona generator
     // as the rollover-time foreign imports; lower rating ceiling +
@@ -180,6 +173,14 @@ export class GameCoordinator {
     // the saved state already carries whatever FA pool the career has
     // since accumulated.
     coord.seedStarterFreeAgentPool(seasonStartYear);
+    // B&I Lions 2025 return: the 2025/26 opener only. Curated Australia-tour
+    // members start under-cooked, each at a slightly different return condition
+    // (rngTransfer noise). Runs AFTER the FA-pool seed so that pool stays
+    // deterministically identical regardless of the Lions roll. The next Lions
+    // tour (2029) is out of scope.
+    if (seasonStartYear === 2025) {
+      for (const ev of lionsReturnEvents(coord.state)) applySeasonEvent(coord.state, ev);
+    }
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
   }

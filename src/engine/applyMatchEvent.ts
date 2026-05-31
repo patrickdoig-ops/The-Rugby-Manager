@@ -157,6 +157,8 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       event.offender.matchStats.penaltiesConceded++;
       state.possession = event.offendingSide === 'home' ? 'away' : 'home';
       state.breakdownMod = { attack: 0, defend: 0 };
+      // Penalties cannot be taken within 5m of either try line.
+      state.ball.x = clamp(state.ball.x, 5, 95);
       state.lastPenalty = {
         offence: event.offence,
         offender: event.offender,

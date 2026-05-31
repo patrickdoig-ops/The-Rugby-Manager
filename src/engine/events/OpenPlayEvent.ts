@@ -9,7 +9,7 @@ import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
-import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler, pickHardCarrier, pickPickAndGoCarrier } from '../FieldPosition';
+import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler, pickHardCarrier, pickPickAndGoCarrier, tryLineDefenceBonus } from '../FieldPosition';
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
@@ -233,9 +233,10 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
   
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine] + pathEvasionMod;
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine] + pathCollisionMod;
-  const baseAttackMod = attackMod + breakdownWideEvasion + ha.attack;
+  const tlBonus = tryLineDefenceBonus(state);
+  const baseAttackMod = attackMod + breakdownWideEvasion + ha.attack + tlBonus.evasion;
   const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend;
-  let res = resolveOpenPlay(ballCarrier, defender, baseAttackMod, baseDefendMod, dlCollision);
+  let res = resolveOpenPlay(ballCarrier, defender, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
   const direction = attackDir(state);
 
   let chainNarration: NarrationStep[] = [];
@@ -431,9 +432,10 @@ function resolvePickAndGo(
   const defensiveLine = defendTeam.tactics.defensiveLine;
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine];
-  const baseAttackMod = attackMod + ha.attack;
+  const tlBonus = tryLineDefenceBonus(state);
+  const baseAttackMod = attackMod + ha.attack + tlBonus.evasion;
   const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend;
-  const res = resolveOpenPlay(carrier, defender, baseAttackMod, baseDefendMod, dlCollision);
+  const res = resolveOpenPlay(carrier, defender, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
 
   // Downgrade line_break → dominant_carry; pick-and-go can't break the line.
   const outcome: 'play_on' | 'dominant_carry' | 'dominant_tackle' =

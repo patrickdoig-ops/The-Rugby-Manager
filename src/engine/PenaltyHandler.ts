@@ -5,7 +5,7 @@ import { resolveOpenPlay } from './resolvers/OpenPlayResolver';
 import { eventBus } from '../utils/eventBus';
 import { clamp } from '../utils/math';
 import { makeId } from './eventId';
-import { attackDir, inOpposition22, inOppositionHalf, isTryScoredAt, metresFromOppositionTryLine, onFieldPlayers, pickHardCarrier, pickKicker, pickFullback, pickPrimaryDefender } from './FieldPosition';
+import { attackDir, inOpposition22, inOppositionHalf, isTryScoredAt, metresFromOppositionTryLine, onFieldPlayers, pickHardCarrier, pickKicker, pickFullback, pickPrimaryDefender, tryLineDefenceBonus } from './FieldPosition';
 import { applyMatchEvent } from './applyMatchEvent';
 import { PENALTY_VALUES, TAP_AND_GO_AI, TACTIC_MODIFIERS } from './balance';
 import { rng } from '../utils/rng';
@@ -249,7 +249,8 @@ export class PenaltyHandler {
       const evasionMod   = TACTIC_MODIFIERS.hardCarryEvasionMod[defensiveLine]
                          + TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];
       const dlCollision  = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine] + collisionMod;
-      const res = resolveOpenPlay(carrier, defender, evasionMod, 0, dlCollision);
+      const tlBonus = tryLineDefenceBonus(state);
+      const res = resolveOpenPlay(carrier, defender, evasionMod + tlBonus.evasion, 0, dlCollision + tlBonus.collision);
       const direction = attackDir(state);
       const gainMetres = res.gainMetres;
 

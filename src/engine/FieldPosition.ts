@@ -15,6 +15,7 @@ import {
   HARD_CARRIER_WEIGHTS,
   POD_PICKUP_WEIGHTS,
   PICK_AND_GO_WEIGHTS,
+  TRY_LINE_DEFENCE,
 } from './balance/carrying';
 
 // Home attacks toward x=100 in the first half, toward x=0 in the second.
@@ -48,6 +49,18 @@ export function metresFromOppositionTryLine(state: MatchState): number {
   const homeAttacksRight = !state.clock.halfTimeDone;
   const oppTryLineX = (state.possession === 'home') === homeAttacksRight ? 95 : 5;
   return Math.max(0, Math.abs(oppTryLineX - state.ball.x));
+}
+
+// Proximity-scaled defend bonuses for every carry inside the opposition 22.
+// Returns { evasion, collision } — evasion is negative (attacker penalty),
+// collision is positive (defender bonus). Both zero outside the 22.
+export function tryLineDefenceBonus(state: MatchState): { evasion: number; collision: number } {
+  const dist = metresFromOppositionTryLine(state);
+  const V = TRY_LINE_DEFENCE;
+  if (dist <= V.goalLineMaxMetres)  return { evasion: V.evasionPenalty.goalLine, collision: V.collisionResist.goalLine };
+  if (dist <= V.closeZoneMaxMetres) return { evasion: V.evasionPenalty.close,    collision: V.collisionResist.close };
+  if (dist <= V.midZoneMaxMetres)   return { evasion: V.evasionPenalty.mid,      collision: V.collisionResist.mid };
+  return { evasion: 0, collision: 0 };
 }
 
 // Same logic as inOpposition22 but takes the raw ballX — useful when a handler

@@ -43,3 +43,16 @@ export const PICK_AND_GO_PCT: Readonly<Record<AttackingStyle, number>> = {
   balanced: 12,
   wide_wide: 3,
 };
+
+// Try-line defence: proximity-scaled bonuses applied to every carry inside
+// the opposition 22. Models compressed space (evasion penalty on attacker)
+// and 15-man defensive wall (collision resist on defender).
+// Applied in OpenPlayEvent, FirstPhaseEvent, and PenaltyHandler tap-and-go
+// via tryLineDefenceBonus() in FieldPosition.ts.
+export const TRY_LINE_DEFENCE = {
+  midZoneMaxMetres:   22,   // opposition 22 outer edge
+  closeZoneMaxMetres: 10,   // red zone outer edge
+  goalLineMaxMetres:   5,   // goal-line defence inner zone
+  evasionPenalty:  { mid: -2,  close: -3,  goalLine:  -6 },
+  collisionResist: { mid:  3,  close:  6,  goalLine:  10 },
+} as const;

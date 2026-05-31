@@ -1768,6 +1768,35 @@ html.native-app .app-header {
   flex: 1;
 }
 
+#pm-rest-banner {
+  margin: 0 12px 8px;
+  padding: 8px 12px;
+  background: color-mix(in oklch, var(--rm-amber) 14%, transparent);
+  border: 1px solid color-mix(in oklch, var(--rm-amber) 36%, transparent);
+  border-radius: 8px;
+  font-size: var(--rm-fs-12);
+  color: var(--rm-text);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.pm-rest-banner-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  background: var(--rm-amber);
+  color: rgba(0,0,0,0.78);
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border-radius: 4px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
 /* ─── Crash overlay ─── */
 .crash-overlay {
   position: fixed;

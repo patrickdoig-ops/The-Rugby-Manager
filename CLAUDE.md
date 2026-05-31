@@ -188,7 +188,7 @@ No tests or linters. TypeScript strict mode is the primary correctness check. Bo
 
 ## Versioning
 
-**After every committed update, bump `src/version.ts` and push to `main`.** Pattern `2.XXa` (e.g. `2.49a`); increment by 1. The version renders on the Home Screen.
+**After every committed update, bump `src/version.ts` and push to `main`.** Pattern `1.XXb` (e.g. `1.00b`, `1.01b`, `1.02b`); increment the two-digit minor number by 1. The version renders on the Home Screen.
 
 ## Balance constants
 

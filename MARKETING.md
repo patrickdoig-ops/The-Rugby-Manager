@@ -1,4 +1,4 @@
-# Rugby Simulator — Marketing Blurb
+# The Rugby Manager — Marketing Blurb
 
 **Live demo:** https://patrickdoig-ops.github.io/The-Rugby-Manager/
 
@@ -18,7 +18,7 @@ A passion-built indie management sim for rugby fans, by a rugby fan. Take the re
 
 ## Medium blurb (about page)
 
-**Rugby Simulator** is an indie labour of love: a richly detailed management simulation built by a fan who wanted the depth of the great football-management games applied to rugby union — and couldn't find it anywhere.
+**The Rugby Manager** is an indie labour of love: a richly detailed management simulation built by a fan who wanted the depth of the great football-management games applied to rugby union — and couldn't find it anywhere.
 
 So they built it.
 
@@ -34,7 +34,7 @@ Every match is simulated phase by phase, player attribute against player attribu
 
 ### The rugby management sim, built by the people who wanted to play it.
 
-There are deep, obsessive management games for football. For rugby? Not so much. **Rugby Simulator** changes that — an indie game made by a fan, for fans, with the same uncompromising depth that's kept football managers up until 3am for decades.
+There are deep, obsessive management games for football. For rugby? Not so much. **The Rugby Manager** changes that — an indie game made by a fan, for fans, with the same uncompromising depth that's kept football managers up until 3am for decades.
 
 #### Manage any top-flight English club
 Pick your club and take over everything a real director of rugby handles. The whole league is yours to compete in — and beat.

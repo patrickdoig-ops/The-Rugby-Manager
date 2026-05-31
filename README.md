@@ -1,4 +1,4 @@
-# Rugby Simulator
+# The Rugby Manager
 
 [![Deploy to GitHub Pages](https://github.com/patrickdoig-ops/The-Rugby-Manager/actions/workflows/deploy.yml/badge.svg)](https://github.com/patrickdoig-ops/The-Rugby-Manager/actions/workflows/deploy.yml)
 [![Telemetry](https://github.com/patrickdoig-ops/The-Rugby-Manager/actions/workflows/telemetry.yml/badge.svg)](https://github.com/patrickdoig-ops/The-Rugby-Manager/actions/workflows/telemetry.yml)
@@ -7,7 +7,7 @@
 
 ### Take charge of English rugby's elite. Build a dynasty, one season at a time.
 
-**Rugby Simulator** is the deep, obsessive management sim that rugby fans have been waiting for — the kind of game that's kept football managers up until 3am for decades, finally built for the oval ball. It's an indie passion project: made by a fan, for fans, with no shortcuts on the detail.
+**The Rugby Manager** is the deep, obsessive management sim that rugby fans have been waiting for — the kind of game that's kept football managers up until 3am for decades, finally built for the oval ball. It's an indie passion project: made by a fan, for fans, with no shortcuts on the detail.
 
 Pick **any club in the English top flight** and step into the manager's office. Set your tactics, work the transfer market, develop your squad, and chase silverware across season after season — then do it all again as players age, contracts expire, and the league evolves around you.
 

@@ -33,7 +33,7 @@ import { computeOverallRating } from '../team/teamProfile';
 import { recentForm, headToHead, matchSpread, formAdjustment, HOME_ADVANTAGE_PTS, type FormResult } from '../game/teamStats';
 import { computeAttendance } from '../game/attendance';
 import { applyMatchdaySquad, makeInjuredPredicate } from '../game/playerSquad';
-import { restUnavailableIds } from '../game/internationalDutyEngine';
+import { selectionUnavailableIds } from '../game/internationalDutyEngine';
 import { buildTeamFromRoster, buildAutoSelectedTeamFromRoster } from '../game/rosterTeamBuilder';
 import { teamPossessionPct, teamTerritoryPct, averageRating } from '../game/seasonLeaderboards';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
@@ -412,13 +412,11 @@ export function initPreMatchScreen(
   const humanRosterBased = buildTeamFromRoster(state, humanTeamJson);
   const oppRosterBased   = buildAutoSelectedTeamFromRoster(state, oppTeamJson);
   const club = state.career.clubs.find(c => c.id === humanTeamJson.id);
-  // Players who must be rested this round (PGA international-duty obligation,
-  // forced) are treated exactly like injured players: excluded from the
-  // auto-repaired matchday squad and flagged unavailable for display.
-  // Players who must be rested this round (PGA international-duty obligation,
-  // forced) are excluded from the auto-repaired matchday squad — same path as
-  // injuries — but surfaced with their own banner + wording below.
-  const restUnavailable = club ? restUnavailableIds(state, humanTeamJson.id) : undefined;
+  // Players unavailable for selection by policy — a forced PGA international-duty
+  // rest, or a 2025 Lions post-tour stand-down — are treated exactly like
+  // injured players: excluded from the auto-repaired matchday squad. Forced
+  // rest additionally gets its own banner + wording below.
+  const restUnavailable = club ? selectionUnavailableIds(state, humanTeamJson.id) : undefined;
   const repair = club ? { roster: state.career.roster, clubSquadIds: club.squad, unavailableIds: restUnavailable } : undefined;
   const humanApplied = applyMatchdaySquad(humanRosterBased, savedSquad, repair);
   // Injury banner is injury-only; forced rest gets its own banner.

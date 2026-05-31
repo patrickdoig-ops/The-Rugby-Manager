@@ -74,8 +74,17 @@ export const INTERNATIONAL_LOAD = {
 // tissue). Severity + weeks come from INJURY_SEVERITY in balance/injuries.ts.
 export const INTERNATIONAL_INJURY_KINDS: InjuryKind[] = ['muscle_strain', 'ligament_sprain', 'knock', 'shoulder'];
 
-// 2025/26 season-open condition for returning British & Irish Lions tourists
-// (2025 Australia tour) — a shortened pre-season leaves them under-cooked.
-// One-shot at GameCoordinator.newSeason; the next Lions tour (2029) is out of
-// scope.
+// 2025/26 season-open state for returning British & Irish Lions tourists
+// (2025 Australia tour, final Test 2 Aug 2025). Under the Professional Game
+// Agreement's mandatory ~10-week post-tour rest, tourists were unavailable for
+// the opening two Premiership rounds and returned around Round 3 (Freeman /
+// Smith / Smith) — Round 4 (Itoje) at reduced match fitness. We model them as
+// unavailable until LIONS_RETURN_ROUND and seeded at LIONS_RETURN_CONDITION,
+// recovering once they rejoin club training. One-shot at GameCoordinator.
+// newSeason; the next Lions tour (2029) is out of scope.
+// Return condition is centred on LIONS_RETURN_CONDITION with ±NOISE of
+// rngTransfer spread, so tourists come back at a realistic range of fitness
+// (some closer to match-ready, others rustier) rather than all on one value.
 export const LIONS_RETURN_CONDITION = 78;
+export const LIONS_RETURN_CONDITION_NOISE = 10;   // → returns land in [68, 88]
+export const LIONS_RETURN_ROUND = 3;

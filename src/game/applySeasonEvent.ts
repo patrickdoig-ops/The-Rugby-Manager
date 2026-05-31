@@ -427,6 +427,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         p.seasonStats = zeroSeasonStats();
         if (p.restObligation) p.restObligation = undefined;
         if (p.internationalDuty) p.internationalDuty = undefined;
+        if (p.lionsReturnRound !== undefined) p.lionsReturnRound = undefined;
       }
       // Reset team season aggregates for the new season. Re-zero in place
       // for every team that already had a bucket; new teams (rare) get
@@ -606,6 +607,13 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       const p = state.career.roster[event.rosterId];
       if (!p) return;
       p.restObligation = undefined;
+      return;
+    }
+    case 'LIONS_RETURN_SET': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.lionsReturnRound = event.availableFromRound;
+      p.condition = Math.max(0, Math.min(100, event.condition));
       return;
     }
     default: {

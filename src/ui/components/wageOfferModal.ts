@@ -11,10 +11,31 @@
 // the user sees is a faithful predictor of the outcome.
 
 import { WAGE_ROUNDING_UNIT } from '../../engine/balance/transfers';
+import { acceptanceLabel } from '../../game/midseasonSigningResolver';
 
 export type WageReadTone = 'good' | 'warn' | 'bad' | 'neutral';
 export interface WageRead { label: string; tone: WageReadTone; }
 export interface WageBudgetLine { text: string; status: 'ok' | 'tight' | 'over'; }
+
+// Shared budget readout for any negotiation modal: same tight/over
+// thresholds + "{x} left / {x} over" wording everywhere. Callers pass
+// the projected total (they compute it differently — FA adds the bid,
+// retention/renewal add the net delta) and the cap.
+export function budgetLineFor(projected: number, budgetCap: number): WageBudgetLine {
+  const remaining = budgetCap - projected;
+  const status = projected > budgetCap ? 'over' : projected > budgetCap * 0.95 ? 'tight' : 'ok';
+  return { text: remaining >= 0 ? `${fmtWage(remaining)} left` : `${fmtWage(-remaining)} over`, status };
+}
+
+// Shared acceptance chip for the probability-driven windows (mid-season
+// FA + renewals). `badLabel` lets a screen tune the unlikely-case copy
+// ("Unlikely" vs "May walk"); the likely/uncertain copy is uniform.
+export function readFromProbability(prob: number, badLabel = 'Unlikely'): WageRead {
+  const label = acceptanceLabel(prob);
+  if (label === 'likely') return { label: 'Likely to accept', tone: 'good' };
+  if (label === 'uncertain') return { label: 'Uncertain', tone: 'warn' };
+  return { label: badLabel, tone: 'bad' };
+}
 
 export interface WageOfferOptions {
   playerName: string;

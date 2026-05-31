@@ -19,9 +19,9 @@ import type { TransferOffer } from '../types/gameState';
 import type { Player } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
 import { getAge } from '../game/age';
-import { renewalAcceptProbability, acceptanceLabel } from '../game/midseasonSigningResolver';
-import { WAGE_FLOOR } from '../engine/balance/transfers';
-import { wageOfferModal, type WageRead } from './components/wageOfferModal';
+import { renewalAcceptProbability } from '../game/midseasonSigningResolver';
+import { WAGE_FLOOR, WAGE_ROUNDING_UNIT } from '../engine/balance/transfers';
+import { wageOfferModal, budgetLineFor, readFromProbability, type WageRead } from './components/wageOfferModal';
 import { showToast } from './Toast';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 import type { TransferBid } from '../types/gameState';
@@ -266,7 +266,7 @@ export function initRenewalsScreen(
         // Project the cap excluding this offer's current contribution so
         // the budget line reflects swapping in the new wage.
         const capWithoutThis = projectedCap - (decisions.get(offerId) === 'renew' ? current : 0);
-        const minWage = Math.max(WAGE_FLOOR, Math.round(asking * 0.7 / 5000) * 5000);
+        const minWage = Math.max(WAGE_FLOOR, Math.round(asking * 0.7 / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT);
         const maxWage = Math.max(asking, Math.min(asking * 1.3, budgetCap - capWithoutThis));
         const chosen = await wageOfferModal({
           playerName: `${p.firstName} ${p.lastName}`,
@@ -280,18 +280,9 @@ export function initRenewalsScreen(
               id: 'preview', rosterId: offer.rosterId, clubId: playerClubId,
               annualWage: wage, lengthYears: offer.lengthYears, kind: 'retention', status: 'pending',
             };
-            const prob = renewalAcceptProbability(state, bid, p, asking, wage);
-            const label = acceptanceLabel(prob);
-            if (label === 'likely') return { label: 'Likely to accept', tone: 'good' };
-            if (label === 'uncertain') return { label: 'Uncertain', tone: 'warn' };
-            return { label: 'May walk', tone: 'bad' };
+            return readFromProbability(renewalAcceptProbability(state, bid, p, asking, wage), 'May walk');
           },
-          budgetLine: (wage: number) => {
-            const projected = capWithoutThis + wage;
-            const remaining = budgetCap - projected;
-            const status = projected > budgetCap ? 'over' : projected > budgetCap * 0.95 ? 'tight' : 'ok';
-            return { text: remaining >= 0 ? `${fmtWage(remaining)} left` : `${fmtWage(-remaining)} over`, status };
-          },
+          budgetLine: (wage: number) => budgetLineFor(capWithoutThis + wage, budgetCap),
         });
         if (chosen === null) return;
         if (chosen === asking) wages.delete(offerId);

@@ -16,8 +16,6 @@ import { playerOverall } from '../engine/RatingEngine';
 import { getAge } from '../game/age';
 import { retentionTermsFor } from '../game/aiTransferDirector';
 import { clubBudgetUsage } from '../game/teamStats';
-import { WAGE_FLOOR, WAGE_NEGOTIATION } from '../engine/balance/transfers';
-import { wageOfferModal, type WageRead } from './components/wageOfferModal';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 
 let activeOnContinue: () => void = () => {};
@@ -188,42 +186,19 @@ export function initRetentionDecisionScreen(
       </div>
     `;
 
+    // Plain Retain — no wage modal here. A retention only fires against
+    // an external poach bid, but the off-season window never seeds
+    // offers for the user's own players (openSigningWindow excludes the
+    // player's club), so AI never poaches them and this screen is in
+    // practice unreachable; even if reached, the player has no market
+    // offer so the resolver's wage term is zero and a negotiated wage
+    // would have no effect. Submitting at the default retention terms
+    // keeps the path correct without a misleading negotiation UI.
     el!.querySelectorAll<HTMLButtonElement>('.tm-sign[data-retain]').forEach(btn => {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', () => {
         const rid = Number(btn.dataset.retain);
         if (!Number.isFinite(rid)) return;
-        const p = state.career.roster[rid];
-        const terms = retentionTermsFor(state, rid);
-        if (!p || !terms) return;
-        const asking = terms.annualWage;
-        const currentWage = p.contract.annualWage;
-        // Net-delta budget: only the rise over the current wage counts.
-        const maxAffordable = budgetCap - baseUsage + currentWage;
-        const minWage = Math.max(WAGE_FLOOR, Math.round(asking * 0.8 / 5000) * 5000);
-        const maxWage = Math.max(asking, Math.min(asking * 1.4, maxAffordable));
-        const chosen = await wageOfferModal({
-          playerName: `${p.firstName} ${p.lastName}`,
-          askingWage: asking,
-          minWage,
-          maxWage,
-          initialWage: asking,
-          confirmLabel: 'Retain',
-          read: (wage: number): WageRead => {
-            const ratio = asking > 0 ? wage / asking : 1;
-            if (ratio > 1) return { label: 'Strong offer', tone: 'good' };
-            if (ratio === 1) return { label: 'Standard', tone: 'neutral' };
-            if (ratio >= WAGE_NEGOTIATION.reservationFloorRatio) return { label: 'Below market', tone: 'warn' };
-            return { label: 'Weak — may leave', tone: 'bad' };
-          },
-          budgetLine: (wage: number) => {
-            const projected = baseUsage + Math.max(0, wage - currentWage);
-            const remaining = budgetCap - projected;
-            const status = projected > budgetCap ? 'over' : projected > budgetCap * 0.95 ? 'tight' : 'ok';
-            return { text: remaining >= 0 ? `${fmtWage(remaining)} left` : `${fmtWage(-remaining)} over`, status };
-          },
-        });
-        if (chosen === null) return;
-        gameEngine.submitRetentionBid(rid, chosen);
+        gameEngine.submitRetentionBid(rid);
         render();
       });
     });

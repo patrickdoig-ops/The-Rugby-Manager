@@ -608,12 +608,18 @@ export function decideAIRetentions(state: GameState, humanClubId?: string): Tran
       b.rosterId === rid && b.clubId === currentClubId && b.status === 'pending'
     )) continue;
 
-    // Wage: fresh-market × loyalty-discount (mirrors generateRenewalOffers).
-    const seasonStartYear = parseSeasonStartYear(state.calendar.seasonLabel);
-    const fresh = seedContractFields(p, currentClubId, seasonStartYear);
+    // Wage: the player's market (poach) offer × loyalty-discount. Using
+    // the cached offer — the SAME figure the resolver derives its
+    // retention asking baseline from — means a default retention bid is
+    // wage-neutral (wageSatisfaction ≈ 0) instead of carrying a spurious
+    // ± term from an independent WAGE_NOISE draw. Also RNG-free (no
+    // seedContractFields call here). The at-risk player always has a
+    // pending poach offer (that's what put them at risk).
+    const offer = market.offers.find(o => o.rosterId === rid);
+    if (!offer) continue;
     const retentionWage = Math.max(
       WAGE_FLOOR,
-      Math.round(fresh.contract.annualWage * (1 - RENEWAL.loyaltyDiscount) / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT,
+      Math.round(offer.annualWage * (1 - RENEWAL.loyaltyDiscount) / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT,
     );
     // Retention replaces the existing wage commitment; budget delta is
     // (newWage - oldWage). Negative delta means the retention costs
@@ -630,7 +636,7 @@ export function decideAIRetentions(state: GameState, humanClubId?: string): Tran
       rosterId: rid,
       clubId: currentClubId,
       annualWage: retentionWage,
-      lengthYears: fresh.lengthYears,
+      lengthYears: offer.lengthYears,
       kind: 'retention',
       status: 'pending',
     });

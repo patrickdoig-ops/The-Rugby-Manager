@@ -32,10 +32,9 @@ import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 import { createRowExpander } from './components/rowExpand';
 import { averageRating } from '../game/seasonLeaderboards';
 import { estimateMarketWage } from '../game/contractSeeder';
-import { renewalAcceptProbability, acceptanceLabel } from '../game/midseasonSigningResolver';
-import { clubBudgetUsage } from '../game/teamStats';
-import { RENEWAL, WAGE_FLOOR } from '../engine/balance/transfers';
-import { wageOfferModal, type WageRead } from './components/wageOfferModal';
+import { renewalAcceptProbability } from '../game/midseasonSigningResolver';
+import { RENEWAL, WAGE_FLOOR, WAGE_ROUNDING_UNIT } from '../engine/balance/transfers';
+import { wageOfferModal, budgetLineFor, readFromProbability, type WageRead } from './components/wageOfferModal';
 import { showToast } from './Toast';
 import type { EarlyRenewalResult } from '../game/TransferCoordinator';
 import type { TransferBid } from '../types/gameState';
@@ -381,10 +380,10 @@ export function initContractsScreen(
           // offerEarlyRenewal; this is only the modal anchor + read.
           const ovr = playerOverall(player.baseStats, player.position);
           const estMarket = estimateMarketWage(ovr, player.position);
-          const asking = Math.max(WAGE_FLOOR, Math.round(estMarket * (1 - RENEWAL.loyaltyDiscount) / 5000) * 5000);
+          const asking = Math.max(WAGE_FLOOR, Math.round(estMarket * (1 - RENEWAL.loyaltyDiscount) / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT);
           const currentWage = player.contract.annualWage;
           const maxAffordable = budgetCap - capUsed + currentWage;
-          const minWage = Math.max(WAGE_FLOOR, Math.round(asking * 0.7 / 5000) * 5000);
+          const minWage = Math.max(WAGE_FLOOR, Math.round(asking * 0.7 / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT);
           const maxWage = Math.max(asking, Math.min(asking * 1.4, maxAffordable));
           const chosen = await wageOfferModal({
             playerName: `${player.firstName} ${player.lastName}`,
@@ -398,18 +397,9 @@ export function initContractsScreen(
                 id: 'preview', rosterId: rid, clubId: st.player.teamId,
                 annualWage: wage, lengthYears: 2, kind: 'retention', status: 'pending',
               };
-              const prob = renewalAcceptProbability(st, bid, player, asking, wage);
-              const label = acceptanceLabel(prob);
-              if (label === 'likely') return { label: 'Likely to accept', tone: 'good' };
-              if (label === 'uncertain') return { label: 'Uncertain', tone: 'warn' };
-              return { label: 'Unlikely', tone: 'bad' };
+              return readFromProbability(renewalAcceptProbability(st, bid, player, asking, wage));
             },
-            budgetLine: (wage: number) => {
-              const projected = capUsed + Math.max(0, wage - currentWage);
-              const remaining = budgetCap - projected;
-              const status = projected > budgetCap ? 'over' : projected > budgetCap * 0.95 ? 'tight' : 'ok';
-              return { text: remaining >= 0 ? `${fmtWage(remaining)} left` : `${fmtWage(-remaining)} over`, status };
-            },
+            budgetLine: (wage: number) => budgetLineFor(capUsed + Math.max(0, wage - currentWage), budgetCap),
           });
           if (chosen === null) return;
           const result = onOfferRenewal(rid, chosen);

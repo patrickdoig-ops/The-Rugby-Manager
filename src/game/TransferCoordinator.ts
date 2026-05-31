@@ -24,6 +24,7 @@ import {
   assessAIPoachThreats,
 } from './aiTransferDirector';
 import { resolveSigningRound, type SigningOutcome } from './signingResolver';
+import { estimateMarketWage } from './contractSeeder';
 import { playerOverall } from '../engine/RatingEngine';
 import {
   resolveMidseasonSigning, midseasonAcceptanceProbability, renewalAcceptProbability,
@@ -798,12 +799,21 @@ export class TransferCoordinator {
       return { status: 'ineligible', reason: 'on_cooldown' };
     }
 
-    // Loyalty-discounted terms (advances rngTransfer via the seeder).
-    // terms.annualWage is the asking wage; the user may offer over it to
-    // raise the odds, or under it to save cap (at the risk of a decline).
+    // Loyalty-discounted terms (advances rngTransfer via the seeder) —
+    // used for the contract length + expiry only. The asking wage is the
+    // RNG-FREE estimate (estimateMarketWage × loyalty discount), the same
+    // figure ContractsScreen anchors its modal + acceptance chip on, so
+    // the engine's accept threshold matches what the user was shown. (The
+    // noisy terms.annualWage would diverge from the estimate by up to the
+    // WAGE_NOISE spread, turning an at-asking default into a silent
+    // lowball.) The user may offer over the asking to raise the odds, or
+    // under it to save cap at the risk of a decline.
     const terms = retentionTermsFor(this.state, rosterId);
     if (!terms) return { status: 'ineligible', reason: 'not_on_squad' };
-    const renewWage = normalizeOfferedWage(offeredWage, terms.annualWage);
+    const ovr = playerOverall(p.baseStats, p.position);
+    const asking = Math.max(WAGE_FLOOR, Math.round(
+      estimateMarketWage(ovr, p.position) * (1 - RENEWAL.loyaltyDiscount) / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT);
+    const renewWage = normalizeOfferedWage(offeredWage, asking);
 
     // Net budget gate — the renewal replaces the player's current wage,
     // so only the delta counts. Marquee wages sit outside the budget.
@@ -825,7 +835,7 @@ export class TransferCoordinator {
       kind: 'retention',
       status: 'pending',
     };
-    const probability = renewalAcceptProbability(this.state, bid, p, terms.annualWage, renewWage);
+    const probability = renewalAcceptProbability(this.state, bid, p, asking, renewWage);
     const roll = rngTransfer(1, 1000) / 1000;
     if (roll <= probability) {
       applySeasonEvent(this.state, {

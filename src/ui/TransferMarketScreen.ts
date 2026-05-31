@@ -26,11 +26,11 @@ import { playId } from './SoundManager';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 import { createRowExpander } from './components/rowExpand';
 import { appealScore, weightedLeaguePosition, wageSatisfaction } from '../game/signingResolver';
-import { midseasonAcceptanceProbability, acceptanceLabel } from '../game/midseasonSigningResolver';
+import { midseasonAcceptanceProbability } from '../game/midseasonSigningResolver';
 import { averageRating } from '../game/seasonLeaderboards';
 import { clubBudgetUsage } from '../game/teamStats';
-import { APPEAL_WEIGHTS, WAGE_FLOOR, WAGE_NEGOTIATION } from '../engine/balance/transfers';
-import { wageOfferModal, type WageRead } from './components/wageOfferModal';
+import { APPEAL_WEIGHTS, WAGE_FLOOR, WAGE_ROUNDING_UNIT, WAGE_NEGOTIATION } from '../engine/balance/transfers';
+import { wageOfferModal, budgetLineFor, readFromProbability, type WageRead } from './components/wageOfferModal';
 import type { TransferBid, GameState } from '../types/gameState';
 
 type SortKey = 'name' | 'pos' | 'age' | 'ovr' | 'wage';
@@ -449,7 +449,7 @@ export function initTransferMarketScreen(
         const usage = clubBudgetUsage(state, clubId);
         const headroom = budgetCap - usage;
         const asking = offer.annualWage;
-        const minWage = Math.max(WAGE_FLOOR, Math.round(asking * 0.6 / 5000) * 5000);
+        const minWage = Math.max(WAGE_FLOOR, Math.round(asking * 0.6 / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT);
         const maxWage = Math.max(asking, Math.min(asking * 1.5, headroom));
         const read = wageReadFor(mode, state, offer, p, clubId);
 
@@ -461,12 +461,7 @@ export function initTransferMarketScreen(
           initialWage: asking,
           confirmLabel: isPoach ? 'Pre-Agree' : 'Make Offer',
           read,
-          budgetLine: (wage: number) => {
-            const projected = usage + wage;
-            const remaining = budgetCap - projected;
-            const status = projected > budgetCap ? 'over' : projected > budgetCap * 0.95 ? 'tight' : 'ok';
-            return { text: remaining >= 0 ? `${fmtWage(remaining)} left` : `${fmtWage(-remaining)} over`, status };
-          },
+          budgetLine: (wage: number) => budgetLineFor(usage + wage, budgetCap),
         });
         if (chosen === null) return;
 
@@ -526,11 +521,7 @@ function wageReadFor(
         annualWage: wage, lengthYears: offer.lengthYears,
         kind: 'free_agent', status: 'pending',
       };
-      const prob = midseasonAcceptanceProbability(state, bid, player, asking);
-      const label = acceptanceLabel(prob);
-      if (label === 'likely') return { label: 'Likely to accept', tone: 'good' };
-      if (label === 'uncertain') return { label: 'Uncertain', tone: 'warn' };
-      return { label: 'Unlikely', tone: 'bad' };
+      return readFromProbability(midseasonAcceptanceProbability(state, bid, player, asking));
     };
   }
   // Off-season competitive: outcome also depends on rival clubs, so the

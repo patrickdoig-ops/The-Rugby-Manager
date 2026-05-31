@@ -370,3 +370,15 @@ export const WAGE_NEGOTIATION = {
   aiPremiumRatingRange: 26,
   aiPremiumMaxRatio:    1.30,
 };
+
+// Mid-season Reg 7 poaching of the user's final-year players. A rival
+// AI club can approach them during the season; the user retains (paying
+// up via the wage modal) or lets them pre-agree to leave at the next
+// rollover. RNG-free throughout — orchestrated live by main.ts, never by
+// the headless harness. Tuning:
+//   cadenceRounds — a poach window opens at most once every N rounds.
+//   lengthYears   — the pre-agreement contract length at the new club.
+export const MIDSEASON_POACH = {
+  cadenceRounds: 4,
+  lengthYears:   2,
+};

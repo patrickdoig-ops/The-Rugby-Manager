@@ -217,7 +217,9 @@ export function initTransferMarketScreen(
         return sortDir === 'asc' ? cmp : -cmp;
       });
     const freeAgentRows = allRows.filter(r => r.offer.fromClubId === '');
-    const poachRows = allRows.filter(r => r.offer.fromClubId !== '');
+    // Reg 7 list excludes the user's own players — those offers exist so
+    // rival AI clubs can approach them, but you can't poach yourself.
+    const poachRows = allRows.filter(r => r.offer.fromClubId !== '' && !userSquadSet.has(r.p.rosterId));
 
     const isMidseason = market.phase === 'signings-midseason';
     const currentWeek = state.calendar.week;

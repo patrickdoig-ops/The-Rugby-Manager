@@ -501,6 +501,15 @@ export class GameCoordinator {
     return this.transfers.runMidseasonSigning();
   }
 
+  // Mid-season Reg 7 poaching of the user's players (live, main.ts-driven).
+  openMidseasonPoachWindow(): void {
+    this.transfers.openMidseasonPoachWindow();
+  }
+
+  closeMidseasonPoachWindow() {
+    return this.transfers.closeMidseasonPoachWindow();
+  }
+
   // Mid-season early contract renewal (Hub → Contracts). One-shot
   // voluntary renewal of an expiring own-squad player — delegate.
   offerEarlyRenewal(rosterId: number, offeredWage?: number): EarlyRenewalResult {

@@ -23,11 +23,17 @@ import { clubBudgetUsage } from './teamStats';
 export function expiringRosterIds(state: GameState): number[] {
   const seasonStartYear = parseSeasonStartYear(state.calendar.seasonLabel);
   const cutoff = `${seasonStartYear + 1}-06-30`;
+  // A player already pre-agreed to leave (mid-season Reg 7 poach →
+  // pendingMoves) must NOT also surface in the end-of-season renewal
+  // window — they're committed to move at rollover, so renewing them
+  // would be a wasted offer the TRANSFER_ACTIVATED would overwrite.
+  const pending = new Set(state.career.pendingMoves.map(m => m.rosterId));
   const ids: number[] = [];
   for (const club of state.career.clubs) {
     for (const rid of club.squad) {
       const p = state.career.roster[rid];
       if (!p) continue;
+      if (pending.has(rid)) continue;
       if (p.contract.expiresOn && p.contract.expiresOn <= cutoff) {
         ids.push(rid);
       }
@@ -314,10 +320,13 @@ export function poachCandidates(state: GameState): number[] {
 export function assessAIPoachThreats(state: GameState, humanClubId: string): number[] {
   const userClub = state.career.clubs.find(c => c.id === humanClubId);
   if (!userClub) return [];
+  // Already pre-agreed to leave → no longer a threat / not re-poachable.
+  const pending = new Set(state.career.pendingMoves.map(m => m.rosterId));
   const threatened: number[] = [];
   for (const rid of userClub.squad) {
     const p = state.career.roster[rid];
     if (!p) continue;
+    if (pending.has(rid)) continue;
     if (p.contract.isMarquee) continue;
     if (!isPoachEligible(p, state.calendar.date)) continue;
     if (playerOverall(p.baseStats, p.position) < RENEWAL.aiReleaseRatingFloor) continue;
@@ -454,7 +463,10 @@ export function aiBidWage(askingWage: number, ovr: number, need: number, headroo
 export function decideAIBids(state: GameState, humanClubId?: string): TransferBid[] {
   const out: TransferBid[] = [];
   const market = state.career.market;
-  if (!market || market.phase !== 'signings') return out;
+  // 'signings' = off-season FA + Reg 7; 'poach-midseason' = mid-season
+  // Reg 7 window seeded only with the user's at-risk players (the AI
+  // bids poaches on them). Both produce the same poach TransferBids.
+  if (!market || (market.phase !== 'signings' && market.phase !== 'poach-midseason')) return out;
   const seasonsCompleted = state.career.seasonsCompleted;
 
   // Set of bids already in the pool (user's + previous-round AI's +
@@ -525,6 +537,12 @@ export function decideAIBids(state: GameState, humanClubId?: string): TransferBi
           if (p.contract.clubId === club.id) return null; // can't poach your own
           if (p.contract.clubId === '') return null;      // they became a FA mid-window
           if (pendingMovesSet.has(offer.rosterId)) return null;
+          // Re-check eligibility against the LIVE contract: a player who
+          // was retained earlier in the window (CONTRACT_EXTENDED) is no
+          // longer in their final 12 months, so the cached offer is stale
+          // and they must not be re-bid (otherwise a just-retained player
+          // could be poached the next round on the stale offer).
+          if (!isPoachEligible(p, state.calendar.date)) return null;
         }
         // Score: same overall + need formula as direct signings.
         const need = Math.max(0, AI_SIGNING_POLICY.targetPerPosition - (positionCounts.get(p.position) ?? 0));

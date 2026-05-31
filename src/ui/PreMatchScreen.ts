@@ -31,6 +31,7 @@ import { playerOverall } from '../engine/RatingEngine';
 import { oopSeverity, oopPenaltyPct, SLOT_POSITION } from '../engine/balance';
 import { computeOverallRating } from '../team/teamProfile';
 import { recentForm, headToHead, matchSpread, formAdjustment, HOME_ADVANTAGE_PTS, type FormResult } from '../game/teamStats';
+import { computeAttendance } from '../game/attendance';
 import { applyMatchdaySquad, makeInjuredPredicate } from '../game/playerSquad';
 import { buildTeamFromRoster, buildAutoSelectedTeamFromRoster } from '../game/rosterTeamBuilder';
 import { teamPossessionPct, teamTerritoryPct, averageRating } from '../game/seasonLeaderboards';
@@ -509,8 +510,12 @@ export function initPreMatchScreen(
   const matchDate = formatMatchDate(fixture?.date);
   const roundLabel = playoffContext?.contextLabel ?? `Round ${roundNumber}`;
   const venueBase = fixture?.venue ?? (homeTeam as RawTeam & { stadium?: string }).stadium;
-  const stadiumName = venueBase && fixture?.venueCapacity
-    ? `${venueBase} · ${fixture.venueCapacity.toLocaleString()}`
+  const effectiveCapacity = fixture?.venueCapacity ?? (homeTeam as RawTeam & { stadiumCapacity?: number }).stadiumCapacity;
+  const expectedAttendance = fixture && effectiveCapacity
+    ? computeAttendance(fixture, effectiveCapacity, state.league.standings, state.league.results)
+    : undefined;
+  const stadiumName = venueBase && expectedAttendance
+    ? `${venueBase} · ${expectedAttendance.toLocaleString()} exp.`
     : venueBase;
 
   // ── Tactics state ────────────────────────────────────────────────────

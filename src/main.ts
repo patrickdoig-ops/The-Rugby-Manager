@@ -108,7 +108,8 @@ import { GameCoordinator }         from './game/GameCoordinator';
 import { extractMatchdaySquad }    from './game/playerSquad';
 import { buildTeamFromRoster, buildAutoSelectedTeamFromRoster } from './game/rosterTeamBuilder';
 import { snapshotMatch }           from './game/seasonStatsCollector';
-import { SEASON_VALUES }           from './engine/balance';
+import { SEASON_VALUES, HOME_ADVANTAGE } from './engine/balance';
+import { computeAttendance }        from './game/attendance';
 import { generateSeed }            from './utils/rng';
 import { eventBus }                from './utils/eventBus';
 import { Capacitor }              from '@capacitor/core';
@@ -1058,7 +1059,14 @@ document.addEventListener('DOMContentLoaded', () => {
     round: number,
     playerTactics: TeamTactics,
   ): void {
-    const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: loadTickDelayMs(), playerTactics, humanSide: playerSide });
+    const liveState = gameEngine!.getState();
+    const liveFixture = liveState.league.fixtures.find(f =>
+      f.round === round && f.homeId === configuredHome.id && f.awayId === configuredAway.id,
+    );
+    const homeFillRate = liveFixture && configuredHome.stadiumCapacity
+      ? computeAttendance(liveFixture, configuredHome.stadiumCapacity, liveState.league.standings, liveState.league.results) / configuredHome.stadiumCapacity
+      : HOME_ADVANTAGE.crowdFillNeutral;
+    const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: loadTickDelayMs(), playerTactics, humanSide: playerSide, homeFillRate });
     initSimController(engine);
 
     const unsub = eventBus.on('engine:finished', ({ state }) => {

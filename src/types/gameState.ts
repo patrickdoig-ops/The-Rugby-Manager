@@ -55,6 +55,8 @@ export interface FixtureResult {
   // Optional because v19 saves don't carry it (back-filled undefined).
   homeStats?: TeamSeasonStats;
   awayStats?: TeamSeasonStats;
+  // Computed at record-time from the attendance model. Absent on pre-v24 saves.
+  attendance?: number;
 }
 
 export interface TeamStanding {

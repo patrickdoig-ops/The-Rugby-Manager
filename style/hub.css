@@ -520,14 +520,17 @@
 }
 
 .hub-alert-from {
-  font-size: var(--rm-fs-xs);
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  opacity: 0.7;
+  letter-spacing: 0.12em;
+  color: color-mix(in oklch, var(--rm-amber) 70%, transparent);
 }
 
 .hub-alert-subject {
-  font-size: var(--rm-fs-sm);
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-13);
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -536,14 +539,16 @@
 
 .hub-alert-badge {
   background: var(--rm-danger);
-  color: #fff;
+  color: var(--rm-on-accent);
   border-radius: 9px;
   min-width: 18px;
   height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--rm-fs-xs);
+  flex-shrink: 0;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   padding: 0 5px;
 }
@@ -555,70 +560,100 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  background: var(--rm-bg);
+}
+
+#inbox .app-header {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 75%, black) 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 38%, black) 100%
+  );
+  border-bottom-color: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 45%, transparent);
 }
 
 .inbox-body {
   flex: 1;
   overflow-y: auto;
-  padding: var(--rm-space-4);
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: var(--rm-space-5);
-}
-
-.inbox-empty {
-  color: var(--rm-text-muted);
-  font-size: var(--rm-fs-sm);
-  text-align: center;
-  padding: var(--rm-space-8) 0;
+  gap: 20px;
 }
 
 .inbox-section-heading {
-  font-size: var(--rm-fs-xs);
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--rm-text-muted);
-  margin-bottom: var(--rm-space-3);
+  color: var(--rm-text-dim);
+  margin-bottom: 8px;
 }
 
 .inbox-item {
-  background: var(--rm-surface-raised);
-  border-radius: var(--rm-radius-md);
-  padding: var(--rm-space-4);
+  background: var(--rm-surface-2);
+  border-radius: 10px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: var(--rm-space-2);
-  border: 1px solid var(--rm-border);
+  gap: 8px;
+  border: 1px solid var(--rm-border-soft);
+  border-left-width: 3px;
+  border-left-color: var(--rm-text-faint);
 }
 
 .inbox-item + .inbox-item {
-  margin-top: var(--rm-space-2);
+  margin-top: 6px;
+}
+
+.inbox-item--medical,
+.inbox-item--contracts {
+  border-left-color: var(--rm-danger);
+}
+
+.inbox-item--transfers {
+  border-left-color: var(--rm-amber);
+}
+
+.inbox-item--league,
+.inbox-item--match {
+  border-left-color: var(--rm-pitch);
 }
 
 .inbox-item-subject {
-  font-size: var(--rm-fs-sm);
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-14);
   font-weight: 600;
-  color: var(--rm-text);
+  color: var(--rm-chalk);
 }
 
 .inbox-item-body {
-  font-size: var(--rm-fs-sm);
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-13);
   color: var(--rm-text-muted);
-  line-height: 1.5;
+  line-height: 1.45;
 }
 
 .inbox-deeplink {
   align-self: flex-start;
-  margin-top: var(--rm-space-1);
-  font-size: var(--rm-fs-xs);
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-11);
   font-weight: 600;
-  color: var(--rm-green);
-  background: none;
-  border: none;
-  padding: 0;
+  color: var(--rm-pitch);
+  background: color-mix(in oklch, var(--rm-pitch) 10%, transparent);
+  border: 1px solid color-mix(in oklch, var(--rm-pitch) 28%, transparent);
+  border-radius: 6px;
+  padding: 5px 10px;
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+@media (hover: hover) {
+  .inbox-deeplink:hover {
+    background: color-mix(in oklch, var(--rm-pitch) 18%, transparent);
+    border-color: color-mix(in oklch, var(--rm-pitch) 50%, transparent);
+  }
 }
 
 #hub-play-next {

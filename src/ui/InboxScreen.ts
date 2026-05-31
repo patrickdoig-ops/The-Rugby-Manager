@@ -3,6 +3,7 @@ import type { GameState } from '../types/gameState';
 import type { RawTeamInput } from '../types/teamData';
 import { buildAssistantReport, type InboxItem } from '../game/inbox';
 import { markRead } from './inboxRead';
+import { injectTeamColors } from './teamColors';
 import { eventBus } from '../utils/eventBus';
 
 export interface InitInboxScreenOpts {
@@ -37,6 +38,9 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
     const key = saveKey(state);
     markRead(key, items.map(i => i.id));
 
+    const playerTeam = opts.allTeams.find(t => t.id === state.player.teamId);
+    if (playerTeam) injectTeamColors(el!, playerTeam);
+
     const byCategory = new Map<InboxItem['category'], InboxItem[]>();
     for (const item of items) {
       if (!byCategory.has(item.category)) byCategory.set(item.category, []);
@@ -59,18 +63,25 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
       league:    'League Table',
     };
 
+    let rowIndex = 0;
     const sectionsHtml = items.length === 0
-      ? `<p class="inbox-empty">No new updates from your assistant.</p>`
+      ? `<div class="empty-state">
+          <svg class="empty-state__icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <div class="empty-state__title">All clear</div>
+          <div class="empty-state__desc">Nothing to report. Your assistant will surface injury news, contract alerts, and tactical notes here.</div>
+        </div>`
       : [...byCategory.entries()].map(([cat, catItems]) => `
           <div class="inbox-section">
-            <h3 class="inbox-section-heading">${CATEGORY_LABELS[cat]}</h3>
-            ${catItems.map(item => `
-              <div class="inbox-item">
-                <div class="inbox-item-subject">${item.subject}</div>
-                <div class="inbox-item-body">${item.body}</div>
-                ${item.deepLink ? `<button class="inbox-deeplink" data-link="${item.deepLink}">${deepLinkLabels[item.deepLink]}</button>` : ''}
-              </div>
-            `).join('')}
+            <div class="inbox-section-heading">${CATEGORY_LABELS[cat]}</div>
+            ${catItems.map(item => {
+              const delay = Math.min(rowIndex++, 16) * 25;
+              return `
+                <div class="inbox-item inbox-item--${item.category}" style="--row-delay:${delay}ms">
+                  <div class="inbox-item-subject">${item.subject}</div>
+                  <div class="inbox-item-body">${item.body}</div>
+                  ${item.deepLink ? `<button class="inbox-deeplink" data-link="${item.deepLink}">${deepLinkLabels[item.deepLink]}</button>` : ''}
+                </div>`;
+            }).join('')}
           </div>
         `).join('');
 
@@ -84,6 +95,7 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
           <span class="app-title">Assistant's Report</span>
           <div class="app-topbar-spacer"></div>
         </div>
+        <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week}</div>
       </div>
       <div class="inbox-body">
         ${sectionsHtml}

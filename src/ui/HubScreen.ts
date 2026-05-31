@@ -128,9 +128,11 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
     const injuredCount = countInjured(state);
     const expiringCount = countExpiringContracts(state);
     const lastRes = lastPlayerResult(playerTeam.id, state.league.results);
+    const poachThreatCount = (state.career.activePoachedIds ?? []).length;
     const tileBadgeCount: Record<string, number> = {
-      'hub-tile-squad':     injuredCount,
-      'hub-tile-contracts': expiringCount,
+      'hub-tile-squad':      injuredCount,
+      'hub-tile-contracts':  expiringCount,
+      'hub-tile-transfers':  poachThreatCount,
     };
 
     el!.innerHTML = `

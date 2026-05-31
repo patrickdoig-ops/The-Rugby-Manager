@@ -308,7 +308,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
     if (!home || !away) return '';
     const playerHome = fixture.homeId === playerId;
     const venueLabel = playerHome ? 'HOME' : 'AWAY';
-    const venueName = home.stadium.split('(')[0].trim().toUpperCase();
+    const venueName = (fixture.venue ?? home.stadium.split('(')[0].trim()).toUpperCase();
 
     const homeStanding = state.league.standings.find(s => s.teamId === home.id);
     const awayStanding = state.league.standings.find(s => s.teamId === away.id);
@@ -359,7 +359,7 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
             ${crestHtml(away, 'nm-crest')}
           </div>
         </div>
-        <div class="hub-nm-meta">${venueLabel} · ${venueName}</div>
+        <div class="hub-nm-meta">${venueLabel} · ${venueName}${fixture.venueCapacity ? ` · ${fixture.venueCapacity.toLocaleString()}` : ''}</div>
         <div class="hub-nm-spread">${spreadLabel}</div>
       </div>
     `;

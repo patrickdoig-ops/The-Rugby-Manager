@@ -19,6 +19,7 @@ import { sortStandings } from '../game/leagueTable';
 import { recentForm, type FormResult } from '../game/teamStats';
 import { renderFormPipStrip } from './components/formPip';
 import { eventBus } from '../utils/eventBus';
+import { ROUND_LABELS } from '../engine/balance/season';
 
 const PLAYOFF_SPOTS = 4;
 
@@ -72,12 +73,13 @@ function standardRow(
   rank: number,
   teamsById: Map<string, RawTeamInput>,
   highlight: boolean,
+  zoneBreak: boolean,
 ): string {
   const team = teamsById.get(s.teamId);
   const name = displayName(team, s.teamId);
   const classes = ['lt-row'];
   if (highlight) classes.push('lt-row--me');
-  if (rank === PLAYOFF_SPOTS + 1) classes.push('lt-row--zone-break');
+  if (zoneBreak) classes.push('lt-row--zone-break');
   const diff = `${s.pointsDiff >= 0 ? '+' : ''}${s.pointsDiff}`;
   const crest = team ? teamCrest(team) : '<div class="lt-crest"></div>';
   const bonusPoints = s.tryBonus + s.losingBonus;
@@ -173,10 +175,24 @@ export function initLeagueTableScreen(
       ? sortStandings(state.league.standings)
       : sortByForm(state.league.standings, results);
 
-    const rows = sorted.map((s, i) => viewMode === 'standard'
-      ? standardRow(s, i + 1, teamsById, s.teamId === playerTeamId)
-      : formRow(s, i + 1, teamsById, s.teamId === playerTeamId, results)
-    ).join('');
+    const isRunIn = ROUND_LABELS[state.calendar.week] === 'The Run In';
+    const roundsLeft = totalRounds - state.calendar.week + 1;
+
+    const rows = sorted.map((s, i) => {
+      const rank = i + 1;
+      if (viewMode === 'standard') {
+        // During The Run In, replace the CSS zone-break border with an
+        // explicit playoff separator so we can label it.
+        const zoneBreak = !isRunIn && rank === PLAYOFF_SPOTS + 1;
+        const row = standardRow(s, rank, teamsById, s.teamId === playerTeamId, zoneBreak);
+        if (isRunIn && rank === PLAYOFF_SPOTS) {
+          const label = `PLAYOFF PLACES · ${roundsLeft} ROUND${roundsLeft === 1 ? '' : 'S'} TO GO`;
+          return row + `<div class="lt-playoff-sep">${label}</div>`;
+        }
+        return row;
+      }
+      return formRow(s, rank, teamsById, s.teamId === playerTeamId, results);
+    }).join('');
 
     const headRow = viewMode === 'standard'
       ? `<div class="lt-head">

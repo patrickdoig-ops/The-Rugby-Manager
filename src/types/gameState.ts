@@ -20,6 +20,15 @@ export interface Fixture {
   // when present, the calendar advances to per-round dates rather than the
   // flat +7-day fallback in applySeasonEvent.
   date?: string;
+  // Set on the two dedicated derby rounds (Derby Weekend + Big Match Weekend).
+  // Drives the visual badge on fixture rows in the fixture list.
+  isDerby?: true;
+  // Alternative venue name when a match is played outside the home club's
+  // regular ground. Home advantage is unchanged — the larger venue is still
+  // a home fixture.
+  venue?: string;
+  // Capacity of the alternative venue, shown as display-only flavour.
+  venueCapacity?: number;
 }
 
 export interface SeasonSchedule {

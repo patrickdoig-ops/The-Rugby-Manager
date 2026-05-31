@@ -508,7 +508,10 @@ export function initPreMatchScreen(
   );
   const matchDate = formatMatchDate(fixture?.date);
   const roundLabel = playoffContext?.contextLabel ?? `Round ${roundNumber}`;
-  const stadiumName = (homeTeam as RawTeam & { stadium?: string }).stadium;
+  const venueBase = fixture?.venue ?? (homeTeam as RawTeam & { stadium?: string }).stadium;
+  const stadiumName = venueBase && fixture?.venueCapacity
+    ? `${venueBase} · ${fixture.venueCapacity.toLocaleString()}`
+    : venueBase;
 
   // ── Tactics state ────────────────────────────────────────────────────
   const initialTactics: TeamTactics = savedTactics ? { ...savedTactics } : { ...DEFAULT_TACTICS };

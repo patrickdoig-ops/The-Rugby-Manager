@@ -30,11 +30,11 @@ export const PREMIERSHIP_2025_26: SeasonSchedule = {
     { round: 2,  date: '2025-10-05', homeId: 'gloucester',  awayId: 'northampton' },
 
     // Round 3 — 10–12 October 2025 (Derby Weekend)
-    { round: 3,  date: '2025-10-10', homeId: 'sale',        awayId: 'newcastle'   },
-    { round: 3,  date: '2025-10-11', homeId: 'bristol',     awayId: 'exeter'      },
-    { round: 3,  date: '2025-10-11', homeId: 'northampton', awayId: 'leicester'   },
-    { round: 3,  date: '2025-10-11', homeId: 'bath',        awayId: 'gloucester'  },
-    { round: 3,  date: '2025-10-12', homeId: 'harlequins',  awayId: 'saracens'    },
+    { round: 3,  date: '2025-10-10', homeId: 'sale',        awayId: 'newcastle',   isDerby: true },
+    { round: 3,  date: '2025-10-11', homeId: 'bristol',     awayId: 'exeter',      isDerby: true },
+    { round: 3,  date: '2025-10-11', homeId: 'northampton', awayId: 'leicester',   isDerby: true },
+    { round: 3,  date: '2025-10-11', homeId: 'bath',        awayId: 'gloucester',  isDerby: true },
+    { round: 3,  date: '2025-10-12', homeId: 'harlequins',  awayId: 'saracens',    isDerby: true },
 
     // Round 4 — 17–19 October 2025
     { round: 4,  date: '2025-10-17', homeId: 'gloucester',  awayId: 'bristol'     },
@@ -63,7 +63,7 @@ export const PREMIERSHIP_2025_26: SeasonSchedule = {
     { round: 7,  date: '2025-12-19', homeId: 'leicester',   awayId: 'gloucester'  },
     { round: 7,  date: '2025-12-20', homeId: 'northampton', awayId: 'sale'        },
     { round: 7,  date: '2025-12-20', homeId: 'saracens',    awayId: 'exeter'      },
-    { round: 7,  date: '2025-12-20', homeId: 'harlequins',  awayId: 'bristol'     },
+    { round: 7,  date: '2025-12-20', homeId: 'harlequins',  awayId: 'bristol',     venue: 'Twickenham Stadium',               venueCapacity: 82000 }, // The Big Game 17
     { round: 7,  date: '2025-12-21', homeId: 'newcastle',   awayId: 'bath'        },
 
     // Round 8 — 26–28 December 2025 (Boxing Day)
@@ -98,9 +98,9 @@ export const PREMIERSHIP_2025_26: SeasonSchedule = {
 
     // Round 12 — 27–29 March 2026
     { round: 12, date: '2026-03-27', homeId: 'newcastle',   awayId: 'exeter'      },
-    { round: 12, date: '2026-03-28', homeId: 'gloucester',  awayId: 'leicester'   },
-    { round: 12, date: '2026-03-28', homeId: 'bristol',     awayId: 'harlequins'  },
-    { round: 12, date: '2026-03-28', homeId: 'saracens',    awayId: 'northampton' },
+    { round: 12, date: '2026-03-28', homeId: 'gloucester',  awayId: 'leicester',   venue: 'Villa Park, Birmingham',           venueCapacity: 42785 }, // The Slater Cup
+    { round: 12, date: '2026-03-28', homeId: 'bristol',     awayId: 'harlequins',  venue: 'Principality Stadium, Cardiff',    venueCapacity: 74500 }, // Big Day Out
+    { round: 12, date: '2026-03-28', homeId: 'saracens',    awayId: 'northampton', venue: 'Tottenham Hotspur Stadium, London',venueCapacity: 62850 }, // The Showdown 6
     { round: 12, date: '2026-03-29', homeId: 'sale',        awayId: 'bath'        },
 
     // Round 13 — 17–19 April 2026

@@ -63,6 +63,24 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
     });
   }
 
+  // --- B&I Lions returnees (2025/26 season-open post-tour stand-down) ---
+  const lionsBack = club.squad
+    .map(rid => state.career.roster[rid])
+    .filter((p): p is Player => !!p && p.lionsReturnRound !== undefined && state.calendar.week < p.lionsReturnRound!);
+  if (lionsBack.length > 0) {
+    const returnRound = lionsBack[0].lionsReturnRound!;
+    const listed = lionsBack.map(p => `${p.lastName} (${Math.round(p.condition)}%)`).slice(0, 6).join(', ');
+    const extra = lionsBack.length > 6 ? `, plus ${lionsBack.length - 6} more` : '';
+    items.push({
+      id: `lions:${season}`,
+      category: 'medical',
+      priority: 78,
+      subject: `${lionsBack.length} player${lionsBack.length !== 1 ? 's' : ''} back from the British & Irish Lions`,
+      body: `${listed}${extra} have returned from the 2025 Lions tour of Australia. Under the Professional Game Agreement's mandatory post-tour rest they are unavailable until Round ${returnRound} and will come back short of full match fitness. Line up cover for the opening rounds.`,
+      deepLink: 'squad',
+    });
+  }
+
   // --- Squad fatigue ---
   const FATIGUE_THRESHOLD = 70;
   const tiredPlayers = club.squad

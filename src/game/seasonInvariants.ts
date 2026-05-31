@@ -71,6 +71,9 @@ export function assertSeasonInvariants(state: GameState): void {
         }
       }
     }
+    if (p.lionsReturnRound !== undefined && (!(p.lionsReturnRound >= 1) || !Number.isInteger(p.lionsReturnRound))) {
+      fail(`roster.lionsReturnRound[${rosterId}]`, `${p.lionsReturnRound}`);
+    }
     const s = p.seasonStats;
     assertNonNegInt(`roster.seasonStats.appearances[${rosterId}]`, s.appearances);
     assertNonNegInt(`roster.seasonStats.tries[${rosterId}]`, s.tries);

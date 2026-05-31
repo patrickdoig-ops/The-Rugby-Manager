@@ -1,7 +1,7 @@
 // 2025 British & Irish Lions (Australia tour) members based at Gallagher
 // Premiership clubs. Name-matched against the seeded roster at the 2025/26
 // season open (GameCoordinator.newSeason via internationalDutyEngine.
-// lionsConditionEvents); matched players begin the season under-cooked
+// lionsReturnEvents); matched players begin the season under-cooked
 // (LIONS_RETURN_CONDITION) from a shortened pre-season. Unmatched names are
 // silently skipped, so an over-inclusive list is harmless. One-shot — the
 // next Lions tour is 2029, out of scope.

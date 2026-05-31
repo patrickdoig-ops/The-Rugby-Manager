@@ -53,7 +53,7 @@ import { computeTrainingWeek } from './trainingWeek';
 import { upcomingGap, splitGapIntoPeriods } from './trainingCalendar';
 import {
   isInternationalBreak, selectInternationalSquads, buildCallUpEvents,
-  resolveInternationalBreak, reconcileRestObligations, lionsConditionEvents,
+  resolveInternationalBreak, reconcileRestObligations, lionsReturnEvents,
   type CallUp,
 } from './internationalDutyEngine';
 import { computeRollover } from './careerRollover';
@@ -171,7 +171,7 @@ export class GameCoordinator {
     // a shortened pre-season. RNG-free, so it doesn't perturb the FA-pool seed
     // below. The next Lions tour (2029) is out of scope.
     if (seasonStartYear === 2025) {
-      for (const ev of lionsConditionEvents(coord.state)) applySeasonEvent(coord.state, ev);
+      for (const ev of lionsReturnEvents(coord.state)) applySeasonEvent(coord.state, ev);
     }
     // Seed a small starter free-agent pool so Hub → Transfers has
     // something to scout from day one. Uses the same persona generator

@@ -317,6 +317,68 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
     });
   }
 
+  // --- Chairman's season objectives (WK1 only) ---
+  if (state.calendar.week === 1) {
+    const myTeam = allTeams.find(t => t.id === teamId);
+    const ambition = myTeam?.boardAmbition ?? 'playoffs';
+    const lastSeason = state.career.archive[state.career.archive.length - 1];
+
+    let body: string;
+    if (!lastSeason) {
+      // Year 1 — set expectations from authored ambition
+      if (ambition === 'title') {
+        body = 'The board\'s expectation is clear — we are here to compete for silverware. A playoff place is the floor, and the title is the ambition.';
+      } else if (ambition === 'topHalf') {
+        body = 'The board understands this is a year of building. A top-half finish would be a solid foundation — avoid the wooden spoon and show the fans we are heading in the right direction.';
+      } else {
+        body = 'The board expects playoff rugby this season. A top-four finish would be a strong start and set us up well going forward.';
+      }
+    } else {
+      const lastPos = sortStandings(lastSeason.standings).findIndex(s => s.teamId === teamId) + 1;
+      const wasChampion = lastSeason.championTeamId === teamId;
+
+      if (wasChampion) {
+        body = 'Last season was everything we hoped for. The board\'s expectation is simple — defend the title. Nothing less will do.';
+      } else if (ambition === 'title') {
+        if (lastPos <= 2) {
+          body = `Finishing ${ordinal(lastPos)} last season was a strong result but the board wants to go all the way. Bring home the title this time.`;
+        } else if (lastPos <= 4) {
+          body = `A ${ordinal(lastPos)}-place finish was below expectations for a club of our ambition. The board wants a Grand Final place at minimum this season.`;
+        } else {
+          body = `Finishing ${ordinal(lastPos)} last season was not acceptable. The board expects an immediate return to the top four and a serious playoff run.`;
+        }
+      } else if (ambition === 'topHalf') {
+        if (lastPos <= 5) {
+          body = `A ${ordinal(lastPos)}-place finish last season was genuinely encouraging. The board is beginning to raise its expectations — a playoff push would be very welcome.`;
+        } else if (lastPos <= 7) {
+          body = `${ordinal(lastPos)} place last season was reasonable progress. The board wants to keep moving up — a top-half finish again, with an eye on the top four.`;
+        } else {
+          body = `Finishing ${ordinal(lastPos)} last season was difficult. The board wants to see improvement — a top-half finish (5th or better) is the target this season.`;
+        }
+      } else {
+        // ambition === 'playoffs'
+        if (lastPos <= 2) {
+          body = `Reaching the Grand Final last season was excellent. The board wants to push on — go one further and claim the title.`;
+        } else if (lastPos <= 4) {
+          body = `Making the playoffs again would be the baseline. But the board wants more — a Grand Final place (top two) is the target this season.`;
+        } else if (lastPos <= 7) {
+          body = `Missing the playoffs last season was a real disappointment. The board expects a return to the top four this time — playoff rugby is non-negotiable.`;
+        } else {
+          body = `Finishing ${ordinal(lastPos)} was well below where this club should be. The board is demanding a significant improvement — top four is the minimum expectation.`;
+        }
+      }
+    }
+
+    items.push({
+      id: `chairman:${season}`,
+      category: 'league',
+      priority: 90,
+      subject: 'Chairman\'s message — season objectives',
+      body,
+      deepLink: 'league',
+    });
+  }
+
   // --- Playoff race status ---
   if (state.league.playoffs === null && state.league.standings.length > 0) {
     const { securedTop4, securedTop2, eliminated } = playoffRaceStatus(state, teamId);

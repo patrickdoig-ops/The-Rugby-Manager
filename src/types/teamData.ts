@@ -52,6 +52,7 @@ export type RawTeamInput = {
   players: RawPlayer[];
   bench?: RawPlayer[];
   squad?: RawPlayer[];
+  boardAmbition?: 'title' | 'playoffs' | 'topHalf';
   // Authored per-club identity tactics (`src/data/team-*.json`). Consumed by
   // MatchCoordinator as the AI side's baseline; the human side overrides via
   // playerTactics from PreMatchScreen. Optional only because legacy / test

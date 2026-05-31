@@ -70,6 +70,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Overall rating:** **67/100**
 - **Suggested tactics:** `balanced` · `keep_it_tight` · `commit_numbers` · `counter_ruck` · `one_back` · `drift` · `cautious`
 - **Stat bias:** high `strength`, `breakdown`, `setPiece`.
+- **Board ambition:** `playoffs`
 
 ### Star players
 
@@ -153,6 +154,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Overall rating:** **73/100**
 - **Suggested tactics:** `possession` · `wide_wide` · `minimal_ruck` · `jackal` · `two_back` · `drift` · `offload_freely`
 - **Stat bias:** high `pace`, `handling`, `agility`.
+- **Board ambition:** `playoffs`
 
 ### Star players
 
@@ -235,6 +237,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Overall rating:** **77/100**
 - **Suggested tactics:** `kicking` · `keep_it_tight` · `commit_numbers` · `jackal` · `two_back` · `hybrid` · `cautious`
 - **Stat bias:** high `setPiece`, `tackling`, `discipline`.
+- **Board ambition:** `title`
 
 ### Star players
 
@@ -326,6 +329,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Overall rating:** **74/100**
 - **Suggested tactics:** `kicking` · `balanced` · `balanced` · `jackal` · `two_back` · `blitz` · `cautious`
 - **Stat bias:** high `tackling`, `positioning`, `composure`.
+- **Board ambition:** `title`
 
 ### Star players
 
@@ -413,6 +417,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Overall rating:** **79/100**
 - **Suggested tactics:** `balanced` · `balanced` · `balanced` · `jackal` · `two_back` · `hybrid` · `cautious`
 - **Stat bias:** high `handling`, `kicking`, `composure`.
+- **Board ambition:** `title`
 
 ### Star players
 
@@ -501,6 +506,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Overall rating:** **70/100**
 - **Suggested tactics:** `possession` · `keep_it_tight` · `commit_numbers` · `counter_ruck` · `one_back` · `blitz` · `cautious`
 - **Stat bias:** high `stamina`, `breakdown`, `setPiece`.
+- **Board ambition:** `playoffs`
 
 ### Star players
 
@@ -593,6 +599,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Overall rating:** **66/100**
 - **Suggested tactics:** `possession` · `wide_wide` · `minimal_ruck` · `jackal` · `one_back` · `drift` · `offload_freely`
 - **Stat bias:** high `pace`, `agility`, `handling`.
+- **Board ambition:** `playoffs`
 
 ### Star players
 
@@ -679,6 +686,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Overall rating:** **55/100**
 - **Suggested tactics:** `balanced` · `balanced` · `balanced` · `jackal` · `three_back` · `hybrid` · `cautious`
 - **Stat bias:** modest across the board (rebuild status); slight lean toward `stamina` and `discipline`.
+- **Board ambition:** `topHalf`
 
 ### Star players
 
@@ -771,6 +779,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Overall rating:** **76/100**
 - **Suggested tactics:** `possession` · `wide_wide` · `minimal_ruck` · `jackal` · `one_back` · `hybrid` · `balanced`
 - **Stat bias:** high `pace`, `handling`, `agility`.
+- **Board ambition:** `title`
 
 ### Star players
 
@@ -871,6 +880,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Overall rating:** **68/100**
 - **Suggested tactics:** `kicking` · `keep_it_tight` · `balanced` · `jackal` · `one_back` · `blitz` · `cautious`
 - **Stat bias:** high `tackling`, `strength`, `kicking`.
+- **Board ambition:** `playoffs`
 
 ### Star players
 

@@ -9,6 +9,7 @@
   "founded": 1876,
   "stadiumCapacity": 10500,
   "headCoach": "Mark McCall (Director of Rugby since 2010; stepping down end of 2025-26, with Brendan Venter to take over for 2026-27)",
+  "boardAmbition": "title",
   "suggestedTactics": {
     "attackingGamePlan": "kicking",
     "attackingStyle": "balanced",

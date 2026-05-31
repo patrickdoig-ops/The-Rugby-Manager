@@ -9,6 +9,7 @@
   "founded": 1888,
   "stadiumCapacity": 27000,
   "headCoach": "Pat Lam (Director of Rugby since 2017)",
+  "boardAmbition": "playoffs",
   "suggestedTactics": {
     "attackingGamePlan": "possession",
     "attackingStyle": "wide_wide",

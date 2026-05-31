@@ -9,6 +9,7 @@
   "founded": 1871,
   "stadiumCapacity": 15600,
   "headCoach": "Rob Baxter (Director of Rugby since 2009 — the league's longest-serving head coach)",
+  "boardAmbition": "playoffs",
   "suggestedTactics": {
     "attackingGamePlan": "possession",
     "attackingStyle": "keep_it_tight",

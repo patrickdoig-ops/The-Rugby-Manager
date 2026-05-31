@@ -9,6 +9,7 @@
   "founded": 1865,
   "stadiumCapacity": 14500,
   "headCoach": "Johann van Graan (Head of Rugby since 2022, contracted to 2030)",
+  "boardAmbition": "title",
   "suggestedTactics": {
     "attackingGamePlan": "balanced",
     "attackingStyle": "balanced",

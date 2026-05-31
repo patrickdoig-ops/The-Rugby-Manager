@@ -9,6 +9,7 @@
   "founded": 1880,
   "stadiumCapacity": 15249,
   "headCoach": "Phil Dowson (Director of Rugby since 2022)",
+  "boardAmbition": "title",
   "suggestedTactics": {
     "attackingGamePlan": "possession",
     "attackingStyle": "wide_wide",

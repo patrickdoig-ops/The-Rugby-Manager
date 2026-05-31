@@ -9,6 +9,7 @@
   "founded": 1877,
   "stadiumCapacity": 10200,
   "headCoach": "Stephen Jones (interim Head Coach from March 2026 after Alan Dickens departed; Dan McFarland publicly linked with the role from 2026-27)",
+  "boardAmbition": "topHalf",
   "suggestedTactics": {
     "attackingGamePlan": "balanced",
     "attackingStyle": "balanced",

@@ -9,6 +9,7 @@
   "founded": 1880,
   "stadiumCapacity": 25849,
   "headCoach": "Geoff Parling (Head Coach since August 2025, succeeding Michael Cheika)",
+  "boardAmbition": "title",
   "suggestedTactics": {
     "attackingGamePlan": "kicking",
     "attackingStyle": "keep_it_tight",

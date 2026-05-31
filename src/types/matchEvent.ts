@@ -95,6 +95,10 @@ export type MatchEvent =
   // for the rest of the match; coordinator follows with the shared
   // forced-sub flow.
   | { type: 'PLAYER_INJURED_IN_MATCH'; player: Player; side: PossessionSide; kind: InjuryKind }
+  // No bench replacement available: move the injured player from cards.injured
+  // to cards.sentOff so onFieldPlayers keeps excluding them (team stays at 14)
+  // without collectPendingInjurySubs re-firing the announcement every tick.
+  | { type: 'INJURY_STRANDED'; player: Player; teamSide: PossessionSide }
 
   // ── Offload (carrier unloads ball in tackle before going to ground) ──────
   // Emitted as a pair: ATTEMPTED bumps offloader.offloadsAttempted; COMPLETED

@@ -419,9 +419,14 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       state.league.results = [];
       state.league.standings = state.league.standings.map(s => zeroStanding(s.teamId));
       state.calendar.date = earliestDateForRound(state.league.fixtures, 1) ?? state.calendar.date;
-      // Reset per-player season aggregates for the new season.
+      // Reset per-player season aggregates for the new season. International
+      // call-up flags + PGA rest obligations don't survive the rollover (the
+      // next season's windows re-select fresh); internationalCaps accumulate.
       for (const id of Object.keys(state.career.roster)) {
-        state.career.roster[Number(id)].seasonStats = zeroSeasonStats();
+        const p = state.career.roster[Number(id)];
+        p.seasonStats = zeroSeasonStats();
+        if (p.restObligation) p.restObligation = undefined;
+        if (p.internationalDuty) p.internationalDuty = undefined;
       }
       // Reset team season aggregates for the new season. Re-zero in place
       // for every team that already had a bucket; new teams (rare) get
@@ -576,6 +581,31 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       const p = state.career.roster[event.rosterId];
       if (!p) return;
       p.condition = Math.max(0, Math.min(100, event.condition));
+      return;
+    }
+    case 'PLAYER_CALLED_UP': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.internationalDuty = { window: event.window };
+      p.internationalCaps = (p.internationalCaps ?? 0) + 1;
+      return;
+    }
+    case 'PLAYER_RETURNED_FROM_DUTY': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.internationalDuty = undefined;
+      p.condition = Math.max(0, Math.min(100, event.condition));
+      if (event.restEligibleRounds && event.restEligibleRounds.length > 0) {
+        p.restObligation = { window: event.window, eligibleRounds: [...event.restEligibleRounds] };
+      } else {
+        p.restObligation = undefined;
+      }
+      return;
+    }
+    case 'REST_OBLIGATION_RESOLVED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.restObligation = undefined;
       return;
     }
     default: {

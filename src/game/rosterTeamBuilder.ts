@@ -19,20 +19,22 @@ import type { GameState } from '../types/gameState';
 import type { Player } from '../types/player';
 import type { RawPlayer, RawTeamInput } from '../types/teamData';
 import { selectBestMatchdaySquad } from './autoSelect';
+import { restUnavailableIds } from './internationalDutyEngine';
 
 export function buildTeamFromRoster(state: GameState, teamJson: RawTeamInput): RawTeamInput {
   const club = state.career.clubs.find(c => c.id === teamJson.id);
   if (!club) return teamJson;
 
-  // Stable partition: fit players first (in club.squad order), injured last.
-  // Slots are then assigned 1..N over the partitioned list. Injured players
-  // naturally sink to the wider-squad section, so the auto-built 23 only
-  // contains fit players (assuming the club has at least 23 fit).
+  // Stable partition: available players first (in club.squad order), then
+  // injured / rest-obligated last. Slots are assigned 1..N over the
+  // partitioned list, so unavailable players sink to the wider-squad section
+  // and the auto-built 23 only contains available players.
+  const unavailable = restUnavailableIds(state, teamJson.id);
   const fit: number[] = [];
   const injured: number[] = [];
   for (const rid of club.squad) {
     const p = state.career.roster[rid];
-    if (p?.injury) injured.push(rid);
+    if (p?.injury || unavailable.has(rid)) injured.push(rid);
     else fit.push(rid);
   }
   const ordered = [...fit, ...injured];
@@ -66,7 +68,8 @@ export function buildAutoSelectedTeamFromRoster(
   const club = state.career.clubs.find(c => c.id === teamJson.id);
   if (!club) return teamJson;
 
-  const selected = selectBestMatchdaySquad(state.career.roster, club.squad);
+  const unavailable = restUnavailableIds(state, teamJson.id);
+  const selected = selectBestMatchdaySquad(state.career.roster, club.squad, unavailable);
   if (selected.length !== 23) return buildTeamFromRoster(state, teamJson);
 
   const used = new Set(selected);

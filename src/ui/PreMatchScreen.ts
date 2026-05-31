@@ -33,6 +33,7 @@ import { computeOverallRating } from '../team/teamProfile';
 import { recentForm, headToHead, matchSpread, formAdjustment, HOME_ADVANTAGE_PTS, type FormResult } from '../game/teamStats';
 import { computeAttendance } from '../game/attendance';
 import { applyMatchdaySquad, makeInjuredPredicate } from '../game/playerSquad';
+import { restUnavailableIds } from '../game/internationalDutyEngine';
 import { buildTeamFromRoster, buildAutoSelectedTeamFromRoster } from '../game/rosterTeamBuilder';
 import { teamPossessionPct, teamTerritoryPct, averageRating } from '../game/seasonLeaderboards';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
@@ -159,11 +160,21 @@ function renderLineupRow(
          <div class="row-expand-inner">${renderLineupExpand(p, rosterEntry)}</div>
        </div>`
     : '';
+  // Advisory international-duty rest flag — shown on the user's own players for
+  // every round of their rest window (rounds 6-7 are advisory; the final
+  // round is enforced by auto-repair, which removes them from the lineup).
+  const restOb = rosterEntry?.restObligation;
+  const onRest = !!restOb
+    && rosterEntry?.contract.clubId === state.player.teamId
+    && restOb.eligibleRounds.includes(state.calendar.week);
+  const restBadge = onRest
+    ? `<span class="rest-badge" title="International duty — must be rested in one of rounds ${restOb!.eligibleRounds.join(', ')}">REST</span>`
+    : '';
   return `
     <div class="pm-lineup-row${expandable ? ' pm-lineup-row--expandable' : ''}"${rowAttrs}>
       <div class="pm-lineup-row-main">
         <span class="pm-lineup-num" style="color:${teamTextColor(color)}">${String(num).padStart(2,'0')}</span>
-        <span class="pm-lineup-name">${nameHtml}</span>
+        <span class="pm-lineup-name">${nameHtml}${restBadge ? ' ' + restBadge : ''}</span>
         <span class="pm-lineup-pos">${p.position}${oopBadge}</span>
         ${chevron}
       </div>
@@ -401,11 +412,29 @@ export function initPreMatchScreen(
   const humanRosterBased = buildTeamFromRoster(state, humanTeamJson);
   const oppRosterBased   = buildAutoSelectedTeamFromRoster(state, oppTeamJson);
   const club = state.career.clubs.find(c => c.id === humanTeamJson.id);
-  const repair = club ? { roster: state.career.roster, clubSquadIds: club.squad } : undefined;
+  // Players who must be rested this round (PGA international-duty obligation,
+  // forced) are treated exactly like injured players: excluded from the
+  // auto-repaired matchday squad and flagged unavailable for display.
+  // Players who must be rested this round (PGA international-duty obligation,
+  // forced) are excluded from the auto-repaired matchday squad — same path as
+  // injuries — but surfaced with their own banner + wording below.
+  const restUnavailable = club ? restUnavailableIds(state, humanTeamJson.id) : undefined;
+  const repair = club ? { roster: state.career.roster, clubSquadIds: club.squad, unavailableIds: restUnavailable } : undefined;
   const humanApplied = applyMatchdaySquad(humanRosterBased, savedSquad, repair);
+  // Injury banner is injury-only; forced rest gets its own banner.
   const isInjured = club ? makeInjuredPredicate(state.career.roster, club.squad) : undefined;
   const injuredSavedRefs = (savedSquad && isInjured)
     ? savedSquad.filter(ref => isInjured(ref))
+    : [];
+  const restForcedNames = new Set<string>();
+  if (restUnavailable) {
+    for (const rid of restUnavailable) {
+      const rp = state.career.roster[rid];
+      if (rp) restForcedNames.add(`${rp.firstName}|${rp.lastName}`);
+    }
+  }
+  const restForcedSavedRefs = savedSquad
+    ? savedSquad.filter(ref => restForcedNames.has(`${ref.firstName}|${ref.lastName}`))
     : [];
 
   const homeApplied = playerSide === 'home' ? humanApplied : oppRosterBased;
@@ -609,6 +638,20 @@ export function initPreMatchScreen(
     `;
   }
 
+  function restBannerHtml(): string {
+    if (step !== 'mine' || restForcedSavedRefs.length === 0) return '';
+    return `
+      <div id="pm-rest-banner" role="status">
+        <span class="pm-rest-banner-badge" aria-hidden="true">REST</span>
+        <span class="pm-injury-text">
+          ${restForcedSavedRefs.length === 1 ? '1 player must be' : `${restForcedSavedRefs.length} players must be`}
+          rested this round after international duty (${restForcedSavedRefs.map(r => r.lastName).join(', ')}) &mdash;
+          Professional Game Agreement. Replacements auto-picked; tap Edit Squad to confirm.
+        </span>
+      </div>
+    `;
+  }
+
   function bodyHtml(): string {
     if (step === 'mine') {
       return renderLineupBody('LINE-UP', playerTeam, playerStarters, playerBench, stadiumName, matchDate, roundLabel, !!onEditSquad, !!onPlayerProfile, state, isRowExpanded);
@@ -629,6 +672,7 @@ export function initPreMatchScreen(
         ${topBarHtml()}
         ${versusBannerHtml()}
         ${injuryBannerHtml()}
+        ${restBannerHtml()}
       </div>
       <div id="pm-body" class="pm-body--${step}">${bodyHtml()}</div>
       ${footerHtml()}

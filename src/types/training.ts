@@ -43,12 +43,35 @@ export interface PlayerTrainingResult {
   newlyInjured: boolean;
 }
 
+// Per-player outcome of an international call-up, surfaced on the
+// International Break screen. One entry per selected player league-wide.
+export interface InternationalCallUpResult {
+  rosterId: number;
+  firstName: string;
+  lastName: string;
+  clubId: string;
+  nation: string;          // display nation: 'England' | 'Wales' | 'Scotland' | 'South Africa'
+  appearances: number;     // Tests featured in this block
+  conditionAfter: number;  // condition the player returns with
+  injured: boolean;        // picked up an injury on duty
+  restObligated: boolean;  // England heavy-load → must rest one of the next 3 rounds
+}
+
+// Summary of one international break, attached to TrainingWeekResult when the
+// post-match training step coincides with the Autumn / Six Nations window.
+export interface InternationalBreakSummary {
+  window: import('./player').InternationalWindow;
+  callUps: InternationalCallUpResult[];
+}
+
 // League-wide results returned by GameCoordinator.applyTrainingBlock.
 // `plan` is the final week's plan (focus is shared across the block);
 // `weeks` is the number of training weeks the gap spanned. The screen
-// filters results.players to the user's club squad.
+// filters results.players to the user's club squad. `international` is
+// present only when the block spanned an international window.
 export interface TrainingWeekResult {
   plan: TrainingPlan;
   players: PlayerTrainingResult[];
   weeks: number;
+  international?: InternationalBreakSummary;
 }

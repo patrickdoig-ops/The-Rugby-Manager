@@ -321,6 +321,11 @@ export function initPlayerProfileScreen(
           <span class="pp-pip-label">Reputation</span>
           <span class="pp-pip-val">${Math.round(player.reputation)}</span>
         </div>
+        ${player.internationalCaps ? `
+        <div class="pp-pip">
+          <span class="pp-pip-label">Int'l Caps</span>
+          <span class="pp-pip-val">${player.internationalCaps}</span>
+        </div>` : ''}
         ${injuryPip}
       </section>`;
 

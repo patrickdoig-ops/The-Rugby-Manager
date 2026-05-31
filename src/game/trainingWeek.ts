@@ -88,6 +88,10 @@ function pushClubTrainingEvents(
     // no fresh injury risk). They recover via INJURY_TICK_ADVANCED on
     // their own clock.
     if (p.injury) continue;
+    // Players away on international duty don't train with their club during
+    // an international break — no condition recovery, no development. Their
+    // return is resolved separately in GameCoordinator.applyTrainingBlock.
+    if (p.internationalDuty) continue;
 
     const focus: [keyof PlayerStats, keyof PlayerStats] = isForward(p.position) ? fwdFocus : bckFocus;
     const ageInNewSeason = p.dob ? (getAge(p.dob, seasonOpenDate) ?? 25) : 25;

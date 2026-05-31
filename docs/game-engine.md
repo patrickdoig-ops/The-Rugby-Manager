@@ -67,7 +67,7 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 | `PLAYER_INJURED` | Per in-match injury at match teardown (player + every AI fixture) | Writes `state.career.roster[rosterId].injury` with kind / severity / weeksRemaining / injuredOn / isRecurrence. Severity + weeks rolled via `rngTransfer` from `INJURY_SEVERITY[kind]`. Snapshots are walked rosterId-ascending so the RNG call order is stable. |
 | `INJURY_TICK_ADVANCED` | Per injured roster player at the start of `recordPlayerMatchResult` (before the round's new injuries are added) | Decrements `roster[rosterId].injury.weeksRemaining` by one (floor 0). No RNG. |
 | `PLAYER_RECOVERED` | When an injury's `weeksRemaining` would hit 0 after the tick | Clears `roster[rosterId].injury`. Fired in the same pass as the final `INJURY_TICK_ADVANCED`. |
-| `CAREER_ARCHIVE_RESTORED` | `fromSave` only | Restores `seasonsCompleted`, `archive`, plus the v7+ optional `freeAgents` + `market` fields, the v8+ optional `pendingMoves`, and the v24+ optional `activePoachedIds`. Keeps every `state.career.*` write inside `applySeasonEvent` so the mutation seam holds across the load path. |
+| `CAREER_ARCHIVE_RESTORED` | `fromSave` only | Restores `seasonsCompleted`, `archive`, plus optional `freeAgents` / `market` / `pendingMoves` / `activePoachedIds` etc. Keeps every `state.career.*` write inside `applySeasonEvent` so the mutation seam holds across the load path. |
 | `SEASON_ROLLED_OVER` | One per rollover, after all `TRANSFER_ACTIVATED` / `PLAYER_AGED` / `PLAYER_RETIRED` / `ACADEMY_GRADUATED` / `FOREIGN_IMPORT_ARRIVED` events for that rollover | Composite: archives just-completed standings + top scorer + MVP + `championTeamId` into `state.career.archive`, resets `league.results` / `league.standings` / `league.playoffs` / per-player `seasonStats`, replaces `league.fixtures` with the regenerated round-robin, sets the new `seasonLabel`, increments `seasonsCompleted`. Clears `state.career.pendingMoves` as a safety net (they were already drained by the preceding `TRANSFER_ACTIVATED` events). |
 | `PLAYOFF_BRACKET_SEEDED` | Once after the last R18 fixture is recorded (via `seedPlayoffBracket`) | Writes `state.league.playoffs` with the two semi-finals (1 v 4, 2 v 3) seeded from `sortStandings(top 4)` and a Final entry with `homeId`/`awayId` null. Idempotent — exits early if the bracket already exists. |
 | `PLAYOFF_RESULT_RECORDED` | One per playoff match — player (via `recordPlayerPlayoffResult`) or AI sim (via `simulatePendingPlayoffMatches`) | Sets `result` on the named match. Cascades: on a SF result, populates the Final's matching slot from the SF winner (SF1 → home, SF2 → away). On the Final's result, sets `championTeamId`. Does NOT touch `league.standings` — playoffs are independent of league points. |
@@ -75,7 +75,10 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 | `CLUB_TAKEOVER` | After all `CLUB_BUDGET_SET` events when a club hits the takeover trigger — Newcastle Red Bull at year-1 → year-2 (hardcoded), random investor takeovers from year 3+ (`rngTransfer` rolls) | Adds `boostAmount` (£1m) to the named club's `salaryBudget`, clamped at the effective cap. Pushes the clubId onto `state.career.takeoverHistory` so the club is excluded from future random rolls. |
 | `PLAYER_TRAINING_PLAN_SET` | TrainingScreen Continue (post-match) and TrainingScreen Back (Hub mid-week) | Clones the chosen `TrainingPlan` (`intensity` + `forwardsFocus` + `backsFocus`) into `state.player.training` so the next training week opens with it as the default. |
 | `PLAYER_TRAINED` | Per non-injured roster player league-wide, once per training week of the gap (post-match TrainingScreen Continue → `applyTrainingBlock`) | Applies `conditionDelta` to `Player.condition` (clamped 0-100) plus `Partial<PlayerStats>` deltas to `baseStats` (clamped 1-99). `conditionDelta = conditionPerDay × the period's day-span` (condition recovers daily). Shape mirrors `PLAYER_AGED` for the stats half. RNG via `rngTransfer`; iteration is club id-ascending → roster id-ascending. |
-| `PLAYER_CONDITION_UPDATED` | Per player who took the field, once per fixture (live + silent AI + playoffs) | Snapshots that player's final in-match fatigue back to `Player.condition` (set, not add). MatchCoordinator.initPlayer then reads it as the starting `fatiguePct` for the next match. Bench players who didn't appear get no event and keep their accumulated condition. |
+| `PLAYER_CONDITION_UPDATED` | Per player who took the field, once per fixture (live + silent AI + playoffs); also one per matched 2025 Lions tourist at the 2025/26 `newSeason` | Snapshots that player's final in-match fatigue back to `Player.condition` (set, not add). MatchCoordinator.initPlayer then reads it as the starting `fatiguePct` for the next match. Bench players who didn't appear get no event and keep their accumulated condition. |
+| `PLAYER_CALLED_UP` | Per selected player league-wide at an international break, inside `applyTrainingBlock` | Sets the transient `Player.internationalDuty = { window }` flag (so the break's training block skips them) and bumps `Player.internationalCaps`. Window-specific nations: Autumn = England/Wales/Scotland/South Africa; Six Nations = England/Wales/Scotland. |
+| `PLAYER_RETURNED_FROM_DUTY` | Per call-up after the break's training block, inside `applyTrainingBlock` | Clears `internationalDuty`, sets the reduced return `condition` (set, not add), and — when `restEligibleRounds` is present (England heavy-load only) — sets `Player.restObligation`. Any return injury fires as a separate `PLAYER_INJURED`. |
+| `REST_OBLIGATION_RESOLVED` | Per obligated player who didn't feature in an in-window round, in `recordPlayerMatchResult` (before `WEEK_ADVANCED`) | Clears `Player.restObligation` — the player has satisfied the PGA rest requirement (human: not in the matchday 23; AI: force-rested at the return round). |
 
 `GameCoordinator.rollSeason()` returns the applied `SeasonEvent[]` so `main.ts` can hand it to `RolloverScreen` for the post-apply diff render.
 
@@ -393,6 +396,22 @@ A choice between matches: trades off short-term freshness for long-term attribut
 
 - **Why baseStats and not a sharpness layer?** FC Career Mode keeps attribute growth separate from per-week sharpness; FM blends both with hidden CA/PA caps. We chose the FM-style blend — `baseStats` drift directly under training (clamped by the existing `[1, 99]` invariant + per-player overrides in `PLAYER_STAT_OVERRIDES`), with `potential` acting as the soft PA ceiling. The result: a young player on focused training noticeably outgrows their cohort over a season, while older players who've hit their ceiling plateau and begin to decline.
 
+## International Duty
+
+The 2025/26 schedule pauses the Premiership during two international windows — the **Autumn Nations Series** (the 34-day gap between Round 5 and the Round 6 return) and the **Six Nations** (the 57-day gap between Round 10 and the Round 11 return). During each block a slice of every club's squad is away on national duty. Engine + tuning live in `src/game/internationalDutyEngine.ts` (pure builders, RNG via `rngTransfer`) and `src/engine/balance/international.ts`.
+
+- **Windows + nations (`INTERNATIONAL_WINDOWS`).** `autumn` (returnRound 6, 4 Tests, nations England/Wales/Scotland/South Africa — the Springboks tour the north in November) and `six_nations` (returnRound 11, 5 Tests, England/Wales/Scotland — South Africa is absent; Ireland & France select from Irish provinces / the Top 14, not the Prem, so they're not modelled). `isInternationalBreak(state)` returns the window whose `returnRound === calendar.week` (checked at `applyTrainingBlock`, where `calendar.week` is the post-break round).
+
+- **Selection (`selectInternationalSquads`, RNG-free).** For each modelled nation, every rostered player whose `nationality` matches (via `NATION_ALIASES` — accepts the authored country form `"England"` and the persona-generator demonym `"English"`) and clears the nation's `ovrThreshold` is ranked OVR-desc (tie-break rosterId-asc) and capped at `squadCap` (England 28; Wales/Scotland/SA 12). `selectionRank` (1 = first choice) drives the load model.
+
+- **Effects (folded into `GameCoordinator.applyTrainingBlock`).** At a break it (1) `selectInternationalSquads` → emits `PLAYER_CALLED_UP` per player (sets the transient `internationalDuty` flag); (2) runs the normal training block — `computeTrainingWeek` skips `internationalDuty` players exactly like injured ones, so internationals get **no** club condition recovery / development while everyone else recovers over the long gap; (3) `resolveInternationalBreak` → per call-up (rosterId-asc) rolls `minutesPct` from rank, a reduced return `condition` (moderate: full-load ~55-70), an injury chance (`~8-12%` × minutesPct, reusing `INJURY_SEVERITY`), and — England heavy-load only — a `restObligation`; emits `PLAYER_RETURNED_FROM_DUTY` (+ `PLAYER_INJURED`). Returns an `InternationalBreakSummary` riding on `TrainingWeekResult.international` for the **International Break screen** (`src/ui/InternationalBreakScreen.ts`, inserted into the post-match chain after PostTrainingResults).
+
+- **PGA rest rule (England only).** A player whose `minutesPct ≥ restMinutesThreshold` (0.65) gets `restObligation = { window, eligibleRounds }` — human clubs get the 3-round window `[returnRound, +1, +2]`, AI clubs a single `[returnRound]`. `mustRestThisRound(p, state)` is the forced-exclusion test (human: current round === `max(eligibleRounds)` — last chance; AI: === `min` — auto-rest at the return round); `restUnavailableIds(state, clubId)` collects them for the squad builders / repair / display predicates, which treat a must-rest player exactly like an injured one. Surfaced to the manager via: the International Break screen ("Rest 1 of R6–R8" tag), a persistent inbox / Hub alert (`buildAssistantReport`), a `REST` badge on Squad Management, and on PreMatch — an advisory `REST` badge on the player's lineup row for every round of the window plus a dedicated rest banner on the forced round (separate from the injury banner so the wording is correct). `reconcileRestObligations` runs in `recordPlayerMatchResult` before `WEEK_ADVANCED`: a player who didn't feature in an in-window round (human: not in `state.player.matchdaySquad`; AI: force-rested) has satisfied the rule → `REST_OBLIGATION_RESOLVED`. Obligations also clear en masse at `SEASON_ROLLED_OVER`; `internationalCaps` accumulate across seasons.
+
+- **B&I Lions 2025 (season-open, one-shot).** At the 2025/26 `newSeason` only, `lionsConditionEvents` name-matches the curated `LIONS_2025_TOURISTS` list (`src/data/lions-2025.ts`) against the seeded roster and emits a `PLAYER_CONDITION_UPDATED` setting each to `LIONS_RETURN_CONDITION` (78) — an under-cooked start from a shortened pre-season. RNG-free; gated on `seasonStartYear === 2025` so it never re-fires on rollover (the next Lions tour, 2029, is out of scope).
+
+- **Determinism.** All duty rolls flow through `rngTransfer`, consumed only at break weeks in `applyTrainingBlock` (no consumption on non-break weeks), so existing match/season RNG is undisturbed. Training (and therefore the break path) is UI-only — `checkSeasonDeterminism` records matches but never trains — so the duty engine is additive to the harness, which stays green.
+
 ## Playoffs
 
 A three-match knockout follows the 18-round League regular season: two semi-finals (1 v 4 and 2 v 3) the week after R18, and a Final at Twickenham one week later. Top 4 by `sortStandings` (league points → diff → for, identical to the league-table sort).
@@ -408,7 +427,7 @@ A three-match knockout follows the 18-round League regular season: two semi-fina
 
 ## Save format
 
-`SAVE_VERSION = 24`. `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`. **`ACCEPTED_VERSIONS` must always include `SAVE_VERSION`** — it's seeded as `new Set([SAVE_VERSION, 23, 22, … 2])`; the older entries are the migratable past. (Omitting the current version silently rejects every freshly-written save on the next load — the regression this guard prevents.)
+`SAVE_VERSION = 1`. `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`. **`ACCEPTED_VERSIONS` must always include `SAVE_VERSION`** — currently `new Set([1])`; omitting the current version silently rejects every freshly-written save on the next load. Only v1 saves are accepted; older saves are rejected (start a new game). Bump `SAVE_VERSION` and update `ACCEPTED_VERSIONS` whenever the serialised shape changes in a way that would corrupt an existing save on load. New additive-only optional fields don't require a bump.
 
 **Slot storage layout.** Saves live in three fixed, renameable slots —
 `rugby-manager-save-{1,2,3}` in `localStorage` — plus an active-slot pointer
@@ -417,77 +436,18 @@ A three-match knockout follows the 18-round League regular season: two semi-fina
 `SAVE_VERSION` is unaffected). Autosave (the ~15 `saveGame` call sites) and the
 Home Continue card target the **active** slot via thin wrappers
 (`loadSave`/`saveGame`/`clearSave` → `loadSlot`/`saveToSlot`/`clearSlot` of the
-active id). The pre-slot single-save key (`rugby-manager-save`) is folded into
-slot 1 once at boot by `migrateLegacySave()`. The Saves screen
-(`src/ui/SavesScreen.ts`, reachable from Home and Settings) manages slots: load
-(switches active), Save here (manual snapshot into any slot), rename, delete,
-and export / import. **Native iCloud backup** lives in `src/ui/saveBackup.ts`
-(Capacitor-only, no-op on web): every slot write mirrors to the iOS Documents
-directory (`saves/slot-{id}.json`, included in the device's iCloud Backup and
-not OS-evicted), `reconcileBackups()` restores from disk at boot when a slot is
-missing locally (reinstall / eviction), and `exportSlot` / `importToSlot` hand a
-slot's JSON to the iOS Share Sheet / file picker (Blob download / `<input
-type=file>` on web). SaveManager has no Capacitor dependency — the mirror hooks
-in via `setSlotWriteHook`.
+active id). The Saves screen (`src/ui/SavesScreen.ts`, reachable from Home and
+Settings) manages slots: load (switches active), Save here (manual snapshot into
+any slot), rename, delete, and export / import. **Native iCloud backup** lives in
+`src/ui/saveBackup.ts` (Capacitor-only, no-op on web): every slot write mirrors
+to the iOS Documents directory (`saves/slot-{id}.json`, included in the device's
+iCloud Backup and not OS-evicted), `reconcileBackups()` restores from disk at
+boot when a slot is missing locally (reinstall / eviction), and `exportSlot` /
+`importToSlot` hand a slot's JSON to the iOS Share Sheet / file picker (Blob
+download / `<input type=file>` on web). SaveManager has no Capacitor dependency
+— the mirror hooks in via `setSlotWriteHook`.
 
-| Version | Added |
-|---|---|
-| v2 | Minimal slice: `playerTeamId`, `seed`, `currentWeek`, `results[]` |
-| v3 | `seasonLabel` + `fixtures` snapshot — the schedule as the user saw it at save time, reconstructed verbatim on load |
-| v4 | Pre-match preferences: `tactics` + `matchdaySquad` (23 PlayerRefs) |
-| v5 | Career snapshot: `career.roster` (Player keyed by rosterId), `career.clubs` (per-club squad pointers), `career.archive` (past standings + awards), `seasonsCompleted`, `nextRosterId` |
-| v6 | Each persisted Player carries `contract` + `reputation` (Phase 2) |
-| v7 | `career.freeAgents` (rosterIds of players whose contracts expired without renewal) + optional `career.market` (MarketState — live offers when a market window is open mid-save, null otherwise). MarketState gains `phase: 'renewals' \| 'signings'`. Lets the player resume on the same offers after a tab close mid-window. |
-| v8 | `career.pendingMoves` (PreAgreement[]) for Phase 6 Reg 7 cross-Prem poaching. The pre-agreed moves persist across saves until activated at the next rollover. |
-| v9 | Per-team season aggregates: top-level `teamSeasonStats` map (keyed by teamId — possession / territory / set-piece / attack / defence buckets); each persisted Player gains the optional `injury` field (PlayerInjury — `kind`, `severity`, `weeksRemaining`, `injuredOn`, `isRecurrence`); Player gains `seasonStats` (per-player aggregator backfilled with zeros on older saves). |
-| v10 | `TeamTactics` gains `defensiveLine` (`'blitz' \| 'hybrid' \| 'drift'`). Pre-v10 saves backfill `'hybrid'` (numerically neutral) so the engine never sees undefined. |
-| v11 | `SavedSeasonResult` gains `homeTries` + `awayTries` for the bonus-points system. Pre-v11 rounds were played without try-bonus tracking, so older saves default to 0 — no fabricated retroactive bonuses. |
-| v12 | `career.preSeasonStep` (`'overview' \| 'signings' \| 'marquee' \| undefined`) — Squad Builder resumption flag. Set during the pre-season flow at game start (Phase 8), cleared after marquee Continue. Outside Squad Builder this is always undefined and the field is omitted from the payload, so existing in-season saves stay byte-equivalent. The `'overview'` value was added v2.120a alongside SquadOverviewScreen — `SAVE_VERSION` stays at 12 since the field is purely additive within its optional value range. |
-| v13 | Top-level `playoffs` (`PlayoffState \| undefined`) — the active knockout bracket. Omitted when no bracket is active (mid-regular-season). Each `ArchivedSeason` gains `championTeamId: string \| null`; pre-v13 archive entries load as `null`. Stays at v13 since both additions are purely additive within their optional / nullable shapes. |
-| v14 | `ClubState.salaryBudget` — per-club owner-set budget for cap-relevant wages. Seeded from `CLUB_SALARY_BUDGETS_2025_26` at game start, adjusted each rollover by `prepareBudgetsForNextSeason`. `career.takeoverHistory: string[]` — clubIds taken over (Newcastle Red Bull at year 2 + random investors year 3+); excluded from future random rolls. |
-| v15 | `MarketState.bids: TransferBid[]` — competing bids in the active signing window (Phase 10 competitive signings). Pre-v15 saves load with `bids: []` and any prior in-window signings are already committed via `CONTRACT_SIGNED`. |
-| v16 | `MarketState.phase` gains `'signings-midseason'`. `career.midseasonRejections: Record<rosterId, weekUntilClear>` — per-player one-round cooldown after a mid-season free-agent declines. WEEK_ADVANCED prunes aged-out entries; SEASON_ROLLED_OVER clears them all. Pre-v16 saves migrate as `{}`. |
-| v17 | `TeamTactics` gains `offloadStrategy` (`'cautious' \| 'balanced' \| 'offload_freely'`). Pre-v17 saves backfill `'balanced'` (numerically neutral) so the engine never sees undefined — same shape as the v9 → v10 `defensiveLine` migration. |
-| v18 | Training system. Each persisted Player gains `condition: number` (0-100, inter-match freshness — snapshotted from final in-match fatigue, modulated weekly by training). Top-level `training?: TrainingPlan` carries the manager's last chosen plan. Pre-v18 saves back-fill `condition: 100` on every roster entry and load with `training: undefined` (TrainingScreen falls back to `DEFAULT_TRAINING_PLAN`). |
-| v19 | `ArchivedSeason.playerSeasonHistory?: Record<rosterId, ArchivedPlayerSeason>` — per-player end-of-season snapshot (clubId at the time, apps, ratingSum, tries, carries, metres, line breaks, tackles, turnovers, kicksMade/At, yellow / red cards). Drives `PlayerProfileScreen`'s Career History table. Pre-v19 archive entries load with the field undefined; the profile renders an em-dash row for those historical seasons. New rollovers always populate it. |
-| v20 | `FixtureResult.homeStats?: TeamSeasonStats` + `awayStats?: TeamSeasonStats` — per-fixture snapshot of `MatchSnapshot.homeSummary` / `awaySummary` taken at the moment the result is recorded (possession seconds, territory seconds, lineouts thrown / won, scrums put in / won, attack + defence + kicking + discipline counters). Drives RoundResultsScreen's tap-to-expand match-stats panel. Pre-v20 results load with both fields undefined — the expand panel renders "Detailed stats not recorded for this fixture" for those rounds. New rounds always populate the fields via `recordPlayerMatchResult` + the silent-fixture path in the same function. |
-| v21 | `Player.potential?: number` — soft OVR ceiling seeded once at game-start via `rosterSeeder` (using `rngTransfer`). Pre-v21 saves back-fill conservatively in `backfillRosterSeasonStats` using a deterministic formula (no RNG): headroom = 8 for ≤21yo, 5 for ≤24yo, 2 for ≤28yo, 1 for 29+. The field drives `proximityMultiplier` in both `careerRollover.developStats` and `trainingWeek.pushClubTrainingEvents`. The ceiling is hidden from the UI. |
-| v22 | `offloadsCompleted` added to both `PlayerSeasonStats` and `TeamSeasonStats`. Pre-v22 saves load with the field absent — `zeroSeasonStats()` / `zeroTeamSeasonStats()` default to 0, so the additive delta in `PLAYER_SEASON_STATS_ACCUMULATED` / `TEAM_SEASON_STATS_ACCUMULATED` starts from a clean baseline. No back-fill required. |
-| v23 | `careerRngOffset: number` added to `SavedSeason`. Tracks the consumed position of the `rngTransfer` stream at the moment of save so re-loads resume from the exact same generator position (previously the generator reset to 0 on load, causing the first post-load `rngTransfer` call to produce the same value as the very first call of the career). Pre-v23 saves default to 0 — the old behaviour, no regression. |
-| v24 | `career.activePoachedIds: number[]` — rosterIds of the user's own players who are currently under active background poach assessment (written by `POACH_THREATS_SET`, read by `HubScreen` to drive the Transfers tile badge count). Pre-v24 saves load as `[]`; the badge updates after the next round when `WEEK_ADVANCED` triggers a fresh threat assessment. |
-
-**Migration on load** (`GameCoordinator.fromSave`). The version-ladder
-back-fill computation — schedule resolution, the v5→v6 contract synthesis,
-the pre-v14 budget default, and the optional market/playoff layer
-inclusion — lives in `src/game/saveMigration.ts` as pure functions
-(`resolveSchedule`, `backfillCareerContracts`, `buildRosterSeededEvent`,
-`buildCareerArchiveRestoredEvent`). `fromSave` calls them to produce the
-event payloads, then replays those through `applySeasonEvent`, so the
-deserialisation concern stays out of the orchestrator while the season
-mutation boundary (GameCoordinator as the sole `applySeasonEvent` caller)
-is preserved.
-
-- v20 → v21: `backfillRosterSeasonStats` back-fills `potential` on every roster Player that lacks it, using a deterministic formula (age today → conservative headroom, no `rngTransfer`). Existing seasons continue uninterrupted with the soft ceiling in place from the first post-load training week or rollover.
-- v19 → v20: no-op shim. `homeStats` / `awayStats` are optional on every persisted `FixtureResult`. Pre-v20 results load with both fields undefined and the RoundResults expand panel falls back to the placeholder copy. New fixtures recorded after the migration populate the fields the same way as a fresh game.
-- v18 → v19: no-op shim. `playerSeasonHistory` is optional on every `ArchivedSeason` entry. Pre-v19 archives load with the field undefined — the next rollover populates it for the season just completed; older historical seasons stay sparse and the profile screen surfaces an em-dash placeholder for them. The same `cloneLeaders`-style defensive copy in `SaveManager.parseCareer` ferries the field through.
-- v17 → v18: `backfillRosterSeasonStats` also writes `condition: 100` on every roster Player that lacks the field. The top-level `training` field is optional — pre-v18 saves load with it undefined and `TrainingScreen` resolves to `DEFAULT_TRAINING_PLAN`. No retroactive condition state is fabricated: a v17 save mid-season resumes with everyone at full freshness, and the next post-match training week begins evolving condition.
-- v16 → v17: `parseSave` backfills `tactics.offloadStrategy = 'balanced'` when absent on the persisted tactics blob.
-- v15 → v16: `parseCareer` defaults `midseasonRejections` to `{}`. `parseMarket` accepts the new `'signings-midseason'` phase value; pre-v16 saves never wrote it. No retroactive cooldowns — the player can immediately re-approach anyone after a v15→v16 load.
-- v13 → v14: pre-v14 clubs default `salaryBudget` to the effective cap (no retroactive constraint — the next rollover then recomputes via `computeBudgetEvents` and the per-club budget kicks in from then on). `takeoverHistory` defaults to `[]` — pre-v14 saves never had a takeover, so a v13 save loaded mid-year-1 still fires the Newcastle Red Bull takeover at the next rollover.
-- v12 → v13: no-op shim. `playoffs` is optional; pre-v13 archives gain `championTeamId: null`. After restoration `continueGame` calls `seedPlayoffBracket()` so a v12 save stuck at "all 18 played, no playoffs" auto-seeds and enters the playoff stage chain.
-- v11 → v12: no-op shim. `preSeasonStep` is optional; older saves load with the field absent and `continueGame` routes straight to Hub.
-- v10 → v11: pre-v11 results default `homeTries` / `awayTries` to 0.
-- v9 → v10: `parseSave` backfills `tactics.defensiveLine = 'hybrid'` when absent.
-- v8 → v9: `parseCareer` defaults `teamSeasonStats` to `{}` and back-fills each player's `seasonStats` with zeroes. `injury` is optional and older saves just have it absent on every roster Player.
-- v7 → v8: `parseCareer` defaults `pendingMoves` to `[]`. No data loss — pre-v8 there was no Reg 7 flow so no pending moves existed.
-- v6 → v7: `parseCareer` defaults `freeAgents` to `[]` and `market` to `null` when the older save omits them. v7 saves loaded by v8 code with `market.phase` missing default the phase to `'renewals'` for backward compat.
-- v5 → v6: walk the persisted roster; for any Player missing `contract` or `reputation`, call `contractSeeder.seedContractFields` to backfill. Lossless — the `rngTransfer` stream advances but produces deterministic results for the same root seed.
-- v4 → v5: synthesise a fresh roster from JSONs via `rosterSeeder` (lossless — pre-v5 had zero per-player evolution to preserve).
-- v3 → v4 → v5: cascades. Schedule restored from the saved snapshot if present; falls back to `PREMIERSHIP_2025_26`.
-- v2 → v3: legacy path, no schedule snapshot — falls back to current canonical schedule.
-- v1: discarded (predates AI-vs-AI results, league table can't be reconstructed).
-
-The persisted career state always flows through `CAREER_ARCHIVE_RESTORED` (with optional `freeAgents` + `market` + `pendingMoves` + `teamSeasonStats` + `preSeasonStep` + `playoffs` + `takeoverHistory` + `midseasonRejections` fields) so every `state.career.*` write stays inside `applySeasonEvent` — the mutation seam holds even across the load path. The v18 `training` field lives on `state.player` (not under `career`); it's restored via a separate `PLAYER_TRAINING_PLAN_SET` event during `fromSave`, mirroring the existing `PLAYER_TACTICS_SET` / `PLAYER_MATCHDAY_SQUAD_SET` restore path.
+**On load** (`GameCoordinator.fromSave`). `src/game/saveMigration.ts` houses two event-payload builders (`buildRosterSeededEvent`, `buildCareerArchiveRestoredEvent`) that normalise a saved career into the `SeasonEvent` payloads replayed by `fromSave` through `applySeasonEvent`. The persisted career state always flows through `CAREER_ARCHIVE_RESTORED` (with optional `freeAgents` / `market` / `pendingMoves` / `teamSeasonStats` / `preSeasonStep` / `playoffs` / `takeoverHistory` / `midseasonRejections` / `activePoachedIds` fields) so every `state.career.*` write stays inside `applySeasonEvent`. The `training` field lives on `state.player`; it's restored via `PLAYER_TRAINING_PLAN_SET` during `fromSave`, mirroring the `PLAYER_TACTICS_SET` / `PLAYER_MATCHDAY_SQUAD_SET` restore path.
 
 ## New-game flow: Quick Start vs Squad Builder
 
@@ -523,7 +483,7 @@ ModePicker (Squad Builder)
   → Hub → Round 1
 ```
 
-**Save resumption.** `state.career.preSeasonStep` is set before every `saveGame` during the flow. `continueGame` reads it and routes back to the in-flight screen (`runPreSeasonOverview()` for `'overview'`, `runPreSeasonSignings()` for `'signings'`, `runPreSeasonMarquee()` for `'marquee'`, Hub otherwise). The flag is only ever set between team-selection and Round 1; once the marquee Continue completes the engine clears it. `SAVE_VERSION = 12` accommodates the optional field; older saves load with `preSeasonStep === undefined` and skip straight to Hub.
+**Save resumption.** `state.career.preSeasonStep` is set before every `saveGame` during the flow. `continueGame` reads it and routes back to the in-flight screen (`runPreSeasonOverview()` for `'overview'`, `runPreSeasonSignings()` for `'signings'`, `runPreSeasonMarquee()` for `'marquee'`, Hub otherwise). The flag is only ever set between team-selection and Round 1; once the marquee Continue completes the engine clears it. The field is optional — saves without it load with `preSeasonStep === undefined` and skip straight to Hub.
 
 **Determinism.** Squad Builder consumes an extra signing window's worth of `rngTransfer` (wages for the 99 FAs are seeded via `signingTermsFor`). Quick Start is byte-identical to the pre-Phase-8 behaviour. Both modes are individually deterministic given the same root seed; the existing `npm run verify` harnesses (which test the Quick Start path only) continue to pass unchanged.
 
@@ -615,6 +575,7 @@ A derived briefing surface that surfaces actionable alerts from the current `Gam
 | Category | Trigger | `deepLink` |
 |---|---|---|
 | `medical` | Any squad player with `Player.injury` set | `squad` |
+| `squad` | Any squad player carrying a `restObligation` (international-duty PGA rest rule) | `squad` |
 | `contracts` | Any squad player whose `contract.expiresOn` falls within `EXPIRING_CONTRACT_WINDOW_MONTHS` (6) of today (pre-agreed Reg 7 leavers excluded) | `contracts` |
 | `transfers` | Any squad player in `state.career.activePoachedIds` | `transfers` |
 | `match` | The next unplayed fixture has `isDerby: true` | `fixtures` |

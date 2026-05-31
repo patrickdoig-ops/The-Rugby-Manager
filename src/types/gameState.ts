@@ -9,7 +9,7 @@
 // src/types/match.ts. The two are unrelated.
 
 import type { TeamTactics } from './team';
-import type { InjuryKind, InjurySeverity, Player, PlayerStats } from './player';
+import type { InjuryKind, InjurySeverity, InternationalWindow, Player, PlayerStats } from './player';
 import type { TrainingPlan } from './training';
 
 export interface Fixture {
@@ -910,4 +910,36 @@ export type SeasonEvent =
       type: 'PLAYER_CONDITION_UPDATED';
       rosterId: number;
       condition: number;
+    }
+  | {
+      // A player has been selected for international duty for the given
+      // window. Reducer sets the transient `internationalDuty` flag (so the
+      // break's training block skips them) and bumps `internationalCaps`.
+      // Fired league-wide inside GameCoordinator.applyTrainingBlock at the
+      // Autumn (Round 6) / Six Nations (Round 11) break.
+      type: 'PLAYER_CALLED_UP';
+      rosterId: number;
+      window: InternationalWindow;
+      selectionRank: number;       // 1 = first choice; drives the load model
+    }
+  | {
+      // A player has returned from the international block. Reducer clears the
+      // transient `internationalDuty` flag, sets `condition` (the reduced
+      // freshness they come back with — set, not add), and — when
+      // `restEligibleRounds` is present (England heavy-load only) — sets the
+      // PGA `restObligation`. Any return injury fires as a separate
+      // PLAYER_INJURED event.
+      type: 'PLAYER_RETURNED_FROM_DUTY';
+      rosterId: number;
+      window: InternationalWindow;
+      condition: number;
+      restEligibleRounds?: number[];
+    }
+  | {
+      // The PGA rest obligation has been satisfied (the player was rested in
+      // one of the eligible rounds) or expired. Reducer clears
+      // `restObligation`. Fired by the per-round reconciliation in
+      // GameCoordinator.recordPlayerMatchResult.
+      type: 'REST_OBLIGATION_RESOLVED';
+      rosterId: number;
     };

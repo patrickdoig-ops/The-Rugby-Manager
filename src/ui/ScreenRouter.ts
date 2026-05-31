@@ -38,6 +38,7 @@ export type ScreenId =
   | 'squad-overview'
   | 'training'
   | 'training-results'
+  | 'international-break'
   | 'achievements'
   | 'inbox';
 
@@ -73,6 +74,7 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'squad-overview':   { elId: 'squad-overview',   shownDisplay: '' },
   'training':         { elId: 'training',         shownDisplay: '' },
   'training-results': { elId: 'training-results', shownDisplay: '' },
+  'international-break': { elId: 'international-break', shownDisplay: '' },
   'achievements':     { elId: 'achievements',     shownDisplay: '' },
   'inbox':            { elId: 'inbox',            shownDisplay: '' },
 };

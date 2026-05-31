@@ -1585,6 +1585,25 @@ html.native-app .app-header {
 .sq-card-badge--yellow { background: var(--rm-card-yellow); }
 .sq-card-badge--red    { background: var(--rm-card-red); color: rgba(255,255,255,0.92); }
 
+/* International-duty rest obligation — amber sibling of .injury-badge, shown
+   on squad lists so the manager can plan which window round to sit the
+   player. */
+.rest-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  background: color-mix(in oklch, var(--rm-amber) 22%, transparent);
+  color: var(--rm-amber-deep);
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border-radius: 4px;
+  text-transform: uppercase;
+  line-height: 1;
+  vertical-align: middle;
+}
+
 .injury-badge::before {
   content: '';
   display: inline-block;
@@ -1749,6 +1768,35 @@ html.native-app .app-header {
   flex: 1;
 }
 
+#pm-rest-banner {
+  margin: 0 12px 8px;
+  padding: 8px 12px;
+  background: color-mix(in oklch, var(--rm-amber) 14%, transparent);
+  border: 1px solid color-mix(in oklch, var(--rm-amber) 36%, transparent);
+  border-radius: 8px;
+  font-size: var(--rm-fs-12);
+  color: var(--rm-text);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.pm-rest-banner-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  background: var(--rm-amber);
+  color: rgba(0,0,0,0.78);
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border-radius: 4px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
 /* ─── Crash overlay ─── */
 .crash-overlay {
   position: fixed;
@@ -1822,3 +1870,140 @@ html.native-app .app-header {
   border-color: var(--rm-cta-active);
   color: var(--rm-on-accent);
 }
+
+/* ── International Break screen ─────────────────────────────────────────── */
+#international-break {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--rm-bg);
+  color: var(--rm-text);
+}
+#intl-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+.intl-hero {
+  text-align: center;
+  padding: 20px 12px 18px;
+  border-bottom: 1px solid var(--rm-border-soft);
+  margin-bottom: 14px;
+}
+.intl-hero-num {
+  display: block;
+  font-family: var(--rm-font-display);
+  font-size: calc(56px * var(--rm-text-scale));
+  line-height: 1;
+  color: var(--team-color, var(--rm-pitch));
+}
+.intl-hero-label {
+  display: block;
+  font-size: var(--rm-fs-13);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rm-text-muted);
+  margin-top: 4px;
+}
+.intl-hero-sub {
+  font-size: var(--rm-fs-13);
+  color: var(--rm-text-dim);
+  margin-top: 10px;
+}
+.intl-section-title {
+  font-size: var(--rm-fs-11);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+  margin: 18px 2px 8px;
+}
+.intl-row {
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.intl-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.intl-flag { font-size: var(--rm-fs-14); }
+.intl-row-head .player-link { font-weight: 600; font-size: var(--rm-fs-14); }
+.intl-nation {
+  font-size: var(--rm-fs-11);
+  color: var(--rm-text-dim);
+}
+.intl-apps {
+  margin-left: auto;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  color: var(--rm-text-muted);
+}
+.intl-cond {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.intl-cond-label {
+  font-size: var(--rm-fs-10);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rm-text-faint);
+  min-width: 48px;
+}
+.intl-cond-track {
+  flex: 1;
+  height: 6px;
+  background: var(--rm-surface-3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.intl-cond-fill { height: 100%; border-radius: 3px; }
+.intl-cond-fill--low { background: var(--rm-danger); }
+.intl-cond-fill--mid { background: var(--rm-amber); }
+.intl-cond-fill--ok  { background: var(--rm-pitch-deep); }
+.intl-cond-val {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  color: var(--rm-text-muted);
+  min-width: 34px;
+  text-align: right;
+}
+.intl-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.intl-tag {
+  font-size: var(--rm-fs-10);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.intl-tag--injury {
+  background: color-mix(in oklch, var(--rm-danger) 20%, transparent);
+  color: var(--rm-danger);
+}
+.intl-tag--rest {
+  background: color-mix(in oklch, var(--rm-amber) 22%, transparent);
+  color: var(--rm-amber-deep);
+}
+.intl-empty, .intl-league-note {
+  font-size: var(--rm-fs-12);
+  color: var(--rm-text-dim);
+  padding: 4px 2px;
+}
+.intl-nation-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.intl-nation-chip {
+  font-size: var(--rm-fs-11);
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 999px;
+  padding: 3px 9px;
+  color: var(--rm-text-muted);
+}
+.intl-nation-chip b { color: var(--rm-text); }
+#intl-footer {
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--rm-border-soft);
+}
+#intl-footer .cta-pulse { width: 100%; }

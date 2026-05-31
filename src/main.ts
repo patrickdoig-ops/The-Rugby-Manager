@@ -668,16 +668,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // → Rollover → Hub. Each market window is skipped when empty (the
   // open*Window calls leave state.career.market null in that case).
   function runEndOfSeasonChain(): void {
-    const proceedToRollover = (): void => {
-      if (!gameEngine) { goHub(); return; }
-      const rolloverEvents = gameEngine.rollSeason();
-      saveGame(gameEngine.toSavePayload());
-      showRollover(rolloverEvents, () => {
-        if (gameEngine) saveGame(gameEngine.toSavePayload());
-        goHub();
-      });
-      screenRouter.show('rollover');
-    };
     // Drives the competitive signing loop:
     //   - Show TransferMarketScreen. User makes offers, then presses
     //     Submit (resolves one round, looping back here) or Finish
@@ -740,17 +730,19 @@ document.addEventListener('DOMContentLoaded', () => {
         // releases land, before they decide who to recruit.
         showSquadOverview(() => {
           if (!gameEngine) { goHub(); return; }
-          runSigningLoop(proceedToRollover);
+          runSigningLoop(() => {
+            if (gameEngine) saveGame(gameEngine.toSavePayload());
+            goHub();
+          });
         });
         screenRouter.show('squad-overview');
       } else {
-        proceedToRollover();
+        if (gameEngine) saveGame(gameEngine.toSavePayload());
+        goHub();
       }
     };
     // proceedToRenewals: open the renewal window if there are expiring
-    // contracts, then route to RenewalsScreen / TransferMarket / Rollover.
-    // Pulled out so the BudgetReveal + TakeoverReveal can re-use it as
-    // their Continue handler.
+    // contracts, then route to RenewalsScreen → Signings → Hub.
     const proceedToRenewals = (): void => {
       if (!gameEngine) { goHub(); return; }
       gameEngine.openRenewalWindow();
@@ -767,11 +759,21 @@ document.addEventListener('DOMContentLoaded', () => {
         proceedToSignings();
       }
     };
+    // proceedToRollover: apply the rollover (aging, retirements, academy
+    // graduates) and show the Off-Season recap screen before renewals /
+    // signings. Declared after proceedToRenewals so the reference is valid.
+    const proceedToRollover = (): void => {
+      if (!gameEngine) { goHub(); return; }
+      const rolloverEvents = gameEngine.rollSeason();
+      saveGame(gameEngine.toSavePayload());
+      showRollover(rolloverEvents, proceedToRenewals);
+      screenRouter.show('rollover');
+    };
 
     showEndOfSeason(() => {
       if (!gameEngine) { goHub(); return; }
       // Compute next season's budgets (performance + takeovers) BEFORE
-      // any renewal / signing decisions. The events fire CLUB_BUDGET_SET
+      // the rollover zeroes out standings. Events fire CLUB_BUDGET_SET
       // for every club + CLUB_TAKEOVER for any Red Bull-style boost.
       const budgetEvents = gameEngine.prepareBudgetsForNextSeason();
       saveGame(gameEngine.toSavePayload());
@@ -786,8 +788,8 @@ document.addEventListener('DOMContentLoaded', () => {
         .map(e => ({ clubId: e.clubId, boostAmount: e.boostAmount, flavor: e.flavor }));
 
       const afterBudgetReveal = (): void => {
-        if (takeoverEntries.length === 0) { proceedToRenewals(); return; }
-        showTakeoverReveal({ takeovers: takeoverEntries, onContinue: () => proceedToRenewals() });
+        if (takeoverEntries.length === 0) { proceedToRollover(); return; }
+        showTakeoverReveal({ takeovers: takeoverEntries, onContinue: () => proceedToRollover() });
         screenRouter.show('takeover-reveal');
       };
 

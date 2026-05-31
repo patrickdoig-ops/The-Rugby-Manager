@@ -317,7 +317,7 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
     });
   }
 
-  // --- Chairman's season objectives (WK1 only) ---
+  // --- Owner's season objectives (WK1 only) ---
   if (state.calendar.week === 1) {
     const ambition = myTeam?.boardAmbition ?? 'playoffs';
     const lastSeason = state.career.archive[state.career.archive.length - 1];
@@ -372,26 +372,17 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
       id: `chairman:${season}`,
       category: 'league',
       priority: 90,
-      subject: 'Chairman\'s message — season objectives',
+      subject: 'Owner\'s message — season objectives',
       body,
       deepLink: 'league',
     });
   }
 
-  // --- Chairman's block report (fires on first round after an international break) ---
-  if (state.calendar.week > 1) {
-    const prevRoundDates = state.league.fixtures
-      .filter(f => f.round === state.calendar.week - 1 && f.date)
-      .map(f => new Date(f.date!).getTime());
-    const currRoundDates = state.league.fixtures
-      .filter(f => f.round === state.calendar.week && f.date)
-      .map(f => new Date(f.date!).getTime());
-
-    if (prevRoundDates.length && currRoundDates.length) {
-      const gapDays = (Math.min(...currRoundDates) - Math.max(...prevRoundDates)) / 86_400_000;
-
-      if (gapDays > 18) {
-        const ambition = myTeam?.boardAmbition ?? 'playoffs';
+  // --- Owner's block report (R6 after Autumn Internationals, R11 after Six Nations) ---
+  // Rounds are fixed so the cadence is consistent across seasons regardless of fixture dates.
+  const BLOCK_REPORT_ROUNDS = new Set([6, 11]);
+  if (BLOCK_REPORT_ROUNDS.has(state.calendar.week)) {
+    const ambition = myTeam?.boardAmbition ?? 'playoffs';
         const sorted = sortStandings(state.league.standings);
         const pos = sorted.findIndex(s => s.teamId === teamId) + 1;
         const standing = sorted.find(s => s.teamId === teamId);
@@ -446,7 +437,7 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
           }
         }
 
-        // Strand 4 — chairman's assessment (always present)
+        // Strand 4 — owner's assessment (always present)
         const isAhead  = (ambition === 'title'    && pos <= 2)
                        || (ambition === 'playoffs' && pos <= 2)
                        || (ambition === 'topHalf'  && pos <= 4);
@@ -469,15 +460,13 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
         }
 
         items.push({
-          id: `chairman-block:${season}:r${state.calendar.week}`,
+          id: `owner-block:${season}:r${state.calendar.week}`,
           category: 'league',
           priority: 85,
-          subject: 'Chairman\'s message — mid-season review',
+          subject: 'Owner\'s message — mid-season review',
           body: sentences.join(' '),
           deepLink: 'league',
         });
-      }
-    }
   }
 
   // --- Playoff race status ---

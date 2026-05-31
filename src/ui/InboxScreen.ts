@@ -74,7 +74,7 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
       ? `<div class="empty-state">
           <svg class="empty-state__icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           <div class="empty-state__title">All clear</div>
-          <div class="empty-state__desc">Nothing to report. Your assistant will surface injury news, contract alerts, and tactical notes here.</div>
+          <div class="empty-state__desc">Nothing to report. Injury news, contract alerts, and tactical notes will appear here.</div>
         </div>`
       : [...byCategory.entries()].map(([cat, catItems]) => `
           <div class="inbox-section">
@@ -98,7 +98,7 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
             <span>Hub</span>
           </button>
-          <span class="app-title">Assistant's Report</span>
+          <span class="app-title">Inbox</span>
           <div class="app-topbar-spacer"></div>
         </div>
         <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week}</div>
@@ -123,6 +123,7 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
   eventBus.on('game:initialized',     ({ state }) => render(state));
   eventBus.on('game:fixtureRecorded', ({ state }) => render(state));
   eventBus.on('game:weekAdvanced',    ({ state }) => render(state));
+  eventBus.on('game:trainingApplied', ({ state }) => render(state));
   eventBus.on('game:bracketSeeded',   ({ state }) => render(state));
   eventBus.on('game:playoffsUpdated', ({ state }) => render(state));
 

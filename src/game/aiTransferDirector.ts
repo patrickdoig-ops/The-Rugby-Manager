@@ -12,7 +12,7 @@ import type { Player } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
 import {
   RENEWAL,
-  WAGE_FLOOR, WAGE_ROUNDING_UNIT, AI_SIGNING_POLICY,
+  WAGE_FLOOR, WAGE_ROUNDING_UNIT, AI_SIGNING_POLICY, WAGE_NEGOTIATION,
 } from '../engine/balance/transfers';
 import { seedContractFields } from './contractSeeder';
 import { parseSeasonStartYear } from './age';
@@ -426,6 +426,31 @@ export function decideAIPoaches(state: GameState, humanClubId?: string): Array<{
 //
 // `humanClubId` is excluded (the human submits their own bids via UI).
 // Pass undefined in headless contexts to let every club bid.
+// Closed-form competitive bid wage for an AI club. Deterministic and
+// RNG-FREE — a multiplier on the player's asking wage (the cached
+// offer.annualWage) scaled by position need + rating, capped by the
+// club's remaining headroom and the aiPremiumMaxRatio ceiling, floored
+// at asking. Bidding above asking lifts the bid's wage-satisfaction in
+// the resolver so the user actually has to compete on money.
+//
+// CRITICAL: must not call seedContractFields / rngTransfer — decideAIBids
+// consumes zero RNG draws today and introducing any would perturb the
+// entire downstream career stream (see CLAUDE.md § Randomness Boundary).
+export function aiBidWage(askingWage: number, ovr: number, need: number, headroom: number): number {
+  const r = Math.max(0, Math.min(1,
+    (ovr - WAGE_NEGOTIATION.aiPremiumRatingFloor) / WAGE_NEGOTIATION.aiPremiumRatingRange));
+  let mult = 1
+    + WAGE_NEGOTIATION.aiPremiumBase
+    + WAGE_NEGOTIATION.aiPremiumPerNeed * need
+    + WAGE_NEGOTIATION.aiPremiumRatingScale * r;
+  mult = Math.min(mult, WAGE_NEGOTIATION.aiPremiumMaxRatio);
+  let wage = Math.round(askingWage * mult / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT;
+  // Never bid above remaining budget. The caller only reaches here when
+  // askingWage <= headroom, so the floored headroom is still >= asking.
+  if (wage > headroom) wage = Math.floor(headroom / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT;
+  return Math.max(wage, askingWage);
+}
+
 export function decideAIBids(state: GameState, humanClubId?: string): TransferBid[] {
   const out: TransferBid[] = [];
   const market = state.career.market;
@@ -504,25 +529,28 @@ export function decideAIBids(state: GameState, humanClubId?: string): TransferBi
         // Score: same overall + need formula as direct signings.
         const need = Math.max(0, AI_SIGNING_POLICY.targetPerPosition - (positionCounts.get(p.position) ?? 0));
         const score = overall + need * AI_SIGNING_POLICY.positionNeedWeight;
-        return { offer, p, overall, score, isFreeAgent };
+        return { offer, p, overall, need, score, isFreeAgent };
       })
       .filter((x): x is NonNullable<typeof x> => x !== null)
       .sort((a, b) => b.score - a.score || a.offer.rosterId - b.offer.rosterId);
 
     let bidsThisClub = 0;
-    for (const { offer, p, isFreeAgent } of candidates) {
+    for (const { offer, p, overall, need, isFreeAgent } of candidates) {
       if (bidsThisClub >= AI_SIGNING_POLICY.perClubLimit) break;
       if (offer.annualWage > headroom) continue;
+      // Competitive wage: a premium over the asking wage so the AI bid
+      // carries positive wage-satisfaction in the resolver.
+      const wage = aiBidWage(offer.annualWage, overall, need, headroom);
       out.push({
         id: bidId(seasonsCompleted, offer.rosterId, club.id),
         rosterId: offer.rosterId,
         clubId: club.id,
-        annualWage: offer.annualWage,
+        annualWage: wage,
         lengthYears: offer.lengthYears,
         kind: isFreeAgent ? 'free_agent' : 'poach',
         status: 'pending',
       });
-      headroom -= offer.annualWage;
+      headroom -= wage;
       positionCounts.set(p.position, (positionCounts.get(p.position) ?? 0) + 1);
       bidsThisClub += 1;
     }

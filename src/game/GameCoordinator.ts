@@ -398,8 +398,11 @@ export class GameCoordinator {
     this.transfers.openRenewalWindow();
   }
 
-  closeRenewalWindow(userDecisions: Record<string, 'renew' | 'release'> = {}): void {
-    this.transfers.closeRenewalWindow(userDecisions);
+  closeRenewalWindow(
+    userDecisions: Record<string, 'renew' | 'release'> = {},
+    userWages: Record<string, number> = {},
+  ): void {
+    this.transfers.closeRenewalWindow(userDecisions, userWages);
   }
 
   openSigningWindow(opts: { skipPoaches?: boolean } = {}): void {
@@ -417,16 +420,16 @@ export class GameCoordinator {
     applySeasonEvent(this.state, { type: 'PRE_SEASON_STEP_SET', step });
   }
 
-  signFreeAgent(rosterId: number): boolean {
-    return this.transfers.signFreeAgent(rosterId);
+  signFreeAgent(rosterId: number, offeredWage?: number): boolean {
+    return this.transfers.signFreeAgent(rosterId, offeredWage);
   }
 
   unsignFreeAgent(rosterId: number): boolean {
     return this.transfers.unsignFreeAgent(rosterId);
   }
 
-  preAgreePoach(rosterId: number): boolean {
-    return this.transfers.preAgreePoach(rosterId);
+  preAgreePoach(rosterId: number, offeredWage?: number): boolean {
+    return this.transfers.preAgreePoach(rosterId, offeredWage);
   }
 
   cancelPreAgreement(rosterId: number): boolean {
@@ -436,16 +439,16 @@ export class GameCoordinator {
   // Competitive signing flow (Phase 10) — thin delegates onto
   // TransferCoordinator. UI calls these between rounds; per-method
   // docs live on the TransferCoordinator class.
-  submitBid(rosterId: number): boolean {
-    return this.transfers.submitBid(rosterId);
+  submitBid(rosterId: number, offeredWage?: number): boolean {
+    return this.transfers.submitBid(rosterId, offeredWage);
   }
 
   withdrawBid(rosterId: number): boolean {
     return this.transfers.withdrawBid(rosterId);
   }
 
-  submitRetentionBid(rosterId: number): boolean {
-    return this.transfers.submitRetentionBid(rosterId);
+  submitRetentionBid(rosterId: number, offeredWage?: number): boolean {
+    return this.transfers.submitRetentionBid(rosterId, offeredWage);
   }
 
   withdrawRetentionBid(rosterId: number): boolean {
@@ -500,8 +503,8 @@ export class GameCoordinator {
 
   // Mid-season early contract renewal (Hub → Contracts). One-shot
   // voluntary renewal of an expiring own-squad player — delegate.
-  offerEarlyRenewal(rosterId: number): EarlyRenewalResult {
-    return this.transfers.offerEarlyRenewal(rosterId);
+  offerEarlyRenewal(rosterId: number, offeredWage?: number): EarlyRenewalResult {
+    return this.transfers.offerEarlyRenewal(rosterId, offeredWage);
   }
 
   repairAIMarquees(): void {

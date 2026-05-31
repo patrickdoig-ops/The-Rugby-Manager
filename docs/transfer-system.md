@@ -328,6 +328,8 @@ All stat-development RNG (Phase 1 — `clampedNormal` in `careerRollover.ts`), r
 
 `scripts/checkSeasonDeterminism.ts` runs a 3-season career with fixed seed, exercises both `openRenewalWindow` + `closeRenewalWindow` and `openSigningWindow` + `closeSigningWindow` between each pair of seasons (AI-only, no user decisions), snapshots per-season standings + results + the full SeasonEvent stream + renewal + signing offer hashes + post-window free-agents pool + final-state roster baseStats + seasonsCompleted, and asserts byte-equal hash on a second run. A career with a given seed produces an identical final league table + roster + retirement list + transfer activity every run.
 
+**Salary negotiation (v1.10b)** is determinism-safe by construction: (a) the off-season wage term (`wageSatisfaction`) and reservation gate are pure arithmetic, no RNG; (b) the AI competitive premium `aiBidWage` is a closed-form function of the cached asking wage / OVR / need and **never** calls `seedContractFields`/`rngTransfer` (`decideAIBids` still consumes zero draws); (c) the user-side renewal acceptance rolls (`renewalAcceptProbability` + `rngTransfer`) fire only when the user supplies a wage below asking, so the AI-only harness takes none. UI previews that need an expected wage use the RNG-free `contractSeeder.estimateMarketWage` instead of advancing the stream.
+
 ---
 
 ## 6. UI surface
@@ -335,8 +337,9 @@ All stat-development RNG (Phase 1 — `clampedNormal` in `careerRollover.ts`), r
 | Screen | Status | Triggered from | Purpose |
 |---|---|---|---|
 | **EndOfSeasonScreen** | ✅ live (v2.22a) | Auto, after final-round result | Final table + your-season summary + top scorer + MVP cards |
-| **RenewalsScreen** | ✅ live (v2.36a) | After EndOfSeason if expiring contracts exist | Per-row Renew/Release toggle on the player's expiring squad with live projected-cap pill |
-| **TransferMarketScreen** | ✅ live (v2.43a) | After Renewals if free agents or Reg 7 poach candidates exist | Two sections — free agents (Sign) + final-12-month contracted (Pre-Agree). Sortable by name/pos/age/OVR/wage, live cap pill |
+| **RenewalsScreen** | ✅ live (v2.36a) | After EndOfSeason if expiring contracts exist | Per-row Renew/Release toggle + tap-to-negotiate wage (v1.10b) on the player's expiring squad with live projected-cap pill |
+| **TransferMarketScreen** | ✅ live (v2.43a) | After Renewals if free agents or Reg 7 poach candidates exist | Two sections — free agents (Sign) + final-12-month contracted (Pre-Agree). Make Offer opens the wage-negotiation modal (v1.10b). Sortable by name/pos/age/OVR/wage, live cap pill |
+| **wageOfferModal** | ✅ live (v1.10b) | Any bid / renew action | Slider sheet (`src/ui/components/wageOfferModal.ts`) for the offered wage, with a live Likely/Uncertain/Unlikely acceptance chip + budget line |
 | **RolloverScreen** | ✅ live (v2.22a) | After TransferMarket (or directly after Renewals/EndOfSeason if windows skipped) | Retirements + per-player aging deltas + inbound transfers + academy graduates; "Begin {next season}" CTA |
 | **ContractsScreen** | ✅ live (v2.36a) | Hub → Contracts tile | Sortable squad list — name / pos / age / OVR / wage / expiry / marquee badge. Interactive marquee toggle + 3-state cap pill |
 
@@ -500,6 +503,7 @@ Resolved during Phases 1 + 2:
 1. ✅ **Wage formula calibration.** Shipped as `WAGE_BY_RATING` (piecewise-linear anchor table) × `POSITION_SCARCITY` × `WAGE_NOISE` in `src/engine/balance/transfers.ts`. No age multiplier in the formula yet — length distribution is age-banded instead. Numbers will retune once Phase 4 telemetry exists.
 3. ✅ **Retirement curve shape.** Shipped as `RETIREMENT_CURVE` in `src/engine/balance/career.ts` — forwards skew one year later than backs at every age bucket, 100% retirement at 38 (forwards) / 37 (backs).
 4. ✅ **Stat development curve per stat.** Shipped as `AGE_CURVES` in `src/engine/balance/career.ts` — pace/agility peak 25-26 with the steepest decline, composure/kicking/positioning hold to 31-33 with the shallowest.
+8. ✅ **Salary negotiation (v1.10b).** Offered wage is no longer fixed — `wageSatisfaction(offered, asking)` (`signingResolver.ts`, tuned by `WAGE_NEGOTIATION`) feeds the `appealScore` seam across every window: off-season competitive (wage term + reservation holdout gate, deterministic), mid-season FA + user renewals (folded into the acceptance probability + `renewalAcceptProbability` clamps). AI bids carry a deterministic premium (`aiBidWage`). See §5 + `docs/game-engine.md`. No save bump.
 
 Still open:
 

@@ -346,12 +346,13 @@ document.addEventListener('DOMContentLoaded', () => {
     initRolloverScreen(getGameEngine, allTeams);
     initContractsScreen(getGameEngine, allTeams, () => goHub('back'), (rosterId) => {
       goPlayerProfile(rosterId, () => goContracts('back'));
-    }, (rosterId) => {
+    }, (rosterId, offeredWage) => {
       // Mid-season early renewal: mutate + persist engine-side so a
       // re-signing survives a tab close. The screen handles the toast +
-      // re-render from the returned outcome.
+      // re-render from the returned outcome. The wage is the user's
+      // negotiated figure from the offer modal.
       const engine = getGameEngine();
-      const result = engine.offerEarlyRenewal(rosterId);
+      const result = engine.offerEarlyRenewal(rosterId, offeredWage);
       saveGame(engine.toSavePayload());
       return result;
     });
@@ -773,9 +774,9 @@ document.addEventListener('DOMContentLoaded', () => {
       gameEngine.openRenewalWindow();
       if (gameEngine.getState().career.market) {
         saveGame(gameEngine.toSavePayload());
-        showRenewals((decisions) => {
+        showRenewals((decisions, wages) => {
           if (!gameEngine) { goHub(); return; }
-          gameEngine.closeRenewalWindow(decisions);
+          gameEngine.closeRenewalWindow(decisions, wages);
           saveGame(gameEngine.toSavePayload());
           proceedToSignings();
         });
@@ -856,9 +857,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     if (market?.phase === 'renewals') {
-      showRenewals((decisions) => {
+      showRenewals((decisions, wages) => {
         if (!gameEngine) { goHub(); return; }
-        gameEngine.closeRenewalWindow(decisions);
+        gameEngine.closeRenewalWindow(decisions, wages);
         saveGame(gameEngine.toSavePayload());
         // Open signings as normal — openSigningWindow is idempotent.
         gameEngine.openSigningWindow();

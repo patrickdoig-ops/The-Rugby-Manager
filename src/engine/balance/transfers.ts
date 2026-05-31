@@ -316,3 +316,57 @@ export const AI_SIGNING_POLICY = {
   targetPerPosition: 2,
   positionNeedWeight: 10,
 };
+
+// Salary negotiation. The offer's annualWage is the player's ASKING
+// wage; the manager (or an AI club) offers a wage W and the ratio
+// W/asking feeds a signed appeal contribution (wageSatisfaction in
+// signingResolver). Magnitudes are scaled against the other appeal
+// terms — squadAvgOvr ~65-80 (×ovrWeight 1.0), need up to 15, ambition
+// ±9, loyalty 8 — so a ~15-25% overpay yields roughly +6 to +12 appeal:
+// enough to beat a small squad-quality gap, not a large one.
+//
+//   wageSatisfaction(offered, asking):
+//     ratio = offered / asking  (asking ≤ 0 → 0)
+//     ratio ≥ 1 → min(slopeOver  × (ratio - 1),  maxBonus)
+//     ratio < 1 → max(slopeUnder × (ratio - 1), -maxPenalty)   (negative)
+//
+// Worked examples with the values below:
+//   +10% (ratio 1.10) → +4 appeal     +20% (1.20) → +8     +30% (1.30) → +12 (capped)
+//   -10% (ratio 0.90) → -6 appeal     -25% (0.75) → -15    -40% (0.60) → -24 (capped)
+export const WAGE_NEGOTIATION = {
+  // wageSatisfaction curve. Underpay slope is steeper than overpay —
+  // players dislike being lowballed more than they value a premium.
+  slopeOver:   40,
+  slopeUnder:  60,
+  maxBonus:    12,
+  maxPenalty:  24,
+
+  // Off-season competitive reservation gate. If the WINNING bid's
+  // wageRatio < this, the player holds out — no contract this round,
+  // even unopposed. (Deterministic; no RNG.)
+  reservationFloorRatio: 0.80,
+
+  // User-side renewal / early-renewal accept-probability clamps. A
+  // renewal offered at or above asking is near-certain (loyalty floor);
+  // a deep lowball still has a small floor chance. The wage term is
+  // folded into appealScore before the MIDSEASON_SIGNING linear map, so
+  // these only bound the result.
+  renewalLoyaltyFloorProb:  0.97,
+  renewalUnderpayFloorProb: 0.05,
+
+  // AI competitive wage premium (decideAIBids). Deterministic, RNG-free
+  // — a closed-form multiplier on the asking wage so AI clubs bid above
+  // asking and the user actually has to compete on wages. Critically
+  // this must NOT call seedContractFields / rngTransfer (decideAIBids
+  // consumes zero RNG draws today; adding any would perturb the whole
+  // downstream career stream).
+  //   premiumRatio = 1 + base + perNeed × need + ratingScale × r
+  //     r = clamp01((ovr - ratingFloor) / ratingRange)
+  //   capped at maxRatio, floored at asking, headroom-capped.
+  aiPremiumBase:        0.04,
+  aiPremiumPerNeed:     0.05,
+  aiPremiumRatingScale: 0.12,
+  aiPremiumRatingFloor: 70,
+  aiPremiumRatingRange: 26,
+  aiPremiumMaxRatio:    1.30,
+};

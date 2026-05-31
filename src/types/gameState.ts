@@ -23,6 +23,10 @@ export interface Fixture {
   // Set on the two dedicated derby rounds (Derby Weekend + Big Match Weekend).
   // Drives the visual badge on fixture rows in the fixture list.
   isDerby?: true;
+  // Alternative venue name when a match is played outside the home club's
+  // regular ground (e.g. "Allianz Stadium, Twickenham"). Home advantage is
+  // unchanged — the larger venue is still a home fixture.
+  venue?: string;
 }
 
 export interface SeasonSchedule {

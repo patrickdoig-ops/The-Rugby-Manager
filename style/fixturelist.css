@@ -125,6 +125,25 @@
 .fl-round--derby .fl-round-label { color: var(--rm-amber); }
 .fl-round--derby .fl-round-num   { color: var(--rm-amber); }
 
+/* Special venue chip — shown on the active row's date line when a
+   match is played at an alternative ground. */
+.fl-venue-chip {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  background: color-mix(in oklch, var(--rm-amber) 14%, transparent);
+  color: var(--rm-amber);
+  border: 1px solid color-mix(in oklch, var(--rm-amber) 35%, transparent);
+  border-radius: 999px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
 .fl-round-num {
   font-family: var(--rm-font-mono);
   font-size: var(--rm-fs-20);

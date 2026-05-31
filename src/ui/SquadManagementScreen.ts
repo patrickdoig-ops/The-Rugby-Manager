@@ -178,6 +178,24 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     return undefined;
   }
 
+  // The Premiership round a 2025 Lions returnee becomes available, if they're
+  // still on the post-tour stand-down this round. Surfaced with the same REST
+  // pill as the international-duty obligation above.
+  function lionsStandDownFor(p: { firstName: string; lastName: string }): number | undefined {
+    const state = opts.getGameEngine().getState();
+    const club = state.career.clubs.find(c => c.id === state.player.teamId);
+    if (!club) return undefined;
+    for (const rid of club.squad) {
+      const r = state.career.roster[rid];
+      if (r && r.firstName === p.firstName && r.lastName === p.lastName) {
+        return (r.lionsReturnRound !== undefined && state.calendar.week < r.lionsReturnRound)
+          ? r.lionsReturnRound
+          : undefined;
+      }
+    }
+    return undefined;
+  }
+
   // Average match rating for a draft-row player. Returns null when the
   // player has no appearances this season — distinguishes "0.0 because
   // untouched" from a genuinely poor rating so the row can render an em
@@ -550,9 +568,12 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       ? `<span class="injury-badge" title="${injuryKindLabel(injury.kind)} — ${injury.weeksRemaining}w">${injury.weeksRemaining}w</span>`
       : '';
     const rest = !injury ? restObligationFor(p) : undefined;
+    const lionsRound = !injury && !rest ? lionsStandDownFor(p) : undefined;
     const restBadge = rest
       ? `<span class="rest-badge" title="International duty — must be rested in one of rounds ${rest.eligibleRounds.join(', ')}">REST</span>`
-      : '';
+      : lionsRound !== undefined
+        ? `<span class="rest-badge" title="British &amp; Irish Lions — post-tour rest, unavailable until Round ${lionsRound}">REST</span>`
+        : '';
     const condition = conditionFor(p);
     const conditionCell = condition === null
       ? `<div class="sq-con sq-con--unrated" title="No condition data">—</div>`

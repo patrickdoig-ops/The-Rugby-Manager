@@ -1,7 +1,10 @@
 // End-of-season recap. Reached from the post-match Continue chain when
-// the league has no more fixtures for the player's team. Shows final
-// standings, the player's season summary, and league-leader cards (top
-// scorer by tries, MVP by avg rating with min appearances).
+// the league has no more fixtures for the player's team. Shows:
+//  - compact champion banner (trophy · name · season)
+//  - final standings (full table)
+//  - Your Season (summary row, expandable to full stats)
+//  - Player Stats (4 compact chips, expandable to full cards):
+//    Top Scorer, Season MVP, Best Kicker, Top Points
 //
 // CTA → RolloverScreen (which animates the off-season — aging, retirements
 // — and bridges to the next year's Hub).
@@ -75,7 +78,44 @@ function mvp(state: GameState): Player | null {
   return best;
 }
 
-function playerStandingRow(s: TeamStanding | undefined, rank: number): string {
+function bestKicker(state: GameState): Player | null {
+  let best: Player | null = null;
+  let mostGoals = 0;
+  for (const idStr of Object.keys(state.career.roster).sort((a, b) => +a - +b)) {
+    const p = state.career.roster[+idStr];
+    if (p.seasonStats.kicksMade > mostGoals) {
+      mostGoals = p.seasonStats.kicksMade;
+      best = p;
+    }
+  }
+  return best;
+}
+
+function topPoints(state: GameState): { player: Player; points: number } | null {
+  let best: Player | null = null;
+  let mostPts = 0;
+  for (const idStr of Object.keys(state.career.roster).sort((a, b) => +a - +b)) {
+    const p = state.career.roster[+idStr];
+    const pts = p.seasonStats.tries * 5
+      + p.seasonStats.conversions * 2
+      + p.seasonStats.penaltiesScored * 3;
+    if (pts > mostPts) { mostPts = pts; best = p; }
+  }
+  return best ? { player: best, points: mostPts } : null;
+}
+
+function seasonSummaryRow(s: TeamStanding, rank: number): string {
+  return `
+    <div class="eos-season-summary">
+      <span class="eos-ss-pos">${ordinal(rank)}</span>
+      <span class="eos-ss-sep">·</span>
+      <span class="eos-ss-record">${s.won}W <span class="eos-ss-dim">${s.drawn}D ${s.lost}L</span></span>
+      <span class="eos-ss-sep">·</span>
+      <span class="eos-ss-pts">${s.leaguePoints}<span class="eos-ss-dim"> pts</span></span>
+    </div>`;
+}
+
+function playerStandingDetail(s: TeamStanding | undefined, rank: number): string {
   if (!s) return '';
   // Numeric stats get data-counter-* attributes so init() can tween them
   // up from 0; non-numeric cells (Final position ordinal, W/D/L bundle)
@@ -90,6 +130,8 @@ function playerStandingRow(s: TeamStanding | undefined, rank: number): string {
       <li><span>League points</span><strong data-counter-int="${s.leaguePoints}" data-counter-delay="1500">0</strong></li>
     </ul>`;
 }
+
+const CHEVRON_SVG = `<svg class="eos-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>`;
 
 function ordinal(n: number): string {
   const s = ['th', 'st', 'nd', 'rd'];
@@ -132,29 +174,37 @@ export function initEndOfSeasonScreen(
 
     const top = topScorer(state);
     const mvpPlayer = mvp(state);
+    const kicker = bestKicker(state);
+    const topPts = topPoints(state);
+
     const topCard = top ? leaderCard('TOP SCORER', top, teamsById.get(clubOf(state, top.rosterId) ?? ''),
       `${top.seasonStats.tries} tries`) : leaderEmpty('TOP SCORER');
     const mvpCard = mvpPlayer ? leaderCard('SEASON MVP', mvpPlayer, teamsById.get(clubOf(state, mvpPlayer.rosterId) ?? ''),
       `${(mvpPlayer.seasonStats.ratingSum / mvpPlayer.seasonStats.appearances).toFixed(2)} avg · ${mvpPlayer.seasonStats.appearances} apps`) : leaderEmpty('SEASON MVP');
+    const kickerCard = kicker ? leaderCard('BEST KICKER', kicker, teamsById.get(clubOf(state, kicker.rosterId) ?? ''),
+      `${kicker.seasonStats.kicksMade} goals`) : leaderEmpty('BEST KICKER');
+    const ptsCard = topPts ? leaderCard('TOP POINTS', topPts.player, teamsById.get(clubOf(state, topPts.player.rosterId) ?? ''),
+      `${topPts.points} pts`) : leaderEmpty('TOP POINTS');
+
+    // Compact chip rows for the collapsed Player Stats view.
+    const statChips = [
+      top         ? statChip('TOP SCORER',  `${top.firstName[0]}. ${top.lastName}`,        `${top.seasonStats.tries} tries`)            : statChipEmpty('TOP SCORER'),
+      mvpPlayer   ? statChip('SEASON MVP',  `${mvpPlayer.firstName[0]}. ${mvpPlayer.lastName}`, `${(mvpPlayer.seasonStats.ratingSum / mvpPlayer.seasonStats.appearances).toFixed(2)} avg`) : statChipEmpty('SEASON MVP'),
+      kicker      ? statChip('BEST KICKER', `${kicker.firstName[0]}. ${kicker.lastName}`,  `${kicker.seasonStats.kicksMade} goals`)      : statChipEmpty('BEST KICKER'),
+      topPts      ? statChip('TOP POINTS',  `${topPts.player.firstName[0]}. ${topPts.player.lastName}`, `${topPts.points} pts`)          : statChipEmpty('TOP POINTS'),
+    ].join('');
 
     const championId = state.league.playoffs?.championTeamId ?? null;
     const championTeam = championId ? teamsById.get(championId) : undefined;
     const championIsMe = championId !== null && championId === playerId;
-    // Reserve the dot-confetti for AI-champion seasons. The player-as-
-    // champion path fires the real canvas Confetti.ts after render
-    // (handled below) so the dots and the canvas don't both flood.
-    const confettiHtml = championTeam && !championIsMe
-      ? `<div class="eos-confetti" aria-hidden="true">${'<span></span>'.repeat(14)}</div>`
-      : '';
     const championSection = championTeam
       ? `
         <section class="eos-section eos-champion-section">
-          <div class="eos-champion${championIsMe ? ' eos-champion--me' : ''}" style="--team-color:${championTeam.color}">
-            <div class="eos-champion-label"><span class="eos-label-text">LEAGUE CHAMPIONS</span></div>
-            <div class="eos-champion-crest" style="background:linear-gradient(160deg,${championTeam.color} 0%,color-mix(in oklch,${championTeam.color} 30%,black) 100%);border:1px solid color-mix(in oklch,${championTeam.color} 45%,transparent)">${championTeam.shortName[0] ?? '?'}</div>
-            <div class="eos-champion-name">${TROPHY_SVG}<span>${championTeam.name}</span></div>
+          <div class="eos-champion eos-champion--compact${championIsMe ? ' eos-champion--me' : ''}" style="--team-color:${championTeam.color}">
+            ${TROPHY_SVG}
+            <div class="eos-champion-name">${championTeam.name}</div>
+            <span class="eos-champion-sep">·</span>
             <div class="eos-champion-season">${state.calendar.seasonLabel} Champions</div>
-            ${confettiHtml}
           </div>
         </section>`
       : '';
@@ -169,23 +219,37 @@ export function initEndOfSeasonScreen(
         <div class="app-eyebrow">${state.calendar.seasonLabel}</div>
       </div>
 
-      ${championSection}
+      <div id="eos-content">
+        ${championSection}
 
-      <div id="eos-grid">
-        <section class="eos-section eos-standings">
-          <h3 class="eos-h3">Final Standings</h3>
-          <div class="eos-table">${standingsHtml}</div>
-        </section>
-        <section class="eos-section eos-your-season">
-          <h3 class="eos-h3">Your Season</h3>
-          ${playerStandingRow(playerStanding, playerRank)}
+        <div id="eos-grid">
+          <section class="eos-section eos-standings">
+            <h3 class="eos-h3">Final Standings</h3>
+            <div class="eos-table">${standingsHtml}</div>
+          </section>
+          <section class="eos-section eos-your-season eos-expandable" id="eos-your-season">
+            <div class="eos-expand-toggle">
+              <h3 class="eos-h3">Your Season</h3>
+              ${CHEVRON_SVG}
+            </div>
+            ${playerStanding ? seasonSummaryRow(playerStanding, playerRank) : ''}
+            <div class="eos-expand-detail">
+              ${playerStandingDetail(playerStanding, playerRank)}
+            </div>
+          </section>
+        </div>
+
+        <section class="eos-section eos-expandable" id="eos-player-stats">
+          <div class="eos-expand-toggle">
+            <h3 class="eos-h3">Player Stats</h3>
+            ${CHEVRON_SVG}
+          </div>
+          <div class="eos-stat-chips">${statChips}</div>
+          <div class="eos-expand-detail">
+            <div class="eos-leaders">${topCard}${mvpCard}${kickerCard}${ptsCard}</div>
+          </div>
         </section>
       </div>
-
-      <section class="eos-section">
-        <h3 class="eos-h3">League Leaders</h3>
-        <div class="eos-leaders">${topCard}${mvpCard}</div>
-      </section>
 
       <div id="eos-footer">
         <button id="eos-continue" class="cta-pulse">
@@ -197,19 +261,12 @@ export function initEndOfSeasonScreen(
 
     el!.querySelector<HTMLButtonElement>('#eos-continue')!.addEventListener('click', () => activeOnContinue());
 
-    const labelText = el!.querySelector<HTMLSpanElement>('.eos-label-text');
-    if (labelText) {
-      const full = labelText.textContent ?? '';
-      labelText.textContent = '';
-      let i = 0;
-      function typeNext() {
-        if (i >= full.length) return;
-        labelText!.textContent = full.slice(0, i + 1);
-        i++;
-        setTimeout(typeNext, 32);
-      }
-      setTimeout(typeNext, 200);
-    }
+    // Expand/collapse toggles for Your Season and Player Stats.
+    el!.querySelectorAll<HTMLElement>('.eos-expandable').forEach(section => {
+      section.querySelector('.eos-expand-toggle')?.addEventListener('click', () => {
+        section.classList.toggle('is-open');
+      });
+    });
 
     // Counter-up: every numeric cell tagged with data-counter-*
     // tweens from 0 to the encoded target. data-counter-delay is the
@@ -263,6 +320,24 @@ export function initEndOfSeasonScreen(
         <div class="eos-leader-label">${label}</div>
         <div class="eos-leader-name eos-leader-name--empty">No qualifying players</div>
         <div class="eos-leader-meta">Minimum appearance threshold not met</div>
+      </div>`;
+  }
+
+  function statChip(label: string, name: string, value: string): string {
+    return `
+      <div class="eos-sc">
+        <span class="eos-sc-label">${label}</span>
+        <span class="eos-sc-name">${name}</span>
+        <span class="eos-sc-val">${value}</span>
+      </div>`;
+  }
+
+  function statChipEmpty(label: string): string {
+    return `
+      <div class="eos-sc eos-sc--empty">
+        <span class="eos-sc-label">${label}</span>
+        <span class="eos-sc-name">—</span>
+        <span class="eos-sc-val"></span>
       </div>`;
   }
 

@@ -17,7 +17,7 @@
 
 import type { Fixture } from '../types/gameState';
 import { RIVALRY_PAIRS, DERBY_ROUND_POSITIONS } from '../engine/balance/season';
-import { rngTransfer } from '../utils/rng';
+import { rngTransferRaw } from '../utils/rng';
 
 export interface GenerateFixturesOptions {
   seasonsCompleted: number;
@@ -45,7 +45,7 @@ export function generateFixtures(
   const derbyA: Fixture[] = [];
   const derbyB: Fixture[] = [];
   for (const [canonical, rival] of RIVALRY_PAIRS) {
-    const flipped = rngTransfer(0, 1) < flipThreshold;
+    const flipped = rngTransferRaw() < flipThreshold;
     const homeA = flipped ? rival : canonical;
     const awayA = flipped ? canonical : rival;
     derbyA.push({ round: DERBY_ROUND_POSITIONS.first,  homeId: homeA, awayId: awayA, isDerby: true });
@@ -64,7 +64,7 @@ export function generateFixtures(
 
   // Fisher-Yates shuffle seeded by rngTransfer for per-season variety.
   for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(rngTransfer(0, 1) * (i + 1));
+    const j = Math.floor(rngTransferRaw() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
 

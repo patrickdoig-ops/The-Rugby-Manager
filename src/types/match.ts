@@ -135,9 +135,11 @@ export interface DisplaySnapshot {
   aggregates: {
     carries:           { home: number; away: number };
     runMetres:         { home: number; away: number };
+    passes:            { home: number; away: number };
+    offloads:          { home: number; away: number };
+    kicks:             { home: number; away: number };
     kickMetres:        { home: number; away: number };
     penaltiesConceded: { home: number; away: number };
-    offloads:          { home: number; away: number };
   };
 }
 

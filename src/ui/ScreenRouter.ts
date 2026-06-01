@@ -39,6 +39,9 @@ export type ScreenId =
   | 'training'
   | 'training-results'
   | 'international-break'
+  | 'intl-callups'
+  | 'cup-fixtures'
+  | 'cup-results'
   | 'achievements'
   | 'inbox';
 
@@ -55,6 +58,9 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'league-menu':   { elId: 'league-menu',   shownDisplay: '' },
   'team-stats':    { elId: 'team-stats',    shownDisplay: '' },
   'player-stats':  { elId: 'player-stats',  shownDisplay: '' },
+  'intl-callups':  { elId: 'intl-callups',  shownDisplay: '' },
+  'cup-fixtures':  { elId: 'cup-fixtures',  shownDisplay: '' },
+  'cup-results':   { elId: 'cup-results',   shownDisplay: '' },
   'player-profile':{ elId: 'player-profile',shownDisplay: '' },
   'pre-match':     { elId: 'pre-match',     shownDisplay: '' },
   'app':           { elId: 'app',           shownDisplay: '' },

@@ -89,6 +89,9 @@ import { initSquadManagementScreen, showSquadManagement } from './ui/SquadManage
 import { initTrainingScreen, showTrainingPostMatch, showTrainingMidweek } from './ui/TrainingScreen';
 import { initPostTrainingResultsScreen, showPostTrainingResults } from './ui/PostTrainingResultsScreen';
 import { initInternationalBreakScreen, showInternationalBreak } from './ui/InternationalBreakScreen';
+import { initInternationalCallUpsScreen, showInternationalCallUps } from './ui/InternationalCallUpsScreen';
+import { initCupFixturesScreen, showCupFixturesPreBlock, showCupFixturesBrowse } from './ui/CupFixturesScreen';
+import { initCupResultsScreen, showCupResults } from './ui/CupResultsScreen';
 import { initAchievementsScreen, showAchievements }  from './ui/AchievementsScreen';
 import { initInboxScreen, markInboxRead } from './ui/InboxScreen';
 import { initAchievementEngine }   from './achievements/AchievementEngine';
@@ -106,6 +109,7 @@ import type { PlayoffMatch }       from './types/gameState';
 import * as teamProfile            from './team/teamProfile';
 import type { TeamJson }           from './team/teamProfile';
 import { GameCoordinator }         from './game/GameCoordinator';
+import type { BreakBeginResult }   from './game/GameCoordinator';
 import { extractMatchdaySquad }    from './game/playerSquad';
 import { buildTeamFromRoster, buildAutoSelectedTeamFromRoster } from './game/rosterTeamBuilder';
 import { snapshotMatch }           from './game/seasonStatsCollector';
@@ -306,6 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onTeamStats:    goTeamStats,
       onPlayerStats:  goPlayerStats,
       onAchievements: goAchievements,
+      onCup:          goCupBrowse,
     });
     initLeagueTableScreen(getGameEngine, allTeams, () => goLeagueMenu('back'), (teamId) => {
       const teamJson = allTeams.find(t => t.id === teamId);
@@ -373,6 +378,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initInternationalBreakScreen(getGameEngine, allTeams, (rosterId) => {
       goPlayerProfile(rosterId, () => screenRouter.show('international-break', { direction: 'back' }));
     });
+    initInternationalCallUpsScreen(getGameEngine, allTeams, (rosterId) => {
+      goPlayerProfile(rosterId, () => screenRouter.show('intl-callups', { direction: 'back' }));
+    });
+    initCupFixturesScreen(getGameEngine, allTeams);
+    initCupResultsScreen(getGameEngine, allTeams);
     initAchievementsScreen(() => goLeagueMenu('back'));
     // Achievements listen to game:* events and read live state through the
     // getter, so the engine swaps cleanly on New Game. Subscriptions are
@@ -418,6 +428,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function goLeagueMenu(direction: 'forward' | 'back' = 'forward'): void {
     screenRouter.show('league-menu', { direction });
+  }
+
+  function goCupBrowse(direction: 'forward' | 'back' = 'forward'): void {
+    showCupFixturesBrowse(() => goLeagueMenu('back'));
+    screenRouter.show('cup-fixtures', { direction });
   }
 
   function goTeamStats(direction: 'forward' | 'back' = 'forward'): void {
@@ -1148,6 +1163,38 @@ document.addEventListener('DOMContentLoaded', () => {
     screenRouter.show('app');
   }
 
+  // International-break screen chain: call-ups → cup fixtures (+ direction)
+  // → training plan → [block runs] → cup results → training impact →
+  // international returns → afterTraining. The Assistant Manager runs the
+  // cup headless inside runInternationalBreakBlock (the training Continue).
+  function runInternationalBreakChain(begin: BreakBeginResult, eng: GameCoordinator, afterTraining: () => void): void {
+    showInternationalCallUps(begin, () => {
+      showCupFixturesPreBlock(begin, (direction) => {
+        begin.cupDirection = direction;
+        eng.setCupDirection(direction);
+        showTrainingPostMatch((results) => {
+          // After the block: cup results → training impact → international
+          // returns → the chain's next step (Hub via the mid-season poach gate).
+          const toReturns = results.international
+            ? () => {
+                showInternationalBreak(results.international!, afterTraining);
+                screenRouter.show('international-break');
+              }
+            : afterTraining;
+          const toPostTraining = () => {
+            showPostTrainingResults(results, toReturns);
+            screenRouter.show('training-results');
+          };
+          showCupResults(begin.cupLeg, toPostTraining);
+          screenRouter.show('cup-results');
+        }, { runBlock: (weeks) => eng.runInternationalBreakBlock(weeks, begin) });
+        screenRouter.show('training');
+      });
+      screenRouter.show('cup-fixtures');
+    });
+    screenRouter.show('intl-callups');
+  }
+
   function showMatchResult(engine: MatchCoordinator, state: MatchState, round: number): void {
     // Compute the player's next fixture preview (the one *after* the round
     // just played). The result hasn't been recorded yet at this point, so
@@ -1209,27 +1256,20 @@ document.addEventListener('DOMContentLoaded', () => {
           ? () => { bracketSeededPending = false; runPlayoffStage(); }
           : () => maybeRunMidseasonPoach(() => { if (gameEngine) saveGame(gameEngine.toSavePayload()); goHub(); });
         // International break detection (RNG-free): flags the call-ups and
-        // reads this block's Prem Cup fixtures. When present, the training
-        // Continue runs the cup + training block (runInternationalBreakBlock)
-        // instead of the plain applyTrainingBlock.
+        // reads this block's Prem Cup fixtures. When present, the break runs
+        // its own screen chain (call-ups → cup fixtures + direction → training
+        // → cup results → training impact → returns). Otherwise the plain
+        // post-match training path.
         const eng = gameEngine;
         const begin = !isPlayoffEntry && eng ? eng.beginInternationalBreak() : null;
+        if (begin && eng) {
+          runInternationalBreakChain(begin, eng, afterTraining);
+          return;
+        }
         showTrainingPostMatch((results) => {
-          // At an international break the training result carries a summary;
-          // slot the International Break screen between training results and
-          // the chain's next step (Hub / playoffs).
-          const afterResults = results.international
-            ? () => {
-                showInternationalBreak(results.international!, afterTraining);
-                screenRouter.show('international-break');
-              }
-            : afterTraining;
-          showPostTrainingResults(results, afterResults);
+          showPostTrainingResults(results, afterTraining);
           screenRouter.show('training-results');
-        }, {
-          playoffLabel,
-          ...(begin && eng ? { runBlock: (weeks) => eng.runInternationalBreakBlock(weeks, begin) } : {}),
-        });
+        }, { playoffLabel });
         screenRouter.show('training');
       };
       showRoundResults(round, () => {

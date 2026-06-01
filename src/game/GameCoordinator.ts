@@ -563,6 +563,12 @@ export class GameCoordinator {
     applySeasonEvent(this.state, { type: 'PLAYER_TRAINING_PLAN_SET', plan });
   }
 
+  // Persists the Assistant-Manager Prem Cup direction (best XV vs rest the
+  // first-choice 15). Becomes the remembered default for the next break.
+  setCupDirection(direction: 'best' | 'rest_first_15'): void {
+    applySeasonEvent(this.state, { type: 'PLAYER_CUP_DIRECTION_SET', direction });
+  }
+
   // ===== Off-season market (Phases 2-7) =====
   //
   // All seven methods delegate to TransferCoordinator. The class lives

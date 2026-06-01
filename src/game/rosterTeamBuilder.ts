@@ -74,8 +74,46 @@ export function buildAutoSelectedTeamFromRoster(
 
   const used = new Set(selected);
   const remaining = club.squad.filter(rid => !used.has(rid));
-  const ordered = [...selected, ...remaining];
+  return assembleTeam(state, teamJson, [...selected, ...remaining]);
+}
 
+// Cup variant: builds the strongest available 23 for a Prem Cup fixture,
+// excluding players on international duty (set during the break) on top of
+// the usual injured / rest-obligated exclusions. `restRosterIds` (the
+// user's first-choice XV in "rest the starters" mode) are additionally
+// held out — but if that leaves fewer than 23 fit players the restriction
+// is dropped so the club still fields a valid team rather than a short one.
+export function buildCupTeamFromRoster(
+  state: GameState,
+  teamJson: RawTeamInput,
+  restRosterIds?: readonly number[],
+): RawTeamInput {
+  const club = state.career.clubs.find(c => c.id === teamJson.id);
+  if (!club) return teamJson;
+
+  const base = new Set(selectionUnavailableIds(state, teamJson.id));
+  for (const rid of club.squad) {
+    if (state.career.roster[rid]?.internationalDuty) base.add(rid);
+  }
+  const withRest = new Set(base);
+  if (restRosterIds) for (const rid of restRosterIds) withRest.add(rid);
+
+  let selected = selectBestMatchdaySquad(state.career.roster, club.squad, withRest);
+  if (selected.length !== 23 && restRosterIds && restRosterIds.length > 0) {
+    // Resting the first-choice XV left the bench too thin — field the best
+    // available (including some starters) rather than an incomplete 23.
+    selected = selectBestMatchdaySquad(state.career.roster, club.squad, base);
+  }
+  if (selected.length !== 23) return buildTeamFromRoster(state, teamJson);
+
+  const used = new Set(selected);
+  const remaining = club.squad.filter(rid => !used.has(rid));
+  return assembleTeam(state, teamJson, [...selected, ...remaining]);
+}
+
+// Assemble a RawTeamInput from an ordered rosterId list: slots 1-15
+// starters, 16-23 bench, 24+ wider squad.
+function assembleTeam(state: GameState, teamJson: RawTeamInput, ordered: number[]): RawTeamInput {
   const rosterPlayers = ordered.map((rid, idx) => {
     const p = state.career.roster[rid];
     if (!p) return null;

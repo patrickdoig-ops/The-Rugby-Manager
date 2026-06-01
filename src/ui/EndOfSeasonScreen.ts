@@ -186,13 +186,6 @@ export function initEndOfSeasonScreen(
     const ptsCard = topPts ? leaderCard('TOP POINTS', topPts.player, teamsById.get(clubOf(state, topPts.player.rosterId) ?? ''),
       `${topPts.points} pts`) : leaderEmpty('TOP POINTS');
 
-    // Compact chip rows for the collapsed Player Stats view.
-    const statChips = [
-      top         ? statChip('TOP SCORER',  `${top.firstName[0]}. ${top.lastName}`,        `${top.seasonStats.tries} tries`)            : statChipEmpty('TOP SCORER'),
-      mvpPlayer   ? statChip('SEASON MVP',  `${mvpPlayer.firstName[0]}. ${mvpPlayer.lastName}`, `${(mvpPlayer.seasonStats.ratingSum / mvpPlayer.seasonStats.appearances).toFixed(2)} avg`) : statChipEmpty('SEASON MVP'),
-      kicker      ? statChip('BEST KICKER', `${kicker.firstName[0]}. ${kicker.lastName}`,  `${kicker.seasonStats.kicksMade} goals`)      : statChipEmpty('BEST KICKER'),
-      topPts      ? statChip('TOP POINTS',  `${topPts.player.firstName[0]}. ${topPts.player.lastName}`, `${topPts.points} pts`)          : statChipEmpty('TOP POINTS'),
-    ].join('');
 
     const championId = state.league.playoffs?.championTeamId ?? null;
     const championTeam = championId ? teamsById.get(championId) : undefined;
@@ -244,7 +237,6 @@ export function initEndOfSeasonScreen(
             <h3 class="eos-h3">Player Stats</h3>
             ${CHEVRON_SVG}
           </div>
-          <div class="eos-stat-chips">${statChips}</div>
           <div class="eos-expand-detail">
             <div class="eos-leaders">${topCard}${mvpCard}${kickerCard}${ptsCard}</div>
           </div>
@@ -320,24 +312,6 @@ export function initEndOfSeasonScreen(
         <div class="eos-leader-label">${label}</div>
         <div class="eos-leader-name eos-leader-name--empty">No qualifying players</div>
         <div class="eos-leader-meta">Minimum appearance threshold not met</div>
-      </div>`;
-  }
-
-  function statChip(label: string, name: string, value: string): string {
-    return `
-      <div class="eos-sc">
-        <span class="eos-sc-label">${label}</span>
-        <span class="eos-sc-name">${name}</span>
-        <span class="eos-sc-val">${value}</span>
-      </div>`;
-  }
-
-  function statChipEmpty(label: string): string {
-    return `
-      <div class="eos-sc eos-sc--empty">
-        <span class="eos-sc-label">${label}</span>
-        <span class="eos-sc-name">—</span>
-        <span class="eos-sc-val"></span>
       </div>`;
   }
 

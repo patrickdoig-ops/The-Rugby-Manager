@@ -1119,4 +1119,22 @@ export type SeasonEvent =
       // (reverts to the auto-resolved highest-composure starter).
       type: 'PLAYER_CAPTAIN_SET';
       rosterId: number | undefined;
+    }
+  | {
+      // Manager counselled a player about their discipline (inbox action).
+      // Sets Player.disciplineAdvice so the match-builder boosts their
+      // effective discipline stat and slightly reduces tackling for
+      // DISCIPLINE_COUNSEL.durationRounds rounds.
+      type: 'PLAYER_DISCIPLINE_COUNSELLED';
+      rosterId: number;
+      expiresAfterRound: number;
+    }
+  | {
+      // Player hit the season yellow-card accumulation ban threshold.
+      // Blocks selection for forRound via selectionUnavailableIds.
+      // Fired by GameCoordinator.recordPlayerMatchResult after stats
+      // accumulation.
+      type: 'PLAYER_SUSPENDED';
+      rosterId: number;
+      forRound: number;
     };

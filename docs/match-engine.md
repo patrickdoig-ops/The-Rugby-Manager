@@ -1448,6 +1448,8 @@ The card system layers on top of the penalty seam. Whenever `PENALTY_AWARDED` fi
 
 ### Card lifecycle
 
+**Double-yellow rule.** `CardHandler.issueCard` checks `player.matchStats.yellowCards > 0` before applying any yellow card. If the player already holds a yellow this match, the kind is silently escalated to `red_20` (standard rugby union rule — two yellows = automatic sending-off). The escalation happens before `CARD_ISSUED` fires, so the event carries the final `effectiveKind` and commentary uses the `card_red_20` narration key.
+
 `CARD_ISSUED { player, side, kind }` (reducer in `applyMatchEvent`):
 - Yellow → `player.matchStats.yellowCards++`, push `{ player, kind, returnMinute: gameMinute + SIN_BIN_DURATION.yellow }` into `state.cards.sinBin[side]`.
 - Red_20 → `player.matchStats.redCards++`, push entry with `returnMinute: gameMinute + SIN_BIN_DURATION.red_20`.
@@ -1483,6 +1485,8 @@ The card system layers on top of the penalty seam. Whenever `PENALTY_AWARDED` fi
 ### Stat additions
 
 `PlayerMatchStats` extends with `yellowCards` + `redCards` (both bounded `[0, 3]` in `assertInvariants` as a paranoia ceiling). Red_20 bumps `redCards++` only — total cards = `yellowCards + redCards`.
+
+**Discipline counselling (`Player.disciplineAdvice`).** When a manager counsels a player about their discipline (via the inbox), `PLAYER_DISCIPLINE_COUNSELLED` sets `Player.disciplineAdvice = { mode: 'ease_off', expiresAfterRound }` on the persistent roster player. `rosterTeamBuilder.rawFromRosterPlayer` checks this field at match-build time: if the advice is still active (`calendar.week <= expiresAfterRound`), it applies `DISCIPLINE_COUNSEL.disciplineBoost (+15)` and `DISCIPLINE_COUNSEL.tacklingPenalty (−5)` to the **baseStats clone** before returning it to `MatchCoordinator.initPlayer`. Modifying the clone (not `currentStats`) is critical — `StaminaSystem` re-derives `currentStats` from `baseStats` on every fatigue tick, so a `currentStats`-only patch would be overwritten at the first clock advance. The net effect: counselled players give fewer high tackles (discipline governs `HIGH_TACKLE` formula) but are marginally less effective at winning physical duels (tackling stat reduced). Advice lasts `DISCIPLINE_COUNSEL.durationRounds (3)` rounds.
 
 ### Balance constants
 

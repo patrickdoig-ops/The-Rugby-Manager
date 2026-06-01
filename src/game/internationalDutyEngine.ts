@@ -250,9 +250,13 @@ export function selectionUnavailableIds(state: GameState, clubId: string): Set<n
   const week = state.calendar.week;
   for (const rid of club.squad) {
     const p = state.career.roster[rid];
-    if (p && (mustRestThisRound(p, state) || lionsUnavailable(p, week))) out.add(rid);
+    if (p && (mustRestThisRound(p, state) || lionsUnavailable(p, week) || isSuspended(p, week))) out.add(rid);
   }
   return out;
+}
+
+function isSuspended(p: Player, week: number): boolean {
+  return !!(p.suspension && p.suspension.forRound === week);
 }
 
 // Per-round reconciliation of rest obligations. Called from

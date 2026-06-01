@@ -68,7 +68,7 @@ import { computeBudgetEvents } from './budgetPlanner';
 import { computeAttendance } from './attendance';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed, rngTransfer, getTransferCallCount, advanceTransferTo, hashSeed } from '../utils/rng';
-import { SEASON_VALUES, INJURY_SEVERITY, STARTER_FA_POOL } from '../engine/balance';
+import { SEASON_VALUES, INJURY_SEVERITY, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD } from '../engine/balance';
 import type { InjurySeverity } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 import type { RawTeamInput } from '../types/teamData';
@@ -305,6 +305,13 @@ export class GameCoordinator {
 
   setPlayerCaptain(rosterId: number | undefined): void {
     applySeasonEvent(this.state, { type: 'PLAYER_CAPTAIN_SET', rosterId });
+  }
+
+  counselPlayer(rosterId: number): void {
+    const p = this.state.career.roster[rosterId];
+    if (!p) return;
+    const expiresAfterRound = this.state.calendar.week + DISCIPLINE_COUNSEL.durationRounds;
+    applySeasonEvent(this.state, { type: 'PLAYER_DISCIPLINE_COUNSELLED', rosterId, expiresAfterRound });
   }
 
   // rosterIds of the human club's persisted matchday 23 (mapped from the
@@ -899,6 +906,24 @@ export class GameCoordinator {
         applySeasonEvent(this.state, ev);
       }
       eventBus.emit('game:fixtureRecorded', { result: aiResult, state: this.state });
+    }
+
+    // Yellow card accumulation ban: check if any human squad player has hit
+    // the threshold for the first time this season. calendar.week is still
+    // the round just played; the ban covers the next round (week + 1).
+    const humanClub = this.state.career.clubs.find(c => c.id === this.state.player.teamId);
+    if (humanClub) {
+      for (const rid of humanClub.squad) {
+        const p = this.state.career.roster[rid];
+        if (!p || p.suspension) continue;
+        if (p.seasonStats.yellowCards >= YELLOW_BAN_THRESHOLD) {
+          applySeasonEvent(this.state, {
+            type: 'PLAYER_SUSPENDED',
+            rosterId: rid,
+            forRound: this.state.calendar.week + 1,
+          });
+        }
+      }
     }
 
     // Reconcile PGA rest obligations for the round just played (calendar.week

@@ -173,10 +173,12 @@ export class CardHandler {
   // sequence is itself the build-up; another summons beat would over-egg it.
   private issueCard(player: Player, side: PossessionSide, kind: 'yellow' | 'red_20' | 'red_full', summons: boolean): void {
     const { state } = this.deps;
-    applyMatchEvent(state, { type: 'CARD_ISSUED', player, side, kind });
-    const key = kind === 'yellow' ? 'card_yellow'
-              : kind === 'red_20' ? 'card_red_20'
-              :                     'card_red_full';
+    // Second yellow in the same match upgrades to red_20 (standard rugby union rule).
+    const effectiveKind = kind === 'yellow' && player.matchStats.yellowCards > 0 ? 'red_20' : kind;
+    applyMatchEvent(state, { type: 'CARD_ISSUED', player, side, kind: effectiveKind });
+    const key = effectiveKind === 'yellow' ? 'card_yellow'
+              : effectiveKind === 'red_20' ? 'card_red_20'
+              :                              'card_red_full';
     this.emitAnnouncement(key, side, player, summons ? 'card_ref_summons' : undefined);
   }
 

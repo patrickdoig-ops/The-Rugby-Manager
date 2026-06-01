@@ -21,6 +21,7 @@ import type { RawPlayer, RawTeamInput } from '../types/teamData';
 import { selectBestMatchdaySquad } from './autoSelect';
 import { selectionUnavailableIds } from './internationalDutyEngine';
 import { computeFormInputs } from './playerForm';
+import { DISCIPLINE_COUNSEL } from '../engine/balance';
 
 export function buildTeamFromRoster(
   state: GameState,
@@ -143,6 +144,13 @@ function assembleTeam(state: GameState, teamJson: RawTeamInput, ordered: number[
 
 function rawFromRosterPlayer(state: GameState, p: Player, slot: number): RawPlayer {
   const { bias, volatility } = computeFormInputs(state, p);
+  const baseStats = { ...p.baseStats };
+  // Discipline counselling — apply the temporary modifier to the baseStats clone
+  // so the effect survives StaminaSystem's per-tick currentStats re-derive from baseStats.
+  if (p.disciplineAdvice?.mode === 'ease_off' && state.calendar.week <= p.disciplineAdvice.expiresAfterRound) {
+    baseStats.discipline = Math.min(100, baseStats.discipline + DISCIPLINE_COUNSEL.disciplineBoost);
+    baseStats.tackling   = Math.max(1,   baseStats.tackling   + DISCIPLINE_COUNSEL.tacklingPenalty);
+  }
   return {
     id: slot,
     rosterId: p.rosterId,
@@ -152,7 +160,7 @@ function rawFromRosterPlayer(state: GameState, p: Player, slot: number): RawPlay
     dob: p.dob,
     nationality: p.nationality,
     position: p.position,
-    baseStats: { ...p.baseStats },
+    baseStats,
     condition: p.condition,
     formBias: bias,
     formVolatility: volatility,

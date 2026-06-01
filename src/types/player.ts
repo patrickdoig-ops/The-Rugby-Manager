@@ -259,6 +259,15 @@ export interface Player {
   // Set once at newSeason, cleared at SEASON_ROLLED_OVER. Absent ⇔ not a 2025
   // Lions returnee. See LIONS_RETURN_ROUND.
   lionsReturnRound?: number;
+  // Set by PLAYER_DISCIPLINE_COUNSELLED when the manager instructs a player to
+  // ease off their approach. Boosts baseStats.discipline and reduces
+  // baseStats.tackling at match-build time for DISCIPLINE_COUNSEL.durationRounds
+  // rounds. Cleared at SEASON_ROLLED_OVER. Absent ⇔ no active or recent advice.
+  disciplineAdvice?: { mode: 'ease_off'; expiresAfterRound: number };
+  // Set by PLAYER_SUSPENDED when season yellowCards reach YELLOW_BAN_THRESHOLD.
+  // The player is blocked from selection for forRound only via
+  // selectionUnavailableIds. Cleared at SEASON_ROLLED_OVER.
+  suspension?: { forRound: number };
 }
 
 // Identity element for PlayerMatchStats — co-located with the type so adding

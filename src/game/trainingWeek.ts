@@ -21,7 +21,7 @@ import { isForward, PLAYER_STAT_KEYS } from '../types/player';
 import type { TrainingPlan } from '../types/training';
 import {
   BACKS_FOCUS_STATS, DEVELOPMENT, FORWARDS_FOCUS_STATS,
-  INJURY_RISK, INTENSITY_EFFECTS, TRAINING_STAT_DELTA,
+  INJURY_RISK, INTENSITY_EFFECTS, TRAINING_STAT_DELTA, ageMultiplier,
 } from '../engine/balance/training';
 import { proximityMultiplier } from '../engine/balance/career';
 import { playerOverall } from '../engine/RatingEngine';
@@ -171,13 +171,6 @@ function pushClubTrainingEvents(
       });
     }
   }
-}
-
-function ageMultiplier(age: number): number {
-  for (const band of DEVELOPMENT.ageBands) {
-    if (age <= band.maxAge) return band.multiplier;
-  }
-  return DEVELOPMENT.ageBands[DEVELOPMENT.ageBands.length - 1].multiplier;
 }
 
 function conditionRiskMultiplier(condition: number): number {

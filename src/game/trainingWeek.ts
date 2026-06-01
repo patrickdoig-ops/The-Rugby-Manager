@@ -108,14 +108,7 @@ function pushClubTrainingEvents(
     // (stable order) so the rngTransfer sequence is identical across
     // seasons / clubs / players that pick the same focus.
     const statDeltas: Partial<PlayerStats> = {};
-    for (const stat of PLAYER_STAT_KEYS) {
-      const isFocus = stat === focus[0] || stat === focus[1];
-      const multiplier = isFocus ? DEVELOPMENT.focusMultiplier : DEVELOPMENT.unfocusedMultiplier;
-      const chance = intensity.developmentChance * multiplier * ageMul * proxMul;
-      if (chance > 0 && rngTransferRaw() < chance) {
-        statDeltas[stat] = TRAINING_STAT_DELTA;
-      }
-    }
+    rollDevelopmentGains(statDeltas, focus, intensity.developmentChance, ageMul, proxMul);
 
     // Flat decay rolls — rest/light only (decayChance > 0). Focused stats are immune;
     // a positive gain from the development pass above takes precedence.
@@ -191,4 +184,25 @@ function pickSeverityFromWeights(weights: Record<'mild' | 'moderate' | 'severe',
   cum += weights.moderate;
   if (roll <= cum) return 'moderate';
   return 'severe';
+}
+
+// One development pass over all PLAYER_STAT_KEYS: rolls rngTransferRaw()
+// per stat and increments out[stat] on success. Shared between club training
+// (pushClubTrainingEvents) and international camp training
+// (internationalDutyEngine.resolveInternationalBreak).
+export function rollDevelopmentGains(
+  out: Partial<PlayerStats>,
+  focus: [keyof PlayerStats, keyof PlayerStats],
+  devChance: number,
+  ageMul: number,
+  proxMul: number,
+): void {
+  for (const stat of PLAYER_STAT_KEYS) {
+    const isFocus = stat === focus[0] || stat === focus[1];
+    const multiplier = isFocus ? DEVELOPMENT.focusMultiplier : DEVELOPMENT.unfocusedMultiplier;
+    const chance = devChance * multiplier * ageMul * proxMul;
+    if (chance > 0 && rngTransferRaw() < chance) {
+      out[stat] = (out[stat] ?? 0) + 1;
+    }
+  }
 }

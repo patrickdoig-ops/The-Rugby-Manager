@@ -271,6 +271,8 @@ export function initContractsScreen(
          </button>`
       : '';
 
+    const savedScroll = el!.querySelector<HTMLElement>('#ct-list')?.scrollTop ?? 0;
+
     el!.style.setProperty('--team-color', team.color);
     el!.innerHTML = `
       <div class="app-header">
@@ -317,6 +319,11 @@ export function initContractsScreen(
         ${continueCta}
       </div>
     `;
+
+    if (savedScroll > 0) {
+      const listEl = el!.querySelector<HTMLElement>('#ct-list');
+      if (listEl) listEl.scrollTop = savedScroll;
+    }
 
     if (mode === 'hub') {
       el!.querySelector<HTMLButtonElement>('#ct-back')!.addEventListener('click', () => onBack());

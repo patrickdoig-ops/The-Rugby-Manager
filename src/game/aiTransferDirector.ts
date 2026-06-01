@@ -154,9 +154,14 @@ export function decideAIOffers(state: GameState, clubId: string): { acceptIds: s
 // deal covers 2026/27, 2027/28, 2028/29).
 export function expiryAfterYears(state: GameState, lengthYears: number): string {
   const startYear = parseSeasonStartYear(state.calendar.seasonLabel);
-  // The current season ends in startYear + 1 (e.g. 2025/26 ends 2026).
-  // A 1-year renewal expires the season after that, so + lengthYears.
-  return `${startYear + 1 + lengthYears - 1}-06-30`;
+  // The off-season chain (and mid-season early renewals) run while
+  // seasonLabel is still the current season (ends startYear + 1), but
+  // the contract they grant takes effect for the upcoming season. So a
+  // length-L deal starts at startYear + 1 and expires startYear + 1 + L.
+  // Without the +1 a 1-year renewal lands on startYear + 1 — exactly the
+  // current season's end-of-season renewal cutoff — so an early-renewed
+  // player would resurface in that same window.
+  return `${startYear + 1 + lengthYears}-06-30`;
 }
 
 function makeOfferId(seasonsCompleted: number, clubId: string, rid: number): string {

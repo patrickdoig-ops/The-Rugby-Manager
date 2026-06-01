@@ -169,7 +169,7 @@ function renderPostMatch(
   const banner = gap.weeks === 1 && gap.days <= SHORT_WEEK_DAYS
     ? `<div class="tr-banner tr-banner--warn">Short week — ${gap.days} days until the next match. A lighter session recovers more freshness.</div>`
     : gap.weeks >= 2
-      ? `<div class="tr-banner">${gap.weeks}-week break (${gap.days} days). A good window to develop without missing a match.</div>`
+      ? `<div class="tr-banner">Set your training plan for the ${gap.weeks}-week block (${gap.days} days).</div>`
       : '';
 
   const weekCards = spans.map((days, i) => `

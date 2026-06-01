@@ -13,6 +13,8 @@ import type { PlayerStats } from '../../types/player';
 //   Growth rates halved from v1 baselines so rollover and training are
 //   roughly equal contributors. Physical decline steepened (pace 1.2→1.5),
 //   mental decline flattened (composure 0.2→0.1) to widen the career arc.
+//   STAT_NOISE.stddev halved (0.5→0.25) in the same pass: growth rates are
+//   too small for 0.5-stddev noise not to swamp them on mental/skill stats.
 export const AGE_CURVES: Record<keyof PlayerStats,
   { peakAge: number; growthPerYear: number; declinePerYear: number }> = {
   pace:        { peakAge: 25, growthPerYear: 0.80, declinePerYear: 1.50 },
@@ -91,7 +93,7 @@ export function appearancesMultiplier(apps: number): number {
 // Standard deviation + clamp for the Gaussian noise added to each
 // per-stat delta. Drives some players developing better/worse than the
 // pure curve would predict.
-export const STAT_NOISE = { stddev: 0.5, clamp: 1.5 };
+export const STAT_NOISE = { stddev: 0.25, clamp: 1.5 };
 
 // Probability of retiring at the END of the season the player is
 // currently playing (i.e. evaluated against the age the player will be

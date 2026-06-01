@@ -207,7 +207,10 @@ function developStats(p: Player, ageInNewSeason: number): Partial<PlayerStats> {
     const scaledBase = isGrowth ? base * proxMul * appsMul : base;
     const noise = clampedNormal(STAT_NOISE.stddev, STAT_NOISE.clamp);
     const delta = Math.round(scaledBase + noise);
-    if (delta !== 0) deltas[k] = delta;
+    // Growing stats can't go negative — noise variance shouldn't reverse a
+    // player who is genuinely still developing.
+    const clamped = isGrowth ? Math.max(0, delta) : delta;
+    if (clamped !== 0) deltas[k] = clamped;
   }
   return deltas;
 }

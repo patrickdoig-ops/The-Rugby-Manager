@@ -40,8 +40,18 @@ function ovrClass(ovr: number): string {
   if (ovr >= 85) return 'ovr-elite';
   if (ovr >= 78) return 'ovr-good';
   if (ovr >= 70) return 'ovr-avg';
-  return 'ovr-poor';
+  if (ovr >= 62) return 'ovr-poor';
+  return 'ovr-veryPoor';
 }
+
+const STAT_COLS = [
+  { key: 'stamina',     lbl: 'STM' }, { key: 'strength',    lbl: 'STR' },
+  { key: 'pace',        lbl: 'PAC' }, { key: 'agility',     lbl: 'AGI' },
+  { key: 'handling',    lbl: 'HND' }, { key: 'tackling',    lbl: 'TKL' },
+  { key: 'breakdown',   lbl: 'BRK' }, { key: 'kicking',     lbl: 'KCK' },
+  { key: 'setPiece',    lbl: 'SET' }, { key: 'discipline',  lbl: 'DIS' },
+  { key: 'positioning', lbl: 'POS' }, { key: 'composure',   lbl: 'CMP' },
+];
 
 export function initSquadOverviewScreen(
   // Always called fresh — see HubScreen for the rationale.
@@ -51,6 +61,8 @@ export function initSquadOverviewScreen(
   const el = document.getElementById('squad-overview');
   if (!el) return;
   const teamsById = new Map(allTeams.map(t => [t.id, t]));
+
+  const expandedRows = new Set<string>();
 
   function render(): void {
     const state = getGameEngine().getState();
@@ -114,6 +126,14 @@ export function initSquadOverviewScreen(
           }
           const ovr = playerOverall(p.baseStats, p.position);
           const age = getAge(p.dob, calendarDate);
+          const key = String(p.rosterId);
+          const expanded = expandedRows.has(key);
+          const statsGrid = `<div class="sq-stats-grid so-stats-grid">
+            ${STAT_COLS.map(({ key: k, lbl }) => {
+              const v = (p.baseStats as unknown as Record<string, number>)[k] ?? 0;
+              return `<div class="sq-stat-cell ${ovrClass(v)}"><span class="sq-stat-lbl">${lbl}</span><span class="sq-stat-val">${v}</span></div>`;
+            }).join('')}
+          </div>`;
           return `<div class="so-row" ${delay}>
             <div class="so-ovr ${ovrClass(ovr)}">
               <span class="so-ovr-val">${ovr}</span>
@@ -122,6 +142,12 @@ export function initSquadOverviewScreen(
             <div class="so-row-body">
               <div class="so-row-name">${p.firstName} ${p.lastName}</div>
               <div class="so-row-meta">${p.position} · Age ${age ?? '—'}</div>
+            </div>
+            <button class="row-expand-chevron so-expand-btn" data-roster-id="${key}" aria-label="${expanded ? 'Hide attributes' : 'Show attributes'}" aria-expanded="${expanded}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="row-expand-panel so-expand" data-expanded="${expanded}">
+              <div class="row-expand-inner"><div class="so-expand-body">${statsGrid}</div></div>
             </div>
           </div>`;
         }).join('');
@@ -148,6 +174,8 @@ export function initSquadOverviewScreen(
       ? `${team.name} · ${state.calendar.seasonLabel} · ${thinCount} ${thinCount === 1 ? 'position' : 'positions'} thin`
       : `${team.name} · ${state.calendar.seasonLabel}`;
 
+    const savedScroll = el!.querySelector<HTMLElement>('#so-scroll')?.scrollTop ?? 0;
+
     el!.style.setProperty('--team-color', team.color);
     el!.innerHTML = `
       <div class="app-header">
@@ -171,7 +199,21 @@ export function initSquadOverviewScreen(
       </div>
     `;
 
+    if (savedScroll > 0) {
+      const scrollEl = el!.querySelector<HTMLElement>('#so-scroll');
+      if (scrollEl) scrollEl.scrollTop = savedScroll;
+    }
+
     el!.querySelector<HTMLButtonElement>('#so-continue')!.addEventListener('click', () => activeOnContinue());
+
+    el!.querySelectorAll<HTMLButtonElement>('.so-expand-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.rosterId!;
+        if (expandedRows.has(key)) expandedRows.delete(key);
+        else expandedRows.add(key);
+        render();
+      });
+    });
   }
 
   renderImpl = render;

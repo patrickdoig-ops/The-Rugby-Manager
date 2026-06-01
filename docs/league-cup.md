@@ -70,9 +70,15 @@ All cup teams exclude players on international duty and injured players.
   per block (`cupDevelopment.ts`, `CUP_DEVELOPMENT` constants) — youth get the
   most, veterans nothing — added to the player's weakest baseStats. Bounded:
   one nudge per block regardless of how many cup games.
+- **Injuries:** applied identically to league matches — severity and duration
+  rolled via `rngTransfer`, the player's `injury` record set. An injured player
+  counts as unavailable for subsequent cup fixtures in the same break block
+  (and for league fixtures until recovered). `buildCupTeamFromRoster` already
+  filters injured players, so a player hurt in fixture 1 of a block is
+  automatically excluded from fixture 2.
 - **No** effect on transfer budgets, salary cap, or reputation. Cup stats are
   **not** accumulated into the league season-stat leaderboards (the cup sims
-  deliberately skip `collectSeasonEvents`). **No cup injuries** in v1.
+  deliberately skip `collectSeasonEvents`).
 
 ## Break flow (UI)
 

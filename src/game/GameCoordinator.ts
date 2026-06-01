@@ -801,6 +801,14 @@ export class GameCoordinator {
 
     const playerSide: 'home' | 'away' = fixture.homeId === this.state.player.teamId ? 'home' : 'away';
     const homeJson = this.teamsById.get(fixture.homeId);
+    // Capture "expected to win" from the PRE-match table — after the result is
+    // recorded the standings already reflect this game, which would skew the
+    // upset/capitulation framing of the media story.
+    const preStandings = sortStandings(this.state.league.standings);
+    const oppId = playerSide === 'home' ? fixture.awayId : fixture.homeId;
+    const myPosPre = preStandings.findIndex(s => s.teamId === this.state.player.teamId);
+    const oppPosPre = preStandings.findIndex(s => s.teamId === oppId);
+    const expectedToWin = myPosPre >= 0 && oppPosPre >= 0 && myPosPre < oppPosPre;
     const result: FixtureResult = {
       round,
       homeId: fixture.homeId,
@@ -832,7 +840,7 @@ export class GameCoordinator {
     // fixture, dropped into the inbox. Seeded off (rootSeed, round, clubId) via
     // a standalone RNG so it can't perturb the career stream / season
     // determinism. Built from the live snapshot (exact per-player ratings).
-    this.publishMediaStory(round, result, snapshot, playerSide);
+    this.publishMediaStory(round, result, snapshot, playerSide, fixture, expectedToWin);
 
     // Headless-simulate every other fixture in this round so the league table
     // reflects a full round of results. Sims run in fixture order; each derives
@@ -924,6 +932,8 @@ export class GameCoordinator {
     result: FixtureResult,
     snapshot: MatchSnapshot,
     playerSide: 'home' | 'away',
+    fixture: Fixture,
+    expectedToWin: boolean,
   ): void {
     const teamId = this.state.player.teamId;
     const myTeam = this.teamsById.get(teamId);
@@ -945,7 +955,6 @@ export class GameCoordinator {
         position: p.position,
         age: getAge(p.dob, this.state.calendar.date),
         rating: snap.rating,
-        isMarquee: p.contract?.isMarquee ?? false,
         tries: m.tries,
         lineBreaks: m.lineBreaks,
         defendersBeaten: m.defendersBeaten,
@@ -956,11 +965,11 @@ export class GameCoordinator {
     }
     if (players.length === 0) return;
 
-    const sorted = sortStandings(this.state.league.standings);
-    const myPos = sorted.findIndex(s => s.teamId === teamId);
-    const oppPos = sorted.findIndex(s => s.teamId === oppId);
     const form = recentForm(teamId, this.state.league.results, 4)
       .filter((r): r is 'W' | 'L' | 'D' => r !== null);
+    // Match the attendance model: the figure is capped against the effective
+    // venue capacity, which can exceed the home ground at special-venue games.
+    const capacity = fixture.venueCapacity ?? myTeam.stadiumCapacity;
 
     const ctx: MediaMatchContext = {
       seed: hashSeed(this.state.seed, round, teamId),
@@ -974,8 +983,8 @@ export class GameCoordinator {
       teamTries: playerSide === 'home' ? result.homeTries : result.awayTries,
       stadium: myTeam.stadium,
       ...(result.attendance != null ? { attendance: result.attendance } : {}),
-      ...(myTeam.stadiumCapacity ? { capacity: myTeam.stadiumCapacity } : {}),
-      expectedToWin: myPos >= 0 && oppPos >= 0 && myPos < oppPos,
+      ...(capacity ? { capacity } : {}),
+      expectedToWin,
       recentForm: form,
       ...(myTeam.suggestedTactics ? { tactics: myTeam.suggestedTactics } : {}),
       teamSummary: playerSide === 'home' ? snapshot.homeSummary : snapshot.awaySummary,

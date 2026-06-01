@@ -24,7 +24,6 @@ export interface MediaPlayer {
   position: Position;
   age: number | null;
   rating: number;
-  isMarquee: boolean;
   tries: number;
   lineBreaks: number;
   defendersBeaten: number;
@@ -57,7 +56,9 @@ export interface MediaMatchContext {
 export interface MediaPredictionContext {
   seed: number;
   clubName: string;
-  ambition: 'title' | 'playoffs' | 'topHalf';
+  // Forecast tier the inbox derives from last season's finish (falling back to
+  // board ambition for a club's first season).
+  tier: 'title' | 'playoffs' | 'midtable' | 'struggle';
 }
 
 type Rng = () => number;
@@ -172,7 +173,7 @@ function buildResultStory(rng: Rng, ctx: MediaMatchContext): { subject: string; 
   const margin = ctx.teamScore - ctx.oppScore;
   const win = margin > 0, draw = margin === 0;
   let pool: readonly string[];
-  if (win && !ctx.expectedToWin && margin > 0 && chance(rng, 0.85)) pool = P.RESULT_UPSET;
+  if (win && !ctx.expectedToWin && chance(rng, 0.85)) pool = P.RESULT_UPSET;
   else if (win && margin >= 21) pool = chance(rng, 0.5) ? P.RESULT_THRASHING : P.RESULT_STATEMENT;
   else if (win && margin >= 14) pool = P.RESULT_STATEMENT;
   else if (win && margin <= 7) pool = P.RESULT_NARROW;
@@ -197,7 +198,12 @@ function styleKind(rng: Rng, ctx: MediaMatchContext): readonly string[] | null {
   const kickHeavy = kicks >= 25;
   const expansiveDNA = !!t && (t.attackingStyle === 'wide_wide' || t.attackingGamePlan === 'possession');
   const win = ctx.teamScore > ctx.oppScore;
+  // Losses in the run BEFORE this match (recentForm is most-recent-last and
+  // includes the just-played fixture).
+  const priorLosses = ctx.recentForm.slice(0, -1).filter(r => r === 'L').length;
 
+  // A return to expansive form after a poor patch — the "swagger is back" beat.
+  if (expansiveDNA && win && tries >= 2 && priorLosses >= 2) return P.STYLE_REDISCOVERED;
   if (tries >= 4) return P.STYLE_EXPANSIVE_PRAISE;
   if (expansiveDNA && tries >= 3) return P.STYLE_EXPANSIVE_PRAISE;
   if (expansiveDNA && kickHeavy && tries <= 1) return chance(rng, 0.5) ? P.STYLE_LOST_IDENTITY : P.STYLE_KICK_CRITICISM;
@@ -301,9 +307,9 @@ export function generateMatchStory(ctx: MediaMatchContext): MediaStory {
 
 export function generateSeasonPrediction(ctx: MediaPredictionContext): MediaStory {
   const rng = makeRng(ctx.seed);
-  const pool = ctx.ambition === 'title' ? P.PREDICT_TITLE
-    : ctx.ambition === 'playoffs' ? P.PREDICT_PLAYOFFS
-    : ctx.ambition === 'topHalf' ? P.PREDICT_MIDTABLE
+  const pool = ctx.tier === 'title' ? P.PREDICT_TITLE
+    : ctx.tier === 'playoffs' ? P.PREDICT_PLAYOFFS
+    : ctx.tier === 'midtable' ? P.PREDICT_MIDTABLE
     : P.PREDICT_STRUGGLE;
   const persona = pick(rng, PERSONAS);
   const opener = pick(rng, OPENERS[persona.register]);

@@ -281,7 +281,7 @@ export const RESULT_STATEMENT = [
 export const RESULT_THRASHING = [
   '{club} ran up a cricket score against a hapless {opp}.',
   'A chastening afternoon for {opp}, blown away by a rampant {club}.',
-  '{opp} shipped {n} unanswered points in a one-sided rout.',
+  '{club} racked up {n} points in a one-sided rout.',
   'The wheels came off spectacularly for {opp}.',
   'A humbling to forget for {opp}, well beaten and then some.',
 ] as const;

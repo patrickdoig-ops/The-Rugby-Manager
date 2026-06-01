@@ -617,10 +617,21 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
 
   // --- Media: pre-season prediction (week 1 only) ---
   if (state.calendar.week === 1) {
+    // Forecast tier from last season's finish, falling back to board ambition
+    // for a club's first season.
+    const lastSeason = state.career.archive[state.career.archive.length - 1];
+    let tier: 'title' | 'playoffs' | 'midtable' | 'struggle';
+    if (lastSeason) {
+      const pos = sortStandings(lastSeason.standings).findIndex(s => s.teamId === teamId) + 1;
+      tier = pos >= 1 && pos <= 2 ? 'title' : pos <= 4 ? 'playoffs' : pos <= 8 ? 'midtable' : 'struggle';
+    } else {
+      const ambition = myTeam?.boardAmbition ?? 'playoffs';
+      tier = ambition === 'title' ? 'title' : ambition === 'topHalf' ? 'midtable' : 'playoffs';
+    }
     const story = generateSeasonPrediction({
-      seed: hashSeed(state.seed, 'prediction', teamId),
+      seed: hashSeed(state.seed, 'prediction', teamId, season),
       clubName: myTeam?.name ?? club.id,
-      ambition: myTeam?.boardAmbition ?? 'playoffs',
+      tier,
     });
     items.push({
       id: `${story.id}:${season}`,

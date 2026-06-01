@@ -37,11 +37,11 @@ The selector scores every eligible archetype by newsworthiness, then weighted-pi
 | **Style / DNA** | the match was played markedly with or against the club's `suggestedTactics` identity | expansive praise / kick criticism / lost-identity / won-ugly, from `teamTries` + `teamSummary.kicksFromHand` vs the DNA. |
 | **Crowd** | home game with fill rate ≥97% or <65% | great-atmosphere vs empty-seats (+ optional cost-of-living line). |
 | **Manager pressure** | a loss with ≥2 losses in the last 3 | "natives are restless". |
-| **Pre-season prediction** | week 1 only (derived in the inbox, not persisted) | framed by `boardAmbition`: title / playoffs / mid-table / struggle. |
+| **Pre-season prediction** | week 1 only (derived in the inbox, not persisted) | tier from last season's finish (1–2 → title, 3–4 → playoffs, 5–8 → mid-table, 9+ → struggle), falling back to `boardAmbition` in a club's first season. |
 
 ## Determinism (critical)
 
-The media RNG is a **standalone `makeRng(seed)` stream** (`src/utils/rng.ts`), independent of the four shared streams. The per-fixture seed is `hashSeed(state.seed, round, clubId)`; the prediction seed is `hashSeed(state.seed, 'prediction', clubId)`. This means a media draw **cannot consume or perturb the career (`rngTransfer`) stream** — so it can never shift transfer / injury / rollover outcomes, and `npm run verify` (season determinism) stays green. Same `(state.seed, round, club)` always yields the same story.
+The media RNG is a **standalone `makeRng(seed)` stream** (`src/utils/rng.ts`), independent of the four shared streams. The per-fixture seed is `hashSeed(state.seed, round, clubId)`; the prediction seed is `hashSeed(state.seed, 'prediction', clubId, seasonLabel)` (season-keyed so the wording rotates each year). This means a media draw **cannot consume or perturb the career (`rngTransfer`) stream** — so it can never shift transfer / injury / rollover outcomes, and `npm run verify` (season determinism) stays green. Same `(state.seed, round, club)` always yields the same story.
 
 ## Integration points
 

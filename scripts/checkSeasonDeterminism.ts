@@ -28,8 +28,6 @@ import { GameCoordinator } from '../src/game/GameCoordinator.js';
 import { simulateFixture } from '../src/game/simulateFixture.js';
 import { buildAutoSelectedTeamFromRoster } from '../src/game/rosterTeamBuilder.js';
 import type { RawTeamInput } from '../src/types/teamData.js';
-import { applyStarBoost } from '../src/team/applyStarBoost.js';
-import type { TeamJson } from '../src/team/teamProfile.js';
 
 import bathRaw         from '../src/data/team-bath.json' with { type: 'json' };
 import bristolRaw      from '../src/data/team-bristol.json' with { type: 'json' };
@@ -46,10 +44,10 @@ const SEED = 0xDEADBEEF;
 const PLAYER_ID = 'bath';
 const SEASONS = 3;
 
-const allTeams = ([
+const allTeams = [
   bathRaw, bristolRaw, exeterRaw, gloucesterRaw, harlequinsRaw,
   leicesterRaw, newcastleRaw, northamptonRaw, saleRaw, saracensRaw,
-] as unknown as TeamJson[]).map(applyStarBoost) as unknown as RawTeamInput[];
+] as unknown as RawTeamInput[];
 
 async function simulateSeason(coord: GameCoordinator, teamsById: Map<string, RawTeamInput>): Promise<void> {
   while (true) {

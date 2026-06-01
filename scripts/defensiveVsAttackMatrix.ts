@@ -19,8 +19,6 @@
 import { MatchCoordinator } from '../src/engine/MatchCoordinator.js';
 import { deriveFixtureSeed } from '../src/game/derive.js';
 import { eventBus } from '../src/utils/eventBus.js';
-import { applyStarBoost } from '../src/team/applyStarBoost.js';
-import type { TeamJson } from '../src/team/teamProfile.js';
 import type { RawTeamInput } from '../src/types/teamData.js';
 import type { DefensiveLine, AttackingStyle, AttackingGamePlan, AttackingBreakdown } from '../src/types/team.js';
 import type { MatchState } from '../src/types/match.js';
@@ -55,10 +53,10 @@ const ATT_VALUES_BY_DIM: Record<AttackingDimension, readonly AttackingValue[]> =
 };
 const ATT_VALUES = ATT_VALUES_BY_DIM[ATT_DIMENSION];
 
-const BOOSTED_TEAMS = ([
+const BOOSTED_TEAMS = [
   bathRaw, bristolRaw, exeterRaw, gloucesterRaw, harlequinsRaw,
   leicesterRaw, newcastleRaw, northamptonRaw, saleRaw, saracensRaw,
-] as unknown as TeamJson[]).map(applyStarBoost) as unknown as RawTeamInput[];
+] as unknown as RawTeamInput[];
 
 interface CellStats {
   played: number;

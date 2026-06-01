@@ -7,7 +7,6 @@
 
 import { GameCoordinator } from '../src/game/GameCoordinator';
 import { PRE_SEASON_TRANSFERS_2025_26 } from '../src/data/transfers-2025-26';
-import { applyStarBoost } from '../src/team/applyStarBoost';
 import type { TeamJson } from '../src/team/teamProfile';
 import type { RawTeamInput } from '../src/types/teamData';
 import * as teamProfile from '../src/team/teamProfile';
@@ -23,10 +22,10 @@ import northampton  from '../src/data/team-northampton.json';
 import sale         from '../src/data/team-sale.json';
 import saracens     from '../src/data/team-saracens.json';
 
-const teamsRaw = ([
+const teamsRaw = [
   bath, bristol, exeter, gloucester, harlequins,
   leicester, newcastle, northampton, sale, saracens,
-] as unknown as TeamJson[]).map(applyStarBoost);
+] as unknown as TeamJson[];
 const teams = teamsRaw as unknown as RawTeamInput[];
 teamProfile.init(teamsRaw);
 

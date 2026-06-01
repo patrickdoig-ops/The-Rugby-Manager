@@ -1,8 +1,6 @@
 import { MatchCoordinator } from '../src/engine/MatchCoordinator.js';
 import { deriveFixtureSeed } from '../src/game/derive.js';
 import { eventBus } from '../src/utils/eventBus.js';
-import { applyStarBoost } from '../src/team/applyStarBoost.js';
-import type { TeamJson } from '../src/team/teamProfile.js';
 import type { RawTeamInput } from '../src/types/teamData.js';
 import type { MatchState } from '../src/types/match.js';
 
@@ -31,10 +29,10 @@ const TACTICS_MAP: Record<string, string[]> = {
 
 const OPTIONS = TACTICS_MAP[TACTIC_TYPE];
 
-const BOOSTED_TEAMS = ([
+const BOOSTED_TEAMS = [
   bathRaw, bristolRaw, exeterRaw, gloucesterRaw, harlequinsRaw,
   leicesterRaw, newcastleRaw, northamptonRaw, saleRaw, saracensRaw,
-] as unknown as TeamJson[]).map(applyStarBoost) as unknown as RawTeamInput[];
+] as unknown as RawTeamInput[];
 
 interface TestStats {
   played: number; wins:  number; draws: number; losses: number;

@@ -19,8 +19,6 @@ import type { RawTeamInput } from '../src/types/teamData.js';
 import type { TeamTactics } from '../src/types/team.js';
 import { DEFAULT_TACTICS } from '../src/types/team.js';
 import { eventBus } from '../src/utils/eventBus.js';
-import { applyStarBoost } from '../src/team/applyStarBoost.js';
-import type { TeamJson } from '../src/team/teamProfile.js';
 import norRaw from '../src/data/team-northampton.json' with { type: 'json' };
 
 (AITacticalDirector.prototype as unknown as { evaluate: () => void }).evaluate = () => {};
@@ -85,8 +83,8 @@ function sumStat(players: { matchStats: Record<string, number> }[], field: strin
 async function runMatch(overrides: Partial<TeamTactics>, seed: number): Promise<Metrics> {
   const homeRaw: RawTeamInput = JSON.parse(JSON.stringify(norRaw));
   const awayRaw: RawTeamInput = JSON.parse(JSON.stringify(norRaw));
-  const home = applyStarBoost(homeRaw as unknown as TeamJson) as unknown as RawTeamInput;
-  const away = applyStarBoost(awayRaw as unknown as TeamJson) as unknown as RawTeamInput;
+  const home = homeRaw as unknown as RawTeamInput;
+  const away = awayRaw as unknown as RawTeamInput;
   home.suggestedTactics = { ...DEFAULT_TACTICS, ...overrides };
   away.suggestedTactics = { ...DEFAULT_TACTICS };
 

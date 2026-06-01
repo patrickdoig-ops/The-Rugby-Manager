@@ -59,7 +59,7 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 
 | Variant | When fired | What it does |
 |---|---|---|
-| `ROSTER_SEEDED` | One-shot at `newSeason` / v4-save migration | Populates `state.career.roster` keyed by `rosterId`, `ClubState[]`, `nextRosterId`. Source data is the JSON-loaded `RawTeamInput[]` post-`applyStarBoost`. |
+| `ROSTER_SEEDED` | One-shot at `newSeason` / v4-save migration | Populates `state.career.roster` keyed by `rosterId`, `ClubState[]`, `nextRosterId`. Source data is the JSON-loaded `RawTeamInput[]` (authored, play-ready `baseStats` — no spawn transform). |
 | `PLAYER_SEASON_STATS_ACCUMULATED` | Per player per fixture (live + silent AI) | Adds the per-match delta to `roster[rosterId].seasonStats`. Drives top-scorer / MVP cards in `EndOfSeasonScreen`. |
 | `TEAM_SEASON_STATS_ACCUMULATED` | Two events per fixture (home + away side) in `recordPlayerMatchResult` and every silent AI fixture | Adds the per-match delta to `state.league.teamSeasonStats[teamId]` — possession / territory / set-piece win rates / attack / defence / kicking / discipline buckets keyed by teamId. Read by `seasonLeaderboards.teamLeaderboard` for per-club season aggregates. Lazy-initialised: the map starts empty and gets a `zeroTeamSeasonStats()` entry on first write per team. |
 | `PLAYER_AGED` | Per player per rollover | Applies `Partial<PlayerStats>` deltas to `baseStats` (clamped 1-99). Driven by `AGE_CURVES` + `STAT_NOISE` Gaussian noise from `rngTransfer`. Growth (pre-peak) is scaled by `proximityMultiplier × appearancesMultiplier`; decline fires at full rate regardless. |
@@ -130,7 +130,7 @@ Three load-bearing distinctions:
 
 - **`Player.rosterId` is the persistent identity** (globally unique, allocated once by `rosterSeeder`). **`Player.id` remains the matchday slot 1-23** — every match-engine event variant, `RatingEngine`, `StaminaSystem` etc. continue to read it as a slot. Season-scope `SeasonEvent` variants carry `rosterId`; match-scope `MatchEvent` variants carry `id`. Don't conflate them.
 - **The matchday `Team` is built fresh per fixture from the roster**, not loaded from JSON. `rosterTeamBuilder.buildTeamFromRoster(state, teamJson)` resolves `ClubState.squad` rosterIds → `Player` records (current `baseStats` reflecting accumulated aging), assigns slot ids 1-N, threads `rosterId` through on each `RawPlayer`. `MatchCoordinator.initPlayer` re-attaches it.
-- **`applyStarBoost` runs exactly once per session**, on the JSON ingest path in `main.ts` (it's *not* idempotent — re-applying would compound the tier shift). The roster carries the post-boost `baseStats`; aging mutates the roster's `baseStats` in place via `PLAYER_AGED`. A v5+ save bypasses the seeder entirely and restores the saved (already-boosted, already-aged) roster on load.
+- **No spawn-time stat transform.** The team JSONs carry final, play-ready `baseStats` (authored in `docs/team-data.md`); `main.ts` loads them straight through on the JSON ingest path. The roster carries those `baseStats` verbatim; aging mutates the roster's `baseStats` in place via `PLAYER_AGED`. A v5+ save bypasses the seeder entirely and restores the saved (already-aged) roster on load.
 
 ## Determinism + RNG
 
@@ -421,7 +421,7 @@ A choice between matches: trades off short-term freshness for long-term attribut
 
 - **Soft potential ceiling.** Every roster Player carries `potential?: number` — a hidden OVR ceiling seeded once at game-start. Seeding: `potential = min(99, OVR + rngTransfer(band.min, band.max))` where the headroom band is age-gated (`POTENTIAL_HEADROOM` in `balance/career.ts`). Young players (≤21) get 8–20 OVR of headroom; experienced players (29+) get 0–3. The ceiling is back-filled conservatively on pre-v21 saves (1–8 OVR headroom, no RNG — see Save format). `proximityMultiplier(potential, ovr)` returns a value on `[0.10, 1.00]` via piecewise-linear interpolation over `PROXIMITY_CURVE` (headroom 0 → 0.10×; headroom ≥15 → 1.00×). This multiplier is applied to growth only, in both training and rollover. Decline fires at full rate regardless — a player near their ceiling still ages. The `potential` field is intentionally hidden from the UI (no display, no editing), mirroring FM's CA/PA philosophy.
 
-- **Why baseStats and not a sharpness layer?** FC Career Mode keeps attribute growth separate from per-week sharpness; FM blends both with hidden CA/PA caps. We chose the FM-style blend — `baseStats` drift directly under training (clamped by the existing `[1, 99]` invariant + per-player overrides in `PLAYER_STAT_OVERRIDES`), with `potential` acting as the soft PA ceiling. The result: a young player on focused training noticeably outgrows their cohort over a season, while older players who've hit their ceiling plateau and begin to decline.
+- **Why baseStats and not a sharpness layer?** FC Career Mode keeps attribute growth separate from per-week sharpness; FM blends both with hidden CA/PA caps. We chose the FM-style blend — `baseStats` drift directly under training (clamped by the existing `[1, 99]` invariant), with `potential` acting as the soft PA ceiling. The result: a young player on focused training noticeably outgrows their cohort over a season, while older players who've hit their ceiling plateau and begin to decline.
 
 ## International Duty
 

@@ -1,9 +1,8 @@
 // First-ever new-game roster seed. Walks every RawTeamInput, allocates a
 // globally-unique rosterId per player, builds the canonical `roster` index
-// and per-club squad pointers. Takes already-star-boosted team inputs —
-// star boost (`src/team/applyStarBoost.ts`) is applied once at JSON
-// import time in main.ts and the seeder consumes the already-boosted
-// data. Persistent Player objects carry baseStats + contract + reputation;
+// and per-club squad pointers. The team JSONs carry final, play-ready
+// baseStats (authored in docs/team-data.md) — no spawn-time stat transform
+// is applied. Persistent Player objects carry baseStats + contract + reputation;
 // volatile per-match fields default to idle values and are overwritten
 // per match by MatchCoordinator.initPlayer.
 //

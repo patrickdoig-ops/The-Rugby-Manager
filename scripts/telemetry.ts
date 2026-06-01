@@ -17,13 +17,11 @@
 import { MatchCoordinator } from '../src/engine/MatchCoordinator.js';
 import { deriveFixtureSeed } from '../src/game/derive.js';
 import { eventBus } from '../src/utils/eventBus.js';
-import { applyStarBoost } from '../src/team/applyStarBoost.js';
 import { setInvariantsEnabled } from '../src/utils/invariantsMode.js';
 
 // Tuning runs are correctness-checked elsewhere (npm run verify). Skip the
 // per-event tripwire sweep so the 450-fixture pass stays fast.
 setInvariantsEnabled(false);
-import type { TeamJson } from '../src/team/teamProfile.js';
 import type { RawTeamInput } from '../src/types/teamData.js';
 import type { TeamTactics, AttackingGamePlan, AttackingBreakdown, BackfieldDefence, DefensiveLine, OffloadStrategy } from '../src/types/team.js';
 import type { MatchState } from '../src/types/match.js';
@@ -45,10 +43,10 @@ const ROOT_SEEDS = [0xDEADBEEF, 0xCAFEBABE, 0xBEEFCAFE, 0xFACEFEED, 0xC0FFEE00];
 const COMMENTARY_CAP_HIGH = 10000;
 const MIN_APPEARANCES_FOR_RATE = 9; // half a season — used for per-game leaderboards
 
-const ALL_TEAMS = ([
+const ALL_TEAMS = [
   bathRaw, bristolRaw, exeterRaw, gloucesterRaw, harlequinsRaw,
   leicesterRaw, newcastleRaw, northamptonRaw, saleRaw, saracensRaw,
-] as unknown as TeamJson[]).map(applyStarBoost) as unknown as RawTeamInput[];
+] as unknown as RawTeamInput[];
 
 // ── Per-club aggregator ──────────────────────────────────────────────────
 interface ClubAgg {

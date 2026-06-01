@@ -61,18 +61,18 @@
       "nationality": "Argentina",
       "position": "Prop",
       "baseStats": {
-        "stamina": 69,
-        "strength": 74,
-        "pace": 45,
-        "agility": 51,
-        "handling": 51,
-        "tackling": 72,
-        "breakdown": 64,
+        "stamina": 79,
+        "strength": 84,
+        "pace": 55,
+        "agility": 61,
+        "handling": 61,
+        "tackling": 82,
+        "breakdown": 74,
         "kicking": 44,
-        "setPiece": 76,
-        "discipline": 63,
-        "positioning": 60,
-        "composure": 62
+        "setPiece": 86,
+        "discipline": 73,
+        "positioning": 70,
+        "composure": 72
       }
     },
     {
@@ -84,18 +84,18 @@
       "nationality": "England",
       "position": "Hooker",
       "baseStats": {
-        "stamina": 63,
-        "strength": 66,
-        "pace": 48,
-        "agility": 58,
-        "handling": 58,
-        "tackling": 64,
-        "breakdown": 69,
+        "stamina": 73,
+        "strength": 76,
+        "pace": 58,
+        "agility": 68,
+        "handling": 68,
+        "tackling": 74,
+        "breakdown": 79,
         "kicking": 44,
-        "setPiece": 75,
-        "discipline": 67,
-        "positioning": 61,
-        "composure": 60
+        "setPiece": 85,
+        "discipline": 77,
+        "positioning": 71,
+        "composure": 70
       }
     },
     {
@@ -107,18 +107,18 @@
       "nationality": "England",
       "position": "Prop",
       "baseStats": {
-        "stamina": 69,
-        "strength": 73,
-        "pace": 47,
-        "agility": 55,
-        "handling": 52,
-        "tackling": 73,
-        "breakdown": 64,
+        "stamina": 79,
+        "strength": 83,
+        "pace": 57,
+        "agility": 65,
+        "handling": 62,
+        "tackling": 83,
+        "breakdown": 74,
         "kicking": 39,
-        "setPiece": 83,
-        "discipline": 67,
-        "positioning": 65,
-        "composure": 63
+        "setPiece": 93,
+        "discipline": 77,
+        "positioning": 75,
+        "composure": 73
       }
     },
     {
@@ -130,18 +130,18 @@
       "nationality": "England",
       "position": "Lock",
       "baseStats": {
-        "stamina": 71,
-        "strength": 72,
-        "pace": 55,
-        "agility": 55,
-        "handling": 58,
-        "tackling": 65,
-        "breakdown": 70,
+        "stamina": 81,
+        "strength": 82,
+        "pace": 65,
+        "agility": 65,
+        "handling": 68,
+        "tackling": 75,
+        "breakdown": 80,
         "kicking": 41,
-        "setPiece": 77,
-        "discipline": 65,
-        "positioning": 60,
-        "composure": 64
+        "setPiece": 87,
+        "discipline": 75,
+        "positioning": 70,
+        "composure": 74
       }
     },
     {
@@ -153,18 +153,18 @@
       "nationality": "England",
       "position": "Lock",
       "baseStats": {
-        "stamina": 70,
-        "strength": 71,
-        "pace": 55,
-        "agility": 52,
-        "handling": 59,
-        "tackling": 70,
-        "breakdown": 63,
+        "stamina": 80,
+        "strength": 81,
+        "pace": 65,
+        "agility": 62,
+        "handling": 69,
+        "tackling": 80,
+        "breakdown": 73,
         "kicking": 43,
-        "setPiece": 79,
-        "discipline": 67,
-        "positioning": 65,
-        "composure": 64
+        "setPiece": 89,
+        "discipline": 77,
+        "positioning": 75,
+        "composure": 74
       }
     },
     {
@@ -176,18 +176,18 @@
       "nationality": "New Zealand",
       "position": "Flanker",
       "baseStats": {
-        "stamina": 68,
-        "strength": 73,
-        "pace": 58,
-        "agility": 62,
-        "handling": 60,
-        "tackling": 70,
-        "breakdown": 75,
+        "stamina": 78,
+        "strength": 83,
+        "pace": 68,
+        "agility": 72,
+        "handling": 70,
+        "tackling": 80,
+        "breakdown": 85,
         "kicking": 51,
-        "setPiece": 68,
-        "discipline": 61,
-        "positioning": 68,
-        "composure": 61
+        "setPiece": 78,
+        "discipline": 71,
+        "positioning": 78,
+        "composure": 71
       }
     },
     {
@@ -199,18 +199,18 @@
       "nationality": "Scotland",
       "position": "Flanker",
       "baseStats": {
-        "stamina": 73,
-        "strength": 68,
-        "pace": 64,
-        "agility": 65,
-        "handling": 61,
-        "tackling": 71,
-        "breakdown": 72,
+        "stamina": 83,
+        "strength": 78,
+        "pace": 74,
+        "agility": 75,
+        "handling": 71,
+        "tackling": 81,
+        "breakdown": 82,
         "kicking": 49,
-        "setPiece": 69,
-        "discipline": 66,
-        "positioning": 67,
-        "composure": 58
+        "setPiece": 79,
+        "discipline": 76,
+        "positioning": 77,
+        "composure": 68
       }
     },
     {
@@ -222,18 +222,18 @@
       "nationality": "Japan",
       "position": "Number 8",
       "baseStats": {
-        "stamina": 80,
-        "strength": 80,
-        "pace": 61,
-        "agility": 66,
-        "handling": 81,
-        "tackling": 82,
-        "breakdown": 80,
+        "stamina": 95,
+        "strength": 95,
+        "pace": 78,
+        "agility": 78,
+        "handling": 95,
+        "tackling": 95,
+        "breakdown": 95,
         "kicking": 52,
-        "setPiece": 67,
-        "discipline": 61,
-        "positioning": 67,
-        "composure": 61
+        "setPiece": 78,
+        "discipline": 78,
+        "positioning": 78,
+        "composure": 78
       }
     },
     {
@@ -245,18 +245,18 @@
       "nationality": "Argentina",
       "position": "Scrum-Half",
       "baseStats": {
-        "stamina": 68,
-        "strength": 60,
-        "pace": 71,
-        "agility": 64,
-        "handling": 65,
-        "tackling": 62,
-        "breakdown": 62,
-        "kicking": 66,
+        "stamina": 78,
+        "strength": 70,
+        "pace": 81,
+        "agility": 74,
+        "handling": 75,
+        "tackling": 72,
+        "breakdown": 72,
+        "kicking": 76,
         "setPiece": 53,
-        "discipline": 64,
-        "positioning": 65,
-        "composure": 66
+        "discipline": 74,
+        "positioning": 75,
+        "composure": 76
       }
     },
     {
@@ -268,18 +268,18 @@
       "nationality": "South Africa",
       "position": "Fly-Half",
       "baseStats": {
-        "stamina": 65,
-        "strength": 59,
-        "pace": 62,
-        "agility": 62,
-        "handling": 72,
-        "tackling": 58,
-        "breakdown": 55,
-        "kicking": 81,
+        "stamina": 75,
+        "strength": 69,
+        "pace": 72,
+        "agility": 72,
+        "handling": 82,
+        "tackling": 68,
+        "breakdown": 65,
+        "kicking": 91,
         "setPiece": 50,
-        "discipline": 67,
-        "positioning": 68,
-        "composure": 72
+        "discipline": 77,
+        "positioning": 78,
+        "composure": 82
       }
     },
     {
@@ -291,18 +291,18 @@
       "nationality": "Wales",
       "position": "Wing",
       "baseStats": {
-        "stamina": 62,
-        "strength": 61,
-        "pace": 84,
-        "agility": 84,
-        "handling": 83,
-        "tackling": 62,
-        "breakdown": 60,
-        "kicking": 58,
+        "stamina": 78,
+        "strength": 78,
+        "pace": 95,
+        "agility": 95,
+        "handling": 95,
+        "tackling": 78,
+        "breakdown": 78,
+        "kicking": 78,
         "setPiece": 48,
-        "discipline": 61,
-        "positioning": 84,
-        "composure": 86
+        "discipline": 78,
+        "positioning": 95,
+        "composure": 95
       },
       "contract": {
         "isMarquee": true
@@ -317,18 +317,18 @@
       "nationality": "Ireland",
       "position": "Centre",
       "baseStats": {
-        "stamina": 65,
-        "strength": 64,
-        "pace": 68,
-        "agility": 64,
-        "handling": 70,
-        "tackling": 64,
-        "breakdown": 62,
-        "kicking": 58,
+        "stamina": 75,
+        "strength": 74,
+        "pace": 78,
+        "agility": 74,
+        "handling": 80,
+        "tackling": 74,
+        "breakdown": 72,
+        "kicking": 68,
         "setPiece": 56,
-        "discipline": 65,
-        "positioning": 68,
-        "composure": 66
+        "discipline": 75,
+        "positioning": 78,
+        "composure": 76
       }
     },
     {
@@ -340,18 +340,18 @@
       "nationality": "England",
       "position": "Centre",
       "baseStats": {
-        "stamina": 68,
-        "strength": 67,
-        "pace": 69,
-        "agility": 70,
-        "handling": 67,
-        "tackling": 64,
-        "breakdown": 59,
-        "kicking": 60,
+        "stamina": 78,
+        "strength": 77,
+        "pace": 79,
+        "agility": 80,
+        "handling": 77,
+        "tackling": 74,
+        "breakdown": 69,
+        "kicking": 70,
         "setPiece": 51,
-        "discipline": 69,
-        "positioning": 65,
-        "composure": 61
+        "discipline": 79,
+        "positioning": 75,
+        "composure": 71
       }
     },
     {
@@ -363,18 +363,18 @@
       "nationality": "England",
       "position": "Wing",
       "baseStats": {
-        "stamina": 63,
-        "strength": 55,
-        "pace": 78,
-        "agility": 71,
-        "handling": 67,
-        "tackling": 60,
-        "breakdown": 57,
-        "kicking": 62,
+        "stamina": 73,
+        "strength": 65,
+        "pace": 88,
+        "agility": 81,
+        "handling": 77,
+        "tackling": 70,
+        "breakdown": 67,
+        "kicking": 72,
         "setPiece": 49,
-        "discipline": 65,
-        "positioning": 68,
-        "composure": 60
+        "discipline": 75,
+        "positioning": 78,
+        "composure": 70
       }
     },
     {
@@ -386,18 +386,18 @@
       "nationality": "England",
       "position": "Fullback",
       "baseStats": {
-        "stamina": 68,
-        "strength": 57,
-        "pace": 73,
-        "agility": 69,
-        "handling": 69,
-        "tackling": 62,
-        "breakdown": 60,
-        "kicking": 64,
+        "stamina": 78,
+        "strength": 67,
+        "pace": 83,
+        "agility": 79,
+        "handling": 79,
+        "tackling": 72,
+        "breakdown": 70,
+        "kicking": 74,
         "setPiece": 54,
-        "discipline": 71,
-        "positioning": 74,
-        "composure": 65
+        "discipline": 81,
+        "positioning": 84,
+        "composure": 75
       }
     }
   ],
@@ -411,18 +411,18 @@
       "nationality": "Italy",
       "position": "Hooker",
       "baseStats": {
-        "stamina": 68,
-        "strength": 75,
-        "pace": 49,
-        "agility": 62,
-        "handling": 75,
-        "tackling": 75,
-        "breakdown": 75,
+        "stamina": 71,
+        "strength": 78,
+        "pace": 52,
+        "agility": 65,
+        "handling": 78,
+        "tackling": 78,
+        "breakdown": 78,
         "kicking": 49,
-        "setPiece": 79,
-        "discipline": 69,
-        "positioning": 62,
-        "composure": 65
+        "setPiece": 82,
+        "discipline": 72,
+        "positioning": 65,
+        "composure": 68
       }
     },
     {
@@ -434,18 +434,18 @@
       "nationality": "South Africa",
       "position": "Prop",
       "baseStats": {
-        "stamina": 75,
-        "strength": 75,
-        "pace": 49,
-        "agility": 52,
-        "handling": 51,
-        "tackling": 75,
-        "breakdown": 75,
+        "stamina": 78,
+        "strength": 78,
+        "pace": 52,
+        "agility": 55,
+        "handling": 54,
+        "tackling": 78,
+        "breakdown": 78,
         "kicking": 42,
-        "setPiece": 84,
-        "discipline": 67,
-        "positioning": 64,
-        "composure": 64
+        "setPiece": 87,
+        "discipline": 70,
+        "positioning": 67,
+        "composure": 67
       }
     },
     {
@@ -457,18 +457,18 @@
       "nationality": "England",
       "position": "Prop",
       "baseStats": {
-        "stamina": 75,
-        "strength": 77,
-        "pace": 43,
-        "agility": 56,
-        "handling": 51,
-        "tackling": 75,
-        "breakdown": 75,
+        "stamina": 78,
+        "strength": 80,
+        "pace": 46,
+        "agility": 59,
+        "handling": 54,
+        "tackling": 78,
+        "breakdown": 78,
         "kicking": 39,
-        "setPiece": 80,
-        "discipline": 64,
-        "positioning": 62,
-        "composure": 62
+        "setPiece": 83,
+        "discipline": 67,
+        "positioning": 65,
+        "composure": 65
       }
     },
     {
@@ -480,18 +480,18 @@
       "nationality": "England",
       "position": "Lock",
       "baseStats": {
-        "stamina": 75,
-        "strength": 75,
-        "pace": 54,
-        "agility": 53,
-        "handling": 57,
-        "tackling": 75,
-        "breakdown": 75,
+        "stamina": 78,
+        "strength": 78,
+        "pace": 57,
+        "agility": 56,
+        "handling": 60,
+        "tackling": 78,
+        "breakdown": 78,
         "kicking": 42,
-        "setPiece": 82,
-        "discipline": 64,
-        "positioning": 66,
-        "composure": 64
+        "setPiece": 85,
+        "discipline": 67,
+        "positioning": 69,
+        "composure": 67
       }
     },
     {
@@ -503,18 +503,18 @@
       "nationality": "England",
       "position": "Flanker",
       "baseStats": {
-        "stamina": 75,
-        "strength": 75,
-        "pace": 60,
-        "agility": 62,
-        "handling": 63,
-        "tackling": 75,
-        "breakdown": 76,
+        "stamina": 78,
+        "strength": 78,
+        "pace": 63,
+        "agility": 65,
+        "handling": 66,
+        "tackling": 78,
+        "breakdown": 79,
         "kicking": 54,
-        "setPiece": 64,
-        "discipline": 69,
-        "positioning": 75,
-        "composure": 62
+        "setPiece": 67,
+        "discipline": 72,
+        "positioning": 78,
+        "composure": 65
       }
     },
     {
@@ -526,18 +526,18 @@
       "nationality": "England",
       "position": "Scrum-Half",
       "baseStats": {
-        "stamina": 62,
-        "strength": 58,
-        "pace": 75,
-        "agility": 75,
-        "handling": 75,
-        "tackling": 63,
-        "breakdown": 66,
-        "kicking": 75,
+        "stamina": 65,
+        "strength": 61,
+        "pace": 78,
+        "agility": 78,
+        "handling": 78,
+        "tackling": 66,
+        "breakdown": 69,
+        "kicking": 78,
         "setPiece": 53,
-        "discipline": 64,
-        "positioning": 75,
-        "composure": 75
+        "discipline": 67,
+        "positioning": 78,
+        "composure": 78
       }
     },
     {
@@ -549,18 +549,18 @@
       "nationality": "Ireland",
       "position": "Fly-Half",
       "baseStats": {
-        "stamina": 62,
-        "strength": 56,
-        "pace": 62,
-        "agility": 66,
-        "handling": 75,
-        "tackling": 62,
-        "breakdown": 57,
-        "kicking": 81,
+        "stamina": 65,
+        "strength": 59,
+        "pace": 65,
+        "agility": 69,
+        "handling": 78,
+        "tackling": 65,
+        "breakdown": 60,
+        "kicking": 84,
         "setPiece": 48,
-        "discipline": 75,
-        "positioning": 75,
-        "composure": 75
+        "discipline": 78,
+        "positioning": 78,
+        "composure": 78
       }
     },
     {
@@ -572,18 +572,18 @@
       "nationality": "England",
       "position": "Wing",
       "baseStats": {
-        "stamina": 64,
-        "strength": 55,
-        "pace": 80,
-        "agility": 75,
-        "handling": 75,
-        "tackling": 62,
-        "breakdown": 53,
-        "kicking": 63,
+        "stamina": 67,
+        "strength": 58,
+        "pace": 83,
+        "agility": 78,
+        "handling": 78,
+        "tackling": 65,
+        "breakdown": 56,
+        "kicking": 66,
         "setPiece": 48,
-        "discipline": 63,
-        "positioning": 75,
-        "composure": 75
+        "discipline": 66,
+        "positioning": 78,
+        "composure": 78
       }
     }
   ],
@@ -597,18 +597,18 @@
       "nationality": "England",
       "position": "Lock",
       "baseStats": {
-        "stamina": 77,
-        "strength": 77,
-        "pace": 54,
-        "agility": 57,
-        "handling": 59,
-        "tackling": 77,
-        "breakdown": 77,
+        "stamina": 72,
+        "strength": 72,
+        "pace": 49,
+        "agility": 52,
+        "handling": 54,
+        "tackling": 72,
+        "breakdown": 72,
         "kicking": 46,
-        "setPiece": 80,
-        "discipline": 68,
-        "positioning": 66,
-        "composure": 65
+        "setPiece": 75,
+        "discipline": 63,
+        "positioning": 61,
+        "composure": 60
       }
     },
     {
@@ -620,18 +620,18 @@
       "nationality": "New Zealand",
       "position": "Hooker",
       "baseStats": {
-        "stamina": 65,
-        "strength": 77,
-        "pace": 51,
-        "agility": 65,
-        "handling": 77,
-        "tackling": 77,
-        "breakdown": 77,
+        "stamina": 60,
+        "strength": 72,
+        "pace": 46,
+        "agility": 60,
+        "handling": 72,
+        "tackling": 72,
+        "breakdown": 72,
         "kicking": 47,
-        "setPiece": 77,
-        "discipline": 65,
-        "positioning": 65,
-        "composure": 65
+        "setPiece": 72,
+        "discipline": 60,
+        "positioning": 60,
+        "composure": 60
       }
     },
     {
@@ -643,18 +643,18 @@
       "nationality": "England",
       "position": "Lock",
       "baseStats": {
-        "stamina": 77,
-        "strength": 77,
-        "pace": 54,
-        "agility": 56,
-        "handling": 60,
-        "tackling": 77,
-        "breakdown": 77,
+        "stamina": 72,
+        "strength": 72,
+        "pace": 49,
+        "agility": 51,
+        "handling": 55,
+        "tackling": 72,
+        "breakdown": 72,
         "kicking": 41,
-        "setPiece": 78,
-        "discipline": 65,
-        "positioning": 68,
-        "composure": 65
+        "setPiece": 73,
+        "discipline": 60,
+        "positioning": 63,
+        "composure": 60
       }
     },
     {
@@ -666,18 +666,18 @@
       "nationality": "England",
       "position": "Back Row",
       "baseStats": {
-        "stamina": 77,
-        "strength": 77,
-        "pace": 63,
-        "agility": 65,
-        "handling": 65,
-        "tackling": 77,
-        "breakdown": 77,
+        "stamina": 72,
+        "strength": 72,
+        "pace": 58,
+        "agility": 60,
+        "handling": 60,
+        "tackling": 72,
+        "breakdown": 72,
         "kicking": 53,
-        "setPiece": 64,
-        "discipline": 65,
-        "positioning": 77,
-        "composure": 65
+        "setPiece": 59,
+        "discipline": 60,
+        "positioning": 72,
+        "composure": 60
       }
     },
     {
@@ -689,18 +689,18 @@
       "nationality": "Australia",
       "position": "Lock",
       "baseStats": {
-        "stamina": 77,
-        "strength": 77,
-        "pace": 50,
-        "agility": 58,
-        "handling": 55,
-        "tackling": 77,
-        "breakdown": 77,
+        "stamina": 72,
+        "strength": 72,
+        "pace": 45,
+        "agility": 53,
+        "handling": 50,
+        "tackling": 72,
+        "breakdown": 72,
         "kicking": 48,
-        "setPiece": 83,
-        "discipline": 65,
-        "positioning": 67,
-        "composure": 65
+        "setPiece": 78,
+        "discipline": 60,
+        "positioning": 62,
+        "composure": 60
       }
     },
     {
@@ -712,18 +712,18 @@
       "nationality": "England",
       "position": "Back Row",
       "baseStats": {
-        "stamina": 77,
-        "strength": 77,
-        "pace": 65,
-        "agility": 65,
-        "handling": 65,
-        "tackling": 77,
-        "breakdown": 77,
+        "stamina": 72,
+        "strength": 72,
+        "pace": 60,
+        "agility": 60,
+        "handling": 60,
+        "tackling": 72,
+        "breakdown": 72,
         "kicking": 55,
-        "setPiece": 63,
-        "discipline": 66,
-        "positioning": 77,
-        "composure": 65
+        "setPiece": 58,
+        "discipline": 61,
+        "positioning": 72,
+        "composure": 60
       }
     },
     {
@@ -735,18 +735,18 @@
       "nationality": "England",
       "position": "Hooker",
       "baseStats": {
-        "stamina": 65,
-        "strength": 77,
-        "pace": 54,
-        "agility": 65,
-        "handling": 77,
-        "tackling": 77,
-        "breakdown": 77,
+        "stamina": 60,
+        "strength": 72,
+        "pace": 49,
+        "agility": 60,
+        "handling": 72,
+        "tackling": 72,
+        "breakdown": 72,
         "kicking": 48,
-        "setPiece": 81,
-        "discipline": 67,
-        "positioning": 65,
-        "composure": 65
+        "setPiece": 76,
+        "discipline": 62,
+        "positioning": 60,
+        "composure": 60
       }
     },
     {
@@ -758,18 +758,18 @@
       "nationality": "Scotland",
       "position": "Lock",
       "baseStats": {
-        "stamina": 77,
-        "strength": 77,
-        "pace": 50,
-        "agility": 51,
-        "handling": 54,
-        "tackling": 77,
-        "breakdown": 77,
+        "stamina": 72,
+        "strength": 72,
+        "pace": 45,
+        "agility": 46,
+        "handling": 49,
+        "tackling": 72,
+        "breakdown": 72,
         "kicking": 41,
-        "setPiece": 81,
-        "discipline": 65,
-        "positioning": 68,
-        "composure": 66
+        "setPiece": 76,
+        "discipline": 60,
+        "positioning": 63,
+        "composure": 61
       }
     },
     {
@@ -781,18 +781,18 @@
       "nationality": "Wales",
       "position": "Lock",
       "baseStats": {
-        "stamina": 77,
-        "strength": 77,
-        "pace": 54,
-        "agility": 56,
-        "handling": 57,
-        "tackling": 77,
-        "breakdown": 77,
+        "stamina": 72,
+        "strength": 72,
+        "pace": 49,
+        "agility": 51,
+        "handling": 52,
+        "tackling": 72,
+        "breakdown": 72,
         "kicking": 40,
-        "setPiece": 83,
-        "discipline": 65,
-        "positioning": 66,
-        "composure": 65
+        "setPiece": 78,
+        "discipline": 60,
+        "positioning": 61,
+        "composure": 60
       }
     },
     {
@@ -804,18 +804,18 @@
       "nationality": "England",
       "position": "Prop",
       "baseStats": {
-        "stamina": 77,
-        "strength": 77,
-        "pace": 46,
-        "agility": 55,
-        "handling": 51,
-        "tackling": 77,
-        "breakdown": 77,
+        "stamina": 72,
+        "strength": 72,
+        "pace": 41,
+        "agility": 50,
+        "handling": 46,
+        "tackling": 72,
+        "breakdown": 72,
         "kicking": 39,
-        "setPiece": 79,
-        "discipline": 65,
-        "positioning": 65,
-        "composure": 65
+        "setPiece": 74,
+        "discipline": 60,
+        "positioning": 60,
+        "composure": 60
       }
     },
     {
@@ -827,18 +827,18 @@
       "nationality": "Scotland",
       "position": "Prop",
       "baseStats": {
-        "stamina": 77,
-        "strength": 77,
-        "pace": 46,
-        "agility": 55,
-        "handling": 56,
-        "tackling": 77,
-        "breakdown": 77,
+        "stamina": 72,
+        "strength": 72,
+        "pace": 41,
+        "agility": 50,
+        "handling": 51,
+        "tackling": 72,
+        "breakdown": 72,
         "kicking": 41,
-        "setPiece": 77,
-        "discipline": 66,
-        "positioning": 65,
-        "composure": 65
+        "setPiece": 72,
+        "discipline": 61,
+        "positioning": 60,
+        "composure": 60
       }
     },
     {
@@ -850,18 +850,18 @@
       "nationality": "England",
       "position": "Hooker",
       "baseStats": {
-        "stamina": 65,
-        "strength": 77,
-        "pace": 52,
-        "agility": 65,
-        "handling": 77,
-        "tackling": 77,
-        "breakdown": 77,
+        "stamina": 60,
+        "strength": 72,
+        "pace": 47,
+        "agility": 60,
+        "handling": 72,
+        "tackling": 72,
+        "breakdown": 72,
         "kicking": 45,
-        "setPiece": 77,
-        "discipline": 68,
-        "positioning": 65,
-        "composure": 65
+        "setPiece": 72,
+        "discipline": 63,
+        "positioning": 60,
+        "composure": 60
       }
     },
     {
@@ -873,18 +873,18 @@
       "nationality": "England",
       "position": "Back Row",
       "baseStats": {
-        "stamina": 77,
-        "strength": 77,
-        "pace": 58,
-        "agility": 66,
-        "handling": 65,
-        "tackling": 77,
-        "breakdown": 77,
+        "stamina": 72,
+        "strength": 72,
+        "pace": 53,
+        "agility": 61,
+        "handling": 60,
+        "tackling": 72,
+        "breakdown": 72,
         "kicking": 53,
-        "setPiece": 69,
-        "discipline": 65,
-        "positioning": 77,
-        "composure": 65
+        "setPiece": 64,
+        "discipline": 60,
+        "positioning": 72,
+        "composure": 60
       }
     },
     {
@@ -896,18 +896,18 @@
       "nationality": "England",
       "position": "Lock",
       "baseStats": {
-        "stamina": 77,
-        "strength": 77,
-        "pace": 53,
-        "agility": 56,
-        "handling": 56,
-        "tackling": 77,
-        "breakdown": 77,
+        "stamina": 72,
+        "strength": 72,
+        "pace": 48,
+        "agility": 51,
+        "handling": 51,
+        "tackling": 72,
+        "breakdown": 72,
         "kicking": 46,
-        "setPiece": 80,
-        "discipline": 65,
-        "positioning": 67,
-        "composure": 65
+        "setPiece": 75,
+        "discipline": 60,
+        "positioning": 62,
+        "composure": 60
       }
     },
     {
@@ -919,18 +919,18 @@
       "nationality": "England",
       "position": "Prop",
       "baseStats": {
-        "stamina": 77,
-        "strength": 77,
-        "pace": 48,
-        "agility": 52,
-        "handling": 54,
-        "tackling": 77,
-        "breakdown": 77,
+        "stamina": 72,
+        "strength": 72,
+        "pace": 43,
+        "agility": 47,
+        "handling": 49,
+        "tackling": 72,
+        "breakdown": 72,
         "kicking": 41,
-        "setPiece": 77,
-        "discipline": 65,
-        "positioning": 65,
-        "composure": 65
+        "setPiece": 72,
+        "discipline": 60,
+        "positioning": 60,
+        "composure": 60
       }
     },
     {
@@ -942,18 +942,18 @@
       "nationality": "South Africa",
       "position": "Lock",
       "baseStats": {
-        "stamina": 77,
-        "strength": 77,
-        "pace": 51,
-        "agility": 57,
-        "handling": 60,
-        "tackling": 77,
-        "breakdown": 77,
+        "stamina": 72,
+        "strength": 72,
+        "pace": 46,
+        "agility": 52,
+        "handling": 55,
+        "tackling": 72,
+        "breakdown": 72,
         "kicking": 46,
-        "setPiece": 83,
-        "discipline": 66,
-        "positioning": 65,
-        "composure": 65
+        "setPiece": 78,
+        "discipline": 61,
+        "positioning": 60,
+        "composure": 60
       }
     },
     {
@@ -965,18 +965,18 @@
       "nationality": "England",
       "position": "Centre",
       "baseStats": {
-        "stamina": 67,
-        "strength": 77,
-        "pace": 77,
-        "agility": 77,
-        "handling": 77,
-        "tackling": 77,
-        "breakdown": 62,
-        "kicking": 63,
+        "stamina": 62,
+        "strength": 72,
+        "pace": 72,
+        "agility": 72,
+        "handling": 72,
+        "tackling": 72,
+        "breakdown": 57,
+        "kicking": 58,
         "setPiece": 50,
-        "discipline": 65,
-        "positioning": 77,
-        "composure": 65
+        "discipline": 60,
+        "positioning": 72,
+        "composure": 60
       }
     },
     {
@@ -988,18 +988,18 @@
       "nationality": "Scotland",
       "position": "Centre",
       "baseStats": {
-        "stamina": 65,
-        "strength": 77,
-        "pace": 77,
-        "agility": 77,
-        "handling": 77,
-        "tackling": 77,
-        "breakdown": 61,
-        "kicking": 62,
+        "stamina": 60,
+        "strength": 72,
+        "pace": 72,
+        "agility": 72,
+        "handling": 72,
+        "tackling": 72,
+        "breakdown": 56,
+        "kicking": 57,
         "setPiece": 53,
-        "discipline": 65,
-        "positioning": 77,
-        "composure": 65
+        "discipline": 60,
+        "positioning": 72,
+        "composure": 60
       }
     },
     {
@@ -1011,18 +1011,18 @@
       "nationality": "England",
       "position": "Wing",
       "baseStats": {
-        "stamina": 65,
-        "strength": 59,
-        "pace": 78,
-        "agility": 77,
-        "handling": 77,
-        "tackling": 65,
-        "breakdown": 59,
-        "kicking": 60,
+        "stamina": 60,
+        "strength": 54,
+        "pace": 73,
+        "agility": 72,
+        "handling": 72,
+        "tackling": 60,
+        "breakdown": 54,
+        "kicking": 55,
         "setPiece": 49,
-        "discipline": 67,
-        "positioning": 77,
-        "composure": 77
+        "discipline": 62,
+        "positioning": 72,
+        "composure": 72
       }
     },
     {
@@ -1034,18 +1034,18 @@
       "nationality": "England",
       "position": "Centre",
       "baseStats": {
-        "stamina": 71,
-        "strength": 77,
-        "pace": 77,
-        "agility": 77,
-        "handling": 77,
-        "tackling": 77,
-        "breakdown": 59,
-        "kicking": 59,
+        "stamina": 66,
+        "strength": 72,
+        "pace": 72,
+        "agility": 72,
+        "handling": 72,
+        "tackling": 72,
+        "breakdown": 54,
+        "kicking": 54,
         "setPiece": 54,
-        "discipline": 65,
-        "positioning": 77,
-        "composure": 65
+        "discipline": 60,
+        "positioning": 72,
+        "composure": 60
       }
     },
     {
@@ -1057,18 +1057,18 @@
       "nationality": "England",
       "position": "Fullback",
       "baseStats": {
-        "stamina": 65,
-        "strength": 63,
-        "pace": 77,
-        "agility": 77,
-        "handling": 77,
-        "tackling": 65,
-        "breakdown": 60,
-        "kicking": 63,
+        "stamina": 60,
+        "strength": 58,
+        "pace": 72,
+        "agility": 72,
+        "handling": 72,
+        "tackling": 60,
+        "breakdown": 55,
+        "kicking": 72,
         "setPiece": 53,
-        "discipline": 65,
-        "positioning": 77,
-        "composure": 77
+        "discipline": 60,
+        "positioning": 72,
+        "composure": 72
       }
     },
     {
@@ -1080,18 +1080,18 @@
       "nationality": "England",
       "position": "Fly-Half",
       "baseStats": {
-        "stamina": 65,
-        "strength": 60,
-        "pace": 63,
-        "agility": 65,
-        "handling": 77,
-        "tackling": 65,
-        "breakdown": 62,
-        "kicking": 83,
+        "stamina": 60,
+        "strength": 55,
+        "pace": 58,
+        "agility": 60,
+        "handling": 72,
+        "tackling": 60,
+        "breakdown": 57,
+        "kicking": 78,
         "setPiece": 49,
-        "discipline": 77,
-        "positioning": 77,
-        "composure": 77
+        "discipline": 72,
+        "positioning": 72,
+        "composure": 72
       }
     },
     {
@@ -1103,18 +1103,18 @@
       "nationality": "England",
       "position": "Scrum-Half",
       "baseStats": {
-        "stamina": 65,
-        "strength": 58,
-        "pace": 77,
-        "agility": 77,
-        "handling": 77,
-        "tackling": 65,
-        "breakdown": 62,
-        "kicking": 77,
+        "stamina": 60,
+        "strength": 53,
+        "pace": 72,
+        "agility": 72,
+        "handling": 72,
+        "tackling": 60,
+        "breakdown": 57,
+        "kicking": 72,
         "setPiece": 52,
-        "discipline": 66,
-        "positioning": 77,
-        "composure": 77
+        "discipline": 61,
+        "positioning": 72,
+        "composure": 72
       }
     },
     {
@@ -1126,18 +1126,18 @@
       "nationality": "England",
       "position": "Wing",
       "baseStats": {
-        "stamina": 65,
-        "strength": 58,
-        "pace": 77,
-        "agility": 77,
-        "handling": 77,
-        "tackling": 65,
-        "breakdown": 60,
-        "kicking": 63,
+        "stamina": 60,
+        "strength": 53,
+        "pace": 72,
+        "agility": 72,
+        "handling": 72,
+        "tackling": 60,
+        "breakdown": 55,
+        "kicking": 58,
         "setPiece": 46,
-        "discipline": 65,
-        "positioning": 77,
-        "composure": 77
+        "discipline": 60,
+        "positioning": 72,
+        "composure": 72
       }
     },
     {
@@ -1149,18 +1149,18 @@
       "nationality": "England",
       "position": "Centre",
       "baseStats": {
-        "stamina": 70,
-        "strength": 77,
-        "pace": 77,
-        "agility": 77,
-        "handling": 77,
-        "tackling": 77,
-        "breakdown": 61,
-        "kicking": 58,
+        "stamina": 65,
+        "strength": 72,
+        "pace": 72,
+        "agility": 72,
+        "handling": 72,
+        "tackling": 72,
+        "breakdown": 56,
+        "kicking": 53,
         "setPiece": 54,
-        "discipline": 65,
-        "positioning": 77,
-        "composure": 65
+        "discipline": 60,
+        "positioning": 72,
+        "composure": 60
       }
     },
     {
@@ -1172,18 +1172,18 @@
       "nationality": "England",
       "position": "Scrum-Half",
       "baseStats": {
-        "stamina": 67,
-        "strength": 57,
-        "pace": 77,
-        "agility": 77,
-        "handling": 77,
-        "tackling": 65,
-        "breakdown": 67,
-        "kicking": 77,
+        "stamina": 62,
+        "strength": 52,
+        "pace": 72,
+        "agility": 72,
+        "handling": 72,
+        "tackling": 60,
+        "breakdown": 62,
+        "kicking": 72,
         "setPiece": 50,
-        "discipline": 67,
-        "positioning": 77,
-        "composure": 77
+        "discipline": 62,
+        "positioning": 72,
+        "composure": 72
       }
     },
     {
@@ -1195,18 +1195,18 @@
       "nationality": "England",
       "position": "Centre",
       "baseStats": {
-        "stamina": 69,
-        "strength": 77,
-        "pace": 77,
-        "agility": 77,
-        "handling": 77,
-        "tackling": 77,
-        "breakdown": 63,
-        "kicking": 58,
+        "stamina": 64,
+        "strength": 72,
+        "pace": 72,
+        "agility": 72,
+        "handling": 72,
+        "tackling": 72,
+        "breakdown": 58,
+        "kicking": 53,
         "setPiece": 51,
-        "discipline": 68,
-        "positioning": 77,
-        "composure": 65
+        "discipline": 63,
+        "positioning": 72,
+        "composure": 60
       }
     }
   ]

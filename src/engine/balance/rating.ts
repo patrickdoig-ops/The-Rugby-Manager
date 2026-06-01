@@ -47,9 +47,8 @@ import type { Position, PlayerStats } from '../../types/player';
 
 type StatWeights = Partial<Record<keyof PlayerStats, number>>;
 
-// Forwards: kicking weight = 0 (no kicking skill expected, value clipped low at
-// spawn — see IRRELEVANT_STATS below).
-// Backs: setPiece weight = 0 (no scrum/lineout skill expected, same treatment).
+// Forwards: kicking weight = 0 (no kicking skill expected — see IRRELEVANT_STATS
+// below). Backs: setPiece weight = 0 (no scrum/lineout skill expected).
 
 const PROP_WEIGHTS: StatWeights = {
   setPiece: 2.0, strength: 2.0, breakdown: 1.5, tackling: 1.5, stamina: 1.2,
@@ -95,72 +94,11 @@ const FULLBACK_WEIGHTS: StatWeights = {
 // Utility Back uses unit weights (simple mean) — they fill anywhere on the bench.
 const UTILITY_WEIGHTS: StatWeights = {};
 
-// Spawn-time lift applied at team JSON ingest (`src/team/applyStarBoost.ts`).
-// Maps each team's authored `stars[]` metadata (indexHigh + suggestedRating)
-// onto its players' baseStats so elite real-world players compute to ~95 OVR
-// rather than the ~80 a hand-authored "realistic" stat line produces under the
-// position-weighted average above. League-wide floor lifts every rostered
-// player a couple of points; per-star floors + iterative top-up land each
-// named star within ~1 of (suggestedRating + targetOffset).
-export const STAR_BOOST = {
-  targetOffset:      3,    // target OVR = star.suggestedRating + offset
-  indexHighMin:      95,   // floor for star's indexHigh stats (regular stars)
-  topIndexHighMin:   97,   // floor for star's indexHigh stats (suggestedRating ≥ topThreshold)
-  topThreshold:      90,
-  otherStatMin:      78,   // floor for star's non-indexHigh stats
-  capPerStat:        99,
-  maxIterations:     120,
-  irrelevantStatMax: 15,   // cap for stats listed in IRRELEVANT_STATS (forwards' kicking, backs' setPiece)
-  statHardFloor:     35,   // never let any non-irrelevant stat drop below this (matches the generator's lower clamp)
-} as const;
-
-// Per-tier additive shift applied at spawn to every non-star, non-irrelevant
-// baseStat — keeps within-player stat shape intact (additive, not scaling)
-// while creating a clear OVR step between starting XV non-stars, the
-// matchday bench, and the wider squad. Stars skip the shift entirely
-// (boostStar drives them to their own targets).
-export const TIER_CALIBRATION = {
-  starter: +10,   // starting 15 non-stars
-  bench:   +3,
-  squad:   -5,
-} as const;
-
-// league-quality floor applied AFTER tier calibration but BEFORE star
-// boost. Models the real-world constraint that any player named to a
-// matchday squad has met a baseline professional standard for the role —
-// even on a struggling team, the bench prop can still scrum, the bench
-// wing can still run. Without this floor, weak teams' depth players
-// dragged down every per-tick mechanic (scrum, breakdown, tackle, lineout)
-// and produced the runaway feedback loop visible in v2.179a-v2.188a
-// telemetry (Newcastle 2-4 wins from 90, tackle % 58.9%).
-//
-// Two-band per tier:
-//   * keyStatMin   — for stats with PLAYER_OVERALL_WEIGHTS[pos] >= 1.0
-//                    (the role's defining attributes — Prop's setPiece,
-//                    Wing's pace, Fly-Half's kicking)
-//   * relevantMin  — for other non-irrelevant stats (0.5 <= weight < 1.0,
-//                    or stats with no listed weight, defaulting to 1.0)
-//
-// Irrelevant stats (kicking for forwards, setPiece for backs) keep their
-// existing `STAR_BOOST.irrelevantStatMax` cap — the floor never touches
-// those. Stars skip the floor entirely; their iteration boost dominates.
-//
-// Authored values in docs/team-data.md already meet these floors as of
-// v2.193a, so the floor is a safety net for future edits rather than a
-// runtime transformer for current data.
-export const BENCH_QUALITY_FLOOR = {
-  keyStatMin:  78,
-  relevantMin: 65,
-} as const;
-
-export const SQUAD_QUALITY_FLOOR = {
-  keyStatMin:  72,
-  relevantMin: 60,
-} as const;
-
-// Stats that don't belong to a position's skillset at all — value clamped to
-// `STAR_BOOST.irrelevantStatMax` at spawn, weight 0 in the OVR formula above.
-// Forwards have no kicking skill; backs have no scrum/lineout skill.
+// Stats that don't belong to a position's skillset at all — weight 0 in the
+// OVR formula above, so they never affect a player's overall. Forwards have no
+// kicking skill; backs have no scrum/lineout skill. Read by the UI
+// (PlayerProfileScreen greys these out on the radar). Their authored values in
+// docs/team-data.md are flavour only.
 export const IRRELEVANT_STATS: Record<Position, (keyof PlayerStats)[]> = {
   'Prop':         ['kicking'],
   'Hooker':       ['kicking'],
@@ -174,36 +112,6 @@ export const IRRELEVANT_STATS: Record<Position, (keyof PlayerStats)[]> = {
   'Wing':         ['setPiece'],
   'Fullback':     ['setPiece'],
   'Utility Back': ['setPiece'],
-};
-
-// League-wide per-stat ceilings honoured by both the league-floor pass and the
-// star-boost iteration. Lets us say "no one in the league has pace > 95" with
-// one constant. Per-player exceptions live in PLAYER_STAT_OVERRIDES below and
-// are applied AFTER ceilings, so they can exceed them.
-export const LEAGUE_STAT_CEILINGS: Partial<Record<keyof PlayerStats, number>> = {
-  pace: 95,
-};
-
-// Per-player exact-value overrides applied as the very last spawn step. Use
-// for visible stats where the league ordering matters and the position/star
-// machinery can't express the constraint (e.g. "Henry Arundell is the
-// league's fastest, no one else may match him"). Overrides exceed
-// LEAGUE_STAT_CEILINGS. Keyed by exact full name as authored in the team
-// JSON (case-sensitive, matched after the team data is loaded).
-//
-// For stars, the override also acts as a per-player cap during the boost
-// iteration — so a star whose pace is overridden to 85 has those weight
-// points redistributed to other stats rather than the iteration driving
-// pace up to the league ceiling only to be slammed back down at the end.
-export const PLAYER_STAT_OVERRIDES: Record<string, Partial<PlayerStats>> = {
-  'Henry Arundell':     { pace: 99 },
-  'Adam Radwan':        { pace: 98 },
-  'Cadan Murley':       { pace: 95 },
-  'Ollie Sleightholme': { pace: 95 },
-  'Henry Slade':        { pace: 85 },
-  'Alex Mitchell':      { pace: 88 },
-  'Henry Pollock':      { pace: 92 },
-  'Ben Earl':           { pace: 89 },
 };
 
 export const PLAYER_OVERALL_WEIGHTS: Record<Position, StatWeights> = {

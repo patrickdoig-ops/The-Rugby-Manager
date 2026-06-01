@@ -26,9 +26,9 @@ Related docs: see `CLAUDE.md` "Tactics system" for tactic-effect mechanics, `doc
 
 **Player base stats** (12 fields, 0–100 scale, from `src/data/team-*.json`):
 `stamina · strength · pace · agility · handling · tackling · breakdown · kicking · setPiece · discipline · positioning · composure`
-*(Note: These 12 attributes are now authored manually in the right-most columns of the squad tables below. The compiler scripts parse these values exactly as typed).*
+*(These 12 attributes are the final, play-ready values — authored manually in the right-most columns of the squad tables below. `scripts/generateTeamJsons.mjs` parses them exactly as typed and writes them verbatim into `src/data/team-*.json`. There is **no** runtime stat transform: edit a number here, run the generator, and it flows straight to the game. Off-position "inert" stats — forwards' `kicking`, backs' `setPiece` — carry weight 0 in the overall-rating formula but are still read by the engine in rare fallback cases, e.g. a forward taking an emergency drop-out, so author them as plausible low values rather than zeros.)*
 
-**Star-player annotations** — appended to a `### Star players` line. `Marquee: yes.` designates the cap-excluded marquee slot (one per club; the contract seeder reads the flag and the in-game Contracts screen surfaces it). `Wage: £1m.` / `Wage: £550k.` is an optional explicit wage override — used to land hand-tuned marquee figures above what the `WAGE_BY_RATING × POSITION_SCARCITY × WAGE_NOISE` seeder formula would produce. Omitted ⇒ the seeder computes the wage. Both annotations are parsed by `scripts/generateTeamJsons.mjs` into the player's JSON `contract` block; `contractSeeder` honours `annualWage` verbatim when present.
+**Star-player annotations** — appended to a `### Star players` line. `Marquee: yes.` designates the cap-excluded marquee slot (one per club; the contract seeder reads the flag and the in-game Contracts screen surfaces it). `Wage: £1m.` / `Wage: £550k.` is an optional explicit wage override — used to land hand-tuned marquee figures above what the `WAGE_BY_RATING × POSITION_SCARCITY × WAGE_NOISE` seeder formula would produce. Omitted ⇒ the seeder computes the wage. Both annotations are parsed by `scripts/generateTeamJsons.mjs` into the player's JSON `contract` block; `contractSeeder` honours `annualWage` verbatim when present. The `Index high` + `Suggested rating` fields on each star line are **display/reference metadata only** (surfaced by the in-game TeamInfo screen) — they no longer drive any stat computation.
 
 **Squad tiers** — each club's `### Squad (2025-26)` section is split into five sub-tables:
 
@@ -84,61 +84,61 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Val Rapava-Ruskin | Prop | 1992-12-12 | 33 | Georgia | 70 | 81 | 52 | 57 | 59 | 79 | 75 | 43 | 92 | 70 | 70 | 65 |
-| Seb Blake | Hooker | 2002-06-23 | 23 | England | 67 | 76 | 57 | 65 | 64 | 72 | 75 | 52 | 85 | 70 | 70 | 70 |
-| Afolabi Fasogbon | Prop | 2003-12-17 | 22 | Ireland | 66 | 79 | 53 | 60 | 60 | 74 | 75 | 49 | 92 | 65 | 63 | 70 |
-| Hugh Bokenham | Lock | 2001-07-20 | 24 | England | 66 | 77 | 56 | 61 | 60 | 76 | 74 | 45 | 90 | 67 | 68 | 65 |
-| Arthur Clark | Lock | 1999-09-24 | 26 | England | 66 | 77 | 60 | 60 | 61 | 75 | 74 | 46 | 91 | 68 | 70 | 70 |
-| Lewis Ludlow | Flanker | 1994-12-19 | 31 | England | 82 | 74 | 67 | 71 | 69 | 82 | 84 | 57 | 72 | 83 | 83 | 67 |
-| Josh Basham | Flanker | 1999-08-08 | 26 | England | 72 | 78 | 69 | 71 | 68 | 79 | 83 | 55 | 78 | 71 | 74 | 69 |
-| Jack Mann | Back Row | 1999-01-30 | 27 | England | 71 | 76 | 64 | 73 | 65 | 72 | 79 | 57 | 71 | 67 | 68 | 64 |
+| Val Rapava-Ruskin | Prop | 1992-12-12 | 33 | Georgia | 80 | 91 | 62 | 67 | 69 | 89 | 85 | 43 | 99 | 80 | 80 | 75 |
+| Seb Blake | Hooker | 2002-06-23 | 23 | England | 77 | 86 | 67 | 75 | 74 | 82 | 85 | 52 | 95 | 80 | 80 | 80 |
+| Afolabi Fasogbon | Prop | 2003-12-17 | 22 | Ireland | 76 | 89 | 63 | 70 | 70 | 84 | 85 | 49 | 99 | 75 | 73 | 80 |
+| Hugh Bokenham | Lock | 2001-07-20 | 24 | England | 76 | 87 | 66 | 71 | 70 | 86 | 84 | 45 | 99 | 77 | 78 | 75 |
+| Arthur Clark | Lock | 1999-09-24 | 26 | England | 76 | 87 | 70 | 70 | 71 | 85 | 84 | 46 | 99 | 78 | 80 | 80 |
+| Lewis Ludlow | Flanker | 1994-12-19 | 31 | England | 95 | 78 | 78 | 78 | 78 | 95 | 95 | 57 | 78 | 95 | 95 | 78 |
+| Josh Basham | Flanker | 1999-08-08 | 26 | England | 82 | 88 | 79 | 81 | 78 | 89 | 93 | 55 | 88 | 81 | 84 | 79 |
+| Jack Mann | Back Row | 1999-01-30 | 27 | England | 81 | 86 | 74 | 83 | 75 | 82 | 89 | 57 | 81 | 77 | 78 | 74 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Tomos Williams | Scrum-half | 1994-10-25 | 31 | Wales | 67 | 63 | 86 | 86 | 89 | 69 | 66 | 72 | 56 | 69 | 87 | 86 |
-| Ross Byrne | Fly-half | 1995-03-29 | 31 | Ireland | 68 | 62 | 69 | 73 | 87 | 63 | 64 | 84 | 59 | 86 | 88 | 85 |
-| Will Joseph | Wing | 2003-02-04 | 23 | England | 69 | 64 | 79 | 79 | 71 | 66 | 63 | 63 | 60 | 64 | 66 | 67 |
-| Max Llewellyn | Centre | 1997-09-04 | 28 | Wales | 68 | 83 | 81 | 71 | 83 | 84 | 67 | 67 | 61 | 68 | 68 | 71 |
-| Seb Atkinson | Centre | 2001-08-27 | 24 | England | 67 | 78 | 71 | 68 | 76 | 75 | 73 | 67 | 59 | 67 | 73 | 65 |
-| Ben Loader | Wing | 1999-01-24 | 27 | England | 65 | 64 | 84 | 78 | 75 | 62 | 64 | 68 | 54 | 69 | 68 | 65 |
-| George Barton | Utility Back | 1999-09-04 | 26 | England | 70 | 71 | 67 | 68 | 72 | 68 | 71 | 69 | 69 | 64 | 71 | 72 |
+| Tomos Williams | Scrum-half | 1994-10-25 | 31 | Wales | 78 | 78 | 95 | 95 | 99 | 78 | 78 | 78 | 56 | 78 | 98 | 99 |
+| Ross Byrne | Fly-half | 1995-03-29 | 31 | Ireland | 78 | 78 | 78 | 78 | 95 | 78 | 78 | 95 | 59 | 95 | 95 | 95 |
+| Will Joseph | Wing | 2003-02-04 | 23 | England | 79 | 74 | 89 | 89 | 81 | 76 | 73 | 73 | 60 | 74 | 76 | 77 |
+| Max Llewellyn | Centre | 1997-09-04 | 28 | Wales | 78 | 95 | 95 | 78 | 95 | 95 | 78 | 78 | 61 | 78 | 78 | 78 |
+| Seb Atkinson | Centre | 2001-08-27 | 24 | England | 77 | 88 | 81 | 78 | 86 | 85 | 83 | 77 | 59 | 77 | 83 | 75 |
+| Ben Loader | Wing | 1999-01-24 | 27 | England | 75 | 74 | 94 | 88 | 85 | 72 | 74 | 78 | 54 | 79 | 78 | 75 |
+| George Barton | Utility Back | 1999-09-04 | 26 | England | 80 | 81 | 77 | 78 | 82 | 78 | 81 | 79 | 69 | 74 | 81 | 82 |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Jack Innard | Hooker | 2001-04-13 | 25 | England | 68 | 75 | 58 | 62 | 75 | 75 | 76 | 51 | 87 | 67 | 68 | 68 |
-| Jamal Ford-Robinson | Prop | 1993-04-23 | 33 | England | 75 | 85 | 52 | 60 | 61 | 75 | 75 | 45 | 87 | 63 | 69 | 67 |
-| Kirill Gotovtsev | Prop | 1987-07-17 | 38 | Russia | 75 | 81 | 49 | 54 | 62 | 75 | 75 | 43 | 92 | 66 | 64 | 68 |
-| Danny Eite | Lock | 2003-06-28 | 22 | England | 75 | 82 | 58 | 61 | 63 | 77 | 75 | 46 | 88 | 69 | 66 | 64 |
-| James Venter | Flanker | 1995-12-28 | 30 | South Africa | 75 | 77 | 68 | 65 | 69 | 75 | 81 | 57 | 74 | 65 | 75 | 66 |
-| Mike Austin | Scrum-half | 2000-11-30 | 25 | England | 68 | 69 | 75 | 75 | 75 | 70 | 68 | 75 | 61 | 69 | 75 | 75 |
-| Charlie Atkinson | Fly-half | 2001-04-08 | 25 | England | 65 | 61 | 73 | 71 | 75 | 63 | 64 | 88 | 64 | 75 | 75 | 75 |
-| Ben Redshaw | Full-back | 2005-01-10 | 21 | England | 68 | 66 | 77 | 72 | 75 | 69 | 70 | 75 | 60 | 67 | 76 | 75 |
+| Jack Innard | Hooker | 2001-04-13 | 25 | England | 71 | 78 | 61 | 65 | 78 | 78 | 79 | 51 | 90 | 70 | 71 | 71 |
+| Jamal Ford-Robinson | Prop | 1993-04-23 | 33 | England | 78 | 88 | 55 | 63 | 64 | 78 | 78 | 45 | 90 | 66 | 72 | 70 |
+| Kirill Gotovtsev | Prop | 1987-07-17 | 38 | Russia | 78 | 84 | 52 | 57 | 65 | 78 | 78 | 43 | 95 | 69 | 67 | 71 |
+| Danny Eite | Lock | 2003-06-28 | 22 | England | 78 | 85 | 61 | 64 | 66 | 80 | 78 | 46 | 91 | 72 | 69 | 67 |
+| James Venter | Flanker | 1995-12-28 | 30 | South Africa | 78 | 80 | 71 | 68 | 72 | 78 | 84 | 57 | 77 | 68 | 78 | 69 |
+| Mike Austin | Scrum-half | 2000-11-30 | 25 | England | 71 | 72 | 78 | 78 | 78 | 73 | 71 | 78 | 61 | 72 | 78 | 78 |
+| Charlie Atkinson | Fly-half | 2001-04-08 | 25 | England | 68 | 64 | 76 | 74 | 78 | 66 | 67 | 91 | 64 | 78 | 78 | 78 |
+| Ben Redshaw | Full-back | 2005-01-10 | 21 | England | 71 | 69 | 80 | 75 | 78 | 72 | 73 | 78 | 60 | 70 | 79 | 78 |
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Archie McArthur | Prop | 2003-06-11 | 22 | Scotland | 77 | 81 | 49 | 53 | 57 | 77 | 77 | 44 | 89 | 71 | 68 | 69 |
-| Cameron Jordan | Lock | 1996-05-23 | 30 | England | 77 | 82 | 56 | 59 | 58 | 77 | 77 | 47 | 86 | 65 | 66 | 71 |
-| Ciaran Knight | Prop | 1995-08-30 | 30 | England | 77 | 83 | 52 | 57 | 56 | 77 | 77 | 47 | 92 | 65 | 67 | 71 |
-| Freddie Thomas | Lock | 1999-07-22 | 26 | England | 77 | 82 | 59 | 59 | 61 | 77 | 77 | 48 | 91 | 71 | 66 | 65 |
-| Harry Taylor | Back Row | 2002-01-15 | 24 | England | 77 | 77 | 67 | 66 | 69 | 77 | 80 | 61 | 76 | 67 | 77 | 67 |
-| Jack Clement | Back Row | 2001-04-04 | 25 | England | 77 | 79 | 68 | 67 | 71 | 77 | 80 | 59 | 75 | 65 | 77 | 68 |
-| Jack Singleton | Hooker | 1996-08-07 | 29 | England | 71 | 77 | 60 | 66 | 77 | 77 | 78 | 50 | 82 | 68 | 72 | 65 |
-| Nepo Laulala | Prop | 1991-10-29 | 34 | New Zealand | 77 | 86 | 49 | 58 | 58 | 78 | 77 | 45 | 87 | 70 | 69 | 69 |
-| Jono Benz-Salomon | Prop | 2001-03-17 | 25 | England | 77 | 85 | 51 | 58 | 62 | 77 | 77 | 48 | 88 | 68 | 71 | 70 |
-| Will Trenholm | Back Row | 2001-01-06 | 25 | England | 77 | 77 | 64 | 68 | 65 | 77 | 80 | 57 | 74 | 65 | 77 | 65 |
+| Archie McArthur | Prop | 2003-06-11 | 22 | Scotland | 72 | 76 | 44 | 48 | 52 | 72 | 72 | 44 | 84 | 66 | 63 | 64 |
+| Cameron Jordan | Lock | 1996-05-23 | 30 | England | 72 | 77 | 51 | 54 | 53 | 72 | 72 | 47 | 81 | 60 | 61 | 66 |
+| Ciaran Knight | Prop | 1995-08-30 | 30 | England | 72 | 78 | 47 | 52 | 51 | 72 | 72 | 47 | 87 | 60 | 62 | 66 |
+| Freddie Thomas | Lock | 1999-07-22 | 26 | England | 72 | 77 | 54 | 54 | 56 | 72 | 72 | 48 | 86 | 66 | 61 | 60 |
+| Harry Taylor | Back Row | 2002-01-15 | 24 | England | 72 | 72 | 62 | 61 | 64 | 72 | 75 | 61 | 71 | 62 | 72 | 62 |
+| Jack Clement | Back Row | 2001-04-04 | 25 | England | 72 | 74 | 63 | 62 | 66 | 72 | 75 | 59 | 70 | 60 | 72 | 63 |
+| Jack Singleton | Hooker | 1996-08-07 | 29 | England | 66 | 72 | 55 | 61 | 72 | 72 | 73 | 50 | 77 | 63 | 67 | 60 |
+| Nepo Laulala | Prop | 1991-10-29 | 34 | New Zealand | 72 | 81 | 44 | 53 | 53 | 73 | 72 | 45 | 82 | 65 | 64 | 64 |
+| Jono Benz-Salomon | Prop | 2001-03-17 | 25 | England | 72 | 80 | 46 | 53 | 57 | 72 | 72 | 48 | 83 | 63 | 66 | 65 |
+| Will Trenholm | Back Row | 2001-01-06 | 25 | England | 72 | 72 | 59 | 63 | 60 | 72 | 75 | 57 | 69 | 60 | 72 | 60 |
 
 **Wider squad — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Caolan Englefield | Scrum-half | 2000-04-15 | 26 | England | 68 | 63 | 79 | 77 | 77 | 66 | 73 | 77 | 57 | 72 | 77 | 77 |
-| Jake Morris | Wing | 2002-05-10 | 24 | England | 68 | 66 | 81 | 81 | 77 | 65 | 61 | 66 | 58 | 66 | 77 | 77 |
-| Ollie Thorley | Wing | 1996-08-23 | 29 | England | 65 | 68 | 79 | 83 | 77 | 67 | 62 | 63 | 56 | 68 | 77 | 77 |
-| Rob Russell | Wing | 1998-12-04 | 27 | Ireland | 71 | 63 | 83 | 81 | 77 | 68 | 62 | 63 | 58 | 65 | 77 | 77 |
-| Will Butler | Centre | 1998-04-17 | 28 | England | 71 | 78 | 77 | 77 | 77 | 77 | 69 | 66 | 63 | 71 | 77 | 71 |
-| Josh Hathaway | Wing | 2003-09-04 | 22 | England | 69 | 65 | 83 | 77 | 77 | 67 | 65 | 67 | 59 | 65 | 77 | 77 |
+| Caolan Englefield | Scrum-half | 2000-04-15 | 26 | England | 63 | 58 | 74 | 72 | 72 | 61 | 68 | 72 | 57 | 67 | 72 | 72 |
+| Jake Morris | Wing | 2002-05-10 | 24 | England | 63 | 61 | 76 | 76 | 72 | 60 | 56 | 61 | 58 | 61 | 72 | 72 |
+| Ollie Thorley | Wing | 1996-08-23 | 29 | England | 60 | 63 | 74 | 78 | 72 | 62 | 57 | 58 | 56 | 63 | 72 | 72 |
+| Rob Russell | Wing | 1998-12-04 | 27 | Ireland | 66 | 58 | 78 | 76 | 72 | 63 | 57 | 58 | 58 | 60 | 72 | 72 |
+| Will Butler | Centre | 1998-04-17 | 28 | England | 66 | 73 | 72 | 72 | 72 | 72 | 64 | 61 | 63 | 66 | 72 | 66 |
+| Josh Hathaway | Wing | 2003-09-04 | 22 | England | 64 | 60 | 78 | 72 | 72 | 62 | 60 | 62 | 59 | 60 | 72 | 72 |
 
 ---
 
@@ -167,61 +167,61 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Ellis Genge | Prop | 1995-02-22 | 31 | England | 93 | 92 | 55 | 56 | 60 | 92 | 91 | 50 | 90 | 67 | 70 | 66 |
-| Gabriel Oghre | Hooker | 1998-11-21 | 27 | England | 70 | 75 | 63 | 65 | 66 | 79 | 74 | 50 | 83 | 70 | 71 | 65 |
-| George Kloska | Prop | 2002-02-11 | 24 | England | 72 | 82 | 57 | 62 | 64 | 76 | 72 | 52 | 90 | 69 | 65 | 73 |
-| Joe Owen | Lock | 2003-01-23 | 23 | England | 69 | 76 | 59 | 65 | 68 | 76 | 73 | 54 | 83 | 68 | 69 | 70 |
-| Joe Batley | Lock | 1996-09-06 | 29 | England | 67 | 80 | 62 | 64 | 71 | 75 | 71 | 55 | 86 | 73 | 72 | 73 |
-| Fitz Harding | Flanker | 1997-11-29 | 28 | England | 71 | 74 | 72 | 71 | 69 | 78 | 85 | 57 | 76 | 71 | 70 | 72 |
-| Luka Ivanishvili | Flanker | 1999-12-12 | 26 | Georgia | 72 | 78 | 74 | 74 | 72 | 75 | 78 | 59 | 76 | 68 | 73 | 70 |
-| Viliame Mata | Number 8 | 1991-04-15 | 35 | Fiji | 85 | 85 | 70 | 84 | 83 | 75 | 84 | 60 | 72 | 67 | 70 | 71 |
+| Ellis Genge | Prop | 1995-02-22 | 31 | England | 99 | 99 | 78 | 78 | 78 | 99 | 99 | 50 | 99 | 95 | 78 | 78 |
+| Gabriel Oghre | Hooker | 1998-11-21 | 27 | England | 80 | 85 | 73 | 75 | 76 | 89 | 84 | 50 | 93 | 80 | 81 | 75 |
+| George Kloska | Prop | 2002-02-11 | 24 | England | 82 | 92 | 67 | 72 | 74 | 86 | 82 | 52 | 99 | 79 | 75 | 83 |
+| Joe Owen | Lock | 2003-01-23 | 23 | England | 79 | 86 | 69 | 75 | 78 | 86 | 83 | 54 | 93 | 78 | 79 | 80 |
+| Joe Batley | Lock | 1996-09-06 | 29 | England | 77 | 90 | 72 | 74 | 81 | 85 | 81 | 55 | 96 | 83 | 82 | 83 |
+| Fitz Harding | Flanker | 1997-11-29 | 28 | England | 81 | 84 | 82 | 81 | 79 | 88 | 95 | 57 | 86 | 81 | 80 | 82 |
+| Luka Ivanishvili | Flanker | 1999-12-12 | 26 | Georgia | 82 | 88 | 84 | 84 | 82 | 85 | 88 | 59 | 86 | 78 | 83 | 80 |
+| Viliame Mata | Number 8 | 1991-04-15 | 35 | Fiji | 95 | 97 | 78 | 95 | 95 | 78 | 95 | 60 | 78 | 78 | 78 | 78 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Harry Randall | Scrum-half | 1997-10-29 | 28 | England | 69 | 61 | 79 | 77 | 76 | 68 | 71 | 77 | 59 | 74 | 76 | 73 |
-| Tom Jordan | Fly-half | 1998-08-19 | 27 | Scotland | 65 | 64 | 79 | 72 | 84 | 68 | 67 | 84 | 58 | 75 | 74 | 79 |
-| Gabriel Ibitoye | Wing | 1998-04-26 | 28 | England | 72 | 63 | 86 | 87 | 78 | 64 | 64 | 65 | 59 | 66 | 70 | 65 |
-| Sam Bedlow | Centre | 1995-08-08 | 30 | England | 71 | 73 | 82 | 74 | 74 | 70 | 66 | 71 | 60 | 65 | 70 | 70 |
-| Benhard Janse van Rensburg | Centre | 1994-02-09 | 32 | South Africa | 72 | 73 | 79 | 81 | 76 | 71 | 67 | 64 | 63 | 67 | 71 | 75 |
-| Kalaveti Ravouvou | Wing | 1996-03-30 | 30 | Fiji | 65 | 68 | 88 | 81 | 80 | 69 | 66 | 69 | 53 | 65 | 72 | 66 |
-| Louis Rees-Zammit | Wing / Full Back | 2001-02-02 | 25 | Wales | 67 | 65 | 90 | 88 | 87 | 74 | 67 | 74 | 58 | 71 | 86 | 74 |
+| Harry Randall | Scrum-half | 1997-10-29 | 28 | England | 79 | 71 | 89 | 87 | 86 | 78 | 81 | 87 | 59 | 84 | 86 | 83 |
+| Tom Jordan | Fly-half | 1998-08-19 | 27 | Scotland | 75 | 74 | 89 | 82 | 94 | 78 | 77 | 94 | 58 | 85 | 84 | 89 |
+| Gabriel Ibitoye | Wing | 1998-04-26 | 28 | England | 82 | 73 | 95 | 97 | 88 | 74 | 74 | 75 | 59 | 76 | 80 | 75 |
+| Sam Bedlow | Centre | 1995-08-08 | 30 | England | 81 | 83 | 92 | 84 | 84 | 80 | 76 | 81 | 60 | 75 | 80 | 80 |
+| Benhard Janse van Rensburg | Centre | 1994-02-09 | 32 | South Africa | 82 | 83 | 89 | 91 | 86 | 81 | 77 | 74 | 63 | 77 | 81 | 85 |
+| Kalaveti Ravouvou | Wing | 1996-03-30 | 30 | Fiji | 75 | 78 | 95 | 91 | 90 | 79 | 76 | 79 | 53 | 75 | 82 | 76 |
+| Louis Rees-Zammit | Wing / Full Back | 2001-02-02 | 25 | Wales | 78 | 78 | 95 | 95 | 99 | 78 | 78 | 99 | 58 | 78 | 99 | 89 |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Harry Thacker | Hooker | 1994-04-22 | 32 | England | 67 | 75 | 65 | 67 | 75 | 75 | 76 | 57 | 83 | 67 | 68 | 65 |
-| Max Lahiff | Prop | 1989-09-24 | 36 | England | 75 | 80 | 54 | 65 | 65 | 75 | 75 | 50 | 89 | 72 | 68 | 70 |
-| Sam Grahamslaw | Prop | 1999-08-04 | 26 | Scotland | 75 | 81 | 61 | 65 | 62 | 77 | 75 | 48 | 85 | 67 | 67 | 67 |
-| Steele Barker | Lock | 2001-01-12 | 25 | England | 75 | 77 | 64 | 67 | 71 | 78 | 75 | 51 | 83 | 72 | 75 | 70 |
-| Santiago Grondona | Number 8 | 1999-04-15 | 27 | Argentina | 75 | 81 | 76 | 73 | 77 | 75 | 81 | 60 | 75 | 68 | 70 | 68 |
-| Kieran Marmion | Scrum-half | 1992-05-29 | 33 | Ireland | 67 | 66 | 83 | 78 | 79 | 65 | 68 | 75 | 59 | 67 | 75 | 77 |
-| AJ MacGinty | Fly-half | 1989-12-07 | 36 | USA | 71 | 68 | 75 | 72 | 78 | 65 | 63 | 83 | 59 | 75 | 75 | 75 |
-| Josh Carrington | Wing | 2002-04-25 | 24 | England | 72 | 64 | 85 | 81 | 78 | 71 | 66 | 66 | 56 | 71 | 75 | 75 |
+| Harry Thacker | Hooker | 1994-04-22 | 32 | England | 70 | 78 | 68 | 70 | 78 | 78 | 79 | 57 | 86 | 70 | 71 | 68 |
+| Max Lahiff | Prop | 1989-09-24 | 36 | England | 78 | 83 | 57 | 68 | 68 | 78 | 78 | 50 | 92 | 75 | 71 | 73 |
+| Sam Grahamslaw | Prop | 1999-08-04 | 26 | Scotland | 78 | 84 | 64 | 68 | 65 | 80 | 78 | 48 | 88 | 70 | 70 | 70 |
+| Steele Barker | Lock | 2001-01-12 | 25 | England | 78 | 80 | 67 | 70 | 74 | 81 | 78 | 51 | 86 | 75 | 78 | 73 |
+| Santiago Grondona | Number 8 | 1999-04-15 | 27 | Argentina | 78 | 84 | 79 | 76 | 80 | 78 | 84 | 60 | 78 | 71 | 73 | 71 |
+| Kieran Marmion | Scrum-half | 1992-05-29 | 33 | Ireland | 70 | 69 | 86 | 81 | 82 | 68 | 71 | 78 | 59 | 70 | 78 | 80 |
+| AJ MacGinty | Fly-half | 1989-12-07 | 36 | USA | 74 | 71 | 78 | 75 | 81 | 68 | 66 | 86 | 59 | 78 | 78 | 78 |
+| Josh Carrington | Wing | 2002-04-25 | 24 | England | 75 | 67 | 88 | 84 | 81 | 74 | 69 | 69 | 56 | 74 | 78 | 78 |
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Will Capon | Hooker | 1997-09-01 | 28 | England | 66 | 77 | 63 | 66 | 77 | 77 | 77 | 50 | 81 | 66 | 72 | 71 |
-| Lovejoy Chawatama | Prop | 1991-12-30 | 34 | England | 77 | 77 | 54 | 63 | 63 | 77 | 77 | 48 | 84 | 69 | 71 | 66 |
-| Tomas Gwilliam | Hooker | 2002-11-19 | 23 | Wales | 70 | 77 | 63 | 69 | 77 | 77 | 77 | 51 | 86 | 72 | 74 | 70 |
-| Jimmy Halliwell | Prop | 2004-03-31 | 22 | England | 77 | 85 | 57 | 66 | 66 | 78 | 77 | 47 | 87 | 69 | 70 | 66 |
-| Paddy Pearce | Flanker | 2004-05-07 | 22 | England | 77 | 77 | 68 | 77 | 71 | 77 | 79 | 60 | 70 | 72 | 77 | 73 |
-| Pedro Rubiolo | Lock | 2002-03-15 | 24 | Argentina | 77 | 78 | 62 | 60 | 65 | 77 | 77 | 49 | 89 | 70 | 70 | 70 |
-| Jake Heenan | Flanker | 1992-04-09 | 34 | Ireland | 77 | 77 | 73 | 77 | 69 | 78 | 81 | 62 | 73 | 68 | 77 | 73 |
-| Steven Luatua | Flanker | 1991-06-10 | 34 | New Zealand | 77 | 77 | 67 | 76 | 69 | 83 | 82 | 61 | 77 | 68 | 77 | 70 |
-| Will Ramply | Lock | 2004-05-25 | 22 | England | 77 | 77 | 64 | 68 | 63 | 77 | 77 | 49 | 87 | 66 | 73 | 68 |
+| Will Capon | Hooker | 1997-09-01 | 28 | England | 61 | 72 | 58 | 61 | 72 | 72 | 72 | 50 | 76 | 61 | 67 | 66 |
+| Lovejoy Chawatama | Prop | 1991-12-30 | 34 | England | 72 | 72 | 49 | 58 | 58 | 72 | 72 | 48 | 79 | 64 | 66 | 61 |
+| Tomas Gwilliam | Hooker | 2002-11-19 | 23 | Wales | 65 | 72 | 58 | 64 | 72 | 72 | 72 | 51 | 81 | 67 | 69 | 65 |
+| Jimmy Halliwell | Prop | 2004-03-31 | 22 | England | 72 | 80 | 52 | 61 | 61 | 73 | 72 | 47 | 82 | 64 | 65 | 61 |
+| Paddy Pearce | Flanker | 2004-05-07 | 22 | England | 72 | 72 | 63 | 72 | 66 | 72 | 74 | 60 | 65 | 67 | 72 | 68 |
+| Pedro Rubiolo | Lock | 2002-03-15 | 24 | Argentina | 72 | 73 | 57 | 55 | 60 | 72 | 72 | 49 | 84 | 65 | 65 | 65 |
+| Jake Heenan | Flanker | 1992-04-09 | 34 | Ireland | 72 | 72 | 68 | 72 | 64 | 73 | 76 | 62 | 68 | 63 | 72 | 68 |
+| Steven Luatua | Flanker | 1991-06-10 | 34 | New Zealand | 72 | 72 | 62 | 71 | 64 | 78 | 77 | 61 | 72 | 63 | 72 | 65 |
+| Will Ramply | Lock | 2004-05-25 | 22 | England | 72 | 72 | 59 | 63 | 58 | 72 | 72 | 49 | 82 | 61 | 68 | 63 |
 
 **Wider squad — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| James Williams | Centre | 1998-08-04 | 27 | England | 68 | 77 | 78 | 79 | 77 | 78 | 69 | 63 | 65 | 72 | 77 | 73 |
-| Joe Jenkins | Centre | 2003-10-13 | 22 | England | 72 | 77 | 77 | 77 | 77 | 77 | 72 | 71 | 60 | 67 | 77 | 74 |
-| Jack Bates | Wing | 2001-09-21 | 24 | England | 70 | 69 | 86 | 84 | 77 | 65 | 63 | 64 | 60 | 72 | 77 | 77 |
-| Rich Lane | Full-back | 1994-12-22 | 31 | England | 65 | 70 | 83 | 84 | 79 | 69 | 65 | 77 | 56 | 68 | 80 | 77 |
-| Sam Wolstenholme | Scrum-half | 2001-04-19 | 25 | England | 68 | 61 | 83 | 77 | 78 | 67 | 68 | 78 | 55 | 75 | 77 | 77 |
-| Max Pepper | Scrum-half | 2001-01-09 | 25 | England | 65 | 67 | 77 | 79 | 77 | 67 | 71 | 77 | 62 | 72 | 77 | 77 |
-| Noah Heward | Full-back | 2002-03-30 | 24 | England | 70 | 67 | 79 | 79 | 81 | 76 | 65 | 77 | 59 | 72 | 77 | 77 |
+| James Williams | Centre | 1998-08-04 | 27 | England | 63 | 72 | 73 | 74 | 72 | 73 | 64 | 58 | 65 | 67 | 72 | 68 |
+| Joe Jenkins | Centre | 2003-10-13 | 22 | England | 67 | 72 | 72 | 72 | 72 | 72 | 67 | 66 | 60 | 62 | 72 | 69 |
+| Jack Bates | Wing | 2001-09-21 | 24 | England | 65 | 64 | 81 | 79 | 72 | 60 | 58 | 59 | 60 | 67 | 72 | 72 |
+| Rich Lane | Full-back | 1994-12-22 | 31 | England | 60 | 65 | 78 | 79 | 74 | 64 | 60 | 72 | 56 | 63 | 75 | 72 |
+| Sam Wolstenholme | Scrum-half | 2001-04-19 | 25 | England | 63 | 56 | 78 | 72 | 73 | 62 | 63 | 73 | 55 | 70 | 72 | 72 |
+| Max Pepper | Scrum-half | 2001-01-09 | 25 | England | 60 | 62 | 72 | 74 | 72 | 62 | 66 | 72 | 62 | 67 | 72 | 72 |
+| Noah Heward | Full-back | 2002-03-30 | 24 | England | 65 | 62 | 74 | 74 | 76 | 71 | 60 | 72 | 59 | 67 | 72 | 72 |
 
 ---
 
@@ -251,69 +251,69 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Nicky Smith | Prop | 1994-04-07 | 32 | Wales | 72 | 86 | 55 | 58 | 62 | 85 | 75 | 54 | 89 | 70 | 74 | 75 |
-| Jamie Blamire | Hooker | 1997-12-22 | 28 | England | 70 | 73 | 59 | 65 | 68 | 79 | 80 | 55 | 85 | 74 | 74 | 73 |
-| Joe Heyes | Prop | 1999-04-13 | 27 | England | 68 | 82 | 59 | 60 | 59 | 82 | 74 | 51 | 90 | 74 | 73 | 75 |
-| Ollie Chessum | Lock | 2000-09-06 | 25 | England | 85 | 87 | 59 | 65 | 67 | 87 | 87 | 52 | 87 | 70 | 74 | 71 |
-| George Martin | Lock | 2001-06-18 | 24 | England | 71 | 80 | 57 | 65 | 69 | 80 | 76 | 51 | 94 | 74 | 72 | 75 |
-| Tommy Reffell | Flanker | 1999-04-27 | 27 | Wales | 84 | 77 | 67 | 76 | 67 | 83 | 85 | 64 | 77 | 85 | 83 | 71 |
-| Hanro Liebenberg | Back Row | 1995-10-10 | 30 | South Africa | 77 | 80 | 71 | 76 | 73 | 82 | 79 | 63 | 75 | 73 | 76 | 74 |
-| Emeka Ilione | Back Row | 2002-03-20 | 24 | England | 73 | 78 | 68 | 69 | 69 | 80 | 81 | 61 | 75 | 76 | 77 | 73 |
+| Nicky Smith | Prop | 1994-04-07 | 32 | Wales | 82 | 96 | 65 | 68 | 72 | 95 | 85 | 54 | 99 | 80 | 84 | 85 |
+| Jamie Blamire | Hooker | 1997-12-22 | 28 | England | 80 | 83 | 69 | 75 | 78 | 89 | 90 | 55 | 95 | 84 | 84 | 83 |
+| Joe Heyes | Prop | 1999-04-13 | 27 | England | 78 | 92 | 69 | 70 | 69 | 92 | 84 | 51 | 99 | 84 | 83 | 85 |
+| Ollie Chessum | Lock | 2000-09-06 | 25 | England | 95 | 95 | 78 | 78 | 78 | 95 | 95 | 52 | 99 | 78 | 78 | 78 |
+| George Martin | Lock | 2001-06-18 | 24 | England | 81 | 90 | 67 | 75 | 79 | 90 | 86 | 51 | 99 | 84 | 82 | 85 |
+| Tommy Reffell | Flanker | 1999-04-27 | 27 | Wales | 95 | 78 | 78 | 78 | 78 | 95 | 95 | 64 | 78 | 95 | 95 | 78 |
+| Hanro Liebenberg | Back Row | 1995-10-10 | 30 | South Africa | 87 | 90 | 81 | 86 | 83 | 92 | 89 | 63 | 85 | 83 | 86 | 84 |
+| Emeka Ilione | Back Row | 2002-03-20 | 24 | England | 83 | 88 | 78 | 79 | 79 | 90 | 91 | 61 | 85 | 86 | 87 | 83 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Jack van Poortvliet | Scrum-half | 2001-05-15 | 25 | England | 70 | 64 | 80 | 85 | 82 | 70 | 72 | 82 | 60 | 75 | 85 | 82 |
-| Billy Searle | Fly-half | 1996-03-25 | 30 | England | 73 | 67 | 77 | 71 | 78 | 74 | 66 | 87 | 60 | 80 | 79 | 82 |
-| Adam Radwan | Wing | 1997-12-30 | 28 | England | 74 | 69 | 89 | 84 | 73 | 71 | 66 | 66 | 62 | 73 | 76 | 71 |
-| Orlando Bailey | Centre | 2001-09-30 | 24 | England | 74 | 76 | 78 | 75 | 74 | 78 | 75 | 66 | 63 | 70 | 75 | 75 |
-| Solomone Kata | Centre | 1994-12-03 | 31 | Tonga | 70 | 72 | 79 | 78 | 73 | 79 | 72 | 66 | 63 | 75 | 75 | 69 |
-| Ollie Hassell-Collins | Wing | 1999-01-17 | 27 | England | 73 | 69 | 87 | 86 | 78 | 73 | 64 | 69 | 64 | 75 | 76 | 68 |
-| Freddie Steward | Full-back | 2000-12-05 | 25 | England | 71 | 71 | 76 | 77 | 84 | 83 | 66 | 83 | 60 | 72 | 82 | 81 |
+| Jack van Poortvliet | Scrum-half | 2001-05-15 | 25 | England | 78 | 78 | 80 | 95 | 95 | 78 | 78 | 95 | 60 | 78 | 95 | 95 |
+| Billy Searle | Fly-half | 1996-03-25 | 30 | England | 83 | 77 | 87 | 81 | 88 | 84 | 76 | 97 | 60 | 90 | 89 | 92 |
+| Adam Radwan | Wing | 1997-12-30 | 28 | England | 84 | 79 | 98 | 94 | 83 | 81 | 76 | 76 | 62 | 83 | 86 | 81 |
+| Orlando Bailey | Centre | 2001-09-30 | 24 | England | 84 | 86 | 88 | 85 | 84 | 88 | 85 | 76 | 63 | 80 | 85 | 85 |
+| Solomone Kata | Centre | 1994-12-03 | 31 | Tonga | 80 | 82 | 89 | 88 | 83 | 89 | 82 | 76 | 63 | 85 | 85 | 79 |
+| Ollie Hassell-Collins | Wing | 1999-01-17 | 27 | England | 83 | 79 | 95 | 96 | 88 | 83 | 74 | 79 | 64 | 85 | 86 | 78 |
+| Freddie Steward | Full-back | 2000-12-05 | 25 | England | 78 | 78 | 78 | 78 | 95 | 95 | 78 | 95 | 60 | 78 | 95 | 95 |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Charlie Clare | Hooker | 1991-12-16 | 34 | England | 72 | 75 | 60 | 66 | 75 | 79 | 81 | 52 | 93 | 72 | 72 | 74 |
-| Tarek Haffar | Prop | 2001-09-13 | 24 | England | 75 | 84 | 58 | 59 | 63 | 86 | 75 | 49 | 89 | 75 | 71 | 74 |
-| Will Hurd | Prop | 1999-06-29 | 26 | Scotland | 75 | 82 | 56 | 64 | 66 | 80 | 76 | 51 | 89 | 70 | 72 | 70 |
-| Cam Henderson | Lock | 2000-01-13 | 26 | Scotland | 75 | 80 | 63 | 63 | 65 | 76 | 75 | 53 | 89 | 76 | 75 | 69 |
-| Olly Cracknell | Flanker | 1994-05-26 | 31 | Wales | 75 | 77 | 73 | 72 | 73 | 81 | 80 | 59 | 81 | 75 | 78 | 73 |
-| Ollie Allan | Scrum-half | 2004-02-04 | 22 | England | 67 | 68 | 78 | 80 | 80 | 72 | 71 | 78 | 63 | 74 | 79 | 76 |
-| James O'Connor | Fly-half | 1990-07-05 | 35 | Australia | 68 | 68 | 73 | 74 | 80 | 75 | 64 | 86 | 65 | 78 | 75 | 81 |
-| Izaia Perese | Centre | 1997-05-17 | 28 | Australia | 69 | 78 | 77 | 79 | 78 | 77 | 67 | 72 | 66 | 74 | 75 | 69 |
+| Charlie Clare | Hooker | 1991-12-16 | 34 | England | 75 | 78 | 63 | 69 | 78 | 82 | 84 | 52 | 96 | 75 | 75 | 77 |
+| Tarek Haffar | Prop | 2001-09-13 | 24 | England | 78 | 87 | 61 | 62 | 66 | 89 | 78 | 49 | 92 | 78 | 74 | 77 |
+| Will Hurd | Prop | 1999-06-29 | 26 | Scotland | 78 | 85 | 59 | 67 | 69 | 83 | 79 | 51 | 92 | 73 | 75 | 73 |
+| Cam Henderson | Lock | 2000-01-13 | 26 | Scotland | 78 | 83 | 66 | 66 | 68 | 79 | 78 | 53 | 92 | 79 | 78 | 72 |
+| Olly Cracknell | Flanker | 1994-05-26 | 31 | Wales | 78 | 80 | 76 | 75 | 76 | 84 | 83 | 59 | 84 | 78 | 81 | 76 |
+| Ollie Allan | Scrum-half | 2004-02-04 | 22 | England | 70 | 71 | 81 | 83 | 83 | 75 | 74 | 81 | 63 | 77 | 82 | 79 |
+| James O'Connor | Fly-half | 1990-07-05 | 35 | Australia | 71 | 71 | 76 | 77 | 83 | 78 | 67 | 89 | 65 | 81 | 78 | 84 |
+| Izaia Perese | Centre | 1997-05-17 | 28 | Australia | 72 | 81 | 80 | 82 | 81 | 80 | 70 | 75 | 66 | 77 | 78 | 72 |
 
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Ale Loman | Prop | 2000-05-15 | 26 | Sweden | 77 | 85 | 55 | 64 | 61 | 85 | 78 | 47 | 94 | 78 | 67 | 67 |
-| Archie van der Flier | Prop | 2002-04-25 | 24 | England | 77 | 81 | 56 | 65 | 59 | 81 | 78 | 48 | 89 | 77 | 70 | 67 |
-| Cameron Miell | Prop | 2004-05-09 | 22 | South Africa | 77 | 79 | 57 | 58 | 62 | 83 | 80 | 54 | 95 | 71 | 68 | 69 |
-| Finn Carnduff | Flanker | 2004-03-10 | 22 | England | 77 | 77 | 68 | 76 | 73 | 85 | 83 | 59 | 80 | 72 | 77 | 70 |
-| George Marsh | Back Row |  | 19 | England | 79 | 78 | 73 | 71 | 72 | 81 | 78 | 59 | 77 | 72 | 77 | 68 |
-| Lewis Chessum | Lock | 2003-02-27 | 23 | England | 77 | 83 | 61 | 62 | 69 | 80 | 77 | 56 | 89 | 77 | 76 | 71 |
-| Harry Palmer | Lock | 2005-10-28 | 20 | England | 77 | 81 | 64 | 65 | 62 | 79 | 77 | 54 | 88 | 75 | 76 | 69 |
-| Harry Wells | Lock | 1993-09-29 | 32 | England | 77 | 77 | 58 | 61 | 68 | 77 | 77 | 50 | 91 | 73 | 75 | 72 |
-| James Thompson | Lock | 1999-07-13 | 26 | New Zealand | 77 | 77 | 64 | 62 | 64 | 77 | 77 | 54 | 94 | 76 | 73 | 73 |
-| Joaquin Moro | Flanker | 2001-01-24 | 25 | Argentina | 77 | 81 | 72 | 71 | 72 | 83 | 86 | 59 | 74 | 74 | 78 | 71 |
-| John Stewart | Hooker | 2002-03-08 | 24 | England | 69 | 80 | 62 | 65 | 77 | 79 | 77 | 52 | 93 | 72 | 77 | 67 |
-| Joshua Manz | Back Row | 2004-03-22 | 22 | England | 77 | 77 | 68 | 70 | 69 | 85 | 84 | 60 | 81 | 71 | 77 | 71 |
-| Diamond Ayiehfor | Prop |  | 19 | England | 77 | 80 | 55 | 62 | 59 | 80 | 77 | 53 | 94 | 74 | 70 | 73 |
-| Osian Thomas | Lock | 2004-11-30 | 21 | Wales | 77 | 78 | 58 | 65 | 68 | 77 | 77 | 50 | 94 | 76 | 70 | 72 |
-| Tom Manz | Lock | 2001-07-09 | 24 | England | 77 | 83 | 57 | 65 | 63 | 83 | 77 | 54 | 95 | 74 | 74 | 72 |
-| Tonga Kofe | Prop |  | 29 | USA | 77 | 85 | 52 | 59 | 61 | 86 | 77 | 53 | 89 | 74 | 71 | 72 |
-| Tubuna Maka | Prop | 2005-11-18 | 20 | Fiji | 77 | 85 | 60 | 63 | 61 | 79 | 77 | 50 | 94 | 70 | 74 | 74 |
+| Ale Loman | Prop | 2000-05-15 | 26 | Sweden | 72 | 80 | 50 | 59 | 56 | 80 | 73 | 47 | 89 | 73 | 62 | 62 |
+| Archie van der Flier | Prop | 2002-04-25 | 24 | England | 72 | 76 | 51 | 60 | 54 | 76 | 73 | 48 | 84 | 72 | 65 | 62 |
+| Cameron Miell | Prop | 2004-05-09 | 22 | South Africa | 72 | 74 | 52 | 53 | 57 | 78 | 75 | 54 | 90 | 66 | 63 | 64 |
+| Finn Carnduff | Flanker | 2004-03-10 | 22 | England | 72 | 72 | 63 | 71 | 68 | 80 | 78 | 59 | 75 | 67 | 72 | 65 |
+| George Marsh | Back Row |  | 19 | England | 74 | 73 | 68 | 66 | 67 | 76 | 73 | 59 | 72 | 67 | 72 | 63 |
+| Lewis Chessum | Lock | 2003-02-27 | 23 | England | 72 | 78 | 56 | 57 | 64 | 75 | 72 | 56 | 84 | 72 | 71 | 66 |
+| Harry Palmer | Lock | 2005-10-28 | 20 | England | 72 | 76 | 59 | 60 | 57 | 74 | 72 | 54 | 83 | 70 | 71 | 64 |
+| Harry Wells | Lock | 1993-09-29 | 32 | England | 72 | 72 | 53 | 56 | 63 | 72 | 72 | 50 | 86 | 68 | 70 | 67 |
+| James Thompson | Lock | 1999-07-13 | 26 | New Zealand | 72 | 72 | 59 | 57 | 59 | 72 | 72 | 54 | 89 | 71 | 68 | 68 |
+| Joaquin Moro | Flanker | 2001-01-24 | 25 | Argentina | 72 | 76 | 67 | 66 | 67 | 78 | 81 | 59 | 69 | 69 | 73 | 66 |
+| John Stewart | Hooker | 2002-03-08 | 24 | England | 64 | 75 | 57 | 60 | 72 | 74 | 72 | 52 | 88 | 67 | 72 | 62 |
+| Joshua Manz | Back Row | 2004-03-22 | 22 | England | 72 | 72 | 63 | 65 | 64 | 80 | 79 | 60 | 76 | 66 | 72 | 66 |
+| Diamond Ayiehfor | Prop |  | 19 | England | 72 | 75 | 50 | 57 | 54 | 75 | 72 | 53 | 89 | 69 | 65 | 68 |
+| Osian Thomas | Lock | 2004-11-30 | 21 | Wales | 72 | 73 | 53 | 60 | 63 | 72 | 72 | 50 | 89 | 71 | 65 | 67 |
+| Tom Manz | Lock | 2001-07-09 | 24 | England | 72 | 78 | 52 | 60 | 58 | 78 | 72 | 54 | 90 | 69 | 69 | 67 |
+| Tonga Kofe | Prop |  | 29 | USA | 72 | 80 | 47 | 54 | 56 | 81 | 72 | 53 | 84 | 69 | 66 | 67 |
+| Tubuna Maka | Prop | 2005-11-18 | 20 | Fiji | 72 | 80 | 55 | 58 | 56 | 74 | 72 | 50 | 89 | 65 | 69 | 69 |
 
 **Wider squad — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Wilf McCarthy | Centre | 2002-10-08 | 23 | England | 77 | 77 | 78 | 77 | 77 | 79 | 75 | 67 | 69 | 73 | 77 | 71 |
-| Charlie Titcombe | Fly-half | 2001-12-28 | 24 | England | 74 | 70 | 70 | 71 | 77 | 74 | 71 | 89 | 60 | 77 | 77 | 77 |
-| Joseph Woodward | Centre | 2003-09-17 | 22 | England | 69 | 77 | 77 | 77 | 77 | 78 | 72 | 65 | 65 | 78 | 77 | 76 |
-| Tom Whiteley | Scrum-half | 1995-12-17 | 30 | England | 67 | 63 | 81 | 78 | 77 | 73 | 76 | 77 | 61 | 76 | 77 | 77 |
-| Will Wand | Centre | 2001-12-31 | 24 | England | 74 | 77 | 77 | 77 | 78 | 82 | 72 | 66 | 64 | 74 | 77 | 76 |
-| Gabriel Hamer-Webb | Wing | 2000-11-07 | 25 | England | 67 | 67 | 89 | 82 | 77 | 72 | 67 | 67 | 62 | 76 | 77 | 77 |
+| Wilf McCarthy | Centre | 2002-10-08 | 23 | England | 72 | 72 | 73 | 72 | 72 | 74 | 70 | 62 | 69 | 68 | 72 | 66 |
+| Charlie Titcombe | Fly-half | 2001-12-28 | 24 | England | 69 | 65 | 65 | 66 | 72 | 69 | 66 | 84 | 60 | 72 | 72 | 72 |
+| Joseph Woodward | Centre | 2003-09-17 | 22 | England | 64 | 72 | 72 | 72 | 72 | 73 | 67 | 60 | 65 | 73 | 72 | 71 |
+| Tom Whiteley | Scrum-half | 1995-12-17 | 30 | England | 62 | 58 | 76 | 73 | 72 | 68 | 71 | 72 | 61 | 71 | 72 | 72 |
+| Will Wand | Centre | 2001-12-31 | 24 | England | 69 | 72 | 72 | 72 | 73 | 77 | 67 | 61 | 64 | 69 | 72 | 71 |
+| Gabriel Hamer-Webb | Wing | 2000-11-07 | 25 | England | 62 | 62 | 84 | 77 | 72 | 67 | 62 | 62 | 62 | 71 | 72 | 72 |
 
 ---
 
@@ -343,65 +343,65 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Rhys Carre | Prop | 1998-02-08 | 28 | Wales | 72 | 84 | 55 | 59 | 64 | 78 | 76 | 51 | 92 | 67 | 73 | 71 |
-| Jamie George | Hooker | 1990-10-20 | 35 | England | 68 | 75 | 59 | 64 | 66 | 81 | 82 | 52 | 83 | 84 | 74 | 83 |
-| Marco Riccioni | Prop | 1997-10-19 | 28 | Italy | 70 | 85 | 59 | 60 | 65 | 78 | 79 | 47 | 90 | 70 | 74 | 76 |
-| Maro Itoje | Lock | 1994-10-28 | 31 | England | 69 | 91 | 60 | 61 | 66 | 93 | 93 | 53 | 94 | 68 | 71 | 92 |
-| Nick Isiekwe | Lock | 1998-04-20 | 28 | England | 71 | 82 | 63 | 62 | 64 | 82 | 77 | 53 | 89 | 69 | 78 | 69 |
-| Juan Martin Gonzalez | Flanker | 2000-11-14 | 25 | Argentina | 75 | 80 | 73 | 72 | 71 | 86 | 81 | 61 | 77 | 73 | 77 | 71 |
-| Ben Earl | Back Row | 1998-01-07 | 28 | England | 90 | 87 | 87 | 72 | 87 | 88 | 81 | 58 | 76 | 73 | 76 | 71 |
-| Tom Willis | Number 8 | 1999-01-18 | 27 | England | 76 | 81 | 74 | 75 | 70 | 79 | 75 | 64 | 71 | 69 | 73 | 72 |
+| Rhys Carre | Prop | 1998-02-08 | 28 | Wales | 82 | 94 | 65 | 69 | 74 | 88 | 86 | 51 | 99 | 77 | 83 | 81 |
+| Jamie George | Hooker | 1990-10-20 | 35 | England | 78 | 78 | 78 | 78 | 78 | 95 | 95 | 52 | 95 | 95 | 78 | 95 |
+| Marco Riccioni | Prop | 1997-10-19 | 28 | Italy | 80 | 95 | 69 | 70 | 75 | 88 | 89 | 47 | 99 | 80 | 84 | 86 |
+| Maro Itoje | Lock | 1994-10-28 | 31 | England | 99 | 99 | 78 | 78 | 78 | 99 | 99 | 53 | 99 | 95 | 78 | 97 |
+| Nick Isiekwe | Lock | 1998-04-20 | 28 | England | 81 | 92 | 73 | 72 | 74 | 92 | 87 | 53 | 99 | 79 | 88 | 79 |
+| Juan Martin Gonzalez | Flanker | 2000-11-14 | 25 | Argentina | 85 | 90 | 83 | 82 | 81 | 96 | 91 | 61 | 87 | 83 | 87 | 81 |
+| Ben Earl | Back Row | 1998-01-07 | 28 | England | 99 | 99 | 89 | 78 | 95 | 99 | 99 | 58 | 78 | 78 | 81 | 78 |
+| Tom Willis | Number 8 | 1999-01-18 | 27 | England | 86 | 91 | 84 | 85 | 80 | 89 | 85 | 64 | 81 | 79 | 83 | 82 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Charlie Bracken | Scrum-half | 2003-12-09 | 22 | England | 70 | 68 | 75 | 77 | 72 | 69 | 71 | 72 | 60 | 71 | 78 | 76 |
-| Owen Farrell | Fly-half | 1991-09-24 | 34 | England | 69 | 64 | 74 | 76 | 76 | 84 | 66 | 83 | 58 | 83 | 82 | 86 |
-| Rotimi Segun | Wing | 1996-12-28 | 29 | England | 68 | 68 | 84 | 84 | 73 | 72 | 67 | 67 | 60 | 73 | 74 | 73 |
-| Lucio Cinti | Centre | 2000-02-23 | 26 | Argentina | 75 | 75 | 80 | 72 | 76 | 74 | 73 | 67 | 65 | 73 | 79 | 77 |
-| Nick Tompkins | Centre | 1995-02-16 | 31 | Wales | 75 | 77 | 75 | 79 | 74 | 75 | 71 | 65 | 58 | 73 | 73 | 79 |
-| Noah Caluori | Wing | 2006-09-22 | 19 | England | 70 | 64 | 84 | 80 | 77 | 74 | 66 | 65 | 59 | 67 | 79 | 72 |
-| Elliot Daly | Utility Back | 1992-10-08 | 33 | England | 68 | 67 | 77 | 71 | 76 | 75 | 69 | 69 | 66 | 67 | 73 | 74 |
+| Charlie Bracken | Scrum-half | 2003-12-09 | 22 | England | 80 | 78 | 85 | 87 | 82 | 79 | 81 | 82 | 60 | 81 | 88 | 86 |
+| Owen Farrell | Fly-half | 1991-09-24 | 34 | England | 78 | 78 | 78 | 78 | 78 | 95 | 78 | 95 | 58 | 95 | 95 | 95 |
+| Rotimi Segun | Wing | 1996-12-28 | 29 | England | 78 | 78 | 94 | 94 | 83 | 82 | 77 | 77 | 60 | 83 | 84 | 83 |
+| Lucio Cinti | Centre | 2000-02-23 | 26 | Argentina | 85 | 85 | 90 | 82 | 86 | 84 | 83 | 77 | 65 | 83 | 89 | 87 |
+| Nick Tompkins | Centre | 1995-02-16 | 31 | Wales | 85 | 87 | 85 | 89 | 84 | 85 | 81 | 75 | 58 | 83 | 83 | 89 |
+| Noah Caluori | Wing | 2006-09-22 | 19 | England | 80 | 74 | 94 | 90 | 87 | 84 | 76 | 75 | 59 | 77 | 89 | 82 |
+| Elliot Daly | Utility Back | 1992-10-08 | 33 | England | 78 | 77 | 87 | 81 | 86 | 85 | 79 | 79 | 66 | 77 | 83 | 84 |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Theo Dan | Hooker | 2000-12-26 | 25 | England | 71 | 78 | 64 | 62 | 75 | 79 | 75 | 58 | 83 | 69 | 72 | 74 |
-| Eroni Mawi | Prop | 1996-02-06 | 30 | Fiji | 75 | 84 | 59 | 61 | 66 | 82 | 78 | 48 | 85 | 72 | 74 | 75 |
-| Marcus Street | Prop | 1999-02-06 | 27 | England | 75 | 79 | 57 | 64 | 60 | 80 | 75 | 51 | 88 | 71 | 75 | 72 |
-| Hugh Tizard | Lock | 2000-03-31 | 26 | England | 75 | 80 | 60 | 59 | 65 | 83 | 76 | 55 | 89 | 66 | 72 | 74 |
-| Andy Onyeama-Christie | Flanker | 1999-03-22 | 27 | Scotland | 75 | 75 | 73 | 69 | 69 | 80 | 79 | 59 | 73 | 70 | 75 | 70 |
-| Ivan van Zyl | Scrum-half | 1995-06-30 | 30 | South Africa | 74 | 65 | 79 | 78 | 75 | 69 | 73 | 75 | 61 | 73 | 82 | 78 |
-| Fergus Burke | Fly-half | 1999-09-03 | 26 | Scotland | 68 | 66 | 71 | 75 | 79 | 68 | 70 | 90 | 58 | 75 | 79 | 77 |
-| Jack Bracken | Wing | 2005-10-15 | 20 | England | 73 | 64 | 88 | 82 | 75 | 72 | 67 | 64 | 57 | 71 | 79 | 75 |
+| Theo Dan | Hooker | 2000-12-26 | 25 | England | 74 | 81 | 67 | 65 | 78 | 82 | 78 | 58 | 86 | 72 | 75 | 77 |
+| Eroni Mawi | Prop | 1996-02-06 | 30 | Fiji | 78 | 87 | 62 | 64 | 69 | 85 | 81 | 48 | 88 | 75 | 77 | 78 |
+| Marcus Street | Prop | 1999-02-06 | 27 | England | 78 | 82 | 60 | 67 | 63 | 83 | 78 | 51 | 91 | 74 | 78 | 75 |
+| Hugh Tizard | Lock | 2000-03-31 | 26 | England | 78 | 83 | 63 | 62 | 68 | 86 | 79 | 55 | 92 | 69 | 75 | 77 |
+| Andy Onyeama-Christie | Flanker | 1999-03-22 | 27 | Scotland | 78 | 78 | 76 | 72 | 72 | 83 | 82 | 59 | 76 | 73 | 78 | 73 |
+| Ivan van Zyl | Scrum-half | 1995-06-30 | 30 | South Africa | 77 | 68 | 82 | 81 | 78 | 72 | 76 | 78 | 61 | 76 | 85 | 81 |
+| Fergus Burke | Fly-half | 1999-09-03 | 26 | Scotland | 71 | 69 | 74 | 78 | 82 | 71 | 73 | 93 | 58 | 78 | 82 | 80 |
+| Jack Bracken | Wing | 2005-10-15 | 20 | England | 76 | 67 | 91 | 85 | 78 | 75 | 70 | 67 | 57 | 74 | 82 | 78 |
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Barnaby Merrett | Back Row | 2004-11-22 | 21 | England | 77 | 77 | 73 | 76 | 71 | 86 | 84 | 57 | 72 | 67 | 77 | 70 |
-| Harvey Beaton | Prop | 2001-03-15 | 25 | England | 77 | 83 | 56 | 60 | 63 | 80 | 78 | 50 | 86 | 73 | 72 | 76 |
-| Alec Clarey | Prop | 1994-02-08 | 32 | England | 77 | 85 | 57 | 62 | 61 | 79 | 77 | 48 | 84 | 72 | 73 | 75 |
-| Phil Brantingham | Prop | 2001-10-02 | 24 | England | 77 | 83 | 57 | 62 | 59 | 78 | 78 | 48 | 87 | 67 | 71 | 76 |
-| James Hadfield | Hooker | 1997-11-27 | 28 | England | 67 | 77 | 56 | 67 | 77 | 83 | 77 | 52 | 82 | 71 | 72 | 71 |
-| James Isaacs | Hooker | 2004-03-28 | 22 | England | 73 | 77 | 62 | 66 | 77 | 80 | 78 | 58 | 89 | 72 | 72 | 72 |
-| Mak Eke | Back Row | 2003-12-04 | 22 | England | 77 | 77 | 72 | 69 | 71 | 78 | 79 | 60 | 78 | 74 | 78 | 70 |
-| Toby Knight | Flanker | 2002-01-05 | 24 | England | 77 | 78 | 71 | 74 | 67 | 87 | 83 | 59 | 75 | 70 | 79 | 75 |
-| Nathan Michelow | Back Row | 2004-05-16 | 22 | England | 77 | 79 | 68 | 69 | 73 | 81 | 81 | 59 | 72 | 73 | 77 | 70 |
-| Eoghan Clarke | Hooker | 1998-06-12 | 27 | Ireland | 74 | 77 | 61 | 68 | 77 | 79 | 78 | 58 | 84 | 67 | 76 | 75 |
-| Theo McFarland | Back Row | 1995-10-16 | 30 | Samoa | 78 | 81 | 71 | 71 | 72 | 85 | 77 | 63 | 76 | 73 | 78 | 74 |
-| Vilikesa Nairau | Prop | 2002-06-03 | 23 | Fiji | 77 | 83 | 55 | 60 | 66 | 81 | 77 | 48 | 85 | 71 | 69 | 74 |
+| Barnaby Merrett | Back Row | 2004-11-22 | 21 | England | 72 | 72 | 68 | 71 | 66 | 81 | 79 | 57 | 67 | 62 | 72 | 65 |
+| Harvey Beaton | Prop | 2001-03-15 | 25 | England | 72 | 78 | 51 | 55 | 58 | 75 | 73 | 50 | 81 | 68 | 67 | 71 |
+| Alec Clarey | Prop | 1994-02-08 | 32 | England | 72 | 80 | 52 | 57 | 56 | 74 | 72 | 48 | 79 | 67 | 68 | 70 |
+| Phil Brantingham | Prop | 2001-10-02 | 24 | England | 72 | 78 | 52 | 57 | 54 | 73 | 73 | 48 | 82 | 62 | 66 | 71 |
+| James Hadfield | Hooker | 1997-11-27 | 28 | England | 62 | 72 | 51 | 62 | 72 | 78 | 72 | 52 | 77 | 66 | 67 | 66 |
+| James Isaacs | Hooker | 2004-03-28 | 22 | England | 68 | 72 | 57 | 61 | 72 | 75 | 73 | 58 | 84 | 67 | 67 | 67 |
+| Mak Eke | Back Row | 2003-12-04 | 22 | England | 72 | 72 | 67 | 64 | 66 | 73 | 74 | 60 | 73 | 69 | 73 | 65 |
+| Toby Knight | Flanker | 2002-01-05 | 24 | England | 72 | 73 | 66 | 69 | 62 | 82 | 78 | 59 | 70 | 65 | 74 | 70 |
+| Nathan Michelow | Back Row | 2004-05-16 | 22 | England | 72 | 74 | 63 | 64 | 68 | 76 | 76 | 59 | 67 | 68 | 72 | 65 |
+| Eoghan Clarke | Hooker | 1998-06-12 | 27 | Ireland | 69 | 72 | 56 | 63 | 72 | 74 | 73 | 58 | 79 | 62 | 71 | 70 |
+| Theo McFarland | Back Row | 1995-10-16 | 30 | Samoa | 73 | 76 | 66 | 66 | 67 | 80 | 72 | 63 | 71 | 68 | 73 | 69 |
+| Vilikesa Nairau | Prop | 2002-06-03 | 23 | Fiji | 72 | 78 | 50 | 55 | 61 | 76 | 72 | 48 | 80 | 66 | 64 | 69 |
 
 **Wider squad — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Alex Lozowski | Centre | 1993-06-30 | 32 | England | 68 | 79 | 80 | 79 | 77 | 77 | 69 | 66 | 64 | 69 | 77 | 72 |
-| Louie Johnson | Fly-half | 2003-06-13 | 22 | England | 71 | 65 | 70 | 73 | 81 | 74 | 64 | 88 | 64 | 77 | 77 | 77 |
-| Max Malins | Wing | 1997-01-07 | 29 | England | 67 | 64 | 85 | 81 | 77 | 70 | 67 | 71 | 59 | 68 | 77 | 77 |
-| Olly Hartley | Centre | 2002-02-19 | 24 | England | 68 | 77 | 77 | 78 | 79 | 77 | 71 | 66 | 64 | 71 | 77 | 75 |
-| Sam Spink | Centre | 1999-10-06 | 26 | England | 74 | 77 | 77 | 77 | 79 | 78 | 68 | 71 | 60 | 69 | 78 | 75 |
-| Tobias Elliott | Wing | 2003-09-16 | 22 | England | 73 | 70 | 87 | 80 | 78 | 72 | 62 | 68 | 58 | 70 | 77 | 77 |
-| Angus Hall | Centre | 2005-09-17 | 20 | England | 68 | 78 | 77 | 77 | 79 | 77 | 71 | 66 | 62 | 67 | 77 | 76 |
-| Gareth Simpson | Scrum-half | 1997-11-02 | 28 | England | 71 | 69 | 77 | 77 | 78 | 75 | 69 | 77 | 63 | 73 | 79 | 79 |
+| Alex Lozowski | Centre | 1993-06-30 | 32 | England | 63 | 74 | 75 | 74 | 72 | 72 | 64 | 61 | 64 | 64 | 72 | 67 |
+| Louie Johnson | Fly-half | 2003-06-13 | 22 | England | 66 | 60 | 65 | 68 | 76 | 69 | 59 | 83 | 64 | 72 | 72 | 72 |
+| Max Malins | Wing | 1997-01-07 | 29 | England | 62 | 59 | 80 | 76 | 72 | 65 | 62 | 66 | 59 | 63 | 72 | 72 |
+| Olly Hartley | Centre | 2002-02-19 | 24 | England | 63 | 72 | 72 | 73 | 74 | 72 | 66 | 61 | 64 | 66 | 72 | 70 |
+| Sam Spink | Centre | 1999-10-06 | 26 | England | 69 | 72 | 72 | 72 | 74 | 73 | 63 | 66 | 60 | 64 | 73 | 70 |
+| Tobias Elliott | Wing | 2003-09-16 | 22 | England | 68 | 65 | 82 | 75 | 73 | 67 | 57 | 63 | 58 | 65 | 72 | 72 |
+| Angus Hall | Centre | 2005-09-17 | 20 | England | 63 | 73 | 72 | 72 | 74 | 72 | 66 | 61 | 62 | 62 | 72 | 71 |
+| Gareth Simpson | Scrum-half | 1997-11-02 | 28 | England | 66 | 64 | 72 | 72 | 73 | 70 | 64 | 72 | 63 | 68 | 74 | 74 |
 
 ---
 
@@ -432,65 +432,65 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Thomas du Toit | Prop | 1995-05-05 | 31 | South Africa | 92 | 91 | 57 | 62 | 64 | 94 | 91 | 54 | 94 | 71 | 72 | 74 |
-| Tom Dunn | Hooker | 1992-11-12 | 33 | England | 75 | 79 | 61 | 65 | 76 | 76 | 75 | 62 | 88 | 76 | 74 | 78 |
-| Beno Obano | Prop | 1994-10-25 | 31 | England | 71 | 87 | 59 | 61 | 70 | 77 | 75 | 59 | 94 | 69 | 69 | 75 |
-| Charlie Ewels | Lock | 1995-06-29 | 30 | England | 75 | 78 | 63 | 64 | 67 | 75 | 75 | 55 | 86 | 71 | 73 | 71 |
-| Ted Hill | Lock / Flanker | 1999-03-26 | 27 | England | 72 | 86 | 63 | 62 | 73 | 75 | 74 | 56 | 88 | 69 | 72 | 75 |
-| Sam Underhill | Flanker | 1996-07-22 | 29 | England | 84 | 88 | 72 | 74 | 70 | 88 | 86 | 63 | 78 | 70 | 75 | 73 |
-| Josh Bayliss | Flanker | 1997-09-18 | 28 | Scotland | 78 | 79 | 73 | 74 | 78 | 80 | 85 | 65 | 77 | 75 | 72 | 75 |
-| Alfie Barbeary | Number 8 | 2000-10-05 | 25 | England | 77 | 84 | 69 | 77 | 77 | 82 | 79 | 65 | 79 | 70 | 74 | 74 |
+| Thomas du Toit | Prop | 1995-05-05 | 31 | South Africa | 99 | 99 | 78 | 78 | 78 | 99 | 99 | 54 | 99 | 99 | 99 | 78 |
+| Tom Dunn | Hooker | 1992-11-12 | 33 | England | 85 | 89 | 71 | 75 | 86 | 86 | 85 | 62 | 98 | 86 | 84 | 88 |
+| Beno Obano | Prop | 1994-10-25 | 31 | England | 81 | 97 | 69 | 71 | 80 | 87 | 85 | 59 | 99 | 79 | 79 | 85 |
+| Charlie Ewels | Lock | 1995-06-29 | 30 | England | 85 | 88 | 73 | 74 | 77 | 85 | 85 | 55 | 96 | 81 | 83 | 81 |
+| Ted Hill | Lock / Flanker | 1999-03-26 | 27 | England | 82 | 96 | 73 | 72 | 83 | 85 | 84 | 56 | 98 | 79 | 82 | 85 |
+| Sam Underhill | Flanker | 1996-07-22 | 29 | England | 99 | 99 | 78 | 78 | 78 | 99 | 99 | 63 | 78 | 78 | 81 | 78 |
+| Josh Bayliss | Flanker | 1997-09-18 | 28 | Scotland | 88 | 89 | 83 | 84 | 88 | 90 | 95 | 65 | 87 | 85 | 82 | 85 |
+| Alfie Barbeary | Number 8 | 2000-10-05 | 25 | England | 87 | 94 | 79 | 87 | 87 | 92 | 89 | 65 | 89 | 80 | 84 | 84 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Ben Spencer | Scrum-half | 1992-07-31 | 33 | England | 69 | 64 | 81 | 75 | 86 | 73 | 75 | 86 | 62 | 85 | 86 | 84 |
-| Finn Russell | Fly-half | 1992-09-23 | 33 | Scotland | 71 | 66 | 73 | 93 | 94 | 68 | 69 | 92 | 63 | 76 | 92 | 92 |
-| Henry Arundell | Wing | 2002-11-08 | 23 | England | 74 | 66 | 85 | 83 | 83 | 68 | 68 | 77 | 57 | 75 | 78 | 79 |
-| Max Ojomoh | Centre | 2000-09-14 | 25 | England | 72 | 77 | 75 | 74 | 80 | 76 | 73 | 71 | 61 | 74 | 78 | 76 |
-| Ollie Lawrence | Centre | 1999-09-18 | 26 | England | 74 | 73 | 80 | 77 | 81 | 80 | 75 | 72 | 64 | 74 | 76 | 81 |
-| Joe Cokanasiga | Wing | 1997-11-15 | 28 | England | 74 | 66 | 84 | 87 | 78 | 71 | 64 | 77 | 58 | 74 | 74 | 77 |
-| Santi Carreras | Full-back | 1998-03-30 | 28 | Argentina | 74 | 71 | 80 | 85 | 83 | 74 | 66 | 85 | 63 | 77 | 83 | 75 |
+| Ben Spencer | Scrum-half | 1992-07-31 | 33 | England | 78 | 78 | 81 | 78 | 95 | 78 | 78 | 95 | 62 | 95 | 95 | 95 |
+| Finn Russell | Fly-half | 1992-09-23 | 33 | Scotland | 91 | 78 | 78 | 97 | 99 | 78 | 78 | 99 | 63 | 99 | 99 | 99 |
+| Henry Arundell | Wing | 2002-11-08 | 23 | England | 84 | 76 | 99 | 93 | 93 | 78 | 78 | 87 | 57 | 85 | 88 | 89 |
+| Max Ojomoh | Centre | 2000-09-14 | 25 | England | 82 | 87 | 85 | 84 | 90 | 86 | 83 | 81 | 61 | 84 | 88 | 86 |
+| Ollie Lawrence | Centre | 1999-09-18 | 26 | England | 84 | 83 | 90 | 87 | 91 | 90 | 85 | 82 | 64 | 84 | 86 | 91 |
+| Joe Cokanasiga | Wing | 1997-11-15 | 28 | England | 84 | 76 | 94 | 97 | 88 | 81 | 74 | 87 | 58 | 84 | 84 | 87 |
+| Santi Carreras | Full-back | 1998-03-30 | 28 | Argentina | 78 | 78 | 80 | 95 | 95 | 78 | 78 | 95 | 63 | 78 | 98 | 78 |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Dan Frost | Hooker | 1997-04-24 | 29 | England | 74 | 81 | 64 | 67 | 75 | 81 | 78 | 62 | 89 | 71 | 75 | 73 |
-| Archie Griffin | Prop | 2001-07-24 | 24 | Wales | 75 | 85 | 59 | 64 | 70 | 80 | 80 | 58 | 89 | 70 | 68 | 73 |
-| Will Stuart | Prop | 1996-07-12 | 29 | England | 75 | 82 | 59 | 63 | 65 | 84 | 75 | 54 | 86 | 69 | 73 | 71 |
-| Quinn Roux | Lock | 1990-10-30 | 35 | Ireland | 75 | 85 | 60 | 64 | 70 | 78 | 75 | 57 | 90 | 70 | 70 | 75 |
-| Guy Pepper | Flanker | 2003-04-15 | 23 | England | 75 | 75 | 67 | 77 | 71 | 85 | 87 | 67 | 79 | 72 | 77 | 74 |
-| Tom Carr-Smith | Scrum-half | 2002-02-28 | 24 | England | 75 | 64 | 80 | 75 | 78 | 76 | 76 | 83 | 63 | 77 | 80 | 83 |
-| Cameron Redpath | Centre | 1999-12-23 | 26 | Scotland | 75 | 77 | 78 | 77 | 77 | 78 | 73 | 73 | 66 | 68 | 77 | 80 |
-| Will Muir | Wing | 1995-10-30 | 30 | England | 72 | 72 | 86 | 86 | 78 | 71 | 69 | 69 | 56 | 73 | 76 | 75 |
+| Dan Frost | Hooker | 1997-04-24 | 29 | England | 77 | 84 | 67 | 70 | 78 | 84 | 81 | 62 | 92 | 74 | 78 | 76 |
+| Archie Griffin | Prop | 2001-07-24 | 24 | Wales | 78 | 88 | 62 | 67 | 73 | 83 | 83 | 58 | 92 | 73 | 71 | 76 |
+| Will Stuart | Prop | 1996-07-12 | 29 | England | 78 | 85 | 62 | 66 | 68 | 87 | 78 | 54 | 89 | 72 | 76 | 74 |
+| Quinn Roux | Lock | 1990-10-30 | 35 | Ireland | 78 | 88 | 63 | 67 | 73 | 81 | 78 | 57 | 93 | 73 | 73 | 78 |
+| Guy Pepper | Flanker | 2003-04-15 | 23 | England | 78 | 78 | 70 | 80 | 74 | 88 | 90 | 67 | 82 | 75 | 80 | 77 |
+| Tom Carr-Smith | Scrum-half | 2002-02-28 | 24 | England | 78 | 67 | 83 | 78 | 81 | 79 | 79 | 86 | 63 | 80 | 83 | 86 |
+| Cameron Redpath | Centre | 1999-12-23 | 26 | Scotland | 78 | 80 | 81 | 80 | 80 | 81 | 76 | 76 | 66 | 71 | 80 | 83 |
+| Will Muir | Wing | 1995-10-30 | 30 | England | 75 | 75 | 89 | 89 | 81 | 74 | 72 | 72 | 56 | 76 | 79 | 78 |
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Ethan Staddon | Flanker | 2002-07-03 | 23 | England | 80 | 81 | 72 | 75 | 75 | 85 | 80 | 63 | 79 | 72 | 77 | 77 |
-| Ewan Richards | Flanker | 2002-04-06 | 24 | England | 77 | 82 | 69 | 72 | 71 | 86 | 82 | 63 | 74 | 76 | 77 | 74 |
-| Francois van Wyk | Prop | 1991-07-30 | 34 | South Africa | 77 | 85 | 59 | 62 | 68 | 79 | 77 | 55 | 88 | 74 | 75 | 74 |
-| Thompson Cowan | Flanker | 2002-08-02 | 23 | Wales | 80 | 83 | 72 | 72 | 73 | 80 | 82 | 62 | 78 | 68 | 77 | 75 |
-| Ross Molony | Lock | 1994-05-11 | 32 | Ireland | 77 | 85 | 66 | 67 | 73 | 80 | 77 | 55 | 87 | 70 | 78 | 77 |
-| Jaco Coetzee | Number 8 | 1996-06-10 | 29 | South Africa | 77 | 85 | 74 | 75 | 77 | 83 | 83 | 69 | 76 | 73 | 71 | 72 |
-| Jasper Spandler | Hooker | 2003-05-21 | 23 | England | 75 | 77 | 60 | 69 | 77 | 79 | 77 | 59 | 86 | 68 | 77 | 74 |
-| Kieran Verden | Prop | 1998-11-06 | 27 | England | 77 | 85 | 55 | 60 | 64 | 78 | 77 | 54 | 90 | 69 | 70 | 77 |
-| Mikey Summerfield | Prop | 2002-10-30 | 23 | England | 77 | 84 | 53 | 64 | 66 | 78 | 80 | 53 | 92 | 71 | 75 | 78 |
-| Miles Reid | Flanker | 1998-09-05 | 27 | England | 81 | 79 | 68 | 73 | 75 | 79 | 80 | 69 | 72 | 74 | 77 | 75 |
+| Ethan Staddon | Flanker | 2002-07-03 | 23 | England | 75 | 76 | 67 | 70 | 70 | 80 | 75 | 63 | 74 | 67 | 72 | 72 |
+| Ewan Richards | Flanker | 2002-04-06 | 24 | England | 72 | 77 | 64 | 67 | 66 | 81 | 77 | 63 | 69 | 71 | 72 | 69 |
+| Francois van Wyk | Prop | 1991-07-30 | 34 | South Africa | 72 | 80 | 54 | 57 | 63 | 74 | 72 | 55 | 83 | 69 | 70 | 69 |
+| Thompson Cowan | Flanker | 2002-08-02 | 23 | Wales | 75 | 78 | 67 | 67 | 68 | 75 | 77 | 62 | 73 | 63 | 72 | 70 |
+| Ross Molony | Lock | 1994-05-11 | 32 | Ireland | 72 | 80 | 61 | 62 | 68 | 75 | 72 | 55 | 82 | 65 | 73 | 72 |
+| Jaco Coetzee | Number 8 | 1996-06-10 | 29 | South Africa | 72 | 80 | 69 | 70 | 72 | 78 | 78 | 69 | 71 | 68 | 66 | 67 |
+| Jasper Spandler | Hooker | 2003-05-21 | 23 | England | 70 | 72 | 55 | 64 | 72 | 74 | 72 | 59 | 81 | 63 | 72 | 69 |
+| Kieran Verden | Prop | 1998-11-06 | 27 | England | 72 | 80 | 50 | 55 | 59 | 73 | 72 | 54 | 85 | 64 | 65 | 72 |
+| Mikey Summerfield | Prop | 2002-10-30 | 23 | England | 72 | 79 | 48 | 59 | 61 | 73 | 75 | 53 | 87 | 66 | 70 | 73 |
+| Miles Reid | Flanker | 1998-09-05 | 27 | England | 76 | 74 | 63 | 68 | 70 | 74 | 75 | 69 | 67 | 69 | 72 | 70 |
 
 
 **Wider squad — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Austin Emens | Full-back | 2002-10-09 | 23 | England | 73 | 71 | 84 | 79 | 80 | 75 | 72 | 77 | 59 | 75 | 78 | 82 |
-| Bernard van der Linde | Scrum-half | 2000-11-30 | 25 | South Africa | 75 | 67 | 80 | 80 | 81 | 72 | 74 | 81 | 64 | 71 | 78 | 84 |
-| Ciaran Donoghue | Fly-half | 2003-01-07 | 23 | Ireland | 71 | 64 | 72 | 72 | 86 | 71 | 72 | 95 | 62 | 77 | 79 | 85 |
-| Louie Hennessey | Centre | 2004-03-29 | 22 | Wales | 73 | 77 | 77 | 80 | 77 | 77 | 75 | 73 | 61 | 72 | 79 | 74 |
-| Will Butt | Centre | 2000-01-15 | 26 | England | 77 | 77 | 77 | 77 | 80 | 77 | 70 | 70 | 63 | 75 | 78 | 80 |
-| Neil le Roux | Scrum-half | 2003-04-16 | 23 | South Africa | 73 | 68 | 77 | 77 | 83 | 71 | 74 | 79 | 66 | 76 | 77 | 83 |
-| Sam Harris | Fly-half | 2003-09-03 | 22 | England | 69 | 65 | 74 | 71 | 85 | 71 | 66 | 92 | 59 | 77 | 78 | 80 |
-| Tom de Glanville | Full-back | 1999-12-10 | 26 | England | 73 | 69 | 80 | 83 | 83 | 72 | 70 | 77 | 65 | 75 | 79 | 80 |
-| Chris Harris | Centre | 1990-12-28 | 35 | Scotland | 75 | 77 | 79 | 79 | 78 | 78 | 74 | 76 | 60 | 72 | 77 | 80 |
+| Austin Emens | Full-back | 2002-10-09 | 23 | England | 68 | 66 | 79 | 74 | 75 | 70 | 67 | 72 | 59 | 70 | 73 | 77 |
+| Bernard van der Linde | Scrum-half | 2000-11-30 | 25 | South Africa | 70 | 62 | 75 | 75 | 76 | 67 | 69 | 76 | 64 | 66 | 73 | 79 |
+| Ciaran Donoghue | Fly-half | 2003-01-07 | 23 | Ireland | 66 | 59 | 67 | 67 | 81 | 66 | 67 | 90 | 62 | 72 | 74 | 80 |
+| Louie Hennessey | Centre | 2004-03-29 | 22 | Wales | 68 | 72 | 72 | 75 | 72 | 72 | 70 | 68 | 61 | 67 | 74 | 69 |
+| Will Butt | Centre | 2000-01-15 | 26 | England | 72 | 72 | 72 | 72 | 75 | 72 | 65 | 65 | 63 | 70 | 73 | 75 |
+| Neil le Roux | Scrum-half | 2003-04-16 | 23 | South Africa | 68 | 63 | 72 | 72 | 78 | 66 | 69 | 74 | 66 | 71 | 72 | 78 |
+| Sam Harris | Fly-half | 2003-09-03 | 22 | England | 64 | 60 | 69 | 66 | 80 | 66 | 61 | 87 | 59 | 72 | 73 | 75 |
+| Tom de Glanville | Full-back | 1999-12-10 | 26 | England | 68 | 64 | 75 | 78 | 78 | 67 | 65 | 72 | 65 | 70 | 74 | 75 |
+| Chris Harris | Centre | 1990-12-28 | 35 | Scotland | 70 | 72 | 74 | 74 | 73 | 73 | 69 | 71 | 60 | 67 | 72 | 75 |
 
 ---
 
@@ -519,71 +519,71 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Scott Sio | Prop | 1991-10-16 | 34 | Australia | 69 | 79 | 55 | 54 | 58 | 78 | 77 | 49 | 89 | 65 | 68 | 68 |
-| Joseph Dweba | Hooker | 1995-10-25 | 30 | South Africa | 68 | 74 | 60 | 59 | 64 | 72 | 79 | 49 | 90 | 71 | 70 | 69 |
-| Josh Iosefa-Scott | Prop | 1996-07-16 | 29 | New Zealand | 70 | 80 | 54 | 55 | 56 | 80 | 73 | 48 | 89 | 70 | 70 | 71 |
-| Dafydd Jenkins | Lock | 2002-12-05 | 23 | Wales | 69 | 81 | 59 | 57 | 65 | 75 | 76 | 50 | 91 | 66 | 68 | 65 |
-| Andrea Zambonin | Lock | 2000-09-03 | 25 | Italy | 71 | 75 | 54 | 61 | 60 | 77 | 74 | 52 | 93 | 66 | 66 | 70 |
-| Ethan Roots | Flanker | 1997-11-10 | 28 | England | 76 | 77 | 69 | 74 | 68 | 82 | 83 | 57 | 78 | 70 | 69 | 66 |
-| Christ Tshiunza | Flanker| 2002-01-09 | 24 | Wales | 75 | 76 | 68 | 69 | 64 | 78 | 79 | 55 | 72 | 64 | 69 | 66 |
-| Greg Fisilau | Number 8 | 2003-07-09 | 22 | England | 74 | 75 | 66 | 73 | 68 | 73 | 75 | 62 | 80 | 68 | 73 | 66 |
+| Scott Sio | Prop | 1991-10-16 | 34 | Australia | 79 | 89 | 65 | 64 | 68 | 88 | 87 | 49 | 99 | 75 | 78 | 78 |
+| Joseph Dweba | Hooker | 1995-10-25 | 30 | South Africa | 78 | 84 | 70 | 69 | 74 | 82 | 89 | 49 | 99 | 81 | 80 | 79 |
+| Josh Iosefa-Scott | Prop | 1996-07-16 | 29 | New Zealand | 80 | 90 | 64 | 65 | 66 | 90 | 83 | 48 | 99 | 80 | 80 | 81 |
+| Dafydd Jenkins | Lock | 2002-12-05 | 23 | Wales | 79 | 91 | 69 | 67 | 75 | 85 | 86 | 50 | 99 | 76 | 78 | 75 |
+| Andrea Zambonin | Lock | 2000-09-03 | 25 | Italy | 81 | 85 | 64 | 71 | 70 | 87 | 84 | 52 | 99 | 76 | 76 | 80 |
+| Ethan Roots | Flanker | 1997-11-10 | 28 | England | 86 | 87 | 79 | 84 | 78 | 92 | 93 | 57 | 88 | 80 | 79 | 76 |
+| Christ Tshiunza | Flanker| 2002-01-09 | 24 | Wales | 85 | 86 | 78 | 79 | 74 | 88 | 89 | 55 | 82 | 74 | 79 | 76 |
+| Greg Fisilau | Number 8 | 2003-07-09 | 22 | England | 84 | 85 | 76 | 83 | 78 | 83 | 85 | 62 | 90 | 78 | 83 | 76 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Stephen Varney | Scrum-half | 2001-05-16 | 25 | Italy | 71 | 59 | 72 | 74 | 74 | 69 | 69 | 73 | 64 | 73 | 76 | 74 |
-| Harvey Skinner | Fly-half | 1997-12-31 | 28 | England | 69 | 60 | 75 | 73 | 73 | 66 | 66 | 84 | 64 | 73 | 73 | 75 |
-| Immanuel Feyi-Waboso | Wing | 2002-12-20 | 23 | England | 67 | 85 | 86 | 85 | 88 | 65 | 62 | 63 | 57 | 65 | 69 | 69 |
-| Len Ikitau | Centre | 1998-10-01 | 27 | Australia | 72 | 87 | 86 | 75 | 73 | 84 | 67 | 68 | 58 | 70 | 85 | 73 |
-| Henry Slade | Centre | 1993-03-19 | 33 | England | 71 | 75 | 76 | 71 | 81 | 81 | 67 | 83 | 62 | 70 | 83 | 81 |
-| Paul Brown-Bampoe | Wing | 2002-05-15 | 24 | England | 75 | 66 | 82 | 82 | 76 | 65 | 63 | 70 | 63 | 67 | 73 | 65 |
-| Olly Woodburn | Wing / Full Back | 1991-11-18 | 34 | England | 70 | 68 | 72 | 78 | 77 | 70 | 65 | 76 | 57 | 68 | 79 | 70 |
+| Stephen Varney | Scrum-half | 2001-05-16 | 25 | Italy | 81 | 69 | 82 | 84 | 84 | 79 | 79 | 83 | 64 | 83 | 86 | 84 |
+| Harvey Skinner | Fly-half | 1997-12-31 | 28 | England | 79 | 70 | 85 | 83 | 83 | 76 | 76 | 94 | 64 | 83 | 83 | 85 |
+| Immanuel Feyi-Waboso | Wing | 2002-12-20 | 23 | England | 78 | 95 | 95 | 99 | 99 | 78 | 78 | 78 | 57 | 78 | 92 | 78 |
+| Len Ikitau | Centre | 1998-10-01 | 27 | Australia | 78 | 95 | 95 | 78 | 93 | 99 | 78 | 78 | 58 | 78 | 95 | 78 |
+| Henry Slade | Centre | 1993-03-19 | 33 | England | 78 | 78 | 85 | 78 | 95 | 95 | 78 | 95 | 62 | 78 | 95 | 95 |
+| Paul Brown-Bampoe | Wing | 2002-05-15 | 24 | England | 85 | 76 | 92 | 92 | 86 | 75 | 73 | 80 | 63 | 77 | 83 | 75 |
+| Olly Woodburn | Wing / Full Back | 1991-11-18 | 34 | England | 80 | 78 | 82 | 88 | 87 | 80 | 75 | 86 | 57 | 78 | 89 | 80 |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Max Norey | Hooker | 1999-08-05 | 26 | England | 68 | 76 | 60 | 63 | 75 | 78 | 80 | 54 | 86 | 66 | 66 | 66 |
-| Will Goodrick-Clarke | Prop | 1996-12-29 | 29 | England | 75 | 80 | 50 | 54 | 63 | 78 | 76 | 50 | 90 | 67 | 65 | 65 |
-| Ethan Burger | Prop | 2000-05-23 | 25 | South Africa | 75 | 78 | 54 | 57 | 64 | 75 | 76 | 51 | 92 | 66 | 68 | 66 |
-| Alfie Bell | Lock | 2003-04-12 | 23 | England | 76 | 75 | 60 | 58 | 66 | 78 | 78 | 54 | 89 | 71 | 66 | 66 |
-| Rusi Tuima | Flanker | 2000-05-21 | 26 | Fiji | 77 | 79 | 68 | 74 | 63 | 81 | 84 | 57 | 78 | 66 | 75 | 70 |
-| Tom Cairns | Scrum-half | 2002-06-19 | 23 | England | 74 | 62 | 75 | 75 | 75 | 66 | 74 | 75 | 61 | 72 | 75 | 76 |
-| Will Haydon-Wood | Fly-half | 2000-10-27 | 25 | England | 70 | 61 | 69 | 68 | 76 | 65 | 71 | 84 | 63 | 75 | 75 | 75 |
-| Dan John | Wing | 2001-10-04 | 24 | Wales | 67 | 64 | 80 | 79 | 75 | 70 | 64 | 67 | 57 | 72 | 75 | 75 |
+| Max Norey | Hooker | 1999-08-05 | 26 | England | 71 | 79 | 63 | 66 | 78 | 81 | 83 | 54 | 89 | 69 | 69 | 69 |
+| Will Goodrick-Clarke | Prop | 1996-12-29 | 29 | England | 78 | 83 | 53 | 57 | 66 | 81 | 79 | 50 | 93 | 70 | 68 | 68 |
+| Ethan Burger | Prop | 2000-05-23 | 25 | South Africa | 78 | 81 | 57 | 60 | 67 | 78 | 79 | 51 | 95 | 69 | 71 | 69 |
+| Alfie Bell | Lock | 2003-04-12 | 23 | England | 79 | 78 | 63 | 61 | 69 | 81 | 81 | 54 | 92 | 74 | 69 | 69 |
+| Rusi Tuima | Flanker | 2000-05-21 | 26 | Fiji | 80 | 82 | 71 | 77 | 66 | 84 | 87 | 57 | 81 | 69 | 78 | 73 |
+| Tom Cairns | Scrum-half | 2002-06-19 | 23 | England | 77 | 65 | 78 | 78 | 78 | 69 | 77 | 78 | 61 | 75 | 78 | 79 |
+| Will Haydon-Wood | Fly-half | 2000-10-27 | 25 | England | 73 | 64 | 72 | 71 | 79 | 68 | 74 | 87 | 63 | 78 | 78 | 78 |
+| Dan John | Wing | 2001-10-04 | 24 | Wales | 70 | 67 | 83 | 82 | 78 | 73 | 67 | 70 | 57 | 75 | 78 | 78 |
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Kwenzo Blose | Prop | 1997-05-12 | 29 | South Africa | 77 | 77 | 49 | 61 | 58 | 78 | 79 | 49 | 92 | 70 | 65 | 68 |
-| Bachuki Tchumbadze | Prop | 2001-11-30 | 24 | Georgia | 77 | 83 | 54 | 59 | 58 | 77 | 77 | 46 | 85 | 70 | 69 | 67 |
-| Tom Hooper | Flanker | 2001-01-29 | 25 | Australia | 80 | 79 | 69 | 72 | 65 | 81 | 83 | 58 | 76 | 67 | 77 | 65 |
-| Joe Bailey | Lock | 2004-07-06 | 21 | England | 77 | 77 | 61 | 59 | 61 | 77 | 77 | 46 | 92 | 71 | 67 | 70 |
-| Oscar Beckerleg | Lock | 2005-05-11 | 21 | England | 77 | 77 | 60 | 61 | 60 | 78 | 77 | 53 | 91 | 67 | 69 | 70 |
-| Ehren Painter | Prop | 1998-03-21 | 28 | England | 77 | 80 | 54 | 58 | 60 | 77 | 79 | 50 | 90 | 66 | 70 | 72 |
-| Richard Capstick | Flanker | 2000-02-13 | 26 | England | 77 | 77 | 70 | 74 | 67 | 77 | 84 | 56 | 73 | 70 | 77 | 68 |
-| Jack Yeandle | Hooker | 1989-12-22 | 36 | England | 67 | 77 | 58 | 65 | 77 | 77 | 77 | 49 | 85 | 70 | 74 | 69 |
-| Jimmy Roots | Prop | 2000-01-31 | 26 | England | 77 | 78 | 56 | 58 | 56 | 77 | 77 | 44 | 90 | 72 | 69 | 70 |
-| Julian Heaven | Hooker | 2000-10-01 | 25 | Australia | 74 | 77 | 59 | 65 | 77 | 77 | 77 | 51 | 87 | 65 | 69 | 71 |
-| Khwezi Mona | Prop | 1992-10-08 | 33 | South Africa | 77 | 81 | 53 | 60 | 60 | 80 | 77 | 45 | 88 | 69 | 68 | 65 |
-| Lewis Pearson | Lock | 1999-10-26 | 26 | England | 77 | 81 | 60 | 59 | 65 | 77 | 77 | 53 | 88 | 70 | 67 | 72 |
-| Martin Moloney | Flanker | 1999-10-19 | 26 | Ireland | 77 | 77 | 68 | 73 | 65 | 78 | 84 | 58 | 77 | 69 | 77 | 70 |
-| Louie Gulley | Hooker | 2005-08-04 | 20 | England | 70 | 77 | 56 | 65 | 77 | 77 | 81 | 53 | 87 | 68 | 68 | 65 |
-| Ross Vintcent | Number 8 | 2002-06-05 | 23 | Italy | 77 | 78 | 69 | 73 | 77 | 77 | 81 | 62 | 78 | 67 | 70 | 65 |
-| Kane James | Flanker | 2005-03-26 | 21 | England | 77 | 77 | 66 | 73 | 67 | 79 | 81 | 55 | 73 | 67 | 77 | 68 |
-| Sol Moody | Hooker | 2005-04-16 | 21 | England | 71 | 77 | 62 | 65 | 77 | 77 | 79 | 52 | 82 | 65 | 68 | 70 |
+| Kwenzo Blose | Prop | 1997-05-12 | 29 | South Africa | 72 | 72 | 44 | 56 | 53 | 73 | 74 | 49 | 87 | 65 | 60 | 63 |
+| Bachuki Tchumbadze | Prop | 2001-11-30 | 24 | Georgia | 72 | 78 | 49 | 54 | 53 | 72 | 72 | 46 | 80 | 65 | 64 | 62 |
+| Tom Hooper | Flanker | 2001-01-29 | 25 | Australia | 75 | 74 | 64 | 67 | 60 | 76 | 78 | 58 | 71 | 62 | 72 | 60 |
+| Joe Bailey | Lock | 2004-07-06 | 21 | England | 72 | 72 | 56 | 54 | 56 | 72 | 72 | 46 | 87 | 66 | 62 | 65 |
+| Oscar Beckerleg | Lock | 2005-05-11 | 21 | England | 72 | 72 | 55 | 56 | 55 | 73 | 72 | 53 | 86 | 62 | 64 | 65 |
+| Ehren Painter | Prop | 1998-03-21 | 28 | England | 72 | 75 | 49 | 53 | 55 | 72 | 74 | 50 | 85 | 61 | 65 | 67 |
+| Richard Capstick | Flanker | 2000-02-13 | 26 | England | 72 | 72 | 65 | 69 | 62 | 72 | 79 | 56 | 68 | 65 | 72 | 63 |
+| Jack Yeandle | Hooker | 1989-12-22 | 36 | England | 62 | 72 | 53 | 60 | 72 | 72 | 72 | 49 | 80 | 65 | 69 | 64 |
+| Jimmy Roots | Prop | 2000-01-31 | 26 | England | 72 | 73 | 51 | 53 | 51 | 72 | 72 | 44 | 85 | 67 | 64 | 65 |
+| Julian Heaven | Hooker | 2000-10-01 | 25 | Australia | 69 | 72 | 54 | 60 | 72 | 72 | 72 | 51 | 82 | 60 | 64 | 66 |
+| Khwezi Mona | Prop | 1992-10-08 | 33 | South Africa | 72 | 76 | 48 | 55 | 55 | 75 | 72 | 45 | 83 | 64 | 63 | 60 |
+| Lewis Pearson | Lock | 1999-10-26 | 26 | England | 72 | 76 | 55 | 54 | 60 | 72 | 72 | 53 | 83 | 65 | 62 | 67 |
+| Martin Moloney | Flanker | 1999-10-19 | 26 | Ireland | 72 | 72 | 63 | 68 | 60 | 73 | 79 | 58 | 72 | 64 | 72 | 65 |
+| Louie Gulley | Hooker | 2005-08-04 | 20 | England | 65 | 72 | 51 | 60 | 72 | 72 | 76 | 53 | 82 | 63 | 63 | 60 |
+| Ross Vintcent | Number 8 | 2002-06-05 | 23 | Italy | 72 | 73 | 64 | 68 | 72 | 72 | 76 | 62 | 73 | 62 | 65 | 60 |
+| Kane James | Flanker | 2005-03-26 | 21 | England | 72 | 72 | 61 | 68 | 62 | 74 | 76 | 55 | 68 | 62 | 72 | 63 |
+| Sol Moody | Hooker | 2005-04-16 | 21 | England | 66 | 72 | 57 | 60 | 72 | 72 | 74 | 52 | 77 | 60 | 63 | 65 |
 
 **Wider squad — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Charlie Chapman | Scrum-half | 1998-12-01 | 27 | England | 71 | 66 | 77 | 77 | 77 | 71 | 70 | 77 | 63 | 69 | 77 | 77 |
-| Ben Coen | Fly-half | 2005-01-11 | 21 | England | 70 | 60 | 72 | 75 | 77 | 65 | 68 | 86 | 62 | 77 | 77 | 77 |
-| Iwan Jenkins | Fly-half | 2003-03-13 | 23 | Wales | 72 | 60 | 68 | 73 | 77 | 67 | 69 | 88 | 63 | 77 | 77 | 78 |
-| Will Becconsall | Scrum-half | 2002-12-20 | 23 | England | 73 | 61 | 77 | 77 | 77 | 69 | 70 | 77 | 58 | 70 | 77 | 77 |
-| Tamati Tua | Centre | 1997-11-26 | 28 | New Zealand | 73 | 77 | 77 | 77 | 77 | 77 | 71 | 65 | 61 | 67 | 77 | 73 |
-| Tommy Wyatt | Wing | 1999-12-14 | 26 | England | 73 | 62 | 81 | 82 | 77 | 68 | 62 | 65 | 62 | 71 | 77 | 77 |
-| Will Rigg | Centre | 2000-03-22 | 26 | England | 70 | 77 | 77 | 77 | 77 | 77 | 68 | 63 | 66 | 72 | 77 | 68 |
-| Zack Wimbush | Centre | 2003-10-24 | 22 | England | 69 | 77 | 77 | 77 | 77 | 77 | 70 | 68 | 66 | 65 | 77 | 73 |
-| Ben Hammersley | Wing | 2003-05-20 | 23 | England | 68 | 66 | 84 | 82 | 77 | 65 | 66 | 64 | 58 | 65 | 77 | 77 |
+| Charlie Chapman | Scrum-half | 1998-12-01 | 27 | England | 66 | 61 | 72 | 72 | 72 | 66 | 65 | 72 | 63 | 64 | 72 | 72 |
+| Ben Coen | Fly-half | 2005-01-11 | 21 | England | 65 | 55 | 67 | 70 | 72 | 60 | 63 | 81 | 62 | 72 | 72 | 72 |
+| Iwan Jenkins | Fly-half | 2003-03-13 | 23 | Wales | 67 | 55 | 63 | 68 | 72 | 62 | 64 | 83 | 63 | 72 | 72 | 73 |
+| Will Becconsall | Scrum-half | 2002-12-20 | 23 | England | 68 | 56 | 72 | 72 | 72 | 64 | 65 | 72 | 58 | 65 | 72 | 72 |
+| Tamati Tua | Centre | 1997-11-26 | 28 | New Zealand | 68 | 72 | 72 | 72 | 72 | 72 | 66 | 60 | 61 | 62 | 72 | 68 |
+| Tommy Wyatt | Wing | 1999-12-14 | 26 | England | 68 | 57 | 76 | 77 | 72 | 63 | 57 | 60 | 62 | 66 | 72 | 72 |
+| Will Rigg | Centre | 2000-03-22 | 26 | England | 65 | 72 | 72 | 72 | 72 | 72 | 63 | 58 | 66 | 67 | 72 | 63 |
+| Zack Wimbush | Centre | 2003-10-24 | 22 | England | 64 | 72 | 72 | 72 | 72 | 72 | 65 | 63 | 66 | 60 | 72 | 68 |
+| Ben Hammersley | Wing | 2003-05-20 | 23 | England | 63 | 61 | 79 | 77 | 72 | 60 | 61 | 59 | 58 | 60 | 72 | 72 |
 
 ---
 
@@ -612,65 +612,65 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Fin Baxter | Prop | 2002-02-12 | 24 | England | 68 | 82 | 54 | 62 | 65 | 71 | 72 | 45 | 80 | 66 | 62 | 69 |
-| Sam Riley | Hooker | 2001-04-23 | 25 | England | 67 | 67 | 60 | 64 | 69 | 72 | 72 | 50 | 81 | 68 | 69 | 66 |
-| Pedro Delgado | Prop | 1997-09-01 | 28 | Argentina | 67 | 74 | 53 | 58 | 63 | 77 | 71 | 49 | 83 | 63 | 62 | 67 |
-| Guido Petti | Lock | 1994-11-17 | 31 | Argentina | 67 | 76 | 61 | 65 | 66 | 75 | 72 | 51 | 87 | 70 | 72 | 63 |
-| Joe Launchbury | Lock | 1991-04-12 | 35 | England | 69 | 77 | 62 | 63 | 67 | 69 | 72 | 44 | 87 | 67 | 66 | 68 |
-| Chandler Cunningham-South | Flanker | 2003-03-18 | 23 | England | 82 | 82 | 67 | 66 | 63 | 85 | 85 | 55 | 82 | 64 | 73 | 63 |
-| Jack Kenningham | Flanker | 1999-11-19 | 26 | England | 73 | 69 | 67 | 73 | 70 | 74 | 79 | 58 | 66 | 63 | 71 | 67 |
-| Alex Dombrandt | Number 8 | 1997-04-29 | 29 | England | 85 | 84 | 67 | 67 | 82 | 82 | 85 | 56 | 73 | 63 | 67 | 67 |
+| Fin Baxter | Prop | 2002-02-12 | 24 | England | 78 | 92 | 64 | 72 | 75 | 81 | 82 | 45 | 90 | 76 | 72 | 79 |
+| Sam Riley | Hooker | 2001-04-23 | 25 | England | 77 | 77 | 70 | 74 | 79 | 82 | 82 | 50 | 91 | 78 | 79 | 76 |
+| Pedro Delgado | Prop | 1997-09-01 | 28 | Argentina | 77 | 84 | 63 | 68 | 73 | 87 | 81 | 49 | 93 | 73 | 72 | 77 |
+| Guido Petti | Lock | 1994-11-17 | 31 | Argentina | 77 | 86 | 71 | 75 | 76 | 85 | 82 | 51 | 97 | 80 | 82 | 73 |
+| Joe Launchbury | Lock | 1991-04-12 | 35 | England | 79 | 87 | 72 | 73 | 77 | 79 | 82 | 44 | 97 | 77 | 76 | 78 |
+| Chandler Cunningham-South | Flanker | 2003-03-18 | 23 | England | 95 | 95 | 78 | 78 | 78 | 95 | 95 | 55 | 95 | 78 | 78 | 78 |
+| Jack Kenningham | Flanker | 1999-11-19 | 26 | England | 83 | 79 | 77 | 83 | 80 | 84 | 89 | 58 | 76 | 73 | 81 | 77 |
+| Alex Dombrandt | Number 8 | 1997-04-29 | 29 | England | 95 | 95 | 78 | 78 | 95 | 95 | 95 | 56 | 78 | 78 | 78 | 78 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Will Porter | Scrum-half | 1998-12-14 | 27 | England | 65 | 64 | 80 | 75 | 77 | 68 | 71 | 72 | 57 | 72 | 75 | 68 |
-| Marcus Smith | Fly-half | 1999-02-14 | 27 | England | 67 | 63 | 90 | 89 | 92 | 62 | 62 | 90 | 55 | 69 | 68 | 91 |
-| Cadan Murley | Wing | 1999-07-31 | 26 | England | 70 | 60 | 87 | 84 | 77 | 64 | 59 | 66 | 54 | 62 | 67 | 66 |
-| Oscar Beard | Centre | 2001-11-20 | 24 | England | 70 | 75 | 71 | 77 | 75 | 68 | 67 | 61 | 56 | 66 | 66 | 71 |
-| Luke Northmore | Centre | 1997-03-16 | 29 | England | 72 | 72 | 75 | 75 | 76 | 70 | 64 | 66 | 56 | 64 | 73 | 67 |
-| Rodrigo Isgró | Wing | 1999-03-24 | 27 | Argentina | 64 | 60 | 83 | 81 | 72 | 60 | 63 | 67 | 55 | 64 | 66 | 70 |
-| Tyrone Green | Full-back | 1998-03-05 | 28 | South Africa | 70 | 65 | 74 | 80 | 75 | 72 | 65 | 68 | 58 | 67 | 73 | 69 |
+| Will Porter | Scrum-half | 1998-12-14 | 27 | England | 75 | 74 | 90 | 85 | 87 | 78 | 81 | 82 | 57 | 82 | 85 | 78 |
+| Marcus Smith | Fly-half | 1999-02-14 | 27 | England | 78 | 78 | 95 | 97 | 99 | 78 | 78 | 99 | 55 | 79 | 99 | 99 |
+| Cadan Murley | Wing | 1999-07-31 | 26 | England | 80 | 70 | 95 | 94 | 87 | 74 | 69 | 76 | 54 | 72 | 77 | 76 |
+| Oscar Beard | Centre | 2001-11-20 | 24 | England | 80 | 85 | 81 | 87 | 85 | 78 | 77 | 71 | 56 | 76 | 76 | 81 |
+| Luke Northmore | Centre | 1997-03-16 | 29 | England | 82 | 82 | 85 | 85 | 86 | 80 | 74 | 76 | 56 | 74 | 83 | 77 |
+| Rodrigo Isgró | Wing | 1999-03-24 | 27 | Argentina | 74 | 70 | 93 | 91 | 82 | 70 | 73 | 77 | 55 | 74 | 76 | 80 |
+| Tyrone Green | Full-back | 1998-03-05 | 28 | South Africa | 80 | 75 | 84 | 90 | 85 | 82 | 75 | 78 | 58 | 77 | 83 | 79 |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Jack Musk | Hooker | 2000-03-04 | 26 | England | 63 | 75 | 61 | 64 | 75 | 75 | 75 | 51 | 84 | 68 | 70 | 70 |
-| Harry Williams | Prop | 1991-10-01 | 34 | England | 75 | 80 | 51 | 58 | 57 | 75 | 75 | 43 | 84 | 66 | 65 | 65 |
-| Will Hobson | Prop | 2002-11-09 | 23 | England | 75 | 79 | 56 | 61 | 64 | 75 | 75 | 44 | 88 | 63 | 67 | 67 |
-| Stephan Lewies | Lock | 1992-01-27 | 34 | South Africa | 75 | 76 | 60 | 64 | 65 | 75 | 75 | 48 | 85 | 66 | 67 | 69 |
-| Will Evans | Flanker | 1997-01-28 | 29 | England | 75 | 75 | 67 | 75 | 69 | 77 | 75 | 56 | 68 | 69 | 75 | 63 |
-| Lucas Friday | Scrum-half | 2006-07-13 | 19 | South Africa | 68 | 60 | 76 | 75 | 75 | 64 | 71 | 75 | 56 | 65 | 75 | 75 |
-| Jarrod Evans | Fly-half | 1996-07-25 | 29 | Wales | 69 | 57 | 69 | 69 | 75 | 68 | 61 | 85 | 55 | 75 | 75 | 75 |
-| Cassius Cleaves | Wing | 2003-03-15 | 23 | England | 65 | 65 | 83 | 80 | 75 | 65 | 64 | 65 | 54 | 66 | 75 | 75 |
+| Jack Musk | Hooker | 2000-03-04 | 26 | England | 66 | 78 | 64 | 67 | 78 | 78 | 78 | 51 | 87 | 71 | 73 | 73 |
+| Harry Williams | Prop | 1991-10-01 | 34 | England | 78 | 83 | 54 | 61 | 60 | 78 | 78 | 43 | 87 | 69 | 68 | 68 |
+| Will Hobson | Prop | 2002-11-09 | 23 | England | 78 | 82 | 59 | 64 | 67 | 78 | 78 | 44 | 91 | 66 | 70 | 70 |
+| Stephan Lewies | Lock | 1992-01-27 | 34 | South Africa | 78 | 79 | 63 | 67 | 68 | 78 | 78 | 48 | 88 | 69 | 70 | 72 |
+| Will Evans | Flanker | 1997-01-28 | 29 | England | 78 | 78 | 70 | 78 | 72 | 80 | 78 | 56 | 71 | 72 | 78 | 66 |
+| Lucas Friday | Scrum-half | 2006-07-13 | 19 | South Africa | 71 | 63 | 79 | 78 | 78 | 67 | 74 | 78 | 56 | 68 | 78 | 78 |
+| Jarrod Evans | Fly-half | 1996-07-25 | 29 | Wales | 72 | 60 | 72 | 72 | 78 | 71 | 64 | 88 | 55 | 78 | 78 | 78 |
+| Cassius Cleaves | Wing | 2003-03-15 | 23 | England | 68 | 68 | 86 | 83 | 78 | 68 | 67 | 68 | 54 | 69 | 78 | 78 |
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Boris Wenger | Prop | 2002-07-01 | 23 | Argentina | 77 | 81 | 52 | 58 | 65 | 77 | 77 | 49 | 83 | 66 | 68 | 65 |
-| Jonny Green | Lock | 2004-03-16 | 22 | England | 77 | 77 | 58 | 64 | 62 | 77 | 77 | 48 | 88 | 70 | 69 | 65 |
-| George Turner | Hooker | 1992-10-08 | 33 | Scotland | 67 | 77 | 61 | 65 | 77 | 77 | 77 | 49 | 79 | 65 | 65 | 68 |
-| Jordan Els | Prop | 1997-06-11 | 28 | South Africa | 77 | 80 | 53 | 58 | 57 | 77 | 77 | 43 | 83 | 65 | 65 | 68 |
-| James Chisholm | Back Row | 1995-08-11 | 30 | England | 77 | 77 | 73 | 69 | 70 | 78 | 77 | 55 | 68 | 67 | 77 | 67 |
-| Jack Walker | Hooker | 1996-05-06 | 30 | England | 65 | 77 | 60 | 65 | 77 | 77 | 77 | 52 | 78 | 65 | 68 | 69 |
-| Kieran Treadwell | Lock | 1995-11-06 | 30 | Ireland | 77 | 78 | 60 | 62 | 64 | 77 | 77 | 45 | 87 | 68 | 68 | 66 |
-| Simon Kerrod | Prop | 1992-08-25 | 33 | England | 77 | 77 | 58 | 57 | 63 | 77 | 77 | 44 | 83 | 65 | 65 | 67 |
-| Titi Lamositele | Prop | 1995-02-11 | 31 | USA | 77 | 77 | 56 | 58 | 58 | 77 | 77 | 50 | 81 | 69 | 65 | 66 |
-| Tom Lawday | Number 8 | 1993-11-11 | 32 | England | 77 | 77 | 68 | 73 | 77 | 77 | 77 | 57 | 73 | 65 | 69 | 70 |
+| Boris Wenger | Prop | 2002-07-01 | 23 | Argentina | 72 | 76 | 47 | 53 | 60 | 72 | 72 | 49 | 78 | 61 | 63 | 60 |
+| Jonny Green | Lock | 2004-03-16 | 22 | England | 72 | 72 | 53 | 59 | 57 | 72 | 72 | 48 | 83 | 65 | 64 | 60 |
+| George Turner | Hooker | 1992-10-08 | 33 | Scotland | 62 | 72 | 56 | 60 | 72 | 72 | 72 | 49 | 74 | 60 | 60 | 63 |
+| Jordan Els | Prop | 1997-06-11 | 28 | South Africa | 72 | 75 | 48 | 53 | 52 | 72 | 72 | 43 | 78 | 60 | 60 | 63 |
+| James Chisholm | Back Row | 1995-08-11 | 30 | England | 72 | 72 | 68 | 64 | 65 | 73 | 72 | 55 | 63 | 62 | 72 | 62 |
+| Jack Walker | Hooker | 1996-05-06 | 30 | England | 60 | 72 | 55 | 60 | 72 | 72 | 72 | 52 | 73 | 60 | 63 | 64 |
+| Kieran Treadwell | Lock | 1995-11-06 | 30 | Ireland | 72 | 73 | 55 | 57 | 59 | 72 | 72 | 45 | 82 | 63 | 63 | 61 |
+| Simon Kerrod | Prop | 1992-08-25 | 33 | England | 72 | 72 | 53 | 52 | 58 | 72 | 72 | 44 | 78 | 60 | 60 | 62 |
+| Titi Lamositele | Prop | 1995-02-11 | 31 | USA | 72 | 72 | 51 | 53 | 53 | 72 | 72 | 50 | 76 | 64 | 60 | 61 |
+| Tom Lawday | Number 8 | 1993-11-11 | 32 | England | 72 | 72 | 63 | 68 | 72 | 72 | 72 | 57 | 68 | 60 | 64 | 65 |
 
 **Wider squad — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Ben Waghorn | Centre | 2004-04-02 | 22 | England | 65 | 77 | 77 | 77 | 77 | 77 | 64 | 63 | 61 | 68 | 77 | 65 |
-| Conor Byrne | Full-back | 2005-07-07 | 20 | England | 66 | 62 | 77 | 73 | 77 | 69 | 64 | 77 | 53 | 71 | 77 | 77 |
-| Hayden Hyde | Centre | 2000-09-15 | 25 | England | 69 | 77 | 77 | 77 | 77 | 77 | 64 | 68 | 61 | 67 | 77 | 72 |
-| Jamie Benson | Fly-half | 2002-09-23 | 23 | England | 70 | 65 | 73 | 70 | 77 | 65 | 61 | 84 | 57 | 77 | 77 | 77 |
-| Bryn Bradley | Centre | 2003-04-17 | 23 | Wales | 65 | 77 | 77 | 77 | 77 | 77 | 64 | 63 | 58 | 66 | 77 | 69 |
-| Nick David | Full-back | 1998-11-04 | 27 | England | 65 | 61 | 81 | 79 | 77 | 66 | 66 | 77 | 54 | 67 | 77 | 77 |
-| Sean Kerr | Centre | 2004-11-08 | 21 | England | 67 | 77 | 77 | 77 | 77 | 77 | 69 | 63 | 58 | 65 | 77 | 65 |
-| Stu Townsend | Scrum-half | 1995-10-11 | 30 | England | 68 | 60 | 77 | 77 | 77 | 65 | 67 | 77 | 56 | 66 | 77 | 77 |
-| Max Green | Scrum-half | 1996-02-13 | 30 | England | 65 | 58 | 77 | 78 | 77 | 69 | 69 | 77 | 53 | 67 | 77 | 77 |
-| Cameron Anderson | Full-back | 1999-09-16 | 26 | England | 66 | 63 | 81 | 76 | 77 | 69 | 66 | 77 | 59 | 65 | 77 | 77 |
+| Ben Waghorn | Centre | 2004-04-02 | 22 | England | 60 | 72 | 72 | 72 | 72 | 72 | 59 | 58 | 61 | 63 | 72 | 60 |
+| Conor Byrne | Full-back | 2005-07-07 | 20 | England | 61 | 57 | 72 | 68 | 72 | 64 | 59 | 72 | 53 | 66 | 72 | 72 |
+| Hayden Hyde | Centre | 2000-09-15 | 25 | England | 64 | 72 | 72 | 72 | 72 | 72 | 59 | 63 | 61 | 62 | 72 | 67 |
+| Jamie Benson | Fly-half | 2002-09-23 | 23 | England | 65 | 60 | 68 | 65 | 72 | 60 | 56 | 79 | 57 | 72 | 72 | 72 |
+| Bryn Bradley | Centre | 2003-04-17 | 23 | Wales | 60 | 72 | 72 | 72 | 72 | 72 | 59 | 58 | 58 | 61 | 72 | 64 |
+| Nick David | Full-back | 1998-11-04 | 27 | England | 60 | 56 | 76 | 74 | 72 | 61 | 61 | 72 | 54 | 62 | 72 | 72 |
+| Sean Kerr | Centre | 2004-11-08 | 21 | England | 62 | 72 | 72 | 72 | 72 | 72 | 64 | 58 | 58 | 60 | 72 | 60 |
+| Stu Townsend | Scrum-half | 1995-10-11 | 30 | England | 63 | 55 | 72 | 72 | 72 | 60 | 62 | 72 | 56 | 61 | 72 | 72 |
+| Max Green | Scrum-half | 1996-02-13 | 30 | England | 60 | 53 | 72 | 73 | 72 | 64 | 64 | 72 | 53 | 62 | 72 | 72 |
+| Cameron Anderson | Full-back | 1999-09-16 | 26 | England | 61 | 58 | 76 | 71 | 72 | 64 | 61 | 72 | 59 | 60 | 72 | 72 |
 
 ---
 
@@ -698,72 +698,72 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Eduardo Bello | Prop | 1995-09-14 | 30 | Argentina | 69 | 74 | 45 | 51 | 51 | 72 | 64 | 44 | 76 | 63 | 60 | 62 |
-| Samson Adejimi | Hooker | 2002-02-15 | 24 | England | 63 | 66 | 48 | 58 | 58 | 64 | 69 | 44 | 75 | 67 | 61 | 60 |
-| Adam Brocklebank | Prop | 1995-09-06 | 30 | England | 69 | 73 | 47 | 55 | 52 | 73 | 64 | 39 | 83 | 67 | 65 | 63 |
-| Finn Baker | Lock | 2004-10-17 | 21 | England | 71 | 72 | 55 | 55 | 58 | 65 | 70 | 41 | 77 | 65 | 60 | 64 |
-| Tim Cardall | Lock | 1997-01-13 | 29 | England | 70 | 71 | 55 | 52 | 59 | 70 | 63 | 43 | 79 | 67 | 65 | 64 |
-| Tom Christie | Flanker | 1998-03-04 | 28 | New Zealand | 68 | 73 | 58 | 62 | 60 | 70 | 75 | 51 | 68 | 61 | 68 | 61 |
-| Tom Gordon | Flanker | 1997-01-30 | 29 | Scotland | 73 | 68 | 64 | 65 | 61 | 71 | 72 | 49 | 69 | 66 | 67 | 58 |
-| Amanaki Mafi | Number 8 | 1990-01-11 | 36 | Japan | 80 | 80 | 61 | 66 | 81 | 82 | 80 | 52 | 67 | 61 | 67 | 61 |
+| Eduardo Bello | Prop | 1995-09-14 | 30 | Argentina | 79 | 84 | 55 | 61 | 61 | 82 | 74 | 44 | 86 | 73 | 70 | 72 |
+| Samson Adejimi | Hooker | 2002-02-15 | 24 | England | 73 | 76 | 58 | 68 | 68 | 74 | 79 | 44 | 85 | 77 | 71 | 70 |
+| Adam Brocklebank | Prop | 1995-09-06 | 30 | England | 79 | 83 | 57 | 65 | 62 | 83 | 74 | 39 | 93 | 77 | 75 | 73 |
+| Finn Baker | Lock | 2004-10-17 | 21 | England | 81 | 82 | 65 | 65 | 68 | 75 | 80 | 41 | 87 | 75 | 70 | 74 |
+| Tim Cardall | Lock | 1997-01-13 | 29 | England | 80 | 81 | 65 | 62 | 69 | 80 | 73 | 43 | 89 | 77 | 75 | 74 |
+| Tom Christie | Flanker | 1998-03-04 | 28 | New Zealand | 78 | 83 | 68 | 72 | 70 | 80 | 85 | 51 | 78 | 71 | 78 | 71 |
+| Tom Gordon | Flanker | 1997-01-30 | 29 | Scotland | 83 | 78 | 74 | 75 | 71 | 81 | 82 | 49 | 79 | 76 | 77 | 68 |
+| Amanaki Mafi | Number 8 | 1990-01-11 | 36 | Japan | 95 | 95 | 78 | 78 | 95 | 95 | 95 | 52 | 78 | 78 | 78 | 78 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Simon Benitez Cruz | Scrum-half | 1999-09-06 | 26 | Argentina | 68 | 60 | 71 | 64 | 65 | 62 | 62 | 66 | 53 | 64 | 65 | 66 |
-| Boeta Chamberlain | Fly-half | 1999-02-22 | 27 | South Africa | 65 | 59 | 62 | 62 | 72 | 58 | 55 | 81 | 50 | 67 | 68 | 72 |
-| Joel Grayson | Wing | 2002-04-15 | 24 | England | 63 | 55 | 78 | 71 | 67 | 60 | 57 | 62 | 49 | 65 | 68 | 60 |
-| Sammy Arnold | Centre | 1996-04-08 | 30 | Ireland | 65 | 64 | 68 | 64 | 70 | 64 | 62 | 58 | 56 | 65 | 68 | 66 |
-| Max Clark | Centre | 1995-10-03 | 30 | England | 68 | 67 | 69 | 70 | 67 | 64 | 59 | 60 | 51 | 69 | 65 | 61 |
-| Liam Williams | Wing | 1991-04-09 | 35 | Wales | 62 | 61 | 84 | 84 | 83 | 62 | 60 | 58 | 48 | 61 | 84 | 86 |
-| Josh Hodge | Full-back | 2000-05-23 | 26 | England | 68 | 57 | 73 | 69 | 69 | 62 | 60 | 64 | 54 | 71 | 74 | 65 |
+| Simon Benitez Cruz | Scrum-half | 1999-09-06 | 26 | Argentina | 78 | 70 | 81 | 74 | 75 | 72 | 72 | 76 | 53 | 74 | 75 | 76 |
+| Boeta Chamberlain | Fly-half | 1999-02-22 | 27 | South Africa | 75 | 69 | 72 | 72 | 82 | 68 | 65 | 91 | 50 | 77 | 78 | 82 |
+| Joel Grayson | Wing | 2002-04-15 | 24 | England | 73 | 65 | 88 | 81 | 77 | 70 | 67 | 72 | 49 | 75 | 78 | 70 |
+| Sammy Arnold | Centre | 1996-04-08 | 30 | Ireland | 75 | 74 | 78 | 74 | 80 | 74 | 72 | 68 | 56 | 75 | 78 | 76 |
+| Max Clark | Centre | 1995-10-03 | 30 | England | 78 | 77 | 79 | 80 | 77 | 74 | 69 | 70 | 51 | 79 | 75 | 71 |
+| Liam Williams | Wing | 1991-04-09 | 35 | Wales | 78 | 78 | 95 | 95 | 95 | 78 | 78 | 78 | 48 | 78 | 95 | 95 |
+| Josh Hodge | Full-back | 2000-05-23 | 26 | England | 78 | 67 | 83 | 79 | 79 | 72 | 70 | 74 | 54 | 81 | 84 | 75 |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Hame Faiva | Hooker | 1994-05-09 | 32 | Italy | 68 | 75 | 49 | 62 | 75 | 75 | 75 | 49 | 79 | 69 | 62 | 65 |
-| Lou de Bruin | Prop | 1993-02-13 | 33 | South Africa | 75 | 75 | 49 | 52 | 51 | 75 | 75 | 42 | 84 | 67 | 64 | 64 |
-| Connor Hancock | Prop | 2000-11-10 | 25 | England | 75 | 77 | 43 | 56 | 51 | 75 | 75 | 39 | 80 | 64 | 62 | 62 |
-| Freddie Clarke | Lock/Back row | 1992-10-10 | 33 | England | 75 | 75 | 54 | 53 | 57 | 75 | 75 | 42 | 82 | 64 | 66 | 64 |
-| Cameron Neild | Flanker | 1996-09-06 | 29 | England | 75 | 75 | 60 | 62 | 63 | 75 | 76 | 54 | 64 | 69 | 75 | 62 |
-| Joe Davis | Scrum-half | 2005-12-31 | 20 | England | 62 | 58 | 75 | 75 | 75 | 63 | 66 | 75 | 53 | 64 | 75 | 75 |
-| Brett Connon | Fly-half | 1996-08-29 | 29 | Ireland | 62 | 56 | 62 | 66 | 75 | 62 | 57 | 81 | 48 | 75 | 75 | 75 |
-| Harrison Obatoyinbo | Wing | 2000-07-15 | 25 | England | 64 | 55 | 80 | 75 | 75 | 62 | 53 | 63 | 48 | 63 | 75 | 75 |
+| Hame Faiva | Hooker | 1994-05-09 | 32 | Italy | 71 | 78 | 52 | 65 | 78 | 78 | 78 | 49 | 82 | 72 | 65 | 68 |
+| Lou de Bruin | Prop | 1993-02-13 | 33 | South Africa | 78 | 78 | 52 | 55 | 54 | 78 | 78 | 42 | 87 | 70 | 67 | 67 |
+| Connor Hancock | Prop | 2000-11-10 | 25 | England | 78 | 80 | 46 | 59 | 54 | 78 | 78 | 39 | 83 | 67 | 65 | 65 |
+| Freddie Clarke | Lock/Back row | 1992-10-10 | 33 | England | 78 | 78 | 57 | 56 | 60 | 78 | 78 | 42 | 85 | 67 | 69 | 67 |
+| Cameron Neild | Flanker | 1996-09-06 | 29 | England | 78 | 78 | 63 | 65 | 66 | 78 | 79 | 54 | 67 | 72 | 78 | 65 |
+| Joe Davis | Scrum-half | 2005-12-31 | 20 | England | 65 | 61 | 78 | 78 | 78 | 66 | 69 | 78 | 53 | 67 | 78 | 78 |
+| Brett Connon | Fly-half | 1996-08-29 | 29 | Ireland | 65 | 59 | 65 | 69 | 78 | 65 | 60 | 84 | 48 | 78 | 78 | 78 |
+| Harrison Obatoyinbo | Wing | 2000-07-15 | 25 | England | 67 | 58 | 83 | 78 | 78 | 65 | 56 | 66 | 48 | 66 | 78 | 78 |
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Adam Scott | Lock | 2001-11-27 | 24 | England | 77 | 77 | 54 | 57 | 59 | 77 | 77 | 46 | 80 | 68 | 66 | 65 |
-| Bryce Gordon | Hooker | 2001-08-06 | 24 | New Zealand | 65 | 77 | 51 | 65 | 77 | 77 | 77 | 47 | 77 | 65 | 65 | 65 |
-| Cam Jordan | Lock | 1999-11-17 | 26 | England | 77 | 77 | 54 | 56 | 60 | 77 | 77 | 41 | 78 | 65 | 68 | 65 |
-| Charlie Turnbull | Back Row | 2005-10-02 | 20 | England | 77 | 77 | 63 | 65 | 65 | 77 | 77 | 53 | 64 | 65 | 77 | 65 |
-| Fergus Lee-Warner | Lock | 1994-02-03 | 32 | Australia | 77 | 77 | 50 | 58 | 55 | 77 | 77 | 48 | 83 | 65 | 67 | 65 |
-| Freddie Lockwood | Back Row | 2000-12-31 | 25 | England | 77 | 77 | 65 | 65 | 65 | 77 | 77 | 55 | 63 | 66 | 77 | 65 |
-| George McGuigan | Hooker | 1993-03-30 | 33 | England | 65 | 77 | 54 | 65 | 77 | 77 | 77 | 48 | 81 | 67 | 65 | 65 |
-| Jamie Hodgson | Lock | 1998-03-19 | 28 | Scotland | 77 | 77 | 50 | 51 | 54 | 77 | 77 | 41 | 81 | 65 | 68 | 66 |
-| John Hawkins | Lock | 1996-11-11 | 29 | Wales | 77 | 77 | 54 | 56 | 57 | 77 | 77 | 40 | 83 | 65 | 66 | 65 |
-| Micky Rewcastle | Prop | 2004-05-17 | 21 | England | 77 | 77 | 46 | 55 | 51 | 77 | 77 | 39 | 79 | 65 | 65 | 65 |
-| Murray McCallum | Prop | 1996-03-16 | 30 | Scotland | 77 | 77 | 46 | 55 | 56 | 77 | 77 | 41 | 77 | 66 | 65 | 65 |
-| Ollie Fletcher | Hooker | 2002-09-09 | 23 | England | 65 | 77 | 52 | 65 | 77 | 77 | 77 | 45 | 77 | 68 | 65 | 65 |
-| Ollie Leatherbarrow | Back Row | 2002-04-08 | 24 | England | 77 | 77 | 58 | 66 | 65 | 77 | 77 | 53 | 69 | 65 | 77 | 65 |
-| Oscar Usher | Lock | 2004-06-12 | 21 | England | 77 | 77 | 53 | 56 | 56 | 77 | 77 | 46 | 80 | 65 | 67 | 65 |
-| Rob Palframan | Prop | 1993-12-20 | 32 | England | 77 | 77 | 48 | 52 | 54 | 77 | 77 | 41 | 77 | 65 | 65 | 65 |
-| Sebastian De Chaves | Lock | 1990-10-30 | 35 | South Africa | 77 | 77 | 51 | 57 | 60 | 77 | 77 | 46 | 83 | 66 | 65 | 65 |
+| Adam Scott | Lock | 2001-11-27 | 24 | England | 72 | 72 | 49 | 52 | 54 | 72 | 72 | 46 | 75 | 63 | 61 | 60 |
+| Bryce Gordon | Hooker | 2001-08-06 | 24 | New Zealand | 60 | 72 | 46 | 60 | 72 | 72 | 72 | 47 | 72 | 60 | 60 | 60 |
+| Cam Jordan | Lock | 1999-11-17 | 26 | England | 72 | 72 | 49 | 51 | 55 | 72 | 72 | 41 | 73 | 60 | 63 | 60 |
+| Charlie Turnbull | Back Row | 2005-10-02 | 20 | England | 72 | 72 | 58 | 60 | 60 | 72 | 72 | 53 | 59 | 60 | 72 | 60 |
+| Fergus Lee-Warner | Lock | 1994-02-03 | 32 | Australia | 72 | 72 | 45 | 53 | 50 | 72 | 72 | 48 | 78 | 60 | 62 | 60 |
+| Freddie Lockwood | Back Row | 2000-12-31 | 25 | England | 72 | 72 | 60 | 60 | 60 | 72 | 72 | 55 | 58 | 61 | 72 | 60 |
+| George McGuigan | Hooker | 1993-03-30 | 33 | England | 60 | 72 | 49 | 60 | 72 | 72 | 72 | 48 | 76 | 62 | 60 | 60 |
+| Jamie Hodgson | Lock | 1998-03-19 | 28 | Scotland | 72 | 72 | 45 | 46 | 49 | 72 | 72 | 41 | 76 | 60 | 63 | 61 |
+| John Hawkins | Lock | 1996-11-11 | 29 | Wales | 72 | 72 | 49 | 51 | 52 | 72 | 72 | 40 | 78 | 60 | 61 | 60 |
+| Micky Rewcastle | Prop | 2004-05-17 | 21 | England | 72 | 72 | 41 | 50 | 46 | 72 | 72 | 39 | 74 | 60 | 60 | 60 |
+| Murray McCallum | Prop | 1996-03-16 | 30 | Scotland | 72 | 72 | 41 | 50 | 51 | 72 | 72 | 41 | 72 | 61 | 60 | 60 |
+| Ollie Fletcher | Hooker | 2002-09-09 | 23 | England | 60 | 72 | 47 | 60 | 72 | 72 | 72 | 45 | 72 | 63 | 60 | 60 |
+| Ollie Leatherbarrow | Back Row | 2002-04-08 | 24 | England | 72 | 72 | 53 | 61 | 60 | 72 | 72 | 53 | 64 | 60 | 72 | 60 |
+| Oscar Usher | Lock | 2004-06-12 | 21 | England | 72 | 72 | 48 | 51 | 51 | 72 | 72 | 46 | 75 | 60 | 62 | 60 |
+| Rob Palframan | Prop | 1993-12-20 | 32 | England | 72 | 72 | 43 | 47 | 49 | 72 | 72 | 41 | 72 | 60 | 60 | 60 |
+| Sebastian De Chaves | Lock | 1990-10-30 | 35 | South Africa | 72 | 72 | 46 | 52 | 55 | 72 | 72 | 46 | 78 | 61 | 60 | 60 |
 
 **Wider squad — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Alex Hearle | Centre | 1998-11-08 | 27 | England | 67 | 77 | 77 | 77 | 77 | 77 | 62 | 63 | 50 | 65 | 77 | 65 |
-| Cameron Hutchison | Centre | 1998-06-01 | 27 | Scotland | 65 | 77 | 77 | 77 | 77 | 77 | 61 | 62 | 53 | 65 | 77 | 65 |
-| Christian Wade | Wing | 1991-05-15 | 35 | England | 65 | 59 | 78 | 77 | 77 | 65 | 59 | 60 | 49 | 67 | 77 | 77 |
-| Connor Doherty | Centre | 2000-07-18 | 25 | England | 71 | 77 | 77 | 77 | 77 | 77 | 59 | 59 | 54 | 65 | 77 | 65 |
-| Elliott Obatoyinbo | Wing/Full-back | 1998-10-09 | 27 | England | 65 | 63 | 77 | 77 | 77 | 65 | 60 | 63 | 53 | 65 | 77 | 77 |
-| Ethan Grayson | Fly-half | 2004-04-15 | 22 | England | 65 | 60 | 63 | 65 | 77 | 65 | 62 | 83 | 49 | 77 | 77 | 77 |
-| James Elliott | Scrum-half | 1998-08-29 | 27 | England | 65 | 58 | 77 | 77 | 77 | 65 | 62 | 77 | 52 | 66 | 77 | 77 |
-| Nathan Greenwood | Wing | 2003-11-20 | 22 | England | 65 | 58 | 77 | 77 | 77 | 65 | 60 | 63 | 46 | 65 | 77 | 77 |
-| Oliver Spencer | Centre | 2004-02-22 | 22 | England | 70 | 77 | 77 | 77 | 77 | 77 | 61 | 58 | 54 | 65 | 77 | 65 |
-| Sam Stuart | Scrum-half | 1991-09-27 | 34 | England | 67 | 57 | 77 | 77 | 77 | 65 | 67 | 77 | 50 | 67 | 77 | 77 |
-| Sam Waugh | Centre | 2005-07-16 | 20 | England | 69 | 77 | 77 | 77 | 77 | 77 | 63 | 58 | 51 | 68 | 77 | 65 |
+| Alex Hearle | Centre | 1998-11-08 | 27 | England | 62 | 72 | 72 | 72 | 72 | 72 | 57 | 58 | 50 | 60 | 72 | 60 |
+| Cameron Hutchison | Centre | 1998-06-01 | 27 | Scotland | 60 | 72 | 72 | 72 | 72 | 72 | 56 | 57 | 53 | 60 | 72 | 60 |
+| Christian Wade | Wing | 1991-05-15 | 35 | England | 60 | 54 | 73 | 72 | 72 | 60 | 54 | 55 | 49 | 62 | 72 | 72 |
+| Connor Doherty | Centre | 2000-07-18 | 25 | England | 66 | 72 | 72 | 72 | 72 | 72 | 54 | 54 | 54 | 60 | 72 | 60 |
+| Elliott Obatoyinbo | Wing/Full-back | 1998-10-09 | 27 | England | 60 | 58 | 72 | 72 | 72 | 60 | 55 | 72 | 53 | 60 | 72 | 72 |
+| Ethan Grayson | Fly-half | 2004-04-15 | 22 | England | 60 | 55 | 58 | 60 | 72 | 60 | 57 | 78 | 49 | 72 | 72 | 72 |
+| James Elliott | Scrum-half | 1998-08-29 | 27 | England | 60 | 53 | 72 | 72 | 72 | 60 | 57 | 72 | 52 | 61 | 72 | 72 |
+| Nathan Greenwood | Wing | 2003-11-20 | 22 | England | 60 | 53 | 72 | 72 | 72 | 60 | 55 | 58 | 46 | 60 | 72 | 72 |
+| Oliver Spencer | Centre | 2004-02-22 | 22 | England | 65 | 72 | 72 | 72 | 72 | 72 | 56 | 53 | 54 | 60 | 72 | 60 |
+| Sam Stuart | Scrum-half | 1991-09-27 | 34 | England | 62 | 52 | 72 | 72 | 72 | 60 | 62 | 72 | 50 | 62 | 72 | 72 |
+| Sam Waugh | Centre | 2005-07-16 | 20 | England | 64 | 72 | 72 | 72 | 72 | 72 | 58 | 53 | 51 | 63 | 72 | 60 |
 
 ---
 
@@ -793,78 +793,78 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Trevor Davison | Prop | 1992-08-20 | 33 | England | 70 | 79 | 61 | 63 | 62 | 79 | 73 | 48 | 89 | 69 | 70 | 71 |
-| Curtis Langdon | Hooker | 1997-08-03 | 28 | England | 67 | 76 | 64 | 69 | 71 | 77 | 74 | 53 | 88 | 68 | 70 | 72 |
-| Danilo Fischetti | Prop | 1998-01-26 | 28 | Italy | 70 | 84 | 59 | 64 | 64 | 76 | 76 | 53 | 90 | 68 | 69 | 69 |
-| Alex Coles | Lock | 1999-09-21 | 26 | England | 75 | 80 | 66 | 61 | 70 | 74 | 74 | 51 | 88 | 73 | 72 | 69 |
-| JJ van der Mescht | Lock | 1999-05-04 | 27 | South Africa | 74 | 79 | 61 | 69 | 68 | 73 | 72 | 55 | 91 | 67 | 72 | 72 |
-| Henry Pollock | Flanker | 2005-01-14 | 21 | England | 83 | 77 | 85 | 84 | 68 | 85 | 84 | 62 | 72 | 72 | 72 | 67 |
-| Tom Pearson | Flanker | 1999-10-26 | 26 | England | 72 | 81 | 71 | 77 | 72 | 77 | 78 | 58 | 76 | 72 | 73 | 71 |
-| Callum Chick | Number 8 | 1996-11-25 | 29 | England | 77 | 80 | 70 | 76 | 77 | 76 | 79 | 60 | 78 | 70 | 73 | 70 |
+| Trevor Davison | Prop | 1992-08-20 | 33 | England | 80 | 89 | 71 | 73 | 72 | 89 | 83 | 48 | 99 | 79 | 80 | 81 |
+| Curtis Langdon | Hooker | 1997-08-03 | 28 | England | 77 | 86 | 74 | 79 | 81 | 87 | 84 | 53 | 98 | 78 | 80 | 82 |
+| Danilo Fischetti | Prop | 1998-01-26 | 28 | Italy | 80 | 94 | 69 | 74 | 74 | 86 | 86 | 53 | 99 | 78 | 79 | 79 |
+| Alex Coles | Lock | 1999-09-21 | 26 | England | 85 | 90 | 76 | 71 | 80 | 84 | 84 | 51 | 98 | 83 | 82 | 79 |
+| JJ van der Mescht | Lock | 1999-05-04 | 27 | South Africa | 84 | 89 | 71 | 79 | 78 | 83 | 82 | 55 | 99 | 77 | 82 | 82 |
+| Henry Pollock | Flanker | 2005-01-14 | 21 | England | 95 | 78 | 92 | 95 | 78 | 95 | 99 | 62 | 78 | 78 | 78 | 78 |
+| Tom Pearson | Flanker | 1999-10-26 | 26 | England | 82 | 91 | 81 | 87 | 82 | 87 | 88 | 58 | 86 | 82 | 83 | 81 |
+| Callum Chick | Number 8 | 1996-11-25 | 29 | England | 87 | 90 | 80 | 86 | 87 | 86 | 89 | 60 | 88 | 80 | 83 | 80 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Alex Mitchell | Scrum-half | 1997-05-25 | 28 | England | 84 | 66 | 87 | 85 | 87 | 71 | 73 | 72 | 60 | 71 | 87 | 75 |
-| Fin Smith | Fly-half | 2002-05-11 | 24 | England | 71 | 67 | 72 | 72 | 90 | 69 | 65 | 93 | 59 | 92 | 92 | 94 |
-| Tommy Freeman | Wing | 2001-03-05 | 25 | England | 73 | 67 | 93 | 93 | 89 | 68 | 63 | 67 | 58 | 71 | 91 | 92 |
-| Fraser Dingwall | Centre | 1999-04-07 | 27 | England | 75 | 73 | 81 | 79 | 78 | 76 | 69 | 72 | 65 | 71 | 71 | 70 |
-| Rory Hutchinson | Centre | 1995-01-29 | 31 | Scotland | 72 | 72 | 79 | 81 | 78 | 73 | 69 | 68 | 62 | 70 | 77 | 73 |
-| George Hendy | Wing | 2002-10-15 | 23 | England | 70 | 68 | 91 | 88 | 76 | 70 | 68 | 71 | 59 | 68 | 73 | 68 |
-| George Furbank | Full-back | 1996-10-17 | 29 | England | 66 | 65 | 80 | 78 | 78 | 73 | 68 | 77 | 64 | 71 | 76 | 73 |
+| Alex Mitchell | Scrum-half | 1997-05-25 | 28 | England | 95 | 78 | 88 | 95 | 99 | 78 | 78 | 78 | 60 | 78 | 95 | 89 |
+| Fin Smith | Fly-half | 2002-05-11 | 24 | England | 99 | 78 | 78 | 89 | 99 | 78 | 78 | 99 | 59 | 99 | 99 | 99 |
+| Tommy Freeman | Wing | 2001-03-05 | 25 | England | 99 | 78 | 95 | 99 | 99 | 97 | 78 | 78 | 58 | 78 | 99 | 99 |
+| Fraser Dingwall | Centre | 1999-04-07 | 27 | England | 85 | 83 | 91 | 89 | 88 | 86 | 79 | 82 | 65 | 81 | 81 | 80 |
+| Rory Hutchinson | Centre | 1995-01-29 | 31 | Scotland | 82 | 82 | 89 | 91 | 88 | 83 | 79 | 78 | 62 | 80 | 87 | 83 |
+| George Hendy | Wing | 2002-10-15 | 23 | England | 80 | 78 | 95 | 98 | 86 | 80 | 78 | 81 | 59 | 78 | 83 | 78 |
+| George Furbank | Full-back | 1996-10-17 | 29 | England | 76 | 75 | 90 | 88 | 88 | 83 | 78 | 87 | 64 | 81 | 86 | 83 |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Robbie Smith | Hooker | 1998-09-26 | 27 | Scotland | 69 | 78 | 65 | 71 | 75 | 77 | 77 | 56 | 86 | 67 | 75 | 69 |
-| Elliot Millar-Mills | Prop | 1992-07-08 | 33 | Scotland | 75 | 79 | 59 | 65 | 68 | 75 | 79 | 52 | 91 | 72 | 74 | 68 |
-| Emmanuel Iyogun | Prop | 2000-11-24 | 25 | England | 75 | 86 | 61 | 59 | 65 | 79 | 75 | 51 | 86 | 73 | 74 | 66 |
-| Aiden Ainsworth-Cave | Lock | 2006-07-21 | 19 | England | 75 | 77 | 64 | 67 | 70 | 77 | 75 | 51 | 87 | 73 | 69 | 70 |
-| Josh Kemeny | Flanker | 1998-11-29 | 27 | Australia | 77 | 75 | 72 | 73 | 70 | 83 | 81 | 62 | 72 | 66 | 75 | 73 |
-| Archie McParland | Scrum-half | 2005-02-17 | 21 | England | 73 | 67 | 84 | 75 | 79 | 71 | 73 | 75 | 58 | 72 | 78 | 79 |
-| Anthony Belleau | Fly-half | 1996-04-08 | 30 | France | 73 | 61 | 73 | 79 | 83 | 68 | 63 | 90 | 64 | 75 | 78 | 76 |
-| Ollie Sleightholme | Wing | 2000-04-13 | 26 | England | 71 | 67 | 86 | 85 | 75 | 68 | 66 | 70 | 59 | 74 | 76 | 75 |
+| Robbie Smith | Hooker | 1998-09-26 | 27 | Scotland | 72 | 81 | 68 | 74 | 78 | 80 | 80 | 56 | 89 | 70 | 78 | 72 |
+| Elliot Millar-Mills | Prop | 1992-07-08 | 33 | Scotland | 78 | 82 | 62 | 68 | 71 | 78 | 82 | 52 | 94 | 75 | 77 | 71 |
+| Emmanuel Iyogun | Prop | 2000-11-24 | 25 | England | 78 | 89 | 64 | 62 | 68 | 82 | 78 | 51 | 89 | 76 | 77 | 69 |
+| Aiden Ainsworth-Cave | Lock | 2006-07-21 | 19 | England | 78 | 80 | 67 | 70 | 73 | 80 | 78 | 51 | 90 | 76 | 72 | 73 |
+| Josh Kemeny | Flanker | 1998-11-29 | 27 | Australia | 80 | 78 | 75 | 76 | 73 | 86 | 84 | 62 | 75 | 69 | 78 | 76 |
+| Archie McParland | Scrum-half | 2005-02-17 | 21 | England | 76 | 70 | 87 | 78 | 82 | 74 | 76 | 78 | 58 | 75 | 81 | 82 |
+| Anthony Belleau | Fly-half | 1996-04-08 | 30 | France | 76 | 64 | 76 | 82 | 86 | 71 | 66 | 93 | 64 | 78 | 81 | 79 |
+| Ollie Sleightholme | Wing | 2000-04-13 | 26 | England | 74 | 70 | 95 | 88 | 78 | 71 | 69 | 73 | 59 | 77 | 79 | 78 |
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Angus Scott-Young | Back Row | 1997-04-23 | 29 | Australia | 77 | 80 | 69 | 72 | 72 | 77 | 82 | 60 | 78 | 71 | 77 | 69 |
-| Archie Appleby | Back Row | 2007-01-13 | 19 | England | 77 | 82 | 75 | 76 | 73 | 77 | 79 | 63 | 74 | 67 | 77 | 68 |
-| Archie Benson | Lock | 2001-08-18 | 24 | England | 77 | 78 | 59 | 67 | 66 | 77 | 77 | 50 | 88 | 70 | 74 | 74 |
-| Charlie Ulcoq | Back Row | 2006-05-02 | 20 | England | 77 | 77 | 72 | 75 | 71 | 77 | 78 | 59 | 77 | 72 | 77 | 69 |
-| Chunya Munga | Lock | 2000-09-02 | 25 | England | 77 | 80 | 64 | 67 | 71 | 79 | 77 | 53 | 88 | 73 | 74 | 72 |
-| Cleopas Kundiona | Prop | 1998-12-15 | 27 | Zimbabwe | 77 | 83 | 61 | 66 | 63 | 78 | 77 | 47 | 85 | 68 | 73 | 69 |
-| Craig Wright | Hooker | 2004-05-31 | 21 | England | 69 | 77 | 60 | 69 | 77 | 78 | 77 | 55 | 86 | 71 | 73 | 68 |
-| Ed Prowse | Lock | 2000-10-27 | 25 | England | 77 | 81 | 62 | 69 | 70 | 77 | 77 | 51 | 88 | 73 | 71 | 73 |
-| Luke Green | Prop | 2001-05-06 | 25 | England | 77 | 79 | 55 | 65 | 65 | 77 | 77 | 51 | 89 | 70 | 67 | 68 |
-| Emeka Atuanya | Lock | 2003-03-17 | 23 | England | 77 | 80 | 64 | 64 | 71 | 79 | 77 | 49 | 87 | 69 | 71 | 69 |
-| Fyn Brown | Back Row | 2002-10-11 | 23 | England | 78 | 80 | 73 | 71 | 73 | 77 | 77 | 57 | 74 | 68 | 77 | 74 |
-| Henry Walker | Hooker | 1998-03-10 | 28 | England | 67 | 77 | 59 | 68 | 77 | 78 | 77 | 56 | 82 | 73 | 75 | 66 |
-| Jack Lawrence | Back Row | 2007-02-02 | 19 | England | 77 | 78 | 73 | 75 | 75 | 77 | 81 | 60 | 78 | 69 | 77 | 67 |
-| Sam Graham | Flanker | 1997-07-06 | 28 | England | 77 | 81 | 74 | 75 | 71 | 82 | 78 | 58 | 73 | 70 | 77 | 68 |
-| Ollie Scola | Prop | 2006-02-03 | 20 | England | 77 | 81 | 59 | 65 | 67 | 78 | 77 | 53 | 86 | 72 | 70 | 70 |
-| Siep Walta | Back Row | 2006-09-21 | 20 | Netherlands | 78 | 81 | 71 | 77 | 76 | 78 | 77 | 64 | 78 | 67 | 77 | 74 |
-| Sonny Tonga'uiha | Prop | 2006-08-01 | 19 | England | 77 | 80 | 55 | 60 | 66 | 77 | 77 | 46 | 88 | 71 | 74 | 70 |
-| Tom Lockett | Lock | 2002-10-06 | 23 | England | 77 | 82 | 61 | 64 | 68 | 77 | 77 | 52 | 92 | 68 | 68 | 67 |
-| Tom West | Prop | 1996-02-11 | 30 | England | 77 | 85 | 61 | 66 | 68 | 81 | 78 | 47 | 89 | 70 | 67 | 71 |
+| Angus Scott-Young | Back Row | 1997-04-23 | 29 | Australia | 72 | 75 | 64 | 67 | 67 | 72 | 77 | 60 | 73 | 66 | 72 | 64 |
+| Archie Appleby | Back Row | 2007-01-13 | 19 | England | 72 | 77 | 70 | 71 | 68 | 72 | 74 | 63 | 69 | 62 | 72 | 63 |
+| Archie Benson | Lock | 2001-08-18 | 24 | England | 72 | 73 | 54 | 62 | 61 | 72 | 72 | 50 | 83 | 65 | 69 | 69 |
+| Charlie Ulcoq | Back Row | 2006-05-02 | 20 | England | 72 | 72 | 67 | 70 | 66 | 72 | 73 | 59 | 72 | 67 | 72 | 64 |
+| Chunya Munga | Lock | 2000-09-02 | 25 | England | 72 | 75 | 59 | 62 | 66 | 74 | 72 | 53 | 83 | 68 | 69 | 67 |
+| Cleopas Kundiona | Prop | 1998-12-15 | 27 | Zimbabwe | 72 | 78 | 56 | 61 | 58 | 73 | 72 | 47 | 80 | 63 | 68 | 64 |
+| Craig Wright | Hooker | 2004-05-31 | 21 | England | 64 | 72 | 55 | 64 | 72 | 73 | 72 | 55 | 81 | 66 | 68 | 63 |
+| Ed Prowse | Lock | 2000-10-27 | 25 | England | 72 | 76 | 57 | 64 | 65 | 72 | 72 | 51 | 83 | 68 | 66 | 68 |
+| Luke Green | Prop | 2001-05-06 | 25 | England | 72 | 74 | 50 | 60 | 60 | 72 | 72 | 51 | 84 | 65 | 62 | 63 |
+| Emeka Atuanya | Lock | 2003-03-17 | 23 | England | 72 | 75 | 59 | 59 | 66 | 74 | 72 | 49 | 82 | 64 | 66 | 64 |
+| Fyn Brown | Back Row | 2002-10-11 | 23 | England | 73 | 75 | 68 | 66 | 68 | 72 | 72 | 57 | 69 | 63 | 72 | 69 |
+| Henry Walker | Hooker | 1998-03-10 | 28 | England | 62 | 72 | 54 | 63 | 72 | 73 | 72 | 56 | 77 | 68 | 70 | 61 |
+| Jack Lawrence | Back Row | 2007-02-02 | 19 | England | 72 | 73 | 68 | 70 | 70 | 72 | 76 | 60 | 73 | 64 | 72 | 62 |
+| Sam Graham | Flanker | 1997-07-06 | 28 | England | 72 | 76 | 69 | 70 | 66 | 77 | 73 | 58 | 68 | 65 | 72 | 63 |
+| Ollie Scola | Prop | 2006-02-03 | 20 | England | 72 | 76 | 54 | 60 | 62 | 73 | 72 | 53 | 81 | 67 | 65 | 65 |
+| Siep Walta | Back Row | 2006-09-21 | 20 | Netherlands | 73 | 76 | 66 | 72 | 71 | 73 | 72 | 64 | 73 | 62 | 72 | 69 |
+| Sonny Tonga'uiha | Prop | 2006-08-01 | 19 | England | 72 | 75 | 50 | 55 | 61 | 72 | 72 | 46 | 83 | 66 | 69 | 65 |
+| Tom Lockett | Lock | 2002-10-06 | 23 | England | 72 | 77 | 56 | 59 | 63 | 72 | 72 | 52 | 87 | 63 | 63 | 62 |
+| Tom West | Prop | 1996-02-11 | 30 | England | 72 | 80 | 56 | 61 | 63 | 76 | 73 | 47 | 84 | 65 | 62 | 66 |
 
 **Wider squad — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Aiden Pugh | Scrum-half | 2006-09-18 | 19 | England | 72 | 64 | 79 | 81 | 79 | 69 | 75 | 77 | 59 | 75 | 77 | 77 |
-| Tom James | Scrum-half | 1993-10-12 | 32 | England | 66 | 63 | 80 | 82 | 79 | 69 | 74 | 78 | 62 | 72 | 77 | 77 |
-| Billy Pasco | Centre | 2005-10-02 | 20 | England | 76 | 77 | 81 | 82 | 81 | 77 | 73 | 69 | 62 | 73 | 77 | 71 |
-| Edoardo Todaro | Wing | 2006-09-24 | 19 | Italy | 68 | 67 | 91 | 84 | 77 | 68 | 63 | 72 | 59 | 69 | 77 | 77 |
-| Freddie St John | Centre | 2007-11-07 | 19 | England | 72 | 77 | 77 | 81 | 77 | 77 | 71 | 70 | 60 | 68 | 77 | 71 |
-| Henry Lumley | Centre | 2007-07-18 | 18 | England | 68 | 78 | 83 | 80 | 77 | 78 | 68 | 71 | 62 | 68 | 77 | 69 |
-| James Martin | Wing | 1999-07-31 | 26 | England | 68 | 63 | 84 | 83 | 79 | 67 | 68 | 72 | 54 | 67 | 77 | 77 |
-| James Pater | Wing | 2007-07-02 | 18 | England | 70 | 66 | 87 | 88 | 77 | 70 | 67 | 67 | 61 | 69 | 77 | 77 |
-| James Ramm | Wing | 1998-04-30 | 28 | Australia | 67 | 70 | 91 | 87 | 77 | 67 | 66 | 66 | 56 | 70 | 77 | 77 |
-| Jonny Weimann | Scrum-half | 2006-03-28 | 20 | England | 66 | 67 | 79 | 77 | 77 | 69 | 70 | 77 | 57 | 74 | 78 | 77 |
-| Toby Thame | Centre | 2003-11-08 | 22 | England | 68 | 77 | 78 | 80 | 80 | 77 | 70 | 68 | 61 | 69 | 77 | 75 |
-| Tom Litchfield | Centre | 2002-04-20 | 24 | England | 75 | 78 | 77 | 80 | 80 | 77 | 68 | 65 | 61 | 70 | 77 | 69 |
-| Amena Caqusau | Wing | 2004-07-17 | 21 | Scotland | 67 | 67 | 87 | 87 | 81 | 69 | 61 | 72 | 56 | 73 | 77 | 77 |
-| Will Glister | Wing | 2005-05-05 | 21 | England | 73 | 66 | 87 | 83 | 78 | 68 | 62 | 68 | 56 | 68 | 77 | 77 |
+| Aiden Pugh | Scrum-half | 2006-09-18 | 19 | England | 67 | 59 | 74 | 76 | 74 | 64 | 70 | 72 | 59 | 70 | 72 | 72 |
+| Tom James | Scrum-half | 1993-10-12 | 32 | England | 61 | 58 | 75 | 77 | 74 | 64 | 69 | 73 | 62 | 67 | 72 | 72 |
+| Billy Pasco | Centre | 2005-10-02 | 20 | England | 71 | 72 | 76 | 77 | 76 | 72 | 68 | 64 | 62 | 68 | 72 | 66 |
+| Edoardo Todaro | Wing | 2006-09-24 | 19 | Italy | 63 | 62 | 86 | 79 | 72 | 63 | 58 | 67 | 59 | 64 | 72 | 72 |
+| Freddie St John | Centre | 2007-11-07 | 19 | England | 67 | 72 | 72 | 76 | 72 | 72 | 66 | 65 | 60 | 63 | 72 | 66 |
+| Henry Lumley | Centre | 2007-07-18 | 18 | England | 63 | 73 | 78 | 75 | 72 | 73 | 63 | 66 | 62 | 63 | 72 | 64 |
+| James Martin | Wing | 1999-07-31 | 26 | England | 63 | 58 | 79 | 78 | 74 | 62 | 63 | 67 | 54 | 62 | 72 | 72 |
+| James Pater | Wing | 2007-07-02 | 18 | England | 65 | 61 | 82 | 83 | 72 | 65 | 62 | 62 | 61 | 64 | 72 | 72 |
+| James Ramm | Wing | 1998-04-30 | 28 | Australia | 62 | 65 | 86 | 82 | 72 | 62 | 61 | 61 | 56 | 65 | 72 | 72 |
+| Jonny Weimann | Scrum-half | 2006-03-28 | 20 | England | 61 | 62 | 74 | 72 | 72 | 64 | 65 | 72 | 57 | 69 | 73 | 72 |
+| Toby Thame | Centre | 2003-11-08 | 22 | England | 63 | 72 | 73 | 75 | 75 | 72 | 65 | 63 | 61 | 64 | 72 | 70 |
+| Tom Litchfield | Centre | 2002-04-20 | 24 | England | 70 | 73 | 72 | 75 | 75 | 72 | 63 | 60 | 61 | 65 | 72 | 64 |
+| Amena Caqusau | Wing | 2004-07-17 | 21 | Scotland | 62 | 62 | 82 | 82 | 76 | 64 | 56 | 67 | 56 | 68 | 72 | 72 |
+| Will Glister | Wing | 2005-05-05 | 21 | England | 68 | 61 | 82 | 78 | 73 | 63 | 57 | 63 | 56 | 63 | 72 | 72 |
 
 ---
 
@@ -894,64 +894,64 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Bevan Rodd | Prop | 2000-08-26 | 25 | England | 63 | 83 | 54 | 54 | 61 | 77 | 70 | 49 | 87 | 63 | 70 | 66 |
-| Luke Cowan-Dickie | Hooker | 1993-06-20 | 32 | England | 67 | 74 | 58 | 58 | 65 | 78 | 72 | 56 | 85 | 70 | 69 | 69 |
-| Asher Opoku-Fordjour | Prop | 2004-07-16 | 21 | England | 70 | 79 | 51 | 54 | 57 | 76 | 70 | 48 | 82 | 65 | 64 | 68 |
-| Ernst van Rhyn | Lock | 1997-09-19 | 28 | South Africa | 69 | 76 | 58 | 60 | 62 | 76 | 68 | 52 | 87 | 67 | 68 | 70 |
-| Ben Bamber | Lock | 2001-01-24 | 25 | England | 71 | 83 | 58 | 62 | 65 | 77 | 74 | 53 | 82 | 68 | 72 | 68 |
-| Ben Curry | Flanker | 1998-06-15 | 27 | England | 86 | 85 | 67 | 70 | 69 | 88 | 85 | 59 | 70 | 87 | 69 | 68 |
-| Tom Curry | Flanker | 1998-06-15 | 27 | England | 90 | 92 | 66 | 70 | 63 | 91 | 89 | 57 | 73 | 66 | 90 | 65 |
-| Dan du Preez | Number 8 | 1995-08-05 | 30 | South Africa | 70 | 78 | 65 | 68 | 71 | 81 | 77 | 58 | 70 | 68 | 70 | 64 |
+| Bevan Rodd | Prop | 2000-08-26 | 25 | England | 73 | 93 | 64 | 64 | 71 | 87 | 80 | 49 | 97 | 73 | 80 | 76 |
+| Luke Cowan-Dickie | Hooker | 1993-06-20 | 32 | England | 77 | 84 | 68 | 68 | 75 | 88 | 82 | 56 | 95 | 80 | 79 | 79 |
+| Asher Opoku-Fordjour | Prop | 2004-07-16 | 21 | England | 80 | 89 | 61 | 64 | 67 | 86 | 80 | 48 | 92 | 75 | 74 | 78 |
+| Ernst van Rhyn | Lock | 1997-09-19 | 28 | South Africa | 79 | 86 | 68 | 70 | 72 | 86 | 78 | 52 | 97 | 77 | 78 | 80 |
+| Ben Bamber | Lock | 2001-01-24 | 25 | England | 81 | 93 | 68 | 72 | 75 | 87 | 84 | 53 | 92 | 78 | 82 | 78 |
+| Ben Curry | Flanker | 1998-06-15 | 27 | England | 95 | 95 | 78 | 78 | 78 | 98 | 99 | 59 | 78 | 95 | 78 | 78 |
+| Tom Curry | Flanker | 1998-06-15 | 27 | England | 99 | 99 | 78 | 99 | 99 | 99 | 99 | 57 | 78 | 81 | 99 | 78 |
+| Dan du Preez | Number 8 | 1995-08-05 | 30 | South Africa | 80 | 88 | 75 | 78 | 81 | 91 | 87 | 58 | 80 | 78 | 80 | 74 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Gus Warr | Scrum-half | 1999-09-24 | 26 | England | 69 | 65 | 78 | 72 | 72 | 68 | 68 | 74 | 55 | 66 | 71 | 70 |
-| George Ford | Fly-half | 1993-03-16 | 33 | England | 70 | 64 | 68 | 72 | 92 | 65 | 64 | 89 | 59 | 92 | 90 | 88 |
-| Tom Roebuck | Wing | 2001-01-07 | 25 | England | 70 | 83 | 86 | 85 | 85 | 64 | 61 | 62 | 53 | 70 | 86 | 66 |
-| Rob du Preez | Centre | 1993-07-30 | 32 | South Africa | 66 | 75 | 71 | 72 | 74 | 78 | 64 | 67 | 59 | 65 | 74 | 69 |
-| Rekeiti Ma'asi-White | Centre | 2003-02-03 | 23 | England | 67 | 73 | 75 | 74 | 72 | 72 | 64 | 71 | 60 | 67 | 71 | 67 |
-| Arron Reed | Wing | 1999-07-10 | 26 | Scotland | 65 | 70 | 79 | 81 | 71 | 65 | 61 | 71 | 52 | 67 | 71 | 64 |
-| Joe Carpenter | Full-back | 2001-08-19 | 24 | England | 64 | 68 | 78 | 72 | 75 | 70 | 63 | 74 | 58 | 68 | 72 | 74 |
+| Gus Warr | Scrum-half | 1999-09-24 | 26 | England | 79 | 75 | 88 | 82 | 82 | 78 | 78 | 84 | 55 | 76 | 81 | 80 |
+| George Ford | Fly-half | 1993-03-16 | 33 | England | 86 | 78 | 78 | 78 | 99 | 78 | 78 | 99 | 59 | 99 | 99 | 99 |
+| Tom Roebuck | Wing | 2001-01-07 | 25 | England | 78 | 95 | 95 | 95 | 95 | 78 | 78 | 78 | 53 | 78 | 95 | 78 |
+| Rob du Preez | Centre | 1993-07-30 | 32 | South Africa | 76 | 85 | 81 | 82 | 84 | 88 | 74 | 77 | 59 | 75 | 84 | 79 |
+| Rekeiti Ma'asi-White | Centre | 2003-02-03 | 23 | England | 77 | 83 | 85 | 84 | 82 | 82 | 74 | 81 | 60 | 77 | 81 | 77 |
+| Arron Reed | Wing | 1999-07-10 | 26 | Scotland | 75 | 80 | 89 | 91 | 81 | 75 | 71 | 81 | 52 | 77 | 81 | 74 |
+| Joe Carpenter | Full-back | 2001-08-19 | 24 | England | 74 | 78 | 88 | 82 | 85 | 80 | 73 | 84 | 58 | 78 | 82 | 84 |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Nathan Jibulu | Hooker | 2003-01-26 | 23 | England | 66 | 75 | 54 | 62 | 75 | 76 | 75 | 58 | 85 | 68 | 73 | 68 |
-| Si McIntyre | Prop | 1991-03-19 | 35 | England | 75 | 82 | 49 | 58 | 63 | 78 | 75 | 46 | 87 | 67 | 70 | 67 |
-| WillGriff John | Prop | 1992-12-04 | 33 | Wales | 75 | 82 | 55 | 56 | 56 | 75 | 75 | 51 | 82 | 65 | 64 | 65 |
-| Tom Burrow | Lock | 2005-07-27 | 20 | England | 75 | 77 | 60 | 55 | 62 | 76 | 75 | 55 | 88 | 68 | 66 | 66 |
-| Rouban Birch | Flanker | 1999-09-20 | 26 | England | 75 | 75 | 68 | 72 | 66 | 79 | 81 | 59 | 70 | 68 | 75 | 70 |
-| Raffi Quirke | Scrum-half | 2001-08-18 | 24 | England | 69 | 61 | 75 | 75 | 75 | 72 | 67 | 78 | 60 | 67 | 75 | 75 |
-| Tom Curtis | Fly-half | 2001-07-01 | 24 | England | 71 | 64 | 68 | 72 | 75 | 64 | 66 | 90 | 58 | 75 | 75 | 78 |
-| Tom O'Flaherty | Wing | 1994-07-21 | 31 | England | 71 | 69 | 86 | 80 | 75 | 67 | 61 | 70 | 53 | 67 | 75 | 75 |
+| Nathan Jibulu | Hooker | 2003-01-26 | 23 | England | 69 | 78 | 57 | 65 | 78 | 79 | 78 | 58 | 88 | 71 | 76 | 71 |
+| Si McIntyre | Prop | 1991-03-19 | 35 | England | 78 | 85 | 52 | 61 | 66 | 81 | 78 | 46 | 90 | 70 | 73 | 70 |
+| WillGriff John | Prop | 1992-12-04 | 33 | Wales | 78 | 85 | 58 | 59 | 59 | 78 | 78 | 51 | 85 | 68 | 67 | 68 |
+| Tom Burrow | Lock | 2005-07-27 | 20 | England | 78 | 80 | 63 | 58 | 65 | 79 | 78 | 55 | 91 | 71 | 69 | 69 |
+| Rouban Birch | Flanker | 1999-09-20 | 26 | England | 78 | 78 | 71 | 75 | 69 | 82 | 84 | 59 | 73 | 71 | 78 | 73 |
+| Raffi Quirke | Scrum-half | 2001-08-18 | 24 | England | 72 | 64 | 78 | 78 | 78 | 75 | 70 | 81 | 60 | 70 | 78 | 78 |
+| Tom Curtis | Fly-half | 2001-07-01 | 24 | England | 74 | 67 | 71 | 75 | 78 | 67 | 69 | 93 | 58 | 78 | 78 | 81 |
+| Tom O'Flaherty | Wing | 1994-07-21 | 31 | England | 74 | 72 | 89 | 83 | 78 | 70 | 64 | 73 | 53 | 70 | 78 | 78 |
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| James Harper | Prop | 2000-10-16 | 25 | England | 77 | 79 | 55 | 60 | 56 | 82 | 77 | 51 | 84 | 71 | 67 | 70 |
-| Hyron Andrews | Lock | 1995-07-06 | 30 | South Africa | 77 | 77 | 54 | 61 | 59 | 77 | 77 | 50 | 83 | 70 | 67 | 67 |
-| Huw Davies | Back Row | 2003-11-12 | 22 | Wales | 77 | 77 | 69 | 71 | 71 | 79 | 77 | 59 | 73 | 67 | 77 | 69 |
-| Jacques Vermeulen | Flanker | 1995-02-08 | 31 | South Africa | 77 | 77 | 64 | 71 | 65 | 80 | 78 | 60 | 73 | 67 | 77 | 69 |
-| Jos Gilmore | Back Row | 2005-11-25 | 20 | England | 77 | 81 | 66 | 67 | 65 | 80 | 77 | 60 | 73 | 69 | 77 | 70 |
-| Ethan Caine | Hooker | 2001-09-20 | 24 | England | 66 | 77 | 55 | 65 | 77 | 78 | 77 | 57 | 86 | 70 | 67 | 65 |
-| Reuben Logan | Back Row | 2005-07-28 | 20 | Scotland | 77 | 79 | 68 | 70 | 67 | 80 | 79 | 56 | 75 | 67 | 77 | 68 |
-| Sam Dugdale | Back Row | 1999-09-30 | 26 | England | 77 | 80 | 67 | 67 | 69 | 77 | 78 | 58 | 75 | 69 | 77 | 70 |
-| Tadgh McElroy | Hooker | 1997-06-16 | 28 | Ireland | 69 | 79 | 54 | 65 | 77 | 77 | 77 | 56 | 86 | 65 | 70 | 70 |
-| Tristan Woodman | Back Row | 2004-02-12 | 22 | England | 77 | 77 | 65 | 70 | 71 | 77 | 77 | 57 | 72 | 68 | 77 | 65 |
-| Tye Raymont | Prop | 2005-07-19 | 20 | England | 77 | 80 | 55 | 56 | 61 | 81 | 77 | 51 | 85 | 70 | 66 | 65 |
+| James Harper | Prop | 2000-10-16 | 25 | England | 72 | 74 | 50 | 55 | 51 | 77 | 72 | 51 | 79 | 66 | 62 | 65 |
+| Hyron Andrews | Lock | 1995-07-06 | 30 | South Africa | 72 | 72 | 49 | 56 | 54 | 72 | 72 | 50 | 78 | 65 | 62 | 62 |
+| Huw Davies | Back Row | 2003-11-12 | 22 | Wales | 72 | 72 | 64 | 66 | 66 | 74 | 72 | 59 | 68 | 62 | 72 | 64 |
+| Jacques Vermeulen | Flanker | 1995-02-08 | 31 | South Africa | 72 | 72 | 59 | 66 | 60 | 75 | 73 | 60 | 68 | 62 | 72 | 64 |
+| Jos Gilmore | Back Row | 2005-11-25 | 20 | England | 72 | 76 | 61 | 62 | 60 | 75 | 72 | 60 | 68 | 64 | 72 | 65 |
+| Ethan Caine | Hooker | 2001-09-20 | 24 | England | 61 | 72 | 50 | 60 | 72 | 73 | 72 | 57 | 81 | 65 | 62 | 60 |
+| Reuben Logan | Back Row | 2005-07-28 | 20 | Scotland | 72 | 74 | 63 | 65 | 62 | 75 | 74 | 56 | 70 | 62 | 72 | 63 |
+| Sam Dugdale | Back Row | 1999-09-30 | 26 | England | 72 | 75 | 62 | 62 | 64 | 72 | 73 | 58 | 70 | 64 | 72 | 65 |
+| Tadgh McElroy | Hooker | 1997-06-16 | 28 | Ireland | 64 | 74 | 49 | 60 | 72 | 72 | 72 | 56 | 81 | 60 | 65 | 65 |
+| Tristan Woodman | Back Row | 2004-02-12 | 22 | England | 72 | 72 | 60 | 65 | 66 | 72 | 72 | 57 | 67 | 63 | 72 | 60 |
+| Tye Raymont | Prop | 2005-07-19 | 20 | England | 72 | 75 | 50 | 51 | 56 | 76 | 72 | 51 | 80 | 65 | 61 | 60 |
 
 **Wider squad — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Alex Wills | Wing | 2004-02-11 | 22 | England | 65 | 66 | 84 | 77 | 77 | 70 | 59 | 66 | 59 | 66 | 77 | 77 |
-| Dom Hanson | Scrum-half | 2005-12-17 | 20 | England | 66 | 64 | 77 | 77 | 77 | 70 | 72 | 77 | 54 | 72 | 77 | 77 |
-| Luke James | Full-back | 1999-03-18 | 27 | England | 67 | 67 | 78 | 79 | 77 | 72 | 62 | 77 | 57 | 66 | 78 | 77 |
-| Nye Thomas | Scrum-half | 2003-03-24 | 23 | Wales | 65 | 68 | 77 | 77 | 77 | 71 | 68 | 77 | 57 | 68 | 77 | 77 |
-| Ollie Davies | Fly-half | 2006-12-01 | 19 | England | 66 | 68 | 73 | 71 | 77 | 70 | 67 | 84 | 60 | 77 | 77 | 77 |
-| Joe Bedlow | Centre | 2002-03-29 | 24 | England | 67 | 79 | 77 | 77 | 77 | 77 | 66 | 72 | 56 | 70 | 77 | 72 |
-| Marius Louw | Centre | 1995-10-24 | 30 | South Africa | 66 | 77 | 77 | 77 | 77 | 77 | 65 | 70 | 60 | 70 | 77 | 65 |
-| Obi Ene | Wing | 2003-06-25 | 22 | England | 69 | 67 | 83 | 78 | 77 | 72 | 59 | 71 | 52 | 66 | 77 | 77 |
+| Alex Wills | Wing | 2004-02-11 | 22 | England | 60 | 61 | 79 | 72 | 72 | 65 | 54 | 61 | 59 | 61 | 72 | 72 |
+| Dom Hanson | Scrum-half | 2005-12-17 | 20 | England | 61 | 59 | 72 | 72 | 72 | 65 | 67 | 72 | 54 | 67 | 72 | 72 |
+| Luke James | Full-back | 1999-03-18 | 27 | England | 62 | 62 | 73 | 74 | 72 | 67 | 57 | 72 | 57 | 61 | 73 | 72 |
+| Nye Thomas | Scrum-half | 2003-03-24 | 23 | Wales | 60 | 63 | 72 | 72 | 72 | 66 | 63 | 72 | 57 | 63 | 72 | 72 |
+| Ollie Davies | Fly-half | 2006-12-01 | 19 | England | 61 | 63 | 68 | 66 | 72 | 65 | 62 | 79 | 60 | 72 | 72 | 72 |
+| Joe Bedlow | Centre | 2002-03-29 | 24 | England | 62 | 74 | 72 | 72 | 72 | 72 | 61 | 67 | 56 | 65 | 72 | 67 |
+| Marius Louw | Centre | 1995-10-24 | 30 | South Africa | 61 | 72 | 72 | 72 | 72 | 72 | 60 | 65 | 60 | 65 | 72 | 60 |
+| Obi Ene | Wing | 2003-06-25 | 22 | England | 64 | 62 | 78 | 73 | 72 | 67 | 54 | 66 | 52 | 61 | 72 | 72 |
 
 ---
 

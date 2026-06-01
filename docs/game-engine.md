@@ -647,4 +647,18 @@ A future "Auto-Select" button on `PreMatchScreen` (or `SquadManagementScreen`) w
 3. Fire `PLAYER_MATCHDAY_SQUAD_SET { squad }` (existing event — no schema change) so the selection persists.
 4. Re-render the lineup grid with the new 23.
 
+## Achievements
+
+`src/achievements/` is a self-contained, engine-independent module. It never touches engine RNG or `GameState` directly — it's a passive bus listener, so determinism is unaffected.
+
+**`AchievementEngine.initAchievementEngine(getState)`** is called once in `initInSeasonScreens()`. It subscribes to the `game:*` bus and evaluates the predicate catalog in `achievementDefs.ts` (`ACHIEVEMENTS`) against live `GameState` on each event. Match predicates read `game:fixtureRecorded` and only fire when `playerSide !== null`. Season / career predicates derive from persisted state (playoffs bracket, `career.seasonsCompleted`, `career.archive`, squad peak OVR via `playerOverall`).
+
+**Persistence.** Unlocks live in `achievementStore.ts` under `localStorage` key `'rugby-manager-achievements'` — app-wide, not per-save (mirrors the `uiPrefs.ts` pattern; survives `clearSave()` and team switch, matching Game Centre's per-account semantics).
+
+**Unlock.** A genuine first unlock calls `showToast('🏆 …')` + `getGameCenter().reportAchievement(gcId, 100)`.
+
+**`GameCenterBridge.ts`** is the cross-platform seam: a no-op bridge on web; a `registerPlugin('GameCenter')`-backed bridge on native. The native side requires adding the `GameCenter` Capacitor plugin under `ios/`, enabling the Game Centre capability in Xcode, and creating one App Store Connect achievement per `gcId`. No JS change needed.
+
+**`AchievementsScreen.ts`** (Hub → Awards → Achievements) renders the catalog grouped by category with locked/unlocked state and an `earned / total` count. On native it surfaces a "View in Game Centre" button.
+
 No new SeasonEvent, no save-format change, no engine refactor — the underlying function already ships as the AI's auto-pick. Drop-in UI work whenever it's prioritised.

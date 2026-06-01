@@ -955,7 +955,68 @@ When the existing implementations contradict each other, **this document is corr
 
 ---
 
-## 15. Maintaining this document
+## 15. Navigation & Screen Architecture
+
+### 15.1 Routing rule
+
+All transitions go through **`screenRouter.show(id, { direction? })`** (`src/ui/ScreenRouter.ts`). Screen modules never call `document.getElementById('...').style.display` directly; they accept `onForward`/`onBack` callbacks from `main.ts`. Adding a screen: (1) add the id to the `SCREENS` map in `ScreenRouter.ts`, (2) add `<div id="...">` to `index.html`, (3) wire a flat handler in `main.ts`.
+
+### 15.2 In-season screen lifecycle
+
+**Initialised exactly once per page lifetime.** `initInSeasonScreens()` in `main.ts` is gated by an `inSeasonInited` closure flag — the second call is a no-op. This is load-bearing: each screen registers `eventBus.on('game:*')` subscriptions at init time without an unsub; the gate prevents duplicated handlers on back/forward navigation or game switch.
+
+Each screen receives a **`getGameEngine: () => GameCoordinator` getter** (not the engine reference). Screens call `getGameEngine().getState()` on every render. When `main.ts` reassigns `gameEngine` for a new game, every screen reads the new engine automatically — capturing the reference at init time would freeze screens to the first game. Subsequent visits use bare `screenRouter.show(id)`.
+
+**Hub is the top of the in-season stack** — no back arrow. The Settings cog is the exit route to Home. Back arrows on all other in-season sub-screens return to Hub (except Settings, which also has a Home-entry path via `goSettingsFromHome`).
+
+### 15.3 Dual-mode screens
+
+Some screens serve both the post-match Continue chain and direct Hub entry. Pattern: expose a module-level setter (e.g. `showRoundResults(round, onContinue)`) that the orchestrator calls *before* `screenRouter.show(id)`. The setter updates closure state so a forward "Continue → next" CTA renders in place of the back arrow. Mode clears on the forward click. Hub-entry omits the setter and gets the normal back-arrow render.
+
+Dual-mode screens: `RoundResultsScreen`, `LeagueTableScreen`, `TrainingScreen`, `EndOfSeasonScreen`, `RenewalsScreen`, `TransferMarketScreen`, `RolloverScreen`. New dual-mode screens follow this pattern — do not reach for a global store or re-init the screen.
+
+### 15.4 Hub tile list
+
+The Hub (`src/ui/HubScreen.ts`) has **six tiles** plus a Settings cog and "Go to next match" CTA:
+
+| Tile | Routes to | Notes |
+|---|---|---|
+| Fixtures | `fixture-list` | Upcoming and completed rounds |
+| League | `league-menu` | Sub-menu: Table / Team Stats / Player Stats / Cup (browse) / Awards |
+| Contracts | `contracts` | Squad list + interactive marquee toggle + cap pill; red badge = expiring-contract count |
+| Squad | `squad-management` | Matchday-23 curation; round-trips with PreMatch via `state.player.matchdaySquad` |
+| Transfers | `transfer-market` (scouting mode) | Read-only mid-season FA + Reg 7 view — does not call `signingTermsFor`, so `rngTransfer` is untouched |
+| Training | `training` (mid-week mode) | Persists plan without running the training block |
+
+### 15.5 Navigation flow
+
+```
+Home
+ └─ Team Selector
+     └─ Mode Picker
+         ├─ Quick Start → Hub (authored rosters / contracts / marquee)
+         └─ Squad Builder → BudgetReveal → SquadOverview → pre-season signing window
+               → ContractsScreen (marquee-edit) → Hub
+Hub
+ ├─ [tile] → leaf screen, back → Hub
+ └─ Go to next match → PreMatch
+     └─ Kick Off → Match → MatchResult → post-match chain
+```
+
+**Post-match chain — regular rounds:**
+Round Results → League Table → Training (runs block) → Hub
+
+**Post-match chain — international break (R6 / R11):**
+League Table → IntlCallUps → CupFixtures → Training (`runInternationalBreakBlock`) → CupResults → PostTrainingResults → [InternationalBreak if duty players returned] → Hub
+
+**Post-match chain — after R18 (final regular round):**
+League Table → PlayoffBracket → [player's SF] → bracket → other SF (AI sim) → bracket → Final → bracket (champion banner) → EndOfSeason → BudgetReveal → [TakeoverReveal if fired] → [Renewals if expiring] → [TransferMarket if FA/poach pool] → Rollover → Hub
+
+**Pre-season resume.** Each Squad Builder step writes `state.career.preSeasonStep` (`PRE_SEASON_STEP_SET`) before saving. `continueGame` reads the flag and routes back to the in-flight screen after a mid-pre-season tab close.
+
+---
+
+## 16. Maintaining this document
 
 - Update this document in the **same PR** as any change that introduces a new pattern.
 - Quarterly UI audits (see `docs/UI-AUDIT-v2.md` for the May 2026 template) will surface drift. Fix drift by either updating this document (if the new pattern is correct) or filing tasks (if the implementation is wrong).

@@ -58,6 +58,14 @@ export const DEVELOPMENT = {
   focusMultiplier:      3.0,
   unfocusedMultiplier:  0.25,
 
+  // High-stat maintenance decay. Any unfocused stat above highStatDecayThreshold
+  // rolls for −1 each training week regardless of intensity. Focused stats are
+  // immune. Chance scales quadratically with distance above the threshold:
+  //   decayChance = (stat − highStatDecayThreshold)² / highStatDecayScale
+  // e.g. stat 75 → 0.25%, stat 80 → 1.0%, stat 90 → 4.0%, stat 99 → 8.4%.
+  highStatDecayThreshold: 70,
+  highStatDecayScale:    10000,
+
   // Younger players gain more from training. Indexed by age at the upcoming
   // season's open date (so a 23yo halfway through season N still gets the
   // 24-28 multiplier when we cross his birthday next rollover).

@@ -117,7 +117,7 @@ function pushClubTrainingEvents(
       }
     }
 
-    // Decay rolls — rest/light only (decayChance > 0). Focused stats are immune;
+    // Flat decay rolls — rest/light only (decayChance > 0). Focused stats are immune;
     // a positive gain from the development pass above takes precedence.
     if (intensity.decayChance > 0) {
       for (const stat of PLAYER_STAT_KEYS) {
@@ -127,6 +127,20 @@ function pushClubTrainingEvents(
         if (rngTransferRaw() < intensity.decayChance) {
           statDeltas[stat] = -TRAINING_STAT_DELTA;
         }
+      }
+    }
+
+    // High-stat maintenance decay — all intensities. Unfocused stats above the
+    // threshold face a quadratic decay chance; rotation is the only protection.
+    for (const stat of PLAYER_STAT_KEYS) {
+      const isFocus = stat === focus[0] || stat === focus[1];
+      if (isFocus) continue;
+      if (statDeltas[stat] !== undefined) continue;
+      const excess = p.baseStats[stat] - DEVELOPMENT.highStatDecayThreshold;
+      if (excess <= 0) continue;
+      const decayChance = (excess * excess) / DEVELOPMENT.highStatDecayScale;
+      if (rngTransferRaw() < decayChance) {
+        statDeltas[stat] = -TRAINING_STAT_DELTA;
       }
     }
 

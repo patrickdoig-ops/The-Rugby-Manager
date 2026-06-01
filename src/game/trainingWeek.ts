@@ -117,6 +117,19 @@ function pushClubTrainingEvents(
       }
     }
 
+    // Decay rolls — rest/light only (decayChance > 0). Focused stats are immune;
+    // a positive gain from the development pass above takes precedence.
+    if (intensity.decayChance > 0) {
+      for (const stat of PLAYER_STAT_KEYS) {
+        const isFocus = stat === focus[0] || stat === focus[1];
+        if (isFocus) continue;
+        if (statDeltas[stat] !== undefined) continue;
+        if (rngTransferRaw() < intensity.decayChance) {
+          statDeltas[stat] = -TRAINING_STAT_DELTA;
+        }
+      }
+    }
+
     out.push({
       type: 'PLAYER_TRAINED',
       rosterId: rid,

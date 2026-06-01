@@ -24,12 +24,16 @@ import type {
 //                       +1 or it doesn't, once per week of the gap.
 //   injuryRisk        — base probability per player per training week (scaled
 //                       by INJURY_RISK.conditionMultiplier as condition drops)
+//   decayChance       — base probability per unfocused stat per training week
+//                       that a stat drops by 1. Focused stats (the two named
+//                       in the chosen focus) are immune. Non-zero only on rest
+//                       and light — the jeopardy for avoiding real training.
 export const INTENSITY_EFFECTS: Record<TrainingIntensity,
-  { conditionPerDay: number; developmentChance: number; injuryRisk: number }> = {
-  rest:   { conditionPerDay: +13, developmentChance: 0.000, injuryRisk: 0.000 },
-  light:  { conditionPerDay: +9,  developmentChance: 0.008, injuryRisk: 0.001 },
-  medium: { conditionPerDay: +6.5, developmentChance: 0.018, injuryRisk: 0.004 },
-  high:   { conditionPerDay: +3,  developmentChance: 0.032, injuryRisk: 0.012 },
+  { conditionPerDay: number; developmentChance: number; injuryRisk: number; decayChance: number }> = {
+  rest:   { conditionPerDay: +13, developmentChance: 0.000, injuryRisk: 0.000, decayChance: 0.004 },
+  light:  { conditionPerDay: +9,  developmentChance: 0.008, injuryRisk: 0.001, decayChance: 0.002 },
+  medium: { conditionPerDay: +6.5, developmentChance: 0.018, injuryRisk: 0.004, decayChance: 0.000 },
+  high:   { conditionPerDay: +3,  developmentChance: 0.032, injuryRisk: 0.012, decayChance: 0.000 },
 };
 
 // Focus → the two PlayerStats keys that get the development boost. Forwards

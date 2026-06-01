@@ -401,11 +401,11 @@ A choice between matches: trades off short-term freshness for long-term attribut
 
 - **Match-engine integration.** `MatchCoordinator.initPlayer` reads `raw.condition ?? 100` as the starting `fatiguePct`, so a tired starter actually starts the next match tired. Fatigue then decays from that starting point as it did before. Fatigue tiers in `FATIGUE_SCALING` apply from minute zero — a player at 50% condition is already in the "<50%" tier and gets the corresponding stat penalties throughout the match. Bench substitutes who didn't appear in the prior match come on at their accumulated condition (no event emitted for them, so the value just sticks).
 
-- **The four intensities** (`src/engine/balance/training.ts::INTENSITY_EFFECTS`). Condition is **per day**; development + injury are per training week. v1 baseline:
-  - **Rest** — `+13` condition/day, 0% development, 0% injury risk.
-  - **Light** — `+9` condition/day, 8% base development chance per stat per week, 0.1% injury risk per player per week.
-  - **Medium** — `+6.5` condition/day, 18% development chance, 0.4% injury risk.
-  - **High** — `+3` condition/day, 32% development chance, 1.2% injury risk.
+- **The four intensities** (`src/engine/balance/training.ts::INTENSITY_EFFECTS`). Condition is **per day**; development, injury, and decay are per training week. v1 baseline:
+  - **Rest** — `+13` condition/day, 0% development, 0% injury risk, **0.4% decay chance** per unfocused stat per week.
+  - **Light** — `+9` condition/day, 0.8% base development chance per stat per week, 0.1% injury risk per player per week, **0.2% decay chance** per unfocused stat per week.
+  - **Medium** — `+6.5` condition/day, 1.8% development chance, 0.4% injury risk, no decay.
+  - **High** — `+3` condition/day, 3.2% development chance, 1.2% injury risk, no decay.
 
 - **The eight focuses.** Each focus picks two `PlayerStats` keys to develop faster. `FORWARDS_FOCUS_STATS` and `BACKS_FOCUS_STATS` in `balance/training.ts` hold the mapping:
   - Forwards: `set_piece` → setPiece + strength, `strength` → strength + tackling, `stamina` → stamina + handling, `handling` → handling + composure.
@@ -418,6 +418,7 @@ A choice between matches: trades off short-term freshness for long-term attribut
   - `ageMul`: 1.6× under 23, 1.0× at 24-28, 0.6× at 29-32, 0.25× at 33+. Mirrors the `AGE_CURVES` shape — younger players gain more from training.
   - `proxMul = proximityMultiplier(player.potential, playerOverall(player.baseStats, player.position))` — a player near their ceiling barely responds to training; see **Soft potential ceiling** below.
   - A successful roll = `+1` to that stat (`TRAINING_STAT_DELTA`). The apply-event branch clamps to `[1, 99]` — same as `PLAYER_AGED`.
+  - **Decay pass** (after the development pass, rest/light only): per unfocused stat, one `rngTransferRaw()` roll against `INTENSITY_EFFECTS[intensity].decayChance (0.004 rest / 0.002 light)`. A hit writes `−1` to `statDeltas` unless a positive development roll already landed on that stat (gain takes precedence). Focused stats are immune — the chosen focus pair is always protected even on rest. The `PLAYER_TRAINED` apply-event branch clamps to `[1, 99]` so stats never drop below 1.
 
 - **Training injuries.** Per player per week, after the development pass, one `rngTransfer` roll against `injuryChance = INTENSITY_EFFECTS[intensity].injuryRisk × conditionRiskMultiplier(condition)`. On a hit, `rngTransfer` picks one of `muscle_strain` / `ligament_sprain` / `knock` (no concussions / fractures from training), reads `INJURY_SEVERITY[kind]` for severity weights + week bands, and emits a `PLAYER_INJURED` event — the same shape used by in-match injuries, so the existing `INJURY_TICK_ADVANCED` / `PLAYER_RECOVERED` loop handles recovery identically. `INJURY_RISK.conditionMultiplier (1.5)` means a player at 0% condition is 1.5× more injury-prone than one at 100%; linear interpolation in between.
 

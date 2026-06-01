@@ -511,10 +511,6 @@
 .hub-inbox-tag { font-family: var(--rm-font-mono); font-size: var(--rm-fs-9); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--rm-text); flex-shrink: 0; }
 .hub-inbox-dotsep, .hub-inbox-link { font-family: var(--rm-font-mono); font-size: var(--rm-fs-9); letter-spacing: 0.10em; text-transform: uppercase; color: var(--rm-text-muted); }
 .hub-inbox-chev { color: var(--rm-text-faint); flex-shrink: 0; }
-.hub-inbox-foot { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-top: 1px solid var(--rm-hairline); background: color-mix(in srgb, var(--rm-chalk) 4%, transparent); }
-.hub-inbox-foot-link { display: flex; align-items: center; gap: 6px; font-family: var(--rm-font-mono); font-size: var(--rm-fs-10); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--rm-text); }
-.hub-inbox-foot-rest { font-family: var(--rm-font-mono); font-size: var(--rm-fs-9); letter-spacing: 0.10em; text-transform: uppercase; color: var(--rm-text-faint); }
-
 /* category dot colours — mirror .inbox-item--* */
 .hub-inbox-row--medical .hub-inbox-dot,
 .hub-inbox-row--contracts .hub-inbox-dot { background: oklch(0.72 0.20 25); }

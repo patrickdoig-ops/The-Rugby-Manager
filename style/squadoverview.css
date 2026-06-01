@@ -286,7 +286,7 @@
 @media (hover: hover) {
   #so-continue:hover  { background: var(--rm-cta-hover); }
 }
-#so-continue:active { background: var(--rm-cta-active); }
+#so-continue:active { background: var(--rm-cta-active); transform: scale(0.98); }
 
 #squad-overview .app-header {
   background: linear-gradient(180deg,

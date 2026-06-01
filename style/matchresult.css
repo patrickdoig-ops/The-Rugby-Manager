@@ -754,7 +754,7 @@
 @media (hover: hover) {
   #mr-continue:hover  { background: var(--rm-cta-hover); }
 }
-#mr-continue:active { background: var(--rm-cta-active); }
+#mr-continue:active { background: var(--rm-cta-active); transform: scale(0.98); }
 
 .mr-continue-spinner { display: none; }
 

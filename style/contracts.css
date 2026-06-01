@@ -479,7 +479,7 @@
 @media (hover: hover) {
   #ct-continue:hover { background: var(--rm-cta-hover); }
 }
-#ct-continue:active { background: var(--rm-cta-active); }
+#ct-continue:active { background: var(--rm-cta-active); transform: scale(0.98); }
 
 /* ── Tap-to-expand wage + season + bars ── */
 
@@ -629,7 +629,7 @@
   cursor: pointer;
 }
 
-.ct-renew-btn:active { background: #006622; }
+.ct-renew-btn:active { background: var(--rm-cta-active); transform: scale(0.98); }
 
 .ct-renew-btn:disabled {
   background: var(--rm-surface-3);

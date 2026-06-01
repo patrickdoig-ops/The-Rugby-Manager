@@ -7,6 +7,7 @@ Architectural invariants and ways of working for this repo. Lean by design. Read
 | Match-engine internals — phases, resolvers, RNG, tactics, cards, maul, commentary, UI event-bus | **`docs/match-engine.md`** |
 | Season/career engine — GameCoordinator, season state, fixtures, AI sims, standings, save format | **`docs/game-engine.md`** |
 | Transfer system — all 10 phases, market windows, signings, renewals, poaching, supply | **`docs/transfer-system.md`** |
+| Media manager — generated inbox stories, phrase bank, personas, determinism | **`docs/media-manager.md`** |
 | Visual design + navigation flow + screen architecture | **`docs/DESIGN.md`** |
 | League Cup | **`docs/league-cup.md`** |
 | Fixture schedule | **`docs/prem-fixtures-2025-26.md`** |
@@ -135,6 +136,7 @@ Diagnostic: `git status && git log --oneline -5 && git branch -vv`.
 | Match-engine internals — phases, resolvers, formulas, RNG, tactics, commentary, UI event-bus contract | **`docs/match-engine.md`** |
 | Season/career engine — GameCoordinator, season state, fixtures, headless AI sims, league standings, save format | **`docs/game-engine.md`** |
 | Transfer system — market windows, signings, renewals, poaching, generated supply | **`docs/transfer-system.md`** |
+| Media manager — generated inbox stories (`src/game/media/`), phrase bank, personas, determinism | **`docs/media-manager.md`** |
 | Visual design + navigation flow + screen architecture + Hub tile list | **`docs/DESIGN.md`** |
 | 2025/26 League fixture list | **`docs/prem-fixtures-2025-26.md`** ↔ `src/data/fixtures-2025-26.ts` |
 | League Cup | **`docs/league-cup.md`** ↔ `src/game/cupScheduler.ts` |

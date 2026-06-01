@@ -10,10 +10,12 @@ import type { TeamTactics } from '../types/team';
 import { sortStandings } from './leagueTable';
 import { getAge } from './age';
 import { playoffRaceStatus } from './playoffRace';
+import { generateSeasonPrediction } from './media/mediaManager';
+import { hashSeed } from '../utils/rng';
 
 export interface InboxItem {
   id: string;
-  category: 'league' | 'medical' | 'squad' | 'transfers' | 'contracts' | 'match';
+  category: 'league' | 'medical' | 'squad' | 'transfers' | 'contracts' | 'match' | 'media';
   priority: number;
   subject: string;
   body: string;
@@ -609,6 +611,36 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
         subject: 'Playoff place secured',
         body: 'We have mathematically secured a top-four finish. The playoffs are guaranteed.',
         deepLink: 'league',
+      });
+    }
+  }
+
+  // --- Media: pre-season prediction (week 1 only) ---
+  if (state.calendar.week === 1) {
+    const story = generateSeasonPrediction({
+      seed: hashSeed(state.seed, 'prediction', teamId),
+      clubName: myTeam?.name ?? club.id,
+      ambition: myTeam?.boardAmbition ?? 'playoffs',
+    });
+    items.push({
+      id: `${story.id}:${season}`,
+      category: 'media',
+      priority: 22,
+      subject: story.subject,
+      body: story.body,
+    });
+  }
+
+  // --- Media: latest match story (one per round, "the previous week") ---
+  if (state.league.mediaStories.length > 0) {
+    const latestRound = Math.max(...state.league.mediaStories.map(s => s.round));
+    for (const story of state.league.mediaStories.filter(s => s.round === latestRound)) {
+      items.push({
+        id: `${story.id}:${season}`,
+        category: 'media',
+        priority: 18,
+        subject: story.subject,
+        body: story.body,
       });
     }
   }

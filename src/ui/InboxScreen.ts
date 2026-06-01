@@ -25,6 +25,7 @@ const CATEGORY_LABELS: Record<InboxItem['category'], string> = {
   contracts: 'Contracts',
   match:     'Next Match',
   squad:     'Squad',
+  media:     'Media',
 };
 
 // Called by goInbox() in main.ts when the user actively opens the screen.

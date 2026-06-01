@@ -49,7 +49,9 @@ import { seedRoster } from './rosterSeeder';
 import { buildAutoSelectedTeamFromRoster, buildCupTeamFromRoster } from './rosterTeamBuilder';
 import { CUP_POOLS_2025_26, CUP_SEED_ROUND, buildCupSeed, buildCupKnockoutSeed } from './cupScheduler';
 import { cupDevelopmentEvents } from './cupDevelopment';
-import { parseSeasonStartYear, seasonOpenIso } from './age';
+import { parseSeasonStartYear, seasonOpenIso, getAge } from './age';
+import { recentForm } from './teamStats';
+import { generateMatchStory, type MediaMatchContext, type MediaPlayer } from './media/mediaManager';
 import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot, type PlayerStatsSnapshot } from './seasonStatsCollector';
 import { computeTrainingWeek } from './trainingWeek';
 import { upcomingGap, splitGapIntoPeriods } from './trainingCalendar';
@@ -65,7 +67,7 @@ import { TransferCoordinator, type EarlyRenewalResult } from './TransferCoordina
 import { computeBudgetEvents } from './budgetPlanner';
 import { computeAttendance } from './attendance';
 import { eventBus } from '../utils/eventBus';
-import { setCareerSeed, rngTransfer, getTransferCallCount, advanceTransferTo } from '../utils/rng';
+import { setCareerSeed, rngTransfer, getTransferCallCount, advanceTransferTo, hashSeed } from '../utils/rng';
 import { SEASON_VALUES, INJURY_SEVERITY, STARTER_FA_POOL } from '../engine/balance';
 import type { InjurySeverity } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
@@ -130,6 +132,11 @@ export interface SavedSeason {
   premCup?: import('../types/gameState').PremCupState | null;
   // Remembered Assistant-Manager cup direction.
   cupDirection?: 'best' | 'rest_first_15';
+  // Generated media stories for the current season. Not replayable from
+  // `results` (they need the per-match snapshot), so persisted directly and
+  // restored verbatim by fromSave. Optional — absent on saves written before
+  // the media manager.
+  mediaStories?: import('../types/gameState').MediaStory[];
 }
 
 // Deep clone the roster index for save serialisation — every Player and
@@ -139,7 +146,7 @@ export interface SavedSeason {
 function emptyState(): GameState {
   return {
     calendar: { date: SEASON_VALUES.startDate, week: 1, seasonLabel: '' },
-    league: { fixtures: [], results: [], standings: [], teamSeasonStats: {}, playoffs: null, premCup: null },
+    league: { fixtures: [], results: [], standings: [], teamSeasonStats: {}, playoffs: null, premCup: null, mediaStories: [] },
     player: { teamId: '' },
     seed: 0,
     career: emptyCareerState(),
@@ -271,6 +278,13 @@ export class GameCoordinator {
     }
     if (save.cupDirection) {
       applySeasonEvent(coord.state, { type: 'PLAYER_CUP_DIRECTION_SET', direction: save.cupDirection });
+    }
+    // Media stories aren't replayable from `results` (they need the per-match
+    // snapshot), so restore them verbatim.
+    if (save.mediaStories) {
+      for (const story of save.mediaStories) {
+        applySeasonEvent(coord.state, { type: 'MEDIA_STORY_PUBLISHED', story: { ...story } });
+      }
     }
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
@@ -814,6 +828,12 @@ export class GameCoordinator {
     }
     eventBus.emit('game:fixtureRecorded', { result, state: this.state });
 
+    // Media story — one deterministic, flavour-only take on the player's
+    // fixture, dropped into the inbox. Seeded off (rootSeed, round, clubId) via
+    // a standalone RNG so it can't perturb the career stream / season
+    // determinism. Built from the live snapshot (exact per-player ratings).
+    this.publishMediaStory(round, result, snapshot, playerSide);
+
     // Headless-simulate every other fixture in this round so the league table
     // reflects a full round of results. Sims run in fixture order; each derives
     // its own seed from (rootSeed, round, homeId, awayId).
@@ -893,6 +913,76 @@ export class GameCoordinator {
     if (this.allRegularFixturesPlayed() && this.state.league.playoffs === null) {
       this.seedPlayoffBracket();
     }
+  }
+
+  // Build the media context from the just-recorded player fixture and publish
+  // one generated story. Flavour-only; the RNG is standalone (see media
+  // manager) so this never affects any gameplay outcome. No-op for headless
+  // contexts where no club roster player took the field.
+  private publishMediaStory(
+    round: number,
+    result: FixtureResult,
+    snapshot: MatchSnapshot,
+    playerSide: 'home' | 'away',
+  ): void {
+    const teamId = this.state.player.teamId;
+    const myTeam = this.teamsById.get(teamId);
+    const oppId = playerSide === 'home' ? result.awayId : result.homeId;
+    const oppTeam = this.teamsById.get(oppId);
+    if (!myTeam || !oppTeam) return;
+
+    const club = this.state.career.clubs.find(c => c.id === teamId);
+    const squad = new Set(club?.squad ?? []);
+    const players: MediaPlayer[] = [];
+    for (const snap of snapshot.playerSnapshots) {
+      if (!squad.has(snap.rosterId)) continue;
+      const p = this.state.career.roster[snap.rosterId];
+      if (!p) continue;
+      const m = snap.matchStats;
+      players.push({
+        firstName: p.firstName,
+        lastName: p.lastName,
+        position: p.position,
+        age: getAge(p.dob, this.state.calendar.date),
+        rating: snap.rating,
+        isMarquee: p.contract?.isMarquee ?? false,
+        tries: m.tries,
+        lineBreaks: m.lineBreaks,
+        defendersBeaten: m.defendersBeaten,
+        tacklesMade: m.tacklesMade,
+        turnoversWon: m.turnoversWon,
+        carries: m.carries,
+      });
+    }
+    if (players.length === 0) return;
+
+    const sorted = sortStandings(this.state.league.standings);
+    const myPos = sorted.findIndex(s => s.teamId === teamId);
+    const oppPos = sorted.findIndex(s => s.teamId === oppId);
+    const form = recentForm(teamId, this.state.league.results, 4)
+      .filter((r): r is 'W' | 'L' | 'D' => r !== null);
+
+    const ctx: MediaMatchContext = {
+      seed: hashSeed(this.state.seed, round, teamId),
+      round,
+      clubName: myTeam.name,
+      clubShort: myTeam.shortName,
+      oppName: oppTeam.name,
+      isHome: playerSide === 'home',
+      teamScore: playerSide === 'home' ? result.homeScore : result.awayScore,
+      oppScore: playerSide === 'home' ? result.awayScore : result.homeScore,
+      teamTries: playerSide === 'home' ? result.homeTries : result.awayTries,
+      stadium: myTeam.stadium,
+      ...(result.attendance != null ? { attendance: result.attendance } : {}),
+      ...(myTeam.stadiumCapacity ? { capacity: myTeam.stadiumCapacity } : {}),
+      expectedToWin: myPos >= 0 && oppPos >= 0 && myPos < oppPos,
+      recentForm: form,
+      ...(myTeam.suggestedTactics ? { tactics: myTeam.suggestedTactics } : {}),
+      teamSummary: playerSide === 'home' ? snapshot.homeSummary : snapshot.awaySummary,
+      players,
+    };
+
+    applySeasonEvent(this.state, { type: 'MEDIA_STORY_PUBLISHED', story: generateMatchStory(ctx) });
   }
 
   // True when every fixture in league.fixtures (regular season) has a
@@ -1232,6 +1322,9 @@ export class GameCoordinator {
         : {}),
       ...(this.state.player.cupDirection
         ? { cupDirection: this.state.player.cupDirection }
+        : {}),
+      ...(this.state.league.mediaStories.length > 0
+        ? { mediaStories: this.state.league.mediaStories.map(s => ({ ...s })) }
         : {}),
     };
   }

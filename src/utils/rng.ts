@@ -87,3 +87,28 @@ export function rngTransfer(min: number, max: number): number {
   transferCallCount++;
   return Math.floor(transferRand() * (max - min + 1)) + min;
 }
+
+// Standalone seeded generator, independent of the four shared streams. Used by
+// the media-story manager (src/game/media), which must be fully deterministic
+// per fixture WITHOUT consuming the career stream — a media draw cannot be
+// allowed to perturb transfer / injury / rollover outcomes (or season
+// determinism would break). Callers derive a stable seed via `hashSeed` and
+// own the returned closure for the lifetime of one story.
+export function makeRng(seed: number): () => number {
+  return mulberry32(seed >>> 0);
+}
+
+// Cheap deterministic hash of mixed number/string parts into a 32-bit seed.
+// Order-sensitive. Used to derive a stable media seed from (rootSeed, round,
+// clubId) so the same fixture always yields the same story.
+export function hashSeed(...parts: (number | string)[]): number {
+  let h = 0x811c9dc5;
+  for (const part of parts) {
+    const s = typeof part === 'number' ? String(part) : part;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 0x01000193);
+    }
+  }
+  return h >>> 0;
+}

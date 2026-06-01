@@ -12,7 +12,7 @@
 // setSlotWriteHook — SaveManager itself has no Capacitor dependency.
 
 import type { SavedCareer, SavedSeason, SavedSeasonResult } from '../game/GameCoordinator';
-import type { ArchivedPlayerSeason, ArchivedSeason, ClubState, CupFixture, CupKnockout, CupKnockoutMatch, Fixture, MarketState, PlayerRef, PlayoffMatch, PlayoffState, PremCupState, PreAgreement, SeasonAwards, TeamSeasonStats, TransferBid, TransferOffer } from '../types/gameState';
+import type { ArchivedPlayerSeason, ArchivedSeason, ClubState, CupFixture, CupKnockout, CupKnockoutMatch, Fixture, MarketState, MediaStory, PlayerRef, PlayoffMatch, PlayoffState, PremCupState, PreAgreement, SeasonAwards, TeamSeasonStats, TransferBid, TransferOffer } from '../types/gameState';
 import type { Player, PlayerSeasonStats } from '../types/player';
 import { zeroSeasonStats } from '../types/player';
 import { zeroStanding, zeroTeamSeasonStats } from '../types/gameState';
@@ -113,6 +113,13 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
     const cupDirection = parsed.cupDirection === 'rest_first_15' || parsed.cupDirection === 'best'
       ? parsed.cupDirection
       : undefined;
+    const mediaStories: MediaStory[] | undefined = Array.isArray(parsed.mediaStories)
+      ? parsed.mediaStories
+          .filter((s): s is MediaStory =>
+            !!s && typeof s.id === 'string' && typeof s.round === 'number' &&
+            typeof s.subject === 'string' && typeof s.body === 'string' && typeof s.outlet === 'string')
+          .map(s => ({ id: s.id, round: s.round, subject: s.subject, body: s.body, outlet: s.outlet }))
+      : undefined;
     return {
       playerTeamId: parsed.playerTeamId,
       seed: parsed.seed >>> 0,
@@ -137,6 +144,7 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
       ...(playoffs !== undefined ? { playoffs } : {}),
       ...(premCup !== undefined ? { premCup } : {}),
       ...(cupDirection !== undefined ? { cupDirection } : {}),
+      ...(mediaStories !== undefined ? { mediaStories } : {}),
     };
   } catch {
     return null;

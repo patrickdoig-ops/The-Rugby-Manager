@@ -33,6 +33,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       state.league.teamSeasonStats = Object.fromEntries(event.teamIds.map(id => [id, zeroTeamSeasonStats()]));
       state.league.playoffs = null;
       state.league.premCup = null;
+      state.league.mediaStories = [];
       return;
     }
     case 'FIXTURE_RESULT_RECORDED': {
@@ -42,6 +43,10 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       const margin = event.result.homeScore - event.result.awayScore;
       applyToSide(home, event.result.homeScore, event.result.awayScore, event.result.homeTries, margin);
       applyToSide(away, event.result.awayScore, event.result.homeScore, event.result.awayTries, -margin);
+      return;
+    }
+    case 'MEDIA_STORY_PUBLISHED': {
+      state.league.mediaStories.push(event.story);
       return;
     }
     case 'WEEK_ADVANCED': {
@@ -429,6 +434,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       state.league.fixtures = event.newFixtures.map(f => ({ ...f }));
       state.league.results = [];
       state.league.standings = state.league.standings.map(s => zeroStanding(s.teamId));
+      state.league.mediaStories = [];
       state.calendar.date = earliestDateForRound(state.league.fixtures, 1) ?? state.calendar.date;
       // Reset per-player season aggregates for the new season. International
       // call-up flags + PGA rest obligations don't survive the rollover (the

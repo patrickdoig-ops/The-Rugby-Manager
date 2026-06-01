@@ -59,6 +59,20 @@ export interface FixtureResult {
   attendance?: number;
 }
 
+// A generated media story (newspaper/podcast/TV/YouTuber/X take) about the
+// player's club, dropped into the inbox after a fixture. Pure flavour — no
+// gameplay effect. `round` is the fixture it reacts to (0 = pre-season
+// prediction). Generated deterministically at record time (src/game/media)
+// and persisted on League.mediaStories so it survives save/load. Reset at
+// SEASON_ROLLED_OVER alongside results.
+export interface MediaStory {
+  id: string;
+  round: number;
+  subject: string;
+  body: string;
+  outlet: string;
+}
+
 export interface TeamStanding {
   teamId: string;
   played: number;
@@ -155,6 +169,10 @@ export interface League {
   // PREM_CUP_SEEDED fires (at newSeason / rollover); reset at
   // SEASON_ROLLED_OVER. Nullable so older saves load unchanged.
   premCup: PremCupState | null;
+  // Generated media stories about the player's club, newest appended. Pushed
+  // by MEDIA_STORY_PUBLISHED at fixture-record time; the inbox surfaces only
+  // the latest round. Re-zeroed at SEASON_ROLLED_OVER.
+  mediaStories: MediaStory[];
 }
 
 // One of the three knockout matches. `homeSeed`/`awaySeed` are the team's
@@ -561,6 +579,10 @@ export type SeasonEvent =
   | {
       type: 'FIXTURE_RESULT_RECORDED';
       result: FixtureResult;
+    }
+  | {
+      type: 'MEDIA_STORY_PUBLISHED';
+      story: MediaStory;
     }
   | {
       type: 'WEEK_ADVANCED';

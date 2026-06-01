@@ -8,6 +8,15 @@ import { HOME_ADVANTAGE } from '../engine/balance';
 
 export type FormResult = 'W' | 'L' | 'D';
 
+// Last `n` FixtureResult records for the team, sorted oldest-first.
+export function recentFixtureResults(teamId: string, results: FixtureResult[], n = 5): FixtureResult[] {
+  return results
+    .filter(r => r.homeId === teamId || r.awayId === teamId)
+    .sort((a, b) => b.round - a.round)
+    .slice(0, n)
+    .reverse();
+}
+
 // Last `n` results for the team, padded with null on the left so the most
 // recent result is always the rightmost slot. Slot semantics: index 0 is
 // the oldest visible game, index n-1 is the most recent.

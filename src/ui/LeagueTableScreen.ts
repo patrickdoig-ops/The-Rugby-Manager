@@ -16,10 +16,10 @@ import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { FixtureResult, TeamStanding } from '../types/gameState';
 import { sortStandings, computeStandingsFromResults } from '../game/leagueTable';
-import { recentForm, type FormResult } from '../game/teamStats';
+import { recentForm, recentFixtureResults } from '../game/teamStats';
 import { renderFormPipStrip } from './components/formPip';
 import { eventBus } from '../utils/eventBus';
-import { ROUND_LABELS } from '../engine/balance/season';
+import { ROUND_LABELS, LEAGUE_POINTS } from '../engine/balance/season';
 
 const PLAYOFF_SPOTS = 4;
 
@@ -61,11 +61,23 @@ function displayName(team: RawTeamInput | undefined, fallbackId: string): string
   return team.name.split(' ')[0];
 }
 
-// Football-style 3-1-0 form points over the last `n` results. Bonus-free
-// so it isolates result quality from try-scoring streaks; matches what
-// most viewers expect when they see a "form" table.
-function formPoints(form: Array<FormResult | null>): number {
-  return form.reduce<number>((sum, r) => sum + (r === 'W' ? 3 : r === 'D' ? 1 : 0), 0);
+// Rugby league points earned over the last `n` results: win=4, draw=2,
+// loss=0, +1 for ≥4 tries, +1 for losing by ≤7. Mirrors the actual
+// Gallagher Premiership scoring system.
+function formPoints(teamId: string, results: FixtureResult[], n = 5): number {
+  let pts = 0;
+  for (const r of recentFixtureResults(teamId, results, n)) {
+    const isHome = r.homeId === teamId;
+    const my = isHome ? r.homeScore : r.awayScore;
+    const op = isHome ? r.awayScore : r.homeScore;
+    const myTries = isHome ? r.homeTries : r.awayTries;
+    const margin = my - op;
+    if (margin > 0) pts += LEAGUE_POINTS.win;
+    else if (margin === 0) pts += LEAGUE_POINTS.draw;
+    else if (-margin <= LEAGUE_POINTS.losingBonusThreshold) pts += LEAGUE_POINTS.losingBonusPoints;
+    if (myTries >= LEAGUE_POINTS.tryBonusThreshold) pts += LEAGUE_POINTS.tryBonusPoints;
+  }
+  return pts;
 }
 
 function standardRow(
@@ -117,7 +129,7 @@ function formRow(
   const crest = team ? teamCrest(team) : '<div class="lt-crest"></div>';
   const form = recentForm(s.teamId, results);
   const formHtml = renderFormPipStrip(form, 'sm');
-  const pts = formPoints(form);
+  const pts = formPoints(s.teamId, results);
   const label = team ? `View ${team.name} info` : `View ${s.teamId} info`;
   const rowDelay = Math.min(rank - 1, 16) * 25;
   return `
@@ -126,7 +138,7 @@ function formRow(
       ${crest}
       <span class="lt-name">${name}</span>
       <span class="lt-form">${formHtml}</span>
-      <span class="lt-pts" title="Form points (W=3, D=1, L=0 over last 5)">${pts}</span>
+      <span class="lt-pts" title="Form points (W=4, D=2, L=0, +1 try bonus, +1 losing bonus — last 5)">${pts}</span>
     </div>
   `;
 }
@@ -157,15 +169,20 @@ function computePositionDeltas(
 
 function sortByForm(standings: TeamStanding[], results: FixtureResult[]): TeamStanding[] {
   return [...standings].sort((a, b) => {
-    const aForm = recentForm(a.teamId, results);
-    const bForm = recentForm(b.teamId, results);
-    const aPts = formPoints(aForm);
-    const bPts = formPoints(bForm);
+    const aPts = formPoints(a.teamId, results);
+    const bPts = formPoints(b.teamId, results);
     if (aPts !== bPts) return bPts - aPts;
-    // Tiebreak: more wins in the window, then by overall league points
-    // (so two teams with identical form ordering get a sensible fallback).
-    const aWins = aForm.filter(r => r === 'W').length;
-    const bWins = bForm.filter(r => r === 'W').length;
+    // Tiebreak: more wins in the window, then by overall league points.
+    const aWins = recentFixtureResults(a.teamId, results).filter(r => {
+      const my = r.homeId === a.teamId ? r.homeScore : r.awayScore;
+      const op = r.homeId === a.teamId ? r.awayScore : r.homeScore;
+      return my > op;
+    }).length;
+    const bWins = recentFixtureResults(b.teamId, results).filter(r => {
+      const my = r.homeId === b.teamId ? r.homeScore : r.awayScore;
+      const op = r.homeId === b.teamId ? r.awayScore : r.homeScore;
+      return my > op;
+    }).length;
     if (aWins !== bWins) return bWins - aWins;
     return b.leaguePoints - a.leaguePoints;
   });
@@ -249,7 +266,7 @@ export function initLeagueTableScreen(
            <span class="lt-crest-spacer"></span>
            <span class="lt-name">Club</span>
            <span class="lt-form">Last 5</span>
-           <span class="lt-pts" title="Form points (W=3, D=1, L=0)">Pts</span>
+           <span class="lt-pts" title="Form points (rugby scoring, last 5)">Pts</span>
          </div>`;
 
     const topbarLeft = inPostMatch

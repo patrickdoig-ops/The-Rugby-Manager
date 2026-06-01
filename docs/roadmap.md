@@ -2,12 +2,14 @@
 
 A product review and prioritised feature roadmap for **The Rugby Manager**.
 
-**North star for this roadmap: on-pitch match realism.** The match engine is the
-game's standout asset and clearest differentiator, so this roadmap weights
-features that deepen the *simulation of a rugby match* above the broader
-manager-fantasy and world-breadth systems. Manager-office and presentation
-features are still tracked (later tiers) because some of them — player morale,
-2D visualisation — directly serve match realism.
+**North star for this roadmap: the manager fantasy.** The match engine and career
+spine are already deep; the biggest gap between this game and the titles it's
+benchmarked against (Football Manager especially) is the *manager fantasy* —
+stakes, relationships, discovery, drama — and the *match presentation* that makes
+the rich simulation legible. This roadmap leads with the office and the dressing
+room, then fills out FM-style depth and world breadth. Pure on-pitch realism
+features are still tracked (later tiers) and the match-realism alternative
+prioritisation is parked at the end.
 
 This is a planning document, not an architectural spec. Each item names the
 systems it touches so it can be turned into a concrete design later. Effort is
@@ -40,10 +42,10 @@ The architecture (single mutation seams, deterministic 4-stream RNG, exhaustive
 discriminated unions, always-on invariants, all tuning in `balance/`) means depth
 can be added *safely* — a strategic asset most indie sims lack.
 
-**The headline weakness:** a deep *simulation* sits behind a thin *presentation*
-and a light *manager-fantasy* layer. With match realism as the north star, the
-priority is to make the rich match that the engine already computes feel
-*variable, reactive, and legible* — then surface it visually.
+**The headline weakness in one sentence:** a deep *simulation* sits behind a thin
+*presentation* and a light *manager-fantasy* layer. The systems that drive the
+"up until 3am" retention the README promises — stakes, relationships, discovery,
+and a match you can *see* — are exactly the ones that are lightest today.
 
 ---
 
@@ -55,157 +57,133 @@ priority is to make the rich match that the engine already computes feel
 | Match presentation | ★☆ (text feed + ball strip) | ★★★★ (2D/3D) | ★★★★★ (3D) | ★★☆ (2D/text) |
 | Tactics | ★★★☆ (9 club levers, mid-match) | ★★★★★ (roles + instructions) | ★★★ | ★★☆ |
 | Player attributes | ★★☆ (12 generic stats) | ★★★★★ (30+, roles) | ★★★★ | ★★★ |
-| Set-piece control | ★☆ (contest-only) | n/a | ★★★ (set-piece picker) | ★★ |
-| Referee / officiating variety | ☆ | ★★ | ★ | ★ |
-| Weather / conditions | ☆ | ★★★ | ★★ | ★★ |
-| Injuries detail | ★★☆ (contact roll, 3 bands) | ★★★★★ | ★★★ | ★★★ |
-| Transfers / recruitment | ★★★☆ (cap+bids, no loans/scouting) | ★★★★★ | ★★★★ | ★★★ |
+| Transfers / recruitment | ★★★☆ (cap+bids, no loans/scouting) | ★★★★★ | ★★★★ (deadline day) | ★★★ |
 | Scouting / information fog | ☆ (all stats visible) | ★★★★★ | ★★★ | ★★ |
 | Board / job security / stakes | ☆ (budget only) | ★★★★★ | ★★★ | ★★★ |
 | Staff (coaches/physio/scouts) | ☆ | ★★★★★ | ★★ | ★★★ |
-| Player morale / press | ☆ (passive news only) | ★★★★★ | ★★★ | ★ |
+| Player morale / interaction / press | ☆ (passive news only) | ★★★★★ | ★★★ | ★ |
+| Finances | ★★★ (cap + budgets) | ★★★★★ | ★★★★ | ★★★ |
 | World depth (leagues, promo/releg) | ★☆ (one closed 10-team league) | ★★★★★ | ★★★★ | ★★★★ |
 | Career persistence / regen | ★★★★☆ | ★★★★★ | ★★★ | ★★★ |
+| Narrative / drama | ★★ (charming flavour news) | ★★★★ | ★★★ | ★ |
 
 **Read of the table:** the simulation columns rival or beat FM in rugby-specific
-terms. The weak columns are presentation and manager-fantasy. For a *match-realism*
-strategy, the gaps that matter most are the on-pitch ones: **set-piece control,
-referee variety, weather, attribute granularity, injuries detail, and the lack of
-a visual to read the match by.**
+terms. Every weak column is a *manager-fantasy / presentation* column — and those
+are precisely the systems that drive long-term retention.
 
 ---
 
-## 3. Match-realism gap analysis
+## 3. The five biggest gaps
 
-What a deep rugby sim has that the engine does not yet model:
-
-- **No weather or pitch conditions.** Every match plays in identical conditions;
-  wind, rain, and mud have no effect on kicking, handling, or the breakdown.
-- **No referee variation.** A single neutral whistle. No archetypes (breakdown-
-  strict, scrum-fussy, lets-it-flow, high-tackle hawk), so the `discipline`
-  tactical lever has the same value in every game and matches never feel refereed
-  differently.
-- **Thin, position-generic attributes.** 12 baseStats (`stamina, strength, pace,
-  agility, handling, tackling, breakdown, kicking, setPiece, discipline,
-  positioning, composure`) with no specialisation — no distinct lineout-throwing,
-  goal-kicking vs out-of-hand kicking, jackal/poaching, or decision-making. FM
-  carries 30+.
-- **No player roles.** A 10 is a 10. There is no ball-playing vs game-manager
-  flyhalf, no fetcher vs blindside split, so identical-stat players play
-  identically.
-- **Set-pieces are contests, not decisions.** Lineout is a binary throw-quality +
-  jump roll (no calls, no front/middle/tail, no dummies); scrum is a pack
-  aggregate (no 8-man shove / channel-ball / push-for-penalty choice).
-- **No individual player instructions.** Only club-wide tactics; you can't tell a
-  flanker to target the breakdown or a centre to take on the line.
-- **Static in-match form.** Form is a fixed per-match modifier; there is no
-  momentum swing after a try streak, a yellow card, or a turnover spree, so matches
-  don't build narrative pressure.
-- **Linear fatigue.** Threshold tiers (90/80/70/50/30%) rather than a curve, and no
-  late-game cramping or collision load.
-- **Binary place-kicking.** Conversions/penalties succeed or miss with an angle
-  penalty only — no distance, wind, or kicker-pressure modelling, no visible kick.
-- **Limited injury fidelity.** A contact-weighted roll into 3 severity bands; no
-  HIA / blood-bin protocol, no failed-HIA forced removal, no recurrence tracking.
-- **No officiating depth beyond cards.** TMO fires on a fixed set of triggers; no
-  captain's referrals, no scrum-reset escalation to penalty try territory.
-- **No rivalry/atmosphere persistence.** Derbies get flavour commentary but no
-  multi-year head-to-head weight or crowd effect on discipline/kicking nerves.
-- **Text-only presentation.** The engine computes a rich match but shows a play-by-
-  play feed plus a 1D ball-position strip — there is no way to *see* territory,
-  phase build-up, or momentum.
+1. **No stakes.** Owners only nudge your budget. There's no board expectation, no
+   job security, no consequence for finishing 9th. Without a fail-state, there's
+   no tension and no reason to *care* about a bad run.
+2. **No relationships.** Players have condition but no morale/happiness; no team
+   talks, no transfer requests, no promises, no press conferences. The squad is a
+   spreadsheet, not a dressing room.
+3. **No information fog.** Every attribute is fully visible from day one. Scouting
+   — the core "discovery" loop of FM and the thing that makes recruitment a *skill*
+   — doesn't exist.
+4. **Text-only match.** The engine computes a rich match but shows a text feed plus
+   a 1D ball-position strip. This is the single biggest *first-impression*
+   weakness, especially on mobile / the App Store.
+5. **A small, closed world.** One 10-team league, no promotion/relegation, no
+   European competition, no lower tier — so there's a ceiling on the long-term
+   career fiction.
 
 ---
 
-## 4. Prioritised roadmap (match-realism weighting)
+## 4. Prioritised roadmap (manager-fantasy weighting)
 
-### Tier 0 — Highest impact-to-effort, makes every match feel different
+### Tier 0 — The "1.0 of the manager fantasy" (do these first)
 
-These reuse the existing resolvers and the `balance/` seam, add no authored team
-data, and immediately increase match-to-match variation and tactical meaning.
-
-| # | Feature | Why it matters | Touches | Effort |
-|---|---|---|---|---|
-| 0.1 | **Weather & pitch conditions** | Wind, rain, mud per fixture, modulating the kicking resolvers (distance, touch-finding, box-kick contest), the handling/knock-on gate, maul traction and scrum stability. The single cheapest way to make matches feel distinct and to give tactics (kick vs run, offload freely vs cautious) situational weight. | New per-fixture condition seed; balance multipliers into existing kick/handling/maul/scrum resolvers; commentary lines; a pre-match indicator. | M |
-| 0.2 | **Referee personality / variation** | A small set of ref archetypes that shift penalty thresholds per offence family (breakdown-strict, scrum-fussy, high-tackle hawk, lets-it-flow). Makes the `discipline` lever matter differently each week and rewards reading the official. | Penalty/card threshold modulation (already centralised); pre-match ref reveal; commentary. | M |
-| 0.3 | **Player roles (stat re-weighting)** | Fixes the "every 10 is identical" problem with **no new authored data**: roles re-weight existing baseStats contributions in resolvers (ball-playing vs game-manager 10; fetcher vs blindside 6/7; distributor vs sniping 9). High realism payoff for low data cost. | Role enum on selection; resolver weight tables in `balance/`; selection UI. | M |
-| 0.4 | **In-match momentum / dynamic form** | Confidence that swings during a match — a try streak, a turnover spree, or a yellow card nudges subsequent rolls for the team on the right/wrong side of it. Turns a sequence of independent rolls into a match with narrative pressure. | New transient match-state field through `applyMatchEvent`; feeds resolver inputs; invariant range; commentary. | M |
-| 0.5 | **Player morale / condition → match performance** | Lightweight squad morale (playing time, results, contract state) that biases the per-match form modifier. Belongs in the realism tier because a flat or unhappy player should visibly underperform. Also unlocks transfer requests / press later. | New season-scope state + `SeasonEvent`; feeds match-build form; Hub/squad surface. | M |
-
-### Tier 1 — Set-piece & tactical decision depth
-
-Turns the engine's biggest "contest, not decision" areas into things the manager
-actually controls.
+Highest impact-to-effort, and together a coherent, marketable release. Fixes the
+two biggest gaps — stakes and presentation — and makes everything afterward land
+harder. Notably **0.1–0.3 are small-to-medium and reuse systems you already have**
+(owner budgets, performance tracking, modals, commentary).
 
 | # | Feature | Why it matters | Touches | Effort |
 |---|---|---|---|---|
-| 1.1 | **Set-piece calls** | Lineout calls (front/middle/tail, throw-to-self, dummy, off-the-top vs drive) and scrum options (8-man shove, channel ball, push for the penalty) with risk/reward. Converts two binary contests into recurring tactical decisions. | New lineout/scrum phase decision points; resolver branches; AI director choices; modal or pre-set call sheet. | L |
-| 1.2 | **Individual player instructions** | A few per-player match instructions (target the breakdown, stay disciplined, run from deep, take on the line, hit rucks) layered over club tactics. | Per-player instruction set; resolver modifiers; selection UI. | M |
-| 1.3 | **Expanded specialist attributes** | Add a small number of specialist stats — distinct goal-kicking, lineout-throwing accuracy, jackal/poaching, decision-making — so kickers, hookers and fetchers differentiate. Higher cost because it touches authored team data (`team-*.json` regen via `scripts/generateTeamJsons.mjs`) and `team-data.md`. | `PlayerStats` + `zeroMatchStats`/curves; resolver inputs; team JSON regen; aging curves. | L |
-| 1.4 | **Detailed injuries (HIA / blood-bin / recurrence)** | HIA protocol (temporary off, pass/fail return), blood-bin temporary replacement, failed-HIA forced removal, and recurrence likelihood on early return. Deepens in-match substitution tension and the season injury system. | Match injury events + temporary-replacement flow; season recovery bands; `SeasonEvent`; medical inbox. | M |
+| 0.1 | **Board / owner expectations + job security** | The missing fail-state. A pre-season objective (e.g. "reach the playoffs"), a confidence meter that moves with results and transfers, and a real sack risk. Turns every match into something that *matters*. | New `SeasonEvent` + state; reuse owner budgets + performance tracking; inbox + Hub surface. | M |
+| 0.2 | **Player morale / happiness** | Foundational system that unlocks team talks, transfer requests, and press reactions. Driven by playing time, results, contract status, and squad role; feeds form/training. The spine of the dressing room. | New season-scope state + `SeasonEvent`; feeds match-build form; squad/Hub surface. | M |
+| 0.3 | **Pre-match + half-time team talks** | The cheapest "I'm the manager" moment in the genre — a few options that nudge morale and an in-match modifier, with huge perceived agency. | Reuse modal + commentary; transient match modifier through `applyMatchEvent`; reads morale (0.2). | S |
+| 0.4 | **2D pitch view** | Convert the 1D ball strip into a top-down pitch with territory zones, ball position, phase build-up, possession, and key-event flashes. No need for 22 animated players — a "FM-2D-lite" / territory tug-of-war transforms immersion and App Store screenshots. | New UI canvas over `displaySnapshot` + event bus; no engine change. | L |
 
-### Tier 2 — Presentation of realism + advanced match modelling
+### Tier 1 — FM-style depth (the management loop)
 
-| # | Feature | Why it matters | Touches | Effort |
-|---|---|---|---|---|
-| 2.1 | **2D pitch view** | Even under a realism mandate, the realism must be *legible*. Promote the 1D ball strip to a top-down pitch with territory zones, ball position, phase build-up, possession and key-event flashes. No need for 22 animated players — a "FM-2D-lite" / territory tug-of-war transforms immersion and App Store screenshots. | New UI canvas reading `displaySnapshot` + event bus; no engine change. | L |
-| 2.2 | **Non-linear fatigue + cramping + collision load** | Replace threshold tiers with a curve; add late-game cramping and per-player collision load so heavy ball-carriers tire faster and close games get visibly ragged. | Fatigue/stamina system; invariant ranges; balance curve. | M |
-| 2.3 | **Formation / defensive-shape depth** | Go beyond the 3-option defensive line: width control, 13-man defence, double-bubble, line-speed granularity, kick-chase shape. | Tactics dimensions; defensive resolver; AI director. | M |
-| 2.4 | **Place-kicking realism + visible kick** | Distance + angle + wind + kicker pressure model for conversions/penalties, with a simple kick meter or outcome animation. Makes the goal-kicker attribute (1.3) matter and adds a tense beat. | Kick-at-goal handler + balance; UI kick moment. | S–M |
-| 2.5 | **Alternative kicking styles** | Distinct Garryowen / box / cross-field / grubber / chip options with their own risk-reward and chase contests, instead of distance+hangtime buckets. | Kick decision director + resolvers; commentary. | M |
-
-### Tier 3 — Realism polish & connective tissue
+The bundle that earns the "deep, obsessive sim" tagline.
 
 | # | Feature | Why it matters | Touches | Effort |
 |---|---|---|---|---|
-| 3.1 | **Match highlights / key-moment timeline** | Once a 2D view exists (2.1), a jump-to-the-tries/cards timeline and replay scrub improves rewatchability and sharing. | UI over the event log. | M |
-| 3.2 | **Officiating depth** | Captain's referrals, scrum-reset escalation, more TMO trigger types, advantage being played. | Penalty/TMO handlers; commentary. | S–M |
-| 3.3 | **Rivalry / atmosphere persistence** | Multi-year head-to-head weight and crowd effect on discipline and kicker nerves at hostile grounds; travel fatigue. | Season archive read; home-advantage + match-build modifiers. | S–M |
-| 3.4 | **Crowd & home-advantage depth** | Extend the current home bonus into referee tilt, kicker confidence, and atmosphere tied to fill rate and occasion. | HomeAdvantage + balance; commentary. | S |
-| 3.5 | **Expanded achievements / records for on-pitch feats** | New systems above unlock dozens of match-feat achievements and all-time records (perfect kicking day, defensive shut-out streak, comeback from 20 down). | Achievement defs; season archive. | S |
+| 1.1 | **Scouting + attribute masking** | Makes recruitment a *skill*. Hide exact stats behind a scouted-knowledge fog; scout assignments reveal accuracy over time. The single biggest depth-add to the transfer game. Pairs with 1.2. | Player-knowledge layer; transfer/squad UI; scout assignment flow. | L |
+| 1.2 | **Staff hiring** (assistant, S&C, forwards/kicking coaches, physio, scouts) | Feeds training quality, injury rates, scouting accuracy, and AI suggestions. Gives the budget more to do than wages and adds a progression axis. | New staff entities + `SeasonEvent`; hooks into training, injuries, scouting. | M–L |
+| 1.3 | **Player roles + a few individual instructions** | The 12 generic stats are thin. Lightweight roles (ball-playing vs game-manager 10, fetcher vs blindside 6/7) re-weight existing resolvers — high payoff, low new-data cost. Optionally a couple of per-player instructions. | Role enum on selection; resolver weight tables in `balance/`; selection UI. | M |
+| 1.4 | **Press conferences (interactive media)** | Turn the (already lovely) passive media manager into a 2–3 question pre/post-match interaction that feeds morale + board confidence. Reuses personas + phrase bank. | Media manager → interactive flow; feeds 0.1/0.2. | M |
+| 1.5 | **Transfer requests & playing-time promises** | Once morale (0.2) exists, unhappy stars ask to leave and fringe players want games. Closes the loop between squad management and the market. | Morale-driven `SeasonEvent`s; transfer + squad UI. | S–M |
+
+### Tier 2 — World & breadth (long-term career fiction)
+
+| # | Feature | Why it matters | Touches | Effort |
+|---|---|---|---|---|
+| 2.1 | **Second tier + promotion/relegation** | Removes the career ceiling; gives a sacked manager somewhere to fall and a rebuild story. Big content + balancing job but the foundation of long-term play. | League structure; fixtures; roster scaling; standings. | XL |
+| 2.2 | **European competition (Champions Cup-style)** | Midweek European nights are the prestige content of club rugby; huge for the "build a dynasty" fantasy. Reuses the cup scheduler. | Cup scheduler; calendar; standings. | L |
+| 2.3 | **Loan system + January-style window + deadline-day drama** | Fills out the recruitment calendar; loans give a use for fringe/youth players and a development pipeline. | Transfer system; new window phase; loan contracts. | M–L |
+| 2.4 | **Match-engine depth: weather, referee variation, set-piece calls** | Variation that makes matches feel less repeatable: ref personalities, wind/rain affecting kicking/handling, lineout/scrum call choices. Each is an isolated balance addition. | Resolvers + `balance/`; pre-match indicators; commentary. | M (each) |
+| 2.5 | **Finances beyond the cap** | Gate receipts, sponsorship, facilities investment — texture for owners/board and a long-term investment loop (training-ground upgrades feeding 1.2/development). | New finance state + `SeasonEvent`; board (0.1) tie-in. | L |
+
+### Tier 3 — Polish, retention & differentiators
+
+| # | Feature | Why it matters | Touches | Effort |
+|---|---|---|---|---|
+| 3.1 | **Match highlights / key-moment timeline + replay scrub** | Once 2D exists (0.4), a jump-to-the-tries/cards timeline improves rewatchability and shareability. | UI over the event log. | M |
+| 3.2 | **Onboarding / tutorial + difficulty settings** | Rugby + management is a steep combo. A guided first season and AI difficulty broadens the audience (and App Store reviews). | New tutorial flow; AI difficulty knobs. | M |
+| 3.3 | **Club history, records, rivalries, hall of fame** | Persistent head-to-head, all-time records, club legends. Cheap to build on the season archive, big for long-term attachment. | Season archive read; new history UI. | S–M |
+| 3.4 | **Expanded achievements + in-season narrative milestones** | The systems above unlock dozens more (dynasty, promotion, develop-an-academy-star-to-90, survive-a-sacking rebuild). | Achievement defs. | S |
+| 3.5 | **Detailed injuries (HIA, long-term, recurrence) + squad depth/registration limits** | Deepens squad-management tension and makes physios/rotation matter. | Match + season injury systems; registration rules. | M |
 
 ---
 
 ## 5. Suggested sequencing
 
-1. **Tier 0 is the next release.** Weather + referee variation + player roles +
-   momentum (and morale feeding form) is a coherent, marketable "every match feels
-   different" update. Crucially, **0.1–0.4 add no authored team data and reuse the
-   existing resolvers and `balance/` seam**, so they are low-risk under the
-   determinism harness.
-2. **Tier 1 is the "I'm coaching the match" arc** — set-piece calls and player
-   instructions are where managerial decisions reach the pitch. Schedule the
-   attribute expansion (1.3) deliberately: it touches authored team data and aging
-   curves, so it wants its own focused pass with a `team-data.md` + JSON regen.
-3. **Tier 2 makes the realism visible** — lead with the 2D pitch (2.1); it is the
-   biggest first-impression upgrade and a pure UI addition over `displaySnapshot`
-   with no engine risk.
-4. **Tier 3 is continuous polish** to slot between the larger arcs.
+1. **Ship Tier 0 as the next "1.0 of the manager fantasy."** Board expectations +
+   morale + team talks + a 2D pitch is a coherent, marketable update that fixes the
+   two biggest gaps (stakes + presentation). **0.1–0.3 are small-to-medium and
+   reuse systems you already have**, so they are low-risk under the determinism
+   harness; 0.4 is a pure UI addition over `displaySnapshot` with no engine change.
+2. **Tier 1 is the "FM depth" arc** — scouting + staff + roles + press is the
+   bundle that earns the "deep, obsessive" tagline. Do **scouting (1.1) and staff
+   (1.2) together** since scouts *are* staff.
+3. **Tier 2 is content-heavy** — promotion/relegation and Europe are where real
+   time and balancing budget go; gate them behind a stable Tier 0/1 foundation.
+4. **Tier 3 is continuous polish** to slot between the bigger arcs and keep reviews
+   fresh.
 
 **Explicitly not recommended:** a full 3D match engine. It fights the
 no-backend/browser/mobile constraints, is a money pit, and the differentiator is
-simulation depth, not graphics. A strong 2D view (2.1) captures ~80% of the
+simulation depth, not graphics. A strong 2D view (0.4) captures ~80% of the
 immersion for ~10% of the cost.
 
 ---
 
-## 6. Parked: manager-fantasy & world-breadth backlog
+## 6. Parked: alternative match-realism prioritisation
 
-Tracked but de-prioritised under the match-realism north star. Revisit once the
-on-pitch arc lands — several are high-value for long-term retention.
+If the north star were ever shifted to *on-pitch realism* instead of the manager
+fantasy, the lead items would re-order to push the match engine first. Tracked
+here so the alternative isn't lost:
 
-- **Board / owner expectations + job security** — the missing career fail-state
-  (season objective, confidence meter, sack risk). Highest-value non-match item.
-- **Scouting + attribute masking** — makes recruitment a skill; pairs with staff.
-- **Staff hiring** (assistant, S&C, kicking/forwards coaches, physio, scouts) —
-  feeds training, injuries, scouting accuracy; also gives 1.3/1.4 more inputs.
-- **Press conferences** — turn the passive media manager into a 2–3 question
-  interaction feeding morale + board confidence.
-- **Transfer requests & playing-time promises** — unlocked once morale (0.5) lands.
-- **Second tier + promotion/relegation** — removes the career ceiling (XL).
-- **European competition (Champions Cup-style)** — prestige midweek content.
-- **Loan system + winter window + deadline-day drama.**
-- **Finances beyond the cap** — gate receipts, sponsorship, facilities investment
-  (which can feed staff/development).
-- **Onboarding / tutorial + difficulty settings** — broadens the audience for a
-  steep rugby + management combo.
+- **Weather & pitch conditions** — wind/rain/mud modulating the kicking, handling
+  (knock-on gate), maul and scrum resolvers. Cheapest way to make matches distinct.
+- **Referee personality / variation** — archetypes shifting penalty thresholds per
+  offence family, giving the `discipline` lever situational weight.
+- **In-match momentum / dynamic form** — confidence swings after try streaks,
+  turnovers, or cards feeding subsequent rolls.
+- **Set-piece calls** — lineout (front/middle/tail, dummy, off-the-top vs drive)
+  and scrum (8-man shove, channel ball, push for penalty) as recurring decisions.
+- **Expanded specialist attributes** — distinct goal-kicking, lineout-throwing,
+  jackal/poaching, decision-making (touches authored team data + aging curves).
+- **Non-linear fatigue + cramping**, **place-kicking realism (distance/angle/wind/
+  pressure + visible kick)**, and **alternative kicking styles** (Garryowen / box /
+  cross-field / grubber / chip).
+
+Several of these also appear in Tier 1.3 and Tier 2.4 above, where they support the
+manager-fantasy build without leading it.

@@ -244,6 +244,61 @@ export function assertSeasonInvariants(state: GameState): void {
     }
   }
 
+  // ── Prem Cup (when seeded) ───────────────────────────────────────────
+  const premCup = state.league.premCup;
+  if (premCup) {
+    if (premCup.pools[0].id !== 'A') fail('premCup.pools[0].id', `${premCup.pools[0].id}`);
+    if (premCup.pools[1].id !== 'B') fail('premCup.pools[1].id', `${premCup.pools[1].id}`);
+    for (const pool of premCup.pools) {
+      if (pool.teamIds.length !== 5) {
+        fail(`premCup.pool[${pool.id}].teamIds`, `length=${pool.teamIds.length}`);
+      }
+      if (pool.standings.length !== 5) {
+        fail(`premCup.pool[${pool.id}].standings`, `length=${pool.standings.length}`);
+      }
+      let poolPlayed = 0;
+      for (const s of pool.standings) {
+        if (s.played !== s.won + s.drawn + s.lost) {
+          fail(`premCup.pool[${pool.id}].standings[${s.teamId}].played`, `played=${s.played} W=${s.won} D=${s.drawn} L=${s.lost}`);
+        }
+        if (s.pointsDiff !== s.pointsFor - s.pointsAgainst) {
+          fail(`premCup.pool[${pool.id}].standings[${s.teamId}].pointsDiff`, `diff=${s.pointsDiff} for=${s.pointsFor} against=${s.pointsAgainst}`);
+        }
+        assertNonNegInt(`premCup.pool[${pool.id}].standings[${s.teamId}].played`, s.played);
+        poolPlayed += s.played;
+      }
+      // Σ(played) in a pool == 2 × resulted fixtures in that pool (each
+      // fixture adds one played row to home + one to away).
+      const resultedInPool = premCup.fixtures.filter(f => f.pool === pool.id && f.result).length;
+      if (poolPlayed !== 2 * resultedInPool) {
+        fail(`premCup.pool[${pool.id}].totalPlayed`, `Σplayed=${poolPlayed} expected=${2 * resultedInPool}`);
+      }
+    }
+    const ko = premCup.knockout;
+    if (ko) {
+      if (ko.semifinals[0].kind !== 'semifinal_1') fail('premCup.knockout.semifinals[0].kind', `${ko.semifinals[0].kind}`);
+      if (ko.semifinals[1].kind !== 'semifinal_2') fail('premCup.knockout.semifinals[1].kind', `${ko.semifinals[1].kind}`);
+      if (ko.final.kind !== 'final') fail('premCup.knockout.final.kind', `${ko.final.kind}`);
+      for (const m of [ko.semifinals[0], ko.semifinals[1], ko.final]) {
+        if (m.result) {
+          assertNonNegInt(`premCup.knockout.${m.kind}.homeScore`, m.result.homeScore);
+          assertNonNegInt(`premCup.knockout.${m.kind}.awayScore`, m.result.awayScore);
+          assertNonNegInt(`premCup.knockout.${m.kind}.homeTries`, m.result.homeTries);
+          assertNonNegInt(`premCup.knockout.${m.kind}.awayTries`, m.result.awayTries);
+        }
+      }
+      if (ko.championTeamId !== null) {
+        if (!ko.final.result || !ko.final.homeId || !ko.final.awayId) {
+          fail('premCup.knockout.championTeamId', `set without a resolved final`);
+        }
+        const winner = ko.final.result.homeScore >= ko.final.result.awayScore ? ko.final.homeId : ko.final.awayId;
+        if (ko.championTeamId !== winner) {
+          fail('premCup.knockout.championTeamId', `champion=${ko.championTeamId} winner=${winner}`);
+        }
+      }
+    }
+  }
+
   // ── Team season stats: per-club counters + set-piece win <= thrown ───
   for (const teamId of Object.keys(state.league.teamSeasonStats)) {
     const t = state.league.teamSeasonStats[teamId];

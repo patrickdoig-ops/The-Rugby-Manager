@@ -3,7 +3,7 @@
 // variant has a single branch, and the exhaustive `default: const _: never`
 // catches missing branches at compile time when SeasonEvent grows.
 
-import type { Fixture, GameState, PlayoffMatch, SeasonEvent, TeamSeasonStats, TeamStanding } from '../types/gameState';
+import type { CupKnockoutMatch, Fixture, GameState, PlayoffMatch, PremCupState, SeasonEvent, TeamSeasonStats, TeamStanding } from '../types/gameState';
 import { zeroStanding, zeroTeamSeasonStats } from '../types/gameState';
 import { zeroSeasonStats } from '../types/player';
 import { LEAGUE_POINTS, SEASON_VALUES, SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
@@ -32,6 +32,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       state.league.standings = event.teamIds.map(zeroStanding);
       state.league.teamSeasonStats = Object.fromEntries(event.teamIds.map(id => [id, zeroTeamSeasonStats()]));
       state.league.playoffs = null;
+      state.league.premCup = null;
       return;
     }
     case 'FIXTURE_RESULT_RECORDED': {
@@ -354,6 +355,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         topScorerRosterId: a.topScorerRosterId,
         mvpRosterId: a.mvpRosterId,
         championTeamId: a.championTeamId ?? null,
+        ...(a.premCupChampionTeamId !== undefined ? { premCupChampionTeamId: a.premCupChampionTeamId } : {}),
         ...(a.leaders ? { leaders: cloneLeaders(a.leaders) } : {}),
         ...(a.playerSeasonHistory ? { playerSeasonHistory: clonePlayerHistory(a.playerSeasonHistory) } : {}),
       }));
@@ -400,6 +402,9 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
             }
           : null;
       }
+      if (event.premCup !== undefined) {
+        state.league.premCup = event.premCup ? cloneCup(event.premCup) : null;
+      }
       return;
     }
     case 'SEASON_ROLLED_OVER': {
@@ -409,6 +414,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         topScorerRosterId: event.topScorerRosterId,
         mvpRosterId: event.mvpRosterId,
         championTeamId: event.championTeamId,
+        ...(event.premCupChampionTeamId !== undefined ? { premCupChampionTeamId: event.premCupChampionTeamId } : {}),
         ...(event.leaders ? { leaders: cloneLeaders(event.leaders) } : {}),
         ...(event.playerSeasonHistory ? { playerSeasonHistory: clonePlayerHistory(event.playerSeasonHistory) } : {}),
       });
@@ -438,6 +444,9 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       // Clear the playoff bracket — the new season has not yet earned one.
       // championTeamId has already been carried into the archive entry above.
       state.league.playoffs = null;
+      // Clear the Prem Cup — the new season's cup is re-seeded (with redrawn
+      // pools) by the PREM_CUP_SEEDED event computeRollover appends after this.
+      state.league.premCup = null;
       // Pending moves should already have been processed via
       // TRANSFER_ACTIVATED events fired by careerRollover before this
       // SEASON_ROLLED_OVER; clear the list as a safety net.
@@ -616,6 +625,82 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       p.condition = Math.max(0, Math.min(100, event.condition));
       return;
     }
+    case 'PREM_CUP_SEEDED': {
+      // Idempotent — re-seeding the same season is a no-op.
+      if (state.league.premCup && state.league.premCup.seasonLabel === event.seasonLabel) return;
+      state.league.premCup = {
+        seasonLabel: event.seasonLabel,
+        pools: [
+          { id: 'A', teamIds: [...event.pools[0].teamIds], standings: event.pools[0].teamIds.map(zeroStanding) },
+          { id: 'B', teamIds: [...event.pools[1].teamIds], standings: event.pools[1].teamIds.map(zeroStanding) },
+        ],
+        fixtures: event.fixtures.map(f => ({ ...f })),
+        knockout: null,
+      };
+      return;
+    }
+    case 'PREM_CUP_FIXTURE_RECORDED': {
+      const cup = state.league.premCup;
+      if (!cup) return;
+      const fx = cup.fixtures.find(
+        f => f.pool === event.pool && f.leg === event.leg && f.homeId === event.homeId && f.awayId === event.awayId,
+      );
+      if (!fx || fx.result) return; // missing or already recorded
+      fx.result = {
+        homeScore: event.homeScore,
+        awayScore: event.awayScore,
+        homeTries: event.homeTries,
+        awayTries: event.awayTries,
+      };
+      const pool = cup.pools.find(p => p.id === event.pool);
+      if (!pool) return;
+      const home = findOrCreate(pool.standings, event.homeId);
+      const away = findOrCreate(pool.standings, event.awayId);
+      const margin = event.homeScore - event.awayScore;
+      applyToSide(home, event.homeScore, event.awayScore, event.homeTries, margin);
+      applyToSide(away, event.awayScore, event.homeScore, event.awayTries, -margin);
+      return;
+    }
+    case 'PREM_CUP_KNOCKOUT_SEEDED': {
+      const cup = state.league.premCup;
+      if (!cup || cup.knockout !== null) return; // missing or already seeded
+      cup.knockout = {
+        semifinals: [{ ...event.semifinals[0] }, { ...event.semifinals[1] }],
+        final: { ...event.final },
+        championTeamId: null,
+      };
+      return;
+    }
+    case 'PREM_CUP_KNOCKOUT_RECORDED': {
+      const ko = state.league.premCup?.knockout;
+      if (!ko) return;
+      const target = pickCupMatch(ko, event.kind);
+      if (!target || target.result) return; // missing or already recorded
+      target.result = {
+        homeScore: event.homeScore,
+        awayScore: event.awayScore,
+        homeTries: event.homeTries,
+        awayTries: event.awayTries,
+      };
+      // Cascade SF winners into the final's slots (SF1 → home, SF2 → away),
+      // guarded against double-population (slot writes only when null).
+      if (event.kind === 'semifinal_1' || event.kind === 'semifinal_2') {
+        const winnerId = cupWinnerId(target);
+        if (winnerId !== null) {
+          if (event.kind === 'semifinal_1' && ko.final.homeId === null) ko.final.homeId = winnerId;
+          else if (event.kind === 'semifinal_2' && ko.final.awayId === null) ko.final.awayId = winnerId;
+        }
+      }
+      if (event.kind === 'final') {
+        const winnerId = cupWinnerId(target);
+        if (winnerId !== null && ko.championTeamId === null) ko.championTeamId = winnerId;
+      }
+      return;
+    }
+    case 'PLAYER_CUP_DIRECTION_SET': {
+      state.player.cupDirection = event.direction;
+      return;
+    }
     default: {
       const _: never = event;
       void _;
@@ -641,6 +726,46 @@ function pickPlayoffMatch(
 // branch. Returns null when the match is unresolved or its team slots
 // are still empty.
 function playoffWinnerId(match: PlayoffMatch): string | null {
+  if (!match.result || !match.homeId || !match.awayId) return null;
+  return match.result.homeScore >= match.result.awayScore ? match.homeId : match.awayId;
+}
+
+// Deep-clone a PremCupState for restore (fromSave) — mirrors clonePlayoffs.
+function cloneCup(cup: PremCupState): PremCupState {
+  const cloneKo = (m: CupKnockoutMatch): CupKnockoutMatch => ({
+    ...m,
+    ...(m.result ? { result: { ...m.result } } : {}),
+  });
+  return {
+    seasonLabel: cup.seasonLabel,
+    pools: [
+      { id: 'A', teamIds: [...cup.pools[0].teamIds], standings: cup.pools[0].standings.map(s => ({ ...s })) },
+      { id: 'B', teamIds: [...cup.pools[1].teamIds], standings: cup.pools[1].standings.map(s => ({ ...s })) },
+    ],
+    fixtures: cup.fixtures.map(f => ({ ...f, ...(f.result ? { result: { ...f.result } } : {}) })),
+    knockout: cup.knockout
+      ? {
+          semifinals: [cloneKo(cup.knockout.semifinals[0]), cloneKo(cup.knockout.semifinals[1])],
+          final: cloneKo(cup.knockout.final),
+          championTeamId: cup.knockout.championTeamId,
+        }
+      : null,
+  };
+}
+
+function pickCupMatch(
+  ko: { semifinals: [CupKnockoutMatch, CupKnockoutMatch]; final: CupKnockoutMatch },
+  kind: 'semifinal_1' | 'semifinal_2' | 'final',
+): CupKnockoutMatch | null {
+  if (kind === 'semifinal_1') return ko.semifinals[0];
+  if (kind === 'semifinal_2') return ko.semifinals[1];
+  if (kind === 'final')       return ko.final;
+  return null;
+}
+
+// Winner's teamId from a resolved cup knockout match. Home-side tiebreak,
+// same convention as playoffWinnerId (no draws in knockout rugby).
+function cupWinnerId(match: CupKnockoutMatch): string | null {
   if (!match.result || !match.homeId || !match.awayId) return null;
   return match.result.homeScore >= match.result.awayScore ? match.homeId : match.awayId;
 }

@@ -120,7 +120,7 @@ export interface SavedSeason {
 function emptyState(): GameState {
   return {
     calendar: { date: SEASON_VALUES.startDate, week: 1, seasonLabel: '' },
-    league: { fixtures: [], results: [], standings: [], teamSeasonStats: {}, playoffs: null },
+    league: { fixtures: [], results: [], standings: [], teamSeasonStats: {}, playoffs: null, premCup: null },
     player: { teamId: '' },
     seed: 0,
     career: emptyCareerState(),

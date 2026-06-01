@@ -151,6 +151,10 @@ export interface League {
   // season fixture is recorded; populated by PLAYOFF_RESULT_RECORDED as
   // the three knockout matches resolve.
   playoffs: PlayoffState | null;
+  // The Prem Cup, contested during the two international breaks. Null until
+  // PREM_CUP_SEEDED fires (at newSeason / rollover); reset at
+  // SEASON_ROLLED_OVER. Nullable so older saves load unchanged.
+  premCup: PremCupState | null;
 }
 
 // One of the three knockout matches. `homeSeed`/`awaySeed` are the team's
@@ -192,6 +196,57 @@ export interface PlayoffState {
   // while the playoffs are active; archived onto ArchivedSeason at
   // SEASON_ROLLED_OVER, after which `playoffs` resets to null.
   championTeamId: string | null;
+}
+
+// ── Prem Cup ───────────────────────────────────────────────────────────
+// The Prem Rugby Cup, contested entirely during the two international
+// breaks (Autumn / Six Nations) and run headless by the Assistant Manager.
+// Season-scoped like `playoffs`: seeded once per season, cleared at
+// SEASON_ROLLED_OVER; the champion archives onto ArchivedSeason.
+
+// One pool of 5 clubs. `standings` reuses the league TeamStanding shape so
+// sortStandings + the league-table renderer work unchanged; it is scoped
+// to this pool (NOT part of state.league.standings).
+export interface CupPool {
+  id: 'A' | 'B';
+  teamIds: string[];          // length 5
+  standings: TeamStanding[];  // length 5
+}
+
+// A pool fixture. `leg` distinguishes the Autumn block (1) from the Six
+// Nations block (2). `date` is synthetic (inside the break gap) and
+// display-only — it never drives calendar advance.
+export interface CupFixture {
+  pool: 'A' | 'B';
+  leg: 1 | 2;
+  homeId: string;
+  awayId: string;
+  date: string;
+  result?: { homeScore: number; awayScore: number; homeTries: number; awayTries: number };
+}
+
+// A knockout match — same structure family as PlayoffMatch. Played in the
+// Six Nations block after the leg-2 pool stage completes.
+export interface CupKnockoutMatch {
+  kind: 'semifinal_1' | 'semifinal_2' | 'final';
+  homeId: string | null;   // null until the pool stage / SFs resolve
+  awayId: string | null;
+  date: string;
+  result?: { homeScore: number; awayScore: number; homeTries: number; awayTries: number };
+}
+
+export interface CupKnockout {
+  // SF1 = winner(A) v runner-up(B); SF2 = winner(B) v runner-up(A).
+  semifinals: [CupKnockoutMatch, CupKnockoutMatch];
+  final: CupKnockoutMatch;
+  championTeamId: string | null;
+}
+
+export interface PremCupState {
+  seasonLabel: string;
+  pools: [CupPool, CupPool];   // index 0 = A, index 1 = B
+  fixtures: CupFixture[];      // 40 pool fixtures (20/pool: leg1 10 + leg2 10)
+  knockout: CupKnockout | null; // null until the leg-2 pool stage completes
 }
 
 // Stable reference to a real player across save/load and across raw-team
@@ -272,6 +327,9 @@ export interface ArchivedSeason {
   // Null when archived without a playoff run — covers pre-v13 saves
   // whose archive entries predate the playoffs system.
   championTeamId: string | null;
+  // The Prem Cup champion for this season. Optional so archives written
+  // before the cup system load unchanged (renders as "—" in history).
+  premCupChampionTeamId?: string | null;
   // Per-player season snapshot, keyed by rosterId. Only players who
   // took the field (apps > 0) are present. Optional so v18 and older
   // archive entries load without the field — PlayerProfileScreen
@@ -449,6 +507,11 @@ export interface GameState {
     // DEFAULT_TRAINING_PLAN. Persists between weeks (last week's choice is
     // next week's default). Set via PLAYER_TRAINING_PLAN_SET.
     training?: TrainingPlan;
+    // Assistant-Manager direction for the user's Prem Cup matches during the
+    // international breaks. 'best' fields the strongest available 23;
+    // 'rest_first_15' keeps the user's first-choice league starters out so
+    // they stay fresh. Undefined ⇔ 'best'. Set via PLAYER_CUP_DIRECTION_SET.
+    cupDirection?: 'best' | 'rest_first_15';
   };
   seed: number;
   career: CareerState;
@@ -741,6 +804,11 @@ export type SeasonEvent =
       // v24+: background poach-threat list. Undefined on pre-v24 saves;
       // the reducer leaves the field at [] in that case.
       activePoachedIds?: number[];
+      // The active Prem Cup (league-scope state that can't be rebuilt from
+      // FIXTURE_RESULT_RECORDED replay — cup results aren't in save.results).
+      // null when no cup is active; undefined means "leave alone" so saves
+      // written before the cup system don't touch state.league.premCup.
+      premCup?: PremCupState | null;
     }
   | {
       // Persistent injury landed on a roster player. Fired at match
@@ -780,6 +848,10 @@ export type SeasonEvent =
       // when the season ended without playoffs (legacy path) so the
       // archive entry is still consistent.
       championTeamId: string | null;
+      // The Prem Cup champion for the just-completed season. Sourced from
+      // state.league.premCup.knockout.championTeamId by computeRollover.
+      // Optional so older event-replay paths can omit it.
+      premCupChampionTeamId?: string | null;
       // Top-3 per category captured before the roster's seasonStats are
       // re-zeroed. Optional so older event-replay paths (or hand-crafted
       // events in tests) can omit it.
@@ -958,4 +1030,57 @@ export type SeasonEvent =
       rosterId: number;
       availableFromRound: number;
       condition: number;
+    }
+  | {
+      // Seeds the Prem Cup for the season: the two pools + the full set of
+      // 40 pool fixtures (both legs). Fired once per season — at newSeason
+      // (year 1, hardcoded pools) and inside computeRollover (year 2+,
+      // pools redrawn via rngTransfer). Idempotent on a matching
+      // seasonLabel — re-seeding the same season no-ops.
+      type: 'PREM_CUP_SEEDED';
+      seasonLabel: string;
+      pools: [{ id: 'A'; teamIds: string[] }, { id: 'B'; teamIds: string[] }];
+      fixtures: CupFixture[];
+    }
+  | {
+      // Records one pool fixture result and applies it to that pool's
+      // standings (same 4/2/0 + try-bonus + losing-bonus rules as the
+      // league, via the shared applyToSide helper). Idempotent on an
+      // already-resulted fixture.
+      type: 'PREM_CUP_FIXTURE_RECORDED';
+      pool: 'A' | 'B';
+      leg: 1 | 2;
+      homeId: string;
+      awayId: string;
+      homeScore: number;
+      awayScore: number;
+      homeTries: number;
+      awayTries: number;
+    }
+  | {
+      // Seeds the cup knockout bracket from the final pool standings after
+      // the leg-2 pool stage completes. SF1 = winner(A) v runner-up(B),
+      // SF2 = winner(B) v runner-up(A). Idempotent once set.
+      type: 'PREM_CUP_KNOCKOUT_SEEDED';
+      semifinals: [CupKnockoutMatch, CupKnockoutMatch];
+      final: CupKnockoutMatch;
+    }
+  | {
+      // Records one cup knockout result. Cascades like PLAYOFF_RESULT_RECORDED:
+      // SF winners fill the final's home/away slots (SF1 → home, SF2 → away),
+      // the final winner sets championTeamId.
+      type: 'PREM_CUP_KNOCKOUT_RECORDED';
+      kind: 'semifinal_1' | 'semifinal_2' | 'final';
+      homeScore: number;
+      awayScore: number;
+      homeTries: number;
+      awayTries: number;
+    }
+  | {
+      // Persists the Assistant-Manager cup direction (best vs rest the
+      // first-choice 15) to state.player.cupDirection. Same shape +
+      // semantics as PLAYER_TRAINING_PLAN_SET — the choice becomes the
+      // remembered default for the next break.
+      type: 'PLAYER_CUP_DIRECTION_SET';
+      direction: 'best' | 'rest_first_15';
     };

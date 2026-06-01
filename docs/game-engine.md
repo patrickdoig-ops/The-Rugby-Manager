@@ -93,6 +93,8 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 | `PREM_CUP_KNOCKOUT_RECORDED` | Per knockout match | Records the result; cascades SF winners → final slots (SF1→home, SF2→away), final winner → `championTeamId`. Mirrors `PLAYOFF_RESULT_RECORDED`. |
 | `PLAYER_CUP_DIRECTION_SET` | When the user toggles the cup direction | Persists `state.player.cupDirection` (`'best'` \| `'rest_first_15'`). |
 | `PLAYER_CAPTAIN_SET` | When the user taps a captain badge on the PreMatch 'mine' lineup | Persists `state.player.captainRosterId` (rosterId, or `undefined` to clear). Narrative-only — `resolveCaptainRosterId` (`src/game/captain.ts`) falls back to the highest-composure starter when unset, and the resolved id is threaded into the match as `state.engine.humanCaptainRosterId` so the referee names the captain in the team-22 warning. No mechanical effect. |
+| `PLAYER_DISCIPLINE_COUNSELLED` | `GameCoordinator.counselPlayer(rosterId)` — fired when the manager clicks "Speak to Player" on an inbox discipline concern | Sets `Player.disciplineAdvice = { mode: 'ease_off', expiresAfterRound: calendar.week + 3 }`. `rosterTeamBuilder.rawFromRosterPlayer` reads this to boost effective discipline (+15) and reduce tackling (−5) on the baseStats clone for 3 rounds. Cleared at `SEASON_ROLLED_OVER`. |
+| `PLAYER_SUSPENDED` | `GameCoordinator.recordPlayerMatchResult` — fired after `PLAYER_SEASON_STATS_ACCUMULATED` when a human squad player's `seasonStats.yellowCards` first reaches `YELLOW_BAN_THRESHOLD (5)` | Sets `Player.suspension = { forRound: calendar.week + 1 }`. `selectionUnavailableIds` blocks selection while `calendar.week === suspension.forRound`. One ban per season (re-guarded by `!p.suspension`). Cleared at `SEASON_ROLLED_OVER`. |
 
 `SEASON_ROLLED_OVER` additionally carries `premCupChampionTeamId` (archived onto `ArchivedSeason`) and resets `state.league.premCup = null`; `CAREER_ARCHIVE_RESTORED` restores `premCup`.
 
@@ -637,7 +639,17 @@ A derived briefing surface that surfaces actionable alerts from the current `Gam
 
 **Read-set persistence.** `src/ui/inboxRead.ts` maintains a `ReadMap` in `localStorage` under `'rugby-manager-inbox-read'` keyed by `${teamId}:${seed}`. `markRead(key, ids)` runs on every render of `InboxScreen`, so items are marked read the moment the user opens the report. `countUnread(key, items)` drives the badge on the Hub teaser. The read-set survives `clearSave()` (like Game Centre achievements) but is naturally per-save because the key includes the root seed.
 
-**Navigation.** The Hub `#hub-alert-banner` shows the top unread item (subject line + unread count badge). Clicking opens `InboxScreen` (`inbox`). Each `InboxItem` with a `deepLink` has a button (e.g. "Go to Contracts") that navigates directly to the relevant management screen. `InboxScreen` is initialised once in `initInSeasonScreens` and re-renders on `game:initialized`, `game:fixtureRecorded`, `game:weekAdvanced`, `game:bracketSeeded`, and `game:playoffsUpdated`.
+**Navigation.** The Hub `#hub-alert-banner` shows the top unread item (subject line + unread count badge). Clicking opens `InboxScreen` (`inbox`). Each `InboxItem` with a `deepLink` has a button (e.g. "Go to Contracts") that navigates directly to the relevant management screen. Items with a `counselAction: { rosterId }` field render a "Speak to Player" button instead; clicking it calls `engine.counselPlayer(rosterId)` and re-renders the inbox synchronously — no navigation required. `InboxScreen` is initialised once in `initInSeasonScreens` and re-renders on `game:initialized`, `game:fixtureRecorded`, `game:weekAdvanced`, `game:bracketSeeded`, and `game:playoffsUpdated`.
+
+**Discipline escalation tiers.** `buildAssistantReport` emits three distinct discipline notification shapes (only one per player per render):
+
+| Condition | Item ID | Priority | Action |
+|---|---|---|---|
+| `yellowCards >= 2` and no active counsel advice | `disc:{season}:{rid}` | 45 | "Speak to Player" counsel button |
+| `yellowCards >= 4` and no active counsel advice | `disc:warn4:{season}:{rid}` | 65 | "Speak to Player" counsel button |
+| `suspension.forRound === calendar.week` | `disc:suspended:{season}:{rid}` | 80 | "Go to Squad" deep-link |
+
+Counsel advice is active while `calendar.week <= disciplineAdvice.expiresAfterRound`; once it expires the concern item re-appears and can be renewed.
 
 ## Roadmap
 

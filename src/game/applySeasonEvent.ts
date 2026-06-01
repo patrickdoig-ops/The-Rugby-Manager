@@ -447,6 +447,8 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         if (p.restObligation) p.restObligation = undefined;
         if (p.internationalDuty) p.internationalDuty = undefined;
         if (p.lionsReturnRound !== undefined) p.lionsReturnRound = undefined;
+        if (p.disciplineAdvice) p.disciplineAdvice = undefined;
+        if (p.suspension) p.suspension = undefined;
       }
       // Reset team season aggregates for the new season. Re-zero in place
       // for every team that already had a bucket; new teams (rare) get
@@ -722,6 +724,18 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
     }
     case 'PLAYER_CAPTAIN_SET': {
       state.player.captainRosterId = event.rosterId;
+      return;
+    }
+    case 'PLAYER_DISCIPLINE_COUNSELLED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.disciplineAdvice = { mode: 'ease_off', expiresAfterRound: event.expiresAfterRound };
+      return;
+    }
+    case 'PLAYER_SUSPENDED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.suspension = { forRound: event.forRound };
       return;
     }
     default: {

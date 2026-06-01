@@ -790,6 +790,12 @@ export class TransferCoordinator {
     const userClubId = this.state.player.teamId;
     const userClub = this.state.career.clubs.find(c => c.id === userClubId);
     if (userClub?.squad.includes(rosterId)) return 'declined';
+    // Guard: already pre-agreed (handles rapid double-click before render).
+    if (this.state.career.pendingMoves.some(m => m.rosterId === rosterId)) return 'declined';
+    // Cooldown guard: mirrors the submitBid check so declined players
+    // can't be re-approached until WEEK_ADVANCED clears the entry.
+    const lock = this.state.career.midseasonRejections[rosterId];
+    if (lock !== undefined && lock > this.state.calendar.week) return 'declined';
 
     const bidWage = normalizeOfferedWage(wage, offer.annualWage);
     const bid: TransferBid = {

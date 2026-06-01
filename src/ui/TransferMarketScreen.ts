@@ -235,12 +235,11 @@ export function initTransferMarketScreen(
       const alreadyPreAgreed = action === 'poach' && pendingMovesSet.has(p.rosterId);
       const alreadyWon = alreadySigned || alreadyPreAgreed;
       const hasPendingBid = userBidRosterIds.has(p.rosterId);
-      // Mid-season FA cooldown — a player who just declined the user's
+      // Mid-season cooldown — a player who just declined the user's
       // offer is locked behind a "Not interested" chip until WEEK_ADVANCED
-      // prunes the entry. Only applies mid-season (off-season has no
-      // cooldown — the appealScore there is the gate).
+      // prunes the entry. Applies to both FA and Reg 7 rows mid-season
+      // (off-season has no cooldown — the appealScore there is the gate).
       const cooldownLock = isMidseason
-        && action === 'sign'
         && (state.career.midseasonRejections[p.rosterId] ?? 0) > currentWeek;
       // Budget warning: only fires for NEW bids (existing pending bids
       // already reserve their wage; withdrawing never breaches budget).
@@ -349,9 +348,10 @@ export function initTransferMarketScreen(
     const prevListScroll = el!.querySelector<HTMLDivElement>('#tm-list')?.scrollTop ?? 0;
     const prevPoachScroll = el!.querySelector<HTMLDivElement>('#tm-poach-list')?.scrollTop ?? 0;
 
-    // Pre-season has no Reg 7 section — render the FA list straight.
-    // Mid-season and off-season both show the toggle when poach rows exist.
-    const showToggle = !isPreSeason;
+    // Pre-season has no Reg 7 section. For mid-season and off-season,
+    // only show the toggle when there are actually Reg 7 rows to display —
+    // an empty Reg 7 tab is confusing and the toggle adds no value.
+    const showToggle = !isPreSeason && poachRows.length > 0;
     const toggleHtml = showToggle ? `
       <div class="tm-toggle" role="tablist">
         <button class="tm-toggle__btn ${activeTab === 'free-agents' ? 'tm-toggle__btn--active' : ''}" data-tab="free-agents" role="tab" aria-selected="${activeTab === 'free-agents'}">Free Agents <span class="tm-toggle__count">${freeAgentRows.length}</span></button>

@@ -16,6 +16,7 @@ import { formAdjustment, matchSpread, HOME_ADVANTAGE_PTS, recentForm } from '../
 import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
 import { buildAssistantReport } from '../game/inbox';
 import { countUnread } from './inboxRead';
+import { loadDismissed } from './inboxDismiss';
 import { ROUND_LABELS } from '../engine/balance/season';
 import { renderFormPipStrip } from './components/formPip';
 import { injectTeamColors } from './teamColors';
@@ -182,7 +183,9 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
 
       ${(() => {
           const sk = `${state.player.teamId}:${state.seed}`;
-          const inboxItems = buildAssistantReport(state, opts.allTeams);
+          const allInboxItems = buildAssistantReport(state, opts.allTeams);
+          const dismissed = loadDismissed(sk);
+          const inboxItems = allInboxItems.filter(i => !dismissed.has(i.id));
           const unread = countUnread(sk, inboxItems);
           const topItem = inboxItems[0];
           if (topItem) {

@@ -341,7 +341,7 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
         items.push({
           id: `scout:${season}:r${nextFixture.round}`,
           category: 'match',
-          priority: 30,
+          priority: 110,
           subject: `Scout report — Round ${nextFixture.round} vs ${opp.name}`,
           body: sentences.slice(0, 5).join(' '),
           deepLink: 'fixtures',

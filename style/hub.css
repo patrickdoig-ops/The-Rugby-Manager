@@ -591,6 +591,30 @@
 }
 
 .inbox-item {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.inbox-item + .inbox-item {
+  margin-top: 6px;
+}
+
+.inbox-item-dismiss-bg {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 72px;
+  background: var(--rm-danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.inbox-item-content {
+  position: relative;
   background: var(--rm-surface-2);
   border-radius: 10px;
   padding: 12px 14px;
@@ -600,24 +624,23 @@
   border: 1px solid var(--rm-border-soft);
   border-left-width: 3px;
   border-left-color: var(--rm-text-faint);
+  touch-action: pan-y;
+  will-change: transform;
+  transition: transform 0.25s ease;
 }
 
-.inbox-item + .inbox-item {
-  margin-top: 6px;
-}
-
-.inbox-item--medical,
-.inbox-item--contracts {
+.inbox-item--medical .inbox-item-content,
+.inbox-item--contracts .inbox-item-content {
   border-left-color: var(--rm-danger);
 }
 
-.inbox-item--transfers {
+.inbox-item--transfers .inbox-item-content {
   border-left-color: var(--rm-amber);
 }
 
-.inbox-item--league,
-.inbox-item--match,
-.inbox-item--squad {
+.inbox-item--league .inbox-item-content,
+.inbox-item--match .inbox-item-content,
+.inbox-item--squad .inbox-item-content {
   border-left-color: var(--rm-pitch);
 }
 

@@ -258,6 +258,25 @@
   }
 }
 
+.tr-continue-spinner { display: none; }
+
+#tr-continue.tr-continue--simulating {
+  background: var(--rm-cta-active);
+  cursor: progress;
+  animation: none;
+}
+#tr-continue.tr-continue--simulating .tr-continue-arrow { display: none; }
+#tr-continue.tr-continue--simulating .tr-continue-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: var(--rm-on-accent);
+  animation: trSpin 0.8s linear infinite;
+}
+@keyframes trSpin { to { transform: rotate(360deg); } }
+
 #training .app-header {
   background: linear-gradient(180deg,
     color-mix(in srgb, var(--team-color, var(--rm-pitch)) 75%, black) 0%,

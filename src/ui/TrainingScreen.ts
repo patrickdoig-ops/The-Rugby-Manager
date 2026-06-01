@@ -229,8 +229,9 @@ function renderPostMatch(
 
     <div id="tr-footer">
       <button id="tr-continue" class="cta-pulse">
-        <span>Apply Training</span>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        <span class="tr-continue-label">Apply Training</span>
+        <svg class="tr-continue-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        <span class="tr-continue-spinner" aria-hidden="true"></span>
       </button>
     </div>
   `;
@@ -245,19 +246,27 @@ function renderPostMatch(
     }));
     if (mode.runBlock) {
       // International break: the cup fixtures simulate headless, so the block
-      // is async. Disable the button while it runs (no engine re-entry guard).
+      // is async. Show a loading state and yield one macrotask (setTimeout 0)
+      // so the browser repaints the spinner before the sim chain starts.
       const btn = e.currentTarget as HTMLButtonElement;
+      const runBlock = mode.runBlock;
       btn.disabled = true;
-      void mode.runBlock(weeks).then(results => {
-        draftHydrated = false;
-        mode.onContinue(results);
-      }).catch((err: unknown) => {
-        // A cup/training block failure (e.g. an invariant trip — not an
-        // engine:error, which the crash overlay would already surface)
-        // mustn't leave the Continue button stuck. Re-enable + log.
-        console.error('International break block failed:', err);
-        btn.disabled = false;
-      });
+      btn.classList.add('tr-continue--simulating');
+      btn.querySelector<HTMLSpanElement>('.tr-continue-label')!.textContent = 'Simulating cup…';
+      setTimeout(() => {
+        void runBlock(weeks).then(results => {
+          draftHydrated = false;
+          mode.onContinue(results);
+        }).catch((err: unknown) => {
+          // A cup/training block failure (e.g. an invariant trip — not an
+          // engine:error, which the crash overlay would already surface)
+          // mustn't leave the Continue button stuck. Re-enable + log.
+          console.error('International break block failed:', err);
+          btn.disabled = false;
+          btn.classList.remove('tr-continue--simulating');
+          btn.querySelector<HTMLSpanElement>('.tr-continue-label')!.textContent = 'Apply Training';
+        });
+      }, 0);
       return;
     }
     const results = engine.applyTrainingBlock(weeks);

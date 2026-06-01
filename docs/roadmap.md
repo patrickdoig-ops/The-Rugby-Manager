@@ -102,6 +102,11 @@ two biggest gaps — stakes and presentation — and makes everything afterward 
 harder. Notably **0.1–0.3 are small-to-medium and reuse systems you already have**
 (owner budgets, performance tracking, modals, commentary).
 
+> **Detailed implementation plan: see [`docs/roadmap-tier0.md`](./roadmap-tier0.md)** —
+> per-feature design, data model, events, invariants, UI, balance, save/determinism
+> impact, build milestones, and acceptance criteria, grounded in the existing code
+> seams.
+
 | # | Feature | Why it matters | Touches | Effort |
 |---|---|---|---|---|
 | 0.1 | **Board / owner expectations + job security** | The missing fail-state. A pre-season objective (e.g. "reach the playoffs"), a confidence meter that moves with results and transfers, and a real sack risk. Turns every match into something that *matters*. | New `SeasonEvent` + state; reuse owner budgets + performance tracking; inbox + Hub surface. | M |

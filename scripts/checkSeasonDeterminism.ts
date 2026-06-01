@@ -22,6 +22,10 @@
 //   5. The renewal window (Phase 4: openRenewalWindow +
 //      closeRenewalWindow with AI-only decisions) produces the same
 //      offers + accept/reject outcomes + freeAgents pool every run.
+//   6. The Prem Cup break blocks (beginInternationalBreak +
+//      runInternationalBreakBlock at rounds 6 / 11) are reproducible:
+//      same pool seeding (incl. year-2+ redraw), cup sim results, KO
+//      cascade + champion — and don't perturb the league/career hash.
 
 import { createHash } from 'node:crypto';
 import { GameCoordinator } from '../src/game/GameCoordinator.js';
@@ -49,10 +53,21 @@ const allTeams = [
   leicesterRaw, newcastleRaw, northamptonRaw, saleRaw, saracensRaw,
 ] as unknown as RawTeamInput[];
 
+// Fixed training plan for the harness's break blocks — only consistency
+// across runs matters for determinism.
+const HARNESS_TRAINING_PLAN = { intensity: 'light', forwardsFocus: 'set_piece', backsFocus: 'tackling' } as const;
+
 async function simulateSeason(coord: GameCoordinator, teamsById: Map<string, RawTeamInput>): Promise<void> {
   while (true) {
     const next = coord.getCurrentFixture();
     if (!next) break;
+    // International break: when the calendar has reached a return round, run
+    // the Prem Cup + training block before recording the post-break fixture.
+    // beginInternationalBreak returns null off a break round.
+    const begin = coord.beginInternationalBreak();
+    if (begin) {
+      await coord.runInternationalBreakBlock([HARNESS_TRAINING_PLAN], begin);
+    }
     const state = coord.getState();
     const homeJson = teamsById.get(next.homeId)!;
     const awayJson = teamsById.get(next.awayId)!;
@@ -217,6 +232,23 @@ async function runOnce(seed: number): Promise<string> {
       },
     } : null;
 
+    // Snapshot the Prem Cup — pool standings, every fixture result, the
+    // knockout bracket + champion. Cleared at SEASON_ROLLED_OVER, so read
+    // here while populated. Locks cup seeding (incl. year-2+ pool redraw),
+    // cup sim reproducibility, the KO cascade, and that the cup never
+    // perturbs the league hash.
+    const cup = preRolloverState.league.premCup;
+    const premCupSummary = cup ? {
+      seasonLabel: cup.seasonLabel,
+      pools: cup.pools.map(p => ({ id: p.id, teamIds: p.teamIds, standings: p.standings })),
+      fixtures: cup.fixtures.map(f => ({ pool: f.pool, leg: f.leg, homeId: f.homeId, awayId: f.awayId, result: f.result ?? null })),
+      knockout: cup.knockout ? {
+        championTeamId: cup.knockout.championTeamId,
+        semifinals: cup.knockout.semifinals.map(m => ({ homeId: m.homeId, awayId: m.awayId, result: m.result ?? null })),
+        final: { homeId: cup.knockout.final.homeId, awayId: cup.knockout.final.awayId, result: cup.knockout.final.result ?? null },
+      } : null,
+    } : null;
+
     seasonSnapshots.push({
       seasonLabel,
       finalStandings,
@@ -226,6 +258,7 @@ async function runOnce(seed: number): Promise<string> {
       marketSummary,
       budgetSummary,
       playoffSummary,
+      premCupSummary,
       // Strip large stable fields from the rollover payload — only the
       // PLAYER_RETIRED rosterIds and PLAYER_AGED deltas matter for the
       // determinism contract; SEASON_ROLLED_OVER's fixture list is

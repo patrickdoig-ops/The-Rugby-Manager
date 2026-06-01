@@ -340,9 +340,7 @@ export function initTransferMarketScreen(
     const title = isPreSeason ? 'Pre-Season' : 'Transfers';
     const eyebrowText = isPreSeason
       ? `${freeAgentRows.length} free agents · build your squad for Round 1`
-      : isMidseason
-        ? `${freeAgentRows.length} free agents available`
-        : `${freeAgentRows.length} free agents · ${poachRows.length} approachable`;
+      : `${freeAgentRows.length} free agents · ${poachRows.length} approachable`;
 
     // Preserve scroll position across re-render. Clicking Sign / Undo
     // triggers a full re-render; without this the list jumps back to the
@@ -351,11 +349,9 @@ export function initTransferMarketScreen(
     const prevListScroll = el!.querySelector<HTMLDivElement>('#tm-list')?.scrollTop ?? 0;
     const prevPoachScroll = el!.querySelector<HTMLDivElement>('#tm-poach-list')?.scrollTop ?? 0;
 
-    // Pre-season and mid-season have no Reg 7 section, so no toggle —
-    // render the FA list straight. In a regular off-season signings
-    // window both lists exist; the segmented toggle gates which is
-    // visible.
-    const showToggle = !isPreSeason && !isMidseason;
+    // Pre-season has no Reg 7 section — render the FA list straight.
+    // Mid-season and off-season both show the toggle when poach rows exist.
+    const showToggle = !isPreSeason;
     const toggleHtml = showToggle ? `
       <div class="tm-toggle" role="tablist">
         <button class="tm-toggle__btn ${activeTab === 'free-agents' ? 'tm-toggle__btn--active' : ''}" data-tab="free-agents" role="tab" aria-selected="${activeTab === 'free-agents'}">Free Agents <span class="tm-toggle__count">${freeAgentRows.length}</span></button>
@@ -466,6 +462,19 @@ export function initTransferMarketScreen(
           budgetLine: (wage: number) => budgetLineFor(usage + wage, budgetCap),
         });
         if (chosen === null) return;
+
+        // Mid-season Reg 7 rows resolve immediately (no queue) — the player
+        // accepts or declines on the spot, with a one-round cooldown on decline.
+        if (isPoach && isMidseason) {
+          const result = gameEngine.submitMidseasonPoach(rid, chosen);
+          if (result === 'accepted') {
+            showToast(`Pre-agreed with ${p.firstName} ${p.lastName}`, 'info');
+          } else {
+            showToast(`${p.firstName} ${p.lastName} — not interested`, 'info');
+          }
+          render();
+          return;
+        }
 
         const ok = gameEngine.submitBid(rid, chosen);
         if (ok) showToast(`Offer made for ${p.firstName} ${p.lastName}`, 'info');

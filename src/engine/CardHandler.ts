@@ -187,7 +187,7 @@ export class CardHandler {
     // Name the manager's captain only when it's the human side being warned;
     // the AI side keeps the generic "the captain" wording.
     let captainName: string | undefined;
-    if (key === 'team_22_warning' && side === state.engine.humanSide) {
+    if (key === 'team_22_warning' && side === state.engine.humanSide && state.engine.humanCaptainRosterId !== undefined) {
       const cap = team.players.find(p => p.rosterId === state.engine.humanCaptainRosterId);
       if (cap) captainName = `${cap.firstName} ${cap.lastName}`;
     }

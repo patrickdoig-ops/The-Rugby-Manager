@@ -137,6 +137,8 @@ export interface SavedSeason {
   // restored verbatim by fromSave. Optional — absent on saves written before
   // the media manager.
   mediaStories?: import('../types/gameState').MediaStory[];
+  // Manager's nominated match captain (rosterId). Narrative-only.
+  captainRosterId?: number;
 }
 
 // Deep clone the roster index for save serialisation — every Player and
@@ -285,6 +287,9 @@ export class GameCoordinator {
       for (const story of save.mediaStories) {
         applySeasonEvent(coord.state, { type: 'MEDIA_STORY_PUBLISHED', story: { ...story } });
       }
+    }
+    if (save.captainRosterId !== undefined) {
+      applySeasonEvent(coord.state, { type: 'PLAYER_CAPTAIN_SET', rosterId: save.captainRosterId });
     }
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
@@ -1342,6 +1347,9 @@ export class GameCoordinator {
         : {}),
       ...(this.state.league.mediaStories.length > 0
         ? { mediaStories: this.state.league.mediaStories.map(s => ({ ...s })) }
+        : {}),
+      ...(this.state.player.captainRosterId !== undefined
+        ? { captainRosterId: this.state.player.captainRosterId }
         : {}),
     };
   }

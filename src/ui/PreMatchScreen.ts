@@ -136,15 +136,15 @@ function renderLineupRow(
   state: GameState,
   expanded: boolean,
   flagOop: boolean,
-  showCaptain: boolean,
   captainRosterId: number | undefined,
 ): string {
   const num = getSquadNum(p);
   const surname = shortName(p);
-  // Captain control — only on the user's own editable starting XV. Tap to
-  // nominate; tap the current captain to clear (reverts to auto-pick).
-  const isCaptain = showCaptain && p.rosterId !== undefined && p.rosterId === captainRosterId;
-  const captainBadge = showCaptain && p.rosterId !== undefined
+  // Captain control — rides on the same gate as the OOP flag: the user's own
+  // editable starting XV only. Tap to nominate; tap the current captain to
+  // clear (reverts to auto-pick).
+  const isCaptain = flagOop && p.rosterId !== undefined && p.rosterId === captainRosterId;
+  const captainBadge = flagOop && p.rosterId !== undefined
     ? `<button type="button" class="pm-captain-badge${isCaptain ? ' pm-captain-badge--active' : ''}" data-captain-rid="${p.rosterId}" aria-pressed="${isCaptain}" title="${isCaptain ? 'Captain — tap to clear' : 'Make captain'}">C</button>`
     : '';
   // Out-of-position warning — only on the user's own starting XV (slots 1-15),
@@ -264,8 +264,8 @@ function renderLineupBody(
   const rowExpanded = (p: RawPlayer): boolean => p.rosterId !== undefined && isExpanded(p.rosterId);
   // Captain control rides on the same gate as the OOP flag — the user's own
   // editable starting XV only (showEditSquad is true for the 'mine' step).
-  const startersHtml = starters.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p), showEditSquad, showEditSquad, captainRosterId)).join('');
-  const benchHtml    = bench.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p), false, false, captainRosterId)).join('');
+  const startersHtml = starters.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p), showEditSquad, captainRosterId)).join('');
+  const benchHtml    = bench.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p), false, captainRosterId)).join('');
   const metaParts = [stadium, matchDate, roundLabel].filter(Boolean).join(' · ');
   return `
     <div class="pm-lineup-card">

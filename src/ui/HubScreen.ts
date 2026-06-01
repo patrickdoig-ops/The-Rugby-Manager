@@ -102,13 +102,16 @@ function ordinalSuffix(n: number): string {
   }
 }
 
-export function initHubScreen(opts: InitHubScreenOpts): void {
+export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } {
   const el = document.getElementById('hub');
-  if (!el) return;
+  if (!el) return { refresh: () => {} };
 
   const teamsById = new Map(opts.allTeams.map(t => [t.id, t]));
 
+  let lastState: GameState | undefined;
+
   function render(state: GameState): void {
+    lastState = state;
     const playerTeam = teamsById.get(state.player.teamId);
     if (!playerTeam) return;
 
@@ -478,4 +481,6 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
   eventBus.on('game:playoffsUpdated', ({ state }) => render(state));
 
   render(opts.getGameEngine().getState());
+
+  return { refresh: () => { if (lastState) render(lastState); } };
 }

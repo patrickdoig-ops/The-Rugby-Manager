@@ -573,7 +573,7 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
         items.push({
           id: `owner-block:${season}:r${state.calendar.week}`,
           category: 'league',
-          priority: 85,
+          priority: 120,
           subject: 'Owner\'s message — mid-season review',
           body: sentences.join(' '),
           deepLink: 'league',

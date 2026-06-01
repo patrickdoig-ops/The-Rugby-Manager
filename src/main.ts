@@ -283,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!gameEngine) return;
     if (inSeasonInited) return;
     inSeasonInited = true;
-    initHubScreen({
+    const hubScreen = initHubScreen({
       getGameEngine,
       allTeams,
       onPlayMatch: onPlayRound,
@@ -391,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initInboxScreen({
       getGameEngine,
       allTeams,
-      onBack:      () => goHub('back'),
+      onBack:      () => { hubScreen.refresh(); goHub('back'); },
       onSquad:     goSquad,
       onContracts: goContracts,
       onTransfers: goTransfersMidseason,

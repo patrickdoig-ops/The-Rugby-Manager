@@ -55,6 +55,7 @@ export interface InternationalCallUpResult {
   conditionAfter: number;  // condition the player returns with
   injured: boolean;        // picked up an injury on duty
   restObligated: boolean;  // England heavy-load → must rest one of the next 3 rounds
+  statDeltas: Partial<import('./player').PlayerStats>;  // gains from camp training sessions
 }
 
 // Summary of one international break, attached to TrainingWeekResult when the

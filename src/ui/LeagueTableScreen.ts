@@ -9,14 +9,14 @@
 // visible immediately rather than waiting on the next `game:*` event.
 //
 // View toggle: 'standard' shows league points (P/W/D/L/PD/B/Pts), 'form'
-// shows last-5 pills sorted by form points (3-1-0). Toggle state is
-// per-session, persists across re-renders.
+// shows last-5 pills sorted by rugby form points (W=4, D=2, L=0, +BP).
+// Toggle state is per-session, persists across re-renders.
 
 import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { FixtureResult, TeamStanding } from '../types/gameState';
 import { sortStandings, computeStandingsFromResults } from '../game/leagueTable';
-import { recentForm, type FormResult } from '../game/teamStats';
+import { recentForm, formPoints } from '../game/teamStats';
 import { renderFormPipStrip } from './components/formPip';
 import { eventBus } from '../utils/eventBus';
 import { ROUND_LABELS } from '../engine/balance/season';
@@ -59,13 +59,6 @@ function teamCrest(team: RawTeamInput): string {
 function displayName(team: RawTeamInput | undefined, fallbackId: string): string {
   if (!team) return fallbackId;
   return team.name.split(' ')[0];
-}
-
-// Football-style 3-1-0 form points over the last `n` results. Bonus-free
-// so it isolates result quality from try-scoring streaks; matches what
-// most viewers expect when they see a "form" table.
-function formPoints(form: Array<FormResult | null>): number {
-  return form.reduce<number>((sum, r) => sum + (r === 'W' ? 3 : r === 'D' ? 1 : 0), 0);
 }
 
 function standardRow(
@@ -117,7 +110,7 @@ function formRow(
   const crest = team ? teamCrest(team) : '<div class="lt-crest"></div>';
   const form = recentForm(s.teamId, results);
   const formHtml = renderFormPipStrip(form, 'sm');
-  const pts = formPoints(form);
+  const pts = formPoints(s.teamId, results);
   const label = team ? `View ${team.name} info` : `View ${s.teamId} info`;
   const rowDelay = Math.min(rank - 1, 16) * 25;
   return `
@@ -126,7 +119,7 @@ function formRow(
       ${crest}
       <span class="lt-name">${name}</span>
       <span class="lt-form">${formHtml}</span>
-      <span class="lt-pts" title="Form points (W=3, D=1, L=0 over last 5)">${pts}</span>
+      <span class="lt-pts" title="Form points (W=4, D=2, L=0, +1 try bonus, +1 losing bonus — last 5)">${pts}</span>
     </div>
   `;
 }
@@ -156,17 +149,17 @@ function computePositionDeltas(
 }
 
 function sortByForm(standings: TeamStanding[], results: FixtureResult[]): TeamStanding[] {
+  // Pre-compute per team so the comparator does O(1) lookups, not O(n) scans.
+  const pts  = new Map(standings.map(s => [s.teamId, formPoints(s.teamId, results)]));
+  const wins = new Map(standings.map(s => [
+    s.teamId,
+    recentForm(s.teamId, results).filter(r => r === 'W').length,
+  ]));
   return [...standings].sort((a, b) => {
-    const aForm = recentForm(a.teamId, results);
-    const bForm = recentForm(b.teamId, results);
-    const aPts = formPoints(aForm);
-    const bPts = formPoints(bForm);
-    if (aPts !== bPts) return bPts - aPts;
-    // Tiebreak: more wins in the window, then by overall league points
-    // (so two teams with identical form ordering get a sensible fallback).
-    const aWins = aForm.filter(r => r === 'W').length;
-    const bWins = bForm.filter(r => r === 'W').length;
-    if (aWins !== bWins) return bWins - aWins;
+    const pDiff = pts.get(b.teamId)! - pts.get(a.teamId)!;
+    if (pDiff !== 0) return pDiff;
+    const wDiff = wins.get(b.teamId)! - wins.get(a.teamId)!;
+    if (wDiff !== 0) return wDiff;
     return b.leaguePoints - a.leaguePoints;
   });
 }
@@ -249,7 +242,7 @@ export function initLeagueTableScreen(
            <span class="lt-crest-spacer"></span>
            <span class="lt-name">Club</span>
            <span class="lt-form">Last 5</span>
-           <span class="lt-pts" title="Form points (W=3, D=1, L=0)">Pts</span>
+           <span class="lt-pts" title="Form points (rugby scoring, last 5)">Pts</span>
          </div>`;
 
     const topbarLeft = inPostMatch

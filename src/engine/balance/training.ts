@@ -86,6 +86,15 @@ export const INJURY_RISK = {
   fullCondition: 100,
 };
 
+// Age multiplier for development rolls. Exported so internationalDutyEngine
+// can apply the same curve to camp training without duplicating the logic.
+export function ageMultiplier(age: number): number {
+  for (const band of DEVELOPMENT.ageBands) {
+    if (age <= band.maxAge) return band.multiplier;
+  }
+  return DEVELOPMENT.ageBands[DEVELOPMENT.ageBands.length - 1].multiplier;
+}
+
 // Per-stat caps mirror PLAYER_AGED's clamp logic — actual clamping happens
 // in applySeasonEvent's PLAYER_TRAINED branch ([1, 99]). Re-export the
 // magnitude for callers' clarity.

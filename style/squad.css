@@ -453,7 +453,7 @@
     0 4px 12px rgba(0, 0, 0, 0.45);
 }
 
-#sq-save:active:not(:disabled) { background: var(--rm-cta-active); }
+#sq-save:active:not(:disabled) { background: var(--rm-cta-active); transform: scale(0.98); }
 
 @media (hover: hover) {
   #sq-save:hover:not(:disabled) { background: var(--rm-cta-hover); }

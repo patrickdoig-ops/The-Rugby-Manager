@@ -34,6 +34,7 @@ export function showRollover(events: SeasonEvent[], onContinue: () => void): voi
 
 
 function statLabel(s: keyof PlayerStats): string {
+  if (s === 'setPiece') return 'Set Piece';
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 

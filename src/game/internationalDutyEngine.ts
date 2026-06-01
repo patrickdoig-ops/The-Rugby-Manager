@@ -21,15 +21,22 @@
 // (reconcileRestObligations) live here too.
 
 import type { GameState, SeasonEvent } from '../types/gameState';
-import type { Player, InternationalWindow } from '../types/player';
-import type { InternationalBreakSummary, InternationalCallUpResult } from '../types/training';
+import type { Player, InternationalWindow, InjurySeverity, PlayerStats } from '../types/player';
+import { isForward } from '../types/player';
+import type { InternationalBreakSummary, InternationalCallUpResult, ForwardsFocus, BacksFocus } from '../types/training';
 import {
   INTERNATIONAL_WINDOWS, NATIONS, INTERNATIONAL_LOAD,
   INTERNATIONAL_INJURY_KINDS, PGA_REST_NATION,
   LIONS_RETURN_CONDITION, LIONS_RETURN_CONDITION_NOISE, LIONS_RETURN_ROUND,
 } from '../engine/balance/international';
 import { INJURY_SEVERITY } from '../engine/balance/injuries';
-import type { InjurySeverity } from '../types/player';
+import {
+  BACKS_FOCUS_STATS, FORWARDS_FOCUS_STATS,
+  INTENSITY_EFFECTS, ageMultiplier,
+} from '../engine/balance/training';
+import { rollDevelopmentGains } from './trainingWeek';
+import { proximityMultiplier } from '../engine/balance/career';
+import { getAge, parseSeasonStartYear, seasonOpenIso } from './age';
 import { playerOverall } from '../engine/RatingEngine';
 import { rngTransfer, rngTransferRaw } from '../utils/rng';
 import { LIONS_2025_TOURISTS } from '../data/lions-2025';
@@ -140,6 +147,10 @@ export function resolveInternationalBreak(
   const L = INTERNATIONAL_LOAD;
   const injuredOn = state.calendar.date;
   const playerTeamId = state.player.teamId;
+  const seasonOpen = seasonOpenIso(parseSeasonStartYear(state.calendar.seasonLabel));
+  const campDevChance = INTENSITY_EFFECTS.high.developmentChance;
+  const fwdFocusKeys = Object.keys(FORWARDS_FOCUS_STATS) as ForwardsFocus[];
+  const bckFocusKeys = Object.keys(BACKS_FOCUS_STATS) as BacksFocus[];
 
   const events: SeasonEvent[] = [];
   const results: InternationalCallUpResult[] = [];
@@ -180,7 +191,33 @@ export function resolveInternationalBreak(
       });
     }
 
-    // 4) PGA rest obligation — England heavy-load only. Human clubs get the
+    // 4) Camp training — high-intensity, one random focus per week from the
+    //    player's position group. No injury risk (international match injuries
+    //    model that already) and no decay (every skill is used at elite level).
+    const forward = isForward(p.position);
+    const focusKeys = forward ? fwdFocusKeys : bckFocusKeys;
+    const ageMul = ageMultiplier(p.dob ? (getAge(p.dob, seasonOpen) ?? 25) : 25);
+    const proxMul = proximityMultiplier(p.potential, playerOverall(p.baseStats, p.position));
+    const campStatDeltas: Partial<PlayerStats> = {};
+
+    for (let week = 0; week < spec.tests; week++) {
+      const focusIdx = Math.floor(rngTransferRaw() * focusKeys.length);
+      const focus = forward
+        ? FORWARDS_FOCUS_STATS[focusKeys[focusIdx] as ForwardsFocus]
+        : BACKS_FOCUS_STATS[focusKeys[focusIdx] as BacksFocus];
+      rollDevelopmentGains(campStatDeltas, focus, campDevChance, ageMul, proxMul);
+    }
+
+    if (Object.keys(campStatDeltas).length > 0) {
+      events.push({
+        type: 'PLAYER_TRAINED',
+        rosterId: c.rosterId,
+        conditionDelta: 0,
+        statDeltas: campStatDeltas,
+      });
+    }
+
+    // 5) PGA rest obligation — England heavy-load only. Human clubs get the
     //    full 3-round window to choose from; AI clubs get a single round
     //    (force-rested at the return round).
     let restObligated = false;
@@ -211,6 +248,7 @@ export function resolveInternationalBreak(
       conditionAfter: condition,
       injured,
       restObligated,
+      statDeltas: campStatDeltas,
     });
   }
 

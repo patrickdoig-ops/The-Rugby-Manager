@@ -8,8 +8,14 @@
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import type { InternationalBreakSummary, InternationalCallUpResult } from '../types/training';
+import type { PlayerStats } from '../types/player';
 import { INTERNATIONAL_WINDOWS } from '../engine/balance/international';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
+
+function statLabel(s: keyof PlayerStats): string {
+  if (s === 'setPiece') return 'Set Piece';
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
 let activeSummary: InternationalBreakSummary | null = null;
 let activeOnContinue: (() => void) | null = null;
@@ -59,6 +65,10 @@ export function initInternationalBreakScreen(
       const rN = r0 + INTERNATIONAL_WINDOWS[window].restWindowRounds - 1;
       tags.push(`<span class="intl-tag intl-tag--rest">Rest 1 of R${r0}–R${rN}</span>`);
     }
+    const statEntries = Object.entries(c.statDeltas) as [keyof PlayerStats, number][];
+    const gainChips = statEntries
+      .map(([k, v]) => `<span class="intl-tag intl-tag--gain">+${v} ${statLabel(k)}</span>`)
+      .join('');
     return `
       <div class="intl-row">
         <div class="intl-row-head">
@@ -72,6 +82,7 @@ export function initInternationalBreakScreen(
           <div class="intl-cond-track"><div class="intl-cond-fill ${condCls}" style="width:${cond}%"></div></div>
           <span class="intl-cond-val">${cond}%</span>
         </div>
+        ${gainChips ? `<div class="intl-tags">${gainChips}</div>` : ''}
         ${tags.length > 0 ? `<div class="intl-tags">${tags.join('')}</div>` : ''}
       </div>`;
   }
@@ -98,10 +109,11 @@ export function initInternationalBreakScreen(
 
     const mineInjured = mine.filter(c => c.injured).length;
     const mineRest = mine.filter(c => c.restObligated).length;
+    const mineTotalGains = mine.reduce((s, c) => s + Object.keys(c.statDeltas).length, 0);
 
     const heroSub = mine.length === 0
       ? `No ${teamJson?.shortName ?? 'your'} players away — a chance to gain ground on rivals.`
-      : `${teamJson?.shortName ?? 'Your'} players are back from duty${mineInjured > 0 ? ` · ${mineInjured} returned injured` : ''}${mineRest > 0 ? ` · ${mineRest} need a rest` : ''}.`;
+      : `${teamJson?.shortName ?? 'Your'} players are back from duty${mineTotalGains > 0 ? ` · ${mineTotalGains} stat ${mineTotalGains === 1 ? 'gain' : 'gains'} in camp` : ''}${mineInjured > 0 ? ` · ${mineInjured} returned injured` : ''}${mineRest > 0 ? ` · ${mineRest} need a rest` : ''}.`;
 
     const myRows = mine.length > 0
       ? mine.map(c => callUpRow(c, summary.window)).join('')
@@ -130,7 +142,7 @@ export function initInternationalBreakScreen(
         <div class="intl-section-title">Across the league</div>
         <div class="intl-league">
           <div class="intl-nation-chips">${nationChips}</div>
-          <div class="intl-league-note">${summary.callUps.length} players league-wide were away on duty — every club's internationals return tired and missed their training block.</div>
+          <div class="intl-league-note">${summary.callUps.length} players league-wide were away on duty — every club's internationals return tired, though the international environment brings its own development gains.</div>
         </div>
       </div>
 

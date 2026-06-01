@@ -5,19 +5,25 @@
 
 import type { FixtureResult, GameState, TeamStanding } from '../types/gameState';
 import { HOME_ADVANTAGE } from '../engine/balance';
+import { LEAGUE_POINTS } from '../engine/balance/season';
 
 export type FormResult = 'W' | 'L' | 'D';
+
+// Last `n` FixtureResult records for the team, sorted oldest-first.
+export function recentFixtureResults(teamId: string, results: FixtureResult[], n = 5): FixtureResult[] {
+  return results
+    .filter(r => r.homeId === teamId || r.awayId === teamId)
+    .sort((a, b) => b.round - a.round)
+    .slice(0, n)
+    .reverse();
+}
 
 // Last `n` results for the team, padded with null on the left so the most
 // recent result is always the rightmost slot. Slot semantics: index 0 is
 // the oldest visible game, index n-1 is the most recent.
 export function recentForm(teamId: string, results: FixtureResult[], n = 5): Array<FormResult | null> {
-  const involved = results
-    .filter(r => r.homeId === teamId || r.awayId === teamId)
-    .sort((a, b) => b.round - a.round)
-    .slice(0, n);
-
-  const mostRecentFirst: FormResult[] = involved.map(r => {
+  const recent = recentFixtureResults(teamId, results, n); // already oldest-first
+  const outcomes: FormResult[] = recent.map(r => {
     const isHome = r.homeId === teamId;
     const my = isHome ? r.homeScore : r.awayScore;
     const op = isHome ? r.awayScore : r.homeScore;
@@ -25,10 +31,32 @@ export function recentForm(teamId: string, results: FixtureResult[], n = 5): Arr
     if (my < op) return 'L';
     return 'D';
   });
+  const padding = Array<FormResult | null>(n - outcomes.length).fill(null);
+  return [...padding, ...outcomes];
+}
 
-  const oldestFirst = mostRecentFirst.reverse();
-  const padding = Array<FormResult | null>(n - oldestFirst.length).fill(null);
-  return [...padding, ...oldestFirst];
+// Rugby league points over the last n results: win=4, draw=2, loss=0,
+// +1 for ≥4 tries, +1 for losing by ≤7. Mirrors Gallagher Premiership scoring.
+export function formPoints(teamId: string, results: FixtureResult[], n = 5): number {
+  let pts = 0;
+  for (const r of recentFixtureResults(teamId, results, n)) {
+    const isHome = r.homeId === teamId;
+    const my = isHome ? r.homeScore : r.awayScore;
+    const op = isHome ? r.awayScore : r.homeScore;
+    const margin = my - op;
+    if (margin > 0) {
+      pts += LEAGUE_POINTS.win;
+    } else if (margin === 0) {
+      pts += LEAGUE_POINTS.draw;
+    } else {
+      pts += LEAGUE_POINTS.loss;
+      if (-margin <= LEAGUE_POINTS.losingBonusThreshold) pts += LEAGUE_POINTS.losingBonusPoints;
+    }
+    if ((isHome ? r.homeTries : r.awayTries) >= LEAGUE_POINTS.tryBonusThreshold) {
+      pts += LEAGUE_POINTS.tryBonusPoints;
+    }
+  }
+  return pts;
 }
 
 export interface H2H {

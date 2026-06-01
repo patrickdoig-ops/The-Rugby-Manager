@@ -293,6 +293,7 @@ export class PenaltyHandler {
         secondaryPlayer: defender,
         ballX: state.ball.x,
         ballY: state.ball.y,
+        outcome,
         narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: 'tap_and_go', primary: carrier, secondary: defender }] },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
@@ -302,7 +303,7 @@ export class PenaltyHandler {
         applyMatchEvent(state, { type: 'TRY_SCORED', scorer: carrier, side: attackSide });
         applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.ConversionKick });
       } else {
-        applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.PhasePlay });
+        applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.Breakdown });
       }
     }
 

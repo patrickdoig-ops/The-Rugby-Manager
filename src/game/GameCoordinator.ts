@@ -504,8 +504,7 @@ export class GameCoordinator {
   }
 
   // Simulate one cup pool fixture (silent) and record it + the condition
-  // writeback. NOT collectSeasonEvents (cup stats stay out of league
-  // leaderboards) and NOT rollNewInjuryEvents (no cup injuries in v1).
+  // writeback. NOT collectSeasonEvents (cup stats stay out of league leaderboards).
   private async simulateCupFixture(fx: CupFixture, restIds: number[] | undefined, featured: Set<number>): Promise<void> {
     const homeJson = this.teamsById.get(fx.homeId);
     const awayJson = this.teamsById.get(fx.awayId);
@@ -521,6 +520,7 @@ export class GameCoordinator {
       homeTries: sim.snapshot.homeSummary.tries, awayTries: sim.snapshot.awaySummary.tries,
     });
     for (const ev of collectConditionEvents(sim.snapshot)) applySeasonEvent(this.state, ev);
+    for (const ev of this.rollNewInjuryEvents(sim.snapshot.playerSnapshots)) applySeasonEvent(this.state, ev);
     for (const s of sim.snapshot.playerSnapshots) featured.add(s.rosterId);
   }
 
@@ -548,6 +548,7 @@ export class GameCoordinator {
       homeTries: sim.snapshot.homeSummary.tries, awayTries: sim.snapshot.awaySummary.tries,
     });
     for (const ev of collectConditionEvents(sim.snapshot)) applySeasonEvent(this.state, ev);
+    for (const ev of this.rollNewInjuryEvents(sim.snapshot.playerSnapshots)) applySeasonEvent(this.state, ev);
     for (const s of sim.snapshot.playerSnapshots) featured.add(s.rosterId);
   }
 

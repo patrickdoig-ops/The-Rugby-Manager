@@ -178,7 +178,7 @@ FullTime     → (terminal)
 
 Three carry phases share an evasion/collision resolver but have distinct player selection and structure:
 - **PhasePlay** — runs after Breakdown; optional pick-and-go branch (back row / prop drives 0-4m from the ruck base) rolls first, otherwise the hard-carry / out-the-back decision picks the carrier (weighted forward on the hard carry — back row + props heavy, locks second, hooker rare; fly-half → outside back on the wide path)
-- **FirstPhase** — runs after Scrum, Lineout, or a tap-and-go penalty; carrier always #10; crash ball or wide play
+- **FirstPhase** — runs after Scrum or Lineout; carrier always #10; crash ball or wide play
 - **KickReturn** — runs after KickOff, BoxKick, or TacticalKick; catcher fields the kick, then a tactics-keyed pod-pickup roll may swap the carrier to a back-row pod runner before the run step
 
 The transition table above is documentary; the engine no longer enforces it at runtime. All transitions go through `PHASE_CHANGED` applied via `applyMatchEvent`.
@@ -579,7 +579,7 @@ Forwards rarely clear the standard `lineBreakMargin` of 15 on raw stats (low pac
 
 ### FirstPhase
 
-Runs after `Scrum`, `Lineout`, or a tap-and-go penalty. The carrier is **always #10 (fly-half)**.
+Runs after `Scrum` or `Lineout`. The carrier is **always #10 (fly-half)**.
 
 ```typescript
 carrier  = pickPlayer(attackTeam, 10)
@@ -1372,7 +1372,7 @@ Stat increments: `kicker.kicksAtGoal++`; on success `kicksMade++`; on miss `kick
 
 ### Choice: tap_and_go
 
-No ball movement. Possession is retained. Resumes open play from current position.
+Resolved as a forward hard carry (defence retreating 10m — no breakdown mod on the carry itself). Picks the carrier via `pickHardCarrier`, resolves a collision via `resolveOpenPlay` with defensive-line tactic mods and `tryLineDefenceBonus`. `CARRY_RESOLVED` + `BALL_REPOSITIONED` update stats and field position. The `GameEvent` carries the carry `outcome` so `BreakdownEvent` can apply the standard `CARRY_HANDOFF_BONUSES.dominantCarry` bonus if the carry was dominant. If the carry scores a try → `ConversionKick`; otherwise → `Breakdown` (then normal `PhasePlay` cycle).
 
 ### Choice: tap_and_kick_dead *(clock-in-the-red only)*
 

@@ -336,9 +336,9 @@ current[stat] = clamp(baseStats[stat] + formModifier, 1, 100)
 
 `rngFormRaw()` is one standard-normal draw (mean 0, σ 1). `baseSpread = 3`. The deterministic `bias` and `volatility` are precomputed by `computeFormInputs(state, player)` and threaded onto the matchday `RawPlayer` (`formBias` / `formVolatility`) by `rosterTeamBuilder` — so the engine itself does exactly one form draw per player and the form RNG stream order is unchanged. On the legacy/JSON path (no roster context) `bias = 0`, `volatility = 1`, collapsing to a pure random roll.
 
-**Bias** (additive, deterministic — `FORM_MODEL`):
-- **Recent form:** mean of the player's last-3 match ratings (`Player.recentRatings`) vs `ratingBaseline 6.5`, scaled by `ratingSlope 4`, clamped to `[−4, +4]`. Needs ≥`minApps 2` logged ratings.
-- **Condition:** linear penalty as inter-match freshness drops below `conditionFull 85`, reaching `conditionFloorBias −4` at condition 0.
+**Bias** (additive, deterministic — `FORM_MODEL`). The two steady-state factors are symmetric (±5 and ±3), so an in-form, fresh player reaches +8 and a poor, tired player −8; the return penalty is transient and one-directional:
+- **Recent form:** mean of the player's last-3 match ratings (`Player.recentRatings`) vs `ratingBaseline 6.5`, scaled by `ratingSlope 4`, clamped to `[−5, +5]`. Needs ≥`minApps 2` logged ratings.
+- **Condition:** bidirectional around a neutral freshness point — `(condition − conditionNeutral 90) × conditionSlope 0.3`, clamped to `±conditionCap 3` (peak-fresh 100 → +3, 70 or below → −3). Neutral sits near the typical match-day condition so the league-wide mean form stays ~0.
 - **Return rustiness:** a fading penalty after returning from absence (`Player.formReturn`) — `injuryReturnPenalty −3` (injury) / `intlReturnPenalty −2` (international duty), fading linearly to 0 over `returnFadeRounds 3`.
 
 **Volatility** (σ multiplier on the random draw): age — `youngVolatility 1.3` (≤22), `veteranVolatility 0.7` (≥31), else 1 — times `marqueeVolatility 0.85` for marquee players.

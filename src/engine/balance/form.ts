@@ -18,17 +18,25 @@ export const FORM_MODEL = {
   // reduced to leave headroom for the deterministic bias.)
   baseSpread: 3,
 
+  // The two steady-state factors below are symmetric (±4 each), so an in-form,
+  // fresh player reaches +8 and a poor, tired player −8. The return penalty
+  // below is transient and one-directional (rustiness has no positive twin).
+
   // --- Recent-rating bias --------------------------------------------------
   // Mean of the player's last-N match ratings vs a baseline, scaled and clamped.
   ratingBaseline: 6.5,   // ~average RatingEngine output (clamped [5,10], base 6)
-  ratingSlope: 4,        // +1.0 avg rating over baseline → +4 form
-  ratingBiasClamp: 4,    // clamp the rating contribution to [-4, +4]
+  ratingSlope: 4,        // +1.0 avg rating from baseline → ±4 form
+  ratingBiasClamp: 5,    // clamp the rating contribution to [-5, +5]
   minApps: 2,            // need ≥2 logged ratings before recent form biases anything
 
   // --- Condition (freshness) bias -----------------------------------------
-  // Linear penalty as inter-match freshness drops below the "fresh" threshold.
-  conditionFull: 85,     // ≥85 → no penalty
-  conditionFloorBias: -4,// condition 0 → -4 (linear between 0 and conditionFull)
+  // Bidirectional around a neutral freshness point: fresher than neutral lifts
+  // form, more tired than neutral drags it. `(condition − neutral) × slope`,
+  // clamped to ±cap. Neutral sits near the typical match-day condition so the
+  // league-wide mean form stays ~0 (no scoring inflation).
+  conditionNeutral: 90,  // condition 90 → 0; +3 at 100 (peak fresh), −3 at 70
+  conditionSlope: 0.3,
+  conditionCap: 3,
 
   // --- Return-from-absence rustiness --------------------------------------
   // Applied on the round the player returns, fading linearly to 0 over fadeRounds.

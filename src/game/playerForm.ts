@@ -27,9 +27,8 @@ function recentRatingBias(recent: number[] | undefined): number {
 }
 
 function conditionBias(condition: number): number {
-  if (condition >= FORM_MODEL.conditionFull) return 0;
-  const deficit = (FORM_MODEL.conditionFull - condition) / FORM_MODEL.conditionFull;
-  return FORM_MODEL.conditionFloorBias * deficit;
+  const raw = (condition - FORM_MODEL.conditionNeutral) * FORM_MODEL.conditionSlope;
+  return Math.max(-FORM_MODEL.conditionCap, Math.min(FORM_MODEL.conditionCap, raw));
 }
 
 function returnBias(formReturn: Player['formReturn'], currentRound: number): number {

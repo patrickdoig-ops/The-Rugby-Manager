@@ -145,6 +145,7 @@ export interface AnnouncementParams {
   tryAftermath?: TryAftermathContext;
   minutesLeft?: number;
   scoreGap?: number;
+  captainName?: string;
 }
 
 // Some announcements (sin-bin return, replacement done) need to mention a

@@ -152,7 +152,9 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
                   <div class="inbox-item-content">
                     <div class="inbox-item-subject">${item.subject}</div>
                     <div class="inbox-item-body">${item.body}</div>
-                    ${item.deepLink ? `<button class="inbox-deeplink" data-link="${item.deepLink}">${deepLinkLabels[item.deepLink]}</button>` : ''}
+                    ${item.counselAction
+                      ? `<button class="inbox-counsel" data-rosterid="${item.counselAction.rosterId}">Speak to Player</button>`
+                      : item.deepLink ? `<button class="inbox-deeplink" data-link="${item.deepLink}">${deepLinkLabels[item.deepLink]}</button>` : ''}
                   </div>
                 </div>`;
             }).join('')}
@@ -180,6 +182,15 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
     el!.querySelectorAll<HTMLButtonElement>('.inbox-deeplink').forEach(btn => {
       const link = btn.dataset.link as NonNullable<InboxItem['deepLink']>;
       btn.addEventListener('click', () => deepLinkHandlers[link]?.());
+    });
+
+    el!.querySelectorAll<HTMLButtonElement>('.inbox-counsel').forEach(btn => {
+      const rosterId = Number(btn.dataset.rosterid);
+      btn.addEventListener('click', () => {
+        const engine = opts.getGameEngine();
+        engine.counselPlayer(rosterId);
+        render(engine.getState());
+      });
     });
 
     attachSwipeDismiss();

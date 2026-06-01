@@ -284,9 +284,9 @@ const RED_20_NO_REPLACEMENT: readonly string[] = [
 ];
 
 const TEAM_22_WARNING: readonly string[] = [
-  'The referee speaks to the captain — that\'s three penalties in your own 22. The next one is a card.',
-  '"Captain, I\'ve seen enough. Three penalties down here — your next one\'s a yellow." A warning issued.',
-  'Captain summoned — referee\'s warning over repeat infringements inside the 22.',
+  'The referee has a word with {captainName} — that\'s three penalties in your own 22, the next one is a card.',
+  'Referee summons {captainName} — three penalties down here, and the next is a yellow.',
+  'The referee issues the warning to {captainName} — repeat infringements inside the 22.',
 ];
 
 const SCRUM_RESET_CAP: readonly string[] = [
@@ -440,8 +440,10 @@ export function getAnnouncementTemplate(
       const teamName = params.teamName ?? 'the team';
       return pickRandom(RED_20_NO_REPLACEMENT).replace(/{teamName}/g, teamName);
     }
-    case 'team_22_warning':
-      return pickRandom(TEAM_22_WARNING);
+    case 'team_22_warning': {
+      const captainName = params.captainName ?? 'the captain';
+      return pickRandom(TEAM_22_WARNING).replace(/{captainName}/g, captainName);
+    }
     case 'occasion_kickoff_derby':
       return pickRandom(OCCASION_KICKOFF_DERBY);
     case 'occasion_kickoff_playoff_semi':

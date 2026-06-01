@@ -2,6 +2,7 @@ import type { GameState } from '../types/gameState';
 import type { RawTeamInput } from '../types/teamData';
 import type { Player } from '../types/player';
 import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
+import { YELLOW_BAN_THRESHOLD } from '../engine/balance';
 import { playerOverall } from '../engine/RatingEngine';
 import { recentForm } from './teamStats';
 import type { FormResult } from './teamStats';
@@ -20,6 +21,8 @@ export interface InboxItem {
   subject: string;
   body: string;
   deepLink?: 'squad' | 'contracts' | 'transfers' | 'fixtures' | 'league';
+  // When present, renders a "Speak to Player" action button in the inbox item.
+  counselAction?: { rosterId: number };
 }
 
 function ordinal(n: number): string {
@@ -168,21 +171,56 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
     });
   }
 
-  // --- Discipline concern ---
-  const DISCIPLINE_YELLOW_THRESHOLD = 2;
+  // --- Discipline concern / suspension ---
+  const DISCIPLINE_CONCERN_THRESHOLD = 2;
+  const DISCIPLINE_FINAL_WARNING     = YELLOW_BAN_THRESHOLD - 1; // 4 yellows
   for (const rid of club.squad) {
     const p = state.career.roster[rid];
-    if (!p || p.seasonStats.yellowCards < DISCIPLINE_YELLOW_THRESHOLD) continue;
+    if (!p || p.seasonStats.yellowCards < DISCIPLINE_CONCERN_THRESHOLD) continue;
     const name = `${p.firstName} ${p.lastName}`;
     const yellows = p.seasonStats.yellowCards;
-    items.push({
-      id: `disc:${season}:${rid}`,
-      category: 'squad',
-      priority: 45,
-      subject: `${name} — discipline concern`,
-      body: `${name} has collected ${yellows} yellow card${yellows !== 1 ? 's' : ''} this season. Another offence risks a citing or suspension at a critical point in the campaign.`,
-      deepLink: 'squad',
-    });
+    const hasActiveAdvice = p.disciplineAdvice?.mode === 'ease_off'
+      && state.calendar.week <= p.disciplineAdvice.expiresAfterRound;
+
+    // Suspension notification — player banned for the current round
+    if (p.suspension?.forRound === state.calendar.week) {
+      items.push({
+        id: `disc:suspended:${season}:${rid}`,
+        category: 'squad',
+        priority: 80,
+        subject: `${name} — suspended`,
+        body: `${name} has accumulated ${yellows} yellow cards this season and must sit out this match under the league's accumulation rule.`,
+        deepLink: 'squad',
+      });
+      continue;
+    }
+
+    // Final warning — 4 yellows, next yellow triggers a ban
+    if (yellows >= DISCIPLINE_FINAL_WARNING && !hasActiveAdvice) {
+      items.push({
+        id: `disc:warn4:${season}:${rid}`,
+        category: 'squad',
+        priority: 65,
+        subject: `${name} — final yellow card warning`,
+        body: `${name} is on ${yellows} yellow cards. One more will trigger an automatic one-match ban.`,
+        counselAction: { rosterId: rid },
+        deepLink: 'squad',
+      });
+      continue;
+    }
+
+    // Standard concern — 2–3 yellows
+    if (!hasActiveAdvice) {
+      items.push({
+        id: `disc:${season}:${rid}`,
+        category: 'squad',
+        priority: 45,
+        subject: `${name} — discipline concern`,
+        body: `${name} has collected ${yellows} yellow card${yellows !== 1 ? 's' : ''} this season. Another offence risks a suspension at a critical point in the campaign.`,
+        counselAction: { rosterId: rid },
+        deepLink: 'squad',
+      });
+    }
   }
 
   // --- Form collapse ---

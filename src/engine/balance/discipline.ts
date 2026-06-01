@@ -91,3 +91,15 @@ export const TAP_AND_GO_AI = {
   closeRangeMaxMetres: 10,
   closeRangePct:       30,
 } as const;
+
+// Per-player discipline counselling ("ease off" talk). When active, the
+// player's baseStats clone at match-build time gets discipline boosted and
+// tackling slightly reduced — safer but less physical edge.
+export const DISCIPLINE_COUNSEL = {
+  durationRounds:    3,   // rounds the effect is active after counselling
+  disciplineBoost:  15,   // added to baseStats.discipline (capped at 100)
+  tacklingPenalty:  -5,   // added to baseStats.tackling (floored at 1)
+} as const;
+
+// Season yellow-card accumulation threshold for an automatic 1-match ban.
+export const YELLOW_BAN_THRESHOLD = 5;

@@ -68,7 +68,7 @@ import { computeBudgetEvents } from './budgetPlanner';
 import { computeAttendance } from './attendance';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed, rngTransfer, getTransferCallCount, advanceTransferTo, hashSeed } from '../utils/rng';
-import { SEASON_VALUES, INJURY_SEVERITY, STARTER_FA_POOL } from '../engine/balance';
+import { SEASON_VALUES, INJURY_SEVERITY, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD } from '../engine/balance';
 import type { InjurySeverity } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 import type { RawTeamInput } from '../types/teamData';
@@ -137,6 +137,8 @@ export interface SavedSeason {
   // restored verbatim by fromSave. Optional — absent on saves written before
   // the media manager.
   mediaStories?: import('../types/gameState').MediaStory[];
+  // Manager's nominated match captain (rosterId). Narrative-only.
+  captainRosterId?: number;
 }
 
 // Deep clone the roster index for save serialisation — every Player and
@@ -286,6 +288,9 @@ export class GameCoordinator {
         applySeasonEvent(coord.state, { type: 'MEDIA_STORY_PUBLISHED', story: { ...story } });
       }
     }
+    if (save.captainRosterId !== undefined) {
+      applySeasonEvent(coord.state, { type: 'PLAYER_CAPTAIN_SET', rosterId: save.captainRosterId });
+    }
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
   }
@@ -296,6 +301,17 @@ export class GameCoordinator {
 
   setPlayerMatchdaySquad(squad: PlayerRef[]): void {
     applySeasonEvent(this.state, { type: 'PLAYER_MATCHDAY_SQUAD_SET', squad });
+  }
+
+  setPlayerCaptain(rosterId: number | undefined): void {
+    applySeasonEvent(this.state, { type: 'PLAYER_CAPTAIN_SET', rosterId });
+  }
+
+  counselPlayer(rosterId: number): void {
+    const p = this.state.career.roster[rosterId];
+    if (!p) return;
+    const expiresAfterRound = this.state.calendar.week + DISCIPLINE_COUNSEL.durationRounds;
+    applySeasonEvent(this.state, { type: 'PLAYER_DISCIPLINE_COUNSELLED', rosterId, expiresAfterRound });
   }
 
   // rosterIds of the human club's persisted matchday 23 (mapped from the
@@ -892,6 +908,24 @@ export class GameCoordinator {
       eventBus.emit('game:fixtureRecorded', { result: aiResult, state: this.state });
     }
 
+    // Yellow card accumulation ban: check if any human squad player has hit
+    // the threshold for the first time this season. calendar.week is still
+    // the round just played; the ban covers the next round (week + 1).
+    const humanClub = this.state.career.clubs.find(c => c.id === this.state.player.teamId);
+    if (humanClub) {
+      for (const rid of humanClub.squad) {
+        const p = this.state.career.roster[rid];
+        if (!p || p.suspension) continue;
+        if (p.seasonStats.yellowCards >= YELLOW_BAN_THRESHOLD) {
+          applySeasonEvent(this.state, {
+            type: 'PLAYER_SUSPENDED',
+            rosterId: rid,
+            forRound: this.state.calendar.week + 1,
+          });
+        }
+      }
+    }
+
     // Reconcile PGA rest obligations for the round just played (calendar.week
     // still points at this round). A player whose obligation covered this
     // round and who didn't feature has satisfied it. Runs before
@@ -1338,6 +1372,9 @@ export class GameCoordinator {
         : {}),
       ...(this.state.league.mediaStories.length > 0
         ? { mediaStories: this.state.league.mediaStories.map(s => ({ ...s })) }
+        : {}),
+      ...(this.state.player.captainRosterId !== undefined
+        ? { captainRosterId: this.state.player.captainRosterId }
         : {}),
     };
   }

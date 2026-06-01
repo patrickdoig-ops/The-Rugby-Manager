@@ -173,16 +173,26 @@ export class CardHandler {
   // sequence is itself the build-up; another summons beat would over-egg it.
   private issueCard(player: Player, side: PossessionSide, kind: 'yellow' | 'red_20' | 'red_full', summons: boolean): void {
     const { state } = this.deps;
-    applyMatchEvent(state, { type: 'CARD_ISSUED', player, side, kind });
-    const key = kind === 'yellow' ? 'card_yellow'
-              : kind === 'red_20' ? 'card_red_20'
-              :                     'card_red_full';
+    // Second yellow in the same match upgrades to red_20 (standard rugby union rule).
+    const effectiveKind = kind === 'yellow' && player.matchStats.yellowCards > 0 ? 'red_20' : kind;
+    applyMatchEvent(state, { type: 'CARD_ISSUED', player, side, kind: effectiveKind });
+    const key = effectiveKind === 'yellow' ? 'card_yellow'
+              : effectiveKind === 'red_20' ? 'card_red_20'
+              :                              'card_red_full';
     this.emitAnnouncement(key, side, player, summons ? 'card_ref_summons' : undefined);
   }
 
   private emitAnnouncement(key: Parameters<typeof buildAnnounce>[0]['key'], side: PossessionSide, primary?: Player, prependKey?: CardAnnouncementKey): void {
     const { state, silent } = this.deps;
-    const teamName = (side === 'home' ? state.homeTeam : state.awayTeam).name;
+    const team = side === 'home' ? state.homeTeam : state.awayTeam;
+    const teamName = team.name;
+    // Name the manager's captain only when it's the human side being warned;
+    // the AI side keeps the generic "the captain" wording.
+    let captainName: string | undefined;
+    if (key === 'team_22_warning' && side === state.engine.humanSide && state.engine.humanCaptainRosterId !== undefined) {
+      const cap = team.players.find(p => p.rosterId === state.engine.humanCaptainRosterId);
+      if (cap) captainName = `${cap.firstName} ${cap.lastName}`;
+    }
     const ev = buildAnnounce({
       key,
       state,
@@ -190,6 +200,7 @@ export class CardHandler {
       primary,
       teamName,
       prependKey,
+      captainName,
     });
     applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: ev });
     if (!silent) this.deps.streamer.enqueue(ev);
@@ -223,6 +234,9 @@ interface AnnounceArgs {
   primary?: Player;
   secondary?: Player;
   teamName: string;
+  // Captain name for the team-22 warning. Undefined ⇔ the bank's generic
+  // "the captain" fallback is used.
+  captainName?: string;
   // Optional prepended announcement step. Used by the direct-card path to land
   // a "ref calls the player over" beat before the card-shown line — the
   // CommentaryFeed step-stagger queue then reveals them ~350ms apart.
@@ -230,12 +244,12 @@ interface AnnounceArgs {
 }
 
 export function buildAnnounce(args: AnnounceArgs): GameEvent {
-  const { key, state, side, primary, secondary, teamName, prependKey } = args;
+  const { key, state, side, primary, secondary, teamName, captainName, prependKey } = args;
   const steps: NarrationStep[] = [];
   if (prependKey) {
-    steps.push({ kind: 'announcement', key: prependKey, primary, secondary, params: { teamName } });
+    steps.push({ kind: 'announcement', key: prependKey, primary, secondary, params: { teamName, captainName } });
   }
-  steps.push({ kind: 'announcement', key, primary, secondary, params: { teamName } });
+  steps.push({ kind: 'announcement', key, primary, secondary, params: { teamName, captainName } });
   return {
     id: makeId(),
     gameMinute: state.clock.gameMinute,

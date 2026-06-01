@@ -86,7 +86,7 @@ Mid-match the human can swap any dimension via the tactics modal (`ui:tacticsCha
 ```ts
 state.clock  = { gameMinute, halfTimeDone, clockInTheRed, penaltyKickToTouchLineout }
 state.ball   = { x, y }                              // renamed from ballX/ballY
-state.engine = { isRunning, tickDelayMs, seed, firstHalfKicker, humanSide }
+state.engine = { isRunning, tickDelayMs, seed, firstHalfKicker, humanSide, humanCaptainRosterId? }
 state.cards  = { sinBin, sentOff, teamPenalty22, teamWarned22 }   // per-side arrays + counters
 state.tmoReview? = { step: 1|2|3, outcome, offender, offendingSide }   // mid-review only
 
@@ -1412,7 +1412,7 @@ Stat increments: `kicker.kicksAtGoal++`; on success `kicksMade++`; on miss `kick
 
 ### Choice: tap_and_go
 
-Resolved as a forward hard carry (defence retreating 10m — no breakdown mod on the carry itself). Picks the carrier via `pickHardCarrier`, resolves a collision via `resolveOpenPlay` with defensive-line tactic mods and `tryLineDefenceBonus`. `CARRY_RESOLVED` + `BALL_REPOSITIONED` update stats and field position. The `GameEvent` carries the carry `outcome` so `BreakdownEvent` can apply the standard `CARRY_HANDOFF_BONUSES.dominantCarry` bonus if the carry was dominant. If the carry scores a try → `ConversionKick`; otherwise → `Breakdown` (then normal `PhasePlay` cycle).
+Resolved as a forward hard carry (defence retreating 10m — no breakdown mod on the carry itself). Picks the carrier via `pickHardCarrier`, resolves a collision via `resolveOpenPlay` with defensive-line tactic mods and `tryLineDefenceBonus`. `CARRY_RESOLVED` + `BALL_REPOSITIONED` update stats and field position. The `GameEvent` carries the carry `outcome` so `BreakdownEvent` can apply the standard `CARRY_HANDOFF_BONUSES.dominantCarry` bonus if the carry was dominant. If the carry scores a try → `TryScored` (carrier threaded via `PENDING_TRY_SCORER_SET`; `handleTryScored` generates the try commentary then → `ConversionKick`); otherwise → `Breakdown` (then normal `PhasePlay` cycle).
 
 ### Choice: tap_and_kick_dead *(clock-in-the-red only)*
 
@@ -1430,7 +1430,7 @@ The card system layers on top of the penalty seam. Whenever `PENALTY_AWARDED` fi
 
 ### Two trigger paths
 
-1. **Team-22 rule.** Each penalty where the offender's team was *defending* in their own 22 increments `state.cards.teamPenalty22[offendingSide]`. The 3rd-in-22 (`TEAM_22.warnAt`) emits a `team_22_warning` announcement (once per match per side). The 4th-in-22 (`TEAM_22.cardAt`) **forces** an immediate yellow on the offender — TMO is skipped. The counter is not reset; the 5th–8th in-22 add no further cards (per spec "the fourth penalty triggers the yellow").
+1. **Team-22 rule.** Each penalty where the offender's team was *defending* in their own 22 increments `state.cards.teamPenalty22[offendingSide]`. The 3rd-in-22 (`TEAM_22.warnAt`) emits a `team_22_warning` announcement (once per match per side). When the warned side is the human side, `CardHandler.emitAnnouncement` looks up `state.engine.humanCaptainRosterId` in that team's `players[]` and passes the captain's name through `buildAnnounce`'s `captainName` param — the `team_22_warning` bank substitutes `{captainName}` (falling back to "the captain" for the AI side / unset captain). Narrative only; the warning fires identically regardless. The 4th-in-22 (`TEAM_22.cardAt`) **forces** an immediate yellow on the offender — TMO is skipped. The counter is not reset; the 5th–8th in-22 add no further cards (per spec "the fourth penalty triggers the yellow").
 
 2. **Per-offence TMO.** If the team-22 rule didn't already card, CardHandler looks up `OFFENCE_SPEC[last.offence].tmoTriggerPct` and rolls `rng(1,100) <= triggerPct`. Two offences carry a non-zero trigger today: `high_tackle` (90 %) and `dangerous_cleanout` (90 %). On a hit, a single `rng(1,100)` is bucketed by the global `TMO.outcomeNoCardPct / outcomeYellowPct / outcomeRed20Pct` weights (25/65/10) to pre-roll the outcome. In live mode this enters `MatchPhase.TmoReview` for 3 narrative ticks; in silent mode the narrative is collapsed and the card is applied inline — RNG order is identical so determinism is preserved. **Adding a TMO-eligible offence is a one-line edit** to the `OFFENCE_SPEC` registry — no `CardHandler` change.
 
@@ -1447,6 +1447,8 @@ The card system layers on top of the penalty seam. Whenever `PENALTY_AWARDED` fi
 | N+4 | PenaltyHandler shows the existing penalty modal (kick for goal / kick to touch / tap). Play resumes. | Resumes |
 
 ### Card lifecycle
+
+**Double-yellow rule.** `CardHandler.issueCard` checks `player.matchStats.yellowCards > 0` before applying any yellow card. If the player already holds a yellow this match, the kind is silently escalated to `red_20` (standard rugby union rule — two yellows = automatic sending-off). The escalation happens before `CARD_ISSUED` fires, so the event carries the final `effectiveKind` and commentary uses the `card_red_20` narration key.
 
 `CARD_ISSUED { player, side, kind }` (reducer in `applyMatchEvent`):
 - Yellow → `player.matchStats.yellowCards++`, push `{ player, kind, returnMinute: gameMinute + SIN_BIN_DURATION.yellow }` into `state.cards.sinBin[side]`.
@@ -1483,6 +1485,8 @@ The card system layers on top of the penalty seam. Whenever `PENALTY_AWARDED` fi
 ### Stat additions
 
 `PlayerMatchStats` extends with `yellowCards` + `redCards` (both bounded `[0, 3]` in `assertInvariants` as a paranoia ceiling). Red_20 bumps `redCards++` only — total cards = `yellowCards + redCards`.
+
+**Discipline counselling (`Player.disciplineAdvice`).** When a manager counsels a player about their discipline (via the inbox), `PLAYER_DISCIPLINE_COUNSELLED` sets `Player.disciplineAdvice = { mode: 'ease_off', expiresAfterRound }` on the persistent roster player. `rosterTeamBuilder.rawFromRosterPlayer` checks this field at match-build time: if the advice is still active (`calendar.week <= expiresAfterRound`), it applies `DISCIPLINE_COUNSEL.disciplineBoost (+15)` and `DISCIPLINE_COUNSEL.tacklingPenalty (−5)` to the **baseStats clone** before returning it to `MatchCoordinator.initPlayer`. Modifying the clone (not `currentStats`) is critical — `StaminaSystem` re-derives `currentStats` from `baseStats` on every fatigue tick, so a `currentStats`-only patch would be overwritten at the first clock advance. The net effect: counselled players give fewer high tackles (discipline governs `HIGH_TACKLE` formula) but are marginally less effective at winning physical duels (tackling stat reduced). Advice lasts `DISCIPLINE_COUNSEL.durationRounds (3)` rounds.
 
 ### Balance constants
 

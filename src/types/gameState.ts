@@ -531,6 +531,12 @@ export interface GameState {
     // 'rest_first_15' keeps the user's first-choice league starters out so
     // they stay fresh. Undefined ⇔ 'best'. Set via PLAYER_CUP_DIRECTION_SET.
     cupDirection?: 'best' | 'rest_first_15';
+    // rosterId of the manager's nominated match captain. Undefined ⇔ no
+    // explicit pick → resolveCaptainRosterId() falls back to the
+    // highest-composure starter. Set via PLAYER_CAPTAIN_SET. Narrative-only:
+    // the captain is named in the referee's team-22 warning, no mechanical
+    // effect on the match.
+    captainRosterId?: number;
   };
   seed: number;
   career: CareerState;
@@ -1106,4 +1112,29 @@ export type SeasonEvent =
       // remembered default for the next break.
       type: 'PLAYER_CUP_DIRECTION_SET';
       direction: 'best' | 'rest_first_15';
+    }
+  | {
+      // Persists the manager's nominated match captain to
+      // state.player.captainRosterId. `rosterId: undefined` clears the pick
+      // (reverts to the auto-resolved highest-composure starter).
+      type: 'PLAYER_CAPTAIN_SET';
+      rosterId: number | undefined;
+    }
+  | {
+      // Manager counselled a player about their discipline (inbox action).
+      // Sets Player.disciplineAdvice so the match-builder boosts their
+      // effective discipline stat and slightly reduces tackling for
+      // DISCIPLINE_COUNSEL.durationRounds rounds.
+      type: 'PLAYER_DISCIPLINE_COUNSELLED';
+      rosterId: number;
+      expiresAfterRound: number;
+    }
+  | {
+      // Player hit the season yellow-card accumulation ban threshold.
+      // Blocks selection for forRound via selectionUnavailableIds.
+      // Fired by GameCoordinator.recordPlayerMatchResult after stats
+      // accumulation.
+      type: 'PLAYER_SUSPENDED';
+      rosterId: number;
+      forRound: number;
     };

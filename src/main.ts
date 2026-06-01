@@ -111,6 +111,7 @@ import type { TeamJson }           from './team/teamProfile';
 import { GameCoordinator }         from './game/GameCoordinator';
 import type { BreakBeginResult }   from './game/GameCoordinator';
 import { extractMatchdaySquad }    from './game/playerSquad';
+import { resolveCaptainRosterId }  from './game/captain';
 import { buildTeamFromRoster, buildAutoSelectedTeamFromRoster } from './game/rosterTeamBuilder';
 import { snapshotMatch }           from './game/seasonStatsCollector';
 import { SEASON_VALUES, HOME_ADVANTAGE } from './engine/balance';
@@ -1050,12 +1051,15 @@ document.addEventListener('DOMContentLoaded', () => {
     match: PlayoffMatch,
     playerTactics: TeamTactics,
   ): void {
+    const humanConfigured = playerSide === 'home' ? configuredHome : configuredAway;
+    const humanCaptainRosterId = resolveCaptainRosterId(humanConfigured.players, gameEngine?.getState().player.captainRosterId);
     const engine = new MatchCoordinator(configuredHome, configuredAway, {
       tickDelayMs: loadTickDelayMs(),
       playerTactics,
       humanSide: playerSide,
       neutralVenue: match.kind === 'final',
       isPlayoffSemi: match.kind !== 'final',
+      humanCaptainRosterId,
     });
     initSimController(engine);
 
@@ -1149,7 +1153,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const homeFillRate = liveFixture && configuredHome.stadiumCapacity
       ? computeAttendance(liveFixture, configuredHome.stadiumCapacity, liveState.league.standings, liveState.league.results) / configuredHome.stadiumCapacity
       : HOME_ADVANTAGE.crowdFillNeutral;
-    const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: loadTickDelayMs(), playerTactics, humanSide: playerSide, homeFillRate, isDerby: liveFixture?.isDerby ?? false });
+    const humanConfigured = playerSide === 'home' ? configuredHome : configuredAway;
+    const humanCaptainRosterId = resolveCaptainRosterId(humanConfigured.players, liveState.player.captainRosterId);
+    const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: loadTickDelayMs(), playerTactics, humanSide: playerSide, homeFillRate, isDerby: liveFixture?.isDerby ?? false, humanCaptainRosterId });
     initSimController(engine);
 
     const unsub = eventBus.on('engine:finished', ({ state }) => {

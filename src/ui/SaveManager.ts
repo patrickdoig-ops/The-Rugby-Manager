@@ -120,6 +120,9 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
             typeof s.subject === 'string' && typeof s.body === 'string' && typeof s.outlet === 'string')
           .map(s => ({ id: s.id, round: s.round, subject: s.subject, body: s.body, outlet: s.outlet }))
       : undefined;
+    const captainRosterId = typeof parsed.captainRosterId === 'number'
+      ? parsed.captainRosterId
+      : undefined;
     return {
       playerTeamId: parsed.playerTeamId,
       seed: parsed.seed >>> 0,
@@ -145,6 +148,7 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
       ...(premCup !== undefined ? { premCup } : {}),
       ...(cupDirection !== undefined ? { cupDirection } : {}),
       ...(mediaStories !== undefined ? { mediaStories } : {}),
+      ...(captainRosterId !== undefined ? { captainRosterId } : {}),
     };
   } catch {
     return null;

@@ -169,11 +169,12 @@ Each club has its own `salaryBudget` (on `ClubState`) — the owner-set ceiling 
 ```
 nextBudget = clamp(
   prevBudget
-    + (5.5 − finalLeaguePosition) × BUDGET_VALUES.positionDelta   // ±£100k/position
-    + (semiFinalist ? BUDGET_VALUES.semiFinalBonus : 0)            // +£100k
-    + (champion    ? BUDGET_VALUES.championBonus  : 0),            // +£200k
-  BUDGET_VALUES.floor (year ≥ 2),                                  // £5.4m
-  SENIOR_CAP + EFFECTIVE_CAP_CREDITS,                              // £7.8m
+    + (5.5 − finalLeaguePosition) × BUDGET_VALUES.positionDelta       // ±£100k/position
+    + (finalist     ? BUDGET_VALUES.finalistBonus  :
+       semiFinalist ? BUDGET_VALUES.semiFinalBonus : 0)               // +£150k finalist / +£100k SF exit
+    + (champion     ? BUDGET_VALUES.championBonus  : 0),              // +£200k (on top of finalistBonus)
+  BUDGET_VALUES.floor (year ≥ 2),                                     // £5.4m
+  SENIOR_CAP + EFFECTIVE_CAP_CREDITS,                                 // £7.8m
 )
 ```
 

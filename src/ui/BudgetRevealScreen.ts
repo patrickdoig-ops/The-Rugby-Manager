@@ -57,6 +57,7 @@ function reasonLabel(r: BudgetReason): string {
   switch (r.kind) {
     case 'position':       return `Finished ${ordinal(r.value)}`;
     case 'sf_appearance':  return 'Reached the semi-finals';
+    case 'finalist':       return 'Reached the final';
     case 'champion':       return 'Season champions';
     case 'floor_applied':  return 'League minimum applied';
     case 'cap_applied':    return 'League cap applied';

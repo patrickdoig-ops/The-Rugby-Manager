@@ -425,7 +425,8 @@ export interface CareerState {
 // at this field — it's purely a display payload.
 export type BudgetReason =
   | { kind: 'position';        value: number }   // final league position 1-10
-  | { kind: 'sf_appearance' }
+  | { kind: 'sf_appearance' }                    // lost in the semi-finals
+  | { kind: 'finalist' }                         // reached the final (but didn't win)
   | { kind: 'champion' }
   | { kind: 'floor_applied' }                    // budget was clamped UP to the floor
   | { kind: 'cap_applied' };                     // budget was clamped DOWN to the effective cap

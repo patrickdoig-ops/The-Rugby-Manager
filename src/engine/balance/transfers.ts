@@ -151,8 +151,8 @@ export const CLUB_SALARY_BUDGETS_2025_26: Record<string, number> = {
 //   nextBudget = clamp(
 //     prevBudget
 //       + (5.5 − finalLeaguePosition) × positionDelta
-//       + (semiFinalist ? semiFinalBonus : 0)
-//       + (champion    ? championBonus  : 0),
+//       + (finalist  ? finalistBonus  : semiFinalist ? semiFinalBonus : 0)
+//       + (champion  ? championBonus  : 0),
 //     floor (from year 2 onwards),
 //     EFFECTIVE_CAP
 //   )
@@ -164,8 +164,9 @@ export const CLUB_SALARY_BUDGETS_2025_26: Record<string, number> = {
 export const BUDGET_VALUES = {
   floor:           5_400_000,
   positionDelta:     100_000,
-  semiFinalBonus:    100_000,
-  championBonus:     200_000,
+  semiFinalBonus:    100_000,  // lost in SF
+  finalistBonus:     150_000,  // reached the final (replaces semiFinalBonus for the two finalists)
+  championBonus:     200_000,  // additional on top of finalistBonus for the winner
 };
 
 // Club takeover (new investor / Red Bull style). +£1m to wage budget

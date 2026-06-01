@@ -9,17 +9,17 @@
 // visible immediately rather than waiting on the next `game:*` event.
 //
 // View toggle: 'standard' shows league points (P/W/D/L/PD/B/Pts), 'form'
-// shows last-5 pills sorted by form points (3-1-0). Toggle state is
-// per-session, persists across re-renders.
+// shows last-5 pills sorted by rugby form points (W=4, D=2, L=0, +BP).
+// Toggle state is per-session, persists across re-renders.
 
 import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { FixtureResult, TeamStanding } from '../types/gameState';
 import { sortStandings, computeStandingsFromResults } from '../game/leagueTable';
-import { recentForm, recentFixtureResults } from '../game/teamStats';
+import { recentForm, formPoints } from '../game/teamStats';
 import { renderFormPipStrip } from './components/formPip';
 import { eventBus } from '../utils/eventBus';
-import { ROUND_LABELS, LEAGUE_POINTS } from '../engine/balance/season';
+import { ROUND_LABELS } from '../engine/balance/season';
 
 const PLAYOFF_SPOTS = 4;
 
@@ -59,25 +59,6 @@ function teamCrest(team: RawTeamInput): string {
 function displayName(team: RawTeamInput | undefined, fallbackId: string): string {
   if (!team) return fallbackId;
   return team.name.split(' ')[0];
-}
-
-// Rugby league points earned over the last `n` results: win=4, draw=2,
-// loss=0, +1 for ≥4 tries, +1 for losing by ≤7. Mirrors the actual
-// Gallagher Premiership scoring system.
-function formPoints(teamId: string, results: FixtureResult[], n = 5): number {
-  let pts = 0;
-  for (const r of recentFixtureResults(teamId, results, n)) {
-    const isHome = r.homeId === teamId;
-    const my = isHome ? r.homeScore : r.awayScore;
-    const op = isHome ? r.awayScore : r.homeScore;
-    const myTries = isHome ? r.homeTries : r.awayTries;
-    const margin = my - op;
-    if (margin > 0) pts += LEAGUE_POINTS.win;
-    else if (margin === 0) pts += LEAGUE_POINTS.draw;
-    else if (-margin <= LEAGUE_POINTS.losingBonusThreshold) pts += LEAGUE_POINTS.losingBonusPoints;
-    if (myTries >= LEAGUE_POINTS.tryBonusThreshold) pts += LEAGUE_POINTS.tryBonusPoints;
-  }
-  return pts;
 }
 
 function standardRow(
@@ -168,22 +149,17 @@ function computePositionDeltas(
 }
 
 function sortByForm(standings: TeamStanding[], results: FixtureResult[]): TeamStanding[] {
+  // Pre-compute per team so the comparator does O(1) lookups, not O(n) scans.
+  const pts  = new Map(standings.map(s => [s.teamId, formPoints(s.teamId, results)]));
+  const wins = new Map(standings.map(s => [
+    s.teamId,
+    recentForm(s.teamId, results).filter(r => r === 'W').length,
+  ]));
   return [...standings].sort((a, b) => {
-    const aPts = formPoints(a.teamId, results);
-    const bPts = formPoints(b.teamId, results);
-    if (aPts !== bPts) return bPts - aPts;
-    // Tiebreak: more wins in the window, then by overall league points.
-    const aWins = recentFixtureResults(a.teamId, results).filter(r => {
-      const my = r.homeId === a.teamId ? r.homeScore : r.awayScore;
-      const op = r.homeId === a.teamId ? r.awayScore : r.homeScore;
-      return my > op;
-    }).length;
-    const bWins = recentFixtureResults(b.teamId, results).filter(r => {
-      const my = r.homeId === b.teamId ? r.homeScore : r.awayScore;
-      const op = r.homeId === b.teamId ? r.awayScore : r.homeScore;
-      return my > op;
-    }).length;
-    if (aWins !== bWins) return bWins - aWins;
+    const pDiff = pts.get(b.teamId)! - pts.get(a.teamId)!;
+    if (pDiff !== 0) return pDiff;
+    const wDiff = wins.get(b.teamId)! - wins.get(a.teamId)!;
+    if (wDiff !== 0) return wDiff;
     return b.leaguePoints - a.leaguePoints;
   });
 }

@@ -191,6 +191,61 @@ export const DISTRACTION_NUDGE = [
   'Less noise, more nuts and bolts — and he’ll be some player.',
 ] as const;
 
+// Sceptical counterpoint for a TALENTED young player — ego, hype, humility,
+// "the boring stuff". Mixed into positive young stories so the coverage isn't
+// pure gushing praise even on a good afternoon. Distinct from DISTRACTION_NUDGE
+// (off-field circus) — this is about attitude and keeping the head right.
+export const EGO_CAVEAT = [
+  'The talent is undeniable — now he just needs to keep the ego in check.',
+  'There’s a fine line between confident and getting too big for his boots.',
+  'Brilliant, yes — but he’d do well not to believe his own hype just yet.',
+  'The gifts are obvious; whether his feet stay on the ground is the question.',
+  'One to keep grounded — that swagger can tip into arrogance if he’s not careful.',
+  'Now comes the hard part: doing it week in, week out without getting carried away.',
+  'He’d be wise to let the rugby do the talking rather than the celebrations.',
+  'Plenty of substance — just don’t let the hype go to his head.',
+  'Reputations are earned over seasons, not single afternoons — he’d do well to remember it.',
+  'The real test now is the boring stuff: the basics, the graft, the humility.',
+  'A star turn, but the game has a habit of humbling those who get ahead of themselves.',
+  'Talk is cheap at this level; the great ones save the noise for the pitch.',
+] as const;
+
+// Match-stat callouts, one pool per highlight. `{n}` is the count. Multiple
+// variants so a player who repeatedly tops a stat (a breakdown jackal winning
+// turnovers every week) doesn't read the same line each time.
+export const STAT_TWO_TRIES = [
+  'Two tries to show for it — a real poacher’s afternoon.',
+  'A brace, both finished with aplomb.',
+  'Two on the scoresheet — a born finisher.',
+  'A two-try haul that turned the game.',
+] as const;
+export const STAT_ONE_TRY = [
+  'A deserved try, too.',
+  'Got his name on the scoresheet as well.',
+  'Capped it with a try of real quality.',
+  'A well-taken try the icing on the cake.',
+] as const;
+export const STAT_BREAKS = [
+  'A return of {n} clean breaks told the story.',
+  '{n} line breaks — defences simply couldn’t live with him.',
+  'He sliced through for {n} clean breaks.',
+  '{n} times he split the defence wide open.',
+] as const;
+export const STAT_TURNOVERS = [
+  'He plundered {n} turnovers — a one-man wrecking crew at the breakdown.',
+  '{n} turnovers won — a nuisance over the ball all afternoon.',
+  'A breakdown menace, pilfering {n} turnovers.',
+  '{n} steals at the ruck that swung the momentum.',
+  'Lived on the floor, nicking {n} turnovers.',
+  'His {n} turnovers were worth their weight in gold.',
+] as const;
+export const STAT_TACKLES = [
+  'A mighty {n} tackles and not a backward step.',
+  '{n} tackles — he put his body on the line all day.',
+  'Topped the count with {n} bone-rattling tackles.',
+  '{n} hits made, and not one of them soft.',
+] as const;
+
 // Veteran resurgence (veteran + good)
 export const CLICHE_RESURGENCE = [
   'rolling back the years',

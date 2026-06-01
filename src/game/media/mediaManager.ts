@@ -92,7 +92,7 @@ function playerName(p: MediaPlayer): string {
 // ---- Player-focus framing (subject clauses + profile-keyed cliché pools) ----
 
 const POS_CLAUSES = ['Take a bow, {player}', 'It was {player}’s afternoon', 'All eyes were on {player}', 'One to remember for {player}'];
-const POS_CLAUSES_YOUNG = ['A star is born in {player}', 'Remember the name — {player}', 'Take a bow, {player}'];
+const POS_CLAUSES_YOUNG = ['A star is born in {player}', 'Remember the name — {player}', 'Take a bow, {player}', 'The kid {player} announced himself', 'All eyes on the precocious {player}', 'A coming-of-age display from {player}', 'The {player} hype is real'];
 const POS_CLAUSES_VET = ['It was vintage {player}', 'Roll back the years for {player}', 'The old stager {player} delivered'];
 const NEG_CLAUSES = ['Spare a thought for {player}', 'A rotten afternoon for {player}', 'It all rather passed {player} by', 'Questions for {player}'];
 
@@ -116,12 +116,11 @@ function relevantPositiveCliche(rng: Rng, p: MediaPlayer): readonly string[] {
 }
 
 function statCallout(rng: Rng, p: MediaPlayer): string | null {
-  if (p.tries >= 2) return `Two tries to show for it — a real poacher’s afternoon.`;
-  if (p.tries === 1) return `A deserved try, too.`;
-  if (p.lineBreaks >= 2) return `A return of ${p.lineBreaks} clean breaks told the story.`;
-  if (p.turnoversWon >= 2) return `He plundered ${p.turnoversWon} turnovers — a one-man wrecking crew at the breakdown.`;
-  if (p.tacklesMade >= 15) return `A mighty ${p.tacklesMade} tackles and not a backward step.`;
-  void rng;
+  if (p.tries >= 2) return pick(rng, P.STAT_TWO_TRIES);
+  if (p.tries === 1) return pick(rng, P.STAT_ONE_TRY);
+  if (p.lineBreaks >= 2) return pick(rng, P.STAT_BREAKS).replace('{n}', String(p.lineBreaks));
+  if (p.turnoversWon >= 2) return pick(rng, P.STAT_TURNOVERS).replace('{n}', String(p.turnoversWon));
+  if (p.tacklesMade >= 15) return pick(rng, P.STAT_TACKLES).replace('{n}', String(p.tacklesMade));
   return null;
 }
 
@@ -144,8 +143,12 @@ function buildPlayerStory(rng: Rng, ctx: MediaMatchContext, p: MediaPlayer, posi
     if (prof === 'young') parts.push(`${name} looks ${pick(rng, P.CLICHE_HYPE)}.`);
     const sc = statCallout(rng, p);
     if (sc) parts.push(sc);
-    // Cheeky off-field nudge on a merely-good young showing.
-    if (prof === 'young' && p.rating < 7.8 && chance(rng, 0.4)) parts.push(pick(rng, P.DISTRACTION_NUDGE));
+    // Even on a positive young story, often mix in a sceptical counterpoint so
+    // the coverage isn't pure praise — mostly an ego / stay-grounded / focus-on-
+    // the-basics caveat, sometimes an off-field nudge.
+    if (prof === 'young' && chance(rng, 0.55)) {
+      parts.push(chance(rng, 0.65) ? pick(rng, P.EGO_CAVEAT) : pick(rng, P.DISTRACTION_NUDGE));
+    }
   } else {
     const clause = pick(rng, NEG_CLAUSES);
     if (prof === 'veteran') {

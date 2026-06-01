@@ -33,7 +33,7 @@ The selector scores every eligible archetype by newsworthiness, then weighted-pi
 | Archetype | Fires when | Notes |
 |---|---|---|
 | **Result reaction** | always eligible | upset / statement / thrashing / narrow / capitulation / gallant-loss, chosen by margin + `expectedToWin` + tries. |
-| **Player focus** | a club player's match rating is notably high or low | gated by **age**: young+good → hype + maturity; young+poor → distraction; veteran+good → resurgence; veteran+poor → decline; mid → in-form / criticism. A position/role-appropriate cliché is layered on (playmaker → rugby-IQ/composure; quick back with a break → pace; forward → physical/set-piece; high tackle count → defence). |
+| **Player focus** | a club player's match rating is notably high or low | gated by **age**: young+good → hype + maturity; young+poor → distraction; veteran+good → resurgence; veteran+poor → decline; mid → in-form / criticism. A position/role-appropriate cliché is layered on (playmaker → rugby-IQ/composure; quick back with a break → pace; forward → physical/set-piece; high tackle count → defence), plus a varied stat callout. Positive **young** stories often mix in a sceptical counterpoint (`EGO_CAVEAT` — ego / staying grounded / focus on the basics, or an off-field nudge) so a good game isn't pure praise. |
 | **Style / DNA** | the match was played markedly with or against the club's `suggestedTactics` identity | expansive praise / kick criticism / lost-identity / won-ugly, from `teamTries` + `teamSummary.kicksFromHand` vs the DNA. |
 | **Crowd** | home game with fill rate ≥97% or <65% | great-atmosphere vs empty-seats (+ optional cost-of-living line). |
 | **Manager pressure** | a loss with ≥2 losses in the last 3 | "natives are restless". |

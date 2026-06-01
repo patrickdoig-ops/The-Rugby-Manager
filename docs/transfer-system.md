@@ -287,9 +287,9 @@ All season-scope writes continue to flow through `applySeasonEvent` (see CLAUDE.
     rosterIds: number[]; }            // user's players currently under background poach threat
 ```
 
-`POACH_THREATS_SET` overwrites `state.career.activePoachedIds` with the rosterIds of the user's own players who are under active cross-Prem poach assessment this week. The Hub's Transfers tile badge reads `activePoachedIds.length`. No market window needs to be open — the assessment runs silently every round. As of v1.11b this background badge is the *warning*; the actual mid-season approach materialises every `MIDSEASON_POACH.cadenceRounds` rounds via the `'poach-midseason'` window (see `docs/game-engine.md` § "Mid-season poaching of the user's players"), where the user retains or lets the player pre-agree to leave.
+`POACH_THREATS_SET` overwrites `state.career.activePoachedIds` with the rosterIds of the user's own players who are under active cross-Prem poach assessment this week. The Hub's Transfers tile badge reads `activePoachedIds.length`. No market window needs to be open — the assessment runs silently every round. The actual mid-season approach fires every round (no cadence gate) via the `'poach-midseason'` window (see `docs/game-engine.md` § "Mid-season poaching of the user's players"), where the user retains or lets the player pre-agree to leave. A successful retention fires `CONTRACT_EXTENDED`, extending the contract beyond the 12-month window so the player is not repeatedly re-approached.
 
-Hub → Transfers opens an interactive signings market (`MARKET_OPENED({ phase: 'signings-midseason' })`) with FA-only offers. The user queues bids and submits a single round; `runMidseasonSigning` rolls each against an appeal-based acceptance probability (`midseasonAcceptanceProbability`, `balance/transfers.ts::MIDSEASON_SIGNING`). Accept fires `BID_RESOLVED({ won })` + `CONTRACT_SIGNED`; decline fires `BID_RESOLVED({ lost })` + `MIDSEASON_OFFER_REJECTED({ weekUntilClear: currentWeek + 1 })`. The cooldown entry lives on `state.career.midseasonRejections`; `WEEK_ADVANCED` prunes aged-out entries, `SEASON_ROLLED_OVER` clears the whole map. No AI competition mid-season — the FA pool is the user's to work with until the off-season redistributes it.
+Hub → Transfers opens an interactive signings market (`MARKET_OPENED({ phase: 'signings-midseason' })`) with FA offers **and Reg 7 candidates** (all final-12-month contracted players league-wide, seeded with `estimateMarketWage` — RNG-free). **FA flow:** user queues bids and submits a single round; `runMidseasonSigning` rolls each against `midseasonAcceptanceProbability` (`balance/transfers.ts::MIDSEASON_SIGNING`). Accept fires `BID_RESOLVED({ won })` + `CONTRACT_SIGNED`; decline fires `BID_RESOLVED({ lost })` + `MIDSEASON_OFFER_REJECTED({ weekUntilClear: currentWeek + 1 })`. **Reg 7 flow:** `submitMidseasonPoach(rosterId, wage)` resolves immediately (no queue) using the same `midseasonAcceptanceProbability`; accept fires `PRE_AGREEMENT_SIGNED`; decline fires `MIDSEASON_OFFER_REJECTED`. The cooldown map (`state.career.midseasonRejections`) is shared between both flows; `WEEK_ADVANCED` prunes aged-out entries, `SEASON_ROLLED_OVER` clears the whole map. No AI competition mid-season — the market is the user's to work with until the off-season redistributes it.
 
 ### Pre-season-phase variant ✅ live (Phase 8)
 
@@ -347,7 +347,7 @@ All stat-development RNG (Phase 1 — `clampedNormal` in `careerRollover.ts`), r
 
 ### Existing screens that need updates
 
-- **HubScreen** — Contracts tile live. Transfers tile routes to `TransferMarketScreen` in read-only `scouting` mode (live v2.110a) — a mid-season view of current free agents + Reg 7 approachable players, without triggering the signing flow or advancing `rngTransfer`. The interactive signing window remains post-EndOfSeason-chain only.
+- **HubScreen** — Contracts tile live. Transfers tile opens `TransferMarketScreen` in `signings-midseason` mode — the user can sign free agents (probabilistic accept/decline, one-round cooldown on decline) AND browse + pre-agree with any rival player in their final 12 months (Reg 7). Mid-season Reg 7 pre-agreements resolve immediately (no queue/submit) using the same appeal-score probability as FA signings; accepted pre-agreements activate at the next rollover exactly like off-season ones. The FA signing flow queues bids and resolves on Submit as before. Rival AI clubs can approach the user's final-year players every round post-match (no cadence gate); a successful retain fires `CONTRACT_EXTENDED`.
 - **TeamInfoScreen** — contract expiry on each player row: not yet surfaced (lives on ContractsScreen only).
 - **PreMatchScreen** — no change; matchday selection is unaffected.
 - **MatchResultScreen** — unchanged; rollover triggers from EndOfSeasonScreen, not from each match result.
@@ -355,7 +355,9 @@ All stat-development RNG (Phase 1 — `clampedNormal` in `careerRollover.ts`), r
 ### Navigation flow
 
 ```
-Match → MatchResult → RoundResults → LeagueTable → Hub             (mid-season, unchanged)
+Match → MatchResult → RoundResults → LeagueTable
+      → [maybeRunMidseasonPoach — rival approaches + RetentionDecisionScreen if threats exist]
+      → Hub             (mid-season)
 
 Final-round result →
   RoundResults → LeagueTable → EndOfSeasonScreen
@@ -364,10 +366,15 @@ Final-round result →
                              → RolloverScreen
                              → Hub (new season)
 
+Hub → Transfers tile → TransferMarketScreen (signings-midseason)
+      Free Agents tab: sign FAs (queue + Submit)
+      Reg 7 tab: pre-agree with rival final-year players (immediate resolve)
+    → SigningResults → Hub
+
 Hub → Contracts tile → ContractsScreen → Hub
 ```
 
-The Transfers tile on Hub opens `TransferMarketScreen` in read-only `scouting` mode (live v2.110a) — a mid-season view of the free-agent pool and Reg 7 approachable players without opening the competitive signing flow or touching `rngTransfer`. The interactive signing window remains post-EndOfSeason-chain only. Hub remains the top of the in-season stack. Settings is still the exit route.
+Hub remains the top of the in-season stack. Settings is still the exit route.
 
 ---
 

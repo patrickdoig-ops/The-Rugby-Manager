@@ -358,8 +358,8 @@ export class TransferCoordinator {
 
     // Determine kind. FA → kind: 'free_agent'. Anything else (and
     // player is poach-eligible at another club) → 'poach'. Mid-season
-    // markets carry only FA offers, so the poach branch is unreachable
-    // there (the offer lookup above would have already returned).
+    // Reg 7 poach bids bypass this path (submitMidseasonPoach handles
+    // them directly with immediate resolution).
     let kind: TransferBid['kind'];
     if (this.state.career.freeAgents.includes(rosterId)) {
       kind = 'free_agent';
@@ -708,12 +708,12 @@ export class TransferCoordinator {
   // the next WEEK_ADVANCED. See src/game/midseasonSigningResolver.ts
   // for the acceptance roll and docs/transfer-system.md for the flow.
 
-  // Opens a mid-season FA-only signing market. Excludes cooldowned
-  // rosterIds (anyone the user has already approached and been
-  // declined this week). Idempotent: re-opening while a market is
-  // already live is a no-op. If the post-filter FA pool is empty, the
-  // window doesn't open at all so the navigation handler can route
-  // straight back to Hub.
+  // Opens a mid-season signing market: free agents + Reg 7 candidates.
+  // Excludes cooldown-locked rosterIds from the FA pool. Reg 7 offers
+  // are seeded with estimateMarketWage (RNG-free) so visiting Transfers
+  // mid-season doesn't perturb the career rngTransfer stream. Idempotent:
+  // re-opening while a market is already live is a no-op. If both pools
+  // are empty the window doesn't open so the caller can route to Hub.
   openMidseasonSigningWindow(): void {
     if (this.state.career.market) return;
     const week = this.state.calendar.week;
@@ -724,7 +724,14 @@ export class TransferCoordinator {
         return lock === undefined || lock <= week;
       })
       .sort((a, b) => a - b);
-    if (eligibleFAs.length === 0) return;
+
+    // Reg 7 candidates: all final-12-month contracted players league-wide
+    // (including user's own — the UI hides them; rivals can approach them
+    // via the poach-midseason window). Exclude already-pending pre-agreements.
+    const pendingMoveSet = new Set(this.state.career.pendingMoves.map(m => m.rosterId));
+    const poaches = poachCandidates(this.state).filter(rid => !pendingMoveSet.has(rid));
+
+    if (eligibleFAs.length === 0 && poaches.length === 0) return;
 
     const offers: TransferOffer[] = [];
     const seasonsCompleted = this.state.career.seasonsCompleted;
@@ -741,6 +748,20 @@ export class TransferCoordinator {
         status: 'pending',
       });
     }
+    for (const rid of poaches) {
+      const p = this.state.career.roster[rid];
+      if (!p) continue;
+      const ovr = playerOverall(p.baseStats, p.position);
+      offers.push({
+        id: `m${seasonsCompleted}_w${week}_pc_${rid}`,
+        fromClubId: p.contract.clubId,
+        rosterId: rid,
+        annualWage: estimateMarketWage(ovr, p.position),
+        lengthYears: MIDSEASON_POACH.lengthYears,
+        isMarquee: false,
+        status: 'pending',
+      });
+    }
     if (offers.length === 0) return;
     applySeasonEvent(this.state, {
       type: 'MARKET_OPENED',
@@ -750,6 +771,64 @@ export class TransferCoordinator {
     });
     // User is now handling threats via the market — clear the badge.
     applySeasonEvent(this.state, { type: 'POACH_THREATS_SET', rosterIds: [] });
+  }
+
+  // Resolves a single mid-season Reg 7 pre-agreement offer immediately
+  // (no queue — the player accepts or declines on the spot). Uses the
+  // same appeal-score-based probability model as mid-season FA signings.
+  // Fires PRE_AGREEMENT_SIGNED on accept, MIDSEASON_OFFER_REJECTED on
+  // decline (same one-round cooldown as FA declines). Returns the
+  // outcome so the UI can show a toast and re-render.
+  submitMidseasonPoach(rosterId: number, wage: number): 'accepted' | 'declined' {
+    const market = this.state.career.market;
+    if (!market || market.phase !== 'signings-midseason') return 'declined';
+    const offer = market.offers.find(o => o.rosterId === rosterId && o.fromClubId !== '' && o.status === 'pending');
+    if (!offer) return 'declined';
+    const player = this.state.career.roster[rosterId];
+    if (!player || !isPoachEligible(player, this.state.calendar.date)) return 'declined';
+    // Guard: can't poach your own player.
+    const userClubId = this.state.player.teamId;
+    const userClub = this.state.career.clubs.find(c => c.id === userClubId);
+    if (userClub?.squad.includes(rosterId)) return 'declined';
+    // Guard: already pre-agreed (handles rapid double-click before render).
+    if (this.state.career.pendingMoves.some(m => m.rosterId === rosterId)) return 'declined';
+    // Cooldown guard: mirrors the submitBid check so declined players
+    // can't be re-approached until WEEK_ADVANCED clears the entry.
+    const lock = this.state.career.midseasonRejections[rosterId];
+    if (lock !== undefined && lock > this.state.calendar.week) return 'declined';
+
+    const bidWage = normalizeOfferedWage(wage, offer.annualWage);
+    const bid: TransferBid = {
+      id: `mp_u${this.state.career.seasonsCompleted}_w${this.state.calendar.week}_${rosterId}`,
+      rosterId,
+      clubId: userClubId,
+      annualWage: bidWage,
+      lengthYears: offer.lengthYears,
+      kind: 'poach',
+      status: 'pending',
+    };
+    const probability = midseasonAcceptanceProbability(this.state, bid, player, offer.annualWage);
+    const accepted = rngTransfer(1, 1000) / 1000 <= probability;
+
+    if (accepted) {
+      applySeasonEvent(this.state, {
+        type: 'PRE_AGREEMENT_SIGNED',
+        agreement: {
+          rosterId,
+          fromClubId: player.contract.clubId,
+          toClubId: userClubId,
+          annualWage: bidWage,
+          lengthYears: offer.lengthYears,
+        },
+      });
+    } else {
+      applySeasonEvent(this.state, {
+        type: 'MIDSEASON_OFFER_REJECTED',
+        rosterId,
+        weekUntilClear: this.state.calendar.week + 1,
+      });
+    }
+    return accepted ? 'accepted' : 'declined';
   }
 
   // Closes a mid-season FA window. No AI pass — mid-season has no
@@ -767,7 +846,7 @@ export class TransferCoordinator {
   // players mid-season. The user defends via RetentionDecisionScreen
   // (retain — paying up via the wage modal — or let them go); an
   // un-retained player pre-agrees to leave at the next rollover. Live
-  // only — orchestrated by main.ts on a cadence; the headless harness
+  // only — orchestrated by main.ts every round; the headless harness
   // never opens it. RNG-FREE throughout (offers use estimateMarketWage,
   // AI bids use the closed-form aiBidWage, resolution is appeal-based),
   // so it never perturbs the career rngTransfer stream.
@@ -779,10 +858,6 @@ export class TransferCoordinator {
   // closed again immediately so the caller sees no market.
   openMidseasonPoachWindow(): void {
     if (this.state.career.market) return;
-    // Cadence: at most once every N rounds. calendar.week is the upcoming
-    // round, so week % N === 0 fires after rounds N-1, 2N-1, … (e.g. with
-    // N=4: upcoming weeks 4, 8, 12, 16 — clear of the R6/R11 breaks).
-    if (this.state.calendar.week % MIDSEASON_POACH.cadenceRounds !== 0) return;
     const userClubId = this.state.player.teamId;
     const atRisk = assessAIPoachThreats(this.state, userClubId);
     if (atRisk.length === 0) return;

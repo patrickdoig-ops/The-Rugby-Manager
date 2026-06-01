@@ -94,18 +94,18 @@ const PHASE_PLAY: PhaseBank = {
     // Templates avoid referencing {primary} / {secondary} — both are
     // already named in the preceding carry-outcome step, and the
     // CommentaryFeed dedupe pass strips repeated names to "he",
-    // which mangled "goes in high on he" output. The {defside} ref
-    // is kept since the team name only appears here.
-    'That looked high! The whistle blows immediately — penalty {defside}.',
-    'High! The referee\'s arm is straight up — penalty to {defside}.',
-    'No arms, high contact — referee comes back for the penalty. {defside} get it.',
-    'Arm swings high around the head. {defside} have the penalty.',
+    // which mangled "goes in high on he" output. {side} is the attacking
+    // team (the penalty recipient); {defside} (the offender) is omitted.
+    'That looked high! The whistle blows immediately — penalty {side}.',
+    'High! The referee\'s arm is straight up — penalty to {side}.',
+    'No arms, high contact — referee comes back for the penalty. {side} get it.',
+    'Arm swings high around the head. {side} have the penalty.',
   ],
   obstruction_penalty: [
-    '{primary} steps into the defender as the ball goes out the back — obstruction! Penalty {defside}.',
-    'The referee spots the block from {primary} on the wide screen — obstruction. {defside} get the penalty.',
-    'Crossing! {primary} runs the decoy line straight into the cover. {defside} have the penalty.',
-    '{primary} drifts across the defender as the ball is shipped wide. Obstruction — {defside}.',
+    '{primary} steps into the defender as the ball goes out the back — obstruction! Penalty {side}.',
+    'The referee spots the block from {primary} on the wide screen — obstruction. {side} get the penalty.',
+    'Crossing! {primary} runs the decoy line straight into the cover. {side} have the penalty.',
+    '{primary} drifts across the defender as the ball is shipped wide. Obstruction — {side} are awarded the penalty.',
   ],
   interception: [
     'INTERCEPTION! {primary} reads the pass from {secondary} and picks it off!',
@@ -194,15 +194,15 @@ const FIRST_PHASE: PhaseBank = {
     // See PHASE_PLAY / high_tackle_penalty comment — names are stripped
     // mid-clause by the CommentaryFeed dedupe when the preceding carry
     // step already mentioned both players.
-    'High tackle off the set piece! Straight to the penalty for {defside}.',
-    'Caught high on the first-phase tackle — referee blows it up. {defside} have the penalty.',
-    'No wrap, high contact! {defside} get the penalty from the set-piece play.',
+    'High tackle off the set piece! Straight to the penalty for {side}.',
+    'Caught high on the first-phase tackle — referee blows it up. {side} have the penalty.',
+    'No wrap, high contact! {side} get the penalty from the set-piece play.',
   ],
   obstruction_penalty: [
-    '{primary} blocks the inside cover on the first-phase strike move — obstruction! Penalty {defside}.',
-    'The pre-rehearsed strike runs a forward into the defender — referee spots {primary}. Penalty {defside}.',
-    'Crossing off the set piece — {primary} drifts into the defender\'s line. {defside} have it.',
-    '{primary} screens for the receiver and takes a defender out illegally. Obstruction {defside}.',
+    '{primary} blocks the inside cover on the first-phase strike move — obstruction! Penalty {side}.',
+    'The pre-rehearsed strike runs a forward into the defender — referee spots {primary}. Penalty {side}.',
+    'Crossing off the set piece — {primary} drifts into the defender\'s line. {side} have it.',
+    '{primary} screens for the receiver and takes a defender out illegally. Obstruction — {side} get the penalty.',
   ],
   interception: [
     'INTERCEPTION off the set piece! {primary} reads {secondary}\'s pass perfectly and picks it off!',
@@ -271,9 +271,9 @@ const KICK_RETURN: PhaseBank = {
   high_tackle_penalty: [
     // See PHASE_PLAY / high_tackle_penalty comment — keep these
     // free of player-name backrefs.
-    'A chaser flies in high on the returner! Penalty {defside} — the arm swung up.',
-    'Reckless chase, contact around the neck on the return. Penalty {defside}.',
-    'High tackle on the kick return! Hit above the line — {defside} get the penalty.',
+    'A chaser flies in high on the returner! Penalty {side} — the arm swung up.',
+    'Reckless chase, contact around the neck on the return. Penalty {side}.',
+    'High tackle on the kick return! Hit above the line — {side} get the penalty.',
   ],
   offload_attempt: [
     '{primary} offloads out of contact on the return — {secondary} takes it on!',

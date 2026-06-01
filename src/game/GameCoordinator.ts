@@ -718,6 +718,10 @@ export class GameCoordinator {
     return this.transfers.runMidseasonSigning();
   }
 
+  submitMidseasonPoach(rosterId: number, wage: number): 'accepted' | 'declined' {
+    return this.transfers.submitMidseasonPoach(rosterId, wage);
+  }
+
   // Mid-season Reg 7 poaching of the user's players (live, main.ts-driven).
   openMidseasonPoachWindow(): void {
     this.transfers.openMidseasonPoachWindow();

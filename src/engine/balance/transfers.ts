@@ -376,10 +376,8 @@ export const WAGE_NEGOTIATION = {
 // AI club can approach them during the season; the user retains (paying
 // up via the wage modal) or lets them pre-agree to leave at the next
 // rollover. RNG-free throughout — orchestrated live by main.ts, never by
-// the headless harness. Tuning:
-//   cadenceRounds — a poach window opens at most once every N rounds.
-//   lengthYears   — the pre-agreement contract length at the new club.
+// the headless harness. Checked every round (no cadence gate).
+//   lengthYears — the pre-agreement contract length at the new club.
 export const MIDSEASON_POACH = {
-  cadenceRounds: 4,
-  lengthYears:   2,
+  lengthYears: 2,
 };

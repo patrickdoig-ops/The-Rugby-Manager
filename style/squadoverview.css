@@ -138,6 +138,7 @@
 .so-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   padding: 10px 12px;
   background: var(--rm-surface-2);
@@ -293,4 +294,27 @@
     color-mix(in srgb, var(--team-color, var(--rm-pitch)) 38%, black) 100%
   );
   border-bottom-color: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 45%, transparent);
+}
+
+/* OVR badge: very poor tier */
+.so-ovr.ovr-veryPoor {
+  color: var(--rm-stat-1);
+  background: color-mix(in oklch, var(--rm-stat-1) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-1) 22%, transparent);
+}
+
+/* ─── Expand panel ─── */
+
+.so-expand {
+  flex-basis: 100%;
+}
+
+.so-expand-body {
+  padding: 8px 0 4px;
+}
+
+/* Override sq-stats-grid left padding: align with player name
+ * (OVR badge 42px + gap 12px = 54px) rather than squad jersey column. */
+.so-stats-grid.sq-stats-grid {
+  padding-left: 54px;
 }

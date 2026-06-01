@@ -17,6 +17,16 @@ import type { TeamTactics, TeamSide, Intensity, Discipline } from '../types/team
 import { applyMatchEvent } from './applyMatchEvent';
 import { AI_DIRECTOR_VALUES, AI_EFFORT_VALUES, AI_INTENT_CHASING, AI_INTENT_PROTECTING, CLOCK_VALUES, HUMAN_RESPONSE_RULES, TACTIC_ORDERS } from './balance';
 
+export type IntentCategory = 'baseline' | 'chasing' | 'protecting';
+
+export interface TacticsChangeSignal {
+  side: TeamSide;
+  teamName: string;
+  category: IntentCategory;
+  scoreGap: number;
+  minutesLeft: number;
+}
+
 function tacticsEqual(a: TeamTactics, b: TeamTactics): boolean {
   return a.attackingGamePlan === b.attackingGamePlan
     && a.attackingStyle === b.attackingStyle
@@ -62,6 +72,7 @@ export class AITacticalDirector {
   // never proposes tactics for this side; the human owns it via the modal.
   // If undefined (e.g. fully-headless fixtures), both sides adapt.
   private humanSide: TeamSide | undefined;
+  private prevIntentCategory: { home: IntentCategory; away: IntentCategory };
 
   constructor(state: MatchState, humanSide: TeamSide | undefined) {
     this.state = state;
@@ -70,17 +81,42 @@ export class AITacticalDirector {
       home: { ...state.homeTeam.tactics },
       away: { ...state.awayTeam.tactics },
     };
+    this.prevIntentCategory = { home: 'baseline', away: 'baseline' };
   }
 
-  evaluate(): void {
+  evaluate(): TacticsChangeSignal | null {
+    let signal: TacticsChangeSignal | null = null;
     for (const side of ['home', 'away'] as const) {
       if (side === this.humanSide) continue;
-      const desired = { ...this.pickIntent(side), ...this.pickEffort(side) };
+      const intent = this.pickIntent(side);
+      const desired = { ...intent, ...this.pickEffort(side) };
       const team = side === 'home' ? this.state.homeTeam : this.state.awayTeam;
       if (!tacticsEqual(team.tactics, desired)) {
         applyMatchEvent(this.state, { type: 'TACTICS_UPDATED', side, tactics: desired });
       }
+      // Derive category from the intent result — avoids duplicating the threshold
+      // logic from pickIntent. Reference equality works because pickIntent returns
+      // the canonical AI_INTENT_* constants (not a new object) for chasing/protecting.
+      const category: IntentCategory =
+        intent === AI_INTENT_CHASING    ? 'chasing' :
+        intent === AI_INTENT_PROTECTING ? 'protecting' :
+                                          'baseline';
+      if (category !== this.prevIntentCategory[side]) {
+        this.prevIntentCategory[side] = category;
+        if (signal === null) {
+          const myScore  = this.state.score[side];
+          const oppScore = side === 'home' ? this.state.score.away : this.state.score.home;
+          signal = {
+            side,
+            teamName: team.name,
+            category,
+            scoreGap: myScore - oppScore,
+            minutesLeft: Math.max(0, Math.round(CLOCK_VALUES.fullTimeMinute - this.state.clock.gameMinute)),
+          };
+        }
+      }
     }
+    return signal;
   }
 
   private pickIntent(side: TeamSide): TeamTactics {

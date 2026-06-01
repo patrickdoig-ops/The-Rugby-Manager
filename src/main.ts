@@ -1148,7 +1148,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const homeFillRate = liveFixture && configuredHome.stadiumCapacity
       ? computeAttendance(liveFixture, configuredHome.stadiumCapacity, liveState.league.standings, liveState.league.results) / configuredHome.stadiumCapacity
       : HOME_ADVANTAGE.crowdFillNeutral;
-    const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: loadTickDelayMs(), playerTactics, humanSide: playerSide, homeFillRate });
+    const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: loadTickDelayMs(), playerTactics, humanSide: playerSide, homeFillRate, isDerby: liveFixture?.isDerby ?? false });
     initSimController(engine);
 
     const unsub = eventBus.on('engine:finished', ({ state }) => {

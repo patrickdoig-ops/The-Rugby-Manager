@@ -1,5 +1,5 @@
 import { eventBus } from '../utils/eventBus';
-import type { TeamTactics, AttackingGamePlan, AttackingStyle, AttackingBreakdown, DefendingBreakdown, BackfieldDefence, DefensiveLine, OffloadStrategy } from '../types/team';
+import type { TeamTactics, AttackingGamePlan, AttackingStyle, AttackingBreakdown, DefendingBreakdown, BackfieldDefence, DefensiveLine, OffloadStrategy, Intensity, Discipline } from '../types/team';
 
 interface OptionDef<T> {
   value: T;
@@ -49,6 +49,18 @@ const OFFLOAD_STRATEGY_OPTIONS: OptionDef<OffloadStrategy>[] = [
   { value: 'offload_freely', label: 'Offload Freely', desc: 'Keep the ball alive in contact. More metres and broken-field chances, more knock-ons.' },
 ];
 
+const INTENSITY_OPTIONS: OptionDef<Intensity>[] = [
+  { value: 'high',     label: 'High',     desc: 'Empty the tank — extra physical effort wins more at the breakdown, but the whole team tires noticeably faster.' },
+  { value: 'balanced', label: 'Balanced', desc: 'Sustainable work rate across the eighty minutes. The default tempo.' },
+  { value: 'light',    label: 'Light',    desc: 'Ease off to protect legs and condition. Slower to tire, but cedes a little edge at the contest. Useful when the game is won or lost.' },
+];
+
+const DISCIPLINE_OPTIONS: OptionDef<Discipline>[] = [
+  { value: 'risky',    label: 'Risky',    desc: 'Take chances at the breakdown to steal more turnovers — at the price of conceding more penalties (and the cards that follow).' },
+  { value: 'balanced', label: 'Balanced', desc: 'Compete hard but stay on the right side of the referee. The default.' },
+  { value: 'cautious', label: 'Cautious', desc: 'Stay squeaky clean — far fewer penalties given away, but you surrender the edge at the contest.' },
+];
+
 interface CategoryMeta {
   title: string;
   options: OptionDef<string>[];
@@ -58,15 +70,17 @@ const META: Record<keyof TeamTactics, CategoryMeta> = {
   attackingStyle:     { title: 'Attacking Style',      options: ATTACKING_STYLE_OPTIONS  as OptionDef<string>[] },
   attackingBreakdown: { title: 'Attacking Breakdown',  options: ATTACK_RUCK_OPTIONS      as OptionDef<string>[] },
   offloadStrategy:    { title: 'Offload Strategy',     options: OFFLOAD_STRATEGY_OPTIONS as OptionDef<string>[] },
+  intensity:          { title: 'Intensity',            options: INTENSITY_OPTIONS        as OptionDef<string>[] },
   defendingBreakdown: { title: 'Defending Breakdown',  options: DEFEND_RUCK_OPTIONS      as OptionDef<string>[] },
   backfieldDefence:   { title: 'Backfield Defence',    options: BACKFIELD_OPTIONS        as OptionDef<string>[] },
   defensiveLine:      { title: 'Defensive Line',       options: DEFENSIVE_LINE_OPTIONS   as OptionDef<string>[] },
+  discipline:         { title: 'Discipline',           options: DISCIPLINE_OPTIONS       as OptionDef<string>[] },
 };
 
 const INFO_ICON_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="11" x2="12" y2="16"></line><circle cx="12" cy="7.75" r="0.6" fill="currentColor" stroke="none"></circle></svg>`;
 
-const ATTACK_KEYS:  (keyof TeamTactics)[] = ['attackingGamePlan', 'attackingStyle', 'attackingBreakdown', 'offloadStrategy'];
-const DEFENCE_KEYS: (keyof TeamTactics)[] = ['defendingBreakdown', 'backfieldDefence', 'defensiveLine'];
+const ATTACK_KEYS:  (keyof TeamTactics)[] = ['attackingGamePlan', 'attackingStyle', 'attackingBreakdown', 'offloadStrategy', 'intensity'];
+const DEFENCE_KEYS: (keyof TeamTactics)[] = ['defendingBreakdown', 'backfieldDefence', 'defensiveLine', 'discipline'];
 
 export function renderTacticsMenu(
   container: HTMLElement,

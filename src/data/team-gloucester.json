@@ -4,7 +4,7 @@
   "shortName": "GLO",
   "color": "#c8102e",
   "secondaryColor": "#ffffff",
-  "stadium": "Kingsholm Stadium",
+  "stadium": "Kingsholm Stadium (the famous \"Shed\" terrace)",
   "nickname": "Cherry & Whites",
   "founded": 1873,
   "stadiumCapacity": 16115,
@@ -17,7 +17,9 @@
     "defendingBreakdown": "counter_ruck",
     "backfieldDefence": "one_back",
     "defensiveLine": "drift",
-    "offloadStrategy": "cautious"
+    "offloadStrategy": "cautious",
+    "intensity": "balanced",
+    "discipline": "balanced"
   },
   "statBias": [
     "strength",

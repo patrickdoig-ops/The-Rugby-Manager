@@ -17,7 +17,9 @@
     "defendingBreakdown": "jackal",
     "backfieldDefence": "two_back",
     "defensiveLine": "drift",
-    "offloadStrategy": "offload_freely"
+    "offloadStrategy": "offload_freely",
+    "intensity": "balanced",
+    "discipline": "balanced"
   },
   "statBias": [
     "pace",

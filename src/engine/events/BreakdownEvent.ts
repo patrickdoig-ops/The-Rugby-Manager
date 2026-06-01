@@ -13,6 +13,14 @@ import { isBackRowSlot } from '../Slot';
 export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext): PhaseResult {
   const attPlan = attackTeam.tactics.attackingBreakdown;
   const defPlan = defendTeam.tactics.defendingBreakdown;
+  const attDiscipline = attackTeam.tactics.discipline;
+  const defDiscipline = defendTeam.tactics.discipline;
+  // Intensity (physical edge) + discipline (turnover edge) at the contest —
+  // each side's own settings add to its breakdown score below.
+  const attContestEdge = TACTIC_MODIFIERS.intensityContestMod[attackTeam.tactics.intensity]
+                       + TACTIC_MODIFIERS.disciplineContestMod[attDiscipline];
+  const defContestEdge = TACTIC_MODIFIERS.intensityContestMod[defendTeam.tactics.intensity]
+                       + TACTIC_MODIFIERS.disciplineContestMod[defDiscipline];
 
   const lastEvent = state.events[state.events.length - 1];
   const carrierId = lastEvent?.primaryPlayer?.id;
@@ -87,7 +95,8 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   // 1. dangerous_cleanout — attacker, TMO-eligible (40/40/20 via OFFENCE_SPEC).
   //    Offender: a random supporter (the cleaner). Penalty flips possession.
   const cleanoutPct = BREAKDOWN_PENALTIES.dangerousCleanoutBasePct
-                    + TACTIC_MODIFIERS.dangerousCleanoutAttackMod[attPlan];
+                    + TACTIC_MODIFIERS.dangerousCleanoutAttackMod[attPlan]
+                    + TACTIC_MODIFIERS.disciplinePenaltyMod[attDiscipline];
   if (rng(1, 100) <= cleanoutPct) {
     const offender = supporters[rng(0, supporters.length - 1)];
     events.push({ type: 'PENALTY_AWARDED', offence: 'dangerous_cleanout', offender, offendingSide: attackSide });
@@ -103,7 +112,8 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   // 2. not_rolling_away — defender, no TMO. Offender is the jackal (the
   //    nearest defender to the tackle, already picked above).
   const notRollingPct = BREAKDOWN_PENALTIES.notRollingAwayBasePct
-                      + TACTIC_MODIFIERS.notRollingAwayDefendMod[defPlan];
+                      + TACTIC_MODIFIERS.notRollingAwayDefendMod[defPlan]
+                      + TACTIC_MODIFIERS.disciplinePenaltyMod[defDiscipline];
   if (rng(1, 100) <= notRollingPct) {
     events.push({ type: 'PENALTY_AWARDED', offence: 'not_rolling_away', offender: jackal, offendingSide: defSide });
     return {
@@ -115,7 +125,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
     };
   }
 
-  const res = resolveBreakdown(supporters, jackal, defPlan, defendPack, attackBonus + ha.attack + TACTIC_MODIFIERS.breakdownArsMod[attPlan], ha.defend);
+  const res = resolveBreakdown(supporters, jackal, defPlan, defendPack, attackBonus + ha.attack + TACTIC_MODIFIERS.breakdownArsMod[attPlan] + attContestEdge, ha.defend + defContestEdge);
 
   // 3. offside_at_ruck — defender, post-resolve, fires ONLY on the
   //    transitions that put the ball back into phase play (clean_ball /
@@ -124,7 +134,8 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   //    the whistle). Offender: a random on-field defender.
   if (res.result === 'clean_ball' || res.result === 'slow_ball') {
     const offsidePct = BREAKDOWN_PENALTIES.offsideAtRuckBasePct
-                     + TACTIC_MODIFIERS.offsideAtRuckDefendMod[defendTeam.tactics.defensiveLine];
+                     + TACTIC_MODIFIERS.offsideAtRuckDefendMod[defendTeam.tactics.defensiveLine]
+                     + TACTIC_MODIFIERS.disciplinePenaltyMod[defDiscipline];
     if (rng(1, 100) <= offsidePct) {
       const offender = defendOnField[rng(0, defendOnField.length - 1)] ?? jackal;
       events.push({ type: 'PENALTY_AWARDED', offence: 'offside_at_ruck', offender, offendingSide: defSide });

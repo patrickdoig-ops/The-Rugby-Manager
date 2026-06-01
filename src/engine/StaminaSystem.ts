@@ -32,6 +32,10 @@ export function computeFatigue(team: Team, elapsedMinutes: number, offFieldIds?:
   const { decayRange, staminaDivisor, tirednessThreshold, tiers } = FATIGUE_SCALING;
   const forwardMult = TACTIC_MODIFIERS.forwardFatigueMultiplier;
   const backMult = TACTIC_MODIFIERS.backFatigueMultiplier;
+  // Team-wide intensity multiplier — applied to every player (forwards and
+  // backs) on top of the positional multipliers below. high drains faster,
+  // light drains slower.
+  const intensityMult = TACTIC_MODIFIERS.intensityFatigueMultiplier[team.tactics.intensity];
 
   for (const player of team.players) {
     if (offFieldIds?.has(player.id)) continue;
@@ -48,6 +52,7 @@ export function computeFatigue(team: Team, elapsedMinutes: number, offFieldIds?:
       // neutral. Multiplier is 1.0 for hybrid so the no-op path stays cheap.
       actualDecay *= backMult[team.tactics.defensiveLine];
     }
+    actualDecay *= intensityMult;
     const prevFatigue = player.fatiguePct;
     const newFatiguePct = clamp(player.fatiguePct - actualDecay, 0, 100);
     if (prevFatigue >= tirednessThreshold && newFatiguePct < tirednessThreshold) {

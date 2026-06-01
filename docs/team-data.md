@@ -23,6 +23,10 @@ Related docs: see `CLAUDE.md` "Tactics system" for tactic-effect mechanics, `doc
 | `backfieldDefence` | `one_back` · `two_back` · `three_back` |
 | `defensiveLine` | `blitz` · `hybrid` · `drift` |
 | `offloadStrategy` | `cautious` · `balanced` · `offload_freely` |
+| `intensity` | `high` · `balanced` · `light` |
+| `discipline` | `risky` · `balanced` · `cautious` |
+
+The per-club "Suggested tactics" lines below omit `intensity` and `discipline`; both default to `balanced` (the generator fills any missing trailing slot from `DEFAULT_TACTICS`).
 
 **Player base stats** (12 fields, 0–100 scale, from `src/data/team-*.json`):
 `stamina · strength · pace · agility · handling · tackling · breakdown · kicking · setPiece · discipline · positioning · composure`

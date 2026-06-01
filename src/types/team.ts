@@ -20,6 +20,16 @@ export type DefensiveLine = 'blitz' | 'drift' | 'hybrid';
 // Per-strategy attempt % lives in OFFLOAD_VALUES.attemptPctByStrategy
 // (src/engine/balance/offload.ts).
 export type OffloadStrategy = 'cautious' | 'balanced' | 'offload_freely';
+// Effort/attitude levers — sustained toggles the manager dials up or down.
+// intensity : ask for extra physical effort at the contest (a small breakdown
+//             edge) at the cost of faster fatigue drain; `light` eases off to
+//             protect player condition when the game is won or lost.
+// discipline: how many chances the team takes at the breakdown. `risky` wins
+//             more turnovers but concedes more penalties; `cautious` is safe
+//             but loses that edge. (Distinct from the per-player `discipline`
+//             stat on PlayerStats — this is a team-level tactic.)
+export type Intensity = 'high' | 'balanced' | 'light';
+export type Discipline = 'risky' | 'balanced' | 'cautious';
 
 export interface TeamTactics {
   attackingGamePlan: AttackingGamePlan;
@@ -29,6 +39,8 @@ export interface TeamTactics {
   backfieldDefence: BackfieldDefence;
   defensiveLine: DefensiveLine;
   offloadStrategy: OffloadStrategy;
+  intensity: Intensity;
+  discipline: Discipline;
 }
 
 export interface Team {
@@ -52,5 +64,7 @@ export const DEFAULT_TACTICS: TeamTactics = {
   backfieldDefence: 'one_back',
   defensiveLine: 'hybrid',
   offloadStrategy: 'balanced',
+  intensity: 'balanced',
+  discipline: 'balanced',
 };
 

@@ -71,11 +71,13 @@ const TACTIC_LABELS: Record<keyof TeamTactics, Record<string, string>> = {
   backfieldDefence:   { one_back: 'One Back', two_back: 'Two Back', three_back: 'Three Back' },
   defensiveLine:      { blitz: 'Blitz', hybrid: 'Hybrid', drift: 'Drift' },
   offloadStrategy:    { cautious: 'Cautious', balanced: 'Balanced', offload_freely: 'Offload Freely' },
+  intensity:          { high: 'High', balanced: 'Balanced', light: 'Light' },
+  discipline:         { risky: 'Risky', balanced: 'Balanced', cautious: 'Cautious' },
 };
 
 const TACTIC_DIMS: (keyof TeamTactics)[] = [
   'attackingGamePlan', 'attackingStyle', 'attackingBreakdown',
-  'defendingBreakdown', 'defensiveLine',
+  'defendingBreakdown', 'defensiveLine', 'intensity', 'discipline',
 ];
 
 function getSquadNum(p: RawPlayer): number {

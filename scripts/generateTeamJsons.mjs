@@ -29,10 +29,10 @@ const TEAM_META = {
 };
 
 // Map md tactics literals to TeamTactics dimensions in fixed order:
-// attackingGamePlan · attackingStyle · attackingBreakdown · defendingBreakdown · backfieldDefence · defensiveLine · offloadStrategy
+// attackingGamePlan · attackingStyle · attackingBreakdown · defendingBreakdown · backfieldDefence · defensiveLine · offloadStrategy · intensity · discipline
 // Per-team lines that omit trailing values fall back to DEFAULT_TACTICS slot
-// by slot, so legacy 6-value lines still round-trip cleanly.
-const TACTIC_KEYS = ['attackingGamePlan', 'attackingStyle', 'attackingBreakdown', 'defendingBreakdown', 'backfieldDefence', 'defensiveLine', 'offloadStrategy'];
+// by slot, so legacy shorter lines still round-trip cleanly.
+const TACTIC_KEYS = ['attackingGamePlan', 'attackingStyle', 'attackingBreakdown', 'defendingBreakdown', 'backfieldDefence', 'defensiveLine', 'offloadStrategy', 'intensity', 'discipline'];
 const DEFAULT_TACTICS = {
   attackingGamePlan: 'balanced',
   attackingStyle: 'balanced',
@@ -41,6 +41,8 @@ const DEFAULT_TACTICS = {
   backfieldDefence: 'one_back',
   defensiveLine: 'hybrid',
   offloadStrategy: 'balanced',
+  intensity: 'balanced',
+  discipline: 'balanced',
 };
 
 

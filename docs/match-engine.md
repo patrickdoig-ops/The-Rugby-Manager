@@ -35,7 +35,7 @@ The engine is split across files in `src/engine/`. `MatchCoordinator` owns the p
 | `CardHandler.ts` | Owns the card pipeline: `evaluateNewPenalty()` (called by `MatchCoordinator.tick` after PENALTY_AWARDED enters Penalty — rolls TMO trigger / team-22 threshold, emits CARD_ISSUED), `advanceTmoReview()` (drives the 3-tick narrative when phase is `TmoReview`), `scanSinBinReturns()` (per-tick expiry check, fires SIN_BIN_RETURNED / RED_20_EXPIRED). Silent mode collapses the TMO narrative to a single inline application — RNG order is preserved so silent and live match outcomes are identical. Full breakdown in [Cards (Yellow / Red 20 / Red full)](#cards-yellow--red-20--red-full). |
 | `FieldPosition.ts` | Pure helpers over `MatchState` that factor in `state.clock.halfTimeDone`: `attackDir`, `isTryScored`, `isTryScoredAt`, `inOpposition22`, `inOpposition22At`, `inOppositionHalf`, `inOwn22`, `inOwn22For` (any side), `inOwnHalf`. The `*At(ballX, possession, halfTimeDone)` variants keep a scalar signature — used for projecting not-yet-applied positions. Plus the card-availability filter family: `offFieldIds(state, side)`, `onFieldPlayers(team, state, side)`, `availableForwards`, `availableBacks` — used by every resolver and selector to exclude sin-binned / sent-off players from the contest. |
 | `HomeAdvantage.ts` | One helper, `homeEdge(state, mod)` → `{ attack, defend }`. Splits a flat per-channel modifier (from `HOME_ADVANTAGE` in balance) into the attacker/defender pair the carry and breakdown resolvers expect, based on `state.possession`. See [Home Advantage](#home-advantage). |
-| `AITacticalDirector.ts` | Pure (no-RNG) module owned by `MatchCoordinator`. Called once per tick before `resolvePhase()` to override AI-side `team.tactics` based on score gap + minutes remaining. Tuning in `balance/aiDirector.ts`; full breakdown in [Tactics: who picks what](#tactics-who-picks-what). |
+| `AITacticalDirector.ts` | Pure (no-RNG) module owned by `MatchCoordinator`. Called once per tick before `resolvePhase()` to override AI-side `team.tactics` based on score gap + minutes remaining (7-dimension intent) plus a separate `pickEffort` that sets `intensity`/`discipline` from the live scoreboard + derby flag. Tuning in `balance/aiDirector.ts`; full breakdown in [Tactics: who picks what](#tactics-who-picks-what). |
 | `AISubstitutionDirector.ts` | Pure (no-RNG) module owned by `MatchCoordinator`. Called once per tick after `AITacticalDirector`. From `AI_SUBS_VALUES.earliestSubMinute` (50') onwards, identifies AI starters at or below `fatigueThreshold` (60%) and queues a like-for-like bench replacement — exact position match first, then forward/back group. In live matches, subs are queued and flushed at the next natural break; in silent fixtures, subs apply immediately. Tuning in `balance/aiSubs.ts`; full breakdown in [Substitutions](#substitutions). |
 | `applyMatchEvent.ts` | **The single mutation boundary.** A reducer over the `MatchEvent` discriminated union (`src/types/matchEvent.ts`). The only function permitted to write to `MatchState` or any `Player` field. |
 | `invariants.ts` | `assertInvariants(state)` — runtime tripwire called after every `applyMatchEvent` mutation. Checks live numeric/structural ranges the type system can't express (score ≥ 0 + integer, ball in `[0,100]`, every player's fatigue/rating/currentStats in range). Always-on; the cost is O(matchday squad) per mutation. |
@@ -61,7 +61,10 @@ Every number listed in the resolver formulas, tactic modifier tables, fatigue ti
 
 ### Tactics: who picks what
 
-`TeamTactics` (`src/types/team.ts`) is a seven-dimension object: `attackingGamePlan`, `attackingStyle`, `attackingBreakdown`, `defendingBreakdown`, `backfieldDefence`, `defensiveLine`, `offloadStrategy`. Every resolver reads it from `attackTeam.tactics.X` / `defendTeam.tactics.X` directly — no separate "intent" layer.
+`TeamTactics` (`src/types/team.ts`) is a nine-dimension object: `attackingGamePlan`, `attackingStyle`, `attackingBreakdown`, `defendingBreakdown`, `backfieldDefence`, `defensiveLine`, `offloadStrategy`, `intensity`, `discipline`. Every resolver reads it from `attackTeam.tactics.X` / `defendTeam.tactics.X` directly — no separate "intent" layer.
+
+- **`intensity`** (`high` / `balanced` / `light`) — a team-wide effort lever. `high` drains every player's fatigue faster (×1.08 in `StaminaSystem`, compounding with the forward/back multipliers) in exchange for a small breakdown-contest edge (`intensityContestMod` ±3 to ars/dts); `light` drains slower (×0.94) but cedes that edge, to protect condition when the game is decided.
+- **`discipline`** (`risky` / `balanced` / `cautious`) — risk appetite at the breakdown. `risky` adds a turnover edge (`disciplineContestMod` ±4 to ars/dts) at the cost of higher penalty-concession rates (`disciplinePenaltyMod` ±3pp on the breakdown penalty rolls, `disciplineHighTackleMod` ±1.5pp on the high-tackle rate); `cautious` is the reverse. Card risk is **emergent** — more penalties feed the existing TMO / team-22 path with no separate card multiplier. (Not to be confused with the per-player `discipline` stat on `PlayerStats`.)
 
 At match init (`MatchCoordinator.initMatchState`):
 - **Human side** uses `playerTactics` if supplied (the object passed from `PreMatchScreen.onStart`), otherwise falls back to the team's `suggestedTactics`.
@@ -71,6 +74,8 @@ At match init (`MatchCoordinator.initMatchState`):
 Mid-match the human can swap any dimension via the tactics modal (`ui:tacticsChange` bus event → `TACTICS_UPDATED` `MatchEvent`). The AI has no UI; in-match adjustments are written by `AITacticalDirector` (see below). Both paths share the same mutation seam — `applyMatchEvent` is the only writer of `team.tactics`.
 
 **`AITacticalDirector`** (`src/engine/AITacticalDirector.ts`) is a pure (no RNG) module owned by `MatchCoordinator`. It's instantiated alongside `clock` / `fatigue` and called once per tick — `director.evaluate()` runs *before* `resolvePhase()`, so a tactic change applies to the same tick that triggered it. The director never proposes tactics for the human side; in silent (fully-headless) fixtures the constructor is given `humanSide: undefined` so both teams adapt. Tuning lives in `src/engine/balance/aiDirector.ts`: `scoreGapTrigger` (8 points) and `minutesRemainingTrigger` (15 minutes) gate the flip. Two named intent bundles overlay the team's baseline `suggestedTactics`: `AI_INTENT_CHASING` (possession + wide_wide + minimal_ruck + one_back — trailing late) and `AI_INTENT_PROTECTING` (kicking + keep_it_tight + commit_numbers + shadow + two_back — leading late). Outside the late-game window or within the score-gap dead band, the director reverts each side to its captured baseline.
+
+**Effort dimensions (`intensity` / `discipline`) are decided separately** by `pickEffort(side)` and merged over the 7-dimension intent (`{ ...pickIntent(side), ...pickEffort(side) }`), so they track the live scoreboard rather than club identity. Tuning in `AI_EFFORT_VALUES`: inside the final `lateGameMinutesRemaining` (20) minutes, a side that is behind by any margin flips to `{ high, risky }` (empty the tank), and a side leading by `largeLeadGap` (15) or more flips to `{ light, cautious }` (ease off, protect players). Otherwise, a derby (`state.engine.isDerby`) before `derbyEarlyMinute` (15) opens at `{ high, balanced }` to set the tone; failing all of that, `{ balanced, balanced }`. `pickEffort` is RNG-free (reads clock, score, and the derby flag). `tacticsEqual` compares all nine dimensions so an effort-only change still emits `TACTICS_UPDATED`.
 
 ### `MatchState` shape
 
@@ -266,7 +271,9 @@ For forwards (player id ≤ 8), the decay is then multiplied by a tactic factor:
 - `defendingBreakdown === 'counter_ruck'`: ×1.1
 - Both active: ×1.21 (multiplicative, not additive)
 
-Backs (id ≥ 9) are unaffected by the tactic multiplier.
+Backs (id ≥ 9) are unaffected by these forward-only multipliers.
+
+Then, for **every** player (forwards and backs), the decay is multiplied by the team-wide **intensity** factor `TACTIC_MODIFIERS.intensityFatigueMultiplier[team.tactics.intensity]` — `high: ×1.08`, `balanced: ×1.00`, `light: ×0.94`. This compounds with the forward multipliers above (e.g. a `high` + `commit_numbers` + `counter_ruck` forward reaches ×1.08 × 1.21 ≈ ×1.31). The multiply is applied to the already-computed decay and consumes no RNG, so determinism is unaffected.
 
 Higher stamina reduces decay. A player with stamina 90 decays at 40% the rate of one with stamina 0. With 16 fatigue applications per 80-minute game, expected total fatigue loss at stamina 60 is ~77%, stamina 0 hits the floor well before full time, stamina 90 is ~51% — most players cross the 50% penalty tier during the match.
 
@@ -1312,9 +1319,9 @@ The `PenaltyOffence` taxonomy (`src/types/engine.ts`) covers seven offences. Add
 | `scrum_infringement` (attacking_dominant_penalty) | `ScrumEvent` | defending hooker | scrum margin > 15 (defending pack collapses) | no |
 | `scrum_infringement` (defending_dominant_penalty) | `ScrumEvent` | attacking hooker | scrum margin ≤ −15 (attacking pack collapses) | no |
 | `high_tackle` | `OpenPlayEvent` / `FirstPhaseEvent` / `KickReturnEvent` | the defender who attempted the tackle | `tackleInfringement(defender)` returns `'high_tackle'`, gated to non-line-break collisions | **90 %** |
-| `dangerous_cleanout` | `BreakdownEvent` (pre-resolve) | random `supporter` from the attacking team | `rng(1,100) ≤ BREAKDOWN_PENALTIES.dangerousCleanoutBasePct + TACTIC_MODIFIERS.dangerousCleanoutAttackMod[attPlan]` | **90 %** |
-| `not_rolling_away` | `BreakdownEvent` (pre-resolve) | the jackal (defending back-row over the ball) | `rng(1,100) ≤ BREAKDOWN_PENALTIES.notRollingAwayBasePct + TACTIC_MODIFIERS.notRollingAwayDefendMod[defPlan]` | no |
-| `offside_at_ruck` | `BreakdownEvent` (post-resolve, on `clean_ball` or `slow_ball` only) | random on-field defender | `rng(1,100) ≤ BREAKDOWN_PENALTIES.offsideAtRuckBasePct` (flat — future defensive-tactic hook documented inline) | no |
+| `dangerous_cleanout` | `BreakdownEvent` (pre-resolve) | random `supporter` from the attacking team | `rng(1,100) ≤ BREAKDOWN_PENALTIES.dangerousCleanoutBasePct + TACTIC_MODIFIERS.dangerousCleanoutAttackMod[attPlan] + TACTIC_MODIFIERS.disciplinePenaltyMod[attDiscipline]` | **90 %** |
+| `not_rolling_away` | `BreakdownEvent` (pre-resolve) | the jackal (defending back-row over the ball) | `rng(1,100) ≤ BREAKDOWN_PENALTIES.notRollingAwayBasePct + TACTIC_MODIFIERS.notRollingAwayDefendMod[defPlan] + TACTIC_MODIFIERS.disciplinePenaltyMod[defDiscipline]` | no |
+| `offside_at_ruck` | `BreakdownEvent` (post-resolve, on `clean_ball` or `slow_ball` only) | random on-field defender | `rng(1,100) ≤ BREAKDOWN_PENALTIES.offsideAtRuckBasePct + TACTIC_MODIFIERS.offsideAtRuckDefendMod[defLine] + TACTIC_MODIFIERS.disciplinePenaltyMod[defDiscipline]` | no |
 | `obstruction` | `OpenPlayEvent` / `FirstPhaseEvent` (in the out-the-back branch) | random attacking forward (the screening forward) | `rng(1,100) ≤ OBSTRUCTION_BASE_PCT + TACTIC_MODIFIERS.obstructionStyleMod[attackingStyle]` | no |
 
 **Breakdown roll order (deterministic):** `dangerous_cleanout` → `not_rolling_away` → `resolveBreakdown` (existing 4-way split) → `offside_at_ruck` (only on clean/slow). Each rolls exactly one `rng(1,100)` when reached. The first pre-resolve hit short-circuits to `Penalty`; the post-resolve `offside_at_ruck` check only fires when the ball was about to enter phase play (no point pinning offside on a turnover or an already-penalty contest).
@@ -1332,11 +1339,12 @@ The `PenaltyOffence` taxonomy (`src/types/engine.ts`) covers seven offences. Add
 ```
 pct = max(minPct, basePct
                 + (50 − tackling)   × tacklingWeight
-                + (50 − discipline) × disciplineWeight)
+                + (50 − discipline) × disciplineWeight
+                + disciplineMod)
 high_tackle if rng(1,100) ≤ pct
 ```
 
-Current values: `basePct=8`, `tacklingWeight=0.1`, `disciplineWeight=0.1`, `minPct=2.5`. A 50/50 defender sits at 8% per tackle; a 80/75 elite defender drops to the 2.5% floor; a 30/30 weak defender rises to 12%. Realistic match output: ~0.5–1 high tackles per team per match, scaling slightly with squad quality.
+Current values: `basePct=8`, `tacklingWeight=0.1`, `disciplineWeight=0.1`, `minPct=2.5`. A 50/50 defender sits at 8% per tackle; a 80/75 elite defender drops to the 2.5% floor; a 30/30 weak defender rises to 12%. Realistic match output: ~0.5–1 high tackles per team per match, scaling slightly with squad quality. `disciplineMod` is `TACTIC_MODIFIERS.disciplineHighTackleMod[defendTeam.tactics.discipline]` (`risky: +1.5`, `balanced: 0`, `cautious: −1`), passed in by the carry handler so a risky defence concedes slightly more high tackles.
 
 When fired, the carry handler emits `CARRY_RESOLVED` first (so the carrier still earns the metres — advantage law) and then `PENALTY_AWARDED { offence: 'high_tackle', offender: defender, offendingSide: defSide }`, overriding `nextPhase` to `Penalty`. The narration appends a `high_tackle_penalty` `phase_outcome` step after the carry-outcome step, so the commentary reads "dominant tackle on Smith... high! Penalty against the tackler."
 
@@ -1492,7 +1500,13 @@ notRollingAwayDefendMod:    { jackal: 1,         counter_ruck: 0, shadow: -2 }
 dangerousCleanoutAttackMod: { commit_numbers: 2, balanced: 0,    minimal_ruck: -1 }
 obstructionStyleMod:        { keep_it_tight: -2, balanced: 0,    wide_wide: 3 }
 offsideAtRuckDefendMod:     { blitz: 6,          hybrid: 2,      drift: -2 }
+// Discipline (the offending side's tactic) adds to dangerous_cleanout (attacker),
+// not_rolling_away + offside_at_ruck (defender), and the high-tackle rate.
+disciplinePenaltyMod:       { risky: 3,          balanced: 0,    cautious: -2 }
+disciplineHighTackleMod:    { risky: 1.5,        balanced: 0,    cautious: -1 }
 ```
+
+**Breakdown contest edge** — `intensity` and `discipline` also shift the breakdown contest score itself (added to `ars` for the attacking side, `dts` for the defending side, at the `resolveBreakdown` call site in `BreakdownEvent`): `intensityContestMod` (`high: +3`, `balanced: 0`, `light: −3`) and `disciplineContestMod` (`risky: +4`, `balanced: 0`, `cautious: −4`). So a high-intensity / risky side wins marginally more turnovers and cleaner ball — the trade-off for the extra fatigue and penalties.
 
 ### Carry → breakdown handoff constants
 

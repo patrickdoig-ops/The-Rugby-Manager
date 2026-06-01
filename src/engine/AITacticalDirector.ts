@@ -13,9 +13,9 @@
 // TACTICS_UPDATED queue every tick.
 
 import type { MatchState } from '../types/match';
-import type { TeamTactics, TeamSide } from '../types/team';
+import type { TeamTactics, TeamSide, Intensity, Discipline } from '../types/team';
 import { applyMatchEvent } from './applyMatchEvent';
-import { AI_DIRECTOR_VALUES, AI_INTENT_CHASING, AI_INTENT_PROTECTING, CLOCK_VALUES, HUMAN_RESPONSE_RULES, TACTIC_ORDERS } from './balance';
+import { AI_DIRECTOR_VALUES, AI_EFFORT_VALUES, AI_INTENT_CHASING, AI_INTENT_PROTECTING, CLOCK_VALUES, HUMAN_RESPONSE_RULES, TACTIC_ORDERS } from './balance';
 
 function tacticsEqual(a: TeamTactics, b: TeamTactics): boolean {
   return a.attackingGamePlan === b.attackingGamePlan
@@ -24,7 +24,9 @@ function tacticsEqual(a: TeamTactics, b: TeamTactics): boolean {
     && a.defendingBreakdown === b.defendingBreakdown
     && a.backfieldDefence === b.backfieldDefence
     && a.defensiveLine === b.defensiveLine
-    && a.offloadStrategy === b.offloadStrategy;
+    && a.offloadStrategy === b.offloadStrategy
+    && a.intensity === b.intensity
+    && a.discipline === b.discipline;
 }
 
 // Reads the human side's current tactics and returns a copy of aiBaseline with
@@ -73,7 +75,7 @@ export class AITacticalDirector {
   evaluate(): void {
     for (const side of ['home', 'away'] as const) {
       if (side === this.humanSide) continue;
-      const desired = this.pickIntent(side);
+      const desired = { ...this.pickIntent(side), ...this.pickEffort(side) };
       const team = side === 'home' ? this.state.homeTeam : this.state.awayTeam;
       if (!tacticsEqual(team.tactics, desired)) {
         applyMatchEvent(this.state, { type: 'TACTICS_UPDATED', side, tactics: desired });
@@ -103,5 +105,28 @@ export class AITacticalDirector {
     }
 
     return this.baseline[side];
+  }
+
+  // Intensity / discipline are decided separately from the 7-dimension intent
+  // bundles and merged over them in evaluate(). They track the scoreboard
+  // situation rather than club identity: behind late → empty the tank; big
+  // lead late → ease off to protect players; derby kick-off → high to set the
+  // tone. RNG-free (reads clock, score, isDerby only).
+  private pickEffort(side: TeamSide): { intensity: Intensity; discipline: Discipline } {
+    const minutesRemaining = CLOCK_VALUES.fullTimeMinute - this.state.clock.gameMinute;
+    const myScore  = this.state.score[side];
+    const oppScore = side === 'home' ? this.state.score.away : this.state.score.home;
+    const gap = myScore - oppScore;
+
+    if (minutesRemaining <= AI_EFFORT_VALUES.lateGameMinutesRemaining) {
+      if (gap < 0) return { intensity: 'high', discipline: 'risky' };
+      if (gap >= AI_EFFORT_VALUES.largeLeadGap) return { intensity: 'light', discipline: 'cautious' };
+    }
+
+    if (this.state.engine.isDerby && this.state.clock.gameMinute < AI_EFFORT_VALUES.derbyEarlyMinute) {
+      return { intensity: 'high', discipline: 'balanced' };
+    }
+
+    return { intensity: 'balanced', discipline: 'balanced' };
   }
 }

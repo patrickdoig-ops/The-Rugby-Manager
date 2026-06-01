@@ -16,7 +16,7 @@ import type { ArchivedPlayerSeason, ArchivedSeason, ClubState, CupFixture, CupKn
 import type { Player, PlayerSeasonStats } from '../types/player';
 import { zeroSeasonStats } from '../types/player';
 import { zeroStanding, zeroTeamSeasonStats } from '../types/gameState';
-import type { TeamTactics } from '../types/team';
+import { DEFAULT_TACTICS, type TeamTactics } from '../types/team';
 import type { TrainingPlan } from '../types/training';
 import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
 
@@ -89,7 +89,7 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
       ...(f.date !== undefined ? { date: f.date } : {}),
     }));
     const tactics: TeamTactics | undefined = parsed.tactics
-      ? { ...parsed.tactics } as TeamTactics
+      ? { ...DEFAULT_TACTICS, ...parsed.tactics } as TeamTactics
       : undefined;
     const matchdaySquad: PlayerRef[] | undefined =
       Array.isArray(parsed.matchdaySquad) && parsed.matchdaySquad.length === 23

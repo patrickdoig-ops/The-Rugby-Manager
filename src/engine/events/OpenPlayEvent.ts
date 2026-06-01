@@ -373,7 +373,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
   // High-tackle check: applies on top of the carry result so the carrier still
   // earns the metres (advantage law). Skipped on line breaks — no completed
   // tackle to be high.
-  if (res.outcome !== 'line_break' && tackleInfringement(defender) === 'high_tackle') {
+  if (res.outcome !== 'line_break' && tackleInfringement(defender, TACTIC_MODIFIERS.disciplineHighTackleMod[defendTeam.tactics.discipline]) === 'high_tackle') {
     events.push({ type: 'PENALTY_AWARDED', offence: 'high_tackle', offender: defender, offendingSide: defSide });
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'high_tackle_penalty', primary: defender, secondary: ballCarrier });
     nextPhase = MatchPhase.Penalty;
@@ -468,7 +468,7 @@ function resolvePickAndGo(
   ];
 
   let nextPhase: MatchPhase = MatchPhase.Breakdown;
-  if (tackleInfringement(defender) === 'high_tackle') {
+  if (tackleInfringement(defender, TACTIC_MODIFIERS.disciplineHighTackleMod[defendTeam.tactics.discipline]) === 'high_tackle') {
     events.push({ type: 'PENALTY_AWARDED', offence: 'high_tackle', offender: defender, offendingSide: defSide });
     steps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'high_tackle_penalty', primary: defender, secondary: carrier });
     nextPhase = MatchPhase.Penalty;

@@ -181,6 +181,10 @@ export interface MatchState {
     // league-average (~0.79) when no standings data is available (e.g.
     // determinism harnesses, test fixtures).
     homeFillRate: number;
+    // True for the season's designated derby fixtures (Derby Weekend / Big
+    // Match Weekend). Read by AITacticalDirector.pickEffort() — an AI side
+    // opens a derby at high intensity to "set the tone". Defaults to false.
+    isDerby: boolean;
   };
   phase: MatchPhase;
   possession: PossessionSide;

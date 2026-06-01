@@ -407,7 +407,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
   // High-tackle check: applies on top of the carry result (carrier keeps the
   // metres — advantage law). Skipped on line breaks.
-  if (res.outcome !== 'line_break' && tackleInfringement(defender) === 'high_tackle') {
+  if (res.outcome !== 'line_break' && tackleInfringement(defender, TACTIC_MODIFIERS.disciplineHighTackleMod[defendTeam.tactics.discipline]) === 'high_tackle') {
     events.push({ type: 'PENALTY_AWARDED', offence: 'high_tackle', offender: defender, offendingSide: defSide });
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'high_tackle_penalty', primary: defender, secondary: ballCarrier });
     nextPhase = MatchPhase.Penalty;

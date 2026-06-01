@@ -29,7 +29,20 @@ export const TACTIC_ORDERS: Record<keyof TeamTactics, readonly string[]> = {
   backfieldDefence:   ['one_back', 'two_back', 'three_back'],
   defensiveLine:      ['blitz', 'hybrid', 'drift'],
   offloadStrategy:    ['cautious', 'balanced', 'offload_freely'],
+  intensity:          ['light', 'balanced', 'high'],
+  discipline:         ['cautious', 'balanced', 'risky'],
 };
+
+// pickEffort thresholds — the intensity/discipline dimensions are governed
+// separately from the 7-dimension intent bundles (see AITacticalDirector).
+// Behind late → empty the tank (high / risky). Big lead late → ease off to
+// protect players (light / cautious). Derby kick-off → open at high intensity
+// to set the tone.
+export const AI_EFFORT_VALUES = {
+  lateGameMinutesRemaining: 20,  // pickEffort late-game window
+  largeLeadGap:             15,  // points lead that triggers ease-off
+  derbyEarlyMinute:         15,  // before this game-minute a derby opens at high intensity
+} as const;
 
 export type HumanResponseRule = {
   humanDimension: keyof TeamTactics;
@@ -76,6 +89,11 @@ export const AI_INTENT_CHASING: TeamTactics = {
   backfieldDefence:   'one_back',
   defensiveLine:      'blitz',
   offloadStrategy:    'offload_freely',
+  // pickEffort overrides these two for the actual scoreboard situation; the
+  // values here keep the bundle a complete TeamTactics and align with a
+  // trailing team throwing everything at the game.
+  intensity:          'high',
+  discipline:         'risky',
 };
 
 // PROTECTING: a team leading late kicks for territory, keeps it tight in
@@ -91,4 +109,8 @@ export const AI_INTENT_PROTECTING: TeamTactics = {
   backfieldDefence:   'two_back',
   defensiveLine:      'drift',
   offloadStrategy:    'cautious',
+  // pickEffort overrides these two; values align with a leading team easing
+  // off to protect condition and stay out of penalty trouble.
+  intensity:          'light',
+  discipline:         'cautious',
 };

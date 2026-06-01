@@ -831,7 +831,7 @@ export class GameCoordinator {
       const homeFillRate = homeJson.stadiumCapacity
         ? computeAttendance(f, homeJson.stadiumCapacity, this.state.league.standings, this.state.league.results) / homeJson.stadiumCapacity
         : undefined;
-      const sim = await simulateFixture(home, away, this.state.seed, f.round, { homeFillRate });
+      const sim = await simulateFixture(home, away, this.state.seed, f.round, { homeFillRate, isDerby: f.isDerby });
       const aiResult: FixtureResult = {
         round: f.round,
         homeId: f.homeId,

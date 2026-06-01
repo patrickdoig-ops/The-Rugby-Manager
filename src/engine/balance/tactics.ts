@@ -242,4 +242,29 @@ export const TACTIC_MODIFIERS = {
   // crash; -2 net on hard carry).
   crashBallEvasionMod:        { blitz: 0, hybrid: 0, drift: -6 },
   hardCarryEvasionMod:        { blitz: 0, hybrid: 0, drift: -4 },
+  // Intensity — team-wide effort lever. The fatigue multiplier is applied to
+  // EVERY player's per-tick decay in StaminaSystem (forwards and backs alike),
+  // compounding with the forward/back multipliers above. high drains ~8% faster
+  // in exchange for a small breakdown-contest edge; light drains ~6% slower but
+  // concedes that edge — the manager eases off to protect condition when the
+  // game is decided. The contest edge is deliberately small: the fatigue cost
+  // is the real trade-off, and a large flat bonus would dominate the ruck.
+  intensityFatigueMultiplier: { high: 1.08, balanced: 1.00, light: 0.94 },
+  // Pct points added to the breakdown contest score (ars for the attacking
+  // side's intensity, dts for the defending side's) in BreakdownEvent.
+  intensityContestMod:        { high: 3,    balanced: 0,    light: -3 },
+  // Discipline — risk appetite at the breakdown. The contest edge mirrors
+  // intensity (added to ars / dts): risky commits harder to the jackal /
+  // cleanout and wins more turnovers, cautious holds back. The trade-off is
+  // the penalty-rate shift below — risky concedes more penalties (which also
+  // feeds more cards via the existing TMO / team-22 path; no separate card
+  // multiplier), cautious concedes fewer.
+  disciplineContestMod:       { risky: 4,   balanced: 0,    cautious: -4 },
+  // Pct points added to the breakdown penalty base rates in BREAKDOWN_PENALTIES
+  // (dangerous_cleanout for the attacker's discipline, not_rolling_away and
+  // offside_at_ruck for the defender's).
+  disciplinePenaltyMod:       { risky: 3,   balanced: 0,    cautious: -2 },
+  // Pct points added to the defending team's high-tackle base rate (HIGH_TACKLE)
+  // in TackleInfringementResolver.
+  disciplineHighTackleMod:    { risky: 1.5, balanced: 0,    cautious: -1 },
 } as const;

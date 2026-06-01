@@ -98,7 +98,7 @@ export function bracketHtml(ko: CupKnockout, teamsById: TeamsById, highlightTeam
         <div class="cup-ko-team${m.result && !winnerHome ? ' cup-ko-team--win' : ''}"><span>${away}</span><span class="cup-ko-score">${as}</span></div>
       </div>`;
   };
-  const champ = ko.championTeamId ? `<div class="cup-champ">🏆 ${teamName(ko.championTeamId, teamsById)} — Prem Cup Champions</div>` : '';
+  const champ = ko.championTeamId ? `<div class="cup-champ">🏆 ${teamName(ko.championTeamId, teamsById)} — League Cup Champions</div>` : '';
   return `
     <div class="cup-bracket">
       <div class="cup-bracket-col">

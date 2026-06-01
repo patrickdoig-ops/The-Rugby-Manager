@@ -39,7 +39,7 @@ interface TileSpec {
 
 const TILES: TileSpec[] = [
   { id: 'lm-tile-table',        label: 'League Table',  sub: 'Standings & form',      ariaLabel: 'League table',      iconKey: 'table',        handlerKey: 'onTable' },
-  { id: 'lm-tile-cup',          label: 'Prem Cup',      sub: 'Pools & knockouts',     ariaLabel: 'Prem Cup',          iconKey: 'cup',          handlerKey: 'onCup' },
+  { id: 'lm-tile-cup',          label: 'League Cup',    sub: 'Pools & knockouts',     ariaLabel: 'League Cup',        iconKey: 'cup',          handlerKey: 'onCup' },
   { id: 'lm-tile-team',         label: 'Team Stats',    sub: 'Attack, defence, kick', ariaLabel: 'Team statistics',   iconKey: 'team',         handlerKey: 'onTeamStats' },
   { id: 'lm-tile-player',       label: 'Player Stats',  sub: 'Top 10 leaderboards',   ariaLabel: 'Player statistics', iconKey: 'player',       handlerKey: 'onPlayerStats' },
   { id: 'lm-tile-achievements', label: 'Awards',        sub: 'Career milestones',     ariaLabel: 'Achievements',      iconKey: 'achievements', handlerKey: 'onAchievements' },

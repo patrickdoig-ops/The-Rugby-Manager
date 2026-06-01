@@ -1,6 +1,6 @@
-# Prem Cup
+# League Cup
 
-The **PREM Rugby Cup** is a parallel, lower-stakes competition contested
+The **League Cup** is a parallel, lower-stakes competition contested
 entirely during the season's two international breaks (the multi-week gaps
 before league **Round 6** = Autumn Nations and **Round 11** = Six Nations).
 The **Assistant Manager (AI) runs every cup match headless** — the user never
@@ -80,11 +80,11 @@ At a break, the post-match chain runs:
 
 1. **RoundResults → LeagueTable** (the league round just played).
 2. **International Call-Ups** (`intl-callups`) — who's away.
-3. **Prem Cup Fixtures** (`cup-fixtures`) — this block's fixtures + pool
+3. **League Cup Fixtures** (`cup-fixtures`) — this block's fixtures + pool
    tables + the best-vs-rest direction toggle.
 4. **Training** (`training`) — the block's training plan.
 5. *[block plays out headless: cup fixtures + knockouts + training + returns]*
-6. **Prem Cup Results** (`cup-results`) — block results + pools + bracket.
+6. **League Cup Results** (`cup-results`) — block results + pools + bracket.
 7. **Training impact** (`training-results`) → **International returns**
    (`international-break`) → **Hub**.
 
@@ -92,7 +92,7 @@ At a break, the post-match chain runs:
 seeds + reads the block's cup fixtures) runs before step 2;
 `runInternationalBreakBlock(weeks, begin)` (the training Continue, async)
 plays the block. Mid-season the cup is browsable read-only from the League
-sub-menu's **Prem Cup** tile (`showCupFixturesBrowse`).
+sub-menu's **League Cup** tile (`showCupFixturesBrowse`).
 
 ## Code map
 

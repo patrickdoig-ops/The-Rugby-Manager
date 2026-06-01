@@ -79,7 +79,7 @@ export function initInternationalCallUpsScreen(
             ${c.selectionRank === 1 ? '<span class="intl-apps">First choice</span>' : `<span class="intl-apps">Squad</span>`}
           </div>
         </div>`).join('')
-      : `<div class="intl-empty">No ${teamJson?.shortName ?? 'your'} players called up — your full squad is available for the Prem Cup.</div>`;
+      : `<div class="intl-empty">No ${teamJson?.shortName ?? 'your'} players called up — your full squad is available for the League Cup.</div>`;
 
     el!.innerHTML = `
       <div class="app-header">
@@ -95,7 +95,7 @@ export function initInternationalCallUpsScreen(
         <div class="intl-hero">
           <span class="intl-hero-num">${mine.length}</span>
           <span class="intl-hero-label">${mine.length === 1 ? 'Player' : 'Players'} Called Up</span>
-          <div class="intl-hero-sub">Up to ${tests} Tests over the window — they miss the Prem Cup block and your training.</div>
+          <div class="intl-hero-sub">Up to ${tests} Tests over the window — they miss the League Cup block and your training.</div>
         </div>
 
         ${mine.length > 0 ? `<div class="intl-section-title">Your players away on duty</div>` : ''}
@@ -110,7 +110,7 @@ export function initInternationalCallUpsScreen(
 
       <div class="cup-footer">
         <button id="callups-continue" class="cta-pulse">
-          <span>Prem Cup fixtures</span>
+          <span>League Cup fixtures</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
         </button>
       </div>

@@ -8,7 +8,7 @@ Architectural invariants and ways of working for this repo. Lean by design. Read
 | Season/career engine — GameCoordinator, season state, fixtures, AI sims, standings, save format | **`docs/game-engine.md`** |
 | Transfer system — all 10 phases, market windows, signings, renewals, poaching, supply | **`docs/transfer-system.md`** |
 | Visual design + navigation flow + screen architecture | **`docs/DESIGN.md`** |
-| Prem Cup | **`docs/prem-cup.md`** |
+| League Cup | **`docs/league-cup.md`** |
 | Fixture schedule | **`docs/prem-fixtures-2025-26.md`** |
 | Team data | **`docs/team-data.md`** |
 
@@ -137,7 +137,7 @@ Diagnostic: `git status && git log --oneline -5 && git branch -vv`.
 | Transfer system — market windows, signings, renewals, poaching, generated supply | **`docs/transfer-system.md`** |
 | Visual design + navigation flow + screen architecture + Hub tile list | **`docs/DESIGN.md`** |
 | 2025/26 League fixture list | **`docs/prem-fixtures-2025-26.md`** ↔ `src/data/fixtures-2025-26.ts` |
-| Prem Cup | **`docs/prem-cup.md`** ↔ `src/game/cupScheduler.ts` |
+| League Cup | **`docs/league-cup.md`** ↔ `src/game/cupScheduler.ts` |
 | Architectural invariants & ways of working | this file |
 | Team data (squad tables, baseStats, star players) | **`docs/team-data.md`** → `node scripts/generateTeamJsons.mjs` syncs JSONs |
 

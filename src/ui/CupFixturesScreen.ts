@@ -53,7 +53,7 @@ export function initCupFixturesScreen(
 
     const pools = cup
       ? `<div class="cup-pools">${poolTableHtml(cup.pools[0], teamsById, myId)}${poolTableHtml(cup.pools[1], teamsById, myId)}</div>`
-      : `<div class="intl-empty">The Prem Cup hasn't started yet.</div>`;
+      : `<div class="intl-empty">The League Cup hasn't started yet.</div>`;
 
     if (mode.kind === 'pre_block') {
       const legFixtures = mode.begin.cupFixturesThisBlock;
@@ -62,7 +62,7 @@ export function initCupFixturesScreen(
         <div class="app-header">
           <div class="app-topbar">
             <div class="app-topbar-spacer"></div>
-            <span class="app-title">Prem Cup</span>
+            <span class="app-title">League Cup</span>
             <div class="app-topbar-spacer"></div>
           </div>
           <div class="app-eyebrow">${legLabel} · ${state.calendar.seasonLabel}</div>

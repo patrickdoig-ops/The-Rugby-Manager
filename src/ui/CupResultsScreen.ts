@@ -58,7 +58,7 @@ export function initCupResultsScreen(
       <div class="app-header">
         <div class="app-topbar">
           <div class="app-topbar-spacer"></div>
-          <span class="app-title">Prem Cup Results</span>
+          <span class="app-title">League Cup Results</span>
           <div class="app-topbar-spacer"></div>
         </div>
         <div class="app-eyebrow">${leg === 1 ? 'Pool Stage — Leg 1' : 'Pool Stage — Leg 2 + Knockouts'} · ${state.calendar.seasonLabel}</div>

@@ -308,6 +308,21 @@ Each `if` block overwrites the previous, so the final matching block wins.
 
 When `computeFatigue` detects a player crossing from ≥ 50% to < 50% fatiguePct, it returns that player in its `newlyTired` list. `FatigueAccumulator` emits a commentary `GameEvent` (using the current phase/possession context) with a randomly chosen line from six variants: "starting to look tired", "looking leggy", "wear is showing", "running on empty", "looks worn out", "tank is emptying". The commentary feed colorises the player name normally.
 
+### Occasion commentary
+
+Special matches inject extra atmosphere into the commentary feed via four hooks, each reading `state.engine` flags (`isDerby`, `neutralVenue`, `isPlayoffSemi`) to decide whether to fire:
+
+| Hook | Trigger | Mechanism | Chance |
+|---|---|---|---|
+| **Coin toss** | Any occasion match | `announcement` step appended to the coin-toss narration | 100% (always fires once) |
+| **Knock-on pressure** | Any occasion match, knock-on in PhasePlay | `tactic_note` (`occasion_error_pressure`) appended to knock-on narration | 25% (`COMMENTARY_CHANCES.occasionErrorPressure`) |
+| **Line break** | Any occasion match, line break in PhasePlay (non-try) | `tactic_note` (`occasion_rising_to_occasion`) appended after line-break narration | 25% (`COMMENTARY_CHANCES.occasionRisingToOccasion`) |
+| **Clock in red (2nd half)** | Any occasion match, second-half clock-in-red | `tactic_note` (`occasion_clock_in_red`) appended to clock-in-red narration | 40% (`COMMENTARY_CHANCES.occasionClockInRed`) |
+
+The coin-toss announcement key varies by match type: `occasion_kickoff_derby` / `occasion_kickoff_playoff_semi` / `occasion_kickoff_final`. All three `tactic_note` causes (`occasion_error_pressure`, `occasion_rising_to_occasion`, `occasion_clock_in_red`) live in `src/commentary/banks/en-GB/tacticNotes.ts`; the coin-toss lines live in `src/commentary/banks/en-GB/announcements.ts`. Occasion tactic notes use the commentary RNG stream (as all tactic notes do) so they cannot shift in-play outcomes.
+
+`state.engine.isPlayoffSemi` is set to `true` by `main.ts` for playoff semi-final fixtures; the playoff final uses the existing `neutralVenue = true` flag; derbies use the existing `isDerby = true` flag.
+
 ---
 
 ## Determinism (Seeded RNG)

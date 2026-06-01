@@ -189,15 +189,29 @@ export function initHubScreen(opts: InitHubScreenOpts): void {
           const unread = countUnread(sk, inboxItems);
           const topItem = inboxItems[0];
           if (topItem) {
+            const linkLabel: Record<string, string> = { squad: 'View squad', contracts: 'View contracts', transfers: 'View transfers', fixtures: 'View fixtures', league: 'View league' };
             return `
               <button id="hub-alert-banner" type="button">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51-4.66-2.51m-4.839 2.51 4.66-2.51M3.75 9l3-3.75M20.25 9l-3-3.75M12 3.75v.75M12 18.75V21m-8.25-3h1.5m13.5 0h1.5"/></svg>
-                <span class="hub-alert-text">
-                  <span class="hub-alert-from">Inbox</span>
-                  <span class="hub-alert-subject">${topItem.subject}</span>
+                <span class="hub-inbox-head">
+                  <span class="hub-inbox-title">Inbox</span>
+                  <span class="hub-inbox-sub">${unread} need your attention</span>
+                  ${unread > 0 ? `<span class="hub-inbox-count">${unread}</span>` : ''}
                 </span>
-                ${unread > 0 ? `<span class="hub-alert-badge">${unread}</span>` : ''}
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+                <span class="hub-inbox-row hub-inbox-row--${topItem.category}">
+                  <span class="hub-inbox-dot" aria-hidden="true"></span>
+                  <span class="hub-inbox-rowtext">
+                    <span class="hub-inbox-subject">${topItem.subject}</span>
+                    <span class="hub-inbox-meta">
+                      <span class="hub-inbox-tag">${topItem.category}</span>
+                      ${topItem.deepLink ? `<span class="hub-inbox-dotsep">·</span><span class="hub-inbox-link">${linkLabel[topItem.deepLink]}</span>` : ''}
+                    </span>
+                  </span>
+                  <svg class="hub-inbox-chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+                </span>
+                <span class="hub-inbox-foot">
+                  <span class="hub-inbox-foot-link">Go to Inbox <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></span>
+                  ${inboxItems.length > 1 ? `<span class="hub-inbox-foot-rest">+${inboxItems.length - 1} more</span>` : ''}
+                </span>
               </button>`;
           }
           return '<div id="hub-alert-banner" aria-hidden="true" style="visibility:hidden"></div>';

@@ -486,72 +486,42 @@
 
 #hub-alert-banner {
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  margin-bottom: 6px;
-  min-height: 44px;
-  background: color-mix(in oklch, var(--rm-amber) 10%, transparent);
-  border: none;
-  border-top: 1px solid color-mix(in oklch, var(--rm-amber) 25%, transparent);
-  border-bottom: 1px solid color-mix(in oklch, var(--rm-amber) 25%, transparent);
-  color: var(--rm-amber);
-  cursor: pointer;
-  width: 100%;
-  text-align: left;
-  -webkit-tap-highlight-color: transparent;
-  transition: background 0.15s;
-}
-
-@media (hover: hover) {
-  #hub-alert-banner:hover {
-    background: color-mix(in oklch, var(--rm-amber) 16%, transparent);
-  }
-}
-
-.hub-alert-text {
+  margin: 0 16px 8px;
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  flex: 1;
-  min-width: 0;
-  text-align: left;
-}
-
-.hub-alert-from {
-  font-family: var(--rm-font-mono);
-  font-size: var(--rm-fs-10);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: color-mix(in oklch, var(--rm-amber) 70%, transparent);
-}
-
-.hub-alert-subject {
-  font-family: var(--rm-font-body);
-  font-size: var(--rm-fs-13);
-  font-weight: 600;
-  white-space: nowrap;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--rm-chalk) 14%, transparent);
+  border-radius: 13px;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-align: left;
+  color: var(--rm-text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.hub-alert-badge {
-  background: var(--rm-danger);
-  color: var(--rm-on-accent);
-  border-radius: 9px;
-  min-width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-family: var(--rm-font-mono);
-  font-size: var(--rm-fs-10);
-  font-weight: 700;
-  padding: 0 5px;
-}
+.hub-inbox-head { display: flex; align-items: center; gap: 8px; padding: 11px 14px; }
+.hub-inbox-title { font-family: var(--rm-font-display); font-size: var(--rm-fs-18); letter-spacing: 0.04em; text-transform: uppercase; color: var(--rm-chalk); line-height: 1; }
+.hub-inbox-sub { flex: 1; font-family: var(--rm-font-mono); font-size: var(--rm-fs-9); letter-spacing: 0.08em; text-transform: uppercase; color: var(--rm-text-muted); }
+.hub-inbox-count { background: var(--rm-danger); color: var(--rm-on-accent); border-radius: 9px; min-width: 19px; height: 19px; padding: 0 5px; display: flex; align-items: center; justify-content: center; font-family: var(--rm-font-mono); font-size: var(--rm-fs-10); font-weight: 700; }
+.hub-inbox-row { display: flex; align-items: center; gap: 11px; padding: 11px 14px; border-top: 1px solid var(--rm-hairline); }
+.hub-inbox-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 2px color-mix(in srgb, var(--rm-chalk) 12%, transparent); }
+.hub-inbox-rowtext { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.hub-inbox-subject { font-family: var(--rm-font-body); font-size: var(--rm-fs-13); font-weight: 600; color: var(--rm-chalk); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hub-inbox-meta { display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; }
+.hub-inbox-tag { font-family: var(--rm-font-mono); font-size: var(--rm-fs-9); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--rm-text); flex-shrink: 0; }
+.hub-inbox-dotsep, .hub-inbox-link { font-family: var(--rm-font-mono); font-size: var(--rm-fs-9); letter-spacing: 0.10em; text-transform: uppercase; color: var(--rm-text-muted); }
+.hub-inbox-chev { color: var(--rm-text-faint); flex-shrink: 0; }
+.hub-inbox-foot { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-top: 1px solid var(--rm-hairline); background: color-mix(in srgb, var(--rm-chalk) 4%, transparent); }
+.hub-inbox-foot-link { display: flex; align-items: center; gap: 6px; font-family: var(--rm-font-mono); font-size: var(--rm-fs-10); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--rm-text); }
+.hub-inbox-foot-rest { font-family: var(--rm-font-mono); font-size: var(--rm-fs-9); letter-spacing: 0.10em; text-transform: uppercase; color: var(--rm-text-faint); }
+
+/* category dot colours — mirror .inbox-item--* */
+.hub-inbox-row--medical .hub-inbox-dot,
+.hub-inbox-row--contracts .hub-inbox-dot { background: oklch(0.72 0.20 25); }
+.hub-inbox-row--transfers .hub-inbox-dot { background: var(--rm-amber); }
+.hub-inbox-row--league .hub-inbox-dot,
+.hub-inbox-row--match .hub-inbox-dot,
+.hub-inbox-row--squad .hub-inbox-dot { background: var(--rm-pitch); }
 
 /* ─── Inbox / Assistant's Report screen ─────────────────────────────────── */
 

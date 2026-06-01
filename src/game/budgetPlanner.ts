@@ -42,11 +42,14 @@ export function computeBudgetEvents(state: GameState): SeasonEvent[] {
   const playoffs = state.league.playoffs;
   const championId = playoffs?.championTeamId ?? null;
   const sfClubs = new Set<string>();
+  const finalistClubs = new Set<string>();
   if (playoffs) {
     for (const m of playoffs.semifinals) {
       if (m.homeId) sfClubs.add(m.homeId);
       if (m.awayId) sfClubs.add(m.awayId);
     }
+    if (playoffs.final.homeId) finalistClubs.add(playoffs.final.homeId);
+    if (playoffs.final.awayId) finalistClubs.add(playoffs.final.awayId);
   }
 
   // Stable alpha-by-clubId order keeps the event stream reproducible
@@ -59,7 +62,10 @@ export function computeBudgetEvents(state: GameState): SeasonEvent[] {
     reasons.push({ kind: 'position', value: position });
     const positionShift = (5.5 - position) * BUDGET_VALUES.positionDelta;
     let next = club.salaryBudget + positionShift;
-    if (sfClubs.has(club.id)) {
+    if (finalistClubs.has(club.id)) {
+      next += BUDGET_VALUES.finalistBonus;
+      reasons.push({ kind: 'finalist' });
+    } else if (sfClubs.has(club.id)) {
       next += BUDGET_VALUES.semiFinalBonus;
       reasons.push({ kind: 'sf_appearance' });
     }

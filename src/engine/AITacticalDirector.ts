@@ -17,6 +17,16 @@ import type { TeamTactics, TeamSide, Intensity, Discipline } from '../types/team
 import { applyMatchEvent } from './applyMatchEvent';
 import { AI_DIRECTOR_VALUES, AI_EFFORT_VALUES, AI_INTENT_CHASING, AI_INTENT_PROTECTING, CLOCK_VALUES, HUMAN_RESPONSE_RULES, TACTIC_ORDERS } from './balance';
 
+export type IntentCategory = 'baseline' | 'chasing' | 'protecting';
+
+export interface TacticsChangeSignal {
+  side: TeamSide;
+  teamName: string;
+  category: IntentCategory;
+  scoreGap: number;
+  minutesLeft: number;
+}
+
 function tacticsEqual(a: TeamTactics, b: TeamTactics): boolean {
   return a.attackingGamePlan === b.attackingGamePlan
     && a.attackingStyle === b.attackingStyle
@@ -62,6 +72,7 @@ export class AITacticalDirector {
   // never proposes tactics for this side; the human owns it via the modal.
   // If undefined (e.g. fully-headless fixtures), both sides adapt.
   private humanSide: TeamSide | undefined;
+  private prevIntentCategory: { home: IntentCategory; away: IntentCategory };
 
   constructor(state: MatchState, humanSide: TeamSide | undefined) {
     this.state = state;
@@ -70,9 +81,11 @@ export class AITacticalDirector {
       home: { ...state.homeTeam.tactics },
       away: { ...state.awayTeam.tactics },
     };
+    this.prevIntentCategory = { home: 'baseline', away: 'baseline' };
   }
 
-  evaluate(): void {
+  evaluate(): TacticsChangeSignal | null {
+    let signal: TacticsChangeSignal | null = null;
     for (const side of ['home', 'away'] as const) {
       if (side === this.humanSide) continue;
       const desired = { ...this.pickIntent(side), ...this.pickEffort(side) };
@@ -80,7 +93,35 @@ export class AITacticalDirector {
       if (!tacticsEqual(team.tactics, desired)) {
         applyMatchEvent(this.state, { type: 'TACTICS_UPDATED', side, tactics: desired });
       }
+      const category = this.getIntentCategory(side);
+      if (category !== this.prevIntentCategory[side]) {
+        this.prevIntentCategory[side] = category;
+        if (signal === null) {
+          const myScore  = this.state.score[side];
+          const oppScore = side === 'home' ? this.state.score.away : this.state.score.home;
+          signal = {
+            side,
+            teamName: team.name,
+            category,
+            scoreGap: myScore - oppScore,
+            minutesLeft: CLOCK_VALUES.fullTimeMinute - this.state.clock.gameMinute,
+          };
+        }
+      }
     }
+    return signal;
+  }
+
+  private getIntentCategory(side: TeamSide): IntentCategory {
+    const minutesRemaining = CLOCK_VALUES.fullTimeMinute - this.state.clock.gameMinute;
+    if (minutesRemaining <= AI_DIRECTOR_VALUES.minutesRemainingTrigger) {
+      const myScore  = this.state.score[side];
+      const oppScore = side === 'home' ? this.state.score.away : this.state.score.home;
+      const gap = myScore - oppScore;
+      if (gap <= -AI_DIRECTOR_VALUES.scoreGapTrigger) return 'chasing';
+      if (gap >=  AI_DIRECTOR_VALUES.scoreGapTrigger) return 'protecting';
+    }
+    return 'baseline';
   }
 
   private pickIntent(side: TeamSide): TeamTactics {

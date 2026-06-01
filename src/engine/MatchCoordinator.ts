@@ -782,7 +782,35 @@ export class MatchCoordinator {
     // take effect on the very tick that meets the trigger condition. The
     // sub director runs next so a fresh replacement participates in the
     // same tick's resolver.
-    this.director.evaluate();
+    const tacticsSignal = this.director.evaluate();
+    if (!this.silent && tacticsSignal !== null) {
+      const key: import('../types/narration').AnnouncementKey =
+        tacticsSignal.category === 'chasing'    ? 'ai_tactics_chasing' :
+        tacticsSignal.category === 'protecting' ? 'ai_tactics_protecting' :
+                                                  'ai_tactics_revert';
+      const tacticsEvent: GameEvent = {
+        id: makeId(),
+        gameMinute: this.state.clock.gameMinute,
+        phase: this.state.phase,
+        side: tacticsSignal.side,
+        sideName: tacticsSignal.teamName,
+        ballX: this.state.ball.x,
+        ballY: this.state.ball.y,
+        narration: {
+          steps: [{
+            kind: 'announcement',
+            key,
+            params: {
+              teamName: tacticsSignal.teamName,
+              minutesLeft: tacticsSignal.minutesLeft,
+              scoreGap: tacticsSignal.scoreGap,
+            },
+          }],
+        },
+      };
+      applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: tacticsEvent });
+      this.emitEvent(tacticsEvent);
+    }
     this.subDirector.evaluate();
 
     const event = resolvePhase(this.state, this.kickOffStrategy);

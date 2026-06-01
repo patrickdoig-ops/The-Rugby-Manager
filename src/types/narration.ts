@@ -102,6 +102,9 @@ export type AnnouncementKey =
   | 'occasion_kickoff_derby'
   | 'occasion_kickoff_playoff_semi'
   | 'occasion_kickoff_final'
+  | 'ai_tactics_chasing'
+  | 'ai_tactics_protecting'
+  | 'ai_tactics_revert'
   | CardAnnouncementKey;
 
 export interface TacticNoteParams {
@@ -140,6 +143,8 @@ export interface AnnouncementParams {
   homeScore?: number;
   awayScore?: number;
   tryAftermath?: TryAftermathContext;
+  minutesLeft?: number;
+  scoreGap?: number;
 }
 
 // Some announcements (sin-bin return, replacement done) need to mention a

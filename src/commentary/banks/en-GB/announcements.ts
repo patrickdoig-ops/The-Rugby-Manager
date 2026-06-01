@@ -333,6 +333,36 @@ const INJURY_NO_REPLACEMENT: readonly string[] = [
   'No replacement available for {teamName} — {secondary} is off, and they finish a player short.',
 ];
 
+// AI tactical director — called when the AI opponent transitions intent category.
+// Templates use params.teamName, params.minutesLeft, and params.scoreGap inline.
+
+function pickAiTacticsChasing(teamName: string, minutesLeft: number): string {
+  return pickRandom([
+    `${teamName} have shifted to full-chase mode — they need points with ${minutesLeft} minutes left.`,
+    `Watch for a change in shape from ${teamName} — they're throwing everything at this now.`,
+    `${teamName} are going for it — wide play, offloads, and more risk. They have to.`,
+    `That's the signal from the ${teamName} bench — all-out attack from here.`,
+  ]);
+}
+
+function pickAiTacticsProtecting(teamName: string, minutesLeft: number): string {
+  return pickRandom([
+    `${teamName} are sitting on this — expect the kicking game and tight defence with ${minutesLeft} minutes to go.`,
+    `A subtle shift from ${teamName} — they're managing the game now, protecting what they have.`,
+    `${teamName} will close this out if they can — the territory game takes over from here.`,
+    `The ${teamName} bench sends the message: protect the lead. No risks.`,
+  ]);
+}
+
+function pickAiTacticsRevert(teamName: string): string {
+  return pickRandom([
+    `The gap has narrowed — ${teamName} are back to their normal shape.`,
+    `${teamName} reset to their game plan as the score tightens.`,
+    `Things have changed on the scoreboard — ${teamName} are back to their default approach.`,
+    `${teamName} read the situation and adjust — back to their standard setup now.`,
+  ]);
+}
+
 export function getAnnouncementTemplate(
   key: AnnouncementKey,
   params: AnnouncementParams = {},
@@ -418,6 +448,12 @@ export function getAnnouncementTemplate(
       return pickRandom(OCCASION_KICKOFF_PLAYOFF_SEMI);
     case 'occasion_kickoff_final':
       return pickRandom(OCCASION_KICKOFF_FINAL);
+    case 'ai_tactics_chasing':
+      return pickAiTacticsChasing(params.teamName ?? 'the opposition', params.minutesLeft ?? 15);
+    case 'ai_tactics_protecting':
+      return pickAiTacticsProtecting(params.teamName ?? 'the opposition', params.minutesLeft ?? 15);
+    case 'ai_tactics_revert':
+      return pickAiTacticsRevert(params.teamName ?? 'the opposition');
     case 'injury_off':
       return pickRandom(INJURY_OFF);
     case 'injury_replacement_done': {

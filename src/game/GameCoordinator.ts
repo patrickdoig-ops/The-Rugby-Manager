@@ -33,12 +33,12 @@
 // runs on a timer.
 
 import type {
-  ArchivedSeason, ClubState,
+  ArchivedSeason, ClubState, CupFixture,
   Fixture, FixtureResult, GameState, MarketState, PlayerRef, PlayoffMatch, PlayoffState, PreAgreement, SeasonEvent, SeasonSchedule,
 } from '../types/gameState';
 import { emptyCareerState } from '../types/gameState';
 import { sortStandings } from './leagueTable';
-import type { Player } from '../types/player';
+import type { Player, InternationalWindow } from '../types/player';
 import type { TeamTactics } from '../types/team';
 import type { TrainingPlan, TrainingWeekResult, PlayerTrainingResult, InternationalBreakSummary } from '../types/training';
 import type { PlayerStats } from '../types/player';
@@ -46,7 +46,9 @@ import { applySeasonEvent } from './applySeasonEvent';
 import type { PreSeasonTransfer } from '../data/transfers-2025-26';
 import { simulateFixture } from './simulateFixture';
 import { seedRoster } from './rosterSeeder';
-import { buildAutoSelectedTeamFromRoster } from './rosterTeamBuilder';
+import { buildAutoSelectedTeamFromRoster, buildCupTeamFromRoster } from './rosterTeamBuilder';
+import { CUP_POOLS_2025_26, CUP_SEED_ROUND, buildCupSeed, buildCupKnockoutSeed } from './cupScheduler';
+import { cupDevelopmentEvents } from './cupDevelopment';
 import { parseSeasonStartYear, seasonOpenIso } from './age';
 import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot, type PlayerStatsSnapshot } from './seasonStatsCollector';
 import { computeTrainingWeek } from './trainingWeek';
@@ -68,6 +70,17 @@ import { SEASON_VALUES, INJURY_SEVERITY, STARTER_FA_POOL } from '../engine/balan
 import type { InjurySeverity } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 import type { RawTeamInput } from '../types/teamData';
+
+// Returned by beginInternationalBreak() — the context the break-flow UI
+// (call-ups screen → cup-fixtures screen → training) needs, and that
+// runInternationalBreakBlock() consumes to play out the block.
+export interface BreakBeginResult {
+  window: InternationalWindow;
+  callUps: CallUp[];
+  cupLeg: 1 | 2;
+  cupFixturesThisBlock: CupFixture[];
+  cupDirection: 'best' | 'rest_first_15';
+}
 
 export type SavedSeasonResult = {
   round: number;
@@ -181,6 +194,13 @@ export class GameCoordinator {
     if (seasonStartYear === 2025) {
       for (const ev of lionsReturnEvents(coord.state)) applySeasonEvent(coord.state, ev);
     }
+    // Seed the Prem Cup for year 1 — real 2025-26 pools (RNG-free; pool
+    // redraw for year 2+ happens at rollover). Fixtures derive their
+    // synthetic break-gap dates from the league schedule.
+    applySeasonEvent(coord.state, {
+      type: 'PREM_CUP_SEEDED',
+      ...buildCupSeed(CUP_POOLS_2025_26, coord.state.league.fixtures, coord.state.calendar.seasonLabel),
+    });
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
   }
@@ -277,33 +297,31 @@ export class GameCoordinator {
     return out;
   }
 
-  // Applies a training block — one entry in `weeks` per discrete training
-  // week of the gap until the player's next match (length === upcomingGap
-  // weeks; the UI renders one card per week). The gap's real day count is
-  // split into ~7-day periods (splitGapIntoPeriods); condition recovers per
-  // day across each period's span while development + injury rolls fire once
-  // per period. Each period emits one PLAYER_TRAINING_PLAN_SET (last wins as
-  // the persisted default) then one PLAYER_TRAINED per non-injured player
-  // league-wide plus optional PLAYER_INJURED; AI clubs get their plan from
-  // aiTrainingDirector, re-picked per period. RNG flows through rngTransfer;
-  // stable iteration order keeps it deterministic. Returns per-player
-  // results merged across the block for PostTrainingResultsScreen.
+  // Applies a (non-break) training block — one entry in `weeks` per discrete
+  // training week of the gap until the player's next match. The gap's real
+  // day count is split into ~7-day periods (splitGapIntoPeriods); condition
+  // recovers per day across each period's span while development + injury
+  // rolls fire once per period. RNG flows through rngTransfer; stable
+  // iteration order keeps it deterministic. International breaks are handled
+  // separately — beginInternationalBreak() + runInternationalBreakBlock() —
+  // so the call-ups + Prem Cup screens can surface before the block runs.
   applyTrainingBlock(weeks: TrainingPlan[]): TrainingWeekResult {
     const n = Math.max(1, weeks.length);
     const { days } = upcomingGap(this.state);
     const spans = splitGapIntoPeriods(days, n);
+    const acc = this.runTrainingPeriods(weeks, spans);
+    eventBus.emit('game:trainingApplied', { state: this.state });
+    return { plan: weeks[weeks.length - 1], players: [...acc.values()], weeks: n };
+  }
 
-    // International break: select the national squads and flag them BEFORE the
-    // training loop so computeTrainingWeek skips them (they're away — no club
-    // training, no condition recovery / development). Their returns are
-    // resolved after the block. League-wide; AI clubs lose their players too.
-    const intlWindow = isInternationalBreak(this.state);
-    let intlCallUps: CallUp[] = [];
-    if (intlWindow) {
-      intlCallUps = selectInternationalSquads(this.state, intlWindow);
-      for (const ev of buildCallUpEvents(intlCallUps, intlWindow)) applySeasonEvent(this.state, ev);
-    }
-
+  // Per-period training loop, shared by the non-break path (applyTrainingBlock)
+  // and the international-break path (runInternationalBreakBlock). Each period
+  // emits one PLAYER_TRAINING_PLAN_SET then one PLAYER_TRAINED per non-injured,
+  // non-international player league-wide plus optional PLAYER_INJURED; AI clubs
+  // get their plan from aiTrainingDirector, re-picked per period. Returns the
+  // per-player results merged across the block for PostTrainingResultsScreen.
+  private runTrainingPeriods(weeks: TrainingPlan[], spans: number[]): Map<number, PlayerTrainingResult> {
+    const n = Math.max(1, weeks.length);
     // Per-player accumulator merged across periods. conditionBefore is
     // captured the first period a player trains; conditionAfter tracks the
     // latest; statDeltas sum; newlyInjured latches on any period.
@@ -356,13 +374,90 @@ export class GameCoordinator {
         acc.set(ev.rosterId, entry);
       }
     }
+    return acc;
+  }
 
-    // Resolve international returns after the training block: reduced
-    // condition, possible injury, and (England heavy-load) a PGA rest
-    // obligation. Builds the summary for the International Break screen.
+  // ── International break: begin / run split ───────────────────────────────
+  //
+  // The break is a two-phase flow so the UI can show the call-ups + Prem Cup
+  // fixtures (and collect the Assistant-Manager direction) BEFORE the block
+  // simulates. beginInternationalBreak does only RNG-free work (squad
+  // selection + flagging + cup lookup); runInternationalBreakBlock does the
+  // cup sims (MATCH stream), the training periods + international returns
+  // (rngTransfer — identical sequence to applyTrainingBlock).
+
+  // Detects the break, flags the called-up players, and returns the call-ups
+  // + this block's cup fixtures + the persisted cup direction. Returns null
+  // off a break round. Idempotent: re-calling at the same break won't
+  // double-bump internationalCaps. RNG-free.
+  beginInternationalBreak(): BreakBeginResult | null {
+    const window = isInternationalBreak(this.state);
+    if (!window) return null;
+
+    // Lazy-seed the cup if it isn't (defensive — covers saves created before
+    // the cup system). Fixed 2025-26 pools, RNG-free.
+    if (this.state.league.premCup === null) {
+      applySeasonEvent(this.state, {
+        type: 'PREM_CUP_SEEDED',
+        ...buildCupSeed(CUP_POOLS_2025_26, this.state.league.fixtures, this.state.calendar.seasonLabel),
+      });
+    }
+
+    const callUps = selectInternationalSquads(this.state, window);
+    const alreadyFlagged = callUps.some(
+      c => this.state.career.roster[c.rosterId]?.internationalDuty?.window === window,
+    );
+    if (!alreadyFlagged) {
+      for (const ev of buildCallUpEvents(callUps, window)) applySeasonEvent(this.state, ev);
+    }
+
+    const cupLeg: 1 | 2 = window === 'autumn' ? 1 : 2;
+    const cupFixturesThisBlock = (this.state.league.premCup?.fixtures ?? []).filter(f => f.leg === cupLeg);
+    const cupDirection = this.state.player.cupDirection ?? 'best';
+    return { window, callUps, cupLeg, cupFixturesThisBlock, cupDirection };
+  }
+
+  // Runs the break block: Prem Cup fixtures (+ knockouts in leg 2), the cup
+  // development nudge, the training periods, then international returns.
+  // Determinism: the cup sims use the MATCH stream (independent of
+  // rngTransfer); the dev nudge is RNG-free; the training + returns
+  // rngTransfer sequence is byte-identical to applyTrainingBlock.
+  async runInternationalBreakBlock(weeks: TrainingPlan[], begin: BreakBeginResult): Promise<TrainingWeekResult> {
+    const restIds = begin.cupDirection === 'rest_first_15' ? this.firstChoiceStarterIds() : undefined;
+    const featured = new Set<number>();
+
+    // 1. Pool fixtures for this block (Assistant-managed, headless).
+    for (const fx of begin.cupFixturesThisBlock) {
+      await this.simulateCupFixture(fx, restIds, featured);
+    }
+
+    // 2. Leg 2: seed + play the knockout (SFs cascade into the final).
+    if (begin.cupLeg === 2 && this.state.league.premCup) {
+      const seed = buildCupKnockoutSeed(this.state.league.premCup, this.state.league.fixtures);
+      applySeasonEvent(this.state, { type: 'PREM_CUP_KNOCKOUT_SEEDED', semifinals: seed.semifinals, final: seed.final });
+      await this.simulateCupKnockout('semifinal_1', restIds, featured);
+      await this.simulateCupKnockout('semifinal_2', restIds, featured);
+      await this.simulateCupKnockout('final', restIds, featured);
+    }
+
+    // 3. Cup development nudge — one per featured player, RNG-free, before
+    // training (so the dev nudge's conditionDelta-0 PLAYER_TRAINED doesn't
+    // interleave with the training condition recovery).
+    for (const ev of cupDevelopmentEvents(this.state, featured, this.state.calendar.date)) {
+      applySeasonEvent(this.state, ev);
+    }
+
+    // 4. Training periods (rngTransfer). Internationals are already flagged
+    // by beginInternationalBreak, so computeTrainingWeek skips them.
+    const n = Math.max(1, weeks.length);
+    const { days } = upcomingGap(this.state);
+    const spans = splitGapIntoPeriods(days, n);
+    const acc = this.runTrainingPeriods(weeks, spans);
+
+    // 5. International returns (rngTransfer).
     let international: InternationalBreakSummary | undefined;
-    if (intlWindow && intlCallUps.length > 0) {
-      const resolved = resolveInternationalBreak(this.state, intlCallUps, intlWindow);
+    if (begin.callUps.length > 0) {
+      const resolved = resolveInternationalBreak(this.state, begin.callUps, begin.window);
       for (const ev of resolved.events) applySeasonEvent(this.state, ev);
       international = resolved.summary;
     }
@@ -374,6 +469,82 @@ export class GameCoordinator {
       weeks: n,
       ...(international ? { international } : {}),
     };
+  }
+
+  // Build a Prem Cup matchday side from the roster. The user's club honours
+  // the rest-the-first-15 direction; everyone else fields best-available
+  // (international-duty + injured players excluded by buildCupTeamFromRoster).
+  private buildCupSide(teamJson: RawTeamInput, restIds: number[] | undefined): RawTeamInput {
+    const rest = teamJson.id === this.state.player.teamId ? restIds : undefined;
+    return buildCupTeamFromRoster(this.state, teamJson, rest);
+  }
+
+  // Simulate one cup pool fixture (silent) and record it + the condition
+  // writeback. NOT collectSeasonEvents (cup stats stay out of league
+  // leaderboards) and NOT rollNewInjuryEvents (no cup injuries in v1).
+  private async simulateCupFixture(fx: CupFixture, restIds: number[] | undefined, featured: Set<number>): Promise<void> {
+    const homeJson = this.teamsById.get(fx.homeId);
+    const awayJson = this.teamsById.get(fx.awayId);
+    if (!homeJson || !awayJson) return;
+    const home = this.buildCupSide(homeJson, restIds);
+    const away = this.buildCupSide(awayJson, restIds);
+    const pseudoRound = fx.leg === 1 ? CUP_SEED_ROUND.leg1 : CUP_SEED_ROUND.leg2;
+    const sim = await simulateFixture(home, away, this.state.seed, pseudoRound, {});
+    applySeasonEvent(this.state, {
+      type: 'PREM_CUP_FIXTURE_RECORDED',
+      pool: fx.pool, leg: fx.leg, homeId: fx.homeId, awayId: fx.awayId,
+      homeScore: sim.homeScore, awayScore: sim.awayScore,
+      homeTries: sim.snapshot.homeSummary.tries, awayTries: sim.snapshot.awaySummary.tries,
+    });
+    for (const ev of collectConditionEvents(sim.snapshot)) applySeasonEvent(this.state, ev);
+    for (const s of sim.snapshot.playerSnapshots) featured.add(s.rosterId);
+  }
+
+  // Simulate one cup knockout match (silent). The final plays at a neutral
+  // venue. Skips a match whose slots aren't filled yet / already resolved.
+  private async simulateCupKnockout(
+    kind: 'semifinal_1' | 'semifinal_2' | 'final',
+    restIds: number[] | undefined,
+    featured: Set<number>,
+  ): Promise<void> {
+    const ko = this.state.league.premCup?.knockout;
+    if (!ko) return;
+    const match = kind === 'semifinal_1' ? ko.semifinals[0] : kind === 'semifinal_2' ? ko.semifinals[1] : ko.final;
+    if (match.result || !match.homeId || !match.awayId) return;
+    const homeJson = this.teamsById.get(match.homeId);
+    const awayJson = this.teamsById.get(match.awayId);
+    if (!homeJson || !awayJson) return;
+    const home = this.buildCupSide(homeJson, restIds);
+    const away = this.buildCupSide(awayJson, restIds);
+    const sim = await simulateFixture(home, away, this.state.seed, CUP_SEED_ROUND[kind], { neutralVenue: kind === 'final' });
+    applySeasonEvent(this.state, {
+      type: 'PREM_CUP_KNOCKOUT_RECORDED',
+      kind,
+      homeScore: sim.homeScore, awayScore: sim.awayScore,
+      homeTries: sim.snapshot.homeSummary.tries, awayTries: sim.snapshot.awaySummary.tries,
+    });
+    for (const ev of collectConditionEvents(sim.snapshot)) applySeasonEvent(this.state, ev);
+    for (const s of sim.snapshot.playerSnapshots) featured.add(s.rosterId);
+  }
+
+  // rosterIds of the user's first-choice starting XV (slots 1-15 of the
+  // persisted matchday squad), used by the "rest the starters" cup direction.
+  private firstChoiceStarterIds(): number[] {
+    const md = this.state.player.matchdaySquad;
+    if (!md) return [];
+    const club = this.state.career.clubs.find(c => c.id === this.state.player.teamId);
+    if (!club) return [];
+    const idByName = new Map<string, number>();
+    for (const rid of club.squad) {
+      const p = this.state.career.roster[rid];
+      if (p) idByName.set(`${p.firstName}|${p.lastName}`, rid);
+    }
+    const out: number[] = [];
+    for (const ref of md.slice(0, 15)) {
+      const rid = idByName.get(`${ref.firstName}|${ref.lastName}`);
+      if (rid !== undefined) out.push(rid);
+    }
+    return out;
   }
 
   // Persists the manager's training plan without executing training. Used

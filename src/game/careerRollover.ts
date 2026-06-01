@@ -37,6 +37,7 @@ import { getAge, parseSeasonStartYear, seasonOpenIso } from './age';
 import { generateFixtures } from './fixtures';
 import { rngTransferRaw, rngTransfer } from '../utils/rng';
 import { generatePersona } from './personaGenerator';
+import { redrawCupPools, buildCupSeed } from './cupScheduler';
 
 export function computeRollover(state: GameState, allTeamIds: string[]): SeasonEvent[] {
   const events: SeasonEvent[] = [];
@@ -132,6 +133,7 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
   );
   const archivedStandings: TeamStanding[] = state.league.standings.map(s => ({ ...s }));
   const championTeamId = state.league.playoffs?.championTeamId ?? null;
+  const premCupChampionTeamId = state.league.premCup?.knockout?.championTeamId ?? null;
   const playerSeasonHistory = snapshotPlayerHistory(state);
 
   events.push({
@@ -142,9 +144,18 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
     topScorerRosterId,
     mvpRosterId,
     championTeamId,
+    premCupChampionTeamId,
     leaders,
     playerSeasonHistory,
   });
+
+  // Seed next season's Prem Cup with redrawn pools. redrawCupPools is the
+  // ONLY rngTransfer consumer here and MUST stay last in the rollover so it
+  // can't shift any prior draw (aging / retirements / academy / imports).
+  // Applied after SEASON_ROLLED_OVER, which has already cleared premCup and
+  // installed newFixtures (used to date the cup inside the break gaps).
+  const redrawn = redrawCupPools(allTeamIds);
+  events.push({ type: 'PREM_CUP_SEEDED', ...buildCupSeed(redrawn, newFixtures, newSeasonLabel) });
 
   return events;
 }

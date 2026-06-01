@@ -961,7 +961,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 goToMatch();
               });
               screenRouter.show('training-results');
-            }, label);
+            }, { playoffLabel: label });
             screenRouter.show('training');
           }
         : goToMatch;
@@ -1208,6 +1208,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const afterTraining = isPlayoffEntry
           ? () => { bracketSeededPending = false; runPlayoffStage(); }
           : () => maybeRunMidseasonPoach(() => { if (gameEngine) saveGame(gameEngine.toSavePayload()); goHub(); });
+        // International break detection (RNG-free): flags the call-ups and
+        // reads this block's Prem Cup fixtures. When present, the training
+        // Continue runs the cup + training block (runInternationalBreakBlock)
+        // instead of the plain applyTrainingBlock.
+        const eng = gameEngine;
+        const begin = !isPlayoffEntry && eng ? eng.beginInternationalBreak() : null;
         showTrainingPostMatch((results) => {
           // At an international break the training result carries a summary;
           // slot the International Break screen between training results and
@@ -1220,7 +1226,10 @@ document.addEventListener('DOMContentLoaded', () => {
             : afterTraining;
           showPostTrainingResults(results, afterResults);
           screenRouter.show('training-results');
-        }, playoffLabel);
+        }, {
+          playoffLabel,
+          ...(begin && eng ? { runBlock: (weeks) => eng.runInternationalBreakBlock(weeks, begin) } : {}),
+        });
         screenRouter.show('training');
       };
       showRoundResults(round, () => {

@@ -30,8 +30,17 @@ import { injectTeamColors } from './teamColors';
 
 const SHORT_WEEK_DAYS = 6; // turnaround at or below this nudges toward Light
 
+// `runBlock`, when supplied (an international break), runs the cup + training
+// block via GameCoordinator.runInternationalBreakBlock instead of the plain
+// applyTrainingBlock. It's async (the cup fixtures simulate headless), so the
+// Continue handler awaits it.
+interface PostMatchOpts {
+  playoffLabel?: string;
+  runBlock?: (weeks: TrainingPlan[]) => Promise<TrainingWeekResult>;
+}
+
 type Mode =
-  | { kind: 'post_match'; onContinue: (results: TrainingWeekResult) => void; playoffLabel?: string }
+  | { kind: 'post_match'; onContinue: (results: TrainingWeekResult) => void; playoffLabel?: string; runBlock?: (weeks: TrainingPlan[]) => Promise<TrainingWeekResult> }
   | { kind: 'mid_week';   onBack:     () => void };
 
 let activeMode: Mode | null = null;
@@ -40,8 +49,8 @@ let draftWeekIntensities: TrainingIntensity[] = [];          // post-match per-w
 let draftHydrated = false;
 let renderImpl: (() => void) | null = null;
 
-export function showTrainingPostMatch(onContinue: (results: TrainingWeekResult) => void, playoffLabel?: string): void {
-  activeMode = { kind: 'post_match', onContinue, playoffLabel };
+export function showTrainingPostMatch(onContinue: (results: TrainingWeekResult) => void, opts?: PostMatchOpts): void {
+  activeMode = { kind: 'post_match', onContinue, playoffLabel: opts?.playoffLabel, runBlock: opts?.runBlock };
   renderImpl?.();
 }
 
@@ -228,12 +237,23 @@ function renderPostMatch(
 
   wireChips(el, () => renderImpl?.());
 
-  el.querySelector<HTMLButtonElement>('#tr-continue')!.addEventListener('click', () => {
+  el.querySelector<HTMLButtonElement>('#tr-continue')!.addEventListener('click', (e) => {
     const weeks: TrainingPlan[] = draftWeekIntensities.map(intensity => ({
       intensity,
       forwardsFocus: draftPlan.forwardsFocus,
       backsFocus: draftPlan.backsFocus,
     }));
+    if (mode.runBlock) {
+      // International break: the cup fixtures simulate headless, so the block
+      // is async. Disable the button while it runs (no engine re-entry guard).
+      const btn = e.currentTarget as HTMLButtonElement;
+      btn.disabled = true;
+      void mode.runBlock(weeks).then(results => {
+        draftHydrated = false;
+        mode.onContinue(results);
+      });
+      return;
+    }
     const results = engine.applyTrainingBlock(weeks);
     draftHydrated = false; // next entry re-reads from state
     mode.onContinue(results);

@@ -399,6 +399,21 @@ export class GameCoordinator {
   // + this block's cup fixtures + the persisted cup direction. Returns null
   // off a break round. Idempotent: re-calling at the same break won't
   // double-bump internationalCaps. RNG-free.
+  // Pure detector (no side effects): true when the calendar is parked at an
+  // international break whose cup leg hasn't been played yet — i.e. the break
+  // flow was interrupted (tab close) before completing. Used by continueGame
+  // to resume the break on reload rather than silently skipping it. Returns
+  // false once the leg's fixtures are all resolved (break done, just awaiting
+  // the post-break round).
+  isBreakPending(): boolean {
+    const window = isInternationalBreak(this.state);
+    if (!window) return false;
+    const cup = this.state.league.premCup;
+    if (!cup) return true; // not seeded → break definitely hasn't run
+    const cupLeg: 1 | 2 = window === 'autumn' ? 1 : 2;
+    return cup.fixtures.some(f => f.leg === cupLeg && !f.result);
+  }
+
   beginInternationalBreak(): BreakBeginResult | null {
     const window = isInternationalBreak(this.state);
     if (!window) return null;

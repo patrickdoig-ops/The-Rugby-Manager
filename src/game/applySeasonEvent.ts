@@ -654,8 +654,12 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       };
       const pool = cup.pools.find(p => p.id === event.pool);
       if (!pool) return;
-      const home = findOrCreate(pool.standings, event.homeId);
-      const away = findOrCreate(pool.standings, event.awayId);
+      // Plain find (not findOrCreate): a pool always has its 5 seeded rows,
+      // and creating a 6th from a stray teamId would trip the length-5
+      // invariant. Bail if either side isn't in this pool.
+      const home = pool.standings.find(s => s.teamId === event.homeId);
+      const away = pool.standings.find(s => s.teamId === event.awayId);
+      if (!home || !away) return;
       const margin = event.homeScore - event.awayScore;
       applyToSide(home, event.homeScore, event.awayScore, event.homeTries, margin);
       applyToSide(away, event.awayScore, event.homeScore, event.awayTries, -margin);

@@ -251,6 +251,12 @@ function renderPostMatch(
       void mode.runBlock(weeks).then(results => {
         draftHydrated = false;
         mode.onContinue(results);
+      }).catch((err: unknown) => {
+        // A cup/training block failure (e.g. an invariant trip — not an
+        // engine:error, which the crash overlay would already surface)
+        // mustn't leave the Continue button stuck. Re-enable + log.
+        console.error('International break block failed:', err);
+        btn.disabled = false;
       });
       return;
     }

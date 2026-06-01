@@ -21,7 +21,15 @@ import type { RawPlayer, RawTeamInput } from '../types/teamData';
 import { selectBestMatchdaySquad } from './autoSelect';
 import { selectionUnavailableIds } from './internationalDutyEngine';
 
-export function buildTeamFromRoster(state: GameState, teamJson: RawTeamInput): RawTeamInput {
+export function buildTeamFromRoster(
+  state: GameState,
+  teamJson: RawTeamInput,
+  // Extra rosterIds to treat as unavailable on top of selectionUnavailableIds
+  // (injured + PGA-rest + Lions). The cup path passes its international-duty
+  // set here so on-duty players sink to the wider squad and never fill a
+  // matchday slot when the team is built via this fallback.
+  extraUnavailable?: ReadonlySet<number>,
+): RawTeamInput {
   const club = state.career.clubs.find(c => c.id === teamJson.id);
   if (!club) return teamJson;
 
@@ -30,6 +38,7 @@ export function buildTeamFromRoster(state: GameState, teamJson: RawTeamInput): R
   // partitioned list, so unavailable players sink to the wider-squad section
   // and the auto-built 23 only contains available players.
   const unavailable = selectionUnavailableIds(state, teamJson.id);
+  if (extraUnavailable) for (const rid of extraUnavailable) unavailable.add(rid);
   const fit: number[] = [];
   const injured: number[] = [];
   for (const rid of club.squad) {
@@ -104,7 +113,10 @@ export function buildCupTeamFromRoster(
     // available (including some starters) rather than an incomplete 23.
     selected = selectBestMatchdaySquad(state.career.roster, club.squad, base);
   }
-  if (selected.length !== 23) return buildTeamFromRoster(state, teamJson);
+  // Thin-squad fallback: pass `base` (which includes international-duty
+  // players) so the partition still excludes them — an on-duty player must
+  // never be fielded in a cup match even when the available pool is short.
+  if (selected.length !== 23) return buildTeamFromRoster(state, teamJson, base);
 
   const used = new Set(selected);
   const remaining = club.squad.filter(rid => !used.has(rid));

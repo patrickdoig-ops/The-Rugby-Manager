@@ -421,7 +421,7 @@ A choice between matches: trades off short-term freshness for long-term attribut
 - **Training injuries.** Per player per week, after the development pass, one `rngTransfer` roll against `injuryChance = INTENSITY_EFFECTS[intensity].injuryRisk × conditionRiskMultiplier(condition)`. On a hit, `rngTransfer` picks one of `muscle_strain` / `ligament_sprain` / `knock` (no concussions / fractures from training), reads `INJURY_SEVERITY[kind]` for severity weights + week bands, and emits a `PLAYER_INJURED` event — the same shape used by in-match injuries, so the existing `INJURY_TICK_ADVANCED` / `PLAYER_RECOVERED` loop handles recovery identically. `INJURY_RISK.conditionMultiplier (1.5)` means a player at 0% condition is 1.5× more injury-prone than one at 100%; linear interpolation in between.
 
 - **AI training director** (`src/game/aiTrainingDirector.ts::pickPlan`). Pure, RNG-driven via `rngTransfer`. For each AI club (id-ascending), picks an intensity weighted by:
-  - Squad average condition below `AI_TRAINING.squadConditionTiredThreshold (70%)` → rest/light bias.
+  - Average condition of the top 23 fit (non-injured) players below `AI_TRAINING.squadConditionTiredThreshold (70%)` → rest/light bias.
   - Recent 3-match win rate below `AI_TRAINING.poorFormWinRateThreshold (0.34)` → high bias (chasing form).
   - Else → balanced (medium-biased) baseline.
   - Forwards + backs focuses are then picked uniformly across their respective sets via two more `rngTransfer` calls. A third throwaway roll keeps the per-club call count fixed at 3 regardless of which intensity branch was hit.

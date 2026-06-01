@@ -61,12 +61,12 @@ function pickIntensity(state: GameState, club: ClubState): TrainingIntensity {
 }
 
 function squadAvgCondition(state: GameState, club: ClubState): number {
-  if (club.squad.length === 0) return 100;
   let total = 0;
   let n = 0;
   for (const rid of club.squad) {
+    if (n >= 23) break;
     const p = state.career.roster[rid];
-    if (!p) continue;
+    if (!p || p.injury) continue;
     total += p.condition;
     n++;
   }

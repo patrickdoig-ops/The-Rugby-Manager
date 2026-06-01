@@ -650,7 +650,15 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
   }
 
   renderImpl = () => {
-    resetDraftFromState();
+    if (!dirty) {
+      resetDraftFromState();
+    } else {
+      // Returning to the screen mid-edit (e.g. back from player profile) —
+      // keep the draft but clear transient UI state that shouldn't survive
+      // navigation away from the screen.
+      selection = null;
+      discardOpen = false;
+    }
     render();
   };
 

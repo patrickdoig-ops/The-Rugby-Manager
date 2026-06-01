@@ -121,10 +121,17 @@ function initPlayer(raw: RawPlayer & { rosterId?: number }): Player {
       base[key] = Math.max(1, Math.min(100, Math.round(base[key] * posMult)));
     }
   }
-  const current = cloneStats(base);
-  for (const key of Object.keys(current) as (keyof PlayerStats)[]) {
-    current[key] = Math.max(1, Math.min(100, current[key] + form));
+  // Form is applied to the per-match baseStats clone (the roster record is
+  // untouched), NOT just the initial currentStats — StaminaSystem re-derives
+  // currentStats from baseStats on every fatigue drain, so a form offset living
+  // only on currentStats would be wiped after the first drain (~5 min in). Same
+  // reasoning as the OOP penalty above. `current` inherits it via the clone.
+  if (form !== 0) {
+    for (const key of Object.keys(base) as (keyof PlayerStats)[]) {
+      base[key] = Math.max(1, Math.min(100, base[key] + form));
+    }
   }
+  const current = cloneStats(base);
   // Carry-over freshness from the previous match (set via PLAYER_CONDITION_UPDATED
   // at match-end, persisted on the roster). Falls back to 100 for JSON
   // imports / legacy paths that don't thread it through.

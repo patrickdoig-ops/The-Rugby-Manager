@@ -727,6 +727,19 @@ document.addEventListener('DOMContentLoaded', () => {
       runPlayoffStage();
       return;
     }
+    // Interrupted international break (tab closed on the post-match chain at a
+    // Round 6 / 11 break, before the cup + training block ran). Re-enter the
+    // break flow instead of dropping to Hub and skipping the break. The break
+    // re-runs deterministically from the last (post-pre-break-round) save.
+    if (gameEngine.isBreakPending()) {
+      const begin = gameEngine.beginInternationalBreak();
+      if (begin) {
+        const eng = gameEngine;
+        runInternationalBreakChain(begin, eng, () =>
+          maybeRunMidseasonPoach(() => { saveGame(eng.toSavePayload()); goHub(); }));
+        return;
+      }
+    }
     goHub();
   }
 

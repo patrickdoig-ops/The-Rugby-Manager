@@ -383,6 +383,10 @@ function parseStanding(raw: unknown): ReturnType<typeof zeroStanding> | null {
   s.tryBonus = num(r.tryBonus);
   s.losingBonus = num(r.losingBonus);
   s.leaguePoints = num(r.leaguePoints);
+  // Reject an inconsistent row (played ≠ W+D+L) so a corrupt cup degrades to
+  // a re-seed rather than tripping assertSeasonInvariants and failing the
+  // whole load.
+  if (s.played !== s.won + s.drawn + s.lost) return null;
   return s;
 }
 

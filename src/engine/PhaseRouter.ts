@@ -127,6 +127,9 @@ export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy
     id: makeId(),
     gameMinute: state.clock.gameMinute,
     phase: eventPhase,
+    // Carry-to-try beats use phaseAtStart so the phase badge stays on the carry
+    // phase until the TryScored handler's beat fires with the confirming commentary.
+    displayPhase: isCarryToTry ? phaseAtStart : undefined,
     side:     preserveSide ? sideAtStart : state.possession,
     sideName,
     defSideName,

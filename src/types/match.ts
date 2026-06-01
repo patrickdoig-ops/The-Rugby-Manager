@@ -88,6 +88,10 @@ export interface GameEvent {
   id: string;
   gameMinute: number;
   phase: MatchPhase;
+  // When set, overrides the phase stored in the DisplaySnapshot for this beat.
+  // Used by carry-to-try events so the phase badge shows the carry phase until
+  // the TryScored handler's beat fires alongside the confirming commentary.
+  displayPhase?: MatchPhase;
   side: PossessionSide;
   sideName: string;
   defSideName?: string;

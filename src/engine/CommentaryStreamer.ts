@@ -80,7 +80,11 @@ export class CommentaryStreamer {
     // emits the world-state as it was when this event happened, not the live
     // state — which, with the producer running ahead, is further along than
     // the line being narrated.
-    this.buffer.push({ event, display: buildDisplaySnapshot(this.state) });
+    const display = buildDisplaySnapshot(this.state);
+    // Carry-to-try events set displayPhase to the carry phase so the badge
+    // stays on the carry phase until the TryScored beat fires.
+    if (event.displayPhase !== undefined) display.phase = event.displayPhase;
+    this.buffer.push({ event, display });
   }
 
   // Current number of buffered (not-yet-shown) beats. Read by the producer's

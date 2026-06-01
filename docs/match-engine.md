@@ -1412,7 +1412,7 @@ Stat increments: `kicker.kicksAtGoal++`; on success `kicksMade++`; on miss `kick
 
 ### Choice: tap_and_go
 
-Resolved as a forward hard carry (defence retreating 10m — no breakdown mod on the carry itself). Picks the carrier via `pickHardCarrier`, resolves a collision via `resolveOpenPlay` with defensive-line tactic mods and `tryLineDefenceBonus`. `CARRY_RESOLVED` + `BALL_REPOSITIONED` update stats and field position. The `GameEvent` carries the carry `outcome` so `BreakdownEvent` can apply the standard `CARRY_HANDOFF_BONUSES.dominantCarry` bonus if the carry was dominant. If the carry scores a try → `ConversionKick`; otherwise → `Breakdown` (then normal `PhasePlay` cycle).
+Resolved as a forward hard carry (defence retreating 10m — no breakdown mod on the carry itself). Picks the carrier via `pickHardCarrier`, resolves a collision via `resolveOpenPlay` with defensive-line tactic mods and `tryLineDefenceBonus`. `CARRY_RESOLVED` + `BALL_REPOSITIONED` update stats and field position. The `GameEvent` carries the carry `outcome` so `BreakdownEvent` can apply the standard `CARRY_HANDOFF_BONUSES.dominantCarry` bonus if the carry was dominant. If the carry scores a try → `TryScored` (carrier threaded via `PENDING_TRY_SCORER_SET`; `handleTryScored` generates the try commentary then → `ConversionKick`); otherwise → `Breakdown` (then normal `PhasePlay` cycle).
 
 ### Choice: tap_and_kick_dead *(clock-in-the-red only)*
 

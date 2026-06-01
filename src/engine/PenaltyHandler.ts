@@ -300,8 +300,8 @@ export class PenaltyHandler {
       this.emit('engine:event', { event: penEvent });
 
       if (tryScored) {
-        applyMatchEvent(state, { type: 'TRY_SCORED', scorer: carrier, side: attackSide });
-        applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.ConversionKick });
+        applyMatchEvent(state, { type: 'PENDING_TRY_SCORER_SET', scorer: carrier });
+        applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.TryScored });
       } else {
         applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.Breakdown });
       }

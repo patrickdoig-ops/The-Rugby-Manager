@@ -21,7 +21,7 @@ import { DEFAULT_TACTICS } from '../src/types/team.js';
 import { eventBus } from '../src/utils/eventBus.js';
 import norRaw from '../src/data/team-northampton.json' with { type: 'json' };
 
-(AITacticalDirector.prototype as unknown as { evaluate: () => void }).evaluate = () => {};
+(AITacticalDirector.prototype as unknown as { evaluate: () => null }).evaluate = () => null;
 
 const N_PER_CONDITION = 200;
 

@@ -94,18 +94,18 @@ const PHASE_PLAY: PhaseBank = {
     // Templates avoid referencing {primary} / {secondary} — both are
     // already named in the preceding carry-outcome step, and the
     // CommentaryFeed dedupe pass strips repeated names to "he",
-    // which mangled "goes in high on he" output. The {defside} ref
-    // is kept since the team name only appears here.
+    // which mangled "goes in high on he" output. {side} is the attacking
+    // team (the penalty recipient); {defside} (the offender) is omitted.
     'That looked high! The whistle blows immediately — penalty {side}.',
     'High! The referee\'s arm is straight up — penalty to {side}.',
     'No arms, high contact — referee comes back for the penalty. {side} get it.',
     'Arm swings high around the head. {side} have the penalty.',
   ],
   obstruction_penalty: [
-    '{primary} steps into the defender as the ball goes out the back — obstruction! Penalty {defside}.',
-    'The referee spots the block from {primary} on the wide screen — obstruction. {defside} get the penalty.',
-    'Crossing! {primary} runs the decoy line straight into the cover. {defside} have the penalty.',
-    '{primary} drifts across the defender as the ball is shipped wide. Obstruction — {defside}.',
+    '{primary} steps into the defender as the ball goes out the back — obstruction! Penalty {side}.',
+    'The referee spots the block from {primary} on the wide screen — obstruction. {side} get the penalty.',
+    'Crossing! {primary} runs the decoy line straight into the cover. {side} have the penalty.',
+    '{primary} drifts across the defender as the ball is shipped wide. Obstruction — {side} are awarded the penalty.',
   ],
   interception: [
     'INTERCEPTION! {primary} reads the pass from {secondary} and picks it off!',
@@ -199,10 +199,10 @@ const FIRST_PHASE: PhaseBank = {
     'No wrap, high contact! {side} get the penalty from the set-piece play.',
   ],
   obstruction_penalty: [
-    '{primary} blocks the inside cover on the first-phase strike move — obstruction! Penalty {defside}.',
-    'The pre-rehearsed strike runs a forward into the defender — referee spots {primary}. Penalty {defside}.',
-    'Crossing off the set piece — {primary} drifts into the defender\'s line. {defside} have it.',
-    '{primary} screens for the receiver and takes a defender out illegally. Obstruction {defside}.',
+    '{primary} blocks the inside cover on the first-phase strike move — obstruction! Penalty {side}.',
+    'The pre-rehearsed strike runs a forward into the defender — referee spots {primary}. Penalty {side}.',
+    'Crossing off the set piece — {primary} drifts into the defender\'s line. {side} have it.',
+    '{primary} screens for the receiver and takes a defender out illegally. Obstruction — {side} get the penalty.',
   ],
   interception: [
     'INTERCEPTION off the set piece! {primary} reads {secondary}\'s pass perfectly and picks it off!',

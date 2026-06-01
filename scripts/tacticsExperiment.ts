@@ -22,7 +22,7 @@ import norRaw from '../src/data/team-northampton.json' with { type: 'json' };
 // Neutralise the director so neither side flips tactics mid-match.
 // Restore would matter if anything else in this process used the
 // engine afterwards; since this script exits cleanly, no restore.
-(AITacticalDirector.prototype as unknown as { evaluate: () => void }).evaluate = () => {};
+(AITacticalDirector.prototype as unknown as { evaluate: () => null }).evaluate = () => null;
 
 const N_PER_CONDITION = 200;
 

@@ -88,12 +88,19 @@ export class AITacticalDirector {
     let signal: TacticsChangeSignal | null = null;
     for (const side of ['home', 'away'] as const) {
       if (side === this.humanSide) continue;
-      const desired = { ...this.pickIntent(side), ...this.pickEffort(side) };
+      const intent = this.pickIntent(side);
+      const desired = { ...intent, ...this.pickEffort(side) };
       const team = side === 'home' ? this.state.homeTeam : this.state.awayTeam;
       if (!tacticsEqual(team.tactics, desired)) {
         applyMatchEvent(this.state, { type: 'TACTICS_UPDATED', side, tactics: desired });
       }
-      const category = this.getIntentCategory(side);
+      // Derive category from the intent result — avoids duplicating the threshold
+      // logic from pickIntent. Reference equality works because pickIntent returns
+      // the canonical AI_INTENT_* constants (not a new object) for chasing/protecting.
+      const category: IntentCategory =
+        intent === AI_INTENT_CHASING    ? 'chasing' :
+        intent === AI_INTENT_PROTECTING ? 'protecting' :
+                                          'baseline';
       if (category !== this.prevIntentCategory[side]) {
         this.prevIntentCategory[side] = category;
         if (signal === null) {
@@ -104,24 +111,12 @@ export class AITacticalDirector {
             teamName: team.name,
             category,
             scoreGap: myScore - oppScore,
-            minutesLeft: CLOCK_VALUES.fullTimeMinute - this.state.clock.gameMinute,
+            minutesLeft: Math.max(0, Math.round(CLOCK_VALUES.fullTimeMinute - this.state.clock.gameMinute)),
           };
         }
       }
     }
     return signal;
-  }
-
-  private getIntentCategory(side: TeamSide): IntentCategory {
-    const minutesRemaining = CLOCK_VALUES.fullTimeMinute - this.state.clock.gameMinute;
-    if (minutesRemaining <= AI_DIRECTOR_VALUES.minutesRemainingTrigger) {
-      const myScore  = this.state.score[side];
-      const oppScore = side === 'home' ? this.state.score.away : this.state.score.home;
-      const gap = myScore - oppScore;
-      if (gap <= -AI_DIRECTOR_VALUES.scoreGapTrigger) return 'chasing';
-      if (gap >=  AI_DIRECTOR_VALUES.scoreGapTrigger) return 'protecting';
-    }
-    return 'baseline';
   }
 
   private pickIntent(side: TeamSide): TeamTactics {

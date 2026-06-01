@@ -141,5 +141,28 @@ export function getTacticNoteLines(
         `That's what the blitz is designed to do — read the pass and pick it off.`,
         `Pressure from ${def} forces the loose pass and they punish it!`,
       ];
+
+    case 'occasion_error_pressure':
+      return [
+        'The occasion may be getting to them — handling errors at this level can prove costly.',
+        "You wonder if the big stage is affecting concentration. That's a costly spill.",
+        'Small margins in occasion matches — that kind of handling error can change the game.',
+        'These moments define big matches — composure is everything on days like this.',
+      ];
+
+    case 'occasion_rising_to_occasion':
+      return [
+        'Rising to the occasion — exactly the kind of performance the big stage demands.',
+        "There's something to be said for the big moment — that's a player stepping up when it matters.",
+        'Big matches produce big moments. The occasion is bringing the best out of this side.',
+        "The occasion doesn't seem to be affecting this side — they're growing into the match.",
+      ];
+
+    case 'occasion_clock_in_red':
+      return [
+        'Every point counts now — this is where big matches are decided.',
+        'The knockout pressure, the crowd, the clock — it all comes together in moments like this.',
+        'This is what occasion rugby looks like in the dying stages — nerves of steel required.',
+      ];
   }
 }

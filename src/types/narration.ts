@@ -64,7 +64,10 @@ export type TacticNoteCause =
   | 'drift_shepherd_to_touch'
   | 'blitz_line_break_punished'
   | 'blitz_pressure_knockon'
-  | 'blitz_interception';
+  | 'blitz_interception'
+  | 'occasion_error_pressure'
+  | 'occasion_rising_to_occasion'
+  | 'occasion_clock_in_red';
 
 // Card-system announcement keys live in their own union so CardHandler
 // can type its emitter against the same set the renderer keys off,
@@ -96,6 +99,9 @@ export type AnnouncementKey =
   | 'kicker_steps_up'   | 'kicker_compose'
   | 'maul_drive_strong'
   | 'scrum_reset_cap'
+  | 'occasion_kickoff_derby'
+  | 'occasion_kickoff_playoff_semi'
+  | 'occasion_kickoff_final'
   | CardAnnouncementKey;
 
 export interface TacticNoteParams {

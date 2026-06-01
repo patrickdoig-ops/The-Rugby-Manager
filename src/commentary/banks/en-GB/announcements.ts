@@ -295,6 +295,24 @@ const SCRUM_RESET_CAP: readonly string[] = [
   "Referee's had enough of the resets — penalty from the third wheel.",
 ];
 
+const OCCASION_KICKOFF_DERBY: readonly string[] = [
+  "There's a different feel to a derby. The atmosphere is thick with intensity — both sides will leave everything on the pitch today.",
+  'No need to introduce this fixture. The rivalry does that for itself.',
+  "Derby day. There's an edge in the air — supporters, players, staff — everyone knows what this means.",
+];
+
+const OCCASION_KICKOFF_PLAYOFF_SEMI: readonly string[] = [
+  "Ninety minutes from Twickenham. Everything has led to this — the prize is a place in the final.",
+  "Playoff rugby. The stakes could not be higher — win today and it's the final, lose and the season is over.",
+  'This is why you play the season — a semi-final, with Twickenham up for grabs. Two teams, one place in the final.',
+];
+
+const OCCASION_KICKOFF_FINAL: readonly string[] = [
+  "Welcome to Twickenham — the home of English rugby, and today the home of this season's final.",
+  "This is it — the final at Twickenham. The moment every player in this league has been working toward.",
+  "They've come through the tunnel onto the Twickenham pitch. One team goes home as champions today.",
+];
+
 const INJURY_OFF: readonly string[] = [
   '{primary} is down — and looks to be hurt. The physio is on.',
   'Bad news for {primary} — staying down after that contact, waving for the doctor.',
@@ -394,6 +412,12 @@ export function getAnnouncementTemplate(
     }
     case 'team_22_warning':
       return pickRandom(TEAM_22_WARNING);
+    case 'occasion_kickoff_derby':
+      return pickRandom(OCCASION_KICKOFF_DERBY);
+    case 'occasion_kickoff_playoff_semi':
+      return pickRandom(OCCASION_KICKOFF_PLAYOFF_SEMI);
+    case 'occasion_kickoff_final':
+      return pickRandom(OCCASION_KICKOFF_FINAL);
     case 'injury_off':
       return pickRandom(INJURY_OFF);
     case 'injury_replacement_done': {

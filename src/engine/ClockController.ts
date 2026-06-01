@@ -5,7 +5,7 @@ import { eventBus } from '../utils/eventBus';
 import { rng } from '../utils/rng';
 import { makeId } from './eventId';
 import { applyMatchEvent } from './applyMatchEvent';
-import { CLOCK_VALUES } from './balance';
+import { CLOCK_VALUES, COMMENTARY_CHANCES } from './balance';
 import type { CommentaryStreamer } from './CommentaryStreamer';
 
 export class ClockController {
@@ -50,9 +50,13 @@ export class ClockController {
 
     applyMatchEvent(state, { type: 'CLOCK_IN_RED_TRIPPED' });
     const isFirstHalf = !state.clock.halfTimeDone;
-    const narration: NarrationDescriptor = {
-      steps: [{ kind: 'announcement', key: isFirstHalf ? 'clock_in_red_first_half' : 'clock_in_red_second_half' }],
-    };
+    const redSteps: NarrationDescriptor['steps'] = [
+      { kind: 'announcement', key: isFirstHalf ? 'clock_in_red_first_half' : 'clock_in_red_second_half' },
+    ];
+    if (!isFirstHalf && (state.engine.isDerby || state.engine.neutralVenue || state.engine.isPlayoffSemi)) {
+      redSteps.push({ kind: 'tactic_note', cause: 'occasion_clock_in_red', chancePct: COMMENTARY_CHANCES.occasionClockInRed });
+    }
+    const narration: NarrationDescriptor = { steps: redSteps };
     const redEvent: GameEvent = {
       id: makeId(),
       gameMinute: state.clock.gameMinute,

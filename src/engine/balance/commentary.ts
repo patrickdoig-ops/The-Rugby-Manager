@@ -24,6 +24,9 @@ export const COMMENTARY_CHANCES = {
   blitzLineBreakPunished:       35,
   blitzPressureKnockOn:         40,
   blitzInterception:            45,
+  occasionErrorPressure:        25,
+  occasionRisingToOccasion:     25,
+  occasionClockInRed:           40,
 } as const;
 
 // Context thresholds for the try_aftermath crowd reaction. Used by

@@ -120,6 +120,9 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
     if (defensiveLine === 'blitz') {
       koSteps.push({ kind: 'tactic_note', cause: 'blitz_pressure_knockon', chancePct: COMMENTARY_CHANCES.blitzPressureKnockOn, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
     }
+    if (state.engine.isDerby || state.engine.neutralVenue || state.engine.isPlayoffSemi) {
+      koSteps.push({ kind: 'tactic_note', cause: 'occasion_error_pressure', chancePct: COMMENTARY_CHANCES.occasionErrorPressure });
+    }
     return {
       nextPhase: MatchPhase.Scrum,
       narration: { steps: koSteps },
@@ -171,6 +174,9 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
       ];
       if (defensiveLine === 'blitz') {
         koSteps.push({ kind: 'tactic_note', cause: 'blitz_pressure_knockon', chancePct: COMMENTARY_CHANCES.blitzPressureKnockOn, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
+      }
+      if (state.engine.isDerby || state.engine.neutralVenue || state.engine.isPlayoffSemi) {
+        koSteps.push({ kind: 'tactic_note', cause: 'occasion_error_pressure', chancePct: COMMENTARY_CHANCES.occasionErrorPressure });
       }
       return {
         nextPhase: MatchPhase.Scrum,
@@ -342,6 +348,9 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
         chancePct: COMMENTARY_CHANCES.blitzLineBreakPunished,
         params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name },
       });
+    }
+    if (state.engine.isDerby || state.engine.neutralVenue || state.engine.isPlayoffSemi) {
+      outcomeSteps.push({ kind: 'tactic_note', cause: 'occasion_rising_to_occasion', chancePct: COMMENTARY_CHANCES.occasionRisingToOccasion });
     }
   } else if (res.outcome === 'dominant_tackle') {
     nextPhase = MatchPhase.Breakdown;

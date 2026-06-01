@@ -185,6 +185,9 @@ export interface MatchState {
     // Match Weekend). Read by AITacticalDirector.pickEffort() — an AI side
     // opens a derby at high intensity to "set the tone". Defaults to false.
     isDerby: boolean;
+    // True for a playoff semi-final (not the final). Used by occasion-commentary
+    // hooks alongside isDerby and neutralVenue. Defaults to false.
+    isPlayoffSemi: boolean;
   };
   phase: MatchPhase;
   possession: PossessionSide;

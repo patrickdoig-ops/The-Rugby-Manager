@@ -1055,6 +1055,7 @@ document.addEventListener('DOMContentLoaded', () => {
       playerTactics,
       humanSide: playerSide,
       neutralVenue: match.kind === 'final',
+      isPlayoffSemi: match.kind !== 'final',
     });
     initSimController(engine);
 

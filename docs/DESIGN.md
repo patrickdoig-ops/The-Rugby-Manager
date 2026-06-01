@@ -985,6 +985,8 @@ The Hub (`src/ui/HubScreen.ts`) has **six tiles** plus a Settings cog and "Go to
 | League | `league-menu` | Sub-menu: Table / Team Stats / Player Stats / Cup (browse) / Awards |
 | Contracts | `contracts` | Squad list + interactive marquee toggle + cap pill; red badge = expiring-contract count |
 | Squad | `squad-management` | Matchday-23 curation; round-trips with PreMatch via `state.player.matchdaySquad` |
+
+PreMatch's 'mine' step (the user's starting XV) carries a tappable captain badge (`.pm-captain-badge`, a circular "C") on each starter row — modelled on the OOP badge. Tap to nominate, tap the current captain to clear; persists to `state.player.captainRosterId` via `setPlayerCaptain`. Unset rows default the badge to the highest-composure starter (`resolveCaptainRosterId`). Narrative-only: the captain is named in the referee's team-22 warning during the match.
 | Transfers | `transfer-market` (scouting mode) | Read-only mid-season FA + Reg 7 view — does not call `signingTermsFor`, so `rngTransfer` is untouched |
 | Training | `training` (mid-week mode) | Persists plan without running the training block |
 

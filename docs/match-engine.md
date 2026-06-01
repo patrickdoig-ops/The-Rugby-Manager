@@ -86,7 +86,7 @@ Mid-match the human can swap any dimension via the tactics modal (`ui:tacticsCha
 ```ts
 state.clock  = { gameMinute, halfTimeDone, clockInTheRed, penaltyKickToTouchLineout }
 state.ball   = { x, y }                              // renamed from ballX/ballY
-state.engine = { isRunning, tickDelayMs, seed, firstHalfKicker, humanSide }
+state.engine = { isRunning, tickDelayMs, seed, firstHalfKicker, humanSide, humanCaptainRosterId? }
 state.cards  = { sinBin, sentOff, teamPenalty22, teamWarned22 }   // per-side arrays + counters
 state.tmoReview? = { step: 1|2|3, outcome, offender, offendingSide }   // mid-review only
 
@@ -1430,7 +1430,7 @@ The card system layers on top of the penalty seam. Whenever `PENALTY_AWARDED` fi
 
 ### Two trigger paths
 
-1. **Team-22 rule.** Each penalty where the offender's team was *defending* in their own 22 increments `state.cards.teamPenalty22[offendingSide]`. The 3rd-in-22 (`TEAM_22.warnAt`) emits a `team_22_warning` announcement (once per match per side). The 4th-in-22 (`TEAM_22.cardAt`) **forces** an immediate yellow on the offender — TMO is skipped. The counter is not reset; the 5th–8th in-22 add no further cards (per spec "the fourth penalty triggers the yellow").
+1. **Team-22 rule.** Each penalty where the offender's team was *defending* in their own 22 increments `state.cards.teamPenalty22[offendingSide]`. The 3rd-in-22 (`TEAM_22.warnAt`) emits a `team_22_warning` announcement (once per match per side). When the warned side is the human side, `CardHandler.emitAnnouncement` looks up `state.engine.humanCaptainRosterId` in that team's `players[]` and passes the captain's name through `buildAnnounce`'s `captainName` param — the `team_22_warning` bank substitutes `{captainName}` (falling back to "the captain" for the AI side / unset captain). Narrative only; the warning fires identically regardless. The 4th-in-22 (`TEAM_22.cardAt`) **forces** an immediate yellow on the offender — TMO is skipped. The counter is not reset; the 5th–8th in-22 add no further cards (per spec "the fourth penalty triggers the yellow").
 
 2. **Per-offence TMO.** If the team-22 rule didn't already card, CardHandler looks up `OFFENCE_SPEC[last.offence].tmoTriggerPct` and rolls `rng(1,100) <= triggerPct`. Two offences carry a non-zero trigger today: `high_tackle` (90 %) and `dangerous_cleanout` (90 %). On a hit, a single `rng(1,100)` is bucketed by the global `TMO.outcomeNoCardPct / outcomeYellowPct / outcomeRed20Pct` weights (25/65/10) to pre-roll the outcome. In live mode this enters `MatchPhase.TmoReview` for 3 narrative ticks; in silent mode the narrative is collapsed and the card is applied inline — RNG order is identical so determinism is preserved. **Adding a TMO-eligible offence is a one-line edit** to the `OFFENCE_SPEC` registry — no `CardHandler` change.
 

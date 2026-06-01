@@ -35,6 +35,7 @@ import { computeAttendance } from '../game/attendance';
 import { applyMatchdaySquad, makeInjuredPredicate } from '../game/playerSquad';
 import { selectionUnavailableIds } from '../game/internationalDutyEngine';
 import { buildTeamFromRoster, buildAutoSelectedTeamFromRoster } from '../game/rosterTeamBuilder';
+import { resolveCaptainRosterId } from '../game/captain';
 import { computeFormInputs } from '../game/playerForm';
 import { formRating, formStars } from './formDisplay';
 import { teamPossessionPct, teamTerritoryPct, averageRating } from '../game/seasonLeaderboards';
@@ -135,9 +136,17 @@ function renderLineupRow(
   state: GameState,
   expanded: boolean,
   flagOop: boolean,
+  showCaptain: boolean,
+  captainRosterId: number | undefined,
 ): string {
   const num = getSquadNum(p);
   const surname = shortName(p);
+  // Captain control — only on the user's own editable starting XV. Tap to
+  // nominate; tap the current captain to clear (reverts to auto-pick).
+  const isCaptain = showCaptain && p.rosterId !== undefined && p.rosterId === captainRosterId;
+  const captainBadge = showCaptain && p.rosterId !== undefined
+    ? `<button type="button" class="pm-captain-badge${isCaptain ? ' pm-captain-badge--active' : ''}" data-captain-rid="${p.rosterId}" aria-pressed="${isCaptain}" title="${isCaptain ? 'Captain — tap to clear' : 'Make captain'}">C</button>`
+    : '';
   // Out-of-position warning — only on the user's own starting XV (slots 1-15),
   // where the familiarity penalty (balance/positionFamiliarity.ts) bites at
   // kick-off. flagOop gates it to the editable "mine" lineup.
@@ -178,7 +187,7 @@ function renderLineupRow(
     <div class="pm-lineup-row${expandable ? ' pm-lineup-row--expandable' : ''}"${rowAttrs}>
       <div class="pm-lineup-row-main">
         <span class="pm-lineup-num" style="color:${teamTextColor(color)}">${String(num).padStart(2,'0')}</span>
-        <span class="pm-lineup-name">${nameHtml}${restBadge ? ' ' + restBadge : ''}</span>
+        <span class="pm-lineup-name">${nameHtml}${captainBadge ? ' ' + captainBadge : ''}${restBadge ? ' ' + restBadge : ''}</span>
         <span class="pm-lineup-pos">${p.position}${oopBadge}</span>
         ${chevron}
       </div>
@@ -246,14 +255,17 @@ function renderLineupBody(
   hasOnProfile: boolean,
   state: GameState,
   isExpanded: (rosterId: number) => boolean,
+  captainRosterId: number | undefined,
 ): string {
   const hc = teamTextColor(team.color);
   const editSquadLink = showEditSquad
     ? `<button class="pm-edit-squad" id="pm-edit-squad" type="button">Edit Squad</button>`
     : '';
   const rowExpanded = (p: RawPlayer): boolean => p.rosterId !== undefined && isExpanded(p.rosterId);
-  const startersHtml = starters.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p), showEditSquad)).join('');
-  const benchHtml    = bench.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p), false)).join('');
+  // Captain control rides on the same gate as the OOP flag — the user's own
+  // editable starting XV only (showEditSquad is true for the 'mine' step).
+  const startersHtml = starters.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p), showEditSquad, showEditSquad, captainRosterId)).join('');
+  const benchHtml    = bench.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p), false, false, captainRosterId)).join('');
   const metaParts = [stadium, matchDate, roundLabel].filter(Boolean).join(' · ');
   return `
     <div class="pm-lineup-card">
@@ -455,6 +467,10 @@ export function initPreMatchScreen(
 
   const playerStarters = playerSide === 'home' ? homeStarters : awayStarters;
   const playerBench    = playerSide === 'home' ? homeBench    : awayBench;
+  // Resolved match captain for the 'mine' step badge. Explicit nomination
+  // when it still maps to a selected starter, else the highest-composure
+  // starter. Mutated in place when the user taps a captain badge.
+  let currentCaptainId = resolveCaptainRosterId(playerStarters, state.player.captainRosterId);
   const oppStarters    = playerSide === 'home' ? awayStarters : homeStarters;
   const oppBench       = playerSide === 'home' ? awayBench    : homeBench;
 
@@ -657,10 +673,10 @@ export function initPreMatchScreen(
 
   function bodyHtml(): string {
     if (step === 'mine') {
-      return renderLineupBody('LINE-UP', playerTeam, playerStarters, playerBench, stadiumName, matchDate, roundLabel, !!onEditSquad, !!onPlayerProfile, state, isRowExpanded);
+      return renderLineupBody('LINE-UP', playerTeam, playerStarters, playerBench, stadiumName, matchDate, roundLabel, !!onEditSquad, !!onPlayerProfile, state, isRowExpanded, currentCaptainId);
     }
     if (step === 'opp') {
-      return renderLineupBody('LINE-UP', oppTeam, oppStarters, oppBench, stadiumName, matchDate, roundLabel, false, !!onPlayerProfile, state, isRowExpanded);
+      return renderLineupBody('LINE-UP', oppTeam, oppStarters, oppBench, stadiumName, matchDate, roundLabel, false, !!onPlayerProfile, state, isRowExpanded, undefined);
     }
     if (step === 'scout') {
       return renderScoutBody(oppTeam, oppTeam.shortName, scoutData);
@@ -730,6 +746,21 @@ export function initPreMatchScreen(
     if (step === 'mine' && onEditSquad) {
       screen.querySelector<HTMLButtonElement>('#pm-edit-squad')?.addEventListener('click', () => {
         onEditSquad();
+      });
+    }
+
+    // Captain badge taps — toggle nomination on the user's starting XV.
+    // Persisted immediately to season state (saved with the rest of the
+    // pre-match commit on Start Match).
+    if (step === 'mine') {
+      screen.querySelectorAll<HTMLButtonElement>('.pm-captain-badge').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const rid = Number(btn.dataset.captainRid);
+          const next = rid === currentCaptainId ? undefined : rid;
+          gameEngine.setPlayerCaptain(next);
+          currentCaptainId = resolveCaptainRosterId(playerStarters, next);
+          render();
+        });
       });
     }
 

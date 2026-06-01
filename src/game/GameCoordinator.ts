@@ -298,6 +298,10 @@ export class GameCoordinator {
     applySeasonEvent(this.state, { type: 'PLAYER_MATCHDAY_SQUAD_SET', squad });
   }
 
+  setPlayerCaptain(rosterId: number | undefined): void {
+    applySeasonEvent(this.state, { type: 'PLAYER_CAPTAIN_SET', rosterId });
+  }
+
   // rosterIds of the human club's persisted matchday 23 (mapped from the
   // saved PlayerRef[] by name). Used by the rest-obligation reconciliation to
   // tell whether an obligated player featured this round. Empty when no squad

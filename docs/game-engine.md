@@ -92,6 +92,7 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 | `PREM_CUP_KNOCKOUT_SEEDED` | Once, after the leg-2 pool stage | Seeds `premCup.knockout` — SF1 = winner(A) v runner-up(B), SF2 = winner(B) v runner-up(A). |
 | `PREM_CUP_KNOCKOUT_RECORDED` | Per knockout match | Records the result; cascades SF winners → final slots (SF1→home, SF2→away), final winner → `championTeamId`. Mirrors `PLAYOFF_RESULT_RECORDED`. |
 | `PLAYER_CUP_DIRECTION_SET` | When the user toggles the cup direction | Persists `state.player.cupDirection` (`'best'` \| `'rest_first_15'`). |
+| `PLAYER_CAPTAIN_SET` | When the user taps a captain badge on the PreMatch 'mine' lineup | Persists `state.player.captainRosterId` (rosterId, or `undefined` to clear). Narrative-only — `resolveCaptainRosterId` (`src/game/captain.ts`) falls back to the highest-composure starter when unset, and the resolved id is threaded into the match as `state.engine.humanCaptainRosterId` so the referee names the captain in the team-22 warning. No mechanical effect. |
 
 `SEASON_ROLLED_OVER` additionally carries `premCupChampionTeamId` (archived onto `ArchivedSeason`) and resets `state.league.premCup = null`; `CAREER_ARCHIVE_RESTORED` restores `premCup`.
 

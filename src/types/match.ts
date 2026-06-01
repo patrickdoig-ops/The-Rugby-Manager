@@ -166,6 +166,11 @@ export interface MatchState {
     seed: number;
     firstHalfKicker: PossessionSide;
     humanSide: PossessionSide;
+    // rosterId of the human side's match captain, resolved at kick-off from
+    // the manager's pre-match nomination. Undefined for headless/AI fixtures
+    // and the determinism harness. Read only by CardHandler to name the
+    // captain in the referee's team-22 warning — narrative, no game effect.
+    humanCaptainRosterId?: number;
     // Ring-buffer ceiling for state.events. Defaults to COMMENTARY_BUFFER_CAP
     // (300, sized for the live commentary feed); telemetry runs raise it so
     // the full event log survives for offline analysis.

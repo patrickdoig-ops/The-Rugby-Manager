@@ -346,6 +346,37 @@
 .pm-oop-badge--moderate { --oop-c: var(--rm-amber-deep); }
 .pm-oop-badge--severe   { --oop-c: var(--rm-danger); }
 
+/* Captain badge — tappable "C" on the user's starting XV. Outlined when
+   un-nominated, filled amber for the current captain. */
+.pm-captain-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  margin-left: 6px;
+  padding: 0;
+  border-radius: 50%;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--rm-text-muted);
+  background: transparent;
+  border: 1px solid color-mix(in oklch, var(--rm-text-muted) 45%, transparent);
+  transition: color 120ms, background 120ms, border-color 120ms;
+}
+.pm-captain-badge:hover {
+  color: var(--rm-amber);
+  border-color: color-mix(in oklch, var(--rm-amber) 55%, transparent);
+}
+.pm-captain-badge--active {
+  color: var(--rm-bg-deep, #14110b);
+  background: var(--rm-amber);
+  border-color: var(--rm-amber);
+}
+
 /* Bench rows slightly dimmer than the starting XV. */
 .pm-lineup-section + .pm-lineup-section .pm-lineup-name { color: var(--rm-text); }
 

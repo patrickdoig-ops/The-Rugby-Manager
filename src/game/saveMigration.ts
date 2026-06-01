@@ -42,5 +42,6 @@ export function buildCareerArchiveRestoredEvent(save: SavedSeason): Extract<Seas
     ...(career.activePoachedIds !== undefined ? { activePoachedIds: career.activePoachedIds } : {}),
     ...(save.teamSeasonStats !== undefined ? { teamSeasonStats: save.teamSeasonStats } : {}),
     ...(save.playoffs !== undefined ? { playoffs: save.playoffs } : {}),
+    ...(save.premCup !== undefined ? { premCup: save.premCup } : {}),
   };
 }

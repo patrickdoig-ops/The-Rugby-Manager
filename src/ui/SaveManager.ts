@@ -12,10 +12,10 @@
 // setSlotWriteHook — SaveManager itself has no Capacitor dependency.
 
 import type { SavedCareer, SavedSeason, SavedSeasonResult } from '../game/GameCoordinator';
-import type { ArchivedPlayerSeason, ArchivedSeason, ClubState, Fixture, MarketState, PlayerRef, PlayoffMatch, PlayoffState, PreAgreement, SeasonAwards, TeamSeasonStats, TransferBid, TransferOffer } from '../types/gameState';
+import type { ArchivedPlayerSeason, ArchivedSeason, ClubState, CupFixture, CupKnockout, CupKnockoutMatch, Fixture, MarketState, PlayerRef, PlayoffMatch, PlayoffState, PremCupState, PreAgreement, SeasonAwards, TeamSeasonStats, TransferBid, TransferOffer } from '../types/gameState';
 import type { Player, PlayerSeasonStats } from '../types/player';
 import { zeroSeasonStats } from '../types/player';
-import { zeroTeamSeasonStats } from '../types/gameState';
+import { zeroStanding, zeroTeamSeasonStats } from '../types/gameState';
 import type { TeamTactics } from '../types/team';
 import type { TrainingPlan } from '../types/training';
 import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
@@ -107,6 +107,12 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
     const playoffs = parsed.playoffs !== undefined
       ? parsePlayoffs(parsed.playoffs)
       : undefined;
+    const premCup = parsed.premCup !== undefined
+      ? parsePremCup(parsed.premCup)
+      : undefined;
+    const cupDirection = parsed.cupDirection === 'rest_first_15' || parsed.cupDirection === 'best'
+      ? parsed.cupDirection
+      : undefined;
     return {
       playerTeamId: parsed.playerTeamId,
       seed: parsed.seed >>> 0,
@@ -129,6 +135,8 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
       career,
       ...(teamSeasonStats !== undefined ? { teamSeasonStats } : {}),
       ...(playoffs !== undefined ? { playoffs } : {}),
+      ...(premCup !== undefined ? { premCup } : {}),
+      ...(cupDirection !== undefined ? { cupDirection } : {}),
     };
   } catch {
     return null;
@@ -317,6 +325,118 @@ function parsePlayoffResult(raw: unknown): PlayoffMatch['result'] | undefined {
     homeTries: typeof r.homeTries === 'number' ? r.homeTries : 0,
     awayTries: typeof r.awayTries === 'number' ? r.awayTries : 0,
     playerSide: r.playerSide === 'home' || r.playerSide === 'away' ? r.playerSide : null,
+  };
+}
+
+// Defensive parse of the Prem Cup subtree. Returns null when explicitly
+// null, undefined when malformed (so the cup re-seeds at the next break
+// rather than crashing fromSave on a corrupt save). Trusts our own writer's
+// numeric consistency, recomputing only pointsDiff to keep the season
+// invariant happy.
+function parsePremCup(raw: unknown): PremCupState | null | undefined {
+  if (raw === null) return null;
+  if (typeof raw !== 'object') return undefined;
+  const c = raw as Record<string, unknown>;
+  if (typeof c.seasonLabel !== 'string') return undefined;
+  if (!Array.isArray(c.pools) || c.pools.length !== 2) return undefined;
+  if (!Array.isArray(c.fixtures)) return undefined;
+  const poolA = parseCupPool(c.pools[0], 'A');
+  const poolB = parseCupPool(c.pools[1], 'B');
+  if (!poolA || !poolB) return undefined;
+  const fixtures: CupFixture[] = [];
+  for (const f of c.fixtures) {
+    const fx = parseCupFixture(f);
+    if (!fx) return undefined;
+    fixtures.push(fx);
+  }
+  const knockout = c.knockout === null || c.knockout === undefined ? null : parseCupKnockout(c.knockout);
+  if (knockout === undefined) return undefined;
+  return { seasonLabel: c.seasonLabel, pools: [poolA, poolB], fixtures, knockout };
+}
+
+function parseCupPool(raw: unknown, expectedId: 'A' | 'B'): PremCupState['pools'][number] | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const p = raw as Record<string, unknown>;
+  if (p.id !== expectedId) return null;
+  if (!Array.isArray(p.teamIds) || p.teamIds.length !== 5) return null;
+  if (!Array.isArray(p.standings) || p.standings.length !== 5) return null;
+  const teamIds = p.teamIds.filter((t): t is string => typeof t === 'string');
+  if (teamIds.length !== 5) return null;
+  const standings = p.standings.map(parseStanding);
+  if (standings.some(s => s === null)) return null;
+  return { id: expectedId, teamIds, standings: standings as ReturnType<typeof zeroStanding>[] };
+}
+
+function parseStanding(raw: unknown): ReturnType<typeof zeroStanding> | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.teamId !== 'string') return null;
+  const num = (v: unknown): number => (typeof v === 'number' ? v : 0);
+  const s = zeroStanding(r.teamId);
+  s.played = num(r.played);
+  s.won = num(r.won);
+  s.drawn = num(r.drawn);
+  s.lost = num(r.lost);
+  s.pointsFor = num(r.pointsFor);
+  s.pointsAgainst = num(r.pointsAgainst);
+  s.pointsDiff = s.pointsFor - s.pointsAgainst; // recompute to satisfy invariant
+  s.tryBonus = num(r.tryBonus);
+  s.losingBonus = num(r.losingBonus);
+  s.leaguePoints = num(r.leaguePoints);
+  return s;
+}
+
+function parseCupFixture(raw: unknown): CupFixture | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const f = raw as Record<string, unknown>;
+  if (f.pool !== 'A' && f.pool !== 'B') return null;
+  if (f.leg !== 1 && f.leg !== 2) return null;
+  if (typeof f.homeId !== 'string' || typeof f.awayId !== 'string') return null;
+  if (typeof f.date !== 'string') return null;
+  return {
+    pool: f.pool, leg: f.leg, homeId: f.homeId, awayId: f.awayId, date: f.date,
+    ...(parseCupResult(f.result) ? { result: parseCupResult(f.result)! } : {}),
+  };
+}
+
+function parseCupKnockout(raw: unknown): CupKnockout | undefined {
+  if (typeof raw !== 'object' || raw === null) return undefined;
+  const k = raw as Record<string, unknown>;
+  if (!Array.isArray(k.semifinals) || k.semifinals.length !== 2) return undefined;
+  const sf1 = parseCupKnockoutMatch(k.semifinals[0], 'semifinal_1');
+  const sf2 = parseCupKnockoutMatch(k.semifinals[1], 'semifinal_2');
+  const fin = parseCupKnockoutMatch(k.final, 'final');
+  if (!sf1 || !sf2 || !fin) return undefined;
+  return {
+    semifinals: [sf1, sf2],
+    final: fin,
+    championTeamId: typeof k.championTeamId === 'string' ? k.championTeamId : null,
+  };
+}
+
+function parseCupKnockoutMatch(raw: unknown, expectedKind: CupKnockoutMatch['kind']): CupKnockoutMatch | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const m = raw as Record<string, unknown>;
+  if (m.kind !== expectedKind) return null;
+  if (typeof m.date !== 'string') return null;
+  return {
+    kind: expectedKind,
+    homeId: typeof m.homeId === 'string' ? m.homeId : null,
+    awayId: typeof m.awayId === 'string' ? m.awayId : null,
+    date: m.date,
+    ...(parseCupResult(m.result) ? { result: parseCupResult(m.result)! } : {}),
+  };
+}
+
+function parseCupResult(raw: unknown): CupFixture['result'] | undefined {
+  if (typeof raw !== 'object' || raw === null) return undefined;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.homeScore !== 'number' || typeof r.awayScore !== 'number') return undefined;
+  return {
+    homeScore: r.homeScore,
+    awayScore: r.awayScore,
+    homeTries: typeof r.homeTries === 'number' ? r.homeTries : 0,
+    awayTries: typeof r.awayTries === 'number' ? r.awayTries : 0,
   };
 }
 

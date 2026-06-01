@@ -124,6 +124,12 @@ export interface SavedSeason {
   career?: SavedCareer;
   teamSeasonStats?: Record<string, import('../types/gameState').TeamSeasonStats>;
   playoffs?: PlayoffState | null;
+  // The active Prem Cup (cup results aren't replayable from `results`, so
+  // the subtree is persisted directly, like `playoffs`). Optional — absent
+  // on saves written before the cup system / before the first break.
+  premCup?: import('../types/gameState').PremCupState | null;
+  // Remembered Assistant-Manager cup direction.
+  cupDirection?: 'best' | 'rest_first_15';
 }
 
 // Deep clone the roster index for save serialisation — every Player and
@@ -262,6 +268,9 @@ export class GameCoordinator {
     }
     if (save.training) {
       applySeasonEvent(coord.state, { type: 'PLAYER_TRAINING_PLAN_SET', plan: save.training });
+    }
+    if (save.cupDirection) {
+      applySeasonEvent(coord.state, { type: 'PLAYER_CUP_DIRECTION_SET', direction: save.cupDirection });
     }
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
@@ -1195,8 +1204,38 @@ export class GameCoordinator {
       ...(this.state.league.playoffs
         ? { playoffs: clonePlayoffs(this.state.league.playoffs) }
         : {}),
+      // Persist the Prem Cup (cup results aren't replayable from `results`).
+      ...(this.state.league.premCup
+        ? { premCup: cloneCupForSave(this.state.league.premCup) }
+        : {}),
+      ...(this.state.player.cupDirection
+        ? { cupDirection: this.state.player.cupDirection }
+        : {}),
     };
   }
+}
+
+// Deep-ish clone of a PremCupState for the save payload — mirrors clonePlayoffs.
+function cloneCupForSave(cup: import('../types/gameState').PremCupState): import('../types/gameState').PremCupState {
+  const cloneKo = (m: import('../types/gameState').CupKnockoutMatch) => ({
+    ...m,
+    ...(m.result ? { result: { ...m.result } } : {}),
+  });
+  return {
+    seasonLabel: cup.seasonLabel,
+    pools: [
+      { id: 'A', teamIds: [...cup.pools[0].teamIds], standings: cup.pools[0].standings.map(s => ({ ...s })) },
+      { id: 'B', teamIds: [...cup.pools[1].teamIds], standings: cup.pools[1].standings.map(s => ({ ...s })) },
+    ],
+    fixtures: cup.fixtures.map(f => ({ ...f, ...(f.result ? { result: { ...f.result } } : {}) })),
+    knockout: cup.knockout
+      ? {
+          semifinals: [cloneKo(cup.knockout.semifinals[0]), cloneKo(cup.knockout.semifinals[1])],
+          final: cloneKo(cup.knockout.final),
+          championTeamId: cup.knockout.championTeamId,
+        }
+      : null,
+  };
 }
 
 function clonePlayerHistoryForSave(

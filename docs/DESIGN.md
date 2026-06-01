@@ -500,7 +500,7 @@ The single exception: numerical superscripts and the en-dash/em-dash in copy are
 | 11–13px | Inline icons within text or labels (MOTM star, sort chevrons) |
 | 14–16px | Button-internal icons, secondary action icons |
 | 18px | Standard back-button and topbar icon size |
-| 22–24px | Hub tile icons |
+| 20px | Hub tile icons |
 | 32px | Empty-state hero icons |
 
 ### 6.3 Stroke vs solid

@@ -267,4 +267,26 @@ export const TACTIC_MODIFIERS = {
   // Pct points added to the defending team's high-tackle base rate (HIGH_TACKLE)
   // in TackleInfringementResolver.
   disciplineHighTackleMod:    { risky: 1.5, balanced: 0,    cautious: -1 },
+  // ── Set-piece extensions ──────────────────────────────────────────────
+  // Scrum / maul operate on a much larger margin scale than the breakdown
+  // (packScore ~576, rng(1,50) noise, buckets at +30 / −16 / −36), so the
+  // contest-edge magnitudes here are ~±12, not the ±3 used at the ruck.
+  //
+  // Intensity adds a flat shove bonus to the side's own scrum/maul score —
+  // push harder for the fatigue cost already applied team-wide.
+  intensityScrumMod:          { high: 12,  balanced: 0,    light: -12 },
+  intensityMaulMod:           { high: 12,  balanced: 0,    light: -12 },
+  // Discipline at the scrum is a VARIANCE knob, not a flat edge: the side's
+  // rng noise is scaled around its mean (mean-preserving, so balanced packs
+  // are byte-identical). risky fattens the tails — more attacking-dominant
+  // penalties WON and more own-scrum penalties CONCEDED; cautious narrows
+  // them — stable, rarely dominant, rarely pinged. This is the "chancing the
+  // hit" risk/reward without a separate penalty path.
+  disciplineScrumVarianceMult:{ risky: 1.4, balanced: 1.0, cautious: 0.6 },
+  // Discipline at the maul biases the DEFENDER's cynical-collapse roll (pp,
+  // added to the existing margin + discipline-stat collapse formula). risky
+  // collapses the maul more to stop a drive/try illegally — conceding more
+  // penalties and yellows (via MAUL_COLLAPSE_YELLOW); cautious lets the maul
+  // go and stays clean.
+  disciplineMaulCollapseMod:  { risky: 10, balanced: 0,    cautious: -8 },
 } as const;

@@ -7,7 +7,7 @@ import { resolveScrum } from '../resolvers/ScrumResolver';
 import { availableForwards, onFieldPlayers } from '../FieldPosition';
 import { rng } from '../../utils/rng';
 import { SLOT, isFrontRowSlot } from '../Slot';
-import { SCRUM_VALUES } from '../balance';
+import { SCRUM_VALUES, TACTIC_MODIFIERS } from '../balance';
 
 // Random front-row offender for a scrum penalty — props and hooker can all
 // be cited, not just the hooker. Falls back to the hooker (and onward) when
@@ -31,7 +31,16 @@ export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): Ph
   const defendOnField  = onFieldPlayers(defendTeam, state, flipSide);
   const attackHooker   = attackForwards.find(p => p.id === SLOT.HOOKER) ?? attackForwards[0] ?? attackOnField[0]!;
   const defendHooker   = defendForwards.find(p => p.id === SLOT.HOOKER) ?? defendForwards[0] ?? defendOnField[0]!;
-  const res = resolveScrum(attackForwards, defendForwards);
+  // Intensity adds a flat shove edge to each side; discipline scales each
+  // side's noise variance (risky = fatter tails = more dominant penalties
+  // won AND more conceded on own ball; cautious = stable, rarely pinged).
+  const res = resolveScrum(
+    attackForwards, defendForwards,
+    TACTIC_MODIFIERS.intensityScrumMod[attackTeam.tactics.intensity],
+    TACTIC_MODIFIERS.intensityScrumMod[defendTeam.tactics.intensity],
+    TACTIC_MODIFIERS.disciplineScrumVarianceMult[attackTeam.tactics.discipline],
+    TACTIC_MODIFIERS.disciplineScrumVarianceMult[defendTeam.tactics.discipline],
+  );
 
   // Wheel cap: after SCRUM_VALUES.wheelCap consecutive wheels in this scrum
   // sequence, a wheel-band 3rd contest is promoted to a penalty. Side is

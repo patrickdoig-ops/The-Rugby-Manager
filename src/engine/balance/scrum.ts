@@ -10,6 +10,11 @@ export const SCRUM_VALUES = {
   setPieceWeight:      0.6,
   strengthWeight:      0.4,
   disciplineWeight:    1.2,
+  // Per-side noise span — `rng(1, rngSpan)` per pack. The resolver recentres
+  // it around its mean ((rngSpan+1)/2) so the discipline variance multiplier
+  // can fatten/narrow the tails without shifting the mean (balanced packs stay
+  // byte-identical). Margin is the difference of the two sides' noise.
+  rngSpan:             50,
   // Pivot used as `(packDiscipline - disciplinePivot) * disciplineWeight` so
   // a pack averaging 50 discipline is neutral. packDiscipline stays as an
   // average (per-player attribute) even though packScore is now a sum.

@@ -63,8 +63,8 @@ Every number listed in the resolver formulas, tactic modifier tables, fatigue ti
 
 `TeamTactics` (`src/types/team.ts`) is a nine-dimension object: `attackingGamePlan`, `attackingStyle`, `attackingBreakdown`, `defendingBreakdown`, `backfieldDefence`, `defensiveLine`, `offloadStrategy`, `intensity`, `discipline`. Every resolver reads it from `attackTeam.tactics.X` / `defendTeam.tactics.X` directly — no separate "intent" layer.
 
-- **`intensity`** (`high` / `balanced` / `light`) — a team-wide effort lever. `high` drains every player's fatigue faster (×1.08 in `StaminaSystem`, compounding with the forward/back multipliers) in exchange for a small breakdown-contest edge (`intensityContestMod` ±3 to ars/dts); `light` drains slower (×0.94) but cedes that edge, to protect condition when the game is decided.
-- **`discipline`** (`risky` / `balanced` / `cautious`) — risk appetite at the breakdown. `risky` adds a turnover edge (`disciplineContestMod` ±4 to ars/dts) at the cost of higher penalty-concession rates (`disciplinePenaltyMod` ±3pp on the breakdown penalty rolls, `disciplineHighTackleMod` ±1.5pp on the high-tackle rate); `cautious` is the reverse. Card risk is **emergent** — more penalties feed the existing TMO / team-22 path with no separate card multiplier. (Not to be confused with the per-player `discipline` stat on `PlayerStats`.)
+- **`intensity`** (`high` / `balanced` / `light`) — a team-wide effort lever. `high` drains every player's fatigue faster (×1.08 in `StaminaSystem`, compounding with the forward/back multipliers) in exchange for a contest edge: `intensityContestMod` (±3 to breakdown ars/dts) plus a flat shove bonus at the set pieces (`intensityScrumMod` / `intensityMaulMod`, ±12 on the larger scrum/maul margin scale). `light` drains slower (×0.94) but cedes all of that, to protect condition when the game is decided.
+- **`discipline`** (`risky` / `balanced` / `cautious`) — risk appetite at the contest. `risky` adds a turnover edge (`disciplineContestMod` ±4 to breakdown ars/dts) at the cost of higher penalty-concession rates (`disciplinePenaltyMod` ±3pp on the breakdown penalty rolls, `disciplineHighTackleMod` ±1.5pp on the high-tackle rate). At the set pieces it's the same gamble by a different mechanism: `disciplineScrumVarianceMult` (×1.4 / ×0.6) fattens/narrows the scrum margin tails (risky wins more dominant penalties **and** concedes more on its own ball), and `disciplineMaulCollapseMod` (±10pp) drives the defender's cynical-collapse rate (risky stops more drives illegally, conceding more penalties/yellows). `cautious` is the reverse throughout. Card risk is **emergent** — more penalties feed the existing TMO / team-22 path with no separate card multiplier. (Not to be confused with the per-player `discipline` stat on `PlayerStats`.)
 
 At match init (`MatchCoordinator.initMatchState`):
 - **Human side** uses `playerTactics` if supplied (the object passed from `PreMatchScreen.onStart`), otherwise falls back to the team's `suggestedTactics`.
@@ -932,10 +932,13 @@ All eight forwards contribute to the pack score. The front rows (ids 1–3) get 
 ```
 packScore      = sum(setPiece×0.6 + strength×0.4) across the on-field forwards
 packDiscipline = avg(discipline) across the on-field forwards
-finalScore     = packScore + (packDiscipline − 50)×1.2 + rng(1,50)
+noise          = 25.5 + (rng(1,50) − 25.5) × disciplineVarianceMult   // mean-preserving
+finalScore     = packScore + (packDiscipline − 50)×1.2 + intensityScrumMod + noise
 ```
 
 `packScore` is a **sum**, not an average — so a pack a man down (forward in the sin-bin or sent off) loses ~12% of its score (~72 from a ~576 base) and is materially weaker at the scrum. `onFieldPlayers(team, state, side)` filters out sin-binned / sent-off forwards before the pack is assembled. `packDiscipline` stays as an average (per-player attribute, not a pack aggregate). `rng(1,50)` per side gives a margin distribution that's triangular on `[-49, +49]` with peak at 0; tuned with the bucket thresholds below to land scrum penalty rates inside the real-League 10-15%-per-scrum band.
+
+**Tactic hooks (intensity + discipline).** `intensityScrumMod` (`TACTIC_MODIFIERS`, `high: +12 / balanced: 0 / light: −12`) is a flat shove edge added to each side's `finalScore` — push harder for the team-wide fatigue cost. `disciplineScrumVarianceMult` (`risky: 1.4 / balanced: 1.0 / cautious: 0.6`) scales each side's noise **around its mean** (`(rngSpan+1)/2 = 25.5`), so it fattens or narrows the margin tails without shifting the mean — `balanced` packs are byte-identical to the pre-tactic resolver. The effect is "chancing the hit": a `risky` pack on even terms wins ~12.8% attacking penalties (vs 7.4% balanced) **but** concedes ~1.0% on its own put-in (vs 0.5%); `cautious` is the reverse (~3.3% won, ~0.1% conceded). When one pack badly out-muscles the other the downside is muted (the losing tail can't reach the defending-penalty bucket on the dominant side's ball) — a realistic property, not a separate rule.
 
 The defending pack's final score is subtracted from the attacking pack's final score to determine the margin:
 
@@ -1246,13 +1249,15 @@ Mirrors the scrum's pack-score formula. `MaulResolver.packScore` is a **sum** of
 
 Two-stage outcome:
 
-1. **Strength margin** (`attackScore + rng(1, 50)` vs `defendScore + rng(1, 50)`):
+1. **Strength margin** (`attackScore + intensityMaulMod + rng(1, 50)` vs `defendScore + intensityMaulMod + rng(1, 50)`):
    - `margin > 0` → attackers winning the push → continue to stage 2.
    - `margin ≤ 0` → defenders stop the maul cleanly → `maul_held` (turnover scrum to defenders, no ground gained).
 2. **Cynical-collapse roll** (only on positive margin):
-   - `collapsePct = clamp((margin × 0.30) + (max(0, 50 − defendDiscipline) × 0.50), 0, 60)`
+   - `collapsePct = clamp((margin × 0.30) + (max(0, 50 − defendDiscipline) × 0.50) + disciplineMaulCollapseMod, 0, 60)`
    - On hit → `maul_collapse_penalty` (defending side cited, attacking team gets the penalty).
    - On miss → `maul_won` (attacking team gains ground).
+
+**Tactic hooks (intensity + discipline).** `intensityMaulMod` (`TACTIC_MODIFIERS`, `high: +12 / balanced: 0 / light: −12`) is a flat drive edge on each side's stage-1 score: a `high`-intensity attacker wins more mauls and is held (turned over) less; a `high` defender stops more. `disciplineMaulCollapseMod` (`risky: +10 / balanced: 0 / cautious: −8`, pp) biases the **defender's** collapse roll: a `risky` defence cracks more often — collapsing the maul to stop a drive/try illegally, conceding more penalties and yellows (via `MAUL_COLLAPSE_YELLOW`), but yielding fewer clean maul gains; a `cautious` defence rarely collapses and lets the drive go. Both default to 0 so `balanced` mauls are unchanged.
 
 On `maul_won`, the gain distribution is:
 - 90% chance: `rng(5, 10)` metres (the normal driving-maul band).

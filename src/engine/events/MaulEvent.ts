@@ -7,6 +7,7 @@ import { availableForwards, onFieldPlayers, attackDir, isTryScoredAt } from '../
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { SLOT } from '../Slot';
+import { TACTIC_MODIFIERS } from '../balance';
 
 // Random forward from the cited side — mirrors ScrumEvent.pickFrontRowOffender
 // but draws from the whole pack (a maul collapse is typically a defender
@@ -36,7 +37,14 @@ export function handleMaul({ state, attackTeam, defendTeam }: PhaseContext): Pha
   const attackHooker   = pickHooker(attackForwards, attackOnField);
   const defendHooker   = pickHooker(defendForwards, defendOnField);
 
-  const res = resolveMaul(attackForwards, defendForwards);
+  // Intensity adds a flat drive edge to each side; the defender's discipline
+  // biases the cynical-collapse roll (risky cracks more to stop the drive).
+  const res = resolveMaul(
+    attackForwards, defendForwards,
+    TACTIC_MODIFIERS.intensityMaulMod[attackTeam.tactics.intensity],
+    TACTIC_MODIFIERS.intensityMaulMod[defendTeam.tactics.intensity],
+    TACTIC_MODIFIERS.disciplineMaulCollapseMod[defendTeam.tactics.discipline],
+  );
 
   const events: MatchEvent[] = [
     { type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 },

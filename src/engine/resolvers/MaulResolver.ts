@@ -31,10 +31,20 @@ function packDiscipline(forwards: Player[]): number {
   return forwards.reduce((sum, p) => sum + p.currentStats.discipline, 0) / forwards.length;
 }
 
-export function resolveMaul(attackForwards: Player[], defendForwards: Player[]): MaulResolution {
+// `attackBonus` / `defendBonus` are flat drive edges (intensity tactic).
+// `collapseBiasPct` is added to the defender's cynical-collapse roll
+// (discipline tactic) — risky defenders crack more. All default to 0 so
+// existing callers and balanced packs are unchanged.
+export function resolveMaul(
+  attackForwards: Player[],
+  defendForwards: Player[],
+  attackBonus = 0,
+  defendBonus = 0,
+  collapseBiasPct = 0,
+): MaulResolution {
   const { rngSpan, collapseFromMarginWeight, collapseFromDisciplineWeight, maxCollapsePct } = MAUL_VALUES;
-  const attackScore = packScore(attackForwards) + rng(1, rngSpan);
-  const defendScore = packScore(defendForwards) + rng(1, rngSpan);
+  const attackScore = packScore(attackForwards) + attackBonus + rng(1, rngSpan);
+  const defendScore = packScore(defendForwards) + defendBonus + rng(1, rngSpan);
   const margin = attackScore - defendScore;
 
   let result: MaulResult;
@@ -50,7 +60,7 @@ export function resolveMaul(attackForwards: Player[], defendForwards: Player[]):
     const defDisc = packDiscipline(defendForwards);
     const pressureTerm = margin * collapseFromMarginWeight;
     const disciplineTerm = Math.max(0, MAUL_VALUES.disciplinePivot - defDisc) * collapseFromDisciplineWeight;
-    const collapsePct = Math.min(maxCollapsePct, pressureTerm + disciplineTerm);
+    const collapsePct = Math.min(maxCollapsePct, Math.max(0, pressureTerm + disciplineTerm + collapseBiasPct));
     if (rng(1, 100) <= collapsePct) {
       result = 'maul_collapse_penalty';
     } else {

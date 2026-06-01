@@ -24,13 +24,26 @@ function packDiscipline(forwards: Player[]): number {
   return forwards.reduce((sum, p) => sum + p.currentStats.discipline, 0) / forwards.length;
 }
 
-export function resolveScrum(attackForwards: Player[], defendForwards: Player[]): ScrumResolution {
-  const { disciplineWeight, disciplinePivot, attackPenaltyMargin, stableWinMargin, wheelMargin } = SCRUM_VALUES;
-  // rng(1,50) per side ⇒ margin distribution triangular on [-49, +49] with
-  // peak at 0. Tighter than the previous (1,60) spread so penalty rates land
-  // in the real-rugby 10-15%-per-scrum band given the SCRUM_VALUES buckets.
-  const attackScore = packScore(attackForwards) + (packDiscipline(attackForwards) - disciplinePivot) * disciplineWeight + rng(1, 50);
-  const defendScore = packScore(defendForwards) + (packDiscipline(defendForwards) - disciplinePivot) * disciplineWeight + rng(1, 50);
+// `attackBonus` / `defendBonus` are flat shove edges (intensity tactic).
+// `attackVarianceMult` / `defendVarianceMult` scale each side's noise around
+// its mean (discipline tactic) — 1.0 is the neutral default, so existing
+// callers and balanced packs are unchanged. The noise is recentred on its
+// mean before scaling, so a wider/narrower multiplier only changes the spread,
+// never the mean (margin stays byte-identical at mult 1.0 + bonus 0).
+export function resolveScrum(
+  attackForwards: Player[],
+  defendForwards: Player[],
+  attackBonus = 0,
+  defendBonus = 0,
+  attackVarianceMult = 1,
+  defendVarianceMult = 1,
+): ScrumResolution {
+  const { disciplineWeight, disciplinePivot, attackPenaltyMargin, stableWinMargin, wheelMargin, rngSpan } = SCRUM_VALUES;
+  const noiseMid = (rngSpan + 1) / 2;
+  const attackNoise = noiseMid + (rng(1, rngSpan) - noiseMid) * attackVarianceMult;
+  const defendNoise = noiseMid + (rng(1, rngSpan) - noiseMid) * defendVarianceMult;
+  const attackScore = packScore(attackForwards) + (packDiscipline(attackForwards) - disciplinePivot) * disciplineWeight + attackBonus + attackNoise;
+  const defendScore = packScore(defendForwards) + (packDiscipline(defendForwards) - disciplinePivot) * disciplineWeight + defendBonus + defendNoise;
   const margin = attackScore - defendScore;
 
   let result: ScrumResult;

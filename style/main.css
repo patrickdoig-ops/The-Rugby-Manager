@@ -2145,20 +2145,22 @@ html.native-app .app-header {
   align-items: center;
   gap: 8px;
   padding: 7px 12px;
+  font-family: var(--rm-font-mono);
   font-size: var(--rm-fs-14);
+  font-variant-numeric: tabular-nums;
 }
 .cup-thead {
   font-size: var(--rm-fs-12);
   color: var(--rm-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.10em;
   border-bottom: 1px solid var(--rm-border-soft);
 }
 .cup-trow { border-top: 1px solid var(--rm-hairline); }
 .cup-trow--qual { background: color-mix(in oklch, var(--rm-pitch) 8%, transparent); }
 .cup-trow--me { background: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 18%, transparent); }
 .cup-trank { color: var(--rm-text-muted); text-align: center; }
-.cup-tname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cup-tname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.08em; }
 .cup-tnum { text-align: center; color: var(--rm-text-muted); font-variant-numeric: tabular-nums; }
 .cup-tnum--diff { font-size: var(--rm-fs-13); }
 .cup-tpts { text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -2184,10 +2186,11 @@ html.native-app .app-header {
   overflow: hidden;
 }
 .cup-fx-date {
+  font-family: var(--rm-font-mono);
   font-size: var(--rm-fs-12);
   color: var(--rm-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.10em;
   padding: 7px 12px;
   background: var(--rm-surface-2);
 }
@@ -2203,7 +2206,7 @@ html.native-app .app-header {
 .cup-fx-side { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .cup-fx-home { justify-content: flex-end; }
 .cup-fx-away { justify-content: flex-start; }
-.cup-fx-name { font-size: var(--rm-fs-14); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cup-fx-name { font-family: var(--rm-font-mono); font-size: var(--rm-fs-14); text-transform: uppercase; letter-spacing: 0.08em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cup-fx-score { font-family: var(--rm-font-display); font-size: var(--rm-fs-16); font-variant-numeric: tabular-nums; }
 .cup-fx-vs { color: var(--rm-text-muted); font-size: var(--rm-fs-13); }
 
@@ -2219,16 +2222,20 @@ html.native-app .app-header {
 }
 .cup-ko--me { border-color: var(--team-color, var(--rm-pitch)); }
 .cup-ko-label {
+  font-family: var(--rm-font-mono);
   font-size: var(--rm-fs-11);
   color: var(--rm-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.10em;
   margin-bottom: 6px;
 }
 .cup-ko-team {
   display: flex; justify-content: space-between; gap: 8px;
   padding: 4px 0;
+  font-family: var(--rm-font-mono);
   font-size: var(--rm-fs-14);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 .cup-ko-team--win { font-weight: 700; color: var(--rm-chalk); }
 .cup-ko-score { font-variant-numeric: tabular-nums; color: var(--rm-text-muted); }

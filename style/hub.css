@@ -195,13 +195,12 @@
   position: relative;
   margin: 0 16px 6px;
   padding: 8px 14px;
-  background: var(--rm-surface);
-  border: 1px solid var(--rm-border-soft);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--rm-chalk) 14%, transparent);
   border-radius: 14px;
   display: flex;
   flex-direction: column;
   gap: 5px;
-  box-shadow: var(--rm-card-shadow);
 }
 
 #hub-next-match::before {

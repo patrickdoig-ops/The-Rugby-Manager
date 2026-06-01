@@ -116,7 +116,6 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
   let discardOpen = false;
   // Per-row 12-stat expand state. Keyed by `${tier}-${squadNum}` since the
   // row's identity is the slot + tier (rosterId would shift on swap).
-  // Cleared on swap (via performSwap) since the slot's player has changed.
   const expandedRows = new Set<string>();
   function expandKey(tier: Tier, squadNum: number): string { return `${tier}-${squadNum}`; }
 
@@ -512,6 +511,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       });
       el.querySelector<HTMLButtonElement>('#sq-discard-confirm')!.addEventListener('click', () => {
         discardOpen = false;
+        dirty = false;
         triggerBack();
       });
       const backdrop = el.querySelector<HTMLDivElement>('#sq-discard-backdrop');
@@ -657,7 +657,9 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       // keep the draft but clear transient UI state that shouldn't survive
       // navigation away from the screen.
       selection = null;
+      activeGroup = 'all';
       discardOpen = false;
+      expandedRows.clear();
     }
     render();
   };

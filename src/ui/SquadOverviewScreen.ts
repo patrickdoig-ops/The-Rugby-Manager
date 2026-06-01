@@ -174,6 +174,8 @@ export function initSquadOverviewScreen(
       ? `${team.name} · ${state.calendar.seasonLabel} · ${thinCount} ${thinCount === 1 ? 'position' : 'positions'} thin`
       : `${team.name} · ${state.calendar.seasonLabel}`;
 
+    const savedScroll = el!.querySelector<HTMLElement>('#so-scroll')?.scrollTop ?? 0;
+
     el!.style.setProperty('--team-color', team.color);
     el!.innerHTML = `
       <div class="app-header">
@@ -196,6 +198,11 @@ export function initSquadOverviewScreen(
         </button>
       </div>
     `;
+
+    if (savedScroll > 0) {
+      const scrollEl = el!.querySelector<HTMLElement>('#so-scroll');
+      if (scrollEl) scrollEl.scrollTop = savedScroll;
+    }
 
     el!.querySelector<HTMLButtonElement>('#so-continue')!.addEventListener('click', () => activeOnContinue());
 

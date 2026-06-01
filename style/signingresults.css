@@ -247,9 +247,13 @@
 
 .rd-row {
   display: grid;
-  grid-template-columns: 1.4fr 1.2fr 0.9fr 0.9fr auto;
-  align-items: center;
-  gap: 12px;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "name    button"
+    "meta    button"
+    "poacher wage";
+  column-gap: 12px;
+  row-gap: 3px;
   padding: 12px 14px;
   background: var(--rm-surface);
   border: 1px solid var(--rm-border-soft);
@@ -257,32 +261,18 @@
   transition: border-color 0.15s, background 0.15s, opacity 0.15s;
 }
 
+.rd-name    { grid-area: name; }
+.rd-meta    { grid-area: meta; }
+.rd-poacher { grid-area: poacher; align-self: center; }
+.rd-wage    { grid-area: wage; text-align: right; align-self: center; }
+.rd-row .tm-sign { grid-area: button; align-self: center; }
+
 /* Pitch-tinted variant when the user has lodged a retention bid —
    mirrors the .rn-row--release / .tm-row--committed treatment for
    visual continuity across the off-season chain. */
 .rd-row.tm-row--committed {
   background: color-mix(in oklch, var(--rm-pitch) 8%, var(--rm-surface));
   border-color: color-mix(in oklch, var(--rm-pitch) 35%, var(--rm-border-soft));
-}
-
-/* Narrow viewports (≤380px / iPhone SE-class): collapse the 5-column row
-   into a 2-column areas layout so every text field gets its own line
-   alongside a centred action button. Keeps the desktop / standard-mobile
-   grid intact via the cascade. */
-@media (max-width: 380px) {
-  .rd-row {
-    grid-template-columns: 1fr auto;
-    grid-template-areas:
-      "name    button"
-      "meta    button"
-      "poacher button"
-      "wage    button";
-  }
-  .rd-name    { grid-area: name; }
-  .rd-meta    { grid-area: meta; }
-  .rd-poacher { grid-area: poacher; }
-  .rd-wage    { grid-area: wage; text-align: left; }
-  .rd-row .tm-sign { grid-area: button; align-self: center; }
 }
 
 .rd-name {

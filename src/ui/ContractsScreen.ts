@@ -37,7 +37,9 @@ import { RENEWAL, WAGE_FLOOR, WAGE_ROUNDING_UNIT } from '../engine/balance/trans
 import { wageOfferModal, budgetLineFor, readFromProbability, type WageRead } from './components/wageOfferModal';
 import { showToast } from './Toast';
 import type { EarlyRenewalResult } from '../game/TransferCoordinator';
-import type { TransferBid } from '../types/gameState';
+import type { TransferBid, GameState } from '../types/gameState';
+import { computeFormInputs } from '../game/playerForm';
+import { formRating, formStars } from './formDisplay';
 import { playHaptic } from './HapticsManager';
 
 type SortKey = 'wage' | 'expiry' | 'ovr' | 'position' | 'age' | 'name';
@@ -217,7 +219,7 @@ export function initContractsScreen(
         : '';
       const expandPanel = isExpandable
         ? `<div class="row-expand-panel ct-expand" data-expanded="${isExpanded}">
-             <div class="row-expand-inner"><div class="ct-expand-body">${ctExpandHtml(p, capUsed, budgetCap, renewHtml)}</div></div>
+             <div class="row-expand-inner"><div class="ct-expand-body">${ctExpandHtml(state, p, capUsed, budgetCap, renewHtml)}</div></div>
            </div>`
         : '';
       return `
@@ -413,17 +415,19 @@ export function initContractsScreen(
   renderImpl = render;
 }
 
-function ctExpandHtml(p: Player, capUsed: number, budgetCap: number, renewHtml: string): string {
+function ctExpandHtml(state: GameState, p: Player, capUsed: number, budgetCap: number, renewHtml: string): string {
   const annual = p.contract.annualWage;
   const monthly = annual / 12;
   const capPct = budgetCap > 0 ? (annual / budgetCap) * 100 : 0;
   const ss = p.seasonStats;
   const avr = ss.appearances > 0 ? averageRating(ss) : null;
   const condition = Math.round(p.condition ?? 0);
-  // Form modifier sits roughly in -0.05..+0.05 today; map to a 0-100
-  // bar centred at 50 for the visualisation. Multiplying by 1000 gives
-  // a visible swing; clamped at 0/100 either side.
-  const formScore = Math.max(0, Math.min(100, 50 + ((p.formModifier ?? 0) * 1000)));
+  // Deterministic form trend (recent ratings + condition + return rustiness) —
+  // the matchday formModifier isn't rolled outside of a live match. Map to a
+  // 0-100 bar centred at 50 for the visualisation.
+  const form = computeFormInputs(state, p).bias;
+  const fr = formRating(form);
+  const formScore = Math.max(0, Math.min(100, 50 + form * 5));
   void capUsed;
   return `
     <div class="ct-expand-grid">
@@ -453,7 +457,7 @@ function ctExpandHtml(p: Player, capUsed: number, budgetCap: number, renewHtml: 
         <div class="ct-expand-bar-row">
           <div class="ct-expand-bar-label">FORM</div>
           <div class="ct-expand-bar"><div class="ct-expand-bar-fill ct-expand-bar-fill--form" style="width:${formScore.toFixed(0)}%"></div></div>
-          <div class="ct-expand-bar-val">${(p.formModifier ?? 0) >= 0 ? '+' : ''}${((p.formModifier ?? 0) * 100).toFixed(1)}%</div>
+          <div class="ct-expand-bar-val" title="${fr.label}">${formStars(fr.stars)}</div>
         </div>
       </div>
     </div>

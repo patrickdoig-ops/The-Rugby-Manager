@@ -203,6 +203,18 @@ export interface Player {
   fatiguePct: number;
   formModifier: number;
   rating: number;
+  // Rolling record of the player's most recent match ratings (most-recent
+  // first, capped at 3). Pushed after every fixture (human + AI sims) by
+  // PLAYER_SEASON_STATS_ACCUMULATED; drives the recent-form bias in
+  // playerForm.computeFormInputs. Cleared at SEASON_ROLLED_OVER alongside
+  // seasonStats. Optional ⇔ no matches logged yet (back-filled to [] on load).
+  recentRatings?: number[];
+  // Set when the player returns from an absence — injury recovery
+  // (PLAYER_RECOVERED) or international duty (PLAYER_RETURNED_FROM_DUTY) —
+  // recording the round of return and the starting form penalty. The penalty
+  // fades to 0 over FORM_MODEL.returnFadeRounds. Cleared at SEASON_ROLLED_OVER.
+  // Absent ⇔ no recent return.
+  formReturn?: { round: number; penalty: number };
   x: number;
   y: number;
   // Persistent inter-match freshness, 0-100. Seeded at 100; snapshotted from

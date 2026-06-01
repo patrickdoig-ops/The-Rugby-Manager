@@ -6,7 +6,7 @@
 import type { CupKnockoutMatch, Fixture, GameState, PlayoffMatch, PremCupState, SeasonEvent, TeamSeasonStats, TeamStanding } from '../types/gameState';
 import { zeroStanding, zeroTeamSeasonStats } from '../types/gameState';
 import { zeroSeasonStats } from '../types/player';
-import { LEAGUE_POINTS, SEASON_VALUES, SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
+import { LEAGUE_POINTS, SEASON_VALUES, SENIOR_CAP, EFFECTIVE_CAP_CREDITS, FORM_MODEL } from '../engine/balance';
 
 // Sum of senior cap + dispensation credits — the league's absolute
 // ceiling on any club's non-marquee wage spend. The takeover boost
@@ -107,6 +107,9 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       s.yellowCards            += d.yellowCards;
       s.redCards               += d.redCards;
       s.ratingSum              += d.ratingSum;
+      // Roll the match rating (carried in d.ratingSum, one match's worth here)
+      // into the rolling last-3 window that drives the recent-form bias.
+      p.recentRatings = [d.ratingSum, ...(p.recentRatings ?? [])].slice(0, 3);
       return;
     }
     case 'TEAM_SEASON_STATS_ACCUMULATED': {
@@ -183,6 +186,8 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       const p = state.career.roster[event.rosterId];
       if (!p) return;
       p.injury = undefined;
+      // Returning from injury carries a fading form penalty (rustiness).
+      p.formReturn = { round: state.calendar.week, penalty: FORM_MODEL.injuryReturnPenalty };
       return;
     }
     case 'MARQUEE_DESIGNATED': {
@@ -431,6 +436,8 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       for (const id of Object.keys(state.career.roster)) {
         const p = state.career.roster[Number(id)];
         p.seasonStats = zeroSeasonStats();
+        if (p.recentRatings) p.recentRatings = undefined;
+        if (p.formReturn) p.formReturn = undefined;
         if (p.restObligation) p.restObligation = undefined;
         if (p.internationalDuty) p.internationalDuty = undefined;
         if (p.lionsReturnRound !== undefined) p.lionsReturnRound = undefined;
@@ -605,6 +612,8 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       if (!p) return;
       p.internationalDuty = undefined;
       p.condition = Math.max(0, Math.min(100, event.condition));
+      // Returning from international duty carries a fading form penalty.
+      p.formReturn = { round: state.calendar.week, penalty: FORM_MODEL.intlReturnPenalty };
       if (event.restEligibleRounds && event.restEligibleRounds.length > 0) {
         p.restObligation = { window: event.window, eligibleRounds: [...event.restEligibleRounds] };
       } else {

@@ -35,6 +35,8 @@ import { computeAttendance } from '../game/attendance';
 import { applyMatchdaySquad, makeInjuredPredicate } from '../game/playerSquad';
 import { selectionUnavailableIds } from '../game/internationalDutyEngine';
 import { buildTeamFromRoster, buildAutoSelectedTeamFromRoster } from '../game/rosterTeamBuilder';
+import { computeFormInputs } from '../game/playerForm';
+import { formRating, formStars } from './formDisplay';
 import { teamPossessionPct, teamTerritoryPct, averageRating } from '../game/seasonLeaderboards';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 import { createRowExpander } from './components/rowExpand';
@@ -157,7 +159,7 @@ function renderLineupRow(
     : '';
   const expandBody = expandable && rosterEntry
     ? `<div class="row-expand-panel pm-lineup-expand" data-expanded="${expanded}">
-         <div class="row-expand-inner">${renderLineupExpand(p, rosterEntry)}</div>
+         <div class="row-expand-inner">${renderLineupExpand(state, p, rosterEntry)}</div>
        </div>`
     : '';
   // Advisory international-duty rest flag — shown on the user's own players for
@@ -187,14 +189,15 @@ function renderLineupRow(
 // delta + injury chip when present. Sourced from the roster entry —
 // the matchday RawPlayer is a slim copy, the persistent state lives
 // behind `rosterId`.
-function renderLineupExpand(p: RawPlayer, r: import('../types/player').Player): string {
+function renderLineupExpand(state: GameState, p: RawPlayer, r: import('../types/player').Player): string {
   const ovr = playerOverall(p.baseStats, p.position);
   const condition = Math.round(r.condition ?? 100);
   const ss = r.seasonStats;
   const avr = ss.appearances > 0 ? averageRating(ss) : null;
   const avrPct = avr !== null ? Math.max(0, Math.min(100, (avr / 10) * 100)) : 0;
-  const formPctRaw = (r.formModifier ?? 0) * 100;
-  const formLabel = `${formPctRaw >= 0 ? '+' : ''}${formPctRaw.toFixed(1)}%`;
+  // Out of match the matchday formModifier isn't rolled yet, so show the
+  // deterministic form trend (recent ratings + condition + return rustiness).
+  const form = formRating(computeFormInputs(state, r).bias);
   const injuryChip = r.injury ? injuryChipHtml(r.injury) : '';
   return `
     <div class="pm-expand-grid">
@@ -217,7 +220,7 @@ function renderLineupExpand(p: RawPlayer, r: import('../types/player').Player): 
         <div class="pm-expand-stat"><span>${ss.appearances}</span><label>Apps</label></div>
         <div class="pm-expand-stat"><span>${ss.tries}</span><label>Tries</label></div>
         <div class="pm-expand-stat"><span>${ss.tackles}</span><label>Tackles</label></div>
-        <div class="pm-expand-stat"><span>${formLabel}</span><label>Form</label></div>
+        <div class="pm-expand-stat"><span title="${form.label}">${formStars(form.stars)}</span><label>Form</label></div>
       </div>
       ${injuryChip}
     </div>

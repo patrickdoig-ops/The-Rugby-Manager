@@ -62,8 +62,12 @@ function rngNormal(): number {
   return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
 }
 
-export function rngForm(): number {
-  return Math.max(-10, Math.min(10, Math.round(rngNormal() * 5)));
+// Raw standard-normal draw (mean 0, σ 1) on the form stream. Consumes two
+// formRand() values per call. The form model in src/engine/MatchCoordinator
+// scales and clamps this into the final integer modifier; the deterministic
+// bias is computed separately (src/game/playerForm.ts) and added on top.
+export function rngFormRaw(): number {
+  return rngNormal();
 }
 
 export function pickRandom<T>(arr: readonly T[]): T {

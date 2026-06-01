@@ -28,7 +28,7 @@ import type { RawPlayer, RawTeamInput } from '../types/teamData';
 import { MatchPhase, type PossessionSide, type KickOffStrategy } from '../types/engine';
 import { eventBus } from '../utils/eventBus';
 import { colorsClash } from '../utils/teamColor';
-import { rngForm, setMatchSeed, rng, generateSeed } from '../utils/rng';
+import { rngFormRaw, setMatchSeed, rng, generateSeed } from '../utils/rng';
 import { PenaltyHandler } from './PenaltyHandler';
 import { CardHandler, buildAnnounce } from './CardHandler';
 import { KickAtGoalHandler } from './KickAtGoalHandler';
@@ -42,7 +42,7 @@ import { makeId, resetEventCounter } from './eventId';
 import { applyMatchEvent } from './applyMatchEvent';
 import { AITacticalDirector } from './AITacticalDirector';
 import { AISubstitutionDirector } from './AISubstitutionDirector';
-import { COMMENTARY_BUFFER_CAP, COMMENTARY_PACING, slotFamiliarity, HOME_ADVANTAGE } from './balance';
+import { COMMENTARY_BUFFER_CAP, COMMENTARY_PACING, slotFamiliarity, HOME_ADVANTAGE, FORM_MODEL } from './balance';
 import { STARTING_XV_MAX } from './Slot';
 
 // Shallow copy — PlayerStats fields are all primitives, so spread is a
@@ -98,7 +98,15 @@ function pickAutoReplacement(bench: Player[], off: Player): number | null {
 // rosterTeamBuilder the caller threads in the real rosterId so
 // career-scope code can correlate match performance.
 function initPlayer(raw: RawPlayer & { rosterId?: number }): Player {
-  const form = rngForm();
+  // Form = deterministic career-derived bias (recent ratings + condition +
+  // return rustiness, precomputed by playerForm.computeFormInputs) + a single
+  // random perturbation scaled by the player's volatility (age + marquee). The
+  // JSON / legacy path has no precomputed inputs, so it collapses to the old
+  // pure-random roll (bias 0, volatility 1). Exactly one rngFormRaw() draw per
+  // player keeps the form RNG stream order unchanged.
+  const spread = FORM_MODEL.baseSpread * (raw.formVolatility ?? 1);
+  const form = Math.max(FORM_MODEL.min, Math.min(FORM_MODEL.max,
+    Math.round(rngFormRaw() * spread + (raw.formBias ?? 0))));
   // Out-of-position penalty. A starter (slot 1-15) filling a jersey that isn't
   // their natural position takes an effective-stat hit, scaled onto this
   // player's *per-match* baseStats clone (the roster record is untouched).

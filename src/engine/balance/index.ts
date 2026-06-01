@@ -21,6 +21,7 @@ export * from './scrum';
 export * from './lineout';
 export * from './maul';
 export * from './fatigue';
+export * from './form';
 export * from './rating';
 export * from './positionFamiliarity';
 export * from './tactics';

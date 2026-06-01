@@ -39,6 +39,14 @@ export type RawPlayer = Omit<Player,
   // Absent on the raw JSON path (legacy fixtures, tests) where the
   // engine defaults to 100.
   condition?: number;
+  // Precomputed form inputs, threaded through by rosterTeamBuilder from
+  // playerForm.computeFormInputs. `formBias` is the deterministic form offset
+  // (recent ratings + condition + return rustiness); `formVolatility` scales
+  // the random spread (age + marquee). MatchCoordinator.initPlayer combines
+  // them with a single random draw. Absent on the raw JSON path, where the
+  // engine falls back to bias 0 / volatility 1 (old pure-random behaviour).
+  formBias?: number;
+  formVolatility?: number;
 };
 
 export type RawTeamInput = {

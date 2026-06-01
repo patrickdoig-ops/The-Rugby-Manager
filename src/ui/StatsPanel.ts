@@ -3,6 +3,7 @@ import { shortName } from '../utils/playerName';
 import { teamTextColor } from '../utils/teamColor';
 import { playerOverall } from '../engine/RatingEngine';
 import { createRowExpander } from './components/rowExpand';
+import { formRating, formStars } from './formDisplay';
 import type { MatchState, DisplaySnapshot } from '../types/match';
 
 function pct(a: number, b: number): string {
@@ -134,8 +135,7 @@ function ratingClass(r: number): string {
 function renderPlayerExpand(p: MatchState['homeTeam']['players'][number]): string {
   const s = p.matchStats;
   const ovrLive = playerOverall(p.currentStats, p.position);
-  const formPct = Math.round((p.formModifier - 1) * 100);
-  const formSign = formPct > 0 ? '+' : '';
+  const form = formRating(p.formModifier);
   const missedTackles = Math.max(0, s.tacklesAttempted - s.tacklesMade);
 
   return `
@@ -151,7 +151,7 @@ function renderPlayerExpand(p: MatchState['homeTeam']['players'][number]): strin
     </div>
     <div class="sp-expand-context">
       <span class="sp-context-pip"><span class="sp-context-label">OVR</span><span class="sp-context-val">${ovrLive}</span></span>
-      <span class="sp-context-pip"><span class="sp-context-label">Form</span><span class="sp-context-val">${formSign}${formPct}%</span></span>
+      <span class="sp-context-pip"><span class="sp-context-label">Form</span><span class="sp-context-val" title="${form.label}">${formStars(form.stars)}</span></span>
       ${s.tries > 0 ? `<span class="sp-context-pip sp-context-pip--accent"><span class="sp-context-label">Tries</span><span class="sp-context-val">${s.tries}</span></span>` : ''}
     </div>
   `;

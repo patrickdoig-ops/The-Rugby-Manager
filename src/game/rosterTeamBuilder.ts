@@ -20,6 +20,7 @@ import type { Player } from '../types/player';
 import type { RawPlayer, RawTeamInput } from '../types/teamData';
 import { selectBestMatchdaySquad } from './autoSelect';
 import { selectionUnavailableIds } from './internationalDutyEngine';
+import { computeFormInputs } from './playerForm';
 
 export function buildTeamFromRoster(
   state: GameState,
@@ -51,7 +52,7 @@ export function buildTeamFromRoster(
   const rosterPlayers = ordered.map((rid, idx) => {
     const p = state.career.roster[rid];
     if (!p) return null;
-    return rawFromRosterPlayer(p, idx + 1);
+    return rawFromRosterPlayer(state, p, idx + 1);
   }).filter((p): p is RawPlayer => p !== null);
 
   return {
@@ -129,7 +130,7 @@ function assembleTeam(state: GameState, teamJson: RawTeamInput, ordered: number[
   const rosterPlayers = ordered.map((rid, idx) => {
     const p = state.career.roster[rid];
     if (!p) return null;
-    return rawFromRosterPlayer(p, idx + 1);
+    return rawFromRosterPlayer(state, p, idx + 1);
   }).filter((p): p is RawPlayer => p !== null);
 
   return {
@@ -140,7 +141,8 @@ function assembleTeam(state: GameState, teamJson: RawTeamInput, ordered: number[
   };
 }
 
-function rawFromRosterPlayer(p: Player, slot: number): RawPlayer {
+function rawFromRosterPlayer(state: GameState, p: Player, slot: number): RawPlayer {
+  const { bias, volatility } = computeFormInputs(state, p);
   return {
     id: slot,
     rosterId: p.rosterId,
@@ -152,5 +154,7 @@ function rawFromRosterPlayer(p: Player, slot: number): RawPlayer {
     position: p.position,
     baseStats: { ...p.baseStats },
     condition: p.condition,
+    formBias: bias,
+    formVolatility: volatility,
   };
 }

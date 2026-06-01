@@ -310,7 +310,7 @@ Match-scope randomness flows through three isolated mulberry32 streams in `src/u
 | Stream | Backing function | Consumers |
 |---|---|---|
 | `outcome` | `rng(min, max)` | Every in-play roll: resolvers, phase handlers, `ClockController.advanceMinute`, coin toss, substitution template selection |
-| `form` | `rngForm()` | Player form modifier in `initPlayer()` |
+| `form` | `rngFormRaw()` | Random perturbation of the player form modifier in `initPlayer()` |
 | `commentary` | `pickRandom(arr)` | Commentary template selection in `CommentaryEngine.pick()` |
 
 A fourth stream — `transfer`, backed by `rngTransferRaw()` and seeded via `setCareerSeed(seed)` — covers season-scope randomness (contract seeding, age-curve jitter, retirement rolls). It lives in `src/utils/rng.ts` alongside the others but is consumed only by `src/game/` code; see **`docs/game-engine.md`** § Determinism. Match-engine code never touches it.
@@ -325,17 +325,27 @@ A match with a given seed is fully reproducible: identical event sequence, ident
 
 ## Per-Match Form Modifier
 
-**Source:** `rngForm()` in `src/utils/rng.ts` (form stream), applied in `initPlayer()` in `src/engine/MatchCoordinator.ts`.
+**Source:** the deterministic part is computed in `computeFormInputs()` (`src/game/playerForm.ts`); the random part is `rngFormRaw()` (`src/utils/rng.ts`, form stream). Combined in `initPlayer()` in `src/engine/MatchCoordinator.ts`. Constants live in `src/engine/balance/form.ts` (`FORM_MODEL`).
 
-At match start, every player (starters and bench) receives a `formModifier` — a signed integer drawn from a normal distribution (mean 0, std dev 5, clamped to [−10, +10]). It is applied additively to every stat in `currentStats` before the first tick:
+At match start every player (starters and bench) receives a `formModifier` — a signed integer clamped to `[−10, +10]` — built from a **deterministic bias** plus a **single random perturbation**:
 
 ```
+formModifier = clamp(round(rngFormRaw() * baseSpread * volatility + bias), −10, +10)
 current[stat] = clamp(baseStats[stat] + formModifier, 1, 100)
 ```
 
-`baseStats` is untouched. Fatigue then degrades `currentStats` from this form-adjusted base throughout the match. A player with `formModifier = +8` starts with all attributes elevated by 8 points; one with `formModifier = −6` starts 6 points below baseline in every stat.
+`rngFormRaw()` is one standard-normal draw (mean 0, σ 1). `baseSpread = 3`. The deterministic `bias` and `volatility` are precomputed by `computeFormInputs(state, player)` and threaded onto the matchday `RawPlayer` (`formBias` / `formVolatility`) by `rosterTeamBuilder` — so the engine itself does exactly one form draw per player and the form RNG stream order is unchanged. On the legacy/JSON path (no roster context) `bias = 0`, `volatility = 1`, collapsing to a pure random roll.
 
-`formModifier` is hidden from the UI — it is stored on `Player` for engine purposes but no UI module reads it.
+**Bias** (additive, deterministic — `FORM_MODEL`):
+- **Recent form:** mean of the player's last-3 match ratings (`Player.recentRatings`) vs `ratingBaseline 6.5`, scaled by `ratingSlope 4`, clamped to `[−4, +4]`. Needs ≥`minApps 2` logged ratings.
+- **Condition:** linear penalty as inter-match freshness drops below `conditionFull 85`, reaching `conditionFloorBias −4` at condition 0.
+- **Return rustiness:** a fading penalty after returning from absence (`Player.formReturn`) — `injuryReturnPenalty −3` (injury) / `intlReturnPenalty −2` (international duty), fading linearly to 0 over `returnFadeRounds 3`.
+
+**Volatility** (σ multiplier on the random draw): age — `youngVolatility 1.3` (≤22), `veteranVolatility 0.7` (≥31), else 1 — times `marqueeVolatility 0.85` for marquee players.
+
+`baseStats` is untouched. Fatigue then degrades `currentStats` from this form-adjusted base throughout the match.
+
+**UI:** `formModifier` (and, out of match, the deterministic `bias` trend) is surfaced as a 1–5 star + label rating via `src/ui/formDisplay.ts` (StatsPanel in-match; PreMatch + Contracts show the trend).
 
 ---
 

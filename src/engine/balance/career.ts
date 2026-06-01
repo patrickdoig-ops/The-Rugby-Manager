@@ -91,7 +91,7 @@ export function appearancesMultiplier(apps: number): number {
 // Standard deviation + clamp for the Gaussian noise added to each
 // per-stat delta. Drives some players developing better/worse than the
 // pure curve would predict.
-export const STAT_NOISE = { stddev: 0.5, clamp: 1.5 };
+export const STAT_NOISE = { stddev: 0.25, clamp: 1.5 };
 
 // Probability of retiring at the END of the season the player is
 // currently playing (i.e. evaluated against the age the player will be

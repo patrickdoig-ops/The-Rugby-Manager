@@ -271,34 +271,37 @@ function lineoutLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
       false));
   }
 
-  // Defending hooker in the 5m channel (onside, at the throw mark X position).
+  // Defending hooker at the near end of the lineout (5m line), slightly ahead of the mark.
   if (defHooker) {
     out.push(placed(defHooker, defSide, state,
-      event.ballX,
+      clampX(event.ballX + fwd * 2),
       clampY(nearY + inward * 7),
       false));
   }
 
-  // Six forwards per side (excluding hooker), spread along X, two parallel lines.
-  const ATK_LINE_Y = clampY(nearY + inward * 6);
-  const DEF_LINE_Y = clampY(nearY + inward * 14);
-  const SPACING = 7;  // x-units between adjacent players
+  // Six forwards per side (excluding hooker). The lineout runs PERPENDICULAR to the
+  // touchline — players spread along Y from the 5m line to the 15m line.
+  // ~7 pitch units = 5m from touchline; ~21 pitch units = 15m from touchline.
+  const FIVE_M_Y    = nearY + inward * 7;
+  const FIFTEEN_M_Y = nearY + inward * 21;
 
   const atkLine = atkFwds.filter(p => p.id !== SLOT.HOOKER).slice(0, 6);
   const defLine = defFwds.filter(p => p.id !== SLOT.HOOKER).slice(0, 6);
 
-  // Centre the line on ballX; extend forward and backward.
-  const lineOffset = (players: Player[], lineY: number, side: Side): void => {
-    const half = (players.length - 1) / 2;
+  // Attacking line slightly behind the mark; defending line slightly ahead.
+  // Players share the same Y positions (interleaved in real rugby) but different X.
+  const lineSpread = (players: Player[], side: Side, xOff: number): void => {
+    const n = players.length;
+    if (n === 0) return;
+    const x = clampX(event.ballX + xOff);
     players.forEach((p, i) => {
-      out.push(placed(p, side, state,
-        clampX(event.ballX + fwd * (i - half) * SPACING),
-        lineY, false));
+      const t = n > 1 ? i / (n - 1) : 0.5;
+      out.push(placed(p, side, state, x, clampY(FIVE_M_Y + t * (FIFTEEN_M_Y - FIVE_M_Y)), false));
     });
   };
 
-  lineOffset(atkLine, ATK_LINE_Y, atkSide);
-  lineOffset(defLine, DEF_LINE_Y, defSide);
+  lineSpread(atkLine, atkSide, -fwd * 2);
+  lineSpread(defLine, defSide, +fwd * 2);
 
   return out;
 }

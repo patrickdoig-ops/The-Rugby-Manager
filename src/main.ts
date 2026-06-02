@@ -53,6 +53,7 @@ import { initUiSounds }            from './ui/audio/uiSounds';
 import { initHapticsDirector }     from './ui/haptics/HapticsDirector';
 import { initScoreboard }          from './ui/Scoreboard';
 import { initPitchStrip }          from './ui/PitchStrip';
+import { initPitchView }           from './ui/PitchView';
 import { initCommentaryFeed }      from './ui/CommentaryFeed';
 import { initCrashOverlay }        from './ui/CrashOverlay';
 import { initStatsPanel }          from './ui/StatsPanel';
@@ -166,6 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initUiSounds();
   initScoreboard();
   initPitchStrip();
+  initPitchView();
   initCommentaryFeed();
   initStatsPanel();
   initModalManager();

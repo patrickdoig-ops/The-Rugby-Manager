@@ -230,7 +230,7 @@ export function initSimController(engine: MatchCoordinator): void {
     }
   }));
 
-  const views = ['dashboard', 'commentary', 'stats', 'players'] as const;
+  const views = ['dashboard', 'pitch', 'commentary', 'stats', 'players'] as const;
   const viewBtns = views.map(v => document.getElementById(`btn-view-${v}`) as HTMLButtonElement);
   const panelBottom = document.getElementById('panel-bottom')!;
 
@@ -239,6 +239,9 @@ export function initSimController(engine: MatchCoordinator): void {
       viewBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       panelBottom.className = `view-${views[i]}`;
+      // The 1D pitch strip lives in the scoreboard (outside #panel-bottom), so
+      // hide it via a body class when the 2D Pitch view is active.
+      document.body.classList.toggle('pitch-view-active', views[i] === 'pitch');
     };
   });
 }

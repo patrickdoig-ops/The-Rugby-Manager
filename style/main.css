@@ -621,11 +621,9 @@ html, body {
 .view-btn {
   flex: 1;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding: 8px 0;
+  padding: 11px 0;
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
@@ -641,14 +639,6 @@ html, body {
   background: color-mix(in oklch, var(--rm-pitch) 5%, transparent);
 }
 .view-btn svg { display: block; pointer-events: none; }
-
-.view-btn-label {
-  font-family: var(--rm-font-mono);
-  font-size: var(--rm-fs-10);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  line-height: 1;
-}
 
 /* ─── Bottom panels ─── */
 #panel-bottom {
@@ -712,6 +702,153 @@ html, body {
 }
 #panel-bottom.view-players #panel-commentary,
 #panel-bottom.view-players #panel-stats { display: none; }
+
+/* Pitch (2D) only */
+#panel-pitch { display: none; }
+#panel-bottom.view-pitch {
+  display: flex;
+  flex-direction: column;
+}
+#panel-bottom.view-pitch #panel-commentary,
+#panel-bottom.view-pitch #panel-stats,
+#panel-bottom.view-pitch #panel-players { display: none; }
+#panel-bottom.view-pitch #panel-pitch {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  padding: 12px 16px;
+  gap: 10px;
+}
+
+/* When the 2D Pitch view is active the 1D strip in the scoreboard is redundant */
+body.pitch-view-active #pitch-wrapper { display: none; }
+
+/* ─── 2D Pitch view ─── */
+#pitch-2d-field {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  background: repeating-linear-gradient(0deg,
+    color-mix(in oklch, var(--rm-pitch-deep) 60%, var(--rm-bg-deep)) 0,
+    color-mix(in oklch, var(--rm-pitch-deep) 60%, var(--rm-bg-deep)) 7%,
+    color-mix(in oklch, var(--rm-pitch-deep) 75%, var(--rm-bg-deep)) 7%,
+    color-mix(in oklch, var(--rm-pitch-deep) 75%, var(--rm-bg-deep)) 14%);
+  border: 1px solid color-mix(in oklch, var(--rm-pitch) 25%, transparent);
+}
+
+.pitch2d-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  pointer-events: none;
+}
+.line-top-try    { top: 8%;  background: rgba(255,255,255,0.5); }
+.line-top-22     { top: 24%; background: rgba(255,255,255,0.25); }
+.line-mid-halfway{ top: 50%; background: rgba(255,255,255,0.8); }
+.line-bot-22     { top: 76%; background: rgba(255,255,255,0.25); }
+.line-bot-try    { top: 92%; background: rgba(255,255,255,0.5); }
+
+.pitch2d-end-top,
+.pitch2d-end-bottom {
+  position: absolute;
+  left: 8px;
+  z-index: 3;
+  width: auto;
+  text-align: left;
+  opacity: 0.85;
+}
+.pitch2d-end-top    { top: 6px; }
+.pitch2d-end-bottom { bottom: 6px; }
+
+.pitch2d-cards-top,
+.pitch2d-cards-bottom {
+  position: absolute;
+  right: 8px;
+  z-index: 3;
+}
+.pitch2d-cards-top    { top: 6px; }
+.pitch2d-cards-bottom { bottom: 6px; }
+
+.pitch2d-territory-shade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  pointer-events: none;
+  transition: top 0.35s ease, background 0.35s ease;
+  z-index: 1;
+}
+
+#pitch-2d-ball {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 0 10px color-mix(in oklch, var(--rm-amber) 60%, transparent));
+  transition: top 0.35s ease, left 0.35s ease;
+  pointer-events: none;
+  z-index: 4;
+}
+
+#pitch-flash {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0.4);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+#pitch-flash.flashing { animation: pitch-flash-pulse 0.7s ease-out; }
+.flash-try      { background: radial-gradient(circle, color-mix(in oklch, var(--rm-amber) 70%, transparent) 0%, transparent 70%); }
+.flash-penalty  { background: radial-gradient(circle, color-mix(in oklch, var(--rm-stat-1) 70%, transparent) 0%, transparent 70%); }
+.flash-card     { background: radial-gradient(circle, color-mix(in oklch, var(--rm-card-yellow) 70%, transparent) 0%, transparent 70%); }
+.flash-turnover { background: radial-gradient(circle, color-mix(in oklch, var(--rm-chalk) 50%, transparent) 0%, transparent 70%); }
+
+@keyframes pitch-flash-pulse {
+  0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.4); }
+  35%  { opacity: 0.85; transform: translate(-50%, -50%) scale(1);   }
+  100% { opacity: 0;    transform: translate(-50%, -50%) scale(1.5); }
+}
+
+#pitch-territory-bar {
+  flex-shrink: 0;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--rm-surface-3);
+}
+#pitch-territory-home {
+  height: 100%;
+  width: 50%;
+  transition: width 0.35s ease;
+}
+
+#pitch-phase-label {
+  flex-shrink: 0;
+  text-align: center;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+  padding: 4px 8px;
+  border-radius: 20px;
+  border: 1px solid var(--rm-border);
+  background: var(--rm-surface-2);
+  align-self: center;
+  transition: background 0.25s, border-color 0.25s, color 0.25s;
+}
+#pitch-phase-label.phase-try     { color: var(--rm-amber);  background: color-mix(in oklch, var(--rm-amber) 14%, transparent); border-color: color-mix(in oklch, var(--rm-amber) 45%, transparent); }
+#pitch-phase-label.phase-penalty { color: var(--rm-stat-1); background: color-mix(in oklch, var(--rm-stat-1) 14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-1) 45%, transparent); }
+#pitch-phase-label.phase-scrum   { color: var(--rm-pitch);  background: color-mix(in oklch, var(--rm-pitch) 14%, transparent); border-color: color-mix(in oklch, var(--rm-pitch) 45%, transparent); }
+#pitch-phase-label.phase-maul    { color: var(--rm-amber);  background: color-mix(in oklch, var(--rm-amber) 14%, transparent); border-color: color-mix(in oklch, var(--rm-amber) 45%, transparent); }
+#pitch-phase-label.phase-kick    { color: var(--blue);      background: color-mix(in oklch, var(--blue) 12%, transparent);     border-color: color-mix(in oklch, var(--blue) 45%, transparent); }
+#pitch-phase-label.phase-terminal{ color: var(--purple);    background: color-mix(in oklch, var(--purple) 14%, transparent);   border-color: color-mix(in oklch, var(--purple) 45%, transparent); }
 
 /* Latest commentary line — shown only in stats / players views */
 #latest-commentary {
@@ -1462,8 +1599,8 @@ html.native-app .app-header {
     height: 100dvh;
     grid-template-rows: auto auto 1fr auto;
     grid-template-areas:
-      "scoreboard"
       "toggles"
+      "scoreboard"
       "bottom"
       "controls";
     padding: 0;

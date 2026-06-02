@@ -34,7 +34,7 @@ function applyCrests(
   awayCode.style.color = teamTextColor(awayColor);
 }
 
-function renderCardStack(stack: HTMLElement, cards: DisplayCards): void {
+export function renderCardStack(stack: HTMLElement, cards: DisplayCards): void {
   const { sinBin, sentOff } = cards;
   if (sinBin.length === 0 && sentOff.length === 0) {
     if (stack.childElementCount > 0) stack.innerHTML = '';

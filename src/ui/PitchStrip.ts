@@ -1,7 +1,7 @@
 import { eventBus } from '../utils/eventBus';
 import { colorOnDark } from './teamColors';
 
-const BALL_SVG = `<svg width="26" height="16" viewBox="0 0 30 18" style="display:block">
+export const BALL_SVG = `<svg width="26" height="16" viewBox="0 0 30 18" style="display:block">
   <ellipse cx="15" cy="9" rx="14" ry="7.5" fill="var(--rm-amber)"
     stroke="color-mix(in oklch,var(--rm-amber) 40%,black)" stroke-width="0.8"/>
   <path d="M3 9 L27 9" stroke="rgba(255,255,255,0.55)" stroke-width="0.8" stroke-linecap="round"/>

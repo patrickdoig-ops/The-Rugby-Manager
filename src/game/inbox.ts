@@ -12,6 +12,7 @@ import { sortStandings } from './leagueTable';
 import { getAge } from './age';
 import { playoffRaceStatus } from './playoffRace';
 import { generateSeasonPrediction } from './media/mediaManager';
+import { confidenceBand } from './board';
 import { hashSeed } from '../utils/rng';
 
 export interface InboxItem {
@@ -29,6 +30,18 @@ function ordinal(n: number): string {
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
   return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+}
+
+// Owner's-voice read-out of the board-confidence meter, banded by the same
+// thresholds as the Hub pill (confidenceBand). Surfaced in the recurring
+// owner's messages so the manager tracks their standing in narrative form.
+function ownerConfidenceLine(confidence: number): string {
+  switch (confidenceBand(confidence).key) {
+    case 'secure':   return 'The board\'s confidence in your management is high.';
+    case 'stable':   return 'The board remains satisfied with the job you are doing.';
+    case 'shaky':    return 'Make no mistake — the board\'s confidence in you has slipped, and they want to see a response.';
+    case 'critical': return 'The board\'s confidence in you is now dangerously low, and your position is under real threat.';
+  }
 }
 
 function currentStreak(form: Array<FormResult | null>): { type: FormResult; count: number } | null {
@@ -519,6 +532,10 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
       }
     }
 
+    if (state.player.board) {
+      body += ` ${ownerConfidenceLine(state.player.board.confidence)}`;
+    }
+
     items.push({
       id: `chairman:${season}`,
       category: 'league',
@@ -608,6 +625,11 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
           sentences.push(`We're not far off the pace, but the board expects more from the second half of the season.`);
         } else {
           sentences.push(`This is below where we need to be. The board is expecting a significant improvement when the season resumes.`);
+        }
+
+        // Strand 5 — board-confidence read-out (when the board state is seeded)
+        if (state.player.board) {
+          sentences.push(ownerConfidenceLine(state.player.board.confidence));
         }
 
         items.push({

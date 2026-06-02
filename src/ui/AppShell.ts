@@ -86,8 +86,8 @@ export function buildAppShell(): void {
           <div class="pitch2d-vline vline-left-15m"></div>
           <div class="pitch2d-vline vline-right-15m"></div>
           <div class="pitch2d-vline vline-right-5m"></div>
-          <div class="pitch2d-posts posts-top"><svg class="goal-svg" viewBox="0 0 40 30" preserveAspectRatio="xMidYMax meet"><path d="M13 30 V9 H27 V30" fill="none"/></svg></div>
-          <div class="pitch2d-posts posts-bot"><svg class="goal-svg" viewBox="0 0 40 30" preserveAspectRatio="xMidYMax meet"><path d="M13 30 V9 H27 V30" fill="none"/></svg></div>
+          <div class="pitch2d-posts posts-top"><svg class="goal-svg" viewBox="0 0 40 32" preserveAspectRatio="xMidYMax meet"><path d="M9 3 V32 M31 3 V32 M9 24 H31" fill="none"/></svg></div>
+          <div class="pitch2d-posts posts-bot"><svg class="goal-svg" viewBox="0 0 40 32" preserveAspectRatio="xMidYMax meet"><path d="M9 3 V32 M31 3 V32 M9 24 H31" fill="none"/></svg></div>
           <div class="pitch2d-territory-shade" id="pitch-territory-shade"></div>
           <div class="card-stack pitch2d-cards-top" id="pitch-cards-top"></div>
           <div class="card-stack pitch2d-cards-bottom" id="pitch-cards-bottom"></div>

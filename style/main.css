@@ -802,28 +802,38 @@ body.pitch-view-active #pitch-wrapper { display: none; }
 .pitch2d-posts {
   position: absolute;
   left: 50%;
-  width: 9%;
+  width: 13%;
   height: 6.5%;
   transform: translateX(-50%);
   pointer-events: none;
-  z-index: 1;
+  z-index: 2;
 }
 .posts-top { top: 1.5%; }
 .posts-bot { top: 92%; transform: translateX(-50%) scaleY(-1); }
 .goal-svg { width: 100%; height: 100%; display: block; overflow: visible; }
-.goal-svg path { fill: none; stroke: rgba(255,255,255,0.65); stroke-width: 2.4; }
+.goal-svg path { fill: none; stroke: rgba(255,255,255,0.7); stroke-width: 2.2; stroke-linecap: round; }
 
+/* Large team name across each in-goal / dead-ball zone — identifies which end
+   a side is defending. Team-coloured (set in PitchView). Sits behind the
+   goalposts (thin lines) so both read. Centred in the in-goal band. */
 .pitch2d-end-top,
 .pitch2d-end-bottom {
   position: absolute;
-  left: 8px;
-  z-index: 3;
-  width: auto;
-  text-align: left;
-  opacity: 0.85;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  text-align: center;
+  font-size: clamp(15px, 4.8vw, 28px);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  white-space: nowrap;
+  overflow: hidden;
+  pointer-events: none;
 }
-.pitch2d-end-top    { top: 6px; }
-.pitch2d-end-bottom { bottom: 6px; }
+.pitch2d-end-top    { top: 2.2%; }
+.pitch2d-end-bottom { bottom: 2.2%; }
 
 .pitch2d-cards-top,
 .pitch2d-cards-bottom {

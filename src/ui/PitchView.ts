@@ -115,9 +115,10 @@ export function initPitchView(): void {
       territoryBar.style.background  = colorOnDark(state.awayTeam.color);
       const bottomTeam = !flip ? state.homeTeam : state.awayTeam;
       const topTeam    = !flip ? state.awayTeam : state.homeTeam;
-      topLabel.textContent    = topTeam.shortName;
+      // Full team name, large, in each in-goal — names the end a side defends.
+      topLabel.textContent    = topTeam.name;
       topLabel.style.color    = colorOnDark(topTeam.color);
-      bottomLabel.textContent = bottomTeam.shortName;
+      bottomLabel.textContent = bottomTeam.name;
       bottomLabel.style.color = colorOnDark(bottomTeam.color);
     }
   });

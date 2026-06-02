@@ -20,6 +20,13 @@ const INGOAL_PCT = 8;
 const PLAY_SPAN = 84;
 const toTop = (ballX: number): number => INGOAL_PCT + ((100 - ballX) / 100) * PLAY_SPAN;
 
+// Open-field kick phases whose ball flight gets the lob treatment (scale up to an
+// apex, settle on landing). Goal kicks (ConversionKick / Penalty) are NOT here —
+// they keep their dedicated kick-flight overlay (triggerKickFlight).
+const KICK_PHASES = new Set<MatchPhase>([
+  MatchPhase.KickOff, MatchPhase.BoxKick, MatchPhase.TacticalKick, MatchPhase.DropOut22,
+]);
+
 function flashClass(event: GameEvent): string | null {
   for (const step of event.narration.steps) {
     if (step.kind === 'announcement' && step.key.startsWith('card_')) return 'flash-card';
@@ -98,14 +105,47 @@ export function initPitchView(): void {
   // ui:speedChange (mirrors CommentaryFeed's stepStaggerMs).
   let stepMs = Math.round(loadTickDelayMs() * COMMENTARY_PACING.lineGapFraction);
   let moveTimer: ReturnType<typeof setTimeout> | null = null;
-  // True while the ball is walking its movement path — the stateChange handler
-  // then leaves the ball alone (the animation ends exactly at display.ballX/ballY).
+  // In-flight kick-lob WAAPI animation, if any (cancelled when interrupted).
+  let arcAnim: Animation | null = null;
+  // True while the ball is walking its movement path (or in a kick lob) — the
+  // stateChange handler then leaves the ball alone (the animation ends exactly at
+  // display.ballX/ballY = the final keyframe / landing).
   let movementAnimating = false;
 
   const clearMovement = () => {
     if (moveTimer !== null) { clearTimeout(moveTimer); moveTimer = null; }
+    if (arcAnim) { arcAnim.cancel(); arcAnim = null; }
     movementAnimating = false;
     ball.style.transition = '';  // restore the default CSS ease for single-jump beats
+  };
+
+  // Kick lob: travel the ball in a straight line to the landing (a kick is a
+  // straight line from directly above) while scaling up to an apex and back, so
+  // it reads as a ball in the air rather than a flat carry slide. Top-down view,
+  // so the "arc" is the scale lift, not a curved path. The animation owns the
+  // ball (movementAnimating) and commits the landing as inline style so it holds
+  // after the WAAPI fill is dropped.
+  const animateKickArc = (curTop: number, curLeft: number, tgtTop: number, tgtLeft: number) => {
+    clearMovement();
+    movementAnimating = true;
+    ball.style.transition = 'none';
+    const dur = Math.max(300, Math.min(stepMs, 650));
+    const anim = ball.animate([
+      { top: `${curTop}%`,                 left: `${curLeft}%`,                 transform: 'translate(-50%, -50%) scale(1)' },
+      { top: `${(curTop + tgtTop) / 2}%`,  left: `${(curLeft + tgtLeft) / 2}%`, transform: 'translate(-50%, -50%) scale(1.5)', offset: 0.5 },
+      { top: `${tgtTop}%`,                 left: `${tgtLeft}%`,                 transform: 'translate(-50%, -50%) scale(1)' },
+    ], { duration: dur, easing: 'ease-in-out', fill: 'forwards' });
+    // Commit the landing as inline style now; the running animation overrides it
+    // until it ends, then anim.cancel() drops the fill and this value shows.
+    ball.style.top  = `${tgtTop}%`;
+    ball.style.left = `${tgtLeft}%`;
+    arcAnim = anim;
+    anim.onfinish = () => {
+      ball.style.transition = '';
+      movementAnimating = false;
+      arcAnim = null;
+      anim.cancel();
+    };
   };
 
   const animateMovements = (kfs: ReadonlyArray<{ x: number; y: number }>, lineCount: number) => {
@@ -142,9 +182,22 @@ export function initPitchView(): void {
     const cls = flashClass(event);
     if (cls) fireFlash(toTop(event.ballX), event.ballY, cls);
 
-    // Walk the ball through the in-phase movement legs, if any; otherwise cancel
-    // any in-flight walk so this beat's stateChange sets the ball position normally.
-    if (event.movements && event.movements.length >= 2) {
+    // Ball animation for this beat, in priority order:
+    //  1. An open-field kick → lob it to the landing (scale apex + eased flight).
+    //  2. A multi-leg phase → walk the ball through each movement keyframe.
+    //  3. Otherwise cancel any in-flight animation; stateChange sets the position.
+    // The kick check is gated on the ball actually moving, so no-move kick beats
+    // (the coin-toss / pre-kick announce) fall through rather than pulsing in place.
+    if (KICK_PHASES.has(event.phase)) {
+      const tgtTop = toTop(event.ballX), tgtLeft = event.ballY;
+      const curTop  = ball.style.top  ? parseFloat(ball.style.top)  : tgtTop;
+      const curLeft = ball.style.left ? parseFloat(ball.style.left) : tgtLeft;
+      if (Math.abs(curTop - tgtTop) > 1 || Math.abs(curLeft - tgtLeft) > 1) {
+        animateKickArc(curTop, curLeft, tgtTop, tgtLeft);
+      } else {
+        clearMovement();
+      }
+    } else if (event.movements && event.movements.length >= 2) {
       animateMovements(event.movements, event.narration.steps.length);
     } else {
       clearMovement();

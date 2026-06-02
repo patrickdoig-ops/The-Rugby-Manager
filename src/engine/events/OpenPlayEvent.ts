@@ -10,6 +10,7 @@ import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
 import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler, pickHardCarrier, pickPickAndGoCarrier, tryLineDefenceBonus } from '../FieldPosition';
+import { sweepStep } from '../Lateral';
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
@@ -328,6 +329,13 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
     assistTackler,
   });
 
+  // Lateral sweep: a continuing open-play phase shifts the ball one pass across
+  // the field in the current sweep direction (reverses at the 15m edge band).
+  if (!tryScored) {
+    const sweep = sweepStep(state, attackTeam.tactics.attackingStyle);
+    events.push({ type: 'BALL_REPOSITIONED', y: sweep.y, lateralDir: sweep.lateralDir });
+  }
+
   let nextPhase: MatchPhase;
   const outcomeSteps: NarrationStep[] = [...wideIntroSteps, ...chainNarration];
 
@@ -336,7 +344,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
     const tryKey: 'line_break_try' | 'dominant_carry_try' =
       res.outcome === 'line_break' ? 'line_break_try' : 'dominant_carry_try';
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: tryKey, primary: ballCarrier, secondary: defender });
-    const y = tryLandingY(attackTeam.tactics.attackingStyle);
+    const y = tryLandingY(state, attackTeam.tactics.attackingStyle);
     events.push({ type: 'BALL_REPOSITIONED', y });
     outcomeSteps.push({ kind: 'announcement', key: `try_location_${tryLocationBand(y)}` });
   } else if (res.outcome === 'line_break') {
@@ -488,6 +496,11 @@ function resolvePickAndGo(
     coverTackler: undefined,
     assistTackler,
   });
+
+  // A pick-and-go is a tight forward drive, not a pass — only a small lateral
+  // creep in the current sweep direction (keep_it_tight = smallest step).
+  const sweep = sweepStep(state, 'keep_it_tight');
+  events.push({ type: 'BALL_REPOSITIONED', y: sweep.y, lateralDir: sweep.lateralDir });
 
   const outcomeKey: 'pick_and_go_play_on' | 'pick_and_go_dominant_carry' | 'pick_and_go_dominant_tackle' =
     outcome === 'dominant_carry'  ? 'pick_and_go_dominant_carry'

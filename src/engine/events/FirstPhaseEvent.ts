@@ -6,6 +6,7 @@ import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
 import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler, tryLineDefenceBonus } from '../FieldPosition';
+import { openSweepStep } from '../Lateral';
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
@@ -356,6 +357,13 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     assistTackler,
   });
 
+  // First phase off a set piece: the ball goes to the open side, then sweeps
+  // one pass that way (openSweepStep orients toward open side before stepping).
+  if (!tryScored) {
+    const sweep = openSweepStep(state, attackTeam.tactics.attackingStyle);
+    events.push({ type: 'BALL_REPOSITIONED', y: sweep.y, lateralDir: sweep.lateralDir });
+  }
+
   let nextPhase: MatchPhase;
   const outcomeSteps: NarrationStep[] = [...playIntroSteps, ...chainNarration];
 
@@ -364,7 +372,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     const tryKey: 'line_break_try' | 'dominant_carry_try' =
       res.outcome === 'line_break' ? 'line_break_try' : 'dominant_carry_try';
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: tryKey, primary: ballCarrier, secondary: defender });
-    const y = tryLandingY(attackTeam.tactics.attackingStyle);
+    const y = tryLandingY(state, attackTeam.tactics.attackingStyle);
     events.push({ type: 'BALL_REPOSITIONED', y });
     outcomeSteps.push({ kind: 'announcement', key: `try_location_${tryLocationBand(y)}` });
   } else if (res.outcome === 'line_break') {

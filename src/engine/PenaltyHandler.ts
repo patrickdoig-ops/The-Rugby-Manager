@@ -6,6 +6,7 @@ import { eventBus } from '../utils/eventBus';
 import { clamp } from '../utils/math';
 import { makeId } from './eventId';
 import { attackDir, inOpposition22, inOppositionHalf, isTryScoredAt, metresFromOppositionTryLine, onFieldPlayers, pickHardCarrier, pickKicker, pickFullback, pickPrimaryDefender, tryLineDefenceBonus } from './FieldPosition';
+import { lineoutFormationY, clearingKickLandingY, openSweepStep } from './Lateral';
 import { applyMatchEvent } from './applyMatchEvent';
 import { PENALTY_VALUES, TAP_AND_GO_AI, TACTIC_MODIFIERS } from './balance';
 import { rng } from '../utils/rng';
@@ -189,6 +190,8 @@ export class PenaltyHandler {
       applyMatchEvent(state, {
         type: 'BALL_REPOSITIONED',
         x: clamp(state.ball.x + attackDir(state) * res.distance, 5, 95),
+        // Found touch → lineout snaps to the touchline; missed → in-field diagonal.
+        y: res.findsTouch ? lineoutFormationY(state) : clearingKickLandingY(state, res.distance),
       });
 
       let outcomeKey: 'kick_to_touch' | 'kick_to_touch_close' | 'kick_to_touch_long' | 'kick_to_touch_missed';
@@ -283,6 +286,11 @@ export class PenaltyHandler {
       });
 
       const tryScored = isTryScoredAt(state.ball.x, attackSide, state.clock.halfTimeDone);
+      // Tap-and-go off a penalty plays like a first phase: attack the open side.
+      if (!tryScored) {
+        const sweep = openSweepStep(state, attackTeam.tactics.attackingStyle);
+        applyMatchEvent(state, { type: 'BALL_REPOSITIONED', y: sweep.y, lateralDir: sweep.lateralDir });
+      }
       const penEvent: GameEvent = {
         id: makeId(),
         gameMinute: state.clock.gameMinute,

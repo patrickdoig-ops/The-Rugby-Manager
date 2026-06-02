@@ -7,6 +7,7 @@ import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
 import { attackDir, onFieldPlayers, pickScrumHalf, pickFullback } from '../FieldPosition';
+import { boxKickLandingY, lineoutFormationY } from '../Lateral';
 import { SLOT } from '../Slot';
 
 export function handleBoxKick({ state, attackTeam, defendTeam, randomPlayer }: PhaseContext): PhaseResult {
@@ -26,12 +27,14 @@ export function handleBoxKick({ state, attackTeam, defendTeam, randomPlayer }: P
 
   const events: MatchEvent[] = [
     { type: 'KICK_FROM_HAND', kicker: scrumHalf, metres: res.distance },
-    { type: 'BALL_REPOSITIONED', x: clamp(state.ball.x + attackDir(state) * res.distance, 5, 95) },
+    // Box kicks are nearly straight (±5°) so the chaser can compete under it.
+    { type: 'BALL_REPOSITIONED', x: clamp(state.ball.x + attackDir(state) * res.distance, 5, 95), y: boxKickLandingY(state, res.distance) },
   ];
 
   if (res.outcome === 'goes_to_touch') {
     // Long-and-off clearance found touch. Opposition gets the lineout
     // throw, but the kicking team has cleared the danger zone.
+    events.push({ type: 'BALL_REPOSITIONED', y: lineoutFormationY(state) });
     events.push({ type: 'POSSESSION_SWAPPED' });
     return {
       nextPhase: MatchPhase.Lineout,

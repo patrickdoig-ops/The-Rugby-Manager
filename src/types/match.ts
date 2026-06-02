@@ -161,6 +161,11 @@ export interface MatchState {
   ball: {
     x: number;
     y: number;
+    // Current lateral sweep direction: -1 toward y=0, +1 toward y=100. Open
+    // play sweeps this way pass-by-pass until it reaches the 15m edge band,
+    // then flips. Reset toward the open side on each turnover / set-piece exit.
+    // A sign, not a coordinate — not range-checked by assertInvariants.
+    lateralDir: -1 | 1;
   };
   engine: {
     isRunning: boolean;

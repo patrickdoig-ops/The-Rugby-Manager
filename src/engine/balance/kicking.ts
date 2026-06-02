@@ -82,9 +82,12 @@ export const GOAL_KICK_VALUES = {
   // Each +1 to the threshold ≈ −1pp success rate across the rng range, so this
   // dial is the cleanest league-wide accuracy lever. Calibrated to land the
   // top kicker (~95 kicking) around 80% and the league at ~75% conversions /
-  // ~78% penalties — closer to league real-world (~70% / ~78%) than the
-  // 90%+ values we had at 120.
-  successThreshold: 135,
+  // ~75% penalties — closer to league real-world (~70% / ~78%) than the
+  // 90%+ values we had at 120. Lowered 135→133 when lateral ball movement went
+  // live: penalties are now taken from realistic (wider) angles and tries land
+  // at the swept position, so the mean make-rate needed re-centring back to
+  // baseline while the new angle variance (wide harder, central easier) stays.
+  successThreshold: 133,
 } as const;
 
 export const CONVERSION_VALUES = {

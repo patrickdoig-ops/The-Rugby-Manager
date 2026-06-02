@@ -7,6 +7,7 @@ import type { Player } from '../../types/player';
 import { MatchPhase, type AttackingKickSubType } from '../../types/engine';
 import { resolveTacticalKick, resolveFiftyTwentyTwo, resolveAttackingKick } from '../resolvers/KickingResolver';
 import { attackDir, inOwn22, inOwnHalf, inOpposition22At, onFieldPlayers, pickKicker, pickFullback } from '../FieldPosition';
+import { lineoutFormationY, clearingKickLandingY, crossKickCornerY, grubberLandingY } from '../Lateral';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
@@ -60,13 +61,15 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer
 
   const events: MatchEvent[] = [
     { type: 'KICK_FROM_HAND', kicker, metres: kickDistance },
-    { type: 'BALL_REPOSITIONED', x: newBallX },
+    // Default in-field landing (diagonal clearing kick). Touch outcomes below
+    // override Y to snap the lineout onto the touchline.
+    { type: 'BALL_REPOSITIONED', x: newBallX, y: clearingKickLandingY(state, kickDistance) },
   ];
 
   if (goesOutOnTheFull) {
     if (!startedInOwn22) {
       // Out on the full — ball reverts to where it was kicked from
-      events.push({ type: 'BALL_REPOSITIONED', x: originalBallX });
+      events.push({ type: 'BALL_REPOSITIONED', x: originalBallX, y: lineoutFormationY(state) });
       events.push({ type: 'POSSESSION_SWAPPED' });
       return {
         nextPhase: MatchPhase.Lineout,
@@ -76,6 +79,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer
       };
     }
     // Kicked directly to touch from inside own 22 - gains ground, standard touch
+    events.push({ type: 'BALL_REPOSITIONED', y: lineoutFormationY(state) });
     events.push({ type: 'POSSESSION_SWAPPED' });
     return {
       nextPhase: MatchPhase.Lineout,
@@ -97,6 +101,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer
       if (backfield === 'one_back') {
         steps.push({ kind: 'tactic_note', cause: 'fifty_twenty_two_one_back', chancePct: COMMENTARY_CHANCES.tacticalKickFiftyTwentyTwo });
       }
+      events.push({ type: 'BALL_REPOSITIONED', y: lineoutFormationY(state) });
       return {
         nextPhase: MatchPhase.Lineout,
         narration: { steps },
@@ -106,6 +111,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer
     }
 
     // Standard touch
+    events.push({ type: 'BALL_REPOSITIONED', y: lineoutFormationY(state) });
     events.push({ type: 'POSSESSION_SWAPPED' });
     return {
       nextPhase: MatchPhase.Lineout,
@@ -163,11 +169,12 @@ function handleFiftyTwentyTwoAttempt(
   const events: MatchEvent[] = [
     { type: 'KICK_FROM_HAND', kicker, metres: res.distance },
     { type: 'FIFTY_22_ATTEMPTED', kicker, success: res.outcome === 'success', defenderBackfield },
-    { type: 'BALL_REPOSITIONED', x: newBallX },
+    { type: 'BALL_REPOSITIONED', x: newBallX, y: clearingKickLandingY(state, res.distance) },
   ];
 
   if (res.outcome === 'success') {
     // 50/22 retained — attacking team throws into opp 22 lineout.
+    events.push({ type: 'BALL_REPOSITIONED', y: lineoutFormationY(state) });
     return {
       nextPhase: MatchPhase.Lineout,
       narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.TacticalKick, key: 'fifty_twenty_two', primary: kicker }] },
@@ -179,6 +186,7 @@ function handleFiftyTwentyTwoAttempt(
   if (res.outcome === 'touch_elsewhere') {
     // Aimed for touch and got it, just not where they wanted. Lineout
     // forms where the ball went out; opposition throw.
+    events.push({ type: 'BALL_REPOSITIONED', y: lineoutFormationY(state) });
     events.push({ type: 'POSSESSION_SWAPPED' });
     return {
       nextPhase: MatchPhase.Lineout,
@@ -219,9 +227,11 @@ function handleAttackingKick(
   const res = resolveAttackingKick(subType, kicker);
   const kickDir = attackDir(state);
   const newBallX = clamp(state.ball.x + kickDir * res.distance, 5, 95);
+  // Cross-field kick flies flat to the far corner; grubber rolls diagonally.
+  const landingY = subType === 'cross_field' ? crossKickCornerY(state) : grubberLandingY(state, res.distance);
   const events: MatchEvent[] = [
     { type: 'KICK_FROM_HAND', kicker, metres: res.distance },
-    { type: 'BALL_REPOSITIONED', x: newBallX },
+    { type: 'BALL_REPOSITIONED', x: newBallX, y: landingY },
   ];
   const narrKey: PhaseOutcomeKey =
     subType === 'cross_field'

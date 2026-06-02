@@ -15,6 +15,7 @@ export * from './kicking';
 export * from './dropOut';
 export * from './kickDecision';
 export * from './openPlay';
+export * from './lateral';
 export * from './offload';
 export * from './breakdown';
 export * from './scrum';

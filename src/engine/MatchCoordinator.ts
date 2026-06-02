@@ -190,7 +190,7 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
       clockInTheRed: false,
       penaltyKickToTouchLineout: false,
     },
-    ball: { x: 50, y: 50 },
+    ball: { x: 50, y: 50, lateralDir: 1 },
     engine: {
       isRunning: false,
       tickDelayMs,

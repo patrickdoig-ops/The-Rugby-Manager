@@ -6,6 +6,7 @@ import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
 import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, pickCoverDefender, pickKickReturnDefender, pickAssistTackler, pickPodCarrier } from '../FieldPosition';
+import { openSweepStep } from '../Lateral';
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
@@ -129,6 +130,12 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
     assistTackler,
   });
 
+  // Receiving team running the kick back: counter toward the open side.
+  if (!tryScored) {
+    const sweep = openSweepStep(state, attackTeam.tactics.attackingStyle);
+    events.push({ type: 'BALL_REPOSITIONED', y: sweep.y, lateralDir: sweep.lateralDir });
+  }
+
   let nextPhase: MatchPhase;
   const steps: NarrationDescriptor['steps'] = [...chainNarration];
 
@@ -137,7 +144,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
     const tryKey: 'line_break_try' | 'dominant_carry_try' =
       res.outcome === 'line_break' ? 'line_break_try' : 'dominant_carry_try';
     steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: tryKey, primary: carrier, secondary: defender });
-    const y = tryLandingY(attackTeam.tactics.attackingStyle);
+    const y = tryLandingY(state, attackTeam.tactics.attackingStyle);
     events.push({ type: 'BALL_REPOSITIONED', y });
     steps.push({ kind: 'announcement', key: `try_location_${tryLocationBand(y)}` });
   } else if (res.outcome === 'line_break') {

@@ -329,21 +329,52 @@ The coin-toss announcement key varies by match type: `occasion_kickoff_derby` / 
 
 ## Determinism (Seeded RNG)
 
-Match-scope randomness flows through three isolated mulberry32 streams in `src/utils/rng.ts`:
+Match-scope randomness flows through four isolated mulberry32 streams in `src/utils/rng.ts`:
 
 | Stream | Backing function | Consumers |
 |---|---|---|
 | `outcome` | `rng(min, max)` | Every in-play roll: resolvers, phase handlers, `ClockController.advanceMinute`, coin toss, substitution template selection |
 | `form` | `rngFormRaw()` | Random perturbation of the player form modifier in `initPlayer()` |
 | `commentary` | `pickRandom(arr)` | Commentary template selection in `CommentaryEngine.pick()` |
+| `positioning` | `rngPosition(min, max)` | Every lateral (Y-axis) draw: open-play sweep pass distances, kick launch angles, kick-off side bias — see "Lateral / Y-axis model" below |
 
-A fourth stream — `transfer`, backed by `rngTransferRaw()` and seeded via `setCareerSeed(seed)` — covers season-scope randomness (contract seeding, age-curve jitter, retirement rolls). It lives in `src/utils/rng.ts` alongside the others but is consumed only by `src/game/` code; see **`docs/game-engine.md`** § Determinism. Match-engine code never touches it.
+A fifth stream — `transfer`, backed by `rngTransferRaw()` and seeded via `setCareerSeed(seed)` — covers season-scope randomness (contract seeding, age-curve jitter, retirement rolls). It lives in `src/utils/rng.ts` alongside the others but is consumed only by `src/game/` code; see **`docs/game-engine.md`** § Determinism. Match-engine code never touches it.
+
+The `positioning` stream is isolated so that adding realistic lateral ball movement cannot perturb any in-play outcome roll. The one deliberate exception where Y feeds an outcome is the goal-kick angle term (see below): a penalty taken from a wide swept position is harder, and a try grounded out wide is harder to convert. The try-landing jitter itself stays on the `outcome` stream (one `rng()` draw per try) so its stream offset is unchanged across this feature.
 
 Each stream is seeded with its master seed XORed against a fixed constant, so adding new commentary lines (or any new flavour roll) cannot shift outcome rolls.
 
 The master seed is a 32-bit unsigned integer stored on `state.engine.seed`. It is set in the `MatchCoordinator` constructor — either passed via `opts.seed` or auto-generated via `Math.floor(Math.random() * 0x100000000)`. `setMatchSeed(seed)` is called **before** `initMatchState()` so player form initialisation is deterministic. Once set, the only `Math.random()` call in the engine is the seed-generation line itself.
 
 A match with a given seed is fully reproducible: identical event sequence, identical scores, identical fatigue trajectories.
+
+---
+
+## Lateral / Y-axis model
+
+`state.ball.y` is the lateral position across the pitch width: `0`/`100` are the two touchlines, `50` the centre. Y is a 0–100 proportion of the 70m width, so 1m ≈ 1.43 Y-units (`metresToY` in `src/engine/Lateral.ts`). All lateral logic lives in `Lateral.ts` (pure helpers, mirroring `FieldPosition.ts`) with tuning in `src/engine/balance/lateral.ts`; every helper clamps its result to `[0,100]`, and all new randomness draws on the `positioning` stream.
+
+**Sweep direction.** `state.ball.lateralDir` (`-1` toward y=0, `+1` toward y=100) is the remembered direction open play is moving across the field. It is **not** a coordinate, so `assertInvariants` does not range-check it. It resets toward the **open side** — the touchline with more space, i.e. away from the nearer one (`openSideDir(y) = y <= 50 ? +1 : -1`) — whenever possession changes: the `POSSESSION_SWAPPED` / `POSSESSION_SET` reducers set it inline from `ball.y`. `BALL_REPOSITIONED` carries an optional `lateralDir` so phase handlers can update it alongside `y`.
+
+**Open-play sweep.** Each ball-in-hand phase shifts the ball one "pass" laterally in the current direction, then reverses when it reaches the 15m edge band (`EDGE_Y_LOW = 21` / `EDGE_Y_HIGH = 79`): on crossing, Y clamps to the edge and `lateralDir` flips. Pass distance is drawn skewed (`PASS_DISTANCE_M`): 70% short 2–5m, 25% mid 5–12m, 5% long 12–20m, scaled by attacking style (`SWEEP_STYLE_MULT`: tight 0.7 / balanced 1.0 / wide 1.4). `sweepStep` continues the current direction (`OpenPlayEvent.handlePhasePlay`); `openSweepStep` re-orients to the open side first (`FirstPhaseEvent`, `KickReturnEvent`, penalty tap-and-go — all set-piece / receive exits, so the first pass goes to the open side). A pick-and-go uses `sweepStep` forced to `keep_it_tight` (a tight forward drive only creeps sideways). All gated on `!tryScored`.
+
+**Try landing.** A grounded try lands at the swept position plus a small style-scaled jitter (`tryLandingY(state, style)` in `TryLocationResolver.ts`, `TRY_LANDING_JITTER`: tight 6 / balanced 10 / wide 16). This supersedes the old centre-spread and feeds conversion difficulty through `state.ball.y` — a try finished out wide after a sweep is harder to convert. One `outcome`-stream draw.
+
+**Kicks** (distance is already in scope in each handler; lateral landing = `currentY + dir × metresToY(distance × tan(angle))` for in-field kicks, or a touchline snap for kicks to touch):
+
+| Kick | Helper | Lateral behaviour |
+|---|---|---|
+| Kick-off (high/grubber) | `kickOffLandingY` | Aims the 15m line (`KICKOFF_TARGET_INSET = 21`) on the kicker's left 75% of the time (`KICKOFF_LEFT_BIAS_PCT`), ± `KICKOFF_JITTER` (6) — right-foot bias |
+| Kick-off (short) | `kickOffLandingY` | Nearly straight (centre ± `KICKOFF_STRAIGHT_JITTER` 3) |
+| Box kick | `boxKickLandingY` | Nearly straight, ±`BOX_KICK_ANGLE_DEG` (5°), so the chaser competes; to-touch branch snaps to `lineoutFormationY` |
+| Tactical clearing / 50:22 / out-on-full to touch | `lineoutFormationY` | Lineout forms on the nearer touchline, `LINEOUT_TOUCHLINE_INSET` (6) in |
+| Tactical kept in field | `clearingKickLandingY` | Diagonal downfield toward the open side, `CLEARING_ANGLE_DEG` (10–22°) |
+| Cross-field kick | `crossKickCornerY` | Flat to the far corner, `CROSS_KICK_INSET` (6) in ± `CROSS_KICK_JITTER` (4) |
+| Grubber | `grubberLandingY` | Diagonal into space toward the open side, `GRUBBER_ANGLE_DEG` (8–18°) |
+| Drop-out | `dropOutLandingY` | Diagonal toward the open side, `DROPOUT_ANGLE_DEG` (10–20°) |
+| Penalty to touch | `lineoutFormationY` | Found touch → lineout snap; missed touch → `clearingKickLandingY` in field |
+
+**Goal-kick angle coupling.** `resolveGoalKick` reads `state.ball.y`: `score = kicking + composure×0.2 − angle×GOAL_KICK_VALUES.angleWeight(0.3) + rng(1,100) ≥ successThreshold`, where the penalty `angle` term includes `|ball.y−50| × PENALTY_VALUES.goalKickDistanceFromPostsWeight(0.3)` and the conversion term uses `CONVERSION_VALUES.distanceFromPostsWeight(0.4)`. Once lateral movement went live, penalties are taken from realistic (wider) positions and tries land at the swept Y, so the mean make-rate fell ~2pp; `GOAL_KICK_VALUES.successThreshold` was re-centred 135→133 to restore the league average (~75% conversions / ~75% penalties, `points/match ≈ 34.9`) while keeping the new wide-harder / central-easier variance.
 
 ---
 
@@ -1445,7 +1476,7 @@ Stat increments: `kicker.kicksAtGoal++`; on success `kicksMade++`; on miss `kick
 
 ### Choice: kick_to_touch
 
-`resolvePenaltyKickToTouch(kicker)` rolls `kickScore = kicker.currentStats.kicking + rng(1, 20)`. A good kick (score ≥ 25) travels 25–45m and finds touch 90% of the time; a poor kick travels 10–20m and finds touch 40% of the time. `BALL_REPOSITIONED` moves `state.ball.x` by `attackDir × distance` (clamped to [5, 95]).
+`resolvePenaltyKickToTouch(kicker)` rolls `kickScore = kicker.currentStats.kicking + rng(1, 20)`. A good kick (score ≥ 25) travels 25–45m and finds touch 90% of the time; a poor kick travels 10–20m and finds touch 40% of the time. `BALL_REPOSITIONED` moves `state.ball.x` by `attackDir × distance` (clamped to [5, 95]); `ball.y` snaps to `lineoutFormationY` when touch is found, else an in-field `clearingKickLandingY` (see "Lateral / Y-axis model").
 
 **Finds touch:** possession retained; phase transitions to `Lineout`. Commentary key is distance-aware when the penalty was awarded in the opposition half: `kick_to_touch_close` (landing ≤10m from the try line) or `kick_to_touch_long` (>10m). Own-half penalties that find touch use the plain `kick_to_touch` key. Both distance keys interpolate `{metres}` from the `NarrationStep.metres` field (the exact landing distance from `metresFromOppositionTryLine` at emission time).
 
@@ -1705,7 +1736,7 @@ Calibration target: ~2 injuries / match across both teams. Telemetry at 8.0% bas
 
 ### Lateral landing position
 
-When a carry crosses the try line each of the three carry handlers (`OpenPlay`, `FirstPhase`, `KickReturn`) calls `tryLandingY(attackTeam.tactics.attackingStyle)` from `src/engine/resolvers/TryLocationResolver.ts` and emits a `BALL_REPOSITIONED` with the resulting y. Spread is uniform around the midline with a half-spread keyed off `attackingStyle`: `keep_it_tight` ±12, `balanced` ±25, `wide_wide` ±45. The same y then drives `ConversionKickEvent`'s difficulty calculation (which already read `|ballY − 50|`) and the post-try narration band: central (≤ 7), close (≤ 17), wide (≤ 32), corner (otherwise). Phrases live in the `try_location_*` keys of `src/commentary/banks/en-GB/announcements.ts`.
+When a carry crosses the try line each of the three carry handlers (`OpenPlay`, `FirstPhase`, `KickReturn`) calls `tryLandingY(state, attackTeam.tactics.attackingStyle)` from `src/engine/resolvers/TryLocationResolver.ts` and emits a `BALL_REPOSITIONED` with the resulting y. The try grounds at the **swept position** (`state.ball.y`, where open play had moved the ball — see "Lateral / Y-axis model") plus a style-scaled jitter for the angle in to the line: `keep_it_tight` ±6, `balanced` ±10, `wide_wide` ±16 (`TRY_LANDING_JITTER`). One `outcome`-stream draw, clamped to `[0,100]`. The same y then drives `ConversionKickEvent`'s difficulty calculation (which already read `|ballY − 50|`) and the post-try narration band: central (≤ 7), close (≤ 17), wide (≤ 32), corner (otherwise). Phrases live in the `try_location_*` keys of `src/commentary/banks/en-GB/announcements.ts`.
 
 ### Resolution
 

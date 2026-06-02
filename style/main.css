@@ -867,15 +867,10 @@ body.pitch-view-active #pitch-wrapper { display: none; }
 }
 
 /* FM-style player dots — numbered team-coloured circles for the players involved
-   in each beat (+ set-piece formations). Positioned by top%/left% like the ball;
-   the carrier dot's top/left transition is disabled in JS while its WAAPI walk
-   rides the ball. */
-#pitch-players {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 3;
-}
+   in each beat (+ set-piece formations). Children of #pitch-2d-field (the ball's
+   offsetParent), positioned by top%/left% like the ball, and sitting below the
+   ball (z-index 4) / kick-flight (z-index 5). The carrier dot's top/left
+   transition is disabled in JS while its WAAPI walk rides the ball. */
 .pitch-dot {
   position: absolute;
   width: 22px;
@@ -889,6 +884,7 @@ body.pitch-view-active #pitch-wrapper { display: none; }
   transform: translate(-50%, -50%);
   opacity: 0;
   pointer-events: none;
+  z-index: 3;
   transition: top 0.3s ease, left 0.3s ease, opacity 0.3s ease;
 }
 .pitch-dot.visible { opacity: 0.92; }

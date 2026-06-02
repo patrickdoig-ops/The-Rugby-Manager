@@ -660,7 +660,16 @@
   line-height: 1.45;
 }
 
-.inbox-deeplink {
+.inbox-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.inbox-deeplink,
+.inbox-morale-boost,
+.inbox-counsel {
   align-self: flex-start;
   font-family: var(--rm-font-body);
   font-size: var(--rm-fs-11);
@@ -676,7 +685,9 @@
 }
 
 @media (hover: hover) {
-  .inbox-deeplink:hover {
+  .inbox-deeplink:hover,
+  .inbox-morale-boost:hover,
+  .inbox-counsel:hover {
     background: color-mix(in oklch, var(--rm-pitch) 18%, transparent);
     border-color: color-mix(in oklch, var(--rm-pitch) 50%, transparent);
   }

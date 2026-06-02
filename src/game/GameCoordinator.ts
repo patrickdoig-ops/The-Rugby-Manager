@@ -410,11 +410,16 @@ export class GameCoordinator {
   }
 
   boostPlayerMorale(rosterId: number): void {
-    if (!this.state.career.roster[rosterId]) return;
+    const p = this.state.career.roster[rosterId];
+    if (!p) return;
+    const chatCount = p.moraleChats ?? 0;
+    const baseDelta = rngTransfer(MORALE.chatBoostMin, MORALE.chatBoostMax);
+    const scale = Math.pow(MORALE.chatDecayFactor, chatCount);
+    const delta = Math.max(MORALE.chatMinBoost, Math.round(baseDelta * scale));
     applySeasonEvent(this.state, {
       type: 'PLAYER_MORALE_ADJUSTED',
       rosterId,
-      delta: MORALE.chatBoostDelta,
+      delta,
       reason: 'manager_chat',
     });
   }

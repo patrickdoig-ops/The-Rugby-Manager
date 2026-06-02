@@ -239,21 +239,68 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
   }
 
   // --- Unhappy players ---
+  // Pre-compute team's recent form and games played for playing-time diagnosis.
+  const teamGamesPlayed = state.league.results.filter(
+    r => r.homeId === teamId || r.awayId === teamId,
+  ).length;
+  const recentResults = recentForm(teamId, state.league.results, 3).filter((r): r is FormResult => r !== null);
+  const recentLosses = recentResults.filter(r => r === 'L').length;
+  const badRun = recentLosses >= 2;
+
+  // OVR-ranked non-injured starters for playing-time rank lookup.
+  const rankedSquad = club.squad
+    .map(rid => state.career.roster[rid])
+    .filter((p): p is NonNullable<typeof p> => !!p && !p.injury)
+    .sort((a, b) => playerOverall(b.baseStats, b.position) - playerOverall(a.baseStats, a.position));
+
   for (const rid of club.squad) {
     const p = state.career.roster[rid];
     if (!p) continue;
     const morale = p.morale ?? MORALE.baseline;
     if (morale >= MORALE.unhappyThreshold) continue;
+
     const name = `${p.firstName} ${p.lastName}`;
     const mood = morale < MORALE.veryUnhappyThreshold ? 'very unhappy' : 'unsettled';
+    const chatCount = p.moraleChats ?? 0;
+    const repeated = chatCount >= 2;
+    const chattedOnce = chatCount === 1;
+
+    // Playing-time diagnosis: top-15 OVR and notably underused.
+    const ovrRank = rankedSquad.findIndex(r => r.rosterId === rid);
+    const isExpectedStarter = ovrRank >= 0 && ovrRank < 15;
+    const underplayed = isExpectedStarter
+      && teamGamesPlayed >= MORALE.playingTimeMinGames
+      && p.seasonStats.appearances / teamGamesPlayed < MORALE.playingTimeRatioThreshold;
+
+    let body: string;
+    const showSquadLink = underplayed;
+
+    if (underplayed && badRun) {
+      body = repeated
+        ? `${name} remains ${mood} — insufficient game time and poor results are both taking their toll. Further chats are making little difference; the root cause needs addressing.`
+        : `${name} has featured in only ${p.seasonStats.appearances} of ${teamGamesPlayed} matches despite their quality, and a difficult run of results has compounded things.${chattedOnce ? ' A previous chat has had limited lasting effect.' : ''} Getting them on the pitch and turning results around are the real fixes.`;
+    } else if (underplayed) {
+      body = repeated
+        ? `${name} is still ${mood} about their game time. Further conversations are having less effect — they need to be on the pitch.`
+        : `${name} expects regular football given their quality but has featured in only ${p.seasonStats.appearances} of ${teamGamesPlayed} matches.${chattedOnce ? ' You\'ve spoken to them already, with limited lasting effect.' : ''} A chat may help briefly, but the real fix is picking them.`;
+    } else if (badRun) {
+      body = repeated
+        ? `The team's poor run continues to weigh on ${name}. Conversations have helped less each time — results on the pitch are what's needed.`
+        : `${name}'s confidence has been hit by the team's recent form — ${recentLosses} defeat${recentLosses !== 1 ? 's' : ''} in the last ${recentResults.length} matches.${chattedOnce ? ' You\'ve spoken to them once already.' : ''} Sustained improvement on the field is the lasting solution.`;
+    } else {
+      body = repeated
+        ? `${name} remains ${mood}. Further chats are providing diminishing returns — there may be an underlying issue with their role or the team's direction.`
+        : `${name}'s morale has slipped${chattedOnce ? ', and a previous chat has had limited lasting effect' : ''}.${!chattedOnce ? ' A conversation may provide some lift.' : ' Consider whether there\'s a structural issue to address.'}`;
+    }
+
     items.push({
       id: `morale:unhappy:${season}:${rid}`,
       category: 'squad',
       priority: 55,
       subject: `${name} — ${mood}`,
-      body: `${name} is feeling ${mood}. A lack of game time and difficult results have affected their confidence. Consider a chat to lift their spirits.`,
+      body,
       moraleBoostAction: { rosterId: rid },
-      deepLink: 'squad',
+      ...(showSquadLink ? { deepLink: 'squad' as const } : {}),
     });
   }
 

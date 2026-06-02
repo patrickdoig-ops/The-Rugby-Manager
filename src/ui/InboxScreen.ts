@@ -155,7 +155,10 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
                     ${item.counselAction
                       ? `<button class="inbox-counsel" data-rosterid="${item.counselAction.rosterId}">Speak to Player</button>`
                       : item.moraleBoostAction
-                        ? `<button class="inbox-morale-boost" data-rosterid="${item.moraleBoostAction.rosterId}">Have a Chat</button>`
+                        ? `<div class="inbox-actions">
+                             <button class="inbox-morale-boost" data-rosterid="${item.moraleBoostAction.rosterId}">Have a Chat</button>
+                             ${item.deepLink ? `<button class="inbox-deeplink" data-link="${item.deepLink}">${deepLinkLabels[item.deepLink]}</button>` : ''}
+                           </div>`
                         : item.deepLink ? `<button class="inbox-deeplink" data-link="${item.deepLink}">${deepLinkLabels[item.deepLink]}</button>` : ''}
                   </div>
                 </div>`;

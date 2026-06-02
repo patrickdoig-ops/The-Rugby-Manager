@@ -1105,10 +1105,6 @@ document.addEventListener('DOMContentLoaded', () => {
           (talkArgs) => {
             onPlayoffMatchStart(configuredHome, configuredAway, playerSide, match, playerTactics, talkArgs, avgMorale);
           },
-          () => {
-            showPreMatchAtStep('tactics');
-            screenRouter.show('pre-match', { direction: 'back' });
-          },
         );
         screenRouter.show('team-talk');
       },
@@ -1236,10 +1232,6 @@ document.addEventListener('DOMContentLoaded', () => {
           avgMorale,
           (talkArgs) => {
             onMatchStart(configuredHome, configuredAway, playerSide, round, playerTactics, talkArgs, avgMorale);
-          },
-          () => {
-            showPreMatchAtStep('tactics');
-            screenRouter.show('pre-match', { direction: 'back' });
           },
         );
         screenRouter.show('team-talk');

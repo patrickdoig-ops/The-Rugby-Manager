@@ -753,8 +753,8 @@ body.pitch-view-active #pitch-wrapper { display: none; }
    markings: try / 22m / halfway / dead-ball are solid; 10m and 5m dashed. */
 .pitch2d-line {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 3.5%;
+  right: 3.5%;
   height: 1px;
   pointer-events: none;
 }

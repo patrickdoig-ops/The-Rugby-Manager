@@ -147,6 +147,7 @@ function hydratePersistentPlayer(
     x: 50,
     y: 50,
     condition: 100,
+    morale: 65,
     potential,
   };
 }

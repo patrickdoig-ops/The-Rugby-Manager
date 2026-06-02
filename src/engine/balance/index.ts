@@ -42,3 +42,4 @@ export * from './carrying';
 export * from './attendance';
 export * from './premCup';
 export * from './board';
+export * from './morale';

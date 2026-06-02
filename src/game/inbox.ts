@@ -2,7 +2,7 @@ import type { GameState } from '../types/gameState';
 import type { RawTeamInput } from '../types/teamData';
 import type { Player } from '../types/player';
 import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
-import { YELLOW_BAN_THRESHOLD, BOARD_THRESHOLDS } from '../engine/balance';
+import { YELLOW_BAN_THRESHOLD, BOARD_THRESHOLDS, MORALE } from '../engine/balance';
 import { playerOverall } from '../engine/RatingEngine';
 import { recentForm } from './teamStats';
 import type { FormResult } from './teamStats';
@@ -22,8 +22,10 @@ export interface InboxItem {
   subject: string;
   body: string;
   deepLink?: 'squad' | 'contracts' | 'transfers' | 'fixtures' | 'league';
-  // When present, renders a "Speak to Player" action button in the inbox item.
+  // When present, renders a "Speak to Player" action button (discipline counsel).
   counselAction?: { rosterId: number };
+  // When present, renders a "Have a chat" action button (morale boost).
+  moraleBoostAction?: { rosterId: number };
 }
 
 function ordinal(n: number): string {
@@ -234,6 +236,25 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
         deepLink: 'squad',
       });
     }
+  }
+
+  // --- Unhappy players ---
+  for (const rid of club.squad) {
+    const p = state.career.roster[rid];
+    if (!p) continue;
+    const morale = p.morale ?? MORALE.baseline;
+    if (morale >= MORALE.unhappyThreshold) continue;
+    const name = `${p.firstName} ${p.lastName}`;
+    const mood = morale < 15 ? 'very unhappy' : 'unsettled';
+    items.push({
+      id: `morale:unhappy:${season}:${rid}`,
+      category: 'squad',
+      priority: 55,
+      subject: `${name} — ${mood}`,
+      body: `${name} is feeling ${mood}. A lack of game time and difficult results have affected their confidence. Consider a chat to lift their spirits.`,
+      moraleBoostAction: { rosterId: rid },
+      deepLink: 'squad',
+    });
   }
 
   // --- Form collapse ---

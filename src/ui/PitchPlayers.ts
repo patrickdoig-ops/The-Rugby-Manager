@@ -23,7 +23,8 @@ export interface PitchPlayers {
 
 export function initPitchPlayers(field: HTMLElement): PitchPlayers {
   const pool = new Map<string, HTMLElement>();   // key -> dot (kept while hidden)
-  let activeKeys = new Set<string>();            // keys shown this beat
+  let persistedKeys = new Set<string>();         // keys shown since last phase change
+  let currentPhase: string | null = null;        // phase of the last beat
   let carrierEl: HTMLElement | null = null;      // the on-ball dot for the current beat
   let carrierAnim: Animation | null = null;
   let animatedEl: HTMLElement | null = null;     // the dot carrierAnim is driving (may differ from carrierEl after a beat flip)
@@ -47,22 +48,26 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
   // Thin orchestration: pure choreograph → render/fade. ~12 lines, no rugby logic.
   const applyBeat = (event: GameEvent, state: MatchState, attacksTop: boolean): void => {
     const placed = choreograph(event, state, attacksTop);
-    const next = new Set<string>();
+    const nextKeys = new Set(placed.map(p => p.key));
+
+    // On phase change, fade out persisted dots that aren't in the new beat.
+    if (event.phase !== currentPhase) {
+      for (const key of persistedKeys) {
+        if (!nextKeys.has(key)) pool.get(key)?.classList.remove('visible');
+      }
+      persistedKeys = new Set();
+      currentPhase = event.phase;
+    }
+
     carrierEl = null;
     for (const p of placed) {
-      next.add(p.key);
+      persistedKeys.add(p.key);
       const el = ensureDot(p.key, p.color, p.text, p.jersey);
-      // Carrier rests at the ball's final spot; the follower's WAAPI rides it from
-      // there if a multi-leg walk runs, otherwise it just CSS-glides like the rest.
       el.style.top = `${toTop(p.x)}%`;
       el.style.left = `${toLeft(p.y)}%`;
       el.classList.add('visible');
       if (p.isCarrier) carrierEl = el;
     }
-    for (const key of activeKeys) {
-      if (!next.has(key)) pool.get(key)?.classList.remove('visible');
-    }
-    activeKeys = next;
   };
 
   // Reset whatever dot the (now-stopped) carrier animation was driving — tracked
@@ -86,7 +91,8 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     ballWalkFollower.cancel();
     for (const el of pool.values()) el.remove();
     pool.clear();
-    activeKeys = new Set();
+    persistedKeys = new Set();
+    currentPhase = null;
     carrierEl = null;
   };
 

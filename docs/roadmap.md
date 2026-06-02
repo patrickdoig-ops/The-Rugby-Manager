@@ -95,28 +95,38 @@ are precisely the systems that drive long-term retention.
 
 ## 4. Prioritised roadmap (manager-fantasy weighting)
 
-### Tier 0 — The "1.0 of the manager fantasy" (do these first)
+**Status as of v1.66b:** Tier 0 is fully shipped. Tier 1 has a detailed plan
+in [`docs/roadmap-tier1.md`](./roadmap-tier1.md) and is next.
 
-Highest impact-to-effort, and together a coherent, marketable release. Fixes the
-two biggest gaps — stakes and presentation — and makes everything afterward land
-harder. Notably **0.1–0.3 are small-to-medium and reuse systems you already have**
-(owner budgets, performance tracking, modals, commentary).
+### Shipped beyond plan (v1.44b → v1.66b)
 
-> **Detailed implementation plan: see [`docs/roadmap-tier0.md`](./roadmap-tier0.md)** —
-> per-feature design, data model, events, invariants, UI, balance, save/determinism
-> impact, build milestones, and acceptance criteria, grounded in the existing code
-> seams.
+Features implemented that were not in the original roadmap, logged here for
+completeness:
 
-| # | Feature | Why it matters | Touches | Effort |
-|---|---|---|---|---|
-| 0.1 | **Board / owner expectations + job security** | The missing fail-state. A pre-season objective (e.g. "reach the playoffs"), a confidence meter that moves with results and transfers, and a real sack risk. Turns every match into something that *matters*. | New `SeasonEvent` + state; reuse owner budgets + performance tracking; inbox + Hub surface. | M |
-| 0.2 | **Player morale / happiness** | Foundational system that unlocks team talks, transfer requests, and press reactions. Driven by playing time, results, contract status, and squad role; feeds form/training. The spine of the dressing room. | New season-scope state + `SeasonEvent`; feeds match-build form; squad/Hub surface. | M |
-| 0.3 | **Pre-match + half-time team talks** | The cheapest "I'm the manager" moment in the genre — a few options that nudge morale and an in-match modifier, with huge perceived agency. | Reuse modal + commentary; transient match modifier through `applyMatchEvent`; reads morale (0.2). | S |
-| 0.4 | **2D pitch view** | Convert the 1D ball strip into a top-down pitch with territory zones, ball position, phase build-up, possession, and key-event flashes. No need for 22 animated players — a "FM-2D-lite" / territory tug-of-war transforms immersion and App Store screenshots. | New UI canvas over `displaySnapshot` + event bus; no engine change. | L |
+| Feature | What was built | Where |
+|---|---|---|
+| **Lateral / Y-axis ball movement** | Full per-phase Y-axis ball tracking: pass-distance bands, sweep-style multipliers per team tactics, kick-trajectory angles, try-landing jitter. Enables the 2D pitch animations. | `src/engine/balance/lateral.ts`; wired into every phase handler |
+| **Advanced 2D pitch animations** | Beyond "FM-2D-lite": multi-leg carry keyframe walks, kick-arc lobs with apex scaling, kick-flight overlays toward posts, flash events per phase type, goal-post rendering, dead-ball / in-goal areas, field line accuracy. | `src/ui/PitchView.ts` |
+| **Hub navigation restructure** | Contracts + Transfers merged into a sub-menu; new Club tile and `ClubMenuScreen` showing the board-confidence meter, drivers breakdown, and season objective live. | `src/ui/ClubMenuScreen.ts`, `ContractsTransfersMenuScreen.ts` |
+| **Match captain nomination** | Manager nominates a captain (persists in save); fallback to highest-composure starter. Purely narrative (named in referee team-22 warning). | `src/game/captain.ts`, `captainRosterId` on `GameState.player` |
+| **Discipline counselling** | Manager can counsel a player via an inbox CTA; temporarily boosts effective `discipline` stat for N rounds. Accumulation bans (5 yellows) and double-yellow fix. | `PLAYER_DISCIPLINE_COUNSELLED` event, `disciplineAdvice` on `Player` |
+| **International camp stat boosts** | Players on international duty receive minor stat boosts during training camp, offsetting the club-training miss. | `src/game/internationalDutyEngine.ts` |
+
+### Tier 0 — ✅ COMPLETE (shipped v1.44b–v1.66b)
+
+> **Implementation reference: [`docs/roadmap-tier0.md`](./roadmap-tier0.md)**
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 0.1 | **Board / owner expectations + job security** | ✅ Done | Full `BoardState` (confidence 0–100, objective, warning/sack latches). Per-result deltas, streak penalties, EoS swing. `SackScreen` (terminal — ends save; manager carousel is Tier 4.1). Club Menu exposes confidence meter + drivers. |
+| 0.2 | **Player morale / happiness** | ✅ Done | `Player.morale` (0–100). Playing-time, result, and standout-performance triggers. "Have a Chat" with diminishing returns. Feeds form bias (±3). Reason-aware inbox items. |
+| 0.3 | **Pre-match + half-time team talks** | ✅ Done | Four tones (Calm / Encourage / Demand / Single Out) with morale-conditioned effects and decay. `TEAM_TALK_APPLIED` match event. Rotating phrase library. |
+| 0.4 | **2D pitch view** | ✅ Done | Full animated 2D pitch: Y-axis ball movement, carry keyframes, kick arcs, goal-posts, territory bar, flash events, card pips, phase label. Exceeds original "FM-2D-lite" spec. |
 
 ### Tier 1 — FM-style depth (the management loop)
 
-The bundle that earns the "deep, obsessive sim" tagline.
+The bundle that earns the "deep, obsessive sim" tagline. Tier 0 morale + board
+are built and ready to be read.
 
 > **Detailed implementation plan: see [`docs/roadmap-tier1.md`](./roadmap-tier1.md)** —
 > per-feature design, data model, events, invariants, UI, balance, save/determinism
@@ -124,8 +134,8 @@ The bundle that earns the "deep, obsessive sim" tagline.
 > seams. Locked design decisions: **1.1** masks *other clubs' players + free agents
 > only* (own squad always visible) with *range-band* presentation; **1.2** is scoped
 > to a *core three* (assistant, fitness/medical, scouts); **1.3** is *deferred* to be
-> designed with set-piece calls (Tier 2.4). Tier 1 reads Tier 0 morale + board as
-> built.
+> designed with set-piece calls (Tier 2.4). Build order: 1.2 staff → 1.1 scouting
+> → 1.3 press → 1.4 transfer requests.
 
 | # | Feature | Why it matters | Touches | Effort |
 |---|---|---|---|---|
@@ -141,8 +151,9 @@ The bundle that earns the "deep, obsessive sim" tagline.
 | 2.1 | **Second tier + promotion/relegation** | Removes the career ceiling; gives a sacked manager somewhere to fall and a rebuild story. Big content + balancing job but the foundation of long-term play. | League structure; fixtures; roster scaling; standings. | XL |
 | 2.2 | **European competition (Champions Cup-style)** | Midweek European nights are the prestige content of club rugby; huge for the "build a dynasty" fantasy. Reuses the cup scheduler. | Cup scheduler; calendar; standings. | L |
 | 2.3 | **Loan system + January-style window + deadline-day drama** | Fills out the recruitment calendar; loans give a use for fringe/youth players and a development pipeline. | Transfer system; new window phase; loan contracts. | M–L |
-| 2.4 | **Match-engine depth: weather, referee variation, set-piece calls** | Variation that makes matches feel less repeatable: ref personalities, wind/rain affecting kicking/handling, lineout/scrum call choices. Each is an isolated balance addition. | Resolvers + `balance/`; pre-match indicators; commentary. | M (each) |
+| 2.4 | **Match-engine depth: weather, referee variation, set-piece calls** | Variation that makes matches feel less repeatable: ref personalities (breakdown-strict, high-tackle hawk, lets-it-flow), wind/rain affecting kicking/handling gates, lineout and scrum call choices. *Lateral Y-axis movement is already shipped (see bonus features above) — this item covers the remaining three sub-features.* Each is an isolated balance addition. | Resolvers + `balance/`; pre-match indicators; commentary. | M (each) |
 | 2.5 | **Finances beyond the cap** | Gate receipts, sponsorship, facilities investment — texture for owners/board and a long-term investment loop (training-ground upgrades feeding 1.2/development). | New finance state + `SeasonEvent`; board (0.1) tie-in. | L |
+| 2.6 | **Pre-season window** | A brief period between transfer-window close and Round 1: a couple of simulated warm-up fixtures (or a training-camp variant) to bed in new signings, build form, and surface early-season injury risks before the campaign. Gives new arrivals a reason to sign early, and the manager meaningful pre-season squad decisions. | Cup scheduler reuse or lightweight fixture sim; condition/form warm-up; optional pre-season injury roll. | M |
 
 ### Tier 3 — Polish, retention & differentiators
 
@@ -153,6 +164,8 @@ The bundle that earns the "deep, obsessive sim" tagline.
 | 3.3 | **Club history, records, rivalries, hall of fame** | Persistent head-to-head, all-time records, club legends. Cheap to build on the season archive, big for long-term attachment. | Season archive read; new history UI. | S–M |
 | 3.4 | **Expanded achievements + in-season narrative milestones** | The systems above unlock dozens more (dynasty, promotion, develop-an-academy-star-to-90, survive-a-sacking rebuild). | Achievement defs. | S |
 | 3.5 | **Detailed injuries (HIA, long-term, recurrence) + squad depth/registration limits** | Deepens squad-management tension and makes physios/rotation matter. | Match + season injury systems; registration rules. | M |
+| 3.6 | **Captain authority (mechanical weight)** | The captain nomination skeleton is shipped (narrative only). Give it meaningful mechanical effect: composure boost to players near the ball, morale leadership when the team is behind, named in commentary at key moments. The infrastructure (`captainRosterId`, fallback logic) is already in place. | `captain.ts`; match-build modifier; commentary triggers. | S |
+| 3.7 | **Post-match analysis screen** | A narrative match summary after the final whistle: key tactical decisions that swung the game, what drove the score (breakdown dominance, set-piece edge, kicking accuracy), the standout individual. The rich per-phase stats already exist — surface them as a readable verdict rather than a raw table. | New screen reading existing match stats + result; no engine change. | S–M |
 
 ### Tier 4 — Advanced career depth
 
@@ -168,31 +181,38 @@ land well. Both have significant scope and touch multiple existing systems.
 
 ## 5. Suggested sequencing
 
-1. **Ship Tier 0 as the next "1.0 of the manager fantasy."** Board expectations +
-   morale + team talks + a 2D pitch is a coherent, marketable update that fixes the
-   two biggest gaps (stakes + presentation). **0.1–0.3 are small-to-medium and
-   reuse systems you already have**, so they are low-risk under the determinism
-   harness; 0.4 is a pure UI addition over `displaySnapshot` with no engine change.
-2. **Tier 1 is the "FM depth" arc** — scouting + staff + press + transfer requests is
-   the bundle that earns the "deep, obsessive" tagline. Do **scouting (1.1) and staff
-   (1.2) together** since scouts *are* staff. Full plan: [`docs/roadmap-tier1.md`](./roadmap-tier1.md).
-   **Forward dependencies it surfaces:** a **manager carousel** (3.6) so press/requests
-   can frame a rebuild after a sacking; **AI-club staff & recruitment fog** (Tier 1
-   models both for the player's club only); and **player roles** (1.3) held back to be
-   designed with set-piece calls (2.4).
-3. **Tier 2 is content-heavy** — promotion/relegation and Europe are where real
-   time and balancing budget go; gate them behind a stable Tier 0/1 foundation.
-4. **Tier 3 is continuous polish** to slot between the bigger arcs and keep reviews
-   fresh.
-5. **Tier 4 features need the full foundation** — the manager carousel needs a
-   functioning board/sacking system (0.1) and ideally multi-club world depth (2.1);
-   player roles are most meaningful once the 2D pitch (0.4) makes their effect
-   legible and the world has multi-club personality (Tier 2).
+**Tier 0 is done.** Current version is v1.66b. Pick up at Tier 1.
 
-**Explicitly not recommended:** a full 3D match engine. It fights the
-no-backend/browser/mobile constraints, is a money pit, and the differentiator is
-simulation depth, not graphics. A strong 2D view (0.4) captures ~80% of the
-immersion for ~10% of the cost.
+1. **Tier 1 is next** — scouting + staff + press + transfer requests is the "FM
+   depth" bundle. Start with **1.2 (staff) and 1.1 (scouting) together** since
+   scouts are staff; then 1.3 press, then 1.4 transfer requests. Full plan in
+   [`docs/roadmap-tier1.md`](./roadmap-tier1.md). Surfaces two forward dependencies:
+   **player roles** (1.3 stub, deferred to 2.4) and **manager carousel** (4.1,
+   deferred until world depth is in place).
+2. **Tier 2 is content-heavy** — promotion/relegation and Europe set the long-term
+   career ceiling; gate them behind a stable Tier 1 foundation. Tier 2.4 (weather,
+   referee variation, set-piece calls) can be parallelised since each sub-feature is
+   an isolated balance addition; note lateral Y-axis movement is already shipped.
+   Tier 2.6 (pre-season window) is low-risk and can ship alongside any Tier 2 item.
+3. **Tier 3 is continuous polish** — 3.1 (highlights timeline) is the most valuable
+   unlock from the now-animated 2D pitch. 3.6 (captain authority) and 3.7
+   (post-match analysis) are small and can slot between any arc.
+4. **Tier 4 features need the full foundation** — the manager carousel (4.1) needs
+   the board/sacking system (done) and multi-club world depth (2.1); player roles
+   (4.2) are most meaningful with set-piece calls (2.4) and multi-club AI
+   personality.
+
+**Telemetry note (v1.66b baseline):** home win rate is 59.3% ± 4.3% across 450
+simulated fixtures. Real Premiership home win rates sit ~55–58%, so this is
+marginally elevated. No immediate action required but worth a targeted pass on
+`src/engine/balance/homeAdvantage.ts` + `attendance.ts` if it trends upward.
+Try rate (3.3/match), card rate (0.8 yellow/0.2 red), and set-piece win rates all
+fall within expected ranges.
+
+**Explicitly not recommended:** a full 3D match engine. The animated 2D pitch now
+exceeds the original "FM-2D-lite" spec and already captures the key immersion gains.
+A 3D engine would fight the no-backend/browser/mobile constraints for marginal
+return.
 
 ---
 

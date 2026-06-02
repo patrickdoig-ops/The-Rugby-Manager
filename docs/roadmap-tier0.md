@@ -1,4 +1,4 @@
-# Tier 0 — Detailed Roadmap: "The 1.0 of the Manager Fantasy"
+# Tier 0 — Detailed Roadmap: "The 1.0 of the Manager Fantasy" ✅ COMPLETE (v1.66b)
 
 Detailed implementation plan for the four Tier 0 features from `docs/roadmap.md`.
 Together they form one coherent, shippable release that fixes the game's two
@@ -176,9 +176,9 @@ outcomes. Prefer making confidence fully deterministic from results where possib
 
 ### Open questions (need a product decision)
 
-- **After a sacking:** for this tier, surface an end screen and end the save (or
-  offer a restart). The full manager carousel — applying for vacancies, track-record
-  reputation, job availability — is a Tier 4 feature (roadmap §4.1) that needs
+- **After a sacking:** `SackScreen` ends the save (offers New Game / Main Menu).
+  This is the shipped resolution. The full manager carousel — applying for
+  vacancies, track-record reputation, job availability — is Tier 4.1 and needs
   the broader world-depth foundation.
 - **Multi-club careers:** does confidence reset fully on changing clubs?
 - Difficulty: should there be a "no sacking" / chairman-patience setting for casual

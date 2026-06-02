@@ -23,13 +23,23 @@ export const MORALE = {
   standoutRatingThreshold: 8.0,
   standoutDelta: 5,
 
-  // Inbox "have a chat" CTA boost
-  chatBoostDelta: 10,
+  // Manager chat: diminishing returns (RNG + exponential decay per chat this season)
+  // baseDelta = rngTransfer(chatBoostMin, chatBoostMax); delta = max(chatMinBoost, round(baseDelta × chatDecayFactor^chatCount))
+  chatBoostMin: 6,          // first-chat minimum boost
+  chatBoostMax: 14,         // first-chat maximum boost
+  chatDecayFactor: 0.55,    // multiplier applied per prior chat this season
+  chatMinBoost: 2,          // floor — chat never gives less than this
 
   // Inbox alert thresholds — item fires when morale drops below unhappyThreshold;
   // label escalates to "very unhappy" below veryUnhappyThreshold.
   unhappyThreshold: 35,
   veryUnhappyThreshold: 15,
+
+  // Inbox playing-time diagnosis — player is "underplayed" when they are a
+  // top-15 OVR starter and their appearance fraction falls below this threshold,
+  // provided at least playingTimeMinGames have been played this season.
+  playingTimeRatioThreshold: 0.4,
+  playingTimeMinGames: 3,
 
   // Form-bias contribution in computeFormInputs
   // (morale − formNeutral) × formSlope, clamped to ±formCap.

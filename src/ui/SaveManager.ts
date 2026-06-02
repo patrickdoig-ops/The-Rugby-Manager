@@ -123,6 +123,12 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
     const captainRosterId = typeof parsed.captainRosterId === 'number'
       ? parsed.captainRosterId
       : undefined;
+    const board = parsed.board
+      && typeof parsed.board.confidence === 'number'
+      && (parsed.board.objective === 'title' || parsed.board.objective === 'playoffs' || parsed.board.objective === 'topHalf')
+      && typeof parsed.board.warningIssued === 'boolean'
+      ? { confidence: parsed.board.confidence, objective: parsed.board.objective, warningIssued: parsed.board.warningIssued }
+      : undefined;
     return {
       playerTeamId: parsed.playerTeamId,
       seed: parsed.seed >>> 0,
@@ -149,6 +155,7 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
       ...(cupDirection !== undefined ? { cupDirection } : {}),
       ...(mediaStories !== undefined ? { mediaStories } : {}),
       ...(captainRosterId !== undefined ? { captainRosterId } : {}),
+      ...(board !== undefined ? { board } : {}),
     };
   } catch {
     return null;

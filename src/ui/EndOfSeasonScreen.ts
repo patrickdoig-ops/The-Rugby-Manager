@@ -16,6 +16,7 @@ import type { GameCoordinator } from '../game/GameCoordinator';
 import type { GameState, TeamStanding } from '../types/gameState';
 import type { Player } from '../types/player';
 import { sortStandings } from '../game/leagueTable';
+import { currentObjectiveVerdict, confidenceBand } from '../game/board';
 import { SEASON_AWARDS } from '../engine/balance/career';
 import { animateCounter } from './components/counterUp';
 import { launchConfetti } from './Confetti';
@@ -202,6 +203,25 @@ export function initEndOfSeasonScreen(
         </section>`
       : '';
 
+    const board = state.player.board;
+    const boardSection = board ? (() => {
+      const verdict = currentObjectiveVerdict(state, board.objective);
+      const objectiveText = board.objective === 'title' ? 'Win the Premiership'
+        : board.objective === 'playoffs' ? 'Reach the playoffs (top four)'
+        : 'Finish in the top half';
+      const verdictLabel = verdict === 'exceeded' ? 'Objective exceeded'
+        : verdict === 'met' ? 'Objective met'
+        : 'Objective missed';
+      const band = confidenceBand(board.confidence);
+      return `
+        <section class="eos-section eos-board eos-board--${verdict}">
+          <h3 class="eos-h3">The Owner's Verdict</h3>
+          <div class="eos-board-objective">Season target: ${objectiveText}</div>
+          <div class="eos-board-verdict eos-board-verdict--${verdict}">${verdictLabel}</div>
+          <div class="eos-board-confidence eos-board-confidence--${band.key}">Board confidence: ${band.label}</div>
+        </section>`;
+    })() : '';
+
     el!.innerHTML = `
       <div class="app-header">
         <div class="app-topbar">
@@ -214,6 +234,7 @@ export function initEndOfSeasonScreen(
 
       <div id="eos-content">
         ${championSection}
+        ${boardSection}
 
         <div id="eos-grid">
           <section class="eos-section eos-standings">

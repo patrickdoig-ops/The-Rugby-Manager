@@ -2,7 +2,7 @@ import type { GameState } from '../types/gameState';
 import type { RawTeamInput } from '../types/teamData';
 import type { Player } from '../types/player';
 import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
-import { YELLOW_BAN_THRESHOLD } from '../engine/balance';
+import { YELLOW_BAN_THRESHOLD, BOARD_THRESHOLDS } from '../engine/balance';
 import { playerOverall } from '../engine/RatingEngine';
 import { recentForm } from './teamStats';
 import type { FormResult } from './teamStats';
@@ -618,6 +618,21 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
           body: sentences.join(' '),
           deepLink: 'league',
         });
+  }
+
+  // --- Board final warning (job security) ---
+  // Surfaced for as long as the warning latch is set and confidence remains in
+  // the danger zone. Highest league priority so it leads the inbox.
+  const board = state.player.board;
+  if (board && board.warningIssued && board.confidence <= BOARD_THRESHOLDS.warning) {
+    items.push({
+      id: `board-warning:${season}`,
+      category: 'league',
+      priority: 130,
+      subject: 'Owner\'s message — your position is under review',
+      body: 'The board has lost patience. Results have fallen well short of expectations and the owner has made the situation plain: a sustained improvement is required, and quickly. Another run like this and a change will be made.',
+      deepLink: 'league',
+    });
   }
 
   // --- Playoff race status ---

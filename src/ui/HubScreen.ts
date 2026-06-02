@@ -15,6 +15,7 @@ import { computeOverallRating } from '../team/teamProfile';
 import { formAdjustment, matchSpread, HOME_ADVANTAGE_PTS, recentForm } from '../game/teamStats';
 import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
 import { buildAssistantReport } from '../game/inbox';
+import { confidenceBand } from '../game/board';
 import { countUnread } from './inboxRead';
 import { loadDismissed } from './inboxDismiss';
 import { ROUND_LABELS } from '../engine/balance/season';
@@ -177,6 +178,13 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
             <div id="hub-progress"><div id="hub-progress-fill" style="width:${pct.toFixed(1)}%"></div></div>
             <span class="hub-progress-total">R${totalRounds}</span>
           </div>
+          ${state.player.board ? (() => {
+            const band = confidenceBand(state.player.board.confidence);
+            return `<div class="hub-board-pill hub-board-pill--${band.key}" title="Board confidence: ${Math.round(state.player.board.confidence)}/100">
+              <span class="hub-board-pill-label">Board</span>
+              <span class="hub-board-pill-val">${band.label}</span>
+            </div>`;
+          })() : ''}
         </div>
       </div>
 

@@ -44,6 +44,7 @@ import '../style/training-results.css';
 import '../style/player-profile.css';
 import '../style/saves.css';
 import '../style/achievements.css';
+import '../style/sack.css';
 
 import { buildAppShell }           from './ui/AppShell';
 import { preloadAllCues }          from './ui/SoundManager';
@@ -76,6 +77,7 @@ import { initPlayoffBracketScreen, showPlayoffBracket } from './ui/PlayoffBracke
 import { initBudgetRevealScreen, showBudgetReveal } from './ui/BudgetRevealScreen';
 import { initTakeoverRevealScreen, showTakeoverReveal, type TakeoverEntry } from './ui/TakeoverRevealScreen';
 import { initEndOfSeasonScreen, showEndOfSeason }   from './ui/EndOfSeasonScreen';
+import { initSackScreen, showSack }                 from './ui/SackScreen';
 import { initRenewalsScreen, showRenewals }         from './ui/RenewalsScreen';
 import { initTransferMarketScreen, showTransferMarket, showTransferMarketMidseason, showTransferMarketPreSeason } from './ui/TransferMarketScreen';
 import { initSigningResultsScreen, showSigningResults } from './ui/SigningResultsScreen';
@@ -197,6 +199,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // full training week between each playoff match (SF → Final), matching the
   // regular-season rhythm.
   let playoffTrainingPending = false;
+  // Latched on game:managerSacked (mid-season after a result, or end-of-season
+  // after the objective swing). The post-match / end-of-season chains route to
+  // the game-over SackScreen instead of the Hub / off-season chain.
+  let managerSackedPending = false;
 
   // `direction` defaults to 'forward'. Back-paths (Settings → Home,
   // TeamSelector → Home, end-of-game → Home) pass 'back' to get the
@@ -337,6 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initBudgetRevealScreen(getGameEngine, allTeams);
     initTakeoverRevealScreen(getGameEngine, allTeams);
     initEndOfSeasonScreen(getGameEngine, allTeams);
+    initSackScreen(getGameEngine, allTeams);
     // Going to the profile from any off-season screen doesn't mutate
     // career state, so the back path just re-shows the existing DOM —
     // partial selections / toggles survive the round-trip.
@@ -407,6 +414,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // routes through EndOfSeason → Renewals → Signings → Rollover.
     eventBus.on('game:bracketSeeded',  () => { bracketSeededPending = true; playoffTrainingPending = false; });
     eventBus.on('game:seasonComplete', () => { seasonCompletePending = true; });
+    eventBus.on('game:managerSacked',  () => { managerSackedPending = true; });
+  }
+
+  // Game over: the manager has been sacked. Clears the active save slot so a
+  // sacked career can't be resumed, then shows the terminal screen.
+  function runSackScreen(reason: 'midseason' | 'endOfSeason'): void {
+    managerSackedPending = false;
+    clearSave();
+    showSack({
+      reason,
+      onNewGame: () => goTeamSelector('forward'),
+      onMainMenu: () => goHome('back'),
+    });
+    screenRouter.show('sacked');
   }
 
   // The handful of Hub-and-League navigation helpers below are reused both
@@ -897,7 +918,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Each market window is skipped when empty (the open*Window calls
   // leave state.career.market null in that case).
   function runEndOfSeasonChain(): void {
+    // Judge the season against the board's objective before rollover — applies
+    // the confidence swing and may flag a sacking (latched on the bus event).
+    // The EndOfSeasonScreen shows the verdict; the sack lands on Continue.
+    if (gameEngine) gameEngine.judgeSeasonObjective();
     showEndOfSeason(() => {
+      if (managerSackedPending) { runSackScreen('endOfSeason'); return; }
       if (!gameEngine) { goHub(); return; }
       // Compute next season's budgets (performance + takeovers) BEFORE
       // the rollover zeroes out standings. Events fire CLUB_BUDGET_SET
@@ -1261,7 +1287,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // skip straight to the bracket.
         const afterTraining = isPlayoffEntry
           ? () => { bracketSeededPending = false; runPlayoffStage(); }
-          : () => maybeRunMidseasonPoach(() => { if (gameEngine) saveGame(gameEngine.toSavePayload()); goHub(); });
+          : () => {
+              // A mid-season result may have drained board confidence past the
+              // sack threshold — game over before returning to the Hub.
+              if (managerSackedPending) { runSackScreen('midseason'); return; }
+              maybeRunMidseasonPoach(() => { if (gameEngine) saveGame(gameEngine.toSavePayload()); goHub(); });
+            };
         // International break detection (RNG-free): flags the call-ups and
         // reads this block's Prem Cup fixtures. When present, the break runs
         // its own screen chain (call-ups → cup fixtures + direction → training

@@ -50,7 +50,7 @@ import { buildAutoSelectedTeamFromRoster, buildCupTeamFromRoster } from './roste
 import { CUP_POOLS_2025_26, CUP_SEED_ROUND, buildCupSeed, buildCupKnockoutSeed } from './cupScheduler';
 import { cupDevelopmentEvents } from './cupDevelopment';
 import { parseSeasonStartYear, seasonOpenIso, getAge } from './age';
-import { recentForm } from './teamStats';
+import { recentForm, type FormResult } from './teamStats';
 import { generateMatchStory, type MediaMatchContext, type MediaPlayer } from './media/mediaManager';
 import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot, type PlayerStatsSnapshot } from './seasonStatsCollector';
 import { computeTrainingWeek } from './trainingWeek';
@@ -63,15 +63,16 @@ import {
 import { computeRollover } from './careerRollover';
 import { generatePersona } from './personaGenerator';
 import { buildRosterSeededEvent, buildCareerArchiveRestoredEvent } from './saveMigration';
+import { seedConfidence, resultDelta, currentObjectiveVerdict, eosSwing, type ObjectiveVerdict } from './board';
 import { TransferCoordinator, type EarlyRenewalResult } from './TransferCoordinator';
 import { computeBudgetEvents } from './budgetPlanner';
 import { computeAttendance } from './attendance';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed, rngTransfer, getTransferCallCount, advanceTransferTo, hashSeed } from '../utils/rng';
-import { SEASON_VALUES, INJURY_SEVERITY, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD } from '../engine/balance';
+import { SEASON_VALUES, INJURY_SEVERITY, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD, BOARD_THRESHOLDS } from '../engine/balance';
 import type { InjurySeverity } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
-import type { RawTeamInput } from '../types/teamData';
+import type { RawTeamInput, BoardAmbition } from '../types/teamData';
 
 // Returned by beginInternationalBreak() — the context the break-flow UI
 // (call-ups screen → cup-fixtures screen → training) needs, and that
@@ -139,6 +140,9 @@ export interface SavedSeason {
   mediaStories?: import('../types/gameState').MediaStory[];
   // Manager's nominated match captain (rosterId). Narrative-only.
   captainRosterId?: number;
+  // Board confidence for the managed club. Not replayable from `results`, so
+  // persisted directly. Optional — absent on saves written before this system.
+  board?: import('../types/gameState').BoardState;
 }
 
 // Deep clone the roster index for save serialisation — every Player and
@@ -216,8 +220,78 @@ export class GameCoordinator {
       type: 'PREM_CUP_SEEDED',
       ...buildCupSeed(CUP_POOLS_2025_26, coord.state.league.fixtures, coord.state.calendar.seasonLabel),
     });
+    coord.seedBoardState();
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
+  }
+
+  // Seed the managed club's board confidence + objective for the season ahead.
+  // Year 1 uses the ambition baseline; later seasons map the just-archived
+  // finish onto a seed. Resets the final-warning latch each season.
+  private seedBoardState(): void {
+    const teamId = this.state.player.teamId;
+    const ambition: BoardAmbition = this.teamsById.get(teamId)?.boardAmbition ?? 'playoffs';
+    const prior = this.state.career.archive[this.state.career.archive.length - 1];
+    applySeasonEvent(this.state, {
+      type: 'BOARD_STATE_SEEDED',
+      confidence: seedConfidence(ambition, prior, teamId),
+      objective: ambition,
+      warningIssued: false,
+    });
+  }
+
+  // Move board confidence on the human result (the just-recorded fixture),
+  // then evaluate the mid-season fail-state. The result is already pushed to
+  // standings/results, so recentForm includes it.
+  private applyBoardResult(result: FixtureResult, expectedToWin: boolean): void {
+    if (!this.state.player.board) return;
+    if (result.playerSide === null) return;
+    const myScore = result.playerSide === 'home' ? result.homeScore : result.awayScore;
+    const oppScore = result.playerSide === 'home' ? result.awayScore : result.homeScore;
+    const outcome: FormResult = myScore > oppScore ? 'W' : myScore < oppScore ? 'L' : 'D';
+    const last3 = recentForm(this.state.player.teamId, this.state.league.results, 3)
+      .filter((r): r is FormResult => r !== null);
+    const losingStreak = last3.length === 3 && last3.every(r => r === 'L');
+    applySeasonEvent(this.state, {
+      type: 'BOARD_CONFIDENCE_ADJUSTED',
+      delta: resultDelta(outcome, expectedToWin, losingStreak),
+      reason: `result:${outcome}`,
+    });
+    this.evaluateJobSecurity();
+  }
+
+  // Mid-season fail-state: at/below the sack threshold *with* a prior warning
+  // → sack; otherwise at/below the warning threshold → issue the one-per-season
+  // final warning. The sack writes no persistent state (it ends the save), so
+  // it's a UI bus event, not a SeasonEvent.
+  private evaluateJobSecurity(): void {
+    const board = this.state.player.board;
+    if (!board) return;
+    if (board.confidence <= BOARD_THRESHOLDS.sack && board.warningIssued) {
+      eventBus.emit('game:managerSacked', { reason: 'midseason', confidence: board.confidence });
+    } else if (board.confidence <= BOARD_THRESHOLDS.warning && !board.warningIssued) {
+      applySeasonEvent(this.state, { type: 'MANAGER_WARNED' });
+    }
+  }
+
+  // End-of-season judgement: apply the objective swing once (called from the
+  // end-of-season chain before rollover), then check the season-end sack
+  // threshold. Returns the verdict + whether the manager was sacked so the
+  // UI can show the verdict and route the game-over branch.
+  judgeSeasonObjective(): { verdict: ObjectiveVerdict; sacked: boolean } {
+    const board = this.state.player.board;
+    if (!board) return { verdict: 'met', sacked: false };
+    const verdict = currentObjectiveVerdict(this.state, board.objective);
+    applySeasonEvent(this.state, {
+      type: 'BOARD_CONFIDENCE_ADJUSTED',
+      delta: eosSwing(verdict),
+      reason: `season:${verdict}`,
+    });
+    const sacked = board.confidence <= BOARD_THRESHOLDS.eosSack;
+    if (sacked) {
+      eventBus.emit('game:managerSacked', { reason: 'endOfSeason', confidence: board.confidence });
+    }
+    return { verdict, sacked };
   }
 
   // Generates STARTER_FA_POOL.count free agents via personaGenerator
@@ -290,6 +364,19 @@ export class GameCoordinator {
     }
     if (save.captainRosterId !== undefined) {
       applySeasonEvent(coord.state, { type: 'PLAYER_CAPTAIN_SET', rosterId: save.captainRosterId });
+    }
+    // Board confidence isn't replayable from `results` (the per-result delta
+    // depends on the human-match context), so it's restored verbatim. Legacy
+    // saves without it fall back to a fresh seed.
+    if (save.board) {
+      applySeasonEvent(coord.state, {
+        type: 'BOARD_STATE_SEEDED',
+        confidence: save.board.confidence,
+        objective: save.board.objective,
+        warningIssued: save.board.warningIssued,
+      });
+    } else {
+      coord.seedBoardState();
     }
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
@@ -856,6 +943,10 @@ export class GameCoordinator {
     }
     eventBus.emit('game:fixtureRecorded', { result, state: this.state });
 
+    // Board confidence — adjust on the human result, then check the
+    // final-warning / mid-season-sack thresholds. Deterministic (no RNG).
+    this.applyBoardResult(result, expectedToWin);
+
     // Media story — one deterministic, flavour-only take on the player's
     // fixture, dropped into the inbox. Seeded off (rootSeed, round, clubId) via
     // a standalone RNG so it can't perturb the career stream / season
@@ -1297,6 +1388,9 @@ export class GameCoordinator {
   rollSeason(): SeasonEvent[] {
     const events = computeRollover(this.state, [...this.teamsById.keys()]);
     for (const ev of events) applySeasonEvent(this.state, ev);
+    // Re-seed board confidence for the new season from the finish just
+    // archived by SEASON_ROLLED_OVER (resets the final-warning latch).
+    this.seedBoardState();
     return events;
   }
 
@@ -1313,6 +1407,7 @@ export class GameCoordinator {
         ? { matchdaySquad: this.state.player.matchdaySquad.map(r => ({ ...r })) }
         : {}),
       ...(this.state.player.training ? { training: { ...this.state.player.training } } : {}),
+      ...(this.state.player.board ? { board: { ...this.state.player.board } } : {}),
       careerRngOffset: getTransferCallCount(),
       career: {
         seasonsCompleted: this.state.career.seasonsCompleted,

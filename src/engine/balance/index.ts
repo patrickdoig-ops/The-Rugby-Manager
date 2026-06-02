@@ -41,3 +41,4 @@ export * from './tackling';
 export * from './carrying';
 export * from './attendance';
 export * from './premCup';
+export * from './board';

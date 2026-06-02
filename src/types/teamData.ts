@@ -11,6 +11,12 @@
 import type { Player, PlayerContract } from './player';
 import type { TeamTactics } from './team';
 
+// Authored season target the owner judges the manager against. Drives the
+// board-confidence seed and the end-of-season objective verdict (see
+// src/game/board.ts). 'title' → top-four floor, title the goal; 'playoffs' →
+// top-four expected; 'topHalf' → a top-half finish is the bar.
+export type BoardAmbition = 'title' | 'playoffs' | 'topHalf';
+
 // `rosterId` is allocated at roster seed time, not in JSON — but
 // rosterTeamBuilder (`src/game/rosterTeamBuilder.ts`) re-attaches it on the
 // matchday RawTeamInput so MatchCoordinator.initPlayer can thread it
@@ -60,7 +66,7 @@ export type RawTeamInput = {
   players: RawPlayer[];
   bench?: RawPlayer[];
   squad?: RawPlayer[];
-  boardAmbition?: 'title' | 'playoffs' | 'topHalf';
+  boardAmbition?: BoardAmbition;
   // Authored per-club identity tactics (`src/data/team-*.json`). Consumed by
   // MatchCoordinator as the AI side's baseline; the human side overrides via
   // playerTactics from PreMatchScreen. Optional only because legacy / test

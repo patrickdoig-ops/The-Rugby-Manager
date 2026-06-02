@@ -738,6 +738,25 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       p.suspension = { forRound: event.forRound };
       return;
     }
+    case 'BOARD_STATE_SEEDED': {
+      state.player.board = {
+        confidence: event.confidence,
+        objective: event.objective,
+        warningIssued: event.warningIssued,
+      };
+      return;
+    }
+    case 'BOARD_CONFIDENCE_ADJUSTED': {
+      const board = state.player.board;
+      if (!board) return;
+      board.confidence = Math.max(0, Math.min(100, board.confidence + event.delta));
+      return;
+    }
+    case 'MANAGER_WARNED': {
+      if (!state.player.board) return;
+      state.player.board.warningIssued = true;
+      return;
+    }
     default: {
       const _: never = event;
       void _;

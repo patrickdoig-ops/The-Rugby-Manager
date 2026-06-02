@@ -990,6 +990,8 @@ PreMatch's 'mine' step (the user's starting XV) carries a tappable captain badge
 | Transfers | `transfer-market` (scouting mode) | Read-only mid-season FA + Reg 7 view — does not call `signingTermsFor`, so `rngTransfer` is untouched |
 | Training | `training` (mid-week mode) | Persists plan without running the training block |
 
+The Hub hero also carries a **board-confidence pill** (`.hub-board-pill`, in `#hub-meta`) — a banded read-out (Secure / Stable / Under pressure / At risk) of `state.player.board.confidence`, mirroring the cap-pill visual language. See `docs/game-engine.md` § "Board confidence layer".
+
 ### 15.5 Navigation flow
 
 ```
@@ -1013,6 +1015,8 @@ League Table → IntlCallUps → CupFixtures → Training (`runInternationalBrea
 
 **Post-match chain — after R18 (final regular round):**
 League Table → PlayoffBracket → [player's SF] → bracket → other SF (AI sim) → bracket → Final → bracket (champion banner) → EndOfSeason → BudgetReveal → [TakeoverReveal if fired] → [Renewals if expiring] → [TransferMarket if FA/poach pool] → Rollover → Hub
+
+**Job security (Tier 0 · 0.1).** Board confidence (`state.player.board`) drains on poor results and an end-of-season objective miss. At the warning threshold the inbox shows a final-warning item; at the sack threshold the manager is dismissed — mid-season (after a result, with a prior warning) or end-of-season (after the objective verdict on EndOfSeason). Either path clears the active save slot and routes to the game-over `SackScreen` (New Game → Team Selector, or Main Menu → Home). The `game:managerSacked` bus event drives the routing.
 
 **Pre-season resume.** Each Squad Builder step writes `state.career.preSeasonStep` (`PRE_SEASON_STEP_SET`) before saving. `continueGame` reads the flag and routes back to the in-flight screen after a mid-pre-season tab close.
 

@@ -163,6 +163,42 @@
   width: 100%;
 }
 
+/* Board-confidence pill — mirrors the cap-pill visual language (renewals.css)
+   so the owner's standing reads at a glance from the Hub hero. */
+.hub-board-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  padding: 3px 9px;
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 8px;
+  background: color-mix(in oklch, var(--rm-surface) 80%, transparent);
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.hub-board-pill-label { color: var(--rm-text-dim); }
+.hub-board-pill-val { color: var(--rm-chalk); font-weight: 600; }
+.hub-board-pill--secure {
+  border-color: color-mix(in oklch, var(--rm-pitch) 40%, transparent);
+  background: color-mix(in oklch, var(--rm-pitch) 12%, transparent);
+}
+.hub-board-pill--stable {
+  border-color: color-mix(in oklch, var(--rm-pitch) 25%, transparent);
+}
+.hub-board-pill--shaky {
+  border-color: color-mix(in oklch, var(--rm-amber) 60%, transparent);
+  background: color-mix(in oklch, var(--rm-amber) 14%, transparent);
+}
+.hub-board-pill--shaky .hub-board-pill-val { color: var(--rm-amber); }
+.hub-board-pill--critical {
+  border-color: color-mix(in oklch, var(--rm-danger) 60%, transparent);
+  background: color-mix(in oklch, var(--rm-danger) 16%, transparent);
+}
+.hub-board-pill--critical .hub-board-pill-val { color: var(--rm-danger); }
+
 .hub-progress-wk,
 .hub-progress-total {
   font-family: var(--rm-font-mono);

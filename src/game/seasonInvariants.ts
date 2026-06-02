@@ -323,4 +323,15 @@ export function assertSeasonInvariants(state: GameState): void {
     assertNonNegInt(`teamSeasonStats[${teamId}].yellowCards`, t.yellowCards);
     assertNonNegInt(`teamSeasonStats[${teamId}].redCards`, t.redCards);
   }
+
+  // ── Board confidence: 0–100 when seeded ──────────────────────────────
+  const board = state.player.board;
+  if (board) {
+    if (!(board.confidence >= 0) || !(board.confidence <= 100)) {
+      fail('board.confidence', `${board.confidence}`);
+    }
+    if (board.objective !== 'title' && board.objective !== 'playoffs' && board.objective !== 'topHalf') {
+      fail('board.objective', `${board.objective}`);
+    }
+  }
 }

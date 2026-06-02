@@ -28,6 +28,7 @@ export type ScreenId =
   | 'budget-reveal'
   | 'takeover-reveal'
   | 'end-of-season'
+  | 'sacked'
   | 'renewals'
   | 'transfer-market'
   | 'retention-decision'
@@ -70,6 +71,7 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'budget-reveal':    { elId: 'budget-reveal',    shownDisplay: '' },
   'takeover-reveal':  { elId: 'takeover-reveal',  shownDisplay: '' },
   'end-of-season':    { elId: 'end-of-season',    shownDisplay: '' },
+  'sacked':           { elId: 'sacked',           shownDisplay: '' },
   'renewals':         { elId: 'renewals',         shownDisplay: '' },
   'transfer-market':  { elId: 'transfer-market',  shownDisplay: '' },
   'retention-decision': { elId: 'retention-decision', shownDisplay: '' },

@@ -163,7 +163,7 @@ Diagnostic: `git status && git log --oneline -5 && git branch -vv`.
 
 ## Save schema
 
-`SAVE_VERSION = 1`. Only v1 saves accepted. Bump whenever the serialised shape changes in a way that would corrupt an existing save on load. Update `ACCEPTED_VERSIONS` in `SaveManager.ts` + `docs/game-engine.md` § "Save format" + `docs/transfer-system.md` §7 + `CLAUDE.md` § "Save schema". New additive-only optional fields do not require a bump.
+`SAVE_VERSION = 1`. Only v1 saves accepted. Bump whenever the serialised shape changes in a way that would corrupt an existing save on load. Update `ACCEPTED_VERSIONS` in `SaveManager.ts` + `docs/game-engine.md` § "Save format" + `docs/transfer-system.md` §7 + `CLAUDE.md` § "Save schema". New additive-only optional fields do not require a bump — e.g. `SavedSeason.board?: BoardState` (board confidence, restored verbatim or re-seeded on legacy saves) and `SavedSeason.mediaStories?`.
 
 ## Commands
 

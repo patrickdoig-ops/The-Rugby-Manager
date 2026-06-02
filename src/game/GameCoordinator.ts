@@ -237,6 +237,7 @@ export class GameCoordinator {
       confidence: seedConfidence(ambition, prior, teamId),
       objective: ambition,
       warningIssued: false,
+      sacked: false,
     });
   }
 
@@ -261,37 +262,42 @@ export class GameCoordinator {
   }
 
   // Mid-season fail-state: at/below the sack threshold *with* a prior warning
-  // → sack; otherwise at/below the warning threshold → issue the one-per-season
-  // final warning. The sack writes no persistent state (it ends the save), so
-  // it's a UI bus event, not a SeasonEvent.
+  // (issued in an earlier round — the check reads the latch before this round's
+  // adjustment could have set it) → latch the sack via MANAGER_SACKED; otherwise
+  // at/below the warning threshold → issue the one-per-season final warning.
+  // The sack is persisted (not a transient flag) so a reload between this result
+  // and the game-over screen can't escape it — `isManagerSacked()` re-derives
+  // the routing from the saved latch on load.
   private evaluateJobSecurity(): void {
     const board = this.state.player.board;
     if (!board) return;
     if (board.confidence <= BOARD_THRESHOLDS.sack && board.warningIssued) {
-      eventBus.emit('game:managerSacked', { reason: 'midseason', confidence: board.confidence });
+      applySeasonEvent(this.state, { type: 'MANAGER_SACKED' });
     } else if (board.confidence <= BOARD_THRESHOLDS.warning && !board.warningIssued) {
       applySeasonEvent(this.state, { type: 'MANAGER_WARNED' });
     }
   }
 
-  // End-of-season judgement: apply the objective swing once (called from the
-  // end-of-season chain before rollover), then check the season-end sack
-  // threshold. Returns the verdict + whether the manager was sacked so the
-  // UI can show the verdict and route the game-over branch.
+  // True once the manager has been sacked mid-season (the persisted latch).
+  // Routing reads this both in-session and on load (continue / resume paths).
+  isManagerSacked(): boolean {
+    return this.state.player.board?.sacked === true;
+  }
+
+  // End-of-season judgement: project the objective swing onto confidence and
+  // check the season-end sack threshold. Called from the end-of-season chain
+  // before rollover. Pure (no mutation): the swing is discarded at rollover
+  // anyway (next season reseeds from the archived finish, not carried
+  // confidence), so persisting it would have no lasting effect — and the chain
+  // re-runs verbatim on a reload from the off-season (bracket crowned-but-
+  // unrolled), where a persisted additive swing would double-count. The caller
+  // routes to the game-over screen on `sacked`; nothing is saved before that.
   judgeSeasonObjective(): { verdict: ObjectiveVerdict; sacked: boolean } {
     const board = this.state.player.board;
     if (!board) return { verdict: 'met', sacked: false };
     const verdict = currentObjectiveVerdict(this.state, board.objective);
-    applySeasonEvent(this.state, {
-      type: 'BOARD_CONFIDENCE_ADJUSTED',
-      delta: eosSwing(verdict),
-      reason: `season:${verdict}`,
-    });
-    const sacked = board.confidence <= BOARD_THRESHOLDS.eosSack;
-    if (sacked) {
-      eventBus.emit('game:managerSacked', { reason: 'endOfSeason', confidence: board.confidence });
-    }
-    return { verdict, sacked };
+    const projected = Math.max(0, Math.min(100, board.confidence + eosSwing(verdict)));
+    return { verdict, sacked: projected <= BOARD_THRESHOLDS.eosSack };
   }
 
   // Generates STARTER_FA_POOL.count free agents via personaGenerator
@@ -374,6 +380,7 @@ export class GameCoordinator {
         confidence: save.board.confidence,
         objective: save.board.objective,
         warningIssued: save.board.warningIssued,
+        sacked: save.board.sacked,
       });
     } else {
       coord.seedBoardState();

@@ -743,6 +743,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         confidence: event.confidence,
         objective: event.objective,
         warningIssued: event.warningIssued,
+        sacked: event.sacked,
       };
       return;
     }
@@ -755,6 +756,11 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
     case 'MANAGER_WARNED': {
       if (!state.player.board) return;
       state.player.board.warningIssued = true;
+      return;
+    }
+    case 'MANAGER_SACKED': {
+      if (!state.player.board) return;
+      state.player.board.sacked = true;
       return;
     }
     default: {

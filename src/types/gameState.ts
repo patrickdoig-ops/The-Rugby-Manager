@@ -22,6 +22,9 @@ export interface BoardState {
   confidence: number;        // 0–100
   objective: BoardAmbition;  // the season target the owner judges against
   warningIssued: boolean;    // final-warning latch, reset each season
+  sacked: boolean;           // mid-season sack latch — persisted so a reload
+                             // between the result and the game-over screen
+                             // can't escape the dismissal. Reset each season.
 }
 
 export interface Fixture {
@@ -603,15 +606,16 @@ export type SeasonEvent =
       result: FixtureResult;
     }
   // Board confidence (the managed club's owner-confidence spine). Seeded
-  // wholesale at season start / save-restore; adjusted on results +
-  // objective judgement; warned latches the final warning. The sacking
-  // itself writes no persistent state and is a UI bus event
-  // (game:managerSacked), not a SeasonEvent.
+  // wholesale at season start / save-restore; adjusted on results; warned
+  // latches the final warning; sacked latches the mid-season dismissal so a
+  // reload can't escape it. The end-of-season sack is decided by the pure
+  // GameCoordinator.judgeSeasonObjective() and writes no state.
   | {
       type: 'BOARD_STATE_SEEDED';
       confidence: number;
       objective: BoardAmbition;
       warningIssued: boolean;
+      sacked: boolean;
     }
   | {
       type: 'BOARD_CONFIDENCE_ADJUSTED';
@@ -620,6 +624,9 @@ export type SeasonEvent =
     }
   | {
       type: 'MANAGER_WARNED';
+    }
+  | {
+      type: 'MANAGER_SACKED';
     }
   | {
       type: 'MEDIA_STORY_PUBLISHED';

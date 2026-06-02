@@ -127,7 +127,12 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
       && typeof parsed.board.confidence === 'number'
       && (parsed.board.objective === 'title' || parsed.board.objective === 'playoffs' || parsed.board.objective === 'topHalf')
       && typeof parsed.board.warningIssued === 'boolean'
-      ? { confidence: parsed.board.confidence, objective: parsed.board.objective, warningIssued: parsed.board.warningIssued }
+      ? {
+          confidence: parsed.board.confidence,
+          objective: parsed.board.objective,
+          warningIssued: parsed.board.warningIssued,
+          sacked: parsed.board.sacked === true,
+        }
       : undefined;
     return {
       playerTeamId: parsed.playerTeamId,

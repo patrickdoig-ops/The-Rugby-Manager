@@ -72,9 +72,5 @@ export interface AppEvents {
   // game:* track because training is a season-scope mutation, not an
   // in-match one.
   'game:trainingApplied': { state: GameState };
-  // Fires when board confidence falls to the sacking threshold — mid-season
-  // (after a result) or end-of-season (after the objective swing). main.ts
-  // routes to the game-over SackScreen instead of the Hub / off-season chain.
-  'game:managerSacked':   { reason: 'midseason' | 'endOfSeason'; confidence: number };
 }
 

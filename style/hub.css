@@ -404,8 +404,8 @@
   padding: 0 16px 4px;
   display: grid;
   grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
   gap: 6px;
-  align-content: start;
 }
 
 .hub-tile {
@@ -751,7 +751,7 @@
 #ctm-grid {
   flex: 1 1 auto;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 12px;
   padding: 16px;
   align-content: start;

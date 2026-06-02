@@ -361,6 +361,8 @@ A match with a given seed is fully reproducible: identical event sequence, ident
 
 **Try landing.** A grounded try lands at the swept position plus a small style-scaled jitter (`tryLandingY(state, style)` in `TryLocationResolver.ts`, `TRY_LANDING_JITTER`: tight 6 / balanced 10 / wide 16). This supersedes the old centre-spread and feeds conversion difficulty through `state.ball.y` — a try finished out wide after a sweep is harder to convert. One `outcome`-stream draw.
 
+**Lateral commentary.** Each sweep site optionally appends a lateral-flavour `tactic_note` via `lateralNote(sweep, attackTeamName, orienting, preDir)` (`Lateral.ts`), classified purely from the sweep geometry: a continuing sweep that hit the edge band and reversed → `worked_back_blind`; a sweep that lands in the edge band → `pinned_on_touchline`; an `openSweepStep` (set-piece / kick-return exit) that swung to the open side → `switch_to_open_side`. Chances live in `COMMENTARY_CHANCES` (`switchToOpenSide` 18 / `workedBackBlind` 25 / `pinnedOnTouchline` 20); phrases in `tacticNotes.ts`. The note is appended only on a normal continuation (`nextPhase === Breakdown`), never after a penalty/try, and (like all tactic notes) rolls on the commentary stream so it cannot shift outcomes.
+
 **Kicks** (distance is already in scope in each handler; lateral landing = `currentY + dir × metresToY(distance × tan(angle))` for in-field kicks, or a touchline snap for kicks to touch):
 
 | Kick | Helper | Lateral behaviour |

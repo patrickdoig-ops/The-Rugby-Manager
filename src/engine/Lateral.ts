@@ -12,6 +12,7 @@
 
 import type { MatchState } from '../types/match';
 import type { AttackingStyle } from '../types/team';
+import type { NarrationStep } from '../types/narration';
 import { clamp } from '../utils/math';
 import { rngPosition } from '../utils/rng';
 import { attackDir } from './FieldPosition';
@@ -30,6 +31,7 @@ import {
   GRUBBER_ANGLE_DEG,
   DROPOUT_ANGLE_DEG,
   CLEARING_ANGLE_DEG,
+  COMMENTARY_CHANCES,
 } from './balance';
 import type { KickOffStrategy } from '../types/engine';
 
@@ -67,6 +69,34 @@ export function sweepStep(state: MatchState, style: AttackingStyle): { y: number
 export function openSweepStep(state: MatchState, style: AttackingStyle): { y: number; lateralDir: -1 | 1 } {
   const dir = openSideDir(state.ball.y);
   return sweepStep({ ...state, ball: { ...state.ball, lateralDir: dir } }, style);
+}
+
+// Optional lateral-flavour commentary note for a completed sweep — pure
+// geometry over the sweep result (the renderer rolls the chancePct on the
+// commentary stream). `orienting` = the sweep re-oriented to the open side
+// (set-piece / kick-return exit, via openSweepStep); otherwise it continued the
+// current sweep and `preDir` is the lateral direction before it. Returns null
+// when nothing noteworthy happened laterally.
+export function lateralNote(
+  sweep: { y: number; lateralDir: -1 | 1 },
+  attackTeamName: string,
+  orienting: boolean,
+  preDir: -1 | 1,
+): NarrationStep | null {
+  const inEdge = sweep.y <= EDGE_Y_LOW || sweep.y >= EDGE_Y_HIGH;
+  // Continued a sweep that hit the 15m band and reversed — brought back blind.
+  if (!orienting && sweep.lateralDir !== preDir) {
+    return { kind: 'tactic_note', cause: 'worked_back_blind', chancePct: COMMENTARY_CHANCES.workedBackBlind, params: { attackTeamName } };
+  }
+  // Sitting in the edge band after the sweep — pinned near the touchline.
+  if (inEdge) {
+    return { kind: 'tactic_note', cause: 'pinned_on_touchline', chancePct: COMMENTARY_CHANCES.pinnedOnTouchline, params: { attackTeamName } };
+  }
+  // Deliberately swung to the open side off a set piece / kick return.
+  if (orienting) {
+    return { kind: 'tactic_note', cause: 'switch_to_open_side', chancePct: COMMENTARY_CHANCES.switchToOpenSide, params: { attackTeamName } };
+  }
+  return null;
 }
 
 // A lineout forms on the touchline the ball was kicked out over, a few metres in.

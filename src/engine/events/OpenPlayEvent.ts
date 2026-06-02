@@ -10,7 +10,7 @@ import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
 import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler, pickHardCarrier, pickPickAndGoCarrier, tryLineDefenceBonus } from '../FieldPosition';
-import { sweepStep } from '../Lateral';
+import { sweepStep, lateralNote } from '../Lateral';
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
@@ -331,8 +331,10 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
 
   // Lateral sweep: a continuing open-play phase shifts the ball one pass across
   // the field in the current sweep direction (reverses at the 15m edge band).
+  let lateralStep: NarrationStep | null = null;
   if (!tryScored) {
     const sweep = sweepStep(state, attackTeam.tactics.attackingStyle);
+    lateralStep = lateralNote(sweep, attackTeam.name, false, state.ball.lateralDir);
     events.push({ type: 'BALL_REPOSITIONED', y: sweep.y, lateralDir: sweep.lateralDir });
   }
 
@@ -421,6 +423,9 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
       outcomeSteps.push({ kind: 'announcement', key: 'injury_off', primary: victim });
     }
   }
+
+  // Lateral flavour rides on a normal continuation only — not after a penalty/try.
+  if (lateralStep && nextPhase === MatchPhase.Breakdown) outcomeSteps.push(lateralStep);
 
   return {
     nextPhase,

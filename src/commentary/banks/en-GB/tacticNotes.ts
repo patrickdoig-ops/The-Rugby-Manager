@@ -164,5 +164,26 @@ export function getTacticNoteLines(
         'The knockout pressure, the crowd, the clock — it all comes together in moments like this.',
         'This is what occasion rugby looks like in the dying stages — nerves of steel required.',
       ];
+
+    case 'switch_to_open_side':
+      return [
+        `${att} swing it to the open side, looking for space away from the touch.`,
+        `Good width from ${att} — they shift the point of attack to the open side.`,
+        `${att} move it to the open side, where the numbers are.`,
+      ];
+
+    case 'worked_back_blind':
+      return [
+        `Out of room on that flank — ${att} work it back against the grain to the blind side.`,
+        `Pinned to the touchline, ${att} bring it back infield to find a new angle.`,
+        `${att} hit the edge and switch back the other way, hunting space on the short side.`,
+      ];
+
+    case 'pinned_on_touchline':
+      return [
+        `${att} are pinned out near the touchline with precious little room to work.`,
+        `Not much space for ${att} out here — backs to the sideline.`,
+        `The touchline is doing the defence's job — ${att} have run themselves close to the paint.`,
+      ];
   }
 }

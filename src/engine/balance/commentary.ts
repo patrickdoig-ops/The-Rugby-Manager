@@ -27,6 +27,10 @@ export const COMMENTARY_CHANCES = {
   occasionErrorPressure:        25,
   occasionRisingToOccasion:     25,
   occasionClockInRed:           40,
+  // Lateral-play flavour (per-phase sweep) — modest so the feed stays outcome-led.
+  switchToOpenSide:             18,
+  workedBackBlind:              25,
+  pinnedOnTouchline:            20,
 } as const;
 
 // Context thresholds for the try_aftermath crowd reaction. Used by

@@ -340,7 +340,7 @@ function renderScoutBody(opp: RawTeam, oppShort: string, s: ScoutData): string {
   return `
     <div class="pm-scout-card">
       <div class="pm-scout-section">
-        <h1 class="pm-lineup-title">Form &amp; Outlook</h1>
+        <h1 class="pm-lineup-title">SCOUT REPORT</h1>
         <div class="pm-form-row">${formPins(s.oppForm)}</div>
         <div class="pm-scout-meta-row">
           <div class="pm-scout-meta">

@@ -76,7 +76,6 @@ export function initTeamTalkScreen(
   starters: Starter[],
   averageMorale: number,
   onTalkChosen: (args: TalkArgs) => void,
-  onBack: () => void,
 ): void {
   const el = document.getElementById('team-talk')!;
   const mood = moraleLabel(averageMorale);
@@ -132,12 +131,6 @@ export function initTeamTalkScreen(
     el.innerHTML = `
       <div class="tt-screen">
         <div class="tt-topbar">
-          <button class="app-back" id="tt-back">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-              <path d="M11 4L6 9l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Back
-          </button>
           <span class="tt-title">DRESSING ROOM: PRE-MATCH</span>
         </div>
         <div class="tt-versus">
@@ -160,8 +153,6 @@ export function initTeamTalkScreen(
         </div>
       </div>
     `;
-
-    document.getElementById('tt-back')!.addEventListener('click', onBack);
 
     document.querySelectorAll<HTMLButtonElement>('.tt-tone-btn').forEach(btn => {
       btn.addEventListener('click', () => {

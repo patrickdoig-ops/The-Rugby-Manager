@@ -71,6 +71,7 @@ export function buildAppShell(): void {
         <div id="pitch-2d-field">
           <span class="end-label pitch2d-end-top" id="pitch-top-label"></span>
           <span class="end-label pitch2d-end-bottom" id="pitch-bottom-label"></span>
+          <div class="pitch2d-line line-deadball-top"></div>
           <div class="pitch2d-line line-top-try"></div>
           <div class="pitch2d-line line-top-5m"></div>
           <div class="pitch2d-line line-top-22"></div>
@@ -80,10 +81,13 @@ export function buildAppShell(): void {
           <div class="pitch2d-line line-bot-22"></div>
           <div class="pitch2d-line line-bot-5m"></div>
           <div class="pitch2d-line line-bot-try"></div>
+          <div class="pitch2d-line line-deadball-bot"></div>
           <div class="pitch2d-vline vline-left-5m"></div>
           <div class="pitch2d-vline vline-left-15m"></div>
           <div class="pitch2d-vline vline-right-15m"></div>
           <div class="pitch2d-vline vline-right-5m"></div>
+          <div class="pitch2d-posts posts-top"><svg class="goal-svg" viewBox="0 0 40 30" preserveAspectRatio="xMidYMax meet"><path d="M13 30 V9 H27 V30" fill="none"/></svg></div>
+          <div class="pitch2d-posts posts-bot"><svg class="goal-svg" viewBox="0 0 40 30" preserveAspectRatio="xMidYMax meet"><path d="M13 30 V9 H27 V30" fill="none"/></svg></div>
           <div class="pitch2d-territory-shade" id="pitch-territory-shade"></div>
           <div class="card-stack pitch2d-cards-top" id="pitch-cards-top"></div>
           <div class="card-stack pitch2d-cards-bottom" id="pitch-cards-bottom"></div>

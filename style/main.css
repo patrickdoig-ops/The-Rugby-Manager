@@ -742,7 +742,7 @@ body.pitch-view-active #pitch-wrapper { display: none; }
 /* Cross-field lines run touchline to touchline. Their top% maps the 100m field
    of play onto the 8%–92% in-goal band (top% = 8 + (100 − x) × 0.84) so they
    line up exactly with the ball marker — see PitchView's toTop(). Real rugby
-   markings: try / 22m / halfway are solid, 10m dashed, 5m dotted. */
+   markings: try / 22m / halfway / dead-ball are solid; 10m and 5m dashed. */
 .pitch2d-line {
   position: absolute;
   left: 0;
@@ -750,11 +750,13 @@ body.pitch-view-active #pitch-wrapper { display: none; }
   height: 1px;
   pointer-events: none;
 }
-.line-top-try     { top: 8%;     background: rgba(255,255,255,0.5); }
-.line-top-22      { top: 26.48%; background: rgba(255,255,255,0.25); }
+.line-deadball-top { top: 1.5%;  background: rgba(255,255,255,0.4); }
+.line-deadball-bot { top: 98.5%; background: rgba(255,255,255,0.4); }
+.line-top-try     { top: 8%;     background: rgba(255,255,255,0.6); }
+.line-top-22      { top: 26.48%; background: rgba(255,255,255,0.5); }
 .line-mid-halfway { top: 50%;    background: rgba(255,255,255,0.8); }
-.line-bot-22      { top: 73.52%; background: rgba(255,255,255,0.25); }
-.line-bot-try     { top: 92%;    background: rgba(255,255,255,0.5); }
+.line-bot-22      { top: 73.52%; background: rgba(255,255,255,0.5); }
+.line-bot-try     { top: 92%;    background: rgba(255,255,255,0.6); }
 /* 10m lines (10m either side of halfway) — dashed */
 .line-top-10m, .line-bot-10m {
   background: repeating-linear-gradient(to right,
@@ -762,17 +764,17 @@ body.pitch-view-active #pitch-wrapper { display: none; }
 }
 .line-top-10m { top: 41.6%; }
 .line-bot-10m { top: 58.4%; }
-/* 5m lines (5m off each try line) — dotted */
+/* 5m lines (5m off each try line) — dashed (slightly finer than the 10m) */
 .line-top-5m, .line-bot-5m {
   background: repeating-linear-gradient(to right,
-    rgba(255,255,255,0.32) 0 2px, transparent 2px 7px);
+    rgba(255,255,255,0.32) 0 5px, transparent 5px 11px);
 }
 .line-top-5m { top: 12.2%; }
 .line-bot-5m { top: 87.8%; }
 
 /* Lengthwise lines run along the field of play (5m and 15m off each touchline,
    spanning try line to try line, i.e. the 8%–92% band). left% = metres/70 × 100
-   across the 70m width. 15m lines dashed, 5m lines dotted. */
+   across the 70m width. Both the 5m and 15m lines are dashed. */
 .pitch2d-vline {
   position: absolute;
   top: 8%;
@@ -788,10 +790,28 @@ body.pitch-view-active #pitch-wrapper { display: none; }
 .vline-right-15m { left: 78.57%; }
 .vline-left-5m, .vline-right-5m {
   background: repeating-linear-gradient(to bottom,
-    rgba(255,255,255,0.28) 0 2px, transparent 2px 7px);
+    rgba(255,255,255,0.3) 0 5px, transparent 5px 11px);
 }
 .vline-left-5m  { left: 7.14%; }
 .vline-right-5m { left: 92.86%; }
+
+/* Goalposts straddling each try line, opening into the in-goal area. The path
+   draws an H: two uprights with a crossbar, bottom edge sitting on the try line
+   (xMidYMax aligns it to the bottom-centre of the box). The bottom set is
+   flipped so its posts extend into the opposite in-goal. */
+.pitch2d-posts {
+  position: absolute;
+  left: 50%;
+  width: 9%;
+  height: 6.5%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 1;
+}
+.posts-top { top: 1.5%; }
+.posts-bot { top: 92%; transform: translateX(-50%) scaleY(-1); }
+.goal-svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.goal-svg path { fill: none; stroke: rgba(255,255,255,0.65); stroke-width: 2.4; }
 
 .pitch2d-end-top,
 .pitch2d-end-bottom {

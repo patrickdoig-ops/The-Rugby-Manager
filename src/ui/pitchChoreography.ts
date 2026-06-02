@@ -221,8 +221,10 @@ function maulLayout(event: GameEvent, state: MatchState, attacksTop: boolean): P
   const fwd = attacksTop ? 1 : -1;
   const atkSide: Side = event.side === 'home' ? 'h' : 'a';
   const defSide: Side = atkSide === 'h' ? 'a' : 'h';
+  // Attacking pack uses MAUL_ATK_ROWS so the hooker animates to the back of the maul.
+  // Defending pack stays in standard scrum formation (they're defending from the front).
   return [
-    ...pack(state, atkSide, event.ballX, event.ballY, -fwd),
+    ...pack(state, atkSide, event.ballX, event.ballY, -fwd, MAUL_ATK_ROWS),
     ...pack(state, defSide, event.ballX, event.ballY, +fwd),
   ];
 }
@@ -240,6 +242,15 @@ const SCRUM_ROWS: Array<{ dx: number; cells: Array<{ slot: number; y: number }> 
   { dx: 10, cells: [{ slot: SLOT.NUMBER_8, y: 0 }] },
 ];
 
+// Maul attacking pack: same as scrum but hooker moves to the back (dx=14) — they
+// run around from the touchline to become the ball-carrier at the tail of the drive.
+const MAUL_ATK_ROWS: Array<{ dx: number; cells: Array<{ slot: number; y: number }> }> = [
+  { dx: 2,  cells: [{ slot: SLOT.PROP_1, y: -2 }, { slot: SLOT.PROP_3, y: 2 }] },
+  { dx: 6,  cells: [{ slot: SLOT.FLANKER_6, y: -4.5 }, { slot: SLOT.LOCK_4, y: -1.5 }, { slot: SLOT.LOCK_5, y: 1.5 }, { slot: SLOT.FLANKER_7, y: 4.5 }] },
+  { dx: 10, cells: [{ slot: SLOT.NUMBER_8, y: 0 }] },
+  { dx: 14, cells: [{ slot: SLOT.HOOKER, y: 0 }] },
+];
+
 function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): Placed[] {
   const fwd = attacksTop ? 1 : -1;
   const atkSide: Side = event.side === 'home' ? 'h' : 'a';
@@ -251,13 +262,13 @@ function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): 
   ];
 }
 
-function pack(state: MatchState, side: Side, ballX: number, ballY: number, dir: number): Placed[] {
+function pack(state: MatchState, side: Side, ballX: number, ballY: number, dir: number, rows = SCRUM_ROWS): Placed[] {
   const team = side === 'h' ? state.homeTeam : state.awayTeam;
   // availableForwards already returns the on-field forwards as objects keyed by
   // their slot id — index them directly rather than a Set + linear find per cell.
   const bySlot = new Map(availableForwards(team, state, possOf(side)).map(p => [p.id, p]));
   const out: Placed[] = [];
-  for (const row of SCRUM_ROWS) {
+  for (const row of rows) {
     for (const cell of row.cells) {
       const p = bySlot.get(cell.slot);
       if (!p) continue;                                      // binned/off → gap (fine)

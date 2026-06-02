@@ -62,6 +62,11 @@ export function initPitchView(): void {
   // Cached from the most recent stateChange so the engine:event handler (which
   // fires before stateChange in the same beat) can determine attack direction.
   let cachedHalfTimeDone = false;
+  let cachedEventPhase: string | null = null;
+  // #9 position stored from the lineout beat to drive the Lineout→FirstPhase
+  // ball-pass animation (lineout mark → 9 → first-phase ball position).
+  let lineoutSHTop: number | null = null;
+  let lineoutSHLeft: number | null = null;
   // The ball's current resting position (% top / left), tracked in-module rather
   // than re-read from ball.style — during an animation the inline style holds the
   // committed target, not the visual position. Ball starts at halfway (x=50,y=50
@@ -225,6 +230,9 @@ export function initPitchView(): void {
   eventBus.on('engine:initialized', () => {
     lastHalfTimeDone    = null;
     cachedHalfTimeDone  = false;
+    cachedEventPhase    = null;
+    lineoutSHTop        = null;
+    lineoutSHLeft       = null;
     cachedState         = null;
     lastTop  = toTop(50);
     lastLeft = toLeft(50);
@@ -235,6 +243,21 @@ export function initPitchView(): void {
   });
 
   eventBus.on('engine:event', ({ event }) => {
+    // Store the #9's pitch position from the lineout beat so the next FirstPhase
+    // beat can animate the ball: lineout mark → 9 → first-phase play.
+    if (event.phase === MatchPhase.Lineout) {
+      const attacksTop = (event.side === 'home') !== cachedHalfTimeDone;
+      const fwd = attacksTop ? 1 : -1;
+      const nearY = event.ballY < 50 ? 0 : 100;
+      const inward = nearY === 0 ? 1 : -1;
+      const shPitchY = Math.max(3, Math.min(97, nearY + inward * 14));
+      // For a steal the defending 9 receives — they're on the opposite side of the mark.
+      const isSteal = event.narration.steps.some(s => s.kind === 'phase_outcome' && s.key === 'steal');
+      const shPitchX = Math.max(2, Math.min(98, event.ballX + (isSteal ? fwd * 4 : -fwd * 4)));
+      lineoutSHTop  = toTop(shPitchX);
+      lineoutSHLeft = toLeft(shPitchY);
+    }
+
     const cls = flashClass(event);
     if (cls) fireFlash(toTop(event.ballX), toLeft(event.ballY), cls);
 
@@ -248,7 +271,8 @@ export function initPitchView(): void {
     // Ball animation for this beat, in priority order:
     //  1. An open-field kick → lob it to the landing (scale apex + eased flight).
     //  2. A multi-leg phase → walk the ball through each movement keyframe.
-    //  3. Otherwise cancel any in-flight animation; stateChange sets the position.
+    //  3. Lineout→FirstPhase: slide the ball from the catch spot through the 9's position.
+    //  4. Otherwise cancel any in-flight animation; stateChange sets the position.
     // The kick check is gated on the ball actually moving, so no-move kick beats
     // (the coin-toss / pre-kick announce) fall through rather than pulsing in place.
     if (KICK_PHASES.has(event.phase)) {
@@ -260,6 +284,34 @@ export function initPitchView(): void {
       }
     } else if (event.movements && event.movements.length >= 2) {
       animateMovements(event.movements, event.narration.steps.length);
+    } else if (event.phase === MatchPhase.Maul && cachedEventPhase === MatchPhase.Lineout) {
+      // Lineout→Maul: ball travels from the lineout mark to the hooker at the
+      // tail of the maul (dx=14 behind the mark, same lateral). The hooker runs
+      // around from the touchline to become the ball-carrier at the back of the drive.
+      clearMovement();
+      movementAnimating = true;
+      const attacksTop = (event.side === 'home') !== cachedHalfTimeDone;
+      const fwd = attacksTop ? 1 : -1;
+      const hookerTop  = toTop(Math.max(2, Math.min(98, event.ballX - fwd * 14)));
+      const hookerLeft = toLeft(event.ballY);
+      const { w, h } = hostDims();
+      runAnim([
+        { transform: offsetTransform(lastTop, lastLeft, hookerTop, hookerLeft, w, h) },
+        { transform: offsetTransform(hookerTop, hookerLeft, hookerTop, hookerLeft, w, h) },
+      ], Math.max(200, Math.min(stepMs, 400)), 'ease-in', hookerTop, hookerLeft);
+    } else if (event.phase === MatchPhase.FirstPhase && cachedEventPhase === MatchPhase.Lineout && lineoutSHTop !== null) {
+      // Ball travels: lineout catch spot → 9's position → first-phase ball position.
+      const shTop = lineoutSHTop, shLeft = lineoutSHLeft!;
+      lineoutSHTop = null; lineoutSHLeft = null;
+      clearMovement();
+      movementAnimating = true;
+      const finalTop = toTop(event.ballX), finalLeft = toLeft(event.ballY);
+      const { w, h } = hostDims();
+      runAnim([
+        { transform: offsetTransform(lastTop, lastLeft, finalTop, finalLeft, w, h) },
+        { transform: offsetTransform(shTop, shLeft, finalTop, finalLeft, w, h), offset: 0.4 },
+        { transform: offsetTransform(finalTop, finalLeft, finalTop, finalLeft, w, h) },
+      ], Math.max(300, Math.min(stepMs, 500)), 'ease-in-out', finalTop, finalLeft);
     } else {
       clearMovement();
     }
@@ -272,6 +324,8 @@ export function initPitchView(): void {
       triggerKickFlight(event.ballX, event.ballY, step.key !== 'miss', event.side);
       break;
     }
+
+    cachedEventPhase = event.phase;
   });
 
   eventBus.on('engine:stateChange', ({ state, display }) => {

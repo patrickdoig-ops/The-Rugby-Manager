@@ -786,7 +786,7 @@ body.pitch-view-active #pitch-wrapper { display: none; }
 #pitch-2d-ball {
   position: absolute;
   transform: translate(-50%, -50%);
-  filter: drop-shadow(0 0 10px color-mix(in oklch, var(--rm-amber) 60%, transparent));
+  filter: drop-shadow(0 0 10px var(--ball-glow, color-mix(in oklch, var(--rm-amber) 60%, transparent)));
   transition: top 0.35s ease, left 0.35s ease;
   pointer-events: none;
   z-index: 4;
@@ -806,12 +806,15 @@ body.pitch-view-active #pitch-wrapper { display: none; }
 .flash-try      { background: radial-gradient(circle, color-mix(in oklch, var(--rm-amber) 70%, transparent) 0%, transparent 70%); }
 .flash-penalty  { background: radial-gradient(circle, color-mix(in oklch, var(--rm-stat-1) 70%, transparent) 0%, transparent 70%); }
 .flash-card     { background: radial-gradient(circle, color-mix(in oklch, var(--rm-card-yellow) 70%, transparent) 0%, transparent 70%); }
-.flash-turnover { background: radial-gradient(circle, color-mix(in oklch, var(--rm-chalk) 50%, transparent) 0%, transparent 70%); }
 
 @keyframes pitch-flash-pulse {
   0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.4); }
   35%  { opacity: 0.85; transform: translate(-50%, -50%) scale(1);   }
   100% { opacity: 0;    transform: translate(-50%, -50%) scale(1.5); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #pitch-flash.flashing { animation: none; }
 }
 
 #pitch-territory-bar {

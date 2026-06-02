@@ -6,9 +6,9 @@ import { phaseClass } from '../utils/phaseColor';
 import type { GameEvent } from '../types/match';
 
 // Which flash a key event warrants, or null for a beat we don't highlight. Kept
-// deliberately curated (try / penalty / card) so the pitch doesn't strobe on
-// every box-kick or lineout; routine possession swaps surface as the subtler
-// turnover flash driven from the stateChange handler.
+// deliberately curated — tries (and conversions, which carry the try phase),
+// penalties, and cards — so the pitch doesn't strobe on every box-kick, lineout,
+// or restart possession swap.
 function flashClass(event: GameEvent): string | null {
   for (const step of event.narration.steps) {
     if (step.kind === 'announcement' && step.key.startsWith('card_')) return 'flash-card';
@@ -34,7 +34,6 @@ export function initPitchView(): void {
   ball.innerHTML = BALL_SVG;
 
   let lastHalfTimeDone: boolean | null = null;
-  let lastPossession: string | null = null;
 
   // Position + colour the flash element at a pitch coordinate, then retrigger
   // its keyframe via a forced reflow (same idiom as Scoreboard.popScore).
@@ -48,18 +47,14 @@ export function initPitchView(): void {
 
   eventBus.on('engine:initialized', () => {
     lastHalfTimeDone = null;
-    lastPossession = null;
   });
 
   eventBus.on('engine:event', ({ event }) => {
     const cls = flashClass(event);
     if (!cls) return;
-    // The field rotates 180° in the second half; map the event's own
-    // ball coords through the same transform the marker uses.
-    const flip = lastHalfTimeDone === true;
-    const topPct  = flip ? event.ballX : 100 - event.ballX;
-    const leftPct = flip ? 100 - event.ballY : event.ballY;
-    fireFlash(topPct, leftPct, cls);
+    // Map the event's own ball coords with the same absolute transform the
+    // marker uses (x=100 end at top); the field is fixed, only labels swap.
+    fireFlash(100 - event.ballX, event.ballY, cls);
   });
 
   eventBus.on('engine:stateChange', ({ state, display }) => {
@@ -67,30 +62,29 @@ export function initPitchView(): void {
     // narrated line; team identity (colours, shortNames) is fixed for the match
     // and read off live state — mirrors PitchStrip.
     const flip = display.halfTimeDone;
+    const attackingTeam = display.possession === 'home' ? state.homeTeam : state.awayTeam;
+    const attackColor = colorOnDark(attackingTeam.color);
 
-    // Ball: ballX (0 = home try line) drives the long/vertical axis, ballY the
-    // short/horizontal axis. In the first half home defends the bottom, so a
-    // low ballX sits low on the field; the half-time flip is a 180° rotation.
-    const topPct  = flip ? display.ballX : 100 - display.ballX;
-    const leftPct = flip ? 100 - display.ballY : display.ballY;
+    // Ball: ballX is absolute (x=100 end at top, x=0 at bottom) — the field is
+    // fixed on screen and only the end labels swap at half-time, mirroring the
+    // 1D PitchStrip. ballY drives the short/horizontal axis.
+    const topPct  = 100 - display.ballX;
+    const leftPct = display.ballY;
     ball.style.top  = `${topPct}%`;
     ball.style.left = `${leftPct}%`;
+    // The shared BALL_SVG paints itself from --rm-amber; override that token on
+    // the ball element so the glow takes the possessing side's colour.
+    ball.style.setProperty('--ball-glow', `color-mix(in oklch, ${attackColor} 60%, transparent)`);
 
-    const attackingTeam = display.possession === 'home' ? state.homeTeam : state.awayTeam;
-    ball.style.color = colorOnDark(attackingTeam.color);
-
-    // Territory tug-of-war bar — home portion width from the territory split.
+    // Territory tug-of-war bar — only the home-portion width is volatile; the
+    // home/away fill colours are fixed for the match and bound in the gate below.
     const terr = display.stats.territory;
     const total = terr.home + terr.away;
-    const homePct = total > 0 ? (terr.home / total) * 100 : 50;
-    territoryHome.style.width = `${homePct}%`;
-    territoryHome.style.background = colorOnDark(state.homeTeam.color);
-    territoryBar.style.background = colorOnDark(state.awayTeam.color);
+    territoryHome.style.width = `${total > 0 ? (terr.home / total) * 100 : 50}%`;
 
     // Shade the half the ball is currently in, tinted by the team in possession.
-    const ballInTopHalf = topPct < 50;
-    shade.style.top    = ballInTopHalf ? '0' : '50%';
-    shade.style.background = `color-mix(in oklch, ${colorOnDark(attackingTeam.color)} 16%, transparent)`;
+    shade.style.top = topPct < 50 ? '0' : '50%';
+    shade.style.background = `color-mix(in oklch, ${attackColor} 16%, transparent)`;
 
     // Phase + attacking-team + direction label.
     const arrow = display.possession === 'home'
@@ -104,8 +98,12 @@ export function initPitchView(): void {
     renderCardStack(flip ? cardsTop : cardsBottom, display.cards.home);
     renderCardStack(flip ? cardsBottom : cardsTop, display.cards.away);
 
+    // End labels + fixed territory-bar colours only need (re)setting when the
+    // half-time state changes — including the initial null→false transition.
     if (display.halfTimeDone !== lastHalfTimeDone) {
       lastHalfTimeDone = display.halfTimeDone;
+      territoryHome.style.background = colorOnDark(state.homeTeam.color);
+      territoryBar.style.background  = colorOnDark(state.awayTeam.color);
       const bottomTeam = !flip ? state.homeTeam : state.awayTeam;
       const topTeam    = !flip ? state.awayTeam : state.homeTeam;
       topLabel.textContent    = topTeam.shortName;
@@ -113,11 +111,5 @@ export function initPitchView(): void {
       bottomLabel.textContent = bottomTeam.shortName;
       bottomLabel.style.color = colorOnDark(bottomTeam.color);
     }
-
-    // Turnover flash — a possession change lights the current ball zone.
-    if (lastPossession !== null && display.possession !== lastPossession) {
-      fireFlash(topPct, leftPct, 'flash-turnover');
-    }
-    lastPossession = display.possession;
   });
 }

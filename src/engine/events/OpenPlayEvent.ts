@@ -242,13 +242,10 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
   const tlBonus = tryLineDefenceBonus(state);
   // Team talk modifier — decays linearly from startMinute over decayMinutes.
   const gameMinute = state.clock.gameMinute;
-  const ttHome = state.teamTalkMod.home;
-  const ttAway = state.teamTalkMod.away;
   const ttAttack = state.teamTalkMod[attackSide];
   const ttDef    = state.teamTalkMod[defSide];
   const ttAttackFrac = ttAttack.decayMinutes > 0 ? Math.max(0, 1 - (gameMinute - ttAttack.startMinute) / ttAttack.decayMinutes) : 0;
   const ttDefFrac    = ttDef.decayMinutes > 0    ? Math.max(0, 1 - (gameMinute - ttDef.startMinute)    / ttDef.decayMinutes)    : 0;
-  void ttHome; void ttAway; // silence unused-var for the side-keyed access above
   const ttAttackBonus = ttAttack.attack * ttAttackFrac;
   const ttDefendBonus = ttDef.defend * ttDefFrac;
   // singleOut: targeted bonus for one specific ball-carrier on the attacking side.

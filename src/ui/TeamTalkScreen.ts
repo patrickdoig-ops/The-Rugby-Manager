@@ -129,7 +129,12 @@ export function initTeamTalkScreen(
     el.innerHTML = `
       <div class="tt-screen">
         <div class="tt-topbar">
-          <button class="tt-back-btn" id="tt-back">&#8592;</button>
+          <button class="app-back" id="tt-back">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <path d="M11 4L6 9l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Back
+          </button>
           <span class="tt-title">DRESSING ROOM</span>
         </div>
         <div class="tt-versus">
@@ -146,7 +151,7 @@ export function initTeamTalkScreen(
         </div>
         ${selectedTone === 'single_out' ? renderPlayerList() : ''}
         <div class="tt-footer">
-          <button class="tt-kickoff-btn${canKickOff ? '' : ' tt-kickoff-btn--disabled'}" id="tt-kickoff" ${canKickOff ? '' : 'disabled'}>
+          <button class="tt-kickoff-btn" id="tt-kickoff" ${canKickOff ? '' : 'disabled'}>
             Kick Off &rarr;
           </button>
         </div>

@@ -597,6 +597,8 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
           startMinute: event.startMinute,
           decayMinutes: event.decayMinutes,
         };
+      } else {
+        delete state.teamTalkMod.singleOut;
       }
       return;
 

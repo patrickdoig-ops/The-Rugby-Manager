@@ -210,11 +210,14 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
 // Scrum 3-4-1: front row (1,2,3) at the mark, second row (6,4,5,7), #8 at the back.
 // dx values sized so rows don't overlap at typical mobile pitches (~350px tall).
 // y values sized so circles within a row don't overlap (~6 y-units between centres).
-// y values halved vs. the original so circles slightly overlap, illustrating binding.
+// dx = depth of each row from the scrum mark (ball). Front rows from each pack
+// meet at dx=3 so their circles touch (~6 units between centres ≈ 1 dot-diameter
+// at typical mobile scale). Rows step back in 8-unit increments from there.
+// y values tight so lateral circles slightly overlap (bound effect).
 const SCRUM_ROWS: Array<{ dx: number; cells: Array<{ slot: number; y: number }> }> = [
-  { dx: 7,  cells: [{ slot: SLOT.PROP_1, y: -3 }, { slot: SLOT.HOOKER, y: 0 }, { slot: SLOT.PROP_3, y: 3 }] },
-  { dx: 15, cells: [{ slot: SLOT.FLANKER_6, y: -4.5 }, { slot: SLOT.LOCK_4, y: -1.5 }, { slot: SLOT.LOCK_5, y: 1.5 }, { slot: SLOT.FLANKER_7, y: 4.5 }] },
-  { dx: 23, cells: [{ slot: SLOT.NUMBER_8, y: 0 }] },
+  { dx: 3,  cells: [{ slot: SLOT.PROP_1, y: -3 }, { slot: SLOT.HOOKER, y: 0 }, { slot: SLOT.PROP_3, y: 3 }] },
+  { dx: 11, cells: [{ slot: SLOT.FLANKER_6, y: -4.5 }, { slot: SLOT.LOCK_4, y: -1.5 }, { slot: SLOT.LOCK_5, y: 1.5 }, { slot: SLOT.FLANKER_7, y: 4.5 }] },
+  { dx: 19, cells: [{ slot: SLOT.NUMBER_8, y: 0 }] },
 ];
 
 function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): Placed[] {

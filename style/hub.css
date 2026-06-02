@@ -480,6 +480,7 @@
   font-weight: 400;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  text-align: center;
   color: var(--team-color-tile-text, var(--rm-chalk));
 }
 
@@ -718,4 +719,64 @@
   text-transform: uppercase;
   padding: 10px 0;
   margin: 0;
+}
+
+/* ===== Contracts & Transfers sub-menu + Club sub-menu ===== */
+
+#contracts-transfers-menu,
+#club-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  background: var(--rm-bg);
+  display: flex;
+  flex-direction: column;
+  padding-top:    env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left:   env(safe-area-inset-left, 0px);
+  padding-right:  env(safe-area-inset-right, 0px);
+}
+
+/* Tier 2 tinted app-header — mirrors contracts.css pattern */
+#contracts-transfers-menu .app-header,
+#club-menu .app-header {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 75%, black) 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 38%, black) 100%
+  );
+  border-bottom-color: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 45%, transparent);
+}
+
+/* Contracts & Transfers tile grid — team colour tiles (no --rm-cta override) */
+#ctm-grid {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 16px;
+  align-content: start;
+}
+
+/* Club screen content area */
+#cm-content {
+  flex: 1;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cm-board-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cm-section-label {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
 }

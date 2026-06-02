@@ -15,7 +15,6 @@ import { computeOverallRating } from '../team/teamProfile';
 import { formAdjustment, matchSpread, HOME_ADVANTAGE_PTS, recentForm } from '../game/teamStats';
 import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
 import { buildAssistantReport } from '../game/inbox';
-import { confidenceBand } from '../game/board';
 import { countUnread } from './inboxRead';
 import { loadDismissed } from './inboxDismiss';
 import { ROUND_LABELS } from '../engine/balance/season';
@@ -38,8 +37,8 @@ export interface InitHubScreenOpts {
   onFixtures:  () => void;
   onLeague:    () => void;
   onTraining:  () => void;
-  onContracts: () => void;
-  onTransfers: () => void;
+  onContractsAndTransfers: () => void;
+  onClub:      () => void;
   onSettings:  () => void;
   onInbox:     () => void;
 }
@@ -69,8 +68,8 @@ const TILE_ICONS: Record<string, string> = {
   fixtures:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z"/></svg>`,
   league:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"/></svg>`,
   training:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>`,
-  contracts: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>`,
-  transfers: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>`,
+  contractsTransfers: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.193.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0M12 12.75h.008v.008H12v-.008Z"/></svg>`,
+  club: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/></svg>`,
 };
 
 interface TileSpec {
@@ -78,18 +77,18 @@ interface TileSpec {
   ariaLabel: string;
   label: string;
   iconKey: keyof typeof TILE_ICONS;
-  handlerKey: 'onSquad' | 'onFixtures' | 'onLeague' | 'onTraining' | 'onContracts' | 'onTransfers';
+  handlerKey: 'onSquad' | 'onFixtures' | 'onLeague' | 'onTraining' | 'onContractsAndTransfers' | 'onClub';
   stub?: boolean;
   sub?: string;
 }
 
 const TILES: TileSpec[] = [
-  { id: 'hub-tile-squad',     ariaLabel: 'Squad selector',  label: 'Squad',     iconKey: 'squad',     handlerKey: 'onSquad' },
-  { id: 'hub-tile-fixtures',  ariaLabel: 'Fixture list',    label: 'Fixtures',  iconKey: 'fixtures',  handlerKey: 'onFixtures' },
-  { id: 'hub-tile-league',    ariaLabel: 'League table',    label: 'League',    iconKey: 'league',    handlerKey: 'onLeague' },
-  { id: 'hub-tile-training',  ariaLabel: 'Training',        label: 'Training',  iconKey: 'training',  handlerKey: 'onTraining' },
-  { id: 'hub-tile-contracts', ariaLabel: 'Contracts',       label: 'Contracts', iconKey: 'contracts', handlerKey: 'onContracts' },
-  { id: 'hub-tile-transfers', ariaLabel: 'Transfer market', label: 'Transfers', iconKey: 'transfers', handlerKey: 'onTransfers' },
+  { id: 'hub-tile-squad',                ariaLabel: 'Squad selector',           label: 'Squad',                  iconKey: 'squad',               handlerKey: 'onSquad' },
+  { id: 'hub-tile-fixtures',             ariaLabel: 'Fixture list',             label: 'Fixtures',               iconKey: 'fixtures',             handlerKey: 'onFixtures' },
+  { id: 'hub-tile-league',               ariaLabel: 'League',                   label: 'League',                 iconKey: 'league',               handlerKey: 'onLeague' },
+  { id: 'hub-tile-training',             ariaLabel: 'Training',                 label: 'Training',               iconKey: 'training',             handlerKey: 'onTraining' },
+  { id: 'hub-tile-contracts-transfers',  ariaLabel: 'Contracts and transfers',  label: 'Contracts & Transfers',  iconKey: 'contractsTransfers',   handlerKey: 'onContractsAndTransfers' },
+  { id: 'hub-tile-club',                 ariaLabel: 'Club',                     label: 'Club',                   iconKey: 'club',                 handlerKey: 'onClub' },
 ];
 
 function ordinalSuffix(n: number): string {
@@ -138,9 +137,8 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
     const lastRes = lastPlayerResult(playerTeam.id, state.league.results);
     const poachThreatCount = (state.career.activePoachedIds ?? []).length;
     const tileBadgeCount: Record<string, number> = {
-      'hub-tile-squad':      injuredCount,
-      'hub-tile-contracts':  expiringCount,
-      'hub-tile-transfers':  poachThreatCount,
+      'hub-tile-squad':               injuredCount,
+      'hub-tile-contracts-transfers': expiringCount + poachThreatCount,
     };
 
     el!.innerHTML = `
@@ -178,13 +176,6 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
             <div id="hub-progress"><div id="hub-progress-fill" style="width:${pct.toFixed(1)}%"></div></div>
             <span class="hub-progress-total">R${totalRounds}</span>
           </div>
-          ${state.player.board ? (() => {
-            const band = confidenceBand(state.player.board.confidence);
-            return `<div class="hub-board-pill hub-board-pill--${band.key}" title="Board confidence: ${Math.round(state.player.board.confidence)}/100">
-              <span class="hub-board-pill-label">Board</span>
-              <span class="hub-board-pill-val">${band.label}</span>
-            </div>`;
-          })() : ''}
         </div>
       </div>
 

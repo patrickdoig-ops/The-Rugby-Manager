@@ -44,7 +44,9 @@ export type ScreenId =
   | 'cup-fixtures'
   | 'cup-results'
   | 'achievements'
-  | 'inbox';
+  | 'inbox'
+  | 'contracts-transfers-menu'
+  | 'club-menu';
 
 const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'home':          { elId: 'home-screen',   shownDisplay: '' },
@@ -83,8 +85,10 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'training':         { elId: 'training',         shownDisplay: '' },
   'training-results': { elId: 'training-results', shownDisplay: '' },
   'international-break': { elId: 'international-break', shownDisplay: '' },
-  'achievements':     { elId: 'achievements',     shownDisplay: '' },
-  'inbox':            { elId: 'inbox',            shownDisplay: '' },
+  'achievements':              { elId: 'achievements',              shownDisplay: '' },
+  'inbox':                     { elId: 'inbox',                     shownDisplay: '' },
+  'contracts-transfers-menu':  { elId: 'contracts-transfers-menu',  shownDisplay: '' },
+  'club-menu':                 { elId: 'club-menu',                 shownDisplay: '' },
 };
 
 export type NavDirection = 'forward' | 'back';

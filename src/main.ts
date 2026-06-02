@@ -87,6 +87,8 @@ import { initSquadOverviewScreen, showSquadOverview } from './ui/SquadOverviewSc
 import { PRE_SEASON_TRANSFERS_2025_26 } from './data/transfers-2025-26';
 import { initRolloverScreen, showRollover }         from './ui/RolloverScreen';
 import { initContractsScreen, showContracts, showContractsMarqueeEdit } from './ui/ContractsScreen';
+import { initContractsTransfersMenuScreen, showContractsTransfersMenu } from './ui/ContractsTransfersMenuScreen';
+import { initClubMenuScreen, showClubMenu } from './ui/ClubMenuScreen';
 import { initSquadManagementScreen, showSquadManagement } from './ui/SquadManagementScreen';
 import { initTrainingScreen, showTrainingPostMatch, showTrainingMidweek } from './ui/TrainingScreen';
 import { initPostTrainingResultsScreen, showPostTrainingResults } from './ui/PostTrainingResultsScreen';
@@ -295,8 +297,8 @@ document.addEventListener('DOMContentLoaded', () => {
       onLeague:   goLeagueMenu,
       onSquad:    goSquad,
       onTraining: goTrainingMidweek,
-      onContracts: goContracts,
-      onTransfers: goTransfersMidseason,
+      onContractsAndTransfers: goContractsTransfersMenu,
+      onClub:      goClubMenu,
       onSettings: goSettingsFromHub,
       onInbox:    goInbox,
     });
@@ -314,6 +316,18 @@ document.addEventListener('DOMContentLoaded', () => {
       onPlayerStats:  goPlayerStats,
       onAchievements: goAchievements,
       onCup:          goCupBrowse,
+    });
+    initContractsTransfersMenuScreen({
+      getGameEngine,
+      allTeams,
+      onBack:      () => goHub('back'),
+      onContracts: goContracts,
+      onTransfers: goTransfersMidseason,
+    });
+    initClubMenuScreen({
+      getGameEngine,
+      allTeams,
+      onBack: () => goHub('back'),
     });
     initLeagueTableScreen(getGameEngine, allTeams, () => goLeagueMenu('back'), (teamId) => {
       const teamJson = allTeams.find(t => t.id === teamId);
@@ -356,7 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
       goPlayerProfile(rosterId, () => screenRouter.show('retention-decision', { direction: 'back' }));
     });
     initRolloverScreen(getGameEngine, allTeams);
-    initContractsScreen(getGameEngine, allTeams, () => goHub('back'), (rosterId) => {
+    initContractsScreen(getGameEngine, allTeams, () => goContractsTransfersMenu('back'), (rosterId) => {
       goPlayerProfile(rosterId, () => goContracts('back'));
     }, (rosterId, offeredWage) => {
       // Mid-season early renewal: mutate + persist engine-side so a
@@ -477,6 +491,16 @@ document.addEventListener('DOMContentLoaded', () => {
     screenRouter.show('contracts', { direction });
   }
 
+  function goContractsTransfersMenu(direction: 'forward' | 'back' = 'forward'): void {
+    showContractsTransfersMenu();
+    screenRouter.show('contracts-transfers-menu', { direction });
+  }
+
+  function goClubMenu(direction: 'forward' | 'back' = 'forward'): void {
+    showClubMenu();
+    screenRouter.show('club-menu', { direction });
+  }
+
   function goAchievements(direction: 'forward' | 'back' = 'forward'): void {
     showAchievements();
     screenRouter.show('achievements', { direction });
@@ -543,7 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gameEngine.closeMidseasonSigningWindow();
         saveGame(gameEngine.toSavePayload());
       }
-      goHub();
+      goContractsTransfersMenu('back');
     };
     showTransferMarketMidseason(onSubmit, onFinish);
     screenRouter.show('transfer-market');

@@ -82,10 +82,12 @@ export function buildAppShell(): void {
           <div class="pitch2d-line line-bot-5m"></div>
           <div class="pitch2d-line line-bot-try"></div>
           <div class="pitch2d-line line-deadball-bot"></div>
+          <div class="pitch2d-vline vline-left-touch"></div>
           <div class="pitch2d-vline vline-left-5m"></div>
           <div class="pitch2d-vline vline-left-15m"></div>
           <div class="pitch2d-vline vline-right-15m"></div>
           <div class="pitch2d-vline vline-right-5m"></div>
+          <div class="pitch2d-vline vline-right-touch"></div>
           <div class="pitch2d-posts posts-top"><svg class="goal-svg" viewBox="0 0 40 32" preserveAspectRatio="xMidYMax meet"><path d="M9 3 V32 M31 3 V32 M9 24 H31" fill="none"/></svg></div>
           <div class="pitch2d-posts posts-bot"><svg class="goal-svg" viewBox="0 0 40 32" preserveAspectRatio="xMidYMax meet"><path d="M9 3 V32 M31 3 V32 M9 24 H31" fill="none"/></svg></div>
           <div class="pitch2d-territory-shade" id="pitch-territory-shade"></div>

@@ -279,6 +279,27 @@ export function initPitchView(): void {
       const tgtTop = toTop(event.ballX), tgtLeft = toLeft(event.ballY);
       if (Math.abs(lastTop - tgtTop) > 1 || Math.abs(lastLeft - tgtLeft) > 1) {
         animateKickArc(tgtTop, tgtLeft);
+        // Kickoff chaser: run forward along x from the halfway line to a point
+        // partway toward the receiver, simultaneously with the ball arc.
+        const el = players.chaserEl;
+        if (el && event.phase === MatchPhase.KickOff) {
+          const attacksTop = (event.side === 'home') !== cachedHalfTimeDone;
+          const fwd = attacksTop ? 1 : -1;
+          const dur = Math.max(300, Math.min(stepMs, 650));
+          const { w, h } = hostDims();
+          // Final committed position is halfway (where choreography placed the dot).
+          // Override to the forward landing position, then WAAPI offsets back to halfway.
+          const halfwayTop  = toTop(50);
+          const halfwayLeft = toLeft(event.ballY);
+          const finalChaserTop  = toTop(Math.max(2, Math.min(98, 50 + fwd * 12)));
+          const finalChaserLeft = halfwayLeft;
+          el.style.top  = `${finalChaserTop}%`;
+          el.style.left = `${finalChaserLeft}%`;
+          el.animate([
+            { transform: offsetTransform(halfwayTop, halfwayLeft, finalChaserTop, finalChaserLeft, w, h) },
+            { transform: `translate(-50%, -50%)` },
+          ], { duration: dur, easing: 'ease-out' });
+        }
       } else {
         clearMovement();
       }

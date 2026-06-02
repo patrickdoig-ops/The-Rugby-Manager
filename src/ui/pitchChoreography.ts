@@ -24,6 +24,7 @@ export interface Placed {
   x: number;
   y: number;
   isCarrier: boolean; // the on-ball dot (sits behind ball, slightly offset)
+  isChaser: boolean;  // kickoff chaser — PitchView animates this dot forward during the ball arc
 }
 
 type Side = 'h' | 'a';
@@ -41,7 +42,7 @@ const sideOf = (p: Player, state: MatchState): Side => {
 
 const possOf = (side: Side): PossessionSide => (side === 'h' ? 'home' : 'away');
 
-function placed(p: Player, side: Side, state: MatchState, x: number, y: number, isCarrier: boolean): Placed {
+function placed(p: Player, side: Side, state: MatchState, x: number, y: number, isCarrier: boolean, isChaser = false): Placed {
   const team = side === 'h' ? state.homeTeam : state.awayTeam;
   const fill = colorOnDark(team.color);   // the actual rendered dot colour
   return {
@@ -49,7 +50,7 @@ function placed(p: Player, side: Side, state: MatchState, x: number, y: number, 
     jersey: p.squadNumber,
     color: fill,
     text: textOn(fill),                   // contrast against the fill, not the raw colour
-    x, y, isCarrier,
+    x, y, isCarrier, isChaser,
   };
 }
 
@@ -130,11 +131,11 @@ function kickOffLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
     out.push(placed(receiver, sideOf(receiver, state), state, event.ballX, event.ballY, false));
   }
 
-  // Chaser on the halfway line, same lateral position as the landing spot —
-  // shows they are running down the chase lane toward the receiver.
+  // Chaser: halfway line (x=50), aligned laterally with the landing spot.
+  // isChaser=true signals PitchView to animate them forward along x during the ball arc.
   const chaser = event.secondaryPlayer;
   if (chaser && chaser !== kicker) {
-    out.push(placed(chaser, sideOf(chaser, state), state, 50, event.ballY, false));
+    out.push(placed(chaser, sideOf(chaser, state), state, 50, event.ballY, false, true));
   }
 
   return out;

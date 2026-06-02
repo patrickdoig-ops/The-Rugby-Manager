@@ -19,6 +19,7 @@ export interface BallWalkFollower {
 export interface PitchPlayers {
   applyBeat(event: GameEvent, state: MatchState, attacksTop: boolean): void;
   ballWalkFollower: BallWalkFollower;
+  chaserEl: HTMLElement | null; // kickoff chaser dot placed this beat, for PitchView to animate
   reset(): void;
 }
 
@@ -27,6 +28,7 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
   let persistedKeys = new Set<string>();         // keys shown since last phase change
   let currentPhase: string | null = null;        // phase of the last beat
   let carrierEl: HTMLElement | null = null;      // the on-ball dot for the current beat
+  let chaserEl: HTMLElement | null = null;       // kickoff chaser dot (PitchView animates it forward)
   let carrierAnim: Animation | null = null;
   let animatedEl: HTMLElement | null = null;     // the dot carrierAnim is driving (may differ from carrierEl after a beat flip)
 
@@ -67,6 +69,7 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     }
 
     carrierEl = null;
+    chaserEl = null;
     for (const p of placed) {
       persistedKeys.add(p.key);
       const el = ensureDot(p.key, p.color, p.text, p.jersey);
@@ -74,6 +77,7 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       el.style.left = `${toLeft(p.y)}%`;
       el.classList.add('visible');
       if (p.isCarrier) carrierEl = el;
+      if (p.isChaser) chaserEl = el;
     }
   };
 
@@ -102,7 +106,8 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     persistedKeys = new Set();
     currentPhase = null;
     carrierEl = null;
+    chaserEl = null;
   };
 
-  return { applyBeat, ballWalkFollower, reset };
+  return { applyBeat, ballWalkFollower, get chaserEl() { return chaserEl; }, reset };
 }

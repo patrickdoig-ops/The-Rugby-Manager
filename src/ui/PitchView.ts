@@ -208,11 +208,11 @@ export function initPitchView(): void {
     const legMs = Math.max(90, Math.min(stepMs, Math.round(beatWindow / kfs.length)));
     const { w, h } = hostDims();
     const final = kfs[kfs.length - 1];
-    const finalTop = toTop(final.x), finalLeft = final.y;
+    const finalTop = toTop(final.x), finalLeft = toLeft(final.y);
     // start (current position) then one keyframe per leg, all offset from the anchor.
     const frames: Keyframe[] = [
       { transform: offsetTransform(lastTop, lastLeft, finalTop, finalLeft, w, h) },
-      ...kfs.map(kf => ({ transform: offsetTransform(toTop(kf.x), kf.y, finalTop, finalLeft, w, h) })),
+      ...kfs.map(kf => ({ transform: offsetTransform(toTop(kf.x), toLeft(kf.y), finalTop, finalLeft, w, h) })),
     ];
     const duration = legMs * kfs.length;
     runAnim(frames, duration, 'linear', finalTop, finalLeft);
@@ -293,8 +293,8 @@ export function initPitchView(): void {
       clearMovement();
       movementAnimating = true;
       const atkSide = event.side === 'home' ? 'h' : 'a';
-      const isCrashBall = event.narration.steps.some(s => s.kind === 'phase_outcome' && s.key === 'crash_ball');
-      const receiverSlot = isCrashBall ? SLOT.CENTRE_12 : SLOT.CENTRE_13;
+      const hasCrashBall   = event.narration.steps.some(s => s.kind === 'phase_outcome' && s.key === 'crash_ball');
+      const outTheBackCount = event.narration.steps.filter(s => s.kind === 'phase_outcome' && s.key === 'out_the_back').length;
       const finalTop  = toTop(event.ballX);
       const finalLeft = toLeft(event.ballY);
       const { w, h } = hostDims();
@@ -304,9 +304,19 @@ export function initPitchView(): void {
       const addWaypoint = (pos: { top: number; left: number } | null) => {
         if (pos) frames.push({ transform: offsetTransform(pos.top, pos.left, finalTop, finalLeft, w, h) });
       };
+      // Route ball through the visible backline dots based on how far the pass
+      // chain reached. #9 and #10 always; crash-ball adds #12; wide-play adds
+      // #13 (one out_the_back step) and then the wing/carrier (two steps).
       addWaypoint(players.dotPosition(`${atkSide}:${SLOT.SCRUM_HALF}`));
       addWaypoint(players.dotPosition(`${atkSide}:${SLOT.FLY_HALF}`));
-      addWaypoint(players.dotPosition(`${atkSide}:${receiverSlot}`));
+      if (hasCrashBall) {
+        addWaypoint(players.dotPosition(`${atkSide}:${SLOT.CENTRE_12}`));
+      } else if (outTheBackCount >= 1) {
+        addWaypoint(players.dotPosition(`${atkSide}:${SLOT.CENTRE_13}`));
+        if (outTheBackCount >= 2 && event.primaryPlayer) {
+          addWaypoint(players.dotPosition(`${atkSide}:${event.primaryPlayer.id}`));
+        }
+      }
       frames.push({ transform: offsetTransform(finalTop, finalLeft, finalTop, finalLeft, w, h) });
       runAnim(frames, Math.max(400, Math.min(stepMs * 1.2, 700)), 'ease-in-out', finalTop, finalLeft);
     } else if (event.movements && event.movements.length >= 2) {

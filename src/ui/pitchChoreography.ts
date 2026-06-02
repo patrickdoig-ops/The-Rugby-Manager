@@ -428,17 +428,20 @@ function firstPhaseBacklineLayout(
   }
 
   // Open side: backs spread toward the centre of the pitch from the #9's lateral
-  // position. If #9 is left of centre, spread right; right of centre, spread left.
-  const openDir = sh9Y < 50 ? 1 : -1;
+  // position. Matches Lateral.ts openSideDir convention (y <= 50 → +1).
+  const openDir = sh9Y <= 50 ? 1 : -1;
 
   const carrier = event.primaryPlayer;
   const sh  = atkOn.find(p => p.id === SLOT.SCRUM_HALF);
   const fly = atkOn.find(p => p.id === SLOT.FLY_HALF);
   const ic  = atkOn.find(p => p.id === SLOT.CENTRE_12);
   const oc  = atkOn.find(p => p.id === SLOT.CENTRE_13);
-  // Wing on the open side; fall back to either wing if only one is available.
-  const wings = atkOn.filter(p => p.id === SLOT.WING_11 || p.id === SLOT.WING_14);
-  const wing  = wings.length > 0 ? wings[0] : undefined;
+  // Wing on the open side: WING_14 when spreading toward higher y (openDir=+1),
+  // WING_11 when spreading toward lower y (openDir=−1). Falls back to whichever
+  // wing is available if the preferred slot is off the pitch.
+  const preferredWingSlot = openDir === 1 ? SLOT.WING_14 : SLOT.WING_11;
+  const wing = atkOn.find(p => p.id === preferredWingSlot)
+            ?? atkOn.find(p => p.id === SLOT.WING_11 || p.id === SLOT.WING_14);
 
   const out: Placed[] = [];
 

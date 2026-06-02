@@ -8,7 +8,7 @@
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import { injectTeamColors } from './teamColors';
-import { confidenceBand } from '../game/board';
+import { confidenceBand, boardConfidenceFactors } from '../game/board';
 
 export interface InitClubMenuOpts {
   getGameEngine: () => GameCoordinator;
@@ -30,14 +30,30 @@ export function showClubMenu(): void {
   const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
 
   const boardHtml = state.player.board ? (() => {
-    const band = confidenceBand(state.player.board.confidence);
-    return `
-      <div class="cm-board-section">
-        <div class="cm-section-label">Board Confidence</div>
-        <div class="hub-board-pill hub-board-pill--${band.key}" title="Board confidence: ${Math.round(state.player.board.confidence)}/100">
-          <span class="hub-board-pill-label">Board</span>
-          <span class="hub-board-pill-val">${band.label}</span>
+    const conf = state.player.board.confidence;
+    const band = confidenceBand(conf);
+    const factors = boardConfidenceFactors(state);
+    const factorsHtml = factors.map(f => `
+      <div class="cm-factor cm-factor--${f.tone}">
+        <span class="cm-factor-dot" aria-hidden="true"></span>
+        <div class="cm-factor-body">
+          <div class="cm-factor-label">${f.label}</div>
+          <div class="cm-factor-detail">${f.detail}</div>
         </div>
+      </div>`).join('');
+    return `
+      <div class="cm-board">
+        <div class="cm-board-hero cm-board-hero--${band.key}">
+          <div class="cm-board-eyebrow">Board Confidence</div>
+          <div class="cm-board-band">${band.label}</div>
+          <div class="cm-board-meter"><div class="cm-board-meter-fill" style="width:${Math.round(conf)}%"></div></div>
+          <div class="cm-board-num">${Math.round(conf)} / 100</div>
+        </div>
+        <div class="cm-board-factors">
+          <div class="cm-section-label">What's driving it</div>
+          ${factorsHtml}
+        </div>
+        <p class="cm-board-note">The owner's confidence rises when you win — especially against stronger sides — and falls after defeats, hardest when you were favourites. Losing runs hurt most. Meet your season objective and you'll keep the board onside; fall well short and your position comes under threat.</p>
       </div>`;
   })() : '';
 

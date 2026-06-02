@@ -12,6 +12,8 @@ import {
   BOARD_BANDS,
 } from '../engine/balance';
 import { sortStandings } from './leagueTable';
+import { recentForm } from './teamStats';
+import type { FormResult } from './teamStats';
 
 export type ObjectiveVerdict = 'exceeded' | 'met' | 'missed';
 
@@ -106,4 +108,73 @@ export function confidenceBand(confidence: number): (typeof BOARD_BANDS)[number]
     if (confidence >= band.min) return band;
   }
   return BOARD_BANDS[BOARD_BANDS.length - 1];
+}
+
+export interface BoardFactor {
+  label: string;
+  detail: string;
+  tone: 'positive' | 'negative' | 'neutral';
+}
+
+function ordinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+}
+
+// The concrete factors currently moving board confidence, for the Club page's
+// "what's driving it" breakdown. Mirrors the real mechanics: results vs
+// expectation (the per-result deltas), losing runs (the streak penalty), and
+// the season objective the owner judges against. Ordered most-relevant first.
+export function boardConfidenceFactors(state: GameState): BoardFactor[] {
+  const board = state.player.board;
+  if (!board) return [];
+  const factors: BoardFactor[] = [];
+  const teamId = state.player.teamId;
+
+  // Season objective + where the club sits against it (live verdict).
+  const verdict = currentObjectiveVerdict(state, board.objective);
+  const pos = positionOf(state.league.standings, teamId);
+  const objText = board.objective === 'title' ? 'win the Premiership'
+    : board.objective === 'playoffs' ? 'reach the playoffs (top four)'
+    : 'finish in the top half';
+  factors.push({
+    label: 'Season objective',
+    detail: pos
+      ? `The owner expects you to ${objText}. You sit ${ordinal(pos)}${verdict === 'exceeded' ? ' — ahead of target.' : verdict === 'met' ? ' — on target.' : ' — below target.'}`
+      : `The owner expects you to ${objText}.`,
+    tone: verdict === 'missed' ? 'negative' : verdict === 'exceeded' ? 'positive' : 'neutral',
+  });
+
+  // Recent results — the main lever on confidence.
+  const last = recentForm(teamId, state.league.results, 5).filter((r): r is FormResult => r !== null);
+  if (last.length > 0) {
+    const w = last.filter(r => r === 'W').length;
+    const d = last.filter(r => r === 'D').length;
+    const l = last.filter(r => r === 'L').length;
+    factors.push({
+      label: 'Recent results',
+      detail: `${w} win${w !== 1 ? 's' : ''}, ${d} draw${d !== 1 ? 's' : ''}, ${l} loss${l !== 1 ? 'es' : ''} in your last ${last.length}. ${w >= 3 ? 'The board is pleased.' : l >= 3 ? 'Poor results are weighing heavily.' : 'A mixed run.'}`,
+      tone: w >= 3 ? 'positive' : l >= 3 ? 'negative' : 'neutral',
+    });
+
+    // Current run — a streak amplifies the swing (3+ losses add an extra hit).
+    const lastResult = last[last.length - 1];
+    let run = 1;
+    for (let i = last.length - 2; i >= 0; i--) {
+      if (last[i] === lastResult) run++; else break;
+    }
+    if (lastResult === 'L' && run >= 3) {
+      factors.push({ label: 'Form alarm', detail: `On a ${run}-match losing run. A sustained slump like this drains confidence fast and puts your job at risk.`, tone: 'negative' });
+    } else if (lastResult === 'W' && run >= 3) {
+      factors.push({ label: 'In form', detail: `On a ${run}-match winning run. Momentum like this is exactly what the owner wants to see.`, tone: 'positive' });
+    }
+  }
+
+  // Formal-warning latch.
+  if (board.warningIssued) {
+    factors.push({ label: 'Formal warning', detail: 'The board has issued a formal warning over your position. Confidence is in the danger zone — results must improve immediately.', tone: 'negative' });
+  }
+
+  return factors;
 }

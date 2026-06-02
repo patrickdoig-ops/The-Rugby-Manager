@@ -163,41 +163,6 @@
   width: 100%;
 }
 
-/* Board-confidence pill — mirrors the cap-pill visual language (renewals.css)
-   so the owner's standing reads at a glance from the Hub hero. */
-.hub-board-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 2px;
-  padding: 3px 9px;
-  border: 1px solid var(--rm-border-soft);
-  border-radius: 8px;
-  background: color-mix(in oklch, var(--rm-surface) 80%, transparent);
-  font-family: var(--rm-font-mono);
-  font-size: var(--rm-fs-9);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.hub-board-pill-label { color: var(--rm-text-dim); }
-.hub-board-pill-val { color: var(--rm-chalk); font-weight: 600; }
-.hub-board-pill--secure {
-  border-color: color-mix(in oklch, var(--rm-pitch) 40%, transparent);
-  background: color-mix(in oklch, var(--rm-pitch) 12%, transparent);
-}
-.hub-board-pill--stable {
-  border-color: color-mix(in oklch, var(--rm-pitch) 25%, transparent);
-}
-.hub-board-pill--shaky {
-  border-color: color-mix(in oklch, var(--rm-amber) 60%, transparent);
-  background: color-mix(in oklch, var(--rm-amber) 14%, transparent);
-}
-.hub-board-pill--shaky .hub-board-pill-val { color: var(--rm-amber); }
-.hub-board-pill--critical {
-  border-color: color-mix(in oklch, var(--rm-danger) 60%, transparent);
-  background: color-mix(in oklch, var(--rm-danger) 16%, transparent);
-}
-.hub-board-pill--critical .hub-board-pill-val { color: var(--rm-danger); }
 
 .hub-progress-wk,
 .hub-progress-total {
@@ -777,12 +742,6 @@
   gap: 20px;
 }
 
-.cm-board-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 .cm-section-label {
   font-family: var(--rm-font-mono);
   font-size: var(--rm-fs-9);
@@ -790,4 +749,101 @@
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--rm-text-dim);
+}
+
+/* Board-confidence card: summary hero (band + meter + number) + the live
+   "what's driving it" factor list + a plain-English explainer. */
+.cm-board { display: flex; flex-direction: column; gap: 20px; }
+
+.cm-board-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 16px;
+  border: 1px solid var(--rm-border-soft);
+  border-top: 3px solid var(--rm-border-soft);
+  border-radius: 14px;
+  background: var(--rm-surface);
+}
+.cm-board-eyebrow {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+}
+.cm-board-band {
+  font-family: var(--rm-font-display, var(--rm-font-mono));
+  font-size: var(--rm-fs-24);
+  font-weight: 800;
+  color: var(--rm-chalk);
+}
+.cm-board-meter {
+  width: 100%;
+  max-width: 280px;
+  height: 8px;
+  background: var(--rm-surface-2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.cm-board-meter-fill { height: 100%; border-radius: 4px; background: var(--rm-text-dim); transition: width 0.4s ease; }
+.cm-board-num {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  color: var(--rm-text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.cm-board-hero--secure   { border-top-color: var(--rm-pitch); }
+.cm-board-hero--secure   .cm-board-band { color: var(--rm-pitch); }
+.cm-board-hero--secure   .cm-board-meter-fill { background: var(--rm-pitch); }
+.cm-board-hero--stable   .cm-board-meter-fill { background: color-mix(in oklch, var(--rm-pitch) 65%, var(--rm-text-dim)); }
+.cm-board-hero--shaky    { border-top-color: var(--rm-amber); }
+.cm-board-hero--shaky    .cm-board-band { color: var(--rm-amber); }
+.cm-board-hero--shaky    .cm-board-meter-fill { background: var(--rm-amber); }
+.cm-board-hero--critical { border-top-color: var(--rm-danger); }
+.cm-board-hero--critical .cm-board-band { color: var(--rm-danger); }
+.cm-board-hero--critical .cm-board-meter-fill { background: var(--rm-danger); }
+
+.cm-board-factors { display: flex; flex-direction: column; gap: 10px; }
+.cm-factor {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+  background: var(--rm-surface);
+}
+.cm-factor-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+  background: var(--rm-text-dim);
+}
+.cm-factor--positive .cm-factor-dot { background: var(--rm-pitch); }
+.cm-factor--negative .cm-factor-dot { background: var(--rm-danger); }
+.cm-factor-label {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rm-text);
+  font-weight: 600;
+}
+.cm-factor-detail {
+  font-size: var(--rm-fs-12);
+  line-height: 1.45;
+  color: var(--rm-text-dim);
+  margin-top: 3px;
+}
+.cm-board-note {
+  font-size: var(--rm-fs-11);
+  line-height: 1.5;
+  color: var(--rm-text-dim);
+  margin: 0;
+  padding: 0 2px;
 }

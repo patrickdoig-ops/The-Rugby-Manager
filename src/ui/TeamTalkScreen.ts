@@ -6,6 +6,9 @@
 import type { TeamTalkTone } from '../types/engine';
 import type { TalkArgs } from '../types/ui';
 import { TEAM_TALK } from '../engine/balance';
+import {
+  CALM_PHRASES, ENCOURAGE_PHRASES, DEMAND_PHRASES, SINGLE_OUT_PHRASES, pickPhrase,
+} from './teamTalkPhrases';
 
 function moraleLabel(avgMorale: number): { label: string; dots: string; cls: string } {
   if (avgMorale >= TEAM_TALK.flyingThreshold) {
@@ -78,11 +81,11 @@ export function initTeamTalkScreen(
   const el = document.getElementById('team-talk')!;
   const mood = moraleLabel(averageMorale);
 
-  const TONES: { tone: TeamTalkTone; label: string }[] = [
-    { tone: 'calm',       label: 'Hold Your Shape' },
-    { tone: 'encourage',  label: 'Believe in the System' },
-    { tone: 'demand',     label: 'Leave Nothing on the Pitch' },
-    { tone: 'single_out', label: 'Give [Name] the Ball' },
+  const TONES: { tone: TeamTalkTone; label: string; category: string }[] = [
+    { tone: 'calm',       label: pickPhrase(CALM_PHRASES),        category: 'Calm' },
+    { tone: 'encourage',  label: pickPhrase(ENCOURAGE_PHRASES),   category: 'Encourage' },
+    { tone: 'demand',     label: pickPhrase(DEMAND_PHRASES),      category: 'Demand' },
+    { tone: 'single_out', label: pickPhrase(SINGLE_OUT_PHRASES),  category: 'Single Out' },
   ];
 
   let selectedTone: TeamTalkTone | null = null;
@@ -107,7 +110,7 @@ export function initTeamTalkScreen(
   }
 
   function renderTones(): string {
-    return TONES.map(({ tone, label }) => {
+    return TONES.map(({ tone, label, category }) => {
       const desc = toneDescription(tone, averageMorale);
       const isActive = selectedTone === tone;
       const isWarn = tone === 'demand' && averageMorale < TEAM_TALK.flatThreshold;
@@ -115,10 +118,10 @@ export function initTeamTalkScreen(
       let displayLabel = label;
       if (tone === 'single_out' && selectedPlayerId !== undefined) {
         const p = starters.find(s => s.id === selectedPlayerId);
-        if (p) displayLabel = `Give ${p.firstName} ${p.lastName} the Ball`;
+        if (p) displayLabel = label.replace('[Name]', `${p.firstName} ${p.lastName}`);
       }
       return `<button class="tt-tone-btn${isActive ? ' tt-tone-btn--active' : ''}${isWarn ? ' tt-tone-btn--warn' : ''}${isGood ? ' tt-tone-btn--good' : ''}" data-tone="${tone}">
-        <span class="tt-tone-label">${displayLabel}</span>
+        <span class="tt-tone-label">${displayLabel}<span class="tt-tone-cat"> (${category})</span></span>
         <span class="tt-tone-desc">${desc}</span>
       </button>`;
     }).join('');

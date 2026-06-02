@@ -151,6 +151,13 @@
   color: var(--rm-chalk);
 }
 
+.tt-tone-cat {
+  font-size: var(--rm-fs-11);
+  color: var(--rm-text-dim);
+  letter-spacing: 0.03em;
+  margin-left: 2px;
+}
+
 .tt-tone-desc {
   font-size: var(--rm-fs-12);
   color: var(--rm-text-muted);
@@ -421,6 +428,13 @@
   letter-spacing: 0.05em;
   color: var(--rm-chalk);
   line-height: 1.3;
+}
+
+.ht-tone-cat {
+  font-size: var(--rm-fs-10);
+  color: var(--rm-text-dim);
+  letter-spacing: 0.03em;
+  margin-left: 2px;
 }
 
 .ht-tone-desc {

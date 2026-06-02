@@ -8,6 +8,9 @@ import { eventBus } from '../utils/eventBus';
 import type { TeamTalkTone } from '../types/engine';
 import type { TalkArgs } from '../types/ui';
 import { TEAM_TALK } from '../engine/balance';
+import {
+  CALM_PHRASES, ENCOURAGE_PHRASES, DEMAND_PHRASES, SINGLE_OUT_PHRASES, pickPhrase,
+} from './teamTalkPhrases';
 
 function moraleLabel(avgMorale: number): { label: string; dots: string; cls: string } {
   if (avgMorale >= TEAM_TALK.flyingThreshold) {
@@ -76,11 +79,11 @@ export function initHalfTimeTalkPanel(panelEl: HTMLElement): void {
     const triesHome = state.stats.tries.home;
     const triesAway = state.stats.tries.away;
 
-    const TONES: { tone: TeamTalkTone; label: string }[] = [
-      { tone: 'calm',       label: 'Hold Your Shape' },
-      { tone: 'encourage',  label: 'Believe in the System' },
-      { tone: 'demand',     label: 'Leave Nothing on the Pitch' },
-      { tone: 'single_out', label: 'Give [Name] the Ball' },
+    const TONES: { tone: TeamTalkTone; label: string; category: string }[] = [
+      { tone: 'calm',       label: pickPhrase(CALM_PHRASES),        category: 'Calm' },
+      { tone: 'encourage',  label: pickPhrase(ENCOURAGE_PHRASES),   category: 'Encourage' },
+      { tone: 'demand',     label: pickPhrase(DEMAND_PHRASES),      category: 'Demand' },
+      { tone: 'single_out', label: pickPhrase(SINGLE_OUT_PHRASES),  category: 'Single Out' },
     ];
 
     // Build player list from the human side's on-field players
@@ -89,17 +92,17 @@ export function initHalfTimeTalkPanel(panelEl: HTMLElement): void {
     const starters = humanTeam.players.slice(0, 15);
 
     function renderTones(): string {
-      return TONES.map(({ tone, label }) => {
+      return TONES.map(({ tone, label, category }) => {
         const isActive = selectedTone === tone;
         const isWarn = tone === 'demand' && averageMorale < TEAM_TALK.flatThreshold;
         const isGood = tone === 'demand' && averageMorale >= TEAM_TALK.flyingThreshold && !isWarn;
         let displayLabel = label;
         if (tone === 'single_out' && selectedPlayerId !== undefined) {
           const p = starters.find(s => s.id === selectedPlayerId);
-          if (p) displayLabel = `Give ${p.firstName} ${p.lastName} the Ball`;
+          if (p) displayLabel = label.replace('[Name]', `${p.firstName} ${p.lastName}`);
         }
         return `<button class="ht-tone-btn${isActive ? ' ht-tone-btn--active' : ''}${isWarn ? ' ht-tone-btn--warn' : ''}${isGood ? ' ht-tone-btn--good' : ''}" data-tone="${tone}">
-          <span class="ht-tone-label">${displayLabel}</span>
+          <span class="ht-tone-label">${displayLabel}<span class="ht-tone-cat"> (${category})</span></span>
           <span class="ht-tone-desc">${toneDescription(tone, averageMorale)}</span>
         </button>`;
       }).join('');

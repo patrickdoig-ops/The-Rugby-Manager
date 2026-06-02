@@ -93,6 +93,7 @@ export function choreograph(event: GameEvent, state: MatchState, attacksTop: boo
 
   if (event.phase === MatchPhase.Scrum)   return scrumLayout(event, state, attacksTop);
   if (event.phase === MatchPhase.Lineout) return lineoutLayout(event, state, attacksTop);
+  if (event.phase === MatchPhase.Maul)    return maulLayout(event, state, attacksTop);
   return openPlayLayout(event, state, attacksTop);
 }
 
@@ -210,6 +211,20 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
       clampY(ballY + lateralOffset), false));
   });
   return out;
+}
+
+// Maul: both packs form around the ball in the same geometry as a scrum.
+// Reuses pack() so the same player keys are used — when this follows a lineout,
+// PitchPlayers enables top/left transitions and the dots animate from their
+// lineout spread positions into this cluster (the Lineout→Maul visual).
+function maulLayout(event: GameEvent, state: MatchState, attacksTop: boolean): Placed[] {
+  const fwd = attacksTop ? 1 : -1;
+  const atkSide: Side = event.side === 'home' ? 'h' : 'a';
+  const defSide: Side = atkSide === 'h' ? 'a' : 'h';
+  return [
+    ...pack(state, atkSide, event.ballX, event.ballY, -fwd),
+    ...pack(state, defSide, event.ballX, event.ballY, +fwd),
+  ];
 }
 
 // Scrum 3-4-1: front row (1,2,3) at the mark, second row (6,4,5,7), #8 at the back.

@@ -4,6 +4,7 @@
 // BallWalkFollower seam that lets the carrier dot ride the ball's per-leg walk.
 
 import type { GameEvent, MatchState } from '../types/match';
+import { MatchPhase } from '../types/engine';
 import { toTop, toLeft } from './pitchCoords';
 import { choreograph } from './pitchChoreography';
 
@@ -52,6 +53,12 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
 
     // On phase change, fade out persisted dots that aren't in the new beat.
     if (event.phase !== currentPhase) {
+      // Lineout→Maul: enable top/left transitions so forwards animate from their
+      // lineout spread into the maul cluster rather than just appearing there.
+      if (currentPhase === MatchPhase.Lineout && event.phase === MatchPhase.Maul) {
+        field.classList.add('dot-transitioning');
+        setTimeout(() => field.classList.remove('dot-transitioning'), 600);
+      }
       for (const key of persistedKeys) {
         if (!nextKeys.has(key)) pool.get(key)?.classList.remove('visible');
       }
@@ -89,6 +96,7 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
 
   const reset = (): void => {
     ballWalkFollower.cancel();
+    field.classList.remove('dot-transitioning');
     for (const el of pool.values()) el.remove();
     pool.clear();
     persistedKeys = new Set();

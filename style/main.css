@@ -904,8 +904,14 @@ body.pitch-view-active #pitch-wrapper { display: none; }
   transition: opacity 0.25s ease;
 }
 .pitch-dot.visible { opacity: 0.92; }
+/* Lineout→maul transition: temporarily enabled by PitchPlayers adding this class
+   to the field element so forwards animate from their lineout spread into the maul. */
+.dot-transitioning .pitch-dot {
+  transition: top 0.5s ease, left 0.5s ease, opacity 0.25s ease;
+}
 @media (prefers-reduced-motion: reduce) {
   .pitch-dot { transition: opacity 0.15s linear; }
+  .dot-transitioning .pitch-dot { transition: opacity 0.15s linear; }
 }
 
 /* Kick-at-goal flight overlay — same visual as the main ball but starts hidden

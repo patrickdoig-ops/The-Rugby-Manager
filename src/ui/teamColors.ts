@@ -21,7 +21,13 @@ export function injectTeamColors(
   el.style.setProperty('--team-color-tile-text', luminance(tileColor) > 0.4 ? '#1a1a1a' : '#ffffff');
 }
 
-function luminance(hex: string): number {
+// Readable text colour to sit ON a fill of `hex` — near-black on light fills,
+// white on dark. Mirrors the tile-text rule in injectTeamColors.
+export function textOn(hex: string): string {
+  return luminance(hex) > 0.4 ? '#1a1a1a' : '#ffffff';
+}
+
+export function luminance(hex: string): number {
   const r = parseInt(hex.slice(1, 3), 16) / 255;
   const g = parseInt(hex.slice(3, 5), 16) / 255;
   const b = parseInt(hex.slice(5, 7), 16) / 255;

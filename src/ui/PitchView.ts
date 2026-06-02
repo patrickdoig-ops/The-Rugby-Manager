@@ -4,21 +4,16 @@ import { renderCardStack } from './Scoreboard';
 import { BALL_SVG } from './PitchStrip';
 import { phaseClass } from '../utils/phaseColor';
 import { MatchPhase } from '../types/engine';
-import type { GameEvent } from '../types/match';
+import type { GameEvent, MatchState } from '../types/match';
 import { loadTickDelayMs } from './uiPrefs';
 import { lineGapMs } from '../engine/balance';
+import { toTop } from './pitchCoords';
+import { initPitchPlayers } from './PitchPlayers';
 
 // Which flash a key event warrants, or null for a beat we don't highlight. Kept
 // deliberately curated — tries (and conversions, which carry the try phase),
 // penalties, and cards — so the pitch doesn't strobe on every box-kick, lineout,
-// or restart possession swap.
-// The 100m field of play occupies the 8%–92% band of the field height; the
-// 0–8% / 92–100% margins are the in-goal areas (where the end labels sit). Both
-// the ball marker and the painted lines map through this, so the ball always
-// sits on the right marking. x=100 → 8% (one try line), x=0 → 92% (the other).
-const INGOAL_PCT = 8;
-const PLAY_SPAN = 84;
-const toTop = (ballX: number): number => INGOAL_PCT + ((100 - ballX) / 100) * PLAY_SPAN;
+// or restart possession swap. Ball/line/dot coordinate mapping lives in pitchCoords.
 
 // Open-field kick phases whose ball flight gets the lob treatment (scale up to an
 // apex, settle on landing). Goal kicks (ConversionKick / Penalty) are NOT here —
@@ -49,9 +44,19 @@ export function initPitchView(): void {
   const cardsTop     = document.getElementById('pitch-cards-top')!;
   const cardsBottom  = document.getElementById('pitch-cards-bottom')!;
   const kickFlight   = document.getElementById('pitch-kick-flight')!;
+  const field        = document.getElementById('pitch-2d-field')!;
 
   ball.innerHTML = BALL_SVG;
   kickFlight.innerHTML = BALL_SVG;
+
+  // Player-dot layer (FM-style numbered circles for the involved players +
+  // set-piece formations). Owns its own DOM/choreography; PitchView just feeds it
+  // each beat and lets the carrier dot ride the ball walk via its follower seam.
+  const players = initPitchPlayers(field);
+  const follower = players.ballWalkFollower;
+  // applyBeat runs in engine:event (before stateChange), so it reads the previous
+  // beat's state for rosters — a one-beat lag matching StatsPanel's accepted lead.
+  let cachedState: MatchState | null = null;
 
   let lastHalfTimeDone: boolean | null = null;
   // Cached from the most recent stateChange so the engine:event handler (which
@@ -121,6 +126,7 @@ export function initPitchView(): void {
 
   const clearMovement = () => {
     if (arcAnim) { arcAnim.cancel(); arcAnim = null; }
+    follower.cancel();           // stop the carrier dot riding a superseded walk
     movementAnimating = false;
     ball.style.transition = '';  // restore the default CSS ease for single-jump beats
   };
@@ -199,7 +205,10 @@ export function initPitchView(): void {
       { transform: offsetTransform(lastTop, lastLeft, finalTop, finalLeft, w, h) },
       ...kfs.map(kf => ({ transform: offsetTransform(toTop(kf.x), kf.y, finalTop, finalLeft, w, h) })),
     ];
-    runAnim(frames, legMs * kfs.length, 'linear', finalTop, finalLeft);
+    const duration = legMs * kfs.length;
+    runAnim(frames, duration, 'linear', finalTop, finalLeft);
+    // The carrier dot rides the exact same walk (same frames/duration/easing).
+    follower.start(frames, duration, 'linear');
   };
 
   eventBus.on('ui:speedChange', ({ delayMs }) => {
@@ -209,14 +218,23 @@ export function initPitchView(): void {
   eventBus.on('engine:initialized', () => {
     lastHalfTimeDone    = null;
     cachedHalfTimeDone  = false;
+    cachedState         = null;
     lastTop = 50;
     lastLeft = 50;
     clearMovement();
+    players.reset();
   });
 
   eventBus.on('engine:event', ({ event }) => {
     const cls = flashClass(event);
     if (cls) fireFlash(toTop(event.ballX), event.ballY, cls);
+
+    // Position the involved-player dots BEFORE the ball walk, so the carrier dot
+    // exists when animateMovements asks the follower to ride it. attacksTop is the
+    // same screen-direction expression triggerKickFlight uses.
+    if (cachedState) {
+      players.applyBeat(event, cachedState, (event.side === 'home') !== cachedHalfTimeDone);
+    }
 
     // Ball animation for this beat, in priority order:
     //  1. An open-field kick → lob it to the landing (scale apex + eased flight).
@@ -253,6 +271,7 @@ export function initPitchView(): void {
     // and read off live state — mirrors PitchStrip.
     const flip = display.halfTimeDone;
     cachedHalfTimeDone = flip;
+    cachedState = state;   // for the next beat's player-dot rosters (engine:event runs first)
     const attackingTeam = display.possession === 'home' ? state.homeTeam : state.awayTeam;
     const attackColor = colorOnDark(attackingTeam.color);
 

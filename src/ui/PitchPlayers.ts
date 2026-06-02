@@ -1,0 +1,105 @@
+// The player-dot DOM layer for the 2D pitch: a dumb element pool that renders
+// and fades whatever `Placed[]` the pure choreographer hands it (it knows nothing
+// about events, phases, or rugby), plus a thin controller PitchView drives and a
+// BallWalkFollower seam that lets the carrier dot ride the ball's per-leg walk.
+
+import type { GameEvent, MatchState } from '../types/match';
+import { toTop } from './pitchCoords';
+import { choreograph } from './pitchChoreography';
+
+// The seam by which the carrier dot follows the ball's WAAPI walk. PitchView owns
+// the walk and calls start/cancel at the same two lifecycle points it manages the
+// ball itself; it never learns what (if anything) is following.
+export interface BallWalkFollower {
+  start(frames: Keyframe[], duration: number, easing: string): void;
+  cancel(): void;
+}
+
+export interface PitchPlayers {
+  applyBeat(event: GameEvent, state: MatchState, attacksTop: boolean): void;
+  ballWalkFollower: BallWalkFollower;
+  reset(): void;
+}
+
+export function initPitchPlayers(field: HTMLElement): PitchPlayers {
+  const pool = new Map<string, HTMLElement>();   // key -> dot (kept while hidden)
+  let activeKeys = new Set<string>();            // keys shown this beat
+  let carrierEl: HTMLElement | null = null;      // the on-ball dot for the current beat
+  let carrierAnim: Animation | null = null;
+  let animatedEl: HTMLElement | null = null;     // the dot carrierAnim is driving (may differ from carrierEl after a beat flip)
+
+  const ensureDot = (key: string, color: string, text: string, jersey: number): HTMLElement => {
+    let el = pool.get(key);
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'pitch-dot';
+      field.appendChild(el);
+      pool.set(key, el);
+    }
+    el.style.setProperty('--dot-color', color);
+    el.style.setProperty('--dot-text', text);
+    el.textContent = String(jersey);
+    return el;
+  };
+
+  // Thin orchestration: pure choreograph → render/fade. ~12 lines, no rugby logic.
+  const applyBeat = (event: GameEvent, state: MatchState, attacksTop: boolean): void => {
+    const placed = choreograph(event, state, attacksTop);
+    const next = new Set<string>();
+    carrierEl = null;
+    for (const p of placed) {
+      next.add(p.key);
+      const el = ensureDot(p.key, p.color, p.text, p.jersey);
+      // Carrier rests at the ball's final spot; the follower's WAAPI rides it from
+      // there if a multi-leg walk runs, otherwise it just CSS-glides like the rest.
+      el.style.top = `${toTop(p.x)}%`;
+      el.style.left = `${p.y}%`;
+      el.classList.add('visible');
+      if (p.isCarrier) carrierEl = el;
+    }
+    for (const key of activeKeys) {
+      if (!next.has(key)) pool.get(key)?.classList.remove('visible');
+    }
+    activeKeys = next;
+  };
+
+  // Reset whatever dot the (now-stopped) carrier animation was driving — tracked
+  // separately from carrierEl because applyBeat reassigns carrierEl on the next
+  // beat before clearMovement/cancel runs, so cancel() must restore the dot that
+  // actually had transition:none, not the current beat's carrier.
+  const stopCarrierAnim = () => {
+    if (carrierAnim) { carrierAnim.cancel(); carrierAnim = null; }
+    if (animatedEl) { animatedEl.style.transition = ''; animatedEl = null; }
+  };
+
+  const ballWalkFollower: BallWalkFollower = {
+    start(frames, duration, easing) {
+      stopCarrierAnim();
+      const el = carrierEl;
+      if (!el) return;                       // set pieces / no carrier this beat
+      el.style.transition = 'none';          // WAAPI owns motion (opacity still tweens)
+      const anim = el.animate(frames, { duration, easing });
+      carrierAnim = anim;
+      animatedEl = el;
+      anim.onfinish = () => {
+        if (carrierAnim !== anim) return;    // superseded
+        carrierAnim = null;
+        animatedEl = null;
+        el.style.transition = '';
+      };
+    },
+    cancel() {
+      stopCarrierAnim();
+    },
+  };
+
+  const reset = (): void => {
+    ballWalkFollower.cancel();
+    for (const el of pool.values()) el.remove();
+    pool.clear();
+    activeKeys = new Set();
+    carrierEl = null;
+  };
+
+  return { applyBeat, ballWalkFollower, reset };
+}

@@ -404,10 +404,13 @@ A top-down pitch that, redrawing on `engine:stateChange`, shows:
 - **Event flashes** — on `engine:event`, flash the relevant zone for tries, kicks,
   turnovers, cards (the `GameEvent` carries `ballX/ballY`).
 
-**Explicitly out of scope (needs engine work):** per-player dots / defensive
-structure — `MatchState` has no per-player coordinates (`FieldPosition.ts` is
-zone-math only). A future engine task could add coarse positions; the 2D view
-should be built to degrade gracefully without them.
+**Update (Level 3 shipped):** per-player dots now exist as an *inferred /
+choreographed* UI layer — `MatchState` still has no per-player coordinates, so
+`src/ui/pitchChoreography.ts` (pure) places the involved players (harvested from
+the `GameEvent` actors + narration `primary/secondary`) and the full 16-forward
+scrum/lineout packs from the ball position, role, and jersey slot; `PitchPlayers.ts`
+renders/fades them and rides the carrier dot on the ball walk. It is a stylized
+impression, not real positions — no engine work was needed.
 
 ### Implementation shape
 

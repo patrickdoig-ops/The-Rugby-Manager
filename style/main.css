@@ -865,6 +865,37 @@ body.pitch-view-active #pitch-wrapper { display: none; }
   pointer-events: none;
   z-index: 4;
 }
+
+/* FM-style player dots — numbered team-coloured circles for the players involved
+   in each beat (+ set-piece formations). Positioned by top%/left% like the ball;
+   the carrier dot's top/left transition is disabled in JS while its WAAPI walk
+   rides the ball. */
+#pitch-players {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.pitch-dot {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--dot-color, #888);
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  color: var(--dot-text, #fff);
+  font: 700 11px/22px var(--rm-font-display, system-ui, sans-serif);
+  text-align: center;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: top 0.3s ease, left 0.3s ease, opacity 0.3s ease;
+}
+.pitch-dot.visible { opacity: 0.92; }
+@media (prefers-reduced-motion: reduce) {
+  .pitch-dot { transition: opacity 0.2s linear; }
+}
+
 /* Kick-at-goal flight overlay — same visual as the main ball but starts hidden
    and is animated to the posts (or wide) by PitchView on each kick result. */
 #pitch-kick-flight {

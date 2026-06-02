@@ -11,6 +11,8 @@
 import type { MatchState, MatchStats, DisplaySnapshot, DisplayCards, SinBinEntry } from '../types/match';
 import type { Team } from '../types/team';
 import type { Player } from '../types/player';
+import { MatchPhase } from '../types/engine';
+import { attackDir } from './FieldPosition';
 import { shortName } from '../utils/playerName';
 
 function displayCards(sinBin: SinBinEntry[], sentOff: Player[]): DisplayCards {
@@ -56,7 +58,12 @@ export function buildDisplaySnapshot(state: MatchState): DisplaySnapshot {
     phase:         state.phase,
     possession:    state.possession,
     score:         { home: state.score.home, away: state.score.away },
-    ballX:         state.ball.x,
+    // For TryScored, push ball 3m past the try line into the in-goal area so the
+    // 2D pitch shows it grounded beyond the line. toTop() handles values outside
+    // 0–100 naturally; the invariant check is on state.ball.x, not this display value.
+    ballX: state.phase === MatchPhase.TryScored
+      ? state.ball.x + attackDir(state) * 4
+      : state.ball.x,
     ballY:         state.ball.y,
     cards: {
       home: displayCards(state.cards.sinBin.home, state.cards.sentOff.home),

@@ -21,6 +21,7 @@ import {
   EDGE_Y_LOW,
   EDGE_Y_HIGH,
   PASS_DISTANCE_M,
+  SCRUM_HALF_PASS_M,
   SWEEP_STYLE_MULT,
   LINEOUT_TOUCHLINE_INSET,
   KICKOFF_TARGET_INSET,
@@ -74,6 +75,18 @@ export function sweepStep(state: MatchState, style: AttackingStyle): { y: number
   return sweepFrom(state.ball.y, state.ball.lateralDir, style);
 }
 
+// Scrum-half to fly-half pass off a set piece: longer flat spin (10-20m lateral).
+// Uses the same rngPosition stream as sweepFrom to stay in the positioning RNG.
+export function scrumHalfSweepStep(y: number, dir: -1 | 1): { y: number; lateralDir: -1 | 1 } {
+  const distM = rngPosition(SCRUM_HALF_PASS_M[0], SCRUM_HALF_PASS_M[1]);
+  const stepY = metresToY(distM);
+  let d = dir;
+  let ny = y + d * stepY;
+  if (ny <= EDGE_Y_LOW)  { ny = EDGE_Y_LOW;  d = 1; }
+  else if (ny >= EDGE_Y_HIGH) { ny = EDGE_Y_HIGH; d = -1; }
+  return { y: clamp(ny, 0, 100), lateralDir: d };
+}
+
 // Set-piece / kick-receive exit: orient to the open side, then take one pass.
 export function openSweepStep(state: MatchState, style: AttackingStyle): { y: number; lateralDir: -1 | 1 } {
   return sweepFrom(state.ball.y, openSideDir(state.ball.y), style);
@@ -84,17 +97,21 @@ export function openSweepStep(state: MatchState, style: AttackingStyle): { y: nu
 // The first hop orients to the open side when `orient` (set-piece / kick-return
 // exit); each subsequent hop continues in the running direction, reversing at the
 // edge band. Returns one { y, lateralDir } per hop (each → a BALL_REPOSITIONED).
+// When `scrumHalfFirst` is true the first hop uses the SH-specific wider distribution.
 export function sweepPath(
   state: MatchState,
   style: AttackingStyle,
   hopCount: number,
   orient: boolean,
+  scrumHalfFirst = false,
 ): Array<{ y: number; lateralDir: -1 | 1 }> {
   const out: Array<{ y: number; lateralDir: -1 | 1 }> = [];
   let y = state.ball.y;
   let dir: -1 | 1 = orient ? openSideDir(state.ball.y) : state.ball.lateralDir;
   for (let i = 0; i < hopCount; i++) {
-    const step = sweepFrom(y, dir, style);
+    const step = i === 0 && scrumHalfFirst
+      ? scrumHalfSweepStep(y, dir)
+      : sweepFrom(y, dir, style);
     y = step.y;
     dir = step.lateralDir;
     out.push(step);
@@ -147,8 +164,9 @@ export function emitSweepHops(
   orient: boolean,
   attackTeamName: string,
   perPass: boolean,
+  scrumHalfFirst = false,
 ): NarrationStep | null {
-  const hops = sweepPath(state, style, Math.max(1, hopCount), orient);
+  const hops = sweepPath(state, style, Math.max(1, hopCount), orient, scrumHalfFirst);
   const last = hops[hops.length - 1];
   if (perPass) {
     for (const h of hops) events.push({ type: 'BALL_REPOSITIONED', y: h.y, lateralDir: h.lateralDir });
@@ -191,6 +209,14 @@ export function dropOutLandingY(state: MatchState, distanceM: number): number {
 // Territorial clearing kick kept in field: diagonal downfield toward the open side.
 export function clearingKickLandingY(state: MatchState, distanceM: number): number {
   return kickAngleY(state, distanceM, CLEARING_ANGLE_DEG[0], CLEARING_ANGLE_DEG[1], openSideDir(state.ball.y));
+}
+
+// Kick aimed for touch that is caught in-field: lands near the near touchline
+// (~5m short of touch) rather than diagonally across the pitch.
+export function kickForTouchMissY(state: MatchState): number {
+  const nearTouch = state.ball.y <= 50 ? 0 : 100;
+  const inward = nearTouch === 0 ? 1 : -1;
+  return clamp(nearTouch + inward * (LINEOUT_TOUCHLINE_INSET + rngPosition(3, 7)), 0, 100);
 }
 
 // Cross-field kick: flat to the far touchline, into the corner for the wing.

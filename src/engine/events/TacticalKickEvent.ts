@@ -7,7 +7,7 @@ import type { Player } from '../../types/player';
 import { MatchPhase, type AttackingKickSubType } from '../../types/engine';
 import { resolveTacticalKick, resolveFiftyTwentyTwo, resolveAttackingKick } from '../resolvers/KickingResolver';
 import { attackDir, inOwn22, inOwnHalf, inOpposition22At, onFieldPlayers, pickKicker, pickFullback } from '../FieldPosition';
-import { lineoutFormationY, clearingKickLandingY, crossKickCornerY, grubberLandingY } from '../Lateral';
+import { lineoutFormationY, clearingKickLandingY, kickForTouchMissY, crossKickCornerY, grubberLandingY } from '../Lateral';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
@@ -59,11 +59,15 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer
   const kickDir = attackDir(state);
   const newBallX = clamp(state.ball.x + kickDir * kickDistance, 5, 95);
 
+  // Kick aimed for the near touchline. The ball travels toward that touchline:
+  // - goesToTouch: snapped to lineoutFormationY (on the touchline)
+  // - kick_caught: lands near the touchline but in-field (~5m short of touch)
+  // - goesOutOnTheFull: reverts to kick origin (own 22 case)
+  // The initial BALL_REPOSITIONED carries the in-field landing for the animation arc.
+  const missY = kickForTouchMissY(state);
   const events: MatchEvent[] = [
     { type: 'KICK_FROM_HAND', kicker, metres: kickDistance },
-    // Default in-field landing (diagonal clearing kick). Touch outcomes below
-    // override Y to snap the lineout onto the touchline.
-    { type: 'BALL_REPOSITIONED', x: newBallX, y: clearingKickLandingY(state, kickDistance) },
+    { type: 'BALL_REPOSITIONED', x: newBallX, y: missY },
   ];
 
   if (goesOutOnTheFull) {

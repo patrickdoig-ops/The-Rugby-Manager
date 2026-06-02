@@ -7,7 +7,7 @@ import { MatchPhase } from '../types/engine';
 import type { GameEvent, MatchState } from '../types/match';
 import { loadTickDelayMs } from './uiPrefs';
 import { lineGapMs } from '../engine/balance';
-import { toTop } from './pitchCoords';
+import { toTop, toLeft } from './pitchCoords';
 import { initPitchPlayers } from './PitchPlayers';
 
 // Which flash a key event warrants, or null for a beat we don't highlight. Kept
@@ -66,8 +66,11 @@ export function initPitchView(): void {
   // than re-read from ball.style — during an animation the inline style holds the
   // committed target, not the visual position. Ball starts at halfway (x=50,y=50
   // → 50%/50%). Updated by every position set (stateChange + the animators).
-  let lastTop = 50;
-  let lastLeft = 50;
+  let lastTop = toTop(50);
+  let lastLeft = toLeft(50);
+  // Set to true while a conversion kick-flight overlay is in progress so we
+  // hide the main ball at the kick spot until the next state update places it.
+  let ballHiddenForKickFlight = false;
 
   // Position + colour the flash element at a pitch coordinate, then retrigger
   // its keyframe via a forced reflow (same idiom as Scoreboard.popScore).
@@ -85,13 +88,13 @@ export function initPitchView(): void {
   // distance" read without touching the main ball's CSS transitions.
   const triggerKickFlight = (ballX: number, ballY: number, success: boolean, side: string) => {
     const startTop  = toTop(ballX);
-    const startLeft = ballY;
+    const startLeft = toLeft(ballY);
     // Home attacks toward x=100 (top of screen) before half-time; inverted after.
     const attacksTop = (side === 'home') !== cachedHalfTimeDone;
     const targetTop  = attacksTop ? 4 : 96;
-    // Success: split the posts (50%); failure: fly wide on the same side the
-    // kick was taken from, so a right-of-centre kick misses right.
-    const targetLeft = success ? 50 : (ballY < 50 ? 12 : 88);
+    // Success: split the posts (50% = toLeft(50)); failure: fly wide on the same
+    // side the kick was taken from.
+    const targetLeft = success ? toLeft(50) : (ballY < 50 ? toLeft(8) : toLeft(92));
 
     kickFlight.style.transition = 'none';
     kickFlight.style.top        = `${startTop}%`;
@@ -105,6 +108,10 @@ export function initPitchView(): void {
     kickFlight.style.transform  = 'translate(-50%, -50%) scale(0.25)';
     kickFlight.style.opacity    = '0';
     setTimeout(() => { kickFlight.style.transition = 'none'; }, 700);
+    // Hide the main ball immediately so it doesn't linger at the kick spot
+    // while the flight overlay animates toward the posts.
+    ball.style.opacity = '0';
+    ballHiddenForKickFlight = true;
   };
 
   // Per-movement ball animation. A phase can move the ball through several legs
@@ -219,15 +226,17 @@ export function initPitchView(): void {
     lastHalfTimeDone    = null;
     cachedHalfTimeDone  = false;
     cachedState         = null;
-    lastTop = 50;
-    lastLeft = 50;
+    lastTop  = toTop(50);
+    lastLeft = toLeft(50);
+    ballHiddenForKickFlight = false;
+    ball.style.opacity = '';
     clearMovement();
     players.reset();
   });
 
   eventBus.on('engine:event', ({ event }) => {
     const cls = flashClass(event);
-    if (cls) fireFlash(toTop(event.ballX), event.ballY, cls);
+    if (cls) fireFlash(toTop(event.ballX), toLeft(event.ballY), cls);
 
     // Position the involved-player dots BEFORE the ball walk, so the carrier dot
     // exists when animateMovements asks the follower to ride it. attacksTop is the
@@ -243,7 +252,7 @@ export function initPitchView(): void {
     // The kick check is gated on the ball actually moving, so no-move kick beats
     // (the coin-toss / pre-kick announce) fall through rather than pulsing in place.
     if (KICK_PHASES.has(event.phase)) {
-      const tgtTop = toTop(event.ballX), tgtLeft = event.ballY;
+      const tgtTop = toTop(event.ballX), tgtLeft = toLeft(event.ballY);
       if (Math.abs(lastTop - tgtTop) > 1 || Math.abs(lastLeft - tgtLeft) > 1) {
         animateKickArc(tgtTop, tgtLeft);
       } else {
@@ -275,12 +284,18 @@ export function initPitchView(): void {
     const attackingTeam = display.possession === 'home' ? state.homeTeam : state.awayTeam;
     const attackColor = colorOnDark(attackingTeam.color);
 
+    // Restore ball opacity if it was hidden for a kick-flight overlay.
+    if (ballHiddenForKickFlight) {
+      ball.style.opacity = '';
+      ballHiddenForKickFlight = false;
+    }
+
     // Ball: ballX is absolute (x=100 end at top, x=0 at bottom) — the field is
     // fixed on screen and only the end labels swap at half-time, mirroring the
     // 1D PitchStrip. toTop() maps it onto the 8%–92% field-of-play band so the
-    // ball sits on the painted lines. ballY drives the short/horizontal axis.
+    // ball sits on the painted lines. toLeft() maps ballY into the touchline band.
     const topPct  = toTop(display.ballX);
-    const leftPct = display.ballY;
+    const leftPct = toLeft(display.ballY);
     // While an animation is running it owns the ball and ends exactly here
     // (display.ballX/ballY = the final keyframe / landing) — don't fight it.
     // Otherwise set the resting position (CSS-eased) and track it.

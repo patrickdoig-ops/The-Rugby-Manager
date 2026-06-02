@@ -772,9 +772,9 @@ body.pitch-view-active #pitch-wrapper { display: none; }
 .line-top-5m { top: 12.2%; }
 .line-bot-5m { top: 87.8%; }
 
-/* Lengthwise lines run along the field of play (5m and 15m off each touchline,
-   spanning try line to try line, i.e. the 8%–92% band). left% = metres/70 × 100
-   across the 70m width. Both the 5m and 15m lines are dashed. */
+/* Lengthwise lines run along the field of play. left% uses toLeft() mapping:
+   touchlines at 3.5%/96.5%, 5m lines at ~10.1%/89.9%, 15m lines at ~23.4%/76.6%.
+   Formula: left% = 3.5 + (metres/70 × 100) × 93/100. All dashed except touchlines. */
 .pitch2d-vline {
   position: absolute;
   top: 8%;
@@ -782,18 +782,24 @@ body.pitch-view-active #pitch-wrapper { display: none; }
   width: 1px;
   pointer-events: none;
 }
+/* Touchlines — solid, slightly brighter */
+.vline-left-touch, .vline-right-touch {
+  background: rgba(255,255,255,0.5);
+}
+.vline-left-touch  { left: 3.5%; }
+.vline-right-touch { left: 96.5%; }
 .vline-left-15m, .vline-right-15m {
   background: repeating-linear-gradient(to bottom,
     rgba(255,255,255,0.3) 0 7px, transparent 7px 14px);
 }
-.vline-left-15m  { left: 21.43%; }
-.vline-right-15m { left: 78.57%; }
+.vline-left-15m  { left: 23.43%; }
+.vline-right-15m { left: 76.57%; }
 .vline-left-5m, .vline-right-5m {
   background: repeating-linear-gradient(to bottom,
     rgba(255,255,255,0.3) 0 5px, transparent 5px 11px);
 }
-.vline-left-5m  { left: 7.14%; }
-.vline-right-5m { left: 92.86%; }
+.vline-left-5m  { left: 10.14%; }
+.vline-right-5m { left: 89.86%; }
 
 /* Goalposts straddling each try line, opening into the in-goal area. The path
    draws an H: two uprights with a crossbar, bottom edge sitting on the try line
@@ -873,23 +879,25 @@ body.pitch-view-active #pitch-wrapper { display: none; }
    transition is disabled in JS while its WAAPI walk rides the ball. */
 .pitch-dot {
   position: absolute;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--dot-color, #888);
   border: 1.5px solid rgba(255, 255, 255, 0.85);
   color: var(--dot-text, #fff);
-  font: 700 11px/22px var(--rm-font-display, system-ui, sans-serif);
+  font: 700 10px/18px var(--rm-font-display, system-ui, sans-serif);
   text-align: center;
   transform: translate(-50%, -50%);
   opacity: 0;
   pointer-events: none;
-  z-index: 3;
-  transition: top 0.3s ease, left 0.3s ease, opacity 0.3s ease;
+  /* No top/left transition — dots appear at their position and fade in/out.
+     This prevents dots from sliding in from previous positions (which caused
+     the "passer travels with ball" and "scroll from touchline" artefacts). */
+  transition: opacity 0.25s ease;
 }
 .pitch-dot.visible { opacity: 0.92; }
 @media (prefers-reduced-motion: reduce) {
-  .pitch-dot { transition: opacity 0.2s linear; }
+  .pitch-dot { transition: opacity 0.15s linear; }
 }
 
 /* Kick-at-goal flight overlay — same visual as the main ball but starts hidden

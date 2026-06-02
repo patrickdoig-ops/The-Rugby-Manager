@@ -4,7 +4,7 @@
 // BallWalkFollower seam that lets the carrier dot ride the ball's per-leg walk.
 
 import type { GameEvent, MatchState } from '../types/match';
-import { toTop } from './pitchCoords';
+import { toTop, toLeft } from './pitchCoords';
 import { choreograph } from './pitchChoreography';
 
 // The seam by which the carrier dot follows the ball's WAAPI walk. PitchView owns
@@ -55,7 +55,7 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       // Carrier rests at the ball's final spot; the follower's WAAPI rides it from
       // there if a multi-leg walk runs, otherwise it just CSS-glides like the rest.
       el.style.top = `${toTop(p.x)}%`;
-      el.style.left = `${p.y}%`;
+      el.style.left = `${toLeft(p.y)}%`;
       el.classList.add('visible');
       if (p.isCarrier) carrierEl = el;
     }
@@ -74,25 +74,12 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     if (animatedEl) { animatedEl.style.transition = ''; animatedEl = null; }
   };
 
+  // Carrier dots no longer ride the ball walk — they fade in at their placed
+  // position (slightly behind the ball). This eliminates the artefact where
+  // the carrier appeared to travel with every pass in the chain.
   const ballWalkFollower: BallWalkFollower = {
-    start(frames, duration, easing) {
-      stopCarrierAnim();
-      const el = carrierEl;
-      if (!el) return;                       // set pieces / no carrier this beat
-      el.style.transition = 'none';          // WAAPI owns motion (opacity still tweens)
-      const anim = el.animate(frames, { duration, easing });
-      carrierAnim = anim;
-      animatedEl = el;
-      anim.onfinish = () => {
-        if (carrierAnim !== anim) return;    // superseded
-        carrierAnim = null;
-        animatedEl = null;
-        el.style.transition = '';
-      };
-    },
-    cancel() {
-      stopCarrierAnim();
-    },
+    start(_frames, _duration, _easing) { /* intentional no-op */ },
+    cancel() { stopCarrierAnim(); },
   };
 
   const reset = (): void => {

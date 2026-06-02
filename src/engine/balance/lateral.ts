@@ -19,6 +19,9 @@ export const PASS_DISTANCE_M = {
   long:  [12, 20],
 } as const;
 
+// Scrum-half pass off a set piece: longer flat spin pass to the fly-half, 10-20m.
+export const SCRUM_HALF_PASS_M = [10, 20] as const;
+
 // Wider-playing teams move the ball further across per phase.
 export const SWEEP_STYLE_MULT = {
   keep_it_tight: 0.7,

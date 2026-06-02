@@ -358,7 +358,9 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   // grounding below (no per-pass hops on a score).
   let lateralStep: NarrationStep | null = null;
   if (!tryScored) {
-    lateralStep = emitSweepHops(events, state, attackTeam.tactics.attackingStyle, passCount, true, attackTeam.name, !silent);
+    // orient=true (set-piece exit) and scrumHalfFirst=true so the first hop uses
+    // the wider SH pass distribution (10-20m) rather than the short backline range.
+    lateralStep = emitSweepHops(events, state, attackTeam.tactics.attackingStyle, passCount, true, attackTeam.name, !silent, true);
   }
 
   events.push({

@@ -962,6 +962,8 @@ When the existing implementations contradict each other, **this document is corr
 
 All transitions go through **`screenRouter.show(id, { direction? })`** (`src/ui/ScreenRouter.ts`). Screen modules never call `document.getElementById('...').style.display` directly; they accept `onForward`/`onBack` callbacks from `main.ts`. Adding a screen: (1) add the id to the `SCREENS` map in `ScreenRouter.ts`, (2) add `<div id="...">` to `index.html`, (3) wire a flat handler in `main.ts`.
 
+**Overlay exception:** The half-time team talk (`#half-time-panel`) is a fixed-position full-screen overlay that sits inside `#app` but outside ScreenRouter — it appears over the match screen and is toggled via `classList.remove/add('hidden')` directly. The pre-match team talk is a normal routed screen (`team-talk`).
+
 ### 15.2 In-season screen lifecycle
 
 **Initialised exactly once per page lifetime.** `initInSeasonScreens()` in `main.ts` is gated by an `inSeasonInited` closure flag — the second call is a no-op. This is load-bearing: each screen registers `eventBus.on('game:*')` subscriptions at init time without an unsub; the gate prevents duplicated handlers on back/forward navigation or game switch.
@@ -1005,7 +1007,7 @@ Home
 Hub
  ├─ [tile] → leaf screen, back → Hub
  └─ Go to next match → PreMatch
-     └─ Kick Off → Match → MatchResult → post-match chain
+     └─ Kick Off → TeamTalk → Match → MatchResult → post-match chain
 ```
 
 **Post-match chain — regular rounds:**

@@ -581,6 +581,25 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       for (const p of state.awayTeam.players) p.rating = computeRating(p);
       return;
 
+    // ── Team talk ────────────────────────────────────────────────────────
+    case 'TEAM_TALK_APPLIED':
+      state.teamTalkMod[event.side] = {
+        attack: event.attack,
+        defend: event.defend,
+        startMinute: event.startMinute,
+        decayMinutes: event.decayMinutes,
+      };
+      if (event.singleOut) {
+        state.teamTalkMod.singleOut = {
+          side: event.side,
+          playerId: event.singleOut.playerId,
+          bonus: event.singleOut.bonus,
+          startMinute: event.startMinute,
+          decayMinutes: event.decayMinutes,
+        };
+      }
+      return;
+
     // ── Commentary feed ─────────────────────────────────────────────────
     case 'COMMENTARY_LOGGED': {
       state.events.push(event.event);

@@ -1,0 +1,472 @@
+/* ═══════════════════════════════════════
+   TEAM TALK SCREEN — #team-talk
+   Pre-match dressing room
+   ═══════════════════════════════════════ */
+
+#team-talk {
+  display: none;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--rm-bg-deep);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tt-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: 0 0 env(safe-area-inset-bottom, 0);
+}
+
+/* — Top bar — */
+.tt-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--rm-border-soft);
+  position: sticky;
+  top: 0;
+  background: var(--rm-bg-deep);
+  z-index: 2;
+}
+
+.tt-back-btn {
+  background: none;
+  border: none;
+  color: var(--rm-text-muted);
+  font-size: 1.25rem;
+  padding: 4px 8px 4px 0;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.tt-title {
+  font-family: var(--rm-font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  color: var(--rm-chalk);
+}
+
+/* — Versus banner — */
+.tt-versus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 16px 10px;
+}
+
+.tt-crest {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-display);
+  font-size: 1rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.tt-versus-label {
+  font-size: 0.75rem;
+  color: var(--rm-text-dim);
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+/* — Squad mood — */
+.tt-mood {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--rm-surface);
+  margin: 0 16px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--rm-border-soft);
+}
+
+.tt-mood-dots {
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+}
+
+.tt-mood-label {
+  font-size: 0.8rem;
+  color: var(--rm-text-muted);
+}
+
+.tt-mood--flying .tt-mood-dots { color: oklch(0.74 0.18 144); }
+.tt-mood--steady .tt-mood-dots { color: oklch(0.74 0.16 62); }
+.tt-mood--flat   .tt-mood-dots { color: oklch(0.60 0.16 25); }
+
+/* — Tone buttons — */
+.tt-tones {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 16px;
+  flex: 1;
+}
+
+.tt-tone-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.tt-tone-btn:active {
+  background: var(--rm-surface-2);
+}
+
+.tt-tone-btn--active {
+  border-color: var(--rm-cta);
+  background: color-mix(in oklch, var(--rm-cta) 12%, var(--rm-surface));
+}
+
+.tt-tone-btn--warn {
+  border-color: var(--rm-danger);
+}
+
+.tt-tone-btn--good {
+  border-color: oklch(0.74 0.18 144);
+}
+
+.tt-tone-label {
+  font-family: var(--rm-font-display);
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  color: var(--rm-chalk);
+}
+
+.tt-tone-desc {
+  font-size: 0.74rem;
+  color: var(--rm-text-muted);
+  line-height: 1.4;
+}
+
+.tt-tone-btn--warn .tt-tone-desc { color: var(--rm-danger); }
+.tt-tone-btn--good .tt-tone-desc { color: oklch(0.74 0.18 144); }
+
+/* — Player list (single_out) — */
+.tt-player-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 16px 0;
+  max-height: 220px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tt-player-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.tt-player-item:active,
+.tt-player-item--active {
+  border-color: var(--rm-cta);
+  background: color-mix(in oklch, var(--rm-cta) 14%, var(--rm-surface-2));
+}
+
+.tt-player-pos {
+  font-family: var(--rm-font-mono, monospace);
+  font-size: 0.68rem;
+  color: var(--rm-text-dim);
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.tt-player-name {
+  font-size: 0.82rem;
+  color: var(--rm-text);
+}
+
+/* — Footer CTA — */
+.tt-footer {
+  padding: 20px 16px calc(16px + env(safe-area-inset-bottom, 0));
+}
+
+.tt-kickoff-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--rm-cta);
+  color: var(--rm-on-accent);
+  border: none;
+  border-radius: 10px;
+  font-family: var(--rm-font-display);
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.tt-kickoff-btn:active {
+  background: var(--rm-cta-active);
+}
+
+.tt-kickoff-btn--disabled,
+.tt-kickoff-btn:disabled {
+  background: var(--rm-surface-3);
+  color: var(--rm-text-faint);
+  cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════
+   HALF-TIME PANEL — #half-time-panel
+   Overlay over #app
+   ═══════════════════════════════════════ */
+
+#half-time-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--rm-bg-deep);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+#half-time-panel.hidden {
+  display: none;
+}
+
+.ht-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.ht-header {
+  padding: 16px 16px 8px;
+  border-bottom: 1px solid var(--rm-border-soft);
+  background: var(--rm-bg-deep);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.ht-phase-label {
+  font-family: var(--rm-font-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.14em;
+  color: var(--rm-amber);
+}
+
+.ht-scoreline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 8px;
+  gap: 8px;
+}
+
+.ht-team-name {
+  font-size: 0.8rem;
+  color: var(--rm-text-muted);
+  letter-spacing: 0.06em;
+}
+
+.ht-score {
+  font-family: var(--rm-font-display);
+  font-size: 2.2rem;
+  color: var(--rm-chalk);
+  letter-spacing: 0.06em;
+  text-align: center;
+  flex: 1;
+}
+
+.ht-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 16px 12px;
+  font-size: 0.74rem;
+  color: var(--rm-text-dim);
+}
+
+.ht-stats-dot {
+  color: var(--rm-border);
+}
+
+.ht-divider {
+  height: 1px;
+  background: var(--rm-border-soft);
+  margin: 4px 16px 12px;
+}
+
+.ht-dressing-label {
+  font-family: var(--rm-font-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  color: var(--rm-text-dim);
+  padding: 0 16px 10px;
+}
+
+/* — Mood — */
+.ht-mood {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--rm-surface);
+  margin: 0 16px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--rm-border-soft);
+}
+
+.ht-mood-dots {
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+}
+
+.ht-mood-label {
+  font-size: 0.78rem;
+  color: var(--rm-text-muted);
+}
+
+.ht-mood--flying .ht-mood-dots { color: oklch(0.74 0.18 144); }
+.ht-mood--steady .ht-mood-dots { color: oklch(0.74 0.16 62); }
+.ht-mood--flat   .ht-mood-dots { color: oklch(0.60 0.16 25); }
+
+/* — Tone buttons — */
+.ht-tones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 0 16px;
+}
+
+.ht-tone-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 12px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.ht-tone-btn:active {
+  background: var(--rm-surface-2);
+}
+
+.ht-tone-btn--active {
+  border-color: var(--rm-cta);
+  background: color-mix(in oklch, var(--rm-cta) 12%, var(--rm-surface));
+}
+
+.ht-tone-btn--warn {
+  border-color: var(--rm-danger);
+}
+
+.ht-tone-btn--good {
+  border-color: oklch(0.74 0.18 144);
+}
+
+.ht-tone-label {
+  font-family: var(--rm-font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  color: var(--rm-chalk);
+  line-height: 1.3;
+}
+
+.ht-tone-desc {
+  font-size: 0.68rem;
+  color: var(--rm-text-muted);
+  line-height: 1.3;
+}
+
+.ht-tone-btn--warn .ht-tone-desc { color: var(--rm-danger); }
+.ht-tone-btn--good .ht-tone-desc { color: oklch(0.74 0.18 144); }
+
+/* — Player list — */
+.ht-player-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 16px 0;
+  max-height: 180px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ht-player-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ht-player-item:active,
+.ht-player-item--active {
+  border-color: var(--rm-cta);
+  background: color-mix(in oklch, var(--rm-cta) 14%, var(--rm-surface-2));
+}
+
+.ht-player-pos {
+  font-family: var(--rm-font-mono, monospace);
+  font-size: 0.65rem;
+  color: var(--rm-text-dim);
+  width: 26px;
+  flex-shrink: 0;
+}
+
+.ht-player-name {
+  font-size: 0.78rem;
+  color: var(--rm-text);
+}
+
+/* — Footer — */
+.ht-footer {
+  padding: 20px 16px calc(16px + env(safe-area-inset-bottom, 0));
+  margin-top: auto;
+}
+
+.ht-start-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--rm-cta);
+  color: var(--rm-on-accent);
+  border: none;
+  border-radius: 10px;
+  font-family: var(--rm-font-display);
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.ht-start-btn:active {
+  background: var(--rm-cta-active);
+}

@@ -47,7 +47,7 @@ All emit UI side-effects through the shared `src/utils/eventBus.ts` singleton; e
 
 ### Mutation boundary: `MatchEvent` and `applyMatchEvent`
 
-All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.currentStats`, and `player.rating` flow through one function: `applyMatchEvent(state, event)` in `src/engine/applyMatchEvent.ts`. The `MatchEvent` discriminated union (`src/types/matchEvent.ts`) defines every kind of mutation the engine performs — domain events like `TRY_SCORED`, `KNOCK_ON`, `CARRY_RESOLVED`, `INTERCEPTION`, `LINEOUT_RESOLVED`, `SCRUM_RESOLVED`, `MAUL_RESOLVED`, `BREAKDOWN_HIT`, `TURNOVER_AT_BREAKDOWN`, `PENALTY_AWARDED`, `CARD_ISSUED`, `SIN_BIN_RETURNED`, `RED_20_EXPIRED`, `TEAM_PENALTY_22_RECORDED`, `TEAM_22_WARNING_ISSUED`, `TMO_REVIEW_STARTED`/`TICK_ADVANCED`/`RESOLVED`, `OFFLOAD_ATTEMPTED`/`COMPLETED`, `FIFTY_22_ATTEMPTED`, `PLAYER_INJURED_IN_MATCH`, plus structural events like `BALL_REPOSITIONED`, `POSSESSION_SWAPPED`, `PHASE_CHANGED`, `COMMENTARY_LOGGED`, `RATINGS_RECALCULATED`. Phase handlers in `src/engine/events/` are read-only over state: they read, compute, and return `PhaseResult { ..., events: MatchEvent[] }`. `PhaseRouter.resolvePhase()` applies the queue through `applyMatchEvent` before composing the outgoing `GameEvent`. Orchestrators (`MatchCoordinator`, `ClockController`, `PenaltyHandler`, `CardHandler`) apply events directly through `applyMatchEvent` for non-phase mutations (clock, half-time, penalty choice, cards, sub flow, tactics). UI bus emissions (`eventBus.emit('engine:event'|'engine:stateChange'|…)`) are pure side effects that fire alongside, and are **not** part of the `MatchEvent` boundary.
+All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.currentStats`, and `player.rating` flow through one function: `applyMatchEvent(state, event)` in `src/engine/applyMatchEvent.ts`. The `MatchEvent` discriminated union (`src/types/matchEvent.ts`) defines every kind of mutation the engine performs — domain events like `TRY_SCORED`, `KNOCK_ON`, `CARRY_RESOLVED`, `INTERCEPTION`, `LINEOUT_RESOLVED`, `SCRUM_RESOLVED`, `MAUL_RESOLVED`, `BREAKDOWN_HIT`, `TURNOVER_AT_BREAKDOWN`, `PENALTY_AWARDED`, `CARD_ISSUED`, `SIN_BIN_RETURNED`, `RED_20_EXPIRED`, `TEAM_PENALTY_22_RECORDED`, `TEAM_22_WARNING_ISSUED`, `TMO_REVIEW_STARTED`/`TICK_ADVANCED`/`RESOLVED`, `OFFLOAD_ATTEMPTED`/`COMPLETED`, `FIFTY_22_ATTEMPTED`, `PLAYER_INJURED_IN_MATCH`, `TEAM_TALK_APPLIED`, plus structural events like `BALL_REPOSITIONED`, `POSSESSION_SWAPPED`, `PHASE_CHANGED`, `COMMENTARY_LOGGED`, `RATINGS_RECALCULATED`. Phase handlers in `src/engine/events/` are read-only over state: they read, compute, and return `PhaseResult { ..., events: MatchEvent[] }`. `PhaseRouter.resolvePhase()` applies the queue through `applyMatchEvent` before composing the outgoing `GameEvent`. Orchestrators (`MatchCoordinator`, `ClockController`, `PenaltyHandler`, `CardHandler`) apply events directly through `applyMatchEvent` for non-phase mutations (clock, half-time, penalty choice, cards, sub flow, tactics). UI bus emissions (`eventBus.emit('engine:event'|'engine:stateChange'|…)`) are pure side effects that fire alongside, and are **not** part of the `MatchEvent` boundary.
 
 `applyMatchEvent` uses a `default: const _: never = event;` exhaustiveness check, so adding a new `MatchEvent` variant without a handling branch is a compile error.
 
@@ -431,6 +431,47 @@ A 50/50 coin flip. The winning team kicks off in the first half. `state.engine.f
 `initialize()` first emits an `engine:initialized` UI-bus event (zero payload) so UI modules holding per-match caches (`Scoreboard` crests, `PitchStrip` end labels, `CommentaryFeed` team roster + DOM, `StatsPanel` cached render keys + DOM) can reset before the new match's first `engine:stateChange`. This is what makes back-to-back matches in the same page session work — each `new MatchCoordinator(...).initialize()` call resets all UI caches.
 
 A `GameEvent` with phase `KickOff` and key `coin_toss` is emitted immediately so the result appears in the commentary feed before the first tick runs.
+
+---
+
+## Team Talk Modifier
+
+**Source:** `TEAM_TALK` constants in `src/engine/balance/teamTalk.ts`.
+
+Pre-match and half-time team talks apply a time-decaying attack/defend modifier to each side. The modifier is stored on `state.teamTalkMod` and consumed read-only in the carry resolvers.
+
+### How it flows
+
+1. **Pre-match (in `MatchCoordinator.initialize()`):** The manager picks a tone via the Team Talk screen; the AI side gets a deterministic tone based on OVR-sum delta. Both emit a `TEAM_TALK_APPLIED` MatchEvent that sets `state.teamTalkMod[side]`.
+2. **Half-time (in `MatchCoordinator.handleEndOfPeriod()`):** Same pattern — the manager gets a modal pause (`team_talk_choice`); the AI gets a deterministic tone based on score delta. Both emit `TEAM_TALK_APPLIED`.
+3. **Carry resolvers (`OpenPlayEvent`, `resolvePickAndGo`):** At each carry, the active fraction is computed: `max(0, 1 − (gameMinute − startMinute) / decayMinutes)`. The resulting bonus is added to `attackMod` and `defendMod` before rolling the carry outcome.
+
+### Tones and values
+
+| Tone | `attack` | `defend` | `decayMinutes` | Notes |
+|---|---|---|---|---|
+| `calm` | 2 | 4 | 15 | Safe defensive shape; reliable on any squad |
+| `encourage` | 5 | 2 | 12 | Halved (×0.5) if squad avg morale < 50 |
+| `demand` | 8 | 2 | 10 | If avg morale < 50: attack −8, defend −8 (backfires) |
+| `single_out` | 3 | 1 | 12 | Plus a +8 carrier bonus applied only when the named player carries |
+
+Threshold constants: `flatThreshold: 50` (morale < 50 = "Flat"), `flyingThreshold: 75` (morale ≥ 75 = "Flying").
+
+### AI tone selection
+
+- **Pre-match:** OVR-sum delta (human squad − AI squad). If delta ≥ `aiCalmMinDelta` (75), AI picks `calm`; if delta ≤ −75, AI picks `demand`; otherwise `encourage`.
+- **Half-time:** Score gap (human score − AI score). If gap ≥ `aiScoreCalmMin` (7), AI picks `calm`; if gap ≤ `aiScoreDemandMax` (−7), AI picks `demand`; otherwise `encourage`.
+
+Both paths are deterministic — no RNG consumed.
+
+### Decay formula
+
+```
+fraction = max(0, 1 - (gameMinute - startMinute) / decayMinutes)
+bonus    = storedValue × fraction
+```
+
+A pre-match `calm` talk (attack 2, decay 15) at kick-off (minute 0) contributes +2 at minute 0, +1 at minute 7.5, and 0 from minute 15 onward. Values are stored unchanged in `state.teamTalkMod`; the fraction is computed fresh at each carry and never written back, so there's no GC churn.
 
 ---
 

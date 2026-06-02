@@ -44,7 +44,8 @@ export type ScreenId =
   | 'cup-fixtures'
   | 'cup-results'
   | 'achievements'
-  | 'inbox';
+  | 'inbox'
+  | 'team-talk';
 
 const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'home':          { elId: 'home-screen',   shownDisplay: '' },
@@ -85,6 +86,7 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'international-break': { elId: 'international-break', shownDisplay: '' },
   'achievements':     { elId: 'achievements',     shownDisplay: '' },
   'inbox':            { elId: 'inbox',            shownDisplay: '' },
+  'team-talk':        { elId: 'team-talk',        shownDisplay: '' },
 };
 
 export type NavDirection = 'forward' | 'back';

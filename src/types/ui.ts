@@ -1,5 +1,12 @@
 import type { PenaltyChoice, PenaltyContext, KickOffStrategy, PossessionSide } from './engine';
 import type { GameEvent, MatchState, DisplaySnapshot } from './match';
+// TalkArgs: resolved modifier values passed from UI to engine
+export interface TalkArgs {
+  attack: number;
+  defend: number;
+  decayMinutes: number;
+  singleOut?: { playerId: number; bonus: number };
+}
 import type { Team, TeamTactics } from './team';
 import type { Player } from './player';
 import type { FixtureResult, GameState } from './gameState';
@@ -21,7 +28,14 @@ export interface ForcedSubChoicePayload {
 export type ModalPayload =
   | { type: 'penalty_choice'; context: PenaltyContext; onChoice: (choice: PenaltyChoice) => void; }
   | { type: 'kickoff_choice'; onChoice: (choice: KickOffStrategy) => void; }
-  | ForcedSubChoicePayload;
+  | ForcedSubChoicePayload
+  | {
+      type: 'team_talk_choice';
+      side: PossessionSide;
+      state: MatchState;
+      averageMorale: number;
+      onChoice: (args: TalkArgs) => void;
+    };
 
 export interface AppEvents {
   'engine:initialized': Record<string, never>;
@@ -49,6 +63,7 @@ export interface AppEvents {
     score: { home: number; away: number };
     lastEvents: string[];
   };
+  'ui:halfTimeTalkDone': Record<string, never>;
   'ui:speedChange':     { delayMs: number };
   'ui:matchPaused':     Record<string, never>;
   'ui:tacticsChange':   { teamId: string; tactics: TeamTactics };

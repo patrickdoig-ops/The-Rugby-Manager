@@ -40,10 +40,12 @@ import { detectEntry22Changes } from './Entry22Tracker';
 import { resolvePhase, draftEvent } from './PhaseRouter';
 import { makeId, resetEventCounter } from './eventId';
 import { applyMatchEvent } from './applyMatchEvent';
+import { playerOverall } from './RatingEngine';
 import { AITacticalDirector } from './AITacticalDirector';
 import { AISubstitutionDirector } from './AISubstitutionDirector';
-import { COMMENTARY_BUFFER_CAP, COMMENTARY_PACING, slotFamiliarity, HOME_ADVANTAGE, FORM_MODEL } from './balance';
+import { COMMENTARY_BUFFER_CAP, COMMENTARY_PACING, slotFamiliarity, HOME_ADVANTAGE, FORM_MODEL, TEAM_TALK } from './balance';
 import { STARTING_XV_MAX } from './Slot';
+import type { TalkArgs } from '../types/ui';
 
 // Shallow copy — PlayerStats fields are all primitives, so spread is a
 // full clone. (Renamed from deepCloneStats in v2.253a — "deep" was
@@ -239,6 +241,10 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
     },
     events: [],
     breakdownMod: { attack: 0, defend: 0 },
+    teamTalkMod: {
+      home: { attack: 0, defend: 0, startMinute: 0, decayMinutes: 0 },
+      away: { attack: 0, defend: 0, startMinute: 0, decayMinutes: 0 },
+    },
     lastBallQuality: 'clean',
     cards: {
       sinBin:        { home: [], away: [] },
@@ -289,17 +295,26 @@ export class MatchCoordinator {
   // background AI fixture runs. PenaltyHandler short-circuits modal prompts
   // to the same defaults the determinism harness uses.
   private silent: boolean;
+  // Pre-game average morale of the human squad, threaded in from GameCoordinator
+  // so the half-time team talk panel knows the squad's mood. Defaults to the
+  // neutral baseline (65) for headless / legacy paths.
+  private humanSquadMorale: number;
+  // Pre-match team talk choice from the TeamTalkScreen, stored until initialize()
+  // applies it alongside the AI talk.
+  private humanPreTalk?: TalkArgs;
 
   constructor(
     homeRaw: RawTeamInput,
     awayRaw: RawTeamInput,
-    opts: { tickDelayMs?: number; homeTactics?: TeamTactics; playerTactics?: TeamTactics; humanSide?: 'home' | 'away'; seed?: number; silent?: boolean; commentaryBufferCap?: number; neutralVenue?: boolean; homeFillRate?: number; isDerby?: boolean; isPlayoffSemi?: boolean; humanCaptainRosterId?: number } = {},
+    opts: { tickDelayMs?: number; homeTactics?: TeamTactics; playerTactics?: TeamTactics; humanSide?: 'home' | 'away'; seed?: number; silent?: boolean; commentaryBufferCap?: number; neutralVenue?: boolean; homeFillRate?: number; isDerby?: boolean; isPlayoffSemi?: boolean; humanCaptainRosterId?: number; humanPreTalk?: TalkArgs; humanSquadMorale?: number } = {},
   ) {
     const seed = (opts.seed ?? generateSeed()) >>> 0;
     setMatchSeed(seed);
     resetEventCounter();
     this.humanSide = opts.humanSide ?? 'home';
     this.silent = opts.silent ?? false;
+    this.humanSquadMorale = opts.humanSquadMorale ?? TEAM_TALK.flatThreshold + 15; // neutral default ~65 = baseline
+    this.humanPreTalk = opts.humanPreTalk;
     const tactics = opts.playerTactics ?? opts.homeTactics;
     this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, seed, tactics, this.humanSide, opts.neutralVenue ?? false, opts.homeFillRate, opts.isDerby ?? false, opts.isPlayoffSemi ?? false, opts.humanCaptainRosterId);
     if (opts.commentaryBufferCap !== undefined) {
@@ -597,6 +612,19 @@ export class MatchCoordinator {
     };
     applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: tossEvent });
     this.emitEvent(tossEvent);
+
+    // Apply pre-match team talks. Human side uses the chosen talk (if any);
+    // AI side is deterministic (OVR-sum based). Silent / headless: both sides
+    // get AI talks so determinism is preserved.
+    const aiSide: 'home' | 'away' = this.humanSide === 'home' ? 'away' : 'home';
+    if (this.silent) {
+      this.applyTalk('home', this.computeAITalk('home'));
+      this.applyTalk('away', this.computeAITalk('away'));
+    } else {
+      if (this.humanPreTalk) this.applyTalk(this.humanSide, this.humanPreTalk);
+      this.applyTalk(aiSide, this.computeAITalk(aiSide));
+    }
+
     // Fire a synchronous stateChange so the UI repaints to the fresh
     // kickoff state (score 0-0, players in starting positions, empty stats)
     // BEFORE `#app` is revealed. The streamer-paced flush only happens
@@ -656,6 +684,52 @@ export class MatchCoordinator {
 
   getState(): Readonly<MatchState> {
     return this.state;
+  }
+
+  // Compute the AI team talk for a given side based on match context.
+  // Pre-match: OVR-sum delta drives calm/encourage/demand.
+  // Half-time: score diff drives calm/encourage/demand.
+  private computeAITalk(side: 'home' | 'away'): TalkArgs {
+    const aiTeam = side === 'home' ? this.state.homeTeam : this.state.awayTeam;
+    const oppTeam = side === 'home' ? this.state.awayTeam : this.state.homeTeam;
+    if (!this.state.clock.halfTimeDone) {
+      // Pre-match: use total OVR sum delta
+      const aiOvr = aiTeam.players.reduce((s, p) => s + playerOverall(p.baseStats, p.position), 0);
+      const oppOvr = oppTeam.players.reduce((s, p) => s + playerOverall(p.baseStats, p.position), 0);
+      const delta = aiOvr - oppOvr;
+      if (delta >= TEAM_TALK.aiCalmMinDelta) {
+        return { attack: TEAM_TALK.calm.attack, defend: TEAM_TALK.calm.defend, decayMinutes: TEAM_TALK.calm.decayMinutes };
+      } else if (delta > 0) {
+        return { attack: TEAM_TALK.encourage.attack, defend: TEAM_TALK.encourage.defend, decayMinutes: TEAM_TALK.encourage.decayMinutes };
+      } else {
+        return { attack: TEAM_TALK.demand.attack, defend: TEAM_TALK.demand.defend, decayMinutes: TEAM_TALK.demand.decayMinutes };
+      }
+    } else {
+      // Half-time: score diff
+      const aiScore = side === 'home' ? this.state.score.home : this.state.score.away;
+      const oppScore = side === 'home' ? this.state.score.away : this.state.score.home;
+      const diff = aiScore - oppScore;
+      if (diff >= TEAM_TALK.aiScoreCalmMin) {
+        return { attack: TEAM_TALK.calm.attack, defend: TEAM_TALK.calm.defend, decayMinutes: TEAM_TALK.calm.decayMinutes };
+      } else if (diff <= TEAM_TALK.aiScoreDemandMax) {
+        return { attack: TEAM_TALK.demand.attack, defend: TEAM_TALK.demand.defend, decayMinutes: TEAM_TALK.demand.decayMinutes };
+      } else {
+        return { attack: TEAM_TALK.encourage.attack, defend: TEAM_TALK.encourage.defend, decayMinutes: TEAM_TALK.encourage.decayMinutes };
+      }
+    }
+  }
+
+  // Apply a team talk to a side via TEAM_TALK_APPLIED.
+  private applyTalk(side: 'home' | 'away', args: TalkArgs): void {
+    applyMatchEvent(this.state, {
+      type: 'TEAM_TALK_APPLIED',
+      side,
+      attack: args.attack,
+      defend: args.defend,
+      startMinute: this.state.clock.gameMinute,
+      decayMinutes: args.decayMinutes,
+      singleOut: args.singleOut,
+    });
   }
 
   private scheduleTick(delay: number): void {
@@ -887,11 +961,35 @@ export class MatchCoordinator {
     // playable. The user clicks Play to start the second half. Skipped in
     // silent mode so headless harnesses (determinism, telemetry, AI
     // fixtures) blow straight through to full-time.
-    if (!this.silent && !wasHalfTimeDone && this.state.clock.halfTimeDone) {
-      await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-      this.pause();
-      eventBus.emit('engine:autoPaused', { reason: 'half_time' });
-      return true;
+    if (!wasHalfTimeDone && this.state.clock.halfTimeDone) {
+      const aiSide: 'home' | 'away' = this.humanSide === 'home' ? 'away' : 'home';
+      if (this.silent) {
+        // Headless: apply AI talks for both sides, no pause needed.
+        this.applyTalk('home', this.computeAITalk('home'));
+        this.applyTalk('away', this.computeAITalk('away'));
+      } else {
+        // AI talk applied immediately; human talk collected via the panel.
+        this.applyTalk(aiSide, this.computeAITalk(aiSide));
+        await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+        // Collect human team talk via the half-time panel. Engine stays
+        // running = false (pause() below) while the user makes their choice.
+        const humanTalkArgs = await new Promise<TalkArgs>(resolve => {
+          eventBus.emit('engine:paused', {
+            payload: {
+              type: 'team_talk_choice',
+              side: this.humanSide,
+              state: this.state,
+              averageMorale: this.humanSquadMorale,
+              onChoice: resolve,
+            },
+          });
+        });
+        this.applyTalk(this.humanSide, humanTalkArgs);
+        eventBus.emit('ui:halfTimeTalkDone', {});
+        this.pause();
+        eventBus.emit('engine:autoPaused', { reason: 'half_time' });
+        return true;
+      }
     }
     return false;
   }

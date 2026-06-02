@@ -129,5 +129,6 @@ export function buildAppShell(): void {
     <div id="modal-overlay" class="hidden">
       <div id="modal-box"></div>
     </div>
+    <div id="half-time-panel" class="hidden"></div>
   `;
 }

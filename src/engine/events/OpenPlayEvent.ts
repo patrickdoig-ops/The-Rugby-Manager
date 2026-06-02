@@ -240,8 +240,23 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine] + pathEvasionMod;
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine] + pathCollisionMod;
   const tlBonus = tryLineDefenceBonus(state);
-  const baseAttackMod = attackMod + breakdownWideEvasion + ha.attack + tlBonus.evasion;
-  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend;
+  // Team talk modifier — decays linearly from startMinute over decayMinutes.
+  const gameMinute = state.clock.gameMinute;
+  const ttHome = state.teamTalkMod.home;
+  const ttAway = state.teamTalkMod.away;
+  const ttAttack = state.teamTalkMod[attackSide];
+  const ttDef    = state.teamTalkMod[defSide];
+  const ttAttackFrac = ttAttack.decayMinutes > 0 ? Math.max(0, 1 - (gameMinute - ttAttack.startMinute) / ttAttack.decayMinutes) : 0;
+  const ttDefFrac    = ttDef.decayMinutes > 0    ? Math.max(0, 1 - (gameMinute - ttDef.startMinute)    / ttDef.decayMinutes)    : 0;
+  void ttHome; void ttAway; // silence unused-var for the side-keyed access above
+  const ttAttackBonus = ttAttack.attack * ttAttackFrac;
+  const ttDefendBonus = ttDef.defend * ttDefFrac;
+  // singleOut: targeted bonus for one specific ball-carrier on the attacking side.
+  const so = state.teamTalkMod.singleOut;
+  const soFrac = so && so.decayMinutes > 0 ? Math.max(0, 1 - (gameMinute - so.startMinute) / so.decayMinutes) : 0;
+  const singleOutBonus = so && so.side === attackSide && so.playerId === ballCarrier.id ? so.bonus * soFrac : 0;
+  const baseAttackMod = attackMod + breakdownWideEvasion + ha.attack + tlBonus.evasion + ttAttackBonus + singleOutBonus;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend + ttDefendBonus;
   let res = resolveOpenPlay(ballCarrier, defender, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
   const direction = attackDir(state);
 
@@ -442,8 +457,17 @@ function resolvePickAndGo(
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine];
   const tlBonus = tryLineDefenceBonus(state);
-  const baseAttackMod = attackMod + ha.attack + tlBonus.evasion;
-  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend;
+  // Team talk modifier (same decay formula as handlePhasePlay).
+  const pagGameMinute = state.clock.gameMinute;
+  const pagTtAttack = state.teamTalkMod[attackSide];
+  const pagTtDef    = state.teamTalkMod[defSide];
+  const pagTtAttackFrac = pagTtAttack.decayMinutes > 0 ? Math.max(0, 1 - (pagGameMinute - pagTtAttack.startMinute) / pagTtAttack.decayMinutes) : 0;
+  const pagTtDefFrac    = pagTtDef.decayMinutes > 0    ? Math.max(0, 1 - (pagGameMinute - pagTtDef.startMinute)    / pagTtDef.decayMinutes)    : 0;
+  const pagSo = state.teamTalkMod.singleOut;
+  const pagSoFrac = pagSo && pagSo.decayMinutes > 0 ? Math.max(0, 1 - (pagGameMinute - pagSo.startMinute) / pagSo.decayMinutes) : 0;
+  const pagSingleOutBonus = pagSo && pagSo.side === attackSide && pagSo.playerId === carrier.id ? pagSo.bonus * pagSoFrac : 0;
+  const baseAttackMod = attackMod + ha.attack + tlBonus.evasion + pagTtAttack.attack * pagTtAttackFrac + pagSingleOutBonus;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend + pagTtDef.defend * pagTtDefFrac;
   const res = resolveOpenPlay(carrier, defender, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
 
   // Downgrade line_break → dominant_carry; pick-and-go can't break the line.

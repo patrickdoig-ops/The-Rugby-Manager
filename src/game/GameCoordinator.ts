@@ -1515,6 +1515,7 @@ export class GameCoordinator {
     // Re-seed board confidence for the new season from the finish just
     // archived by SEASON_ROLLED_OVER (resets the final-warning latch).
     this.seedBoardState();
+    eventBus.emit('game:seasonRolledOver', { state: this.state });
     return events;
   }
 

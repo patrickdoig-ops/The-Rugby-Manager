@@ -143,7 +143,7 @@ The **end-of-season** sack is decided by `judgeSeasonObjective()` — a **pure**
 
 ## UI events
 
-The game engine emits seven `game:*` events through `src/utils/eventBus.ts`. UI modules subscribe and re-render; the game engine never imports any UI module.
+The game engine emits eight `game:*` events through `src/utils/eventBus.ts`. UI modules subscribe and re-render; the game engine never imports any UI module.
 
 | Event | Payload | Subscribers |
 |---|---|---|
@@ -154,6 +154,7 @@ The game engine emits seven `game:*` events through `src/utils/eventBus.ts`. UI 
 | `game:playoffsUpdated` | `{ state: GameState }` | `HubScreen` + `PlayoffBracketScreen` + `InboxScreen` re-render. Fires after every `PLAYOFF_RESULT_RECORDED` (player or AI) so the bracket UI shows the cascade fill in. |
 | `game:seasonComplete` | `{ state: GameState }` | `main.ts` latches `seasonCompletePending`; the post-match Continue chain reroutes through `EndOfSeasonScreen` → optional `RenewalsScreen` → optional `TransferMarketScreen` → `RolloverScreen`. Now fires only after the League final resolves (no longer the end of the last regular round). |
 | `game:trainingApplied` | `{ state: GameState }` | `TrainingScreen` (triggers the post-training results display after `applyTrainingBlock` completes); `AchievementEngine` (evaluates post-training achievement predicates). Fired once at the end of `GameCoordinator.applyTrainingBlock` after all per-player `PLAYER_TRAINED` events have been applied. |
+| `game:seasonRolledOver` | `{ state: GameState }` | `HubScreen`, `FixtureListScreen`, `LeagueTableScreen` re-render with the new season's state (new fixtures, zeroed standings, updated season label). Fired at the end of `GameCoordinator.rollSeason()` after all `SEASON_ROLLED_OVER`-group events are applied, so state is fully consistent when subscribers read it. |
 
 ## Career: roster + identity model
 

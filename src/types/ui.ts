@@ -72,5 +72,10 @@ export interface AppEvents {
   // game:* track because training is a season-scope mutation, not an
   // in-match one.
   'game:trainingApplied': { state: GameState };
+  // Fires after GameCoordinator.rollSeason() completes — new fixtures,
+  // zeroed standings, and a new seasonLabel are now live in state. Screens
+  // that cache their last render (HubScreen, FixtureListScreen) must
+  // subscribe to this to avoid showing the previous season's data.
+  'game:seasonRolledOver': { state: GameState };
 }
 

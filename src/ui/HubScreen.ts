@@ -487,6 +487,7 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
   eventBus.on('game:trainingApplied', ({ state }) => render(state));
   eventBus.on('game:bracketSeeded',   ({ state }) => render(state));
   eventBus.on('game:playoffsUpdated', ({ state }) => render(state));
+  eventBus.on('game:seasonRolledOver',({ state }) => render(state));
 
   render(opts.getGameEngine().getState());
 

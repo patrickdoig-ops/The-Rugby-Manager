@@ -72,10 +72,18 @@ export function buildAppShell(): void {
           <span class="end-label pitch2d-end-top" id="pitch-top-label"></span>
           <span class="end-label pitch2d-end-bottom" id="pitch-bottom-label"></span>
           <div class="pitch2d-line line-top-try"></div>
+          <div class="pitch2d-line line-top-5m"></div>
           <div class="pitch2d-line line-top-22"></div>
+          <div class="pitch2d-line line-top-10m"></div>
           <div class="pitch2d-line line-mid-halfway"></div>
+          <div class="pitch2d-line line-bot-10m"></div>
           <div class="pitch2d-line line-bot-22"></div>
+          <div class="pitch2d-line line-bot-5m"></div>
           <div class="pitch2d-line line-bot-try"></div>
+          <div class="pitch2d-vline vline-left-5m"></div>
+          <div class="pitch2d-vline vline-left-15m"></div>
+          <div class="pitch2d-vline vline-right-15m"></div>
+          <div class="pitch2d-vline vline-right-5m"></div>
           <div class="pitch2d-territory-shade" id="pitch-territory-shade"></div>
           <div class="card-stack pitch2d-cards-top" id="pitch-cards-top"></div>
           <div class="card-stack pitch2d-cards-bottom" id="pitch-cards-bottom"></div>

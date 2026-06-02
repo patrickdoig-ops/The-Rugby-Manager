@@ -739,6 +739,10 @@ body.pitch-view-active #pitch-wrapper { display: none; }
   border: 1px solid color-mix(in oklch, var(--rm-pitch) 25%, transparent);
 }
 
+/* Cross-field lines run touchline to touchline. Their top% maps the 100m field
+   of play onto the 8%–92% in-goal band (top% = 8 + (100 − x) × 0.84) so they
+   line up exactly with the ball marker — see PitchView's toTop(). Real rugby
+   markings: try / 22m / halfway are solid, 10m dashed, 5m dotted. */
 .pitch2d-line {
   position: absolute;
   left: 0;
@@ -746,11 +750,48 @@ body.pitch-view-active #pitch-wrapper { display: none; }
   height: 1px;
   pointer-events: none;
 }
-.line-top-try    { top: 8%;  background: rgba(255,255,255,0.5); }
-.line-top-22     { top: 24%; background: rgba(255,255,255,0.25); }
-.line-mid-halfway{ top: 50%; background: rgba(255,255,255,0.8); }
-.line-bot-22     { top: 76%; background: rgba(255,255,255,0.25); }
-.line-bot-try    { top: 92%; background: rgba(255,255,255,0.5); }
+.line-top-try     { top: 8%;     background: rgba(255,255,255,0.5); }
+.line-top-22      { top: 26.48%; background: rgba(255,255,255,0.25); }
+.line-mid-halfway { top: 50%;    background: rgba(255,255,255,0.8); }
+.line-bot-22      { top: 73.52%; background: rgba(255,255,255,0.25); }
+.line-bot-try     { top: 92%;    background: rgba(255,255,255,0.5); }
+/* 10m lines (10m either side of halfway) — dashed */
+.line-top-10m, .line-bot-10m {
+  background: repeating-linear-gradient(to right,
+    rgba(255,255,255,0.3) 0 7px, transparent 7px 14px);
+}
+.line-top-10m { top: 41.6%; }
+.line-bot-10m { top: 58.4%; }
+/* 5m lines (5m off each try line) — dotted */
+.line-top-5m, .line-bot-5m {
+  background: repeating-linear-gradient(to right,
+    rgba(255,255,255,0.32) 0 2px, transparent 2px 7px);
+}
+.line-top-5m { top: 12.2%; }
+.line-bot-5m { top: 87.8%; }
+
+/* Lengthwise lines run along the field of play (5m and 15m off each touchline,
+   spanning try line to try line, i.e. the 8%–92% band). left% = metres/70 × 100
+   across the 70m width. 15m lines dashed, 5m lines dotted. */
+.pitch2d-vline {
+  position: absolute;
+  top: 8%;
+  bottom: 8%;
+  width: 1px;
+  pointer-events: none;
+}
+.vline-left-15m, .vline-right-15m {
+  background: repeating-linear-gradient(to bottom,
+    rgba(255,255,255,0.3) 0 7px, transparent 7px 14px);
+}
+.vline-left-15m  { left: 21.43%; }
+.vline-right-15m { left: 78.57%; }
+.vline-left-5m, .vline-right-5m {
+  background: repeating-linear-gradient(to bottom,
+    rgba(255,255,255,0.28) 0 2px, transparent 2px 7px);
+}
+.vline-left-5m  { left: 7.14%; }
+.vline-right-5m { left: 92.86%; }
 
 .pitch2d-end-top,
 .pitch2d-end-bottom {
@@ -853,7 +894,8 @@ body.pitch-view-active #pitch-wrapper { display: none; }
 #pitch-phase-label.phase-kick    { color: var(--blue);      background: color-mix(in oklch, var(--blue) 12%, transparent);     border-color: color-mix(in oklch, var(--blue) 45%, transparent); }
 #pitch-phase-label.phase-terminal{ color: var(--purple);    background: color-mix(in oklch, var(--purple) 14%, transparent);   border-color: color-mix(in oklch, var(--purple) 45%, transparent); }
 
-/* Latest commentary line — shown only in stats / players views */
+/* Latest commentary line — shown in stats / players / pitch views so the flow
+   of play can be followed alongside the visual. */
 #latest-commentary {
   display: none;
   flex-shrink: 0;
@@ -861,7 +903,8 @@ body.pitch-view-active #pitch-wrapper { display: none; }
   padding: 0 8px;
 }
 #panel-bottom.view-stats   #latest-commentary,
-#panel-bottom.view-players #latest-commentary { display: block; }
+#panel-bottom.view-players #latest-commentary,
+#panel-bottom.view-pitch   #latest-commentary { display: block; }
 
 /* Fixed 3-line height inside latest-commentary so the panel below doesn't jump
    as commentary length varies. Text gets clamped to 3 lines if it's longer. */

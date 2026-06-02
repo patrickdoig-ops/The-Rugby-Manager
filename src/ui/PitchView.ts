@@ -9,6 +9,14 @@ import type { GameEvent } from '../types/match';
 // deliberately curated — tries (and conversions, which carry the try phase),
 // penalties, and cards — so the pitch doesn't strobe on every box-kick, lineout,
 // or restart possession swap.
+// The 100m field of play occupies the 8%–92% band of the field height; the
+// 0–8% / 92–100% margins are the in-goal areas (where the end labels sit). Both
+// the ball marker and the painted lines map through this, so the ball always
+// sits on the right marking. x=100 → 8% (one try line), x=0 → 92% (the other).
+const INGOAL_PCT = 8;
+const PLAY_SPAN = 84;
+const toTop = (ballX: number): number => INGOAL_PCT + ((100 - ballX) / 100) * PLAY_SPAN;
+
 function flashClass(event: GameEvent): string | null {
   for (const step of event.narration.steps) {
     if (step.kind === 'announcement' && step.key.startsWith('card_')) return 'flash-card';
@@ -54,7 +62,7 @@ export function initPitchView(): void {
     if (!cls) return;
     // Map the event's own ball coords with the same absolute transform the
     // marker uses (x=100 end at top); the field is fixed, only labels swap.
-    fireFlash(100 - event.ballX, event.ballY, cls);
+    fireFlash(toTop(event.ballX), event.ballY, cls);
   });
 
   eventBus.on('engine:stateChange', ({ state, display }) => {
@@ -67,8 +75,9 @@ export function initPitchView(): void {
 
     // Ball: ballX is absolute (x=100 end at top, x=0 at bottom) — the field is
     // fixed on screen and only the end labels swap at half-time, mirroring the
-    // 1D PitchStrip. ballY drives the short/horizontal axis.
-    const topPct  = 100 - display.ballX;
+    // 1D PitchStrip. toTop() maps it onto the 8%–92% field-of-play band so the
+    // ball sits on the painted lines. ballY drives the short/horizontal axis.
+    const topPct  = toTop(display.ballX);
     const leftPct = display.ballY;
     ball.style.top  = `${topPct}%`;
     ball.style.left = `${leftPct}%`;

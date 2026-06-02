@@ -381,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const result = engine.offerEarlyRenewal(rosterId, offeredWage);
       saveGame(engine.toSavePayload());
       return result;
-    });
+    }, 'Contracts & Transfers');
     initSquadManagementScreen({
       getGameEngine,
       allTeams,

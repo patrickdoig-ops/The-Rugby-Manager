@@ -17,14 +17,14 @@ export interface InitClubMenuOpts {
 }
 
 let _opts: InitClubMenuOpts | null = null;
+let _teamsById: Map<string, RawTeamInput> = new Map();
 
 export function showClubMenu(): void {
   const el = document.getElementById('club-menu');
   if (!el || !_opts) return;
   const opts = _opts;
   const state = opts.getGameEngine().getState();
-  const teamsById = new Map(opts.allTeams.map(t => [t.id, t]));
-  const playerTeam = teamsById.get(state.player.teamId);
+  const playerTeam = _teamsById.get(state.player.teamId);
   if (!playerTeam) return;
 
   const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
@@ -65,4 +65,5 @@ export function showClubMenu(): void {
 
 export function initClubMenuScreen(opts: InitClubMenuOpts): void {
   _opts = opts;
+  _teamsById = new Map(opts.allTeams.map(t => [t.id, t]));
 }

@@ -40,14 +40,14 @@ const TILES: TileSpec[] = [
 ];
 
 let _opts: InitContractsTransfersMenuOpts | null = null;
+let _teamsById: Map<string, RawTeamInput> = new Map();
 
 export function showContractsTransfersMenu(): void {
   const el = document.getElementById('contracts-transfers-menu');
   if (!el || !_opts) return;
   const opts = _opts;
   const state = opts.getGameEngine().getState();
-  const teamsById = new Map(opts.allTeams.map(t => [t.id, t]));
-  const playerTeam = teamsById.get(state.player.teamId);
+  const playerTeam = _teamsById.get(state.player.teamId);
   if (!playerTeam) return;
 
   const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
@@ -65,7 +65,7 @@ export function showContractsTransfersMenu(): void {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           <span>Hub</span>
         </button>
-        <span class="app-title">Contracts & Transfers</span>
+        <span class="app-title">Contracts &amp; Transfers</span>
         <div class="app-topbar-spacer"></div>
       </div>
       <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
@@ -95,6 +95,7 @@ export function showContractsTransfersMenu(): void {
 
 export function initContractsTransfersMenuScreen(opts: InitContractsTransfersMenuOpts): void {
   _opts = opts;
+  _teamsById = new Map(opts.allTeams.map(t => [t.id, t]));
 }
 
 function countExpiringContracts(state: GameState): number {

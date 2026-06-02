@@ -87,7 +87,7 @@ const TILES: TileSpec[] = [
   { id: 'hub-tile-fixtures',             ariaLabel: 'Fixture list',             label: 'Fixtures',               iconKey: 'fixtures',             handlerKey: 'onFixtures' },
   { id: 'hub-tile-league',               ariaLabel: 'League',                   label: 'League',                 iconKey: 'league',               handlerKey: 'onLeague' },
   { id: 'hub-tile-training',             ariaLabel: 'Training',                 label: 'Training',               iconKey: 'training',             handlerKey: 'onTraining' },
-  { id: 'hub-tile-contracts-transfers',  ariaLabel: 'Contracts and transfers',  label: 'Contracts & Transfers',  iconKey: 'contractsTransfers',   handlerKey: 'onContractsAndTransfers' },
+  { id: 'hub-tile-contracts-transfers',  ariaLabel: 'Contracts and transfers',  label: 'Contracts &amp; Transfers',  iconKey: 'contractsTransfers',   handlerKey: 'onContractsAndTransfers' },
   { id: 'hub-tile-club',                 ariaLabel: 'Club',                     label: 'Club',                   iconKey: 'club',                 handlerKey: 'onClub' },
 ];
 

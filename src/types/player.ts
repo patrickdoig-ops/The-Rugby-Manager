@@ -223,6 +223,15 @@ export interface Player {
   // initPlayer time as the starting fatiguePct, so a tired starter actually
   // starts the next match tired.
   condition: number;
+  // Persistent dressing-room morale, 0-100. Seeded at MORALE.baseline (65).
+  // Moves on discrete events: PLAYER_MORALE_ADJUSTED. Drives a ±3 bias in
+  // computeFormInputs alongside condition. Optional for back-compat with
+  // pre-morale saves — back-filled to MORALE.baseline in ROSTER_SEEDED.
+  morale?: number;
+  // How many times the manager has used "Have a Chat" with this player this
+  // season. Drives the diminishing-returns formula in boostPlayerMorale.
+  // Reset to 0 at SEASON_ROLLED_OVER. Optional for back-compat.
+  moraleChats?: number;
   // Soft OVR ceiling seeded at game-start (OVR + age-based headroom via
   // POTENTIAL_HEADROOM in balance/career.ts). Growth in both rollover and
   // training is scaled down to near-zero as the player's OVR approaches this

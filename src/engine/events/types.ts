@@ -18,6 +18,10 @@ export interface PhaseContext {
   pickPlayer(team: Team, ...ids: number[]): Player;
   draftEvent(phase: MatchPhase): GameEvent;
   kickOffStrategy: KickOffStrategy;
+  // Headless/AI fixtures (no UI). When true, presentation-only detail is skipped:
+  // per-pass lateral hops collapse to a single BALL_REPOSITIONED (see emitSweepHops)
+  // and PhaseRouter skips building GameEvent.movements. Outcomes are unaffected.
+  silent: boolean;
 }
 
 export interface PhaseResult {

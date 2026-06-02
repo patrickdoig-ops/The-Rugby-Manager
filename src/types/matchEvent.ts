@@ -154,7 +154,7 @@ export type MatchEvent =
 
   // ── Kicking ──────────────────────────────────────────────────────────────
   | { type: 'KICK_FROM_HAND'; kicker: Player; metres: number }
-  | { type: 'BALL_REPOSITIONED'; x?: number; y?: number }
+  | { type: 'BALL_REPOSITIONED'; x?: number; y?: number; lateralDir?: -1 | 1 }
   | { type: 'KICK_RETURN_CARRIER_SET'; player?: Player }
   | { type: 'PENDING_TRY_SCORER_SET'; scorer?: Player }
 
@@ -193,6 +193,21 @@ export type MatchEvent =
 
   // ── Ratings (derived from matchStats) ────────────────────────────────────
   | { type: 'RATINGS_RECALCULATED' }
+
+  // ── Team talk ────────────────────────────────────────────────────────────
+  // Applied pre-match (minute 0) and at half-time (minute 40). Stores the
+  // modifier and decay window so resolvers can compute the decayed value at
+  // read time without additional mutation. `singleOut` is optional — only
+  // set for the 'Give [Name] the Ball' tone.
+  | {
+      type: 'TEAM_TALK_APPLIED';
+      side: 'home' | 'away';
+      attack: number;
+      defend: number;
+      startMinute: number;
+      decayMinutes: number;
+      singleOut?: { playerId: number; bonus: number };
+    }
 
   // ── Commentary feed (the only mutator of state.events) ───────────────────
   | { type: 'COMMENTARY_LOGGED'; event: GameEvent };

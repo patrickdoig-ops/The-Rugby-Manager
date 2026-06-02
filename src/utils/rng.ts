@@ -13,6 +13,7 @@ let outcomeRand: () => number = mulberry32(1);
 let formRand: () => number = mulberry32(2);
 let commentaryRand: () => number = mulberry32(3);
 let transferRand: () => number = mulberry32(4);
+let positioningRand: () => number = mulberry32(5);
 let transferCallCount = 0;
 
 export function setMatchSeed(seed: number): void {
@@ -20,6 +21,7 @@ export function setMatchSeed(seed: number): void {
   outcomeRand = mulberry32(s ^ 0x9E3779B9);
   formRand = mulberry32(s ^ 0x85EBCA6B);
   commentaryRand = mulberry32(s ^ 0xC2B2AE35);
+  positioningRand = mulberry32(s ^ 0xAFED3E9D);
 }
 
 // Career-scope RNG. Reset once when a GameCoordinator is initialised (new
@@ -53,6 +55,14 @@ export function generateSeed(): number {
 
 export function rng(min: number, max: number): number {
   return Math.floor(outcomeRand() * (max - min + 1)) + min;
+}
+
+// Positioning stream — every new lateral (Y-axis) draw: open-play sweep pass
+// distances, kick launch angles, kick-off side bias. Reset by setMatchSeed.
+// Independent of the outcome stream so adding lateral movement cannot perturb
+// any in-play outcome roll.
+export function rngPosition(min: number, max: number): number {
+  return Math.floor(positioningRand() * (max - min + 1)) + min;
 }
 
 function rngNormal(): number {

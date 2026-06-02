@@ -55,16 +55,6 @@ export function knockOnPct(handling: number, clockInTheRed: boolean): number {
   return Math.min(g.maxKnockOnPct, clockInTheRed ? base + g.clockInRedBonus : base);
 }
 
-// Tactics-weighted lateral spread when a carry crosses the try line.
-// Half-spread is symmetric around the midline (y=50); larger values mean
-// tries scatter further toward the corner flags. Wider-playing teams put
-// runners into wider channels, so their tries are more often out wide.
-export const TRY_LANDING_HALF_SPREAD = {
-  keep_it_tight: 12,
-  balanced:      25,
-  wide_wide:     45,
-} as const;
-
 // Lateral bands (|y - 50|) used for the post-try commentary line. Drives
 // only the narration; conversion difficulty reads ball.y directly through
 // CONVERSION_VALUES.distanceFromPostsWeight in ConversionKickEvent.

@@ -5,6 +5,7 @@ import { resolveKickOff } from '../resolvers/KickOffResolver';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
 import { attackDir, onFieldPlayers, availableForwards, pickKicker } from '../FieldPosition';
+import { kickOffLandingY } from '../Lateral';
 import { SLOT } from '../Slot';
 
 export function handleKickOff({ state, attackTeam, defendTeam, randomPlayer, kickOffStrategy }: PhaseContext): PhaseResult {
@@ -51,8 +52,13 @@ export function handleKickOff({ state, attackTeam, defendTeam, randomPlayer, kic
     };
   }
 
-  // Ball lands where the kick reaches
-  events.unshift({ type: 'BALL_REPOSITIONED', x: clamp(50 + attackDir(state) * res.distance, 5, 95) });
+  // Ball lands where the kick reaches — angled toward the kicker's left (15m
+  // line) for high/grubber kick-offs, straight for a short kick-off.
+  events.unshift({
+    type: 'BALL_REPOSITIONED',
+    x: clamp(50 + attackDir(state) * res.distance, 5, 95),
+    y: kickOffLandingY(state, kickOffStrategy),
+  });
 
   if (res.result === 'knock_on') {
     // Scrum where the ball was dropped; kicking team puts in (possession unchanged)

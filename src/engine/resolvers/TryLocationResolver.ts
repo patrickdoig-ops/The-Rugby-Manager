@@ -1,19 +1,22 @@
-// Where on the try line a try lands (laterally). Driven by the attacker's
-// authored attackingStyle: tighter teams score nearer the posts, wide-wide
-// teams scatter their tries further out toward the corner flags. Returned
-// y is what ConversionKickEvent reads through state.ball.y when it grades
-// the conversion's difficulty, so the same number drives both the
-// commentary band and the kicker's degree of difficulty.
+// Where on the try line a try lands (laterally). The runner grounds the ball
+// at the position open play had swept to (state.ball.y), plus a style-scaled
+// jitter for the angle in to the line — wider styles scatter further toward
+// the corner. Returned y is what ConversionKickEvent reads through state.ball.y
+// when it grades the conversion's difficulty, so the same number drives both
+// the commentary band and the kicker's degree of difficulty. One outcome-stream
+// rng() draw, preserving the stream offset across this change.
 
+import type { MatchState } from '../../types/match';
 import type { AttackingStyle } from '../../types/team';
 import { rng } from '../../utils/rng';
-import { TRY_LANDING_HALF_SPREAD, TRY_LOCATION_BANDS } from '../balance';
+import { clamp } from '../../utils/math';
+import { TRY_LANDING_JITTER, TRY_LOCATION_BANDS } from '../balance';
 
 export type TryLocationBand = 'central' | 'close' | 'wide' | 'corner';
 
-export function tryLandingY(style: AttackingStyle): number {
-  const spread = TRY_LANDING_HALF_SPREAD[style];
-  return rng(50 - spread, 50 + spread);
+export function tryLandingY(state: MatchState, style: AttackingStyle): number {
+  const j = TRY_LANDING_JITTER[style];
+  return clamp(state.ball.y + rng(-j, j), 0, 100);
 }
 
 export function tryLocationBand(y: number): TryLocationBand {

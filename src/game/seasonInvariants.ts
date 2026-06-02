@@ -12,6 +12,7 @@
 import type { GameState } from '../types/gameState';
 import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
 import { invariantsEnabled } from '../utils/invariantsMode';
+import { MORALE } from '../engine/balance/morale';
 
 const SENIOR_CAP_TOTAL = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
 
@@ -57,6 +58,9 @@ export function assertSeasonInvariants(state: GameState): void {
     }
     if (!(p.condition >= 0) || !(p.condition <= 100)) {
       fail(`roster.condition[${rosterId}]`, `${p.condition}`);
+    }
+    if (p.morale === undefined || p.morale < 0 || p.morale > 100) {
+      fail(`roster.morale[${rosterId}]`, `${p.morale}`);
     }
     if (p.potential !== undefined && !(p.potential >= 1 && Number.isFinite(p.potential))) {
       fail(`roster.potential[${rosterId}]`, `${p.potential}`);
@@ -322,5 +326,16 @@ export function assertSeasonInvariants(state: GameState): void {
     }
     assertNonNegInt(`teamSeasonStats[${teamId}].yellowCards`, t.yellowCards);
     assertNonNegInt(`teamSeasonStats[${teamId}].redCards`, t.redCards);
+  }
+
+  // ── Board confidence: 0–100 when seeded ──────────────────────────────
+  const board = state.player.board;
+  if (board) {
+    if (!(board.confidence >= 0) || !(board.confidence <= 100)) {
+      fail('board.confidence', `${board.confidence}`);
+    }
+    if (board.objective !== 'title' && board.objective !== 'playoffs' && board.objective !== 'topHalf') {
+      fail('board.objective', `${board.objective}`);
+    }
   }
 }

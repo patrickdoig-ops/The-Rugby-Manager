@@ -154,7 +154,12 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
                     <div class="inbox-item-body">${item.body}</div>
                     ${item.counselAction
                       ? `<button class="inbox-counsel" data-rosterid="${item.counselAction.rosterId}">Speak to Player</button>`
-                      : item.deepLink ? `<button class="inbox-deeplink" data-link="${item.deepLink}">${deepLinkLabels[item.deepLink]}</button>` : ''}
+                      : item.moraleBoostAction
+                        ? `<div class="inbox-actions">
+                             <button class="inbox-morale-boost" data-rosterid="${item.moraleBoostAction.rosterId}">Have a Chat</button>
+                             ${item.deepLink ? `<button class="inbox-deeplink" data-link="${item.deepLink}">${deepLinkLabels[item.deepLink]}</button>` : ''}
+                           </div>`
+                        : item.deepLink ? `<button class="inbox-deeplink" data-link="${item.deepLink}">${deepLinkLabels[item.deepLink]}</button>` : ''}
                   </div>
                 </div>`;
             }).join('')}
@@ -189,6 +194,15 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
       btn.addEventListener('click', () => {
         const engine = opts.getGameEngine();
         engine.counselPlayer(rosterId);
+        render(engine.getState());
+      });
+    });
+
+    el!.querySelectorAll<HTMLButtonElement>('.inbox-morale-boost').forEach(btn => {
+      const rosterId = Number(btn.dataset.rosterid);
+      btn.addEventListener('click', () => {
+        const engine = opts.getGameEngine();
+        engine.boostPlayerMorale(rosterId);
         render(engine.getState());
       });
     });

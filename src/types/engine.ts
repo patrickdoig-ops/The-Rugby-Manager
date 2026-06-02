@@ -72,6 +72,8 @@ export type PenaltyOffence =
 // PenaltyOffence rather than this union.
 export type CardKind = 'yellow' | 'red_20' | 'red_full';
 
+export type TeamTalkTone = 'calm' | 'encourage' | 'demand' | 'single_out';
+
 export interface PenaltyContext {
   phase: MatchPhase;
   ballX: number;

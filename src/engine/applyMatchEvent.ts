@@ -410,6 +410,7 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
     case 'BALL_REPOSITIONED':
       if (event.x !== undefined) state.ball.x = event.x;
       if (event.y !== undefined) state.ball.y = event.y;
+      if (event.lateralDir !== undefined) state.ball.lateralDir = event.lateralDir;
       return;
 
     case 'KICK_RETURN_CARRIER_SET':
@@ -423,10 +424,15 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
     // ── Possession & phase ──────────────────────────────────────────────
     case 'POSSESSION_SWAPPED':
       state.possession = state.possession === 'home' ? 'away' : 'home';
+      // The team taking over orients its sweep toward the open side — the
+      // touchline with more space (away from the nearer one). Matches
+      // openSideDir() in Lateral.ts; midline defaults to +1.
+      state.ball.lateralDir = state.ball.y <= 50 ? 1 : -1;
       return;
 
     case 'POSSESSION_SET':
       state.possession = event.side;
+      state.ball.lateralDir = state.ball.y <= 50 ? 1 : -1;
       return;
 
     case 'PHASE_CHANGED':
@@ -579,6 +585,27 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       // substitutedOff players are intentionally excluded — their matchStats no longer change
       for (const p of state.homeTeam.players) p.rating = computeRating(p);
       for (const p of state.awayTeam.players) p.rating = computeRating(p);
+      return;
+
+    // ── Team talk ────────────────────────────────────────────────────────
+    case 'TEAM_TALK_APPLIED':
+      state.teamTalkMod[event.side] = {
+        attack: event.attack,
+        defend: event.defend,
+        startMinute: event.startMinute,
+        decayMinutes: event.decayMinutes,
+      };
+      if (event.singleOut) {
+        state.teamTalkMod.singleOut = {
+          side: event.side,
+          playerId: event.singleOut.playerId,
+          bonus: event.singleOut.bonus,
+          startMinute: event.startMinute,
+          decayMinutes: event.decayMinutes,
+        };
+      } else {
+        delete state.teamTalkMod.singleOut;
+      }
       return;
 
     // ── Commentary feed ─────────────────────────────────────────────────

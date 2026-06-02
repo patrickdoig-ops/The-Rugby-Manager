@@ -9,7 +9,7 @@
 // Pure and deterministic: no RNG, no mutation. The random perturbation lives in
 // the engine, so adding this bias cannot perturb the form RNG stream order.
 
-import { FORM_MODEL } from '../engine/balance';
+import { FORM_MODEL, MORALE } from '../engine/balance';
 import type { GameState } from '../types/gameState';
 import type { Player } from '../types/player';
 import { getAge } from './age';
@@ -38,6 +38,12 @@ function returnBias(formReturn: Player['formReturn'], currentRound: number): num
   return formReturn.penalty * fade;
 }
 
+function moraleBias(morale: number | undefined): number {
+  const m = morale ?? MORALE.baseline;
+  const raw = (m - MORALE.formNeutral) * MORALE.formSlope;
+  return Math.max(-MORALE.formCap, Math.min(MORALE.formCap, raw));
+}
+
 function ageVolatility(age: number | null): number {
   if (age === null) return 1;
   if (age <= FORM_MODEL.youngAge) return FORM_MODEL.youngVolatility;
@@ -50,7 +56,8 @@ export function computeFormInputs(state: GameState, p: Player): FormInputs {
   const bias =
     recentRatingBias(p.recentRatings) +
     conditionBias(p.condition) +
-    returnBias(p.formReturn, currentRound);
+    returnBias(p.formReturn, currentRound) +
+    moraleBias(p.morale);
 
   const age = getAge(p.dob, state.calendar.date);
   const volatility = ageVolatility(age) * (p.contract.isMarquee ? FORM_MODEL.marqueeVolatility : 1);

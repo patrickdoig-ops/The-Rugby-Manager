@@ -99,6 +99,13 @@ export interface GameEvent {
   secondaryPlayer?: Player;
   ballX: number;
   ballY: number;
+  // In-phase ball path: the sequence of ball positions the engine moved through
+  // while resolving this phase (carry leg, lateral sweep, kick landing). A frozen
+  // scalar snapshot — same schema-lifetime rule as ballX/ballY (CLAUDE.md §3); not
+  // live state, not range-checked by assertInvariants. The last entry equals
+  // ballX/ballY. Only present when the phase moved the ball more than once, so the
+  // 2D pitch can animate the ball through each leg instead of one diagonal jump.
+  movements?: ReadonlyArray<{ x: number; y: number }>;
   narration: NarrationDescriptor;
   outcome?: string;
 }
@@ -161,6 +168,11 @@ export interface MatchState {
   ball: {
     x: number;
     y: number;
+    // Current lateral sweep direction: -1 toward y=0, +1 toward y=100. Open
+    // play sweeps this way pass-by-pass until it reaches the 15m edge band,
+    // then flips. Reset toward the open side on each turnover / set-piece exit.
+    // A sign, not a coordinate — not range-checked by assertInvariants.
+    lateralDir: -1 | 1;
   };
   engine: {
     isRunning: boolean;
@@ -233,6 +245,14 @@ export interface MatchState {
   // mid-review.
   tmoReview?: TmoReviewState;
   kickAtGoal?: KickAtGoalState;
+  // Team talk modifier — set pre-match and at half-time. Decay is computed
+  // at read time (resolvers): fraction = max(0, 1 - (gameMinute - startMinute) / decayMinutes).
+  // singleOut is a targeted bonus for one player on one side (optional).
+  teamTalkMod: {
+    home: { attack: number; defend: number; startMinute: number; decayMinutes: number };
+    away: { attack: number; defend: number; startMinute: number; decayMinutes: number };
+    singleOut?: { side: 'home' | 'away'; playerId: number; bonus: number; startMinute: number; decayMinutes: number };
+  };
   // Count of consecutive wheel outcomes in the current scrum sequence.
   // Incremented by the SCRUM_RESOLVED reducer when outcome === 'wheel';
   // reset to 0 on any other scrum outcome. handleScrum reads this to cap

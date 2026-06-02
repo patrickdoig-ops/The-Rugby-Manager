@@ -228,9 +228,10 @@ export function initFixtureListScreen(
     });
   }
 
-  eventBus.on('game:fixtureRecorded', () => render());
-  eventBus.on('game:weekAdvanced', () => render());
-  eventBus.on('game:initialized', () => render());
+  eventBus.on('game:fixtureRecorded',  () => render());
+  eventBus.on('game:weekAdvanced',     () => render());
+  eventBus.on('game:initialized',      () => render());
+  eventBus.on('game:seasonRolledOver', () => render());
 
   render();
 }

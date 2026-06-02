@@ -47,7 +47,7 @@ All emit UI side-effects through the shared `src/utils/eventBus.ts` singleton; e
 
 ### Mutation boundary: `MatchEvent` and `applyMatchEvent`
 
-All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.currentStats`, and `player.rating` flow through one function: `applyMatchEvent(state, event)` in `src/engine/applyMatchEvent.ts`. The `MatchEvent` discriminated union (`src/types/matchEvent.ts`) defines every kind of mutation the engine performs — domain events like `TRY_SCORED`, `KNOCK_ON`, `CARRY_RESOLVED`, `INTERCEPTION`, `LINEOUT_RESOLVED`, `SCRUM_RESOLVED`, `MAUL_RESOLVED`, `BREAKDOWN_HIT`, `TURNOVER_AT_BREAKDOWN`, `PENALTY_AWARDED`, `CARD_ISSUED`, `SIN_BIN_RETURNED`, `RED_20_EXPIRED`, `TEAM_PENALTY_22_RECORDED`, `TEAM_22_WARNING_ISSUED`, `TMO_REVIEW_STARTED`/`TICK_ADVANCED`/`RESOLVED`, `OFFLOAD_ATTEMPTED`/`COMPLETED`, `FIFTY_22_ATTEMPTED`, `PLAYER_INJURED_IN_MATCH`, plus structural events like `BALL_REPOSITIONED`, `POSSESSION_SWAPPED`, `PHASE_CHANGED`, `COMMENTARY_LOGGED`, `RATINGS_RECALCULATED`. Phase handlers in `src/engine/events/` are read-only over state: they read, compute, and return `PhaseResult { ..., events: MatchEvent[] }`. `PhaseRouter.resolvePhase()` applies the queue through `applyMatchEvent` before composing the outgoing `GameEvent`. Orchestrators (`MatchCoordinator`, `ClockController`, `PenaltyHandler`, `CardHandler`) apply events directly through `applyMatchEvent` for non-phase mutations (clock, half-time, penalty choice, cards, sub flow, tactics). UI bus emissions (`eventBus.emit('engine:event'|'engine:stateChange'|…)`) are pure side effects that fire alongside, and are **not** part of the `MatchEvent` boundary.
+All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.currentStats`, and `player.rating` flow through one function: `applyMatchEvent(state, event)` in `src/engine/applyMatchEvent.ts`. The `MatchEvent` discriminated union (`src/types/matchEvent.ts`) defines every kind of mutation the engine performs — domain events like `TRY_SCORED`, `KNOCK_ON`, `CARRY_RESOLVED`, `INTERCEPTION`, `LINEOUT_RESOLVED`, `SCRUM_RESOLVED`, `MAUL_RESOLVED`, `BREAKDOWN_HIT`, `TURNOVER_AT_BREAKDOWN`, `PENALTY_AWARDED`, `CARD_ISSUED`, `SIN_BIN_RETURNED`, `RED_20_EXPIRED`, `TEAM_PENALTY_22_RECORDED`, `TEAM_22_WARNING_ISSUED`, `TMO_REVIEW_STARTED`/`TICK_ADVANCED`/`RESOLVED`, `OFFLOAD_ATTEMPTED`/`COMPLETED`, `FIFTY_22_ATTEMPTED`, `PLAYER_INJURED_IN_MATCH`, `TEAM_TALK_APPLIED`, plus structural events like `BALL_REPOSITIONED`, `POSSESSION_SWAPPED`, `PHASE_CHANGED`, `COMMENTARY_LOGGED`, `RATINGS_RECALCULATED`. Phase handlers in `src/engine/events/` are read-only over state: they read, compute, and return `PhaseResult { ..., events: MatchEvent[] }`. `PhaseRouter.resolvePhase()` applies the queue through `applyMatchEvent` before composing the outgoing `GameEvent`. Orchestrators (`MatchCoordinator`, `ClockController`, `PenaltyHandler`, `CardHandler`) apply events directly through `applyMatchEvent` for non-phase mutations (clock, half-time, penalty choice, cards, sub flow, tactics). UI bus emissions (`eventBus.emit('engine:event'|'engine:stateChange'|…)`) are pure side effects that fire alongside, and are **not** part of the `MatchEvent` boundary.
 
 `applyMatchEvent` uses a `default: const _: never = event;` exhaustiveness check, so adding a new `MatchEvent` variant without a handling branch is a compile error.
 
@@ -106,6 +106,7 @@ state.tmoReview? = { step: 1|2|3, outcome, offender, offendingSide }   // mid-re
 
 Snapshot DTOs intentionally **stay scalar** — they are frozen log rows, not live state:
 - `GameEvent.ballX` / `GameEvent.ballY` (entries in `state.events[]`)
+- `GameEvent.movements` — optional `ReadonlyArray<{ x; y }>`, the in-phase ball path (a frozen scalar snapshot, same lifetime rule as `ballX`/`ballY`; not range-checked by `assertInvariants`). Captured in `resolvePhase` by recording a keyframe whenever an applied event actually changed the ball position (observed, not matched by event type — any ball-moving event is captured automatically), present only when the phase moved the ball more than once. **Live only:** skipped for `silent` (headless/AI) fixtures, which nothing renders. Last entry equals `ballX`/`ballY`. Consumed by `PitchView` to animate the ball leg-by-leg.
 - `PenaltyContext.ballX` / `ballY` / `clockInTheRed` / `halfTimeDone` (crosses the event-bus boundary to `ModalManager`)
 - `MatchEvent` payload fields (`x`, `y`, `delta`, `value`) stay scalar — only the write *targets* in `applyMatchEvent` are nested
 - `isTryScoredAt(ballX, possession, halfTimeDone)` and `inOpposition22At(ballX, possession, halfTimeDone)` keep scalar signatures — called on projected (not-yet-applied) positions
@@ -116,9 +117,9 @@ The engine emits the following UI-bound events through `src/utils/eventBus.ts`. 
 
 | Event | Payload | Subscribers |
 |---|---|---|
-| `engine:initialized` | `{}` | Scoreboard, PitchStrip, StatsPanel, CommentaryFeed — reset per-match caches |
-| `engine:stateChange` | `{ state: MatchState; display: DisplaySnapshot }` | Scoreboard + PitchStrip read `display` (the world frame, snapshot at event-production time); StatsPanel reads live `state` (per-player tables); CommentaryFeed (one-shot for team-colour cache) |
-| `engine:event` | `{ event: GameEvent }` | CommentaryFeed (renders narration) |
+| `engine:initialized` | `{}` | Scoreboard, PitchStrip, PitchView, StatsPanel, CommentaryFeed — reset per-match caches |
+| `engine:stateChange` | `{ state: MatchState; display: DisplaySnapshot }` | Scoreboard + PitchStrip + PitchView (2D pitch ball/territory/cards) read `display` (the world frame, snapshot at event-production time); StatsPanel reads live `state` (per-player tables); CommentaryFeed (one-shot for team-colour cache) |
+| `engine:event` | `{ event: GameEvent }` | CommentaryFeed (renders narration); PitchView (zone flash on try/penalty/card; animates the ball through `event.movements` leg-by-leg on its own speed-derived timer, decoupled from the commentary line cadence; open-field kick phases — `KickOff`/`BoxKick`/`TacticalKick`/`DropOut22` — lob the ball to the landing via a WAAPI scale-apex flight) |
 | `engine:paused` | `{ payload: ModalPayload }` | ModalManager (penalty_choice / kickoff_choice / forced_substitution_choice — red_20-expired sub picker — / tactics / sub modal), SimController (button gating) |
 | `engine:resumed` | `{}` | ModalManager, SimController |
 | `engine:autoPaused` | `{ reason: 'half_time' }` | SimController (re-enables Play, disables Pause). Fires once per match after the half-time line drains so the user has to press Play to start the second half. Skipped in silent mode. |
@@ -329,21 +330,54 @@ The coin-toss announcement key varies by match type: `occasion_kickoff_derby` / 
 
 ## Determinism (Seeded RNG)
 
-Match-scope randomness flows through three isolated mulberry32 streams in `src/utils/rng.ts`:
+Match-scope randomness flows through four isolated mulberry32 streams in `src/utils/rng.ts`:
 
 | Stream | Backing function | Consumers |
 |---|---|---|
 | `outcome` | `rng(min, max)` | Every in-play roll: resolvers, phase handlers, `ClockController.advanceMinute`, coin toss, substitution template selection |
 | `form` | `rngFormRaw()` | Random perturbation of the player form modifier in `initPlayer()` |
 | `commentary` | `pickRandom(arr)` | Commentary template selection in `CommentaryEngine.pick()` |
+| `positioning` | `rngPosition(min, max)` | Every lateral (Y-axis) draw: open-play sweep pass distances, kick launch angles, kick-off side bias — see "Lateral / Y-axis model" below |
 
-A fourth stream — `transfer`, backed by `rngTransferRaw()` and seeded via `setCareerSeed(seed)` — covers season-scope randomness (contract seeding, age-curve jitter, retirement rolls). It lives in `src/utils/rng.ts` alongside the others but is consumed only by `src/game/` code; see **`docs/game-engine.md`** § Determinism. Match-engine code never touches it.
+A fifth stream — `transfer`, backed by `rngTransferRaw()` and seeded via `setCareerSeed(seed)` — covers season-scope randomness (contract seeding, age-curve jitter, retirement rolls). It lives in `src/utils/rng.ts` alongside the others but is consumed only by `src/game/` code; see **`docs/game-engine.md`** § Determinism. Match-engine code never touches it.
+
+The `positioning` stream is isolated so that adding realistic lateral ball movement cannot perturb any in-play outcome roll. The one deliberate exception where Y feeds an outcome is the goal-kick angle term (see below): a penalty taken from a wide swept position is harder, and a try grounded out wide is harder to convert. The try-landing jitter itself stays on the `outcome` stream (one `rng()` draw per try) so its stream offset is unchanged across this feature.
 
 Each stream is seeded with its master seed XORed against a fixed constant, so adding new commentary lines (or any new flavour roll) cannot shift outcome rolls.
 
 The master seed is a 32-bit unsigned integer stored on `state.engine.seed`. It is set in the `MatchCoordinator` constructor — either passed via `opts.seed` or auto-generated via `Math.floor(Math.random() * 0x100000000)`. `setMatchSeed(seed)` is called **before** `initMatchState()` so player form initialisation is deterministic. Once set, the only `Math.random()` call in the engine is the seed-generation line itself.
 
 A match with a given seed is fully reproducible: identical event sequence, identical scores, identical fatigue trajectories.
+
+---
+
+## Lateral / Y-axis model
+
+`state.ball.y` is the lateral position across the pitch width: `0`/`100` are the two touchlines, `50` the centre. Y is a 0–100 proportion of the 70m width, so 1m ≈ 1.43 Y-units (`metresToY` in `src/engine/Lateral.ts`). All lateral logic lives in `Lateral.ts` (pure helpers, mirroring `FieldPosition.ts`) with tuning in `src/engine/balance/lateral.ts`; every helper clamps its result to `[0,100]`, and all new randomness draws on the `positioning` stream.
+
+**Sweep direction.** `state.ball.lateralDir` (`-1` toward y=0, `+1` toward y=100) is the remembered direction open play is moving across the field. It is **not** a coordinate, so `assertInvariants` does not range-check it. It resets toward the **open side** — the touchline with more space, i.e. away from the nearer one (`openSideDir(y) = y <= 50 ? +1 : -1`) — whenever possession changes: the `POSSESSION_SWAPPED` / `POSSESSION_SET` reducers set it inline from `ball.y`. `BALL_REPOSITIONED` carries an optional `lateralDir` so phase handlers can update it alongside `y`.
+
+**Open-play sweep.** A ball-in-hand phase shifts the ball laterally **one hop per backline pass** — the ball steps across the field pass-by-pass, then the carrier drives forward. The three carry handlers share one seam, `emitSweepHops(events, state, style, hopCount, orient, attackTeamName, perPass)` in `Lateral.ts`: it runs `sweepPath` (`hopCount` floored at 1) and emits the hops **before** `CARRY_RESOLVED` so the keyframe path reads "across the line, then upfield". Each hop draws a pass distance, skewed (`PASS_DISTANCE_M`): 70% short 2–5m, 25% mid 5–12m, 5% long 12–20m, scaled by attacking style (`SWEEP_STYLE_MULT`: tight 0.7 / balanced 1.0 / wide 1.4); reaching the 15m edge band (`EDGE_Y_LOW = 21` / `EDGE_Y_HIGH = 79`) clamps Y to the edge and flips `lateralDir`. `FirstPhaseEvent` (2–3 hops) and `KickReturnEvent` (1 hop) orient the first hop to the open side (`orient = true`); `OpenPlayEvent.handlePhasePlay` (1–2 hops) continues the current direction. A pick-and-go uses a single `sweepStep` forced to `keep_it_tight`; penalty tap-and-go uses `openSweepStep`. All gated on `!tryScored`. **`perPass` (`= !silent`) is a presentation switch:** live UI emits every hop (so `PitchView` walks them); headless/silent sims collapse to a single `BALL_REPOSITIONED` at the final position — identical final `ball.y`/`lateralDir` and identical `rngPosition` draws (`sweepPath` runs the same either way), so outcomes are untouched while the headless path skips the intermediate per-pass events. Because the edge band caps the spread, raising the hop count makes the ball traverse the width more often without widening its average `|y−50|` — telemetry confirmed goal-kicking accuracy and scoring held at baseline (no kicking retune needed).
+
+**Try landing.** A grounded try lands at the swept position plus a small style-scaled jitter (`tryLandingY(state, style)` in `TryLocationResolver.ts`, `TRY_LANDING_JITTER`: tight 6 / balanced 10 / wide 16). This supersedes the old centre-spread and feeds conversion difficulty through `state.ball.y` — a try finished out wide after a sweep is harder to convert. One `outcome`-stream draw.
+
+**Lateral commentary.** Each sweep site optionally appends a lateral-flavour `tactic_note` via `lateralNote(sweep, attackTeamName, orienting, preDir)` (`Lateral.ts`), classified purely from the sweep geometry: a continuing sweep that hit the edge band and reversed → `worked_back_blind`; a sweep that lands in the edge band → `pinned_on_touchline`; an `openSweepStep` (set-piece / kick-return exit) that swung to the open side → `switch_to_open_side`. Chances live in `COMMENTARY_CHANCES` (`switchToOpenSide` 18 / `workedBackBlind` 25 / `pinnedOnTouchline` 20); phrases in `tacticNotes.ts`. The note is appended only on a normal continuation (`nextPhase === Breakdown`), never after a penalty/try, and (like all tactic notes) rolls on the commentary stream so it cannot shift outcomes.
+
+**Kicks** (distance is already in scope in each handler; lateral landing = `currentY + dir × metresToY(distance × tan(angle))` for in-field kicks, or a touchline snap for kicks to touch):
+
+| Kick | Helper | Lateral behaviour |
+|---|---|---|
+| Kick-off (high/grubber) | `kickOffLandingY` | Aims the 15m line (`KICKOFF_TARGET_INSET = 21`) on the kicker's left 75% of the time (`KICKOFF_LEFT_BIAS_PCT`), ± `KICKOFF_JITTER` (6) — right-foot bias |
+| Kick-off (short) | `kickOffLandingY` | Nearly straight (centre ± `KICKOFF_STRAIGHT_JITTER` 3) |
+| Box kick | `boxKickLandingY` | Nearly straight, ±`BOX_KICK_ANGLE_DEG` (5°), so the chaser competes; to-touch branch snaps to `lineoutFormationY` |
+| Tactical clearing / 50:22 / out-on-full to touch | `lineoutFormationY` | Lineout forms on the nearer touchline, `LINEOUT_TOUCHLINE_INSET` (6) in |
+| Tactical kept in field | `clearingKickLandingY` | Diagonal downfield toward the open side, `CLEARING_ANGLE_DEG` (10–22°) |
+| Cross-field kick | `crossKickCornerY` | Flat to the far corner, `CROSS_KICK_INSET` (6) in ± `CROSS_KICK_JITTER` (4) |
+| Grubber | `grubberLandingY` | Diagonal into space toward the open side, `GRUBBER_ANGLE_DEG` (8–18°) |
+| Drop-out | `dropOutLandingY` | Diagonal toward the open side, `DROPOUT_ANGLE_DEG` (10–20°) |
+| Penalty to touch | `lineoutFormationY` | Found touch → lineout snap; missed touch → `clearingKickLandingY` in field |
+
+**Goal-kick angle coupling.** `resolveGoalKick` reads `state.ball.y`: `score = kicking + composure×0.2 − angle×GOAL_KICK_VALUES.angleWeight(0.3) + rng(1,100) ≥ successThreshold`, where the penalty `angle` term includes `|ball.y−50| × PENALTY_VALUES.goalKickDistanceFromPostsWeight(0.3)` and the conversion term uses `CONVERSION_VALUES.distanceFromPostsWeight(0.4)`. Once lateral movement went live, penalties are taken from realistic (wider) positions and tries land at the swept Y, so the mean make-rate fell ~2pp; `GOAL_KICK_VALUES.successThreshold` was re-centred 135→133 to restore the league average (~75% conversions / ~75% penalties, `points/match ≈ 34.9`) while keeping the new wide-harder / central-easier variance.
 
 ---
 
@@ -431,6 +465,47 @@ A 50/50 coin flip. The winning team kicks off in the first half. `state.engine.f
 `initialize()` first emits an `engine:initialized` UI-bus event (zero payload) so UI modules holding per-match caches (`Scoreboard` crests, `PitchStrip` end labels, `CommentaryFeed` team roster + DOM, `StatsPanel` cached render keys + DOM) can reset before the new match's first `engine:stateChange`. This is what makes back-to-back matches in the same page session work — each `new MatchCoordinator(...).initialize()` call resets all UI caches.
 
 A `GameEvent` with phase `KickOff` and key `coin_toss` is emitted immediately so the result appears in the commentary feed before the first tick runs.
+
+---
+
+## Team Talk Modifier
+
+**Source:** `TEAM_TALK` constants in `src/engine/balance/teamTalk.ts`.
+
+Pre-match and half-time team talks apply a time-decaying attack/defend modifier to each side. The modifier is stored on `state.teamTalkMod` and consumed read-only in the carry resolvers.
+
+### How it flows
+
+1. **Pre-match (in `MatchCoordinator.initialize()`):** The manager picks a tone via the Team Talk screen; the AI side gets a deterministic tone based on OVR-sum delta. Both emit a `TEAM_TALK_APPLIED` MatchEvent that sets `state.teamTalkMod[side]`.
+2. **Half-time (in `MatchCoordinator.handleEndOfPeriod()`):** Same pattern — the manager gets a modal pause (`team_talk_choice`); the AI gets a deterministic tone based on score delta. Both emit `TEAM_TALK_APPLIED`.
+3. **Carry resolvers (`OpenPlayEvent`, `resolvePickAndGo`):** At each carry, the active fraction is computed: `max(0, 1 − (gameMinute − startMinute) / decayMinutes)`. The resulting bonus is added to `attackMod` and `defendMod` before rolling the carry outcome.
+
+### Tones and values
+
+| Tone | `attack` | `defend` | `decayMinutes` | Notes |
+|---|---|---|---|---|
+| `calm` | 2 | 4 | 15 | Safe defensive shape; reliable on any squad |
+| `encourage` | 5 | 2 | 12 | Halved (×0.5) if squad avg morale < 50 |
+| `demand` | 8 | 2 | 10 | If avg morale < 50: attack −8, defend −8 (backfires) |
+| `single_out` | 3 | 1 | 12 | Plus a +8 carrier bonus applied only when the named player carries |
+
+Threshold constants: `flatThreshold: 50` (morale < 50 = "Flat"), `flyingThreshold: 75` (morale ≥ 75 = "Flying").
+
+### AI tone selection
+
+- **Pre-match:** OVR-sum delta (human squad − AI squad). If delta ≥ `aiCalmMinDelta` (75), AI picks `calm`; if delta ≤ −75, AI picks `demand`; otherwise `encourage`.
+- **Half-time:** Score gap (human score − AI score). If gap ≥ `aiScoreCalmMin` (7), AI picks `calm`; if gap ≤ `aiScoreDemandMax` (−7), AI picks `demand`; otherwise `encourage`.
+
+Both paths are deterministic — no RNG consumed.
+
+### Decay formula
+
+```
+fraction = max(0, 1 - (gameMinute - startMinute) / decayMinutes)
+bonus    = storedValue × fraction
+```
+
+A pre-match `calm` talk (attack 2, decay 15) at kick-off (minute 0) contributes +2 at minute 0, +1 at minute 7.5, and 0 from minute 15 onward. Values are stored unchanged in `state.teamTalkMod`; the fraction is computed fresh at each carry and never written back, so there's no GC churn.
 
 ---
 
@@ -655,18 +730,18 @@ On any knock-on: possession flips, scrum awarded, dropping player −0.45. The `
 
 Runs after `KickOff`, `BoxKick`, or `TacticalKick`. The carrier is **whoever caught the kick** in the prior phase, tracked via `state.kickReturnCarrier` (set by each kick handler before transitioning to `KickReturn`, cleared at the start of this handler). Falls back to `randomPlayer(attackTeam)` if unset.
 
-**Pod pickup.** After the catcher is identified, a tactics-keyed roll may swap the carrier to a trailing back-row pod runner — the catcher pops the ball off rather than running it themselves. Probability is `POD_PICKUP_PCT[attackingStyle]` (`keep_it_tight` 50% / `balanced` 30% / `wide_wide` 15%); on hit, `pickPodCarrier(attackTeam, state, attackSide, catcher)` picks a weighted forward over back-row + locks only (`POD_PICKUP_WEIGHTS`: back row 18/18/15, locks 6/6 — props + hooker excluded, they're trailing in midfield). Falls through to the catcher when no eligible pod runner is on the field. The swap is silent — no extra commentary line; downstream phase outcome commentary (`line_break` / `dominant_tackle` / `play_on` / `dominant_carry`) names the pod runner automatically via `primary: carrier`.
+**Pod pickup.** After the catcher is identified, a tactics-keyed roll may swap the carrier to a trailing back-row pod runner — the catcher pops the ball off rather than running it themselves. Probability is `POD_PICKUP_PCT[attackingStyle]` (`keep_it_tight` 50% / `balanced` 30% / `wide_wide` 15%); on hit, `pickPodCarrier(attackTeam, state, attackSide, catcher)` picks a weighted forward over back-row + locks only (`POD_PICKUP_WEIGHTS`: back row 18/18/15, locks 6/6 — props + hooker excluded, they're trailing in midfield). Falls through to the catcher when no eligible pod runner is on the field. The swap is silent — no extra commentary line; downstream phase outcome commentary (`line_break` / `dominant_tackle` / `play_on` / `dominant_carry`) names the pod runner automatically via `primary: carrier`. The pop **is** a real pass, so a `PASS_COMPLETED` is credited to the catcher when the swap fires (the catcher's only action this phase; mirrors the offload-chain pass credit). No extra RNG draw.
 
 ```typescript
 carrier  = state.kickReturnCarrier ?? randomPlayer(attackTeam)
 if (rng(1, 100) <= POD_PICKUP_PCT[attackTeam.tactics.attackingStyle]) {
   const pod = pickPodCarrier(attackTeam, state, attackSide, carrier)
-  if (pod) carrier = pod
+  if (pod) { podPop = carrier; carrier = pod }   // PASS_COMPLETED credited to podPop (the catcher)
 }
 defender = pickKickReturnDefender(defendTeam, state, defSide)   // chase pack
 ```
 
-`runMetres` (Step 2) uses the swapped carrier's pace/agility — the pod runner is the one running into contact, so their stats drive the kick-return run. The catcher's brief return-and-pop isn't modelled separately (consistent with the per-phase abstraction elsewhere). Tuning: `POD_PICKUP_PCT` + `POD_PICKUP_WEIGHTS` in `src/engine/balance/carrying.ts`.
+`runMetres` (Step 2) uses the swapped carrier's pace/agility — the pod runner is the one running into contact, so their stats drive the kick-return run. The catcher's brief return-and-pop isn't modelled separately beyond the `PASS_COMPLETED` credit (consistent with the per-phase abstraction elsewhere). Tuning: `POD_PICKUP_PCT` + `POD_PICKUP_WEIGHTS` in `src/engine/balance/carrying.ts`.
 
 `kickReturnCarrier` sources by prior phase:
 
@@ -1404,7 +1479,7 @@ Stat increments: `kicker.kicksAtGoal++`; on success `kicksMade++`; on miss `kick
 
 ### Choice: kick_to_touch
 
-`resolvePenaltyKickToTouch(kicker)` rolls `kickScore = kicker.currentStats.kicking + rng(1, 20)`. A good kick (score ≥ 25) travels 25–45m and finds touch 90% of the time; a poor kick travels 10–20m and finds touch 40% of the time. `BALL_REPOSITIONED` moves `state.ball.x` by `attackDir × distance` (clamped to [5, 95]).
+`resolvePenaltyKickToTouch(kicker)` rolls `kickScore = kicker.currentStats.kicking + rng(1, 20)`. A good kick (score ≥ 25) travels 25–45m and finds touch 90% of the time; a poor kick travels 10–20m and finds touch 40% of the time. `BALL_REPOSITIONED` moves `state.ball.x` by `attackDir × distance` (clamped to [5, 95]); `ball.y` snaps to `lineoutFormationY` when touch is found, else an in-field `clearingKickLandingY` (see "Lateral / Y-axis model").
 
 **Finds touch:** possession retained; phase transitions to `Lineout`. Commentary key is distance-aware when the penalty was awarded in the opposition half: `kick_to_touch_close` (landing ≤10m from the try line) or `kick_to_touch_long` (>10m). Own-half penalties that find touch use the plain `kick_to_touch` key. Both distance keys interpolate `{metres}` from the `NarrationStep.metres` field (the exact landing distance from `metresFromOppositionTryLine` at emission time).
 
@@ -1664,7 +1739,7 @@ Calibration target: ~2 injuries / match across both teams. Telemetry at 8.0% bas
 
 ### Lateral landing position
 
-When a carry crosses the try line each of the three carry handlers (`OpenPlay`, `FirstPhase`, `KickReturn`) calls `tryLandingY(attackTeam.tactics.attackingStyle)` from `src/engine/resolvers/TryLocationResolver.ts` and emits a `BALL_REPOSITIONED` with the resulting y. Spread is uniform around the midline with a half-spread keyed off `attackingStyle`: `keep_it_tight` ±12, `balanced` ±25, `wide_wide` ±45. The same y then drives `ConversionKickEvent`'s difficulty calculation (which already read `|ballY − 50|`) and the post-try narration band: central (≤ 7), close (≤ 17), wide (≤ 32), corner (otherwise). Phrases live in the `try_location_*` keys of `src/commentary/banks/en-GB/announcements.ts`.
+When a carry crosses the try line each of the three carry handlers (`OpenPlay`, `FirstPhase`, `KickReturn`) calls `tryLandingY(state, attackTeam.tactics.attackingStyle)` from `src/engine/resolvers/TryLocationResolver.ts` and emits a `BALL_REPOSITIONED` with the resulting y. The try grounds at the **swept position** (`state.ball.y`, where open play had moved the ball — see "Lateral / Y-axis model") plus a style-scaled jitter for the angle in to the line: `keep_it_tight` ±6, `balanced` ±10, `wide_wide` ±16 (`TRY_LANDING_JITTER`). One `outcome`-stream draw, clamped to `[0,100]`. The same y then drives `ConversionKickEvent`'s difficulty calculation (which already read `|ballY − 50|`) and the post-try narration band: central (≤ 7), close (≤ 17), wide (≤ 32), corner (otherwise). Phrases live in the `try_location_*` keys of `src/commentary/banks/en-GB/announcements.ts`.
 
 ### Resolution
 
@@ -1708,7 +1783,7 @@ Goal kicks (conversions + penalty goal kicks) resolve through a 2-tick micro-pha
 
 | Tick | Action | Clock |
 |---|---|---|
-| A | Entry handler (`ConversionKickEvent.handleConversionKick` or `PenaltyHandler.applyPenaltyChoice`'s `kick_for_goal` branch) picks the kicker, computes `distFromPosts`, applies `KICK_AT_GOAL_STARTED`, transitions phase to `KickAtGoal`. Emits a single-step `kicker_steps_up` announcement event. **No kick resolution yet.** | Running |
+| A | Entry handler (`ConversionKickEvent.handleConversionKick` or `PenaltyHandler.applyPenaltyChoice`'s `kick_for_goal` branch) picks the kicker, computes `distFromPosts`, applies `KICK_AT_GOAL_STARTED`, transitions phase to `KickAtGoal`. Emits a single-step `kicker_steps_up` announcement event. **No kick resolution yet.** For conversions only, a `BALL_REPOSITIONED { x: kickX }` is emitted first (the kicker runs back 20–30 m from the try line on the x-axis via `rngPosition(20,30)` on the `positioning` stream; `y` stays at the try-landing value so the angle into the posts is preserved). | Running |
 | B | `MatchCoordinator.tick` sees `phase === KickAtGoal`, calls `KickAtGoalHandler.advance()`. Rolls the goal kick (`resolveGoalKick`), then enqueues **two beats** with the score mutation between them: a `[kicker_compose]` beat (enqueued first, so its display snapshot shows the pre-kick score), then `CONVERSION_KICKED` / `PENALTY_GOAL_KICKED` (+ `RATINGS_RECALCULATED`), then a `[success | miss | kick_for_goal]` beat (snapshot shows the new score). Splitting at the score boundary lands the scoreboard tick on the result line — were it one 2-step beat, the single per-beat snapshot would carry the new score onto the "lines it up…" line, a full `lineGap` early (and pre-reveal make/miss). The two beats drain one `lineGap` apart, so visible pacing is unchanged. Applies `POSSESSION_SWAPPED` + `BALL_REPOSITIONED { x: 50, y: 50 }` + `KICK_AT_GOAL_RESOLVED` + `PHASE_CHANGED` to `KickOff`. | **Frozen** (`ClockController.advanceMinute` returns 0 when `phase === KickAtGoal`) |
 
 The inter-tick delay between A and B is shorter than `tickDelayMs` so the build-up doesn't burn a full sim tick. `MatchCoordinator.nextTickDelay()` returns `clamp(300, 1200, tickDelayMs × 0.6)` when `phase === KickAtGoal`. At 1× (2500 ms tick) the build-up is 1500 ms; at 4× (400 ms tick) it floors at 300 ms; at ½× (5000 ms tick) it caps at 1200 ms. The compose and result beats then drain one `lineGap` apart (`tickDelayMs × 0.46`).

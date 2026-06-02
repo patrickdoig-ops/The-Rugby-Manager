@@ -67,7 +67,11 @@ export type TacticNoteCause =
   | 'blitz_interception'
   | 'occasion_error_pressure'
   | 'occasion_rising_to_occasion'
-  | 'occasion_clock_in_red';
+  | 'occasion_clock_in_red'
+  // Lateral play — flavour keyed off the per-phase sweep (src/engine/Lateral.ts).
+  | 'switch_to_open_side'
+  | 'worked_back_blind'
+  | 'pinned_on_touchline';
 
 // Card-system announcement keys live in their own union so CardHandler
 // can type its emitter against the same set the renderer keys off,

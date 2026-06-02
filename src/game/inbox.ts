@@ -2,7 +2,7 @@ import type { GameState } from '../types/gameState';
 import type { RawTeamInput } from '../types/teamData';
 import type { Player } from '../types/player';
 import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
-import { YELLOW_BAN_THRESHOLD } from '../engine/balance';
+import { YELLOW_BAN_THRESHOLD, BOARD_THRESHOLDS, MORALE } from '../engine/balance';
 import { playerOverall } from '../engine/RatingEngine';
 import { recentForm } from './teamStats';
 import type { FormResult } from './teamStats';
@@ -12,6 +12,7 @@ import { sortStandings } from './leagueTable';
 import { getAge } from './age';
 import { playoffRaceStatus } from './playoffRace';
 import { generateSeasonPrediction } from './media/mediaManager';
+import { confidenceBand } from './board';
 import { hashSeed } from '../utils/rng';
 
 export interface InboxItem {
@@ -21,14 +22,28 @@ export interface InboxItem {
   subject: string;
   body: string;
   deepLink?: 'squad' | 'contracts' | 'transfers' | 'fixtures' | 'league';
-  // When present, renders a "Speak to Player" action button in the inbox item.
+  // When present, renders a "Speak to Player" action button (discipline counsel).
   counselAction?: { rosterId: number };
+  // When present, renders a "Have a chat" action button (morale boost).
+  moraleBoostAction?: { rosterId: number };
 }
 
 function ordinal(n: number): string {
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
   return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+}
+
+// Owner's-voice read-out of the board-confidence meter, banded by the same
+// thresholds as the Hub pill (confidenceBand). Surfaced in the recurring
+// owner's messages so the manager tracks their standing in narrative form.
+function ownerConfidenceLine(confidence: number): string {
+  switch (confidenceBand(confidence).key) {
+    case 'secure':   return 'The board\'s confidence in your management is high.';
+    case 'stable':   return 'The board remains satisfied with the job you are doing.';
+    case 'shaky':    return 'Make no mistake — the board\'s confidence in you has slipped, and they want to see a response.';
+    case 'critical': return 'The board\'s confidence in you is now dangerously low, and your position is under real threat.';
+  }
 }
 
 function currentStreak(form: Array<FormResult | null>): { type: FormResult; count: number } | null {
@@ -223,10 +238,88 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
     }
   }
 
+  // --- Unhappy players ---
+  // Count league + completed playoff games so the appearances ratio uses the
+  // right denominator (playoff appearances accumulate in seasonStats too).
+  const leagueGamesPlayed = state.league.results.filter(
+    r => r.homeId === teamId || r.awayId === teamId,
+  ).length;
+  const playoffGamesPlayed = (() => {
+    const pb = state.league.playoffs;
+    if (!pb) return 0;
+    return [pb.semifinals[0], pb.semifinals[1], pb.final]
+      .filter(m => m.result && (m.homeId === teamId || m.awayId === teamId)).length;
+  })();
+  const teamGamesPlayed = leagueGamesPlayed + playoffGamesPlayed;
+
+  const recentResults = recentForm(teamId, state.league.results, 3).filter((r): r is FormResult => r !== null);
+  const recentLosses = recentResults.filter(r => r === 'L').length;
+  const badRun = recentLosses >= 2;
+
+  // OVR-ranked full squad (injured included) so injuries don't promote reserves
+  // into the top-15 threshold. playerOverall computed once per player.
+  const rankedSquad = club.squad
+    .map(rid => {
+      const p = state.career.roster[rid];
+      return p ? { rid, ovr: playerOverall(p.baseStats, p.position) } : null;
+    })
+    .filter((e): e is NonNullable<typeof e> => e !== null)
+    .sort((a, b) => b.ovr - a.ovr);
+
+  for (const rid of club.squad) {
+    const p = state.career.roster[rid];
+    if (!p) continue;
+    const morale = p.morale ?? MORALE.baseline;
+    if (morale >= MORALE.unhappyThreshold) continue;
+
+    const name = `${p.firstName} ${p.lastName}`;
+    const mood = morale < MORALE.veryUnhappyThreshold ? 'very unhappy' : 'unsettled';
+    const chatCount = p.moraleChats ?? 0;
+    const repeated = chatCount >= 2;
+    const chattedOnce = chatCount === 1;
+
+    // Playing-time diagnosis: top-15 OVR in the full squad and notably underused.
+    // !p.injury guard prevents injured players being flagged as underplayed.
+    const ovrRank = rankedSquad.findIndex(e => e.rid === rid);
+    const isExpectedStarter = !p.injury && ovrRank < 15;
+    const underplayed = isExpectedStarter
+      && teamGamesPlayed >= MORALE.playingTimeMinGames
+      && p.seasonStats.appearances / teamGamesPlayed < MORALE.playingTimeRatioThreshold;
+
+    const playingTimeDiag = `featured in only ${p.seasonStats.appearances} of ${teamGamesPlayed} matches`;
+
+    let body: string;
+    if (underplayed && badRun) {
+      body = repeated
+        ? `${name} remains ${mood} — insufficient game time and poor results are both taking their toll. Further chats are making little difference; the root cause needs addressing.`
+        : `${name} has ${playingTimeDiag} despite their quality, and a difficult run of results has compounded things.${chattedOnce ? ' A previous chat has had limited lasting effect.' : ''} Getting them on the pitch and turning results around are the real fixes.`;
+    } else if (underplayed) {
+      body = repeated
+        ? `${name} is still ${mood} about their game time. Further conversations are having less effect — they need to be on the pitch.`
+        : `${name} expects regular football given their quality but has ${playingTimeDiag}.${chattedOnce ? ' You\'ve spoken to them already, with limited lasting effect.' : ''} A chat may help briefly, but the real fix is picking them.`;
+    } else if (badRun) {
+      body = repeated
+        ? `The team's poor run continues to weigh on ${name}. Conversations have helped less each time — results on the pitch are what's needed.`
+        : `${name}'s confidence has been hit by the team's recent form — ${recentLosses} defeat${recentLosses !== 1 ? 's' : ''} in the last ${recentResults.length} matches.${chattedOnce ? ' You\'ve spoken to them once already.' : ''} Sustained improvement on the field is the lasting solution.`;
+    } else {
+      body = repeated
+        ? `${name} remains ${mood}. Further chats are providing diminishing returns — there may be an underlying issue with their role or the team's direction.`
+        : `${name}'s morale has slipped${chattedOnce ? ', and a previous chat has had limited lasting effect' : ''}.${!chattedOnce ? ' A conversation may provide some lift.' : ' Consider whether there\'s a structural issue to address.'}`;
+    }
+
+    items.push({
+      id: `morale:unhappy:${season}:${rid}`,
+      category: 'squad',
+      priority: 55,
+      subject: `${name} — ${mood}`,
+      body,
+      moraleBoostAction: { rosterId: rid },
+      deepLink: 'squad',
+    });
+  }
+
   // --- Form collapse ---
-  const myForm = recentForm(teamId, state.league.results, 3);
-  const recentThree = myForm.filter((r): r is FormResult => r !== null);
-  if (recentThree.length === 3 && recentThree.every(r => r === 'L')) {
+  if (recentResults.length === 3 && recentResults.every(r => r === 'L')) {
     const lastMatch = state.league.results
       .filter(r => r.homeId === teamId || r.awayId === teamId)
       .sort((a, b) => b.round - a.round)[0];
@@ -519,6 +612,10 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
       }
     }
 
+    if (state.player.board) {
+      body += ` ${ownerConfidenceLine(state.player.board.confidence)}`;
+    }
+
     items.push({
       id: `chairman:${season}`,
       category: 'league',
@@ -610,6 +707,11 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
           sentences.push(`This is below where we need to be. The board is expecting a significant improvement when the season resumes.`);
         }
 
+        // Strand 5 — board-confidence read-out (when the board state is seeded)
+        if (state.player.board) {
+          sentences.push(ownerConfidenceLine(state.player.board.confidence));
+        }
+
         items.push({
           id: `owner-block:${season}:r${state.calendar.week}`,
           category: 'league',
@@ -618,6 +720,21 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
           body: sentences.join(' '),
           deepLink: 'league',
         });
+  }
+
+  // --- Board final warning (job security) ---
+  // Surfaced for as long as the warning latch is set and confidence remains in
+  // the danger zone. Highest league priority so it leads the inbox.
+  const board = state.player.board;
+  if (board && board.warningIssued && board.confidence <= BOARD_THRESHOLDS.warning) {
+    items.push({
+      id: `board-warning:${season}`,
+      category: 'league',
+      priority: 130,
+      subject: 'Owner\'s message — your position is under review',
+      body: 'The board has lost patience. Results have fallen well short of expectations and the owner has made the situation plain: a sustained improvement is required, and quickly. Another run like this and a change will be made.',
+      deepLink: 'league',
+    });
   }
 
   // --- Playoff race status ---

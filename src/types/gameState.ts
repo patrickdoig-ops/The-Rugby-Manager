@@ -11,6 +11,21 @@
 import type { TeamTactics } from './team';
 import type { InjuryKind, InjurySeverity, InternationalWindow, Player, PlayerStats } from './player';
 import type { TrainingPlan } from './training';
+import type { BoardAmbition } from './teamData';
+
+// Persistent owner-confidence state for the managed club — the career
+// fail-state spine. Seeded at season start from ambition + prior finish,
+// moved by results/streaks/objective judgement, and the basis for the
+// final-warning → sacking flow. See src/game/board.ts for the logic and
+// src/engine/balance/board.ts for the tuning numbers.
+export interface BoardState {
+  confidence: number;        // 0–100
+  objective: BoardAmbition;  // the season target the owner judges against
+  warningIssued: boolean;    // final-warning latch, reset each season
+  sacked: boolean;           // mid-season sack latch — persisted so a reload
+                             // between the result and the game-over screen
+                             // can't escape the dismissal. Reset each season.
+}
 
 export interface Fixture {
   round: number;
@@ -537,6 +552,10 @@ export interface GameState {
     // the captain is named in the referee's team-22 warning, no mechanical
     // effect on the match.
     captainRosterId?: number;
+    // Owner-confidence state for the managed club. Present once seeded at
+    // season start (BOARD_STATE_SEEDED); undefined only on legacy saves
+    // written before this system, where consumers fall back gracefully.
+    board?: BoardState;
   };
   seed: number;
   career: CareerState;
@@ -585,6 +604,29 @@ export type SeasonEvent =
   | {
       type: 'FIXTURE_RESULT_RECORDED';
       result: FixtureResult;
+    }
+  // Board confidence (the managed club's owner-confidence spine). Seeded
+  // wholesale at season start / save-restore; adjusted on results; warned
+  // latches the final warning; sacked latches the mid-season dismissal so a
+  // reload can't escape it. The end-of-season sack is decided by the pure
+  // GameCoordinator.judgeSeasonObjective() and writes no state.
+  | {
+      type: 'BOARD_STATE_SEEDED';
+      confidence: number;
+      objective: BoardAmbition;
+      warningIssued: boolean;
+      sacked: boolean;
+    }
+  | {
+      type: 'BOARD_CONFIDENCE_ADJUSTED';
+      delta: number;
+      reason: string;
+    }
+  | {
+      type: 'MANAGER_WARNED';
+    }
+  | {
+      type: 'MANAGER_SACKED';
     }
   | {
       type: 'MEDIA_STORY_PUBLISHED';
@@ -1137,4 +1179,15 @@ export type SeasonEvent =
       type: 'PLAYER_SUSPENDED';
       rosterId: number;
       forRound: number;
+    }
+  | {
+      // Adjusts a roster player's morale by `delta`, clamped to [0, 100].
+      // `reason` is a string tag used for diagnostics (not stored).
+      // Fired by GameCoordinator after each fixture (playing-time, result,
+      // standout), each WEEK_ADVANCED (decay toward baseline), and
+      // boostPlayerMorale (inbox "have a chat" CTA).
+      type: 'PLAYER_MORALE_ADJUSTED';
+      rosterId: number;
+      delta: number;
+      reason: string;
     };

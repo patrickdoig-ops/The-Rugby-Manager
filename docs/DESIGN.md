@@ -784,12 +784,13 @@ Apply `.team-crest--xs/sm/md/lg` or screen-specific variants that consume the ca
 
 ### 8.8 In-match shell
 
-The live-match panel inherits the same design-system tokens as the in-season screens. Four conventions are load-bearing:
+The live-match panel inherits the same design-system tokens as the in-season screens. Five conventions are load-bearing:
 
 1. **Animated stat bars.** `.stat-bar-h` / `.stat-bar-a` use `transition: width var(--rm-duration-row) var(--rm-ease-out)` so possession / territory swings glide between values. Inline `style.width="${pct}%"` mutation still happens every tick — the transition lives entirely in CSS.
 2. **Winner-flip flash.** When the leading side on a stat row flips, the row briefly highlights via a pitch-green underline pulse (`.stat-row--changed::after`). The flash auto-clears after 600ms. Driven by the StatsPanel module comparing previous vs new `WinnerSide` per `data-stat-id`. Reduced-motion: animation disabled, no pulse.
 3. **Expandable player rows.** Every player card on the live-match Dashboard / Players view is tap-to-expand using the shared `createRowExpander` controller. Collapsed shows jersey + name + fatigue bar + live rating badge + chevron. Expanded reveals 8 mini-stats (Carries · Metres · Passes · Tackles · Missed · Rucks · Turnovers · Kicks) plus a live OVR + form-mod context strip. Keyed by `rosterId` so the expand state survives substitutions and the per-tick patch path. Padding lives on `.sp-expand-body` (the wrapper inside `.row-expand-inner`) so the grid-row tween truly collapses to zero height — never put padding on `.row-expand-inner` itself.
 4. **Commentary filter chips + team-tinted entries.** A four-chip filter bar (`.cf-filter-bar`) sits above the commentary feed: All / Tries / Pens / Kicks. Selection is sticky across matches via `loadCommentaryFilter()` in `uiPrefs.ts`. Each entry sets `--possession-color` inline to the attacking team's text colour, surfaced as a 3px `border-left` on `.commentary-entry`. The amber `.event-try` left-border still wins on hero try entries by virtue of cascade order.
+5. **View bar above the scoreboard + 2D Pitch view.** The live panel has **five** views — Dashboard, **Pitch**, Commentary, Stats, Players — selected from an icon-only `#view-toggle-bar` that sits **above** the scoreboard (so it stays put while the scoreboard sheds the 1D strip in Pitch view). The **Pitch** view (`src/ui/PitchView.ts`) is a portrait top-down pitch: `display.ballX` drives the vertical (long) axis, `display.ballY` the horizontal. The 100m field of play maps onto the 8%–92% in-goal band (`toTop()`) so the ball marker sits exactly on the painted lines. Markings follow World Rugby Law 1 — try / 22m / halfway / dead-ball solid, 10m and 5m dashed (cross-field), plus lengthwise 5m and 15m dashed lines off each touchline (running only through the field of play), in-goal areas, and rugby goalposts (H, tall uprights) straddling each try line. Also: a large team-name label (Anton display font, team-coloured) filling each in-goal naming the end a side defends; a `#latest-commentary` strap above the field; a territory tug-of-war bar; a phase/attacking-team label; per-side card pips; and zone flashes on try/penalty/card/turnover beats. **Kick-at-goal flight animation:** when a `success`, `kick_for_goal`, or `miss` phase_outcome step fires on the `engine:event` bus during a ConversionKick or Penalty phase, a `#pitch-kick-flight` overlay element (same BALL_SVG, `z-index: 5`) is CSS-transitioned from the kick position to the posts area (success → centre 50%, miss → wide on the kick side) while scaling down to 25% and fading out over 600ms, giving a "ball flying into the distance" effect. The field rotates 180° at half-time. The 1D `#pitch-wrapper` strip is retained in the scoreboard for the other four views and hidden via `body.pitch-view-active` only in Pitch view. Pure UI over the beat-synced `display` snapshot — no engine impact.
 
 The shared `createRowExpander` + `.row-expand-panel` pattern from §4.8 is the only correct way to add new expandable rows to the live panel — do not invent a screen-specific `max-height` toggle.
 
@@ -961,6 +962,8 @@ When the existing implementations contradict each other, **this document is corr
 
 All transitions go through **`screenRouter.show(id, { direction? })`** (`src/ui/ScreenRouter.ts`). Screen modules never call `document.getElementById('...').style.display` directly; they accept `onForward`/`onBack` callbacks from `main.ts`. Adding a screen: (1) add the id to the `SCREENS` map in `ScreenRouter.ts`, (2) add `<div id="...">` to `index.html`, (3) wire a flat handler in `main.ts`.
 
+**Overlay exception:** The half-time team talk (`#half-time-panel`) is a fixed-position full-screen overlay that sits inside `#app` but outside ScreenRouter — it appears over the match screen and is toggled via `classList.remove/add('hidden')` directly. The pre-match team talk is a normal routed screen (`team-talk`).
+
 ### 15.2 In-season screen lifecycle
 
 **Initialised exactly once per page lifetime.** `initInSeasonScreens()` in `main.ts` is gated by an `inSeasonInited` closure flag — the second call is a no-op. This is load-bearing: each screen registers `eventBus.on('game:*')` subscriptions at init time without an unsub; the gate prevents duplicated handlers on back/forward navigation or game switch.
@@ -981,14 +984,18 @@ The Hub (`src/ui/HubScreen.ts`) has **six tiles** plus a Settings cog and "Go to
 
 | Tile | Routes to | Notes |
 |---|---|---|
+| Squad | `squad-management` | Matchday-23 curation; round-trips with PreMatch via `state.player.matchdaySquad` |
 | Fixtures | `fixture-list` | Upcoming and completed rounds |
 | League | `league-menu` | Sub-menu: Table / Team Stats / Player Stats / Cup (browse) / Awards |
-| Contracts | `contracts` | Squad list + interactive marquee toggle + cap pill; red badge = expiring-contract count |
-| Squad | `squad-management` | Matchday-23 curation; round-trips with PreMatch via `state.player.matchdaySquad` |
+| Training | `training` (mid-week mode) | Persists plan without running the training block |
+| Contracts & Transfers | `contracts-transfers-menu` | Sub-menu (club colours): Contracts leaf + Transfers leaf; badge = expiring-contract count + poach-threat count combined |
+| Club | `club-menu` | Sub-menu (club colours): board-confidence card — summary band + meter + "what's driving it" breakdown |
 
 PreMatch's 'mine' step (the user's starting XV) carries a tappable captain badge (`.pm-captain-badge`, a circular "C") on each starter row — modelled on the OOP badge. Tap to nominate, tap the current captain to clear; persists to `state.player.captainRosterId` via `setPlayerCaptain`. Unset rows default the badge to the highest-composure starter (`resolveCaptainRosterId`). Narrative-only: the captain is named in the referee's team-22 warning during the match.
-| Transfers | `transfer-market` (scouting mode) | Read-only mid-season FA + Reg 7 view — does not call `signingTermsFor`, so `rngTransfer` is untouched |
-| Training | `training` (mid-week mode) | Persists plan without running the training block |
+
+**Contracts sub-menu** (`contracts-transfers-menu`, `src/ui/ContractsTransfersMenuScreen.ts`): Tier 2 club-colour app-header; two tiles with the same `.hub-tile` class but WITHOUT the `--rm-cta` override used by the League sub-menu, so tiles inherit `--team-color-tile` from `injectTeamColors`. Individual tile badges: Contracts = expiring-contract count, Transfers = poach-threat count.
+
+**Club sub-menu** (`club-menu`, `src/ui/ClubMenuScreen.ts`): Tier 2 club-colour app-header. Hosts the **board-confidence card** (`.cm-board`): a summary hero (band label + 0–100 meter + number, accent-coloured by band — Secure / Stable / Under pressure / At risk), a live **"what's driving it"** factor list (`boardConfidenceFactors` — season objective vs current position, recent results, winning/losing runs, any formal warning, each tone-tagged), and a plain-English explainer of how the meter moves. See `docs/game-engine.md` § "Board confidence layer".
 
 ### 15.5 Navigation flow
 
@@ -1000,9 +1007,12 @@ Home
          └─ Squad Builder → BudgetReveal → SquadOverview → pre-season signing window
                → ContractsScreen (marquee-edit) → Hub
 Hub
- ├─ [tile] → leaf screen, back → Hub
+ ├─ Squad / Fixtures / League / Training → leaf screen, back → Hub
+ ├─ [League] → LeagueMenuScreen → leaf, back → LeagueMenuScreen → back → Hub
+ ├─ [Contracts & Transfers] → ContractsTransfersMenuScreen → Contracts / Transfers, back → ContractsTransfersMenuScreen → back → Hub
+ ├─ [Club] → ClubMenuScreen (board-confidence card: summary + drivers), back → Hub
  └─ Go to next match → PreMatch
-     └─ Kick Off → Match → MatchResult → post-match chain
+     └─ Kick Off → TeamTalk → Match → MatchResult → post-match chain
 ```
 
 **Post-match chain — regular rounds:**
@@ -1013,6 +1023,8 @@ League Table → IntlCallUps → CupFixtures → Training (`runInternationalBrea
 
 **Post-match chain — after R18 (final regular round):**
 League Table → PlayoffBracket → [player's SF] → bracket → other SF (AI sim) → bracket → Final → bracket (champion banner) → EndOfSeason → BudgetReveal → [TakeoverReveal if fired] → [Renewals if expiring] → [TransferMarket if FA/poach pool] → Rollover → Hub
+
+**Job security (Tier 0 · 0.1).** Board confidence (`state.player.board`) drains on poor results and an end-of-season objective miss. At the warning threshold the inbox shows a final-warning item; at the sack threshold the manager is dismissed — mid-season (after a result, with a prior warning; persisted `board.sacked` latch) or end-of-season (the pure `judgeSeasonObjective()` verdict on EndOfSeason). `main.ts` reads `GameCoordinator.isManagerSacked()` on every continue / resume path so a reload can't escape the dismissal; either route clears the active save slot and shows the game-over `SackScreen` (New Game → Team Selector, or Main Menu → Home).
 
 **Pre-season resume.** Each Squad Builder step writes `state.career.preSeasonStep` (`PRE_SEASON_STEP_SET`) before saving. `continueGame` reads the flag and routes back to the in-flight screen after a mid-pre-season tab close.
 

@@ -1,11 +1,13 @@
 import type { PhaseContext, PhaseResult } from './types';
 import type { MatchEvent } from '../../types/matchEvent';
 import type { NarrationDescriptor } from '../../types/narration';
+import type { Player } from '../../types/player';
 import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
 import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, pickCoverDefender, pickKickReturnDefender, pickAssistTackler, pickPodCarrier } from '../FieldPosition';
+import { emitSweepHops } from '../Lateral';
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
@@ -16,7 +18,7 @@ import type { NarrationStep } from '../../types/narration';
 
 const FULL_BACKLINE = 7;
 
-export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }: PhaseContext): PhaseResult {
+export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer, silent }: PhaseContext): PhaseResult {
   const attackSide = state.possession;
   const defSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
   const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
@@ -36,9 +38,11 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
   // pod runner who actually takes contact. Tactics-keyed: tight teams build
   // platforms more, expansive teams let the backs run. Falls through to the
   // catcher when no back-row / lock is on the field.
+  // Pod pop is a real pass by the catcher — credit it before reassigning carrier.
+  let podPop: Player | undefined;
   if (rng(1, 100) <= POD_PICKUP_PCT[attackTeam.tactics.attackingStyle]) {
     const pod = pickPodCarrier(attackTeam, state, attackSide, carrier);
-    if (pod) carrier = pod;
+    if (pod) { podPop = carrier; carrier = pod; }
   }
 
   let defender = pickKickReturnDefender(defendTeam, state, defSide);
@@ -48,6 +52,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
     { type: 'KICK_RETURN_CARRIER_SET', player: undefined },
     { type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 },
   ];
+  if (podPop) events.push({ type: 'PASS_COMPLETED', passer: podPop });
 
   const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[defendTeam.tactics.backfieldDefence];
   const missingBacks = FULL_BACKLINE - availableBacks(defendTeam, state, defSide).length;
@@ -117,6 +122,15 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
     ? pickAssistTackler(defendTeam, state, defSide, defender)
     : undefined;
 
+  // Receiving team running the kick back: the catcher angles to the open side
+  // (one hop — the pod pop, when it fires, IS that lateral move) THEN drives
+  // forward, so the lateral leg precedes the x-advance. Try path keeps its
+  // tryLandingY grounding below.
+  let lateralStep: NarrationStep | null = null;
+  if (!tryScored) {
+    lateralStep = emitSweepHops(events, state, attackTeam.tactics.attackingStyle, 1, true, attackTeam.name, !silent);
+  }
+
   events.push({
     type: 'CARRY_RESOLVED',
     carrier,
@@ -137,7 +151,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
     const tryKey: 'line_break_try' | 'dominant_carry_try' =
       res.outcome === 'line_break' ? 'line_break_try' : 'dominant_carry_try';
     steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: tryKey, primary: carrier, secondary: defender });
-    const y = tryLandingY(attackTeam.tactics.attackingStyle);
+    const y = tryLandingY(state, attackTeam.tactics.attackingStyle);
     events.push({ type: 'BALL_REPOSITIONED', y });
     steps.push({ kind: 'announcement', key: `try_location_${tryLocationBand(y)}` });
   } else if (res.outcome === 'line_break') {
@@ -193,6 +207,9 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
     steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'high_tackle_penalty', primary: defender, secondary: carrier });
     nextPhase = MatchPhase.Penalty;
   }
+
+  // Lateral flavour rides on a normal continuation only — not after a penalty/try.
+  if (lateralStep && nextPhase === MatchPhase.Breakdown) steps.push(lateralStep);
 
   return {
     nextPhase,

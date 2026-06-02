@@ -621,11 +621,9 @@ html, body {
 .view-btn {
   flex: 1;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding: 8px 0;
+  padding: 11px 0;
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
@@ -641,14 +639,6 @@ html, body {
   background: color-mix(in oklch, var(--rm-pitch) 5%, transparent);
 }
 .view-btn svg { display: block; pointer-events: none; }
-
-.view-btn-label {
-  font-family: var(--rm-font-mono);
-  font-size: var(--rm-fs-10);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  line-height: 1;
-}
 
 /* ─── Bottom panels ─── */
 #panel-bottom {
@@ -713,7 +703,242 @@ html, body {
 #panel-bottom.view-players #panel-commentary,
 #panel-bottom.view-players #panel-stats { display: none; }
 
-/* Latest commentary line — shown only in stats / players views */
+/* Pitch (2D) only */
+#panel-pitch { display: none; }
+#panel-bottom.view-pitch {
+  display: flex;
+  flex-direction: column;
+}
+#panel-bottom.view-pitch #panel-commentary,
+#panel-bottom.view-pitch #panel-stats,
+#panel-bottom.view-pitch #panel-players { display: none; }
+#panel-bottom.view-pitch #panel-pitch {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  padding: 12px 16px;
+  gap: 10px;
+}
+
+/* When the 2D Pitch view is active the 1D strip in the scoreboard is redundant */
+body.pitch-view-active #pitch-wrapper { display: none; }
+
+/* ─── 2D Pitch view ─── */
+#pitch-2d-field {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  background: repeating-linear-gradient(0deg,
+    color-mix(in oklch, var(--rm-pitch-deep) 60%, var(--rm-bg-deep)) 0,
+    color-mix(in oklch, var(--rm-pitch-deep) 60%, var(--rm-bg-deep)) 7%,
+    color-mix(in oklch, var(--rm-pitch-deep) 75%, var(--rm-bg-deep)) 7%,
+    color-mix(in oklch, var(--rm-pitch-deep) 75%, var(--rm-bg-deep)) 14%);
+  border: 1px solid color-mix(in oklch, var(--rm-pitch) 25%, transparent);
+}
+
+/* Cross-field lines run touchline to touchline. Their top% maps the 100m field
+   of play onto the 8%–92% in-goal band (top% = 8 + (100 − x) × 0.84) so they
+   line up exactly with the ball marker — see PitchView's toTop(). Real rugby
+   markings: try / 22m / halfway / dead-ball are solid; 10m and 5m dashed. */
+.pitch2d-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  pointer-events: none;
+}
+.line-deadball-top { top: 1.5%;  background: rgba(255,255,255,0.4); }
+.line-deadball-bot { top: 98.5%; background: rgba(255,255,255,0.4); }
+.line-top-try     { top: 8%;     background: rgba(255,255,255,0.6); }
+.line-top-22      { top: 26.48%; background: rgba(255,255,255,0.5); }
+.line-mid-halfway { top: 50%;    background: rgba(255,255,255,0.8); }
+.line-bot-22      { top: 73.52%; background: rgba(255,255,255,0.5); }
+.line-bot-try     { top: 92%;    background: rgba(255,255,255,0.6); }
+/* 10m lines (10m either side of halfway) — dashed */
+.line-top-10m, .line-bot-10m {
+  background: repeating-linear-gradient(to right,
+    rgba(255,255,255,0.3) 0 7px, transparent 7px 14px);
+}
+.line-top-10m { top: 41.6%; }
+.line-bot-10m { top: 58.4%; }
+/* 5m lines (5m off each try line) — dashed (slightly finer than the 10m) */
+.line-top-5m, .line-bot-5m {
+  background: repeating-linear-gradient(to right,
+    rgba(255,255,255,0.32) 0 5px, transparent 5px 11px);
+}
+.line-top-5m { top: 12.2%; }
+.line-bot-5m { top: 87.8%; }
+
+/* Lengthwise lines run along the field of play (5m and 15m off each touchline,
+   spanning try line to try line, i.e. the 8%–92% band). left% = metres/70 × 100
+   across the 70m width. Both the 5m and 15m lines are dashed. */
+.pitch2d-vline {
+  position: absolute;
+  top: 8%;
+  bottom: 8%;
+  width: 1px;
+  pointer-events: none;
+}
+.vline-left-15m, .vline-right-15m {
+  background: repeating-linear-gradient(to bottom,
+    rgba(255,255,255,0.3) 0 7px, transparent 7px 14px);
+}
+.vline-left-15m  { left: 21.43%; }
+.vline-right-15m { left: 78.57%; }
+.vline-left-5m, .vline-right-5m {
+  background: repeating-linear-gradient(to bottom,
+    rgba(255,255,255,0.3) 0 5px, transparent 5px 11px);
+}
+.vline-left-5m  { left: 7.14%; }
+.vline-right-5m { left: 92.86%; }
+
+/* Goalposts straddling each try line, opening into the in-goal area. The path
+   draws an H: two uprights with a crossbar, bottom edge sitting on the try line
+   (xMidYMax aligns it to the bottom-centre of the box). The bottom set is
+   flipped so its posts extend into the opposite in-goal. */
+.pitch2d-posts {
+  position: absolute;
+  left: 50%;
+  width: 13%;
+  height: 6.5%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 2;
+}
+.posts-top { top: 1.5%; }
+.posts-bot { top: 92%; transform: translateX(-50%) scaleY(-1); }
+.goal-svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.goal-svg path { fill: none; stroke: rgba(255,255,255,0.7); stroke-width: 2.2; stroke-linecap: round; }
+
+/* Large team name in each in-goal / dead-ball zone — identifies which end a
+   side is defending. Team-coloured (set in PitchView). Left-aligned and full
+   width: overrides the shared .end-label { width:30px } (the 1D strip's tiny
+   corner labels) which would otherwise clip the name to ~3 characters. */
+.pitch2d-end-top,
+.pitch2d-end-bottom {
+  position: absolute;
+  left: 12px;
+  right: auto;
+  width: auto;
+  z-index: 1;
+  text-align: left;
+  font-family: var(--rm-font-display);
+  font-size: clamp(15px, 4.6vw, 26px);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  white-space: nowrap;
+  overflow: visible;
+  pointer-events: none;
+}
+.pitch2d-end-top    { top: 2%; }
+.pitch2d-end-bottom { bottom: 2%; }
+
+.pitch2d-cards-top,
+.pitch2d-cards-bottom {
+  position: absolute;
+  right: 8px;
+  z-index: 3;
+}
+.pitch2d-cards-top    { top: 6px; }
+.pitch2d-cards-bottom { bottom: 6px; }
+
+.pitch2d-territory-shade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  pointer-events: none;
+  transition: top 0.35s ease, background 0.35s ease;
+  z-index: 1;
+}
+
+#pitch-2d-ball {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 0 10px var(--ball-glow, color-mix(in oklch, var(--rm-amber) 60%, transparent)));
+  transition: top 0.35s ease, left 0.35s ease;
+  pointer-events: none;
+  z-index: 4;
+}
+/* Kick-at-goal flight overlay — same visual as the main ball but starts hidden
+   and is animated to the posts (or wide) by PitchView on each kick result. */
+#pitch-kick-flight {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 0 8px color-mix(in oklch, var(--rm-amber) 60%, transparent));
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
+}
+
+#pitch-flash {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0.4);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+#pitch-flash.flashing { animation: pitch-flash-pulse 0.7s ease-out; }
+.flash-try      { background: radial-gradient(circle, color-mix(in oklch, var(--rm-amber) 70%, transparent) 0%, transparent 70%); }
+.flash-penalty  { background: radial-gradient(circle, color-mix(in oklch, var(--rm-stat-1) 70%, transparent) 0%, transparent 70%); }
+.flash-card     { background: radial-gradient(circle, color-mix(in oklch, var(--rm-card-yellow) 70%, transparent) 0%, transparent 70%); }
+
+@keyframes pitch-flash-pulse {
+  0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.4); }
+  35%  { opacity: 0.85; transform: translate(-50%, -50%) scale(1);   }
+  100% { opacity: 0;    transform: translate(-50%, -50%) scale(1.5); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #pitch-flash.flashing { animation: none; }
+}
+
+#pitch-territory-bar {
+  flex-shrink: 0;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--rm-surface-3);
+}
+#pitch-territory-home {
+  height: 100%;
+  width: 50%;
+  transition: width 0.35s ease;
+}
+
+#pitch-phase-label {
+  flex-shrink: 0;
+  text-align: center;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+  padding: 4px 8px;
+  border-radius: 20px;
+  border: 1px solid var(--rm-border);
+  background: var(--rm-surface-2);
+  align-self: center;
+  transition: background 0.25s, border-color 0.25s, color 0.25s;
+}
+#pitch-phase-label.phase-try     { color: var(--rm-amber);  background: color-mix(in oklch, var(--rm-amber) 14%, transparent); border-color: color-mix(in oklch, var(--rm-amber) 45%, transparent); }
+#pitch-phase-label.phase-penalty { color: var(--rm-stat-1); background: color-mix(in oklch, var(--rm-stat-1) 14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-1) 45%, transparent); }
+#pitch-phase-label.phase-scrum   { color: var(--rm-pitch);  background: color-mix(in oklch, var(--rm-pitch) 14%, transparent); border-color: color-mix(in oklch, var(--rm-pitch) 45%, transparent); }
+#pitch-phase-label.phase-maul    { color: var(--rm-amber);  background: color-mix(in oklch, var(--rm-amber) 14%, transparent); border-color: color-mix(in oklch, var(--rm-amber) 45%, transparent); }
+#pitch-phase-label.phase-kick    { color: var(--blue);      background: color-mix(in oklch, var(--blue) 12%, transparent);     border-color: color-mix(in oklch, var(--blue) 45%, transparent); }
+#pitch-phase-label.phase-terminal{ color: var(--purple);    background: color-mix(in oklch, var(--purple) 14%, transparent);   border-color: color-mix(in oklch, var(--purple) 45%, transparent); }
+
+/* Latest commentary line — shown in stats / players / pitch views so the flow
+   of play can be followed alongside the visual. */
 #latest-commentary {
   display: none;
   flex-shrink: 0;
@@ -721,7 +946,8 @@ html, body {
   padding: 0 8px;
 }
 #panel-bottom.view-stats   #latest-commentary,
-#panel-bottom.view-players #latest-commentary { display: block; }
+#panel-bottom.view-players #latest-commentary,
+#panel-bottom.view-pitch   #latest-commentary { display: block; }
 
 /* Fixed 3-line height inside latest-commentary so the panel below doesn't jump
    as commentary length varies. Text gets clamped to 3 lines if it's longer. */
@@ -1462,8 +1688,8 @@ html.native-app .app-header {
     height: 100dvh;
     grid-template-rows: auto auto 1fr auto;
     grid-template-areas:
-      "scoreboard"
       "toggles"
+      "scoreboard"
       "bottom"
       "controls";
     padding: 0;

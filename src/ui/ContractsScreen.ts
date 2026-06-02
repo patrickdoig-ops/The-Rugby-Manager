@@ -118,6 +118,9 @@ export function initContractsScreen(
   // the outcome so the screen can toast + re-render. Only wired in the
   // in-season hub.
   onOfferRenewal?: (rosterId: number, offeredWage?: number) => EarlyRenewalResult,
+  // Label shown on the back button — should name the screen the user
+  // came from. Defaults to 'Hub' for pre-season and off-season paths.
+  backLabel = 'Hub',
 ): void {
   const el = document.getElementById('contracts');
   if (!el) return;
@@ -256,9 +259,9 @@ export function initContractsScreen(
 
     const leftButton = mode === 'marquee-edit'
       ? '<div class="app-topbar-spacer"></div>'
-      : `<button id="ct-back" class="app-back" aria-label="Back to hub">
+      : `<button id="ct-back" class="app-back" aria-label="Back to ${backLabel.replace(/&/g, '&amp;')}">
            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-           <span>Hub</span>
+           <span>${backLabel.replace(/&/g, '&amp;')}</span>
          </button>`;
     const titleText = mode === 'marquee-edit' ? 'Choose Your Marquee' : 'Contracts';
     const footerNote = mode === 'marquee-edit'

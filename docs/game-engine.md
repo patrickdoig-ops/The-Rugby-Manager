@@ -95,8 +95,22 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 | `PLAYER_CAPTAIN_SET` | When the user taps a captain badge on the PreMatch 'mine' lineup | Persists `state.player.captainRosterId` (rosterId, or `undefined` to clear). Narrative-only — `resolveCaptainRosterId` (`src/game/captain.ts`) falls back to the highest-composure starter when unset, and the resolved id is threaded into the match as `state.engine.humanCaptainRosterId` so the referee names the captain in the team-22 warning. No mechanical effect. |
 | `PLAYER_DISCIPLINE_COUNSELLED` | `GameCoordinator.counselPlayer(rosterId)` — fired when the manager clicks "Speak to Player" on an inbox discipline concern | Sets `Player.disciplineAdvice = { mode: 'ease_off', expiresAfterRound: calendar.week + 3 }`. `rosterTeamBuilder.rawFromRosterPlayer` reads this to boost effective discipline (+15) and reduce tackling (−5) on the baseStats clone for 3 rounds. Cleared at `SEASON_ROLLED_OVER`. |
 | `PLAYER_SUSPENDED` | `GameCoordinator.recordPlayerMatchResult` — fired after `PLAYER_SEASON_STATS_ACCUMULATED` when a human squad player's `seasonStats.yellowCards` first reaches `YELLOW_BAN_THRESHOLD (5)` | Sets `Player.suspension = { forRound: calendar.week + 1 }`. `selectionUnavailableIds` blocks selection while `calendar.week === suspension.forRound`. One ban per season (re-guarded by `!p.suspension`). Cleared at `SEASON_ROLLED_OVER`. |
+| `PLAYER_MORALE_ADJUSTED` | `GameCoordinator.computeFixtureMoraleEvents` (after every fixture — playing-time + result + standout), `GameCoordinator.computeMoraleDecayEvents` (once per `WEEK_ADVANCED`), `GameCoordinator.boostPlayerMorale` (inbox "Have a Chat" CTA) | Clamps `Player.morale += delta` to [0, 100]. `Player.morale` is seeded at 65 (`MORALE.baseline`) and back-filled for pre-morale saves in `ROSTER_SEEDED`. Drives a ±3 form-bias term in `playerForm.computeFormInputs` — formula: `clamp((morale − 65) × 0.086, −3, +3)`. **Chat boost (diminishing returns):** when `reason === 'manager_chat'`, `boostPlayerMorale` computes `delta = max(2, round(rngTransfer(6, 14) × 0.55^chatCount))` — first chat ≈ 6–14, second ≈ 3–8, third ≈ 2–4, fourth+ floored at 2. `Player.moraleChats` tracks the count; reset at `SEASON_ROLLED_OVER`. **Inbox diagnosis:** the "unhappy player" item body is reason-aware — playing-time (top-15 OVR, <40% appearance rate after ≥3 games), bad run (≥2 losses in last 3), both, or neither. Playing-time items show a "Go to Squad" deeplink alongside "Have a Chat". Balance constants in `src/engine/balance/morale.ts`. |
 
 `SEASON_ROLLED_OVER` additionally carries `premCupChampionTeamId` (archived onto `ArchivedSeason`) and resets `state.league.premCup = null`; `CAREER_ARCHIVE_RESTORED` restores `premCup`.
+
+**Board confidence layer (Tier 0 · 0.1)** — the career fail-state spine. A persistent `state.player.board: BoardState { confidence: 0–100; objective: BoardAmbition; warningIssued: boolean; sacked: boolean }` for the managed club. Confidence is fully deterministic from results (no RNG). Logic in `src/game/board.ts`, tuning in `src/engine/balance/board.ts`.
+
+| Variant | When fired | What it does |
+|---|---|---|
+| `BOARD_STATE_SEEDED` | `newSeason` + `fromSave` (verbatim restore) + after `rollSeason()` (`GameCoordinator.seedBoardState`) | Sets `state.player.board` wholesale. Seed confidence is the ambition baseline in year 1 (`title 58 / playoffs 55 / topHalf 55`), else mapped from the just-archived finish via `evaluateObjective` (`champion 72 / exceeded 65 / met 60 / missed 45`). `objective` copies the authored `boardAmbition`; `warningIssued` + `sacked` reset to `false` each season. |
+| `BOARD_CONFIDENCE_ADJUSTED` | Per human result in `recordPlayerMatchResult` (`applyBoardResult`) | `confidence = clamp(0, 100, confidence + delta)`. Per-result delta keyed on `expectedToWin`: win-as-favourite `+3`, win-as-underdog `+6`, draw `∓2`, loss-as-favourite `−6`, loss-as-underdog `−3`; a third straight league loss adds `−5`. |
+| `MANAGER_WARNED` | `evaluateJobSecurity` when confidence ≤ `25` and no warning has been issued this season | Sets `warningIssued = true` (the one-per-season final-warning latch). The inbox surfaces a high-priority warning item while the latch holds and confidence stays low. |
+| `MANAGER_SACKED` | `evaluateJobSecurity` when confidence ≤ `10` *with* a prior warning | Sets the persisted `sacked = true` latch (mid-season). Persisted — not a transient flag — so a reload between the result and the game-over screen can't escape it: `main.ts` reads `GameCoordinator.isManagerSacked()` on every continue / resume path and routes to the `SackScreen` (which clears the save slot). |
+
+The **Club page** (`ClubMenuScreen`, reached from the Hub's Club tile) is the home of board confidence: a summary band + 0–100 meter and a live **"what's driving it"** breakdown from `boardConfidenceFactors(state)` (season objective vs current position, recent results, winning/losing runs, formal-warning latch). The recurring **owner's messages** in the inbox (`inbox.ts`: week-1 objectives + the round-6 / round-11 mid-season block reports) additionally close with an owner's-voice read-out of the confidence band (`ownerConfidenceLine` → `confidenceBand`), so the manager tracks their standing in narrative form too.
+
+The **end-of-season** sack is decided by `judgeSeasonObjective()` — a **pure** projection (`confidence + eosSwing(verdict)`, `exceeded +25 / met +10 / missed −25`) checked against the season-end threshold (`≤ 20`). It mutates nothing: the swing is discarded at rollover anyway (next season reseeds from the archived finish, not carried confidence), and the end-of-season chain re-runs verbatim on a reload from the off-season, so a persisted additive swing would double-count. The caller routes to the `SackScreen` on the returned `sacked`; nothing is saved before that, so the EOS sack never persists.
 
 `GameCoordinator.rollSeason()` returns the applied `SeasonEvent[]` so `main.ts` can hand it to `RolloverScreen` for the post-apply diff render.
 
@@ -129,7 +143,7 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 
 ## UI events
 
-The game engine emits seven `game:*` events through `src/utils/eventBus.ts`. UI modules subscribe and re-render; the game engine never imports any UI module.
+The game engine emits eight `game:*` events through `src/utils/eventBus.ts`. UI modules subscribe and re-render; the game engine never imports any UI module.
 
 | Event | Payload | Subscribers |
 |---|---|---|
@@ -140,6 +154,7 @@ The game engine emits seven `game:*` events through `src/utils/eventBus.ts`. UI 
 | `game:playoffsUpdated` | `{ state: GameState }` | `HubScreen` + `PlayoffBracketScreen` + `InboxScreen` re-render. Fires after every `PLAYOFF_RESULT_RECORDED` (player or AI) so the bracket UI shows the cascade fill in. |
 | `game:seasonComplete` | `{ state: GameState }` | `main.ts` latches `seasonCompletePending`; the post-match Continue chain reroutes through `EndOfSeasonScreen` → optional `RenewalsScreen` → optional `TransferMarketScreen` → `RolloverScreen`. Now fires only after the League final resolves (no longer the end of the last regular round). |
 | `game:trainingApplied` | `{ state: GameState }` | `TrainingScreen` (triggers the post-training results display after `applyTrainingBlock` completes); `AchievementEngine` (evaluates post-training achievement predicates). Fired once at the end of `GameCoordinator.applyTrainingBlock` after all per-player `PLAYER_TRAINED` events have been applied. |
+| `game:seasonRolledOver` | `{ state: GameState }` | `HubScreen`, `FixtureListScreen`, `LeagueTableScreen` re-render with the new season's state (new fixtures, zeroed standings, updated season label). Fired at the end of `GameCoordinator.rollSeason()` after all `SEASON_ROLLED_OVER`-group events are applied, so state is fully consistent when subscribers read it. |
 
 ## Career: roster + identity model
 
@@ -483,6 +498,8 @@ A three-match knockout follows the 18-round League regular season: two semi-fina
 `SAVE_VERSION = 1`. `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`. **`ACCEPTED_VERSIONS` must always include `SAVE_VERSION`** — currently `new Set([1])`; omitting the current version silently rejects every freshly-written save on the next load. Only v1 saves are accepted; older saves are rejected (start a new game). Bump `SAVE_VERSION` and update `ACCEPTED_VERSIONS` whenever the serialised shape changes in a way that would corrupt an existing save on load. New additive-only optional fields don't require a bump.
 
 `SavedSeason.mediaStories?: MediaStory[]` is one such additive field (no bump). Media stories aren't replayable from `results` (they need the per-match snapshot), so `toSavePayload` persists them directly and `fromSave` restores each via `MEDIA_STORY_PUBLISHED`. Absent on pre-media saves → no stories restored, regeneration resumes from the next fixture. See **[media-manager.md](media-manager.md)**.
+
+`SavedSeason.board?: BoardState` is another additive field (no bump). Board confidence isn't replayable from `results` (the per-result delta depends on the human-match context), so `toSavePayload` persists it directly and `fromSave` restores it verbatim via `BOARD_STATE_SEEDED`. Absent on pre-0.1 saves → `fromSave` falls back to a fresh seed (`seedBoardState`).
 
 **Slot storage layout.** Saves live in three fixed, renameable slots —
 `rugby-manager-save-{1,2,3}` in `localStorage` — plus an active-slot pointer

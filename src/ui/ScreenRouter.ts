@@ -28,6 +28,7 @@ export type ScreenId =
   | 'budget-reveal'
   | 'takeover-reveal'
   | 'end-of-season'
+  | 'sacked'
   | 'renewals'
   | 'transfer-market'
   | 'retention-decision'
@@ -43,7 +44,10 @@ export type ScreenId =
   | 'cup-fixtures'
   | 'cup-results'
   | 'achievements'
-  | 'inbox';
+  | 'inbox'
+  | 'contracts-transfers-menu'
+  | 'club-menu'
+  | 'team-talk';
 
 const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'home':          { elId: 'home-screen',   shownDisplay: '' },
@@ -70,6 +74,7 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'budget-reveal':    { elId: 'budget-reveal',    shownDisplay: '' },
   'takeover-reveal':  { elId: 'takeover-reveal',  shownDisplay: '' },
   'end-of-season':    { elId: 'end-of-season',    shownDisplay: '' },
+  'sacked':           { elId: 'sacked',           shownDisplay: '' },
   'renewals':         { elId: 'renewals',         shownDisplay: '' },
   'transfer-market':  { elId: 'transfer-market',  shownDisplay: '' },
   'retention-decision': { elId: 'retention-decision', shownDisplay: '' },
@@ -81,8 +86,11 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'training':         { elId: 'training',         shownDisplay: '' },
   'training-results': { elId: 'training-results', shownDisplay: '' },
   'international-break': { elId: 'international-break', shownDisplay: '' },
-  'achievements':     { elId: 'achievements',     shownDisplay: '' },
-  'inbox':            { elId: 'inbox',            shownDisplay: '' },
+  'achievements':              { elId: 'achievements',              shownDisplay: '' },
+  'inbox':                     { elId: 'inbox',                     shownDisplay: '' },
+  'contracts-transfers-menu':  { elId: 'contracts-transfers-menu',  shownDisplay: '' },
+  'club-menu':                 { elId: 'club-menu',                 shownDisplay: '' },
+  'team-talk':                 { elId: 'team-talk',                 shownDisplay: '' },
 };
 
 export type NavDirection = 'forward' | 'back';

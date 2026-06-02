@@ -5,6 +5,7 @@ import { resolveDropOut } from '../resolvers/DropOutResolver';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
 import { attackDir, onFieldPlayers, pickKicker } from '../FieldPosition';
+import { dropOutLandingY } from '../Lateral';
 import { SLOT } from '../Slot';
 
 // 22m drop-out: defending team restarts after a missed penalty kick at goal.
@@ -45,8 +46,12 @@ export function handleDropOut({ state, attackTeam, defendTeam, randomPlayer }: P
     };
   }
 
-  // Ball lands where the drop-kick reaches.
-  events.unshift({ type: 'BALL_REPOSITIONED', x: clamp(state.ball.x + attackDir(state) * res.distance, 5, 95) });
+  // Ball lands where the drop-kick reaches — angled diagonally toward the open side.
+  events.unshift({
+    type: 'BALL_REPOSITIONED',
+    x: clamp(state.ball.x + attackDir(state) * res.distance, 5, 95),
+    y: dropOutLandingY(state, res.distance),
+  });
 
   if (res.result === 'knock_on') {
     // Scrum where the ball was dropped; kicking team puts in (possession unchanged).

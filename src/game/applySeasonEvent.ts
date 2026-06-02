@@ -6,7 +6,7 @@
 import type { CupKnockoutMatch, Fixture, GameState, PlayoffMatch, PremCupState, SeasonEvent, TeamSeasonStats, TeamStanding } from '../types/gameState';
 import { zeroStanding, zeroTeamSeasonStats } from '../types/gameState';
 import { zeroSeasonStats } from '../types/player';
-import { LEAGUE_POINTS, SEASON_VALUES, SENIOR_CAP, EFFECTIVE_CAP_CREDITS, FORM_MODEL } from '../engine/balance';
+import { LEAGUE_POINTS, SEASON_VALUES, SENIOR_CAP, EFFECTIVE_CAP_CREDITS, FORM_MODEL, MORALE } from '../engine/balance';
 
 // Sum of senior cap + dispensation credits — the league's absolute
 // ceiling on any club's non-marquee wage spend. The takeover boost
@@ -75,6 +75,11 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
     }
     case 'ROSTER_SEEDED': {
       state.career.roster = event.roster;
+      // Back-fill morale for players loaded from pre-morale saves.
+      for (const key of Object.keys(state.career.roster)) {
+        const p = state.career.roster[Number(key)];
+        if (p.morale === undefined) p.morale = MORALE.baseline;
+      }
       state.career.clubs = event.clubs.map(c => ({ id: c.id, squad: [...c.squad], salaryBudget: c.salaryBudget }));
       state.career.nextRosterId = event.nextRosterId;
       return;
@@ -342,7 +347,9 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       // rosterId on the supplied Player is the freshly allocated id;
       // we bump nextRosterId past it.
       const rid = event.player.rosterId;
-      state.career.roster[rid] = event.player;
+      const grad = event.player;
+      if (grad.morale === undefined) grad.morale = MORALE.baseline;
+      state.career.roster[rid] = grad;
       const club = state.career.clubs.find(c => c.id === event.clubId);
       if (club && !club.squad.includes(rid)) club.squad.push(rid);
       if (rid >= state.career.nextRosterId) state.career.nextRosterId = rid + 1;
@@ -352,7 +359,9 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       // Unsigned new persona. Lands in freeAgents; signing flow picks
       // them up next.
       const rid = event.player.rosterId;
-      state.career.roster[rid] = event.player;
+      const imp = event.player;
+      if (imp.morale === undefined) imp.morale = MORALE.baseline;
+      state.career.roster[rid] = imp;
       if (!state.career.freeAgents.includes(rid)) state.career.freeAgents.push(rid);
       if (rid >= state.career.nextRosterId) state.career.nextRosterId = rid + 1;
       return;
@@ -449,6 +458,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         if (p.lionsReturnRound !== undefined) p.lionsReturnRound = undefined;
         if (p.disciplineAdvice) p.disciplineAdvice = undefined;
         if (p.suspension) p.suspension = undefined;
+        p.moraleChats = 0;
       }
       // Reset team season aggregates for the new season. Re-zero in place
       // for every team that already had a bucket; new teams (rare) get
@@ -736,6 +746,39 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       const p = state.career.roster[event.rosterId];
       if (!p) return;
       p.suspension = { forRound: event.forRound };
+      return;
+    }
+    case 'BOARD_STATE_SEEDED': {
+      state.player.board = {
+        confidence: event.confidence,
+        objective: event.objective,
+        warningIssued: event.warningIssued,
+        sacked: event.sacked,
+      };
+      return;
+    }
+    case 'BOARD_CONFIDENCE_ADJUSTED': {
+      const board = state.player.board;
+      if (!board) return;
+      board.confidence = Math.max(0, Math.min(100, board.confidence + event.delta));
+      return;
+    }
+    case 'MANAGER_WARNED': {
+      if (!state.player.board) return;
+      state.player.board.warningIssued = true;
+      return;
+    }
+    case 'MANAGER_SACKED': {
+      if (!state.player.board) return;
+      state.player.board.sacked = true;
+      return;
+    }
+    case 'PLAYER_MORALE_ADJUSTED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      const current = p.morale ?? MORALE.baseline;
+      p.morale = Math.max(0, Math.min(100, current + event.delta));
+      if (event.reason === 'manager_chat') p.moraleChats = (p.moraleChats ?? 0) + 1;
       return;
     }
     default: {

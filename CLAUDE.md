@@ -52,7 +52,7 @@ Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, sim
 
 The test: every changed line traces directly to the user's request.
 
-**Restructuring a live type doesn't restructure its snapshots.** A frozen log row, an event-bus payload, or a replay event has schema lifetime independent of the live state it was copied from. `GameEvent.ballX/ballY`, `PenaltyContext.*`, and `MatchEvent` payload fields stay scalar even when their source moved into `state.ball`/`state.clock`. The test: would renaming break replay, an existing log entry, or a downstream consumer that already serialised the old shape? If yes, leave it alone.
+**Restructuring a live type doesn't restructure its snapshots.** A frozen log row, an event-bus payload, or a replay event has schema lifetime independent of the live state it was copied from. `GameEvent.ballX/ballY`, `GameEvent.movements` (the frozen in-phase ball path), `PenaltyContext.*`, and `MatchEvent` payload fields stay scalar even when their source moved into `state.ball`/`state.clock`. The test: would renaming break replay, an existing log entry, or a downstream consumer that already serialised the old shape? If yes, leave it alone.
 
 **Namespacing is not decoupling.** `state.phase.breakdownMod` has identical coupling properties to `state.breakdownMod`. Before drafting a "decouple" refactor, name the specific coupling smell and verify the proposed shape actually removes it.
 
@@ -92,7 +92,7 @@ For full module internals (AITacticalDirector, AISubstitutionDirector, CardHandl
 - All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.currentStats`, and `player.rating` go through **`applyMatchEvent(state, event)`** in `src/engine/applyMatchEvent.ts`. No exceptions, including `state.events.push(...)`.
 - **`applyMatchEvent` runs `assertInvariants(state)` after every event** (`src/engine/invariants.ts`). It throws if score/possession/phase/ball/clock or any player's `fatiguePct`/`rating`/`currentStats` strays outside its legal range. Adding a mutation that could push a value off the asserted range: extend the invariant check too.
 - Phase handlers in `src/engine/events/` are **read-only** over state: they read, compute, build a `MatchEvent[]`, and return it on `PhaseResult.events`. `PhaseRouter.resolvePhase()` applies the queue.
-- Use **domain-meaningful** event names (`TRY_SCORED`, `KNOCK_ON`, `CARRY_RESOLVED`). Narrow exception: structural setters (`BALL_REPOSITIONED`, `PHASE_CHANGED`, `POSSESSION_SWAPPED`).
+- Use **domain-meaningful** event names (`TRY_SCORED`, `KNOCK_ON`, `CARRY_RESOLVED`). Narrow exception: structural setters (`BALL_REPOSITIONED` — optional `x`/`y`/`lateralDir`, `PHASE_CHANGED`, `POSSESSION_SWAPPED`). `ball.lateralDir` (lateral sweep direction) is a sign, not a coordinate — not range-checked by `assertInvariants`. See `docs/match-engine.md` § "Lateral / Y-axis model".
 - Adding a new mutation kind: one variant in the `MatchEvent` union (`src/types/matchEvent.ts`) + one branch in `applyMatchEvent`. The `default: const _: never = event;` exhaustiveness check catches missing branches at compile time.
 - Adding a new player stat: extend `PlayerMatchStats` + `zeroMatchStats()` (both in `src/types/player.ts`, co-located) + the domain event's apply branch — never push a raw `player.matchStats.X++` into a handler.
 - `eventBus.emit` calls are **pure UI side effects** — they live in orchestrators alongside `applyMatchEvent` calls, not inside `applyMatchEvent` itself.
@@ -104,11 +104,12 @@ For full module internals (AITacticalDirector, AISubstitutionDirector, CardHandl
 
 **All randomness flows through `src/utils/rng.ts`. Never call `Math.random()` directly in engine code.**
 
-Four isolated mulberry32 streams:
+Five isolated mulberry32 streams:
 - `rng(min, max)` — outcome stream; every in-play roll. Reset by `setMatchSeed(seed)` (called from the `MatchCoordinator` constructor).
 - `rngForm()` — form stream; player form modifier at `initPlayer()`. Reset by `setMatchSeed`.
 - `pickRandom(arr)` / `commentaryChance(pct)` — commentary stream; flavour-text sampling. Reset by `setMatchSeed`.
-- `rngTransfer(min, max)` / `rngTransferRaw()` — career stream; contract seeding, aging-curve noise, retirement rolls, persona generation. Reset by `setCareerSeed(seed)` — independent of the match seed so a per-fixture derivation cannot perturb season-scope outcomes.
+- `rngPosition(min, max)` — positioning stream; every lateral (Y-axis) draw — open-play sweep pass distances, kick launch angles, kick-off side bias (`src/engine/Lateral.ts`). Reset by `setMatchSeed`. Isolated so adding lateral ball movement cannot perturb an outcome roll.
+- `rngTransfer(min, max)` / `rngTransferRaw()` — career stream; contract seeding, aging-curve noise, retirement rolls, persona generation, manager-chat morale boost (`boostPlayerMorale`). Reset by `setCareerSeed(seed)` — independent of the match seed so a per-fixture derivation cannot perturb season-scope outcomes. Note: `boostPlayerMorale` is user-triggered (inbox button), so the stream offset varies with how many chats the manager initiates; this is intentional (career outcomes subtly reflect manager decisions). The `careerRngOffset` is snapshot at save time so load/reload is fully deterministic.
 
 Streams are independent — adding a commentary line cannot shift outcome rolls; adding a transfer event cannot shift a match. Pick the matching stream when adding a randomness consumer. Full details: **`docs/match-engine.md`** § "Determinism (Seeded RNG)".
 
@@ -163,7 +164,7 @@ Diagnostic: `git status && git log --oneline -5 && git branch -vv`.
 
 ## Save schema
 
-`SAVE_VERSION = 1`. Only v1 saves accepted. Bump whenever the serialised shape changes in a way that would corrupt an existing save on load. Update `ACCEPTED_VERSIONS` in `SaveManager.ts` + `docs/game-engine.md` § "Save format" + `docs/transfer-system.md` §7 + `CLAUDE.md` § "Save schema". New additive-only optional fields do not require a bump.
+`SAVE_VERSION = 1`. Only v1 saves accepted. Bump whenever the serialised shape changes in a way that would corrupt an existing save on load. Update `ACCEPTED_VERSIONS` in `SaveManager.ts` + `docs/game-engine.md` § "Save format" + `docs/transfer-system.md` §7 + `CLAUDE.md` § "Save schema". New additive-only optional fields do not require a bump — e.g. `SavedSeason.board?: BoardState` (board confidence, restored verbatim or re-seeded on legacy saves) and `SavedSeason.mediaStories?`.
 
 ## Commands
 

@@ -1,6 +1,23 @@
 export function buildAppShell(): void {
   const app = document.getElementById('app')!;
   app.innerHTML = `
+    <div id="view-toggle-bar">
+      <button id="btn-view-dashboard" class="view-btn active" title="Dashboard" aria-label="Dashboard">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path fill-rule="evenodd" d="M3 6a3 3 0 013-3h2.25a3 3 0 013 3v2.25a3 3 0 01-3 3H6a3 3 0 01-3-3V6zm9.75 0a3 3 0 013-3H18a3 3 0 013 3v2.25a3 3 0 01-3 3h-2.25a3 3 0 01-3-3V6zM3 15.75a3 3 0 013-3h2.25a3 3 0 013 3V18a3 3 0 01-3 3H6a3 3 0 01-3-3v-2.25zm9.75 0a3 3 0 013-3H18a3 3 0 013 3V18a3 3 0 01-3 3h-2.25a3 3 0 01-3-3v-2.25z" clip-rule="evenodd"/></svg>
+      </button>
+      <button id="btn-view-pitch" class="view-btn" title="Pitch" aria-label="Pitch">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="22" height="22"><rect x="3.5" y="2.5" width="17" height="19" rx="2"/><line x1="3.5" y1="12" x2="20.5" y2="12"/><circle cx="12" cy="12" r="2.75"/></svg>
+      </button>
+      <button id="btn-view-commentary" class="view-btn" title="Commentary" aria-label="Commentary">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path fill-rule="evenodd" d="M12 2.25c-2.429 0-4.817.178-7.152.521C2.87 3.061 1.5 4.795 1.5 6.741v6.018c0 1.946 1.37 3.68 3.348 3.97.877.129 1.761.234 2.652.316V21a.75.75 0 001.28.53l4.184-4.183a.39.39 0 01.266-.112c2.006-.05 3.982-.22 5.922-.506 1.978-.29 3.348-2.023 3.348-3.97V6.741c0-1.946-1.37-3.68-3.348-3.97A49.145 49.145 0 0012 2.25zM8.25 8.625a1.125 1.125 0 100 2.25 1.125 1.125 0 000-2.25zm2.625 1.125a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0zm4.875-1.125a1.125 1.125 0 100 2.25 1.125 1.125 0 000-2.25z" clip-rule="evenodd"/></svg>
+      </button>
+      <button id="btn-view-stats" class="view-btn" title="Match Stats" aria-label="Match Stats">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M18.375 2.25c-1.035 0-1.875.84-1.875 1.875v15.75c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V4.125c0-1.036-.84-1.875-1.875-1.875h-.75zM9.75 8.625c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v11.25c0 1.035-.84 1.875-1.875 1.875h-.75a1.875 1.875 0 01-1.875-1.875V8.625zM3 13.125c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v6.75c0 1.035-.84 1.875-1.875 1.875h-.75A1.875 1.875 0 013 19.875v-6.75z"/></svg>
+      </button>
+      <button id="btn-view-players" class="view-btn" title="Player Stats" aria-label="Player Stats">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path fill-rule="evenodd" d="M8.25 6.75a3.75 3.75 0 117.5 0 3.75 3.75 0 01-7.5 0zM15.75 9.75a3 3 0 116 0 3 3 0 01-6 0zM2.25 9.75a3 3 0 116 0 3 3 0 01-6 0zM6.31 15.117A6.745 6.745 0 0112 12a6.745 6.745 0 016.709 7.498.75.75 0 01-.372.568A12.696 12.696 0 0112 21.75c-2.305 0-4.47-.612-6.337-1.684a.75.75 0 01-.372-.568 6.787 6.787 0 011.019-4.38z" clip-rule="evenodd"/><path d="M5.082 14.254a8.287 8.287 0 00-1.308 5.135 9.687 9.687 0 01-1.764-.44l-.115-.04a.563.563 0 01-.373-.487l-.01-.121a3.75 3.75 0 013.57-4.047zM20.226 19.389a8.287 8.287 0 00-1.308-5.135 3.75 3.75 0 013.57 4.047l-.01.121a.563.563 0 01-.373.487l-.115.04c-.567.2-1.156.349-1.764.441z"/></svg>
+      </button>
+    </div>
     <div id="scoreboard">
       <div id="score-home">
         <div class="crest-group">
@@ -48,26 +65,39 @@ export function buildAppShell(): void {
         <span class="end-label" id="away-end-label">AWAY</span>
       </div>
     </div>
-    <div id="view-toggle-bar">
-      <button id="btn-view-dashboard" class="view-btn active" title="Dashboard" aria-label="Dashboard">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M3 6a3 3 0 013-3h2.25a3 3 0 013 3v2.25a3 3 0 01-3 3H6a3 3 0 01-3-3V6zm9.75 0a3 3 0 013-3H18a3 3 0 013 3v2.25a3 3 0 01-3 3h-2.25a3 3 0 01-3-3V6zM3 15.75a3 3 0 013-3h2.25a3 3 0 013 3V18a3 3 0 01-3 3H6a3 3 0 01-3-3v-2.25zm9.75 0a3 3 0 013-3H18a3 3 0 013 3V18a3 3 0 01-3 3h-2.25a3 3 0 01-3-3v-2.25z" clip-rule="evenodd"/></svg>
-        <span class="view-btn-label">Dashboard</span>
-      </button>
-      <button id="btn-view-commentary" class="view-btn" title="Commentary" aria-label="Commentary">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M12 2.25c-2.429 0-4.817.178-7.152.521C2.87 3.061 1.5 4.795 1.5 6.741v6.018c0 1.946 1.37 3.68 3.348 3.97.877.129 1.761.234 2.652.316V21a.75.75 0 001.28.53l4.184-4.183a.39.39 0 01.266-.112c2.006-.05 3.982-.22 5.922-.506 1.978-.29 3.348-2.023 3.348-3.97V6.741c0-1.946-1.37-3.68-3.348-3.97A49.145 49.145 0 0012 2.25zM8.25 8.625a1.125 1.125 0 100 2.25 1.125 1.125 0 000-2.25zm2.625 1.125a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0zm4.875-1.125a1.125 1.125 0 100 2.25 1.125 1.125 0 000-2.25z" clip-rule="evenodd"/></svg>
-        <span class="view-btn-label">Commentary</span>
-      </button>
-      <button id="btn-view-stats" class="view-btn" title="Match Stats" aria-label="Match Stats">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M18.375 2.25c-1.035 0-1.875.84-1.875 1.875v15.75c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V4.125c0-1.036-.84-1.875-1.875-1.875h-.75zM9.75 8.625c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v11.25c0 1.035-.84 1.875-1.875 1.875h-.75a1.875 1.875 0 01-1.875-1.875V8.625zM3 13.125c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v6.75c0 1.035-.84 1.875-1.875 1.875h-.75A1.875 1.875 0 013 19.875v-6.75z"/></svg>
-        <span class="view-btn-label">Stats</span>
-      </button>
-      <button id="btn-view-players" class="view-btn" title="Player Stats" aria-label="Player Stats">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M8.25 6.75a3.75 3.75 0 117.5 0 3.75 3.75 0 01-7.5 0zM15.75 9.75a3 3 0 116 0 3 3 0 01-6 0zM2.25 9.75a3 3 0 116 0 3 3 0 01-6 0zM6.31 15.117A6.745 6.745 0 0112 12a6.745 6.745 0 016.709 7.498.75.75 0 01-.372.568A12.696 12.696 0 0112 21.75c-2.305 0-4.47-.612-6.337-1.684a.75.75 0 01-.372-.568 6.787 6.787 0 011.019-4.38z" clip-rule="evenodd"/><path d="M5.082 14.254a8.287 8.287 0 00-1.308 5.135 9.687 9.687 0 01-1.764-.44l-.115-.04a.563.563 0 01-.373-.487l-.01-.121a3.75 3.75 0 013.57-4.047zM20.226 19.389a8.287 8.287 0 00-1.308-5.135 3.75 3.75 0 013.57 4.047l-.01.121a.563.563 0 01-.373.487l-.115.04c-.567.2-1.156.349-1.764.441z"/></svg>
-        <span class="view-btn-label">Players</span>
-      </button>
-    </div>
     <div id="panel-bottom" class="view-dashboard">
       <div id="latest-commentary"></div>
+      <div id="panel-pitch">
+        <div id="pitch-2d-field">
+          <span class="end-label pitch2d-end-top" id="pitch-top-label"></span>
+          <span class="end-label pitch2d-end-bottom" id="pitch-bottom-label"></span>
+          <div class="pitch2d-line line-deadball-top"></div>
+          <div class="pitch2d-line line-top-try"></div>
+          <div class="pitch2d-line line-top-5m"></div>
+          <div class="pitch2d-line line-top-22"></div>
+          <div class="pitch2d-line line-top-10m"></div>
+          <div class="pitch2d-line line-mid-halfway"></div>
+          <div class="pitch2d-line line-bot-10m"></div>
+          <div class="pitch2d-line line-bot-22"></div>
+          <div class="pitch2d-line line-bot-5m"></div>
+          <div class="pitch2d-line line-bot-try"></div>
+          <div class="pitch2d-line line-deadball-bot"></div>
+          <div class="pitch2d-vline vline-left-5m"></div>
+          <div class="pitch2d-vline vline-left-15m"></div>
+          <div class="pitch2d-vline vline-right-15m"></div>
+          <div class="pitch2d-vline vline-right-5m"></div>
+          <div class="pitch2d-posts posts-top"><svg class="goal-svg" viewBox="0 0 40 32" preserveAspectRatio="xMidYMax meet"><path d="M9 3 V32 M31 3 V32 M9 24 H31" fill="none"/></svg></div>
+          <div class="pitch2d-posts posts-bot"><svg class="goal-svg" viewBox="0 0 40 32" preserveAspectRatio="xMidYMax meet"><path d="M9 3 V32 M31 3 V32 M9 24 H31" fill="none"/></svg></div>
+          <div class="pitch2d-territory-shade" id="pitch-territory-shade"></div>
+          <div class="card-stack pitch2d-cards-top" id="pitch-cards-top"></div>
+          <div class="card-stack pitch2d-cards-bottom" id="pitch-cards-bottom"></div>
+          <div id="pitch-flash"></div>
+          <div id="pitch-2d-ball"></div>
+          <div id="pitch-kick-flight"></div>
+        </div>
+        <div id="pitch-territory-bar"><div id="pitch-territory-home"></div></div>
+        <div id="pitch-phase-label"></div>
+      </div>
       <div id="panel-commentary">
         <div class="panel-header">Commentary</div>
         <div id="commentary-feed"></div>
@@ -112,5 +142,6 @@ export function buildAppShell(): void {
     <div id="modal-overlay" class="hidden">
       <div id="modal-box"></div>
     </div>
+    <div id="half-time-panel" class="hidden"></div>
   `;
 }

@@ -46,11 +46,12 @@ import { applySeasonEvent } from './applySeasonEvent';
 import type { PreSeasonTransfer } from '../data/transfers-2025-26';
 import { simulateFixture } from './simulateFixture';
 import { seedRoster } from './rosterSeeder';
+import { playerOverall } from '../engine/RatingEngine';
 import { buildAutoSelectedTeamFromRoster, buildCupTeamFromRoster } from './rosterTeamBuilder';
 import { CUP_POOLS_2025_26, CUP_SEED_ROUND, buildCupSeed, buildCupKnockoutSeed } from './cupScheduler';
 import { cupDevelopmentEvents } from './cupDevelopment';
 import { parseSeasonStartYear, seasonOpenIso, getAge } from './age';
-import { recentForm } from './teamStats';
+import { recentForm, type FormResult } from './teamStats';
 import { generateMatchStory, type MediaMatchContext, type MediaPlayer } from './media/mediaManager';
 import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot, type PlayerStatsSnapshot } from './seasonStatsCollector';
 import { computeTrainingWeek } from './trainingWeek';
@@ -63,15 +64,16 @@ import {
 import { computeRollover } from './careerRollover';
 import { generatePersona } from './personaGenerator';
 import { buildRosterSeededEvent, buildCareerArchiveRestoredEvent } from './saveMigration';
+import { seedConfidence, resultDelta, currentObjectiveVerdict, eosSwing, type ObjectiveVerdict } from './board';
 import { TransferCoordinator, type EarlyRenewalResult } from './TransferCoordinator';
 import { computeBudgetEvents } from './budgetPlanner';
 import { computeAttendance } from './attendance';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed, rngTransfer, getTransferCallCount, advanceTransferTo, hashSeed } from '../utils/rng';
-import { SEASON_VALUES, INJURY_SEVERITY, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD } from '../engine/balance';
+import { SEASON_VALUES, INJURY_SEVERITY, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD, BOARD_THRESHOLDS, MORALE } from '../engine/balance';
 import type { InjurySeverity } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
-import type { RawTeamInput } from '../types/teamData';
+import type { RawTeamInput, BoardAmbition } from '../types/teamData';
 
 // Returned by beginInternationalBreak() — the context the break-flow UI
 // (call-ups screen → cup-fixtures screen → training) needs, and that
@@ -139,6 +141,9 @@ export interface SavedSeason {
   mediaStories?: import('../types/gameState').MediaStory[];
   // Manager's nominated match captain (rosterId). Narrative-only.
   captainRosterId?: number;
+  // Board confidence for the managed club. Not replayable from `results`, so
+  // persisted directly. Optional — absent on saves written before this system.
+  board?: import('../types/gameState').BoardState;
 }
 
 // Deep clone the roster index for save serialisation — every Player and
@@ -216,8 +221,84 @@ export class GameCoordinator {
       type: 'PREM_CUP_SEEDED',
       ...buildCupSeed(CUP_POOLS_2025_26, coord.state.league.fixtures, coord.state.calendar.seasonLabel),
     });
+    coord.seedBoardState();
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
+  }
+
+  // Seed the managed club's board confidence + objective for the season ahead.
+  // Year 1 uses the ambition baseline; later seasons map the just-archived
+  // finish onto a seed. Resets the final-warning latch each season.
+  private seedBoardState(): void {
+    const teamId = this.state.player.teamId;
+    const ambition: BoardAmbition = this.teamsById.get(teamId)?.boardAmbition ?? 'playoffs';
+    const prior = this.state.career.archive[this.state.career.archive.length - 1];
+    applySeasonEvent(this.state, {
+      type: 'BOARD_STATE_SEEDED',
+      confidence: seedConfidence(ambition, prior, teamId),
+      objective: ambition,
+      warningIssued: false,
+      sacked: false,
+    });
+  }
+
+  // Move board confidence on the human result (the just-recorded fixture),
+  // then evaluate the mid-season fail-state. The result is already pushed to
+  // standings/results, so recentForm includes it.
+  private applyBoardResult(result: FixtureResult, expectedToWin: boolean): void {
+    if (!this.state.player.board) return;
+    if (result.playerSide === null) return;
+    const myScore = result.playerSide === 'home' ? result.homeScore : result.awayScore;
+    const oppScore = result.playerSide === 'home' ? result.awayScore : result.homeScore;
+    const outcome: FormResult = myScore > oppScore ? 'W' : myScore < oppScore ? 'L' : 'D';
+    const last3 = recentForm(this.state.player.teamId, this.state.league.results, 3)
+      .filter((r): r is FormResult => r !== null);
+    const losingStreak = last3.length === 3 && last3.every(r => r === 'L');
+    applySeasonEvent(this.state, {
+      type: 'BOARD_CONFIDENCE_ADJUSTED',
+      delta: resultDelta(outcome, expectedToWin, losingStreak),
+      reason: `result:${outcome}`,
+    });
+    this.evaluateJobSecurity();
+  }
+
+  // Mid-season fail-state: at/below the sack threshold *with* a prior warning
+  // (issued in an earlier round — the check reads the latch before this round's
+  // adjustment could have set it) → latch the sack via MANAGER_SACKED; otherwise
+  // at/below the warning threshold → issue the one-per-season final warning.
+  // The sack is persisted (not a transient flag) so a reload between this result
+  // and the game-over screen can't escape it — `isManagerSacked()` re-derives
+  // the routing from the saved latch on load.
+  private evaluateJobSecurity(): void {
+    const board = this.state.player.board;
+    if (!board) return;
+    if (board.confidence <= BOARD_THRESHOLDS.sack && board.warningIssued) {
+      applySeasonEvent(this.state, { type: 'MANAGER_SACKED' });
+    } else if (board.confidence <= BOARD_THRESHOLDS.warning && !board.warningIssued) {
+      applySeasonEvent(this.state, { type: 'MANAGER_WARNED' });
+    }
+  }
+
+  // True once the manager has been sacked mid-season (the persisted latch).
+  // Routing reads this both in-session and on load (continue / resume paths).
+  isManagerSacked(): boolean {
+    return this.state.player.board?.sacked === true;
+  }
+
+  // End-of-season judgement: project the objective swing onto confidence and
+  // check the season-end sack threshold. Called from the end-of-season chain
+  // before rollover. Pure (no mutation): the swing is discarded at rollover
+  // anyway (next season reseeds from the archived finish, not carried
+  // confidence), so persisting it would have no lasting effect — and the chain
+  // re-runs verbatim on a reload from the off-season (bracket crowned-but-
+  // unrolled), where a persisted additive swing would double-count. The caller
+  // routes to the game-over screen on `sacked`; nothing is saved before that.
+  judgeSeasonObjective(): { verdict: ObjectiveVerdict; sacked: boolean } {
+    const board = this.state.player.board;
+    if (!board) return { verdict: 'met', sacked: false };
+    const verdict = currentObjectiveVerdict(this.state, board.objective);
+    const projected = Math.max(0, Math.min(100, board.confidence + eosSwing(verdict)));
+    return { verdict, sacked: projected <= BOARD_THRESHOLDS.eosSack };
   }
 
   // Generates STARTER_FA_POOL.count free agents via personaGenerator
@@ -291,6 +372,20 @@ export class GameCoordinator {
     if (save.captainRosterId !== undefined) {
       applySeasonEvent(coord.state, { type: 'PLAYER_CAPTAIN_SET', rosterId: save.captainRosterId });
     }
+    // Board confidence isn't replayable from `results` (the per-result delta
+    // depends on the human-match context), so it's restored verbatim. Legacy
+    // saves without it fall back to a fresh seed.
+    if (save.board) {
+      applySeasonEvent(coord.state, {
+        type: 'BOARD_STATE_SEEDED',
+        confidence: save.board.confidence,
+        objective: save.board.objective,
+        warningIssued: save.board.warningIssued,
+        sacked: save.board.sacked,
+      });
+    } else {
+      coord.seedBoardState();
+    }
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
   }
@@ -312,6 +407,21 @@ export class GameCoordinator {
     if (!p) return;
     const expiresAfterRound = this.state.calendar.week + DISCIPLINE_COUNSEL.durationRounds;
     applySeasonEvent(this.state, { type: 'PLAYER_DISCIPLINE_COUNSELLED', rosterId, expiresAfterRound });
+  }
+
+  boostPlayerMorale(rosterId: number): void {
+    const p = this.state.career.roster[rosterId];
+    if (!p) return;
+    const chatCount = p.moraleChats ?? 0;
+    const baseDelta = rngTransfer(MORALE.chatBoostMin, MORALE.chatBoostMax);
+    const scale = Math.pow(MORALE.chatDecayFactor, chatCount);
+    const delta = Math.max(MORALE.chatMinBoost, Math.round(baseDelta * scale));
+    applySeasonEvent(this.state, {
+      type: 'PLAYER_MORALE_ADJUSTED',
+      rosterId,
+      delta,
+      reason: 'manager_chat',
+    });
   }
 
   // rosterIds of the human club's persisted matchday 23 (mapped from the
@@ -854,7 +964,14 @@ export class GameCoordinator {
     for (const ev of this.rollNewInjuryEvents(snapshot.playerSnapshots)) {
       applySeasonEvent(this.state, ev);
     }
+    for (const ev of this.computeFixtureMoraleEvents(result, snapshot)) {
+      applySeasonEvent(this.state, ev);
+    }
     eventBus.emit('game:fixtureRecorded', { result, state: this.state });
+
+    // Board confidence — adjust on the human result, then check the
+    // final-warning / mid-season-sack thresholds. Deterministic (no RNG).
+    this.applyBoardResult(result, expectedToWin);
 
     // Media story — one deterministic, flavour-only take on the player's
     // fixture, dropped into the inbox. Seeded off (rootSeed, round, clubId) via
@@ -905,6 +1022,9 @@ export class GameCoordinator {
       for (const ev of this.rollNewInjuryEvents(sim.snapshot.playerSnapshots)) {
         applySeasonEvent(this.state, ev);
       }
+      for (const ev of this.computeFixtureMoraleEvents(aiResult, sim.snapshot)) {
+        applySeasonEvent(this.state, ev);
+      }
       eventBus.emit('game:fixtureRecorded', { result: aiResult, state: this.state });
     }
 
@@ -935,6 +1055,9 @@ export class GameCoordinator {
     }
 
     applySeasonEvent(this.state, { type: 'WEEK_ADVANCED' });
+    for (const ev of this.computeMoraleDecayEvents()) {
+      applySeasonEvent(this.state, ev);
+    }
     eventBus.emit('game:weekAdvanced', { state: this.state });
 
     // Background poach-threat assessment — RNG-free, runs every round.
@@ -1030,6 +1153,79 @@ export class GameCoordinator {
     };
 
     applySeasonEvent(this.state, { type: 'MEDIA_STORY_PUBLISHED', story: generateMatchStory(ctx) });
+  }
+
+  // Computes PLAYER_MORALE_ADJUSTED events for all players in both clubs
+  // after a fixture: playing-time (top-OVR players who didn't appear),
+  // match result (win/loss nudge for all squad members), and individual
+  // standout (rating ≥ threshold). Pure — no state mutations.
+  private computeFixtureMoraleEvents(result: FixtureResult, snapshot: MatchSnapshot): SeasonEvent[] {
+    const events: SeasonEvent[] = [];
+    const played = new Set(snapshot.playerSnapshots.map(s => s.rosterId));
+    const standoutSet = new Set(
+      snapshot.playerSnapshots
+        .filter(s => s.rating >= MORALE.standoutRatingThreshold)
+        .map(s => s.rosterId),
+    );
+
+    for (const side of ['home', 'away'] as const) {
+      const teamId = side === 'home' ? result.homeId : result.awayId;
+      const club = this.state.career.clubs.find(c => c.id === teamId);
+      if (!club) continue;
+
+      const won = result.homeScore > result.awayScore
+        ? result.homeId
+        : result.awayScore > result.homeScore
+          ? result.awayId
+          : null; // draw
+      const resultDelta = teamId === won
+        ? MORALE.winDelta
+        : won === null ? MORALE.drawDelta : MORALE.lossDelta;
+
+      // Rank non-injured players by OVR descending to determine PT expectation.
+      const ranked = club.squad
+        .map(rid => this.state.career.roster[rid])
+        .filter((p): p is NonNullable<typeof p> => !!p && !p.injury)
+        .sort((a, b) => playerOverall(b.baseStats, b.position) - playerOverall(a.baseStats, a.position));
+
+      for (let i = 0; i < ranked.length; i++) {
+        const p = ranked[i];
+        const rid = p.rosterId;
+        let delta = resultDelta;
+
+        if (!played.has(rid)) {
+          // Playing-time penalty: top-15 OVR expected to play; 16-23 as bench cover.
+          if (i < 15) delta += MORALE.omittedTopDelta;
+          else if (i < 23) delta += MORALE.benchedUnusedDelta;
+        }
+
+        if (standoutSet.has(rid)) delta += MORALE.standoutDelta;
+
+        if (delta !== 0) {
+          events.push({ type: 'PLAYER_MORALE_ADJUSTED', rosterId: rid, delta, reason: 'fixture' });
+        }
+      }
+    }
+    return events;
+  }
+
+  // Computes PLAYER_MORALE_ADJUSTED decay events for all roster players,
+  // nudging morale toward MORALE.baseline each week. Rounds to the nearest
+  // integer; skips players already at baseline (delta rounds to 0).
+  private computeMoraleDecayEvents(): SeasonEvent[] {
+    const events: SeasonEvent[] = [];
+    const freeAgentSet = new Set(this.state.career.freeAgents);
+    for (const key of Object.keys(this.state.career.roster)) {
+      const rid = Number(key);
+      if (freeAgentSet.has(rid)) continue;
+      const p = this.state.career.roster[rid];
+      const current = p.morale ?? MORALE.baseline;
+      const rawDelta = (MORALE.baseline - current) * MORALE.decayRate;
+      const delta = Math.round(rawDelta);
+      if (delta === 0) continue;
+      events.push({ type: 'PLAYER_MORALE_ADJUSTED', rosterId: p.rosterId, delta, reason: 'decay' });
+    }
+    return events;
   }
 
   // True when every fixture in league.fixtures (regular season) has a
@@ -1151,6 +1347,18 @@ export class GameCoordinator {
     for (const ev of this.rollNewInjuryEvents(snapshot.playerSnapshots)) {
       applySeasonEvent(this.state, ev);
     }
+    for (const ev of this.computeFixtureMoraleEvents({
+      round: kind === 'final' ? 20 : 19,
+      homeId: target.homeId!,
+      awayId: target.awayId!,
+      homeScore,
+      awayScore,
+      homeTries: snapshot.homeSummary.tries,
+      awayTries: snapshot.awaySummary.tries,
+      playerSide,
+    }, snapshot)) {
+      applySeasonEvent(this.state, ev);
+    }
     eventBus.emit('game:playoffsUpdated', { state: this.state });
 
     if (this.state.league.playoffs?.championTeamId !== null && this.state.league.playoffs?.championTeamId !== undefined) {
@@ -1200,6 +1408,18 @@ export class GameCoordinator {
         applySeasonEvent(this.state, ev);
       }
       for (const ev of this.rollNewInjuryEvents(sim.snapshot.playerSnapshots)) {
+        applySeasonEvent(this.state, ev);
+      }
+      for (const ev of this.computeFixtureMoraleEvents({
+        round: pseudoRound,
+        homeId: match.homeId!,
+        awayId: match.awayId!,
+        homeScore: sim.homeScore,
+        awayScore: sim.awayScore,
+        homeTries: sim.snapshot.homeSummary.tries,
+        awayTries: sim.snapshot.awaySummary.tries,
+        playerSide: null,
+      }, sim.snapshot)) {
         applySeasonEvent(this.state, ev);
       }
       eventBus.emit('game:playoffsUpdated', { state: this.state });
@@ -1297,6 +1517,10 @@ export class GameCoordinator {
   rollSeason(): SeasonEvent[] {
     const events = computeRollover(this.state, [...this.teamsById.keys()]);
     for (const ev of events) applySeasonEvent(this.state, ev);
+    // Re-seed board confidence for the new season from the finish just
+    // archived by SEASON_ROLLED_OVER (resets the final-warning latch).
+    this.seedBoardState();
+    eventBus.emit('game:seasonRolledOver', { state: this.state });
     return events;
   }
 
@@ -1313,6 +1537,7 @@ export class GameCoordinator {
         ? { matchdaySquad: this.state.player.matchdaySquad.map(r => ({ ...r })) }
         : {}),
       ...(this.state.player.training ? { training: { ...this.state.player.training } } : {}),
+      ...(this.state.player.board ? { board: { ...this.state.player.board } } : {}),
       careerRngOffset: getTransferCallCount(),
       career: {
         seasonsCompleted: this.state.career.seasonsCompleted,

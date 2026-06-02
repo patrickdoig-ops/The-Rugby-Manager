@@ -6,6 +6,7 @@ import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
 import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler, tryLineDefenceBonus } from '../FieldPosition';
+import { emitSweepHops } from '../Lateral';
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
@@ -16,7 +17,7 @@ import { tryOffloadChain } from './offloadChain';
 
 const FULL_BACKLINE = 7;
 
-export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, pickPlayer }: PhaseContext): PhaseResult {
+export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, pickPlayer, silent }: PhaseContext): PhaseResult {
   const attackSide = state.possession;
   const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
 
@@ -40,6 +41,8 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   const interceptPctBase = INTERCEPTION_BASE_PCT + TACTIC_MODIFIERS.interceptionMod[defensiveLine];
 
   const events: MatchEvent[] = [];
+  // Backline passes on the carry path — drives the per-pass lateral hop count.
+  let passCount = 0;
 
   // Scrum-half → fly-half interception roll. Off the set piece this is
   // the first pass; off-target the ball lands at the interceptor's feet.
@@ -62,6 +65,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       return { nextPhase: MatchPhase.KickReturn, narration: { steps: intSteps }, primaryPlayer: interceptor, secondaryPlayer: scrumHalf, events };
     }
     events.push({ type: 'PASS_COMPLETED', passer: scrumHalf });
+    passCount++;
   }
 
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;
@@ -145,6 +149,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     }
 
     events.push({ type: 'PASS_COMPLETED', passer: carrier });
+    passCount++;
     ballCarrier = insideCentre;
     // Channel-aware: crash-ball carrier is #12 (midfield channel) — defender
     // is weighted across opposite 12/13 plus back-row support.
@@ -218,6 +223,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     }
 
     events.push({ type: 'PASS_COMPLETED', passer: carrier });
+    passCount++;
 
     const wingPool = attackOnField.filter(p => p.id === SLOT.WING_11 || p.id === SLOT.WING_14);
     const wing = wingPool.length > 0 ? wingPool[rng(0, wingPool.length - 1)] : (attackOnField[rng(0, Math.max(0, attackOnField.length - 1))] ?? randomPlayer(attackTeam));
@@ -264,6 +270,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     }
 
     events.push({ type: 'PASS_COMPLETED', passer: outsideCentre });
+    passCount++;
     ballCarrier = wing;
     // Channel-aware: wide-play carrier is a wing — defender weighted across
     // opposite wing / fullback / outside centre.
@@ -283,8 +290,16 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine] + pathEvasionMod;
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine] + pathCollisionMod;
   const tlBonus = tryLineDefenceBonus(state);
-  const baseAttackMod = attackMod + ha.attack + tlBonus.evasion;
-  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend;
+  const gameMinute = state.clock.gameMinute;
+  const ttAttack = state.teamTalkMod[attackSide];
+  const ttDef    = state.teamTalkMod[defSide];
+  const ttAttackFrac = ttAttack.decayMinutes > 0 ? Math.max(0, 1 - (gameMinute - ttAttack.startMinute) / ttAttack.decayMinutes) : 0;
+  const ttDefFrac    = ttDef.decayMinutes > 0    ? Math.max(0, 1 - (gameMinute - ttDef.startMinute)    / ttDef.decayMinutes)    : 0;
+  const fpSo = state.teamTalkMod.singleOut;
+  const fpSoFrac = fpSo && fpSo.decayMinutes > 0 ? Math.max(0, 1 - (gameMinute - fpSo.startMinute) / fpSo.decayMinutes) : 0;
+  const fpSingleOutBonus = fpSo && fpSo.side === attackSide && fpSo.playerId === ballCarrier.id ? fpSo.bonus * fpSoFrac : 0;
+  const baseAttackMod = attackMod + ha.attack + tlBonus.evasion + ttAttack.attack * ttAttackFrac + fpSingleOutBonus;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend + ttDef.defend * ttDefFrac;
   let res = resolveOpenPlay(ballCarrier, defender, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
   const direction = attackDir(state);
 
@@ -336,6 +351,16 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     ? pickAssistTackler(defendTeam, state, defSide, defender)
     : undefined;
 
+  // First phase off a set piece: the ball sweeps to the open side one hop per
+  // backline pass (oriented open-side), THEN the carrier drives forward — so the
+  // keyframe path reads "across the line, then upfield". Emitted before the carry
+  // so the lateral legs precede the x-advance. Try path keeps its tryLandingY
+  // grounding below (no per-pass hops on a score).
+  let lateralStep: NarrationStep | null = null;
+  if (!tryScored) {
+    lateralStep = emitSweepHops(events, state, attackTeam.tactics.attackingStyle, passCount, true, attackTeam.name, !silent);
+  }
+
   events.push({
     type: 'CARRY_RESOLVED',
     carrier: ballCarrier,
@@ -356,7 +381,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     const tryKey: 'line_break_try' | 'dominant_carry_try' =
       res.outcome === 'line_break' ? 'line_break_try' : 'dominant_carry_try';
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: tryKey, primary: ballCarrier, secondary: defender });
-    const y = tryLandingY(attackTeam.tactics.attackingStyle);
+    const y = tryLandingY(state, attackTeam.tactics.attackingStyle);
     events.push({ type: 'BALL_REPOSITIONED', y });
     outcomeSteps.push({ kind: 'announcement', key: `try_location_${tryLocationBand(y)}` });
   } else if (res.outcome === 'line_break') {
@@ -412,6 +437,9 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'high_tackle_penalty', primary: defender, secondary: ballCarrier });
     nextPhase = MatchPhase.Penalty;
   }
+
+  // Lateral flavour rides on a normal continuation only — not after a penalty/try.
+  if (lateralStep && nextPhase === MatchPhase.Breakdown) outcomeSteps.push(lateralStep);
 
   return {
     nextPhase,

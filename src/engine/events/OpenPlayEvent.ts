@@ -10,6 +10,7 @@ import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
 import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler, pickHardCarrier, pickPickAndGoCarrier, tryLineDefenceBonus } from '../FieldPosition';
+import { sweepStep, emitSweepHops } from '../Lateral';
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
@@ -20,7 +21,7 @@ import { tryOffloadChain } from './offloadChain';
 
 const FULL_BACKLINE = 7;  // jersey ids 9–15
 
-export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }: PhaseContext): PhaseResult {
+export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, silent }: PhaseContext): PhaseResult {
   const attackSide = state.possession;
   const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
 
@@ -78,6 +79,8 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
   const interceptPctBase = INTERCEPTION_BASE_PCT + TACTIC_MODIFIERS.interceptionMod[defensiveLine];
 
   const events: MatchEvent[] = [];
+  // Backline passes on the carry path — drives the per-pass lateral hop count.
+  let passCount = 0;
 
   // Scrum-half → carrier interception opportunity (only when the pass
   // actually happens). On hit, possession flips and the interceptor runs
@@ -101,6 +104,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
       return { nextPhase: MatchPhase.KickReturn, narration: { steps: intSteps }, primaryPlayer: interceptor, secondaryPlayer: scrumHalf, events };
     }
     events.push({ type: 'PASS_COMPLETED', passer: scrumHalf });
+    passCount++;
   }
 
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;
@@ -209,6 +213,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
     }
 
     events.push({ type: 'PASS_COMPLETED', passer: carrier });
+    passCount++;
     ballCarrier = outsideBack;
   }
 
@@ -240,8 +245,20 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine] + pathEvasionMod;
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine] + pathCollisionMod;
   const tlBonus = tryLineDefenceBonus(state);
-  const baseAttackMod = attackMod + breakdownWideEvasion + ha.attack + tlBonus.evasion;
-  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend;
+  // Team talk modifier — decays linearly from startMinute over decayMinutes.
+  const gameMinute = state.clock.gameMinute;
+  const ttAttack = state.teamTalkMod[attackSide];
+  const ttDef    = state.teamTalkMod[defSide];
+  const ttAttackFrac = ttAttack.decayMinutes > 0 ? Math.max(0, 1 - (gameMinute - ttAttack.startMinute) / ttAttack.decayMinutes) : 0;
+  const ttDefFrac    = ttDef.decayMinutes > 0    ? Math.max(0, 1 - (gameMinute - ttDef.startMinute)    / ttDef.decayMinutes)    : 0;
+  const ttAttackBonus = ttAttack.attack * ttAttackFrac;
+  const ttDefendBonus = ttDef.defend * ttDefFrac;
+  // singleOut: targeted bonus for one specific ball-carrier on the attacking side.
+  const so = state.teamTalkMod.singleOut;
+  const soFrac = so && so.decayMinutes > 0 ? Math.max(0, 1 - (gameMinute - so.startMinute) / so.decayMinutes) : 0;
+  const singleOutBonus = so && so.side === attackSide && so.playerId === ballCarrier.id ? so.bonus * soFrac : 0;
+  const baseAttackMod = attackMod + breakdownWideEvasion + ha.attack + tlBonus.evasion + ttAttackBonus + singleOutBonus;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend + ttDefendBonus;
   let res = resolveOpenPlay(ballCarrier, defender, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
   const direction = attackDir(state);
 
@@ -304,6 +321,15 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
     ? pickAssistTackler(defendTeam, state, defSide, defender)
     : undefined;
 
+  // Lateral hops: the ball steps across the field one hop per backline pass
+  // (continuing the current sweep direction), THEN the carrier drives forward —
+  // emitted before the carry so the lateral legs precede the x-advance. Try path
+  // keeps its tryLandingY grounding below (no per-pass hops on a score).
+  let lateralStep: NarrationStep | null = null;
+  if (!tryScored) {
+    lateralStep = emitSweepHops(events, state, attackTeam.tactics.attackingStyle, passCount, false, attackTeam.name, !silent);
+  }
+
   events.push({
     type: 'CARRY_RESOLVED',
     carrier: ballCarrier,
@@ -324,7 +350,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
     const tryKey: 'line_break_try' | 'dominant_carry_try' =
       res.outcome === 'line_break' ? 'line_break_try' : 'dominant_carry_try';
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: tryKey, primary: ballCarrier, secondary: defender });
-    const y = tryLandingY(attackTeam.tactics.attackingStyle);
+    const y = tryLandingY(state, attackTeam.tactics.attackingStyle);
     events.push({ type: 'BALL_REPOSITIONED', y });
     outcomeSteps.push({ kind: 'announcement', key: `try_location_${tryLocationBand(y)}` });
   } else if (res.outcome === 'line_break') {
@@ -402,6 +428,9 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
     }
   }
 
+  // Lateral flavour rides on a normal continuation only — not after a penalty/try.
+  if (lateralStep && nextPhase === MatchPhase.Breakdown) outcomeSteps.push(lateralStep);
+
   return {
     nextPhase,
     narration: { steps: outcomeSteps },
@@ -442,8 +471,17 @@ function resolvePickAndGo(
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine];
   const tlBonus = tryLineDefenceBonus(state);
-  const baseAttackMod = attackMod + ha.attack + tlBonus.evasion;
-  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend;
+  // Team talk modifier (same decay formula as handlePhasePlay).
+  const pagGameMinute = state.clock.gameMinute;
+  const pagTtAttack = state.teamTalkMod[attackSide];
+  const pagTtDef    = state.teamTalkMod[defSide];
+  const pagTtAttackFrac = pagTtAttack.decayMinutes > 0 ? Math.max(0, 1 - (pagGameMinute - pagTtAttack.startMinute) / pagTtAttack.decayMinutes) : 0;
+  const pagTtDefFrac    = pagTtDef.decayMinutes > 0    ? Math.max(0, 1 - (pagGameMinute - pagTtDef.startMinute)    / pagTtDef.decayMinutes)    : 0;
+  const pagSo = state.teamTalkMod.singleOut;
+  const pagSoFrac = pagSo && pagSo.decayMinutes > 0 ? Math.max(0, 1 - (pagGameMinute - pagSo.startMinute) / pagSo.decayMinutes) : 0;
+  const pagSingleOutBonus = pagSo && pagSo.side === attackSide && pagSo.playerId === carrier.id ? pagSo.bonus * pagSoFrac : 0;
+  const baseAttackMod = attackMod + ha.attack + tlBonus.evasion + pagTtAttack.attack * pagTtAttackFrac + pagSingleOutBonus;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend + pagTtDef.defend * pagTtDefFrac;
   const res = resolveOpenPlay(carrier, defender, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
 
   // Downgrade line_break → dominant_carry; pick-and-go can't break the line.
@@ -467,6 +505,11 @@ function resolvePickAndGo(
     coverTackler: undefined,
     assistTackler,
   });
+
+  // A pick-and-go is a tight forward drive, not a pass — only a small lateral
+  // creep in the current sweep direction (keep_it_tight = smallest step).
+  const sweep = sweepStep(state, 'keep_it_tight');
+  events.push({ type: 'BALL_REPOSITIONED', y: sweep.y, lateralDir: sweep.lateralDir });
 
   const outcomeKey: 'pick_and_go_play_on' | 'pick_and_go_dominant_carry' | 'pick_and_go_dominant_tackle' =
     outcome === 'dominant_carry'  ? 'pick_and_go_dominant_carry'

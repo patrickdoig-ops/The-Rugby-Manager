@@ -420,13 +420,24 @@ should be built to degrade gracefully without them.
 - No engine, balance, save, or determinism impact. Respect the base-relative asset
   rule (`import.meta.env.BASE_URL`) if any sprites/sounds are added.
 
-### Build milestones
+### Build milestones — ✅ shipped
 
-1. Replace the 1D strip with a 2D ball plot (use `ballY`); keep zones/labels.
-2. Add territory bar + possession/phase colouring.
-3. Add card indicators + event-flash highlights on `engine:event`.
-4. Wire into the view-toggle as the Dashboard hero (and verify mobile layout +
-   text-scale settings).
+Implemented as a dedicated **5th "Pitch" view** (`src/ui/PitchView.ts`) between
+Dashboard and Commentary, rendered with **SVG + CSS** (the canvas option above was
+not needed). The view-toggle bar moved above the scoreboard and became icon-only so
+the controls stay put while the scoreboard sheds the 1D strip in the Pitch view.
+
+1. ✅ 2D ball plot — `ballX` drives the vertical (long) axis, `ballY` the horizontal,
+   over a portrait pitch with try/22/halfway lines and end labels; ball coloured by
+   possession. The 1D strip is kept for the other four views, hidden only in Pitch view
+   (`body.pitch-view-active #pitch-wrapper`).
+2. ✅ Territory tug-of-war bar (`display.stats.territory`) + controlling-half shading +
+   phase/attacking-team/direction label tinted by `phaseClass`.
+3. ✅ Per-side card pips (reusing `renderCardStack`) + event-flash highlights on
+   `engine:event` for tries/penalties/cards, plus a subtler turnover flash on possession
+   change. Flashes are curated (not every box-kick/lineout) to avoid strobing.
+4. ✅ Wired into the view-toggle (vertical/portrait orientation, not the Dashboard hero);
+   mobile + desktop layouts verified.
 
 ### Risks
 

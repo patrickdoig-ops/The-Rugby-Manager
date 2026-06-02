@@ -44,6 +44,8 @@ import '../style/training-results.css';
 import '../style/player-profile.css';
 import '../style/saves.css';
 import '../style/achievements.css';
+import '../style/sack.css';
+import '../style/team-talk.css';
 
 import { buildAppShell }           from './ui/AppShell';
 import { preloadAllCues }          from './ui/SoundManager';
@@ -52,12 +54,15 @@ import { initUiSounds }            from './ui/audio/uiSounds';
 import { initHapticsDirector }     from './ui/haptics/HapticsDirector';
 import { initScoreboard }          from './ui/Scoreboard';
 import { initPitchStrip }          from './ui/PitchStrip';
+import { initPitchView }           from './ui/PitchView';
 import { initCommentaryFeed }      from './ui/CommentaryFeed';
 import { initCrashOverlay }        from './ui/CrashOverlay';
 import { initStatsPanel }          from './ui/StatsPanel';
 import { initSimController }       from './ui/SimController';
 import { initModalManager }        from './ui/ModalManager';
 import { initPreMatchScreen, showPreMatchAtStep } from './ui/PreMatchScreen';
+import { initTeamTalkScreen } from './ui/TeamTalkScreen';
+import { initHalfTimeTalkPanel } from './ui/HalfTimeTalkPanel';
 import { initHomeScreen }          from './ui/HomeScreen';
 import { initSettingsScreen }      from './ui/SettingsScreen';
 import { initSavesScreen }         from './ui/SavesScreen';
@@ -76,6 +81,7 @@ import { initPlayoffBracketScreen, showPlayoffBracket } from './ui/PlayoffBracke
 import { initBudgetRevealScreen, showBudgetReveal } from './ui/BudgetRevealScreen';
 import { initTakeoverRevealScreen, showTakeoverReveal, type TakeoverEntry } from './ui/TakeoverRevealScreen';
 import { initEndOfSeasonScreen, showEndOfSeason }   from './ui/EndOfSeasonScreen';
+import { initSackScreen, showSack }                 from './ui/SackScreen';
 import { initRenewalsScreen, showRenewals }         from './ui/RenewalsScreen';
 import { initTransferMarketScreen, showTransferMarket, showTransferMarketMidseason, showTransferMarketPreSeason } from './ui/TransferMarketScreen';
 import { initSigningResultsScreen, showSigningResults } from './ui/SigningResultsScreen';
@@ -85,6 +91,8 @@ import { initSquadOverviewScreen, showSquadOverview } from './ui/SquadOverviewSc
 import { PRE_SEASON_TRANSFERS_2025_26 } from './data/transfers-2025-26';
 import { initRolloverScreen, showRollover }         from './ui/RolloverScreen';
 import { initContractsScreen, showContracts, showContractsMarqueeEdit } from './ui/ContractsScreen';
+import { initContractsTransfersMenuScreen, showContractsTransfersMenu } from './ui/ContractsTransfersMenuScreen';
+import { initClubMenuScreen, showClubMenu } from './ui/ClubMenuScreen';
 import { initSquadManagementScreen, showSquadManagement } from './ui/SquadManagementScreen';
 import { initTrainingScreen, showTrainingPostMatch, showTrainingMidweek } from './ui/TrainingScreen';
 import { initPostTrainingResultsScreen, showPostTrainingResults } from './ui/PostTrainingResultsScreen';
@@ -106,6 +114,7 @@ import type { RawTeamInput }       from './types/teamData';
 import type { TeamTactics }        from './types/team';
 import type { MatchState }         from './types/match';
 import type { PlayoffMatch }       from './types/gameState';
+import type { TalkArgs }           from './types/ui';
 import * as teamProfile            from './team/teamProfile';
 import type { TeamJson }           from './team/teamProfile';
 import { GameCoordinator }         from './game/GameCoordinator';
@@ -114,7 +123,7 @@ import { extractMatchdaySquad }    from './game/playerSquad';
 import { resolveCaptainRosterId }  from './game/captain';
 import { buildTeamFromRoster, buildAutoSelectedTeamFromRoster } from './game/rosterTeamBuilder';
 import { snapshotMatch }           from './game/seasonStatsCollector';
-import { SEASON_VALUES, HOME_ADVANTAGE } from './engine/balance';
+import { SEASON_VALUES, HOME_ADVANTAGE, MORALE } from './engine/balance';
 import { computeAttendance }        from './game/attendance';
 import { generateSeed }            from './utils/rng';
 import { eventBus }                from './utils/eventBus';
@@ -158,12 +167,14 @@ document.addEventListener('DOMContentLoaded', () => {
   configureNativeShell();
   initTextScale();            // accessibility text scale — before any render
   buildAppShell();
+  initHalfTimeTalkPanel(document.getElementById('half-time-panel')!);
   preloadAllCues();
   initAudioDirector();
   initHapticsDirector();
   initUiSounds();
   initScoreboard();
   initPitchStrip();
+  initPitchView();
   initCommentaryFeed();
   initStatsPanel();
   initModalManager();
@@ -293,8 +304,8 @@ document.addEventListener('DOMContentLoaded', () => {
       onLeague:   goLeagueMenu,
       onSquad:    goSquad,
       onTraining: goTrainingMidweek,
-      onContracts: goContracts,
-      onTransfers: goTransfersMidseason,
+      onContractsAndTransfers: goContractsTransfersMenu,
+      onClub:      goClubMenu,
       onSettings: goSettingsFromHub,
       onInbox:    goInbox,
     });
@@ -312,6 +323,18 @@ document.addEventListener('DOMContentLoaded', () => {
       onPlayerStats:  goPlayerStats,
       onAchievements: goAchievements,
       onCup:          goCupBrowse,
+    });
+    initContractsTransfersMenuScreen({
+      getGameEngine,
+      allTeams,
+      onBack:      () => goHub('back'),
+      onContracts: goContracts,
+      onTransfers: goTransfersMidseason,
+    });
+    initClubMenuScreen({
+      getGameEngine,
+      allTeams,
+      onBack: () => goHub('back'),
     });
     initLeagueTableScreen(getGameEngine, allTeams, () => goLeagueMenu('back'), (teamId) => {
       const teamJson = allTeams.find(t => t.id === teamId);
@@ -337,6 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initBudgetRevealScreen(getGameEngine, allTeams);
     initTakeoverRevealScreen(getGameEngine, allTeams);
     initEndOfSeasonScreen(getGameEngine, allTeams);
+    initSackScreen(getGameEngine, allTeams);
     // Going to the profile from any off-season screen doesn't mutate
     // career state, so the back path just re-shows the existing DOM —
     // partial selections / toggles survive the round-trip.
@@ -353,7 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
       goPlayerProfile(rosterId, () => screenRouter.show('retention-decision', { direction: 'back' }));
     });
     initRolloverScreen(getGameEngine, allTeams);
-    initContractsScreen(getGameEngine, allTeams, () => goHub('back'), (rosterId) => {
+    initContractsScreen(getGameEngine, allTeams, () => goContractsTransfersMenu('back'), (rosterId) => {
       goPlayerProfile(rosterId, () => goContracts('back'));
     }, (rosterId, offeredWage) => {
       // Mid-season early renewal: mutate + persist engine-side so a
@@ -364,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const result = engine.offerEarlyRenewal(rosterId, offeredWage);
       saveGame(engine.toSavePayload());
       return result;
-    });
+    }, 'Contracts & Transfers');
     initSquadManagementScreen({
       getGameEngine,
       allTeams,
@@ -407,6 +431,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // routes through EndOfSeason → Renewals → Signings → Rollover.
     eventBus.on('game:bracketSeeded',  () => { bracketSeededPending = true; playoffTrainingPending = false; });
     eventBus.on('game:seasonComplete', () => { seasonCompletePending = true; });
+  }
+
+  // Game over: the manager has been sacked. Clears the active save slot so a
+  // sacked career can't be resumed, then shows the terminal screen.
+  function runSackScreen(reason: 'midseason' | 'endOfSeason'): void {
+    clearSave();
+    showSack({
+      reason,
+      onNewGame: () => goTeamSelector('forward'),
+      onMainMenu: () => goHome('back'),
+    });
+    screenRouter.show('sacked');
   }
 
   // The handful of Hub-and-League navigation helpers below are reused both
@@ -460,6 +496,16 @@ document.addEventListener('DOMContentLoaded', () => {
   function goContracts(direction: 'forward' | 'back' = 'forward'): void {
     showContracts();
     screenRouter.show('contracts', { direction });
+  }
+
+  function goContractsTransfersMenu(direction: 'forward' | 'back' = 'forward'): void {
+    showContractsTransfersMenu();
+    screenRouter.show('contracts-transfers-menu', { direction });
+  }
+
+  function goClubMenu(direction: 'forward' | 'back' = 'forward'): void {
+    showClubMenu();
+    screenRouter.show('club-menu', { direction });
   }
 
   function goAchievements(direction: 'forward' | 'back' = 'forward'): void {
@@ -528,7 +574,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gameEngine.closeMidseasonSigningWindow();
         saveGame(gameEngine.toSavePayload());
       }
-      goHub();
+      goContractsTransfersMenu('back');
     };
     showTransferMarketMidseason(onSubmit, onFinish);
     screenRouter.show('transfer-market');
@@ -678,6 +724,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // when the bracket is already restored, or when the regular season
     // isn't done yet).
     gameEngine.seedPlayoffBracket();
+    // Mid-season sack persisted but not yet shown (tab closed between the
+    // result and the game-over screen). The latch is the source of truth, so
+    // re-route to the SackScreen rather than dropping onto the Hub.
+    if (gameEngine.isManagerSacked()) {
+      runSackScreen('midseason');
+      return;
+    }
     // Squad Builder mid-pre-season resumption. The flag is only ever set
     // while the user is between team-selection and Round 1; after marquee
     // Continue the engine clears it via setPreSeasonStep(null).
@@ -736,8 +789,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const begin = gameEngine.beginInternationalBreak();
       if (begin) {
         const eng = gameEngine;
-        runInternationalBreakChain(begin, eng, () =>
-          maybeRunMidseasonPoach(() => { saveGame(eng.toSavePayload()); goHub(); }));
+        runInternationalBreakChain(begin, eng, () => {
+          if (eng.isManagerSacked()) { runSackScreen('midseason'); return; }
+          maybeRunMidseasonPoach(() => { saveGame(eng.toSavePayload()); goHub(); });
+        });
         return;
       }
     }
@@ -897,7 +952,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // Each market window is skipped when empty (the open*Window calls
   // leave state.career.market null in that case).
   function runEndOfSeasonChain(): void {
+    // Judge the season against the board's objective before rollover. Pure +
+    // idempotent — the chain re-runs verbatim if the user reloads from the
+    // off-season, so the verdict is recomputed (never double-applied). The
+    // EndOfSeasonScreen shows the verdict; the sack lands on Continue.
+    const sacked = gameEngine ? gameEngine.judgeSeasonObjective().sacked : false;
     showEndOfSeason(() => {
+      if (sacked) { runSackScreen('endOfSeason'); return; }
       if (!gameEngine) { goHub(); return; }
       // Compute next season's budgets (performance + takeovers) BEFORE
       // the rollover zeroes out standings. Events fire CLUB_BUDGET_SET
@@ -1018,6 +1079,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const contextLabel = isFinal
       ? 'Season Final · Twickenham'
       : `Season Semi-Final · ${match.homeSeed} v ${match.awaySeed}`;
+    const playerRawTeam = playerSide === 'home' ? homeTeam : awayTeam;
+    const oppRawTeam    = playerSide === 'home' ? awayTeam : homeTeam;
     initPreMatchScreen(
       rosteredHome,
       rosteredAway,
@@ -1025,13 +1088,25 @@ document.addEventListener('DOMContentLoaded', () => {
       0, // round is unused in playoff mode — context label overrides it
       gameEngine,
       (configuredHome, configuredAway, playerTactics) => {
+        const playerConfigured = playerSide === 'home' ? configuredHome : configuredAway;
         if (gameEngine) {
-          const playerConfigured = playerSide === 'home' ? configuredHome : configuredAway;
           gameEngine.setPlayerTactics(playerTactics);
           gameEngine.setPlayerMatchdaySquad(extractMatchdaySquad(playerConfigured));
           saveGame(gameEngine.toSavePayload());
         }
-        onPlayoffMatchStart(configuredHome, configuredAway, playerSide, match, playerTactics);
+        // Show team talk screen before the playoff match.
+        const avgMorale = computeAverageMorale(playerConfigured);
+        initTeamTalkScreen(
+          { name: playerRawTeam.name, shortName: playerRawTeam.shortName, color: playerRawTeam.color },
+          { name: oppRawTeam.name, shortName: oppRawTeam.shortName, color: oppRawTeam.color },
+          contextLabel,
+          playerConfigured.players.slice(0, 15),
+          avgMorale,
+          (talkArgs) => {
+            onPlayoffMatchStart(configuredHome, configuredAway, playerSide, match, playerTactics, talkArgs, avgMorale);
+          },
+        );
+        screenRouter.show('team-talk');
       },
       runPlayoffStage,
       { contextLabel, neutralVenue: isFinal, backLabel: 'Bracket' },
@@ -1050,6 +1125,8 @@ document.addEventListener('DOMContentLoaded', () => {
     playerSide: 'home' | 'away',
     match: PlayoffMatch,
     playerTactics: TeamTactics,
+    humanPreTalk?: TalkArgs,
+    humanSquadMorale?: number,
   ): void {
     const humanConfigured = playerSide === 'home' ? configuredHome : configuredAway;
     const humanCaptainRosterId = resolveCaptainRosterId(humanConfigured.players, gameEngine?.getState().player.captainRosterId);
@@ -1060,6 +1137,8 @@ document.addEventListener('DOMContentLoaded', () => {
       neutralVenue: match.kind === 'final',
       isPlayoffSemi: match.kind !== 'final',
       humanCaptainRosterId,
+      humanPreTalk,
+      humanSquadMorale,
     });
     initSimController(engine);
 
@@ -1093,6 +1172,21 @@ document.addEventListener('DOMContentLoaded', () => {
     screenRouter.show('match-result');
   }
 
+  // Compute average morale of the player's starting XV from the career roster.
+  function computeAverageMorale(playerConfigured: RawTeamInput): number {
+    if (!gameEngine) return MORALE.baseline;
+    const careerState = gameEngine.getState();
+    const starters = playerConfigured.players.slice(0, 15);
+    if (starters.length === 0) return MORALE.baseline;
+    let sum = 0;
+    for (const p of starters) {
+      const rosterId = (p as { rosterId?: number }).rosterId ?? 0;
+      const rosterPlayer = rosterId ? careerState.career.roster[rosterId] : null;
+      sum += rosterPlayer?.morale ?? MORALE.baseline;
+    }
+    return sum / starters.length;
+  }
+
   function onPlayRound(homeTeam: RawTeamInput, awayTeam: RawTeamInput, playerSide: 'home' | 'away', round: number): void {
     if (!gameEngine) return;
     // Source player data from the persistent career roster — team identity
@@ -1110,6 +1204,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const rosteredAway = playerSide === 'away'
       ? buildTeamFromRoster(state, awayTeam)
       : buildAutoSelectedTeamFromRoster(state, awayTeam);
+    const playerRawTeam = playerSide === 'home' ? homeTeam : awayTeam;
+    const oppRawTeam    = playerSide === 'home' ? awayTeam : homeTeam;
     initPreMatchScreen(
       rosteredHome,
       rosteredAway,
@@ -1120,13 +1216,25 @@ document.addEventListener('DOMContentLoaded', () => {
         // Persist the manager's pre-match commits so the next match opens
         // with these as defaults. Saved here (on Kick Off) rather than after
         // the result so backing out mid-match keeps the chosen line-up.
+        const playerConfigured = playerSide === 'home' ? configuredHome : configuredAway;
         if (gameEngine) {
-          const playerConfigured = playerSide === 'home' ? configuredHome : configuredAway;
           gameEngine.setPlayerTactics(playerTactics);
           gameEngine.setPlayerMatchdaySquad(extractMatchdaySquad(playerConfigured));
           saveGame(gameEngine.toSavePayload());
         }
-        onMatchStart(configuredHome, configuredAway, playerSide, round, playerTactics);
+        // Show the team talk screen before starting the match.
+        const avgMorale = computeAverageMorale(playerConfigured);
+        initTeamTalkScreen(
+          { name: playerRawTeam.name, shortName: playerRawTeam.shortName, color: playerRawTeam.color },
+          { name: oppRawTeam.name, shortName: oppRawTeam.shortName, color: oppRawTeam.color },
+          `Round ${round}`,
+          playerConfigured.players.slice(0, 15),
+          avgMorale,
+          (talkArgs) => {
+            onMatchStart(configuredHome, configuredAway, playerSide, round, playerTactics, talkArgs, avgMorale);
+          },
+        );
+        screenRouter.show('team-talk');
       },
       () => goHub('back'),
       undefined,
@@ -1145,6 +1253,8 @@ document.addEventListener('DOMContentLoaded', () => {
     playerSide: 'home' | 'away',
     round: number,
     playerTactics: TeamTactics,
+    humanPreTalk?: TalkArgs,
+    humanSquadMorale?: number,
   ): void {
     const liveState = gameEngine!.getState();
     const liveFixture = liveState.league.fixtures.find(f =>
@@ -1155,7 +1265,7 @@ document.addEventListener('DOMContentLoaded', () => {
       : HOME_ADVANTAGE.crowdFillNeutral;
     const humanConfigured = playerSide === 'home' ? configuredHome : configuredAway;
     const humanCaptainRosterId = resolveCaptainRosterId(humanConfigured.players, liveState.player.captainRosterId);
-    const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: loadTickDelayMs(), playerTactics, humanSide: playerSide, homeFillRate, isDerby: liveFixture?.isDerby ?? false, humanCaptainRosterId });
+    const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: loadTickDelayMs(), playerTactics, humanSide: playerSide, homeFillRate, isDerby: liveFixture?.isDerby ?? false, humanCaptainRosterId, humanPreTalk, humanSquadMorale });
     initSimController(engine);
 
     const unsub = eventBus.on('engine:finished', ({ state }) => {
@@ -1260,8 +1370,18 @@ document.addEventListener('DOMContentLoaded', () => {
         // window self-gates on cadence + threats). Playoff-entry rounds
         // skip straight to the bracket.
         const afterTraining = isPlayoffEntry
-          ? () => { bracketSeededPending = false; runPlayoffStage(); }
-          : () => maybeRunMidseasonPoach(() => { if (gameEngine) saveGame(gameEngine.toSavePayload()); goHub(); });
+          ? () => {
+              // A final-round result can sack the manager even as the bracket
+              // is seeded — game over takes precedence over entering the playoffs.
+              if (gameEngine?.isManagerSacked()) { runSackScreen('midseason'); return; }
+              bracketSeededPending = false; runPlayoffStage();
+            }
+          : () => {
+              // A mid-season result may have drained board confidence past the
+              // sack threshold — game over before returning to the Hub.
+              if (gameEngine?.isManagerSacked()) { runSackScreen('midseason'); return; }
+              maybeRunMidseasonPoach(() => { if (gameEngine) saveGame(gameEngine.toSavePayload()); goHub(); });
+            };
         // International break detection (RNG-free): flags the call-ups and
         // reads this block's Prem Cup fixtures. When present, the break runs
         // its own screen chain (call-ups → cup fixtures + direction → training

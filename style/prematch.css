@@ -156,6 +156,20 @@
 
 .pm-injury-text { flex: 1; }
 
+/* ── Squad mood banner ── */
+.pm-mood-banner {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: var(--rm-fs-12);
+  color: var(--rm-text-muted);
+  border: 1px solid var(--rm-border-soft);
+}
+
+.pm-mood-banner strong { color: var(--rm-text); }
+
+.pm-mood-banner--flying strong { color: oklch(0.74 0.18 144); }
+.pm-mood-banner--flat   strong { color: oklch(0.60 0.16 25); }
+
 /* ── Scrollable body ── */
 #pm-body {
   flex: 1;

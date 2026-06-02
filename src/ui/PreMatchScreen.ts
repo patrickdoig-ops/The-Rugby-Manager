@@ -28,7 +28,7 @@ import { shortName } from '../utils/playerName';
 import { teamTextColor } from '../utils/teamColor';
 import type { RawTeamInput } from '../types/teamData';
 import { playerOverall } from '../engine/RatingEngine';
-import { oopSeverity, oopPenaltyPct, SLOT_POSITION } from '../engine/balance';
+import { oopSeverity, oopPenaltyPct, SLOT_POSITION, MORALE, TEAM_TALK } from '../engine/balance';
 import { computeOverallRating } from '../team/teamProfile';
 import { recentForm, headToHead, matchSpread, formAdjustment, HOME_ADVANTAGE_PTS, type FormResult } from '../game/teamStats';
 import { computeAttendance } from '../game/attendance';
@@ -671,6 +671,25 @@ export function initPreMatchScreen(
     `;
   }
 
+  function moodBannerHtml(): string {
+    if (step !== 'mine') return '';
+    const starters = playerTeam.players.slice(0, 15);
+    if (starters.length === 0) return '';
+    let sum = 0;
+    for (const p of starters) {
+      const rp = p.rosterId ? state.career.roster[p.rosterId] : null;
+      sum += rp?.morale ?? MORALE.baseline;
+    }
+    const avg = sum / starters.length;
+    const label = avg >= TEAM_TALK.flyingThreshold ? 'Flying'
+      : avg >= TEAM_TALK.flatThreshold ? 'Steady'
+      : 'Flat';
+    const cls = avg >= TEAM_TALK.flyingThreshold ? 'pm-mood-banner--flying'
+      : avg >= TEAM_TALK.flatThreshold ? 'pm-mood-banner--steady'
+      : 'pm-mood-banner--flat';
+    return `<div class="pm-mood-banner ${cls}" role="status">Squad mood: <strong>${label}</strong></div>`;
+  }
+
   function bodyHtml(): string {
     if (step === 'mine') {
       return renderLineupBody('LINE-UP', playerTeam, playerStarters, playerBench, stadiumName, matchDate, roundLabel, !!onEditSquad, !!onPlayerProfile, state, isRowExpanded, currentCaptainId);
@@ -692,6 +711,7 @@ export function initPreMatchScreen(
         ${versusBannerHtml()}
         ${injuryBannerHtml()}
         ${restBannerHtml()}
+        ${moodBannerHtml()}
       </div>
       <div id="pm-body" class="pm-body--${step}">${bodyHtml()}</div>
       ${footerHtml()}

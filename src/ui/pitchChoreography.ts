@@ -110,27 +110,32 @@ function kickerLayout(event: GameEvent, state: MatchState, attacksTop: boolean):
   return [placed(kicker, atkSide, state, clampX(event.ballX - fwd * 2.5), event.ballY, true)];
 }
 
-// Kick-off: kicker stands just behind halfway in own half; the primary actor
-// (receiver or chaser) stands at the ball's landing spot. Shows both players so
-// the ball visibly travels from kicker to receiver.
+// Kick-off: kicker just behind halfway; receiver at the landing spot; chaser
+// at halfway aligned laterally with the landing spot so the chase lane is clear.
 function kickOffLayout(event: GameEvent, state: MatchState, attacksTop: boolean): Placed[] {
   const atkSide: Side = event.side === 'home' ? 'h' : 'a';
   const fwd = attacksTop ? 1 : -1;
   const team = atkSide === 'h' ? state.homeTeam : state.awayTeam;
   const onField = onFieldPlayers(team, state, possOf(atkSide));
-  // Always find kicker from team roster — event.primaryPlayer is the receiver for
-  // clean_receive / knock_on, not the kicker.
+  // event.primaryPlayer is the receiver; always find the kicker from the roster.
   const kicker = onField.find(p => p.id === SLOT.FLY_HALF) ?? onField[0];
   if (!kicker) return [];
 
-  // Kicker stands just behind halfway in their own half at midfield lateral.
   const out: Placed[] = [placed(kicker, atkSide, state, clampX(50 - fwd * 2.5), 50, true)];
 
-  // Show the primary actor (receiver / chaser) at the ball's landing spot.
-  const actor = event.primaryPlayer;
-  if (actor && actor !== kicker) {
-    out.push(placed(actor, sideOf(actor, state), state, event.ballX, event.ballY, false));
+  // Receiver at the ball's landing spot.
+  const receiver = event.primaryPlayer;
+  if (receiver && receiver !== kicker) {
+    out.push(placed(receiver, sideOf(receiver, state), state, event.ballX, event.ballY, false));
   }
+
+  // Chaser on the halfway line, same lateral position as the landing spot —
+  // shows they are running down the chase lane toward the receiver.
+  const chaser = event.secondaryPlayer;
+  if (chaser && chaser !== kicker) {
+    out.push(placed(chaser, sideOf(chaser, state), state, 50, event.ballY, false));
+  }
+
   return out;
 }
 

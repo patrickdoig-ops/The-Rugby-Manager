@@ -1,6 +1,7 @@
 import type { PhaseContext, PhaseResult } from './types';
 import type { MatchEvent } from '../../types/matchEvent';
 import type { NarrationDescriptor } from '../../types/narration';
+import type { Player } from '../../types/player';
 import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
@@ -37,9 +38,11 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
   // pod runner who actually takes contact. Tactics-keyed: tight teams build
   // platforms more, expansive teams let the backs run. Falls through to the
   // catcher when no back-row / lock is on the field.
+  // Pod pop is a real pass by the catcher — credit it before reassigning carrier.
+  let podPop: Player | undefined;
   if (rng(1, 100) <= POD_PICKUP_PCT[attackTeam.tactics.attackingStyle]) {
     const pod = pickPodCarrier(attackTeam, state, attackSide, carrier);
-    if (pod) carrier = pod;
+    if (pod) { podPop = carrier; carrier = pod; }
   }
 
   let defender = pickKickReturnDefender(defendTeam, state, defSide);
@@ -49,6 +52,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
     { type: 'KICK_RETURN_CARRIER_SET', player: undefined },
     { type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 },
   ];
+  if (podPop) events.push({ type: 'PASS_COMPLETED', passer: podPop });
 
   const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[defendTeam.tactics.backfieldDefence];
   const missingBacks = FULL_BACKLINE - availableBacks(defendTeam, state, defSide).length;

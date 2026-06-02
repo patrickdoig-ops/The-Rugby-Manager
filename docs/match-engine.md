@@ -106,6 +106,7 @@ state.tmoReview? = { step: 1|2|3, outcome, offender, offendingSide }   // mid-re
 
 Snapshot DTOs intentionally **stay scalar** — they are frozen log rows, not live state:
 - `GameEvent.ballX` / `GameEvent.ballY` (entries in `state.events[]`)
+- `GameEvent.movements` — optional `ReadonlyArray<{ x; y }>`, the in-phase ball path (a frozen scalar snapshot, same lifetime rule as `ballX`/`ballY`; not range-checked by `assertInvariants`). Captured in `resolvePhase` after each ball-moving applied event (`CARRY_RESOLVED` / `BALL_REPOSITIONED`), present only when the phase moved the ball more than once. Last entry equals `ballX`/`ballY`. Consumed by `PitchView` to animate the ball leg-by-leg.
 - `PenaltyContext.ballX` / `ballY` / `clockInTheRed` / `halfTimeDone` (crosses the event-bus boundary to `ModalManager`)
 - `MatchEvent` payload fields (`x`, `y`, `delta`, `value`) stay scalar — only the write *targets* in `applyMatchEvent` are nested
 - `isTryScoredAt(ballX, possession, halfTimeDone)` and `inOpposition22At(ballX, possession, halfTimeDone)` keep scalar signatures — called on projected (not-yet-applied) positions
@@ -118,7 +119,7 @@ The engine emits the following UI-bound events through `src/utils/eventBus.ts`. 
 |---|---|---|
 | `engine:initialized` | `{}` | Scoreboard, PitchStrip, PitchView, StatsPanel, CommentaryFeed — reset per-match caches |
 | `engine:stateChange` | `{ state: MatchState; display: DisplaySnapshot }` | Scoreboard + PitchStrip + PitchView (2D pitch ball/territory/cards) read `display` (the world frame, snapshot at event-production time); StatsPanel reads live `state` (per-player tables); CommentaryFeed (one-shot for team-colour cache) |
-| `engine:event` | `{ event: GameEvent }` | CommentaryFeed (renders narration); PitchView (zone flash on try/penalty/card) |
+| `engine:event` | `{ event: GameEvent }` | CommentaryFeed (renders narration); PitchView (zone flash on try/penalty/card; animates the ball through `event.movements` leg-by-leg on its own speed-derived timer, decoupled from the commentary line cadence) |
 | `engine:paused` | `{ payload: ModalPayload }` | ModalManager (penalty_choice / kickoff_choice / forced_substitution_choice — red_20-expired sub picker — / tactics / sub modal), SimController (button gating) |
 | `engine:resumed` | `{}` | ModalManager, SimController |
 | `engine:autoPaused` | `{ reason: 'half_time' }` | SimController (re-enables Play, disables Pause). Fires once per match after the half-time line drains so the user has to press Play to start the second half. Skipped in silent mode. |
@@ -727,18 +728,18 @@ On any knock-on: possession flips, scrum awarded, dropping player −0.45. The `
 
 Runs after `KickOff`, `BoxKick`, or `TacticalKick`. The carrier is **whoever caught the kick** in the prior phase, tracked via `state.kickReturnCarrier` (set by each kick handler before transitioning to `KickReturn`, cleared at the start of this handler). Falls back to `randomPlayer(attackTeam)` if unset.
 
-**Pod pickup.** After the catcher is identified, a tactics-keyed roll may swap the carrier to a trailing back-row pod runner — the catcher pops the ball off rather than running it themselves. Probability is `POD_PICKUP_PCT[attackingStyle]` (`keep_it_tight` 50% / `balanced` 30% / `wide_wide` 15%); on hit, `pickPodCarrier(attackTeam, state, attackSide, catcher)` picks a weighted forward over back-row + locks only (`POD_PICKUP_WEIGHTS`: back row 18/18/15, locks 6/6 — props + hooker excluded, they're trailing in midfield). Falls through to the catcher when no eligible pod runner is on the field. The swap is silent — no extra commentary line; downstream phase outcome commentary (`line_break` / `dominant_tackle` / `play_on` / `dominant_carry`) names the pod runner automatically via `primary: carrier`.
+**Pod pickup.** After the catcher is identified, a tactics-keyed roll may swap the carrier to a trailing back-row pod runner — the catcher pops the ball off rather than running it themselves. Probability is `POD_PICKUP_PCT[attackingStyle]` (`keep_it_tight` 50% / `balanced` 30% / `wide_wide` 15%); on hit, `pickPodCarrier(attackTeam, state, attackSide, catcher)` picks a weighted forward over back-row + locks only (`POD_PICKUP_WEIGHTS`: back row 18/18/15, locks 6/6 — props + hooker excluded, they're trailing in midfield). Falls through to the catcher when no eligible pod runner is on the field. The swap is silent — no extra commentary line; downstream phase outcome commentary (`line_break` / `dominant_tackle` / `play_on` / `dominant_carry`) names the pod runner automatically via `primary: carrier`. The pop **is** a real pass, so a `PASS_COMPLETED` is credited to the catcher when the swap fires (the catcher's only action this phase; mirrors the offload-chain pass credit). No extra RNG draw.
 
 ```typescript
 carrier  = state.kickReturnCarrier ?? randomPlayer(attackTeam)
 if (rng(1, 100) <= POD_PICKUP_PCT[attackTeam.tactics.attackingStyle]) {
   const pod = pickPodCarrier(attackTeam, state, attackSide, carrier)
-  if (pod) carrier = pod
+  if (pod) { podPop = carrier; carrier = pod }   // PASS_COMPLETED credited to podPop (the catcher)
 }
 defender = pickKickReturnDefender(defendTeam, state, defSide)   // chase pack
 ```
 
-`runMetres` (Step 2) uses the swapped carrier's pace/agility — the pod runner is the one running into contact, so their stats drive the kick-return run. The catcher's brief return-and-pop isn't modelled separately (consistent with the per-phase abstraction elsewhere). Tuning: `POD_PICKUP_PCT` + `POD_PICKUP_WEIGHTS` in `src/engine/balance/carrying.ts`.
+`runMetres` (Step 2) uses the swapped carrier's pace/agility — the pod runner is the one running into contact, so their stats drive the kick-return run. The catcher's brief return-and-pop isn't modelled separately beyond the `PASS_COMPLETED` credit (consistent with the per-phase abstraction elsewhere). Tuning: `POD_PICKUP_PCT` + `POD_PICKUP_WEIGHTS` in `src/engine/balance/carrying.ts`.
 
 `kickReturnCarrier` sources by prior phase:
 

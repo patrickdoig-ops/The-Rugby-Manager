@@ -82,8 +82,20 @@ export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy
   const result: PhaseResult = handler(ctx);
 
   // Apply all handler-emitted MatchEvents in order — these are the only mutations
-  // the handler can make to MatchState / player stats.
-  for (const e of result.events) applyMatchEvent(state, e);
+  // the handler can make to MatchState / player stats. While applying, record a
+  // keyframe after every ball-moving event so the GameEvent carries the in-phase
+  // ball path (carry leg → lateral sweep → kick landing) for the 2D pitch to
+  // animate through. Read-only over the path: no new mutation, no RNG draw.
+  const movements: { x: number; y: number }[] = [];
+  for (const e of result.events) {
+    applyMatchEvent(state, e);
+    if (e.type === 'CARRY_RESOLVED' || e.type === 'BALL_REPOSITIONED') {
+      const last = movements[movements.length - 1];
+      if (!last || last.x !== state.ball.x || last.y !== state.ball.y) {
+        movements.push({ x: state.ball.x, y: state.ball.y });
+      }
+    }
+  }
 
   // A carry that crossed the line transitions to TryScored with the scorer as
   // its primaryPlayer. Thread that player through state so handleTryScored reads
@@ -137,6 +149,7 @@ export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy
     secondaryPlayer: result.secondaryPlayer,
     ballX: state.ball.x,
     ballY: state.ball.y,
+    movements: movements.length > 1 ? movements : undefined,
     narration: result.narration,
     outcome: result.outcome,
   };

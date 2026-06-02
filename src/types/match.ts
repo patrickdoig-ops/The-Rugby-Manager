@@ -99,6 +99,13 @@ export interface GameEvent {
   secondaryPlayer?: Player;
   ballX: number;
   ballY: number;
+  // In-phase ball path: the sequence of ball positions the engine moved through
+  // while resolving this phase (carry leg, lateral sweep, kick landing). A frozen
+  // scalar snapshot — same schema-lifetime rule as ballX/ballY (CLAUDE.md §3); not
+  // live state, not range-checked by assertInvariants. The last entry equals
+  // ballX/ballY. Only present when the phase moved the ball more than once, so the
+  // 2D pitch can animate the ball through each leg instead of one diagonal jump.
+  movements?: ReadonlyArray<{ x: number; y: number }>;
   narration: NarrationDescriptor;
   outcome?: string;
 }

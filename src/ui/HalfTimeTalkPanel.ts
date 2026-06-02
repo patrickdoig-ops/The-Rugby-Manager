@@ -55,6 +55,10 @@ function computeTalkArgs(tone: TeamTalkTone, avgMorale: number, targetPlayerId?:
   }
 }
 
+function crestHtml(letter: string, color: string): string {
+  return `<div class="ht-crest" style="background:linear-gradient(160deg,${color} 0%,color-mix(in oklch,${color} 30%,black) 100%);border:1px solid color-mix(in oklch,${color} 50%,transparent)"><span>${letter}</span></div>`;
+}
+
 export function initHalfTimeTalkPanel(panelEl: HTMLElement): void {
   eventBus.on('engine:paused', ({ payload }) => {
     if (payload.type !== 'team_talk_choice') return;
@@ -68,6 +72,8 @@ export function initHalfTimeTalkPanel(panelEl: HTMLElement): void {
     const awayScore = state.score.away;
     const homeName = state.homeTeam.shortName ?? state.homeTeam.name;
     const awayName = state.awayTeam.shortName ?? state.awayTeam.name;
+    const homeLetter = (homeName[0] ?? '?').toUpperCase();
+    const awayLetter = (awayName[0] ?? '?').toUpperCase();
 
     // First-half stats summary
     const poss = state.stats.possession;
@@ -86,7 +92,6 @@ export function initHalfTimeTalkPanel(panelEl: HTMLElement): void {
       { tone: 'single_out', label: pickPhrase(SINGLE_OUT_PHRASES),  category: 'Single Out' },
     ];
 
-    // Build player list from the human side's on-field players
     const humanSide = state.engine.humanSide;
     const humanTeam = humanSide === 'home' ? state.homeTeam : state.awayTeam;
     const starters = humanTeam.players.slice(0, 15);
@@ -123,13 +128,15 @@ export function initHalfTimeTalkPanel(panelEl: HTMLElement): void {
       const canStart = selectedTone !== null && (selectedTone !== 'single_out' || selectedPlayerId !== undefined);
       panelEl.innerHTML = `
         <div class="ht-panel">
-          <div class="ht-header">
-            <span class="ht-phase-label">&#9679; HALF TIME</span>
+          <div class="ht-topbar">
+            <span class="ht-title">DRESSING ROOM: HALF-TIME</span>
           </div>
           <div class="ht-scoreline">
+            ${crestHtml(homeLetter, state.homeTeam.color)}
             <span class="ht-team-name">${homeName}</span>
             <span class="ht-score">${homeScore} – ${awayScore}</span>
             <span class="ht-team-name">${awayName}</span>
+            ${crestHtml(awayLetter, state.awayTeam.color)}
           </div>
           <div class="ht-stats">
             <span>Possession ${possHome}%</span>
@@ -139,7 +146,6 @@ export function initHalfTimeTalkPanel(panelEl: HTMLElement): void {
             <span>Tries ${triesHome} – ${triesAway}</span>
           </div>
           <div class="ht-divider"></div>
-          <div class="ht-dressing-label">DRESSING ROOM</div>
           <div class="ht-mood ${mood.cls}">
             <span class="ht-mood-dots">${mood.dots}</span>
             <span class="ht-mood-label">Squad mood: <strong>${mood.label}</strong></span>
@@ -148,9 +154,11 @@ export function initHalfTimeTalkPanel(panelEl: HTMLElement): void {
             ${renderTones()}
           </div>
           ${selectedTone === 'single_out' ? renderPlayerList() : ''}
-          ${canStart ? `<div class="ht-footer">
-            <button class="ht-start-btn" id="ht-start-btn">Start Second Half &rarr;</button>
-          </div>` : ''}
+          <div class="ht-footer">
+            <button class="ht-start-btn" id="ht-start-btn" ${canStart ? '' : 'disabled'}>
+              Start Second Half &rarr;
+            </button>
+          </div>
         </div>
       `;
 

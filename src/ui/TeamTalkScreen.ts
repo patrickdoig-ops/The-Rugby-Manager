@@ -138,7 +138,7 @@ export function initTeamTalkScreen(
             </svg>
             Back
           </button>
-          <span class="tt-title">DRESSING ROOM</span>
+          <span class="tt-title">DRESSING ROOM: PRE-MATCH</span>
         </div>
         <div class="tt-versus">
           ${crestSm((playerTeam.shortName[0] ?? '?').toUpperCase(), playerTeam.color)}

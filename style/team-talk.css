@@ -282,28 +282,43 @@
   min-height: 100%;
 }
 
-.ht-header {
-  padding: 14px 16px 10px;
+.ht-topbar {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px 12px;
   border-bottom: 1px solid var(--rm-border-soft);
-  background: var(--rm-bg-deep);
   position: sticky;
   top: 0;
+  background: var(--rm-bg-deep);
   z-index: 2;
 }
 
-.ht-phase-label {
+.ht-title {
   font-family: var(--rm-font-display);
-  font-size: var(--rm-fs-13);
-  letter-spacing: 0.14em;
-  color: var(--rm-amber);
+  font-size: var(--rm-fs-15);
+  letter-spacing: 0.12em;
+  color: var(--rm-chalk);
 }
 
 .ht-scoreline {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px 6px;
-  gap: 8px;
+  justify-content: center;
+  padding: 16px 16px 6px;
+  gap: 10px;
+}
+
+.ht-crest {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-16);
+  color: #fff;
+  flex-shrink: 0;
 }
 
 .ht-team-name {
@@ -318,7 +333,6 @@
   color: var(--rm-chalk);
   letter-spacing: 0.06em;
   text-align: center;
-  flex: 1;
 }
 
 .ht-stats {
@@ -341,13 +355,6 @@
   margin: 0 16px 14px;
 }
 
-.ht-dressing-label {
-  font-family: var(--rm-font-display);
-  font-size: var(--rm-fs-13);
-  letter-spacing: 0.12em;
-  color: var(--rm-text-dim);
-  padding: 0 16px 10px;
-}
 
 /* — Mood — */
 .ht-mood {
@@ -378,17 +385,18 @@
 
 /* — Tone buttons — */
 .ht-tones {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
   padding: 0 16px;
+  flex: 1;
 }
 
 .ht-tone-btn {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  padding: 12px 12px;
+  padding: 14px 16px;
   background: var(--rm-surface);
   border: 1px solid var(--rm-border-soft);
   border-radius: 14px;
@@ -424,23 +432,22 @@
 
 .ht-tone-label {
   font-family: var(--rm-font-display);
-  font-size: var(--rm-fs-13);
-  letter-spacing: 0.05em;
+  font-size: var(--rm-fs-15);
+  letter-spacing: 0.06em;
   color: var(--rm-chalk);
-  line-height: 1.3;
 }
 
 .ht-tone-cat {
-  font-size: var(--rm-fs-10);
+  font-size: var(--rm-fs-11);
   color: var(--rm-text-dim);
   letter-spacing: 0.03em;
   margin-left: 2px;
 }
 
 .ht-tone-desc {
-  font-size: var(--rm-fs-11);
+  font-size: var(--rm-fs-12);
   color: var(--rm-text-muted);
-  line-height: 1.3;
+  line-height: 1.4;
 }
 
 .ht-tone-btn--warn .ht-tone-label { color: var(--rm-danger); }
@@ -523,7 +530,14 @@
 }
 
 @media (hover: hover) {
-  .ht-start-btn:hover { background: var(--rm-cta-hover); }
+  .ht-start-btn:hover:not(:disabled) { background: var(--rm-cta-hover); }
 }
 
-.ht-start-btn:active { background: var(--rm-cta-active); }
+.ht-start-btn:active:not(:disabled) { background: var(--rm-cta-active); }
+
+.ht-start-btn:disabled {
+  background: var(--rm-surface-3);
+  color: var(--rm-text-faint);
+  cursor: not-allowed;
+  box-shadow: none;
+}

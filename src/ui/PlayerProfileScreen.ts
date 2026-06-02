@@ -6,8 +6,8 @@
 // **Layout** (top to bottom):
 //   - Header strip: nationality flag, name, position chip, age, club
 //     crest + name, big OVR badge.
-//   - Identity row: contract expiry, annual wage, marquee badge, condition,
-//     injury chip, reputation, form modifier.
+//   - Identity grid (3×2): contract · wage / condition · reputation /
+//     morale · form. Injury chip and int'l caps append below when present.
 //   - Attributes block:
 //     - Hex radar (SVG, no library) — 12 axes, polygon = baseStats.
 //       Greyed axis labels for position-irrelevant stats.
@@ -299,6 +299,12 @@ export function initPlayerProfileScreen(
     const moraleLabel = morale >= 80 ? 'Happy' : morale >= 55 ? 'OK' : morale >= 35 ? 'Unsettled' : 'Unhappy';
     const moraleClass = morale >= 80 ? 'pp-pip--ok' : morale >= 55 ? '' : morale >= 35 ? 'pp-pip--tight' : 'pp-pip--low';
 
+    const recent = player.recentRatings ?? [];
+    const formAvg = recent.length >= 3 ? recent.reduce((a, b) => a + b, 0) / recent.length : null;
+    const formLabel = formAvg === null ? '—'
+      : formAvg >= 7.5 ? 'Hot' : formAvg >= 6.5 ? 'Good' : formAvg >= 5.5 ? 'OK' : 'Poor';
+    const formClass = formAvg === null ? '' : formAvg >= 7.5 ? 'pp-pip--ok' : formAvg < 5.5 ? 'pp-pip--low' : '';
+
     const injuryPip = player.injury
       ? `<div class="pp-pip pp-pip--injury" title="${fmtInjuryKind(player.injury.kind)} — ${player.injury.weeksRemaining}w remaining">
            <span class="pp-pip-label">Injury</span>
@@ -320,13 +326,17 @@ export function initPlayerProfileScreen(
           <span class="pp-pip-label">Condition</span>
           <span class="pp-pip-val">${conditionPct}%</span>
         </div>
+        <div class="pp-pip">
+          <span class="pp-pip-label">Reputation</span>
+          <span class="pp-pip-val">${Math.round(player.reputation)}</span>
+        </div>
         <div class="pp-pip ${moraleClass}">
           <span class="pp-pip-label">Morale</span>
           <span class="pp-pip-val">${moraleLabel}</span>
         </div>
-        <div class="pp-pip">
-          <span class="pp-pip-label">Reputation</span>
-          <span class="pp-pip-val">${Math.round(player.reputation)}</span>
+        <div class="pp-pip ${formClass}">
+          <span class="pp-pip-label">Form</span>
+          <span class="pp-pip-val">${formLabel}</span>
         </div>
         ${player.internationalCaps ? `
         <div class="pp-pip">

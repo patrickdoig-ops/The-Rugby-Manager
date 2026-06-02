@@ -64,11 +64,6 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       }
       persistedKeys = new Set();
       currentPhase = event.phase;
-    } else if (event.phase === MatchPhase.KickOff && event.secondaryPlayer) {
-      // Announce→resolution within KickOff: enable transitions so the chaser dot
-      // animates forward along the x-axis from their halfway starting position.
-      field.classList.add('dot-transitioning');
-      setTimeout(() => field.classList.remove('dot-transitioning'), 600);
     }
 
     carrierEl = null;

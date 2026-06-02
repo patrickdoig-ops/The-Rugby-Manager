@@ -111,38 +111,30 @@ function kickerLayout(event: GameEvent, state: MatchState, attacksTop: boolean):
   return [placed(kicker, atkSide, state, clampX(event.ballX - fwd * 2.5), event.ballY, true)];
 }
 
-// Kick-off layout across two beats:
-//   Beat 1 (announce): kicker + chaser placeholder at halfway center, ready to run.
-//   Beat 2 (resolution): receiver at landing; chaser 10 units forward of halfway at
-//   landing Y — the dot-transitioning class (set by PitchPlayers) CSS-animates the
-//   chaser from their beat-1 position along the x-axis toward the receiver.
+// Kick-off: kicker just behind halfway; receiver at the landing spot; chaser
+// at halfway aligned laterally with the landing spot so the chase lane is clear.
 function kickOffLayout(event: GameEvent, state: MatchState, attacksTop: boolean): Placed[] {
   const atkSide: Side = event.side === 'home' ? 'h' : 'a';
   const fwd = attacksTop ? 1 : -1;
   const team = atkSide === 'h' ? state.homeTeam : state.awayTeam;
   const onField = onFieldPlayers(team, state, possOf(atkSide));
+  // event.primaryPlayer is the receiver; always find the kicker from the roster.
   const kicker = onField.find(p => p.id === SLOT.FLY_HALF) ?? onField[0];
   if (!kicker) return [];
 
   const out: Placed[] = [placed(kicker, atkSide, state, clampX(50 - fwd * 2.5), 50, true)];
 
-  const chaser = event.secondaryPlayer;
+  // Receiver at the ball's landing spot.
+  const receiver = event.primaryPlayer;
+  if (receiver && receiver !== kicker) {
+    out.push(placed(receiver, sideOf(receiver, state), state, event.ballX, event.ballY, false));
+  }
 
-  if (chaser) {
-    // Resolution beat: receiver at landing, chaser 10 units ahead of halfway.
-    const receiver = event.primaryPlayer;
-    if (receiver && receiver !== kicker) {
-      out.push(placed(receiver, sideOf(receiver, state), state, event.ballX, event.ballY, false));
-    }
-    out.push(placed(chaser, sideOf(chaser, state), state, clampX(50 + fwd * 10), event.ballY, false));
-  } else {
-    // Announce beat: show a chaser placeholder at halfway center so the CSS
-    // transition on beat 2 has a starting position to animate from.
-    const placeholder = onField.find(p => p.id === SLOT.NUMBER_8)
-      ?? onField.find(p => p.id === SLOT.FLANKER_7)
-      ?? onField.find(p => p.id === SLOT.FLANKER_6)
-      ?? onField.find(p => p !== kicker);
-    if (placeholder) out.push(placed(placeholder, atkSide, state, 50, 50, false));
+  // Chaser on the halfway line, same lateral position as the landing spot —
+  // shows they are running down the chase lane toward the receiver.
+  const chaser = event.secondaryPlayer;
+  if (chaser && chaser !== kicker) {
+    out.push(placed(chaser, sideOf(chaser, state), state, 50, event.ballY, false));
   }
 
   return out;

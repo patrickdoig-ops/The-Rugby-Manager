@@ -26,8 +26,10 @@ export const MORALE = {
   // Inbox "have a chat" CTA boost
   chatBoostDelta: 10,
 
-  // Inbox alert threshold — item fires when morale drops below this
+  // Inbox alert thresholds — item fires when morale drops below unhappyThreshold;
+  // label escalates to "very unhappy" below veryUnhappyThreshold.
   unhappyThreshold: 35,
+  veryUnhappyThreshold: 15,
 
   // Form-bias contribution in computeFormInputs
   // (morale − formNeutral) × formSlope, clamped to ±formCap.

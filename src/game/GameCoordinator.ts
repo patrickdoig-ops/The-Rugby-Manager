@@ -1209,8 +1209,11 @@ export class GameCoordinator {
   // integer; skips players already at baseline (delta rounds to 0).
   private computeMoraleDecayEvents(): SeasonEvent[] {
     const events: SeasonEvent[] = [];
+    const freeAgentSet = new Set(this.state.career.freeAgents);
     for (const key of Object.keys(this.state.career.roster)) {
-      const p = this.state.career.roster[Number(key)];
+      const rid = Number(key);
+      if (freeAgentSet.has(rid)) continue;
+      const p = this.state.career.roster[rid];
       const current = p.morale ?? MORALE.baseline;
       const rawDelta = (MORALE.baseline - current) * MORALE.decayRate;
       const delta = Math.round(rawDelta);
@@ -1339,6 +1342,18 @@ export class GameCoordinator {
     for (const ev of this.rollNewInjuryEvents(snapshot.playerSnapshots)) {
       applySeasonEvent(this.state, ev);
     }
+    for (const ev of this.computeFixtureMoraleEvents({
+      round: kind === 'final' ? 20 : 19,
+      homeId: target.homeId!,
+      awayId: target.awayId!,
+      homeScore,
+      awayScore,
+      homeTries: snapshot.homeSummary.tries,
+      awayTries: snapshot.awaySummary.tries,
+      playerSide,
+    }, snapshot)) {
+      applySeasonEvent(this.state, ev);
+    }
     eventBus.emit('game:playoffsUpdated', { state: this.state });
 
     if (this.state.league.playoffs?.championTeamId !== null && this.state.league.playoffs?.championTeamId !== undefined) {
@@ -1388,6 +1403,18 @@ export class GameCoordinator {
         applySeasonEvent(this.state, ev);
       }
       for (const ev of this.rollNewInjuryEvents(sim.snapshot.playerSnapshots)) {
+        applySeasonEvent(this.state, ev);
+      }
+      for (const ev of this.computeFixtureMoraleEvents({
+        round: pseudoRound,
+        homeId: match.homeId!,
+        awayId: match.awayId!,
+        homeScore: sim.homeScore,
+        awayScore: sim.awayScore,
+        homeTries: sim.snapshot.homeSummary.tries,
+        awayTries: sim.snapshot.awaySummary.tries,
+        playerSide: null,
+      }, sim.snapshot)) {
         applySeasonEvent(this.state, ev);
       }
       eventBus.emit('game:playoffsUpdated', { state: this.state });

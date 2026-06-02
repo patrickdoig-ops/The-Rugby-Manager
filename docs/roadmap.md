@@ -118,11 +118,20 @@ harder. Notably **0.1–0.3 are small-to-medium and reuse systems you already ha
 
 The bundle that earns the "deep, obsessive sim" tagline.
 
+> **Detailed implementation plan: see [`docs/roadmap-tier1.md`](./roadmap-tier1.md)** —
+> per-feature design, data model, events, invariants, UI, balance, save/determinism
+> impact, build milestones, and acceptance criteria, grounded in the existing code
+> seams. Locked design decisions: **1.1** masks *other clubs' players + free agents
+> only* (own squad always visible) with *range-band* presentation; **1.2** is scoped
+> to a *core three* (assistant, fitness/medical, scouts); **1.3** is *deferred* to be
+> designed with set-piece calls (Tier 2.4). Tier 1 reads Tier 0 morale + board as
+> built.
+
 | # | Feature | Why it matters | Touches | Effort |
 |---|---|---|---|---|
 | 1.1 | **Scouting + attribute masking** | Makes recruitment a *skill*. Hide exact stats behind a scouted-knowledge fog; scout assignments reveal accuracy over time. The single biggest depth-add to the transfer game. Pairs with 1.2. | Player-knowledge layer; transfer/squad UI; scout assignment flow. | L |
-| 1.2 | **Staff hiring** (assistant, S&C, forwards/kicking coaches, physio, scouts) | Feeds training quality, injury rates, scouting accuracy, and AI suggestions. Gives the budget more to do than wages and adds a progression axis. | New staff entities + `SeasonEvent`; hooks into training, injuries, scouting. | M–L |
-| 1.3 | **Player roles + a few individual instructions** | The 12 generic stats are thin. Lightweight roles (ball-playing vs game-manager 10, fetcher vs blindside 6/7) re-weight existing resolvers — high payoff, low new-data cost. Optionally a couple of per-player instructions. | Role enum on selection; resolver weight tables in `balance/`; selection UI. | M |
+| 1.2 | **Staff hiring** — Tier 1 scope: *core three* (assistant, fitness/medical, scouts) | Feeds training quality, injury rates, scouting accuracy, and AI suggestions. Gives the budget more to do than wages and adds a progression axis. Forwards/kicking coaches + analyst are a later expansion. | New staff entities + `SeasonEvent`; hooks into training, injuries, scouting. | M |
+| 1.3 | **Player roles + a few individual instructions** *(deferred — designed with set-piece calls, 2.4)* | The 12 generic stats are thin. Lightweight roles (ball-playing vs game-manager 10, fetcher vs blindside 6/7) re-weight existing resolvers — high payoff, low new-data cost. Held back so roles + recurring set-piece decisions share one selection/balance surface. | Role enum on selection; resolver weight tables in `balance/`; selection UI. | M |
 | 1.4 | **Press conferences (interactive media)** | Turn the (already lovely) passive media manager into a 2–3 question pre/post-match interaction that feeds morale + board confidence. Reuses personas + phrase bank. | Media manager → interactive flow; feeds 0.1/0.2. | M |
 | 1.5 | **Transfer requests & playing-time promises** | Once morale (0.2) exists, unhappy stars ask to leave and fringe players want games. Closes the loop between squad management and the market. | Morale-driven `SeasonEvent`s; transfer + squad UI. | S–M |
 
@@ -145,6 +154,7 @@ The bundle that earns the "deep, obsessive sim" tagline.
 | 3.3 | **Club history, records, rivalries, hall of fame** | Persistent head-to-head, all-time records, club legends. Cheap to build on the season archive, big for long-term attachment. | Season archive read; new history UI. | S–M |
 | 3.4 | **Expanded achievements + in-season narrative milestones** | The systems above unlock dozens more (dynasty, promotion, develop-an-academy-star-to-90, survive-a-sacking rebuild). | Achievement defs. | S |
 | 3.5 | **Detailed injuries (HIA, long-term, recurrence) + squad depth/registration limits** | Deepens squad-management tension and makes physios/rotation matter. | Match + season injury systems; registration rules. | M |
+| 3.6 | **Manager carousel (job vacancies after a sacking)** | Tier 0's sacking currently ends the save. A vacancy market lets a sacked manager rebuild at a new club — the payoff for the fail-state, and what unblocks press (1.4) and transfer requests (1.5) framing a fresh start. Forward dependency surfaced by Tier 1. | New-game-flow change; vacancy generation; board (0.1) + press (1.4) tie-in. | M–L |
 
 ---
 
@@ -155,9 +165,13 @@ The bundle that earns the "deep, obsessive sim" tagline.
    two biggest gaps (stakes + presentation). **0.1–0.3 are small-to-medium and
    reuse systems you already have**, so they are low-risk under the determinism
    harness; 0.4 is a pure UI addition over `displaySnapshot` with no engine change.
-2. **Tier 1 is the "FM depth" arc** — scouting + staff + roles + press is the
-   bundle that earns the "deep, obsessive" tagline. Do **scouting (1.1) and staff
-   (1.2) together** since scouts *are* staff.
+2. **Tier 1 is the "FM depth" arc** — scouting + staff + press + transfer requests is
+   the bundle that earns the "deep, obsessive" tagline. Do **scouting (1.1) and staff
+   (1.2) together** since scouts *are* staff. Full plan: [`docs/roadmap-tier1.md`](./roadmap-tier1.md).
+   **Forward dependencies it surfaces:** a **manager carousel** (3.6) so press/requests
+   can frame a rebuild after a sacking; **AI-club staff & recruitment fog** (Tier 1
+   models both for the player's club only); and **player roles** (1.3) held back to be
+   designed with set-piece calls (2.4).
 3. **Tier 2 is content-heavy** — promotion/relegation and Europe are where real
    time and balancing budget go; gate them behind a stable Tier 0/1 foundation.
 4. **Tier 3 is continuous polish** to slot between the bigger arcs and keep reviews

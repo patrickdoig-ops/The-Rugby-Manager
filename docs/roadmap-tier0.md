@@ -176,8 +176,10 @@ outcomes. Prefer making confidence fully deterministic from results where possib
 
 ### Open questions (need a product decision)
 
-- **After a sacking:** end the save, or offer a vacancy at another club (a mini
-  "manager carousel")? The latter is much more work and touches new-game flow.
+- **After a sacking:** for this tier, surface an end screen and end the save (or
+  offer a restart). The full manager carousel — applying for vacancies, track-record
+  reputation, job availability — is a Tier 4 feature (roadmap §4.1) that needs
+  the broader world-depth foundation.
 - **Multi-club careers:** does confidence reset fully on changing clubs?
 - Difficulty: should there be a "no sacking" / chairman-patience setting for casual
   players (ties into the Tier 3 difficulty item)?

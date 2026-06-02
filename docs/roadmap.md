@@ -122,9 +122,8 @@ The bundle that earns the "deep, obsessive sim" tagline.
 |---|---|---|---|---|
 | 1.1 | **Scouting + attribute masking** | Makes recruitment a *skill*. Hide exact stats behind a scouted-knowledge fog; scout assignments reveal accuracy over time. The single biggest depth-add to the transfer game. Pairs with 1.2. | Player-knowledge layer; transfer/squad UI; scout assignment flow. | L |
 | 1.2 | **Staff hiring** (assistant, S&C, forwards/kicking coaches, physio, scouts) | Feeds training quality, injury rates, scouting accuracy, and AI suggestions. Gives the budget more to do than wages and adds a progression axis. | New staff entities + `SeasonEvent`; hooks into training, injuries, scouting. | M–L |
-| 1.3 | **Player roles + a few individual instructions** | The 12 generic stats are thin. Lightweight roles (ball-playing vs game-manager 10, fetcher vs blindside 6/7) re-weight existing resolvers — high payoff, low new-data cost. Optionally a couple of per-player instructions. | Role enum on selection; resolver weight tables in `balance/`; selection UI. | M |
-| 1.4 | **Press conferences (interactive media)** | Turn the (already lovely) passive media manager into a 2–3 question pre/post-match interaction that feeds morale + board confidence. Reuses personas + phrase bank. | Media manager → interactive flow; feeds 0.1/0.2. | M |
-| 1.5 | **Transfer requests & playing-time promises** | Once morale (0.2) exists, unhappy stars ask to leave and fringe players want games. Closes the loop between squad management and the market. | Morale-driven `SeasonEvent`s; transfer + squad UI. | S–M |
+| 1.3 | **Press conferences (interactive media)** | Turn the (already lovely) passive media manager into a 2–3 question pre/post-match interaction that feeds morale + board confidence. Reuses personas + phrase bank. | Media manager → interactive flow; feeds 0.1/0.2. | M |
+| 1.4 | **Transfer requests & playing-time promises** | Once morale (0.2) exists, unhappy stars ask to leave and fringe players want games. Closes the loop between squad management and the market. | Morale-driven `SeasonEvent`s; transfer + squad UI. | S–M |
 
 ### Tier 2 — World & breadth (long-term career fiction)
 
@@ -146,6 +145,16 @@ The bundle that earns the "deep, obsessive sim" tagline.
 | 3.4 | **Expanded achievements + in-season narrative milestones** | The systems above unlock dozens more (dynasty, promotion, develop-an-academy-star-to-90, survive-a-sacking rebuild). | Achievement defs. | S |
 | 3.5 | **Detailed injuries (HIA, long-term, recurrence) + squad depth/registration limits** | Deepens squad-management tension and makes physios/rotation matter. | Match + season injury systems; registration rules. | M |
 
+### Tier 4 — Advanced career depth
+
+Features that require the full manager-fantasy and world-breadth foundation to
+land well. Both have significant scope and touch multiple existing systems.
+
+| # | Feature | Why it matters | Touches | Effort |
+|---|---|---|---|---|
+| 4.1 | **Manager carousel — finding new jobs** | Turns a sacking into a new story rather than a dead end. After being sacked (0.1), the manager can apply for vacant roles at other clubs (or get approached), with club prestige, budget, and the manager's track record shaping which jobs are available. Requires a functioning multi-club world (Tier 2.1 helps; Tier 3 difficulty settings should include a "no sacking" option for those who don't want it). | Manager reputation state; vacancy generation on AI manager turnover; job-application flow; new-game integration. | L–XL |
+| 4.2 | **Individual player roles + per-player instructions** | The 12 generic stats mean identical-stat players play identically. Lightweight roles (ball-playing vs game-manager 10, fetcher vs blindside 6/7, distributor vs box-kicking 9) re-weight existing resolver inputs via `balance/` tables — high payoff, low new authored-data cost. A small set of per-player match instructions (target the breakdown, stay disciplined, run from deep) then layers over club-wide tactics. Deferred here because roles are most meaningful once the world has multi-club personality (Tier 2) and the pitch view (0.4) makes their effect legible. | Role enum on selection; resolver weight tables in `balance/`; selection UI; AI director awareness of opponent roles. | M–L |
+
 ---
 
 ## 5. Suggested sequencing
@@ -162,6 +171,10 @@ The bundle that earns the "deep, obsessive sim" tagline.
    time and balancing budget go; gate them behind a stable Tier 0/1 foundation.
 4. **Tier 3 is continuous polish** to slot between the bigger arcs and keep reviews
    fresh.
+5. **Tier 4 features need the full foundation** — the manager carousel needs a
+   functioning board/sacking system (0.1) and ideally multi-club world depth (2.1);
+   player roles are most meaningful once the 2D pitch (0.4) makes their effect
+   legible and the world has multi-club personality (Tier 2).
 
 **Explicitly not recommended:** a full 3D match engine. It fights the
 no-backend/browser/mobile constraints, is a money pit, and the differentiator is

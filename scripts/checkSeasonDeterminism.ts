@@ -277,6 +277,7 @@ async function runOnce(seed: number): Promise<string> {
       rid,
       baseStats: endState.career.roster[rid].baseStats,
       contract: endState.career.roster[rid].contract,
+      morale: endState.career.roster[rid].morale,
     }));
 
   return createHash('sha256').update(JSON.stringify({

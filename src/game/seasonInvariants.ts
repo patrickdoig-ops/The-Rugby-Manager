@@ -59,7 +59,7 @@ export function assertSeasonInvariants(state: GameState): void {
     if (!(p.condition >= 0) || !(p.condition <= 100)) {
       fail(`roster.condition[${rosterId}]`, `${p.condition}`);
     }
-    if (p.morale !== undefined && (!(p.morale >= 0) || !(p.morale <= 100))) {
+    if (p.morale === undefined || p.morale < 0 || p.morale > 100) {
       fail(`roster.morale[${rosterId}]`, `${p.morale}`);
     }
     if (p.potential !== undefined && !(p.potential >= 1 && Number.isFinite(p.potential))) {

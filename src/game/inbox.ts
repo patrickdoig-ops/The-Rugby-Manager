@@ -245,7 +245,7 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
     const morale = p.morale ?? MORALE.baseline;
     if (morale >= MORALE.unhappyThreshold) continue;
     const name = `${p.firstName} ${p.lastName}`;
-    const mood = morale < 15 ? 'very unhappy' : 'unsettled';
+    const mood = morale < MORALE.veryUnhappyThreshold ? 'very unhappy' : 'unsettled';
     items.push({
       id: `morale:unhappy:${season}:${rid}`,
       category: 'squad',

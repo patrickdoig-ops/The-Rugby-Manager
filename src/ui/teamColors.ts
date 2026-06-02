@@ -18,7 +18,7 @@ export function injectTeamColors(
   el.style.setProperty('--team-color', team.color);
   const tileColor = isNearBlack(team.color) ? team.secondaryColor : team.color;
   el.style.setProperty('--team-color-tile', tileColor);
-  el.style.setProperty('--team-color-tile-text', luminance(tileColor) > 0.4 ? '#1a1a1a' : '#ffffff');
+  el.style.setProperty('--team-color-tile-text', textOn(tileColor));
 }
 
 // Readable text colour to sit ON a fill of `hex` — near-black on light fills,

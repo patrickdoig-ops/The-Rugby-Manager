@@ -17,7 +17,7 @@ import { colorOnDark, textOn } from './teamColors';
 
 // A placed dot in pitch coords (x = long axis 0–100, y = lateral 0–100).
 export interface Placed {
-  key: string;        // `${side}:${slot}` — stable within a match
+  key: string;        // `${side}:${p.id}` (p.id = matchday slot 1-15) — stable within a match
   jersey: number;
   color: string;      // fill (team colour, readable on dark)
   text: string;       // jersey text colour (contrast)
@@ -31,18 +31,24 @@ type Side = 'h' | 'a';
 const clampX = (x: number): number => Math.max(2, Math.min(98, x));
 const clampY = (y: number): number => Math.max(4, Math.min(96, y));
 
-const sideOf = (p: Player, state: MatchState): Side =>
-  state.homeTeam.players.includes(p) ? 'h' : 'a';
+const sideOf = (p: Player, state: MatchState): Side => {
+  const h = state.homeTeam;
+  // Mirror applyMatchEvent's team-membership test: a player is "home" if they're
+  // on the field, on the bench, or already subbed off — so an actor surfacing in
+  // a sub/announcement beat resolves to the right side, not silently to away.
+  return h.players.includes(p) || h.bench.includes(p) || h.substitutedOff.includes(p) ? 'h' : 'a';
+};
 
 const possOf = (side: Side): PossessionSide => (side === 'h' ? 'home' : 'away');
 
 function placed(p: Player, side: Side, state: MatchState, x: number, y: number, isCarrier: boolean): Placed {
   const team = side === 'h' ? state.homeTeam : state.awayTeam;
+  const fill = colorOnDark(team.color);   // the actual rendered dot colour
   return {
     key: `${side}:${p.id}`,
     jersey: p.squadNumber,
-    color: colorOnDark(team.color),
-    text: textOn(team.color),
+    color: fill,
+    text: textOn(fill),                   // contrast against the fill, not the raw colour
     x, y, isCarrier,
   };
 }
@@ -72,7 +78,7 @@ const NO_DOTS = new Set<MatchPhase>([
 // everything else (open play, breakdown, maul, penalty, try) fans the involved chain.
 export function choreograph(event: GameEvent, state: MatchState, attacksTop: boolean): Placed[] {
   if (event.phase === MatchPhase.Scrum)   return scrumLayout(event, state, attacksTop);
-  if (event.phase === MatchPhase.Lineout) return lineoutLayout(event, state, attacksTop);
+  if (event.phase === MatchPhase.Lineout) return lineoutLayout(event, state);
   if (NO_DOTS.has(event.phase))           return [];
   return openPlayLayout(event, state, attacksTop);
 }
@@ -133,13 +139,14 @@ function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): 
 
 function pack(state: MatchState, side: Side, ballX: number, ballY: number, dir: number): Placed[] {
   const team = side === 'h' ? state.homeTeam : state.awayTeam;
-  const onField = new Set(availableForwards(team, state, possOf(side)).map(p => p.id));
+  // availableForwards already returns the on-field forwards as objects keyed by
+  // their slot id — index them directly rather than a Set + linear find per cell.
+  const bySlot = new Map(availableForwards(team, state, possOf(side)).map(p => [p.id, p]));
   const out: Placed[] = [];
   for (const row of SCRUM_ROWS) {
     for (const cell of row.cells) {
-      if (!onField.has(cell.slot)) continue;                 // binned/off → gap (fine)
-      const p = team.players.find(pl => pl.id === cell.slot);
-      if (!p) continue;
+      const p = bySlot.get(cell.slot);
+      if (!p) continue;                                      // binned/off → gap (fine)
       out.push(placed(p, side, state, clampX(ballX + dir * row.dx), clampY(ballY + cell.y), false));
     }
   }
@@ -147,7 +154,7 @@ function pack(state: MatchState, side: Side, ballX: number, ballY: number, dir: 
 }
 
 // Lineout: two lines parallel to the near touchline, stepped along the throw axis.
-function lineoutLayout(event: GameEvent, state: MatchState, _attacksTop: boolean): Placed[] {
+function lineoutLayout(event: GameEvent, state: MatchState): Placed[] {
   const atkSide: Side = event.side === 'home' ? 'h' : 'a';
   const defSide: Side = atkSide === 'h' ? 'a' : 'h';
   const nearY = event.ballY < 50 ? 0 : 100;

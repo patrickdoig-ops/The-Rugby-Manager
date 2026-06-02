@@ -33,11 +33,13 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     if (!el) {
       el = document.createElement('div');
       el.className = 'pitch-dot';
+      // Colour/contrast are fixed for a key (side ⇒ team ⇒ colour) — set once.
+      el.style.setProperty('--dot-color', color);
+      el.style.setProperty('--dot-text', text);
       field.appendChild(el);
       pool.set(key, el);
     }
-    el.style.setProperty('--dot-color', color);
-    el.style.setProperty('--dot-text', text);
+    // Jersey can change for a slot across a substitution (bench number), so keep it current.
     el.textContent = String(jersey);
     return el;
   };

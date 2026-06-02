@@ -232,6 +232,21 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     return 'con-veryPoor';
   }
 
+  function moraleFor(p: { rosterId?: number }): number | null {
+    if (p.rosterId === undefined) return null;
+    const state = opts.getGameEngine().getState();
+    const r = state.career.roster[p.rosterId];
+    if (!r) return null;
+    return r.morale ?? 65;
+  }
+
+  function moraleLabel(m: number): { text: string; cls: string } {
+    if (m >= 80) return { text: 'Happy',     cls: 'mor-happy' };
+    if (m >= 55) return { text: 'OK',         cls: 'mor-ok' };
+    if (m >= 35) return { text: 'Unsettled',  cls: 'mor-unsettled' };
+    return             { text: 'Unhappy',     cls: 'mor-unhappy' };
+  }
+
   function listForTier(tier: Tier): RawPlayer[] {
     return tier === 'starter' ? draftStarters
          : tier === 'bench'   ? draftBench
@@ -535,6 +550,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         <div class="sq-col-headers">
           <span class="sq-col-header sq-col-header--ovr">OVR</span>
           <span class="sq-col-header sq-col-header--con">CON</span>
+          <span class="sq-col-header sq-col-header--mor">MOR</span>
           <span class="sq-col-header sq-col-header--avr">AVR</span>
         </div>
       </div>
@@ -578,6 +594,10 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     const conditionCell = condition === null
       ? `<div class="sq-con sq-con--unrated" title="No condition data">—</div>`
       : `<div class="sq-con ${conditionClass(condition)}" title="Current condition">${Math.round(condition)}%</div>`;
+    const morale = moraleFor(p);
+    const moraleCell = morale === null
+      ? `<div class="sq-mor sq-mor--unrated" title="No morale data">—</div>`
+      : (() => { const ml = moraleLabel(morale); return `<div class="sq-mor ${ml.cls}" title="Player morale">${ml.text}</div>`; })();
     // Out-of-position warning — only on the starting XV (slots 1-15), where
     // the familiarity penalty (balance/positionFamiliarity.ts) is applied at
     // kick-off. Bench cover is judged by where the player actually subs in,
@@ -619,6 +639,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         </div>
         <div class="sq-ovr ${ovrClass(ovr)}">${ovr}</div>
         ${conditionCell}
+        ${moraleCell}
         ${avrCell}
         ${chevron}
         <div class="row-expand-panel sq-expand" data-expanded="${expanded}">

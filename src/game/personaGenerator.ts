@@ -164,6 +164,7 @@ export function generatePersona(seed: PersonaSeed, calendarDate: string): Player
     x: 50,
     y: 50,
     condition: 100,
+    morale: 65,
     potential,
   };
 }

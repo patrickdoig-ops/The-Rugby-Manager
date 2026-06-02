@@ -1179,4 +1179,15 @@ export type SeasonEvent =
       type: 'PLAYER_SUSPENDED';
       rosterId: number;
       forRound: number;
+    }
+  | {
+      // Adjusts a roster player's morale by `delta`, clamped to [0, 100].
+      // `reason` is a string tag used for diagnostics (not stored).
+      // Fired by GameCoordinator after each fixture (playing-time, result,
+      // standout), each WEEK_ADVANCED (decay toward baseline), and
+      // boostPlayerMorale (inbox "have a chat" CTA).
+      type: 'PLAYER_MORALE_ADJUSTED';
+      rosterId: number;
+      delta: number;
+      reason: string;
     };

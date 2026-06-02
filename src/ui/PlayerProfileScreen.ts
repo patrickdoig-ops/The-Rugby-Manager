@@ -295,6 +295,9 @@ export function initPlayerProfileScreen(
       conditionPct >= 80 ? 'pp-pip--ok' :
       conditionPct >= 50 ? 'pp-pip--tight' :
                            'pp-pip--low';
+    const morale = player.morale ?? 65;
+    const moraleLabel = morale >= 80 ? 'Happy' : morale >= 55 ? 'OK' : morale >= 35 ? 'Unsettled' : 'Unhappy';
+    const moraleClass = morale >= 80 ? 'pp-pip--ok' : morale >= 55 ? '' : morale >= 35 ? 'pp-pip--tight' : 'pp-pip--low';
 
     const injuryPip = player.injury
       ? `<div class="pp-pip pp-pip--injury" title="${fmtInjuryKind(player.injury.kind)} — ${player.injury.weeksRemaining}w remaining">
@@ -316,6 +319,10 @@ export function initPlayerProfileScreen(
         <div class="pp-pip ${conditionClass}">
           <span class="pp-pip-label">Condition</span>
           <span class="pp-pip-val">${conditionPct}%</span>
+        </div>
+        <div class="pp-pip ${moraleClass}">
+          <span class="pp-pip-label">Morale</span>
+          <span class="pp-pip-val">${moraleLabel}</span>
         </div>
         <div class="pp-pip">
           <span class="pp-pip-label">Reputation</span>

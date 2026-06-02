@@ -68,33 +68,95 @@ function harvestActors(event: GameEvent): Player[] {
 }
 
 // Router: dispatch by phase. Set pieces draw both full packs; kicks show the kicker;
+// substitutions place players near the touchline; fatigue places the player randomly;
 // everything else (open play, breakdown, maul, penalty, try) fans the involved chain.
 export function choreograph(event: GameEvent, state: MatchState, attacksTop: boolean): Placed[] {
-  if (event.phase === MatchPhase.Scrum)          return scrumLayout(event, state, attacksTop);
-  if (event.phase === MatchPhase.Lineout)        return lineoutLayout(event, state, attacksTop);
-  if (event.phase === MatchPhase.KickOff)        return kickerLayout(event, state, attacksTop);
+  // Substitution beats always show players near the touchline, not the ball.
+  if (event.phase === MatchPhase.Substitution) return substitutionLayout(event, state);
+
+  // Kick phases always show the kicker (and receiver for kick-offs) regardless
+  // of whether the narration step is a phase_outcome or announcement.
+  if (event.phase === MatchPhase.KickOff)        return kickOffLayout(event, state, attacksTop);
   if (event.phase === MatchPhase.TacticalKick)   return kickerLayout(event, state, attacksTop);
   if (event.phase === MatchPhase.ConversionKick) return kickerLayout(event, state, attacksTop);
   if (event.phase === MatchPhase.DropOut22)      return kickerLayout(event, state, attacksTop);
   if (event.phase === MatchPhase.BoxKick)        return kickerLayout(event, state, attacksTop);
+
+  // Pure-announcement beats (fatigue, card, clock, etc.) have no phase_outcome step
+  // and should not place players near the ball.
+  if (!event.narration.steps.some(s => s.kind === 'phase_outcome')) {
+    const first = event.narration.steps[0];
+    if (first?.kind === 'announcement' && first.key === 'fatigue_tiredness')
+      return fatigueLayout(event, state);
+    return [];
+  }
+
+  if (event.phase === MatchPhase.Scrum)   return scrumLayout(event, state, attacksTop);
+  if (event.phase === MatchPhase.Lineout) return lineoutLayout(event, state, attacksTop);
   return openPlayLayout(event, state, attacksTop);
 }
 
-// Show the kicker (the #10 from the kicking side, or primaryPlayer as fallback)
-// behind the ball, touching it, so their circle and number are visible.
+// Show the kicker (#10 from the kicking side) behind the ball so their circle
+// and number are visible alongside it.
 function kickerLayout(event: GameEvent, state: MatchState, attacksTop: boolean): Placed[] {
   const atkSide: Side = event.side === 'home' ? 'h' : 'a';
   const team = atkSide === 'h' ? state.homeTeam : state.awayTeam;
-  const poss = possOf(atkSide);
-  const onField = onFieldPlayers(team, state, poss);
-  // Prefer the #10 fly-half, fall back to primaryPlayer, then first on-field player.
+  const onField = onFieldPlayers(team, state, possOf(atkSide));
   const kicker = onField.find(p => p.id === SLOT.FLY_HALF)
     ?? event.primaryPlayer
     ?? onField[0];
   if (!kicker) return [];
   const fwd = attacksTop ? 1 : -1;
-  // Place kicker slightly behind the ball so their circle is visible next to it.
   return [placed(kicker, atkSide, state, clampX(event.ballX - fwd * 2.5), event.ballY, true)];
+}
+
+// Kick-off: kicker stands just behind halfway in own half; the primary actor
+// (receiver or chaser) stands at the ball's landing spot. Shows both players so
+// the ball visibly travels from kicker to receiver.
+function kickOffLayout(event: GameEvent, state: MatchState, attacksTop: boolean): Placed[] {
+  const atkSide: Side = event.side === 'home' ? 'h' : 'a';
+  const fwd = attacksTop ? 1 : -1;
+  const team = atkSide === 'h' ? state.homeTeam : state.awayTeam;
+  const onField = onFieldPlayers(team, state, possOf(atkSide));
+  // Always find kicker from team roster — event.primaryPlayer is the receiver for
+  // clean_receive / knock_on, not the kicker.
+  const kicker = onField.find(p => p.id === SLOT.FLY_HALF) ?? onField[0];
+  if (!kicker) return [];
+
+  // Kicker stands just behind halfway in their own half at midfield lateral.
+  const out: Placed[] = [placed(kicker, atkSide, state, clampX(50 - fwd * 2.5), 50, true)];
+
+  // Show the primary actor (receiver / chaser) at the ball's landing spot.
+  const actor = event.primaryPlayer;
+  if (actor && actor !== kicker) {
+    out.push(placed(actor, sideOf(actor, state), state, event.ballX, event.ballY, false));
+  }
+  return out;
+}
+
+// Substitution: place the outgoing player (secondaryPlayer) and incoming player
+// (primaryPlayer) near the far touchline so they don't crowd the live action.
+function substitutionLayout(event: GameEvent, state: MatchState): Placed[] {
+  const on  = event.primaryPlayer;   // coming on
+  const off = event.secondaryPlayer; // going off
+  if (!on && !off) return [];
+  // Use the touchline furthest from the ball so subs don't overlap live action.
+  const farY = event.ballY <= 50 ? 97 : 3;
+  const inward = farY > 50 ? -1 : 1;
+  const x = clampX(event.ballX);
+  const out: Placed[] = [];
+  if (off) out.push(placed(off, sideOf(off, state), state, x, farY,             false));
+  if (on)  out.push(placed(on,  sideOf(on,  state), state, x, clampY(farY + inward * 7), false));
+  return out;
+}
+
+// Fatigue: place the tired player away from the ball so they don't look like
+// an actor in the current phase — just flash in and out at midfield.
+function fatigueLayout(event: GameEvent, state: MatchState): Placed[] {
+  const player = event.primaryPlayer;
+  if (!player) return [];
+  // Opposite lateral side from the ball, midfield x.
+  return [placed(player, sideOf(player, state), state, 50, clampY(event.ballY < 50 ? 70 : 30), false)];
 }
 
 // Carrier placed slightly behind the ball so the circle and number are visible.
@@ -111,9 +173,10 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
   const defenders: Player[] = [];
   for (const p of actors) (sideOf(p, state) === atkSide ? attackers : defenders).push(p);
 
-  // For FirstPhase off a set piece, inject the scrum-half as the link player if
-  // not already in the actor list — shows the SH→10 pass chain visually.
-  if (event.phase === MatchPhase.FirstPhase) {
+  // For FirstPhase and Breakdown, inject the scrum-half as the link player if
+  // not already in the actor list — at breakdown they appear at the ruck base
+  // picking up; at first-phase they show the SH→10 pass chain visually.
+  if (event.phase === MatchPhase.FirstPhase || event.phase === MatchPhase.Breakdown) {
     const atkTeam = atkSide === 'h' ? state.homeTeam : state.awayTeam;
     const sh = atkTeam.players.find(p => p.id === SLOT.SCRUM_HALF);
     if (sh && !attackers.includes(sh)) attackers.splice(1, 0, sh);

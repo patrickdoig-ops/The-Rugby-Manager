@@ -61,10 +61,16 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
         field.classList.add('dot-transitioning');
         setTimeout(() => field.classList.remove('dot-transitioning'), 600);
       }
-      for (const key of persistedKeys) {
-        if (!nextKeys.has(key)) pool.get(key)?.classList.remove('visible');
+      // Lineout→FirstPhase: keep lineout forwards visible through the whole first
+      // phase — carry persistedKeys forward so they don't clear at the boundary.
+      // They fade normally when FirstPhase itself ends.
+      const keepLineout = currentPhase === MatchPhase.Lineout && event.phase === MatchPhase.FirstPhase;
+      if (!keepLineout) {
+        for (const key of persistedKeys) {
+          if (!nextKeys.has(key)) pool.get(key)?.classList.remove('visible');
+        }
+        persistedKeys = new Set();
       }
-      persistedKeys = new Set();
       currentPhase = event.phase;
     }
 

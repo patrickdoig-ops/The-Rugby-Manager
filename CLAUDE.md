@@ -128,6 +128,70 @@ Streams are independent — adding a commentary line cannot shift outcome rolls;
 
 Diagnostic: `git status && git log --oneline -5 && git branch -vv`.
 
+## 8. 2D Pitch Animation Model
+
+**All animation is purely visual — the DOM's resting state is always the final position.**
+
+The pitch view (`src/ui/PitchView.ts`, `PitchPlayers.ts`, `pitchChoreography.ts`) uses three animation layers. Understanding the separation is essential before touching any of them.
+
+### Layer 1 — Ball (WAAPI, `PitchView.ts`)
+
+The ball's CSS `top`/`left` is committed to its **final** resting position immediately (via `restAt()`). A WAAPI animation on `transform` then offsets it visually back to the start and eases forward. This is the "anchor-and-offset" pattern:
+
+```
+restAt(finalTop, finalLeft)             // DOM is now at the final position
+ball.animate([
+  { transform: offsetTransform(startTop, startLeft, finalTop, finalLeft, w, h) },
+  { transform: 'translate(-50%, -50%)' },  // final keyframe = resting state
+], { duration, easing })
+```
+
+`offsetTransform` produces `translate(calc(-50% + Δpx), calc(-50% + Δpx))` — converting a percentage-coordinate difference into pixel deltas against the pitch's client size. The final keyframe `translate(-50%, -50%)` is the plain centred state, matching the committed anchor exactly.
+
+**Why this matters:** if the animation is cancelled mid-flight, the DOM is already correct. The `stateChange` handler guards on `movementAnimating` and skips repositioning the ball while WAAPI owns it; the animation's `onfinish` clears the flag.
+
+Ball animation forms:
+- `animateKickArc` — straight-line travel with a `scale(1.5)` apex at offset 0.5 (reads as ball in the air)
+- `animateMovements` — multi-leg carry: `GameEvent.movements[]` gives the path; one WAAPI keyframe per leg
+- `runAnim` — the underlying primitive both use; commits the anchor, creates the animation, wires `onfinish`
+- Lineout→Maul: ball travels from lineout mark to the hooker at the tail of the maul (dx=14)
+- Lineout→FirstPhase: 2-leg path — lineout mark → #9's stored position → first-phase ball position (uses `lineoutSHTop/Left` cached on the previous lineout beat)
+
+### Layer 2 — Individual dot animation (WAAPI, `PitchView.ts`)
+
+When a single known dot needs its own animation (kickoff chaser, scrum halves), the same anchor-and-offset pattern applies to the dot element directly:
+
+```
+el.style.top  = `${finalTop}%`;    // choreograph already did this via applyBeat
+el.style.left = `${finalLeft}%`;
+el.animate([
+  { transform: offsetTransform(startTop, startLeft, finalTop, finalLeft, w, h) },
+  { transform: 'translate(-50%, -50%)' },
+], { duration, easing });
+```
+
+The pipeline to get the element:
+1. `choreograph` places the dot at its **final** position and sets a flag on the `Placed` record (`isChaser`, `scrumHalfRole: 'atk' | 'def'`)
+2. `PitchPlayers.applyBeat` detects the flag and stores the element reference in a tracked variable
+3. `PitchView` reads it via a getter (`players.chaserEl`, `players.atkScrumHalfEl`, `players.defScrumHalfEl`) immediately after calling `applyBeat`, and runs the WAAPI
+
+PitchView computes the **start** position from first principles (event data + `attacksTop`) — it does not read the element's current CSS, which would be the final position.
+
+### Layer 3 — Formation-wide transition (CSS, `PitchPlayers.ts`)
+
+When an entire pack needs to glide from one formation to another (Lineout→Maul), `PitchPlayers` adds `dot-transitioning` to the `#pitch-2d-field` element. This enables `transition: top 0.5s ease, left 0.5s ease` on every `.pitch-dot` simultaneously. The class is removed via `setTimeout(..., 600)` once the transition completes. Dots are already at their new positions — the CSS transition is triggered by the position change.
+
+### Between-beat state
+
+Two module-level variables in `PitchView` bridge consecutive beats:
+
+- **`cachedEventPhase`** — phase from the previous beat. Used to detect specific transitions (Lineout→Maul triggers the dot-transitioning class; Lineout→FirstPhase triggers the 2-leg ball path). Set at the end of every `engine:event` handler.
+- **`lineoutSHTop / lineoutSHLeft`** — the #9's screen position cached from the lineout beat, consumed (and cleared) on the following FirstPhase beat to route the ball through that position.
+
+### Dot persistence across phases
+
+`persistedKeys` (a `Set<string>` in `PitchPlayers`) accumulates dot keys within the current phase. On phase change, any key in `persistedKeys` that is absent from the new beat's `placed` array has `.visible` removed. Exception: `keepLineout` skips clearing `persistedKeys` when transitioning from Lineout or Scrum into FirstPhase — the formation stays visible through the whole first phase and fades when FirstPhase itself ends.
+
 ---
 
 ## Where to look

@@ -3,6 +3,7 @@ import { colorOnDark } from './teamColors';
 import { renderCardStack } from './Scoreboard';
 import { BALL_SVG } from './PitchStrip';
 import { phaseClass } from '../utils/phaseColor';
+import { MatchPhase } from '../types/engine';
 import type { GameEvent } from '../types/match';
 
 // Which flash a key event warrants, or null for a beat we don't highlight. Kept
@@ -38,10 +39,15 @@ export function initPitchView(): void {
   const bottomLabel  = document.getElementById('pitch-bottom-label')!;
   const cardsTop     = document.getElementById('pitch-cards-top')!;
   const cardsBottom  = document.getElementById('pitch-cards-bottom')!;
+  const kickFlight   = document.getElementById('pitch-kick-flight')!;
 
   ball.innerHTML = BALL_SVG;
+  kickFlight.innerHTML = BALL_SVG;
 
   let lastHalfTimeDone: boolean | null = null;
+  // Cached from the most recent stateChange so the engine:event handler (which
+  // fires before stateChange in the same beat) can determine attack direction.
+  let cachedHalfTimeDone = false;
 
   // Position + colour the flash element at a pitch coordinate, then retrigger
   // its keyframe via a forced reflow (same idiom as Scoreboard.popScore).
@@ -53,16 +59,51 @@ export function initPitchView(): void {
     flash.className = `flashing ${cls}`;
   };
 
+  // Animate the kick-flight overlay from the kick position toward the posts
+  // (success = through centre, failure = wide). The element is a copy of the
+  // main ball that scales down and fades out, giving a "going into the
+  // distance" read without touching the main ball's CSS transitions.
+  const triggerKickFlight = (ballX: number, ballY: number, success: boolean, side: string) => {
+    const startTop  = toTop(ballX);
+    const startLeft = ballY;
+    // Home attacks toward x=100 (top of screen) before half-time; inverted after.
+    const attacksTop = (side === 'home') !== cachedHalfTimeDone;
+    const targetTop  = attacksTop ? 4 : 96;
+    // Success: split the posts (50%); failure: fly wide on the same side the
+    // kick was taken from, so a right-of-centre kick misses right.
+    const targetLeft = success ? 50 : (ballY < 50 ? 12 : 88);
+
+    kickFlight.style.transition = 'none';
+    kickFlight.style.top        = `${startTop}%`;
+    kickFlight.style.left       = `${startLeft}%`;
+    kickFlight.style.transform  = 'translate(-50%, -50%) scale(1)';
+    kickFlight.style.opacity    = '1';
+    void kickFlight.offsetWidth; // force reflow to arm the transition
+    kickFlight.style.transition = 'top 0.6s ease-in, left 0.6s ease-in, transform 0.6s ease-in, opacity 0.5s ease-in';
+    kickFlight.style.top        = `${targetTop}%`;
+    kickFlight.style.left       = `${targetLeft}%`;
+    kickFlight.style.transform  = 'translate(-50%, -50%) scale(0.25)';
+    kickFlight.style.opacity    = '0';
+    setTimeout(() => { kickFlight.style.transition = 'none'; }, 700);
+  };
+
   eventBus.on('engine:initialized', () => {
-    lastHalfTimeDone = null;
+    lastHalfTimeDone    = null;
+    cachedHalfTimeDone  = false;
   });
 
   eventBus.on('engine:event', ({ event }) => {
     const cls = flashClass(event);
-    if (!cls) return;
-    // Map the event's own ball coords with the same absolute transform the
-    // marker uses (x=100 end at top); the field is fixed, only labels swap.
-    fireFlash(toTop(event.ballX), event.ballY, cls);
+    if (cls) fireFlash(toTop(event.ballX), event.ballY, cls);
+
+    // Kick-at-goal result: animate the ball flying toward (or past) the posts.
+    for (const step of event.narration.steps) {
+      if (step.kind !== 'phase_outcome') continue;
+      if (step.phase !== MatchPhase.ConversionKick && step.phase !== MatchPhase.Penalty) continue;
+      if (step.key !== 'success' && step.key !== 'kick_for_goal' && step.key !== 'miss') continue;
+      triggerKickFlight(event.ballX, event.ballY, step.key !== 'miss', event.side);
+      break;
+    }
   });
 
   eventBus.on('engine:stateChange', ({ state, display }) => {
@@ -70,6 +111,7 @@ export function initPitchView(): void {
     // narrated line; team identity (colours, shortNames) is fixed for the match
     // and read off live state — mirrors PitchStrip.
     const flip = display.halfTimeDone;
+    cachedHalfTimeDone = flip;
     const attackingTeam = display.possession === 'home' ? state.homeTeam : state.awayTeam;
     const attackColor = colorOnDark(attackingTeam.color);
 

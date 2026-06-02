@@ -93,6 +93,7 @@ export function buildAppShell(): void {
           <div class="card-stack pitch2d-cards-bottom" id="pitch-cards-bottom"></div>
           <div id="pitch-flash"></div>
           <div id="pitch-2d-ball"></div>
+          <div id="pitch-kick-flight"></div>
         </div>
         <div id="pitch-territory-bar"><div id="pitch-territory-home"></div></div>
         <div id="pitch-phase-label"></div>

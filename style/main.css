@@ -825,6 +825,7 @@ body.pitch-view-active #pitch-wrapper { display: none; }
   width: auto;
   z-index: 1;
   text-align: left;
+  font-family: var(--rm-font-display);
   font-size: clamp(15px, 4.6vw, 26px);
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -863,6 +864,16 @@ body.pitch-view-active #pitch-wrapper { display: none; }
   transition: top 0.35s ease, left 0.35s ease;
   pointer-events: none;
   z-index: 4;
+}
+/* Kick-at-goal flight overlay — same visual as the main ball but starts hidden
+   and is animated to the posts (or wide) by PitchView on each kick result. */
+#pitch-kick-flight {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 0 8px color-mix(in oklch, var(--rm-amber) 60%, transparent));
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
 }
 
 #pitch-flash {

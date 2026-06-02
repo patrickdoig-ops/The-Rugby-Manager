@@ -210,9 +210,10 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
 // Scrum 3-4-1: front row (1,2,3) at the mark, second row (6,4,5,7), #8 at the back.
 // dx values sized so rows don't overlap at typical mobile pitches (~350px tall).
 // y values sized so circles within a row don't overlap (~6 y-units between centres).
+// y values halved vs. the original so circles slightly overlap, illustrating binding.
 const SCRUM_ROWS: Array<{ dx: number; cells: Array<{ slot: number; y: number }> }> = [
-  { dx: 7,  cells: [{ slot: SLOT.PROP_1, y: -6 }, { slot: SLOT.HOOKER, y: 0 }, { slot: SLOT.PROP_3, y: 6 }] },
-  { dx: 15, cells: [{ slot: SLOT.FLANKER_6, y: -9 }, { slot: SLOT.LOCK_4, y: -3 }, { slot: SLOT.LOCK_5, y: 3 }, { slot: SLOT.FLANKER_7, y: 9 }] },
+  { dx: 7,  cells: [{ slot: SLOT.PROP_1, y: -3 }, { slot: SLOT.HOOKER, y: 0 }, { slot: SLOT.PROP_3, y: 3 }] },
+  { dx: 15, cells: [{ slot: SLOT.FLANKER_6, y: -4.5 }, { slot: SLOT.LOCK_4, y: -1.5 }, { slot: SLOT.LOCK_5, y: 1.5 }, { slot: SLOT.FLANKER_7, y: 4.5 }] },
   { dx: 23, cells: [{ slot: SLOT.NUMBER_8, y: 0 }] },
 ];
 

@@ -337,6 +337,31 @@ export function initPitchView(): void {
       clearMovement();
     }
 
+    // Scrum SH sweep: both #9s animate from their loosehead start positions to
+    // their committed final positions (2 units behind their #8) during the beat.
+    if (event.phase === MatchPhase.Scrum) {
+      const attacksTopScrum = (event.side === 'home') !== cachedHalfTimeDone;
+      const fwdS = attacksTopScrum ? 1 : -1;
+      const { w, h } = hostDims();
+      const dur = Math.max(300, Math.min(stepMs, 500));
+      const startLooseY = event.ballY - 3;   // loosehead side in SCRUM_ROWS convention
+
+      const sweepSH = (el: HTMLElement | null, startPitchX: number) => {
+        if (!el) return;
+        const startTop  = toTop(Math.max(2, Math.min(98, startPitchX)));
+        const startLeft = toLeft(Math.max(3, Math.min(97, startLooseY)));
+        const finalTop  = parseFloat(el.style.top);
+        const finalLeft = parseFloat(el.style.left);
+        el.animate([
+          { transform: offsetTransform(startTop, startLeft, finalTop, finalLeft, w, h) },
+          { transform: 'translate(-50%, -50%)' },
+        ], { duration: dur, easing: 'ease-in-out' });
+      };
+
+      sweepSH(players.atkScrumHalfEl, event.ballX - fwdS * 2);
+      sweepSH(players.defScrumHalfEl, event.ballX + fwdS * 2);
+    }
+
     // Kick-at-goal result: animate the ball flying toward (or past) the posts.
     for (const step of event.narration.steps) {
       if (step.kind !== 'phase_outcome') continue;

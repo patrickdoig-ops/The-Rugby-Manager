@@ -25,6 +25,7 @@ export interface Placed {
   y: number;
   isCarrier: boolean; // the on-ball dot (sits behind ball, slightly offset)
   isChaser: boolean;  // kickoff chaser — PitchView animates this dot forward during the ball arc
+  scrumHalfRole?: 'atk' | 'def'; // scrum SH — PitchView sweeps from loosehead start to behind-#8 final
 }
 
 type Side = 'h' | 'a';
@@ -256,11 +257,33 @@ function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): 
   const fwd = attacksTop ? 1 : -1;
   const atkSide: Side = event.side === 'home' ? 'h' : 'a';
   const defSide: Side = atkSide === 'h' ? 'a' : 'h';
+
+  const atkTeam = atkSide === 'h' ? state.homeTeam : state.awayTeam;
+  const defTeam = defSide === 'h' ? state.homeTeam : state.awayTeam;
+
   // Attacking pack faces toward its own end (negative fwd), defenders face toward attacking end.
-  return [
+  const out: Placed[] = [
     ...pack(state, atkSide, event.ballX, event.ballY, -fwd),
     ...pack(state, defSide, event.ballX, event.ballY, +fwd),
   ];
+
+  // Both #9s are placed at their FINAL positions (2 units behind their #8 at dx=10)
+  // with scrumHalfRole set so PitchView can WAAPI-sweep them from the loosehead
+  // start (where they visually appear) to this committed final position.
+  const atkSH = onFieldPlayers(atkTeam, state, possOf(atkSide)).find(p => p.id === SLOT.SCRUM_HALF);
+  const defSH = onFieldPlayers(defTeam, state, possOf(defSide)).find(p => p.id === SLOT.SCRUM_HALF);
+  if (atkSH) {
+    const dot = placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 12), clampY(event.ballY), false);
+    dot.scrumHalfRole = 'atk';
+    out.push(dot);
+  }
+  if (defSH) {
+    const dot = placed(defSH, defSide, state, clampX(event.ballX + fwd * 12), clampY(event.ballY), false);
+    dot.scrumHalfRole = 'def';
+    out.push(dot);
+  }
+
+  return out;
 }
 
 function pack(state: MatchState, side: Side, ballX: number, ballY: number, dir: number, rows = SCRUM_ROWS): Placed[] {

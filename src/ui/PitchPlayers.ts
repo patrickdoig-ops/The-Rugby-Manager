@@ -19,7 +19,9 @@ export interface BallWalkFollower {
 export interface PitchPlayers {
   applyBeat(event: GameEvent, state: MatchState, attacksTop: boolean): void;
   ballWalkFollower: BallWalkFollower;
-  chaserEl: HTMLElement | null; // kickoff chaser dot placed this beat, for PitchView to animate
+  chaserEl: HTMLElement | null;       // kickoff chaser dot placed this beat, for PitchView to animate
+  atkScrumHalfEl: HTMLElement | null; // attacking #9 placed at scrum final pos, for PitchView to sweep
+  defScrumHalfEl: HTMLElement | null; // defending #9 placed at scrum final pos, for PitchView to sweep
   reset(): void;
 }
 
@@ -29,6 +31,8 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
   let currentPhase: string | null = null;        // phase of the last beat
   let carrierEl: HTMLElement | null = null;      // the on-ball dot for the current beat
   let chaserEl: HTMLElement | null = null;       // kickoff chaser dot (PitchView animates it forward)
+  let atkSHEl: HTMLElement | null = null;        // attacking #9 at scrum final pos (PitchView sweeps)
+  let defSHEl: HTMLElement | null = null;        // defending #9 at scrum final pos (PitchView sweeps)
   let carrierAnim: Animation | null = null;
   let animatedEl: HTMLElement | null = null;     // the dot carrierAnim is driving (may differ from carrierEl after a beat flip)
 
@@ -77,6 +81,8 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
 
     carrierEl = null;
     chaserEl = null;
+    atkSHEl = null;
+    defSHEl = null;
     for (const p of placed) {
       persistedKeys.add(p.key);
       const el = ensureDot(p.key, p.color, p.text, p.jersey);
@@ -85,6 +91,8 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       el.classList.add('visible');
       if (p.isCarrier) carrierEl = el;
       if (p.isChaser) chaserEl = el;
+      if (p.scrumHalfRole === 'atk') atkSHEl = el;
+      if (p.scrumHalfRole === 'def') defSHEl = el;
     }
   };
 
@@ -114,7 +122,15 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     currentPhase = null;
     carrierEl = null;
     chaserEl = null;
+    atkSHEl = null;
+    defSHEl = null;
   };
 
-  return { applyBeat, ballWalkFollower, get chaserEl() { return chaserEl; }, reset };
+  return {
+    applyBeat, ballWalkFollower,
+    get chaserEl()       { return chaserEl; },
+    get atkScrumHalfEl() { return atkSHEl; },
+    get defScrumHalfEl() { return defSHEl; },
+    reset,
+  };
 }

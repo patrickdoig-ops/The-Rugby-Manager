@@ -239,19 +239,32 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
   }
 
   // --- Unhappy players ---
-  // Pre-compute team's recent form and games played for playing-time diagnosis.
-  const teamGamesPlayed = state.league.results.filter(
+  // Count league + completed playoff games so the appearances ratio uses the
+  // right denominator (playoff appearances accumulate in seasonStats too).
+  const leagueGamesPlayed = state.league.results.filter(
     r => r.homeId === teamId || r.awayId === teamId,
   ).length;
+  const playoffGamesPlayed = (() => {
+    const pb = state.league.playoffs;
+    if (!pb) return 0;
+    return [pb.semifinals[0], pb.semifinals[1], pb.final]
+      .filter(m => m.result && (m.homeId === teamId || m.awayId === teamId)).length;
+  })();
+  const teamGamesPlayed = leagueGamesPlayed + playoffGamesPlayed;
+
   const recentResults = recentForm(teamId, state.league.results, 3).filter((r): r is FormResult => r !== null);
   const recentLosses = recentResults.filter(r => r === 'L').length;
   const badRun = recentLosses >= 2;
 
-  // OVR-ranked non-injured starters for playing-time rank lookup.
+  // OVR-ranked full squad (injured included) so injuries don't promote reserves
+  // into the top-15 threshold. playerOverall computed once per player.
   const rankedSquad = club.squad
-    .map(rid => state.career.roster[rid])
-    .filter((p): p is NonNullable<typeof p> => !!p && !p.injury)
-    .sort((a, b) => playerOverall(b.baseStats, b.position) - playerOverall(a.baseStats, a.position));
+    .map(rid => {
+      const p = state.career.roster[rid];
+      return p ? { rid, ovr: playerOverall(p.baseStats, p.position) } : null;
+    })
+    .filter((e): e is NonNullable<typeof e> => e !== null)
+    .sort((a, b) => b.ovr - a.ovr);
 
   for (const rid of club.squad) {
     const p = state.career.roster[rid];
@@ -265,24 +278,25 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
     const repeated = chatCount >= 2;
     const chattedOnce = chatCount === 1;
 
-    // Playing-time diagnosis: top-15 OVR and notably underused.
-    const ovrRank = rankedSquad.findIndex(r => r.rosterId === rid);
-    const isExpectedStarter = ovrRank >= 0 && ovrRank < 15;
+    // Playing-time diagnosis: top-15 OVR in the full squad and notably underused.
+    // !p.injury guard prevents injured players being flagged as underplayed.
+    const ovrRank = rankedSquad.findIndex(e => e.rid === rid);
+    const isExpectedStarter = !p.injury && ovrRank < 15;
     const underplayed = isExpectedStarter
       && teamGamesPlayed >= MORALE.playingTimeMinGames
       && p.seasonStats.appearances / teamGamesPlayed < MORALE.playingTimeRatioThreshold;
 
-    let body: string;
-    const showSquadLink = underplayed;
+    const playingTimeDiag = `featured in only ${p.seasonStats.appearances} of ${teamGamesPlayed} matches`;
 
+    let body: string;
     if (underplayed && badRun) {
       body = repeated
         ? `${name} remains ${mood} — insufficient game time and poor results are both taking their toll. Further chats are making little difference; the root cause needs addressing.`
-        : `${name} has featured in only ${p.seasonStats.appearances} of ${teamGamesPlayed} matches despite their quality, and a difficult run of results has compounded things.${chattedOnce ? ' A previous chat has had limited lasting effect.' : ''} Getting them on the pitch and turning results around are the real fixes.`;
+        : `${name} has ${playingTimeDiag} despite their quality, and a difficult run of results has compounded things.${chattedOnce ? ' A previous chat has had limited lasting effect.' : ''} Getting them on the pitch and turning results around are the real fixes.`;
     } else if (underplayed) {
       body = repeated
         ? `${name} is still ${mood} about their game time. Further conversations are having less effect — they need to be on the pitch.`
-        : `${name} expects regular football given their quality but has featured in only ${p.seasonStats.appearances} of ${teamGamesPlayed} matches.${chattedOnce ? ' You\'ve spoken to them already, with limited lasting effect.' : ''} A chat may help briefly, but the real fix is picking them.`;
+        : `${name} expects regular football given their quality but has ${playingTimeDiag}.${chattedOnce ? ' You\'ve spoken to them already, with limited lasting effect.' : ''} A chat may help briefly, but the real fix is picking them.`;
     } else if (badRun) {
       body = repeated
         ? `The team's poor run continues to weigh on ${name}. Conversations have helped less each time — results on the pitch are what's needed.`
@@ -300,14 +314,12 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
       subject: `${name} — ${mood}`,
       body,
       moraleBoostAction: { rosterId: rid },
-      ...(showSquadLink ? { deepLink: 'squad' as const } : {}),
+      deepLink: 'squad',
     });
   }
 
   // --- Form collapse ---
-  const myForm = recentForm(teamId, state.league.results, 3);
-  const recentThree = myForm.filter((r): r is FormResult => r !== null);
-  if (recentThree.length === 3 && recentThree.every(r => r === 'L')) {
+  if (recentResults.length === 3 && recentResults.every(r => r === 'L')) {
     const lastMatch = state.league.results
       .filter(r => r.homeId === teamId || r.awayId === teamId)
       .sort((a, b) => b.round - a.round)[0];

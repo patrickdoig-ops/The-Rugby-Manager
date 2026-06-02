@@ -458,7 +458,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         if (p.lionsReturnRound !== undefined) p.lionsReturnRound = undefined;
         if (p.disciplineAdvice) p.disciplineAdvice = undefined;
         if (p.suspension) p.suspension = undefined;
-        if (p.moraleChats) p.moraleChats = 0;
+        p.moraleChats = 0;
       }
       // Reset team season aggregates for the new season. Re-zero in place
       // for every team that already had a bucket; new teams (rare) get

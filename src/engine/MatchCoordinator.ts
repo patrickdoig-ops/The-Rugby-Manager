@@ -888,7 +888,7 @@ export class MatchCoordinator {
     }
     this.subDirector.evaluate();
 
-    const event = resolvePhase(this.state, this.kickOffStrategy);
+    const event = resolvePhase(this.state, this.kickOffStrategy, this.silent);
     applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event });
 
     detectEntry22Changes(this.state);

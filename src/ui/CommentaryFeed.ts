@@ -7,7 +7,7 @@ import type { NarrationStep } from '../types/narration';
 import { teamTextColor } from '../utils/teamColor';
 import { isHeroEvent } from './keyMoment';
 import { loadCommentaryFilter, saveCommentaryFilter, loadTickDelayMs, type CfFilter } from './uiPrefs';
-import { COMMENTARY_PACING } from '../engine/balance';
+import { lineGapMs } from '../engine/balance';
 
 const PHASE_CLASS: Partial<Record<MatchPhase, string>> = {
   [MatchPhase.TryScored]:     'event-try',
@@ -51,7 +51,7 @@ const HERO_DWELL_MS     = 600;  // window after a hero entry where the strap hol
 // beat lands one gap after the last of them — no trickle-then-burst. Derived
 // from the live tickDelayMs (refreshed on ui:speedChange) so it tracks the
 // speed slider in lockstep with the presenter.
-let stepStaggerMs = Math.round(loadTickDelayMs() * COMMENTARY_PACING.lineGapFraction);
+let stepStaggerMs = lineGapMs(loadTickDelayMs());
 
 // Phase-outcome keys that mark the headline beat of a staggered hero event.
 // Steps preceding the headline render without the phase tag (buildup pass
@@ -266,7 +266,7 @@ export function initCommentaryFeed(): void {
 
   // Keep the step stagger in step with the speed slider (presenter cadence).
   eventBus.on('ui:speedChange', ({ delayMs }) => {
-    stepStaggerMs = Math.round(delayMs * COMMENTARY_PACING.lineGapFraction);
+    stepStaggerMs = lineGapMs(delayMs);
   });
 
   eventBus.on('engine:event', ({ event }) => {

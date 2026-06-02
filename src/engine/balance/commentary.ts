@@ -90,3 +90,11 @@ export const COMMENTARY_PACING = {
   // heuristic: ≈ lineGapFraction × the measured ~1.30 steps/beat.
   beatGapFraction: 0.6,
 } as const;
+
+// The visible per-line cadence in ms for a given tick delay — the single dial the
+// commentary feed, the presenter, and the pitch ball-walk all pace off, so they
+// stay in lockstep. Rounded for the UI consumers (CommentaryFeed, PitchView);
+// CommentaryStreamer uses the raw fraction directly for sub-ms beat precision.
+export function lineGapMs(delayMs: number): number {
+  return Math.round(delayMs * COMMENTARY_PACING.lineGapFraction);
+}

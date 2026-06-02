@@ -10,7 +10,7 @@ import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
 import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler, pickHardCarrier, pickPickAndGoCarrier, tryLineDefenceBonus } from '../FieldPosition';
-import { sweepStep, sweepPath, lateralNote } from '../Lateral';
+import { sweepStep, emitSweepHops } from '../Lateral';
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
@@ -21,7 +21,7 @@ import { tryOffloadChain } from './offloadChain';
 
 const FULL_BACKLINE = 7;  // jersey ids 9–15
 
-export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }: PhaseContext): PhaseResult {
+export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, silent }: PhaseContext): PhaseResult {
   const attackSide = state.possession;
   const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
 
@@ -327,9 +327,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
   // keeps its tryLandingY grounding below (no per-pass hops on a score).
   let lateralStep: NarrationStep | null = null;
   if (!tryScored) {
-    const hops = sweepPath(state, attackTeam.tactics.attackingStyle, Math.max(1, passCount), false);
-    for (const h of hops) events.push({ type: 'BALL_REPOSITIONED', y: h.y, lateralDir: h.lateralDir });
-    lateralStep = lateralNote(hops[hops.length - 1], attackTeam.name, false, state.ball.lateralDir);
+    lateralStep = emitSweepHops(events, state, attackTeam.tactics.attackingStyle, passCount, false, attackTeam.name, !silent);
   }
 
   events.push({

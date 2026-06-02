@@ -6,7 +6,7 @@ import { phaseClass } from '../utils/phaseColor';
 import { MatchPhase } from '../types/engine';
 import type { GameEvent } from '../types/match';
 import { loadTickDelayMs } from './uiPrefs';
-import { COMMENTARY_PACING } from '../engine/balance';
+import { lineGapMs } from '../engine/balance';
 
 // Which flash a key event warrants, or null for a beat we don't highlight. Kept
 // deliberately curated — tries (and conversions, which carry the try phase),
@@ -57,6 +57,12 @@ export function initPitchView(): void {
   // Cached from the most recent stateChange so the engine:event handler (which
   // fires before stateChange in the same beat) can determine attack direction.
   let cachedHalfTimeDone = false;
+  // The ball's current resting position (% top / left), tracked in-module rather
+  // than re-read from ball.style — during an animation the inline style holds the
+  // committed target, not the visual position. Ball starts at halfway (x=50,y=50
+  // → 50%/50%). Updated by every position set (stateChange + the animators).
+  let lastTop = 50;
+  let lastLeft = 50;
 
   // Position + colour the flash element at a pitch coordinate, then retrigger
   // its keyframe via a forced reflow (same idiom as Scoreboard.popScore).
@@ -98,54 +104,84 @@ export function initPitchView(): void {
 
   // Per-movement ball animation. A phase can move the ball through several legs
   // (carry upfield, then sweep wide); GameEvent.movements carries that path so the
-  // ball walks leg-by-leg instead of jumping diagonally to the final spot. Paced on
-  // its own timer, decoupled from the commentary line cadence (which CommentaryFeed
-  // / CommentaryStreamer own) — leg-count need not equal line-count. The per-leg
-  // duration tracks the same speed-derived cadence the feed uses, refreshed on
-  // ui:speedChange (mirrors CommentaryFeed's stepStaggerMs).
-  let stepMs = Math.round(loadTickDelayMs() * COMMENTARY_PACING.lineGapFraction);
-  let moveTimer: ReturnType<typeof setTimeout> | null = null;
-  // In-flight kick-lob WAAPI animation, if any (cancelled when interrupted).
+  // ball walks leg-by-leg instead of jumping diagonally to the final spot. Open-
+  // field kicks lob to the landing (scale apex). Both animate compositor-only
+  // `transform` (the ball's top/left are committed to the resting position once,
+  // then a translate offset slides it) so a dense passage never thrashes layout.
+  // Paced on its own clock, decoupled from the commentary line cadence (which
+  // CommentaryFeed / CommentaryStreamer own) — leg-count need not equal line-count.
+  // The per-leg duration tracks the same speed-derived cadence the feed uses.
+  let stepMs = lineGapMs(loadTickDelayMs());
+  // In-flight WAAPI animation (walk or lob), if any — cancelled when interrupted.
   let arcAnim: Animation | null = null;
-  // True while the ball is walking its movement path (or in a kick lob) — the
-  // stateChange handler then leaves the ball alone (the animation ends exactly at
-  // display.ballX/ballY = the final keyframe / landing).
+  // True while an animation owns the ball — the stateChange handler then leaves
+  // the ball alone (the animation ends exactly at display.ballX/ballY = the final
+  // keyframe / landing, which the animator has committed to lastTop/lastLeft).
   let movementAnimating = false;
 
   const clearMovement = () => {
-    if (moveTimer !== null) { clearTimeout(moveTimer); moveTimer = null; }
     if (arcAnim) { arcAnim.cancel(); arcAnim = null; }
     movementAnimating = false;
     ball.style.transition = '';  // restore the default CSS ease for single-jump beats
   };
 
-  // Kick lob: travel the ball in a straight line to the landing (a kick is a
-  // straight line from directly above) while scaling up to an apex and back, so
-  // it reads as a ball in the air rather than a flat carry slide. Top-down view,
-  // so the "arc" is the scale lift, not a curved path. The animation owns the
-  // ball (movementAnimating) and commits the landing as inline style so it holds
-  // after the WAAPI fill is dropped.
-  const animateKickArc = (curTop: number, curLeft: number, tgtTop: number, tgtLeft: number) => {
-    clearMovement();
-    movementAnimating = true;
+  // Pitch pixel dimensions (the ball's offsetParent), read once per animation to
+  // convert %-of-pitch deltas into the px translate the keyframes use.
+  const hostDims = (): { w: number; h: number } => {
+    const host = ball.offsetParent as HTMLElement | null;
+    return { w: host?.clientWidth ?? 0, h: host?.clientHeight ?? 0 };
+  };
+
+  // Transform that visually places the ball at (top,left)% while its layout box
+  // rests at the (finalTop,finalLeft)% anchor — the centring −50% plus a px
+  // translate for the offset from the anchor, plus an optional scale (kick lift).
+  const offsetTransform = (
+    top: number, left: number, finalTop: number, finalLeft: number,
+    w: number, h: number, scale = 1,
+  ): string => {
+    const dx = ((left - finalLeft) / 100) * w;
+    const dy = ((top - finalTop) / 100) * h;
+    return `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(${scale})`;
+  };
+
+  // Commit the ball's resting position (no CSS tween — the WAAPI transform owns
+  // the motion) and record it as the tracked last position.
+  const restAt = (topPct: number, leftPct: number) => {
     ball.style.transition = 'none';
-    const dur = Math.max(300, Math.min(stepMs, 650));
-    const anim = ball.animate([
-      { top: `${curTop}%`,                 left: `${curLeft}%`,                 transform: 'translate(-50%, -50%) scale(1)' },
-      { top: `${(curTop + tgtTop) / 2}%`,  left: `${(curLeft + tgtLeft) / 2}%`, transform: 'translate(-50%, -50%) scale(1.5)', offset: 0.5 },
-      { top: `${tgtTop}%`,                 left: `${tgtLeft}%`,                 transform: 'translate(-50%, -50%) scale(1)' },
-    ], { duration: dur, easing: 'ease-in-out', fill: 'forwards' });
-    // Commit the landing as inline style now; the running animation overrides it
-    // until it ends, then anim.cancel() drops the fill and this value shows.
-    ball.style.top  = `${tgtTop}%`;
-    ball.style.left = `${tgtLeft}%`;
+    ball.style.top  = `${topPct}%`;
+    ball.style.left = `${leftPct}%`;
+    lastTop = topPct;
+    lastLeft = leftPct;
+  };
+
+  // Run a transform keyframe animation that starts visually at lastTop/lastLeft,
+  // ends at the final anchor, and commits the anchor as the resting position.
+  const runAnim = (frames: Keyframe[], duration: number, easing: string, finalTop: number, finalLeft: number) => {
+    restAt(finalTop, finalLeft);
+    const anim = ball.animate(frames, { duration, easing });
     arcAnim = anim;
     anim.onfinish = () => {
-      ball.style.transition = '';
+      if (arcAnim !== anim) return;   // superseded by a later beat
       movementAnimating = false;
       arcAnim = null;
-      anim.cancel();
+      ball.style.transition = '';
     };
+  };
+
+  // Kick lob: a kick from directly above is a straight line, so the "arc" is a
+  // scale lift (up to an apex and back) over the straight travel — reads as a ball
+  // in the air rather than a flat carry slide.
+  const animateKickArc = (tgtTop: number, tgtLeft: number) => {
+    clearMovement();
+    movementAnimating = true;
+    const dur = Math.max(300, Math.min(stepMs, 650));
+    const { w, h } = hostDims();
+    const midTop = (lastTop + tgtTop) / 2, midLeft = (lastLeft + tgtLeft) / 2;
+    runAnim([
+      { transform: offsetTransform(lastTop, lastLeft, tgtTop, tgtLeft, w, h, 1) },
+      { transform: offsetTransform(midTop, midLeft, tgtTop, tgtLeft, w, h, 1.5), offset: 0.5 },
+      { transform: offsetTransform(tgtTop, tgtLeft, tgtTop, tgtLeft, w, h, 1) },
+    ], dur, 'ease-in-out', tgtTop, tgtLeft);
   };
 
   const animateMovements = (kfs: ReadonlyArray<{ x: number; y: number }>, lineCount: number) => {
@@ -155,26 +191,26 @@ export function initPitchView(): void {
     // commentary; never faster than a readable floor.
     const beatWindow = stepMs * Math.max(1, lineCount);
     const legMs = Math.max(90, Math.min(stepMs, Math.round(beatWindow / kfs.length)));
-    let i = 0;
-    const stepTo = () => {
-      if (i >= kfs.length) { clearMovement(); return; }
-      const kf = kfs[i];
-      ball.style.transition = `top ${legMs}ms linear, left ${legMs}ms linear`;
-      ball.style.top  = `${toTop(kf.x)}%`;
-      ball.style.left = `${kf.y}%`;
-      i++;
-      moveTimer = setTimeout(stepTo, legMs);
-    };
-    stepTo();
+    const { w, h } = hostDims();
+    const final = kfs[kfs.length - 1];
+    const finalTop = toTop(final.x), finalLeft = final.y;
+    // start (current position) then one keyframe per leg, all offset from the anchor.
+    const frames: Keyframe[] = [
+      { transform: offsetTransform(lastTop, lastLeft, finalTop, finalLeft, w, h) },
+      ...kfs.map(kf => ({ transform: offsetTransform(toTop(kf.x), kf.y, finalTop, finalLeft, w, h) })),
+    ];
+    runAnim(frames, legMs * kfs.length, 'linear', finalTop, finalLeft);
   };
 
   eventBus.on('ui:speedChange', ({ delayMs }) => {
-    stepMs = Math.round(delayMs * COMMENTARY_PACING.lineGapFraction);
+    stepMs = lineGapMs(delayMs);
   });
 
   eventBus.on('engine:initialized', () => {
     lastHalfTimeDone    = null;
     cachedHalfTimeDone  = false;
+    lastTop = 50;
+    lastLeft = 50;
     clearMovement();
   });
 
@@ -190,10 +226,8 @@ export function initPitchView(): void {
     // (the coin-toss / pre-kick announce) fall through rather than pulsing in place.
     if (KICK_PHASES.has(event.phase)) {
       const tgtTop = toTop(event.ballX), tgtLeft = event.ballY;
-      const curTop  = ball.style.top  ? parseFloat(ball.style.top)  : tgtTop;
-      const curLeft = ball.style.left ? parseFloat(ball.style.left) : tgtLeft;
-      if (Math.abs(curTop - tgtTop) > 1 || Math.abs(curLeft - tgtLeft) > 1) {
-        animateKickArc(curTop, curLeft, tgtTop, tgtLeft);
+      if (Math.abs(lastTop - tgtTop) > 1 || Math.abs(lastLeft - tgtLeft) > 1) {
+        animateKickArc(tgtTop, tgtLeft);
       } else {
         clearMovement();
       }
@@ -228,11 +262,14 @@ export function initPitchView(): void {
     // ball sits on the painted lines. ballY drives the short/horizontal axis.
     const topPct  = toTop(display.ballX);
     const leftPct = display.ballY;
-    // While a multi-leg movement is animating, the walk owns the ball and ends
-    // exactly here (display.ballX/ballY = the last keyframe) — don't fight it.
+    // While an animation is running it owns the ball and ends exactly here
+    // (display.ballX/ballY = the final keyframe / landing) — don't fight it.
+    // Otherwise set the resting position (CSS-eased) and track it.
     if (!movementAnimating) {
       ball.style.top  = `${topPct}%`;
       ball.style.left = `${leftPct}%`;
+      lastTop = topPct;
+      lastLeft = leftPct;
     }
     // The shared BALL_SVG paints itself from --rm-amber; override that token on
     // the ball element so the glow takes the possessing side's colour.

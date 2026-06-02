@@ -11,6 +11,7 @@
 // the balance-constant rule like the rest of FieldPosition.
 
 import type { MatchState } from '../types/match';
+import type { MatchEvent } from '../types/matchEvent';
 import type { AttackingStyle } from '../types/team';
 import type { NarrationStep } from '../types/narration';
 import { clamp } from '../utils/math';
@@ -107,7 +108,7 @@ export function sweepPath(
 // (set-piece / kick-return exit, via openSweepStep); otherwise it continued the
 // current sweep and `preDir` is the lateral direction before it. Returns null
 // when nothing noteworthy happened laterally.
-export function lateralNote(
+function lateralNote(
   sweep: { y: number; lateralDir: -1 | 1 },
   attackTeamName: string,
   orienting: boolean,
@@ -127,6 +128,34 @@ export function lateralNote(
     return { kind: 'tactic_note', cause: 'switch_to_open_side', chancePct: COMMENTARY_CHANCES.switchToOpenSide, params: { attackTeamName } };
   }
   return null;
+}
+
+// Emit a ball-in-hand phase's lateral movement and return the optional flavour
+// note — the single seam the three carry handlers share. The ball steps across
+// one hop per backline pass (sweepPath, floored at 1), each hop a
+// BALL_REPOSITIONED emitted BEFORE the carry so the keyframe path reads "across
+// the line, then upfield". `perPass` is a presentation switch: live UI emits
+// every hop (so PitchView walks them); headless/silent sims collapse to a single
+// BALL_REPOSITIONED at the final position — identical final ball.y/lateralDir and
+// identical rngPosition draws (sweepPath runs the same either way), only the
+// intermediate presentation-only events are skipped, so outcomes are unchanged.
+export function emitSweepHops(
+  events: MatchEvent[],
+  state: MatchState,
+  style: AttackingStyle,
+  hopCount: number,
+  orient: boolean,
+  attackTeamName: string,
+  perPass: boolean,
+): NarrationStep | null {
+  const hops = sweepPath(state, style, Math.max(1, hopCount), orient);
+  const last = hops[hops.length - 1];
+  if (perPass) {
+    for (const h of hops) events.push({ type: 'BALL_REPOSITIONED', y: h.y, lateralDir: h.lateralDir });
+  } else {
+    events.push({ type: 'BALL_REPOSITIONED', y: last.y, lateralDir: last.lateralDir });
+  }
+  return lateralNote(last, attackTeamName, orient, state.ball.lateralDir);
 }
 
 // A lineout forms on the touchline the ball was kicked out over, a few metres in.

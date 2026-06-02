@@ -185,5 +185,12 @@ export function getTacticNoteLines(
         `Not much space for ${att} out here — backs to the sideline.`,
         `The touchline is doing the defence's job — ${att} have run themselves close to the paint.`,
       ];
+
+    default: {
+      // Exhaustiveness guard: a new TacticNoteCause without a case here is a
+      // compile error rather than an undefined return that crashes the renderer.
+      const _exhaustive: never = cause;
+      return _exhaustive;
+    }
   }
 }

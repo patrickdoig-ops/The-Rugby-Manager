@@ -53,7 +53,7 @@ export function draftEvent(state: MatchState, phase: MatchPhase): GameEvent {
   };
 }
 
-export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy): GameEvent {
+export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy, silent = false): GameEvent {
   const attackTeam = state.possession === 'home' ? state.homeTeam : state.awayTeam;
   const defendTeam = state.possession === 'home' ? state.awayTeam : state.homeTeam;
   // Capture before the handler runs — possession may flip inside the handler.
@@ -71,6 +71,7 @@ export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy
     pickPlayer:   (team, ...ids) => team.players.find(p => ids.includes(p.id)) ?? team.players[0],
     draftEvent:   (phase) => draftEvent(state, phase),
     kickOffStrategy,
+    silent,
   };
 
   const handler = PHASE_HANDLERS[state.phase];
@@ -83,17 +84,18 @@ export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy
 
   // Apply all handler-emitted MatchEvents in order — these are the only mutations
   // the handler can make to MatchState / player stats. While applying, record a
-  // keyframe after every ball-moving event so the GameEvent carries the in-phase
-  // ball path (carry leg → lateral sweep → kick landing) for the 2D pitch to
-  // animate through. Read-only over the path: no new mutation, no RNG draw.
+  // keyframe whenever the ball position actually changed, so the GameEvent carries
+  // the in-phase ball path (carry leg → lateral sweep → kick landing) for the 2D
+  // pitch to animate through. Observing the position (rather than matching event
+  // types) means any ball-moving event is captured without a hand-maintained list.
+  // Skipped entirely for silent/headless fixtures — nothing consumes movements there.
   const movements: { x: number; y: number }[] = [];
   for (const e of result.events) {
     applyMatchEvent(state, e);
-    if (e.type === 'CARRY_RESOLVED' || e.type === 'BALL_REPOSITIONED') {
-      const last = movements[movements.length - 1];
-      if (!last || last.x !== state.ball.x || last.y !== state.ball.y) {
-        movements.push({ x: state.ball.x, y: state.ball.y });
-      }
+    if (silent) continue;
+    const last = movements[movements.length - 1];
+    if (!last || last.x !== state.ball.x || last.y !== state.ball.y) {
+      movements.push({ x: state.ball.x, y: state.ball.y });
     }
   }
 

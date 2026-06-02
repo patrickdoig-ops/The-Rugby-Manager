@@ -47,10 +47,13 @@ export function openSideDir(y: number): -1 | 1 {
   return y <= 50 ? 1 : -1;
 }
 
-// One open-play pass: lateral distance drawn from the pass-length distribution,
-// scaled by attacking style, applied in the current sweep direction. Reaching
-// the 15m edge band clamps to the edge and flips the direction for next phase.
-export function sweepStep(state: MatchState, style: AttackingStyle): { y: number; lateralDir: -1 | 1 } {
+// One open-play pass from an explicit position: lateral distance drawn from the
+// pass-length distribution, scaled by attacking style, applied in `dir`. Reaching
+// the 15m edge band clamps to the edge and flips the direction. Takes y/dir
+// explicitly (not state) so a chain of hops can be computed against a running
+// local position — phase handlers are read-only over state, so the events they
+// queue aren't applied to state.ball until PhaseRouter drains the queue.
+function sweepFrom(y: number, dir: -1 | 1, style: AttackingStyle): { y: number; lateralDir: -1 | 1 } {
   const band = rngPosition(1, 100);
   const range = band <= PASS_DISTANCE_M.shortPct ? PASS_DISTANCE_M.short
               : band <= PASS_DISTANCE_M.midPct   ? PASS_DISTANCE_M.mid
@@ -58,17 +61,44 @@ export function sweepStep(state: MatchState, style: AttackingStyle): { y: number
   const distM = rngPosition(range[0], range[1]);
   const stepY = metresToY(distM) * SWEEP_STYLE_MULT[style];
 
-  let dir = state.ball.lateralDir;
-  let y = state.ball.y + dir * stepY;
-  if (y <= EDGE_Y_LOW)  { y = EDGE_Y_LOW;  dir = 1; }
-  else if (y >= EDGE_Y_HIGH) { y = EDGE_Y_HIGH; dir = -1; }
-  return { y: clamp(y, 0, 100), lateralDir: dir };
+  let d = dir;
+  let ny = y + d * stepY;
+  if (ny <= EDGE_Y_LOW)  { ny = EDGE_Y_LOW;  d = 1; }
+  else if (ny >= EDGE_Y_HIGH) { ny = EDGE_Y_HIGH; d = -1; }
+  return { y: clamp(ny, 0, 100), lateralDir: d };
+}
+
+// One open-play pass in the current sweep direction.
+export function sweepStep(state: MatchState, style: AttackingStyle): { y: number; lateralDir: -1 | 1 } {
+  return sweepFrom(state.ball.y, state.ball.lateralDir, style);
 }
 
 // Set-piece / kick-receive exit: orient to the open side, then take one pass.
 export function openSweepStep(state: MatchState, style: AttackingStyle): { y: number; lateralDir: -1 | 1 } {
-  const dir = openSideDir(state.ball.y);
-  return sweepStep({ ...state, ball: { ...state.ball, lateralDir: dir } }, style);
+  return sweepFrom(state.ball.y, openSideDir(state.ball.y), style);
+}
+
+// A chain of `hopCount` lateral pass-hops from the current ball position — one
+// per pass in a backline chain, so the ball steps across the field pass-by-pass.
+// The first hop orients to the open side when `orient` (set-piece / kick-return
+// exit); each subsequent hop continues in the running direction, reversing at the
+// edge band. Returns one { y, lateralDir } per hop (each → a BALL_REPOSITIONED).
+export function sweepPath(
+  state: MatchState,
+  style: AttackingStyle,
+  hopCount: number,
+  orient: boolean,
+): Array<{ y: number; lateralDir: -1 | 1 }> {
+  const out: Array<{ y: number; lateralDir: -1 | 1 }> = [];
+  let y = state.ball.y;
+  let dir: -1 | 1 = orient ? openSideDir(state.ball.y) : state.ball.lateralDir;
+  for (let i = 0; i < hopCount; i++) {
+    const step = sweepFrom(y, dir, style);
+    y = step.y;
+    dir = step.lateralDir;
+    out.push(step);
+  }
+  return out;
 }
 
 // Optional lateral-flavour commentary note for a completed sweep — pure

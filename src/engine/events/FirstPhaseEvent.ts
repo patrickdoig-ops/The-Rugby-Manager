@@ -6,7 +6,7 @@ import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
 import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler, tryLineDefenceBonus } from '../FieldPosition';
-import { openSweepStep, lateralNote } from '../Lateral';
+import { sweepPath, lateralNote } from '../Lateral';
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
@@ -41,6 +41,8 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   const interceptPctBase = INTERCEPTION_BASE_PCT + TACTIC_MODIFIERS.interceptionMod[defensiveLine];
 
   const events: MatchEvent[] = [];
+  // Backline passes on the carry path — drives the per-pass lateral hop count.
+  let passCount = 0;
 
   // Scrum-half → fly-half interception roll. Off the set piece this is
   // the first pass; off-target the ball lands at the interceptor's feet.
@@ -63,6 +65,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       return { nextPhase: MatchPhase.KickReturn, narration: { steps: intSteps }, primaryPlayer: interceptor, secondaryPlayer: scrumHalf, events };
     }
     events.push({ type: 'PASS_COMPLETED', passer: scrumHalf });
+    passCount++;
   }
 
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;
@@ -146,6 +149,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     }
 
     events.push({ type: 'PASS_COMPLETED', passer: carrier });
+    passCount++;
     ballCarrier = insideCentre;
     // Channel-aware: crash-ball carrier is #12 (midfield channel) — defender
     // is weighted across opposite 12/13 plus back-row support.
@@ -219,6 +223,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     }
 
     events.push({ type: 'PASS_COMPLETED', passer: carrier });
+    passCount++;
 
     const wingPool = attackOnField.filter(p => p.id === SLOT.WING_11 || p.id === SLOT.WING_14);
     const wing = wingPool.length > 0 ? wingPool[rng(0, wingPool.length - 1)] : (attackOnField[rng(0, Math.max(0, attackOnField.length - 1))] ?? randomPlayer(attackTeam));
@@ -265,6 +270,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     }
 
     events.push({ type: 'PASS_COMPLETED', passer: outsideCentre });
+    passCount++;
     ballCarrier = wing;
     // Channel-aware: wide-play carrier is a wing — defender weighted across
     // opposite wing / fullback / outside centre.
@@ -345,6 +351,18 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     ? pickAssistTackler(defendTeam, state, defSide, defender)
     : undefined;
 
+  // First phase off a set piece: the ball sweeps to the open side one hop per
+  // backline pass (oriented open-side), THEN the carrier drives forward — so the
+  // keyframe path reads "across the line, then upfield". Emitted before the carry
+  // so the lateral legs precede the x-advance. Try path keeps its tryLandingY
+  // grounding below (no per-pass hops on a score).
+  let lateralStep: NarrationStep | null = null;
+  if (!tryScored) {
+    const hops = sweepPath(state, attackTeam.tactics.attackingStyle, Math.max(1, passCount), true);
+    for (const h of hops) events.push({ type: 'BALL_REPOSITIONED', y: h.y, lateralDir: h.lateralDir });
+    lateralStep = lateralNote(hops[hops.length - 1], attackTeam.name, true, state.ball.lateralDir);
+  }
+
   events.push({
     type: 'CARRY_RESOLVED',
     carrier: ballCarrier,
@@ -356,15 +374,6 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     coverTackler,
     assistTackler,
   });
-
-  // First phase off a set piece: the ball goes to the open side, then sweeps
-  // one pass that way (openSweepStep orients toward open side before stepping).
-  let lateralStep: NarrationStep | null = null;
-  if (!tryScored) {
-    const sweep = openSweepStep(state, attackTeam.tactics.attackingStyle);
-    lateralStep = lateralNote(sweep, attackTeam.name, true, state.ball.lateralDir);
-    events.push({ type: 'BALL_REPOSITIONED', y: sweep.y, lateralDir: sweep.lateralDir });
-  }
 
   let nextPhase: MatchPhase;
   const outcomeSteps: NarrationStep[] = [...playIntroSteps, ...chainNarration];

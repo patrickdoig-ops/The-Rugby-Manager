@@ -7,7 +7,7 @@ import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
 import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, pickCoverDefender, pickKickReturnDefender, pickAssistTackler, pickPodCarrier } from '../FieldPosition';
-import { openSweepStep, lateralNote } from '../Lateral';
+import { sweepPath, lateralNote } from '../Lateral';
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
@@ -122,6 +122,17 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
     ? pickAssistTackler(defendTeam, state, defSide, defender)
     : undefined;
 
+  // Receiving team running the kick back: the catcher angles to the open side
+  // (one hop — the pod pop, when it fires, IS that lateral move) THEN drives
+  // forward, so the lateral leg precedes the x-advance. Try path keeps its
+  // tryLandingY grounding below.
+  let lateralStep: NarrationStep | null = null;
+  if (!tryScored) {
+    const hops = sweepPath(state, attackTeam.tactics.attackingStyle, 1, true);
+    for (const h of hops) events.push({ type: 'BALL_REPOSITIONED', y: h.y, lateralDir: h.lateralDir });
+    lateralStep = lateralNote(hops[hops.length - 1], attackTeam.name, true, state.ball.lateralDir);
+  }
+
   events.push({
     type: 'CARRY_RESOLVED',
     carrier,
@@ -133,14 +144,6 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer }
     coverTackler,
     assistTackler,
   });
-
-  // Receiving team running the kick back: counter toward the open side.
-  let lateralStep: NarrationStep | null = null;
-  if (!tryScored) {
-    const sweep = openSweepStep(state, attackTeam.tactics.attackingStyle);
-    lateralStep = lateralNote(sweep, attackTeam.name, true, state.ball.lateralDir);
-    events.push({ type: 'BALL_REPOSITIONED', y: sweep.y, lateralDir: sweep.lateralDir });
-  }
 
   let nextPhase: MatchPhase;
   const steps: NarrationDescriptor['steps'] = [...chainNarration];

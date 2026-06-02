@@ -10,7 +10,7 @@ import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
 import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler, pickHardCarrier, pickPickAndGoCarrier, tryLineDefenceBonus } from '../FieldPosition';
-import { sweepStep, lateralNote } from '../Lateral';
+import { sweepStep, sweepPath, lateralNote } from '../Lateral';
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
@@ -79,6 +79,8 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
   const interceptPctBase = INTERCEPTION_BASE_PCT + TACTIC_MODIFIERS.interceptionMod[defensiveLine];
 
   const events: MatchEvent[] = [];
+  // Backline passes on the carry path — drives the per-pass lateral hop count.
+  let passCount = 0;
 
   // Scrum-half → carrier interception opportunity (only when the pass
   // actually happens). On hit, possession flips and the interceptor runs
@@ -102,6 +104,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
       return { nextPhase: MatchPhase.KickReturn, narration: { steps: intSteps }, primaryPlayer: interceptor, secondaryPlayer: scrumHalf, events };
     }
     events.push({ type: 'PASS_COMPLETED', passer: scrumHalf });
+    passCount++;
   }
 
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;
@@ -210,6 +213,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
     }
 
     events.push({ type: 'PASS_COMPLETED', passer: carrier });
+    passCount++;
     ballCarrier = outsideBack;
   }
 
@@ -317,6 +321,17 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
     ? pickAssistTackler(defendTeam, state, defSide, defender)
     : undefined;
 
+  // Lateral hops: the ball steps across the field one hop per backline pass
+  // (continuing the current sweep direction), THEN the carrier drives forward —
+  // emitted before the carry so the lateral legs precede the x-advance. Try path
+  // keeps its tryLandingY grounding below (no per-pass hops on a score).
+  let lateralStep: NarrationStep | null = null;
+  if (!tryScored) {
+    const hops = sweepPath(state, attackTeam.tactics.attackingStyle, Math.max(1, passCount), false);
+    for (const h of hops) events.push({ type: 'BALL_REPOSITIONED', y: h.y, lateralDir: h.lateralDir });
+    lateralStep = lateralNote(hops[hops.length - 1], attackTeam.name, false, state.ball.lateralDir);
+  }
+
   events.push({
     type: 'CARRY_RESOLVED',
     carrier: ballCarrier,
@@ -328,15 +343,6 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer }:
     coverTackler,
     assistTackler,
   });
-
-  // Lateral sweep: a continuing open-play phase shifts the ball one pass across
-  // the field in the current sweep direction (reverses at the 15m edge band).
-  let lateralStep: NarrationStep | null = null;
-  if (!tryScored) {
-    const sweep = sweepStep(state, attackTeam.tactics.attackingStyle);
-    lateralStep = lateralNote(sweep, attackTeam.name, false, state.ball.lateralDir);
-    events.push({ type: 'BALL_REPOSITIONED', y: sweep.y, lateralDir: sweep.lateralDir });
-  }
 
   let nextPhase: MatchPhase;
   const outcomeSteps: NarrationStep[] = [...wideIntroSteps, ...chainNarration];

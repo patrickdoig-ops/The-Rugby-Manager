@@ -46,7 +46,8 @@ export type ScreenId =
   | 'achievements'
   | 'inbox'
   | 'contracts-transfers-menu'
-  | 'club-menu';
+  | 'club-menu'
+  | 'team-talk';
 
 const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'home':          { elId: 'home-screen',   shownDisplay: '' },
@@ -89,6 +90,7 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'inbox':                     { elId: 'inbox',                     shownDisplay: '' },
   'contracts-transfers-menu':  { elId: 'contracts-transfers-menu',  shownDisplay: '' },
   'club-menu':                 { elId: 'club-menu',                 shownDisplay: '' },
+  'team-talk':                 { elId: 'team-talk',                 shownDisplay: '' },
 };
 
 export type NavDirection = 'forward' | 'back';

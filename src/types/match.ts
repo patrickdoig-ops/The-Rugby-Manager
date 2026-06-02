@@ -233,6 +233,14 @@ export interface MatchState {
   // mid-review.
   tmoReview?: TmoReviewState;
   kickAtGoal?: KickAtGoalState;
+  // Team talk modifier — set pre-match and at half-time. Decay is computed
+  // at read time (resolvers): fraction = max(0, 1 - (gameMinute - startMinute) / decayMinutes).
+  // singleOut is a targeted bonus for one player on one side (optional).
+  teamTalkMod: {
+    home: { attack: number; defend: number; startMinute: number; decayMinutes: number };
+    away: { attack: number; defend: number; startMinute: number; decayMinutes: number };
+    singleOut?: { side: 'home' | 'away'; playerId: number; bonus: number; startMinute: number; decayMinutes: number };
+  };
   // Count of consecutive wheel outcomes in the current scrum sequence.
   // Incremented by the SCRUM_RESOLVED reducer when outcome === 'wheel';
   // reset to 0 on any other scrum outcome. handleScrum reads this to cap

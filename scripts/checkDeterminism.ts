@@ -11,9 +11,9 @@
 // committing.
 //
 // Drives an unmodified MatchCoordinator: subscribes to engine:paused and
-// auto-resolves the kickoff-strategy, penalty-choice, and forced-substitution
-// modals with fixed defaults, then waits for engine:finished. No engine
-// changes required.
+// auto-resolves the kickoff-strategy, penalty-choice, forced-substitution,
+// and team-talk-choice modals with fixed defaults, then waits for
+// engine:finished. No engine changes required.
 
 import { createHash } from 'node:crypto';
 import { MatchCoordinator } from '../src/engine/MatchCoordinator.js';
@@ -33,6 +33,10 @@ function runOnce(seed: number): Promise<string> {
     const offPaused = eventBus.on('engine:paused', ({ payload }) => {
       if (payload.type === 'kickoff_choice') payload.onChoice('high_ball');
       else if (payload.type === 'penalty_choice') payload.onChoice('kick_for_goal');
+      else if (payload.type === 'team_talk_choice') {
+        // Stable deterministic default: calm talk, no single-out.
+        payload.onChoice({ attack: 2, defend: 4, decayMinutes: 15 });
+      }
       else if (payload.type === 'forced_substitution_choice') {
         // Stable, RNG-free auto-pick: walk a like-for-like position fallback
         // chain, then position-group, else the first bench player. Mirrors

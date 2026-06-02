@@ -45,6 +45,7 @@ import '../style/player-profile.css';
 import '../style/saves.css';
 import '../style/achievements.css';
 import '../style/sack.css';
+import '../style/team-talk.css';
 
 import { buildAppShell }           from './ui/AppShell';
 import { preloadAllCues }          from './ui/SoundManager';
@@ -53,12 +54,15 @@ import { initUiSounds }            from './ui/audio/uiSounds';
 import { initHapticsDirector }     from './ui/haptics/HapticsDirector';
 import { initScoreboard }          from './ui/Scoreboard';
 import { initPitchStrip }          from './ui/PitchStrip';
+import { initPitchView }           from './ui/PitchView';
 import { initCommentaryFeed }      from './ui/CommentaryFeed';
 import { initCrashOverlay }        from './ui/CrashOverlay';
 import { initStatsPanel }          from './ui/StatsPanel';
 import { initSimController }       from './ui/SimController';
 import { initModalManager }        from './ui/ModalManager';
 import { initPreMatchScreen, showPreMatchAtStep } from './ui/PreMatchScreen';
+import { initTeamTalkScreen } from './ui/TeamTalkScreen';
+import { initHalfTimeTalkPanel } from './ui/HalfTimeTalkPanel';
 import { initHomeScreen }          from './ui/HomeScreen';
 import { initSettingsScreen }      from './ui/SettingsScreen';
 import { initSavesScreen }         from './ui/SavesScreen';
@@ -110,6 +114,7 @@ import type { RawTeamInput }       from './types/teamData';
 import type { TeamTactics }        from './types/team';
 import type { MatchState }         from './types/match';
 import type { PlayoffMatch }       from './types/gameState';
+import type { TalkArgs }           from './types/ui';
 import * as teamProfile            from './team/teamProfile';
 import type { TeamJson }           from './team/teamProfile';
 import { GameCoordinator }         from './game/GameCoordinator';
@@ -118,7 +123,7 @@ import { extractMatchdaySquad }    from './game/playerSquad';
 import { resolveCaptainRosterId }  from './game/captain';
 import { buildTeamFromRoster, buildAutoSelectedTeamFromRoster } from './game/rosterTeamBuilder';
 import { snapshotMatch }           from './game/seasonStatsCollector';
-import { SEASON_VALUES, HOME_ADVANTAGE } from './engine/balance';
+import { SEASON_VALUES, HOME_ADVANTAGE, MORALE } from './engine/balance';
 import { computeAttendance }        from './game/attendance';
 import { generateSeed }            from './utils/rng';
 import { eventBus }                from './utils/eventBus';
@@ -162,12 +167,14 @@ document.addEventListener('DOMContentLoaded', () => {
   configureNativeShell();
   initTextScale();            // accessibility text scale — before any render
   buildAppShell();
+  initHalfTimeTalkPanel(document.getElementById('half-time-panel')!);
   preloadAllCues();
   initAudioDirector();
   initHapticsDirector();
   initUiSounds();
   initScoreboard();
   initPitchStrip();
+  initPitchView();
   initCommentaryFeed();
   initStatsPanel();
   initModalManager();
@@ -1072,6 +1079,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const contextLabel = isFinal
       ? 'Season Final · Twickenham'
       : `Season Semi-Final · ${match.homeSeed} v ${match.awaySeed}`;
+    const playerRawTeam = playerSide === 'home' ? homeTeam : awayTeam;
+    const oppRawTeam    = playerSide === 'home' ? awayTeam : homeTeam;
     initPreMatchScreen(
       rosteredHome,
       rosteredAway,
@@ -1079,13 +1088,29 @@ document.addEventListener('DOMContentLoaded', () => {
       0, // round is unused in playoff mode — context label overrides it
       gameEngine,
       (configuredHome, configuredAway, playerTactics) => {
+        const playerConfigured = playerSide === 'home' ? configuredHome : configuredAway;
         if (gameEngine) {
-          const playerConfigured = playerSide === 'home' ? configuredHome : configuredAway;
           gameEngine.setPlayerTactics(playerTactics);
           gameEngine.setPlayerMatchdaySquad(extractMatchdaySquad(playerConfigured));
           saveGame(gameEngine.toSavePayload());
         }
-        onPlayoffMatchStart(configuredHome, configuredAway, playerSide, match, playerTactics);
+        // Show team talk screen before the playoff match.
+        const avgMorale = computeAverageMorale(playerConfigured);
+        initTeamTalkScreen(
+          { name: playerRawTeam.name, shortName: playerRawTeam.shortName, color: playerRawTeam.color },
+          { name: oppRawTeam.name, shortName: oppRawTeam.shortName, color: oppRawTeam.color },
+          contextLabel,
+          playerConfigured.players.slice(0, 15),
+          avgMorale,
+          (talkArgs) => {
+            onPlayoffMatchStart(configuredHome, configuredAway, playerSide, match, playerTactics, talkArgs, avgMorale);
+          },
+          () => {
+            showPreMatchAtStep('tactics');
+            screenRouter.show('pre-match', { direction: 'back' });
+          },
+        );
+        screenRouter.show('team-talk');
       },
       runPlayoffStage,
       { contextLabel, neutralVenue: isFinal, backLabel: 'Bracket' },
@@ -1104,6 +1129,8 @@ document.addEventListener('DOMContentLoaded', () => {
     playerSide: 'home' | 'away',
     match: PlayoffMatch,
     playerTactics: TeamTactics,
+    humanPreTalk?: TalkArgs,
+    humanSquadMorale?: number,
   ): void {
     const humanConfigured = playerSide === 'home' ? configuredHome : configuredAway;
     const humanCaptainRosterId = resolveCaptainRosterId(humanConfigured.players, gameEngine?.getState().player.captainRosterId);
@@ -1114,6 +1141,8 @@ document.addEventListener('DOMContentLoaded', () => {
       neutralVenue: match.kind === 'final',
       isPlayoffSemi: match.kind !== 'final',
       humanCaptainRosterId,
+      humanPreTalk,
+      humanSquadMorale,
     });
     initSimController(engine);
 
@@ -1147,6 +1176,21 @@ document.addEventListener('DOMContentLoaded', () => {
     screenRouter.show('match-result');
   }
 
+  // Compute average morale of the player's starting XV from the career roster.
+  function computeAverageMorale(playerConfigured: RawTeamInput): number {
+    if (!gameEngine) return MORALE.baseline;
+    const careerState = gameEngine.getState();
+    const starters = playerConfigured.players.slice(0, 15);
+    if (starters.length === 0) return MORALE.baseline;
+    let sum = 0;
+    for (const p of starters) {
+      const rosterId = (p as { rosterId?: number }).rosterId ?? 0;
+      const rosterPlayer = rosterId ? careerState.career.roster[rosterId] : null;
+      sum += rosterPlayer?.morale ?? MORALE.baseline;
+    }
+    return sum / starters.length;
+  }
+
   function onPlayRound(homeTeam: RawTeamInput, awayTeam: RawTeamInput, playerSide: 'home' | 'away', round: number): void {
     if (!gameEngine) return;
     // Source player data from the persistent career roster — team identity
@@ -1164,6 +1208,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const rosteredAway = playerSide === 'away'
       ? buildTeamFromRoster(state, awayTeam)
       : buildAutoSelectedTeamFromRoster(state, awayTeam);
+    const playerRawTeam = playerSide === 'home' ? homeTeam : awayTeam;
+    const oppRawTeam    = playerSide === 'home' ? awayTeam : homeTeam;
     initPreMatchScreen(
       rosteredHome,
       rosteredAway,
@@ -1174,13 +1220,29 @@ document.addEventListener('DOMContentLoaded', () => {
         // Persist the manager's pre-match commits so the next match opens
         // with these as defaults. Saved here (on Kick Off) rather than after
         // the result so backing out mid-match keeps the chosen line-up.
+        const playerConfigured = playerSide === 'home' ? configuredHome : configuredAway;
         if (gameEngine) {
-          const playerConfigured = playerSide === 'home' ? configuredHome : configuredAway;
           gameEngine.setPlayerTactics(playerTactics);
           gameEngine.setPlayerMatchdaySquad(extractMatchdaySquad(playerConfigured));
           saveGame(gameEngine.toSavePayload());
         }
-        onMatchStart(configuredHome, configuredAway, playerSide, round, playerTactics);
+        // Show the team talk screen before starting the match.
+        const avgMorale = computeAverageMorale(playerConfigured);
+        initTeamTalkScreen(
+          { name: playerRawTeam.name, shortName: playerRawTeam.shortName, color: playerRawTeam.color },
+          { name: oppRawTeam.name, shortName: oppRawTeam.shortName, color: oppRawTeam.color },
+          `Round ${round}`,
+          playerConfigured.players.slice(0, 15),
+          avgMorale,
+          (talkArgs) => {
+            onMatchStart(configuredHome, configuredAway, playerSide, round, playerTactics, talkArgs, avgMorale);
+          },
+          () => {
+            showPreMatchAtStep('tactics');
+            screenRouter.show('pre-match', { direction: 'back' });
+          },
+        );
+        screenRouter.show('team-talk');
       },
       () => goHub('back'),
       undefined,
@@ -1199,6 +1261,8 @@ document.addEventListener('DOMContentLoaded', () => {
     playerSide: 'home' | 'away',
     round: number,
     playerTactics: TeamTactics,
+    humanPreTalk?: TalkArgs,
+    humanSquadMorale?: number,
   ): void {
     const liveState = gameEngine!.getState();
     const liveFixture = liveState.league.fixtures.find(f =>
@@ -1209,7 +1273,7 @@ document.addEventListener('DOMContentLoaded', () => {
       : HOME_ADVANTAGE.crowdFillNeutral;
     const humanConfigured = playerSide === 'home' ? configuredHome : configuredAway;
     const humanCaptainRosterId = resolveCaptainRosterId(humanConfigured.players, liveState.player.captainRosterId);
-    const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: loadTickDelayMs(), playerTactics, humanSide: playerSide, homeFillRate, isDerby: liveFixture?.isDerby ?? false, humanCaptainRosterId });
+    const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: loadTickDelayMs(), playerTactics, humanSide: playerSide, homeFillRate, isDerby: liveFixture?.isDerby ?? false, humanCaptainRosterId, humanPreTalk, humanSquadMorale });
     initSimController(engine);
 
     const unsub = eventBus.on('engine:finished', ({ state }) => {

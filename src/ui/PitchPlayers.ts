@@ -5,6 +5,7 @@
 
 import type { GameEvent, MatchState } from '../types/match';
 import { MatchPhase } from '../types/engine';
+import { SLOT } from '../engine/Slot';
 import { toTop, toLeft } from './pitchCoords';
 import { choreograph } from './pitchChoreography';
 
@@ -57,6 +58,11 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     const placed = choreograph(event, state, attacksTop);
     const nextKeys = new Set(placed.map(p => p.key));
 
+    // Key of the attacking #9 whose position we must preserve on the transition
+    // beat from a set-piece into FirstPhase — they hold their set-piece position
+    // (lineout mark or behind-#8) so the first-phase dot reads as a continuation.
+    let setpieceSHKey: string | null = null;
+
     // On phase change, fade out persisted dots that aren't in the new beat.
     if (event.phase !== currentPhase) {
       // Lineout→Maul: enable top/left transitions so forwards animate from their
@@ -70,7 +76,12 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       // They fade normally when FirstPhase itself ends.
       const keepLineout = (currentPhase === MatchPhase.Lineout || currentPhase === MatchPhase.Scrum)
         && event.phase === MatchPhase.FirstPhase;
-      if (!keepLineout) {
+      if (keepLineout) {
+        // Attacking #9 must start FirstPhase at their set-piece position (lineout
+        // mark or behind their #8 in a scrum). Skip the position update for their
+        // dot this beat only; subsequent beats will reposition them normally.
+        setpieceSHKey = `${event.side === 'home' ? 'h' : 'a'}:${SLOT.SCRUM_HALF}`;
+      } else {
         for (const key of persistedKeys) {
           if (!nextKeys.has(key)) pool.get(key)?.classList.remove('visible');
         }
@@ -86,8 +97,11 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     for (const p of placed) {
       persistedKeys.add(p.key);
       const el = ensureDot(p.key, p.color, p.text, p.jersey);
-      el.style.top = `${toTop(p.x)}%`;
-      el.style.left = `${toLeft(p.y)}%`;
+      // Preserve the set-piece #9 position on the Lineout/Scrum→FirstPhase beat.
+      if (p.key !== setpieceSHKey) {
+        el.style.top = `${toTop(p.x)}%`;
+        el.style.left = `${toLeft(p.y)}%`;
+      }
       el.classList.add('visible');
       if (p.isCarrier) carrierEl = el;
       if (p.isChaser) chaserEl = el;

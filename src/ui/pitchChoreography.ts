@@ -312,5 +312,13 @@ function lineoutLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
   lineSpread(atkLine, atkSide, -fwd * 2);
   lineSpread(defLine, defSide, +fwd * 2);
 
+  // Each #9 stands 2m behind their own line (2 more x-units back) and 10m infield
+  // from touch (~14 y-units). onFieldPlayers covers backs; availableForwards doesn't.
+  const TEN_M_Y = clampY(nearY + inward * 14);
+  const atkSH = onFieldPlayers(atkTeam, state, possOf(atkSide)).find(p => p.id === SLOT.SCRUM_HALF);
+  const defSH = onFieldPlayers(defTeam, state, possOf(defSide)).find(p => p.id === SLOT.SCRUM_HALF);
+  if (atkSH) out.push(placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 4), TEN_M_Y, false));
+  if (defSH) out.push(placed(defSH, defSide, state, clampX(event.ballX + fwd * 4), TEN_M_Y, false));
+
   return out;
 }

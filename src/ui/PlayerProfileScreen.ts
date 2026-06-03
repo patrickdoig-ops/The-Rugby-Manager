@@ -446,7 +446,7 @@ export function initPlayerProfileScreen(
 
     const attrsSection = `
       <section class="pp-section">
-        <h3 class="pp-section-title">Attributes${scoutAccuracy !== null && scoutAccuracy < 100 ? ' <span class="pp-attrs-scouted-label">(scouted)</span>' : ''}</h3>
+        <h3 class="pp-section-title">Attributes${scoutAccuracy !== null ? scoutAccuracy === 0 ? ' <span class="pp-attrs-scouted-label">(unscouted)</span>' : scoutAccuracy < 100 ? ' <span class="pp-attrs-scouted-label">(scouted)</span>' : '' : ''}</h3>
         <div class="pp-attr-block">
           <div class="pp-radar-wrap">${radarSvg(player, scoutAccuracy)}</div>
           <div class="pp-attr-cols">${attributeBars(player, scoutAccuracy)}</div>

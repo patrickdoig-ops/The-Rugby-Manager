@@ -85,6 +85,11 @@
   border-left-color: var(--rm-amber);
 }
 
+.tr-banner--suggest {
+  border-left-color: color-mix(in oklch, var(--rm-pitch) 55%, var(--rm-border-soft));
+}
+.tr-banner--suggest strong { color: var(--rm-chalk); }
+
 /* ── Per-week block cards ───────────────────────────────────────────── */
 .tr-weeks {
   display: flex;

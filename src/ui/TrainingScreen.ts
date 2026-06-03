@@ -25,6 +25,7 @@ import { DEFAULT_TRAINING_PLAN } from '../types/training';
 import { isForward } from '../types/player';
 import { INTENSITY_EFFECTS } from '../engine/balance';
 import { upcomingGap, splitGapIntoPeriods } from '../game/trainingCalendar';
+import { suggestPlanForUser } from '../game/aiTrainingDirector';
 import { eventBus } from '../utils/eventBus';
 import { injectTeamColors } from './teamColors';
 
@@ -208,6 +209,7 @@ function renderPostMatch(
           : `<div class="tr-cond-low">No tired players.</div>`}
       </div>
 
+      ${suggestionBanner(state)}
       ${banner}
 
       <div class="tr-weeks">${weekCards}</div>
@@ -306,6 +308,8 @@ function renderMidWeek(
           : `<div class="tr-cond-low">No tired players.</div>`}
       </div>
 
+      ${suggestionBanner(state)}
+
       <section class="tr-section">
         <h2 class="tr-section-title">Default intensity</h2>
         <div class="tr-chip-row" id="tr-intensity-row">
@@ -386,6 +390,15 @@ function projectFreshness(
 
 function freshnessClass(v: number): 'low' | 'mid' | 'high' {
   return v < 60 ? 'low' : v < 80 ? 'mid' : 'high';
+}
+
+function suggestionBanner(state: Parameters<typeof suggestPlanForUser>[0]): string {
+  const plan = suggestPlanForUser(state);
+  if (!plan) return '';
+  const iLabel = INTENSITIES.find(i => i.value === plan.intensity)?.label ?? plan.intensity;
+  const fwdLabel = FORWARDS_FOCUSES.find(f => f.value === plan.forwardsFocus)?.label ?? plan.forwardsFocus;
+  const bckLabel = BACKS_FOCUSES.find(b => b.value === plan.backsFocus)?.label ?? plan.backsFocus;
+  return `<div class="tr-banner tr-banner--suggest">Coach suggests: <strong>${iLabel}</strong> · Fwds: ${fwdLabel} · Bks: ${bckLabel}</div>`;
 }
 
 function intensityChip(opt: IntensityCopy, selected: TrainingIntensity, week?: number): string {

@@ -476,6 +476,17 @@ export interface StaffMember {
   clubId: string | null; // null = free pool (unhired); managed-club id = hired
 }
 
+// ── Scouting system (1.1) ────────────────────────────────────────────────────
+// Per-target knowledge record. `accuracy` runs 0–100; 0 means "only heard
+// of them" (±10 bands on every attribute), 100 means exact (own-squad
+// level). `assignedScoutId` names the hired scout currently working on this
+// target; absent means the target is being passively held, not actively
+// advanced this week.
+export interface ScoutingRecord {
+  accuracy: number;
+  assignedScoutId?: string;
+}
+
 // Multi-season career state — the persistent roster of every senior player
 // across every club, plus per-club squad pointers and historical archive.
 // Seeded once at first-ever new-game start (ROSTER_SEEDED); mutates only
@@ -575,6 +586,11 @@ export interface GameState {
     // season start (BOARD_STATE_SEEDED); undefined only on legacy saves
     // written before this system, where consumers fall back gracefully.
     board?: BoardState;
+    // Per-target scouting knowledge. Keyed by rosterId. Absent = no entry
+    // (treated as accuracy 0). Own-squad players are always fully visible
+    // and have no entry here. Not present on legacy saves — falls back
+    // gracefully (no scouting progress, no assigned scouts).
+    scouting?: Record<number, ScoutingRecord>;
   };
   seed: number;
   career: CareerState;
@@ -1235,4 +1251,31 @@ export type SeasonEvent =
       // released; the pool is refreshed at the next rollover.
       type: 'STAFF_RELEASED';
       staffId: string;
+    }
+  | {
+      // Assigns a hired scout to actively track a target player. Creates
+      // the scouting entry if absent (accuracy 0). A scout can only be
+      // assigned to one target; the previous target loses assignedScoutId
+      // (accuracy is retained).
+      type: 'PLAYER_SCOUT_ASSIGNED';
+      rosterId: number;
+      scoutId: string;
+    }
+  | {
+      // Removes the scout assignment from a target. The accuracy record
+      // is retained so partial scouting survives a reassignment.
+      type: 'PLAYER_SCOUT_UNASSIGNED';
+      rosterId: number;
+    }
+  | {
+      // Weekly tick: adds `delta` accuracy points to an assigned target.
+      // Clamped to 0–100 in the reducer.
+      type: 'SCOUTING_ACCURACY_ADVANCED';
+      rosterId: number;
+      delta: number;
+    }
+  | {
+      // Save-restore only. Bulk-replaces state.player.scouting verbatim.
+      type: 'PLAYER_SCOUTING_RESTORED';
+      scouting: Record<number, ScoutingRecord>;
     };

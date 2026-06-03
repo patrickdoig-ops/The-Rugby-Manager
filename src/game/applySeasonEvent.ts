@@ -799,6 +799,30 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       m.clubId = null;
       return;
     }
+    case 'PLAYER_SCOUT_ASSIGNED': {
+      if (!state.player.scouting) state.player.scouting = {};
+      const existing = state.player.scouting[event.rosterId];
+      state.player.scouting[event.rosterId] = {
+        accuracy: existing?.accuracy ?? 0,
+        assignedScoutId: event.scoutId,
+      };
+      return;
+    }
+    case 'PLAYER_SCOUT_UNASSIGNED': {
+      const rec = state.player.scouting?.[event.rosterId];
+      if (rec) delete rec.assignedScoutId;
+      return;
+    }
+    case 'SCOUTING_ACCURACY_ADVANCED': {
+      const rec = state.player.scouting?.[event.rosterId];
+      if (!rec) return;
+      rec.accuracy = Math.min(100, Math.max(0, rec.accuracy + event.delta));
+      return;
+    }
+    case 'PLAYER_SCOUTING_RESTORED': {
+      state.player.scouting = { ...event.scouting };
+      return;
+    }
     default: {
       const _: never = event;
       void _;

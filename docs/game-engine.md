@@ -98,7 +98,11 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 | `PLAYER_MORALE_ADJUSTED` | `GameCoordinator.computeFixtureMoraleEvents` (after every fixture — playing-time + result + standout), `GameCoordinator.computeMoraleDecayEvents` (once per `WEEK_ADVANCED`), `GameCoordinator.boostPlayerMorale` (inbox "Have a Chat" CTA) | Clamps `Player.morale += delta` to [0, 100]. `Player.morale` is seeded at 65 (`MORALE.baseline`) and back-filled for pre-morale saves in `ROSTER_SEEDED`. Drives a ±3 form-bias term in `playerForm.computeFormInputs` — formula: `clamp((morale − 65) × 0.086, −3, +3)`. **Chat boost (diminishing returns):** when `reason === 'manager_chat'`, `boostPlayerMorale` computes `delta = max(2, round(rngTransfer(6, 14) × 0.55^chatCount))` — first chat ≈ 6–14, second ≈ 3–8, third ≈ 2–4, fourth+ floored at 2. `Player.moraleChats` tracks the count; reset at `SEASON_ROLLED_OVER`. **Inbox diagnosis:** the "unhappy player" item body is reason-aware — playing-time (top-15 OVR, <40% appearance rate after ≥3 games), bad run (≥2 losses in last 3), both, or neither. Playing-time items show a "Go to Squad" deeplink alongside "Have a Chat". Balance constants in `src/engine/balance/morale.ts`. |
 | `STAFF_POOL_SEEDED` | `GameCoordinator.newSeason` (season 1 start, `generateStaffPool(1)`) and `careerRollover.computeRollover` (year 2+, carries forward hired staff + generates a fresh free pool). | Sets `career.staff = event.staff` and `career.nextStaffId = event.nextStaffId`. IDs use the `nextStaffId` counter (mirrors `nextRosterId`). Free-pool entries have `clubId: null`; hired entries carry the managed-club id. Both `staff?` and `nextStaffId?` are additive-optional — absent on legacy saves (treated as empty pool, no staff effects). |
 | `STAFF_HIRED` | `GameCoordinator.hireStaff(staffId)` — called from StaffScreen hire button | Sets `StaffMember.clubId` to the managed-club id and `annualWage` to the listed wage. Guard: no-ops if the member is already hired. |
-| `STAFF_RELEASED` | `GameCoordinator.releaseStaff(staffId)` — called from StaffScreen release button | Sets `StaffMember.clubId = null` (returns to pool). Guard: no-ops if not hired by the managed club. |
+| `STAFF_RELEASED` | `GameCoordinator.releaseStaff(staffId)` — called from StaffScreen release button | Sets `StaffMember.clubId = null` (returns to pool). Also auto-unassigns any scouting targets the scout was tracking. Guard: no-ops if not hired by the managed club. |
+| `PLAYER_SCOUT_ASSIGNED` | `GameCoordinator.assignScout(rosterId, scoutId)` — called from PlayerProfileScreen assign button | Creates or updates the `ScoutingRecord` for `rosterId` (preserving existing accuracy); sets `assignedScoutId`. The coordinator unassigns the scout from any prior target before calling this. |
+| `PLAYER_SCOUT_UNASSIGNED` | `GameCoordinator.unassignScout(rosterId)` or inline before a reassignment | Removes `assignedScoutId` from the record (accuracy retained). |
+| `SCOUTING_ACCURACY_ADVANCED` | `GameCoordinator.advanceScoutingAccuracy()` — once per week per assigned-scout target | Adds `delta = scoutWeeklyGain(scout.rating)` pp to `accuracy`; clamped to 0–100. |
+| `PLAYER_SCOUTING_RESTORED` | `GameCoordinator.fromSave` only | Bulk-replaces `state.player.scouting` verbatim. Absent on legacy saves — falls back to no entries (all targets at accuracy 0). |
 
 `SEASON_ROLLED_OVER` additionally carries `premCupChampionTeamId` (archived onto `ArchivedSeason`) and resets `state.league.premCup = null`; `CAREER_ARCHIVE_RESTORED` restores `premCup`.
 
@@ -478,21 +482,33 @@ The 2025/26 schedule pauses the Premiership during two international windows —
 
 - **Determinism.** All duty rolls flow through `rngTransfer`, consumed only at break weeks in `runInternationalBreakBlock` (no consumption on non-break weeks), so existing match/season RNG is undisturbed. `checkSeasonDeterminism` now drives the break blocks (`beginInternationalBreak` + `runInternationalBreakBlock` at rounds 6 / 11) and hashes the League Cup state, so the duty + cup paths are covered and stay green (run1 == run2).
 
-## Scouting (Phase 1.1 — seam built; event flow pending)
+## Scouting (Phase 1.1)
 
-The scouting system is a per-target knowledge layer on the managed club: each unscouted outside player shows per-attribute **range bands** that narrow as scouting accuracy rises, rather than exact numbers. Own-squad players are always fully visible.
+The scouting system is a per-target knowledge layer on the managed club: each unscouted outside player shows per-attribute **range bands** that narrow as scouting accuracy rises, rather than exact numbers. Own-squad players are always fully visible (exact values).
 
 **Seam (`src/game/scouting.ts`).** Two pure helpers, no RNG, no state mutation:
 
 - `scoutingBand(trueValue, accuracy)` → `[lo, hi]` — the displayed band for one attribute. At `accuracy === 100`, `lo === hi === trueValue` (exact). Band edges are clamped to `[1, 99]`. Half-width is linearly interpolated from `BAND_CURVE` (`src/engine/balance/scouting.ts`): accuracy 0 → ±10, 50 → ±4, 90 → ±1, 100 → ±0.
 - `scoutWeeklyGain(rating)` → number — accuracy points added per week by one scout assigned to a single target. `= SCOUT_ACCURACY_BASE (2) + rating × SCOUT_ACCURACY_PER_POINT (0.1)` — rating 40 → 6 pp/week; rating 75 → 9.5 pp/week; rating 90 → 11 pp/week. Scouts each advance their own assigned target independently (not pooled).
 
-**Phase B build plan** (not yet implemented — state, events, UI all pending):
+**State.** `ScoutingRecord { accuracy: number; assignedScoutId?: string }` lives on `GameState.player.scouting?: Record<number, ScoutingRecord>` (keyed by rosterId). Absent entry = accuracy 0. Own-squad players have no entry — the UI checks squad membership and always renders exact values.
 
-1. `ScoutingRecord { accuracy: number; assignedScoutId?: string }` on `GameState.player.scouting?: Record<rosterId, ScoutingRecord>`; `scoutingBand()` renders bands on transfer/profile screens (own squad always exact, outside targets seeded to low default accuracy).
-2. Scout-assignment flow + `PLAYER_SCOUT_ASSIGNED { rosterId; scoutId }` event.
-3. Weekly `SCOUTING_ACCURACY_ADVANCED { rosterId; delta }` emitted by `GameCoordinator` in the `WEEK_ADVANCED` flow, using `scoutWeeklyGain(scout.rating)`. Clamps to 0–100 via `applySeasonEvent`.
-4. Inbox surfacing + polish (band visuals, mobile/text-scale check).
+**Events** (all four mutate `state.player.scouting`; first three are normal-flow; last is `fromSave` only):
+- `PLAYER_SCOUT_ASSIGNED { rosterId; scoutId }` — creates or updates the record (preserves existing accuracy); sets `assignedScoutId`.
+- `PLAYER_SCOUT_UNASSIGNED { rosterId }` — removes `assignedScoutId` from the record; accuracy retained.
+- `SCOUTING_ACCURACY_ADVANCED { rosterId; delta }` — adds `delta` pp to `accuracy`; clamped to 0–100.
+- `PLAYER_SCOUTING_RESTORED { scouting: Record<number, ScoutingRecord> }` — bulk-replaces the scouting map; used only by `fromSave`.
+
+**Weekly tick.** `GameCoordinator.advanceScoutingAccuracy()` (private) runs after `WEEK_ADVANCED` each round. For every entry with a live `assignedScoutId` pointing at a currently-hired scout, it emits `SCOUTING_ACCURACY_ADVANCED { rosterId, delta: scoutWeeklyGain(scout.rating) }`.
+
+**Coordinator surface.**
+- `assignScout(rosterId, scoutId)` — validates scout is hired + is a scout role; unassigns from any current target, then emits `PLAYER_SCOUT_ASSIGNED`.
+- `unassignScout(rosterId)` — emits `PLAYER_SCOUT_UNASSIGNED`.
+- `releaseStaff` auto-unassigns any targets a scout was tracking before emitting `STAFF_RELEASED`.
+
+**UI.** `PlayerProfileScreen` checks squad membership to compute `scoutAccuracy: number | null` (null = own squad). Attribute bars show a `lo–hi` range band with a shaded fill from lo to hi when accuracy < 100; exact otherwise. The hex radar uses the midpoint for the polygon shape. A "Scouting" panel (hidden for own-squad players) shows the accuracy bar and lets the manager assign/unassign hired scouts — each scout can only track one target at a time.
+
+**Save/load.** `scouting` is persisted directly in `SavedSeason` (additive optional field; no version bump). Absent on legacy saves → no entries, correct behaviour. `fromSave` restores via `PLAYER_SCOUTING_RESTORED`.
 
 ## League Cup
 

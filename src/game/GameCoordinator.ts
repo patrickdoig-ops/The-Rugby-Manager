@@ -34,7 +34,7 @@
 
 import type {
   ArchivedSeason, ClubState, CupFixture,
-  Fixture, FixtureResult, GameState, MarketState, PlayerRef, PlayoffMatch, PlayoffState, PreAgreement, SeasonEvent, SeasonSchedule,
+  Fixture, FixtureResult, GameState, MarketState, PlayerRef, PlayoffMatch, PlayoffState, PreAgreement, ScoutingRecord, SeasonEvent, SeasonSchedule,
 } from '../types/gameState';
 import { emptyCareerState } from '../types/gameState';
 import { sortStandings } from './leagueTable';
@@ -63,6 +63,7 @@ import {
 } from './internationalDutyEngine';
 import { computeRollover } from './careerRollover';
 import { generateStaffPool } from './staffPoolGenerator';
+import { scoutWeeklyGain } from './scouting';
 import { generatePersona } from './personaGenerator';
 import { buildRosterSeededEvent, buildCareerArchiveRestoredEvent } from './saveMigration';
 import { seedConfidence, resultDelta, currentObjectiveVerdict, eosSwing, type ObjectiveVerdict } from './board';
@@ -147,6 +148,9 @@ export interface SavedSeason {
   // Board confidence for the managed club. Not replayable from `results`, so
   // persisted directly. Optional — absent on saves written before this system.
   board?: import('../types/gameState').BoardState;
+  // Scouting knowledge map. Not replayable; restored verbatim. Absent on
+  // saves written before the scouting system.
+  scouting?: Record<number, import('../types/gameState').ScoutingRecord>;
 }
 
 // Deep clone the roster index for save serialisation — every Player and
@@ -402,6 +406,17 @@ export class GameCoordinator {
         nextStaffId: save.career.nextStaffId ?? save.career.staff.length + 1,
       });
     }
+    // Scouting state isn't replayable from results; restore verbatim.
+    // Legacy saves without it leave scouting undefined — all external
+    // players start at accuracy 0 (correct for a fresh save).
+    if (save.scouting && Object.keys(save.scouting).length > 0) {
+      applySeasonEvent(coord.state, {
+        type: 'PLAYER_SCOUTING_RESTORED',
+        scouting: Object.fromEntries(
+          Object.entries(save.scouting).map(([k, v]) => [Number(k), { ...v }]),
+        ),
+      });
+    }
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
   }
@@ -459,7 +474,46 @@ export class GameCoordinator {
   releaseStaff(staffId: string): void {
     const m = (this.state.career.staff ?? []).find(s => s.id === staffId);
     if (!m || m.clubId !== this.state.player.teamId) return;
+    // Unassign any targets this scout was tracking before releasing.
+    for (const [rIdStr, rec] of Object.entries(this.state.player.scouting ?? {})) {
+      if (rec.assignedScoutId === staffId) {
+        applySeasonEvent(this.state, { type: 'PLAYER_SCOUT_UNASSIGNED', rosterId: Number(rIdStr) });
+      }
+    }
     applySeasonEvent(this.state, { type: 'STAFF_RELEASED', staffId });
+  }
+
+  assignScout(rosterId: number, scoutId: string): void {
+    const staff = this.state.career.staff ?? [];
+    const scout = staff.find(s => s.id === scoutId);
+    if (!scout || scout.role !== 'scout' || scout.clubId !== this.state.player.teamId) return;
+    // Unassign this scout from any current target first.
+    for (const [rIdStr, rec] of Object.entries(this.state.player.scouting ?? {})) {
+      if (rec.assignedScoutId === scoutId) {
+        applySeasonEvent(this.state, { type: 'PLAYER_SCOUT_UNASSIGNED', rosterId: Number(rIdStr) });
+      }
+    }
+    applySeasonEvent(this.state, { type: 'PLAYER_SCOUT_ASSIGNED', rosterId, scoutId });
+  }
+
+  unassignScout(rosterId: number): void {
+    applySeasonEvent(this.state, { type: 'PLAYER_SCOUT_UNASSIGNED', rosterId });
+  }
+
+  private advanceScoutingAccuracy(): void {
+    const scouting = this.state.player.scouting;
+    if (!scouting) return;
+    const staff = this.state.career.staff ?? [];
+    for (const [rIdStr, rec] of Object.entries(scouting)) {
+      if (!rec.assignedScoutId) continue;
+      const scout = staff.find(m => m.id === rec.assignedScoutId && m.clubId === this.state.player.teamId);
+      if (!scout) continue;
+      applySeasonEvent(this.state, {
+        type: 'SCOUTING_ACCURACY_ADVANCED',
+        rosterId: Number(rIdStr),
+        delta: scoutWeeklyGain(scout.rating),
+      });
+    }
   }
 
   // rosterIds of the human club's persisted matchday 23 (mapped from the
@@ -1096,6 +1150,7 @@ export class GameCoordinator {
     for (const ev of this.computeMoraleDecayEvents()) {
       applySeasonEvent(this.state, ev);
     }
+    this.advanceScoutingAccuracy();
     eventBus.emit('game:weekAdvanced', { state: this.state });
 
     // Background poach-threat assessment — RNG-free, runs every round.
@@ -1641,6 +1696,11 @@ export class GameCoordinator {
         : {}),
       ...(this.state.player.captainRosterId !== undefined
         ? { captainRosterId: this.state.player.captainRosterId }
+        : {}),
+      ...(this.state.player.scouting && Object.keys(this.state.player.scouting).length > 0
+        ? { scouting: Object.fromEntries(
+              Object.entries(this.state.player.scouting).map(([k, v]) => [k, { ...v }]),
+            ) as Record<number, ScoutingRecord> }
         : {}),
     };
   }

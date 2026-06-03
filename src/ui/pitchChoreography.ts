@@ -479,11 +479,15 @@ function lineoutLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
 
   // Throwing team's hooker just OFF the pitch at the throw mark (they stand in touch
   // to throw in). y < 0 / > 100 extrapolates past the touchline via toLeft.
+  // On a crooked throw, they step back onto the touchline (from off-pitch) so the
+  // bad throw reads visually distinct from a clean lineout.
   if (atkHooker) {
-    out.push(placed(atkHooker, atkSide, state,
-      event.ballX,
-      nearY === 0 ? -2 : 102,
-      false));
+    const offPitchY = nearY === 0 ? -2 : 102;
+    if (event.outcome === 'crooked_throw') {
+      out.push({ ...placed(atkHooker, atkSide, state, event.ballX, nearY, false), from: { x: event.ballX, y: offPitchY } });
+    } else {
+      out.push(placed(atkHooker, atkSide, state, event.ballX, offPitchY, false));
+    }
   }
 
   // Defending hooker at the near end of the lineout (5m line), slightly ahead of the mark.

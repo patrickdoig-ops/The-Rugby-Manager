@@ -117,6 +117,16 @@ export function choreograph(
   return openPlayLayout(event, state, attacksTop);
 }
 
+// A tactical / box kick that found touch — the ball went OUT and a lineout forms next
+// beat, so there's no catch (no on-ball receiver) and PitchView walks the ball across
+// the touchline. The engine resolves these to the lineout mark (~5m infield).
+const KICK_TO_TOUCH_KEYS = new Set([
+  'good_kick', 'out_on_the_full', 'fifty_twenty_two', 'fifty_twenty_two_attempt_failed_touch', 'box_kick_to_touch',
+]);
+export function kickFindsTouch(event: GameEvent): boolean {
+  return event.narration.steps.some(s => s.kind === 'phase_outcome' && KICK_TO_TOUCH_KEYS.has((s as { key: string }).key));
+}
+
 // Open-field traveling kick — tactical kick (incl. 50:22), box kick, drop-out, and
 // the goal-kick spot for conversions. The ball flies from the kicker to the landing,
 // so two dots tell that story: the ON-BALL player at the landing (whoever holds the
@@ -138,6 +148,7 @@ function travelingKickLayout(
   // For tactical / box / conversion kicks the primary actor IS the kicker and the
   // secondary (if any) is the receiver / chaser who ends on the ball. Drop-outs name
   // the receiver as primary (the kicker isn't a listed actor), so swap those.
+  const findsTouch = kickFindsTouch(event);
   let kicker: Player | null;
   let onBall: Player | null;
   if (event.phase === MatchPhase.DropOut22) {
@@ -147,9 +158,13 @@ function travelingKickLayout(
     kicker = p1;
     onBall = p2;
     // No named receiver (goal kick, or a retained regather): the kicker is the
-    // on-ball dot at the kick spot, with nobody left at the origin.
-    if (!onBall && p1 && sideOf(p1, state) === possSide) { onBall = p1; kicker = null; }
+    // on-ball dot at the kick spot, with nobody left at the origin. Not for a kick to
+    // touch (it goes out — keep the kicker at the origin, place no receiver).
+    if (!onBall && p1 && sideOf(p1, state) === possSide && !findsTouch) { onBall = p1; kicker = null; }
   }
+  // A kick to touch has no catch — drop the on-ball dot so no defender sits under the
+  // ball; only the kicker shows (the lineout forms on the next beat).
+  if (findsTouch) onBall = null;
 
   const out: Placed[] = [];
   // Kicker / beaten chaser back at the kick origin (where the ball started this beat).

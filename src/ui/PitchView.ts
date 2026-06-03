@@ -9,6 +9,7 @@ import { loadTickDelayMs } from './uiPrefs';
 import { lineGapMs } from '../engine/balance';
 import { toTop, toLeft } from './pitchCoords';
 import { initPitchPlayers } from './PitchPlayers';
+import { kickFindsTouch } from './pitchChoreography';
 
 // Which flash a key event warrants, or null for a beat we don't highlight. Kept
 // deliberately curated — tries (and conversions, which carry the try phase),
@@ -295,7 +296,13 @@ export function initPitchView(): void {
     // The kick check is gated on the ball actually moving, so no-move kick beats
     // (the coin-toss / pre-kick announce) fall through rather than pulsing in place.
     if (KICK_PHASES.has(event.phase)) {
-      const tgtTop = toTop(event.ballX), tgtLeft = toLeft(event.ballY);
+      const tgtTop = toTop(event.ballX);
+      // A kick to touch should visibly cross the touchline. The engine resolves the
+      // ball to the lineout mark (~5m infield); aim the lob just past the nearer
+      // touchline so it reads as going OUT, then the lineout beat forms at the mark.
+      const tgtLeft = kickFindsTouch(event)
+        ? toLeft(event.ballY < 50 ? -3 : 103)
+        : toLeft(event.ballY);
       if (Math.abs(lastTop - tgtTop) > 1 || Math.abs(lastLeft - tgtLeft) > 1) {
         // Ball lobs to the landing; the kick-off pack chase is driven by the
         // chaseDots block above (the choreographer tags those dots with a `from`).

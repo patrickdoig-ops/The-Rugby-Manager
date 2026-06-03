@@ -84,16 +84,10 @@ export function showPressConference(presser: Presser, onDone: (choices: PressCho
 
   function renderAnswer(a: PressAnswer, qi: number, selected: AnswerTone | null): string {
     const isSelected = a.tone === selected;
-    const boardStr = a.boardDelta > 0 ? `+${a.boardDelta}` : String(a.boardDelta);
-    const moraleStr = a.moraleDelta > 0 ? `+${a.moraleDelta}` : String(a.moraleDelta);
-    const effects = a.boardDelta !== 0 || a.moraleDelta !== 0
-      ? `<span class="pc-effects">${a.boardDelta !== 0 ? `Board ${boardStr}` : ''}${a.boardDelta !== 0 && a.moraleDelta !== 0 ? ' · ' : ''}${a.moraleDelta !== 0 ? `Morale ${moraleStr}` : ''}</span>`
-      : `<span class="pc-effects pc-effects--neutral">No effect</span>`;
     return `
       <button class="pc-answer-btn${isSelected ? ' pc-answer-btn--selected' : ''}" data-qi="${qi}" data-tone="${a.tone}">
         <span class="pc-answer-label">${a.label}</span>
         <span class="pc-answer-text">${a.text}</span>
-        ${effects}
       </button>
     `;
   }

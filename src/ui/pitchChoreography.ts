@@ -197,9 +197,11 @@ const KICKOFF_KICK: Record<number, KickoffSpot> = {
 // Kick-off: kicker on the centre spot, both XVs in the authored kick-off formation,
 // and the real catcher snapped to the real landing. The kick-off spans several beats
 // (coin-toss → announce → outcome) with NO phase change between them, so persisted
-// dots accumulate — the layout must stay consistent across all of them, and the full
-// formation only appears on the actual kick beat.
-function kickOffLayout(event: GameEvent, state: MatchState, _attacksTop: boolean): Placed[] {
+// dots accumulate. The full formation appears at the START positions on the announce
+// beat (static) and animates the chase to the END positions on the actual kick beat;
+// using the same kick-direction transform on both (derived from team orientation, not
+// the landing) keeps the formation continuous — no jump when the chase fires.
+function kickOffLayout(event: GameEvent, state: MatchState, attacksTop: boolean): Placed[] {
   const possSide: Side = event.side === 'home' ? 'h' : 'a';
   const keys = event.narration.steps
     .filter(s => s.kind === 'phase_outcome')
@@ -208,6 +210,7 @@ function kickOffLayout(event: GameEvent, state: MatchState, _attacksTop: boolean
   const SWAP_KEYS = ['clean_receive', 'knock_on', 'poor_kick'];   // possession → receivers
   const swapped     = keys.some(k => SWAP_KEYS.includes(k));
   const isKickBeat  = swapped || keys.includes('short_kick_retain');
+  const isAnnounce  = keys.includes('announce');
 
   // Kicking team. Pre-kick beats (coin-toss / announce) and a retained short kick-off
   // keep possession with the kicker, so kicker == possession side; the swap outcomes
@@ -223,31 +226,29 @@ function kickOffLayout(event: GameEvent, state: MatchState, _attacksTop: boolean
   // Kicker over the centre spot — shown on every kick-off beat (incl. pre-kick).
   if (kicker) out.push(placed(kicker, kickSide, state, 50, 50, true));
 
-  // Full kick-off formation ONLY on the actual kick beat — never on the coin-toss /
-  // announce beats, whose ball still sits at halfway (which would strand spare dots).
-  if (isKickBeat) {
+  // The full formation appears on the announce beat (static, START positions) and the
+  // kick beat (END positions + chase). Other pre-kick beats (coin-toss) stay kicker-only.
+  if (isKickBeat || isAnnounce) {
     const recvSide: Side = kickSide === 'h' ? 'a' : 'h';
     const recvOn = onFieldPlayers(recvSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(recvSide));
-    const receiver = event.primaryPlayer;
-    // Transform the authored frame onto the real kick: flip the long axis to the real
-    // kick direction (ball travel from halfway), and mirror laterally when the ball
-    // lands on the low-y side.
-    const kickDir = event.ballX <= 50 ? -1 : 1;
-    const mirror = event.ballY < 50;
-    const tx = (p: [number, number]): [number, number] => [
-      clampX(50 - (p[0] - 50) * kickDir),
-      clampY(mirror ? 100 - p[1] : p[1]),
-    ];
-    // Place a dot at its post-chase resting spot (`to`) and tag the kick-off-line
-    // start (`from`) so PitchView animates the chase as the ball is in the air.
-    const placeChase = (p: Player, side: Side, spot: KickoffSpot): void => {
-      const [tx0, ty0] = tx(spot.to);
-      const dot = placed(p, side, state, tx0, ty0, false);
-      const [fx, fy] = tx(spot.from);
-      dot.from = { x: fx, y: fy };
+    const receiver = isKickBeat ? event.primaryPlayer : null;
+    // Kick direction (ball travel from halfway) from TEAM ORIENTATION, so it's the same
+    // on the announce beat (no landing yet) and the kick beat: the kicker kicks toward
+    // its attacking end. attacksTop is the kicker's direction on announce (event.side =
+    // kicker) and the receiver's on the kick beat (possession swapped), hence the split.
+    const kickDir = swapped ? (attacksTop ? -1 : 1) : (attacksTop ? 1 : -1);
+    const tx = (p: [number, number]): [number, number] =>
+      [clampX(50 - (p[0] - 50) * kickDir), clampY(p[1])];
+    // On the kick beat each dot rests at `to` and animates the chase from `from`; on the
+    // announce beat it sits statically at `from` (no animation, no landing yet).
+    const place = (p: Player, side: Side, spot: KickoffSpot): void => {
+      const [x, y] = tx(isKickBeat ? spot.to : spot.from);
+      const dot = placed(p, side, state, x, y, false);
+      if (isKickBeat) { const [fx, fy] = tx(spot.from); dot.from = { x: fx, y: fy }; }
       out.push(dot);
     };
-    // Receiving XV in the authored shape; the real catcher runs onto the real landing.
+    // Receiving XV in the authored shape; on the kick beat the real catcher runs onto
+    // the real landing (from its authored start, so it's continuous with the announce beat).
     for (let slot = 1; slot <= 15; slot++) {
       const p = recvOn.find(pl => pl.id === slot);
       if (!p) continue;
@@ -257,14 +258,14 @@ function kickOffLayout(event: GameEvent, state: MatchState, _attacksTop: boolean
         dot.from = { x: fx, y: fy };
         out.push(dot);
       } else {
-        placeChase(p, recvSide, KICKOFF_RECV[slot]);
+        place(p, recvSide, KICKOFF_RECV[slot]);
       }
     }
     // Kicking XV chase line + cover (the kicker is already placed on the centre spot).
     for (let slot = 1; slot <= 15; slot++) {
       const p = kickOn.find(pl => pl.id === slot);
       if (!p || p === kicker) continue;
-      placeChase(p, kickSide, KICKOFF_KICK[slot]);
+      place(p, kickSide, KICKOFF_KICK[slot]);
     }
   }
 

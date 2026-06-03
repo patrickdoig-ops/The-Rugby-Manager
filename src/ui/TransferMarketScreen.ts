@@ -367,7 +367,7 @@ export function initTransferMarketScreen(
         ${headerCell('name', 'NAME', 'tm-name')}
         ${headerCell('pos',  'POS',  'tm-pos')}
         ${headerCell('age',  'AGE',  'tm-num')}
-        ${headerCell('ovr',  'OVR',  'tm-num')}
+        ${headerCell('ovr',  'REP',  'tm-num')}
         ${headerCell('wage', 'WAGE', 'tm-wage')}
         <span class="tm-head tm-sign-col">ACTION</span>
       </div>`;

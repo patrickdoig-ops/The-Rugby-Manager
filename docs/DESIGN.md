@@ -980,7 +980,7 @@ Dual-mode screens: `RoundResultsScreen`, `LeagueTableScreen`, `TrainingScreen`, 
 
 ### 15.4 Hub tile list
 
-The Hub (`src/ui/HubScreen.ts`) has **seven tiles** plus a Settings cog and "Go to next match" CTA:
+The Hub (`src/ui/HubScreen.ts`) has **six tiles** plus a Settings cog and "Go to next match" CTA:
 
 | Tile | Routes to | Notes |
 |---|---|---|
@@ -989,14 +989,15 @@ The Hub (`src/ui/HubScreen.ts`) has **seven tiles** plus a Settings cog and "Go 
 | League | `league-menu` | Sub-menu: Table / Team Stats / Player Stats / Cup (browse) / Awards |
 | Training | `training` (mid-week mode) | Persists plan without running the training block |
 | Contracts & Transfers | `contracts-transfers-menu` | Sub-menu (club colours): Contracts leaf + Transfers leaf; badge = expiring-contract count + poach-threat count combined |
-| Club | `club-menu` | Sub-menu (club colours): board-confidence card — summary band + meter + "what's driving it" breakdown |
-| Staff | `staff` | Hire/release assistant manager, fitness lead, and scouts; wages count against salary budget |
+| Club | `club-menu` | Sub-menu (club colours): board-confidence card + Staff nav row |
+
+**Invariant: the Hub tile count is fixed at six.** New screens must fit inside existing sub-menus. `ClubMenuScreen` and `ContractsTransfersMenuScreen` are the natural homes for club-management features.
 
 PreMatch's 'mine' step (the user's starting XV) carries a tappable captain badge (`.pm-captain-badge`, a circular "C") on each starter row — modelled on the OOP badge. Tap to nominate, tap the current captain to clear; persists to `state.player.captainRosterId` via `setPlayerCaptain`. Unset rows default the badge to the highest-composure starter (`resolveCaptainRosterId`). Narrative-only: the captain is named in the referee's team-22 warning during the match.
 
 **Contracts sub-menu** (`contracts-transfers-menu`, `src/ui/ContractsTransfersMenuScreen.ts`): Tier 2 club-colour app-header; two tiles with the same `.hub-tile` class but WITHOUT the `--rm-cta` override used by the League sub-menu, so tiles inherit `--team-color-tile` from `injectTeamColors`. Individual tile badges: Contracts = expiring-contract count, Transfers = poach-threat count.
 
-**Club sub-menu** (`club-menu`, `src/ui/ClubMenuScreen.ts`): Tier 2 club-colour app-header. Hosts the **board-confidence card** (`.cm-board`): a summary hero (band label + 0–100 meter + number, accent-coloured by band — Secure / Stable / Under pressure / At risk), a live **"what's driving it"** factor list (`boardConfidenceFactors` — season objective vs current position, recent results, winning/losing runs, any formal warning, each tone-tagged), and a plain-English explainer of how the meter moves. See `docs/game-engine.md` § "Board confidence layer".
+**Club sub-menu** (`club-menu`, `src/ui/ClubMenuScreen.ts`): Tier 2 club-colour app-header. Hosts the **board-confidence card** (`.cm-board`): a summary hero (band label + 0–100 meter + number, accent-coloured by band — Secure / Stable / Under pressure / At risk), a live **"what's driving it"** factor list (`boardConfidenceFactors` — season objective vs current position, recent results, winning/losing runs, any formal warning, each tone-tagged), and a plain-English explainer of how the meter moves. See `docs/game-engine.md` § "Board confidence layer". Below the board card is a **Staff nav row** (`.cm-nav-row`) linking to `StaffScreen`; new club-management screens should be added here as additional `.cm-nav-row` entries.
 
 ### 15.5 Navigation flow
 
@@ -1011,8 +1012,8 @@ Hub
  ├─ Squad / Fixtures / League / Training → leaf screen, back → Hub
  ├─ [League] → LeagueMenuScreen → leaf, back → LeagueMenuScreen → back → Hub
  ├─ [Contracts & Transfers] → ContractsTransfersMenuScreen → Contracts / Transfers, back → ContractsTransfersMenuScreen → back → Hub
- ├─ [Club] → ClubMenuScreen (board-confidence card: summary + drivers), back → Hub
- ├─ [Staff] → StaffScreen (hire/release assistant manager, fitness lead, scouts), back → Hub
+ ├─ [Club] → ClubMenuScreen (board-confidence card + Staff nav row), back → Hub
+ │   └─ [Staff] → StaffScreen (hire/release assistant manager, fitness lead, scouts), back → ClubMenuScreen
  └─ Go to next match → PreMatch
      └─ Kick Off → TeamTalk → Match → MatchResult → post-match chain
 ```

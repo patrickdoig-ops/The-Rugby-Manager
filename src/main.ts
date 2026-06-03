@@ -307,7 +307,6 @@ document.addEventListener('DOMContentLoaded', () => {
       onTraining: goTrainingMidweek,
       onContractsAndTransfers: goContractsTransfersMenu,
       onClub:      goClubMenu,
-      onStaff:     goStaff,
       onSettings: goSettingsFromHub,
       onInbox:    goInbox,
     });
@@ -337,11 +336,12 @@ document.addEventListener('DOMContentLoaded', () => {
       getGameEngine,
       allTeams,
       onBack: () => goHub('back'),
+      onStaff: () => goStaff(),
     });
     initStaffScreen({
       getGameEngine,
       allTeams,
-      onBack: () => goHub('back'),
+      onBack: () => goClubMenu('back'),
     });
     initLeagueTableScreen(getGameEngine, allTeams, () => goLeagueMenu('back'), (teamId) => {
       const teamJson = allTeams.find(t => t.id === teamId);

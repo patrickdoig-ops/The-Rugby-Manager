@@ -86,12 +86,13 @@ Now add a couple of beats so it moves:
 You've now got authored positions for all 30 players. Here's how that maps to the
 code, and the two ways to apply it.
 
-> **Status (worked example, done):** the authored kick-off from this tutorial is
-> already wired in (v1.78b) — `kickOffLayout` lays out the **full 15-v-15 formation**
-> (`KICKOFF_RECV` / `KICKOFF_KICK` constants), parameterised by kick direction + landing
-> side, with the real catcher on the real landing. It's **static** for now; the **chase
-> motion** (kicking pack surging forward) is the next pass and needs a formation-
-> animation seam in `PitchView`. The notes below are the general recipe.
+> **Status (worked example, done):** the authored kick-off from this tutorial is fully
+> wired in — `kickOffLayout` lays out the **full 15-v-15 formation** (`KICKOFF_RECV` /
+> `KICKOFF_KICK`, now carrying `from`/`to` per slot), parameterised by kick direction +
+> landing side, with the real catcher on the real landing — **and the chase animates**
+> (v1.79b): the pack surges forward and the catcher runs onto the ball as it's in the
+> air, via the general `Placed.from` → `chaseDots` seam. The notes below are the general
+> recipe for other phases.
 
 ### Where the kick-off lives
 - **Formation** — `kickOffLayout(event, state)` in `src/ui/pitchChoreography.ts`

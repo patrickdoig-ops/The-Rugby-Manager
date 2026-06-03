@@ -198,6 +198,8 @@ When an entire pack needs to glide from one formation to another (Lineout→Maul
 
 **Formation chase (`Placed.from`).** A general seam for animating many dots at once: `choreograph` tags a dot with `from` (a start position in game coords); `PitchPlayers.applyBeat` commits the dot's resting top/left to its `(x,y)` and records `{ el, fromX, fromY, toX, toY }` on `players.chaseDots`; `PitchView` then runs the same anchor-and-offset WAAPI as the ball/scrum-half dots (offset back to `from`, ease to rest) for every chase dot, synced to the beat duration. This replaced the old single-`isChaser` kick-off chaser. It's phase-agnostic — any layout can tag dots with `from` to drive a formation move.
 
+**Wiring an exported phase-animator JSON into the game** — the **kick-off is the worked precedent** (`kickOffLayout` + `KICKOFF_RECV`/`KICKOFF_KICK` + the `tx()` transform in `pitchChoreography.ts`). Bake the authored coords as a slot→spot table (`{from,to}` if it moves), then **parameterise — never hard-code the absolute coords**: flip the long axis to the real direction from team orientation, mirror the lateral per touchline side, and keep the engine-driven bits (real ball landing `event.ballX/ballY`, the on-ball actor `event.primaryPlayer`/`secondaryPlayer`, which side acts) **dynamic** — snap the actual actor to the real spot, place the rest from the table. Animate via `Placed.from`/`chaseDots` (formation move) + the carrier follower (`carrierFromStart` for a direct pick-up). Full step-by-step (incl. probe validation + kill-stale-Vite): **`docs/phase-animator.md` § 9**.
+
 ### Dot persistence across phases
 
 `persistedKeys` (a `Set<string>` in `PitchPlayers`) accumulates dot keys within the current phase. On phase change, any key in `persistedKeys` that is absent from the new beat's `placed` array has `.visible` removed. Exception: `keepLineout` skips clearing `persistedKeys` when transitioning from Lineout or Scrum into FirstPhase — the formation stays visible through the whole first phase and fades when FirstPhase itself ends.
@@ -218,6 +220,7 @@ When an entire pack needs to glide from one formation to another (Lineout→Maul
 | Architectural invariants & ways of working | this file |
 | Team data (squad tables, baseStats, star players) | **`docs/team-data.md`** → `node scripts/generateTeamJsons.mjs` syncs JSONs |
 | Phase Animator dev tool (keyframe authoring of 2D-pitch animations) | **`docs/phase-animator.md`** ↔ `public/tools/phase-animator.html` (regen samples: `npm run export:phases`) |
+| Wiring an exported animation JSON into the game (recipe + kick-off precedent) | **`docs/phase-animator.md`** § 9 + CLAUDE.md § 8 |
 
 ## Documentation sync
 

@@ -166,3 +166,63 @@ paths and involved players). Two paths, detailed in `public/tools/README.md`:
   to roster slots rather than fixed jerseys).
 
 When you've authored a phase you like, export it and we can take the Path-B step.
+
+---
+
+## 9. Wiring an exported animation into the game (recipe)
+
+This is the step-by-step for a fresh session handed an exported JSON ("wire this
+lineout in"). The **worked precedent is the kick-off** — read `kickOffLayout` +
+`KICKOFF_RECV` / `KICKOFF_KICK` in `src/ui/pitchChoreography.ts` first; do the same
+shape for the new phase.
+
+1. **Read the JSON.** `meta.phase` names the phase → edit that phase's layout function
+   in `src/ui/pitchChoreography.ts` (`lineoutLayout`, `maulLayout`,
+   `firstPhaseBacklineLayout`, `openPlayLayout`, the kick layouts, …). `entities[].kf`
+   are per-player keyframes in **game coords** (x = long axis 0–100, 100 = top;
+   y = lateral 0–100); `id` is `side`+`slot` — `h10` = home slot 10, `a2` = away slot 2.
+   The `ball` entity is informational (the engine owns the real ball path).
+
+2. **Bake the positions as a slot→spot table** next to the layout function, exactly
+   like `KICKOFF_RECV` / `KICKOFF_KICK`. A dot that moves over the beat (≥2 keyframes)
+   stores `{ from, to }`; a static dot stores one spot. In the layout, look up each
+   on-field player by slot (`onFieldPlayers(...).find(p => p.id === slot)`) and
+   `placed(...)` it at the table spot.
+
+3. **Parameterise — NEVER hard-code the absolute coords.** The JSON is ONE sample on
+   ONE touchline/end; the live phase varies. Transform the authored frame (see the
+   kick-off's `tx()`):
+   - **Long axis (x):** flip to the real direction — `x' = 50 − (x−50)·dir`, where
+     `dir` comes from **team orientation** (stable across all the phase's beats), not
+     from the landing (which isn't known on early beats).
+   - **Lateral (y):** mirror when the live event is on the opposite touchline
+     (lineout: `event.ballY < 50`). Kick-off drops the mirror because the landing side
+     is unknown on the announce beat — decide per phase.
+   - **Keep engine-driven bits DYNAMIC.** The real ball position (`event.ballX/ballY`),
+     who's on the ball (`event.primaryPlayer` / `secondaryPlayer`), and which side
+     kicks/throws all come from the engine and change every time. Snap the *actual*
+     actor to the real spot (kick-off snaps `primaryPlayer` to the landing) and place
+     everyone else from the table. The layout already derives the acting team (e.g.
+     `kickOffLayout`'s kicking-side logic) — reuse that pattern.
+
+4. **Animate motion with the existing seams (CLAUDE.md § 8):**
+   - **Whole-dot move over the beat:** set `Placed.from` (start). `PitchPlayers`
+     records it on `players.chaseDots`; `PitchView` rides each from `from` to its
+     resting spot, synced to the beat (the kick-off chase line).
+   - **The on-ball carrier:** rides automatically via the `ballWalkFollower` when the
+     phase emits a multi-leg `movements[]` and the layout flags `isCarrier`; set
+     `GameEvent.carrierFromStart` for a direct pick-up (carrier picks at the start).
+   - **A bound pack (maul):** Layer-3 `dot-transitioning` glide, not the follower.
+
+5. **Validate with the probe — kill stale Vite first.**
+   ```
+   npm run export:phases     # only if engine ball paths changed
+   pkill -9 -f vite          # OWN step — the probe reuses any running dev server
+   npm run probe             # → harness/trace.json + screenshots
+   ```
+   Check the beat in `harness/trace.json` (dots carry only a jersey number, no side —
+   cross-reference `beats[].side` + `movements[]`). If numbers look identical to the
+   pre-fix run, Vite was stale — kill it and re-run.
+
+**Re-uploading an updated JSON** = re-bake step 2's table from the new keyframe values;
+the parameterisation (step 3) and seams (step 4) stay the same.

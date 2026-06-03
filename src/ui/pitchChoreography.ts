@@ -163,10 +163,26 @@ function travelingKickLayout(
   return out;
 }
 
-// Kick-off: kicker on the centre spot; receiver at the landing; chaser at halfway
-// aligned laterally with the landing so the chase lane is clear. The kick-off spans
-// several beats (coin-toss → announce → outcome) with NO phase change between them,
-// so persisted dots accumulate — the layout must stay consistent across all of them.
+// Kick-off formation, authored in the phase animator (KICK_OFF / clean_receive) and
+// keyed by position slot 1–15. Authored frame: RECEIVING team in the low-x half,
+// KICKING team lined up across halfway, ball kicked toward low x (kickDir = −1),
+// landing on the high-y touchline. `kickOffLayout` flips it to the real kick
+// direction + landing side and snaps the real catcher to the real landing. Re-author
+// in the animator and paste new values here to retune.
+const KICKOFF_RECV: Record<number, [number, number]> = {
+  1: [36, 77], 2: [35, 91], 3: [37, 17], 4: [38, 75], 5: [40, 19], 6: [39, 46], 7: [39, 88],
+  8: [27, 80], 9: [15, 72], 10: [15, 7], 11: [33, 1], 12: [35, 44], 13: [26, 50], 14: [16, 97], 15: [15, 38],
+};
+const KICKOFF_KICK: Record<number, [number, number]> = {
+  1: [55, 93], 2: [54, 100], 3: [56, 9], 4: [56, 22], 5: [54, 87], 6: [55, 74], 7: [55, 80],
+  8: [56, 16], 9: [64, 63], 10: [53, 50], 11: [79, 100], 12: [69, 22], 13: [72, 86], 14: [81, 1], 15: [80, 51],
+};
+
+// Kick-off: kicker on the centre spot, both XVs in the authored kick-off formation,
+// and the real catcher snapped to the real landing. The kick-off spans several beats
+// (coin-toss → announce → outcome) with NO phase change between them, so persisted
+// dots accumulate — the layout must stay consistent across all of them, and the full
+// formation only appears on the actual kick beat.
 function kickOffLayout(event: GameEvent, state: MatchState, _attacksTop: boolean): Placed[] {
   const possSide: Side = event.side === 'home' ? 'h' : 'a';
   const keys = event.narration.steps
@@ -191,18 +207,38 @@ function kickOffLayout(event: GameEvent, state: MatchState, _attacksTop: boolean
   // Kicker over the centre spot — shown on every kick-off beat (incl. pre-kick).
   if (kicker) out.push(placed(kicker, kickSide, state, 50, 50, true));
 
-  // Receiver + chaser ONLY on the actual kick beat — never on the coin-toss / announce
-  // beats, whose ball still sits at halfway (which would strand spare dots on centre).
+  // Full kick-off formation ONLY on the actual kick beat — never on the coin-toss /
+  // announce beats, whose ball still sits at halfway (which would strand spare dots).
   if (isKickBeat) {
+    const recvSide: Side = kickSide === 'h' ? 'a' : 'h';
+    const recvOn = onFieldPlayers(recvSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(recvSide));
     const receiver = event.primaryPlayer;
-    if (receiver && receiver !== kicker && sideOf(receiver, state) !== kickSide) {
-      out.push(placed(receiver, sideOf(receiver, state), state, event.ballX, event.ballY, false));
+    // Transform the authored frame onto the real kick: flip the long axis to the real
+    // kick direction (ball travel from halfway), and mirror laterally when the ball
+    // lands on the low-y side.
+    const kickDir = event.ballX <= 50 ? -1 : 1;
+    const mirror = event.ballY < 50;
+    const tx = (p: [number, number]): [number, number] => [
+      clampX(50 - (p[0] - 50) * kickDir),
+      clampY(mirror ? 100 - p[1] : p[1]),
+    ];
+    // Receiving XV in the authored shape; the real catcher goes to the real landing.
+    for (let slot = 1; slot <= 15; slot++) {
+      const p = recvOn.find(pl => pl.id === slot);
+      if (!p) continue;
+      if (receiver && p === receiver) {
+        out.push(placed(p, recvSide, state, clampX(event.ballX), clampY(event.ballY), false));
+      } else {
+        const [x, y] = tx(KICKOFF_RECV[slot]);
+        out.push(placed(p, recvSide, state, x, y, false));
+      }
     }
-    // Chaser from the kicking team, at halfway aligned with the landing; isChaser=true
-    // signals PitchView to animate them forward along x during the ball arc.
-    const chaser = event.secondaryPlayer;
-    if (chaser && chaser !== kicker && sideOf(chaser, state) === kickSide) {
-      out.push(placed(chaser, sideOf(chaser, state), state, 50, event.ballY, false, true));
+    // Kicking XV chase line + cover (the kicker is already placed on the centre spot).
+    for (let slot = 1; slot <= 15; slot++) {
+      const p = kickOn.find(pl => pl.id === slot);
+      if (!p || p === kicker) continue;
+      const [x, y] = tx(KICKOFF_KICK[slot]);
+      out.push(placed(p, kickSide, state, x, y, false));
     }
   }
 

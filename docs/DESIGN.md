@@ -980,7 +980,7 @@ Dual-mode screens: `RoundResultsScreen`, `LeagueTableScreen`, `TrainingScreen`, 
 
 ### 15.4 Hub tile list
 
-The Hub (`src/ui/HubScreen.ts`) has **six tiles** plus a Settings cog and "Go to next match" CTA:
+The Hub (`src/ui/HubScreen.ts`) has **seven tiles** plus a Settings cog and "Go to next match" CTA:
 
 | Tile | Routes to | Notes |
 |---|---|---|
@@ -990,6 +990,7 @@ The Hub (`src/ui/HubScreen.ts`) has **six tiles** plus a Settings cog and "Go to
 | Training | `training` (mid-week mode) | Persists plan without running the training block |
 | Contracts & Transfers | `contracts-transfers-menu` | Sub-menu (club colours): Contracts leaf + Transfers leaf; badge = expiring-contract count + poach-threat count combined |
 | Club | `club-menu` | Sub-menu (club colours): board-confidence card — summary band + meter + "what's driving it" breakdown |
+| Staff | `staff` | Hire/release assistant manager, fitness lead, and scouts; wages count against salary budget |
 
 PreMatch's 'mine' step (the user's starting XV) carries a tappable captain badge (`.pm-captain-badge`, a circular "C") on each starter row — modelled on the OOP badge. Tap to nominate, tap the current captain to clear; persists to `state.player.captainRosterId` via `setPlayerCaptain`. Unset rows default the badge to the highest-composure starter (`resolveCaptainRosterId`). Narrative-only: the captain is named in the referee's team-22 warning during the match.
 
@@ -1011,6 +1012,7 @@ Hub
  ├─ [League] → LeagueMenuScreen → leaf, back → LeagueMenuScreen → back → Hub
  ├─ [Contracts & Transfers] → ContractsTransfersMenuScreen → Contracts / Transfers, back → ContractsTransfersMenuScreen → back → Hub
  ├─ [Club] → ClubMenuScreen (board-confidence card: summary + drivers), back → Hub
+ ├─ [Staff] → StaffScreen (hire/release assistant manager, fitness lead, scouts), back → Hub
  └─ Go to next match → PreMatch
      └─ Kick Off → TeamTalk → Match → MatchResult → post-match chain
 ```

@@ -781,6 +781,24 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       if (event.reason === 'manager_chat') p.moraleChats = (p.moraleChats ?? 0) + 1;
       return;
     }
+    case 'STAFF_POOL_SEEDED': {
+      state.career.staff = event.staff;
+      state.career.nextStaffId = event.nextStaffId;
+      return;
+    }
+    case 'STAFF_HIRED': {
+      const m = (state.career.staff ?? []).find(s => s.id === event.staffId);
+      if (!m) return;
+      m.clubId    = event.clubId;
+      m.annualWage = event.annualWage;
+      return;
+    }
+    case 'STAFF_RELEASED': {
+      const m = (state.career.staff ?? []).find(s => s.id === event.staffId);
+      if (!m) return;
+      m.clubId = null;
+      return;
+    }
     default: {
       const _: never = event;
       void _;

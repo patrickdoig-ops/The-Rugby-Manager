@@ -62,6 +62,7 @@ import {
   type CallUp,
 } from './internationalDutyEngine';
 import { computeRollover } from './careerRollover';
+import { generateStaffPool } from './staffPoolGenerator';
 import { generatePersona } from './personaGenerator';
 import { buildRosterSeededEvent, buildCareerArchiveRestoredEvent } from './saveMigration';
 import { seedConfidence, resultDelta, currentObjectiveVerdict, eosSwing, type ObjectiveVerdict } from './board';
@@ -110,6 +111,8 @@ export interface SavedCareer {
   takeoverHistory?: string[];
   midseasonRejections?: Record<number, number>;
   activePoachedIds?: number[];
+  staff?: import('../types/gameState').StaffMember[];
+  nextStaffId?: number;
 }
 
 export interface SavedSeason {
@@ -222,6 +225,9 @@ export class GameCoordinator {
       ...buildCupSeed(CUP_POOLS_2025_26, coord.state.league.fixtures, coord.state.calendar.seasonLabel),
     });
     coord.seedBoardState();
+    // Seed the initial staff hire pool (no hired staff on season 1).
+    const { staff: initialStaff, nextStaffId } = generateStaffPool(1);
+    applySeasonEvent(coord.state, { type: 'STAFF_POOL_SEEDED', staff: initialStaff, nextStaffId });
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
   }
@@ -386,6 +392,16 @@ export class GameCoordinator {
     } else {
       coord.seedBoardState();
     }
+    // Staff pool/hired state isn't replayable from results; restore verbatim.
+    // Legacy saves without it keep career.staff undefined — UI treats that as
+    // an empty pool, which is correct (no staff hired).
+    if (save.career?.staff) {
+      applySeasonEvent(coord.state, {
+        type: 'STAFF_POOL_SEEDED',
+        staff: save.career.staff.map(m => ({ ...m })),
+        nextStaffId: save.career.nextStaffId ?? save.career.staff.length + 1,
+      });
+    }
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
   }
@@ -422,6 +438,23 @@ export class GameCoordinator {
       delta,
       reason: 'manager_chat',
     });
+  }
+
+  hireStaff(staffId: string): void {
+    const m = (this.state.career.staff ?? []).find(s => s.id === staffId);
+    if (!m || m.clubId !== null) return;
+    applySeasonEvent(this.state, {
+      type: 'STAFF_HIRED',
+      staffId,
+      annualWage: m.annualWage,
+      clubId: this.state.player.teamId,
+    });
+  }
+
+  releaseStaff(staffId: string): void {
+    const m = (this.state.career.staff ?? []).find(s => s.id === staffId);
+    if (!m || m.clubId !== this.state.player.teamId) return;
+    applySeasonEvent(this.state, { type: 'STAFF_RELEASED', staffId });
   }
 
   // rosterIds of the human club's persisted matchday 23 (mapped from the
@@ -1579,6 +1612,9 @@ export class GameCoordinator {
         takeoverHistory: [...this.state.career.takeoverHistory],
         midseasonRejections: { ...this.state.career.midseasonRejections },
         activePoachedIds: [...this.state.career.activePoachedIds],
+        ...(this.state.career.staff !== undefined
+          ? { staff: this.state.career.staff.map(m => ({ ...m })), nextStaffId: this.state.career.nextStaffId }
+          : {}),
       },
       teamSeasonStats: Object.fromEntries(
         Object.entries(this.state.league.teamSeasonStats).map(([id, s]) => [id, { ...s }]),

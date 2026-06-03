@@ -93,6 +93,7 @@ import { initRolloverScreen, showRollover }         from './ui/RolloverScreen';
 import { initContractsScreen, showContracts, showContractsMarqueeEdit } from './ui/ContractsScreen';
 import { initContractsTransfersMenuScreen, showContractsTransfersMenu } from './ui/ContractsTransfersMenuScreen';
 import { initClubMenuScreen, showClubMenu } from './ui/ClubMenuScreen';
+import { initStaffScreen, showStaff } from './ui/StaffScreen';
 import { initSquadManagementScreen, showSquadManagement } from './ui/SquadManagementScreen';
 import { initTrainingScreen, showTrainingPostMatch, showTrainingMidweek } from './ui/TrainingScreen';
 import { initPostTrainingResultsScreen, showPostTrainingResults } from './ui/PostTrainingResultsScreen';
@@ -306,6 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onTraining: goTrainingMidweek,
       onContractsAndTransfers: goContractsTransfersMenu,
       onClub:      goClubMenu,
+      onStaff:     goStaff,
       onSettings: goSettingsFromHub,
       onInbox:    goInbox,
     });
@@ -332,6 +334,11 @@ document.addEventListener('DOMContentLoaded', () => {
       onTransfers: goTransfersMidseason,
     });
     initClubMenuScreen({
+      getGameEngine,
+      allTeams,
+      onBack: () => goHub('back'),
+    });
+    initStaffScreen({
       getGameEngine,
       allTeams,
       onBack: () => goHub('back'),
@@ -506,6 +513,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function goClubMenu(direction: 'forward' | 'back' = 'forward'): void {
     showClubMenu();
     screenRouter.show('club-menu', { direction });
+  }
+
+  function goStaff(direction: 'forward' | 'back' = 'forward'): void {
+    showStaff();
+    screenRouter.show('staff', { direction });
   }
 
   function goAchievements(direction: 'forward' | 'back' = 'forward'): void {

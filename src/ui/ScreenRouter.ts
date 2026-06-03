@@ -47,6 +47,7 @@ export type ScreenId =
   | 'inbox'
   | 'contracts-transfers-menu'
   | 'club-menu'
+  | 'staff'
   | 'team-talk';
 
 const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
@@ -90,6 +91,7 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'inbox':                     { elId: 'inbox',                     shownDisplay: '' },
   'contracts-transfers-menu':  { elId: 'contracts-transfers-menu',  shownDisplay: '' },
   'club-menu':                 { elId: 'club-menu',                 shownDisplay: '' },
+  'staff':                     { elId: 'staff',                     shownDisplay: '' },
   'team-talk':                 { elId: 'team-talk',                 shownDisplay: '' },
 };
 

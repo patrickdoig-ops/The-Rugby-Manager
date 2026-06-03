@@ -464,6 +464,18 @@ export interface PreAgreement {
   lengthYears: number;    // 1-3
 }
 
+// ── Staff system (1.2) ───────────────────────────────────────────────────────
+export type StaffRole = 'assistant' | 'fitness' | 'scout';
+
+export interface StaffMember {
+  id: string;          // stable UUID-style string; unique across all staff
+  role: StaffRole;
+  name: string;
+  rating: number;      // 0–100
+  annualWage: number;
+  clubId: string | null; // null = free pool (unhired); managed-club id = hired
+}
+
 // Multi-season career state — the persistent roster of every senior player
 // across every club, plus per-club squad pointers and historical archive.
 // Seeded once at first-ever new-game start (ROSTER_SEEDED); mutates only
@@ -508,6 +520,13 @@ export interface CareerState {
   // (assessed at each WEEK_ADVANCED). Drives the Transfers tile badge on
   // the Hub. Cleared when the mid-season market opens and at rollover.
   activePoachedIds: number[];
+  // Staff pool + hired staff for the managed club. Free-pool entries have
+  // clubId null; hired entries carry the managed club id. Additive-optional:
+  // legacy saves load with this absent → treated as empty (no staff/pool).
+  staff?: StaffMember[];
+  // Monotonically-increasing counter for staff IDs, mirrors nextRosterId.
+  // Absent on legacy saves → treated as 1.
+  nextStaffId?: number;
 }
 
 // Per-club budget-change reason chips for the BudgetRevealScreen.
@@ -1190,4 +1209,30 @@ export type SeasonEvent =
       rosterId: number;
       delta: number;
       reason: string;
+    }
+  // ── Staff hiring (1.2) ───────────────────────────────────────────────
+  | {
+      // Replaces the full staff array (free pool + hired) at season start /
+      // rollover. `staff` contains all free-pool entries (clubId null); any
+      // previously hired staff are carried forward by GameCoordinator before
+      // this event fires, so the reducer simply sets career.staff = staff.
+      type: 'STAFF_POOL_SEEDED';
+      staff: StaffMember[];
+      nextStaffId: number;
+    }
+  | {
+      // Marks a staff member as hired by the managed club. `annualWage` may
+      // differ from the listed wage (negotiation not modelled in Tier 1 — it
+      // equals the pool wage exactly; carried here for forward-compatibility).
+      type: 'STAFF_HIRED';
+      staffId: string;
+      annualWage: number;
+      clubId: string;
+    }
+  | {
+      // Returns a hired staff member to the free pool (clubId → null).
+      // The member stays in career.staff so the UI can show they were
+      // released; the pool is refreshed at the next rollover.
+      type: 'STAFF_RELEASED';
+      staffId: string;
     };

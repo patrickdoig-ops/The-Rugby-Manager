@@ -390,79 +390,80 @@ function lineoutLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
   return out;
 }
 
-// First phase off a set piece: backs in a 30° diagonal formation anchored at the
-// attacking #9's set-piece ending position (behind #8 for scrums, at the 10m
-// infield mark for lineouts). The #9's dot position is preserved in the DOM by
-// PitchPlayers (setpieceSHKey guard), so we still return a Placed for them at the
-// set-piece coords — PitchPlayers just skips the CSS update for that one key.
-// Defenders from the event actors are placed just ahead of the ball as normal.
+// First phase off a set piece: backs placed at the engine's REAL lateral sweep
+// positions, not a synthesised fan. `event.movements` is the ball's pass-by-pass
+// path — index 0 is the set-piece feed, the final entry is the carrier's post-
+// carry position, and every entry between is one backline pass landing (the
+// receiving back's lateral position). We map the narration pass chain (#10 then
+// each pass's receiver) onto those receive hops, so each dot sits where the ball
+// actually went; only a small depth stagger (deeper as play goes wider) is
+// synthesised for the diagonal read. The carrier rides the final carry leg onto
+// the ball via PitchView's follower, so its placed spot here is just a seed.
 //
-// Formation geometry (30° diagonal from #9, spreading toward the open side):
-//   openDir: sign toward the centre from #9's lateral position
-//   #10: 28 y-units lateral, 11 x-units deeper (≈20m lat / 11m depth)
-//   #12: 43 y-units lateral, 17 x-units deeper (≈30m lat / 17m depth)
-//   #13: 57 y-units lateral, 23 x-units deeper (≈40m lat / 23m depth)
-//  Wing: 71 y-units lateral, 29 x-units deeper (≈50m lat / 29m depth)
+// The #9's dot position is preserved in the DOM by PitchPlayers (setpieceSHKey
+// guard), so we still return a Placed for them at the set-piece coords.
 function firstPhaseBacklineLayout(
   event: GameEvent, state: MatchState, attacksTop: boolean,
   prevPhase: string, prevBallX: number, prevBallY: number,
 ): Placed[] {
+  // No multi-leg sweep (knock-on / interception / penalty first phase) → there's
+  // no engine pass-path to anchor on; fall back to the generic open-play layout.
+  const hops = event.movements;
+  if (!hops || hops.length < 3) return openPlayLayout(event, state, attacksTop);
+
   const fwd     = attacksTop ? 1 : -1;
   const atkSide: Side = event.side === 'home' ? 'h' : 'a';
   const defSide: Side = atkSide === 'h' ? 'a' : 'h';
   const atkTeam = atkSide === 'h' ? state.homeTeam : state.awayTeam;
   const atkOn   = onFieldPlayers(atkTeam, state, possOf(atkSide));
+  const carrier = event.primaryPlayer;
 
-  // Compute the #9's set-piece ending position (mirrors the coords in scrumLayout /
-  // lineoutLayout so the formation anchor matches the preserved dot exactly).
+  // #9's set-piece ending position (mirrors scrumLayout / lineoutLayout so the
+  // preserved dot matches). The feed origin for the sweep.
   let sh9X: number, sh9Y: number;
   if (prevPhase === MatchPhase.Scrum) {
     sh9X = clampX(prevBallX - fwd * 12);
     sh9Y = clampY(prevBallY);
   } else {
-    // Lineout
     const nearY  = prevBallY < 50 ? 0 : 100;
     const inward = nearY === 0 ? 1 : -1;
     sh9X = clampX(prevBallX - fwd * 4);
     sh9Y = clampY(nearY + inward * 14);
   }
 
-  // Open side: backs spread toward the centre of the pitch from the #9's lateral
-  // position. Matches Lateral.ts openSideDir convention (y <= 50 → +1).
-  const openDir = sh9Y <= 50 ? 1 : -1;
-
-  const carrier = event.primaryPlayer;
-  const sh  = atkOn.find(p => p.id === SLOT.SCRUM_HALF);
-  const fly = atkOn.find(p => p.id === SLOT.FLY_HALF);
-  const ic  = atkOn.find(p => p.id === SLOT.CENTRE_12);
-  const oc  = atkOn.find(p => p.id === SLOT.CENTRE_13);
-  // Wing on the open side: WING_14 when spreading toward higher y (openDir=+1),
-  // WING_11 when spreading toward lower y (openDir=−1). Falls back to whichever
-  // wing is available if the preferred slot is off the pitch.
-  const preferredWingSlot = openDir === 1 ? SLOT.WING_14 : SLOT.WING_11;
-  const wing = atkOn.find(p => p.id === preferredWingSlot)
-            ?? atkOn.find(p => p.id === SLOT.WING_11 || p.id === SLOT.WING_14);
-
   const out: Placed[] = [];
 
-  // #9 at set-piece position — PitchPlayers preserves the CSS; this Placed entry
-  // still needs to be returned so persistedKeys keeps the dot visible.
+  // #9 at the set-piece feed.
+  const sh = atkOn.find(p => p.id === SLOT.SCRUM_HALF);
   if (sh) out.push(placed(sh, atkSide, state, sh9X, sh9Y, sh === carrier));
 
-  // Diagonal backline. Each step adds lateral spread + depth behind #9.
-  if (fly) out.push(placed(fly, atkSide, state,
-    clampX(sh9X - fwd * 11), clampY(sh9Y + openDir * 28), fly === carrier));
-  if (ic) out.push(placed(ic, atkSide, state,
-    clampX(sh9X - fwd * 17), clampY(sh9Y + openDir * 43), ic === carrier));
-  if (oc) out.push(placed(oc, atkSide, state,
-    clampX(sh9X - fwd * 23), clampY(sh9Y + openDir * 57), oc === carrier));
-  if (wing) out.push(placed(wing, atkSide, state,
-    clampX(sh9X - fwd * 29), clampY(sh9Y + openDir * 71), wing === carrier));
+  // Receivers in pass order, read straight from the narration chain: #10 is the
+  // first pass step's primary, then each step's secondary (#12 for a crash ball;
+  // #13 then the wing for wide play). Aligns one-to-one with the receive hops.
+  const receivers: Player[] = [];
+  for (const s of event.narration.steps) {
+    if (s.kind !== 'phase_outcome') continue;
+    if (s.key !== 'crash_ball' && s.key !== 'out_the_back') continue;
+    if (receivers.length === 0 && s.primary) receivers.push(s.primary);
+    if (s.secondary) receivers.push(s.secondary);
+  }
 
-  // If the carrier is a forward or someone not in the standard backline slots,
-  // place them at the ball rather than leaving them invisible.
-  if (carrier && !out.some(p => p.key === `${atkSide}:${carrier.id}`)) {
-    out.push(placed(carrier, atkSide, state, clampX(event.ballX - fwd * 2.5), event.ballY, true));
+  // Receive hops = the ball path minus the feed (index 0) and the final carry leg.
+  const recvHops = hops.slice(1, hops.length - 1);
+  const n = Math.min(receivers.length, recvHops.length);
+  for (let i = 0; i < n; i++) {
+    const p = receivers[i];
+    const hop = recvHops[i];
+    // Sit a touch behind the ball's gain-line hop, progressively deeper as play
+    // goes wider — the diagonal read, anchored on the engine's real lateral y.
+    out.push(placed(p, atkSide, state, clampX(hop.x - fwd * (2.5 + i * 4)), clampY(hop.y), p === carrier));
+  }
+
+  // Carrier safety: if the chain didn't surface the carrier (offload / edge case),
+  // place them at the final receive hop so they're never left invisible.
+  if (carrier && !out.some(pl => pl.key === `${atkSide}:${carrier.id}`)) {
+    const last = recvHops[recvHops.length - 1] ?? hops[hops.length - 1];
+    out.push(placed(carrier, atkSide, state, clampX(last.x - fwd * 2.5), clampY(last.y), true));
   }
 
   // Defenders: event actors on the defending side, placed just ahead of the ball.

@@ -62,7 +62,6 @@ export function initPitchView(): void {
   // Cached from the most recent stateChange so the engine:event handler (which
   // fires before stateChange in the same beat) can determine attack direction.
   let cachedHalfTimeDone = false;
-  let cachedEventPhase: string | null = null;
   // The ball's current resting position (% top / left), tracked in-module rather
   // than re-read from ball.style — during an animation the inline style holds the
   // committed target, not the visual position. Ball starts at halfway (x=50,y=50
@@ -244,7 +243,6 @@ export function initPitchView(): void {
   eventBus.on('engine:initialized', () => {
     lastHalfTimeDone   = null;
     cachedHalfTimeDone = false;
-    cachedEventPhase   = null;
     cachedState        = null;
     lastTop  = toTop(50);
     lastLeft = toLeft(50);
@@ -267,14 +265,16 @@ export function initPitchView(): void {
 
     // Ball animation for this beat, in priority order:
     //  1. An open-field kick → lob it to the landing (scale apex + eased flight).
-    //  2. A multi-leg phase → walk the ball through each engine movement keyframe.
+    //  2. A maul → the whole pack glides forward as a bound unit to the post-drive
+    //     cluster and the ball slides to the hooker at the tail; checked BEFORE the
+    //     movements branch so a won drive doesn't peel the hooker off onto the ball.
+    //  3. A multi-leg phase → walk the ball through each engine movement keyframe.
     //     This covers the FirstPhase off a set piece too: the engine's movements[]
     //     already encode the pass-by-pass lateral sweep AND the carrier's forward
     //     drive, and end exactly at the authoritative ball position — so the ball
     //     follows the same steps the match engine took and never teleports when the
     //     next phase reconciles. (An earlier dot-routing path invented its own
     //     waypoints, diverging from the engine and snapping back at the breakdown.)
-    //  3. Lineout→Maul → slide ball to the hooker at the tail of the drive.
     //  4. Otherwise cancel any in-flight animation; stateChange sets the position.
     // The kick check is gated on the ball actually moving, so no-move kick beats
     // (the coin-toss / pre-kick announce) fall through rather than pulsing in place.
@@ -307,13 +307,14 @@ export function initPitchView(): void {
       } else {
         clearMovement();
       }
-    } else if (event.movements && event.movements.length >= 2) {
-      animateMovements(event.movements, event.narration.steps.length,
-        ((event.side === 'home') !== cachedHalfTimeDone) ? 1 : -1);
-    } else if (event.phase === MatchPhase.Maul && cachedEventPhase === MatchPhase.Lineout) {
-      // Lineout→Maul: ball travels from the lineout mark to the hooker at the
-      // tail of the maul (dx=14 behind the mark, same lateral). The hooker runs
-      // around from the touchline to become the ball-carrier at the back of the drive.
+    } else if (event.phase === MatchPhase.Maul) {
+      // Maul (always off a lineout): the whole pack glides forward into the maul
+      // cluster as a bound unit (Layer-3 dot-transitioning, set in applyBeat) while
+      // the ball slides to the hooker at the tail of the drive (dx=14 behind the
+      // mark). Handles WON drives too — event.ballX has already advanced by the gain,
+      // so the cluster and ball finish further upfield, reading as a forward drive.
+      // Ahead of the movements branch on purpose: a won maul must NOT go through
+      // animateMovements, which would peel the hooker off the pack onto the ball.
       clearMovement();
       movementAnimating = true;
       const attacksTop = (event.side === 'home') !== cachedHalfTimeDone;
@@ -325,6 +326,9 @@ export function initPitchView(): void {
         { transform: offsetTransform(lastTop, lastLeft, hookerTop, hookerLeft, w, h) },
         { transform: offsetTransform(hookerTop, hookerLeft, hookerTop, hookerLeft, w, h) },
       ], Math.max(200, Math.min(stepMs, 400)), 'ease-in', hookerTop, hookerLeft);
+    } else if (event.movements && event.movements.length >= 2) {
+      animateMovements(event.movements, event.narration.steps.length,
+        ((event.side === 'home') !== cachedHalfTimeDone) ? 1 : -1);
     } else {
       clearMovement();
     }
@@ -362,8 +366,6 @@ export function initPitchView(): void {
       triggerKickFlight(event.ballX, event.ballY, step.key !== 'miss', event.side);
       break;
     }
-
-    cachedEventPhase = event.phase;
   });
 
   eventBus.on('engine:stateChange', ({ state, display }) => {

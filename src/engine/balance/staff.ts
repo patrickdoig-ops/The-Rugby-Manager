@@ -48,7 +48,9 @@ export const SCOUT_ACCURACY_BASE      = 2;
 export const SCOUT_ACCURACY_PER_POINT = 0.1;
 
 // Staff budget is separate from the player salary cap.
-// Seeded at 8% of each club's player salary budget, giving a range of
-// ~£330k (Newcastle) to ~£620k (Bath) — enough to comfortably hire one
-// good assistant manager and one good scout at the start of a career.
-export const STAFF_BUDGET_FRACTION = 0.08;
+// Seeded at 4.5% of each club's player salary budget:
+//   Newcastle (£4.15m) → £186k  — barely enough for two rating-50 Good hires (£90k each)
+//   Bath      (£7.75m) → £349k  — can reach two Excellent or one World-Class entry, but
+//                                   cannot fill multiple roles with top-end staff
+// No club can assemble a full world-class backroom (5 roles × £273k = £1.37m) in year one.
+export const STAFF_BUDGET_FRACTION = 0.045;

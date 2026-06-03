@@ -510,6 +510,39 @@ The scouting system is a per-target knowledge layer on the managed club: each un
 
 **Save/load.** `scouting` is persisted directly in `SavedSeason` (additive optional field; no version bump). Absent on legacy saves → no entries, correct behaviour. `fromSave` restores via `PLAYER_SCOUTING_RESTORED`.
 
+## Press conferences (Phase 1.4)
+
+A post-match press conference overlay fires between the match-result dismissal and the round-results screen whenever a **newsworthy trigger** is active. All logic is pure (no engine RNG; no new `SeasonEvent` variants — it reuses existing ones).
+
+**Trigger detection (`src/game/pressConference.ts · shouldFirePresser`).** Fires when at least one of the following holds after the result is recorded:
+
+| Trigger | Threshold |
+|---|---|
+| Heavy result | \|margin\| ≥ 15 (win or loss) |
+| Board heat | `board.confidence` ≤ 40 |
+| Loss run | ≥ 2 losses in last 3 results |
+| Win run | 3 wins in last 3 results |
+
+Thresholds live in `src/engine/balance/press.ts` (`PRESS_TRIGGER`).
+
+**Question builder (`buildPresser(state, getTeamName)`).** Selects 2 questions from a priority-ordered bank (`board_heat` → `heavy_loss` → `loss_run` → `heavy_win` → `win_run` → `generic`). Each question has 3 answer options with a `tone`:
+
+| Tone | Board delta | Squad morale delta |
+|---|---|---|
+| `positive` | +2 | +1 |
+| `measured` | 0 | 0 |
+| `blunt` | −1 | +2 |
+
+Effect constants in `PRESS_ANSWER_EFFECTS` (`balance/press.ts`).
+
+**Skip penalty.** If the manager skips the conference entirely: `BOARD_CONFIDENCE_ADJUSTED { delta: −2 }` + a stub `MEDIA_STORY_PUBLISHED` ("manager silent after match"). Constant: `PRESS_SKIP_BOARD_PENALTY = −2`.
+
+**Coordinator surface (`GameCoordinator.applyPressEffects(skipped, answers)`).** Called from `main.ts` after the overlay resolves. Aggregates `boardDelta` across both answers and emits one `BOARD_CONFIDENCE_ADJUSTED`; aggregates `moraleDelta` and emits `PLAYER_MORALE_ADJUSTED` for every player in the managed club's squad. No new `SeasonEvent` variants — fully reuses the existing three.
+
+**Save/load.** No state to persist — the press conference has no persistent record. After `applyPressEffects`, `saveGame` runs immediately so the board/morale changes are written.
+
+**UI.** `src/ui/PressConferenceScreen.ts` renders a fullscreen overlay (`#press-conference`) with two stacked question blocks. Each question has 3 answer buttons (label + text + effect hint). "Publish" is enabled when both questions are answered. "Skip press conference" is always available. The overlay is not in `ScreenRouter` — it shows/hides via `classList.toggle('hidden')` directly. CSS: `style/press-conference.css`.
+
 ## League Cup
 
 The League Cup runs headless during the two international breaks (the Assistant Manager picks the squad). Two pools of 5, full home-&-away double round-robin split into leg 1 (Autumn block) / leg 2 (Six Nations block), top two per pool → semis → final. Self-contained: drains condition + a featured-player development nudge, but no budget/cap/reputation effect and cup stats stay out of league leaderboards. State lives on `state.league.premCup` (`PremCupState`); the break is orchestrated by `GameCoordinator.beginInternationalBreak` + `runInternationalBreakBlock`; scheduling + future-season pool redraw in `src/game/cupScheduler.ts`; tuning in `src/engine/balance/premCup.ts`. **Full breakdown in `docs/league-cup.md`.**

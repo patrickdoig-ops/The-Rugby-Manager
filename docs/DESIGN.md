@@ -1019,7 +1019,7 @@ Hub
 ```
 
 **Post-match chain — regular rounds:**
-Round Results → League Table → Training (runs block) → Hub
+[Press Conference? (newsworthy only)] → Round Results → League Table → Training (runs block) → Hub
 
 **Post-match chain — international break (R6 / R11):**
 League Table → IntlCallUps → CupFixtures → Training (`runInternationalBreakBlock`) → CupResults → PostTrainingResults → [InternationalBreak if duty players returned] → Hub

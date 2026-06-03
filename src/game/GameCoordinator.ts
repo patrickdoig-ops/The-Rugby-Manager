@@ -72,7 +72,7 @@ import { computeBudgetEvents } from './budgetPlanner';
 import { computeAttendance } from './attendance';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed, rngTransfer, getTransferCallCount, advanceTransferTo, hashSeed } from '../utils/rng';
-import { SEASON_VALUES, INJURY_SEVERITY, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD, BOARD_THRESHOLDS, MORALE, STAFF_CAPS } from '../engine/balance';
+import { SEASON_VALUES, INJURY_SEVERITY, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD, BOARD_THRESHOLDS, MORALE, STAFF_CAPS, PRESS_SKIP_BOARD_PENALTY } from '../engine/balance';
 import type { InjurySeverity } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 import type { RawTeamInput, BoardAmbition } from '../types/teamData';
@@ -498,6 +498,60 @@ export class GameCoordinator {
 
   unassignScout(rosterId: number): void {
     applySeasonEvent(this.state, { type: 'PLAYER_SCOUT_UNASSIGNED', rosterId });
+  }
+
+  // Apply the outcome of a press conference. `skipped = true` applies the
+  // board penalty and publishes a stub story. Otherwise `answers` contains
+  // one boardDelta+moraleDelta pair per question answered.
+  applyPressEffects(skipped: boolean, answers: Array<{ boardDelta: number; moraleDelta: number }>): void {
+    const teamId = this.state.player.teamId;
+    const lastResult = [...this.state.league.results].reverse()
+      .find(r => r.homeId === teamId || r.awayId === teamId);
+    const round = lastResult?.round ?? 0;
+    const clubName = this.teamsById.get(teamId)?.name ?? 'the club';
+
+    if (skipped) {
+      applySeasonEvent(this.state, {
+        type: 'BOARD_CONFIDENCE_ADJUSTED',
+        delta: PRESS_SKIP_BOARD_PENALTY,
+        reason: 'press:skip',
+      });
+      applySeasonEvent(this.state, {
+        type: 'MEDIA_STORY_PUBLISHED',
+        story: {
+          id: `media:press:skip:${round}`,
+          round,
+          subject: `${clubName} manager silent after match`,
+          body: `The ${clubName} manager declined to face the press, sparking further questions about the mood inside the camp. The board is said to be displeased by the decision.`,
+          outlet: 'RugbyInsider',
+        },
+      });
+      return;
+    }
+
+    const totalBoardDelta = answers.reduce((sum, a) => sum + a.boardDelta, 0);
+    if (totalBoardDelta !== 0) {
+      applySeasonEvent(this.state, {
+        type: 'BOARD_CONFIDENCE_ADJUSTED',
+        delta: totalBoardDelta,
+        reason: 'press:answers',
+      });
+    }
+
+    const totalMoraleDelta = answers.reduce((sum, a) => sum + a.moraleDelta, 0);
+    if (totalMoraleDelta !== 0) {
+      const club = this.state.career.clubs.find(c => c.id === teamId);
+      if (club) {
+        for (const rId of club.squad) {
+          applySeasonEvent(this.state, {
+            type: 'PLAYER_MORALE_ADJUSTED',
+            rosterId: rId,
+            delta: totalMoraleDelta,
+            reason: 'press:answers',
+          });
+        }
+      }
+    }
   }
 
   private advanceScoutingAccuracy(): void {

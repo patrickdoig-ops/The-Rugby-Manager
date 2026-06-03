@@ -12,7 +12,7 @@
 
 import type { ClubState, GameState } from '../types/gameState';
 import type { BacksFocus, ForwardsFocus, TrainingIntensity, TrainingPlan } from '../types/training';
-import { rngTransferRaw } from '../utils/rng';
+import { rngTransferRaw, hashSeed } from '../utils/rng';
 import { AI_TRAINING } from '../engine/balance/training';
 import { ASSISTANT_NOISE_MAX } from '../engine/balance/staff';
 
@@ -119,30 +119,22 @@ export function suggestPlanForUser(state: GameState): TrainingPlan | null {
   // rating 40 → 24%  rating 75 → 10%  rating 90 → 4%
   // Use a per-week hash so the suggestion is stable across re-renders.
   const noiseProb = ASSISTANT_NOISE_MAX * (1 - assistant.rating / 100);
-  const h0 = fnv1a(`${state.calendar.seasonLabel}:${state.calendar.week}:0`);
+  const h0 = hashSeed(`${state.calendar.seasonLabel}:${state.calendar.week}:0`) / 4294967295;
   const INTENSITIES: TrainingIntensity[] = ['rest', 'light', 'medium', 'high'];
   let intensity: TrainingIntensity;
   if (h0 < noiseProb) {
     const others = INTENSITIES.filter(v => v !== optimal);
-    const h1 = fnv1a(`${state.calendar.seasonLabel}:${state.calendar.week}:1`);
+    const h1 = hashSeed(`${state.calendar.seasonLabel}:${state.calendar.week}:1`) / 4294967295;
     intensity = others[Math.floor(h1 * others.length)];
   } else {
     intensity = optimal;
   }
 
-  const h2 = fnv1a(`${state.calendar.seasonLabel}:${state.calendar.week}:2`);
-  const h3 = fnv1a(`${state.calendar.seasonLabel}:${state.calendar.week}:3`);
+  const h2 = hashSeed(`${state.calendar.seasonLabel}:${state.calendar.week}:2`) / 4294967295;
+  const h3 = hashSeed(`${state.calendar.seasonLabel}:${state.calendar.week}:3`) / 4294967295;
   const forwardsFocus = FORWARDS_FOCUS_KEYS[Math.floor(h2 * FORWARDS_FOCUS_KEYS.length)];
   const backsFocus    = BACKS_FOCUS_KEYS   [Math.floor(h3 * BACKS_FOCUS_KEYS.length)];
 
   return { intensity, forwardsFocus, backsFocus };
 }
 
-// FNV-1a hash returning a 0-1 float. Deterministic, no rngTransfer.
-function fnv1a(s: string): number {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < s.length; i++) {
-    h = Math.imul(h ^ s.charCodeAt(i), 0x01000193) >>> 0;
-  }
-  return h / 4294967295;
-}

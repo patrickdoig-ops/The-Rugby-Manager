@@ -46,6 +46,7 @@ import '../style/saves.css';
 import '../style/achievements.css';
 import '../style/sack.css';
 import '../style/team-talk.css';
+import '../style/staff.css';
 
 import { buildAppShell }           from './ui/AppShell';
 import { preloadAllCues }          from './ui/SoundManager';

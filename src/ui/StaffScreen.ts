@@ -9,6 +9,7 @@ import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import type { StaffMember } from '../types/gameState';
 import { STAFF_CAPS } from '../engine/balance/staff';
+import { clubBudgetUsage } from '../game/teamStats';
 import { injectTeamColors } from './teamColors';
 
 export interface InitStaffScreenOpts {
@@ -79,16 +80,20 @@ export function showStaff(): void {
   const allStaff = state.career.staff ?? [];
   const clubId = state.player.teamId;
 
-  const hired   = allStaff.filter(m => m.clubId === clubId);
+  const hired    = allStaff.filter(m => m.clubId === clubId);
   const freePool = allStaff.filter(m => m.clubId === null);
+  const club     = state.career.clubs.find(c => c.id === clubId);
+  const budget   = club?.salaryBudget ?? 0;
+  const used     = clubBudgetUsage(state, clubId);
+  const remaining = budget - used;
 
   const hiredByRole = new Map<string, number>();
   for (const m of hired) hiredByRole.set(m.role, (hiredByRole.get(m.role) ?? 0) + 1);
 
-  const canHireRole = (role: string): boolean => {
-    const count = hiredByRole.get(role) ?? 0;
-    const cap = role === 'scout' ? STAFF_CAPS.scouts : 1;
-    return count < cap;
+  const canHireStaff = (m: StaffMember): boolean => {
+    const count = hiredByRole.get(m.role) ?? 0;
+    const cap = m.role === 'scout' ? STAFF_CAPS.scouts : 1;
+    return count < cap && m.annualWage <= remaining;
   };
 
   const roles: Array<'assistant' | 'fitness' | 'scout'> = ['assistant', 'fitness', 'scout'];
@@ -100,7 +105,7 @@ export function showStaff(): void {
     const countLabel    = `${hiredOfRole.length} / ${cap} hired`;
 
     const hiredCards = hiredOfRole.map(m => staffCardHtml(m, true, false)).join('');
-    const poolCards  = poolOfRole.map(m => staffCardHtml(m, false, canHireRole(role))).join('');
+    const poolCards  = poolOfRole.map(m => staffCardHtml(m, false, canHireStaff(m))).join('');
 
     return `
       <div class="staff-section">
@@ -114,6 +119,7 @@ export function showStaff(): void {
       </div>`;
   }).join('');
 
+  const budgetPct = budget > 0 ? Math.min(100, Math.round(used / budget * 100)) : 0;
   el.innerHTML = `
     <div class="app-header">
       <div class="app-topbar">
@@ -127,7 +133,11 @@ export function showStaff(): void {
       <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
     </div>
     <div id="st-content">
-      <p class="staff-intro">Staff wages count against your salary budget. Hire quality staff to gain an edge in training, injury prevention, and recruitment.</p>
+      <div class="staff-budget-pill">
+        <span class="staff-budget-label">Salary budget</span>
+        <span class="staff-budget-bar-wrap"><span class="staff-budget-bar" style="width:${budgetPct}%"></span></span>
+        <span class="staff-budget-figures">${formatWage(used)} used · <strong>${formatWage(remaining)}</strong> remaining</span>
+      </div>
       ${sectionsHtml}
     </div>
   `;

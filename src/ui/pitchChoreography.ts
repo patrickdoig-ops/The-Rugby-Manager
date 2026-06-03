@@ -24,6 +24,8 @@ export interface Placed {
   x: number;
   y: number;
   isCarrier: boolean; // the on-ball dot (sits behind ball, slightly offset)
+  isChaser: boolean;  // kickoff chaser — PitchView animates this dot forward during the ball arc
+  scrumHalfRole?: 'atk' | 'def'; // scrum SH — PitchView sweeps from loosehead start to behind-#8 final
 }
 
 type Side = 'h' | 'a';
@@ -41,7 +43,7 @@ const sideOf = (p: Player, state: MatchState): Side => {
 
 const possOf = (side: Side): PossessionSide => (side === 'h' ? 'home' : 'away');
 
-function placed(p: Player, side: Side, state: MatchState, x: number, y: number, isCarrier: boolean): Placed {
+function placed(p: Player, side: Side, state: MatchState, x: number, y: number, isCarrier: boolean, isChaser = false): Placed {
   const team = side === 'h' ? state.homeTeam : state.awayTeam;
   const fill = colorOnDark(team.color);   // the actual rendered dot colour
   return {
@@ -49,7 +51,7 @@ function placed(p: Player, side: Side, state: MatchState, x: number, y: number, 
     jersey: p.squadNumber,
     color: fill,
     text: textOn(fill),                   // contrast against the fill, not the raw colour
-    x, y, isCarrier,
+    x, y, isCarrier, isChaser,
   };
 }
 
@@ -70,7 +72,16 @@ function harvestActors(event: GameEvent): Player[] {
 // Router: dispatch by phase. Set pieces draw both full packs; kicks show the kicker;
 // substitutions place players near the touchline; fatigue places the player randomly;
 // everything else (open play, breakdown, maul, penalty, try) fans the involved chain.
-export function choreograph(event: GameEvent, state: MatchState, attacksTop: boolean): Placed[] {
+// prevPhase / prevBallX / prevBallY are the previous beat's phase and ball position,
+// used to anchor the FirstPhase backline formation when coming off a set piece.
+export function choreograph(
+  event: GameEvent,
+  state: MatchState,
+  attacksTop: boolean,
+  prevPhase: string | null = null,
+  prevBallX = 50,
+  prevBallY = 50,
+): Placed[] {
   // Substitution beats always show players near the touchline, not the ball.
   if (event.phase === MatchPhase.Substitution) return substitutionLayout(event, state);
 
@@ -94,6 +105,14 @@ export function choreograph(event: GameEvent, state: MatchState, attacksTop: boo
   if (event.phase === MatchPhase.Scrum)   return scrumLayout(event, state, attacksTop);
   if (event.phase === MatchPhase.Lineout) return lineoutLayout(event, state, attacksTop);
   if (event.phase === MatchPhase.Maul)    return maulLayout(event, state, attacksTop);
+
+  // First phase off a set piece: diagonal backline formation anchored at the #9's
+  // set-piece ending position (behind #8 or at the lineout feed mark).
+  if (event.phase === MatchPhase.FirstPhase
+      && (prevPhase === MatchPhase.Scrum || prevPhase === MatchPhase.Lineout)) {
+    return firstPhaseBacklineLayout(event, state, attacksTop, prevPhase, prevBallX, prevBallY);
+  }
+
   return openPlayLayout(event, state, attacksTop);
 }
 
@@ -130,11 +149,11 @@ function kickOffLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
     out.push(placed(receiver, sideOf(receiver, state), state, event.ballX, event.ballY, false));
   }
 
-  // Chaser on the halfway line, same lateral position as the landing spot —
-  // shows they are running down the chase lane toward the receiver.
+  // Chaser: halfway line (x=50), aligned laterally with the landing spot.
+  // isChaser=true signals PitchView to animate them forward along x during the ball arc.
   const chaser = event.secondaryPlayer;
   if (chaser && chaser !== kicker) {
-    out.push(placed(chaser, sideOf(chaser, state), state, 50, event.ballY, false));
+    out.push(placed(chaser, sideOf(chaser, state), state, 50, event.ballY, false, true));
   }
 
   return out;
@@ -255,11 +274,33 @@ function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): 
   const fwd = attacksTop ? 1 : -1;
   const atkSide: Side = event.side === 'home' ? 'h' : 'a';
   const defSide: Side = atkSide === 'h' ? 'a' : 'h';
+
+  const atkTeam = atkSide === 'h' ? state.homeTeam : state.awayTeam;
+  const defTeam = defSide === 'h' ? state.homeTeam : state.awayTeam;
+
   // Attacking pack faces toward its own end (negative fwd), defenders face toward attacking end.
-  return [
+  const out: Placed[] = [
     ...pack(state, atkSide, event.ballX, event.ballY, -fwd),
     ...pack(state, defSide, event.ballX, event.ballY, +fwd),
   ];
+
+  // Both #9s are placed at their FINAL positions (2 units behind their #8 at dx=10)
+  // with scrumHalfRole set so PitchView can WAAPI-sweep them from the loosehead
+  // start (where they visually appear) to this committed final position.
+  const atkSH = onFieldPlayers(atkTeam, state, possOf(atkSide)).find(p => p.id === SLOT.SCRUM_HALF);
+  const defSH = onFieldPlayers(defTeam, state, possOf(defSide)).find(p => p.id === SLOT.SCRUM_HALF);
+  if (atkSH) {
+    const dot = placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 12), clampY(event.ballY), false);
+    dot.scrumHalfRole = 'atk';
+    out.push(dot);
+  }
+  if (defSH) {
+    const dot = placed(defSH, defSide, state, clampX(event.ballX + fwd * 12), clampY(event.ballY), false);
+    dot.scrumHalfRole = 'def';
+    out.push(dot);
+  }
+
+  return out;
 }
 
 function pack(state: MatchState, side: Side, ballX: number, ballY: number, dir: number, rows = SCRUM_ROWS): Placed[] {
@@ -345,6 +386,93 @@ function lineoutLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
   const defSH = onFieldPlayers(defTeam, state, possOf(defSide)).find(p => p.id === SLOT.SCRUM_HALF);
   if (atkSH) out.push(placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 4), TEN_M_Y, false));
   if (defSH) out.push(placed(defSH, defSide, state, clampX(event.ballX + fwd * 4), TEN_M_Y, false));
+
+  return out;
+}
+
+// First phase off a set piece: backs in a 30° diagonal formation anchored at the
+// attacking #9's set-piece ending position (behind #8 for scrums, at the 10m
+// infield mark for lineouts). The #9's dot position is preserved in the DOM by
+// PitchPlayers (setpieceSHKey guard), so we still return a Placed for them at the
+// set-piece coords — PitchPlayers just skips the CSS update for that one key.
+// Defenders from the event actors are placed just ahead of the ball as normal.
+//
+// Formation geometry (30° diagonal from #9, spreading toward the open side):
+//   openDir: sign toward the centre from #9's lateral position
+//   #10: 28 y-units lateral, 11 x-units deeper (≈20m lat / 11m depth)
+//   #12: 43 y-units lateral, 17 x-units deeper (≈30m lat / 17m depth)
+//   #13: 57 y-units lateral, 23 x-units deeper (≈40m lat / 23m depth)
+//  Wing: 71 y-units lateral, 29 x-units deeper (≈50m lat / 29m depth)
+function firstPhaseBacklineLayout(
+  event: GameEvent, state: MatchState, attacksTop: boolean,
+  prevPhase: string, prevBallX: number, prevBallY: number,
+): Placed[] {
+  const fwd     = attacksTop ? 1 : -1;
+  const atkSide: Side = event.side === 'home' ? 'h' : 'a';
+  const defSide: Side = atkSide === 'h' ? 'a' : 'h';
+  const atkTeam = atkSide === 'h' ? state.homeTeam : state.awayTeam;
+  const atkOn   = onFieldPlayers(atkTeam, state, possOf(atkSide));
+
+  // Compute the #9's set-piece ending position (mirrors the coords in scrumLayout /
+  // lineoutLayout so the formation anchor matches the preserved dot exactly).
+  let sh9X: number, sh9Y: number;
+  if (prevPhase === MatchPhase.Scrum) {
+    sh9X = clampX(prevBallX - fwd * 12);
+    sh9Y = clampY(prevBallY);
+  } else {
+    // Lineout
+    const nearY  = prevBallY < 50 ? 0 : 100;
+    const inward = nearY === 0 ? 1 : -1;
+    sh9X = clampX(prevBallX - fwd * 4);
+    sh9Y = clampY(nearY + inward * 14);
+  }
+
+  // Open side: backs spread toward the centre of the pitch from the #9's lateral
+  // position. Matches Lateral.ts openSideDir convention (y <= 50 → +1).
+  const openDir = sh9Y <= 50 ? 1 : -1;
+
+  const carrier = event.primaryPlayer;
+  const sh  = atkOn.find(p => p.id === SLOT.SCRUM_HALF);
+  const fly = atkOn.find(p => p.id === SLOT.FLY_HALF);
+  const ic  = atkOn.find(p => p.id === SLOT.CENTRE_12);
+  const oc  = atkOn.find(p => p.id === SLOT.CENTRE_13);
+  // Wing on the open side: WING_14 when spreading toward higher y (openDir=+1),
+  // WING_11 when spreading toward lower y (openDir=−1). Falls back to whichever
+  // wing is available if the preferred slot is off the pitch.
+  const preferredWingSlot = openDir === 1 ? SLOT.WING_14 : SLOT.WING_11;
+  const wing = atkOn.find(p => p.id === preferredWingSlot)
+            ?? atkOn.find(p => p.id === SLOT.WING_11 || p.id === SLOT.WING_14);
+
+  const out: Placed[] = [];
+
+  // #9 at set-piece position — PitchPlayers preserves the CSS; this Placed entry
+  // still needs to be returned so persistedKeys keeps the dot visible.
+  if (sh) out.push(placed(sh, atkSide, state, sh9X, sh9Y, sh === carrier));
+
+  // Diagonal backline. Each step adds lateral spread + depth behind #9.
+  if (fly) out.push(placed(fly, atkSide, state,
+    clampX(sh9X - fwd * 11), clampY(sh9Y + openDir * 28), fly === carrier));
+  if (ic) out.push(placed(ic, atkSide, state,
+    clampX(sh9X - fwd * 17), clampY(sh9Y + openDir * 43), ic === carrier));
+  if (oc) out.push(placed(oc, atkSide, state,
+    clampX(sh9X - fwd * 23), clampY(sh9Y + openDir * 57), oc === carrier));
+  if (wing) out.push(placed(wing, atkSide, state,
+    clampX(sh9X - fwd * 29), clampY(sh9Y + openDir * 71), wing === carrier));
+
+  // If the carrier is a forward or someone not in the standard backline slots,
+  // place them at the ball rather than leaving them invisible.
+  if (carrier && !out.some(p => p.key === `${atkSide}:${carrier.id}`)) {
+    out.push(placed(carrier, atkSide, state, clampX(event.ballX - fwd * 2.5), event.ballY, true));
+  }
+
+  // Defenders: event actors on the defending side, placed just ahead of the ball.
+  const actors = harvestActors(event);
+  actors.filter(p => sideOf(p, state) === defSide).forEach((p, i) => {
+    const lat = (i % 2 === 0 ? 1 : -1) * Math.ceil((i + 1) / 2) * 8;
+    out.push(placed(p, defSide, state,
+      clampX(event.ballX + fwd * (3 + i * 6)),
+      clampY(event.ballY + lat), false));
+  });
 
   return out;
 }

@@ -5,6 +5,7 @@
 
 import type { GameEvent, MatchState } from '../types/match';
 import { MatchPhase } from '../types/engine';
+import { SLOT } from '../engine/Slot';
 import { toTop, toLeft } from './pitchCoords';
 import { choreograph } from './pitchChoreography';
 
@@ -19,6 +20,10 @@ export interface BallWalkFollower {
 export interface PitchPlayers {
   applyBeat(event: GameEvent, state: MatchState, attacksTop: boolean): void;
   ballWalkFollower: BallWalkFollower;
+  chaserEl: HTMLElement | null;       // kickoff chaser dot placed this beat, for PitchView to animate
+  atkScrumHalfEl: HTMLElement | null; // attacking #9 placed at scrum final pos, for PitchView to sweep
+  defScrumHalfEl: HTMLElement | null; // defending #9 placed at scrum final pos, for PitchView to sweep
+  dotPosition(key: string): { top: number; left: number } | null; // CSS % position of a pool dot by key
   reset(): void;
 }
 
@@ -26,7 +31,12 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
   const pool = new Map<string, HTMLElement>();   // key -> dot (kept while hidden)
   let persistedKeys = new Set<string>();         // keys shown since last phase change
   let currentPhase: string | null = null;        // phase of the last beat
+  let prevBallX = 50;                            // event.ballX from the previous beat
+  let prevBallY = 50;                            // event.ballY from the previous beat
   let carrierEl: HTMLElement | null = null;      // the on-ball dot for the current beat
+  let chaserEl: HTMLElement | null = null;       // kickoff chaser dot (PitchView animates it forward)
+  let atkSHEl: HTMLElement | null = null;        // attacking #9 at scrum final pos (PitchView sweeps)
+  let defSHEl: HTMLElement | null = null;        // defending #9 at scrum final pos (PitchView sweeps)
   let carrierAnim: Animation | null = null;
   let animatedEl: HTMLElement | null = null;     // the dot carrierAnim is driving (may differ from carrierEl after a beat flip)
 
@@ -48,8 +58,13 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
 
   // Thin orchestration: pure choreograph → render/fade. ~12 lines, no rugby logic.
   const applyBeat = (event: GameEvent, state: MatchState, attacksTop: boolean): void => {
-    const placed = choreograph(event, state, attacksTop);
+    const placed = choreograph(event, state, attacksTop, currentPhase, prevBallX, prevBallY);
     const nextKeys = new Set(placed.map(p => p.key));
+
+    // Key of the attacking #9 whose position we must preserve on the transition
+    // beat from a set-piece into FirstPhase — they hold their set-piece position
+    // (lineout mark or behind-#8) so the first-phase dot reads as a continuation.
+    let setpieceSHKey: string | null = null;
 
     // On phase change, fade out persisted dots that aren't in the new beat.
     if (event.phase !== currentPhase) {
@@ -59,22 +74,45 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
         field.classList.add('dot-transitioning');
         setTimeout(() => field.classList.remove('dot-transitioning'), 600);
       }
-      for (const key of persistedKeys) {
-        if (!nextKeys.has(key)) pool.get(key)?.classList.remove('visible');
+      // Lineout/Scrum→FirstPhase: keep set-piece forwards visible through the whole
+      // first phase — carry persistedKeys forward so they don't clear at the boundary.
+      // They fade normally when FirstPhase itself ends.
+      const keepLineout = (currentPhase === MatchPhase.Lineout || currentPhase === MatchPhase.Scrum)
+        && event.phase === MatchPhase.FirstPhase;
+      if (keepLineout) {
+        // Attacking #9 must start FirstPhase at their set-piece position (lineout
+        // mark or behind their #8 in a scrum). Skip the position update for their
+        // dot this beat only; subsequent beats will reposition them normally.
+        setpieceSHKey = `${event.side === 'home' ? 'h' : 'a'}:${SLOT.SCRUM_HALF}`;
+      } else {
+        for (const key of persistedKeys) {
+          if (!nextKeys.has(key)) pool.get(key)?.classList.remove('visible');
+        }
+        persistedKeys = new Set();
       }
-      persistedKeys = new Set();
       currentPhase = event.phase;
     }
 
     carrierEl = null;
+    chaserEl = null;
+    atkSHEl = null;
+    defSHEl = null;
     for (const p of placed) {
       persistedKeys.add(p.key);
       const el = ensureDot(p.key, p.color, p.text, p.jersey);
-      el.style.top = `${toTop(p.x)}%`;
-      el.style.left = `${toLeft(p.y)}%`;
+      // Preserve the set-piece #9 position on the Lineout/Scrum→FirstPhase beat.
+      if (p.key !== setpieceSHKey) {
+        el.style.top = `${toTop(p.x)}%`;
+        el.style.left = `${toLeft(p.y)}%`;
+      }
       el.classList.add('visible');
       if (p.isCarrier) carrierEl = el;
+      if (p.isChaser) chaserEl = el;
+      if (p.scrumHalfRole === 'atk') atkSHEl = el;
+      if (p.scrumHalfRole === 'def') defSHEl = el;
     }
+    prevBallX = event.ballX;
+    prevBallY = event.ballY;
   };
 
   // Reset whatever dot the (now-stopped) carrier animation was driving — tracked
@@ -94,6 +132,19 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     cancel() { stopCarrierAnim(); },
   };
 
+  // Returns the CSS %top / %left of a pooled dot by key, or null if not in the pool.
+  // Reads the inline style directly — reflects the committed anchor position (the
+  // WAAPI offset pattern means the visual differs during animation, but the anchor is
+  // always the set-rest position, which is what callers need for waypoint routing).
+  const dotPosition = (key: string): { top: number; left: number } | null => {
+    const el = pool.get(key);
+    if (!el) return null;
+    const top  = parseFloat(el.style.top);
+    const left = parseFloat(el.style.left);
+    if (isNaN(top) || isNaN(left)) return null;
+    return { top, left };
+  };
+
   const reset = (): void => {
     ballWalkFollower.cancel();
     field.classList.remove('dot-transitioning');
@@ -101,8 +152,20 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     pool.clear();
     persistedKeys = new Set();
     currentPhase = null;
+    prevBallX = 50;
+    prevBallY = 50;
     carrierEl = null;
+    chaserEl = null;
+    atkSHEl = null;
+    defSHEl = null;
   };
 
-  return { applyBeat, ballWalkFollower, reset };
+  return {
+    applyBeat, ballWalkFollower,
+    get chaserEl()       { return chaserEl; },
+    get atkScrumHalfEl() { return atkSHEl; },
+    get defScrumHalfEl() { return defSHEl; },
+    dotPosition,
+    reset,
+  };
 }

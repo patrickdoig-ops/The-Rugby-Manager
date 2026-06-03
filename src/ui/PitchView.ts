@@ -9,6 +9,7 @@ import { loadTickDelayMs } from './uiPrefs';
 import { lineGapMs } from '../engine/balance';
 import { toTop, toLeft } from './pitchCoords';
 import { initPitchPlayers } from './PitchPlayers';
+import { SLOT } from '../engine/Slot';
 
 // Which flash a key event warrants, or null for a beat we don't highlight. Kept
 // deliberately curated — tries (and conversions, which carry the try phase),
@@ -63,10 +64,6 @@ export function initPitchView(): void {
   // fires before stateChange in the same beat) can determine attack direction.
   let cachedHalfTimeDone = false;
   let cachedEventPhase: string | null = null;
-  // #9 position stored from the lineout beat to drive the Lineout→FirstPhase
-  // ball-pass animation (lineout mark → 9 → first-phase ball position).
-  let lineoutSHTop: number | null = null;
-  let lineoutSHLeft: number | null = null;
   // The ball's current resting position (% top / left), tracked in-module rather
   // than re-read from ball.style — during an animation the inline style holds the
   // committed target, not the visual position. Ball starts at halfway (x=50,y=50
@@ -211,11 +208,11 @@ export function initPitchView(): void {
     const legMs = Math.max(90, Math.min(stepMs, Math.round(beatWindow / kfs.length)));
     const { w, h } = hostDims();
     const final = kfs[kfs.length - 1];
-    const finalTop = toTop(final.x), finalLeft = final.y;
+    const finalTop = toTop(final.x), finalLeft = toLeft(final.y);
     // start (current position) then one keyframe per leg, all offset from the anchor.
     const frames: Keyframe[] = [
       { transform: offsetTransform(lastTop, lastLeft, finalTop, finalLeft, w, h) },
-      ...kfs.map(kf => ({ transform: offsetTransform(toTop(kf.x), kf.y, finalTop, finalLeft, w, h) })),
+      ...kfs.map(kf => ({ transform: offsetTransform(toTop(kf.x), toLeft(kf.y), finalTop, finalLeft, w, h) })),
     ];
     const duration = legMs * kfs.length;
     runAnim(frames, duration, 'linear', finalTop, finalLeft);
@@ -228,12 +225,10 @@ export function initPitchView(): void {
   });
 
   eventBus.on('engine:initialized', () => {
-    lastHalfTimeDone    = null;
-    cachedHalfTimeDone  = false;
-    cachedEventPhase    = null;
-    lineoutSHTop        = null;
-    lineoutSHLeft       = null;
-    cachedState         = null;
+    lastHalfTimeDone   = null;
+    cachedHalfTimeDone = false;
+    cachedEventPhase   = null;
+    cachedState        = null;
     lastTop  = toTop(50);
     lastLeft = toLeft(50);
     ballHiddenForKickFlight = false;
@@ -243,21 +238,6 @@ export function initPitchView(): void {
   });
 
   eventBus.on('engine:event', ({ event }) => {
-    // Store the #9's pitch position from the lineout beat so the next FirstPhase
-    // beat can animate the ball: lineout mark → 9 → first-phase play.
-    if (event.phase === MatchPhase.Lineout) {
-      const attacksTop = (event.side === 'home') !== cachedHalfTimeDone;
-      const fwd = attacksTop ? 1 : -1;
-      const nearY = event.ballY < 50 ? 0 : 100;
-      const inward = nearY === 0 ? 1 : -1;
-      const shPitchY = Math.max(3, Math.min(97, nearY + inward * 14));
-      // For a steal the defending 9 receives — they're on the opposite side of the mark.
-      const isSteal = event.narration.steps.some(s => s.kind === 'phase_outcome' && s.key === 'steal');
-      const shPitchX = Math.max(2, Math.min(98, event.ballX + (isSteal ? fwd * 4 : -fwd * 4)));
-      lineoutSHTop  = toTop(shPitchX);
-      lineoutSHLeft = toLeft(shPitchY);
-    }
-
     const cls = flashClass(event);
     if (cls) fireFlash(toTop(event.ballX), toLeft(event.ballY), cls);
 
@@ -270,18 +250,75 @@ export function initPitchView(): void {
 
     // Ball animation for this beat, in priority order:
     //  1. An open-field kick → lob it to the landing (scale apex + eased flight).
-    //  2. A multi-leg phase → walk the ball through each movement keyframe.
-    //  3. Lineout→FirstPhase: slide the ball from the catch spot through the 9's position.
-    //  4. Otherwise cancel any in-flight animation; stateChange sets the position.
+    //  2. FirstPhase off a set piece → route ball through the visible backline dots.
+    //  3. A multi-leg phase → walk the ball through each movement keyframe.
+    //  4. Lineout→Maul → slide ball to the hooker at the tail of the drive.
+    //  5. Otherwise cancel any in-flight animation; stateChange sets the position.
     // The kick check is gated on the ball actually moving, so no-move kick beats
     // (the coin-toss / pre-kick announce) fall through rather than pulsing in place.
     if (KICK_PHASES.has(event.phase)) {
       const tgtTop = toTop(event.ballX), tgtLeft = toLeft(event.ballY);
       if (Math.abs(lastTop - tgtTop) > 1 || Math.abs(lastLeft - tgtLeft) > 1) {
         animateKickArc(tgtTop, tgtLeft);
+        // Kickoff chaser: run forward along x from the halfway line to a point
+        // partway toward the receiver, simultaneously with the ball arc.
+        const el = players.chaserEl;
+        if (el && event.phase === MatchPhase.KickOff) {
+          const attacksTop = (event.side === 'home') !== cachedHalfTimeDone;
+          const fwd = attacksTop ? 1 : -1;
+          const dur = Math.max(300, Math.min(stepMs, 650));
+          const { w, h } = hostDims();
+          // Final committed position is halfway (where choreography placed the dot).
+          // Override to the forward landing position, then WAAPI offsets back to halfway.
+          const halfwayTop  = toTop(50);
+          const halfwayLeft = toLeft(event.ballY);
+          const finalChaserTop  = toTop(Math.max(2, Math.min(98, 50 + fwd * 12)));
+          const finalChaserLeft = halfwayLeft;
+          el.style.top  = `${finalChaserTop}%`;
+          el.style.left = `${finalChaserLeft}%`;
+          el.animate([
+            { transform: offsetTransform(halfwayTop, halfwayLeft, finalChaserTop, finalChaserLeft, w, h) },
+            { transform: `translate(-50%, -50%)` },
+          ], { duration: dur, easing: 'ease-out' });
+        }
       } else {
         clearMovement();
       }
+    } else if (event.phase === MatchPhase.FirstPhase
+        && (cachedEventPhase === MatchPhase.Scrum || cachedEventPhase === MatchPhase.Lineout)) {
+      // Set-piece → FirstPhase: route the ball through the visible backline dots
+      // (set-piece mark → #9 → #10 → receiver → final ball position). Waypoints use
+      // dotPosition(), which reads the CSS anchor (set-piece preserved for #9 by
+      // PitchPlayers; formation positions committed for #10, #12, #13 in the new beat).
+      clearMovement();
+      movementAnimating = true;
+      const atkSide = event.side === 'home' ? 'h' : 'a';
+      const hasCrashBall   = event.narration.steps.some(s => s.kind === 'phase_outcome' && s.key === 'crash_ball');
+      const outTheBackCount = event.narration.steps.filter(s => s.kind === 'phase_outcome' && s.key === 'out_the_back').length;
+      const finalTop  = toTop(event.ballX);
+      const finalLeft = toLeft(event.ballY);
+      const { w, h } = hostDims();
+      const frames: Keyframe[] = [
+        { transform: offsetTransform(lastTop, lastLeft, finalTop, finalLeft, w, h) },
+      ];
+      const addWaypoint = (pos: { top: number; left: number } | null) => {
+        if (pos) frames.push({ transform: offsetTransform(pos.top, pos.left, finalTop, finalLeft, w, h) });
+      };
+      // Route ball through the visible backline dots based on how far the pass
+      // chain reached. #9 and #10 always; crash-ball adds #12; wide-play adds
+      // #13 (one out_the_back step) and then the wing/carrier (two steps).
+      addWaypoint(players.dotPosition(`${atkSide}:${SLOT.SCRUM_HALF}`));
+      addWaypoint(players.dotPosition(`${atkSide}:${SLOT.FLY_HALF}`));
+      if (hasCrashBall) {
+        addWaypoint(players.dotPosition(`${atkSide}:${SLOT.CENTRE_12}`));
+      } else if (outTheBackCount >= 1) {
+        addWaypoint(players.dotPosition(`${atkSide}:${SLOT.CENTRE_13}`));
+        if (outTheBackCount >= 2 && event.primaryPlayer) {
+          addWaypoint(players.dotPosition(`${atkSide}:${event.primaryPlayer.id}`));
+        }
+      }
+      frames.push({ transform: offsetTransform(finalTop, finalLeft, finalTop, finalLeft, w, h) });
+      runAnim(frames, Math.max(400, Math.min(stepMs * 1.2, 700)), 'ease-in-out', finalTop, finalLeft);
     } else if (event.movements && event.movements.length >= 2) {
       animateMovements(event.movements, event.narration.steps.length);
     } else if (event.phase === MatchPhase.Maul && cachedEventPhase === MatchPhase.Lineout) {
@@ -299,21 +336,33 @@ export function initPitchView(): void {
         { transform: offsetTransform(lastTop, lastLeft, hookerTop, hookerLeft, w, h) },
         { transform: offsetTransform(hookerTop, hookerLeft, hookerTop, hookerLeft, w, h) },
       ], Math.max(200, Math.min(stepMs, 400)), 'ease-in', hookerTop, hookerLeft);
-    } else if (event.phase === MatchPhase.FirstPhase && cachedEventPhase === MatchPhase.Lineout && lineoutSHTop !== null) {
-      // Ball travels: lineout catch spot → 9's position → first-phase ball position.
-      const shTop = lineoutSHTop, shLeft = lineoutSHLeft!;
-      lineoutSHTop = null; lineoutSHLeft = null;
-      clearMovement();
-      movementAnimating = true;
-      const finalTop = toTop(event.ballX), finalLeft = toLeft(event.ballY);
-      const { w, h } = hostDims();
-      runAnim([
-        { transform: offsetTransform(lastTop, lastLeft, finalTop, finalLeft, w, h) },
-        { transform: offsetTransform(shTop, shLeft, finalTop, finalLeft, w, h), offset: 0.4 },
-        { transform: offsetTransform(finalTop, finalLeft, finalTop, finalLeft, w, h) },
-      ], Math.max(300, Math.min(stepMs, 500)), 'ease-in-out', finalTop, finalLeft);
     } else {
       clearMovement();
+    }
+
+    // Scrum SH sweep: both #9s animate from their loosehead start positions to
+    // their committed final positions (2 units behind their #8) during the beat.
+    if (event.phase === MatchPhase.Scrum) {
+      const attacksTopScrum = (event.side === 'home') !== cachedHalfTimeDone;
+      const fwdS = attacksTopScrum ? 1 : -1;
+      const { w, h } = hostDims();
+      const dur = Math.max(300, Math.min(stepMs, 500));
+      const startLooseY = event.ballY - 3;   // loosehead side in SCRUM_ROWS convention
+
+      const sweepSH = (el: HTMLElement | null, startPitchX: number) => {
+        if (!el) return;
+        const startTop  = toTop(Math.max(2, Math.min(98, startPitchX)));
+        const startLeft = toLeft(Math.max(3, Math.min(97, startLooseY)));
+        const finalTop  = parseFloat(el.style.top);
+        const finalLeft = parseFloat(el.style.left);
+        el.animate([
+          { transform: offsetTransform(startTop, startLeft, finalTop, finalLeft, w, h) },
+          { transform: 'translate(-50%, -50%)' },
+        ], { duration: dur, easing: 'ease-in-out' });
+      };
+
+      sweepSH(players.atkScrumHalfEl, event.ballX - fwdS * 2);
+      sweepSH(players.defScrumHalfEl, event.ballX + fwdS * 2);
     }
 
     // Kick-at-goal result: animate the ball flying toward (or past) the posts.

@@ -46,3 +46,4 @@ export * from './board';
 export * from './morale';
 export * from './teamTalk';
 export * from './staff';
+export * from './scouting';

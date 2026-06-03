@@ -478,6 +478,22 @@ The 2025/26 schedule pauses the Premiership during two international windows —
 
 - **Determinism.** All duty rolls flow through `rngTransfer`, consumed only at break weeks in `runInternationalBreakBlock` (no consumption on non-break weeks), so existing match/season RNG is undisturbed. `checkSeasonDeterminism` now drives the break blocks (`beginInternationalBreak` + `runInternationalBreakBlock` at rounds 6 / 11) and hashes the League Cup state, so the duty + cup paths are covered and stay green (run1 == run2).
 
+## Scouting (Phase 1.1 — seam built; event flow pending)
+
+The scouting system is a per-target knowledge layer on the managed club: each unscouted outside player shows per-attribute **range bands** that narrow as scouting accuracy rises, rather than exact numbers. Own-squad players are always fully visible.
+
+**Seam (`src/game/scouting.ts`).** Two pure helpers, no RNG, no state mutation:
+
+- `scoutingBand(trueValue, accuracy)` → `[lo, hi]` — the displayed band for one attribute. At `accuracy === 100`, `lo === hi === trueValue` (exact). Band edges are clamped to `[1, 99]`. Half-width is linearly interpolated from `BAND_CURVE` (`src/engine/balance/scouting.ts`): accuracy 0 → ±10, 50 → ±4, 90 → ±1, 100 → ±0.
+- `scoutWeeklyGain(rating)` → number — accuracy points added per week by one scout assigned to a single target. `= SCOUT_ACCURACY_BASE (2) + rating × SCOUT_ACCURACY_PER_POINT (0.1)` — rating 40 → 6 pp/week; rating 75 → 9.5 pp/week; rating 90 → 11 pp/week. Scouts each advance their own assigned target independently (not pooled).
+
+**Phase B build plan** (not yet implemented — state, events, UI all pending):
+
+1. `ScoutingRecord { accuracy: number; assignedScoutId?: string }` on `GameState.player.scouting?: Record<rosterId, ScoutingRecord>`; `scoutingBand()` renders bands on transfer/profile screens (own squad always exact, outside targets seeded to low default accuracy).
+2. Scout-assignment flow + `PLAYER_SCOUT_ASSIGNED { rosterId; scoutId }` event.
+3. Weekly `SCOUTING_ACCURACY_ADVANCED { rosterId; delta }` emitted by `GameCoordinator` in the `WEEK_ADVANCED` flow, using `scoutWeeklyGain(scout.rating)`. Clamps to 0–100 via `applySeasonEvent`.
+4. Inbox surfacing + polish (band visuals, mobile/text-scale check).
+
 ## League Cup
 
 The League Cup runs headless during the two international breaks (the Assistant Manager picks the squad). Two pools of 5, full home-&-away double round-robin split into leg 1 (Autumn block) / leg 2 (Six Nations block), top two per pool → semis → final. Self-contained: drains condition + a featured-player development nudge, but no budget/cap/reputation effect and cup stats stay out of league leaderboards. State lives on `state.league.premCup` (`PremCupState`); the break is orchestrated by `GameCoordinator.beginInternationalBreak` + `runInternationalBreakBlock`; scheduling + future-season pool redraw in `src/game/cupScheduler.ts`; tuning in `src/engine/balance/premCup.ts`. **Full breakdown in `docs/league-cup.md`.**

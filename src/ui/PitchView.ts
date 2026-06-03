@@ -371,7 +371,9 @@ export function initPitchView(): void {
       const fwdS = attacksTopScrum ? 1 : -1;
       const { w, h } = hostDims();
       const dur = Math.max(300, Math.min(stepMs, 500));
-      const startLooseY = event.ballY - 3;   // loosehead side in SCRUM_ROWS convention
+      // Start 9 units infield from the ball (away from the nearer touchline) so
+      // the sweep arc has enough travel to read clearly on mobile.
+      const startLooseY = event.ballY + (event.ballY < 50 ? 9 : -9);
 
       const sweepSH = (el: HTMLElement | null, startPitchX: number) => {
         if (!el) return;

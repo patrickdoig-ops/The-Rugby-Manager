@@ -7,7 +7,7 @@ import type { Player } from '../../types/player';
 import { MatchPhase, type AttackingKickSubType } from '../../types/engine';
 import { resolveTacticalKick, resolveFiftyTwentyTwo, resolveAttackingKick } from '../resolvers/KickingResolver';
 import { attackDir, inOwn22, inOwnHalf, inOpposition22At, onFieldPlayers, pickKicker, pickFullback } from '../FieldPosition';
-import { lineoutFormationY, clearingKickLandingY, kickForTouchMissY, crossKickCornerY, grubberLandingY } from '../Lateral';
+import { lineoutFormationY, kickForTouchMissY, crossKickCornerY, grubberLandingY } from '../Lateral';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
@@ -170,10 +170,13 @@ function handleFiftyTwentyTwoAttempt(
   const kickDir = attackDir(state);
   const newBallX = clamp(state.ball.x + kickDir * res.distance, 5, 95);
 
+  // A 50:22 is aimed at the corner/touch, so the in-field landing (the only one
+  // that survives — success / touch_elsewhere snap to lineoutFormationY below)
+  // sits ~5m short of the near touchline, like a regular touch-finder that missed.
   const events: MatchEvent[] = [
     { type: 'KICK_FROM_HAND', kicker, metres: res.distance },
     { type: 'FIFTY_22_ATTEMPTED', kicker, success: res.outcome === 'success', defenderBackfield },
-    { type: 'BALL_REPOSITIONED', x: newBallX, y: clearingKickLandingY(state, res.distance) },
+    { type: 'BALL_REPOSITIONED', x: newBallX, y: kickForTouchMissY(state) },
   ];
 
   if (res.outcome === 'success') {

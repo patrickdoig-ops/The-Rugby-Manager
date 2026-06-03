@@ -85,13 +85,14 @@ export function choreograph(
   // Substitution beats always show players near the touchline, not the ball.
   if (event.phase === MatchPhase.Substitution) return substitutionLayout(event, state);
 
-  // Kick phases always show the kicker (and receiver for kick-offs) regardless
-  // of whether the narration step is a phase_outcome or announcement.
+  // Kick phases place the kicker at the origin + on-ball player at the landing
+  // (kick-offs use their own layout) regardless of whether the narration step is a
+  // phase_outcome or announcement.
   if (event.phase === MatchPhase.KickOff)        return kickOffLayout(event, state, attacksTop);
-  if (event.phase === MatchPhase.TacticalKick)   return kickerLayout(event, state, attacksTop);
-  if (event.phase === MatchPhase.ConversionKick) return kickerLayout(event, state, attacksTop);
-  if (event.phase === MatchPhase.DropOut22)      return kickerLayout(event, state, attacksTop);
-  if (event.phase === MatchPhase.BoxKick)        return kickerLayout(event, state, attacksTop);
+  if (event.phase === MatchPhase.TacticalKick)   return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
+  if (event.phase === MatchPhase.ConversionKick) return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
+  if (event.phase === MatchPhase.DropOut22)      return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
+  if (event.phase === MatchPhase.BoxKick)        return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
 
   // Pure-announcement beats (fatigue, card, clock, etc.) have no phase_outcome step
   // and should not place players near the ball.
@@ -116,44 +117,93 @@ export function choreograph(
   return openPlayLayout(event, state, attacksTop);
 }
 
-// Show the kicker (#10 from the kicking side) behind the ball so their circle
-// and number are visible alongside it.
-function kickerLayout(event: GameEvent, state: MatchState, attacksTop: boolean): Placed[] {
-  const atkSide: Side = event.side === 'home' ? 'h' : 'a';
-  const team = atkSide === 'h' ? state.homeTeam : state.awayTeam;
-  const onField = onFieldPlayers(team, state, possOf(atkSide));
-  const kicker = onField.find(p => p.id === SLOT.FLY_HALF)
-    ?? event.primaryPlayer
-    ?? onField[0];
-  if (!kicker) return [];
+// Open-field traveling kick — tactical kick (incl. 50:22), box kick, drop-out, and
+// the goal-kick spot for conversions. The ball flies from the kicker to the landing,
+// so two dots tell that story: the ON-BALL player at the landing (whoever holds the
+// ball after the kick == the side now in possession — the receiver on a caught kick,
+// the kicker on a retained kick or a goal kick) and the OTHER named actor (the
+// kicker, or a beaten chaser) back at the kick origin (the previous beat's ball
+// position). Replaces the old layout that always drew event.side's fly-half at the
+// landing regardless of who actually kicked or caught it.
+function travelingKickLayout(
+  event: GameEvent, state: MatchState, attacksTop: boolean,
+  prevBallX: number, prevBallY: number,
+): Placed[] {
+  const possSide: Side = event.side === 'home' ? 'h' : 'a';
   const fwd = attacksTop ? 1 : -1;
-  return [placed(kicker, atkSide, state, clampX(event.ballX - fwd * 2.5), event.ballY, true)];
-}
+  const p1 = event.primaryPlayer ?? null;
+  const p2 = event.secondaryPlayer ?? null;
 
-// Kick-off: kicker just behind halfway; receiver at the landing spot; chaser
-// at halfway aligned laterally with the landing spot so the chase lane is clear.
-function kickOffLayout(event: GameEvent, state: MatchState, attacksTop: boolean): Placed[] {
-  const atkSide: Side = event.side === 'home' ? 'h' : 'a';
-  const fwd = attacksTop ? 1 : -1;
-  const team = atkSide === 'h' ? state.homeTeam : state.awayTeam;
-  const onField = onFieldPlayers(team, state, possOf(atkSide));
-  // event.primaryPlayer is the receiver; always find the kicker from the roster.
-  const kicker = onField.find(p => p.id === SLOT.FLY_HALF) ?? onField[0];
-  if (!kicker) return [];
-
-  const out: Placed[] = [placed(kicker, atkSide, state, clampX(50 - fwd * 2.5), 50, true)];
-
-  // Receiver at the ball's landing spot.
-  const receiver = event.primaryPlayer;
-  if (receiver && receiver !== kicker) {
-    out.push(placed(receiver, sideOf(receiver, state), state, event.ballX, event.ballY, false));
+  // Identify the kicker (back at the origin) vs the on-ball player (at the landing).
+  // For tactical / box / conversion kicks the primary actor IS the kicker and the
+  // secondary (if any) is the receiver / chaser who ends on the ball. Drop-outs name
+  // the receiver as primary (the kicker isn't a listed actor), so swap those.
+  let kicker: Player | null;
+  let onBall: Player | null;
+  if (event.phase === MatchPhase.DropOut22) {
+    onBall = p1;   // receiver gathers the drop-out at the landing
+    kicker = p2;   // chaser tracks down from the kick origin
+  } else {
+    kicker = p1;
+    onBall = p2;
+    // No named receiver (goal kick, or a retained regather): the kicker is the
+    // on-ball dot at the kick spot, with nobody left at the origin.
+    if (!onBall && p1 && sideOf(p1, state) === possSide) { onBall = p1; kicker = null; }
   }
 
-  // Chaser: halfway line (x=50), aligned laterally with the landing spot.
-  // isChaser=true signals PitchView to animate them forward along x during the ball arc.
-  const chaser = event.secondaryPlayer;
-  if (chaser && chaser !== kicker) {
-    out.push(placed(chaser, sideOf(chaser, state), state, 50, event.ballY, false, true));
+  const out: Placed[] = [];
+  // Kicker / beaten chaser back at the kick origin (where the ball started this beat).
+  if (kicker) {
+    out.push(placed(kicker, sideOf(kicker, state), state, clampX(prevBallX), clampY(prevBallY), false));
+  }
+  // On-ball player just behind the ball's landing spot, so their circle reads on the ball.
+  if (onBall) {
+    out.push(placed(onBall, sideOf(onBall, state), state, clampX(event.ballX - fwd * 2.5), event.ballY, true));
+  }
+  return out;
+}
+
+// Kick-off: kicker on the centre spot; receiver at the landing; chaser at halfway
+// aligned laterally with the landing so the chase lane is clear. The kick-off spans
+// several beats (coin-toss → announce → outcome) with NO phase change between them,
+// so persisted dots accumulate — the layout must stay consistent across all of them.
+function kickOffLayout(event: GameEvent, state: MatchState, _attacksTop: boolean): Placed[] {
+  const possSide: Side = event.side === 'home' ? 'h' : 'a';
+  const keys = event.narration.steps
+    .filter(s => s.kind === 'phase_outcome')
+    .map(s => (s as { key: string }).key);
+  // coin_toss / announce are also phase_outcome steps, so detect the kick beats by key.
+  const SWAP_KEYS = ['clean_receive', 'knock_on', 'poor_kick'];   // possession → receivers
+  const swapped     = keys.some(k => SWAP_KEYS.includes(k));
+  const isKickBeat  = swapped || keys.includes('short_kick_retain');
+
+  // Kicking team. Pre-kick beats (coin-toss / announce) and a retained short kick-off
+  // keep possession with the kicker, so kicker == possession side; the swap outcomes
+  // (clean_receive / knock_on / poor_kick) move possession to the receivers, so the
+  // kicker is the OPPOSITE side. Derived this way the kicker dot stays the same team —
+  // one dot — across the whole kick-off, instead of the pre-kick beats drawing the
+  // kicking #10 and the receive beat drawing the other team's #10.
+  const kickSide: Side = swapped ? (possSide === 'h' ? 'a' : 'h') : possSide;
+  const kickOn = onFieldPlayers(kickSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(kickSide));
+  const kicker = kickOn.find(p => p.id === SLOT.FLY_HALF) ?? kickOn[0];
+
+  const out: Placed[] = [];
+  // Kicker over the centre spot — shown on every kick-off beat (incl. pre-kick).
+  if (kicker) out.push(placed(kicker, kickSide, state, 50, 50, true));
+
+  // Receiver + chaser ONLY on the actual kick beat — never on the coin-toss / announce
+  // beats, whose ball still sits at halfway (which would strand spare dots on centre).
+  if (isKickBeat) {
+    const receiver = event.primaryPlayer;
+    if (receiver && receiver !== kicker && sideOf(receiver, state) !== kickSide) {
+      out.push(placed(receiver, sideOf(receiver, state), state, event.ballX, event.ballY, false));
+    }
+    // Chaser from the kicking team, at halfway aligned with the landing; isChaser=true
+    // signals PitchView to animate them forward along x during the ball arc.
+    const chaser = event.secondaryPlayer;
+    if (chaser && chaser !== kicker && sideOf(chaser, state) === kickSide) {
+      out.push(placed(chaser, sideOf(chaser, state), state, 50, event.ballY, false, true));
+    }
   }
 
   return out;

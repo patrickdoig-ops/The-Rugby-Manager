@@ -371,7 +371,7 @@ A match with a given seed is fully reproducible: identical event sequence, ident
 | Kick-off (short) | `kickOffLandingY` | Nearly straight (centre ± `KICKOFF_STRAIGHT_JITTER` 3) |
 | Box kick | `boxKickLandingY` | Nearly straight, ±`BOX_KICK_ANGLE_DEG` (5°), so the chaser competes; to-touch branch snaps to `lineoutFormationY` |
 | Tactical clearing / 50:22 / out-on-full to touch | `lineoutFormationY` | Lineout forms on the nearer touchline, `LINEOUT_TOUCHLINE_INSET` (6) in |
-| Tactical kept in field | `clearingKickLandingY` | Diagonal downfield toward the open side, `CLEARING_ANGLE_DEG` (10–22°) |
+| Tactical kept in field / 50:22 caught in field | `kickForTouchMissY` | Touch-finder that came up short — lands ~5m short of the near touchline (`LINEOUT_TOUCHLINE_INSET` 6 + `rng(3,7)`). A 50:22 is aimed at the corner, so a miss lands near touch, not mid-pitch. |
 | Cross-field kick | `crossKickCornerY` | Flat to the far corner, `CROSS_KICK_INSET` (6) in ± `CROSS_KICK_JITTER` (4) |
 | Grubber | `grubberLandingY` | Diagonal into space toward the open side, `GRUBBER_ANGLE_DEG` (8–18°) |
 | Drop-out | `dropOutLandingY` | Diagonal toward the open side, `DROPOUT_ANGLE_DEG` (10–20°) |

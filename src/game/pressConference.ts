@@ -4,6 +4,7 @@
 import type { GameState } from '../types/gameState';
 import { recentForm, type FormResult } from './teamStats';
 import { PRESS_TRIGGER, PRESS_ANSWER_EFFECTS } from '../engine/balance/press';
+import { RIVALRY_PAIRS } from '../engine/balance/season';
 
 export type AnswerTone = 'positive' | 'measured' | 'blunt';
 
@@ -29,10 +30,18 @@ export interface Presser {
   questions: [PressQuestion, PressQuestion];
 }
 
-type Trigger = 'heavy_win' | 'heavy_loss' | 'board_heat' | 'loss_run' | 'win_run';
+type Trigger = 'heavy_win' | 'heavy_loss' | 'board_heat' | 'loss_run' | 'win_run' | 'rival_win' | 'rival_loss';
 
 function answer(tone: AnswerTone, label: string, text: string): PressAnswer {
   return { tone, label, text, ...PRESS_ANSWER_EFFECTS[tone] };
+}
+
+function getRival(teamId: string): string | null {
+  for (const [a, b] of RIVALRY_PAIRS) {
+    if (a === teamId) return b;
+    if (b === teamId) return a;
+  }
+  return null;
 }
 
 const QUESTION_BANK: Record<Trigger | 'generic', PressQuestion> = {
@@ -81,6 +90,24 @@ const QUESTION_BANK: Record<Trigger | 'generic', PressQuestion> = {
       answer('blunt',    'Demanding', "Three wins is a start, not a statement. I won't let this squad get carried away — there's a lot more to do."),
     ],
   },
+  rival_win: {
+    context: 'On the derby win',
+    text: "The supporters will be talking about that one for a while. What does a result like this mean to the club?",
+    answers: [
+      answer('positive', 'Celebratory', "It means everything. These are the games supporters live for — when you see that reaction in the stands you know exactly why you got into this game."),
+      answer('measured', 'Grounded',    "Derby wins are special and the players know it. Enjoy it tonight — focus returns tomorrow."),
+      answer('blunt',    'Demanding',   "The fans deserved that. We owed them a performance in this fixture and we delivered. Now the standard is set."),
+    ],
+  },
+  rival_loss: {
+    context: 'On the derby defeat',
+    text: "The supporters will feel this one deeply. How do you reflect on losing to your rivals today?",
+    answers: [
+      answer('positive', 'Supportive', "It's a painful day for everyone connected to this club. I feel for our supporters — they came here and deserved better. We'll make sure we put it right."),
+      answer('measured', 'Measured',   "Derby defeats hurt more than most. The players know that. We'll go back to work and make sure we give the supporters something to cheer next time."),
+      answer('blunt',    'Honest',     "We let our supporters down today and I won't dress that up. In these fixtures that's unacceptable. The players know what's expected."),
+    ],
+  },
   generic: {
     context: 'Looking ahead',
     text: 'Any final thoughts going into the week ahead?',
@@ -94,7 +121,7 @@ const QUESTION_BANK: Record<Trigger | 'generic', PressQuestion> = {
 
 // Priority order when selecting which triggers produce questions.
 const TRIGGER_PRIORITY: (Trigger | 'generic')[] = [
-  'board_heat', 'heavy_loss', 'heavy_win', 'loss_run', 'win_run', 'generic',
+  'board_heat', 'heavy_loss', 'heavy_win', 'rival_loss', 'rival_win', 'loss_run', 'win_run', 'generic',
 ];
 
 export function shouldFirePresser(state: GameState): boolean {
@@ -106,6 +133,7 @@ export function shouldFirePresser(state: GameState): boolean {
   const lastResult = [...results].reverse().find(r => r.homeId === teamId || r.awayId === teamId);
   if (!lastResult) return false;
 
+  const oppId    = lastResult.homeId === teamId ? lastResult.awayId : lastResult.homeId;
   const myScore  = lastResult.homeId === teamId ? lastResult.homeScore : lastResult.awayScore;
   const oppScore = lastResult.homeId === teamId ? lastResult.awayScore : lastResult.homeScore;
   const margin   = Math.abs(myScore - oppScore);
@@ -114,11 +142,14 @@ export function shouldFirePresser(state: GameState): boolean {
   const lossCount = form.filter(r => r === 'L').length;
   const winCount  = form.filter(r => r === 'W').length;
 
+  const rival = getRival(teamId);
+
   return (
     margin >= PRESS_TRIGGER.marginHeavy ||
     board.confidence <= PRESS_TRIGGER.boardHeat ||
     lossCount >= PRESS_TRIGGER.lossRun ||
-    (winCount >= PRESS_TRIGGER.winRun && form.length >= 3)
+    (winCount >= PRESS_TRIGGER.winRun && form.length >= 3) ||
+    (rival !== null && oppId === rival)
   );
 }
 
@@ -128,7 +159,8 @@ export function buildPresser(state: GameState, getTeamName: (id: string) => stri
   const board = state.player.board;
 
   const lastResult = [...results].reverse().find(r => r.homeId === teamId || r.awayId === teamId)!;
-  const isHome  = lastResult.homeId === teamId;
+  const isHome   = lastResult.homeId === teamId;
+  const oppId    = isHome ? lastResult.awayId : lastResult.homeId;
   const myScore  = isHome ? lastResult.homeScore : lastResult.awayScore;
   const oppScore = isHome ? lastResult.awayScore : lastResult.homeScore;
   const margin   = Math.abs(myScore - oppScore);
@@ -138,11 +170,14 @@ export function buildPresser(state: GameState, getTeamName: (id: string) => stri
   const lossCount = form.filter(r => r === 'L').length;
   const winCount  = form.filter(r => r === 'W').length;
 
+  const rival = getRival(teamId);
+
   const active = new Set<Trigger>();
   if (margin >= PRESS_TRIGGER.marginHeavy)                    active.add(isWin ? 'heavy_win' : 'heavy_loss');
   if (board && board.confidence <= PRESS_TRIGGER.boardHeat)   active.add('board_heat');
   if (lossCount >= PRESS_TRIGGER.lossRun)                     active.add('loss_run');
   if (winCount >= PRESS_TRIGGER.winRun && form.length >= 3)   active.add('win_run');
+  if (rival !== null && oppId === rival)                       active.add(isWin ? 'rival_win' : 'rival_loss');
 
   // Pick 2 questions in priority order; fill with generic when < 2 triggers.
   const chosen: (Trigger | 'generic')[] = [];

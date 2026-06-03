@@ -386,6 +386,50 @@ function maulLayout(event: GameEvent, state: MatchState, attacksTop: boolean): P
   ];
 }
 
+// distNear = lateral distance from the nearer touchline (0 or 100).
+// Convert to absolute Y: nearY===100 → 100−distNear; nearY===0 → distNear.
+// ATK backs sit behind their pack (ballX − fwd*dX); DEF backs behind theirs (ballX + fwd*dX).
+// Winger rule: ATK #14 = near touchline (small distNear), ATK #11 = far; DEF #11 = near, DEF #14 = far.
+const SCRUM_ATK_BACKS: Array<{ slot: number; dX: number; distNear: number }> = [
+  { slot: SLOT.FLY_HALF,    dX: 15, distNear: 34 },
+  { slot: SLOT.CENTRE_12,   dX: 18, distNear: 47 },
+  { slot: SLOT.CENTRE_13,   dX: 20, distNear: 64 },
+  { slot: SLOT.FULL_BACK,   dX: 31, distNear: 58 },
+  { slot: SLOT.WING_11,     dX: 21, distNear: 82 },  // far winger
+  { slot: SLOT.WING_14,     dX: 22, distNear:  8 },  // near winger
+];
+const SCRUM_DEF_BACKS: Array<{ slot: number; dX: number; distNear: number }> = [
+  { slot: SLOT.FLY_HALF,    dX: 15, distNear: 35 },
+  { slot: SLOT.CENTRE_12,   dX: 17, distNear: 48 },
+  { slot: SLOT.CENTRE_13,   dX: 19, distNear: 64 },
+  { slot: SLOT.FULL_BACK,   dX: 29, distNear: 47 },
+  { slot: SLOT.WING_11,     dX: 21, distNear:  4 },  // near winger
+  { slot: SLOT.WING_14,     dX: 20, distNear: 82 },  // far winger
+];
+
+// Lineout backs: Y from distNear (reliable across scenarios); X is a fixed depth
+// placeholder (lineout X shows too much scenario variance to parameterise precisely).
+// ATK backs sit behind their throw (ballX − fwd*dX); DEF backs behind their pack (ballX + fwd*dX).
+// #8 is excluded from the 6-man line and placed here instead.
+const LINEOUT_ATK_BACKS: Array<{ slot: number; dX: number; distNear: number }> = [
+  { slot: SLOT.NUMBER_8,    dX: 12, distNear: 42 },
+  { slot: SLOT.FLY_HALF,   dX: 12, distNear: 36 },
+  { slot: SLOT.CENTRE_12,  dX: 15, distNear: 47 },
+  { slot: SLOT.CENTRE_13,  dX: 15, distNear: 62 },
+  { slot: SLOT.FULL_BACK,  dX: 20, distNear: 71 },
+  { slot: SLOT.WING_11,    dX: 20, distNear: 80 },  // far winger
+  { slot: SLOT.WING_14,    dX: 20, distNear: 20 },  // near winger
+];
+const LINEOUT_DEF_BACKS: Array<{ slot: number; dX: number; distNear: number }> = [
+  { slot: SLOT.NUMBER_8,   dX: 12, distNear: 28 },
+  { slot: SLOT.FLY_HALF,  dX: 12, distNear: 38 },
+  { slot: SLOT.CENTRE_12, dX: 15, distNear: 50 },
+  { slot: SLOT.CENTRE_13, dX: 15, distNear: 62 },
+  { slot: SLOT.FULL_BACK, dX: 20, distNear: 61 },
+  { slot: SLOT.WING_11,   dX: 20, distNear:  7 },  // near winger
+  { slot: SLOT.WING_14,   dX: 20, distNear: 82 },  // far winger
+];
+
 // Scrum 3-4-1: front row (1,2,3) at the mark, second row (6,4,5,7), #8 at the back.
 // dx values sized so rows don't overlap at typical mobile pitches (~350px tall).
 // y values sized so circles within a row don't overlap (~6 y-units between centres).
@@ -416,11 +460,27 @@ function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): 
   const atkTeam = atkSide === 'h' ? state.homeTeam : state.awayTeam;
   const defTeam = defSide === 'h' ? state.homeTeam : state.awayTeam;
 
+  const nearY  = event.ballY < 50 ? 0 : 100;
+  const inward = nearY === 0 ? 1 : -1;
+  const toY    = (distNear: number) => clampY(nearY + inward * distNear);
+
   // Attacking pack faces toward its own end (negative fwd), defenders face toward attacking end.
   const out: Placed[] = [
     ...pack(state, atkSide, event.ballX, event.ballY, -fwd),
     ...pack(state, defSide, event.ballX, event.ballY, +fwd),
   ];
+
+  // Backs for both sides — spread behind their respective packs.
+  const atkOn = onFieldPlayers(atkTeam, state, possOf(atkSide));
+  const defOn = onFieldPlayers(defTeam, state, possOf(defSide));
+  for (const e of SCRUM_ATK_BACKS) {
+    const p = atkOn.find(pl => pl.id === e.slot);
+    if (p) out.push(placed(p, atkSide, state, clampX(event.ballX - fwd * e.dX), toY(e.distNear), false));
+  }
+  for (const e of SCRUM_DEF_BACKS) {
+    const p = defOn.find(pl => pl.id === e.slot);
+    if (p) out.push(placed(p, defSide, state, clampX(event.ballX + fwd * e.dX), toY(e.distNear), false));
+  }
 
   // Both #9s are placed at their FINAL positions (12 units behind their pack).
   // On a dominant penalty, skip the standard loosehead sweep — instead use `from`
@@ -540,6 +600,20 @@ function lineoutLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
   const defSH = onFieldPlayers(defTeam, state, possOf(defSide)).find(p => p.id === SLOT.SCRUM_HALF);
   if (atkSH) out.push(placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 4), TEN_M_Y, false));
   if (defSH) out.push(placed(defSH, defSide, state, clampX(event.ballX + fwd * 4), TEN_M_Y, false));
+
+  // Backs for both sides — fixed lateral spread from the lineout touchline;
+  // depth is a placeholder (lineout X varies too much by outcome to parameterise).
+  const toY = (distNear: number) => clampY(nearY + inward * distNear);
+  const atkOn = onFieldPlayers(atkTeam, state, possOf(atkSide));
+  const defOn = onFieldPlayers(defTeam, state, possOf(defSide));
+  for (const e of LINEOUT_ATK_BACKS) {
+    const p = atkOn.find(pl => pl.id === e.slot);
+    if (p) out.push(placed(p, atkSide, state, clampX(event.ballX - fwd * e.dX), toY(e.distNear), false));
+  }
+  for (const e of LINEOUT_DEF_BACKS) {
+    const p = defOn.find(pl => pl.id === e.slot);
+    if (p) out.push(placed(p, defSide, state, clampX(event.ballX + fwd * e.dX), toY(e.distNear), false));
+  }
 
   return out;
 }

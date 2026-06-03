@@ -169,6 +169,10 @@
   text-align: right;
 }
 
+.tm-num--rep {
+  color: var(--rm-text-muted);
+}
+
 .tm-wage {
   font-family: var(--rm-font-mono);
   font-size: var(--rm-fs-12);

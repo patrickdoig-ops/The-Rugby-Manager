@@ -213,7 +213,7 @@ export function initTransferMarketScreen(
       })
       .filter((x): x is { offer: TransferOffer; p: Player } => x !== null)
       .sort((a, b) => {
-        const cmp = compare(a, b, calendarDate);
+        const cmp = compare(a, b, calendarDate, state.player.scouting);
         return sortDir === 'asc' ? cmp : -cmp;
       });
     const freeAgentRows = allRows.filter(r => r.offer.fromClubId === '');
@@ -226,6 +226,9 @@ export function initTransferMarketScreen(
     const renderRow = (offer: TransferOffer, p: Player, action: 'sign' | 'poach', index: number): string => {
       const age = getAge(p.dob, calendarDate);
       const ovr = playerOverall(p.baseStats, p.position);
+      const scoutAccuracy = state.player.scouting?.[p.rosterId]?.accuracy ?? 0;
+      const isFullyScouted = scoutAccuracy === 100;
+      const displayRating = isFullyScouted ? ovr : Math.round(p.reputation ?? 50);
       // "Committed" no longer means signed — under the bid model it means
       // the user has a pending bid for this player (reserving budget,
       // awaiting resolution). Resolved winners get filtered out below
@@ -295,7 +298,7 @@ export function initTransferMarketScreen(
             <span class="tm-name">${nameInner}${currentClub}</span>
             <span class="tm-pos">${shortPos(p.position)}</span>
             <span class="tm-num">${age ?? '—'}</span>
-            <span class="tm-num">${ovr}</span>
+            <span class="tm-num${isFullyScouted ? '' : ' tm-num--rep'}">${displayRating}</span>
             <span class="tm-wage">${fmtWage(offer.annualWage)} <span class="tm-len">× ${offer.lengthYears}y</span></span>
             <button class="${buttonClass}" ${dataAttr} aria-label="${ariaLabel}"${alreadyWon || cooldownLock ? ' disabled' : ''}>${buttonLabel}</button>
           </div>
@@ -649,6 +652,7 @@ function compare(
   a: { offer: TransferOffer; p: Player },
   b: { offer: TransferOffer; p: Player },
   calendarDate: string,
+  scouting: GameState['player']['scouting'],
 ): number {
   switch (sortKey) {
     case 'name':
@@ -660,8 +664,13 @@ function compare(
       const bb = getAge(b.p.dob, calendarDate) ?? 999;
       return aa - bb;
     }
-    case 'ovr':
-      return playerOverall(a.p.baseStats, a.p.position) - playerOverall(b.p.baseStats, b.p.position);
+    case 'ovr': {
+      const accA = scouting?.[a.p.rosterId]?.accuracy ?? 0;
+      const accB = scouting?.[b.p.rosterId]?.accuracy ?? 0;
+      const valA = accA === 100 ? playerOverall(a.p.baseStats, a.p.position) : (a.p.reputation ?? 50);
+      const valB = accB === 100 ? playerOverall(b.p.baseStats, b.p.position) : (b.p.reputation ?? 50);
+      return valA - valB;
+    }
     case 'wage':
       return a.offer.annualWage - b.offer.annualWage;
   }

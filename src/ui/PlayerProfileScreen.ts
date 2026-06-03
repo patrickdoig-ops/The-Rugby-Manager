@@ -380,10 +380,9 @@ export function initPlayerProfileScreen(
             ? `<div class="pp-id-line3">${clubCrest(team, 'sm')}<span class="pp-club-name">${team.name}</span></div>`
             : `<div class="pp-id-line3 pp-id-line3--fa">Free Agent</div>`}
         </div>
-        <div class="pp-ovr-badge ${ovrClass(ovr)}">
-          <span class="pp-ovr-val">${ovr}</span>
-          <span class="pp-ovr-lbl">OVR</span>
-        </div>
+        ${(scoutAccuracy === null || scoutAccuracy === 100)
+          ? `<div class="pp-ovr-badge ${ovrClass(ovr)}"><span class="pp-ovr-val">${ovr}</span><span class="pp-ovr-lbl">OVR</span></div>`
+          : `<div class="pp-ovr-badge ${ovrClass(Math.round(player.reputation))}"><span class="pp-ovr-val">${Math.round(player.reputation)}</span><span class="pp-ovr-lbl">REP</span></div>`}
       </header>`;
 
     const conditionPct = Math.max(0, Math.min(100, Math.round(player.condition)));

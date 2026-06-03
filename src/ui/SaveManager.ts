@@ -161,6 +161,7 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
       ...(mediaStories !== undefined ? { mediaStories } : {}),
       ...(captainRosterId !== undefined ? { captainRosterId } : {}),
       ...(board !== undefined ? { board } : {}),
+      ...(parsed.scouting !== undefined ? { scouting: parsed.scouting } : {}),
     };
   } catch {
     return null;
@@ -210,6 +211,7 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
       id: cl.id as string,
       squad: [...(cl.squad ?? [])],
       salaryBudget: typeof cl.salaryBudget === 'number' ? cl.salaryBudget : DEFAULT_SALARY_BUDGET,
+      ...(typeof cl.staffBudget === 'number' ? { staffBudget: cl.staffBudget } : {}),
     })),
     roster: backfillRosterSeasonStats(c.roster as Record<number, Player>),
     archive: (c.archive as ArchivedSeason[]).map(a => ({
@@ -228,6 +230,8 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
     ...(takeoverHistory !== undefined ? { takeoverHistory } : {}),
     ...(midseasonRejections !== undefined ? { midseasonRejections } : {}),
     activePoachedIds,
+    ...(Array.isArray(c.staff) ? { staff: c.staff } : {}),
+    ...(typeof c.nextStaffId === 'number' ? { nextStaffId: c.nextStaffId } : {}),
   };
 }
 

@@ -8,8 +8,8 @@
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import type { StaffMember } from '../types/gameState';
-import { STAFF_CAPS } from '../engine/balance/staff';
-import { clubBudgetUsage } from '../game/teamStats';
+import { STAFF_CAPS, STAFF_BUDGET_FRACTION } from '../engine/balance/staff';
+import { staffBudgetUsage } from '../game/teamStats';
 import { injectTeamColors } from './teamColors';
 
 export interface InitStaffScreenOpts {
@@ -43,6 +43,7 @@ function ratingBand(rating: number): string {
 
 function formatWage(w: number): string {
   if (w >= 1_000_000) return `£${(w / 1_000_000).toFixed(2)}m`;
+  if (w < 1_000) return `£${w}`;
   return `£${Math.round(w / 1_000)}k`;
 }
 
@@ -83,8 +84,8 @@ export function showStaff(): void {
   const hired    = allStaff.filter(m => m.clubId === clubId);
   const freePool = allStaff.filter(m => m.clubId === null);
   const club     = state.career.clubs.find(c => c.id === clubId);
-  const budget   = club?.salaryBudget ?? 0;
-  const used     = clubBudgetUsage(state, clubId);
+  const budget   = club?.staffBudget ?? Math.round((club?.salaryBudget ?? 0) * STAFF_BUDGET_FRACTION);
+  const used     = staffBudgetUsage(state, clubId);
   const remaining = budget - used;
 
   const hiredByRole = new Map<string, number>();

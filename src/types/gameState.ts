@@ -306,6 +306,7 @@ export interface ClubState {
   id: string;
   squad: number[];
   salaryBudget: number;
+  staffBudget?: number;
 }
 
 // One row of an archived per-category leaderboard — top-N at end of season.

@@ -95,6 +95,7 @@ import { initRolloverScreen, showRollover }         from './ui/RolloverScreen';
 import { initContractsScreen, showContracts, showContractsMarqueeEdit } from './ui/ContractsScreen';
 import { initContractsTransfersMenuScreen, showContractsTransfersMenu } from './ui/ContractsTransfersMenuScreen';
 import { initClubMenuScreen, showClubMenu } from './ui/ClubMenuScreen';
+import { initBoardConfidenceScreen, showBoardConfidence } from './ui/BoardConfidenceScreen';
 import { initStaffScreen, showStaff } from './ui/StaffScreen';
 import { showPressConference } from './ui/PressConferenceScreen';
 import { shouldFirePresser, buildPresser } from './game/pressConference';
@@ -341,7 +342,13 @@ document.addEventListener('DOMContentLoaded', () => {
       getGameEngine,
       allTeams,
       onBack: () => goHub('back'),
+      onBoardConfidence: () => goBoard(),
       onStaff: () => goStaff(),
+    });
+    initBoardConfidenceScreen({
+      getGameEngine,
+      allTeams,
+      onBack: () => goClubMenu('back'),
     });
     initStaffScreen({
       getGameEngine,
@@ -518,6 +525,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function goClubMenu(direction: 'forward' | 'back' = 'forward'): void {
     showClubMenu();
     screenRouter.show('club-menu', { direction });
+  }
+
+  function goBoard(direction: 'forward' | 'back' = 'forward'): void {
+    showBoardConfidence();
+    screenRouter.show('board-confidence', { direction });
   }
 
   function goStaff(direction: 'forward' | 'back' = 'forward'): void {

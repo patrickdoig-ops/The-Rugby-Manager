@@ -6,7 +6,7 @@
 import type { CupKnockoutMatch, Fixture, GameState, PlayoffMatch, PremCupState, SeasonEvent, TeamSeasonStats, TeamStanding } from '../types/gameState';
 import { zeroStanding, zeroTeamSeasonStats } from '../types/gameState';
 import { zeroSeasonStats } from '../types/player';
-import { LEAGUE_POINTS, SEASON_VALUES, SENIOR_CAP, EFFECTIVE_CAP_CREDITS, FORM_MODEL, MORALE } from '../engine/balance';
+import { LEAGUE_POINTS, SEASON_VALUES, SENIOR_CAP, EFFECTIVE_CAP_CREDITS, FORM_MODEL, MORALE, STAFF_BUDGET_FRACTION } from '../engine/balance';
 
 // Sum of senior cap + dispensation credits — the league's absolute
 // ceiling on any club's non-marquee wage spend. The takeover boost
@@ -80,7 +80,12 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         const p = state.career.roster[Number(key)];
         if (p.morale === undefined) p.morale = MORALE.baseline;
       }
-      state.career.clubs = event.clubs.map(c => ({ id: c.id, squad: [...c.squad], salaryBudget: c.salaryBudget }));
+      state.career.clubs = event.clubs.map(c => ({
+        id: c.id,
+        squad: [...c.squad],
+        salaryBudget: c.salaryBudget,
+        staffBudget: c.staffBudget ?? Math.round(c.salaryBudget * STAFF_BUDGET_FRACTION),
+      }));
       state.career.nextRosterId = event.nextRosterId;
       return;
     }
@@ -797,6 +802,12 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       const m = (state.career.staff ?? []).find(s => s.id === event.staffId);
       if (!m) return;
       m.clubId = null;
+      // Clear any scouting assignments that pointed at this staff member.
+      if (state.player.scouting) {
+        for (const rec of Object.values(state.player.scouting)) {
+          if (rec.assignedScoutId === event.staffId) delete rec.assignedScoutId;
+        }
+      }
       return;
     }
     case 'PLAYER_SCOUT_ASSIGNED': {

@@ -51,7 +51,7 @@ import { buildAutoSelectedTeamFromRoster, buildCupTeamFromRoster } from './roste
 import { CUP_POOLS_2025_26, CUP_SEED_ROUND, buildCupSeed, buildCupKnockoutSeed } from './cupScheduler';
 import { cupDevelopmentEvents } from './cupDevelopment';
 import { parseSeasonStartYear, seasonOpenIso, getAge } from './age';
-import { recentForm, clubBudgetUsage, type FormResult } from './teamStats';
+import { recentForm, clubBudgetUsage, staffBudgetUsage, type FormResult } from './teamStats';
 import { generateMatchStory, type MediaMatchContext, type MediaPlayer } from './media/mediaManager';
 import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot, type PlayerStatsSnapshot } from './seasonStatsCollector';
 import { computeTrainingWeek } from './trainingWeek';
@@ -72,7 +72,7 @@ import { computeBudgetEvents } from './budgetPlanner';
 import { computeAttendance } from './attendance';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed, rngTransfer, getTransferCallCount, advanceTransferTo, hashSeed } from '../utils/rng';
-import { SEASON_VALUES, INJURY_SEVERITY, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD, BOARD_THRESHOLDS, MORALE, STAFF_CAPS, PRESS_SKIP_BOARD_PENALTY } from '../engine/balance';
+import { SEASON_VALUES, INJURY_SEVERITY, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD, BOARD_THRESHOLDS, MORALE, STAFF_CAPS, PRESS_SKIP_BOARD_PENALTY, STAFF_BUDGET_FRACTION } from '../engine/balance';
 import type { InjurySeverity } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 import type { RawTeamInput, BoardAmbition } from '../types/teamData';
@@ -462,7 +462,8 @@ export class GameCoordinator {
     const cap = m.role === 'scout' ? STAFF_CAPS.scouts : 1;
     if (staff.filter(s => s.role === m.role && s.clubId !== null).length >= cap) return;
     const club = this.state.career.clubs.find(c => c.id === this.state.player.teamId);
-    if (club && clubBudgetUsage(this.state, this.state.player.teamId) + m.annualWage > club.salaryBudget) return;
+    const staffBudget = club?.staffBudget ?? Math.round((club?.salaryBudget ?? 0) * STAFF_BUDGET_FRACTION);
+    if (staffBudgetUsage(this.state, this.state.player.teamId) + m.annualWage > staffBudget) return;
     applySeasonEvent(this.state, {
       type: 'STAFF_HIRED',
       staffId,
@@ -560,6 +561,7 @@ export class GameCoordinator {
     const staff = this.state.career.staff ?? [];
     for (const [rIdStr, rec] of Object.entries(scouting)) {
       if (!rec.assignedScoutId) continue;
+      if (!this.state.career.roster[Number(rIdStr)]) continue;
       const scout = staff.find(m => m.id === rec.assignedScoutId && m.clubId === this.state.player.teamId);
       if (!scout) continue;
       applySeasonEvent(this.state, {

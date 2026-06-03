@@ -1,21 +1,39 @@
 // In-season Club sub-menu. Reached from the Hub's Club tile.
-// Stub: displays the board confidence pill and a back button.
-// Uses club colours (injectTeamColors) matching other club-specific screens.
+// Two tiles → Board Confidence, Staff — same layout as ContractsTransfersMenuScreen.
 //
 // Initialised once per page lifetime. showClubMenu() re-renders fresh
-// state on every visit so the board confidence is always current.
+// state on every visit.
 
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import { injectTeamColors } from './teamColors';
-import { confidenceBand, boardConfidenceFactors } from '../game/board';
 
 export interface InitClubMenuOpts {
   getGameEngine: () => GameCoordinator;
   allTeams: RawTeamInput[];
   onBack: () => void;
+  onBoardConfidence: () => void;
   onStaff: () => void;
 }
+
+const ICONS = {
+  board: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>`,
+  staff: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.193.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z"/></svg>`,
+};
+
+interface TileSpec {
+  id: string;
+  label: string;
+  sub: string;
+  ariaLabel: string;
+  iconKey: keyof typeof ICONS;
+  handlerKey: 'onBoardConfidence' | 'onStaff';
+}
+
+const TILES: TileSpec[] = [
+  { id: 'cm-tile-board', label: 'Board', sub: 'Owner confidence & objectives', ariaLabel: 'Board Confidence', iconKey: 'board', handlerKey: 'onBoardConfidence' },
+  { id: 'cm-tile-staff', label: 'Staff',  sub: 'Hire & manage coaching staff',  ariaLabel: 'Staff',           iconKey: 'staff', handlerKey: 'onStaff' },
+];
 
 let _opts: InitClubMenuOpts | null = null;
 let _teamsById: Map<string, RawTeamInput> = new Map();
@@ -30,34 +48,6 @@ export function showClubMenu(): void {
 
   const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
 
-  const boardHtml = state.player.board ? (() => {
-    const conf = state.player.board.confidence;
-    const band = confidenceBand(conf);
-    const factors = boardConfidenceFactors(state);
-    const factorsHtml = factors.map(f => `
-      <div class="cm-factor cm-factor--${f.tone}">
-        <span class="cm-factor-dot" aria-hidden="true"></span>
-        <div class="cm-factor-body">
-          <div class="cm-factor-label">${f.label}</div>
-          <div class="cm-factor-detail">${f.detail}</div>
-        </div>
-      </div>`).join('');
-    return `
-      <div class="cm-board">
-        <div class="cm-board-hero cm-board-hero--${band.key}">
-          <div class="cm-board-eyebrow">Board Confidence</div>
-          <div class="cm-board-band">${band.label}</div>
-          <div class="cm-board-meter"><div class="cm-board-meter-fill" style="width:${Math.round(conf)}%"></div></div>
-          <div class="cm-board-num">${Math.round(conf)} / 100</div>
-        </div>
-        <div class="cm-board-factors">
-          <div class="cm-section-label">What's driving it</div>
-          ${factorsHtml}
-        </div>
-        <p class="cm-board-note">The owner's confidence rises when you win — especially against stronger sides — and falls after defeats, hardest when you were favourites. Losing runs hurt most. Meet your season objective and you'll keep the board onside; fall well short and your position comes under threat.</p>
-      </div>`;
-  })() : '';
-
   el.innerHTML = `
     <div class="app-header">
       <div class="app-topbar">
@@ -70,23 +60,23 @@ export function showClubMenu(): void {
       </div>
       <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
     </div>
-    <div id="cm-content">
-      ${boardHtml}
-      <nav class="cm-nav">
-        <button id="cm-nav-staff" class="cm-nav-row" aria-label="Staff hiring">
-          <svg class="cm-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.193.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0M12 12.75h.008v.008H12v-.008Z"/></svg>
-          <span class="cm-nav-label">Staff</span>
-          <span class="cm-nav-sub">Hire &amp; manage coaching staff</span>
-          <svg class="cm-nav-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
-        </button>
-      </nav>
+
+    <div id="ctm-grid">
+      ${TILES.map(t => `
+        <button id="${t.id}" class="hub-tile" aria-label="${t.ariaLabel}">
+          ${ICONS[t.iconKey]}
+          <span class="hub-tile-label">${t.label}</span>
+          <span class="hub-tile-sub">${t.sub}</span>
+        </button>`).join('')}
     </div>
   `;
 
   injectTeamColors(el, playerTeam);
 
   el.querySelector<HTMLButtonElement>('#cm-back')!.addEventListener('click', () => opts.onBack());
-  el.querySelector<HTMLButtonElement>('#cm-nav-staff')!.addEventListener('click', () => opts.onStaff());
+  for (const t of TILES) {
+    el.querySelector<HTMLButtonElement>(`#${t.id}`)!.addEventListener('click', () => opts[t.handlerKey]());
+  }
 }
 
 export function initClubMenuScreen(opts: InitClubMenuOpts): void {

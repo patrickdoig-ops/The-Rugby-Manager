@@ -263,6 +263,22 @@ export function initPitchView(): void {
       players.applyBeat(event, cachedState, (event.side === 'home') !== cachedHalfTimeDone);
     }
 
+    // Formation chase: dots the choreographer tagged with a `from` animate from there
+    // to their committed resting spot over the beat — the kick-off pack surging
+    // forward (and the catcher running onto the ball) as the ball is in the air. Each
+    // dot already rests at its (toX,toY); WAAPI offsets it back to (fromX,fromY) and
+    // eases forward (the same anchor-and-offset pattern as the ball/scrum-half dots).
+    if (players.chaseDots.length) {
+      const { w, h } = hostDims();
+      const dur = Math.max(300, Math.min(stepMs, 650));
+      for (const d of players.chaseDots) {
+        d.el.animate([
+          { transform: offsetTransform(toTop(d.fromX), toLeft(d.fromY), toTop(d.toX), toLeft(d.toY), w, h) },
+          { transform: 'translate(-50%, -50%)' },
+        ], { duration: dur, easing: 'ease-out' });
+      }
+    }
+
     // Ball animation for this beat, in priority order:
     //  1. An open-field kick → lob it to the landing (scale apex + eased flight).
     //  2. A maul → the whole pack glides forward as a bound unit to the post-drive
@@ -281,29 +297,9 @@ export function initPitchView(): void {
     if (KICK_PHASES.has(event.phase)) {
       const tgtTop = toTop(event.ballX), tgtLeft = toLeft(event.ballY);
       if (Math.abs(lastTop - tgtTop) > 1 || Math.abs(lastLeft - tgtLeft) > 1) {
+        // Ball lobs to the landing; the kick-off pack chase is driven by the
+        // chaseDots block above (the choreographer tags those dots with a `from`).
         animateKickArc(tgtTop, tgtLeft);
-        // Kickoff chaser: run forward from halfway toward where the ball lands. The
-        // chaser is on the KICKING team; event.side is the RECEIVING team (possession
-        // has flipped to the receiver by this beat), so the chase direction is taken
-        // from the ball's actual travel (toward event.ballX), not event.side.
-        const el = players.chaserEl;
-        if (el && event.phase === MatchPhase.KickOff) {
-          const chaseDir = event.ballX >= 50 ? 1 : -1;
-          const dur = Math.max(300, Math.min(stepMs, 650));
-          const { w, h } = hostDims();
-          // Final committed position is halfway (where choreography placed the dot).
-          // Override to the forward landing position, then WAAPI offsets back to halfway.
-          const halfwayTop  = toTop(50);
-          const halfwayLeft = toLeft(event.ballY);
-          const finalChaserTop  = toTop(Math.max(2, Math.min(98, 50 + chaseDir * 12)));
-          const finalChaserLeft = halfwayLeft;
-          el.style.top  = `${finalChaserTop}%`;
-          el.style.left = `${finalChaserLeft}%`;
-          el.animate([
-            { transform: offsetTransform(halfwayTop, halfwayLeft, finalChaserTop, finalChaserLeft, w, h) },
-            { transform: `translate(-50%, -50%)` },
-          ], { duration: dur, easing: 'ease-out' });
-        }
       } else {
         clearMovement();
       }

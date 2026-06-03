@@ -24,7 +24,7 @@ export interface Placed {
   x: number;
   y: number;
   isCarrier: boolean; // the on-ball dot (sits behind ball, slightly offset)
-  isChaser: boolean;  // kickoff chaser — PitchView animates this dot forward during the ball arc
+  from?: { x: number; y: number }; // start position — PitchView animates the dot from here to its resting (x,y) over the beat (kick-off chase line)
   scrumHalfRole?: 'atk' | 'def'; // scrum SH — PitchView sweeps from loosehead start to behind-#8 final
 }
 
@@ -43,7 +43,7 @@ const sideOf = (p: Player, state: MatchState): Side => {
 
 const possOf = (side: Side): PossessionSide => (side === 'h' ? 'home' : 'away');
 
-function placed(p: Player, side: Side, state: MatchState, x: number, y: number, isCarrier: boolean, isChaser = false): Placed {
+function placed(p: Player, side: Side, state: MatchState, x: number, y: number, isCarrier: boolean): Placed {
   const team = side === 'h' ? state.homeTeam : state.awayTeam;
   const fill = colorOnDark(team.color);   // the actual rendered dot colour
   return {
@@ -51,7 +51,7 @@ function placed(p: Player, side: Side, state: MatchState, x: number, y: number, 
     jersey: p.squadNumber,
     color: fill,
     text: textOn(fill),                   // contrast against the fill, not the raw colour
-    x, y, isCarrier, isChaser,
+    x, y, isCarrier,
   };
 }
 
@@ -169,13 +169,29 @@ function travelingKickLayout(
 // landing on the high-y touchline. `kickOffLayout` flips it to the real kick
 // direction + landing side and snaps the real catcher to the real landing. Re-author
 // in the animator and paste new values here to retune.
-const KICKOFF_RECV: Record<number, [number, number]> = {
-  1: [36, 77], 2: [35, 91], 3: [37, 17], 4: [38, 75], 5: [40, 19], 6: [39, 46], 7: [39, 88],
-  8: [27, 80], 9: [15, 72], 10: [15, 7], 11: [33, 1], 12: [35, 44], 13: [26, 50], 14: [16, 97], 15: [15, 38],
+// Each slot carries a `from` (kick-off line) and `to` (post-chase) position, so the
+// pack animates the chase as the ball is in the air. Players that hold station have
+// from == to.
+type KickoffSpot = { from: [number, number]; to: [number, number] };
+const KICKOFF_RECV: Record<number, KickoffSpot> = {
+  1:  { from: [36, 77], to: [30, 72] },  2:  { from: [35, 91],  to: [29, 93] },
+  3:  { from: [37, 17], to: [26, 23] },  4:  { from: [38, 75],  to: [34, 71] },
+  5:  { from: [40, 19], to: [31, 31] },  6:  { from: [39, 46],  to: [27, 55] },
+  7:  { from: [39, 88], to: [32, 92] },  8:  { from: [27, 80],  to: [18, 78] },
+  9:  { from: [15, 72], to: [13, 65] },  10: { from: [15, 7],   to: [15, 7]  },
+  11: { from: [33, 1],  to: [21, 2]  },  12: { from: [35, 44],  to: [23, 44] },
+  13: { from: [26, 50], to: [15, 50] },  14: { from: [16, 97],  to: [19, 84] },
+  15: { from: [15, 38], to: [15, 38] },
 };
-const KICKOFF_KICK: Record<number, [number, number]> = {
-  1: [55, 93], 2: [54, 100], 3: [56, 9], 4: [56, 22], 5: [54, 87], 6: [55, 74], 7: [55, 80],
-  8: [56, 16], 9: [64, 63], 10: [53, 50], 11: [79, 100], 12: [69, 22], 13: [72, 86], 14: [81, 1], 15: [80, 51],
+const KICKOFF_KICK: Record<number, KickoffSpot> = {
+  1:  { from: [55, 93],  to: [38, 93] },  2:  { from: [54, 100], to: [41, 89] },
+  3:  { from: [56, 9],   to: [44, 9]  },  4:  { from: [56, 22],  to: [42, 27] },
+  5:  { from: [54, 87],  to: [36, 87] },  6:  { from: [55, 74],  to: [34, 77] },
+  7:  { from: [55, 80],  to: [29, 82] },  8:  { from: [56, 16],  to: [44, 16] },
+  9:  { from: [64, 63],  to: [58, 67] },  10: { from: [53, 50],  to: [43, 55] },
+  11: { from: [79, 100], to: [54, 99] },  12: { from: [69, 22],  to: [63, 29] },
+  13: { from: [72, 86],  to: [47, 81] },  14: { from: [81, 1],   to: [72, 31] },
+  15: { from: [80, 51],  to: [65, 75] },
 };
 
 // Kick-off: kicker on the centre spot, both XVs in the authored kick-off formation,
@@ -222,23 +238,33 @@ function kickOffLayout(event: GameEvent, state: MatchState, _attacksTop: boolean
       clampX(50 - (p[0] - 50) * kickDir),
       clampY(mirror ? 100 - p[1] : p[1]),
     ];
-    // Receiving XV in the authored shape; the real catcher goes to the real landing.
+    // Place a dot at its post-chase resting spot (`to`) and tag the kick-off-line
+    // start (`from`) so PitchView animates the chase as the ball is in the air.
+    const placeChase = (p: Player, side: Side, spot: KickoffSpot): void => {
+      const [tx0, ty0] = tx(spot.to);
+      const dot = placed(p, side, state, tx0, ty0, false);
+      const [fx, fy] = tx(spot.from);
+      dot.from = { x: fx, y: fy };
+      out.push(dot);
+    };
+    // Receiving XV in the authored shape; the real catcher runs onto the real landing.
     for (let slot = 1; slot <= 15; slot++) {
       const p = recvOn.find(pl => pl.id === slot);
       if (!p) continue;
       if (receiver && p === receiver) {
-        out.push(placed(p, recvSide, state, clampX(event.ballX), clampY(event.ballY), false));
+        const dot = placed(p, recvSide, state, clampX(event.ballX), clampY(event.ballY), false);
+        const [fx, fy] = tx(KICKOFF_RECV[slot].from);
+        dot.from = { x: fx, y: fy };
+        out.push(dot);
       } else {
-        const [x, y] = tx(KICKOFF_RECV[slot]);
-        out.push(placed(p, recvSide, state, x, y, false));
+        placeChase(p, recvSide, KICKOFF_RECV[slot]);
       }
     }
     // Kicking XV chase line + cover (the kicker is already placed on the centre spot).
     for (let slot = 1; slot <= 15; slot++) {
       const p = kickOn.find(pl => pl.id === slot);
       if (!p || p === kicker) continue;
-      const [x, y] = tx(KICKOFF_KICK[slot]);
-      out.push(placed(p, kickSide, state, x, y, false));
+      placeChase(p, kickSide, KICKOFF_KICK[slot]);
     }
   }
 

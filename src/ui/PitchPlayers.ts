@@ -9,6 +9,10 @@ import { SLOT } from '../engine/Slot';
 import { toTop, toLeft } from './pitchCoords';
 import { choreograph } from './pitchChoreography';
 
+// A dot flagged with a `from` position this beat, for PitchView to animate from
+// `from` to its committed resting spot (the kick-off chase line surging forward).
+export interface ChaseDot { el: HTMLElement; fromX: number; fromY: number; toX: number; toY: number; }
+
 // The seam by which the carrier dot follows the ball's WAAPI walk. PitchView owns
 // the walk and calls run/cancel at the same two lifecycle points it manages the
 // ball itself; it never learns what (if anything) is following. `run` commits the
@@ -23,7 +27,7 @@ export interface BallWalkFollower {
 export interface PitchPlayers {
   applyBeat(event: GameEvent, state: MatchState, attacksTop: boolean): void;
   ballWalkFollower: BallWalkFollower;
-  chaserEl: HTMLElement | null;       // kickoff chaser dot placed this beat, for PitchView to animate
+  chaseDots: ChaseDot[];              // dots with a `from` this beat, for PitchView to animate (kick-off chase)
   atkScrumHalfEl: HTMLElement | null; // attacking #9 placed at scrum final pos, for PitchView to sweep
   defScrumHalfEl: HTMLElement | null; // defending #9 placed at scrum final pos, for PitchView to sweep
   reset(): void;
@@ -36,7 +40,7 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
   let prevBallX = 50;                            // event.ballX from the previous beat
   let prevBallY = 50;                            // event.ballY from the previous beat
   let carrierEl: HTMLElement | null = null;      // the on-ball dot for the current beat
-  let chaserEl: HTMLElement | null = null;       // kickoff chaser dot (PitchView animates it forward)
+  let chaseDots: ChaseDot[] = [];                // dots with a `from` this beat (kick-off chase)
   let atkSHEl: HTMLElement | null = null;        // attacking #9 at scrum final pos (PitchView sweeps)
   let defSHEl: HTMLElement | null = null;        // defending #9 at scrum final pos (PitchView sweeps)
   let carrierAnim: Animation | null = null;
@@ -96,7 +100,7 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     }
 
     carrierEl = null;
-    chaserEl = null;
+    chaseDots = [];
     atkSHEl = null;
     defSHEl = null;
     for (const p of placed) {
@@ -109,7 +113,7 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       }
       el.classList.add('visible');
       if (p.isCarrier) carrierEl = el;
-      if (p.isChaser) chaserEl = el;
+      if (p.from) chaseDots.push({ el, fromX: p.from.x, fromY: p.from.y, toX: p.x, toY: p.y });
       if (p.scrumHalfRole === 'atk') atkSHEl = el;
       if (p.scrumHalfRole === 'def') defSHEl = el;
     }
@@ -163,14 +167,14 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     prevBallX = 50;
     prevBallY = 50;
     carrierEl = null;
-    chaserEl = null;
+    chaseDots = [];
     atkSHEl = null;
     defSHEl = null;
   };
 
   return {
     applyBeat, ballWalkFollower,
-    get chaserEl()       { return chaserEl; },
+    get chaseDots()      { return chaseDots; },
     get atkScrumHalfEl() { return atkSHEl; },
     get defScrumHalfEl() { return defSHEl; },
     reset,

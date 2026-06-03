@@ -9,7 +9,6 @@ import { loadTickDelayMs } from './uiPrefs';
 import { lineGapMs } from '../engine/balance';
 import { toTop, toLeft } from './pitchCoords';
 import { initPitchPlayers } from './PitchPlayers';
-import { SLOT } from '../engine/Slot';
 
 // Which flash a key event warrants, or null for a beat we don't highlight. Kept
 // deliberately curated — tries (and conversions, which carry the try phase),
@@ -250,29 +249,35 @@ export function initPitchView(): void {
 
     // Ball animation for this beat, in priority order:
     //  1. An open-field kick → lob it to the landing (scale apex + eased flight).
-    //  2. FirstPhase off a set piece → route ball through the visible backline dots.
-    //  3. A multi-leg phase → walk the ball through each movement keyframe.
-    //  4. Lineout→Maul → slide ball to the hooker at the tail of the drive.
-    //  5. Otherwise cancel any in-flight animation; stateChange sets the position.
+    //  2. A multi-leg phase → walk the ball through each engine movement keyframe.
+    //     This covers the FirstPhase off a set piece too: the engine's movements[]
+    //     already encode the pass-by-pass lateral sweep AND the carrier's forward
+    //     drive, and end exactly at the authoritative ball position — so the ball
+    //     follows the same steps the match engine took and never teleports when the
+    //     next phase reconciles. (An earlier dot-routing path invented its own
+    //     waypoints, diverging from the engine and snapping back at the breakdown.)
+    //  3. Lineout→Maul → slide ball to the hooker at the tail of the drive.
+    //  4. Otherwise cancel any in-flight animation; stateChange sets the position.
     // The kick check is gated on the ball actually moving, so no-move kick beats
     // (the coin-toss / pre-kick announce) fall through rather than pulsing in place.
     if (KICK_PHASES.has(event.phase)) {
       const tgtTop = toTop(event.ballX), tgtLeft = toLeft(event.ballY);
       if (Math.abs(lastTop - tgtTop) > 1 || Math.abs(lastLeft - tgtLeft) > 1) {
         animateKickArc(tgtTop, tgtLeft);
-        // Kickoff chaser: run forward along x from the halfway line to a point
-        // partway toward the receiver, simultaneously with the ball arc.
+        // Kickoff chaser: run forward from halfway toward where the ball lands. The
+        // chaser is on the KICKING team; event.side is the RECEIVING team (possession
+        // has flipped to the receiver by this beat), so the chase direction is taken
+        // from the ball's actual travel (toward event.ballX), not event.side.
         const el = players.chaserEl;
         if (el && event.phase === MatchPhase.KickOff) {
-          const attacksTop = (event.side === 'home') !== cachedHalfTimeDone;
-          const fwd = attacksTop ? 1 : -1;
+          const chaseDir = event.ballX >= 50 ? 1 : -1;
           const dur = Math.max(300, Math.min(stepMs, 650));
           const { w, h } = hostDims();
           // Final committed position is halfway (where choreography placed the dot).
           // Override to the forward landing position, then WAAPI offsets back to halfway.
           const halfwayTop  = toTop(50);
           const halfwayLeft = toLeft(event.ballY);
-          const finalChaserTop  = toTop(Math.max(2, Math.min(98, 50 + fwd * 12)));
+          const finalChaserTop  = toTop(Math.max(2, Math.min(98, 50 + chaseDir * 12)));
           const finalChaserLeft = halfwayLeft;
           el.style.top  = `${finalChaserTop}%`;
           el.style.left = `${finalChaserLeft}%`;
@@ -284,41 +289,6 @@ export function initPitchView(): void {
       } else {
         clearMovement();
       }
-    } else if (event.phase === MatchPhase.FirstPhase
-        && (cachedEventPhase === MatchPhase.Scrum || cachedEventPhase === MatchPhase.Lineout)) {
-      // Set-piece → FirstPhase: route the ball through the visible backline dots
-      // (set-piece mark → #9 → #10 → receiver → final ball position). Waypoints use
-      // dotPosition(), which reads the CSS anchor (set-piece preserved for #9 by
-      // PitchPlayers; formation positions committed for #10, #12, #13 in the new beat).
-      clearMovement();
-      movementAnimating = true;
-      const atkSide = event.side === 'home' ? 'h' : 'a';
-      const hasCrashBall   = event.narration.steps.some(s => s.kind === 'phase_outcome' && s.key === 'crash_ball');
-      const outTheBackCount = event.narration.steps.filter(s => s.kind === 'phase_outcome' && s.key === 'out_the_back').length;
-      const finalTop  = toTop(event.ballX);
-      const finalLeft = toLeft(event.ballY);
-      const { w, h } = hostDims();
-      const frames: Keyframe[] = [
-        { transform: offsetTransform(lastTop, lastLeft, finalTop, finalLeft, w, h) },
-      ];
-      const addWaypoint = (pos: { top: number; left: number } | null) => {
-        if (pos) frames.push({ transform: offsetTransform(pos.top, pos.left, finalTop, finalLeft, w, h) });
-      };
-      // Route ball through the visible backline dots based on how far the pass
-      // chain reached. #9 and #10 always; crash-ball adds #12; wide-play adds
-      // #13 (one out_the_back step) and then the wing/carrier (two steps).
-      addWaypoint(players.dotPosition(`${atkSide}:${SLOT.SCRUM_HALF}`));
-      addWaypoint(players.dotPosition(`${atkSide}:${SLOT.FLY_HALF}`));
-      if (hasCrashBall) {
-        addWaypoint(players.dotPosition(`${atkSide}:${SLOT.CENTRE_12}`));
-      } else if (outTheBackCount >= 1) {
-        addWaypoint(players.dotPosition(`${atkSide}:${SLOT.CENTRE_13}`));
-        if (outTheBackCount >= 2 && event.primaryPlayer) {
-          addWaypoint(players.dotPosition(`${atkSide}:${event.primaryPlayer.id}`));
-        }
-      }
-      frames.push({ transform: offsetTransform(finalTop, finalLeft, finalTop, finalLeft, w, h) });
-      runAnim(frames, Math.max(400, Math.min(stepMs * 1.2, 700)), 'ease-in-out', finalTop, finalLeft);
     } else if (event.movements && event.movements.length >= 2) {
       animateMovements(event.movements, event.narration.steps.length);
     } else if (event.phase === MatchPhase.Maul && cachedEventPhase === MatchPhase.Lineout) {

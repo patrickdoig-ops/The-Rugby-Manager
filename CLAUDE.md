@@ -183,10 +183,12 @@ When an entire pack needs to glide from one formation to another (Lineout→Maul
 
 ### Between-beat state
 
-Two module-level variables in `PitchView` bridge consecutive beats:
+- **`cachedEventPhase`** (module-level in `PitchView`) — phase from the previous beat. Used to detect the Lineout→Maul transition (triggers the dot-transitioning class + the ball-to-hooker slide). Set at the end of every `engine:event` handler.
+- **`prevBallX / prevBallY`** (module-level in `PitchPlayers`) — the previous beat's ball position, passed to `choreograph` so the FirstPhase backline formation can be anchored on the set-piece's ball mark (the #9's ending position). Updated at the end of every `applyBeat`.
 
-- **`cachedEventPhase`** — phase from the previous beat. Used to detect specific transitions (Lineout→Maul triggers the dot-transitioning class; Lineout→FirstPhase triggers the 2-leg ball path). Set at the end of every `engine:event` handler.
-- **`lineoutSHTop / lineoutSHLeft`** — the #9's screen position cached from the lineout beat, consumed (and cleared) on the following FirstPhase beat to route the ball through that position.
+**FirstPhase ball never invents its own path.** The set-piece first phase animates the engine's own `GameEvent.movements[]` (via `animateMovements`) exactly like open play — the movements already encode the pass-by-pass lateral sweep AND the carrier's forward drive, and end at the authoritative ball position, so the ball follows the same steps the match engine took and never teleports when the next phase reconciles. Only the *dot formation* (the diagonal backline) is synthesised in `choreograph`; the ball path is always engine-driven.
+
+**Kick-off chaser direction comes from the ball, not the side.** At a kick-off beat `event.side` is the *receiving* team (possession has flipped to the receiver), so the chaser's run direction is taken from the ball's actual travel (`chaseDir = event.ballX >= 50 ? 1 : -1`), never from `event.side`'s attack direction.
 
 ### Dot persistence across phases
 

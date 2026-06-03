@@ -134,11 +134,12 @@ function ratingClass(r: number): string {
 // SquadManagement / PreMatch. Padding lives on `.sp-expand-body` (the
 // inner wrapper, not the grid item) so `grid-template-rows: 0fr` truly
 // collapses the panel without leaking the label through the padding box.
-function renderPlayerExpand(p: MatchState['homeTeam']['players'][number]): string {
+function renderPlayerExpand(p: MatchState['homeTeam']['players'][number], isOwnTeam: boolean): string {
   const s = p.matchStats;
-  const ovrLive = playerOverall(p.currentStats, p.position);
   const form = formRating(p.formModifier);
   const missedTackles = Math.max(0, s.tacklesAttempted - s.tacklesMade);
+  const ratingLabel = isOwnTeam ? 'OVR' : 'REP';
+  const ratingVal = isOwnTeam ? playerOverall(p.currentStats, p.position) : Math.round(p.reputation);
 
   return `
     <div class="sp-expand-grid">
@@ -152,7 +153,7 @@ function renderPlayerExpand(p: MatchState['homeTeam']['players'][number]): strin
       <div class="sp-expand-stat"><span class="sp-stat-val">${s.kicksFromHand}/${s.kickMetres}m</span><span class="sp-stat-label">Kicks</span></div>
     </div>
     <div class="sp-expand-context">
-      <span class="sp-context-pip"><span class="sp-context-label">OVR</span><span class="sp-context-val">${ovrLive}</span></span>
+      <span class="sp-context-pip"><span class="sp-context-label">${ratingLabel}</span><span class="sp-context-val">${ratingVal}</span></span>
       <span class="sp-context-pip"><span class="sp-context-label">Form</span><span class="sp-context-val" title="${form.label}">${formStars(form.stars)}</span></span>
       ${s.tries > 0 ? `<span class="sp-context-pip sp-context-pip--accent"><span class="sp-context-label">Tries</span><span class="sp-context-val">${s.tries}</span></span>` : ''}
     </div>
@@ -176,11 +177,11 @@ function teamsInHumanOrder(state: MatchState): [MatchState['homeTeam'], MatchSta
 function renderPlayerStats(state: MatchState, isExpanded: (id: string) => boolean): string {
   const [first, second] = teamsInHumanOrder(state);
   const allPlayers = [
-    ...first.players.map(p => ({ p, team: first })),
-    ...second.players.map(p => ({ p, team: second })),
+    ...first.players.map(p => ({ p, team: first, isOwnTeam: true  })),
+    ...second.players.map(p => ({ p, team: second, isOwnTeam: false })),
   ];
 
-  return allPlayers.map(({ p, team }) => {
+  return allPlayers.map(({ p, team, isOwnTeam }) => {
     const f = Math.round(p.fatiguePct);
     const barClass = f > 60 ? 'fatigue-ok' : f > 30 ? 'fatigue-warn' : 'fatigue-low';
     const r = p.rating.toFixed(1);
@@ -199,7 +200,7 @@ function renderPlayerStats(state: MatchState, isExpanded: (id: string) => boolea
           <button class="row-expand-chevron sp-chevron" type="button" aria-label="${expanded ? 'Hide' : 'Show'} match stats" aria-expanded="${expanded}" data-expand-skip>${CHEVRON_SVG}</button>
         </div>
         <div class="row-expand-panel sp-expand" data-expanded="${expanded}">
-          <div class="row-expand-inner"><div class="sp-expand-body">${renderPlayerExpand(p)}</div></div>
+          <div class="row-expand-inner"><div class="sp-expand-body">${renderPlayerExpand(p, isOwnTeam)}</div></div>
         </div>
       </div>
     `;
@@ -214,6 +215,7 @@ function renderPlayerStats(state: MatchState, isExpanded: (id: string) => boolea
 // or roster change) — caller should trigger a full re-render.
 function updatePlayerStatsDOM(container: HTMLElement, state: MatchState): boolean {
   const [first, second] = teamsInHumanOrder(state);
+  const firstCount = first.players.length;
   const allPlayers = [
     ...first.players,
     ...second.players,
@@ -229,6 +231,7 @@ function updatePlayerStatsDOM(container: HTMLElement, state: MatchState): boolea
   if (hasSubstitution) return false;
 
   allPlayers.forEach((p, i) => {
+    const isOwnTeam = i < firstCount;
     const row = rows[i];
     const f = Math.round(p.fatiguePct);
     const barClass = f > 60 ? 'fatigue-ok' : f > 30 ? 'fatigue-warn' : 'fatigue-low';
@@ -249,7 +252,7 @@ function updatePlayerStatsDOM(container: HTMLElement, state: MatchState): boolea
 
     // Refresh the expand body so an open panel reflects live stats.
     const expandBody = row.querySelector('.sp-expand-body') as HTMLElement | null;
-    if (expandBody) expandBody.innerHTML = renderPlayerExpand(p);
+    if (expandBody) expandBody.innerHTML = renderPlayerExpand(p, isOwnTeam);
   });
   return true;
 }

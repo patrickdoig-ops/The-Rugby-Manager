@@ -69,8 +69,8 @@ function starCard(s: StarPlayerMeta): string {
     </div>`;
 }
 
-function squadRow(p: RawPlayer, currentDate: string): string {
-  const ovr = playerOverall(p.baseStats, p.position);
+function squadRow(p: RawPlayer, currentDate: string, getRep?: (rosterId: number) => number): string {
+  const displayRating = (getRep && p.rosterId !== undefined) ? getRep(p.rosterId) : playerOverall(p.baseStats, p.position);
   const name = `${p.firstName} ${p.lastName}`.trim();
   const age = getAge(p.dob, currentDate);
   const ageLabel = age === null ? '—' : `${age}`;
@@ -88,7 +88,7 @@ function squadRow(p: RawPlayer, currentDate: string): string {
       <div class="ti-squad-name">${nameHtml}</div>
       <div class="ti-squad-pos">${p.position}</div>
       <div class="ti-squad-age">${ageLabel}</div>
-      <div class="ti-squad-ovr">${ovr}</div>
+      <div class="ti-squad-ovr">${displayRating}</div>
     </div>`;
 }
 
@@ -102,6 +102,9 @@ export function initTeamInfoScreen(
   // undefined — player names render as plain text and the squad list is
   // a read-only browse.
   onPlayerClick?: (rosterId: number) => void,
+  // When provided, shows reputation instead of OVR in the squad list
+  // (used for opponent teams mid-season where exact stats are hidden).
+  getRep?: (rosterId: number) => number,
 ): void {
   const el = document.getElementById('team-info');
   if (!el) return;
@@ -166,18 +169,18 @@ export function initTeamInfoScreen(
         <h3 class="ti-section-title">Squad</h3>
         <details class="ti-squad-details">
           <summary>Starting XV (15)</summary>
-          <div class="ti-squad-list">${starters.map(p => squadRow(p, currentDate)).join('')}</div>
+          <div class="ti-squad-list">${starters.map(p => squadRow(p, currentDate, getRep)).join('')}</div>
         </details>
         ${bench.length ? `
           <details class="ti-squad-details">
             <summary>Bench (${bench.length})</summary>
-            <div class="ti-squad-list">${bench.map(p => squadRow(p, currentDate)).join('')}</div>
+            <div class="ti-squad-list">${bench.map(p => squadRow(p, currentDate, getRep)).join('')}</div>
           </details>
         ` : ''}
         ${squad.length ? `
           <details class="ti-squad-details">
             <summary>Wider squad (${squad.length})</summary>
-            <div class="ti-squad-list">${squad.map(p => squadRow(p, currentDate)).join('')}</div>
+            <div class="ti-squad-list">${squad.map(p => squadRow(p, currentDate, getRep)).join('')}</div>
           </details>
         ` : ''}
       </section>

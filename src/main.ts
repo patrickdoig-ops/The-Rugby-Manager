@@ -287,10 +287,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const profile = teamProfile.getProfile(team.id);
     const state = gameEngine.getState();
     const liveTeam = buildTeamFromRoster(state, team);
+    const isOwnTeam = team.id === state.player.teamId;
+    const getRep = isOwnTeam
+      ? undefined
+      : (rid: number) => Math.round(state.career.roster[rid]?.reputation ?? 50);
     // Row click → player profile, with back returning here.
     initTeamInfoScreen(profile, liveTeam, state.calendar.date, onBack, (rosterId) => {
       goPlayerProfile(rosterId, () => goTeamInfoMidSeason(team, onBack));
-    });
+    }, getRep);
     screenRouter.show('team-info');
   }
 

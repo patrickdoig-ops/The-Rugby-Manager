@@ -168,9 +168,10 @@ function renderLineupRow(
          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
        </button>`
     : '';
+  const isOwnSquad = rosterEntry?.contract?.clubId === state.player.teamId;
   const expandBody = expandable && rosterEntry
     ? `<div class="row-expand-panel pm-lineup-expand" data-expanded="${expanded}">
-         <div class="row-expand-inner">${renderLineupExpand(state, p, rosterEntry)}</div>
+         <div class="row-expand-inner">${renderLineupExpand(state, p, rosterEntry, isOwnSquad)}</div>
        </div>`
     : '';
   // Advisory international-duty rest flag — shown on the user's own players for
@@ -200,9 +201,10 @@ function renderLineupRow(
 // delta + injury chip when present. Sourced from the roster entry —
 // the matchday RawPlayer is a slim copy, the persistent state lives
 // behind `rosterId`.
-function renderLineupExpand(state: GameState, p: RawPlayer, r: import('../types/player').Player): string {
-  const ovr = playerOverall(p.baseStats, p.position);
+function renderLineupExpand(state: GameState, p: RawPlayer, r: import('../types/player').Player, isOwnSquad: boolean): string {
   const condition = Math.round(r.condition ?? 100);
+  const ratingLabel = isOwnSquad ? 'OVR' : 'REP';
+  const ratingVal   = isOwnSquad ? playerOverall(p.baseStats, p.position) : Math.round(r.reputation);
   const ss = r.seasonStats;
   const avr = ss.appearances > 0 ? averageRating(ss) : null;
   const avrPct = avr !== null ? Math.max(0, Math.min(100, (avr / 10) * 100)) : 0;
@@ -213,9 +215,9 @@ function renderLineupExpand(state: GameState, p: RawPlayer, r: import('../types/
   return `
     <div class="pm-expand-grid">
       <div class="pm-expand-bar-row">
-        <div class="pm-expand-bar-label">OVR</div>
-        <div class="pm-expand-bar"><div class="pm-expand-bar-fill" style="width:${ovr}%"></div></div>
-        <div class="pm-expand-bar-val">${ovr}</div>
+        <div class="pm-expand-bar-label">${ratingLabel}</div>
+        <div class="pm-expand-bar"><div class="pm-expand-bar-fill" style="width:${ratingVal}%"></div></div>
+        <div class="pm-expand-bar-val">${ratingVal}</div>
       </div>
       <div class="pm-expand-bar-row">
         <div class="pm-expand-bar-label">CONDITION</div>

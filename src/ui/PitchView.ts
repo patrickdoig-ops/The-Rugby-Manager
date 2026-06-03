@@ -206,7 +206,7 @@ export function initPitchView(): void {
     ], dur, 'ease-in-out', tgtTop, tgtLeft);
   };
 
-  const animateMovements = (kfs: ReadonlyArray<{ x: number; y: number }>, lineCount: number, fwd: number) => {
+  const animateMovements = (kfs: ReadonlyArray<{ x: number; y: number }>, lineCount: number, fwd: number, carrierFromStart = false) => {
     clearMovement();
     movementAnimating = true;
     // Fit the whole path inside the beat window so the ball never lags the
@@ -233,15 +233,31 @@ export function initPitchView(): void {
     // choreographer) so offsetTransform keeps the number readable beside the ball
     // through the carry. Drives both open play and the set-piece first phase — both
     // reach here via the same multi-leg movements path.
-    const recv = kfs[kfs.length - 2];
-    const recvTop = toTop(recv.x), recvLeft = toLeft(recv.y);
     const carrierFinalTop = toTop(Math.max(2, Math.min(98, final.x - fwd * 2.5)));
-    const holdFrac = (kfs.length - 1) / kfs.length;
-    const carrierFrames: Keyframe[] = [
-      { transform: offsetTransform(recvTop, recvLeft, carrierFinalTop, finalLeft, w, h), offset: 0 },
-      { transform: offsetTransform(recvTop, recvLeft, carrierFinalTop, finalLeft, w, h), offset: holdFrac },
-      { transform: 'translate(-50%, -50%)', offset: 1 },
-    ];
+    let carrierFrames: Keyframe[];
+    if (carrierFromStart) {
+      // Direct pick-up (pick-and-go): the carrier carries from the ruck, so it rides
+      // the WHOLE ball path — staying −fwd·2.5 behind the ball through every leg —
+      // rather than holding at the penultimate point (which barely moves on a short
+      // carry, making the ball look like it arrives at a stationary carrier).
+      carrierFrames = kfs.map((kf, i) => ({
+        transform: offsetTransform(toTop(Math.max(2, Math.min(98, kf.x - fwd * 2.5))), toLeft(kf.y), carrierFinalTop, finalLeft, w, h),
+        offset: kfs.length === 1 ? 0 : i / (kfs.length - 1),
+      }));
+    } else {
+      // Passed carry (first phase / open-play sweep): hold at the receive point (the
+      // ball's penultimate position, just before the run into contact) through every
+      // pass leg, then run only the final carry leg onto the ball — the middle ground
+      // between riding the whole walk (looks passed along) and pre-placing at the finish.
+      const recv = kfs[kfs.length - 2];
+      const recvTop = toTop(recv.x), recvLeft = toLeft(recv.y);
+      const holdFrac = (kfs.length - 1) / kfs.length;
+      carrierFrames = [
+        { transform: offsetTransform(recvTop, recvLeft, carrierFinalTop, finalLeft, w, h), offset: 0 },
+        { transform: offsetTransform(recvTop, recvLeft, carrierFinalTop, finalLeft, w, h), offset: holdFrac },
+        { transform: 'translate(-50%, -50%)', offset: 1 },
+      ];
+    }
     follower.run(carrierFinalTop, finalLeft, carrierFrames, duration, 'linear');
   };
 
@@ -343,7 +359,7 @@ export function initPitchView(): void {
       ], Math.max(200, Math.min(stepMs, 400)), 'ease-in', hookerTop, hookerLeft);
     } else if (event.movements && event.movements.length >= 2) {
       animateMovements(event.movements, event.narration.steps.length,
-        ((event.side === 'home') !== cachedHalfTimeDone) ? 1 : -1);
+        ((event.side === 'home') !== cachedHalfTimeDone) ? 1 : -1, event.carrierFromStart);
     } else {
       clearMovement();
     }

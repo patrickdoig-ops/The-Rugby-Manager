@@ -32,6 +32,10 @@ export interface PhaseResult {
   primaryPlayer?: Player;
   secondaryPlayer?: Player;
   outcome?: string;
+  // True when the carrier picked up at the start of the phase (direct pick-up, e.g.
+  // pick-and-go) rather than receiving a pass — copied to GameEvent.carrierFromStart
+  // so the 2D pitch rides the carrier the whole way. Presentation-only.
+  carrierFromStart?: boolean;
   // MatchEvents emitted by the handler. PhaseRouter routes them through
   // applyMatchEvent before composing the outgoing GameEvent.
   events: MatchEvent[];

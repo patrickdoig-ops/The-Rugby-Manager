@@ -152,6 +152,7 @@ export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy
     ballX: state.ball.x,
     ballY: state.ball.y,
     movements: movements.length > 1 ? movements : undefined,
+    carrierFromStart: result.carrierFromStart,
     narration: result.narration,
     outcome: result.outcome,
   };

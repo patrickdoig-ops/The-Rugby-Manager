@@ -494,6 +494,15 @@ function resolvePickAndGo(
 
   const assistTackler = pickAssistTackler(defendTeam, state, defSide, defender);
 
+  // A pick-and-go is a tight forward drive, not a pass — only a small lateral creep in
+  // the current sweep direction (keep_it_tight = smallest step). Emit it BEFORE the
+  // carry so the forward drive is the FINAL movements leg, matching every other carry
+  // handler (emitSweepHops emits hops before CARRY_RESOLVED): the carrier-dot follower
+  // then rides the carrier in on the drive, instead of the ball arriving at a waiting
+  // carrier. (x and y are independent, so the final ball position is unchanged.)
+  const sweep = sweepStep(state, 'keep_it_tight');
+  events.push({ type: 'BALL_REPOSITIONED', y: sweep.y, lateralDir: sweep.lateralDir });
+
   events.push({
     type: 'CARRY_RESOLVED',
     carrier,
@@ -505,11 +514,6 @@ function resolvePickAndGo(
     coverTackler: undefined,
     assistTackler,
   });
-
-  // A pick-and-go is a tight forward drive, not a pass — only a small lateral
-  // creep in the current sweep direction (keep_it_tight = smallest step).
-  const sweep = sweepStep(state, 'keep_it_tight');
-  events.push({ type: 'BALL_REPOSITIONED', y: sweep.y, lateralDir: sweep.lateralDir });
 
   const outcomeKey: 'pick_and_go_play_on' | 'pick_and_go_dominant_carry' | 'pick_and_go_dominant_tackle' =
     outcome === 'dominant_carry'  ? 'pick_and_go_dominant_carry'
@@ -538,6 +542,9 @@ function resolvePickAndGo(
     primaryPlayer: carrier,
     secondaryPlayer: defender,
     outcome,
+    // Direct pick-up from the ruck base (no pass) — the 2D pitch rides the carrier dot
+    // the whole way rather than holding it at the penultimate receive point.
+    carrierFromStart: true,
     events,
   };
 }

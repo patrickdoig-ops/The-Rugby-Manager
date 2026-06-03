@@ -212,6 +212,7 @@ When an entire pack needs to glide from one formation to another (Lineout→Maul
 | League Cup | **`docs/league-cup.md`** ↔ `src/game/cupScheduler.ts` |
 | Architectural invariants & ways of working | this file |
 | Team data (squad tables, baseStats, star players) | **`docs/team-data.md`** → `node scripts/generateTeamJsons.mjs` syncs JSONs |
+| Phase Animator dev tool (keyframe authoring of 2D-pitch animations) | **`docs/phase-animator.md`** ↔ `public/tools/phase-animator.html` (regen samples: `npm run export:phases`) |
 
 ## Documentation sync
 

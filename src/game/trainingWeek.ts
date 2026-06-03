@@ -23,6 +23,7 @@ import {
   BACKS_FOCUS_STATS, DEVELOPMENT, FORWARDS_FOCUS_STATS,
   INJURY_RISK, INTENSITY_EFFECTS, TRAINING_STAT_DELTA, ageMultiplier,
 } from '../engine/balance/training';
+import { FITNESS_MULT_PER_POINT, FITNESS_INJURY_REDUCTION_PER_POINT } from '../engine/balance/staff';
 import { proximityMultiplier } from '../engine/balance/career';
 import { playerOverall } from '../engine/RatingEngine';
 import { INJURY_SEVERITY } from '../engine/balance/injuries';
@@ -38,6 +39,16 @@ type TrainingInjuryKind = typeof TRAINING_INJURY_KINDS[number];
 // injury rolls fire once for the period (per week). For a single-week gap
 // the period spans the actual 6/7/8-day turnaround; a multi-week block is
 // split into ~7-day periods by splitGapIntoPeriods (see trainingCalendar).
+// Returns the rating of the hired fitness staff member for the managed club,
+// or 0 if none is hired. Used to scale condition gains + dev chance and
+// reduce injury risk for the human club only (AI clubs are unaffected).
+function hiredFitnessRating(state: GameState): number {
+  const staff = state.career.staff;
+  if (!staff) return 0;
+  const m = staff.find(s => s.role === 'fitness' && s.clubId === state.player.teamId);
+  return m ? m.rating : 0;
+}
+
 export function computeTrainingWeek(
   state: GameState,
   userPlan: TrainingPlan,
@@ -53,6 +64,9 @@ export function computeTrainingWeek(
   // week's screen render even if the user doesn't change it.
   events.push({ type: 'PLAYER_TRAINING_PLAN_SET', plan: userPlan });
 
+  // Fitness staff rating for the managed club — only that club is affected.
+  const fitnessRating = hiredFitnessRating(state);
+
   // Stable club order keeps rngTransfer deterministic across runs.
   const clubsSorted = [...state.career.clubs].sort((a, b) => a.id.localeCompare(b.id));
 
@@ -60,7 +74,8 @@ export function computeTrainingWeek(
     const plan = club.id === userClubId
       ? userPlan
       : pickAIPlan(state, club);
-    pushClubTrainingEvents(events, state, club, plan, periodDays, seasonOpen, injuredOn);
+    const clubFitnessRating = club.id === userClubId ? fitnessRating : 0;
+    pushClubTrainingEvents(events, state, club, plan, periodDays, seasonOpen, injuredOn, clubFitnessRating);
   }
 
   return events;
@@ -74,10 +89,18 @@ function pushClubTrainingEvents(
   periodDays: number,
   seasonOpenDate: string,
   injuredOn: string,
+  fitnessRating: number,
 ): void {
   const intensity = INTENSITY_EFFECTS[plan.intensity];
   const fwdFocus = FORWARDS_FOCUS_STATS[plan.forwardsFocus];
   const bckFocus = BACKS_FOCUS_STATS[plan.backsFocus];
+
+  // Fitness-staff modifiers — only non-zero for the managed club.
+  // condMult scales conditionDelta and developmentChance (probability of a +1 gain).
+  // injuryFraction is subtracted from injuryRisk before the condition multiplier.
+  // No new RNG: both are purely deterministic scale factors on existing rolls.
+  const condMult      = fitnessRating > 0 ? 1 + fitnessRating * FITNESS_MULT_PER_POINT : 1.0;
+  const injuryFraction = fitnessRating > 0 ? fitnessRating * FITNESS_INJURY_REDUCTION_PER_POINT : 0;
 
   // Roster ids numeric-ascending so the call sequence is stable.
   const rosterIds = [...club.squad].sort((a, b) => a - b);
@@ -107,8 +130,9 @@ function pushClubTrainingEvents(
     // Development rolls — one per stat per player. Walk PLAYER_STAT_KEYS
     // (stable order) so the rngTransfer sequence is identical across
     // seasons / clubs / players that pick the same focus.
+    // condMult scales the development chance — no new RNG draw.
     const statDeltas: Partial<PlayerStats> = {};
-    rollDevelopmentGains(statDeltas, focus, intensity.developmentChance, ageMul, proxMul);
+    rollDevelopmentGains(statDeltas, focus, intensity.developmentChance * condMult, ageMul, proxMul);
 
     // Flat decay rolls — rest/light only (decayChance > 0). Focused stats are immune;
     // a positive gain from the development pass above takes precedence.
@@ -140,13 +164,15 @@ function pushClubTrainingEvents(
     out.push({
       type: 'PLAYER_TRAINED',
       rosterId: rid,
-      conditionDelta: intensity.conditionPerDay * periodDays,
+      conditionDelta: intensity.conditionPerDay * periodDays * condMult,
       statDeltas,
     });
 
     // Injury roll — scales inversely with current condition (the lower
-    // the freshness, the higher the risk).
-    const injuryChance = intensity.injuryRisk * conditionRiskMultiplier(p.condition);
+    // the freshness, the higher the risk). Fitness staff reduces injuryRisk
+    // fractionally before the condition multiplier is applied.
+    const baseRisk    = intensity.injuryRisk * (1 - injuryFraction);
+    const injuryChance = baseRisk * conditionRiskMultiplier(p.condition);
     if (injuryChance > 0 && rngTransferRaw() < injuryChance) {
       const kind: TrainingInjuryKind = TRAINING_INJURY_KINDS[rngTransfer(0, TRAINING_INJURY_KINDS.length - 1)];
       const profile = INJURY_SEVERITY[kind];

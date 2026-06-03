@@ -69,7 +69,14 @@ URL or hard-refresh.
    try). Click **Load phase**.
    - The ball track fills with keyframes, the timeline gets **start / beat / resolve**
      markers, and the info line names the **involved players** (e.g. *"Involved: away
-     #12 & #7"*). Players reset to a default formation.
+     #12 & #7"*).
+   - **The players are pre-placed at the game's *current* layout for that phase** —
+     the same dots the game actually draws (e.g. a lineout loads both lines of
+     forwards, the hookers off the pitch, and the two #9s) — so you start from what
+     exists, not a blank formation. Dots the phase doesn't involve stay in the default
+     formation for you to position. (This comes from `phases.js`, captured by running
+     the real `choreograph` in `npm run export:phases`; trace.json imports have no
+     layout and fall back to the default formation.)
 2. **Go to the start.** Click the far-left of the timeline bar (or press **⏹**) so the
    playhead is at `t = 0`.
 3. **Place the players for the start.** Drag any dot to where it should begin. With
@@ -92,7 +99,7 @@ URL or hard-refresh.
 
 | Control | What it does |
 |---|---|
-| **Phase source** dropdown + **Load phase** | Seeds the ball from the chosen engine phase; resets players to formation. |
+| **Phase source** dropdown + **Load phase** | Seeds the ball from the chosen engine phase AND pre-places the players at the game's current layout for it; dots the phase doesn't involve reset to the default formation. |
 | **Load trace.json** | Optional: drop your own `harness/trace.json` (from `npm run probe`) to use its beats instead of the embedded set. |
 | **Reset formation** | Puts all 30 players back to the default starting layout (keeps the loaded phase). |
 | **Drag a dot / the ball** | Moves it and (with auto-keyframe) sets a keyframe at the playhead. |

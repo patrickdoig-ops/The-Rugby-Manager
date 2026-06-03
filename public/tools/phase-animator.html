@@ -393,6 +393,7 @@
       label: `${s.phase} · ${s.keys.join('/')}`,
       start: s.start, moves: s.moves || [], resolve: s.resolve,
       primary: s.primary, secondary: s.secondary, side: s.side, phase: s.phase, keys: s.keys,
+      layout: s.layout || [],
     }));
   }
 
@@ -435,11 +436,24 @@
     beats = ball.kf.map((k, i) => ({ t: k.t, label: i === 0 ? 'start' : (i === ball.kf.length - 1 ? 'resolve' : 'beat ' + i) }));
     phaseName = `${it.phase} (${it.keys.join('/')})`;
     document.getElementById('phaseTag').textContent = phaseName;
+    // Pre-place the players at the game's CURRENT choreographed layout for this phase
+    // (so you start from what the game draws, not a blank formation). Dots in `from`
+    // carry their authored motion (from → resting); the rest are static at t=0. Players
+    // not in the layout keep the default formation.
+    let placed = 0;
+    for (const d of (it.layout || [])) {
+      const e = entities.find(x => x.id === d.id);
+      if (!e) continue;
+      e.kf = d.from
+        ? [{ t: 0, x: d.from.x, y: d.from.y }, { t: 1, x: d.x, y: d.y }]
+        : [{ t: 0, x: d.x, y: d.y }];
+      placed++;
+    }
     const inv = it.primary != null
       ? `Involved: ${it.side} #${it.primary}${it.secondary != null ? ' & #' + it.secondary : ''}. `
       : '';
     document.getElementById('phaseInfo').textContent =
-      `${inv}Ball: ${dedup.length} keyframe(s) seeded. Now drag the 15+15 players and keyframe them to each beat.`;
+      `${inv}Loaded the current layout (${placed} dots placed) + ball (${dedup.length} kf). Tweak/keyframe from here.`;
     playhead = 0; render();
   };
 

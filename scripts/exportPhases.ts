@@ -17,14 +17,17 @@ import type { PenaltyChoice } from '../src/types/engine.js';
 import { eventBus } from '../src/utils/eventBus.js';
 import bathRaw from '../src/data/team-bath.json' with { type: 'json' };
 import saracensRaw from '../src/data/team-saracens.json' with { type: 'json' };
+import { choreograph } from '../src/ui/pitchChoreography.js';
 
 const HOME = bathRaw as unknown as RawTeamInput;
 const AWAY = saracensRaw as unknown as RawTeamInput;
 
+interface LayoutDot { id: string; x: number; y: number; c?: number; from?: { x: number; y: number } }
 interface Sample {
   phase: string; displayPhase: string | null; key: string; keys: string[]; side: string;
   start: { x: number; y: number }; moves: { x: number; y: number }[];
   resolve: { x: number; y: number }; primary: number | null; secondary: number | null; prevPhase: string | null;
+  layout: LayoutDot[];   // the live choreographed dot positions (game coords), so the tool can pre-place them
 }
 
 const collected = new Map<string, Sample>();
@@ -55,15 +58,30 @@ function runOnce(seed: number, pen: PenaltyChoice): Promise<void> {
       const moves = (e.movements ?? []).map(m => ({ x: Math.round(m.x), y: Math.round(m.y) }));
       if (keys.length) {
         const k = `${e.phase}:${keys[0]}`;
+        // Capture the live choreographed layout (the same dots the game would draw)
+        // so the animator can load it as a starting point instead of a blank formation.
+        const st = engine.getState();
+        const attacksTop = (e.side === 'home') !== st.clock.halfTimeDone;
+        const layout: LayoutDot[] = choreograph(event, st, attacksTop, prevPhase, prevBall.x, prevBall.y)
+          .map(p => {
+            const o: LayoutDot = { id: p.key.replace(':', ''), x: Math.round(p.x), y: Math.round(p.y) };
+            if (p.isCarrier) o.c = 1;
+            if (p.from) o.from = { x: Math.round(p.from.x), y: Math.round(p.from.y) };
+            return o;
+          });
         const sample: Sample = {
           phase: e.phase, displayPhase: e.displayPhase ?? null, key: keys[0], keys, side: e.side,
           start: { ...prevBall }, moves,
           resolve: { x: Math.round(e.ballX), y: Math.round(e.ballY) },
           primary: e.primaryPlayer?.squadNumber ?? null, secondary: e.secondaryPlayer?.squadNumber ?? null,
-          prevPhase,
+          prevPhase, layout,
         };
+        // Prefer the richest beat per (phase, outcome): most movement, then most layout dots.
         const prev = collected.get(k);
-        if (!prev || moves.length > prev.moves.length) collected.set(k, sample);
+        if (!prev || moves.length > prev.moves.length ||
+            (moves.length === prev.moves.length && layout.length > prev.layout.length)) {
+          collected.set(k, sample);
+        }
       }
       prevBall = { x: Math.round(e.ballX), y: Math.round(e.ballY) };
       prevPhase = e.phase;

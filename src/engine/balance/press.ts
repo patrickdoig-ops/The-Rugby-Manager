@@ -3,9 +3,9 @@
 
 // Match conditions that trigger a post-match press conference.
 export const PRESS_TRIGGER = {
-  marginHeavy: 15,   // |score margin| >= this
+  marginHeavy: 20,   // |score margin| >= this
   boardHeat:   40,   // board.confidence <= this
-  lossRun:      2,   // losses in last 3 >= this
+  lossRun:      3,   // losses in last 3 >= this (all 3)
   winRun:       3,   // wins in last 3 = this (needs exactly 3 played)
 } as const;
 

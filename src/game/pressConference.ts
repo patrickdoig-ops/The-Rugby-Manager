@@ -94,7 +94,7 @@ const QUESTION_BANK: Record<Trigger | 'generic', PressQuestion> = {
 
 // Priority order when selecting which triggers produce questions.
 const TRIGGER_PRIORITY: (Trigger | 'generic')[] = [
-  'board_heat', 'heavy_loss', 'loss_run', 'heavy_win', 'win_run', 'generic',
+  'board_heat', 'heavy_loss', 'heavy_win', 'loss_run', 'win_run', 'generic',
 ];
 
 export function shouldFirePresser(state: GameState): boolean {

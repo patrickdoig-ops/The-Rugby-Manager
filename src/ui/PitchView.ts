@@ -295,7 +295,7 @@ export function initPitchView(): void {
     //  4. Otherwise cancel any in-flight animation; stateChange sets the position.
     // The kick check is gated on the ball actually moving, so no-move kick beats
     // (the coin-toss / pre-kick announce) fall through rather than pulsing in place.
-    if (KICK_PHASES.has(event.phase)) {
+    if (KICK_PHASES.has(event.phase) || kickFindsTouch(event)) {
       const tgtTop = toTop(event.ballX);
       // A kick to touch should visibly cross the touchline. The engine resolves the
       // ball to the lineout mark (~5m infield); aim the lob just past the nearer
@@ -392,7 +392,12 @@ export function initPitchView(): void {
     // 1D PitchStrip. toTop() maps it onto the 8%–92% field-of-play band so the
     // ball sits on the painted lines. toLeft() maps ballY into the touchline band.
     const topPct  = toTop(display.ballX);
-    const leftPct = toLeft(display.ballY);
+    // At a lineout the ball sits ON the nearer touchline (the throw-in point), not the
+    // engine's lineout mark ~5m infield — so it doesn't slide in when the lineout forms,
+    // and the throw-in becomes the first leg of the next phase's ball walk.
+    const leftPct = display.phase === MatchPhase.Lineout
+      ? toLeft(display.ballY < 50 ? 0 : 100)
+      : toLeft(display.ballY);
     // While an animation is running it owns the ball and ends exactly here
     // (display.ballX/ballY = the final keyframe / landing) — don't fight it.
     // Otherwise set the resting position (CSS-eased) and track it.

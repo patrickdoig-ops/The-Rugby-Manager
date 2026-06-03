@@ -93,6 +93,10 @@ export function choreograph(
   if (event.phase === MatchPhase.ConversionKick) return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
   if (event.phase === MatchPhase.DropOut22)      return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
   if (event.phase === MatchPhase.BoxKick)        return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
+  // A penalty kicked to touch behaves like a tactical kick to touch (ball out, lineout
+  // next) — same layout: only the kicker, no receiver under the ball.
+  if (event.phase === MatchPhase.Penalty && kickFindsTouch(event))
+    return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
 
   // Pure-announcement beats (fatigue, card, clock, etc.) have no phase_outcome step
   // and should not place players near the ball.
@@ -117,11 +121,14 @@ export function choreograph(
   return openPlayLayout(event, state, attacksTop);
 }
 
-// A tactical / box kick that found touch — the ball went OUT and a lineout forms next
-// beat, so there's no catch (no on-ball receiver) and PitchView walks the ball across
-// the touchline. The engine resolves these to the lineout mark (~5m infield).
+// A kick that found touch — the ball went OUT and a lineout forms next beat, so
+// there's no catch (no on-ball receiver) and PitchView walks the ball across the
+// touchline. The engine resolves these to the lineout mark (~5m infield). Covers
+// tactical / box kicks AND a penalty kicked to touch (kick_to_touch*, but NOT the
+// _missed variant, which is caught in field).
 const KICK_TO_TOUCH_KEYS = new Set([
-  'good_kick', 'out_on_the_full', 'fifty_twenty_two', 'fifty_twenty_two_attempt_failed_touch', 'box_kick_to_touch',
+  'good_kick', 'out_on_the_full', 'fifty_twenty_two', 'fifty_twenty_two_attempt_failed_touch',
+  'box_kick_to_touch', 'kick_to_touch', 'kick_to_touch_close', 'kick_to_touch_long',
 ]);
 export function kickFindsTouch(event: GameEvent): boolean {
   return event.narration.steps.some(s => s.kind === 'phase_outcome' && KICK_TO_TOUCH_KEYS.has((s as { key: string }).key));
@@ -470,11 +477,12 @@ function lineoutLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
 
   const out: Placed[] = [];
 
-  // Throwing team's hooker on the touchline, at throw mark.
+  // Throwing team's hooker just OFF the pitch at the throw mark (they stand in touch
+  // to throw in). y < 0 / > 100 extrapolates past the touchline via toLeft.
   if (atkHooker) {
     out.push(placed(atkHooker, atkSide, state,
       event.ballX,
-      nearY === 0 ? 2 : 98,   // just inside the touchline (not clamped to 3)
+      nearY === 0 ? -2 : 102,
       false));
   }
 

@@ -73,9 +73,12 @@ export function initPitchView(): void {
   // → 50%/50%). Updated by every position set (stateChange + the animators).
   let lastTop = toTop(50);
   let lastLeft = toLeft(50);
-  // Set to true while a conversion kick-flight overlay is in progress so we
-  // hide the main ball at the kick spot until the next state update places it.
+  // Set to true while a conversion kick-flight overlay is in progress so we hide the
+  // main ball (the flight overlay shows the trajectory) until a LATER beat places it.
   let ballHiddenForKickFlight = false;
+  // True only on the beat the flight was triggered — stops the same-beat stateChange
+  // (which fires right after engine:event) from un-hiding the ball before it flies.
+  let kickFlightThisBeat = false;
 
   // Position + colour the flash element at a pitch coordinate, then retrigger
   // its keyframe via a forced reflow (same idiom as Scoreboard.popScore).
@@ -117,6 +120,7 @@ export function initPitchView(): void {
     // while the flight overlay animates toward the posts.
     ball.style.opacity = '0';
     ballHiddenForKickFlight = true;
+    kickFlightThisBeat = true;
   };
 
   // Per-movement ball animation. A phase can move the ball through several legs
@@ -253,6 +257,7 @@ export function initPitchView(): void {
     lastTop  = toTop(50);
     lastLeft = toLeft(50);
     ballHiddenForKickFlight = false;
+    kickFlightThisBeat = false;
     ball.style.opacity = '';
     clearMovement();
     players.reset();
@@ -260,6 +265,7 @@ export function initPitchView(): void {
 
   eventBus.on('engine:event', ({ event }) => {
     cachedEventPhase = event.phase;
+    kickFlightThisBeat = false;
     const cls = flashClass(event);
     if (cls) fireFlash(toTop(event.ballX), toLeft(event.ballY), cls);
 
@@ -387,8 +393,10 @@ export function initPitchView(): void {
     const attackingTeam = display.possession === 'home' ? state.homeTeam : state.awayTeam;
     const attackColor = colorOnDark(attackingTeam.color);
 
-    // Restore ball opacity if it was hidden for a kick-flight overlay.
-    if (ballHiddenForKickFlight) {
+    // Restore ball opacity if it was hidden for a kick-flight overlay — but NOT on the
+    // beat that triggered the flight (this stateChange fires immediately after that
+    // engine:event), or the ball would un-hide before it flies. A later beat un-hides it.
+    if (ballHiddenForKickFlight && !kickFlightThisBeat) {
       ball.style.opacity = '';
       ballHiddenForKickFlight = false;
     }

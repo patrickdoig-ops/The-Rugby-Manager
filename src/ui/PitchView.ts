@@ -63,6 +63,10 @@ export function initPitchView(): void {
   // Cached from the most recent stateChange so the engine:event handler (which
   // fires before stateChange in the same beat) can determine attack direction.
   let cachedHalfTimeDone = false;
+  // The current beat's phase, cached from engine:event for the stateChange handler —
+  // display.phase is captured AFTER the phase transition (so it's the next phase), but
+  // the lineout ball-on-touchline override needs the beat's own phase.
+  let cachedEventPhase: MatchPhase | null = null;
   // The ball's current resting position (% top / left), tracked in-module rather
   // than re-read from ball.style — during an animation the inline style holds the
   // committed target, not the visual position. Ball starts at halfway (x=50,y=50
@@ -244,6 +248,7 @@ export function initPitchView(): void {
   eventBus.on('engine:initialized', () => {
     lastHalfTimeDone   = null;
     cachedHalfTimeDone = false;
+    cachedEventPhase   = null;
     cachedState        = null;
     lastTop  = toTop(50);
     lastLeft = toLeft(50);
@@ -254,6 +259,7 @@ export function initPitchView(): void {
   });
 
   eventBus.on('engine:event', ({ event }) => {
+    cachedEventPhase = event.phase;
     const cls = flashClass(event);
     if (cls) fireFlash(toTop(event.ballX), toLeft(event.ballY), cls);
 
@@ -395,7 +401,7 @@ export function initPitchView(): void {
     // At a lineout the ball sits ON the nearer touchline (the throw-in point), not the
     // engine's lineout mark ~5m infield — so it doesn't slide in when the lineout forms,
     // and the throw-in becomes the first leg of the next phase's ball walk.
-    const leftPct = display.phase === MatchPhase.Lineout
+    const leftPct = cachedEventPhase === MatchPhase.Lineout
       ? toLeft(display.ballY < 50 ? 0 : 100)
       : toLeft(display.ballY);
     // While an animation is running it owns the ball and ends exactly here

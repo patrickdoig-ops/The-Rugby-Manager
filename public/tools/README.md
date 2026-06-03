@@ -8,10 +8,12 @@ spirit as SquadAnimator / AnimationSlate / RugbySlate. Built to explore whether
 hand-authoring is a faster path than the code-driven choreography in
 `src/ui/pitchChoreography.ts`.
 
-### Open it
+It lives under `public/`, so it ships in the Pages build and is reachable on any
+device once deployed:
+
 ```
-open tools/phase-animator.html          # macOS
-# or drag the file into any browser. No server needed.
+https://patrickdoig-ops.github.io/The-Rugby-Manager/tools/phase-animator.html   # live (Pages)
+open public/tools/phase-animator.html                                            # local (no server)
 ```
 
 ### What it does

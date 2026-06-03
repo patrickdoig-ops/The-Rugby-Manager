@@ -76,22 +76,25 @@ and *match presentation* (no highlights replay, no 3D).
 
 ## 3. The five biggest gaps
 
-1. **No world breadth.** One closed 10-team league with no promotion/relegation,
-   no European competition. This is the primary remaining ceiling on long-term
-   career fiction. A sacked manager has nowhere to go; a dynasty builder hits a
-   ceiling in season 3.
+1. **No world breadth.** One closed 10-team league with no European competition.
+   The Premiership is a franchise league — no promotion/relegation since 2020/21 —
+   so the career ceiling isn't a second tier; it's the absence of European nights
+   (Champions Cup-style) and a manager carousel. A sacked manager has nowhere to
+   go; a dynasty builder has no continental stage to conquer.
 2. **No match highlights / replay.** The 2D pitch animation is now excellent but
    there's no way to review what happened — no "jump to try" timeline, no key
    moments view. The engine records everything; it just isn't surfaced.
-3. **Incomplete transfer system.** No loans, no January-style emergency window, no
+3. **Incomplete transfer system.** No loans (injury-cover or development), no
    deadline-day drama. Transfer requests are partially implemented (morale trigger
-   exists, market framework exists) but not fully closed.
+   exists, market framework exists) but not fully closed. Rugby has year-round
+   registration with no formal windows — the right model is emergency loans and
+   development loans, not a January-style window.
 4. **No match variation.** Every match plays in identical conditions: no weather
    (wind/rain/mud), no referee personalities, no set-piece call choices. These are
    cheap to add individually and each one gives every fixture a unique character.
 5. **No manager carousel.** Getting sacked ends the save. Without being able to
-   apply for other jobs or rebuild at a smaller club, the board tension (which is
-   now well built) has a hard ceiling on its narrative arc.
+   apply for other Premiership jobs or get rehired after rebuilding a reputation,
+   the board tension (which is now well built) has a hard ceiling on its narrative arc.
 
 *(Stakes, relationships, discovery, and presentation have all moved considerably
 after Tier 0 + Tier 1 — the gap list has shifted from "manager fantasy basics" to
@@ -146,18 +149,18 @@ completeness:
 
 | # | Feature | Priority | Why it matters | Touches | Effort |
 |---|---|---|---|---|---|
-| 2.1 | **Second tier + promotion/relegation** | 🔴 Must-have for v1.0 | Removes the career ceiling; gives a sacked manager somewhere to rebuild. Without it the game has no long-term arc beyond season 3. Big content job but the foundation of everything else. | League structure; fixtures; roster scaling; standings. | XL |
-| 2.3 | **Loan system + January-style window** | 🔴 Must-have for v1.0 | Fills out the recruitment calendar. Loans are how you develop fringe players and cover injuries without breaking the cap. Also unblocks transfer requests (1.4) fully. | Transfer system; new window phase; loan contracts. | M–L |
+| 2.1 | **Second tier + promotion/relegation** | 🔵 Nice-to-have | The Premiership is a closed franchise league — no promotion/relegation since 2020/21. A second tier doesn't reflect the game's Prem setting and is an XL content build. Career arc in a closed league comes from European competition (2.2) and the manager carousel (4.1), not a second tier. Could appear as a fictional long-term expansion post-v1.0. | League structure; fixtures; roster scaling; standings. | XL |
+| 2.3 | **Loan system (injury cover + development)** | 🔴 Must-have for v1.0 | Rugby has year-round registration — no formal windows. Emergency loans for injury cover and development loans for young players are the authentic model. Fills out the recruitment calendar; also unblocks transfer requests (1.4) fully. No new "window phase" needed — loans trigger on demand. | Transfer system; loan contracts. | M |
 | 2.6 | **Pre-season window** | 🟡 Should-have | A short pre-season period: warm-up friendlies or training camp, early injury rolls, form build-up for new signings. Makes the January/summer signing windows feel meaningful. Low-risk; can slot alongside any Tier 2 item. | Cup scheduler reuse; condition/form warm-up; optional injury roll. | M |
 | 2.4 | **Match variation: weather, referee personalities, set-piece calls** | 🟡 Should-have | Each sub-feature is an isolated balance addition. Weather and referee personalities are the highest-value pair (every fixture is currently identical conditions). Set-piece calls add decision texture. *Lateral Y-axis movement already shipped.* | Resolvers + `balance/`; pre-match indicators; commentary. | M (each) |
-| 2.2 | **European competition (Champions Cup-style)** | 🟡 Should-have | Midweek European nights are prestige content — huge for the "build a dynasty" fantasy. Reuses the cup scheduler. Needs stable Tier 2.1 world first. | Cup scheduler; calendar; qualification standings. | L |
+| 2.2 | **European competition (Champions Cup-style)** | 🟡 Should-have | The primary long-term career arc in a closed Premiership — midweek European nights are prestige content, and without them a dynasty builder has no continental stage by season 3. Reuses the cup scheduler; qualification from league standing. | Cup scheduler; calendar; qualification standings. | L |
 | 2.5 | **Finances beyond the cap** | 🔵 Nice-to-have | Gate receipts, sponsorship, facilities investment. Would give the staff budget a growth mechanism and let training-ground investment feed into development. Deferred until the world depth (2.1/2.2) makes the investment meaningful. | New finance state + `SeasonEvent`; board tie-in. | L |
 
 ### Tier 3 — Polish, retention & differentiators
 
 | # | Feature | Priority | Why it matters | Touches | Effort |
 |---|---|---|---|---|---|
-| 3.7 | **Post-match analysis screen** | 🔴 Must-have for v1.0 | A readable verdict after the final whistle: what swung the match, standout individual, tactical narrative. The rich per-phase stats already exist — this is pure surfacing. High return for low engine cost. | New screen reading existing match stats; no engine change. | S–M |
+| 3.7 | **Post-match analysis screen** | 🟡 Should-have | A richer verdict after the final whistle: what swung the match, standout individual, tactical narrative. A basic post-match result screen already exists — this is an enhancement to make the rich per-phase stats more readable. High return for low engine cost. | New screen reading existing match stats; no engine change. | S–M |
 | 3.1 | **Match highlights / key-moment timeline** | 🟡 Should-have | Once the 2D pitch is animated, the ability to jump to tries/cards/turnovers is the obvious next step for rewatchability and shareability. | UI over the event log. | M |
 | 3.2 | **Onboarding / tutorial + difficulty settings** | 🟡 Should-have | Rugby + management is a steep combo. A guided first season and AI difficulty broadens the App Store audience materially. | New tutorial flow; AI difficulty knobs in `balance/`. | M |
 | 3.6 | **Captain authority (mechanical weight)** | 🟡 Should-have | The captain nomination skeleton is shipped (narrative only). Give it mechanical effect: composure boost to nearby players, morale leadership when behind. Infrastructure (`captainRosterId`, fallback logic) already in place — very cheap to add weight. | `captain.ts`; match-build modifier; commentary triggers. | S |
@@ -172,7 +175,7 @@ land well.
 
 | # | Feature | Priority | Why it matters | Touches | Effort |
 |---|---|---|---|---|---|
-| 4.1 | **Manager carousel — finding new jobs** | 🟡 Should-have (post 2.1) | Turns a sacking into a new story rather than a dead end. Requires multi-club world (2.1). Manager reputation, track record, vacancy generation, prestige-gated job applications. | Manager reputation state; vacancy generation; job-application flow. | L–XL |
+| 4.1 | **Manager carousel — finding new jobs** | 🟡 Should-have | Turns a sacking into a new story rather than a dead end. Within a closed Premiership, this means applying for other Prem vacancies and being rehired. Manager reputation, track record, vacancy generation, prestige-gated job applications. | Manager reputation state; vacancy generation; job-application flow. | L–XL |
 | 4.2 | **Individual player roles + per-player instructions** | 🔵 Nice-to-have | Lightweight roles (ball-playing vs game-manager #10, fetcher vs blindside flanker, distributor vs box-kicking #9) re-weight existing resolver inputs via `balance/` tables. Most meaningful once 2D pitch makes role effects visible and multi-club world creates distinct AI personalities. | Role enum on selection; resolver weight tables; selection UI. | M–L |
 
 ---
@@ -183,41 +186,45 @@ land well.
 
 ### What "v1.0" means
 
-A releasable v1.0 needs to pass two tests: *does it have a long-term career arc?*
-and *does it tell the player what just happened?* The must-haves above define
-that bar.
+A releasable v1.0 needs to pass two tests: *does it have a complete recruitment
+system?* and *does the career have meaningful long-term stakes?* The must-haves
+above define that bar. The Premiership's closed-franchise structure means career
+arc comes from European competition and manager reputation — not a second tier.
 
 **Must-haves before v1.0:**
 - **1.4** Transfer requests (the one open Tier 1 item — close it)
-- **2.1** Second tier + promotion/relegation (removes the career ceiling)
-- **2.3** Loans + January window (completes the recruitment calendar)
-- **3.7** Post-match analysis screen (the match result needs a readable verdict)
+- **2.3** Loan system (injury-cover and development loans — the authentic rugby recruitment model; also unblocks 1.4)
 
-**Recommended alongside the above (high-value, low-risk):**
-- **2.6** Pre-season window (slots in naturally around 2.1)
-- **2.4** Weather + referee personalities (each is an isolated balance addition)
-- **3.6** Captain authority mechanical weight (the skeleton is already in place — S effort)
+**Strongly recommended for v1.0 (high-value, manageable scope):**
+- **2.2** European competition (the primary long-term career arc in a closed Premiership — without it a dynasty builder has no continental stage by season 3)
+- **3.7** Post-match analysis enhancement (basic screen exists; richer verdict is high return for S–M effort)
+- **2.4** Weather + referee personalities (each is an isolated balance addition — makes every fixture distinct)
+- **3.6** Captain authority mechanical weight (S effort; skeleton already in place)
+- **2.6** Pre-season window (natural fit alongside the rebuilt recruitment calendar)
 
 **Sequencing:**
 
 1. **Close Tier 1** — wire the transfer-request flow (1.4). The morale and market
    infrastructure both exist; this is a UI + event wiring job.
-2. **Tier 2.1 (promotion/relegation) is the big one** — design the second-tier
-   league (Championship, 12 teams), extend the fixture scheduler and standings,
-   add roster-scaling logic. Gate Europe (2.2) and the manager carousel (4.1)
-   behind this.
-3. **Tier 2.3 (loans) in parallel** — independent of 2.1, can ship alongside it.
-4. **Tier 3.7 (post-match analysis)** — small, high-value; can slot in at any point.
-5. **Tier 2.6 + 2.4** — can be built incrementally, one sub-feature at a time,
-   interspersed with the bigger Tier 2 arc.
-6. **Post-v1.0: Tier 2.2 (Europe), 3.1 (highlights), 3.2 (tutorial/difficulty),
-   4.1 (manager carousel)** — each meaningful but not required for initial release.
+2. **Tier 2.3 (loans)** — independent of everything else; the authentic rugby model
+   for injury cover and development. No new window phase — loans trigger on demand.
+   Pairs naturally with 1.4.
+3. **Tier 2.2 (European competition)** — the main career-arc milestone for a closed
+   Premiership. Reuses the cup scheduler; qualification from league standing.
+4. **Tier 3.7 (post-match analysis enhancement)** — small; can slot in at any point.
+5. **Tier 2.4 + 2.6** — can be built incrementally, one sub-feature at a time,
+   interspersed with the above.
+6. **Post-v1.0: 4.1 (manager carousel), 3.1 (highlights), 3.2 (tutorial/difficulty),
+   2.1 (fictional second-tier expansion if desired)** — meaningful but not required
+   for initial release.
 
 **Explicitly deferred to post-v1.0:**
+- Manager carousel (4.1) — powerful but needs multi-season reputation infrastructure
 - Full finances beyond the cap (2.5) — needs the expanded world to be meaningful
 - Detailed injuries (3.5) — polish, not gating
 - Club history / hall of fame (3.3) — needs multiple seasons of data first
-- Player roles (4.2) — high payoff but needs set-piece calls (2.4) and multi-club world
+- Player roles (4.2) — high payoff but needs set-piece calls (2.4) first
+- Second tier / promotion-relegation (2.1) — not authentic to the Prem setting; possible long-term expansion
 - 3D match engine — fights the no-backend/browser/mobile constraints for marginal return
 
 ---

@@ -218,13 +218,16 @@
 .staff-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .staff-btn--hire {
-  background: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 18%, var(--rm-surface-2));
-  color: var(--team-color, var(--rm-pitch));
-  border: 1px solid color-mix(in oklch, var(--team-color, var(--rm-pitch)) 35%, transparent);
+  background: var(--rm-cta);
+  color: var(--rm-on-accent);
+  border: none;
 }
 
+.staff-btn--hire:hover  { background: var(--rm-cta-hover); }
+.staff-btn--hire:active { background: var(--rm-cta-active); opacity: 1; }
+
 .staff-btn--release {
-  background: var(--rm-surface-2);
-  color: var(--rm-text-muted);
-  border: 1px solid var(--rm-border-soft);
+  background: var(--rm-danger-deep);
+  color: var(--rm-on-accent);
+  border: none;
 }

@@ -740,6 +740,7 @@ export type SeasonEvent =
       type: 'PLAYER_AGED';
       rosterId: number;
       statDeltas: Partial<PlayerStats>;
+      reputationNudge?: number;
     }
   | {
       type: 'PLAYER_RETIRED';

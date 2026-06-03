@@ -72,8 +72,15 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
     const ageInNewSeason = getAge(p.dob, seasonOpenIso(newSeasonStartYear)) ?? 0;
 
     const deltas = developStats(p, ageInNewSeason);
-    if (Object.keys(deltas).length > 0) {
-      events.push({ type: 'PLAYER_AGED', rosterId: rid, statDeltas: deltas });
+    const currentOvr = playerOverall(p.baseStats, p.position);
+    const reputationNudge = Math.round((currentOvr - p.reputation) * 0.5);
+    if (Object.keys(deltas).length > 0 || reputationNudge !== 0) {
+      events.push({
+        type: 'PLAYER_AGED',
+        rosterId: rid,
+        statDeltas: deltas,
+        ...(reputationNudge !== 0 && { reputationNudge }),
+      });
     }
 
     if (shouldRetire(p, ageInNewSeason)) {

@@ -167,6 +167,9 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         const k = stat as keyof typeof p.baseStats;
         p.baseStats[k] = Math.max(1, Math.min(99, p.baseStats[k] + delta));
       }
+      if (event.reputationNudge !== undefined) {
+        p.reputation = Math.max(0, Math.min(100, p.reputation + event.reputationNudge));
+      }
       return;
     }
     case 'PLAYER_RETIRED': {

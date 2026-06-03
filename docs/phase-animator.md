@@ -7,6 +7,8 @@
 >
 > Tool: `public/tools/phase-animator.html` · Generator: `scripts/exportPhases.ts`
 > · Reference + integration notes: `public/tools/README.md`
+>
+> **New to it?** Follow the worked example: [Tutorial — modifying the kick-off phase](./tutorial-kickoff.md).
 
 ---
 

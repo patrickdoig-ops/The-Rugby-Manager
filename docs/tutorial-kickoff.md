@@ -96,11 +96,13 @@ code, and the two ways to apply it.
 
 ### Where the kick-off lives
 - **Formation** — `kickOffLayout(event, state)` in `src/ui/pitchChoreography.ts`
-  returns the dots. It currently emits only kicker + receiver + chaser; to show your
-  full XV-v-XV you extend it to place every forward/back of both teams.
-- **Motion** — `src/ui/PitchView.ts` lobs the ball (`animateKickArc`) and runs the one
-  chaser forward (the `players.chaserEl` block, direction from `chaseDir`). Animating
-  *more* dots (the whole chase line) means adding them as animated actors the same way.
+  returns the dots. It now lays out the **full XV-v-XV** from the `KICKOFF_RECV` /
+  `KICKOFF_KICK` tables (on the announce + kick beats), with the real catcher snapped
+  to the real landing.
+- **Motion** — `src/ui/PitchView.ts` lobs the ball (`animateKickArc`); the whole pack's
+  chase is driven by the general `Placed.from` → `players.chaseDots` seam (each dot
+  rests at its `to` and offset-eases in from its `from`), not a single chaser. The same
+  seam is reusable for any phase that wants to move many dots at once.
 
 ### What stays engine-driven (don't hard-code these)
 The **ball landing** (`event.ballX/ballY`), **which player catches** (`primaryPlayer`),

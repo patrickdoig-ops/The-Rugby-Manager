@@ -338,4 +338,26 @@ export function assertSeasonInvariants(state: GameState): void {
       fail('board.objective', `${board.objective}`);
     }
   }
+
+  // ── Staff: valid ratings, wages, roles, singleton caps ───────────────
+  const staff = state.career.staff;
+  if (staff) {
+    const VALID_ROLES = new Set(['assistant', 'fitness', 'scout']);
+    const hiredByRole = new Map<string, number>();
+    const seenIds = new Set<string>();
+    for (const m of staff) {
+      if (!m.id) fail('staff.id', `empty id`);
+      if (seenIds.has(m.id)) fail('staff.id', `duplicate id=${m.id}`);
+      seenIds.add(m.id);
+      if (!VALID_ROLES.has(m.role)) fail(`staff[${m.id}].role`, `${m.role}`);
+      if (!(m.rating >= 0) || !(m.rating <= 100)) fail(`staff[${m.id}].rating`, `${m.rating}`);
+      if (!(m.annualWage >= 0)) fail(`staff[${m.id}].annualWage`, `${m.annualWage}`);
+      if (m.clubId === state.player.teamId) {
+        hiredByRole.set(m.role, (hiredByRole.get(m.role) ?? 0) + 1);
+      }
+    }
+    if ((hiredByRole.get('assistant') ?? 0) > 1) fail('staff.hired.assistant', 'more than one hired');
+    if ((hiredByRole.get('fitness')   ?? 0) > 1) fail('staff.hired.fitness',   'more than one hired');
+    if ((hiredByRole.get('scout')     ?? 0) > 3) fail('staff.hired.scouts',    'more than 3 hired');
+  }
 }

@@ -162,5 +162,11 @@ export function clubBudgetUsage(state: GameState, clubId: string): number {
       usage += bid.annualWage;
     }
   }
+  // Staff wages count against the same budget as player contracts.
+  if (state.career.staff) {
+    for (const m of state.career.staff) {
+      if (m.clubId === clubId) usage += m.annualWage;
+    }
+  }
   return usage;
 }

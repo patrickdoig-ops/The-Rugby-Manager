@@ -96,6 +96,13 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 | `PLAYER_DISCIPLINE_COUNSELLED` | `GameCoordinator.counselPlayer(rosterId)` — fired when the manager clicks "Speak to Player" on an inbox discipline concern | Sets `Player.disciplineAdvice = { mode: 'ease_off', expiresAfterRound: calendar.week + 3 }`. `rosterTeamBuilder.rawFromRosterPlayer` reads this to boost effective discipline (+15) and reduce tackling (−5) on the baseStats clone for 3 rounds. Cleared at `SEASON_ROLLED_OVER`. |
 | `PLAYER_SUSPENDED` | `GameCoordinator.recordPlayerMatchResult` — fired after `PLAYER_SEASON_STATS_ACCUMULATED` when a human squad player's `seasonStats.yellowCards` first reaches `YELLOW_BAN_THRESHOLD (5)` | Sets `Player.suspension = { forRound: calendar.week + 1 }`. `selectionUnavailableIds` blocks selection while `calendar.week === suspension.forRound`. One ban per season (re-guarded by `!p.suspension`). Cleared at `SEASON_ROLLED_OVER`. |
 | `PLAYER_MORALE_ADJUSTED` | `GameCoordinator.computeFixtureMoraleEvents` (after every fixture — playing-time + result + standout), `GameCoordinator.computeMoraleDecayEvents` (once per `WEEK_ADVANCED`), `GameCoordinator.boostPlayerMorale` (inbox "Have a Chat" CTA) | Clamps `Player.morale += delta` to [0, 100]. `Player.morale` is seeded at 65 (`MORALE.baseline`) and back-filled for pre-morale saves in `ROSTER_SEEDED`. Drives a ±3 form-bias term in `playerForm.computeFormInputs` — formula: `clamp((morale − 65) × 0.086, −3, +3)`. **Chat boost (diminishing returns):** when `reason === 'manager_chat'`, `boostPlayerMorale` computes `delta = max(2, round(rngTransfer(6, 14) × 0.55^chatCount))` — first chat ≈ 6–14, second ≈ 3–8, third ≈ 2–4, fourth+ floored at 2. `Player.moraleChats` tracks the count; reset at `SEASON_ROLLED_OVER`. **Inbox diagnosis:** the "unhappy player" item body is reason-aware — playing-time (top-15 OVR, <40% appearance rate after ≥3 games), bad run (≥2 losses in last 3), both, or neither. Playing-time items show a "Go to Squad" deeplink alongside "Have a Chat". Balance constants in `src/engine/balance/morale.ts`. |
+| `STAFF_POOL_SEEDED` | `GameCoordinator.newSeason` (season 1 start, `generateStaffPool(1)`) and `careerRollover.computeRollover` (year 2+, carries forward hired staff + generates a fresh free pool). | Sets `career.staff = event.staff` and `career.nextStaffId = event.nextStaffId`. IDs use the `nextStaffId` counter (mirrors `nextRosterId`). Free-pool entries have `clubId: null`; hired entries carry the managed-club id. Both `staff?` and `nextStaffId?` are additive-optional — absent on legacy saves (treated as empty pool, no staff effects). |
+| `STAFF_HIRED` | `GameCoordinator.hireStaff(staffId)` — called from StaffScreen hire button | Sets `StaffMember.clubId` to the managed-club id and `annualWage` to the listed wage. Guard: no-ops if the member is already hired. |
+| `STAFF_RELEASED` | `GameCoordinator.releaseStaff(staffId)` — called from StaffScreen release button | Sets `StaffMember.clubId = null` (returns to pool). Also auto-unassigns any scouting targets the scout was tracking. Guard: no-ops if not hired by the managed club. |
+| `PLAYER_SCOUT_ASSIGNED` | `GameCoordinator.assignScout(rosterId, scoutId)` — called from PlayerProfileScreen assign button | Creates or updates the `ScoutingRecord` for `rosterId` (preserving existing accuracy); sets `assignedScoutId`. The coordinator unassigns the scout from any prior target before calling this. |
+| `PLAYER_SCOUT_UNASSIGNED` | `GameCoordinator.unassignScout(rosterId)` or inline before a reassignment | Removes `assignedScoutId` from the record (accuracy retained). |
+| `SCOUTING_ACCURACY_ADVANCED` | `GameCoordinator.advanceScoutingAccuracy()` — once per week per assigned-scout target | Adds `delta = scoutWeeklyGain(scout.rating)` pp to `accuracy`; clamped to 0–100. |
+| `PLAYER_SCOUTING_RESTORED` | `GameCoordinator.fromSave` only | Bulk-replaces `state.player.scouting` verbatim. Absent on legacy saves — falls back to no entries (all targets at accuracy 0). |
 
 `SEASON_ROLLED_OVER` additionally carries `premCupChampionTeamId` (archived onto `ArchivedSeason`) and resets `state.league.premCup = null`; `CAREER_ARCHIVE_RESTORED` restores `premCup`.
 
@@ -432,21 +439,20 @@ A choice between matches: trades off short-term freshness for long-term attribut
   - Forwards focus applies to players with `isForward(position) === true`; backs focus to the rest. Split is by `Player.position` (stable across substitutions / matchday curation).
 
 - **Development math** (`src/game/trainingWeek.ts::computeTrainingWeek`). Per non-injured roster player per training week, per stat:
-  - `chance = INTENSITY_EFFECTS[intensity].developmentChance × multiplier × ageMul × proxMul`
+  - `chance = INTENSITY_EFFECTS[intensity].developmentChance × condMult × multiplier × ageMul × proxMul`
   - `multiplier = DEVELOPMENT.focusMultiplier (3.0)` when the stat is one of the player's group focus pair; `DEVELOPMENT.unfocusedMultiplier (0.25)` otherwise. So unfocused stats still drift slowly.
   - `ageMul`: 1.6× under 23, 1.0× at 24-28, 0.6× at 29-32, 0.25× at 33+. Mirrors the `AGE_CURVES` shape — younger players gain more from training.
   - `proxMul = proximityMultiplier(player.potential, playerOverall(player.baseStats, player.position))` — a player near their ceiling barely responds to training; see **Soft potential ceiling** below.
+  - `condMult = 1.0 + fitnessStaffRating × FITNESS_MULT_PER_POINT (0.002)` — only non-1.0 for the managed club when a fitness staff member is hired (rating 40 → ×1.08; rating 75 → ×1.15; rating 90 → ×1.18). AI clubs are unaffected. Also scales `conditionDelta`.
   - A successful roll = `+1` to that stat (`TRAINING_STAT_DELTA`). The apply-event branch clamps to `[1, 99]` — same as `PLAYER_AGED`.
   - **Flat decay pass** (after the development pass, rest/light only): per unfocused stat, one `rngTransferRaw()` roll against `INTENSITY_EFFECTS[intensity].decayChance (0.004 rest / 0.002 light)`. A hit writes `−1` to `statDeltas` unless a positive development roll already landed on that stat (gain takes precedence). Focused stats are immune.
   - **High-stat maintenance decay pass** (all intensities): per unfocused stat above `DEVELOPMENT.highStatDecayThreshold (70)`, one `rngTransferRaw()` roll against `(stat − 70)² / DEVELOPMENT.highStatDecayScale (10000)`. e.g. stat 80 → 1.0%, stat 90 → 4.0%, stat 99 → 8.4%. Fires after the flat decay pass; skips any stat that already has a delta. Focused stats immune. This creates rotation pressure at every intensity — the only way to protect a high stat from drift is to focus on it eventually. `PLAYER_TRAINED` apply-event clamps to `[1, 99]` so stats never fall below 1.
 
-- **Training injuries.** Per player per week, after the development pass, one `rngTransfer` roll against `injuryChance = INTENSITY_EFFECTS[intensity].injuryRisk × conditionRiskMultiplier(condition)`. On a hit, `rngTransfer` picks one of `muscle_strain` / `ligament_sprain` / `knock` (no concussions / fractures from training), reads `INJURY_SEVERITY[kind]` for severity weights + week bands, and emits a `PLAYER_INJURED` event — the same shape used by in-match injuries, so the existing `INJURY_TICK_ADVANCED` / `PLAYER_RECOVERED` loop handles recovery identically. `INJURY_RISK.conditionMultiplier (1.5)` means a player at 0% condition is 1.5× more injury-prone than one at 100%; linear interpolation in between.
+- **Training injuries.** Per player per week, after the development pass, one `rngTransfer` roll against `injuryChance = baseRisk × conditionRiskMultiplier(condition)`, where `baseRisk = INTENSITY_EFFECTS[intensity].injuryRisk × (1 − fitnessStaffRating × FITNESS_INJURY_REDUCTION_PER_POINT (0.003))` — fitness staff reduces the base risk fractionally (rating 40 → −12%; rating 75 → −22.5%; rating 90 → −27%) before the condition multiplier is applied. On a hit, `rngTransfer` picks one of `muscle_strain` / `ligament_sprain` / `knock` (no concussions / fractures from training), reads `INJURY_SEVERITY[kind]` for severity weights + week bands, and emits a `PLAYER_INJURED` event — the same shape used by in-match injuries, so the existing `INJURY_TICK_ADVANCED` / `PLAYER_RECOVERED` loop handles recovery identically. `INJURY_RISK.conditionMultiplier (1.5)` means a player at 0% condition is 1.5× more injury-prone than one at 100%; linear interpolation in between.
 
-- **AI training director** (`src/game/aiTrainingDirector.ts::pickPlan`). Pure, RNG-driven via `rngTransfer`. For each AI club (id-ascending), picks an intensity weighted by:
-  - Average condition of the top 23 fit (non-injured) players below `AI_TRAINING.squadConditionTiredThreshold (70%)` → rest/light bias.
-  - Recent 3-match win rate below `AI_TRAINING.poorFormWinRateThreshold (0.34)` → high bias (chasing form).
-  - Else → balanced (medium-biased) baseline.
-  - Forwards + backs focuses are then picked uniformly across their respective sets via two more `rngTransfer` calls. A third throwaway roll keeps the per-club call count fixed at 3 regardless of which intensity branch was hit.
+- **AI training director** (`src/game/aiTrainingDirector.ts`). Two exports:
+  - `pickPlan(state, club)` — one `TrainingPlan` per non-user club per week, RNG-driven via `rngTransfer`. Picks an intensity weighted by: squad avg condition below `AI_TRAINING.squadConditionTiredThreshold (70%)` → rest/light bias; recent 3-match win rate below `AI_TRAINING.poorFormWinRateThreshold (0.34)` → high bias; else balanced (medium-biased) baseline. Forwards + backs focuses picked uniformly via two more `rngTransfer` calls; a third throwaway roll keeps the per-club call count fixed at 3 regardless of branch.
+  - `suggestPlanForUser(state)` — advisory suggestion for the managed club shown in `TrainingScreen` when an assistant staff member is hired. Returns `null` if no assistant is hired. Computes the optimal intensity deterministically (same condition/form thresholds as `pickPlan`), then applies noise: `sub-optimal probability = ASSISTANT_NOISE_MAX (0.4) × (1 − assistantRating/100)` (rating 40 → 24%; rating 75 → 10%; rating 90 → 4%). Uses an FNV-1a hash of `seasonLabel:week` — not `rngTransfer` — so it cannot shift the career stream. Focuses are also deterministically seeded per-week. Advisory only: never auto-applies, never mutates state.
 
 - **Coordinator surface.** `GameCoordinator.applyTrainingBlock(weeks: TrainingPlan[])` is the **non-break** entry point. It derives the per-period day-spans from `upcomingGap` + `splitGapIntoPeriods`, then runs the shared `runTrainingPeriods` loop — per period calls `computeTrainingWeek(state, plan, periodDays)` (pure), applies each returned event through `applySeasonEvent`, and accumulates per-player results (summed stat gains, condition before/after, newly-injured latch). Emits `game:trainingApplied` and returns a `TrainingWeekResult { plan, players, weeks }` for `PostTrainingResultsScreen`. **International breaks go through `beginInternationalBreak` + `runInternationalBreakBlock` instead** (same `runTrainingPeriods` core, wrapped with the cup sims + international call-up/return handling — see § International Duty / `docs/league-cup.md`). Called by `TrainingScreen`'s Continue button (the break path via an injected async `runBlock`). Determinism: clubs iterated id-ascending, roster ids numeric-ascending — same stable order as `careerRollover.computeRollover`. `checkSeasonDeterminism` now drives the break blocks, so training + cup are covered (run1 == run2).
 
@@ -475,6 +481,67 @@ The 2025/26 schedule pauses the Premiership during two international windows —
 - **B&I Lions 2025 (season-open, one-shot).** Models the real post-tour constraint: the 2025 Lions tour ended 2 Aug 2025 and tourists served the PGA's mandatory ~10-week rest, so they were unavailable for the opening two Premiership rounds and returned ~Round 3–4 at reduced match fitness. At the 2025/26 `newSeason` only, `lionsReturnEvents` name-matches the curated `LIONS_2025_TOURISTS` list (`src/data/lions-2025.ts`) against the seeded roster and emits a `LIONS_RETURN_SET` per match, setting `lionsReturnRound = LIONS_RETURN_ROUND` (3) and a per-tourist return condition centred on `LIONS_RETURN_CONDITION` (78) with ±`LIONS_RETURN_CONDITION_NOISE` (10) of `rngTransfer` spread → [68, 88]. RNG-free; gated on `seasonStartYear === 2025` so it never re-fires on rollover (the next Lions tour, 2029, is out of scope). Effects while `calendar.week < lionsReturnRound`: the tourist is **unavailable for selection** (via `lionsUnavailable` → `selectionUnavailableIds`) and **skips club training** (`computeTrainingWeek`, gated `week <= lionsReturnRound` so they're still rusty for their Round-3 return), then rejoins and recovers from Round 4. Surfaced by a season-open inbox / Hub alert (`buildAssistantReport`) listing the returnees, their reduced condition, and the round they're available from, plus the same amber `REST` pill on Squad Management (Lions-specific tooltip) used for the international-duty rest obligation. `lionsReturnRound` is cleared at `SEASON_ROLLED_OVER`.
 
 - **Determinism.** All duty rolls flow through `rngTransfer`, consumed only at break weeks in `runInternationalBreakBlock` (no consumption on non-break weeks), so existing match/season RNG is undisturbed. `checkSeasonDeterminism` now drives the break blocks (`beginInternationalBreak` + `runInternationalBreakBlock` at rounds 6 / 11) and hashes the League Cup state, so the duty + cup paths are covered and stay green (run1 == run2).
+
+## Scouting (Phase 1.1)
+
+The scouting system is a per-target knowledge layer on the managed club: each unscouted outside player shows per-attribute **range bands** that narrow as scouting accuracy rises, rather than exact numbers. Own-squad players are always fully visible (exact values).
+
+**Seam (`src/game/scouting.ts`).** Two pure helpers, no RNG, no state mutation:
+
+- `scoutingBand(trueValue, accuracy)` → `[lo, hi]` — the displayed band for one attribute. At `accuracy === 100`, `lo === hi === trueValue` (exact). Band edges are clamped to `[1, 99]`. Half-width is linearly interpolated from `BAND_CURVE` (`src/engine/balance/scouting.ts`): accuracy 0 → ±10, 50 → ±4, 90 → ±1, 100 → ±0.
+- `scoutWeeklyGain(rating)` → number — accuracy points added per week by one scout assigned to a single target. `= SCOUT_ACCURACY_BASE (2) + rating × SCOUT_ACCURACY_PER_POINT (0.1)` — rating 40 → 6 pp/week; rating 75 → 9.5 pp/week; rating 90 → 11 pp/week. Scouts each advance their own assigned target independently (not pooled).
+
+**State.** `ScoutingRecord { accuracy: number; assignedScoutId?: string }` lives on `GameState.player.scouting?: Record<number, ScoutingRecord>` (keyed by rosterId). Absent entry = accuracy 0. Own-squad players have no entry — the UI checks squad membership and always renders exact values.
+
+**Events** (all four mutate `state.player.scouting`; first three are normal-flow; last is `fromSave` only):
+- `PLAYER_SCOUT_ASSIGNED { rosterId; scoutId }` — creates or updates the record (preserves existing accuracy); sets `assignedScoutId`.
+- `PLAYER_SCOUT_UNASSIGNED { rosterId }` — removes `assignedScoutId` from the record; accuracy retained.
+- `SCOUTING_ACCURACY_ADVANCED { rosterId; delta }` — adds `delta` pp to `accuracy`; clamped to 0–100.
+- `PLAYER_SCOUTING_RESTORED { scouting: Record<number, ScoutingRecord> }` — bulk-replaces the scouting map; used only by `fromSave`.
+
+**Weekly tick.** `GameCoordinator.advanceScoutingAccuracy()` (private) runs after `WEEK_ADVANCED` each round. For every entry with a live `assignedScoutId` pointing at a currently-hired scout, it emits `SCOUTING_ACCURACY_ADVANCED { rosterId, delta: scoutWeeklyGain(scout.rating) }`.
+
+**Coordinator surface.**
+- `assignScout(rosterId, scoutId)` — validates scout is hired + is a scout role; unassigns from any current target, then emits `PLAYER_SCOUT_ASSIGNED`.
+- `unassignScout(rosterId)` — emits `PLAYER_SCOUT_UNASSIGNED`.
+- `releaseStaff` auto-unassigns any targets a scout was tracking before emitting `STAFF_RELEASED`.
+
+**UI.** `PlayerProfileScreen` checks squad membership to compute `scoutAccuracy: number | null` (null = own squad). Attribute bars show a `lo–hi` range band with a shaded fill from lo to hi when accuracy < 100; exact otherwise. The hex radar uses the midpoint for the polygon shape. A "Scouting" panel (hidden for own-squad players) shows the accuracy bar and lets the manager assign/unassign hired scouts — each scout can only track one target at a time.
+
+**Save/load.** `scouting` is persisted directly in `SavedSeason` (additive optional field; no version bump). Absent on legacy saves → no entries, correct behaviour. `fromSave` restores via `PLAYER_SCOUTING_RESTORED`.
+
+## Press conferences (Phase 1.4)
+
+A post-match press conference overlay fires between the match-result dismissal and the round-results screen whenever a **newsworthy trigger** is active. All logic is pure (no engine RNG; no new `SeasonEvent` variants — it reuses existing ones).
+
+**Trigger detection (`src/game/pressConference.ts · shouldFirePresser`).** Fires when at least one of the following holds after the result is recorded:
+
+| Trigger | Threshold |
+|---|---|
+| Heavy result | \|margin\| ≥ 15 (win or loss) |
+| Board heat | `board.confidence` ≤ 40 |
+| Loss run | ≥ 2 losses in last 3 results |
+| Win run | 3 wins in last 3 results |
+
+Thresholds live in `src/engine/balance/press.ts` (`PRESS_TRIGGER`).
+
+**Question builder (`buildPresser(state, getTeamName)`).** Selects 2 questions from a priority-ordered bank (`board_heat` → `heavy_loss` → `loss_run` → `heavy_win` → `win_run` → `generic`). Each question has 3 answer options with a `tone`:
+
+| Tone | Board delta | Squad morale delta |
+|---|---|---|
+| `positive` | +2 | +1 |
+| `measured` | 0 | 0 |
+| `blunt` | −1 | +2 |
+
+Effect constants in `PRESS_ANSWER_EFFECTS` (`balance/press.ts`).
+
+**Skip penalty.** If the manager skips the conference entirely: `BOARD_CONFIDENCE_ADJUSTED { delta: −2 }` + a stub `MEDIA_STORY_PUBLISHED` ("manager silent after match"). Constant: `PRESS_SKIP_BOARD_PENALTY = −2`.
+
+**Coordinator surface (`GameCoordinator.applyPressEffects(skipped, answers)`).** Called from `main.ts` after the overlay resolves. Aggregates `boardDelta` across both answers and emits one `BOARD_CONFIDENCE_ADJUSTED`; aggregates `moraleDelta` and emits `PLAYER_MORALE_ADJUSTED` for every player in the managed club's squad. No new `SeasonEvent` variants — fully reuses the existing three.
+
+**Save/load.** No state to persist — the press conference has no persistent record. After `applyPressEffects`, `saveGame` runs immediately so the board/morale changes are written.
+
+**UI.** `src/ui/PressConferenceScreen.ts` renders a fullscreen overlay (`#press-conference`) with two stacked question blocks. Each question has 3 answer buttons (label + text + effect hint). "Publish" is enabled when both questions are answered. "Skip press conference" is always available. The overlay is not in `ScreenRouter` — it shows/hides via `classList.toggle('hidden')` directly. CSS: `style/press-conference.css`.
 
 ## League Cup
 

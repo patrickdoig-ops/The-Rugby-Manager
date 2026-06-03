@@ -71,6 +71,7 @@ The test: every changed line traces directly to the user's request.
 **Key architectural rules:**
 
 - **Navigation goes through `screenRouter.show(id)`** (`src/ui/ScreenRouter.ts`). Screen modules never poke `document.getElementById('…').style.display` directly; they accept `onForward`/`onBack` callbacks from `main.ts`. Full navigation flow and Hub tile list: **`docs/DESIGN.md`** § 15.
+- **The Hub tile count is fixed at six. Do not add more Hub tiles.** New in-season screens must be reached through an existing sub-menu. `ClubMenuScreen` (add a `.cm-nav-row` entry) and `ContractsTransfersMenuScreen` (add a `.hub-tile` entry) are the designated homes for new club-management screens.
 - **In-season screens are initialised once per page lifetime** via `initInSeasonScreens()` in `main.ts` (gated by `inSeasonInited`). Each takes a `getGameEngine: () => GameCoordinator` getter — not the engine reference — so a new game reaches every screen without re-init. See **`docs/DESIGN.md`** § 15.2.
 - **`MatchCoordinator` owns its event-bus subscriptions and must be destroyed.** `main.ts` calls `engine.destroy()` after the match-result overlay is dismissed.
 - **`silent: true` on `MatchCoordinator`** suppresses every `engine:*` emit except `engine:finished`, skips UI-event subscriptions, and short-circuits modal prompts to defaults. Every orchestrator that emits to the bus must gate on this flag.

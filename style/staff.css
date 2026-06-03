@@ -1,0 +1,230 @@
+/* Staff hiring screen */
+
+#staff {
+  position: fixed;
+  inset: 0;
+  z-index: 225;
+  background: var(--rm-bg);
+  display: flex;
+  flex-direction: column;
+  padding-top:    env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left:   env(safe-area-inset-left, 0px);
+  padding-right:  env(safe-area-inset-right, 0px);
+  overflow: hidden;
+}
+
+#st-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 16px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── Budget pill ─────────────────────────────────────────────── */
+.staff-budget-pill {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.staff-budget-label {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+  flex-shrink: 0;
+}
+
+.staff-budget-bar-wrap {
+  flex: 1;
+  min-width: 60px;
+  height: 4px;
+  background: var(--rm-surface-2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.staff-budget-bar {
+  display: block;
+  height: 100%;
+  background: var(--team-color, var(--rm-pitch));
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.staff-budget-figures {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  color: var(--rm-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.staff-budget-figures strong {
+  color: var(--rm-chalk);
+  font-weight: 600;
+}
+
+/* ── Role sections ───────────────────────────────────────────── */
+.staff-section {
+  margin-bottom: 20px;
+}
+
+.staff-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.staff-section-title {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rm-text-muted);
+}
+
+.staff-section-count {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  color: var(--rm-text-dim);
+  letter-spacing: 0.06em;
+}
+
+.staff-section-desc {
+  font-size: var(--rm-fs-12);
+  color: var(--rm-text-dim);
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+
+.staff-empty {
+  font-size: var(--rm-fs-12);
+  color: var(--rm-text-dim);
+  font-style: italic;
+  margin: 4px 0;
+}
+
+/* ── Staff cards ─────────────────────────────────────────────── */
+.staff-card {
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.staff-card--hired {
+  border-color: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 50%, var(--rm-border-soft));
+  background: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 6%, var(--rm-surface));
+}
+
+.staff-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.staff-card-name {
+  flex: 1;
+  font-size: var(--rm-fs-14);
+  font-weight: 600;
+  color: var(--rm-chalk);
+}
+
+.staff-badge {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.staff-badge--hired {
+  background: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 20%, transparent);
+  color: var(--team-color, var(--rm-pitch));
+}
+
+.staff-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.staff-rating {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.staff-rating em {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--rm-text-muted);
+  font-size: var(--rm-fs-11);
+  margin-left: 3px;
+}
+
+.staff-rating--world-class { color: #f5c842; }
+.staff-rating--excellent    { color: #6dcf8e; }
+.staff-rating--good         { color: var(--rm-chalk); }
+.staff-rating--average      { color: var(--rm-text-muted); }
+.staff-rating--limited      { color: var(--rm-text-dim); }
+
+.staff-wage {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  color: var(--rm-text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+/* ── Action buttons ──────────────────────────────────────────── */
+.staff-btn {
+  align-self: flex-start;
+  padding: 7px 16px;
+  border-radius: 7px;
+  border: none;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s;
+}
+
+.staff-btn:active { opacity: 0.7; }
+.staff-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.staff-btn--hire {
+  background: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 18%, var(--rm-surface-2));
+  color: var(--team-color, var(--rm-pitch));
+  border: 1px solid color-mix(in oklch, var(--team-color, var(--rm-pitch)) 35%, transparent);
+}
+
+.staff-btn--release {
+  background: var(--rm-surface-2);
+  color: var(--rm-text-muted);
+  border: 1px solid var(--rm-border-soft);
+}

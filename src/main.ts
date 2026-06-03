@@ -46,6 +46,8 @@ import '../style/saves.css';
 import '../style/achievements.css';
 import '../style/sack.css';
 import '../style/team-talk.css';
+import '../style/staff.css';
+import '../style/press-conference.css';
 
 import { buildAppShell }           from './ui/AppShell';
 import { preloadAllCues }          from './ui/SoundManager';
@@ -93,6 +95,10 @@ import { initRolloverScreen, showRollover }         from './ui/RolloverScreen';
 import { initContractsScreen, showContracts, showContractsMarqueeEdit } from './ui/ContractsScreen';
 import { initContractsTransfersMenuScreen, showContractsTransfersMenu } from './ui/ContractsTransfersMenuScreen';
 import { initClubMenuScreen, showClubMenu } from './ui/ClubMenuScreen';
+import { initStaffScreen, showStaff } from './ui/StaffScreen';
+import { showPressConference } from './ui/PressConferenceScreen';
+import { shouldFirePresser, buildPresser } from './game/pressConference';
+import { PRESS_ANSWER_EFFECTS } from './engine/balance/press';
 import { initSquadManagementScreen, showSquadManagement } from './ui/SquadManagementScreen';
 import { initTrainingScreen, showTrainingPostMatch, showTrainingMidweek } from './ui/TrainingScreen';
 import { initPostTrainingResultsScreen, showPostTrainingResults } from './ui/PostTrainingResultsScreen';
@@ -335,6 +341,12 @@ document.addEventListener('DOMContentLoaded', () => {
       getGameEngine,
       allTeams,
       onBack: () => goHub('back'),
+      onStaff: () => goStaff(),
+    });
+    initStaffScreen({
+      getGameEngine,
+      allTeams,
+      onBack: () => goClubMenu('back'),
     });
     initLeagueTableScreen(getGameEngine, allTeams, () => goLeagueMenu('back'), (teamId) => {
       const teamJson = allTeams.find(t => t.id === teamId);
@@ -506,6 +518,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function goClubMenu(direction: 'forward' | 'back' = 'forward'): void {
     showClubMenu();
     screenRouter.show('club-menu', { direction });
+  }
+
+  function goStaff(direction: 'forward' | 'back' = 'forward'): void {
+    showStaff();
+    screenRouter.show('staff', { direction });
   }
 
   function goAchievements(direction: 'forward' | 'back' = 'forward'): void {
@@ -1349,6 +1366,19 @@ document.addEventListener('DOMContentLoaded', () => {
       if (gameEngine) {
         await gameEngine.recordPlayerMatchResult(round, state.score.home, state.score.away, snapshot);
         saveGame(gameEngine.toSavePayload());
+        if (shouldFirePresser(gameEngine.getState())) {
+          const presser = buildPresser(gameEngine.getState(), id => allTeams.find(t => t.id === id)?.name ?? id);
+          await new Promise<void>(resolve => {
+            showPressConference(presser, choices => {
+              const answers = choices.skipped
+                ? []
+                : choices.answers.map(tone => PRESS_ANSWER_EFFECTS[tone!]);
+              gameEngine!.applyPressEffects(choices.skipped, answers);
+              saveGame(gameEngine!.toSavePayload());
+              resolve();
+            });
+          });
+        }
       }
       // Post-match nav chain: RoundResults → LeagueTable → TrainingScreen →
       // Hub (regular season) or PlayoffBracket (after the final regular round).

@@ -29,6 +29,7 @@ import type { Player, PlayerStats, Position } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
 import { IRRELEVANT_STATS } from '../engine/balance/rating';
 import { getAge } from '../game/age';
+import { scoutingBand } from '../game/scouting';
 import { eventBus } from '../utils/eventBus';
 
 interface AttributeRow {
@@ -127,7 +128,8 @@ function isIrrelevant(stat: keyof PlayerStats, position: Position): boolean {
 
 // SVG radar: 12 axes, scaled 0-99 on each. Outputs the inner shape +
 // concentric guide rings + axis labels.
-function radarSvg(player: Player): string {
+// `scoutAccuracy`: null = own squad (exact); number = scouting accuracy (0-100).
+function radarSvg(player: Player, scoutAccuracy: number | null): string {
   const cx = 130;
   const cy = 130;
   const r  = 90;
@@ -135,9 +137,14 @@ function radarSvg(player: Player): string {
   const angles = RADAR_AXES.map((_, i) => (-Math.PI / 2) + (i * 2 * Math.PI / RADAR_AXES.length));
 
   const polygonPts = angles.map((a, i) => {
-    const v = valueScale(player.baseStats[RADAR_AXES[i].key]);
-    const x = cx + Math.cos(a) * r * v;
-    const y = cy + Math.sin(a) * r * v;
+    const raw = player.baseStats[RADAR_AXES[i].key];
+    // When scouting, use midpoint of the band so the radar shape is
+    // plausibly positioned without revealing the exact value.
+    const v = scoutAccuracy !== null
+      ? (() => { const [lo, hi] = scoutingBand(raw, scoutAccuracy); return (lo + hi) / 2; })()
+      : raw;
+    const x = cx + Math.cos(a) * r * valueScale(v);
+    const y = cy + Math.sin(a) * r * valueScale(v);
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(' ');
 
@@ -178,19 +185,38 @@ function radarSvg(player: Player): string {
     </svg>`;
 }
 
-function attributeBars(player: Player): string {
+// `scoutAccuracy`: null = own squad (exact); number = scouting accuracy (0-100).
+function attributeBars(player: Player, scoutAccuracy: number | null): string {
   return ATTR_GROUPS.map(group => {
     const rows = group.rows.map(row => {
-      const v = Math.max(0, Math.min(99, player.baseStats[row.key]));
+      const raw = Math.max(0, Math.min(99, player.baseStats[row.key]));
       const irrelevant = isIrrelevant(row.key, player.position);
-      const classes = ['pp-attr-row', `pp-attr-row--${ovrClass(v)}`];
+      if (scoutAccuracy !== null) {
+        const [lo, hi] = scoutingBand(raw, scoutAccuracy);
+        const mid = (lo + hi) / 2;
+        const classes = ['pp-attr-row', `pp-attr-row--${ovrClass(mid)}`, 'pp-attr-row--scouted'];
+        if (irrelevant) classes.push('pp-attr-row--irrelevant');
+        const barLo = (lo / 99) * 100;
+        const barHi = (hi / 99) * 100;
+        const valStr = lo === hi ? String(lo) : `${lo}–${hi}`;
+        return `
+          <div class="${classes.join(' ')}">
+            <span class="pp-attr-short">${row.short}</span>
+            <span class="pp-attr-label">${row.label}</span>
+            <div class="pp-attr-bar pp-attr-bar--band">
+              <div class="pp-attr-bar-band" style="left:${barLo.toFixed(1)}%;width:${(barHi - barLo).toFixed(1)}%"></div>
+            </div>
+            <span class="pp-attr-val pp-attr-val--band">${valStr}</span>
+          </div>`;
+      }
+      const classes = ['pp-attr-row', `pp-attr-row--${ovrClass(raw)}`];
       if (irrelevant) classes.push('pp-attr-row--irrelevant');
       return `
         <div class="${classes.join(' ')}">
           <span class="pp-attr-short">${row.short}</span>
           <span class="pp-attr-label">${row.label}</span>
-          <div class="pp-attr-bar"><div class="pp-attr-bar-fill" style="width:${v}%"></div></div>
-          <span class="pp-attr-val">${v}</span>
+          <div class="pp-attr-bar"><div class="pp-attr-bar-fill" style="width:${raw}%"></div></div>
+          <span class="pp-attr-val">${raw}</span>
         </div>`;
     }).join('');
     return `
@@ -212,6 +238,69 @@ function clubCrest(team: RawTeamInput, size: 'lg' | 'sm'): string {
   const grad = `linear-gradient(160deg, ${team.color} 0%, color-mix(in oklch, ${team.color} 30%, black) 100%)`;
   const klass = size === 'lg' ? 'pp-club-crest pp-club-crest--lg' : 'pp-club-crest';
   return `<span class="${klass}" style="background:${grad}"><span>${team.shortName[0] ?? '?'}</span></span>`;
+}
+
+// Scouting panel for non-squad external players. Shows accuracy progress,
+// the currently assigned scout (if any), and buttons to assign/unassign
+// the club's hired scouts.
+function scoutingSection(state: GameState, rosterId: number): string {
+  const rec = state.player.scouting?.[rosterId];
+  const accuracy = rec?.accuracy ?? 0;
+  const assignedId = rec?.assignedScoutId;
+  const hiredScouts = (state.career.staff ?? []).filter(
+    m => m.role === 'scout' && m.clubId === state.player.teamId,
+  );
+
+  const accuracyPct = Math.round(accuracy);
+  const accuracyBar = `
+    <div class="pp-scout-bar-wrap">
+      <div class="pp-scout-bar-fill" style="width:${accuracyPct}%"></div>
+    </div>`;
+
+  let assignedLine = '';
+  if (assignedId) {
+    const scout = hiredScouts.find(m => m.id === assignedId);
+    assignedLine = scout
+      ? `<div class="pp-scout-assigned">Assigned: <strong>${scout.name}</strong>
+           <button class="pp-scout-btn pp-scout-btn--unassign" data-action="unassign">Remove</button>
+         </div>`
+      : '';
+  }
+
+  let scoutList = '';
+  if (hiredScouts.length === 0) {
+    scoutList = `<p class="pp-scout-empty">Hire a scout to accelerate attribute discovery.</p>`;
+  } else {
+    const rows = hiredScouts.map(m => {
+      const isAssigned = m.id === assignedId;
+      const otherTarget = !isAssigned && Object.entries(state.player.scouting ?? {}).find(
+        ([, r]) => r.assignedScoutId === m.id,
+      );
+      const subLabel = otherTarget
+        ? `(scouting ${state.career.roster[Number(otherTarget[0])]?.lastName ?? '?'})`
+        : isAssigned ? '(assigned here)' : '(available)';
+      return `
+        <div class="pp-scout-row">
+          <span class="pp-scout-name">${m.name}</span>
+          <span class="pp-scout-sub">${subLabel}</span>
+          ${!isAssigned
+            ? `<button class="pp-scout-btn pp-scout-btn--assign" data-action="assign" data-scout="${m.id}">Assign</button>`
+            : ''}
+        </div>`;
+    }).join('');
+    scoutList = `<div class="pp-scout-list">${rows}</div>`;
+  }
+
+  return `
+    <section class="pp-section pp-section--scouting">
+      <h3 class="pp-section-title">Scouting</h3>
+      <div class="pp-scout-accuracy">
+        <span class="pp-scout-pct">${accuracyPct}% accuracy</span>
+        ${accuracyBar}
+      </div>
+      ${assignedLine}
+      ${scoutList}
+    </section>`;
 }
 
 let activeRosterId: number | null = null;
@@ -257,6 +346,13 @@ export function initPlayerProfileScreen(
     const age = getAge(player.dob, state.calendar.date);
     const clubId = findClubId(state, player.rosterId);
     const team = clubId ? teamsById.get(clubId) : null;
+
+    // Determine scouting visibility: null = own squad (exact); number = accuracy.
+    const userSquad = state.career.clubs.find(c => c.id === state.player.teamId)?.squad ?? [];
+    const isOwnSquad = userSquad.includes(player.rosterId);
+    const scoutAccuracy: number | null = isOwnSquad
+      ? null
+      : (state.player.scouting?.[player.rosterId]?.accuracy ?? 0);
 
     // Current season tally — always shown, even with 0 apps (renders as
     // em-dashes). The profile is most useful right at the start of a
@@ -346,12 +442,14 @@ export function initPlayerProfileScreen(
         ${injuryPip}
       </section>`;
 
+    const scoutSection = isOwnSquad ? '' : scoutingSection(state, player.rosterId);
+
     const attrsSection = `
       <section class="pp-section">
-        <h3 class="pp-section-title">Attributes</h3>
+        <h3 class="pp-section-title">Attributes${scoutAccuracy !== null && scoutAccuracy < 100 ? ' <span class="pp-attrs-scouted-label">(scouted)</span>' : ''}</h3>
         <div class="pp-attr-block">
-          <div class="pp-radar-wrap">${radarSvg(player)}</div>
-          <div class="pp-attr-cols">${attributeBars(player)}</div>
+          <div class="pp-radar-wrap">${radarSvg(player, scoutAccuracy)}</div>
+          <div class="pp-attr-cols">${attributeBars(player, scoutAccuracy)}</div>
         </div>
       </section>`;
 
@@ -441,12 +539,26 @@ export function initPlayerProfileScreen(
       <div class="pp-inner">
         ${headerSection}
         ${identitySection}
+        ${scoutSection}
         ${attrsSection}
         ${currentSeasonSection}
         ${historySection}
       </div>`;
 
     el.querySelector<HTMLButtonElement>('#pp-back')!.addEventListener('click', () => activeOnBack?.());
+
+    const engine = getGameEngine();
+    el.querySelectorAll<HTMLButtonElement>('.pp-scout-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.action;
+        if (action === 'assign' && btn.dataset.scout) {
+          engine.assignScout(player.rosterId, btn.dataset.scout);
+        } else if (action === 'unassign') {
+          engine.unassignScout(player.rosterId);
+        }
+        render();
+      });
+    });
   }
 
   renderImpl = render;

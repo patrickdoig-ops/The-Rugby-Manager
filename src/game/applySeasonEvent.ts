@@ -781,6 +781,48 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       if (event.reason === 'manager_chat') p.moraleChats = (p.moraleChats ?? 0) + 1;
       return;
     }
+    case 'STAFF_POOL_SEEDED': {
+      state.career.staff = event.staff;
+      state.career.nextStaffId = event.nextStaffId;
+      return;
+    }
+    case 'STAFF_HIRED': {
+      const m = (state.career.staff ?? []).find(s => s.id === event.staffId);
+      if (!m) return;
+      m.clubId    = event.clubId;
+      m.annualWage = event.annualWage;
+      return;
+    }
+    case 'STAFF_RELEASED': {
+      const m = (state.career.staff ?? []).find(s => s.id === event.staffId);
+      if (!m) return;
+      m.clubId = null;
+      return;
+    }
+    case 'PLAYER_SCOUT_ASSIGNED': {
+      if (!state.player.scouting) state.player.scouting = {};
+      const existing = state.player.scouting[event.rosterId];
+      state.player.scouting[event.rosterId] = {
+        accuracy: existing?.accuracy ?? 0,
+        assignedScoutId: event.scoutId,
+      };
+      return;
+    }
+    case 'PLAYER_SCOUT_UNASSIGNED': {
+      const rec = state.player.scouting?.[event.rosterId];
+      if (rec) delete rec.assignedScoutId;
+      return;
+    }
+    case 'SCOUTING_ACCURACY_ADVANCED': {
+      const rec = state.player.scouting?.[event.rosterId];
+      if (!rec) return;
+      rec.accuracy = Math.min(100, Math.max(0, rec.accuracy + event.delta));
+      return;
+    }
+    case 'PLAYER_SCOUTING_RESTORED': {
+      state.player.scouting = { ...event.scouting };
+      return;
+    }
     default: {
       const _: never = event;
       void _;

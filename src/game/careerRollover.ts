@@ -38,6 +38,7 @@ import { generateFixtures } from './fixtures';
 import { rngTransferRaw, rngTransfer } from '../utils/rng';
 import { generatePersona } from './personaGenerator';
 import { redrawCupPools, buildCupSeed } from './cupScheduler';
+import { generateStaffPool } from './staffPoolGenerator';
 
 export function computeRollover(state: GameState, allTeamIds: string[]): SeasonEvent[] {
   const events: SeasonEvent[] = [];
@@ -148,6 +149,13 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
     leaders,
     playerSeasonHistory,
   });
+
+  // Staff pool for the coming season. Carries forward any already-hired staff
+  // (clubId != null) and replaces the free pool with a freshly generated set.
+  // MUST come before redrawCupPools — cup draws stay last.
+  const existingHired = (state.career.staff ?? []).filter(m => m.clubId !== null);
+  const { staff: freshPool, nextStaffId } = generateStaffPool(state.career.nextStaffId ?? 1);
+  events.push({ type: 'STAFF_POOL_SEEDED', staff: [...existingHired, ...freshPool], nextStaffId });
 
   // Seed next season's Prem Cup with redrawn pools. redrawCupPools is the
   // ONLY rngTransfer consumer here and MUST stay last in the rollover so it

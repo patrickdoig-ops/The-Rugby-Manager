@@ -1,18 +1,20 @@
-// AI training planner. One TrainingPlan per non-user club per week,
-// weighted by squad condition + recent form + the club's weakest aggregate
-// area read from teamSeasonStats. Pure module — RNG flows via rngTransfer
-// (career stream). Mirrors aiTransferDirector in spirit: the user's club
-// is never touched.
+// AI training planner. Two responsibilities:
 //
-// Determinism: caller iterates clubs in id-ascending order (see
-// computeTrainingWeek, driven by applyTrainingBlock in GameCoordinator);
-// each pickPlan call advances rngTransfer the same number of times
-// regardless of inputs so a different roster shape doesn't shift the sequence.
+//   1. pickPlan(state, club) — one TrainingPlan per non-user club per week,
+//      weighted by squad condition + recent form. RNG flows via rngTransfer
+//      (career stream). Caller iterates clubs id-ascending so the call
+//      sequence is stable across runs.
+//
+//   2. suggestPlanForUser(state) — advisory suggestion for the managed club,
+//      shown in TrainingScreen when an assistant is hired. Advisory-only:
+//      never auto-applied, never mutates state. Uses a deterministic per-week
+//      hash (no rngTransfer) so it cannot shift the career stream.
 
 import type { ClubState, GameState } from '../types/gameState';
 import type { BacksFocus, ForwardsFocus, TrainingIntensity, TrainingPlan } from '../types/training';
-import { rngTransferRaw } from '../utils/rng';
+import { rngTransferRaw, hashSeed } from '../utils/rng';
 import { AI_TRAINING } from '../engine/balance/training';
+import { ASSISTANT_NOISE_MAX } from '../engine/balance/staff';
 
 const FORWARDS_FOCUS_KEYS: ForwardsFocus[] = ['set_piece', 'strength', 'stamina', 'handling'];
 const BACKS_FOCUS_KEYS:    BacksFocus[]    = ['tackling', 'defensive_organisation', 'attacking_skills', 'kicking'];
@@ -87,3 +89,52 @@ function recentWinRate(state: GameState, clubId: string): number {
   }
   return wins / last3.length;
 }
+
+// Advisory suggestion for the managed club. Returns null if no assistant
+// is hired. Uses a deterministic per-week FNV-1a hash for the noise roll
+// so it never consumes rngTransfer and cannot shift season determinism.
+export function suggestPlanForUser(state: GameState): TrainingPlan | null {
+  const staff = state.career.staff;
+  if (!staff) return null;
+  const assistant = staff.find(s => s.role === 'assistant' && s.clubId === state.player.teamId);
+  if (!assistant) return null;
+
+  const club = state.career.clubs.find(c => c.id === state.player.teamId);
+  if (!club) return null;
+
+  const avgCondition = squadAvgCondition(state, club);
+  const winRate = recentWinRate(state, club.id);
+
+  // Optimal intensity — deterministic (no rng roll).
+  let optimal: TrainingIntensity;
+  if (avgCondition < AI_TRAINING.squadConditionTiredThreshold) {
+    optimal = 'light';
+  } else if (winRate < AI_TRAINING.poorFormWinRateThreshold) {
+    optimal = 'high';
+  } else {
+    optimal = 'medium';
+  }
+
+  // Noise: sub-optimal probability = ASSISTANT_NOISE_MAX × (1 − rating/100).
+  // rating 40 → 24%  rating 75 → 10%  rating 90 → 4%
+  // Use a per-week hash so the suggestion is stable across re-renders.
+  const noiseProb = ASSISTANT_NOISE_MAX * (1 - assistant.rating / 100);
+  const h0 = hashSeed(`${state.calendar.seasonLabel}:${state.calendar.week}:0`) / 4294967295;
+  const INTENSITIES: TrainingIntensity[] = ['rest', 'light', 'medium', 'high'];
+  let intensity: TrainingIntensity;
+  if (h0 < noiseProb) {
+    const others = INTENSITIES.filter(v => v !== optimal);
+    const h1 = hashSeed(`${state.calendar.seasonLabel}:${state.calendar.week}:1`) / 4294967295;
+    intensity = others[Math.floor(h1 * others.length)];
+  } else {
+    intensity = optimal;
+  }
+
+  const h2 = hashSeed(`${state.calendar.seasonLabel}:${state.calendar.week}:2`) / 4294967295;
+  const h3 = hashSeed(`${state.calendar.seasonLabel}:${state.calendar.week}:3`) / 4294967295;
+  const forwardsFocus = FORWARDS_FOCUS_KEYS[Math.floor(h2 * FORWARDS_FOCUS_KEYS.length)];
+  const backsFocus    = BACKS_FOCUS_KEYS   [Math.floor(h3 * BACKS_FOCUS_KEYS.length)];
+
+  return { intensity, forwardsFocus, backsFocus };
+}
+

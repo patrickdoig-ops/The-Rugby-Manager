@@ -1,7 +1,7 @@
 // The player-dot DOM layer for the 2D pitch: a dumb element pool that renders
 // and fades whatever `Placed[]` the pure choreographer hands it (it knows nothing
 // about events, phases, or rugby), plus a thin controller PitchView drives and a
-// BallWalkFollower seam that lets the carrier dot ride the ball's per-leg walk.
+// BallWalkFollower seam that lets the carrier dot run the final leg of the ball walk.
 
 import type { GameEvent, MatchState } from '../types/match';
 import { MatchPhase } from '../types/engine';
@@ -10,10 +10,13 @@ import { toTop, toLeft } from './pitchCoords';
 import { choreograph } from './pitchChoreography';
 
 // The seam by which the carrier dot follows the ball's WAAPI walk. PitchView owns
-// the walk and calls start/cancel at the same two lifecycle points it manages the
-// ball itself; it never learns what (if anything) is following.
+// the walk and calls run/cancel at the same two lifecycle points it manages the
+// ball itself; it never learns what (if anything) is following. `run` commits the
+// carrier dot's resting anchor (just behind the ball) and offset-animates it
+// through PitchView's bespoke carrier keyframes (hold during the passes, then run
+// the final carry leg onto the ball).
 export interface BallWalkFollower {
-  start(frames: Keyframe[], duration: number, easing: string): void;
+  run(finalTopPct: number, finalLeftPct: number, frames: Keyframe[], duration: number, easing: string): void;
   cancel(): void;
 }
 
@@ -123,11 +126,30 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     if (animatedEl) { animatedEl.style.transition = ''; animatedEl = null; }
   };
 
-  // Carrier dots no longer ride the ball walk — they fade in at their placed
-  // position (slightly behind the ball). This eliminates the artefact where
-  // the carrier appeared to travel with every pass in the chain.
+  // Carrier dot rides only the FINAL carry leg of the ball walk. PitchView builds
+  // keyframes that hold the dot still at the receive point through every pass, then
+  // run it onto the ball into contact — so the credited carrier ends on the ball
+  // without appearing to be passed along the whole chain. top/left transition is
+  // disabled while the WAAPI (transform) owns the dot, guarding against the
+  // dot-transitioning class (Lineout→Maul) tweening the committed anchor underneath.
   const ballWalkFollower: BallWalkFollower = {
-    start(_frames, _duration, _easing) { /* intentional no-op */ },
+    run(finalTopPct, finalLeftPct, frames, duration, easing) {
+      stopCarrierAnim();
+      const el = carrierEl;
+      if (!el) return;
+      el.style.transition = 'none';
+      el.style.top  = `${finalTopPct}%`;
+      el.style.left = `${finalLeftPct}%`;
+      const anim = el.animate(frames, { duration, easing });
+      carrierAnim = anim;
+      animatedEl = el;
+      anim.onfinish = () => {
+        if (carrierAnim !== anim) return;   // superseded by a later beat
+        el.style.transition = '';
+        carrierAnim = null;
+        animatedEl = null;
+      };
+    },
     cancel() { stopCarrierAnim(); },
   };
 

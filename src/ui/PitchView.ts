@@ -51,7 +51,7 @@ export function initPitchView(): void {
 
   // Player-dot layer (FM-style numbered circles for the involved players +
   // set-piece formations). Owns its own DOM/choreography; PitchView just feeds it
-  // each beat and lets the carrier dot ride the ball walk via its follower seam.
+  // each beat and lets the carrier dot run the final carry leg via its follower seam.
   const players = initPitchPlayers(field);
   const follower = players.ballWalkFollower;
   // applyBeat runs in engine:event (before stateChange), so it reads the previous
@@ -198,7 +198,7 @@ export function initPitchView(): void {
     ], dur, 'ease-in-out', tgtTop, tgtLeft);
   };
 
-  const animateMovements = (kfs: ReadonlyArray<{ x: number; y: number }>, lineCount: number) => {
+  const animateMovements = (kfs: ReadonlyArray<{ x: number; y: number }>, lineCount: number, fwd: number) => {
     clearMovement();
     movementAnimating = true;
     // Fit the whole path inside the beat window so the ball never lags the
@@ -215,8 +215,26 @@ export function initPitchView(): void {
     ];
     const duration = legMs * kfs.length;
     runAnim(frames, duration, 'linear', finalTop, finalLeft);
-    // The carrier dot rides the exact same walk (same frames/duration/easing).
-    follower.start(frames, duration, 'linear');
+
+    // Carrier dot: hold at the receive point (the ball's penultimate position —
+    // where the carrier takes the ball, just before the run into contact) through
+    // every pass leg, then run only the final carry leg onto the ball. This is the
+    // middle ground between riding the whole walk (looks passed along the chain)
+    // and sitting pre-placed at the finish (ball arrives alone). Its resting anchor
+    // is committed just behind the ball (−fwd·2.5 on the long axis, same as the
+    // choreographer) so offsetTransform keeps the number readable beside the ball
+    // through the carry. Drives both open play and the set-piece first phase — both
+    // reach here via the same multi-leg movements path.
+    const recv = kfs[kfs.length - 2];
+    const recvTop = toTop(recv.x), recvLeft = toLeft(recv.y);
+    const carrierFinalTop = toTop(Math.max(2, Math.min(98, final.x - fwd * 2.5)));
+    const holdFrac = (kfs.length - 1) / kfs.length;
+    const carrierFrames: Keyframe[] = [
+      { transform: offsetTransform(recvTop, recvLeft, carrierFinalTop, finalLeft, w, h), offset: 0 },
+      { transform: offsetTransform(recvTop, recvLeft, carrierFinalTop, finalLeft, w, h), offset: holdFrac },
+      { transform: 'translate(-50%, -50%)', offset: 1 },
+    ];
+    follower.run(carrierFinalTop, finalLeft, carrierFrames, duration, 'linear');
   };
 
   eventBus.on('ui:speedChange', ({ delayMs }) => {
@@ -290,7 +308,8 @@ export function initPitchView(): void {
         clearMovement();
       }
     } else if (event.movements && event.movements.length >= 2) {
-      animateMovements(event.movements, event.narration.steps.length);
+      animateMovements(event.movements, event.narration.steps.length,
+        ((event.side === 'home') !== cachedHalfTimeDone) ? 1 : -1);
     } else if (event.phase === MatchPhase.Maul && cachedEventPhase === MatchPhase.Lineout) {
       // Lineout→Maul: ball travels from the lineout mark to the hooker at the
       // tail of the maul (dx=14 behind the mark, same lateral). The hooker runs

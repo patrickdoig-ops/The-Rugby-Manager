@@ -81,10 +81,9 @@
     <p class="sub">Dev tool · keyframe authoring for the 2D pitch. Coords are game space (x = long axis 0–100, 100 = top; y = lateral 0–100).</p>
 
     <h2>Phase source</h2>
-    <label class="row"><span>Load trace.json</span></label>
-    <input type="file" id="traceFile" accept=".json" />
-    <p class="hint">Run <code>npm run probe</code> → drop <code>harness/trace.json</code> here. Or start blank.</p>
     <select id="phaseSel"><option value="">— blank phase —</option></select>
+    <p class="hint">All engine phases are embedded (<code>phases.js</code>). Pick one + Load phase. Or drop your own <code>trace.json</code> (<code>npm run probe</code>):</p>
+    <input type="file" id="traceFile" accept=".json" />
     <div class="btns" style="margin-top:8px">
       <button id="loadPhase">Load phase</button>
       <button id="resetForm">Reset formation</button>
@@ -127,6 +126,8 @@
   </div>
 </div>
 
+<!-- Real engine phase samples (regenerate with: npm run export:phases). -->
+<script src="phases.js"></script>
 <script>
 (() => {
   // ---- pitch coordinate mapping (game space → screen %) ----
@@ -368,25 +369,49 @@
   document.getElementById('showGhosts').onchange = render;
   document.getElementById('resetForm').onclick = () => { if (confirm('Reset all players to default formation?')) { makeEntities(); render(); } };
 
-  // ---- trace import + phase pick ----
-  let trace = null;
+  // ---- phase source: embedded samples (phases.js) + optional trace.json ----
+  let phaseItems = [];   // unified: {label, start, moves, resolve, primary, secondary, side, phase, keys}
+
+  function setPhaseList(items, note) {
+    phaseItems = items;
+    const sel = document.getElementById('phaseSel');
+    sel.innerHTML = '<option value="">— blank phase —</option>';
+    items.forEach((it, i) => {
+      const o = document.createElement('option'); o.value = i; o.textContent = it.label; sel.appendChild(o);
+    });
+    document.getElementById('phaseInfo').textContent = note;
+  }
+
+  function embedItems() {
+    const E = window.EMBEDDED_PHASES || [];
+    return E.map(s => ({
+      label: `${s.phase} · ${s.keys.join('/')}`,
+      start: s.start, moves: s.moves || [], resolve: s.resolve,
+      primary: s.primary, secondary: s.secondary, side: s.side, phase: s.phase, keys: s.keys,
+    }));
+  }
+
+  function traceItems(trace) {
+    const beats = (trace.beats || []).filter(b => b.keys && b.keys.length);
+    return beats.map(b => {
+      const prev = (trace.beats || []).find(x => x.idx === b.idx - 1);
+      return {
+        label: `#${b.idx} ${b.phase} · ${b.keys.join('/')}`,
+        start: prev ? { x: prev.ballX, y: prev.ballY } : { x: b.ballX, y: b.ballY },
+        moves: b.moves || [], resolve: { x: b.ballX, y: b.ballY },
+        primary: null, secondary: null, side: b.side, phase: b.phase, keys: b.keys,
+      };
+    });
+  }
+
   document.getElementById('traceFile').onchange = ev => {
     const f = ev.target.files[0]; if (!f) return;
     const rd = new FileReader();
     rd.onload = () => {
       try {
-        trace = JSON.parse(rd.result);
-        const sel = document.getElementById('phaseSel');
-        sel.innerHTML = '<option value="">— blank phase —</option>';
-        (trace.beats || []).forEach(b => {
-          if (!b.keys || !b.keys.length) return;
-          const o = document.createElement('option');
-          o.value = b.idx;
-          o.textContent = `#${b.idx} ${b.phase} · ${b.keys.join('/')}`;
-          sel.appendChild(o);
-        });
-        document.getElementById('phaseInfo').textContent =
-          `Loaded ${(trace.beats || []).length} beats. Pick one and Load phase.`;
+        const trace = JSON.parse(rd.result);
+        const items = traceItems(trace);
+        setPhaseList(items, `Loaded ${items.length} beats from trace.json. Pick one and Load phase.`);
       } catch (e) { alert('Bad trace.json: ' + e.message); }
     };
     rd.readAsText(f);
@@ -394,24 +419,22 @@
 
   document.getElementById('loadPhase').onclick = () => {
     makeEntities();
-    const idx = document.getElementById('phaseSel').value;
-    if (!trace || idx === '') { phaseName = '(blank)'; beats = []; document.getElementById('phaseTag').textContent = phaseName; render(); return; }
-    const b = trace.beats.find(x => x.idx == idx);
-    const prev = trace.beats.find(x => x.idx == (b.idx - 1));
-    // Seed the BALL track: start (prev phase ball) → each in-phase movement → resolution.
-    const path = [];
-    if (prev) path.push({ x: prev.ballX, y: prev.ballY });
-    const moves = b.moves && b.moves.length ? b.moves : [{ x: b.ballX, y: b.ballY }];
-    for (const m of moves) path.push({ x: m.x, y: m.y });
-    // de-dup consecutive identical points
+    const v = document.getElementById('phaseSel').value;
+    if (v === '') { phaseName = '(blank)'; beats = []; document.getElementById('phaseTag').textContent = phaseName; render(); return; }
+    const it = phaseItems[v];
+    // Seed the BALL track: start (prev-phase position) → in-phase movements → resolution.
+    const path = it.moves.length ? [it.start, ...it.moves] : [it.start, it.resolve];
     const dedup = path.filter((p, i) => i === 0 || p.x !== path[i - 1].x || p.y !== path[i - 1].y);
     const ball = entities.find(e => e.id === 'ball');
     ball.kf = dedup.map((p, i) => ({ t: dedup.length === 1 ? 0 : i / (dedup.length - 1), x: p.x, y: p.y }));
     beats = ball.kf.map((k, i) => ({ t: k.t, label: i === 0 ? 'start' : (i === ball.kf.length - 1 ? 'resolve' : 'beat ' + i) }));
-    phaseName = `#${b.idx} ${b.phase} (${b.keys.join('/')})`;
+    phaseName = `${it.phase} (${it.keys.join('/')})`;
     document.getElementById('phaseTag').textContent = phaseName;
+    const inv = it.primary != null
+      ? `Involved: ${it.side} #${it.primary}${it.secondary != null ? ' & #' + it.secondary : ''}. `
+      : '';
     document.getElementById('phaseInfo').textContent =
-      `Ball: ${dedup.length} keyframes seeded. Now drag the 15+15 players and keyframe them to each beat.`;
+      `${inv}Ball: ${dedup.length} keyframe(s) seeded. Now drag the 15+15 players and keyframe them to each beat.`;
     playhead = 0; render();
   };
 
@@ -443,6 +466,11 @@
 
   // ---- go ----
   makeEntities();
+  if (window.EMBEDDED_PHASES && window.EMBEDDED_PHASES.length) {
+    setPhaseList(embedItems(), `${window.EMBEDDED_PHASES.length} engine phases loaded — pick one and Load phase. (Or drop a trace.json for your own.)`);
+  } else {
+    document.getElementById('phaseInfo').textContent = 'phases.js not found — start blank, or load a trace.json.';
+  }
   render();
 })();
 </script>

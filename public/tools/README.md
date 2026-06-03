@@ -26,11 +26,23 @@ open public/tools/phase-animator.html                                           
 - **Timeline + keyframes:** drag any dot to set a keyframe at the playhead; scrub;
   play back with linear tweening between keyframes. Diamonds = the selected entity's
   keyframes, ticks = beats.
-- **Seed a real phase:** `npm run probe` → drop `harness/trace.json` in, pick a beat.
-  The ball track is auto-seeded with **where the ball started (previous phase) →
-  each in-phase movement → where it resolved** (exactly the structure asked for).
-  You then keyframe the players around that authoritative ball path.
+- **Every engine phase is embedded** (`phases.js`, ~83 real `(phase, outcome)`
+  samples — kick-off, scrum, lineout, maul, first phase, phase play, breakdown,
+  kick return, every kick, penalty, conversion, drop-out, try). Pick one from the
+  dropdown and **Load phase**: the ball track is auto-seeded with **where the ball
+  started (previous phase) → each in-phase movement → where it resolved**, with beat
+  markers, and the involved players are named. You then keyframe the 15+15 around
+  that authoritative ball path. (You can also drop your own `harness/trace.json`.)
 - **Export / Import JSON** — round-trips the full keyframe set.
+
+### Regenerating the embedded phases
+```
+npm run export:phases     # runs the engine over 60 seeds → public/tools/phases.js
+```
+`scripts/exportPhases.ts` keeps the richest-movement beat per `(phase, outcome)`.
+**Note:** `phases.js` loads via `<script src>` — that works on Pages (and any served
+context like `npm run dev`), but a bare `file://` open may block the sibling script in
+strict browsers; serve it or use the live URL if the dropdown is empty.
 
 ### Export shape
 ```jsonc

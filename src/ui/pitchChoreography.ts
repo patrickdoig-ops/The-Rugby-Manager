@@ -422,20 +422,31 @@ function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): 
     ...pack(state, defSide, event.ballX, event.ballY, +fwd),
   ];
 
-  // Both #9s are placed at their FINAL positions (2 units behind their #8 at dx=10)
-  // with scrumHalfRole set so PitchView can WAAPI-sweep them from the loosehead
-  // start (where they visually appear) to this committed final position.
+  // Both #9s are placed at their FINAL positions (12 units behind their pack).
+  // On a dominant penalty, skip the standard loosehead sweep — instead use `from`
+  // so both #9s animate stepping away from the scrum (atk forward to claim the
+  // penalty, def retreating), starting close to the front row and further infield.
   const atkSH = onFieldPlayers(atkTeam, state, possOf(atkSide)).find(p => p.id === SLOT.SCRUM_HALF);
   const defSH = onFieldPlayers(defTeam, state, possOf(defSide)).find(p => p.id === SLOT.SCRUM_HALF);
-  if (atkSH) {
-    const dot = placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 12), clampY(event.ballY), false);
-    dot.scrumHalfRole = 'atk';
-    out.push(dot);
-  }
-  if (defSH) {
-    const dot = placed(defSH, defSide, state, clampX(event.ballX + fwd * 12), clampY(event.ballY), false);
-    dot.scrumHalfRole = 'def';
-    out.push(dot);
+  const isDominantPenalty = event.outcome === 'attacking_dominant_penalty'
+                         || event.outcome === 'defending_dominant_penalty';
+  if (isDominantPenalty) {
+    const nearY  = event.ballY < 50 ? 0 : 100;
+    const inward = nearY === 0 ? 1 : -1;
+    const fromY  = clampY(event.ballY + inward * 9);
+    if (atkSH) out.push({ ...placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 12), clampY(event.ballY), false), from: { x: clampX(event.ballX - fwd * 3), y: fromY } });
+    if (defSH) out.push({ ...placed(defSH, defSide, state, clampX(event.ballX + fwd * 12), clampY(event.ballY), false), from: { x: clampX(event.ballX + fwd * 2), y: fromY } });
+  } else {
+    if (atkSH) {
+      const dot = placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 12), clampY(event.ballY), false);
+      dot.scrumHalfRole = 'atk';
+      out.push(dot);
+    }
+    if (defSH) {
+      const dot = placed(defSH, defSide, state, clampX(event.ballX + fwd * 12), clampY(event.ballY), false);
+      dot.scrumHalfRole = 'def';
+      out.push(dot);
+    }
   }
 
   return out;

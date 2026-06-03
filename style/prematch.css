@@ -395,6 +395,12 @@
 .pm-lineup-section + .pm-lineup-section .pm-lineup-name { color: var(--rm-text); }
 
 /* ── Scouting step ── */
+.pm-scout-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .pm-scout-card {
   background: var(--rm-surface);
   border: 1px solid var(--rm-border-soft);

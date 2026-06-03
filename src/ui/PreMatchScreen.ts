@@ -340,8 +340,10 @@ function renderScoutBody(opp: RawTeam, oppShort: string, s: ScoutData): string {
   return `
     <div class="pm-scout-card">
       <div class="pm-scout-section">
-        <h1 class="pm-lineup-title">SCOUT REPORT</h1>
-        <div class="pm-lineup-team" style="color:${oc}">${opp.name}</div>
+        <div class="pm-scout-header">
+          <h1 class="pm-lineup-title">SCOUT REPORT</h1>
+          <div class="pm-lineup-team" style="color:${oc}">${opp.name}</div>
+        </div>
         <div class="pm-form-row">${formPins(s.oppForm)}</div>
         <div class="pm-scout-meta-row">
           <div class="pm-scout-meta">

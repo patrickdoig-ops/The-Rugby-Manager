@@ -271,6 +271,13 @@ export class PenaltyHandler {
         : res.outcome === 'dominant_carry' ? 'dominant_carry'
         : res.outcome === 'dominant_tackle' ? 'dominant_tackle'
         : 'play_on';
+      // Snapshot the tap mark before the carry so the GameEvent can carry a
+      // movements path for the 2D pitch (this handler is an orchestrator outside
+      // PhaseRouter, which builds movements for every other carry phase). The ball
+      // walks tap-mark → final and the carrier-dot follower rides the final leg,
+      // matching open play / first phase. Presentation-only and deterministic.
+      const tapStartX = state.ball.x;
+      const tapStartY = state.ball.y;
       applyMatchEvent(state, {
         type: 'CARRY_RESOLVED',
         carrier,
@@ -301,6 +308,9 @@ export class PenaltyHandler {
         secondaryPlayer: defender,
         ballX: state.ball.x,
         ballY: state.ball.y,
+        movements: (tapStartX !== state.ball.x || tapStartY !== state.ball.y)
+          ? [{ x: tapStartX, y: tapStartY }, { x: state.ball.x, y: state.ball.y }]
+          : undefined,
         outcome,
         narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: 'tap_and_go', primary: carrier, secondary: defender }] },
       };

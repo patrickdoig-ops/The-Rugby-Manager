@@ -242,10 +242,20 @@ function maulLayout(event: GameEvent, state: MatchState, attacksTop: boolean): P
   const defSide: Side = atkSide === 'h' ? 'a' : 'h';
   // Attacking pack uses MAUL_ATK_ROWS so the hooker animates to the back of the maul.
   // Defending pack stays in standard scrum formation (they're defending from the front).
-  return [
+  const out = [
     ...pack(state, atkSide, event.ballX, event.ballY, -fwd, MAUL_ATK_ROWS),
     ...pack(state, defSide, event.ballX, event.ballY, +fwd),
   ];
+  // Mark the attacking ball-carrier (hooker at the back of the drive) so the ball-
+  // walk follower rides them forward with the ball as the maul advances. Only the
+  // won-maul beat drives the ball (primaryPlayer is the attacking hooker then); on a
+  // held / collapsed maul primaryPlayer is a defender, so no attacker is flagged.
+  const carrier = event.primaryPlayer;
+  if (carrier && sideOf(carrier, state) === atkSide) {
+    const dot = out.find(p => p.key === `${atkSide}:${carrier.id}`);
+    if (dot) dot.isCarrier = true;
+  }
+  return out;
 }
 
 // Scrum 3-4-1: front row (1,2,3) at the mark, second row (6,4,5,7), #8 at the back.

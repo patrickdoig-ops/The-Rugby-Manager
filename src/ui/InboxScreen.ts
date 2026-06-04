@@ -4,6 +4,7 @@ import type { RawTeamInput } from '../types/teamData';
 import { buildAssistantReport, type InboxItem } from '../game/inbox';
 import { markRead } from './inboxRead';
 import { loadDismissed, dismissItem } from './inboxDismiss';
+import { swipeToDismiss } from './swipeToDismiss';
 import { injectTeamColors } from './teamColors';
 import { eventBus } from '../utils/eventBus';
 
@@ -47,55 +48,17 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
   }
 
   function attachSwipeDismiss(): void {
-    el!.querySelectorAll<HTMLElement>('.inbox-item[data-item-id]').forEach(item => {
-      const id = item.dataset.itemId!;
-      const content = item.querySelector<HTMLElement>('.inbox-item-content');
-      if (!content) return;
-
-      let startX = 0, startY = 0, active = false, isH = false;
-
-      item.addEventListener('touchstart', e => {
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        active = true; isH = false;
-        content.style.transition = 'none';
-      }, { passive: true });
-
-      item.addEventListener('touchmove', e => {
-        if (!active) return;
-        const dx = e.touches[0].clientX - startX;
-        const dy = e.touches[0].clientY - startY;
-        if (!isH) {
-          if (Math.abs(dy) > Math.abs(dx) + 3) {
-            active = false;
-            content.style.transition = '';
-            return;
-          }
-          if (Math.abs(dx) < 6) return;
-          isH = true;
-        }
-        content.style.transform = `translateX(${Math.min(0, dx)}px)`;
-      }, { passive: true });
-
-      const onEnd = () => {
-        if (!active || !isH) { active = false; return; }
-        active = false;
-        const tx = parseFloat(content.style.transform.match(/-?\d+(?:\.\d+)?/)?.[0] ?? '0');
-        content.style.transition = 'transform 0.22s ease';
-        if (tx < -(item.offsetWidth * 0.38)) {
-          content.style.transform = `translateX(-${item.offsetWidth + 4}px)`;
-          setTimeout(() => {
-            dismissItem(lastKey, id);
-            markRead(lastKey, [id]);
-            if (lastState) render(lastState);
-          }, 220);
-        } else {
-          content.style.transform = 'translateX(0)';
-        }
-      };
-      item.addEventListener('touchend', onEnd);
-      item.addEventListener('touchcancel', onEnd);
-    });
+    swipeToDismiss(
+      el!,
+      '.inbox-item[data-item-id]',
+      item => item.querySelector<HTMLElement>('.inbox-item-content'),
+      item => {
+        const id = item.dataset.itemId!;
+        dismissItem(lastKey, id);
+        markRead(lastKey, [id]);
+        if (lastState) render(lastState);
+      },
+    );
   }
 
   function render(state: GameState): void {

@@ -837,6 +837,10 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       state.player.scouting = { ...event.scouting };
       return;
     }
+    case 'PLAYER_SCOUTING_REMOVED': {
+      delete state.player.scouting?.[event.rosterId];
+      return;
+    }
     default: {
       const _: never = event;
       void _;

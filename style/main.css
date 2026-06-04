@@ -231,7 +231,8 @@ input, textarea, [contenteditable] {
 .screen-entering .sq-player,
 .screen-entering .so-row,
 .screen-entering .pb-card,
-.screen-entering .inbox-item {
+.screen-entering .inbox-item,
+.screen-entering .scout-card {
   animation: rmRowEnter var(--rm-duration-row) var(--rm-ease-out) var(--row-delay, 0ms) both;
 }
 

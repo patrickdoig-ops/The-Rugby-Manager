@@ -1280,4 +1280,10 @@ export type SeasonEvent =
       // Save-restore only. Bulk-replaces state.player.scouting verbatim.
       type: 'PLAYER_SCOUTING_RESTORED';
       scouting: Record<number, ScoutingRecord>;
+    }
+  | {
+      // Manager dismisses a player from the Scouting watchlist. Deletes
+      // the whole record — implicitly releases any assigned scout.
+      type: 'PLAYER_SCOUTING_REMOVED';
+      rosterId: number;
     };

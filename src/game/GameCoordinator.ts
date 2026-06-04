@@ -501,6 +501,10 @@ export class GameCoordinator {
     applySeasonEvent(this.state, { type: 'PLAYER_SCOUT_UNASSIGNED', rosterId });
   }
 
+  removeScouting(rosterId: number): void {
+    applySeasonEvent(this.state, { type: 'PLAYER_SCOUTING_REMOVED', rosterId });
+  }
+
   // Apply the outcome of a press conference. `skipped = true` applies the
   // board penalty and publishes a stub story. Otherwise `answers` contains
   // one boardDelta+moraleDelta pair per question answered.

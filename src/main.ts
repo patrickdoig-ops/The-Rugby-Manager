@@ -47,6 +47,7 @@ import '../style/achievements.css';
 import '../style/sack.css';
 import '../style/team-talk.css';
 import '../style/staff.css';
+import '../style/scouting.css';
 import '../style/press-conference.css';
 
 import { buildAppShell }           from './ui/AppShell';
@@ -97,6 +98,7 @@ import { initContractsTransfersMenuScreen, showContractsTransfersMenu } from './
 import { initClubMenuScreen, showClubMenu } from './ui/ClubMenuScreen';
 import { initBoardConfidenceScreen, showBoardConfidence } from './ui/BoardConfidenceScreen';
 import { initStaffScreen, showStaff } from './ui/StaffScreen';
+import { initScoutingScreen, showScouting } from './ui/ScoutingScreen';
 import { showPressConference } from './ui/PressConferenceScreen';
 import { shouldFirePresser, buildPresser } from './game/pressConference';
 import { PRESS_ANSWER_EFFECTS } from './engine/balance/press';
@@ -358,7 +360,14 @@ document.addEventListener('DOMContentLoaded', () => {
       onBack:      () => goHub('back'),
       onContracts: goContracts,
       onTransfers: goTransfersMidseason,
+      onScouting:  goScouting,
     });
+    initScoutingScreen(
+      getGameEngine,
+      allTeams,
+      () => goContractsTransfersMenu('back'),
+      (rosterId) => goPlayerProfile(rosterId, () => goScouting('back')),
+    );
     initClubMenuScreen({
       getGameEngine,
       allTeams,
@@ -536,6 +545,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function goContracts(direction: 'forward' | 'back' = 'forward'): void {
     showContracts();
     screenRouter.show('contracts', { direction });
+  }
+
+  function goScouting(direction: 'forward' | 'back' = 'forward'): void {
+    showScouting();
+    screenRouter.show('scouting', { direction });
   }
 
   function goContractsTransfersMenu(direction: 'forward' | 'back' = 'forward'): void {

@@ -103,6 +103,7 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 | `PLAYER_SCOUT_UNASSIGNED` | `GameCoordinator.unassignScout(rosterId)` or inline before a reassignment | Removes `assignedScoutId` from the record (accuracy retained). |
 | `SCOUTING_ACCURACY_ADVANCED` | `GameCoordinator.advanceScoutingAccuracy()` — once per week per assigned-scout target | Adds `delta = scoutWeeklyGain(scout.rating)` pp to `accuracy`; clamped to 0–100. |
 | `PLAYER_SCOUTING_RESTORED` | `GameCoordinator.fromSave` only | Bulk-replaces `state.player.scouting` verbatim. Absent on legacy saves — falls back to no entries (all targets at accuracy 0). |
+| `PLAYER_SCOUTING_REMOVED` | `GameCoordinator.removeScouting(rosterId)` — called when the manager swipes a card off the Scouting screen | Deletes `state.player.scouting?.[rosterId]`. Implicitly releases any assigned scout since the record no longer exists. |
 
 `SEASON_ROLLED_OVER` additionally carries `premCupChampionTeamId` (archived onto `ArchivedSeason`) and resets `state.league.premCup = null`; `CAREER_ARCHIVE_RESTORED` restores `premCup`.
 

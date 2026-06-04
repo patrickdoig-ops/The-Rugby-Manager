@@ -94,8 +94,9 @@ At a break, the post-match chain runs:
 7. **Training impact** (`training-results`) → **International returns**
    (`international-break`) → **Hub**.
 
-`GameCoordinator.beginInternationalBreak()` (RNG-free: flags call-ups, lazy-
-seeds + reads the block's cup fixtures) runs before step 2;
+`InternationalBreakCoordinator.beginInternationalBreak()` (RNG-free: flags
+call-ups, lazy-seeds + reads the block's cup fixtures; reached via a
+`GameCoordinator` delegation) runs before step 2;
 `runInternationalBreakBlock(weeks, begin)` (the training Continue, async)
 plays the block. Mid-season the cup is browsable read-only from the League
 sub-menu's **League Cup** tile (`showCupFixturesBrowse`).

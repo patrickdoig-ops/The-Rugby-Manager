@@ -13,7 +13,8 @@ import { LEAGUE_POINTS, SEASON_VALUES, SENIOR_CAP, EFFECTIVE_CAP_CREDITS, FORM_M
 // clamps to this so a Bath-level budget doesn't break through.
 const SENIOR_CAP_TOTAL = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
 import { assertSeasonInvariants } from './seasonInvariants';
-import { addDaysIso } from './age';
+import { addDaysIso, getAge } from './age';
+import { playerOverall } from '../engine/RatingEngine';
 
 export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
   applySeasonEventBody(state, event);
@@ -922,6 +923,28 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       const p = state.career.roster[event.rosterId];
       if (!p) return;
       p.loanOut = { partnerClub: event.partnerClub, fromRound: event.fromRound };
+
+      // Morale impact depends on squad rank (by OVR) and age.
+      const club = state.career.clubs.find(c => c.squad.includes(event.rosterId));
+      if (club) {
+        const sorted = club.squad
+          .map(rid => state.career.roster[rid])
+          .filter((q): q is NonNullable<typeof q> => !!q)
+          .sort((a, b) => playerOverall(b.baseStats, b.position) - playerOverall(a.baseStats, a.position));
+        const rank = sorted.findIndex(q => q.rosterId === event.rosterId) + 1;
+        const age = getAge(p.dob, state.calendar.date) ?? 99;
+        let delta = 0;
+        if (rank >= 1 && rank <= MORALE.loanStarRank) {
+          delta = MORALE.loanStarDelta;
+        } else if (rank <= 15) {
+          delta = MORALE.loanFirstTeamDelta;
+        } else if (age <= MORALE.loanYoungAge) {
+          delta = MORALE.loanYoungBackupBoost;
+        }
+        if (delta !== 0) {
+          p.morale = Math.max(0, Math.min(100, (p.morale ?? MORALE.baseline) + delta));
+        }
+      }
       return;
     }
     case 'PLAYER_RECALLED_FROM_LOAN': {

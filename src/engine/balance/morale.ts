@@ -56,4 +56,12 @@ export const MORALE = {
   transferRequestRejectPenalty: -8,
   // Morale penalty applied when a playing-time promise expires unmet.
   promiseBrokenPenalty: -15,
+
+  // Loan-out morale impact (applied immediately when send-on-loan action fires).
+  // Rank is OVR position within the club squad (1 = highest OVR).
+  loanStarRank: 5,           // ranks 1–5 are "star" players
+  loanStarDelta: -15,        // star player sent on loan — distraught
+  loanFirstTeamDelta: -8,    // first-team regular (rank 6–15) sent on loan
+  loanYoungAge: 24,          // age ≤ this counts as "young backup"
+  loanYoungBackupBoost: 5,   // young backup pleased to get game time
 } as const;

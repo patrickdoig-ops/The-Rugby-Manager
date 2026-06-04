@@ -638,12 +638,17 @@ export function loadSave(): SavedSeason | null {
   return loadSlot(getActiveSlot());
 }
 
-export function saveGame(save: SavedSeason): void {
+// Returns true on success, false on a caught write failure (storage full /
+// disabled / private mode). Autosave stays silent on success to keep the old
+// contract; main.ts inspects the boolean and surfaces a debounced warning on
+// failure so a long career can't silently stop saving. The explicit Save
+// action surfaces failures via toast directly.
+export function saveGame(save: SavedSeason): boolean {
   try {
     saveToSlot(getActiveSlot(), save);
+    return true;
   } catch {
-    // Storage full / disabled / private mode. Autosave stays silent to keep
-    // the old contract; the explicit Save action surfaces failures via toast.
+    return false;
   }
 }
 

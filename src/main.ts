@@ -134,6 +134,7 @@ import { SEASON_VALUES, HOME_ADVANTAGE, MORALE } from './engine/balance';
 import { computeAttendance }        from './game/attendance';
 import { generateSeed }            from './utils/rng';
 import { eventBus }                from './utils/eventBus';
+import { showToast }              from './ui/Toast';
 import { Capacitor }              from '@capacitor/core';
 import { SplashScreen }           from '@capacitor/splash-screen';
 
@@ -205,6 +206,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!gameEngine) throw new Error('gameEngine accessed before initialisation');
     return gameEngine;
   };
+
+  // Autosave wrapper for every in-season save site. saveGame is silent on
+  // success (preserving the original contract) and returns false on a caught
+  // write failure (storage full / disabled). On failure we emit a single
+  // `save:failed` event, debounced so a persistently-full store doesn't spam a
+  // toast on every tick — the player gets one warning per minute telling them
+  // to export their career.
+  let lastSaveFailWarnAt = 0;
+  const SAVE_FAIL_WARN_COOLDOWN_MS = 60_000;
+  const autosave = (payload: Parameters<typeof saveGame>[0]): void => {
+    if (saveGame(payload)) return;
+    const now = Date.now();
+    if (now - lastSaveFailWarnAt < SAVE_FAIL_WARN_COOLDOWN_MS) return;
+    lastSaveFailWarnAt = now;
+    eventBus.emit('save:failed', { reason: 'quota' });
+  };
   let seasonCompletePending = false;
   // Latched on game:bracketSeeded so the post-final-regular-round
   // Continue chain detours through PlayoffBracketScreen rather than
@@ -251,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initSettingsScreen(() => goHub('back'), () => goHome('back'),
       () => goSaves(goSettingsFromHub),
       () => {
-        if (gameEngine) saveGame(gameEngine.toSavePayload());
+        if (gameEngine) autosave(gameEngine.toSavePayload());
         goHome('back');
       });
     screenRouter.show('settings');
@@ -409,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // negotiated figure from the offer modal.
       const engine = getGameEngine();
       const result = engine.offerEarlyRenewal(rosterId, offeredWage);
-      saveGame(engine.toSavePayload());
+      autosave(engine.toSavePayload());
       return result;
     }, 'Contracts & Transfers');
     initSquadManagementScreen({
@@ -572,7 +589,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // itself runs only via the post-match chain) and returns to Hub.
   function goTrainingMidweek(): void {
     showTrainingMidweek(() => {
-      if (gameEngine) saveGame(gameEngine.toSavePayload());
+      if (gameEngine) autosave(gameEngine.toSavePayload());
       goHub('back');
     });
     screenRouter.show('training');
@@ -592,20 +609,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // so the user sees the empty state + a Continue button back to the
     // Hub, rather than the tile silently round-tripping.
     if (gameEngine.getState().career.market) {
-      saveGame(gameEngine.toSavePayload());
+      autosave(gameEngine.toSavePayload());
     }
     const onSubmit = (): void => {
       if (!gameEngine) { goHub(); return; }
       const outcomes = gameEngine.runMidseasonSigning();
       gameEngine.closeMidseasonSigningWindow();
-      saveGame(gameEngine.toSavePayload());
+      autosave(gameEngine.toSavePayload());
       showSigningResults(outcomes, () => goHub());
       screenRouter.show('signing-results');
     };
     const onFinish = (): void => {
       if (gameEngine) {
         gameEngine.closeMidseasonSigningWindow();
-        saveGame(gameEngine.toSavePayload());
+        autosave(gameEngine.toSavePayload());
       }
       goContractsTransfersMenu('back');
     };
@@ -622,7 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Existing new-game path: seed the save immediately so Continue is enabled
     // even if the user backs out before playing the first match.
     gameEngine = GameCoordinator.newSeason(team.id, generateSeed(), allTeams);
-    saveGame(gameEngine.toSavePayload());
+    autosave(gameEngine.toSavePayload());
     initInSeasonScreens();
     goHub();
   }
@@ -659,7 +676,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function runPreSeasonOverview(): void {
     if (!gameEngine) return;
     gameEngine.setPreSeasonStep('overview');
-    saveGame(gameEngine.toSavePayload());
+    autosave(gameEngine.toSavePayload());
     showSquadOverview(() => runPreSeasonSignings());
     screenRouter.show('squad-overview');
   }
@@ -676,7 +693,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     gameEngine.setPreSeasonStep('signings');
-    saveGame(gameEngine.toSavePayload());
+    autosave(gameEngine.toSavePayload());
     // Pre-season signing flow uses the same competitive loop as the
     // mid-season chain, but the openSigningWindow was opened with
     // skipPoaches so there are no Reg 7 candidates and therefore no
@@ -687,9 +704,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // No retentions in pre-season (no poach bids), but call the pass
       // for shape symmetry — it's a no-op when no poaches are in flight.
       gameEngine.runAIRetentionPass();
-      saveGame(gameEngine.toSavePayload());
+      autosave(gameEngine.toSavePayload());
       const outcomes = gameEngine.resolveSigningRound();
-      saveGame(gameEngine.toSavePayload());
+      autosave(gameEngine.toSavePayload());
       showSigningResults(outcomes, () => {
         if (!gameEngine) { goHub(); return; }
         if (gameEngine.hasViableSigningOptions()) {
@@ -719,11 +736,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function runPreSeasonMarquee(): void {
     if (!gameEngine) return;
     gameEngine.setPreSeasonStep('marquee');
-    saveGame(gameEngine.toSavePayload());
+    autosave(gameEngine.toSavePayload());
     showContractsMarqueeEdit(() => {
       if (!gameEngine) { goHub(); return; }
       gameEngine.setPreSeasonStep(null);
-      saveGame(gameEngine.toSavePayload());
+      autosave(gameEngine.toSavePayload());
       goHub();
     });
     screenRouter.show('contracts');
@@ -824,7 +841,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const eng = gameEngine;
         runInternationalBreakChain(begin, eng, () => {
           if (eng.isManagerSacked()) { runSackScreen('midseason'); return; }
-          maybeRunMidseasonPoach(() => { saveGame(eng.toSavePayload()); goHub(); });
+          maybeRunMidseasonPoach(() => { autosave(eng.toSavePayload()); goHub(); });
         });
         return;
       }
@@ -841,7 +858,7 @@ document.addEventListener('DOMContentLoaded', () => {
     gameEngine.openMidseasonPoachWindow();
     const market = gameEngine.getState().career.market;
     if (!market || market.phase !== 'poach-midseason') { onDone(); return; }
-    saveGame(gameEngine.toSavePayload()); // persist the open window (resumable)
+    autosave(gameEngine.toSavePayload()); // persist the open window (resumable)
     runMidseasonPoachDecision(onDone);
   }
 
@@ -854,14 +871,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const prompts = gameEngine.getUserRetentionPrompts();
     if (prompts.length === 0) {
       gameEngine.closeMidseasonPoachWindow();
-      saveGame(gameEngine.toSavePayload());
+      autosave(gameEngine.toSavePayload());
       onDone();
       return;
     }
     showRetentionDecision(() => {
       if (!gameEngine) { onDone(); return; }
       const outcomes = gameEngine.closeMidseasonPoachWindow();
-      saveGame(gameEngine.toSavePayload());
+      autosave(gameEngine.toSavePayload());
       showSigningResults(outcomes, onDone);
       screenRouter.show('signing-results');
     });
@@ -878,12 +895,12 @@ document.addEventListener('DOMContentLoaded', () => {
       // AI bid pass (free agents + poaches) then AI auto-retention.
       gameEngine.runAIBidPass();
       gameEngine.runAIRetentionPass();
-      saveGame(gameEngine.toSavePayload());
+      autosave(gameEngine.toSavePayload());
       const userPrompts = gameEngine.getUserRetentionPrompts();
       const proceedToResolve = (): void => {
         if (!gameEngine) { onFinishCallback(); return; }
         const outcomes = gameEngine.resolveSigningRound();
-        saveGame(gameEngine.toSavePayload());
+        autosave(gameEngine.toSavePayload());
         showSigningResults(outcomes, () => {
           if (!gameEngine) { onFinishCallback(); return; }
           if (gameEngine.hasViableSigningOptions()) {
@@ -904,7 +921,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const finishWindow = (): void => {
       if (!gameEngine) { onFinishCallback(); return; }
       gameEngine.closeSigningWindow();
-      saveGame(gameEngine.toSavePayload());
+      autosave(gameEngine.toSavePayload());
       onFinishCallback();
     };
     const showLoop = (): void => {
@@ -925,7 +942,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function finishWithRollover(): void {
     if (!gameEngine) { goHub(); return; }
     const rolloverEvents = gameEngine.rollSeason();
-    saveGame(gameEngine.toSavePayload());
+    autosave(gameEngine.toSavePayload());
     showRollover(rolloverEvents, () => goHub());
     screenRouter.show('rollover');
   }
@@ -941,14 +958,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!gameEngine) { goHub(); return; }
       gameEngine.openSigningWindow();
       if (gameEngine.getState().career.market) {
-        saveGame(gameEngine.toSavePayload());
+        autosave(gameEngine.toSavePayload());
         // Depth-chart checkpoint between Renewals (just closed) and the
         // signings window. Lets the manager see where they're thin after
         // releases land, before they decide who to recruit.
         showSquadOverview(() => {
           if (!gameEngine) { goHub(); return; }
           runOffSeasonSigningLoop(() => {
-            if (gameEngine) saveGame(gameEngine.toSavePayload());
+            if (gameEngine) autosave(gameEngine.toSavePayload());
             finishWithRollover();
           });
         });
@@ -962,11 +979,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!gameEngine) { goHub(); return; }
       gameEngine.openRenewalWindow();
       if (gameEngine.getState().career.market) {
-        saveGame(gameEngine.toSavePayload());
+        autosave(gameEngine.toSavePayload());
         showRenewals((decisions, wages) => {
           if (!gameEngine) { goHub(); return; }
           gameEngine.closeRenewalWindow(decisions, wages);
-          saveGame(gameEngine.toSavePayload());
+          autosave(gameEngine.toSavePayload());
           proceedToSignings();
         });
         screenRouter.show('renewals');
@@ -997,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // the rollover zeroes out standings. Events fire CLUB_BUDGET_SET
       // for every club + CLUB_TAKEOVER for any Red Bull-style boost.
       const budgetEvents = gameEngine.prepareBudgetsForNextSeason();
-      saveGame(gameEngine.toSavePayload());
+      autosave(gameEngine.toSavePayload());
 
       const userClubId = gameEngine.getState().player.teamId;
       const userBudgetEv = budgetEvents.find(
@@ -1067,7 +1084,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const label = playerMatch.kind === 'final' ? 'Final' : 'Semi-Final';
             showTrainingPostMatch((results) => {
               showPostTrainingResults(results, () => {
-                if (gameEngine) saveGame(gameEngine.toSavePayload());
+                if (gameEngine) autosave(gameEngine.toSavePayload());
                 goToMatch();
               });
               screenRouter.show('training-results');
@@ -1088,7 +1105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showPlayoffBracket(async () => {
       if (!gameEngine) { goHub(); return; }
       await gameEngine.simulatePendingPlayoffMatches(stage);
-      saveGame(gameEngine.toSavePayload());
+      autosave(gameEngine.toSavePayload());
       runPlayoffStage();
     }, ctaLabel);
     screenRouter.show('playoff-bracket');
@@ -1125,7 +1142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gameEngine) {
           gameEngine.setPlayerTactics(playerTactics);
           gameEngine.setPlayerMatchdaySquad(extractMatchdaySquad(playerConfigured));
-          saveGame(gameEngine.toSavePayload());
+          autosave(gameEngine.toSavePayload());
         }
         // Show team talk screen before the playoff match.
         const avgMorale = computeAverageMorale(playerConfigured);
@@ -1193,7 +1210,7 @@ document.addEventListener('DOMContentLoaded', () => {
       engine.destroy();
       if (gameEngine) {
         await gameEngine.recordPlayerPlayoffResult(match.kind, state.score.home, state.score.away, snapshot);
-        saveGame(gameEngine.toSavePayload());
+        autosave(gameEngine.toSavePayload());
       }
       // Back into the orchestrator. State now reflects the new result;
       // the next iteration picks the right next step (next match, sim
@@ -1253,7 +1270,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gameEngine) {
           gameEngine.setPlayerTactics(playerTactics);
           gameEngine.setPlayerMatchdaySquad(extractMatchdaySquad(playerConfigured));
-          saveGame(gameEngine.toSavePayload());
+          autosave(gameEngine.toSavePayload());
         }
         // Show the team talk screen before starting the match.
         const avgMorale = computeAverageMorale(playerConfigured);
@@ -1381,7 +1398,7 @@ document.addEventListener('DOMContentLoaded', () => {
       engine.destroy();
       if (gameEngine) {
         await gameEngine.recordPlayerMatchResult(round, state.score.home, state.score.away, snapshot);
-        saveGame(gameEngine.toSavePayload());
+        autosave(gameEngine.toSavePayload());
         if (shouldFirePresser(gameEngine.getState())) {
           const presser = buildPresser(gameEngine.getState(), id => allTeams.find(t => t.id === id)?.name ?? id);
           await new Promise<void>(resolve => {
@@ -1390,7 +1407,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? []
                 : choices.answers.map(tone => PRESS_ANSWER_EFFECTS[tone!]);
               gameEngine!.applyPressEffects(choices.skipped, answers);
-              saveGame(gameEngine!.toSavePayload());
+              autosave(gameEngine!.toSavePayload());
               resolve();
             });
           });
@@ -1426,7 +1443,7 @@ document.addEventListener('DOMContentLoaded', () => {
               // A mid-season result may have drained board confidence past the
               // sack threshold — game over before returning to the Hub.
               if (gameEngine?.isManagerSacked()) { runSackScreen('midseason'); return; }
-              maybeRunMidseasonPoach(() => { if (gameEngine) saveGame(gameEngine.toSavePayload()); goHub(); });
+              maybeRunMidseasonPoach(() => { if (gameEngine) autosave(gameEngine.toSavePayload()); goHub(); });
             };
         // International break detection (RNG-free): flags the call-ups and
         // reads this block's Prem Cup fixtures. When present, the break runs
@@ -1453,6 +1470,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     screenRouter.show('match-result');
   }
+
+  // Surface a debounced, non-blocking warning when autosave can't write
+  // (storage full / disabled). Keeps autosave silent on success.
+  eventBus.on('save:failed', () =>
+    showToast("Couldn't save — storage full. Export your career to be safe.", 'danger'));
 
   // Wire the native backup mirror so every slot write is copied to the iOS
   // Documents directory (iCloud-backed). No-op on web.

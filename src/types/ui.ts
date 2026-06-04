@@ -92,5 +92,11 @@ export interface AppEvents {
   // that cache their last render (HubScreen, FixtureListScreen) must
   // subscribe to this to avoid showing the previous season's data.
   'game:seasonRolledOver': { state: GameState };
+  // Fired when an autosave write fails (storage full / disabled / private
+  // mode). main.ts debounces this into a single non-blocking warning toast
+  // so the player knows to export their career — autosave is otherwise
+  // silent on success. The explicit Save action in SavesScreen surfaces its
+  // own failure separately.
+  'save:failed': { reason: 'quota' };
 }
 

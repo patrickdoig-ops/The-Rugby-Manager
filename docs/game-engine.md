@@ -494,10 +494,11 @@ The scouting system is a per-target knowledge layer on the managed club: each un
 
 **State.** `ScoutingRecord { accuracy: number; assignedScoutId?: string }` lives on `GameState.player.scouting?: Record<number, ScoutingRecord>` (keyed by rosterId). Absent entry = accuracy 0. Own-squad players have no entry — the UI checks squad membership and always renders exact values.
 
-**Events** (all four mutate `state.player.scouting`; first three are normal-flow; last is `fromSave` only):
+**Events** (all five mutate `state.player.scouting`; first three are normal-flow; last two are special):
 - `PLAYER_SCOUT_ASSIGNED { rosterId; scoutId }` — creates or updates the record (preserves existing accuracy); sets `assignedScoutId`.
 - `PLAYER_SCOUT_UNASSIGNED { rosterId }` — removes `assignedScoutId` from the record; accuracy retained.
 - `SCOUTING_ACCURACY_ADVANCED { rosterId; delta }` — adds `delta` pp to `accuracy`; clamped to 0–100.
+- `PLAYER_SCOUTING_REMOVED { rosterId }` — deletes the whole record; implicitly frees any assigned scout.
 - `PLAYER_SCOUTING_RESTORED { scouting: Record<number, ScoutingRecord> }` — bulk-replaces the scouting map; used only by `fromSave`.
 
 **Weekly tick.** `GameCoordinator.advanceScoutingAccuracy()` (private) runs after `WEEK_ADVANCED` each round. For every entry with a live `assignedScoutId` pointing at a currently-hired scout, it emits `SCOUTING_ACCURACY_ADVANCED { rosterId, delta: scoutWeeklyGain(scout.rating) }`.
@@ -505,6 +506,7 @@ The scouting system is a per-target knowledge layer on the managed club: each un
 **Coordinator surface.**
 - `assignScout(rosterId, scoutId)` — validates scout is hired + is a scout role; unassigns from any current target, then emits `PLAYER_SCOUT_ASSIGNED`.
 - `unassignScout(rosterId)` — emits `PLAYER_SCOUT_UNASSIGNED`.
+- `removeScouting(rosterId)` — emits `PLAYER_SCOUTING_REMOVED`; called from ScoutingScreen on card swipe-dismiss.
 - `releaseStaff` auto-unassigns any targets a scout was tracking before emitting `STAFF_RELEASED`.
 
 **UI.** `PlayerProfileScreen` checks squad membership to compute `scoutAccuracy: number | null` (null = own squad). Attribute bars show a `lo–hi` range band with a shaded fill from lo to hi when accuracy < 100; exact otherwise. The hex radar uses the midpoint for the polygon shape. A "Scouting" panel (hidden for own-squad players) shows the accuracy bar and lets the manager assign/unassign hired scouts — each scout can only track one target at a time.

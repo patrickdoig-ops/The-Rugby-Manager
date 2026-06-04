@@ -48,6 +48,7 @@ export type ScreenId =
   | 'contracts-transfers-menu'
   | 'club-menu'
   | 'board-confidence'
+  | 'scouting'
   | 'staff'
   | 'team-talk'
   | 'loans';
@@ -94,6 +95,7 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'contracts-transfers-menu':  { elId: 'contracts-transfers-menu',  shownDisplay: '' },
   'club-menu':                 { elId: 'club-menu',                 shownDisplay: '' },
   'board-confidence':          { elId: 'board-confidence',          shownDisplay: '' },
+  'scouting':                  { elId: 'scouting',                  shownDisplay: '' },
   'staff':                     { elId: 'staff',                     shownDisplay: '' },
   'team-talk':                 { elId: 'team-talk',                 shownDisplay: '' },
   'loans':                     { elId: 'loans',                     shownDisplay: '' },

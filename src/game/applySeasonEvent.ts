@@ -856,6 +856,10 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       state.player.scouting = { ...event.scouting };
       return;
     }
+    case 'PLAYER_SCOUTING_REMOVED': {
+      delete state.player.scouting?.[event.rosterId];
+      return;
+    }
     // ── Feature 1.4 — Transfer Requests & Playing-Time Promises ─────────
     case 'PLAYER_VERY_UNHAPPY_TICK': {
       const p = state.career.roster[event.rosterId];

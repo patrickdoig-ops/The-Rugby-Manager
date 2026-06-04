@@ -1286,6 +1286,12 @@ export type SeasonEvent =
       type: 'PLAYER_SCOUTING_RESTORED';
       scouting: Record<number, ScoutingRecord>;
     }
+  | {
+      // Manager dismisses a player from the Scouting watchlist. Deletes
+      // the whole record — implicitly releases any assigned scout.
+      type: 'PLAYER_SCOUTING_REMOVED';
+      rosterId: number;
+    }
   // ── Feature 1.4 — Transfer Requests & Playing-Time Promises ─────────
   | {
       // Player's morale has been at or below MORALE.veryUnhappyThreshold for

@@ -562,7 +562,11 @@ A three-match knockout follows the 18-round League regular season: two semi-fina
 
 ## Save format
 
-`SAVE_VERSION = 1`. `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`. **`ACCEPTED_VERSIONS` must always include `SAVE_VERSION`** — currently `new Set([1])`; omitting the current version silently rejects every freshly-written save on the next load. Only v1 saves are accepted; older saves are rejected (start a new game). Bump `SAVE_VERSION` and update `ACCEPTED_VERSIONS` whenever the serialised shape changes in a way that would corrupt an existing save on load. New additive-only optional fields don't require a bump.
+`SAVE_VERSION = 1`. `SavedGame` in `src/ui/SaveManager.ts` is a thin serialiser for `GameCoordinator.toSavePayload()`. **`ACCEPTED_VERSIONS` must always include `SAVE_VERSION`** — currently `new Set([1])`; omitting the current version silently rejects every freshly-written save on the next load. Bump `SAVE_VERSION` and update `ACCEPTED_VERSIONS` whenever the serialised shape changes in a way that would corrupt an existing save on load. New additive-only optional fields don't require a bump.
+
+**Forward compatibility.** `parseSavedGame` routes a **lower, known** version through an ordered `MIGRATIONS` pipeline (`MIGRATIONS[N]` upgrades vN→v(N+1); empty at v1) so a `SAVE_VERSION` bump carries existing careers forward instead of orphaning them. A future/garbage version (or a gap in the migration chain) is rejected cleanly. `ACCEPTED_VERSIONS` is the post-migration belt-and-braces check. `scripts/checkSaveSchema.ts` (run by `npm run verify`) boots a fresh deterministic career, serialises it, and fails if the `SavedSeason`/`SavedCareer` key set or `SAVE_VERSION` drifts from its pinned snapshot — so a shape change can't ship without a conscious bump (or a snapshot update for an additive-optional field).
+
+**Robustness.** Autosave (`saveGame`) returns a boolean and is silent on success; `main.ts`'s `autosave()` helper emits a debounced `save:failed` warning toast on a failed write (storage full). A `visibilitychange`/`pagehide` flush persists the live game when the app is backgrounded (iOS WKWebView can kill it), and a global `error`/`unhandledrejection` net attempts an emergency save before warning the player — complementing the match-tick `engine:error` → CrashOverlay path.
 
 `SavedSeason.mediaStories?: MediaStory[]` is one such additive field (no bump). Media stories aren't replayable from `results` (they need the per-match snapshot), so `toSavePayload` persists them directly and `fromSave` restores each via `MEDIA_STORY_PUBLISHED`. Absent on pre-media saves → no stories restored, regeneration resumes from the next fixture. See **[media-manager.md](media-manager.md)**.
 
@@ -577,14 +581,23 @@ Home Continue card target the **active** slot via thin wrappers
 (`loadSave`/`saveGame`/`clearSave` → `loadSlot`/`saveToSlot`/`clearSlot` of the
 active id). The Saves screen (`src/ui/SavesScreen.ts`, reachable from Home and
 Settings) manages slots: load (switches active), Save here (manual snapshot into
-any slot), rename, delete, and export / import. **Native iCloud backup** lives in
+any slot), rename, delete, **Restore backup**, and export / import. Each slot
+also keeps a last-known-good `rugby-manager-save-{id}-bak` copy: `saveToSlot`
+rotates the current primary into it **before** overwriting, and
+`loadSlot`/`slotInfo` fall back to it when the primary won't parse (corruption
+resistance, web included). **Native iCloud backup** lives in
 `src/ui/saveBackup.ts` (Capacitor-only, no-op on web): every slot write mirrors
-to the iOS Documents directory (`saves/slot-{id}.json`, included in the device's
-iCloud Backup and not OS-evicted), `reconcileBackups()` restores from disk at
-boot when a slot is missing locally (reinstall / eviction), and `exportSlot` /
+the primary + the rotated `.bak` to the iOS Documents directory
+(`saves/slot-{id}.json`, `saves/slot-{id}-bak.json`, included in the device's
+iCloud Backup and not OS-evicted), and a capped, time-throttled rolling history
+(`saves/slot-{id}/{savedAt}.json`, 8 generations ≥20 min apart) feeds the
+Restore-backup picker. `reconcileBackups()` restores from disk at boot when a
+slot is missing locally (reinstall / eviction) and **repairs** a corrupt local
+primary from the disk `.bak` then the newest parseable history generation;
+`listBackups`/`restoreBackup` back the Saves screen's restore UI; `exportSlot` /
 `importToSlot` hand a slot's JSON to the iOS Share Sheet / file picker (Blob
 download / `<input type=file>` on web). SaveManager has no Capacitor dependency
-— the mirror hooks in via `setSlotWriteHook`.
+— the mirrors hook in via `setSlotWriteHook` / `setBakWriteHook`.
 
 **On load** (`GameCoordinator.fromSave`). `src/game/saveMigration.ts` houses two event-payload builders (`buildRosterSeededEvent`, `buildCareerArchiveRestoredEvent`) that normalise a saved career into the `SeasonEvent` payloads replayed by `fromSave` through `applySeasonEvent`. The persisted career state always flows through `CAREER_ARCHIVE_RESTORED` (with optional `freeAgents` / `market` / `pendingMoves` / `teamSeasonStats` / `preSeasonStep` / `playoffs` / `takeoverHistory` / `midseasonRejections` / `activePoachedIds` fields) so every `state.career.*` write stays inside `applySeasonEvent`. The `training` field lives on `state.player`; it's restored via `PLAYER_TRAINING_PLAN_SET` during `fromSave`, mirroring the `PLAYER_TACTICS_SET` / `PLAYER_MATCHDAY_SQUAD_SET` restore path.
 

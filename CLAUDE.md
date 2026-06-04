@@ -233,7 +233,7 @@ When an entire pack needs to glide from one formation to another (Lineout→Maul
 | `src/types/matchEvent.ts` — new `MatchEvent` variant | `docs/match-engine.md` § "Mutation boundary" list |
 | `src/game/` — new coordinator method, season flow change | `docs/game-engine.md` (relevant section) |
 | `src/game/applySeasonEvent.ts` — new `SeasonEvent` variant | `docs/game-engine.md` § "Mutation seam" table + `docs/transfer-system.md` § "Mutation-boundary additions" |
-| `src/ui/SaveManager.ts` — `SAVE_VERSION` bump | `docs/game-engine.md` version table + `docs/transfer-system.md` §7 table + `CLAUDE.md` § "Save schema" below + `ACCEPTED_VERSIONS` in `SaveManager.ts` |
+| `src/ui/SaveManager.ts` — `SAVE_VERSION` bump | `docs/game-engine.md` version table + `docs/transfer-system.md` §7 table + `CLAUDE.md` § "Save schema" below + `ACCEPTED_VERSIONS` + a `MIGRATIONS[N]` step in `SaveManager.ts` + the pinned snapshot in `scripts/checkSaveSchema.ts` |
 | `src/utils/eventBus.ts` / new `game:*` event | `docs/game-engine.md` § "UI events" table |
 | `src/engine/MatchCoordinator.ts` / new `engine:*` event | `docs/match-engine.md` § "UI Event Bus Contract" table |
 | `src/ui/HubScreen.ts` — TILES array | `docs/DESIGN.md` § 15.4 Hub tile list |
@@ -242,7 +242,9 @@ When an entire pack needs to glide from one formation to another (Lineout→Maul
 
 ## Save schema
 
-`SAVE_VERSION = 1`. Only v1 saves accepted. Bump whenever the serialised shape changes in a way that would corrupt an existing save on load. Update `ACCEPTED_VERSIONS` in `SaveManager.ts` + `docs/game-engine.md` § "Save format" + `docs/transfer-system.md` §7 + `CLAUDE.md` § "Save schema". New additive-only optional fields do not require a bump — e.g. `SavedSeason.board?: BoardState` (board confidence, restored verbatim or re-seeded on legacy saves) and `SavedSeason.mediaStories?`.
+`SAVE_VERSION = 1`. The current version loads directly; a **lower, known** version is carried forward through the ordered `MIGRATIONS` pipeline in `SaveManager.ts` (empty at v1); a future/garbage version is rejected. Bump `SAVE_VERSION` whenever the serialised shape changes in a way that would corrupt an existing save on load — and in the **same commit** add the matching `MIGRATIONS[N]` step (vN→v(N+1)), update `ACCEPTED_VERSIONS`, update the pinned snapshot in `scripts/checkSaveSchema.ts`, and update `docs/game-engine.md` § "Save format" + `docs/transfer-system.md` §7. `npm run verify` runs `checkSaveSchema.ts`, which fails if the fresh-new-season `SavedSeason`/`SavedCareer` key set drifts without a bump. New additive-only optional fields do not require a bump (just update the snapshot) — e.g. `SavedSeason.board?: BoardState` and `SavedSeason.mediaStories?`.
+
+**Backup & corruption resistance (storage-layer, no `SAVE_VERSION` bump).** Each slot keeps a last-known-good `rugby-manager-save-{id}-bak` copy in localStorage; `saveToSlot` rotates the current primary into it **before** overwriting, and `loadSlot`/`slotInfo` fall back to it when the primary won't parse. On native, `saveBackup.ts` mirrors the `.bak` to disk and keeps a capped, time-throttled rolling history (`saves/slot-{id}/{savedAt}.json`, 8 generations ≥20 min apart); `reconcileBackups` repairs a corrupt local primary from the disk `.bak` then the newest parseable generation, and the Saves screen's "Restore backup" surfaces `listBackups`/`restoreBackup`. Autosave (`saveGame` → boolean) is silent on success; `main.ts`'s `autosave()` helper emits a debounced `save:failed` warning on a failed write, and a `visibilitychange`/`pagehide` flush + global `error`/`unhandledrejection` net persist the live game on backgrounding / uncaught errors.
 
 ## Commands
 

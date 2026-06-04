@@ -1476,6 +1476,37 @@ document.addEventListener('DOMContentLoaded', () => {
   eventBus.on('save:failed', () =>
     showToast("Couldn't save — storage full. Export your career to be safe.", 'danger'));
 
+  // Persist the live game synchronously. Called when the app is backgrounded
+  // (iOS WKWebView can kill a backgrounded app) and from the global error
+  // net, so progress between the discrete autosave points is never lost.
+  // Ignores the boolean — there's no useful recovery during teardown.
+  const flushActiveGame = (): void => {
+    if (!inSeasonInited || !gameEngine) return;
+    try { saveGame(gameEngine.toSavePayload()); } catch { /* teardown best-effort */ }
+  };
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushActiveGame();
+  });
+  window.addEventListener('pagehide', flushActiveGame);
+
+  // Global crash net for anything that escapes the match-tick path (which has
+  // its own engine:error → CrashOverlay). Attempt an emergency save, then tell
+  // the player their game is safe. Passive (no preventDefault) so existing
+  // logging is unaffected.
+  const emergencySaveAndWarn = (message: string): void => {
+    flushActiveGame();
+    console.error('Unhandled error:', message);
+    showToast('Something went wrong — your game was saved. Please reopen the app.', 'danger');
+  };
+  window.addEventListener('error', (e) => {
+    // Ignore resource-load failures (img/script/link) — those surface as an
+    // error event with no `.error` object and aren't app crashes.
+    if (!e.error) return;
+    emergencySaveAndWarn(e.message);
+  });
+  window.addEventListener('unhandledrejection', (e) =>
+    emergencySaveAndWarn(String((e as PromiseRejectionEvent).reason)));
+
   // Wire the native backup mirror so every slot write is copied to the iOS
   // Documents directory (iCloud-backed). No-op on web.
   installBackupMirror();

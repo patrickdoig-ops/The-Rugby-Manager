@@ -133,7 +133,7 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 
 | Variant | When fired | What it does |
 |---|---|---|
-| `BOARD_STATE_SEEDED` | `newSeason` + `fromSave` (verbatim restore) + after `rollSeason()` (`GameCoordinator.seedBoardState`) | Sets `state.player.board` wholesale. Seed confidence is the ambition baseline in year 1 (`title 58 / playoffs 55 / topHalf 55`), else mapped from the just-archived finish via `evaluateObjective` (`champion 72 / exceeded 65 / met 60 / missed 45`). `objective` copies the authored `boardAmbition`; `warningIssued` + `sacked` reset to `false` each season. |
+| `BOARD_STATE_SEEDED` | `newSeason` + `fromSave` (verbatim restore) + after `rollSeason()` (`BoardCoordinator.seedBoardState`) | Sets `state.player.board` wholesale. Seed confidence is the ambition baseline in year 1 (`title 58 / playoffs 55 / topHalf 55`), else mapped from the just-archived finish via `evaluateObjective` (`champion 72 / exceeded 65 / met 60 / missed 45`). `objective` copies the authored `boardAmbition`; `warningIssued` + `sacked` reset to `false` each season. |
 | `BOARD_CONFIDENCE_ADJUSTED` | Per human result in `recordPlayerMatchResult` (`applyBoardResult`) | `confidence = clamp(0, 100, confidence + delta)`. Per-result delta keyed on `expectedToWin`: win-as-favourite `+3`, win-as-underdog `+6`, draw `∓2`, loss-as-favourite `−6`, loss-as-underdog `−3`; a third straight league loss adds `−5`. |
 | `MANAGER_WARNED` | `evaluateJobSecurity` when confidence ≤ `25` and no warning has been issued this season | Sets `warningIssued = true` (the one-per-season final-warning latch). The inbox surfaces a high-priority warning item while the latch holds and confidence stays low. |
 | `MANAGER_SACKED` | `evaluateJobSecurity` when confidence ≤ `10` *with* a prior warning | Sets the persisted `sacked = true` latch (mid-season). Persisted — not a transient flag — so a reload between the result and the game-over screen can't escape it: `main.ts` reads `GameCoordinator.isManagerSacked()` on every continue / resume path and routes to the `SackScreen` (which clears the save slot). |
@@ -562,7 +562,7 @@ Effect constants in `PRESS_ANSWER_EFFECTS` (`balance/press.ts`).
 
 **Skip penalty.** If the manager skips the conference entirely: `BOARD_CONFIDENCE_ADJUSTED { delta: −2 }` + a stub `MEDIA_STORY_PUBLISHED` ("manager silent after match"). Constant: `PRESS_SKIP_BOARD_PENALTY = −2`.
 
-**Coordinator surface (`GameCoordinator.applyPressEffects(skipped, answers)`).** Called from `main.ts` after the overlay resolves. Aggregates `boardDelta` across both answers and emits one `BOARD_CONFIDENCE_ADJUSTED`; aggregates `moraleDelta` and emits `PLAYER_MORALE_ADJUSTED` for every player in the managed club's squad. No new `SeasonEvent` variants — fully reuses the existing three.
+**Coordinator surface (`GameCoordinator.applyPressEffects(skipped, answers)`, implemented on `BoardCoordinator`).** Called from `main.ts` after the overlay resolves. Aggregates `boardDelta` across both answers and emits one `BOARD_CONFIDENCE_ADJUSTED`; aggregates `moraleDelta` and emits `PLAYER_MORALE_ADJUSTED` for every player in the managed club's squad. No new `SeasonEvent` variants — fully reuses the existing three.
 
 **Save/load.** No state to persist — the press conference has no persistent record. After `applyPressEffects`, `saveGame` runs immediately so the board/morale changes are written.
 

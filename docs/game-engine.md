@@ -120,6 +120,7 @@ All season-scope state writes go through `applySeasonEvent(state, event)`, calle
 | `PLAYER_RECALLED_FROM_LOAN` | `GameCoordinator.recallLoanedPlayer(rosterId)` — LoanScreen "Recall" button | Clears `Player.loanOut`. Player immediately becomes eligible for selection. |
 | `LOAN_PLAYER_SIGNED` | `GameCoordinator.signLoanPlayer(rosterId)` — LoanScreen "Sign on loan" button | Adds `rosterId` to the managed club's `squad`; sets `Player.loanIn = { fromRound: calendar.week }`; removes from `career.loanPool`. Player is immediately available for selection and trains normally. |
 | `LOAN_PLAYER_RELEASED` | `GameCoordinator.releaseLoanPlayer(rosterId)` — LoanScreen "Release" button | Removes `rosterId` from the club's `squad`; clears `Player.loanIn`; adds back to `career.loanPool`. |
+| `STAFF_BUDGET_BOOSTED` | `GameCoordinator.setStaffBudgetBoost(boost)` — FinancesScreen transfer slider | Sets `ClubState.staffBudgetBoost` to the new absolute value. Season-only: cleared (set to 0) during `SEASON_ROLLED_OVER`. One-way — player salary headroom → staff budget only. |
 
 | `PLAYER_SCOUT_ASSIGNED` | `GameCoordinator.assignScout(rosterId, scoutId)` — called from PlayerProfileScreen assign button | Creates or updates the `ScoutingRecord` for `rosterId` (preserving existing accuracy); sets `assignedScoutId`. The coordinator unassigns the scout from any prior target before calling this. |
 | `PLAYER_SCOUT_UNASSIGNED` | `GameCoordinator.unassignScout(rosterId)` or inline before a reassignment | Removes `assignedScoutId` from the record (accuracy retained). |

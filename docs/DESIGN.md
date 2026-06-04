@@ -989,7 +989,7 @@ The Hub (`src/ui/HubScreen.ts`) has **six tiles** plus a Settings cog and "Go to
 | League | `league-menu` | Sub-menu: Table / Team Stats / Player Stats / Cup (browse) / Awards |
 | Training | `training` (mid-week mode) | Persists plan without running the training block |
 | Contracts & Transfers | `contracts-transfers-menu` | Sub-menu (club colours): Contracts leaf + Transfers leaf + Scouting leaf; badge = expiring-contract count + poach-threat count combined |
-| Club | `club-menu` | Sub-menu (club colours): board-confidence card + Staff nav row |
+| Club | `club-menu` | Sub-menu (club colours): Board Confidence, Staff, Finances tiles |
 
 **Invariant: the Hub tile count is fixed at six.** New screens must fit inside existing sub-menus. `ClubMenuScreen` and `ContractsTransfersMenuScreen` are the natural homes for club-management features.
 
@@ -997,7 +997,7 @@ PreMatch's 'mine' step (the user's starting XV) carries a tappable captain badge
 
 **Contracts sub-menu** (`contracts-transfers-menu`, `src/ui/ContractsTransfersMenuScreen.ts`): Tier 2 club-colour app-header; four tiles with the same `.hub-tile` class but WITHOUT the `--rm-cta` override used by the League sub-menu, so tiles inherit `--team-color-tile` from `injectTeamColors`. Individual tile badges: Contracts = expiring-contract count, Transfers = poach-threat count, Scouting = total scouted player count. The fourth tile is **Loans** → `loans` (loan management screen — development loans out to a fixed partnership club, emergency cover loans in from a generated pool).
 
-**Club sub-menu** (`club-menu`, `src/ui/ClubMenuScreen.ts`): Tier 2 club-colour app-header. Hosts the **board-confidence card** (`.cm-board`): a summary hero (band label + 0–100 meter + number, accent-coloured by band — Secure / Stable / Under pressure / At risk), a live **"what's driving it"** factor list (`boardConfidenceFactors` — season objective vs current position, recent results, winning/losing runs, any formal warning, each tone-tagged), and a plain-English explainer of how the meter moves. See `docs/game-engine.md` § "Board confidence layer". Below the board card is a **Staff nav row** (`.cm-nav-row`) linking to `StaffScreen`; new club-management screens should be added here as additional `.cm-nav-row` entries.
+**Club sub-menu** (`club-menu`, `src/ui/ClubMenuScreen.ts`): Tier 2 club-colour app-header; three hub-tiles with the same `.hub-tile` class — **Board Confidence** → `board-confidence`, **Staff** → `staff`, **Finances** → `club-finances`. New club-management screens should be added here as additional tiles (extend `TILES` and `InitClubMenuOpts` in `ClubMenuScreen.ts`). The `BoardConfidenceScreen` hosts the owner-confidence card and factor list. The `StaffScreen` hosts hire/release. The `FinancesScreen` shows the player salary budget vs committed wages, staff budget vs spend, and a one-way season-only slider to transfer unused player salary headroom to staff budget (`ClubState.staffBudgetBoost`, cleared at `SEASON_ROLLED_OVER`).
 
 ### 15.5 Navigation flow
 
@@ -1013,8 +1013,10 @@ Hub
  ├─ [League] → LeagueMenuScreen → leaf, back → LeagueMenuScreen → back → Hub
  ├─ [Contracts & Transfers] → ContractsTransfersMenuScreen → Contracts / Transfers / Scouting / Loans, back → ContractsTransfersMenuScreen → back → Hub
  │   └─ [Scouting] → ScoutingScreen (swipe card → removeScouting; tap card → PlayerProfile), back → ContractsTransfersMenuScreen
- ├─ [Club] → ClubMenuScreen (board-confidence card + Staff nav row), back → Hub
- │   └─ [Staff] → StaffScreen (hire/release assistant manager, fitness lead, scouts), back → ClubMenuScreen
+ ├─ [Club] → ClubMenuScreen (Board / Staff / Finances tiles), back → Hub
+ │   ├─ [Board] → BoardConfidenceScreen (confidence meter + factors), back → ClubMenuScreen
+ │   ├─ [Staff] → StaffScreen (hire/release assistant manager, fitness lead, scouts), back → ClubMenuScreen
+ │   └─ [Finances] → FinancesScreen (salary budgets + staff-budget transfer slider), back → ClubMenuScreen
  └─ Go to next match → PreMatch
      └─ Kick Off → TeamTalk → Match → MatchResult → post-match chain
 ```

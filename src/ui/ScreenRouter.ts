@@ -50,6 +50,7 @@ export type ScreenId =
   | 'board-confidence'
   | 'scouting'
   | 'staff'
+  | 'club-finances'
   | 'team-talk'
   | 'loans';
 
@@ -97,6 +98,7 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'board-confidence':          { elId: 'board-confidence',          shownDisplay: '' },
   'scouting':                  { elId: 'scouting',                  shownDisplay: '' },
   'staff':                     { elId: 'staff',                     shownDisplay: '' },
+  'club-finances':             { elId: 'club-finances',             shownDisplay: '' },
   'team-talk':                 { elId: 'team-talk',                 shownDisplay: '' },
   'loans':                     { elId: 'loans',                     shownDisplay: '' },
 };

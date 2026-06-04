@@ -123,7 +123,7 @@ All season-scope state writes go through `applySeasonEvent(state, event)`. The d
 
 | `PLAYER_SCOUT_ASSIGNED` | `GameCoordinator.assignScout(rosterId, scoutId)` — called from PlayerProfileScreen assign button | Creates or updates the `ScoutingRecord` for `rosterId` (preserving existing accuracy); sets `assignedScoutId`. The coordinator unassigns the scout from any prior target before calling this. |
 | `PLAYER_SCOUT_UNASSIGNED` | `GameCoordinator.unassignScout(rosterId)` or inline before a reassignment | Removes `assignedScoutId` from the record (accuracy retained). |
-| `SCOUTING_ACCURACY_ADVANCED` | `GameCoordinator.advanceScoutingAccuracy()` — once per week per assigned-scout target | Adds `delta = scoutWeeklyGain(scout.rating)` pp to `accuracy`; clamped to 0–100. |
+| `SCOUTING_ACCURACY_ADVANCED` | `StaffCoordinator.advanceScoutingAccuracy()` — once per week per assigned-scout target | Adds `delta = scoutWeeklyGain(scout.rating)` pp to `accuracy`; clamped to 0–100. |
 | `PLAYER_SCOUTING_RESTORED` | `GameCoordinator.fromSave` only | Bulk-replaces `state.player.scouting` verbatim. Absent on legacy saves — falls back to no entries (all targets at accuracy 0). |
 | `PLAYER_SCOUTING_REMOVED` | `GameCoordinator.removeScouting(rosterId)` — called when the manager swipes a card off the Scouting screen | Deletes `state.player.scouting?.[rosterId]`. Implicitly releases any assigned scout since the record no longer exists. |
 
@@ -523,9 +523,9 @@ The scouting system is a per-target knowledge layer on the managed club: each un
 - `PLAYER_SCOUTING_REMOVED { rosterId }` — deletes the whole record; implicitly frees any assigned scout.
 - `PLAYER_SCOUTING_RESTORED { scouting: Record<number, ScoutingRecord> }` — bulk-replaces the scouting map; used only by `fromSave`.
 
-**Weekly tick.** `GameCoordinator.advanceScoutingAccuracy()` (private) runs after `WEEK_ADVANCED` each round. For every entry with a live `assignedScoutId` pointing at a currently-hired scout, it emits `SCOUTING_ACCURACY_ADVANCED { rosterId, delta: scoutWeeklyGain(scout.rating) }`.
+**Weekly tick.** `StaffCoordinator.advanceScoutingAccuracy()` (`src/game/StaffCoordinator.ts`) runs after `WEEK_ADVANCED` each round, called from the match-result tick. For every entry with a live `assignedScoutId` pointing at a currently-hired scout, it emits `SCOUTING_ACCURACY_ADVANCED { rosterId, delta: scoutWeeklyGain(scout.rating) }`.
 
-**Coordinator surface.**
+**Coordinator surface.** Staff & scouting live on `StaffCoordinator` (`src/game/StaffCoordinator.ts`); GameCoordinator keeps thin delegating methods (`hireStaff`, `releaseStaff`, `assignScout`, `unassignScout`, `removeScouting`) so screens keep talking to it.
 - `assignScout(rosterId, scoutId)` — validates scout is hired + is a scout role; unassigns from any current target, then emits `PLAYER_SCOUT_ASSIGNED`.
 - `unassignScout(rosterId)` — emits `PLAYER_SCOUT_UNASSIGNED`.
 - `removeScouting(rosterId)` — emits `PLAYER_SCOUTING_REMOVED`; called from ScoutingScreen on card swipe-dismiss.

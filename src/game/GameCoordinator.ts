@@ -40,8 +40,7 @@ import { emptyCareerState } from '../types/gameState';
 import { sortStandings } from './leagueTable';
 import type { Player, InternationalWindow } from '../types/player';
 import type { TeamTactics } from '../types/team';
-import type { TrainingPlan, TrainingWeekResult, PlayerTrainingResult, InternationalBreakSummary } from '../types/training';
-import type { PlayerStats } from '../types/player';
+import type { TrainingPlan, TrainingWeekResult, InternationalBreakSummary } from '../types/training';
 import { applySeasonEvent } from './applySeasonEvent';
 import type { PreSeasonTransfer } from '../data/transfers-2025-26';
 import { simulateFixture } from './simulateFixture';
@@ -54,7 +53,7 @@ import { parseSeasonStartYear, seasonOpenIso, getAge } from './age';
 import { recentForm, clubBudgetUsage, staffBudgetUsage, type FormResult } from './teamStats';
 import { generateMatchStory, type MediaMatchContext, type MediaPlayer } from './media/mediaManager';
 import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot } from './seasonStatsCollector';
-import { computeTrainingWeek } from './trainingWeek';
+import { runTrainingPeriods } from './trainingRunner';
 import { upcomingGap, splitGapIntoPeriods } from './trainingCalendar';
 import {
   isInternationalBreak, selectInternationalSquads, buildCallUpEvents,
@@ -627,72 +626,9 @@ export class GameCoordinator {
     const n = Math.max(1, weeks.length);
     const { days } = upcomingGap(this.state);
     const spans = splitGapIntoPeriods(days, n);
-    const acc = this.runTrainingPeriods(weeks, spans);
+    const acc = runTrainingPeriods(this.state, weeks, spans);
     eventBus.emit('game:trainingApplied', { state: this.state });
     return { plan: weeks[weeks.length - 1], players: [...acc.values()], weeks: n };
-  }
-
-  // Per-period training loop, shared by the non-break path (applyTrainingBlock)
-  // and the international-break path (runInternationalBreakBlock). Each period
-  // emits one PLAYER_TRAINING_PLAN_SET then one PLAYER_TRAINED per non-injured,
-  // non-international player league-wide plus optional PLAYER_INJURED; AI clubs
-  // get their plan from aiTrainingDirector, re-picked per period. Returns the
-  // per-player results merged across the block for PostTrainingResultsScreen.
-  private runTrainingPeriods(weeks: TrainingPlan[], spans: number[]): Map<number, PlayerTrainingResult> {
-    const n = Math.max(1, weeks.length);
-    // Per-player accumulator merged across periods. conditionBefore is
-    // captured the first period a player trains; conditionAfter tracks the
-    // latest; statDeltas sum; newlyInjured latches on any period.
-    const acc = new Map<number, PlayerTrainingResult>();
-
-    for (let i = 0; i < n; i++) {
-      const plan = weeks[i] ?? weeks[weeks.length - 1];
-      const events = computeTrainingWeek(this.state, plan, spans[i]);
-
-      // Snapshot the to-be-changed stats per trained player before applying.
-      const beforeSnap = new Map<number, { condition: number; stats: Partial<PlayerStats> }>();
-      for (const ev of events) {
-        if (ev.type !== 'PLAYER_TRAINED') continue;
-        const p = this.state.career.roster[ev.rosterId];
-        if (!p) continue;
-        const stats: Partial<PlayerStats> = {};
-        for (const k of Object.keys(ev.statDeltas) as (keyof PlayerStats)[]) {
-          stats[k] = p.baseStats[k];
-        }
-        beforeSnap.set(ev.rosterId, { condition: p.condition ?? 100, stats });
-      }
-
-      const injuredThisPeriod = new Set<number>();
-      for (const ev of events) {
-        if (ev.type === 'PLAYER_INJURED') injuredThisPeriod.add(ev.rosterId);
-      }
-
-      for (const ev of events) applySeasonEvent(this.state, ev);
-
-      for (const ev of events) {
-        if (ev.type !== 'PLAYER_TRAINED') continue;
-        const p = this.state.career.roster[ev.rosterId];
-        const snap = beforeSnap.get(ev.rosterId);
-        if (!p || !snap) continue;
-        const existing = acc.get(ev.rosterId);
-        const entry = existing ?? {
-          rosterId: ev.rosterId,
-          conditionBefore: snap.condition,
-          conditionAfter: p.condition ?? 100,
-          statDeltas: {},
-          newlyInjured: false,
-        };
-        // Real (post-clamp) gains for this period, summed into the block total.
-        for (const k of Object.keys(snap.stats) as (keyof PlayerStats)[]) {
-          const gain = (p.baseStats[k] ?? 0) - (snap.stats[k] ?? 0);
-          if (gain > 0) entry.statDeltas[k] = (entry.statDeltas[k] ?? 0) + gain;
-        }
-        entry.conditionAfter = p.condition ?? 100;
-        if (injuredThisPeriod.has(ev.rosterId)) entry.newlyInjured = true;
-        acc.set(ev.rosterId, entry);
-      }
-    }
-    return acc;
   }
 
   // ── International break: begin / run split ───────────────────────────────
@@ -785,7 +721,7 @@ export class GameCoordinator {
     const n = Math.max(1, weeks.length);
     const { days } = upcomingGap(this.state);
     const spans = splitGapIntoPeriods(days, n);
-    const acc = this.runTrainingPeriods(weeks, spans);
+    const acc = runTrainingPeriods(this.state, weeks, spans);
 
     // 5. International returns (rngTransfer).
     let international: InternationalBreakSummary | undefined;

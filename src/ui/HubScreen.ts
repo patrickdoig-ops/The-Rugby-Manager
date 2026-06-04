@@ -124,6 +124,7 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
     // the champion has been crowned).
     const playoffs = state.league.playoffs;
     const playoffsActive = playoffs !== null;
+    const playerPlayoffMatch = playoffsActive ? opts.getGameEngine().getPlayerPlayoffMatch() : null;
 
     const sorted = sortStandings(state.league.standings);
     const rankIdx = sorted.findIndex(s => s.teamId === playerTeam.id);
@@ -180,7 +181,7 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
       </div>
 
       ${playoffsActive
-        ? playoffsHtml(playoffs!, teamsById, playerTeam.id)
+        ? playoffsHtml(playoffs!, teamsById, playerTeam.id, playerPlayoffMatch)
         : nextMatchHtml(nextFixture, state, teamsById, playerTeam.id)}
 
       ${(() => {
@@ -228,7 +229,7 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
         }).join('')}
       </div>
 
-      <div id="hub-footer">${playoffsActive ? playoffFooterHtml() : footerHtml(nextFixture)}</div>
+      <div id="hub-footer">${playoffsActive ? playoffFooterHtml(playoffs!, playerPlayoffMatch) : footerHtml(nextFixture)}</div>
     `;
 
     injectTeamColors(el!, playerTeam);
@@ -255,6 +256,7 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
     playoffs: import('../types/gameState').PlayoffState,
     byId: Map<string, RawTeamInput>,
     playerId: string,
+    playerMatch: import('../types/gameState').PlayoffMatch | null,
   ): string {
     // Champion already crowned but the user hasn't been through the
     // end-of-season chain yet — surface that explicitly so the CTA is
@@ -272,7 +274,6 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
           </div>`;
       }
     }
-    const playerMatch = opts.getGameEngine().getPlayerPlayoffMatch();
     const stageLabel = playoffs.semifinals.every(m => m.result) ? 'FINAL' : 'SEMI-FINALS';
     const subline = playerMatch
       ? (playerMatch.kind === 'final'
@@ -318,11 +319,22 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
       </div>`;
   }
 
-  function playoffFooterHtml(): string {
+  function playoffFooterHtml(
+    playoffs: import('../types/gameState').PlayoffState,
+    playerMatch: import('../types/gameState').PlayoffMatch | null,
+  ): string {
+    let label: string;
+    if (playoffs.championTeamId !== null) {
+      label = 'Continue';
+    } else if (playerMatch && playerMatch.homeId && playerMatch.awayId) {
+      label = playerMatch.kind === 'final' ? 'Play Final' : 'Play Semi-Final';
+    } else {
+      label = 'Continue';
+    }
     return `
-      <button id="hub-play-next" class="cta-pulse" aria-label="Continue to playoffs">
+      <button id="hub-play-next" class="cta-pulse" aria-label="${label}">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>
-        <span>Continue to playoffs</span>
+        <span>${label}</span>
       </button>`;
   }
 

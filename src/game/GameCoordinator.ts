@@ -444,6 +444,13 @@ export class GameCoordinator {
     this.staff.removeScouting(rosterId);
   }
 
+  // Called once per playoff match result (SF or Final) — advances scouting
+  // by one week since ~1 week elapses between each playoff fixture. Mirrors
+  // the per-round advance in recordPlayerMatchResult.
+  advancePlayoffWeekScouting(): void {
+    this.staff.advanceScoutingAccuracy();
+  }
+
   // Apply the outcome of a press conference. Delegates to BoardCoordinator.
   applyPressEffects(skipped: boolean, answers: Array<{ boardDelta: number; moraleDelta: number }>): void {
     this.board.applyPressEffects(skipped, answers);

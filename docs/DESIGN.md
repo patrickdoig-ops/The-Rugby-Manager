@@ -1026,7 +1026,16 @@ Hub
 League Table → IntlCallUps → CupFixtures → Training (`runInternationalBreakBlock`) → CupResults → PostTrainingResults → [InternationalBreak if duty players returned] → Hub
 
 **Post-match chain — after R18 (final regular round):**
-League Table → PlayoffBracket → [player's SF] → bracket → other SF (AI sim) → bracket → Final → bracket (champion banner) → EndOfSeason → BudgetReveal → [TakeoverReveal if fired] → [Renewals if expiring] → [TransferMarket if FA/poach pool] → Rollover → Hub
+League Table → Training → Hub (bracket now active)
+
+**R19 — Semi-Final week (from Hub CTA "Play Semi-Final" / "Continue"):**
+[PreMatch → TeamTalk → Match → MatchResult (if player qualified)] → PlayoffBracket (SF results) → Training → Hub
+
+**R20 — Final week (from Hub CTA "Play Final" / "Continue"):**
+[PreMatch → TeamTalk → Match → MatchResult (if player in Final)] → PlayoffBracket (Final results) → Hub
+
+**Hub CTA "Continue" (champion crowned):**
+→ EndOfSeason → BudgetReveal → [TakeoverReveal if fired] → [Renewals if expiring] → [TransferMarket if FA/poach pool] → Rollover → Hub
 
 **Job security (Tier 0 · 0.1).** Board confidence (`state.player.board`) drains on poor results and an end-of-season objective miss. At the warning threshold the inbox shows a final-warning item; at the sack threshold the manager is dismissed — mid-season (after a result, with a prior warning; persisted `board.sacked` latch) or end-of-season (the pure `judgeSeasonObjective()` verdict on EndOfSeason). `main.ts` reads `GameCoordinator.isManagerSacked()` on every continue / resume path so a reload can't escape the dismissal; either route clears the active save slot and shows the game-over `SackScreen` (New Game → Team Selector, or Main Menu → Home).
 

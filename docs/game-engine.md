@@ -180,9 +180,9 @@ The game engine emits eight `game:*` events through `src/utils/eventBus.ts`. UI 
 | `game:initialized` | `{ state: GameState }` | `FixtureListScreen` (initial render after `newSeason` / `fromSave`) |
 | `game:fixtureRecorded` | `{ result: FixtureResult; state: GameState }` | `FixtureListScreen`, `RoundResultsScreen`, `HubScreen`, `LeagueTableScreen`, `TeamStatsScreen`, `PlayerStatsScreen`, `InboxScreen` (re-render as each headless AI fixture resolves; stats screens pick up the fresh per-team / per-player aggregates from `state.league.teamSeasonStats` + `state.career.roster[*].seasonStats`) |
 | `game:weekAdvanced` | `{ state: GameState }` | `FixtureListScreen` (calendar header), `HubScreen` (expiring-contracts badge refresh as deals tick into the 6-month window), `LeagueTableScreen` / `TeamStatsScreen` / `PlayerStatsScreen` (re-derive season-position eyebrow), `InboxScreen` |
-| `game:bracketSeeded` | `{ state: GameState }` | `main.ts` latches `bracketSeededPending`; `HubScreen` + `PlayoffBracketScreen` + `InboxScreen` re-render. Fires once after the final R18 fixture is recorded (via `seedPlayoffBracket`). |
+| `game:bracketSeeded` | `{ state: GameState }` | `HubScreen` + `PlayoffBracketScreen` + `InboxScreen` re-render. Fires once after the final R18 fixture is recorded (via `seedPlayoffBracket`). The Hub shows playoff fixture cards and the "Play Semi-Final" CTA; no flags set in `main.ts`. |
 | `game:playoffsUpdated` | `{ state: GameState }` | `HubScreen` + `PlayoffBracketScreen` + `InboxScreen` re-render. Fires after every `PLAYOFF_RESULT_RECORDED` (player or AI) so the bracket UI shows the cascade fill in. |
-| `game:seasonComplete` | `{ state: GameState }` | `main.ts` latches `seasonCompletePending`; the post-match Continue chain reroutes through `EndOfSeasonScreen` → optional `RenewalsScreen` → optional `TransferMarketScreen` → `RolloverScreen`. Now fires only after the League final resolves (no longer the end of the last regular round). |
+| `game:seasonComplete` | `{ state: GameState }` | Fires after the League Final resolves. No flags set in `main.ts` — `runPlayoffWeek()` reads `playoff.championTeamId` directly to determine when to enter `runEndOfSeasonChain()`. |
 | `game:trainingApplied` | `{ state: GameState }` | `TrainingScreen` (triggers the post-training results display after `applyTrainingBlock` completes); `AchievementEngine` (evaluates post-training achievement predicates). Fired once at the end of `GameCoordinator.applyTrainingBlock` after all per-player `PLAYER_TRAINED` events have been applied. |
 | `game:seasonRolledOver` | `{ state: GameState }` | `HubScreen`, `FixtureListScreen`, `LeagueTableScreen` re-render with the new season's state (new fixtures, zeroed standings, updated season label). Fired at the end of `GameCoordinator.rollSeason()` after all `SEASON_ROLLED_OVER`-group events are applied, so state is fully consistent when subscribers read it. |
 
@@ -581,7 +581,7 @@ A three-match knockout follows the 18-round League regular season: two semi-fina
 - **Coordinator surface.** Implemented on `PlayoffCoordinator` (`src/game/PlayoffCoordinator.ts`); GameCoordinator keeps thin public delegations + calls `this.playoffs.allRegularFixturesPlayed()`/`seedPlayoffBracket()` from the match tick. `seedPlayoffBracket()` (auto-called from `recordPlayerMatchResult` after the last R18 fixture; idempotent). `getPlayerPlayoffMatch()` returns the player's next unresolved playoff match or null. `recordPlayerPlayoffResult(kind, homeScore, awayScore, snapshot)` is the playoff analogue of `recordPlayerMatchResult` — same idempotency guard + injury tick + per-player + per-team stats accumulation, but writes through `PLAYOFF_RESULT_RECORDED` so league standings are untouched. `simulatePendingPlayoffMatches(stage)` runs (silent) every pending AI-vs-AI match in the named stage (`'sf'` or `'final'`).
 - **Determinism.** Each playoff match derives its match seed from `deriveFixtureSeed(rootSeed, pseudoRound, homeId, awayId)` with pseudo-round 19 for SFs and 20 for the Final — same hashing pipeline as regular fixtures, so a given root seed produces an identical bracket every run. Verified by `scripts/checkSeasonDeterminism.ts` which now walks each season through to the Final.
 - **Neutral venue.** The Final is played at Twickenham — `state.engine.neutralVenue` is set by `MatchCoordinator` (constructor opt) when the kind is `'final'`. `homeEdge(state, mod)` short-circuits to `{ attack: 0, defend: 0 }` so the `HOME_ADVANTAGE` carry / breakdown bump zeroes out. `teamStats.homeAdvantagePts(neutral)` mirrors this for the PreMatch SPREAD tile so prediction and simulation agree.
-- **UI surface.** `PlayoffBracketScreen` (`src/ui/PlayoffBracketScreen.ts`) renders the live bracket — two SF cards + a centred Final card + a champion banner once crowned. CTA label adapts: "Continue" → play the player's next match or enter EndOfSeason; "Watch the Semi-Finals" / "Watch the Final" → silent-sim the pending AI matches and re-render. `main.ts::runPlayoffStage()` is the state-driven orchestrator that decides what to show next on every entry. `HubScreen` re-routes the "Go to next match" tile to `runPlayoffStage` whenever the bracket is active.
+- **UI surface.** Playoffs run as rounds 19 (SFs) and 20 (Final) inside the normal weekly cycle. `main.ts::runPlayoffWeek()` is the async entry point: if the player has a match in the current stage it launches PreMatch → Match → MatchResult → `recordPlayerPlayoffResult` + `advancePlayoffWeekScouting`; then it silent-sims any remaining AI matches in the stage via `simulatePendingPlayoffMatches`; then shows `PlayoffBracketScreen` as the round-results view. After SFs the bracket Continue goes to Training → Hub; after the Final it goes straight to Hub (no training, season over). Hub's CTA reads "Play Semi-Final" / "Play Final" (player has match) or "Continue" (no match / champion decided); "Continue" on a crowned Hub enters `runEndOfSeasonChain`. Non-qualified or eliminated managers skip straight to the auto-sim + bracket round-results path with no pre/post-match screens. `PlayoffBracketScreen` (`src/ui/PlayoffBracketScreen.ts`) renders two SF cards + a centred Final card + a champion banner once crowned.
 - **Per-player + per-team stats.** Playoff matches contribute to `Player.seasonStats` and `state.league.teamSeasonStats` exactly like regular matches — `seasonStatsCollector.snapshotMatch` runs over every playoff fixture (live + silent). Top scorer / MVP / leaderboards in `EndOfSeasonScreen` include playoff contributions.
 - **Archive.** `ArchivedSeason.championTeamId` records the winner. Older archives (pre-v13 saves with no playoff history) load as `null`.
 
@@ -682,25 +682,30 @@ Match → MatchResult → recordPlayerMatchResult + snapshotMatch + saveGame
                        │         · PLAYER_INJURED per training-injury roll
                        │       → game:trainingApplied → TrainingResults → saveGame → Hub
                        │
-                       ├── (last R18 fixture just resolved: game:bracketSeeded latched)
-                       │     → TrainingScreen [same as regular season; eyebrow shows
-                       │         "Semi-Final" for qualifiers, "Playoffs" for others]
-                       │     → TrainingResults → runPlayoffStage()
-                       │         — state-driven orchestrator that:
-                       │       · shows PlayoffBracketScreen on every entry (CTA label adapts)
-                       │       · if player has a pending match and a training week is
-                       │         pending (playoffTrainingPending flag): bracket Continue
-                       │         → TrainingScreen [eyebrow "Semi-Final" or "Final"]
-                       │         → TrainingResults → PreMatchScreen → MatchResult
-                       │         → recordPlayerPlayoffResult → playoffTrainingPending=true
-                       │         → runPlayoffStage()
-                       │       · if player has a pending match and no training pending:
-                       │         bracket Continue → PreMatchScreen directly
-                       │       · else simulatePendingPlayoffMatches('sf' | 'final') silently
-                       │         → game:playoffsUpdated → runPlayoffStage()
-                       │       · once championTeamId is set, falls through to the chain below
+                       ├── (last R18 fixture just resolved: bracket seeded, Hub shows SF fixtures)
+                       │     → TrainingScreen [eyebrow "Semi-Final" for qualifiers,
+                       │         "Playoffs" for non-qualifiers] → TrainingResults → Hub
                        │
-                       └── (champion crowned: game:seasonComplete latched)
+                       │     Hub CTA ("Play Semi-Final" / "Continue") → runPlayoffWeek():
+                       │       R19 SEMI-FINAL WEEK
+                       │       · if player has SF match: PreMatchScreen → TeamTalk
+                       │         → Match → MatchResult → recordPlayerPlayoffResult
+                       │         → advancePlayoffWeekScouting → simulatePendingPlayoffMatches('sf')
+                       │       · else: simulatePendingPlayoffMatches('sf') silently
+                       │       → PlayoffBracketScreen (SF results) → TrainingScreen
+                       │         [eyebrow "Final"] → TrainingResults → Hub
+                       │
+                       │     Hub CTA ("Play Final" / "Continue") → runPlayoffWeek():
+                       │       R20 FINAL WEEK
+                       │       · if player has Final match: PreMatchScreen → TeamTalk
+                       │         → Match → MatchResult → recordPlayerPlayoffResult
+                       │         → advancePlayoffWeekScouting → simulatePendingPlayoffMatches('final')
+                       │       · else: simulatePendingPlayoffMatches('final') silently
+                       │       → PlayoffBracketScreen (Final results) → Hub
+                       │
+                       │     Hub CTA ("Continue") → runPlayoffWeek():
+                       │
+                       └── (champion crowned: championTeamId set → runEndOfSeasonChain)
                              → EndOfSeasonScreen [recap + champion banner]
                              → prepareBudgetsForNextSeason()                   (Phase 9)
                                   · CLUB_BUDGET_SET per club (performance-derived)

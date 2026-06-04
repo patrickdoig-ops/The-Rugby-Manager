@@ -226,16 +226,6 @@ document.addEventListener('DOMContentLoaded', () => {
     lastSaveFailWarnAt = now;
     eventBus.emit('save:failed', { reason: 'quota' });
   };
-  let seasonCompletePending = false;
-  // Latched on game:bracketSeeded so the post-final-regular-round
-  // Continue chain detours through PlayoffBracketScreen rather than
-  // straight back to Hub. Cleared once the chain enters runPlayoffStage.
-  let bracketSeededPending = false;
-  // Set after the player records a playoff result; cleared when the training
-  // week shown before the next playoff match begins. Ensures players get a
-  // full training week between each playoff match (SF → Final), matching the
-  // regular-season rhythm.
-  let playoffTrainingPending = false;
 
   // `direction` defaults to 'forward'. Back-paths (Settings → Home,
   // TeamSelector → Home, end-of-game → Home) pass 'back' to get the
@@ -331,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
       getGameEngine,
       allTeams,
       onPlayMatch: onPlayRound,
-      onPlayoffs: runPlayoffStage,
+      onPlayoffs: () => { void runPlayoffWeek(); },
       onFixtures: goFixtures,
       onLeague:   goLeagueMenu,
       onSquad:    goSquad,
@@ -482,13 +472,6 @@ document.addEventListener('DOMContentLoaded', () => {
       onLoans:     () => goLoans(),
     });
 
-    // The post-match Continue chain (LeagueTable → ...) reads these flags.
-    // game:bracketSeeded fires after the last regular-season fixture —
-    // routes through PlayoffBracketScreen instead of straight to Hub.
-    // game:seasonComplete fires once the season final resolves —
-    // routes through EndOfSeason → Renewals → Signings → Rollover.
-    eventBus.on('game:bracketSeeded',  () => { bracketSeededPending = true; playoffTrainingPending = false; });
-    eventBus.on('game:seasonComplete', () => { seasonCompletePending = true; });
   }
 
   // Game over: the manager has been sacked. Clears the active save slot so a
@@ -849,14 +832,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Season finished (champion crowned) but the rollover hasn't run yet —
     // the off-season chain was interrupted before any market opened (e.g. a
     // tab reload on the EndOfSeason / BudgetReveal screens, common on mobile
-    // PWAs). Re-enter via the playoff bracket → off-season chain rather than
-    // dropping onto a Hub that shows a stale "Continue to playoffs" for an
-    // already-finished season. The rollover (which clears the bracket) only
-    // runs at the very end of that chain, so a crowned-but-unrolled bracket
-    // is the reliable signal that the off-season chain is unfinished.
+    // PWAs). Go straight to the end-of-season chain — the crowned bracket is
+    // the reliable signal that the off-season chain is unfinished.
     const playoffs = gameEngine.getState().league.playoffs;
     if (playoffs !== null && playoffs.championTeamId !== null) {
-      runPlayoffStage();
+      runEndOfSeasonChain();
       return;
     }
     // Interrupted international break (tab closed on the post-match chain at a
@@ -1082,64 +1062,67 @@ document.addEventListener('DOMContentLoaded', () => {
     runOffSeasonMarkets(market?.phase === 'signings' ? 'signings' : 'renewals');
   }
 
-  // Routes the playoff chain. State-driven — picks the next action based
-  // on the live bracket: play the player's pending match, sim the AI
-  // matches in the current stage, or run the end-of-season chain when
-  // the champion has been crowned. Re-enters itself after every state
-  // change until the chain bottoms out.
-  function runPlayoffStage(): void {
+  // Drives one playoff "week" as a normal weekly cycle. Called from the Hub's
+  // onPlayoffs CTA and from continueGame() when the bracket is live.
+  //
+  // If the player has a match this stage → play it, then sim remaining AI
+  // matches, then show the bracket as round results → training → Hub.
+  // If no player match → auto-sim all AI matches silently → bracket → training → Hub.
+  // No training after the Final — the season is over, Hub continues to EndOfSeason.
+  // Champion already crowned → skip straight to EndOfSeason.
+  async function runPlayoffWeek(): Promise<void> {
     if (!gameEngine) { goHub(); return; }
     const state = gameEngine.getState();
     const playoffs = state.league.playoffs;
     if (!playoffs) { goHub(); return; }
 
-    // 1. Champion decided → off-season chain.
     if (playoffs.championTeamId !== null) {
-      if (seasonCompletePending) seasonCompletePending = false;
-      showPlayoffBracket(() => runEndOfSeasonChain(), 'Continue');
-      screenRouter.show('playoff-bracket');
+      runEndOfSeasonChain();
       return;
     }
 
-    // 2. Player has a pending playoff match → show bracket, then a training
-    //    week (if coming from a playoff result) before PreMatch.
+    const stage: 'sf' | 'final' = playoffs.semifinals.every(m => m.result) ? 'final' : 'sf';
     const playerMatch = gameEngine.getPlayerPlayoffMatch();
-    if (playerMatch && playerMatch.homeId && playerMatch.awayId) {
-      const goToMatch = () => onPlayPlayoff(playerMatch);
-      const onBracketContinue = playoffTrainingPending
-        ? () => {
-            playoffTrainingPending = false;
-            const label = playerMatch.kind === 'final' ? 'Final' : 'Semi-Final';
-            showTrainingPostMatch((results) => {
-              showPostTrainingResults(results, () => {
-                if (gameEngine) autosave(gameEngine.toSavePayload());
-                goToMatch();
-              });
-              screenRouter.show('training-results');
-            }, { playoffLabel: label });
-            screenRouter.show('training');
-          }
-        : goToMatch;
-      showPlayoffBracket(onBracketContinue, 'Continue');
-      screenRouter.show('playoff-bracket');
-      return;
-    }
 
-    // 3. AI-only matches pending in the current stage → sim them.
-    const stage: 'sf' | 'final' = playoffs.semifinals.every(m => m.result)
-      ? 'final'
-      : 'sf';
-    const ctaLabel = stage === 'sf' ? 'Watch the Semi-Finals' : 'Watch the Final';
-    showPlayoffBracket(async () => {
-      if (!gameEngine) { goHub(); return; }
+    const afterStageResolved = (): void => {
+      if (stage === 'sf') {
+        // SF week: show bracket results → training (prep for Final) → Hub.
+        showPlayoffBracket(() => {
+          showTrainingPostMatch((results) => {
+            showPostTrainingResults(results, () => {
+              if (gameEngine) autosave(gameEngine.toSavePayload());
+              goHub();
+            });
+            screenRouter.show('training-results');
+          }, { playoffLabel: 'Final' });
+          screenRouter.show('training');
+        }, 'Continue');
+      } else {
+        // Final week: show bracket results → Hub (Hub CTA then → EndOfSeason).
+        showPlayoffBracket(() => {
+          if (gameEngine) autosave(gameEngine.toSavePayload());
+          goHub();
+        }, 'Continue');
+      }
+      screenRouter.show('playoff-bracket');
+    };
+
+    if (playerMatch && playerMatch.homeId && playerMatch.awayId) {
+      onPlayPlayoff(playerMatch, async () => {
+        if (gameEngine) {
+          await gameEngine.simulatePendingPlayoffMatches(stage);
+          autosave(gameEngine.toSavePayload());
+        }
+        afterStageResolved();
+      });
+    } else {
       await gameEngine.simulatePendingPlayoffMatches(stage);
       autosave(gameEngine.toSavePayload());
-      runPlayoffStage();
-    }, ctaLabel);
-    screenRouter.show('playoff-bracket');
+      afterStageResolved();
+    }
   }
 
-  function onPlayPlayoff(match: PlayoffMatch): void {
+  function onPlayPlayoff(match: PlayoffMatch, onAfterResult: () => void): void {
     if (!gameEngine) return;
     if (!match.homeId || !match.awayId) return;
     const state = gameEngine.getState();
@@ -1181,13 +1164,13 @@ document.addEventListener('DOMContentLoaded', () => {
           playerConfigured.players.slice(0, 15),
           avgMorale,
           (talkArgs) => {
-            onPlayoffMatchStart(configuredHome, configuredAway, playerSide, match, playerTactics, talkArgs, avgMorale);
+            onPlayoffMatchStart(configuredHome, configuredAway, playerSide, match, playerTactics, onAfterResult, talkArgs, avgMorale);
           },
         );
         screenRouter.show('team-talk');
       },
-      runPlayoffStage,
-      { contextLabel, neutralVenue: isFinal, backLabel: 'Bracket' },
+      () => goHub('back'),
+      { contextLabel, neutralVenue: isFinal, backLabel: 'Hub' },
       goSquadFromPreMatch,
       (rosterId, returnStep) => goPlayerProfile(rosterId, () => {
         showPreMatchAtStep(returnStep);
@@ -1203,6 +1186,7 @@ document.addEventListener('DOMContentLoaded', () => {
     playerSide: 'home' | 'away',
     match: PlayoffMatch,
     playerTactics: TeamTactics,
+    onAfterResult: () => void,
     humanPreTalk?: TalkArgs,
     humanSquadMorale?: number,
   ): void {
@@ -1222,30 +1206,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const unsub = eventBus.on('engine:finished', ({ state }) => {
       unsub();
-      showPlayoffMatchResult(engine, state, match);
+      showPlayoffMatchResult(engine, state, match, onAfterResult);
     });
     // Initialise BEFORE revealing #app — see onMatchStart for the rationale.
     engine.initialize();
     screenRouter.show('app');
   }
 
-  function showPlayoffMatchResult(engine: MatchCoordinator, state: MatchState, match: PlayoffMatch): void {
-    // No "next fixture" tile on the playoff result screen — the bracket
-    // is the canonical "what's next" surface. Pass null so MatchResult's
-    // peek tile collapses.
+  function showPlayoffMatchResult(
+    engine: MatchCoordinator,
+    state: MatchState,
+    match: PlayoffMatch,
+    onAfterResult: () => void,
+  ): void {
     initMatchResultScreen(state, 0, null, async () => {
       const snapshot = snapshotMatch(state, state.homeTeam.id, state.awayTeam.id);
       engine.destroy();
       if (gameEngine) {
         await gameEngine.recordPlayerPlayoffResult(match.kind, state.score.home, state.score.away, snapshot);
+        gameEngine.advancePlayoffWeekScouting();
         autosave(gameEngine.toSavePayload());
       }
-      // Back into the orchestrator. State now reflects the new result;
-      // the next iteration picks the right next step (next match, sim
-      // pending stage, or end-of-season chain). Flag a training week
-      // so the player recovers before their next playoff match (if any).
-      playoffTrainingPending = true;
-      runPlayoffStage();
+      onAfterResult();
     });
     screenRouter.show('match-result');
   }
@@ -1441,45 +1423,30 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         }
       }
-      // Post-match nav chain: RoundResults → LeagueTable → TrainingScreen →
-      // Hub (regular season) or PlayoffBracket (after the final regular round).
+      // Post-match nav chain: RoundResults → LeagueTable → TrainingScreen → Hub.
+      // After the last regular round (R18) this is identical — the Hub then shows
+      // the playoff fixtures and the normal weekly cycle continues through them.
       const onLeagueContinue = (): void => {
-        const isPlayoffEntry = bracketSeededPending;
-        // Determine a playoff-context label for the training screen eyebrow.
-        // Qualifiers see "Semi-Final"; non-qualifiers see "Playoffs".
-        const playoffLabel = isPlayoffEntry && gameEngine
-          ? (() => {
-              const s = gameEngine.getState();
-              const poffs = s.league.playoffs;
-              return poffs?.semifinals.some(
-                m => m.homeId === s.player.teamId || m.awayId === s.player.teamId,
-              ) ? 'Semi-Final' : 'Playoffs';
-            })()
+        // Show a playoff-context label on training when the bracket just seeded
+        // (qualifiers see "Semi-Final"; non-qualifiers see "Playoffs").
+        const s = gameEngine?.getState();
+        const poffs = s?.league.playoffs;
+        const playoffLabel = poffs && poffs.championTeamId === null && s?.player.teamId
+          ? (poffs.semifinals.some(m => m.homeId === s.player.teamId || m.awayId === s.player.teamId)
+              ? 'Semi-Final' : 'Playoffs')
           : undefined;
-        // Normal in-season rounds detour through a mid-season Reg 7 poach
-        // window when a rival approaches one of the user's players (the
-        // window self-gates on cadence + threats). Playoff-entry rounds
-        // skip straight to the bracket.
-        const afterTraining = isPlayoffEntry
-          ? () => {
-              // A final-round result can sack the manager even as the bracket
-              // is seeded — game over takes precedence over entering the playoffs.
-              if (gameEngine?.isManagerSacked()) { runSackScreen('midseason'); return; }
-              bracketSeededPending = false; runPlayoffStage();
-            }
-          : () => {
-              // A mid-season result may have drained board confidence past the
-              // sack threshold — game over before returning to the Hub.
-              if (gameEngine?.isManagerSacked()) { runSackScreen('midseason'); return; }
-              maybeRunMidseasonPoach(() => { if (gameEngine) autosave(gameEngine.toSavePayload()); goHub(); });
-            };
+        const afterTraining = (): void => {
+          if (gameEngine?.isManagerSacked()) { runSackScreen('midseason'); return; }
+          maybeRunMidseasonPoach(() => { if (gameEngine) autosave(gameEngine.toSavePayload()); goHub(); });
+        };
         // International break detection (RNG-free): flags the call-ups and
         // reads this block's Prem Cup fixtures. When present, the break runs
         // its own screen chain (call-ups → cup fixtures + direction → training
         // → cup results → training impact → returns). Otherwise the plain
-        // post-match training path.
+        // post-match training path. beginInternationalBreak() returns null for
+        // all regular-season rounds outside the two break windows, including R18.
         const eng = gameEngine;
-        const begin = !isPlayoffEntry && eng ? eng.beginInternationalBreak() : null;
+        const begin = eng ? eng.beginInternationalBreak() : null;
         if (begin && eng) {
           runInternationalBreakChain(begin, eng, afterTraining);
           return;

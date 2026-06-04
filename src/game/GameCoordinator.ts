@@ -46,7 +46,7 @@ import { applySeasonEvent } from './applySeasonEvent';
 import type { PreSeasonTransfer } from '../data/transfers-2025-26';
 import { simulateFixture } from './simulateFixture';
 import { seedRoster } from './rosterSeeder';
-import { playerOverall } from '../engine/RatingEngine';
+import { computeFixtureMoraleEvents, computeMoraleDecayEvents } from './moraleEffects';
 import { buildAutoSelectedTeamFromRoster, buildCupTeamFromRoster } from './rosterTeamBuilder';
 import { CUP_POOLS_2025_26, CUP_SEED_ROUND, buildCupSeed, buildCupKnockoutSeed } from './cupScheduler';
 import { cupDevelopmentEvents } from './cupDevelopment';
@@ -1133,7 +1133,7 @@ export class GameCoordinator {
     for (const ev of rollNewInjuryEvents(this.state, snapshot.playerSnapshots)) {
       applySeasonEvent(this.state, ev);
     }
-    for (const ev of this.computeFixtureMoraleEvents(result, snapshot)) {
+    for (const ev of computeFixtureMoraleEvents(this.state, result, snapshot)) {
       applySeasonEvent(this.state, ev);
     }
     eventBus.emit('game:fixtureRecorded', { result, state: this.state });
@@ -1191,7 +1191,7 @@ export class GameCoordinator {
       for (const ev of rollNewInjuryEvents(this.state, sim.snapshot.playerSnapshots)) {
         applySeasonEvent(this.state, ev);
       }
-      for (const ev of this.computeFixtureMoraleEvents(aiResult, sim.snapshot)) {
+      for (const ev of computeFixtureMoraleEvents(this.state, aiResult, sim.snapshot)) {
         applySeasonEvent(this.state, ev);
       }
       eventBus.emit('game:fixtureRecorded', { result: aiResult, state: this.state });
@@ -1224,7 +1224,7 @@ export class GameCoordinator {
     }
 
     applySeasonEvent(this.state, { type: 'WEEK_ADVANCED' });
-    for (const ev of this.computeMoraleDecayEvents()) {
+    for (const ev of computeMoraleDecayEvents(this.state)) {
       applySeasonEvent(this.state, ev);
     }
     this.checkTransferRequestsAndPromises();
@@ -1324,79 +1324,6 @@ export class GameCoordinator {
     };
 
     applySeasonEvent(this.state, { type: 'MEDIA_STORY_PUBLISHED', story: generateMatchStory(ctx) });
-  }
-
-  // Computes PLAYER_MORALE_ADJUSTED events for all players in both clubs
-  // after a fixture: playing-time (top-OVR players who didn't appear),
-  // match result (win/loss nudge for all squad members), and individual
-  // standout (rating ≥ threshold). Pure — no state mutations.
-  private computeFixtureMoraleEvents(result: FixtureResult, snapshot: MatchSnapshot): SeasonEvent[] {
-    const events: SeasonEvent[] = [];
-    const played = new Set(snapshot.playerSnapshots.map(s => s.rosterId));
-    const standoutSet = new Set(
-      snapshot.playerSnapshots
-        .filter(s => s.rating >= MORALE.standoutRatingThreshold)
-        .map(s => s.rosterId),
-    );
-
-    for (const side of ['home', 'away'] as const) {
-      const teamId = side === 'home' ? result.homeId : result.awayId;
-      const club = this.state.career.clubs.find(c => c.id === teamId);
-      if (!club) continue;
-
-      const won = result.homeScore > result.awayScore
-        ? result.homeId
-        : result.awayScore > result.homeScore
-          ? result.awayId
-          : null; // draw
-      const resultDelta = teamId === won
-        ? MORALE.winDelta
-        : won === null ? MORALE.drawDelta : MORALE.lossDelta;
-
-      // Rank non-injured players by OVR descending to determine PT expectation.
-      const ranked = club.squad
-        .map(rid => this.state.career.roster[rid])
-        .filter((p): p is NonNullable<typeof p> => !!p && !p.injury)
-        .sort((a, b) => playerOverall(b.baseStats, b.position) - playerOverall(a.baseStats, a.position));
-
-      for (let i = 0; i < ranked.length; i++) {
-        const p = ranked[i];
-        const rid = p.rosterId;
-        let delta = resultDelta;
-
-        if (!played.has(rid)) {
-          // Playing-time penalty: top-15 OVR expected to play; 16-23 as bench cover.
-          if (i < 15) delta += MORALE.omittedTopDelta;
-          else if (i < 23) delta += MORALE.benchedUnusedDelta;
-        }
-
-        if (standoutSet.has(rid)) delta += MORALE.standoutDelta;
-
-        if (delta !== 0) {
-          events.push({ type: 'PLAYER_MORALE_ADJUSTED', rosterId: rid, delta, reason: 'fixture' });
-        }
-      }
-    }
-    return events;
-  }
-
-  // Computes PLAYER_MORALE_ADJUSTED decay events for all roster players,
-  // nudging morale toward MORALE.baseline each week. Rounds to the nearest
-  // integer; skips players already at baseline (delta rounds to 0).
-  private computeMoraleDecayEvents(): SeasonEvent[] {
-    const events: SeasonEvent[] = [];
-    const freeAgentSet = new Set(this.state.career.freeAgents);
-    for (const key of Object.keys(this.state.career.roster)) {
-      const rid = Number(key);
-      if (freeAgentSet.has(rid)) continue;
-      const p = this.state.career.roster[rid];
-      const current = p.morale ?? MORALE.baseline;
-      const rawDelta = (MORALE.baseline - current) * MORALE.decayRate;
-      const delta = Math.round(rawDelta);
-      if (delta === 0) continue;
-      events.push({ type: 'PLAYER_MORALE_ADJUSTED', rosterId: p.rosterId, delta, reason: 'decay' });
-    }
-    return events;
   }
 
   // Feature 1.4 — fires after morale decay each round for the human club only.
@@ -1631,7 +1558,7 @@ export class GameCoordinator {
     for (const ev of rollNewInjuryEvents(this.state, snapshot.playerSnapshots)) {
       applySeasonEvent(this.state, ev);
     }
-    for (const ev of this.computeFixtureMoraleEvents({
+    for (const ev of computeFixtureMoraleEvents(this.state, {
       round: kind === 'final' ? 20 : 19,
       homeId: target.homeId!,
       awayId: target.awayId!,
@@ -1694,7 +1621,7 @@ export class GameCoordinator {
       for (const ev of rollNewInjuryEvents(this.state, sim.snapshot.playerSnapshots)) {
         applySeasonEvent(this.state, ev);
       }
-      for (const ev of this.computeFixtureMoraleEvents({
+      for (const ev of computeFixtureMoraleEvents(this.state, {
         round: pseudoRound,
         homeId: match.homeId!,
         awayId: match.awayId!,

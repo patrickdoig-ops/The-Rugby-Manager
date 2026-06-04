@@ -14,6 +14,43 @@ Reference fixture list for the 2025/26 League Rugby season. Used to seed a seaso
 
 ---
 
+## League Cup (pre-season) — September 2025
+
+The **2025/26 Premiership Rugby Cup** starts with 2 rounds in early September,
+before the league season opens on 25 September. The game season begins here.
+
+**Pools** (same groupings used for all 3 cup blocks):
+- **Pool A:** Bath, Bristol, Exeter, Gloucester, Sale
+- **Pool B:** Harlequins, Leicester, Newcastle, Northampton, Saracens
+
+### Round 1 — 12–13 September 2025
+
+| Date | Home | Away |
+|---|---|---|
+| Fri 12 Sep | Gloucester | Exeter |
+| Fri 12 Sep | Newcastle | Harlequins |
+| Sat 13 Sep | Sale | Bristol |
+| Sat 13 Sep | Leicester | Saracens |
+
+*(Bath and Northampton have byes)*
+
+### Round 2 — 19–20 September 2025
+
+| Date | Home | Away |
+|---|---|---|
+| Fri 19 Sep | Gloucester | Bristol |
+| Fri 19 Sep | Saracens | Northampton |
+| Fri 19 Sep | Harlequins | Leicester |
+| Sat 20 Sep | Bath | Exeter |
+
+*(Sale and Newcastle have byes)*
+
+Rounds 3–5 fall in the Autumn Nations block (leg 1). Rounds 6–10 + knockouts
+fall in the Six Nations block (leg 2). See `docs/league-cup.md` for the full
+cup structure.
+
+---
+
 ## Regular season
 
 ### Round 1 — 25–28 September 2025

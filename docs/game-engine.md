@@ -88,7 +88,7 @@ All season-scope state writes go through `applySeasonEvent(state, event)`, calle
 
 | Event | When | Effect |
 |---|---|---|
-| `PREM_CUP_SEEDED` | Once per season — `newSeason` (fixed 2025-26 pools) + appended **last** in `computeRollover` (year 2+, redrawn pools) | Builds `state.league.premCup` — two pools (each with `zeroStanding` rows) + 40 pool fixtures (both legs). Idempotent on a matching `seasonLabel`. |
+| `PREM_CUP_SEEDED` | Once per season — `newSeason` (fixed 2025-26 pools) + appended **last** in `computeRollover` (year 2+, redrawn pools) | Builds `state.league.premCup` — two pools (each with `zeroStanding` rows) + 40 pool fixtures (3 legs: 4/pool pre-season, 8/pool autumn, 8/pool six-nations). Idempotent on a matching `seasonLabel`. |
 | `PREM_CUP_FIXTURE_RECORDED` | Per pool fixture, inside `runInternationalBreakBlock` | Sets the fixture result + applies it to that pool's standings via the shared `applyToSide` (same 4/2/0 + bonus rules as the league). |
 | `PREM_CUP_KNOCKOUT_SEEDED` | Once, after the leg-2 pool stage | Seeds `premCup.knockout` — SF1 = winner(A) v runner-up(B), SF2 = winner(B) v runner-up(A). |
 | `PREM_CUP_KNOCKOUT_RECORDED` | Per knockout match | Records the result; cascades SF winners → final slots (SF1→home, SF2→away), final winner → `championTeamId`. Mirrors `PLAYOFF_RESULT_RECORDED`. |
@@ -631,7 +631,7 @@ download / `<input type=file>` on web). SaveManager has no Capacitor dependency
 
 `main.ts` routes the user through a Mode Picker after team selection (`src/ui/ModePickerScreen.ts`). The picker has two CTAs:
 
-**Quick Start** — `GameCoordinator.newSeason(teamId, seed, allTeams)` → `saveGame` → Hub. Authored rosters / contracts / marquees stand exactly as seeded. This is the pre-Phase-8 behaviour.
+**Quick Start** — `GameCoordinator.newSeason(teamId, seed, allTeams)` → `saveGame` → pre-season cup block → Hub (R1 upcoming). Authored rosters / contracts / marquees stand exactly as seeded. This is the pre-Phase-8 behaviour.
 
 **Squad Builder** (v2.114a, with Squad Overview added v2.120a) — one-shot pre-season flow at game start only:
 
@@ -658,10 +658,23 @@ ModePicker (Squad Builder)
   → ContractsScreen (marquee-edit mode, showContractsMarqueeEdit)
     [user picks marquee from the post-signings squad; star toggle interactive, Continue CTA]
   → setPreSeasonStep(null) + saveGame
+  → pre-season cup block (see below)
   → Hub → Round 1
 ```
 
-**Save resumption.** `state.career.preSeasonStep` is set before every `saveGame` during the flow. `continueGame` reads it and routes back to the in-flight screen (`runPreSeasonOverview()` for `'overview'`, `runPreSeasonSignings()` for `'signings'`, `runPreSeasonMarquee()` for `'marquee'`, Hub otherwise). The flag is only ever set between team-selection and Round 1; once the marquee Continue completes the engine clears it. The field is optional — saves without it load with `preSeasonStep === undefined` and skip straight to Hub.
+**Save resumption.** `state.career.preSeasonStep` is set before every `saveGame` during the flow. `continueGame` reads it and routes back to the in-flight screen (`runPreSeasonOverview()` for `'overview'`, `runPreSeasonSignings()` for `'signings'`, `runPreSeasonMarquee()` for `'marquee'`, pre-season cup check otherwise). The flag is only ever set between team-selection and Round 1; once the marquee Continue completes the engine clears it. The field is optional — saves without it load with `preSeasonStep === undefined` and proceed to the pre-season cup check.
+
+**Pre-season cup block** — both Quick Start and Squad Builder route through this after the new-game setup completes. Detected by `isPreSeasonCupPending()` (any unresolved leg-0 cup fixture). Screen chain:
+
+```
+CupFixturesScreen (pre-season fixtures + direction toggle)
+  → TrainingScreen (runs runPreSeasonBlock on Continue — 13-day gap hardcoded)
+  → CupResultsScreen (leg-0 results)
+  → PostTrainingResultsScreen
+  → Hub (R1: Sep 25 upcoming)
+```
+
+`continueGame` on reload also checks `isPreSeasonCupPending()` before `isBreakPending()`, so a tab close during the pre-season block resumes correctly.
 
 **Determinism.** Squad Builder consumes an extra signing window's worth of `rngTransfer` (wages for the 99 FAs are seeded via `signingTermsFor`). Quick Start is byte-identical to the pre-Phase-8 behaviour. Both modes are individually deterministic given the same root seed; the existing `npm run verify` harnesses (which test the Quick Start path only) continue to pass unchanged.
 

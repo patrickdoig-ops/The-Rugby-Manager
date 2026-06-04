@@ -504,7 +504,7 @@ function parseCupFixture(raw: unknown): CupFixture | null {
   if (typeof raw !== 'object' || raw === null) return null;
   const f = raw as Record<string, unknown>;
   if (f.pool !== 'A' && f.pool !== 'B') return null;
-  if (f.leg !== 1 && f.leg !== 2) return null;
+  if (f.leg !== 0 && f.leg !== 1 && f.leg !== 2) return null;
   if (typeof f.homeId !== 'string' || typeof f.awayId !== 'string') return null;
   if (typeof f.date !== 'string') return null;
   return {

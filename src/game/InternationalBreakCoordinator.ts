@@ -37,8 +37,71 @@ export interface BreakBeginResult {
   cupDirection: 'best' | 'rest_first_15';
 }
 
+// Returned by beginPreSeasonBlock() — simplified equivalent for the
+// pre-season cup block (no international call-ups, no break window).
+export interface PreSeasonBlockResult {
+  cupFixturesThisBlock: CupFixture[];
+  cupDirection: 'best' | 'rest_first_15';
+}
+
 export class InternationalBreakCoordinator {
   constructor(private state: GameState, private teamsById: Map<string, RawTeamInput>) {}
+
+  // ── International break: begin / run split ───────────────────────────────
+  //
+  // The break is a two-phase flow so the UI can show the call-ups + Prem Cup
+  // fixtures (and collect the Assistant-Manager direction) BEFORE the block
+  // simulates. beginInternationalBreak does only RNG-free work (squad
+  // selection + flagging + cup lookup); runInternationalBreakBlock does the
+  // cup sims (MATCH stream), the training periods + international returns
+  // (rngTransfer — identical sequence to applyTrainingBlock).
+
+  // ── Pre-season cup block ────────────────────────────────────────────────
+  //
+  // Mirrors the international-break flow but runs before league R1 with no
+  // international call-ups. Leg 0 pool fixtures only — no knockouts.
+
+  // Pure detector: true if leg-0 fixtures exist and any are unresolved.
+  isPreSeasonCupPending(): boolean {
+    const cup = this.state.league.premCup;
+    if (!cup) return false;
+    return cup.fixtures.some(f => f.leg === 0 && !f.result);
+  }
+
+  // Fetches the leg-0 fixtures and persisted cup direction. RNG-free.
+  beginPreSeasonBlock(): PreSeasonBlockResult {
+    const cup = this.state.league.premCup;
+    const cupFixturesThisBlock = (cup?.fixtures ?? []).filter(f => f.leg === 0);
+    const cupDirection = this.state.player.cupDirection ?? 'best';
+    return { cupFixturesThisBlock, cupDirection };
+  }
+
+  // Runs the pre-season cup block: leg-0 pool fixtures, cup development
+  // nudge, then a fixed 13-day (≈2-week) training period before R1.
+  async runPreSeasonBlock(weeks: TrainingPlan[]): Promise<TrainingWeekResult> {
+    const restIds = this.state.player.cupDirection === 'rest_first_15'
+      ? this.firstChoiceStarterIds()
+      : undefined;
+    const featured = new Set<number>();
+
+    for (const fx of (this.state.league.premCup?.fixtures ?? []).filter(f => f.leg === 0)) {
+      await this.simulateCupFixture(fx, restIds, featured);
+    }
+
+    for (const ev of cupDevelopmentEvents(this.state, featured, this.state.calendar.date)) {
+      applySeasonEvent(this.state, ev);
+    }
+
+    const n = Math.max(1, weeks.length);
+    // Use the fixed pre-season gap (Sep 12 → Sep 25 ≈ 13 days) rather than
+    // upcomingGap(), which falls back to 7 days at week 1 with no prior round.
+    const PRE_SEASON_GAP_DAYS = 13;
+    const spans = splitGapIntoPeriods(PRE_SEASON_GAP_DAYS, n);
+    const acc = runTrainingPeriods(this.state, weeks, spans);
+
+    eventBus.emit('game:trainingApplied', { state: this.state });
+    return { plan: weeks[weeks.length - 1], players: [...acc.values()], weeks: n };
+  }
 
   // ── International break: begin / run split ───────────────────────────────
   //
@@ -165,7 +228,7 @@ export class InternationalBreakCoordinator {
     if (!homeJson || !awayJson) return;
     const home = this.buildCupSide(homeJson, restIds);
     const away = this.buildCupSide(awayJson, restIds);
-    const pseudoRound = fx.leg === 1 ? CUP_SEED_ROUND.leg1 : CUP_SEED_ROUND.leg2;
+    const pseudoRound = fx.leg === 0 ? CUP_SEED_ROUND.preseason : fx.leg === 1 ? CUP_SEED_ROUND.leg1 : CUP_SEED_ROUND.leg2;
     const sim = await simulateFixture(home, away, this.state.seed, pseudoRound, {});
     applySeasonEvent(this.state, {
       type: 'PREM_CUP_FIXTURE_RECORDED',

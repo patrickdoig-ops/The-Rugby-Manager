@@ -7,12 +7,12 @@
 //     Read-only: full pool tables + both legs' fixtures + bracket if seeded.
 // One-shot init from main.ts.
 
-import type { BreakBeginResult, GameCoordinator } from '../game/GameCoordinator';
+import type { BreakBeginResult, PreSeasonBlockResult, GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import { poolTableHtml, fixtureListHtml, bracketHtml } from './components/cupViews';
 
 type Mode =
-  | { kind: 'pre_block'; begin: BreakBeginResult; onContinue: (direction: 'best' | 'rest_first_15') => void }
+  | { kind: 'pre_block'; begin: BreakBeginResult | PreSeasonBlockResult; onContinue: (direction: 'best' | 'rest_first_15') => void }
   | { kind: 'browse'; onBack: () => void };
 
 let activeMode: Mode | null = null;
@@ -20,7 +20,7 @@ let draftDirection: 'best' | 'rest_first_15' = 'best';
 let renderImpl: (() => void) | null = null;
 
 export function showCupFixturesPreBlock(
-  begin: BreakBeginResult,
+  begin: BreakBeginResult | PreSeasonBlockResult,
   onContinue: (direction: 'best' | 'rest_first_15') => void,
 ): void {
   activeMode = { kind: 'pre_block', begin, onContinue };
@@ -57,7 +57,10 @@ export function initCupFixturesScreen(
 
     if (mode.kind === 'pre_block') {
       const legFixtures = mode.begin.cupFixturesThisBlock;
-      const legLabel = mode.begin.cupLeg === 1 ? 'Pool Stage — Leg 1' : 'Pool Stage — Leg 2 + Knockouts';
+      const cupLeg = 'cupLeg' in mode.begin ? mode.begin.cupLeg : 0;
+      const legLabel = cupLeg === 0 ? 'Pre-Season'
+                     : cupLeg === 1 ? 'Pool Stage — Leg 1'
+                     :                'Pool Stage — Leg 2 + Knockouts';
       el!.innerHTML = `
         <div class="app-header">
           <div class="app-topbar">
@@ -111,7 +114,7 @@ export function initCupFixturesScreen(
     }
 
     // Browse mode.
-    const allFixtures = cup ? fixtureListHtml(cup.fixtures.filter(f => f.result || f.leg === 1), teamsById, myId) : '';
+    const allFixtures = cup ? fixtureListHtml(cup.fixtures.filter(f => f.result || f.leg >= 1), teamsById, myId) : '';
     const bracket = cup?.knockout ? `<div class="cup-section-title">Knockouts</div>${bracketHtml(cup.knockout, teamsById, myId)}` : '';
     el!.innerHTML = `
       <div class="app-header">

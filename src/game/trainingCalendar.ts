@@ -18,11 +18,31 @@ import { SEASON_VALUES } from '../engine/balance';
 // discrete training weeks the gap represents — round(days/7), min 1.
 // Falls back to a single 7-day week when either fixture is missing (round
 // 1, season end) or undated (random-gen schedules).
+//
+// Special case: during the pre-season cup block (week 1, no previous round,
+// and unresolved leg-0 cup fixtures) the gap is derived from the first
+// leg-0 fixture date to R1, approximating the real ~2-week window.
 export function upcomingGap(state: GameState): { weeks: number; days: number } {
   const playerId = state.player.teamId;
   const nextRound = state.calendar.week;
   const prevDate = playerFixtureDate(state, playerId, nextRound - 1);
   const nextDate = playerFixtureDate(state, playerId, nextRound);
+
+  // Pre-season cup block: no previous round but there are unplayed leg-0
+  // cup fixtures. Compute the gap from the earliest leg-0 date to R1.
+  if (!prevDate && nextDate && state.league.premCup) {
+    const leg0 = state.league.premCup.fixtures.filter(f => f.leg === 0 && !f.result);
+    if (leg0.length > 0) {
+      const earliest = leg0.map(f => f.date).filter(Boolean).sort()[0];
+      if (earliest) {
+        const days = daysBetween(earliest, nextDate);
+        if (days > 0) {
+          return { weeks: Math.max(1, Math.round(days / 7)), days };
+        }
+      }
+    }
+  }
+
   if (!prevDate || !nextDate) return { weeks: 1, days: SEASON_VALUES.weekLengthDays };
 
   const days = daysBetween(prevDate, nextDate);

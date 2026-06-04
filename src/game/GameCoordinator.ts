@@ -66,7 +66,7 @@ import { TransferCoordinator, type EarlyRenewalResult } from './TransferCoordina
 import { StaffCoordinator } from './StaffCoordinator';
 import { BoardCoordinator } from './BoardCoordinator';
 import { PlayoffCoordinator } from './PlayoffCoordinator';
-import { InternationalBreakCoordinator, type BreakBeginResult } from './InternationalBreakCoordinator';
+import { InternationalBreakCoordinator, type BreakBeginResult, type PreSeasonBlockResult } from './InternationalBreakCoordinator';
 import { computeBudgetEvents } from './budgetPlanner';
 import { computeAttendance } from './attendance';
 import { eventBus } from '../utils/eventBus';
@@ -77,7 +77,7 @@ import type { RawTeamInput } from '../types/teamData';
 
 // Re-exported from InternationalBreakCoordinator (where the break flow lives)
 // so existing UI imports `from '../game/GameCoordinator'` keep working.
-export type { BreakBeginResult };
+export type { BreakBeginResult, PreSeasonBlockResult };
 
 export type SavedSeasonResult = {
   round: number;
@@ -504,6 +504,18 @@ export class GameCoordinator {
   // All delegate to InternationalBreakCoordinator (same `state` reference).
   // The non-break applyTrainingBlock above stays on GameCoordinator; these
   // are the break-flow surface main.ts / the determinism harness drive.
+
+  isPreSeasonCupPending(): boolean {
+    return this.intlBreak.isPreSeasonCupPending();
+  }
+
+  beginPreSeasonBlock(): PreSeasonBlockResult {
+    return this.intlBreak.beginPreSeasonBlock();
+  }
+
+  async runPreSeasonBlock(weeks: TrainingPlan[]): Promise<TrainingWeekResult> {
+    return this.intlBreak.runPreSeasonBlock(weeks);
+  }
 
   isBreakPending(): boolean {
     return this.intlBreak.isBreakPending();

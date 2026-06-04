@@ -131,7 +131,7 @@ import type { TalkArgs }           from './types/ui';
 import * as teamProfile            from './team/teamProfile';
 import type { TeamJson }           from './team/teamProfile';
 import { GameCoordinator }         from './game/GameCoordinator';
-import type { BreakBeginResult }   from './game/GameCoordinator';
+import type { BreakBeginResult, PreSeasonBlockResult } from './game/GameCoordinator';
 import { extractMatchdaySquad }    from './game/playerSquad';
 import { resolveCaptainRosterId }  from './game/captain';
 import { buildTeamFromRoster, buildAutoSelectedTeamFromRoster } from './game/rosterTeamBuilder';
@@ -665,6 +665,13 @@ document.addEventListener('DOMContentLoaded', () => {
     gameEngine = GameCoordinator.newSeason(team.id, generateSeed(), allTeams);
     autosave(gameEngine.toSavePayload());
     initInSeasonScreens();
+    // Run the pre-season cup block before reaching the Hub.
+    if (gameEngine.isPreSeasonCupPending()) {
+      const begin = gameEngine.beginPreSeasonBlock();
+      const eng = gameEngine;
+      runPreSeasonCupChain(begin, eng, () => { autosave(eng.toSavePayload()); goHub(); });
+      return;
+    }
     goHub();
   }
 
@@ -765,6 +772,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!gameEngine) { goHub(); return; }
       gameEngine.setPreSeasonStep(null);
       autosave(gameEngine.toSavePayload());
+      // Run the pre-season cup block before reaching the Hub.
+      if (gameEngine.isPreSeasonCupPending()) {
+        const begin = gameEngine.beginPreSeasonBlock();
+        const eng = gameEngine;
+        runPreSeasonCupChain(begin, eng, () => { autosave(eng.toSavePayload()); goHub(); });
+        return;
+      }
       goHub();
     });
     screenRouter.show('contracts');
@@ -850,6 +864,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const playoffs = gameEngine.getState().league.playoffs;
     if (playoffs !== null && playoffs.championTeamId !== null) {
       runEndOfSeasonChain();
+      return;
+    }
+    // Interrupted pre-season cup block (tab closed before the block ran).
+    // Re-enter the pre-season chain so it completes before reaching the Hub.
+    if (gameEngine.isPreSeasonCupPending()) {
+      const begin = gameEngine.beginPreSeasonBlock();
+      const eng = gameEngine;
+      runPreSeasonCupChain(begin, eng, () => {
+        autosave(eng.toSavePayload()); goHub();
+      });
       return;
     }
     // Interrupted international break (tab closed on the post-match chain at a
@@ -1351,6 +1375,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // sees the previous match's score / clock / commentary flash for a beat.
     engine.initialize();
     screenRouter.show('app');
+  }
+
+  // Pre-season cup chain: cup fixtures (+ direction) → training plan →
+  // [block runs] → cup results → training impact → afterBlock.
+  // No call-ups and no returns screen (not an international window).
+  function runPreSeasonCupChain(begin: PreSeasonBlockResult, eng: GameCoordinator, afterBlock: () => void): void {
+    showCupFixturesPreBlock(begin, (direction) => {
+      eng.setCupDirection(direction);
+      showTrainingPostMatch((results) => {
+        const toPostTraining = () => {
+          showPostTrainingResults(results, afterBlock);
+          screenRouter.show('training-results');
+        };
+        showCupResults(0, toPostTraining);
+        screenRouter.show('cup-results');
+      }, { runBlock: (weeks) => eng.runPreSeasonBlock(weeks) });
+      screenRouter.show('training');
+    });
+    screenRouter.show('cup-fixtures');
   }
 
   // International-break screen chain: call-ups → cup fixtures (+ direction)

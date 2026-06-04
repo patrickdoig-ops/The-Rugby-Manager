@@ -246,12 +246,12 @@ export interface CupPool {
   standings: TeamStanding[];  // length 5
 }
 
-// A pool fixture. `leg` distinguishes the Autumn block (1) from the Six
-// Nations block (2). `date` is synthetic (inside the break gap) and
-// display-only — it never drives calendar advance.
+// A pool fixture. `leg` 0 = pre-season block (Sep, before R1), 1 = Autumn
+// block, 2 = Six Nations block. `date` is synthetic (inside the block gap)
+// and display-only — it never drives calendar advance.
 export interface CupFixture {
   pool: 'A' | 'B';
-  leg: 1 | 2;
+  leg: 0 | 1 | 2;
   homeId: string;
   awayId: string;
   date: string;
@@ -278,7 +278,7 @@ export interface CupKnockout {
 export interface PremCupState {
   seasonLabel: string;
   pools: [CupPool, CupPool];   // index 0 = A, index 1 = B
-  fixtures: CupFixture[];      // 40 pool fixtures (20/pool: leg1 10 + leg2 10)
+  fixtures: CupFixture[];      // 40 pool fixtures (20/pool: leg0 4 + leg1 8 + leg2 8)
   knockout: CupKnockout | null; // null until the leg-2 pool stage completes
 }
 
@@ -1163,7 +1163,7 @@ export type SeasonEvent =
       // already-resulted fixture.
       type: 'PREM_CUP_FIXTURE_RECORDED';
       pool: 'A' | 'B';
-      leg: 1 | 2;
+      leg: 0 | 1 | 2;
       homeId: string;
       awayId: string;
       homeScore: number;

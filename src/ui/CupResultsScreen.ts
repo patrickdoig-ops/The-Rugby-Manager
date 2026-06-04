@@ -7,11 +7,11 @@ import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import { poolTableHtml, fixtureListHtml, bracketHtml } from './components/cupViews';
 
-let activeLeg: 1 | 2 | null = null;
+let activeLeg: 0 | 1 | 2 | null = null;
 let activeOnContinue: (() => void) | null = null;
 let renderImpl: (() => void) | null = null;
 
-export function showCupResults(leg: 1 | 2, onContinue: () => void): void {
+export function showCupResults(leg: 0 | 1 | 2, onContinue: () => void): void {
   activeLeg = leg;
   activeOnContinue = onContinue;
   renderImpl?.();
@@ -61,7 +61,7 @@ export function initCupResultsScreen(
           <span class="app-title">League Cup Results</span>
           <div class="app-topbar-spacer"></div>
         </div>
-        <div class="app-eyebrow">${leg === 1 ? 'Pool Stage — Leg 1' : 'Pool Stage — Leg 2 + Knockouts'} · ${state.calendar.seasonLabel}</div>
+        <div class="app-eyebrow">${leg === 0 ? 'Pre-Season' : leg === 1 ? 'Pool Stage — Leg 1' : 'Pool Stage — Leg 2 + Knockouts'} · ${state.calendar.seasonLabel}</div>
       </div>
 
       <div class="cup-content">

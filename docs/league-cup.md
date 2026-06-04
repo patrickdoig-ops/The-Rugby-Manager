@@ -1,9 +1,8 @@
 # League Cup
 
-The **League Cup** is a parallel, lower-stakes competition contested
-entirely during the season's two international breaks (the multi-week gaps
-before league **Round 6** = Autumn Nations and **Round 11** = Six Nations).
-The **Assistant Manager (AI) runs every cup match headless** — the user never
+The **League Cup** is a parallel, lower-stakes competition that starts before
+the league season and continues during the two international breaks. The
+**Assistant Manager (AI) runs every cup match headless** — the user never
 plays one live; they only steer it (rest the first-choice XV vs field the best
 available) and pick the training plan for the block.
 
@@ -17,8 +16,10 @@ For the season/career engine internals this sits inside, see
   - **Pool A:** Bath, Bristol, Exeter, Gloucester, Sale
   - **Pool B:** Harlequins, Leicester, Newcastle, Northampton, Saracens
 - **Full home-&-away double round-robin** within each pool — 8 games/team,
-  20 fixtures per pool, 40 total. Split into **leg 1 (Autumn block)** and
-  **leg 2 (Six Nations block)**; leg 2 swaps each pairing's venue.
+  20 fixtures per pool, 40 total. Split across **3 blocks**:
+  - **Leg 0 (Pre-season):** 4 fixtures/pool — Sep, before league R1
+  - **Leg 1 (Autumn block):** 8 fixtures/pool — Autumn Nations break
+  - **Leg 2 (Six Nations block):** 8 fixtures/pool + knockouts
 - **Points:** identical to the league — 4 win / 2 draw / 0 loss + try bonus
   (≥ 4 tries) + losing bonus (≤ 7), applied via the shared `applyToSide`
   helper in `src/game/applySeasonEvent.ts`. Cup standings are scoped per pool
@@ -30,13 +31,47 @@ For the season/career engine internals this sits inside, see
 
 ## Calendar mapping
 
-The real cup spans the whole season, but the game has only two break windows,
-so the cup is **compressed into them**: leg 1 across the Autumn gap, leg 2 +
-knockouts across the Six Nations gap. Fixture dates are synthetic (spaced
-inside the gap from the league schedule) and **display-only** — they never
-drive calendar advance. Cup match seeds use reserved pseudo-rounds
-(`CUP_SEED_ROUND`: leg1 101, leg2 102, SFs 141/142, final 143) clear of the
-league (1-18) and playoffs (19-20).
+The three blocks map to the real 2025-26 Premiership Rugby Cup schedule:
+
+| Block | Leg | When | Fixtures/pool |
+|---|---|---|---|
+| Pre-season | 0 | Sep 12–20, before league R1 | 4 |
+| Autumn break | 1 | Autumn Nations break (after R5) | 8 |
+| Six Nations break | 2 | Six Nations break (after R10) + knockouts | 8 |
+
+Fixture dates are synthetic (spaced inside the gap from the league schedule)
+and **display-only** — they never drive calendar advance. Cup match seeds use
+reserved pseudo-rounds (`CUP_SEED_ROUND`: preseason 100, leg1 101, leg2 102,
+SFs 141/142, final 143) clear of the league (1-18) and playoffs (19-20).
+
+### Round-robin leg assignment
+
+`buildCupSeed` generates 5 rounds (circle-method) for each pool. For each
+round `ri` (0–4), the home and away fixture legs are assigned as:
+
+| ri | Home leg | Away leg |
+|---|---|---|
+| 0–1 | 0 (pre-season) | 1 (autumn) |
+| 2–3 | 1 (autumn) | 2 (six-nations) |
+| 4 | 2 (six-nations) | 2 (six-nations) |
+
+This yields exactly 4+8+8 per pool. Each team plays in all 3 blocks (byes
+fall on different teams per round, as expected in a 5-team round-robin).
+
+## Season start
+
+The **season now begins at the pre-season cup block**, not at league R1.
+After starting a new game (or on first load), the pre-season chain fires:
+
+1. **League Cup Fixtures** (`cup-fixtures`) — pre-season fixtures + pool
+   tables + direction toggle.
+2. **Training** (`training`) — the block's training plan.
+3. *[block plays out headless: cup fixtures + dev nudge + training]*
+4. **League Cup Results** (`cup-results`) — pre-season results + pools.
+5. **Training impact** (`training-results`) → **Hub** (R1 upcoming).
+
+Detected via `isPreSeasonCupPending()` / `beginPreSeasonBlock()` /
+`runPreSeasonBlock()` on `InternationalBreakCoordinator`.
 
 ## Future seasons
 
@@ -48,7 +83,7 @@ retirements / academy / imports). Year 1 uses the fixed real pools (RNG-free).
 
 ## Assistant-Manager direction
 
-Per break (with a remembered default on `state.player.cupDirection`, set via
+Per block (with a remembered default on `state.player.cupDirection`, set via
 `PLAYER_CUP_DIRECTION_SET`):
 
 - **Best available** — `buildCupTeamFromRoster` picks the strongest 23.
@@ -82,7 +117,16 @@ All cup teams exclude players on international duty and injured players.
 
 ## Break flow (UI)
 
-At a break, the post-match chain runs:
+**Pre-season block** (season start):
+
+1. **League Cup Fixtures** (`cup-fixtures`) — pre-season fixtures + pool
+   tables + direction toggle.
+2. **Training** (`training`) — the block's training plan.
+3. *[block plays out headless: cup fixtures + dev nudge + training (13 days)]*
+4. **League Cup Results** (`cup-results`) — pre-season results + pools.
+5. **Training impact** (`training-results`) → **Hub** (R1 upcoming).
+
+**International break blocks** (Autumn / Six Nations):
 
 1. **RoundResults → LeagueTable** (the league round just played).
 2. **International Call-Ups** (`intl-callups`) — who's away.
@@ -94,13 +138,6 @@ At a break, the post-match chain runs:
 7. **Training impact** (`training-results`) → **International returns**
    (`international-break`) → **Hub**.
 
-`InternationalBreakCoordinator.beginInternationalBreak()` (RNG-free: flags
-call-ups, lazy-seeds + reads the block's cup fixtures; reached via a
-`GameCoordinator` delegation) runs before step 2;
-`runInternationalBreakBlock(weeks, begin)` (the training Continue, async)
-plays the block. Mid-season the cup is browsable read-only from the League
-sub-menu's **League Cup** tile (`showCupFixturesBrowse`).
-
 ## Code map
 
 | Concern | File |
@@ -109,9 +146,9 @@ sub-menu's **League Cup** tile (`showCupFixturesBrowse`).
 | Mutation seam (`PREM_CUP_*`, `PLAYER_CUP_DIRECTION_SET`) | `src/game/applySeasonEvent.ts` |
 | Invariants | `src/game/seasonInvariants.ts` |
 | Scheduler (pools, fixtures, redraw, KO seed) | `src/game/cupScheduler.ts` |
-| Break orchestration (begin / run split) | `src/game/GameCoordinator.ts` |
+| Break orchestration (begin / run split, pre-season block) | `src/game/InternationalBreakCoordinator.ts` → `src/game/GameCoordinator.ts` |
 | Cup team building | `src/game/rosterTeamBuilder.ts` (`buildCupTeamFromRoster`) |
 | Development nudge | `src/game/cupDevelopment.ts` |
 | Tuning | `src/engine/balance/premCup.ts` (`CUP_DEVELOPMENT`) |
-| Screens | `src/ui/{InternationalCallUpsScreen,CupFixturesScreen,CupResultsScreen}.ts`, `src/ui/components/cupViews.ts` |
+| Screens | `src/ui/{CupFixturesScreen,CupResultsScreen}.ts` (+ intl-callups for break blocks), `src/ui/components/cupViews.ts` |
 | Save | `SavedSeason.premCup` / `.cupDirection` (additive, no version bump) |

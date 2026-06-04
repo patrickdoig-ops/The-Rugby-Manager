@@ -1,12 +1,15 @@
 // Prem Cup scheduler — pure fixture + pool generation.
 //
-// The cup is contested entirely during the two international breaks. The
-// pool stage is a full home-&-away double round-robin within each pool of
-// 5 (8 games/team); leg 1 plays in the Autumn block, leg 2 + knockouts in
-// the Six Nations block. Pools are the real 2025-26 groupings for year 1
-// and redrawn via the career RNG (rngTransfer) for year 2+.
+// Three blocks across the season:
+//   Leg 0 (pre-season): rounds 0-1 home — Sep, before league R1 (4 fixtures/pool)
+//   Leg 1 (Autumn):     rounds 2-3 home + rounds 0-1 away — Autumn Nations break (8/pool)
+//   Leg 2 (Six Nations): round 4 home + rounds 2-4 away + knockouts — Six Nations break (8/pool)
 //
-// Fixture dates are synthetic — spaced inside the break gap purely for
+// Full home-&-away double round-robin within each pool of 5 (8 games/team,
+// 20 fixtures/pool, 40 total). Pools are the real 2025-26 groupings for
+// year 1 and redrawn via the career RNG (rngTransfer) for year 2+.
+//
+// Fixture dates are synthetic — spaced inside the block gap purely for
 // display. They never drive calendar advance. Match seeds use the reserved
 // pseudo-rounds below (home/away already make each fixture's seed unique).
 
@@ -24,8 +27,9 @@ export const CUP_POOLS_2025_26: { A: string[]; B: string[] } = {
 
 // Pseudo-round numbers for deriveFixtureSeed — kept clear of league (1-18)
 // and playoffs (19-20). One per stage is enough: (homeId, awayId) already
-// make each fixture's seed unique, and leg 2 swaps home/away vs leg 1.
+// make each fixture's seed unique within a leg.
 export const CUP_SEED_ROUND = {
+  preseason: 100,
   leg1: 101,
   leg2: 102,
   semifinal_1: 141,
@@ -42,29 +46,42 @@ function breakReturnRounds(): [number, number] {
 }
 
 // Builds the full PREM_CUP_SEEDED payload for a season: the two pools + all
-// 40 pool fixtures (20 per leg). Pure; pools are passed in (caller decides
-// fixed vs redrawn).
+// 40 pool fixtures (4+8+8 per pool across 3 blocks). Pure; pools are passed
+// in (caller decides fixed vs redrawn).
+//
+// Round-robin assignment per pool (5 rounds, 2 matches each):
+//   ri 0-1 home → leg 0 (pre-season), ri 0-1 away → leg 1 (Autumn)
+//   ri 2-3 home → leg 1 (Autumn),     ri 2-3 away → leg 2 (Six Nations)
+//   ri 4   home → leg 2 (Six Nations), ri 4   away → leg 2 (Six Nations)
 export function buildCupSeed(
   pools: { A: string[]; B: string[] },
   leagueFixtures: readonly Fixture[],
   seasonLabel: string,
 ): { seasonLabel: string; pools: [{ id: 'A'; teamIds: string[] }, { id: 'B'; teamIds: string[] }]; fixtures: CupFixture[] } {
   const [autumn, sixNations] = breakReturnRounds();
-  const leg1Dates = gapDates(leagueFixtures, autumn - 1, autumn, 5);
-  // Leg 2 shares the Six Nations gap with the knockouts; reserve the last
-  // two slots for SF + final by asking for 7 and taking the first 5 here.
+  // Pre-season: 2 matchdays before R1 (falls back to ~Sep 11 and Sep 18 when
+  // round 0 has no fixtures, which is always the case).
+  const preSeasonDates = gapDates(leagueFixtures, 0, 1, 2);
+  // Leg 1: 4 matchdays in the Autumn Nations gap.
+  const leg1Dates = gapDates(leagueFixtures, autumn - 1, autumn, 4);
+  // Leg 2 shares the Six Nations gap with the knockouts; indices 5-6 are
+  // reserved for SF + final.
   const leg2Dates = gapDates(leagueFixtures, sixNations - 1, sixNations, 7);
 
   const fixtures: CupFixture[] = [];
   for (const pool of [{ id: 'A' as const, teams: pools.A }, { id: 'B' as const, teams: pools.B }]) {
     const rounds = roundRobinRounds(pool.teams);
     rounds.forEach((pairs, ri) => {
-      const d1 = leg1Dates[ri] ?? leg1Dates[leg1Dates.length - 1] ?? '';
-      const d2 = leg2Dates[ri] ?? leg2Dates[leg2Dates.length - 1] ?? '';
+      const homeLeg: 0 | 1 | 2 = ri < 2 ? 0 : ri < 4 ? 1 : 2;
+      const awayLeg: 1 | 2 = ri < 2 ? 1 : 2;
+      const homeD = homeLeg === 0 ? (preSeasonDates[ri] ?? preSeasonDates[1] ?? '')
+                  : homeLeg === 1 ? (leg1Dates[ri - 2] ?? leg1Dates[leg1Dates.length - 1] ?? '')
+                  :                  (leg2Dates[0] ?? leg2Dates[leg2Dates.length - 1] ?? '');
+      const awayD = awayLeg === 1 ? (leg1Dates[ri + 2] ?? leg1Dates[leg1Dates.length - 1] ?? '')
+                  :                  (leg2Dates[ri - 1] ?? leg2Dates[leg2Dates.length - 1] ?? '');
       for (const [home, away] of pairs) {
-        fixtures.push({ pool: pool.id, leg: 1, homeId: home, awayId: away, date: d1 });
-        // Leg 2 swaps the venue.
-        fixtures.push({ pool: pool.id, leg: 2, homeId: away, awayId: home, date: d2 });
+        fixtures.push({ pool: pool.id, leg: homeLeg, homeId: home, awayId: away, date: homeD });
+        fixtures.push({ pool: pool.id, leg: awayLeg, homeId: away, awayId: home, date: awayD });
       }
     });
   }

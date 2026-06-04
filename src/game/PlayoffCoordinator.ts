@@ -20,6 +20,7 @@ import { computeFixtureMoraleEvents } from './moraleEffects';
 import { collectSeasonEvents, collectConditionEvents } from './seasonStatsCollector';
 import { buildAutoSelectedTeamFromRoster } from './rosterTeamBuilder';
 import { simulateFixture } from './simulateFixture';
+import { addDaysIso } from './age';
 import { eventBus } from '../utils/eventBus';
 
 export class PlayoffCoordinator {
@@ -225,11 +226,4 @@ export class PlayoffCoordinator {
       eventBus.emit('game:seasonComplete', { state: this.state });
     }
   }
-}
-
-// Add n days to an ISO yyyy-mm-dd date and return the same shape.
-function addDaysIso(iso: string, days: number): string {
-  const d = new Date(iso);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
 }

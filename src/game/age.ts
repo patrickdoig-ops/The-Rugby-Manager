@@ -53,3 +53,13 @@ export function parseSeasonStartYear(label: string): number {
   const m = label.match(/(\d{4})/);
   return m ? parseInt(m[1], 10) : new Date().getUTCFullYear();
 }
+
+// Add `days` (may be negative) to an ISO yyyy-mm-dd date, returning the same
+// shape. UTC-based so it's DST-agnostic. One canonical helper so the previous
+// three-site private `addDays`/`addDaysIso` copies (cupScheduler, applySeasonEvent,
+// the playoff bracket) collapse here.
+export function addDaysIso(iso: string, days: number): string {
+  const d = new Date(iso);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}

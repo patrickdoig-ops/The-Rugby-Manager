@@ -49,7 +49,7 @@ import { computeFixtureMoraleEvents, computeMoraleDecayEvents } from './moraleEf
 import { buildAutoSelectedTeamFromRoster } from './rosterTeamBuilder';
 import { CUP_POOLS_2025_26, buildCupSeed } from './cupScheduler';
 import { parseSeasonStartYear, seasonOpenIso, getAge } from './age';
-import { recentForm, clubBudgetUsage } from './teamStats';
+import { recentForm } from './teamStats';
 import { generateMatchStory, type MediaMatchContext, type MediaPlayer } from './media/mediaManager';
 import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot } from './seasonStatsCollector';
 import { runTrainingPeriods } from './trainingRunner';

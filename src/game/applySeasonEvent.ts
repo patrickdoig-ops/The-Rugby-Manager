@@ -13,6 +13,7 @@ import { LEAGUE_POINTS, SEASON_VALUES, SENIOR_CAP, EFFECTIVE_CAP_CREDITS, FORM_M
 // clamps to this so a Bath-level budget doesn't break through.
 const SENIOR_CAP_TOTAL = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
 import { assertSeasonInvariants } from './seasonInvariants';
+import { addDaysIso } from './age';
 
 export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
   applySeasonEventBody(state, event);
@@ -52,7 +53,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
     case 'WEEK_ADVANCED': {
       state.calendar.week += 1;
       const nextRoundDate = earliestDateForRound(state.league.fixtures, state.calendar.week);
-      state.calendar.date = nextRoundDate ?? addDays(state.calendar.date, SEASON_VALUES.weekLengthDays);
+      state.calendar.date = nextRoundDate ?? addDaysIso(state.calendar.date, SEASON_VALUES.weekLengthDays);
       // Prune mid-season FA rejection cooldowns that have aged out:
       // an entry with weekUntilClear ≤ current week is now approachable
       // again. Rebuild via Object.fromEntries rather than deleting from
@@ -1070,12 +1071,6 @@ function applyToSide(s: TeamStanding, pf: number, pa: number, tries: number, mar
     s.leaguePoints += LEAGUE_POINTS.tryBonusPoints;
     s.tryBonus += 1;
   }
-}
-
-function addDays(iso: string, days: number): string {
-  const d = new Date(iso);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
 }
 
 // Min ISO date across fixtures in a given round. Returns null if no fixture

@@ -14,6 +14,7 @@ import type { CupFixture, CupKnockoutMatch, Fixture, PremCupState } from '../typ
 import { sortStandings } from './leagueTable';
 import { rngTransferRaw } from '../utils/rng';
 import { INTERNATIONAL_WINDOWS } from '../engine/balance/international';
+import { addDaysIso } from './age';
 
 // Real 2025-26 pools.
 export const CUP_POOLS_2025_26: { A: string[]; B: string[] } = {
@@ -142,7 +143,7 @@ function gapDates(fixtures: readonly Fixture[], preRound: number, returnRound: n
   const end = earliestDateForRound(fixtures, returnRound);
   if (!start || !end) {
     const anchor = end ?? start ?? '2025-11-01';
-    return Array.from({ length: count }, (_, i) => addDays(anchor, -(count - i) * 7));
+    return Array.from({ length: count }, (_, i) => addDaysIso(anchor, -(count - i) * 7));
   }
   const startMs = Date.parse(start);
   const endMs = Date.parse(end);
@@ -162,10 +163,4 @@ function earliestDateForRound(fixtures: readonly Fixture[], round: number): stri
     if (min === null || f.date < min) min = f.date;
   }
   return min;
-}
-
-function addDays(iso: string, days: number): string {
-  const d = new Date(iso);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
 }

@@ -117,7 +117,7 @@ export function buildCupSeed(
   seasonLabel: string,
   hardcodedFixtures?: readonly CupFixtureDef[],
 ): { seasonLabel: string; pools: [{ id: 'A'; teamIds: string[] }, { id: 'B'; teamIds: string[] }]; fixtures: CupFixture[] } {
-  const poolDef = [{ id: 'A' as const, teamIds: [...pools.A] }, { id: 'B' as const, teamIds: [...pools.B] }];
+  const poolDef: [{ id: 'A'; teamIds: string[] }, { id: 'B'; teamIds: string[] }] = [{ id: 'A', teamIds: [...pools.A] }, { id: 'B', teamIds: [...pools.B] }];
 
   if (hardcodedFixtures) {
     return {

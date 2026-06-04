@@ -1668,7 +1668,7 @@ Skipped rolls don't shift the RNG stream — the trigger gate short-circuits bef
 
 ### Match-teardown severity roll
 
-Severity + duration are NOT rolled in-match. The matchday Player's `pendingInjuryKind` is read at teardown via `snapshotMatch` (`src/game/seasonStatsCollector.ts`) and surfaces as an optional `injuryKind` on each `PlayerStatsSnapshot`. `GameCoordinator.recordPlayerMatchResult` then calls `rollNewInjuryEvents(snapshots)` which uses `rngTransfer` (career stream, independent of match outcome stream) to:
+Severity + duration are NOT rolled in-match. The matchday Player's `pendingInjuryKind` is read at teardown via `snapshotMatch` (`src/game/seasonStatsCollector.ts`) and surfaces as an optional `injuryKind` on each `PlayerStatsSnapshot`. `GameCoordinator.recordPlayerMatchResult` then calls `rollNewInjuryEvents(state, snapshots)` (`src/game/injuryEffects.ts`) which uses `rngTransfer` (career stream, independent of match outcome stream) to:
 
 1. Pick severity (`mild` | `moderate` | `severe`) from the kind's `INJURY_SEVERITY[kind].weights`.
 2. Pick weeksRemaining uniformly from `INJURY_SEVERITY[kind].bands[severity]`.
@@ -1678,7 +1678,7 @@ Snapshots are sorted rosterId-ascending so the `rngTransfer` call order is stabl
 
 ### Recovery tick
 
-`GameCoordinator.recordPlayerMatchResult` calls `tickInjuryEvents()` at the very start (after the re-entry guard, before any new fixture is recorded). It walks `state.career.roster` in rosterId-ascending order; for each player with `injury`:
+`GameCoordinator.recordPlayerMatchResult` calls `tickInjuryEvents(state)` (`src/game/injuryEffects.ts`) at the very start (after the re-entry guard, before any new fixture is recorded). It walks `state.career.roster` in rosterId-ascending order; for each player with `injury`:
 
 - `weeksRemaining > 1` → emit `INJURY_TICK_ADVANCED`.
 - `weeksRemaining ≤ 1` → emit `INJURY_TICK_ADVANCED` (if 1) then `PLAYER_RECOVERED` which clears `Player.injury`.

@@ -53,7 +53,7 @@ import { cupDevelopmentEvents } from './cupDevelopment';
 import { parseSeasonStartYear, seasonOpenIso, getAge } from './age';
 import { recentForm, clubBudgetUsage, staffBudgetUsage, type FormResult } from './teamStats';
 import { generateMatchStory, type MediaMatchContext, type MediaPlayer } from './media/mediaManager';
-import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot, type PlayerStatsSnapshot } from './seasonStatsCollector';
+import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot } from './seasonStatsCollector';
 import { computeTrainingWeek } from './trainingWeek';
 import { upcomingGap, splitGapIntoPeriods } from './trainingCalendar';
 import {
@@ -69,13 +69,13 @@ import { buildLoanPoolEvents } from './loanPoolGenerator';
 import { PARTNERSHIP_CLUB } from '../data/partnershipClubs';
 import { buildRosterSeededEvent, buildCareerArchiveRestoredEvent } from './saveMigration';
 import { seedConfidence, resultDelta, currentObjectiveVerdict, eosSwing, type ObjectiveVerdict } from './board';
+import { rollNewInjuryEvents, tickInjuryEvents } from './injuryEffects';
 import { TransferCoordinator, type EarlyRenewalResult } from './TransferCoordinator';
 import { computeBudgetEvents } from './budgetPlanner';
 import { computeAttendance } from './attendance';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed, rngTransfer, getTransferCallCount, advanceTransferTo, hashSeed } from '../utils/rng';
-import { SEASON_VALUES, INJURY_SEVERITY, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD, BOARD_THRESHOLDS, MORALE, STAFF_CAPS, PRESS_SKIP_BOARD_PENALTY, STAFF_BUDGET_FRACTION } from '../engine/balance';
-import type { InjurySeverity } from '../types/player';
+import { SEASON_VALUES, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD, BOARD_THRESHOLDS, MORALE, STAFF_CAPS, PRESS_SKIP_BOARD_PENALTY, STAFF_BUDGET_FRACTION } from '../engine/balance';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 import type { RawTeamInput, BoardAmbition } from '../types/teamData';
 
@@ -829,7 +829,7 @@ export class GameCoordinator {
       homeTries: sim.snapshot.homeSummary.tries, awayTries: sim.snapshot.awaySummary.tries,
     });
     for (const ev of collectConditionEvents(sim.snapshot)) applySeasonEvent(this.state, ev);
-    for (const ev of this.rollNewInjuryEvents(sim.snapshot.playerSnapshots)) applySeasonEvent(this.state, ev);
+    for (const ev of rollNewInjuryEvents(this.state, sim.snapshot.playerSnapshots)) applySeasonEvent(this.state, ev);
     for (const s of sim.snapshot.playerSnapshots) featured.add(s.rosterId);
   }
 
@@ -857,7 +857,7 @@ export class GameCoordinator {
       homeTries: sim.snapshot.homeSummary.tries, awayTries: sim.snapshot.awaySummary.tries,
     });
     for (const ev of collectConditionEvents(sim.snapshot)) applySeasonEvent(this.state, ev);
-    for (const ev of this.rollNewInjuryEvents(sim.snapshot.playerSnapshots)) applySeasonEvent(this.state, ev);
+    for (const ev of rollNewInjuryEvents(this.state, sim.snapshot.playerSnapshots)) applySeasonEvent(this.state, ev);
     for (const s of sim.snapshot.playerSnapshots) featured.add(s.rosterId);
   }
 
@@ -1093,7 +1093,7 @@ export class GameCoordinator {
     );
     const gapStartIso = prevFixture?.date;
     for (let w = 0; w < recoveryWeeks; w++) {
-      for (const ev of this.tickInjuryEvents(gapStartIso)) {
+      for (const ev of tickInjuryEvents(this.state, gapStartIso)) {
         applySeasonEvent(this.state, ev);
       }
     }
@@ -1130,7 +1130,7 @@ export class GameCoordinator {
     for (const ev of collectConditionEvents(snapshot)) {
       applySeasonEvent(this.state, ev);
     }
-    for (const ev of this.rollNewInjuryEvents(snapshot.playerSnapshots)) {
+    for (const ev of rollNewInjuryEvents(this.state, snapshot.playerSnapshots)) {
       applySeasonEvent(this.state, ev);
     }
     for (const ev of this.computeFixtureMoraleEvents(result, snapshot)) {
@@ -1188,7 +1188,7 @@ export class GameCoordinator {
       for (const ev of collectConditionEvents(sim.snapshot)) {
         applySeasonEvent(this.state, ev);
       }
-      for (const ev of this.rollNewInjuryEvents(sim.snapshot.playerSnapshots)) {
+      for (const ev of rollNewInjuryEvents(this.state, sim.snapshot.playerSnapshots)) {
         applySeasonEvent(this.state, ev);
       }
       for (const ev of this.computeFixtureMoraleEvents(aiResult, sim.snapshot)) {
@@ -1608,7 +1608,7 @@ export class GameCoordinator {
     // Injury tick — represents the week of rest between matches. Same
     // pattern as recordPlayerMatchResult so cumulative recovery is
     // continuous across regular season → playoffs.
-    for (const ev of this.tickInjuryEvents()) {
+    for (const ev of tickInjuryEvents(this.state)) {
       applySeasonEvent(this.state, ev);
     }
 
@@ -1628,7 +1628,7 @@ export class GameCoordinator {
     for (const ev of collectConditionEvents(snapshot)) {
       applySeasonEvent(this.state, ev);
     }
-    for (const ev of this.rollNewInjuryEvents(snapshot.playerSnapshots)) {
+    for (const ev of rollNewInjuryEvents(this.state, snapshot.playerSnapshots)) {
       applySeasonEvent(this.state, ev);
     }
     for (const ev of this.computeFixtureMoraleEvents({
@@ -1691,7 +1691,7 @@ export class GameCoordinator {
       for (const ev of collectConditionEvents(sim.snapshot)) {
         applySeasonEvent(this.state, ev);
       }
-      for (const ev of this.rollNewInjuryEvents(sim.snapshot.playerSnapshots)) {
+      for (const ev of rollNewInjuryEvents(this.state, sim.snapshot.playerSnapshots)) {
         applySeasonEvent(this.state, ev);
       }
       for (const ev of this.computeFixtureMoraleEvents({
@@ -1711,69 +1711,6 @@ export class GameCoordinator {
     if (this.state.league.playoffs?.championTeamId !== null && this.state.league.playoffs?.championTeamId !== undefined) {
       eventBus.emit('game:seasonComplete', { state: this.state });
     }
-  }
-
-  // Roll severity + weeks for every in-match injury surfaced in the given
-  // snapshots. Uses rngTransfer (career stream) so the rolls are independent
-  // of the match outcome stream. Walks rosterId-ascending so the call order
-  // is stable across runs.
-  //
-  // Recurrence detection is deferred to a future iteration — v1 always
-  // emits isRecurrence: false. The tuning constants
-  // (INJURY_RECURRENCE_TIME_LOSS_MULT, etc.) are kept as scaffolding.
-  private rollNewInjuryEvents(snapshots: PlayerStatsSnapshot[]): SeasonEvent[] {
-    const injured = snapshots
-      .filter(s => s.injuryKind !== undefined)
-      .sort((a, b) => a.rosterId - b.rosterId);
-    const out: SeasonEvent[] = [];
-    const injuredOn = this.state.calendar.date;
-    for (const s of injured) {
-      const kind = s.injuryKind!;
-      const profile = INJURY_SEVERITY[kind];
-      const severity = pickSeverity(profile.weights);
-      const [lo, hi] = profile.bands[severity];
-      const weeksRemaining = rngTransfer(lo, hi);
-      out.push({
-        type: 'PLAYER_INJURED',
-        rosterId: s.rosterId,
-        kind,
-        severity,
-        weeksRemaining,
-        injuredOn,
-        isRecurrence: false,
-      });
-    }
-    return out;
-  }
-
-  // Decrement every roster player's `injury.weeksRemaining` by one; fire
-  // PLAYER_RECOVERED for any whose counter would reach zero. No RNG —
-  // pure walk in rosterId order.
-  // gapStartIso, when supplied, scopes the tick to injuries sustained at or
-  // before the start of the rest gap (the previous match). Injuries sustained
-  // *during* the gap — training injuries and international-duty injuries, both
-  // dated at the upcoming round — are skipped so a long gap (e.g. the ~5-week
-  // Autumn / ~8-week Six Nations break) doesn't retroactively heal an injury
-  // that only just happened.
-  private tickInjuryEvents(gapStartIso?: string): SeasonEvent[] {
-    const out: SeasonEvent[] = [];
-    const rosterIds = Object.keys(this.state.career.roster).map(Number).sort((a, b) => a - b);
-    for (const rid of rosterIds) {
-      const p = this.state.career.roster[rid];
-      if (!p.injury) continue;
-      if (gapStartIso && p.injury.injuredOn > gapStartIso) continue;
-      if (p.injury.weeksRemaining <= 1) {
-        // Decrement to 0 then clear the field. INJURY_TICK_ADVANCED runs
-        // first so the per-event trace shows the decrement step.
-        if (p.injury.weeksRemaining === 1) {
-          out.push({ type: 'INJURY_TICK_ADVANCED', rosterId: rid });
-        }
-        out.push({ type: 'PLAYER_RECOVERED', rosterId: rid });
-      } else {
-        out.push({ type: 'INJURY_TICK_ADVANCED', rosterId: rid });
-      }
-    }
-    return out;
   }
 
   // Computes + applies the next season's salaryBudget per club and any
@@ -1944,19 +1881,6 @@ function clonePlayoffs(p: PlayoffState): PlayoffState {
     final: cloneMatch(p.final),
     championTeamId: p.championTeamId,
   };
-}
-
-// Picks a severity bucket from a per-kind weight table. Uses rngTransfer
-// (career stream). Weights sum to 100 by convention; the picker reads
-// them in mild → moderate → severe order.
-function pickSeverity(weights: Record<InjurySeverity, number>): InjurySeverity {
-  const roll = rngTransfer(1, 100);
-  let cum = 0;
-  cum += weights.mild;
-  if (roll <= cum) return 'mild';
-  cum += weights.moderate;
-  if (roll <= cum) return 'moderate';
-  return 'severe';
 }
 
 // Add n days to an ISO yyyy-mm-dd date and return the same shape.

@@ -95,6 +95,12 @@ export function appearancesMultiplier(apps: number): number {
 // pure curve would predict.
 export const STAT_NOISE = { stddev: 0.25, clamp: 1.5 };
 
+// Season-rollover reputation smoothing. Each rollover, a player's reputation
+// moves this fraction of the way toward their current overall rating, so
+// reputation tracks ability over a few seasons rather than snapping. 0 = never
+// updates, 1 = snaps to OVR immediately.
+export const REPUTATION_OVR_NUDGE = 0.5;
+
 // Probability of retiring at the END of the season the player is
 // currently playing (i.e. evaluated against the age the player will be
 // when the new season begins). Cumulative probabilities — the last

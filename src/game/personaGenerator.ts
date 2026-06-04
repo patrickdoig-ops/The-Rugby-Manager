@@ -12,7 +12,7 @@
 import type { Player, Position, PlayerStats } from '../types/player';
 import { zeroMatchStats, zeroSeasonStats } from '../types/player';
 import { rngTransfer, rngTransferRaw } from '../utils/rng';
-import { WAGE_BY_RATING, POSITION_SCARCITY, WAGE_FLOOR, WAGE_ROUNDING_UNIT, PERSONA_CONTRACT_LENGTH_YEARS, PERSONA_REPUTATION } from '../engine/balance/transfers';
+import { WAGE_BY_RATING, POSITION_SCARCITY, WAGE_FLOOR, WAGE_ROUNDING_UNIT, PERSONA_CONTRACT_LENGTH_YEARS, PERSONA_REPUTATION, IMPORT_CONTRACT_LENGTH } from '../engine/balance/transfers';
 import { ACADEMY_SUPPLY, POTENTIAL_HEADROOM } from '../engine/balance/career';
 import { playerOverall } from '../engine/RatingEngine';
 
@@ -194,13 +194,13 @@ function generateStats(targetOverall: number): PlayerStats {
   };
 }
 
-// Mirrors contractSeeder's age25to30 weights (most imports land in that
-// band). 20% on a 1yr deal, 40% on 2yr, 40% on 3yr — a single
-// rngTransfer call per import.
+// Import contract length — same cumulative-probability shape as
+// contractSeeder's bands (IMPORT_CONTRACT_LENGTH: 20% 1yr, 40% 2yr, 40% 3yr).
+// A single rngTransfer call per import.
 function pickImportLength(): number {
   const roll = rngTransferRaw();
-  if (roll < 0.20) return 1;
-  if (roll < 0.60) return 2;
+  if (roll < IMPORT_CONTRACT_LENGTH.p1) return 1;
+  if (roll < IMPORT_CONTRACT_LENGTH.p2) return 2;
   return 3;
 }
 

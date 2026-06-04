@@ -83,6 +83,11 @@ export const CONTRACT_LENGTH = {
   age33plus: { p1: 0.80, p2: 1.00 },   // 80% 1yr, 20% 2yr, 0% 3yr
 };
 
+// Contract-length distribution for generated foreign imports (free-agent
+// pool). Imports are modelled as prime-band recruits — same { p1, p2 }
+// cumulative-probability shape as CONTRACT_LENGTH: 20% 1yr, 40% 2yr, 40% 3yr.
+export const IMPORT_CONTRACT_LENGTH = { p1: 0.20, p2: 0.60 };
+
 // Reputation seeding. Linear nudge from overall rating, with a marquee
 // bonus to keep the top tier visibly elite. Clamped to [0, 100].
 export const REPUTATION_SEED = {

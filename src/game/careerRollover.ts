@@ -30,7 +30,7 @@ import type { ArchivedPlayerSeason, Fixture, GameState, SeasonEvent, TeamStandin
 import type { Player, PlayerStats, PlayerSeasonStats } from '../types/player';
 import { isForward, PLAYER_STAT_KEYS } from '../types/player';
 import type { SeasonAwards, SeasonLeader } from '../types/gameState';
-import { AGE_CURVES, STAT_NOISE, RETIREMENT_CURVE, SEASON_AWARDS, ACADEMY_SUPPLY, IMPORT_SUPPLY, proximityMultiplier, appearancesMultiplier } from '../engine/balance/career';
+import { AGE_CURVES, STAT_NOISE, RETIREMENT_CURVE, SEASON_AWARDS, ACADEMY_SUPPLY, IMPORT_SUPPLY, REPUTATION_OVR_NUDGE, proximityMultiplier, appearancesMultiplier } from '../engine/balance/career';
 import { playerOverall } from '../engine/RatingEngine';
 import { SEASON_VALUES } from '../engine/balance';
 import { getAge, parseSeasonStartYear, seasonOpenIso } from './age';
@@ -73,7 +73,7 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
 
     const deltas = developStats(p, ageInNewSeason);
     const currentOvr = playerOverall(p.baseStats, p.position);
-    const reputationNudge = Math.round((currentOvr - p.reputation) * 0.5);
+    const reputationNudge = Math.round((currentOvr - p.reputation) * REPUTATION_OVR_NUDGE);
     if (Object.keys(deltas).length > 0 || reputationNudge !== 0) {
       events.push({
         type: 'PLAYER_AGED',

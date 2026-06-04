@@ -14,9 +14,9 @@
   display: grid;
   grid-template-columns: 36px 1fr 36px;
   gap: 4px;
-  padding: 4px 0 6px;
+  padding: 4px 6px 6px;
   border-bottom: 1px solid var(--rm-hairline);
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .match-stats-header .header-home {
@@ -37,42 +37,35 @@
   text-align: left;
 }
 
-/* Individual stat row */
+/* Individual stat row — full-height coloured bar with text overlay */
 .stat-row {
-  padding: 5px 0;
-  border-bottom: 1px solid var(--rm-hairline);
   position: relative;
+  height: 28px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 2px;
 }
 
-/* Brief pop when the winning side flips. The pseudo-element overlays a
-   pitch-green underline glow that decays; the row itself stays static. */
-.stat-row--changed::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 2px;
-  background: linear-gradient(90deg,
-    transparent,
-    color-mix(in oklch, var(--rm-pitch) 70%, transparent) 50%,
-    transparent);
+/* Brief pop when the winning side flips — inset border glow */
+.stat-row--changed {
   animation: statRowFlash 600ms var(--rm-ease-out) forwards;
-  pointer-events: none;
 }
 
 @keyframes statRowFlash {
-  0%   { opacity: 0; }
-  20%  { opacity: 1; }
-  100% { opacity: 0; }
+  0%   { box-shadow: none; }
+  20%  { box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--rm-pitch) 85%, transparent); }
+  100% { box-shadow: none; }
 }
 
 .stat-row-header {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   display: grid;
   grid-template-columns: 36px 1fr 36px;
   gap: 4px;
-  align-items: baseline;
-  margin-bottom: 3px;
+  align-items: center;
+  padding: 0 6px;
 }
 
 .stat-val {
@@ -80,7 +73,8 @@
   font-variant-numeric: tabular-nums;
   font-size: var(--rm-fs-11);
   font-weight: 600;
-  color: var(--rm-text-muted);
+  color: rgba(255, 255, 255, 0.62);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
 }
 
 .stat-val:first-child { text-align: right; }
@@ -93,10 +87,13 @@
   font-family: var(--rm-font-mono);
   font-size: var(--rm-fs-9);
   font-weight: 600;
-  color: var(--rm-text-dim);
+  color: rgba(255, 255, 255, 0.82);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.10em;
   white-space: nowrap;
+  background: rgba(0, 0, 0, 0.38);
+  border-radius: 999px;
+  padding: 2px 5px;
 }
 
 /* Narrow dashboard right column: tighter value cols + wrappable labels.
@@ -104,7 +101,6 @@
    per line so multi-word labels wrap rather than overflow. */
 #panel-bottom.view-dashboard .stat-row-header {
   grid-template-columns: 30px minmax(0, 1fr) 30px;
-  align-items: center;
 }
 #panel-bottom.view-dashboard .stat-label {
   white-space: normal;
@@ -112,13 +108,13 @@
   line-height: 1.2;
 }
 
-/* Proportional dual bar */
+/* Proportional dual bar — fills entire row height */
 .stat-bars {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   display: flex;
-  height: 5px;
-  border-radius: 2px;
-  overflow: hidden;
-  gap: 0;
+  height: 100%;
 }
 
 .stat-bar-h,
@@ -389,5 +385,5 @@
 @media (prefers-reduced-motion: reduce) {
   .stat-bar-h,
   .stat-bar-a { transition: none; }
-  .stat-row--changed::after { animation: none; opacity: 0; }
+  .stat-row--changed { animation: none; }
 }

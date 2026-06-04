@@ -114,7 +114,7 @@ export function initCupFixturesScreen(
     }
 
     // Browse mode.
-    const allFixtures = cup ? fixtureListHtml(cup.fixtures.filter(f => f.result || f.leg >= 1), teamsById, myId) : '';
+    const allFixtures = cup ? fixtureListHtml(cup.fixtures, teamsById, myId) : '';
     const bracket = cup?.knockout ? `<div class="cup-section-title">Knockouts</div>${bracketHtml(cup.knockout, teamsById, myId)}` : '';
     el!.innerHTML = `
       <div class="app-header">

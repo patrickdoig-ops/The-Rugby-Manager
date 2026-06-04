@@ -505,6 +505,10 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       // the FA pool itself gets reshuffled, so the per-rosterId locks
       // become stale.
       state.career.midseasonRejections = {};
+      // Season-only staff budget boost doesn't carry over.
+      for (const club of state.career.clubs) {
+        if (club.staffBudgetBoost) club.staffBudgetBoost = 0;
+      }
       return;
     }
     case 'PLAYOFF_BRACKET_SEEDED': {
@@ -971,6 +975,12 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       if (state.career.loanPool && !state.career.loanPool.includes(event.rosterId)) {
         state.career.loanPool.push(event.rosterId);
       }
+      return;
+    }
+    case 'STAFF_BUDGET_BOOSTED': {
+      const club = state.career.clubs.find(c => c.id === event.clubId);
+      if (!club) return;
+      club.staffBudgetBoost = event.boost;
       return;
     }
     default: {

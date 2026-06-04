@@ -47,6 +47,7 @@ import '../style/achievements.css';
 import '../style/sack.css';
 import '../style/team-talk.css';
 import '../style/staff.css';
+import '../style/finances.css';
 import '../style/loans.css';
 import '../style/scouting.css';
 import '../style/press-conference.css';
@@ -100,6 +101,7 @@ import { initLoanScreen, showLoans } from './ui/LoanScreen';
 import { initClubMenuScreen, showClubMenu } from './ui/ClubMenuScreen';
 import { initBoardConfidenceScreen, showBoardConfidence } from './ui/BoardConfidenceScreen';
 import { initStaffScreen, showStaff } from './ui/StaffScreen';
+import { initFinancesScreen, showFinancesScreen } from './ui/FinancesScreen';
 import { initScoutingScreen, showScouting } from './ui/ScoutingScreen';
 import { showPressConference } from './ui/PressConferenceScreen';
 import { shouldFirePresser, buildPresser } from './game/pressConference';
@@ -377,6 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onBack: () => goHub('back'),
       onBoardConfidence: () => goBoard(),
       onStaff: () => goStaff(),
+      onFinances: () => goFinances(),
     });
     initBoardConfidenceScreen({
       getGameEngine,
@@ -384,6 +387,11 @@ document.addEventListener('DOMContentLoaded', () => {
       onBack: () => goClubMenu('back'),
     });
     initStaffScreen({
+      getGameEngine,
+      allTeams,
+      onBack: () => goClubMenu('back'),
+    });
+    initFinancesScreen({
       getGameEngine,
       allTeams,
       onBack: () => goClubMenu('back'),
@@ -584,6 +592,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function goStaff(direction: 'forward' | 'back' = 'forward'): void {
     showStaff();
     screenRouter.show('staff', { direction });
+  }
+
+  function goFinances(direction: 'forward' | 'back' = 'forward'): void {
+    showFinancesScreen();
+    screenRouter.show('club-finances', { direction });
   }
 
   function goAchievements(direction: 'forward' | 'back' = 'forward'): void {

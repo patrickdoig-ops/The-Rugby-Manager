@@ -307,6 +307,7 @@ export interface ClubState {
   squad: number[];
   salaryBudget: number;
   staffBudget?: number;
+  staffBudgetBoost?: number; // season-only transfer from player salary headroom to staff
 }
 
 // One row of an archived per-category leaderboard — top-N at end of season.
@@ -1381,4 +1382,13 @@ export type SeasonEvent =
       // career.loanPool. Also fired en masse at SEASON_ROLLED_OVER.
       type: 'LOAN_PLAYER_RELEASED';
       rosterId: number;
+    }
+  | {
+      // Manager transfers a portion of unused player salary headroom to the
+      // staff budget for the current season. `boost` is the new absolute
+      // value (replaces any prior boost). Season-only — cleared at
+      // SEASON_ROLLED_OVER. One-way: player → staff only.
+      type: 'STAFF_BUDGET_BOOSTED';
+      clubId: string;
+      boost: number;
     };

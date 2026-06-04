@@ -444,6 +444,10 @@ export class GameCoordinator {
     this.staff.removeScouting(rosterId);
   }
 
+  setStaffBudgetBoost(boost: number): void {
+    applySeasonEvent(this.state, { type: 'STAFF_BUDGET_BOOSTED', clubId: this.state.player.teamId, boost });
+  }
+
   // Apply the outcome of a press conference. Delegates to BoardCoordinator.
   applyPressEffects(skipped: boolean, answers: Array<{ boardDelta: number; moraleDelta: number }>): void {
     this.board.applyPressEffects(skipped, answers);

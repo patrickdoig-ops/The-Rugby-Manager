@@ -64,6 +64,16 @@ const TRY_LOCATION_CORNER: readonly string[] = [
   'Dotted down just inside the corner.',
 ];
 
+// Fourth try in a league fixture — bonus point earned.
+const TRY_BONUS_POINT: readonly string[] = [
+  "That's the fourth — there's the bonus point.",
+  "Four tries — the bonus point is in the bag.",
+  "That one earns the bonus point. Four tries on the board.",
+  "The bonus point is secured — four tries for {side}.",
+  "A crucial fourth try — {side} bank the bonus point.",
+  "Four tries and counting — that's the bonus point safe.",
+];
+
 const TRY_REFEREE_SIGNAL: readonly string[] = [
   "Arm straight up from the referee — try given.",
   'No question about it — the official signals the try.',
@@ -396,6 +406,8 @@ export function getAnnouncementTemplate(
       return pickRandom(TRY_LOCATION_CORNER);
     case 'try_referee_signal':
       return pickRandom(TRY_REFEREE_SIGNAL);
+    case 'try_bonus_point':
+      return pickRandom(TRY_BONUS_POINT);
     case 'try_aftermath':
       return pickTryAftermath(params.tryAftermath);
     case 'kicker_steps_up':

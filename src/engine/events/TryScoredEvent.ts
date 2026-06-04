@@ -3,7 +3,7 @@ import type { MatchEvent } from '../../types/matchEvent';
 import type { PhaseOutcomeKey } from '../../types/narration';
 import type { TryAftermathContext } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
-import { SCORE_VALUES, TRY_AFTERMATH_CONTEXT } from '../balance';
+import { SCORE_VALUES, TRY_AFTERMATH_CONTEXT, LEAGUE_POINTS } from '../balance';
 
 // The try line is keyed off the lead it produces. The handler is read-only —
 // TRY_SCORED is applied by PhaseRouter after this returns — so `state.score`
@@ -46,12 +46,20 @@ export function handleTryScored({ state, attackTeam, randomPlayer }: PhaseContex
       margin <= TRY_AFTERMATH_CONTEXT.lateDramaMargin,
   };
 
+  // Handler is read-only — TRY_SCORED is applied by PhaseRouter after this
+  // returns, so state.stats.tries is still the pre-try count here.
+  const isBonusPointTry =
+    state.stats.tries[state.possession] === LEAGUE_POINTS.tryBonusThreshold - 1 &&
+    !state.engine.isPlayoffSemi &&
+    !state.engine.neutralVenue;
+
   return {
     nextPhase: MatchPhase.ConversionKick,
     narration: {
       steps: [
         { kind: 'phase_outcome', phase: MatchPhase.TryScored, key: leadKey, primary: scorer },
         { kind: 'announcement', key: 'try_aftermath', params: { tryAftermath: aftermath } },
+        ...(isBonusPointTry ? [{ kind: 'announcement' as const, key: 'try_bonus_point' as const }] : []),
       ],
     },
     primaryPlayer: scorer,

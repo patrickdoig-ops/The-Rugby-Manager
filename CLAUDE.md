@@ -63,7 +63,7 @@ The test: every changed line traces directly to the user's request.
 - Split a file when it accumulates multiple unrelated responsibilities.
 - Don't wrap already-clean primitives (typed state object in a "store"; typed pub/sub singleton in a "dispatcher").
 - Prefer pure functions over methods when state can be passed directly. `FieldPosition` helpers take `state: MatchState` as an argument; they are not closures threaded through a deps interface.
-- Use constructor DI for classes whose methods share the same deps (`PenaltyHandler`, `CardHandler`, `ClockController`; the season sub-coordinators `TransferCoordinator`, `StaffCoordinator`, `BoardCoordinator` — each takes the shared `GameState`, plus `teamsById` where it runs team lookups / sims). Use module-level functions for pure helpers (`FieldPosition`, `PhaseRouter`; the season helpers `injuryEffects`, `moraleEffects`, `trainingRunner`).
+- Use constructor DI for classes whose methods share the same deps (`PenaltyHandler`, `CardHandler`, `ClockController`; the season sub-coordinators `TransferCoordinator`, `StaffCoordinator`, `BoardCoordinator`, `PlayoffCoordinator` — each takes the shared `GameState`, plus `teamsById` where it runs team lookups / sims). Use module-level functions for pure helpers (`FieldPosition`, `PhaseRouter`; the season helpers `injuryEffects`, `moraleEffects`, `trainingRunner`).
 - Extract a shared utility the moment a second module needs it, not before.
 - Refactor incrementally — one cohesive split per commit; each commit must build clean and preserve behaviour.
 - A module-boundary change is an engine change — update the matching engine doc in the same commit (`docs/match-engine.md` for `src/engine/` work, `docs/game-engine.md` for `src/game/` work).

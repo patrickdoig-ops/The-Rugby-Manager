@@ -32,7 +32,12 @@ export interface InitHubScreenOpts {
   // is over and state.league.playoffs is active. main.ts decides what to
   // show next (PlayoffBracketScreen with sim CTA, or PreMatch for the
   // player's next playoff match).
-  onPlayoffs:  () => void;
+  onPlayoffs:     () => void;
+  // Called when the pre-season League Cup block CTA is tapped. Absent when
+  // the cup is not pending (avoids a dangling reference in the early render
+  // before the engine is ready). HubScreen gates on both this field and
+  // getGameEngine().isPreSeasonCupPending().
+  onPreSeasonCup?: () => void;
   onSquad:     () => void;
   onFixtures:  () => void;
   onLeague:    () => void;
@@ -116,6 +121,9 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
     if (!playerTeam) return;
 
     const nextFixture = opts.getGameEngine().getCurrentFixture();
+    // Pre-season cup takes priority over the first league fixture — the cup
+    // block must run before R1 is played.
+    const preSeasonCupPending = !!opts.onPreSeasonCup && opts.getGameEngine().isPreSeasonCupPending();
     // The bracket exists from the moment the final regular-round fixture
     // resolves until SEASON_ROLLED_OVER clears it. While it exists, the
     // "Go to next match" CTA is replaced with "Continue to playoffs",
@@ -182,7 +190,9 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
 
       ${playoffsActive
         ? playoffsHtml(playoffs!, teamsById, playerTeam.id, playerPlayoffMatch)
-        : nextMatchHtml(nextFixture, state, teamsById, playerTeam.id)}
+        : preSeasonCupPending
+          ? preSeasonCupHtml(state)
+          : nextMatchHtml(nextFixture, state, teamsById, playerTeam.id)}
 
       ${(() => {
           const sk = `${state.player.teamId}:${state.seed}`;
@@ -229,7 +239,7 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
         }).join('')}
       </div>
 
-      <div id="hub-footer">${playoffsActive ? playoffFooterHtml(playoffs!, playerPlayoffMatch) : footerHtml(nextFixture)}</div>
+      <div id="hub-footer">${playoffsActive ? playoffFooterHtml(playoffs!, playerPlayoffMatch) : preSeasonCupPending ? preSeasonCupFooterHtml() : footerHtml(nextFixture)}</div>
     `;
 
     injectTeamColors(el!, playerTeam);
@@ -242,6 +252,8 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
     }
     if (playoffsActive) {
       el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => opts.onPlayoffs());
+    } else if (preSeasonCupPending) {
+      el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => opts.onPreSeasonCup!());
     } else if (nextFixture) {
       el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => {
         const home = teamsById.get(nextFixture.homeId)!;
@@ -416,6 +428,28 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
     else if (days === 1) label = 'TOMORROW';
     else label = `IN ${days} DAYS`;
     return `<span class="hub-nm-countdown">${label}</span>`;
+  }
+
+  function preSeasonCupHtml(state: GameState): string {
+    return `
+      <div id="hub-next-match">
+        <div class="hub-nm-label">LEAGUE CUP · PRE-SEASON · ${state.calendar.seasonLabel}</div>
+        <div class="hub-nm-fixture" style="justify-content:center;gap:0.5rem">
+          <span class="hub-nm-name" style="font-size:1.05rem">Pool Stage — Rounds 1 &amp; 2</span>
+        </div>
+        <div class="hub-nm-meta">Assistant Manager runs the cup fixtures</div>
+        <div class="hub-nm-spread">Set squad direction and training plan before kick-off</div>
+      </div>
+    `;
+  }
+
+  function preSeasonCupFooterHtml(): string {
+    return `
+      <button id="hub-play-next" class="cta-pulse" aria-label="Start League Cup">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>
+        <span>Start League Cup</span>
+      </button>
+    `;
   }
 
   function footerHtml(fixture: Fixture | null): string {

@@ -324,6 +324,12 @@ document.addEventListener('DOMContentLoaded', () => {
       allTeams,
       onPlayMatch: onPlayRound,
       onPlayoffs: () => { void runPlayoffWeek(); },
+      onPreSeasonCup: () => {
+        const eng = gameEngine;
+        if (!eng) return;
+        const begin = eng.beginPreSeasonBlock();
+        runPreSeasonCupChain(begin, eng, () => { autosave(eng.toSavePayload()); goHub(); });
+      },
       onFixtures: goFixtures,
       onLeague:   goLeagueMenu,
       onSquad:    goSquad,
@@ -665,13 +671,6 @@ document.addEventListener('DOMContentLoaded', () => {
     gameEngine = GameCoordinator.newSeason(team.id, generateSeed(), allTeams);
     autosave(gameEngine.toSavePayload());
     initInSeasonScreens();
-    // Run the pre-season cup block before reaching the Hub.
-    if (gameEngine.isPreSeasonCupPending()) {
-      const begin = gameEngine.beginPreSeasonBlock();
-      const eng = gameEngine;
-      runPreSeasonCupChain(begin, eng, () => { autosave(eng.toSavePayload()); goHub(); });
-      return;
-    }
     goHub();
   }
 
@@ -772,13 +771,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!gameEngine) { goHub(); return; }
       gameEngine.setPreSeasonStep(null);
       autosave(gameEngine.toSavePayload());
-      // Run the pre-season cup block before reaching the Hub.
-      if (gameEngine.isPreSeasonCupPending()) {
-        const begin = gameEngine.beginPreSeasonBlock();
-        const eng = gameEngine;
-        runPreSeasonCupChain(begin, eng, () => { autosave(eng.toSavePayload()); goHub(); });
-        return;
-      }
       goHub();
     });
     screenRouter.show('contracts');
@@ -866,14 +858,10 @@ document.addEventListener('DOMContentLoaded', () => {
       runEndOfSeasonChain();
       return;
     }
-    // Interrupted pre-season cup block (tab closed before the block ran).
-    // Re-enter the pre-season chain so it completes before reaching the Hub.
+    // Pre-season cup not yet started (or tab closed before completing the
+    // cup chain). Go to Hub — the cup CTA there will trigger the chain.
     if (gameEngine.isPreSeasonCupPending()) {
-      const begin = gameEngine.beginPreSeasonBlock();
-      const eng = gameEngine;
-      runPreSeasonCupChain(begin, eng, () => {
-        autosave(eng.toSavePayload()); goHub();
-      });
+      goHub();
       return;
     }
     // Interrupted international break (tab closed on the post-match chain at a

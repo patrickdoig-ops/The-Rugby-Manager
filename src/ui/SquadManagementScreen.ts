@@ -596,8 +596,8 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       : `<div class="sq-con ${conditionClass(condition)}" title="Current condition">${Math.round(condition)}%</div>`;
     const morale = moraleFor(p);
     const moraleCell = morale === null
-      ? `<div class="sq-mor sq-mor--unrated" title="No morale data">—</div>`
-      : (() => { const ml = moraleLabel(morale); return `<div class="sq-mor ${ml.cls}" title="Player morale">${ml.text}</div>`; })();
+      ? `<div class="sq-mor sq-mor--unrated" title="No morale data"></div>`
+      : (() => { const ml = moraleLabel(morale); return `<div class="sq-mor ${ml.cls}" title="${ml.text}"></div>`; })();
     // Out-of-position warning — only on the starting XV (slots 1-15), where
     // the familiarity penalty (balance/positionFamiliarity.ts) is applied at
     // kick-off. Bench cover is judged by where the player actually subs in,

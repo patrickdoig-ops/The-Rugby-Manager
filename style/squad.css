@@ -401,6 +401,27 @@
   background: transparent;
 }
 
+/* MOR pill — fixed-width colour-coded bar, no text. Width matches CON/AVR
+   so the right-hand column group aligns regardless of morale state. Colour
+   alone carries the meaning; the label is preserved in the title attribute. */
+.sq-col-header--mor { width: 40px; }
+
+.sq-mor {
+  flex-shrink: 0;
+  width: 40px;
+  height: 8px;
+  border-radius: 50px;
+}
+
+.sq-mor--unrated {
+  background: color-mix(in oklch, var(--rm-text-faint) 20%, transparent);
+}
+
+.mor-happy     { background: var(--rm-stat-4); }
+.mor-ok        { background: var(--rm-stat-3); }
+.mor-unsettled { background: var(--rm-stat-2); }
+.mor-unhappy   { background: var(--rm-stat-1); }
+
 /* ─── Footer ─── */
 #sq-footer {
   flex-shrink: 0;

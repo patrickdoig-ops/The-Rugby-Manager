@@ -184,27 +184,27 @@
 }
 
 .so-ovr.ovr-elite {
-  color: var(--rm-stat-3);
-  background: color-mix(in oklch, var(--rm-stat-3) 12%, var(--rm-surface-2));
-  border-color: color-mix(in oklch, var(--rm-stat-3) 28%, transparent);
-}
-.so-ovr.ovr-elite .so-ovr-val {
-  text-shadow: 0 0 10px color-mix(in oklch, var(--rm-stat-3) 50%, transparent);
-}
-.so-ovr.ovr-good {
   color: var(--rm-stat-4);
   background: color-mix(in oklch, var(--rm-stat-4) 12%, var(--rm-surface-2));
   border-color: color-mix(in oklch, var(--rm-stat-4) 28%, transparent);
 }
+.so-ovr.ovr-elite .so-ovr-val {
+  text-shadow: 0 0 10px color-mix(in oklch, var(--rm-stat-4) 50%, transparent);
+}
+.so-ovr.ovr-good {
+  color: var(--rm-stat-3);
+  background: color-mix(in oklch, var(--rm-stat-3) 12%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-3) 28%, transparent);
+}
 .so-ovr.ovr-avg {
-  color: var(--rm-stat-5);
-  background: color-mix(in oklch, var(--rm-stat-5) 10%, var(--rm-surface-2));
-  border-color: color-mix(in oklch, var(--rm-stat-5) 25%, transparent);
+  color: var(--blue);
+  background: color-mix(in oklch, var(--blue) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--blue) 25%, transparent);
 }
 .so-ovr.ovr-poor {
-  color: var(--rm-stat-2);
-  background: color-mix(in oklch, var(--rm-stat-2) 10%, var(--rm-surface-2));
-  border-color: color-mix(in oklch, var(--rm-stat-2) 22%, transparent);
+  color: var(--rm-stat-1);
+  background: color-mix(in oklch, var(--rm-stat-1) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-1) 22%, transparent);
 }
 .so-ovr--empty {
   color: var(--rm-text-faint);

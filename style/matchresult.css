@@ -619,12 +619,12 @@
 }
 
 .mr-player-rating.rating-high {
-  color: var(--rm-stat-3);
-  text-shadow: 0 0 12px color-mix(in oklch, var(--rm-stat-3) 55%, transparent);
+  color: var(--rm-stat-4);
+  text-shadow: 0 0 12px color-mix(in oklch, var(--rm-stat-4) 55%, transparent);
 }
-.mr-player-rating.rating-mid  { color: var(--rm-stat-4); }
-.mr-player-rating.rating-low  { color: var(--rm-stat-5); }
-.mr-player-rating.rating-poor { color: var(--rm-stat-2); }
+.mr-player-rating.rating-mid  { color: var(--rm-stat-3); }
+.mr-player-rating.rating-low  { color: var(--blue); }
+.mr-player-rating.rating-poor { color: var(--rm-stat-1); }
 
 /* ─── Up Next preview ─── */
 .mr-upnext {

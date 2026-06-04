@@ -64,4 +64,18 @@ export const MORALE = {
   loanFirstTeamDelta: -8,    // first-team regular (rank 6–15) sent on loan
   loanYoungAge: 24,          // age ≤ this counts as "young backup"
   loanYoungBackupBoost: 5,   // young backup pleased to get game time
+
+  // New-game roster morale seed distribution (rosterSeeder).
+  // Roll bracket = rngTransfer(0, 99); then roll morale value within bracket range.
+  //   0..59  → OK        [seedOkMin..seedOkMax]        ~60%
+  //   60..89 → Happy     [seedHappyMin..seedHappyMax]  ~30%
+  //   90..97 → Unsettled [seedUnsMin..seedUnsMax]       ~8%
+  //   98..99 → Unhappy   [seedBadMin..seedBadMax]       ~2%
+  seedHappyCutoff: 60,
+  seedUnsettledCutoff: 90,
+  seedUnhappyCutoff: 98,
+  seedOkMin: 56,    seedOkMax: 74,
+  seedHappyMin: 80, seedHappyMax: 90,
+  seedUnsMin: 40,   seedUnsMax: 54,
+  seedBadMin: 22,   seedBadMax: 34,
 } as const;

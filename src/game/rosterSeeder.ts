@@ -11,9 +11,9 @@
 // `seasonStartYear` argument is the year the next season opens in — used
 // to compute contract expiry dates relative to "now".
 //
-// Consumes rngTransfer (via contractSeeder); call setCareerSeed before
-// invoking. Same root seed produces an identical roster + identical
-// contract terms.
+// Consumes rngTransfer (via contractSeeder + morale seed); call setCareerSeed
+// before invoking. Same root seed produces an identical roster + identical
+// contract terms + identical starting morale spread.
 
 import type { Player } from '../types/player';
 import { zeroMatchStats, zeroSeasonStats } from '../types/player';
@@ -22,12 +22,20 @@ import type { RawPlayer, RawTeamInput } from '../types/teamData';
 import { seedContractFields } from './contractSeeder';
 import {
   CLUB_SALARY_BUDGETS_2025_26, SENIOR_CAP, EFFECTIVE_CAP_CREDITS,
-  WAGE_FLOOR, WAGE_ROUNDING_UNIT,
+  WAGE_FLOOR, WAGE_ROUNDING_UNIT, MORALE,
 } from '../engine/balance';
 import { POTENTIAL_HEADROOM } from '../engine/balance/career';
 import { playerOverall } from '../engine/RatingEngine';
 import { getAge, seasonOpenIso } from './age';
 import { rngTransfer } from '../utils/rng';
+
+function seedMorale(): number {
+  const bracket = rngTransfer(0, 99);
+  if (bracket < MORALE.seedHappyCutoff)     return rngTransfer(MORALE.seedOkMin, MORALE.seedOkMax);
+  if (bracket < MORALE.seedUnsettledCutoff) return rngTransfer(MORALE.seedHappyMin, MORALE.seedHappyMax);
+  if (bracket < MORALE.seedUnhappyCutoff)   return rngTransfer(MORALE.seedUnsMin, MORALE.seedUnsMax);
+  return rngTransfer(MORALE.seedBadMin, MORALE.seedBadMax);
+}
 
 export interface SeededRoster {
   roster: Record<number, Player>;
@@ -147,7 +155,7 @@ function hydratePersistentPlayer(
     x: 50,
     y: 50,
     condition: 100,
-    morale: 65,
+    morale: seedMorale(),
     potential,
   };
 }

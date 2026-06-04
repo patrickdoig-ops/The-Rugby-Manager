@@ -99,7 +99,7 @@ For full module internals (AITacticalDirector, AISubstitutionDirector, CardHandl
 - `eventBus.emit` calls are **pure UI side effects** — they live in orchestrators alongside `applyMatchEvent` calls, not inside `applyMatchEvent` itself.
 - Do not redundantly clone payloads inside `applyMatchEvent` — assign by reference where the orchestrator already allocated a fresh object.
 
-**Season-scope mutations go through `applySeasonEvent(state, event)`** in `src/game/applySeasonEvent.ts`, operating on `GameState`. `GameCoordinator` is the only caller. **`applySeasonEvent` runs `assertSeasonInvariants(state)` after every event.** Same `default: never` exhaustiveness contract. Full `SeasonEvent` variant list: **`docs/game-engine.md`** § "Mutation seam".
+**Season-scope mutations go through `applySeasonEvent(state, event)`** in `src/game/applySeasonEvent.ts`, operating on `GameState`. `GameCoordinator` and its season sub-coordinators (`TransferCoordinator`, `StaffCoordinator`, `BoardCoordinator`, `PlayoffCoordinator`, `InternationalBreakCoordinator`) plus the pure season helpers (`injuryEffects`, `moraleEffects`, `trainingRunner`) are the only callers — all share the one `GameState`. **`applySeasonEvent` runs `assertSeasonInvariants(state)` after every event.** Same `default: never` exhaustiveness contract. Full `SeasonEvent` variant list: **`docs/game-engine.md`** § "Mutation seam".
 
 ## 6. Randomness Boundary
 

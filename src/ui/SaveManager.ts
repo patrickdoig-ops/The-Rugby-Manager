@@ -14,7 +14,7 @@
 import type { SavedCareer, SavedSeason, SavedSeasonResult } from '../game/GameCoordinator';
 import type { ArchivedPlayerSeason, ArchivedSeason, ClubState, CupFixture, CupKnockout, CupKnockoutMatch, Fixture, MarketState, MediaStory, PlayerRef, PlayoffMatch, PlayoffState, PremCupState, PreAgreement, SeasonAwards, TeamSeasonStats, TransferBid, TransferOffer } from '../types/gameState';
 import type { Player, PlayerSeasonStats } from '../types/player';
-import { zeroSeasonStats } from '../types/player';
+import { zeroSeasonStats, PLAYER_STAT_KEYS } from '../types/player';
 import { zeroStanding, zeroTeamSeasonStats } from '../types/gameState';
 import { DEFAULT_TACTICS, type TeamTactics } from '../types/team';
 import type { TrainingPlan } from '../types/training';
@@ -258,6 +258,13 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
   const activePoachedIds = Array.isArray(c.activePoachedIds)
     ? (c.activePoachedIds as unknown[]).filter((x): x is number => typeof x === 'number')
     : [];
+  // Reject a save whose roster carries a structurally-unusable player — a
+  // missing/out-of-range baseStat or absent position would otherwise survive
+  // the parser and only throw later inside the match engine's assertInvariants
+  // (mid-match, where there's no recovery). Returning undefined here routes the
+  // load through loadSlot's last-known-good `.bak` fallback instead.
+  const roster = backfillRosterSeasonStats(c.roster as Record<number, Player>);
+  if (!rosterIsLoadable(roster)) return undefined;
   return {
     seasonsCompleted: c.seasonsCompleted,
     nextRosterId: c.nextRosterId,
@@ -267,7 +274,7 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
       salaryBudget: typeof cl.salaryBudget === 'number' ? cl.salaryBudget : DEFAULT_SALARY_BUDGET,
       ...(typeof cl.staffBudget === 'number' ? { staffBudget: cl.staffBudget } : {}),
     })),
-    roster: backfillRosterSeasonStats(c.roster as Record<number, Player>),
+    roster,
     archive: (c.archive as ArchivedSeason[]).map(a => ({
       seasonLabel: a.seasonLabel,
       standings: a.standings.map(s => ({ ...s })),
@@ -287,6 +294,27 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
     ...(Array.isArray(c.staff) ? { staff: c.staff } : {}),
     ...(typeof c.nextStaffId === 'number' ? { nextStaffId: c.nextStaffId } : {}),
   };
+}
+
+// Validate the load-bearing fields the match engine derives from but never
+// re-checks until mid-match. baseStats feeds currentStats every tick (engine
+// invariant: each stat 1..100), and position drives slot logic — a missing or
+// non-finite baseStat, or an absent position, would crash inside a match. A
+// legitimate save never trips this (baseStats are authored/clamped to 1..99),
+// so rejecting routes hand-edited / bit-rotted saves to the `.bak` fallback.
+function rosterIsLoadable(roster: Record<number, Player>): boolean {
+  for (const k of Object.keys(roster)) {
+    const p = roster[Number(k)];
+    if (!p || typeof p !== 'object') return false;
+    if (typeof p.position !== 'string' || p.position.length === 0) return false;
+    const bs = p.baseStats as unknown as Record<string, unknown> | undefined;
+    if (!bs || typeof bs !== 'object') return false;
+    for (const key of PLAYER_STAT_KEYS) {
+      const v = bs[key];
+      if (typeof v !== 'number' || !Number.isFinite(v) || v < 1 || v > 99) return false;
+    }
+  }
+  return true;
 }
 
 // Ensure all PlayerSeasonStats fields exist on every roster entry (guards

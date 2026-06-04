@@ -79,6 +79,16 @@ export const SHORT_HANDED = {
   missingBackDefendPenalty: -8,   // per missing back; added to defendMod (negative = worse)
 } as const;
 
+// Referee leniency when a team already has players in the sin bin.
+// Applied to all three yellow-card routes (TEAM_22 auto-card, TMO yellow
+// outcome, maul-collapse direct yellow). Reflects real-referee behaviour:
+// a depleted side gets more benefit of the doubt.
+// At 0 in the bin the effective scale is 1.0 (unchanged).
+export const SIN_BIN_LENIENCY = {
+  scaleOne:     0.45,  // 1 player in bin  → 45% of base card probability
+  scaleTwoPlus: 0.0,   // 2+ players in bin → card suppressed entirely
+} as const;
+
 // AI penalty decision — tap-and-go in the close-range zone. When the
 // penalty is awarded between `closeRangeMinMetres` and `closeRangeMaxMetres`
 // from the opposition try line, the AI rolls `rng(1, 100) <= closeRangePct`

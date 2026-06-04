@@ -7,7 +7,7 @@ import { rng } from '../utils/rng';
 import { makeId } from './eventId';
 import { inOwn22For, metresFromOppositionTryLine } from './FieldPosition';
 import { applyMatchEvent } from './applyMatchEvent';
-import { TMO, TEAM_22, OFFENCE_SPEC, MAUL_COLLAPSE_YELLOW } from './balance';
+import { TMO, TEAM_22, OFFENCE_SPEC, MAUL_COLLAPSE_YELLOW, SIN_BIN_LENIENCY } from './balance';
 import type { CommentaryStreamer } from './CommentaryStreamer';
 
 export interface CardHandlerDeps {
@@ -48,9 +48,15 @@ export class CardHandler {
       // Strict equality (per user spec: "the fourth penalty triggers the
       // yellow"). A 5th/6th/7th in the same match doesn't card again — the
       // first yellow already cost the team a player, that's the punishment.
+      // Leniency: if the team already has players in the sin bin, the referee
+      // scales back the probability of issuing another card.
       if (count === TEAM_22.cardAt) {
-        this.issueCard(last.offender, last.offendingSide, 'yellow', true);
-        return 'team22_card';
+        const scale = sinBinLeniencyScale(state.cards.sinBin[last.offendingSide].length);
+        const fires = scale >= 1 || (scale > 0 && rng(1, 100) <= Math.round(scale * 100));
+        if (fires) {
+          this.issueCard(last.offender, last.offendingSide, 'yellow', true);
+          return 'team22_card';
+        }
       }
       if (count === TEAM_22.warnAt && !state.cards.teamWarned22[last.offendingSide]) {
         applyMatchEvent(state, { type: 'TEAM_22_WARNING_ISSUED', side: last.offendingSide });
@@ -67,7 +73,8 @@ export class CardHandler {
     // metresFromOppositionTryLine reads the distance to the DEFENDING
     // team's own try line — i.e. how close to scoring the collapse was.
     if (last.offence === 'maul_collapse') {
-      const pct = pickMaulCollapseYellowPct(metresFromOppositionTryLine(state));
+      const basePct = pickMaulCollapseYellowPct(metresFromOppositionTryLine(state));
+      const pct = Math.round(basePct * sinBinLeniencyScale(state.cards.sinBin[last.offendingSide].length));
       if (rng(1, 100) <= pct) {
         this.issueCard(last.offender, last.offendingSide, 'yellow', true);
       }
@@ -82,7 +89,8 @@ export class CardHandler {
     // the review path.
     const spec = OFFENCE_SPEC[last.offence];
     if (spec.tmoTriggerPct > 0 && rng(1, 100) <= spec.tmoTriggerPct) {
-      const outcome = pickTmoOutcome();
+      const scale = sinBinLeniencyScale(state.cards.sinBin[last.offendingSide].length);
+      const outcome = pickTmoOutcome(scale);
       if (silent) {
         // Silent path: collapse the 3 narrative ticks into a single tick. RNG
         // order above is identical to live; only the bus emits + tick-budget
@@ -207,12 +215,22 @@ export class CardHandler {
   }
 }
 
-function pickTmoOutcome(): TmoOutcome {
-  // Single rng(1,100) bucketed by the configured weights.
+function pickTmoOutcome(leniencyScale: number): TmoOutcome {
+  // Yellow probability is scaled by leniency; the reduction transfers to no_card.
+  // red_20 bucket is unchanged — a dangerous high tackle still risks a red
+  // regardless of how many players are already in the bin.
+  const yellowPct = Math.round(TMO.outcomeYellowPct * leniencyScale);
+  const noCardPct = TMO.outcomeNoCardPct + (TMO.outcomeYellowPct - yellowPct);
   const roll = rng(1, 100);
-  if (roll <= TMO.outcomeNoCardPct) return 'no_card';
-  if (roll <= TMO.outcomeNoCardPct + TMO.outcomeYellowPct) return 'yellow';
+  if (roll <= noCardPct) return 'no_card';
+  if (roll <= noCardPct + yellowPct) return 'yellow';
   return 'red_20';
+}
+
+function sinBinLeniencyScale(sinBinCount: number): number {
+  if (sinBinCount >= 2) return SIN_BIN_LENIENCY.scaleTwoPlus;
+  if (sinBinCount >= 1) return SIN_BIN_LENIENCY.scaleOne;
+  return 1;
 }
 
 // Yellow card probability for a maul_collapse, keyed by how close to the

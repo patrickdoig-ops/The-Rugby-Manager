@@ -1505,9 +1505,11 @@ The card system layers on top of the penalty seam. Whenever `PENALTY_AWARDED` fi
 
 ### Two trigger paths
 
-1. **Team-22 rule.** Each penalty where the offender's team was *defending* in their own 22 increments `state.cards.teamPenalty22[offendingSide]`. The 3rd-in-22 (`TEAM_22.warnAt`) emits a `team_22_warning` announcement (once per match per side). When the warned side is the human side, `CardHandler.emitAnnouncement` looks up `state.engine.humanCaptainRosterId` in that team's `players[]` and passes the captain's name through `buildAnnounce`'s `captainName` param — the `team_22_warning` bank substitutes `{captainName}` (falling back to "the captain" for the AI side / unset captain). Narrative only; the warning fires identically regardless. The 4th-in-22 (`TEAM_22.cardAt`) **forces** an immediate yellow on the offender — TMO is skipped. The counter is not reset; the 5th–8th in-22 add no further cards (per spec "the fourth penalty triggers the yellow").
+1. **Team-22 rule.** Each penalty where the offender's team was *defending* in their own 22 increments `state.cards.teamPenalty22[offendingSide]`. The 3rd-in-22 (`TEAM_22.warnAt`) emits a `team_22_warning` announcement (once per match per side). When the warned side is the human side, `CardHandler.emitAnnouncement` looks up `state.engine.humanCaptainRosterId` in that team's `players[]` and passes the captain's name through `buildAnnounce`'s `captainName` param — the `team_22_warning` bank substitutes `{captainName}` (falling back to "the captain" for the AI side / unset captain). Narrative only; the warning fires identically regardless. The 4th-in-22 (`TEAM_22.cardAt`) issues an immediate yellow on the offender — TMO is skipped — subject to **referee leniency** (see below). The counter is not reset; the 5th–8th in-22 add no further cards (per spec "the fourth penalty triggers the yellow").
 
-2. **Per-offence TMO.** If the team-22 rule didn't already card, CardHandler looks up `OFFENCE_SPEC[last.offence].tmoTriggerPct` and rolls `rng(1,100) <= triggerPct`. Two offences carry a non-zero trigger today: `high_tackle` (90 %) and `dangerous_cleanout` (90 %). On a hit, a single `rng(1,100)` is bucketed by the global `TMO.outcomeNoCardPct / outcomeYellowPct / outcomeRed20Pct` weights (25/65/10) to pre-roll the outcome. In live mode this enters `MatchPhase.TmoReview` for 3 narrative ticks; in silent mode the narrative is collapsed and the card is applied inline — RNG order is identical so determinism is preserved. **Adding a TMO-eligible offence is a one-line edit** to the `OFFENCE_SPEC` registry — no `CardHandler` change.
+2. **Per-offence TMO.** If the team-22 rule didn't already card, CardHandler looks up `OFFENCE_SPEC[last.offence].tmoTriggerPct` and rolls `rng(1,100) <= triggerPct`. Two offences carry a non-zero trigger today: `high_tackle` (90 %) and `dangerous_cleanout` (90 %). On a hit, a single `rng(1,100)` is bucketed by the leniency-adjusted `noCardPct / yellowPct / red20Pct` weights to pre-roll the outcome (see **referee leniency** below). In live mode this enters `MatchPhase.TmoReview` for 3 narrative ticks; in silent mode the narrative is collapsed and the card is applied inline — RNG order is identical so determinism is preserved. **Adding a TMO-eligible offence is a one-line edit** to the `OFFENCE_SPEC` registry — no `CardHandler` change.
+
+**Referee leniency (`SIN_BIN_LENIENCY`).** All three yellow-card routes (team-22 auto-card, TMO yellow outcome, maul-collapse direct yellow) are scaled back when the offending team already has players in the sin bin, reflecting real-referee behaviour. `sinBinLeniencyScale(n)` returns 1.0 / 0.45 / 0.0 for 0 / 1 / 2+ players in the bin. For the team-22 path the scale is applied as a probability (a 1-in-bin team has a 45 % chance the auto-card still fires; 2+ suppressed entirely — one extra `rng(1,100)` call only when the scale is < 1). For the TMO path, `yellowPct` is multiplied by the scale and the reduction moves into `noCardPct`; `red20Pct` is unchanged (a genuinely dangerous high tackle can still earn a red regardless). For maul-collapse, `pct` is multiplied by the scale before the roll — the RNG call always fires, keeping the stream position stable.
 
 **Direct cards** (team-22 rule path, maul-collapse path) issue a two-step narration event: a `card_ref_summons` announcement prepended before the `card_yellow` / `card_red_20` / `card_red_full` line, so `CommentaryFeed` stagger-reveals "ref calls player over → card shown" as two paced beats. TMO-triggered cards are deliberately left as single-step — the 3-tick TMO review (`tmo_intervenes` → `tmo_reviewing` → `tmo_decision_*`) is itself the build-up. `buildAnnounce` accepts an optional `prependKey` arg; `issueCard` passes `summons: true` from the team-22 / maul-collapse paths and `false` from the TMO paths.
 
@@ -1577,9 +1579,10 @@ OFFENCE_SPEC     = {
   dangerous_cleanout:     { tmoTriggerPct: 90 },
   not_rolling_away:       { tmoTriggerPct:  0 },
 }
-SIN_BIN_DURATION = { yellow: 10, red_20: 20 }
-TEAM_22          = { warnAt: 3, cardAt: 4 }
-SHORT_HANDED     = { missingBackDefendPenalty: -8 }
+SIN_BIN_DURATION   = { yellow: 10, red_20: 20 }
+TEAM_22            = { warnAt: 3, cardAt: 4 }
+SHORT_HANDED       = { missingBackDefendPenalty: -8 }
+SIN_BIN_LENIENCY   = { scaleOne: 0.45, scaleTwoPlus: 0.0 }
 ```
 
 **Per-offence base trigger rates** — pct per phase-event for the new offences:

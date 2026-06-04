@@ -1146,6 +1146,14 @@ export type SeasonEvent =
       condition: number;
     }
   | {
+      // 2025/26 season-open seed for a returning England or Wales summer-tour
+      // player. Reducer sets `Player.summerTourReturn` and the reduced return
+      // `condition`. Fired once per matched player at GameCoordinator.newSeason.
+      type: 'SUMMER_TOUR_RETURN_SET';
+      rosterId: number;
+      condition: number;
+    }
+  | {
       // Seeds the Prem Cup for the season: the two pools + the full set of
       // 40 pool fixtures (both legs). Fired once per season — at newSeason
       // (year 1, hardcoded pools) and inside computeRollover (year 2+,

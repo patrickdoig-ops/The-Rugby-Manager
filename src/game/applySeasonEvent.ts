@@ -477,6 +477,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         if (p.restObligation) p.restObligation = undefined;
         if (p.internationalDuty) p.internationalDuty = undefined;
         if (p.lionsReturnRound !== undefined) p.lionsReturnRound = undefined;
+        if (p.summerTourReturn) p.summerTourReturn = undefined;
         if (p.disciplineAdvice) p.disciplineAdvice = undefined;
         if (p.suspension) p.suspension = undefined;
         if (p.wantsTransfer) p.wantsTransfer = undefined;
@@ -679,6 +680,13 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       if (!p) return;
       p.lionsReturnRound = event.availableFromRound;
       p.condition = Math.max(0, Math.min(100, event.condition));
+      return;
+    }
+    case 'SUMMER_TOUR_RETURN_SET': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.condition = Math.max(0, Math.min(100, event.condition));
+      p.summerTourReturn = true;
       return;
     }
     case 'PREM_CUP_SEEDED': {

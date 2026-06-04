@@ -88,3 +88,13 @@ export const INTERNATIONAL_INJURY_KINDS: InjuryKind[] = ['muscle_strain', 'ligam
 export const LIONS_RETURN_CONDITION = 78;
 export const LIONS_RETURN_CONDITION_NOISE = 10;   // → returns land in [68, 88]
 export const LIONS_RETURN_ROUND = 3;
+
+// 2025/26 season-open state for returning England and Wales summer tour
+// players. Shorter tours (3 Tests for England, 2 for Wales) mean players
+// return slightly fresher than Lions tourists. No PGA stand-down applies —
+// England players were only excluded from the two pre-season cup rounds (leg
+// 0) by agreement, and were available for league R1 onward.
+// Return condition centred on SUMMER_TOUR_RETURN_CONDITION with
+// ±SUMMER_TOUR_RETURN_CONDITION_NOISE of rngTransfer spread.
+export const SUMMER_TOUR_RETURN_CONDITION = 83;
+export const SUMMER_TOUR_RETURN_CONDITION_NOISE = 7;  // → returns land in [76, 90]

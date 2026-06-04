@@ -98,6 +98,7 @@ export function buildCupTeamFromRoster(
   state: GameState,
   teamJson: RawTeamInput,
   restRosterIds?: readonly number[],
+  extraExcluded?: ReadonlySet<number>,
 ): RawTeamInput {
   const club = state.career.clubs.find(c => c.id === teamJson.id);
   if (!club) return teamJson;
@@ -106,6 +107,10 @@ export function buildCupTeamFromRoster(
   for (const rid of club.squad) {
     if (state.career.roster[rid]?.internationalDuty) base.add(rid);
   }
+  // Hard-excluded players (e.g. England summer-tour players in pre-season cup)
+  // are added to base so they are never fielded even in thin-squad fallback.
+  if (extraExcluded) for (const rid of extraExcluded) base.add(rid);
+
   const withRest = new Set(base);
   if (restRosterIds) for (const rid of restRosterIds) withRest.add(rid);
 

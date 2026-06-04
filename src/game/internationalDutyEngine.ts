@@ -28,6 +28,7 @@ import {
   INTERNATIONAL_WINDOWS, NATIONS, INTERNATIONAL_LOAD,
   INTERNATIONAL_INJURY_KINDS, PGA_REST_NATION,
   LIONS_RETURN_CONDITION, LIONS_RETURN_CONDITION_NOISE, LIONS_RETURN_ROUND,
+  SUMMER_TOUR_RETURN_CONDITION, SUMMER_TOUR_RETURN_CONDITION_NOISE,
 } from '../engine/balance/international';
 import { INJURY_SEVERITY } from '../engine/balance/injuries';
 import {
@@ -40,6 +41,10 @@ import { getAge, parseSeasonStartYear, seasonOpenIso } from './age';
 import { playerOverall } from '../engine/RatingEngine';
 import { rngTransfer, rngTransferRaw } from '../utils/rng';
 import { LIONS_2025_TOURISTS } from '../data/lions-2025';
+import {
+  ENGLAND_SUMMER_2025_TOURISTS,
+  WALES_SUMMER_2025_TOURISTS,
+} from '../data/summer-tour-2025';
 
 export interface CallUp {
   rosterId: number;
@@ -358,6 +363,51 @@ export function lionsReturnEvents(state: GameState): SeasonEvent[] {
         condition,
       });
     }
+  }
+  return out;
+}
+
+// ===== England & Wales summer tour 2025 season-open seeding =====
+
+// Name-matches England and Wales summer-tour players against the seeded roster
+// and returns a SUMMER_TOUR_RETURN_SET per match, seeding a per-player return
+// condition centred on SUMMER_TOUR_RETURN_CONDITION with
+// ±SUMMER_TOUR_RETURN_CONDITION_NOISE of rngTransfer spread. Walked
+// rosterId-ascending so the roll sequence is reproducible. One-shot at the
+// 2025/26 season open.
+export function summerTourReturnEvents(state: GameState): SeasonEvent[] {
+  const allTourists = [
+    ...ENGLAND_SUMMER_2025_TOURISTS,
+    ...WALES_SUMMER_2025_TOURISTS,
+  ];
+  const wanted = new Set(allTourists.map(t => `${t.firstName}|${t.lastName}`.toLowerCase()));
+  const out: SeasonEvent[] = [];
+  const ids = Object.keys(state.career.roster).map(Number).sort((a, b) => a - b);
+  for (const rid of ids) {
+    const p = state.career.roster[rid];
+    if (wanted.has(`${p.firstName}|${p.lastName}`.toLowerCase())) {
+      const condition = clamp(
+        SUMMER_TOUR_RETURN_CONDITION + rngTransfer(-SUMMER_TOUR_RETURN_CONDITION_NOISE, SUMMER_TOUR_RETURN_CONDITION_NOISE),
+        0, 100,
+      );
+      out.push({ type: 'SUMMER_TOUR_RETURN_SET', rosterId: rid, condition });
+    }
+  }
+  return out;
+}
+
+// Returns the set of rosterIds for England summer-tour players in the managed
+// club's squad. Used by runPreSeasonBlock to exclude them from leg-0 cup
+// selection (England players were not permitted to play pre-season cup rounds
+// by agreement). Computed fresh each call — no state mutation.
+export function getEnglandSummerTourRosterIds(state: GameState, clubId: string): Set<number> {
+  const wanted = new Set(ENGLAND_SUMMER_2025_TOURISTS.map(t => `${t.firstName}|${t.lastName}`.toLowerCase()));
+  const club = state.career.clubs.find(c => c.id === clubId);
+  if (!club) return new Set();
+  const out = new Set<number>();
+  for (const rid of club.squad) {
+    const p = state.career.roster[rid];
+    if (p && wanted.has(`${p.firstName}|${p.lastName}`.toLowerCase())) out.add(rid);
   }
   return out;
 }

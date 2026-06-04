@@ -54,7 +54,7 @@ import { generateMatchStory, type MediaMatchContext, type MediaPlayer } from './
 import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot } from './seasonStatsCollector';
 import { runTrainingPeriods } from './trainingRunner';
 import { upcomingGap, splitGapIntoPeriods } from './trainingCalendar';
-import { reconcileRestObligations, lionsReturnEvents } from './internationalDutyEngine';
+import { reconcileRestObligations, lionsReturnEvents, summerTourReturnEvents } from './internationalDutyEngine';
 import { computeRollover } from './careerRollover';
 import { generateStaffPool } from './staffPoolGenerator';
 import { generatePersona } from './personaGenerator';
@@ -230,6 +230,7 @@ export class GameCoordinator {
     // tour (2029) is out of scope.
     if (seasonStartYear === 2025) {
       for (const ev of lionsReturnEvents(coord.state)) applySeasonEvent(coord.state, ev);
+      for (const ev of summerTourReturnEvents(coord.state)) applySeasonEvent(coord.state, ev);
     }
     // Seed the Prem Cup for year 1 — real 2025-26 pools (RNG-free; pool
     // redraw for year 2+ happens at rollover). Fixtures derive their

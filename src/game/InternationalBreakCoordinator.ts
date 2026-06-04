@@ -22,7 +22,7 @@ import { runTrainingPeriods } from './trainingRunner';
 import { upcomingGap, splitGapIntoPeriods } from './trainingCalendar';
 import {
   isInternationalBreak, selectInternationalSquads, buildCallUpEvents,
-  resolveInternationalBreak, type CallUp,
+  resolveInternationalBreak, getEnglandSummerTourRosterIds, type CallUp,
 } from './internationalDutyEngine';
 import { eventBus } from '../utils/eventBus';
 
@@ -82,10 +82,14 @@ export class InternationalBreakCoordinator {
     const restIds = this.state.player.cupDirection === 'rest_first_15'
       ? this.firstChoiceStarterIds()
       : undefined;
+    // England summer-tour players were excluded from the two pre-season cup
+    // rounds (leg 0) by agreement with the RFU — compute their IDs for all
+    // clubs so the headless sims honour the exclusion.
+    const englandExcluded = this.buildEnglandExclusionMap();
     const featured = new Set<number>();
 
     for (const fx of (this.state.league.premCup?.fixtures ?? []).filter(f => f.leg === 0)) {
-      await this.simulateCupFixture(fx, restIds, featured);
+      await this.simulateCupFixture(fx, restIds, featured, englandExcluded);
     }
 
     for (const ev of cupDevelopmentEvents(this.state, featured, this.state.calendar.date)) {
@@ -215,19 +219,28 @@ export class InternationalBreakCoordinator {
   // Build a Prem Cup matchday side from the roster. The user's club honours
   // the rest-the-first-15 direction; everyone else fields best-available
   // (international-duty + injured players excluded by buildCupTeamFromRoster).
-  private buildCupSide(teamJson: RawTeamInput, restIds: number[] | undefined): RawTeamInput {
+  private buildCupSide(
+    teamJson: RawTeamInput,
+    restIds: number[] | undefined,
+    extraExcluded?: ReadonlySet<number>,
+  ): RawTeamInput {
     const rest = teamJson.id === this.state.player.teamId ? restIds : undefined;
-    return buildCupTeamFromRoster(this.state, teamJson, rest);
+    return buildCupTeamFromRoster(this.state, teamJson, rest, extraExcluded);
   }
 
   // Simulate one cup pool fixture (silent) and record it + the condition
   // writeback. NOT collectSeasonEvents (cup stats stay out of league leaderboards).
-  private async simulateCupFixture(fx: CupFixture, restIds: number[] | undefined, featured: Set<number>): Promise<void> {
+  private async simulateCupFixture(
+    fx: CupFixture,
+    restIds: number[] | undefined,
+    featured: Set<number>,
+    extraExcluded?: ReadonlyMap<string, ReadonlySet<number>>,
+  ): Promise<void> {
     const homeJson = this.teamsById.get(fx.homeId);
     const awayJson = this.teamsById.get(fx.awayId);
     if (!homeJson || !awayJson) return;
-    const home = this.buildCupSide(homeJson, restIds);
-    const away = this.buildCupSide(awayJson, restIds);
+    const home = this.buildCupSide(homeJson, restIds, extraExcluded?.get(fx.homeId));
+    const away = this.buildCupSide(awayJson, restIds, extraExcluded?.get(fx.awayId));
     const pseudoRound = fx.leg === 0 ? CUP_SEED_ROUND.preseason : fx.leg === 1 ? CUP_SEED_ROUND.leg1 : CUP_SEED_ROUND.leg2;
     const sim = await simulateFixture(home, away, this.state.seed, pseudoRound, {});
     applySeasonEvent(this.state, {
@@ -267,6 +280,17 @@ export class InternationalBreakCoordinator {
     for (const ev of collectConditionEvents(sim.snapshot)) applySeasonEvent(this.state, ev);
     for (const ev of rollNewInjuryEvents(this.state, sim.snapshot.playerSnapshots)) applySeasonEvent(this.state, ev);
     for (const s of sim.snapshot.playerSnapshots) featured.add(s.rosterId);
+  }
+
+  // Builds a per-clubId map of England summer-tour rosterIds for every club
+  // in the league. Used to exclude them from leg-0 (pre-season) cup selection.
+  private buildEnglandExclusionMap(): Map<string, ReadonlySet<number>> {
+    const out = new Map<string, ReadonlySet<number>>();
+    for (const club of this.state.career.clubs) {
+      const ids = getEnglandSummerTourRosterIds(this.state, club.id);
+      if (ids.size > 0) out.set(club.id, ids);
+    }
+    return out;
   }
 
   // rosterIds of the user's first-choice starting XV (slots 1-15 of the

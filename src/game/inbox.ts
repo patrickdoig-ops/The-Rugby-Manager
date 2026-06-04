@@ -105,6 +105,23 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
     });
   }
 
+  // --- England / Wales summer-tour returners (2025/26 season open) ---
+  const summerBack = club.squad
+    .map(rid => state.career.roster[rid])
+    .filter((p): p is Player => !!p && p.summerTourReturn === true && state.calendar.week === 1);
+  if (summerBack.length > 0) {
+    const listed = summerBack.map(p => `${p.lastName} (${Math.round(p.condition)}%)`).slice(0, 6).join(', ');
+    const extra = summerBack.length > 6 ? `, plus ${summerBack.length - 6} more` : '';
+    items.push({
+      id: `summer-tour:${season}`,
+      category: 'medical',
+      priority: 72,
+      subject: `${summerBack.length} player${summerBack.length !== 1 ? 's' : ''} back from summer internationals`,
+      body: `${listed}${extra} have returned from the England and Wales summer tours. They come back slightly below peak condition after a busy July schedule. No formal stand-down applies — they are available for selection immediately, though may need a week or two to hit full stride.`,
+      deepLink: 'squad',
+    });
+  }
+
   // --- Squad fatigue ---
   const FATIGUE_THRESHOLD = 70;
   const tiredPlayers = club.squad

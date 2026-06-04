@@ -271,6 +271,10 @@ export interface Player {
   // Set once at newSeason, cleared at SEASON_ROLLED_OVER. Absent ⇔ not a 2025
   // Lions returnee. See LIONS_RETURN_ROUND.
   lionsReturnRound?: number;
+  // 2025/26 only: set by SUMMER_TOUR_RETURN_SET at newSeason for England and
+  // Wales summer-tour players. Used to generate the week-1 inbox message about
+  // their return condition. Cleared at SEASON_ROLLED_OVER.
+  summerTourReturn?: true;
   // Set by PLAYER_DISCIPLINE_COUNSELLED when the manager instructs a player to
   // ease off their approach. Boosts baseStats.discipline and reduces
   // baseStats.tackling at match-build time for DISCIPLINE_COUNSEL.durationRounds

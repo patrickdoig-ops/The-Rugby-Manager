@@ -44,8 +44,11 @@ export const ASSISTANT_NOISE_MAX = 0.4;
 
 // Scout staff → accuracy gain per week (feeds into scouting.ts, Phase 1.1).
 // gain(rating) = SCOUT_ACCURACY_BASE + rating × SCOUT_ACCURACY_PER_POINT  (pp/week)
-export const SCOUT_ACCURACY_BASE      = 2;
-export const SCOUT_ACCURACY_PER_POINT = 0.1;
+//   rating 40 → 18 pp/week (~6 weeks to 100%)
+//   rating 75 → 28.5 pp/week (~4 weeks to 100%)
+//   rating 90 → 33 pp/week (~3 weeks to 100%)
+export const SCOUT_ACCURACY_BASE      = 6;
+export const SCOUT_ACCURACY_PER_POINT = 0.3;
 
 // Staff budget is separate from the player salary cap.
 // Seeded at 4.5% of each club's player salary budget:

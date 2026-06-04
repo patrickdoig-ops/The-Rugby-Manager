@@ -489,7 +489,7 @@ The scouting system is a per-target knowledge layer on the managed club: each un
 **Seam (`src/game/scouting.ts`).** Two pure helpers, no RNG, no state mutation:
 
 - `scoutingBand(trueValue, accuracy)` → `[lo, hi]` — the displayed band for one attribute. At `accuracy === 100`, `lo === hi === trueValue` (exact). Band edges are clamped to `[1, 99]`. Half-width is linearly interpolated from `BAND_CURVE` (`src/engine/balance/scouting.ts`): accuracy 0 → ±10, 50 → ±4, 90 → ±1, 100 → ±0.
-- `scoutWeeklyGain(rating)` → number — accuracy points added per week by one scout assigned to a single target. `= SCOUT_ACCURACY_BASE (2) + rating × SCOUT_ACCURACY_PER_POINT (0.1)` — rating 40 → 6 pp/week; rating 75 → 9.5 pp/week; rating 90 → 11 pp/week. Scouts each advance their own assigned target independently (not pooled).
+- `scoutWeeklyGain(rating)` → number — accuracy points added per week by one scout assigned to a single target. `= SCOUT_ACCURACY_BASE (6) + rating × SCOUT_ACCURACY_PER_POINT (0.3)` — rating 40 → 18 pp/week (~6 weeks to 100%); rating 75 → 28.5 pp/week (~4 weeks to 100%); rating 90 → 33 pp/week (~3 weeks to 100%). Scouts each advance their own assigned target independently (not pooled).
 
 **State.** `ScoutingRecord { accuracy: number; assignedScoutId?: string }` lives on `GameState.player.scouting?: Record<number, ScoutingRecord>` (keyed by rosterId). Absent entry = accuracy 0. Own-squad players have no entry — the UI checks squad membership and always renders exact values.
 

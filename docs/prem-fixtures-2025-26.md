@@ -45,9 +45,7 @@ before the league season opens on 25 September. The game season begins here.
 
 *(Sale and Newcastle have byes)*
 
-Rounds 3–5 fall in the Autumn Nations block (leg 1). Rounds 6–10 + knockouts
-fall in the Six Nations block (leg 2). See `docs/league-cup.md` for the full
-cup structure.
+Rounds 3–8 fall in the Autumn Nations block (leg 1, 6 fixtures/pool). Rounds 9–18 + knockouts fall in the Six Nations block (leg 2, 10 fixtures/pool). See `docs/league-cup.md` for the full cup structure.
 
 ---
 

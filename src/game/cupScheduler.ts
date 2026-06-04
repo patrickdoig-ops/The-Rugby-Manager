@@ -25,6 +25,59 @@ export const CUP_POOLS_2025_26: { A: string[]; B: string[] } = {
   B: ['harlequins', 'leicester', 'newcastle', 'northampton', 'saracens'],
 };
 
+// Exact 2025-26 cup fixture schedule. Sourced from the real Premiership Rugby
+// Cup calendar. Used by buildCupSeed for year 1 so that specific matchups and
+// dates match the authentic schedule (the algorithmic fallback for year 2+
+// generates valid but synthetic fixtures). 40 fixtures total: 8 leg-0 (pre-
+// season, Sep 12–20), 12 leg-1 (Autumn, Oct 31–Nov 22), 20 leg-2 (Six
+// Nations, Jan 30–Feb 28).
+export type CupFixtureDef = { pool: 'A' | 'B'; leg: 0 | 1 | 2; homeId: string; awayId: string; date: string };
+export const CUP_FIXTURES_2025_26: CupFixtureDef[] = [
+  // — Leg 0: pre-season (Sep 12–20) ————————————————————————————————————
+  { pool: 'A', leg: 0, homeId: 'gloucester',  awayId: 'exeter',       date: '2025-09-12' },
+  { pool: 'B', leg: 0, homeId: 'newcastle',   awayId: 'harlequins',   date: '2025-09-12' },
+  { pool: 'A', leg: 0, homeId: 'sale',        awayId: 'bristol',      date: '2025-09-13' },
+  { pool: 'B', leg: 0, homeId: 'leicester',   awayId: 'saracens',     date: '2025-09-13' },
+  { pool: 'A', leg: 0, homeId: 'gloucester',  awayId: 'bristol',      date: '2025-09-19' },
+  { pool: 'B', leg: 0, homeId: 'saracens',    awayId: 'northampton',  date: '2025-09-19' },
+  { pool: 'B', leg: 0, homeId: 'harlequins',  awayId: 'leicester',    date: '2025-09-19' },
+  { pool: 'A', leg: 0, homeId: 'bath',        awayId: 'exeter',       date: '2025-09-20' },
+  // — Leg 1: Autumn Nations block (Oct 31–Nov 22) ————————————————————
+  { pool: 'A', leg: 1, homeId: 'bristol',     awayId: 'bath',         date: '2025-10-31' },
+  { pool: 'B', leg: 1, homeId: 'newcastle',   awayId: 'leicester',    date: '2025-10-31' },
+  { pool: 'B', leg: 1, homeId: 'northampton', awayId: 'harlequins',   date: '2025-11-01' },
+  { pool: 'A', leg: 1, homeId: 'sale',        awayId: 'gloucester',   date: '2025-11-02' },
+  { pool: 'A', leg: 1, homeId: 'gloucester',  awayId: 'bath',         date: '2025-11-14' },
+  { pool: 'A', leg: 1, homeId: 'sale',        awayId: 'exeter',       date: '2025-11-14' },
+  { pool: 'B', leg: 1, homeId: 'northampton', awayId: 'newcastle',    date: '2025-11-15' },
+  { pool: 'B', leg: 1, homeId: 'harlequins',  awayId: 'saracens',     date: '2025-11-16' },
+  { pool: 'B', leg: 1, homeId: 'leicester',   awayId: 'northampton',  date: '2025-11-21' },
+  { pool: 'B', leg: 1, homeId: 'saracens',    awayId: 'newcastle',    date: '2025-11-22' },
+  { pool: 'A', leg: 1, homeId: 'bath',        awayId: 'sale',         date: '2025-11-22' },
+  { pool: 'A', leg: 1, homeId: 'exeter',      awayId: 'bristol',      date: '2025-11-22' },
+  // — Leg 2: Six Nations block (Jan 30–Feb 28) ————————————————————————
+  { pool: 'B', leg: 2, homeId: 'newcastle',   awayId: 'saracens',     date: '2026-01-30' },
+  { pool: 'A', leg: 2, homeId: 'exeter',      awayId: 'sale',         date: '2026-01-31' },
+  { pool: 'B', leg: 2, homeId: 'northampton', awayId: 'leicester',    date: '2026-01-31' },
+  { pool: 'A', leg: 2, homeId: 'bristol',     awayId: 'gloucester',   date: '2026-02-01' },
+  { pool: 'B', leg: 2, homeId: 'leicester',   awayId: 'newcastle',    date: '2026-02-06' },
+  { pool: 'A', leg: 2, homeId: 'bristol',     awayId: 'exeter',       date: '2026-02-07' },
+  { pool: 'B', leg: 2, homeId: 'saracens',    awayId: 'harlequins',   date: '2026-02-07' },
+  { pool: 'A', leg: 2, homeId: 'sale',        awayId: 'bath',         date: '2026-02-08' },
+  { pool: 'B', leg: 2, homeId: 'harlequins',  awayId: 'northampton',  date: '2026-02-13' },
+  { pool: 'A', leg: 2, homeId: 'exeter',      awayId: 'gloucester',   date: '2026-02-14' },
+  { pool: 'B', leg: 2, homeId: 'saracens',    awayId: 'leicester',    date: '2026-02-14' },
+  { pool: 'A', leg: 2, homeId: 'bath',        awayId: 'bristol',      date: '2026-02-14' },
+  { pool: 'A', leg: 2, homeId: 'gloucester',  awayId: 'sale',         date: '2026-02-20' },
+  { pool: 'B', leg: 2, homeId: 'newcastle',   awayId: 'northampton',  date: '2026-02-20' },
+  { pool: 'B', leg: 2, homeId: 'leicester',   awayId: 'harlequins',   date: '2026-02-21' },
+  { pool: 'A', leg: 2, homeId: 'exeter',      awayId: 'bath',         date: '2026-02-21' },
+  { pool: 'A', leg: 2, homeId: 'bristol',     awayId: 'sale',         date: '2026-02-28' },
+  { pool: 'B', leg: 2, homeId: 'harlequins',  awayId: 'newcastle',    date: '2026-02-28' },
+  { pool: 'A', leg: 2, homeId: 'bath',        awayId: 'gloucester',   date: '2026-02-28' },
+  { pool: 'B', leg: 2, homeId: 'northampton', awayId: 'saracens',     date: '2026-02-28' },
+];
+
 // Pseudo-round numbers for deriveFixtureSeed — kept clear of league (1-18)
 // and playoffs (19-20). One per stage is enough: (homeId, awayId) already
 // make each fixture's seed unique within a leg.
@@ -46,26 +99,42 @@ function breakReturnRounds(): [number, number] {
 }
 
 // Builds the full PREM_CUP_SEEDED payload for a season: the two pools + all
-// 40 pool fixtures (4+8+8 per pool across 3 blocks). Pure; pools are passed
+// 40 pool fixtures (4+6+10 per pool across 3 blocks). Pure; pools are passed
 // in (caller decides fixed vs redrawn).
 //
-// Round-robin assignment per pool (5 rounds, 2 matches each):
-//   ri 0-1 home → leg 0 (pre-season), ri 0-1 away → leg 1 (Autumn)
-//   ri 2-3 home → leg 1 (Autumn),     ri 2-3 away → leg 2 (Six Nations)
-//   ri 4   home → leg 2 (Six Nations), ri 4   away → leg 2 (Six Nations)
+// Year 1 callers pass CUP_FIXTURES_2025_26 as `hardcodedFixtures` so the
+// exact real-world matchups and dates are used. Year 2+ callers omit it and
+// get the algorithmic fallback (valid round-robin, synthetic dates).
+//
+// Algorithmic assignment per pool (5 rounds, 2 matches each):
+//   ri 0-1 home → leg 0 (pre-season), ri 0   away → leg 1 (Autumn)
+//   ri 1   away → leg 2 (Six Nations), ri 2-3 home → leg 1 (Autumn)
+//   ri 2-4 away → leg 2 (Six Nations), ri 4   home → leg 2 (Six Nations)
+// Yields exactly 4+6+10 per pool.
 export function buildCupSeed(
   pools: { A: string[]; B: string[] },
   leagueFixtures: readonly Fixture[],
   seasonLabel: string,
+  hardcodedFixtures?: readonly CupFixtureDef[],
 ): { seasonLabel: string; pools: [{ id: 'A'; teamIds: string[] }, { id: 'B'; teamIds: string[] }]; fixtures: CupFixture[] } {
+  const poolDef = [{ id: 'A' as const, teamIds: [...pools.A] }, { id: 'B' as const, teamIds: [...pools.B] }];
+
+  if (hardcodedFixtures) {
+    return {
+      seasonLabel,
+      pools: poolDef,
+      fixtures: hardcodedFixtures.map(f => ({ ...f })),
+    };
+  }
+
   const [autumn, sixNations] = breakReturnRounds();
   // Pre-season: 2 matchdays before R1 (falls back to ~Sep 11 and Sep 18 when
   // round 0 has no fixtures, which is always the case).
   const preSeasonDates = gapDates(leagueFixtures, 0, 1, 2);
-  // Leg 1: 4 matchdays in the Autumn Nations gap.
-  const leg1Dates = gapDates(leagueFixtures, autumn - 1, autumn, 4);
-  // Leg 2 shares the Six Nations gap with the knockouts; indices 5-6 are
-  // reserved for SF + final.
+  // Leg 1: 3 matchdays in the Autumn Nations gap (6 fixtures/pool).
+  const leg1Dates = gapDates(leagueFixtures, autumn - 1, autumn, 3);
+  // Leg 2 shares the Six Nations gap with the knockouts; indices 5-6 reserved
+  // for SF + final.
   const leg2Dates = gapDates(leagueFixtures, sixNations - 1, sixNations, 7);
 
   const fixtures: CupFixture[] = [];
@@ -73,11 +142,11 @@ export function buildCupSeed(
     const rounds = roundRobinRounds(pool.teams);
     rounds.forEach((pairs, ri) => {
       const homeLeg: 0 | 1 | 2 = ri < 2 ? 0 : ri < 4 ? 1 : 2;
-      const awayLeg: 1 | 2 = ri < 2 ? 1 : 2;
+      const awayLeg: 1 | 2 = ri < 1 ? 1 : 2;
       const homeD = homeLeg === 0 ? (preSeasonDates[ri] ?? preSeasonDates[1] ?? '')
                   : homeLeg === 1 ? (leg1Dates[ri - 2] ?? leg1Dates[leg1Dates.length - 1] ?? '')
                   :                  (leg2Dates[0] ?? leg2Dates[leg2Dates.length - 1] ?? '');
-      const awayD = awayLeg === 1 ? (leg1Dates[ri + 2] ?? leg1Dates[leg1Dates.length - 1] ?? '')
+      const awayD = awayLeg === 1 ? (leg1Dates[ri] ?? leg1Dates[leg1Dates.length - 1] ?? '')
                   :                  (leg2Dates[ri - 1] ?? leg2Dates[leg2Dates.length - 1] ?? '');
       for (const [home, away] of pairs) {
         fixtures.push({ pool: pool.id, leg: homeLeg, homeId: home, awayId: away, date: homeD });
@@ -88,7 +157,7 @@ export function buildCupSeed(
 
   return {
     seasonLabel,
-    pools: [{ id: 'A', teamIds: [...pools.A] }, { id: 'B', teamIds: [...pools.B] }],
+    pools: poolDef,
     fixtures,
   };
 }

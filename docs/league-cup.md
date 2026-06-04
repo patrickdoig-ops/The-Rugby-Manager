@@ -36,27 +36,34 @@ The three blocks map to the real 2025-26 Premiership Rugby Cup schedule:
 | Block | Leg | When | Fixtures/pool |
 |---|---|---|---|
 | Pre-season | 0 | Sep 12–20, before league R1 | 4 |
-| Autumn break | 1 | Autumn Nations break (after R5) | 8 |
-| Six Nations break | 2 | Six Nations break (after R10) + knockouts | 8 |
+| Autumn break | 1 | Autumn Nations break (after R5) | 6 |
+| Six Nations break | 2 | Six Nations break (after R10) + knockouts | 10 |
 
 Fixture dates are synthetic (spaced inside the gap from the league schedule)
 and **display-only** — they never drive calendar advance. Cup match seeds use
 reserved pseudo-rounds (`CUP_SEED_ROUND`: preseason 100, leg1 101, leg2 102,
 SFs 141/142, final 143) clear of the league (1-18) and playoffs (19-20).
 
-### Round-robin leg assignment
+### Year-1 fixture schedule
 
-`buildCupSeed` generates 5 rounds (circle-method) for each pool. For each
-round `ri` (0–4), the home and away fixture legs are assigned as:
+For the 2025/26 season, `buildCupSeed` receives `CUP_FIXTURES_2025_26` — a
+hardcoded list of all 40 real-world matchups with their actual calendar dates.
+This ensures the specific pairings and dates match the authentic Premiership
+Rugby Cup schedule (e.g. Harlequins play in both pre-season rounds; Bath and
+Northampton have byes in Round 1; Sale and Newcastle have byes in Round 2).
+
+### Year-2+ algorithmic assignment
+
+For season 2 onward (pools redrawn), `buildCupSeed` falls back to the
+circle-method round-robin. For each round `ri` (0–4), legs are assigned as:
 
 | ri | Home leg | Away leg |
 |---|---|---|
-| 0–1 | 0 (pre-season) | 1 (autumn) |
+| 0–1 | 0 (pre-season) | ri=0: 1 (autumn); ri=1: 2 (six-nations) |
 | 2–3 | 1 (autumn) | 2 (six-nations) |
 | 4 | 2 (six-nations) | 2 (six-nations) |
 
-This yields exactly 4+8+8 per pool. Each team plays in all 3 blocks (byes
-fall on different teams per round, as expected in a 5-team round-robin).
+This yields exactly 4+6+10 per pool.
 
 ## Season start
 

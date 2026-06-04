@@ -47,7 +47,7 @@ import { simulateFixture } from './simulateFixture';
 import { seedRoster } from './rosterSeeder';
 import { computeFixtureMoraleEvents, computeMoraleDecayEvents } from './moraleEffects';
 import { buildAutoSelectedTeamFromRoster } from './rosterTeamBuilder';
-import { CUP_POOLS_2025_26, buildCupSeed } from './cupScheduler';
+import { CUP_POOLS_2025_26, CUP_FIXTURES_2025_26, buildCupSeed } from './cupScheduler';
 import { parseSeasonStartYear, seasonOpenIso, getAge } from './age';
 import { recentForm } from './teamStats';
 import { generateMatchStory, type MediaMatchContext, type MediaPlayer } from './media/mediaManager';
@@ -237,7 +237,7 @@ export class GameCoordinator {
     // synthetic break-gap dates from the league schedule.
     applySeasonEvent(coord.state, {
       type: 'PREM_CUP_SEEDED',
-      ...buildCupSeed(CUP_POOLS_2025_26, coord.state.league.fixtures, coord.state.calendar.seasonLabel),
+      ...buildCupSeed(CUP_POOLS_2025_26, coord.state.league.fixtures, coord.state.calendar.seasonLabel, CUP_FIXTURES_2025_26),
     });
     coord.board.seedBoardState();
     // Seed the initial staff hire pool (no hired staff on season 1).

@@ -14,7 +14,7 @@ import type { TrainingPlan, TrainingWeekResult, InternationalBreakSummary } from
 import { applySeasonEvent } from './applySeasonEvent';
 import { simulateFixture } from './simulateFixture';
 import { buildCupTeamFromRoster } from './rosterTeamBuilder';
-import { CUP_POOLS_2025_26, CUP_SEED_ROUND, buildCupSeed, buildCupKnockoutSeed } from './cupScheduler';
+import { CUP_POOLS_2025_26, CUP_FIXTURES_2025_26, CUP_SEED_ROUND, buildCupSeed, buildCupKnockoutSeed } from './cupScheduler';
 import { cupDevelopmentEvents } from './cupDevelopment';
 import { collectConditionEvents } from './seasonStatsCollector';
 import { rollNewInjuryEvents } from './injuryEffects';
@@ -144,7 +144,7 @@ export class InternationalBreakCoordinator {
     if (this.state.league.premCup === null) {
       applySeasonEvent(this.state, {
         type: 'PREM_CUP_SEEDED',
-        ...buildCupSeed(CUP_POOLS_2025_26, this.state.league.fixtures, this.state.calendar.seasonLabel),
+        ...buildCupSeed(CUP_POOLS_2025_26, this.state.league.fixtures, this.state.calendar.seasonLabel, CUP_FIXTURES_2025_26),
       });
     }
 

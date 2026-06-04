@@ -30,6 +30,9 @@ export interface PlayerStatsSnapshot {
   // rolled later via rngTransfer inside GameCoordinator (career stream).
   // Undefined for the typical case where the player finishes fit.
   injuryKind?: InjuryKind;
+  // True when the player occupied a starting slot (id 1-15) at kick-off.
+  // Drives the starts counter in PLAYER_SEASON_STATS_ACCUMULATED (Feature 1.4).
+  isStarter: boolean;
 }
 
 // Full post-match roll-up. The team summaries are single-match deltas
@@ -61,6 +64,7 @@ export function snapshotMatch(state: MatchState, homeTeamId: string, awayTeamId:
       matchStats: { ...p.matchStats },
       rating: p.rating,
       finalFatiguePct: p.fatiguePct,
+      isStarter: p.id >= 1 && p.id <= 15,
       ...(p.pendingInjuryKind ? { injuryKind: p.pendingInjuryKind } : {}),
     }));
 
@@ -125,6 +129,7 @@ export function collectSeasonEvents(snap: MatchSnapshot): SeasonEvent[] {
       rosterId: s.rosterId,
       statsDelta: {
         appearances:            1,
+        starts:                 s.isStarter ? 1 : 0,
         tries:                  m.tries,
         carries:                m.carries,
         metresCarried:          m.metresCarried,

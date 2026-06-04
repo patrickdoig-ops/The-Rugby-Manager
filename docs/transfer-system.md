@@ -34,7 +34,7 @@ Career mode is the umbrella; rollover is the prerequisite.
 - **EQP quota** (15 EQP avg in matchday 23). A real League rule but adds compositional constraint; defer.
 - **Long-term injury system** and injury-dispensation cap relief.
 - **Mid-season transfers / buyouts** (Farrell-from-Racing style). Rare in reality; defer.
-- **Loan system** (max 3 loanees per matchday squad). Defer.
+- **Loan system** (max 3 loanees per matchday squad). ✅ Shipped v1.96b — see Phase 9.
 - **Championship promotion pipeline** — league ringfenced for 2025/26 anyway.
 
 ---
@@ -502,6 +502,41 @@ A new-game branch sitting between Team Selector and Hub. Selecting **Squad Build
 **Smoke test** (`scripts/smokeTestSquadBuilder.ts`, deterministic seed): 99/99 unwinds matched, Bath squad 42 → 37 (Finn Russell marquee preserved — he wasn't an in-signing), market opens with 99 FA offers + 0 poach offers, ~36 AI signings after close pass, all 10 clubs above the matchday-23 minimum (smallest Gloucester at 25), AI-marquee repair takes 9/10 → 10/10 (Newcastle's authored marquee was an in-signing and got re-designated to the top-wage post-signings player).
 
 **Deferred:** OUT-transfer unwinding (players who left the league for 2025-26 aren't carried in the seed roster, so reinjecting them would require fabricating personas); per-position force-fill (no club drops below the 23-player floor in the current data, and matchday auto-select fallback chains handle thin specialist positions); the matching Squad Builder flow at later season rollovers (this is a v1 one-shot at game start only — subsequent off-seasons use the standard end-of-season chain).
+
+### Phase 9 — Loan system ✅ shipped v1.96b
+
+Two loan directions managed from the Contracts & Transfers sub-menu (`LoanScreen`).
+
+**Loans out — development loans to a fixed partnership club:**
+- Up to 5 simultaneous. Partnership club is fixed per Premiership club (e.g. Bath → Cornish Pirates, Saracens → Ampthill — see `src/data/partnershipClubs.ts`).
+- `loanOutPlayer(rosterId)`: fires `PLAYER_LOANED_OUT` → sets `player.loanOut = { partnerClub, fromRound }`. Player becomes ineligible for matchday selection. Can be recalled at any time via `recallLoanedPlayer(rosterId)` → `PLAYER_RECALLED_FROM_LOAN`.
+- Training impact (`trainingWeek.ts`): loaned-out players skip flat decay, high-stat decay, condition-delta, and injury rolls. Development-chance roll uses `LOAN_DEV_MULTIPLIER = 1.5` in place of the normal condMult, giving them a development boost while unavailable.
+- Loan-in players (`player.loanIn`) are excluded from the loans-out eligible list — you cannot re-loan a player you've borrowed.
+- `SEASON_ROLLED_OVER` releases all active loan-out and loan-in arrangements and clears `player.loanOut` / `player.loanIn`.
+
+**Loans in — emergency cover from a generated pool:**
+- At the start of each season `buildLoanPoolEvents` generates 15-20 lower-rated players (OVR 55-72, ages 19-26) via `generatePersona` + `FOREIGN_IMPORT_ARRIVED` → added to roster but immediately removed from `freeAgents` by `LOAN_POOL_SEEDED` (so they don't appear in the transfer market). `state.career.loanPool` holds the active rosterIds.
+- `signLoanPlayer(rosterId)`: fires `LOAN_PLAYER_SIGNED` → adds player to club's squad, sets `player.loanIn`, removes from `career.loanPool`. Player is immediately available for selection.
+- `releaseLoanPlayer(rosterId)`: fires `LOAN_PLAYER_RELEASED` → removes from squad, clears `player.loanIn`, returns player to `career.loanPool`.
+- `fromSave()` restores the pool via a `LOAN_POOL_SEEDED` replay event when `save.career.loanPool` is present.
+
+**New `SeasonEvent` variants (appended to §4 mutation table):**
+
+```ts
+| { type: 'PLAYER_VERY_UNHAPPY_TICK'; rosterId: number }          // increments consecutiveVeryUnhappyRounds
+| { type: 'TRANSFER_REQUEST_SUBMITTED'; rosterId: number }         // sets wantsTransfer, resets streak
+| { type: 'PLAYING_TIME_PROMISED'; rosterId: number; toRound: number; startsRequired: number; startsAtPromise: number }
+| { type: 'TRANSFER_REQUEST_GRANTED'; rosterId: number }           // clears wantsTransfer
+| { type: 'TRANSFER_REQUEST_REJECTED'; rosterId: number }          // morale penalty
+| { type: 'PROMISE_BROKEN'; rosterId: number }                     // morale penalty, clears promise
+| { type: 'LOAN_POOL_SEEDED'; rosterIds: number[] }                // sets career.loanPool; removes from freeAgents
+| { type: 'PLAYER_LOANED_OUT'; rosterId: number; partnerClub: string }
+| { type: 'PLAYER_RECALLED_FROM_LOAN'; rosterId: number }
+| { type: 'LOAN_PLAYER_SIGNED'; rosterId: number }                 // adds to squad, sets loanIn
+| { type: 'LOAN_PLAYER_RELEASED'; rosterId: number }               // removes from squad, back to pool
+```
+
+**Save schema:** `loanPool?: number[]` is additive-optional on `SavedCareer`. No `SAVE_VERSION` bump — existing saves load without migration; snapshot updated in `scripts/checkSaveSchema.ts`.
 
 ---
 

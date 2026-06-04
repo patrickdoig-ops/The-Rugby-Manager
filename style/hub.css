@@ -634,7 +634,10 @@
 
 .inbox-deeplink,
 .inbox-morale-boost,
-.inbox-counsel {
+.inbox-counsel,
+.inbox-transfer-promise,
+.inbox-transfer-grant,
+.inbox-transfer-reject {
   align-self: flex-start;
   font-family: var(--rm-font-body);
   font-size: var(--rm-fs-11);
@@ -649,12 +652,37 @@
   transition: background 0.15s, border-color 0.15s;
 }
 
+.inbox-transfer-grant {
+  color: var(--rm-danger, #e05252);
+  background: color-mix(in oklch, var(--rm-danger, #e05252) 10%, transparent);
+  border-color: color-mix(in oklch, var(--rm-danger, #e05252) 28%, transparent);
+}
+
+.inbox-transfer-reject {
+  color: var(--rm-text-muted);
+  background: transparent;
+  border-color: var(--rm-border-soft);
+}
+
+.inbox-transfer-actions {
+  flex-wrap: wrap;
+}
+
 @media (hover: hover) {
   .inbox-deeplink:hover,
   .inbox-morale-boost:hover,
-  .inbox-counsel:hover {
+  .inbox-counsel:hover,
+  .inbox-transfer-promise:hover {
     background: color-mix(in oklch, var(--rm-pitch) 18%, transparent);
     border-color: color-mix(in oklch, var(--rm-pitch) 50%, transparent);
+  }
+  .inbox-transfer-grant:hover {
+    background: color-mix(in oklch, var(--rm-danger, #e05252) 18%, transparent);
+    border-color: color-mix(in oklch, var(--rm-danger, #e05252) 50%, transparent);
+  }
+  .inbox-transfer-reject:hover {
+    background: var(--rm-surface);
+    border-color: var(--rm-border);
   }
 }
 

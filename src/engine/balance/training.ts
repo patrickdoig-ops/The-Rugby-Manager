@@ -100,6 +100,13 @@ export function ageMultiplier(age: number): number {
 // magnitude for callers' clarity.
 export const TRAINING_STAT_DELTA = 1; // +1 per successful development roll
 
+// Development multiplier for players out on loan (Feature 2.3). Simulates
+// regular game time at the partner club boosting development more than
+// training sessions alone. Applied to developmentChance in trainingWeek.ts
+// for players with an active loanOut record. Condition and injury rolls are
+// skipped for loaned-out players.
+export const LOAN_DEV_MULTIPLIER = 1.5;
+
 // AI training director tuning. Lives here so all training-related numbers
 // stay co-located.
 export const AI_TRAINING = {

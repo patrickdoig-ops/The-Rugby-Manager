@@ -21,7 +21,7 @@ import { isForward, PLAYER_STAT_KEYS } from '../types/player';
 import type { TrainingPlan } from '../types/training';
 import {
   BACKS_FOCUS_STATS, DEVELOPMENT, FORWARDS_FOCUS_STATS,
-  INJURY_RISK, INTENSITY_EFFECTS, TRAINING_STAT_DELTA, ageMultiplier,
+  INJURY_RISK, INTENSITY_EFFECTS, LOAN_DEV_MULTIPLIER, TRAINING_STAT_DELTA, ageMultiplier,
 } from '../engine/balance/training';
 import { FITNESS_MULT_PER_POINT, FITNESS_INJURY_REDUCTION_PER_POINT } from '../engine/balance/staff';
 import { proximityMultiplier } from '../engine/balance/career';
@@ -127,67 +127,79 @@ function pushClubTrainingEvents(
     const ageMul = ageMultiplier(ageInNewSeason);
     const proxMul = proximityMultiplier(p.potential, playerOverall(p.baseStats, p.position));
 
+    // Loaned-out players simulate regular game time at the partner club.
+    // They skip condition recovery and injury risk (handled off-system)
+    // but receive a boosted development multiplier.
+    const isLoanedOut = !!p.loanOut;
+    const effectiveDevChance = isLoanedOut
+      ? intensity.developmentChance * LOAN_DEV_MULTIPLIER
+      : intensity.developmentChance * condMult;
+
     // Development rolls — one per stat per player. Walk PLAYER_STAT_KEYS
     // (stable order) so the rngTransfer sequence is identical across
     // seasons / clubs / players that pick the same focus.
     // condMult scales the development chance — no new RNG draw.
     const statDeltas: Partial<PlayerStats> = {};
-    rollDevelopmentGains(statDeltas, focus, intensity.developmentChance * condMult, ageMul, proxMul);
+    rollDevelopmentGains(statDeltas, focus, effectiveDevChance, ageMul, proxMul);
 
-    // Flat decay rolls — rest/light only (decayChance > 0). Focused stats are immune;
-    // a positive gain from the development pass above takes precedence.
-    if (intensity.decayChance > 0) {
+    if (!isLoanedOut) {
+      // Flat decay rolls — rest/light only (decayChance > 0). Focused stats are immune;
+      // a positive gain from the development pass above takes precedence.
+      if (intensity.decayChance > 0) {
+        for (const stat of PLAYER_STAT_KEYS) {
+          const isFocus = stat === focus[0] || stat === focus[1];
+          if (isFocus) continue;
+          if (statDeltas[stat] !== undefined) continue;
+          if (rngTransferRaw() < intensity.decayChance) {
+            statDeltas[stat] = -TRAINING_STAT_DELTA;
+          }
+        }
+      }
+
+      // High-stat maintenance decay — all intensities. Unfocused stats above the
+      // threshold face a quadratic decay chance; rotation is the only protection.
       for (const stat of PLAYER_STAT_KEYS) {
         const isFocus = stat === focus[0] || stat === focus[1];
         if (isFocus) continue;
         if (statDeltas[stat] !== undefined) continue;
-        if (rngTransferRaw() < intensity.decayChance) {
+        const excess = p.baseStats[stat] - DEVELOPMENT.highStatDecayThreshold;
+        if (excess <= 0) continue;
+        const decayChance = (excess * excess) / DEVELOPMENT.highStatDecayScale;
+        if (rngTransferRaw() < decayChance) {
           statDeltas[stat] = -TRAINING_STAT_DELTA;
         }
-      }
-    }
-
-    // High-stat maintenance decay — all intensities. Unfocused stats above the
-    // threshold face a quadratic decay chance; rotation is the only protection.
-    for (const stat of PLAYER_STAT_KEYS) {
-      const isFocus = stat === focus[0] || stat === focus[1];
-      if (isFocus) continue;
-      if (statDeltas[stat] !== undefined) continue;
-      const excess = p.baseStats[stat] - DEVELOPMENT.highStatDecayThreshold;
-      if (excess <= 0) continue;
-      const decayChance = (excess * excess) / DEVELOPMENT.highStatDecayScale;
-      if (rngTransferRaw() < decayChance) {
-        statDeltas[stat] = -TRAINING_STAT_DELTA;
       }
     }
 
     out.push({
       type: 'PLAYER_TRAINED',
       rosterId: rid,
-      conditionDelta: intensity.conditionPerDay * periodDays * condMult,
+      conditionDelta: isLoanedOut ? 0 : intensity.conditionPerDay * periodDays * condMult,
       statDeltas,
     });
 
-    // Injury roll — scales inversely with current condition (the lower
-    // the freshness, the higher the risk). Fitness staff reduces injuryRisk
-    // fractionally before the condition multiplier is applied.
-    const baseRisk    = intensity.injuryRisk * (1 - injuryFraction);
-    const injuryChance = baseRisk * conditionRiskMultiplier(p.condition);
-    if (injuryChance > 0 && rngTransferRaw() < injuryChance) {
-      const kind: TrainingInjuryKind = TRAINING_INJURY_KINDS[rngTransfer(0, TRAINING_INJURY_KINDS.length - 1)];
-      const profile = INJURY_SEVERITY[kind];
-      const severity = pickSeverityFromWeights(profile.weights);
-      const [lo, hi] = profile.bands[severity];
-      const weeksRemaining = rngTransfer(lo, hi);
-      out.push({
-        type: 'PLAYER_INJURED',
-        rosterId: rid,
-        kind,
-        severity,
-        weeksRemaining,
-        injuredOn,
-        isRecurrence: false,
-      });
+    if (!isLoanedOut) {
+      // Injury roll — scales inversely with current condition (the lower
+      // the freshness, the higher the risk). Fitness staff reduces injuryRisk
+      // fractionally before the condition multiplier is applied.
+      const baseRisk    = intensity.injuryRisk * (1 - injuryFraction);
+      const injuryChance = baseRisk * conditionRiskMultiplier(p.condition);
+      if (injuryChance > 0 && rngTransferRaw() < injuryChance) {
+        const kind: TrainingInjuryKind = TRAINING_INJURY_KINDS[rngTransfer(0, TRAINING_INJURY_KINDS.length - 1)];
+        const profile = INJURY_SEVERITY[kind];
+        const severity = pickSeverityFromWeights(profile.weights);
+        const [lo, hi] = profile.bands[severity];
+        const weeksRemaining = rngTransfer(lo, hi);
+        out.push({
+          type: 'PLAYER_INJURED',
+          rosterId: rid,
+          kind,
+          severity,
+          weeksRemaining,
+          injuredOn,
+          isRecurrence: false,
+        });
+      }
     }
   }
 }

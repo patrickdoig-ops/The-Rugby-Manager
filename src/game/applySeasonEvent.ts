@@ -95,6 +95,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       const s = p.seasonStats;
       const d = event.statsDelta;
       s.appearances            += d.appearances;
+      s.starts                 += d.starts;
       s.tries                  += d.tries;
       s.carries                += d.carries;
       s.metresCarried          += d.metresCarried;
@@ -458,6 +459,16 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       // next season's windows re-select fresh); internationalCaps accumulate.
       for (const id of Object.keys(state.career.roster)) {
         const p = state.career.roster[Number(id)];
+        // Release any loan-in players from the managed club's squad before
+        // clearing their loanIn flag, so the squad pointer stays consistent.
+        if (p.loanIn) {
+          const club = state.career.clubs.find(c => c.squad.includes(Number(id)));
+          if (club) club.squad = club.squad.filter(rid => rid !== Number(id));
+          p.loanIn = undefined;
+          if (state.career.loanPool && !state.career.loanPool.includes(Number(id))) {
+            state.career.loanPool.push(Number(id));
+          }
+        }
         p.seasonStats = zeroSeasonStats();
         if (p.recentRatings) p.recentRatings = undefined;
         if (p.formReturn) p.formReturn = undefined;
@@ -466,6 +477,10 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         if (p.lionsReturnRound !== undefined) p.lionsReturnRound = undefined;
         if (p.disciplineAdvice) p.disciplineAdvice = undefined;
         if (p.suspension) p.suspension = undefined;
+        if (p.wantsTransfer) p.wantsTransfer = undefined;
+        if (p.playingTimePromise) p.playingTimePromise = undefined;
+        if (p.consecutiveVeryUnhappyRounds) p.consecutiveVeryUnhappyRounds = undefined;
+        if (p.loanOut) p.loanOut = undefined;
         p.moraleChats = 0;
       }
       // Reset team season aggregates for the new season. Re-zero in place
@@ -787,6 +802,10 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       const current = p.morale ?? MORALE.baseline;
       p.morale = Math.max(0, Math.min(100, current + event.delta));
       if (event.reason === 'manager_chat') p.moraleChats = (p.moraleChats ?? 0) + 1;
+      // Reset the very-unhappy streak when morale climbs back above the threshold.
+      if (p.morale > MORALE.veryUnhappyThreshold && p.consecutiveVeryUnhappyRounds) {
+        p.consecutiveVeryUnhappyRounds = 0;
+      }
       return;
     }
     case 'STAFF_POOL_SEEDED': {
@@ -835,6 +854,95 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
     }
     case 'PLAYER_SCOUTING_RESTORED': {
       state.player.scouting = { ...event.scouting };
+      return;
+    }
+    // ── Feature 1.4 — Transfer Requests & Playing-Time Promises ─────────
+    case 'PLAYER_VERY_UNHAPPY_TICK': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.consecutiveVeryUnhappyRounds = (p.consecutiveVeryUnhappyRounds ?? 0) + 1;
+      return;
+    }
+    case 'TRANSFER_REQUEST_SUBMITTED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.wantsTransfer = true;
+      p.consecutiveVeryUnhappyRounds = 0;
+      return;
+    }
+    case 'PLAYING_TIME_PROMISED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.playingTimePromise = {
+        toRound: event.toRound,
+        startsRequired: event.startsRequired,
+        startsAtPromise: event.startsAtPromise,
+      };
+      p.wantsTransfer = undefined;
+      return;
+    }
+    case 'TRANSFER_REQUEST_GRANTED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.wantsTransfer = undefined;
+      return;
+    }
+    case 'TRANSFER_REQUEST_REJECTED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.wantsTransfer = undefined;
+      const current = p.morale ?? MORALE.baseline;
+      p.morale = Math.max(0, Math.min(100, current + MORALE.transferRequestRejectPenalty));
+      return;
+    }
+    case 'PROMISE_BROKEN': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.playingTimePromise = undefined;
+      const current = p.morale ?? MORALE.baseline;
+      p.morale = Math.max(0, Math.min(100, current + MORALE.promiseBrokenPenalty));
+      return;
+    }
+    // ── Feature 2.3 — Loan System ────────────────────────────────────────
+    case 'LOAN_POOL_SEEDED': {
+      state.career.loanPool = [...event.rosterIds];
+      // Loan-pool players arrive via FOREIGN_IMPORT_ARRIVED which also adds
+      // them to freeAgents. Remove them so they're only reachable through the
+      // loan flow, not through the regular transfer market.
+      const poolSet = new Set(event.rosterIds);
+      state.career.freeAgents = state.career.freeAgents.filter(id => !poolSet.has(id));
+      return;
+    }
+    case 'PLAYER_LOANED_OUT': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.loanOut = { partnerClub: event.partnerClub, fromRound: event.fromRound };
+      return;
+    }
+    case 'PLAYER_RECALLED_FROM_LOAN': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.loanOut = undefined;
+      return;
+    }
+    case 'LOAN_PLAYER_SIGNED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      state.career.loanPool = (state.career.loanPool ?? []).filter(id => id !== event.rosterId);
+      const club = state.career.clubs.find(c => c.id === event.clubId);
+      if (club && !club.squad.includes(event.rosterId)) club.squad.push(event.rosterId);
+      p.loanIn = { fromRound: event.fromRound };
+      return;
+    }
+    case 'LOAN_PLAYER_RELEASED': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      const club = state.career.clubs.find(c => c.squad.includes(event.rosterId));
+      if (club) club.squad = club.squad.filter(id => id !== event.rosterId);
+      p.loanIn = undefined;
+      if (state.career.loanPool && !state.career.loanPool.includes(event.rosterId)) {
+        state.career.loanPool.push(event.rosterId);
+      }
       return;
     }
     default: {

@@ -21,11 +21,14 @@ export interface InboxItem {
   priority: number;
   subject: string;
   body: string;
-  deepLink?: 'squad' | 'contracts' | 'transfers' | 'fixtures' | 'league';
+  deepLink?: 'squad' | 'contracts' | 'transfers' | 'fixtures' | 'league' | 'loans';
   // When present, renders a "Speak to Player" action button (discipline counsel).
   counselAction?: { rosterId: number };
   // When present, renders a "Have a chat" action button (morale boost).
   moraleBoostAction?: { rosterId: number };
+  // When present, renders three transfer-request response buttons:
+  // "Promise game time", "Grant request", "Reject".
+  transferRequestAction?: { rosterId: number };
 }
 
 function ordinal(n: number): string {
@@ -183,6 +186,47 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
       subject: `${name} is attracting interest`,
       body: `Rival clubs are monitoring ${name}. You may want to review their contract situation.`,
       deepLink: 'transfers',
+    });
+  }
+
+  // --- Transfer requests (Feature 1.4) ---
+  for (const rid of club.squad) {
+    const p = state.career.roster[rid];
+    if (!p?.wantsTransfer) continue;
+    const name = `${p.firstName} ${p.lastName}`;
+    const morale = p.morale ?? MORALE.baseline;
+    const moodLabel = morale < MORALE.veryUnhappyThreshold ? 'very unhappy' : 'unsettled';
+    items.push({
+      id: `transfer-request:${season}:${rid}`,
+      category: 'transfers',
+      priority: 70,
+      subject: `${name} has submitted a transfer request`,
+      body: `${name} has formally asked to leave. They have been ${moodLabel} for several weeks and feel a fresh start is needed. You can promise them more game time to settle the situation, grant the request and release them, or reject it — though that will damage the relationship further.`,
+      transferRequestAction: { rosterId: rid },
+      deepLink: 'transfers',
+    });
+  }
+
+  // --- Broken playing-time promises (Feature 1.4) ---
+  for (const rid of club.squad) {
+    const p = state.career.roster[rid];
+    // Show a warning item when a promise is close to expiring or already tracked
+    // as broken (playingTimePromise cleared by PROMISE_BROKEN in GameCoordinator).
+    // Here we surface an *active* promise that is at risk: we're at or past toRound
+    // and the starts delta hasn't been met.
+    const promise = p?.playingTimePromise;
+    if (!promise) continue;
+    if (state.calendar.week < promise.toRound) continue;
+    const startsGained = (p.seasonStats.starts ?? 0) - promise.startsAtPromise;
+    if (startsGained >= promise.startsRequired) continue;
+    const name = `${p.firstName} ${p.lastName}`;
+    items.push({
+      id: `promise-at-risk:${season}:${rid}`,
+      category: 'squad',
+      priority: 65,
+      subject: `Playing-time promise to ${name} is at risk`,
+      body: `You promised ${name} ${promise.startsRequired} starts by round ${promise.toRound}. They have started ${startsGained} of those matches. If the target isn't met their morale will take a significant hit.`,
+      deepLink: 'squad',
     });
   }
 

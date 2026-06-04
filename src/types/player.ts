@@ -82,6 +82,9 @@ export interface PlayerMatchStats {
 //
 export interface PlayerSeasonStats {
   appearances:            number;
+  // Number of times this player started (slot 1-15) this season.
+  // Tracked in seasonStatsCollector.ts; drives playing-time promise checks.
+  starts:                 number;
   // Attack
   tries:                  number;
   carries:                number;
@@ -277,6 +280,36 @@ export interface Player {
   // The player is blocked from selection for forRound only via
   // selectionUnavailableIds. Cleared at SEASON_ROLLED_OVER.
   suspension?: { forRound: number };
+
+  // Feature 1.4 — Transfer Requests & Playing-Time Promises
+  // Set by TRANSFER_REQUEST_SUBMITTED when the player has been very unhappy
+  // for MORALE.transferRequestStreak consecutive rounds. Cleared when the
+  // manager responds (TRANSFER_REQUEST_GRANTED / TRANSFER_REQUEST_REJECTED /
+  // PLAYING_TIME_PROMISED). Also cleared at SEASON_ROLLED_OVER.
+  wantsTransfer?: true;
+  // Set by PLAYING_TIME_PROMISED. Tracks the round the promise expires and
+  // the number of starts the player needs. Cleared by PROMISE_BROKEN
+  // (unmet at expiry) or at SEASON_ROLLED_OVER.
+  playingTimePromise?: {
+    toRound: number;
+    startsRequired: number;
+    startsAtPromise: number; // snapshot of seasonStats.starts at promise time
+  };
+  // Counter incremented by PLAYER_VERY_UNHAPPY_TICK each round the player's
+  // morale stays at or below MORALE.veryUnhappyThreshold. Reset to 0 by
+  // PLAYER_MORALE_ADJUSTED (when morale rises above threshold) and cleared
+  // at SEASON_ROLLED_OVER.
+  consecutiveVeryUnhappyRounds?: number;
+
+  // Feature 2.3 — Loan System
+  // Set by PLAYER_LOANED_OUT. The player remains on the squad but is
+  // excluded from matchday selection. Training applies a LOAN_DEV_MULTIPLIER
+  // to development rolls; condition and injury are skipped.
+  loanOut?: { partnerClub: string; fromRound: number };
+  // Set by LOAN_PLAYER_SIGNED. The player is a temporary addition to the
+  // squad from the season's loan pool. Available for selection; trains
+  // normally. Cleared by LOAN_PLAYER_RELEASED.
+  loanIn?: { fromRound: number };
 }
 
 // Identity element for PlayerMatchStats — co-located with the type so adding
@@ -299,6 +332,7 @@ export function zeroMatchStats(): PlayerMatchStats {
 export function zeroSeasonStats(): PlayerSeasonStats {
   return {
     appearances: 0,
+    starts: 0,
     tries: 0, carries: 0, metresCarried: 0, lineBreaks: 0, defendersBeaten: 0, offloadsCompleted: 0, passes: 0,
     conversions: 0, penaltiesScored: 0, dropGoals: 0,
     kicksFromHand: 0, kickMetres: 0, kicksAtGoal: 0, kicksMade: 0,

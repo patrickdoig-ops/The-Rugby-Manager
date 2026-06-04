@@ -40,7 +40,7 @@ const allTeams = [
 const EXPECTED = {
   version: 1,
   topKeys: 'board,career,careerRngOffset,currentWeek,fixtures,playerTeamId,premCup,results,seasonLabel,seed,teamSeasonStats',
-  careerKeys: 'activePoachedIds,archive,clubs,freeAgents,market,midseasonRejections,nextRosterId,nextStaffId,pendingMoves,roster,seasonsCompleted,staff,takeoverHistory',
+  careerKeys: 'activePoachedIds,archive,clubs,freeAgents,loanPool,market,midseasonRejections,nextRosterId,nextStaffId,pendingMoves,roster,seasonsCompleted,staff,takeoverHistory',
 };
 
 const coord = GameCoordinator.newSeason('bath', 0xDEADBEEF, allTeams);

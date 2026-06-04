@@ -47,4 +47,13 @@ export const MORALE = {
   formNeutral: 65,
   formSlope: 0.086,
   formCap: 3,
+
+  // Transfer request thresholds (Feature 1.4)
+  // Player must be at or below veryUnhappyThreshold for this many consecutive
+  // rounds before a TRANSFER_REQUEST_SUBMITTED event fires.
+  transferRequestStreak: 2,
+  // Morale penalty applied when manager rejects a transfer request.
+  transferRequestRejectPenalty: -8,
+  // Morale penalty applied when a playing-time promise expires unmet.
+  promiseBrokenPenalty: -15,
 } as const;

@@ -65,6 +65,8 @@ import { computeRollover } from './careerRollover';
 import { generateStaffPool } from './staffPoolGenerator';
 import { scoutWeeklyGain } from './scouting';
 import { generatePersona } from './personaGenerator';
+import { buildLoanPoolEvents } from './loanPoolGenerator';
+import { PARTNERSHIP_CLUB } from '../data/partnershipClubs';
 import { buildRosterSeededEvent, buildCareerArchiveRestoredEvent } from './saveMigration';
 import { seedConfidence, resultDelta, currentObjectiveVerdict, eosSwing, type ObjectiveVerdict } from './board';
 import { TransferCoordinator, type EarlyRenewalResult } from './TransferCoordinator';
@@ -114,6 +116,8 @@ export interface SavedCareer {
   activePoachedIds?: number[];
   staff?: import('../types/gameState').StaffMember[];
   nextStaffId?: number;
+  // Feature 2.3 — rosterIds of the season's loan-available players.
+  loanPool?: number[];
 }
 
 export interface SavedSeason {
@@ -232,6 +236,10 @@ export class GameCoordinator {
     // Seed the initial staff hire pool (no hired staff on season 1).
     const { staff: initialStaff, nextStaffId } = generateStaffPool(1);
     applySeasonEvent(coord.state, { type: 'STAFF_POOL_SEEDED', staff: initialStaff, nextStaffId });
+    // Seed the season's loan-available player pool (Feature 2.3).
+    for (const ev of buildLoanPoolEvents(coord.state)) {
+      applySeasonEvent(coord.state, ev);
+    }
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
   }
@@ -404,6 +412,15 @@ export class GameCoordinator {
         type: 'STAFF_POOL_SEEDED',
         staff: save.career.staff.map(m => ({ ...m })),
         nextStaffId: save.career.nextStaffId ?? save.career.staff.length + 1,
+      });
+    }
+    // Loan pool isn't replayable from results; restore verbatim. Legacy saves
+    // without it leave career.loanPool undefined — LoanScreen handles this
+    // gracefully (treats as empty, no crash).
+    if (save.career?.loanPool && save.career.loanPool.length > 0) {
+      applySeasonEvent(coord.state, {
+        type: 'LOAN_POOL_SEEDED',
+        rosterIds: [...save.career.loanPool],
       });
     }
     // Scouting state isn't replayable from results; restore verbatim.
@@ -1206,6 +1223,7 @@ export class GameCoordinator {
     for (const ev of this.computeMoraleDecayEvents()) {
       applySeasonEvent(this.state, ev);
     }
+    this.checkTransferRequestsAndPromises();
     this.advanceScoutingAccuracy();
     eventBus.emit('game:weekAdvanced', { state: this.state });
 
@@ -1375,6 +1393,119 @@ export class GameCoordinator {
       events.push({ type: 'PLAYER_MORALE_ADJUSTED', rosterId: p.rosterId, delta, reason: 'decay' });
     }
     return events;
+  }
+
+  // Feature 1.4 — fires after morale decay each round for the human club only.
+  // Tracks very-unhappy streaks → transfer requests. Checks expired
+  // playing-time promises. No RNG used; deterministic on current state.
+  private checkTransferRequestsAndPromises(): void {
+    const teamId = this.state.player.teamId;
+    const club = this.state.career.clubs.find(c => c.id === teamId);
+    if (!club) return;
+    const week = this.state.calendar.week;
+
+    for (const rid of club.squad) {
+      const p = this.state.career.roster[rid];
+      if (!p) continue;
+      const morale = p.morale ?? MORALE.baseline;
+
+      // Transfer request streak — skip if already requested or on loan.
+      if (!p.wantsTransfer && !p.loanOut) {
+        if (morale <= MORALE.veryUnhappyThreshold) {
+          applySeasonEvent(this.state, { type: 'PLAYER_VERY_UNHAPPY_TICK', rosterId: rid });
+          // p is a live reference — consecutiveVeryUnhappyRounds is already
+          // updated by the event above.
+          if ((p.consecutiveVeryUnhappyRounds ?? 0) >= MORALE.transferRequestStreak) {
+            applySeasonEvent(this.state, { type: 'TRANSFER_REQUEST_SUBMITTED', rosterId: rid });
+          }
+        }
+      }
+
+      // Playing-time promise expiry check.
+      const promise = p.playingTimePromise;
+      if (promise && week >= promise.toRound) {
+        const startsGained = (p.seasonStats.starts ?? 0) - promise.startsAtPromise;
+        if (startsGained < promise.startsRequired) {
+          applySeasonEvent(this.state, { type: 'PROMISE_BROKEN', rosterId: rid });
+        }
+        // If the target was met the promise expires cleanly at SEASON_ROLLED_OVER.
+      }
+    }
+  }
+
+  // Feature 1.4 — promise game time to a player (inbox CTA).
+  // Promises `startsRequired` starts in the next 5 rounds.
+  makePlayingTimePromise(rosterId: number): void {
+    const p = this.state.career.roster[rosterId];
+    if (!p) return;
+    const toRound = this.state.calendar.week + 5;
+    const startsRequired = 3;
+    applySeasonEvent(this.state, {
+      type: 'PLAYING_TIME_PROMISED',
+      rosterId,
+      toRound,
+      startsRequired,
+      startsAtPromise: p.seasonStats.starts ?? 0,
+    });
+  }
+
+  // Feature 1.4 — grant a transfer request (inbox CTA).
+  grantTransferRequest(rosterId: number): void {
+    const p = this.state.career.roster[rosterId];
+    if (!p || !p.wantsTransfer) return;
+    applySeasonEvent(this.state, { type: 'TRANSFER_REQUEST_GRANTED', rosterId });
+    applySeasonEvent(this.state, { type: 'CONTRACT_TERMINATED', rosterId, reason: 'released' });
+  }
+
+  // Feature 1.4 — reject a transfer request (inbox CTA).
+  rejectTransferRequest(rosterId: number): void {
+    const p = this.state.career.roster[rosterId];
+    if (!p || !p.wantsTransfer) return;
+    applySeasonEvent(this.state, { type: 'TRANSFER_REQUEST_REJECTED', rosterId });
+  }
+
+  // Feature 2.3 — send a player on loan to their club's partnership club.
+  loanOutPlayer(rosterId: number): void {
+    const p = this.state.career.roster[rosterId];
+    if (!p || p.loanOut) return;
+    const partnerClub = PARTNERSHIP_CLUB[this.state.player.teamId];
+    if (!partnerClub) return;
+    // Check 5-player loan-out limit.
+    const club = this.state.career.clubs.find(c => c.id === this.state.player.teamId);
+    if (!club) return;
+    const currentLoans = club.squad.filter(rid2 => this.state.career.roster[rid2]?.loanOut).length;
+    if (currentLoans >= 5) return;
+    applySeasonEvent(this.state, {
+      type: 'PLAYER_LOANED_OUT',
+      rosterId,
+      partnerClub,
+      fromRound: this.state.calendar.week,
+    });
+  }
+
+  // Feature 2.3 — recall a loaned-out player.
+  recallLoanedPlayer(rosterId: number): void {
+    const p = this.state.career.roster[rosterId];
+    if (!p || !p.loanOut) return;
+    applySeasonEvent(this.state, { type: 'PLAYER_RECALLED_FROM_LOAN', rosterId });
+  }
+
+  // Feature 2.3 — sign a player from the loan pool.
+  signLoanPlayer(rosterId: number): void {
+    if (!(this.state.career.loanPool ?? []).includes(rosterId)) return;
+    applySeasonEvent(this.state, {
+      type: 'LOAN_PLAYER_SIGNED',
+      rosterId,
+      clubId: this.state.player.teamId,
+      fromRound: this.state.calendar.week,
+    });
+  }
+
+  // Feature 2.3 — release a loan-in player back to the pool.
+  releaseLoanPlayer(rosterId: number): void {
+    const p = this.state.career.roster[rosterId];
+    if (!p || !p.loanIn) return;
+    applySeasonEvent(this.state, { type: 'LOAN_PLAYER_RELEASED', rosterId });
   }
 
   // True when every fixture in league.fixtures (regular season) has a
@@ -1730,6 +1861,9 @@ export class GameCoordinator {
         activePoachedIds: [...this.state.career.activePoachedIds],
         ...(this.state.career.staff !== undefined
           ? { staff: this.state.career.staff.map(m => ({ ...m })), nextStaffId: this.state.career.nextStaffId }
+          : {}),
+        ...(this.state.career.loanPool !== undefined
+          ? { loanPool: [...this.state.career.loanPool] }
           : {}),
       },
       teamSeasonStats: Object.fromEntries(

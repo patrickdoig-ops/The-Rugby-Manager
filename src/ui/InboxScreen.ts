@@ -16,6 +16,7 @@ export interface InitInboxScreenOpts {
   onTransfers: () => void;
   onFixtures:  () => void;
   onLeague:    () => void;
+  onLoans:     () => void;
 }
 
 const CATEGORY_LABELS: Record<InboxItem['category'], string> = {
@@ -122,6 +123,7 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
       transfers: opts.onTransfers,
       fixtures:  opts.onFixtures,
       league:    opts.onLeague,
+      loans:     opts.onLoans,
     };
 
     const deepLinkLabels: Record<NonNullable<InboxItem['deepLink']>, string> = {
@@ -130,6 +132,7 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
       transfers: 'Review Transfers',
       fixtures:  'View Fixtures',
       league:    'League Table',
+      loans:     'Loan Management',
     };
 
     const DISMISS_ICON = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
@@ -159,7 +162,13 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
                              <button class="inbox-morale-boost" data-rosterid="${item.moraleBoostAction.rosterId}">Have a Chat</button>
                              ${item.deepLink ? `<button class="inbox-deeplink" data-link="${item.deepLink}">${deepLinkLabels[item.deepLink]}</button>` : ''}
                            </div>`
-                        : item.deepLink ? `<button class="inbox-deeplink" data-link="${item.deepLink}">${deepLinkLabels[item.deepLink]}</button>` : ''}
+                        : item.transferRequestAction
+                          ? `<div class="inbox-actions inbox-transfer-actions">
+                               <button class="inbox-transfer-promise" data-rosterid="${item.transferRequestAction.rosterId}">Promise game time</button>
+                               <button class="inbox-transfer-grant" data-rosterid="${item.transferRequestAction.rosterId}">Grant request</button>
+                               <button class="inbox-transfer-reject" data-rosterid="${item.transferRequestAction.rosterId}">Reject</button>
+                             </div>`
+                          : item.deepLink ? `<button class="inbox-deeplink" data-link="${item.deepLink}">${deepLinkLabels[item.deepLink]}</button>` : ''}
                   </div>
                 </div>`;
             }).join('')}
@@ -203,6 +212,33 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
       btn.addEventListener('click', () => {
         const engine = opts.getGameEngine();
         engine.boostPlayerMorale(rosterId);
+        render(engine.getState());
+      });
+    });
+
+    el!.querySelectorAll<HTMLButtonElement>('.inbox-transfer-promise').forEach(btn => {
+      const rosterId = Number(btn.dataset.rosterid);
+      btn.addEventListener('click', () => {
+        const engine = opts.getGameEngine();
+        engine.makePlayingTimePromise(rosterId);
+        render(engine.getState());
+      });
+    });
+
+    el!.querySelectorAll<HTMLButtonElement>('.inbox-transfer-grant').forEach(btn => {
+      const rosterId = Number(btn.dataset.rosterid);
+      btn.addEventListener('click', () => {
+        const engine = opts.getGameEngine();
+        engine.grantTransferRequest(rosterId);
+        render(engine.getState());
+      });
+    });
+
+    el!.querySelectorAll<HTMLButtonElement>('.inbox-transfer-reject').forEach(btn => {
+      const rosterId = Number(btn.dataset.rosterid);
+      btn.addEventListener('click', () => {
+        const engine = opts.getGameEngine();
+        engine.rejectTransferRequest(rosterId);
         render(engine.getState());
       });
     });

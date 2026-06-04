@@ -539,6 +539,10 @@ export interface CareerState {
   // Monotonically-increasing counter for staff IDs, mirrors nextRosterId.
   // Absent on legacy saves → treated as 1.
   nextStaffId?: number;
+  // Feature 2.3 — Loan System. RosterIds of generated loan-available
+  // players, seeded once per season at newSeason() via loanPoolGenerator.
+  // Absent until first seeded (legacy saves and pre-loan saves load fine).
+  loanPool?: number[];
 }
 
 // Per-club budget-change reason chips for the BudgetRevealScreen.
@@ -694,6 +698,7 @@ export type SeasonEvent =
       // which is always +1 per event today).
       statsDelta: {
         appearances:            number;
+        starts:                 number;
         tries:                  number;
         carries:                number;
         metresCarried:          number;
@@ -1280,4 +1285,94 @@ export type SeasonEvent =
       // Save-restore only. Bulk-replaces state.player.scouting verbatim.
       type: 'PLAYER_SCOUTING_RESTORED';
       scouting: Record<number, ScoutingRecord>;
+    }
+  // ── Feature 1.4 — Transfer Requests & Playing-Time Promises ─────────
+  | {
+      // Player's morale has been at or below MORALE.veryUnhappyThreshold for
+      // one more consecutive round. Reducer increments
+      // Player.consecutiveVeryUnhappyRounds. Fired by GameCoordinator after
+      // each fixture for qualifying human-club players who don't already have
+      // wantsTransfer set.
+      type: 'PLAYER_VERY_UNHAPPY_TICK';
+      rosterId: number;
+    }
+  | {
+      // Player has been very unhappy for MORALE.transferRequestStreak
+      // consecutive rounds and has formally submitted a transfer request.
+      // Reducer sets Player.wantsTransfer = true and resets
+      // consecutiveVeryUnhappyRounds to 0. Fires a corresponding inbox story.
+      type: 'TRANSFER_REQUEST_SUBMITTED';
+      rosterId: number;
+    }
+  | {
+      // Manager promised a player they will start at least startsRequired
+      // times in the next toRound rounds. Reducer sets Player.playingTimePromise
+      // and clears wantsTransfer.
+      type: 'PLAYING_TIME_PROMISED';
+      rosterId: number;
+      toRound: number;
+      startsRequired: number;
+      startsAtPromise: number; // snapshot of seasonStats.starts at this moment
+    }
+  | {
+      // Manager agreed to the transfer request — player is released.
+      // Reducer clears Player.wantsTransfer. The caller (GameCoordinator)
+      // also fires CONTRACT_TERMINATED so the player enters the free-agent
+      // pool through the normal market path.
+      type: 'TRANSFER_REQUEST_GRANTED';
+      rosterId: number;
+    }
+  | {
+      // Manager rejected the transfer request. Reducer clears
+      // Player.wantsTransfer and applies MORALE.transferRequestRejectPenalty.
+      type: 'TRANSFER_REQUEST_REJECTED';
+      rosterId: number;
+    }
+  | {
+      // A playing-time promise expired without the player receiving the
+      // committed starts. Reducer clears Player.playingTimePromise and applies
+      // MORALE.promiseBrokenPenalty. Fired by GameCoordinator at the round
+      // toRound if the starts delta was not met.
+      type: 'PROMISE_BROKEN';
+      rosterId: number;
+    }
+  // ── Feature 2.3 — Loan System ────────────────────────────────────────
+  | {
+      // Seeds the season's loan-available player pool. Reducer sets
+      // career.loanPool to the provided roster ids (players already added to
+      // career.roster by the generator). Fired once per season at newSeason().
+      type: 'LOAN_POOL_SEEDED';
+      rosterIds: number[];
+    }
+  | {
+      // Sends a squad player on loan to their club's partnership club.
+      // Reducer sets Player.loanOut. The player stays on the squad but is
+      // excluded from matchday selection.
+      type: 'PLAYER_LOANED_OUT';
+      rosterId: number;
+      partnerClub: string;
+      fromRound: number;
+    }
+  | {
+      // Recalls a loaned-out player. Reducer clears Player.loanOut.
+      // The player is immediately available for selection.
+      type: 'PLAYER_RECALLED_FROM_LOAN';
+      rosterId: number;
+    }
+  | {
+      // Signs a player from the season's loan pool to the managed club.
+      // Reducer removes rosterId from career.loanPool, adds to the club's
+      // squad, and sets Player.loanIn.
+      type: 'LOAN_PLAYER_SIGNED';
+      rosterId: number;
+      clubId: string;
+      fromRound: number;
+    }
+  | {
+      // Releases a loan-in player back to the pool (end-of-season or
+      // recalled by generating engine). Reducer removes the player from
+      // the club's squad, clears Player.loanIn, and adds rosterId back to
+      // career.loanPool. Also fired en masse at SEASON_ROLLED_OVER.
+      type: 'LOAN_PLAYER_RELEASED';
+      rosterId: number;
     };

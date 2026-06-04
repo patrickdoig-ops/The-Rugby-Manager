@@ -49,7 +49,8 @@ export type ScreenId =
   | 'club-menu'
   | 'board-confidence'
   | 'staff'
-  | 'team-talk';
+  | 'team-talk'
+  | 'loans';
 
 const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'home':          { elId: 'home-screen',   shownDisplay: '' },
@@ -95,6 +96,7 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'board-confidence':          { elId: 'board-confidence',          shownDisplay: '' },
   'staff':                     { elId: 'staff',                     shownDisplay: '' },
   'team-talk':                 { elId: 'team-talk',                 shownDisplay: '' },
+  'loans':                     { elId: 'loans',                     shownDisplay: '' },
 };
 
 export type NavDirection = 'forward' | 'back';

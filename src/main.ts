@@ -47,6 +47,7 @@ import '../style/achievements.css';
 import '../style/sack.css';
 import '../style/team-talk.css';
 import '../style/staff.css';
+import '../style/loans.css';
 import '../style/press-conference.css';
 
 import { buildAppShell }           from './ui/AppShell';
@@ -94,6 +95,7 @@ import { PRE_SEASON_TRANSFERS_2025_26 } from './data/transfers-2025-26';
 import { initRolloverScreen, showRollover }         from './ui/RolloverScreen';
 import { initContractsScreen, showContracts, showContractsMarqueeEdit } from './ui/ContractsScreen';
 import { initContractsTransfersMenuScreen, showContractsTransfersMenu } from './ui/ContractsTransfersMenuScreen';
+import { initLoanScreen, showLoans } from './ui/LoanScreen';
 import { initClubMenuScreen, showClubMenu } from './ui/ClubMenuScreen';
 import { initBoardConfidenceScreen, showBoardConfidence } from './ui/BoardConfidenceScreen';
 import { initStaffScreen, showStaff } from './ui/StaffScreen';
@@ -358,6 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onBack:      () => goHub('back'),
       onContracts: goContracts,
       onTransfers: goTransfersMidseason,
+      onLoans:     () => goLoans(),
     });
     initClubMenuScreen({
       getGameEngine,
@@ -453,6 +456,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // getter, so the engine swaps cleanly on New Game. Subscriptions are
     // permanent — registered once here like the in-season screens.
     initAchievementEngine(() => getGameEngine().getState());
+    initLoanScreen({
+      getGameEngine,
+      allTeams,
+      onBack: () => goContractsTransfersMenu('back'),
+    });
     initInboxScreen({
       getGameEngine,
       allTeams,
@@ -462,6 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onTransfers: goTransfersMidseason,
       onFixtures:  goFixtures,
       onLeague:    goLeagueMenu,
+      onLoans:     () => goLoans(),
     });
 
     // The post-match Continue chain (LeagueTable → ...) reads these flags.
@@ -551,6 +560,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function goBoard(direction: 'forward' | 'back' = 'forward'): void {
     showBoardConfidence();
     screenRouter.show('board-confidence', { direction });
+  }
+
+  function goLoans(direction: 'forward' | 'back' = 'forward'): void {
+    showLoans();
+    screenRouter.show('loans', { direction });
   }
 
   function goStaff(direction: 'forward' | 'back' = 'forward'): void {

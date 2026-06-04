@@ -853,7 +853,7 @@ export class GameCoordinator {
       applySeasonEvent(this.state, ev);
     }
     this.transfers.checkTransferRequestsAndPromises();
-    this.staff.advanceScoutingAccuracy();
+    for (let w = 0; w < recoveryWeeks; w++) this.staff.advanceScoutingAccuracy();
     eventBus.emit('game:weekAdvanced', { state: this.state });
 
     // Background poach-threat assessment — RNG-free, runs every round.

@@ -118,7 +118,7 @@ export function showLoans(): void {
           <h2 class="loan-section-title">Send on Loan</h2>
           <span class="loan-count-chip">${currentLoanCount} / ${MAX_LOANS_OUT} out</span>
         </div>
-        <p class="loan-section-desc">Development loans to <strong>${partnerClub}</strong>. Loaned players get boosted training gains but are unavailable for selection. Recall at any time.</p>
+        <p class="loan-section-desc">Development loans to <strong>${partnerClub}</strong>. Up to 5 players can be out on loan at once. Loaned players get boosted training gains but are unavailable for selection. Recall at any time.</p>
 
         ${loanedOut.length > 0 ? `
         <div class="loan-subsection-label">Currently on loan</div>

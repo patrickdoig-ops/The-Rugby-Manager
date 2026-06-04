@@ -157,9 +157,8 @@
 .loan-btn--out:active { background: var(--rm-cta-active); opacity: 1; }
 
 .loan-btn--recall {
-  background: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 20%, var(--rm-surface));
-  color: var(--team-color, var(--rm-pitch));
-  border: 1px solid color-mix(in oklch, var(--team-color, var(--rm-pitch)) 35%, transparent);
+  background: var(--rm-danger);
+  color: #fff;
 }
 
 .loan-btn--sign {

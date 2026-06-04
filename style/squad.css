@@ -417,9 +417,9 @@
   background: color-mix(in oklch, var(--rm-text-faint) 20%, transparent);
 }
 
-.mor-happy     { background: var(--rm-stat-4); }
-.mor-ok        { background: var(--rm-stat-3); }
-.mor-unsettled { background: var(--rm-stat-2); }
+.mor-happy     { background: var(--rm-stat-3); }
+.mor-ok        { background: var(--rm-stat-4); }
+.mor-unsettled { background: var(--blue); }
 .mor-unhappy   { background: var(--rm-stat-1); }
 
 /* ─── Footer ─── */

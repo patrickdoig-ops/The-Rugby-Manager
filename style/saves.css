@@ -211,6 +211,15 @@
   margin-bottom: 22px;
   line-height: 1.55;
 }
+.saves-backup-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+  max-height: 42vh;
+  overflow-y: auto;
+}
+.saves-backup-row { width: 100%; text-align: center; }
 .rm-confirm-actions { display: flex; gap: 10px; }
 .rm-confirm-btn {
   flex: 1;

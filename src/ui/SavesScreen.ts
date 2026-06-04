@@ -15,7 +15,7 @@ import {
   listSlots, saveToSlot, clearSlot, renameSlot, setActiveSlot, getActiveSlot,
   type SlotId, type SlotInfo,
 } from './SaveManager';
-import { exportSlot, importToSlot } from './saveBackup';
+import { exportSlot, importToSlot, listBackups, restoreBackup } from './saveBackup';
 import { buildSaveContext, ordinalSuffix } from '../game/saveSummary';
 import { confirmModal } from './components/confirmModal';
 import { showToast } from './Toast';
@@ -73,6 +73,7 @@ function slotCardHtml(info: SlotInfo, activeId: SlotId, gameLive: boolean): stri
       <button class="saves-act saves-act--primary" data-act="load" data-slot="${info.id}">Load &amp; Play</button>
       ${gameLive ? `<button class="saves-act" data-act="save" data-slot="${info.id}">Save here</button>` : ''}
       <button class="saves-act" data-act="rename" data-slot="${info.id}">Rename</button>
+      <button class="saves-act" data-act="restore" data-slot="${info.id}">Restore backup</button>
       <button class="saves-act" data-act="export" data-slot="${info.id}">Export</button>
       <button class="saves-act" data-act="import" data-slot="${info.id}">Import</button>
       <button class="saves-act saves-act--danger" data-act="delete" data-slot="${info.id}">Delete</button>`
@@ -149,6 +150,36 @@ function render(): void {
   });
 }
 
+// Bottom-sheet picker listing a slot's backup generations (newest first).
+// Resolves the chosen savedAt, or null on cancel / backdrop tap. Reuses the
+// confirmModal sheet styling (style/saves.css .rm-confirm-*).
+function pickBackup(entries: { savedAt: number }[]): Promise<number | null> {
+  return new Promise((resolve) => {
+    const backdrop = document.createElement('div');
+    backdrop.className = 'rm-confirm-backdrop';
+    const rows = entries.map(e =>
+      `<button class="saves-act saves-backup-row" type="button" data-at="${e.savedAt}">${relativeTime(e.savedAt)}</button>`
+    ).join('');
+    backdrop.innerHTML = `
+      <div class="rm-confirm" role="dialog" aria-modal="true">
+        <div class="rm-confirm-handle"></div>
+        <div class="rm-confirm-title">Restore a backup</div>
+        <div class="rm-confirm-body">Pick an earlier snapshot to roll this slot back to. Your current save will be replaced.</div>
+        <div class="saves-backup-list">${rows}</div>
+        <div class="rm-confirm-actions">
+          <button class="rm-confirm-btn rm-confirm-cancel" type="button">Cancel</button>
+        </div>
+      </div>`;
+    document.body.appendChild(backdrop);
+    const close = (result: number | null): void => { backdrop.remove(); resolve(result); };
+    backdrop.querySelectorAll<HTMLButtonElement>('.saves-backup-row').forEach(btn =>
+      btn.addEventListener('click', () => close(Number(btn.dataset.at))));
+    backdrop.querySelector<HTMLButtonElement>('.rm-confirm-cancel')!
+      .addEventListener('click', () => close(null));
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(null); });
+  });
+}
+
 async function handleAction(act: string, slot: SlotId): Promise<void> {
   if (!deps) return;
   switch (act) {
@@ -201,6 +232,31 @@ async function handleAction(act: string, slot: SlotId): Promise<void> {
       if (!ok) return;
       clearSlot(slot);
       showToast('Save deleted', 'info');
+      render();
+      break;
+    }
+
+    case 'restore': {
+      const entries = await listBackups(slot);
+      if (entries.length === 0) {
+        showToast('No backups for this slot yet', 'info');
+        return;
+      }
+      const chosen = await pickBackup(entries);
+      if (chosen === null) return;
+      const ok = await confirmModal({
+        title: 'Restore this backup?',
+        body: 'This replaces the save currently in this slot with the chosen snapshot. This cannot be undone.',
+        confirmLabel: 'Restore',
+        danger: true,
+      });
+      if (!ok) return;
+      if (await restoreBackup(slot, chosen)) {
+        setActiveSlot(slot);
+        showToast('Backup restored', 'success');
+      } else {
+        showToast('Couldn’t restore that backup', 'danger');
+      }
       render();
       break;
     }

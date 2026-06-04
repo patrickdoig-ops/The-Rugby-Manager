@@ -32,6 +32,16 @@ const SLOT_KEY: Record<SlotId, string> = {
   2: 'rugby-manager-save-2',
   3: 'rugby-manager-save-3',
 };
+// Last-known-good copy of each slot. Every write rotates the current primary
+// here BEFORE overwriting it, so a corrupt or partial write can never destroy
+// the only copy — loadSlot falls back to this when the primary won't parse.
+// This is a synchronous, always-present (incl. web) corruption fallback; the
+// richer multi-generation rolling history lives on disk (saveBackup.ts).
+const SLOT_BAK_KEY: Record<SlotId, string> = {
+  1: 'rugby-manager-save-1-bak',
+  2: 'rugby-manager-save-2-bak',
+  3: 'rugby-manager-save-3-bak',
+};
 const ACTIVE_KEY = 'rugby-manager-active-slot';
 const SAVE_VERSION = 1;
 // Including SAVE_VERSION here is load-bearing — without it a freshly written
@@ -58,6 +68,15 @@ function defaultSlotName(id: SlotId): string {
 let slotWriteHook: ((id: SlotId, raw: string) => void) | null = null;
 export function setSlotWriteHook(fn: ((id: SlotId, raw: string) => void) | null): void {
   slotWriteHook = fn;
+}
+
+// Parallel hook for the rotated last-known-good `.bak` copy, so the native
+// backup layer can mirror it to disk alongside the primary. raw === '' means
+// the bak was cleared. Kept separate from slotWriteHook so reconcileBackups /
+// setRawSlot (which carry the primary) are unaffected.
+let bakWriteHook: ((id: SlotId, raw: string) => void) | null = null;
+export function setBakWriteHook(fn: ((id: SlotId, raw: string) => void) | null): void {
+  bakWriteHook = fn;
 }
 
 // Parse a raw SavedGame object into a validated SavedSeason. Shared by every
@@ -541,6 +560,26 @@ export function setRawSlot(id: SlotId, raw: string): void {
   }
 }
 
+// Last-known-good (`.bak`) raw accessors. Mirror getRawSlot/setRawSlot but
+// target the bak key and fire the bak hook. Used by the rotate-before-write in
+// saveToSlot, the load-time fallback, and the backup-reconcile path.
+export function getRawBak(id: SlotId): string | null {
+  try {
+    return localStorage.getItem(SLOT_BAK_KEY[id]);
+  } catch {
+    return null;
+  }
+}
+
+export function setRawBak(id: SlotId, raw: string): void {
+  try {
+    localStorage.setItem(SLOT_BAK_KEY[id], raw);
+    bakWriteHook?.(id, raw);
+  } catch {
+    // Best-effort — a failed bak write must never block the live save.
+  }
+}
+
 export function getActiveSlot(): SlotId {
   try {
     const v = Number(localStorage.getItem(ACTIVE_KEY));
@@ -572,8 +611,11 @@ function readEnvelope(id: SlotId): SavedGame | null {
 
 export function loadSlot(id: SlotId): SavedSeason | null {
   const env = readEnvelope(id);
-  if (!env) return null;
-  return parseSavedGame(env);
+  const ok = env ? parseSavedGame(env) : null;
+  if (ok) return ok;
+  // Primary missing or corrupt — fall back to the last-known-good `.bak`.
+  const bak = getRawBak(id);
+  return bak ? parseRawSave(bak) : null;
 }
 
 // Validate + parse a raw envelope string (from an imported file). Returns the
@@ -587,8 +629,18 @@ export function parseRawSave(raw: string): SavedSeason | null {
 }
 
 export function slotInfo(id: SlotId): SlotInfo {
-  const env = readEnvelope(id);
-  const save = env ? parseSavedGame(env) : null;
+  let env = readEnvelope(id);
+  let save = env ? parseSavedGame(env) : null;
+  // Primary missing or corrupt — surface the last-known-good `.bak` so the
+  // Continue / Saves card still appears (and loadSlot resolves the same copy).
+  if (!save) {
+    const bakRaw = getRawBak(id);
+    if (bakRaw) {
+      const bakEnv = (() => { try { return JSON.parse(bakRaw) as SavedGame; } catch { return null; } })();
+      const bakSave = bakEnv ? parseSavedGame(bakEnv) : null;
+      if (bakSave) { env = bakEnv; save = bakSave; }
+    }
+  }
   return {
     id,
     name: (env && typeof env.slotName === 'string' && env.slotName.trim()) || defaultSlotName(id),
@@ -604,19 +656,30 @@ export function listSlots(): SlotInfo[] {
 // Write a game into a slot, preserving the slot's existing name unless a new
 // one is supplied. Throws on quota failure so the UI can surface it (the
 // legacy saveGame wrapper swallows it to preserve the old autosave contract).
+//
+// Rotate-before-write: the current primary is copied to the `.bak` key FIRST,
+// then the new primary is written. This guarantees the previous good copy is
+// never lost — if the new-primary write throws (quota) or produces corrupt
+// bytes, `.bak` still holds the last good save and loadSlot falls back to it.
+// The bak rotation has its own try/catch so a failed rotation can never block
+// the live save; the primary setItem stays the one that signals quota failure.
 export function saveToSlot(id: SlotId, save: SavedSeason, name?: string): void {
   const existing = readEnvelope(id);
   const slotName = (name ?? existing?.slotName ?? defaultSlotName(id));
   const payload: SavedGame = { version: SAVE_VERSION, slotName, savedAt: Date.now(), ...save };
   const raw = JSON.stringify(payload);
-  localStorage.setItem(SLOT_KEY[id], raw);
+  const prev = getRawSlot(id);
+  if (prev) setRawBak(id, prev);          // rotate current good copy → .bak
+  localStorage.setItem(SLOT_KEY[id], raw); // may throw → caught by saveGame; .bak still holds prev
   slotWriteHook?.(id, raw);
 }
 
 export function clearSlot(id: SlotId): void {
   try {
     localStorage.removeItem(SLOT_KEY[id]);
+    localStorage.removeItem(SLOT_BAK_KEY[id]);
     slotWriteHook?.(id, '');
+    bakWriteHook?.(id, '');
   } catch {
     // ignore
   }

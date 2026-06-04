@@ -18,12 +18,29 @@
 
 import { Capacitor } from '@capacitor/core';
 import {
-  SLOT_IDS, setSlotWriteHook, getRawSlot, setRawSlot, parseRawSave, slotInfo,
+  SLOT_IDS, setSlotWriteHook, setBakWriteHook, getRawSlot, setRawSlot,
+  getRawBak, setRawBak, parseRawSave, slotInfo,
   type SlotId,
 } from './SaveManager';
 
+// A rolling history of spaced generations is kept per slot on disk (native).
+// Capped, and throttled so a burst of autosaves (e.g. a pre-season market
+// loop) doesn't evict meaningful older history — generations are at least
+// HISTORY_MIN_INTERVAL_MS apart, giving roughly one snapshot per play session.
+const HISTORY_CAP = 8;
+const HISTORY_MIN_INTERVAL_MS = 20 * 60_000;
+
 function slotPath(id: SlotId): string {
   return `saves/slot-${id}.json`;
+}
+function slotBakPath(id: SlotId): string {
+  return `saves/slot-${id}-bak.json`;
+}
+function historyDir(id: SlotId): string {
+  return `saves/slot-${id}`;
+}
+function historyPath(id: SlotId, savedAt: number): string {
+  return `${historyDir(id)}/${savedAt}.json`;
 }
 
 function savedAtOf(raw: string): number {
@@ -37,46 +54,81 @@ function savedAtOf(raw: string): number {
 
 // ── (A) Native device-backup mirror ─────────────────────────────────────────
 
-async function writeDisk(id: SlotId, raw: string): Promise<void> {
+async function writeDiskPath(path: string, raw: string): Promise<void> {
   const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
   await Filesystem.writeFile({
-    path: slotPath(id),
-    data: raw,
-    directory: Directory.Documents,
-    encoding: Encoding.UTF8,
-    recursive: true,
+    path, data: raw, directory: Directory.Documents, encoding: Encoding.UTF8, recursive: true,
   });
 }
 
-async function deleteDisk(id: SlotId): Promise<void> {
+async function deleteDiskPath(path: string): Promise<void> {
   const { Filesystem, Directory } = await import('@capacitor/filesystem');
   try {
-    await Filesystem.deleteFile({ path: slotPath(id), directory: Directory.Documents });
+    await Filesystem.deleteFile({ path, directory: Directory.Documents });
   } catch {
     // File may not exist — fine.
   }
 }
 
-async function readDisk(id: SlotId): Promise<string | null> {
+async function readDiskPath(path: string): Promise<string | null> {
   const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
   try {
-    const res = await Filesystem.readFile({
-      path: slotPath(id),
-      directory: Directory.Documents,
-      encoding: Encoding.UTF8,
-    });
+    const res = await Filesystem.readFile({ path, directory: Directory.Documents, encoding: Encoding.UTF8 });
     return typeof res.data === 'string' ? res.data : null;
   } catch {
     return null;
   }
 }
 
-// Register the SaveManager write hook so every slot write mirrors to disk.
+// savedAt of each history generation on disk, newest-first. Empty if the dir
+// is absent.
+async function historyEntries(id: SlotId): Promise<number[]> {
+  const { Filesystem, Directory } = await import('@capacitor/filesystem');
+  try {
+    const res = await Filesystem.readdir({ path: historyDir(id), directory: Directory.Documents });
+    return res.files
+      .map(f => Number((typeof f === 'string' ? f : f.name).replace(/\.json$/, '')))
+      .filter(n => Number.isFinite(n) && n > 0)
+      .sort((a, b) => b - a);
+  } catch {
+    return [];
+  }
+}
+
+// In-memory throttle clock per slot — avoids a readdir on every autosave. The
+// first save of a session always lands a generation (the map starts empty).
+const lastHistAt: Record<number, number> = {};
+
+async function appendHistory(id: SlotId, raw: string): Promise<void> {
+  const at = savedAtOf(raw);
+  if (at <= 0) return;
+  if (at - (lastHistAt[id] ?? 0) < HISTORY_MIN_INTERVAL_MS) return;
+  lastHistAt[id] = at;
+  await writeDiskPath(historyPath(id, at), raw);
+  const entries = await historyEntries(id);
+  for (const old of entries.slice(HISTORY_CAP)) {
+    await deleteDiskPath(historyPath(id, old));
+  }
+}
+
+// Remove every disk artefact for a slot (primary, bak, history) on clear.
+async function clearDisk(id: SlotId): Promise<void> {
+  await deleteDiskPath(slotPath(id));
+  await deleteDiskPath(slotBakPath(id));
+  for (const at of await historyEntries(id)) await deleteDiskPath(historyPath(id, at));
+}
+
+// Register the SaveManager write hooks so every slot write mirrors to disk.
 // Call once at boot. No-op on web.
 export function installBackupMirror(): void {
   if (!Capacitor.isNativePlatform()) return;
   setSlotWriteHook((id, raw) => {
-    void (raw === '' ? deleteDisk(id) : writeDisk(id, raw));
+    if (raw === '') { void clearDisk(id); return; }
+    void writeDiskPath(slotPath(id), raw);
+    void appendHistory(id, raw);
+  });
+  setBakWriteHook((id, raw) => {
+    void (raw === '' ? deleteDiskPath(slotBakPath(id)) : writeDiskPath(slotBakPath(id), raw));
   });
 }
 
@@ -86,17 +138,77 @@ export async function reconcileBackups(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
   for (const id of SLOT_IDS) {
     try {
-      const disk = await readDisk(id);
-      if (!disk || !parseRawSave(disk)) continue;
-      const local = getRawSlot(id);
-      const localAt = local ? savedAtOf(local) : -1;
-      if (!local || savedAtOf(disk) > localAt) {
-        setRawSlot(id, disk);
+      const disk = await readDiskPath(slotPath(id));
+      if (disk && parseRawSave(disk)) {
+        const local = getRawSlot(id);
+        const localAt = local && parseRawSave(local) ? savedAtOf(local) : -1;
+        if (localAt < 0 || savedAtOf(disk) > localAt) setRawSlot(id, disk);
+      }
+      // Mirror the disk `.bak` into localStorage when it's missing there
+      // (reinstall / eviction restores the corruption fallback too).
+      if (!getRawBak(id)) {
+        const diskBak = await readDiskPath(slotBakPath(id));
+        if (diskBak && parseRawSave(diskBak)) setRawBak(id, diskBak);
+      }
+      // Corruption repair: if the local primary still won't parse, hydrate it
+      // from the newest parseable source — disk `.bak`, then disk history.
+      const localNow = getRawSlot(id);
+      if (!localNow || !parseRawSave(localNow)) {
+        const bak = getRawBak(id);
+        if (bak && parseRawSave(bak)) { setRawSlot(id, bak); continue; }
+        for (const at of await historyEntries(id)) {
+          const gen = await readDiskPath(historyPath(id, at));
+          if (gen && parseRawSave(gen)) { setRawSlot(id, gen); break; }
+        }
       }
     } catch {
       // Best-effort per slot — a bad file never blocks boot.
     }
   }
+}
+
+// ── Rolling-history restore (for the Saves screen) ───────────────────────────
+
+export interface BackupEntry { savedAt: number; }
+
+// List the restorable backup generations for a slot, newest-first, excluding
+// the one identical to the current primary (restoring that is a no-op). On
+// native this is the on-disk rolling history; on web it's the single
+// last-known-good `.bak`.
+export async function listBackups(id: SlotId): Promise<BackupEntry[]> {
+  const local = getRawSlot(id);
+  const currentAt = local ? savedAtOf(local) : -1;
+  if (Capacitor.isNativePlatform()) {
+    const ats = await historyEntries(id);
+    return ats.filter(at => at !== currentAt).map(at => ({ savedAt: at }));
+  }
+  const bak = getRawBak(id);
+  if (!bak) return [];
+  const at = savedAtOf(bak);
+  return at > 0 && at !== currentAt ? [{ savedAt: at }] : [];
+}
+
+// Restore a backup generation into the slot as the new primary. Validates the
+// payload first, re-stamps savedAt so it sorts as the current save, and writes
+// through setRawSlot (which mirrors to disk + lands a fresh history entry).
+// Returns false if the generation is missing or unusable.
+export async function restoreBackup(id: SlotId, savedAt: number): Promise<boolean> {
+  let raw: string | null;
+  if (Capacitor.isNativePlatform()) {
+    raw = await readDiskPath(historyPath(id, savedAt));
+  } else {
+    raw = getRawBak(id);
+  }
+  if (!raw || !parseRawSave(raw)) return false;
+  let env: Record<string, unknown>;
+  try {
+    env = JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return false;
+  }
+  env.savedAt = Date.now();
+  setRawSlot(id, JSON.stringify(env));
+  return true;
 }
 
 // ── (B) Export / import ──────────────────────────────────────────────────────

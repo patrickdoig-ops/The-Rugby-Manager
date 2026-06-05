@@ -80,6 +80,16 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
         field.classList.add('dot-transitioning');
         setTimeout(() => field.classList.remove('dot-transitioning'), 600);
       }
+      // FirstPhase→Breakdown: the set-piece pack has been held at its scrum/lineout
+      // positions through the whole first phase (see keepLineout below). The breakdown
+      // beat is the first to reposition the forwards (into the authored ruck formation),
+      // so glide them there from wherever the set piece left them rather than snapping.
+      // CSS animates from the dots' actual current positions, so the blend is correct
+      // for either predecessor without any per-predecessor forward data.
+      if (currentPhase === MatchPhase.FirstPhase && event.phase === MatchPhase.Breakdown) {
+        field.classList.add('dot-transitioning');
+        setTimeout(() => field.classList.remove('dot-transitioning'), 600);
+      }
       // Lineout/Scrum→FirstPhase: keep set-piece forwards visible through the whole
       // first phase — carry persistedKeys forward so they don't clear at the boundary.
       // They fade normally when FirstPhase itself ends.

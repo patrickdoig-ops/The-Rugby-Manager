@@ -93,8 +93,13 @@ export function choreograph(
   if (event.phase === MatchPhase.ConversionKick) return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
   if (event.phase === MatchPhase.DropOut22)      return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
   if (event.phase === MatchPhase.BoxKick) {
-    const boxKeys = event.narration.steps.filter(s => s.kind === 'phase_outcome').map(s => (s as { key: string }).key);
-    if (boxKeys.includes('announce')) return boxKickAnnounceLayout(event, state, attacksTop);
+    const keys = outcomeKeys(event);
+    // Announce beat: formation around the live ruck (event.ball IS the kick origin).
+    if (keys.includes('announce')) return placeFormation(event, state, attacksTop, event.ballX, event.ballY, BOX_KICK_ANNOUNCE);
+    // Outcome beat: the ball has flown to the landing, so anchor the kicking
+    // formation on the kick origin (the previous beat's ball = the announce ruck).
+    const form = BOX_KICK_FORMS.find(f => keys.includes(f.key));
+    if (form) return placeFormation(event, state, attacksTop, prevBallX, prevBallY, form.form);
     return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
   }
   // A penalty kicked to touch behaves like a tactical kick to touch (ball out, lineout
@@ -120,6 +125,15 @@ export function choreograph(
   if (event.phase === MatchPhase.FirstPhase
       && (prevPhase === MatchPhase.Scrum || prevPhase === MatchPhase.Lineout)) {
     return firstPhaseBacklineLayout(event, state, attacksTop, prevPhase, prevBallX, prevBallY);
+  }
+
+  // Breakdown: authored full-formation frames for the two phase-animator exports.
+  // Anchored on the live ruck (event.ball). Every other breakdown outcome
+  // (slow_ball, turnover, the other penalties) falls back to open play.
+  if (event.phase === MatchPhase.Breakdown) {
+    const keys = outcomeKeys(event);
+    if (keys.includes('clean_ball')) return placeFormation(event, state, attacksTop, event.ballX, event.ballY, BREAKDOWN_CLEAN);
+    if (keys.includes('dangerous_cleanout_penalty')) return placeFormation(event, state, attacksTop, event.ballX, event.ballY, BREAKDOWN_CLEANOUT_PEN);
   }
 
   return openPlayLayout(event, state, attacksTop);
@@ -189,60 +203,193 @@ function travelingKickLayout(
   return out;
 }
 
-// Box kick announce: full 15v15 formation showing both teams set up for the kick.
-// Authored in the phase animator with the attacking team kicking toward x=100, ball
-// at (20, 83) near the y=100 touchline. Each entry is [dx, dy] offset from the ball.
-// x-offset flips with attack direction; y-offset mirrors when ball is near y=0.
-// The actual kicker is snapped to the real ball position regardless of slot-9's entry.
-const BOX_KICK_ATK: Record<number, [number, number]> = {
-  1:  [ -2.07, -18.58],   2:  [ -2.22, -13.62],   3:  [  5.27,   0.90],
-  4:  [  2.39,   0.90],   5:  [  3.54,  -2.77],   6:  [ -9.13, -66.17],
-  7:  [ -2.79,   9.90],   8:  [ -2.51,  -7.55],   9:  [ -2.00,   0.00],
-  10: [ -7.40, -14.53],   11: [ -9.13, -75.54],   12: [ -9.85, -29.23],
-  13: [-10.72, -43.38],   14: [ -4.38,  15.78],   15: [-16.19, -17.84],
-};
-const BOX_KICK_DEF: Record<number, [number, number]> = {
-  1:  [  6.57,  -2.22],   2:  [ 16.08, -11.78],   3:  [ 14.93,  13.21],
-  4:  [ 15.94, -15.82],   5:  [  6.28,  -7.55],   6:  [  7.29,   1.82],
-  7:  [ 16.80, -68.74],   8:  [ 15.94, -20.23],   9:  [ 11.76,  -0.57],
-  10: [ 22.13, -13.80],   11: [ 29.77,  15.05],   12: [ 14.93, -28.68],
-  13: [ 14.78, -43.57],   14: [ 40.43, -70.94],   15: [ 44.46,  -5.90],
-};
+// ── Ball-relative formation templates (phase-animator exports) ────────────────
+// Each authored frame's t=0 player positions, stored as [dx, dy] offsets from the
+// ball, in one canonical frame: the ATTACKING team drives toward +x (top), and the
+// ball sits near the touchline named by `nearTop`. At play-time `placeFormation`
+// anchors the table on the live ball / ruck (or, for a box-kick outcome, the kick
+// origin), flips dx to the attacking team's real direction, and mirrors dy when the
+// live ball is on the opposite touchline. Re-author in the phase animator and re-bake
+// the offsets to retune — see docs/phase-animator.md § 9.
+type FormOffsets = Record<number, readonly [number, number]>;
+interface Formation { nearTop: boolean; atk: FormOffsets; def: FormOffsets; }
 
-function boxKickAnnounceLayout(event: GameEvent, state: MatchState, attacksTop: boolean): Placed[] {
-  const atkSide: Side = event.side === 'home' ? 'h' : 'a';
+const outcomeKeys = (event: GameEvent): string[] =>
+  event.narration.steps.filter(s => s.kind === 'phase_outcome').map(s => (s as { key: string }).key);
+
+// Place all 30 players from a Formation template. The attacking side is whoever
+// `event.primaryPlayer` belongs to (the kicker / breakdown supporter / cleanout
+// offender — always on the attacking team), so a possession-swap outcome still maps
+// the kicking pack and the receiving cover to the correct live sides.
+function placeFormation(
+  event: GameEvent, state: MatchState, attacksTop: boolean,
+  anchorX: number, anchorY: number, form: Formation,
+): Placed[] {
+  const ref = event.primaryPlayer;
+  const atkSide: Side = ref ? sideOf(ref, state) : (event.side === 'home' ? 'h' : 'a');
   const defSide: Side = atkSide === 'h' ? 'a' : 'h';
-  const dir     = attacksTop ? 1 : -1;
-  const mirrorY = event.ballY < 50;   // authored near y=100; flip for y=0 side
-  const kicker  = event.primaryPlayer;
-
-  const atkTeam = atkSide === 'h' ? state.homeTeam : state.awayTeam;
-  const defTeam = defSide === 'h' ? state.homeTeam : state.awayTeam;
-  const atkOn   = onFieldPlayers(atkTeam, state, possOf(atkSide));
-  const defOn   = onFieldPlayers(defTeam, state, possOf(defSide));
-
-  const pos = (dx: number, dy: number): [number, number] => [
-    clampX(event.ballX + dx * dir),
-    clampY(event.ballY + (mirrorY ? -dy : dy)),
-  ];
+  const possSide: Side = event.side === 'home' ? 'h' : 'a';
+  // The attacking team's real long-axis direction. `attacksTop` describes the side in
+  // possession (event.side); when the attackers are NOT in possession (a box kick
+  // caught by the receiver, a cleanout penalty that swapped the mark) it flips.
+  const dir = (atkSide === possSide ? attacksTop : !attacksTop) ? 1 : -1;
+  const mirrorY = form.nearTop !== (anchorY >= 50);
+  const atkOn = onFieldPlayers(atkSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(atkSide));
+  const defOn = onFieldPlayers(defSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(defSide));
 
   const out: Placed[] = [];
-  for (let slot = 1; slot <= 15; slot++) {
-    const atkOff = BOX_KICK_ATK[slot];
-    const p = atkOn.find(pl => pl.id === slot);
-    if (p && atkOff) {
-      if (p === kicker) {
-        out.push(placed(p, atkSide, state, clampX(event.ballX), clampY(event.ballY), true));
-      } else {
-        out.push(placed(p, atkSide, state, ...pos(atkOff[0], atkOff[1]), false));
-      }
+  const fill = (on: Player[], side: Side, tbl: FormOffsets): void => {
+    for (let slot = 1; slot <= 15; slot++) {
+      const off = tbl[slot];
+      const p = on.find(pl => pl.id === slot);
+      if (off && p) out.push(placed(p, side, state,
+        clampX(anchorX + off[0] * dir),
+        clampY(anchorY + (mirrorY ? -off[1] : off[1])), false));
     }
-    const defOff = BOX_KICK_DEF[slot];
-    const dp = defOn.find(pl => pl.id === slot);
-    if (dp && defOff) out.push(placed(dp, defSide, state, ...pos(defOff[0], defOff[1]), false));
-  }
+  };
+  fill(atkOn, atkSide, form.atk);
+  fill(defOn, defSide, form.def);
   return out;
 }
+
+const BOX_KICK_ANNOUNCE: Formation = { nearTop: true,
+  atk: {
+    1:  [ -2.07, -18.58],   2:  [ -2.22, -13.62],   3:  [  5.27,   0.90],
+    4:  [  2.39,   0.90],   5:  [  3.54,  -2.77],   6:  [ -9.13, -66.17],
+    7:  [ -2.79,   9.90],   8:  [ -2.51,  -7.55],   9:  [ -2.00,   0.00],
+    10: [ -7.40, -14.53],   11: [ -9.13, -75.54],   12: [ -9.85, -29.23],
+    13: [-10.72, -43.38],   14: [ -4.38,  15.78],   15: [-16.19, -17.84],
+  },
+  def: {
+    1:  [  6.57,  -2.22],   2:  [ 16.08, -11.78],   3:  [ 14.93,  13.21],
+    4:  [ 15.94, -15.82],   5:  [  6.28,  -7.55],   6:  [  7.29,   1.82],
+    7:  [ 16.80, -68.74],   8:  [ 15.94, -20.23],   9:  [ 11.76,  -0.57],
+    10: [ 22.13, -13.80],   11: [ 29.77,  15.05],   12: [ 14.93, -28.68],
+    13: [ 14.78, -43.57],   14: [ 40.43, -70.94],   15: [ 44.46,  -5.90],
+  },
+};
+const BOX_KICK_RETAIN: Formation = { nearTop: false,
+  atk: {
+    1:  [ -1.22,  18.11],   2:  [ -3.09,  -3.75],   3:  [ -4.24,  39.43],
+    4:  [  4.26,  -2.10],   5:  [  4.11,   2.31],   6:  [ -3.52,  24.18],
+    7:  [ -3.52,  13.15],   8:  [  2.24,   0.11],   9:  [  0.00,   0.00],
+    10: [ -9.57,  19.03],   11: [ -2.80,  -8.00],   12: [-12.31,  37.77],
+    13: [-14.18,  54.49],   14: [-15.48,  72.32],   15: [-20.38,  29.51],
+  },
+  def: {
+    1:  [ 14.63,  -8.00],   2:  [  6.27,   0.11],   3:  [ 11.75,  13.52],
+    4:  [ 12.04,  36.30],   5:  [ 11.75,  20.13],   6:  [ 11.75,  42.73],
+    7:  [  7.14,   3.23],   8:  [ 11.32,  27.67],   9:  [  8.72,  -5.22],
+    10: [ 12.04,  52.11],   11: [ 31.92,  78.75],   12: [ 11.75,  62.58],
+    13: [ 12.90,  75.63],   14: [ 35.95,  -7.24],   15: [ 40.00,  42.00],
+  },
+};
+const BOX_KICK_TO_TOUCH: Formation = { nearTop: true,
+  atk: {
+    1:  [ -1.77, -22.03],   2:  [ -2.06, -15.05],   3:  [  8.60,  -1.09],
+    4:  [ -3.50,  -4.58],   5:  [  6.30,  -0.35],   6:  [ -5.00, -13.03],
+    7:  [ -2.92,  -8.80],   8:  [  3.71,  -0.17],   9:  [  0.00,   0.00],
+    10: [ -5.00, -30.48],   11: [ -5.00, -84.50],   12: [ -5.00, -38.20],
+    13: [ -5.00, -47.94],   14: [ -3.21,   5.00],   15: [ -5.00, -19.46],
+  },
+  def: {
+    1:  [ 10.62,   0.94],   2:  [ 17.25, -24.79],   3:  [ 17.54, -29.20],
+    4:  [ 11.77, -10.64],   5:  [ 16.67, -34.71],   6:  [  9.76,  -4.03],
+    7:  [ 16.82, -18.54],   8:  [ 16.82, -42.06],   9:  [ 13.93,  -5.31],
+    10: [ 34.97,  -7.70],   11: [ 28.92,   5.00],   12: [ 17.25, -50.70],
+    13: [ 17.25, -61.72],   14: [ 31.80, -84.87],   15: [ 35.11, -36.18],
+  },
+};
+const BOX_KICK_DEFEND_CATCH: Formation = { nearTop: true,
+  atk: {
+    1:  [  2.18,   2.97],   2:  [ -2.72, -15.22],   3:  [ -5.60, -18.71],
+    4:  [  3.04,  -0.89],   5:  [  1.32,  -2.17],   6:  [ -3.44,  -9.71],
+    7:  [ -4.74, -29.37],   8:  [ -3.15,  11.06],   9:  [  0.00,   0.00],
+    10: [-11.07, -14.30],   11: [ -4.01,  19.69],   12: [-11.79, -28.82],
+    13: [-12.00, -43.33],   14: [-11.22, -67.77],   15: [-12.00,   1.87],
+  },
+  def: {
+    1:  [ 10.54, -29.37],   2:  [ 10.54, -20.73],   3:  [  6.50,  -0.34],
+    4:  [ 11.26, -11.73],   5:  [  5.06,   2.97],   6:  [  9.67, -35.06],
+    7:  [  5.49,  -2.91],   8:  [ 11.54, -16.32],   9:  [ 13.56,  -1.07],
+    10: [ 18.60, -25.88],   11: [ 30.56, -65.93],   12: [ 10.10, -45.35],
+    13: [ 10.25, -67.95],   14: [ 26.38,  17.85],   15: [ 39.49, -15.04],
+  },
+};
+const BOX_KICK_DEFEND_CONTESTED: Formation = { nearTop: true,
+  atk: {
+    1:  [ -4.63, -13.76],   2:  [ -1.61,  -9.35],   3:  [ -4.63,  -4.20],
+    4:  [  4.16,  -2.73],   5:  [  4.59,   3.52],   6:  [ -1.75,  32.00],
+    7:  [ -1.61,  22.63],   8:  [  3.58,   0.02],   9:  [  0.00,   0.00],
+    10: [-15.01,  -1.45],   11: [-11.98, -48.12],   12: [ -4.06, -25.70],
+    13: [ -4.92, -40.03],   14: [  0.70,  12.89],   15: [-15.44,  33.47],
+  },
+  def: {
+    1:  [  8.33,   4.07],   2:  [  8.33,  -2.36],   3:  [ 10.78,  26.48],
+    4:  [ 13.52,  -6.22],   5:  [ 13.38, -16.51],   6:  [  6.60,   0.21],
+    7:  [ 10.93,  20.24],   8:  [ 13.38, -11.18],   9:  [ 11.36,   9.21],
+    10: [ 13.23, -23.86],   11: [ 23.03,  34.75],   12: [ 13.38, -40.77],
+    13: [ 13.38, -32.13],   14: [ 27.06, -54.18],   15: [ 23.46, -16.88],
+  },
+};
+const BOX_KICK_DEFEND_KNOCK_ON: Formation = { nearTop: true,
+  atk: {
+    1:  [ -4.38, -10.58],   2:  [ -2.94, -19.59],   3:  [  3.26,  -5.99],
+    4:  [ -2.79, -14.81],   5:  [  3.40,   1.18],   6:  [ -2.94, -35.76],
+    7:  [  2.97,  -2.87],   8:  [ -4.38,   8.89],   9:  [  0.00,   0.00],
+    10: [ -9.13, -15.73],   11: [ -9.85, -73.24],   12: [ -8.41, -35.94],
+    13: [ -9.42, -52.66],   14: [ -0.06,  12.02],   15: [-15.04, -31.71],
+  },
+  def: {
+    1:  [  6.28,  -4.15],   2:  [ 19.54, -12.97],   3:  [ 19.68, -25.10],
+    4:  [ 19.10, -30.43],   5:  [ 19.82, -37.96],   6:  [  5.99,  -0.11],
+    7:  [ 19.25, -17.93],   8:  [ 19.54, -44.02],   9:  [ 11.32,  -3.23],
+    10: [ 18.24, -71.40],   11: [ 29.33,  15.88],   12: [ 18.24, -50.82],
+    13: [ 17.52, -59.83],   14: [ 38.55, -71.59],   15: [ 47.92, -27.49],
+  },
+};
+const BOX_KICK_FORMS: Array<{ key: string; form: Formation }> = [
+  { key: 'attack_retain',          form: BOX_KICK_RETAIN },
+  { key: 'box_kick_to_touch',      form: BOX_KICK_TO_TOUCH },
+  { key: 'defend_catch_contested', form: BOX_KICK_DEFEND_CONTESTED },
+  { key: 'defend_catch',           form: BOX_KICK_DEFEND_CATCH },
+  { key: 'defend_knock_on',        form: BOX_KICK_DEFEND_KNOCK_ON },
+];
+
+// Breakdown (ruck-anchored). The attacking pack drives toward +x; the defenders
+// contest from the goal-side. Only the two authored outcomes use these.
+const BREAKDOWN_CLEAN: Formation = { nearTop: false,
+  atk: {
+    1:  [-13.43,  14.94],   2:  [-13.43,  23.58],   3:  [-13.72,  34.05],
+    4:  [ -2.91,   3.74],   5:  [ -2.00,   0.00],   6:  [ -2.48,  -3.25],
+    7:  [-14.58,  40.67],   8:  [-12.42,  18.43],   9:  [ -6.66,   0.43],
+    10: [-15.30,  19.17],   11: [-26.68,   3.18],   12: [-21.93,  36.07],
+    13: [-25.82,  53.16],   14: [-18.04,  74.84],   15: [-35.47,  29.83],
+  },
+  def: {
+    1:  [  2.71,  29.64],   2:  [  3.00,  18.25],   3:  [  3.57,   7.23],
+    4:  [  2.85,  23.21],   5:  [  3.14,  -7.66],   6:  [  3.14,  36.63],
+    7:  [  2.85,  -2.70],   8:  [  2.28,   0.61],   9:  [  8.33,   0.24],
+    10: [  3.00,  43.24],   11: [  4.00,  70.62],   12: [  3.57,  51.32],
+    13: [  3.00,  57.76],   14: [  7.89, -16.48],   15: [  9.00,  23.21],
+  },
+};
+const BREAKDOWN_CLEANOUT_PEN: Formation = { nearTop: true,
+  atk: {
+    1:  [ -4.58,  -9.24],   2:  [-12.06, -18.01],   3:  [ -4.27,   2.84],
+    4:  [-12.52, -11.77],   5:  [ -3.00,   8.00],   6:  [-12.21, -24.43],
+    7:  [-11.75,  25.04],   8:  [ -3.66,  -3.01],   9:  [ -1.52,   0.50],
+    10: [-12.21, -40.60],   11: [-21.68, -63.00],   12: [-12.06,  14.52],
+    13: [-12.37, -34.37],   14: [-21.38,  27.19],   15: [-23.97, -20.34],
+  },
+  def: {
+    1:  [  1.23,   1.08],   2:  [  0.92,  -1.25],   3:  [  8.25, -15.47],
+    4:  [  8.25, -23.27],   5:  [ 11.77, -33.40],   6:  [  6.27,  -8.27],
+    7:  [ 14.67,  15.89],   8:  [ 12.53, -40.02],   9:  [  7.18,   0.69],
+    10: [ 12.99, -19.57],   11: [ 12.53,  23.87],   12: [ 21.08, -31.45],
+    13: [ 24.90, -48.98],   14: [ 15.59, -65.54],   15: [ 23.37, -11.19],
+  },
+};
 
 // Kick-off formation, authored in the phase animator (KICK_OFF / clean_receive) and
 // keyed by position slot 1–15. Authored frame: RECEIVING team in the low-x half,

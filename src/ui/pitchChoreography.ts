@@ -91,7 +91,7 @@ export function choreograph(
   if (event.phase === MatchPhase.KickOff)        return kickOffLayout(event, state, attacksTop);
   if (event.phase === MatchPhase.TacticalKick)   return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
   if (event.phase === MatchPhase.ConversionKick) return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
-  if (event.phase === MatchPhase.DropOut22)      return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
+  if (event.phase === MatchPhase.DropOut22)      return dropOutLayout(event, state, attacksTop, prevBallX, prevBallY);
   if (event.phase === MatchPhase.BoxKick) {
     const keys = outcomeKeys(event);
     // Announce beat: formation around the live ruck (event.ball IS the kick origin).
@@ -586,6 +586,114 @@ function kickOffLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
     }
   }
 
+  return out;
+}
+
+// 22m drop-out — authored in the phase animator across two beats (announce + clean_receive),
+// each a from→to chase. Unlike the kick-off (always at halfway, anchored on 50,50), the
+// drop-out is anchored on the REAL ball: the kicker's own 22 on the announce beat, the
+// landing on the clean_receive beat. Offsets are stored relative to the authored ball at
+// the matching position (announce = the kick origin; receive = the landing). The kicking
+// team (KICK tables) and receiving team (RECV tables) are baked in one canonical frame
+// (kicker attacking −x); `flip` maps that onto the real kicker orientation, x-axis only —
+// no lateral mirror, matching the kick-off. Each slot rests at `to` and animates from `from`
+// (the chase seam); the on-ball actor (kicker on announce, catcher on receive) snaps to the
+// real ball. Re-author in the animator and paste new offset tables here to retune.
+const DROPOUT_ANNOUNCE_KICK: Record<number, KickoffSpot> = {
+  1: { from: [-16.5,  10.1], to: [-18.5,  10.9] },   2: { from: [-17.9, -25.1], to: [-18.9, -24.7] },
+  3: { from: [-18.0, -21.8], to: [-19.4, -20.6] },   4: { from: [-19.1,  44.0], to: [-19.4,  39.6] },
+  5: { from: [-16.7,  21.0], to: [-18.9,  24.0] },   6: { from: [-15.9,  35.6], to: [-18.2,  32.3] },
+  7: { from: [-17.0,  16.6], to: [-18.6,  17.5] },   8: { from: [-18.0, -28.6], to: [-18.6, -28.8] },
+  9: { from: [-11.9,   4.5], to: [-12.8,   1.8] },   10: { from: [-18.8,  0.9], to: [-18.8,  0.9] },
+  11: { from: [-12.4,  43.3], to: [-14.7,  38.8] },  12: { from: [ -9.3,  20.3], to: [-14.8,  19.5] },
+  13: { from: [-12.7, -21.2], to: [-15.3, -19.9] },  14: { from: [-12.1, -40.5], to: [-12.8, -36.8] },
+  15: { from: [ -7.5,  -0.8], to: [ -6.9,   1.0] },
+};
+const DROPOUT_ANNOUNCE_RECV: Record<number, KickoffSpot> = {
+  1: { from: [-57.8,  -5.1], to: [-41.5,  20.1] },   2: { from: [-56.8,   0.9], to: [-38.3, -29.2] },
+  3: { from: [-57.8,   6.9], to: [-37.4,  40.5] },   4: { from: [-59.8,  -2.1], to: [-38.8,  18.5] },
+  5: { from: [-59.8,   3.9], to: [-36.5,   0.8] },   6: { from: [-55.8,  -9.1], to: [-35.3, -27.1] },
+  7: { from: [-55.8,  10.9], to: [-34.4,  37.8] },   8: { from: [-61.8,   0.9], to: [-62.9,   1.8] },
+  9: { from: [-59.8,   2.9], to: [-62.6,  19.7] },   10: { from: [-62.8, -7.1], to: [-62.5, -18.3] },
+  11: { from: [-68.8, -33.1], to: [-59.1, -42.8] },  12: { from: [-64.8, -15.1], to: [-53.9, -28.2] },
+  13: { from: [-66.8, -23.1], to: [-53.6,  29.0] },  14: { from: [-65.8,  30.9], to: [-58.8,  46.9] },
+  15: { from: [-75.8,   0.9], to: [-75.9,   3.3] },
+};
+const DROPOUT_RECEIVE_KICK: Record<number, KickoffSpot> = {
+  1: { from: [ 41.4,   7.5], to: [ 25.5,   4.3] },   2: { from: [ 40.2, -30.7], to: [ 35.6, -31.1] },
+  3: { from: [ 40.2, -25.5], to: [ 31.6, -23.8] },   4: { from: [ 39.7,  35.2], to: [ 30.5,  35.8] },
+  5: { from: [ 41.4,  20.2], to: [ 34.3,  19.9] },   6: { from: [ 42.0,  28.4], to: [ 37.1,  28.8] },
+  7: { from: [ 41.7,  12.5], to: [ 28.5,  14.1] },   8: { from: [ 40.2, -34.6], to: [ 34.5, -38.1] },
+  9: { from: [ 45.2, -10.5], to: [ 29.6, -11.1] },   10: { from: [ 39.5, -13.5], to: [ 42.6, -0.9] },
+  11: { from: [ 45.5,  35.8], to: [ 38.8,  35.6] },  12: { from: [ 45.7,  18.2], to: [ 50.1,   9.5] },
+  13: { from: [ 44.9, -22.2], to: [ 38.6, -22.0] },  14: { from: [ 44.7, -49.4], to: [ 35.7, -55.7] },
+  15: { from: [ 52.7, -13.5], to: [ 50.5, -29.9] },
+};
+const DROPOUT_RECEIVE_RECV: Record<number, KickoffSpot> = {
+  1: { from: [ 18.3,  17.1], to: [ 15.3,  20.2] },   2: { from: [ 19.8, -42.0], to: [ 16.8, -42.5] },
+  3: { from: [ 21.4,  32.5], to: [ 13.7,  33.6] },   4: { from: [ 20.3,  14.5], to: [ 17.5,  14.3] },
+  5: { from: [ 21.7, -14.0], to: [ 17.1, -11.4] },   6: { from: [ 23.2, -39.0], to: [ 21.5, -37.5] },
+  7: { from: [ 24.0,  29.5], to: [ 19.2,  31.2] },   8: { from: [ -3.0, -13.0], to: [ -1.5,  -8.1] },
+  9: { from: [ -0.3,  12.3], to: [  0.5,  11.0] },   10: { from: [ -2.3, -29.6], to: [ -2.3, -29.6] },
+  11: { from: [  0.8, -55.1], to: [  0.8, -55.1] },  12: { from: [  6.9, -33.1], to: [  6.9, -33.1] },
+  13: { from: [  8.2,  24.9], to: [  3.6,  23.6] },  14: { from: [  1.5,  34.3], to: [  1.5,  34.3] },
+  15: { from: [-14.2,  -8.1], to: [ -1.2,  -0.1] },
+};
+
+function dropOutLayout(
+  event: GameEvent, state: MatchState, attacksTop: boolean, prevBallX: number, prevBallY: number,
+): Placed[] {
+  const possSide: Side = event.side === 'home' ? 'h' : 'a';
+  const keys = outcomeKeys(event);
+  const isAnnounce = keys.includes('announce');
+  const isReceive  = keys.includes('clean_receive');
+  // Only the two authored beats get the full chase; other outcomes (knock_on, poor_kick)
+  // fall back to the generic traveling-kick layout (kicker at origin + receiver at landing).
+  if (!isAnnounce && !isReceive) return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
+
+  // Kicking team stays one consistent side across both beats: the announce keeps possession
+  // with the kicker; clean_receive swaps possession to the receiver, so the kicker is the
+  // opposite side then.
+  const kickSide: Side = isReceive ? (possSide === 'h' ? 'a' : 'h') : possSide;
+  const recvSide: Side = kickSide === 'h' ? 'a' : 'h';
+  const kickOn = onFieldPlayers(kickSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(kickSide));
+  const recvOn = onFieldPlayers(recvSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(recvSide));
+
+  // Long-axis flip: the authored frame has the kicker attacking −x. attacksTop is the
+  // kicker's orientation on the announce beat (event.side = kicker) and the receiver's on
+  // the receive beat (possession swapped), hence the split. No lateral (y) mirror — the
+  // landing side isn't known at announce, matching the kick-off.
+  const flip = isReceive ? (attacksTop ? 1 : -1) : (attacksTop ? -1 : 1);
+  const anchorX = event.ballX, anchorY = event.ballY;
+  const tx = (off: [number, number]): [number, number] =>
+    [clampX(anchorX + off[0] * flip), clampY(anchorY + off[1])];
+
+  const kickTbl = isReceive ? DROPOUT_RECEIVE_KICK : DROPOUT_ANNOUNCE_KICK;
+  const recvTbl = isReceive ? DROPOUT_RECEIVE_RECV : DROPOUT_ANNOUNCE_RECV;
+  const onBall = event.primaryPlayer;   // announce → kicker; receive → catcher
+
+  const out: Placed[] = [];
+  const fill = (on: Player[], side: Side, tbl: Record<number, KickoffSpot>, snapHere: boolean): void => {
+    for (let slot = 1; slot <= 15; slot++) {
+      const p = on.find(pl => pl.id === slot);
+      const spot = tbl[slot];
+      if (!p || !spot) continue;
+      const [fx, fy] = tx(spot.from);
+      if (snapHere && onBall && p === onBall) {
+        // On-ball actor snaps to the real ball, chasing in from its authored start.
+        const dot = placed(p, side, state, clampX(anchorX), clampY(anchorY), true);
+        dot.from = { x: fx, y: fy };
+        out.push(dot);
+      } else {
+        const [tx0, ty0] = tx(spot.to);
+        const dot = placed(p, side, state, tx0, ty0, false);
+        dot.from = { x: fx, y: fy };
+        out.push(dot);
+      }
+    }
+  };
+  fill(kickOn, kickSide, kickTbl, isAnnounce);   // kicker is the on-ball actor on announce
+  fill(recvOn, recvSide, recvTbl, isReceive);    // catcher is the on-ball actor on receive
   return out;
 }
 

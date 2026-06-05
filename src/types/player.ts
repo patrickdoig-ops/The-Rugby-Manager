@@ -1,3 +1,13 @@
+// Primary cause of a player's troubled morale. Set when morale drops below
+// the OK threshold and cleared when it recovers or a manager chat fires.
+export type MoraleReason =
+  | 'playing_time'       // top-15 OVR omitted from the matchday squad
+  | 'unused_bench'       // selected on bench but never used
+  | 'bad_run'            // team on a losing run
+  | 'broken_promise'     // manager broke a playing-time promise
+  | 'transfer_rejected'  // transfer request turned down
+  | 'loan';              // unhappy about being loaned out
+
 export type Position =
   | 'Prop' | 'Hooker' | 'Lock'
   | 'Flanker' | 'Number 8' | 'Back Row'
@@ -304,6 +314,11 @@ export interface Player {
   // PLAYER_MORALE_ADJUSTED (when morale rises above threshold) and cleared
   // at SEASON_ROLLED_OVER.
   consecutiveVeryUnhappyRounds?: number;
+  // Primary reason morale last fell below OK (< 55). Set by applySeasonEvent
+  // when a negative morale event fires while the player is troubled; cleared
+  // when morale recovers to OK or when the manager has a chat. Drives the
+  // bespoke "Have a Chat" conversation and the player profile annotation.
+  moraleNote?: { reason: MoraleReason; week: number };
 
   // Feature 2.3 — Loan System
   // Set by PLAYER_LOANED_OUT. The player remains on the squad but is

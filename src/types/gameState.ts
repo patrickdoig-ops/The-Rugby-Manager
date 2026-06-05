@@ -9,7 +9,7 @@
 // src/types/match.ts. The two are unrelated.
 
 import type { TeamTactics } from './team';
-import type { InjuryKind, InjurySeverity, InternationalWindow, Player, PlayerStats } from './player';
+import type { InjuryKind, InjurySeverity, InternationalWindow, MoraleReason, Player, PlayerStats } from './player';
 import type { TrainingPlan } from './training';
 import type { BoardAmbition } from './teamData';
 
@@ -1241,6 +1241,9 @@ export type SeasonEvent =
       rosterId: number;
       delta: number;
       reason: string;
+      // Populated on negative-delta fixture events so applySeasonEvent can
+      // set player.moraleNote when morale drops below OK.
+      moraleReason?: MoraleReason;
     }
   // ── Staff hiring (1.2) ───────────────────────────────────────────────
   | {

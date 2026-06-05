@@ -5,6 +5,7 @@
 // from GameCoordinator — behaviour-preserving, RNG-free.
 
 import type { FixtureResult, GameState, SeasonEvent } from '../types/gameState';
+import type { MoraleReason } from '../types/player';
 import type { MatchSnapshot } from './seasonStatsCollector';
 import { playerOverall } from '../engine/RatingEngine';
 import { MORALE } from '../engine/balance';
@@ -46,17 +47,21 @@ export function computeFixtureMoraleEvents(state: GameState, result: FixtureResu
       const p = ranked[i];
       const rid = p.rosterId;
       let delta = resultDelta;
+      let moraleReason: MoraleReason | undefined;
 
       if (!played.has(rid)) {
         // Playing-time penalty: top-15 OVR expected to play; 16-23 as bench cover.
-        if (i < 15) delta += MORALE.omittedTopDelta;
-        else if (i < 23) delta += MORALE.benchedUnusedDelta;
+        if (i < 15) { delta += MORALE.omittedTopDelta; moraleReason = 'playing_time'; }
+        else if (i < 23) { delta += MORALE.benchedUnusedDelta; moraleReason = 'unused_bench'; }
       }
 
       if (standoutSet.has(rid)) delta += MORALE.standoutDelta;
 
+      // Net-negative result with no playing-time issue: blame the bad run.
+      if (delta < 0 && !moraleReason) moraleReason = 'bad_run';
+
       if (delta !== 0) {
-        events.push({ type: 'PLAYER_MORALE_ADJUSTED', rosterId: rid, delta, reason: 'fixture' });
+        events.push({ type: 'PLAYER_MORALE_ADJUSTED', rosterId: rid, delta, reason: 'fixture', moraleReason });
       }
     }
   }

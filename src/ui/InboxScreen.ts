@@ -1,5 +1,6 @@
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { GameState } from '../types/gameState';
+import type { MoraleReason } from '../types/player';
 import type { RawTeamInput } from '../types/teamData';
 import { buildAssistantReport, type InboxItem } from '../game/inbox';
 import { markRead } from './inboxRead';
@@ -7,6 +8,68 @@ import { loadDismissed, dismissItem } from './inboxDismiss';
 import { swipeToDismiss } from './swipeToDismiss';
 import { injectTeamColors } from './teamColors';
 import { eventBus } from '../utils/eventBus';
+
+// ─── Conversation content keyed by morale reason ─────────────────────────────
+
+const CHAT_LINES: Record<MoraleReason, { player: string; manager: string }> = {
+  playing_time: {
+    player: '"I want to be playing every week — that\'s why I\'m here."',
+    manager: '"You\'re in my plans. Let\'s talk through your role going forward."',
+  },
+  unused_bench: {
+    player: '"I\'m sitting on the bench every week without getting on."',
+    manager: '"I hear you. Stay sharp — your opportunity is coming."',
+  },
+  bad_run: {
+    player: '"Results haven\'t been going our way lately. It\'s tough on everyone."',
+    manager: '"We\'ll turn this around. I need you focused and ready."',
+  },
+  broken_promise: {
+    player: '"You said I\'d get more game time, and that hasn\'t happened."',
+    manager: '"You\'re right to feel that way. Things are going to change."',
+  },
+  transfer_rejected: {
+    player: '"I put that request in because I need a fresh challenge."',
+    manager: '"I need you here. Let\'s see what we can do for you."',
+  },
+  loan: {
+    player: '"Going out on loan wasn\'t what I wanted for my career."',
+    manager: '"It\'s the right move for your development. I\'m still counting on you."',
+  },
+};
+const CHAT_FALLBACK = {
+  player: '"Things haven\'t been great for me recently."',
+  manager: '"I appreciate you being open with me. Let\'s work through this together."',
+};
+
+function showChatModal(playerName: string, reason: MoraleReason | undefined, onConfirm: () => void): void {
+  const lines = reason ? CHAT_LINES[reason] : CHAT_FALLBACK;
+  const overlay = document.createElement('div');
+  overlay.className = 'inbox-chat-overlay';
+  overlay.innerHTML = `
+    <div class="inbox-chat-modal">
+      <div class="inbox-chat-name">${playerName}</div>
+      <div class="inbox-chat-line inbox-chat-player">
+        <span class="inbox-chat-who">Player</span>
+        <span class="inbox-chat-text">${lines.player}</span>
+      </div>
+      <div class="inbox-chat-line inbox-chat-manager">
+        <span class="inbox-chat-who">You</span>
+        <span class="inbox-chat-text">${lines.manager}</span>
+      </div>
+      <button class="inbox-chat-close">Close</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.querySelector('.inbox-chat-close')!.addEventListener('click', () => {
+    overlay.remove();
+    onConfirm();
+  });
+  // Tap outside the modal also closes.
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) { overlay.remove(); onConfirm(); }
+  });
+}
 
 export interface InitInboxScreenOpts {
   getGameEngine: () => GameCoordinator;
@@ -174,8 +237,13 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
       const rosterId = Number(btn.dataset.rosterid);
       btn.addEventListener('click', () => {
         const engine = opts.getGameEngine();
-        engine.boostPlayerMorale(rosterId);
-        render(engine.getState());
+        const state = engine.getState();
+        const player = Object.values(state.career.roster).find(p => p?.rosterId === rosterId);
+        showChatModal(
+          player ? `${player.firstName} ${player.lastName}` : 'Player',
+          player?.moraleNote?.reason,
+          () => { engine.boostPlayerMorale(rosterId); render(engine.getState()); },
+        );
       });
     });
 

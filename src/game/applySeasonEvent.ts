@@ -5,6 +5,7 @@
 
 import type { CupKnockoutMatch, Fixture, GameState, PlayoffMatch, PremCupState, SeasonEvent, TeamSeasonStats, TeamStanding } from '../types/gameState';
 import { zeroStanding, zeroTeamSeasonStats } from '../types/gameState';
+import type { MoraleReason } from '../types/player';
 import { zeroSeasonStats } from '../types/player';
 import { LEAGUE_POINTS, SEASON_VALUES, SENIOR_CAP, EFFECTIVE_CAP_CREDITS, FORM_MODEL, MORALE, STAFF_BUDGET_FRACTION } from '../engine/balance';
 
@@ -12,6 +13,21 @@ import { LEAGUE_POINTS, SEASON_VALUES, SENIOR_CAP, EFFECTIVE_CAP_CREDITS, FORM_M
 // ceiling on any club's non-marquee wage spend. The takeover boost
 // clamps to this so a Bath-level budget doesn't break through.
 const SENIOR_CAP_TOTAL = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
+
+// Higher index = higher priority. A lower-priority reason never overwrites a
+// higher-priority one so e.g. a 'bad_run' loss doesn't clear 'broken_promise'.
+const MORALE_NOTE_PRIORITY: MoraleReason[] = [
+  'bad_run', 'unused_bench', 'playing_time', 'loan', 'transfer_rejected', 'broken_promise',
+];
+function moraleNotePriority(r: MoraleReason): number {
+  const idx = MORALE_NOTE_PRIORITY.indexOf(r);
+  return idx === -1 ? 0 : idx;
+}
+function setMoraleNote(p: { moraleNote?: { reason: MoraleReason; week: number } }, reason: MoraleReason, week: number): void {
+  if (!p.moraleNote || moraleNotePriority(reason) >= moraleNotePriority(p.moraleNote.reason)) {
+    p.moraleNote = { reason, week };
+  }
+}
 import { assertSeasonInvariants } from './seasonInvariants';
 import { addDaysIso, getAge } from './age';
 import { playerOverall } from '../engine/RatingEngine';
@@ -815,11 +831,20 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       if (!p) return;
       const current = p.morale ?? MORALE.baseline;
       p.morale = Math.max(0, Math.min(100, current + event.delta));
-      if (event.reason === 'manager_chat') p.moraleChats = (p.moraleChats ?? 0) + 1;
+      if (event.reason === 'manager_chat') {
+        p.moraleChats = (p.moraleChats ?? 0) + 1;
+        p.moraleNote = undefined; // chat resolves the flagged issue
+      }
       // Reset the very-unhappy streak when morale climbs back above the threshold.
       if (p.morale > MORALE.veryUnhappyThreshold && p.consecutiveVeryUnhappyRounds) {
         p.consecutiveVeryUnhappyRounds = 0;
       }
+      // Set moraleNote when a negative event fires while the player is troubled.
+      if (event.delta < 0 && event.moraleReason && p.morale < 55) {
+        setMoraleNote(p, event.moraleReason, state.calendar.week);
+      }
+      // Clear moraleNote when morale recovers back to OK.
+      if (p.morale >= 55) p.moraleNote = undefined;
       return;
     }
     case 'STAFF_POOL_SEEDED': {
@@ -911,6 +936,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       p.wantsTransfer = undefined;
       const current = p.morale ?? MORALE.baseline;
       p.morale = Math.max(0, Math.min(100, current + MORALE.transferRequestRejectPenalty));
+      if (p.morale < 55) setMoraleNote(p, 'transfer_rejected', state.calendar.week);
       return;
     }
     case 'PROMISE_BROKEN': {
@@ -919,6 +945,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       p.playingTimePromise = undefined;
       const current = p.morale ?? MORALE.baseline;
       p.morale = Math.max(0, Math.min(100, current + MORALE.promiseBrokenPenalty));
+      if (p.morale < 55) setMoraleNote(p, 'broken_promise', state.calendar.week);
       return;
     }
     // ── Feature 2.3 — Loan System ────────────────────────────────────────
@@ -955,6 +982,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         }
         if (delta !== 0) {
           p.morale = Math.max(0, Math.min(100, (p.morale ?? MORALE.baseline) + delta));
+          if (delta < 0 && p.morale < 55) setMoraleNote(p, 'loan', state.calendar.week);
         }
       }
       return;

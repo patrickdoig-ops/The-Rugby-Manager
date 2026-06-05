@@ -393,6 +393,17 @@ export function initPlayerProfileScreen(
     const morale = player.morale ?? 65;
     const moraleLabel = morale >= 80 ? 'Happy' : morale >= 55 ? 'OK' : morale >= 35 ? 'Unsettled' : 'Unhappy';
     const moraleClass = morale >= 80 ? 'pp-pip--ok' : morale >= 55 ? '' : morale >= 35 ? 'pp-pip--tight' : 'pp-pip--low';
+    const MORALE_NOTE_TEXT: Record<string, string> = {
+      playing_time: 'Not in the starting XV',
+      unused_bench: 'Not getting off the bench',
+      bad_run: 'Poor recent results',
+      broken_promise: 'Manager broke a promise',
+      transfer_rejected: 'Transfer request rejected',
+      loan: 'Unhappy about loan',
+    };
+    const moraleNoteText = player.moraleNote && morale < 55
+      ? MORALE_NOTE_TEXT[player.moraleNote.reason] ?? null
+      : null;
 
     const recent = player.recentRatings ?? [];
     const formAvg = recent.length >= 3 ? recent.reduce((a, b) => a + b, 0) / recent.length : null;
@@ -427,7 +438,7 @@ export function initPlayerProfileScreen(
         </div>
         <div class="pp-pip ${moraleClass}">
           <span class="pp-pip-label">Morale</span>
-          <span class="pp-pip-val">${moraleLabel}</span>
+          <span class="pp-pip-val">${moraleLabel}${moraleNoteText ? ` · ${moraleNoteText}` : ''}</span>
         </div>
         <div class="pp-pip ${formClass}">
           <span class="pp-pip-label">Form</span>

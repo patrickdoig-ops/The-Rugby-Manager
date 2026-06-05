@@ -29,6 +29,7 @@ import {
   INTERNATIONAL_INJURY_KINDS, PGA_REST_NATION,
   LIONS_RETURN_CONDITION, LIONS_RETURN_CONDITION_NOISE, LIONS_RETURN_ROUND,
   SUMMER_TOUR_RETURN_CONDITION, SUMMER_TOUR_RETURN_CONDITION_NOISE,
+  SUMMER_TOUR_NATIONS,
 } from '../engine/balance/international';
 import { INJURY_SEVERITY } from '../engine/balance/injuries';
 import {
@@ -370,45 +371,80 @@ export function lionsReturnEvents(state: GameState): SeasonEvent[] {
 // ===== England & Wales summer tour 2025 season-open seeding =====
 
 // Name-matches England and Wales summer-tour players against the seeded roster
-// and returns a SUMMER_TOUR_RETURN_SET per match, seeding a per-player return
-// condition centred on SUMMER_TOUR_RETURN_CONDITION with
-// ±SUMMER_TOUR_RETURN_CONDITION_NOISE of rngTransfer spread. Walked
-// rosterId-ascending so the roll sequence is reproducible. One-shot at the
-// 2025/26 season open.
+// Emits SUMMER_TOUR_RETURN_SET per touring player at season open.
+// 2025/26: name-matches the curated real-world tour lists for accuracy.
+// 2026+:   dynamically selects top-N Premiership players per nation by OVR,
+//          mirroring the selectInternationalSquads pattern. Walked
+//          rosterId-ascending so the roll sequence is reproducible.
 export function summerTourReturnEvents(state: GameState): SeasonEvent[] {
-  const allTourists = [
-    ...ENGLAND_SUMMER_2025_TOURISTS,
-    ...WALES_SUMMER_2025_TOURISTS,
-  ];
-  const wanted = new Set(allTourists.map(t => `${t.firstName}|${t.lastName}`.toLowerCase()));
+  const seasonStartYear = parseSeasonStartYear(state.calendar.seasonLabel);
+  const wantedIds = seasonStartYear === 2025
+    ? hardcodedSummerTourIds(state)
+    : dynamicSummerTourIds(state);
+
   const out: SeasonEvent[] = [];
   const ids = Object.keys(state.career.roster).map(Number).sort((a, b) => a - b);
   for (const rid of ids) {
-    const p = state.career.roster[rid];
-    if (wanted.has(`${p.firstName}|${p.lastName}`.toLowerCase())) {
-      const condition = clamp(
-        SUMMER_TOUR_RETURN_CONDITION + rngTransfer(-SUMMER_TOUR_RETURN_CONDITION_NOISE, SUMMER_TOUR_RETURN_CONDITION_NOISE),
-        0, 100,
-      );
-      out.push({ type: 'SUMMER_TOUR_RETURN_SET', rosterId: rid, condition });
-    }
+    if (!wantedIds.has(rid)) continue;
+    const condition = clamp(
+      SUMMER_TOUR_RETURN_CONDITION + rngTransfer(-SUMMER_TOUR_RETURN_CONDITION_NOISE, SUMMER_TOUR_RETURN_CONDITION_NOISE),
+      0, 100,
+    );
+    out.push({ type: 'SUMMER_TOUR_RETURN_SET', rosterId: rid, condition });
   }
   return out;
 }
 
-// Returns rosterIds for ALL summer-tour players (England + Wales) in a club's
-// squad. Used to exclude them from leg-0 (pre-season) cup selection.
+// 2025/26: match the curated name lists for the real England & Wales summer tours.
+function hardcodedSummerTourIds(state: GameState): Set<number> {
+  const allTourists = [...ENGLAND_SUMMER_2025_TOURISTS, ...WALES_SUMMER_2025_TOURISTS];
+  const wanted = new Set(allTourists.map(t => `${t.firstName}|${t.lastName}`.toLowerCase()));
+  const out = new Set<number>();
+  for (const [rid, p] of Object.entries(state.career.roster)) {
+    if (p && wanted.has(`${p.firstName}|${p.lastName}`.toLowerCase())) out.add(Number(rid));
+  }
+  return out;
+}
+
+// 2026+: top Premiership-based England/Wales players by OVR. Skips injured
+// players (mirrors selectInternationalSquads). No Lions exclusion needed until
+// the 2029 tour is in scope.
+function dynamicSummerTourIds(state: GameState): Set<number> {
+  const rostered = new Set<number>();
+  for (const club of state.career.clubs) for (const rid of club.squad) rostered.add(rid);
+
+  const nationKeys = Object.keys(SUMMER_TOUR_NATIONS);
+  const byNation = new Map<string, { rid: number; ovr: number }[]>();
+  for (const rid of rostered) {
+    const p = state.career.roster[rid];
+    if (!p || p.injury) continue;
+    const nat = p.nationality.toLowerCase();
+    const key = nationKeys.find(k => SUMMER_TOUR_NATIONS[k].aliases.some(a => a.toLowerCase() === nat));
+    if (!key) continue;
+    let pool = byNation.get(key);
+    if (!pool) { pool = []; byNation.set(key, pool); }
+    pool.push({ rid, ovr: playerOverall(p.baseStats, p.position) });
+  }
+
+  const out = new Set<number>();
+  for (const key of nationKeys) {
+    const pool = byNation.get(key) ?? [];
+    pool.sort((a, b) => b.ovr - a.ovr || a.rid - b.rid);
+    for (const { rid } of pool.slice(0, SUMMER_TOUR_NATIONS[key].squadCap)) out.add(rid);
+  }
+  return out;
+}
+
+// Returns rosterIds for summer-tour players in a club's squad. Uses the
+// summerTourReturn flag set by SUMMER_TOUR_RETURN_SET (already applied before
+// runPreSeasonBlock runs), so it works regardless of how players were selected
+// (hardcoded 2025 names or dynamic OVR-based for year 2+).
 export function getSummerTourRosterIds(state: GameState, clubId: string): Set<number> {
-  const wanted = new Set([
-    ...ENGLAND_SUMMER_2025_TOURISTS,
-    ...WALES_SUMMER_2025_TOURISTS,
-  ].map(t => `${t.firstName}|${t.lastName}`.toLowerCase()));
   const club = state.career.clubs.find(c => c.id === clubId);
   if (!club) return new Set();
   const out = new Set<number>();
   for (const rid of club.squad) {
-    const p = state.career.roster[rid];
-    if (p && wanted.has(`${p.firstName}|${p.lastName}`.toLowerCase())) out.add(rid);
+    if (state.career.roster[rid]?.summerTourReturn) out.add(rid);
   }
   return out;
 }

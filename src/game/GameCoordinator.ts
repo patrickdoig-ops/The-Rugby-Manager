@@ -228,10 +228,14 @@ export class GameCoordinator {
     // (rngTransfer noise). Runs AFTER the FA-pool seed so that pool stays
     // deterministically identical regardless of the Lions roll. The next Lions
     // tour (2029) is out of scope.
+    // B&I Lions 2025 return: the 2025/26 opener only. The next Lions tour
+    // (2029) is out of scope; a 2029 branch should be added here when ready.
     if (seasonStartYear === 2025) {
       for (const ev of lionsReturnEvents(coord.state)) applySeasonEvent(coord.state, ev);
-      for (const ev of summerTourReturnEvents(coord.state)) applySeasonEvent(coord.state, ev);
     }
+    // Summer-tour returns fire every season: hardcoded 2025 names in year 1,
+    // dynamic top-OVR England/Wales selection from year 2 onwards.
+    for (const ev of summerTourReturnEvents(coord.state)) applySeasonEvent(coord.state, ev);
     // Seed the Prem Cup for year 1 — real 2025-26 pools (RNG-free; pool
     // redraw for year 2+ happens at rollover). Fixtures derive their
     // synthetic break-gap dates from the league schedule.

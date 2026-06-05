@@ -395,7 +395,7 @@ const BREAKDOWN_CLEANOUT_PEN: Formation = { nearTop: true,
 };
 
 // Breakdown: slow_ball. ATK = attacker's supporter (primary); anchor = live ruck.
-const BREAKDOWN_SLOW_BALL: Formation = { nearTop: false,
+const BREAKDOWN_SLOW_BALL: Formation = { nearTop: true,
   atk: {
     1:  [-11.26,  -6.41],   2:  [-10.25,  15.46],   3:  [ -2.00,   0.00],
     4:  [-11.26, -14.49],   5:  [ -0.60,   3.88],   6:  [ -9.96,  20.24],
@@ -412,7 +412,7 @@ const BREAKDOWN_SLOW_BALL: Formation = { nearTop: false,
   },
 };
 // Breakdown: turnover. ATK = jackal (defender who stole ball = primaryPlayer); anchor = live ruck.
-const BREAKDOWN_TURNOVER: Formation = { nearTop: false,
+const BREAKDOWN_TURNOVER: Formation = { nearTop: true,
   atk: {
     1:  [  1.42,   3.35],   2:  [ 10.93, -11.90],   3:  [ 12.66, -16.49],
     4:  [ 10.49,  11.62],   5:  [ 10.35,  16.22],   6:  [  1.13,  -2.89],
@@ -429,7 +429,7 @@ const BREAKDOWN_TURNOVER: Formation = { nearTop: false,
   },
 };
 // Breakdown: not_rolling_away_penalty. ATK = jackal (defender = primaryPlayer); anchor = live ruck.
-const BREAKDOWN_NOT_ROLLING_AWAY: Formation = { nearTop: true,
+const BREAKDOWN_NOT_ROLLING_AWAY: Formation = { nearTop: false,
   atk: {
     1:  [  3.00,  13.51],   2:  [  3.00,   2.80],   3:  [  2.03,  -2.85],
     4:  [  2.79,   6.70],   5:  [ -0.42,   3.38],   6:  [  2.95,  20.92],
@@ -446,7 +446,7 @@ const BREAKDOWN_NOT_ROLLING_AWAY: Formation = { nearTop: true,
   },
 };
 // Breakdown: offside_at_ruck_penalty. ATK = random defender (primaryPlayer); anchor = live ruck.
-const BREAKDOWN_OFFSIDE_AT_RUCK: Formation = { nearTop: false,
+const BREAKDOWN_OFFSIDE_AT_RUCK: Formation = { nearTop: true,
   atk: {
     1:  [  9.34, -21.69],   2:  [  9.95, -13.51],   3:  [  7.97, -17.21],
     4:  [  1.55,   1.49],   5:  [  2.62,  -0.66],   6:  [ 13.16, -31.82],
@@ -463,7 +463,7 @@ const BREAKDOWN_OFFSIDE_AT_RUCK: Formation = { nearTop: false,
   },
 };
 // Breakdown: penalty_defending. ATK = offending attacker (supporter = primaryPlayer); anchor = live ruck.
-const BREAKDOWN_PENALTY_DEFENDING: Formation = { nearTop: true,
+const BREAKDOWN_PENALTY_DEFENDING: Formation = { nearTop: false,
   atk: {
     1:  [ -1.87,   0.94],   2:  [ -2.64,   5.23],   3:  [-21.88,  30.94],
     4:  [-12.26,  15.36],   5:  [-15.01,  19.84],   6:  [ -3.10,  -3.34],

@@ -23,7 +23,7 @@ export class StaffCoordinator {
     const cap = m.role === 'scout' ? STAFF_CAPS.scouts : 1;
     if (staff.filter(s => s.role === m.role && s.clubId !== null).length >= cap) return;
     const club = this.state.career.clubs.find(c => c.id === this.state.player.teamId);
-    const staffBudget = club?.staffBudget ?? Math.round((club?.salaryBudget ?? 0) * STAFF_BUDGET_FRACTION);
+    const staffBudget = (club?.staffBudget ?? Math.round((club?.salaryBudget ?? 0) * STAFF_BUDGET_FRACTION)) + (club?.staffBudgetBoost ?? 0);
     if (staffBudgetUsage(this.state, this.state.player.teamId) + m.annualWage > staffBudget) return;
     applySeasonEvent(this.state, {
       type: 'STAFF_HIRED',

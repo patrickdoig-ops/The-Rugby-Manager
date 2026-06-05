@@ -49,17 +49,19 @@ export function openSideDir(y: number): -1 | 1 {
   return y <= 50 ? 1 : -1;
 }
 
+type PassDist = { shortPct: number; midPct: number; short: readonly [number, number]; mid: readonly [number, number]; long: readonly [number, number] };
+
 // One open-play pass from an explicit position: lateral distance drawn from the
 // pass-length distribution, scaled by attacking style, applied in `dir`. Reaching
 // the 15m edge band clamps to the edge and flips the direction. Takes y/dir
 // explicitly (not state) so a chain of hops can be computed against a running
 // local position — phase handlers are read-only over state, so the events they
 // queue aren't applied to state.ball until PhaseRouter drains the queue.
-function sweepFrom(y: number, dir: -1 | 1, style: AttackingStyle): { y: number; lateralDir: -1 | 1 } {
+function sweepFrom(y: number, dir: -1 | 1, style: AttackingStyle, dist: PassDist = PASS_DISTANCE_M): { y: number; lateralDir: -1 | 1 } {
   const band = rngPosition(1, 100);
-  const range = band <= PASS_DISTANCE_M.shortPct ? PASS_DISTANCE_M.short
-              : band <= PASS_DISTANCE_M.midPct   ? PASS_DISTANCE_M.mid
-              :                                     PASS_DISTANCE_M.long;
+  const range = band <= dist.shortPct ? dist.short
+              : band <= dist.midPct   ? dist.mid
+              :                         dist.long;
   const distM = rngPosition(range[0], range[1]);
   const stepY = metresToY(distM) * SWEEP_STYLE_MULT[style];
 
@@ -104,6 +106,7 @@ export function sweepPath(
   hopCount: number,
   orient: boolean,
   scrumHalfFirst = false,
+  dist: PassDist = PASS_DISTANCE_M,
 ): Array<{ y: number; lateralDir: -1 | 1 }> {
   const out: Array<{ y: number; lateralDir: -1 | 1 }> = [];
   let y = state.ball.y;
@@ -111,7 +114,7 @@ export function sweepPath(
   for (let i = 0; i < hopCount; i++) {
     const step = i === 0 && scrumHalfFirst
       ? scrumHalfSweepStep(y, dir)
-      : sweepFrom(y, dir, style);
+      : sweepFrom(y, dir, style, dist);
     y = step.y;
     dir = step.lateralDir;
     out.push(step);
@@ -165,8 +168,9 @@ export function emitSweepHops(
   attackTeamName: string,
   perPass: boolean,
   scrumHalfFirst = false,
+  dist: PassDist = PASS_DISTANCE_M,
 ): NarrationStep | null {
-  const hops = sweepPath(state, style, Math.max(1, hopCount), orient, scrumHalfFirst);
+  const hops = sweepPath(state, style, Math.max(1, hopCount), orient, scrumHalfFirst, dist);
   const last = hops[hops.length - 1];
   if (perPass) {
     for (const h of hops) events.push({ type: 'BALL_REPOSITIONED', y: h.y, lateralDir: h.lateralDir });

@@ -51,7 +51,7 @@ export function initCupResultsScreen(
       : '';
 
     const heroSub = mineThisBlock.length > 0
-      ? `${teamJson?.shortName ?? 'Your'} squad players won ${mineWins} of ${mineThisBlock.length} cup games this block.`
+      ? `${teamJson?.name ?? 'Your'} squad players won ${mineWins} of ${mineThisBlock.length} cup games this block.`
       : `The Assistant Manager ran your cup campaign this block.`;
 
     el!.innerHTML = `

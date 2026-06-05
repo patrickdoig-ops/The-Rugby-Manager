@@ -386,3 +386,14 @@ export const WAGE_NEGOTIATION = {
 export const MIDSEASON_POACH = {
   lengthYears: 2,
 };
+
+// Renewal acceptance reduction factors when the offered squad status is
+// below what the player expects (based on their inferred OVR rank). Applied
+// multiplicatively on top of the wage-driven probability in
+// renewalAcceptProbability.
+//   1 tier below expected → × (1 − statusMismatchPenalty)  = ×0.75
+//   2+ tiers below         → × (1 − statusMismatchHardBlock) = ×0.50
+export const STATUS_MISMATCH_PENALTY = {
+  statusMismatchPenalty:   0.25,
+  statusMismatchHardBlock: 0.50,
+};

@@ -5,14 +5,43 @@
 // It decays toward a neutral baseline each week and feeds into
 // computeFormInputs as a clamped ±formCap bias (same magnitude as conditionCap).
 
+import type { SquadStatusKey } from '../../types/player';
+
+// Per-fixture morale penalty when a player didn't appear, keyed by their
+// squad status. Replaces the legacy OVR-rank-based omittedTopDelta /
+// benchedUnusedDelta constants.
+export const SQUAD_STATUS_OMIT_PENALTY: Record<SquadStatusKey, number> = {
+  star:      -6,
+  firstTeam: -4,
+  impact:    -2,
+  squad:     -1,
+  backup:     0,
+};
+
+// Seasonal starts / appearances thresholds that match each status. Used to
+// detect playing-time pace mismatches (pro-rated against rounds played).
+export const SQUAD_STATUS_THRESHOLDS: Record<SquadStatusKey, { minStarts: number; minApps: number }> = {
+  star:      { minStarts: 14, minApps: 16 },
+  firstTeam: { minStarts: 10, minApps: 12 },
+  impact:    { minStarts:  0, minApps: 10 },
+  squad:     { minStarts:  0, minApps:  5 },
+  backup:    { minStarts:  0, minApps:  0 },
+};
+
+// Wage multiplier applied on top of the base WAGE_BY_RATING formula when
+// generating renewal asking wages. Stars expect a premium; backups a discount.
+export const SQUAD_STATUS_WAGE_MULT: Record<SquadStatusKey, number> = {
+  star:      1.25,
+  firstTeam: 1.10,
+  impact:    1.00,
+  squad:     0.92,
+  backup:    0.85,
+};
+
 export const MORALE = {
   // Decay
   baseline: 65,         // morale drifts toward this value each week
   decayRate: 0.05,      // fraction of (baseline − morale) applied per WEEK_ADVANCED
-
-  // Playing-time deltas (per fixture, relative to OVR rank within the club)
-  omittedTopDelta: -4,      // top-15 OVR in club squad, didn't take the field
-  benchedUnusedDelta: -2,   // OVR rank 16-23 in club squad, didn't take the field
 
   // Match result deltas (applied to all non-injured squad members)
   winDelta: 3,
@@ -35,11 +64,11 @@ export const MORALE = {
   unhappyThreshold: 35,
   veryUnhappyThreshold: 15,
 
-  // Inbox playing-time diagnosis — player is "underplayed" when they are a
-  // top-15 OVR starter and their appearance fraction falls below this threshold,
-  // provided at least playingTimeMinGames have been played this season.
-  playingTimeRatioThreshold: 0.4,
-  playingTimeMinGames: 3,
+  // Weekly morale penalty applied when a player's actual playing-time pace
+  // falls behind their status threshold and has done so for at least
+  // statusMismatchWarningRounds rounds (minimum gate before penalty fires).
+  statusMismatchWeeklyPenalty: -3,
+  statusMismatchWarningRounds: 4,
 
   // Form-bias contribution in computeFormInputs
   // (morale − formNeutral) × formSlope, clamped to ±formCap.

@@ -682,3 +682,132 @@
   background: var(--rm-surface-2);
   color: var(--rm-text-muted);
 }
+
+/* ─── Squad status card ─── */
+
+.pp-status-card {
+  padding: 14px 16px 12px;
+}
+
+.pp-status-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.pp-status-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pp-status-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.pp-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 12px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.pp-status-chip--star       { color: var(--rm-amber);      background: color-mix(in oklch, var(--rm-amber) 12%, var(--rm-surface-2));      border-color: color-mix(in oklch, var(--rm-amber) 30%, transparent); }
+.pp-status-chip--firstTeam  { color: var(--rm-pitch);      background: color-mix(in oklch, var(--rm-pitch) 12%, var(--rm-surface-2));      border-color: color-mix(in oklch, var(--rm-pitch) 30%, transparent); }
+.pp-status-chip--impact     { color: var(--rm-stat-5);     background: color-mix(in oklch, var(--rm-stat-5) 12%, var(--rm-surface-2));     border-color: color-mix(in oklch, var(--rm-stat-5) 30%, transparent); }
+.pp-status-chip--squad      { color: var(--rm-text-muted); background: color-mix(in oklch, var(--rm-text-muted) 10%, var(--rm-surface-2)); border-color: color-mix(in oklch, var(--rm-text-muted) 20%, transparent); }
+.pp-status-chip--backup     { color: var(--rm-text-dim);   background: color-mix(in oklch, var(--rm-text-dim) 10%, var(--rm-surface-2));   border-color: color-mix(in oklch, var(--rm-text-dim) 20%, transparent); }
+
+.pp-status-sub-text {
+  font-size: var(--rm-fs-11);
+  color: var(--rm-text-dim);
+  max-width: 180px;
+}
+
+.pp-status-season-line {
+  font-size: var(--rm-fs-12);
+  font-family: var(--rm-font-mono);
+  color: var(--rm-chalk);
+}
+
+.pp-status-expected-line {
+  font-size: var(--rm-fs-11);
+  color: var(--rm-text-dim);
+}
+
+.pp-status-change-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: var(--rm-fs-11);
+  color: var(--team-color, var(--rm-pitch));
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  font-family: var(--rm-font-mono);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.pp-status-change-arrow {
+  font-style: normal;
+}
+
+.pp-status-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rm-border-soft);
+}
+
+.pp-status-picker[hidden] { display: none; }
+
+.pp-status-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--rm-surface-1);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.pp-status-option:hover,
+.pp-status-option:active {
+  background: var(--rm-surface-2);
+}
+
+.pp-status-option--active {
+  background: var(--rm-surface-2);
+  border-color: var(--rm-border-soft);
+}
+
+.pp-status-option-label {
+  font-size: var(--rm-fs-13);
+  color: var(--rm-chalk);
+  font-weight: 600;
+  flex: 1;
+}
+
+.pp-status-option-sub {
+  font-size: var(--rm-fs-11);
+  color: var(--rm-text-dim);
+}

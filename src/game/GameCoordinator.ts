@@ -72,6 +72,7 @@ import { computeAttendance } from './attendance';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed, rngTransfer, getTransferCallCount, advanceTransferTo, hashSeed } from '../utils/rng';
 import { SEASON_VALUES, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD, MORALE } from '../engine/balance';
+import type { SquadStatusKey } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 import type { RawTeamInput } from '../types/teamData';
 
@@ -1011,6 +1012,13 @@ export class GameCoordinator {
 
   releaseLoanPlayer(rosterId: number): void {
     this.transfers.releaseLoanPlayer(rosterId);
+  }
+
+  // Sets (or changes) a player's squad status. Callable at any time in-season;
+  // the new status affects morale expectations on omission from the next
+  // fixture onwards and feeds into renewal wage/acceptance at end of season.
+  setSquadStatus(rosterId: number, status: SquadStatusKey): void {
+    applySeasonEvent(this.state, { type: 'SQUAD_STATUS_SET', rosterId, status });
   }
 
   // ===== Playoffs =====

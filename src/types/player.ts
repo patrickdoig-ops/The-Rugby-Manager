@@ -8,6 +8,11 @@ export type MoraleReason =
   | 'transfer_rejected'  // transfer request turned down
   | 'loan';              // unhappy about being loaned out
 
+// Manager-assigned playing-time expectation. Drives morale penalties on
+// omission and wage expectations in contract renewals. Absent on legacy
+// saves → inferred from OVR rank via inferSquadStatus.
+export type SquadStatusKey = 'star' | 'firstTeam' | 'impact' | 'squad' | 'backup';
+
 export type Position =
   | 'Prop' | 'Hooker' | 'Lock'
   | 'Flanker' | 'Number 8' | 'Back Row'
@@ -329,6 +334,10 @@ export interface Player {
   // squad from the season's loan pool. Available for selection; trains
   // normally. Cleared by LOAN_PLAYER_RELEASED.
   loanIn?: { fromRound: number };
+  // Manager-assigned squad status. Drives morale omission penalties and
+  // renewal wage expectations. Absent → resolved from OVR rank at runtime.
+  // Persists across SEASON_ROLLED_OVER (contract-level attribute).
+  squadStatus?: SquadStatusKey;
 }
 
 // Identity element for PlayerMatchStats — co-located with the type so adding

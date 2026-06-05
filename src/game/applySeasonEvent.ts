@@ -1013,6 +1013,12 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       }
       return;
     }
+    case 'SQUAD_STATUS_SET': {
+      const p = state.career.roster[event.rosterId];
+      if (!p) return;
+      p.squadStatus = event.status;
+      return;
+    }
     case 'STAFF_BUDGET_BOOSTED': {
       const club = state.career.clubs.find(c => c.id === event.clubId);
       if (!club) return;

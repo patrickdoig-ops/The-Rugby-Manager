@@ -14,11 +14,12 @@
 // consumption order is stable for the determinism harness.
 
 import type { GameState, SeasonEvent, TransferBid } from '../types/gameState';
-import type { Player } from '../types/player';
+import type { Player, SquadStatusKey } from '../types/player';
 import { appealScore, wageSatisfaction, type SigningOutcome } from './signingResolver';
 import { expiryAfterYears } from './aiTransferDirector';
-import { MIDSEASON_SIGNING, WAGE_NEGOTIATION } from '../engine/balance/transfers';
+import { MIDSEASON_SIGNING, WAGE_NEGOTIATION, STATUS_MISMATCH_PENALTY } from '../engine/balance/transfers';
 import { rngTransfer } from '../utils/rng';
+import { inferSquadStatus, SQUAD_STATUS_ORDER } from './squadStatus';
 
 export interface MidseasonResolveResult {
   events: SeasonEvent[];
@@ -51,16 +52,34 @@ export function midseasonAcceptanceProbability(
 // the coordinator's renewal paths and the wage-modal UI read so the chip
 // the user sees matches the engine's roll. `askingWage` here can be the
 // real loyalty-discounted rate or an RNG-free estimate for previews.
+//
+// Optional `offeredStatus` + `clubSquad`: when supplied, applies a
+// status-mismatch factor if the offered status is below the player's
+// inferred OVR-rank expectation. 1 tier below → ×0.75; 2+ tiers → ×0.50.
 export function renewalAcceptProbability(
   state: GameState,
   bid: TransferBid,
   player: Player,
   askingWage: number,
   offeredWage: number,
+  offeredStatus?: SquadStatusKey,
+  clubSquad?: number[],
 ): number {
   const base = midseasonAcceptanceProbability(state, bid, player, askingWage);
-  if (offeredWage >= askingWage) return Math.max(base, WAGE_NEGOTIATION.renewalLoyaltyFloorProb);
-  return Math.max(base, WAGE_NEGOTIATION.renewalUnderpayFloorProb);
+  let prob = offeredWage >= askingWage
+    ? Math.max(base, WAGE_NEGOTIATION.renewalLoyaltyFloorProb)
+    : Math.max(base, WAGE_NEGOTIATION.renewalUnderpayFloorProb);
+
+  if (offeredStatus !== undefined && clubSquad !== undefined) {
+    const expectedStatus = inferSquadStatus(player, clubSquad, state.career.roster);
+    const offeredTier  = SQUAD_STATUS_ORDER.indexOf(offeredStatus);
+    const expectedTier = SQUAD_STATUS_ORDER.indexOf(expectedStatus);
+    const gap = expectedTier - offeredTier;
+    if (gap === 1) prob *= (1 - STATUS_MISMATCH_PENALTY.statusMismatchPenalty);
+    else if (gap >= 2) prob *= (1 - STATUS_MISMATCH_PENALTY.statusMismatchHardBlock);
+  }
+
+  return prob;
 }
 
 // UI helper — bucket an acceptance probability into a coarse label so

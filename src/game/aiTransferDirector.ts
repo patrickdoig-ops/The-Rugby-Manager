@@ -14,9 +14,11 @@ import {
   RENEWAL,
   WAGE_FLOOR, WAGE_ROUNDING_UNIT, AI_SIGNING_POLICY, WAGE_NEGOTIATION,
 } from '../engine/balance/transfers';
+import { SQUAD_STATUS_WAGE_MULT } from '../engine/balance/morale';
 import { seedContractFields } from './contractSeeder';
 import { parseSeasonStartYear } from './age';
 import { clubBudgetUsage } from './teamStats';
+import { resolveSquadStatus } from './squadStatus';
 
 // Rosters players whose contract expires on or before 30 June of the
 // just-completed season's end year. Stable rosterId-ascending order.
@@ -53,10 +55,13 @@ export function generateRenewalOffers(state: GameState): TransferOffer[] {
   for (const rid of expiring) {
     const p = state.career.roster[rid];
     if (!p) continue;
+    const club = state.career.clubs.find(c => c.id === p.contract.clubId);
+    const squadStatus = resolveSquadStatus(p, club?.squad ?? [], state.career.roster);
     const fresh = seedContractFields(p, p.contract.clubId, seasonStartYear);
+    const baseWage = fresh.contract.annualWage * (1 - RENEWAL.loyaltyDiscount);
     const renewalWage = Math.max(
       WAGE_FLOOR,
-      Math.round(fresh.contract.annualWage * (1 - RENEWAL.loyaltyDiscount) / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT,
+      Math.round(baseWage * SQUAD_STATUS_WAGE_MULT[squadStatus] / WAGE_ROUNDING_UNIT) * WAGE_ROUNDING_UNIT,
     );
     offers.push({
       id: makeOfferId(state.career.seasonsCompleted, p.contract.clubId, rid),
@@ -69,6 +74,7 @@ export function generateRenewalOffers(state: GameState): TransferOffer[] {
       lengthYears: fresh.lengthYears,
       isMarquee: p.contract.isMarquee,
       status: 'pending',
+      squadStatus,
     });
   }
   return offers;

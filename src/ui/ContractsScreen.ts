@@ -33,6 +33,7 @@ import { createRowExpander } from './components/rowExpand';
 import { averageRating } from '../game/seasonLeaderboards';
 import { estimateMarketWage } from '../game/contractSeeder';
 import { renewalAcceptProbability } from '../game/midseasonSigningResolver';
+import { resolveSquadStatus } from '../game/squadStatus';
 import { RENEWAL, WAGE_FLOOR, WAGE_ROUNDING_UNIT } from '../engine/balance/transfers';
 import { wageOfferModal, budgetLineFor, readFromProbability, type WageRead } from './components/wageOfferModal';
 import { showToast } from './Toast';
@@ -409,7 +410,12 @@ export function initContractsScreen(
                 id: 'preview', rosterId: rid, clubId: st.player.teamId,
                 annualWage: wage, lengthYears: 2, kind: 'retention', status: 'pending',
               };
-              return readFromProbability(renewalAcceptProbability(st, bid, player, asking, wage));
+              const ctClub = st.career.clubs.find(c => c.id === st.player.teamId);
+              const ctSquad = ctClub?.squad ?? [];
+              return readFromProbability(renewalAcceptProbability(
+                st, bid, player, asking, wage,
+                resolveSquadStatus(player, ctSquad, st.career.roster), ctSquad,
+              ));
             },
             budgetLine: (wage: number) => budgetLineFor(capUsed + Math.max(0, wage - currentWage), budgetCap),
           });

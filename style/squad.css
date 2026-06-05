@@ -657,3 +657,26 @@
   );
   border-bottom-color: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 45%, transparent);
 }
+
+/* ─── Squad status chip (in player-pos line) ─── */
+
+.sq-status-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: var(--rm-font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-left: 5px;
+  border: 1px solid transparent;
+  vertical-align: middle;
+}
+
+.sq-status-chip--star       { color: var(--rm-amber);      background: color-mix(in oklch, var(--rm-amber) 12%, var(--rm-surface-2));      border-color: color-mix(in oklch, var(--rm-amber) 25%, transparent); }
+.sq-status-chip--firstTeam  { color: var(--rm-pitch);      background: color-mix(in oklch, var(--rm-pitch) 12%, var(--rm-surface-2));      border-color: color-mix(in oklch, var(--rm-pitch) 25%, transparent); }
+.sq-status-chip--impact     { color: var(--rm-stat-5);     background: color-mix(in oklch, var(--rm-stat-5) 12%, var(--rm-surface-2));     border-color: color-mix(in oklch, var(--rm-stat-5) 25%, transparent); }
+.sq-status-chip--squad      { color: var(--rm-text-muted); background: color-mix(in oklch, var(--rm-text-muted) 10%, var(--rm-surface-2)); border-color: color-mix(in oklch, var(--rm-text-muted) 15%, transparent); }
+.sq-status-chip--backup     { color: var(--rm-text-dim);   background: color-mix(in oklch, var(--rm-text-dim) 10%, var(--rm-surface-2));   border-color: color-mix(in oklch, var(--rm-text-dim) 15%, transparent); }

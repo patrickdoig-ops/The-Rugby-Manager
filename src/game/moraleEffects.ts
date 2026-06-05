@@ -7,8 +7,8 @@
 import type { FixtureResult, GameState, SeasonEvent } from '../types/gameState';
 import type { MoraleReason } from '../types/player';
 import type { MatchSnapshot } from './seasonStatsCollector';
-import { playerOverall } from '../engine/RatingEngine';
-import { MORALE } from '../engine/balance';
+import { MORALE, SQUAD_STATUS_OMIT_PENALTY } from '../engine/balance';
+import { resolveSquadStatus } from './squadStatus';
 
 // Computes PLAYER_MORALE_ADJUSTED events for all players in both clubs
 // after a fixture: playing-time (top-OVR players who didn't appear),
@@ -37,22 +37,16 @@ export function computeFixtureMoraleEvents(state: GameState, result: FixtureResu
       ? MORALE.winDelta
       : won === null ? MORALE.drawDelta : MORALE.lossDelta;
 
-    // Rank non-injured players by OVR descending to determine PT expectation.
-    const ranked = club.squad
-      .map(rid => state.career.roster[rid])
-      .filter((p): p is NonNullable<typeof p> => !!p && !p.injury)
-      .sort((a, b) => playerOverall(b.baseStats, b.position) - playerOverall(a.baseStats, a.position));
-
-    for (let i = 0; i < ranked.length; i++) {
-      const p = ranked[i];
-      const rid = p.rosterId;
+    for (const rid of club.squad) {
+      const p = state.career.roster[rid];
+      if (!p || p.injury || p.loanOut) continue;
       let delta = resultDelta;
       let moraleReason: MoraleReason | undefined;
 
       if (!played.has(rid)) {
-        // Playing-time penalty: top-15 OVR expected to play; 16-23 as bench cover.
-        if (i < 15) { delta += MORALE.omittedTopDelta; moraleReason = 'playing_time'; }
-        else if (i < 23) { delta += MORALE.benchedUnusedDelta; moraleReason = 'unused_bench'; }
+        const status = resolveSquadStatus(p, club.squad, state.career.roster);
+        const omitDelta = SQUAD_STATUS_OMIT_PENALTY[status];
+        if (omitDelta !== 0) { delta += omitDelta; moraleReason = 'playing_time'; }
       }
 
       if (standoutSet.has(rid)) delta += MORALE.standoutDelta;

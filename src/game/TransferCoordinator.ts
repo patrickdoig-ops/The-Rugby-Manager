@@ -24,6 +24,7 @@ import {
   assessAIPoachThreats,
 } from './aiTransferDirector';
 import { resolveSigningRound, type SigningOutcome } from './signingResolver';
+import { resolveSquadStatus } from './squadStatus';
 import { estimateMarketWage } from './contractSeeder';
 import { playerOverall } from '../engine/RatingEngine';
 import {
@@ -32,7 +33,7 @@ import {
 import { clubBudgetUsage } from './teamStats';
 import { isContractExpiringSoon } from './age';
 import { RENEWAL, WAGE_FLOOR, WAGE_ROUNDING_UNIT, MIDSEASON_POACH } from '../engine/balance/transfers';
-import { MORALE } from '../engine/balance';
+import { MORALE, SQUAD_STATUS_THRESHOLDS } from '../engine/balance';
 import { rngTransfer } from '../utils/rng';
 import type { PreSeasonTransfer } from '../data/transfers-2025-26';
 import { PARTNERSHIP_CLUB } from '../data/partnershipClubs';
@@ -148,7 +149,11 @@ export class TransferCoordinator {
             kind: 'retention',
             status: 'pending',
           };
-          const probability = renewalAcceptProbability(this.state, bid, p, offer.annualWage, renewWage);
+          const club = this.state.career.clubs.find(c => c.id === playerClubId);
+          const probability = renewalAcceptProbability(
+            this.state, bid, p, offer.annualWage, renewWage,
+            offer.squadStatus, club?.squad,
+          );
           const roll = rngTransfer(1, 1000) / 1000;
           accept = roll <= probability;
           lowballRejected = !accept;
@@ -1010,7 +1015,10 @@ export class TransferCoordinator {
       kind: 'retention',
       status: 'pending',
     };
-    const probability = renewalAcceptProbability(this.state, bid, p, asking, renewWage);
+    const probability = renewalAcceptProbability(
+      this.state, bid, p, asking, renewWage,
+      resolveSquadStatus(p, club.squad, this.state.career.roster), club.squad,
+    );
     const roll = rngTransfer(1, 1000) / 1000;
     if (roll <= probability) {
       applySeasonEvent(this.state, {
@@ -1071,6 +1079,9 @@ export class TransferCoordinator {
     const club = this.state.career.clubs.find(c => c.id === teamId);
     if (!club) return;
     const week = this.state.calendar.week;
+    const gamesPlayed = this.state.league.results.filter(
+      r => r.homeId === teamId || r.awayId === teamId,
+    ).length;
 
     for (const rid of club.squad) {
       const p = this.state.career.roster[rid];
@@ -1097,6 +1108,13 @@ export class TransferCoordinator {
           applySeasonEvent(this.state, { type: 'PROMISE_BROKEN', rosterId: rid });
         }
         // If the target was met the promise expires cleanly at SEASON_ROLLED_OVER.
+      }
+
+      // Status-pace mismatch check. Use actual games played (not calendar
+      // week) so the gate and pro-rating stay aligned during international
+      // breaks where calendar.week advances without a league fixture.
+      if (gamesPlayed >= MORALE.statusMismatchWarningRounds) {
+        applyStatusPacePenalty(this.state, p, teamId, gamesPlayed);
       }
     }
   }
@@ -1174,5 +1192,34 @@ export class TransferCoordinator {
     const p = this.state.career.roster[rosterId];
     if (!p || !p.loanIn) return;
     applySeasonEvent(this.state, { type: 'LOAN_PLAYER_RELEASED', rosterId });
+  }
+}
+
+// Status-pace mismatch morale check. Called weekly from
+// checkTransferRequestsAndPromises once statusMismatchWarningRounds have
+// elapsed. Pro-rates the status's minApps threshold against the season
+// round and fires a morale penalty when the player is behind pace.
+// Only fires for non-loaned, non-injured players.
+function applyStatusPacePenalty(
+  state: GameState,
+  p: Player,
+  teamId: string,
+  gamesPlayed: number,
+): void {
+  if (p.injury || p.loanOut) return;
+  const club = state.career.clubs.find(c => c.id === teamId);
+  if (!club) return;
+  const status = resolveSquadStatus(p, club.squad, state.career.roster);
+  const threshold = SQUAD_STATUS_THRESHOLDS[status];
+  if (threshold.minApps === 0) return; // backup — no expectation
+  const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0) || 22;
+  const expectedAppsAtWeek = Math.round(threshold.minApps * gamesPlayed / totalRounds);
+  if (p.seasonStats.appearances < expectedAppsAtWeek) {
+    applySeasonEvent(state, {
+      type: 'PLAYER_MORALE_ADJUSTED',
+      rosterId: p.rosterId,
+      delta: MORALE.statusMismatchWeeklyPenalty,
+      reason: 'status_pace',
+    });
   }
 }

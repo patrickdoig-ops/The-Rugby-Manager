@@ -434,10 +434,11 @@ Between the final-round `EndOfSeasonScreen` and rollover, every expiring contrac
 **Shipped:**
 1. ✅ `MARKET_OPENED(phase: 'renewals')` / `MARKET_CLOSED` events firing from EndOfSeason → Rollover.
 2. ✅ `OFFER_SENT` (reserved — open-window flow seeds via `MARKET_OPENED` directly) + `OFFER_RESPONDED` per offer.
-3. ✅ `RenewalsScreen` with per-row toggle + live projected cap pill.
-4. ✅ Loyalty-discount model: current-club offer = market wage × `1 - RENEWAL.loyaltyDiscount`.
+3. ✅ `RenewalsScreen` with per-row toggle + live projected cap pill. Now shows the player's expected status alongside OVR / age in each row's meta line.
+4. ✅ Loyalty-discount model: current-club offer = market wage × `(1 - RENEWAL.loyaltyDiscount)` × `SQUAD_STATUS_WAGE_MULT[resolveSquadStatus(player)]` — star players ask 25% more above base, backups 15% less. The multiplier is set once when `generateRenewalOffers` seeds `TransferOffer.squadStatus`.
 5. ✅ Rejected → `CONTRACT_TERMINATED('expired')` → joins `state.career.freeAgents`.
 6. ✅ `src/game/aiTransferDirector.ts` — pure / RNG-free greedy AI decisions.
+7. ✅ Squad-status acceptance factor (`renewalAcceptProbability` in `midseasonSigningResolver.ts`): when `offeredStatus` is supplied with `clubSquad`, the probability is reduced by `STATUS_MISMATCH_PENALTY` when the offered tier is below the player's inferred OVR-rank expectation — 1 tier below ×0.75, 2+ tiers below ×0.50. Implemented in `src/engine/balance/transfers.ts` as `statusMismatchPenalty: 0.25` and `statusMismatchHardBlock: 0.50`.
 
 ### Phase 5 — Free-agent signings ✅ shipped v2.43a
 

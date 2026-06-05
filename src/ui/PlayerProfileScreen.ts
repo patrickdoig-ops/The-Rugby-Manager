@@ -25,11 +25,13 @@
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import type { GameState, ArchivedPlayerSeason } from '../types/gameState';
-import type { Player, PlayerStats, Position } from '../types/player';
+import type { Player, PlayerStats, Position, SquadStatusKey } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
 import { IRRELEVANT_STATS } from '../engine/balance/rating';
+import { SQUAD_STATUS_THRESHOLDS } from '../engine/balance/morale';
 import { getAge } from '../game/age';
 import { scoutingBand } from '../game/scouting';
+import { resolveSquadStatus, SQUAD_STATUS_LABEL, SQUAD_STATUS_SHORT, SQUAD_STATUS_SUB, SQUAD_STATUS_ORDER } from '../game/squadStatus';
 import { eventBus } from '../utils/eventBus';
 
 interface AttributeRow {
@@ -452,6 +454,42 @@ export function initPlayerProfileScreen(
         ${injuryPip}
       </section>`;
 
+    const playerClub = clubId ? state.career.clubs.find(c => c.id === clubId) : null;
+    const playerClubSquad = playerClub?.squad ?? [];
+    const status: SquadStatusKey = playerClubSquad.length > 0
+      ? resolveSquadStatus(player, playerClubSquad, state.career.roster)
+      : (player.squadStatus ?? 'squad');
+    const threshold = SQUAD_STATUS_THRESHOLDS[status];
+    const expectedLine = threshold.minStarts > 0
+      ? `${threshold.minStarts}+ starts per season`
+      : threshold.minApps > 0
+        ? `${threshold.minApps}+ apps per season`
+        : 'No playing-time expectation';
+
+    const pickerOptions = [...SQUAD_STATUS_ORDER].reverse().map(s =>
+      `<button class="pp-status-option${s === status ? ' pp-status-option--active' : ''}" type="button" data-status="${s}">
+        <span class="pp-status-chip pp-status-chip--${s}">${SQUAD_STATUS_SHORT[s]}</span>
+        <span class="pp-status-option-label">${SQUAD_STATUS_LABEL[s]}</span>
+        <span class="pp-status-option-sub">${SQUAD_STATUS_SUB[s]}</span>
+      </button>`,
+    ).join('');
+
+    const statusSection = `
+      <section class="pp-section pp-status-card">
+        <div class="pp-status-main">
+          <div class="pp-status-left">
+            <span class="pp-status-chip pp-status-chip--${status}">${SQUAD_STATUS_LABEL[status]}</span>
+            <div class="pp-status-sub-text">${SQUAD_STATUS_SUB[status]}</div>
+          </div>
+          <div class="pp-status-right">
+            <div class="pp-status-season-line">${cur.starts} starts · ${cur.appearances} apps</div>
+            <div class="pp-status-expected-line">${expectedLine}</div>
+            ${isOwnSquad ? `<button class="pp-status-change-btn" type="button">Change <span class="pp-status-change-arrow">▸</span></button>` : ''}
+          </div>
+        </div>
+        ${isOwnSquad ? `<div class="pp-status-picker" hidden>${pickerOptions}</div>` : ''}
+      </section>`;
+
     const scoutSection = isOwnSquad ? '' : scoutingSection(state, player.rosterId);
 
     const attrsSection = `
@@ -549,6 +587,7 @@ export function initPlayerProfileScreen(
       <div class="pp-inner">
         ${headerSection}
         ${identitySection}
+        ${statusSection}
         ${scoutSection}
         ${attrsSection}
         ${currentSeasonSection}
@@ -569,6 +608,21 @@ export function initPlayerProfileScreen(
         render();
       });
     });
+
+    const changeBtn = el.querySelector<HTMLButtonElement>('.pp-status-change-btn');
+    const picker    = el.querySelector<HTMLElement>('.pp-status-picker');
+    if (changeBtn && picker) {
+      changeBtn.addEventListener('click', () => {
+        picker.hidden = !picker.hidden;
+      });
+      picker.querySelectorAll<HTMLButtonElement>('.pp-status-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+          const newStatus = opt.dataset.status as SquadStatusKey;
+          if (newStatus) engine.setSquadStatus(player.rosterId, newStatus);
+          render();
+        });
+      });
+    }
   }
 
   renderImpl = render;

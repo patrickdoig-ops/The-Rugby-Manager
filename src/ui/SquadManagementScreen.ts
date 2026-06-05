@@ -25,6 +25,7 @@
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput, RawPlayer } from '../types/teamData';
 import type { Position, PlayerInjury, RestObligation } from '../types/player';
+import { resolveSquadStatus, SQUAD_STATUS_SHORT } from '../game/squadStatus';
 import { applyMatchdaySquad, extractMatchdaySquad } from '../game/playerSquad';
 import { selectBestMatchdaySquad } from '../game/autoSelect';
 import { buildTeamFromRoster } from '../game/rosterTeamBuilder';
@@ -611,6 +612,15 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     const avrCell = avr === null
       ? `<div class="sq-avr sq-avr--unrated" title="No appearances yet this season">—</div>`
       : `<div class="sq-avr ${ratingClass(avr)}">${avr.toFixed(1)}</div>`;
+    const sqState = opts.getGameEngine().getState();
+    const sqClub = sqState.career.clubs.find(c => c.id === sqState.player.teamId);
+    const fullPlayer = p.rosterId !== undefined ? sqState.career.roster[p.rosterId] : undefined;
+    const statusChip = fullPlayer && sqClub
+      ? (() => {
+          const s = resolveSquadStatus(fullPlayer, sqClub.squad, sqState.career.roster);
+          return `<span class="sq-status-chip sq-status-chip--${s}" title="${SQUAD_STATUS_SHORT[s]}">${SQUAD_STATUS_SHORT[s]}</span>`;
+        })()
+      : '';
     const statsGrid = `
       <div class="sq-stats-grid">
         ${STAT_COLS.map(({ key, lbl }) => {
@@ -635,7 +645,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         <div class="sq-jersey sq-jersey--${tier}">${jerseyContent}</div>
         <div class="sq-player-info">
           <span class="sq-player-name sq-player-name--${tier}">${nameInner}${injuryBadge ? ' ' + injuryBadge : ''}${restBadge ? ' ' + restBadge : ''}</span>
-          <span class="sq-player-pos sq-player-pos--${tier}">${p.position}${oopBadge}</span>
+          <span class="sq-player-pos sq-player-pos--${tier}">${p.position}${oopBadge}${statusChip}</span>
         </div>
         <div class="sq-ovr ${ovrClass(ovr)}">${ovr}</div>
         ${conditionCell}

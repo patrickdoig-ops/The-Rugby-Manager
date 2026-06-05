@@ -9,7 +9,7 @@
 // src/types/match.ts. The two are unrelated.
 
 import type { TeamTactics } from './team';
-import type { InjuryKind, InjurySeverity, InternationalWindow, MoraleReason, Player, PlayerStats } from './player';
+import type { InjuryKind, InjurySeverity, InternationalWindow, MoraleReason, Player, PlayerStats, SquadStatusKey } from './player';
 import type { TrainingPlan } from './training';
 import type { BoardAmbition } from './teamData';
 
@@ -388,6 +388,9 @@ export interface TransferOffer {
   isMarquee: boolean;
   status: 'pending' | 'accepted' | 'rejected' | 'withdrawn';
   rejectionReason?: 'wage' | 'ambition' | 'cap_overcommit';
+  // The player's resolved squad status at offer-generation time. Informs
+  // the renewal UI and feeds into acceptance probability (status mismatch).
+  squadStatus?: SquadStatusKey;
 }
 
 // Transient state during the end-of-season market window. Populated by
@@ -1393,6 +1396,14 @@ export type SeasonEvent =
       // career.loanPool. Also fired en masse at SEASON_ROLLED_OVER.
       type: 'LOAN_PLAYER_RELEASED';
       rosterId: number;
+    }
+  | {
+      // Manager sets (or changes) a player's squad status. Reducer writes
+      // Player.squadStatus. Persists across SEASON_ROLLED_OVER — the status
+      // is a contract-level attribute, not a transient seasonal flag.
+      type: 'SQUAD_STATUS_SET';
+      rosterId: number;
+      status: SquadStatusKey;
     }
   | {
       // Manager transfers a portion of unused player salary headroom to the

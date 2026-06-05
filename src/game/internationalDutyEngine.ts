@@ -396,6 +396,23 @@ export function summerTourReturnEvents(state: GameState): SeasonEvent[] {
   return out;
 }
 
+// Returns rosterIds for ALL summer-tour players (England + Wales) in a club's
+// squad. Used to exclude them from leg-0 (pre-season) cup selection.
+export function getSummerTourRosterIds(state: GameState, clubId: string): Set<number> {
+  const wanted = new Set([
+    ...ENGLAND_SUMMER_2025_TOURISTS,
+    ...WALES_SUMMER_2025_TOURISTS,
+  ].map(t => `${t.firstName}|${t.lastName}`.toLowerCase()));
+  const club = state.career.clubs.find(c => c.id === clubId);
+  if (!club) return new Set();
+  const out = new Set<number>();
+  for (const rid of club.squad) {
+    const p = state.career.roster[rid];
+    if (p && wanted.has(`${p.firstName}|${p.lastName}`.toLowerCase())) out.add(rid);
+  }
+  return out;
+}
+
 // Returns the set of rosterIds for England summer-tour players in the managed
 // club's squad. Used by runPreSeasonBlock to exclude them from leg-0 cup
 // selection (England players were not permitted to play pre-season cup rounds

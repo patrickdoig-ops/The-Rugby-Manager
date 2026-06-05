@@ -22,7 +22,7 @@ import { runTrainingPeriods } from './trainingRunner';
 import { upcomingGap, splitGapIntoPeriods } from './trainingCalendar';
 import {
   isInternationalBreak, selectInternationalSquads, buildCallUpEvents,
-  resolveInternationalBreak, getEnglandSummerTourRosterIds, type CallUp,
+  resolveInternationalBreak, getSummerTourRosterIds, type CallUp,
 } from './internationalDutyEngine';
 import { eventBus } from '../utils/eventBus';
 
@@ -82,10 +82,10 @@ export class InternationalBreakCoordinator {
     const restIds = this.state.player.cupDirection === 'rest_first_15'
       ? this.firstChoiceStarterIds()
       : undefined;
-    // England summer-tour players were excluded from the two pre-season cup
-    // rounds (leg 0) by agreement with the RFU — compute their IDs for all
-    // clubs so the headless sims honour the exclusion.
-    const englandExcluded = this.buildEnglandExclusionMap();
+    // Summer-tour players (England + Wales) are excluded from the two pre-season
+    // cup rounds (leg 0) — compute their IDs for all clubs so the headless sims
+    // honour the exclusion.
+    const englandExcluded = this.buildSummerTourExclusionMap();
     const featured = new Set<number>();
 
     for (const fx of (this.state.league.premCup?.fixtures ?? []).filter(f => f.leg === 0)) {
@@ -282,12 +282,12 @@ export class InternationalBreakCoordinator {
     for (const s of sim.snapshot.playerSnapshots) featured.add(s.rosterId);
   }
 
-  // Builds a per-clubId map of England summer-tour rosterIds for every club
-  // in the league. Used to exclude them from leg-0 (pre-season) cup selection.
-  private buildEnglandExclusionMap(): Map<string, ReadonlySet<number>> {
+  // Builds a per-clubId map of all summer-tour (England + Wales) rosterIds for
+  // every club in the league. Used to exclude them from leg-0 cup selection.
+  private buildSummerTourExclusionMap(): Map<string, ReadonlySet<number>> {
     const out = new Map<string, ReadonlySet<number>>();
     for (const club of this.state.career.clubs) {
-      const ids = getEnglandSummerTourRosterIds(this.state, club.id);
+      const ids = getSummerTourRosterIds(this.state, club.id);
       if (ids.size > 0) out.set(club.id, ids);
     }
     return out;

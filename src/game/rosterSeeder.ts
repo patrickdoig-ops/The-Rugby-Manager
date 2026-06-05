@@ -31,10 +31,8 @@ import { rngTransfer } from '../utils/rng';
 
 function seedMorale(): number {
   const bracket = rngTransfer(0, 99);
-  if (bracket < MORALE.seedHappyCutoff)     return rngTransfer(MORALE.seedOkMin, MORALE.seedOkMax);
-  if (bracket < MORALE.seedUnsettledCutoff) return rngTransfer(MORALE.seedHappyMin, MORALE.seedHappyMax);
-  if (bracket < MORALE.seedUnhappyCutoff)   return rngTransfer(MORALE.seedUnsMin, MORALE.seedUnsMax);
-  return rngTransfer(MORALE.seedBadMin, MORALE.seedBadMax);
+  if (bracket < MORALE.seedHappyCutoff) return rngTransfer(MORALE.seedOkMin, MORALE.seedOkMax);
+  return rngTransfer(MORALE.seedHappyMin, MORALE.seedHappyMax);
 }
 
 export interface SeededRoster {

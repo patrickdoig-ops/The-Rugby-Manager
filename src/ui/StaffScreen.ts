@@ -84,7 +84,7 @@ export function showStaff(): void {
   const hired    = allStaff.filter(m => m.clubId === clubId);
   const freePool = allStaff.filter(m => m.clubId === null);
   const club     = state.career.clubs.find(c => c.id === clubId);
-  const budget   = club?.staffBudget ?? Math.round((club?.salaryBudget ?? 0) * STAFF_BUDGET_FRACTION);
+  const budget   = (club?.staffBudget ?? Math.round((club?.salaryBudget ?? 0) * STAFF_BUDGET_FRACTION)) + (club?.staffBudgetBoost ?? 0);
   const used     = staffBudgetUsage(state, clubId);
   const remaining = budget - used;
 

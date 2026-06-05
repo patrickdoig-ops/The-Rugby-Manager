@@ -404,11 +404,11 @@
 /* MOR pill — fixed-width colour-coded bar, no text. Width matches CON/AVR
    so the right-hand column group aligns regardless of morale state. Colour
    alone carries the meaning; the label is preserved in the title attribute. */
-.sq-col-header--mor { width: 40px; }
+.sq-col-header--mor { width: 28px; }
 
 .sq-mor {
   flex-shrink: 0;
-  width: 40px;
+  width: 28px;
   height: 8px;
   border-radius: 50px;
 }

@@ -182,7 +182,7 @@ PitchView computes the **start** position from first principles (event data + `a
 
 ### Layer 3 — Formation-wide transition (CSS, `PitchPlayers.ts`)
 
-When an entire pack needs to glide from one formation to another (Lineout→Maul), `PitchPlayers` adds `dot-transitioning` to the `#pitch-2d-field` element. This enables `transition: top 0.5s ease, left 0.5s ease` on every `.pitch-dot` simultaneously. The class is removed via `setTimeout(..., 600)` once the transition completes. Dots are already at their new positions — the CSS transition is triggered by the position change.
+When an entire pack needs to glide from one formation to another (Lineout→Maul), `PitchPlayers` adds `dot-transitioning` to the `#pitch-2d-field` element. This enables `transition: top 0.5s ease, left 0.5s ease` on every `.pitch-dot` simultaneously. The class is removed via `setTimeout(..., 600)` once the transition completes. Dots are already at their new positions — the CSS transition is triggered by the position change. The same glide fires on **FirstPhase→Breakdown**: the set-piece pack is held at its scrum/lineout positions through the whole first phase (`keepLineout`), and the breakdown beat is the first to reposition the forwards (into the authored ruck formation), so they ease there from wherever the set piece left them rather than snapping. Because CSS animates from each dot's actual current position, the blend is correct for either predecessor (scrum or lineout) without any per-predecessor forward data.
 
 ### Between-beat state
 

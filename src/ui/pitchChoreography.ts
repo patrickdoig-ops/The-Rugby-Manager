@@ -127,13 +127,16 @@ export function choreograph(
     return firstPhaseBacklineLayout(event, state, attacksTop, prevPhase, prevBallX, prevBallY);
   }
 
-  // Breakdown: authored full-formation frames for the two phase-animator exports.
-  // Anchored on the live ruck (event.ball). Every other breakdown outcome
-  // (slow_ball, turnover, the other penalties) falls back to open play.
+  // Breakdown: authored full-formation frames. Anchored on the live ruck (event.ball).
   if (event.phase === MatchPhase.Breakdown) {
     const keys = outcomeKeys(event);
-    if (keys.includes('clean_ball')) return placeFormation(event, state, attacksTop, event.ballX, event.ballY, BREAKDOWN_CLEAN);
-    if (keys.includes('dangerous_cleanout_penalty')) return placeFormation(event, state, attacksTop, event.ballX, event.ballY, BREAKDOWN_CLEANOUT_PEN);
+    if (keys.includes('clean_ball'))                   return placeFormation(event, state, attacksTop, event.ballX, event.ballY, BREAKDOWN_CLEAN);
+    if (keys.includes('slow_ball'))                    return placeFormation(event, state, attacksTop, event.ballX, event.ballY, BREAKDOWN_SLOW_BALL);
+    if (keys.includes('turnover'))                     return placeFormation(event, state, attacksTop, event.ballX, event.ballY, BREAKDOWN_TURNOVER);
+    if (keys.includes('dangerous_cleanout_penalty'))   return placeFormation(event, state, attacksTop, event.ballX, event.ballY, BREAKDOWN_CLEANOUT_PEN);
+    if (keys.includes('not_rolling_away_penalty'))     return placeFormation(event, state, attacksTop, event.ballX, event.ballY, BREAKDOWN_NOT_ROLLING_AWAY);
+    if (keys.includes('offside_at_ruck_penalty'))      return placeFormation(event, state, attacksTop, event.ballX, event.ballY, BREAKDOWN_OFFSIDE_AT_RUCK);
+    if (keys.includes('penalty_defending'))            return placeFormation(event, state, attacksTop, event.ballX, event.ballY, BREAKDOWN_PENALTY_DEFENDING);
   }
 
   return openPlayLayout(event, state, attacksTop);
@@ -388,6 +391,92 @@ const BREAKDOWN_CLEANOUT_PEN: Formation = { nearTop: true,
     7:  [ 14.67,  15.89],   8:  [ 12.53, -40.02],   9:  [  7.18,   0.69],
     10: [ 12.99, -19.57],   11: [ 12.53,  23.87],   12: [ 21.08, -31.45],
     13: [ 24.90, -48.98],   14: [ 15.59, -65.54],   15: [ 23.37, -11.19],
+  },
+};
+
+// Breakdown: slow_ball. ATK = attacker's supporter (primary); anchor = live ruck.
+const BREAKDOWN_SLOW_BALL: Formation = { nearTop: false,
+  atk: {
+    1:  [-11.26,  -6.41],   2:  [-10.25,  15.46],   3:  [ -2.00,   0.00],
+    4:  [-11.26, -14.49],   5:  [ -0.60,   3.88],   6:  [ -9.96,  20.24],
+    7:  [ -1.03,  -3.47],   8:  [ -9.39, -10.27],   9:  [ -5.50,  -0.71],
+    10: [-19.62,   1.13],  11:  [-16.45, -46.09],  12:  [-16.88, -10.45],
+    13: [-18.75, -30.66],  14:  [-10.97,  29.24],  15:  [-21.35, -19.82],
+  },
+  def: {
+    1:  [  8.33,  13.62],   2:  [  8.62,  18.22],   3:  [  7.04, -12.10],
+    4:  [  6.46,  -8.98],   5:  [  6.17, -16.70],   6:  [  3.29,  -2.92],
+    7:  [  2.57,   0.58],   8:  [  2.43,   4.43],   9:  [  9.49,  -0.53],
+    10: [ 10.49, -19.82],  11:  [ 30.09,  30.71],  12:  [ 10.64, -31.21],
+    13: [ 11.07, -44.99],  14:  [ 40.61, -47.01],  15:  [ 52.00, -11.00],
+  },
+};
+// Breakdown: turnover. ATK = jackal (defender who stole ball = primaryPlayer); anchor = live ruck.
+const BREAKDOWN_TURNOVER: Formation = { nearTop: false,
+  atk: {
+    1:  [  1.42,   3.35],   2:  [ 10.93, -11.90],   3:  [ 12.66, -16.49],
+    4:  [ 10.49,  11.62],   5:  [ 10.35,  16.22],   6:  [  1.13,  -2.89],
+    7:  [  1.13,   0.60],   8:  [ 10.35, -19.98],   9:  [  8.05,   0.05],
+    10: [ 10.49, -26.78],  11:  [ 25.77,  33.67],  12:  [ 13.81, -36.70],
+    13: [ 13.81, -55.08],  14:  [ 42.00, -43.00],  15:  [ 49.83, -12.45],
+  },
+  def: {
+    1:  [-10.11,  13.46],   2:  [-11.40, -18.14],   3:  [-11.55, -10.24],
+    4:  [ -9.24, -14.10],   5:  [ -1.32,   3.17],   6:  [ -9.96,  18.42],
+    7:  [ -2.00,   0.00],   8:  [ -1.61,  -3.08],   9:  [ -6.07,   0.05],
+    10: [-16.59, -14.84],  11:  [-20.48, -56.00],  12:  [-17.74, -25.49],
+    13: [-19.04, -37.99],  14:  [-18.03,  32.02],  15:  [-22.93,   0.05],
+  },
+};
+// Breakdown: not_rolling_away_penalty. ATK = jackal (defender = primaryPlayer); anchor = live ruck.
+const BREAKDOWN_NOT_ROLLING_AWAY: Formation = { nearTop: true,
+  atk: {
+    1:  [  3.00,  13.51],   2:  [  3.00,   2.80],   3:  [  2.03,  -2.85],
+    4:  [  2.79,   6.70],   5:  [ -0.42,   3.38],   6:  [  2.95,  20.92],
+    7:  [  1.57,   0.07],   8:  [  0.35,  -2.65],   9:  [  3.00,  -9.86],
+    10: [  2.79,  27.54],  11:  [  2.95,  65.33],  12:  [  2.33,  35.14],
+    13: [  2.79,  40.79],  14:  [  3.00, -17.65],  15:  [  2.79,  51.50],
+  },
+  def: {
+    1:  [ -2.55,   0.46],   2:  [-12.33,  14.68],   3:  [-20.73,  35.14],
+    4:  [ -9.27,  19.55],   5:  [-13.09,  23.25],   6:  [ -2.40,  -2.65],
+    7:  [-19.51,  39.62],   8:  [ -3.16,   3.97],   9:  [ -7.90,   0.66],
+    10: [-18.29,  18.97],  11:  [-10.04, -16.87],  12:  [-24.70,  38.06],
+    13: [-29.44,  54.42],  14:  [-34.63,  72.73],  15:  [-20.12,  44.29],
+  },
+};
+// Breakdown: offside_at_ruck_penalty. ATK = random defender (primaryPlayer); anchor = live ruck.
+const BREAKDOWN_OFFSIDE_AT_RUCK: Formation = { nearTop: false,
+  atk: {
+    1:  [  9.34, -21.69],   2:  [  9.95, -13.51],   3:  [  7.97, -17.21],
+    4:  [  1.55,   1.49],   5:  [  2.62,  -0.66],   6:  [ 13.16, -31.82],
+    7:  [ 19.42,  22.52],   8:  [  0.94,  -2.80],   9:  [  6.14,  -0.85],
+    10: [ 15.15, -18.97],  11:  [ 29.81, -55.00],  12:  [ 20.19, -30.07],
+    13: [ 24.31, -40.98],  14:  [ 15.61,  29.93],  15:  [ 14.69,  15.90],
+  },
+  def: {
+    1:  [ -3.64,  -9.03],   2:  [ -3.64, -13.71],   3:  [ -3.64,   8.89],
+    4:  [ -1.00,   0.00],   5:  [ -4.00, -18.77],   6:  [ -1.65,  -2.99],
+    7:  [ -1.50,   3.04],   8:  [ -3.79,  17.46],   9:  [ -4.00,   0.32],
+    10: [ -3.95, -33.19],  11:  [ -4.00,  33.04],  12:  [ -4.00, -41.76],
+    13: [ -3.18,  25.45],  14:  [ -4.00, -54.03],  15:  [ -3.95, -26.17],
+  },
+};
+// Breakdown: penalty_defending. ATK = offending attacker (supporter = primaryPlayer); anchor = live ruck.
+const BREAKDOWN_PENALTY_DEFENDING: Formation = { nearTop: true,
+  atk: {
+    1:  [ -1.87,   0.94],   2:  [ -2.64,   5.23],   3:  [-21.88,  30.94],
+    4:  [-12.26,  15.36],   5:  [-15.01,  19.84],   6:  [ -3.10,  -3.34],
+    7:  [-22.03,  37.76],   8:  [-15.47,  11.46],   9:  [ -8.90,   1.92],
+    10: [-17.91,  15.36],  11:  [-20.20, -21.65],  12:  [-26.92,  33.86],
+    13: [-29.06,  46.72],  14:  [-20.51,  66.59],  15:  [-27.53,  14.97],
+  },
+  def: {
+    1:  [  1.03,  24.51],   2:  [  1.33,  17.70],   3:  [  1.18, -10.74],
+    4:  [  1.64,   5.23],   5:  [  1.18,  -1.78],   6:  [  1.18,  -6.07],
+    7:  [  0.00,   0.00],   8:  [  1.95,   1.53],   9:  [  0.00,   8.00],
+    10: [  1.79,  41.27],  11:  [  2.00,  63.67],  12:  [  1.33,  47.50],
+    13: [  1.18, -16.78],  14:  [  1.03, -24.77],  15:  [  2.00,  33.86],
   },
 };
 

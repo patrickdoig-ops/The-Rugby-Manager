@@ -92,7 +92,11 @@ export function choreograph(
   if (event.phase === MatchPhase.TacticalKick)   return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
   if (event.phase === MatchPhase.ConversionKick) return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
   if (event.phase === MatchPhase.DropOut22)      return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
-  if (event.phase === MatchPhase.BoxKick)        return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
+  if (event.phase === MatchPhase.BoxKick) {
+    const boxKeys = event.narration.steps.filter(s => s.kind === 'phase_outcome').map(s => (s as { key: string }).key);
+    if (boxKeys.includes('announce')) return boxKickAnnounceLayout(event, state, attacksTop);
+    return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
+  }
   // A penalty kicked to touch behaves like a tactical kick to touch (ball out, lineout
   // next) — same layout: only the kicker, no receiver under the ball.
   if (event.phase === MatchPhase.Penalty && kickFindsTouch(event))
@@ -181,6 +185,61 @@ function travelingKickLayout(
   // On-ball player just behind the ball's landing spot, so their circle reads on the ball.
   if (onBall) {
     out.push(placed(onBall, sideOf(onBall, state), state, clampX(event.ballX - fwd * 2.5), event.ballY, true));
+  }
+  return out;
+}
+
+// Box kick announce: full 15v15 formation showing both teams set up for the kick.
+// Authored in the phase animator with the attacking team kicking toward x=100, ball
+// at (20, 83) near the y=100 touchline. Each entry is [dx, dy] offset from the ball.
+// x-offset flips with attack direction; y-offset mirrors when ball is near y=0.
+// The actual kicker is snapped to the real ball position regardless of slot-9's entry.
+const BOX_KICK_ATK: Record<number, [number, number]> = {
+  1:  [ -2.07, -18.58],   2:  [ -2.22, -13.62],   3:  [  5.27,   0.90],
+  4:  [  2.39,   0.90],   5:  [  3.54,  -2.77],   6:  [ -9.13, -66.17],
+  7:  [ -2.79,   9.90],   8:  [ -2.51,  -7.55],   9:  [ -2.00,   0.00],
+  10: [ -7.40, -14.53],   11: [ -9.13, -75.54],   12: [ -9.85, -29.23],
+  13: [-10.72, -43.38],   14: [ -4.38,  15.78],   15: [-16.19, -17.84],
+};
+const BOX_KICK_DEF: Record<number, [number, number]> = {
+  1:  [  6.57,  -2.22],   2:  [ 16.08, -11.78],   3:  [ 14.93,  13.21],
+  4:  [ 15.94, -15.82],   5:  [  6.28,  -7.55],   6:  [  7.29,   1.82],
+  7:  [ 16.80, -68.74],   8:  [ 15.94, -20.23],   9:  [ 11.76,  -0.57],
+  10: [ 22.13, -13.80],   11: [ 29.77,  15.05],   12: [ 14.93, -28.68],
+  13: [ 14.78, -43.57],   14: [ 40.43, -70.94],   15: [ 44.46,  -5.90],
+};
+
+function boxKickAnnounceLayout(event: GameEvent, state: MatchState, attacksTop: boolean): Placed[] {
+  const atkSide: Side = event.side === 'home' ? 'h' : 'a';
+  const defSide: Side = atkSide === 'h' ? 'a' : 'h';
+  const dir     = attacksTop ? 1 : -1;
+  const mirrorY = event.ballY < 50;   // authored near y=100; flip for y=0 side
+  const kicker  = event.primaryPlayer;
+
+  const atkTeam = atkSide === 'h' ? state.homeTeam : state.awayTeam;
+  const defTeam = defSide === 'h' ? state.homeTeam : state.awayTeam;
+  const atkOn   = onFieldPlayers(atkTeam, state, possOf(atkSide));
+  const defOn   = onFieldPlayers(defTeam, state, possOf(defSide));
+
+  const pos = (dx: number, dy: number): [number, number] => [
+    clampX(event.ballX + dx * dir),
+    clampY(event.ballY + (mirrorY ? -dy : dy)),
+  ];
+
+  const out: Placed[] = [];
+  for (let slot = 1; slot <= 15; slot++) {
+    const atkOff = BOX_KICK_ATK[slot];
+    const p = atkOn.find(pl => pl.id === slot);
+    if (p && atkOff) {
+      if (p === kicker) {
+        out.push(placed(p, atkSide, state, clampX(event.ballX), clampY(event.ballY), true));
+      } else {
+        out.push(placed(p, atkSide, state, ...pos(atkOff[0], atkOff[1]), false));
+      }
+    }
+    const defOff = BOX_KICK_DEF[slot];
+    const dp = defOn.find(pl => pl.id === slot);
+    if (dp && defOff) out.push(placed(dp, defSide, state, ...pos(defOff[0], defOff[1]), false));
   }
   return out;
 }

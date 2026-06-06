@@ -13,73 +13,75 @@ device once deployed:
 
 ```
 https://patrickdoig-ops.github.io/The-Rugby-Manager/tools/phase-animator.html   # live (Pages)
-open public/tools/phase-animator.html                                            # local (no server)
+http://127.0.0.1:5173/The-Rugby-Manager/tools/phase-animator.html               # local (npm run dev)
 ```
 
+A bare `file://` open may block the sibling `phases.js` script in strict browsers;
+use the dev server or the live URL if the dropdown is empty.
+
 ### What it does
+
 - Portrait pitch in the **game's coordinate space** (x = long axis 0–100, 100 at the
   top; y = lateral 0–100, 0/100 = touchlines) so exported positions map straight onto
-  `ballX`/`ballY` and `pitchCoords.toTop/toLeft`.
-- **All 15 + 15 players** + the ball, each a draggable dot starting from a default
-  formation (the whole reason for this tool — the live choreographer only ever draws
-  the *involved* players).
+  `ballX`/`ballY` and `pitchCoords.toTop/toLeft`. Fixed end-labels (AWAY 22 / HOME 22)
+  orient you. A **possession badge** (▲/▼) shows which team is in possession and which
+  end they're attacking.
+- **All 15 + 15 players** + the ball, each a draggable dot. On load, players are
+  pre-placed at the real `choreograph()` output for that phase beat, and each player's
+  `t = 0` start position is seeded from the predecessor phase's resting layout — so
+  transitions between phases are smooth glides, not jumps. The info line says how many
+  dots were seeded this way.
 - **Timeline + keyframes:** drag any dot to set a keyframe at the playhead; scrub;
   play back with linear tweening between keyframes. Diamonds = the selected entity's
   keyframes, ticks = beats.
-- **Every engine phase is embedded** (`phases.js`, ~83 real `(phase, outcome)`
-  samples — kick-off, scrum, lineout, maul, first phase, phase play, breakdown,
-  kick return, every kick, penalty, conversion, drop-out, try). Pick one from the
-  dropdown and **Load phase**: the ball track is auto-seeded with **where the ball
-  started (previous phase) → each in-phase movement → where it resolved**, with beat
-  markers, and the involved players are named. You then keyframe the 15+15 around
-  that authoritative ball path. (You can also drop your own `harness/trace.json`.)
+- **349 engine phases embedded** (`phases.js`) keyed by `(phase, outcome, predecessor
+  phase)` — 14 phase types, multi-predecessor variants labelled separately
+  (e.g. `FIRST_PHASE · crash_ball ← LINEOUT` vs `← SCRUM`), and secondary narration
+  steps (`cover_tackle`, `offload_knock_on`) always present. Pick one from the dropdown
+  and **Load phase**: the ball track is auto-seeded with the engine's real path
+  (previous-phase position → in-phase movements → resolution), with beat markers and
+  the involved players named. You can also drop your own `harness/trace.json`.
 - **Export / Import JSON** — round-trips the full keyframe set.
 
 ### Regenerating the embedded phases
+
 ```
-npm run export:phases     # runs the engine over 60 seeds → public/tools/phases.js
+npm run export:phases     # runs the engine over 300 seeds → public/tools/phases.js
 ```
-`scripts/exportPhases.ts` keeps the richest-movement beat per `(phase, outcome)`.
-**Note:** `phases.js` loads via `<script src>` — that works on Pages (and any served
-context like `npm run dev`), but a bare `file://` open may block the sibling script in
-strict browsers; serve it or use the live URL if the dropdown is empty.
+
+`scripts/exportPhases.ts` keeps the richest-movement beat per `(phase, outcome,
+prevPhase)` combination. Full guide: `docs/phase-animator.md`.
 
 ### Export shape
+
 ```jsonc
 {
-  "meta": { "phase": "#12 FIRST_PHASE (crash_ball/...)", "beats": [...], "coords": "game(...)" },
+  "meta": { "phase": "FIRST_PHASE (crash_ball/dominant_tackle)", "beats": [...],
+            "coords": "game(x:long 0-100 top=100, y:lateral 0-100)" },
   "entities": [
-    { "id": "ball", "kind": "ball", "kf": [ { "t": 0, "x": 37, "y": 5 }, ... ] },
-    { "id": "h10", "kind": "home", "jersey": "10", "kf": [ ... ] },
+    { "id": "ball", "kind": "ball",  "jersey": "",   "kf": [ { "t": 0, "x": 37, "y": 5  }, ... ] },
+    { "id": "h10",  "kind": "home",  "jersey": "10", "kf": [ { "t": 0, "x": 30, "y": 46 }, ... ] },
     ...   // 30 players + ball; t is normalised 0..1 across the phase
   ]
 }
 ```
 
-## Feasibility / how this could feed the game
+Entity `id` is `side` + matchday slot (`h10` = home slot 10, `a2` = away slot 2).
+Players that don't move have one keyframe at `t = 0`. Players seeded from the
+predecessor have `t = 0` at the predecessor's resting position and `t = 1` at the
+current phase's resting position. Game-authored chase animations (kick-off, drop-out)
+retain their original `from`→`to` keyframes.
 
-The hard part is **not** the editor — it's that the match engine is RNG-driven, so a
-phase has *variants* (crash ball vs wide play, knock-on, interception, line break…),
-and the ball's start/end + which players are involved differ every time. A fixed
-hand-authored clip can't be replayed verbatim. Two viable integration paths:
+### How exported frames feed the game
 
-- **Path A — prototyping aid (no engine change, available today).** Use the tool to
-  design the motion for a phase variant with all 15 players, then port the resulting
-  positions into `pitchChoreography.ts`. Immediate value: iterate on *look* visually
-  instead of editing geometry in code and re-running.
+Two paths — see `docs/phase-animator.md` §§ 9–10 for the full recipe:
 
-- **Path B — data-driven runtime (the "efficient" end-state).** Build a small runtime
-  that consumes authored **templates**, keyed by `(phase, outcome)` and authored in a
-  *normalised* frame, then at play-time: (1) anchor the template on the engine's real
-  ball path (`GameEvent.movements[]`), and (2) map the template's generic slots
-  (#9, #10, carrier, …) onto the actual involved/roster players. This replaces the
-  per-phase layout functions with authored data. Bigger lift (template format, slot
-  mapping, fallback when a variant has no template) but it's what makes authoring
-  *all* phases scalable.
-
-**Recommendation:** keep this as a Path-A prototyping aid first. If it proves faster
-in practice, invest in Path B's template format (the export JSON above is already a
-reasonable starting schema — add a `slot` field per entity so positions bind to roster
-slots rather than fixed jerseys, and author in a ball-relative normalised frame).
-
-Not part of the build or the deployed app; dev-only.
+- **Path A — prototyping aid (immediate):** author the motion here, read off the
+  positions, and port them into `pitchChoreography.ts` by hand. Good for tuning
+  existing layouts.
+- **Path B — baking from export (structured):** parse the export JSON, convert the
+  `t = 1` (resting) positions to ball-relative `[dx, dy]` offsets, store them as a
+  `Formation` constant, and call `placeFormation()`. The `t = 0` positions (where
+  non-zero) become `Placed.from` values for the formation-chase seam. Dispatch on
+  `prevPhase` when multi-predecessor variants are needed — the `choreograph()` function
+  already receives `prevPhase` as a parameter.

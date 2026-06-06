@@ -101,7 +101,7 @@ export function choreograph(
   if (event.phase === MatchPhase.TacticalKick)
     return placeFormation(event, state, attacksTop, prevBallX, prevBallY, TACTICAL_KICK_BASE);
   if (event.phase === MatchPhase.ConversionKick)
-    return placeFormation(event, state, attacksTop, prevBallX, prevBallY, CONVERSION_KICK_BASE);
+    return conversionLayout(event, state, attacksTop, prevBallX, prevBallY);
   if (event.phase === MatchPhase.DropOut22)      return dropOutLayout(event, state, attacksTop, prevBallX, prevBallY);
   if (event.phase === MatchPhase.BoxKick) {
     const keys = outcomeKeys(event);
@@ -687,26 +687,6 @@ const PENALTY_TAP_AND_KICK_DEAD: Formation = { nearTop: true,
   },
 };
 
-// Conversion kick — static full formation. Anchor = kick origin. atk = kicking team
-// (kicker at the mark, the rest gathered behind); def = defenders standing behind
-// the try line (in-goal) under the posts. The ball is placed by PitchView.
-const CONVERSION_KICK_BASE: Formation = { nearTop: true, unclamped: true,
-  atk: {
-    1:  [-33.00, -44.00],   2:  [-29.34, -37.62],   3:  [-33.00, -32.00],
-    4:  [-35.00, -41.00],   5:  [-35.00, -35.00],   6:  [-29.71, -43.57],
-    7:  [-30.00, -31.64],   8:  [-37.00, -38.00],   9:  [-45.90, -39.36],
-    10: [ -2.00,   0.00],   11: [-51.25, -27.94],   12: [-45.14, -47.33],
-    13: [-51.66, -50.17],   14: [-45.70, -31.61],   15: [-51.99, -39.15],
-  },
-  def: {
-    1:  [ 30.36, -29.30],   2:  [ 27.91, -45.11],   3:  [ 25.62, -27.53],
-    4:  [ 30.13, -26.04],   5:  [ 26.34, -31.11],   6:  [ 27.43, -25.05],
-    7:  [ 29.43, -47.15],   8:  [ 26.70, -33.55],   9:  [ 30.84, -44.63],
-    10: [ 30.92, -33.39],   11: [ 25.49,   0.16],   12: [ 30.70, -40.75],
-    13: [ 30.53, -36.74],   14: [ 26.41, -42.52],   15: [ 26.50, -37.65],
-  },
-};
-
 // Tactical kick base — full-formation chase, baked from the good_kick (to-touch) export
 // and shared by ALL tactical-kick outcomes as a starting point (refine per-outcome in the
 // animator later, then dispatch on the key). Anchor = kick origin (prevBall). atk =
@@ -958,6 +938,65 @@ function dropOutLayout(
   };
   fill(kickOn, kickSide, kickTbl, isAnnounce);   // kicker is the on-ball actor on announce
   fill(recvOn, recvSide, recvTbl, isReceive);    // catcher is the on-ball actor on receive
+  return out;
+}
+
+// Raw JSON absolute coordinates for conversion kick. Ball was at x=75, y=88.
+const CONV_ABS: Record<'atk' | 'def', Record<number, readonly [number, number]>> = {
+  atk: {
+    1:  [ 42.00,  44.00],   2:  [ 45.66,  50.38],   3:  [ 42.00,  56.00],
+    4:  [ 40.00,  47.00],   5:  [ 40.00,  53.00],   6:  [ 45.29,  44.43],
+    7:  [ 45.00,  56.36],   8:  [ 38.00,  50.00],   9:  [ 29.10,  48.64],
+    10: [ 73.00,  88.00],   // Track ball dynamically
+    11: [ 23.75,  60.06],   12: [ 29.86,  40.67],   13: [ 23.34,  37.83],
+    14: [ 29.30,  56.39],   15: [ 23.01,  48.85],
+  },
+  def: {
+    1:  [105.36,  58.70],   2:  [102.91,  42.89],   3:  [100.62,  60.47],
+    4:  [105.13,  61.96],   5:  [101.34,  56.89],   6:  [102.43,  62.95],
+    7:  [104.43,  40.85],   8:  [101.70,  54.45],   9:  [105.84,  43.37],
+    10: [105.92,  54.61],   11: [100.49,  88.16],   // Track ball dynamically
+    12: [105.70,  47.25],   13: [105.53,  51.26],   14: [101.41,  45.48],   15: [101.50,  50.35],
+  }
+};
+
+function conversionLayout(
+  event: GameEvent, state: MatchState, attacksTop: boolean, prevBallX: number, prevBallY: number
+): Placed[] {
+  const possSide: Side = event.side === 'home' ? 'h' : 'a';
+  const defSide: Side = possSide === 'h' ? 'a' : 'h';
+  
+  const atkOn = onFieldPlayers(possSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(possSide));
+  const defOn = onFieldPlayers(defSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(defSide));
+  
+  const out: Placed[] = [];
+  const dir = attacksTop ? 1 : -1;
+  const mirrorY = prevBallY < 50;
+
+  const fill = (on: Player[], side: Side, tbl: Record<number, readonly [number, number]>) => {
+    for (let slot = 1; slot <= 15; slot++) {
+      const p = on.find(pl => pl.id === slot);
+      if (!p) continue;
+
+      let x: number, y: number;
+      if (side === possSide && slot === 10) {
+        x = prevBallX - 2 * dir;
+        y = prevBallY;
+      } else if (side === defSide && slot === 11) {
+        x = attacksTop ? 100 : 0;
+        y = prevBallY;
+      } else {
+        const abs = tbl[slot];
+        if (!abs) continue;
+        x = attacksTop ? abs[0] : 100 - abs[0];
+        y = mirrorY ? 100 - abs[1] : abs[1];
+      }
+      out.push(placed(p, side, state, x, y, false));
+    }
+  };
+
+  fill(atkOn, possSide, CONV_ABS.atk);
+  fill(defOn, defSide, CONV_ABS.def);
   return out;
 }
 

@@ -349,6 +349,8 @@ The master seed is a 32-bit unsigned integer stored on `state.engine.seed`. It i
 
 A match with a given seed is fully reproducible: identical event sequence, identical scores, identical fatigue trajectories.
 
+**The `verify` check is self-consistency, not a frozen golden hash.** `checkDeterminism.ts` runs each fixture **twice** with the same seed and asserts the two snapshots (`state.events` + per-player matchStats) hash identically. So a *deterministic* change to event timing or ordering — e.g. deferring fatigue/injury commentary to the next break — passes fine: it just yields a new (still stable) hash. The printed hash is informational, not compared against a stored value. (The pinned snapshot in `checkSaveSchema.ts` is the separate save-shape guard.)
+
 ---
 
 ## Lateral / Y-axis model

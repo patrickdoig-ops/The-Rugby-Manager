@@ -19,6 +19,17 @@ export const PASS_DISTANCE_M = {
   long:  [12, 20],
 } as const;
 
+// First-phase backline passes off a set piece are wider: the backs need to
+// spread across the field. Flipped tier ratios — 5% short / 70% mid / 25% long
+// — give an average of ~10m per pass (vs ~5m in open play).
+export const FIRST_PHASE_PASS_DISTANCE_M = {
+  shortPct: 5,
+  midPct:   75,
+  short: [2, 5],
+  mid:   [5, 12],
+  long:  [12, 20],
+} as const;
+
 // Scrum-half pass off a set piece: longer flat spin pass to the fly-half, 10-20m.
 export const SCRUM_HALF_PASS_M = [10, 20] as const;
 

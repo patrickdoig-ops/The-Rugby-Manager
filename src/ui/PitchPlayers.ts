@@ -122,13 +122,19 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
         field.classList.add('dot-transitioning');
         setTimeout(() => field.classList.remove('dot-transitioning'), 600);
       }
+      // FirstPhase→Breakdown: the set-piece pack has been held at its scrum/lineout
+      // positions through the whole first phase. The breakdown beat is the first to
+      // reposition the forwards (into the authored ruck formation), so glide them
+      // there from wherever the set piece left them rather than snapping.
+      //
       // Breakdown and Kick formations: glide players into position from wherever
       // the predecessor phase (FirstPhase, PhasePlay) left them, rather than
       // snapping instantly. CSS animates from the dots' actual current positions,
       // so the blend is correct for any predecessor.
       if (event.phase === MatchPhase.Breakdown || 
           event.phase === MatchPhase.BoxKick || 
-          event.phase === MatchPhase.TacticalKick) {
+          event.phase === MatchPhase.TacticalKick ||
+          (currentPhase === MatchPhase.FirstPhase && event.phase === MatchPhase.Breakdown)) {
         field.classList.add('dot-transitioning');
         setTimeout(() => field.classList.remove('dot-transitioning'), 600);
       }

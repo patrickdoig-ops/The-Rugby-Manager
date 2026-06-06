@@ -49,6 +49,9 @@
          border: 2px solid rgba(255,255,255,.9); color: #fff; font: 800 10px/18px system-ui;
          text-align: center; cursor: grab; user-select: none; z-index: 3; }
   .dot.home { background: var(--home); } .dot.away { background: var(--away); }
+  #possIndicator { position: absolute; left: 50%; transform: translateX(-50%);
+    padding: 3px 10px; border-radius: 4px; font: 800 10px/1.4 system-ui; letter-spacing: .06em;
+    color: #fff; pointer-events: none; z-index: 10; white-space: nowrap; display: none; }
   .dot.sel { outline: 3px solid var(--sel); outline-offset: 1px; z-index: 5; }
   .dot.ball { width: 26px; height: 18px; margin: -9px 0 0 -13px; border-radius: 50%;
               background: var(--ball); border-color: #b9791a; z-index: 6; cursor: grab; }
@@ -113,7 +116,7 @@
     <textarea id="io" placeholder="Exported animation JSON appears here; paste here + Import to reload."></textarea>
   </div>
 
-  <div id="stage"><div id="pitch"></div></div>
+  <div id="stage"><div id="pitch"><div id="possIndicator"></div></div></div>
 
   <div id="timeline">
     <div class="tlrow">
@@ -194,6 +197,7 @@
   function makeEntities() {
     entities = []; pitch.querySelectorAll('.dot,.ghost,.trail').forEach(e => e.remove());
     elById = {}; ghostById = {};
+    document.getElementById('possIndicator').style.display = 'none';
     const add = (id, kind, jersey, x, y) => {
       const e = { id, kind, jersey, kf: [{ t: 0, x, y }] };
       entities.push(e);
@@ -393,7 +397,7 @@
       label: `${s.phase} · ${s.keys.join('/')}`,
       start: s.start, moves: s.moves || [], resolve: s.resolve,
       primary: s.primary, secondary: s.secondary, side: s.side, phase: s.phase, keys: s.keys,
-      layout: s.layout || [],
+      layout: s.layout || [], attacksTop: s.attacksTop ?? null,
     }));
   }
 
@@ -406,6 +410,7 @@
         start: prev ? { x: prev.ballX, y: prev.ballY } : { x: b.ballX, y: b.ballY },
         moves: b.moves || [], resolve: { x: b.ballX, y: b.ballY },
         primary: null, secondary: null, side: b.side, phase: b.phase, keys: b.keys,
+        attacksTop: b.attacksTop ?? null,
       };
     });
   }
@@ -449,11 +454,31 @@
         : [{ t: 0, x: d.x, y: d.y }];
       placed++;
     }
-    const inv = it.primary != null
-      ? `Involved: ${it.side} #${it.primary}${it.secondary != null ? ' & #' + it.secondary : ''}. `
-      : '';
+    // Possession + direction badge on the pitch
+    const pi = document.getElementById('possIndicator');
+    if (it.side) {
+      const isHome = it.side === 'home';
+      pi.style.background = isHome ? 'var(--home)' : 'var(--away)';
+      pi.style.display = 'block';
+      if (it.attacksTop === true) {
+        pi.style.top = '3%'; pi.style.bottom = '';
+        pi.textContent = '▲ ' + it.side.toUpperCase() + ' IN POSSESSION';
+      } else if (it.attacksTop === false) {
+        pi.style.top = ''; pi.style.bottom = '3%';
+        pi.textContent = '▼ ' + it.side.toUpperCase() + ' IN POSSESSION';
+      } else {
+        pi.style.top = '3%'; pi.style.bottom = '';
+        pi.textContent = it.side.toUpperCase() + ' IN POSSESSION';
+      }
+    } else {
+      pi.style.display = 'none';
+    }
+    // Sidebar info — clear possession + direction + involved players
+    const dirStr = it.attacksTop === true ? ' · attacking ↑ (top)' : it.attacksTop === false ? ' · attacking ↓ (bottom)' : '';
+    const possStr = it.side ? it.side.toUpperCase() + ' in possession' + dirStr + '. ' : '';
+    const invStr = it.primary != null ? 'Involved: #' + it.primary + (it.secondary != null ? ' & #' + it.secondary : '') + '. ' : '';
     document.getElementById('phaseInfo').textContent =
-      `${inv}Loaded the current layout (${placed} dots placed) + ball (${dedup.length} kf). Tweak/keyframe from here.`;
+      possStr + invStr + 'Layout: ' + placed + ' dots placed, ball: ' + dedup.length + ' kf.';
     playhead = 0; render();
   };
 

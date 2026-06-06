@@ -28,6 +28,7 @@ interface Sample {
   start: { x: number; y: number }; moves: { x: number; y: number }[];
   resolve: { x: number; y: number }; primary: number | null; secondary: number | null; prevPhase: string | null;
   layout: LayoutDot[];   // the live choreographed dot positions (game coords), so the tool can pre-place them
+  attacksTop: boolean;  // true = possessing team attacks toward x=100 (top of animator screen)
 }
 
 const collected = new Map<string, Sample>();
@@ -79,7 +80,7 @@ function runOnce(seed: number, pen: PenaltyChoice): Promise<void> {
             start: { ...prevBall }, moves,
             resolve: { x: Math.round(e.ballX), y: Math.round(e.ballY) },
             primary: e.primaryPlayer?.squadNumber ?? null, secondary: e.secondaryPlayer?.squadNumber ?? null,
-            prevPhase, layout,
+            prevPhase, layout, attacksTop,
           };
           // Prefer the richest beat per (phase, outcome): most movement, then most layout dots.
           const prev = collected.get(k);

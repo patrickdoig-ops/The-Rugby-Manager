@@ -974,8 +974,11 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
   const out: Placed[] = [];
   const [carrier, ...support] = attackers;
 
-  // Carrier sits behind the ball so their circle is visible alongside it.
-  if (carrier) out.push(placed(carrier, atkSide, state, clampX(ballX - fwd * 2.5), ballY, true));
+  // Carrier sits just behind the ball so their circle is visible alongside it — except on
+  // a try, where the scorer is placed ON the ball so they cross the line with it (the usual
+  // 2.5-unit lag would leave them stranded short of the line while the ball grounds over it).
+  const carrierBackoff = event.phase === MatchPhase.TryScored ? 0 : fwd * 2.5;
+  if (carrier) out.push(placed(carrier, atkSide, state, clampX(ballX - carrierBackoff), ballY, true));
 
   // Support attackers: fan behind the carrier in a wider arc so circles don't overlap.
   // Each player steps 6 x-units further back and is spread laterally by 8 y-units.

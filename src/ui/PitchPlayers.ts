@@ -145,10 +145,14 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       // PhasePlay: hold the predecessor formation (usually the breakdown) and let only
       // the involved actors (openPlayLayout) move, so don't fade on the way in either.
       const keepPhasePlay = event.phase === MatchPhase.PhasePlay;
-      // The kick→return seed glides from the predecessor positions; the holds keep the
-      // non-movers exactly in place, so only the kick case enables the transition here
-      // (phase play enables it per-beat below, for its movers).
-      if (keepKickFormation) {
+      // TryScored: hold the predecessor formation (the carry that scored) and let only the
+      // involved actors (openPlayLayout: the scorer + nearby defender) move, gliding them
+      // to the line while every other player stays where the carry left them.
+      const keepTryScored = event.phase === MatchPhase.TryScored;
+      // The kick→return seed and the try glide their movers from the predecessor positions;
+      // the other holds keep the non-movers exactly in place (no transition needed). Phase
+      // play enables its glide per-beat below.
+      if (keepKickFormation || keepTryScored) {
         field.classList.add('dot-transitioning');
         setTimeout(() => field.classList.remove('dot-transitioning'), 600);
       }
@@ -157,7 +161,7 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
         // mark or behind their #8 in a scrum). Skip the position update for their
         // dot this beat only; subsequent beats will reposition them normally.
         setpieceSHKey = `${event.side === 'home' ? 'h' : 'a'}:${SLOT.SCRUM_HALF}`;
-      } else if (!keepKickFormation && !keepTmo && !keepPhasePlay && nextKeys.size > 0) {
+      } else if (!keepKickFormation && !keepTmo && !keepPhasePlay && !keepTryScored && nextKeys.size > 0) {
         for (const key of persistedKeys) {
           if (!nextKeys.has(key)) pool.get(key)?.classList.remove('visible');
         }

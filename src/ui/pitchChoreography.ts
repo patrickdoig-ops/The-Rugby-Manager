@@ -89,7 +89,12 @@ export function choreograph(
   // (kick-offs use their own layout) regardless of whether the narration step is a
   // phase_outcome or announcement.
   if (event.phase === MatchPhase.KickOff)        return kickOffLayout(event, state, attacksTop);
-  if (event.phase === MatchPhase.TacticalKick)   return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
+  // All tactical kicks share the good_kick full-formation chase as a base (anchor = kick
+  // origin); each outcome can be refined into its own authored frame later. The ball's
+  // flight — lob to touch vs in-field landing — is PitchView's job keyed on kickFindsTouch,
+  // so a caught kick still lands in-field under this same layout.
+  if (event.phase === MatchPhase.TacticalKick)
+    return placeFormation(event, state, attacksTop, prevBallX, prevBallY, TACTICAL_KICK_BASE);
   if (event.phase === MatchPhase.ConversionKick) return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
   if (event.phase === MatchPhase.DropOut22)      return dropOutLayout(event, state, attacksTop, prevBallX, prevBallY);
   if (event.phase === MatchPhase.BoxKick) {
@@ -673,6 +678,43 @@ const PENALTY_TAP_AND_KICK_DEAD: Formation = { nearTop: true,
     7:  [ 17.03,   2.89],   8:  [ 17.38,  17.04],   9:  [ 27.40,  -4.55],
     10: [ 38.89, -16.53],   11: [ 30.88, -57.89],   12: [ 17.72, -42.24],
     13: [ 17.60, -49.74],   14: [ 17.59,  24.00],   15: [ 28.16,  24.00],
+  },
+};
+
+// Tactical kick base — full-formation chase, baked from the good_kick (to-touch) export
+// and shared by ALL tactical-kick outcomes as a starting point (refine per-outcome in the
+// animator later, then dispatch on the key). Anchor = kick origin (prevBall). atk =
+// kicking team driving toward +x (canonical); def = defenders covering downfield. Every
+// dot chases forward (from-tables) except the far winger (15). The ball's flight (out to
+// touch vs in-field) is PitchView's, keyed on kickFindsTouch, so caught kicks fit too.
+const TACTICAL_KICK_BASE: Formation = { nearTop: true,
+  atk: {
+    1:  [ 13.55, -27.08],   2:  [ 12.24, -36.14],   3:  [ 11.10,   8.43],
+    4:  [ 13.18,   3.48],   5:  [ 10.61,  17.00],   6:  [ 12.32, -48.63],
+    7:  [ 12.01,  -1.17],   8:  [ 10.96, -19.07],   9:  [  6.18,  12.06],
+    10: [  5.64,  -0.32],   11: [  0.81, -65.73],   12: [  5.39, -18.45],
+    13: [  3.56, -38.47],   14: [ 22.54,  12.22],   15: [-13.22, -16.19],
+  },
+  atkFrom: {
+    1:  [  5.77, -30.51],   2:  [  6.50, -36.24],   3:  [  5.71,   8.11],
+    4:  [  6.19,   4.41],   5:  [  6.39,  16.17],   6:  [  6.22, -49.89],
+    7:  [  6.22,  -1.12],   8:  [  5.79, -23.47],   9:  [  2.92,   6.51],
+    10: [  0.00,   0.00],   11: [ -9.00, -67.00],   12: [ -2.72, -21.45],
+    13: [ -5.11, -40.05],   14: [ -5.31,  13.98],   15: [-16.00, -33.00],
+  },
+  def: {
+    1:  [ 21.11,   1.45],   2:  [ 17.20,  10.33],   3:  [ 25.01,  17.00],
+    4:  [ 18.64, -12.97],   5:  [ 21.19, -18.51],   6:  [ 21.73,  -7.36],
+    7:  [ 23.94, -23.72],   8:  [ 21.91,  -2.95],   9:  [ 26.67,   5.83],
+    10: [ 29.42, -29.86],   11: [ 31.12,   2.37],   12: [ 24.49, -38.41],
+    13: [ 25.08, -51.15],   14: [ 24.67, -67.74],   15: [ 33.23, -50.56],
+  },
+  defFrom: {
+    1:  [ 13.64,   1.73],   2:  [ 15.77,   8.71],   3:  [ 16.01,  15.62],
+    4:  [ 15.29, -13.18],   5:  [ 15.28, -19.02],   6:  [ 14.84,  -4.30],
+    7:  [ 15.49, -25.65],   8:  [ 13.10,  -0.84],   9:  [ 23.06,  -0.50],
+    10: [ 14.67, -30.19],   11: [ 35.18,  -6.23],   12: [ 15.87, -39.87],
+    13: [ 16.74, -52.23],   14: [ 18.09, -69.62],
   },
 };
 

@@ -99,7 +99,7 @@
         "breakdown": 83,
         "kicking": 48,
         "setPiece": 99,
-        "discipline": 79,
+        "discipline": 85,
         "positioning": 80,
         "composure": 81
       }
@@ -122,7 +122,7 @@
         "breakdown": 84,
         "kicking": 53,
         "setPiece": 98,
-        "discipline": 78,
+        "discipline": 86,
         "positioning": 80,
         "composure": 82
       }
@@ -145,7 +145,7 @@
         "breakdown": 86,
         "kicking": 53,
         "setPiece": 99,
-        "discipline": 78,
+        "discipline": 82,
         "positioning": 79,
         "composure": 79
       }
@@ -168,8 +168,8 @@
         "breakdown": 84,
         "kicking": 51,
         "setPiece": 98,
-        "discipline": 83,
-        "positioning": 82,
+        "discipline": 89,
+        "positioning": 88,
         "composure": 89
       }
     },
@@ -191,7 +191,7 @@
         "breakdown": 82,
         "kicking": 55,
         "setPiece": 99,
-        "discipline": 77,
+        "discipline": 82,
         "positioning": 82,
         "composure": 82
       }
@@ -213,8 +213,8 @@
         "tackling": 90,
         "breakdown": 90,
         "kicking": 77,
-        "setPiece": 78,
-        "discipline": 78,
+        "setPiece": 82,
+        "discipline": 87,
         "positioning": 88,
         "composure": 78
       }
@@ -238,7 +238,7 @@
         "kicking": 58,
         "setPiece": 86,
         "discipline": 82,
-        "positioning": 83,
+        "positioning": 85,
         "composure": 81
       }
     },
@@ -260,7 +260,7 @@
         "breakdown": 89,
         "kicking": 60,
         "setPiece": 88,
-        "discipline": 80,
+        "discipline": 88,
         "positioning": 83,
         "composure": 80
       }

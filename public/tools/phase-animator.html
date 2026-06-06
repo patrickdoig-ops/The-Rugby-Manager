@@ -393,13 +393,27 @@
 
   function embedItems() {
     const E = window.EMBEDDED_PHASES || [];
-    return E.map(s => ({
-      label: `${s.phase} · ${s.keys.join('/')}`,
-      start: s.start, moves: s.moves || [], resolve: s.resolve,
-      primary: s.primary, secondary: s.secondary, side: s.side, phase: s.phase, keys: s.keys,
-      layout: s.layout || [], attacksTop: s.attacksTop ?? null,
-      prevPhase: s.prevPhase ?? null, prevKey: s.prevKey ?? null,
-    }));
+    // Find (phase·key) pairs that have more than one distinct predecessor so
+    // the label can disambiguate: "FIRST_PHASE · crash_ball ← LINEOUT:clean_catch"
+    const predsByPk = new Map();
+    for (const s of E) {
+      const pk = s.phase + ':' + s.key;
+      if (!predsByPk.has(pk)) predsByPk.set(pk, new Set());
+      predsByPk.get(pk).add((s.prevPhase || '') + ':' + (s.prevKey || ''));
+    }
+    return E.map(s => {
+      const pk = s.phase + ':' + s.key;
+      const predStr = predsByPk.get(pk).size > 1
+        ? ' ← ' + (s.prevPhase || '?') + ':' + (s.prevKey || '?')
+        : '';
+      return {
+        label: s.phase + ' · ' + s.keys.join('/') + predStr,
+        start: s.start, moves: s.moves || [], resolve: s.resolve,
+        primary: s.primary, secondary: s.secondary, side: s.side, phase: s.phase, keys: s.keys,
+        layout: s.layout || [], attacksTop: s.attacksTop ?? null,
+        prevPhase: s.prevPhase ?? null, prevKey: s.prevKey ?? null,
+      };
+    });
   }
 
   function traceItems(trace) {

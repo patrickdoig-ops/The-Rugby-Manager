@@ -76,7 +76,11 @@ function runOnce(seed: number, pen: PenaltyChoice): Promise<void> {
         // interception-after-crash_ball) only ever appear as non-first steps and
         // would be permanently invisible if only keys[0] were captured.
         for (const key of keys) {
-          const k = `${e.phase}:${key}`;
+          // Key on (phase, outcome, prevPhase) — predecessor phase type is the
+          // meaningful formation context; prevKey within that phase doesn't
+          // change the relative player geometry, only the ball's field position.
+          // prevKey is still stored on the sample for the animator's exact lookup.
+          const k = `${e.phase}:${key}:${prevPhase ?? ''}`;
           const sample: Sample = {
             phase: e.phase, displayPhase: e.displayPhase ?? null, key, keys, side: e.side,
             start: { ...prevBall }, moves,

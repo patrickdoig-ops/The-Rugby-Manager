@@ -43,6 +43,7 @@ export interface ChaseDot { el: HTMLElement; fromX: number; fromY: number; toX: 
 // the final carry leg onto the ball).
 export interface BallWalkFollower {
   run(finalTopPct: number, finalLeftPct: number, frames: Keyframe[], duration: number, easing: string): void;
+  runTackler(finalTopPct: number, finalLeftPct: number, frames: Keyframe[], duration: number, easing: string): void;
   cancel(): void;
 }
 
@@ -52,6 +53,8 @@ export interface PitchPlayers {
   chaseDots: ChaseDot[];              // dots with a `from` this beat, for PitchView to animate (kick-off chase)
   atkScrumHalfEl: HTMLElement | null; // attacking #9 placed at scrum final pos, for PitchView to sweep
   defScrumHalfEl: HTMLElement | null; // defending #9 placed at scrum final pos, for PitchView to sweep
+  domTacklerEl: HTMLElement | null;   // dominant tackler dot for synchronized carry animation
+  domTacklerFrom: { x: number; y: number } | null;
   reset(): void;
 }
 
@@ -65,6 +68,9 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
   let chaseDots: ChaseDot[] = [];                // dots with a `from` this beat (kick-off chase)
   let atkSHEl: HTMLElement | null = null;        // attacking #9 at scrum final pos (PitchView sweeps)
   let defSHEl: HTMLElement | null = null;        // defending #9 at scrum final pos (PitchView sweeps)
+  let domTacklerEl: HTMLElement | null = null;   // tackler on dominant carry/tackle
+  let domTacklerFrom: { x: number; y: number } | null = null;
+
   // The dot currently carrying an injury/fatigue glow, cleared on the next beat.
   // `glowReshown` is true when we re-showed an off-field injured dot just for the glow,
   // so it can be hidden again once its announcement passes.
@@ -73,6 +79,8 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
   let glowReshown = false;
   let carrierAnim: Animation | null = null;
   let animatedEl: HTMLElement | null = null;     // the dot carrierAnim is driving (may differ from carrierEl after a beat flip)
+  let tacklerAnim: Animation | null = null;
+  let animatedTacklerEl: HTMLElement | null = null;
 
   const ensureDot = (key: string, color: string, text: string, jersey: number): HTMLElement => {
     let el = pool.get(key);
@@ -133,8 +141,7 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       // so the blend is correct for any predecessor.
       if (event.phase === MatchPhase.Breakdown || 
           event.phase === MatchPhase.BoxKick || 
-          event.phase === MatchPhase.TacticalKick ||
-          (currentPhase === MatchPhase.FirstPhase && event.phase === MatchPhase.Breakdown)) {
+          event.phase === MatchPhase.TacticalKick) {
         field.classList.add('dot-transitioning');
         setTimeout(() => field.classList.remove('dot-transitioning'), 600);
       }
@@ -211,6 +218,8 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     chaseDots = [];
     atkSHEl = null;
     defSHEl = null;
+    domTacklerEl = null;
+    domTacklerFrom = null;
     for (const p of placed) {
       persistedKeys.add(p.key);
       const el = ensureDot(p.key, p.color, p.text, p.jersey);
@@ -240,7 +249,12 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       }
       el.classList.add('visible');
       if (p.isCarrier) carrierEl = el;
-      if (p.from) chaseDots.push({ el, fromX: p.from.x, fromY: p.from.y, toX: p.x, toY: p.y });
+      if (p.isDominantTackler) {
+        domTacklerEl = el;
+        if (p.from) domTacklerFrom = { x: p.from.x, y: p.from.y };
+      }
+      // Do not add dominant tackler to chaseDots; they are animated strictly by PitchView with the ball
+      if (p.from && !p.isDominantTackler) chaseDots.push({ el, fromX: p.from.x, fromY: p.from.y, toX: p.x, toY: p.y });
       if (p.scrumHalfRole === 'atk') atkSHEl = el;
       if (p.scrumHalfRole === 'def') defSHEl = el;
     }
@@ -271,6 +285,8 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
   const stopCarrierAnim = () => {
     if (carrierAnim) { carrierAnim.cancel(); carrierAnim = null; }
     if (animatedEl) { animatedEl.style.transition = ''; animatedEl = null; }
+    if (tacklerAnim) { tacklerAnim.cancel(); tacklerAnim = null; }
+    if (animatedTacklerEl) { animatedTacklerEl.style.transition = ''; animatedTacklerEl = null; }
   };
 
   // Carrier dot rides only the FINAL carry leg of the ball walk. PitchView builds
@@ -295,6 +311,22 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
         el.style.transition = '';
         carrierAnim = null;
         animatedEl = null;
+      };
+    },
+    runTackler(finalTopPct, finalLeftPct, frames, duration, easing) {
+      const el = domTacklerEl;
+      if (!el) return;
+      el.style.transition = 'none';
+      el.style.top  = `${finalTopPct}%`;
+      el.style.left = `${finalLeftPct}%`;
+      const anim = el.animate(frames, { duration, easing });
+      tacklerAnim = anim;
+      animatedTacklerEl = el;
+      anim.onfinish = () => {
+        if (tacklerAnim !== anim) return;   // superseded by a later beat
+        el.style.transition = '';
+        tacklerAnim = null;
+        animatedTacklerEl = null;
       };
     },
     cancel() { stopCarrierAnim(); },
@@ -323,6 +355,8 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     get chaseDots()      { return chaseDots; },
     get atkScrumHalfEl() { return atkSHEl; },
     get defScrumHalfEl() { return defSHEl; },
+    get domTacklerEl()   { return domTacklerEl; },
+    get domTacklerFrom() { return domTacklerFrom; },
     reset,
   };
 }

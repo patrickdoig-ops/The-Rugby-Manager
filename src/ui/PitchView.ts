@@ -240,6 +240,16 @@ export function initPitchView(): void {
       left: toLeft(p.y)
     }));
 
+    let carryStartIdx = 0;
+    if (!carrierFromStart) {
+      for (let i = ballPath.length - 1; i > 0; i--) {
+        if (ballPath[i].x !== ballPath[i - 1].x) {
+          carryStartIdx = i - 1;
+          break;
+        }
+      }
+    }
+
     if (carrierFromStart) {
       // Direct pick-up (pick-and-go): rides the WHOLE ball path exactly in sync.
       carrierFrames = carrierPath.map((cp, i) => ({
@@ -248,13 +258,6 @@ export function initPitchView(): void {
       }));
     } else {
       // Passed carry: hold at the receive point, then follow the ball.
-      let carryStartIdx = 0;
-      for (let i = ballPath.length - 1; i > 0; i--) {
-        if (ballPath[i].x !== ballPath[i - 1].x) {
-          carryStartIdx = i - 1;
-          break;
-        }
-      }
       const receiveCp = carrierPath[carryStartIdx];
       carrierFrames = [
         { transform: offsetTransform(receiveCp.top, receiveCp.left, carrierFinalTop, finalLeft, w, h), offset: 0 },
@@ -268,6 +271,41 @@ export function initPitchView(): void {
       }
     }
     follower.run(carrierFinalTop, finalLeft, carrierFrames, duration, 'linear');
+
+    const domTackler = players.domTacklerEl;
+    if (domTackler && players.domTacklerFrom) {
+      let tacklerFrames: Keyframe[];
+      const tacklerFromTop = toTop(players.domTacklerFrom.x);
+      const tacklerFromLeft = toLeft(players.domTacklerFrom.y);
+      const tacklerFinalTop = toTop(Math.max(2, Math.min(98, fromTop(carrierFinalTop) + fwd * 1.3)));
+      const tacklerFinalLeft = finalLeft;
+
+      if (carrierFromStart) {
+        tacklerFrames = [
+          { transform: offsetTransform(tacklerFromTop, tacklerFromLeft, tacklerFinalTop, tacklerFinalLeft, w, h), offset: 0 },
+          { transform: offsetTransform(tacklerFinalTop, tacklerFinalLeft, tacklerFinalTop, tacklerFinalLeft, w, h), offset: 1 }
+        ];
+      } else {
+        const carryStartPct = carryStartIdx / N;
+        const receiveCp = carrierPath[carryStartIdx];
+        const tacklerReceiveTop = toTop(Math.max(2, Math.min(98, fromTop(receiveCp.top) + fwd * 1.3)));
+        const tacklerReceiveLeft = receiveCp.left;
+
+        tacklerFrames = [
+          { transform: offsetTransform(tacklerFromTop, tacklerFromLeft, tacklerFinalTop, tacklerFinalLeft, w, h), offset: 0 },
+          ...(carryStartIdx > 0 ? [{ transform: offsetTransform(tacklerReceiveTop, tacklerReceiveLeft, tacklerFinalTop, tacklerFinalLeft, w, h), offset: carryStartPct }] : [])
+        ];
+        
+        for (let i = carryStartIdx + 1; i <= N; i++) {
+          const tTop = toTop(Math.max(2, Math.min(98, fromTop(carrierPath[i].top) + fwd * 1.3)));
+          tacklerFrames.push({
+            transform: offsetTransform(tTop, carrierPath[i].left, tacklerFinalTop, tacklerFinalLeft, w, h),
+            offset: i / N
+          });
+        }
+      }
+      follower.runTackler(tacklerFinalTop, tacklerFinalLeft, tacklerFrames, duration, 'linear');
+    }
   };
 
   const animateKickDecision = (kfs: ReadonlyArray<{ x: number; y: number }>, lineCount: number, fwd: number, event: GameEvent) => {

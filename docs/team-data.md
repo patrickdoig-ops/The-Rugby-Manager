@@ -222,7 +222,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 | James Williams | Centre | 1998-08-04 | 27 | England | 83 | 72 | 73 | 74 | 72 | 73 | 64 | 58 | 65 | 67 | 72 | 68 |
 | Joe Jenkins | Centre | 2003-10-13 | 22 | England | 87 | 72 | 72 | 72 | 72 | 72 | 67 | 66 | 60 | 62 | 72 | 69 |
 | Jack Bates | Wing | 2001-09-21 | 24 | England | 85 | 64 | 81 | 79 | 72 | 60 | 58 | 59 | 60 | 67 | 72 | 72 |
-| Rich Lane | Full-back | 1994-12-22 | 31 | England | 80 | 65 | 78 | 79 | 74 | 677 | 60 | 77 | 56 | 63 | 75 | 72 |
+| Rich Lane | Full-back | 1994-12-22 | 31 | England | 80 | 65 | 78 | 79 | 74 | 67 | 60 | 77 | 56 | 63 | 75 | 72 |
 | Sam Wolstenholme | Scrum-half | 2001-04-19 | 25 | England | 83 | 56 | 78 | 72 | 73 | 62 | 63 | 73 | 55 | 70 | 72 | 72 |
 | Max Pepper | Scrum-half | 2001-01-09 | 25 | England | 80 | 62 | 72 | 74 | 72 | 62 | 66 | 72 | 62 | 67 | 72 | 72 |
 | Noah Heward | Full-back | 2002-03-30 | 24 | England | 85 | 62 | 74 | 74 | 76 | 71 | 60 | 72 | 59 | 67 | 72 | 72 |

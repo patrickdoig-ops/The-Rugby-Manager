@@ -57,7 +57,6 @@ function runOnce(seed: number, pen: PenaltyChoice): Promise<void> {
       const keys = e.narration.steps.filter(s => s.kind === 'phase_outcome').map(s => s.key as string);
       const moves = (e.movements ?? []).map(m => ({ x: Math.round(m.x), y: Math.round(m.y) }));
       if (keys.length) {
-        const k = `${e.phase}:${keys[0]}`;
         // Capture the live choreographed layout (the same dots the game would draw)
         // so the animator can load it as a starting point instead of a blank formation.
         const st = engine.getState();
@@ -69,18 +68,25 @@ function runOnce(seed: number, pen: PenaltyChoice): Promise<void> {
             if (p.from) o.from = { x: Math.round(p.from.x), y: Math.round(p.from.y) };
             return o;
           });
-        const sample: Sample = {
-          phase: e.phase, displayPhase: e.displayPhase ?? null, key: keys[0], keys, side: e.side,
-          start: { ...prevBall }, moves,
-          resolve: { x: Math.round(e.ballX), y: Math.round(e.ballY) },
-          primary: e.primaryPlayer?.squadNumber ?? null, secondary: e.secondaryPlayer?.squadNumber ?? null,
-          prevPhase, layout,
-        };
-        // Prefer the richest beat per (phase, outcome): most movement, then most layout dots.
-        const prev = collected.get(k);
-        if (!prev || moves.length > prev.moves.length ||
-            (moves.length === prev.moves.length && layout.length > prev.layout.length)) {
-          collected.set(k, sample);
+        // Index by every phase_outcome key in this event, not just the first.
+        // Secondary keys (cover_tackle, high_tackle_penalty, offload_knock_on,
+        // interception-after-crash_ball) only ever appear as non-first steps and
+        // would be permanently invisible if only keys[0] were captured.
+        for (const key of keys) {
+          const k = `${e.phase}:${key}`;
+          const sample: Sample = {
+            phase: e.phase, displayPhase: e.displayPhase ?? null, key, keys, side: e.side,
+            start: { ...prevBall }, moves,
+            resolve: { x: Math.round(e.ballX), y: Math.round(e.ballY) },
+            primary: e.primaryPlayer?.squadNumber ?? null, secondary: e.secondaryPlayer?.squadNumber ?? null,
+            prevPhase, layout,
+          };
+          // Prefer the richest beat per (phase, outcome): most movement, then most layout dots.
+          const prev = collected.get(k);
+          if (!prev || moves.length > prev.moves.length ||
+              (moves.length === prev.moves.length && layout.length > prev.layout.length)) {
+            collected.set(k, sample);
+          }
         }
       }
       prevBall = { x: Math.round(e.ballX), y: Math.round(e.ballY) };
@@ -98,7 +104,7 @@ function runOnce(seed: number, pen: PenaltyChoice): Promise<void> {
 }
 
 const pens: PenaltyChoice[] = ['kick_for_goal', 'kick_to_touch', 'tap_and_go'];
-const SEEDS = 60;
+const SEEDS = 300;
 for (let s = 0; s < SEEDS; s++) {
   await runOnce(0x2200 + s * 0x101, pens[s % pens.length]);
 }

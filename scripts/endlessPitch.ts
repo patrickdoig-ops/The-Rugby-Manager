@@ -7,8 +7,8 @@ import { initCommentaryFeed } from '../src/ui/CommentaryFeed';
 import { MatchCoordinator } from '../src/engine/MatchCoordinator';
 import type { RawTeamInput } from '../src/types/teamData';
 
-import bathRaw from '../src/data/team-bath.json';
-import saracensRaw from '../src/data/team-saracens.json';
+import harlequinsRaw from '../src/data/team-harlequins.json';
+import bristolRaw from '../src/data/team-bristol.json';
 
 // Initialize core isolated UI components
 initPitchView();
@@ -87,8 +87,8 @@ eventBus.on('engine:event', ({ event }) => {
   }
 });
 
-const home = bathRaw as unknown as RawTeamInput;
-const away = saracensRaw as unknown as RawTeamInput;
+const home = harlequinsRaw as unknown as RawTeamInput;
+const away = bristolRaw as unknown as RawTeamInput;
 
 function startMatch() {
   if (currentEngine && 'destroy' in currentEngine) {

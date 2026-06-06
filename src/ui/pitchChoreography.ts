@@ -26,6 +26,7 @@ export interface Placed {
   isCarrier: boolean; // the on-ball dot (sits behind ball, slightly offset)
   from?: { x: number; y: number }; // start position — PitchView animates the dot from here to its resting (x,y) over the beat (kick-off chase line)
   scrumHalfRole?: 'atk' | 'def'; // scrum SH — PitchView sweeps from loosehead start to behind-#8 final
+  isDominantTackler?: boolean;   // tackler on a dominant carry/tackle, who will animate in sync with the ball carrier
 }
 
 type Side = 'h' | 'a';
@@ -102,7 +103,27 @@ export function choreograph(
     if (kickFindsTouch(event)) {
       return placeFormation(event, state, attacksTop, prevBallX, prevBallY, TACTICAL_KICK_FROZEN);
     }
-    return placeFormation(event, state, attacksTop, prevBallX, prevBallY, TACTICAL_KICK_BASE);
+    const dots = placeFormation(event, state, attacksTop, prevBallX, prevBallY, TACTICAL_KICK_BASE);
+
+    // For a caught kick, the ball lands at event.ballX, event.ballY.
+    // The catcher (event.secondaryPlayer) needs to animate from their base defensive position
+    // to the actual landing spot, so they visibly run into position to catch the ball.
+    const catcher = event.secondaryPlayer;
+    if (catcher) {
+      const fwd = attacksTop ? 1 : -1;
+      const catcherKey = `${sideOf(catcher, state)}:${catcher.id}`;
+      const catcherDot = dots.find(d => d.key === catcherKey);
+      if (catcherDot) {
+        // Run FROM their authored defensive-line placement...
+        catcherDot.from = { x: catcherDot.x, y: catcherDot.y };
+        // ...TO the actual ball landing spot
+        catcherDot.x = clampX(event.ballX - fwd * 2.5);
+        catcherDot.y = clampY(event.ballY);
+        catcherDot.isCarrier = true;
+      }
+    }
+
+    return dots;
   }
   if (event.phase === MatchPhase.ConversionKick)
     return conversionLayout(event, state, attacksTop, prevBallX, prevBallY);
@@ -1128,6 +1149,8 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
       const defLineY = clampY(ballY + 4);
       const dot = placed(p, defSide, state, tackleX, ballY, false);
       dot.from = { x: defLineX, y: defLineY };
+      const isDominant = event.outcome === 'dominant_carry' || event.outcome === 'dominant_tackle';
+      if (isDominant) dot.isDominantTackler = true;
       out.push(dot);
     } else {
       const lateralOffset = (i % 2 === 0 ? 1 : -1) * Math.ceil((i + 1) / 2) * 8;
@@ -1513,6 +1536,8 @@ function firstPhaseBacklineLayout(
         const defLineY = clampY(event.ballY + 4);
         const dot = placed(p, defSide, state, tackleX, carrierPl.y, false);
         dot.from = { x: defLineX, y: defLineY };
+        const isDominant = event.outcome === 'dominant_carry' || event.outcome === 'dominant_tackle';
+        if (isDominant) dot.isDominantTackler = true;
         out.push(dot);
         return;
       }

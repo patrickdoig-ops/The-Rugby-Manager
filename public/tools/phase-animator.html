@@ -225,7 +225,12 @@
   const TOP0 = 6, TOPSPAN = 88, LEFT0 = 4, LEFTSPAN = 92;
   const xToTop  = x => TOP0 + (100 - x) / 100 * TOPSPAN;       // %
   const yToLeft = y => LEFT0 + y / 100 * LEFTSPAN;             // %
-  const topToX  = topPct => clamp(100 - (topPct - TOP0) / TOPSPAN * 100, 0, 100);
+  // x may be dragged BEYOND the field of play into the in-goal areas (behind a try line):
+  // x>100 is the top in-goal, x<0 the bottom. The range is capped at [-6,106] so the dot
+  // stays inside the pitch element's in-goal band (xToTop stays within 0..100%). The game
+  // renders these the same way (toTop extrapolates) — used for the conversion's defending
+  // line behind their try line. y stays on-field [0,100].
+  const topToX  = topPct => clamp(100 - (topPct - TOP0) / TOPSPAN * 100, -6, 106);
   const leftToY = leftPct => clamp((leftPct - LEFT0) / LEFTSPAN * 100, 0, 100);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -233,6 +238,15 @@
 
   // ---- pitch markings (horizontal lines because x is vertical) ----
   function drawPitch() {
+    // In-goal bands beyond each try line (top: 0..TOP0%, bottom: 100-TOP0..100%), shaded
+    // so behind-the-line authoring (x>100 / x<0) reads clearly. Drawn first so the try
+    // lines sit on top; pointer-events:none so dragging into them still works.
+    for (const band of [{ top: 0, h: TOP0 }, { top: 100 - TOP0, h: TOP0 }]) {
+      const g = document.createElement('div');
+      g.style.cssText = `position:absolute;left:0;right:0;top:${band.top}%;height:${band.h}%;`
+        + 'background:rgba(255,255,255,.06);pointer-events:none;';
+      pitch.appendChild(g);
+    }
     const lines = [
       [100, 'solid'], [78, 'dash'], [50, 'solid'], [22, 'dash'], [0, 'solid'], // try/22/half
       [90, 'faint'], [60, 'faint'], [40, 'faint'], [10, 'faint'],              // 10m-ish guides

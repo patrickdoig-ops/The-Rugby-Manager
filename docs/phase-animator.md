@@ -39,7 +39,12 @@ URL or hard-refresh.
 - **Pitch** — portrait top-down, the same coordinate space as the game (`x` runs up
   the screen, `100` at the top; `y` is lateral, `0`/`100` are the touchlines). The
   fixed end-labels read **AWAY 22** (top) and **HOME 22** (bottom) to orient you.
-  Maroon dots = home, blue = away, orange = ball.
+  Maroon dots = home, blue = away, orange = ball. The **try lines are at x=0 and
+  x=100** (the solid end lines); the faintly-shaded band beyond each is the **in-goal**.
+  You can drag a dot **behind a try line** into the in-goal — x goes slightly past
+  100 (top) or below 0 (bottom), capped at [-6, 106]. The game renders these the same
+  way (its `toTop` extrapolates), used e.g. for the conversion's defending line standing
+  behind their try line. `y` stays on-field (0–100).
 - **Possession badge** — a coloured pill that floats near the top or bottom of the
   pitch when a phase is loaded. It names the team in possession and which direction
   they're attacking (▲ = toward the top / AWAY end; ▼ = toward the bottom / HOME end).

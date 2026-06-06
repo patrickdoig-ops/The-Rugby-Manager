@@ -797,14 +797,14 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Trevor Davison | Prop | 1992-08-20 | 33 | England | 80 | 89 | 71 | 73 | 72 | 89 | 83 | 48 | 99 | 79 | 80 | 81 |
-| Curtis Langdon | Hooker | 1997-08-03 | 28 | England | 83 | 86 | 74 | 79 | 81 | 87 | 84 | 53 | 98 | 78 | 80 | 82 |
-| Danilo Fischetti | Prop | 1998-01-26 | 28 | Italy | 80 | 94 | 69 | 74 | 74 | 86 | 86 | 53 | 99 | 78 | 79 | 79 |
-| Alex Coles | Lock | 1999-09-21 | 26 | England | 85 | 90 | 76 | 71 | 80 | 84 | 84 | 51 | 98 | 83 | 82 | 89 |
-| JJ van der Mescht | Lock | 1999-05-04 | 27 | South Africa | 75 | 95 | 71 | 79 | 78 | 83 | 82 | 55 | 99 | 77 | 82 | 82 |
-| Henry Pollock | Flanker | 2005-01-14 | 21 | England | 95 | 78 | 89 | 95 | 78 | 90 | 90 | 77 | 78 | 78 | 88 | 78 |
-| Tom Pearson | Flanker | 1999-10-26 | 26 | England | 82 | 91 | 81 | 87 | 82 | 87 | 88 | 58 | 86 | 82 | 83 | 81 |
-| Callum Chick | Number 8 | 1996-11-25 | 29 | England | 87 | 90 | 80 | 86 | 87 | 86 | 89 | 60 | 88 | 80 | 83 | 80 |
+| Trevor Davison | Prop | 1992-08-20 | 33 | England | 80 | 89 | 71 | 73 | 72 | 89 | 83 | 48 | 99 | 85 | 80 | 81 |
+| Curtis Langdon | Hooker | 1997-08-03 | 28 | England | 83 | 86 | 74 | 79 | 81 | 87 | 84 | 53 | 98 | 86 | 80 | 82 |
+| Danilo Fischetti | Prop | 1998-01-26 | 28 | Italy | 80 | 94 | 69 | 74 | 74 | 86 | 86 | 53 | 99 | 82 | 79 | 79 |
+| Alex Coles | Lock | 1999-09-21 | 26 | England | 85 | 90 | 76 | 71 | 80 | 84 | 84 | 51 | 98 | 89 | 88 | 89 |
+| JJ van der Mescht | Lock | 1999-05-04 | 27 | South Africa | 75 | 95 | 71 | 79 | 78 | 83 | 82 | 55 | 99 | 82 | 82 | 82 |
+| Henry Pollock | Flanker | 2005-01-14 | 21 | England | 95 | 78 | 89 | 95 | 78 | 90 | 90 | 77 |82 | 87 | 88 | 78 |
+| Tom Pearson | Flanker | 1999-10-26 | 26 | England | 82 | 91 | 81 | 87 | 82 | 87 | 88 | 58 | 86 | 82 | 85 | 81 |
+| Callum Chick | Number 8 | 1996-11-25 | 29 | England | 87 | 90 | 80 | 86 | 87 | 86 | 89 | 60 | 88 | 88 | 83 | 80 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |

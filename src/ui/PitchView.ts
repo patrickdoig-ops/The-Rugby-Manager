@@ -341,16 +341,17 @@ export function initPitchView(): void {
     } else if (event.phase === MatchPhase.Maul) {
       // Maul (always off a lineout): the whole pack glides forward into the maul
       // cluster as a bound unit (Layer-3 dot-transitioning, set in applyBeat) while
-      // the ball slides to the hooker at the tail of the drive (dx=14 behind the
-      // mark). Handles WON drives too — event.ballX has already advanced by the gain,
-      // so the cluster and ball finish further upfield, reading as a forward drive.
-      // Ahead of the movements branch on purpose: a won maul must NOT go through
-      // animateMovements, which would peel the hooker off the pack onto the ball.
+      // the ball slides to the hooker at the tail of the drive (dx=7.5 behind the
+      // mark — in sync with MAUL_ATK_ROWS' hooker depth). Handles WON drives too —
+      // event.ballX has already advanced by the gain, so the cluster and ball finish
+      // further upfield, reading as a forward drive. Ahead of the movements branch on
+      // purpose: a won maul must NOT go through animateMovements, which would peel the
+      // hooker off the pack onto the ball.
       clearMovement();
       movementAnimating = true;
       const attacksTop = (event.side === 'home') !== cachedHalfTimeDone;
       const fwd = attacksTop ? 1 : -1;
-      const hookerTop  = toTop(Math.max(2, Math.min(98, event.ballX - fwd * 14)));
+      const hookerTop  = toTop(Math.max(2, Math.min(98, event.ballX - fwd * 7.5)));
       const hookerLeft = toLeft(event.ballY);
       const { w, h } = hostDims();
       runAnim([

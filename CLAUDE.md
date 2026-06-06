@@ -155,7 +155,7 @@ Ball animation forms:
 - `animateKickArc` — straight-line travel with a `scale(1.5)` apex at offset 0.5 (reads as ball in the air)
 - `animateMovements` — multi-leg carry: `GameEvent.movements[]` gives the path; one WAAPI keyframe per leg
 - `runAnim` — the underlying primitive both use; commits the anchor, creates the animation, wires `onfinish`
-- Lineout→Maul: ball travels from lineout mark to the hooker at the tail of the maul (dx=14)
+- Lineout→Maul: ball travels from lineout mark to the hooker at the tail of the maul (dx=7.5)
 - Lineout→FirstPhase: 2-leg path — lineout mark → #9's stored position → first-phase ball position (uses `lineoutSHTop/Left` cached on the previous lineout beat)
 
 ### Layer 2 — Individual dot animation (WAAPI, `PitchView.ts`)

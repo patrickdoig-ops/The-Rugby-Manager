@@ -102,10 +102,42 @@ export function choreograph(
     if (form) return placeFormation(event, state, attacksTop, prevBallX, prevBallY, form.form);
     return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
   }
-  // A penalty kicked to touch behaves like a tactical kick to touch (ball out, lineout
-  // next) — same layout: only the kicker, no receiver under the ball.
-  if (event.phase === MatchPhase.Penalty && kickFindsTouch(event))
-    return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
+  // A penalty kicked to touch: full 30-player formation — the kicking pack clustered at
+  // the mark, the defenders dropped back to cover the kick — anchored on the kick origin
+  // (the previous beat's ball = the penalty mark, same anchor the kicker used before).
+  // PitchView still lobs the ball out past the touchline and the lineout forms next beat;
+  // a6/a15 carry the small post-kick shuffle via defFrom.
+  // Tap-and-kick-dead: a static full-formation frame (no player movement) while the ball
+  // is lobbed out to end the half. Must precede the generic kick-to-touch branch below,
+  // which also matches tap_and_kick_dead via kickFindsTouch. Anchor = the tap mark
+  // (event.ball — the engine doesn't reposition the ball for this outcome).
+  if (event.phase === MatchPhase.Penalty && outcomeKeys(event).includes('tap_and_kick_dead'))
+    return placeFormation(event, state, attacksTop, event.ballX, event.ballY, PENALTY_TAP_AND_KICK_DEAD);
+
+  if (event.phase === MatchPhase.Penalty && kickFindsTouch(event)) {
+    // The close-range corner kick (lands ≤10m from the opp try line) has its own
+    // authored frame; the generic and long touch-finders share one.
+    const form = outcomeKeys(event).includes('kick_to_touch_close')
+      ? PENALTY_KICK_TO_TOUCH_CLOSE : PENALTY_KICK_TO_TOUCH;
+    return placeFormation(event, state, attacksTop, prevBallX, prevBallY, form);
+  }
+
+  // Penalty tap-and-go: full-formation carry. The whole attacking shape surges forward
+  // off the tap (chase via from-tables) while the carrier rides the ball's
+  // [tap-mark, final] movements path. Anchored on the tap mark (movements[0] = the
+  // pre-carry ball), so the formation rests relative to where the tap was taken.
+  if (event.phase === MatchPhase.Penalty && outcomeKeys(event).includes('tap_and_go')) {
+    const anchor = event.movements?.[0] ?? { x: event.ballX, y: event.ballY };
+    const dots = placeFormation(event, state, attacksTop, anchor.x, anchor.y, PENALTY_TAP_AND_GO);
+    // The carrier is driven by the ball-walk follower (rides the movements path), not the
+    // chase seam — flag it and clear its `from` so the two animators don't fight the dot.
+    const carrier = event.primaryPlayer;
+    if (carrier && event.movements && event.movements.length >= 2) {
+      const dot = dots.find(d => d.key === `${sideOf(carrier, state)}:${carrier.id}`);
+      if (dot) { dot.isCarrier = true; dot.from = undefined; }
+    }
+    return dots;
+  }
 
   // Pure-announcement beats (fatigue, card, clock, etc.) have no phase_outcome step
   // and should not place players near the ball.
@@ -150,6 +182,8 @@ export function choreograph(
 const KICK_TO_TOUCH_KEYS = new Set([
   'good_kick', 'out_on_the_full', 'fifty_twenty_two', 'fifty_twenty_two_attempt_failed_touch',
   'box_kick_to_touch', 'kick_to_touch', 'kick_to_touch_close', 'kick_to_touch_long',
+  // Tap-and-kick-dead ends the half by putting the ball out — same ball-out lob in PitchView.
+  'tap_and_kick_dead',
 ]);
 export function kickFindsTouch(event: GameEvent): boolean {
   return event.narration.steps.some(s => s.kind === 'phase_outcome' && KICK_TO_TOUCH_KEYS.has((s as { key: string }).key));
@@ -215,7 +249,10 @@ function travelingKickLayout(
 // live ball is on the opposite touchline. Re-author in the phase animator and re-bake
 // the offsets to retune — see docs/phase-animator.md § 9.
 type FormOffsets = Record<number, readonly [number, number]>;
-interface Formation { nearTop: boolean; atk: FormOffsets; def: FormOffsets; }
+// atkFrom / defFrom: start offsets for dots that move during the beat (same transform as
+// atk/def). When present, PitchView animates each dot from its `from` to its resting spot
+// via the chaseDots seam — identical to the kick-off / drop-out chase mechanism.
+interface Formation { nearTop: boolean; atk: FormOffsets; def: FormOffsets; atkFrom?: FormOffsets; defFrom?: FormOffsets; }
 
 const outcomeKeys = (event: GameEvent): string[] =>
   event.narration.steps.filter(s => s.kind === 'phase_outcome').map(s => (s as { key: string }).key);
@@ -241,17 +278,25 @@ function placeFormation(
   const defOn = onFieldPlayers(defSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(defSide));
 
   const out: Placed[] = [];
-  const fill = (on: Player[], side: Side, tbl: FormOffsets): void => {
+  const fill = (on: Player[], side: Side, tbl: FormOffsets, fromTbl?: FormOffsets): void => {
     for (let slot = 1; slot <= 15; slot++) {
       const off = tbl[slot];
       const p = on.find(pl => pl.id === slot);
-      if (off && p) out.push(placed(p, side, state,
-        clampX(anchorX + off[0] * dir),
-        clampY(anchorY + (mirrorY ? -off[1] : off[1])), false));
+      if (off && p) {
+        const dot = placed(p, side, state,
+          clampX(anchorX + off[0] * dir),
+          clampY(anchorY + (mirrorY ? -off[1] : off[1])), false);
+        const fromOff = fromTbl?.[slot];
+        if (fromOff) dot.from = {
+          x: clampX(anchorX + fromOff[0] * dir),
+          y: clampY(anchorY + (mirrorY ? -fromOff[1] : fromOff[1])),
+        };
+        out.push(dot);
+      }
     }
   };
-  fill(atkOn, atkSide, form.atk);
-  fill(defOn, defSide, form.def);
+  fill(atkOn, atkSide, form.atk, form.atkFrom);
+  fill(defOn, defSide, form.def, form.defFrom);
   return out;
 }
 
@@ -271,20 +316,34 @@ const BOX_KICK_ANNOUNCE: Formation = { nearTop: true,
     13: [ 14.78, -43.57],   14: [ 40.43, -70.94],   15: [ 44.46,  -5.90],
   },
 };
-const BOX_KICK_RETAIN: Formation = { nearTop: false,
+const BOX_KICK_RETAIN: Formation = { nearTop: true,
+  // Resting positions (t=1). Anchor = kick origin (46, 91).
   atk: {
-    1:  [ -1.22,  18.11],   2:  [ -3.09,  -3.75],   3:  [ -4.24,  39.43],
-    4:  [  4.26,  -2.10],   5:  [  4.11,   2.31],   6:  [ -3.52,  24.18],
-    7:  [ -3.52,  13.15],   8:  [  2.24,   0.11],   9:  [  0.00,   0.00],
-    10: [ -9.57,  19.03],   11: [ -2.80,  -8.00],   12: [-12.31,  37.77],
-    13: [-14.18,  54.49],   14: [-15.48,  72.32],   15: [-20.38,  29.51],
+    1:  [  6.38, -16.07],   2:  [ -3.00,   4.00],   3:  [ -0.55, -38.62],
+    4:  [  4.00,   2.00],   5:  [  4.00,  -2.00],   6:  [  1.31, -22.99],
+    7:  [  6.26, -12.16],   8:  [  2.00,   0.00],   9:  [  0.00,   0.00],
+    10: [ -5.17, -18.39],   11: [ 19.32,   1.49],   12: [ -8.80, -36.09],
+    13: [ -7.49, -52.69],   14: [-17.87, -66.07],   15: [-17.92,  -8.33],
+  },
+  // Chase start positions (t=0) — only for dots that move. PitchView animates each from here.
+  atkFrom: {
+    1:  [ -1.00, -18.00],   3:  [ -4.00, -39.00],   6:  [ -4.00, -24.00],
+    7:  [ -4.00, -13.00],   10: [-10.00, -19.00],   11: [ -3.00,   6.00],
+    12: [-12.00, -38.00],   13: [-14.00, -54.00],   14: [-15.00, -72.00],
+    15: [-20.00, -30.00],
   },
   def: {
-    1:  [ 14.63,  -8.00],   2:  [  6.27,   0.11],   3:  [ 11.75,  13.52],
-    4:  [ 12.04,  36.30],   5:  [ 11.75,  20.13],   6:  [ 11.75,  42.73],
-    7:  [  7.14,   3.23],   8:  [ 11.32,  27.67],   9:  [  8.72,  -5.22],
-    10: [ 12.04,  52.11],   11: [ 31.92,  78.75],   12: [ 11.75,  62.58],
-    13: [ 12.90,  75.63],   14: [ 35.95,  -7.24],   15: [ 40.00,  42.00],
+    1:  [ 20.18,   5.47],   2:  [  6.00,   0.00],   3:  [ 17.87,  -9.98],
+    4:  [ 14.35, -36.17],   5:  [ 16.39, -17.65],   6:  [ 13.25, -43.57],
+    7:  [  7.00,  -3.00],   8:  [ 14.06, -24.03],   9:  [ 14.07,   2.52],
+    10: [ 15.55, -52.78],   11: [ 33.82, -68.30],   12: [ 14.47, -61.06],
+    13: [ 13.00, -76.00],   14: [ 25.62,   1.70],   15: [ 35.72, -24.02],
+  },
+  defFrom: {
+    1:  [ 15.00,   6.00],   3:  [ 12.00, -14.00],   4:  [ 12.00, -36.00],
+    5:  [ 12.00, -20.00],   6:  [ 12.00, -43.00],   8:  [ 11.00, -28.00],
+    9:  [  9.00,   5.00],   10: [ 12.00, -52.00],   11: [ 32.00, -79.00],
+    12: [ 12.00, -63.00],   14: [ 36.00,   6.00],   15: [ 40.00, -42.00],
   },
 };
 const BOX_KICK_TO_TOUCH: Formation = { nearTop: true,
@@ -304,51 +363,89 @@ const BOX_KICK_TO_TOUCH: Formation = { nearTop: true,
   },
 };
 const BOX_KICK_DEFEND_CATCH: Formation = { nearTop: true,
+  // Resting positions (t=1). Anchor = kick origin (12, 79). atk = catching team (away in authored frame).
   atk: {
-    1:  [  2.18,   2.97],   2:  [ -2.72, -15.22],   3:  [ -5.60, -18.71],
-    4:  [  3.04,  -0.89],   5:  [  1.32,  -2.17],   6:  [ -3.44,  -9.71],
-    7:  [ -4.74, -29.37],   8:  [ -3.15,  11.06],   9:  [  0.00,   0.00],
-    10: [-11.07, -14.30],   11: [ -4.01,  19.69],   12: [-11.79, -28.82],
-    13: [-12.00, -43.33],   14: [-11.22, -67.77],   15: [-12.00,   1.87],
+    1:  [  2.00,   3.00],   2:  [  2.62, -14.54],   3:  [ -1.38, -16.98],
+    4:  [  3.00,  -1.00],   5:  [  1.00,  -2.00],   6:  [  9.93,  -7.14],
+    7:  [  2.19, -29.92],   8:  [  7.17,  14.47],   9:  [  0.00,   0.00],
+    10: [ -8.34, -10.89],   11: [ 19.17,   3.69],   12: [ -5.74, -29.01],
+    13: [ -4.83, -43.37],   14: [ -5.12, -66.50],   15: [ -4.45,   8.63],
+  },
+  atkFrom: {
+    2:  [ -3.00, -15.00],   3:  [ -6.00, -19.00],   6:  [ -3.00, -10.00],
+    7:  [ -5.00, -29.00],   8:  [ -3.00,  11.00],   10: [-10.00, -14.00],
+    11: [ -4.00,  18.00],   12: [-10.00, -29.00],   13: [-10.00, -43.00],
+    14: [-10.00, -68.00],   15: [-10.00,   2.00],
   },
   def: {
-    1:  [ 10.54, -29.37],   2:  [ 10.54, -20.73],   3:  [  6.50,  -0.34],
-    4:  [ 11.26, -11.73],   5:  [  5.06,   2.97],   6:  [  9.67, -35.06],
-    7:  [  5.49,  -2.91],   8:  [ 11.54, -16.32],   9:  [ 13.56,  -1.07],
-    10: [ 18.60, -25.88],   11: [ 30.56, -65.93],   12: [ 10.10, -45.35],
-    13: [ 10.25, -67.95],   14: [ 26.38,  17.85],   15: [ 39.49, -15.04],
+    1:  [ 18.61, -28.19],   2:  [ 20.01, -22.12],   3:  [  7.00,   0.00],
+    4:  [ 22.11, -12.26],   5:  [  5.00,   3.00],   6:  [ 20.44, -39.27],
+    7:  [  5.00,  -3.00],   8:  [ 19.50, -16.83],   9:  [ 14.00,  -1.00],
+    10: [ 34.27, -26.27],   11: [ 37.72, -64.94],   12: [ 20.83, -42.43],
+    13: [ 17.69, -68.81],   14: [ 31.52,   9.91],   15: [ 31.09,  -3.91],
+  },
+  defFrom: {
+    1:  [ 11.00, -29.00],   2:  [ 11.00, -21.00],   4:  [ 11.00, -12.00],
+    6:  [ 10.00, -35.00],   8:  [ 12.00, -16.00],   10: [ 19.00, -26.00],
+    11: [ 31.00, -66.00],   12: [ 10.00, -45.00],   13: [ 10.00, -68.00],
+    14: [ 26.00,  18.00],   15: [ 39.00, -15.00],
   },
 };
-const BOX_KICK_DEFEND_CONTESTED: Formation = { nearTop: true,
+const BOX_KICK_DEFEND_CONTESTED: Formation = { nearTop: false,
+  // Resting positions (t=1). Anchor = kick origin (24, 5). atk = kicking team (home #9 at origin).
   atk: {
-    1:  [ -4.63, -13.76],   2:  [ -1.61,  -9.35],   3:  [ -4.63,  -4.20],
-    4:  [  4.16,  -2.73],   5:  [  4.59,   3.52],   6:  [ -1.75,  32.00],
-    7:  [ -1.61,  22.63],   8:  [  3.58,   0.02],   9:  [  0.00,   0.00],
-    10: [-15.01,  -1.45],   11: [-11.98, -48.12],   12: [ -4.06, -25.70],
-    13: [ -4.92, -40.03],   14: [  0.70,  12.89],   15: [-15.44,  33.47],
+    1:  [  0.70,  15.89],   2:  [  7.52,   8.83],   3:  [ -5.00,   4.00],
+    4:  [  4.00,   3.00],   5:  [  5.00,  -2.00],   6:  [ -2.00,  -2.00],
+    7:  [  4.35,  -5.00],   8:  [  4.00,   0.00],   9:  [  0.00,   0.00],
+    10: [-11.45,  35.95],   11: [ -1.39,  56.21],   12: [  0.56,  30.41],
+    13: [ -1.22,  44.02],   14: [ 16.99,  -2.26],   15: [-13.56,   0.58],
+  },
+  atkFrom: {
+    1:  [ -5.00,  14.00],   2:  [ -2.00,   9.00],   7:  [ -2.00,  -2.00],
+    10: [-15.00,   1.00],   11: [-12.00,  48.00],   12: [ -4.00,  26.00],
+    13: [ -5.00,  40.00],   14: [  1.00,  -2.00],   15: [-15.00,  -2.00],
   },
   def: {
-    1:  [  8.33,   4.07],   2:  [  8.33,  -2.36],   3:  [ 10.78,  26.48],
-    4:  [ 13.52,  -6.22],   5:  [ 13.38, -16.51],   6:  [  6.60,   0.21],
-    7:  [ 10.93,  20.24],   8:  [ 13.38, -11.18],   9:  [ 11.36,   9.21],
-    10: [ 13.23, -23.86],   11: [ 23.03,  34.75],   12: [ 13.38, -40.77],
-    13: [ 13.38, -32.13],   14: [ 27.06, -54.18],   15: [ 23.46, -16.88],
+    1:  [  8.00,  -2.00],   2:  [  8.00,   2.00],   3:  [ 11.00,  -2.00],
+    4:  [ 18.54,   6.49],   5:  [ 19.53,  20.04],   6:  [  7.00,   0.00],
+    7:  [ 11.00,  -2.00],   8:  [ 14.34,  10.28],   9:  [ 11.00,  -2.00],
+    10: [ 19.58,  26.34],   11: [ 23.00,  -2.00],   12: [ 21.70,  49.63],
+    13: [ 18.40,  35.36],   14: [ 28.69,  58.04],   15: [ 31.17,   7.02],
+  },
+  defFrom: {
+    4:  [ 14.00,   6.00],   5:  [ 13.00,  17.00],   8:  [ 13.00,  11.00],
+    10: [ 13.00,  24.00],   12: [ 13.00,  41.00],   13: [ 13.00,  32.00],
+    14: [ 27.00,  54.00],   15: [ 23.00,  17.00],
   },
 };
 const BOX_KICK_DEFEND_KNOCK_ON: Formation = { nearTop: true,
+  // Resting positions (t=1). Anchor = kick origin (20, 83). atk = kicking team (home #9 at origin).
   atk: {
-    1:  [ -4.38, -10.58],   2:  [ -2.94, -19.59],   3:  [  3.26,  -5.99],
-    4:  [ -2.79, -14.81],   5:  [  3.40,   1.18],   6:  [ -2.94, -35.76],
-    7:  [  2.97,  -2.87],   8:  [ -4.38,   8.89],   9:  [  0.00,   0.00],
-    10: [ -9.13, -15.73],   11: [ -9.85, -73.24],   12: [ -8.41, -35.94],
-    13: [ -9.42, -52.66],   14: [ -0.06,  12.02],   15: [-15.04, -31.71],
+    1:  [  0.33, -11.18],   2:  [  1.29, -19.84],   3:  [  3.00,  -6.00],
+    4:  [  6.04, -15.97],   5:  [  3.00,   1.00],   6:  [  2.36, -34.99],
+    7:  [  3.00,  -3.00],   8:  [  6.15,  11.63],   9:  [  0.00,   0.00],
+    10: [ -9.00, -16.00],   11: [ -4.57, -73.30],   12: [ -4.54, -32.47],
+    13: [ -4.28, -51.77],   14: [ 16.25,   2.86],   15: [-12.60, -37.87],
+  },
+  atkFrom: {
+    1:  [ -4.00, -11.00],   2:  [ -3.00, -20.00],   4:  [ -3.00, -15.00],
+    6:  [ -3.00, -36.00],   8:  [ -4.00,   9.00],   11: [-10.00, -73.00],
+    12: [ -8.00, -36.00],   13: [ -9.00, -53.00],   14: [  0.00,  12.00],
+    15: [-15.00, -32.00],
   },
   def: {
-    1:  [  6.28,  -4.15],   2:  [ 19.54, -12.97],   3:  [ 19.68, -25.10],
-    4:  [ 19.10, -30.43],   5:  [ 19.82, -37.96],   6:  [  5.99,  -0.11],
-    7:  [ 19.25, -17.93],   8:  [ 19.54, -44.02],   9:  [ 11.32,  -3.23],
-    10: [ 18.24, -71.40],   11: [ 29.33,  15.88],   12: [ 18.24, -50.82],
-    13: [ 17.52, -59.83],   14: [ 38.55, -71.59],   15: [ 47.92, -27.49],
+    1:  [  6.00,  -4.00],   2:  [ 25.48,  -6.17],   3:  [ 25.79, -18.18],
+    4:  [ 26.96, -25.80],   5:  [ 25.07, -34.41],   6:  [  6.00,   0.00],
+    7:  [ 25.02, -10.79],   8:  [ 23.47, -43.16],   9:  [ 15.99,  -4.21],
+    10: [ 21.10, -69.63],   11: [ 21.71,   2.51],   12: [ 22.64, -51.39],
+    13: [ 21.01, -59.81],   14: [ 42.02, -57.19],   15: [ 46.19,  -4.44],
+  },
+  defFrom: {
+    2:  [ 20.00, -13.00],   3:  [ 20.00, -25.00],   4:  [ 19.00, -30.00],
+    5:  [ 20.00, -38.00],   7:  [ 19.00, -18.00],   8:  [ 20.00, -44.00],
+    9:  [ 11.00,  -3.00],   10: [ 18.00, -71.00],   11: [ 29.00,  14.00],
+    12: [ 18.00, -51.00],   13: [ 18.00, -60.00],   14: [ 39.00, -72.00],
+    15: [ 48.00, -27.00],
   },
 };
 const BOX_KICK_FORMS: Array<{ key: string; form: Formation }> = [
@@ -477,6 +574,105 @@ const BREAKDOWN_PENALTY_DEFENDING: Formation = { nearTop: false,
     7:  [  0.00,   0.00],   8:  [  1.95,   1.53],   9:  [  0.00,   8.00],
     10: [  1.79,  41.27],  11:  [  2.00,  63.67],  12:  [  1.33,  47.50],
     13: [  1.18, -16.78],  14:  [  1.03, -24.77],  15:  [  2.00,  33.86],
+  },
+};
+
+// Penalty kicked to touch — full formation, authored in the phase animator. Anchor =
+// kick origin (penalty mark). atk = kicking team (the kicker's side), driving toward +x
+// in the canonical frame; def = defending team dropped downfield to cover the kick to
+// touch. The ball is lobbed to the lineout mark by PitchView; only a6/a15 shuffle (defFrom).
+const PENALTY_KICK_TO_TOUCH: Formation = { nearTop: true,
+  atk: {
+    1:  [ -1.94,  39.79],   2:  [ -3.01,  34.55],   3:  [ -1.47,  18.10],
+    4:  [ -2.59,   9.69],   5:  [ -2.40,  26.23],   6:  [ -3.60, -15.47],
+    7:  [ -1.01,  13.51],   8:  [ -2.75,  29.71],   9:  [ -1.37,  21.56],
+    10: [ -2.12,  -0.36],   11: [-14.55,  27.04],   12: [ -2.91, -26.02],
+    13: [ -4.06, -37.72],   14: [-13.94, -47.93],   15: [-14.07,  -0.74],
+  },
+  def: {
+    1:  [ 14.55,   2.13],   2:  [ 15.24,  18.82],   3:  [ 16.03, -15.27],
+    4:  [ 14.33,   8.90],   5:  [ 14.06,  26.77],   6:  [ 33.21,  44.35],
+    7:  [ 14.91,  38.94],   8:  [ 15.00,  -5.00],   9:  [ 36.75,  -4.98],
+    10: [ 46.00,  20.10],   11: [ 37.92, -34.13],   12: [ 34.57,  13.31],
+    13: [ 15.91, -29.93],   14: [ 50.68,  45.00],   15: [ 42.73,  45.00],
+  },
+  defFrom: {
+    6:  [ 30.93,  45.00],   15: [ 43.72,  45.00],
+  },
+};
+
+// Penalty kicked to touch CLOSE — the corner kick (lands ≤10m from the opp try line).
+// Same seam as PENALTY_KICK_TO_TOUCH but a distinct authored frame; fully static (no
+// post-kick shuffle in this sample).
+const PENALTY_KICK_TO_TOUCH_CLOSE: Formation = { nearTop: true,
+  atk: {
+    1:  [ -3.31,  20.03],   2:  [ -3.37,  26.77],   3:  [ -3.68, -15.28],
+    4:  [ -3.46,  -6.49],   5:  [ -3.17,  23.41],   6:  [ -3.19,  13.07],
+    7:  [ -2.96,   8.51],   8:  [ -3.66, -11.66],   9:  [ -9.23,   6.35],
+    10: [  0.00,   0.00],   11: [-16.26,  27.52],   12: [ -3.64, -24.31],
+    13: [ -3.23, -39.48],   14: [-22.91, -60.89],   15: [-24.14, -17.63],
+  },
+  def: {
+    1:  [ 16.02, -27.37],   2:  [ 14.82,  -5.29],   3:  [ 14.72, -19.77],
+    4:  [ 14.83, -11.26],   5:  [ 14.19,  20.00],   6:  [ 14.90,  12.19],
+    7:  [ 15.25,  28.00],   8:  [ 14.90,   2.96],   9:  [ 19.58,   8.55],
+    10: [ 28.00,  -9.32],   11: [ 24.04, -66.84],   12: [ 16.89, -39.93],
+    13: [ 17.04, -57.87],   14: [ 27.68,  28.00],   15: [ 27.35,   7.29],
+  },
+};
+
+// Penalty tap-and-go — full-formation carry. Anchor = tap mark (the pre-carry ball).
+// atk = tapping team driving toward +x (canonical); def = defenders retreating 10m and
+// re-setting. Every dot shuffles forward (from-tables); the carrier's `from` is stripped
+// at dispatch so the ball-walk follower rides it onto the ball instead.
+const PENALTY_TAP_AND_GO: Formation = { nearTop: true,
+  atk: {
+    1:  [ -2.57, -14.76],   2:  [  1.90,  -4.49],   3:  [  4.72,  -2.88],
+    4:  [ -1.86,  16.60],   5:  [ -5.14,  28.68],   6:  [ -2.62, -11.61],
+    7:  [  2.31,  -0.01],   8:  [ -2.49,  13.75],   9:  [ -5.75,   0.91],
+    10: [-14.25, -11.42],   11: [-20.96, -48.92],   12: [-18.25, -22.65],
+    13: [-18.92, -35.10],   14: [ -4.29,  36.27],   15: [-31.83, -22.02],
+  },
+  atkFrom: {
+    1:  [ -5.07, -15.61],   2:  [ -4.61,  -2.17],   3:  [ -0.80,   0.15],
+    4:  [ -4.99,  14.11],   5:  [-11.31,  27.62],   6:  [ -4.94, -11.38],
+    7:  [ -5.04,   3.31],   8:  [ -4.66,  16.80],   9:  [-14.30,   2.01],
+    10: [-20.30, -11.98],   11: [-25.73, -48.13],   12: [-22.03, -23.99],
+    13: [-24.70, -36.46],   14: [-12.17,  35.94],   15: [-34.06, -26.30],
+  },
+  def: {
+    1:  [  8.02,  -6.91],   2:  [ 10.95,   4.48],   3:  [ 11.70, -12.19],
+    4:  [  8.59,   0.26],   5:  [  7.98,  -3.69],   6:  [ 12.77,   9.43],
+    7:  [ 11.21,  21.30],   8:  [ 10.91,  14.37],   9:  [ 19.10,  -4.20],
+    10: [ 21.27, -20.52],   11: [ 13.27,  37.70],   12: [ 11.55, -28.07],
+    13: [ 12.42, -36.93],   14: [ 12.04, -51.10],   15: [ 21.86,  17.97],
+  },
+  defFrom: {
+    1:  [ 12.78,  -7.80],   2:  [ 12.80,   3.84],   3:  [ 13.35, -11.84],
+    4:  [ 13.18,   0.68],   5:  [ 12.90,  -3.20],   6:  [ 13.35,   8.92],
+    7:  [ 12.61,  22.71],   8:  [ 12.66,  12.75],   9:  [ 21.44,  -3.17],
+    10: [ 22.94, -21.30],   11: [ 14.90,  37.15],   12: [ 13.58, -29.08],
+    13: [ 13.57, -36.92],   14: [ 13.52, -50.45],   15: [ 23.67,  18.10],
+  },
+};
+
+// Penalty tap-and-kick-dead — static full formation (no player movement) while the ball
+// is lobbed out to end the half. Anchor = the tap mark. atk = kicking team (toward +x in
+// the canonical frame); def = the defending team standing off.
+const PENALTY_TAP_AND_KICK_DEAD: Formation = { nearTop: true,
+  atk: {
+    1:  [ -5.30,   8.52],   2:  [ -7.27,  12.16],   3:  [ -6.57,  19.41],
+    4:  [ -8.00,  -1.25],   5:  [ -4.80, -10.00],   6:  [ -8.00,   5.16],
+    7:  [ -5.86,  -4.65],   8:  [ -7.69,  -6.68],   9:  [ -7.48,  16.09],
+    10: [ -2.00,   0.00],   11: [ -8.00,  24.00],   12: [ -8.00, -28.00],
+    13: [ -8.00, -42.91],   14: [ -7.42, -64.14],   15: [ -8.00, -17.73],
+  },
+  def: {
+    1:  [ 18.76, -29.22],   2:  [ 18.75, -14.30],   3:  [ 19.09,   8.27],
+    4:  [ 20.29, -21.58],   5:  [ 18.40,  -6.94],   6:  [ 17.65, -35.70],
+    7:  [ 17.03,   2.89],   8:  [ 17.38,  17.04],   9:  [ 27.40,  -4.55],
+    10: [ 38.89, -16.53],   11: [ 30.88, -57.89],   12: [ 17.72, -42.24],
+    13: [ 17.60, -49.74],   14: [ 17.59,  24.00],   15: [ 28.16,  24.00],
   },
 };
 
@@ -828,31 +1024,30 @@ const LINEOUT_DEF_BACKS: Array<{ slot: number; dX: number; distNear: number }> =
   { slot: SLOT.FLY_HALF,  dX: 12, distNear: 38 },
   { slot: SLOT.CENTRE_12, dX: 15, distNear: 50 },
   { slot: SLOT.CENTRE_13, dX: 15, distNear: 62 },
-  { slot: SLOT.FULL_BACK, dX: 20, distNear: 61 },
-  { slot: SLOT.WING_11,   dX: 20, distNear:  7 },  // near winger
+  { slot: SLOT.FULL_BACK, dX: 20, distNear: 70 },
+  { slot: SLOT.WING_11,   dX: 20, distNear:  1 },  // near winger (tight to touchline)
   { slot: SLOT.WING_14,   dX: 20, distNear: 82 },  // far winger
 ];
 
 // Scrum 3-4-1: front row (1,2,3) at the mark, second row (6,4,5,7), #8 at the back.
-// dx values sized so rows don't overlap at typical mobile pitches (~350px tall).
-// y values sized so circles within a row don't overlap (~6 y-units between centres).
-// dx = depth of each row from the scrum mark. Front rows at dx=2 puts opposing
-// front-row centres ~4 units apart — approximately one dot-width at mobile scale
-// so they sit touching. Inter-row step of 4 keeps consecutive rows touching too,
-// giving the bound-together look across the full scrum.
+// dx = depth of each row from the scrum mark. Rows are packed tightly so the eight
+// forwards read as one bound mass rather than spaced-out dots: front row at dx=1.3
+// (opposing front rows ~2.6 apart — overlapping into the bind), second row at dx=3.3,
+// #8 at dx=5.2. y values sized so circles within a row sit shoulder-to-shoulder.
 const SCRUM_ROWS: Array<{ dx: number; cells: Array<{ slot: number; y: number }> }> = [
-  { dx: 2,  cells: [{ slot: SLOT.PROP_1, y: -3 }, { slot: SLOT.HOOKER, y: 0 }, { slot: SLOT.PROP_3, y: 3 }] },
-  { dx: 6,  cells: [{ slot: SLOT.FLANKER_6, y: -4.5 }, { slot: SLOT.LOCK_4, y: -1.5 }, { slot: SLOT.LOCK_5, y: 1.5 }, { slot: SLOT.FLANKER_7, y: 4.5 }] },
-  { dx: 10, cells: [{ slot: SLOT.NUMBER_8, y: 0 }] },
+  { dx: 1.3, cells: [{ slot: SLOT.PROP_1, y: -3 }, { slot: SLOT.HOOKER, y: 0 }, { slot: SLOT.PROP_3, y: 3 }] },
+  { dx: 3.3, cells: [{ slot: SLOT.FLANKER_6, y: -4.5 }, { slot: SLOT.LOCK_4, y: -1.5 }, { slot: SLOT.LOCK_5, y: 1.5 }, { slot: SLOT.FLANKER_7, y: 4.5 }] },
+  { dx: 5.2, cells: [{ slot: SLOT.NUMBER_8, y: 0 }] },
 ];
 
-// Maul attacking pack: same as scrum but hooker moves to the back (dx=14) — they
-// run around from the touchline to become the ball-carrier at the tail of the drive.
+// Maul attacking pack: same tight spacing as the scrum pack but the hooker moves to
+// the back (dx=7.5) — they run around from the touchline to become the ball-carrier at
+// the tail of the drive. Keep the hooker dx in sync with PitchView's maul ball-slide.
 const MAUL_ATK_ROWS: Array<{ dx: number; cells: Array<{ slot: number; y: number }> }> = [
-  { dx: 2,  cells: [{ slot: SLOT.PROP_1, y: -2 }, { slot: SLOT.PROP_3, y: 2 }] },
-  { dx: 6,  cells: [{ slot: SLOT.FLANKER_6, y: -4.5 }, { slot: SLOT.LOCK_4, y: -1.5 }, { slot: SLOT.LOCK_5, y: 1.5 }, { slot: SLOT.FLANKER_7, y: 4.5 }] },
-  { dx: 10, cells: [{ slot: SLOT.NUMBER_8, y: 0 }] },
-  { dx: 14, cells: [{ slot: SLOT.HOOKER, y: 0 }] },
+  { dx: 1.3, cells: [{ slot: SLOT.PROP_1, y: -2 }, { slot: SLOT.PROP_3, y: 2 }] },
+  { dx: 3.3, cells: [{ slot: SLOT.FLANKER_6, y: -4.5 }, { slot: SLOT.LOCK_4, y: -1.5 }, { slot: SLOT.LOCK_5, y: 1.5 }, { slot: SLOT.FLANKER_7, y: 4.5 }] },
+  { dx: 5.2, cells: [{ slot: SLOT.NUMBER_8, y: 0 }] },
+  { dx: 7.5, cells: [{ slot: SLOT.HOOKER, y: 0 }] },
 ];
 
 function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): Placed[] {
@@ -885,7 +1080,7 @@ function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): 
     if (p) out.push(placed(p, defSide, state, clampX(event.ballX + fwd * e.dX), toY(e.distNear), false));
   }
 
-  // Both #9s are placed at their FINAL positions (12 units behind their pack).
+  // Both #9s are placed at their FINAL positions (9.5 units behind their pack, just off #8).
   // On a dominant penalty, skip the standard loosehead sweep — instead use `from`
   // so both #9s animate stepping away from the scrum (atk forward to claim the
   // penalty, def retreating), starting close to the front row and further infield.
@@ -897,16 +1092,16 @@ function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): 
     const nearY  = event.ballY < 50 ? 0 : 100;
     const inward = nearY === 0 ? 1 : -1;
     const fromY  = clampY(event.ballY + inward * 9);
-    if (atkSH) out.push({ ...placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 12), clampY(event.ballY), false), from: { x: clampX(event.ballX - fwd * 3), y: fromY } });
-    if (defSH) out.push({ ...placed(defSH, defSide, state, clampX(event.ballX + fwd * 12), clampY(event.ballY), false), from: { x: clampX(event.ballX + fwd * 2), y: fromY } });
+    if (atkSH) out.push({ ...placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 9.5), clampY(event.ballY), false), from: { x: clampX(event.ballX - fwd * 3), y: fromY } });
+    if (defSH) out.push({ ...placed(defSH, defSide, state, clampX(event.ballX + fwd * 9.5), clampY(event.ballY), false), from: { x: clampX(event.ballX + fwd * 2), y: fromY } });
   } else {
     if (atkSH) {
-      const dot = placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 12), clampY(event.ballY), false);
+      const dot = placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 9.5), clampY(event.ballY), false);
       dot.scrumHalfRole = 'atk';
       out.push(dot);
     }
     if (defSH) {
-      const dot = placed(defSH, defSide, state, clampX(event.ballX + fwd * 12), clampY(event.ballY), false);
+      const dot = placed(defSH, defSide, state, clampX(event.ballX + fwd * 9.5), clampY(event.ballY), false);
       dot.scrumHalfRole = 'def';
       out.push(dot);
     }
@@ -1053,7 +1248,7 @@ function firstPhaseBacklineLayout(
   // preserved dot matches). The feed origin for the sweep.
   let sh9X: number, sh9Y: number;
   if (prevPhase === MatchPhase.Scrum) {
-    sh9X = clampX(prevBallX - fwd * 12);
+    sh9X = clampX(prevBallX - fwd * 9.5);
     sh9Y = clampY(prevBallY);
   } else {
     const nearY  = prevBallY < 50 ? 0 : 100;

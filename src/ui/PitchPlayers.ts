@@ -9,6 +9,13 @@ import { SLOT } from '../engine/Slot';
 import { toTop, toLeft } from './pitchCoords';
 import { choreograph } from './pitchChoreography';
 
+// Kick phases a KickReturn can follow. On a kick → KickReturn transition we seed the
+// return from the predecessor kick formation: keep its dots on screen and glide, rather
+// than fading the pack and re-drawing a sparse return layout.
+const KICK_PREDECESSORS = new Set<string>([
+  MatchPhase.KickOff, MatchPhase.BoxKick, MatchPhase.TacticalKick, MatchPhase.DropOut22,
+]);
+
 // A dot flagged with a `from` position this beat, for PitchView to animate from
 // `from` to its committed resting spot (the kick-off chase line surging forward).
 export interface ChaseDot { el: HTMLElement; fromX: number; fromY: number; toX: number; toY: number; }
@@ -95,11 +102,21 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       // They fade normally when FirstPhase itself ends.
       const keepLineout = (currentPhase === MatchPhase.Lineout || currentPhase === MatchPhase.Scrum)
         && event.phase === MatchPhase.FirstPhase;
+      // Kick→KickReturn: seed the return from the predecessor kick formation. Keep all
+      // its dots on screen (carry persistedKeys forward) and enable the glide, so the
+      // involved actors (openPlayLayout) ease from their kick positions to their return
+      // spots while the rest hold where the kick left them. CSS animates from each dot's
+      // live position, so one path covers every kick predecessor without per-predecessor data.
+      const keepKickFormation = currentPhase !== null && KICK_PREDECESSORS.has(currentPhase)
+        && event.phase === MatchPhase.KickReturn;
       if (keepLineout) {
         // Attacking #9 must start FirstPhase at their set-piece position (lineout
         // mark or behind their #8 in a scrum). Skip the position update for their
         // dot this beat only; subsequent beats will reposition them normally.
         setpieceSHKey = `${event.side === 'home' ? 'h' : 'a'}:${SLOT.SCRUM_HALF}`;
+      } else if (keepKickFormation) {
+        field.classList.add('dot-transitioning');
+        setTimeout(() => field.classList.remove('dot-transitioning'), 600);
       } else {
         for (const key of persistedKeys) {
           if (!nextKeys.has(key)) pool.get(key)?.classList.remove('visible');

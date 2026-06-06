@@ -260,7 +260,7 @@ type FormOffsets = Record<number, readonly [number, number]>;
 // atkFrom / defFrom: start offsets for dots that move during the beat (same transform as
 // atk/def). When present, PitchView animates each dot from its `from` to its resting spot
 // via the chaseDots seam — identical to the kick-off / drop-out chase mechanism.
-interface Formation { nearTop: boolean; atk: FormOffsets; def: FormOffsets; atkFrom?: FormOffsets; defFrom?: FormOffsets; }
+interface Formation { nearTop: boolean; atk: FormOffsets; def: FormOffsets; atkFrom?: FormOffsets; defFrom?: FormOffsets; unclamped?: boolean; }
 
 const outcomeKeys = (event: GameEvent): string[] =>
   event.narration.steps.filter(s => s.kind === 'phase_outcome').map(s => (s as { key: string }).key);
@@ -286,18 +286,21 @@ function placeFormation(
   const defOn = onFieldPlayers(defSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(defSide));
 
   const out: Placed[] = [];
+  const cX = form.unclamped ? (x: number) => x : clampX;
+  const cY = form.unclamped ? (y: number) => y : clampY;
+
   const fill = (on: Player[], side: Side, tbl: FormOffsets, fromTbl?: FormOffsets): void => {
     for (let slot = 1; slot <= 15; slot++) {
       const off = tbl[slot];
       const p = on.find(pl => pl.id === slot);
       if (off && p) {
         const dot = placed(p, side, state,
-          clampX(anchorX + off[0] * dir),
-          clampY(anchorY + (mirrorY ? -off[1] : off[1])), false);
+          cX(anchorX + off[0] * dir),
+          cY(anchorY + (mirrorY ? -off[1] : off[1])), false);
         const fromOff = fromTbl?.[slot];
         if (fromOff) dot.from = {
-          x: clampX(anchorX + fromOff[0] * dir),
-          y: clampY(anchorY + (mirrorY ? -fromOff[1] : fromOff[1])),
+          x: cX(anchorX + fromOff[0] * dir),
+          y: cY(anchorY + (mirrorY ? -fromOff[1] : fromOff[1])),
         };
         out.push(dot);
       }
@@ -687,7 +690,7 @@ const PENALTY_TAP_AND_KICK_DEAD: Formation = { nearTop: true,
 // Conversion kick — static full formation. Anchor = kick origin. atk = kicking team
 // (kicker at the mark, the rest gathered behind); def = defenders standing behind
 // the try line (in-goal) under the posts. The ball is placed by PitchView.
-const CONVERSION_KICK_BASE: Formation = { nearTop: true,
+const CONVERSION_KICK_BASE: Formation = { nearTop: true, unclamped: true,
   atk: {
     1:  [-33.00, -44.00],   2:  [-29.34, -37.62],   3:  [-33.00, -32.00],
     4:  [-35.00, -41.00],   5:  [-35.00, -35.00],   6:  [-29.71, -43.57],

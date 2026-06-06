@@ -189,7 +189,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 | Sam Bedlow | Centre | 1995-08-08 | 30 | England | 86 | 83 | 85 | 84 | 84 | 80 | 76 | 81 | 60 | 75 | 80 | 80 |
 | Benhard Janse van Rensburg | Centre | 1994-02-09 | 32 | South Africa | 90 | 86 | 85 | 91 | 86 | 81 | 85 | 79 | 52 | 83 | 88 | 89 |
 | Kalaveti Ravouvou | Wing | 1996-03-30 | 30 | Fiji | 88 | 88 | 92 | 92 | 90 | 79 | 76 | 79 | 53 | 81 | 82 | 86 |
-| Louis Rees-Zammit | Utility Back | 2001-02-02 | 25 | Wales | 85 | 82 | 95 | 90 | 90 | 88 | 78 | 89 | 58 | 88 | 92 | 95 |
+| Louis Rees-Zammit | Utility Back | 2001-02-02 | 25 | Wales | 85 | 82 | 95 | 85 | 85 | 88 | 75 | 89 | 58 | 88 | 83 | 95 |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |

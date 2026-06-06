@@ -30,6 +30,9 @@ interface Sample {
   prevKey: string | null;  // primary outcome key of the preceding beat (pairs with prevPhase for exact lookup)
   layout: LayoutDot[];   // the live choreographed dot positions (game coords), so the tool can pre-place them
   attacksTop: boolean;  // true = possessing team attacks toward x=100 (top of animator screen)
+  actorSide: string;    // side performing the phase = sideOf(primaryPlayer). Differs from `side` on a
+                        // possession-swap outcome (e.g. box_kick_to_touch: the kicker acts, but `side`
+                        // is the team that receives the resulting lineout). The badge should use this.
 }
 
 const collected = new Map<string, Sample>();
@@ -64,6 +67,13 @@ function runOnce(seed: number, pen: PenaltyChoice): Promise<void> {
         // so the animator can load it as a starting point instead of a blank formation.
         const st = engine.getState();
         const attacksTop = (e.side === 'home') !== st.clock.halfTimeDone;
+        // The team actually performing the phase = the side primaryPlayer belongs to.
+        // On a possession-swap outcome this differs from e.side (which the engine sets
+        // to the post-swap possession — the team receiving the next set piece).
+        const homeRoster = [...st.homeTeam.players, ...st.homeTeam.bench, ...st.homeTeam.substitutedOff] as unknown[];
+        const actorSide = e.primaryPlayer
+          ? (homeRoster.includes(e.primaryPlayer) ? 'home' : 'away')
+          : e.side;
         const layout: LayoutDot[] = choreograph(event, st, attacksTop, prevPhase, prevBall.x, prevBall.y)
           .map(p => {
             const o: LayoutDot = { id: p.key.replace(':', ''), x: Math.round(p.x), y: Math.round(p.y) };
@@ -86,7 +96,7 @@ function runOnce(seed: number, pen: PenaltyChoice): Promise<void> {
             start: { ...prevBall }, moves,
             resolve: { x: Math.round(e.ballX), y: Math.round(e.ballY) },
             primary: e.primaryPlayer?.squadNumber ?? null, secondary: e.secondaryPlayer?.squadNumber ?? null,
-            prevPhase, prevKey, layout, attacksTop,
+            prevPhase, prevKey, layout, attacksTop, actorSide,
           };
           // Prefer the richest beat per (phase, outcome): most movement, then most layout dots.
           const prev = collected.get(k);

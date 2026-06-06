@@ -526,7 +526,7 @@
         label: base, singleLabel: base, transLabel: base + predStr,
         start: s.start, moves: s.moves || [], resolve: s.resolve,
         primary: s.primary, secondary: s.secondary, side: s.side, phase: s.phase, keys: s.keys,
-        layout: s.layout || [], attacksTop: s.attacksTop ?? null,
+        layout: s.layout || [], attacksTop: s.attacksTop ?? null, actorSide: s.actorSide ?? s.side,
         prevPhase: s.prevPhase ?? null, prevKey: s.prevKey ?? null,
       };
     });
@@ -563,7 +563,7 @@
         start: prev ? { x: prev.ballX, y: prev.ballY } : { x: b.ballX, y: b.ballY },
         moves: b.moves || [], resolve: { x: b.ballX, y: b.ballY },
         primary: null, secondary: null, side: b.side, phase: b.phase, keys: b.keys,
-        attacksTop: b.attacksTop ?? null,
+        attacksTop: b.attacksTop ?? null, actorSide: b.actorSide ?? b.side,
         prevPhase: b.prevPhase ?? null, prevKey: b.prevKey ?? null,
       };
     });
@@ -636,28 +636,34 @@
       }
       placed++;
     }
-    // Possession + direction badge on the pitch
+    // Possession + direction badge — keyed on the ACTING team (the side performing the
+    // phase = sideOf(primaryPlayer)), not `it.side`. On a possession-swap outcome (e.g.
+    // box_kick_to_touch) the engine sets `side` to the team receiving the next set piece,
+    // but the animation depicts the actor (the kicker). actorAttacksTop flips the exported
+    // attacksTop (which is relative to `side`) when the actor is the other team.
+    const actorSide = it.actorSide || it.side;
+    const actorAttacksTop = it.attacksTop == null ? null
+      : (actorSide === it.side ? it.attacksTop : !it.attacksTop);
     const pi = document.getElementById('possIndicator');
-    if (it.side) {
-      const isHome = it.side === 'home';
-      pi.style.background = isHome ? 'var(--home)' : 'var(--away)';
+    if (actorSide) {
+      pi.style.background = actorSide === 'home' ? 'var(--home)' : 'var(--away)';
       pi.style.display = 'block';
-      if (it.attacksTop === true) {
+      if (actorAttacksTop === true) {
         pi.style.top = '3%'; pi.style.bottom = '';
-        pi.textContent = '▲ ' + it.side.toUpperCase() + ' IN POSSESSION';
-      } else if (it.attacksTop === false) {
+        pi.textContent = '▲ ' + actorSide.toUpperCase() + ' IN POSSESSION';
+      } else if (actorAttacksTop === false) {
         pi.style.top = ''; pi.style.bottom = '3%';
-        pi.textContent = '▼ ' + it.side.toUpperCase() + ' IN POSSESSION';
+        pi.textContent = '▼ ' + actorSide.toUpperCase() + ' IN POSSESSION';
       } else {
         pi.style.top = '3%'; pi.style.bottom = '';
-        pi.textContent = it.side.toUpperCase() + ' IN POSSESSION';
+        pi.textContent = actorSide.toUpperCase() + ' IN POSSESSION';
       }
     } else {
       pi.style.display = 'none';
     }
     // Sidebar info — clear possession + direction + involved players
-    const dirStr = it.attacksTop === true ? ' · attacking ↑ (top)' : it.attacksTop === false ? ' · attacking ↓ (bottom)' : '';
-    const possStr = it.side ? it.side.toUpperCase() + ' in possession' + dirStr + '. ' : '';
+    const dirStr = actorAttacksTop === true ? ' · attacking ↑ (top)' : actorAttacksTop === false ? ' · attacking ↓ (bottom)' : '';
+    const possStr = actorSide ? actorSide.toUpperCase() + ' in possession' + dirStr + '. ' : '';
     const invStr = it.primary != null ? 'Involved: #' + it.primary + (it.secondary != null ? ' & #' + it.secondary : '') + '. ' : '';
     const prevStr = fromPrev > 0 ? ' (' + fromPrev + ' seeded from ' + it.prevPhase + ':' + it.prevKey + ')' : '';
     document.getElementById('phaseInfo').textContent =

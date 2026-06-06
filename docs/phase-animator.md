@@ -246,8 +246,12 @@ Each sample carries:
 - `phase`, `key`, `keys` — the phase name and all narration outcome keys on this beat
 - `start`, `moves`, `resolve` — the engine's ball path (previous position → in-phase
   movements → final resting position)
-- `side` — which team has possession
-- `attacksTop` — `true` if the possessing team attacks toward x = 100 (top of screen)
+- `side` — the engine's `event.side`. On a possession-swap outcome this is the team
+  receiving the *next* set piece, not the team that just acted (see `actorSide`)
+- `attacksTop` — `true` if `side` attacks toward x = 100 (top of screen)
+- `actorSide` — the team actually performing the phase (`sideOf(primaryPlayer)`). The
+  possession badge keys on this so e.g. `box_kick_to_touch` correctly shows the *kicker*
+  in possession attacking the way the ball travels, not the team that gets the lineout
 - `prevPhase`, `prevKey` — the predecessor beat's phase name and primary outcome key,
   used by the animator for predecessor seeding and by the game for dispatch
 - `layout` — the full 30-player choreographed dot positions for that beat (game coords),

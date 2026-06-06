@@ -825,7 +825,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 | Emmanuel Iyogun | Prop | 2000-11-24 | 25 | England | 78 | 89 | 64 | 62 | 68 | 82 | 78 | 51 | 89 | 76 | 77 | 69 |
 | Aiden Ainsworth-Cave | Lock | 2006-07-21 | 19 | England | 78 | 80 | 67 | 70 | 73 | 80 | 78 | 51 | 90 | 76 | 72 | 73 |
 | Josh Kemeny | Flanker | 1998-11-29 | 27 | Australia | 80 | 78 | 75 | 76 | 73 | 86 | 84 | 62 | 75 | 69 | 78 | 76 |
-| Archie McParland | Scrum-half | 2005-02-17 | 21 | England | 86 | 70 | 87 | 78 | 82 | 74 | 76 | 78 | 58 | 75 | 81 | 82 |
+| Archie McParland | Scrum-half | 2005-02-17 | 21 | England | 86 | 70 | 87 | 78 | 89 | 74 | 76 | 78 | 58 | 75 | 81 | 82 |
 | Anthony Belleau | Fly-half | 1996-04-08 | 30 | France | 86 | 64 | 76 | 82 | 86 | 71 | 66 | 93 | 64 | 78 | 81 | 79 |
 | Ollie Sleightholme | Wing | 2000-04-13 | 26 | England | 84 | 70 | 95 | 88 | 78 | 71 | 69 | 73 | 59 | 77 | 79 | 78 |
 

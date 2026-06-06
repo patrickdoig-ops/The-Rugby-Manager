@@ -27,6 +27,7 @@ interface Sample {
   phase: string; displayPhase: string | null; key: string; keys: string[]; side: string;
   start: { x: number; y: number }; moves: { x: number; y: number }[];
   resolve: { x: number; y: number }; primary: number | null; secondary: number | null; prevPhase: string | null;
+  prevKey: string | null;  // primary outcome key of the preceding beat (pairs with prevPhase for exact lookup)
   layout: LayoutDot[];   // the live choreographed dot positions (game coords), so the tool can pre-place them
   attacksTop: boolean;  // true = possessing team attacks toward x=100 (top of animator screen)
 }
@@ -38,6 +39,7 @@ function runOnce(seed: number, pen: PenaltyChoice): Promise<void> {
     const engine = new MatchCoordinator(HOME, AWAY, { tickDelayMs: 0, seed });
     let prevBall = { x: 50, y: 50 };
     let prevPhase: string | null = null;
+    let prevKey: string | null = null;
 
     const offPaused = eventBus.on('engine:paused', ({ payload }) => {
       const p = payload as { type: string; onChoice: (v: unknown) => void; bench?: { squadNumber: number }[] };
@@ -80,7 +82,7 @@ function runOnce(seed: number, pen: PenaltyChoice): Promise<void> {
             start: { ...prevBall }, moves,
             resolve: { x: Math.round(e.ballX), y: Math.round(e.ballY) },
             primary: e.primaryPlayer?.squadNumber ?? null, secondary: e.secondaryPlayer?.squadNumber ?? null,
-            prevPhase, layout, attacksTop,
+            prevPhase, prevKey, layout, attacksTop,
           };
           // Prefer the richest beat per (phase, outcome): most movement, then most layout dots.
           const prev = collected.get(k);
@@ -89,6 +91,7 @@ function runOnce(seed: number, pen: PenaltyChoice): Promise<void> {
             collected.set(k, sample);
           }
         }
+        prevKey = keys[0];  // becomes prevKey for the next beat
       }
       prevBall = { x: Math.round(e.ballX), y: Math.round(e.ballY) };
       prevPhase = e.phase;

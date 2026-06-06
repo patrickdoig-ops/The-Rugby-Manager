@@ -398,6 +398,7 @@
       start: s.start, moves: s.moves || [], resolve: s.resolve,
       primary: s.primary, secondary: s.secondary, side: s.side, phase: s.phase, keys: s.keys,
       layout: s.layout || [], attacksTop: s.attacksTop ?? null,
+      prevPhase: s.prevPhase ?? null, prevKey: s.prevKey ?? null,
     }));
   }
 
@@ -411,6 +412,7 @@
         moves: b.moves || [], resolve: { x: b.ballX, y: b.ballY },
         primary: null, secondary: null, side: b.side, phase: b.phase, keys: b.keys,
         attacksTop: b.attacksTop ?? null,
+        prevPhase: b.prevPhase ?? null, prevKey: b.prevKey ?? null,
       };
     });
   }
@@ -441,17 +443,32 @@
     beats = ball.kf.map((k, i) => ({ t: k.t, label: i === 0 ? 'start' : (i === ball.kf.length - 1 ? 'resolve' : 'beat ' + i) }));
     phaseName = `${it.phase} (${it.keys.join('/')})`;
     document.getElementById('phaseTag').textContent = phaseName;
-    // Pre-place the players at the game's CURRENT choreographed layout for this phase
-    // (so you start from what the game draws, not a blank formation). Dots in `from`
-    // carry their authored motion (from → resting); the rest are static at t=0. Players
-    // not in the layout keep the default formation.
-    let placed = 0;
+    // Pre-place players at the game's choreographed layout. Priority order for t=0:
+    //   1. Explicit `from` in the layout (formation chase — game-authored, never override).
+    //   2. Predecessor resting position — eliminates the teleport when chaining phases.
+    //   3. Current resting position (static, no animation).
+    const prevById = {};
+    if (it.prevPhase != null && it.prevKey != null) {
+      const prevSample = (window.EMBEDDED_PHASES || []).find(
+        s => s.phase === it.prevPhase && s.key === it.prevKey
+      );
+      if (prevSample) for (const pd of (prevSample.layout || [])) prevById[pd.id] = pd;
+    }
+    let placed = 0, fromPrev = 0;
     for (const d of (it.layout || [])) {
       const e = entities.find(x => x.id === d.id);
       if (!e) continue;
-      e.kf = d.from
-        ? [{ t: 0, x: d.from.x, y: d.from.y }, { t: 1, x: d.x, y: d.y }]
-        : [{ t: 0, x: d.x, y: d.y }];
+      const prev = prevById[d.id];
+      if (d.from) {
+        // Game-authored chase: respect as-is.
+        e.kf = [{ t: 0, x: d.from.x, y: d.from.y }, { t: 1, x: d.x, y: d.y }];
+      } else if (prev && (prev.x !== d.x || prev.y !== d.y)) {
+        // Seed from predecessor resting position → current resting position.
+        e.kf = [{ t: 0, x: prev.x, y: prev.y }, { t: 1, x: d.x, y: d.y }];
+        fromPrev++;
+      } else {
+        e.kf = [{ t: 0, x: d.x, y: d.y }];
+      }
       placed++;
     }
     // Possession + direction badge on the pitch
@@ -477,8 +494,9 @@
     const dirStr = it.attacksTop === true ? ' · attacking ↑ (top)' : it.attacksTop === false ? ' · attacking ↓ (bottom)' : '';
     const possStr = it.side ? it.side.toUpperCase() + ' in possession' + dirStr + '. ' : '';
     const invStr = it.primary != null ? 'Involved: #' + it.primary + (it.secondary != null ? ' & #' + it.secondary : '') + '. ' : '';
+    const prevStr = fromPrev > 0 ? ' (' + fromPrev + ' seeded from ' + it.prevPhase + ':' + it.prevKey + ')' : '';
     document.getElementById('phaseInfo').textContent =
-      possStr + invStr + 'Layout: ' + placed + ' dots placed, ball: ' + dedup.length + ' kf.';
+      possStr + invStr + 'Layout: ' + placed + ' dots placed' + prevStr + ', ball: ' + dedup.length + ' kf.';
     playhead = 0; render();
   };
 

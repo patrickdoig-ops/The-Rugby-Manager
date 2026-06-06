@@ -79,6 +79,7 @@ export function initPitchView(): void {
   // True only on the beat the flight was triggered — stops the same-beat stateChange
   // (which fires right after engine:event) from un-hiding the ball before it flies.
   let kickFlightThisBeat = false;
+  let isPenaltyKickToTouch = false;
 
   // Position + colour the flash element at a pitch coordinate, then retrigger
   // its keyframe via a forced reflow (same idiom as Scoreboard.popScore).
@@ -109,6 +110,7 @@ export function initPitchView(): void {
     kickFlight.style.left       = `${startLeft}%`;
     kickFlight.style.transform  = 'translate(-50%, -50%) scale(1)';
     kickFlight.style.opacity    = '1';
+    kickFlight.style.setProperty('--kick-flight-glow', success ? 'var(--rm-stat-4)' : 'var(--rm-stat-1)');
     void kickFlight.offsetWidth; // force reflow to arm the transition
     kickFlight.style.transition = 'top 0.6s ease-in, left 0.6s ease-in, transform 0.6s ease-in, opacity 0.5s ease-in';
     kickFlight.style.top        = `${targetTop}%`;
@@ -282,6 +284,7 @@ export function initPitchView(): void {
   eventBus.on('engine:event', ({ event }) => {
     cachedEventPhase = event.phase;
     kickFlightThisBeat = false;
+    isPenaltyKickToTouch = event.phase === MatchPhase.Penalty && kickFindsTouch(event);
     const cls = flashClass(event);
     if (cls) fireFlash(toTop(event.ballX), toLeft(event.ballY), cls);
 
@@ -442,7 +445,11 @@ export function initPitchView(): void {
     }
     // The shared BALL_SVG paints itself from --rm-amber; override that token on
     // the ball element so the glow takes the possessing side's colour.
-    ball.style.setProperty('--ball-glow', `color-mix(in oklch, ${attackColor} 60%, transparent)`);
+    if (isPenaltyKickToTouch) {
+      ball.style.setProperty('--ball-glow', `color-mix(in oklch, var(--rm-stat-4) 80%, transparent)`);
+    } else {
+      ball.style.setProperty('--ball-glow', `color-mix(in oklch, ${attackColor} 60%, transparent)`);
+    }
 
     // Territory tug-of-war bar — only the home-portion width is volatile; the
     // home/away fill colours are fixed for the match and bound in the gate below.

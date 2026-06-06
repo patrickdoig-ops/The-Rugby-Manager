@@ -942,7 +942,7 @@ body.pitch-view-active #pitch-wrapper { display: none; }
 #pitch-kick-flight {
   position: absolute;
   transform: translate(-50%, -50%);
-  filter: drop-shadow(0 0 8px color-mix(in oklch, var(--rm-amber) 60%, transparent));
+  filter: drop-shadow(0 0 8px color-mix(in oklch, var(--kick-flight-glow, var(--rm-amber)) 60%, transparent));
   pointer-events: none;
   z-index: 5;
   opacity: 0;

@@ -109,21 +109,43 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       // live position, so one path covers every kick predecessor without per-predecessor data.
       const keepKickFormation = currentPhase !== null && KICK_PREDECESSORS.has(currentPhase)
         && event.phase === MatchPhase.KickReturn;
+      // TMO review: the review beats place no players (announcement-only), so hold the
+      // predecessor formation frozen on screen rather than fading everyone. It
+      // fades/repositions normally when the review resolves (try / penalty / scrum).
+      const keepTmo = event.phase === MatchPhase.TmoReview;
+      // PhasePlay: hold the predecessor formation (usually the breakdown) and let only
+      // the involved actors (openPlayLayout) move, so don't fade on the way in either.
+      const keepPhasePlay = event.phase === MatchPhase.PhasePlay;
+      // The kick→return seed glides from the predecessor positions; the holds keep the
+      // non-movers exactly in place, so only the kick case enables the transition here
+      // (phase play enables it per-beat below, for its movers).
+      if (keepKickFormation) {
+        field.classList.add('dot-transitioning');
+        setTimeout(() => field.classList.remove('dot-transitioning'), 600);
+      }
       if (keepLineout) {
         // Attacking #9 must start FirstPhase at their set-piece position (lineout
         // mark or behind their #8 in a scrum). Skip the position update for their
         // dot this beat only; subsequent beats will reposition them normally.
         setpieceSHKey = `${event.side === 'home' ? 'h' : 'a'}:${SLOT.SCRUM_HALF}`;
-      } else if (keepKickFormation) {
-        field.classList.add('dot-transitioning');
-        setTimeout(() => field.classList.remove('dot-transitioning'), 600);
-      } else {
+      } else if (!keepKickFormation && !keepTmo && !keepPhasePlay) {
         for (const key of persistedKeys) {
           if (!nextKeys.has(key)) pool.get(key)?.classList.remove('visible');
         }
         persistedKeys = new Set();
       }
+      // else (keepKickFormation / keepTmo / keepPhasePlay): hold — skip the fade, carry persistedKeys.
       currentPhase = event.phase;
+    }
+
+    // PhasePlay animates only its movers: enable the glide every beat (not just on the
+    // way in) so the involved actors (openPlayLayout) ease from their held positions to
+    // the ball-relative spots, while every other dot keeps its top/left and stays put
+    // (no position change → no transition fires). The carrier rides the ball via the
+    // follower, which sets transition:none on its own dot so the glide can't fight it.
+    if (event.phase === MatchPhase.PhasePlay) {
+      field.classList.add('dot-transitioning');
+      setTimeout(() => field.classList.remove('dot-transitioning'), 600);
     }
 
     carrierEl = null;

@@ -59,6 +59,16 @@
   .btns { display: flex; flex-wrap: wrap; gap: 7px; }
   .hint { color: var(--muted); font-size: 11px; line-height: 1.55; margin: 8px 0; }
 
+  /* segmented mode toggle */
+  .seg { display: flex; background: var(--bg2); border: 1px solid var(--line); border-radius: 8px;
+         padding: 3px; gap: 3px; margin: 0 0 10px; }
+  .seg-btn { flex: 1; background: transparent; border: none; border-radius: 6px; padding: 8px 10px;
+             color: var(--muted); font: 700 11px/1 system-ui; cursor: pointer;
+             transition: background .15s ease, color .15s ease; }
+  .seg-btn:hover { background: var(--panel-hi); color: var(--ink); }
+  .seg-btn.active { background: var(--accent); color: #05140c; box-shadow: 0 1px 8px var(--accent-soft); }
+  .seg-btn.active:hover { background: var(--accent-2); color: #05140c; }
+
   /* Pitch — portrait, matches the game: x = long axis (vertical, 100 at top), y = lateral. */
   #pitch { position: relative; aspect-ratio: 3 / 4; height: 100%; max-width: 100%;
            background: repeating-linear-gradient(var(--pitch1) 0 6.25%, var(--pitch2) 6.25% 12.5%);
@@ -156,8 +166,12 @@
     <p class="hint" style="margin-top:8px">Coords are game space — x = long axis (0–100, 100 = top), y = lateral (0–100, 0/100 = touchlines).</p>
 
     <h2>Phase source</h2>
+    <div class="seg" id="modeToggle">
+      <button class="seg-btn active" data-mode="single">Single phases</button>
+      <button class="seg-btn" data-mode="transitions">Transitions</button>
+    </div>
     <select id="phaseSel"><option value="">— blank phase —</option></select>
-    <p class="hint">349 engine phases embedded (<code>phases.js</code>), keyed by phase · outcome · predecessor. Pick one + Load phase. Or drop your own <code>trace.json</code> (<code>npm run probe</code>):</p>
+    <p class="hint"><b>Single phases</b> — each distinct phase animation, authored on its own. <b>Transitions</b> — every predecessor→phase pairing, with players seeded from the previous phase. Pick one + Load phase, or drop your own <code>trace.json</code> (<code>npm run probe</code>):</p>
     <input type="file" id="traceFile" accept=".json" />
     <div class="btns" style="margin-top:8px">
       <button id="loadPhase">Load phase</button>
@@ -480,6 +494,8 @@
 
   // ---- phase source: embedded samples (phases.js) + optional trace.json ----
   let phaseItems = [];   // unified: {label, start, moves, resolve, primary, secondary, side, phase, keys}
+  let allEmbedItems = []; // the full enriched embedded set (every predecessor pairing)
+  let mode = 'single';    // 'single' = ~120 distinct phases; 'transitions' = all pairs + seeding
 
   function setPhaseList(items, note) {
     phaseItems = items;
@@ -493,8 +509,8 @@
 
   function embedItems() {
     const E = window.EMBEDDED_PHASES || [];
-    // Find (phase·key) pairs that have more than one distinct predecessor so
-    // the label can disambiguate: "FIRST_PHASE · crash_ball ← LINEOUT:clean_catch"
+    // Find (phase·key) pairs that have more than one distinct predecessor so the
+    // transitions label can disambiguate: "FIRST_PHASE · crash_ball ← LINEOUT:clean_catch"
     const predsByPk = new Map();
     for (const s of E) {
       const pk = s.phase + ':' + s.key;
@@ -502,18 +518,40 @@
       predsByPk.get(pk).add((s.prevPhase || '') + ':' + (s.prevKey || ''));
     }
     return E.map(s => {
-      const pk = s.phase + ':' + s.key;
-      const predStr = predsByPk.get(pk).size > 1
+      const base = s.phase + ' · ' + s.keys.join('/');
+      const predStr = predsByPk.get(s.phase + ':' + s.key).size > 1
         ? ' ← ' + (s.prevPhase || '?') + ':' + (s.prevKey || '?')
         : '';
       return {
-        label: s.phase + ' · ' + s.keys.join('/') + predStr,
+        label: base, singleLabel: base, transLabel: base + predStr,
         start: s.start, moves: s.moves || [], resolve: s.resolve,
         primary: s.primary, secondary: s.secondary, side: s.side, phase: s.phase, keys: s.keys,
         layout: s.layout || [], attacksTop: s.attacksTop ?? null,
         prevPhase: s.prevPhase ?? null, prevKey: s.prevKey ?? null,
       };
     });
+  }
+
+  // Populate the dropdown for the current mode. 'single' collapses to one richest
+  // sample per (phase, outcome) — no predecessor blending; 'transitions' lists every
+  // predecessor→phase pairing.
+  function rebuildList() {
+    let items;
+    if (mode === 'transitions') {
+      items = allEmbedItems.map(it => ({ ...it, label: it.transLabel }));
+    } else {
+      const byPk = new Map();
+      for (const it of allEmbedItems) {
+        const pk = it.phase + '|' + it.keys.join('/');
+        const score = it.moves.length * 100 + it.layout.length;   // richest path, then fullest layout
+        const cur = byPk.get(pk);
+        if (!cur || score > cur._score) byPk.set(pk, { ...it, label: it.singleLabel, _score: score });
+      }
+      items = [...byPk.values()];
+    }
+    items.sort((a, b) => a.label.localeCompare(b.label));
+    const noun = mode === 'transitions' ? 'phase transitions' : 'single phases';
+    setPhaseList(items, `${items.length} ${noun} — pick one and Load phase.`);
   }
 
   function traceItems(trace) {
@@ -544,6 +582,17 @@
     rd.readAsText(f);
   };
 
+  // ---- mode toggle: single phases vs transitions ----
+  document.querySelectorAll('#modeToggle .seg-btn').forEach(btn => {
+    btn.onclick = () => {
+      if (btn.dataset.mode === mode) return;
+      mode = btn.dataset.mode;
+      document.querySelectorAll('#modeToggle .seg-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.mode === mode));
+      rebuildList();
+    };
+  });
+
   document.getElementById('loadPhase').onclick = () => {
     makeEntities();
     const v = document.getElementById('phaseSel').value;
@@ -561,8 +610,10 @@
     //   1. Explicit `from` in the layout (formation chase — game-authored, never override).
     //   2. Predecessor resting position — eliminates the teleport when chaining phases.
     //   3. Current resting position (static, no animation).
+    // Predecessor seeding only applies in transitions mode; single phases load with
+    // every dot at its own resting position (game-authored `from` chases still animate).
     const prevById = {};
-    if (it.prevPhase != null && it.prevKey != null) {
+    if (mode === 'transitions' && it.prevPhase != null && it.prevKey != null) {
       const prevSample = (window.EMBEDDED_PHASES || []).find(
         s => s.phase === it.prevPhase && s.key === it.prevKey
       );
@@ -643,7 +694,8 @@
   // ---- go ----
   makeEntities();
   if (window.EMBEDDED_PHASES && window.EMBEDDED_PHASES.length) {
-    setPhaseList(embedItems(), `${window.EMBEDDED_PHASES.length} engine phases loaded — pick one and Load phase. (Or drop a trace.json for your own.)`);
+    allEmbedItems = embedItems();
+    rebuildList();
   } else {
     document.getElementById('phaseInfo').textContent = 'phases.js not found — start blank, or load a trace.json.';
   }

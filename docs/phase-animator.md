@@ -77,21 +77,39 @@ URL or hard-refresh.
 
 ## 4. The phase dropdown
 
-The dropdown is populated from `public/tools/phases.js` — 349 real engine samples
+The dropdown is populated from `public/tools/phases.js` — real engine samples
 covering 14 phase types (BOX_KICK, BREAKDOWN, CONVERSION_KICK, DROP_OUT_22,
 FIRST_PHASE, KICK_OFF, KICK_RETURN, LINEOUT, MAUL, PENALTY, PHASE_PLAY, SCRUM,
 TACTICAL_KICK, TRY_SCORED).
 
-Each entry is keyed by **`(phase, outcome, predecessor phase)`**. When a
-`(phase, outcome)` pair has only one possible predecessor, the label is compact:
+### Mode toggle — Single phases / Transitions
+
+A segmented toggle above the dropdown switches what's listed:
+
+- **Single phases** (default) — one entry per distinct `(phase, outcome)`, ~120 in
+  total. Each is authored on its own; loading one places every player at that phase's
+  own resting layout with **no predecessor blending**. This is the mode to use while
+  building out the base library of phase animations.
+- **Transitions** — every `(phase, outcome, predecessor)` pairing (all ~349 samples).
+  Loading one **seeds player start positions from the predecessor phase** so you can
+  author the blend between two phases. Use this later, once the single phases are done.
+
+The rest of this section describes the labels you'll see in each mode.
+
+### Single-phase labels
+
+In Single mode the label is just the phase and its outcome key(s):
 
 ```
 BREAKDOWN · clean_ball
 FIRST_PHASE · crash_ball/dominant_tackle
 ```
 
-When the same outcome can follow different set pieces (and the forward positions
-would therefore differ), the predecessor is shown explicitly:
+### Transition labels
+
+In Transitions mode, when a `(phase, outcome)` pair has only one possible predecessor
+the label stays compact; when the same outcome can follow different predecessors (and
+the forward positions would therefore differ), the predecessor is shown explicitly:
 
 ```
 FIRST_PHASE · crash_ball/dominant_tackle ← LINEOUT:clean_catch
@@ -121,10 +139,11 @@ tells you which narration chain it represents.
      markers, and the **info line** below the buttons shows:
      - *"HOME in possession · attacking ↑ (top)."*
      - *"Involved: #10 & #14."* — the primary and secondary actors from the engine.
-     - *"Layout: 22 dots placed (9 seeded from LINEOUT:clean_catch)."* — how many
-       players were pre-placed, and how many had their `t = 0` seeded from the
-       predecessor phase (those 9 start at their lineout positions and glide to their
-       first-phase positions as you play the animation).
+     - *"Layout: 22 dots placed."* — how many players were pre-placed. In **Transitions**
+       mode it also reports how many had their `t = 0` seeded from the predecessor phase
+       (e.g. *"(9 seeded from LINEOUT:clean_catch)"* — those 9 start at their lineout
+       positions and glide to their first-phase positions as you play). In **Single
+       phases** mode nothing is seeded — every dot loads at its own resting position.
    - The **possession badge** on the pitch confirms which team attacks which end.
 
 2. **Read the orientation.** Before dragging anything:

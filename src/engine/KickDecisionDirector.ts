@@ -178,7 +178,9 @@ export function decideKick(ctx: KickDecisionContext): KickOrCarry {
 // from state.pendingKick. The handler is responsible for emitting
 // KICK_INTENT_CLEARED before it returns.
 export function buildKickTransition(decision: KickDecision, sourcePhase: MatchPhase): PhaseResult {
-  const nextPhase = decision.kicker.id === SLOT.SCRUM_HALF ? MatchPhaseEnum.BoxKick : MatchPhaseEnum.TacticalKick;
+  const nextPhase = (decision.kicker.id === SLOT.SCRUM_HALF && sourcePhase !== MatchPhaseEnum.KickReturn) 
+    ? MatchPhaseEnum.BoxKick 
+    : MatchPhaseEnum.TacticalKick;
   return {
     nextPhase,
     narration: { steps: [{ kind: 'phase_outcome', phase: sourcePhase, key: 'kick_decision' }] },

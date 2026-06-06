@@ -430,7 +430,39 @@ export class MatchCoordinator {
     const team = side === 'home' ? this.state.homeTeam : this.state.awayTeam;
     const noReplKey = reason === 'red_20' ? 'red_20_no_replacement' : 'injury_no_replacement';
     const replDoneKey = reason === 'red_20' ? 'red_20_replacement_done' : 'injury_replacement_done';
-    if (team.bench.length === 0) {
+
+    let benchSquadNum: number | null = null;
+    if (team.bench.length > 0) {
+      if (this.silent || side !== this.humanSide) {
+        benchSquadNum = pickAutoReplacement(team.bench, off);
+      } else {
+        // Drain queued events before opening the forced-sub modal so the
+        // user reads the red_20 / injury narration before picking a
+        // replacement.
+        await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+        const wasRunning = this.state.engine.isRunning;
+        benchSquadNum = await new Promise<number | null>(resolve => {
+          this.pendingForcedSubResolve = resolve;
+          eventBus.emit('engine:paused', {
+            payload: {
+              type: 'forced_substitution_choice',
+              side,
+              sentOff: off,
+              bench: [...team.bench],
+              reason,
+              onChoice: (n) => resolve(n),
+            },
+          });
+        });
+        this.pendingForcedSubResolve = null;
+        if (wasRunning) eventBus.emit('engine:resumed', {});
+      }
+    }
+
+    if (!this.state.engine.isRunning) return;
+
+    const benchPlayer = benchSquadNum !== null ? team.bench.find(p => p.squadNumber === benchSquadNum) : undefined;
+    if (!benchPlayer) {
       const ev = buildAnnounce({
         key: noReplKey,
         state: this.state,
@@ -443,37 +475,6 @@ export class MatchCoordinator {
       applyMatchEvent(this.state, { type: 'INJURY_STRANDED', player: off, teamSide: side });
       return;
     }
-
-    let benchSquadNum: number | null = null;
-    if (this.silent || side !== this.humanSide) {
-      benchSquadNum = pickAutoReplacement(team.bench, off);
-    } else {
-      // Drain queued events before opening the forced-sub modal so the
-      // user reads the red_20 / injury narration before picking a
-      // replacement.
-      await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-      const wasRunning = this.state.engine.isRunning;
-      benchSquadNum = await new Promise<number | null>(resolve => {
-        this.pendingForcedSubResolve = resolve;
-        eventBus.emit('engine:paused', {
-          payload: {
-            type: 'forced_substitution_choice',
-            side,
-            sentOff: off,
-            bench: [...team.bench],
-            reason,
-            onChoice: (n) => resolve(n),
-          },
-        });
-      });
-      this.pendingForcedSubResolve = null;
-      if (wasRunning) eventBus.emit('engine:resumed', {});
-    }
-
-    if (!this.state.engine.isRunning) return;
-    if (benchSquadNum === null) return;
-    const benchPlayer = team.bench.find(p => p.squadNumber === benchSquadNum);
-    if (!benchPlayer) return;
 
     // Field slot vacated by the off player: team.players still contains them
     // (CARD_ISSUED / PLAYER_INJURED_IN_MATCH didn't remove from the array).

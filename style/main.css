@@ -379,7 +379,6 @@ html, body {
     var(--rm-bg) 100%);
   border-bottom: 1px solid var(--rm-hairline);
   padding: 10px 16px 10px;
-  padding-top:   max(10px, env(safe-area-inset-top, 0px));
   padding-left:  max(16px, env(safe-area-inset-left));
   padding-right: max(16px, env(safe-area-inset-right));
   box-shadow: 0 4px 24px rgba(0,0,0,0.4);
@@ -617,6 +616,7 @@ html, body {
   display: flex;
   border-bottom: 1px solid var(--rm-hairline);
   background: var(--rm-bg);
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .view-btn {

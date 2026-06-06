@@ -98,8 +98,12 @@ export function choreograph(
   // origin); each outcome can be refined into its own authored frame later. The ball's
   // flight — lob to touch vs in-field landing — is PitchView's job keyed on kickFindsTouch,
   // so a caught kick still lands in-field under this same layout.
-  if (event.phase === MatchPhase.TacticalKick)
+  if (event.phase === MatchPhase.TacticalKick) {
+    if (kickFindsTouch(event)) {
+      return placeFormation(event, state, attacksTop, prevBallX, prevBallY, TACTICAL_KICK_FROZEN);
+    }
     return placeFormation(event, state, attacksTop, prevBallX, prevBallY, TACTICAL_KICK_BASE);
+  }
   if (event.phase === MatchPhase.ConversionKick)
     return conversionLayout(event, state, attacksTop, prevBallX, prevBallY);
   if (event.phase === MatchPhase.DropOut22)      return dropOutLayout(event, state, attacksTop, prevBallX, prevBallY);
@@ -107,6 +111,8 @@ export function choreograph(
     const keys = outcomeKeys(event);
     // Announce beat: formation around the live ruck (event.ball IS the kick origin).
     if (keys.includes('announce')) return placeFormation(event, state, attacksTop, event.ballX, event.ballY, BOX_KICK_ANNOUNCE);
+    // If the box kick finds touch, freeze the pack at the kick origin.
+    if (kickFindsTouch(event)) return placeFormation(event, state, attacksTop, prevBallX, prevBallY, BOX_KICK_ANNOUNCE);
     // Outcome beat: the ball has flown to the landing, so anchor the kicking
     // formation on the kick origin (the previous beat's ball = the announce ruck).
     const form = BOX_KICK_FORMS.find(f => keys.includes(f.key));
@@ -154,11 +160,19 @@ export function choreograph(
   // phase_outcome step and place no players. They return [] — PitchPlayers holds the
   // current formation through them (an empty beat doesn't fade the pitch) and adds the
   // injury/fatigue glow to the named player's dot, rather than clearing or relocating it.
-  if (!event.narration.steps.some(s => s.kind === 'phase_outcome')) return [];
+  if (!event.narration.steps.some(s => s.kind === 'phase_outcome')) {
+    // Exception: the kicks_for_touch announcement is emitted before the penalty
+    // resolves. We want to show the players lining up for the kick to touch
+    // (the authored pre-kick formation).
+    if (event.phase === MatchPhase.Penalty && event.narration.steps.some(s => s.kind === 'announcement' && s.key === 'kicks_for_touch')) {
+      return placeFormation(event, state, attacksTop, event.ballX, event.ballY, PENALTY_KICK_TO_TOUCH);
+    }
+    return [];
+  }
 
   if (event.phase === MatchPhase.Scrum)   return scrumLayout(event, state, attacksTop);
   if (event.phase === MatchPhase.Lineout) return lineoutLayout(event, state, attacksTop);
-  if (event.phase === MatchPhase.Maul)    return maulLayout(event, state, attacksTop);
+  if (event.phase === MatchPhase.Maul)    return maulLayout(event, state, attacksTop, prevBallX, prevBallY);
 
   // First phase off a set piece: diagonal backline formation anchored at the #9's
   // set-piece ending position (behind #8 or at the lineout feed mark).
@@ -724,6 +738,12 @@ const TACTICAL_KICK_BASE: Formation = { nearTop: true,
   },
 };
 
+const TACTICAL_KICK_FROZEN: Formation = {
+  nearTop: TACTICAL_KICK_BASE.nearTop,
+  atk: TACTICAL_KICK_BASE.atkFrom ?? TACTICAL_KICK_BASE.atk,
+  def: TACTICAL_KICK_BASE.defFrom ?? TACTICAL_KICK_BASE.def,
+};
+
 // Kick-off formation, authored in the phase animator (KICK_OFF / clean_receive) and
 // keyed by position slot 1–15. Authored frame: RECEIVING team in the low-x half,
 // KICKING team lined up across halfway, ball kicked toward low x (kickDir = −1),
@@ -753,6 +773,28 @@ const KICKOFF_KICK: Record<number, KickoffSpot> = {
   11: { from: [79, 100], to: [54, 99] },  12: { from: [69, 22],  to: [63, 29] },
   13: { from: [72, 86],  to: [47, 81] },  14: { from: [81, 1],   to: [72, 31] },
   15: { from: [80, 51],  to: [65, 75] },
+};
+
+const KICKOFF_SHORT_RECV: Record<number, KickoffSpot> = {
+  1:  { from: [36, 77], to: [40, 75] },  2:  { from: [35, 91],  to: [39, 88] },
+  3:  { from: [37, 17], to: [41, 20] },  4:  { from: [38, 75],  to: [40, 73] },
+  5:  { from: [40, 19], to: [40, 23] },  6:  { from: [39, 46],  to: [40, 48] },
+  7:  { from: [39, 88], to: [40, 85] },  8:  { from: [27, 80],  to: [32, 78] },
+  9:  { from: [15, 72], to: [20, 68] },  10: { from: [15, 7],   to: [15, 7]  },
+  11: { from: [33, 1],  to: [35, 3]  },  12: { from: [35, 44],  to: [38, 44] },
+  13: { from: [26, 50], to: [30, 50] },  14: { from: [16, 97],  to: [22, 90] },
+  15: { from: [15, 38], to: [15, 38] },
+};
+
+const KICKOFF_SHORT_KICK: Record<number, KickoffSpot> = {
+  1:  { from: [55, 93],  to: [45, 93] },  2:  { from: [54, 100], to: [45, 95] },
+  3:  { from: [56, 9],   to: [47, 12]  },  4:  { from: [56, 22],  to: [46, 25] },
+  5:  { from: [54, 87],  to: [45, 87] },  6:  { from: [55, 74],  to: [46, 76] },
+  7:  { from: [55, 80],  to: [44, 81] },  8:  { from: [56, 16],  to: [47, 16] },
+  9:  { from: [64, 63],  to: [60, 65] },  10: { from: [53, 50],  to: [50, 52] },
+  11: { from: [79, 100], to: [65, 99] },  12: { from: [69, 22],  to: [65, 27] },
+  13: { from: [72, 86],  to: [60, 83] },  14: { from: [81, 1],   to: [75, 15] },
+  15: { from: [80, 51],  to: [70, 60] },
 };
 
 // Kick-off: kicker on the centre spot, both XVs in the authored kick-off formation,
@@ -808,6 +850,12 @@ function kickOffLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
       if (isKickBeat) { const [fx, fy] = tx(spot.from); dot.from = { x: fx, y: fy }; }
       out.push(dot);
     };
+
+    // Use short chase tables if the ball landed near the 10m line (dist from 50 <= 20).
+    const isShort = Math.abs(event.ballX - 50) <= 20;
+    const recvTable = isShort ? KICKOFF_SHORT_RECV : KICKOFF_RECV;
+    const kickTable = isShort ? KICKOFF_SHORT_KICK : KICKOFF_KICK;
+
     // Receiving XV in the authored shape; on the kick beat the real catcher runs onto
     // the real landing (from its authored start, so it's continuous with the announce beat).
     for (let slot = 1; slot <= 15; slot++) {
@@ -815,18 +863,18 @@ function kickOffLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
       if (!p) continue;
       if (receiver && p === receiver) {
         const dot = placed(p, recvSide, state, clampX(event.ballX), clampY(event.ballY), false);
-        const [fx, fy] = tx(KICKOFF_RECV[slot].from);
+        const [fx, fy] = tx(recvTable[slot].from);
         dot.from = { x: fx, y: fy };
         out.push(dot);
       } else {
-        place(p, recvSide, KICKOFF_RECV[slot]);
+        place(p, recvSide, recvTable[slot]);
       }
     }
     // Kicking XV chase line + cover (the kicker is already placed on the centre spot).
     for (let slot = 1; slot <= 15; slot++) {
       const p = kickOn.find(pl => pl.id === slot);
       if (!p || p === kicker) continue;
-      place(p, kickSide, KICKOFF_KICK[slot]);
+      place(p, kickSide, kickTable[slot]);
     }
   }
 
@@ -1065,11 +1113,28 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
   });
 
   const defSide: Side = atkSide === 'h' ? 'a' : 'h';
+  const tackler = event.secondaryPlayer && sideOf(event.secondaryPlayer, state) === defSide ? event.secondaryPlayer : null;
+
   defenders.forEach((p, i) => {
-    const lateralOffset = (i % 2 === 0 ? 1 : -1) * Math.ceil((i + 1) / 2) * 8;
-    out.push(placed(p, defSide, state,
-      clampX(ballX + fwd * (3 + i * 6)),
-      clampY(ballY + lateralOffset), false));
+    if (p === tackler && carrier) {
+      // Pin tackler to the ball carrier to visually represent the collision.
+      // Give them a `from` at their defensive-line spot so the WAAPI chase
+      // animation runs them INTO the tackle over the beat duration.
+      const carrierX = event.phase === MatchPhase.TryScored
+        ? clampInGoalX(ballX + fwd * 2.5)
+        : clampX(ballX - fwd * 2.5);
+      const tackleX = clampX(carrierX + fwd * 1.3);
+      const defLineX = clampX(ballX + fwd * 10);
+      const defLineY = clampY(ballY + 4);
+      const dot = placed(p, defSide, state, tackleX, ballY, false);
+      dot.from = { x: defLineX, y: defLineY };
+      out.push(dot);
+    } else {
+      const lateralOffset = (i % 2 === 0 ? 1 : -1) * Math.ceil((i + 1) / 2) * 8;
+      out.push(placed(p, defSide, state,
+        clampX(ballX + fwd * (3 + i * 6)),
+        clampY(ballY + lateralOffset), false));
+    }
   });
   return out;
 }
@@ -1078,19 +1143,50 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
 // Reuses pack() so the same player keys are used — when this follows a lineout,
 // PitchPlayers enables top/left transitions and the dots animate from their
 // lineout spread positions into this cluster (the Lineout→Maul visual).
-function maulLayout(event: GameEvent, state: MatchState, attacksTop: boolean): Placed[] {
+function maulLayout(event: GameEvent, state: MatchState, attacksTop: boolean, prevBallX: number, prevBallY: number): Placed[] {
   const fwd = attacksTop ? 1 : -1;
   const atkSide: Side = event.side === 'home' ? 'h' : 'a';
   const defSide: Side = atkSide === 'h' ? 'a' : 'h';
+  const atkTeam = atkSide === 'h' ? state.homeTeam : state.awayTeam;
+  const defTeam = defSide === 'h' ? state.homeTeam : state.awayTeam;
+
+  // The maul forms from a lineout. The lineout mark was prevBallX, prevBallY.
+  // We use prevBallY to determine the near touchline for the backs.
+  const nearY = prevBallY < 50 ? 0 : 100;
+  const inward = nearY === 0 ? 1 : -1;
+  const toY = (distNear: number) => clampY(nearY + inward * distNear);
+
   // Attacking pack uses MAUL_ATK_ROWS so the hooker animates to the back of the maul.
   // Defending pack stays in standard scrum formation (they're defending from the front).
   // No isCarrier flag: the maul drives as a bound unit (the whole pack glides
   // forward to the post-drive cluster via the Layer-3 dot-transitioning class),
   // so we deliberately do NOT peel the hooker off onto the ball via the follower.
-  return [
+  const out: Placed[] = [
     ...pack(state, atkSide, event.ballX, event.ballY, -fwd, MAUL_ATK_ROWS),
     ...pack(state, defSide, event.ballX, event.ballY, +fwd),
   ];
+
+  // Backs stay in their lineout positions. We anchor their X from prevBallX
+  // and Y from prevBallY.
+  const atkOn = onFieldPlayers(atkTeam, state, possOf(atkSide));
+  const defOn = onFieldPlayers(defTeam, state, possOf(defSide));
+  for (const e of LINEOUT_ATK_BACKS) {
+    const p = atkOn.find(pl => pl.id === e.slot);
+    if (p) out.push(placed(p, atkSide, state, clampX(prevBallX - fwd * e.dX), toY(e.distNear), false));
+  }
+  for (const e of LINEOUT_DEF_BACKS) {
+    const p = defOn.find(pl => pl.id === e.slot);
+    if (p) out.push(placed(p, defSide, state, clampX(prevBallX + fwd * e.dX), toY(e.distNear), false));
+  }
+
+  // Scrum-halves stay in their lineout positions.
+  const atkSH = atkOn.find(p => p.id === SLOT.SCRUM_HALF);
+  const defSH = defOn.find(p => p.id === SLOT.SCRUM_HALF);
+  const TEN_M_Y = clampY(nearY + inward * 14);
+  if (atkSH) out.push(placed(atkSH, atkSide, state, clampX(prevBallX - fwd * 4), TEN_M_Y, false));
+  if (defSH) out.push(placed(defSH, defSide, state, clampX(prevBallX + fwd * 4), TEN_M_Y, false));
+
+  return out;
 }
 
 // distNear = lateral distance from the nearer touchline (0 or 100).
@@ -1166,14 +1262,18 @@ function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): 
   const atkTeam = atkSide === 'h' ? state.homeTeam : state.awayTeam;
   const defTeam = defSide === 'h' ? state.homeTeam : state.awayTeam;
 
-  const nearY  = event.ballY < 50 ? 0 : 100;
+  // Enforce a safe distance from the touchline so the scrum pack doesn't condense against the boundary.
+  // Flankers sit at y=±4.5 relative to the center, so we need at least 5 units of clearance.
+  const scrumY = Math.max(5, Math.min(95, event.ballY));
+
+  const nearY  = scrumY < 50 ? 0 : 100;
   const inward = nearY === 0 ? 1 : -1;
   const toY    = (distNear: number) => clampY(nearY + inward * distNear);
 
   // Attacking pack faces toward its own end (negative fwd), defenders face toward attacking end.
   const out: Placed[] = [
-    ...pack(state, atkSide, event.ballX, event.ballY, -fwd),
-    ...pack(state, defSide, event.ballX, event.ballY, +fwd),
+    ...pack(state, atkSide, event.ballX, scrumY, -fwd),
+    ...pack(state, defSide, event.ballX, scrumY, +fwd),
   ];
 
   // Backs for both sides — spread behind their respective packs.
@@ -1197,19 +1297,17 @@ function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): 
   const isDominantPenalty = event.outcome === 'attacking_dominant_penalty'
                          || event.outcome === 'defending_dominant_penalty';
   if (isDominantPenalty) {
-    const nearY  = event.ballY < 50 ? 0 : 100;
-    const inward = nearY === 0 ? 1 : -1;
-    const fromY  = clampY(event.ballY + inward * 9);
-    if (atkSH) out.push({ ...placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 9.5), clampY(event.ballY), false), from: { x: clampX(event.ballX - fwd * 3), y: fromY } });
-    if (defSH) out.push({ ...placed(defSH, defSide, state, clampX(event.ballX + fwd * 9.5), clampY(event.ballY), false), from: { x: clampX(event.ballX + fwd * 2), y: fromY } });
+    const fromY  = clampY(scrumY + inward * 9);
+    if (atkSH) out.push({ ...placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 9.5), clampY(scrumY), false), from: { x: clampX(event.ballX - fwd * 3), y: fromY } });
+    if (defSH) out.push({ ...placed(defSH, defSide, state, clampX(event.ballX + fwd * 9.5), clampY(scrumY), false), from: { x: clampX(event.ballX + fwd * 2), y: fromY } });
   } else {
     if (atkSH) {
-      const dot = placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 9.5), clampY(event.ballY), false);
+      const dot = placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 9.5), clampY(scrumY), false);
       dot.scrumHalfRole = 'atk';
       out.push(dot);
     }
     if (defSH) {
-      const dot = placed(defSH, defSide, state, clampX(event.ballX + fwd * 9.5), clampY(event.ballY), false);
+      const dot = placed(defSH, defSide, state, clampX(event.ballX + fwd * 9.5), clampY(scrumY), false);
       dot.scrumHalfRole = 'def';
       out.push(dot);
     }
@@ -1402,7 +1500,23 @@ function firstPhaseBacklineLayout(
 
   // Defenders: event actors on the defending side, placed just ahead of the ball.
   const actors = harvestActors(event);
-  actors.filter(p => sideOf(p, state) === defSide).forEach((p, i) => {
+  const defSideActors = actors.filter(p => sideOf(p, state) === defSide);
+  const tackler = event.secondaryPlayer && sideOf(event.secondaryPlayer, state) === defSide ? event.secondaryPlayer : null;
+
+  defSideActors.forEach((p, i) => {
+    if (p === tackler && carrier) {
+      // Pin tackler to the ball carrier — animate from defensive-line spot
+      const carrierPl = out.find(pl => pl.key === `${atkSide}:${carrier.id}`);
+      if (carrierPl) {
+        const tackleX = clampX(carrierPl.x + fwd * 1.3);
+        const defLineX = clampX(event.ballX + fwd * 10);
+        const defLineY = clampY(event.ballY + 4);
+        const dot = placed(p, defSide, state, tackleX, carrierPl.y, false);
+        dot.from = { x: defLineX, y: defLineY };
+        out.push(dot);
+        return;
+      }
+    }
     const lat = (i % 2 === 0 ? 1 : -1) * Math.ceil((i + 1) / 2) * 8;
     out.push(placed(p, defSide, state,
       clampX(event.ballX + fwd * (3 + i * 6)),

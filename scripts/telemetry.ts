@@ -18,6 +18,8 @@ import { MatchCoordinator } from '../src/engine/MatchCoordinator.js';
 import { deriveFixtureSeed } from '../src/game/derive.js';
 import { eventBus } from '../src/utils/eventBus.js';
 import { setInvariantsEnabled } from '../src/utils/invariantsMode.js';
+import fs from 'node:fs';
+import path from 'node:path';
 
 // Tuning runs are correctness-checked elsewhere (npm run verify). Skip the
 // per-event tripwire sweep so the 450-fixture pass stays fast.
@@ -1203,6 +1205,20 @@ async function main(): Promise<void> {
     aggs.push(await runSeason(seed));
   }
   const elapsedMs = Date.now() - t0;
+  
+  // Write JSON representation for the HTML telemetry tool
+  const jsonPath = path.join(process.cwd(), 'telemetry', 'latest.json');
+  fs.writeFileSync(jsonPath, JSON.stringify({
+    timestamp: new Date().toISOString(),
+    aggs,
+    elapsedMs
+  }, (key, value) => {
+    if (value instanceof Map) {
+      return Object.fromEntries(value.entries());
+    }
+    return value;
+  }));
+
   console.log(buildReport(aggs, elapsedMs));
 }
 

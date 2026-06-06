@@ -194,6 +194,14 @@ const KICKER_STEPS_UP: readonly string[] = [
   'Stadium falls silent as {primary} settles over the ball.',
 ];
 
+const KICKS_FOR_TOUCH: readonly string[] = [
+  '{primary} signals to the referee — they are kicking for the corner.',
+  'The decision is made — {primary} will kick to touch.',
+  '{primary} takes the ball and points to the touchline.',
+  'They are going for territory. {primary} lines up the kick to touch.',
+  'A kick to touch from {primary}.',
+];
+
 const KICKER_COMPOSE: readonly string[] = [
   '{primary} draws a breath. Eyes fixed on the posts.',
   '{primary} pauses... and steps in.',
@@ -412,6 +420,8 @@ export function getAnnouncementTemplate(
       return pickTryAftermath(params.tryAftermath);
     case 'kicker_steps_up':
       return pickRandom(KICKER_STEPS_UP);
+    case 'kicks_for_touch':
+      return pickRandom(KICKS_FOR_TOUCH);
     case 'kicker_compose':
       return pickRandom(KICKER_COMPOSE);
     case 'maul_drive_strong':

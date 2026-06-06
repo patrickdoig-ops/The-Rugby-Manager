@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Interactive telemetry data explorer for The Rugby Manager">
+  <title>Rugby Manager - Telemetry Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="dark-theme">
+  <div id="background-glow"></div>
+  
+  <div class="app-container">
+    <header class="glass-panel main-header">
+      <div class="header-content">
+        <div class="logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM11 19.93C7.06 19.43 4 16.05 4 12C4 7.95 7.06 4.57 11 4.07V19.93ZM13 4.07C16.94 4.57 20 7.95 20 12C20 16.05 16.94 19.43 13 19.93V4.07Z" fill="currentColor"/>
+          </svg>
+          <h1>Telemetry Explorer</h1>
+        </div>
+        <div class="metadata">
+          <span id="run-info" class="badge">Loading run data...</span>
+        </div>
+      </div>
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="overview">Overview</button>
+        <button class="tab-btn" data-tab="clubs">Club Stats</button>
+        <button class="tab-btn" data-tab="players">Leaderboards</button>
+        <button class="tab-btn" data-tab="tactics">Tactics</button>
+        <button class="tab-btn" data-tab="phases">Phases</button>
+      </nav>
+    </header>
+
+    <main class="content-area">
+      <!-- Loading State -->
+      <div id="loading-state" class="glass-panel center-content">
+        <div class="spinner"></div>
+        <p>Parsing telemetry data...</p>
+      </div>
+
+      <!-- Overview Tab -->
+      <section id="tab-overview" class="tab-pane hidden">
+        <div class="grid-2">
+          <div class="glass-panel">
+            <h2>League Standings</h2>
+            <div class="table-container">
+              <table id="standings-table">
+                <thead>
+                  <tr>
+                    <th>Club</th>
+                    <th>P</th>
+                    <th>W</th>
+                    <th>D</th>
+                    <th>L</th>
+                    <th>PF</th>
+                    <th>PA</th>
+                    <th>Pts</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div class="glass-panel">
+            <h2>Global Statistics</h2>
+            <div class="stats-grid" id="global-stats-grid">
+              <!-- populated by JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Clubs Tab -->
+      <section id="tab-clubs" class="tab-pane hidden">
+        <div class="glass-panel control-bar">
+          <label for="club-stat-select">Metric:</label>
+          <select id="club-stat-select" class="modern-select">
+            <option value="attacking">Attacking (Carries, Metres, LB)</option>
+            <option value="defence">Defence (Tackles, Turnovers)</option>
+            <option value="setpiece">Set Piece (Scrum, Lineout)</option>
+            <option value="discipline">Discipline (Pens, Cards)</option>
+          </select>
+        </div>
+        <div class="glass-panel mt-4">
+          <div class="table-container">
+            <table id="clubs-table" class="sortable-table">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Players Tab -->
+      <section id="tab-players" class="tab-pane hidden">
+        <div class="glass-panel control-bar">
+          <label for="leaderboard-select">Category:</label>
+          <select id="leaderboard-select" class="modern-select">
+            <option value="tries">Tries</option>
+            <option value="carries">Carries</option>
+            <option value="metres">Metres Carried</option>
+            <option value="lineBreaks">Line Breaks</option>
+            <option value="defendersBeaten">Defenders Beaten</option>
+            <option value="tackles">Tackles Made</option>
+            <option value="dominantTackles">Dominant Tackles</option>
+            <option value="turnovers">Turnovers Won (Jackals)</option>
+            <option value="kickMetres">Kick Metres</option>
+            <option value="kickingAccuracy">Goal Kicking Accuracy</option>
+            <option value="rating">Average Rating</option>
+            <option value="offloads">Offloads</option>
+          </select>
+          <input type="text" id="player-search" class="modern-input" placeholder="Search players...">
+        </div>
+        <div class="glass-panel mt-4">
+          <div class="table-container">
+            <table id="players-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Player</th>
+                  <th>Team</th>
+                  <th>Pos</th>
+                  <th>Apps</th>
+                  <th>Value</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tactics Tab -->
+      <section id="tab-tactics" class="tab-pane hidden">
+        <div class="grid-2">
+          <div class="glass-panel">
+            <h2>Attacking Game Plan</h2>
+            <div class="table-container">
+              <table id="tactics-plan-table">
+                <thead><tr><th>Plan</th><th>Games</th><th>Tries/g</th><th>Poss%</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="glass-panel">
+            <h2>Breakdown Strategy</h2>
+            <div class="table-container">
+              <table id="tactics-bd-table">
+                <thead><tr><th>Breakdown</th><th>Games</th><th>Carries/g</th><th>TO Won/g</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="glass-panel">
+            <h2>Defensive Line</h2>
+            <div class="table-container">
+              <table id="tactics-dl-table">
+                <thead><tr><th>Line</th><th>Games</th><th>LB Conceded/g</th><th>Dom Tackles/g</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="glass-panel">
+            <h2>Offload Strategy</h2>
+            <div class="table-container">
+              <table id="tactics-off-table">
+                <thead><tr><th>Strategy</th><th>Games</th><th>Offloads/g</th><th>Tries/g</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Phases Tab -->
+      <section id="tab-phases" class="tab-pane hidden">
+        <div class="grid-2">
+          <div class="glass-panel">
+            <h2>Phase Frequencies</h2>
+            <canvas id="phase-chart"></canvas>
+          </div>
+          <div class="glass-panel">
+            <h2>Try Origins</h2>
+            <canvas id="try-chart"></canvas>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

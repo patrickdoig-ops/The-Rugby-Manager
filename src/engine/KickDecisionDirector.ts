@@ -3,7 +3,9 @@ import type { Team } from '../types/team';
 import type { MatchState } from '../types/match';
 import type { MatchPhase } from '../types/engine';
 import type { PhaseResult } from './events/types';
+import type { MatchEvent } from '../types/matchEvent';
 import { MatchPhase as MatchPhaseEnum } from '../types/engine';
+import { clamp } from '../utils/math';
 import { rng } from '../utils/rng';
 import { inOpposition22, inOwn22, inOwnHalf, availableBacks } from './FieldPosition';
 import { SLOT } from './Slot';
@@ -177,22 +179,32 @@ export function decideKick(ctx: KickDecisionContext): KickOrCarry {
 // Emits KICK_INTENT_SET so the kick handler reads the family + sub-choice
 // from state.pendingKick. The handler is responsible for emitting
 // KICK_INTENT_CLEARED before it returns.
-export function buildKickTransition(decision: KickDecision, sourcePhase: MatchPhase): PhaseResult {
+export function buildKickTransition(decision: KickDecision, sourcePhase: MatchPhase, ctx?: KickDecisionContext): PhaseResult {
   const nextPhase = (decision.kicker.id === SLOT.SCRUM_HALF && sourcePhase !== MatchPhaseEnum.KickReturn) 
     ? MatchPhaseEnum.BoxKick 
     : MatchPhaseEnum.TacticalKick;
+    
+  const events: MatchEvent[] = [
+    { type: 'KICK_INTENT_SET', intent: {
+        family: decision.family,
+        clearanceStyle: decision.clearanceStyle,
+        attackingSubType: decision.attackingSubType,
+      } },
+    { type: 'KICK_RETURN_CARRIER_SET', player: undefined },
+    { type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 },
+  ];
+
+  if (ctx && nextPhase === MatchPhaseEnum.TacticalKick && sourcePhase !== MatchPhaseEnum.KickReturn) {
+    const fwd = ctx.state.possession === 'home' ? 1 : -1;
+    const sh = ctx.attackOnField.find(p => p.id === SLOT.SCRUM_HALF);
+    if (sh) events.push({ type: 'PASS_COMPLETED', passer: sh });
+    events.push({ type: 'BALL_REPOSITIONED', x: clamp(ctx.state.ball.x - fwd * 12, 0, 100) });
+  }
+
   return {
     nextPhase,
     narration: { steps: [{ kind: 'phase_outcome', phase: sourcePhase, key: 'kick_decision' }] },
     primaryPlayer: decision.kicker,
-    events: [
-      { type: 'KICK_INTENT_SET', intent: {
-          family: decision.family,
-          clearanceStyle: decision.clearanceStyle,
-          attackingSubType: decision.attackingSubType,
-        } },
-      { type: 'KICK_RETURN_CARRIER_SET', player: undefined },
-      { type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 },
-    ],
+    events,
   };
 }

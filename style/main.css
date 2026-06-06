@@ -914,6 +914,8 @@ body.pitch-view-active #pitch-wrapper { display: none; }
    to the field element so forwards animate from their lineout spread into the maul. */
 .dot-transitioning .pitch-dot {
   transition: top 0.6s cubic-bezier(0.25, 1, 0.5, 1), left 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.dot-transitioning .pitch-dot.dot-moving {
   animation: phase-pulse 0.6s ease-in-out;
 }
 

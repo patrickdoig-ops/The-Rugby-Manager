@@ -26,7 +26,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer, 
   // Step 0 — Kick or carry decision (see KickDecisionDirector)
   const decision = decideKick({ state, attackTeam, attackOnField });
   if (decision.kick) {
-    return buildKickTransition(decision, MatchPhase.KickReturn);
+    return buildKickTransition(decision, MatchPhase.KickReturn, { state, attackTeam, attackOnField });
   }
 
   // Step 1 — Carrier is whoever caught the kick; no handling gate.
@@ -215,7 +215,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer, 
     nextPhase,
     narration: { steps },
     primaryPlayer: carrier,
-    secondaryPlayer: defender,
+    secondaryPlayer: tryScored ? undefined : (res.outcome === 'line_break' ? coverTackler : defender),
     outcome: res.outcome,
     events,
   };

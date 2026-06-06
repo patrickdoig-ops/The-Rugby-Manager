@@ -171,6 +171,24 @@ export class PenaltyHandler {
       applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.KickAtGoal });
 
     } else if (choice === 'kick_to_touch') {
+      const entryEvent: GameEvent = {
+        id: makeId(),
+        gameMinute: state.clock.gameMinute,
+        phase: MatchPhase.Penalty,
+        side: state.possession,
+        sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
+        primaryPlayer: kicker,
+        ballX: state.ball.x,
+        ballY: state.ball.y,
+        narration: {
+          steps: [
+            { kind: 'announcement', key: 'kicks_for_touch', primary: kicker },
+          ],
+        },
+      };
+      applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: entryEvent });
+      this.emit('engine:event', { event: entryEvent });
+
       // The kick_to_touch path no longer teleports a flat 20m forward.
       // Distance is rolled from kicker quality + RNG (resolvePenaltyKickToTouch),
       // and a touch-finding roll decides whether the kick reaches the

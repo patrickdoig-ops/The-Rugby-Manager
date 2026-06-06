@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Endless Pitch Debug</title>
+  <style>
+    /* Minimal layout just for this debug tool */
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #040704; /* game dark background */
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      font-family: sans-serif;
+    }
+    #top-row {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    #left-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+    /* Fixed pitch stage */
+    #pitch-stage { width: 360px; height: 600px; position: relative; }
+    #pitch-2d-field { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; }
+    
+    #right-col {
+      width: 400px;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid #333;
+    }
+    #panel-commentary {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #sim-controls {
+      height: 60px;
+      border-top: 1px solid #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="top-row">
+    <div id="left-col">
+      <div id="anim-phase-label" style="margin-bottom: 15px; font-size: 1.1rem; line-height: 1.3; font-weight: bold; text-align: center; color: #ffeb3b; height: 50px; text-transform: uppercase; letter-spacing: 1px;"></div>
+      <div id="pitch-stage">
+        <div id="pitch-2d-field">
+          <span class="end-label pitch2d-end-top" id="pitch-top-label"></span>
+          <span class="end-label pitch2d-end-bottom" id="pitch-bottom-label"></span>
+          <div class="pitch2d-line line-deadball-top"></div>
+          <div class="pitch2d-line line-top-try"></div>
+          <div class="pitch2d-line line-top-5m"></div>
+          <div class="pitch2d-line line-top-22"></div>
+          <div class="pitch2d-line line-top-10m"></div>
+          <div class="pitch2d-line line-mid-halfway"></div>
+          <div class="pitch2d-line line-bot-10m"></div>
+          <div class="pitch2d-line line-bot-22"></div>
+          <div class="pitch2d-line line-bot-5m"></div>
+          <div class="pitch2d-line line-bot-try"></div>
+          <div class="pitch2d-line line-deadball-bot"></div>
+          <div class="pitch2d-vline vline-left-touch"></div>
+          <div class="pitch2d-vline vline-left-5m"></div>
+          <div class="pitch2d-vline vline-left-15m"></div>
+          <div class="pitch2d-vline vline-right-15m"></div>
+          <div class="pitch2d-vline vline-right-5m"></div>
+          <div class="pitch2d-vline vline-right-touch"></div>
+          <div class="pitch2d-posts posts-top"><svg class="goal-svg" viewBox="0 0 40 32" preserveAspectRatio="xMidYMax meet"><path d="M9 3 V32 M31 3 V32 M9 24 H31" fill="none"/></svg></div>
+          <div class="pitch2d-posts posts-bot"><svg class="goal-svg" viewBox="0 0 40 32" preserveAspectRatio="xMidYMax meet"><path d="M9 3 V32 M31 3 V32 M9 24 H31" fill="none"/></svg></div>
+          <div class="pitch2d-territory-shade" id="pitch-territory-shade"></div>
+          <div class="card-stack pitch2d-cards-top" id="pitch-cards-top"></div>
+          <div class="card-stack pitch2d-cards-bottom" id="pitch-cards-bottom"></div>
+          <div id="pitch-flash"></div>
+          <div id="pitch-2d-ball"></div>
+          <div id="pitch-kick-flight"></div>
+        </div>
+      </div>
+      <div id="pitch-phase-label" style="margin-top: 20px; font-size: 1.5rem; font-weight: bold; text-align: center; height: 30px;"></div>
+      <div id="pitch-territory-bar" style="display:none;"><div id="pitch-territory-home"></div></div>
+    </div>
+    <div id="right-col">
+      <div id="panel-commentary">
+        <div class="panel-header" style="padding: 10px; font-weight: bold; border-bottom: 1px solid #333; text-align: center; text-transform: uppercase;">Commentary</div>
+        <div id="commentary-feed" style="flex: 1; overflow-y: auto; padding: 10px;"></div>
+      </div>
+    </div>
+  </div>
+  <div id="sim-controls">
+    <div id="ctrl-bar" style="display: flex; gap: 10px; align-items: center;">
+      <button id="btn-play" class="ctrl-btn primary" title="Play">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>
+      </button>
+      <button id="btn-pause" class="ctrl-btn" disabled title="Pause">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path fill-rule="evenodd" d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7.5 0A.75.75 0 0115 4.5h1.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75V5.25z" clip-rule="evenodd"/></svg>
+      </button>
+      <button id="btn-tactics" style="display:none;"></button>
+      <button id="btn-subs" style="display:none;"><span id="subs-badge"></span></button>
+      <div class="speed-presets" role="group" style="display: flex; gap: 5px;">
+        <button class="speed-btn" data-ms="5000">½×</button>
+        <button class="speed-btn speed-btn--active" data-ms="2500">1×</button>
+        <button class="speed-btn" data-ms="1000">2×</button>
+        <button class="speed-btn" data-ms="400">4×</button>
+      </div>
+      <button id="btn-auto-settings" style="display:none;"></button>
+    </div>
+  </div>
+  
+  <!-- Required by sim controls, but hidden -->
+  <div id="match-settings-overlay" style="display:none;"></div>
+  
+  <script type="module" src="/scripts/endlessPitch.ts"></script>
+</body>
+</html>

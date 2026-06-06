@@ -30,7 +30,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   // ballQuality + family routing arrive in later stages.
   const decision = decideKick({ state, attackTeam, attackOnField });
   if (decision.kick) {
-    return buildKickTransition(decision, MatchPhase.PhasePlay);
+    return buildKickTransition(decision, MatchPhase.PhasePlay, { state, attackTeam, attackOnField });
   }
 
   // Step 0b — Pick and Go: rolled before the hard-carry / wide decision.
@@ -434,7 +434,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
     nextPhase,
     narration: { steps: outcomeSteps },
     primaryPlayer: ballCarrier,
-    secondaryPlayer: defender,
+    secondaryPlayer: tryScored ? undefined : (res.outcome === 'line_break' ? coverTackler : defender),
     outcome: res.outcome,
     events,
   };

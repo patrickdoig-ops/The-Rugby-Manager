@@ -17,3 +17,6 @@ const PLAY_WIDTH_PCT = 100 - 2 * TOUCH_MARGIN;  // 93
 
 export const toTop  = (ballX: number): number => INGOAL_PCT + ((100 - ballX) / 100) * PLAY_SPAN;
 export const toLeft = (ballY: number): number => TOUCH_MARGIN + (ballY / 100) * PLAY_WIDTH_PCT;
+
+export const fromTop  = (top: number): number => 100 - (100 * (top - INGOAL_PCT) / PLAY_SPAN);
+export const fromLeft = (left: number): number => (100 * (left - TOUCH_MARGIN)) / PLAY_WIDTH_PCT;

@@ -101,7 +101,7 @@ export type AnnouncementKey =
   | 'try_location_wide'    | 'try_location_corner'
   | 'try_referee_signal'   | 'try_aftermath'
   | 'try_bonus_point'
-  | 'kicker_steps_up'   | 'kicker_compose'
+  | 'kicker_steps_up'   | 'kicker_compose'  | 'kicks_for_touch'
   | 'maul_drive_strong'
   | 'scrum_reset_cap'
   | 'occasion_kickoff_derby'

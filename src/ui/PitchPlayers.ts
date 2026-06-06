@@ -79,6 +79,7 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     if (!el) {
       el = document.createElement('div');
       el.className = 'pitch-dot';
+      el.setAttribute('data-key', key);
       // Colour/contrast are fixed for a key (side ⇒ team ⇒ colour) — set once.
       el.style.setProperty('--dot-color', color);
       el.style.setProperty('--dot-text', text);
@@ -92,6 +93,11 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
 
   // Thin orchestration: pure choreograph → render/fade. ~12 lines, no rugby logic.
   const applyBeat = (event: GameEvent, state: MatchState, attacksTop: boolean): void => {
+    // Clear moving class from all dots so it doesn't linger on players preserved across phases
+    for (const el of pool.values()) {
+      el.classList.remove('dot-moving');
+    }
+
     const placed = choreograph(event, state, attacksTop, currentPhase, prevBallX, prevBallY);
     const nextKeys = new Set(placed.map(p => p.key));
 
@@ -157,13 +163,14 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
         setTimeout(() => field.classList.remove('dot-transitioning'), 600);
       } else {
         const snapPhases = new Set([
-          MatchPhase.Scrum, MatchPhase.Lineout, MatchPhase.KickOff, 
-          MatchPhase.DropOut22, MatchPhase.Penalty, MatchPhase.ConversionKick, 
-          MatchPhase.KickAtGoal, MatchPhase.HalfTime, MatchPhase.FullTime
+          MatchPhase.KickOff, MatchPhase.HalfTime, MatchPhase.FullTime
         ]);
         if (snapPhases.has(event.phase)) {
           field.classList.add('dot-snap-transition');
           setTimeout(() => field.classList.remove('dot-snap-transition'), 400);
+        } else {
+          field.classList.add('dot-transitioning');
+          setTimeout(() => field.classList.remove('dot-transitioning'), 600);
         }
       }
       if (keepLineout) {
@@ -203,8 +210,27 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       const el = ensureDot(p.key, p.color, p.text, p.jersey);
       // Preserve the set-piece #9 position on the Lineout/Scrum→FirstPhase beat.
       if (p.key !== setpieceSHKey) {
-        el.style.top = `${toTop(p.x)}%`;
-        el.style.left = `${toLeft(p.y)}%`;
+        const nextTopNum = toTop(p.x);
+        const nextLeftNum = toLeft(p.y);
+        const newTop = `${nextTopNum}%`;
+        const newLeft = `${nextLeftNum}%`;
+        
+        const wasVisible = el.classList.contains('visible');
+        const parsedTop = parseFloat(el.style.top || '0');
+        const parsedLeft = parseFloat(el.style.left || '0');
+
+        // Only pulse if the dot was already on screen and moved by more than 0.1% (a meaningful margin to ignore float rounding)
+        if (wasVisible && el.style.top && (Math.abs(parsedTop - nextTopNum) > 0.1 || Math.abs(parsedLeft - nextLeftNum) > 0.1)) {
+          el.classList.add('dot-moving');
+        } else {
+          el.classList.remove('dot-moving');
+        }
+
+        el.dataset.prevTop = el.style.top || '';
+        el.dataset.prevLeft = el.style.left || '';
+
+        el.style.top = newTop;
+        el.style.left = newLeft;
       }
       el.classList.add('visible');
       if (p.isCarrier) carrierEl = el;

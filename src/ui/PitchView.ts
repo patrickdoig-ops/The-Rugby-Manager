@@ -7,9 +7,10 @@ import { MatchPhase } from '../types/engine';
 import type { GameEvent, MatchState } from '../types/match';
 import { loadTickDelayMs } from './uiPrefs';
 import { lineGapMs } from '../engine/balance';
-import { toTop, toLeft } from './pitchCoords';
+import { toTop, toLeft, fromTop, fromLeft } from './pitchCoords';
 import { initPitchPlayers } from './PitchPlayers';
 import { kickFindsTouch } from './pitchChoreography';
+import { SLOT } from '../engine/Slot';
 
 // Which flash a key event warrants, or null for a beat we don't highlight. Kept
 // deliberately curated — tries (and conversions, which carry the try phase),
@@ -228,39 +229,86 @@ export function initPitchView(): void {
 
     // Carrier dot: hold at the receive point (the ball's penultimate position —
     // where the carrier takes the ball, just before the run into contact) through
-    // every pass leg, then run only the final carry leg onto the ball. This is the
-    // middle ground between riding the whole walk (looks passed along the chain)
-    // and sitting pre-placed at the finish (ball arrives alone). Its resting anchor
-    // is committed just behind the ball (−fwd·2.5 on the long axis, same as the
-    // choreographer) so offsetTransform keeps the number readable beside the ball
-    // through the carry. Drives both open play and the set-piece first phase — both
-    // reach here via the same multi-leg movements path.
+    // every pass leg, then run only the final carry leg onto the ball.
     const carrierFinalTop = toTop(Math.max(2, Math.min(98, final.x - fwd * 2.5)));
     let carrierFrames: Keyframe[];
+
+    const ballPath = [{ x: fromTop(lastTop), y: fromLeft(lastLeft) }, ...kfs];
+    const N = kfs.length;
+    const carrierPath = ballPath.map(p => ({
+      top: toTop(Math.max(2, Math.min(98, p.x - fwd * 2.5))),
+      left: toLeft(p.y)
+    }));
+
     if (carrierFromStart) {
-      // Direct pick-up (pick-and-go): the carrier carries from the ruck, so it rides
-      // the WHOLE ball path — staying −fwd·2.5 behind the ball through every leg —
-      // rather than holding at the penultimate point (which barely moves on a short
-      // carry, making the ball look like it arrives at a stationary carrier).
-      carrierFrames = kfs.map((kf, i) => ({
-        transform: offsetTransform(toTop(Math.max(2, Math.min(98, kf.x - fwd * 2.5))), toLeft(kf.y), carrierFinalTop, finalLeft, w, h),
-        offset: kfs.length === 1 ? 0 : i / (kfs.length - 1),
+      // Direct pick-up (pick-and-go): rides the WHOLE ball path exactly in sync.
+      carrierFrames = carrierPath.map((cp, i) => ({
+        transform: offsetTransform(cp.top, cp.left, carrierFinalTop, finalLeft, w, h),
+        offset: i / N
       }));
     } else {
-      // Passed carry (first phase / open-play sweep): hold at the receive point (the
-      // ball's penultimate position, just before the run into contact) through every
-      // pass leg, then run only the final carry leg onto the ball — the middle ground
-      // between riding the whole walk (looks passed along) and pre-placing at the finish.
-      const recv = kfs[kfs.length - 2];
-      const recvTop = toTop(recv.x), recvLeft = toLeft(recv.y);
-      const holdFrac = (kfs.length - 1) / kfs.length;
+      // Passed carry: hold at the receive point, then follow the ball.
+      let carryStartIdx = 0;
+      for (let i = ballPath.length - 1; i > 0; i--) {
+        if (ballPath[i].x !== ballPath[i - 1].x) {
+          carryStartIdx = i - 1;
+          break;
+        }
+      }
+      const receiveCp = carrierPath[carryStartIdx];
       carrierFrames = [
-        { transform: offsetTransform(recvTop, recvLeft, carrierFinalTop, finalLeft, w, h), offset: 0 },
-        { transform: offsetTransform(recvTop, recvLeft, carrierFinalTop, finalLeft, w, h), offset: holdFrac },
-        { transform: 'translate(-50%, -50%)', offset: 1 },
+        { transform: offsetTransform(receiveCp.top, receiveCp.left, carrierFinalTop, finalLeft, w, h), offset: 0 },
+        ...(carryStartIdx > 0 ? [{ transform: offsetTransform(receiveCp.top, receiveCp.left, carrierFinalTop, finalLeft, w, h), offset: carryStartIdx / N }] : [])
       ];
+      for (let i = carryStartIdx + 1; i <= N; i++) {
+        carrierFrames.push({
+          transform: offsetTransform(carrierPath[i].top, carrierPath[i].left, carrierFinalTop, finalLeft, w, h),
+          offset: i / N
+        });
+      }
     }
     follower.run(carrierFinalTop, finalLeft, carrierFrames, duration, 'linear');
+  };
+
+  const animateKickDecision = (kfs: ReadonlyArray<{ x: number; y: number }>, lineCount: number, fwd: number, event: GameEvent) => {
+    clearMovement();
+    movementAnimating = true;
+    const beatWindow = stepMs * Math.max(1, lineCount);
+    const { w, h } = hostDims();
+    const final = kfs[kfs.length - 1];
+    const finalTop = toTop(final.x), finalLeft = toLeft(final.y);
+    const duration = beatWindow;
+
+    const frames: Keyframe[] = [
+      { transform: offsetTransform(lastTop, lastLeft, finalTop, finalLeft, w, h), offset: 0 },
+      { transform: offsetTransform(lastTop, lastLeft, finalTop, finalLeft, w, h), offset: 0.5 },
+      { transform: offsetTransform(finalTop, finalLeft, finalTop, finalLeft, w, h), offset: 1.0 },
+    ];
+    runAnim(frames, duration, 'linear', finalTop, finalLeft);
+
+    const fhKey = `${event.side === 'home' ? 'h' : 'a'}:${SLOT.FLY_HALF}`;
+    const fhEl = field.querySelector(`[data-key="${fhKey}"]`);
+    
+    let startTop = lastTop;
+    let startLeft = lastLeft;
+    if (fhEl && (fhEl as HTMLElement).dataset.prevTop && (fhEl as HTMLElement).dataset.prevLeft) {
+      startTop = parseFloat((fhEl as HTMLElement).dataset.prevTop!);
+      startLeft = parseFloat((fhEl as HTMLElement).dataset.prevLeft!);
+    } else {
+      startTop = toTop(final.x + fwd * 6);
+      startLeft = toLeft(final.y);
+    }
+
+    const carrierFinalTop = toTop(Math.max(2, Math.min(98, final.x - fwd * 2.5)));
+    const carrierFinalLeft = finalLeft;
+
+    const carrierFrames: Keyframe[] = [
+      { transform: offsetTransform(startTop, startLeft, carrierFinalTop, carrierFinalLeft, w, h), offset: 0 },
+      { transform: offsetTransform(carrierFinalTop, carrierFinalLeft, carrierFinalTop, carrierFinalLeft, w, h), offset: 0.5 },
+      { transform: offsetTransform(carrierFinalTop, carrierFinalLeft, carrierFinalTop, carrierFinalLeft, w, h), offset: 1.0 },
+    ];
+    
+    follower.run(carrierFinalTop, carrierFinalLeft, carrierFrames, duration, 'linear');
   };
 
   eventBus.on('ui:speedChange', ({ delayMs }) => {
@@ -362,8 +410,14 @@ export function initPitchView(): void {
         { transform: offsetTransform(hookerTop, hookerLeft, hookerTop, hookerLeft, w, h) },
       ], Math.max(200, Math.min(stepMs, 400)), 'ease-in', hookerTop, hookerLeft);
     } else if (event.movements && event.movements.length >= 2) {
-      animateMovements(event.movements, event.narration.steps.length,
-        ((event.side === 'home') !== cachedHalfTimeDone) ? 1 : -1, event.carrierFromStart);
+      const isKickDecision = event.narration.steps.some(s => s.kind === 'phase_outcome' && s.key === 'kick_decision');
+      if (isKickDecision) {
+        animateKickDecision(event.movements, event.narration.steps.length,
+          ((event.side === 'home') !== cachedHalfTimeDone) ? 1 : -1, event);
+      } else {
+        animateMovements(event.movements, event.narration.steps.length,
+          ((event.side === 'home') !== cachedHalfTimeDone) ? 1 : -1, event.carrierFromStart);
+      }
     } else {
       clearMovement();
     }

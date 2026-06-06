@@ -66,10 +66,10 @@ jobs:
         run: |
           git config user.name  'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add telemetry/latest.md
+          git add telemetry/latest.md telemetry/latest.json
           if git diff --staged --quiet; then
             echo "No telemetry changes — skipping commit."
           else
-            git commit -m "telemetry: refresh latest.md (${GITHUB_SHA::7})"
+            git commit -m "telemetry: refresh latest.md and latest.json (${GITHUB_SHA::7})"
             git push origin HEAD:main
           fi

@@ -24,7 +24,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   // Step 0 — Kick or carry decision (see KickDecisionDirector)
   const decision = decideKick({ state, attackTeam, attackOnField });
   if (decision.kick) {
-    return buildKickTransition(decision, MatchPhase.FirstPhase);
+    return buildKickTransition(decision, MatchPhase.FirstPhase, { state, attackTeam, attackOnField });
   }
 
   // Step 1 — Carrier is always #10 (fly-half); handling gate
@@ -447,7 +447,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     nextPhase,
     narration: { steps: outcomeSteps },
     primaryPlayer: ballCarrier,
-    secondaryPlayer: defender,
+    secondaryPlayer: tryScored ? undefined : (res.outcome === 'line_break' ? coverTackler : defender),
     outcome: res.outcome,
     events,
   };

@@ -152,7 +152,7 @@ function renderClubs() {
   const tbody = document.querySelector('#clubs-table tbody');
   
   if (mode === 'attacking') {
-    thead.innerHTML = `<tr><th>Club</th><th>Carries/g</th><th>Metres/Carry</th><th>Line Breaks/g</th><th>Def Beaten/g</th></tr>`;
+    thead.innerHTML = `<tr><th>Club</th><th>Carries/g</th><th>Metres/Carry</th><th>Line Breaks/g</th><th>Def Beaten/g</th><th>Passes/g</th><th>Kicks/g</th></tr>`;
     tbody.innerHTML = sortedClubs.map(c => `
       <tr>
         <td><strong>${c.id}</strong></td>
@@ -160,6 +160,8 @@ function renderClubs() {
         <td>${(c.metresCarried / Math.max(1, c.carries)).toFixed(2)}</td>
         <td>${(c.lineBreaks / c.games).toFixed(1)}</td>
         <td>${(c.defendersBeaten / c.games).toFixed(1)}</td>
+        <td>${(c.passes / c.games).toFixed(1)}</td>
+        <td>${(c.kicksFromHand / c.games).toFixed(1)}</td>
       </tr>
     `).join('');
   } else if (mode === 'defence') {

@@ -155,6 +155,16 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       if (keepKickFormation || keepTryScored) {
         field.classList.add('dot-transitioning');
         setTimeout(() => field.classList.remove('dot-transitioning'), 600);
+      } else {
+        const snapPhases = new Set([
+          MatchPhase.Scrum, MatchPhase.Lineout, MatchPhase.KickOff, 
+          MatchPhase.DropOut22, MatchPhase.Penalty, MatchPhase.ConversionKick, 
+          MatchPhase.KickAtGoal, MatchPhase.HalfTime, MatchPhase.FullTime
+        ]);
+        if (snapPhases.has(event.phase)) {
+          field.classList.add('dot-snap-transition');
+          setTimeout(() => field.classList.remove('dot-snap-transition'), 400);
+        }
       }
       if (keepLineout) {
         // Attacking #9 must start FirstPhase at their set-piece position (lineout

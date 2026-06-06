@@ -922,6 +922,16 @@ body.pitch-view-active #pitch-wrapper { display: none; }
   50%  { transform: translate(-50%, -50%) scale(0.95); opacity: 0.85; filter: blur(1px); }
   100% { transform: translate(-50%, -50%) scale(1); opacity: 0.92; filter: blur(0px); }
 }
+
+.dot-snap-transition .pitch-dot.visible {
+  animation: phase-blink 0.4s ease-in-out forwards;
+}
+
+@keyframes phase-blink {
+  0%   { opacity: 0; }
+  40%  { opacity: 0; }
+  100% { opacity: 0.92; }
+}
 @media (prefers-reduced-motion: reduce) {
   .pitch-dot { transition: opacity 0.15s linear; }
   .dot-transitioning .pitch-dot { transition: opacity 0.15s linear; }

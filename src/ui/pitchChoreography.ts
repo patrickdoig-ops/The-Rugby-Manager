@@ -32,6 +32,11 @@ type Side = 'h' | 'a';
 
 const clampX = (x: number): number => Math.max(2, Math.min(98, x));
 const clampY = (y: number): number => Math.max(3, Math.min(97, y));
+// Wider x-clamp that allows the in-goal areas beyond the try lines (x>100 / x<0). `toTop`
+// extrapolates there, and [-8,108] keeps the dot inside the pitch element. Use ONLY for
+// dots that belong behind a try line (the try scorer; later the conversion defending line)
+// — keep every field-of-play dot on the standard `clampX` [2,98].
+const clampInGoalX = (x: number): number => Math.max(-8, Math.min(108, x));
 
 const sideOf = (p: Player, state: MatchState): Side => {
   const h = state.homeTeam;
@@ -995,11 +1000,18 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
   const out: Placed[] = [];
   const [carrier, ...support] = attackers;
 
-  // Carrier sits just behind the ball so their circle is visible alongside it — except on
-  // a try, where the scorer is placed ON the ball so they cross the line with it (the usual
-  // 2.5-unit lag would leave them stranded short of the line while the ball grounds over it).
-  const carrierBackoff = event.phase === MatchPhase.TryScored ? 0 : fwd * 2.5;
-  if (carrier) out.push(placed(carrier, atkSide, state, clampX(ballX - carrierBackoff), ballY, true));
+  // Carrier sits just behind the ball so their circle is visible alongside it. On a try the
+  // scorer must instead track the GROUNDED ball into the in-goal: the display snapshot pushes
+  // the try ball `fwd*4` past the line (displaySnapshot.ts), so the standard `clampX` [2,98]
+  // would strand the scorer at the line while the ball renders in-goal. Place them `fwd*2.5`
+  // past the line — just behind the ball, clearly over — via the wider in-goal clamp, and the
+  // keepTryScored glide eases them across from their carry position.
+  if (carrier) {
+    const carrierX = event.phase === MatchPhase.TryScored
+      ? clampInGoalX(ballX + fwd * 2.5)
+      : clampX(ballX - fwd * 2.5);
+    out.push(placed(carrier, atkSide, state, carrierX, ballY, true));
+  }
 
   // Support attackers: fan behind the carrier in a wider arc so circles don't overlap.
   // Each player steps 6 x-units further back and is spread laterally by 8 y-units.

@@ -401,14 +401,14 @@
         "stamina": 85,
         "strength": 82,
         "pace": 95,
-        "agility": 90,
-        "handling": 90,
+        "agility": 85,
+        "handling": 85,
         "tackling": 88,
-        "breakdown": 78,
+        "breakdown": 75,
         "kicking": 89,
         "setPiece": 58,
         "discipline": 88,
-        "positioning": 92,
+        "positioning": 83,
         "composure": 95
       },
       "contract": {

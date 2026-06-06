@@ -420,12 +420,11 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   // decides carrier-vs-tackler victim. Skipped on line breaks — no completed
   // tackle to cause contact injury.
   if (res.outcome !== 'line_break') {
+    // The injury mutation fires here (the player leaves the field immediately), but
+    // the injury_off commentary + replacement are deferred to the next break in play
+    // by MatchCoordinator so they never interrupt open play.
     const injuryEvent = rollMatchInjury(res.outcome, ballCarrier, defender, attackSide, defSide);
-    if (injuryEvent) {
-      events.push(injuryEvent);
-      const victim = injuryEvent.player;
-      outcomeSteps.push({ kind: 'announcement', key: 'injury_off', primary: victim });
-    }
+    if (injuryEvent) events.push(injuryEvent);
   }
 
   // Lateral flavour rides on a normal continuation only — not after a penalty/try.
@@ -530,11 +529,10 @@ function resolvePickAndGo(
     nextPhase = MatchPhase.Penalty;
   }
 
+  // Injury mutation fires here; injury_off commentary + replacement are deferred to
+  // the next break in play by MatchCoordinator (must not interrupt open play).
   const injuryEvent = rollMatchInjury(outcome, carrier, defender, attackSide, defSide);
-  if (injuryEvent) {
-    events.push(injuryEvent);
-    steps.push({ kind: 'announcement', key: 'injury_off', primary: injuryEvent.player });
-  }
+  if (injuryEvent) events.push(injuryEvent);
 
   return {
     nextPhase,

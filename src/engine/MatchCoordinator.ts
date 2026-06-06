@@ -574,7 +574,7 @@ export class MatchCoordinator {
 
   private isNaturalBreak(): boolean {
     const p = this.state.phase;
-    return p === MatchPhase.Scrum || p === MatchPhase.Lineout
+    return p === MatchPhase.Penalty || p === MatchPhase.Scrum || p === MatchPhase.Lineout
       || p === MatchPhase.KickOff || p === MatchPhase.DropOut22
       || p === MatchPhase.ConversionKick || p === MatchPhase.TryScored;
   }
@@ -844,13 +844,17 @@ export class MatchCoordinator {
 
     if (await this.prepareEnteringPhase()) return;
 
-    // In live matches, flush any pending subs at natural breaks in play
-    // (scrum, lineout, kickoff, dropout, conversion, try scored). Subs made
-    // mid-open-play sit in the queue and are applied here so they take effect
-    // on the same tick that resolves the set piece. Forced subs (injury /
-    // red_20) bypass the queue entirely and are applied immediately.
-    if (!this.silent && this.isNaturalBreak()) {
-      this.flushPendingSubQueue();
+    // At a natural break in play (penalty, scrum, lineout, kickoff, dropout,
+    // conversion, try scored) flush the deferred interruptions so they never land
+    // mid-open-play: buffered tiredness commentary (both modes, keeps the log
+    // consistent) and, in live matches, any pending voluntary subs (so they take
+    // effect on the same tick that resolves the set piece). Forced red_20 subs
+    // bypass the queue; injury subs are flushed here too (see below).
+    if (this.isNaturalBreak()) {
+      this.fatigue.flush();
+      if (!this.silent) this.flushPendingSubQueue();
+      // Deferred injury_off + forced replacement (may pause on a human modal).
+      if (await this.processPendingInjuries()) return;
     }
 
     // AI tactical adaptation runs before resolvePhase so the new tactics
@@ -1089,20 +1093,45 @@ export class MatchCoordinator {
       if (!this.state.engine.isRunning) return true;
     }
 
-    // Injury forced-sub flow: any player pushed onto state.cards.injured by
-    // a PLAYER_INJURED_IN_MATCH on the previous tick's phase resolution gets
-    // a replacement here (mirrors red_20 expiry). The bench player runs on;
-    // SUBSTITUTION_APPLIED clears cards.injured so onFieldPlayers stops
-    // filtering the slot. Players whose pendingInjuryKind is set but bench
-    // was empty stay in cards.injured for the rest of the match — the team
-    // plays short, and the teardown severity roll still finds them via the
-    // pendingInjuryKind flag.
+    // Injury forced subs are NOT processed here — they're deferred to the next
+    // break in play (processPendingInjuries, called from the tick's natural-break
+    // block) so the injury_off line + replacement never interrupt open play.
+    return false;
+  }
+
+  // Deferred injury flow, run at a natural break in play. For each player pushed
+  // onto state.cards.injured by a PLAYER_INJURED_IN_MATCH (on an earlier tick's
+  // phase resolution), emit the held injury_off commentary then run the forced
+  // replacement (mirrors red_20 expiry). The injured player is already off the
+  // field (offFieldIds includes cards.injured) from the moment of injury; this
+  // just brings the bench player on. Players whose bench was empty are stranded
+  // by runForcedSubstitution. Returns true if the engine paused on a human modal.
+  private async processPendingInjuries(): Promise<boolean> {
     const pendingInjurySubs = this.collectPendingInjurySubs();
     for (const exp of pendingInjurySubs) {
+      this.emitInjuryOff(exp.player, exp.side);
       await this.runForcedSubstitution(exp.player, exp.side, 'injury');
       if (!this.state.engine.isRunning) return true;
     }
     return false;
+  }
+
+  // The held "X is off injured" line, emitted at the break just before the
+  // replacement (the tackle beat that caused the injury no longer carries it).
+  private emitInjuryOff(player: Player, side: 'home' | 'away'): void {
+    const ev: GameEvent = {
+      id: makeId(),
+      gameMinute: this.state.clock.gameMinute,
+      phase: this.state.phase,
+      side,
+      sideName: (side === 'home' ? this.state.homeTeam : this.state.awayTeam).name,
+      primaryPlayer: player,
+      ballX: this.state.ball.x,
+      ballY: this.state.ball.y,
+      narration: { steps: [{ kind: 'announcement', key: 'injury_off', primary: player }] },
+    };
+    applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event: ev });
+    this.emitEvent(ev);
   }
 
   // KickAtGoal micro-phase: entry handler emitted kicker_steps_up and

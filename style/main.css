@@ -919,7 +919,7 @@ body.pitch-view-active #pitch-wrapper { display: none; }
 
 @keyframes phase-pulse {
   0%   { transform: translate(-50%, -50%) scale(1); opacity: 0.92; }
-  50%  { transform: translate(-50%, -50%) scale(0.85); opacity: 0.5; }
+  50%  { transform: translate(-50%, -50%) scale(0.85); opacity: 0.75; }
   100% { transform: translate(-50%, -50%) scale(1); opacity: 0.92; }
 }
 @media (prefers-reduced-motion: reduce) {

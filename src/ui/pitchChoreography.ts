@@ -95,7 +95,8 @@ export function choreograph(
   // so a caught kick still lands in-field under this same layout.
   if (event.phase === MatchPhase.TacticalKick)
     return placeFormation(event, state, attacksTop, prevBallX, prevBallY, TACTICAL_KICK_BASE);
-  if (event.phase === MatchPhase.ConversionKick) return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
+  if (event.phase === MatchPhase.ConversionKick)
+    return placeFormation(event, state, attacksTop, prevBallX, prevBallY, CONVERSION_KICK_BASE);
   if (event.phase === MatchPhase.DropOut22)      return dropOutLayout(event, state, attacksTop, prevBallX, prevBallY);
   if (event.phase === MatchPhase.BoxKick) {
     const keys = outcomeKeys(event);
@@ -675,6 +676,26 @@ const PENALTY_TAP_AND_KICK_DEAD: Formation = { nearTop: true,
     7:  [ 17.03,   2.89],   8:  [ 17.38,  17.04],   9:  [ 27.40,  -4.55],
     10: [ 38.89, -16.53],   11: [ 30.88, -57.89],   12: [ 17.72, -42.24],
     13: [ 17.60, -49.74],   14: [ 17.59,  24.00],   15: [ 28.16,  24.00],
+  },
+};
+
+// Conversion kick — static full formation. Anchor = kick origin. atk = kicking team
+// (kicker at the mark, the rest gathered behind); def = defenders standing behind
+// the try line (in-goal) under the posts. The ball is placed by PitchView.
+const CONVERSION_KICK_BASE: Formation = { nearTop: true,
+  atk: {
+    1:  [-33.00, -44.00],   2:  [-29.34, -37.62],   3:  [-33.00, -32.00],
+    4:  [-35.00, -41.00],   5:  [-35.00, -35.00],   6:  [-29.71, -43.57],
+    7:  [-30.00, -31.64],   8:  [-37.00, -38.00],   9:  [-45.90, -39.36],
+    10: [ -2.00,   0.00],   11: [-51.25, -27.94],   12: [-45.14, -47.33],
+    13: [-51.66, -50.17],   14: [-45.70, -31.61],   15: [-51.99, -39.15],
+  },
+  def: {
+    1:  [ 30.36, -29.30],   2:  [ 27.91, -45.11],   3:  [ 25.62, -27.53],
+    4:  [ 30.13, -26.04],   5:  [ 26.34, -31.11],   6:  [ 27.43, -25.05],
+    7:  [ 29.43, -47.15],   8:  [ 26.70, -33.55],   9:  [ 30.84, -44.63],
+    10: [ 30.92, -33.39],   11: [ 25.49,   0.16],   12: [ 30.70, -40.75],
+    13: [ 30.53, -36.74],   14: [ 26.41, -42.52],   15: [ 26.50, -37.65],
   },
 };
 

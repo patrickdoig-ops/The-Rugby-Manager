@@ -144,14 +144,11 @@ export function choreograph(
     return dots;
   }
 
-  // Pure-announcement beats (fatigue, card, clock, etc.) have no phase_outcome step
-  // and should not place players near the ball.
-  if (!event.narration.steps.some(s => s.kind === 'phase_outcome')) {
-    const first = event.narration.steps[0];
-    if (first?.kind === 'announcement' && first.key === 'fatigue_tiredness')
-      return fatigueLayout(event, state);
-    return [];
-  }
+  // Pure-announcement beats (fatigue, injury, card, clock, set-piece award, etc.) have no
+  // phase_outcome step and place no players. They return [] — PitchPlayers holds the
+  // current formation through them (an empty beat doesn't fade the pitch) and adds the
+  // injury/fatigue glow to the named player's dot, rather than clearing or relocating it.
+  if (!event.narration.steps.some(s => s.kind === 'phase_outcome')) return [];
 
   if (event.phase === MatchPhase.Scrum)   return scrumLayout(event, state, attacksTop);
   if (event.phase === MatchPhase.Lineout) return lineoutLayout(event, state, attacksTop);
@@ -949,15 +946,6 @@ function substitutionLayout(event: GameEvent, state: MatchState): Placed[] {
   if (off) out.push(placed(off, sideOf(off, state), state, x, farY,             false));
   if (on)  out.push(placed(on,  sideOf(on,  state), state, x, clampY(farY + inward * 7), false));
   return out;
-}
-
-// Fatigue: place the tired player away from the ball so they don't look like
-// an actor in the current phase — just flash in and out at midfield.
-function fatigueLayout(event: GameEvent, state: MatchState): Placed[] {
-  const player = event.primaryPlayer;
-  if (!player) return [];
-  // Opposite lateral side from the ball, midfield x.
-  return [placed(player, sideOf(player, state), state, 50, clampY(event.ballY < 50 ? 70 : 30), false)];
 }
 
 // Carrier placed slightly behind the ball so the circle and number are visible.

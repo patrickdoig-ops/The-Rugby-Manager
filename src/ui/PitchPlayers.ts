@@ -16,6 +16,21 @@ const KICK_PREDECESSORS = new Set<string>([
   MatchPhase.KickOff, MatchPhase.BoxKick, MatchPhase.TacticalKick, MatchPhase.DropOut22,
 ]);
 
+// Injury / fatigue announcement beats highlight the named player's dot. The coordinator
+// emits these with `side` = the player's OWN team, so the dot key derives directly.
+// Returns the dot key + glow class, or null for any other beat.
+function glowForBeat(event: GameEvent): { key: string; cls: string } | null {
+  const p = event.primaryPlayer;
+  if (!p) return null;
+  const prefix = event.side === 'home' ? 'h' : 'a';
+  for (const s of event.narration.steps) {
+    if (s.kind !== 'announcement') continue;
+    if (s.key === 'injury_off')       return { key: `${prefix}:${p.id}`, cls: 'glow-injury' };
+    if (s.key === 'fatigue_tiredness') return { key: `${prefix}:${p.id}`, cls: 'glow-fatigue' };
+  }
+  return null;
+}
+
 // A dot flagged with a `from` position this beat, for PitchView to animate from
 // `from` to its committed resting spot (the kick-off chase line surging forward).
 export interface ChaseDot { el: HTMLElement; fromX: number; fromY: number; toX: number; toY: number; }
@@ -50,6 +65,12 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
   let chaseDots: ChaseDot[] = [];                // dots with a `from` this beat (kick-off chase)
   let atkSHEl: HTMLElement | null = null;        // attacking #9 at scrum final pos (PitchView sweeps)
   let defSHEl: HTMLElement | null = null;        // defending #9 at scrum final pos (PitchView sweeps)
+  // The dot currently carrying an injury/fatigue glow, cleared on the next beat.
+  // `glowReshown` is true when we re-showed an off-field injured dot just for the glow,
+  // so it can be hidden again once its announcement passes.
+  let glowEl: HTMLElement | null = null;
+  let glowKey: string | null = null;
+  let glowReshown = false;
   let carrierAnim: Animation | null = null;
   let animatedEl: HTMLElement | null = null;     // the dot carrierAnim is driving (may differ from carrierEl after a beat flip)
 
@@ -73,6 +94,14 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
   const applyBeat = (event: GameEvent, state: MatchState, attacksTop: boolean): void => {
     const placed = choreograph(event, state, attacksTop, currentPhase, prevBallX, prevBallY);
     const nextKeys = new Set(placed.map(p => p.key));
+
+    // Clear the previous beat's injury/fatigue glow. If we re-showed an off-field injured
+    // dot purely for the glow and it isn't part of this beat's formation, hide it again.
+    if (glowEl) {
+      glowEl.classList.remove('glow-injury', 'glow-fatigue');
+      if (glowReshown && glowKey && !nextKeys.has(glowKey)) glowEl.classList.remove('visible');
+      glowEl = null; glowKey = null; glowReshown = false;
+    }
 
     // Key of the attacking #9 whose position we must preserve on the transition
     // beat from a set-piece into FirstPhase — they hold their set-piece position
@@ -128,13 +157,16 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
         // mark or behind their #8 in a scrum). Skip the position update for their
         // dot this beat only; subsequent beats will reposition them normally.
         setpieceSHKey = `${event.side === 'home' ? 'h' : 'a'}:${SLOT.SCRUM_HALF}`;
-      } else if (!keepKickFormation && !keepTmo && !keepPhasePlay) {
+      } else if (!keepKickFormation && !keepTmo && !keepPhasePlay && nextKeys.size > 0) {
         for (const key of persistedKeys) {
           if (!nextKeys.has(key)) pool.get(key)?.classList.remove('visible');
         }
         persistedKeys = new Set();
       }
-      // else (keepKickFormation / keepTmo / keepPhasePlay): hold — skip the fade, carry persistedKeys.
+      // else (keepKickFormation / keepTmo / keepPhasePlay / empty announcement beat):
+      // hold — skip the fade, carry persistedKeys. An empty beat (nextKeys.size === 0,
+      // an injury/fatigue/card/set-piece-award announcement) keeps the formation on
+      // screen rather than clearing the pitch while the line is read.
       currentPhase = event.phase;
     }
 
@@ -166,6 +198,22 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       if (p.scrumHalfRole === 'atk') atkSHEl = el;
       if (p.scrumHalfRole === 'def') defSHEl = el;
     }
+
+    // Injury / fatigue glow on the named player's dot. The fatigued player is still on
+    // the field (in the held formation); the injured player was removed at the tackle, so
+    // their dot has faded — re-show it at its last on-field position (the incident spot)
+    // for the duration of the announcement, then the cleanup above hides it next beat.
+    const glow = glowForBeat(event);
+    if (glow) {
+      const el = pool.get(glow.key);
+      if (el) {
+        glowReshown = !el.classList.contains('visible');
+        el.classList.add('visible', glow.cls);
+        glowEl = el;
+        glowKey = glow.key;
+      }
+    }
+
     prevBallX = event.ballX;
     prevBallY = event.ballY;
   };
@@ -219,6 +267,9 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     chaseDots = [];
     atkSHEl = null;
     defSHEl = null;
+    glowEl = null;
+    glowKey = null;
+    glowReshown = false;
   };
 
   return {

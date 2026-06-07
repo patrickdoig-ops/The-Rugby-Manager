@@ -314,8 +314,14 @@ function placeFormation(
   const possSide: Side = event.side === 'home' ? 'h' : 'a';
   // The attacking team's real long-axis direction. `attacksTop` describes the side in
   // possession (event.side); when the attackers are NOT in possession (a box kick
-  // caught by the receiver, a cleanout penalty that swapped the mark) it flips.
-  const dir = (atkSide === possSide ? attacksTop : !attacksTop) ? 1 : -1;
+  // caught by the receiver) it flips. However, defensive breakdown formations
+  // (turnovers, defensive penalties) were authored with `atk` (the new attacker)
+  // already inverted (positive X offsets). Flipping `dir` for them would cause a double-flip.
+  const isDefensiveBreakdown = form === BREAKDOWN_TURNOVER || 
+                               form === BREAKDOWN_NOT_ROLLING_AWAY || 
+                               form === BREAKDOWN_OFFSIDE_AT_RUCK;
+  const flipDir = isDefensiveBreakdown ? false : (atkSide !== possSide);
+  const dir = (flipDir ? !attacksTop : attacksTop) ? 1 : -1;
   const mirrorY = form.nearTop !== (anchorY >= 50);
   const atkOn = onFieldPlayers(atkSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(atkSide));
   const defOn = onFieldPlayers(defSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(defSide));

@@ -139,34 +139,54 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
     if (koEvent || intEvent) {
       const receiverSlot = koEvent ? koEvent.player.id : (intEvent.passer.id === SLOT.SCRUM_HALF ? SLOT.FLY_HALF : (goCrashBall ? SLOT.CENTRE_12 : SLOT.CENTRE_13));
-      const targetSideStr = koEvent ? atkSideStr : defSideStr;
-      const receiverChoreo = choreography.find(c => c.id === receiverSlot && c.side === targetSideStr);
+      let mappedSlot = receiverSlot;
+      const swapLateral = flipX !== flipY;
+      if (swapLateral) {
+         if (mappedSlot === 11) mappedSlot = 14;
+         else if (mappedSlot === 14) mappedSlot = 11;
+         else if (mappedSlot === 1) mappedSlot = 3;
+         else if (mappedSlot === 3) mappedSlot = 1;
+         else if (mappedSlot === 6) mappedSlot = 7;
+         else if (mappedSlot === 7) mappedSlot = 6;
+      }
+      
+      const receiverChoreo = choreography.find(c => c.id === mappedSlot);
       if (receiverChoreo && receiverChoreo.movements.length > 0) {
-        let minT = 1.0;
+        let minT = 0;
+        let minDist = 9999;
         for (const bk of authoredBallEvents) {
            const rk = receiverChoreo.movements.find(m => m.t === bk.t) || receiverChoreo.movements[0];
            const d = Math.hypot(bk.x - rk.x, bk.y - rk.y);
-           // Break at the precise moment the ball first enters the player's 1-meter catch radius.
-           if (d <= 1.0) {
+           if (d < minDist) {
+             minDist = d;
              minT = bk.t;
-             break;
            }
         }
         truncateT = minT;
       }
     } else if (carryEvent && carryEvent.outcome !== 'line_break') {
-       const carrierSlot = carryEvent.carrier.id;
-       const carrierChoreo = choreography.find(c => c.id === carrierSlot && c.side === atkSideStr);
+       let mappedSlot = carryEvent.carrier.id;
+       const swapLateral = flipX !== flipY;
+       if (swapLateral) {
+         if (mappedSlot === 11) mappedSlot = 14;
+         else if (mappedSlot === 14) mappedSlot = 11;
+         else if (mappedSlot === 1) mappedSlot = 3;
+         else if (mappedSlot === 3) mappedSlot = 1;
+         else if (mappedSlot === 6) mappedSlot = 7;
+         else if (mappedSlot === 7) mappedSlot = 6;
+       }
+       const carrierChoreo = choreography.find(c => c.id === mappedSlot);
        if (carrierChoreo && carrierChoreo.movements.length > 0) {
          let catchT = 0;
+         let minDist = 9999;
          let catchX = 0;
          for (const bk of authoredBallEvents) {
             const ck = carrierChoreo.movements.find(m => m.t === bk.t) || carrierChoreo.movements[0];
             const d = Math.hypot(bk.x - ck.x, bk.y - ck.y);
-            if (d <= 1.0) {
+            if (d < minDist) {
+               minDist = d;
                catchT = bk.t;
                catchX = ck.x;
-               break;
             }
          }
          const targetX = catchX + dir * carryEvent.metres;
@@ -178,7 +198,6 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
                   break;
                }
                reachedT = ck.t;
-
             }
          }
          truncateT = reachedT;

@@ -1,13 +1,16 @@
 import type { PhaseContext, PhaseResult } from './types';
 import type { MatchEvent } from '../../types/matchEvent';
+import type { MatchState } from '../../types/match';
 import type { NarrationStep } from '../../types/narration';
 import type { Player } from '../../types/player';
 import { MatchPhase } from '../../types/engine';
 import { resolveScrum } from '../resolvers/ScrumResolver';
-import { availableForwards, onFieldPlayers } from '../FieldPosition';
+import { availableForwards, onFieldPlayers, attackDir } from '../FieldPosition';
 import { rng } from '../../utils/rng';
+import { clamp } from '../../utils/math';
 import { SLOT, isFrontRowSlot } from '../Slot';
 import { SCRUM_VALUES, TACTIC_MODIFIERS } from '../balance';
+import { FIRST_PHASE_CHOREOGRAPHIES } from '../balance/firstPhaseChoreography';
 
 // Random front-row offender for a scrum penalty — props and hooker can all
 // be cited, not just the hooker. Falls back to the hooker (and onward) when
@@ -120,13 +123,14 @@ export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): Ph
       attackSide,
       possessionSideAfter: attackSide,
     });
-    return {
+    const baseRes: PhaseResult = {
       nextPhase: MatchPhase.Scrum,
       narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Scrum, key: 'wheel', primary: attackHooker, secondary: defendHooker }] },
       primaryPlayer: attackHooker,
       secondaryPlayer: defendHooker,
       events,
     };
+    return applyScrumChoreography(baseRes, state, attackSide);
   }
 
   // defending_dominant_penalty — defending team wins the penalty
@@ -155,4 +159,72 @@ export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): Ph
     secondaryPlayer: attackOffender,
     events,
   };
+}
+
+function applyScrumChoreography(res: PhaseResult, state: MatchState, attackSide: 'home' | 'away'): PhaseResult {
+  const parsedChoreo = FIRST_PHASE_CHOREOGRAPHIES['SCRUM:wheel'];
+  if (!parsedChoreo) return res;
+
+  const choreography: PhaseResult['choreography'] = [];
+  const dir = attackDir(state);
+  const attacksTop = dir === 1;
+  const nearTop = state.ball.y >= 50;
+
+  const flipX = parsedChoreo.authoredAttacksTop !== attacksTop;
+  const flipY = parsedChoreo.authoredNearTop !== nearTop;
+
+  const atkSideStr = attackSide === 'home' ? 'h' : 'a';
+  const defSideStr = attackSide === 'home' ? 'a' : 'h';
+
+  const anchorX = flipX ? 100 - parsedChoreo.authoredAnchorX : parsedChoreo.authoredAnchorX;
+  const anchorY = flipY ? 100 - parsedChoreo.authoredAnchorY : parsedChoreo.authoredAnchorY;
+
+  const dx = state.ball.x - anchorX;
+  const dy = state.ball.y - anchorY;
+
+  for (const ent of parsedChoreo.entities) {
+    if (ent.id === 'ball') continue;
+    
+    const authoredSideChar = ent.id.charAt(0);
+    let authoredSlot = parseInt(ent.id.substring(1), 10);
+    
+    if (isNaN(authoredSlot)) continue;
+
+    // Only animate forwards (1-8). Backs remain in their un-choreographed positions.
+    if (authoredSlot > 8) continue;
+
+    const swapLateral = flipX !== flipY;
+    if (swapLateral) {
+      if (authoredSlot === 1) authoredSlot = 3;
+      else if (authoredSlot === 3) authoredSlot = 1;
+      else if (authoredSlot === 6) authoredSlot = 7;
+      else if (authoredSlot === 7) authoredSlot = 6;
+    }
+
+    const isAuthoredAtk = (authoredSideChar === 'h' && parsedChoreo.authoredAttackingKind === 'home') ||
+                          (authoredSideChar === 'a' && parsedChoreo.authoredAttackingKind === 'away');
+                          
+    const realSideStr = isAuthoredAtk ? atkSideStr : defSideStr;
+
+    const movements = ent.kf.map(kf => {
+      let x = kf.x;
+      if (flipX) x = 100 - x;
+
+      let y = kf.y;
+      if (flipY) y = 100 - y;
+
+      x += dx;
+      y += dy;
+
+      return { x: clamp(x, 0, 100), y: clamp(y, 0, 100), t: kf.t };
+    });
+
+    choreography.push({
+      side: realSideStr as 'h' | 'a',
+      id: authoredSlot,
+      movements,
+    });
+  }
+
+  return { ...res, choreography };
 }

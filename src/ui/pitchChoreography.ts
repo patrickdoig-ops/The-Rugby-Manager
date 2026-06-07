@@ -1283,51 +1283,76 @@ function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): 
   const atkTeam = atkSide === 'h' ? state.homeTeam : state.awayTeam;
   const defTeam = defSide === 'h' ? state.homeTeam : state.awayTeam;
 
-  // Enforce a safe distance from the touchline so the scrum pack doesn't condense against the boundary.
-  // Flankers sit at y=±4.5 relative to the center, so we need at least 5 units of clearance.
   const scrumY = Math.max(5, Math.min(95, event.ballY));
 
   const nearY  = scrumY < 50 ? 0 : 100;
   const inward = nearY === 0 ? 1 : -1;
   const toY    = (distNear: number) => clampY(nearY + inward * distNear);
 
-  // Attacking pack faces toward its own end (negative fwd), defenders face toward attacking end.
-  const out: Placed[] = [
-    ...pack(state, atkSide, event.ballX, scrumY, -fwd),
-    ...pack(state, defSide, event.ballX, scrumY, +fwd),
-  ];
+  const out: Placed[] = [];
+  const choreographedKeys = new Set<string>();
 
-  // Backs for both sides — spread behind their respective packs.
+  if (event.choreography) {
+    for (const p of event.choreography) {
+      const team = p.side === 'h' ? state.homeTeam : state.awayTeam;
+      const pl = team.players.find(x => x.id === p.id);
+      if (pl && p.movements && p.movements.length > 0) {
+        const first = p.movements[0];
+        const last = p.movements[p.movements.length - 1];
+        const dot = placed(pl, p.side, state, clampX(last.x), clampY(last.y), false);
+        if (p.movements.length > 1) {
+          dot.from = { x: clampX(first.x), y: clampY(first.y) };
+        }
+        out.push(dot);
+        choreographedKeys.add(`${p.side}:${p.id}`);
+      }
+    }
+  }
+
+  // Base pack (fallback for any un-choreographed forwards)
+  const baseAtkPack = pack(state, atkSide, event.ballX, scrumY, -fwd);
+  for (const pl of baseAtkPack) {
+    if (!choreographedKeys.has(pl.key)) out.push(pl);
+  }
+  const baseDefPack = pack(state, defSide, event.ballX, scrumY, +fwd);
+  for (const pl of baseDefPack) {
+    if (!choreographedKeys.has(pl.key)) out.push(pl);
+  }
+
   const atkOn = onFieldPlayers(atkTeam, state, possOf(atkSide));
   const defOn = onFieldPlayers(defTeam, state, possOf(defSide));
   for (const e of SCRUM_ATK_BACKS) {
     const p = atkOn.find(pl => pl.id === e.slot);
-    if (p) out.push(placed(p, atkSide, state, clampX(event.ballX - fwd * e.dX), clampY(scrumY + inward * e.dY), false));
+    if (p && !choreographedKeys.has(`${atkSide}:${p.id}`)) {
+      out.push(placed(p, atkSide, state, clampX(event.ballX - fwd * e.dX), clampY(scrumY + inward * e.dY), false));
+    }
   }
   for (const e of SCRUM_DEF_BACKS) {
     const p = defOn.find(pl => pl.id === e.slot);
-    if (p) out.push(placed(p, defSide, state, clampX(event.ballX + fwd * e.dX), clampY(scrumY + inward * e.dY), false));
+    if (p && !choreographedKeys.has(`${defSide}:${p.id}`)) {
+      out.push(placed(p, defSide, state, clampX(event.ballX + fwd * e.dX), clampY(scrumY + inward * e.dY), false));
+    }
   }
 
-  // Both #9s are placed at their FINAL positions.
-  // On a dominant penalty, skip the standard loosehead sweep — instead use `from`
-  // so both #9s animate stepping away from the scrum (atk forward to claim the
-  // penalty, def retreating), starting close to the front row and further infield.
   const atkSH = onFieldPlayers(atkTeam, state, possOf(atkSide)).find(p => p.id === SLOT.SCRUM_HALF);
   const defSH = onFieldPlayers(defTeam, state, possOf(defSide)).find(p => p.id === SLOT.SCRUM_HALF);
   const isDominantPenalty = event.outcome === 'attacking_dominant_penalty'
                          || event.outcome === 'defending_dominant_penalty';
   if (isDominantPenalty) {
     const fromY  = clampY(scrumY + inward * 9);
-    if (atkSH) out.push({ ...placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 2.0), clampY(scrumY), false), from: { x: clampX(event.ballX - fwd * 2.0), y: fromY } });
-    if (defSH) out.push({ ...placed(defSH, defSide, state, clampX(event.ballX + fwd * 9.0), clampY(scrumY), false), from: { x: clampX(event.ballX + fwd * 2.0), y: fromY } });
+    if (atkSH && !choreographedKeys.has(`${atkSide}:${atkSH.id}`)) {
+      out.push({ ...placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 2.0), clampY(scrumY), false), from: { x: clampX(event.ballX - fwd * 2.0), y: fromY } });
+    }
+    if (defSH && !choreographedKeys.has(`${defSide}:${defSH.id}`)) {
+      out.push({ ...placed(defSH, defSide, state, clampX(event.ballX + fwd * 9.0), clampY(scrumY), false), from: { x: clampX(event.ballX + fwd * 2.0), y: fromY } });
+    }
   } else {
-    if (atkSH) {
+    if (atkSH && !choreographedKeys.has(`${atkSide}:${atkSH.id}`)) {
       const dot = placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 2.0), clampY(scrumY), false);
       dot.scrumHalfRole = 'atk';
       out.push(dot);
     }
-    if (defSH) {
+    if (defSH && !choreographedKeys.has(`${defSide}:${defSH.id}`)) {
       const dot = placed(defSH, defSide, state, clampX(event.ballX + fwd * 9.0), clampY(scrumY), false);
       dot.scrumHalfRole = 'def';
       out.push(dot);

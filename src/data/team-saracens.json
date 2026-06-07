@@ -17,7 +17,7 @@
     "defendingBreakdown": "jackal",
     "backfieldDefence": "two_back",
     "defensiveLine": "blitz",
-    "offloadStrategy": "cautious",
+    "offloadStrategy": "balanced",
     "intensity": "balanced",
     "discipline": "balanced"
   },
@@ -98,7 +98,7 @@
         "tackling": 88,
         "breakdown": 86,
         "kicking": 51,
-        "setPiece": 99,
+        "setPiece": 88,
         "discipline": 77,
         "positioning": 83,
         "composure": 81
@@ -121,8 +121,8 @@
         "tackling": 95,
         "breakdown": 95,
         "kicking": 52,
-        "setPiece": 95,
-        "discipline": 95,
+        "setPiece": 88,
+        "discipline": 85,
         "positioning": 78,
         "composure": 95
       }
@@ -144,7 +144,7 @@
         "tackling": 88,
         "breakdown": 89,
         "kicking": 47,
-        "setPiece": 99,
+        "setPiece": 89,
         "discipline": 80,
         "positioning": 84,
         "composure": 86
@@ -167,8 +167,8 @@
         "tackling": 95,
         "breakdown": 95,
         "kicking": 53,
-        "setPiece": 99,
-        "discipline": 95,
+        "setPiece": 93,
+        "discipline": 86,
         "positioning": 95,
         "composure": 97
       },
@@ -194,7 +194,7 @@
         "tackling": 88,
         "breakdown": 87,
         "kicking": 53,
-        "setPiece": 92,
+        "setPiece": 85,
         "discipline": 79,
         "positioning": 88,
         "composure": 79
@@ -218,7 +218,7 @@
         "breakdown": 91,
         "kicking": 61,
         "setPiece": 82,
-        "discipline": 83,
+        "discipline": 78,
         "positioning": 87,
         "composure": 81
       }
@@ -241,7 +241,7 @@
         "breakdown": 95,
         "kicking": 78,
         "setPiece": 88,
-        "discipline": 88,
+        "discipline": 82,
         "positioning": 86,
         "composure": 85
       }
@@ -264,7 +264,7 @@
         "breakdown": 85,
         "kicking": 64,
         "setPiece": 81,
-        "discipline": 89,
+        "discipline": 82,
         "positioning": 93,
         "composure": 92
       }

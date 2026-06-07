@@ -331,7 +331,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Head coach:** Mark McCall (Director of Rugby since 2010; stepping down end of 2025-26, with Brendan Venter to take over for 2026-27).
 - **Captain:** Maro Itoje.
 - **Overall rating:** **74/100**
-- **Suggested tactics:** `kicking` · `balanced` · `balanced` · `jackal` · `two_back` · `blitz` · `cautious`
+- **Suggested tactics:** `kicking` · `balanced` · `balanced` · `jackal` · `two_back` · `blitz` · `balanced`
 - **Stat bias:** high `tackling`, `positioning`, `composure`.
 - **Board ambition:** `title`
 
@@ -347,14 +347,14 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Rhys Carre | Prop | 1998-02-08 | 28 | Wales | 82 | 94 | 65 | 69 | 74 | 88 | 86 | 51 | 99 | 77 | 83 | 81 |
-| Jamie George | Hooker | 1990-10-20 | 35 | England | 78 | 88 | 75 | 75 | 78 | 95 | 95 | 52 | 95 | 95 | 78 | 95 |
-| Marco Riccioni | Prop | 1997-10-19 | 28 | Italy | 80 | 95 | 69 | 70 | 75 | 88 | 89 | 47 | 99 | 80 | 84 | 86 |
-| Maro Itoje | Lock | 1994-10-28 | 31 | England | 99 | 90 | 80 | 88 | 78 | 95 | 95 | 53 | 99 | 95 | 95 | 97 |
-| Nick Isiekwe | Lock | 1998-04-20 | 28 | England | 81 | 88 | 73 | 72 | 74 | 88 | 87 | 53 | 92 | 79 | 88 | 79 |
-| Juan Martin Gonzalez | Flanker | 2000-11-14 | 25 | Argentina | 85 | 90 | 83 | 82 | 81 | 96 | 91 | 61 | 82 | 83 | 87 | 81 |
-| Ben Earl | Back Row | 1998-01-07 | 28 | England | 95 | 90 | 89 | 78 | 90 | 90| 95 | 78 | 88 | 88 | 86 | 85 |
-| Tom Willis | Number 8 | 1999-01-18 | 27 | England | 86 | 95 | 82 | 85 | 80 | 89 | 85 | 64 | 81 | 89 | 93 | 92 |
+| Rhys Carre | Prop | 1998-02-08 | 28 | Wales | 82 | 94 | 65 | 69 | 74 | 88 | 86 | 51 | 88 | 77 | 83 | 81 |
+| Jamie George | Hooker | 1990-10-20 | 35 | England | 78 | 88 | 75 | 75 | 78 | 95 | 95 | 52 | 88 | 85 | 78 | 95 |
+| Marco Riccioni | Prop | 1997-10-19 | 28 | Italy | 80 | 95 | 69 | 70 | 75 | 88 | 89 | 47 | 89 | 80 | 84 | 86 |
+| Maro Itoje | Lock | 1994-10-28 | 31 | England | 99 | 90 | 80 | 88 | 78 | 95 | 95 | 53 | 93 | 86 | 95 | 97 |
+| Nick Isiekwe | Lock | 1998-04-20 | 28 | England | 81 | 88 | 73 | 72 | 74 | 88 | 87 | 53 | 85 | 79 | 88 | 79 |
+| Juan Martin Gonzalez | Flanker | 2000-11-14 | 25 | Argentina | 85 | 90 | 83 | 82 | 81 | 96 | 91 | 61 | 82 | 78 | 87 | 81 |
+| Ben Earl | Back Row | 1998-01-07 | 28 | England | 95 | 90 | 89 | 78 | 90 | 90| 95 | 78 | 88 | 82 | 86 | 85 |
+| Tom Willis | Number 8 | 1999-01-18 | 27 | England | 86 | 95 | 82 | 85 | 80 | 89 | 85 | 64 | 81 | 82 | 93 | 92 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |

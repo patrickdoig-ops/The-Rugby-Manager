@@ -159,7 +159,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
         }
         truncateT = minT;
       }
-    } else if (carryEvent && carryEvent.outcome !== 'line_break') {
+    } else if (carryEvent) {
        const carrierSlot = carryEvent.carrier.id;
        const carrierChoreo = choreography.find(c => c.id === carrierSlot && c.side === atkSideStr);
        if (carrierChoreo && carrierChoreo.movements.length > 0) {

@@ -684,7 +684,7 @@ On the wide path, a second handling gate (same threshold) fires on the outside b
 
 **Step 4b — Hard-carry line-break upgrade (post-resolve, hard-carry path only)**
 
-Forwards rarely clear the standard `lineBreakMargin` of 15 on raw stats (low pace / agility), so the line-break + try-scorer leaderboards used to be all-back. A small post-roll upgrade on the hard-carry path lets a back-row or prop occasionally puncture the gain line off a ruck: if `outcome === 'dominant_carry'` (the carrier already won the contact) and a `rng(1, 100) <= HARD_CARRY_LINE_BREAK_UPGRADE_PCT` (12%) check passes, the outcome flips to `line_break` with `gainMetres` re-rolled into `HARD_CARRY_LINE_BREAK_METRES` (8-18m — smaller than the wide-line-break 20-45m range because close-channel cover tracks back faster than a fullback in the 15m channel). The existing line-break gain bonus (defensive line + backfield) then stacks on top. Tuning: both constants in `src/engine/balance/openPlay.ts`. Wide path is unaffected (wide carriers already produce line-breaks through the standard margin check).
+Forwards rarely clear the standard `lineBreakMargin` of 20 on raw stats (low pace / agility), so the line-break + try-scorer leaderboards used to be all-back. A small post-roll upgrade on the hard-carry path lets a back-row or prop occasionally puncture the gain line off a ruck: if `outcome === 'dominant_carry'` (the carrier already won the contact) and a `rng(1, 100) <= HARD_CARRY_LINE_BREAK_UPGRADE_PCT` (12%) check passes, the outcome flips to `line_break` with `gainMetres` re-rolled into `HARD_CARRY_LINE_BREAK_METRES` (8-18m — smaller than the wide-line-break 10-25m range because close-channel cover tracks back faster than a fullback in the 15m channel). The existing line-break gain bonus (defensive line + backfield) then stacks on top. Tuning: both constants in `src/engine/balance/openPlay.ts`. Wide path is unaffected (wide carriers already produce line-breaks through the standard margin check).
 
 ---
 
@@ -837,21 +837,21 @@ defenseScore = (defender.positioning + defender.pace) / 2 + rng(1,20) + (defendM
 
 | Margin | Result | Gain |
 |---|---|---|
-| ≥ 15 | `line_break` → Breakdown (or TryScored if `isTryScoredAt(ballX + dir × gain)`) | `rng(20, 45)` m × pace factor, floored at 5m (`OPEN_PLAY_VALUES.lineBreakMetres` + `LINE_BREAK_PACE`) |
-| < 15 | Proceed to Step 4 | — |
+| ≥ 20 | `line_break` → Breakdown (or TryScored if `isTryScoredAt(ballX + dir × gain)`) | `rng(10, 25)` m × pace factor, floored at 5m (`OPEN_PLAY_VALUES.lineBreakMetres` + `LINE_BREAK_PACE`) |
+| < 20 | Proceed to Step 4 | — |
 
-**Pace-scaled gain (v2.196a).** The carrier's `currentStats.pace` scales the random 20-45m range multiplicatively. Linear interpolation between two anchors lives in `OPEN_PLAY_VALUES.LINE_BREAK_PACE`: `pace 90 → factor 1.0` (wings keep the full range), `pace 40 → factor 0.25` (a prop's break collapses to ~5-11m as defenders chase back). Below the floor the factor clamps to `paceFactorMin = 0.25`; above the ceiling the factor clamps to `paceFactorMax = 1.0`. The result is then floored at `minGainMetres = 5`. Tactic mods (`defensiveLineBreakBonus`, `backfieldLineBreakGainBonus`) stack additively on top in the event handlers — they model defensive positional failure, not attacker speed, so even a prop benefits when the cover is out of position. Fatigue feeds in naturally because `currentStats.pace` already drops with stamina decay.
+**Pace-scaled gain (v2.196a).** The carrier's `currentStats.pace` scales the random 10-25m range multiplicatively. Linear interpolation between two anchors lives in `OPEN_PLAY_VALUES.LINE_BREAK_PACE`: `pace 90 → factor 1.0` (wings keep the full range), `pace 40 → factor 0.25` (a prop's break collapses to ~5-11m as defenders chase back). Below the floor the factor clamps to `paceFactorMin = 0.25`; above the ceiling the factor clamps to `paceFactorMax = 1.0`. The result is then floored at `minGainMetres = 5`. Tactic mods (`defensiveLineBreakBonus`, `backfieldLineBreakGainBonus`) stack additively on top in the event handlers — they model defensive positional failure, not attacker speed, so even a prop benefits when the cover is out of position. Fatigue feeds in naturally because `currentStats.pace` already drops with stamina decay.
 
 Predicted gain ranges by carrier (before tactic mods, validated v2.196a):
 
 | Carrier (typical pace) | Factor | Range |
 |---|---:|---|
-| Wing pace 95 | 1.00 | 20-45m |
-| Centre pace 80 | 0.85 | 17-38m |
-| Back-rower pace 70 | 0.70 | 14-31m |
-| Lock pace 60 | 0.55 | 11-25m |
-| Prop pace 50 | 0.40 | 8-18m |
-| Prop pace 40 | 0.25 | 5-11m |
+| Wing pace 95 | 1.00 | 10-25m |
+| Centre pace 80 | 0.80 | 8-20m |
+| Back-rower pace 70 | 0.60 | 6-15m |
+| Lock pace 60 | 0.40 | 5-10m |
+| Prop pace 50 | 0.20 | 5m |
+| Prop pace 40 | 0.00 | 5m |
 
 **Line break chain.** A line break that doesn't score on the first carry hands a sustained-attack edge to the next phase. The `BreakdownEvent` that follows reads `lastEvent.outcome === 'line_break'` and folds `CARRY_HANDOFF_BONUSES.lineBreak` (15) into both the current breakdown's `attackBonus` (cleaner ball) and the post-breakdown `state.breakdownMod.attack` (the very next carry runs with attack +15). The same fork point's `dominant_carry` case adds only `CARRY_HANDOFF_BONUSES.dominantCarry` (6) and only to the current breakdown — no next-phase boost. See [Carry → breakdown handoff constants](#carry--breakdown-handoff-constants) below.
 

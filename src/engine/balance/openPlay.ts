@@ -17,7 +17,7 @@ export const CRASH_BALL_THRESHOLDS = {
 // Gain range when a crash-ball results in a line break. Tighter than the
 // standard pace-scaled range (20-45m) — fullback + flanker converge quickly
 // on the narrow midfield channel and contain the break.
-export const CRASH_BALL_LINE_BREAK_METRES = [5, 15] as const;
+export const CRASH_BALL_LINE_BREAK_METRES = [5, 10] as const;
 
 // Hard-carry line-break upgrade: forwards rarely clear the standard line-
 // break margin on raw stats (low pace / agility), so the top line-breakers
@@ -114,16 +114,16 @@ export const OPEN_PLAY_VALUES = {
   // tighten up; low-tackling teams (NEW) sag — realism gain is that the
   // tackling stat now actually shows up in tackle %.
   defenderTacklingLineBreakWeight: 0.2,
-  lineBreakMargin: 15,
+  lineBreakMargin: 20,
   // Line breaks now project the ball further downfield (real-world line
-  // breaks pierce the defensive line by 15-40m on average). The 20-45 range
+  // line breaks pierce the defensive line by 10-25m on average). The 10-25 range
   // means a midfield line break frequently lands inside the opposition 22,
   // and the follow-up carry — boosted by CARRY_HANDOFF_BONUSES.lineBreak
   // (applied in BreakdownEvent, see balance/breakdown.ts) — closes the
   // score with one more phase.
-  lineBreakMetres: [20, 45],
+  lineBreakMetres: [10, 25],
   // Pace-scaled line-break gain (v2.196a). Wing-level pace (90) keeps the
-  // 20-45m calibration above; slower carriers scale the random range
+  // 10-25m calibration above; slower carriers scale the random range
   // downward multiplicatively (compresses both ends — slow carriers can't
   // hit the upper bound). Models "defenders chase back to catch the slower
   // carrier before they get long ground". minGainMetres floors the result
@@ -131,11 +131,11 @@ export const OPEN_PLAY_VALUES = {
   // definition a line break has cleared the line.
   //
   // Predicted gain ranges before tactic mods stack:
-  //   Wing pace 95:    factor 1.00  →  20-45m (unchanged)
-  //   Centre pace 80:  factor 0.80  →  16-36m
-  //   Back-row pace 70: factor 0.60 →  12-27m
-  //   Lock pace 60:    factor 0.40  →  8-18m
-  //   Prop pace 50:    factor 0.20  →  5-9m (floored)
+  //   Wing pace 95:    factor 1.00  →  10-25m (unchanged)
+  //   Centre pace 80:  factor 0.80  →  8-20m
+  //   Back-row pace 70: factor 0.60 →  6-15m
+  //   Lock pace 60:    factor 0.40  →  5-10m (floored)
+  //   Prop pace 50:    factor 0.20  →  5m (floored)
   //   Prop pace 40:    factor 0.00  →  5m (floored)
   LINE_BREAK_PACE: {
     paceAtFullGain:   90,

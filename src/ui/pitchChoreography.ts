@@ -1216,44 +1216,44 @@ function maulLayout(event: GameEvent, state: MatchState, attacksTop: boolean, pr
 // Convert to absolute Y: nearY===100 → 100−distNear; nearY===0 → distNear.
 // ATK backs sit behind their pack (ballX − fwd*dX); DEF backs behind theirs (ballX + fwd*dX).
 // Winger rule: ATK #14 = near touchline (small distNear), ATK #11 = far; DEF #11 = near, DEF #14 = far.
-const SCRUM_ATK_BACKS: Array<{ slot: number; dX: number; distNear: number }> = [
-  { slot: SLOT.FLY_HALF,    dX: 15, distNear: 34 },
-  { slot: SLOT.CENTRE_12,   dX: 18, distNear: 47 },
-  { slot: SLOT.CENTRE_13,   dX: 20, distNear: 64 },
-  { slot: SLOT.FULL_BACK,   dX: 31, distNear: 58 },
-  { slot: SLOT.WING_11,     dX: 21, distNear: 82 },  // far winger
-  { slot: SLOT.WING_14,     dX: 22, distNear:  8 },  // near winger
+const SCRUM_ATK_BACKS: Array<{ slot: number; dX: number; dY: number }> = [
+  { slot: SLOT.FLY_HALF,    dX: 6.5,  dY: 32.3 },
+  { slot: SLOT.CENTRE_12,   dX: 11.7, dY: 46.6 },
+  { slot: SLOT.CENTRE_13,   dX: 16.3, dY: 32.3 },
+  { slot: SLOT.FULL_BACK,   dX: 15.4, dY: 63.5 },
+  { slot: SLOT.WING_11,     dX: 18.9, dY: 11.6 },
+  { slot: SLOT.WING_14,     dX: 18.7, dY: 76.0 },
 ];
-const SCRUM_DEF_BACKS: Array<{ slot: number; dX: number; distNear: number }> = [
-  { slot: SLOT.FLY_HALF,    dX: 15, distNear: 35 },
-  { slot: SLOT.CENTRE_12,   dX: 17, distNear: 48 },
-  { slot: SLOT.CENTRE_13,   dX: 19, distNear: 64 },
-  { slot: SLOT.FULL_BACK,   dX: 29, distNear: 47 },
-  { slot: SLOT.WING_11,     dX: 21, distNear:  4 },  // near winger
-  { slot: SLOT.WING_14,     dX: 20, distNear: 82 },  // far winger
+const SCRUM_DEF_BACKS: Array<{ slot: number; dX: number; dY: number }> = [
+  { slot: SLOT.FLY_HALF,    dX: 10.5, dY: 30.7 },
+  { slot: SLOT.CENTRE_12,   dX: 10.0, dY: 45.9 },
+  { slot: SLOT.CENTRE_13,   dX: 10.4, dY: 61.0 },
+  { slot: SLOT.FULL_BACK,   dX: 27.8, dY: 62.2 },
+  { slot: SLOT.WING_11,     dX: 10.0, dY: 76.6 },
+  { slot: SLOT.WING_14,     dX: 27.6, dY: 16.3 },
 ];
 
-// Lineout backs: Y from distNear (reliable across scenarios); X is a fixed depth
+// Lineout backs: Y from dY (anchored to ball); X is a fixed depth
 // placeholder (lineout X shows too much scenario variance to parameterise precisely).
 // ATK backs sit behind their throw (ballX − fwd*dX); DEF backs behind their pack (ballX + fwd*dX).
 // #8 is excluded from the 6-man line and placed here instead.
-const LINEOUT_ATK_BACKS: Array<{ slot: number; dX: number; distNear: number }> = [
-  { slot: SLOT.NUMBER_8,    dX: 12, distNear: 42 },
-  { slot: SLOT.FLY_HALF,   dX: 12, distNear: 36 },
-  { slot: SLOT.CENTRE_12,  dX: 15, distNear: 47 },
-  { slot: SLOT.CENTRE_13,  dX: 15, distNear: 62 },
-  { slot: SLOT.FULL_BACK,  dX: 20, distNear: 71 },
-  { slot: SLOT.WING_11,    dX: 20, distNear: 80 },  // far winger
-  { slot: SLOT.WING_14,    dX: 20, distNear: 20 },  // near winger
+const LINEOUT_ATK_BACKS: Array<{ slot: number; dX: number; dY: number }> = [
+  { slot: SLOT.NUMBER_8,    dX: 12,   dY: 35.0 },
+  { slot: SLOT.FLY_HALF,    dX: 6.5,  dY: 32.3 },
+  { slot: SLOT.CENTRE_12,   dX: 11.7, dY: 46.6 },
+  { slot: SLOT.CENTRE_13,   dX: 16.3, dY: 32.3 },
+  { slot: SLOT.FULL_BACK,   dX: 15.4, dY: 63.5 },
+  { slot: SLOT.WING_11,     dX: 18.9, dY: 11.6 },
+  { slot: SLOT.WING_14,     dX: 18.7, dY: 76.0 },
 ];
-const LINEOUT_DEF_BACKS: Array<{ slot: number; dX: number; distNear: number }> = [
-  { slot: SLOT.NUMBER_8,   dX: 12, distNear: 28 },
-  { slot: SLOT.FLY_HALF,  dX: 12, distNear: 38 },
-  { slot: SLOT.CENTRE_12, dX: 15, distNear: 50 },
-  { slot: SLOT.CENTRE_13, dX: 15, distNear: 62 },
-  { slot: SLOT.FULL_BACK, dX: 20, distNear: 70 },
-  { slot: SLOT.WING_11,   dX: 20, distNear:  1 },  // near winger (tight to touchline)
-  { slot: SLOT.WING_14,   dX: 20, distNear: 82 },  // far winger
+const LINEOUT_DEF_BACKS: Array<{ slot: number; dX: number; dY: number }> = [
+  { slot: SLOT.NUMBER_8,   dX: 12,   dY: 20.0 },
+  { slot: SLOT.FLY_HALF,   dX: 10.5, dY: 30.7 },
+  { slot: SLOT.CENTRE_12,  dX: 10.0, dY: 45.9 },
+  { slot: SLOT.CENTRE_13,  dX: 10.4, dY: 61.0 },
+  { slot: SLOT.FULL_BACK,  dX: 27.8, dY: 62.2 },
+  { slot: SLOT.WING_11,    dX: 10.0, dY: 76.6 },
+  { slot: SLOT.WING_14,    dX: 27.6, dY: 16.3 },
 ];
 
 // Scrum 3-4-1: front row (1,2,3) at the mark, second row (6,4,5,7), #8 at the back.
@@ -1304,14 +1304,14 @@ function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): 
   const defOn = onFieldPlayers(defTeam, state, possOf(defSide));
   for (const e of SCRUM_ATK_BACKS) {
     const p = atkOn.find(pl => pl.id === e.slot);
-    if (p) out.push(placed(p, atkSide, state, clampX(event.ballX - fwd * e.dX), toY(e.distNear), false));
+    if (p) out.push(placed(p, atkSide, state, clampX(event.ballX - fwd * e.dX), clampY(scrumY + inward * e.dY), false));
   }
   for (const e of SCRUM_DEF_BACKS) {
     const p = defOn.find(pl => pl.id === e.slot);
-    if (p) out.push(placed(p, defSide, state, clampX(event.ballX + fwd * e.dX), toY(e.distNear), false));
+    if (p) out.push(placed(p, defSide, state, clampX(event.ballX + fwd * e.dX), clampY(scrumY + inward * e.dY), false));
   }
 
-  // Both #9s are placed at their FINAL positions (9.5 units behind their pack, just off #8).
+  // Both #9s are placed at their FINAL positions.
   // On a dominant penalty, skip the standard loosehead sweep — instead use `from`
   // so both #9s animate stepping away from the scrum (atk forward to claim the
   // penalty, def retreating), starting close to the front row and further infield.
@@ -1321,16 +1321,16 @@ function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): 
                          || event.outcome === 'defending_dominant_penalty';
   if (isDominantPenalty) {
     const fromY  = clampY(scrumY + inward * 9);
-    if (atkSH) out.push({ ...placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 9.5), clampY(scrumY), false), from: { x: clampX(event.ballX - fwd * 3), y: fromY } });
-    if (defSH) out.push({ ...placed(defSH, defSide, state, clampX(event.ballX + fwd * 9.5), clampY(scrumY), false), from: { x: clampX(event.ballX + fwd * 2), y: fromY } });
+    if (atkSH) out.push({ ...placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 2.0), clampY(scrumY), false), from: { x: clampX(event.ballX - fwd * 2.0), y: fromY } });
+    if (defSH) out.push({ ...placed(defSH, defSide, state, clampX(event.ballX + fwd * 9.0), clampY(scrumY), false), from: { x: clampX(event.ballX + fwd * 2.0), y: fromY } });
   } else {
     if (atkSH) {
-      const dot = placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 9.5), clampY(scrumY), false);
+      const dot = placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 2.0), clampY(scrumY), false);
       dot.scrumHalfRole = 'atk';
       out.push(dot);
     }
     if (defSH) {
-      const dot = placed(defSH, defSide, state, clampX(event.ballX + fwd * 9.5), clampY(scrumY), false);
+      const dot = placed(defSH, defSide, state, clampX(event.ballX + fwd * 9.0), clampY(scrumY), false);
       dot.scrumHalfRole = 'def';
       out.push(dot);
     }
@@ -1430,16 +1430,15 @@ function lineoutLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
 
   // Backs for both sides — fixed lateral spread from the lineout touchline;
   // depth is a placeholder (lineout X varies too much by outcome to parameterise).
-  const toY = (distNear: number) => clampY(nearY + inward * distNear);
   const atkOn = onFieldPlayers(atkTeam, state, possOf(atkSide));
   const defOn = onFieldPlayers(defTeam, state, possOf(defSide));
   for (const e of LINEOUT_ATK_BACKS) {
     const p = atkOn.find(pl => pl.id === e.slot);
-    if (p) out.push(placed(p, atkSide, state, clampX(event.ballX - fwd * e.dX), toY(e.distNear), false));
+    if (p) out.push(placed(p, atkSide, state, clampX(event.ballX - fwd * e.dX), clampY(event.ballY + inward * e.dY), false));
   }
   for (const e of LINEOUT_DEF_BACKS) {
     const p = defOn.find(pl => pl.id === e.slot);
-    if (p) out.push(placed(p, defSide, state, clampX(event.ballX + fwd * e.dX), toY(e.distNear), false));
+    if (p) out.push(placed(p, defSide, state, clampX(event.ballX + fwd * e.dX), clampY(event.ballY + inward * e.dY), false));
   }
 
   return out;
@@ -1477,7 +1476,7 @@ function firstPhaseBacklineLayout(
   // preserved dot matches). The feed origin for the sweep.
   let sh9X: number, sh9Y: number;
   if (prevPhase === MatchPhase.Scrum) {
-    sh9X = clampX(prevBallX - fwd * 9.5);
+    sh9X = clampX(prevBallX - fwd * 2.0);
     sh9Y = clampY(prevBallY);
   } else {
     const nearY  = prevBallY < 50 ? 0 : 100;
@@ -1488,9 +1487,40 @@ function firstPhaseBacklineLayout(
 
   const out: Placed[] = [];
 
+  // If the engine provided explicit choreography (e.g. uploaded Phase Animator template),
+  // bypass inference for those players and map their start/end points exactly.
+  const choreographedKeys = new Set<string>();
+  if (event.choreography) {
+    for (const p of event.choreography) {
+      const pl = (p.side === 'h' ? state.homeTeam : state.awayTeam).players.find(x => x.id === p.id);
+      if (pl) {
+        const moves = p.movements;
+        if (moves.length > 0) {
+          const first = moves[0];
+          const last = moves[moves.length - 1];
+          let finalX = last.x;
+          let finalY = last.y;
+          if (pl === carrier) {
+            const engineFinalBall = hops[hops.length - 1] ?? { x: last.x, y: last.y };
+            finalX = engineFinalBall.x - fwd * 2.5;
+            finalY = engineFinalBall.y;
+          }
+          const dot = placed(pl, p.side, state, clampX(finalX), clampY(finalY), pl === carrier);
+          if (moves.length > 1) {
+            dot.from = { x: clampX(first.x), y: clampY(first.y) };
+          }
+          out.push(dot);
+          choreographedKeys.add(`${p.side}:${p.id}`);
+        }
+      }
+    }
+  }
+
   // #9 at the set-piece feed.
   const sh = atkOn.find(p => p.id === SLOT.SCRUM_HALF);
-  if (sh) out.push(placed(sh, atkSide, state, sh9X, sh9Y, sh === carrier));
+  if (sh && !choreographedKeys.has(`h:${sh.id}`) && !choreographedKeys.has(`a:${sh.id}`)) {
+    out.push(placed(sh, atkSide, state, sh9X, sh9Y, sh === carrier));
+  }
 
   // Receivers in pass order, read straight from the narration chain: #10 is the
   // first pass step's primary, then each step's secondary (#12 for a crash ball;
@@ -1508,6 +1538,7 @@ function firstPhaseBacklineLayout(
   const n = Math.min(receivers.length, recvHops.length);
   for (let i = 0; i < n; i++) {
     const p = receivers[i];
+    if (choreographedKeys.has(`h:${p.id}`) || choreographedKeys.has(`a:${p.id}`)) continue;
     const hop = recvHops[i];
     // Sit a touch behind the ball's gain-line hop, progressively deeper as play
     // goes wider — the diagonal read, anchored on the engine's real lateral y.
@@ -1516,7 +1547,7 @@ function firstPhaseBacklineLayout(
 
   // Carrier safety: if the chain didn't surface the carrier (offload / edge case),
   // place them at the final receive hop so they're never left invisible.
-  if (carrier && !out.some(pl => pl.key === `${atkSide}:${carrier.id}`)) {
+  if (carrier && !out.some(pl => pl.key === `${atkSide}:${carrier.id}`) && !choreographedKeys.has(`${atkSide}:${carrier.id}`)) {
     const last = recvHops[recvHops.length - 1] ?? hops[hops.length - 1];
     out.push(placed(carrier, atkSide, state, clampX(last.x - fwd * 2.5), clampY(last.y), true));
   }
@@ -1527,6 +1558,7 @@ function firstPhaseBacklineLayout(
   const tackler = event.secondaryPlayer && sideOf(event.secondaryPlayer, state) === defSide ? event.secondaryPlayer : null;
 
   defSideActors.forEach((p, i) => {
+    if (choreographedKeys.has(`h:${p.id}`) || choreographedKeys.has(`a:${p.id}`)) return;
     if (p === tackler && carrier) {
       // Pin tackler to the ball carrier — animate from defensive-line spot
       const carrierPl = out.find(pl => pl.key === `${atkSide}:${carrier.id}`);
@@ -1547,6 +1579,25 @@ function firstPhaseBacklineLayout(
       clampX(event.ballX + fwd * (3 + i * 6)),
       clampY(event.ballY + lat), false));
   });
+
+  // Inject the predecessor set-piece forwards/unplaced backs so they remain perfectly stationary
+  // even if the user triggers the phase directly in Endless Match without a real predecessor beat.
+  const placedKeys = new Set(out.map(pl => pl.key));
+  const fakeEvent = { ...event, ballX: prevBallX, ballY: prevBallY } as GameEvent;
+  let baseLayout: Placed[] = [];
+  if (prevPhase === MatchPhase.Scrum) {
+    baseLayout = scrumLayout(fakeEvent, state, attacksTop);
+  } else if (prevPhase === MatchPhase.Lineout) {
+    baseLayout = lineoutLayout(fakeEvent, state, attacksTop);
+  } else if (prevPhase === MatchPhase.Maul) {
+    baseLayout = maulLayout(fakeEvent, state, attacksTop, prevBallX, prevBallY);
+  }
+
+  for (const p of baseLayout) {
+    if (!placedKeys.has(p.key)) {
+      out.push(p);
+    }
+  }
 
   return out;
 }

@@ -209,7 +209,9 @@ export function initPitchView(): void {
     ], dur, 'ease-in-out', tgtTop, tgtLeft);
   };
 
-  const animateMovements = (kfs: ReadonlyArray<{ x: number; y: number }>, lineCount: number, fwd: number, carrierFromStart = false) => {
+  const animateMovements = (event: GameEvent, lineCount: number, fwd: number, skipFollower = false) => {
+    const kfs = event.movements!;
+    const carrierFromStart = event.carrierFromStart ?? false;
     clearMovement();
     movementAnimating = true;
     // Fit the whole path inside the beat window so the ball never lags the
@@ -227,9 +229,7 @@ export function initPitchView(): void {
     const duration = legMs * kfs.length;
     runAnim(frames, duration, 'linear', finalTop, finalLeft);
 
-    // Carrier dot: hold at the receive point (the ball's penultimate position —
-    // where the carrier takes the ball, just before the run into contact) through
-    // every pass leg, then run only the final carry leg onto the ball.
+    // Carrier dot: follow authored path if available, else infer the run.
     const carrierFinalTop = toTop(Math.max(2, Math.min(98, final.x - fwd * 2.5)));
     let carrierFrames: Keyframe[];
 
@@ -240,8 +240,16 @@ export function initPitchView(): void {
       left: toLeft(p.y)
     }));
 
+    let explicitCarrierPath: { x: number; y: number; t: number }[] | null = null;
+    if (event.choreography && event.primaryPlayer) {
+      const choreo = event.choreography.find(c => c.id === event.primaryPlayer!.id && c.side === event.side.charAt(0));
+      if (choreo && choreo.movements && choreo.movements.length > 0) {
+        explicitCarrierPath = choreo.movements;
+      }
+    }
+
     let carryStartIdx = 0;
-    if (!carrierFromStart) {
+    if (!carrierFromStart && !explicitCarrierPath) {
       for (let i = ballPath.length - 1; i > 0; i--) {
         if (ballPath[i].x !== ballPath[i - 1].x) {
           carryStartIdx = i - 1;
@@ -250,37 +258,51 @@ export function initPitchView(): void {
       }
     }
 
-    if (carrierFromStart) {
-      // Direct pick-up (pick-and-go): rides the WHOLE ball path exactly in sync.
-      carrierFrames = carrierPath.map((cp, i) => ({
-        transform: offsetTransform(cp.top, cp.left, carrierFinalTop, finalLeft, w, h),
+    if (explicitCarrierPath) {
+      carrierFrames = explicitCarrierPath.map((cp, i) => ({
+        transform: offsetTransform(toTop(Math.max(2, Math.min(98, cp.x - fwd * 2.5))), toLeft(cp.y), carrierFinalTop, finalLeft, w, h),
         offset: i / N
       }));
+      carrierFrames.push({
+        transform: offsetTransform(carrierFinalTop, finalLeft, carrierFinalTop, finalLeft, w, h),
+        offset: 1
+      });
     } else {
-      // Passed carry: hold at the receive point, then follow the ball.
-      const receiveCp = carrierPath[carryStartIdx];
-      carrierFrames = [
-        { transform: offsetTransform(receiveCp.top, receiveCp.left, carrierFinalTop, finalLeft, w, h), offset: 0 },
-        ...(carryStartIdx > 0 ? [{ transform: offsetTransform(receiveCp.top, receiveCp.left, carrierFinalTop, finalLeft, w, h), offset: carryStartIdx / N }] : [])
-      ];
-      for (let i = carryStartIdx + 1; i <= N; i++) {
-        carrierFrames.push({
-          transform: offsetTransform(carrierPath[i].top, carrierPath[i].left, carrierFinalTop, finalLeft, w, h),
+      if (carrierFromStart) {
+        // Direct pick-up (pick-and-go): rides the WHOLE ball path exactly in sync.
+        carrierFrames = carrierPath.map((cp, i) => ({
+          transform: offsetTransform(cp.top, cp.left, carrierFinalTop, finalLeft, w, h),
           offset: i / N
-        });
+        }));
+      } else {
+        // Passed carry: hold at the receive point, then follow the ball.
+        const receiveCp = carrierPath[carryStartIdx];
+        carrierFrames = [
+          { transform: offsetTransform(receiveCp.top, receiveCp.left, carrierFinalTop, finalLeft, w, h), offset: 0 },
+          ...(carryStartIdx > 0 ? [{ transform: offsetTransform(receiveCp.top, receiveCp.left, carrierFinalTop, finalLeft, w, h), offset: carryStartIdx / N }] : [])
+        ];
+        for (let i = carryStartIdx + 1; i <= N; i++) {
+          carrierFrames.push({
+            transform: offsetTransform(carrierPath[i].top, carrierPath[i].left, carrierFinalTop, finalLeft, w, h),
+            offset: i / N
+          });
+        }
       }
     }
-    follower.run(carrierFinalTop, finalLeft, carrierFrames, duration, 'linear');
+
+    if (!skipFollower) {
+      follower.run(carrierFinalTop, finalLeft, carrierFrames, duration, 'linear');
+    }
 
     const domTackler = players.domTacklerEl;
-    if (domTackler && players.domTacklerFrom) {
+    if (domTackler && players.domTacklerFrom && !skipFollower) {
       let tacklerFrames: Keyframe[];
       const tacklerFromTop = toTop(players.domTacklerFrom.x);
       const tacklerFromLeft = toLeft(players.domTacklerFrom.y);
       const tacklerFinalTop = toTop(Math.max(2, Math.min(98, fromTop(carrierFinalTop) + fwd * 1.3)));
       const tacklerFinalLeft = finalLeft;
 
-      if (carrierFromStart) {
+      if (carrierFromStart || explicitCarrierPath) {
         tacklerFrames = [
           { transform: offsetTransform(tacklerFromTop, tacklerFromLeft, tacklerFinalTop, tacklerFinalLeft, w, h), offset: 0 },
           { transform: offsetTransform(tacklerFinalTop, tacklerFinalLeft, tacklerFinalTop, tacklerFinalLeft, w, h), offset: 1 }
@@ -453,11 +475,36 @@ export function initPitchView(): void {
         animateKickDecision(event.movements, event.narration.steps.length,
           ((event.side === 'home') !== cachedHalfTimeDone) ? 1 : -1, event);
       } else {
-        animateMovements(event.movements, event.narration.steps.length,
-          ((event.side === 'home') !== cachedHalfTimeDone) ? 1 : -1, event.carrierFromStart);
+        animateMovements(event, event.narration.steps.length,
+          ((event.side === 'home') !== cachedHalfTimeDone) ? 1 : -1, !!event.choreography);
       }
     } else {
       clearMovement();
+    }
+
+    if (event.choreography && event.choreography.length > 0) {
+      const { w, h } = hostDims();
+      const lineCount = event.narration.steps.length;
+      const beatWindow = stepMs * Math.max(1, lineCount);
+      let duration = beatWindow;
+      if (event.movements && event.movements.length > 0) {
+        const legMs = Math.max(90, Math.min(stepMs, Math.round(beatWindow / event.movements.length)));
+        duration = legMs * event.movements.length;
+      }
+      for (const ch of event.choreography) {
+        const key = `${ch.side}:${ch.id}`;
+        const el = field.querySelector(`[data-key="${key}"]`) as HTMLElement;
+        if (!el) continue;
+
+        const finalTop = parseFloat(el.style.top || '0');
+        const finalLeft = parseFloat(el.style.left || '0');
+        const frames = ch.movements.map((kf: any) => ({
+          transform: offsetTransform(toTop(kf.x), toLeft(kf.y), finalTop, finalLeft, w, h),
+          offset: kf.t
+        }));
+        
+        el.animate(frames, { duration, easing: 'linear' });
+      }
     }
 
     // Scrum SH sweep: both #9s animate from their loosehead start positions to

@@ -33,6 +33,7 @@ interface Sample {
   actorSide: string;    // side performing the phase = sideOf(primaryPlayer). Differs from `side` on a
                         // possession-swap outcome (e.g. box_kick_to_touch: the kicker acts, but `side`
                         // is the team that receives the resulting lineout). The badge should use this.
+  choreography?: { side: 'h'|'a', id: number, movements: {x:number, y:number}[] }[];
 }
 
 const collected = new Map<string, Sample>();
@@ -57,6 +58,7 @@ function runOnce(seed: number, pen: PenaltyChoice): Promise<void> {
       const e = event as unknown as {
         phase: string; displayPhase?: string; side: string; ballX: number; ballY: number;
         movements?: ReadonlyArray<{ x: number; y: number }>;
+        choreography?: { side: 'h'|'a', id: number, movements: {x:number, y:number}[] }[];
         primaryPlayer?: { squadNumber: number }; secondaryPlayer?: { squadNumber: number };
         narration: { steps: { kind: string; key?: string }[] };
       };
@@ -91,12 +93,40 @@ function runOnce(seed: number, pen: PenaltyChoice): Promise<void> {
           // change the relative player geometry, only the ball's field position.
           // prevKey is still stored on the sample for the animator's exact lookup.
           const k = `${e.phase}:${key}:${prevPhase ?? ''}`;
+
+          let finalStart = { ...prevBall };
+          let finalMoves = moves.map(m => ({ ...m }));
+          let finalResolve = { x: Math.round(e.ballX), y: Math.round(e.ballY) };
+          let finalLayout = layout.map(d => ({ ...d, from: d.from ? { ...d.from } : undefined }));
+          let finalChoreo = e.choreography ? e.choreography.map(c => ({ side: c.side, id: c.id, movements: c.movements.map(m => ({ ...m })) })) : undefined;
+
+          // For First Phase, anchor the ball to specific coordinates for consistent authoring
+          if (e.phase === 'FIRST_PHASE') {
+            const nearTop = prevBall.y >= 50;
+            
+            // Mirror Y so it's always on the near touchline
+            if (nearTop) {
+              finalStart.y = 100 - finalStart.y;
+              finalMoves.forEach(m => m.y = 100 - m.y);
+              finalResolve.y = 100 - finalResolve.y;
+              finalLayout.forEach(d => {
+                d.y = 100 - d.y;
+                if (d.from) d.from.y = 100 - d.from.y;
+              });
+              if (finalChoreo) {
+                finalChoreo.forEach(c => c.movements.forEach(m => m.y = 100 - m.y));
+              }
+            }
+
+          }
+
           const sample: Sample = {
             phase: e.phase, displayPhase: e.displayPhase ?? null, key, keys, side: e.side,
-            start: { ...prevBall }, moves,
-            resolve: { x: Math.round(e.ballX), y: Math.round(e.ballY) },
+            start: finalStart, moves: finalMoves,
+            resolve: finalResolve,
             primary: e.primaryPlayer?.squadNumber ?? null, secondary: e.secondaryPlayer?.squadNumber ?? null,
-            prevPhase, prevKey, layout, attacksTop, actorSide,
+            prevPhase, prevKey, layout: finalLayout, attacksTop, actorSide,
+            choreography: finalChoreo,
           };
           // Prefer the richest beat per (phase, outcome): most movement, then most layout dots.
           const prev = collected.get(k);
@@ -124,6 +154,7 @@ function runOnce(seed: number, pen: PenaltyChoice): Promise<void> {
 const pens: PenaltyChoice[] = ['kick_for_goal', 'kick_to_touch', 'tap_and_go'];
 const SEEDS = 300;
 for (let s = 0; s < SEEDS; s++) {
+  if (s % 10 === 0) console.log(`Processing seed ${s}...`);
   await runOnce(0x2200 + s * 0x101, pens[s % pens.length]);
 }
 

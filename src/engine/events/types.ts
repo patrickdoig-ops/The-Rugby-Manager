@@ -36,6 +36,13 @@ export interface PhaseResult {
   // pick-and-go) rather than receiving a pass — copied to GameEvent.carrierFromStart
   // so the 2D pitch rides the carrier the whole way. Presentation-only.
   carrierFromStart?: boolean;
+  // Explicitly placed player trajectories for choreographed phase moves.
+  // Bypass the standard animation inference when present.
+  choreography?: {
+    side: 'h' | 'a';
+    id: number; // slot 1-15
+    movements: { x: number; y: number; t: number; }[];
+  }[];
   // MatchEvents emitted by the handler. PhaseRouter routes them through
   // applyMatchEvent before composing the outgoing GameEvent.
   events: MatchEvent[];

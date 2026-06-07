@@ -153,6 +153,7 @@ export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy
     ballY: state.ball.y,
     movements: movements.length > 1 ? movements : undefined,
     carrierFromStart: result.carrierFromStart,
+    choreography: result.choreography,
     narration: result.narration,
     outcome: result.outcome,
   };

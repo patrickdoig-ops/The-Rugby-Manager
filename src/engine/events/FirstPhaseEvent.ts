@@ -10,7 +10,7 @@ import { emitSweepHops } from '../Lateral';
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
-import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, CRASH_BALL_THRESHOLDS, CRASH_BALL_LINE_BREAK_METRES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS, FIRST_PHASE_PASS_DISTANCE_M } from '../balance';
+import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, CRASH_BALL_THRESHOLDS, CRASH_BALL_LINE_BREAK_METRES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS, FIRST_PHASE_PASS_DISTANCE_M, FIRST_PHASE_CHOREOGRAPHIES } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { SLOT, isBackSlot } from '../Slot';
 import { tryOffloadChain } from './offloadChain';
@@ -21,10 +21,119 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   const attackSide = state.possession;
   const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
 
+  // Helper to apply uploaded choreography
+  function applyChoreography(res: PhaseResult, playType: string, directionOverride?: number): PhaseResult {
+    const choreoKey = playType;
+    const parsedChoreo = FIRST_PHASE_CHOREOGRAPHIES[choreoKey];
+    
+    if (!parsedChoreo) return res;
+
+    const choreography: PhaseResult['choreography'] = [];
+    const dir = directionOverride ?? attackDir(state);
+    const attacksTop = dir === 1;
+    const nearTop = state.ball.y >= 50;
+    
+    const flipX = parsedChoreo.authoredAttacksTop !== attacksTop;
+    const flipY = parsedChoreo.authoredNearTop !== nearTop;
+
+    const atkSideStr = attackSide === 'home' ? 'h' : 'a';
+    const defSideStr = attackSide === 'home' ? 'a' : 'h';
+
+    const anchorX = flipX ? 100 - parsedChoreo.authoredAnchorX : parsedChoreo.authoredAnchorX;
+    const anchorY = flipY ? 100 - parsedChoreo.authoredAnchorY : parsedChoreo.authoredAnchorY;
+    
+    const dx = state.ball.x - anchorX;
+    const dy = state.ball.y - anchorY;
+
+    let authoredBallEvents: any[] = [];
+
+    for (const ent of parsedChoreo.entities) {
+      if (ent.id === 'ball') {
+        for (let i = 1; i < ent.kf.length; i++) {
+          const kf = ent.kf[i];
+          let x = kf.x;
+          if (flipX) x = 100 - x;
+          let y = kf.y;
+          if (flipY) y = 100 - y;
+          
+          x += dx;
+          y += dy;
+          
+          authoredBallEvents.push({ type: 'BALL_REPOSITIONED', x: clamp(x, 0, 100), y: clamp(y, 0, 100) });
+        }
+        continue;
+      }
+      
+      const authoredSideChar = ent.id.charAt(0);
+      let authoredSlot = parseInt(ent.id.substring(1), 10);
+      
+      if (isNaN(authoredSlot)) continue;
+
+      // Skip forwards in the choreography payload so they don't get animated
+      // to 0,0 (unplaced) and override the base set-piece UI layout.
+      if (authoredSlot >= 1 && authoredSlot <= 8) continue;
+
+      const swapLateral = flipX !== flipY;
+      if (swapLateral) {
+        if (authoredSlot === 11) authoredSlot = 14;
+        else if (authoredSlot === 14) authoredSlot = 11;
+        else if (authoredSlot === 1) authoredSlot = 3;
+        else if (authoredSlot === 3) authoredSlot = 1;
+        else if (authoredSlot === 6) authoredSlot = 7;
+        else if (authoredSlot === 7) authoredSlot = 6;
+      }
+
+      const isAuthoredAtk = (authoredSideChar === 'h' && parsedChoreo.authoredAttackingKind === 'home') ||
+                            (authoredSideChar === 'a' && parsedChoreo.authoredAttackingKind === 'away');
+                            
+      const realSideStr = isAuthoredAtk ? atkSideStr : defSideStr;
+
+      const movements = ent.kf.map(kf => {
+        let x = kf.x;
+        if (flipX) x = 100 - x;
+
+        let y = kf.y;
+        if (flipY) y = 100 - y;
+
+        x += dx;
+        y += dy;
+
+        return { x: clamp(x, 0, 100), y: clamp(y, 0, 100), t: kf.t };
+      });
+
+      choreography.push({
+        side: realSideStr as 'h' | 'a',
+        id: authoredSlot,
+        movements,
+      });
+    }
+
+    if (authoredBallEvents.length > 0) {
+      const carryIdx = res.events.findIndex((e: any) => e.type === 'CARRY_RESOLVED');
+      if (carryIdx !== -1) {
+        const eventsBeforeCarry = res.events.slice(0, carryIdx);
+        const eventsAfterCarry = res.events.slice(carryIdx);
+        
+        const filteredBefore = eventsBeforeCarry.filter((e: any) => e.type !== 'BALL_REPOSITIONED');
+        
+        res.events = [
+          ...filteredBefore,
+          ...authoredBallEvents,
+          ...eventsAfterCarry
+        ];
+      } else {
+        res.events.push(...authoredBallEvents);
+      }
+    }
+
+    return { ...res, choreography };
+  }
+
   // Step 0 — Kick or carry decision (see KickDecisionDirector)
   const decision = decideKick({ state, attackTeam, attackOnField });
   if (decision.kick) {
-    return buildKickTransition(decision, MatchPhase.FirstPhase, { state, attackTeam, attackOnField });
+    const res = buildKickTransition(decision, MatchPhase.FirstPhase, { state, attackTeam, attackOnField });
+    return applyChoreography(res, 'kick_decision', attackDir(state));
   }
 
   // Step 1 — Carrier is always #10 (fly-half); handling gate
@@ -155,8 +264,14 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     // is weighted across opposite 12/13 plus back-row support.
     defender = pickPrimaryDefender(defendTeam, state, defSide, ballCarrier);
   } else {
-    // Wide Play: #10 → #13 → random of #11/#14
+    // Wide Play: #10 → #13 → correct wing based on sweep
     const outsideCentre = attackOnField.find(p => p.id === SLOT.CENTRE_13) ?? attackOnField[0] ?? attackTeam.players[0];
+
+    const wings = attackOnField.filter(p => p.id === SLOT.WING_11 || p.id === SLOT.WING_14);
+    const attacksTop = attackDir(state) === 1;
+    const sweepsTo100 = state.ball.y < 50; // because nearY = 0, sweeps to 100
+    const targetSlot = (attacksTop === sweepsTo100) ? SLOT.WING_14 : SLOT.WING_11;
+    const wideReceiver = wings.find(p => p.id === targetSlot) ?? wings[0] ?? attackOnField[0] ?? attackTeam.players[0];
 
     // Obstruction roll — one chance per wide-play attempt, fired before the
     // first pass so a hit short-circuits the whole sequence. Offender: a
@@ -225,9 +340,9 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     events.push({ type: 'PASS_COMPLETED', passer: carrier });
     passCount++;
 
-    const wingPool = attackOnField.filter(p => p.id === SLOT.WING_11 || p.id === SLOT.WING_14);
-    const wing = wingPool.length > 0 ? wingPool[rng(0, wingPool.length - 1)] : (attackOnField[rng(0, Math.max(0, attackOnField.length - 1))] ?? randomPlayer(attackTeam));
-    playIntroSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'out_the_back', primary: outsideCentre, secondary: wing });
+    playIntroSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'wide_pass', primary: outsideCentre, secondary: wideReceiver });
+
+
 
     // Interception roll on the #13 → wing pass.
     {
@@ -251,11 +366,11 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       }
     }
 
-    if (rng(1, 100) <= knockOnPct(wing.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
-      events.push({ type: 'KNOCK_ON', player: wing, attackSide });
+    if (rng(1, 100) <= knockOnPct(wideReceiver.currentStats.handling, state.clock.clockInTheRed) + pressureMod) {
+      events.push({ type: 'KNOCK_ON', player: wideReceiver, attackSide });
       const koSteps: NarrationStep[] = [
         ...playIntroSteps,
-        { kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'knock_on', primary: wing, secondary: outsideCentre },
+        { kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'knock_on', primary: wideReceiver, secondary: outsideCentre },
       ];
       if (defensiveLine === 'blitz') {
         koSteps.push({ kind: 'tactic_note', cause: 'blitz_pressure_knockon', chancePct: COMMENTARY_CHANCES.blitzPressureKnockOn, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
@@ -263,7 +378,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       return {
         nextPhase: MatchPhase.Scrum,
         narration: { steps: koSteps },
-        primaryPlayer: wing,
+        primaryPlayer: wideReceiver,
         secondaryPlayer: outsideCentre,
         events,
       };
@@ -271,7 +386,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
     events.push({ type: 'PASS_COMPLETED', passer: outsideCentre });
     passCount++;
-    ballCarrier = wing;
+    ballCarrier = wideReceiver;
     // Channel-aware: wide-play carrier is a wing — defender weighted across
     // opposite wing / fullback / outside centre.
     defender = pickPrimaryDefender(defendTeam, state, defSide, ballCarrier);
@@ -443,12 +558,16 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   // Lateral flavour rides on a normal continuation only — not after a penalty/try.
   if (lateralStep && nextPhase === MatchPhase.Breakdown) outcomeSteps.push(lateralStep);
 
-  return {
+  const baseRes: PhaseResult = {
     nextPhase,
     narration: { steps: outcomeSteps },
     primaryPlayer: ballCarrier,
     secondaryPlayer: tryScored ? undefined : (res.outcome === 'line_break' ? coverTackler : defender),
     outcome: res.outcome,
+    carrierFromStart: false,
     events,
   };
+
+  const playType = goCrashBall ? 'crash_ball' : 'out_the_back';
+  return applyChoreography(baseRes, playType, direction);
 }

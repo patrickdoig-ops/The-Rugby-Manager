@@ -148,7 +148,7 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       // Lineout/Scrum→FirstPhase: keep set-piece forwards visible through the whole
       // first phase — carry persistedKeys forward so they don't clear at the boundary.
       // They fade normally when FirstPhase itself ends.
-      const keepLineout = (currentPhase === MatchPhase.Lineout || currentPhase === MatchPhase.Scrum)
+      const keepLineout = (currentPhase === MatchPhase.Lineout || currentPhase === MatchPhase.Scrum || currentPhase === MatchPhase.Maul)
         && event.phase === MatchPhase.FirstPhase;
       // Kick→KickReturn: seed the return from the predecessor kick formation. Keep all
       // its dots on screen (carry persistedKeys forward) and enable the glide, so the

@@ -111,6 +111,13 @@ export interface GameEvent {
   // pitch then rides the carrier dot along the whole ball path instead of holding it
   // at the penultimate receive point. Presentation-only.
   carrierFromStart?: boolean;
+  // Explicitly placed player trajectories for choreographed phase moves.
+  // Bypass the standard animation inference when present.
+  choreography?: {
+    side: 'h' | 'a';
+    id: number;
+    movements: { x: number; y: number; t: number }[];
+  }[];
   narration: NarrationDescriptor;
   outcome?: string;
 }

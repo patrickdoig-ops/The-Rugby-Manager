@@ -48,3 +48,4 @@ export * from './teamTalk';
 export * from './staff';
 export * from './scouting';
 export * from './press';
+export * from './firstPhaseChoreography';

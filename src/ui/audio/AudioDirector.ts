@@ -117,7 +117,7 @@ function routeMatchEvent(event: GameEvent): void {
   }
 
   if (keys.has('knock_on')) { play('whistle.stoppage'); play('crowd.groan'); }
-  if (keys.has('scrappy_knock_on') || keys.has('crooked_throw')) play('crowd.groan');
+  if (keys.has('crooked_throw')) play('crowd.groan');
 
   if (keys.has('line_break') || keys.has('line_break_try') || keys.has('interception')) {
     play('crowd.surge.linebreak');

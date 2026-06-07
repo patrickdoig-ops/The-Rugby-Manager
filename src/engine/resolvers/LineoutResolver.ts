@@ -15,7 +15,7 @@ export function resolveLineout(
   attackJumper: Player,
   defendJumper: Player,
 ): LineoutResolution {
-  const { crookedThrowThreshold, setPieceWeight, agilityWeight, cleanCatchMargin, scrappyMargin } = LINEOUT_VALUES;
+  const { crookedThrowThreshold, setPieceWeight, agilityWeight, cleanCatchMargin } = LINEOUT_VALUES;
   const throwScore = hooker.currentStats.setPiece + rng(1, 100);
 
   let result: LineoutResult;
@@ -34,13 +34,12 @@ export function resolveLineout(
                     + rng(1, 20);
 
     const margin = attackJumpScore - defendJumpScore;
-    if      (margin >= cleanCatchMargin) result = 'clean_catch';
-    else if (margin >= scrappyMargin)    result = 'scrappy_knock_on';
-    else                                 result = 'steal';
+    if (margin >= cleanCatchMargin) result = 'clean_catch';
+    else                            result = 'steal';
   }
 
   // Own-throw floor (see LINEOUT_VALUES.ownThrowRescuePct). Rescue most
-  // would-be losses (crooked / scrappy / steal) into a clean catch so the
+  // would-be losses (crooked / steal) into a clean catch so the
   // weakest hooker/jumper pairings still hold their own throw at ~70%+
   // league-wide. Strong packs barely shift since their natural loss rate
   // is already low.

@@ -123,7 +123,7 @@ export type MatchEvent =
   | { type: 'LINEOUT_THROWN'; hooker: Player }
   | {
       type: 'LINEOUT_RESOLVED';
-      outcome: 'clean_catch' | 'steal' | 'scrappy_knock_on' | 'crooked_throw';
+      outcome: 'clean_catch' | 'steal' | 'crooked_throw';
       hooker: Player;
       attackJumper: Player;
       defendJumper: Player;

@@ -25,7 +25,7 @@ export type PhaseOutcomeKey =
   | 'stable_win' | 'wheel'
   | 'attacking_dominant_penalty' | 'defending_dominant_penalty'
   // Lineout
-  | 'clean_catch' | 'crooked_throw' | 'steal' | 'scrappy_knock_on'
+  | 'clean_catch' | 'crooked_throw' | 'steal'
   // Maul
   | 'maul_won' | 'maul_held' | 'maul_collapse_penalty' | 'maul_try'
   // BoxKick

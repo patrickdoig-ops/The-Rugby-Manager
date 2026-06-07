@@ -422,10 +422,6 @@ const LINEOUT: PhaseBank = {
     'Turnover at the lineout — {primary} outjumps the opposition!',
     'The throw is misjudged — {primary} gratefully takes possession.',
   ],
-  scrappy_knock_on: [
-    'Scrappy lineout — the ball is knocked on. Scrum to {side}.',
-    '{primary} can\'t hold it — knock-on awarded. Scrum to {side}.',
-  ],
 };
 
 const MAUL: PhaseBank = {

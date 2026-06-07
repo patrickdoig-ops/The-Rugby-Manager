@@ -98,22 +98,6 @@ export function handleLineout({ state, attackTeam, defendTeam }: PhaseContext): 
     };
   }
 
-  if (res.result === 'scrappy_knock_on') {
-    events.push({
-      type: 'LINEOUT_RESOLVED',
-      outcome: 'scrappy_knock_on',
-      hooker, attackJumper, defendJumper,
-      attackSide, possessionSideAfter: flipSide,
-    });
-    return {
-      nextPhase: MatchPhase.Scrum,
-      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Lineout, key: 'scrappy_knock_on', primary: attackJumper, secondary: defendJumper }] },
-      primaryPlayer: attackJumper,
-      secondaryPlayer: defendJumper,
-      events,
-    };
-  }
-
   // steal
   events.push({
     type: 'LINEOUT_RESOLVED',

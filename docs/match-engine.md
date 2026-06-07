@@ -1103,9 +1103,8 @@ margin = attackJumpScore − defendJumpScore
 
 | Margin | Result |
 |---|---|
-| ≥ −5 | `clean_catch` → OpenPlay |
-| −15 to −6 | `scrappy_knock_on` → Scrum (possession flips) |
-| < −15 | `steal` → OpenPlay (possession flips) |
+| ≥ −10 | `clean_catch` → OpenPlay |
+| < −10 | `steal` → OpenPlay (possession flips) |
 
 The attack team has a significant advantage at the jump; clean catch is the expected outcome unless the defending jumper is markedly superior.
 

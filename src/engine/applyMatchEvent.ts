@@ -343,9 +343,6 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
           event.attackJumper.matchStats.lineoutCatches++;
           state.stats.lineouts[event.possessionSideAfter]++;
           break;
-        case 'scrappy_knock_on':
-          state.stats.handlingErrors[event.attackSide]++;
-          break;
         case 'steal':
           event.defendJumper.matchStats.lineoutSteals++;
           state.stats.lineouts[event.possessionSideAfter]++;

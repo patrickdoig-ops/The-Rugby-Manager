@@ -119,15 +119,6 @@ export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy
   // Ratings are a derived quantity recomputed from matchStats after every phase resolve.
   applyMatchEvent(state, { type: 'RATINGS_RECALCULATED' });
 
-  const isConversion = phaseAtStart === MatchPhase.ConversionKick;
-  // Conversion is the only phase whose narration is from the pre-swap
-  // possession side: the kicker just scored, possession then flips to set
-  // up the kick-off restart, but the event still belongs to the scoring
-  // team. Kick-off outcomes (poor_kick / clean_receive) DO swap to the
-  // receiver — and their {primary} + {side} both refer to the receiver
-  // now in possession ("Scrum awarded to {side} at halfway", "Great start
-  // for {side}"), so they must read state.possession after the swap.
-  const preserveSide = isConversion;
   // Carry phases that score a try emit with TryScored phase so they get the try highlight.
   // All other events use the phase being resolved (phaseAtStart), not the next phase.
   const isCarryToTry = (
@@ -137,10 +128,9 @@ export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy
     phaseAtStart === MatchPhase.Maul
   ) && result.nextPhase === MatchPhase.TryScored;
   const eventPhase = isCarryToTry ? MatchPhase.TryScored : phaseAtStart;
-  const sideName = preserveSide ? sideNameAtStart : (state.possession === 'home' ? state.homeTeam : state.awayTeam).name;
-  const defSideName = preserveSide
-    ? (sideAtStart === 'home' ? state.awayTeam.name : state.homeTeam.name)
-    : (state.possession === 'home' ? state.awayTeam : state.homeTeam).name;
+  const sideName = sideNameAtStart;
+  const defSideName = defendTeam.name;
+
   return {
     id: makeId(),
     gameMinute: state.clock.gameMinute,
@@ -148,7 +138,7 @@ export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy
     // Carry-to-try beats use phaseAtStart so the phase badge stays on the carry
     // phase until the TryScored handler's beat fires with the confirming commentary.
     displayPhase: isCarryToTry ? phaseAtStart : undefined,
-    side:     preserveSide ? sideAtStart : state.possession,
+    side: sideAtStart,
     sideName,
     defSideName,
     primaryPlayer: result.primaryPlayer,

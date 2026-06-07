@@ -301,8 +301,8 @@ const KICK_OFF: PhaseBank = {
   ],
   clean_receive: [
     '{primary} takes the kick cleanly and looks to set up the first phase.',
-    'The kick-off is gathered neatly by {primary}. Great start for {side}.',
-    'Superb hands from {primary} — {side} are in possession and ready to attack.',
+    'The kick-off is gathered neatly by {primary}. Great start for {defside}.',
+    'Superb hands from {primary} — {defside} are in possession and ready to attack.',
   ],
   knock_on: [
     '{primary} drops the kick-off — a knock-on! Scrum to the kicking team.',
@@ -310,9 +310,9 @@ const KICK_OFF: PhaseBank = {
     '{primary} can\'t hold it under pressure — knock-on! Scrum awarded to the kicking side.',
   ],
   poor_kick: [
-    '{primary}\'s kick-off falls short of the 10-metre line — scrum to {side} at halfway.',
-    'The kick-off from {primary} doesn\'t travel 10 metres. Scrum awarded to {side}.',
-    'Short kick-off from {primary} fails the 10-metre test — {side} get the scrum at halfway.',
+    '{primary}\'s kick-off falls short of the 10-metre line — scrum to {defside} at halfway.',
+    'The kick-off from {primary} doesn\'t travel 10 metres. Scrum awarded to {defside}.',
+    'Short kick-off from {primary} fails the 10-metre test — {defside} get the scrum at halfway.',
   ],
   short_kick_retain: [
     'Clever short kick-off and {primary} wins it back! {side} retain possession!',
@@ -328,9 +328,9 @@ const DROP_OUT_22: PhaseBank = {
     '{primary} sets himself on the 22 for the drop-out.',
   ],
   clean_receive: [
-    '{primary} takes the drop-out cleanly — {side} have possession in good field position.',
-    'The drop-out hangs in the air and {primary} pouches it. Strong attacking platform for {side}.',
-    'Lovely catch from {primary} off the drop-out — {side} look to attack.',
+    '{primary} takes the drop-out cleanly — {defside} have possession in good field position.',
+    'The drop-out hangs in the air and {primary} pouches it. Strong attacking platform for {defside}.',
+    'Lovely catch from {primary} off the drop-out — {defside} look to attack.',
   ],
   knock_on: [
     '{primary} drops the catch off the drop-out — knock-on! Scrum to the kicking side.',
@@ -338,9 +338,9 @@ const DROP_OUT_22: PhaseBank = {
     '{primary} can\'t hold it — the drop-out is fumbled and the kicking team get the scrum.',
   ],
   poor_kick: [
-    '{primary}\'s drop-out fails to clear the 22 — scrum to {side} for the infringement.',
-    'A poor drop-kick from {primary} doesn\'t make the 22m line. {side} get the put-in.',
-    'Shanked drop-out from {primary} — doesn\'t travel far enough. Scrum to {side}.',
+    '{primary}\'s drop-out fails to clear the 22 — scrum to {defside} for the infringement.',
+    'A poor drop-kick from {primary} doesn\'t make the 22m line. {defside} get the put-in.',
+    'Shanked drop-out from {primary} — doesn\'t travel far enough. Scrum to {defside}.',
   ],
 };
 
@@ -356,14 +356,14 @@ const BREAKDOWN: PhaseBank = {
     'The ball trickles back slowly — {side} will need to recycle.',
   ],
   turnover: [
-    'Turnover! {secondary} wins the jackal and {side} have possession!',
+    'Turnover! {secondary} wins the jackal and {defside} have possession!',
     'Brilliant work at the breakdown from {secondary} — it\'s a steal!',
     '{secondary} is over the ball brilliantly — referee says good turnover!',
   ],
   penalty_defending: [
-    'Penalty! The referee spots the infringement at the ruck — {side} awarded.',
-    '{primary} is caught holding on — penalty to {side}!',
-    'Hands in the ruck! Penalty awarded to {side} for the infringement.',
+    'Penalty! The referee spots the infringement at the ruck — {defside} awarded.',
+    '{primary} is caught holding on — penalty to {defside}!',
+    'Hands in the ruck! Penalty awarded to {defside} for the infringement.',
   ],
   not_rolling_away_penalty: [
     '{primary} can\'t get out of the way after the tackle — penalty {side}.',
@@ -380,7 +380,7 @@ const BREAKDOWN: PhaseBank = {
   dangerous_cleanout_penalty: [
     '{primary} goes in dangerously at the clear-out — off his feet and at the head. Whistle blown.',
     'Reckless clear-out from {primary}! Penalty — and they\'ll want a look at this one.',
-    '{primary} hits the jackal late and high in the clean-out. Penalty {side} — the referee is going upstairs.',
+    '{primary} hits the jackal late and high in the clean-out. Penalty {defside} — the referee is going upstairs.',
     'The cleanout from {primary} was straight off the legs! Referee blows the whistle and signals to the TMO.',
   ],
 };
@@ -432,7 +432,7 @@ const MAUL: PhaseBank = {
     '{primary} controls at the back as the maul trundles up the pitch.',
   ],
   maul_held: [
-    '{side} stop the maul dead in its tracks — ball locked in, scrum turnover!',
+    '{defside} stop the maul dead in its tracks — ball locked in, scrum turnover!',
     'The maul collapses to a halt — referee calls "use it" but the ball isn\'t there. Turnover scrum.',
     'Brilliant defensive work — {primary} and his pack hold the maul up and earn the turnover scrum.',
   ],
@@ -471,13 +471,13 @@ const BOX_KICK: PhaseBank = {
     'Brilliant chasing from {secondary} forces the error — scrum to {side}.',
   ],
   defend_catch_contested: [
-    '{secondary} claims {primary}\'s box kick under real pressure — {side} turn it over.',
-    'Good hands from {secondary} despite the chase — {side} collect and clear.',
-    '{secondary} takes the contested ball cleanly — {side} win possession.',
+    '{secondary} claims {primary}\'s box kick under real pressure — {defside} turn it over.',
+    'Good hands from {secondary} despite the chase — {defside} collect and clear.',
+    '{secondary} takes the contested ball cleanly — {defside} win possession.',
   ],
   defend_catch: [
-    '{primary}\'s box kick is gathered comfortably by {secondary} — possession to {side}.',
-    'The box kick from {primary} lacks depth — {secondary} collects easily. {side} in possession.',
+    '{primary}\'s box kick is gathered comfortably by {secondary} — possession to {defside}.',
+    'The box kick from {primary} lacks depth — {secondary} collects easily. {defside} in possession.',
     'Safe hands from {secondary} — {primary}\'s box kick turns over.',
   ],
   knock_on: [
@@ -504,12 +504,12 @@ const TACTICAL_KICK: PhaseBank = {
     'Incredible vision from {primary} to find the 50:22! An attacking lineout for {side}.',
   ],
   kick_caught: [
-    'The kick doesn\'t find touch — {secondary} gathers and {side} are in possession.',
-    '{primary}\'s kick is taken on the full by {secondary}. {side} look to counter.',
-    'Gathered by {secondary} — {side} come away with the ball.',
+    'The kick doesn\'t find touch — {secondary} gathers and {defside} are in possession.',
+    '{primary}\'s kick is taken on the full by {secondary}. {defside} look to counter.',
+    'Gathered by {secondary} — {defside} come away with the ball.',
   ],
   fifty_twenty_two_attempt_failed_touch: [
-    '{primary} was looking for the 50:22 but the kick lands in touch short of the 22 — {side} get the throw.',
+    '{primary} was looking for the 50:22 but the kick lands in touch short of the 22 — {defside} get the throw.',
     'Aimed at the corner for the 50:22, {primary}\'s kick finds touch but not where they wanted.',
     'Good kick from {primary} but the 50:22 doesn\'t come off — the lineout\'s the wrong way round.',
   ],

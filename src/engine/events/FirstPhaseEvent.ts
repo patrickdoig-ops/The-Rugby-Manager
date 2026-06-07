@@ -211,6 +211,25 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       }
     }
 
+    if (res.nextPhase === MatchPhase.TryScored) {
+      const finalBallEvents = authoredBallEvents.filter(e => e.t <= truncateT);
+      if (finalBallEvents.length > 0) {
+        const finalY = finalBallEvents[finalBallEvents.length - 1].y;
+        
+        const tryRepoEvent = res.events.find((e: any) => e.type === 'BALL_REPOSITIONED' && e.t === undefined) as any;
+        if (tryRepoEvent) {
+          tryRepoEvent.y = finalY;
+        }
+        
+        if (res.narration && res.narration.steps) {
+          const tryLocStep = res.narration.steps.find((s: any) => s.kind === 'announcement' && typeof s.key === 'string' && s.key.startsWith('try_location_'));
+          if (tryLocStep) {
+            (tryLocStep as any).key = `try_location_${tryLocationBand(finalY)}`;
+          }
+        }
+      }
+    }
+
     return { ...res, choreography };
 
   }

@@ -51,11 +51,9 @@ export const BREAKDOWN_PENALTIES = {
 //     (cleaner immediate ball);
 //   * line_break → shift the post-breakdown attackMod
 //     (state.breakdownMod.attack) so the very next carry runs on the
-//     front foot. The current breakdown is left to resolve on its own
-//     merits — the line break has already produced its successful
-//     carry, and applying the bonus here too was a double-dip that
-//     converted slow_ball → clean_ball and quietly killed box kicks
-//     (v2.62a → v2.80a fix).
+//     front foot. The current breakdown ALSO receives the dominantCarry
+//     bonus (+6) so the carrier isn't left too exposed, preventing too
+//     many penalties or turnovers immediately after a line break.
 // These are OUTCOME-driven, not tactic-driven — kept out of
 // TACTIC_MODIFIERS so the file there stays a pure tactic lookup. Tuned
 // so a midfield line break that doesn't directly score on the first

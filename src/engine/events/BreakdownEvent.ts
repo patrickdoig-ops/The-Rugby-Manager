@@ -26,15 +26,11 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   const carrierId = lastEvent?.primaryPlayer?.id;
   // Carry → breakdown handoff. A line break commits the defence — the
   // attacker has thin cover for the NEXT carry, so the bonus flows into
-  // nextAttackMod only (the front-foot next-phase carry boost). We do
-  // NOT also pump the current breakdown's attackScore — that was the
-  // v2.62a double-dip: a line break converted slow_ball → clean_ball at
-  // the immediate breakdown, killing ~0.7 box kicks/match. The line
-  // break has already produced a successful carry contest; the
-  // breakdown contest is its own thing and should resolve on its own
-  // merits. dominant_carry remains a current-breakdown-only bonus
-  // (smaller-effect cousin — it never had a next-phase mod). Constants
-  // live in CARRY_HANDOFF_BONUSES (balance/breakdown.ts).
+  // nextAttackMod (the front-foot next-phase carry boost).
+  // We ALSO pump the current breakdown's attackScore by applying the 
+  // dominantCarry bonus. Without this, the carrier is left too exposed 
+  // and it results in too many penalties or turnovers immediately after
+  // a successful line break. Constants live in CARRY_HANDOFF_BONUSES.
   //
   // The line-break chain is then multiplied by lineBreakChainMultiplier
   // for THIS defender's defensiveLine — blitz cover regroups faster
@@ -47,7 +43,9 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   const lineBreakHandoff = lineBreakFollowUp
     ? CARRY_HANDOFF_BONUSES.lineBreak * lineBreakChainMult
     : 0;
-  const attackBonus = lastEvent?.outcome === 'dominant_carry' ? CARRY_HANDOFF_BONUSES.dominantCarry : 0;
+  const attackBonus = (lastEvent?.outcome === 'dominant_carry' || lastEvent?.outcome === 'line_break') 
+    ? CARRY_HANDOFF_BONUSES.dominantCarry 
+    : 0;
 
   // Next-phase modifier: lineBreakHandoff only. The tactic-based evasion
   // modifiers (breakdownAttack) are now applied conditionally in OpenPlayEvent.

@@ -148,13 +148,13 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       if (receiverChoreo && receiverChoreo.movements.length > 0) {
         let globalMinDist = 9999;
         for (const bk of authoredBallEvents) {
-           const rk = receiverChoreo.movements.find(m => m.t === bk.t) || receiverChoreo.movements[0];
+           const rk = receiverChoreo.movements.find(m => Math.abs(m.t - bk.t) < 0.05) || receiverChoreo.movements[0];
            const d = Math.hypot(bk.x - rk.x, bk.y - rk.y);
            if (d < globalMinDist) globalMinDist = d;
         }
         let minT = 1.0;
         for (const bk of authoredBallEvents) {
-           const rk = receiverChoreo.movements.find(m => m.t === bk.t) || receiverChoreo.movements[0];
+           const rk = receiverChoreo.movements.find(m => Math.abs(m.t - bk.t) < 0.05) || receiverChoreo.movements[0];
            const d = Math.hypot(bk.x - rk.x, bk.y - rk.y);
            if (d <= globalMinDist + 0.5) {
              minT = bk.t;
@@ -169,14 +169,14 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
        if (carrierChoreo && carrierChoreo.movements.length > 0) {
          let globalMinDist = 9999;
          for (const bk of authoredBallEvents) {
-            const ck = carrierChoreo.movements.find(m => m.t === bk.t) || carrierChoreo.movements[0];
+            const ck = carrierChoreo.movements.find(m => Math.abs(m.t - bk.t) < 0.05) || carrierChoreo.movements[0];
             const d = Math.hypot(bk.x - ck.x, bk.y - ck.y);
             if (d < globalMinDist) globalMinDist = d;
          }
          let catchT = 0;
          let catchX = 0;
          for (const bk of authoredBallEvents) {
-            const ck = carrierChoreo.movements.find(m => m.t === bk.t) || carrierChoreo.movements[0];
+            const ck = carrierChoreo.movements.find(m => Math.abs(m.t - bk.t) < 0.05) || carrierChoreo.movements[0];
             const d = Math.hypot(bk.x - ck.x, bk.y - ck.y);
             if (d <= globalMinDist + 0.5) {
                catchT = bk.t;

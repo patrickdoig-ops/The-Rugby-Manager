@@ -1195,11 +1195,11 @@ function maulLayout(event: GameEvent, state: MatchState, attacksTop: boolean, pr
   const defOn = onFieldPlayers(defTeam, state, possOf(defSide));
   for (const e of LINEOUT_ATK_BACKS) {
     const p = atkOn.find(pl => pl.id === e.slot);
-    if (p) out.push(placed(p, atkSide, state, clampX(prevBallX - fwd * e.dX), toY(e.distNear), false));
+    if (p) out.push(placed(p, atkSide, state, clampX(prevBallX - fwd * e.dX), toY(e.dY), false));
   }
   for (const e of LINEOUT_DEF_BACKS) {
     const p = defOn.find(pl => pl.id === e.slot);
-    if (p) out.push(placed(p, defSide, state, clampX(prevBallX + fwd * e.dX), toY(e.distNear), false));
+    if (p) out.push(placed(p, defSide, state, clampX(prevBallX + fwd * e.dX), toY(e.dY), false));
   }
 
   // Scrum-halves stay in their lineout positions.

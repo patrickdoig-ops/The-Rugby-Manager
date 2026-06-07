@@ -726,6 +726,34 @@ On any knock-on: possession flips, scrum awarded, dropping player −0.45. The `
 
 **Steps 3–4 — Evasion → Collision** — see [Shared Evasion/Collision](#shared-evasioncollision) below.
 
+**Authored choreography (Phase Animator JSONs)**
+
+If a Phase Animator JSON is registered for the play type, `applyChoreography()` overlays it onto the `PhaseResult` before it is returned. The registry key is `"prevPhase:outcomeKey"` (e.g. `"SCRUM:crash_ball"`, `"LINEOUT:out_the_back"`), stored in `FIRST_PHASE_CHOREOGRAPHIES` in `src/engine/balance/firstPhaseChoreography.ts`.
+
+`applyChoreography` does the following:
+1. **Parses the authored anchor** — the ball's `t = 0` keyframe position (`authoredAnchorX`, `authoredAnchorY`) plus the attack direction inferred from the attacking #10's depth relative to the ball (`authoredAttacksTop`). Also computes `authoredNearTop = authoredAnchorY >= 50`.
+2. **Computes flip flags** — `flipX = authoredAttacksTop !== attacksTop`, `flipY = authoredNearTop !== nearTop`. Both can fire independently.
+3. **Computes the live offset** — `dx = state.ball.x − anchorX`, `dy = state.ball.y − anchorY` (after applying flips to the anchor). Every authored coordinate is shifted by this delta so the entire move slides to wherever the engine's ball actually started, anchored to the real set-piece position rather than the authored canvas origin.
+4. **Injects authored ball keyframes** — replaces any procedural `BALL_REPOSITIONED` events before `CARRY_RESOLVED` with the authored keyframe sequence (flipped + offset). The ball follows the exact authored path instead of the procedural `emitSweepHops` lateral hops.
+5. **Emits per-player choreography entries** — for each non-forward entity (slots 9–15), records `{ side, id, movements[] }` on `PhaseResult.choreography`. Forwards (slots 1–8) are explicitly **skipped** — the UI keeps them at their predecessor set-piece positions (scrum/lineout/maul via `keepLineout`). Animating them from the JSON would fight the formation-hold and displace them to wrong coordinates.
+6. **Swaps laterally-paired jerseys when `flipX !== flipY`** — `11↔14`, `1↔3`, `6↔7` — so a right-touchline sweep authored for the right wing correctly becomes a left-wing sweep when mirrored, without players crossing each other.
+
+Narration outcome keys for authored first-phase plays:
+- `crash_ball` — Crash Ball path (existing key)
+- `out_the_back` — Out the Back / wide play path (existing key)
+- `wide_pass` — Wide Play intro variant (added to `PhaseOutcomeKey` to support the wide backs move narration step)
+- `kick_decision` — If the kick gate fires and a choreography is registered for `prevPhase:kick_decision`, the authored animation is applied to the kick transition.
+
+The authored ball path **replaces** the procedural `emitSweepHops` lateral movement for that play. The engine still resolves the outcome (dominant tackle / line break / play on / etc.) and the `CARRY_RESOLVED` event is preserved — the choreography system only replaces the in-phase ball-path keyframes, never the final ball position or outcome logic.
+
+Currently registered choreographies (keyed by `prevPhase:outcomeKey`):
+
+| Key | JSON file | Description |
+|---|---|---|
+| `SCRUM:crash_ball` | `Animator JSONs/FIRST PHASE - Crash_Ball.rtf` | #10 → #12 crash ball off a scrum |
+| `LINEOUT:out_the_back` | `Animator JSONs/FIRST PHASE - Out_the_back.rtf` | Backs sweep off a lineout |
+| `SCRUM:kick_decision` | `Animator JSONs/FIRST PHASE - KICK DECISION.rtf` | Kick play off a scrum |
+
 ---
 
 ### KickReturn

@@ -284,7 +284,7 @@ export and how to bake it.
 |---|---|
 | **Scrum** | Computed geometry: `SCRUM_ROWS` + `SCRUM_ATK_BACKS`/`SCRUM_DEF_BACKS` constants |
 | **Lineout** | Computed geometry: row spread + `LINEOUT_ATK_BACKS`/`LINEOUT_DEF_BACKS` |
-| **FirstPhase** | `firstPhaseBacklineLayout` — anchored on the engine's real `movements[]` sweep |
+| **FirstPhase (backs)** | `firstPhaseBacklineLayout` — anchored on the engine's real `movements[]` sweep. **Forwards are always held at the predecessor set-piece formation** (`keepLineout`) regardless of whether a choreography JSON is active. |
 | **Maul** | Computed from scrum geometry with the hooker shifted to the tail |
 | **Open play fallback** | `openPlayLayout` — only the 2–3 named actors around the ball |
 
@@ -292,6 +292,7 @@ export and how to bake it.
 
 | Phase | Seam | Where in code |
 |---|---|---|
+| **FirstPhase** (crash ball, out the back, kick decision) | `applyChoreography()` — Phase Animator JSON ingested into `FIRST_PHASE_CHOREOGRAPHIES` in `firstPhaseChoreography.ts`; backs (slots 9–15) animated per-keyframe; forwards skipped; ball path replaces `emitSweepHops`; entire move anchored to live ball position via `dx`/`dy` offset | `src/engine/balance/firstPhaseChoreography.ts`, `src/engine/events/FirstPhaseEvent.ts` |
 | **Breakdown** (7 outcomes) | `placeFormation` with a `Formation` offset table | `BREAKDOWN_CLEAN`, `BREAKDOWN_SLOW_BALL`, etc. |
 | **BoxKick** (announce + 5 outcomes) | `placeFormation` | `BOX_KICK_ANNOUNCE`, `BOX_KICK_FORMS` |
 | **KickOff** (announce + chase) | Bespoke `from`/`to` slot tables | `KICKOFF_RECV`, `KICKOFF_KICK` |

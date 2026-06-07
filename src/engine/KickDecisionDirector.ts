@@ -7,7 +7,7 @@ import type { MatchEvent } from '../types/matchEvent';
 import { MatchPhase as MatchPhaseEnum } from '../types/engine';
 import { clamp } from '../utils/math';
 import { rng } from '../utils/rng';
-import { inOpposition22, inOwn22, inOwnHalf, availableBacks } from './FieldPosition';
+import { inOpposition22, inOwn22, inOwnHalf, availableBacks, attackDir } from './FieldPosition';
 import { sweepPath } from './Lateral';
 import { SLOT } from './Slot';
 import {
@@ -196,7 +196,7 @@ export function buildKickTransition(decision: KickDecision, sourcePhase: MatchPh
   ];
 
   if (ctx && nextPhase === MatchPhaseEnum.TacticalKick && sourcePhase !== MatchPhaseEnum.KickReturn) {
-    const fwd = ctx.state.possession === 'home' ? 1 : -1;
+    const fwd = attackDir(ctx.state);
     const sh = ctx.attackOnField.find(p => p.id === SLOT.SCRUM_HALF);
     if (sh) events.push({ type: 'PASS_COMPLETED', passer: sh });
 

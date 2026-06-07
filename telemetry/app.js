@@ -15,7 +15,7 @@ const tabPanes = document.querySelectorAll('.tab-pane');
 // Init
 async function init() {
   try {
-    const res = await fetch('./latest.json');
+    const res = await fetch('./latest.json?t=' + Date.now());
     if (!res.ok) throw new Error('Failed to load latest.json');
     rawData = await res.json();
     

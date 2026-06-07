@@ -3,7 +3,7 @@
 // and penalty-kick distances.
 
 export const KICK_PROBABILITIES = {
-  possession: { own22: 50, ownHalf: 15, opposition: 0 },
+  possession: { own22: 66, ownHalf: 40, opposition: 15 },
   kicking:    { own22: 90, ownHalf: 65, opposition: 15 },
   balanced:   { own22: 75, ownHalf: 50, opposition: 10 },
 } as const;

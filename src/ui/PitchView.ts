@@ -224,7 +224,11 @@ export function initPitchView(): void {
     // start (current position) then one keyframe per leg, all offset from the anchor.
     const frames: Keyframe[] = [
       { transform: offsetTransform(lastTop, lastLeft, finalTop, finalLeft, w, h) },
-      ...kfs.map(kf => ({ transform: offsetTransform(toTop(kf.x), toLeft(kf.y), finalTop, finalLeft, w, h) })),
+      ...kfs.map(kf => {
+        const frame: Keyframe = { transform: offsetTransform(toTop(kf.x), toLeft(kf.y), finalTop, finalLeft, w, h) };
+        if (kf.t !== undefined) frame.offset = kf.t;
+        return frame;
+      }),
     ];
     const duration = legMs * kfs.length;
     runAnim(frames, duration, 'linear', finalTop, finalLeft);

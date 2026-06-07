@@ -59,7 +59,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
           x += dx;
           y += dy;
           
-          authoredBallEvents.push({ type: 'BALL_REPOSITIONED', x: clamp(x, 0, 100), y: clamp(y, 0, 100) });
+          authoredBallEvents.push({ type: 'BALL_REPOSITIONED', x: clamp(x, 0, 100), y: clamp(y, 0, 100), t: kf.t });
         }
         continue;
       }

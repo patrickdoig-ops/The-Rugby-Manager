@@ -89,13 +89,17 @@ export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy
   // pitch to animate through. Observing the position (rather than matching event
   // types) means any ball-moving event is captured without a hand-maintained list.
   // Skipped entirely for silent/headless fixtures — nothing consumes movements there.
-  const movements: { x: number; y: number }[] = [];
+  const movements: { x: number; y: number; t?: number }[] = [];
   for (const e of result.events) {
     applyMatchEvent(state, e);
     if (silent) continue;
     const last = movements[movements.length - 1];
     if (!last || last.x !== state.ball.x || last.y !== state.ball.y) {
-      movements.push({ x: state.ball.x, y: state.ball.y });
+      const point: { x: number; y: number; t?: number } = { x: state.ball.x, y: state.ball.y };
+      if (e.type === 'BALL_REPOSITIONED' && e.t !== undefined) {
+        point.t = e.t;
+      }
+      movements.push(point);
     }
   }
 

@@ -105,7 +105,7 @@ export interface GameEvent {
   // live state, not range-checked by assertInvariants. The last entry equals
   // ballX/ballY. Only present when the phase moved the ball more than once, so the
   // 2D pitch can animate the ball through each leg instead of one diagonal jump.
-  movements?: ReadonlyArray<{ x: number; y: number }>;
+  movements?: ReadonlyArray<{ x: number; y: number; t?: number }>;
   // True when the carrier picked the ball up at the START of this phase (a direct
   // pick-up like a pick-and-go) rather than receiving it after a pass chain — the 2D
   // pitch then rides the carrier dot along the whole ball path instead of holding it

@@ -13,8 +13,8 @@
   "suggestedTactics": {
     "attackingGamePlan": "possession",
     "attackingStyle": "keep_it_tight",
-    "attackingBreakdown": "commit_numbers",
-    "defendingBreakdown": "counter_ruck",
+    "attackingBreakdown": "balanced",
+    "defendingBreakdown": "jackal",
     "backfieldDefence": "one_back",
     "defensiveLine": "blitz",
     "offloadStrategy": "cautious",

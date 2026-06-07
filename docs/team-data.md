@@ -508,7 +508,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Head coach:** Rob Baxter (Director of Rugby since 2009 — the league's longest-serving head coach).
 - **Captain:** Dafydd Jenkins.
 - **Overall rating:** **70/100**
-- **Suggested tactics:** `possession` · `keep_it_tight` · `commit_numbers` · `counter_ruck` · `one_back` · `blitz` · `cautious`
+- **Suggested tactics:** `possession` · `keep_it_tight` · `balanced` · `jackal` · `one_back` · `blitz` · `cautious`
 - **Stat bias:** high `stamina`, `breakdown`, `setPiece`.
 - **Board ambition:** `playoffs`
 

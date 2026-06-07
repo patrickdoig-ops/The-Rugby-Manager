@@ -908,8 +908,9 @@ body.pitch-view-active #pitch-wrapper { display: none; }
 /* Injury / fatigue highlight: a subtle coloured glow on the named player's dot while
    their (deferred, break-time) announcement is on screen. Set in PitchPlayers.applyBeat;
    cleared on the next beat. Red = injured, amber = fatigued. */
-.pitch-dot.glow-injury  { box-shadow: 0 0 6px 3px rgba(225, 55, 55, 0.85); }
-.pitch-dot.glow-fatigue { box-shadow: 0 0 6px 3px rgba(240, 175, 45, 0.85); }
+.pitch-dot.glow-injury       { box-shadow: 0 0 6px 3px rgba(225, 55, 55, 0.85); }
+.pitch-dot.glow-fatigue      { box-shadow: 0 0 6px 3px rgba(240, 175, 45, 0.85); }
+.pitch-dot.glow-substitution { box-shadow: 0 0 6px 3px rgba(55, 225, 55, 0.85); }
 /* Lineout→maul transition: temporarily enabled by PitchPlayers adding this class
    to the field element so forwards animate from their lineout spread into the maul. */
 .dot-transitioning .pitch-dot {

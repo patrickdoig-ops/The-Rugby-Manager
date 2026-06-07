@@ -1083,7 +1083,9 @@ function substitutionLayout(event: GameEvent, state: MatchState): Placed[] {
   // Use the touchline furthest from the ball so subs don't overlap live action.
   const farY = event.ballY <= 50 ? 97 : 3;
   const inward = farY > 50 ? -1 : 1;
-  const x = clampX(event.ballX);
+  // Stagger multiple substitutions along the touchline based on the player's slot ID
+  const baseId = on ? on.id : (off ? off.id : 8);
+  const x = clampX(event.ballX + (baseId - 8) * 1.5);
   const out: Placed[] = [];
   if (off) out.push(placed(off, sideOf(off, state), state, x, farY,             false));
   if (on)  out.push(placed(on,  sideOf(on,  state), state, x, clampY(farY + inward * 7), false));

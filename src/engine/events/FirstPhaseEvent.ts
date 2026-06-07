@@ -115,6 +115,10 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     if (authoredBallEvents.length > 0) {
       const carryIdx = res.events.findIndex((e: any) => e.type === 'CARRY_RESOLVED');
       if (carryIdx !== -1) {
+        const carryEvt = res.events[carryIdx];
+        if (carryEvt.type === 'CARRY_RESOLVED') {
+          carryEvt.suppressBallMove = true;
+        }
         const eventsBeforeCarry = res.events.slice(0, carryIdx);
         const eventsAfterCarry = res.events.slice(carryIdx);
         

@@ -22,6 +22,7 @@ export type MatchEvent =
       defender: Player;
       metres: number;            // positive — added to carrier.metresCarried
       direction: 1 | -1;         // attackDir at carry time; ballX += direction*metres (clamped 0–100)
+      suppressBallMove?: boolean;// if true, skips the ballX mutation (for authored choreographies)
       outcome: 'line_break' | 'dominant_carry' | 'dominant_tackle' | 'play_on';
       defSide: PossessionSide;   // for stats.tackles[defSide]
       // Cover defender who hauls the carrier down on a line break that doesn't

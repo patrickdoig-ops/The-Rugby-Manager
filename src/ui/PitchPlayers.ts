@@ -13,7 +13,7 @@ import { choreograph } from './pitchChoreography';
 // return from the predecessor kick formation: keep its dots on screen and glide, rather
 // than fading the pack and re-drawing a sparse return layout.
 const KICK_PREDECESSORS = new Set<string>([
-  MatchPhase.KickOff, MatchPhase.BoxKick, MatchPhase.TacticalKick, MatchPhase.DropOut22,
+  MatchPhase.KickOff, MatchPhase.BoxKick, MatchPhase.TacticalKick, MatchPhase.DropOut22, MatchPhase.Penalty,
 ]);
 
 // Injury / fatigue announcement beats highlight the named player's dot. The coordinator

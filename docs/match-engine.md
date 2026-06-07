@@ -658,7 +658,7 @@ If the pick-and-go gate fires but no eligible forward is on the field (rare — 
 
 | `attackingStyle` | Hard Carry | Out the Back |
 |---|---|---|
-| `keep_it_tight` | 95% | 5% |
+| `keep_it_tight` | 85% | 15% |
 | `balanced` | 70% | 30% |
 | `wide_wide` | 50% | 50% |
 
@@ -684,7 +684,7 @@ On the wide path, a second handling gate (same threshold) fires on the outside b
 
 **Step 4b — Hard-carry line-break upgrade (post-resolve, hard-carry path only)**
 
-Forwards rarely clear the standard `lineBreakMargin` of 20 on raw stats (low pace / agility), so the line-break + try-scorer leaderboards used to be all-back. A small post-roll upgrade on the hard-carry path lets a back-row or prop occasionally puncture the gain line off a ruck: if `outcome === 'dominant_carry'` (the carrier already won the contact) and a `rng(1, 100) <= HARD_CARRY_LINE_BREAK_UPGRADE_PCT` (12%) check passes, the outcome flips to `line_break` with `gainMetres` re-rolled into `HARD_CARRY_LINE_BREAK_METRES` (8-18m — smaller than the wide-line-break 10-25m range because close-channel cover tracks back faster than a fullback in the 15m channel). The existing line-break gain bonus (defensive line + backfield) then stacks on top. Tuning: both constants in `src/engine/balance/openPlay.ts`. Wide path is unaffected (wide carriers already produce line-breaks through the standard margin check).
+Forwards rarely clear the standard `lineBreakMargin` of 20 on raw stats (low pace / agility), so the line-break + try-scorer leaderboards used to be all-back. A small post-roll upgrade on the hard-carry path lets a back-row or prop occasionally puncture the gain line off a ruck: if `outcome === 'dominant_carry'` (the carrier already won the contact) and a `rng(1, 100) <= HARD_CARRY_LINE_BREAK_UPGRADE_PCT` (12%) check passes, the outcome flips to `line_break` with `gainMetres` re-rolled into `HARD_CARRY_LINE_BREAK_METRES` (10-15m — smaller than the wide-line-break 10-25m range because close-channel cover tracks back faster than a fullback in the 15m channel). If the upgrade doesn't fire, the standard dominant carry pushes the line back `HARD_CARRY_DOMINANT_METRES` (5-10m). The existing line-break gain bonus (defensive line + backfield) then stacks on top. Tuning: constants in `src/engine/balance/openPlay.ts`. Wide path is unaffected (wide carriers already produce line-breaks through the standard margin check).
 
 ---
 
@@ -706,9 +706,9 @@ Driven by `attackingStyle` using the same thresholds as the Hard Carry / Out the
 
 | `attackingStyle` | Crash Ball | Wide Play |
 |---|---|---|
-| `keep_it_tight` | 95% | 5% |
-| `balanced` | 70% | 30% |
-| `wide_wide` | 50% | 50% |
+| `keep_it_tight` | 75% | 25% |
+| `balanced` | 50% | 50% |
+| `wide_wide` | 30% | 70% |
 
 **Crash Ball path** (#10 → #12):
 1. `#10` passes to `insideCentre` (id 12)
@@ -1159,6 +1159,9 @@ Unified kick-or-carry decision module (src/engine/KickDecisionDirector.ts) — r
 
 ```
 1. Compute base kick probability from KICK_PROBABILITIES[plan][zone].
+     - possession: own22 66%, ownHalf 40%, oppHalf/opp22 15%
+     - kicking: own22 90%, ownHalf 65%, oppHalf/opp22 15%
+     - balanced: own22 75%, ownHalf 50%, oppHalf/opp22 10%
 2. If state.lastBallQuality === 'slow': base += SLOW_BALL_KICK_BONUS (10pp).
 3. Roll rng(1, 100). Miss → return { kick: false } (carry path).
 4. Pick FAMILY from FAMILY_WEIGHTS[zone][plan]:

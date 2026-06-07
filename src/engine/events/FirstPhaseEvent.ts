@@ -186,24 +186,69 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
          }
          const targetX = catchX + dir * carryEvent.metres;
          let reachedT = catchT;
+         let prevCk = carrierChoreo.movements.find(m => m.t === catchT) || carrierChoreo.movements[0];
+         let found = false;
          for (const ck of carrierChoreo.movements) {
-            if (ck.t >= catchT) {
+            if (ck.t > catchT) {
                if ((dir === 1 && ck.x >= targetX) || (dir === -1 && ck.x <= targetX)) {
-                  reachedT = ck.t;
+                  const totalDist = Math.abs(ck.x - prevCk.x);
+                  const neededDist = Math.abs(targetX - prevCk.x);
+                  const frac = totalDist > 0 ? neededDist / totalDist : 0;
+                  reachedT = prevCk.t + (ck.t - prevCk.t) * frac;
+                  found = true;
                   break;
                }
-               reachedT = ck.t;
+               prevCk = ck;
             }
          }
+         if (!found) reachedT = 1.0;
          truncateT = reachedT;
        }
     }
 
     if (truncateT < 1.0) {
+      // Interpolate keyframes exactly at truncateT before filtering
+      for (const c of choreography) {
+        let pCk = c.movements[0];
+        for (const ck of c.movements) {
+          if (ck.t >= truncateT) {
+            if (ck.t > truncateT && pCk) {
+              const frac = (truncateT - pCk.t) / (ck.t - pCk.t);
+              c.movements.push({ t: truncateT, x: pCk.x + (ck.x - pCk.x) * frac, y: pCk.y + (ck.y - pCk.y) * frac });
+            }
+            break;
+          }
+          pCk = ck;
+        }
+      }
+      
+      let pBk = authoredBallEvents[0];
+      let interpBk: any = null;
+      for (const bk of authoredBallEvents) {
+        if (bk.t >= truncateT) {
+          if (bk.t > truncateT && pBk) {
+            const frac = (truncateT - pBk.t) / (bk.t - pBk.t);
+            interpBk = { type: 'BALL_REPOSITIONED', x: pBk.x + (bk.x - pBk.x) * frac, y: pBk.y + (bk.y - pBk.y) * frac, t: truncateT };
+          }
+          break;
+        }
+        pBk = bk;
+      }
+
+      if (interpBk) {
+        const carryIdx2 = res.events.findIndex((e: any) => e.type === 'CARRY_RESOLVED');
+        if (carryIdx2 !== -1) {
+          res.events.splice(carryIdx2, 0, interpBk);
+        }
+        authoredBallEvents.push(interpBk);
+      }
+
       res.events = res.events.filter((e: any) => e.type !== 'BALL_REPOSITIONED' || e.t === undefined || e.t <= truncateT);
       for (const c of choreography) {
-         c.movements = c.movements.filter(m => m.t <= truncateT);
+         c.movements = c.movements.filter(m => m.t <= truncateT).sort((a, b) => a.t - b.t);
+         for (const m of c.movements) m.t = m.t / truncateT; // Scale t for WAAPI
       }
+      authoredBallEvents = authoredBallEvents.filter(e => e.t <= truncateT).sort((a, b) => a.t - b.t);
     }
 
     if (res.nextPhase === MatchPhase.TryScored) {

@@ -203,18 +203,22 @@ export function buildKickTransition(decision: KickDecision, sourcePhase: MatchPh
     if (sourcePhase === MatchPhaseEnum.FirstPhase) {
       // Set piece: ball sweeps from touchline/mark to SH, then to Flyhalf.
       const hops = sweepPath(ctx.state, ctx.attackTeam.tactics.attackingStyle, 2, true, true);
+      let currentX = ctx.state.ball.x;
       for (const h of hops) {
-        events.push({ type: 'BALL_REPOSITIONED', y: h.y, lateralDir: h.lateralDir });
+        currentX = clamp(currentX - fwd * 4, 0, 100);
+        events.push({ type: 'BALL_REPOSITIONED', x: currentX, y: h.y, lateralDir: h.lateralDir });
       }
+      events.push({ type: 'BALL_REPOSITIONED', x: clamp(currentX - fwd * 4, 0, 100) });
     } else {
       // Open play: SH -> Flyhalf (1 hop).
       const hops = sweepPath(ctx.state, ctx.attackTeam.tactics.attackingStyle, 1, false, false);
+      let currentX = ctx.state.ball.x;
       for (const h of hops) {
-        events.push({ type: 'BALL_REPOSITIONED', y: h.y, lateralDir: h.lateralDir });
+        currentX = clamp(currentX - fwd * 4, 0, 100);
+        events.push({ type: 'BALL_REPOSITIONED', x: currentX, y: h.y, lateralDir: h.lateralDir });
       }
+      events.push({ type: 'BALL_REPOSITIONED', x: clamp(currentX - fwd * 4, 0, 100) });
     }
-
-    events.push({ type: 'BALL_REPOSITIONED', x: clamp(ctx.state.ball.x - fwd * 12, 0, 100) });
   }
 
   return {

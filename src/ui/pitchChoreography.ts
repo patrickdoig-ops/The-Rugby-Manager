@@ -196,19 +196,21 @@ export function choreograph(
     return [];
   }
 
-  if (event.phase === MatchPhase.Scrum)   return scrumLayout(event, state, attacksTop);
-  if (event.phase === MatchPhase.Lineout) return lineoutLayout(event, state, attacksTop);
-  if (event.phase === MatchPhase.Maul)    return maulLayout(event, state, attacksTop, prevBallX, prevBallY);
+  const phaseToCheck = event.displayPhase ?? event.phase;
+
+  if (phaseToCheck === MatchPhase.Scrum)   return scrumLayout(event, state, attacksTop);
+  if (phaseToCheck === MatchPhase.Lineout) return lineoutLayout(event, state, attacksTop);
+  if (phaseToCheck === MatchPhase.Maul)    return maulLayout(event, state, attacksTop, prevBallX, prevBallY);
 
   // First phase off a set piece: diagonal backline formation anchored at the #9's
   // set-piece ending position (behind #8 or at the lineout feed mark).
-  if (event.phase === MatchPhase.FirstPhase
+  if (phaseToCheck === MatchPhase.FirstPhase
       && (prevPhase === MatchPhase.Scrum || prevPhase === MatchPhase.Lineout)) {
     return firstPhaseBacklineLayout(event, state, attacksTop, prevPhase, prevBallX, prevBallY);
   }
 
   // Breakdown: authored full-formation frames. Anchored on the live ruck (event.ball).
-  if (event.phase === MatchPhase.Breakdown) {
+  if (phaseToCheck === MatchPhase.Breakdown) {
     const keys = outcomeKeys(event);
     if (keys.includes('clean_ball'))                   return placeFormation(event, state, attacksTop, event.ballX, event.ballY, BREAKDOWN_CLEAN);
     if (keys.includes('slow_ball'))                    return placeFormation(event, state, attacksTop, event.ballX, event.ballY, BREAKDOWN_SLOW_BALL);
@@ -1375,7 +1377,7 @@ function pack(state: MatchState, side: Side, ballX: number, ballY: number, dir: 
     for (const cell of row.cells) {
       const p = bySlot.get(cell.slot);
       if (!p) continue;                                      // binned/off → gap (fine)
-      out.push(placed(p, side, state, clampX(ballX + dir * row.dx), clampY(ballY + cell.y), false));
+      out.push(placed(p, side, state, clampInGoalX(ballX + dir * row.dx), clampY(ballY + cell.y), false));
     }
   }
   return out;

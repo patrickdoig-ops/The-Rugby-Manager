@@ -781,7 +781,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Head coach:** Phil Dowson (Director of Rugby since 2022).
 - **Captain:** Fraser Dingwall.
 - **Overall rating:** **76/100**
-- **Suggested tactics:** `possession` · `wide_wide` · `minimal_ruck` · `jackal` · `one_back` · `hybrid` · `balanced`
+- **Suggested tactics:** `possession` · `wide_wide` · `balanced` · `jackal` · `one_back` · `hybrid` · `balanced`
 - **Stat bias:** high `pace`, `handling`, `agility`.
 - **Board ambition:** `title`
 

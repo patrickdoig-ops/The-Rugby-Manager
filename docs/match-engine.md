@@ -1332,7 +1332,7 @@ The maul gate (`MAUL_GATE` in `balance/maul.ts`) is rolled inside `handleLineout
 | Own half (> 50m) | 0% | 0% | 0% |
 | Opposition half (22–50m) | 5% | 25% | 0% |
 | Opposition 22 (10–22m) | 35% | 55% | 15% |
-| Inside opp 10m | 80% | 100% | 60% |
+| Inside opp 10m | 60% | 80% | 40% |
 
 Same gate fires for human and AI — no modal.
 

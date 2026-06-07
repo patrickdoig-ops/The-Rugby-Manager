@@ -63,11 +63,11 @@ export const MAUL_VALUES = {
 //   own half           → 0%   (you don't maul backwards over your own line)
 //   opposition half    → 5%   (40-50m out — uncommon but happens)
 //   opposition 22      → 35%  (10-22m out — the classic territory)
-//   inside opp 10m     → 80%  (close range — the highest-value tactic)
+//   inside opp 10m     → 60%  (close range — the highest-value tactic)
 // The opp22 band starts AT 22m. Inside-10m takes precedence over opp22
 // for distances ≤ 10m, so the lookup is "tightest zone first".
 export const MAUL_GATE = {
-  opp10mPct:    80,
+  opp10mPct:    60,
   opp22Pct:     35,
   oppHalfPct:    5,
   ownHalfPct:    0,

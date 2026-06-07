@@ -33,7 +33,10 @@ export const HARD_CARRY_LINE_BREAK_UPGRADE_PCT = 12;
 // wide-line-break range (20-45m) because the close-channel cover (back
 // row + #12 covering across) tracks back faster than a fullback in the
 // 15m channel.
-export const HARD_CARRY_LINE_BREAK_METRES = [5, 10] as const;
+export const HARD_CARRY_LINE_BREAK_METRES = [10, 15] as const;
+
+// Base gain for a dominant hard carry that does not upgrade to a line break.
+export const HARD_CARRY_DOMINANT_METRES = [5, 10] as const;
 
 // Quadratic handling gate. Per-check KO probability = gap² / 100, where
 // gap = max(0, zeroRiskHandling − handling). Above zeroRiskHandling the

@@ -198,11 +198,16 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
         // mark or behind their #8 in a scrum). Skip the position update for their
         // dot this beat only; subsequent beats will reposition them normally.
         setpieceSHKey = `${event.side === 'home' ? 'h' : 'a'}:${SLOT.SCRUM_HALF}`;
-      } else if (!keepKickFormation && !keepTmo && !keepPhasePlay && !keepTryScored && !keepSubstitution && nextKeys.size > 0) {
-        for (const key of persistedKeys) {
-          if (!nextKeys.has(key)) pool.get(key)?.classList.remove('visible');
+      } else {
+        // BoxKick announce: hold the predecessor formation.
+        const keepBoxKickAnnounce = event.phase === MatchPhase.BoxKick && event.narration.steps.some((s: any) => s.kind === 'phase_outcome' && s.key === 'announce');
+        
+        if (!keepKickFormation && !keepTmo && !keepPhasePlay && !keepTryScored && !keepSubstitution && !keepBoxKickAnnounce && nextKeys.size > 0) {
+          for (const key of persistedKeys) {
+            if (!nextKeys.has(key)) pool.get(key)?.classList.remove('visible');
+          }
+          persistedKeys = new Set();
         }
-        persistedKeys = new Set();
       }
       // else (keepKickFormation / keepTmo / keepPhasePlay / empty announcement beat):
       // hold — skip the fade, carry persistedKeys. An empty beat (nextKeys.size === 0,

@@ -130,8 +130,14 @@ export function choreograph(
   if (event.phase === MatchPhase.DropOut22)      return dropOutLayout(event, state, attacksTop, prevBallX, prevBallY);
   if (event.phase === MatchPhase.BoxKick) {
     const keys = outcomeKeys(event);
-    // Announce beat: formation around the live ruck (event.ball IS the kick origin).
-    if (keys.includes('announce')) return placeFormation(event, state, attacksTop, event.ballX, event.ballY, BOX_KICK_ANNOUNCE);
+    // Announce beat: don't place the full formation, just keep the predecessor phase's dots 
+    // and reposition the kicker (scrum half). The winger will chase on the outcome beat.
+    if (keys.includes('announce')) {
+      const out: Placed[] = [];
+      const kicker = event.primaryPlayer;
+      if (kicker) out.push(placed(kicker, sideOf(kicker, state), state, clampX(event.ballX), clampY(event.ballY), false));
+      return out;
+    }
     // If the box kick finds touch, freeze the pack at the kick origin.
     if (kickFindsTouch(event)) return placeFormation(event, state, attacksTop, prevBallX, prevBallY, BOX_KICK_ANNOUNCE);
     // Outcome beat: the ball has flown to the landing, so anchor the kicking

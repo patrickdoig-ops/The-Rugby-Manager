@@ -98,7 +98,7 @@
       "nationality": "South Africa",
       "position": "Hooker",
       "baseStats": {
-        "stamina": 78,
+        "stamina": 82,
         "strength": 84,
         "pace": 70,
         "agility": 69,
@@ -144,7 +144,7 @@
       "nationality": "Wales",
       "position": "Lock",
       "baseStats": {
-        "stamina": 89,
+        "stamina": 94,
         "strength": 83,
         "pace": 69,
         "agility": 67,
@@ -167,7 +167,7 @@
       "nationality": "Italy",
       "position": "Lock",
       "baseStats": {
-        "stamina": 81,
+        "stamina": 92,
         "strength": 85,
         "pace": 64,
         "agility": 71,
@@ -190,7 +190,7 @@
       "nationality": "England",
       "position": "Flanker",
       "baseStats": {
-        "stamina": 86,
+        "stamina": 88,
         "strength": 87,
         "pace": 79,
         "agility": 84,
@@ -213,7 +213,7 @@
       "nationality": "Wales",
       "position": "Flanker",
       "baseStats": {
-        "stamina": 85,
+        "stamina": 87,
         "strength": 86,
         "pace": 78,
         "agility": 79,
@@ -236,7 +236,7 @@
       "nationality": "England",
       "position": "Number 8",
       "baseStats": {
-        "stamina": 84,
+        "stamina": 91,
         "strength": 86,
         "pace": 76,
         "agility": 83,
@@ -259,7 +259,7 @@
       "nationality": "Italy",
       "position": "Scrum-Half",
       "baseStats": {
-        "stamina": 81,
+        "stamina": 85,
         "strength": 69,
         "pace": 82,
         "agility": 84,
@@ -282,7 +282,7 @@
       "nationality": "England",
       "position": "Fly-Half",
       "baseStats": {
-        "stamina": 79,
+        "stamina": 83,
         "strength": 70,
         "pace": 85,
         "agility": 83,
@@ -305,7 +305,7 @@
       "nationality": "England",
       "position": "Wing",
       "baseStats": {
-        "stamina": 88,
+        "stamina": 90,
         "strength": 95,
         "pace": 95,
         "agility": 99,
@@ -378,7 +378,7 @@
       "nationality": "England",
       "position": "Wing",
       "baseStats": {
-        "stamina": 85,
+        "stamina": 90,
         "strength": 76,
         "pace": 92,
         "agility": 92,
@@ -401,7 +401,7 @@
       "nationality": "England",
       "position": "Fullback",
       "baseStats": {
-        "stamina": 80,
+        "stamina": 88,
         "strength": 78,
         "pace": 88,
         "agility": 88,
@@ -495,7 +495,7 @@
       "nationality": "England",
       "position": "Lock",
       "baseStats": {
-        "stamina": 79,
+        "stamina": 85,
         "strength": 78,
         "pace": 63,
         "agility": 61,
@@ -518,7 +518,7 @@
       "nationality": "Fiji",
       "position": "Flanker",
       "baseStats": {
-        "stamina": 80,
+        "stamina": 86,
         "strength": 82,
         "pace": 71,
         "agility": 77,
@@ -541,7 +541,7 @@
       "nationality": "England",
       "position": "Scrum-Half",
       "baseStats": {
-        "stamina": 77,
+        "stamina": 82,
         "strength": 65,
         "pace": 78,
         "agility": 78,
@@ -658,7 +658,7 @@
       "nationality": "Australia",
       "position": "Flanker",
       "baseStats": {
-        "stamina": 75,
+        "stamina": 85,
         "strength": 74,
         "pace": 64,
         "agility": 67,
@@ -681,7 +681,7 @@
       "nationality": "England",
       "position": "Lock",
       "baseStats": {
-        "stamina": 72,
+        "stamina": 82,
         "strength": 72,
         "pace": 56,
         "agility": 54,
@@ -704,7 +704,7 @@
       "nationality": "England",
       "position": "Lock",
       "baseStats": {
-        "stamina": 72,
+        "stamina": 82,
         "strength": 72,
         "pace": 55,
         "agility": 56,
@@ -750,7 +750,7 @@
       "nationality": "England",
       "position": "Flanker",
       "baseStats": {
-        "stamina": 72,
+        "stamina": 82,
         "strength": 72,
         "pace": 65,
         "agility": 69,
@@ -773,7 +773,7 @@
       "nationality": "England",
       "position": "Hooker",
       "baseStats": {
-        "stamina": 62,
+        "stamina": 72,
         "strength": 72,
         "pace": 53,
         "agility": 60,
@@ -865,7 +865,7 @@
       "nationality": "England",
       "position": "Lock",
       "baseStats": {
-        "stamina": 72,
+        "stamina": 82,
         "strength": 76,
         "pace": 55,
         "agility": 54,
@@ -888,7 +888,7 @@
       "nationality": "Ireland",
       "position": "Flanker",
       "baseStats": {
-        "stamina": 72,
+        "stamina": 82,
         "strength": 72,
         "pace": 63,
         "agility": 68,
@@ -911,7 +911,7 @@
       "nationality": "England",
       "position": "Hooker",
       "baseStats": {
-        "stamina": 65,
+        "stamina": 75,
         "strength": 72,
         "pace": 51,
         "agility": 60,
@@ -934,7 +934,7 @@
       "nationality": "Italy",
       "position": "Number 8",
       "baseStats": {
-        "stamina": 72,
+        "stamina": 82,
         "strength": 73,
         "pace": 64,
         "agility": 68,
@@ -957,7 +957,7 @@
       "nationality": "England",
       "position": "Flanker",
       "baseStats": {
-        "stamina": 72,
+        "stamina": 82,
         "strength": 72,
         "pace": 61,
         "agility": 68,
@@ -980,7 +980,7 @@
       "nationality": "England",
       "position": "Hooker",
       "baseStats": {
-        "stamina": 66,
+        "stamina": 76,
         "strength": 72,
         "pace": 57,
         "agility": 60,

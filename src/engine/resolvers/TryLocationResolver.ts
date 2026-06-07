@@ -16,7 +16,12 @@ export type TryLocationBand = 'central' | 'close' | 'wide' | 'corner';
 
 export function tryLandingY(state: MatchState, style: AttackingStyle): number {
   const j = TRY_LANDING_JITTER[style];
-  return clamp(state.ball.y + rng(-j, j), 0, 100);
+  // Burn the RNG token to preserve the determinism stream offset!
+  rng(-j, j);
+  
+  // The user requested that the player scores exactly where their forward carry takes them,
+  // without artificially curving in towards the posts.
+  return clamp(state.ball.y, 0, 100);
 }
 
 export function tryLocationBand(y: number): TryLocationBand {

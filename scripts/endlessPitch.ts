@@ -54,10 +54,22 @@ eventBus.on('engine:paused', ({ payload }) => {
   const p = payload as { type: string; onChoice: (v: unknown) => void };
   if (!p || typeof p.onChoice !== 'function') return;
   switch (p.type) {
-    case 'kickoff_choice':              p.onChoice('high_ball'); break;
-    case 'penalty_choice':              p.onChoice('kick_to_touch'); break;
+    case 'kickoff_choice': {
+      const koChoices = ['high_ball', 'deep_kick', 'short_kick'];
+      p.onChoice(koChoices[Math.floor(Math.random() * koChoices.length)]);
+      break;
+    }
+    case 'penalty_choice': {
+      const penChoices = ['kick_to_touch', 'kick_at_goal', 'scrum', 'tap_and_go'];
+      p.onChoice(penChoices[Math.floor(Math.random() * penChoices.length)]);
+      break;
+    }
     case 'team_talk_choice':            p.onChoice({ attack: 0, defend: 0, decayMinutes: 0 }); break;
-    case 'forced_substitution_choice':  p.onChoice(null); break;
+    case 'forced_substitution_choice': {
+      const pSub = payload as any;
+      p.onChoice(pSub.bench && pSub.bench.length > 0 ? pSub.bench[0].squadNumber : null);
+      break;
+    }
     default:                            p.onChoice(null); break;
   }
 });

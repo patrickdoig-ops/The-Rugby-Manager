@@ -114,7 +114,7 @@ export const OPEN_PLAY_VALUES = {
   // tighten up; low-tackling teams (NEW) sag — realism gain is that the
   // tackling stat now actually shows up in tackle %.
   defenderTacklingLineBreakWeight: 0.2,
-  lineBreakMargin: 20,
+  lineBreakMargin: 15,
   // Line breaks now project the ball further downfield (real-world line
   // line breaks pierce the defensive line by 10-25m on average). The 10-25 range
   // means a midfield line break frequently lands inside the opposition 22,

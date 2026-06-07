@@ -168,26 +168,48 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
        // should end up, then find the time in the authored ball path when
        // the ball crosses that x-position. The ball keyframes are already
        // in game coordinates (flipX + dx applied), so the directional
-       // comparison with `dir` is always correct — unlike the carrier's
-       // choreography keyframes, which can run in the opposite x-direction
-       // post-flip and cause the old carrier-based truncation to never fire.
+       // comparison with `dir` is always correct.
        const engineFinalX = clamp(state.ball.x + dir * carryEvent.metres, 0, 100);
+
+       // First find when the carrier catches the ball so we don't truncate during the pass
+       let catchT = 0;
+       const carrierSlot = carryEvent.carrier.id;
+       const carrierChoreo = choreography.find(c => c.id === carrierSlot && c.side === atkSideStr);
+       if (carrierChoreo && carrierChoreo.movements.length > 0) {
+         let globalMinDist = 9999;
+         for (const bk of authoredBallEvents) {
+            const ck = carrierChoreo.movements.find(m => Math.abs(m.t - bk.t) < 0.05) || carrierChoreo.movements[0];
+            const d = Math.hypot(bk.x - ck.x, bk.y - ck.y);
+            if (d < globalMinDist) globalMinDist = d;
+         }
+         for (const bk of authoredBallEvents) {
+            const ck = carrierChoreo.movements.find(m => Math.abs(m.t - bk.t) < 0.05) || carrierChoreo.movements[0];
+            const d = Math.hypot(bk.x - ck.x, bk.y - ck.y);
+            if (d <= globalMinDist + 0.5) {
+               catchT = bk.t;
+               break;
+            }
+         }
+       }
 
        if (authoredBallEvents.length > 1) {
          let prevBk = authoredBallEvents[0];
          let found = false;
          for (let i = 1; i < authoredBallEvents.length; i++) {
            const bk = authoredBallEvents[i];
-           const crosses =
-             (dir === 1  && prevBk.x <= engineFinalX && bk.x >= engineFinalX) ||
-             (dir === -1 && prevBk.x >= engineFinalX && bk.x <= engineFinalX);
-           if (crosses) {
-             const totalDist = Math.abs(bk.x - prevBk.x);
-             const neededDist = Math.abs(engineFinalX - prevBk.x);
-             const frac = totalDist > 0 ? neededDist / totalDist : 0;
-             truncateT = prevBk.t + (bk.t - prevBk.t) * frac;
-             found = true;
-             break;
+           // Only look for crossings after the pass has reached the carrier
+           if (prevBk.t >= catchT) {
+             const crosses =
+               (dir === 1  && prevBk.x <= engineFinalX && bk.x >= engineFinalX) ||
+               (dir === -1 && prevBk.x >= engineFinalX && bk.x <= engineFinalX);
+             if (crosses) {
+               const totalDist = Math.abs(bk.x - prevBk.x);
+               const neededDist = Math.abs(engineFinalX - prevBk.x);
+               const frac = totalDist > 0 ? neededDist / totalDist : 0;
+               truncateT = prevBk.t + (bk.t - prevBk.t) * frac;
+               found = true;
+               break;
+             }
            }
            prevBk = bk;
          }
@@ -233,11 +255,17 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       }
 
       res.events = res.events.filter((e: any) => e.type !== 'BALL_REPOSITIONED' || e.t === undefined || e.t <= truncateT);
+      for (const e of res.events) {
+        if (e.type === 'BALL_REPOSITIONED' && e.t !== undefined) {
+          e.t = e.t / truncateT; // Scale t for WAAPI so ball syncs with player
+        }
+      }
       for (const c of choreography) {
          c.movements = c.movements.filter(m => m.t <= truncateT).sort((a, b) => a.t - b.t);
          for (const m of c.movements) m.t = m.t / truncateT; // Scale t for WAAPI
       }
       authoredBallEvents = authoredBallEvents.filter(e => e.t <= truncateT).sort((a, b) => a.t - b.t);
+      for (const bk of authoredBallEvents) bk.t = bk.t / truncateT;
     }
 
     if (res.nextPhase === MatchPhase.TryScored) {

@@ -139,54 +139,45 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
     if (koEvent || intEvent) {
       const receiverSlot = koEvent ? koEvent.player.id : (intEvent.passer.id === SLOT.SCRUM_HALF ? SLOT.FLY_HALF : (goCrashBall ? SLOT.CENTRE_12 : SLOT.CENTRE_13));
-      let mappedSlot = receiverSlot;
-      const swapLateral = flipX !== flipY;
-      if (swapLateral) {
-         if (mappedSlot === 11) mappedSlot = 14;
-         else if (mappedSlot === 14) mappedSlot = 11;
-         else if (mappedSlot === 1) mappedSlot = 3;
-         else if (mappedSlot === 3) mappedSlot = 1;
-         else if (mappedSlot === 6) mappedSlot = 7;
-         else if (mappedSlot === 7) mappedSlot = 6;
-      }
-      
-      const receiverChoreo = choreography.find(c => c.id === mappedSlot);
+      const targetSideStr = koEvent ? atkSideStr : defSideStr;
+      const receiverChoreo = choreography.find(c => c.id === receiverSlot && c.side === targetSideStr);
       if (receiverChoreo && receiverChoreo.movements.length > 0) {
-        let minT = 0;
-        let minDist = 9999;
+        let globalMinDist = 9999;
         for (const bk of authoredBallEvents) {
            const rk = receiverChoreo.movements.find(m => m.t === bk.t) || receiverChoreo.movements[0];
            const d = Math.hypot(bk.x - rk.x, bk.y - rk.y);
-           if (d < minDist) {
-             minDist = d;
+           if (d < globalMinDist) globalMinDist = d;
+        }
+        let minT = 1.0;
+        for (const bk of authoredBallEvents) {
+           const rk = receiverChoreo.movements.find(m => m.t === bk.t) || receiverChoreo.movements[0];
+           const d = Math.hypot(bk.x - rk.x, bk.y - rk.y);
+           if (d <= globalMinDist + 0.5) {
              minT = bk.t;
+             break;
            }
         }
         truncateT = minT;
       }
     } else if (carryEvent && carryEvent.outcome !== 'line_break') {
-       let mappedSlot = carryEvent.carrier.id;
-       const swapLateral = flipX !== flipY;
-       if (swapLateral) {
-         if (mappedSlot === 11) mappedSlot = 14;
-         else if (mappedSlot === 14) mappedSlot = 11;
-         else if (mappedSlot === 1) mappedSlot = 3;
-         else if (mappedSlot === 3) mappedSlot = 1;
-         else if (mappedSlot === 6) mappedSlot = 7;
-         else if (mappedSlot === 7) mappedSlot = 6;
-       }
-       const carrierChoreo = choreography.find(c => c.id === mappedSlot);
+       const carrierSlot = carryEvent.carrier.id;
+       const carrierChoreo = choreography.find(c => c.id === carrierSlot && c.side === atkSideStr);
        if (carrierChoreo && carrierChoreo.movements.length > 0) {
+         let globalMinDist = 9999;
+         for (const bk of authoredBallEvents) {
+            const ck = carrierChoreo.movements.find(m => m.t === bk.t) || carrierChoreo.movements[0];
+            const d = Math.hypot(bk.x - ck.x, bk.y - ck.y);
+            if (d < globalMinDist) globalMinDist = d;
+         }
          let catchT = 0;
-         let minDist = 9999;
          let catchX = 0;
          for (const bk of authoredBallEvents) {
             const ck = carrierChoreo.movements.find(m => m.t === bk.t) || carrierChoreo.movements[0];
             const d = Math.hypot(bk.x - ck.x, bk.y - ck.y);
-            if (d < minDist) {
-               minDist = d;
+            if (d <= globalMinDist + 0.5) {
                catchT = bk.t;
                catchX = ck.x;
+               break;
             }
          }
          const targetX = catchX + dir * carryEvent.metres;

@@ -116,14 +116,14 @@ export const OPEN_PLAY_VALUES = {
   defenderTacklingLineBreakWeight: 0.2,
   lineBreakMargin: 15,
   // Line breaks now project the ball further downfield (real-world line
-  // line breaks pierce the defensive line by 10-25m on average). The 10-25 range
+  // line breaks pierce the defensive line by 10-30m on average). The 10-30 range
   // means a midfield line break frequently lands inside the opposition 22,
   // and the follow-up carry — boosted by CARRY_HANDOFF_BONUSES.lineBreak
   // (applied in BreakdownEvent, see balance/breakdown.ts) — closes the
   // score with one more phase.
-  lineBreakMetres: [10, 25],
+  lineBreakMetres: [10, 30],
   // Pace-scaled line-break gain (v2.196a). Wing-level pace (90) keeps the
-  // 10-25m calibration above; slower carriers scale the random range
+  // 10-30m calibration above; slower carriers scale the random range
   // downward multiplicatively (compresses both ends — slow carriers can't
   // hit the upper bound). Models "defenders chase back to catch the slower
   // carrier before they get long ground". minGainMetres floors the result
@@ -131,9 +131,9 @@ export const OPEN_PLAY_VALUES = {
   // definition a line break has cleared the line.
   //
   // Predicted gain ranges before tactic mods stack:
-  //   Wing pace 95:    factor 1.00  →  10-25m (unchanged)
-  //   Centre pace 80:  factor 0.80  →  8-20m
-  //   Back-row pace 70: factor 0.60 →  6-15m
+  //   Wing pace 95:    factor 1.00  →  10-30m (unchanged)
+  //   Centre pace 80:  factor 0.80  →  8-24m
+  //   Back-row pace 70: factor 0.60 →  6-18m
   //   Lock pace 60:    factor 0.40  →  5-10m (floored)
   //   Prop pace 50:    factor 0.20  →  5m (floored)
   //   Prop pace 40:    factor 0.00  →  5m (floored)

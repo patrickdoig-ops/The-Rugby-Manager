@@ -160,6 +160,11 @@ export function choreograph(
     return placeFormation(event, state, attacksTop, prevBallX, prevBallY, form);
   }
 
+  // A penalty kick to touch that misses behaves like an open-play tactical kick
+  if (event.phase === MatchPhase.Penalty && outcomeKeys(event).includes('kick_to_touch_missed')) {
+    return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
+  }
+
   // Penalty tap-and-go: full-formation carry. The whole attacking shape surges forward
   // off the tap (chase via from-tables) while the carrier rides the ball's
   // [tap-mark, final] movements path. Anchored on the tap mark (movements[0] = the

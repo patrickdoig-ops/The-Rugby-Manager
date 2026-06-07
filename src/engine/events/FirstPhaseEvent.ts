@@ -20,6 +20,10 @@ const FULL_BACKLINE = 7;
 export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, pickPlayer, silent }: PhaseContext): PhaseResult {
   const attackSide = state.possession;
   const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
+  const style = attackTeam.tactics.attackingStyle;
+  const goCrashBall = rng(1, 100) <= CRASH_BALL_THRESHOLDS[style];
+  const playType = goCrashBall ? 'crash_ball' : 'out_the_back';
+
 
   // Helper to apply uploaded choreography
   function applyChoreography(res: PhaseResult, playType: string, directionOverride?: number): PhaseResult {
@@ -126,7 +130,89 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       }
     }
 
+
+    // --- Dynamic Truncation ---
+    let truncateT = 1.0;
+    const koEvent = res.events.find((e: any) => e.type === 'KNOCK_ON') as any;
+    const intEvent = res.events.find((e: any) => e.type === 'INTERCEPTION') as any;
+    const carryEvent = res.events.find((e: any) => e.type === 'CARRY_RESOLVED') as any;
+
+    if (koEvent || intEvent) {
+      const receiverSlot = koEvent ? koEvent.player.id : (intEvent.passer.id === SLOT.SCRUM_HALF ? SLOT.FLY_HALF : (goCrashBall ? SLOT.CENTRE_12 : SLOT.CENTRE_13));
+      let mappedSlot = receiverSlot;
+      const swapLateral = flipX !== flipY;
+      if (swapLateral) {
+         if (mappedSlot === 11) mappedSlot = 14;
+         else if (mappedSlot === 14) mappedSlot = 11;
+         else if (mappedSlot === 1) mappedSlot = 3;
+         else if (mappedSlot === 3) mappedSlot = 1;
+         else if (mappedSlot === 6) mappedSlot = 7;
+         else if (mappedSlot === 7) mappedSlot = 6;
+      }
+      
+      const receiverChoreo = choreography.find(c => c.id === mappedSlot);
+      if (receiverChoreo && receiverChoreo.movements.length > 0) {
+        let minT = 0;
+        let minDist = 9999;
+        for (const bk of authoredBallEvents) {
+           const rk = receiverChoreo.movements.find(m => m.t === bk.t) || receiverChoreo.movements[0];
+           const d = Math.hypot(bk.x - rk.x, bk.y - rk.y);
+           if (d < minDist) {
+             minDist = d;
+             minT = bk.t;
+           }
+        }
+        truncateT = minT;
+      }
+    } else if (carryEvent && carryEvent.outcome !== 'line_break') {
+       let mappedSlot = carryEvent.carrier.id;
+       const swapLateral = flipX !== flipY;
+       if (swapLateral) {
+         if (mappedSlot === 11) mappedSlot = 14;
+         else if (mappedSlot === 14) mappedSlot = 11;
+         else if (mappedSlot === 1) mappedSlot = 3;
+         else if (mappedSlot === 3) mappedSlot = 1;
+         else if (mappedSlot === 6) mappedSlot = 7;
+         else if (mappedSlot === 7) mappedSlot = 6;
+       }
+       const carrierChoreo = choreography.find(c => c.id === mappedSlot);
+       if (carrierChoreo && carrierChoreo.movements.length > 0) {
+         let catchT = 0;
+         let minDist = 9999;
+         let catchX = 0;
+         for (const bk of authoredBallEvents) {
+            const ck = carrierChoreo.movements.find(m => m.t === bk.t) || carrierChoreo.movements[0];
+            const d = Math.hypot(bk.x - ck.x, bk.y - ck.y);
+            if (d < minDist) {
+               minDist = d;
+               catchT = bk.t;
+               catchX = ck.x;
+            }
+         }
+         const targetX = catchX + dir * carryEvent.metres;
+         let reachedT = catchT;
+         for (const ck of carrierChoreo.movements) {
+            if (ck.t >= catchT) {
+               if ((dir === 1 && ck.x >= targetX) || (dir === -1 && ck.x <= targetX)) {
+                  reachedT = ck.t;
+                  break;
+               }
+               reachedT = ck.t;
+            }
+         }
+         truncateT = reachedT;
+       }
+    }
+
+    if (truncateT < 1.0) {
+      res.events = res.events.filter((e: any) => e.type !== 'BALL_REPOSITIONED' || e.t === undefined || e.t <= truncateT);
+      for (const c of choreography) {
+         c.movements = c.movements.filter(m => m.t <= truncateT);
+      }
+    }
+
     return { ...res, choreography };
+
   }
 
   // Step 0 — Kick or carry decision (see KickDecisionDirector)
@@ -141,6 +227,8 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   const defendOnField = onFieldPlayers(defendTeam, state, defSide);
   const carrier   = attackOnField.find(p => p.id === SLOT.FLY_HALF) ?? attackOnField[0] ?? attackTeam.players[0];
   const scrumHalf = attackOnField.find(p => p.id === SLOT.SCRUM_HALF) ?? attackOnField[0] ?? attackTeam.players[0];
+
+
 
   // Defensive line drives the per-pass interception probability and the
   // handling-gate pressure modifier. Hoisted up here so every pass site +
@@ -171,7 +259,8 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       if (defensiveLine === 'blitz') {
         intSteps.push({ kind: 'tactic_note', cause: 'blitz_interception', chancePct: COMMENTARY_CHANCES.blitzInterception, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
       }
-      return { nextPhase: MatchPhase.KickReturn, narration: { steps: intSteps }, primaryPlayer: interceptor, secondaryPlayer: scrumHalf, events };
+      return applyChoreography({
+      nextPhase: MatchPhase.KickReturn, narration: { steps: intSteps }, primaryPlayer: interceptor, secondaryPlayer: scrumHalf, events }, playType);
     }
     events.push({ type: 'PASS_COMPLETED', passer: scrumHalf });
     passCount++;
@@ -193,19 +282,16 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     if (defensiveLine === 'blitz') {
       koSteps.push({ kind: 'tactic_note', cause: 'blitz_pressure_knockon', chancePct: COMMENTARY_CHANCES.blitzPressureKnockOn, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
     }
-    return {
+    return applyChoreography({
       nextPhase: MatchPhase.Scrum,
       narration: { steps: koSteps },
       primaryPlayer: carrier,
       secondaryPlayer: defender,
       events,
-    };
+    }, playType);
   }
 
   // Step 2 — Crash Ball or Wide Play
-  const style = attackTeam.tactics.attackingStyle;
-  const goCrashBall = rng(1, 100) <= CRASH_BALL_THRESHOLDS[style];
-
   let ballCarrier;
   let defender;
   // Structural pass steps prefix the outcome step in the descriptor (mirrors
@@ -235,7 +321,8 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
         if (defensiveLine === 'blitz') {
           intSteps.push({ kind: 'tactic_note', cause: 'blitz_interception', chancePct: COMMENTARY_CHANCES.blitzInterception, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
         }
-        return { nextPhase: MatchPhase.KickReturn, narration: { steps: intSteps }, primaryPlayer: interceptor, secondaryPlayer: carrier, events };
+        return applyChoreography({
+      nextPhase: MatchPhase.KickReturn, narration: { steps: intSteps }, primaryPlayer: interceptor, secondaryPlayer: carrier, events }, playType);
       }
     }
 
@@ -248,13 +335,13 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       if (defensiveLine === 'blitz') {
         koSteps.push({ kind: 'tactic_note', cause: 'blitz_pressure_knockon', chancePct: COMMENTARY_CHANCES.blitzPressureKnockOn, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
       }
-      return {
-        nextPhase: MatchPhase.Scrum,
+      return applyChoreography({
+      nextPhase: MatchPhase.Scrum,
         narration: { steps: koSteps },
         primaryPlayer: insideCentre,
         secondaryPlayer: carrier,
         events,
-      };
+    }, playType);
     }
 
     events.push({ type: 'PASS_COMPLETED', passer: carrier });
@@ -286,13 +373,13 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
         : (attackOnField[0] ?? carrier);
       const obstructionDefender = defendOnField.find(p => p.id === SLOT.CENTRE_13) ?? (defendOnField[0] ?? pickPlayer(defendTeam, SLOT.CENTRE_13));
       events.push({ type: 'PENALTY_AWARDED', offence: 'obstruction', offender, offendingSide: attackSide });
-      return {
-        nextPhase: MatchPhase.Penalty,
+      return applyChoreography({
+      nextPhase: MatchPhase.Penalty,
         narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'obstruction_penalty', primary: offender, secondary: obstructionDefender }] },
         primaryPlayer: offender,
         secondaryPlayer: obstructionDefender,
         events,
-      };
+    }, playType);
     }
 
     playIntroSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'out_the_back', primary: carrier, secondary: outsideCentre });
@@ -315,7 +402,8 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
         if (defensiveLine === 'blitz') {
           intSteps.push({ kind: 'tactic_note', cause: 'blitz_interception', chancePct: COMMENTARY_CHANCES.blitzInterception, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
         }
-        return { nextPhase: MatchPhase.KickReturn, narration: { steps: intSteps }, primaryPlayer: interceptor, secondaryPlayer: carrier, events };
+        return applyChoreography({
+      nextPhase: MatchPhase.KickReturn, narration: { steps: intSteps }, primaryPlayer: interceptor, secondaryPlayer: carrier, events }, playType);
       }
     }
 
@@ -328,13 +416,13 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       if (defensiveLine === 'blitz') {
         koSteps.push({ kind: 'tactic_note', cause: 'blitz_pressure_knockon', chancePct: COMMENTARY_CHANCES.blitzPressureKnockOn, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
       }
-      return {
-        nextPhase: MatchPhase.Scrum,
+      return applyChoreography({
+      nextPhase: MatchPhase.Scrum,
         narration: { steps: koSteps },
         primaryPlayer: outsideCentre,
         secondaryPlayer: carrier,
         events,
-      };
+    }, playType);
     }
 
     events.push({ type: 'PASS_COMPLETED', passer: carrier });
@@ -362,7 +450,8 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
         if (defensiveLine === 'blitz') {
           intSteps.push({ kind: 'tactic_note', cause: 'blitz_interception', chancePct: COMMENTARY_CHANCES.blitzInterception, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
         }
-        return { nextPhase: MatchPhase.KickReturn, narration: { steps: intSteps }, primaryPlayer: interceptor, secondaryPlayer: outsideCentre, events };
+        return applyChoreography({
+      nextPhase: MatchPhase.KickReturn, narration: { steps: intSteps }, primaryPlayer: interceptor, secondaryPlayer: outsideCentre, events }, playType);
       }
     }
 
@@ -375,13 +464,13 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       if (defensiveLine === 'blitz') {
         koSteps.push({ kind: 'tactic_note', cause: 'blitz_pressure_knockon', chancePct: COMMENTARY_CHANCES.blitzPressureKnockOn, params: { defendTeamName: defendTeam.name, attackTeamName: attackTeam.name } });
       }
-      return {
-        nextPhase: MatchPhase.Scrum,
+      return applyChoreography({
+      nextPhase: MatchPhase.Scrum,
         narration: { steps: koSteps },
         primaryPlayer: wideReceiver,
         secondaryPlayer: outsideCentre,
         events,
-      };
+    }, playType);
     }
 
     events.push({ type: 'PASS_COMPLETED', passer: outsideCentre });
@@ -434,13 +523,13 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     });
     events.push(...chain.chainEvents);
     if (chain.knockedOn) {
-      return {
-        nextPhase: MatchPhase.Scrum,
+      return applyChoreography({
+      nextPhase: MatchPhase.Scrum,
         narration: { steps: [...playIntroSteps, ...chain.chainNarration] },
         primaryPlayer: chain.finalCarrier,
         secondaryPlayer: chain.finalDefender,
         events,
-      };
+    }, playType);
     }
     res = chain.finalRes;
     ballCarrier = chain.finalCarrier;
@@ -568,6 +657,5 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     events,
   };
 
-  const playType = goCrashBall ? 'crash_ball' : 'out_the_back';
   return applyChoreography(baseRes, playType, direction);
 }

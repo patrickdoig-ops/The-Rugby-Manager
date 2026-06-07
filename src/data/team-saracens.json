@@ -187,14 +187,14 @@
       "position": "Lock",
       "baseStats": {
         "stamina": 81,
-        "strength": 92,
+        "strength": 88,
         "pace": 73,
         "agility": 72,
         "handling": 74,
-        "tackling": 92,
+        "tackling": 88,
         "breakdown": 87,
         "kicking": 53,
-        "setPiece": 99,
+        "setPiece": 92,
         "discipline": 79,
         "positioning": 88,
         "composure": 79
@@ -217,7 +217,7 @@
         "tackling": 96,
         "breakdown": 91,
         "kicking": 61,
-        "setPiece": 87,
+        "setPiece": 82,
         "discipline": 83,
         "positioning": 87,
         "composure": 81
@@ -232,18 +232,18 @@
       "nationality": "England",
       "position": "Back Row",
       "baseStats": {
-        "stamina": 99,
-        "strength": 92,
+        "stamina": 95,
+        "strength": 90,
         "pace": 89,
         "agility": 78,
         "handling": 90,
-        "tackling": 99,
-        "breakdown": 99,
+        "tackling": 90,
+        "breakdown": 95,
         "kicking": 78,
         "setPiece": 88,
         "discipline": 88,
-        "positioning": 92,
-        "composure": 92
+        "positioning": 86,
+        "composure": 85
       }
     },
     {
@@ -257,7 +257,7 @@
       "baseStats": {
         "stamina": 86,
         "strength": 95,
-        "pace": 84,
+        "pace": 82,
         "agility": 85,
         "handling": 80,
         "tackling": 89,
@@ -303,16 +303,16 @@
       "baseStats": {
         "stamina": 78,
         "strength": 78,
-        "pace": 78,
-        "agility": 78,
-        "handling": 78,
-        "tackling": 90,
-        "breakdown": 78,
-        "kicking": 97,
+        "pace": 75,
+        "agility": 70,
+        "handling": 90,
+        "tackling": 85,
+        "breakdown": 70,
+        "kicking": 95,
         "setPiece": 58,
-        "discipline": 85,
+        "discipline": 80,
         "positioning": 95,
-        "composure": 85
+        "composure": 80
       }
     },
     {
@@ -326,8 +326,8 @@
       "baseStats": {
         "stamina": 78,
         "strength": 78,
-        "pace": 94,
-        "agility": 94,
+        "pace": 91,
+        "agility": 92,
         "handling": 83,
         "tackling": 82,
         "breakdown": 77,
@@ -348,7 +348,7 @@
       "position": "Centre",
       "baseStats": {
         "stamina": 85,
-        "strength": 85,
+        "strength": 82,
         "pace": 85,
         "agility": 82,
         "handling": 86,
@@ -371,8 +371,8 @@
       "position": "Centre",
       "baseStats": {
         "stamina": 85,
-        "strength": 87,
-        "pace": 85,
+        "strength": 85,
+        "pace": 80,
         "agility": 89,
         "handling": 84,
         "tackling": 85,
@@ -395,12 +395,12 @@
       "baseStats": {
         "stamina": 87,
         "strength": 79,
-        "pace": 94,
+        "pace": 92,
         "agility": 90,
-        "handling": 87,
-        "tackling": 84,
-        "breakdown": 76,
-        "kicking": 75,
+        "handling": 82,
+        "tackling": 78,
+        "breakdown": 69,
+        "kicking": 72,
         "setPiece": 59,
         "discipline": 77,
         "positioning": 89,
@@ -422,12 +422,12 @@
         "agility": 81,
         "handling": 86,
         "tackling": 85,
-        "breakdown": 79,
-        "kicking": 79,
-        "setPiece": 66,
+        "breakdown": 70,
+        "kicking": 84,
+        "setPiece": 36,
         "discipline": 77,
         "positioning": 83,
-        "composure": 84
+        "composure": 90
       }
     }
   ],
@@ -510,7 +510,7 @@
       "nationality": "England",
       "position": "Lock",
       "baseStats": {
-        "stamina": 88,
+        "stamina": 84,
         "strength": 83,
         "pace": 63,
         "agility": 62,
@@ -557,7 +557,7 @@
       "position": "Scrum-Half",
       "baseStats": {
         "stamina": 77,
-        "strength": 68,
+        "strength": 78,
         "pace": 80,
         "agility": 81,
         "handling": 78,
@@ -604,7 +604,7 @@
       "baseStats": {
         "stamina": 76,
         "strength": 67,
-        "pace": 91,
+        "pace": 90,
         "agility": 85,
         "handling": 78,
         "tackling": 75,

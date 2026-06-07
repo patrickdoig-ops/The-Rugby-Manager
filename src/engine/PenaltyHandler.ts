@@ -228,9 +228,10 @@ export class PenaltyHandler {
         side: state.possession,
         sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
         primaryPlayer: kicker,
+        secondaryPlayer: res.findsTouch ? undefined : defender,
         ballX: state.ball.x,
         ballY: state.ball.y,
-        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: outcomeKey, primary: kicker, metres: landingMetres }] },
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: outcomeKey, primary: kicker, secondary: res.findsTouch ? undefined : defender, metres: landingMetres }] },
       };
       applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
       this.emit('engine:event', { event: penEvent });

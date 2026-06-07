@@ -351,21 +351,21 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 | Jamie George | Hooker | 1990-10-20 | 35 | England | 78 | 88 | 75 | 75 | 78 | 95 | 95 | 52 | 95 | 95 | 78 | 95 |
 | Marco Riccioni | Prop | 1997-10-19 | 28 | Italy | 80 | 95 | 69 | 70 | 75 | 88 | 89 | 47 | 99 | 80 | 84 | 86 |
 | Maro Itoje | Lock | 1994-10-28 | 31 | England | 99 | 90 | 80 | 88 | 78 | 95 | 95 | 53 | 99 | 95 | 95 | 97 |
-| Nick Isiekwe | Lock | 1998-04-20 | 28 | England | 81 | 92 | 73 | 72 | 74 | 92 | 87 | 53 | 99 | 79 | 88 | 79 |
-| Juan Martin Gonzalez | Flanker | 2000-11-14 | 25 | Argentina | 85 | 90 | 83 | 82 | 81 | 96 | 91 | 61 | 87 | 83 | 87 | 81 |
-| Ben Earl | Back Row | 1998-01-07 | 28 | England | 99 | 92 | 89 | 78 | 90 | 99 | 99 | 78 | 88 | 88 | 92 | 92 |
-| Tom Willis | Number 8 | 1999-01-18 | 27 | England | 86 | 95 | 84 | 85 | 80 | 89 | 85 | 64 | 81 | 89 | 93 | 92 |
+| Nick Isiekwe | Lock | 1998-04-20 | 28 | England | 81 | 88 | 73 | 72 | 74 | 88 | 87 | 53 | 92 | 79 | 88 | 79 |
+| Juan Martin Gonzalez | Flanker | 2000-11-14 | 25 | Argentina | 85 | 90 | 83 | 82 | 81 | 96 | 91 | 61 | 82 | 83 | 87 | 81 |
+| Ben Earl | Back Row | 1998-01-07 | 28 | England | 95 | 90 | 89 | 78 | 90 | 90| 95 | 78 | 88 | 88 | 86 | 85 |
+| Tom Willis | Number 8 | 1999-01-18 | 27 | England | 86 | 95 | 82 | 85 | 80 | 89 | 85 | 64 | 81 | 89 | 93 | 92 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Charlie Bracken | Scrum-half | 2003-12-09 | 22 | England | 90 | 73 | 85 | 87 | 88 | 76 | 81 | 82 | 20 | 81 | 88 | 86 |
-| Owen Farrell | Fly-half | 1991-09-24 | 34 | England | 78 | 78 | 78 | 78 | 78 | 90 | 78 | 97 | 58 | 85 | 95 | 85 |
-| Rotimi Segun | Wing | 1996-12-28 | 29 | England | 78 | 78 | 94 | 94 | 83 | 82 | 77 | 77 | 60 | 83 | 84 | 83 |
-| Lucio Cinti | Centre | 2000-02-23 | 26 | Argentina | 85 | 85 | 85 | 82 | 86 | 84 | 83 | 77 | 65 | 83 | 89 | 87 |
-| Nick Tompkins | Centre | 1995-02-16 | 31 | Wales | 85 | 87 | 85 | 89 | 84 | 85 | 81 | 75 | 58 | 83 | 83 | 89 |
-| Noah Caluori | Wing | 2006-09-22 | 19 | England | 87 | 79 | 94 | 90 | 87 | 84 | 76 | 75 | 59 | 77 | 89 | 82 |
-| Elliot Daly | Utility Back | 1992-10-08 | 33 | England | 88 | 77 | 85 | 81 | 86 | 85 | 79 | 79 | 66 | 77 | 83 | 84 |
+| Owen Farrell | Fly-half | 1991-09-24 | 34 | England | 78 | 78 | 75 | 70 | 90 | 85 | 70 | 95 | 58 | 80 | 95 | 80 |
+| Rotimi Segun | Wing | 1996-12-28 | 29 | England | 78 | 78 | 91 | 92 | 83 | 82 | 77 | 77 | 60 | 83 | 84 | 83 |
+| Lucio Cinti | Centre | 2000-02-23 | 26 | Argentina | 85 | 82 | 85 | 82 | 86 | 84 | 83 | 77 | 65 | 83 | 89 | 87 |
+| Nick Tompkins | Centre | 1995-02-16 | 31 | Wales | 85 | 85 | 80 | 89 | 84 | 85 | 81 | 75 | 58 | 83 | 83 | 89 |
+| Noah Caluori | Wing | 2006-09-22 | 19 | England | 87 | 79 | 92 | 90 | 82 | 78 | 69 | 72 | 59 | 77 | 89 | 82 |
+| Elliot Daly | Utility Back | 1992-10-08 | 33 | England | 88 | 77 | 85 | 81 | 86 | 85 | 70 | 84 | 36 | 77 | 83 | 90 |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
@@ -373,11 +373,11 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 | Theo Dan | Hooker | 2000-12-26 | 25 | England | 84 | 81 | 84 | 72 | 78 | 82 | 78 | 58 | 83 | 72 | 75 | 77 |
 | Eroni Mawi | Prop | 1996-02-06 | 30 | Fiji | 78 | 92 | 62 | 64 | 69 | 85 | 81 | 48 | 88 | 75 | 77 | 78 |
 | Marcus Street | Prop | 1999-02-06 | 27 | England | 78 | 82 | 60 | 67 | 63 | 83 | 78 | 51 | 91 | 74 | 78 | 75 |
-| Hugh Tizard | Lock | 2000-03-31 | 26 | England | 88 | 83 | 63 | 62 | 68 | 86 | 79 | 55 | 92 | 69 | 75 | 77 |
+| Hugh Tizard | Lock | 2000-03-31 | 26 | England | 84 | 83 | 63 | 62 | 68 | 86 | 79 | 55 | 92 | 69 | 75 | 77 |
 | Andy Onyeama-Christie | Flanker | 1999-03-22 | 27 | Scotland | 88 | 78 | 76 | 72 | 72 | 83 | 82 | 59 | 76 | 73 | 78 | 73 |
-| Ivan van Zyl | Scrum-half | 1995-06-30 | 30 | South Africa | 77 | 68 | 80 | 81 | 78 | 72 | 76 | 85 | 61 | 76 | 85 | 81 |
+| Ivan van Zyl | Scrum-half | 1995-06-30 | 30 | South Africa | 77 | 78 | 80 | 81 | 78 | 72 | 76 | 85 | 61 | 76 | 85 | 81 |
 | Fergus Burke | Fly-half | 1999-09-03 | 26 | Scotland | 89 | 69 | 74 | 78 | 82 | 71 | 73 | 90 | 58 | 78 | 82 | 80 |
-| Jack Bracken | Wing | 2005-10-15 | 20 | England | 76 | 67 | 91 | 85 | 78 | 75 | 70 | 67 | 57 | 74 | 82 | 78 |
+| Jack Bracken | Wing | 2005-10-15 | 20 | England | 76 | 67 | 90 | 85 | 78 | 75 | 70 | 67 | 57 | 74 | 82 | 78 |
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |

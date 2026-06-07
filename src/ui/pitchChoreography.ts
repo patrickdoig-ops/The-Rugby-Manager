@@ -1238,7 +1238,6 @@ const SCRUM_DEF_BACKS: Array<{ slot: number; dX: number; dY: number }> = [
 // ATK backs sit behind their throw (ballX − fwd*dX); DEF backs behind their pack (ballX + fwd*dX).
 // #8 is excluded from the 6-man line and placed here instead.
 const LINEOUT_ATK_BACKS: Array<{ slot: number; dX: number; dY: number }> = [
-  { slot: SLOT.NUMBER_8,    dX: 12,   dY: 35.0 },
   { slot: SLOT.FLY_HALF,    dX: 6.5,  dY: 32.3 },
   { slot: SLOT.CENTRE_12,   dX: 11.7, dY: 46.6 },
   { slot: SLOT.CENTRE_13,   dX: 16.3, dY: 32.3 },
@@ -1247,7 +1246,6 @@ const LINEOUT_ATK_BACKS: Array<{ slot: number; dX: number; dY: number }> = [
   { slot: SLOT.WING_14,     dX: 18.7, dY: 76.0 },
 ];
 const LINEOUT_DEF_BACKS: Array<{ slot: number; dX: number; dY: number }> = [
-  { slot: SLOT.NUMBER_8,   dX: 12,   dY: 20.0 },
   { slot: SLOT.FLY_HALF,   dX: 10.5, dY: 30.7 },
   { slot: SLOT.CENTRE_12,  dX: 10.0, dY: 45.9 },
   { slot: SLOT.CENTRE_13,  dX: 10.4, dY: 61.0 },
@@ -1402,8 +1400,8 @@ function lineoutLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
   const FIVE_M_Y    = nearY + inward * 7;
   const FIFTEEN_M_Y = nearY + inward * 21;
 
-  const atkLine = atkFwds.filter(p => p.id !== SLOT.HOOKER).slice(0, 6);
-  const defLine = defFwds.filter(p => p.id !== SLOT.HOOKER).slice(0, 6);
+  const atkLine = atkFwds.filter(p => p.id !== SLOT.HOOKER).slice(0, 7);
+  const defLine = defFwds.filter(p => p.id !== SLOT.HOOKER).slice(0, 7);
 
   // Attacking line slightly behind the mark; defending line slightly ahead.
   // Players share the same Y positions (interleaved in real rugby) but different X.

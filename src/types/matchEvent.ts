@@ -34,9 +34,6 @@ export type MatchEvent =
       // (dominant_carry / play_on / dominant_tackle). Drawn from defending
       // forwards (back row + locks heavy). Not set on line_break.
       assistTackler?: Player;
-      // Tells applyMatchEvent.ts to skip adding direction*metres to state.ball.x,
-      // used when an authored JSON choreography has already moved the ball correctly
-      suppressBallMove?: boolean;
     }
 
   // ── Errors / turnovers ───────────────────────────────────────────────────

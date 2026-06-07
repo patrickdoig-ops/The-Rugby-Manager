@@ -836,13 +836,9 @@ function kickOffLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
   const isKickBeat  = swapped || keys.includes('short_kick_retain');
   const isAnnounce  = keys.includes('announce');
 
-  // Kicking team. Pre-kick beats (coin-toss / announce) and a retained short kick-off
-  // keep possession with the kicker, so kicker == possession side; the swap outcomes
-  // (clean_receive / knock_on / poor_kick) move possession to the receivers, so the
-  // kicker is the OPPOSITE side. Derived this way the kicker dot stays the same team —
-  // one dot — across the whole kick-off, instead of the pre-kick beats drawing the
-  // kicking #10 and the receive beat drawing the other team's #10.
-  const kickSide: Side = swapped ? (possSide === 'h' ? 'a' : 'h') : possSide;
+  // Kicking team. Because GameEvent.side is now strictly the team that started
+  // the phase, possSide is ALWAYS the kicking team across the entire kick-off.
+  const kickSide: Side = possSide;
   const kickOn = onFieldPlayers(kickSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(kickSide));
   const kicker = kickOn.find(p => p.id === SLOT.FLY_HALF) ?? kickOn[0];
 
@@ -856,11 +852,9 @@ function kickOffLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
     const recvSide: Side = kickSide === 'h' ? 'a' : 'h';
     const recvOn = onFieldPlayers(recvSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(recvSide));
     const receiver = isKickBeat ? event.primaryPlayer : null;
-    // Kick direction (ball travel from halfway) from TEAM ORIENTATION, so it's the same
-    // on the announce beat (no landing yet) and the kick beat: the kicker kicks toward
-    // its attacking end. attacksTop is the kicker's direction on announce (event.side =
-    // kicker) and the receiver's on the kick beat (possession swapped), hence the split.
-    const kickDir = swapped ? (attacksTop ? -1 : 1) : (attacksTop ? 1 : -1);
+    // Kick direction (ball travel from halfway) from TEAM ORIENTATION. attacksTop
+    // is the kicker's direction on every beat.
+    const kickDir = attacksTop ? 1 : -1;
     const tx = (p: [number, number]): [number, number] =>
       [clampX(50 - (p[0] - 50) * kickDir), clampY(p[1])];
     // On the kick beat each dot rests at `to` and animates the chase from `from`; on the
@@ -964,19 +958,17 @@ function dropOutLayout(
   // fall back to the generic traveling-kick layout (kicker at origin + receiver at landing).
   if (!isAnnounce && !isReceive) return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
 
-  // Kicking team stays one consistent side across both beats: the announce keeps possession
-  // with the kicker; clean_receive swaps possession to the receiver, so the kicker is the
-  // opposite side then.
-  const kickSide: Side = isReceive ? (possSide === 'h' ? 'a' : 'h') : possSide;
+  // Kicking team. Because GameEvent.side is now strictly the team that started
+  // the phase, possSide is ALWAYS the kicking team.
+  const kickSide: Side = possSide;
   const recvSide: Side = kickSide === 'h' ? 'a' : 'h';
   const kickOn = onFieldPlayers(kickSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(kickSide));
   const recvOn = onFieldPlayers(recvSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(recvSide));
 
   // Long-axis flip: the authored frame has the kicker attacking −x. attacksTop is the
-  // kicker's orientation on the announce beat (event.side = kicker) and the receiver's on
-  // the receive beat (possession swapped), hence the split. No lateral (y) mirror — the
+  // kicker's orientation on every beat. No lateral (y) mirror — the
   // landing side isn't known at announce, matching the kick-off.
-  const flip = isReceive ? (attacksTop ? 1 : -1) : (attacksTop ? -1 : 1);
+  const flip = attacksTop ? -1 : 1;
   const anchorX = event.ballX, anchorY = event.ballY;
   const tx = (off: [number, number]): [number, number] =>
     [clampX(anchorX + off[0] * flip), clampY(anchorY + off[1])];

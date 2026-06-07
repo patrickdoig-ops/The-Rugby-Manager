@@ -88,9 +88,7 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       carrier.matchStats.metresCarried += metres;
       defender.matchStats.tacklesAttempted++;
       state.stats.tackles[defSide].attempted++;
-      if (!event.suppressBallMove) {
-        state.ball.x = clamp(state.ball.x + direction * metres, 0, 100);
-      }
+      state.ball.x = clamp(state.ball.x + direction * metres, 0, 100);
       switch (outcome) {
         case 'line_break':
           carrier.matchStats.lineBreaks++;

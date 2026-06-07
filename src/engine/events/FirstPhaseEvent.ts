@@ -136,9 +136,6 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     const koEvent = res.events.find((e: any) => e.type === 'KNOCK_ON') as any;
     const intEvent = res.events.find((e: any) => e.type === 'INTERCEPTION') as any;
     const carryEvent = res.events.find((e: any) => e.type === 'CARRY_RESOLVED') as any;
-    if (carryEvent) {
-       carryEvent.suppressBallMove = true;
-    }
 
     if (koEvent || intEvent) {
       const receiverSlot = koEvent ? koEvent.player.id : (intEvent.passer.id === SLOT.SCRUM_HALF ? SLOT.FLY_HALF : (goCrashBall ? SLOT.CENTRE_12 : SLOT.CENTRE_13));

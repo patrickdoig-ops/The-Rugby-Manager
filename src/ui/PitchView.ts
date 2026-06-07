@@ -230,7 +230,8 @@ export function initPitchView(): void {
     runAnim(frames, duration, 'linear', finalTop, finalLeft);
 
     // Carrier dot: follow authored path if available, else infer the run.
-    const carrierFinalTop = toTop(Math.max(2, Math.min(98, final.x - fwd * 2.5)));
+    let carrierFinalTop = toTop(Math.max(2, Math.min(98, final.x - fwd * 2.5)));
+    let carrierFinalLeft = finalLeft;
     let carrierFrames: Keyframe[];
 
     const ballPath = [{ x: fromTop(lastTop), y: fromLeft(lastLeft) }, ...kfs];
@@ -259,31 +260,38 @@ export function initPitchView(): void {
     }
 
     if (explicitCarrierPath) {
-      carrierFrames = explicitCarrierPath.map((cp, i) => ({
-        transform: offsetTransform(toTop(Math.max(2, Math.min(98, cp.x - fwd * 2.5))), toLeft(cp.y), carrierFinalTop, finalLeft, w, h),
-        offset: i / N
+      const lastCp = explicitCarrierPath[explicitCarrierPath.length - 1];
+      carrierFinalTop = toTop(Math.max(2, Math.min(98, lastCp.x)));
+      carrierFinalLeft = toLeft(lastCp.y);
+
+      carrierFrames = explicitCarrierPath.map(cp => ({
+        transform: offsetTransform(toTop(Math.max(2, Math.min(98, cp.x))), toLeft(cp.y), carrierFinalTop, carrierFinalLeft, w, h),
+        offset: cp.t
       }));
-      carrierFrames.push({
-        transform: offsetTransform(carrierFinalTop, finalLeft, carrierFinalTop, finalLeft, w, h),
-        offset: 1
-      });
+      // Ensure the animation correctly completes at offset 1
+      if (carrierFrames[carrierFrames.length - 1].offset !== 1) {
+        carrierFrames.push({
+          transform: offsetTransform(carrierFinalTop, carrierFinalLeft, carrierFinalTop, carrierFinalLeft, w, h),
+          offset: 1
+        });
+      }
     } else {
       if (carrierFromStart) {
         // Direct pick-up (pick-and-go): rides the WHOLE ball path exactly in sync.
         carrierFrames = carrierPath.map((cp, i) => ({
-          transform: offsetTransform(cp.top, cp.left, carrierFinalTop, finalLeft, w, h),
+          transform: offsetTransform(cp.top, cp.left, carrierFinalTop, carrierFinalLeft, w, h),
           offset: i / N
         }));
       } else {
         // Passed carry: hold at the receive point, then follow the ball.
         const receiveCp = carrierPath[carryStartIdx];
         carrierFrames = [
-          { transform: offsetTransform(receiveCp.top, receiveCp.left, carrierFinalTop, finalLeft, w, h), offset: 0 },
-          ...(carryStartIdx > 0 ? [{ transform: offsetTransform(receiveCp.top, receiveCp.left, carrierFinalTop, finalLeft, w, h), offset: carryStartIdx / N }] : [])
+          { transform: offsetTransform(receiveCp.top, receiveCp.left, carrierFinalTop, carrierFinalLeft, w, h), offset: 0 },
+          ...(carryStartIdx > 0 ? [{ transform: offsetTransform(receiveCp.top, receiveCp.left, carrierFinalTop, carrierFinalLeft, w, h), offset: carryStartIdx / N }] : [])
         ];
         for (let i = carryStartIdx + 1; i <= N; i++) {
           carrierFrames.push({
-            transform: offsetTransform(carrierPath[i].top, carrierPath[i].left, carrierFinalTop, finalLeft, w, h),
+            transform: offsetTransform(carrierPath[i].top, carrierPath[i].left, carrierFinalTop, carrierFinalLeft, w, h),
             offset: i / N
           });
         }
@@ -291,7 +299,7 @@ export function initPitchView(): void {
     }
 
     if (!skipFollower) {
-      follower.run(carrierFinalTop, finalLeft, carrierFrames, duration, 'linear');
+      follower.run(carrierFinalTop, carrierFinalLeft, carrierFrames, duration, 'linear');
     }
 
     const domTackler = players.domTacklerEl;
@@ -300,7 +308,7 @@ export function initPitchView(): void {
       const tacklerFromTop = toTop(players.domTacklerFrom.x);
       const tacklerFromLeft = toLeft(players.domTacklerFrom.y);
       const tacklerFinalTop = toTop(Math.max(2, Math.min(98, fromTop(carrierFinalTop) + fwd * 1.3)));
-      const tacklerFinalLeft = finalLeft;
+      const tacklerFinalLeft = carrierFinalLeft;
 
       if (carrierFromStart || explicitCarrierPath) {
         tacklerFrames = [

@@ -3,14 +3,14 @@
 // knock-on threshold gate (which only matters during a carry).
 
 export const HARD_CARRY_THRESHOLDS = {
-  keep_it_tight: 95,
+  keep_it_tight: 85,
   balanced:      70,
   wide_wide:     50,
 } as const;
 
 export const CRASH_BALL_THRESHOLDS = {
-  keep_it_tight: 85,
-  balanced:      65,
+  keep_it_tight: 75,
+  balanced:      50,
   wide_wide:     30,
 } as const;
 

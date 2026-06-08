@@ -300,8 +300,8 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
         const lastCatcherK = catcherChoreo.movements[catcherChoreo.movements.length - 1];
         
         // Ensure no forward pass (Checking Run)
-        let previousMetres = 0;
-        for (let j = 0; j <= i; j++) {
+        let previousMetres = carries[carries.length - 1].metres;
+        for (let j = 0; j < i; j++) {
           previousMetres += carries[j].metres;
         }
         const engineCurrentX = clamp(state.ball.x + dir * previousMetres, 0, 100);
@@ -316,10 +316,10 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
         let catcherFinalX = catchX;
         let catcherFinalY = catchY;
         
-        const nextCarry = carries[i + 1];
+        const nextCarry = carries[i];
         if (nextCarry) {
-          let accumulatedMetres = 0;
-          for (let j = 0; j <= i + 1; j++) {
+          let accumulatedMetres = carries[carries.length - 1].metres;
+          for (let j = 0; j <= i; j++) {
             accumulatedMetres += carries[j].metres;
           }
           catcherFinalX = clamp(state.ball.x + dir * accumulatedMetres, 0, 100);
@@ -380,7 +380,10 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       // pre-rescale truncateT would chop off that final entry and snap the try Y
       // (and conversion alignment) back to a mid-path keyframe.
       if (authoredBallEvents.length > 0) {
-        const finalY = authoredBallEvents[authoredBallEvents.length - 1].y;
+        let finalY = authoredBallEvents[authoredBallEvents.length - 1].y;
+        for (const e of res.events) {
+          if (e.type === 'BALL_REPOSITIONED' && e.y !== undefined) finalY = e.y;
+        }
 
         const tryRepoEvent = res.events.find((e: any) => e.type === 'BALL_REPOSITIONED' && e.t === undefined) as any;
         if (tryRepoEvent) {

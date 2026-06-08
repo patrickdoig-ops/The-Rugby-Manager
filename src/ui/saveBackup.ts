@@ -86,10 +86,10 @@ async function historyEntries(id: SlotId): Promise<number[]> {
   const { Filesystem, Directory } = await import('@capacitor/filesystem');
   try {
     const res = await Filesystem.readdir({ path: historyDir(id), directory: Directory.Documents });
-    return res.files
-      .map(f => Number((typeof f === 'string' ? f : f.name).replace(/\.json$/, '')))
-      .filter(n => Number.isFinite(n) && n > 0)
-      .sort((a, b) => b - a);
+    return (res.files as Array<string | { name: string }>)
+      .map((f: string | { name: string }) => Number((typeof f === 'string' ? f : f.name).replace(/\.json$/, '')))
+      .filter((n: number) => Number.isFinite(n) && n > 0)
+      .sort((a: number, b: number) => b - a);
   } catch {
     return [];
   }

@@ -39,11 +39,11 @@ const allTeams = [
 // the serialised shape legitimately changes (and add a MIGRATIONS step).
 const EXPECTED = {
   version: 1,
-  topKeys: 'board,career,careerRngOffset,currentWeek,fixtures,playerTeamId,premCup,results,seasonLabel,seed,teamSeasonStats',
+  topKeys: 'board,career,careerRngOffset,currentWeek,europeanCup,europeanShield,fixtures,playerTeamId,premCup,results,seasonLabel,seed,teamSeasonStats',
   careerKeys: 'activePoachedIds,archive,clubs,freeAgents,loanPool,market,midseasonRejections,nextRosterId,nextStaffId,pendingMoves,roster,seasonsCompleted,staff,takeoverHistory',
 };
 
-const coord = GameCoordinator.newSeason('bath', 0xDEADBEEF, allTeams);
+const coord = await GameCoordinator.newSeason('bath', 0xDEADBEEF, allTeams);
 const payload = coord.toSavePayload() as Record<string, unknown>;
 const topKeys = Object.keys(payload).sort().join(',');
 const careerKeys = Object.keys(payload.career as object).sort().join(',');

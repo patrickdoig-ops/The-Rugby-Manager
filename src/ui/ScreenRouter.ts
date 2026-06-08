@@ -52,7 +52,10 @@ export type ScreenId =
   | 'staff'
   | 'club-finances'
   | 'team-talk'
-  | 'loans';
+  | 'loans'
+  | 'competitions-menu'
+  | 'european-cup'
+  | 'european-shield';
 
 const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'home':          { elId: 'home-screen',   shownDisplay: '' },
@@ -101,6 +104,9 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'club-finances':             { elId: 'club-finances',             shownDisplay: '' },
   'team-talk':                 { elId: 'team-talk',                 shownDisplay: '' },
   'loans':                     { elId: 'loans',                     shownDisplay: '' },
+  'competitions-menu':         { elId: 'competitions-menu',         shownDisplay: '' },
+  'european-cup':              { elId: 'european-cup',              shownDisplay: '' },
+  'european-shield':           { elId: 'european-shield',           shownDisplay: '' },
 };
 
 export type NavDirection = 'forward' | 'back';

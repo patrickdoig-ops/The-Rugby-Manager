@@ -188,6 +188,10 @@ export interface League {
   // by MEDIA_STORY_PUBLISHED at fixture-record time; the inbox surfaces only
   // the latest round. Re-zeroed at SEASON_ROLLED_OVER.
   mediaStories: MediaStory[];
+  // European Cup and Shield competition state. Null until seeded at season start
+  // via EUROPEAN_COMP_SEEDED; reset to null at SEASON_ROLLED_OVER.
+  europeanCup?: EuropeanCompState | null;
+  europeanShield?: EuropeanCompState | null;
 }
 
 // One of the three knockout matches. `homeSeed`/`awaySeed` are the team's
@@ -229,6 +233,62 @@ export interface PlayoffState {
   // while the playoffs are active; archived onto ArchivedSeason at
   // SEASON_ROLLED_OVER, after which `playoffs` resets to null.
   championTeamId: string | null;
+}
+
+// ── European competitions ──────────────────────────────────────────────────
+// Season-scoped like PremCupState: seeded once per season at newSeason() /
+// rollover, cleared at SEASON_ROLLED_OVER. Two separate states for the Cup
+// and Shield since they have different pool counts and dropout mechanics.
+
+export interface EuropeanPool {
+  id: number;            // 1-4 for Cup, 1-3 for Shield
+  teamIds: string[];     // 6 teams (cross-league mix)
+  standings: TeamStanding[];
+}
+
+export interface EuropeanFixture {
+  poolId: number;
+  round: number;         // 1-4
+  homeId: string;
+  awayId: string;
+  date?: string;
+  result?: {
+    homeScore: number;
+    awayScore: number;
+    homeTries: number;
+    awayTries: number;
+    playerSide: 'home' | 'away' | null;
+  };
+}
+
+export interface EuropeanKnockoutMatch {
+  matchIndex: number;    // 0-based within the round
+  homeId: string | null;
+  awayId: string | null;
+  date?: string;
+  result?: {
+    homeScore: number;
+    awayScore: number;
+    homeTries: number;
+    awayTries: number;
+    playerSide: 'home' | 'away' | null;
+  };
+}
+
+export interface EuropeanKnockout {
+  r16: EuropeanKnockoutMatch[];            // 8 matches
+  quarterfinals: EuropeanKnockoutMatch[];  // 4 matches
+  semifinals: [EuropeanKnockoutMatch, EuropeanKnockoutMatch];
+  final: EuropeanKnockoutMatch;
+  championTeamId: string | null;
+}
+
+export interface EuropeanCompState {
+  seasonLabel: string;
+  competition: 'europeanCup' | 'europeanShield';
+  pools: EuropeanPool[];
+  fixtures: EuropeanFixture[];
+  knockout: EuropeanKnockout | null;
 }
 
 // ── Prem Cup ───────────────────────────────────────────────────────────
@@ -365,6 +425,10 @@ export interface ArchivedSeason {
   // The Prem Cup champion for this season. Optional so archives written
   // before the cup system load unchanged (renders as "—" in history).
   premCupChampionTeamId?: string | null;
+  // The European Cup and Shield champions for this season. Optional so archives
+  // written before the European competitions system load unchanged.
+  europeanCupChampionTeamId?: string | null;
+  europeanShieldChampionTeamId?: string | null;
   // Per-player season snapshot, keyed by rosterId. Only players who
   // took the field (apps > 0) are present. Optional so v18 and older
   // archive entries load without the field — PlayerProfileScreen
@@ -926,6 +990,10 @@ export type SeasonEvent =
       // null when no cup is active; undefined means "leave alone" so saves
       // written before the cup system don't touch state.league.premCup.
       premCup?: PremCupState | null;
+      // The active European competitions (same pattern as premCup — not
+      // replayable from results). undefined means "leave alone" (legacy saves).
+      europeanCup?: EuropeanCompState | null;
+      europeanShield?: EuropeanCompState | null;
     }
   | {
       // Persistent injury landed on a roster player. Fired at match
@@ -969,6 +1037,10 @@ export type SeasonEvent =
       // state.league.premCup.knockout.championTeamId by computeRollover.
       // Optional so older event-replay paths can omit it.
       premCupChampionTeamId?: string | null;
+      // The European Cup and Shield champions for the just-completed season.
+      // Optional so older event-replay paths can omit them.
+      europeanCupChampionTeamId?: string | null;
+      europeanShieldChampionTeamId?: string | null;
       // Top-3 per category captured before the roster's seasonStats are
       // re-zeroed. Optional so older event-replay paths (or hand-crafted
       // events in tests) can omit it.
@@ -1413,4 +1485,51 @@ export type SeasonEvent =
       type: 'STAFF_BUDGET_BOOSTED';
       clubId: string;
       boost: number;
+    }
+  | {
+      // Seeds a European competition (Cup or Shield) for the season. Idempotent
+      // on a matching seasonLabel — re-seeding the same season is a no-op.
+      type: 'EUROPEAN_COMP_SEEDED';
+      competition: 'europeanCup' | 'europeanShield';
+      seasonLabel: string;
+      pools: Array<{ id: number; teamIds: string[] }>;
+      fixtures: EuropeanFixture[];
+    }
+  | {
+      // Records one European pool fixture result and applies it to the pool standings.
+      // Idempotent on an already-resulted fixture.
+      type: 'EUROPEAN_FIXTURE_RECORDED';
+      competition: 'europeanCup' | 'europeanShield';
+      poolId: number;
+      round: number;
+      homeId: string;
+      awayId: string;
+      homeScore: number;
+      awayScore: number;
+      homeTries: number;
+      awayTries: number;
+      playerSide: 'home' | 'away' | null;
+    }
+  | {
+      // Seeds the European knockout bracket from the final pool standings.
+      // Idempotent once the knockout is set.
+      type: 'EUROPEAN_KNOCKOUT_SEEDED';
+      competition: 'europeanCup' | 'europeanShield';
+      r16: EuropeanKnockoutMatch[];
+      quarterfinals: EuropeanKnockoutMatch[];
+      semifinals: [EuropeanKnockoutMatch, EuropeanKnockoutMatch];
+      final: EuropeanKnockoutMatch;
+    }
+  | {
+      // Records one European knockout match result. Cascades winners to the
+      // next round and sets championTeamId when the final resolves.
+      type: 'EUROPEAN_KNOCKOUT_RECORDED';
+      competition: 'europeanCup' | 'europeanShield';
+      stage: 'r16' | 'quarterfinal' | 'semifinal' | 'final';
+      matchIndex: number;
+      homeScore: number;
+      awayScore: number;
+      homeTries: number;
+      awayTries: number;
+      playerSide: 'home' | 'away' | null;
     };

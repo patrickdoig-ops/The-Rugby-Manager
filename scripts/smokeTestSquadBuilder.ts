@@ -30,7 +30,7 @@ const teams = teamsRaw as unknown as RawTeamInput[];
 teamProfile.init(teamsRaw);
 
 const seed = 0xdeadbeef;
-const coord = GameCoordinator.newSeason('bath', seed, teams);
+const coord = await GameCoordinator.newSeason('bath', seed, teams);
 const state0 = coord.getState();
 const bathSquadBefore = state0.career.clubs.find(c => c.id === 'bath')!.squad.length;
 const freeAgentsBefore = state0.career.freeAgents.length;

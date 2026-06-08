@@ -25,7 +25,7 @@ const teamsRaw = [
 const teams = teamsRaw as unknown as RawTeamInput[];
 teamProfile.init(teamsRaw);
 
-const coord = GameCoordinator.newSeason('bath', 0xdeadbeef, teams);
+const coord = await GameCoordinator.newSeason('bath', 0xdeadbeef, teams);
 const state = coord.getState();
 
 interface Expected { club: string; name: string; wage: number; note?: string }

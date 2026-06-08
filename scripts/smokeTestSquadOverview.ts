@@ -36,7 +36,7 @@ teamProfile.init(teamsRaw);
 const club = process.argv[2] ?? 'newcastle';
 const seed = 0xdeadbeef;
 
-const coord = GameCoordinator.newSeason(club, seed, teams);
+const coord = await GameCoordinator.newSeason(club, seed, teams);
 coord.unwindPreSeasonTransfers(PRE_SEASON_TRANSFERS_2025_26);
 const state = coord.getState();
 const calendarDate = state.calendar.date;

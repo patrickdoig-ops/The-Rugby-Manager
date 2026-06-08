@@ -3,7 +3,7 @@
 // variant has a single branch, and the exhaustive `default: const _: never`
 // catches missing branches at compile time when SeasonEvent grows.
 
-import type { CupKnockoutMatch, Fixture, GameState, PlayoffMatch, PremCupState, SeasonEvent, TeamSeasonStats, TeamStanding } from '../types/gameState';
+import type { CupKnockoutMatch, EuropeanCompState, EuropeanKnockoutMatch, Fixture, GameState, PlayoffMatch, PremCupState, SeasonEvent, TeamSeasonStats, TeamStanding } from '../types/gameState';
 import { zeroStanding, zeroTeamSeasonStats } from '../types/gameState';
 import type { MoraleReason } from '../types/player';
 import { zeroSeasonStats } from '../types/player';
@@ -451,6 +451,12 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       if (event.premCup !== undefined) {
         state.league.premCup = event.premCup ? cloneCup(event.premCup) : null;
       }
+      if (event.europeanCup !== undefined) {
+        state.league.europeanCup = event.europeanCup ? cloneEuropean(event.europeanCup) : null;
+      }
+      if (event.europeanShield !== undefined) {
+        state.league.europeanShield = event.europeanShield ? cloneEuropean(event.europeanShield) : null;
+      }
       return;
     }
     case 'SEASON_ROLLED_OVER': {
@@ -461,6 +467,8 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         mvpRosterId: event.mvpRosterId,
         championTeamId: event.championTeamId,
         ...(event.premCupChampionTeamId !== undefined ? { premCupChampionTeamId: event.premCupChampionTeamId } : {}),
+        ...(event.europeanCupChampionTeamId !== undefined ? { europeanCupChampionTeamId: event.europeanCupChampionTeamId } : {}),
+        ...(event.europeanShieldChampionTeamId !== undefined ? { europeanShieldChampionTeamId: event.europeanShieldChampionTeamId } : {}),
         ...(event.leaders ? { leaders: cloneLeaders(event.leaders) } : {}),
         ...(event.playerSeasonHistory ? { playerSeasonHistory: clonePlayerHistory(event.playerSeasonHistory) } : {}),
       });
@@ -514,6 +522,10 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       // Clear the Prem Cup — the new season's cup is re-seeded (with redrawn
       // pools) by the PREM_CUP_SEEDED event computeRollover appends after this.
       state.league.premCup = null;
+      // Clear European competitions — the new season's comps are re-seeded
+      // by EuropeanCoordinator.seedEuropeanComps at the start of each season.
+      state.league.europeanCup = null;
+      state.league.europeanShield = null;
       // Pending moves should already have been processed via
       // TRANSFER_ACTIVATED events fired by careerRollover before this
       // SEASON_ROLLED_OVER; clear the list as a safety net.
@@ -1025,6 +1037,104 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       club.staffBudgetBoost = event.boost;
       return;
     }
+    case 'EUROPEAN_COMP_SEEDED': {
+      const target = event.competition === 'europeanCup' ? 'europeanCup' : 'europeanShield';
+      const existing = state.league[target];
+      if (existing && existing.seasonLabel === event.seasonLabel) return; // idempotent
+      state.league[target] = {
+        seasonLabel: event.seasonLabel,
+        competition: event.competition,
+        pools: event.pools.map(p => ({
+          id: p.id,
+          teamIds: [...p.teamIds],
+          standings: p.teamIds.map(zeroStanding),
+        })),
+        fixtures: event.fixtures.map(f => ({ ...f })),
+        knockout: null,
+      };
+      return;
+    }
+    case 'EUROPEAN_FIXTURE_RECORDED': {
+      const comp = state.league[event.competition === 'europeanCup' ? 'europeanCup' : 'europeanShield'];
+      if (!comp) return;
+      const fx = comp.fixtures.find(
+        f => f.poolId === event.poolId && f.round === event.round && f.homeId === event.homeId && f.awayId === event.awayId,
+      );
+      if (!fx || fx.result) return;
+      fx.result = {
+        homeScore: event.homeScore,
+        awayScore: event.awayScore,
+        homeTries: event.homeTries,
+        awayTries: event.awayTries,
+        playerSide: event.playerSide,
+      };
+      const pool = comp.pools.find(p => p.id === event.poolId);
+      if (!pool) return;
+      const home = pool.standings.find(s => s.teamId === event.homeId);
+      const away = pool.standings.find(s => s.teamId === event.awayId);
+      if (!home || !away) return;
+      const margin = event.homeScore - event.awayScore;
+      applyToSide(home, event.homeScore, event.awayScore, event.homeTries, margin);
+      applyToSide(away, event.awayScore, event.homeScore, event.awayTries, -margin);
+      return;
+    }
+    case 'EUROPEAN_KNOCKOUT_SEEDED': {
+      const comp = state.league[event.competition === 'europeanCup' ? 'europeanCup' : 'europeanShield'];
+      if (!comp || comp.knockout !== null) return;
+      comp.knockout = {
+        r16: event.r16.map(m => ({ ...m })),
+        quarterfinals: event.quarterfinals.map(m => ({ ...m })),
+        semifinals: [{ ...event.semifinals[0] }, { ...event.semifinals[1] }],
+        final: { ...event.final },
+        championTeamId: null,
+      };
+      return;
+    }
+    case 'EUROPEAN_KNOCKOUT_RECORDED': {
+      const comp = state.league[event.competition === 'europeanCup' ? 'europeanCup' : 'europeanShield'];
+      const ko = comp?.knockout;
+      if (!ko) return;
+      const matchArr = event.stage === 'r16' ? ko.r16
+        : event.stage === 'quarterfinal' ? ko.quarterfinals
+        : event.stage === 'semifinal' ? (ko.semifinals as import('../types/gameState').EuropeanKnockoutMatch[])
+        : [ko.final];
+      const target = matchArr[event.matchIndex];
+      if (!target || target.result) return;
+      target.result = {
+        homeScore: event.homeScore,
+        awayScore: event.awayScore,
+        homeTries: event.homeTries,
+        awayTries: event.awayTries,
+        playerSide: event.playerSide,
+      };
+      // Cascade winners to the next round. Home-side tiebreak (no draws in knockout rugby).
+      const winnerId = (event.homeScore >= event.awayScore ? target.homeId : target.awayId) ?? null;
+      if (winnerId !== null) {
+        if (event.stage === 'r16') {
+          const qfIndex = Math.floor(event.matchIndex / 2);
+          const isHome = event.matchIndex % 2 === 0;
+          const qf = ko.quarterfinals[qfIndex];
+          if (qf) {
+            if (isHome && !qf.homeId) qf.homeId = winnerId;
+            else if (!isHome && !qf.awayId) qf.awayId = winnerId;
+          }
+        } else if (event.stage === 'quarterfinal') {
+          const sfIndex = Math.floor(event.matchIndex / 2);
+          const isHome = event.matchIndex % 2 === 0;
+          const sf = ko.semifinals[sfIndex];
+          if (sf) {
+            if (isHome && !sf.homeId) sf.homeId = winnerId;
+            else if (!isHome && !sf.awayId) sf.awayId = winnerId;
+          }
+        } else if (event.stage === 'semifinal') {
+          if (event.matchIndex === 0 && !ko.final.homeId) ko.final.homeId = winnerId;
+          else if (event.matchIndex === 1 && !ko.final.awayId) ko.final.awayId = winnerId;
+        } else {
+          ko.championTeamId = winnerId;
+        }
+      }
+      return;
+    }
     default: {
       const _: never = event;
       void _;
@@ -1092,6 +1202,33 @@ function pickCupMatch(
 function cupWinnerId(match: CupKnockoutMatch): string | null {
   if (!match.result || !match.homeId || !match.awayId) return null;
   return match.result.homeScore >= match.result.awayScore ? match.homeId : match.awayId;
+}
+
+// Deep-clone an EuropeanCompState for restore (CAREER_ARCHIVE_RESTORED).
+function cloneEuropean(comp: EuropeanCompState): EuropeanCompState {
+  const cloneMatch = (m: EuropeanKnockoutMatch): EuropeanKnockoutMatch => ({
+    ...m,
+    ...(m.result ? { result: { ...m.result } } : {}),
+  });
+  return {
+    seasonLabel: comp.seasonLabel,
+    competition: comp.competition,
+    pools: comp.pools.map(p => ({
+      id: p.id,
+      teamIds: [...p.teamIds],
+      standings: p.standings.map(s => ({ ...s })),
+    })),
+    fixtures: comp.fixtures.map(f => ({ ...f, ...(f.result ? { result: { ...f.result } } : {}) })),
+    knockout: comp.knockout
+      ? {
+          r16: comp.knockout.r16.map(cloneMatch),
+          quarterfinals: comp.knockout.quarterfinals.map(cloneMatch),
+          semifinals: [cloneMatch(comp.knockout.semifinals[0]), cloneMatch(comp.knockout.semifinals[1])],
+          final: cloneMatch(comp.knockout.final),
+          championTeamId: comp.knockout.championTeamId,
+        }
+      : null,
+  };
 }
 
 function cloneLeaders(l: import('../types/gameState').SeasonAwards): import('../types/gameState').SeasonAwards {

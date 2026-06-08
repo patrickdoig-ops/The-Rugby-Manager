@@ -40,7 +40,7 @@ export interface InitHubScreenOpts {
   onPreSeasonCup?: () => void;
   onSquad:     () => void;
   onFixtures:  () => void;
-  onLeague:    () => void;
+  onCompetitions: () => void;
   onTraining:  () => void;
   onContractsAndTransfers: () => void;
   onClub:      () => void;
@@ -82,7 +82,7 @@ interface TileSpec {
   ariaLabel: string;
   label: string;
   iconKey: keyof typeof TILE_ICONS;
-  handlerKey: 'onSquad' | 'onFixtures' | 'onLeague' | 'onTraining' | 'onContractsAndTransfers' | 'onClub';
+  handlerKey: 'onSquad' | 'onFixtures' | 'onCompetitions' | 'onTraining' | 'onContractsAndTransfers' | 'onClub';
   stub?: boolean;
   sub?: string;
 }
@@ -90,7 +90,7 @@ interface TileSpec {
 const TILES: TileSpec[] = [
   { id: 'hub-tile-squad',                ariaLabel: 'Squad selector',           label: 'Squad',                  iconKey: 'squad',               handlerKey: 'onSquad' },
   { id: 'hub-tile-fixtures',             ariaLabel: 'Fixture list',             label: 'Fixtures',               iconKey: 'fixtures',             handlerKey: 'onFixtures' },
-  { id: 'hub-tile-league',               ariaLabel: 'League',                   label: 'League',                 iconKey: 'league',               handlerKey: 'onLeague' },
+  { id: 'hub-tile-competitions',          ariaLabel: 'Competitions',             label: 'Competitions',           iconKey: 'league',               handlerKey: 'onCompetitions' },
   { id: 'hub-tile-training',             ariaLabel: 'Training',                 label: 'Training',               iconKey: 'training',             handlerKey: 'onTraining' },
   { id: 'hub-tile-contracts-transfers',  ariaLabel: 'Contracts and transfers',  label: 'Contracts &amp; Transfers',  iconKey: 'contractsTransfers',   handlerKey: 'onContractsAndTransfers' },
   { id: 'hub-tile-club',                 ariaLabel: 'Club',                     label: 'Club',                   iconKey: 'club',                 handlerKey: 'onClub' },

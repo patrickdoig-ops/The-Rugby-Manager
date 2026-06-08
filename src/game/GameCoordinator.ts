@@ -67,6 +67,7 @@ import { StaffCoordinator } from './StaffCoordinator';
 import { BoardCoordinator } from './BoardCoordinator';
 import { PlayoffCoordinator } from './PlayoffCoordinator';
 import { InternationalBreakCoordinator, type BreakBeginResult, type PreSeasonBlockResult } from './InternationalBreakCoordinator';
+import { EuropeanCoordinator } from './EuropeanCoordinator';
 import { computeBudgetEvents } from './budgetPlanner';
 import { computeAttendance } from './attendance';
 import { eventBus } from '../utils/eventBus';
@@ -145,6 +146,11 @@ export interface SavedSeason {
   // Scouting knowledge map. Not replayable; restored verbatim. Absent on
   // saves written before the scouting system.
   scouting?: Record<number, import('../types/gameState').ScoutingRecord>;
+  // European competition states. Not replayable from `results`; persisted
+  // directly like premCup. Optional — absent on saves written before the
+  // European competitions system.
+  europeanCup?: import('../types/gameState').EuropeanCompState | null;
+  europeanShield?: import('../types/gameState').EuropeanCompState | null;
 }
 
 // Deep clone the roster index for save serialisation — every Player and
@@ -154,7 +160,7 @@ export interface SavedSeason {
 function emptyState(): GameState {
   return {
     calendar: { date: SEASON_VALUES.startDate, week: 1, seasonLabel: '' },
-    league: { fixtures: [], results: [], standings: [], teamSeasonStats: {}, playoffs: null, premCup: null, mediaStories: [] },
+    league: { fixtures: [], results: [], standings: [], teamSeasonStats: {}, playoffs: null, premCup: null, mediaStories: [], europeanCup: null, europeanShield: null },
     player: { teamId: '' },
     seed: 0,
     career: emptyCareerState(),
@@ -183,6 +189,9 @@ export class GameCoordinator {
   // International-break + Prem Cup collaborator — owns the two-phase break flow,
   // headless cup sims, and the cup direction. Same `state` reference + teamsById.
   private intlBreak: InternationalBreakCoordinator;
+  // European Cup + Shield collaborator — owns pool seeding, headless pool-stage
+  // and knockout sims. Same `state` reference + teamsById.
+  private european: EuropeanCoordinator;
 
   private constructor(allTeams: RawTeamInput[]) {
     this.state = emptyState();
@@ -192,14 +201,15 @@ export class GameCoordinator {
     this.board = new BoardCoordinator(this.state, this.teamsById);
     this.playoffs = new PlayoffCoordinator(this.state, this.teamsById);
     this.intlBreak = new InternationalBreakCoordinator(this.state, this.teamsById);
+    this.european = new EuropeanCoordinator(this.state, this.teamsById);
   }
 
-  static newSeason(
+  static async newSeason(
     playerTeamId: string,
     seed: number,
     allTeams: RawTeamInput[],
     schedule: SeasonSchedule = PREMIERSHIP_2025_26,
-  ): GameCoordinator {
+  ): Promise<GameCoordinator> {
     const coord = new GameCoordinator(allTeams);
     setCareerSeed(seed);
     applySeasonEvent(coord.state, {
@@ -244,6 +254,15 @@ export class GameCoordinator {
       type: 'PREM_CUP_SEEDED',
       ...buildCupSeed(CUP_POOLS_2025_26, coord.state.league.fixtures, coord.state.calendar.seasonLabel, CUP_FIXTURES_2025_26),
     });
+    // Seed and simulate all European pool + knockout matches headlessly.
+    // Phase 4 will make these steppable in the calendar; for now they run
+    // immediately so pool standings and knockout results are available from
+    // day 1 of the season.
+    coord.european.seedEuropeanComps(coord.state.calendar.seasonLabel);
+    await coord.european.runPoolStage('europeanCup');
+    await coord.european.runPoolStage('europeanShield');
+    await coord.european.runKnockoutStage('europeanCup');
+    await coord.european.runKnockoutStage('europeanShield');
     coord.board.seedBoardState();
     // Seed the initial staff hire pool (no hired staff on season 1).
     const { staff: initialStaff, nextStaffId } = generateStaffPool(1);
@@ -1169,6 +1188,13 @@ export class GameCoordinator {
               Object.entries(this.state.player.scouting).map(([k, v]) => [k, { ...v }]),
             ) as Record<number, ScoutingRecord> }
         : {}),
+      // Persist European competition states (not replayable from `results`).
+      ...(this.state.league.europeanCup
+        ? { europeanCup: cloneEuropeanForSave(this.state.league.europeanCup) }
+        : {}),
+      ...(this.state.league.europeanShield
+        ? { europeanShield: cloneEuropeanForSave(this.state.league.europeanShield) }
+        : {}),
     };
   }
 }
@@ -1202,6 +1228,33 @@ function clonePlayerHistoryForSave(
   const out: Record<number, import('../types/gameState').ArchivedPlayerSeason> = {};
   for (const k of Object.keys(h)) out[Number(k)] = { ...h[Number(k)] };
   return out;
+}
+
+// Deep-ish clone of an EuropeanCompState for the save payload.
+function cloneEuropeanForSave(comp: import('../types/gameState').EuropeanCompState): import('../types/gameState').EuropeanCompState {
+  const cloneMatch = (m: import('../types/gameState').EuropeanKnockoutMatch) => ({
+    ...m,
+    ...(m.result ? { result: { ...m.result } } : {}),
+  });
+  return {
+    seasonLabel: comp.seasonLabel,
+    competition: comp.competition,
+    pools: comp.pools.map(p => ({
+      id: p.id,
+      teamIds: [...p.teamIds],
+      standings: p.standings.map(s => ({ ...s })),
+    })),
+    fixtures: comp.fixtures.map(f => ({ ...f, ...(f.result ? { result: { ...f.result } } : {}) })),
+    knockout: comp.knockout
+      ? {
+          r16: comp.knockout.r16.map(cloneMatch),
+          quarterfinals: comp.knockout.quarterfinals.map(cloneMatch),
+          semifinals: [cloneMatch(comp.knockout.semifinals[0]), cloneMatch(comp.knockout.semifinals[1])],
+          final: cloneMatch(comp.knockout.final),
+          championTeamId: comp.knockout.championTeamId,
+        }
+      : null,
+  };
 }
 
 // Deep-ish clone of a PlayoffState for the save payload. Shallow on the

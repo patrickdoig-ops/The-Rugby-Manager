@@ -57,7 +57,7 @@ async function startFollowingSystem(): Promise<void> {
   }
   if (listener) return;
   try {
-    listener = await DynamicType.addListener('contentSizeCategoryChanged', ({ category }) => {
+    listener = await DynamicType.addListener('contentSizeCategoryChanged', ({ category }: { category: string }) => {
       apply(categoryToScale(category));
     });
   } catch {

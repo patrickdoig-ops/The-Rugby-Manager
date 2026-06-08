@@ -43,5 +43,7 @@ export function buildCareerArchiveRestoredEvent(save: SavedSeason): Extract<Seas
     ...(save.teamSeasonStats !== undefined ? { teamSeasonStats: save.teamSeasonStats } : {}),
     ...(save.playoffs !== undefined ? { playoffs: save.playoffs } : {}),
     ...(save.premCup !== undefined ? { premCup: save.premCup } : {}),
+    ...(save.europeanCup !== undefined ? { europeanCup: save.europeanCup } : {}),
+    ...(save.europeanShield !== undefined ? { europeanShield: save.europeanShield } : {}),
   };
 }

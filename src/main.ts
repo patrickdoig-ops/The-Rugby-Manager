@@ -76,6 +76,9 @@ import { initTeamInfoScreen }      from './ui/TeamInfoScreen';
 import { initFixtureListScreen }   from './ui/FixtureListScreen';
 import { initLeagueTableScreen, showLeagueTable, showLeagueTablePostMatch } from './ui/LeagueTableScreen';
 import { initLeagueMenuScreen } from './ui/LeagueMenuScreen';
+import { initCompetitionsMenuScreen } from './ui/CompetitionsMenuScreen';
+import { initEuropeanCupScreen } from './ui/EuropeanCupScreen';
+import { initEuropeanShieldScreen } from './ui/EuropeanShieldScreen';
 import { initTeamStatsScreen, showTeamStats } from './ui/TeamStatsScreen';
 import { initPlayerStatsScreen, showPlayerStats } from './ui/PlayerStatsScreen';
 import { initPlayerProfileScreen, showPlayerProfile } from './ui/PlayerProfileScreen';
@@ -330,9 +333,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const begin = eng.beginPreSeasonBlock();
         runPreSeasonCupChain(begin, eng, () => { autosave(eng.toSavePayload()); goHub(); });
       },
-      onFixtures: goFixtures,
-      onLeague:   goLeagueMenu,
-      onSquad:    goSquad,
+      onFixtures:      goFixtures,
+      onCompetitions:  goCompetitionsMenu,
+      onSquad:         goSquad,
       onTraining: goTrainingMidweek,
       onContractsAndTransfers: goContractsTransfersMenu,
       onClub:      goClubMenu,
@@ -347,12 +350,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // teamInfo back arrow returns to whichever leaf opened it.
     initLeagueMenuScreen({
       getGameEngine,
-      onBack:         () => goHub('back'),
+      onBack:         () => goCompetitionsMenu('back'),
       onTable:        goLeagueTable,
       onTeamStats:    goTeamStats,
       onPlayerStats:  goPlayerStats,
       onAchievements: goAchievements,
-      onCup:          goCupBrowse,
+    });
+    initCompetitionsMenuScreen({
+      getGameEngine,
+      onBack:           () => goHub('back'),
+      onLeague:         goLeagueMenu,
+      onCup:            goCupBrowse,
+      onEuropeanCup:    goEuropeanCup,
+      onEuropeanShield: goEuropeanShield,
+    });
+    initEuropeanCupScreen({
+      getGameEngine,
+      onBack: () => goCompetitionsMenu('back'),
+    });
+    initEuropeanShieldScreen({
+      getGameEngine,
+      onBack: () => goCompetitionsMenu('back'),
     });
     initContractsTransfersMenuScreen({
       getGameEngine,
@@ -522,8 +540,20 @@ document.addEventListener('DOMContentLoaded', () => {
     screenRouter.show('league-menu', { direction });
   }
 
+  function goCompetitionsMenu(direction: 'forward' | 'back' = 'forward'): void {
+    screenRouter.show('competitions-menu', { direction });
+  }
+
+  function goEuropeanCup(direction: 'forward' | 'back' = 'forward'): void {
+    screenRouter.show('european-cup', { direction });
+  }
+
+  function goEuropeanShield(direction: 'forward' | 'back' = 'forward'): void {
+    screenRouter.show('european-shield', { direction });
+  }
+
   function goCupBrowse(direction: 'forward' | 'back' = 'forward'): void {
-    showCupFixturesBrowse(() => goLeagueMenu('back'));
+    showCupFixturesBrowse(() => goCompetitionsMenu('back'));
     screenRouter.show('cup-fixtures', { direction });
   }
 
@@ -665,10 +695,10 @@ document.addEventListener('DOMContentLoaded', () => {
     screenRouter.show('mode-picker');
   }
 
-  function onQuickStart(team: RawTeamInput): void {
+  async function onQuickStart(team: RawTeamInput): Promise<void> {
     // Existing new-game path: seed the save immediately so Continue is enabled
     // even if the user backs out before playing the first match.
-    gameEngine = GameCoordinator.newSeason(team.id, generateSeed(), allTeams);
+    gameEngine = await GameCoordinator.newSeason(team.id, generateSeed(), allTeams);
     autosave(gameEngine.toSavePayload());
     initInSeasonScreens();
     goHub();
@@ -679,8 +709,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // pre-season signing window (FA-only) → marquee selection → Hub. Each
   // step marks state.career.preSeasonStep before saving so a closed tab
   // resumes at the right screen via continueGame.
-  function onSquadBuilder(team: RawTeamInput): void {
-    gameEngine = GameCoordinator.newSeason(team.id, generateSeed(), allTeams);
+  async function onSquadBuilder(team: RawTeamInput): Promise<void> {
+    gameEngine = await GameCoordinator.newSeason(team.id, generateSeed(), allTeams);
     initInSeasonScreens();
     // Unwind the 2025-26 inbound transfers FIRST so the Owner's Budget
     // reveal sees the post-unwind squad. Without this, the budget pill

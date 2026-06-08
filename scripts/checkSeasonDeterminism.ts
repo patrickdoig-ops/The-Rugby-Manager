@@ -115,7 +115,7 @@ function lookupTeam(teamId: string): RawTeamInput | undefined {
 }
 
 async function runOnce(seed: number): Promise<string> {
-  const coord = GameCoordinator.newSeason(PLAYER_ID, seed, allTeams);
+  const coord = await GameCoordinator.newSeason(PLAYER_ID, seed, allTeams);
   const teamsById = new Map(allTeams.map(t => [t.id, t]));
 
   const seasonSnapshots: unknown[] = [];

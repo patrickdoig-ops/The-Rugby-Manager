@@ -282,20 +282,18 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       let currentT = 1.0; 
       
       const carries = res.events.filter((e): e is Extract<MatchEvent, { type: 'CARRY_RESOLVED' }> => e.type === 'CARRY_RESOLVED');
-      const offloads = res.events.filter((e): e is Extract<MatchEvent, { type: 'OFFLOAD_COMPLETED' | 'OFFLOAD_ATTEMPTED' }> => e.type === 'OFFLOAD_COMPLETED' || e.type === 'OFFLOAD_ATTEMPTED');
+      const offloads = res.events.filter((e): e is Extract<MatchEvent, { type: 'OFFLOAD_ATTEMPTED' }> => e.type === 'OFFLOAD_ATTEMPTED');
       
       for (let i = 0; i < offloads.length; i++) {
         const offloadEvt = offloads[i];
         const catcher = offloadEvt.catcher;
         if (!catcher) continue;
         
-        // NOTE: this offload-animation block is currently inactive — `c.side` is 'h'/'a'
-        // but `attackSide` is 'home'/'away', so the `find` below never matches and every
-        // iteration `continue`s. Left dormant (typed `: string` so it builds) because
-        // correcting the side comparison exposes a separate crash — `carries[j]` is
-        // undefined at the metres loops below (offload index used to index carries).
-        // Both need fixing together to enable the offload animation. — incomplete feature.
-        const catcherSideStr: string = offloadEvt.attackSide;
+        // NOTE: this block was previously dormant because `catcherSideStr` was 'home'/'away'
+        // while `c.side` was 'h'/'a'. The crash it exposed (`carries[j]` undefined) was 
+        // because `offloads` included BOTH 'OFFLOAD_COMPLETED' and 'OFFLOAD_ATTEMPTED',
+        // doubling the array length and causing out-of-bounds indexing into `carries`.
+        const catcherSideStr: string = offloadEvt.attackSide === 'home' ? 'h' : 'a';
         const catcherChoreo = choreography.find(c => c.id === catcher.id && c.side === catcherSideStr);
         if (!catcherChoreo || catcherChoreo.movements.length === 0) continue;
         

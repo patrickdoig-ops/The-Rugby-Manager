@@ -742,17 +742,20 @@ Narration outcome keys for authored first-phase plays:
 - `crash_ball` — Crash Ball path (existing key)
 - `out_the_back` — Out the Back / wide play path (existing key)
 - `wide_pass` — Wide Play intro variant (added to `PhaseOutcomeKey` to support the wide backs move narration step)
-- `kick_decision` — If the kick gate fires and a choreography is registered for `prevPhase:kick_decision`, the authored animation is applied to the kick transition.
+- `kick_decision` — If the kick gate fires and a `kick_decision` choreography is registered, the authored animation is applied to the kick transition.
 
 The authored ball path **replaces** the procedural `emitSweepHops` lateral movement for that play. The engine still resolves the outcome (dominant tackle / line break / play on / etc.) and the `CARRY_RESOLVED` event is preserved — the choreography system only replaces the in-phase ball-path keyframes, never the final ball position or outcome logic.
 
-Currently registered choreographies (keyed by `prevPhase:outcomeKey`):
+**Lookup key.** `FIRST_PHASE_CHOREOGRAPHIES` is keyed by the exact string its consumer looks up — NOT a uniform `prevPhase:outcomeKey` scheme. First-phase plays are looked up by the **bare `playType`** (`FirstPhaseEvent.applyChoreography` sets `choreoKey = playType`), so they register under bare keys. The scrum **wheel** is looked up by `ScrumEvent` under the literal `'SCRUM:wheel'`. A prefixed key for a bare-key consumer never resolves and silently leaves the play on procedural animation.
 
-| Key | JSON file | Description |
+Currently registered choreographies:
+
+| Key | Consumer | Description |
 |---|---|---|
-| `SCRUM:crash_ball` | `Animator JSONs/FIRST PHASE - Crash_Ball.rtf` | #10 → #12 crash ball off a scrum |
-| `LINEOUT:out_the_back` | `Animator JSONs/FIRST PHASE - Out_the_back.rtf` | Backs sweep off a lineout |
-| `SCRUM:kick_decision` | `Animator JSONs/FIRST PHASE - KICK DECISION.rtf` | Kick play off a scrum |
+| `crash_ball` | `FirstPhaseEvent` | #10 → #12 crash ball |
+| `out_the_back` | `FirstPhaseEvent` | Backs sweep |
+| `kick_decision` | `FirstPhaseEvent` | Kick play off the first phase |
+| `SCRUM:wheel` | `ScrumEvent` | Scrum wheel |
 
 ---
 

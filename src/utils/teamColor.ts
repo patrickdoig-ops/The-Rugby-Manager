@@ -30,19 +30,31 @@ function hexToRgb(hex: string): [number, number, number] | null {
   return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
 }
 
-// True when two team primaries are close enough that they'd be hard to tell
-// apart at a glance on small chips (crests, jersey numbers, chart bars).
-// Used by `MatchCoordinator` to decide whether the home team flips to its
-// change strip. Plain RGB Euclidean — a CIEDE2000 implementation would be
-// more perceptually correct but the threshold here is tuned against this
-// league's actual palette and only needs to catch obvious clashes (identical
-// black/black, navy/navy, green/green, black vs near-black navy). Threshold
-// 80 keeps distinct colours like LEI green vs SAR black (~117) apart.
+// Mirrors colorOnDark() from ui/teamColors.ts — near-black colours are
+// rendered as white on the dark pitch. Duplicated here so engine code
+// never imports from ui/.
+const NEAR_BLACK_WCAG = 0.02;
+function wcagLuminance(r: number, g: number, b: number): number {
+  const lin = (c: number) => c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  return 0.2126 * lin(r / 255) + 0.7152 * lin(g / 255) + 0.0722 * lin(b / 255);
+}
+function displayColor(hex: string): string {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  return wcagLuminance(...rgb) < NEAR_BLACK_WCAG ? '#ffffff' : hex;
+}
+
+// True when two team colours are close enough to be hard to tell apart on
+// screen. Compares the display-resolved colours (near-black → white) so that
+// a dark-navy away kit that renders white is never flagged as clashing with a
+// green home kit that renders green — they are clearly distinct on the pitch.
+// Threshold 80 keeps genuinely distinct pairs like LEI green vs SAR black
+// (both rendering their own hue, distance ~117) apart.
 const CLASH_THRESHOLD = 80;
 
 export function colorsClash(hex1: string, hex2: string): boolean {
-  const a = hexToRgb(hex1);
-  const b = hexToRgb(hex2);
+  const a = hexToRgb(displayColor(hex1));
+  const b = hexToRgb(displayColor(hex2));
   if (!a || !b) return false;
   const dr = a[0] - b[0];
   const dg = a[1] - b[1];

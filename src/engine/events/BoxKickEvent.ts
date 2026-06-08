@@ -7,6 +7,7 @@ import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
 import { attackDir, onFieldPlayers, pickScrumHalf, pickFullback } from '../FieldPosition';
+import { effBackfieldDefence } from '../tacticsResolve';
 import { boxKickLandingY, lineoutFormationY } from '../Lateral';
 import { SLOT } from '../Slot';
 
@@ -17,7 +18,7 @@ export function handleBoxKick({ state, attackTeam, defendTeam, randomPlayer }: P
   const wingerPool = onFieldPlayers(attackTeam, state, attackSide).filter(p => p.id === SLOT.WING_11 || p.id === SLOT.WING_14);
   const winger     = wingerPool.length > 0 ? wingerPool[rng(0, wingerPool.length - 1)] : randomPlayer(attackTeam);
   const fullback   = pickFullback(defendTeam, state, defendSide);
-  const backfield = defendTeam.tactics.backfieldDefence;
+  const backfield = effBackfieldDefence(state, defendTeam);
   const fullbackMod = TACTIC_MODIFIERS.boxKickFullbackBonus[backfield];
   // KickDecisionDirector's clearance sub-choice (long_and_on vs
   // long_and_off) routes through state.pendingKick. Only used by the
@@ -89,7 +90,7 @@ export function handleBoxKick({ state, attackTeam, defendTeam, randomPlayer }: P
         kind: 'tactic_note',
         cause: 'boxkick_backfield_caught',
         chancePct: COMMENTARY_CHANCES.boxKickBackfieldCaught,
-        params: { defendTeamName: defendTeam.name, fullback, backfieldDefence: defendTeam.tactics.backfieldDefence },
+        params: { defendTeamName: defendTeam.name, fullback, backfieldDefence: effBackfieldDefence(state, defendTeam) },
       });
     }
     return {

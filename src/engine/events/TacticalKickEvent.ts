@@ -11,6 +11,7 @@ import { lineoutFormationY, kickForTouchMissY, crossKickCornerY, grubberLandingY
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
+import { effBackfieldDefence, effDefensiveLine } from '../tacticsResolve';
 import { SLOT } from '../Slot';
 
 export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer }: PhaseContext): PhaseResult {
@@ -30,7 +31,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer
   // path because success math is gated by the defending team's backfield
   // posture, not the standard touch-finder probability table.
   if (intent?.family === 'fifty_22' && startedInOwnHalf) {
-    return handleFiftyTwentyTwoAttempt(state, kicker, defender, defendTeam.tactics.backfieldDefence, originalBallX, plan);
+    return handleFiftyTwentyTwoAttempt(state, kicker, defender, effBackfieldDefence(state, defendTeam), originalBallX, plan);
   }
 
   // Attacking kick — cross-field or grubber from #10 in / near the
@@ -41,12 +42,12 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer
   }
 
   const res = resolveTacticalKick(kicker);
-  const backfield = defendTeam.tactics.backfieldDefence;
+  const backfield = effBackfieldDefence(state, defendTeam);
   const touchReduction = TACTIC_MODIFIERS.tacticalKickTouchReduction[backfield];
   // Defensive line gives the kicker more (blitz) or less (drift) grass to
   // hit behind the front-line cover. Added on top of the backfield
   // reduction; clamped so the touch prob can't go negative.
-  const defensiveLineKickMod = TACTIC_MODIFIERS.defensiveLineKickProbMod[defendTeam.tactics.defensiveLine];
+  const defensiveLineKickMod = TACTIC_MODIFIERS.defensiveLineKickProbMod[effDefensiveLine(state, defendTeam)];
   const goesOutOnTheFull = rng(1, 100) <= res.outOnTheFullProbability;
   const goesToTouch      = !goesOutOnTheFull && rng(1, 100) <= Math.max(0, res.touchProbability - touchReduction + defensiveLineKickMod);
 

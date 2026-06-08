@@ -17,6 +17,7 @@ import {
   PICK_AND_GO_WEIGHTS,
   TRY_LINE_DEFENCE,
 } from './balance/carrying';
+import type { Zone } from './balance';
 
 // Home attacks toward x=100 in the first half, toward x=0 in the second.
 // Teams only swap ends at half-time, never on turnovers.
@@ -103,6 +104,22 @@ export function ownTwentyTwoX(state: MatchState): number {
   const homeAttacksRight = !state.clock.halfTimeDone;
   if (state.possession === 'home') return homeAttacksRight ? 22 : 78;
   return homeAttacksRight ? 78 : 22;
+}
+
+// The ball's pitch zone from `side`'s own perspective — possession-agnostic,
+// defined purely by distance from `side`'s own try line. This is the single
+// zone function for advanced tactics: an attacking dim reads the ball-carrier's
+// zone (own22 = pinned deep), a defensive dim reads the defending team's zone
+// (own22 = defending its own line) — both are `zoneForSide(state, thatTeam)`.
+// Boundaries match inOwn22For / inOpposition22At (own22 ≤22m, opp22 ≥78m).
+export function zoneForSide(state: MatchState, side: PossessionSide): Zone {
+  const homeAttacksRight = !state.clock.halfTimeDone;
+  const ownGoalAtZero = (side === 'home') === homeAttacksRight;
+  const fwd = ownGoalAtZero ? state.ball.x : 100 - state.ball.x;
+  if (fwd <= 22) return 'own22';
+  if (fwd <= 50) return 'ownHalf';
+  if (fwd < 78) return 'oppHalf';
+  return 'opp22';
 }
 
 // Possession-agnostic variant of inOwn22 — checks whether the ball is in the

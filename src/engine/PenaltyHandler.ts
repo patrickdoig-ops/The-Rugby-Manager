@@ -9,6 +9,7 @@ import { attackDir, inOpposition22, inOppositionHalf, isTryScoredAt, metresFromO
 import { lineoutFormationY, clearingKickLandingY, kickForTouchMissY, openSweepStep } from './Lateral';
 import { applyMatchEvent } from './applyMatchEvent';
 import { PENALTY_VALUES, TAP_AND_GO_AI, TACTIC_MODIFIERS } from './balance';
+import { effDefensiveLine } from './tacticsResolve';
 import { rng } from '../utils/rng';
 import type { CommentaryStreamer } from './CommentaryStreamer';
 
@@ -275,7 +276,7 @@ export class PenaltyHandler {
       const defendTeam = attackSide === 'home' ? state.awayTeam : state.homeTeam;
       const carrier = pickHardCarrier(attackTeam, state, attackSide);
       const defender = pickPrimaryDefender(defendTeam, state, defendSide, carrier);
-      const defensiveLine = defendTeam.tactics.defensiveLine;
+      const defensiveLine = effDefensiveLine(state, defendTeam);
       const collisionMod = TACTIC_MODIFIERS.hardCarryCollisionMod[defensiveLine];
       const evasionMod   = TACTIC_MODIFIERS.hardCarryEvasionMod[defensiveLine]
                          + TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];

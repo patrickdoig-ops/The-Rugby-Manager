@@ -14,6 +14,7 @@ import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, CRASH_BALL_THRESHOLDS, CRASH_BAL
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { SLOT, isBackSlot } from '../Slot';
 import { tryOffloadChain } from './offloadChain';
+import { effDefendingBreakdown, effBackfieldDefence, effDefensiveLine } from '../tacticsResolve';
 
 const FULL_BACKLINE = 7;
 
@@ -427,7 +428,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   // Defensive line drives the per-pass interception probability and the
   // handling-gate pressure modifier. Hoisted up here so every pass site +
   // gate site below sees the same value.
-  const defensiveLine = defendTeam.tactics.defensiveLine;
+  const defensiveLine = effDefensiveLine(state, defendTeam);
   const pressureMod   = TACTIC_MODIFIERS.defensiveLineHandlingPressure[defensiveLine];
   const interceptPctBase = INTERCEPTION_BASE_PCT + TACTIC_MODIFIERS.interceptionMod[defensiveLine];
 
@@ -463,7 +464,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;
   events.push({ type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 });
 
-  const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[defendTeam.tactics.backfieldDefence];
+  const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[effBackfieldDefence(state, defendTeam)];
   const missingBacks = FULL_BACKLINE - availableBacks(defendTeam, state, defSide).length;
   const shortHandedMod = missingBacks * SHORT_HANDED.missingBackDefendPenalty;
 
@@ -697,7 +698,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   const fpSoFrac = fpSo && fpSo.decayMinutes > 0 ? Math.max(0, 1 - (gameMinute - fpSo.startMinute) / fpSo.decayMinutes) : 0;
   const fpSingleOutBonus = fpSo && fpSo.side === attackSide && fpSo.playerId === ballCarrier.id ? fpSo.bonus * fpSoFrac : 0;
   const baseAttackMod = attackMod + ha.attack + tlBonus.evasion + ttAttack.attack * ttAttackFrac + fpSingleOutBonus;
-  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend + ttDef.defend * ttDefFrac;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[effDefendingBreakdown(state, defendTeam)] + ha.defend + ttDef.defend * ttDefFrac;
   let res = resolveOpenPlay(ballCarrier, defender, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
   const direction = attackDir(state);
 
@@ -795,7 +796,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
         kind: 'tactic_note',
         cause: 'line_break_backfield_thin',
         chancePct: COMMENTARY_CHANCES.lineBreakBackfieldThin,
-        params: { defendTeamName: defendTeam.name, backfieldDefence: defendTeam.tactics.backfieldDefence },
+        params: { defendTeamName: defendTeam.name, backfieldDefence: effBackfieldDefence(state, defendTeam) },
       });
     }
     if (defensiveLine === 'blitz') {

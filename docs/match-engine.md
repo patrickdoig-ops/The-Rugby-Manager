@@ -1203,6 +1203,10 @@ The advanced UI (`AdvancedKickingPanel.ts`) labels `territory` as **"Kick to Com
 
 Steps 2–3 and 5–7 are unchanged — the slow-ball bonus, the `rng(1,100)` rolls, the kicker pick, and the red-clock closeout all still layer on top of the advanced baseline (a manager's slider sets the *tendency*; match state still bends it). Types: `AdvancedTactics` / `AdvancedKicking` / `ZoneKickProfile` in `src/types/team.ts`; the preset→advanced seed (used when the UI enters advanced mode) is `seedAdvancedTactics()` in `src/engine/advancedTactics.ts`, built from the same `KICK_PROBABILITIES` / `FAMILY_WEIGHTS` tables so the handoff is lossless.
 
+### Zone-aware tactics seam (other dimensions)
+
+The same per-zone idea extends to the non-kicking dimensions via `src/engine/tacticsResolve.ts`. The discrete defensive/breakdown dims — `defensiveLine`, `backfieldDefence`, `attackingBreakdown`, `defendingBreakdown` — are read through `eff<Dim>(state, team)` accessors instead of `team.tactics.<dim>` directly. Each resolves the dimension for the team's **current zone** via `zoneForSide(state, side)` (the ball's zone relative to that team's own try line — so attacking dims read the carrier's zone, defensive dims the defending team's own-end zone). When the team has no advanced override the accessor short-circuits to the preset enum **without reading the ball**, so preset matches are byte-identical and cost nothing extra. The per-zone slider dims (attackingStyle, offloadStrategy) and the single-slider effort dims (intensity, discipline) live on the same `AdvancedTactics` shape (`src/types/team.ts`) and resolve through the same module.
+
 ### Red-clock game management
 
 Before the territory tree runs, `decideKick` checks `redClockCloseout()` — a full-time-only override (`state.clock.clockInTheRed && state.clock.halfTimeDone`, so it never fires before half time). When the next stoppage will end the match, kick-or-carry becomes a game-management call keyed off the score margin of the team in possession:

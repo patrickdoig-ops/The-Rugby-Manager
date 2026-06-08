@@ -18,6 +18,7 @@ import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, HARD_CARRY_LINE_BREAK_UPGRADE_PC
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { SLOT, isBackSlot } from '../Slot';
 import { tryOffloadChain } from './offloadChain';
+import { effAttackingBreakdown, effDefendingBreakdown, effBackfieldDefence, effDefensiveLine } from '../tacticsResolve';
 
 const FULL_BACKLINE = 7;  // jersey ids 9–15
 
@@ -69,7 +70,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   // Defensive line drives both the knock-on pressure modifier (handling
   // gates harder vs blitz) and the per-pass interception probability.
   // Hoisted above the gates so every check below sees the same value.
-  const defensiveLine = defendTeam.tactics.defensiveLine;
+  const defensiveLine = effDefensiveLine(state, defendTeam);
   // Per-carry knock-on rate shift. Combines the defender's defensiveLine
   // pressure with the attacker's gameplan-driven handling pressure
   // (possession-plan teams carry more, drop more — v2.184a rebalance).
@@ -110,7 +111,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;
   events.push({ type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 });
 
-  const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[defendTeam.tactics.backfieldDefence];
+  const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[effBackfieldDefence(state, defendTeam)];
   // Short-handed backline: missing backs make wide defence thinner → more
   // line breaks. Mirrors the backfieldLineBreakPenalty shape; both feed defendMod.
   const missingBacks = FULL_BACKLINE - availableBacks(defendTeam, state, defSide).length;
@@ -240,7 +241,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   
   // Attacking breakdown evasion synergy: the bonus/penalty for having extra
   // men out wide ONLY applies if the play actually goes wide.
-  const breakdownWideEvasion = goWide ? TACTIC_MODIFIERS.breakdownAttack[attackTeam.tactics.attackingBreakdown] : 0;
+  const breakdownWideEvasion = goWide ? TACTIC_MODIFIERS.breakdownAttack[effAttackingBreakdown(state, attackTeam)] : 0;
   
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine] + pathEvasionMod;
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine] + pathCollisionMod;
@@ -258,7 +259,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   const soFrac = so && so.decayMinutes > 0 ? Math.max(0, 1 - (gameMinute - so.startMinute) / so.decayMinutes) : 0;
   const singleOutBonus = so && so.side === attackSide && so.playerId === ballCarrier.id ? so.bonus * soFrac : 0;
   const baseAttackMod = attackMod + breakdownWideEvasion + ha.attack + tlBonus.evasion + ttAttackBonus + singleOutBonus;
-  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend + ttDefendBonus;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[effDefendingBreakdown(state, defendTeam)] + ha.defend + ttDefendBonus;
   let res = resolveOpenPlay(ballCarrier, defender, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
   const direction = attackDir(state);
 
@@ -307,7 +308,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   // shorter. Applied post-resolve so the resolver stays tactic-pure.
   if (res.outcome === 'line_break') {
     res.gainMetres += TACTIC_MODIFIERS.defensiveLineBreakBonus[defensiveLine];
-    res.gainMetres += TACTIC_MODIFIERS.backfieldLineBreakGainBonus[defendTeam.tactics.backfieldDefence];
+    res.gainMetres += TACTIC_MODIFIERS.backfieldLineBreakGainBonus[effBackfieldDefence(state, defendTeam)];
   }
 
   // Try check hoisted above CARRY_RESOLVED so the cover-tackler pick can
@@ -367,7 +368,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
         kind: 'tactic_note',
         cause: 'line_break_backfield_thin',
         chancePct: COMMENTARY_CHANCES.lineBreakBackfieldThin,
-        params: { defendTeamName: defendTeam.name, backfieldDefence: defendTeam.tactics.backfieldDefence },
+        params: { defendTeamName: defendTeam.name, backfieldDefence: effBackfieldDefence(state, defendTeam) },
       });
     }
     if (defensiveLine === 'blitz') {
@@ -464,12 +465,12 @@ function resolvePickAndGo(
   ];
 
   const defender = pickPrimaryDefender(defendTeam, state, defSide, carrier);
-  const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[defendTeam.tactics.backfieldDefence];
+  const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[effBackfieldDefence(state, defendTeam)];
   const missingBacks = FULL_BACKLINE - availableBacks(defendTeam, state, defSide).length;
   const shortHandedMod = missingBacks * SHORT_HANDED.missingBackDefendPenalty;
 
   const ha = homeEdge(state, HOME_ADVANTAGE.carryMod);
-  const defensiveLine = defendTeam.tactics.defensiveLine;
+  const defensiveLine = effDefensiveLine(state, defendTeam);
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine];
   const tlBonus = tryLineDefenceBonus(state);
@@ -483,7 +484,7 @@ function resolvePickAndGo(
   const pagSoFrac = pagSo && pagSo.decayMinutes > 0 ? Math.max(0, 1 - (pagGameMinute - pagSo.startMinute) / pagSo.decayMinutes) : 0;
   const pagSingleOutBonus = pagSo && pagSo.side === attackSide && pagSo.playerId === carrier.id ? pagSo.bonus * pagSoFrac : 0;
   const baseAttackMod = attackMod + ha.attack + tlBonus.evasion + pagTtAttack.attack * pagTtAttackFrac + pagSingleOutBonus;
-  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend + pagTtDef.defend * pagTtDefFrac;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[effDefendingBreakdown(state, defendTeam)] + ha.defend + pagTtDef.defend * pagTtDefFrac;
   const res = resolveOpenPlay(carrier, defender, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
 
   // Downgrade line_break → dominant_carry; pick-and-go can't break the line.

@@ -52,8 +52,32 @@ export interface AdvancedKicking {
   oppHalf: ZoneKickProfile;
   opp22: ZoneKickProfile;
 }
+// A value per pitch zone (the same four blocks as the kicking matrix). Used for
+// the per-zone advanced dimensions: `T` is an enum for discrete picks
+// (attacking/defending breakdown, backfield, defensive line) or `number` (a
+// 0–100 slider position) for the continuous per-zone dimensions.
+export interface ZoneOf<T> {
+  own22: T;
+  ownHalf: T;
+  oppHalf: T;
+  opp22: T;
+}
+
 export interface AdvancedTactics {
   kicking: AdvancedKicking;
+  // Per-zone continuous sliders (0–100; interpolated through the preset
+  // buckets — 0 = first option, 50 = middle, 100 = last).
+  attackingStyle?: ZoneOf<number>;
+  offloadStrategy?: ZoneOf<number>;
+  // Per-zone discrete picks (one preset bucket per zone). Defensive dims read
+  // the defending team's own-end zone; attacking dims the ball-carrier's.
+  attackingBreakdown?: ZoneOf<AttackingBreakdown>;
+  defendingBreakdown?: ZoneOf<DefendingBreakdown>;
+  backfieldDefence?: ZoneOf<BackfieldDefence>;
+  defensiveLine?: ZoneOf<DefensiveLine>;
+  // Single (non-zoned) sliders — whole-pitch effort levers.
+  intensity?: number;
+  discipline?: number;
 }
 
 export interface TeamTactics {

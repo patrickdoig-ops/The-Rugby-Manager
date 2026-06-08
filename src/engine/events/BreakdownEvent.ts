@@ -8,6 +8,7 @@ import { rng } from '../../utils/rng';
 import { HOME_ADVANTAGE, TACTIC_MODIFIERS, COMMENTARY_CHANCES, BREAKDOWN_PENALTIES, BREAKDOWN_VALUES, CARRY_HANDOFF_BONUSES } from '../balance';
 import { homeEdge } from '../HomeAdvantage';
 import { availableForwards, onFieldPlayers } from '../FieldPosition';
+import { effAttackingBreakdown, effDefendingBreakdown, effDefensiveLine } from '../tacticsResolve';
 import { isBackRowSlot } from '../Slot';
 
 // Fastest player in a group — the "first to the breakdown" arrival pace.
@@ -22,8 +23,8 @@ function fastestPace(players: Player[]): number {
 }
 
 export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext): PhaseResult {
-  const attPlan = attackTeam.tactics.attackingBreakdown;
-  const defPlan = defendTeam.tactics.defendingBreakdown;
+  const attPlan = effAttackingBreakdown(state, attackTeam);
+  const defPlan = effDefendingBreakdown(state, defendTeam);
   const attDiscipline = attackTeam.tactics.discipline;
   const defDiscipline = defendTeam.tactics.discipline;
   // Intensity (physical edge) + discipline (turnover edge) at the contest —
@@ -50,7 +51,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   // into the chain, double-counting blitz's "cover behind the runner"
   // effect and overpunishing blitz teams.
   const lineBreakFollowUp = lastEvent?.outcome === 'line_break';
-  const lineBreakChainMult = TACTIC_MODIFIERS.lineBreakChainMultiplier[defendTeam.tactics.defensiveLine];
+  const lineBreakChainMult = TACTIC_MODIFIERS.lineBreakChainMultiplier[effDefensiveLine(state, defendTeam)];
   const lineBreakHandoff = lineBreakFollowUp
     ? CARRY_HANDOFF_BONUSES.lineBreak * lineBreakChainMult
     : 0;
@@ -151,7 +152,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   //    the whistle). Offender: a random on-field defender.
   if (res.result === 'clean_ball' || res.result === 'slow_ball') {
     const offsidePct = BREAKDOWN_PENALTIES.offsideAtRuckBasePct
-                     + TACTIC_MODIFIERS.offsideAtRuckDefendMod[defendTeam.tactics.defensiveLine]
+                     + TACTIC_MODIFIERS.offsideAtRuckDefendMod[effDefensiveLine(state, defendTeam)]
                      + TACTIC_MODIFIERS.disciplinePenaltyMod[defDiscipline];
     if (rng(1, 100) <= offsidePct) {
       const offender = defendOnField[rng(0, defendOnField.length - 1)] ?? jackal;

@@ -14,6 +14,7 @@ import { clamp } from '../../utils/math';
 import { HOME_ADVANTAGE, KICK_RETURN_VALUES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, POD_PICKUP_PCT } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { tryOffloadChain } from './offloadChain';
+import { effDefendingBreakdown, effBackfieldDefence, effDefensiveLine } from '../tacticsResolve';
 import type { NarrationStep } from '../../types/narration';
 
 const FULL_BACKLINE = 7;
@@ -54,7 +55,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer, 
   ];
   if (podPop) events.push({ type: 'PASS_COMPLETED', passer: podPop });
 
-  const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[defendTeam.tactics.backfieldDefence];
+  const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[effBackfieldDefence(state, defendTeam)];
   const missingBacks = FULL_BACKLINE - availableBacks(defendTeam, state, defSide).length;
   const shortHandedMod = missingBacks * SHORT_HANDED.missingBackDefendPenalty;
 
@@ -66,11 +67,11 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer, 
 
   // Step 3 — Evasion → Step 4 Collision
   const ha = homeEdge(state, HOME_ADVANTAGE.carryMod);
-  const defensiveLine = defendTeam.tactics.defensiveLine;
+  const defensiveLine = effDefensiveLine(state, defendTeam);
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine];
   const baseAttackMod = attackMod + ha.attack;
-  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[effDefendingBreakdown(state, defendTeam)] + ha.defend;
   let res = resolveOpenPlay(carrier, defender, baseAttackMod, baseDefendMod, dlCollision);
   const direction = attackDir(state);
 
@@ -165,7 +166,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer, 
         kind: 'tactic_note',
         cause: 'line_break_backfield_thin',
         chancePct: COMMENTARY_CHANCES.lineBreakBackfieldThin,
-        params: { defendTeamName: defendTeam.name, backfieldDefence: defendTeam.tactics.backfieldDefence },
+        params: { defendTeamName: defendTeam.name, backfieldDefence: effBackfieldDefence(state, defendTeam) },
       });
     }
     if (defensiveLine === 'blitz') {

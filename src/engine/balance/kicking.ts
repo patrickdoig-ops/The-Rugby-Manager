@@ -36,10 +36,10 @@ export const BOX_KICK_VALUES = {
 } as const;
 
 export const TACTICAL_KICK_VALUES = {
-  goodKickThreshold:     25,
+  goodKickThreshold:     75,
   goodKickDistance:      [30, 50],
   poorKickDistance:      [10, 20],
-  goodKickOutOnFullProb: 0,
+  goodKickOutOnFullProb: 5,
   poorKickOutOnFullProb: 30,
   goodKickTouchProb:     75,
   poorKickTouchProb:     30,
@@ -115,7 +115,7 @@ export const PENALTY_VALUES = {
 // expected distance of ~32-35m matches real-world league data
 // for attacking penalty kicks to the corner.
 export const PENALTY_KICK_TO_TOUCH_VALUES = {
-  goodKickThreshold: 25,
+  goodKickThreshold: 75,
   goodKickDistance:  [25, 45],
   poorKickDistance:  [10, 20],
   goodKickTouchPct:  90,    // clinical kick — finds touch 9 times out of 10

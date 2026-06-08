@@ -119,7 +119,7 @@ export const OPEN_PLAY_VALUES = {
   defenderTacklingLineBreakWeight: 0.2,
   lineBreakMargin: 15,
   // Line breaks now project the ball further downfield (real-world line
-  // line breaks pierce the defensive line by 10-30m on average). The 10-30 range
+  // breaks pierce the defensive line by 10-30m on average). The 10-30 range
   // means a midfield line break frequently lands inside the opposition 22,
   // and the follow-up carry — boosted by CARRY_HANDOFF_BONUSES.lineBreak
   // (applied in BreakdownEvent, see balance/breakdown.ts) — closes the

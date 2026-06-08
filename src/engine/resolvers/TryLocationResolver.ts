@@ -16,11 +16,10 @@ export type TryLocationBand = 'central' | 'close' | 'wide' | 'corner';
 
 export function tryLandingY(state: MatchState, style: AttackingStyle): number {
   const j = TRY_LANDING_JITTER[style];
-  // Burn the RNG token to preserve the determinism stream offset!
+  // The scorer grounds the ball exactly where their forward carry took them,
+  // with no artificial curve in toward the posts. The jitter roll is still
+  // consumed so the outcome RNG stream offset is unchanged.
   rng(-j, j);
-  
-  // The user requested that the player scores exactly where their forward carry takes them,
-  // without artificially curving in towards the posts.
   return clamp(state.ball.y, 0, 100);
 }
 

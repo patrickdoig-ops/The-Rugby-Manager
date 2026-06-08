@@ -104,16 +104,18 @@ export function initPitchView(): void {
     // Home attacks toward x=100 (top of screen) before half-time; inverted after.
     const attacksTop = (side === 'home') !== cachedHalfTimeDone;
     const targetTop  = attacksTop ? 4 : 96;
-    // Success: split the posts (50% = toLeft(50)); failure: fly wide on the same
-    // side the kick was taken from.
-    const targetLeft = success ? toLeft(50) : (ballY < 50 ? toLeft(8) : toLeft(92));
+    // Success: split the posts (50% = toLeft(50)); failure: fly slightly wide on the
+    // same side the kick was taken from (posts are at 50, miss by 5%).
+    const targetLeft = success ? toLeft(50) : (ballY < 50 ? toLeft(45) : toLeft(55));
 
     kickFlight.style.transition = 'none';
     kickFlight.style.top        = `${startTop}%`;
     kickFlight.style.left       = `${startLeft}%`;
     kickFlight.style.transform  = 'translate(-50%, -50%) scale(1)';
     kickFlight.style.opacity    = '1';
-    kickFlight.style.setProperty('--kick-flight-glow', success ? 'var(--rm-stat-4)' : 'var(--rm-stat-1)');
+    const kickColor = success ? 'var(--rm-stat-4)' : 'var(--rm-stat-1)';
+    kickFlight.style.setProperty('--kick-flight-glow', kickColor);
+    kickFlight.style.setProperty('--ball-color', kickColor);
     void kickFlight.offsetWidth; // force reflow to arm the transition
     kickFlight.style.transition = 'top 0.6s ease-in, left 0.6s ease-in, transform 0.6s ease-in, opacity 0.5s ease-in';
     kickFlight.style.top        = `${targetTop}%`;

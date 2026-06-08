@@ -31,8 +31,15 @@ export interface Placed {
 
 type Side = 'h' | 'a';
 
-const clampX = (x: number): number => Math.max(2, Math.min(98, x));
-const clampY = (y: number): number => Math.max(3, Math.min(97, y));
+// Field-of-play clamps. Exported so the ball/dot animators in PitchView share the
+// exact same bounds instead of re-inlining the [2,98]/[3,97] literals — every baked
+// formation depends on these, so a divergent copy would desync the animation.
+export const clampX = (x: number): number => Math.max(2, Math.min(98, x));
+export const clampY = (y: number): number => Math.max(3, Math.min(97, y));
+
+// Lateral fan offset for a support/defender at index i: alternating sides, stepping
+// one rank wider every two players. Shared by openPlayLayout and firstPhaseBacklineLayout.
+const fanLateral = (i: number): number => (i % 2 === 0 ? 1 : -1) * Math.ceil((i + 1) / 2) * 8;
 // Wider x-clamp that allows the in-goal areas beyond the try lines (x>100 / x<0). `toTop`
 // extrapolates there, and [-8,108] keeps the dot inside the pitch element. Use ONLY for
 // dots that belong behind a try line (the try scorer; later the conversion defending line)
@@ -291,7 +298,7 @@ function travelingKickLayout(
   }
   // On-ball player just behind the ball's landing spot, so their circle reads on the ball.
   if (onBall) {
-    out.push(placed(onBall, sideOf(onBall, state), state, clampX(event.ballX - fwd * 2.5), event.ballY, true));
+    out.push(placed(onBall, sideOf(onBall, state), state, clampX(event.ballX - fwd * 2.5), clampY(event.ballY), true));
   }
   return out;
 }
@@ -308,7 +315,11 @@ type FormOffsets = Record<number, readonly [number, number]>;
 // atkFrom / defFrom: start offsets for dots that move during the beat (same transform as
 // atk/def). When present, PitchView animates each dot from its `from` to its resting spot
 // via the chaseDots seam — identical to the kick-off / drop-out chase mechanism.
-interface Formation { nearTop: boolean; atk: FormOffsets; def: FormOffsets; atkFrom?: FormOffsets; defFrom?: FormOffsets; unclamped?: boolean; }
+interface Formation { nearTop: boolean; atk: FormOffsets; def: FormOffsets; atkFrom?: FormOffsets; defFrom?: FormOffsets; unclamped?: boolean;
+  // True for defensive-breakdown frames whose `atk` table was authored with the new
+  // attacker (a defender who won the ball) already inverted — placeFormation must NOT
+  // flip `dir` for these or it double-flips them onto the wrong side.
+  defenderIsAttacker?: boolean; }
 
 const outcomeKeys = (event: GameEvent): string[] =>
   event.narration.steps.filter(s => s.kind === 'phase_outcome').map(s => (s as { key: string }).key);
@@ -330,10 +341,7 @@ function placeFormation(
   // caught by the receiver) it flips. However, defensive breakdown formations
   // (turnovers, defensive penalties) were authored with `atk` (the new attacker)
   // already inverted (positive X offsets). Flipping `dir` for them would cause a double-flip.
-  const isDefensiveBreakdown = form === BREAKDOWN_TURNOVER || 
-                               form === BREAKDOWN_NOT_ROLLING_AWAY || 
-                               form === BREAKDOWN_OFFSIDE_AT_RUCK;
-  const flipDir = isDefensiveBreakdown ? false : (atkSide !== possSide);
+  const flipDir = form.defenderIsAttacker ? false : (atkSide !== possSide);
   const dir = (flipDir ? !attacksTop : attacksTop) ? 1 : -1;
   const mirrorY = form.nearTop !== (anchorY >= 50);
   const atkOn = onFieldPlayers(atkSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(atkSide));
@@ -574,7 +582,7 @@ const BREAKDOWN_SLOW_BALL: Formation = { nearTop: true,
   },
 };
 // Breakdown: turnover. ATK = jackal (defender who stole ball = primaryPlayer); anchor = live ruck.
-const BREAKDOWN_TURNOVER: Formation = { nearTop: true,
+const BREAKDOWN_TURNOVER: Formation = { nearTop: true, defenderIsAttacker: true,
   atk: {
     1:  [  1.42,   3.35],   2:  [ 10.93, -11.90],   3:  [ 12.66, -16.49],
     4:  [ 10.49,  11.62],   5:  [ 10.35,  16.22],   6:  [  1.13,  -2.89],
@@ -591,7 +599,7 @@ const BREAKDOWN_TURNOVER: Formation = { nearTop: true,
   },
 };
 // Breakdown: not_rolling_away_penalty. ATK = jackal (defender = primaryPlayer); anchor = live ruck.
-const BREAKDOWN_NOT_ROLLING_AWAY: Formation = { nearTop: false,
+const BREAKDOWN_NOT_ROLLING_AWAY: Formation = { nearTop: false, defenderIsAttacker: true,
   atk: {
     1:  [  3.00,  13.51],   2:  [  3.00,   2.80],   3:  [  2.03,  -2.85],
     4:  [  2.79,   6.70],   5:  [ -0.42,   3.38],   6:  [  2.95,  20.92],
@@ -608,7 +616,7 @@ const BREAKDOWN_NOT_ROLLING_AWAY: Formation = { nearTop: false,
   },
 };
 // Breakdown: offside_at_ruck_penalty. ATK = random defender (primaryPlayer); anchor = live ruck.
-const BREAKDOWN_OFFSIDE_AT_RUCK: Formation = { nearTop: true,
+const BREAKDOWN_OFFSIDE_AT_RUCK: Formation = { nearTop: true, defenderIsAttacker: true,
   atk: {
     1:  [  9.34, -21.69],   2:  [  9.95, -13.51],   3:  [  7.97, -17.21],
     4:  [  1.55,   1.49],   5:  [  2.62,  -0.66],   6:  [ 13.16, -31.82],
@@ -894,21 +902,23 @@ function kickOffLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
     // the real landing (from its authored start, so it's continuous with the announce beat).
     for (let slot = 1; slot <= 15; slot++) {
       const p = recvOn.find(pl => pl.id === slot);
-      if (!p) continue;
+      const spot = recvTable[slot];
+      if (!p || !spot) continue;
       if (receiver && p === receiver) {
         const dot = placed(p, recvSide, state, clampX(event.ballX), clampY(event.ballY), false);
-        const [fx, fy] = tx(recvTable[slot].from);
+        const [fx, fy] = tx(spot.from);
         dot.from = { x: fx, y: fy };
         out.push(dot);
       } else {
-        place(p, recvSide, recvTable[slot]);
+        place(p, recvSide, spot);
       }
     }
     // Kicking XV chase line + cover (the kicker is already placed on the centre spot).
     for (let slot = 1; slot <= 15; slot++) {
       const p = kickOn.find(pl => pl.id === slot);
-      if (!p || p === kicker) continue;
-      place(p, kickSide, kickTable[slot]);
+      const spot = kickTable[slot];
+      if (!p || p === kicker || !spot) continue;
+      place(p, kickSide, spot);
     }
   }
 
@@ -1140,7 +1150,7 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
   // Support attackers: fan behind the carrier in a wider arc so circles don't overlap.
   // Each player steps 6 x-units further back and is spread laterally by 8 y-units.
   support.forEach((p, i) => {
-    const lateralOffset = (i % 2 === 0 ? 1 : -1) * Math.ceil((i + 1) / 2) * 8;
+    const lateralOffset = fanLateral(i);
     out.push(placed(p, atkSide, state,
       clampX(ballX - fwd * (8 + i * 6)),
       clampY(ballY + lateralOffset), false));
@@ -1166,7 +1176,7 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
       if (isDominant) dot.isDominantTackler = true;
       out.push(dot);
     } else {
-      const lateralOffset = (i % 2 === 0 ? 1 : -1) * Math.ceil((i + 1) / 2) * 8;
+      const lateralOffset = fanLateral(i);
       out.push(placed(p, defSide, state,
         clampX(ballX + fwd * (3 + i * 6)),
         clampY(ballY + lateralOffset), false));
@@ -1278,14 +1288,19 @@ const SCRUM_ROWS: Array<{ dx: number; cells: Array<{ slot: number; y: number }> 
   { dx: 5.2, cells: [{ slot: SLOT.NUMBER_8, y: 0 }] },
 ];
 
+// Depth (x-units) the hooker sits behind the maul mark, at the tail of the drive.
+// PitchView slides the maul ball to this same depth — shared so the dot and ball
+// can't drift apart.
+export const MAUL_HOOKER_DX = 7.5;
+
 // Maul attacking pack: same tight spacing as the scrum pack but the hooker moves to
-// the back (dx=7.5) — they run around from the touchline to become the ball-carrier at
-// the tail of the drive. Keep the hooker dx in sync with PitchView's maul ball-slide.
+// the back (MAUL_HOOKER_DX) — they run around from the touchline to become the
+// ball-carrier at the tail of the drive.
 const MAUL_ATK_ROWS: Array<{ dx: number; cells: Array<{ slot: number; y: number }> }> = [
   { dx: 1.3, cells: [{ slot: SLOT.PROP_1, y: -2 }, { slot: SLOT.PROP_3, y: 2 }] },
   { dx: 3.3, cells: [{ slot: SLOT.FLANKER_6, y: -4.5 }, { slot: SLOT.LOCK_4, y: -1.5 }, { slot: SLOT.LOCK_5, y: 1.5 }, { slot: SLOT.FLANKER_7, y: 4.5 }] },
   { dx: 5.2, cells: [{ slot: SLOT.NUMBER_8, y: 0 }] },
-  { dx: 7.5, cells: [{ slot: SLOT.HOOKER, y: 0 }] },
+  { dx: MAUL_HOOKER_DX, cells: [{ slot: SLOT.HOOKER, y: 0 }] },
 ];
 
 function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): Placed[] {
@@ -1610,7 +1625,7 @@ function firstPhaseBacklineLayout(
         return;
       }
     }
-    const lat = (i % 2 === 0 ? 1 : -1) * Math.ceil((i + 1) / 2) * 8;
+    const lat = fanLateral(i);
     out.push(placed(p, defSide, state,
       clampX(event.ballX + fwd * (3 + i * 6)),
       clampY(event.ballY + lat), false));

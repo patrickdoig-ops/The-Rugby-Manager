@@ -28,6 +28,23 @@ export function parseChoreography(json: PhaseAnimatorExport): ParsedChoreography
   const ball = json.entities.find(e => e.id === 'ball');
   if (!ball || ball.kf.length === 0) throw new Error("Choreography missing ball");
 
+  // Validate the authored data at module load so a malformed export (out-of-order or
+  // out-of-range timestamps, NaN coords, a typo'd id) fails loudly here rather than
+  // silently corrupting the WAAPI animation at runtime — `t` is applied as the keyframe
+  // `offset`, which must be a number in [0,1] and non-decreasing per entity.
+  const phase = json.meta?.phase ?? '?';
+  for (const e of json.entities) {
+    if (!/^(?:h|a|ball)\d*$/.test(e.id)) throw new Error(`Choreography (${phase}): invalid entity id "${e.id}"`);
+    let prevT = -Infinity;
+    for (const k of e.kf) {
+      if (!Number.isFinite(k.t) || !Number.isFinite(k.x) || !Number.isFinite(k.y))
+        throw new Error(`Choreography (${phase}/${e.id}): non-finite keyframe ${JSON.stringify(k)}`);
+      if (k.t < 0 || k.t > 1) throw new Error(`Choreography (${phase}/${e.id}): keyframe t=${k.t} outside [0,1]`);
+      if (k.t < prevT) throw new Error(`Choreography (${phase}/${e.id}): keyframe t out of order (${prevT} → ${k.t})`);
+      prevT = k.t;
+    }
+  }
+
   const authoredAnchorX = ball.kf[0].x;
   const authoredAnchorY = ball.kf[0].y;
   const authoredNearTop = authoredAnchorY >= 50;
@@ -59,8 +76,12 @@ export function parseChoreography(json: PhaseAnimatorExport): ParsedChoreography
   };
 }
 
-// Registry of uploaded Phase Animator JSONs.
-// Keys should match the format: "prevPhase:outcomeKey", e.g. "SCRUM:crash_ball".
+// Registry of uploaded Phase Animator JSONs, keyed by the lookup the consumer uses:
+//  - FirstPhaseEvent.applyChoreography looks up the BARE playType ('crash_ball',
+//    'out_the_back', 'kick_decision').
+//  - ScrumEvent looks up the prefixed 'SCRUM:wheel' literal directly.
+// Match the consumer's key exactly — a prefixed key for a bare-key consumer never
+// resolves and the play silently falls back to procedural animation.
 export const FIRST_PHASE_CHOREOGRAPHIES: Record<string, ParsedChoreography> = {
   'SCRUM:kick_decision': parseChoreography({
   "meta": {

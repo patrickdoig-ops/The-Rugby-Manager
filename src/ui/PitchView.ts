@@ -9,7 +9,7 @@ import { loadTickDelayMs } from './uiPrefs';
 import { lineGapMs } from '../engine/balance';
 import { toTop, toLeft, fromTop, fromLeft } from './pitchCoords';
 import { initPitchPlayers } from './PitchPlayers';
-import { kickFindsTouch } from './pitchChoreography';
+import { kickFindsTouch, clampX, clampY, MAUL_HOOKER_DX } from './pitchChoreography';
 import { SLOT } from '../engine/Slot';
 
 // Which flash a key event warrants, or null for a beat we don't highlight. Kept
@@ -233,28 +233,27 @@ export function initPitchView(): void {
     const duration = legMs * kfs.length;
     runAnim(frames, duration, 'linear', finalTop, finalLeft);
 
-    // Carrier dot: follow authored path if available, else infer the run.
-    let carrierFinalTop = toTop(Math.max(2, Math.min(98, final.x - fwd * 2.5)));
-    let carrierFinalLeft = finalLeft;
+    // When the beat carries an authored choreography, the carrier and dominant
+    // tackler are driven by the dedicated choreography loop in engine:event (which
+    // reads event.choreography directly), so the follower stays out of it. The ball
+    // above still animates either way.
+    if (skipFollower) return;
+
+    // Carrier dot: ride the final carry leg of the ball walk (or the whole path on a
+    // direct pick-up). carrierFinalTop sits fwd*2.5 behind the ball's resting spot.
+    const carrierFinalTop = toTop(clampX(final.x - fwd * 2.5));
+    const carrierFinalLeft = finalLeft;
     let carrierFrames: Keyframe[];
 
     const ballPath = [{ x: fromTop(lastTop), y: fromLeft(lastLeft) }, ...kfs];
     const N = kfs.length;
     const carrierPath = ballPath.map(p => ({
-      top: toTop(Math.max(2, Math.min(98, p.x - fwd * 2.5))),
+      top: toTop(clampX(p.x - fwd * 2.5)),
       left: toLeft(p.y)
     }));
 
-    let explicitCarrierPath: { x: number; y: number; t: number }[] | null = null;
-    if (event.choreography && event.primaryPlayer) {
-      const choreo = event.choreography.find(c => c.id === event.primaryPlayer!.id && c.side === event.side.charAt(0));
-      if (choreo && choreo.movements && choreo.movements.length > 0) {
-        explicitCarrierPath = choreo.movements;
-      }
-    }
-
     let carryStartIdx = 0;
-    if (!carrierFromStart && !explicitCarrierPath) {
+    if (!carrierFromStart) {
       for (let i = ballPath.length - 1; i > 0; i--) {
         if (ballPath[i].x !== ballPath[i - 1].x) {
           carryStartIdx = i - 1;
@@ -263,58 +262,38 @@ export function initPitchView(): void {
       }
     }
 
-    if (explicitCarrierPath) {
-      const lastCp = explicitCarrierPath[explicitCarrierPath.length - 1];
-      carrierFinalTop = toTop(Math.max(2, Math.min(98, lastCp.x)));
-      carrierFinalLeft = toLeft(lastCp.y);
-
-      carrierFrames = explicitCarrierPath.map(cp => ({
-        transform: offsetTransform(toTop(Math.max(2, Math.min(98, cp.x))), toLeft(cp.y), carrierFinalTop, carrierFinalLeft, w, h),
-        offset: cp.t
+    if (carrierFromStart) {
+      // Direct pick-up (pick-and-go): rides the WHOLE ball path exactly in sync.
+      carrierFrames = carrierPath.map((cp, i) => ({
+        transform: offsetTransform(cp.top, cp.left, carrierFinalTop, carrierFinalLeft, w, h),
+        offset: i / N
       }));
-      // Ensure the animation correctly completes at offset 1
-      if (carrierFrames[carrierFrames.length - 1].offset !== 1) {
+    } else {
+      // Passed carry: hold at the receive point, then follow the ball.
+      const receiveCp = carrierPath[carryStartIdx];
+      carrierFrames = [
+        { transform: offsetTransform(receiveCp.top, receiveCp.left, carrierFinalTop, carrierFinalLeft, w, h), offset: 0 },
+        ...(carryStartIdx > 0 ? [{ transform: offsetTransform(receiveCp.top, receiveCp.left, carrierFinalTop, carrierFinalLeft, w, h), offset: carryStartIdx / N }] : [])
+      ];
+      for (let i = carryStartIdx + 1; i <= N; i++) {
         carrierFrames.push({
-          transform: offsetTransform(carrierFinalTop, carrierFinalLeft, carrierFinalTop, carrierFinalLeft, w, h),
-          offset: 1
+          transform: offsetTransform(carrierPath[i].top, carrierPath[i].left, carrierFinalTop, carrierFinalLeft, w, h),
+          offset: i / N
         });
       }
-    } else {
-      if (carrierFromStart) {
-        // Direct pick-up (pick-and-go): rides the WHOLE ball path exactly in sync.
-        carrierFrames = carrierPath.map((cp, i) => ({
-          transform: offsetTransform(cp.top, cp.left, carrierFinalTop, carrierFinalLeft, w, h),
-          offset: i / N
-        }));
-      } else {
-        // Passed carry: hold at the receive point, then follow the ball.
-        const receiveCp = carrierPath[carryStartIdx];
-        carrierFrames = [
-          { transform: offsetTransform(receiveCp.top, receiveCp.left, carrierFinalTop, carrierFinalLeft, w, h), offset: 0 },
-          ...(carryStartIdx > 0 ? [{ transform: offsetTransform(receiveCp.top, receiveCp.left, carrierFinalTop, carrierFinalLeft, w, h), offset: carryStartIdx / N }] : [])
-        ];
-        for (let i = carryStartIdx + 1; i <= N; i++) {
-          carrierFrames.push({
-            transform: offsetTransform(carrierPath[i].top, carrierPath[i].left, carrierFinalTop, carrierFinalLeft, w, h),
-            offset: i / N
-          });
-        }
-      }
     }
 
-    if (!skipFollower) {
-      follower.run(carrierFinalTop, carrierFinalLeft, carrierFrames, duration, 'linear');
-    }
+    follower.run(carrierFinalTop, carrierFinalLeft, carrierFrames, duration, 'linear');
 
     const domTackler = players.domTacklerEl;
-    if (domTackler && players.domTacklerFrom && !skipFollower) {
+    if (domTackler && players.domTacklerFrom) {
       let tacklerFrames: Keyframe[];
       const tacklerFromTop = toTop(players.domTacklerFrom.x);
       const tacklerFromLeft = toLeft(players.domTacklerFrom.y);
-      const tacklerFinalTop = toTop(Math.max(2, Math.min(98, fromTop(carrierFinalTop) + fwd * 1.3)));
+      const tacklerFinalTop = toTop(clampX(fromTop(carrierFinalTop) + fwd * 1.3));
       const tacklerFinalLeft = carrierFinalLeft;
 
-      if (carrierFromStart || explicitCarrierPath) {
+      if (carrierFromStart) {
         tacklerFrames = [
           { transform: offsetTransform(tacklerFromTop, tacklerFromLeft, tacklerFinalTop, tacklerFinalLeft, w, h), offset: 0 },
           { transform: offsetTransform(tacklerFinalTop, tacklerFinalLeft, tacklerFinalTop, tacklerFinalLeft, w, h), offset: 1 }
@@ -322,16 +301,16 @@ export function initPitchView(): void {
       } else {
         const carryStartPct = carryStartIdx / N;
         const receiveCp = carrierPath[carryStartIdx];
-        const tacklerReceiveTop = toTop(Math.max(2, Math.min(98, fromTop(receiveCp.top) + fwd * 1.3)));
+        const tacklerReceiveTop = toTop(clampX(fromTop(receiveCp.top) + fwd * 1.3));
         const tacklerReceiveLeft = receiveCp.left;
 
         tacklerFrames = [
           { transform: offsetTransform(tacklerFromTop, tacklerFromLeft, tacklerFinalTop, tacklerFinalLeft, w, h), offset: 0 },
           ...(carryStartIdx > 0 ? [{ transform: offsetTransform(tacklerReceiveTop, tacklerReceiveLeft, tacklerFinalTop, tacklerFinalLeft, w, h), offset: carryStartPct }] : [])
         ];
-        
+
         for (let i = carryStartIdx + 1; i <= N; i++) {
-          const tTop = toTop(Math.max(2, Math.min(98, fromTop(carrierPath[i].top) + fwd * 1.3)));
+          const tTop = toTop(clampX(fromTop(carrierPath[i].top) + fwd * 1.3));
           tacklerFrames.push({
             transform: offsetTransform(tTop, carrierPath[i].left, tacklerFinalTop, tacklerFinalLeft, w, h),
             offset: i / N
@@ -371,7 +350,7 @@ export function initPitchView(): void {
       startLeft = toLeft(final.y);
     }
 
-    const carrierFinalTop = toTop(Math.max(2, Math.min(98, final.x - fwd * 2.5)));
+    const carrierFinalTop = toTop(clampX(final.x - fwd * 2.5));
     const carrierFinalLeft = finalLeft;
 
     const carrierFrames: Keyframe[] = [
@@ -474,7 +453,7 @@ export function initPitchView(): void {
       movementAnimating = true;
       const attacksTop = (event.side === 'home') !== cachedHalfTimeDone;
       const fwd = attacksTop ? 1 : -1;
-      const hookerTop  = toTop(Math.max(2, Math.min(98, event.ballX - fwd * 7.5)));
+      const hookerTop  = toTop(clampX(event.ballX - fwd * MAUL_HOOKER_DX));
       const hookerLeft = toLeft(event.ballY);
       const { w, h } = hostDims();
       runAnim([
@@ -532,8 +511,8 @@ export function initPitchView(): void {
 
       const sweepSH = (el: HTMLElement | null, startPitchX: number) => {
         if (!el) return;
-        const startTop  = toTop(Math.max(2, Math.min(98, startPitchX)));
-        const startLeft = toLeft(Math.max(3, Math.min(97, startLooseY)));
+        const startTop  = toTop(clampX(startPitchX));
+        const startLeft = toLeft(clampY(startLooseY));
         const finalTop  = parseFloat(el.style.top);
         const finalLeft = parseFloat(el.style.left);
         el.animate([

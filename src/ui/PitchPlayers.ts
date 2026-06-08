@@ -87,6 +87,20 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
   let tacklerAnim: Animation | null = null;
   let animatedTacklerEl: HTMLElement | null = null;
 
+  // Enable a CSS formation glide (Layer 3) for `ms`, then remove the class. A
+  // generation token per class ensures that when several phase changes land inside one
+  // glide window (fast tick speed), only the LAST scheduled timer clears the class — so
+  // an earlier timer can't cut a still-running glide short.
+  let glideGen = 0, snapGen = 0;
+  const scheduleGlide = (cls: 'dot-transitioning' | 'dot-snap-transition', ms: number): void => {
+    field.classList.add(cls);
+    const isSnap = cls === 'dot-snap-transition';
+    const gen = isSnap ? ++snapGen : ++glideGen;
+    setTimeout(() => {
+      if (gen === (isSnap ? snapGen : glideGen)) field.classList.remove(cls);
+    }, ms);
+  };
+
   const ensureDot = (key: string, color: string, text: string, jersey: number): HTMLElement => {
     let el = pool.get(key);
     if (!el) {
@@ -132,8 +146,7 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       // Lineout→Maul: enable top/left transitions so forwards animate from their
       // lineout spread into the maul cluster rather than just appearing there.
       if (currentPhase === MatchPhase.Lineout && event.phase === MatchPhase.Maul) {
-        field.classList.add('dot-transitioning');
-        setTimeout(() => field.classList.remove('dot-transitioning'), 600);
+        scheduleGlide('dot-transitioning', 600);
       }
       // FirstPhase→Breakdown: the set-piece pack has been held at its scrum/lineout
       // positions through the whole first phase. The breakdown beat is the first to
@@ -144,11 +157,10 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       // the predecessor phase (FirstPhase, PhasePlay) left them, rather than
       // snapping instantly. CSS animates from the dots' actual current positions,
       // so the blend is correct for any predecessor.
-      if (event.phase === MatchPhase.Breakdown || 
-          event.phase === MatchPhase.BoxKick || 
+      if (event.phase === MatchPhase.Breakdown ||
+          event.phase === MatchPhase.BoxKick ||
           event.phase === MatchPhase.TacticalKick) {
-        field.classList.add('dot-transitioning');
-        setTimeout(() => field.classList.remove('dot-transitioning'), 600);
+        scheduleGlide('dot-transitioning', 600);
       }
       // Lineout/Scrum→FirstPhase: keep set-piece forwards visible through the whole
       // first phase — carry persistedKeys forward so they don't clear at the boundary.
@@ -179,18 +191,15 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       // the other holds keep the non-movers exactly in place (no transition needed). Phase
       // play enables its glide per-beat below.
       if (keepKickFormation || keepTryScored) {
-        field.classList.add('dot-transitioning');
-        setTimeout(() => field.classList.remove('dot-transitioning'), 600);
+        scheduleGlide('dot-transitioning', 600);
       } else {
         const snapPhases = new Set([
           MatchPhase.KickOff, MatchPhase.HalfTime, MatchPhase.FullTime
         ]);
         if (snapPhases.has(event.phase)) {
-          field.classList.add('dot-snap-transition');
-          setTimeout(() => field.classList.remove('dot-snap-transition'), 400);
+          scheduleGlide('dot-snap-transition', 400);
         } else {
-          field.classList.add('dot-transitioning');
-          setTimeout(() => field.classList.remove('dot-transitioning'), 600);
+          scheduleGlide('dot-transitioning', 600);
         }
       }
       if (keepLineout) {
@@ -222,8 +231,7 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     // (no position change → no transition fires). The carrier rides the ball via the
     // follower, which sets transition:none on its own dot so the glide can't fight it.
     if (event.phase === MatchPhase.PhasePlay) {
-      field.classList.add('dot-transitioning');
-      setTimeout(() => field.classList.remove('dot-transitioning'), 600);
+      scheduleGlide('dot-transitioning', 600);
     }
 
     carrierEl = null;
@@ -356,6 +364,8 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     chaseDots = [];
     atkSHEl = null;
     defSHEl = null;
+    domTacklerEl = null;
+    domTacklerFrom = null;
     activeGlows = [];
   };
 

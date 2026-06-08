@@ -846,7 +846,9 @@ body.pitch-view-active #pitch-wrapper { display: none; }
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  opacity: 0.6;
+  color: #ffffff;
+  opacity: 0.85;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.75), 0 0 10px rgba(0,0,0,0.55);
   white-space: nowrap;
   overflow: visible;
   pointer-events: none;

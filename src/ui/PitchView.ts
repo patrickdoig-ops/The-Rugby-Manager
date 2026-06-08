@@ -626,9 +626,7 @@ export function initPitchView(): void {
       const topTeam    = !flip ? state.awayTeam : state.homeTeam;
       // Full team name, large, in each in-goal — names the end a side defends.
       topLabel.textContent    = topTeam.name;
-      topLabel.style.color    = colorOnDark(topTeam.color);
       bottomLabel.textContent = bottomTeam.name;
-      bottomLabel.style.color = colorOnDark(bottomTeam.color);
     }
   });
 }

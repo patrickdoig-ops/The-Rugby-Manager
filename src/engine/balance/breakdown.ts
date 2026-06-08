@@ -8,7 +8,7 @@ export const BREAKDOWN_VALUES = {
   // Pivot used as `(p.discipline - disciplinePivot) * disciplineWeight` so a
   // discipline of 50 is neutral and values above/below add or subtract score.
   disciplinePivot:  50,
-  bodyWeights:      [1.0, 0.6, 0.4, 0.3],
+  bodyWeights:      [1.0, 0.5, 0.25, 0.2],
   bodyWeightFallback: 0.3,
   cleanBallMargin:  10,
   slowBallMargin:   -8,
@@ -25,6 +25,26 @@ export const BREAKDOWN_VALUES = {
   counterRuckDtsMod: -7,
   jackalLeadWeight: 0.7,
   jackalSupportWeight: 0.3,
+  // First-to-the-breakdown arrival edge. The fastest loose forward (back row)
+  // on EACH side races to the ball; each side adds (fastestBackRowPace −
+  // paceArrivalPivot) × paceArrivalWeight to its score (attack → ARS, the
+  // contesting defender → DTS). Measured symmetrically (same pool: back row,
+  // same aggregation: max) so the NET margin effect is the pure pack-pace
+  // differential — a faster pack reaches the ball first and secures it (or
+  // jackals it) — rather than an artefact of which random supporters were
+  // committed. Shadow defenders retreat into the line and don't contest, so
+  // they get no arrival term. A 15-pt pace edge ≈ 4.5 margin points against
+  // the +10 / −14 outcome thresholds.
+  paceArrivalWeight: 0.3,
+  paceArrivalPivot:  50,
+  // Flat edge added to ARS — the ball-carrying team's inherent advantage
+  // securing its OWN ruck (it arrives organised, the defence is recovering).
+  // Also the calibration knob for the league penalty rate against the current
+  // ruck-score scale: it shifts the whole margin distribution up, pulling BOTH
+  // holding-on penalties and breakdown turnovers down together (vs lowering the
+  // turnover margin, which would just convert penalties into an unrealistic
+  // turnover glut). Tuned to land holding-on ≈ 10% of attacking breakdowns.
+  ruckRetentionBonus: 9,
 } as const;
 
 // Base trigger rates for the breakdown-fired penalty offences added alongside

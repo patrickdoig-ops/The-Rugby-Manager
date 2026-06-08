@@ -38,8 +38,8 @@ export const TACTIC_MODIFIERS = {
   breakdownSupporterCount:    { commit_numbers: 4,  minimal_ruck: 2,  balanced: 3 },
   // Compensating bonus added to the BREAKDOWN attack score (ars) to offset
   // the supporter-count headcount deficit baked into the body-weights
-  // stack ([1.0, 0.6, 0.4, 0.3] in BREAKDOWN_VALUES.bodyWeights). minimal_ruck
-  // with 2 supporters produces ~80% of balanced's ruck score from the
+  // stack ([1.0, 0.5, 0.25, 0.2] in BREAKDOWN_VALUES.bodyWeights). minimal_ruck
+  // with 2 supporters produces ~86% of balanced's ruck score from the
   // stacked-bodies formula alone — enough to push penalty_defending
   // outcomes ~4× higher and bleed possession by ~7pp in the v2.179a
   // controlled mirror-match experiment (scripts/tacticsComboExperiment.ts).

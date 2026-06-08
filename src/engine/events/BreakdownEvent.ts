@@ -5,10 +5,21 @@ import type { NarrationStep } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
 import { resolveBreakdown } from '../resolvers/BreakdownResolver';
 import { rng } from '../../utils/rng';
-import { HOME_ADVANTAGE, TACTIC_MODIFIERS, COMMENTARY_CHANCES, BREAKDOWN_PENALTIES, CARRY_HANDOFF_BONUSES } from '../balance';
+import { HOME_ADVANTAGE, TACTIC_MODIFIERS, COMMENTARY_CHANCES, BREAKDOWN_PENALTIES, BREAKDOWN_VALUES, CARRY_HANDOFF_BONUSES } from '../balance';
 import { homeEdge } from '../HomeAdvantage';
 import { availableForwards, onFieldPlayers } from '../FieldPosition';
 import { isBackRowSlot } from '../Slot';
+
+// Fastest player in a group — the "first to the breakdown" arrival pace.
+// Empty group returns the pivot (neutral, zero edge).
+function fastestPace(players: Player[]): number {
+  if (players.length === 0) return BREAKDOWN_VALUES.paceArrivalPivot;
+  let max = players[0].currentStats.pace;
+  for (let i = 1; i < players.length; i++) {
+    if (players[i].currentStats.pace > max) max = players[i].currentStats.pace;
+  }
+  return max;
+}
 
 export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext): PhaseResult {
   const attPlan = attackTeam.tactics.attackingBreakdown;
@@ -123,7 +134,15 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
     };
   }
 
-  const res = resolveBreakdown(supporters, jackal, defPlan, defendPack, attackBonus + ha.attack + TACTIC_MODIFIERS.breakdownArsMod[attPlan] + attContestEdge, ha.defend + defContestEdge);
+  // First-to-arrive pace: the fastest loose forward (back row) on each side,
+  // measured symmetrically so the edge is a pure pack-pace differential — not
+  // an artefact of which random supporters were committed. Falls back to all
+  // forwards if a side has no back row on the field.
+  const attackBackRow = attackFwds.filter(p => isBackRowSlot(p.id));
+  const attackArrivalPace = fastestPace(attackBackRow.length > 0 ? attackBackRow : attackFwds);
+  const defendArrivalPace = fastestPace(backRow.length > 0 ? backRow : defendFwds);
+
+  const res = resolveBreakdown(supporters, jackal, defPlan, defendPack, attackBonus + ha.attack + TACTIC_MODIFIERS.breakdownArsMod[attPlan] + attContestEdge, ha.defend + defContestEdge, attackArrivalPace, defendArrivalPace);
 
   // 3. offside_at_ruck — defender, post-resolve, fires ONLY on the
   //    transitions that put the ball back into phase play (clean_ball /

@@ -973,7 +973,7 @@ On turnover or penalty, `breakdownMod` is reset to `{0, 0}` immediately — poss
 
 ### Resolution
 
-Both attack and defense use a **diminishing-return stacked score** (`stackedScore`). Players are sorted best-first (by their two primary stats), then each contributes their weighted score with the weights `[1.0, 0.6, 0.4, 0.3]` for positions 1–4. The raw weighted sum is divided by 2, which calibrates 3 supporters (balanced) to the same base as a simple average.
+Both attack and defense use a **diminishing-return stacked score** (`stackedScore`). Players are sorted best-first (by their two primary stats), then each contributes their weighted score with the weights `[1.0, 0.5, 0.25, 0.2]` for positions 1–4. The raw weighted sum is divided by 2 to keep the stacked score roughly on the scale of a single player's contribution (3 supporters / balanced sum to 1.75, ≈ 0.875× after halving).
 
 ```
 stackedScore(players, leadStat, supportStat):
@@ -985,18 +985,24 @@ stackedScore(players, leadStat, supportStat):
 **ARS (Attack Ruck Score):**
 ```
 ARS = stackedScore(supporters, breakdown, strength) + rng(1,20) + attackBonus
+    + ruckRetentionBonus (9)                  ← carrying team's own-ruck edge / penalty-rate calibration
+    + (fastestBackRowPace − 50) × 0.3         ← first-to-arrive pace edge
 attackBonus = (CARRY_HANDOFF_BONUSES.lineBreak (15)    if previous play was line_break,
                CARRY_HANDOFF_BONUSES.dominantCarry (6)  if previous play was dominant_carry,
                0 otherwise)
             + homeEdge.attack
 ```
 
+**Ruck retention bonus.** A flat `+9` to ARS in `BREAKDOWN_VALUES` — the ball-carrying team's inherent advantage securing its own ruck. It is also the league penalty-rate calibration knob against the current ruck-score scale: it shifts the whole margin distribution up, pulling **both** holding-on penalties and breakdown turnovers down together (vs lowering the turnover margin, which would convert penalties into an unrealistic turnover glut). Tuned to land holding-on ≈ 10% of attacking breakdowns (clean 40.6% / slow 37.6% / turnover 9.6% / penalty 12.1% of contests).
+
+**Pace arrival edge.** The fastest loose forward (back row) on each side races to the ball. Each side adds `(fastestBackRowPace − paceArrivalPivot) × paceArrivalWeight` (pivot 50, weight 0.3) to its score — attack → ARS, the contesting defender → DTS (jackal and counter_ruck; shadow gets none, those defenders retreat into the line). The pace rep is measured **symmetrically** on both sides (same pool: back row; same aggregation: max, computed in `BreakdownEvent` and passed into the resolver), so the **net** margin effect is a pure pack-pace differential — a faster pack reaches the breakdown first and secures it (or jackals it) — not an artefact of which random supporters were committed. A 15-pt pace edge ≈ 4.5 margin points. Constants in `BREAKDOWN_VALUES` (`src/engine/balance/breakdown.ts`).
+
 Constants live in `CARRY_HANDOFF_BONUSES` in `src/engine/balance/breakdown.ts`. They're outcome-driven (look at the previous CARRY_RESOLVED), not tactic-driven — kept out of `TACTIC_MODIFIERS` so that lookup table stays a pure tactic-keyed Record. On a line break the same bonus is also folded into `state.breakdownMod.attack` so the very next carry phase runs on the front foot (see [Next-phase carry-over](#next-phase-carry-over-statebreakdownmod) above).
 
 **DTS (Defensive Turnover Score):**
-- **jackal**: `breakdown×0.7 + strength×0.3 + (discipline−50)×0.15 + rng(1,20)`
-- **counter_ruck**: `stackedScore(top4defenders, strength, breakdown) + rng(1,20)`
-- **shadow**: `rng(1,10)`
+- **jackal**: `breakdown×0.7 + strength×0.3 + (discipline−50)×0.15 + (fastestBackRowPace−50)×0.3 + rng(1,20)`
+- **counter_ruck**: `stackedScore(top4defenders, strength, breakdown) + (fastestBackRowPace−50)×0.3 + rng(1,20)`
+- **shadow**: `rng(1,90)` (no pace term — shadow defenders retreat into the line rather than contest)
 
 After the active branch resolves, `DTS += defendBonus` (currently sourced from `homeEdge.defend` only). Together with the `attackBonus` addition above this is the breakdown channel of [Home Advantage](#home-advantage): when the home team has possession, `homeEdge` bumps ARS; when they're defending the ruck, it bumps DTS.
 
@@ -1004,11 +1010,11 @@ The top 4 defenders for `counter_ruck` are the 4 forwards with the highest `stre
 
 Effect of player count on ARS (same-quality supporters, typical stats):
 
-| Tactic | Supporters | Weight sum | ARS multiplier vs average |
+| Tactic | Supporters | Weight sum | ARS multiplier vs balanced |
 |---|---|---|---|
-| `minimal_ruck` | 2 | 1.6 | ×0.80 |
-| `balanced` | 3 | 2.0 | ×1.00 (baseline) |
-| `commit_numbers` | 4 | 2.3 | ×1.15 |
+| `minimal_ruck` | 2 | 1.5 | ×0.86 |
+| `balanced` | 3 | 1.75 | ×1.00 (baseline) |
+| `commit_numbers` | 4 | 1.95 | ×1.11 |
 
 Both quality (stat values) and quantity (number of bodies) now independently influence the score. A team with specialist breakdown forwards benefits more from committing them to the ruck.
 

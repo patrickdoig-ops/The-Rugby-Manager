@@ -38,9 +38,17 @@ export function resolveBreakdown(
   defendPack: Player[] = [],
   attackBonus = 0,
   defendBonus = 0,
+  // First-to-arrive pace: the fastest loose forward (back row) on each side
+  // racing to the ball. Computed symmetrically by the caller so the term is a
+  // pure pack-pace differential. Defaults to the pivot (zero edge).
+  attackArrivalPace: number = BREAKDOWN_VALUES.paceArrivalPivot,
+  defendArrivalPace: number = BREAKDOWN_VALUES.paceArrivalPivot,
 ): BreakdownResolution {
-  const { jackalLeadWeight, jackalSupportWeight, disciplineWeight, counterRuckTop, cleanBallMargin, slowBallMargin, turnoverMargin } = BREAKDOWN_VALUES;
-  const ars = stackedScore(supporters, 'breakdown', 'strength') + rng(1, 20) + attackBonus;
+  const { jackalLeadWeight, jackalSupportWeight, disciplineWeight, counterRuckTop, cleanBallMargin, slowBallMargin, turnoverMargin, paceArrivalWeight, paceArrivalPivot } = BREAKDOWN_VALUES;
+  // First-to-arrive: the quickest loose forward gets over the ball to secure it.
+  const ars = stackedScore(supporters, 'breakdown', 'strength') + rng(1, 20) + attackBonus
+            + BREAKDOWN_VALUES.ruckRetentionBonus
+            + (attackArrivalPace - paceArrivalPivot) * paceArrivalWeight;
 
   let dts: number;
   if (defPlan === 'counter_ruck' && defendPack.length > 0) {
@@ -50,7 +58,8 @@ export function resolveBreakdown(
         (a.currentStats.strength * BREAKDOWN_VALUES.leadWeight + a.currentStats.breakdown * BREAKDOWN_VALUES.supportWeight)
       )
       .slice(0, counterRuckTop);
-    dts = stackedScore(top4, 'strength', 'breakdown') + rng(1, 20) + BREAKDOWN_VALUES.counterRuckDtsMod;
+    dts = stackedScore(top4, 'strength', 'breakdown') + rng(1, 20) + BREAKDOWN_VALUES.counterRuckDtsMod
+        + (defendArrivalPace - paceArrivalPivot) * paceArrivalWeight;
   } else if (defPlan === 'shadow') {
     // Shadow defenders sprint back into the defensive line rather than
     // contest the ruck — the base contest is minimal. The wide rng band
@@ -68,6 +77,7 @@ export function resolveBreakdown(
     dts = jackal.currentStats.breakdown * jackalLeadWeight
         + jackal.currentStats.strength * jackalSupportWeight
         + (jackal.currentStats.discipline - BREAKDOWN_VALUES.disciplinePivot) * disciplineWeight
+        + (defendArrivalPace - paceArrivalPivot) * paceArrivalWeight
         + rng(1, 20);
   }
   dts += defendBonus;

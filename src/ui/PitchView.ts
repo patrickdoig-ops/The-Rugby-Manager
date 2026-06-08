@@ -83,6 +83,7 @@ export function initPitchView(): void {
   // (which fires right after engine:event) from un-hiding the ball before it flies.
   let kickFlightThisBeat = false;
   let isPenaltyKickToTouch = false;
+  let isPenaltyMissedTouch = false;
 
   // Position + colour the flash element at a pitch coordinate, then retrigger
   // its keyframe via a forced reflow (same idiom as Scoreboard.popScore).
@@ -388,6 +389,7 @@ export function initPitchView(): void {
     cachedEventPhase = event.phase;
     kickFlightThisBeat = false;
     isPenaltyKickToTouch = event.phase === MatchPhase.Penalty && kickFindsTouch(event);
+    isPenaltyMissedTouch = event.phase === MatchPhase.Penalty && event.narration.steps.some(s => s.kind === 'phase_outcome' && (s as any).key === 'kick_to_touch_missed');
     const cls = flashClass(event);
     if (cls) fireFlash(toTop(event.ballX), toLeft(event.ballY), cls);
 
@@ -585,8 +587,13 @@ export function initPitchView(): void {
     // The shared BALL_SVG paints itself from --rm-amber; override that token on
     // the ball element so the glow takes the possessing side's colour.
     if (isPenaltyKickToTouch) {
+      ball.style.setProperty('--ball-color', 'var(--rm-stat-4)');
       ball.style.setProperty('--ball-glow', `color-mix(in oklch, var(--rm-stat-4) 80%, transparent)`);
+    } else if (isPenaltyMissedTouch) {
+      ball.style.setProperty('--ball-color', 'var(--rm-stat-1)');
+      ball.style.setProperty('--ball-glow', `color-mix(in oklch, var(--rm-stat-1) 80%, transparent)`);
     } else {
+      ball.style.removeProperty('--ball-color');
       ball.style.setProperty('--ball-glow', `color-mix(in oklch, ${attackColor} 60%, transparent)`);
     }
 

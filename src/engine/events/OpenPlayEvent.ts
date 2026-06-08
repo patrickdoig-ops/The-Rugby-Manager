@@ -18,7 +18,7 @@ import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, HARD_CARRY_LINE_BREAK_UPGRADE_PC
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { SLOT, isBackSlot } from '../Slot';
 import { tryOffloadChain } from './offloadChain';
-import { effAttackingBreakdown, effDefendingBreakdown, effBackfieldDefence, effDefensiveLine } from '../tacticsResolve';
+import { effAttackingBreakdown, effDefendingBreakdown, effBackfieldDefence, effDefensiveLine, effDisciplineScalar } from '../tacticsResolve';
 
 const FULL_BACKLINE = 7;  // jersey ids 9–15
 
@@ -412,7 +412,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   // High-tackle check: applies on top of the carry result so the carrier still
   // earns the metres (advantage law). Skipped on line breaks — no completed
   // tackle to be high.
-  if (res.outcome !== 'line_break' && tackleInfringement(defender, TACTIC_MODIFIERS.disciplineHighTackleMod[defendTeam.tactics.discipline]) === 'high_tackle') {
+  if (res.outcome !== 'line_break' && tackleInfringement(defender, effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplineHighTackleMod)) === 'high_tackle') {
     events.push({ type: 'PENALTY_AWARDED', offence: 'high_tackle', offender: defender, offendingSide: defSide });
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'high_tackle_penalty', primary: defender, secondary: ballCarrier });
     nextPhase = MatchPhase.Penalty;
@@ -542,7 +542,7 @@ function resolvePickAndGo(
     :                                 'pick_and_go_play_on';
     steps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: outcomeKey, primary: carrier, secondary: defender });
 
-    if (tackleInfringement(defender, TACTIC_MODIFIERS.disciplineHighTackleMod[defendTeam.tactics.discipline]) === 'high_tackle') {
+    if (tackleInfringement(defender, effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplineHighTackleMod)) === 'high_tackle') {
       events.push({ type: 'PENALTY_AWARDED', offence: 'high_tackle', offender: defender, offendingSide: defSide });
       steps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'high_tackle_penalty', primary: defender, secondary: carrier });
       nextPhase = MatchPhase.Penalty;

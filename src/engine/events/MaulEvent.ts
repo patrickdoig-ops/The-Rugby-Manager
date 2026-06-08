@@ -8,6 +8,7 @@ import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { SLOT } from '../Slot';
 import { TACTIC_MODIFIERS } from '../balance';
+import { effIntensityScalar, effDisciplineScalar } from '../tacticsResolve';
 
 // Random forward from the cited side — mirrors ScrumEvent.pickFrontRowOffender
 // but draws from the whole pack (a maul collapse is typically a defender
@@ -41,9 +42,9 @@ export function handleMaul({ state, attackTeam, defendTeam }: PhaseContext): Pha
   // biases the cynical-collapse roll (risky cracks more to stop the drive).
   const res = resolveMaul(
     attackForwards, defendForwards,
-    TACTIC_MODIFIERS.intensityMaulMod[attackTeam.tactics.intensity],
-    TACTIC_MODIFIERS.intensityMaulMod[defendTeam.tactics.intensity],
-    TACTIC_MODIFIERS.disciplineMaulCollapseMod[defendTeam.tactics.discipline],
+    effIntensityScalar(attackTeam, TACTIC_MODIFIERS.intensityMaulMod),
+    effIntensityScalar(defendTeam, TACTIC_MODIFIERS.intensityMaulMod),
+    effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplineMaulCollapseMod),
   );
 
   const events: MatchEvent[] = [

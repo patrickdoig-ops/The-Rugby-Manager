@@ -8,7 +8,7 @@ import { rng } from '../../utils/rng';
 import { HOME_ADVANTAGE, TACTIC_MODIFIERS, COMMENTARY_CHANCES, BREAKDOWN_PENALTIES, BREAKDOWN_VALUES, CARRY_HANDOFF_BONUSES } from '../balance';
 import { homeEdge } from '../HomeAdvantage';
 import { availableForwards, onFieldPlayers } from '../FieldPosition';
-import { effAttackingBreakdown, effDefendingBreakdown, effDefensiveLine } from '../tacticsResolve';
+import { effAttackingBreakdown, effDefendingBreakdown, effDefensiveLine, effIntensityScalar, effDisciplineScalar } from '../tacticsResolve';
 import { isBackRowSlot } from '../Slot';
 
 // Fastest player in a group — the "first to the breakdown" arrival pace.
@@ -25,14 +25,12 @@ function fastestPace(players: Player[]): number {
 export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext): PhaseResult {
   const attPlan = effAttackingBreakdown(state, attackTeam);
   const defPlan = effDefendingBreakdown(state, defendTeam);
-  const attDiscipline = attackTeam.tactics.discipline;
-  const defDiscipline = defendTeam.tactics.discipline;
   // Intensity (physical edge) + discipline (turnover edge) at the contest —
   // each side's own settings add to its breakdown score below.
-  const attContestEdge = TACTIC_MODIFIERS.intensityContestMod[attackTeam.tactics.intensity]
-                       + TACTIC_MODIFIERS.disciplineContestMod[attDiscipline];
-  const defContestEdge = TACTIC_MODIFIERS.intensityContestMod[defendTeam.tactics.intensity]
-                       + TACTIC_MODIFIERS.disciplineContestMod[defDiscipline];
+  const attContestEdge = effIntensityScalar(attackTeam, TACTIC_MODIFIERS.intensityContestMod)
+                       + effDisciplineScalar(attackTeam, TACTIC_MODIFIERS.disciplineContestMod);
+  const defContestEdge = effIntensityScalar(defendTeam, TACTIC_MODIFIERS.intensityContestMod)
+                       + effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplineContestMod);
 
   const lastEvent = state.events[state.events.length - 1];
   const carrierId = lastEvent?.primaryPlayer?.id;
@@ -106,7 +104,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   //    Offender: a random supporter (the cleaner). Penalty flips possession.
   const cleanoutPct = BREAKDOWN_PENALTIES.dangerousCleanoutBasePct
                     + TACTIC_MODIFIERS.dangerousCleanoutAttackMod[attPlan]
-                    + TACTIC_MODIFIERS.disciplinePenaltyMod[attDiscipline];
+                    + effDisciplineScalar(attackTeam, TACTIC_MODIFIERS.disciplinePenaltyMod);
   if (rng(1, 100) <= cleanoutPct) {
     const offender = supporters[rng(0, supporters.length - 1)];
     events.push({ type: 'PENALTY_AWARDED', offence: 'dangerous_cleanout', offender, offendingSide: attackSide });
@@ -123,7 +121,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   //    nearest defender to the tackle, already picked above).
   const notRollingPct = BREAKDOWN_PENALTIES.notRollingAwayBasePct
                       + TACTIC_MODIFIERS.notRollingAwayDefendMod[defPlan]
-                      + TACTIC_MODIFIERS.disciplinePenaltyMod[defDiscipline];
+                      + effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplinePenaltyMod);
   if (rng(1, 100) <= notRollingPct) {
     events.push({ type: 'PENALTY_AWARDED', offence: 'not_rolling_away', offender: jackal, offendingSide: defSide });
     return {
@@ -153,7 +151,7 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   if (res.result === 'clean_ball' || res.result === 'slow_ball') {
     const offsidePct = BREAKDOWN_PENALTIES.offsideAtRuckBasePct
                      + TACTIC_MODIFIERS.offsideAtRuckDefendMod[effDefensiveLine(state, defendTeam)]
-                     + TACTIC_MODIFIERS.disciplinePenaltyMod[defDiscipline];
+                     + effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplinePenaltyMod);
     if (rng(1, 100) <= offsidePct) {
       const offender = defendOnField[rng(0, defendOnField.length - 1)] ?? jackal;
       events.push({ type: 'PENALTY_AWARDED', offence: 'offside_at_ruck', offender, offendingSide: defSide });

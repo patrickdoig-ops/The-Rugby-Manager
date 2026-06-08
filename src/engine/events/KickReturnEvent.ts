@@ -14,7 +14,7 @@ import { clamp } from '../../utils/math';
 import { HOME_ADVANTAGE, KICK_RETURN_VALUES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, POD_PICKUP_PCT } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { tryOffloadChain } from './offloadChain';
-import { effDefendingBreakdown, effBackfieldDefence, effDefensiveLine } from '../tacticsResolve';
+import { effDefendingBreakdown, effBackfieldDefence, effDefensiveLine, effDisciplineScalar } from '../tacticsResolve';
 import type { NarrationStep } from '../../types/narration';
 
 const FULL_BACKLINE = 7;
@@ -203,7 +203,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer, 
 
   // High-tackle check: applies on top of the carry result (carrier keeps the
   // metres — advantage law). Skipped on line breaks.
-  if (res.outcome !== 'line_break' && tackleInfringement(defender, TACTIC_MODIFIERS.disciplineHighTackleMod[defendTeam.tactics.discipline]) === 'high_tackle') {
+  if (res.outcome !== 'line_break' && tackleInfringement(defender, effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplineHighTackleMod)) === 'high_tackle') {
     events.push({ type: 'PENALTY_AWARDED', offence: 'high_tackle', offender: defender, offendingSide: defSide });
     steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: 'high_tackle_penalty', primary: defender, secondary: carrier });
     nextPhase = MatchPhase.Penalty;

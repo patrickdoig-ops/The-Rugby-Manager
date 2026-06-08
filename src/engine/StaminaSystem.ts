@@ -4,7 +4,7 @@ import type { Player, PlayerStats } from '../types/player';
 import { clamp } from '../utils/math';
 import { rng } from '../utils/rng';
 import { FATIGUE_SCALING, TACTIC_MODIFIERS } from './balance';
-import { effAttackingBreakdown, effDefendingBreakdown, effDefensiveLine } from './tacticsResolve';
+import { effAttackingBreakdown, effDefendingBreakdown, effDefensiveLine, effIntensityScalar } from './tacticsResolve';
 import { isForwardSlot } from './Slot';
 
 export interface FatigueUpdate {
@@ -37,7 +37,7 @@ export function computeFatigue(state: MatchState, team: Team, elapsedMinutes: nu
   // Team-wide intensity multiplier — applied to every player (forwards and
   // backs) on top of the positional multipliers below. high drains faster,
   // light drains slower.
-  const intensityMult = TACTIC_MODIFIERS.intensityFatigueMultiplier[team.tactics.intensity];
+  const intensityMult = effIntensityScalar(team, TACTIC_MODIFIERS.intensityFatigueMultiplier);
 
   for (const player of team.players) {
     if (offFieldIds?.has(player.id)) continue;

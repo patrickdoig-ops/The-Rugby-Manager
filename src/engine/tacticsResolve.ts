@@ -18,6 +18,10 @@ import type {
   DefendingBreakdown,
   BackfieldDefence,
   DefensiveLine,
+  AttackingStyle,
+  OffloadStrategy,
+  Intensity,
+  Discipline,
 } from '../types/team';
 import type { PossessionSide } from '../types/engine';
 import { zoneForSide } from './FieldPosition';
@@ -25,6 +29,19 @@ import { zoneForSide } from './FieldPosition';
 function sideOf(state: MatchState, team: Team): PossessionSide {
   return team === state.homeTeam ? 'home' : 'away';
 }
+
+// Piecewise-linear interpolation through three bucket anchors at slider
+// positions 0 / 50 / 100. Anchoring exactly on a bucket reproduces that
+// bucket's value, so a slider seeded from a preset is byte-identical to it.
+function lerp3(lo: number, mid: number, hi: number, t: number): number {
+  return t <= 50 ? lo + (mid - lo) * (t / 50) : mid + (hi - mid) * ((t - 50) / 50);
+}
+
+// Bucket order per slider dimension: [slider 0, slider 50, slider 100].
+const STYLE_ORDER:      readonly [AttackingStyle, AttackingStyle, AttackingStyle]    = ['keep_it_tight', 'balanced', 'wide_wide'];
+const OFFLOAD_ORDER:    readonly [OffloadStrategy, OffloadStrategy, OffloadStrategy] = ['cautious', 'balanced', 'offload_freely'];
+const INTENSITY_ORDER:  readonly [Intensity, Intensity, Intensity]                  = ['light', 'balanced', 'high'];
+const DISCIPLINE_ORDER: readonly [Discipline, Discipline, Discipline]               = ['cautious', 'balanced', 'risky'];
 
 // ── Discrete per-zone dimensions — return the effective enum for the zone ──
 
@@ -46,4 +63,37 @@ export function effBackfieldDefence(state: MatchState, team: Team): BackfieldDef
 export function effDefensiveLine(state: MatchState, team: Team): DefensiveLine {
   const adv = team.tactics.advanced?.defensiveLine;
   return adv ? adv[zoneForSide(state, sideOf(state, team))] : team.tactics.defensiveLine;
+}
+
+// ── Continuous slider dimensions — return the interpolated modifier value ──
+// Each takes the same per-bucket table the preset path reads (Record keyed by
+// the dimension's enum) and returns either the preset bucket value (no
+// override) or the interpolated value for the slider position.
+
+// Per-zone sliders (need the team's current zone).
+export function effStyleScalar(state: MatchState, team: Team, table: Record<AttackingStyle, number>): number {
+  const adv = team.tactics.advanced?.attackingStyle;
+  if (!adv) return table[team.tactics.attackingStyle];
+  const t = adv[zoneForSide(state, sideOf(state, team))];
+  return lerp3(table[STYLE_ORDER[0]], table[STYLE_ORDER[1]], table[STYLE_ORDER[2]], t);
+}
+
+export function effOffloadScalar(state: MatchState, team: Team, table: Record<OffloadStrategy, number>): number {
+  const adv = team.tactics.advanced?.offloadStrategy;
+  if (!adv) return table[team.tactics.offloadStrategy];
+  const t = adv[zoneForSide(state, sideOf(state, team))];
+  return lerp3(table[OFFLOAD_ORDER[0]], table[OFFLOAD_ORDER[1]], table[OFFLOAD_ORDER[2]], t);
+}
+
+// Single (non-zoned) sliders — whole-pitch effort levers, no zone lookup.
+export function effIntensityScalar(team: Team, table: Record<Intensity, number>): number {
+  const adv = team.tactics.advanced?.intensity;
+  if (adv === undefined) return table[team.tactics.intensity];
+  return lerp3(table[INTENSITY_ORDER[0]], table[INTENSITY_ORDER[1]], table[INTENSITY_ORDER[2]], adv);
+}
+
+export function effDisciplineScalar(team: Team, table: Record<Discipline, number>): number {
+  const adv = team.tactics.advanced?.discipline;
+  if (adv === undefined) return table[team.tactics.discipline];
+  return lerp3(table[DISCIPLINE_ORDER[0]], table[DISCIPLINE_ORDER[1]], table[DISCIPLINE_ORDER[2]], adv);
 }

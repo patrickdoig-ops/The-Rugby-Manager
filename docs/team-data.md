@@ -176,7 +176,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 | George Kloska | Prop | 2002-02-11 | 24 | England | 82 | 94 | 72 | 72 | 74 | 88 | 82 | 52 | 92 | 83 | 90 | 83 |
 | Joe Owen | Lock | 2003-01-23 | 23 | England | 88 | 89 | 81 | 75 | 78 | 86 | 83 | 54 | 93 | 78 | 79 | 80 |
 | Joe Batley | Lock | 1996-09-06 | 29 | England | 89 | 90 | 72 | 74 | 81 | 85 | 81 | 55 | 96 | 83 | 82 | 83 |
-| Fitz Harding | Flanker | 1997-11-29 | 28 | England | 96 | 86 | 82 | 86 | 79 | 88 | 95 | 57 | 88 | 86 | 80 | 82 |
+| Fitz Harding | Flanker | 1997-11-29 | 28 | England | 96 | 86 | 89 | 86 | 79 | 88 | 95 | 57 | 88 | 86 | 80 | 82 |
 | Luka Ivanishvili | Flanker | 1999-12-12 | 26 | Georgia | 82 | 88 | 84 | 84 | 82 | 85 | 88 | 59 | 86 | 92 | 88 | 91 |
 | Viliame Mata | Number 8 | 1991-04-15 | 35 | Fiji | 92 | 96 | 80 | 87 | 90 | 88 | 91 | 60 | 85 | 84 | 83 | 86 |
 
@@ -212,7 +212,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 | Jimmy Halliwell | Prop | 2004-03-31 | 22 | England | 72 | 80 | 52 | 61 | 61 | 73 | 72 | 47 | 82 | 64 | 65 | 61 |
 | Paddy Pearce | Flanker | 2004-05-07 | 22 | England | 72 | 72 | 63 | 72 | 66 | 72 | 74 | 60 | 65 | 67 | 72 | 68 |
 | Pedro Rubiolo | Lock | 2002-03-15 | 24 | Argentina | 72 | 73 | 57 | 55 | 60 | 72 | 72 | 49 | 84 | 65 | 65 | 65 |
-| Jake Heenan | Flanker | 1992-04-09 | 34 | Ireland | 72 | 72 | 68 | 72 | 64 | 73 | 76 | 62 | 68 | 63 | 72 | 68 |
+| Jake Heenan | Flanker | 1992-04-09 | 34 | Ireland | 72 | 72 | 89 | 72 | 64 | 73 | 76 | 62 | 68 | 63 | 72 | 68 |
 | Steven Luatua | Flanker | 1991-06-10 | 34 | New Zealand | 72 | 78 | 62 | 71 | 84 | 78 | 77 | 61 | 72 | 90 | 96 | 95 |
 | Will Ramply | Lock | 2004-05-25 | 22 | England | 82 | 72 | 59 | 63 | 58 | 72 | 72 | 49 | 82 | 61 | 68 | 63 |
 
@@ -622,7 +622,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 | Guido Petti | Lock | 1994-11-17 | 31 | Argentina | 77 | 86 | 71 | 75 | 76 | 85 | 82 | 51 | 97 | 80 | 82 | 73 |
 | Joe Launchbury | Lock | 1991-04-12 | 35 | England | 79 | 87 | 72 | 73 | 77 | 79 | 82 | 44 | 97 | 77 | 76 | 78 |
 | Chandler Cunningham-South | Flanker | 2003-03-18 | 23 | England | 95 | 95 | 78 | 78 | 78 | 95 | 95 | 55 | 95 | 78 | 78 | 78 |
-| Jack Kenningham | Flanker | 1999-11-19 | 26 | England | 83 | 79 | 77 | 83 | 80 | 84 | 98 | 58 | 76 | 73 | 81 | 77 |
+| Jack Kenningham | Flanker | 1999-11-19 | 26 | England | 83 | 79 | 90 | 83 | 80 | 84 | 98 | 58 | 76 | 73 | 81 | 77 |
 | Alex Dombrandt | Number 8 | 1997-04-29 | 29 | England | 89 | 90 | 78 | 78 | 90 | 95 | 95 | 56 | 78 | 90 | 90 | 90 |
 
 **Starting XV — Backs**

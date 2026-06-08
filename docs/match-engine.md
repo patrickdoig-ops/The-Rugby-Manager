@@ -479,7 +479,7 @@ Pre-match and half-time team talks apply a time-decaying attack/defend modifier 
 ### How it flows
 
 1. **Pre-match (in `MatchCoordinator.initialize()`):** The manager picks a tone via the Team Talk screen; the AI side gets a deterministic tone based on OVR-sum delta. Both emit a `TEAM_TALK_APPLIED` MatchEvent that sets `state.teamTalkMod[side]`.
-2. **Half-time (in `MatchCoordinator.handleEndOfPeriod()`):** Same pattern — the manager gets a modal pause (`team_talk_choice`); the AI gets a deterministic tone based on score delta. Both emit `TEAM_TALK_APPLIED`.
+2. **Half-time (in `MatchCoordinator.runHalfTimeTalks()`):** Same pattern — the manager gets a modal pause (`team_talk_choice`); the AI gets a deterministic tone based on score delta. Both emit `TEAM_TALK_APPLIED`. This shared helper is called by **both** paths that can end the first half: the normal end-of-period (`handleEndOfPeriod()`) and a goal kick — conversion or penalty — resolved while the clock is in the red (`tickKickAtGoal()`). Routing both through one helper guarantees the dressing-room panel (and the AI talk) appears regardless of how the half ends. Silent mode applies both AI talks deterministically and plays straight on, in both paths.
 3. **Carry resolvers (`OpenPlayEvent`, `resolvePickAndGo`):** At each carry, the active fraction is computed: `max(0, 1 − (gameMinute − startMinute) / decayMinutes)`. The resulting bonus is added to `attackMod` and `defendMod` before rolling the carry outcome.
 
 ### Tones and values

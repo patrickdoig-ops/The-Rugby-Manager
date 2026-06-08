@@ -122,7 +122,6 @@ export function initPitchView(): void {
     kickFlight.style.opacity    = '1';
     const kickColor = success ? 'var(--rm-stat-4)' : 'var(--rm-stat-1)';
     kickFlight.style.setProperty('--kick-flight-glow', kickColor);
-    kickFlight.style.setProperty('--ball-color', kickColor);
     void kickFlight.offsetWidth; // force reflow to arm the transition
     kickFlight.style.transition = 'top 0.6s ease-in, left 0.6s ease-in, transform 0.6s ease-in, opacity 0.5s ease-in';
     kickFlight.style.top        = `${targetTop}%`;

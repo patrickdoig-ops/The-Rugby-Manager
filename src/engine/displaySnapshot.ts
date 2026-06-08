@@ -58,11 +58,14 @@ export function buildDisplaySnapshot(state: MatchState): DisplaySnapshot {
     phase:         state.phase,
     possession:    state.possession,
     score:         { home: state.score.home, away: state.score.away },
-    // For TryScored, push ball 3m past the try line into the in-goal area so the
-    // 2D pitch shows it grounded beyond the line. toTop() handles values outside
-    // 0–100 naturally; the invariant check is on state.ball.x, not this display value.
+    // For TryScored, show the ball grounded in the in-goal, measured from the TRY LINE
+    // (x=100 or x=0) — NOT from state.ball.x. The try is awarded with a 5m leniency
+    // (x≥95 counts), so state.ball.x can sit several metres short of the line; pushing
+    // off the raw position would leave a "just-made-it" try rendered short of the line.
+    // Anchoring on the line (line + dir*4 → x=104 / x=-4) makes every try cross. toTop()
+    // handles values outside 0–100; the invariant check is on state.ball.x, not this.
     ballX: state.phase === MatchPhase.TryScored
-      ? state.ball.x + attackDir(state) * 4
+      ? (attackDir(state) > 0 ? 100 : 0) + attackDir(state) * 4
       : state.ball.x,
     ballY:         state.ball.y,
     cards: {

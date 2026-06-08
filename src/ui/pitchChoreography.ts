@@ -1135,14 +1135,14 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
   const [carrier, ...support] = attackers;
 
   // Carrier sits just behind the ball so their circle is visible alongside it. On a try the
-  // scorer must instead track the GROUNDED ball into the in-goal: the display snapshot pushes
-  // the try ball `fwd*4` past the line (displaySnapshot.ts), so the standard `clampX` [2,98]
-  // would strand the scorer at the line while the ball renders in-goal. Place them `fwd*2.5`
-  // past the line — just behind the ball, clearly over — via the wider in-goal clamp, and the
-  // keepTryScored glide eases them across from their carry position.
+  // scorer is placed relative to the TRY LINE (x=100 / x=0), NOT the grounded ballX: the try
+  // is awarded with a 5m leniency so ballX can sit short of the line, and the display snapshot
+  // pushes the ball off the line too (line + dir*4). Place the scorer `fwd*2.5` past the line
+  // (just behind the in-goal ball, clearly over) via the wider in-goal clamp; the standard
+  // clampX [2,98] would strand them on-field, and the keepTryScored glide eases them across.
   if (carrier) {
     const carrierX = event.phase === MatchPhase.TryScored
-      ? clampInGoalX(ballX + fwd * 2.5)
+      ? clampInGoalX((fwd > 0 ? 100 : 0) + fwd * 2.5)
       : clampX(ballX - fwd * 2.5);
     out.push(placed(carrier, atkSide, state, carrierX, ballY, true));
   }

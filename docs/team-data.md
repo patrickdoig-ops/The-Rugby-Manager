@@ -176,19 +176,19 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 | George Kloska | Prop | 2002-02-11 | 24 | England | 82 | 94 | 72 | 72 | 74 | 88 | 82 | 52 | 92 | 83 | 90 | 83 |
 | Joe Owen | Lock | 2003-01-23 | 23 | England | 88 | 89 | 81 | 75 | 78 | 86 | 83 | 54 | 93 | 78 | 79 | 80 |
 | Joe Batley | Lock | 1996-09-06 | 29 | England | 89 | 90 | 72 | 74 | 81 | 85 | 81 | 55 | 96 | 83 | 82 | 83 |
-| Fitz Harding | Flanker | 1997-11-29 | 28 | England | 96 | 86 | 89 | 86 | 79 | 88 | 95 | 57 | 88 | 86 | 80 | 82 |
+| Fitz Harding | Flanker | 1997-11-29 | 28 | England | 96 | 86 | 89 | 86 | 79 | 88 | 92 | 57 | 88 | 86 | 80 | 82 |
 | Luka Ivanishvili | Flanker | 1999-12-12 | 26 | Georgia | 82 | 88 | 84 | 84 | 82 | 85 | 88 | 59 | 86 | 92 | 88 | 91 |
-| Viliame Mata | Number 8 | 1991-04-15 | 35 | Fiji | 92 | 96 | 80 | 87 | 90 | 88 | 91 | 60 | 85 | 84 | 83 | 86 |
+| Viliame Mata | Number 8 | 1991-04-15 | 35 | Fiji | 92 | 96 | 80 | 87 | 90 | 88 | 89 | 60 | 85 | 84 | 83 | 86 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Harry Randall | Scrum-half | 1997-10-29 | 28 | England | 85 | 69 | 90 | 90 | 88 | 78 | 81 | 87 | 35 | 84 | 86 | 83 |
 | Tom Jordan | Fly-half | 1998-08-19 | 27 | Scotland | 80 | 74 | 89 | 82 | 90 | 78 | 77 | 91 | 58 | 85 | 84 | 89 |
-| Gabriel Ibitoye | Wing | 1998-04-26 | 28 | England | 93 | 87 | 95 | 97 | 91 | 74 | 74 | 75 | 42 | 81 | 88 | 75 |
+| Gabriel Ibitoye | Wing | 1998-04-26 | 28 | England | 93 | 87 | 92 | 93 | 87 | 74 | 74 | 75 | 42 | 81 | 88 | 75 |
 | Sam Bedlow | Centre | 1995-08-08 | 30 | England | 86 | 83 | 85 | 84 | 84 | 80 | 76 | 81 | 60 | 75 | 80 | 80 |
 | Benhard Janse van Rensburg | Centre | 1994-02-09 | 32 | South Africa | 90 | 86 | 85 | 91 | 86 | 81 | 85 | 79 | 52 | 83 | 88 | 89 |
-| Kalaveti Ravouvou | Wing | 1996-03-30 | 30 | Fiji | 88 | 88 | 92 | 92 | 90 | 79 | 76 | 79 | 53 | 81 | 82 | 86 |
+| Kalaveti Ravouvou | Wing | 1996-03-30 | 30 | Fiji | 88 | 88 | 89 | 92 | 90 | 79 | 76 | 79 | 53 | 81 | 82 | 86 |
 | Louis Rees-Zammit | Utility Back | 2001-02-02 | 25 | Wales | 85 | 82 | 95 | 85 | 85 | 88 | 75 | 89 | 58 | 88 | 83 | 95 |
 
 **Bench**

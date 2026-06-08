@@ -9,7 +9,7 @@ import { loadTickDelayMs } from './uiPrefs';
 import { lineGapMs } from '../engine/balance';
 import { toTop, toLeft, fromTop, fromLeft } from './pitchCoords';
 import { initPitchPlayers } from './PitchPlayers';
-import { kickFindsTouch, clampX, clampY, MAUL_HOOKER_DX } from './pitchChoreography';
+import { kickFindsTouch, outcomeKeys, clampX, clampY, MAUL_HOOKER_DX } from './pitchChoreography';
 import { SLOT } from '../engine/Slot';
 
 // Which flash a key event warrants, or null for a beat we don't highlight. Kept
@@ -31,10 +31,11 @@ function flashClass(event: GameEvent): string | null {
   const pc = phaseClass(event.displayPhase ?? event.phase);
   if (pc === 'phase-try')     return 'flash-try';
   if (pc === 'phase-penalty') {
-    if (event.narration.steps.some(s => s.kind === 'phase_outcome' && ((s as any).key === 'kick_to_touch' || (s as any).key === 'kick_to_touch_close' || (s as any).key === 'kick_to_touch_long'))) {
+    const keys = outcomeKeys(event);
+    if (keys.includes('kick_to_touch') || keys.includes('kick_to_touch_close') || keys.includes('kick_to_touch_long')) {
       return 'flash-penalty-success';
     }
-    if (event.narration.steps.some(s => s.kind === 'phase_outcome' && (s as any).key === 'kick_to_touch_missed')) {
+    if (keys.includes('kick_to_touch_missed')) {
       return 'flash-penalty-miss';
     }
     return 'flash-penalty';

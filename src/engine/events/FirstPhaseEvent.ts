@@ -143,12 +143,12 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     const isInitialKo = firstKoIdx !== -1 && (firstCarryIdx === -1 || firstKoIdx < firstCarryIdx);
     const isInitialInt = firstIntIdx !== -1 && (firstCarryIdx === -1 || firstIntIdx < firstCarryIdx);
     
-    const koEvent = isInitialKo ? res.events[firstKoIdx] : null;
-    const intEvent = isInitialInt ? res.events[firstIntIdx] : null;
-    const carryEvent = firstCarryIdx !== -1 ? res.events[firstCarryIdx] : null;
+    const koEvent = isInitialKo ? res.events[firstKoIdx] as Extract<MatchEvent, { type: 'KNOCK_ON' }> : null;
+    const intEvent = isInitialInt ? res.events[firstIntIdx] as Extract<MatchEvent, { type: 'INTERCEPTION' }> : null;
+    const carryEvent = firstCarryIdx !== -1 ? res.events[firstCarryIdx] as Extract<MatchEvent, { type: 'CARRY_RESOLVED' }> : null;
 
     if (koEvent || intEvent) {
-      const receiverSlot = koEvent ? koEvent.player.id : (intEvent.passer.id === SLOT.SCRUM_HALF ? SLOT.FLY_HALF : (goCrashBall ? SLOT.CENTRE_12 : SLOT.CENTRE_13));
+      const receiverSlot = koEvent ? koEvent.player.id : (intEvent!.passer.id === SLOT.SCRUM_HALF ? SLOT.FLY_HALF : (goCrashBall ? SLOT.CENTRE_12 : SLOT.CENTRE_13));
       const targetSideStr = koEvent ? atkSideStr : defSideStr;
       const receiverChoreo = choreography.find(c => c.id === receiverSlot && c.side === targetSideStr);
       if (receiverChoreo && receiverChoreo.movements.length > 0) {
@@ -281,15 +281,21 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     if (hasOffloadAttempt && carryEvent) {
       let currentT = 1.0; 
       
-      const carries = res.events.filter((e: any) => e.type === 'CARRY_RESOLVED');
-      const offloads = res.events.filter((e: any) => e.type === 'OFFLOAD_COMPLETED' || e.type === 'OFFLOAD_ATTEMPTED');
+      const carries = res.events.filter((e): e is Extract<MatchEvent, { type: 'CARRY_RESOLVED' }> => e.type === 'CARRY_RESOLVED');
+      const offloads = res.events.filter((e): e is Extract<MatchEvent, { type: 'OFFLOAD_COMPLETED' | 'OFFLOAD_ATTEMPTED' }> => e.type === 'OFFLOAD_COMPLETED' || e.type === 'OFFLOAD_ATTEMPTED');
       
       for (let i = 0; i < offloads.length; i++) {
         const offloadEvt = offloads[i];
         const catcher = offloadEvt.catcher;
         if (!catcher) continue;
         
-        const catcherSideStr = offloadEvt.attackSide;
+        // NOTE: this offload-animation block is currently inactive — `c.side` is 'h'/'a'
+        // but `attackSide` is 'home'/'away', so the `find` below never matches and every
+        // iteration `continue`s. Left dormant (typed `: string` so it builds) because
+        // correcting the side comparison exposes a separate crash — `carries[j]` is
+        // undefined at the metres loops below (offload index used to index carries).
+        // Both need fixing together to enable the offload animation. — incomplete feature.
+        const catcherSideStr: string = offloadEvt.attackSide;
         const catcherChoreo = choreography.find(c => c.id === catcher.id && c.side === catcherSideStr);
         if (!catcherChoreo || catcherChoreo.movements.length === 0) continue;
         
@@ -308,7 +314,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
         
         // 1. Pass the ball to the catcher
         currentT += 0.15; 
-        const passEvent = { type: 'BALL_REPOSITIONED', x: lastCatcherK.x, y: lastCatcherK.y, t: currentT };
+        const passEvent = { type: 'BALL_REPOSITIONED' as const, x: lastCatcherK.x, y: lastCatcherK.y, t: currentT };
         
         const offloadIdx = res.events.indexOf(offloadEvt);
         if (offloadIdx !== -1) {
@@ -340,7 +346,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
           const catcherFinalY = lastCatcherK.y; 
           
           catcherChoreo.movements.push({ t: currentT, x: catcherFinalX, y: catcherFinalY });
-          const runEvent = { type: 'BALL_REPOSITIONED', x: catcherFinalX, y: catcherFinalY, t: currentT };
+          const runEvent = { type: 'BALL_REPOSITIONED' as const, x: catcherFinalX, y: catcherFinalY, t: currentT };
           
           const carryIdx = res.events.indexOf(nextCarry);
           if (carryIdx !== -1) {

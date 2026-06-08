@@ -36,9 +36,9 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   // Step 0b — Pick and Go: rolled before the hard-carry / wide decision.
   // On hit, a back-row or prop picks the ball at the base of the ruck and
   // drives 0-4m into contact. No pass (no scrum-half pop, no interception,
-  // no handling gate), no offload chain, no line break, no try — always
-  // lands at Breakdown. Falls through to the regular decision below if no
-  // eligible forward is on the field.
+  // no handling gate), no offload chain, no line break. A dominant carry from
+  // close range can score a try; otherwise lands at Breakdown. Falls through
+  // to the regular decision below if no eligible forward is on the field.
   if (rng(1, 100) <= PICK_AND_GO_PCT[attackTeam.tactics.attackingStyle]) {
     const pagCarrier = pickPickAndGoCarrier(attackTeam, state, attackSide);
     if (pagCarrier) {
@@ -494,6 +494,11 @@ function resolvePickAndGo(
   const gainMetres = clamp(res.gainMetres, 1, 4);
   const direction = attackDir(state);
 
+  // Try check: a dominant pick-and-go from close range scores when the ball
+  // crosses the try line.
+  const projectedBallX = clamp(state.ball.x + direction * gainMetres, 0, 100);
+  const tryScored = outcome === 'dominant_carry' && isTryScoredAt(projectedBallX, attackSide, state.clock.halfTimeDone);
+
   const assistTackler = pickAssistTackler(defendTeam, state, defSide, defender);
 
   // A pick-and-go is a tight forward drive, not a pass — only a small lateral creep in
@@ -502,8 +507,10 @@ function resolvePickAndGo(
   // handler (emitSweepHops emits hops before CARRY_RESOLVED): the carrier-dot follower
   // then rides the carrier in on the drive, instead of the ball arriving at a waiting
   // carrier. (x and y are independent, so the final ball position is unchanged.)
-  const sweep = sweepStep(state, 'keep_it_tight');
-  events.push({ type: 'BALL_REPOSITIONED', y: sweep.y, lateralDir: sweep.lateralDir });
+  if (!tryScored) {
+    const sweep = sweepStep(state, 'keep_it_tight');
+    events.push({ type: 'BALL_REPOSITIONED', y: sweep.y, lateralDir: sweep.lateralDir });
+  }
 
   events.push({
     type: 'CARRY_RESOLVED',
@@ -517,25 +524,34 @@ function resolvePickAndGo(
     assistTackler,
   });
 
-  const outcomeKey: 'pick_and_go_play_on' | 'pick_and_go_dominant_carry' | 'pick_and_go_dominant_tackle' =
-    outcome === 'dominant_carry'  ? 'pick_and_go_dominant_carry'
-  : outcome === 'dominant_tackle' ? 'pick_and_go_dominant_tackle'
-  :                                 'pick_and_go_play_on';
-  const steps: NarrationStep[] = [
-    { kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: outcomeKey, primary: carrier, secondary: defender },
-  ];
+  const steps: NarrationStep[] = [];
+  let nextPhase: MatchPhase;
 
-  let nextPhase: MatchPhase = MatchPhase.Breakdown;
-  if (tackleInfringement(defender, TACTIC_MODIFIERS.disciplineHighTackleMod[defendTeam.tactics.discipline]) === 'high_tackle') {
-    events.push({ type: 'PENALTY_AWARDED', offence: 'high_tackle', offender: defender, offendingSide: defSide });
-    steps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'high_tackle_penalty', primary: defender, secondary: carrier });
-    nextPhase = MatchPhase.Penalty;
+  if (tryScored) {
+    nextPhase = MatchPhase.TryScored;
+    steps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'dominant_carry_try', primary: carrier, secondary: defender });
+    const y = tryLandingY(state, 'keep_it_tight');
+    events.push({ type: 'BALL_REPOSITIONED', y });
+    steps.push({ kind: 'announcement', key: `try_location_${tryLocationBand(y)}` });
+  } else {
+    nextPhase = MatchPhase.Breakdown;
+    const outcomeKey: 'pick_and_go_play_on' | 'pick_and_go_dominant_carry' | 'pick_and_go_dominant_tackle' =
+      outcome === 'dominant_carry'  ? 'pick_and_go_dominant_carry'
+    : outcome === 'dominant_tackle' ? 'pick_and_go_dominant_tackle'
+    :                                 'pick_and_go_play_on';
+    steps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: outcomeKey, primary: carrier, secondary: defender });
+
+    if (tackleInfringement(defender, TACTIC_MODIFIERS.disciplineHighTackleMod[defendTeam.tactics.discipline]) === 'high_tackle') {
+      events.push({ type: 'PENALTY_AWARDED', offence: 'high_tackle', offender: defender, offendingSide: defSide });
+      steps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'high_tackle_penalty', primary: defender, secondary: carrier });
+      nextPhase = MatchPhase.Penalty;
+    }
+
+    // Injury mutation fires here; injury_off commentary + replacement are deferred to
+    // the next break in play by MatchCoordinator (must not interrupt open play).
+    const injuryEvent = rollMatchInjury(outcome, carrier, defender, attackSide, defSide);
+    if (injuryEvent) events.push(injuryEvent);
   }
-
-  // Injury mutation fires here; injury_off commentary + replacement are deferred to
-  // the next break in play by MatchCoordinator (must not interrupt open play).
-  const injuryEvent = rollMatchInjury(outcome, carrier, defender, attackSide, defSide);
-  if (injuryEvent) events.push(injuryEvent);
 
   return {
     nextPhase,

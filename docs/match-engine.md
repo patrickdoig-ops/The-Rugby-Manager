@@ -642,7 +642,7 @@ Runs after `Breakdown` (recycled possession).
 
 **Step 0b — Pick and Go**
 
-Rolled BEFORE the hard-carry / wide decision. On hit, a back-row or prop picks the ball at the base of the ruck and drives 1-4m into contact. No pass (no scrum-half pop, no interception, no carrier handling gate), no offload chain, no line break, no try — always lands at Breakdown.
+Rolled BEFORE the hard-carry / wide decision. On hit, a back-row or prop picks the ball at the base of the ruck and drives 1-4m into contact. No pass (no scrum-half pop, no interception, no carrier handling gate), no offload chain, no line break. A dominant carry from close range can score a try; otherwise lands at Breakdown.
 
 | `attackingStyle` | Pick & Go |
 |---|---|
@@ -650,7 +650,7 @@ Rolled BEFORE the hard-carry / wide decision. On hit, a back-row or prop picks t
 | `balanced` | 12% |
 | `wide_wide` | 3% |
 
-Carrier pool (`PICK_AND_GO_WEIGHTS` in `src/engine/balance/carrying.ts`): back row 18/18/15 + props 8/8 only — hooker is at the ruck and locks usually bind / cleanout, so neither is eligible. Resolves via `resolvePickAndGo(...)` in `OpenPlayEvent.ts`: reuses `resolveOpenPlay` for outcome generation (carrier stats still drive quality), then downgrades any `line_break` outcome to `dominant_carry` and clamps `gainMetres` to `[1, 4]` (1m floor — even a stuffed pick-and-go drives a metre at the base). Emits `CARRY_RESOLVED` with one of `pick_and_go_play_on` / `pick_and_go_dominant_carry` / `pick_and_go_dominant_tackle` and always returns `nextPhase: Breakdown` (or `Penalty` on a high-tackle infringement). Assist tackler is credited via `pickAssistTackler` exactly as for a regular hard carry.
+Carrier pool (`PICK_AND_GO_WEIGHTS` in `src/engine/balance/carrying.ts`): back row 18/18/15 + props 8/8 only — hooker is at the ruck and locks usually bind / cleanout, so neither is eligible. Resolves via `resolvePickAndGo(...)` in `OpenPlayEvent.ts`: reuses `resolveOpenPlay` for outcome generation (carrier stats still drive quality), then downgrades any `line_break` outcome to `dominant_carry` and clamps `gainMetres` to `[1, 4]` (1m floor — even a stuffed pick-and-go drives a metre at the base). Emits `CARRY_RESOLVED` with one of `pick_and_go_play_on` / `pick_and_go_dominant_carry` / `pick_and_go_dominant_tackle`. Returns `nextPhase: TryScored` when a `dominant_carry` crosses the try line (`isTryScoredAt` check, identical to a regular carry — narrates as `dominant_carry_try`); otherwise `Breakdown` (or `Penalty` on a high-tackle infringement). The high-tackle check and injury roll are gated on `!tryScored`. Assist tackler is credited via `pickAssistTackler` exactly as for a regular hard carry.
 
 If the pick-and-go gate fires but no eligible forward is on the field (rare — every back-row + prop binned / sent off), the handler falls through to the regular hard-carry / wide decision below.
 
@@ -1484,9 +1484,13 @@ When fired, the carry handler emits `CARRY_RESOLVED` first (so the carrier still
 
 After `resolvePhase()` sets the phase to `Penalty`, `tick()` first calls `cardHandler.evaluateNewPenalty()` (see [Cards](#cards-yellow--red-20--red-full)). If that defers (TMO triggered → phase transitions to `TmoReview`), the modal is deferred until the card sequence completes 3 ticks later. Otherwise — or for any penalty that's not a TMO trigger — `penaltyHandler.handlePenaltyDecision()` (`src/engine/PenaltyHandler.ts`) runs:
 
+**Silent mode (headless AI fixtures / telemetry / determinism harness):** both sides resolve symmetrically — tap zone (5–10m from try line) + `rng` → `tap_and_go`; `clockInTheRed` + winning → `tap_and_kick_dead`; otherwise → `kick_to_touch`.
+
+**Live mode:**
 ```
 if possession !== humanSide OR NOT inOppositionHalf():
   if clockInTheRed AND possession === aiSide AND score[aiSide] > score[humanSide] → auto-select tap_and_kick_dead
+  else if possession === aiSide AND inOppositionHalf() AND tap zone → probabilistic tap_and_go
   else → auto-select kick_to_touch
 if possession === humanSide AND inOppositionHalf() → emit engine:paused → await Promise<PenaltyChoice>
 ```

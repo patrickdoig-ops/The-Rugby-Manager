@@ -60,7 +60,7 @@ export class PenaltyHandler {
         // for the 7-point shot instead of the certain 3 from a goal kick.
         const dist = metresFromOppositionTryLine(state);
         const inTapZone = dist >= TAP_AND_GO_AI.closeRangeMinMetres && dist <= TAP_AND_GO_AI.closeRangeMaxMetres;
-        autoChoice = (inTapZone && rng(1, 100) <= TAP_AND_GO_AI.closeRangePct) ? 'tap_and_go' : 'kick_for_goal';
+        autoChoice = (inTapZone && rng(1, 100) <= TAP_AND_GO_AI.closeRangePct) ? 'tap_and_go' : 'kick_to_touch';
       } else if (state.clock.clockInTheRed && state.score[state.possession] > state.score[opposingSide]) {
         autoChoice = 'tap_and_kick_dead';
       } else {

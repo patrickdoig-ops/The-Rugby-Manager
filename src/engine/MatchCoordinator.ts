@@ -372,6 +372,9 @@ export class MatchCoordinator {
         eventBus.on('ui:substitution', ({ benchSquadNum, fieldSquadNum }) => {
           this.queueSubstitute(this.humanSide, benchSquadNum, fieldSquadNum);
         }),
+        eventBus.on('ui:positionSwap', ({ squadNum1, squadNum2 }) => {
+          applyMatchEvent(this.state, { type: 'POSITION_SWAP', side: this.humanSide, squadNum1, squadNum2 });
+        }),
       );
     }
   }

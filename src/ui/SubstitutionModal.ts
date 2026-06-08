@@ -4,6 +4,7 @@ import { eventBus } from '../utils/eventBus';
 import { shortName } from '../utils/playerName';
 import { teamTextColor } from '../utils/teamColor';
 import { showToast } from './Toast';
+import { renderMidMatchTeamEditor } from './MidMatchTeamEditor';
 
 type PendingSub = {
   benchSquadNum: number;
@@ -75,8 +76,13 @@ export function renderSubstitutionPanel(container: HTMLElement, team: Team, offF
     const confirmDisabled = pendingSubs.length === 0 ? ' disabled' : '';
 
     container.innerHTML = `
-      <h2 class="modal-title">Substitutions</h2>
-      <p class="modal-subtitle">${team.name}</p>
+      <div class="sub-topbar">
+        <div>
+          <h2 class="modal-title">Substitutions</h2>
+          <p class="modal-subtitle">${team.name}</p>
+        </div>
+        <button class="pm-edit-squad" id="sub-edit-team">Edit Team</button>
+      </div>
       ${pendingHtml}
       <div class="sub-section-label">Bench — select incoming player</div>
       <div id="sub-bench-list">${benchRows}</div>
@@ -129,6 +135,10 @@ export function renderSubstitutionPanel(container: HTMLElement, team: Team, offF
         render();
       });
     });
+
+    container.querySelector<HTMLButtonElement>('#sub-edit-team')!.addEventListener('click', () => {
+      renderMidMatchTeamEditor(container, team, () => renderSubstitutionPanel(container, team, offFieldPlayerIds));
+    }, { once: true });
 
     container.querySelector('#btn-subs-cancel')!.addEventListener('click', () => {
       eventBus.emit('ui:subsClosed', {});

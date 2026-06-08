@@ -562,6 +562,17 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       return;
     }
 
+    case 'POSITION_SWAP': {
+      const team = event.side === 'home' ? state.homeTeam : state.awayTeam;
+      const p1 = team.players.find(p => p.squadNumber === event.squadNum1);
+      const p2 = team.players.find(p => p.squadNumber === event.squadNum2);
+      if (!p1 || !p2) return;
+      const tmpId = p1.id; const tmpPos = p1.position;
+      p1.id = p2.id; p1.position = p2.position;
+      p2.id = tmpId; p2.position = tmpPos;
+      return;
+    }
+
     // ── Engine lifecycle ────────────────────────────────────────────────
     case 'IS_RUNNING_SET':
       state.engine.isRunning = event.value;

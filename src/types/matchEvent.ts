@@ -185,6 +185,10 @@ export type MatchEvent =
   // ── Tactics & subs ───────────────────────────────────────────────────────
   | { type: 'TACTICS_UPDATED'; side: PossessionSide; tactics: TeamTactics }
   | { type: 'SUBSTITUTION_APPLIED'; off: Player; on: Player; teamSide: PossessionSide; benchIdx: number; fieldIdx: number }
+  // In-match positional switch: two on-field players swap their slot id and
+  // position label without consuming a substitution. Engine lookups (kicker,
+  // scrum-half, fullback) use the new ids from the next tick onwards.
+  | { type: 'POSITION_SWAP'; side: PossessionSide; squadNum1: number; squadNum2: number }
 
   // ── Engine lifecycle ─────────────────────────────────────────────────────
   | { type: 'IS_RUNNING_SET'; value: boolean }

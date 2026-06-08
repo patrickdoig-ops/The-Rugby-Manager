@@ -71,6 +71,7 @@ export interface AppEvents {
   'ui:tacticsClosed':   Record<string, never>;
   'ui:openSubsModal':   { team: Team; offFieldPlayerIds: number[] };
   'ui:substitution':    { benchSquadNum: number; fieldSquadNum: number };
+  'ui:positionSwap':    { squadNum1: number; squadNum2: number };
   'ui:subsClosed':      Record<string, never>;
   'game:initialized':     { state: GameState };
   'game:fixtureRecorded': { result: FixtureResult; state: GameState };

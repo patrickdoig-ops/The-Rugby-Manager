@@ -46,6 +46,13 @@ const fanLateral = (i: number): number => (i % 2 === 0 ? 1 : -1) * Math.ceil((i 
 // — keep every field-of-play dot on the standard `clampX` [2,98].
 const clampInGoalX = (x: number): number => Math.max(-8, Math.min(108, x));
 
+// Defenders retreating to their own try line can go slightly into the in-goal to stay onside,
+// but should not cross the opposing team's try line.
+export const clampDefenderX = (x: number, fwd: number): number => {
+  if (fwd === 1) return Math.max(2, Math.min(105, x));
+  return Math.max(-5, Math.min(98, x));
+};
+
 const sideOf = (p: Player, state: MatchState): Side => {
   const h = state.homeTeam;
   // Mirror applyMatchEvent's team-membership test: a player is "home" if they're
@@ -1167,8 +1174,8 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
       const carrierX = event.phase === MatchPhase.TryScored
         ? clampInGoalX(ballX + fwd * 2.5)
         : clampX(ballX - fwd * 2.5);
-      const tackleX = clampX(carrierX + fwd * 1.3);
-      const defLineX = clampX(ballX + fwd * 10);
+      const tackleX = clampDefenderX(carrierX + fwd * 1.3, fwd);
+      const defLineX = clampDefenderX(ballX + fwd * 10, fwd);
       const defLineY = clampY(ballY + 4);
       const dot = placed(p, defSide, state, tackleX, ballY, false);
       dot.from = { x: defLineX, y: defLineY };
@@ -1178,7 +1185,7 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
     } else {
       const lateralOffset = fanLateral(i);
       out.push(placed(p, defSide, state,
-        clampX(ballX + fwd * (3 + i * 6)),
+        clampDefenderX(ballX + fwd * (3 + i * 6), fwd),
         clampY(ballY + lateralOffset), false));
     }
   });
@@ -1222,7 +1229,7 @@ function maulLayout(event: GameEvent, state: MatchState, attacksTop: boolean, pr
   }
   for (const e of LINEOUT_DEF_BACKS) {
     const p = defOn.find(pl => pl.id === e.slot);
-    if (p) out.push(placed(p, defSide, state, clampX(prevBallX + fwd * e.dX), toY(e.dY), false));
+    if (p) out.push(placed(p, defSide, state, clampDefenderX(prevBallX + fwd * e.dX, fwd), toY(e.dY), false));
   }
 
   // Scrum-halves stay in their lineout positions.
@@ -1230,7 +1237,7 @@ function maulLayout(event: GameEvent, state: MatchState, attacksTop: boolean, pr
   const defSH = defOn.find(p => p.id === SLOT.SCRUM_HALF);
   const TEN_M_Y = clampY(nearY + inward * 14);
   if (atkSH) out.push(placed(atkSH, atkSide, state, clampX(prevBallX - fwd * 4), TEN_M_Y, false));
-  if (defSH) out.push(placed(defSH, defSide, state, clampX(prevBallX + fwd * 4), TEN_M_Y, false));
+  if (defSH) out.push(placed(defSH, defSide, state, clampDefenderX(prevBallX + fwd * 4, fwd), TEN_M_Y, false));
 
   return out;
 }
@@ -1358,7 +1365,7 @@ function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): 
   for (const e of SCRUM_DEF_BACKS) {
     const p = defOn.find(pl => pl.id === e.slot);
     if (p && !choreographedKeys.has(`${defSide}:${p.id}`)) {
-      out.push(placed(p, defSide, state, clampX(event.ballX + fwd * e.dX), clampY(scrumY + inward * e.dY), false));
+      out.push(placed(p, defSide, state, clampDefenderX(event.ballX + fwd * e.dX, fwd), clampY(scrumY + inward * e.dY), false));
     }
   }
 
@@ -1372,7 +1379,7 @@ function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): 
       out.push({ ...placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 2.0), clampY(scrumY), false), from: { x: clampX(event.ballX - fwd * 2.0), y: fromY } });
     }
     if (defSH && !choreographedKeys.has(`${defSide}:${defSH.id}`)) {
-      out.push({ ...placed(defSH, defSide, state, clampX(event.ballX + fwd * 9.0), clampY(scrumY), false), from: { x: clampX(event.ballX + fwd * 2.0), y: fromY } });
+      out.push({ ...placed(defSH, defSide, state, clampDefenderX(event.ballX + fwd * 9.0, fwd), clampY(scrumY), false), from: { x: clampDefenderX(event.ballX + fwd * 2.0, fwd), y: fromY } });
     }
   } else {
     if (atkSH && !choreographedKeys.has(`${atkSide}:${atkSH.id}`)) {
@@ -1381,7 +1388,7 @@ function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): 
       out.push(dot);
     }
     if (defSH && !choreographedKeys.has(`${defSide}:${defSH.id}`)) {
-      const dot = placed(defSH, defSide, state, clampX(event.ballX + fwd * 9.0), clampY(scrumY), false);
+      const dot = placed(defSH, defSide, state, clampDefenderX(event.ballX + fwd * 9.0, fwd), clampY(scrumY), false);
       dot.scrumHalfRole = 'def';
       out.push(dot);
     }
@@ -1442,7 +1449,7 @@ function lineoutLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
   // Defending hooker at the near end of the lineout (5m line), slightly ahead of the mark.
   if (defHooker) {
     out.push(placed(defHooker, defSide, state,
-      clampX(event.ballX + fwd * 2),
+      clampDefenderX(event.ballX + fwd * 2, fwd),
       clampY(nearY + inward * 7),
       false));
   }
@@ -1458,18 +1465,18 @@ function lineoutLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
 
   // Attacking line slightly behind the mark; defending line slightly ahead.
   // Players share the same Y positions (interleaved in real rugby) but different X.
-  const lineSpread = (players: Player[], side: Side, xOff: number): void => {
+  const lineSpread = (players: Player[], side: Side, xOff: number, useDefClamp: boolean = false): void => {
     const n = players.length;
     if (n === 0) return;
-    const x = clampX(event.ballX + xOff);
+    const x = useDefClamp ? clampDefenderX(event.ballX + xOff, fwd) : clampX(event.ballX + xOff);
     players.forEach((p, i) => {
       const t = n > 1 ? i / (n - 1) : 0.5;
       out.push(placed(p, side, state, x, clampY(FIVE_M_Y + t * (FIFTEEN_M_Y - FIVE_M_Y)), false));
     });
   };
 
-  lineSpread(atkLine, atkSide, -fwd * 2);
-  lineSpread(defLine, defSide, +fwd * 2);
+  lineSpread(atkLine, atkSide, -fwd * 2, false);
+  lineSpread(defLine, defSide, +fwd * 2, true);
 
   // Each #9 stands 2m behind their own line (2 more x-units back) and 10m infield
   // from touch (~14 y-units). onFieldPlayers covers backs; availableForwards doesn't.
@@ -1477,7 +1484,7 @@ function lineoutLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
   const atkSH = onFieldPlayers(atkTeam, state, possOf(atkSide)).find(p => p.id === SLOT.SCRUM_HALF);
   const defSH = onFieldPlayers(defTeam, state, possOf(defSide)).find(p => p.id === SLOT.SCRUM_HALF);
   if (atkSH) out.push(placed(atkSH, atkSide, state, clampX(event.ballX - fwd * 4), TEN_M_Y, false));
-  if (defSH) out.push(placed(defSH, defSide, state, clampX(event.ballX + fwd * 4), TEN_M_Y, false));
+  if (defSH) out.push(placed(defSH, defSide, state, clampDefenderX(event.ballX + fwd * 4, fwd), TEN_M_Y, false));
 
   // Backs for both sides — fixed lateral spread from the lineout touchline;
   // depth is a placeholder (lineout X varies too much by outcome to parameterise).
@@ -1489,7 +1496,7 @@ function lineoutLayout(event: GameEvent, state: MatchState, attacksTop: boolean)
   }
   for (const e of LINEOUT_DEF_BACKS) {
     const p = defOn.find(pl => pl.id === e.slot);
-    if (p) out.push(placed(p, defSide, state, clampX(event.ballX + fwd * e.dX), clampY(event.ballY + inward * e.dY), false));
+    if (p) out.push(placed(p, defSide, state, clampDefenderX(event.ballX + fwd * e.dX, fwd), clampY(event.ballY + inward * e.dY), false));
   }
 
   return out;
@@ -1614,8 +1621,8 @@ function firstPhaseBacklineLayout(
       // Pin tackler to the ball carrier — animate from defensive-line spot
       const carrierPl = out.find(pl => pl.key === `${atkSide}:${carrier.id}`);
       if (carrierPl) {
-        const tackleX = clampX(carrierPl.x + fwd * 1.3);
-        const defLineX = clampX(event.ballX + fwd * 10);
+        const tackleX = clampDefenderX(carrierPl.x + fwd * 1.3, fwd);
+        const defLineX = clampDefenderX(event.ballX + fwd * 10, fwd);
         const defLineY = clampY(event.ballY + 4);
         const dot = placed(p, defSide, state, tackleX, carrierPl.y, false);
         dot.from = { x: defLineX, y: defLineY };
@@ -1627,7 +1634,7 @@ function firstPhaseBacklineLayout(
     }
     const lat = fanLateral(i);
     out.push(placed(p, defSide, state,
-      clampX(event.ballX + fwd * (3 + i * 6)),
+      clampDefenderX(event.ballX + fwd * (3 + i * 6), fwd),
       clampY(event.ballY + lat), false));
   });
 

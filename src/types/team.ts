@@ -31,6 +31,31 @@ export type OffloadStrategy = 'cautious' | 'balanced' | 'offload_freely';
 export type Intensity = 'high' | 'balanced' | 'light';
 export type Discipline = 'risky' | 'balanced' | 'cautious';
 
+// Advanced ("fully numeric") tactics. When `TeamTactics.advanced` is present
+// the manager has opted out of the 3-way presets and is calibrating the raw
+// numbers directly. Phase 1 covers the kicking game only — per-zone kick
+// frequency and per-zone kick-type mix — which the KickDecisionDirector reads
+// in place of the preset-keyed KICK_PROBABILITIES / FAMILY_WEIGHTS tables.
+// Absent ⇒ legacy preset behaviour (the only path the AI and old saves take).
+export interface ZoneKickProfile {
+  // Baseline kick-or-carry probability in this zone (0–100). Game-state
+  // adjustments (slow-ball bonus, full-time close-out) still layer on top.
+  frequency: number;
+  // Relative weights across the four kick families when a kick fires. The
+  // engine normalises by their sum, so they need not total 100; the UI shows
+  // each as a normalised percentage of the mix.
+  types: { clearance: number; territory: number; fifty_22: number; attacking: number };
+}
+export interface AdvancedKicking {
+  own22: ZoneKickProfile;
+  ownHalf: ZoneKickProfile;
+  oppHalf: ZoneKickProfile;
+  opp22: ZoneKickProfile;
+}
+export interface AdvancedTactics {
+  kicking: AdvancedKicking;
+}
+
 export interface TeamTactics {
   attackingGamePlan: AttackingGamePlan;
   attackingStyle: AttackingStyle;
@@ -41,7 +66,12 @@ export interface TeamTactics {
   offloadStrategy: OffloadStrategy;
   intensity: Intensity;
   discipline: Discipline;
+  advanced?: AdvancedTactics;
 }
+
+// The nine preset dimensions, excluding the structural `advanced` override.
+// Used where code enumerates the 3-way preset dimensions (labels, menu rows).
+export type PresetTacticDim = Exclude<keyof TeamTactics, 'advanced'>;
 
 export interface Team {
   id: string;

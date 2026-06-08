@@ -11,7 +11,7 @@
 // side's current tactics and nudges up to one dimension per rule, capped at
 // ±1 step from the AI team's authored baseline so club identity is preserved.
 
-import type { TeamTactics } from '../../types/team';
+import type { TeamTactics, PresetTacticDim } from '../../types/team';
 
 export const AI_DIRECTOR_VALUES = {
   scoreGapTrigger:          8,  // points difference required to flip out of BASELINE
@@ -21,7 +21,7 @@ export const AI_DIRECTOR_VALUES = {
 
 // Semantic ordering for each tactic dimension (low index = one end, high = other).
 // Used by computeHumanResponse to apply a ±1 nudge from the AI's authored baseline.
-export const TACTIC_ORDERS: Record<keyof TeamTactics, readonly string[]> = {
+export const TACTIC_ORDERS: Record<PresetTacticDim, readonly string[]> = {
   attackingGamePlan:  ['possession', 'balanced', 'kicking'],
   attackingStyle:     ['keep_it_tight', 'balanced', 'wide_wide'],
   attackingBreakdown: ['commit_numbers', 'balanced', 'minimal_ruck'],
@@ -45,9 +45,9 @@ export const AI_EFFORT_VALUES = {
 } as const;
 
 export type HumanResponseRule = {
-  humanDimension: keyof TeamTactics;
+  humanDimension: PresetTacticDim;
   humanValue: string;
-  aiDimension: keyof TeamTactics;
+  aiDimension: PresetTacticDim;
   delta: -1 | 1;
 };
 

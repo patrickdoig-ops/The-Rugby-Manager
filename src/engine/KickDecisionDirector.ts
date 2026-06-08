@@ -18,7 +18,6 @@ import {
   LONG_AND_OFF_PCT,
   CROSS_FIELD_VS_GRUBBER_PCT,
   RED_CLOCK_CLOSEOUT,
-  type Plan,
   type Zone,
   type Family,
 } from './balance';
@@ -73,13 +72,17 @@ function fieldZone(state: MatchState): Zone {
   return 'oppHalf';
 }
 
-function pickFamily(zone: Zone, plan: Plan): Family {
-  const weights = FAMILY_WEIGHTS[zone][plan];
+function pickFamily(weights: Record<Family, number>): Family {
+  // Weights need not sum to 100 (advanced mode supplies raw weights). When
+  // they do (every preset cell), `threshold === roll` and this is the exact
+  // pre-advanced integer comparison — so preset determinism is untouched.
+  const total = weights.clearance + weights.territory + weights.fifty_22 + weights.attacking;
   const roll = rng(1, 100);
+  const threshold = total === 100 ? roll : (roll / 100) * total;
   let cum = 0;
   for (const family of ['clearance', 'territory', 'fifty_22', 'attacking'] as const) {
     cum += weights[family];
-    if (roll <= cum) return family;
+    if (threshold <= cum) return family;
   }
   return 'territory';
 }
@@ -138,19 +141,24 @@ function redClockCloseout(ctx: KickDecisionContext, zone: Zone): KickOrCarry | n
 }
 
 export function decideKick(ctx: KickDecisionContext): KickOrCarry {
-  const { state, attackTeam, attackOnField } = ctx;
+  const { state, attackTeam } = ctx;
   const plan = attackTeam.tactics.attackingGamePlan;
   const probs = KICK_PROBABILITIES[plan];
   const zone = fieldZone(state);
+  // Advanced (numeric) kicking override — per-zone frequency + kick-type mix
+  // set by the manager replace the preset-keyed tables. Absent ⇒ preset path.
+  const adv = attackTeam.tactics.advanced?.kicking[zone];
 
   const closeout = redClockCloseout(ctx, zone);
   if (closeout) return closeout;
 
-  // Base kick probability — same KICK_PROBABILITIES[plan][zone] table as
-  // pre-v2.83a. (The zone enum is more granular than the table — own22 +
-  // opp22 use the explicit table value; ownHalf and oppHalf collapse to
-  // the table's "ownHalf" and "opposition" rows respectively.)
-  const baseProb = zone === 'own22' ? probs.own22
+  // Base kick probability. Advanced mode reads the zone slider directly;
+  // otherwise the KICK_PROBABILITIES[plan][zone] table — the zone enum is
+  // more granular than the table, so own22 + opp22 use the explicit table
+  // value while ownHalf and oppHalf collapse to the table's "ownHalf" and
+  // "opposition" rows respectively.
+  const baseProb = adv ? adv.frequency
+                 : zone === 'own22' ? probs.own22
                  : zone === 'opp22' ? probs.opposition
                  : zone === 'oppHalf' ? probs.opposition
                  : probs.ownHalf;
@@ -160,7 +168,7 @@ export function decideKick(ctx: KickDecisionContext): KickOrCarry {
 
   if (rng(1, 100) > kickProb) return { kick: false };
 
-  const family = pickFamily(zone, plan);
+  const family = pickFamily(adv ? adv.types : FAMILY_WEIGHTS[zone][plan]);
   const kicker = pickKicker(family, ctx);
 
   const decision: KickDecision = { kick: true, family, kicker };

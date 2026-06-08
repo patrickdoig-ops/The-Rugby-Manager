@@ -1,5 +1,9 @@
 import { eventBus } from '../utils/eventBus';
-import type { TeamTactics, AttackingGamePlan, AttackingStyle, AttackingBreakdown, DefendingBreakdown, BackfieldDefence, DefensiveLine, OffloadStrategy, Intensity, Discipline } from '../types/team';
+import type { TeamTactics, PresetTacticDim, AttackingGamePlan, AttackingStyle, AttackingBreakdown, DefendingBreakdown, BackfieldDefence, DefensiveLine, OffloadStrategy, Intensity, Discipline } from '../types/team';
+import { seedAdvancedTactics } from '../engine/advancedTactics';
+import { renderAdvancedKicking } from './AdvancedKickingPanel';
+
+const ADV_ARROW_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>`;
 
 interface OptionDef<T> {
   value: T;
@@ -65,7 +69,7 @@ interface CategoryMeta {
   title: string;
   options: OptionDef<string>[];
 }
-const META: Record<keyof TeamTactics, CategoryMeta> = {
+const META: Record<PresetTacticDim, CategoryMeta> = {
   attackingGamePlan:  { title: 'Attacking Game Plan',  options: ATTACK_PLAN_OPTIONS      as OptionDef<string>[] },
   attackingStyle:     { title: 'Attacking Style',      options: ATTACKING_STYLE_OPTIONS  as OptionDef<string>[] },
   attackingBreakdown: { title: 'Attacking Breakdown',  options: ATTACK_RUCK_OPTIONS      as OptionDef<string>[] },
@@ -79,8 +83,8 @@ const META: Record<keyof TeamTactics, CategoryMeta> = {
 
 const INFO_ICON_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="11" x2="12" y2="16"></line><circle cx="12" cy="7.75" r="0.6" fill="currentColor" stroke="none"></circle></svg>`;
 
-const ATTACK_KEYS:  (keyof TeamTactics)[] = ['attackingGamePlan', 'attackingStyle', 'attackingBreakdown', 'offloadStrategy', 'intensity'];
-const DEFENCE_KEYS: (keyof TeamTactics)[] = ['defendingBreakdown', 'backfieldDefence', 'defensiveLine', 'discipline'];
+const ATTACK_KEYS:  PresetTacticDim[] = ['attackingGamePlan', 'attackingStyle', 'attackingBreakdown', 'offloadStrategy', 'intensity'];
+const DEFENCE_KEYS: PresetTacticDim[] = ['defendingBreakdown', 'backfieldDefence', 'defensiveLine', 'discipline'];
 
 export function renderTacticsMenu(
   container: HTMLElement,
@@ -93,8 +97,9 @@ export function renderTacticsMenu(
   let currentTactics: TeamTactics = { ...initialTactics };
   const showToggle = isModal && oppTactics != null;
   let activeTab: 'mine' | 'opp' = 'mine';
+  let view: 'presets' | 'advanced' = 'presets';
 
-  function renderCategory(key: keyof TeamTactics, tactics: TeamTactics, readOnly: boolean): string {
+  function renderCategory(key: PresetTacticDim, tactics: TeamTactics, readOnly: boolean): string {
     const meta = META[key];
     const selected = tactics[key] as string;
     return `
@@ -114,7 +119,7 @@ export function renderTacticsMenu(
     `;
   }
 
-  function renderSection(title: string, keys: (keyof TeamTactics)[], tactics: TeamTactics, readOnly: boolean): string {
+  function renderSection(title: string, keys: PresetTacticDim[], tactics: TeamTactics, readOnly: boolean): string {
     return `
       <div class="tactics-section">
         <h2 class="tactics-section-title">${title}</h2>
@@ -137,9 +142,7 @@ export function renderTacticsMenu(
           <button class="tactics-team-toggle__btn" data-tab="opp" type="button">Opposition</button>
         </div>
       ` : ''}
-      <div class="tactics-categories-container">
-        ${categoriesHTML(currentTactics, false)}
-      </div>
+      <div class="tactics-categories-container"></div>
       ${isModal ? `
         <div class="tactics-modal-footer">
           <button id="btn-resume-match" class="tactics-resume-btn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14" style="vertical-align:-1px;margin-right:6px"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>Resume Match</button>
@@ -150,9 +153,80 @@ export function renderTacticsMenu(
 
   function applySelection(cat: keyof TeamTactics, val: string): void {
     currentTactics = { ...currentTactics, [cat]: val } as TeamTactics;
+    // Picking a Game Plan preset reverts an active advanced-kicking override —
+    // the preset is the documented way back from advanced mode.
+    const revertedAdvanced = cat === 'attackingGamePlan' && currentTactics.advanced != null;
+    if (revertedAdvanced) {
+      currentTactics = { ...currentTactics };
+      delete currentTactics.advanced;
+    }
     eventBus.emit('ui:tacticsChange', { teamId, tactics: currentTactics });
+    if (revertedAdvanced) {
+      renderBody();
+      return;
+    }
     const siblings = container.querySelectorAll<HTMLButtonElement>(`.tactics-opt-btn[data-cat="${cat}"]`);
     siblings.forEach(sib => sib.classList.toggle('active', sib.dataset.val === val));
+  }
+
+  function advancedEntryHTML(): string {
+    if (currentTactics.advanced) {
+      return `
+        <div class="tactics-adv-banner">
+          <div class="tactics-adv-banner-text">
+            <strong>Advanced kicking active</strong>
+            <span>Per-zone calibration is driving your kicking game. Pick a Game Plan above to revert to presets.</span>
+          </div>
+          <button class="tactics-adv-edit" type="button" data-adv-edit>Edit</button>
+        </div>`;
+    }
+    return `
+      <button class="tactics-adv-enter" type="button" data-adv-enter>
+        <span>Advanced kicking</span>
+        ${ADV_ARROW_SVG}
+      </button>`;
+  }
+
+  function bindAdvancedEntry(): void {
+    container.querySelector<HTMLButtonElement>('[data-adv-enter]')?.addEventListener('click', () => {
+      if (!currentTactics.advanced) {
+        currentTactics = { ...currentTactics, advanced: seedAdvancedTactics(currentTactics) };
+        eventBus.emit('ui:tacticsChange', { teamId, tactics: currentTactics });
+      }
+      view = 'advanced';
+      renderBody();
+    });
+    container.querySelector<HTMLButtonElement>('[data-adv-edit]')?.addEventListener('click', () => {
+      view = 'advanced';
+      renderBody();
+    });
+  }
+
+  function renderBody(): void {
+    const el = container.querySelector<HTMLElement>('.tactics-categories-container');
+    if (!el) return;
+
+    if (view === 'advanced' && activeTab === 'mine' && currentTactics.advanced) {
+      renderAdvancedKicking(
+        el,
+        currentTactics.advanced,
+        next => {
+          currentTactics = { ...currentTactics, advanced: next };
+          eventBus.emit('ui:tacticsChange', { teamId, tactics: currentTactics });
+        },
+        () => { view = 'presets'; renderBody(); },
+      );
+      return;
+    }
+
+    const readOnly = activeTab === 'opp';
+    const tactics = readOnly ? oppTactics! : currentTactics;
+    el.innerHTML = categoriesHTML(tactics, readOnly) + (readOnly ? '' : advancedEntryHTML());
+    if (!readOnly && currentTactics.advanced) {
+      el.querySelector(`.tactics-category[data-cat="attackingGamePlan"]`)?.classList.add('tactics-cat--overridden');
+    }
+    bindInteraction();
+    bindAdvancedEntry();
   }
 
   function bindInteraction(): void {
@@ -166,7 +240,7 @@ export function renderTacticsMenu(
 
     container.querySelectorAll<HTMLButtonElement>('.tactics-info-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const cat = btn.dataset.info as keyof TeamTactics;
+        const cat = btn.dataset.info as PresetTacticDim;
         const readOnly = activeTab === 'opp';
         const tactics = readOnly ? oppTactics! : currentTactics;
         openInfoModal(container, cat, tactics[cat] as string, readOnly ? undefined : v => applySelection(cat, v), readOnly);
@@ -174,24 +248,15 @@ export function renderTacticsMenu(
     });
   }
 
-  function rebuildCategories(): void {
-    const readOnly = activeTab === 'opp';
-    const tactics = readOnly ? oppTactics! : currentTactics;
-    const el = container.querySelector<HTMLElement>('.tactics-categories-container');
-    if (!el) return;
-    el.innerHTML = categoriesHTML(tactics, readOnly);
-    bindInteraction();
-  }
-
   function switchTab(tab: 'mine' | 'opp'): void {
     activeTab = tab;
-    rebuildCategories();
+    renderBody();
     container.querySelectorAll<HTMLButtonElement>('.tactics-team-toggle__btn').forEach(btn => {
       btn.classList.toggle('tactics-team-toggle__btn--active', btn.dataset.tab === tab);
     });
   }
 
-  bindInteraction();
+  renderBody();
 
   if (showToggle) {
     container.querySelectorAll<HTMLButtonElement>('.tactics-team-toggle__btn').forEach(btn => {
@@ -222,7 +287,7 @@ export function renderTacticsMenu(
 
 function openInfoModal(
   container: HTMLElement,
-  cat: keyof TeamTactics,
+  cat: PresetTacticDim,
   currentValue: string,
   onSelect: ((val: string) => void) | undefined,
   readOnly = false,

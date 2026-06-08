@@ -20,7 +20,7 @@
 // a back target that re-enters PreMatch at the same step.
 
 import type { PlayerStats, Position } from '../types/player';
-import type { TeamTactics } from '../types/team';
+import type { TeamTactics, PresetTacticDim } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';
 import { renderTacticsMenu } from './TacticsMenu';
 import { eventBus } from '../utils/eventBus';
@@ -64,7 +64,7 @@ type Step = 'mine' | 'opp' | 'scout' | 'tactics';
 // the map in TeamInfoScreen.ts — small enough to inline rather than
 // pull both screens onto a shared helper file. Same labels TacticsMenu
 // uses on its compact pills.
-const TACTIC_LABELS: Record<keyof TeamTactics, Record<string, string>> = {
+const TACTIC_LABELS: Record<PresetTacticDim, Record<string, string>> = {
   attackingGamePlan:  { kicking: 'Territorial', balanced: 'Balanced', possession: 'Possession' },
   attackingStyle:     { keep_it_tight: 'Keep It Tight', balanced: 'Balanced', wide_wide: 'Wide Wide' },
   attackingBreakdown: { commit_numbers: 'Commit Numbers', balanced: 'Balanced Ruck', minimal_ruck: 'Minimal Ruck' },
@@ -76,7 +76,7 @@ const TACTIC_LABELS: Record<keyof TeamTactics, Record<string, string>> = {
   discipline:         { risky: 'Risky', balanced: 'Balanced', cautious: 'Cautious' },
 };
 
-const TACTIC_DIMS: (keyof TeamTactics)[] = [
+const TACTIC_DIMS: PresetTacticDim[] = [
   'attackingGamePlan', 'attackingStyle', 'attackingBreakdown',
   'defendingBreakdown', 'defensiveLine', 'intensity', 'discipline',
 ];

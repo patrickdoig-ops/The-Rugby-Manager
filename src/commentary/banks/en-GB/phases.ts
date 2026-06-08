@@ -227,6 +227,11 @@ const KICK_RETURN: PhaseBank = {
     '{side} choose to kick it on from the return rather than carry.',
     'Rather than attack from the return, {side} look to kick for field position.',
   ],
+  kick_decision_regather: [
+    '{side} kick again immediately after regathering.',
+    'No attempt to carry — {side} kick on after collecting their own kick.',
+    '{side} recycle possession straight back into the air.',
+  ],
   line_break: [
     '{primary} is through! He\'s turned the return into a full counter-attack!',
     'Superb counter from {primary} — he\'s broken the cover and he\'s running into space!',

@@ -239,6 +239,7 @@ export interface MatchState {
   // the kick resolves.
   pendingKick?: PendingKick;
   kickReturnCarrier?: Player;
+  kickReturnIsRegather?: boolean;
   // try-scorer handle: the carrier who crossed the line, set by PhaseRouter when
   // a carry transitions to TryScored and read by handleTryScored the next tick.
   // Threaded through state (not re-derived from the event log) because an AI

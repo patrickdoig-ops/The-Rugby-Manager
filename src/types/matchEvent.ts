@@ -156,7 +156,7 @@ export type MatchEvent =
   // ── Kicking ──────────────────────────────────────────────────────────────
   | { type: 'KICK_FROM_HAND'; kicker: Player; metres: number }
   | { type: 'BALL_REPOSITIONED'; x?: number; y?: number; t?: number; lateralDir?: -1 | 1 }
-  | { type: 'KICK_RETURN_CARRIER_SET'; player?: Player }
+  | { type: 'KICK_RETURN_CARRIER_SET'; player?: Player; isRegather?: boolean }
   | { type: 'PENDING_TRY_SCORER_SET'; scorer?: Player }
 
   // ── Possession & phase ───────────────────────────────────────────────────

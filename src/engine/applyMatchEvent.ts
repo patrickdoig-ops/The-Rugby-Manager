@@ -414,6 +414,7 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
 
     case 'KICK_RETURN_CARRIER_SET':
       state.kickReturnCarrier = event.player;
+      state.kickReturnIsRegather = event.isRegather ?? false;
       return;
 
     case 'PENDING_TRY_SCORER_SET':

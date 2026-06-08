@@ -255,7 +255,7 @@ function handleAttackingKick(
     const chaserPool = onFieldPlayers(attackTeam, state, state.possession).filter(p =>
       p.id === SLOT.WING_11 || p.id === SLOT.CENTRE_13 || p.id === SLOT.WING_14);
     const chaser = chaserPool.length > 0 ? chaserPool[rng(0, chaserPool.length - 1)] : kicker;
-    events.push({ type: 'KICK_RETURN_CARRIER_SET', player: chaser });
+    events.push({ type: 'KICK_RETURN_CARRIER_SET', player: chaser, isRegather: true });
     return {
       nextPhase: MatchPhase.KickReturn,
       narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.TacticalKick, key: narrKey, primary: kicker, secondary: chaser }] },

@@ -223,7 +223,7 @@ export function buildKickTransition(decision: KickDecision, sourcePhase: MatchPh
 
   return {
     nextPhase,
-    narration: { steps: [{ kind: 'phase_outcome', phase: sourcePhase, key: 'kick_decision' }] },
+    narration: { steps: [{ kind: 'phase_outcome', phase: sourcePhase, key: ctx?.state.kickReturnIsRegather ? 'kick_decision_regather' : 'kick_decision' }] },
     primaryPlayer: decision.kicker,
     events,
   };

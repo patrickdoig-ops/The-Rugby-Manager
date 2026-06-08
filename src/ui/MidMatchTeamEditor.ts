@@ -2,6 +2,7 @@ import type { Team } from '../types/team';
 import { eventBus } from '../utils/eventBus';
 import { shortName } from '../utils/playerName';
 import { teamTextColor } from '../utils/teamColor';
+import { SLOT_POSITION } from '../engine/balance';
 import { showToast } from './Toast';
 
 const BACK_ARROW = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>`;
@@ -9,18 +10,26 @@ const BACK_ARROW = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox=
 export function renderMidMatchTeamEditor(
   container: HTMLElement,
   team: Team,
+  offFieldPlayerIds: number[],
   onBack: () => void,
 ): void {
   const color = teamTextColor(team.color);
+  // Sin-binned / sent-off / injured players are still in team.players (filtered
+  // only by onFieldPlayers); excluding them here keeps the editor to genuine
+  // on-field players, so a swap can't reassign which slot is off the pitch.
+  const offField = new Set(offFieldPlayerIds);
+  const onFieldPlayers = team.players.filter(p => !offField.has(p.id));
 
-  // Draft tracks the display position for each field player as swaps are queued.
-  const draft = new Map<number, string>(team.players.map(p => [p.squadNumber, p.position]));
+  // Draft tracks the slot ROLE each player is filling (keyed by their stable
+  // squadNumber jersey) as swaps are queued — SLOT_POSITION[id], not the natural
+  // `position`, so the preview matches what the engine shows after the id swap.
+  const draft = new Map<number, string>(onFieldPlayers.map(p => [p.squadNumber, SLOT_POSITION[p.id] ?? p.position]));
   const swaps: Array<[number, number]> = [];
   let selectedSquadNum: number | null = null;
 
   function render(): void {
     const hasSwaps = swaps.length > 0;
-    const fieldPlayers = [...team.players].sort((a, b) => a.id - b.id);
+    const fieldPlayers = [...onFieldPlayers].sort((a, b) => a.id - b.id);
 
     const fieldRows = fieldPlayers.map(p => {
       const isSelected = selectedSquadNum === p.squadNumber;

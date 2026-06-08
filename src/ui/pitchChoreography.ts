@@ -328,7 +328,7 @@ interface Formation { nearTop: boolean; atk: FormOffsets; def: FormOffsets; atkF
   // flip `dir` for these or it double-flips them onto the wrong side.
   defenderIsAttacker?: boolean; }
 
-const outcomeKeys = (event: GameEvent): string[] =>
+export const outcomeKeys = (event: GameEvent): string[] =>
   event.narration.steps.filter(s => s.kind === 'phase_outcome').map(s => (s as { key: string }).key);
 
 // Place all 30 players from a Formation template. The attacking side is whoever

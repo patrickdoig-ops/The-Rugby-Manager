@@ -120,6 +120,8 @@ export const PENALTY_KICK_TO_TOUCH_VALUES = {
   poorKickDistance:  [10, 20],
   goodKickTouchPct:  90,    // clinical kick — finds touch 9 times out of 10
   poorKickTouchPct:  40,    // poor kick — over half stay in field
+  gimmeTouchPct:     99,    // inside the opposition 22 — a short kick to the
+                            // corner is virtually guaranteed to find touch
 } as const;
 
 // Kick-return run gain (Step 2 in handleKickReturn): the carrier wins the

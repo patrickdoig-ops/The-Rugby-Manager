@@ -299,9 +299,10 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
         
         const lastCatcherK = catcherChoreo.movements[catcherChoreo.movements.length - 1];
         
-        // Ensure no forward pass (Checking Run)
-        let previousMetres = carries[carries.length - 1].metres;
-        for (let j = 0; j < i; j++) {
+        // Ensure no forward pass (Checking Run). The catch happens after the
+        // offloading carrier's carry, so the ball has advanced by carries[0..i].
+        let previousMetres = 0;
+        for (let j = 0; j <= i; j++) {
           previousMetres += carries[j].metres;
         }
         const engineCurrentX = clamp(state.ball.x + dir * previousMetres, 0, 100);
@@ -316,10 +317,14 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
         let catcherFinalX = catchX;
         let catcherFinalY = catchY;
         
-        const nextCarry = carries[i];
+        // The catcher's own carry is the NEXT carry after the offloader's
+        // (carries[i+1]). It is absent only when this offload was knocked on —
+        // the chain returns before emitting a carry for the catcher — in which
+        // case there is no forward run, just the pass to the (dropped) catch.
+        const nextCarry = carries[i + 1];
         if (nextCarry) {
-          let accumulatedMetres = carries[carries.length - 1].metres;
-          for (let j = 0; j <= i; j++) {
+          let accumulatedMetres = 0;
+          for (let j = 0; j <= i + 1; j++) {
             accumulatedMetres += carries[j].metres;
           }
           catcherFinalX = clamp(state.ball.x + dir * accumulatedMetres, 0, 100);
@@ -339,19 +344,22 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
         } else {
           authoredBallEvents.push(passEvent);
         }
-        
-        const nextEvt = res.events[res.events.indexOf(offloadEvt) + 1];
-        if (nextEvt && nextEvt.type === 'KNOCK_ON') {
-           break;
-        }
-        
-        // 2. Catcher runs with the ball to the final tackle point
+
+        // 2. Catcher runs with the ball to the final tackle point. Skipped when
+        // this offload was knocked on (no catcher carry — nextCarry is absent).
         if (nextCarry) {
-          currentT += 0.25; 
-          
+          currentT += 0.25;
+
           catcherChoreo.movements.push({ t: currentT, x: catcherFinalX, y: catcherFinalY });
           const runEvent = { type: 'BALL_REPOSITIONED' as const, x: catcherFinalX, y: catcherFinalY, t: currentT };
-          
+
+          // The runEvent is the authoritative ball position for the catcher's
+          // carry (catcherFinalX already includes its metres). Suppress the
+          // CARRY_RESOLVED's own ball advance so it isn't double-counted on top
+          // of the explicit keyframe — otherwise the ball overshoots the catcher
+          // dot, which rests at catcherFinalX.
+          nextCarry.suppressBallMove = true;
+
           const carryIdx = res.events.indexOf(nextCarry);
           if (carryIdx !== -1) {
             res.events.splice(carryIdx, 0, runEvent);

@@ -9,7 +9,7 @@ import { loadTickDelayMs } from './uiPrefs';
 import { lineGapMs } from '../engine/balance';
 import { toTop, toLeft, fromTop, fromLeft } from './pitchCoords';
 import { initPitchPlayers } from './PitchPlayers';
-import { kickFindsTouch, clampX, clampY, MAUL_HOOKER_DX } from './pitchChoreography';
+import { kickFindsTouch, outcomeKeys, clampX, clampY, MAUL_HOOKER_DX } from './pitchChoreography';
 import { SLOT } from '../engine/Slot';
 
 // Which flash a key event warrants, or null for a beat we don't highlight. Kept
@@ -31,10 +31,11 @@ function flashClass(event: GameEvent): string | null {
   const pc = phaseClass(event.displayPhase ?? event.phase);
   if (pc === 'phase-try')     return 'flash-try';
   if (pc === 'phase-penalty') {
-    if (event.narration.steps.some(s => s.kind === 'phase_outcome' && ((s as any).key === 'kick_to_touch' || (s as any).key === 'kick_to_touch_close' || (s as any).key === 'kick_to_touch_long'))) {
+    const keys = outcomeKeys(event);
+    if (keys.includes('kick_to_touch') || keys.includes('kick_to_touch_close') || keys.includes('kick_to_touch_long')) {
       return 'flash-penalty-success';
     }
-    if (event.narration.steps.some(s => s.kind === 'phase_outcome' && (s as any).key === 'kick_to_touch_missed')) {
+    if (keys.includes('kick_to_touch_missed')) {
       return 'flash-penalty-miss';
     }
     return 'flash-penalty';
@@ -71,6 +72,12 @@ export function initPitchView(): void {
   let cachedState: MatchState | null = null;
 
   let lastHalfTimeDone: boolean | null = null;
+  // Rolling 10-minute territory window: cumulative snapshots tagged with gameMinute.
+  // Each stateChange pushes a new entry; the front is pruned so history[0] stays at
+  // or just before the 10-minute cutoff. Delta between history[0] and history[last]
+  // is the territory earned in the last ~10 game-minutes.
+  type TerritorySnap = { minute: number; home: number; away: number };
+  const territoryHistory: TerritorySnap[] = [];
   // Cached from the most recent stateChange so the engine:event handler (which
   // fires before stateChange in the same beat) can determine attack direction.
   let cachedHalfTimeDone = false;
@@ -379,6 +386,7 @@ export function initPitchView(): void {
   eventBus.on('engine:initialized', () => {
     lastHalfTimeDone   = null;
     cachedHalfTimeDone = false;
+    territoryHistory.length = 0;
     cachedEventPhase   = null;
     cachedState        = null;
     lastTop  = toTop(50);
@@ -592,11 +600,20 @@ export function initPitchView(): void {
     ball.style.removeProperty('--ball-color');
     ball.style.setProperty('--ball-glow', `color-mix(in oklch, ${attackColor} 60%, transparent)`);
 
-    // Territory tug-of-war bar — only the home-portion width is volatile; the
-    // home/away fill colours are fixed for the match and bound in the gate below.
+    // Territory tug-of-war bar — rolling last-10-minute window.
+    // Push a cumulative snapshot and prune the front so history[0] stays at or
+    // just before the 10-minute cutoff; the delta gives recent momentum.
     const terr = display.stats.territory;
-    const total = terr.home + terr.away;
-    const homePct = total > 0 ? (terr.home / total) * 100 : 50;
+    territoryHistory.push({ minute: display.gameMinute, home: terr.home, away: terr.away });
+    while (territoryHistory.length > 1 && territoryHistory[1].minute <= display.gameMinute - 10) {
+      territoryHistory.shift();
+    }
+    const base = territoryHistory[0];
+    const snap = territoryHistory[territoryHistory.length - 1];
+    const homeDelta = snap.home - base.home;
+    const awayDelta = snap.away - base.away;
+    const totalDelta = homeDelta + awayDelta;
+    const homePct = totalDelta > 0 ? (homeDelta / totalDelta) * 100 : 50;
     const awayPct = 100 - homePct;
     territoryHome.style.width = `${homePct}%`;
     territoryPctHome.textContent = `${Math.round(homePct)}%`;
@@ -624,8 +641,8 @@ export function initPitchView(): void {
     // half-time state changes — including the initial null→false transition.
     if (display.halfTimeDone !== lastHalfTimeDone) {
       lastHalfTimeDone = display.halfTimeDone;
-      territoryHome.style.background = colorOnDark(state.homeTeam.color);
-      territoryBar.style.background  = colorOnDark(state.awayTeam.color);
+      territoryHome.style.background = state.homeTeam.color;
+      territoryBar.style.background  = state.awayTeam.color;
       const bottomTeam = !flip ? state.homeTeam : state.awayTeam;
       const topTeam    = !flip ? state.awayTeam : state.homeTeam;
       // Full team name, large, in each in-goal — names the end a side defends.

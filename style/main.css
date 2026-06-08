@@ -853,8 +853,8 @@ body.pitch-view-active #pitch-wrapper { display: none; }
   overflow: visible;
   pointer-events: none;
 }
-.pitch2d-end-top    { top: 2%; }
-.pitch2d-end-bottom { bottom: 2%; }
+.pitch2d-end-top    { top: 4.75%;  transform: translateY(-50%); }
+.pitch2d-end-bottom { top: 95.25%; transform: translateY(-50%); }
 
 .pitch2d-cards-top,
 .pitch2d-cards-bottom {
@@ -886,7 +886,8 @@ body.pitch-view-active #pitch-wrapper { display: none; }
 
 /* FM-style player dots — numbered team-coloured circles for the players involved
    in each beat (+ set-piece formations). Children of #pitch-2d-field (the ball's
-   offsetParent), positioned by top%/left% like the ball, and sitting below the
+   offsetParent), positioned by top%/left% like the ball, and sitting above the
+   dead-ball team labels / territory shade (z-index 1) and below cards (z-index 3),
    ball (z-index 4) / kick-flight (z-index 5). The carrier dot's top/left
    transition is disabled in JS while its WAAPI walk rides the ball. */
 .pitch-dot {
@@ -902,6 +903,7 @@ body.pitch-view-active #pitch-wrapper { display: none; }
   transform: translate(-50%, -50%);
   opacity: 0;
   pointer-events: none;
+  z-index: 2;
   /* No top/left transition — dots appear at their position and fade in/out.
      This prevents dots from sliding in from previous positions (which caused
      the "passer travels with ball" and "scroll from touchline" artefacts). */

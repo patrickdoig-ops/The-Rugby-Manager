@@ -91,22 +91,22 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 | Val Rapava-Ruskin | Prop | 1992-12-12 | 33 | Georgia | 80 | 91 | 62 | 67 | 69 | 89 | 85 | 43 | 90 | 85 | 85 | 90 |
 | Seb Blake | Hooker | 2002-06-23 | 23 | England | 77 | 86 | 67 | 75 | 74 | 82 | 85 | 52 | 85 | 80 | 80 | 80 |
 | Afolabi Fasogbon | Prop | 2003-12-17 | 22 | England | 76 | 89 | 63 | 70 | 80 | 84 | 85 | 49 | 88 | 79 | 81 | 85 |
-| Hugh Bokenham | Lock | 2001-07-20 | 24 | England | 76 | 87 | 66 | 71 | 70 | 86 | 84 | 45 | 82 | 77 | 78 | 75 |
-| Arthur Clark | Lock | 1999-09-24 | 26 | England | 76 | 87 | 70 | 70 | 71 | 85 | 84 | 46 | 85 | 78 | 80 | 80 |
+| Hugh Bokenham | Lock | 2001-07-20 | 24 | England | 82 | 87 | 66 | 71 | 70 | 86 | 84 | 45 | 88 | 77 | 78 | 75 |
+| Arthur Clark | Lock | 1999-09-24 | 26 | England | 82 | 87 | 70 | 70 | 71 | 85 | 84 | 46 | 89 | 78 | 80 | 80 |
 | Lewis Ludlow | Flanker | 1994-12-19 | 31 | England | 95 | 78 | 78 | 78 | 78 | 95 | 95 | 57 | 82 | 95 | 95 | 78 |
 | Josh Basham | Flanker | 1999-08-08 | 26 | England | 82 | 88 | 79 | 81 | 78 | 89 | 93 | 55 | 88 | 81 | 84 | 79 |
-| Jack Mann | Back Row | 1999-01-30 | 27 | England | 81 | 86 | 74 | 83 | 75 | 82 | 89 | 57 | 81 | 77 | 78 | 74 |
+| Jack Mann | Back Row | 1999-01-30 | 27 | England | 81 | 86 | 74 | 83 | 79 | 86 | 89 | 57 | 81 | 77 | 82 | 74 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Tomos Williams | Scrum-half | 1994-10-25 | 31 | Wales | 90 | 78 | 80 | 95 | 96 | 78 | 78 | 90 | 56 | 78 | 92 | 95 |
 | Ross Byrne | Fly-half | 1995-03-29 | 31 | Ireland | 88 | 78 | 82 | 78 | 92 | 78 | 78 | 92 | 59 | 93 | 92 | 91 |
-| Will Joseph | Wing | 2003-02-04 | 23 | England | 90 | 74 | 89 | 89 | 81 | 76 | 73 | 73 | 60 | 74 | 76 | 77 |
+| Will Joseph | Wing | 2003-02-04 | 23 | England | 90 | 74 | 89 | 89 | 81 | 76 | 73 | 73 | 60 | 74 | 82 | 77 |
 | Max Llewellyn | Centre | 1997-09-04 | 28 | Wales | 88 | 85 | 85 | 78 | 90 | 95 | 78 | 78 | 61 | 79 | 78 | 77 |
 | Seb Atkinson | Centre | 2001-08-27 | 24 | England | 89 | 88 | 82 | 80 | 86 | 85 | 83 | 85 | 59 | 84 | 83 | 88 |
-| Ben Loader | Wing | 1999-01-24 | 27 | England | 88 | 81 | 92 | 88 | 85 | 72 | 74 | 78 | 54 | 79 | 78 | 75 |
-| George Barton | Utility Back | 1999-09-04 | 26 | England | 91 | 81 | 77 | 78 | 82 | 78 | 81 | 79 | 69 | 74 | 81 | 82 |
+| Ben Loader | Wing | 1999-01-24 | 27 | England | 88 | 81 | 92 | 88 | 85 | 72 | 74 | 78 | 54 | 79 | 83 | 75 |
+| George Barton | Utility Back | 1999-09-04 | 26 | England | 91 | 81 | 82 | 78 | 82 | 78 | 81 | 79 | 69 | 74 | 81 | 82 |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |

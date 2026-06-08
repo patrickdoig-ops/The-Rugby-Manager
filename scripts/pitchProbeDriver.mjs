@@ -44,14 +44,24 @@ if (!(await isUp())) {
   if (!up) { shutdown(); throw new Error(`Vite did not come up on ${PORT} within 20s`); }
 } else {
   console.log(`reusing dev server already on ${PORT}`);
+  console.log('  ⚠  reused server may serve a STALE bundle — if you edited src/, kill ALL vite');
+  console.log('     (pkill -9 -f vite) before trusting this run. See CLAUDE.md § probe.');
 }
 
 // 2. Launch headless Chromium and load the probe.
-const browser = await puppeteer.launch({
-  args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--force-color-profile=srgb'],
-  executablePath: await chromium.executablePath(),
-  headless: true,
-});
+let browser;
+try {
+  browser = await puppeteer.launch({
+    args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--force-color-profile=srgb'],
+    executablePath: await chromium.executablePath(),
+    headless: true,
+  });
+} catch (e) {
+  shutdown();
+  console.error('Failed to launch Chromium. Ensure deps are installed (`npm i`); the probe uses');
+  console.error('@sparticuz/chromium + puppeteer-core (registry-hosted).');
+  throw e;
+}
 const page = await browser.newPage();
 await page.setViewport({ width: 360, height: 600, deviceScaleFactor: 2 });
 page.on('pageerror', (e) => console.log('[pageerror]', e.message));
@@ -100,4 +110,12 @@ console.log('phases seen:', [...new Set(beats.map((b) => b.phase))].join(', '));
 
 await browser.close();
 shutdown();
+
+// Exit non-zero if we didn't capture every wanted shot, so a CI/automation caller
+// can tell a partial capture (slow match, deadline hit) from a complete one.
+const missedShots = Object.keys(wanted).filter((k) => (taken[k] || 0) < wanted[k]);
+if (missedShots.length) {
+  console.error(`incomplete capture — missing shots: ${missedShots.join(', ')}`);
+  process.exit(1);
+}
 process.exit(0);

@@ -222,7 +222,11 @@
 (() => {
   // ---- pitch coordinate mapping (game space → screen %) ----
   // x = long axis 0..100 (100 at top of screen). y = lateral 0..100 (0 left touchline).
-  const TOP0 = 6, TOPSPAN = 88, LEFT0 = 4, LEFTSPAN = 92;
+  // These MUST mirror the live renderer's src/ui/pitchCoords.ts (INGOAL_PCT=8,
+  // PLAY_SPAN=84, TOUCH_MARGIN=3.5, PLAY_WIDTH_PCT=93) so a dot dragged to a line in
+  // the tool sits at the same game x/y the match view would draw it at. drawPitch and
+  // the dot mapping both read these, so the canvas stays internally consistent.
+  const TOP0 = 8, TOPSPAN = 84, LEFT0 = 3.5, LEFTSPAN = 93;
   const xToTop  = x => TOP0 + (100 - x) / 100 * TOPSPAN;       // %
   const yToLeft = y => LEFT0 + y / 100 * LEFTSPAN;             // %
   // x may be dragged BEYOND the field of play into the in-goal areas (behind a try line):
@@ -704,7 +708,12 @@
       makeEntities();
       for (const ie of o.entities || []) {
         const e = entities.find(x => x.id === ie.id);
-        if (e) e.kf = ie.kf.map(k => ({ t: k.t, x: k.x, y: k.y }));
+        if (!e || !Array.isArray(ie.kf)) continue;
+        // Coerce + drop any keyframe with a non-finite t/x/y so a malformed paste
+        // can't push NaN coords into a dot (which silently vanishes off the canvas).
+        e.kf = ie.kf
+          .map(k => ({ t: +k.t, x: +k.x, y: +k.y }))
+          .filter(k => Number.isFinite(k.t) && Number.isFinite(k.x) && Number.isFinite(k.y));
       }
       beats = o.meta?.beats || []; phaseName = o.meta?.phase || '(imported)';
       document.getElementById('phaseTag').textContent = phaseName; playhead = 0; render();

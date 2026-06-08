@@ -641,8 +641,8 @@ export function initPitchView(): void {
     // half-time state changes — including the initial null→false transition.
     if (display.halfTimeDone !== lastHalfTimeDone) {
       lastHalfTimeDone = display.halfTimeDone;
-      territoryHome.style.background = colorOnDark(state.homeTeam.color);
-      territoryBar.style.background  = colorOnDark(state.awayTeam.color);
+      territoryHome.style.background = state.homeTeam.color;
+      territoryBar.style.background  = state.awayTeam.color;
       const bottomTeam = !flip ? state.homeTeam : state.awayTeam;
       const topTeam    = !flip ? state.awayTeam : state.homeTeam;
       // Full team name, large, in each in-goal — names the end a side defends.

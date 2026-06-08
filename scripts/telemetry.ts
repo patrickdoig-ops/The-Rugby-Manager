@@ -437,10 +437,10 @@ function aggregateMatch(
   for (let i = 0; i < state.events.length; i++) {
     const e = state.events[i];
     // A try fires two events with phase=TryScored: the carry-to-try event
-    // (relabeled by PhaseRouter, carries the score commentary) and the
-    // handleTryScored follow-up (empty narration — see TryScoredEvent.ts).
-    // Skip the duplicate so phaseCount and try-origin reflect actual tries.
-    if (e.phase === MatchPhase.TryScored && e.narration.steps.length === 0) continue;
+    // (has try_location_* narration) and the handleTryScored follow-up
+    // (has try_aftermath narration — see TryScoredEvent.ts). Skip the
+    // follow-up so phaseCount and try-origin each count one event per try.
+    if (e.phase === MatchPhase.TryScored && e.narration.steps.some(s => s.kind === 'announcement' && s.key === 'try_aftermath')) continue;
     agg.phaseCount.set(e.phase, (agg.phaseCount.get(e.phase) ?? 0) + 1);
 
     for (const step of e.narration.steps) {

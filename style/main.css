@@ -727,6 +727,7 @@ html, body {
   order: 2;
   border-bottom: none;
   border-top: 1px solid var(--rm-hairline);
+  min-height: 58px; /* 1px border + 57px entry — reserves space before first line arrives */
 }
 #panel-bottom.view-pitch #latest-commentary .commentary-entry { height: 57px; }
 

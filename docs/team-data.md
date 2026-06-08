@@ -72,7 +72,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 - **Head coach:** George Skivington (Head Coach; returned to the role March 2026 after serving as Director of Rugby from September 2023, having previously been Head Coach from 2020).
 - **Captain:** Tomos Williams (2025-26; confirmed in December 2025 to be joining Saracens at season's end).
 - **Overall rating:** **67/100**
-- **Suggested tactics:** `balanced` · `keep_it_tight` · `commit_numbers` · `counter_ruck` · `one_back` · `drift` · `cautious`
+- **Suggested tactics:** `balanced` · `keep_it_tight` · `commit_numbers` · `shadow` · `two_back` · `drift` · `cautious`
 - **Stat bias:** high `strength`, `breakdown`, `setPiece`.
 - **Board ambition:** `playoffs`
 
@@ -88,9 +88,9 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Val Rapava-Ruskin | Prop | 1992-12-12 | 33 | Georgia | 80 | 91 | 62 | 67 | 69 | 89 | 85 | 43 | 90 | 85 | 85 | 90 |
-| Seb Blake | Hooker | 2002-06-23 | 23 | England | 77 | 86 | 67 | 75 | 74 | 82 | 85 | 52 | 85 | 80 | 80 | 80 |
-| Afolabi Fasogbon | Prop | 2003-12-17 | 22 | England | 76 | 89 | 63 | 70 | 80 | 84 | 85 | 49 | 88 | 79 | 81 | 85 |
+| Val Rapava-Ruskin | Prop | 1992-12-12 | 33 | Georgia | 80 | 91 | 62 | 67 | 69 | 89 | 85 | 43 | 90 | 88 | 85 | 90 |
+| Seb Blake | Hooker | 2002-06-23 | 23 | England | 77 | 86 | 67 | 75 | 74 | 82 | 85 | 52 | 85 | 85 | 80 | 80 |
+| Afolabi Fasogbon | Prop | 2003-12-17 | 22 | England | 76 | 89 | 63 | 70 | 80 | 84 | 85 | 49 | 88 | 84 | 81 | 85 |
 | Hugh Bokenham | Lock | 2001-07-20 | 24 | England | 82 | 87 | 66 | 71 | 70 | 86 | 84 | 45 | 88 | 77 | 78 | 75 |
 | Arthur Clark | Lock | 1999-09-24 | 26 | England | 82 | 87 | 70 | 70 | 71 | 85 | 84 | 46 | 89 | 78 | 80 | 80 |
 | Lewis Ludlow | Flanker | 1994-12-19 | 31 | England | 95 | 78 | 78 | 78 | 78 | 95 | 95 | 57 | 82 | 95 | 95 | 78 |

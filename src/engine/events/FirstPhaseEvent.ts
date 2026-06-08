@@ -24,7 +24,6 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   const goCrashBall = rng(1, 100) <= CRASH_BALL_THRESHOLDS[style];
   const playType = goCrashBall ? 'crash_ball' : 'out_the_back';
 
-
   // Helper to apply uploaded choreography
   function applyChoreography(res: PhaseResult, playType: string, directionOverride?: number): PhaseResult {
     const choreoKey = playType;
@@ -133,7 +132,6 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
         res.events.push(...authoredBallEvents);
       }
     }
-
 
     // --- Dynamic Truncation ---
     let truncateT = 1.0;
@@ -269,10 +267,14 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     }
 
     if (res.nextPhase === MatchPhase.TryScored) {
-      const finalBallEvents = authoredBallEvents.filter(e => e.t <= truncateT);
-      if (finalBallEvents.length > 0) {
-        const finalY = finalBallEvents[finalBallEvents.length - 1].y;
-        
+      // authoredBallEvents has already been truncated + rescaled above (the last
+      // entry is the interpolated boundary point at the truncation), so its final
+      // entry IS the authentic grounding position. Re-filtering here with the
+      // pre-rescale truncateT would chop off that final entry and snap the try Y
+      // (and conversion alignment) back to a mid-path keyframe.
+      if (authoredBallEvents.length > 0) {
+        const finalY = authoredBallEvents[authoredBallEvents.length - 1].y;
+
         const tryRepoEvent = res.events.find((e: any) => e.type === 'BALL_REPOSITIONED' && e.t === undefined) as any;
         if (tryRepoEvent) {
           tryRepoEvent.y = finalY;
@@ -303,8 +305,6 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   const defendOnField = onFieldPlayers(defendTeam, state, defSide);
   const carrier   = attackOnField.find(p => p.id === SLOT.FLY_HALF) ?? attackOnField[0] ?? attackTeam.players[0];
   const scrumHalf = attackOnField.find(p => p.id === SLOT.SCRUM_HALF) ?? attackOnField[0] ?? attackTeam.players[0];
-
-
 
   // Defensive line drives the per-pass interception probability and the
   // handling-gate pressure modifier. Hoisted up here so every pass site +

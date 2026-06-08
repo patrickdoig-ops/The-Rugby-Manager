@@ -723,6 +723,42 @@ export class MatchCoordinator {
     }
   }
 
+  // Half-time team talks, shared by every path that can end the first half
+  // (normal end-of-period AND a goal kick resolved in the red). Silent mode
+  // applies both AI talks and plays straight on (returns false). Live mode
+  // applies the AI talk, collects the human choice via the dressing-room
+  // panel, applies it, then pauses for the user to start the second half
+  // (returns true — the caller is terminal and must not schedule a tick).
+  private async runHalfTimeTalks(): Promise<boolean> {
+    const aiSide: 'home' | 'away' = this.humanSide === 'home' ? 'away' : 'home';
+    if (this.silent) {
+      this.applyTalk('home', this.computeAITalk('home'));
+      this.applyTalk('away', this.computeAITalk('away'));
+      return false;
+    }
+    // AI talk applied immediately; human talk collected via the panel.
+    this.applyTalk(aiSide, this.computeAITalk(aiSide));
+    await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
+    // Collect human team talk via the half-time panel. Engine stays
+    // running = false (pause() below) while the user makes their choice.
+    const humanTalkArgs = await new Promise<TalkArgs>(resolve => {
+      eventBus.emit('engine:paused', {
+        payload: {
+          type: 'team_talk_choice',
+          side: this.humanSide,
+          state: this.state,
+          averageMorale: this.humanSquadMorale,
+          onChoice: resolve,
+        },
+      });
+    });
+    this.applyTalk(this.humanSide, humanTalkArgs);
+    eventBus.emit('ui:halfTimeTalkDone', {});
+    this.pause();
+    eventBus.emit('engine:autoPaused', { reason: 'half_time' });
+    return true;
+  }
+
   // Apply a team talk to a side via TEAM_TALK_APPLIED.
   private applyTalk(side: 'home' | 'away', args: TalkArgs): void {
     applyMatchEvent(this.state, {
@@ -970,34 +1006,7 @@ export class MatchCoordinator {
     // silent mode so headless harnesses (determinism, telemetry, AI
     // fixtures) blow straight through to full-time.
     if (!wasHalfTimeDone && this.state.clock.halfTimeDone) {
-      const aiSide: 'home' | 'away' = this.humanSide === 'home' ? 'away' : 'home';
-      if (this.silent) {
-        // Headless: apply AI talks for both sides, no pause needed.
-        this.applyTalk('home', this.computeAITalk('home'));
-        this.applyTalk('away', this.computeAITalk('away'));
-      } else {
-        // AI talk applied immediately; human talk collected via the panel.
-        this.applyTalk(aiSide, this.computeAITalk(aiSide));
-        await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-        // Collect human team talk via the half-time panel. Engine stays
-        // running = false (pause() below) while the user makes their choice.
-        const humanTalkArgs = await new Promise<TalkArgs>(resolve => {
-          eventBus.emit('engine:paused', {
-            payload: {
-              type: 'team_talk_choice',
-              side: this.humanSide,
-              state: this.state,
-              averageMorale: this.humanSquadMorale,
-              onChoice: resolve,
-            },
-          });
-        });
-        this.applyTalk(this.humanSide, humanTalkArgs);
-        eventBus.emit('ui:halfTimeTalkDone', {});
-        this.pause();
-        eventBus.emit('engine:autoPaused', { reason: 'half_time' });
-        return true;
-      }
+      if (await this.runHalfTimeTalks()) return true;
     }
     return false;
   }
@@ -1154,12 +1163,10 @@ export class MatchCoordinator {
       if (!this.state.clock.halfTimeDone) {
         this.clock.triggerHalfTime(this.state);
         if (!this.state.engine.isRunning) return;
-        if (!this.silent) {
-          await this.streamer.flush(this.state.engine.tickDelayMs, this.state);
-          this.pause();
-          eventBus.emit('engine:autoPaused', { reason: 'half_time' });
-          return;
-        }
+        // Run the half-time team talks (panel + pause in live mode, AI talks
+        // only in silent mode) just like the normal end-of-period path —
+        // otherwise a half ending on a goal kick skips the dressing room.
+        if (await this.runHalfTimeTalks()) return;
       } else {
         await this.clock.endMatch(this.state);
         return;

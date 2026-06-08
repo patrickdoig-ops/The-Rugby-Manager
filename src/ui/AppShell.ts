@@ -97,7 +97,14 @@ export function buildAppShell(): void {
           <div id="pitch-2d-ball"></div>
           <div id="pitch-kick-flight"></div>
         </div>
-        <div id="pitch-territory-bar"><div id="pitch-territory-home"></div></div>
+        <div id="pitch-territory-bar">
+          <div class="stat-bars"><div id="pitch-territory-home"></div></div>
+          <div class="stat-row-header">
+            <span class="stat-val" id="pitch-territory-pct-home">50%</span>
+            <span class="stat-label">TERRITORY</span>
+            <span class="stat-val" id="pitch-territory-pct-away">50%</span>
+          </div>
+        </div>
         <div id="pitch-phase-label"></div>
       </div>
       <div id="panel-commentary">

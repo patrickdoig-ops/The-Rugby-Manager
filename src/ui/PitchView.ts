@@ -38,8 +38,10 @@ export function initPitchView(): void {
   const ball         = document.getElementById('pitch-2d-ball')!;
   const flash        = document.getElementById('pitch-flash')!;
   const shade        = document.getElementById('pitch-territory-shade')!;
-  const territoryBar  = document.getElementById('pitch-territory-bar')!;
-  const territoryHome = document.getElementById('pitch-territory-home')!;
+  const territoryBar     = document.getElementById('pitch-territory-bar')!;
+  const territoryHome    = document.getElementById('pitch-territory-home')!;
+  const territoryPctHome = document.getElementById('pitch-territory-pct-home')!;
+  const territoryPctAway = document.getElementById('pitch-territory-pct-away')!;
   const phaseLabel   = document.getElementById('pitch-phase-label')!;
   const topLabel     = document.getElementById('pitch-top-label')!;
   const bottomLabel  = document.getElementById('pitch-bottom-label')!;
@@ -590,7 +592,13 @@ export function initPitchView(): void {
     // home/away fill colours are fixed for the match and bound in the gate below.
     const terr = display.stats.territory;
     const total = terr.home + terr.away;
-    territoryHome.style.width = `${total > 0 ? (terr.home / total) * 100 : 50}%`;
+    const homePct = total > 0 ? (terr.home / total) * 100 : 50;
+    const awayPct = 100 - homePct;
+    territoryHome.style.width = `${homePct}%`;
+    territoryPctHome.textContent = `${Math.round(homePct)}%`;
+    territoryPctAway.textContent = `${Math.round(awayPct)}%`;
+    territoryPctHome.className = `stat-val${homePct > 50 ? ' stat-winner' : ''}`;
+    territoryPctAway.className = `stat-val${awayPct > 50 ? ' stat-winner' : ''}`;
 
     // Shade the half the ball is currently in, tinted by the team in possession.
     shade.style.top = topPct < 50 ? '0' : '50%';

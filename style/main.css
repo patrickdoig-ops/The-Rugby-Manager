@@ -978,7 +978,8 @@ body.pitch-view-active #pitch-wrapper { display: none; }
 
 #pitch-territory-bar {
   flex-shrink: 0;
-  height: 8px;
+  position: relative;
+  height: 28px;
   border-radius: 4px;
   overflow: hidden;
   background: var(--rm-surface-3);

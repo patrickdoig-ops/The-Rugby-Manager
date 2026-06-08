@@ -101,7 +101,7 @@ export function buildAppShell(): void {
           <div class="stat-bars"><div id="pitch-territory-home"></div></div>
           <div class="stat-row-header">
             <span class="stat-val" id="pitch-territory-pct-home">50%</span>
-            <span class="stat-label">TERRITORY</span>
+            <span class="stat-label">TERRITORY (LAST 10 MIN)</span>
             <span class="stat-val" id="pitch-territory-pct-away">50%</span>
           </div>
         </div>

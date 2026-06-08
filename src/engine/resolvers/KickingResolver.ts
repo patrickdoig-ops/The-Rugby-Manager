@@ -35,14 +35,22 @@ export interface PenaltyKickToTouchResolution {
   findsTouch: boolean;
 }
 
-export function resolvePenaltyKickToTouch(kicker: Player): PenaltyKickToTouchResolution {
+export function resolvePenaltyKickToTouch(kicker: Player, distanceToTryLine: number): PenaltyKickToTouchResolution {
   const V = PENALTY_KICK_TO_TOUCH_VALUES;
   const kickScore = kicker.currentStats.kicking + rng(1, 20);
   const goodKick  = kickScore >= V.goodKickThreshold;
+  
+  let touchPct = goodKick ? V.goodKickTouchPct : V.poorKickTouchPct;
+  
+  // Gimme range: kicks to touch from inside the opposition 22m are virtually guaranteed.
+  if (distanceToTryLine <= 22) {
+    touchPct = 99;
+  }
+  
   return {
     kickScore,
     distance:   goodKick ? rng(V.goodKickDistance[0], V.goodKickDistance[1]) : rng(V.poorKickDistance[0], V.poorKickDistance[1]),
-    findsTouch: rng(1, 100) <= (goodKick ? V.goodKickTouchPct : V.poorKickTouchPct),
+    findsTouch: rng(1, 100) <= touchPct,
   };
 }
 

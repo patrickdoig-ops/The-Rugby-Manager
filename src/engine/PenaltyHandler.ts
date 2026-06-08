@@ -194,8 +194,8 @@ export class PenaltyHandler {
       // and a touch-finding roll decides whether the kick reaches the
       // sideline at all. On miss, possession swaps and the opposition
       // counter-attacks via KickReturn — a real penalty-to-touch cost
-      // that didn't exist pre-v2.183a.
-      const res = resolvePenaltyKickToTouch(kicker);
+      const distanceToTryLine = metresFromOppositionTryLine(state);
+      const res = resolvePenaltyKickToTouch(kicker, distanceToTryLine);
       const defendSide: 'home' | 'away' = state.possession === 'home' ? 'away' : 'home';
       const defendTeam = state.possession === 'home' ? state.awayTeam : state.homeTeam;
       const defender = pickFullback(defendTeam, state, defendSide);

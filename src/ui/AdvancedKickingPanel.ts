@@ -16,12 +16,23 @@ const ZONE_META: { key: Zone; label: string; desc: string }[] = [
   { key: 'opp22',   label: 'Opposition 22',  desc: 'Attacking, inside their 22.' },
 ];
 
-const FAMILY_META: { key: Family; label: string }[] = [
-  { key: 'clearance', label: 'Clearance' },
-  { key: 'territory', label: 'Territorial' },
-  { key: 'fifty_22',  label: '50:22' },
-  { key: 'attacking', label: 'Attacking' },
-];
+const FAMILY_LABEL: Record<Family, string> = {
+  clearance: 'Clearance',
+  territory: 'Kick to Compete',
+  fifty_22:  '50:22',
+  attacking: 'Cross Field/Grubber',
+};
+
+// Which kick types are tunable in each zone. Clearance and 50:22 are only
+// relevant in your own territory, so the opposition half / 22 expose just the
+// "Kick to Compete" and "Cross Field/Grubber" dials. Hidden families stay at
+// their seeded weight (0 in these zones), so the engine mix is unaffected.
+const ZONE_FAMILIES: Record<Zone, Family[]> = {
+  own22:   ['clearance', 'territory', 'fifty_22', 'attacking'],
+  ownHalf: ['clearance', 'territory', 'fifty_22', 'attacking'],
+  oppHalf: ['territory', 'attacking'],
+  opp22:   ['territory', 'attacking'],
+};
 
 function cloneAdvanced(a: AdvancedTactics): AdvancedTactics {
   const k = {} as AdvancedKicking;
@@ -58,11 +69,11 @@ function zoneCardHTML(z: ZoneKickProfile, meta: { key: Zone; label: string; desc
       </div>
       <div class="advk-types">
         <span class="advk-row-title">When kicking — kick-type mix</span>
-        ${FAMILY_META.map(f => `
+        ${ZONE_FAMILIES[meta.key].map(fk => `
           <div class="advk-type-row">
-            <span class="advk-type-label">${f.label}</span>
-            <input type="range" class="advk-slider advk-slider--type" min="0" max="100" step="5" value="${z.types[f.key]}" data-zone="${meta.key}" data-field="type" data-family="${f.key}" aria-label="${meta.label} ${f.label} weight">
-            <span class="advk-type-pct" data-type-pct="${f.key}">${typePct(z, f.key)}</span>
+            <span class="advk-type-label">${FAMILY_LABEL[fk]}</span>
+            <input type="range" class="advk-slider advk-slider--type" min="0" max="100" step="5" value="${z.types[fk]}" data-zone="${meta.key}" data-field="type" data-family="${fk}" aria-label="${meta.label} ${FAMILY_LABEL[fk]} weight">
+            <span class="advk-type-pct" data-type-pct="${fk}">${typePct(z, fk)}</span>
           </div>
         `).join('')}
       </div>
@@ -102,8 +113,8 @@ export function renderAdvancedKicking(
     if (!card) return;
     card.querySelector<HTMLElement>('[data-freq-kick]')!.textContent = `${z.frequency}%`;
     card.querySelector<HTMLElement>('[data-freq-hand]')!.textContent = `${100 - z.frequency}%`;
-    for (const f of FAMILY_META) {
-      card.querySelector<HTMLElement>(`[data-type-pct="${f.key}"]`)!.textContent = typePct(z, f.key);
+    for (const fk of ZONE_FAMILIES[zone]) {
+      card.querySelector<HTMLElement>(`[data-type-pct="${fk}"]`)!.textContent = typePct(z, fk);
     }
   }
 

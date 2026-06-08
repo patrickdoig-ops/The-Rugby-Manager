@@ -197,30 +197,78 @@ Bordeaux Bègles retain the title — their second successive Champions Cup. Lei
 | Connacht Rugby (Ireland/URC) | Benetton Rugby (Italy/URC) | Ulster Rugby (Ireland/URC) |
 | Ospreys (Wales/URC) | Dragons RFC (Wales/URC) | Cardiff Rugby (Wales/URC) |
 | Zebre Parma (Italy/URC) | Emirates Lions (SA/URC) | Exeter Chiefs (England) |
-| Black Lion (Georgia — invited) | Newcastle Falcons (England) | Toyota Cheetahs (SA — invited) |
+| Black Lion (Georgia — invited) | Newcastle Red Bulls (England) | Toyota Cheetahs (SA — invited) |
 
-### 3.3 Pool Stage — Schedule
+### 3.3 Pool Stage — Schedule & Results
 
-Pool stage weekends mirror the Champions Cup:
-- **Round 1:** 5/6/7 December 2025
-- **Round 2:** 12/13/14 December 2025
-- **Round 3:** 9/10/11 January 2026
-- **Round 4:** 16/17/18 January 2026
+#### Round 1 — 5/6/7 December 2025
 
-Opening fixture: Ulster vs Racing 92 (Pool 3), Friday 5 December.
+| Home | Score | Away | Pool |
+|---|---|---|---|
+| Ulster Rugby | 61 – 7 | Racing 92 | 3 |
+| Emirates Lions | 18 – 26 | Benetton Rugby | 2 |
+| Stade Français | 38 – 17 | Cardiff Rugby | 3 |
+| Black Lion | 13 – 24 | Montpellier | 1 |
+| Lyon Olympique | 14 – 23 | Newcastle Red Bulls | 2 |
+| Zebre Parma | 41 – 17 | US Montauban | 1 |
+| USAP (Perpignan) | 41 – 17 | Dragons RFC | 2 |
+| Ospreys | 24 – 21 | Connacht | 1 |
+| Exeter Chiefs | 42 – 12 | Toyota Cheetahs | 3 |
 
-> **Note:** Individual pool-stage match results are available on epcrugby.com and all.rugby but were not fully retrievable during research. Scores for specific matches can be added here once confirmed.
+#### Round 2 — 12/13/14 December 2025
 
-### 3.4 Pool Stage Final Standings (inferred from knockouts)
+| Home | Score | Away | Pool |
+|---|---|---|---|
+| Montpellier | 31 – 7 | Zebre Parma | 1 |
+| Benetton Rugby | 44 – 31 | USAP (Perpignan) | 2 |
+| Toyota Cheetahs | 22 – 45 | Stade Français | 3 |
+| US Montauban | 22 – 33 | Ospreys | 1 |
+| Newcastle Red Bulls | 14 – 10 | Emirates Lions | 2 |
+| Cardiff Rugby | 29 – 26 | Ulster Rugby | 3 |
+| Connacht | 52 – 0 | Black Lion | 1 |
+| Racing 92 | 31 – 31 | Exeter Chiefs | 3 |
+| Dragons RFC | 23 – 21 | Lyon Olympique | 2 |
 
-| Pool 1 — qualified | Pool 2 — qualified | Pool 3 — qualified |
-|---|---|---|
-| Montpellier (1st) | Benetton (qualified) | Ulster (qualified) |
-| Zebre Parma (qualified) | Dragons RFC (qualified) | Exeter Chiefs (qualified) |
-| Connacht (qualified) | Newcastle Falcons (qualified) | Stade Français (qualified) |
-| Ospreys (qualified) | USAP/Perpignan (qualified) | Cardiff Rugby (qualified) |
-| Black Lion ✗ | Emirates Lions ✗ | Racing 92 ✗ |
-| US Montauban ✗ | Lyon Olympique ✗ | Toyota Cheetahs ✗ |
+#### Round 3 — 10/11 January 2026
+
+| Home | Score | Away | Pool |
+|---|---|---|---|
+| Stade Français | 27 – 25 | Exeter Chiefs | 3 |
+| US Montauban | 28 – 31 | Black Lion | 1 |
+| Newcastle Red Bulls | 26 – 19 | USAP (Perpignan) | 2 |
+| Emirates Lions | 42 – 33 | Lyon Olympique | 2 |
+| Cardiff Rugby | 32 – 13 | Racing 92 | 3 |
+| Benetton Rugby | 74 – 21 | Dragons RFC | 2 |
+| Montpellier | 33 – 31 | Connacht | 1 |
+| Zebre Parma | 23 – 19 | Ospreys | 1 |
+| Toyota Cheetahs | 0 – 28 | Ulster Rugby | 3 |
+
+#### Round 4 — 16/17/18 January 2026
+
+| Home | Score | Away | Pool |
+|---|---|---|---|
+| Dragons RFC | 35 – 12 | Newcastle Red Bulls | 2 |
+| Ulster Rugby | 26 – 19 | Stade Français | 3 |
+| Black Lion | 14 – 28 | Zebre Parma | 1 |
+| USAP (Perpignan) | 20 – 20 | Emirates Lions | 2 |
+| Connacht | 75 – 14 | US Montauban | 1 |
+| Ospreys | 26 – 31 | Montpellier | 1 |
+| Exeter Chiefs | 31 – 0 | Cardiff Rugby | 3 |
+| Lyon Olympique | 19 – 38 | Benetton Rugby | 2 |
+| Racing 92 | 31 – 28 | Toyota Cheetahs | 3 |
+
+### 3.4 Pool Stage Final Standings
+
+| Pool 1 | P | W | D | L | Pool 2 | P | W | D | L | Pool 3 | P | W | D | L |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Montpellier | 4 | 4 | 0 | 0 | Benetton Rugby | 4 | 4 | 0 | 0 | Stade Français | 4 | 3 | 0 | 1 |
+| Zebre Parma | 4 | 3 | 0 | 1 | Newcastle Red Bulls | 4 | 3 | 0 | 1 | Ulster Rugby | 4 | 3 | 0 | 1 |
+| Connacht | 4 | 2 | 0 | 2 | Dragons RFC | 4 | 2 | 0 | 2 | Exeter Chiefs | 4 | 2 | 1 | 1 |
+| Ospreys | 4 | 2 | 0 | 2 | USAP (Perpignan) | 4 | 1 | 1 | 2 | Cardiff Rugby | 4 | 2 | 0 | 2 |
+| Black Lion ✗ | 4 | 1 | 0 | 3 | Emirates Lions ✗ | 4 | 1 | 1 | 2 | Racing 92 ✗ | 4 | 1 | 1 | 2 |
+| US Montauban ✗ | 4 | 0 | 0 | 4 | Lyon Olympique ✗ | 4 | 0 | 0 | 4 | Toyota Cheetahs ✗ | 4 | 0 | 0 | 4 |
+
+**Key:** Top 4 in each pool advance to the Round of 16 · ✗ = eliminated. (USAP edged Emirates Lions for Pool 2's 4th spot on bonus points; both finished 1W-1D-2L.)
 
 ### 3.5 Champions Cup Dropdowns into R16
 
@@ -239,7 +287,7 @@ Opening fixture: Ulster vs Racing 92 (Pool 3), Friday 5 December.
 | Montpellier | 53 – 13 | USAP (Perpignan) | |
 | Exeter Chiefs | 31 – 21 | Munster Rugby | CC dropout |
 | Benetton Rugby | 38 – 35 | Cardiff Rugby | |
-| Newcastle Falcons | 18 – 26 | La Rochelle | CC dropout |
+| Newcastle Red Bulls | 18 – 26 | La Rochelle | CC dropout |
 | Ulster Rugby | 28 – 24 | Ospreys | |
 | Stade Français | 31 – 36 | Dragons RFC | |
 | Zebre Parma | 31 – 15 | Pau | CC dropout |
@@ -250,8 +298,8 @@ Opening fixture: Ulster vs Racing 92 (Pool 3), Friday 5 December.
 |---|---|---|
 | Ulster Rugby | 41 – 24 | La Rochelle |
 | Montpellier | 45 – 22 | Connacht |
-| Dragons RFC | 35 – 32 | Zebre Parma |
-| Exeter Chiefs | 44 – 41 | Benetton Rugby |
+| Zebre Parma | 32 – 35 | Dragons RFC |
+| Benetton Rugby | 41 – 44 | Exeter Chiefs |
 
 ### 3.8 Semi-Finals — 2/3 May 2026
 
@@ -301,7 +349,7 @@ Montpellier win their third Challenge Cup.
 | Bristol Bears | Champions Cup | Pool 4 | Round of 16 |
 | Northampton Saints | Champions Cup | Pool 4 | Quarter-final |
 | Exeter Chiefs | Challenge Cup | Pool 3 | Semi-final |
-| Newcastle Falcons | Challenge Cup | Pool 2 | Round of 16 |
+| Newcastle Red Bulls | Challenge Cup | Pool 2 | Round of 16 |
 
 ---
 

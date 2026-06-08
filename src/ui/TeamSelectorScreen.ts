@@ -1,34 +1,26 @@
 import type { RawTeamInput } from '../types/teamData';
 import { computeOverallRating } from '../team/teamProfile';
 
-function ovrColor(r: number): string {
-  if (r >= 85) return 'var(--rm-stat-3)';
-  if (r >= 78) return 'var(--rm-stat-4)';
-  if (r >= 70) return 'var(--rm-stat-5)';
-  if (r >= 62) return 'var(--rm-stat-2)';
-  return 'var(--rm-stat-1)';
-}
-
 function tierLabel(ovr: number): string {
   if (ovr >= 85) return 'Title Favourites';
-  if (ovr >= 78) return 'Playoffs Push';
-  if (ovr >= 70) return 'Mid Table';
-  if (ovr >= 62) return 'Rebuilding';
-  return 'Underdog';
+  if (ovr >= 78) return 'Playoff Push';
+  if (ovr >= 68) return 'Rebuilding';
+  return 'Developing';
 }
 
 function tierClass(ovr: number): string {
   if (ovr >= 85) return 'elite';
   if (ovr >= 78) return 'strong';
-  if (ovr >= 70) return 'mid';
-  if (ovr >= 62) return 'rebuild';
-  return 'underdog';
+  if (ovr >= 68) return 'rebuild';
+  return 'developing';
 }
 
 const TIER_OVERRIDES: Record<string, { label: string; cls: string }> = {
-  'Gloucester':  { label: 'Rebuilding',  cls: 'rebuild'    },
-  'Harlequins':  { label: 'Rebuilding',  cls: 'rebuild'    },
-  'Newcastle':   { label: 'Developing',  cls: 'developing' },
+  'Gloucester':   { label: 'Rebuilding',       cls: 'rebuild'    },
+  'Harlequins':   { label: 'Rebuilding',       cls: 'rebuild'    },
+  'Leicester':    { label: 'Title Contenders', cls: 'contender'  },
+  'Newcastle':    { label: 'Developing',       cls: 'developing' },
+  'Northampton':  { label: 'Title Contenders', cls: 'contender'  },
 };
 
 function pitchLinesSvg(): string {
@@ -78,8 +70,6 @@ export function initTeamSelectorScreen(
       <div id="ts-grid">
         ${sortedTeams.map(team => {
           const ovr = computeOverallRating(team.id);
-          const c = ovrColor(ovr);
-          const eliteShadow = ovr >= 85 ? `text-shadow:0 0 12px color-mix(in oklch,var(--rm-stat-3) 40%,transparent);` : '';
           const [primary, ...rest] = team.name.split(' ');
           const secondary = rest.join(' ');
           const override = TIER_OVERRIDES[primary];
@@ -97,10 +87,6 @@ export function initTeamSelectorScreen(
                 ${secondary ? `<div class="ts-team-secondary">${secondary}</div>` : ''}
               </div>
               <div class="ts-card-footer">
-                <div class="ts-ovr-group">
-                  <span class="ts-ovr-value" style="color:${c};${eliteShadow}">${ovr}</span>
-                  <span class="ts-ovr-label">OVR</span>
-                </div>
                 <div class="ts-tier ts-tier--${tClass}">${tLabel}</div>
               </div>
             </button>

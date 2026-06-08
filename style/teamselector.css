@@ -242,33 +242,11 @@
   padding: 9px 14px 11px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: center;
   border-top: 1px solid rgba(255, 255, 255, 0.10);
   flex-shrink: 0;
   position: relative;
   z-index: 2;
-}
-
-.ts-ovr-group {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.ts-ovr-value {
-  font-family: var(--rm-font-display);
-  font-size: var(--rm-fs-26);
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.ts-ovr-label {
-  font-family: var(--rm-font-mono);
-  font-size: var(--rm-fs-9);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.38);
 }
 
 /* Tier pills */
@@ -284,12 +262,15 @@
   white-space: nowrap;
 }
 
-.ts-tier--elite     { color: var(--rm-stat-3); background: color-mix(in oklch, var(--rm-stat-3) 14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-3) 32%, transparent); }
-.ts-tier--strong    { color: var(--rm-pitch);  background: color-mix(in oklch, var(--rm-pitch)  14%, transparent); border-color: color-mix(in oklch, var(--rm-pitch)  32%, transparent); }
-.ts-tier--mid       { color: var(--rm-stat-5); background: color-mix(in oklch, var(--rm-stat-5) 14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-5) 32%, transparent); }
-.ts-tier--rebuild   { color: var(--rm-pitch);  background: color-mix(in oklch, var(--rm-pitch)  14%, transparent); border-color: color-mix(in oklch, var(--rm-pitch)  32%, transparent); }
-.ts-tier--developing{ color: var(--rm-stat-5); background: color-mix(in oklch, var(--rm-stat-5) 14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-5) 32%, transparent); }
-.ts-tier--underdog  { color: var(--rm-stat-1); background: color-mix(in oklch, var(--rm-stat-1) 14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-1) 32%, transparent); }
+/* Gold — Title Favourites */
+.ts-tier--elite      { color: var(--rm-stat-3);           background: color-mix(in oklch, var(--rm-stat-3)           14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-3)           32%, transparent); }
+/* Silver — Title Contenders */
+.ts-tier--contender  { color: oklch(0.76 0.02 250);       background: color-mix(in oklch, oklch(0.76 0.02 250)       14%, transparent); border-color: color-mix(in oklch, oklch(0.76 0.02 250)       32%, transparent); }
+/* Bronze — Playoff Push */
+.ts-tier--strong     { color: oklch(0.64 0.10 50);        background: color-mix(in oklch, oklch(0.64 0.10 50)        14%, transparent); border-color: color-mix(in oklch, oklch(0.64 0.10 50)        32%, transparent); }
+/* Cyan — Rebuilding / Developing */
+.ts-tier--rebuild    { color: var(--rm-stat-5);           background: color-mix(in oklch, var(--rm-stat-5)           14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-5)           32%, transparent); }
+.ts-tier--developing { color: var(--rm-stat-5);           background: color-mix(in oklch, var(--rm-stat-5)           14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-5)           32%, transparent); }
 
 /* Info button — top-right of each card */
 .ts-card-info {

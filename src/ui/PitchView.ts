@@ -30,7 +30,15 @@ function flashClass(event: GameEvent): string | null {
   }
   const pc = phaseClass(event.displayPhase ?? event.phase);
   if (pc === 'phase-try')     return 'flash-try';
-  if (pc === 'phase-penalty') return 'flash-penalty';
+  if (pc === 'phase-penalty') {
+    if (event.narration.steps.some(s => s.kind === 'phase_outcome' && ((s as any).key === 'kick_to_touch' || (s as any).key === 'kick_to_touch_close' || (s as any).key === 'kick_to_touch_long'))) {
+      return 'flash-penalty-success';
+    }
+    if (event.narration.steps.some(s => s.kind === 'phase_outcome' && (s as any).key === 'kick_to_touch_missed')) {
+      return 'flash-penalty-miss';
+    }
+    return 'flash-penalty';
+  }
   return null;
 }
 
@@ -82,8 +90,6 @@ export function initPitchView(): void {
   // True only on the beat the flight was triggered — stops the same-beat stateChange
   // (which fires right after engine:event) from un-hiding the ball before it flies.
   let kickFlightThisBeat = false;
-  let isPenaltyKickToTouch = false;
-  let isPenaltyMissedTouch = false;
 
   // Position + colour the flash element at a pitch coordinate, then retrigger
   // its keyframe via a forced reflow (same idiom as Scoreboard.popScore).
@@ -388,8 +394,6 @@ export function initPitchView(): void {
   eventBus.on('engine:event', ({ event }) => {
     cachedEventPhase = event.phase;
     kickFlightThisBeat = false;
-    isPenaltyKickToTouch = event.phase === MatchPhase.Penalty && kickFindsTouch(event);
-    isPenaltyMissedTouch = event.phase === MatchPhase.Penalty && event.narration.steps.some(s => s.kind === 'phase_outcome' && (s as any).key === 'kick_to_touch_missed');
     const cls = flashClass(event);
     if (cls) fireFlash(toTop(event.ballX), toLeft(event.ballY), cls);
 
@@ -586,16 +590,8 @@ export function initPitchView(): void {
     }
     // The shared BALL_SVG paints itself from --rm-amber; override that token on
     // the ball element so the glow takes the possessing side's colour.
-    if (isPenaltyKickToTouch) {
-      ball.style.setProperty('--ball-color', 'var(--rm-stat-4)');
-      ball.style.setProperty('--ball-glow', `color-mix(in oklch, var(--rm-stat-4) 80%, transparent)`);
-    } else if (isPenaltyMissedTouch) {
-      ball.style.setProperty('--ball-color', 'var(--rm-stat-1)');
-      ball.style.setProperty('--ball-glow', `color-mix(in oklch, var(--rm-stat-1) 80%, transparent)`);
-    } else {
-      ball.style.removeProperty('--ball-color');
-      ball.style.setProperty('--ball-glow', `color-mix(in oklch, ${attackColor} 60%, transparent)`);
-    }
+    ball.style.removeProperty('--ball-color');
+    ball.style.setProperty('--ball-glow', `color-mix(in oklch, ${attackColor} 60%, transparent)`);
 
     // Territory tug-of-war bar — only the home-portion width is volatile; the
     // home/away fill colours are fixed for the match and bound in the gate below.

@@ -965,8 +965,10 @@ body.pitch-view-active #pitch-wrapper { display: none; }
   z-index: 2;
 }
 #pitch-flash.flashing { animation: pitch-flash-pulse 0.7s ease-out; }
-.flash-try      { background: radial-gradient(circle, color-mix(in oklch, var(--rm-amber) 70%, transparent) 0%, transparent 70%); }
-.flash-penalty  { background: radial-gradient(circle, color-mix(in oklch, var(--rm-stat-1) 70%, transparent) 0%, transparent 70%); }
+.flash-try              { background: radial-gradient(circle, color-mix(in oklch, var(--rm-amber) 70%, transparent) 0%, transparent 70%); }
+.flash-penalty          { background: radial-gradient(circle, color-mix(in oklch, var(--rm-stat-1) 70%, transparent) 0%, transparent 70%); }
+.flash-penalty-success  { background: radial-gradient(circle, color-mix(in oklch, var(--rm-stat-4) 70%, transparent) 0%, transparent 70%); }
+.flash-penalty-miss     { background: radial-gradient(circle, color-mix(in oklch, var(--rm-stat-1) 70%, transparent) 0%, transparent 70%); }
 .flash-card     { background: radial-gradient(circle, color-mix(in oklch, var(--rm-card-yellow) 70%, transparent) 0%, transparent 70%); }
 
 @keyframes pitch-flash-pulse {

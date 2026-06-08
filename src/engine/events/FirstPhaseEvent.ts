@@ -135,9 +135,17 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
     // --- Dynamic Truncation ---
     let truncateT = 1.0;
-    const koEvent = res.events.find((e: any) => e.type === 'KNOCK_ON') as any;
-    const intEvent = res.events.find((e: any) => e.type === 'INTERCEPTION') as any;
-    const carryEvent = res.events.find((e: any) => e.type === 'CARRY_RESOLVED') as any;
+    
+    const firstCarryIdx = res.events.findIndex((e: any) => e.type === 'CARRY_RESOLVED');
+    const firstKoIdx = res.events.findIndex((e: any) => e.type === 'KNOCK_ON');
+    const firstIntIdx = res.events.findIndex((e: any) => e.type === 'INTERCEPTION');
+    
+    const isInitialKo = firstKoIdx !== -1 && (firstCarryIdx === -1 || firstKoIdx < firstCarryIdx);
+    const isInitialInt = firstIntIdx !== -1 && (firstCarryIdx === -1 || firstIntIdx < firstCarryIdx);
+    
+    const koEvent = isInitialKo ? res.events[firstKoIdx] : null;
+    const intEvent = isInitialInt ? res.events[firstIntIdx] : null;
+    const carryEvent = firstCarryIdx !== -1 ? res.events[firstCarryIdx] : null;
 
     if (koEvent || intEvent) {
       const receiverSlot = koEvent ? koEvent.player.id : (intEvent.passer.id === SLOT.SCRUM_HALF ? SLOT.FLY_HALF : (goCrashBall ? SLOT.CENTRE_12 : SLOT.CENTRE_13));
@@ -264,6 +272,95 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       }
       authoredBallEvents = authoredBallEvents.filter(e => e.t <= truncateT).sort((a, b) => a.t - b.t);
       for (const bk of authoredBallEvents) bk.t = bk.t / truncateT;
+    }
+    
+    // --- Dynamic Offload Extension ---
+    // If there were offload passes (or knock-ons from offloads), we procedurally 
+    // add keyframes extending beyond the initial authored sequence.
+    const hasOffloadAttempt = res.events.some((e: any) => e.type === 'OFFLOAD_ATTEMPTED');
+    if (hasOffloadAttempt && carryEvent) {
+      let currentT = 1.0; 
+      
+      const carries = res.events.filter((e: any) => e.type === 'CARRY_RESOLVED');
+      const offloads = res.events.filter((e: any) => e.type === 'OFFLOAD_COMPLETED' || e.type === 'OFFLOAD_ATTEMPTED');
+      
+      for (let i = 0; i < offloads.length; i++) {
+        const offloadEvt = offloads[i];
+        const catcher = offloadEvt.catcher;
+        if (!catcher) continue;
+        
+        const catcherSideStr = offloadEvt.attackSide;
+        const catcherChoreo = choreography.find(c => c.id === catcher.id && c.side === catcherSideStr);
+        if (!catcherChoreo || catcherChoreo.movements.length === 0) continue;
+        
+        const lastCatcherK = catcherChoreo.movements[catcherChoreo.movements.length - 1];
+        
+        // Ensure no forward pass (Checking Run)
+        let previousMetres = 0;
+        for (let j = 0; j <= i; j++) {
+          previousMetres += carries[j].metres;
+        }
+        const engineCurrentX = clamp(state.ball.x + dir * previousMetres, 0, 100);
+        
+        if ((dir === 1 && lastCatcherK.x >= engineCurrentX) || (dir === -1 && lastCatcherK.x <= engineCurrentX)) {
+          lastCatcherK.x = clamp(engineCurrentX - dir * 1.5, 0, 100);
+        }
+        
+        // 1. Pass the ball to the catcher
+        currentT += 0.15; 
+        const passEvent = { type: 'BALL_REPOSITIONED', x: lastCatcherK.x, y: lastCatcherK.y, t: currentT };
+        
+        const offloadIdx = res.events.indexOf(offloadEvt);
+        if (offloadIdx !== -1) {
+          res.events.splice(offloadIdx + 1, 0, passEvent);
+        } else {
+          authoredBallEvents.push(passEvent);
+        }
+        
+        const nextEvt = res.events[res.events.indexOf(offloadEvt) + 1];
+        if (nextEvt && nextEvt.type === 'KNOCK_ON') {
+           break;
+        }
+        
+        // 2. Catcher runs with the ball
+        const nextCarry = carries[i + 1];
+        if (nextCarry) {
+          currentT += 0.25; 
+          
+          // The engine calculates the final ball position by accumulating ALL carry metres.
+          // We must ensure the UI receiver runs exactly to that accumulated engine X 
+          // so there is no teleport on the subsequent Breakdown phase.
+          let accumulatedMetres = 0;
+          for (let j = 0; j <= i + 1; j++) {
+            accumulatedMetres += carries[j].metres;
+          }
+          const engineAccumulatedX = clamp(state.ball.x + dir * accumulatedMetres, 0, 100);
+          
+          const catcherFinalX = engineAccumulatedX;
+          const catcherFinalY = lastCatcherK.y; 
+          
+          catcherChoreo.movements.push({ t: currentT, x: catcherFinalX, y: catcherFinalY });
+          const runEvent = { type: 'BALL_REPOSITIONED', x: catcherFinalX, y: catcherFinalY, t: currentT };
+          
+          const carryIdx = res.events.indexOf(nextCarry);
+          if (carryIdx !== -1) {
+            res.events.splice(carryIdx, 0, runEvent);
+          } else {
+            authoredBallEvents.push(runEvent);
+          }
+        }
+      }
+      
+      const maxT = currentT;
+      if (maxT > 1.0) {
+        for (const e of res.events) {
+          if (e.type === 'BALL_REPOSITIONED' && e.t !== undefined) e.t /= maxT;
+        }
+        for (const c of choreography) {
+          for (const m of c.movements) m.t /= maxT;
+        }
+        for (const bk of authoredBallEvents) bk.t /= maxT;
+      }
     }
 
     if (res.nextPhase === MatchPhase.TryScored) {

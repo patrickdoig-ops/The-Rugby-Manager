@@ -92,14 +92,14 @@ export function tryOffloadChain(args: OffloadChainArgs): OffloadChainResult {
     const catchRoll = rng(1, 100);
 
     // Original carrier credit lands the same way whether catch succeeds or
-    // fails: a play_on CARRY_RESOLVED with metres 0 — carries++ on prev
+    // fails: a play_on CARRY_RESOLVED with metres = currentRes.gainMetres — carries++ on prev
     // carrier, tacklesMade++ on prev defender. The intermediate link is
     // always a made tackle, so it gets an assist too.
     chainEvents.push({
       type: 'CARRY_RESOLVED',
       carrier: currentCarrier,
       defender: currentDefender,
-      metres: 0,
+      metres: currentRes.gainMetres,
       direction,
       outcome: 'play_on',
       defSide,

@@ -29,7 +29,7 @@ function interpolate(
     .replace(/{secondary}/g, playerLabel(secondary, 'the defender'))
     .replace(/{side}/g,      sideName)
     .replace(/{defside}/g,   defSideName ?? 'the opposition')
-    .replace(/{metres}/g,    metres != null ? String(metres) : '?');
+    .replace(/{metres}/g,    metres != null ? String(Math.round(metres)) : '?');
 }
 
 function renderStep(step: NarrationStep, event: RenderableEvent, used: Set<string>): string | null {

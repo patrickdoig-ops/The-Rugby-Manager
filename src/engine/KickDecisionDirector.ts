@@ -18,9 +18,11 @@ import {
   LONG_AND_OFF_PCT,
   CROSS_FIELD_VS_GRUBBER_PCT,
   RED_CLOCK_CLOSEOUT,
+  SWEEP_STYLE_MULT,
   type Zone,
   type Family,
 } from './balance';
+import { effStyleScalar } from './tacticsResolve';
 
 // Unified kick-or-carry decision for every carry-phase entry (PhasePlay,
 // FirstPhase, KickReturn). Replaces the three inline kick gates that used
@@ -210,7 +212,7 @@ export function buildKickTransition(decision: KickDecision, sourcePhase: MatchPh
 
     if (sourcePhase === MatchPhaseEnum.FirstPhase) {
       // Set piece: ball sweeps from touchline/mark to SH, then to Flyhalf.
-      const hops = sweepPath(ctx.state, ctx.attackTeam.tactics.attackingStyle, 2, true, true);
+      const hops = sweepPath(ctx.state, effStyleScalar(ctx.state, ctx.attackTeam, SWEEP_STYLE_MULT), 2, true, true);
       let currentX = ctx.state.ball.x;
       for (const h of hops) {
         currentX = clamp(currentX - fwd * 4, 0, 100);
@@ -219,7 +221,7 @@ export function buildKickTransition(decision: KickDecision, sourcePhase: MatchPh
       events.push({ type: 'BALL_REPOSITIONED', x: clamp(currentX - fwd * 4, 0, 100) });
     } else {
       // Open play: SH -> Flyhalf (1 hop).
-      const hops = sweepPath(ctx.state, ctx.attackTeam.tactics.attackingStyle, 1, false, false);
+      const hops = sweepPath(ctx.state, effStyleScalar(ctx.state, ctx.attackTeam, SWEEP_STYLE_MULT), 1, false, false);
       let currentX = ctx.state.ball.x;
       for (const h of hops) {
         currentX = clamp(currentX - fwd * 4, 0, 100);

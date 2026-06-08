@@ -11,10 +11,10 @@ import { emitSweepHops } from '../Lateral';
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
-import { HOME_ADVANTAGE, KICK_RETURN_VALUES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, POD_PICKUP_PCT } from '../balance';
+import { HOME_ADVANTAGE, KICK_RETURN_VALUES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, POD_PICKUP_PCT, SWEEP_STYLE_MULT, TRY_LANDING_JITTER } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { tryOffloadChain } from './offloadChain';
-import { effDefendingBreakdown, effBackfieldDefence, effDefensiveLine, effDisciplineScalar } from '../tacticsResolve';
+import { effDefendingBreakdown, effBackfieldDefence, effDefensiveLine, effDisciplineScalar, effStyleScalar } from '../tacticsResolve';
 import type { NarrationStep } from '../../types/narration';
 
 const FULL_BACKLINE = 7;
@@ -41,7 +41,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer, 
   // catcher when no back-row / lock is on the field.
   // Pod pop is a real pass by the catcher — credit it before reassigning carrier.
   let podPop: Player | undefined;
-  if (rng(1, 100) <= POD_PICKUP_PCT[attackTeam.tactics.attackingStyle]) {
+  if (rng(1, 100) <= effStyleScalar(state, attackTeam, POD_PICKUP_PCT)) {
     const pod = pickPodCarrier(attackTeam, state, attackSide, carrier);
     if (pod) { podPop = carrier; carrier = pod; }
   }
@@ -129,7 +129,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer, 
   // tryLandingY grounding below.
   let lateralStep: NarrationStep | null = null;
   if (!tryScored) {
-    lateralStep = emitSweepHops(events, state, attackTeam.tactics.attackingStyle, 1, true, attackTeam.name, !silent);
+    lateralStep = emitSweepHops(events, state, effStyleScalar(state, attackTeam, SWEEP_STYLE_MULT), 1, true, attackTeam.name, !silent);
   }
 
   events.push({
@@ -152,7 +152,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer, 
     const tryKey: 'line_break_try' | 'dominant_carry_try' =
       res.outcome === 'line_break' ? 'line_break_try' : 'dominant_carry_try';
     steps.push({ kind: 'phase_outcome', phase: MatchPhase.KickReturn, key: tryKey, primary: carrier, secondary: defender });
-    const y = tryLandingY(state, attackTeam.tactics.attackingStyle);
+    const y = tryLandingY(state, effStyleScalar(state, attackTeam, TRY_LANDING_JITTER));
     events.push({ type: 'BALL_REPOSITIONED', y });
     steps.push({ kind: 'announcement', key: `try_location_${tryLocationBand(y)}` });
   } else if (res.outcome === 'line_break') {

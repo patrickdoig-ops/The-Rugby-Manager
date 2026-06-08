@@ -5,6 +5,7 @@ import { resolveLineout } from '../resolvers/LineoutResolver';
 import { rng } from '../../utils/rng';
 import { LINEOUT_VALUES, MAUL_GATE } from '../balance';
 import { availableForwards, onFieldPlayers, metresFromOppositionTryLine } from '../FieldPosition';
+import { effStyleScalar } from '../tacticsResolve';
 import { SLOT } from '../Slot';
 import type { MatchState } from '../../types/match';
 import type { Team } from '../../types/team';
@@ -21,10 +22,11 @@ function maulGatePct(state: MatchState, attackTeam: Team): number {
   else if (dist <= 50) base = MAUL_GATE.oppHalfPct;
   else                 base = MAUL_GATE.ownHalfPct;
 
-  const style = attackTeam.tactics.attackingStyle;
-  const bias = style === 'keep_it_tight' ? MAUL_GATE.keepItTightBias
-             : style === 'wide_wide'     ? MAUL_GATE.wideWideBias
-             :                              MAUL_GATE.balancedBias;
+  const bias = effStyleScalar(state, attackTeam, {
+    keep_it_tight: MAUL_GATE.keepItTightBias,
+    balanced:      MAUL_GATE.balancedBias,
+    wide_wide:     MAUL_GATE.wideWideBias,
+  });
   return Math.max(0, Math.min(100, base + bias));
 }
 

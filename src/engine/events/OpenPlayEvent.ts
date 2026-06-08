@@ -14,11 +14,11 @@ import { sweepStep, emitSweepHops } from '../Lateral';
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
-import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, HARD_CARRY_LINE_BREAK_UPGRADE_PCT, HARD_CARRY_LINE_BREAK_METRES, HARD_CARRY_DOMINANT_METRES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, INJURY, INJURY_KIND_WEIGHTS, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS, PICK_AND_GO_PCT } from '../balance';
+import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, HARD_CARRY_LINE_BREAK_UPGRADE_PCT, HARD_CARRY_LINE_BREAK_METRES, HARD_CARRY_DOMINANT_METRES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, INJURY, INJURY_KIND_WEIGHTS, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS, PICK_AND_GO_PCT, SWEEP_STYLE_MULT, TRY_LANDING_JITTER } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { SLOT, isBackSlot } from '../Slot';
 import { tryOffloadChain } from './offloadChain';
-import { effAttackingBreakdown, effDefendingBreakdown, effBackfieldDefence, effDefensiveLine, effDisciplineScalar } from '../tacticsResolve';
+import { effAttackingBreakdown, effDefendingBreakdown, effBackfieldDefence, effDefensiveLine, effDisciplineScalar, effStyleScalar } from '../tacticsResolve';
 
 const FULL_BACKLINE = 7;  // jersey ids 9–15
 
@@ -40,7 +40,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   // no handling gate), no offload chain, no line break. A dominant carry from
   // close range can score a try; otherwise lands at Breakdown. Falls through
   // to the regular decision below if no eligible forward is on the field.
-  if (rng(1, 100) <= PICK_AND_GO_PCT[attackTeam.tactics.attackingStyle]) {
+  if (rng(1, 100) <= effStyleScalar(state, attackTeam, PICK_AND_GO_PCT)) {
     const pagCarrier = pickPickAndGoCarrier(attackTeam, state, attackSide);
     if (pagCarrier) {
       return resolvePickAndGo(state, attackTeam, defendTeam, attackSide, pagCarrier);
@@ -54,8 +54,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   const defSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
   const defendOnField = onFieldPlayers(defendTeam, state, defSide);
   const scrumHalf = attackOnField.find(p => p.id === SLOT.SCRUM_HALF) ?? attackOnField[0] ?? attackTeam.players[0];
-  const style = attackTeam.tactics.attackingStyle;
-  const goWide = rng(1, 100) > HARD_CARRY_THRESHOLDS[style];
+  const goWide = rng(1, 100) > effStyleScalar(state, attackTeam, HARD_CARRY_THRESHOLDS);
 
   const attackFwds = availableForwards(attackTeam, state, attackSide);
   // Hard-carry path picks from the forward pool weighted so back row + props
@@ -151,7 +150,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
     // is a random screening forward. Modified by attackingStyle (wide_wide =
     // more screens, keep_it_tight = fewer). If it fires, the play stops here
     // and the defending side gets the penalty.
-    const obstructionPct = OBSTRUCTION_BASE_PCT + TACTIC_MODIFIERS.obstructionStyleMod[style];
+    const obstructionPct = OBSTRUCTION_BASE_PCT + effStyleScalar(state, attackTeam, TACTIC_MODIFIERS.obstructionStyleMod);
     if (rng(1, 100) <= obstructionPct) {
       const offender = attackFwds.length > 0
         ? attackFwds[rng(0, attackFwds.length - 1)]
@@ -331,7 +330,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   // keeps its tryLandingY grounding below (no per-pass hops on a score).
   let lateralStep: NarrationStep | null = null;
   if (!tryScored) {
-    lateralStep = emitSweepHops(events, state, attackTeam.tactics.attackingStyle, passCount, false, attackTeam.name, !silent);
+    lateralStep = emitSweepHops(events, state, effStyleScalar(state, attackTeam, SWEEP_STYLE_MULT), passCount, false, attackTeam.name, !silent);
   }
 
   events.push({
@@ -354,7 +353,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
     const tryKey: 'line_break_try' | 'dominant_carry_try' =
       res.outcome === 'line_break' ? 'line_break_try' : 'dominant_carry_try';
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: tryKey, primary: ballCarrier, secondary: defender });
-    const y = tryLandingY(state, attackTeam.tactics.attackingStyle);
+    const y = tryLandingY(state, effStyleScalar(state, attackTeam, TRY_LANDING_JITTER));
     events.push({ type: 'BALL_REPOSITIONED', y });
     outcomeSteps.push({ kind: 'announcement', key: `try_location_${tryLocationBand(y)}` });
   } else if (res.outcome === 'line_break') {
@@ -509,7 +508,7 @@ function resolvePickAndGo(
   // then rides the carrier in on the drive, instead of the ball arriving at a waiting
   // carrier. (x and y are independent, so the final ball position is unchanged.)
   if (!tryScored) {
-    const sweep = sweepStep(state, 'keep_it_tight');
+    const sweep = sweepStep(state, SWEEP_STYLE_MULT.keep_it_tight);
     events.push({ type: 'BALL_REPOSITIONED', y: sweep.y, lateralDir: sweep.lateralDir });
   }
 
@@ -531,7 +530,7 @@ function resolvePickAndGo(
   if (tryScored) {
     nextPhase = MatchPhase.TryScored;
     steps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'dominant_carry_try', primary: carrier, secondary: defender });
-    const y = tryLandingY(state, 'keep_it_tight');
+    const y = tryLandingY(state, TRY_LANDING_JITTER.keep_it_tight);
     events.push({ type: 'BALL_REPOSITIONED', y });
     steps.push({ kind: 'announcement', key: `try_location_${tryLocationBand(y)}` });
   } else {

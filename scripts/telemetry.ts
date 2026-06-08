@@ -436,11 +436,18 @@ function aggregateMatch(
   // offence taxonomy, penalty choices, TMO lifecycle.
   for (let i = 0; i < state.events.length; i++) {
     const e = state.events[i];
-    // A try fires two events with phase=TryScored: the carry-to-try event
-    // (has try_location_* narration) and the handleTryScored follow-up
-    // (has try_aftermath narration — see TryScoredEvent.ts). Skip the
-    // follow-up so phaseCount and try-origin each count one event per try.
-    if (e.phase === MatchPhase.TryScored && e.narration.steps.some(s => s.kind === 'announcement' && s.key === 'try_aftermath')) continue;
+    // Multiple events land with phase=TryScored per try: the carry-to-try
+    // event (has a _try phase_outcome key), the handleTryScored follow-up
+    // (has try_aftermath), and any deferred injury_off or substitution
+    // announcements MatchCoordinator flushes at this break (phase=state.phase
+    // at flush time = TryScored). Count only the canonical carry-to-try
+    // event. Tap-and-go tries (penEvent has phase=Penalty) are excluded —
+    // they account for <1% of all tries.
+    if (e.phase === MatchPhase.TryScored && !e.narration.steps.some(
+      s => s.kind === 'phase_outcome' && (
+        s.key === 'line_break_try' || s.key === 'dominant_carry_try' || s.key === 'maul_try'
+      )
+    )) continue;
     agg.phaseCount.set(e.phase, (agg.phaseCount.get(e.phase) ?? 0) + 1);
 
     for (const step of e.narration.steps) {

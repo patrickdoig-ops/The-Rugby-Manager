@@ -853,8 +853,8 @@ body.pitch-view-active #pitch-wrapper { display: none; }
   overflow: visible;
   pointer-events: none;
 }
-.pitch2d-end-top    { top: 2%; }
-.pitch2d-end-bottom { bottom: 2%; }
+.pitch2d-end-top    { top: 4.75%;  transform: translateY(-50%); }
+.pitch2d-end-bottom { top: 95.25%; transform: translateY(-50%); }
 
 .pitch2d-cards-top,
 .pitch2d-cards-bottom {

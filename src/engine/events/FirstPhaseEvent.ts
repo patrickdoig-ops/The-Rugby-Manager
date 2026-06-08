@@ -312,9 +312,28 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
           lastCatcherK.x = clamp(engineCurrentX - dir * 1.5, 0, 100);
         }
         
-        // 1. Pass the ball to the catcher
+        // Pre-calculate final run position so we can intercept the player on the run
+        let catchX = lastCatcherK.x;
+        let catchY = lastCatcherK.y;
+        let catcherFinalX = catchX;
+        let catcherFinalY = catchY;
+        
+        const nextCarry = carries[i + 1];
+        if (nextCarry) {
+          let accumulatedMetres = 0;
+          for (let j = 0; j <= i + 1; j++) {
+            accumulatedMetres += carries[j].metres;
+          }
+          catcherFinalX = clamp(state.ball.x + dir * accumulatedMetres, 0, 100);
+          
+          // Player interpolates from lastCatcherK to catcherFinalX over 0.40s (0.15 + 0.25).
+          // At t = 0.15 (catch time), they are at 37.5% of the distance.
+          catchX = lastCatcherK.x + (catcherFinalX - lastCatcherK.x) * (0.15 / 0.40);
+        }
+        
+        // 1. Pass the ball to the catcher's intercept point
         currentT += 0.15; 
-        const passEvent = { type: 'BALL_REPOSITIONED' as const, x: lastCatcherK.x, y: lastCatcherK.y, t: currentT };
+        const passEvent = { type: 'BALL_REPOSITIONED' as const, x: catchX, y: catchY, t: currentT };
         
         const offloadIdx = res.events.indexOf(offloadEvt);
         if (offloadIdx !== -1) {
@@ -328,22 +347,9 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
            break;
         }
         
-        // 2. Catcher runs with the ball
-        const nextCarry = carries[i + 1];
+        // 2. Catcher runs with the ball to the final tackle point
         if (nextCarry) {
           currentT += 0.25; 
-          
-          // The engine calculates the final ball position by accumulating ALL carry metres.
-          // We must ensure the UI receiver runs exactly to that accumulated engine X 
-          // so there is no teleport on the subsequent Breakdown phase.
-          let accumulatedMetres = 0;
-          for (let j = 0; j <= i + 1; j++) {
-            accumulatedMetres += carries[j].metres;
-          }
-          const engineAccumulatedX = clamp(state.ball.x + dir * accumulatedMetres, 0, 100);
-          
-          const catcherFinalX = engineAccumulatedX;
-          const catcherFinalY = lastCatcherK.y; 
           
           catcherChoreo.movements.push({ t: currentT, x: catcherFinalX, y: catcherFinalY });
           const runEvent = { type: 'BALL_REPOSITIONED' as const, x: catcherFinalX, y: catcherFinalY, t: currentT };

@@ -134,10 +134,6 @@
   border-color: var(--rm-danger);
 }
 
-.tt-tone-btn--good {
-  border-color: oklch(0.74 0.18 144);
-}
-
 @media (hover: hover) {
   .tt-tone-btn:not(.tt-tone-btn--active):hover {
     background: var(--rm-surface-2);
@@ -418,10 +414,6 @@
 
 .ht-tone-btn--warn {
   border-color: var(--rm-danger);
-}
-
-.ht-tone-btn--good {
-  border-color: oklch(0.74 0.18 144);
 }
 
 @media (hover: hover) {

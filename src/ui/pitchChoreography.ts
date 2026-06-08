@@ -13,13 +13,13 @@ import type { PossessionSide } from '../types/engine';
 import { MatchPhase } from '../types/engine';
 import { availableForwards, onFieldPlayers } from '../engine/FieldPosition';
 import { SLOT } from '../engine/Slot';
-import { colorOnDark, textOn } from './teamColors';
+import { textOn } from './teamColors';
 
 // A placed dot in pitch coords (x = long axis 0–100, y = lateral 0–100).
 export interface Placed {
   key: string;        // `${side}:${p.id}` (p.id = matchday slot 1-15) — stable within a match
   jersey: number;
-  color: string;      // fill (team colour, readable on dark)
+  color: string;      // fill (raw kit colour — dots sit on the green pitch, not the dark UI)
   text: string;       // jersey text colour (contrast)
   x: number;
   y: number;
@@ -58,7 +58,7 @@ const possOf = (side: Side): PossessionSide => (side === 'h' ? 'home' : 'away');
 
 function placed(p: Player, side: Side, state: MatchState, x: number, y: number, isCarrier: boolean): Placed {
   const team = side === 'h' ? state.homeTeam : state.awayTeam;
-  const fill = colorOnDark(team.color);   // the actual rendered dot colour
+  const fill = team.color;
   return {
     key: `${side}:${p.id}`,
     jersey: p.squadNumber,

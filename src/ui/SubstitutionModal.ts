@@ -137,7 +137,7 @@ export function renderSubstitutionPanel(container: HTMLElement, team: Team, offF
     });
 
     container.querySelector<HTMLButtonElement>('#sub-edit-team')!.addEventListener('click', () => {
-      renderMidMatchTeamEditor(container, team, () => renderSubstitutionPanel(container, team, offFieldPlayerIds));
+      renderMidMatchTeamEditor(container, team, offFieldPlayerIds, () => renderSubstitutionPanel(container, team, offFieldPlayerIds));
     }, { once: true });
 
     container.querySelector('#btn-subs-cancel')!.addEventListener('click', () => {

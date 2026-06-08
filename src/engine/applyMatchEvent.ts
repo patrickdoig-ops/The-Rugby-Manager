@@ -5,8 +5,8 @@ import { clamp } from '../utils/math';
 import { attackDir } from './FieldPosition';
 import { computeRating } from './RatingEngine';
 import { assertInvariants } from './invariants';
-import { CLOCK_VALUES, SCORE_VALUES, SIN_BIN_DURATION, positionFamiliarity } from './balance';
-import type { PlayerStats } from '../types/player';
+import { CLOCK_VALUES, SCORE_VALUES, SIN_BIN_DURATION, positionFamiliarity, slotFamiliarity } from './balance';
+import type { Player, PlayerStats } from '../types/player';
 
 // The single function permitted to mutate MatchState (or any Player field).
 // Every handler / orchestrator builds an array of MatchEvent and routes them
@@ -567,10 +567,27 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       const team = event.side === 'home' ? state.homeTeam : state.awayTeam;
       const p1 = team.players.find(p => p.squadNumber === event.squadNum1);
       const p2 = team.players.find(p => p.squadNumber === event.squadNum2);
-      if (!p1 || !p2) return;
-      const tmpId = p1.id; const tmpPos = p1.position;
-      p1.id = p2.id; p1.position = p2.position;
-      p2.id = tmpId; p2.position = tmpPos;
+      if (!p1 || !p2 || p1 === p2) return;
+      // Recompute the out-of-position familiarity scaling for the slot each
+      // player now fills. Their match-clone baseStats are already scaled for
+      // slotFamiliarity(position, current slot) (initPlayer for a starter, the
+      // sub path for a replacement), so re-scale by the ratio of new-slot to
+      // old-slot familiarity — keeping the invariant baseStats ≈ roster ×
+      // slotFamiliarity(position, id) across repeated swaps. `position` (the
+      // natural role) is left intact so the ratio stays well-defined. Mirrors
+      // SUBSTITUTION_APPLIED, which scales on its own first reposition.
+      const rescale = (p: Player, newSlot: number): void => {
+        const ratio = slotFamiliarity(p.position, newSlot) / slotFamiliarity(p.position, p.id);
+        if (ratio === 1) return;
+        for (const key of Object.keys(p.baseStats) as (keyof PlayerStats)[]) {
+          p.baseStats[key]    = clamp(Math.round(p.baseStats[key] * ratio), 1, 100);
+          p.currentStats[key] = clamp(Math.round(p.currentStats[key] * ratio), 1, 100);
+        }
+      };
+      rescale(p1, p2.id);
+      rescale(p2, p1.id);
+      const tmpId = p1.id; p1.id = p2.id; p2.id = tmpId;
+      const tmpX = p1.x, tmpY = p1.y; p1.x = p2.x; p1.y = p2.y; p2.x = tmpX; p2.y = tmpY;
       return;
     }
 

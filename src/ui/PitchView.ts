@@ -462,7 +462,12 @@ export function initPitchView(): void {
       ], Math.max(200, Math.min(stepMs, 400)), 'ease-in', hookerTop, hookerLeft);
     } else if (event.movements && event.movements.length >= 2) {
       const isKickDecision = event.narration.steps.some(s => s.kind === 'phase_outcome' && s.key === 'kick_decision');
-      if (isKickDecision) {
+      // A kick-decision with NO authored choreography uses the bespoke kicker-step
+      // animation (procedural ball pacing). When a kick_decision choreography IS
+      // present, route the ball through animateMovements like every other authored
+      // play so it honours the authored `t` offsets and stays in sync with the
+      // choreographed dots — animateKickDecision's fixed 0/0.5/1 pacing would not.
+      if (isKickDecision && !event.choreography) {
         animateKickDecision(event.movements, event.narration.steps.length,
           ((event.side === 'home') !== cachedHalfTimeDone) ? 1 : -1, event);
       } else {

@@ -83,7 +83,10 @@ export function parseChoreography(json: PhaseAnimatorExport): ParsedChoreography
 // Match the consumer's key exactly — a prefixed key for a bare-key consumer never
 // resolves and the play silently falls back to procedural animation.
 export const FIRST_PHASE_CHOREOGRAPHIES: Record<string, ParsedChoreography> = {
-  'SCRUM:kick_decision': parseChoreography({
+  // First-phase plays are looked up by the bare playType in FirstPhaseEvent
+  // (applyChoreography: choreoKey = playType), so this must be the bare key — NOT
+  // 'SCRUM:kick_decision', which never matched and left the play on procedural fallback.
+  'kick_decision': parseChoreography({
   "meta": {
     "phase": "FIRST_PHASE (kick_decision)",
     "beats": [

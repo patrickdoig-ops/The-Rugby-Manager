@@ -63,11 +63,11 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Peato Mauvaka | Hooker | 1996-07-07 | 29 | France | 88 | 87 | 71 | 73 | 77 | 85 | 87 | 52 | 90 | 85 | 84 | 85 |
 | Rodrigue Neti | Prop | 1991-08-05 | 34 | France | 84 | 91 | 58 | 63 | 66 | 83 | 82 | 43 | 90 | 79 | 78 | 79 |
-| Charlie Faumuina | Prop | 1985-08-19 | 40 | New Zealand | 83 | 91 | 57 | 62 | 67 | 82 | 82 | 43 | 89 | 79 | 78 | 79 |
+| Clément Castets | Prop | 1998-01-01 | 28 | France | 83 | 90 | 57 | 61 | 66 | 81 | 81 | 42 | 89 | 77 | 77 | 77 |
 | Rory Arnold | Lock | 1988-11-17 | 37 | Australia | 87 | 91 | 63 | 65 | 69 | 83 | 83 | 45 | 91 | 82 | 81 | 82 |
 | Selevasio Tolofua | Flanker | 1995-04-04 | 31 | Tonga | 89 | 85 | 79 | 79 | 76 | 87 | 89 | 56 | 81 | 83 | 83 | 82 |
 | Martin Page-Relo | Scrum-half | 1999-08-18 | 26 | France | 90 | 77 | 90 | 89 | 88 | 77 | 74 | 86 | 58 | 87 | 88 | 86 |
-| Pierre-Louis Barassi | Fly-half | 1999-03-11 | 27 | France | 87 | 77 | 83 | 83 | 89 | 77 | 75 | 87 | 58 | 87 | 88 | 88 |
+| Théo Idjellidaine | Fly-half | 2003-01-01 | 23 | France | 83 | 71 | 77 | 78 | 83 | 70 | 68 | 85 | 54 | 79 | 80 | 79 |
 | Ange Capuozzo | Full-back | 2000-06-08 | 25 | Italy | 88 | 75 | 92 | 90 | 85 | 74 | 73 | 79 | 57 | 83 | 87 | 84 |
 
 ---
@@ -122,7 +122,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Adrien Pélissié | Hooker | 1996-01-01 | 30 | France | 79 | 79 | 65 | 67 | 69 | 76 | 77 | 47 | 80 | 73 | 74 | 73 |
-| Luca Bigi | Prop | 1994-05-10 | 31 | Italy | 79 | 86 | 57 | 62 | 64 | 78 | 77 | 40 | 84 | 73 | 73 | 73 |
+| Loic Godener | Prop | 1999-01-01 | 27 | France | 78 | 87 | 54 | 58 | 61 | 75 | 74 | 37 | 82 | 68 | 67 | 66 |
 | Sipili Falatea | Prop | 1996-01-01 | 30 | France | 80 | 90 | 58 | 63 | 65 | 79 | 78 | 40 | 85 | 74 | 73 | 73 |
 | Víctor Merber | Lock | 1998-01-01 | 28 | Argentina | 81 | 85 | 60 | 62 | 64 | 77 | 77 | 41 | 83 | 72 | 72 | 71 |
 | Samuel Ezeala | Flanker | 2002-01-01 | 24 | France | 84 | 79 | 74 | 76 | 72 | 81 | 82 | 50 | 73 | 72 | 75 | 70 |
@@ -166,7 +166,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 | Ioann Gontineac | Lock | 1996-01-01 | 30 | Romania | 87 | 90 | 63 | 64 | 68 | 83 | 83 | 43 | 89 | 80 | 80 | 80 |
 | Charles Ollivon | Flanker | 1995-11-26 | 30 | France | 94 | 86 | 82 | 84 | 81 | 93 | 95 | 58 | 83 | 88 | 90 | 87 |
 | Facundo Isa | Flanker | 1990-07-17 | 35 | Argentina | 91 | 89 | 77 | 79 | 78 | 90 | 91 | 55 | 81 | 84 | 84 | 83 |
-| Mathieu Bastareaud | Back Row | 1988-09-02 | 37 | France | 88 | 91 | 73 | 72 | 77 | 87 | 87 | 52 | 78 | 81 | 80 | 82 |
+| Pierre Gerbeaux | Back Row | 1993-01-01 | 33 | France | 87 | 88 | 73 | 74 | 75 | 85 | 85 | 51 | 77 | 79 | 79 | 79 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
@@ -174,7 +174,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 | Baptiste Serin | Scrum-half | 1994-06-18 | 31 | France | 89 | 77 | 89 | 90 | 90 | 77 | 75 | 85 | 57 | 86 | 88 | 88 |
 | Louis Carbonel | Fly-half | 1999-05-07 | 26 | France | 87 | 75 | 81 | 81 | 88 | 75 | 73 | 90 | 57 | 87 | 88 | 87 |
 | Gabin Villière | Wing | 1998-06-11 | 27 | France | 91 | 80 | 93 | 92 | 83 | 79 | 80 | 73 | 56 | 84 | 87 | 84 |
-| Pierre-Louis Barassi | Centre | 1999-03-11 | 27 | France | 86 | 82 | 82 | 81 | 85 | 81 | 77 | 78 | 59 | 81 | 83 | 82 |
+| Rémy Grosso | Centre | 1991-01-01 | 35 | France | 84 | 82 | 81 | 79 | 81 | 78 | 73 | 68 | 56 | 75 | 75 | 74 |
 | Mathieu Smaïli | Centre | 1997-01-01 | 29 | France | 85 | 84 | 82 | 81 | 84 | 83 | 78 | 72 | 59 | 79 | 81 | 80 |
 | Waisea Nayacalevu | Wing | 1991-08-30 | 34 | Fiji | 89 | 83 | 91 | 89 | 85 | 80 | 79 | 72 | 57 | 79 | 84 | 82 |
 | Melani Nanai | Full-back | 1991-05-09 | 34 | Samoa | 87 | 77 | 87 | 86 | 84 | 76 | 74 | 84 | 57 | 82 | 86 | 83 |
@@ -184,12 +184,12 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Anthony Etrillard | Hooker | 1998-01-01 | 28 | France | 82 | 81 | 67 | 69 | 71 | 79 | 79 | 48 | 84 | 77 | 77 | 77 |
 | Sami Mavinga | Prop | 1995-01-01 | 31 | France | 81 | 89 | 58 | 62 | 63 | 79 | 79 | 40 | 87 | 75 | 75 | 75 |
-| Sione Kalamafoni | Prop | 1989-01-01 | 37 | Tonga | 82 | 90 | 57 | 62 | 64 | 80 | 80 | 40 | 87 | 76 | 75 | 76 |
+| Pierre Auger | Prop | 1999-01-01 | 27 | France | 79 | 88 | 55 | 59 | 61 | 77 | 77 | 38 | 84 | 72 | 71 | 71 |
 | Owen Farrell | Lock | 1996-01-01 | 30 | France | 83 | 87 | 61 | 63 | 65 | 79 | 79 | 42 | 85 | 75 | 74 | 74 |
 | Juandré Kruger | Flanker | 1993-01-01 | 33 | South Africa | 88 | 84 | 76 | 77 | 73 | 84 | 85 | 52 | 76 | 78 | 78 | 77 |
 | Stéphane Onambélé | Scrum-half | 2000-01-01 | 26 | France | 84 | 73 | 83 | 84 | 83 | 72 | 70 | 80 | 53 | 79 | 81 | 79 |
 | Ihaia West | Fly-half | 1990-10-02 | 35 | New Zealand | 83 | 72 | 78 | 78 | 83 | 71 | 69 | 87 | 55 | 82 | 83 | 83 |
-| Jiuta Wainiqolo | Full-back | 1999-03-10 | 27 | Fiji | 87 | 78 | 92 | 89 | 83 | 75 | 74 | 75 | 55 | 79 | 83 | 81 |
+| Julien Fémy | Full-back | 2001-01-01 | 25 | France | 82 | 70 | 81 | 80 | 73 | 65 | 62 | 73 | 50 | 67 | 70 | 67 |
 
 ---
 
@@ -226,7 +226,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 | Rodrigo Capo Ortega | Lock | 1998-01-01 | 28 | Argentina | 86 | 90 | 62 | 63 | 67 | 81 | 81 | 42 | 87 | 77 | 77 | 77 |
 | Mathieu Babillot | Flanker | 1994-01-01 | 32 | France | 89 | 82 | 77 | 79 | 74 | 86 | 88 | 52 | 78 | 79 | 80 | 78 |
 | Aboubacar Diallo | Flanker | 2000-01-01 | 26 | France | 87 | 82 | 78 | 80 | 73 | 86 | 87 | 51 | 77 | 77 | 79 | 76 |
-| Josua Tuisova | Back Row | 1994-02-04 | 32 | Fiji | 91 | 91 | 80 | 79 | 81 | 87 | 88 | 52 | 79 | 79 | 80 | 80 |
+| Hendrick Roodt | Back Row | 1994-01-01 | 32 | South Africa | 87 | 86 | 73 | 75 | 71 | 83 | 83 | 50 | 72 | 74 | 74 | 73 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
@@ -246,7 +246,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 | Luka Goginava | Prop | 1998-01-01 | 28 | Georgia | 79 | 88 | 56 | 61 | 63 | 77 | 76 | 39 | 85 | 71 | 70 | 70 |
 | Yohan Le Bourhis | Prop | 1996-01-01 | 30 | France | 79 | 88 | 56 | 61 | 63 | 77 | 76 | 39 | 85 | 70 | 70 | 70 |
 | Antoine Tichit | Lock | 1998-01-01 | 28 | France | 81 | 84 | 59 | 61 | 63 | 75 | 74 | 40 | 82 | 70 | 69 | 69 |
-| Thomas Combezou | Flanker | 2001-01-01 | 25 | France | 83 | 79 | 73 | 75 | 70 | 79 | 80 | 49 | 71 | 70 | 73 | 68 |
+| Antoine Pélissier | Flanker | 2001-01-01 | 25 | France | 81 | 77 | 71 | 73 | 67 | 76 | 77 | 46 | 65 | 64 | 66 | 61 |
 | Pierre Popelin | Scrum-half | 1997-01-01 | 29 | France | 82 | 71 | 79 | 81 | 80 | 69 | 67 | 77 | 50 | 73 | 77 | 74 |
 | Antoine Aucagne | Fly-half | 1995-01-01 | 31 | France | 81 | 71 | 77 | 77 | 80 | 70 | 68 | 80 | 52 | 78 | 78 | 78 |
 | Florian Vitu | Full-back | 1995-01-01 | 31 | France | 82 | 73 | 82 | 81 | 79 | 71 | 69 | 80 | 53 | 75 | 80 | 78 |
@@ -305,11 +305,11 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Romain Lesimple | Hooker | 1999-01-01 | 27 | France | 83 | 82 | 68 | 70 | 72 | 80 | 81 | 49 | 86 | 78 | 78 | 77 |
 | Joel Sclavi | Prop | 1997-01-01 | 29 | Argentina | 82 | 91 | 59 | 63 | 65 | 81 | 82 | 41 | 89 | 78 | 77 | 77 |
-| Dany Priso | Prop | 1998-01-01 | 28 | France | 82 | 90 | 59 | 63 | 64 | 80 | 81 | 40 | 88 | 76 | 76 | 76 |
+| Christopher Tolofua | Prop | 1998-01-01 | 28 | France | 81 | 89 | 57 | 61 | 62 | 79 | 79 | 39 | 85 | 73 | 72 | 72 |
 | Romain Sazy | Lock | 1993-01-01 | 33 | France | 85 | 87 | 62 | 63 | 66 | 80 | 80 | 42 | 87 | 78 | 77 | 77 |
 | Reda Wardi | Flanker | 1996-01-01 | 30 | France | 88 | 83 | 76 | 77 | 73 | 85 | 86 | 52 | 77 | 79 | 79 | 78 |
-| Tawera Kerr-Barlow | Scrum-half | 1990-08-15 | 35 | New Zealand | 86 | 75 | 85 | 86 | 86 | 74 | 72 | 82 | 55 | 82 | 83 | 83 |
-| Ihaia West | Fly-half | 1990-10-02 | 35 | New Zealand | 83 | 72 | 78 | 78 | 84 | 71 | 69 | 86 | 55 | 82 | 83 | 83 |
+| Aymeric Luc | Scrum-half | 2001-01-01 | 25 | France | 82 | 69 | 80 | 82 | 79 | 66 | 64 | 76 | 49 | 71 | 73 | 71 |
+| Jérémy Sinzelle | Fly-half | 1990-01-01 | 36 | France | 80 | 70 | 75 | 75 | 80 | 67 | 65 | 82 | 51 | 74 | 74 | 74 |
 | Arthur Retière | Full-back | 1998-01-01 | 28 | France | 86 | 75 | 88 | 86 | 81 | 73 | 71 | 79 | 55 | 78 | 82 | 79 |
 
 ---
@@ -344,7 +344,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 | Gaëtan Lasserre | Prop | 1993-01-01 | 33 | France | 81 | 90 | 58 | 62 | 63 | 79 | 79 | 39 | 85 | 74 | 73 | 73 |
 | Kane Douglas | Lock | 1989-01-01 | 37 | Australia | 85 | 89 | 62 | 63 | 66 | 79 | 79 | 42 | 87 | 78 | 77 | 77 |
 | Agustín Creevy | Lock | 1998-01-01 | 28 | Argentina | 83 | 87 | 61 | 62 | 64 | 78 | 78 | 41 | 85 | 74 | 73 | 73 |
-| Cameron Woki | Flanker | 1999-01-01 | 27 | France | 88 | 83 | 79 | 80 | 75 | 84 | 86 | 52 | 77 | 77 | 79 | 76 |
+| Tevita Tatafu | Flanker | 1999-01-01 | 27 | Tonga | 84 | 81 | 75 | 76 | 68 | 79 | 80 | 48 | 68 | 69 | 70 | 66 |
 | François Trinh-Duc | Flanker | 1994-01-01 | 32 | France | 85 | 80 | 76 | 78 | 72 | 82 | 83 | 50 | 75 | 74 | 76 | 73 |
 | Thibault Lassalle | Back Row | 1996-01-01 | 30 | France | 87 | 84 | 74 | 76 | 73 | 83 | 84 | 51 | 76 | 75 | 76 | 74 |
 
@@ -365,10 +365,10 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 | Marcel Van der Merwe | Hooker | 1993-01-01 | 33 | South Africa | 77 | 78 | 63 | 65 | 66 | 74 | 74 | 44 | 79 | 70 | 70 | 69 |
 | Toby Smith | Prop | 1995-01-01 | 31 | England | 77 | 87 | 55 | 59 | 60 | 75 | 74 | 38 | 83 | 68 | 67 | 68 |
 | Ben Tameifuna | Prop | 1992-01-01 | 34 | New Zealand | 78 | 91 | 54 | 58 | 61 | 76 | 75 | 38 | 84 | 68 | 66 | 68 |
-| Baptiste Pesenti | Lock | 1998-01-01 | 28 | France | 79 | 83 | 59 | 60 | 61 | 73 | 72 | 39 | 81 | 68 | 67 | 66 |
+| Lionel Massip | Lock | 1998-01-01 | 28 | France | 77 | 82 | 57 | 58 | 59 | 70 | 69 | 37 | 79 | 65 | 64 | 62 |
 | Théo Millet | Flanker | 2001-01-01 | 25 | France | 81 | 76 | 71 | 73 | 67 | 77 | 77 | 47 | 68 | 66 | 69 | 64 |
 | Arnaud Dupuy | Scrum-half | 1991-01-01 | 35 | France | 82 | 69 | 79 | 80 | 79 | 67 | 65 | 76 | 49 | 72 | 74 | 72 |
-| Stade Bayonnais | Fly-half | 2000-01-01 | 26 | France | 79 | 68 | 74 | 74 | 78 | 67 | 64 | 79 | 50 | 75 | 75 | 74 |
+| Maxime Lafage | Fly-half | 2002-01-01 | 24 | France | 76 | 66 | 71 | 72 | 75 | 63 | 60 | 77 | 47 | 70 | 69 | 68 |
 | Sireli Maqala | Full-back | 1996-01-01 | 30 | Fiji | 82 | 73 | 86 | 83 | 76 | 68 | 65 | 72 | 51 | 69 | 73 | 70 |
 
 ---
@@ -400,7 +400,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Lester Etien | Prop | 1992-01-01 | 34 | France | 87 | 93 | 62 | 66 | 70 | 86 | 87 | 43 | 92 | 83 | 83 | 83 |
+| Marc Clerc | Prop | 1998-01-01 | 28 | France | 85 | 92 | 60 | 64 | 67 | 84 | 85 | 42 | 91 | 80 | 80 | 80 |
 | Thierry Paiva | Hooker | 1993-01-01 | 33 | France | 90 | 87 | 70 | 72 | 77 | 86 | 87 | 52 | 91 | 86 | 85 | 85 |
 | Ben Tameifuna | Prop | 1992-01-01 | 34 | New Zealand | 87 | 95 | 59 | 63 | 68 | 85 | 87 | 42 | 92 | 82 | 81 | 82 |
 | Bastien Vergnes-Taillefer | Lock | 1998-01-01 | 28 | France | 91 | 92 | 65 | 67 | 71 | 87 | 87 | 44 | 93 | 85 | 84 | 85 |

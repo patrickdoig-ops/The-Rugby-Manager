@@ -129,7 +129,10 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
           ...eventsAfterCarry
         ];
       } else {
-        res.events.push(...authoredBallEvents);
+        const hasPenalty = res.events.some((e: any) => e.type === 'PENALTY_AWARDED');
+        if (!hasPenalty) {
+          res.events.push(...authoredBallEvents);
+        }
       }
     }
 

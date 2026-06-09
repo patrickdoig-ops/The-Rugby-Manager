@@ -26,6 +26,8 @@ export function initEuropeanShieldScreen(opts: InitEuropeanShieldScreenOpts): vo
   function render(): void {
     const state = opts.getGameEngine().getState();
     const comp = state.league.europeanShield ?? null;
+    const team = teamsById.get(state.player.teamId);
+    if (team) el!.style.setProperty('--team-color', team.color);
     el!.innerHTML = euroScreenHtml(comp, teamsById, state.player.teamId, 'European Shield', 'es-back');
     el!.querySelector<HTMLButtonElement>('#es-back')!.addEventListener('click', () => opts.onBack());
   }

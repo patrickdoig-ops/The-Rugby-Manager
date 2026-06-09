@@ -2574,8 +2574,8 @@ html.native-app .app-header {
   border-bottom: 1px solid var(--rm-border-soft);
 }
 .cup-trow { border-top: 1px solid var(--rm-hairline); }
-.cup-trow--qual { background: color-mix(in oklch, var(--rm-pitch) 8%, transparent); }
-.cup-trow--me { background: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 18%, transparent); }
+.cup-trow--zone-break { border-top: 2px solid color-mix(in oklch, var(--rm-stat-1) 42%, transparent) !important; }
+.cup-trow--me { background: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 18%, transparent); font-weight: 600; color: var(--rm-chalk); }
 .cup-trank { color: var(--rm-text-muted); text-align: center; }
 .cup-tname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.08em; }
 .cup-tnum { text-align: center; color: var(--rm-text-muted); font-variant-numeric: tabular-nums; }

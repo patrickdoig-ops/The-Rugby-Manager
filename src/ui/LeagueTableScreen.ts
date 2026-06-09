@@ -23,6 +23,7 @@ import { ROUND_LABELS } from '../engine/balance/season';
 import { formatDateMedium } from '../utils/formatDate';
 
 const PLAYOFF_SPOTS = 4;
+const EUROPEAN_SPOTS = 8;
 
 type ViewMode = 'standard' | 'form';
 
@@ -214,7 +215,7 @@ export function initLeagueTableScreen(
       if (viewMode === 'standard') {
         // During The Run In, replace the CSS zone-break border with an
         // explicit playoff separator so we can label it.
-        const zoneBreak = !isRunIn && rank === PLAYOFF_SPOTS + 1;
+        const zoneBreak = !isRunIn && (rank === PLAYOFF_SPOTS + 1 || rank === EUROPEAN_SPOTS + 1);
         const row = standardRow(s, rank, teamsById, s.teamId === playerTeamId, zoneBreak, delta);
         if (isRunIn && rank === PLAYOFF_SPOTS) {
           const label = `PLAYOFF PLACES · ${roundsLeft} ROUND${roundsLeft === 1 ? '' : 'S'} TO GO`;

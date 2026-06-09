@@ -25,7 +25,7 @@ export function poolTableHtml(pool: CupPool, teamsById: TeamsById, highlightTeam
   const rows = sorted.map((s, i) => {
     const team = teamsById.get(s.teamId);
     const cls = ['cup-trow'];
-    if (i < 2) cls.push('cup-trow--qual');
+    if (i === 2) cls.push('cup-trow--zone-break');
     if (s.teamId === highlightTeamId) cls.push('cup-trow--me');
     return `
       <div class="${cls.join(' ')}">

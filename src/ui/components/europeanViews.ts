@@ -36,7 +36,7 @@ export function euroPoolTableHtml(pool: EuropeanPool, byId: TeamsById, highlight
   const rows = sorted.map((s, i) => {
     const team = byId.get(s.teamId);
     const cls = ['cup-trow'];
-    if (i < 4) cls.push('cup-trow--qual');
+    if (i === 4) cls.push('cup-trow--zone-break');
     if (s.teamId === highlightId) cls.push('cup-trow--me');
     const diff = s.pointsDiff > 0 ? `+${s.pointsDiff}` : `${s.pointsDiff}`;
     return `

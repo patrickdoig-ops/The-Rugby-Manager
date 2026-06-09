@@ -1,25 +1,32 @@
-// Advanced tactics editor (zone-major). For each pitch zone (Own 22 / Own Half
-// / Opp Half / Opp 22) the manager calibrates: the kicking game (frequency +
-// kick-type mix), the with-ball play (attacking style + offload sliders,
-// attacking-breakdown pick) and the defending shape (defending-breakdown,
-// backfield, defensive-line picks). Two whole-match effort sliders (intensity,
-// discipline) sit outside the zone cards. Operates on a working copy of
-// AdvancedTactics and calls onChange on every edit; the host (TacticsMenu)
-// merges it into the team tactics and emits ui:tacticsChange.
+// Advanced tactics editor — tabbed, one screen per zone. A tab bar across the
+// top switches between the four pitch zones (each: kicking game + with-ball +
+// defending controls) and an "Overall" tab (the whole-match effort sliders).
+// Only the active tab's controls are rendered, so there's no long scroll.
+// Operates on a working copy of AdvancedTactics and calls onChange on every
+// edit; the host (TacticsMenu) merges it into the team tactics and emits
+// ui:tacticsChange. The advanced on/off toggle lives in the TacticsMenu header.
 
 import type {
   AdvancedTactics, AdvancedKicking, ZoneKickProfile, ZoneOf,
-  AttackingBreakdown, DefendingBreakdown, BackfieldDefence, DefensiveLine,
 } from '../types/team';
 
 type Zone = keyof AdvancedKicking;
 type Family = keyof ZoneKickProfile['types'];
 
 const ZONE_META: { key: Zone; label: string; desc: string }[] = [
-  { key: 'own22',   label: 'Own 22',         desc: 'Deep in your own territory.' },
-  { key: 'ownHalf', label: 'Own Half',       desc: 'Your half, outside the 22.' },
-  { key: 'oppHalf', label: 'Opposition Half', desc: "Their half, outside their 22." },
-  { key: 'opp22',   label: 'Opposition 22',  desc: 'Attacking, inside their 22.' },
+  { key: 'own22',   label: 'Own 22',          desc: 'Deep in your own territory.' },
+  { key: 'ownHalf', label: 'Own Half',        desc: 'Your half, outside the 22.' },
+  { key: 'oppHalf', label: 'Opposition Half',  desc: "Their half, outside their 22." },
+  { key: 'opp22',   label: 'Opposition 22',   desc: 'Attacking, inside their 22.' },
+];
+
+// Tab bar: the four zones (short labels) + the whole-match Overall tab.
+const TABS: { key: string; label: string }[] = [
+  { key: 'own22',   label: 'Own 22' },
+  { key: 'ownHalf', label: 'Own Half' },
+  { key: 'oppHalf', label: 'Opp Half' },
+  { key: 'opp22',   label: 'Opp 22' },
+  { key: 'overall', label: 'Overall' },
 ];
 
 const FAMILY_LABEL: Record<Family, string> = {
@@ -39,20 +46,17 @@ const ZONE_FAMILIES: Record<Zone, Family[]> = {
   opp22:   ['territory', 'attacking'],
 };
 
-// Per-zone continuous sliders (0–100), grouped under "with ball".
 const ZONE_SLIDERS = [
   { dim: 'attackingStyle',  label: 'Attacking style', lo: 'Tight',    hi: 'Wide' },
   { dim: 'offloadStrategy', label: 'Offload',         lo: 'Cautious', hi: 'Free' },
 ] as const;
 
-// Per-zone discrete picks. Grouped: attacking breakdown is read with ball; the
-// other three are defensive (this zone = defending in that part of the pitch).
 type DiscreteDim = 'attackingBreakdown' | 'defendingBreakdown' | 'backfieldDefence' | 'defensiveLine';
 const DISCRETE_DIMS: { dim: DiscreteDim; label: string; group: 'ball' | 'defend'; options: [string, string][] }[] = [
-  { dim: 'attackingBreakdown', label: 'Breakdown',     group: 'ball',   options: [['commit_numbers', 'Commit'], ['balanced', 'Balanced'], ['minimal_ruck', 'Minimal']] },
-  { dim: 'defendingBreakdown', label: 'Breakdown',     group: 'defend', options: [['jackal', 'Jackal'], ['counter_ruck', 'Counter'], ['shadow', 'Shadow']] },
-  { dim: 'backfieldDefence',   label: 'Backfield',     group: 'defend', options: [['one_back', '1 Back'], ['two_back', '2 Back'], ['three_back', '3 Back']] },
-  { dim: 'defensiveLine',      label: 'Line',          group: 'defend', options: [['blitz', 'Blitz'], ['hybrid', 'Hybrid'], ['drift', 'Drift']] },
+  { dim: 'attackingBreakdown', label: 'Breakdown', group: 'ball',   options: [['commit_numbers', 'Commit'], ['balanced', 'Balanced'], ['minimal_ruck', 'Minimal']] },
+  { dim: 'defendingBreakdown', label: 'Breakdown', group: 'defend', options: [['jackal', 'Jackal'], ['counter_ruck', 'Counter'], ['shadow', 'Shadow']] },
+  { dim: 'backfieldDefence',   label: 'Backfield', group: 'defend', options: [['one_back', '1 Back'], ['two_back', '2 Back'], ['three_back', '3 Back']] },
+  { dim: 'defensiveLine',      label: 'Line',      group: 'defend', options: [['blitz', 'Blitz'], ['hybrid', 'Hybrid'], ['drift', 'Drift']] },
 ];
 
 const SINGLE_SLIDERS = [
@@ -140,77 +144,85 @@ function zoneCardHTML(a: AdvancedTactics, meta: { key: Zone; label: string; desc
     </div>`;
 }
 
+function overallHTML(a: AdvancedTactics): string {
+  return `
+    <div class="advk-card">
+      <div class="advk-card-head">
+        <span class="advk-zone-label">Overall</span>
+        <span class="advk-zone-desc">Whole-match effort — applies across the pitch.</span>
+      </div>
+      <div class="advt-group">${SINGLE_SLIDERS.map(s =>
+        sliderRowHTML(`data-kind="single" data-dim="${s.dim}"`, a[s.dim] as number, s.label, s.lo, s.hi)).join('')}</div>
+    </div>`;
+}
+
 export function renderAdvancedTactics(
   container: HTMLElement,
   advanced: AdvancedTactics,
   onChange: (next: AdvancedTactics) => void,
-  onBack: () => void,
 ): void {
   const working = clone(advanced);
-
-  const singleHTML = SINGLE_SLIDERS.map(s =>
-    sliderRowHTML(`data-kind="single" data-dim="${s.dim}"`, working[s.dim] as number, s.label, s.lo, s.hi)).join('');
+  let tab = 'own22';
 
   container.innerHTML = `
-    <div class="advk-wrapper">
-      <div class="advk-toolbar">
-        <button class="advk-back" type="button">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          <span>Presets</span>
-        </button>
-        <span class="advk-title">Advanced Tactics</span>
+    <div class="advt-wrapper">
+      <div class="advt-tabs">
+        ${TABS.map(t => `<button type="button" class="advt-tab" data-tab="${t.key}">${t.label}</button>`).join('')}
       </div>
-      <p class="advk-intro">Calibrate every dimension by zone of the pitch. Defending picks apply when defending in that zone. Match state (slow ball, the closing minutes) still adjusts on top.</p>
-      <div class="advt-single">
-        <span class="advt-group-title">Effort — whole match</span>
-        ${singleHTML}
-      </div>
-      <div class="advk-cards">
-        ${ZONE_META.map(m => zoneCardHTML(working, m)).join('')}
-      </div>
-    </div>
-  `;
-
-  container.querySelector<HTMLButtonElement>('.advk-back')?.addEventListener('click', onBack);
+      <div class="advt-tab-content"></div>
+    </div>`;
+  const contentEl = container.querySelector<HTMLElement>('.advt-tab-content')!;
 
   function refreshKickCard(zone: Zone): void {
     const z = working.kicking[zone];
-    const card = container.querySelector<HTMLElement>(`.advk-card[data-zone="${zone}"]`);
-    if (!card) return;
-    card.querySelector<HTMLElement>('[data-freq-kick]')!.textContent = `${z.frequency}%`;
-    card.querySelector<HTMLElement>('[data-freq-hand]')!.textContent = `${100 - z.frequency}%`;
+    contentEl.querySelector<HTMLElement>('[data-freq-kick]')!.textContent = `${z.frequency}%`;
+    contentEl.querySelector<HTMLElement>('[data-freq-hand]')!.textContent = `${100 - z.frequency}%`;
     for (const fk of ZONE_FAMILIES[zone]) {
-      card.querySelector<HTMLElement>(`[data-type-pct="${fk}"]`)!.textContent = typePct(z, fk);
+      contentEl.querySelector<HTMLElement>(`[data-type-pct="${fk}"]`)!.textContent = typePct(z, fk);
     }
   }
 
-  container.querySelectorAll<HTMLInputElement>('input.advk-slider').forEach(slider => {
-    slider.addEventListener('input', () => {
-      const kind = slider.dataset.kind;
-      const value = Number(slider.value);
-      if (kind === 'single') {
-        if (slider.dataset.dim === 'intensity') working.intensity = value;
-        else working.discipline = value;
-      } else if (kind === 'zone') {
-        (working[slider.dataset.dim as 'attackingStyle' | 'offloadStrategy'] as ZoneOf<number>)[slider.dataset.zone as Zone] = value;
-      } else {
-        const zone = slider.dataset.zone as Zone;
-        if (kind === 'freq') working.kicking[zone].frequency = value;
-        else working.kicking[zone].types[slider.dataset.family as Family] = value;
-        refreshKickCard(zone);
-      }
-      onChange(clone(working));
+  function bindContent(): void {
+    contentEl.querySelectorAll<HTMLInputElement>('input.advk-slider').forEach(slider => {
+      slider.addEventListener('input', () => {
+        const kind = slider.dataset.kind;
+        const value = Number(slider.value);
+        if (kind === 'single') {
+          if (slider.dataset.dim === 'intensity') working.intensity = value;
+          else working.discipline = value;
+        } else if (kind === 'zone') {
+          (working[slider.dataset.dim as 'attackingStyle' | 'offloadStrategy'] as ZoneOf<number>)[slider.dataset.zone as Zone] = value;
+        } else {
+          const zone = slider.dataset.zone as Zone;
+          if (kind === 'freq') working.kicking[zone].frequency = value;
+          else working.kicking[zone].types[slider.dataset.family as Family] = value;
+          refreshKickCard(zone);
+        }
+        onChange(clone(working));
+      });
     });
-  });
 
-  container.querySelectorAll<HTMLButtonElement>('.advt-pick-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const dim = btn.dataset.dim as DiscreteDim;
-      const zone = btn.dataset.zone as Zone;
-      const val = btn.dataset.val!;
-      (working[dim] as ZoneOf<string>)[zone] = val;
-      btn.parentElement!.querySelectorAll('.advt-pick-btn').forEach(b => b.classList.toggle('active', b === btn));
-      onChange(clone(working));
+    contentEl.querySelectorAll<HTMLButtonElement>('.advt-pick-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const dim = btn.dataset.dim as DiscreteDim;
+        const zone = btn.dataset.zone as Zone;
+        (working[dim] as ZoneOf<string>)[zone] = btn.dataset.val!;
+        btn.parentElement!.querySelectorAll('.advt-pick-btn').forEach(b => b.classList.toggle('active', b === btn));
+        onChange(clone(working));
+      });
     });
+  }
+
+  function renderContent(): void {
+    contentEl.innerHTML = tab === 'overall'
+      ? overallHTML(working)
+      : zoneCardHTML(working, ZONE_META.find(m => m.key === tab)!);
+    bindContent();
+    container.querySelectorAll<HTMLButtonElement>('.advt-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  }
+
+  container.querySelectorAll<HTMLButtonElement>('.advt-tab').forEach(btn => {
+    btn.addEventListener('click', () => { tab = btn.dataset.tab!; renderContent(); });
   });
+  renderContent();
 }

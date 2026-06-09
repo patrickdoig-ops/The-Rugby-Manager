@@ -426,105 +426,10 @@
 .tactics-resume-btn:active { background: var(--rm-cta-active); }
 
 /* ════════════════════════════════════════
-   ADVANCED KICKING — numeric per-zone editor
-   Entry button + active banner live in the preset body; the editor
-   (.advk-*) replaces the categories container when opened. Sliders are
-   restyled range inputs on the pitch accent.
+   ADVANCED TACTICS — zone-tab editor
+   .advt-tabs/.advt-tab switch zones; each .advk-card holds the kicking +
+   with-ball + defending controls. Sliders are restyled range inputs.
    ════════════════════════════════════════ */
-
-.tactics-adv-enter {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  background: var(--rm-surface);
-  border: 1px dashed var(--rm-border-soft);
-  border-radius: 10px;
-  padding: 12px;
-  cursor: pointer;
-  color: var(--rm-chalk);
-  font-family: var(--rm-font-body);
-  font-size: var(--rm-fs-12);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-  -webkit-tap-highlight-color: transparent;
-}
-@media (hover: hover) {
-  .tactics-adv-enter:hover {
-    background: var(--rm-surface-2);
-    border-color: var(--rm-pitch);
-    color: var(--rm-pitch);
-  }
-}
-
-.tactics-adv-banner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: color-mix(in oklch, var(--rm-pitch) 12%, var(--rm-surface));
-  border: 1px solid var(--rm-pitch);
-  border-radius: 10px;
-  padding: 12px 14px;
-}
-.tactics-adv-banner-text { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
-.tactics-adv-banner-text strong {
-  font-family: var(--rm-font-body);
-  font-size: var(--rm-fs-13);
-  font-weight: 700;
-  color: var(--rm-pitch);
-  letter-spacing: 0.01em;
-}
-.tactics-adv-banner-text span { font-size: var(--rm-fs-11); color: var(--rm-text-dim); line-height: 1.35; }
-.tactics-adv-edit {
-  flex-shrink: 0;
-  background: var(--rm-pitch);
-  border: none;
-  border-radius: 8px;
-  padding: 8px 14px;
-  cursor: pointer;
-  color: var(--rm-bg);
-  font-family: var(--rm-font-body);
-  font-size: var(--rm-fs-12);
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-/* Game Plan pills are overridden while advanced kicking is active. */
-.tactics-cat--overridden { opacity: 0.5; }
-
-.advk-wrapper { display: flex; flex-direction: column; gap: 16px; }
-.advk-toolbar { display: flex; align-items: center; gap: 12px; }
-.advk-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--rm-surface);
-  border: 1px solid var(--rm-border-soft);
-  border-radius: 8px;
-  padding: 8px 12px;
-  cursor: pointer;
-  color: var(--rm-chalk);
-  font-family: var(--rm-font-body);
-  font-size: var(--rm-fs-12);
-  font-weight: 600;
-  -webkit-tap-highlight-color: transparent;
-}
-@media (hover: hover) {
-  .advk-back:hover { background: var(--rm-surface-2); border-color: var(--rm-pitch); }
-}
-.advk-title {
-  font-family: var(--rm-font-display);
-  font-size: var(--rm-fs-18);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--rm-chalk);
-}
-.advk-intro { font-size: var(--rm-fs-12); color: var(--rm-text-dim); line-height: 1.4; margin: 0; }
-
-.advk-cards { display: flex; flex-direction: column; gap: 14px; }
 .advk-card {
   background: var(--rm-surface);
   border: 1px solid var(--rm-border-soft);
@@ -591,15 +496,6 @@
 }
 
 /* ── Advanced tactics: zone groups, per-zone sliders, discrete picks ── */
-.advt-single {
-  background: var(--rm-surface);
-  border: 1px solid var(--rm-border-soft);
-  border-radius: 12px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
 .advt-group { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid var(--rm-hairline); }
 .advt-group-title {
   font-size: var(--rm-fs-11);
@@ -635,3 +531,80 @@
   border-color: var(--rm-pitch);
   color: var(--rm-pitch);
 }
+
+/* ── Tactics header + advanced on/off toggle (top-right) ── */
+.tactics-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--rm-hairline);
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+}
+.tactics-header .tactics-main-title { border: none; padding: 0; margin: 0; }
+.tactics-main-title--inline {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-22);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--rm-chalk);
+}
+.adv-switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
+.adv-switch-label { font-size: var(--rm-fs-12); font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--rm-text-dim); transition: color 0.15s; }
+.adv-switch:has(.adv-switch-input:checked) .adv-switch-label { color: var(--rm-pitch); }
+.adv-switch-input { position: absolute; opacity: 0; width: 0; height: 0; }
+.adv-switch-track {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.adv-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--rm-text-dim);
+  transition: transform 0.15s, background 0.15s;
+}
+.adv-switch-input:checked + .adv-switch-track { background: color-mix(in oklch, var(--rm-pitch) 30%, var(--rm-surface)); border-color: var(--rm-pitch); }
+.adv-switch-input:checked + .adv-switch-track .adv-switch-thumb { transform: translateX(18px); background: var(--rm-pitch); }
+.adv-switch-input:focus-visible + .adv-switch-track { box-shadow: 0 0 0 2px color-mix(in oklch, var(--rm-pitch) 40%, transparent); }
+
+/* ── Advanced editor: zone tab bar ── */
+.advt-wrapper { display: flex; flex-direction: column; gap: 14px; }
+.advt-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+  padding: 4px;
+}
+.advt-tab {
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  padding: 9px 3px;
+  cursor: pointer;
+  color: var(--rm-text-dim);
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-11);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, color 0.15s;
+}
+@media (hover: hover) { .advt-tab:hover { color: var(--rm-chalk); } }
+.advt-tab.active { background: color-mix(in oklch, var(--rm-pitch) 18%, var(--rm-surface)); color: var(--rm-pitch); }
+.advt-tab-content { display: flex; flex-direction: column; }

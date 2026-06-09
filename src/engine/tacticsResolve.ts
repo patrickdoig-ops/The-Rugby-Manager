@@ -38,10 +38,12 @@ function lerp3(lo: number, mid: number, hi: number, t: number): number {
 }
 
 // Bucket order per slider dimension: [slider 0, slider 50, slider 100].
-const STYLE_ORDER:      readonly [AttackingStyle, AttackingStyle, AttackingStyle]    = ['keep_it_tight', 'balanced', 'wide_wide'];
-const OFFLOAD_ORDER:    readonly [OffloadStrategy, OffloadStrategy, OffloadStrategy] = ['cautious', 'balanced', 'offload_freely'];
-const INTENSITY_ORDER:  readonly [Intensity, Intensity, Intensity]                  = ['light', 'balanced', 'high'];
-const DISCIPLINE_ORDER: readonly [Discipline, Discipline, Discipline]               = ['cautious', 'balanced', 'risky'];
+// Exported so the UI seed (advancedTactics.ts) maps a preset enum to the
+// matching slider position from the same source of truth.
+export const STYLE_ORDER:      readonly [AttackingStyle, AttackingStyle, AttackingStyle]    = ['keep_it_tight', 'balanced', 'wide_wide'];
+export const OFFLOAD_ORDER:    readonly [OffloadStrategy, OffloadStrategy, OffloadStrategy] = ['cautious', 'balanced', 'offload_freely'];
+export const INTENSITY_ORDER:  readonly [Intensity, Intensity, Intensity]                  = ['light', 'balanced', 'high'];
+export const DISCIPLINE_ORDER: readonly [Discipline, Discipline, Discipline]               = ['cautious', 'balanced', 'risky'];
 
 // ── Discrete per-zone dimensions — return the effective enum for the zone ──
 

@@ -589,3 +589,49 @@
   background: var(--rm-pitch);
   border: 2px solid var(--rm-bg);
 }
+
+/* ── Advanced tactics: zone groups, per-zone sliders, discrete picks ── */
+.advt-single {
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.advt-group { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid var(--rm-hairline); }
+.advt-group-title {
+  font-size: var(--rm-fs-11);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--rm-pitch);
+}
+.advt-slider-row { display: flex; flex-direction: column; gap: 5px; }
+.advt-slider-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.advt-slider-label { font-size: var(--rm-fs-12); color: var(--rm-text); font-weight: 600; }
+.advt-slider-ends { font-size: var(--rm-fs-11); color: var(--rm-text-dim); }
+.advt-pick-row { display: grid; grid-template-columns: 78px 1fr; align-items: center; gap: 10px; }
+.advt-pick-label { font-size: var(--rm-fs-12); color: var(--rm-text); }
+.advt-pick-opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.advt-pick-btn {
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 8px;
+  padding: 7px 4px;
+  cursor: pointer;
+  color: var(--rm-text);
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-11);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+@media (hover: hover) { .advt-pick-btn:hover { border-color: color-mix(in oklch, var(--rm-pitch) 35%, var(--rm-border-soft)); } }
+.advt-pick-btn.active {
+  background: color-mix(in oklch, var(--rm-pitch) 18%, var(--rm-surface));
+  border-color: var(--rm-pitch);
+  color: var(--rm-pitch);
+}

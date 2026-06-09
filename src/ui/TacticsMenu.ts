@@ -1,7 +1,7 @@
 import { eventBus } from '../utils/eventBus';
 import type { TeamTactics, PresetTacticDim, AttackingGamePlan, AttackingStyle, AttackingBreakdown, DefendingBreakdown, BackfieldDefence, DefensiveLine, OffloadStrategy, Intensity, Discipline } from '../types/team';
 import { seedAdvancedTactics } from '../engine/advancedTactics';
-import { renderAdvancedKicking } from './AdvancedKickingPanel';
+import { renderAdvancedTactics } from './AdvancedTacticsPanel';
 
 const ADV_ARROW_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>`;
 
@@ -153,9 +153,9 @@ export function renderTacticsMenu(
 
   function applySelection(cat: keyof TeamTactics, val: string): void {
     currentTactics = { ...currentTactics, [cat]: val } as TeamTactics;
-    // Picking a Game Plan preset reverts an active advanced-kicking override —
-    // the preset is the documented way back from advanced mode.
-    const revertedAdvanced = cat === 'attackingGamePlan' && currentTactics.advanced != null;
+    // Advanced mode overrides every preset, so picking any preset is the
+    // documented way back: it applies that preset and drops the override.
+    const revertedAdvanced = currentTactics.advanced != null;
     if (revertedAdvanced) {
       currentTactics = { ...currentTactics };
       delete currentTactics.advanced;
@@ -174,32 +174,37 @@ export function renderTacticsMenu(
       return `
         <div class="tactics-adv-banner">
           <div class="tactics-adv-banner-text">
-            <strong>Advanced kicking active</strong>
-            <span>Per-zone calibration is driving your kicking game. Pick a Game Plan above to revert to presets.</span>
+            <strong>Advanced tactics active</strong>
+            <span>Your per-zone settings override the presets below. Pick any preset to revert.</span>
           </div>
           <button class="tactics-adv-edit" type="button" data-adv-edit>Edit</button>
         </div>`;
     }
     return `
       <button class="tactics-adv-enter" type="button" data-adv-enter>
-        <span>Advanced kicking</span>
+        <span>Advanced tactics</span>
         ${ADV_ARROW_SVG}
       </button>`;
   }
 
+  // Open the advanced editor, ensuring the override is complete first: a fresh
+  // entry seeds every dimension from the current preset; a partial override
+  // (e.g. a kicking-only save from an earlier version) is filled from the seed
+  // while preserving existing edits.
+  function openAdvanced(): void {
+    const adv = currentTactics.advanced;
+    if (!adv || adv.attackingStyle === undefined) {
+      const seeded = seedAdvancedTactics(currentTactics);
+      currentTactics = { ...currentTactics, advanced: adv ? { ...seeded, ...adv } : seeded };
+      eventBus.emit('ui:tacticsChange', { teamId, tactics: currentTactics });
+    }
+    view = 'advanced';
+    renderBody();
+  }
+
   function bindAdvancedEntry(): void {
-    container.querySelector<HTMLButtonElement>('[data-adv-enter]')?.addEventListener('click', () => {
-      if (!currentTactics.advanced) {
-        currentTactics = { ...currentTactics, advanced: seedAdvancedTactics(currentTactics) };
-        eventBus.emit('ui:tacticsChange', { teamId, tactics: currentTactics });
-      }
-      view = 'advanced';
-      renderBody();
-    });
-    container.querySelector<HTMLButtonElement>('[data-adv-edit]')?.addEventListener('click', () => {
-      view = 'advanced';
-      renderBody();
-    });
+    container.querySelector<HTMLButtonElement>('[data-adv-enter]')?.addEventListener('click', openAdvanced);
+    container.querySelector<HTMLButtonElement>('[data-adv-edit]')?.addEventListener('click', openAdvanced);
   }
 
   function renderBody(): void {
@@ -207,7 +212,7 @@ export function renderTacticsMenu(
     if (!el) return;
 
     if (view === 'advanced' && activeTab === 'mine' && currentTactics.advanced) {
-      renderAdvancedKicking(
+      renderAdvancedTactics(
         el,
         currentTactics.advanced,
         next => {
@@ -223,7 +228,7 @@ export function renderTacticsMenu(
     const tactics = readOnly ? oppTactics! : currentTactics;
     el.innerHTML = categoriesHTML(tactics, readOnly) + (readOnly ? '' : advancedEntryHTML());
     if (!readOnly && currentTactics.advanced) {
-      el.querySelector(`.tactics-category[data-cat="attackingGamePlan"]`)?.classList.add('tactics-cat--overridden');
+      el.querySelectorAll('.tactics-category').forEach(c => c.classList.add('tactics-cat--overridden'));
     }
     bindInteraction();
     bindAdvancedEntry();

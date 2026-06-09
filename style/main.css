@@ -2451,8 +2451,8 @@ html.native-app .app-header {
 }
 #intl-continue:active { background: var(--rm-cta-active); }
 
-/* ── Prem Cup screens (call-ups / fixtures / results) ──────────────────── */
-#intl-callups, #cup-fixtures, #cup-results {
+/* ── Prem Cup + European screens ───────────────────────────────────────── */
+#intl-callups, #cup-fixtures, #cup-results, #european-cup, #european-shield {
   display: flex;
   flex-direction: column;
   height: 100%;

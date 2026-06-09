@@ -451,10 +451,11 @@
 
 .advk-row-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
 .advk-row-title {
+  font-family: var(--rm-font-mono);
   font-size: var(--rm-fs-11);
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.14em;
   color: var(--rm-text-dim);
 }
 .advk-freq-val { font-size: var(--rm-fs-12); color: var(--rm-text); }
@@ -498,10 +499,11 @@
 /* ── Advanced tactics: zone groups, per-zone sliders, discrete picks ── */
 .advt-group { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid var(--rm-hairline); }
 .advt-group-title {
+  font-family: var(--rm-font-mono);
   font-size: var(--rm-fs-11);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.14em;
   color: var(--rm-pitch);
 }
 .advt-slider-row { display: flex; flex-direction: column; gap: 5px; }
@@ -620,4 +622,12 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: 16px;
+}
+/* Club-colour header, matching the Hub sub-menus (Contracts, Club). */
+#tactics .app-header {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 75%, black) 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 38%, black) 100%
+  );
+  border-bottom-color: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 45%, transparent);
 }

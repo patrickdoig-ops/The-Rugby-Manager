@@ -9,9 +9,11 @@
 // LeagueTableScreen show/render split), so it always reflects the latest state.
 
 import type { GameCoordinator } from '../game/GameCoordinator';
+import type { RawTeamInput } from '../types/teamData';
 import type { TeamTactics } from '../types/team';
 import { DEFAULT_TACTICS } from '../types/team';
 import { renderTacticsMenu } from './TacticsMenu';
+import { injectTeamColors } from './teamColors';
 import { eventBus } from '../utils/eventBus';
 
 let renderImpl: (() => void) | null = null;
@@ -22,18 +24,23 @@ export function showTacticsScreen(): void {
 
 export function initTacticsHubScreen(
   getGameEngine: () => GameCoordinator,
+  allTeams: RawTeamInput[],
   onSaveAndExit: (tactics: TeamTactics) => void,
 ): void {
   const el = document.getElementById('tactics');
   if (!el) return;
 
+  const teamsById = new Map(allTeams.map(t => [t.id, t]));
   let unsubTactics: (() => void) | null = null;
 
   function render(): void {
     unsubTactics?.();
     unsubTactics = null;
 
-    const saved = getGameEngine().getState().player.tactics;
+    const state = getGameEngine().getState();
+    const playerTeam = teamsById.get(state.player.teamId);
+    if (playerTeam) injectTeamColors(el!, playerTeam);
+    const saved = state.player.tactics;
     let chosenTactics: TeamTactics = saved ? { ...saved } : { ...DEFAULT_TACTICS };
 
     el!.innerHTML = `

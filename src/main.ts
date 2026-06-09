@@ -353,7 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initFixtureListScreen(getGameEngine, allTeams, () => goHub('back'));
     // Standalone Tactics screen (Hub tile). Edits are committed to the player's
     // tactics + autosaved when the back arrow is tapped, so they carry forward.
-    initTacticsHubScreen(getGameEngine, tactics => {
+    initTacticsHubScreen(getGameEngine, allTeams, tactics => {
       if (gameEngine) {
         gameEngine.setPlayerTactics(tactics);
         autosave(gameEngine.toSavePayload());

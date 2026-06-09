@@ -985,13 +985,13 @@ The Hub (`src/ui/HubScreen.ts`) has **six tiles** plus a Settings cog and "Go to
 | Tile | Routes to | Notes |
 |---|---|---|
 | Squad | `squad-management` | Matchday-23 curation; round-trips with PreMatch via `state.player.matchdaySquad` |
-| Fixtures | `fixture-list` | Upcoming and completed rounds |
+| Tactics | `tactics` | See/set team tactics (presets + advanced editor) outside the pre-match flow; commits to `state.player.tactics` via `setPlayerTactics` on back. `TacticsHubScreen.ts` |
 | Competitions | `competitions-menu` | Sub-menu: League / League Cup / European Cup / European Shield |
 | Training | `training` (mid-week mode) | Persists plan without running the training block |
 | Contracts & Transfers | `contracts-transfers-menu` | Sub-menu (club colours): Contracts leaf + Transfers leaf + Scouting leaf; badge = expiring-contract count + poach-threat count combined |
 | Club | `club-menu` | Sub-menu (club colours): Board Confidence, Staff, Finances tiles |
 
-**Invariant: the Hub tile count is fixed at six.** New screens must fit inside existing sub-menus. `CompetitionsMenuScreen` is the home for competition-related screens; `ClubMenuScreen` and `ContractsTransfersMenuScreen` are the natural homes for club-management features.
+**Invariant: the Hub tile count is fixed at six.** New screens must fit inside existing sub-menus. `CompetitionsMenuScreen` is the home for competition-related screens; `ClubMenuScreen` and `ContractsTransfersMenuScreen` are the natural homes for club-management features. (The **Fixtures** list — formerly a Hub tile — now lives as a tile in the **League sub-menu**; `goFixtures` → `fixture-list` is shared by the League sub-menu and the inbox.)
 
 PreMatch's 'mine' step (the user's starting XV) carries a tappable captain badge (`.pm-captain-badge`, a circular "C") on each starter row — modelled on the OOP badge. Tap to nominate, tap the current captain to clear; persists to `state.player.captainRosterId` via `setPlayerCaptain`. Unset rows default the badge to the highest-composure starter (`resolveCaptainRosterId`). Narrative-only: the captain is named in the referee's team-22 warning during the match.
 
@@ -1009,9 +1009,9 @@ Home
          └─ Squad Builder → BudgetReveal → SquadOverview → pre-season signing window
                → ContractsScreen (marquee-edit) → Hub
 Hub
- ├─ Squad / Fixtures / Training → leaf screen, back → Hub
+ ├─ Squad / Tactics / Training → leaf screen, back → Hub
  ├─ [Competitions] → CompetitionsMenuScreen → back → Hub
- │   ├─ [League] → LeagueMenuScreen → leaf (Table / Team Stats / Player Stats / Awards), back → LeagueMenuScreen → back → CompetitionsMenuScreen
+ │   ├─ [League] → LeagueMenuScreen → leaf (Table / Fixtures / Team Stats / Player Stats / Awards), back → LeagueMenuScreen → back → CompetitionsMenuScreen
  │   ├─ [League Cup] → CupFixturesScreen (browse), back → CompetitionsMenuScreen
  │   ├─ [European Cup] → EuropeanCupScreen (pools & knockouts), back → CompetitionsMenuScreen
  │   └─ [European Shield] → EuropeanShieldScreen (pools & knockouts), back → CompetitionsMenuScreen

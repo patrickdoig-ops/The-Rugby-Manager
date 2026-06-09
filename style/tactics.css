@@ -543,14 +543,7 @@
   margin-bottom: 4px;
 }
 .tactics-header .tactics-main-title { border: none; padding: 0; margin: 0; }
-.tactics-main-title--inline {
-  font-family: var(--rm-font-display);
-  font-size: var(--rm-fs-22);
-  font-weight: 400;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--rm-chalk);
-}
+.tactics-header-spacer { flex: 0 0 auto; }
 .adv-switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
 .adv-switch-label { font-size: var(--rm-fs-12); font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--rm-text-dim); transition: color 0.15s; }
 .adv-switch:has(.adv-switch-input:checked) .adv-switch-label { color: var(--rm-pitch); }
@@ -608,3 +601,23 @@
 @media (hover: hover) { .advt-tab:hover { color: var(--rm-chalk); } }
 .advt-tab.active { background: color-mix(in oklch, var(--rm-pitch) 18%, var(--rm-surface)); color: var(--rm-pitch); }
 .advt-tab-content { display: flex; flex-direction: column; }
+
+/* ── Standalone Tactics screen (Hub tile) ── */
+#tactics {
+  position: fixed;
+  inset: 0;
+  z-index: 225;
+  background: var(--rm-bg);
+  display: flex;
+  flex-direction: column;
+  padding-top:    env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left:   env(safe-area-inset-left, 0px);
+  padding-right:  env(safe-area-inset-right, 0px);
+}
+.tactics-screen-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px;
+}

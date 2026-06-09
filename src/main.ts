@@ -74,6 +74,7 @@ import { initSavesScreen }         from './ui/SavesScreen';
 import { initTeamSelectorScreen }  from './ui/TeamSelectorScreen';
 import { initTeamInfoScreen }      from './ui/TeamInfoScreen';
 import { initFixtureListScreen }   from './ui/FixtureListScreen';
+import { initTacticsHubScreen, showTacticsScreen } from './ui/TacticsHubScreen';
 import { initLeagueTableScreen, showLeagueTable, showLeagueTablePostMatch } from './ui/LeagueTableScreen';
 import { initLeagueMenuScreen } from './ui/LeagueMenuScreen';
 import { initCompetitionsMenuScreen } from './ui/CompetitionsMenuScreen';
@@ -340,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onPlayEuropean: () => {
         maybePlayEuropeanFixture(() => { if (gameEngine) autosave(gameEngine.toSavePayload()); goHub(); });
       },
-      onFixtures:      goFixtures,
+      onTactics:       goTactics,
       onCompetitions:  goCompetitionsMenu,
       onSquad:         goSquad,
       onTraining: goTrainingMidweek,
@@ -350,6 +351,15 @@ document.addEventListener('DOMContentLoaded', () => {
       onInbox:    goInbox,
     });
     initFixtureListScreen(getGameEngine, allTeams, () => goHub('back'));
+    // Standalone Tactics screen (Hub tile). Edits are committed to the player's
+    // tactics + autosaved when the back arrow is tapped, so they carry forward.
+    initTacticsHubScreen(getGameEngine, tactics => {
+      if (gameEngine) {
+        gameEngine.setPlayerTactics(tactics);
+        autosave(gameEngine.toSavePayload());
+      }
+      goHub('back');
+    });
     // The League sub-menu sits between the Hub's League tile and the
     // three leaves (Table / Team Stats / Player Stats). Each leaf's
     // back arrow returns here; this screen's back arrow returns to
@@ -362,6 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onTeamStats:    goTeamStats,
       onPlayerStats:  goPlayerStats,
       onAchievements: goAchievements,
+      onFixtures:     goFixtures,
     });
     initCompetitionsMenuScreen({
       getGameEngine,
@@ -538,6 +549,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function goFixtures(direction: 'forward' | 'back' = 'forward'): void {
     screenRouter.show('fixture-list', { direction });
+  }
+
+  function goTactics(direction: 'forward' | 'back' = 'forward'): void {
+    showTacticsScreen();
+    screenRouter.show('tactics', { direction });
   }
 
   function goLeagueTable(direction: 'forward' | 'back' = 'forward'): void {

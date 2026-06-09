@@ -1192,6 +1192,17 @@ Unified kick-or-carry decision module (src/engine/KickDecisionDirector.ts) — r
 
 Outputs `{ kick: true, family, kicker, clearanceStyle?, attackingSubType? }` (or `{ kick: false }`). `buildKickTransition()` then composes the PhaseResult: `nextPhase = BoxKick (#9)` or `TacticalKick (#10)`, emits `KICK_INTENT_SET` so the kick handler reads the family + sub-choice from `state.pendingKick` and branches resolver math.
 
+### Advanced (numeric) kicking override
+
+When the manager has opted into advanced tactics, `attackTeam.tactics.advanced` is present and its `kicking[zone]` profile **replaces** the preset-keyed tables for the human team only (the AI and old saves never carry `advanced`, so they always take the preset path):
+
+- **Step 1 base probability** reads `advanced.kicking[zone].frequency` directly instead of `KICK_PROBABILITIES[plan][zone]`. The four zones are addressed individually here, so `oppHalf` and `opp22` are no longer collapsed to one value as they are in the preset table.
+- **Step 4 family selection** reads `advanced.kicking[zone].types` (raw relative weights across `clearance / territory / fifty_22 / attacking`) instead of `FAMILY_WEIGHTS[zone][plan]`. `pickFamily()` normalises by the weight sum, so advanced weights need not total 100; when they do (every preset cell) the comparison is the exact pre-advanced integer `roll <= cum`, so **preset determinism is byte-identical**.
+
+The advanced UI (`AdvancedKickingPanel.ts`) labels `territory` as **"Kick to Compete"** and `attacking` as **"Cross Field/Grubber"** (the data keys are unchanged). It exposes only the kick-type dials relevant to each zone: `own22` / `ownHalf` show all four, while `oppHalf` / `opp22` expose only `territory` + `attacking` — clearance and 50:22 stay at their seeded weight of 0 there.
+
+Steps 2–3 and 5–7 are unchanged — the slow-ball bonus, the `rng(1,100)` rolls, the kicker pick, and the red-clock closeout all still layer on top of the advanced baseline (a manager's slider sets the *tendency*; match state still bends it). Types: `AdvancedTactics` / `AdvancedKicking` / `ZoneKickProfile` in `src/types/team.ts`; the preset→advanced seed (used when the UI enters advanced mode) is `seedAdvancedTactics()` in `src/engine/advancedTactics.ts`, built from the same `KICK_PROBABILITIES` / `FAMILY_WEIGHTS` tables so the handoff is lossless.
+
 ### Red-clock game management
 
 Before the territory tree runs, `decideKick` checks `redClockCloseout()` — a full-time-only override (`state.clock.clockInTheRed && state.clock.halfTimeDone`, so it never fires before half time). When the next stoppage will end the match, kick-or-carry becomes a game-management call keyed off the score margin of the team in possession:

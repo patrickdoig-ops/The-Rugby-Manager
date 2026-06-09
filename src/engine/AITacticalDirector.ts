@@ -13,7 +13,7 @@
 // TACTICS_UPDATED queue every tick.
 
 import type { MatchState } from '../types/match';
-import type { TeamTactics, TeamSide, Intensity, Discipline } from '../types/team';
+import type { TeamTactics, PresetTacticDim, TeamSide, Intensity, Discipline } from '../types/team';
 import { applyMatchEvent } from './applyMatchEvent';
 import { AI_DIRECTOR_VALUES, AI_EFFORT_VALUES, AI_INTENT_CHASING, AI_INTENT_PROTECTING, CLOCK_VALUES, HUMAN_RESPONSE_RULES, TACTIC_ORDERS } from './balance';
 
@@ -44,14 +44,14 @@ function tacticsEqual(a: TeamTactics, b: TeamTactics): boolean {
 // [baselineIndex - 1, baselineIndex + 1] so club identity is always preserved.
 // Conflicting rules on the same AI dimension cancel out (sum → 0 → no change).
 function computeHumanResponse(humanTactics: TeamTactics, aiBaseline: TeamTactics): TeamTactics {
-  const accumulated: Partial<Record<keyof TeamTactics, number>> = {};
+  const accumulated: Partial<Record<PresetTacticDim, number>> = {};
   for (const rule of HUMAN_RESPONSE_RULES) {
     if ((humanTactics[rule.humanDimension] as string) === rule.humanValue) {
       accumulated[rule.aiDimension] = (accumulated[rule.aiDimension] ?? 0) + rule.delta;
     }
   }
   const result: TeamTactics = { ...aiBaseline };
-  for (const [dimStr, sum] of Object.entries(accumulated) as [keyof TeamTactics, number][]) {
+  for (const [dimStr, sum] of Object.entries(accumulated) as [PresetTacticDim, number][]) {
     if (sum === 0) continue;
     const order = TACTIC_ORDERS[dimStr];
     const baseIdx = order.indexOf(aiBaseline[dimStr] as string);

@@ -1,5 +1,5 @@
 import type { TeamProfile, StarPlayerMeta } from '../types/teamProfile';
-import type { TeamTactics } from '../types/team';
+import type { TeamTactics, PresetTacticDim } from '../types/team';
 import { computeOverallRating } from '../team/teamProfile';
 import { playerOverall } from '../engine/RatingEngine';
 import type { RawTeamInput } from '../types/teamData';
@@ -8,7 +8,7 @@ import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 
 type RawPlayer = RawTeamInput['players'][number];
 
-const TACTIC_LABELS: Record<keyof TeamTactics, Record<string, string>> = {
+const TACTIC_LABELS: Record<PresetTacticDim, Record<string, string>> = {
   attackingGamePlan: { kicking: 'Territorial', balanced: 'Balanced', possession: 'Possession' },
   attackingStyle:    { keep_it_tight: 'Keep It Tight', balanced: 'Balanced', wide_wide: 'Wide Wide' },
   attackingBreakdown:{ commit_numbers: 'Commit Numbers', balanced: 'Balanced Ruck', minimal_ruck: 'Minimal Ruck' },
@@ -20,7 +20,7 @@ const TACTIC_LABELS: Record<keyof TeamTactics, Record<string, string>> = {
   discipline:        { risky: 'Risky', balanced: 'Balanced', cautious: 'Cautious' },
 };
 
-const TACTIC_DIM_LABELS: Record<keyof TeamTactics, string> = {
+const TACTIC_DIM_LABELS: Record<PresetTacticDim, string> = {
   attackingGamePlan:  'Attacking plan',
   attackingStyle:     'Attacking style',
   attackingBreakdown: 'Attacking breakdown',
@@ -45,7 +45,7 @@ function shortCoach(coach: string): string {
 }
 
 function tacticsChips(t: TeamTactics): string {
-  return (Object.keys(TACTIC_DIM_LABELS) as (keyof TeamTactics)[]).map(dim => {
+  return (Object.keys(TACTIC_DIM_LABELS) as PresetTacticDim[]).map(dim => {
     const value = t[dim];
     const label = TACTIC_LABELS[dim][value] ?? value;
     return `

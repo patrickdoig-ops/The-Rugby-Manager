@@ -424,3 +424,168 @@
   .tactics-resume-btn:hover  { background: var(--rm-cta-hover); }
 }
 .tactics-resume-btn:active { background: var(--rm-cta-active); }
+
+/* ════════════════════════════════════════
+   ADVANCED KICKING — numeric per-zone editor
+   Entry button + active banner live in the preset body; the editor
+   (.advk-*) replaces the categories container when opened. Sliders are
+   restyled range inputs on the pitch accent.
+   ════════════════════════════════════════ */
+
+.tactics-adv-enter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--rm-surface);
+  border: 1px dashed var(--rm-border-soft);
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+  color: var(--rm-chalk);
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-12);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (hover: hover) {
+  .tactics-adv-enter:hover {
+    background: var(--rm-surface-2);
+    border-color: var(--rm-pitch);
+    color: var(--rm-pitch);
+  }
+}
+
+.tactics-adv-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: color-mix(in oklch, var(--rm-pitch) 12%, var(--rm-surface));
+  border: 1px solid var(--rm-pitch);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.tactics-adv-banner-text { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.tactics-adv-banner-text strong {
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-13);
+  font-weight: 700;
+  color: var(--rm-pitch);
+  letter-spacing: 0.01em;
+}
+.tactics-adv-banner-text span { font-size: var(--rm-fs-11); color: var(--rm-text-dim); line-height: 1.35; }
+.tactics-adv-edit {
+  flex-shrink: 0;
+  background: var(--rm-pitch);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  color: var(--rm-bg);
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-12);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* Game Plan pills are overridden while advanced kicking is active. */
+.tactics-cat--overridden { opacity: 0.5; }
+
+.advk-wrapper { display: flex; flex-direction: column; gap: 16px; }
+.advk-toolbar { display: flex; align-items: center; gap: 12px; }
+.advk-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  color: var(--rm-chalk);
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-12);
+  font-weight: 600;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (hover: hover) {
+  .advk-back:hover { background: var(--rm-surface-2); border-color: var(--rm-pitch); }
+}
+.advk-title {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-18);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--rm-chalk);
+}
+.advk-intro { font-size: var(--rm-fs-12); color: var(--rm-text-dim); line-height: 1.4; margin: 0; }
+
+.advk-cards { display: flex; flex-direction: column; gap: 14px; }
+.advk-card {
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.advk-card-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.advk-zone-label {
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-14);
+  font-weight: 700;
+  color: var(--rm-chalk);
+  letter-spacing: 0.01em;
+}
+.advk-zone-desc { font-size: var(--rm-fs-11); color: var(--rm-text-dim); }
+
+.advk-row-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.advk-row-title {
+  font-size: var(--rm-fs-11);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--rm-text-dim);
+}
+.advk-freq-val { font-size: var(--rm-fs-12); color: var(--rm-text); }
+.advk-freq-val strong { color: var(--rm-pitch); }
+
+.advk-types { display: flex; flex-direction: column; gap: 8px; }
+.advk-types .advk-row-title { margin-bottom: 2px; }
+.advk-type-row { display: grid; grid-template-columns: 78px 1fr 40px; align-items: center; gap: 10px; }
+.advk-type-label { font-size: var(--rm-fs-12); color: var(--rm-text); }
+.advk-type-pct { font-size: var(--rm-fs-12); font-weight: 600; color: var(--rm-chalk); text-align: right; }
+
+/* Range sliders on the pitch accent. */
+.advk-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--rm-surface-2);
+  outline: none;
+  cursor: pointer;
+}
+.advk-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--rm-pitch);
+  border: 2px solid var(--rm-bg);
+  box-shadow: 0 0 8px color-mix(in oklch, var(--rm-pitch) 40%, transparent);
+}
+.advk-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--rm-pitch);
+  border: 2px solid var(--rm-bg);
+}

@@ -242,9 +242,11 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
         return `
           <div id="hub-next-match">
             <div class="hub-nm-label">SEASON COMPLETE</div>
-            <div class="hub-nm-fixture" style="justify-content:center">
-              ${crestHtml(champion, 'nm-crest')}
-              <span class="hub-nm-name">${champion.name} Champions</span>
+            <div class="hub-nm-body">
+              <div class="hub-nm-fixture" style="justify-content:center">
+                ${crestHtml(champion, 'nm-crest')}
+                <span class="hub-nm-name">${champion.name} Champions</span>
+              </div>
             </div>
           </div>`;
       }
@@ -272,25 +274,29 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
       return `
         <div id="hub-next-match">
           <div class="hub-nm-label">${stageLabel} · ${formatDateShort(playerMatch.date)}</div>
-          <div class="hub-nm-fixture">
-            <div class="hub-nm-side hub-nm-side--home${isHome ? ' hub-nm-side--me' : ''}">
-              ${crestHtml(home, 'nm-crest')}
-              <span class="hub-nm-name">${home.shortName}</span>
+          <div class="hub-nm-body">
+            <div class="hub-nm-fixture">
+              <div class="hub-nm-side hub-nm-side--home${isHome ? ' hub-nm-side--me' : ''}">
+                ${crestHtml(home, 'nm-crest')}
+                <span class="hub-nm-name">${home.shortName}</span>
+              </div>
+              <span class="hub-nm-vs">vs</span>
+              <div class="hub-nm-side hub-nm-side--away${!isHome ? ' hub-nm-side--me' : ''}">
+                <span class="hub-nm-name">${away.shortName}</span>
+                ${crestHtml(away, 'nm-crest')}
+              </div>
             </div>
-            <span class="hub-nm-vs">vs</span>
-            <div class="hub-nm-side hub-nm-side--away${!isHome ? ' hub-nm-side--me' : ''}">
-              <span class="hub-nm-name">${away.shortName}</span>
-              ${crestHtml(away, 'nm-crest')}
-            </div>
+            <div class="hub-nm-meta">${venueLabel} · ${venueName}</div>
+            <div class="hub-nm-subline">${subline}</div>
           </div>
-          <div class="hub-nm-meta">${venueLabel} · ${venueName}</div>
-          <div class="hub-nm-subline">${subline}</div>
         </div>`;
     }
     return `
       <div id="hub-next-match">
         <div class="hub-nm-label">LEAGUE PLAYOFFS · ${stageLabel}</div>
-        <div class="hub-nm-meta">${subline}</div>
+        <div class="hub-nm-body">
+          <div class="hub-nm-meta">${subline}</div>
+        </div>
       </div>`;
   }
 
@@ -339,24 +345,26 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
           <span class="hub-nm-sub">${ROUND_LABELS[fixture.round] ?? `Round ${fixture.round}`} · ${formatDateShort(state.calendar.date)}</span>
           ${kickoffChip}
         </div>
-        <div class="hub-nm-fixture">
-          <div class="hub-nm-side hub-nm-side--home${playerHome ? ' hub-nm-side--me' : ''}">
-            ${crestHtml(home, 'nm-crest')}
-            <div class="hub-nm-side-info">
-              <span class="hub-nm-name">${home.shortName}</span>
-              ${homeFormHtml}
+        <div class="hub-nm-body">
+          <div class="hub-nm-fixture">
+            <div class="hub-nm-side hub-nm-side--home${playerHome ? ' hub-nm-side--me' : ''}">
+              ${crestHtml(home, 'nm-crest')}
+              <div class="hub-nm-side-info">
+                <span class="hub-nm-name">${home.shortName}</span>
+                ${homeFormHtml}
+              </div>
+            </div>
+            <span class="hub-nm-vs">vs</span>
+            <div class="hub-nm-side hub-nm-side--away${!playerHome ? ' hub-nm-side--me' : ''}">
+              <div class="hub-nm-side-info">
+                <span class="hub-nm-name">${away.shortName}</span>
+                ${awayFormHtml}
+              </div>
+              ${crestHtml(away, 'nm-crest')}
             </div>
           </div>
-          <span class="hub-nm-vs">vs</span>
-          <div class="hub-nm-side hub-nm-side--away${!playerHome ? ' hub-nm-side--me' : ''}">
-            <div class="hub-nm-side-info">
-              <span class="hub-nm-name">${away.shortName}</span>
-              ${awayFormHtml}
-            </div>
-            ${crestHtml(away, 'nm-crest')}
-          </div>
+          <div class="hub-nm-meta">${venueLabel} · ${venueName}${fixture.venueCapacity ? ` · ${fixture.venueCapacity.toLocaleString()}` : ''}</div>
         </div>
-        <div class="hub-nm-meta">${venueLabel} · ${venueName}${fixture.venueCapacity ? ` · ${fixture.venueCapacity.toLocaleString()}` : ''}</div>
       </div>
     `;
   }
@@ -379,11 +387,13 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
     return `
       <div id="hub-next-match">
         <div class="hub-nm-label">LEAGUE CUP · PRE-SEASON · ${state.calendar.seasonLabel}</div>
-        <div class="hub-nm-fixture" style="justify-content:center;gap:0.5rem">
-          <span class="hub-nm-name" style="font-size:1.05rem">Pool Stage — Rounds 1 &amp; 2</span>
+        <div class="hub-nm-body">
+          <div class="hub-nm-fixture" style="justify-content:center;gap:0.5rem">
+            <span class="hub-nm-name" style="font-size:1.05rem">Pool Stage — Rounds 1 &amp; 2</span>
+          </div>
+          <div class="hub-nm-meta">Assistant Manager runs the cup fixtures</div>
+          <div class="hub-nm-spread">Set squad direction and training plan before kick-off</div>
         </div>
-        <div class="hub-nm-meta">Assistant Manager runs the cup fixtures</div>
-        <div class="hub-nm-spread">Set squad direction and training plan before kick-off</div>
       </div>
     `;
   }
@@ -414,18 +424,20 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
             <span>${compName.toUpperCase()} · POOL ${fixture.poolId} · ROUND ${fixture.round}${fixture.date ? ` · ${formatDateShort(fixture.date)}` : ''}</span>
             ${kickoffChip}
           </div>
-          <div class="hub-nm-fixture">
-            <div class="hub-nm-side hub-nm-side--home${playerHome ? ' hub-nm-side--me' : ''}">
-              ${crestHtml(home, 'nm-crest')}
-              <div class="hub-nm-side-info"><span class="hub-nm-name">${home.shortName}</span></div>
+          <div class="hub-nm-body">
+            <div class="hub-nm-fixture">
+              <div class="hub-nm-side hub-nm-side--home${playerHome ? ' hub-nm-side--me' : ''}">
+                ${crestHtml(home, 'nm-crest')}
+                <div class="hub-nm-side-info"><span class="hub-nm-name">${home.shortName}</span></div>
+              </div>
+              <span class="hub-nm-vs">vs</span>
+              <div class="hub-nm-side hub-nm-side--away${!playerHome ? ' hub-nm-side--me' : ''}">
+                <div class="hub-nm-side-info"><span class="hub-nm-name">${away.shortName}</span></div>
+                ${crestHtml(away, 'nm-crest')}
+              </div>
             </div>
-            <span class="hub-nm-vs">vs</span>
-            <div class="hub-nm-side hub-nm-side--away${!playerHome ? ' hub-nm-side--me' : ''}">
-              <div class="hub-nm-side-info"><span class="hub-nm-name">${away.shortName}</span></div>
-              ${crestHtml(away, 'nm-crest')}
-            </div>
+            <div class="hub-nm-meta">${venueLabel} · ${venueName}</div>
           </div>
-          <div class="hub-nm-meta">${venueLabel} · ${venueName}</div>
         </div>
       `;
     }
@@ -445,18 +457,20 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
           <span>${compName.toUpperCase()} · ${stageLabel}${match.date ? ` · ${formatDateShort(match.date)}` : ''}</span>
           ${kickoffChip}
         </div>
-        <div class="hub-nm-fixture">
-          <div class="hub-nm-side hub-nm-side--home${playerHome ? ' hub-nm-side--me' : ''}">
-            ${crestHtml(home, 'nm-crest')}
-            <div class="hub-nm-side-info"><span class="hub-nm-name">${home.shortName}</span></div>
+        <div class="hub-nm-body">
+          <div class="hub-nm-fixture">
+            <div class="hub-nm-side hub-nm-side--home${playerHome ? ' hub-nm-side--me' : ''}">
+              ${crestHtml(home, 'nm-crest')}
+              <div class="hub-nm-side-info"><span class="hub-nm-name">${home.shortName}</span></div>
+            </div>
+            <span class="hub-nm-vs">vs</span>
+            <div class="hub-nm-side hub-nm-side--away${!playerHome ? ' hub-nm-side--me' : ''}">
+              <div class="hub-nm-side-info"><span class="hub-nm-name">${away.shortName}</span></div>
+              ${crestHtml(away, 'nm-crest')}
+            </div>
           </div>
-          <span class="hub-nm-vs">vs</span>
-          <div class="hub-nm-side hub-nm-side--away${!playerHome ? ' hub-nm-side--me' : ''}">
-            <div class="hub-nm-side-info"><span class="hub-nm-name">${away.shortName}</span></div>
-            ${crestHtml(away, 'nm-crest')}
-          </div>
+          <div class="hub-nm-meta">${venueLabel} · ${venueName}</div>
         </div>
-        <div class="hub-nm-meta">${venueLabel} · ${venueName}</div>
       </div>
     `;
   }

@@ -147,13 +147,12 @@
   flex-shrink: 0;
   position: relative;
   margin: 20px 16px 6px;
-  padding: 8px 14px;
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--rm-chalk) 14%, transparent);
   border-radius: 14px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  overflow: hidden;
 }
 
 #hub-next-match::before {
@@ -181,6 +180,15 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--rm-hairline);
+}
+
+.hub-nm-body {
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .hub-nm-title {
@@ -330,6 +338,7 @@
   color: var(--rm-text-muted);
   text-transform: uppercase;
   text-align: center;
+  padding: 8px 14px;
 }
 
 #hub-grid {

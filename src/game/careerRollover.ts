@@ -60,7 +60,7 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
       fromClubId: move.fromClubId,
       toClubId: move.toClubId,
       annualWage: move.annualWage,
-      expiresOn: `${newSeasonStartYear + move.lengthYears - 1}-06-30`,
+      expiresOn: `${newSeasonStartYear + move.lengthYears}-06-30`,
     });
   }
 

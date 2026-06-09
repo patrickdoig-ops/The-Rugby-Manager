@@ -157,7 +157,7 @@
 
 .tt-tone-btn--warn .tt-tone-label { color: var(--rm-danger); }
 .tt-tone-btn--warn .tt-tone-desc  { color: var(--rm-danger); opacity: 0.8; }
-.tt-tone-btn--good .tt-tone-desc  { color: oklch(0.74 0.18 144); }
+.tt-tone-btn--good .tt-tone-desc  { color: var(--rm-pitch); }
 
 /* — Player list (single_out) — */
 .tt-player-list {
@@ -434,7 +434,7 @@
 
 .ht-tone-btn--warn .ht-tone-label { color: var(--rm-danger); }
 .ht-tone-btn--warn .ht-tone-desc  { color: var(--rm-danger); opacity: 0.8; }
-.ht-tone-btn--good .ht-tone-desc  { color: oklch(0.74 0.18 144); }
+.ht-tone-btn--good .ht-tone-desc  { color: var(--rm-pitch); }
 
 /* — Player list — */
 .ht-player-list {

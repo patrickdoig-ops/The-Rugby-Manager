@@ -46,6 +46,10 @@ export interface OffloadChainResult {
   chainNarration: NarrationStep[];
   knockedOn: boolean;
   chainFired: boolean;
+  // Sum of metres from all intermediate CARRY_RESOLVED events queued in chainEvents.
+  // Callers must add this to res.gainMetres when projecting the final ball position
+  // for a try check — the chain carries haven't been applied to state.ball.x yet.
+  chainMetres: number;
 }
 
 function pickReceiver(carrier: Player, attackTeam: Team, state: MatchState, attackSide: PossessionSide): Player | undefined {
@@ -69,6 +73,7 @@ export function tryOffloadChain(args: OffloadChainArgs): OffloadChainResult {
   let currentCarrier = initialCarrier;
   let currentDefender = initialDefender;
   let chainFired = false;
+  let chainMetres = 0;
   const attemptPct = effOffloadScalar(state, attackTeam, OFFLOAD_VALUES.attemptPctByStrategy);
 
   for (let link = 0; link < OFFLOAD_VALUES.maxChain; link++) {
@@ -106,6 +111,7 @@ export function tryOffloadChain(args: OffloadChainArgs): OffloadChainResult {
       defSide,
       assistTackler: pickAssistTackler(defendTeam, state, defSide, currentDefender),
     });
+    chainMetres += currentRes.gainMetres;
 
     if (catchRoll <= catchPct) {
       chainEvents.push({ type: 'KNOCK_ON', player: catcher, attackSide });
@@ -118,6 +124,7 @@ export function tryOffloadChain(args: OffloadChainArgs): OffloadChainResult {
         chainNarration,
         knockedOn: true,
         chainFired: true,
+        chainMetres,
       };
     }
 
@@ -147,5 +154,6 @@ export function tryOffloadChain(args: OffloadChainArgs): OffloadChainResult {
     chainNarration,
     knockedOn: false,
     chainFired,
+    chainMetres,
   };
 }

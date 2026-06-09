@@ -77,6 +77,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer, 
 
   let chainNarration: NarrationStep[] = [];
   let chainFired = false;
+  let chainMetres = 0;
   if (res.outcome !== 'line_break') {
     const chain = tryOffloadChain({
       state, attackTeam, defendTeam, attackSide, defSide,
@@ -99,6 +100,7 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer, 
     defender = chain.finalDefender;
     chainNarration = chain.chainNarration;
     chainFired = chain.chainFired;
+    chainMetres = chain.chainMetres;
   }
 
   if (res.outcome === 'line_break') {
@@ -106,8 +108,9 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer, 
   }
   // runMetres only credit on the original returner's contact metres — when
   // an offload fires, the new carrier picks up the ball at the contact
-  // point and the kick-return run is already past.
-  const totalMetres = chainFired ? res.gainMetres : runMetres + res.gainMetres;
+  // point and the kick-return run is already past. Include chainMetres so
+  // offload-chain carries aren't dropped from the try projection.
+  const totalMetres = chainFired ? chainMetres + res.gainMetres : runMetres + res.gainMetres;
 
   // Try check hoisted above CARRY_RESOLVED so the cover-tackler pick can
   // be gated on a non-try line break.

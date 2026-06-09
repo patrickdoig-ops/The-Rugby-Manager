@@ -77,8 +77,8 @@ import { initFixtureListScreen }   from './ui/FixtureListScreen';
 import { initLeagueTableScreen, showLeagueTable, showLeagueTablePostMatch } from './ui/LeagueTableScreen';
 import { initLeagueMenuScreen } from './ui/LeagueMenuScreen';
 import { initCompetitionsMenuScreen } from './ui/CompetitionsMenuScreen';
-import { initEuropeanCupScreen } from './ui/EuropeanCupScreen';
-import { initEuropeanShieldScreen } from './ui/EuropeanShieldScreen';
+import { initEuropeanCupScreen, showEuropeanCupScreen } from './ui/EuropeanCupScreen';
+import { initEuropeanShieldScreen, showEuropeanShieldScreen } from './ui/EuropeanShieldScreen';
 import { initTeamStatsScreen, showTeamStats } from './ui/TeamStatsScreen';
 import { initPlayerStatsScreen, showPlayerStats } from './ui/PlayerStatsScreen';
 import { initPlayerProfileScreen, showPlayerProfile } from './ui/PlayerProfileScreen';
@@ -555,10 +555,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function goEuropeanCup(direction: 'forward' | 'back' = 'forward'): void {
     screenRouter.show('european-cup', { direction });
+    showEuropeanCupScreen();
   }
 
   function goEuropeanShield(direction: 'forward' | 'back' = 'forward'): void {
     screenRouter.show('european-shield', { direction });
+    showEuropeanShieldScreen();
   }
 
   function goCupBrowse(direction: 'forward' | 'back' = 'forward'): void {

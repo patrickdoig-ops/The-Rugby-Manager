@@ -11,6 +11,12 @@ export interface InitEuropeanCupScreenOpts {
   onBack: () => void;
 }
 
+let _render: (() => void) | null = null;
+
+export function showEuropeanCupScreen(): void {
+  _render?.();
+}
+
 export function initEuropeanCupScreen(opts: InitEuropeanCupScreenOpts): void {
   const el = document.getElementById('european-cup');
   if (!el) return;
@@ -18,20 +24,15 @@ export function initEuropeanCupScreen(opts: InitEuropeanCupScreenOpts): void {
   const teamsById = new Map(opts.allTeams.map(t => [t.id, t]));
 
   function render(): void {
-    let comp = null;
-    let playerId = '';
-    try {
-      const state = opts.getGameEngine().getState();
-      comp = state.league.europeanCup ?? null;
-      playerId = state.player.teamId;
-    } catch { /* engine not yet initialised — show placeholder */ }
-    el!.innerHTML = euroScreenHtml(comp, teamsById, playerId, 'European Cup', 'ec-back');
+    const state = opts.getGameEngine().getState();
+    const comp = state.league.europeanCup ?? null;
+    el!.innerHTML = euroScreenHtml(comp, teamsById, state.player.teamId, 'European Cup', 'ec-back');
     el!.querySelector<HTMLButtonElement>('#ec-back')!.addEventListener('click', () => opts.onBack());
   }
 
-  render();
+  _render = render;
 
-  const unsub = eventBus.on('game:weekAdvanced', () => { if (el.offsetParent !== null) render(); });
-  // Cleanup is not needed for a per-page-lifetime screen, but keep the pattern consistent.
-  void unsub;
+  eventBus.on('game:weekAdvanced',     () => { if (el.offsetParent !== null) render(); });
+  eventBus.on('game:initialized',      () => { if (el.offsetParent !== null) render(); });
+  eventBus.on('game:seasonRolledOver', () => { if (el.offsetParent !== null) render(); });
 }

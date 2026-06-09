@@ -36,7 +36,7 @@ export function euroPoolTableHtml(pool: EuropeanPool, byId: TeamsById, highlight
   const rows = sorted.map((s, i) => {
     const team = byId.get(s.teamId);
     const cls = ['cup-trow'];
-    if (i < 2) cls.push('cup-trow--qual');
+    if (i < 4) cls.push('cup-trow--qual');
     if (s.teamId === highlightId) cls.push('cup-trow--me');
     const diff = s.pointsDiff > 0 ? `+${s.pointsDiff}` : `${s.pointsDiff}`;
     return `
@@ -114,7 +114,7 @@ export function euroKnockoutHtml(ko: EuropeanKnockout, byId: TeamsById, highligh
   const sf  = ko.semifinals.map((m, i) => koMatchCard(m, `SF ${i + 1}`, byId, highlightId)).join('');
   const fin = koMatchCard(ko.final, 'Final', byId, highlightId);
   const champ = ko.championTeamId
-    ? `<div class="cup-champ">🏆 ${fullName(ko.championTeamId, byId)} — ${compName} Champions</div>`
+    ? `<div class="cup-champ">${fullName(ko.championTeamId, byId)} — ${compName} Champions</div>`
     : '';
   return `
     <div class="cup-section-title">Round of 16</div>

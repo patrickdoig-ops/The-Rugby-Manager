@@ -199,7 +199,7 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
         : preSeasonCupPending
           ? preSeasonCupHtml(state)
           : europeanFixture
-            ? europeanNextMatchHtml(europeanFixture, teamsById, playerTeam.id)
+            ? europeanNextMatchHtml(europeanFixture, teamsById, playerTeam.id, state.calendar.date)
             : nextMatchHtml(nextFixture, state, teamsById, playerTeam.id)}
 
       ${(() => {
@@ -462,7 +462,7 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
     `;
   }
 
-  function europeanNextMatchHtml(euroFix: EuropeanFixtureRef, byId: Map<string, RawTeamInput>, playerId: string): string {
+  function europeanNextMatchHtml(euroFix: EuropeanFixtureRef, byId: Map<string, RawTeamInput>, playerId: string, calendarDate: string): string {
     const compName = euroFix.competition === 'europeanCup' ? 'European Cup' : 'European Shield';
     if (euroFix.kind === 'pool') {
       const { fixture } = euroFix;
@@ -472,11 +472,11 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
       const playerHome = fixture.homeId === playerId;
       const venueLabel = playerHome ? 'HOME' : 'AWAY';
       const venueName = (playerHome ? home : away).stadium.split('(')[0].trim().toUpperCase();
-      const kickoffChip = fixture.date ? countdownChip(new Date().toISOString().slice(0, 10), fixture.date) : '';
+      const kickoffChip = fixture.date ? countdownChip(calendarDate, fixture.date) : '';
       return `
         <div id="hub-next-match">
           <div class="hub-nm-label">
-            <span>${compName.toUpperCase()} · POOL ${fixture.poolId + 1} · ROUND ${fixture.round}${fixture.date ? ` · ${formatDateShort(fixture.date)}` : ''}</span>
+            <span>${compName.toUpperCase()} · POOL ${fixture.poolId} · ROUND ${fixture.round}${fixture.date ? ` · ${formatDateShort(fixture.date)}` : ''}</span>
             ${kickoffChip}
           </div>
           <div class="hub-nm-fixture">
@@ -503,7 +503,7 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
     const playerHome = match.homeId === playerId;
     const venueLabel = playerHome ? 'HOME' : 'AWAY';
     const venueName = (playerHome ? home : away).stadium.split('(')[0].trim().toUpperCase();
-    const kickoffChip = match.date ? countdownChip(new Date().toISOString().slice(0, 10), match.date) : '';
+    const kickoffChip = match.date ? countdownChip(calendarDate, match.date) : '';
     return `
       <div id="hub-next-match">
         <div class="hub-nm-label">

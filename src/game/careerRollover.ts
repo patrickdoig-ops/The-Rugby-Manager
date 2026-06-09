@@ -149,6 +149,8 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
   const archivedStandings: TeamStanding[] = state.league.standings.map(s => ({ ...s }));
   const championTeamId = state.league.playoffs?.championTeamId ?? null;
   const premCupChampionTeamId = state.league.premCup?.knockout?.championTeamId ?? null;
+  const europeanCupChampionTeamId = state.league.europeanCup?.knockout?.championTeamId ?? null;
+  const europeanShieldChampionTeamId = state.league.europeanShield?.knockout?.championTeamId ?? null;
   const playerSeasonHistory = snapshotPlayerHistory(state);
 
   events.push({
@@ -160,6 +162,8 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
     mvpRosterId,
     championTeamId,
     premCupChampionTeamId,
+    europeanCupChampionTeamId,
+    europeanShieldChampionTeamId,
     leaders,
     playerSeasonHistory,
   });

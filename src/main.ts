@@ -328,7 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
     inSeasonInited = true;
     const hubScreen = initHubScreen({
       getGameEngine,
-      allTeams,
+      allTeams: allTeamsWithEuropean,
       onPlayMatch: onPlayRound,
       onPlayoffs: () => { void runPlayoffWeek(); },
       onPreSeasonCup: () => {
@@ -1606,7 +1606,7 @@ document.addEventListener('DOMContentLoaded', () => {
         screenRouter.show('team-talk');
       },
       () => goHub('back'),
-      { contextLabel, neutralVenue: false, backLabel: 'Hub' },
+      { contextLabel, neutralVenue: euroFix.kind === 'knockout' && euroFix.stage === 'final', backLabel: 'Hub' },
       goSquadFromPreMatch,
       (rosterId, returnStep) => goPlayerProfile(rosterId, () => {
         showPreMatchAtStep(returnStep);

@@ -503,6 +503,8 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
           }
         }
         p.seasonStats = zeroSeasonStats();
+        if (p.europeanCupStats) p.europeanCupStats = undefined;
+        if (p.europeanShieldStats) p.europeanShieldStats = undefined;
         if (p.recentRatings) p.recentRatings = undefined;
         if (p.formReturn) p.formReturn = undefined;
         if (p.restObligation) p.restObligation = undefined;

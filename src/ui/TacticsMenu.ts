@@ -3,8 +3,6 @@ import type { TeamTactics, PresetTacticDim, AttackingGamePlan, AttackingStyle, A
 import { seedAdvancedTactics } from '../engine/advancedTactics';
 import { renderAdvancedTactics } from './AdvancedTacticsPanel';
 
-const ADV_ARROW_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>`;
-
 interface OptionDef<T> {
   value: T;
   label: string;
@@ -97,7 +95,9 @@ export function renderTacticsMenu(
   let currentTactics: TeamTactics = { ...initialTactics };
   const showToggle = isModal && oppTactics != null;
   let activeTab: 'mine' | 'opp' = 'mine';
-  let view: 'presets' | 'advanced' = 'presets';
+  // Advanced mode is sticky: if the saved tactics already carry an advanced
+  // override, the menu opens straight into the advanced editor.
+  let view: 'presets' | 'advanced' = currentTactics.advanced ? 'advanced' : 'presets';
 
   function renderCategory(key: PresetTacticDim, tactics: TeamTactics, readOnly: boolean): string {
     const meta = META[key];
@@ -135,7 +135,16 @@ export function renderTacticsMenu(
 
   container.innerHTML = `
     <div class="tactics-menu-wrapper ${isModal ? 'modal-view' : ''}">
-      ${isModal ? `<h2 class="tactics-main-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18" style="vertical-align:-3px;margin-right:8px"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/></svg>Tactical Adjustments</h2>` : ''}
+      <div class="tactics-header">
+        ${isModal
+          ? `<h2 class="tactics-main-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18" style="vertical-align:-3px;margin-right:8px"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/></svg>Tactical Adjustments</h2>`
+          : `<span class="tactics-main-title tactics-main-title--inline">Tactics</span>`}
+        <label class="adv-switch" id="adv-switch">
+          <span class="adv-switch-label">Advanced</span>
+          <input type="checkbox" class="adv-switch-input" aria-label="Advanced tactics">
+          <span class="adv-switch-track"><span class="adv-switch-thumb"></span></span>
+        </label>
+      </div>
       ${showToggle ? `
         <div class="tactics-team-toggle">
           <button class="tactics-team-toggle__btn tactics-team-toggle__btn--active" data-tab="mine" type="button">My Team</button>
@@ -153,58 +162,51 @@ export function renderTacticsMenu(
 
   function applySelection(cat: keyof TeamTactics, val: string): void {
     currentTactics = { ...currentTactics, [cat]: val } as TeamTactics;
-    // Advanced mode overrides every preset, so picking any preset is the
-    // documented way back: it applies that preset and drops the override.
-    const revertedAdvanced = currentTactics.advanced != null;
-    if (revertedAdvanced) {
-      currentTactics = { ...currentTactics };
-      delete currentTactics.advanced;
-    }
     eventBus.emit('ui:tacticsChange', { teamId, tactics: currentTactics });
-    if (revertedAdvanced) {
-      renderBody();
-      return;
-    }
     const siblings = container.querySelectorAll<HTMLButtonElement>(`.tactics-opt-btn[data-cat="${cat}"]`);
     siblings.forEach(sib => sib.classList.toggle('active', sib.dataset.val === val));
   }
 
-  function advancedEntryHTML(): string {
-    if (currentTactics.advanced) {
-      return `
-        <div class="tactics-adv-banner">
-          <div class="tactics-adv-banner-text">
-            <strong>Advanced tactics active</strong>
-            <span>Your per-zone settings override the presets below. Pick any preset to revert.</span>
-          </div>
-          <button class="tactics-adv-edit" type="button" data-adv-edit>Edit</button>
-        </div>`;
-    }
-    return `
-      <button class="tactics-adv-enter" type="button" data-adv-enter>
-        <span>Advanced tactics</span>
-        ${ADV_ARROW_SVG}
-      </button>`;
-  }
-
-  // Open the advanced editor, ensuring the override is complete first: a fresh
-  // entry seeds every dimension from the current preset; a partial override
-  // (e.g. a kicking-only save from an earlier version) is filled from the seed
-  // while preserving existing edits.
-  function openAdvanced(): void {
+  // Fill an EXISTING advanced override that's missing dimensions (e.g. a
+  // kicking-only save from an earlier version), preserving its existing edits.
+  // No-op when there's no override, or it's already complete.
+  function ensureAdvancedComplete(): void {
     const adv = currentTactics.advanced;
-    if (!adv || adv.attackingStyle === undefined) {
-      const seeded = seedAdvancedTactics(currentTactics);
-      currentTactics = { ...currentTactics, advanced: adv ? { ...seeded, ...adv } : seeded };
+    if (adv && adv.attackingStyle === undefined) {
+      currentTactics = { ...currentTactics, advanced: { ...seedAdvancedTactics(currentTactics), ...adv } };
       eventBus.emit('ui:tacticsChange', { teamId, tactics: currentTactics });
     }
-    view = 'advanced';
-    renderBody();
   }
 
-  function bindAdvancedEntry(): void {
-    container.querySelector<HTMLButtonElement>('[data-adv-enter]')?.addEventListener('click', openAdvanced);
-    container.querySelector<HTMLButtonElement>('[data-adv-edit]')?.addEventListener('click', openAdvanced);
+  // The top-right toggle turns advanced tactics on/off. On → seed from the
+  // current preset (if not already advanced) and open the advanced editor;
+  // off → drop the override and return to the presets.
+  function setAdvanced(on: boolean): void {
+    if (on) {
+      if (!currentTactics.advanced) {
+        currentTactics = { ...currentTactics, advanced: seedAdvancedTactics(currentTactics) };
+        eventBus.emit('ui:tacticsChange', { teamId, tactics: currentTactics });
+      } else {
+        ensureAdvancedComplete();
+      }
+      view = 'advanced';
+    } else {
+      currentTactics = { ...currentTactics };
+      delete currentTactics.advanced;
+      eventBus.emit('ui:tacticsChange', { teamId, tactics: currentTactics });
+      view = 'presets';
+    }
+    renderBody();
+    syncToggle();
+  }
+
+  // The toggle applies to your own team only; hide it while viewing opposition.
+  function syncToggle(): void {
+    const sw = container.querySelector<HTMLElement>('#adv-switch');
+    const input = container.querySelector<HTMLInputElement>('.adv-switch-input');
+    if (!sw || !input) return;
+    sw.style.display = activeTab === 'mine' ? '' : 'none';
+    input.checked = currentTactics.advanced != null;
   }
 
   function renderBody(): void {
@@ -212,26 +214,17 @@ export function renderTacticsMenu(
     if (!el) return;
 
     if (view === 'advanced' && activeTab === 'mine' && currentTactics.advanced) {
-      renderAdvancedTactics(
-        el,
-        currentTactics.advanced,
-        next => {
-          currentTactics = { ...currentTactics, advanced: next };
-          eventBus.emit('ui:tacticsChange', { teamId, tactics: currentTactics });
-        },
-        () => { view = 'presets'; renderBody(); },
-      );
+      renderAdvancedTactics(el, currentTactics.advanced, next => {
+        currentTactics = { ...currentTactics, advanced: next };
+        eventBus.emit('ui:tacticsChange', { teamId, tactics: currentTactics });
+      });
       return;
     }
 
     const readOnly = activeTab === 'opp';
     const tactics = readOnly ? oppTactics! : currentTactics;
-    el.innerHTML = categoriesHTML(tactics, readOnly) + (readOnly ? '' : advancedEntryHTML());
-    if (!readOnly && currentTactics.advanced) {
-      el.querySelectorAll('.tactics-category').forEach(c => c.classList.add('tactics-cat--overridden'));
-    }
+    el.innerHTML = categoriesHTML(tactics, readOnly);
     bindInteraction();
-    bindAdvancedEntry();
   }
 
   function bindInteraction(): void {
@@ -256,12 +249,17 @@ export function renderTacticsMenu(
   function switchTab(tab: 'mine' | 'opp'): void {
     activeTab = tab;
     renderBody();
+    syncToggle();
     container.querySelectorAll<HTMLButtonElement>('.tactics-team-toggle__btn').forEach(btn => {
       btn.classList.toggle('tactics-team-toggle__btn--active', btn.dataset.tab === tab);
     });
   }
 
+  ensureAdvancedComplete();  // normalise a sticky/partial advanced override on open
   renderBody();
+  syncToggle();
+  container.querySelector<HTMLInputElement>('.adv-switch-input')
+    ?.addEventListener('change', e => setAdvanced((e.target as HTMLInputElement).checked));
 
   if (showToggle) {
     container.querySelectorAll<HTMLButtonElement>('.tactics-team-toggle__btn').forEach(btn => {

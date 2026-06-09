@@ -83,19 +83,14 @@
   box-shadow: var(--rm-card-shadow);
 }
 
-.tt-mood-dots {
-  font-size: var(--rm-fs-13);
-  letter-spacing: 0.1em;
-}
-
 .tt-mood-label {
   font-size: var(--rm-fs-13);
   color: var(--rm-text-muted);
 }
 
-.tt-mood--flying .tt-mood-dots { color: oklch(0.74 0.18 144); }
-.tt-mood--steady .tt-mood-dots { color: oklch(0.74 0.16 62); }
-.tt-mood--flat   .tt-mood-dots { color: oklch(0.60 0.16 25); }
+.tt-mood--flying .mood-pip-strip { color: var(--rm-stat-4); }
+.tt-mood--steady .mood-pip-strip { color: var(--rm-amber); }
+.tt-mood--flat   .mood-pip-strip { color: var(--rm-stat-1); }
 
 /* — Tone buttons — */
 .tt-tones {
@@ -365,19 +360,14 @@
   box-shadow: var(--rm-card-shadow);
 }
 
-.ht-mood-dots {
-  font-size: var(--rm-fs-13);
-  letter-spacing: 0.1em;
-}
-
 .ht-mood-label {
   font-size: var(--rm-fs-12);
   color: var(--rm-text-muted);
 }
 
-.ht-mood--flying .ht-mood-dots { color: oklch(0.74 0.18 144); }
-.ht-mood--steady .ht-mood-dots { color: oklch(0.74 0.16 62); }
-.ht-mood--flat   .ht-mood-dots { color: oklch(0.60 0.16 25); }
+.ht-mood--flying .mood-pip-strip { color: var(--rm-stat-4); }
+.ht-mood--steady .mood-pip-strip { color: var(--rm-amber); }
+.ht-mood--flat   .mood-pip-strip { color: var(--rm-stat-1); }
 
 /* — Tone buttons — */
 .ht-tones {

@@ -93,11 +93,11 @@
 
 .ach-check {
   flex-shrink: 0;
-  font-size: var(--rm-fs-16);
-  font-weight: 700;
-  color: var(--rm-amber);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 22px;
-  text-align: center;
+  color: var(--rm-amber);
 }
 
 .ach-gc-btn {

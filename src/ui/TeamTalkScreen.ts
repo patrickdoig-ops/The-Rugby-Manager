@@ -9,14 +9,15 @@ import { TEAM_TALK } from '../engine/balance';
 import {
   CALM_PHRASES, ENCOURAGE_PHRASES, DEMAND_PHRASES, SINGLE_OUT_PHRASES, pickPhrase,
 } from './teamTalkPhrases';
+import { moodPipSvg } from './components/moodMeter';
 
-function moraleLabel(avgMorale: number): { label: string; dots: string; cls: string } {
+function moraleLabel(avgMorale: number): { label: string; filled: number; cls: string } {
   if (avgMorale >= TEAM_TALK.flyingThreshold) {
-    return { label: 'Flying', dots: '●●●●●', cls: 'tt-mood--flying' };
+    return { label: 'Flying', filled: 5, cls: 'tt-mood--flying' };
   } else if (avgMorale >= TEAM_TALK.flatThreshold) {
-    return { label: 'Steady', dots: '●●●○○', cls: 'tt-mood--steady' };
+    return { label: 'Steady', filled: 3, cls: 'tt-mood--steady' };
   } else {
-    return { label: 'Flat',   dots: '●●○○○', cls: 'tt-mood--flat' };
+    return { label: 'Flat',   filled: 2, cls: 'tt-mood--flat' };
   }
 }
 
@@ -139,7 +140,7 @@ export function initTeamTalkScreen(
           ${crestSm((oppTeam.shortName[0] ?? '?').toUpperCase(), oppTeam.color)}
         </div>
         <div class="tt-mood ${mood.cls}">
-          <span class="tt-mood-dots">${mood.dots}</span>
+          ${moodPipSvg(mood.filled)}
           <span class="tt-mood-label">Squad mood: <strong>${mood.label}</strong></span>
         </div>
         <div class="tt-tones" id="tt-tones">

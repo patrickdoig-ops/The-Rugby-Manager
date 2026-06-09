@@ -59,7 +59,7 @@
   justify-content: center;
   font-family: var(--rm-font-display);
   font-size: var(--rm-fs-16);
-  color: #fff;
+  color: var(--rm-chalk);
   flex-shrink: 0;
 }
 
@@ -308,7 +308,7 @@
   justify-content: center;
   font-family: var(--rm-font-display);
   font-size: var(--rm-fs-16);
-  color: #fff;
+  color: var(--rm-chalk);
   flex-shrink: 0;
 }
 

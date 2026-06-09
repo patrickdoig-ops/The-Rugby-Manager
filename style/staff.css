@@ -184,8 +184,8 @@
   margin-left: 3px;
 }
 
-.staff-rating--world-class { color: #f5c842; }
-.staff-rating--excellent    { color: #6dcf8e; }
+.staff-rating--world-class { color: var(--rm-amber); }
+.staff-rating--excellent    { color: var(--rm-stat-4); }
 .staff-rating--good         { color: var(--rm-chalk); }
 .staff-rating--average      { color: var(--rm-text-muted); }
 .staff-rating--limited      { color: var(--rm-text-dim); }

@@ -386,7 +386,7 @@
   border-color: color-mix(in oklch, var(--rm-amber) 55%, transparent);
 }
 .pm-captain-badge--active {
-  color: var(--rm-bg-deep, #14110b);
+  color: var(--rm-bg-deep);
   background: var(--rm-amber);
   border-color: var(--rm-amber);
 }

@@ -358,8 +358,8 @@
 
 .tactics-info-opt-tick {
   color: var(--rm-pitch);
-  font-weight: 700;
-  font-size: var(--rm-fs-14);
+  display: inline-flex;
+  align-items: center;
 }
 
 .tactics-info-opt-desc {

@@ -200,7 +200,7 @@
 }
 
 .rr-attendance {
-  font-size: 11px;
+  font-size: var(--rm-fs-11);
   color: var(--rm-text-dim);
   text-align: center;
   padding: 2px 0 4px;

@@ -124,5 +124,5 @@
   font-family: var(--rm-font-body);
   font-size: var(--rm-fs-13);
   line-height: 1.45;
-  color: color-mix(in srgb, var(--team-color-tile-text, #ffffff) 80%, transparent);
+  color: color-mix(in srgb, var(--team-color-tile-text, var(--rm-chalk)) 80%, transparent);
 }

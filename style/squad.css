@@ -666,7 +666,7 @@
   padding: 1px 5px;
   border-radius: 4px;
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;

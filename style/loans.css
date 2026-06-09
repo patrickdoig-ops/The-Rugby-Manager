@@ -158,7 +158,7 @@
 
 .loan-btn--recall {
   background: var(--rm-danger);
-  color: #fff;
+  color: var(--rm-on-accent);
 }
 
 .loan-btn--sign {

@@ -312,7 +312,7 @@ function openInfoModal(
           const isActive = opt.value === currentValue;
           return `
             <button class="tactics-info-opt ${isActive ? 'active' : ''} ${readOnly ? 'readonly' : ''}" data-val="${opt.value}" type="button">
-              <span class="tactics-info-opt-label">${opt.label}${isActive ? `<span class="tactics-info-opt-tick" aria-hidden="true">✓</span>` : ''}</span>
+              <span class="tactics-info-opt-label">${opt.label}${isActive ? `<span class="tactics-info-opt-tick" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>` : ''}</span>
               <span class="tactics-info-opt-desc">${opt.desc}</span>
             </button>
           `;

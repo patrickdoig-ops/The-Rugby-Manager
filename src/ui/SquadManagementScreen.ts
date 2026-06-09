@@ -38,6 +38,7 @@ import { saveGame } from './SaveManager';
 import { showToast } from './Toast';
 import { eventBus } from '../utils/eventBus';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
+import { discardConfirm } from './components/discardConfirm';
 import { playHaptic } from './HapticsManager';
 
 export interface InitSquadManagementOpts {
@@ -113,7 +114,6 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
   let selection: { tier: Tier; squadNum: number } | null = null;
   let activeGroup: GroupId = 'all';
   let dirty = false;
-  let discardOpen = false;
   // Per-row 12-stat expand state. Keyed by `${tier}-${squadNum}` since the
   // row's identity is the slot + tier (rosterId would shift on swap).
   const expandedRows = new Set<string>();
@@ -145,7 +145,6 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     selection = null;
     activeGroup = 'all';
     dirty = false;
-    discardOpen = false;
     expandedRows.clear();
   }
 
@@ -381,7 +380,6 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         ].join('');
 
     const saveDisabled = !dirty ? ' disabled' : '';
-    const confirmHtml = discardOpen ? discardConfirmHtml() : '';
 
     // Preserve scroll position across re-render. Tapping a row triggers
     // render() (selection-state change), which rewrites el.innerHTML —
@@ -412,8 +410,6 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
           <button id="sq-save" class="cta-pulse"${saveDisabled}>Save</button>
         </div>
       </div>
-
-      ${confirmHtml}
     `;
 
     // Restore scroll position captured above the innerHTML rewrite so
@@ -463,14 +459,14 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       });
     });
 
-    // Back button — discard-aware
-    el.querySelector<HTMLButtonElement>('#sq-back')!.addEventListener('click', () => {
+    // Back button — discard-aware (shared discard sheet)
+    el.querySelector<HTMLButtonElement>('#sq-back')!.addEventListener('click', async () => {
       if (dirty) {
-        discardOpen = true;
-        render();
-      } else {
-        triggerBack();
+        const discard = await discardConfirm('You have unsaved squad changes. Leaving now will revert them.');
+        if (!discard) return;  // keep editing
+        dirty = false;
       }
+      triggerBack();
     });
 
     // Per-row 12-stat expand chevron — stopPropagation so the row's
@@ -517,26 +513,6 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     // row click listener above. The link's own click stopPropagation
     // prevents the outer row swap from also firing.
     if (opts.onPlayerClick) wirePlayerLinks(el, opts.onPlayerClick);
-
-    // Discard confirm
-    if (discardOpen) {
-      el.querySelector<HTMLButtonElement>('#sq-discard-cancel')!.addEventListener('click', () => {
-        discardOpen = false;
-        render();
-      });
-      el.querySelector<HTMLButtonElement>('#sq-discard-confirm')!.addEventListener('click', () => {
-        discardOpen = false;
-        dirty = false;
-        triggerBack();
-      });
-      const backdrop = el.querySelector<HTMLDivElement>('#sq-discard-backdrop');
-      backdrop?.addEventListener('click', (e) => {
-        if (e.target === backdrop) {
-          discardOpen = false;
-          render();
-        }
-      });
-    }
   }
 
   function section(label: string, items: RawPlayer[], tier: Tier, baseIndex: number): string {
@@ -649,27 +625,6 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     `;
   }
 
-  function discardConfirmHtml(): string {
-    return `
-      <div class="sq-discard-backdrop" id="sq-discard-backdrop">
-        <div class="sq-discard">
-          <div class="sq-discard-title">Discard changes?</div>
-          <div class="sq-discard-body">You have unsaved squad changes. Leaving now will revert them.</div>
-          <div class="sq-discard-actions">
-            <button class="sq-discard-btn sq-discard-cancel" id="sq-discard-cancel">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
-              Keep editing
-            </button>
-            <button class="sq-discard-btn sq-discard-confirm" id="sq-discard-confirm">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
-              Discard
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
   renderImpl = () => {
     if (!dirty) {
       resetDraftFromState();
@@ -679,7 +634,6 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       // navigation away from the screen.
       selection = null;
       activeGroup = 'all';
-      discardOpen = false;
       expandedRows.clear();
     }
     render();
@@ -690,7 +644,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
   // don't clobber a live in-progress edit if one of these fires while
   // the screen is open. Re-render only when nothing is dirty.
   function refreshIfClean(): void {
-    if (!dirty && !discardOpen) {
+    if (!dirty) {
       resetDraftFromState();
       render();
     }

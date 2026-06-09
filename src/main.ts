@@ -28,6 +28,7 @@ import '../style/roundresults.css';
 import '../style/seasonrollover.css';
 import '../style/contracts.css';
 import '../style/squad.css';
+import '../style/discardConfirm.css';
 import '../style/renewals.css';
 import '../style/transfermarket.css';
 import '../style/modepicker.css';

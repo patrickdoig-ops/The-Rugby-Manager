@@ -28,6 +28,7 @@ import { upcomingGap, splitGapIntoPeriods } from '../game/trainingCalendar';
 import { suggestPlanForUser } from '../game/aiTrainingDirector';
 import { eventBus } from '../utils/eventBus';
 import { injectTeamColors } from './teamColors';
+import { discardConfirm } from './components/discardConfirm';
 
 const SHORT_WEEK_DAYS = 6; // turnaround at or below this nudges toward Light
 
@@ -48,7 +49,6 @@ let activeMode: Mode | null = null;
 let draftPlan: TrainingPlan = { ...DEFAULT_TRAINING_PLAN };  // shared focus + mid-week plan
 let draftWeekIntensities: TrainingIntensity[] = [];          // post-match per-week intensity
 let draftHydrated = false;
-let discardOpen = false;
 let renderImpl: (() => void) | null = null;
 
 export function showTrainingPostMatch(onContinue: (results: TrainingWeekResult) => void, opts?: PostMatchOpts): void {
@@ -58,7 +58,6 @@ export function showTrainingPostMatch(onContinue: (results: TrainingWeekResult) 
 
 export function showTrainingMidweek(onBack: () => void): void {
   activeMode = { kind: 'mid_week', onBack };
-  discardOpen = false;
   renderImpl?.();
 }
 
@@ -340,13 +339,11 @@ function renderMidWeek(
     <div id="tr-footer">
       <button id="tr-save" class="cta-pulse">Save</button>
     </div>
-
-    ${discardOpen ? trainingDiscardHtml() : ''}
   `;
 
   wireChips(el, () => renderImpl?.());
 
-  el.querySelector<HTMLButtonElement>('#tr-back')!.addEventListener('click', () => {
+  el.querySelector<HTMLButtonElement>('#tr-back')!.addEventListener('click', async () => {
     const saved = engine.getState().player.training ?? DEFAULT_TRAINING_PLAN;
     const dirty = draftHydrated && (
       draftPlan.intensity !== saved.intensity ||
@@ -354,11 +351,11 @@ function renderMidWeek(
       draftPlan.backsFocus !== saved.backsFocus
     );
     if (dirty) {
-      discardOpen = true;
-      renderImpl?.();
-    } else {
-      mode.onBack();
+      const discard = await discardConfirm('You have unsaved training plan changes. Leaving now will revert them.');
+      if (!discard) return;  // keep editing
+      draftHydrated = false;
     }
+    mode.onBack();
   });
 
   el.querySelector<HTMLButtonElement>('#tr-save')!.addEventListener('click', () => {
@@ -366,46 +363,6 @@ function renderMidWeek(
     draftHydrated = false;
     mode.onBack();
   });
-
-  if (discardOpen) {
-    el.querySelector<HTMLButtonElement>('#tr-discard-cancel')!.addEventListener('click', () => {
-      discardOpen = false;
-      renderImpl?.();
-    });
-    el.querySelector<HTMLButtonElement>('#tr-discard-confirm')!.addEventListener('click', () => {
-      discardOpen = false;
-      draftHydrated = false;
-      mode.onBack();
-    });
-    const backdrop = el.querySelector<HTMLDivElement>('#tr-discard-backdrop');
-    backdrop?.addEventListener('click', (e) => {
-      if (e.target === backdrop) {
-        discardOpen = false;
-        renderImpl?.();
-      }
-    });
-  }
-}
-
-function trainingDiscardHtml(): string {
-  return `
-    <div class="sq-discard-backdrop" id="tr-discard-backdrop">
-      <div class="sq-discard">
-        <div class="sq-discard-title">Discard changes?</div>
-        <div class="sq-discard-body">You have unsaved training plan changes. Leaving now will revert them.</div>
-        <div class="sq-discard-actions">
-          <button class="sq-discard-btn sq-discard-cancel" id="tr-discard-cancel">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            Keep editing
-          </button>
-          <button class="sq-discard-btn sq-discard-confirm" id="tr-discard-confirm">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
-            Discard
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
 }
 
 function wireChips(el: HTMLElement, rerender: () => void): void {

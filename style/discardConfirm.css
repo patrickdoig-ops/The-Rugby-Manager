@@ -1,0 +1,92 @@
+/* ════════════════════════════════════════
+   DISCARD-CHANGES CONFIRM SHEET
+   Shared bottom-sheet used by every edit screen that can be left with unsaved
+   changes (Squad, Training, Tactics) via the discardConfirm() helper
+   (src/ui/components/discardConfirm.ts). One look, one source of truth.
+   ════════════════════════════════════════ */
+
+.rm-discard-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 350;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.rm-discard {
+  width: 100%;
+  max-width: 480px;
+  padding: 24px 24px max(36px, env(safe-area-inset-bottom, 0px));
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 20px 20px 0 0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 -8px 48px rgba(0, 0, 0, 0.65);
+  animation: rmDiscardSheetUp 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes rmDiscardSheetUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+.rm-discard-title {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-28);
+  text-transform: uppercase;
+  color: var(--rm-chalk);
+  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+}
+
+.rm-discard-body {
+  font-size: var(--rm-fs-13);
+  color: var(--rm-text-muted);
+  margin-bottom: 22px;
+  line-height: 1.55;
+}
+
+.rm-discard-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.rm-discard-btn {
+  flex: 1;
+  padding: 13px;
+  border-radius: 12px;
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-13);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.rm-discard-cancel {
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  color: var(--rm-text-muted);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.rm-discard-confirm {
+  background: var(--rm-danger);
+  border: none;
+  color: var(--rm-chalk);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 4px 16px color-mix(in oklch, var(--rm-danger) 28%, transparent);
+}
+
+.rm-discard-confirm:active { filter: brightness(0.9); }

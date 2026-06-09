@@ -351,14 +351,18 @@ document.addEventListener('DOMContentLoaded', () => {
       onInbox:    goInbox,
     });
     initFixtureListScreen(getGameEngine, allTeams, () => goHub('back'));
-    // Standalone Tactics screen (Hub tile). Edits are committed to the player's
-    // tactics + autosaved when the back arrow is tapped, so they carry forward.
-    initTacticsHubScreen(getGameEngine, allTeams, tactics => {
-      if (gameEngine) {
-        gameEngine.setPlayerTactics(tactics);
-        autosave(gameEngine.toSavePayload());
-      }
-      goHub('back');
+    // Standalone Tactics screen (Hub tile). The Save CTA commits the player's
+    // tactics + autosaves; the back arrow discards (with confirmation) and exits.
+    initTacticsHubScreen({
+      getGameEngine,
+      allTeams,
+      persist: tactics => {
+        if (gameEngine) {
+          gameEngine.setPlayerTactics(tactics);
+          autosave(gameEngine.toSavePayload());
+        }
+      },
+      onExit: () => goHub('back'),
     });
     // The League sub-menu sits between the Hub's League tile and the
     // three leaves (Table / Team Stats / Player Stats). Each leaf's

@@ -14,10 +14,11 @@ import { sweepStep, emitSweepHops } from '../Lateral';
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
-import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, HARD_CARRY_LINE_BREAK_UPGRADE_PCT, HARD_CARRY_LINE_BREAK_METRES, HARD_CARRY_DOMINANT_METRES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, INJURY, INJURY_KIND_WEIGHTS, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS, PICK_AND_GO_PCT } from '../balance';
+import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, HARD_CARRY_LINE_BREAK_UPGRADE_PCT, HARD_CARRY_LINE_BREAK_METRES, HARD_CARRY_DOMINANT_METRES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, INJURY, INJURY_KIND_WEIGHTS, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS, PICK_AND_GO_PCT, SWEEP_STYLE_MULT, TRY_LANDING_JITTER } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { SLOT, isBackSlot } from '../Slot';
 import { tryOffloadChain } from './offloadChain';
+import { effAttackingBreakdown, effDefendingBreakdown, effBackfieldDefence, effDefensiveLine, effDisciplineScalar, effStyleScalar, effGamePlanResidual } from '../tacticsResolve';
 
 const FULL_BACKLINE = 7;  // jersey ids 9–15
 
@@ -39,7 +40,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   // no handling gate), no offload chain, no line break. A dominant carry from
   // close range can score a try; otherwise lands at Breakdown. Falls through
   // to the regular decision below if no eligible forward is on the field.
-  if (rng(1, 100) <= PICK_AND_GO_PCT[attackTeam.tactics.attackingStyle]) {
+  if (rng(1, 100) <= effStyleScalar(state, attackTeam, PICK_AND_GO_PCT)) {
     const pagCarrier = pickPickAndGoCarrier(attackTeam, state, attackSide);
     if (pagCarrier) {
       return resolvePickAndGo(state, attackTeam, defendTeam, attackSide, pagCarrier);
@@ -53,8 +54,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   const defSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
   const defendOnField = onFieldPlayers(defendTeam, state, defSide);
   const scrumHalf = attackOnField.find(p => p.id === SLOT.SCRUM_HALF) ?? attackOnField[0] ?? attackTeam.players[0];
-  const style = attackTeam.tactics.attackingStyle;
-  const goWide = rng(1, 100) > HARD_CARRY_THRESHOLDS[style];
+  const goWide = rng(1, 100) > effStyleScalar(state, attackTeam, HARD_CARRY_THRESHOLDS);
 
   const attackFwds = availableForwards(attackTeam, state, attackSide);
   // Hard-carry path picks from the forward pool weighted so back row + props
@@ -69,13 +69,13 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   // Defensive line drives both the knock-on pressure modifier (handling
   // gates harder vs blitz) and the per-pass interception probability.
   // Hoisted above the gates so every check below sees the same value.
-  const defensiveLine = defendTeam.tactics.defensiveLine;
+  const defensiveLine = effDefensiveLine(state, defendTeam);
   // Per-carry knock-on rate shift. Combines the defender's defensiveLine
   // pressure with the attacker's gameplan-driven handling pressure
   // (possession-plan teams carry more, drop more — v2.184a rebalance).
   // Both terms are pp added on top of the base knockOnPct.
   const pressureMod   = TACTIC_MODIFIERS.defensiveLineHandlingPressure[defensiveLine]
-                      + TACTIC_MODIFIERS.gamePlanHandlingPressure[attackTeam.tactics.attackingGamePlan];
+                      + effGamePlanResidual(attackTeam, TACTIC_MODIFIERS.gamePlanHandlingPressure, 0);
   const interceptPctBase = INTERCEPTION_BASE_PCT + TACTIC_MODIFIERS.interceptionMod[defensiveLine];
 
   const events: MatchEvent[] = [];
@@ -110,7 +110,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;
   events.push({ type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 });
 
-  const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[defendTeam.tactics.backfieldDefence];
+  const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[effBackfieldDefence(state, defendTeam)];
   // Short-handed backline: missing backs make wide defence thinner → more
   // line breaks. Mirrors the backfieldLineBreakPenalty shape; both feed defendMod.
   const missingBacks = FULL_BACKLINE - availableBacks(defendTeam, state, defSide).length;
@@ -150,7 +150,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
     // is a random screening forward. Modified by attackingStyle (wide_wide =
     // more screens, keep_it_tight = fewer). If it fires, the play stops here
     // and the defending side gets the penalty.
-    const obstructionPct = OBSTRUCTION_BASE_PCT + TACTIC_MODIFIERS.obstructionStyleMod[style];
+    const obstructionPct = OBSTRUCTION_BASE_PCT + effStyleScalar(state, attackTeam, TACTIC_MODIFIERS.obstructionStyleMod);
     if (rng(1, 100) <= obstructionPct) {
       const offender = attackFwds.length > 0
         ? attackFwds[rng(0, attackFwds.length - 1)]
@@ -240,7 +240,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   
   // Attacking breakdown evasion synergy: the bonus/penalty for having extra
   // men out wide ONLY applies if the play actually goes wide.
-  const breakdownWideEvasion = goWide ? TACTIC_MODIFIERS.breakdownAttack[attackTeam.tactics.attackingBreakdown] : 0;
+  const breakdownWideEvasion = goWide ? TACTIC_MODIFIERS.breakdownAttack[effAttackingBreakdown(state, attackTeam)] : 0;
   
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine] + pathEvasionMod;
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine] + pathCollisionMod;
@@ -258,7 +258,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   const soFrac = so && so.decayMinutes > 0 ? Math.max(0, 1 - (gameMinute - so.startMinute) / so.decayMinutes) : 0;
   const singleOutBonus = so && so.side === attackSide && so.playerId === ballCarrier.id ? so.bonus * soFrac : 0;
   const baseAttackMod = attackMod + breakdownWideEvasion + ha.attack + tlBonus.evasion + ttAttackBonus + singleOutBonus;
-  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend + ttDefendBonus;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[effDefendingBreakdown(state, defendTeam)] + ha.defend + ttDefendBonus;
   let res = resolveOpenPlay(ballCarrier, defender, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
   const direction = attackDir(state);
 
@@ -307,7 +307,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   // shorter. Applied post-resolve so the resolver stays tactic-pure.
   if (res.outcome === 'line_break') {
     res.gainMetres += TACTIC_MODIFIERS.defensiveLineBreakBonus[defensiveLine];
-    res.gainMetres += TACTIC_MODIFIERS.backfieldLineBreakGainBonus[defendTeam.tactics.backfieldDefence];
+    res.gainMetres += TACTIC_MODIFIERS.backfieldLineBreakGainBonus[effBackfieldDefence(state, defendTeam)];
   }
 
   // Try check hoisted above CARRY_RESOLVED so the cover-tackler pick can
@@ -330,7 +330,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   // keeps its tryLandingY grounding below (no per-pass hops on a score).
   let lateralStep: NarrationStep | null = null;
   if (!tryScored) {
-    lateralStep = emitSweepHops(events, state, attackTeam.tactics.attackingStyle, passCount, false, attackTeam.name, !silent);
+    lateralStep = emitSweepHops(events, state, effStyleScalar(state, attackTeam, SWEEP_STYLE_MULT), passCount, false, attackTeam.name, !silent);
   }
 
   events.push({
@@ -353,7 +353,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
     const tryKey: 'line_break_try' | 'dominant_carry_try' =
       res.outcome === 'line_break' ? 'line_break_try' : 'dominant_carry_try';
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: tryKey, primary: ballCarrier, secondary: defender });
-    const y = tryLandingY(state, attackTeam.tactics.attackingStyle);
+    const y = tryLandingY(state, effStyleScalar(state, attackTeam, TRY_LANDING_JITTER));
     events.push({ type: 'BALL_REPOSITIONED', y });
     outcomeSteps.push({ kind: 'announcement', key: `try_location_${tryLocationBand(y)}` });
   } else if (res.outcome === 'line_break') {
@@ -367,7 +367,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
         kind: 'tactic_note',
         cause: 'line_break_backfield_thin',
         chancePct: COMMENTARY_CHANCES.lineBreakBackfieldThin,
-        params: { defendTeamName: defendTeam.name, backfieldDefence: defendTeam.tactics.backfieldDefence },
+        params: { defendTeamName: defendTeam.name, backfieldDefence: effBackfieldDefence(state, defendTeam) },
       });
     }
     if (defensiveLine === 'blitz') {
@@ -411,7 +411,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   // High-tackle check: applies on top of the carry result so the carrier still
   // earns the metres (advantage law). Skipped on line breaks — no completed
   // tackle to be high.
-  if (res.outcome !== 'line_break' && tackleInfringement(defender, TACTIC_MODIFIERS.disciplineHighTackleMod[defendTeam.tactics.discipline]) === 'high_tackle') {
+  if (res.outcome !== 'line_break' && tackleInfringement(defender, effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplineHighTackleMod)) === 'high_tackle') {
     events.push({ type: 'PENALTY_AWARDED', offence: 'high_tackle', offender: defender, offendingSide: defSide });
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'high_tackle_penalty', primary: defender, secondary: ballCarrier });
     nextPhase = MatchPhase.Penalty;
@@ -464,12 +464,12 @@ function resolvePickAndGo(
   ];
 
   const defender = pickPrimaryDefender(defendTeam, state, defSide, carrier);
-  const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[defendTeam.tactics.backfieldDefence];
+  const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[effBackfieldDefence(state, defendTeam)];
   const missingBacks = FULL_BACKLINE - availableBacks(defendTeam, state, defSide).length;
   const shortHandedMod = missingBacks * SHORT_HANDED.missingBackDefendPenalty;
 
   const ha = homeEdge(state, HOME_ADVANTAGE.carryMod);
-  const defensiveLine = defendTeam.tactics.defensiveLine;
+  const defensiveLine = effDefensiveLine(state, defendTeam);
   const dlEvasion   = TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];
   const dlCollision = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine];
   const tlBonus = tryLineDefenceBonus(state);
@@ -483,7 +483,7 @@ function resolvePickAndGo(
   const pagSoFrac = pagSo && pagSo.decayMinutes > 0 ? Math.max(0, 1 - (pagGameMinute - pagSo.startMinute) / pagSo.decayMinutes) : 0;
   const pagSingleOutBonus = pagSo && pagSo.side === attackSide && pagSo.playerId === carrier.id ? pagSo.bonus * pagSoFrac : 0;
   const baseAttackMod = attackMod + ha.attack + tlBonus.evasion + pagTtAttack.attack * pagTtAttackFrac + pagSingleOutBonus;
-  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend + pagTtDef.defend * pagTtDefFrac;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[effDefendingBreakdown(state, defendTeam)] + ha.defend + pagTtDef.defend * pagTtDefFrac;
   const res = resolveOpenPlay(carrier, defender, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
 
   // Downgrade line_break → dominant_carry; pick-and-go can't break the line.
@@ -508,7 +508,7 @@ function resolvePickAndGo(
   // then rides the carrier in on the drive, instead of the ball arriving at a waiting
   // carrier. (x and y are independent, so the final ball position is unchanged.)
   if (!tryScored) {
-    const sweep = sweepStep(state, 'keep_it_tight');
+    const sweep = sweepStep(state, SWEEP_STYLE_MULT.keep_it_tight);
     events.push({ type: 'BALL_REPOSITIONED', y: sweep.y, lateralDir: sweep.lateralDir });
   }
 
@@ -530,7 +530,7 @@ function resolvePickAndGo(
   if (tryScored) {
     nextPhase = MatchPhase.TryScored;
     steps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'dominant_carry_try', primary: carrier, secondary: defender });
-    const y = tryLandingY(state, 'keep_it_tight');
+    const y = tryLandingY(state, TRY_LANDING_JITTER.keep_it_tight);
     events.push({ type: 'BALL_REPOSITIONED', y });
     steps.push({ kind: 'announcement', key: `try_location_${tryLocationBand(y)}` });
   } else {
@@ -541,7 +541,7 @@ function resolvePickAndGo(
     :                                 'pick_and_go_play_on';
     steps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: outcomeKey, primary: carrier, secondary: defender });
 
-    if (tackleInfringement(defender, TACTIC_MODIFIERS.disciplineHighTackleMod[defendTeam.tactics.discipline]) === 'high_tackle') {
+    if (tackleInfringement(defender, effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplineHighTackleMod)) === 'high_tackle') {
       events.push({ type: 'PENALTY_AWARDED', offence: 'high_tackle', offender: defender, offendingSide: defSide });
       steps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'high_tackle_penalty', primary: defender, secondary: carrier });
       nextPhase = MatchPhase.Penalty;

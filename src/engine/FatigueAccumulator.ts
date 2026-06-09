@@ -34,8 +34,8 @@ export class FatigueAccumulator {
   tick(timeAdvance: number): void {
     this.accumulator += timeAdvance;
     while (this.accumulator >= FATIGUE_SCALING.computeIntervalMinutes) {
-      const homeFatigue = computeFatigue(this.state.homeTeam, this.accumulator, offFieldIds(this.state, 'home'));
-      const awayFatigue = computeFatigue(this.state.awayTeam, this.accumulator, offFieldIds(this.state, 'away'));
+      const homeFatigue = computeFatigue(this.state, this.state.homeTeam, this.accumulator, offFieldIds(this.state, 'home'));
+      const awayFatigue = computeFatigue(this.state, this.state.awayTeam, this.accumulator, offFieldIds(this.state, 'away'));
       this.accumulator -= FATIGUE_SCALING.computeIntervalMinutes;
       for (const u of [...homeFatigue.updates, ...awayFatigue.updates]) {
         applyMatchEvent(this.state, {

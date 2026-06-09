@@ -10,6 +10,7 @@ import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { SLOT, isFrontRowSlot } from '../Slot';
 import { SCRUM_VALUES, TACTIC_MODIFIERS } from '../balance';
+import { effIntensityScalar, effDisciplineScalar } from '../tacticsResolve';
 import { FIRST_PHASE_CHOREOGRAPHIES } from '../balance/firstPhaseChoreography';
 
 // Random front-row offender for a scrum penalty — props and hooker can all
@@ -39,10 +40,10 @@ export function handleScrum({ state, attackTeam, defendTeam }: PhaseContext): Ph
   // won AND more conceded on own ball; cautious = stable, rarely pinged).
   const res = resolveScrum(
     attackForwards, defendForwards,
-    TACTIC_MODIFIERS.intensityScrumMod[attackTeam.tactics.intensity],
-    TACTIC_MODIFIERS.intensityScrumMod[defendTeam.tactics.intensity],
-    TACTIC_MODIFIERS.disciplineScrumVarianceMult[attackTeam.tactics.discipline],
-    TACTIC_MODIFIERS.disciplineScrumVarianceMult[defendTeam.tactics.discipline],
+    effIntensityScalar(attackTeam, TACTIC_MODIFIERS.intensityScrumMod),
+    effIntensityScalar(defendTeam, TACTIC_MODIFIERS.intensityScrumMod),
+    effDisciplineScalar(attackTeam, TACTIC_MODIFIERS.disciplineScrumVarianceMult),
+    effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplineScrumVarianceMult),
   );
 
   // Wheel cap: after SCRUM_VALUES.wheelCap consecutive wheels in this scrum

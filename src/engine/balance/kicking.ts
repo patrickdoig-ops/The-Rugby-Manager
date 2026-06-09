@@ -75,6 +75,14 @@ export const FIFTY_22_VALUES = {
   successPctMax: 85,
 } as const;
 
+// Advanced-mode 50:22 accuracy bonus. In advanced tactics the flat gameplan
+// bonus is replaced by one derived from the zone's 50:22 kick-type weight —
+// committing more of your kick mix to 50:22 in a zone means you execute it
+// better there. Linear in the weight (0–100), clamped. weight 25 ≈ +3pp,
+// weight ≥67 ≈ +8pp. Tunable; preset matches keep the flat
+// gamePlanFiftyTwentyTwoBonus table instead.
+export const FIFTY_22_COMMITMENT = { weightFactor: 0.12, maxBonus: 8 } as const;
+
 export const GOAL_KICK_VALUES = {
   angleWeight:      0.3,
   composureWeight:  0.2,

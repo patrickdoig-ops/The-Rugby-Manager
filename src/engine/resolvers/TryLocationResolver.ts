@@ -7,19 +7,17 @@
 // rng() draw, preserving the stream offset across this change.
 
 import type { MatchState } from '../../types/match';
-import type { AttackingStyle } from '../../types/team';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
-import { TRY_LANDING_JITTER, TRY_LOCATION_BANDS } from '../balance';
+import { TRY_LOCATION_BANDS } from '../balance';
 
 export type TryLocationBand = 'central' | 'close' | 'wide' | 'corner';
 
-export function tryLandingY(state: MatchState, style: AttackingStyle): number {
-  const j = TRY_LANDING_JITTER[style];
+export function tryLandingY(state: MatchState, jitter: number): number {
   // The scorer grounds the ball exactly where their forward carry took them,
   // with no artificial curve in toward the posts. The jitter roll is still
   // consumed so the outcome RNG stream offset is unchanged.
-  rng(-j, j);
+  rng(-jitter, jitter);
   return clamp(state.ball.y, 0, 100);
 }
 

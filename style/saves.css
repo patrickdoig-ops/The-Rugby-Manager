@@ -158,8 +158,8 @@
 }
 .saves-act--primary:active { background: var(--rm-cta-active); }
 .saves-act--danger {
-  color: var(--rm-danger, oklch(0.62 0.2 25));
-  border-color: color-mix(in oklch, var(--rm-danger, oklch(0.62 0.2 25)) 40%, transparent);
+  color: var(--rm-danger);
+  border-color: color-mix(in oklch, var(--rm-danger) 40%, transparent);
 }
 
 /* ─── Shared confirm modal (.rm-confirm-*) ─── */
@@ -253,7 +253,7 @@
 }
 .rm-confirm-proceed:active { background: var(--rm-cta-active); transform: scale(0.98); }
 .rm-confirm-danger {
-  background: var(--rm-danger, oklch(0.55 0.2 25));
+  background: var(--rm-danger);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 

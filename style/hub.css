@@ -146,7 +146,7 @@
 #hub-next-match {
   flex-shrink: 0;
   position: relative;
-  margin: 0 16px 6px;
+  margin: 20px 16px 6px;
   padding: 8px 14px;
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--rm-chalk) 14%, transparent);
@@ -178,11 +178,28 @@
   letter-spacing: 0.16em;
   color: var(--rm-pitch);
   text-transform: uppercase;
-  text-align: center;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
+  gap: 8px;
+}
+
+.hub-nm-title {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-18);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--rm-chalk);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.hub-nm-sub {
+  flex: 1;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: var(--rm-text-muted);
 }
 
 .hub-nm-countdown {
@@ -331,13 +348,13 @@
   background: var(--tile-accent);
   border: 1px solid color-mix(in oklch, var(--tile-accent) 65%, transparent);
   border-radius: 13px;
-  padding: 9px 10px;
-  min-height: 62px;
+  padding: 7px 8px;
+  min-height: 52px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   color: var(--team-color-tile-text, var(--rm-chalk));
@@ -385,15 +402,15 @@
 }
 
 .hub-tile svg {
-  width: 20px;
-  height: 20px;
+  width: 17px;
+  height: 17px;
   pointer-events: none;
   flex-shrink: 0;
 }
 
 .hub-tile-label {
   font-family: var(--rm-font-display);
-  font-size: var(--rm-fs-18);
+  font-size: var(--rm-fs-15);
   font-weight: 400;
   letter-spacing: 0.04em;
   text-transform: uppercase;

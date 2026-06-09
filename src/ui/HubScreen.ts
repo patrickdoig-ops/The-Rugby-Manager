@@ -335,7 +335,8 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
     return `
       <div id="hub-next-match">
         <div class="hub-nm-label">
-          <span>NEXT MATCH${ROUND_LABELS[fixture.round] ? ` · ${ROUND_LABELS[fixture.round].toUpperCase()}` : ''} · ${formatDateShort(state.calendar.date)}</span>
+          <span class="hub-nm-title">Next Match</span>
+          <span class="hub-nm-sub">${ROUND_LABELS[fixture.round] ?? `Round ${fixture.round}`} · ${formatDateShort(state.calendar.date)}</span>
           ${kickoffChip}
         </div>
         <div class="hub-nm-fixture">

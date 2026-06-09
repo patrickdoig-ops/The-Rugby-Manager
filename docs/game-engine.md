@@ -575,6 +575,74 @@ Effect constants in `PRESS_ANSWER_EFFECTS` (`balance/press.ts`).
 
 The League Cup runs headless during the two international breaks (the Assistant Manager picks the squad). Two pools of 5, full home-&-away double round-robin split into leg 1 (Autumn block) / leg 2 (Six Nations block), top two per pool → semis → final. Self-contained: drains condition + a featured-player development nudge, but no budget/cap/reputation effect and cup stats stay out of league leaderboards. State lives on `state.league.premCup` (`PremCupState`); the break is orchestrated by `InternationalBreakCoordinator` (`beginInternationalBreak` + `runInternationalBreakBlock`, reached via `GameCoordinator` delegations); scheduling + future-season pool redraw in `src/game/cupScheduler.ts`; tuning in `src/engine/balance/premCup.ts`. **Full breakdown in `docs/league-cup.md`.**
 
+## European Competitions (v2.44b)
+
+Two pan-European club competitions run alongside the Premiership season: the **European Cup** (Champions Cup equivalent, 24 teams) and the **European Shield** (Challenge Cup equivalent, 18 teams). Both are pool-stage → knockout events, played in December and April/May of the following year. The player's team participates in one of them (determined by their Premiership standing from the prior season; in Year 1 all 10 Prem clubs qualify for one of the two competitions via fixed pool seeding).
+
+### State and types
+
+- `GameState.league.europeanCup?: EuropeanCompState | null` — live Cup state (null until seeded).
+- `GameState.league.europeanShield?: EuropeanCompState | null` — live Shield state.
+- `EuropeanCompState { seasonLabel, competition, pools: EuropeanPool[], fixtures: EuropeanFixture[], knockout: EuropeanKnockout | null }` — the single source of truth for a competition's pool standings, fixture list and knockout bracket.
+- `EuropeanPool { id, teamIds, standings: TeamStanding[] }` — 6 teams, 4 rounds of fixtures each. Pool standings use the same `TeamStanding` shape as the league table (leaguePoints, bonus points etc.).
+- `EuropeanFixture { poolId, round, homeId, awayId, date?, result? }` — each fixture stores its own result once played.
+- `EuropeanKnockout { r16, quarterfinals, semifinals, final, championTeamId }` — full bracket. R16 has 8 matches, QF 4, SF 2, Final 1. Seeded from pool positions (top 2 per pool).
+
+### Scheduling
+
+Fixtures are baked for 2025-26 in `src/game/europeanScheduler.ts`:
+- **Cup**: 4 pools × 6 teams, 48 pool fixtures (rounds R1–R4 in December, one home+away per opponent), R16 → QF → SF → Final in April/May.
+- **Shield**: 3 pools × 6 teams, 36 pool fixtures (same structure).
+- Pseudo-round numbers keep fixture seeds distinct from league (200-213 for Cup, 220-233 for Shield).
+- `europeanKnockoutDates(seasonStartYear)` returns approximate R16/QF/SF/Final dates (~04-Apr, 11-Apr, 26-Apr, 23-May of the following year).
+
+### Seeding and headless pool simulation
+
+`EuropeanCoordinator.seedEuropeanComps(seasonLabel)` (called from `newSeason()` and `rollSeason()`) emits `EUROPEAN_COMP_SEEDED` for both competitions, initialising `EuropeanCompState` with pools, zeroStandings, and all fixtures.
+
+`runPoolStage(competition)` runs headless for all fixtures **except** the player's own fixtures (identified by `homeId === playerTeamId || awayId === playerTeamId`). Each AI fixture calls `simulateEuropeanFixture(fixture, rootSeed, teamsById)`, which derives a `MatchCoordinator` seed from `deriveFixtureSeed`, runs a silent match, and emits `EUROPEAN_FIXTURE_RECORDED { competition, poolId, round, homeId, awayId, homeScore, awayScore, homeTries, awayTries }`. The reducer updates pool standings via the standard bonus-point logic (4pts win / 2pts draw / 0pts loss + try bonus + losing bonus).
+
+### Calendar gate and playability
+
+After each `WEEK_ADVANCED` event `GameCoordinator.getCurrentEuropeanFixture(): EuropeanFixtureRef | null` scans both competitions for the player's first unplayed fixture whose `date <= calendar.date`. The Hub CTA surfaces this as the priority action (above the league fixture, below pre-season cup and playoffs).
+
+`EuropeanFixtureRef` is a discriminated union:
+```typescript
+type EuropeanFixtureRef =
+  | { kind: 'pool'; competition: 'europeanCup' | 'europeanShield'; fixture: EuropeanFixture }
+  | { kind: 'knockout'; competition: 'europeanCup' | 'europeanShield'; stage: 'r16' | 'quarterfinal' | 'semifinal' | 'final'; match: EuropeanKnockoutMatch };
+```
+
+When the player taps "Play European Cup match" the normal PreMatch → Match → MatchResult chain runs. After the result:
+- `recordPlayerEuropeanPoolResult(competition, poolId, round, homeId, awayId, homeScore, awayScore, snapshot)` emits `EUROPEAN_FIXTURE_RECORDED`, then accumulates player stats via `collectSeasonEvents(snap, competition)` — stats route to `Player.europeanCupStats` / `Player.europeanShieldStats` (optional per-competition `PlayerSeasonStats` fields added in v2.44b, no SAVE_VERSION bump — additive optional). Condition and injury events are also emitted. If all four pool rounds for the player's pool are now complete, `runKnockoutStage` is called for the full bracket (skipping the player's matches).
+- `recordPlayerEuropeanKnockoutResult` is the knockout equivalent.
+
+Both methods emit `game:weekAdvanced` (not `game:fixtureRecorded`) to avoid polluting the achievements engine with non-league results; this triggers UI re-renders on all subscribers.
+
+### Knockout simulation
+
+`runKnockoutStage(competition)` is called **only** when `allPoolFixturesDone(competition)` returns true (i.e. all pool fixtures including the player's are done). `runKnockoutRound(competition, stage, skipTeamId?)` simulates all matches in a round, skipping the player's match if present. After seeding from pool standings, R16 → QF → SF → Final simulate in sequence, each advancing the bracket via `EUROPEAN_KNOCKOUT_RECORDED`.
+
+### Player stats routing
+
+`collectSeasonEvents(snap, competition?)` (in `src/game/seasonStatsCollector.ts`) accepts an optional `competition` parameter. When set:
+- `PLAYER_SEASON_STATS_ACCUMULATED` events carry `competition`; `applySeasonEvent` routes the delta to `player.europeanCupStats` or `player.europeanShieldStats` (lazy-initialised with `zeroSeasonStats()`).
+- `TEAM_SEASON_STATS_ACCUMULATED` events are **skipped** — European team stats are not tracked in league tables.
+- `p.recentRatings` is updated for all competitions (European matches affect player form).
+
+### UI screens
+
+`EuropeanCupScreen` (`src/ui/EuropeanCupScreen.ts`) and `EuropeanShieldScreen` (`src/ui/EuropeanShieldScreen.ts`) render pool standings tables, per-pool fixture lists, and the knockout bracket. Both reuse the shared helpers in `src/ui/components/europeanViews.ts` (`euroPoolTableHtml`, `euroFixtureListHtml`, `euroKnockoutHtml`). The screens re-render on `game:weekAdvanced`. They are reached from the Competitions menu.
+
+### Mutation seam additions
+
+| Event | Key fields | Effect |
+|---|---|---|
+| `EUROPEAN_COMP_SEEDED` | `competition, seasonLabel, pools, fixtures` | Initialises `state.league.europeanCup` or `europeanShield` |
+| `EUROPEAN_FIXTURE_RECORDED` | `competition, poolId, round, homeId, awayId, homeScore, awayScore, homeTries, awayTries` | Writes `result` on the matching fixture; updates pool standings |
+| `EUROPEAN_KNOCKOUT_SEEDED` | `competition, bracket` | Sets `state.league.{competition}.knockout` |
+| `EUROPEAN_KNOCKOUT_RECORDED` | `competition, stage, matchIndex, homeScore, awayScore, homeTries, awayTries` | Writes result on the bracket match; advances the bracket |
+
 ## Playoffs
 
 A three-match knockout follows the 18-round League regular season: two semi-finals (1 v 4 and 2 v 3) the week after R18, and a Final at Twickenham one week later. Top 4 by `sortStandings` (league points → diff → for, identical to the league-table sort).

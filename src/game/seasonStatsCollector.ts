@@ -121,7 +121,7 @@ function deriveTeamSummary(state: MatchState, side: 'home' | 'away'): TeamSeason
   };
 }
 
-export function collectSeasonEvents(snap: MatchSnapshot): SeasonEvent[] {
+export function collectSeasonEvents(snap: MatchSnapshot, competition?: 'europeanCup' | 'europeanShield'): SeasonEvent[] {
   const events: SeasonEvent[] = snap.playerSnapshots.map(s => {
     const m = s.matchStats;
     return {
@@ -159,13 +159,17 @@ export function collectSeasonEvents(snap: MatchSnapshot): SeasonEvent[] {
         redCards:               m.redCards,
         ratingSum:              s.rating,
       },
+      ...(competition ? { competition } : {}),
     };
   });
 
-  events.push(
-    { type: 'TEAM_SEASON_STATS_ACCUMULATED', teamId: snap.homeTeamId, statsDelta: { ...snap.homeSummary } },
-    { type: 'TEAM_SEASON_STATS_ACCUMULATED', teamId: snap.awayTeamId, statsDelta: { ...snap.awaySummary } },
-  );
+  // Team season stats are league-only — skip for European matches.
+  if (!competition) {
+    events.push(
+      { type: 'TEAM_SEASON_STATS_ACCUMULATED', teamId: snap.homeTeamId, statsDelta: { ...snap.homeSummary } },
+      { type: 'TEAM_SEASON_STATS_ACCUMULATED', teamId: snap.awayTeamId, statsDelta: { ...snap.awaySummary } },
+    );
+  }
 
   return events;
 }

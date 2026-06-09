@@ -254,3 +254,11 @@ export function buildEuropeanCompSeed(
       .map(f => ({ poolId: f.poolId, round: f.round, homeId: f.homeId, awayId: f.awayId, date: f.date })),
   };
 }
+
+// Approximate knockout-round dates for a given season start year.
+// Rounds fall in April–May of the following calendar year, between
+// Premiership rounds 14–18.
+export function europeanKnockoutDates(seasonStartYear: number): { r16: string; qf: string; sf: string; final: string } {
+  const y = seasonStartYear + 1;
+  return { r16: `${y}-04-04`, qf: `${y}-04-11`, sf: `${y}-04-26`, final: `${y}-05-23` };
+}

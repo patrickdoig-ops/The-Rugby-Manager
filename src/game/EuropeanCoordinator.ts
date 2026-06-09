@@ -9,12 +9,15 @@ import { applySeasonEvent } from './applySeasonEvent';
 import { simulateFixture } from './simulateFixture';
 import { buildEuropeanOpponent } from './buildEuropeanOpponent';
 import { sortStandings } from './leagueTable';
+import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot } from './seasonStatsCollector';
+import { rollNewInjuryEvents } from './injuryEffects';
 import {
   EC_POOLS_2025_26, ES_POOLS_2025_26,
   EC_FIXTURES_2025_26, ES_FIXTURES_2025_26,
   EURO_CUP_SEED_ROUNDS, EURO_SHIELD_SEED_ROUNDS,
-  buildEuropeanCompSeed,
+  buildEuropeanCompSeed, europeanKnockoutDates,
 } from './europeanScheduler';
+import { parseSeasonStartYear } from './age';
 
 export class EuropeanCoordinator {
   constructor(private state: GameState, private teamsById: Map<string, RawTeamInput>) {}
@@ -31,36 +34,125 @@ export class EuropeanCoordinator {
     });
   }
 
-  // Run all unplayed pool fixtures headlessly for one competition.
+  // True once every pool fixture in the competition has a result.
+  allPoolFixturesDone(competition: 'europeanCup' | 'europeanShield'): boolean {
+    const comp = this.state.league[competition];
+    if (!comp) return true;
+    return comp.fixtures.every(f => !!f.result);
+  }
+
+  // Run all unplayed pool fixtures headlessly, skipping the player's team.
   async runPoolStage(competition: 'europeanCup' | 'europeanShield'): Promise<void> {
     const comp = this.state.league[competition];
     if (!comp) return;
+    const playerTeamId = this.state.player.teamId;
     for (const fx of comp.fixtures.filter(f => !f.result)) {
+      if (fx.homeId === playerTeamId || fx.awayId === playerTeamId) continue;
       await this.simulatePoolFixture(competition, fx);
     }
   }
 
-  // Seed and run the knockout stage for one competition.
-  // Must be called after runPoolStage().
+  // Seed and run the knockout stage headlessly, skipping the player's team.
+  // Must be called after all pool fixtures (including the player's) are done.
   async runKnockoutStage(competition: 'europeanCup' | 'europeanShield'): Promise<void> {
     const comp = this.state.league[competition];
     if (!comp || comp.knockout !== null) return;
-    const shieldDropdowns = competition === 'europeanShield'
-      ? this.computeEcDropdowns()
-      : [];
+    const shieldDropdowns = competition === 'europeanShield' ? this.computeEcDropdowns() : [];
     const r16 = this.seedR16(competition, shieldDropdowns);
+    const startYear = parseSeasonStartYear(this.state.calendar.seasonLabel);
+    const koDates = europeanKnockoutDates(startYear);
     applySeasonEvent(this.state, {
       type: 'EUROPEAN_KNOCKOUT_SEEDED',
       competition,
-      r16,
-      quarterfinals: Array.from({ length: 4 }, (_, i) => ({ matchIndex: i, homeId: null, awayId: null })),
-      semifinals: [{ matchIndex: 0, homeId: null, awayId: null }, { matchIndex: 1, homeId: null, awayId: null }],
-      final: { matchIndex: 0, homeId: null, awayId: null },
+      r16: r16.map(m => ({ ...m, date: koDates.r16 })),
+      quarterfinals: Array.from({ length: 4 }, (_, i) => ({ matchIndex: i, homeId: null, awayId: null, date: koDates.qf })),
+      semifinals: [
+        { matchIndex: 0, homeId: null, awayId: null, date: koDates.sf },
+        { matchIndex: 1, homeId: null, awayId: null, date: koDates.sf },
+      ],
+      final: { matchIndex: 0, homeId: null, awayId: null, date: koDates.final },
     });
-    await this.runKnockoutRound(competition, 'r16');
-    await this.runKnockoutRound(competition, 'quarterfinal');
-    await this.runKnockoutRound(competition, 'semifinal');
-    await this.runKnockoutRound(competition, 'final');
+    const playerTeamId = this.state.player.teamId;
+    await this.runKnockoutRound(competition, 'r16', playerTeamId);
+    await this.runKnockoutRound(competition, 'quarterfinal', playerTeamId);
+    await this.runKnockoutRound(competition, 'semifinal', playerTeamId);
+    await this.runKnockoutRound(competition, 'final', playerTeamId);
+  }
+
+  // Record the result of a live European pool match the player just played.
+  // Applies player/condition/injury stats, then triggers knockout seeding
+  // once all pool fixtures are done.
+  async recordPlayerEuropeanPoolResult(
+    competition: 'europeanCup' | 'europeanShield',
+    poolId: number,
+    round: number,
+    homeId: string,
+    awayId: string,
+    homeScore: number,
+    awayScore: number,
+    snapshot: MatchSnapshot,
+  ): Promise<void> {
+    const comp = this.state.league[competition];
+    if (!comp) return;
+    const fx = comp.fixtures.find(f =>
+      f.poolId === poolId && f.round === round && f.homeId === homeId && f.awayId === awayId,
+    );
+    if (!fx || fx.result) return; // idempotent
+    const playerTeamId = this.state.player.teamId;
+    const playerSide: 'home' | 'away' | null = homeId === playerTeamId ? 'home' : awayId === playerTeamId ? 'away' : null;
+    applySeasonEvent(this.state, {
+      type: 'EUROPEAN_FIXTURE_RECORDED',
+      competition, poolId, round, homeId, awayId,
+      homeScore, awayScore,
+      homeTries: snapshot.homeSummary.tries,
+      awayTries: snapshot.awaySummary.tries,
+      playerSide,
+    });
+    for (const ev of collectSeasonEvents(snapshot, competition)) applySeasonEvent(this.state, ev);
+    for (const ev of collectConditionEvents(snapshot)) applySeasonEvent(this.state, ev);
+    for (const ev of rollNewInjuryEvents(this.state, snapshot.playerSnapshots)) applySeasonEvent(this.state, ev);
+    // Seed and run the knockout once all pool fixtures (including the player's) are done.
+    if (this.allPoolFixturesDone(competition) && !comp.knockout) {
+      await this.runKnockoutStage(competition);
+    }
+  }
+
+  // Record the result of a live European knockout match the player just played.
+  // Applies stats, then sims remaining matches in the current stage and all
+  // subsequent stages, skipping the player's team.
+  async recordPlayerEuropeanKnockoutResult(
+    competition: 'europeanCup' | 'europeanShield',
+    stage: 'r16' | 'quarterfinal' | 'semifinal' | 'final',
+    matchIndex: number,
+    homeScore: number,
+    awayScore: number,
+    snapshot: MatchSnapshot,
+  ): Promise<void> {
+    const comp = this.state.league[competition];
+    const ko = comp?.knockout;
+    if (!ko) return;
+    const matches = this.getKoMatches(ko, stage);
+    const match = matches[matchIndex];
+    if (!match || match.result) return; // idempotent
+    const playerTeamId = this.state.player.teamId;
+    const playerSide: 'home' | 'away' | null =
+      match.homeId === playerTeamId ? 'home' : match.awayId === playerTeamId ? 'away' : null;
+    applySeasonEvent(this.state, {
+      type: 'EUROPEAN_KNOCKOUT_RECORDED',
+      competition, stage, matchIndex,
+      homeScore, awayScore,
+      homeTries: snapshot.homeSummary.tries,
+      awayTries: snapshot.awaySummary.tries,
+      playerSide,
+    });
+    for (const ev of collectSeasonEvents(snapshot, competition)) applySeasonEvent(this.state, ev);
+    for (const ev of collectConditionEvents(snapshot)) applySeasonEvent(this.state, ev);
+    for (const ev of rollNewInjuryEvents(this.state, snapshot.playerSnapshots)) applySeasonEvent(this.state, ev);
+    // Sim remaining matches in current and subsequent stages, skipping player.
+    const allStages: Array<'r16' | 'quarterfinal' | 'semifinal' | 'final'> = ['r16', 'quarterfinal', 'semifinal', 'final'];
+    for (const s of allStages.slice(allStages.indexOf(stage))) {
+      await this.runKnockoutRound(competition, s, playerTeamId);
+    }
   }
 
   private async simulatePoolFixture(competition: 'europeanCup' | 'europeanShield', fx: EuropeanFixture): Promise<void> {
@@ -104,15 +196,6 @@ export class EuropeanCoordinator {
     });
 
     if (competition === 'europeanCup') {
-      // 4 pools × 4 = 16 teams. Cross-pool seeding: pool winners avoid each other.
-      // Match 0: Pool1[0] h vs Pool2[3] a
-      // Match 1: Pool2[0] h vs Pool1[3] a
-      // Match 2: Pool3[0] h vs Pool4[3] a
-      // Match 3: Pool4[0] h vs Pool3[3] a
-      // Match 4: Pool1[1] h vs Pool3[2] a
-      // Match 5: Pool2[1] h vs Pool4[2] a
-      // Match 6: Pool3[1] h vs Pool1[2] a
-      // Match 7: Pool4[1] h vs Pool2[2] a
       return [
         { matchIndex: 0, homeId: topTeams[0]?.[0] ?? null, awayId: topTeams[1]?.[3] ?? null },
         { matchIndex: 1, homeId: topTeams[1]?.[0] ?? null, awayId: topTeams[0]?.[3] ?? null },
@@ -124,7 +207,6 @@ export class EuropeanCoordinator {
         { matchIndex: 7, homeId: topTeams[3]?.[1] ?? null, awayId: topTeams[1]?.[2] ?? null },
       ];
     } else {
-      // Shield: 3 pools' top 4 = 12 teams + 4 EC dropdowns = 16.
       const dropouts = [...extraTeams];
       return [
         { matchIndex: 0, homeId: topTeams[0]?.[0] ?? null, awayId: dropouts[0] ?? null },
@@ -139,9 +221,17 @@ export class EuropeanCoordinator {
     }
   }
 
+  private getKoMatches(ko: { r16: EuropeanKnockoutMatch[]; quarterfinals: EuropeanKnockoutMatch[]; semifinals: [EuropeanKnockoutMatch, EuropeanKnockoutMatch]; final: EuropeanKnockoutMatch }, stage: 'r16' | 'quarterfinal' | 'semifinal' | 'final'): EuropeanKnockoutMatch[] {
+    if (stage === 'r16') return ko.r16;
+    if (stage === 'quarterfinal') return ko.quarterfinals;
+    if (stage === 'semifinal') return ko.semifinals as EuropeanKnockoutMatch[];
+    return [ko.final];
+  }
+
   private async runKnockoutRound(
     competition: 'europeanCup' | 'europeanShield',
     stage: 'r16' | 'quarterfinal' | 'semifinal' | 'final',
+    skipTeamId?: string,
   ): Promise<void> {
     const comp = this.state.league[competition];
     const ko = comp?.knockout;
@@ -151,20 +241,16 @@ export class EuropeanCoordinator {
       : stage === 'quarterfinal' ? seedRounds.qf
       : stage === 'semifinal' ? seedRounds.sf
       : seedRounds.final;
-    const matches: EuropeanKnockoutMatch[] = stage === 'r16' ? ko.r16
-      : stage === 'quarterfinal' ? ko.quarterfinals
-      : stage === 'semifinal' ? (ko.semifinals as EuropeanKnockoutMatch[])
-      : [ko.final];
-    for (const match of matches) {
+    for (const match of this.getKoMatches(ko, stage)) {
       if (match.result || !match.homeId || !match.awayId) continue;
+      if (skipTeamId && (match.homeId === skipTeamId || match.awayId === skipTeamId)) continue;
       const homeTeam = this.teamsById.get(match.homeId) ?? buildEuropeanOpponent(match.homeId);
       const awayTeam = this.teamsById.get(match.awayId) ?? buildEuropeanOpponent(match.awayId);
       if (!homeTeam || !awayTeam) continue;
       const sim = await simulateFixture(homeTeam, awayTeam, this.state.seed, seedRound);
       applySeasonEvent(this.state, {
         type: 'EUROPEAN_KNOCKOUT_RECORDED',
-        competition,
-        stage,
+        competition, stage,
         matchIndex: match.matchIndex,
         homeScore: sim.homeScore,
         awayScore: sim.awayScore,

@@ -338,6 +338,10 @@ export interface Player {
   // renewal wage expectations. Absent → resolved from OVR rank at runtime.
   // Persists across SEASON_ROLLED_OVER (contract-level attribute).
   squadStatus?: SquadStatusKey;
+  // European competition stats for the current season. Additive optional —
+  // absent on saves written before the European competitions system.
+  europeanCupStats?: PlayerSeasonStats;
+  europeanShieldStats?: PlayerSeasonStats;
 }
 
 // Identity element for PlayerMatchStats — co-located with the type so adding

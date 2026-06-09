@@ -1,10 +1,13 @@
 // European Shield screen — pool tables, fixtures and knockout bracket.
-// Stub: renders a coming-soon placeholder until Phase 5 is complete.
 
 import type { GameCoordinator } from '../game/GameCoordinator';
+import type { RawTeamInput } from '../types/teamData';
+import { euroScreenHtml } from './components/europeanViews';
+import { eventBus } from '../utils/eventBus';
 
 export interface InitEuropeanShieldScreenOpts {
   getGameEngine: () => GameCoordinator;
+  allTeams: RawTeamInput[];
   onBack: () => void;
 }
 
@@ -12,19 +15,22 @@ export function initEuropeanShieldScreen(opts: InitEuropeanShieldScreenOpts): vo
   const el = document.getElementById('european-shield');
   if (!el) return;
 
-  el.innerHTML = `
-    <div class="app-header">
-      <div class="app-topbar">
-        <button id="es-back" class="app-back" aria-label="Back to competitions">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          <span>Competitions</span>
-        </button>
-        <span class="app-title">European Shield</span>
-        <div class="app-topbar-spacer"></div>
-      </div>
-    </div>
-    <div style="padding:2rem;text-align:center;color:var(--color-chalk-dim)">Coming soon</div>
-  `;
+  const teamsById = new Map(opts.allTeams.map(t => [t.id, t]));
 
-  el.querySelector<HTMLButtonElement>('#es-back')!.addEventListener('click', () => opts.onBack());
+  function render(): void {
+    let comp = null;
+    let playerId = '';
+    try {
+      const state = opts.getGameEngine().getState();
+      comp = state.league.europeanShield ?? null;
+      playerId = state.player.teamId;
+    } catch { /* engine not yet initialised — show placeholder */ }
+    el!.innerHTML = euroScreenHtml(comp, teamsById, playerId, 'European Shield', 'es-back');
+    el!.querySelector<HTMLButtonElement>('#es-back')!.addEventListener('click', () => opts.onBack());
+  }
+
+  render();
+
+  const unsub = eventBus.on('game:weekAdvanced', () => { if (el.offsetParent !== null) render(); });
+  void unsub;
 }

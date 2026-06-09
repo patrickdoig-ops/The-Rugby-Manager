@@ -110,7 +110,14 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
     case 'PLAYER_SEASON_STATS_ACCUMULATED': {
       const p = state.career.roster[event.rosterId];
       if (!p) return;
-      const s = p.seasonStats;
+      let s = p.seasonStats;
+      if (event.competition === 'europeanCup') {
+        if (!p.europeanCupStats) p.europeanCupStats = zeroSeasonStats();
+        s = p.europeanCupStats;
+      } else if (event.competition === 'europeanShield') {
+        if (!p.europeanShieldStats) p.europeanShieldStats = zeroSeasonStats();
+        s = p.europeanShieldStats;
+      }
       const d = event.statsDelta;
       s.appearances            += d.appearances;
       s.starts                 += d.starts;

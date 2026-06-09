@@ -134,7 +134,9 @@ import type { TalkArgs }           from './types/ui';
 import * as teamProfile            from './team/teamProfile';
 import type { TeamJson }           from './team/teamProfile';
 import { GameCoordinator }         from './game/GameCoordinator';
-import type { BreakBeginResult, PreSeasonBlockResult } from './game/GameCoordinator';
+import type { BreakBeginResult, PreSeasonBlockResult, EuropeanFixtureRef } from './game/GameCoordinator';
+import { buildEuropeanOpponent } from './game/buildEuropeanOpponent';
+import { europeanTeams } from './data/european-teams';
 import { extractMatchdaySquad }    from './game/playerSquad';
 import { resolveCaptainRosterId }  from './game/captain';
 import { buildTeamFromRoster, buildAutoSelectedTeamFromRoster } from './game/rosterTeamBuilder';
@@ -167,6 +169,8 @@ const allTeamsRaw = [
   leicesterRaw, newcastleRaw, northamptonRaw, saleRaw, saracensRaw,
 ] as unknown as TeamJson[];
 const allTeams = allTeamsRaw as unknown as RawTeamInput[];
+// European screens need both Premiership and cross-league European teams.
+const allTeamsWithEuropean: RawTeamInput[] = [...allTeams, ...europeanTeams];
 
 // Native (Capacitor) shell only: lock pinch / double-tap zoom and tag <html>
 // so the wrapped app doesn't behave like a zoomable browser page. No-op on the
@@ -333,6 +337,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const begin = eng.beginPreSeasonBlock();
         runPreSeasonCupChain(begin, eng, () => { autosave(eng.toSavePayload()); goHub(); });
       },
+      onPlayEuropean: () => {
+        maybePlayEuropeanFixture(() => { if (gameEngine) autosave(gameEngine.toSavePayload()); goHub(); });
+      },
       onFixtures:      goFixtures,
       onCompetitions:  goCompetitionsMenu,
       onSquad:         goSquad,
@@ -366,10 +373,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     initEuropeanCupScreen({
       getGameEngine,
+      allTeams: allTeamsWithEuropean,
       onBack: () => goCompetitionsMenu('back'),
     });
     initEuropeanShieldScreen({
       getGameEngine,
+      allTeams: allTeamsWithEuropean,
       onBack: () => goCompetitionsMenu('back'),
     });
     initContractsTransfersMenuScreen({
@@ -1513,7 +1522,9 @@ document.addEventListener('DOMContentLoaded', () => {
           : undefined;
         const afterTraining = (): void => {
           if (gameEngine?.isManagerSacked()) { runSackScreen('midseason'); return; }
-          maybeRunMidseasonPoach(() => { if (gameEngine) autosave(gameEngine.toSavePayload()); goHub(); });
+          maybeRunMidseasonPoach(() => {
+            maybePlayEuropeanFixture(() => { if (gameEngine) autosave(gameEngine.toSavePayload()); goHub(); });
+          });
         };
         // International break detection (RNG-free): flags the call-ups and
         // reads this block's Prem Cup fixtures. When present, the break runs
@@ -1538,6 +1549,136 @@ document.addEventListener('DOMContentLoaded', () => {
         screenRouter.show('league-table');
       });
       screenRouter.show('round-results');
+    });
+    screenRouter.show('match-result');
+  }
+
+  // Recursively play all European fixtures that are due before the next
+  // league match. Calls onDone when none remain.
+  function maybePlayEuropeanFixture(onDone: () => void): void {
+    if (!gameEngine) { onDone(); return; }
+    const euroFix = gameEngine.getCurrentEuropeanFixture();
+    if (!euroFix) { onDone(); return; }
+    onPlayEuropeanMatch(euroFix, () => maybePlayEuropeanFixture(onDone));
+  }
+
+  function onPlayEuropeanMatch(euroFix: EuropeanFixtureRef, onAfterResult: () => void): void {
+    if (!gameEngine) return;
+    const state = gameEngine.getState();
+    const playerTeamId = state.player.teamId;
+    const homeId = euroFix.kind === 'pool' ? euroFix.fixture.homeId : (euroFix.match.homeId ?? '');
+    const awayId = euroFix.kind === 'pool' ? euroFix.fixture.awayId : (euroFix.match.awayId ?? '');
+    const resolveTeam = (id: string): RawTeamInput => {
+      const prem = allTeams.find(t => t.id === id);
+      if (prem) return id === playerTeamId ? buildTeamFromRoster(state, prem) : buildAutoSelectedTeamFromRoster(state, prem);
+      return buildEuropeanOpponent(id)!;
+    };
+    const homeTeam = resolveTeam(homeId);
+    const awayTeam = resolveTeam(awayId);
+    const playerSide: 'home' | 'away' = homeId === playerTeamId ? 'home' : 'away';
+    const playerRawTeam = playerSide === 'home' ? homeTeam : awayTeam;
+    const oppRawTeam    = playerSide === 'home' ? awayTeam : homeTeam;
+    const stageLabel = euroFix.kind === 'pool'
+      ? `Pool Round ${euroFix.fixture.round}`
+      : (euroFix.stage === 'r16' ? 'Round of 16' : euroFix.stage === 'quarterfinal' ? 'Quarter-Final' : euroFix.stage === 'semifinal' ? 'Semi-Final' : 'Final');
+    const compLabel = euroFix.competition === 'europeanCup' ? 'European Cup' : 'European Shield';
+    const contextLabel = `${compLabel} · ${stageLabel}`;
+    initPreMatchScreen(
+      homeTeam, awayTeam, playerSide, 0, gameEngine,
+      (configuredHome, configuredAway, playerTactics) => {
+        const playerConfigured = playerSide === 'home' ? configuredHome : configuredAway;
+        if (gameEngine) {
+          gameEngine.setPlayerTactics(playerTactics);
+          gameEngine.setPlayerMatchdaySquad(extractMatchdaySquad(playerConfigured));
+          autosave(gameEngine.toSavePayload());
+        }
+        const avgMorale = computeAverageMorale(playerConfigured);
+        initTeamTalkScreen(
+          { name: playerRawTeam.name, shortName: playerRawTeam.shortName, color: playerRawTeam.color },
+          { name: oppRawTeam.name, shortName: oppRawTeam.shortName, color: oppRawTeam.color },
+          contextLabel,
+          playerConfigured.players.slice(0, 15),
+          avgMorale,
+          (talkArgs) => {
+            onEuropeanMatchStart(configuredHome, configuredAway, playerSide, euroFix, playerTactics, onAfterResult, talkArgs, avgMorale);
+          },
+        );
+        screenRouter.show('team-talk');
+      },
+      () => goHub('back'),
+      { contextLabel, neutralVenue: false, backLabel: 'Hub' },
+      goSquadFromPreMatch,
+      (rosterId, returnStep) => goPlayerProfile(rosterId, () => {
+        showPreMatchAtStep(returnStep);
+        screenRouter.show('pre-match', { direction: 'back' });
+      }),
+    );
+    screenRouter.show('pre-match');
+  }
+
+  function onEuropeanMatchStart(
+    configuredHome: RawTeamInput,
+    configuredAway: RawTeamInput,
+    playerSide: 'home' | 'away',
+    euroFix: EuropeanFixtureRef,
+    playerTactics: TeamTactics,
+    onAfterResult: () => void,
+    humanPreTalk?: TalkArgs,
+    humanSquadMorale?: number,
+  ): void {
+    const humanConfigured = playerSide === 'home' ? configuredHome : configuredAway;
+    const humanCaptainRosterId = resolveCaptainRosterId(humanConfigured.players, gameEngine?.getState().player.captainRosterId);
+    const engine = new MatchCoordinator(configuredHome, configuredAway, {
+      tickDelayMs: loadTickDelayMs(),
+      playerTactics,
+      humanSide: playerSide,
+      humanCaptainRosterId,
+      humanPreTalk,
+      humanSquadMorale,
+    });
+    initSimController(engine);
+    const unsub = eventBus.on('engine:finished', ({ state }) => {
+      unsub();
+      showEuropeanMatchResult(engine, state, euroFix, onAfterResult);
+    });
+    engine.initialize();
+    screenRouter.show('app');
+  }
+
+  function showEuropeanMatchResult(
+    engine: MatchCoordinator,
+    state: MatchState,
+    euroFix: EuropeanFixtureRef,
+    onAfterResult: () => void,
+  ): void {
+    initMatchResultScreen(state, 0, null, async () => {
+      const snapshot = snapshotMatch(state, state.homeTeam.id, state.awayTeam.id);
+      engine.destroy();
+      if (gameEngine) {
+        if (euroFix.kind === 'pool') {
+          await gameEngine.recordPlayerEuropeanPoolResult(
+            euroFix.competition,
+            euroFix.fixture.poolId,
+            euroFix.fixture.round,
+            euroFix.fixture.homeId,
+            euroFix.fixture.awayId,
+            state.score.home,
+            state.score.away,
+            snapshot,
+          );
+        } else {
+          await gameEngine.recordPlayerEuropeanKnockoutResult(
+            euroFix.competition,
+            euroFix.stage,
+            euroFix.match.matchIndex,
+            state.score.home,
+            state.score.away,
+            snapshot,
+          );
+        }
+        autosave(gameEngine.toSavePayload());
+      }
+      onAfterResult();
     });
     screenRouter.show('match-result');
   }

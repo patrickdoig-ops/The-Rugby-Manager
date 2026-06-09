@@ -797,6 +797,9 @@ export type SeasonEvent =
         redCards:               number;
         ratingSum:              number;
       };
+      // When set, delta goes to the player's europeanCupStats / europeanShieldStats
+      // instead of seasonStats. Absent for league + cup fixtures.
+      competition?: 'europeanCup' | 'europeanShield';
     }
   | {
       // Delta added to league.teamSeasonStats[teamId]. Caller pre-computes

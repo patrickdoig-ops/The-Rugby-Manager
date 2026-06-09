@@ -2666,3 +2666,10 @@ html.native-app .app-header {
   background: color-mix(in oklch, var(--rm-pitch) 16%, var(--rm-surface));
   border: 1px solid var(--rm-border-soft);
 }
+/* European R16 / QF grid — two columns on wider screens, one on mobile */
+.euro-ko-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+  margin-bottom: 6px;
+}

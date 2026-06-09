@@ -81,6 +81,13 @@ import type { RawTeamInput } from '../types/teamData';
 // so existing UI imports `from '../game/GameCoordinator'` keep working.
 export type { BreakBeginResult, PreSeasonBlockResult };
 
+import type { EuropeanFixture, EuropeanKnockoutMatch } from '../types/gameState';
+
+// Identifies the player's next playable European fixture — pool or knockout.
+export type EuropeanFixtureRef =
+  | { kind: 'pool'; competition: 'europeanCup' | 'europeanShield'; fixture: EuropeanFixture }
+  | { kind: 'knockout'; competition: 'europeanCup' | 'europeanShield'; stage: 'r16' | 'quarterfinal' | 'semifinal' | 'final'; match: EuropeanKnockoutMatch };
+
 export type SavedSeasonResult = {
   round: number;
   homeId: string;
@@ -260,9 +267,13 @@ export class GameCoordinator {
     // day 1 of the season.
     coord.european.seedEuropeanComps(coord.state.calendar.seasonLabel);
     await coord.european.runPoolStage('europeanCup');
+    if (coord.european.allPoolFixturesDone('europeanCup')) {
+      await coord.european.runKnockoutStage('europeanCup');
+    }
     await coord.european.runPoolStage('europeanShield');
-    await coord.european.runKnockoutStage('europeanCup');
-    await coord.european.runKnockoutStage('europeanShield');
+    if (coord.european.allPoolFixturesDone('europeanShield')) {
+      await coord.european.runKnockoutStage('europeanShield');
+    }
     coord.board.seedBoardState();
     // Seed the initial staff hire pool (no hired staff on season 1).
     const { staff: initialStaff, nextStaffId } = generateStaffPool(1);
@@ -724,6 +735,80 @@ export class GameCoordinator {
     return upcoming[0] ?? null;
   }
 
+  // The player's earliest pending European fixture whose date falls on or
+  // before the current calendar date. Returns null when none is due yet or
+  // the player's team is not in any European competition.
+  getCurrentEuropeanFixture(): EuropeanFixtureRef | null {
+    const playerTeamId = this.state.player.teamId;
+    const calDate = this.state.calendar.date;
+
+    const findPool = (competition: 'europeanCup' | 'europeanShield'): EuropeanFixtureRef | null => {
+      const comp = this.state.league[competition];
+      if (!comp) return null;
+      const pending = comp.fixtures
+        .filter(f => !f.result && (f.homeId === playerTeamId || f.awayId === playerTeamId) && !!f.date && f.date <= calDate)
+        .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''));
+      if (!pending[0]) return null;
+      return { kind: 'pool', competition, fixture: pending[0] };
+    };
+
+    const findKO = (competition: 'europeanCup' | 'europeanShield'): EuropeanFixtureRef | null => {
+      const ko = this.state.league[competition]?.knockout;
+      if (!ko) return null;
+      const stages: Array<['r16' | 'quarterfinal' | 'semifinal' | 'final', EuropeanKnockoutMatch[]]> = [
+        ['r16', ko.r16],
+        ['quarterfinal', ko.quarterfinals],
+        ['semifinal', ko.semifinals as EuropeanKnockoutMatch[]],
+        ['final', [ko.final]],
+      ];
+      for (const [stage, matches] of stages) {
+        for (const match of matches) {
+          if (!match.result && match.homeId && match.awayId
+            && (match.homeId === playerTeamId || match.awayId === playerTeamId)
+            && match.date && match.date <= calDate) {
+            return { kind: 'knockout', competition, stage, match };
+          }
+        }
+      }
+      return null;
+    };
+
+    return findPool('europeanCup')
+      ?? findPool('europeanShield')
+      ?? findKO('europeanCup')
+      ?? findKO('europeanShield');
+  }
+
+  async recordPlayerEuropeanPoolResult(
+    competition: 'europeanCup' | 'europeanShield',
+    poolId: number,
+    round: number,
+    homeId: string,
+    awayId: string,
+    homeScore: number,
+    awayScore: number,
+    snapshot: MatchSnapshot,
+  ): Promise<void> {
+    await this.european.recordPlayerEuropeanPoolResult(
+      competition, poolId, round, homeId, awayId, homeScore, awayScore, snapshot,
+    );
+    eventBus.emit('game:weekAdvanced', { state: this.state });
+  }
+
+  async recordPlayerEuropeanKnockoutResult(
+    competition: 'europeanCup' | 'europeanShield',
+    stage: 'r16' | 'quarterfinal' | 'semifinal' | 'final',
+    matchIndex: number,
+    homeScore: number,
+    awayScore: number,
+    snapshot: MatchSnapshot,
+  ): Promise<void> {
+    await this.european.recordPlayerEuropeanKnockoutResult(
+      competition, stage, matchIndex, homeScore, awayScore, snapshot,
+    );
+    eventBus.emit('game:weekAdvanced', { state: this.state });
+  }
+
   // playerSnapshots is required so the season-aggregate path can't be
   // silently bypassed by a future caller that forgets to pass it. Use an
   // empty array if you genuinely have nothing to record (e.g. a forfeit
@@ -1100,9 +1185,13 @@ export class GameCoordinator {
     // Pools are already seeded via EUROPEAN_COMP_SEEDED in computeRollover;
     // we just need to run the matches.
     await this.european.runPoolStage('europeanCup');
+    if (this.european.allPoolFixturesDone('europeanCup')) {
+      await this.european.runKnockoutStage('europeanCup');
+    }
     await this.european.runPoolStage('europeanShield');
-    await this.european.runKnockoutStage('europeanCup');
-    await this.european.runKnockoutStage('europeanShield');
+    if (this.european.allPoolFixturesDone('europeanShield')) {
+      await this.european.runKnockoutStage('europeanShield');
+    }
     eventBus.emit('game:seasonRolledOver', { state: this.state });
     return events;
   }

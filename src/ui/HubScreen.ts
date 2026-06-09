@@ -6,7 +6,7 @@
 // for the six nav tiles and the settings cog; only the primary CTA
 // (`onPlayMatch`) is exercisable in this iteration.
 
-import type { GameCoordinator } from '../game/GameCoordinator';
+import type { GameCoordinator, EuropeanFixtureRef } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import type { Fixture, FixtureResult, GameState } from '../types/gameState';
 import { eventBus } from '../utils/eventBus';
@@ -38,6 +38,9 @@ export interface InitHubScreenOpts {
   // before the engine is ready). HubScreen gates on both this field and
   // getGameEngine().isPreSeasonCupPending().
   onPreSeasonCup?: () => void;
+  // Called when the European fixture CTA is tapped. Absent ⇔ no European
+  // fixture is due. HubScreen gates on getGameEngine().getCurrentEuropeanFixture().
+  onPlayEuropean?: () => void;
   onSquad:     () => void;
   onFixtures:  () => void;
   onCompetitions: () => void;
@@ -124,6 +127,9 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
     // Pre-season cup takes priority over the first league fixture — the cup
     // block must run before R1 is played.
     const preSeasonCupPending = !!opts.onPreSeasonCup && opts.getGameEngine().isPreSeasonCupPending();
+    // European fixture due before the next league match (calendar gate: fixture
+    // date ≤ calendar.date). Takes priority over league CTA when present.
+    const europeanFixture = !!opts.onPlayEuropean ? opts.getGameEngine().getCurrentEuropeanFixture() : null;
     // The bracket exists from the moment the final regular-round fixture
     // resolves until SEASON_ROLLED_OVER clears it. While it exists, the
     // "Go to next match" CTA is replaced with "Continue to playoffs",
@@ -192,7 +198,9 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
         ? playoffsHtml(playoffs!, teamsById, playerTeam.id, playerPlayoffMatch)
         : preSeasonCupPending
           ? preSeasonCupHtml(state)
-          : nextMatchHtml(nextFixture, state, teamsById, playerTeam.id)}
+          : europeanFixture
+            ? europeanNextMatchHtml(europeanFixture, teamsById, playerTeam.id)
+            : nextMatchHtml(nextFixture, state, teamsById, playerTeam.id)}
 
       ${(() => {
           const sk = `${state.player.teamId}:${state.seed}`;
@@ -239,7 +247,7 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
         }).join('')}
       </div>
 
-      <div id="hub-footer">${playoffsActive ? playoffFooterHtml(playoffs!, playerPlayoffMatch) : preSeasonCupPending ? preSeasonCupFooterHtml() : footerHtml(nextFixture)}</div>
+      <div id="hub-footer">${playoffsActive ? playoffFooterHtml(playoffs!, playerPlayoffMatch) : preSeasonCupPending ? preSeasonCupFooterHtml() : europeanFixture ? europeanFooterHtml(europeanFixture) : footerHtml(nextFixture)}</div>
     `;
 
     injectTeamColors(el!, playerTeam);
@@ -254,6 +262,8 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
       el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => opts.onPlayoffs());
     } else if (preSeasonCupPending) {
       el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => opts.onPreSeasonCup!());
+    } else if (europeanFixture) {
+      el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => opts.onPlayEuropean!());
     } else if (nextFixture) {
       el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => {
         const home = teamsById.get(nextFixture.homeId)!;
@@ -448,6 +458,80 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
       <button id="hub-play-next" class="cta-pulse" aria-label="Start League Cup">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>
         <span>Start League Cup</span>
+      </button>
+    `;
+  }
+
+  function europeanNextMatchHtml(euroFix: EuropeanFixtureRef, byId: Map<string, RawTeamInput>, playerId: string): string {
+    const compName = euroFix.competition === 'europeanCup' ? 'European Cup' : 'European Shield';
+    if (euroFix.kind === 'pool') {
+      const { fixture } = euroFix;
+      const home = byId.get(fixture.homeId);
+      const away = byId.get(fixture.awayId);
+      if (!home || !away) return '';
+      const playerHome = fixture.homeId === playerId;
+      const venueLabel = playerHome ? 'HOME' : 'AWAY';
+      const venueName = (playerHome ? home : away).stadium.split('(')[0].trim().toUpperCase();
+      const kickoffChip = fixture.date ? countdownChip(new Date().toISOString().slice(0, 10), fixture.date) : '';
+      return `
+        <div id="hub-next-match">
+          <div class="hub-nm-label">
+            <span>${compName.toUpperCase()} · POOL ${fixture.poolId + 1} · ROUND ${fixture.round}${fixture.date ? ` · ${formatDateShort(fixture.date)}` : ''}</span>
+            ${kickoffChip}
+          </div>
+          <div class="hub-nm-fixture">
+            <div class="hub-nm-side hub-nm-side--home${playerHome ? ' hub-nm-side--me' : ''}">
+              ${crestHtml(home, 'nm-crest')}
+              <div class="hub-nm-side-info"><span class="hub-nm-name">${home.shortName}</span></div>
+            </div>
+            <span class="hub-nm-vs">vs</span>
+            <div class="hub-nm-side hub-nm-side--away${!playerHome ? ' hub-nm-side--me' : ''}">
+              <div class="hub-nm-side-info"><span class="hub-nm-name">${away.shortName}</span></div>
+              ${crestHtml(away, 'nm-crest')}
+            </div>
+          </div>
+          <div class="hub-nm-meta">${venueLabel} · ${venueName}</div>
+        </div>
+      `;
+    }
+    // Knockout
+    const { stage, match } = euroFix;
+    const stageLabel = stage === 'r16' ? 'ROUND OF 16' : stage === 'quarterfinal' ? 'QUARTER-FINAL' : stage === 'semifinal' ? 'SEMI-FINAL' : 'FINAL';
+    const home = match.homeId ? byId.get(match.homeId) : null;
+    const away = match.awayId ? byId.get(match.awayId) : null;
+    if (!home || !away) return '';
+    const playerHome = match.homeId === playerId;
+    const venueLabel = playerHome ? 'HOME' : 'AWAY';
+    const venueName = (playerHome ? home : away).stadium.split('(')[0].trim().toUpperCase();
+    const kickoffChip = match.date ? countdownChip(new Date().toISOString().slice(0, 10), match.date) : '';
+    return `
+      <div id="hub-next-match">
+        <div class="hub-nm-label">
+          <span>${compName.toUpperCase()} · ${stageLabel}${match.date ? ` · ${formatDateShort(match.date)}` : ''}</span>
+          ${kickoffChip}
+        </div>
+        <div class="hub-nm-fixture">
+          <div class="hub-nm-side hub-nm-side--home${playerHome ? ' hub-nm-side--me' : ''}">
+            ${crestHtml(home, 'nm-crest')}
+            <div class="hub-nm-side-info"><span class="hub-nm-name">${home.shortName}</span></div>
+          </div>
+          <span class="hub-nm-vs">vs</span>
+          <div class="hub-nm-side hub-nm-side--away${!playerHome ? ' hub-nm-side--me' : ''}">
+            <div class="hub-nm-side-info"><span class="hub-nm-name">${away.shortName}</span></div>
+            ${crestHtml(away, 'nm-crest')}
+          </div>
+        </div>
+        <div class="hub-nm-meta">${venueLabel} · ${venueName}</div>
+      </div>
+    `;
+  }
+
+  function europeanFooterHtml(euroFix: EuropeanFixtureRef): string {
+    const compName = euroFix.competition === 'europeanCup' ? 'European Cup' : 'European Shield';
+    return `
+      <button id="hub-play-next" class="cta-pulse" aria-label="Play ${compName} match">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>
+        <span>Play ${compName} match</span>
       </button>
     `;
   }

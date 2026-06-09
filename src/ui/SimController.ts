@@ -96,7 +96,7 @@ export function initSimController(engine: MatchCoordinator): void {
   applySpeed(presetMs);
 
   speedBtns.forEach(btn => {
-    btn.addEventListener('click', () => applySpeed(Number(btn.dataset.ms)));
+    btn.onclick = () => applySpeed(Number(btn.dataset.ms));
   });
 
   function updateSubsBadge(n: number): void {

@@ -34,18 +34,21 @@
 }
 
 .pc-eyebrow {
-  font-size: 10px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: var(--c-text-muted, #888);
+  color: var(--rm-text-muted);
   text-transform: uppercase;
 }
 
 .pc-title {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--c-text, #fff);
-  letter-spacing: -0.01em;
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-22);
+  font-weight: 400;
+  color: var(--rm-chalk);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 /* Score line */
@@ -54,15 +57,16 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  font-size: 14px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-14);
   font-weight: 600;
-  color: var(--c-text-muted, #aaa);
+  color: var(--rm-text-muted);
 }
 
 .pc-score {
-  font-size: 18px;
+  font-size: var(--rm-fs-18);
   font-weight: 800;
-  color: var(--c-text, #fff);
+  color: var(--rm-chalk);
   font-variant-numeric: tabular-nums;
 }
 
@@ -80,17 +84,19 @@
 }
 
 .pc-q-context {
-  font-size: 10px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--c-accent, #9f7aea);
+  color: var(--rm-pitch);
 }
 
 .pc-q-text {
-  font-size: 15px;
+  font-family: var(--rm-font-editor);
+  font-size: var(--rm-fs-15);
   font-weight: 500;
-  color: var(--c-text, #fff);
+  color: var(--rm-text);
   line-height: 1.4;
   font-style: italic;
 }
@@ -114,6 +120,7 @@
   flex-direction: column;
   gap: 4px;
   transition: background 0.12s, border-color 0.12s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .pc-answer-btn:active {
@@ -121,31 +128,33 @@
 }
 
 .pc-answer-btn--selected {
-  background: rgba(159, 122, 234, 0.18);
-  border-color: rgba(159, 122, 234, 0.60);
+  background: color-mix(in oklch, var(--rm-pitch) 18%, var(--rm-surface));
+  border-color: color-mix(in oklch, var(--rm-pitch) 50%, var(--rm-border-soft));
 }
 
 .pc-answer-label {
-  font-size: 10px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--c-text-muted, #aaa);
+  color: var(--rm-text-muted);
 }
 
 .pc-answer-btn--selected .pc-answer-label {
-  color: #c4b5fd;
+  color: var(--rm-pitch);
 }
 
 .pc-answer-text {
-  font-size: 13px;
-  color: var(--c-text, #e8e8e8);
+  font-size: var(--rm-fs-13);
+  color: var(--rm-text);
   line-height: 1.45;
 }
 
 .pc-effects {
-  font-size: 11px;
-  color: var(--c-text-muted, #888);
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  color: var(--rm-text-muted);
   margin-top: 2px;
 }
 
@@ -163,12 +172,13 @@
 
 .pc-publish-btn {
   width: 100%;
-  background: var(--c-accent, #7c3aed);
-  color: #fff;
+  background: var(--rm-cta);
+  color: var(--rm-on-accent);
   border: none;
   border-radius: 10px;
   padding: 14px;
-  font-size: 15px;
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-15);
   font-weight: 700;
   cursor: pointer;
   transition: opacity 0.12s;
@@ -182,8 +192,8 @@
 .pc-skip-btn {
   background: none;
   border: none;
-  color: var(--c-text-muted, #888);
-  font-size: 13px;
+  color: var(--rm-text-muted);
+  font-size: var(--rm-fs-13);
   cursor: pointer;
   padding: 4px 8px;
   text-decoration: underline;
@@ -191,5 +201,5 @@
 }
 
 .pc-skip-btn:active {
-  color: var(--c-text, #fff);
+  color: var(--rm-chalk);
 }

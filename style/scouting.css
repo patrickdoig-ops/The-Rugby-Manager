@@ -46,7 +46,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--rm-on-accent);
 }
 
 /* Translating content layer */

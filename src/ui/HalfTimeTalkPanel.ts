@@ -11,14 +11,15 @@ import { TEAM_TALK } from '../engine/balance';
 import {
   CALM_PHRASES, ENCOURAGE_PHRASES, DEMAND_PHRASES, SINGLE_OUT_PHRASES, pickPhrase,
 } from './teamTalkPhrases';
+import { moodPipSvg } from './components/moodMeter';
 
-function moraleLabel(avgMorale: number): { label: string; dots: string; cls: string } {
+function moraleLabel(avgMorale: number): { label: string; filled: number; cls: string } {
   if (avgMorale >= TEAM_TALK.flyingThreshold) {
-    return { label: 'Flying', dots: '●●●●●', cls: 'ht-mood--flying' };
+    return { label: 'Flying', filled: 5, cls: 'ht-mood--flying' };
   } else if (avgMorale >= TEAM_TALK.flatThreshold) {
-    return { label: 'Steady', dots: '●●●○○', cls: 'ht-mood--steady' };
+    return { label: 'Steady', filled: 3, cls: 'ht-mood--steady' };
   } else {
-    return { label: 'Flat',   dots: '●●○○○', cls: 'ht-mood--flat' };
+    return { label: 'Flat',   filled: 2, cls: 'ht-mood--flat' };
   }
 }
 
@@ -147,7 +148,7 @@ export function initHalfTimeTalkPanel(panelEl: HTMLElement): void {
           </div>
           <div class="ht-divider"></div>
           <div class="ht-mood ${mood.cls}">
-            <span class="ht-mood-dots">${mood.dots}</span>
+            ${moodPipSvg(mood.filled)}
             <span class="ht-mood-label">Squad mood: <strong>${mood.label}</strong></span>
           </div>
           <div class="ht-tones" id="ht-tones">

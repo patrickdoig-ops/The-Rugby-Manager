@@ -28,6 +28,7 @@ import { upcomingGap, splitGapIntoPeriods } from '../game/trainingCalendar';
 import { suggestPlanForUser } from '../game/aiTrainingDirector';
 import { eventBus } from '../utils/eventBus';
 import { injectTeamColors } from './teamColors';
+import { discardConfirm } from './components/discardConfirm';
 
 const SHORT_WEEK_DAYS = 6; // turnaround at or below this nudges toward Light
 
@@ -290,7 +291,10 @@ function renderMidWeek(
   el.innerHTML = `
     <div class="app-header">
       <div class="app-topbar">
-        <div class="app-topbar-spacer"></div>
+        <button id="tr-back" class="app-back" aria-label="Back to hub">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <span>Hub</span>
+        </button>
         <span class="app-title">Training Plan</span>
         <div class="app-topbar-spacer"></div>
       </div>
@@ -333,17 +337,28 @@ function renderMidWeek(
     </div>
 
     <div id="tr-footer">
-      <button id="tr-back" class="cta-pulse">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 5l-7 7 7 7"/></svg>
-        <span>Save &amp; back to Hub</span>
-      </button>
+      <button id="tr-save" class="cta-pulse">Save</button>
     </div>
   `;
 
   wireChips(el, () => renderImpl?.());
 
-  el.querySelector<HTMLButtonElement>('#tr-back')!.addEventListener('click', () => {
-    // Persist the choice for next week's default without executing.
+  el.querySelector<HTMLButtonElement>('#tr-back')!.addEventListener('click', async () => {
+    const saved = engine.getState().player.training ?? DEFAULT_TRAINING_PLAN;
+    const dirty = draftHydrated && (
+      draftPlan.intensity !== saved.intensity ||
+      draftPlan.forwardsFocus !== saved.forwardsFocus ||
+      draftPlan.backsFocus !== saved.backsFocus
+    );
+    if (dirty) {
+      const discard = await discardConfirm('You have unsaved training plan changes. Leaving now will revert them.');
+      if (!discard) return;  // keep editing
+      draftHydrated = false;
+    }
+    mode.onBack();
+  });
+
+  el.querySelector<HTMLButtonElement>('#tr-save')!.addEventListener('click', () => {
     engine.setPlayerTrainingPlan({ ...draftPlan });
     draftHydrated = false;
     mode.onBack();

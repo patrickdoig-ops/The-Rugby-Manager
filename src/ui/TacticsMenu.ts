@@ -154,7 +154,7 @@ export function renderTacticsMenu(
       <div class="tactics-categories-container"></div>
       ${isModal ? `
         <div class="tactics-modal-footer">
-          <button id="btn-resume-match" class="tactics-resume-btn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14" style="vertical-align:-1px;margin-right:6px"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>Resume Match</button>
+          <button id="btn-resume-match" class="tactics-resume-btn">Save</button>
         </div>
       ` : ''}
     </div>
@@ -312,7 +312,7 @@ function openInfoModal(
           const isActive = opt.value === currentValue;
           return `
             <button class="tactics-info-opt ${isActive ? 'active' : ''} ${readOnly ? 'readonly' : ''}" data-val="${opt.value}" type="button">
-              <span class="tactics-info-opt-label">${opt.label}${isActive ? `<span class="tactics-info-opt-tick" aria-hidden="true">✓</span>` : ''}</span>
+              <span class="tactics-info-opt-label">${opt.label}${isActive ? `<span class="tactics-info-opt-tick" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>` : ''}</span>
               <span class="tactics-info-opt-desc">${opt.desc}</span>
             </button>
           `;

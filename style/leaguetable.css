@@ -98,7 +98,7 @@
 }
 .lt-rank-num { color: var(--rm-text-dim); }
 .lt-delta {
-  font-size: 8px;
+  font-size: var(--rm-fs-8);
   font-weight: 700;
   letter-spacing: 0.03em;
   line-height: 1;

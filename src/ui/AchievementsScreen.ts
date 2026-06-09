@@ -37,7 +37,7 @@ export function initAchievementsScreen(onBack: () => void): void {
           <div class="ach-title">${def.title}</div>
           <div class="ach-desc">${def.description}</div>
         </div>
-        ${unlocked ? '<div class="ach-check" aria-label="Unlocked">✓</div>' : ''}
+        ${unlocked ? '<div class="ach-check" aria-label="Unlocked"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg></div>' : ''}
       </div>`;
   }
 

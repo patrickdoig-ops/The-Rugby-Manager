@@ -138,7 +138,7 @@ function zoneCardHTML(a: AdvancedTactics, meta: { key: Zone; label: string; desc
         </div>
         <input type="range" class="advk-slider advk-slider--freq" min="0" max="100" step="5" value="${z.frequency}" data-kind="freq" data-zone="${zone}" aria-label="${meta.label} kick frequency">
       </div>
-      <div class="advk-types"><span class="advk-row-title">When kicking — kick-type mix</span>${kickTypes}</div>
+      <div class="advk-types"><span class="advk-row-title">Kicking strategy</span>${kickTypes}</div>
       <div class="advt-group"><span class="advt-group-title">With ball</span>${ballSliders}${ballPicks}</div>
       <div class="advt-group"><span class="advt-group-title">Defending here</span>${defendPicks}</div>
     </div>`;

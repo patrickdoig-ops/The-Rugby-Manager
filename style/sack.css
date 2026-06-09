@@ -28,7 +28,7 @@
 }
 
 .sack-headline {
-  font-family: var(--rm-font-display, var(--rm-font-mono));
+  font-family: var(--rm-font-display);
   font-size: var(--rm-fs-24);
   font-weight: 800;
   color: var(--rm-danger);

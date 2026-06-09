@@ -19,6 +19,7 @@
 		D7A1C0DE0000000000000003 /* DynamicTypePlugin.m in Sources */ = {isa = PBXBuildFile; fileRef = D7A1C0DE0000000000000004 /* DynamicTypePlugin.m */; };
 		D7A1C0DF0000000000000001 /* GameCenterPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A1C0DF0000000000000002 /* GameCenterPlugin.swift */; };
 		D7A1C0DF0000000000000003 /* GameCenterPlugin.m in Sources */ = {isa = PBXBuildFile; fileRef = D7A1C0DF0000000000000004 /* GameCenterPlugin.m */; };
+		D7A1C0E10000000000000002 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D7A1C0E10000000000000001 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,6 +39,7 @@
 		D7A1C0DF0000000000000002 /* GameCenterPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameCenterPlugin.swift; sourceTree = "<group>"; };
 		D7A1C0DF0000000000000004 /* GameCenterPlugin.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GameCenterPlugin.m; sourceTree = "<group>"; };
 		D7A1C0E00000000000000005 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
+		D7A1C0E10000000000000001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		FC68EB0AF532CFC21C3344DD /* Pods-App.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.debug.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -89,6 +91,7 @@
 				D7A1C0DF0000000000000002 /* GameCenterPlugin.swift */,
 				D7A1C0DF0000000000000004 /* GameCenterPlugin.m */,
 				D7A1C0E00000000000000005 /* App.entitlements */,
+				D7A1C0E10000000000000001 /* PrivacyInfo.xcprivacy */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -178,6 +181,7 @@
 				50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
+				D7A1C0E10000000000000002 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

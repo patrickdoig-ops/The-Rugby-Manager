@@ -59,7 +59,7 @@
   justify-content: center;
   font-family: var(--rm-font-display);
   font-size: var(--rm-fs-16);
-  color: #fff;
+  color: var(--rm-chalk);
   flex-shrink: 0;
 }
 
@@ -83,19 +83,14 @@
   box-shadow: var(--rm-card-shadow);
 }
 
-.tt-mood-dots {
-  font-size: var(--rm-fs-13);
-  letter-spacing: 0.1em;
-}
-
 .tt-mood-label {
   font-size: var(--rm-fs-13);
   color: var(--rm-text-muted);
 }
 
-.tt-mood--flying .tt-mood-dots { color: oklch(0.74 0.18 144); }
-.tt-mood--steady .tt-mood-dots { color: oklch(0.74 0.16 62); }
-.tt-mood--flat   .tt-mood-dots { color: oklch(0.60 0.16 25); }
+.tt-mood--flying .mood-pip-strip { color: var(--rm-stat-4); }
+.tt-mood--steady .mood-pip-strip { color: var(--rm-amber); }
+.tt-mood--flat   .mood-pip-strip { color: var(--rm-stat-1); }
 
 /* — Tone buttons — */
 .tt-tones {
@@ -162,7 +157,7 @@
 
 .tt-tone-btn--warn .tt-tone-label { color: var(--rm-danger); }
 .tt-tone-btn--warn .tt-tone-desc  { color: var(--rm-danger); opacity: 0.8; }
-.tt-tone-btn--good .tt-tone-desc  { color: oklch(0.74 0.18 144); }
+.tt-tone-btn--good .tt-tone-desc  { color: var(--rm-pitch); }
 
 /* — Player list (single_out) — */
 .tt-player-list {
@@ -313,7 +308,7 @@
   justify-content: center;
   font-family: var(--rm-font-display);
   font-size: var(--rm-fs-16);
-  color: #fff;
+  color: var(--rm-chalk);
   flex-shrink: 0;
 }
 
@@ -365,19 +360,14 @@
   box-shadow: var(--rm-card-shadow);
 }
 
-.ht-mood-dots {
-  font-size: var(--rm-fs-13);
-  letter-spacing: 0.1em;
-}
-
 .ht-mood-label {
   font-size: var(--rm-fs-12);
   color: var(--rm-text-muted);
 }
 
-.ht-mood--flying .ht-mood-dots { color: oklch(0.74 0.18 144); }
-.ht-mood--steady .ht-mood-dots { color: oklch(0.74 0.16 62); }
-.ht-mood--flat   .ht-mood-dots { color: oklch(0.60 0.16 25); }
+.ht-mood--flying .mood-pip-strip { color: var(--rm-stat-4); }
+.ht-mood--steady .mood-pip-strip { color: var(--rm-amber); }
+.ht-mood--flat   .mood-pip-strip { color: var(--rm-stat-1); }
 
 /* — Tone buttons — */
 .ht-tones {
@@ -444,7 +434,7 @@
 
 .ht-tone-btn--warn .ht-tone-label { color: var(--rm-danger); }
 .ht-tone-btn--warn .ht-tone-desc  { color: var(--rm-danger); opacity: 0.8; }
-.ht-tone-btn--good .ht-tone-desc  { color: oklch(0.74 0.18 144); }
+.ht-tone-btn--good .ht-tone-desc  { color: var(--rm-pitch); }
 
 /* — Player list — */
 .ht-player-list {

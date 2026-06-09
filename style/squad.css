@@ -563,92 +563,8 @@
 .sq-stat-cell.ovr-poor    .sq-stat-val { color: var(--rm-stat-1); }
 .sq-stat-cell.ovr-veryPoor .sq-stat-val { color: var(--rm-stat-1); }
 
-/* ─── Discard confirm sheet ─── */
-.sq-discard-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 350;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(8px) saturate(120%);
-  -webkit-backdrop-filter: blur(8px) saturate(120%);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.sq-discard {
-  width: 100%;
-  max-width: 480px;
-  padding: 24px 24px max(36px, env(safe-area-inset-bottom, 0px));
-  background: var(--rm-surface-2);
-  border: 1px solid var(--rm-border-soft);
-  border-radius: 20px 20px 0 0;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.07),
-    0 -8px 48px rgba(0, 0, 0, 0.65);
-  animation: sqDiscardSheetUp 0.22s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@keyframes sqDiscardSheetUp {
-  from { transform: translateY(100%); opacity: 0; }
-  to   { transform: translateY(0); opacity: 1; }
-}
-
-.sq-discard-title {
-  font-family: var(--rm-font-display);
-  font-size: var(--rm-fs-28);
-  text-transform: uppercase;
-  color: var(--rm-chalk);
-  margin-bottom: 8px;
-  letter-spacing: 0.04em;
-}
-
-.sq-discard-body {
-  font-size: var(--rm-fs-13);
-  color: var(--rm-text-muted);
-  margin-bottom: 22px;
-  line-height: 1.55;
-}
-
-.sq-discard-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.sq-discard-btn {
-  flex: 1;
-  padding: 13px;
-  border-radius: 12px;
-  font-family: var(--rm-font-body);
-  font-size: var(--rm-fs-13);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.sq-discard-cancel {
-  background: var(--rm-surface);
-  border: 1px solid var(--rm-border-soft);
-  color: var(--rm-text-muted);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-.sq-discard-confirm {
-  background: var(--rm-danger);
-  border: none;
-  color: var(--rm-chalk);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 4px 16px color-mix(in oklch, var(--rm-danger) 28%, transparent);
-}
-
-.sq-discard-confirm:active { filter: brightness(0.9); }
+/* Discard-confirm sheet styling moved to style/discardConfirm.css (.rm-discard-*),
+   shared by Squad / Training / Tactics via the discardConfirm() helper. */
 
 #squad-management .app-header {
   background: linear-gradient(180deg,
@@ -666,7 +582,7 @@
   padding: 1px 5px;
   border-radius: 4px;
   font-family: var(--rm-font-mono);
-  font-size: 9px;
+  font-size: var(--rm-fs-9);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;

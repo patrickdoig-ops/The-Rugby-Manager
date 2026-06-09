@@ -19,7 +19,7 @@
 
 #hub-topbar {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   padding: 8px 16px 0;
   flex-shrink: 0;
 }

@@ -13,6 +13,7 @@ import type { RawTeamInput } from '../types/teamData';
 import type { GameState, TeamSeasonStats } from '../types/gameState';
 import { teamSeasonStat, teamPossessionPct, teamTerritoryPct } from '../game/seasonLeaderboards';
 import { eventBus } from '../utils/eventBus';
+import { formatDateMedium } from '../utils/formatDate';
 
 type CategoryKey = 'attack' | 'defence' | 'kicking' | 'setpiece' | 'possession' | 'discipline';
 
@@ -162,8 +163,6 @@ export function initTeamStatsScreen(
   function render(): void {
     const state: GameState = getGameEngine().getState();
     const playerTeamId = state.player.teamId;
-    const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
-
     const cat = currentCategory();
     const sortColId = activeSortColId ?? cat.defaultSortColId;
     const sortCol = cat.columns.find(c => c.id === sortColId) ?? cat.columns[0];
@@ -227,7 +226,7 @@ export function initTeamStatsScreen(
           <span class="app-title">Team Stats</span>
           <div class="app-topbar-spacer"></div>
         </div>
-        <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
+        <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)}</div>
       </div>
 
       <div id="ts-chips">${chips}</div>

@@ -16,6 +16,7 @@ import { eventBus } from '../utils/eventBus';
 import { recentForm, type FormResult } from '../game/teamStats';
 import { renderFormPipStrip } from './components/formPip';
 import { ROUND_LABELS } from '../engine/balance/season';
+import { formatDateMedium } from '../utils/formatDate';
 
 type Mode = 'team' | 'next' | 'all';
 
@@ -191,7 +192,6 @@ export function initFixtureListScreen(
     const state = gameEngine.getState();
     const playerTeamId = state.player.teamId;
     const playerTeam = teamsById.get(playerTeamId);
-    const totalRounds = state.league.fixtures.reduce((max, f) => Math.max(max, f.round), 0);
     const nextFixture = gameEngine.getCurrentFixture();
     const nextRound = nextFixture?.round ?? -1;
     const teamLabel = playerTeam ? playerTeam.name.split(' ')[0] : 'My team';
@@ -207,7 +207,7 @@ export function initFixtureListScreen(
           <span class="app-title">Season Fixtures</span>
           <div class="app-topbar-spacer"></div>
         </div>
-        <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
+        <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)}</div>
       </div>
       <div id="fl-toggle" role="tablist">
         <button class="fl-toggle-btn${activeMode === 'team' ? ' active' : ''}" data-mode="team" role="tab">${teamLabel}</button>

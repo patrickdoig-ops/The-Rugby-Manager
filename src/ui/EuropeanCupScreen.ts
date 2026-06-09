@@ -26,6 +26,8 @@ export function initEuropeanCupScreen(opts: InitEuropeanCupScreenOpts): void {
   function render(): void {
     const state = opts.getGameEngine().getState();
     const comp = state.league.europeanCup ?? null;
+    const team = teamsById.get(state.player.teamId);
+    if (team) el!.style.setProperty('--team-color', team.color);
     el!.innerHTML = euroScreenHtml(comp, teamsById, state.player.teamId, 'European Cup', 'ec-back');
     el!.querySelector<HTMLButtonElement>('#ec-back')!.addEventListener('click', () => opts.onBack());
   }

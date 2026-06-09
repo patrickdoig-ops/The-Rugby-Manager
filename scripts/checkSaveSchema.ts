@@ -38,7 +38,7 @@ const allTeams = [
 // Pinned snapshot — bump `version` and update the key lists together whenever
 // the serialised shape legitimately changes (and add a MIGRATIONS step).
 const EXPECTED = {
-  version: 1,
+  version: 2,
   topKeys: 'board,career,careerRngOffset,currentWeek,europeanCup,europeanShield,fixtures,mediaStories,playerTeamId,premCup,results,seasonLabel,seed,teamSeasonStats',
   careerKeys: 'activePoachedIds,archive,clubs,freeAgents,loanPool,market,midseasonRejections,nextRosterId,nextStaffId,pendingMoves,roster,seasonsCompleted,staff,takeoverHistory',
 };

@@ -12,6 +12,8 @@
 // setSlotWriteHook — SaveManager itself has no Capacitor dependency.
 
 import type { SavedCareer, SavedSeason, SavedSeasonResult } from '../game/GameCoordinator';
+import { generateFixtures } from '../game/fixtures';
+import { setCareerSeed } from '../utils/rng';
 import type { ArchivedPlayerSeason, ArchivedSeason, ClubState, CupFixture, CupKnockout, CupKnockoutMatch, Fixture, MarketState, MediaStory, PlayerRef, PlayoffMatch, PlayoffState, PremCupState, PreAgreement, SeasonAwards, TeamSeasonStats, TransferBid, TransferOffer } from '../types/gameState';
 import type { Player, PlayerSeasonStats } from '../types/player';
 import { zeroSeasonStats, PLAYER_STAT_KEYS } from '../types/player';
@@ -43,7 +45,7 @@ const SLOT_BAK_KEY: Record<SlotId, string> = {
   3: 'rugby-manager-save-3-bak',
 };
 const ACTIVE_KEY = 'rugby-manager-active-slot';
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 // Including SAVE_VERSION here is load-bearing — without it a freshly written
 // save is rejected on the very next load.
 const ACCEPTED_VERSIONS = new Set([SAVE_VERSION]);
@@ -85,7 +87,26 @@ export function setBakWriteHook(fn: ((id: SlotId, raw: string) => void) | null):
 // here (and a checkSaveSchema.ts snapshot update) so existing careers migrate
 // forward instead of being rejected at the gate.
 type MigrationStep = (env: SavedGame) => SavedGame;
-const MIGRATIONS: Record<number, MigrationStep> = {};
+// v1 → v2: regenerate fixture lists for saves where the greedy matching
+// produced fewer than 90 fixtures (the circle-method fix in fixtures.ts).
+// Uses the save's own seed for determinism; fromSave resets the career RNG
+// correctly after migration via setCareerSeed + advanceTransferTo.
+const MIGRATIONS: Record<number, MigrationStep> = {
+  1: (env: SavedGame): SavedGame => {
+    if (env.fixtures && env.fixtures.length < 90 && env.career) {
+      const allTeamIds = env.career.clubs.map((c: ClubState) => c.id);
+      const seasonsCompleted = env.career.seasonsCompleted ?? 1;
+      setCareerSeed(env.seed);
+      try {
+        env.fixtures = generateFixtures(env.playerTeamId, allTeamIds, { seasonsCompleted });
+      } catch {
+        // Keep the existing (incomplete) list if regeneration fails — an
+        // unloadable save is worse than a slightly wrong fixture list.
+      }
+    }
+    return env;
+  },
+};
 
 // Walk an old-but-known envelope up to the current SAVE_VERSION. Returns null
 // if the chain has a gap (an unmigratable version), so the caller rejects it

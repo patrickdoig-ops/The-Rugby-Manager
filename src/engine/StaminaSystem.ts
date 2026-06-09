@@ -4,7 +4,7 @@ import type { Player, PlayerStats } from '../types/player';
 import { clamp } from '../utils/math';
 import { rng } from '../utils/rng';
 import { FATIGUE_SCALING, TACTIC_MODIFIERS } from './balance';
-import { effAttackingBreakdown, effDefendingBreakdown, effDefensiveLine, effIntensityScalar, effGamePlanScalar } from './tacticsResolve';
+import { effAttackingBreakdown, effDefendingBreakdown, effDefensiveLine, effIntensityScalar, effGamePlanResidual } from './tacticsResolve';
 import { isForwardSlot } from './Slot';
 
 export interface FatigueUpdate {
@@ -47,7 +47,7 @@ export function computeFatigue(state: MatchState, team: Team, elapsedMinutes: nu
     if (isForwardSlot(player.id)) {
       if (effAttackingBreakdown(state, team) === 'commit_numbers') actualDecay *= forwardMult.commit_numbers;
       if (effDefendingBreakdown(state, team) === 'counter_ruck')   actualDecay *= forwardMult.counter_ruck;
-      actualDecay *= effGamePlanScalar(team, { possession: forwardMult.possession, balanced: 1, kicking: 1 });
+      actualDecay *= effGamePlanResidual(team, { possession: forwardMult.possession, balanced: 1, kicking: 1 }, 1);
     } else {
       // Backs (#9–#15) drain by team.tactics.defensiveLine: blitz adds 10 %
       // for the up-and-back motion, drift takes 5 % off the rate, hybrid is

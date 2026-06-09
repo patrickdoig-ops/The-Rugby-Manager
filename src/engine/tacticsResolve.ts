@@ -26,6 +26,7 @@ import type {
 } from '../types/team';
 import type { PossessionSide } from '../types/engine';
 import { zoneForSide } from './FieldPosition';
+import { FIFTY_22_COMMITMENT } from './balance';
 
 function sideOf(state: MatchState, team: Team): PossessionSide {
   return team === state.homeTeam ? 'home' : 'away';
@@ -45,7 +46,6 @@ export const STYLE_ORDER:      readonly [AttackingStyle, AttackingStyle, Attacki
 export const OFFLOAD_ORDER:    readonly [OffloadStrategy, OffloadStrategy, OffloadStrategy] = ['cautious', 'balanced', 'offload_freely'];
 export const INTENSITY_ORDER:  readonly [Intensity, Intensity, Intensity]                  = ['light', 'balanced', 'high'];
 export const DISCIPLINE_ORDER: readonly [Discipline, Discipline, Discipline]               = ['cautious', 'balanced', 'risky'];
-export const GAMEPLAN_ORDER:   readonly [AttackingGamePlan, AttackingGamePlan, AttackingGamePlan] = ['possession', 'balanced', 'kicking'];
 
 // ── Discrete per-zone dimensions — return the effective enum for the zone ──
 
@@ -102,11 +102,22 @@ export function effDisciplineScalar(team: Team, table: Record<Discipline, number
   return lerp3(table[DISCIPLINE_ORDER[0]], table[DISCIPLINE_ORDER[1]], table[DISCIPLINE_ORDER[2]], adv);
 }
 
-// Game-plan residual bonuses (kick distance, 50:22, handling pressure, forward
-// fatigue) — the preset Game Plan's effects beyond kick frequency/type, now
-// driven by the single possession↔kicking slider when advanced.
-export function effGamePlanScalar(team: Team, table: Record<AttackingGamePlan, number>): number {
-  const adv = team.tactics.advanced?.gamePlan;
-  if (adv === undefined) return table[team.tactics.attackingGamePlan];
-  return lerp3(table[GAMEPLAN_ORDER[0]], table[GAMEPLAN_ORDER[1]], table[GAMEPLAN_ORDER[2]], adv);
+// Game-plan residuals beyond kick frequency/type. In advanced mode there is no
+// game-plan slider — each residual is folded into its adjacent control, so this
+// returns a fixed `advancedValue`: kick distance → 0 (kicker stat governs it),
+// handling pressure → 0 (Offload owns handling risk), forward fatigue → 1
+// (the Attacking-breakdown pick owns forward fatigue). Preset matches keep the
+// flat gameplan table, so they're byte-identical.
+export function effGamePlanResidual(team: Team, presetTable: Record<AttackingGamePlan, number>, advancedValue: number): number {
+  return team.tactics.advanced ? advancedValue : presetTable[team.tactics.attackingGamePlan];
+}
+
+// 50:22 accuracy bonus — folded into the zone's 50:22 kick-type weight in
+// advanced mode (commit more of your kick mix to 50:22 → execute it better);
+// preset matches keep the flat gameplan table.
+export function effFiftyTwoBonus(state: MatchState, team: Team, presetTable: Record<AttackingGamePlan, number>): number {
+  const adv = team.tactics.advanced;
+  if (!adv) return presetTable[team.tactics.attackingGamePlan];
+  const weight = adv.kicking[zoneForSide(state, sideOf(state, team))].types.fifty_22;
+  return Math.min(FIFTY_22_COMMITMENT.maxBonus, weight * FIFTY_22_COMMITMENT.weightFactor);
 }

@@ -18,7 +18,7 @@ import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, HARD_CARRY_LINE_BREAK_UPGRADE_PC
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { SLOT, isBackSlot } from '../Slot';
 import { tryOffloadChain } from './offloadChain';
-import { effAttackingBreakdown, effDefendingBreakdown, effBackfieldDefence, effDefensiveLine, effDisciplineScalar, effStyleScalar, effGamePlanScalar } from '../tacticsResolve';
+import { effAttackingBreakdown, effDefendingBreakdown, effBackfieldDefence, effDefensiveLine, effDisciplineScalar, effStyleScalar, effGamePlanResidual } from '../tacticsResolve';
 
 const FULL_BACKLINE = 7;  // jersey ids 9–15
 
@@ -75,7 +75,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   // (possession-plan teams carry more, drop more — v2.184a rebalance).
   // Both terms are pp added on top of the base knockOnPct.
   const pressureMod   = TACTIC_MODIFIERS.defensiveLineHandlingPressure[defensiveLine]
-                      + effGamePlanScalar(attackTeam, TACTIC_MODIFIERS.gamePlanHandlingPressure);
+                      + effGamePlanResidual(attackTeam, TACTIC_MODIFIERS.gamePlanHandlingPressure, 0);
   const interceptPctBase = INTERCEPTION_BASE_PCT + TACTIC_MODIFIERS.interceptionMod[defensiveLine];
 
   const events: MatchEvent[] = [];

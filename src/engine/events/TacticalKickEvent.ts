@@ -11,7 +11,7 @@ import { lineoutFormationY, kickForTouchMissY, crossKickCornerY, grubberLandingY
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
-import { effBackfieldDefence, effDefensiveLine, effGamePlanScalar } from '../tacticsResolve';
+import { effBackfieldDefence, effDefensiveLine, effGamePlanResidual, effFiftyTwoBonus } from '../tacticsResolve';
 import { SLOT } from '../Slot';
 
 export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer }: PhaseContext): PhaseResult {
@@ -29,7 +29,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer
   // path because success math is gated by the defending team's backfield
   // posture, not the standard touch-finder probability table.
   if (intent?.family === 'fifty_22' && startedInOwnHalf) {
-    return handleFiftyTwentyTwoAttempt(state, kicker, defender, effBackfieldDefence(state, defendTeam), originalBallX, effGamePlanScalar(attackTeam, TACTIC_MODIFIERS.gamePlanFiftyTwentyTwoBonus));
+    return handleFiftyTwentyTwoAttempt(state, kicker, defender, effBackfieldDefence(state, defendTeam), originalBallX, effFiftyTwoBonus(state, attackTeam, TACTIC_MODIFIERS.gamePlanFiftyTwentyTwoBonus));
   }
 
   // Attacking kick — cross-field or grubber from #10 in / near the
@@ -54,7 +54,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer
   // plans see no bonus. Applied AFTER the touch / out-on-the-full rolls
   // so it only affects how far the ball travels, not whether it finds
   // touch (the resolver's touch probability already handled that).
-  const kickDistance = res.distance + effGamePlanScalar(attackTeam, TACTIC_MODIFIERS.gamePlanKickDistanceBonus);
+  const kickDistance = res.distance + effGamePlanResidual(attackTeam, TACTIC_MODIFIERS.gamePlanKickDistanceBonus, 0);
   const kickDir = attackDir(state);
   const newBallX = clamp(state.ball.x + kickDir * kickDistance, 5, 95);
 

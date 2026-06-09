@@ -12,7 +12,7 @@
 // to the matching slider position (0/50/100) from the shared bucket orders.
 
 import { KICK_PROBABILITIES, FAMILY_WEIGHTS, type Zone } from './balance';
-import { STYLE_ORDER, OFFLOAD_ORDER, INTENSITY_ORDER, DISCIPLINE_ORDER, GAMEPLAN_ORDER } from './tacticsResolve';
+import { STYLE_ORDER, OFFLOAD_ORDER, INTENSITY_ORDER, DISCIPLINE_ORDER } from './tacticsResolve';
 import type { TeamTactics, AdvancedTactics, AdvancedKicking, ZoneOf } from '../types/team';
 
 const ZONES: Zone[] = ['own22', 'ownHalf', 'oppHalf', 'opp22'];
@@ -54,6 +54,5 @@ export function seedAdvancedTactics(tactics: TeamTactics): AdvancedTactics {
     defensiveLine:      allZones(tactics.defensiveLine),
     intensity:          sliderPos(INTENSITY_ORDER, tactics.intensity),
     discipline:         sliderPos(DISCIPLINE_ORDER, tactics.discipline),
-    gamePlan:           sliderPos(GAMEPLAN_ORDER, tactics.attackingGamePlan),
   };
 }

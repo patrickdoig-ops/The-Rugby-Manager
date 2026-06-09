@@ -193,7 +193,7 @@ export function renderTacticsMenu(
   // while preserving existing edits.
   function openAdvanced(): void {
     const adv = currentTactics.advanced;
-    if (!adv || adv.gamePlan === undefined) {
+    if (!adv || adv.attackingStyle === undefined) {
       const seeded = seedAdvancedTactics(currentTactics);
       currentTactics = { ...currentTactics, advanced: adv ? { ...seeded, ...adv } : seeded };
       eventBus.emit('ui:tacticsChange', { teamId, tactics: currentTactics });

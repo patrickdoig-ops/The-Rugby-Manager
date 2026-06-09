@@ -75,13 +75,9 @@ export interface AdvancedTactics {
   defendingBreakdown?: ZoneOf<DefendingBreakdown>;
   backfieldDefence?: ZoneOf<BackfieldDefence>;
   defensiveLine?: ZoneOf<DefensiveLine>;
-  // Single (non-zoned) sliders — whole-match disposition levers.
-  // gamePlan (possession ↔ kicking) drives the residual execution bonuses the
-  // preset Game Plan carried beyond kick frequency/type: kick distance, 50:22
-  // accuracy, possession handling pressure, and forward fatigue.
+  // Single (non-zoned) whole-match effort sliders.
   intensity?: number;
   discipline?: number;
-  gamePlan?: number;
 }
 
 export interface TeamTactics {

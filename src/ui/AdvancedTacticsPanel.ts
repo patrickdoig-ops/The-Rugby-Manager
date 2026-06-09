@@ -56,8 +56,9 @@ const DISCRETE_DIMS: { dim: DiscreteDim; label: string; group: 'ball' | 'defend'
 ];
 
 const SINGLE_SLIDERS = [
-  { dim: 'intensity',  label: 'Intensity',  lo: 'Light',    hi: 'High' },
-  { dim: 'discipline', label: 'Discipline', lo: 'Cautious', hi: 'Risky' },
+  { dim: 'gamePlan',   label: 'Game plan',  lo: 'Possession', hi: 'Kicking' },
+  { dim: 'intensity',  label: 'Intensity',  lo: 'Light',      hi: 'High' },
+  { dim: 'discipline', label: 'Discipline', lo: 'Cautious',   hi: 'Risky' },
 ] as const;
 
 function clone(a: AdvancedTactics): AdvancedTactics {
@@ -73,6 +74,7 @@ function clone(a: AdvancedTactics): AdvancedTactics {
     defensiveLine:      { ...a.defensiveLine! },
     intensity:          a.intensity!,
     discipline:         a.discipline!,
+    gamePlan:           a.gamePlan!,
   };
 }
 
@@ -190,7 +192,8 @@ export function renderAdvancedTactics(
       const value = Number(slider.value);
       if (kind === 'single') {
         if (slider.dataset.dim === 'intensity') working.intensity = value;
-        else working.discipline = value;
+        else if (slider.dataset.dim === 'discipline') working.discipline = value;
+        else working.gamePlan = value;
       } else if (kind === 'zone') {
         (working[slider.dataset.dim as 'attackingStyle' | 'offloadStrategy'] as ZoneOf<number>)[slider.dataset.zone as Zone] = value;
       } else {

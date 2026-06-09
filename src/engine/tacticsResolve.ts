@@ -22,6 +22,7 @@ import type {
   OffloadStrategy,
   Intensity,
   Discipline,
+  AttackingGamePlan,
 } from '../types/team';
 import type { PossessionSide } from '../types/engine';
 import { zoneForSide } from './FieldPosition';
@@ -44,6 +45,7 @@ export const STYLE_ORDER:      readonly [AttackingStyle, AttackingStyle, Attacki
 export const OFFLOAD_ORDER:    readonly [OffloadStrategy, OffloadStrategy, OffloadStrategy] = ['cautious', 'balanced', 'offload_freely'];
 export const INTENSITY_ORDER:  readonly [Intensity, Intensity, Intensity]                  = ['light', 'balanced', 'high'];
 export const DISCIPLINE_ORDER: readonly [Discipline, Discipline, Discipline]               = ['cautious', 'balanced', 'risky'];
+export const GAMEPLAN_ORDER:   readonly [AttackingGamePlan, AttackingGamePlan, AttackingGamePlan] = ['possession', 'balanced', 'kicking'];
 
 // ── Discrete per-zone dimensions — return the effective enum for the zone ──
 
@@ -98,4 +100,13 @@ export function effDisciplineScalar(team: Team, table: Record<Discipline, number
   const adv = team.tactics.advanced?.discipline;
   if (adv === undefined) return table[team.tactics.discipline];
   return lerp3(table[DISCIPLINE_ORDER[0]], table[DISCIPLINE_ORDER[1]], table[DISCIPLINE_ORDER[2]], adv);
+}
+
+// Game-plan residual bonuses (kick distance, 50:22, handling pressure, forward
+// fatigue) — the preset Game Plan's effects beyond kick frequency/type, now
+// driven by the single possession↔kicking slider when advanced.
+export function effGamePlanScalar(team: Team, table: Record<AttackingGamePlan, number>): number {
+  const adv = team.tactics.advanced?.gamePlan;
+  if (adv === undefined) return table[team.tactics.attackingGamePlan];
+  return lerp3(table[GAMEPLAN_ORDER[0]], table[GAMEPLAN_ORDER[1]], table[GAMEPLAN_ORDER[2]], adv);
 }

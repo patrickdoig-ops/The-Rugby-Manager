@@ -2,6 +2,7 @@ import { VERSION } from '../version';
 import { loadSave, clearSave } from './SaveManager';
 import type { RawTeamInput } from '../types/teamData';
 import { buildSaveContext, ordinalSuffix, type SaveContext } from '../game/saveSummary';
+import { helpButtonHtml } from './help/helpButton';
 
 function pitchLinesSvg(): string {
   return `<svg class="home-pitch-lines" aria-hidden="true" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
@@ -142,6 +143,7 @@ export function initHomeScreen(
       </div>
       <div id="home-chrome-actions">
         <span class="home-chrome-version">v${VERSION}</span>
+        ${helpButtonHtml('home')}
         <button id="settings-btn" aria-label="Settings">${gearIcon()}</button>
       </div>
     </div>

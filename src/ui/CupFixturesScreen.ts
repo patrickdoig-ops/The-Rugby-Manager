@@ -10,6 +10,7 @@
 import type { BreakBeginResult, PreSeasonBlockResult, GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import { poolTableHtml, fixtureListHtml, bracketHtml } from './components/cupViews';
+import { helpButtonHtml } from './help/helpButton';
 
 type Mode =
   | { kind: 'pre_block'; begin: BreakBeginResult | PreSeasonBlockResult; onContinue: (direction: 'best' | 'rest_first_15') => void }
@@ -66,7 +67,7 @@ export function initCupFixturesScreen(
           <div class="app-topbar">
             <div class="app-topbar-spacer"></div>
             <span class="app-title">League Cup</span>
-            <div class="app-topbar-spacer"></div>
+            <div class="app-topbar-spacer">${helpButtonHtml('cup-fixtures')}</div>
           </div>
           <div class="app-eyebrow">${legLabel} · ${state.calendar.seasonLabel}</div>
         </div>
@@ -124,7 +125,7 @@ export function initCupFixturesScreen(
             <span>Back</span>
           </button>
           <span class="app-title">League Cup</span>
-          <div class="app-topbar-spacer"></div>
+          <div class="app-topbar-spacer">${helpButtonHtml('cup-fixtures')}</div>
         </div>
         <div class="app-eyebrow">${state.calendar.seasonLabel}</div>
       </div>

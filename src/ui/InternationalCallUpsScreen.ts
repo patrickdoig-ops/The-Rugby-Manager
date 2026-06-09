@@ -8,6 +8,7 @@ import type { BreakBeginResult, GameCoordinator } from '../game/GameCoordinator'
 import type { RawTeamInput } from '../types/teamData';
 import { INTERNATIONAL_WINDOWS } from '../engine/balance/international';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
+import { helpButtonHtml } from './help/helpButton';
 
 let activeBegin: BreakBeginResult | null = null;
 let activeOnContinue: (() => void) | null = null;
@@ -86,7 +87,7 @@ export function initInternationalCallUpsScreen(
         <div class="app-topbar">
           <div class="app-topbar-spacer"></div>
           <span class="app-title">International Call-Ups</span>
-          <div class="app-topbar-spacer"></div>
+          <div class="app-topbar-spacer">${helpButtonHtml('intl-callups')}</div>
         </div>
         <div class="app-eyebrow">${windowLabel(begin.window)} · ${state.calendar.seasonLabel}</div>
       </div>

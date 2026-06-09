@@ -11,6 +11,7 @@ import type { RawTeamInput } from '../types/teamData';
 import { sortStandings } from '../game/leagueTable';
 import { injectTeamColors } from './teamColors';
 import { formatDateMedium } from '../utils/formatDate';
+import { helpButtonHtml } from './help/helpButton';
 
 export interface InitLeagueMenuOpts {
   getGameEngine: () => GameCoordinator;
@@ -94,7 +95,7 @@ export function initLeagueMenuScreen(opts: InitLeagueMenuOpts): void {
             <span>Competitions</span>
           </button>
           <span class="app-title">League</span>
-          <div class="app-topbar-spacer"></div>
+          <div class="app-topbar-spacer">${helpButtonHtml('league-menu')}</div>
         </div>
         <div id="lm-standing-bar">
           <div id="lm-standing">

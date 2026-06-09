@@ -8,6 +8,7 @@
 
 import type { RawTeamInput } from '../types/teamData';
 import { injectTeamColors } from './teamColors';
+import { helpButtonHtml } from './help/helpButton';
 
 export function initModePickerScreen(
   team: RawTeamInput,
@@ -23,6 +24,7 @@ export function initModePickerScreen(
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
       <span>Teams</span>
     </button>
+    ${helpButtonHtml('mode-picker', true)}
 
     <div id="mp-inner">
       <div id="mp-header">

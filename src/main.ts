@@ -52,8 +52,10 @@ import '../style/finances.css';
 import '../style/loans.css';
 import '../style/scouting.css';
 import '../style/press-conference.css';
+import '../style/help.css';
 
 import { buildAppShell }           from './ui/AppShell';
+import { initHelpDelegation }      from './ui/help/helpButton';
 import { preloadAllCues }          from './ui/SoundManager';
 import { initAudioDirector }       from './ui/audio/AudioDirector';
 import { initUiSounds }            from './ui/audio/uiSounds';
@@ -192,6 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
   configureNativeShell();
   initTextScale();            // accessibility text scale — before any render
   buildAppShell();
+  initHelpDelegation();       // one delegated listener for every help button
   initHalfTimeTalkPanel(document.getElementById('half-time-panel')!);
   preloadAllCues();
   initAudioDirector();

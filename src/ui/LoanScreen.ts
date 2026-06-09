@@ -11,6 +11,7 @@ import type { Player } from '../types/player';
 import { playerOverall } from '../engine/RatingEngine';
 import { injectTeamColors } from './teamColors';
 import { PARTNERSHIP_CLUB } from '../data/partnershipClubs';
+import { helpButtonHtml } from './help/helpButton';
 
 export interface InitLoanScreenOpts {
   getGameEngine: () => GameCoordinator;
@@ -106,7 +107,7 @@ export function showLoans(): void {
           <span>Contracts &amp; Transfers</span>
         </button>
         <span class="app-title">Loans</span>
-        <div class="app-topbar-spacer"></div>
+        <div class="app-topbar-spacer">${helpButtonHtml('loans')}</div>
       </div>
       <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
     </div>

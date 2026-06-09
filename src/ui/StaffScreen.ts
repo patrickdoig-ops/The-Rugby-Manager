@@ -11,6 +11,7 @@ import type { StaffMember } from '../types/gameState';
 import { STAFF_CAPS, STAFF_BUDGET_FRACTION } from '../engine/balance/staff';
 import { staffBudgetUsage } from '../game/teamStats';
 import { injectTeamColors } from './teamColors';
+import { helpButtonHtml } from './help/helpButton';
 
 export interface InitStaffScreenOpts {
   getGameEngine: () => GameCoordinator;
@@ -129,7 +130,7 @@ export function showStaff(): void {
           <span>Club</span>
         </button>
         <span class="app-title">Staff</span>
-        <div class="app-topbar-spacer"></div>
+        <div class="app-topbar-spacer">${helpButtonHtml('staff')}</div>
       </div>
       <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
     </div>

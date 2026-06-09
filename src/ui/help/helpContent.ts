@@ -1,0 +1,440 @@
+// Central registry of in-game help content. Every screen that mounts a help
+// button (src/ui/help/helpButton.ts) keys into this map; HelpOverlay.ts renders
+// the matching topic. Content lives here as data — never inline in screens — so
+// rolling help out to a new screen is one entry plus one mountHelpButton() call.
+//
+// Each topic: a one-line `purpose` (why the screen exists), a `features` list
+// (what each control/feature does), and optional `tips` (advice for new
+// managers). Keep copy concise, on-brand, and accurate to the screen.
+
+export interface HelpTopic {
+  /** Sheet heading — usually the screen's own title. */
+  title: string;
+  /** One or two sentences: what this screen is for. */
+  purpose: string;
+  /** Labelled list of the screen's controls / features. */
+  features: { label: string; desc: string }[];
+  /** Optional new-manager advice. */
+  tips?: string[];
+}
+
+const HELP_TOPICS = {
+  // ─── Onboarding ───────────────────────────────────────────────
+  'home': {
+    title: 'Main Menu',
+    purpose: 'Your starting point. Begin a new career, continue a saved one, or adjust how the game looks and plays.',
+    features: [
+      { label: 'New Game', desc: 'Pick a club and start a fresh career from pre-season.' },
+      { label: 'Continue', desc: 'Resume your most recent save exactly where you left off.' },
+      { label: 'Settings', desc: 'Sound, haptics, text size and other preferences.' },
+    ],
+    tips: [
+      'Your career autosaves as you play — Continue picks up the latest point automatically.',
+      'First time here? Start a New Game and pick a club you know to learn the ropes.',
+    ],
+  },
+  'team-selector': {
+    title: 'Choose Your Club',
+    purpose: 'Pick the club you will manage. Your choice sets your squad, budget and board expectations for the season.',
+    features: [
+      { label: 'Club list', desc: 'Tap a club to see its details before committing.' },
+      { label: 'Club strength', desc: 'Stronger clubs come with bigger budgets but higher board expectations.' },
+    ],
+    tips: [
+      'A mid-table club is the most forgiving place to learn — fewer must-win expectations.',
+      'You can always start a new career with a different club later.',
+    ],
+  },
+  'team-info': {
+    title: 'Club Details',
+    purpose: 'A closer look at the club you are about to manage — squad, stadium and reputation — before you confirm.',
+    features: [
+      { label: 'Squad preview', desc: 'See the players you will inherit and their key strengths.' },
+      { label: 'Confirm', desc: 'Lock in this club and move on to choosing how you set up your team.' },
+    ],
+    tips: [
+      'Note where the squad is thin — that is where you will want to recruit early.',
+    ],
+  },
+  'mode-picker': {
+    title: 'Set-Up Mode',
+    purpose: 'Choose how you want to start: jump straight in with the club’s real squad, or build your roster yourself.',
+    features: [
+      { label: 'Quick Start', desc: 'Begin immediately with the club’s authored squad, contracts and marquee player in place.' },
+      { label: 'Squad Builder', desc: 'Take control of your budget and shape the roster through a pre-season signing window before kick-off.' },
+    ],
+    tips: [
+      'New to the game? Quick Start gets you to your first match fastest.',
+      'Squad Builder is the deeper experience — you set wages, sign players and pick a marquee man.',
+    ],
+  },
+
+  // ─── Hub & menus ──────────────────────────────────────────────
+  'hub': {
+    title: 'The Hub',
+    purpose: 'Your home base between matches. Everything you manage — squad, tactics, training, transfers and the club — branches from here.',
+    features: [
+      { label: 'Next Match card', desc: 'Shows your upcoming fixture, venue and recent form for both sides.' },
+      { label: 'Inbox banner', desc: 'Your assistant’s briefings — injuries, expiring contracts and news that need attention.' },
+      { label: 'Six tiles', desc: 'Squad, Tactics, Competitions, Training, Contracts & Transfers, and Club open the management screens.' },
+      { label: 'Go to next match', desc: 'The main button — advances time to your next fixture and starts the build-up.' },
+      { label: 'Settings cog', desc: 'Top-right — preferences and the route back to the main menu.' },
+    ],
+    tips: [
+      'Clear your inbox before each match — it flags the decisions that matter most.',
+      'A number badge on a tile means something needs your action there.',
+    ],
+  },
+  'competitions-menu': {
+    title: 'Competitions',
+    purpose: 'A hub for every competition you are involved in — the league, the League Cup and the European tournaments.',
+    features: [
+      { label: 'League', desc: 'Standings, fixtures, team and player stats, and end-of-season awards.' },
+      { label: 'League Cup', desc: 'The pre-season pool competition run alongside your league campaign.' },
+      { label: 'European Cup / Shield', desc: 'Continental pool and knockout competitions, when your club has qualified.' },
+    ],
+  },
+  'league-menu': {
+    title: 'League',
+    purpose: 'Everything about your domestic league season in one place.',
+    features: [
+      { label: 'Table', desc: 'Live standings, including playoff and European qualification cut-offs.' },
+      { label: 'Fixtures', desc: 'The full season schedule with results so far.' },
+      { label: 'Team & Player Stats', desc: 'League-wide leaderboards for clubs and individuals.' },
+      { label: 'Awards', desc: 'End-of-season honours once the campaign is decided.' },
+    ],
+  },
+  'contracts-transfers-menu': {
+    title: 'Contracts & Transfers',
+    purpose: 'Manage your players’ deals and bring in new ones — renewals, the transfer market, scouting and loans.',
+    features: [
+      { label: 'Contracts', desc: 'Review and renew the deals of players already at the club.' },
+      { label: 'Transfers', desc: 'Sign free agents and target players from other clubs.' },
+      { label: 'Scouting', desc: 'Build a shortlist of players you are tracking.' },
+      { label: 'Loans', desc: 'Send youngsters out for development or bring in emergency cover.' },
+    ],
+    tips: [
+      'Badges flag expiring contracts and players other clubs are circling — act before you lose them.',
+    ],
+  },
+  'club-menu': {
+    title: 'Club',
+    purpose: 'Off-field management — your standing with the board, your backroom staff and the club’s finances.',
+    features: [
+      { label: 'Board Confidence', desc: 'How happy your owner is, and the factors driving it.' },
+      { label: 'Staff', desc: 'Hire and release your assistant manager, fitness lead and scouts.' },
+      { label: 'Finances', desc: 'Player wage budget, staff budget and the slider to move spare headroom between them.' },
+    ],
+  },
+
+  // ─── Squad & tactics ──────────────────────────────────────────
+  'squad-management': {
+    title: 'Squad Selection',
+    purpose: 'Pick your matchday 23 — the starting XV and eight replacements — for the next fixture.',
+    features: [
+      { label: 'Starting XV', desc: 'The 15 players who begin the match, by position.' },
+      { label: 'Bench', desc: 'Eight replacements available to bring on during the game.' },
+      { label: 'Player ratings', desc: 'Each player’s overall and key attributes guide your selection.' },
+      { label: 'Fitness & injuries', desc: 'Tired or injured players carry a warning — rest them or risk poor performance.' },
+    ],
+    tips: [
+      'Match each player to their best position — playing out of position hurts performance.',
+      'Cover every position on the bench so you can react to injuries and sin-bins.',
+    ],
+  },
+  'squad-overview': {
+    title: 'Squad Overview',
+    purpose: 'A full view of your roster — every player, their position, ratings and contract status at a glance.',
+    features: [
+      { label: 'Player rows', desc: 'Tap any player to open their detailed profile.' },
+      { label: 'Sort & filter', desc: 'Order the squad by position, rating, age or contract to spot gaps.' },
+      { label: 'Contract status', desc: 'See who is nearing the end of their deal.' },
+    ],
+    tips: [
+      'Watch your age profile — too many players past their peak means a rebuild is coming.',
+    ],
+  },
+  'tactics': {
+    title: 'Tactics',
+    purpose: 'Set how your team plays — choose a preset style or fine-tune individual tactical instructions.',
+    features: [
+      { label: 'Presets', desc: 'Ready-made styles (e.g. expansive, forward-led) for a quick set-up.' },
+      { label: 'Advanced editor', desc: 'Adjust individual instructions — kicking, width, breakdown commitment and more.' },
+      { label: 'Save on exit', desc: 'Your selection is committed to the team when you go back.' },
+    ],
+    tips: [
+      'Match your tactics to your personnel — a forward-heavy plan needs a strong pack.',
+      'You can also adjust tactics live during a match from the in-game controls.',
+    ],
+  },
+  'training': {
+    title: 'Training',
+    purpose: 'Plan how your squad trains between matches to develop attributes, sharpen form and manage fatigue.',
+    features: [
+      { label: 'Training focus', desc: 'Choose what to emphasise — attack, defence, fitness, set-piece and more.' },
+      { label: 'Intensity', desc: 'Harder sessions develop players faster but raise injury and fatigue risk.' },
+      { label: 'Plan persists', desc: 'Your plan is saved and applied automatically as the weeks run.' },
+    ],
+    tips: [
+      'Ease off intensity in a congested fixture run to keep players fresh.',
+      'Young players gain the most from focused development sessions.',
+    ],
+  },
+
+  // ─── Contracts & transfers ────────────────────────────────────
+  'contracts': {
+    title: 'Contracts',
+    purpose: 'Review and renew the deals of players already at your club, and manage your marquee signing.',
+    features: [
+      { label: 'Contract list', desc: 'Every player’s wage, length and expiry date.' },
+      { label: 'Offer renewal', desc: 'Extend a deal before it runs down — wages must fit your salary budget.' },
+      { label: 'Marquee player', desc: 'One designated star whose wage sits outside the standard cap.' },
+    ],
+    tips: [
+      'Renew key players early — once a contract is short, rivals can poach them.',
+      'Keep an eye on your total wage bill on the Finances screen.',
+    ],
+  },
+  'renewals': {
+    title: 'Contract Renewals',
+    purpose: 'Decide which expiring players to keep. Offer fresh terms now or let them leave at the end of their deal.',
+    features: [
+      { label: 'Expiring players', desc: 'Everyone whose contract is running out, with their value to the squad.' },
+      { label: 'Offer terms', desc: 'Propose a new wage and length — the player may accept, negotiate or decline.' },
+      { label: 'Let go', desc: 'Decline to renew and free up budget for new recruits.' },
+    ],
+    tips: [
+      'Star players will reject low offers — pay what they are worth or risk losing them for nothing.',
+    ],
+  },
+  'transfer-market': {
+    title: 'Transfer Market',
+    purpose: 'Strengthen your squad by signing free agents and targeting players from other clubs within your budget.',
+    features: [
+      { label: 'Available players', desc: 'Free agents and transfer-listed players you can pursue.' },
+      { label: 'Make an offer', desc: 'Agree a wage (and fee, for contracted players) to complete a signing.' },
+      { label: 'Budget check', desc: 'Offers must fit your remaining salary headroom.' },
+    ],
+    tips: [
+      'Target the positions your squad is thinnest in, not just the biggest names.',
+      'Free agents cost no transfer fee — good value when budgets are tight.',
+    ],
+  },
+  'scouting': {
+    title: 'Scouting',
+    purpose: 'Build and manage a shortlist of players you are tracking for future signings.',
+    features: [
+      { label: 'Scouted players', desc: 'Your watchlist, with the attributes your scouts have uncovered.' },
+      { label: 'Open profile', desc: 'Tap a card to see the player’s full detail.' },
+      { label: 'Remove', desc: 'Swipe a card away to drop a player from your shortlist.' },
+    ],
+    tips: [
+      'Better scouts reveal more accurate ratings — invest in your scouting staff.',
+    ],
+  },
+  'loans': {
+    title: 'Loans',
+    purpose: 'Send young players out to develop with regular game time, or bring in short-term cover for an injury crisis.',
+    features: [
+      { label: 'Loan out', desc: 'Send a developing player to a partnership club for first-team minutes.' },
+      { label: 'Emergency cover', desc: 'Bring in a player on loan when injuries leave a position bare.' },
+    ],
+    tips: [
+      'Loaning out fringe youngsters speeds their development versus sitting on your bench.',
+    ],
+  },
+
+  // ─── Club ─────────────────────────────────────────────────────
+  'board-confidence': {
+    title: 'Board Confidence',
+    purpose: 'Track how satisfied your owner is with your management — your job security depends on it.',
+    features: [
+      { label: 'Confidence meter', desc: 'Your current standing with the board, from secure to at-risk.' },
+      { label: 'Factors', desc: 'What is helping or hurting — results, league position and meeting season objectives.' },
+    ],
+    tips: [
+      'A run of poor results drains confidence — a warning means your job is under threat.',
+      'Meeting the board’s season objective is the surest way to stay in post.',
+    ],
+  },
+  'staff': {
+    title: 'Staff',
+    purpose: 'Hire and release the backroom team that supports your squad — better staff means better outcomes.',
+    features: [
+      { label: 'Assistant Manager', desc: 'Runs cup fixtures and advises on selection.' },
+      { label: 'Fitness Lead', desc: 'Improves training gains and reduces injury risk.' },
+      { label: 'Scouts', desc: 'Reveal more accurate player ratings on your shortlist.' },
+    ],
+    tips: [
+      'Staff wages come from your staff budget — balance it against your playing squad.',
+    ],
+  },
+  'club-finances': {
+    title: 'Finances',
+    purpose: 'Manage the money. See your player wage budget, your staff budget, and move spare headroom between them.',
+    features: [
+      { label: 'Player salary budget', desc: 'Total wages committed versus your cap — stay inside it.' },
+      { label: 'Staff budget', desc: 'What you can spend on the backroom team.' },
+      { label: 'Transfer slider', desc: 'Move unused player-wage headroom into the staff budget for this season.' },
+    ],
+    tips: [
+      'The slider is one-way and resets each season — only shift what you are sure you will not need.',
+    ],
+  },
+
+  // ─── League & stats ───────────────────────────────────────────
+  'league-table': {
+    title: 'League Table',
+    purpose: 'The live standings for your league, including the playoff and European qualification places.',
+    features: [
+      { label: 'Standings', desc: 'Played, won, drawn, lost, points difference, bonus points and total points.' },
+      { label: 'Qualification lines', desc: 'Markers show the playoff and European cut-offs.' },
+      { label: 'Form view', desc: 'Toggle to a last-five-results view sorted by recent form.' },
+    ],
+    tips: [
+      'Bonus points (four tries, or a narrow loss) can decide tight qualification races.',
+    ],
+  },
+  'fixture-list': {
+    title: 'Fixtures',
+    purpose: 'The full season schedule — past results and upcoming matches for your club and the league.',
+    features: [
+      { label: 'Fixture rows', desc: 'Each round with kick-off dates and final scores once played.' },
+      { label: 'Your matches', desc: 'Your club’s games are highlighted through the list.' },
+    ],
+    tips: [
+      'Look ahead for fixture pile-ups and rotate your squad and training to cope.',
+    ],
+  },
+  'team-stats': {
+    title: 'Team Stats',
+    purpose: 'League-wide team leaderboards — see how your club ranks for attack, defence and discipline.',
+    features: [
+      { label: 'Stat categories', desc: 'Tries, points, possession, tackles and more across every club.' },
+      { label: 'Your club', desc: 'Highlighted so you can benchmark against the league.' },
+    ],
+  },
+  'player-stats': {
+    title: 'Player Stats',
+    purpose: 'Individual leaderboards across the league — top scorers, try-scorers, tacklers and more.',
+    features: [
+      { label: 'Leaderboards', desc: 'Ranked lists for each statistical category.' },
+      { label: 'Open profile', desc: 'Tap a player to see their full season detail.' },
+    ],
+  },
+  'achievements': {
+    title: 'Awards & Achievements',
+    purpose: 'A record of the honours and milestones you and your players have earned.',
+    features: [
+      { label: 'Awards', desc: 'Season honours, trophies and individual recognition.' },
+      { label: 'Milestones', desc: 'Notable feats reached across your career.' },
+    ],
+  },
+
+  // ─── Cups & Europe ────────────────────────────────────────────
+  'cup-fixtures': {
+    title: 'League Cup',
+    purpose: 'The pre-season pool competition. Browse the cup’s fixtures and how your club is progressing.',
+    features: [
+      { label: 'Pool fixtures', desc: 'Your group’s matches and results.' },
+      { label: 'Assistant-run', desc: 'Your assistant manager handles the cup matches while you set squad direction.' },
+    ],
+  },
+  'cup-results': {
+    title: 'League Cup Results',
+    purpose: 'How the League Cup round played out — your result and the rest of the pool.',
+    features: [
+      { label: 'Results', desc: 'Scores from your fixtures and the other pool matches.' },
+      { label: 'Standings', desc: 'Where your club sits in the group.' },
+    ],
+  },
+  'european-cup': {
+    title: 'European Cup',
+    purpose: 'The premier continental competition — pool stage followed by knockout rounds to the final.',
+    features: [
+      { label: 'Pools', desc: 'Your group, fixtures and standings.' },
+      { label: 'Knockouts', desc: 'The bracket from the round of 16 through to the final.' },
+    ],
+    tips: [
+      'Qualify by finishing high in your domestic league the previous season.',
+    ],
+  },
+  'european-shield': {
+    title: 'European Shield',
+    purpose: 'The secondary continental competition — pool stage and knockouts for clubs outside the top European tier.',
+    features: [
+      { label: 'Pools', desc: 'Your group, fixtures and standings.' },
+      { label: 'Knockouts', desc: 'The bracket through to the Shield final.' },
+    ],
+  },
+  'european-round': {
+    title: 'European Round',
+    purpose: 'Results and standings for the current round of the European competition.',
+    features: [
+      { label: 'Results', desc: 'Scores from across this round.' },
+      { label: 'Progression', desc: 'Who advances and how it affects your club.' },
+    ],
+  },
+
+  // ─── International ─────────────────────────────────────────────
+  'intl-callups': {
+    title: 'International Call-Ups',
+    purpose: 'See which of your players have been called up for international duty during the break.',
+    features: [
+      { label: 'Called-up players', desc: 'Your squad members away on international duty.' },
+      { label: 'Impact', desc: 'They miss training and risk returning tired or injured.' },
+    ],
+    tips: [
+      'Plan your squad around the break — capped players may not be sharp on return.',
+    ],
+  },
+  'international-break': {
+    title: 'International Break',
+    purpose: 'The mid-season pause for internationals. Your called-up players return, with any knocks or fatigue.',
+    features: [
+      { label: 'Returning players', desc: 'Who is back, and their fitness after international duty.' },
+      { label: 'News', desc: 'Any injuries or form changes picked up while away.' },
+    ],
+  },
+
+  // ─── System ───────────────────────────────────────────────────
+  'inbox': {
+    title: 'Inbox',
+    purpose: 'Your assistant’s briefings — the decisions and news that need your attention between matches.',
+    features: [
+      { label: 'Messages', desc: 'Injuries, expiring contracts, poach threats, board notes and media stories.' },
+      { label: 'Quick links', desc: 'Many items jump straight to the screen where you can act.' },
+      { label: 'Read & dismiss', desc: 'Clear items once handled to keep the unread count meaningful.' },
+    ],
+    tips: [
+      'Check the inbox before every match — it surfaces what matters most right now.',
+    ],
+  },
+  'settings': {
+    title: 'Settings',
+    purpose: 'Tune how the game looks, sounds and feels to your preference.',
+    features: [
+      { label: 'Sound & haptics', desc: 'Toggle audio and vibration feedback.' },
+      { label: 'Text size', desc: 'Scale the interface text for comfort.' },
+      { label: 'Main menu', desc: 'Return to the home screen from here.' },
+    ],
+  },
+  'saves': {
+    title: 'Saves',
+    purpose: 'Manage your saved careers — load a slot, see its details, or restore a backup.',
+    features: [
+      { label: 'Save slots', desc: 'Each career’s club, season and progress.' },
+      { label: 'Load', desc: 'Resume a chosen save.' },
+      { label: 'Restore backup', desc: 'Recover an earlier copy if a save is lost or corrupted.' },
+    ],
+    tips: [
+      'The game keeps a backup of each slot automatically — restore it if a save will not load.',
+    ],
+  },
+} as const satisfies Record<string, HelpTopic>;
+
+export type HelpTopicId = keyof typeof HELP_TOPICS;
+
+export function getHelpTopic(id: HelpTopicId): HelpTopic {
+  return HELP_TOPICS[id];
+}

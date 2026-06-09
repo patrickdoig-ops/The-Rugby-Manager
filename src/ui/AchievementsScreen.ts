@@ -11,6 +11,7 @@
 import { ACHIEVEMENTS, type AchievementCategory, type AchievementDef } from '../achievements/achievementDefs';
 import { loadUnlocked } from '../achievements/achievementStore';
 import { getGameCenter, gameCenterAvailable } from '../achievements/GameCenterBridge';
+import { helpButtonHtml } from './help/helpButton';
 
 const CATEGORY_LABELS: Record<AchievementCategory, string> = {
   match:  'Match',
@@ -69,7 +70,7 @@ export function initAchievementsScreen(onBack: () => void): void {
             <span>Hub</span>
           </button>
           <span class="app-title">Achievements</span>
-          <div class="app-topbar-spacer"></div>
+          <div class="app-topbar-spacer">${helpButtonHtml('achievements')}</div>
         </div>
         <div class="app-eyebrow">${earned} / ${total} unlocked</div>
       </div>

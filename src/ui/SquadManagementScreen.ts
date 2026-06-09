@@ -40,6 +40,7 @@ import { eventBus } from '../utils/eventBus';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 import { discardConfirm } from './components/discardConfirm';
 import { playHaptic } from './HapticsManager';
+import { helpButtonHtml } from './help/helpButton';
 
 export interface InitSquadManagementOpts {
   // Always called fresh — see HubScreen for the rationale.
@@ -396,7 +397,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
             <span>Hub</span>
           </button>
           <span class="app-title">Squad</span>
-          <div class="app-topbar-spacer"></div>
+          <div class="app-topbar-spacer">${helpButtonHtml('squad-management')}</div>
         </div>
         <div class="app-eyebrow">${teamJson.name} · ${seasonLabel} · Round ${round}</div>
       </div>

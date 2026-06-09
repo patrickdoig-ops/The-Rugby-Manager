@@ -14,6 +14,7 @@ import { SEASON_AWARDS } from '../engine/balance/career';
 import { eventBus } from '../utils/eventBus';
 import { formatDateMedium } from '../utils/formatDate';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
+import { helpButtonHtml } from './help/helpButton';
 
 type CategoryKind =
   | { kind: 'count';   key: PlayerLeaderKey }
@@ -202,7 +203,7 @@ export function initPlayerStatsScreen(
             <span>League</span>
           </button>
           <span class="app-title">Player Stats</span>
-          <div class="app-topbar-spacer"></div>
+          <div class="app-topbar-spacer">${helpButtonHtml('player-stats')}</div>
         </div>
         <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)} · ${cat.sub}</div>
       </div>

@@ -10,6 +10,7 @@ import type { RawTeamInput } from '../types/teamData';
 import type { EuropeanKnockoutMatch } from '../types/gameState';
 import type { GameCoordinator, EuropeanRoundRef } from '../game/GameCoordinator';
 import { euroFixtureListHtml, euroPoolTableHtml } from './components/europeanViews';
+import { helpButtonHtml } from './help/helpButton';
 
 let _render: (() => void) | null = null;
 let _onContinue: () => void = () => {};
@@ -64,7 +65,7 @@ export function initEuropeanRoundScreen(
       <div class="app-header">
         <div class="app-topbar">
           <span class="app-title">${rr.compLabel}</span>
-          <div class="app-topbar-spacer"></div>
+          <div class="app-topbar-spacer">${helpButtonHtml('european-round')}</div>
         </div>
         <div class="app-eyebrow">${rr.label}</div>
       </div>

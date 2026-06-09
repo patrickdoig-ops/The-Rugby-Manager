@@ -17,6 +17,7 @@ import { recentForm, type FormResult } from '../game/teamStats';
 import { renderFormPipStrip } from './components/formPip';
 import { ROUND_LABELS } from '../engine/balance/season';
 import { formatDateMedium } from '../utils/formatDate';
+import { helpButtonHtml } from './help/helpButton';
 
 type Mode = 'team' | 'next' | 'all';
 
@@ -205,7 +206,7 @@ export function initFixtureListScreen(
             <span>Hub</span>
           </button>
           <span class="app-title">Season Fixtures</span>
-          <div class="app-topbar-spacer"></div>
+          <div class="app-topbar-spacer">${helpButtonHtml('fixture-list')}</div>
         </div>
         <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)}</div>
       </div>

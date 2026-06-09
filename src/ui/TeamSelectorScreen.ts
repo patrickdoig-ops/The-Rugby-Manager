@@ -1,5 +1,6 @@
 import type { RawTeamInput } from '../types/teamData';
 import { computeOverallRating } from '../team/teamProfile';
+import { helpButtonHtml } from './help/helpButton';
 
 function tierLabel(ovr: number): string {
   if (ovr >= 85) return 'Title Favourites';
@@ -62,6 +63,7 @@ export function initTeamSelectorScreen(
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
       <span>Lobby</span>
     </button>
+    ${helpButtonHtml('team-selector', true)}
     <div id="ts-inner">
       <div id="ts-header">
         <h2 id="ts-title">Choose<br>Your Team</h2>

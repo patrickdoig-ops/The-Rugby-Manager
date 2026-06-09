@@ -42,6 +42,7 @@ import type { TransferBid, GameState } from '../types/gameState';
 import { computeFormInputs } from '../game/playerForm';
 import { formRating, formStars } from './formDisplay';
 import { playHaptic } from './HapticsManager';
+import { helpButtonHtml } from './help/helpButton';
 
 type SortKey = 'wage' | 'expiry' | 'ovr' | 'position' | 'age' | 'name';
 type SortDir = 'asc' | 'desc';
@@ -283,10 +284,13 @@ export function initContractsScreen(
         <div class="app-topbar">
           ${leftButton}
           <span class="app-title">${titleText}</span>
-          <button id="ct-sort-btn" aria-label="Sort">
-            ${SORT_ICON}
-            <span>${SORT_LABELS[sortKey]}</span>
-          </button>
+          <div class="app-topbar-right">
+            ${helpButtonHtml('contracts')}
+            <button id="ct-sort-btn" aria-label="Sort">
+              ${SORT_ICON}
+              <span>${SORT_LABELS[sortKey]}</span>
+            </button>
+          </div>
         </div>
         <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
       </div>

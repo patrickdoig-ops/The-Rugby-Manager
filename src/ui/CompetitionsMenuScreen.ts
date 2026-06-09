@@ -6,6 +6,7 @@
 
 import type { GameCoordinator } from '../game/GameCoordinator';
 import { formatDateMedium } from '../utils/formatDate';
+import { helpButtonHtml } from './help/helpButton';
 
 export interface InitCompetitionsMenuOpts {
   getGameEngine: () => GameCoordinator;
@@ -52,7 +53,7 @@ export function initCompetitionsMenuScreen(opts: InitCompetitionsMenuOpts): void
             <span>Hub</span>
           </button>
           <span class="app-title">Competitions</span>
-          <div class="app-topbar-spacer"></div>
+          <div class="app-topbar-spacer">${helpButtonHtml('competitions-menu')}</div>
         </div>
         <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)}</div>
       </div>

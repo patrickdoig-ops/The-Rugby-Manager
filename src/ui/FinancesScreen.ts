@@ -10,6 +10,7 @@ import type { RawTeamInput } from '../types/teamData';
 import { STAFF_BUDGET_FRACTION } from '../engine/balance/staff';
 import { staffBudgetUsage } from '../game/teamStats';
 import { injectTeamColors } from './teamColors';
+import { helpButtonHtml } from './help/helpButton';
 
 export interface InitFinancesScreenOpts {
   getGameEngine: () => GameCoordinator;
@@ -75,7 +76,7 @@ export function showFinancesScreen(): void {
           <span>Club</span>
         </button>
         <span class="app-title">Finances</span>
-        <div class="app-topbar-spacer"></div>
+        <div class="app-topbar-spacer">${helpButtonHtml('club-finances')}</div>
       </div>
       <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
     </div>

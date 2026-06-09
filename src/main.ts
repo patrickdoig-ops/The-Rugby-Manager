@@ -259,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
       allTeams,
       getGameEngine: () => gameEngine,
       onLoad: () => continueGame(),
-      onNewGame: () => goTeamSelector('forward'),
+      onNewGame: () => { gameEngine = null; goTeamSelector('forward'); },
       onBack,
     });
     screenRouter.show('saves', { direction: 'forward' });

@@ -302,14 +302,10 @@ export class PenaltyHandler {
         type: 'CARRY_RESOLVED',
         carrier,
         defender,
-        metres: Math.max(0, gainMetres),
+        metres: gainMetres,
         direction,
         outcome,
         defSide: defendSide,
-      });
-      applyMatchEvent(state, {
-        type: 'BALL_REPOSITIONED',
-        x: clamp(state.ball.x + direction * gainMetres, 0, 100),
       });
 
       const tryScored = isTryScoredAt(state.ball.x, attackSide, state.clock.halfTimeDone);

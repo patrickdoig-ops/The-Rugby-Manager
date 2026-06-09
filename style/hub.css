@@ -813,6 +813,7 @@
 /* ===== Contracts & Transfers sub-menu + Club sub-menu ===== */
 
 #contracts-transfers-menu,
+#competitions-menu,
 #club-menu {
   position: fixed;
   inset: 0;
@@ -838,6 +839,15 @@
 
 /* Contracts & Transfers tile grid — team colour tiles (no --rm-cta override) */
 #ctm-grid {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  padding: 16px;
+  align-content: start;
+}
+
+#cm-grid {
   flex: 1 1 auto;
   display: grid;
   grid-template-columns: 1fr;

@@ -1090,12 +1090,19 @@ export class GameCoordinator {
   // Idempotency: relies on the caller — once SEASON_ROLLED_OVER is
   // applied, the league.fixtures and seasonLabel are the new season's;
   // a second call would roll forward again.
-  rollSeason(): SeasonEvent[] {
+  async rollSeason(): Promise<SeasonEvent[]> {
     const events = computeRollover(this.state, [...this.teamsById.keys()]);
     for (const ev of events) applySeasonEvent(this.state, ev);
     // Re-seed board confidence for the new season from the finish just
     // archived by SEASON_ROLLED_OVER (resets the final-warning latch).
     this.board.seedBoardState();
+    // Simulate European competitions headlessly for the new season.
+    // Pools are already seeded via EUROPEAN_COMP_SEEDED in computeRollover;
+    // we just need to run the matches.
+    await this.european.runPoolStage('europeanCup');
+    await this.european.runPoolStage('europeanShield');
+    await this.european.runKnockoutStage('europeanCup');
+    await this.european.runKnockoutStage('europeanShield');
     eventBus.emit('game:seasonRolledOver', { state: this.state });
     return events;
   }

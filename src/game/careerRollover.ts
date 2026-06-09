@@ -38,7 +38,9 @@ import { generateFixtures } from './fixtures';
 import { rngTransferRaw, rngTransfer } from '../utils/rng';
 import { generatePersona } from './personaGenerator';
 import { redrawCupPools, buildCupSeed } from './cupScheduler';
+import { buildYear2EuropeanSeed } from './europeanScheduler';
 import { generateStaffPool } from './staffPoolGenerator';
+import { sortStandings } from './leagueTable';
 
 export function computeRollover(state: GameState, allTeamIds: string[]): SeasonEvent[] {
   const events: SeasonEvent[] = [];
@@ -139,6 +141,11 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
     generateFixtures(state.player.teamId, allTeamIds, { seasonsCompleted: state.career.seasonsCompleted }),
     newSeasonStartYear,
   );
+  // Capture English European qualifiers BEFORE SEASON_ROLLED_OVER zeros standings.
+  const sortedForEuro = sortStandings([...state.league.standings]);
+  const englishCupTeams   = sortedForEuro.slice(0, 8).map(s => s.teamId);
+  const englishShieldTeams = sortedForEuro.slice(8, 10).map(s => s.teamId);
+
   const archivedStandings: TeamStanding[] = state.league.standings.map(s => ({ ...s }));
   const championTeamId = state.league.playoffs?.championTeamId ?? null;
   const premCupChampionTeamId = state.league.premCup?.knockout?.championTeamId ?? null;
@@ -171,6 +178,18 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
   // installed newFixtures (used to date the cup inside the break gaps).
   const redrawn = redrawCupPools(allTeamIds);
   events.push({ type: 'PREM_CUP_SEEDED', ...buildCupSeed(redrawn, newFixtures, newSeasonLabel) });
+
+  // Seed next season's European competitions. Uses dynamic pool draw from
+  // standings captured above. Must follow redrawCupPools so the rngTransfer
+  // stream shift from the Prem Cup draw doesn't disturb the European draw order.
+  events.push({
+    type: 'EUROPEAN_COMP_SEEDED',
+    ...buildYear2EuropeanSeed(englishCupTeams, englishShieldTeams, newSeasonStartYear, 'europeanCup'),
+  });
+  events.push({
+    type: 'EUROPEAN_COMP_SEEDED',
+    ...buildYear2EuropeanSeed(englishCupTeams, englishShieldTeams, newSeasonStartYear, 'europeanShield'),
+  });
 
   return events;
 }

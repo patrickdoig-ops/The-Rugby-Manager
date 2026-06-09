@@ -211,7 +211,7 @@ async function runOnce(seed: number): Promise<string> {
         const freeAgentsLeft = [...coord.getState().career.freeAgents].sort((a, b) => a - b);
         marketSummary = { ...marketSummary as object, freeAgentsAfterSignings: freeAgentsLeft };
       }
-      rolloverEvents = coord.rollSeason();
+      rolloverEvents = await coord.rollSeason();
     }
 
     // Snapshot the playoff bracket too — every score, the cascaded final

@@ -1004,10 +1004,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // user on a stale "Continue to playoffs" Hub that never reset.
   function finishWithRollover(): void {
     if (!gameEngine) { goHub(); return; }
-    const rolloverEvents = gameEngine.rollSeason();
-    autosave(gameEngine.toSavePayload());
-    showRollover(rolloverEvents, () => goHub());
-    screenRouter.show('rollover');
+    const eng = gameEngine;
+    void eng.rollSeason().then(rolloverEvents => {
+      autosave(eng.toSavePayload());
+      showRollover(rolloverEvents, () => goHub());
+      screenRouter.show('rollover');
+    });
   }
 
   // Renewals → SquadOverview → Signings → rollover. Shared by the normal

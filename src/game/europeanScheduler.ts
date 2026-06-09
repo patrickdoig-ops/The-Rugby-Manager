@@ -7,7 +7,9 @@
 // Prem Cup (100-143). One per round is enough: (homeId, awayId) makes each
 // fixture's seed unique within a round.
 
-import type { EuropeanFixture, EuropeanCompState } from '../types/gameState';
+import type { EuropeanFixture } from '../types/gameState';
+import { europeanTeams } from '../data/european-teams';
+import { rngTransfer } from '../utils/rng';
 
 export type EuropeanFixtureDef = {
   competition: 'europeanCup' | 'europeanShield';
@@ -137,6 +139,98 @@ export const ES_FIXTURES_2025_26: EuropeanFixtureDef[] = [
   { competition: 'europeanShield', poolId: 2, round: 4, homeId: 'lyon',          awayId: 'benetton',      date: '2026-01-18' },
   { competition: 'europeanShield', poolId: 3, round: 4, homeId: 'racing92',      awayId: 'cheetahs',      date: '2026-01-18' },
 ];
+
+// ── Year-2+ pool draw ──────────────────────────────────────────────────────
+
+// Berger partial round-robin for 6 teams, 4 of 5 rounds.
+// Each team plays exactly 4 matches. [homeIdx, awayIdx] into the teamIds array.
+const POOL_ROUND_PAIRS: [number, number][][] = [
+  [[0,5],[1,4],[2,3]],   // round 1
+  [[5,3],[4,2],[0,1]],   // round 2
+  [[1,5],[2,0],[3,4]],   // round 3
+  [[5,4],[0,3],[1,2]],   // round 4
+];
+
+// Generates 12 pool-stage fixtures (4 rounds × 3 matches) for a 6-team pool.
+// Dates are the same for every pool within a round (simplified for Years 2+).
+function generatePoolFixtures(
+  teamIds: string[],
+  poolId: number,
+  competition: 'europeanCup' | 'europeanShield',
+  dates: [string, string, string, string],
+): EuropeanFixture[] {
+  const fixtures: EuropeanFixture[] = [];
+  for (let r = 0; r < 4; r++) {
+    for (const [hi, ai] of POOL_ROUND_PAIRS[r]) {
+      fixtures.push({ poolId, round: r + 1, homeId: teamIds[hi], awayId: teamIds[ai], date: dates[r] });
+    }
+  }
+  return fixtures;
+}
+
+// Fisher-Yates shuffle driven by the career RNG stream.
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rngTransfer(0, i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Approximate EPCR round dates for a given season start year.
+// Mirrors the real-world window: early December + mid-January.
+function europeanRoundDates(seasonStartYear: number): [string, string, string, string] {
+  const y = seasonStartYear;
+  return [`${y}-12-06`, `${y}-12-13`, `${y + 1}-01-10`, `${y + 1}-01-17`];
+}
+
+// Builds the EUROPEAN_COMP_SEEDED payload for one competition in Year 2+.
+// englishCup: top-8 Premiership ids; englishShield: 9th-10th ids.
+export function buildYear2EuropeanSeed(
+  englishCup: string[],
+  englishShield: string[],
+  seasonStartYear: number,
+  competition: 'europeanCup' | 'europeanShield',
+): {
+  competition: 'europeanCup' | 'europeanShield';
+  seasonLabel: string;
+  pools: Array<{ id: number; teamIds: string[] }>;
+  fixtures: EuropeanFixture[];
+} {
+  const seasonLabel = `${seasonStartYear}/${(seasonStartYear + 1).toString().slice(2)} Season`;
+  const dates = europeanRoundDates(seasonStartYear);
+
+  if (competition === 'europeanCup') {
+    // 4 pools × 6: 2 English + 2 French + 2 URC each.
+    const french = shuffle(europeanTeams.filter(t => t.competition === 'europeanCup' && t.leagueGroup === 'french').map(t => t.id));
+    const urc    = shuffle(europeanTeams.filter(t => t.competition === 'europeanCup' && t.leagueGroup === 'urc').map(t => t.id));
+    const english = shuffle([...englishCup]);
+    const pools: Array<{ id: number; teamIds: string[] }> = [];
+    const allFixtures: EuropeanFixture[] = [];
+    for (let p = 0; p < 4; p++) {
+      const teamIds = [english[p*2], english[p*2+1], french[p*2], french[p*2+1], urc[p*2], urc[p*2+1]];
+      pools.push({ id: p + 1, teamIds });
+      allFixtures.push(...generatePoolFixtures(teamIds, p + 1, 'europeanCup', dates));
+    }
+    return { competition: 'europeanCup', seasonLabel, pools, fixtures: allFixtures };
+  } else {
+    // 3 pools × 6: pools 1+2 each get 1 English + 2 French + 3 URC; pool 3 gets 0 English + 2 French + 4 URC.
+    const french  = shuffle(europeanTeams.filter(t => t.competition === 'europeanShield' && t.leagueGroup === 'french').map(t => t.id));
+    const urc     = shuffle(europeanTeams.filter(t => t.competition === 'europeanShield' && t.leagueGroup === 'urc').map(t => t.id));
+    const english = shuffle([...englishShield]);
+    const poolTeams: string[][] = [
+      [english[0], french[0], french[1], urc[0], urc[1], urc[2]],
+      [english[1], french[2], french[3], urc[3], urc[4], urc[5]],
+      [french[4],  french[5], urc[6], urc[7], urc[8], urc[9]],
+    ];
+    const pools = poolTeams.map((teamIds, i) => ({ id: i + 1, teamIds }));
+    const allFixtures = poolTeams.flatMap((teamIds, i) =>
+      generatePoolFixtures(teamIds, i + 1, 'europeanShield', dates),
+    );
+    return { competition: 'europeanShield', seasonLabel, pools, fixtures: allFixtures };
+  }
+}
 
 // ── Seed builder ───────────────────────────────────────────────────────────
 // Returns the EUROPEAN_COMP_SEEDED event payload (minus the `type` field).

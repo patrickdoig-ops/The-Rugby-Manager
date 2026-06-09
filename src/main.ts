@@ -540,6 +540,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // sacked career can't be resumed, then shows the terminal screen.
   function runSackScreen(reason: 'midseason' | 'endOfSeason'): void {
     clearSave();
+    gameEngine = null; // prevent flushActiveGame from re-writing the cleared slot
     showSack({
       reason,
       onNewGame: () => goTeamSelector('forward'),

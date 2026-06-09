@@ -856,6 +856,10 @@
   align-content: start;
 }
 
+#cm-grid .hub-tile {
+  --tile-accent: var(--rm-cta);
+}
+
 /* Club screen content area */
 #cm-content {
   flex: 1;

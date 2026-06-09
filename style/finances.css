@@ -8,7 +8,7 @@
   display: flex;
   flex-direction: column;
   padding-top:    env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: var(--safe-bottom);
   padding-left:   env(safe-area-inset-left, 0px);
   padding-right:  env(safe-area-inset-right, 0px);
   overflow: hidden;
@@ -102,8 +102,8 @@
 }
 
 .fin-bar-fill--over {
-  background: linear-gradient(90deg, var(--rm-danger-deep), var(--rm-stat-1));
-  box-shadow: 0 0 8px color-mix(in oklch, var(--rm-stat-1) 45%, transparent);
+  background: linear-gradient(90deg, var(--rm-danger-deep), var(--rm-danger));
+  box-shadow: 0 0 8px color-mix(in oklch, var(--rm-danger) 45%, transparent);
 }
 
 .fin-bar-fill--staff {

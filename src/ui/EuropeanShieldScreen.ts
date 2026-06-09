@@ -11,6 +11,12 @@ export interface InitEuropeanShieldScreenOpts {
   onBack: () => void;
 }
 
+let _render: (() => void) | null = null;
+
+export function showEuropeanShieldScreen(): void {
+  _render?.();
+}
+
 export function initEuropeanShieldScreen(opts: InitEuropeanShieldScreenOpts): void {
   const el = document.getElementById('european-shield');
   if (!el) return;
@@ -18,19 +24,15 @@ export function initEuropeanShieldScreen(opts: InitEuropeanShieldScreenOpts): vo
   const teamsById = new Map(opts.allTeams.map(t => [t.id, t]));
 
   function render(): void {
-    let comp = null;
-    let playerId = '';
-    try {
-      const state = opts.getGameEngine().getState();
-      comp = state.league.europeanShield ?? null;
-      playerId = state.player.teamId;
-    } catch { /* engine not yet initialised — show placeholder */ }
-    el!.innerHTML = euroScreenHtml(comp, teamsById, playerId, 'European Shield', 'es-back');
+    const state = opts.getGameEngine().getState();
+    const comp = state.league.europeanShield ?? null;
+    el!.innerHTML = euroScreenHtml(comp, teamsById, state.player.teamId, 'European Shield', 'es-back');
     el!.querySelector<HTMLButtonElement>('#es-back')!.addEventListener('click', () => opts.onBack());
   }
 
-  render();
+  _render = render;
 
-  const unsub = eventBus.on('game:weekAdvanced', () => { if (el.offsetParent !== null) render(); });
-  void unsub;
+  eventBus.on('game:weekAdvanced',     () => { if (el.offsetParent !== null) render(); });
+  eventBus.on('game:initialized',      () => { if (el.offsetParent !== null) render(); });
+  eventBus.on('game:seasonRolledOver', () => { if (el.offsetParent !== null) render(); });
 }

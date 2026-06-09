@@ -456,7 +456,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: var(--rm-text-dim);
+  color: var(--rm-pitch);
 }
 .advk-freq-val { font-size: var(--rm-fs-12); color: var(--rm-text); }
 .advk-freq-val strong { color: var(--rm-pitch); }

@@ -86,13 +86,6 @@
   text-align: center;
 }
 
-#hub-standing {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  margin-top: 2px;
-}
-
 .hub-standing-item {
   display: flex;
   flex-direction: column;
@@ -140,30 +133,6 @@
   text-transform: uppercase;
 }
 
-#hub-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  width: 100%;
-}
-
-#hub-eyebrow {
-  font-family: var(--rm-font-mono);
-  font-size: var(--rm-fs-9);
-  letter-spacing: 0.16em;
-  color: var(--rm-pitch);
-  text-transform: uppercase;
-}
-
-#hub-progress-wrap {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  width: 100%;
-}
-
-
 .hub-progress-wk,
 .hub-progress-total {
   font-family: var(--rm-font-mono);
@@ -172,23 +141,6 @@
   color: var(--rm-text-dim);
   text-transform: uppercase;
   flex-shrink: 0;
-}
-
-#hub-progress {
-  flex: 1;
-  height: 5px;
-  background: var(--rm-surface-2);
-  border-radius: 3px;
-  overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-}
-
-#hub-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--rm-pitch-deep), var(--rm-pitch));
-  border-radius: 2px;
-  transition: width 0.4s ease;
-  box-shadow: 0 0 8px color-mix(in oklch, var(--rm-pitch) 60%, transparent);
 }
 
 #hub-next-match {

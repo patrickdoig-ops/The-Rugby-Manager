@@ -8,11 +8,9 @@
 
 import type { GameCoordinator, EuropeanFixtureRef } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
-import type { Fixture, FixtureResult, GameState } from '../types/gameState';
+import type { Fixture, GameState } from '../types/gameState';
 import { eventBus } from '../utils/eventBus';
-import { sortStandings } from '../game/leagueTable';
-import { computeOverallRating } from '../team/teamProfile';
-import { formAdjustment, matchSpread, HOME_ADVANTAGE_PTS, recentForm } from '../game/teamStats';
+import { recentForm } from '../game/teamStats';
 import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
 import { buildAssistantReport } from '../game/inbox';
 import { countUnread } from './inboxRead';
@@ -99,16 +97,6 @@ const TILES: TileSpec[] = [
   { id: 'hub-tile-club',                 ariaLabel: 'Club',                     label: 'Club',                   iconKey: 'club',                 handlerKey: 'onClub' },
 ];
 
-function ordinalSuffix(n: number): string {
-  const v = n % 100;
-  if (v >= 11 && v <= 13) return 'th';
-  switch (n % 10) {
-    case 1: return 'st';
-    case 2: return 'nd';
-    case 3: return 'rd';
-    default: return 'th';
-  }
-}
 
 export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } {
   const el = document.getElementById('hub');
@@ -140,17 +128,9 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
     const playoffsActive = playoffs !== null;
     const playerPlayoffMatch = playoffsActive ? opts.getGameEngine().getPlayerPlayoffMatch() : null;
 
-    const sorted = sortStandings(state.league.standings);
-    const rankIdx = sorted.findIndex(s => s.teamId === playerTeam.id);
-    const standing = rankIdx >= 0 ? sorted[rankIdx] : null;
-    const rank = rankIdx + 1;
-
-    const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
-    const pct = totalRounds > 0 ? (state.calendar.week / totalRounds) * 100 : 0;
     const injuredCount = countInjured(state);
     const expiringCount = countExpiringContracts(state);
-    const lastRes = lastPlayerResult(playerTeam.id, state.league.results);
-    const poachThreatCount = (state.career.activePoachedIds ?? []).length;
+const poachThreatCount = (state.career.activePoachedIds ?? []).length;
     const tileBadgeCount: Record<string, number> = {
       'hub-tile-squad':               injuredCount,
       'hub-tile-contracts-transfers': expiringCount + poachThreatCount,
@@ -165,33 +145,6 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
 
       <div id="hub-hero">
         <h1 id="hub-team-name">${playerTeam.name}</h1>
-        <div id="hub-standing">
-          <div class="hub-standing-item">
-            <span class="hub-standing-val" style="color:${playerTeam.color}">${rank > 0 ? rank + ordinalSuffix(rank) : '—'}</span>
-            <span class="hub-standing-label">Position</span>
-          </div>
-          <div class="hub-standing-item">
-            <span class="hub-standing-val hub-standing-val--chalk">${standing?.leaguePoints ?? 0}</span>
-            <span class="hub-standing-label">Points</span>
-          </div>
-          <div class="hub-standing-item">
-            <span class="hub-standing-val hub-standing-val--chalk hub-standing-val--record">${standing?.won ?? 0}W–${standing?.lost ?? 0}L</span>
-            <span class="hub-standing-label">Record</span>
-          </div>
-          ${lastRes ? `
-          <div class="hub-standing-item">
-            <span class="hub-standing-val hub-standing-val--last hub-standing-val--${lastRes.outcome}">${lastRes.outcome === 'win' ? 'W' : lastRes.outcome === 'loss' ? 'L' : 'D'} ${lastRes.score}</span>
-            <span class="hub-standing-label">Last</span>
-          </div>` : ''}
-        </div>
-        <div id="hub-meta">
-          <div id="hub-eyebrow">${state.calendar.seasonLabel}</div>
-          <div id="hub-progress-wrap">
-            <span class="hub-progress-wk">WK ${state.calendar.week}</span>
-            <div id="hub-progress"><div id="hub-progress-fill" style="width:${pct.toFixed(1)}%"></div></div>
-            <span class="hub-progress-total">R${totalRounds}</span>
-          </div>
-        </div>
       </div>
 
       ${playoffsActive
@@ -371,24 +324,6 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
     const venueLabel = playerHome ? 'HOME' : 'AWAY';
     const venueName = (fixture.venue ?? home.stadium.split('(')[0].trim()).toUpperCase();
 
-    const homeStanding = state.league.standings.find(s => s.teamId === home.id);
-    const awayStanding = state.league.standings.find(s => s.teamId === away.id);
-    const homeEffective = computeOverallRating(home.id)
-      + HOME_ADVANTAGE_PTS
-      + formAdjustment(homeStanding, state.league.standings);
-    const awayEffective = computeOverallRating(away.id)
-      + formAdjustment(awayStanding, state.league.standings);
-    const spread = matchSpread(homeEffective, awayEffective);
-    const spreadIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.94"/></svg>`;
-    let spreadLabel: string;
-    if (spread.home === 0) {
-      spreadLabel = 'Even contest';
-    } else if (spread.home < 0) {
-      spreadLabel = `${spreadIcon}<span>${home.shortName} favoured · ${-spread.home} pts</span>`;
-    } else {
-      spreadLabel = `${spreadIcon}<span>${away.shortName} favoured · ${spread.home} pts</span>`;
-    }
-
     const homeFormHtml = renderFormPipStrip(recentForm(home.id, state.league.results), 'sm');
     const awayFormHtml = renderFormPipStrip(recentForm(away.id, state.league.results), 'sm');
 
@@ -421,7 +356,6 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
           </div>
         </div>
         <div class="hub-nm-meta">${venueLabel} · ${venueName}${fixture.venueCapacity ? ` · ${fixture.venueCapacity.toLocaleString()}` : ''}</div>
-        <div class="hub-nm-spread">${spreadLabel}</div>
       </div>
     `;
   }
@@ -588,17 +522,6 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
     return n;
   }
 
-  function lastPlayerResult(teamId: string, results: FixtureResult[]): { outcome: 'win' | 'draw' | 'loss'; score: string } | null {
-    for (let i = results.length - 1; i >= 0; i--) {
-      const r = results[i];
-      if (r.homeId !== teamId && r.awayId !== teamId) continue;
-      const isHome = r.homeId === teamId;
-      const my = isHome ? r.homeScore : r.awayScore;
-      const opp = isHome ? r.awayScore : r.homeScore;
-      return { outcome: my > opp ? 'win' : my < opp ? 'loss' : 'draw', score: `${my}–${opp}` };
-    }
-    return null;
-  }
 
   // Re-render whenever the season state changes — date, week, next-fixture
   // and the disabled-CTA state all derive from GameState.

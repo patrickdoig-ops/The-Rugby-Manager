@@ -76,7 +76,7 @@ import { initTeamInfoScreen }      from './ui/TeamInfoScreen';
 import { initFixtureListScreen }   from './ui/FixtureListScreen';
 import { initTacticsHubScreen, showTacticsScreen } from './ui/TacticsHubScreen';
 import { initLeagueTableScreen, showLeagueTable, showLeagueTablePostMatch } from './ui/LeagueTableScreen';
-import { initLeagueMenuScreen } from './ui/LeagueMenuScreen';
+import { initLeagueMenuScreen, showLeagueMenuScreen } from './ui/LeagueMenuScreen';
 import { initCompetitionsMenuScreen } from './ui/CompetitionsMenuScreen';
 import { initEuropeanCupScreen } from './ui/EuropeanCupScreen';
 import { initEuropeanShieldScreen } from './ui/EuropeanShieldScreen';
@@ -367,6 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // teamInfo back arrow returns to whichever leaf opened it.
     initLeagueMenuScreen({
       getGameEngine,
+      allTeams,
       onBack:         () => goCompetitionsMenu('back'),
       onTable:        goLeagueTable,
       onTeamStats:    goTeamStats,
@@ -562,6 +563,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function goLeagueMenu(direction: 'forward' | 'back' = 'forward'): void {
+    showLeagueMenuScreen();
     screenRouter.show('league-menu', { direction });
   }
 

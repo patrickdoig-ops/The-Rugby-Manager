@@ -7,9 +7,13 @@
 // Initialised once per page lifetime, like the other in-season screens.
 
 import type { GameCoordinator } from '../game/GameCoordinator';
+import type { RawTeamInput } from '../types/teamData';
+import { sortStandings } from '../game/leagueTable';
+import { injectTeamColors } from './teamColors';
 
 export interface InitLeagueMenuOpts {
   getGameEngine: () => GameCoordinator;
+  allTeams: RawTeamInput[];
   onBack: () => void;
   onTable: () => void;
   onTeamStats: () => void;
@@ -46,13 +50,40 @@ const TILES: TileSpec[] = [
   { id: 'lm-tile-achievements', label: 'Awards',        sub: 'Career milestones',     ariaLabel: 'Achievements',      iconKey: 'achievements', handlerKey: 'onAchievements' },
 ];
 
+function ordinalSuffix(n: number): string {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return 'th';
+  switch (n % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+}
+
+let renderImpl: (() => void) | null = null;
+
+export function showLeagueMenuScreen(): void {
+  renderImpl?.();
+}
+
 export function initLeagueMenuScreen(opts: InitLeagueMenuOpts): void {
   const el = document.getElementById('league-menu');
   if (!el) return;
 
+  const teamsById = new Map(opts.allTeams.map(t => [t.id, t]));
+
   function render(): void {
     const state = opts.getGameEngine().getState();
     const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
+    const pct = totalRounds > 0 ? (state.calendar.week / totalRounds) * 100 : 0;
+
+    const playerTeam = teamsById.get(state.player.teamId);
+    const sorted = sortStandings(state.league.standings);
+    const rankIdx = playerTeam ? sorted.findIndex(s => s.teamId === playerTeam.id) : -1;
+    const standing = rankIdx >= 0 ? sorted[rankIdx] : null;
+    const rank = rankIdx + 1;
+    const posColor = playerTeam?.color ?? 'var(--rm-pitch)';
 
     el!.innerHTML = `
       <div class="app-header">
@@ -64,7 +95,27 @@ export function initLeagueMenuScreen(opts: InitLeagueMenuOpts): void {
           <span class="app-title">League</span>
           <div class="app-topbar-spacer"></div>
         </div>
-        <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
+        <div id="lm-standing-bar">
+          <div id="lm-standing">
+            <div class="hub-standing-item">
+              <span class="hub-standing-val" style="color:${posColor}">${rank > 0 ? rank + ordinalSuffix(rank) : '—'}</span>
+              <span class="hub-standing-label">Position</span>
+            </div>
+            <div class="hub-standing-item">
+              <span class="hub-standing-val hub-standing-val--chalk">${standing?.leaguePoints ?? 0}</span>
+              <span class="hub-standing-label">Points</span>
+            </div>
+            <div class="hub-standing-item">
+              <span class="hub-standing-val hub-standing-val--chalk hub-standing-val--record">${standing?.won ?? 0}W–${standing?.lost ?? 0}L</span>
+              <span class="hub-standing-label">Record</span>
+            </div>
+          </div>
+          <div id="lm-progress-wrap">
+            <span class="hub-progress-wk">WK ${state.calendar.week}</span>
+            <div id="lm-progress"><div id="lm-progress-fill" style="width:${pct.toFixed(1)}%"></div></div>
+            <span class="hub-progress-total">R${totalRounds}</span>
+          </div>
+        </div>
       </div>
 
       <div id="lm-grid">
@@ -78,11 +129,14 @@ export function initLeagueMenuScreen(opts: InitLeagueMenuOpts): void {
       </div>
     `;
 
+    if (playerTeam) injectTeamColors(el!, playerTeam);
+
     el!.querySelector<HTMLButtonElement>('#lm-back')!.addEventListener('click', () => opts.onBack());
     for (const t of TILES) {
       el!.querySelector<HTMLButtonElement>(`#${t.id}`)!.addEventListener('click', () => opts[t.handlerKey]());
     }
   }
 
+  renderImpl = render;
   render();
 }

@@ -246,6 +246,12 @@ export interface MatchState {
   // substitution can land between the two ticks and push the opponent's sub onto
   // the tail of state.events.
   pendingTryScorer?: Player;
+  // Outcome and carrier id of the most recent CARRY_RESOLVED, threaded through
+  // state so BreakdownEvent can read them without a log-tail scan (a log-tail
+  // scan is non-deterministic when a COMMENTARY_LOGGED is inserted between the
+  // carry and the breakdown by AI-tactics/sub logic in non-silent mode).
+  lastCarryOutcome?: 'line_break' | 'dominant_carry' | 'dominant_tackle' | 'play_on';
+  lastCarryCarrierId?: number;
   // Set by the PENALTY_AWARDED reducer; read by PenaltyHandler to enrich the
   // PenaltyContext that crosses the bus boundary to the modal. Overwritten on
   // every new penalty award; never cleared.

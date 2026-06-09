@@ -127,6 +127,8 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
         state.stats.tackles[defSide].attempted++;
         state.stats.tackles[defSide].made++;
       }
+      state.lastCarryOutcome = outcome;
+      state.lastCarryCarrierId = carrier.id;
       return;
     }
 

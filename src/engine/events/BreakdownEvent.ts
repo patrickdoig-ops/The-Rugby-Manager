@@ -32,13 +32,12 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   const defContestEdge = effIntensityScalar(defendTeam, TACTIC_MODIFIERS.intensityContestMod)
                        + effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplineContestMod);
 
-  const lastEvent = state.events[state.events.length - 1];
-  const carrierId = lastEvent?.primaryPlayer?.id;
+  const carrierId = state.lastCarryCarrierId;
   // Carry → breakdown handoff. A line break commits the defence — the
   // attacker has thin cover for the NEXT carry, so the bonus flows into
   // nextAttackMod (the front-foot next-phase carry boost).
-  // We ALSO pump the current breakdown's attackScore by applying the 
-  // dominantCarry bonus. Without this, the carrier is left too exposed 
+  // We ALSO pump the current breakdown's attackScore by applying the
+  // dominantCarry bonus. Without this, the carrier is left too exposed
   // and it results in too many penalties or turnovers immediately after
   // a successful line break. Constants live in CARRY_HANDOFF_BONUSES.
   //
@@ -48,13 +47,13 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   // immediate line-break gain (defensiveLineBreakBonus) compounded
   // into the chain, double-counting blitz's "cover behind the runner"
   // effect and overpunishing blitz teams.
-  const lineBreakFollowUp = lastEvent?.outcome === 'line_break';
+  const lineBreakFollowUp = state.lastCarryOutcome === 'line_break';
   const lineBreakChainMult = TACTIC_MODIFIERS.lineBreakChainMultiplier[effDefensiveLine(state, defendTeam)];
   const lineBreakHandoff = lineBreakFollowUp
     ? CARRY_HANDOFF_BONUSES.lineBreak * lineBreakChainMult
     : 0;
-  const attackBonus = (lastEvent?.outcome === 'dominant_carry' || lastEvent?.outcome === 'line_break') 
-    ? CARRY_HANDOFF_BONUSES.dominantCarry 
+  const attackBonus = (state.lastCarryOutcome === 'dominant_carry' || state.lastCarryOutcome === 'line_break')
+    ? CARRY_HANDOFF_BONUSES.dominantCarry
     : 0;
 
   // Next-phase modifier: lineBreakHandoff only. The tactic-based evasion

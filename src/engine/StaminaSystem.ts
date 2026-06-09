@@ -1,8 +1,10 @@
 import type { Team } from '../types/team';
+import type { MatchState } from '../types/match';
 import type { Player, PlayerStats } from '../types/player';
 import { clamp } from '../utils/math';
 import { rng } from '../utils/rng';
 import { FATIGUE_SCALING, TACTIC_MODIFIERS } from './balance';
+import { effAttackingBreakdown, effDefendingBreakdown, effDefensiveLine, effIntensityScalar, effGamePlanResidual } from './tacticsResolve';
 import { isForwardSlot } from './Slot';
 
 export interface FatigueUpdate {
@@ -25,7 +27,7 @@ export interface FatigueResult {
 // rng() call too is the deliberate choice: a benched player making no rolls
 // shouldn't consume the outcome stream. Hashes shift when a card is issued
 // in a determinism run; that's the correct behaviour change.
-export function computeFatigue(team: Team, elapsedMinutes: number, offFieldIds?: Set<number>): FatigueResult {
+export function computeFatigue(state: MatchState, team: Team, elapsedMinutes: number, offFieldIds?: Set<number>): FatigueResult {
   void elapsedMinutes; // signature kept for clarity at call site; the formula uses fixed RNG decay per call
   const updates: FatigueUpdate[] = [];
   const newlyTired: Player[] = [];
@@ -35,7 +37,7 @@ export function computeFatigue(team: Team, elapsedMinutes: number, offFieldIds?:
   // Team-wide intensity multiplier — applied to every player (forwards and
   // backs) on top of the positional multipliers below. high drains faster,
   // light drains slower.
-  const intensityMult = TACTIC_MODIFIERS.intensityFatigueMultiplier[team.tactics.intensity];
+  const intensityMult = effIntensityScalar(team, TACTIC_MODIFIERS.intensityFatigueMultiplier);
 
   for (const player of team.players) {
     if (offFieldIds?.has(player.id)) continue;
@@ -43,14 +45,14 @@ export function computeFatigue(team: Team, elapsedMinutes: number, offFieldIds?:
     const staminaBase = player.baseStats.stamina;
     let actualDecay = decayRate * (1 - staminaBase / staminaDivisor);
     if (isForwardSlot(player.id)) {
-      if (team.tactics.attackingBreakdown === 'commit_numbers') actualDecay *= forwardMult.commit_numbers;
-      if (team.tactics.defendingBreakdown === 'counter_ruck')   actualDecay *= forwardMult.counter_ruck;
-      if (team.tactics.attackingGamePlan   === 'possession')    actualDecay *= forwardMult.possession;
+      if (effAttackingBreakdown(state, team) === 'commit_numbers') actualDecay *= forwardMult.commit_numbers;
+      if (effDefendingBreakdown(state, team) === 'counter_ruck')   actualDecay *= forwardMult.counter_ruck;
+      actualDecay *= effGamePlanResidual(team, { possession: forwardMult.possession, balanced: 1, kicking: 1 }, 1);
     } else {
       // Backs (#9–#15) drain by team.tactics.defensiveLine: blitz adds 10 %
       // for the up-and-back motion, drift takes 5 % off the rate, hybrid is
       // neutral. Multiplier is 1.0 for hybrid so the no-op path stays cheap.
-      actualDecay *= backMult[team.tactics.defensiveLine];
+      actualDecay *= backMult[effDefensiveLine(state, team)];
     }
     actualDecay *= intensityMult;
     const prevFatigue = player.fatiguePct;

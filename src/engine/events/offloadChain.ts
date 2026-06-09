@@ -9,6 +9,7 @@ import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
 import { availableForwards, availableBacks, pickPrimaryDefender, pickAssistTackler } from '../FieldPosition';
 import { rng } from '../../utils/rng';
 import { OFFLOAD_VALUES, knockOnPct } from '../balance';
+import { effOffloadScalar } from '../tacticsResolve';
 import { isForwardSlot } from '../Slot';
 
 // Offload-in-tackle helper. Called by every carry-phase handler after the
@@ -68,7 +69,7 @@ export function tryOffloadChain(args: OffloadChainArgs): OffloadChainResult {
   let currentCarrier = initialCarrier;
   let currentDefender = initialDefender;
   let chainFired = false;
-  const attemptPct = OFFLOAD_VALUES.attemptPctByStrategy[attackTeam.tactics.offloadStrategy];
+  const attemptPct = effOffloadScalar(state, attackTeam, OFFLOAD_VALUES.attemptPctByStrategy);
 
   for (let link = 0; link < OFFLOAD_VALUES.maxChain; link++) {
     // Trigger roll always consumed — keeps RNG sequence determinism-stable

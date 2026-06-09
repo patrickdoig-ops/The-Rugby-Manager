@@ -10,18 +10,18 @@ import { emitSweepHops } from '../Lateral';
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
-import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, CRASH_BALL_THRESHOLDS, CRASH_BALL_LINE_BREAK_METRES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS, FIRST_PHASE_PASS_DISTANCE_M, FIRST_PHASE_CHOREOGRAPHIES } from '../balance';
+import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, CRASH_BALL_THRESHOLDS, CRASH_BALL_LINE_BREAK_METRES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS, FIRST_PHASE_PASS_DISTANCE_M, FIRST_PHASE_CHOREOGRAPHIES, SWEEP_STYLE_MULT, TRY_LANDING_JITTER } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { SLOT, isBackSlot } from '../Slot';
 import { tryOffloadChain } from './offloadChain';
+import { effDefendingBreakdown, effBackfieldDefence, effDefensiveLine, effDisciplineScalar, effStyleScalar } from '../tacticsResolve';
 
 const FULL_BACKLINE = 7;
 
 export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, pickPlayer, silent }: PhaseContext): PhaseResult {
   const attackSide = state.possession;
   const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
-  const style = attackTeam.tactics.attackingStyle;
-  const goCrashBall = rng(1, 100) <= CRASH_BALL_THRESHOLDS[style];
+  const goCrashBall = rng(1, 100) <= effStyleScalar(state, attackTeam, CRASH_BALL_THRESHOLDS);
   const playType = goCrashBall ? 'crash_ball' : 'out_the_back';
 
   // Helper to apply uploaded choreography
@@ -427,7 +427,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   // Defensive line drives the per-pass interception probability and the
   // handling-gate pressure modifier. Hoisted up here so every pass site +
   // gate site below sees the same value.
-  const defensiveLine = defendTeam.tactics.defensiveLine;
+  const defensiveLine = effDefensiveLine(state, defendTeam);
   const pressureMod   = TACTIC_MODIFIERS.defensiveLineHandlingPressure[defensiveLine];
   const interceptPctBase = INTERCEPTION_BASE_PCT + TACTIC_MODIFIERS.interceptionMod[defensiveLine];
 
@@ -463,7 +463,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   const { attack: attackMod, defend: defendMod } = state.breakdownMod;
   events.push({ type: 'BREAKDOWN_MOD_SET', attack: 0, defend: 0 });
 
-  const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[defendTeam.tactics.backfieldDefence];
+  const backfieldPenalty = TACTIC_MODIFIERS.backfieldLineBreakPenalty[effBackfieldDefence(state, defendTeam)];
   const missingBacks = FULL_BACKLINE - availableBacks(defendTeam, state, defSide).length;
   const shortHandedMod = missingBacks * SHORT_HANDED.missingBackDefendPenalty;
 
@@ -559,7 +559,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     // random screening forward. Modified by attackingStyle (wide_wide =
     // more screens, keep_it_tight = fewer). Defender is the opposite-13
     // (the player most directly affected by the screen).
-    const obstructionPct = OBSTRUCTION_BASE_PCT + TACTIC_MODIFIERS.obstructionStyleMod[style];
+    const obstructionPct = OBSTRUCTION_BASE_PCT + effStyleScalar(state, attackTeam, TACTIC_MODIFIERS.obstructionStyleMod);
     if (rng(1, 100) <= obstructionPct) {
       const attackFwds = availableForwards(attackTeam, state, attackSide);
       const offender = attackFwds.length > 0
@@ -697,7 +697,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   const fpSoFrac = fpSo && fpSo.decayMinutes > 0 ? Math.max(0, 1 - (gameMinute - fpSo.startMinute) / fpSo.decayMinutes) : 0;
   const fpSingleOutBonus = fpSo && fpSo.side === attackSide && fpSo.playerId === ballCarrier.id ? fpSo.bonus * fpSoFrac : 0;
   const baseAttackMod = attackMod + ha.attack + tlBonus.evasion + ttAttack.attack * ttAttackFrac + fpSingleOutBonus;
-  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[defendTeam.tactics.defendingBreakdown] + ha.defend + ttDef.defend * ttDefFrac;
+  const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[effDefendingBreakdown(state, defendTeam)] + ha.defend + ttDef.defend * ttDefFrac;
   let res = resolveOpenPlay(ballCarrier, defender, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
   const direction = attackDir(state);
 
@@ -758,7 +758,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   if (!tryScored) {
     // orient=true (set-piece exit) and scrumHalfFirst=true so the first hop uses
     // the wider SH pass distribution (10-20m) rather than the short backline range.
-    lateralStep = emitSweepHops(events, state, attackTeam.tactics.attackingStyle, passCount, true, attackTeam.name, !silent, true, FIRST_PHASE_PASS_DISTANCE_M);
+    lateralStep = emitSweepHops(events, state, effStyleScalar(state, attackTeam, SWEEP_STYLE_MULT), passCount, true, attackTeam.name, !silent, true, FIRST_PHASE_PASS_DISTANCE_M);
   }
 
   events.push({
@@ -781,7 +781,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     const tryKey: 'line_break_try' | 'dominant_carry_try' =
       res.outcome === 'line_break' ? 'line_break_try' : 'dominant_carry_try';
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: tryKey, primary: ballCarrier, secondary: defender });
-    const y = tryLandingY(state, attackTeam.tactics.attackingStyle);
+    const y = tryLandingY(state, effStyleScalar(state, attackTeam, TRY_LANDING_JITTER));
     events.push({ type: 'BALL_REPOSITIONED', y });
     outcomeSteps.push({ kind: 'announcement', key: `try_location_${tryLocationBand(y)}` });
   } else if (res.outcome === 'line_break') {
@@ -795,7 +795,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
         kind: 'tactic_note',
         cause: 'line_break_backfield_thin',
         chancePct: COMMENTARY_CHANCES.lineBreakBackfieldThin,
-        params: { defendTeamName: defendTeam.name, backfieldDefence: defendTeam.tactics.backfieldDefence },
+        params: { defendTeamName: defendTeam.name, backfieldDefence: effBackfieldDefence(state, defendTeam) },
       });
     }
     if (defensiveLine === 'blitz') {
@@ -832,7 +832,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
   // High-tackle check: applies on top of the carry result (carrier keeps the
   // metres — advantage law). Skipped on line breaks.
-  if (res.outcome !== 'line_break' && tackleInfringement(defender, TACTIC_MODIFIERS.disciplineHighTackleMod[defendTeam.tactics.discipline]) === 'high_tackle') {
+  if (res.outcome !== 'line_break' && tackleInfringement(defender, effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplineHighTackleMod)) === 'high_tackle') {
     events.push({ type: 'PENALTY_AWARDED', offence: 'high_tackle', offender: defender, offendingSide: defSide });
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.FirstPhase, key: 'high_tackle_penalty', primary: defender, secondary: ballCarrier });
     nextPhase = MatchPhase.Penalty;

@@ -11,6 +11,7 @@ import { lineoutFormationY, kickForTouchMissY, crossKickCornerY, grubberLandingY
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
 import { TACTIC_MODIFIERS, COMMENTARY_CHANCES } from '../balance';
+import { effBackfieldDefence, effDefensiveLine, effGamePlanResidual, effFiftyTwoBonus } from '../tacticsResolve';
 import { SLOT } from '../Slot';
 
 export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer }: PhaseContext): PhaseResult {
@@ -24,13 +25,11 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer
   const originalBallX = state.ball.x;
   const intent = state.pendingKick;
 
-  const plan = attackTeam.tactics.attackingGamePlan;
-
   // Deliberate 50/22 attempt — branches out of the regular tactical-kick
   // path because success math is gated by the defending team's backfield
   // posture, not the standard touch-finder probability table.
   if (intent?.family === 'fifty_22' && startedInOwnHalf) {
-    return handleFiftyTwentyTwoAttempt(state, kicker, defender, defendTeam.tactics.backfieldDefence, originalBallX, plan);
+    return handleFiftyTwentyTwoAttempt(state, kicker, defender, effBackfieldDefence(state, defendTeam), originalBallX, effFiftyTwoBonus(state, attackTeam, TACTIC_MODIFIERS.gamePlanFiftyTwentyTwoBonus));
   }
 
   // Attacking kick — cross-field or grubber from #10 in / near the
@@ -41,12 +40,12 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer
   }
 
   const res = resolveTacticalKick(kicker);
-  const backfield = defendTeam.tactics.backfieldDefence;
+  const backfield = effBackfieldDefence(state, defendTeam);
   const touchReduction = TACTIC_MODIFIERS.tacticalKickTouchReduction[backfield];
   // Defensive line gives the kicker more (blitz) or less (drift) grass to
   // hit behind the front-line cover. Added on top of the backfield
   // reduction; clamped so the touch prob can't go negative.
-  const defensiveLineKickMod = TACTIC_MODIFIERS.defensiveLineKickProbMod[defendTeam.tactics.defensiveLine];
+  const defensiveLineKickMod = TACTIC_MODIFIERS.defensiveLineKickProbMod[effDefensiveLine(state, defendTeam)];
   const goesOutOnTheFull = rng(1, 100) <= res.outOnTheFullProbability;
   const goesToTouch      = !goesOutOnTheFull && rng(1, 100) <= Math.max(0, res.touchProbability - touchReduction + defensiveLineKickMod);
 
@@ -55,7 +54,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer
   // plans see no bonus. Applied AFTER the touch / out-on-the-full rolls
   // so it only affects how far the ball travels, not whether it finds
   // touch (the resolver's touch probability already handled that).
-  const kickDistance = res.distance + TACTIC_MODIFIERS.gamePlanKickDistanceBonus[plan];
+  const kickDistance = res.distance + effGamePlanResidual(attackTeam, TACTIC_MODIFIERS.gamePlanKickDistanceBonus, 0);
   const kickDir = attackDir(state);
   const newBallX = clamp(state.ball.x + kickDir * kickDistance, 5, 95);
 
@@ -163,9 +162,8 @@ function handleFiftyTwentyTwoAttempt(
   defender: Player,
   defenderBackfield: BackfieldDefence,
   originalBallX: number,
-  plan: 'possession' | 'balanced' | 'kicking',
+  successBonus: number,
 ): PhaseResult {
-  const successBonus = TACTIC_MODIFIERS.gamePlanFiftyTwentyTwoBonus[plan];
   const res = resolveFiftyTwentyTwo(kicker, defenderBackfield, successBonus);
   const kickDir = attackDir(state);
   const newBallX = clamp(state.ball.x + kickDir * res.distance, 5, 95);

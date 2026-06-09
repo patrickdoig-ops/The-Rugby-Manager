@@ -12,7 +12,6 @@
 
 import type { MatchState } from '../types/match';
 import type { MatchEvent } from '../types/matchEvent';
-import type { AttackingStyle } from '../types/team';
 import type { NarrationStep } from '../types/narration';
 import { clamp } from '../utils/math';
 import { rngPosition } from '../utils/rng';
@@ -22,7 +21,6 @@ import {
   EDGE_Y_HIGH,
   PASS_DISTANCE_M,
   SCRUM_HALF_PASS_M,
-  SWEEP_STYLE_MULT,
   LINEOUT_TOUCHLINE_INSET,
   KICKOFF_TARGET_INSET,
   KICKOFF_LEFT_BIAS_PCT,
@@ -57,13 +55,13 @@ type PassDist = { shortPct: number; midPct: number; short: readonly [number, num
 // explicitly (not state) so a chain of hops can be computed against a running
 // local position — phase handlers are read-only over state, so the events they
 // queue aren't applied to state.ball until PhaseRouter drains the queue.
-function sweepFrom(y: number, dir: -1 | 1, style: AttackingStyle, dist: PassDist = PASS_DISTANCE_M): { y: number; lateralDir: -1 | 1 } {
+function sweepFrom(y: number, dir: -1 | 1, sweepMult: number, dist: PassDist = PASS_DISTANCE_M): { y: number; lateralDir: -1 | 1 } {
   const band = rngPosition(1, 100);
   const range = band <= dist.shortPct ? dist.short
               : band <= dist.midPct   ? dist.mid
               :                         dist.long;
   const distM = rngPosition(range[0], range[1]);
-  const stepY = metresToY(distM) * SWEEP_STYLE_MULT[style];
+  const stepY = metresToY(distM) * sweepMult;
 
   let d = dir;
   let ny = y + d * stepY;
@@ -73,8 +71,8 @@ function sweepFrom(y: number, dir: -1 | 1, style: AttackingStyle, dist: PassDist
 }
 
 // One open-play pass in the current sweep direction.
-export function sweepStep(state: MatchState, style: AttackingStyle): { y: number; lateralDir: -1 | 1 } {
-  return sweepFrom(state.ball.y, state.ball.lateralDir, style);
+export function sweepStep(state: MatchState, sweepMult: number): { y: number; lateralDir: -1 | 1 } {
+  return sweepFrom(state.ball.y, state.ball.lateralDir, sweepMult);
 }
 
 // Scrum-half to fly-half pass off a set piece: longer flat spin (10-20m lateral).
@@ -90,8 +88,8 @@ export function scrumHalfSweepStep(y: number, dir: -1 | 1): { y: number; lateral
 }
 
 // Set-piece / kick-receive exit: orient to the open side, then take one pass.
-export function openSweepStep(state: MatchState, style: AttackingStyle): { y: number; lateralDir: -1 | 1 } {
-  return sweepFrom(state.ball.y, openSideDir(state.ball.y), style);
+export function openSweepStep(state: MatchState, sweepMult: number): { y: number; lateralDir: -1 | 1 } {
+  return sweepFrom(state.ball.y, openSideDir(state.ball.y), sweepMult);
 }
 
 // A chain of `hopCount` lateral pass-hops from the current ball position — one
@@ -102,7 +100,7 @@ export function openSweepStep(state: MatchState, style: AttackingStyle): { y: nu
 // When `scrumHalfFirst` is true the first hop uses the SH-specific wider distribution.
 export function sweepPath(
   state: MatchState,
-  style: AttackingStyle,
+  sweepMult: number,
   hopCount: number,
   orient: boolean,
   scrumHalfFirst = false,
@@ -114,7 +112,7 @@ export function sweepPath(
   for (let i = 0; i < hopCount; i++) {
     const step = i === 0 && scrumHalfFirst
       ? scrumHalfSweepStep(y, dir)
-      : sweepFrom(y, dir, style, dist);
+      : sweepFrom(y, dir, sweepMult, dist);
     y = step.y;
     dir = step.lateralDir;
     out.push(step);
@@ -162,7 +160,7 @@ function lateralNote(
 export function emitSweepHops(
   events: MatchEvent[],
   state: MatchState,
-  style: AttackingStyle,
+  sweepMult: number,
   hopCount: number,
   orient: boolean,
   attackTeamName: string,
@@ -170,7 +168,7 @@ export function emitSweepHops(
   scrumHalfFirst = false,
   dist: PassDist = PASS_DISTANCE_M,
 ): NarrationStep | null {
-  const hops = sweepPath(state, style, Math.max(1, hopCount), orient, scrumHalfFirst, dist);
+  const hops = sweepPath(state, sweepMult, Math.max(1, hopCount), orient, scrumHalfFirst, dist);
   const last = hops[hops.length - 1];
   if (perPass) {
     for (const h of hops) events.push({ type: 'BALL_REPOSITIONED', y: h.y, lateralDir: h.lateralDir });

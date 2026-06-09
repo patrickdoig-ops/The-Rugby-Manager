@@ -10,6 +10,7 @@ import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import { sortStandings } from '../game/leagueTable';
 import { injectTeamColors } from './teamColors';
+import { formatDateMedium } from '../utils/formatDate';
 
 export interface InitLeagueMenuOpts {
   getGameEngine: () => GameCoordinator;
@@ -111,7 +112,7 @@ export function initLeagueMenuScreen(opts: InitLeagueMenuOpts): void {
             </div>
           </div>
           <div id="lm-progress-wrap">
-            <span class="hub-progress-wk">WK ${state.calendar.week}</span>
+            <span class="hub-progress-wk">${formatDateMedium(state.calendar.date)}</span>
             <div id="lm-progress"><div id="lm-progress-fill" style="width:${pct.toFixed(1)}%"></div></div>
             <span class="hub-progress-total">R${totalRounds}</span>
           </div>

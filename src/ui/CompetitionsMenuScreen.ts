@@ -5,6 +5,7 @@
 // Initialised once per page lifetime, like the other in-season screens.
 
 import type { GameCoordinator } from '../game/GameCoordinator';
+import { formatDateMedium } from '../utils/formatDate';
 
 export interface InitCompetitionsMenuOpts {
   getGameEngine: () => GameCoordinator;
@@ -43,8 +44,6 @@ export function initCompetitionsMenuScreen(opts: InitCompetitionsMenuOpts): void
 
   function render(): void {
     const state = opts.getGameEngine().getState();
-    const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
-
     el!.innerHTML = `
       <div class="app-header">
         <div class="app-topbar">
@@ -55,7 +54,7 @@ export function initCompetitionsMenuScreen(opts: InitCompetitionsMenuOpts): void
           <span class="app-title">Competitions</span>
           <div class="app-topbar-spacer"></div>
         </div>
-        <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
+        <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)}</div>
       </div>
 
       <div id="cm-grid">

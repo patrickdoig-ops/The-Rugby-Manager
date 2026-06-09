@@ -12,6 +12,7 @@ import type { Player } from '../types/player';
 import { playerLeaderboard, leaderboardAvgRating, type PlayerLeaderKey } from '../game/seasonLeaderboards';
 import { SEASON_AWARDS } from '../engine/balance/career';
 import { eventBus } from '../utils/eventBus';
+import { formatDateMedium } from '../utils/formatDate';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 
 type CategoryKind =
@@ -167,8 +168,6 @@ export function initPlayerStatsScreen(
 
   function render(): void {
     const state: GameState = getGameEngine().getState();
-    const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
-
     const cat = CATEGORIES.find(c => c.id === activeCategoryId) ?? CATEGORIES[0];
     const rows = buildRows(state, cat);
 
@@ -205,7 +204,7 @@ export function initPlayerStatsScreen(
           <span class="app-title">Player Stats</span>
           <div class="app-topbar-spacer"></div>
         </div>
-        <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds} · ${cat.sub}</div>
+        <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)} · ${cat.sub}</div>
       </div>
 
       <div id="ps-chips" role="tablist">${chips}</div>

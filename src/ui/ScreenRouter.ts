@@ -56,7 +56,9 @@ export type ScreenId =
   | 'loans'
   | 'competitions-menu'
   | 'european-cup'
-  | 'european-shield';
+  | 'european-shield'
+  | 'european-round'
+  | 'european-final';
 
 const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'home':          { elId: 'home-screen',   shownDisplay: '' },
@@ -109,6 +111,8 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'competitions-menu':         { elId: 'competitions-menu',         shownDisplay: '' },
   'european-cup':              { elId: 'european-cup',              shownDisplay: '' },
   'european-shield':           { elId: 'european-shield',           shownDisplay: '' },
+  'european-round':            { elId: 'european-round',            shownDisplay: '' },
+  'european-final':            { elId: 'european-final',            shownDisplay: '' },
 };
 
 export type NavDirection = 'forward' | 'back';

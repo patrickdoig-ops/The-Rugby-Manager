@@ -6,7 +6,7 @@
 // for the six nav tiles and the settings cog; only the primary CTA
 // (`onPlayMatch`) is exercisable in this iteration.
 
-import type { GameCoordinator, EuropeanFixtureRef } from '../game/GameCoordinator';
+import type { GameCoordinator, EuropeanFixtureRef, EuropeanRoundRef } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import type { Fixture, GameState } from '../types/gameState';
 import { eventBus } from '../utils/eventBus';
@@ -116,8 +116,10 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
     // block must run before R1 is played.
     const preSeasonCupPending = !!opts.onPreSeasonCup && opts.getGameEngine().isPreSeasonCupPending();
     // European fixture due before the next league match (calendar gate: fixture
-    // date ≤ calendar.date). Takes priority over league CTA when present.
+    // date ≤ calendar.date). Also check for unshown rounds (when player is
+    // eliminated or watching). Takes priority over league CTA when present.
     const europeanFixture = !!opts.onPlayEuropean ? opts.getGameEngine().getCurrentEuropeanFixture() : null;
+    const europeanRound = !europeanFixture && !!opts.onPlayEuropean ? opts.getGameEngine().getCurrentEuropeanRound() : null;
     // The bracket exists from the moment the final regular-round fixture
     // resolves until SEASON_ROLLED_OVER clears it. While it exists, the
     // "Go to next match" CTA is replaced with "Continue to playoffs",
@@ -153,7 +155,9 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
           ? preSeasonCupHtml(state)
           : europeanFixture
             ? europeanNextMatchHtml(europeanFixture, teamsById, playerTeam.id, state.calendar.date)
-            : nextMatchHtml(nextFixture, state, teamsById, playerTeam.id)}
+            : europeanRound
+              ? europeanRoundCtaHtml(europeanRound)
+              : nextMatchHtml(nextFixture, state, teamsById, playerTeam.id)}
 
       ${(() => {
           const sk = `${state.player.teamId}:${state.seed}`;
@@ -200,7 +204,7 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
         }).join('')}
       </div>
 
-      <div id="hub-footer">${playoffsActive ? playoffFooterHtml(playoffs!, playerPlayoffMatch) : preSeasonCupPending ? preSeasonCupFooterHtml() : europeanFixture ? europeanFooterHtml(europeanFixture) : footerHtml(nextFixture)}</div>
+      <div id="hub-footer">${playoffsActive ? playoffFooterHtml(playoffs!, playerPlayoffMatch) : preSeasonCupPending ? preSeasonCupFooterHtml() : europeanFixture ? europeanFooterHtml(europeanFixture) : europeanRound ? europeanRoundFooterHtml(europeanRound) : footerHtml(nextFixture)}</div>
     `;
 
     injectTeamColors(el!, playerTeam);
@@ -215,7 +219,7 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
       el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => opts.onPlayoffs());
     } else if (preSeasonCupPending) {
       el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => opts.onPreSeasonCup!());
-    } else if (europeanFixture) {
+    } else if (europeanFixture || europeanRound) {
       el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => opts.onPlayEuropean!());
     } else if (nextFixture) {
       el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => {
@@ -481,6 +485,24 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
       <button id="hub-play-next" class="cta-pulse" aria-label="Play ${compName} match">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>
         <span>Play ${compName} match</span>
+      </button>
+    `;
+  }
+
+  function europeanRoundCtaHtml(rr: EuropeanRoundRef): string {
+    return `
+      <div class="hub-euro-round">
+        <div class="hub-euro-round-label">${rr.compLabel}</div>
+        <div class="hub-euro-round-sub">${rr.isFinal ? 'The Final has been played' : `${rr.label} results are in`}</div>
+      </div>`;
+  }
+
+  function europeanRoundFooterHtml(rr: EuropeanRoundRef): string {
+    const label = rr.isFinal ? `View ${rr.compLabel} Final` : `View ${rr.compLabel} ${rr.label}`;
+    return `
+      <button id="hub-play-next" class="cta-pulse" aria-label="${label}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>
+        <span>${label}</span>
       </button>
     `;
   }

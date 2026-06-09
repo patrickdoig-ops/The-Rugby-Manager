@@ -2452,7 +2452,7 @@ html.native-app .app-header {
 #intl-continue:active { background: var(--rm-cta-active); }
 
 /* ── Prem Cup + European screens ───────────────────────────────────────── */
-#intl-callups, #cup-fixtures, #cup-results, #european-cup, #european-shield {
+#intl-callups, #cup-fixtures, #cup-results, #european-cup, #european-shield, #european-round {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -2672,4 +2672,163 @@ html.native-app .app-header {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 10px;
   margin-bottom: 6px;
+}
+
+/* ── European Round Screen footer ──────────────────────────────────────── */
+.euro-round-footer {
+  flex-shrink: 0;
+  padding: 16px 16px max(env(safe-area-inset-bottom, 0px), 16px);
+  border-top: 1px solid var(--rm-border-soft);
+  background: var(--rm-bg);
+}
+.euro-round-footer .cta-pulse {
+  width: 100%;
+  justify-content: center;
+}
+
+/* ── European Final Screen ──────────────────────────────────────────────── */
+#european-final {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+.euro-final-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px max(env(safe-area-inset-bottom, 0px), 32px);
+  gap: 20px;
+}
+.euro-final-comp {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rm-text-muted);
+}
+.euro-final-title {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-28);
+  color: var(--rm-chalk);
+}
+.euro-final-match {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 380px;
+}
+.euro-final-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.55;
+}
+.euro-final-side--win { opacity: 1; }
+.euro-final-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-20);
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+.euro-final-name {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: center;
+  color: var(--rm-text);
+}
+.euro-final-score {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-28);
+  font-variant-numeric: tabular-nums;
+  color: var(--rm-chalk);
+}
+.euro-final-sep {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-20);
+  color: var(--rm-text-muted);
+  flex-shrink: 0;
+}
+.euro-final-champ-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 14px;
+  padding: 14px 18px;
+  width: 100%;
+  max-width: 380px;
+}
+.euro-final-champ-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-18);
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  flex-shrink: 0;
+}
+.euro-final-champ-label {
+  font-size: var(--rm-fs-11);
+  color: var(--rm-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.euro-final-champ-name {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-18);
+  color: var(--rm-chalk);
+}
+.euro-final-you {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-20);
+  color: var(--rm-chalk);
+  text-align: center;
+  animation: pulse-text 1.2s ease-in-out infinite alternate;
+}
+@keyframes pulse-text {
+  from { opacity: 0.8; }
+  to   { opacity: 1; transform: scale(1.03); }
+}
+.euro-final-cta {
+  width: 100%;
+  max-width: 320px;
+  justify-content: center;
+}
+
+/* ── Hub European Round CTA ─────────────────────────────────────────────── */
+.hub-euro-round {
+  padding: 20px 16px;
+  text-align: center;
+}
+.hub-euro-round-label {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--rm-text-muted);
+  margin-bottom: 6px;
+}
+.hub-euro-round-sub {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-18);
+  color: var(--rm-chalk);
 }

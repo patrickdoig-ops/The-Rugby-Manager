@@ -1099,6 +1099,18 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       };
       return;
     }
+    case 'EUROPEAN_OBJECTIVE_SET': {
+      if (state.player.board) state.player.board.europeanObjective = event.objective;
+      return;
+    }
+    case 'EUROPEAN_ROUND_SHOWN': {
+      const comp = state.league[event.competition];
+      if (comp) {
+        if (!comp.shownRounds) comp.shownRounds = [];
+        if (!comp.shownRounds.includes(event.roundKey)) comp.shownRounds.push(event.roundKey);
+      }
+      return;
+    }
     case 'EUROPEAN_KNOCKOUT_RECORDED': {
       const comp = state.league[event.competition === 'europeanCup' ? 'europeanCup' : 'europeanShield'];
       const ko = comp?.knockout;

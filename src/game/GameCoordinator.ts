@@ -33,7 +33,7 @@
 // runs on a timer.
 
 import type {
-  ArchivedSeason, ClubState,
+  ArchivedSeason, ClubState, EuropeanObjective, EuropeanRoundRef,
   Fixture, FixtureResult, GameState, MarketState, PlayerRef, PlayoffMatch, PlayoffState, PreAgreement, ScoutingRecord, SeasonEvent, SeasonSchedule,
 } from '../types/gameState';
 import { emptyCareerState } from '../types/gameState';
@@ -51,6 +51,7 @@ import { CUP_POOLS_2025_26, CUP_FIXTURES_2025_26, buildCupSeed } from './cupSche
 import { parseSeasonStartYear, seasonOpenIso, getAge } from './age';
 import { recentForm } from './teamStats';
 import { generateMatchStory, type MediaMatchContext, type MediaPlayer } from './media/mediaManager';
+import { buildEuropeanDrawStory, buildEuropeanEliminationStory } from './media/europeanStories';
 import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot } from './seasonStatsCollector';
 import { runTrainingPeriods } from './trainingRunner';
 import { upcomingGap, splitGapIntoPeriods } from './trainingCalendar';
@@ -82,6 +83,9 @@ import type { RawTeamInput } from '../types/teamData';
 export type { BreakBeginResult, PreSeasonBlockResult };
 
 import type { EuropeanFixture, EuropeanKnockoutMatch } from '../types/gameState';
+
+// Re-export EuropeanRoundRef so UI modules import from one place.
+export type { EuropeanRoundRef } from '../types/gameState';
 
 // Identifies the player's next playable European fixture — pool or knockout.
 export type EuropeanFixtureRef =
@@ -275,6 +279,7 @@ export class GameCoordinator {
       await coord.european.runKnockoutStage('europeanShield');
     }
     coord.board.seedBoardState();
+    coord.seedEuropeanObjectiveAndDrawStory();
     // Seed the initial staff hire pool (no hired staff on season 1).
     const { staff: initialStaff, nextStaffId } = generateStaffPool(1);
     applySeasonEvent(coord.state, { type: 'STAFF_POOL_SEEDED', staff: initialStaff, nextStaffId });
@@ -779,6 +784,125 @@ export class GameCoordinator {
       ?? findKO('europeanShield');
   }
 
+  // The earliest European round (across both competitions) whose every fixture
+  // is resolved, whose latest date is on or before today, and which has not
+  // yet been shown to the player. Returns null when nothing is due.
+  getCurrentEuropeanRound(): EuropeanRoundRef | null {
+    const calDate = this.state.calendar.date;
+    for (const comp of ['europeanCup', 'europeanShield'] as const) {
+      const compState = this.state.league[comp];
+      if (!compState) continue;
+      const shown = new Set(compState.shownRounds ?? []);
+      const compLabel = comp === 'europeanCup' ? 'European Cup' : 'European Shield';
+
+      // Pool rounds 1-4
+      for (let r = 1; r <= 4; r++) {
+        const key = `pool:${r}`;
+        if (shown.has(key)) continue;
+        const fxs = compState.fixtures.filter(f => f.round === r);
+        if (fxs.length === 0) continue;
+        const latestDate = fxs.map(f => f.date ?? '').filter(Boolean).sort().pop() ?? '';
+        if (!latestDate || latestDate > calDate) continue;
+        if (fxs.some(f => !f.result)) continue; // wait until all resolved
+        return { competition: comp, roundKey: key, isFinal: false, label: `Pool Round ${r}`, compLabel };
+      }
+
+      // Knockout rounds
+      const ko = compState.knockout;
+      if (!ko) continue;
+      const koStages: Array<{ key: string; label: string; isFinal: boolean; matches: Array<{ date?: string; result?: unknown; homeId: string | null; awayId: string | null }> }> = [
+        { key: 'r16', label: 'Round of 16', isFinal: false, matches: ko.r16 },
+        { key: 'qf', label: 'Quarter-Finals', isFinal: false, matches: ko.quarterfinals },
+        { key: 'sf', label: 'Semi-Finals', isFinal: false, matches: ko.semifinals as Array<{ date?: string; result?: unknown; homeId: string | null; awayId: string | null }> },
+        { key: 'final', label: 'Final', isFinal: true, matches: [ko.final] },
+      ];
+      for (const { key, label, isFinal, matches } of koStages) {
+        if (shown.has(key)) continue;
+        const slotted = matches.filter(m => m.homeId && m.awayId);
+        if (slotted.length === 0) continue;
+        const latestDate = slotted.map(m => m.date ?? '').filter(Boolean).sort().pop() ?? '';
+        if (!latestDate || latestDate > calDate) continue;
+        if (slotted.some(m => !m.result)) continue;
+        return { competition: comp, roundKey: key, isFinal, label, compLabel };
+      }
+    }
+    return null;
+  }
+
+  // Mark a European round as shown. Called after the player dismisses the
+  // EuropeanRoundScreen or EuropeanFinalScreen for that round.
+  markEuropeanRoundShown(competition: 'europeanCup' | 'europeanShield', roundKey: string): void {
+    applySeasonEvent(this.state, { type: 'EUROPEAN_ROUND_SHOWN', competition, roundKey });
+  }
+
+  // Seed the European objective for the competition the player is in and
+  // publish the pool-draw inbox story. Called once at season start.
+  private seedEuropeanObjectiveAndDrawStory(): void {
+    for (const comp of ['europeanCup', 'europeanShield'] as const) {
+      const compState = this.state.league[comp];
+      if (!compState) continue;
+      const playerTeamId = this.state.player.teamId;
+      const playerPool = compState.pools.find(p => p.teamIds.includes(playerTeamId));
+      if (!playerPool) continue;
+
+      this.board.seedEuropeanObjective(comp);
+
+      const team = this.teamsById.get(playerTeamId);
+      const clubName = team?.name ?? playerTeamId;
+      const compLabel = comp === 'europeanCup' ? 'European Cup' : 'European Shield';
+      const opponents = playerPool.teamIds
+        .filter(id => id !== playerTeamId)
+        .map(id => this.teamsById.get(id)?.name ?? id);
+      const story = buildEuropeanDrawStory(
+        comp, compLabel, this.state.calendar.seasonLabel,
+        clubName, playerPool.id, opponents,
+      );
+      applySeasonEvent(this.state, { type: 'MEDIA_STORY_PUBLISHED', story });
+      break; // player is in exactly one competition
+    }
+  }
+
+  // Check if the player was eliminated from the European competition after
+  // recording their result. Returns the achieved stage (or null if still in).
+  private getEliminationStage(
+    competition: 'europeanCup' | 'europeanShield',
+    stage: 'pool' | 'r16' | 'quarterfinal' | 'semifinal' | 'final',
+    homeScore: number,
+    awayScore: number,
+    playerSide: 'home' | 'away',
+  ): EuropeanObjective | null {
+    // For pool: check after the player's last pool match if they failed to qualify
+    if (stage === 'pool') {
+      const compState = this.state.league[competition];
+      if (!compState) return null;
+      const playerTeamId = this.state.player.teamId;
+      const pool = compState.pools.find(p => p.teamIds.includes(playerTeamId));
+      if (!pool) return null;
+      // Only apply at end of pool stage (all 4 rounds played)
+      const playerFixtures = compState.fixtures.filter(f =>
+        (f.homeId === playerTeamId || f.awayId === playerTeamId) && f.result,
+      );
+      if (playerFixtures.length < 4) return null; // pool not finished yet
+      // Check if they qualified (top 4)
+      const sorted = [...pool.standings].sort((a, b) => b.leaguePoints - a.leaguePoints);
+      const rank = sorted.findIndex(s => s.teamId === playerTeamId) + 1;
+      if (rank <= 4) return null; // qualified — not eliminated
+      return 'participate';
+    }
+    // For knockout: player is eliminated if they lost
+    const playerScore = playerSide === 'home' ? homeScore : awayScore;
+    const oppScore = playerSide === 'home' ? awayScore : homeScore;
+    if (playerScore >= oppScore) return null; // won — not eliminated
+    // Map stage to achieved objective (they REACHED this stage but lost)
+    const STAGE_TO_OBJECTIVE: Record<string, EuropeanObjective> = {
+      r16: 'r16',
+      quarterfinal: 'quarterfinal',
+      semifinal: 'semifinal',
+      final: 'final',
+    };
+    return STAGE_TO_OBJECTIVE[stage] ?? null;
+  }
+
   async recordPlayerEuropeanPoolResult(
     competition: 'europeanCup' | 'europeanShield',
     poolId: number,
@@ -789,9 +913,22 @@ export class GameCoordinator {
     awayScore: number,
     snapshot: MatchSnapshot,
   ): Promise<void> {
+    const playerTeamId = this.state.player.teamId;
+    const playerSide: 'home' | 'away' = homeId === playerTeamId ? 'home' : 'away';
     await this.european.recordPlayerEuropeanPoolResult(
       competition, poolId, round, homeId, awayId, homeScore, awayScore, snapshot,
     );
+    // Check for pool-stage elimination after the player's last pool match
+    const elim = this.getEliminationStage(competition, 'pool', homeScore, awayScore, playerSide);
+    if (elim !== null) {
+      this.board.applyEuropeanElimination(competition, elim);
+      const team = this.teamsById.get(playerTeamId);
+      const compLabel = competition === 'europeanCup' ? 'European Cup' : 'European Shield';
+      applySeasonEvent(this.state, {
+        type: 'MEDIA_STORY_PUBLISHED',
+        story: buildEuropeanEliminationStory(competition, compLabel, team?.name ?? playerTeamId, elim, round),
+      });
+    }
     eventBus.emit('game:weekAdvanced', { state: this.state });
   }
 
@@ -803,9 +940,38 @@ export class GameCoordinator {
     awayScore: number,
     snapshot: MatchSnapshot,
   ): Promise<void> {
+    const ko = this.state.league[competition]?.knockout;
+    if (!ko) return;
+    const matchArr = stage === 'r16' ? ko.r16 : stage === 'quarterfinal' ? ko.quarterfinals : stage === 'semifinal' ? ko.semifinals as Array<{ homeId: string | null; awayId: string | null; result?: unknown }> : [ko.final];
+    const match = matchArr[matchIndex];
+    if (!match) return;
+    const playerTeamId = this.state.player.teamId;
+    const playerSide: 'home' | 'away' = match.homeId === playerTeamId ? 'home' : 'away';
     await this.european.recordPlayerEuropeanKnockoutResult(
       competition, stage, matchIndex, homeScore, awayScore, snapshot,
     );
+    if (stage !== 'final') {
+      const elim = this.getEliminationStage(competition, stage, homeScore, awayScore, playerSide);
+      if (elim !== null) {
+        this.board.applyEuropeanElimination(competition, elim);
+        const team = this.teamsById.get(playerTeamId);
+        const compLabel = competition === 'europeanCup' ? 'European Cup' : 'European Shield';
+        const roundNum = stage === 'r16' ? 5 : stage === 'quarterfinal' ? 6 : 7;
+        applySeasonEvent(this.state, {
+          type: 'MEDIA_STORY_PUBLISHED',
+          story: buildEuropeanEliminationStory(competition, compLabel, team?.name ?? playerTeamId, elim, roundNum),
+        });
+      }
+    } else {
+      // Final: if player won, apply board confidence for winning
+      const playerScore = playerSide === 'home' ? homeScore : awayScore;
+      const oppScore = playerSide === 'home' ? awayScore : homeScore;
+      if (playerScore > oppScore) {
+        this.board.applyEuropeanElimination(competition, 'win');
+      } else {
+        this.board.applyEuropeanElimination(competition, 'final');
+      }
+    }
     eventBus.emit('game:weekAdvanced', { state: this.state });
   }
 
@@ -1192,6 +1358,7 @@ export class GameCoordinator {
     if (this.european.allPoolFixturesDone('europeanShield')) {
       await this.european.runKnockoutStage('europeanShield');
     }
+    this.seedEuropeanObjectiveAndDrawStory();
     eventBus.emit('game:seasonRolledOver', { state: this.state });
     return events;
   }

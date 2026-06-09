@@ -13,6 +13,12 @@ import type { InjuryKind, InjurySeverity, InternationalWindow, MoraleReason, Pla
 import type { TrainingPlan } from './training';
 import type { BoardAmbition } from './teamData';
 
+// The board's European competition target for the season. Calibrated once
+// at season start; used to apply an immediate board-confidence delta when
+// the player is eliminated. 'participate' = just take part; stages above
+// that map directly onto the knockout round reached.
+export type EuropeanObjective = 'participate' | 'r16' | 'quarterfinal' | 'semifinal' | 'final' | 'win';
+
 // Persistent owner-confidence state for the managed club — the career
 // fail-state spine. Seeded at season start from ambition + prior finish,
 // moved by results/streaks/objective judgement, and the basis for the
@@ -25,6 +31,9 @@ export interface BoardState {
   sacked: boolean;           // mid-season sack latch — persisted so a reload
                              // between the result and the game-over screen
                              // can't escape the dismissal. Reset each season.
+  // European competition target for the season. Set once at season start;
+  // confidence delta applied immediately on elimination.
+  europeanObjective?: EuropeanObjective;
 }
 
 export interface Fixture {
@@ -86,6 +95,8 @@ export interface MediaStory {
   subject: string;
   body: string;
   outlet: string;
+  // Optional deep-link to a competition screen surfaced as an inbox CTA.
+  deepLink?: 'european-cup' | 'european-shield';
 }
 
 export interface TeamStanding {
@@ -289,6 +300,10 @@ export interface EuropeanCompState {
   pools: EuropeanPool[];
   fixtures: EuropeanFixture[];
   knockout: EuropeanKnockout | null;
+  // Tracks which rounds have been shown to the player in the weekly flow.
+  // Keys: 'pool:1'-'pool:4' for pool rounds, 'r16'/'qf'/'sf'/'final' for KO.
+  // Additive-optional: absent on legacy saves (treated as empty, all rounds unshown).
+  shownRounds?: string[];
 }
 
 // ── Prem Cup ───────────────────────────────────────────────────────────
@@ -1535,4 +1550,30 @@ export type SeasonEvent =
       homeTries: number;
       awayTries: number;
       playerSide: 'home' | 'away' | null;
+    }
+  | {
+      // Sets the board's European objective for the season. Fired once per season
+      // at season start, after pools are seeded, for the competition the player
+      // is in. Calibrated from the prior season's league finish: champion → SF,
+      // top 4 → R16, others (+ Shield) → participate.
+      type: 'EUROPEAN_OBJECTIVE_SET';
+      objective: EuropeanObjective;
+    }
+  | {
+      // Marks a European round as shown to the player (dismissed from the
+      // EuropeanRoundScreen or EuropeanFinalScreen). Prevents the same round
+      // appearing again in the weekly flow.
+      type: 'EUROPEAN_ROUND_SHOWN';
+      competition: 'europeanCup' | 'europeanShield';
+      roundKey: string; // 'pool:1'-'pool:4' | 'r16' | 'qf' | 'sf' | 'final'
     };
+
+// Reference to a completeable European round — returned by
+// GameCoordinator.getCurrentEuropeanRound() to drive the weekly flow.
+export interface EuropeanRoundRef {
+  competition: 'europeanCup' | 'europeanShield';
+  roundKey: string;   // 'pool:1'-'pool:4' | 'r16' | 'qf' | 'sf' | 'final'
+  isFinal: boolean;
+  label: string;      // e.g. 'Pool Round 1', 'Round of 16', 'Final'
+  compLabel: string;  // 'European Cup' | 'European Shield'
+}

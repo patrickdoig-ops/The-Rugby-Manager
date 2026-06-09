@@ -6,7 +6,7 @@
 // writes go through applySeasonEvent. GameCoordinator keeps thin delegating
 // methods so screens keep talking to it. RNG-free.
 
-import type { FixtureResult, GameState } from '../types/gameState';
+import type { EuropeanObjective, FixtureResult, GameState } from '../types/gameState';
 import type { RawTeamInput, BoardAmbition } from '../types/teamData';
 import { applySeasonEvent } from './applySeasonEvent';
 import { seedConfidence, resultDelta, currentObjectiveVerdict, eosSwing, type ObjectiveVerdict } from './board';
@@ -89,6 +89,46 @@ export class BoardCoordinator {
     const verdict = currentObjectiveVerdict(this.state, board.objective);
     const projected = Math.max(0, Math.min(100, board.confidence + eosSwing(verdict)));
     return { verdict, sacked: projected <= BOARD_THRESHOLDS.eosSack };
+  }
+
+  // Set the board's European objective for the season. Calibrated from the
+  // prior season's league finish. Year 1 uses the team's boardAmbition.
+  // European Shield always targets 'participate'.
+  seedEuropeanObjective(competition: 'europeanCup' | 'europeanShield'): void {
+    if (!this.state.player.board) return;
+    let objective: EuropeanObjective;
+    if (competition === 'europeanShield') {
+      objective = 'participate';
+    } else {
+      const prior = this.state.career.archive[this.state.career.archive.length - 1];
+      if (!prior) {
+        const ambition: BoardAmbition = this.teamsById.get(this.state.player.teamId)?.boardAmbition ?? 'topHalf';
+        objective = ambition === 'title' ? 'semifinal' : ambition === 'playoffs' ? 'r16' : 'participate';
+      } else {
+        const sorted = [...prior.standings].sort((a, b) => b.leaguePoints - a.leaguePoints);
+        const rank = sorted.findIndex(s => s.teamId === this.state.player.teamId) + 1;
+        objective = rank === 1 ? 'semifinal' : rank <= 4 ? 'r16' : 'participate';
+      }
+    }
+    applySeasonEvent(this.state, { type: 'EUROPEAN_OBJECTIVE_SET', objective });
+  }
+
+  // Apply an immediate board-confidence delta when the player is eliminated from
+  // a European competition. `achievedStage` is the highest round they reached
+  // ('participate' = knocked out in pool stage).
+  applyEuropeanElimination(competition: 'europeanCup' | 'europeanShield', achievedStage: EuropeanObjective): void {
+    if (!this.state.player.board) return;
+    const STAGES: EuropeanObjective[] = ['participate', 'r16', 'quarterfinal', 'semifinal', 'final', 'win'];
+    const achieved = STAGES.indexOf(achievedStage);
+    const objective = STAGES.indexOf(this.state.player.board.europeanObjective ?? 'participate');
+    const gap = achieved - objective;
+    const delta = gap >= 0 ? 3 : gap === -1 ? -5 : -10;
+    applySeasonEvent(this.state, {
+      type: 'BOARD_CONFIDENCE_ADJUSTED',
+      delta,
+      reason: `european:${competition}:${achievedStage}`,
+    });
+    this.evaluateJobSecurity();
   }
 
   // Apply the outcome of a press conference. `skipped = true` applies the

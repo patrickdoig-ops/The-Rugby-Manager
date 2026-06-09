@@ -583,7 +583,8 @@ Two pan-European club competitions run alongside the Premiership season: the **E
 
 - `GameState.league.europeanCup?: EuropeanCompState | null` — live Cup state (null until seeded).
 - `GameState.league.europeanShield?: EuropeanCompState | null` — live Shield state.
-- `EuropeanCompState { seasonLabel, competition, pools: EuropeanPool[], fixtures: EuropeanFixture[], knockout: EuropeanKnockout | null }` — the single source of truth for a competition's pool standings, fixture list and knockout bracket.
+- `EuropeanCompState { seasonLabel, competition, pools: EuropeanPool[], fixtures: EuropeanFixture[], knockout: EuropeanKnockout | null, shownRounds?: string[] }` — the single source of truth for a competition's pool standings, fixture list and knockout bracket. `shownRounds` tracks which round screens the player has already stepped through (round keys: `'pool:1'`–`'pool:4'`, `'r16'`, `'qf'`, `'sf'`, `'final'`).
+- `EuropeanRoundRef { competition, roundKey, isFinal, label, compLabel }` — returned by `getCurrentEuropeanRound()`; identifies the next unshown round that has all fixtures resolved.
 - `EuropeanPool { id, teamIds, standings: TeamStanding[] }` — 6 teams, 4 rounds of fixtures each. Pool standings use the same `TeamStanding` shape as the league table (leaguePoints, bonus points etc.).
 - `EuropeanFixture { poolId, round, homeId, awayId, date?, result? }` — each fixture stores its own result once played.
 - `EuropeanKnockout { r16, quarterfinals, semifinals, final, championTeamId }` — full bracket. R16 has 8 matches, QF 4, SF 2, Final 1. Seeded from pool positions (top 2 per pool).
@@ -606,6 +607,10 @@ Fixtures are baked for 2025-26 in `src/game/europeanScheduler.ts`:
 
 After each `WEEK_ADVANCED` event `GameCoordinator.getCurrentEuropeanFixture(): EuropeanFixtureRef | null` scans both competitions for the player's first unplayed fixture whose `date <= calendar.date`. The Hub CTA surfaces this as the priority action (above the league fixture, below pre-season cup and playoffs).
 
+`GameCoordinator.getCurrentEuropeanRound(): EuropeanRoundRef | null` scans both competitions (Cup first, then Shield) for the earliest unshown round where all fixtures for that round are resolved and `date <= calendar.date`. Returns `null` when no such round exists. Pool round keys are `'pool:1'`–`'pool:4'`; knockout round keys are `'r16'`, `'qf'`, `'sf'`, `'final'`.
+
+`GameCoordinator.markEuropeanRoundShown(competition, roundKey)` emits `EUROPEAN_ROUND_SHOWN` to persist the key in `shownRounds`. Called from `main.ts` after the player dismisses the round screen. Autosave fires immediately after.
+
 `EuropeanFixtureRef` is a discriminated union:
 ```typescript
 type EuropeanFixtureRef =
@@ -614,8 +619,8 @@ type EuropeanFixtureRef =
 ```
 
 When the player taps "Play European Cup match" the normal PreMatch → Match → MatchResult chain runs. After the result:
-- `recordPlayerEuropeanPoolResult(competition, poolId, round, homeId, awayId, homeScore, awayScore, snapshot)` emits `EUROPEAN_FIXTURE_RECORDED`, then accumulates player stats via `collectSeasonEvents(snap, competition)` — stats route to `Player.europeanCupStats` / `Player.europeanShieldStats` (optional per-competition `PlayerSeasonStats` fields added in v2.44b, no SAVE_VERSION bump — additive optional). Condition and injury events are also emitted. If all four pool rounds for the player's pool are now complete, `runKnockoutStage` is called for the full bracket (skipping the player's matches).
-- `recordPlayerEuropeanKnockoutResult` is the knockout equivalent.
+- `recordPlayerEuropeanPoolResult(competition, poolId, round, homeId, awayId, homeScore, awayScore, snapshot)` emits `EUROPEAN_FIXTURE_RECORDED`, then accumulates player stats via `collectSeasonEvents(snap, competition)` — stats route to `Player.europeanCupStats` / `Player.europeanShieldStats` (optional per-competition `PlayerSeasonStats` fields added in v2.44b, no SAVE_VERSION bump — additive optional). Condition and injury events are also emitted. If all four pool rounds for the player's pool are now complete, `runKnockoutStage` is called for the full bracket (skipping the player's matches). After the pool stage completes, if the player failed to qualify, `BoardCoordinator.applyEuropeanElimination` is called and an inbox story is published.
+- `recordPlayerEuropeanKnockoutResult` is the knockout equivalent. After each KO loss, elimination is applied immediately; after a KO win, if the player progresses to the next round, the next AI round is simulated first (skipping the player's match).
 
 Both methods emit `game:weekAdvanced` (not `game:fixtureRecorded`) to avoid polluting the achievements engine with non-league results; this triggers UI re-renders on all subscribers.
 
@@ -634,6 +639,28 @@ Both methods emit `game:weekAdvanced` (not `game:fixtureRecorded`) to avoid poll
 
 `EuropeanCupScreen` (`src/ui/EuropeanCupScreen.ts`) and `EuropeanShieldScreen` (`src/ui/EuropeanShieldScreen.ts`) render pool standings tables, per-pool fixture lists, and the knockout bracket. Both reuse the shared helpers in `src/ui/components/europeanViews.ts` (`euroPoolTableHtml`, `euroFixtureListHtml`, `euroKnockoutHtml`). The screens re-render on `game:weekAdvanced`. They are reached from the Competitions menu.
 
+**European round viewer** (`src/ui/EuropeanRoundScreen.ts`) is shown in the weekly flow whenever a European pool or knockout round completes. It displays all fixtures for that round plus pool standings (pool rounds) or KO result cards (KO rounds), then lets the player tap Continue to return to the weekly flow. The screen is blocking — the weekly flow does not advance until dismissed. `showEuropeanRound(roundRef, onContinue)` / `initEuropeanRoundScreen(getGameEngine, allTeams)` follow the standard in-season screen pattern.
+
+**European Final screen** (`src/ui/EuropeanFinalScreen.ts`) is a celebration/result screen shown after the European final is played, regardless of whether the player participated. It shows the finalists, the score, and crowns the champion. If the player won, `launchConfetti(champColor, 'storm')` fires (200ms delay to let the screen paint). The screen is blocking — the player must dismiss it before the weekly flow continues. `showEuropeanFinal(roundRef, onContinue)` / `initEuropeanFinalScreen(getGameEngine, allTeams)` follow the same pattern.
+
+**Weekly flow integration.** `maybePlayEuropeanFixture(onDone)` in `main.ts` is the entry point. It first checks `getCurrentEuropeanFixture()` (plays match if present), then checks `getCurrentEuropeanRound()` (shows round/final screen if present), then calls `onDone`. Both branches recurse — so a week with both a player match and pending AI-only rounds fully drains before returning to the Hub. After each round screen is dismissed, `markEuropeanRoundShown` and autosave are called.
+
+**Hub CTA.** When no active fixture is pending, the Hub checks `getCurrentEuropeanRound()` and renders a secondary European round CTA (`.hub-euro-round`) below the primary fixture button. This surfaces pending round screens the player hasn't stepped through even when no match is due.
+
+### Board objective and elimination
+
+`BoardCoordinator.seedEuropeanObjective(competition)` sets the board's expected European stage for the season. Called from `GameCoordinator.seedEuropeanObjectiveAndDrawStory()` after seeding comps. Calibration: Shield → always `'participate'`; Cup, Year 1 (no archive) → `boardAmbition` maps `'title'→'semifinal'`, `'playoffs'→'r16'`, others→`'participate'`; Cup, Year 2+ → prior season rank: 1st→`'semifinal'`, 2nd–4th→`'r16'`, 5th–10th→`'participate'`. The objective is persisted on `BoardState.europeanObjective` via `EUROPEAN_OBJECTIVE_SET`.
+
+`BoardCoordinator.applyEuropeanElimination(competition, achievedStage)` applies an immediate board-confidence delta when the player is knocked out. `achievedStage` is the highest round they reached (`'participate'` = pool stage exit). Delta: +3 if achieved ≥ objective, −5 if behind by 1 stage, −10 if behind by 2+ stages. Triggers `evaluateJobSecurity()` so a dire European exit can issue a warning or sack mid-season.
+
+`EuropeanObjective` type: `'participate' | 'r16' | 'quarterfinal' | 'semifinal' | 'final' | 'win'`.
+
+### Media stories
+
+`src/game/media/europeanStories.ts` exports two builders:
+- `buildEuropeanDrawStory(competition, compLabel, seasonLabel, clubName, poolId, opponents)` — published at season start when pools are drawn; body names the opponents, `deepLink` points to the competition screen.
+- `buildEuropeanEliminationStory(competition, compLabel, clubName, stage, round)` — published when the player is eliminated; explains the exit stage and round.
+
 ### Mutation seam additions
 
 | Event | Key fields | Effect |
@@ -642,6 +669,8 @@ Both methods emit `game:weekAdvanced` (not `game:fixtureRecorded`) to avoid poll
 | `EUROPEAN_FIXTURE_RECORDED` | `competition, poolId, round, homeId, awayId, homeScore, awayScore, homeTries, awayTries` | Writes `result` on the matching fixture; updates pool standings |
 | `EUROPEAN_KNOCKOUT_SEEDED` | `competition, bracket` | Sets `state.league.{competition}.knockout` |
 | `EUROPEAN_KNOCKOUT_RECORDED` | `competition, stage, matchIndex, homeScore, awayScore, homeTries, awayTries` | Writes result on the bracket match; advances the bracket |
+| `EUROPEAN_OBJECTIVE_SET` | `objective` | Sets `state.player.board.europeanObjective` |
+| `EUROPEAN_ROUND_SHOWN` | `competition, roundKey` | Appends `roundKey` to `state.league[competition].shownRounds` |
 
 ## Playoffs
 

@@ -39,7 +39,7 @@ const allTeams = [
 // the serialised shape legitimately changes (and add a MIGRATIONS step).
 const EXPECTED = {
   version: 1,
-  topKeys: 'board,career,careerRngOffset,currentWeek,europeanCup,europeanShield,fixtures,playerTeamId,premCup,results,seasonLabel,seed,teamSeasonStats',
+  topKeys: 'board,career,careerRngOffset,currentWeek,europeanCup,europeanShield,fixtures,mediaStories,playerTeamId,premCup,results,seasonLabel,seed,teamSeasonStats',
   careerKeys: 'activePoachedIds,archive,clubs,freeAgents,loanPool,market,midseasonRejections,nextRosterId,nextStaffId,pendingMoves,roster,seasonsCompleted,staff,takeoverHistory',
 };
 

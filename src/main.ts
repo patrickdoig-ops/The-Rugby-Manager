@@ -80,6 +80,8 @@ import { initLeagueMenuScreen, showLeagueMenuScreen } from './ui/LeagueMenuScree
 import { initCompetitionsMenuScreen } from './ui/CompetitionsMenuScreen';
 import { initEuropeanCupScreen, showEuropeanCupScreen } from './ui/EuropeanCupScreen';
 import { initEuropeanShieldScreen, showEuropeanShieldScreen } from './ui/EuropeanShieldScreen';
+import { initEuropeanRoundScreen, showEuropeanRound } from './ui/EuropeanRoundScreen';
+import { initEuropeanFinalScreen, showEuropeanFinal } from './ui/EuropeanFinalScreen';
 import { initTeamStatsScreen, showTeamStats } from './ui/TeamStatsScreen';
 import { initPlayerStatsScreen, showPlayerStats } from './ui/PlayerStatsScreen';
 import { initPlayerProfileScreen, showPlayerProfile } from './ui/PlayerProfileScreen';
@@ -135,7 +137,7 @@ import type { TalkArgs }           from './types/ui';
 import * as teamProfile            from './team/teamProfile';
 import type { TeamJson }           from './team/teamProfile';
 import { GameCoordinator }         from './game/GameCoordinator';
-import type { BreakBeginResult, PreSeasonBlockResult, EuropeanFixtureRef } from './game/GameCoordinator';
+import type { BreakBeginResult, PreSeasonBlockResult, EuropeanFixtureRef, EuropeanRoundRef } from './game/GameCoordinator';
 import { buildEuropeanOpponent } from './game/buildEuropeanOpponent';
 import { europeanTeams } from './data/european-teams';
 import { extractMatchdaySquad }    from './game/playerSquad';
@@ -393,6 +395,8 @@ document.addEventListener('DOMContentLoaded', () => {
       allTeams: allTeamsWithEuropean,
       onBack: () => goCompetitionsMenu('back'),
     });
+    initEuropeanRoundScreen(getGameEngine, allTeamsWithEuropean);
+    initEuropeanFinalScreen(getGameEngine, allTeamsWithEuropean);
     initContractsTransfersMenuScreen({
       getGameEngine,
       allTeams,
@@ -1573,13 +1577,37 @@ document.addEventListener('DOMContentLoaded', () => {
     screenRouter.show('match-result');
   }
 
-  // Recursively play all European fixtures that are due before the next
-  // league match. Calls onDone when none remain.
+  // Recursively handles European activity: play pending fixtures, then show
+  // completed rounds (including the final) until nothing remains.
   function maybePlayEuropeanFixture(onDone: () => void): void {
     if (!gameEngine) { onDone(); return; }
+    // Player fixture takes priority
     const euroFix = gameEngine.getCurrentEuropeanFixture();
-    if (!euroFix) { onDone(); return; }
-    onPlayEuropeanMatch(euroFix, () => maybePlayEuropeanFixture(onDone));
+    if (euroFix) {
+      onPlayEuropeanMatch(euroFix, () => maybePlayEuropeanFixture(onDone));
+      return;
+    }
+    // No fixture — check for a completed but unshown round
+    const euroRound = gameEngine.getCurrentEuropeanRound();
+    if (euroRound) {
+      if (euroRound.isFinal) {
+        screenRouter.show('european-final');
+        showEuropeanFinal(euroRound, () => {
+          gameEngine!.markEuropeanRoundShown(euroRound.competition, euroRound.roundKey);
+          if (gameEngine) autosave(gameEngine.toSavePayload());
+          maybePlayEuropeanFixture(onDone);
+        });
+      } else {
+        screenRouter.show('european-round');
+        showEuropeanRound(euroRound, () => {
+          gameEngine!.markEuropeanRoundShown(euroRound.competition, euroRound.roundKey);
+          if (gameEngine) autosave(gameEngine.toSavePayload());
+          maybePlayEuropeanFixture(onDone);
+        });
+      }
+      return;
+    }
+    onDone();
   }
 
   function onPlayEuropeanMatch(euroFix: EuropeanFixtureRef, onAfterResult: () => void): void {

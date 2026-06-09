@@ -753,7 +753,7 @@ export function saveToSlot(id: SlotId, save: SavedSeason, name?: string): void {
   const payload: SavedGame = { version: SAVE_VERSION, slotName, savedAt: Date.now(), ...save };
   const raw = JSON.stringify(payload);
   const prev = getRawSlot(id);
-  if (prev) setRawBak(id, prev);          // rotate current good copy → .bak
+  if (prev && parseRawSave(prev)) setRawBak(id, prev); // rotate only if prev parses → .bak
   localStorage.setItem(SLOT_KEY[id], raw); // may throw → caught by saveGame; .bak still holds prev
   slotWriteHook?.(id, raw);
 }

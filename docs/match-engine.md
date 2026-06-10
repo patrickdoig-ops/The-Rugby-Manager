@@ -418,7 +418,7 @@ A player filling a jersey slot that isn't their natural position takes an **effe
 **Mechanism.** The penalty is a multiplier applied to the player's **per-match `baseStats` clone** (the roster record is never touched). It lives on `baseStats` — not just the initial `currentStats` — because `StaminaSystem.computeFatigue` re-derives `currentStats` from `baseStats` every tick; a penalty baked only into the initial `currentStats` would be wiped on tick one. With the clone scaled, the penalty flows automatically into every resolver (which all read `currentStats`) with **zero resolver edits** and no new `MatchEvent` variant.
 
 - **Starters (slots 1–15):** scaled in `initPlayer` by `slotFamiliarity(naturalPosition, slotId)`.
-- **Bench (slots 16–23):** left unscaled at `initPlayer` — they aren't on the field. When a sub comes on, the `SUBSTITUTION_APPLIED` branch scales the incoming player's `baseStats` + `currentStats` by `positionFamiliarity(on.position [natural], off.position [the slot's role])`, computed **before** `on.position = off.position` overwrites the natural label. This is the sub's first and only scale.
+- **Bench (slots 16–23):** left unscaled at `initPlayer` — they aren't on the field. When a sub comes on, the `SUBSTITUTION_APPLIED` branch scales the incoming player's `baseStats` + `currentStats` by `slotFamiliarity(on.position [natural], off.id [the slot])` — the slot's nominal role via `SLOT_POSITION`, **not** the outgoing player's natural position (which may itself be out of position for the slot). Computed **before** `on.position = SLOT_POSITION[off.id]` overwrites the natural label. This is the sub's first and only scale.
 
 **Familiarity table.** `SLOT_POSITION` maps each jersey to its target role (1/3→Prop, 2→Hooker, 4/5→Lock, 6/7→Flanker, 8→Number 8, 9→Scrum-Half, 10→Fly-Half, 11/14→Wing, 12/13→Centre, 15→Fullback). `POSITION_FAMILIARITY[natural][target]` gives the multiplier; a self-match is `1.0`, any unlisted pair is **makeshift** (`MAKESHIFT_MULT = 0.72`). Highlights:
 
@@ -1101,7 +1101,7 @@ None.
 
 The front-row aggregate stats credit every prop / hooker on the dominated side, so team-level scrum-strength data stays consistent regardless of which front-rower the referee cited. The general `penaltiesConceded` counter only moves for the picked offender.
 
-Team-level scrum count: `stats.scrums[possessionSideAfter]++` for `stable_win`, `attacking_dominant_penalty`, and `defending_dominant_penalty`. `wheel` does not count (the scrum resets, no possession decided).
+Team-level scrum count: `stats.scrums[possessionSideAfter]++` for `stable_win`, `attacking_dominant_penalty`, and `defending_dominant_penalty`. `wheel` does not count (the scrum resets, no possession decided). The own-scrum success counters (`stats.ownScrums[attackSide].putIn`/`won`) follow the same rule — wheels are skipped, so a wheeled-then-lost scrum records putIn 1 / won 0 rather than inflating both.
 
 ---
 

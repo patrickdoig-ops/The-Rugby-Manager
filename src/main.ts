@@ -127,7 +127,7 @@ import { initInboxScreen, markInboxRead } from './ui/InboxScreen';
 import { initAchievementEngine }   from './achievements/AchievementEngine';
 import { getGameCenter }           from './achievements/GameCenterBridge';
 import { screenRouter }            from './ui/ScreenRouter';
-import { loadSave, saveGame, clearSave } from './ui/SaveManager';
+import { loadSave, saveGame, clearSave, initSaves } from './ui/SaveManager';
 import { installBackupMirror, reconcileBackups } from './ui/saveBackup';
 import { loadTickDelayMs }           from './ui/uiPrefs';
 import { initTextScale }             from './ui/textScale';
@@ -236,11 +236,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let lastSaveFailWarnAt = 0;
   const SAVE_FAIL_WARN_COOLDOWN_MS = 60_000;
   const autosave = (payload: Parameters<typeof saveGame>[0]): void => {
-    if (saveGame(payload)) return;
-    const now = Date.now();
-    if (now - lastSaveFailWarnAt < SAVE_FAIL_WARN_COOLDOWN_MS) return;
-    lastSaveFailWarnAt = now;
-    eventBus.emit('save:failed', { reason: 'quota' });
+    saveGame(payload).then(ok => {
+      if (ok) return;
+      const now = Date.now();
+      if (now - lastSaveFailWarnAt < SAVE_FAIL_WARN_COOLDOWN_MS) return;
+      lastSaveFailWarnAt = now;
+      eventBus.emit('save:failed', { reason: 'quota' });
+    });
   };
 
   // `direction` defaults to 'forward'. Back-paths (Settings → Home,
@@ -1754,7 +1756,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Ignores the boolean — there's no useful recovery during teardown.
   const flushActiveGame = (): void => {
     if (!inSeasonInited || !gameEngine) return;
-    try { saveGame(gameEngine.toSavePayload()); } catch { /* teardown best-effort */ }
+    saveGame(gameEngine.toSavePayload()).catch(() => {});
   };
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') flushActiveGame();
@@ -1803,5 +1805,5 @@ document.addEventListener('DOMContentLoaded', () => {
   // On native, restore any slot present on disk but missing in localStorage
   // (reinstall / OS-eviction) before the first Home render. Instant no-op on
   // web — reconcileBackups returns immediately off-platform.
-  void reconcileBackups().then(renderHome, renderHome);
+  void initSaves().then(() => reconcileBackups()).then(renderHome, renderHome);
 });

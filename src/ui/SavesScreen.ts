@@ -208,7 +208,7 @@ async function handleAction(act: string, slot: SlotId): Promise<void> {
         if (!ok) return;
       }
       try {
-        saveToSlot(slot, eng.toSavePayload());
+        await saveToSlot(slot, eng.toSavePayload());
         setActiveSlot(slot);
         showToast('Game saved', 'success');
       } catch {

@@ -164,7 +164,7 @@ Diagnostic: `git status && git log --oneline -5 && git branch -vv`.
 | `src/types/matchEvent.ts` — new `MatchEvent` variant | `docs/match-engine.md` § "Mutation boundary" list |
 | `src/game/` — new coordinator method, season flow change | `docs/game-engine.md` (relevant section) |
 | `src/game/applySeasonEvent.ts` — new `SeasonEvent` variant | `docs/game-engine.md` § "Mutation seam" table + `docs/transfer-system.md` § "Mutation-boundary additions" |
-| `src/ui/SaveManager.ts` — `SAVE_VERSION` bump | `docs/game-engine.md` version table + `docs/transfer-system.md` §7 table + `CLAUDE.md` § "Save schema" below + `ACCEPTED_VERSIONS` + a `MIGRATIONS[N]` step in `SaveManager.ts` + the pinned snapshot in `scripts/checkSaveSchema.ts` |
+| `src/ui/SaveManager.ts` — `SAVE_VERSION` bump | `docs/game-engine.md` § "Save format" + `docs/transfer-system.md` §7 + `CLAUDE.md` § "Save schema" below + `ACCEPTED_VERSIONS` + a `MIGRATIONS[N]` step in `SaveManager.ts` + the pinned snapshot in `scripts/checkSaveSchema.ts` |
 | `src/utils/eventBus.ts` / new `game:*` event | `docs/game-engine.md` § "UI events" table |
 | `src/engine/MatchCoordinator.ts` / new `engine:*` event | `docs/match-engine.md` § "UI Event Bus Contract" table |
 | `src/ui/HubScreen.ts` — TILES array | `docs/DESIGN.md` § 15.4 Hub tile list |
@@ -175,7 +175,7 @@ Diagnostic: `git status && git log --oneline -5 && git branch -vv`.
 
 ## Save schema
 
-`SAVE_VERSION = 2`. The current version loads directly; a **lower, known** version is carried forward through the ordered `MIGRATIONS` pipeline in `SaveManager.ts` (`MIGRATIONS[1]` regenerates corrupt year-2+ fixture lists); a future/garbage version is rejected. Bump `SAVE_VERSION` whenever the serialised shape changes in a way that would corrupt an existing save on load — and in the **same commit** add the matching `MIGRATIONS[N]` step (vN→v(N+1)), update `ACCEPTED_VERSIONS`, update the pinned snapshot in `scripts/checkSaveSchema.ts`, and update `docs/game-engine.md` § "Save format" + `docs/transfer-system.md` §7. `npm run verify` runs `checkSaveSchema.ts`, which fails if the fresh-new-season `SavedSeason`/`SavedCareer` key set drifts without a bump. New additive-only optional fields do not require a bump (just update the snapshot) — e.g. `SavedSeason.board?: BoardState` and `SavedSeason.mediaStories?`.
+`SAVE_VERSION = 1`. The current version loads directly; a **lower, known** version is carried forward through the ordered `MIGRATIONS` pipeline in `SaveManager.ts` (empty at v1 — add steps when bumping); a future/garbage version is rejected. Bump `SAVE_VERSION` whenever the serialised shape changes in a way that would corrupt an existing save on load — and in the **same commit** add the matching `MIGRATIONS[N]` step (vN→v(N+1)), update `ACCEPTED_VERSIONS`, update the pinned snapshot in `scripts/checkSaveSchema.ts`, and update `docs/game-engine.md` § "Save format" + `docs/transfer-system.md` §7. `npm run verify` runs `checkSaveSchema.ts`, which fails if the fresh-new-season `SavedSeason`/`SavedCareer` key set drifts without a bump. New additive-only optional fields do not require a bump (just update the snapshot) — e.g. `SavedSeason.board?: BoardState` and `SavedSeason.mediaStories?`.
 
 **Backup & corruption resistance** (storage-layer, no `SAVE_VERSION` bump): each slot keeps a `.bak` copy rotated before every write; native additionally keeps a rolling disk history; autosave flushes on page-hide and uncaught errors. Full details: **`docs/game-engine.md`** § "Save format".
 

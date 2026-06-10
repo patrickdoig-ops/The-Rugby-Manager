@@ -21,8 +21,6 @@
 // initSaves() must be awaited at boot before any slot read.
 
 import type { SavedCareer, SavedSeason, SavedSeasonResult } from '../game/GameCoordinator';
-import { generateFixtures } from '../game/fixtures';
-import { setCareerSeed } from '../utils/rng';
 import type { ArchivedPlayerSeason, ArchivedSeason, ClubState, CupFixture, CupKnockout, CupKnockoutMatch, Fixture, MarketState, MediaStory, PlayerRef, PlayoffMatch, PlayoffState, PremCupState, PreAgreement, SeasonAwards, TeamSeasonStats, TransferBid, TransferOffer } from '../types/gameState';
 import type { Player, PlayerSeasonStats } from '../types/player';
 import { zeroSeasonStats, PLAYER_STAT_KEYS } from '../types/player';
@@ -53,10 +51,29 @@ const SLOT_BAK_KEY: Record<SlotId, string> = {
   3: 'rugby-manager-save-3-bak',
 };
 const ACTIVE_KEY = 'rugby-manager-active-slot';
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 1;
 // Including SAVE_VERSION here is load-bearing — without it a freshly written
 // save is rejected on the very next load.
 const ACCEPTED_VERSIONS = new Set([SAVE_VERSION]);
+
+// Ordered version-up migration steps: MIGRATIONS[N] upgrades a vN envelope to
+// v(N+1). Empty at v1 — add steps here when SAVE_VERSION bumps so existing
+// careers migrate forward instead of being rejected.
+type MigrationStep = (env: SavedGame) => SavedGame;
+const MIGRATIONS: Record<number, MigrationStep> = {};
+
+function migrate(env: SavedGame, fromVersion: number): SavedGame | null {
+  let v = fromVersion;
+  let cur = env;
+  while (v < SAVE_VERSION) {
+    const step = MIGRATIONS[v];
+    if (!step) return null;
+    cur = step(cur);
+    v += 1;
+    cur.version = v;
+  }
+  return cur;
+}
 
 export type SavedGame = SavedSeason & { version: number; slotName?: string; savedAt?: number };
 
@@ -89,59 +106,12 @@ export function setBakWriteHook(fn: ((id: SlotId, raw: string) => void) | null):
   bakWriteHook = fn;
 }
 
-// Ordered version-up migration steps: MIGRATIONS[N] upgrades a vN envelope to
-// v(N+1). Empty today — v1 is current, so loading is unchanged. When
-// SAVE_VERSION bumps in a way that would corrupt an old save, add the step(s)
-// here (and a checkSaveSchema.ts snapshot update) so existing careers migrate
-// forward instead of being rejected at the gate.
-type MigrationStep = (env: SavedGame) => SavedGame;
-// v1 → v2: regenerate fixture lists for saves where the greedy matching
-// produced fewer than 90 fixtures (the circle-method fix in fixtures.ts).
-// Uses the save's own seed for determinism; fromSave resets the career RNG
-// correctly after migration via setCareerSeed + advanceTransferTo.
-const MIGRATIONS: Record<number, MigrationStep> = {
-  1: (env: SavedGame): SavedGame => {
-    if (env.fixtures && env.fixtures.length < 90 && env.career) {
-      const allTeamIds = env.career.clubs.map((c: ClubState) => c.id);
-      const seasonsCompleted = env.career.seasonsCompleted ?? 1;
-      setCareerSeed(env.seed);
-      try {
-        env.fixtures = generateFixtures(env.playerTeamId, allTeamIds, { seasonsCompleted });
-      } catch {
-        // Keep the existing (incomplete) list if regeneration fails — an
-        // unloadable save is worse than a slightly wrong fixture list.
-      }
-    }
-    return env;
-  },
-};
-
-// Walk an old-but-known envelope up to the current SAVE_VERSION. Returns null
-// if the chain has a gap (an unmigratable version), so the caller rejects it
-// cleanly rather than loading a half-migrated save.
-function migrate(env: SavedGame, fromVersion: number): SavedGame | null {
-  let v = fromVersion;
-  let cur = env;
-  while (v < SAVE_VERSION) {
-    const step = MIGRATIONS[v];
-    if (!step) return null;
-    cur = step(cur);
-    v += 1;
-    cur.version = v;
-  }
-  return cur;
-}
 
 // Parse a raw SavedGame object into a validated SavedSeason. Shared by every
 // slot loader (and parseRawSave). Returns null on any structural problem so
 // callers fall back to "no save" rather than corrupting state.
 function parseSavedGame(parsed: SavedGame): SavedSeason | null {
   try {
-    // Version gate. Current version loads directly; a lower, known version is
-    // routed through the migration pipeline; a future/garbage version is
-    // rejected. ACCEPTED_VERSIONS stays the post-migration belt-and-braces
-    // check (and keeps its load-bearing role of rejecting a freshly written
-    // save if SAVE_VERSION were ever omitted from the envelope).
     if (parsed.version !== SAVE_VERSION) {
       if (typeof parsed.version !== 'number' || parsed.version > SAVE_VERSION) return null;
       const migrated = migrate(parsed, parsed.version);

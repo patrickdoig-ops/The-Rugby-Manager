@@ -40,7 +40,7 @@ const allTeams = [
 // The nested key sets (player / club / fixture) catch shape drift inside
 // representative records that the two top-level key sets can't see.
 const EXPECTED = {
-  version: 2,
+  version: 1,
   topKeys: 'board,career,careerRngOffset,currentWeek,europeanCup,europeanShield,fixtures,mediaStories,playerTeamId,premCup,results,seasonLabel,seed,teamSeasonStats',
   careerKeys: 'activePoachedIds,archive,clubs,freeAgents,loanPool,market,midseasonRejections,nextRosterId,nextStaffId,pendingMoves,roster,seasonsCompleted,staff,takeoverHistory',
   playerKeys: 'baseStats,condition,contract,currentStats,dob,fatiguePct,firstName,formModifier,id,lastName,matchStats,morale,nationality,position,potential,rating,reputation,rosterId,seasonStats,squadNumber,x,y',

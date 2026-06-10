@@ -137,6 +137,7 @@ import type { TeamTactics }        from './types/team';
 import type { MatchState }         from './types/match';
 import type { PlayoffMatch }       from './types/gameState';
 import type { TalkArgs }           from './types/ui';
+import type { TrainingPlan, TrainingWeekResult } from './types/training';
 import * as teamProfile            from './team/teamProfile';
 import type { TeamJson }           from './team/teamProfile';
 import { GameCoordinator }         from './game/GameCoordinator';
@@ -1493,16 +1494,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // One training week after a cup matchday — gap-scoped to the next matchday.
-  function afterCupMatch(onDone: () => void): void {
+  // One training week after a cup / European matchday, applied via the given
+  // coordinator training method (cup: gap-scoped to the next matchday;
+  // European: a fixed 7-day week). Shared by the cup + European weekly flows.
+  function afterMatchdayTraining(runTraining: (weeks: TrainingPlan[]) => TrainingWeekResult, onDone: () => void): void {
     const eng = gameEngine;
     if (!eng) { onDone(); return; }
     autosave(eng.toSavePayload());
     showTrainingPostMatch((results) => {
       showPostTrainingResults(results, () => { autosave(eng.toSavePayload()); onDone(); });
       screenRouter.show('training-results');
-    }, { runBlock: (weeks) => Promise.resolve(eng.runCupMatchdayTraining(weeks)) });
+    }, { runBlock: (weeks) => Promise.resolve(runTraining(weeks)) });
     screenRouter.show('training');
+  }
+
+  function afterCupMatch(onDone: () => void): void {
+    const eng = gameEngine;
+    if (!eng) { onDone(); return; }
+    afterMatchdayTraining((weeks) => eng.runCupMatchdayTraining(weeks), onDone);
   }
 
   // The once-per-block live/assistant + direction decision screen.
@@ -1723,10 +1732,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // completed rounds (including the final) until nothing remains.
   function maybePlayEuropeanFixture(onDone: () => void): void {
     if (!gameEngine) { onDone(); return; }
-    // Player fixture takes priority
+    // Player fixture takes priority. Each European matchday is a full game
+    // week: play → result → its own training week → next.
     const euroFix = gameEngine.getCurrentEuropeanFixture();
     if (euroFix) {
-      onPlayEuropeanMatch(euroFix, () => maybePlayEuropeanFixture(onDone));
+      onPlayEuropeanMatch(euroFix, () => afterMatchdayTraining(
+        (weeks) => gameEngine!.runEuropeanMatchdayTraining(weeks),
+        () => maybePlayEuropeanFixture(onDone),
+      ));
       return;
     }
     // No fixture — check for a completed but unshown round

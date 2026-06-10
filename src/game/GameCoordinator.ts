@@ -691,6 +691,16 @@ export class GameCoordinator {
     return { plan: weeks[weeks.length - 1], players: [...acc.values()], weeks: n };
   }
 
+  // One training week for a European matchday — a fixed 7-day recovery/dev
+  // week (European games sit roughly weekly inside the league calendar, and
+  // European keeps its league-driven calendar.date, so a date-derived gap
+  // isn't available). Emits game:trainingApplied.
+  runEuropeanMatchdayTraining(weeks: TrainingPlan[]): TrainingWeekResult {
+    const acc = runTrainingPeriods(this.state, weeks, [7]);
+    eventBus.emit('game:trainingApplied', { state: this.state });
+    return { plan: weeks[weeks.length - 1], players: [...acc.values()], weeks: 1 };
+  }
+
   // Earliest date strictly after today among the player's remaining cup
   // matchdays and the upcoming league round — the horizon for a cup matchday's
   // training gap.

@@ -143,25 +143,6 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
 
     // On phase change, fade out persisted dots that aren't in the new beat.
     if (event.phase !== currentPhase) {
-      // Lineout→Maul: enable top/left transitions so forwards animate from their
-      // lineout spread into the maul cluster rather than just appearing there.
-      if (currentPhase === MatchPhase.Lineout && event.phase === MatchPhase.Maul) {
-        scheduleGlide('dot-transitioning', 600);
-      }
-      // FirstPhase→Breakdown: the set-piece pack has been held at its scrum/lineout
-      // positions through the whole first phase. The breakdown beat is the first to
-      // reposition the forwards (into the authored ruck formation), so glide them
-      // there from wherever the set piece left them rather than snapping.
-      //
-      // Breakdown and Kick formations: glide players into position from wherever
-      // the predecessor phase (FirstPhase, PhasePlay) left them, rather than
-      // snapping instantly. CSS animates from the dots' actual current positions,
-      // so the blend is correct for any predecessor.
-      if (event.phase === MatchPhase.Breakdown ||
-          event.phase === MatchPhase.BoxKick ||
-          event.phase === MatchPhase.TacticalKick) {
-        scheduleGlide('dot-transitioning', 600);
-      }
       // Lineout/Scrum→FirstPhase: keep set-piece forwards visible through the whole
       // first phase — carry persistedKeys forward so they don't clear at the boundary.
       // They fade normally when FirstPhase itself ends.
@@ -187,20 +168,18 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       const keepTryScored = event.phase === MatchPhase.TryScored;
       // Substitution: hold the predecessor formation.
       const keepSubstitution = event.phase === MatchPhase.Substitution;
-      // The kick→return seed and the try glide their movers from the predecessor positions;
-      // the other holds keep the non-movers exactly in place (no transition needed). Phase
-      // play enables its glide per-beat below.
-      if (keepKickFormation || keepTryScored) {
-        scheduleGlide('dot-transitioning', 600);
+      // Glide rule: every phase change glides (dot-transitioning) EXCEPT the
+      // snap phases (kick-off / half-time / full-time reset the whole frame —
+      // a faster snap transition reads as a cut, not a drift). CSS animates
+      // from each dot's live position, so the one rule covers every
+      // predecessor without per-transition cases.
+      const snapPhases = new Set([
+        MatchPhase.KickOff, MatchPhase.HalfTime, MatchPhase.FullTime
+      ]);
+      if (snapPhases.has(event.phase)) {
+        scheduleGlide('dot-snap-transition', 400);
       } else {
-        const snapPhases = new Set([
-          MatchPhase.KickOff, MatchPhase.HalfTime, MatchPhase.FullTime
-        ]);
-        if (snapPhases.has(event.phase)) {
-          scheduleGlide('dot-snap-transition', 400);
-        } else {
-          scheduleGlide('dot-transitioning', 600);
-        }
+        scheduleGlide('dot-transitioning', 600);
       }
       if (keepLineout) {
         // Attacking #9 must start FirstPhase at their set-piece position (lineout
@@ -354,6 +333,7 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
   const reset = (): void => {
     ballWalkFollower.cancel();
     field.classList.remove('dot-transitioning');
+    field.classList.remove('dot-snap-transition');
     for (const el of pool.values()) el.remove();
     pool.clear();
     persistedKeys = new Set();

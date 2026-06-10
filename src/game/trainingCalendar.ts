@@ -51,6 +51,23 @@ export function upcomingGap(state: GameState): { weeks: number; days: number } {
   return { weeks, days };
 }
 
+// Gap for a non-league matchday (cup / European), derived from explicit
+// from/to dates rather than league-round lookup. `upcomingGap` keys off
+// `calendar.week`, which doesn't move for an intermediate cup/European
+// matchday, so it would report the surrounding league gap instead of the
+// matchday-to-next-matchday gap — hence this date-explicit variant. Falls
+// back to a single 7-day week when either date is missing or the span is
+// non-positive (same shape as `upcomingGap`).
+export function upcomingGapFromDate(
+  fromIso: string | null | undefined,
+  toIso: string | null | undefined,
+): { weeks: number; days: number } {
+  if (!fromIso || !toIso) return { weeks: 1, days: SEASON_VALUES.weekLengthDays };
+  const days = daysBetween(fromIso, toIso);
+  if (days <= 0) return { weeks: 1, days: SEASON_VALUES.weekLengthDays };
+  return { weeks: Math.max(1, Math.round(days / 7)), days };
+}
+
 // Split a gap of `days` into `weeks` period-spans summing to `days`. Extra
 // days land on the earlier periods. e.g. (36, 5) → [8,7,7,7,7]; (6,1) → [6].
 export function splitGapIntoPeriods(days: number, weeks: number): number[] {

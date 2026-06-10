@@ -190,6 +190,13 @@ export function assertSeasonInvariants(state: GameState): void {
   if (!(state.calendar.week >= 1) || !Number.isInteger(state.calendar.week)) {
     fail('calendar.week', `${state.calendar.week}`);
   }
+  // calendar.date must stay a parseable ISO date (catches a malformed
+  // MATCHDAY_ADVANCED toDate). A strict monotonicity assert is deliberately
+  // omitted: WEEK_ADVANCED jumps to the earliest fixture of the next round,
+  // which can sit before a just-played later-in-round fixture.
+  if (Number.isNaN(new Date(state.calendar.date).getTime())) {
+    fail('calendar.date', `${state.calendar.date}`);
+  }
 
   // ── League standings: derivation invariants ──────────────────────────
   let totalPlayed = 0;

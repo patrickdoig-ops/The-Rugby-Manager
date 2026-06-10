@@ -762,6 +762,15 @@ export type SeasonEvent =
       type: 'WEEK_ADVANCED';
     }
   | {
+      // Advances calendar.date ONLY (to the next cup / European matchday),
+      // leaving calendar.week (the league-round cursor) untouched. Consumes
+      // no RNG and runs none of WEEK_ADVANCED's league-round-scoped passes
+      // (rejection pruning, morale decay, poach threats) — a cup matchday is
+      // not a league round.
+      type: 'MATCHDAY_ADVANCED';
+      toDate: string;
+    }
+  | {
       type: 'PLAYER_TACTICS_SET';
       tactics: TeamTactics;
     }

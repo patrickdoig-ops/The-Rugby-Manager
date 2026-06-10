@@ -86,6 +86,13 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       );
       return;
     }
+    case 'MATCHDAY_ADVANCED': {
+      // Step the calendar to the next cup / European matchday. calendar.week
+      // (the league-round cursor) deliberately does NOT move, so league
+      // scheduling, standings, break detection and upcomingGap are untouched.
+      state.calendar.date = event.toDate;
+      return;
+    }
     case 'PLAYER_TACTICS_SET': {
       state.player.tactics = { ...event.tactics };
       return;

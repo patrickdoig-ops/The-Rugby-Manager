@@ -252,7 +252,6 @@ function renderLineupBody(
   bench: RawPlayer[],
   stadium: string | undefined,
   matchDate: string,
-  roundLabel: string,
   showEditSquad: boolean,
   hasOnProfile: boolean,
   state: GameState,
@@ -268,7 +267,7 @@ function renderLineupBody(
   // editable starting XV only (showEditSquad is true for the 'mine' step).
   const startersHtml = starters.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p), showEditSquad, captainRosterId)).join('');
   const benchHtml    = bench.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p), false, captainRosterId)).join('');
-  const metaParts = [stadium, matchDate, roundLabel].filter(Boolean).join(' · ');
+  const metaParts = [stadium, matchDate].filter(Boolean).join(' · ');
   return `
     <div class="pm-lineup-card">
       <div class="pm-lineup-header">
@@ -561,7 +560,6 @@ export function initPreMatchScreen(
     (f.homeId === awayTeam.id && f.awayId === homeTeam.id),
   );
   const matchDate = formatMatchDate(fixture?.date);
-  const roundLabel = playoffContext?.contextLabel ?? `Round ${roundNumber}`;
   const venueBase = fixture?.venue ?? (homeTeam as RawTeam & { stadium?: string }).stadium;
   const effectiveCapacity = fixture?.venueCapacity ?? (homeTeam as RawTeam & { stadiumCapacity?: number }).stadiumCapacity;
   const expectedAttendance = fixture && effectiveCapacity
@@ -678,10 +676,10 @@ export function initPreMatchScreen(
 
   function bodyHtml(): string {
     if (step === 'mine') {
-      return renderLineupBody('LINE-UP', playerTeam, playerStarters, playerBench, stadiumName, matchDate, roundLabel, !!onEditSquad, !!onPlayerProfile, state, isRowExpanded, currentCaptainId);
+      return renderLineupBody('LINE-UP', playerTeam, playerStarters, playerBench, stadiumName, matchDate, !!onEditSquad, !!onPlayerProfile, state, isRowExpanded, currentCaptainId);
     }
     if (step === 'opp') {
-      return renderLineupBody('LINE-UP', oppTeam, oppStarters, oppBench, stadiumName, matchDate, roundLabel, false, !!onPlayerProfile, state, isRowExpanded, undefined);
+      return renderLineupBody('LINE-UP', oppTeam, oppStarters, oppBench, stadiumName, matchDate, false, !!onPlayerProfile, state, isRowExpanded, undefined);
     }
     if (step === 'scout') {
       return renderScoutBody(oppTeam, oppTeam.shortName, scoutData);

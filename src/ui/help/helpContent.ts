@@ -78,7 +78,7 @@ const HELP_TOPICS = {
       { label: 'Inbox banner', desc: 'Your assistant’s briefings — injuries, expiring contracts and news that need attention.' },
       { label: 'Six tiles', desc: 'Squad, Tactics, Competitions, Training, Contracts & Transfers, and Club open the management screens.' },
       { label: 'Go to next match', desc: 'The main button — advances time to your next fixture and starts the build-up.' },
-      { label: 'Settings cog', desc: 'Top-right — preferences and the route back to the main menu.' },
+      { label: 'Settings cog', desc: 'Top-left — preferences and the route back to the main menu.' },
     ],
     tips: [
       'Clear your inbox before each match — it flags the decisions that matter most.',
@@ -89,7 +89,7 @@ const HELP_TOPICS = {
     title: 'Competitions',
     purpose: 'A hub for every competition you are involved in — the league, the League Cup and the European tournaments.',
     features: [
-      { label: 'League', desc: 'Standings, fixtures, team and player stats, and end-of-season awards.' },
+      { label: 'League', desc: 'Standings, fixtures, and team and player stats.' },
       { label: 'League Cup', desc: 'The pre-season pool competition run alongside your league campaign.' },
       { label: 'European Cup / Shield', desc: 'Continental pool and knockout competitions, when your club has qualified.' },
     ],
@@ -101,7 +101,6 @@ const HELP_TOPICS = {
       { label: 'Table', desc: 'Live standings, including playoff and European qualification cut-offs.' },
       { label: 'Fixtures', desc: 'The full season schedule with results so far.' },
       { label: 'Team & Player Stats', desc: 'League-wide leaderboards for clubs and individuals.' },
-      { label: 'Awards', desc: 'End-of-season honours once the campaign is decided.' },
     ],
   },
   'contracts-transfers-menu': {
@@ -124,6 +123,7 @@ const HELP_TOPICS = {
       { label: 'Board Confidence', desc: 'How happy your owner is, and the factors driving it.' },
       { label: 'Staff', desc: 'Hire and release your assistant manager, fitness lead and scouts.' },
       { label: 'Finances', desc: 'Player wage budget, staff budget and the slider to move spare headroom between them.' },
+      { label: 'Awards', desc: 'Season honours, trophies and career milestones.' },
     ],
   },
 
@@ -132,14 +132,32 @@ const HELP_TOPICS = {
     title: 'Squad Selection',
     purpose: 'Pick your matchday 23 — the starting XV and eight replacements — for the next fixture.',
     features: [
-      { label: 'Starting XV', desc: 'The 15 players who begin the match, by position.' },
-      { label: 'Bench', desc: 'Eight replacements available to bring on during the game.' },
+      { label: 'Making changes', desc: 'Tap a player number to select it, then tap another number to swap the two.' },
+      { label: 'Player detail', desc: 'Tap a player name to open their full profile.' },
+      { label: 'Quick attributes', desc: 'Tap the down arrow on a player row to see their key attributes without leaving the screen.' },
       { label: 'Player ratings', desc: 'Each player’s overall and key attributes guide your selection.' },
       { label: 'Fitness & injuries', desc: 'Tired or injured players carry a warning — rest them or risk poor performance.' },
     ],
     tips: [
       'Match each player to their best position — playing out of position hurts performance.',
       'Cover every position on the bench so you can react to injuries and sin-bins.',
+    ],
+  },
+  'player-profile': {
+    title: 'Player Profile',
+    purpose: 'A full breakdown of a player — attributes, contract, form, squad role and career history.',
+    features: [
+      { label: 'OVR badge', desc: 'Overall rating derived from position-relevant attributes. Unscouted players show reputation instead until scouted.' },
+      { label: 'Identity grid', desc: 'Contract expiry, wage, condition, reputation, morale and form at a glance. Coloured values signal when something needs attention.' },
+      { label: 'Squad status', desc: 'The role assigned to this player — First-Team Regular, Fringe Player and so on — and the playing-time expectation it carries. Tap Change to reassign.' },
+      { label: 'Attributes radar', desc: 'Twelve-axis chart showing overall shape at a glance. Greyed axes are less relevant to the position.' },
+      { label: 'Attribute bars', desc: 'Precise values across Physical, Skill and Mental groups. Scouted players show a band rather than an exact number until accuracy reaches 100%.' },
+      { label: 'Career history', desc: 'Season-by-season appearances, tries and average match rating.' },
+      { label: 'Scouting', desc: 'Shown for players outside your squad. Assign one of your hired scouts to improve attribute accuracy over time.' },
+    ],
+    tips: [
+      'Condition and morale both affect match ratings — act early if either drops.',
+      'Assign a scout to a transfer target to narrow attribute bands before making an offer.',
     ],
   },
   'squad-overview': {
@@ -310,8 +328,13 @@ const HELP_TOPICS = {
     title: 'Team Stats',
     purpose: 'League-wide team leaderboards — see how your club ranks for attack, defence and discipline.',
     features: [
-      { label: 'Stat categories', desc: 'Tries, points, possession, tackles and more across every club.' },
-      { label: 'Your club', desc: 'Highlighted so you can benchmark against the league.' },
+      { label: 'Stat categories', desc: 'Seven views: Attack, Carry, Defence, Kicking, Set Piece, Possession and Discipline.' },
+      { label: 'Your club', desc: 'Your row is highlighted so you can benchmark against the rest of the league.' },
+      { label: 'Sorting', desc: 'Tap any column header to re-sort; tap again to reverse the direction.' },
+      { label: 'Team detail', desc: 'Tap a team row to open their full club information.' },
+    ],
+    tips: [
+      'The chip bar scrolls horizontally — swipe it to reach Possession and Discipline.',
     ],
   },
   'player-stats': {
@@ -324,10 +347,14 @@ const HELP_TOPICS = {
   },
   'achievements': {
     title: 'Awards & Achievements',
-    purpose: 'A record of the honours and milestones you and your players have earned.',
+    purpose: 'A record of the honours and milestones you and your players have earned — match feats, season results, European runs and career landmarks.',
     features: [
-      { label: 'Awards', desc: 'Season honours, trophies and individual recognition.' },
-      { label: 'Milestones', desc: 'Notable feats reached across your career.' },
+      { label: 'Match', desc: 'Feats from a single game — first win, big scorelines, shut-outs.' },
+      { label: 'Season', desc: 'League and European milestones — playoffs, finals, titles.' },
+      { label: 'Career', desc: 'Long-term landmarks across multiple seasons.' },
+    ],
+    tips: [
+      'European achievements unlock as your club progresses — qualifying, reaching the knockout stage, the final, and winning.',
     ],
   },
 

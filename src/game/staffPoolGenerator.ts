@@ -23,7 +23,7 @@ const LAST_NAMES = [
   'Parker', 'Young', 'Mitchell',
 ];
 
-function staffWage(rating: number): number {
+export function staffWageForRating(rating: number): number {
   const anchors = STAFF_WAGES_BY_RATING;
   if (rating <= anchors[0].rating) return anchors[0].annualWage;
   if (rating >= anchors[anchors.length - 1].rating) return anchors[anchors.length - 1].annualWage;
@@ -46,7 +46,7 @@ function generateOne(id: number, role: StaffRole): StaffMember {
     role,
     name:       `${firstName} ${lastName}`,
     rating,
-    annualWage: staffWage(rating),
+    annualWage: staffWageForRating(rating),
     clubId:     null,
   };
 }

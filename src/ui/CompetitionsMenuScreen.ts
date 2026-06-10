@@ -33,7 +33,7 @@ interface TileSpec {
 }
 
 const TILES: TileSpec[] = [
-  { id: 'cm-tile-league',          label: 'League',           sub: 'Table, stats & awards',  ariaLabel: 'League',          iconKey: 'league',   handlerKey: 'onLeague' },
+  { id: 'cm-tile-league',          label: 'League',           sub: 'Table & stats',          ariaLabel: 'League',          iconKey: 'league',   handlerKey: 'onLeague' },
   { id: 'cm-tile-cup',             label: 'League Cup',       sub: 'Pools & knockouts',      ariaLabel: 'League Cup',      iconKey: 'cup',      handlerKey: 'onCup' },
   { id: 'cm-tile-european-cup',    label: 'European Cup',     sub: 'Pools & knockouts',      ariaLabel: 'European Cup',    iconKey: 'european', handlerKey: 'onEuropeanCup' },
   { id: 'cm-tile-european-shield', label: 'European Shield',  sub: 'Pools & knockouts',      ariaLabel: 'European Shield', iconKey: 'european', handlerKey: 'onEuropeanShield' },

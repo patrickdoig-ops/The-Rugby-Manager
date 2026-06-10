@@ -57,7 +57,7 @@ import { runTrainingPeriods } from './trainingRunner';
 import { upcomingGap, splitGapIntoPeriods } from './trainingCalendar';
 import { reconcileRestObligations, lionsReturnEvents, summerTourReturnEvents } from './internationalDutyEngine';
 import { computeRollover } from './careerRollover';
-import { generateStaffPool } from './staffPoolGenerator';
+import { generateStaffPool, staffWageForRating } from './staffPoolGenerator';
 import { generatePersona } from './personaGenerator';
 import { buildLoanPoolEvents } from './loanPoolGenerator';
 import { buildRosterSeededEvent, buildCareerArchiveRestoredEvent } from './saveMigration';
@@ -216,6 +216,7 @@ export class GameCoordinator {
     seed: number,
     allTeams: RawTeamInput[],
     schedule: SeasonSchedule = PREMIERSHIP_2025_26,
+    quickStart = false,
   ): Promise<GameCoordinator> {
     const coord = new GameCoordinator(allTeams);
     setCareerSeed(seed);
@@ -276,9 +277,26 @@ export class GameCoordinator {
     }
     coord.board.seedBoardState();
     coord.seedEuropeanObjectiveAndDrawStory();
-    // Seed the initial staff hire pool (no hired staff on season 1).
-    const { staff: initialStaff, nextStaffId } = generateStaffPool(1);
-    applySeasonEvent(coord.state, { type: 'STAFF_POOL_SEEDED', staff: initialStaff, nextStaffId });
+    // Seed the initial staff hire pool. Quick-start pre-hires one average-rated
+    // member of each role so the player has a functional backroom from day one.
+    const { staff: initialStaff, nextStaffId: poolNextId } = generateStaffPool(1);
+    let staffPool = initialStaff;
+    let nextStaffId = poolNextId;
+    if (quickStart) {
+      const AVG = 65; // midpoint of STAFF_RATING_BAND (40–90)
+      const wage = staffWageForRating(AVG);
+      const make = (role: 'assistant' | 'fitness' | 'scout', name: string) => ({
+        id: `s${nextStaffId++}`, role, name, rating: AVG, annualWage: wage,
+        clubId: playerTeamId,
+      });
+      staffPool = [
+        make('assistant', 'Mark Davies'),
+        make('fitness',   'Tom Fletcher'),
+        make('scout',     'Phil Morgan'),
+        ...initialStaff,
+      ];
+    }
+    applySeasonEvent(coord.state, { type: 'STAFF_POOL_SEEDED', staff: staffPool, nextStaffId });
     // Seed the season's loan-available player pool (Feature 2.3).
     for (const ev of buildLoanPoolEvents(coord.state)) {
       applySeasonEvent(coord.state, ev);

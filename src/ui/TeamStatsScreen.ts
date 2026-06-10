@@ -16,7 +16,7 @@ import { eventBus } from '../utils/eventBus';
 import { formatDateMedium } from '../utils/formatDate';
 import { helpButtonHtml } from './help/helpButton';
 
-type CategoryKey = 'attack' | 'defence' | 'kicking' | 'setpiece' | 'possession' | 'discipline';
+type CategoryKey = 'attack' | 'carry' | 'defence' | 'kicking' | 'setpiece' | 'possession' | 'discipline';
 
 // Column descriptor — `value` extracts the sortable number from a team's
 // stats, `display` renders the visible cell. `compareDesc` is the
@@ -51,11 +51,18 @@ const CATEGORIES: CategorySpec[] = [
       { id: 'tries',   label: 'TRIES',  value: s => s.tries,           display: s => fmtInt(s.tries) },
       { id: 'carries', label: 'CARRIES',value: s => s.carries,         display: s => fmtInt(s.carries) },
       { id: 'metres',  label: 'METRES', value: s => s.metresCarried,   display: s => fmtInt(s.metresCarried) },
+    ],
+  },
+  {
+    key: 'carry',
+    label: 'Carry',
+    defaultSortColId: 'lbs',
+    columns: [
       { id: 'lbs',     label: 'LBs',    ariaTitle: 'Line breaks',
                                         value: s => s.lineBreaks,      display: s => fmtInt(s.lineBreaks) },
       { id: 'db',      label: 'DB',     ariaTitle: 'Defenders beaten',
                                         value: s => s.defendersBeaten, display: s => fmtInt(s.defendersBeaten) },
-      { id: 'offloads',label: 'OFFLD', ariaTitle: 'Offloads completed',
+      { id: 'offloads',label: 'OFFLD',  ariaTitle: 'Offloads completed',
                                         value: s => s.offloadsCompleted, display: s => fmtInt(s.offloadsCompleted) },
     ],
   },
@@ -249,16 +256,20 @@ export function initTeamStatsScreen(
       btn.addEventListener('click', () => {
         const next = btn.dataset.cat as CategoryKey;
         if (next === activeCategory) return;
+        const chipsScroll = el!.querySelector<HTMLElement>('#ts-chips')?.scrollLeft ?? 0;
         activeCategory = next;
         activeSortColId = null; // reset to category's default sort column
         activeSortDir = 'desc';
         render();
+        const tsChips = el!.querySelector<HTMLElement>('#ts-chips');
+        if (tsChips) tsChips.scrollLeft = chipsScroll;
       });
     });
 
     el!.querySelectorAll<HTMLButtonElement>('.ts-head[data-col]').forEach(btn => {
       btn.addEventListener('click', () => {
         const next = btn.dataset.col!;
+        const chipsScroll = el!.querySelector<HTMLElement>('#ts-chips')?.scrollLeft ?? 0;
         if (next === sortColId) {
           activeSortDir = activeSortDir === 'desc' ? 'asc' : 'desc';
         } else {
@@ -266,6 +277,8 @@ export function initTeamStatsScreen(
           activeSortDir = 'desc';
         }
         render();
+        const tsChips = el!.querySelector<HTMLElement>('#ts-chips');
+        if (tsChips) tsChips.scrollLeft = chipsScroll;
       });
     });
 

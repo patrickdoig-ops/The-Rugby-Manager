@@ -73,6 +73,47 @@ function wonSemiFinal(ctx: AchievementCtx): boolean {
   });
 }
 
+// Is the player's club participating in a European competition this season?
+function inEuropean(ctx: AchievementCtx): boolean {
+  const id = ctx.playerTeamId;
+  for (const comp of [ctx.state.league.europeanCup, ctx.state.league.europeanShield]) {
+    if (comp?.pools.some(pool => pool.teamIds.includes(id))) return true;
+  }
+  return false;
+}
+
+// Has the player's club been seeded into the European knockout stage?
+function inEuropeanKnockout(ctx: AchievementCtx): boolean {
+  const id = ctx.playerTeamId;
+  for (const comp of [ctx.state.league.europeanCup, ctx.state.league.europeanShield]) {
+    const ko = comp?.knockout;
+    if (!ko) continue;
+    const all = [...ko.r16, ...ko.quarterfinals, ...ko.semifinals, ko.final];
+    if (all.some(m => m.homeId === id || m.awayId === id)) return true;
+  }
+  return false;
+}
+
+// Has the player's club been drawn into a European final?
+function inEuropeanFinal(ctx: AchievementCtx): boolean {
+  const id = ctx.playerTeamId;
+  for (const comp of [ctx.state.league.europeanCup, ctx.state.league.europeanShield]) {
+    const f = comp?.knockout?.final;
+    if (f && (f.homeId === id || f.awayId === id)) return true;
+  }
+  return false;
+}
+
+// Has the player's club won a European title (live state or career archive)?
+function wonEuropean(ctx: AchievementCtx): boolean {
+  const id = ctx.playerTeamId;
+  if (ctx.state.league.europeanCup?.knockout?.championTeamId === id) return true;
+  if (ctx.state.league.europeanShield?.knockout?.championTeamId === id) return true;
+  return ctx.state.career.archive.some(
+    a => a.europeanCupChampionTeamId === id || a.europeanShieldChampionTeamId === id,
+  );
+}
+
 // Highest OVR among the player's current senior squad.
 function squadPeakOvr(ctx: AchievementCtx): number {
   const club = ctx.state.career.clubs.find(c => c.id === ctx.playerTeamId);
@@ -155,6 +196,40 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     description: 'Complete a full season.',
     category: 'season',
     check: (ctx) => ctx.state.career.seasonsCompleted >= 1,
+  },
+
+  // ── European competition milestones ───────────────────────────────────
+  {
+    id: 'euro_qualify',
+    gcId: 'com.patrickdoig.rugbymanager.euro_qualify',
+    title: 'European Adventure',
+    description: 'Qualify for a European competition.',
+    category: 'season',
+    check: inEuropean,
+  },
+  {
+    id: 'euro_knockout',
+    gcId: 'com.patrickdoig.rugbymanager.euro_knockout',
+    title: 'Beyond the Pool',
+    description: 'Reach the knockout stages of a European competition.',
+    category: 'season',
+    check: inEuropeanKnockout,
+  },
+  {
+    id: 'euro_final',
+    gcId: 'com.patrickdoig.rugbymanager.euro_final',
+    title: 'Continental Final',
+    description: 'Reach a European Cup or Shield final.',
+    category: 'season',
+    check: inEuropeanFinal,
+  },
+  {
+    id: 'euro_champion',
+    gcId: 'com.patrickdoig.rugbymanager.euro_champion',
+    title: 'Continental Champion',
+    description: 'Win a European title.',
+    category: 'season',
+    check: wonEuropean,
   },
 
   // ── Career / transfer milestones ───────────────────────────────────

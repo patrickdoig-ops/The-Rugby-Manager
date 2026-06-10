@@ -385,7 +385,10 @@ function wireChips(el: HTMLElement, rerender: () => void): void {
       }
       if (group === 'fwd') draftPlan.forwardsFocus = value as ForwardsFocus;
       if (group === 'bck') draftPlan.backsFocus = value as BacksFocus;
+      const scrollTop = el.querySelector<HTMLElement>('#tr-body')?.scrollTop ?? 0;
       rerender();
+      const trBody = el.querySelector<HTMLElement>('#tr-body');
+      if (trBody) trBody.scrollTop = scrollTop;
     });
   });
 }

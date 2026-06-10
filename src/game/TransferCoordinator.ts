@@ -717,8 +717,11 @@ export class TransferCoordinator {
 
   // Opens a mid-season signing market: free agents + Reg 7 candidates.
   // Excludes cooldown-locked rosterIds from the FA pool. Reg 7 offers
-  // are seeded with estimateMarketWage (RNG-free) so visiting Transfers
-  // mid-season doesn't perturb the career rngTransfer stream. Idempotent:
+  // are seeded with estimateMarketWage (RNG-free); FA offers go through
+  // signingTermsFor → seedContractFields, which consumes 2 rngTransfer
+  // draws per free agent — determinism survives because the window is
+  // user-triggered and careerRngOffset is snapshot at save time (same
+  // precedent as boostPlayerMorale). Idempotent:
   // re-opening while a market is already live is a no-op. If both pools
   // are empty the window doesn't open so the caller can route to Hub.
   openMidseasonSigningWindow(): void {

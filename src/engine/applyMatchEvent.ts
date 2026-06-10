@@ -5,7 +5,7 @@ import { clamp } from '../utils/math';
 import { attackDir } from './FieldPosition';
 import { computeRating } from './RatingEngine';
 import { assertInvariants } from './invariants';
-import { CLOCK_VALUES, SCORE_VALUES, SIN_BIN_DURATION, positionFamiliarity, slotFamiliarity } from './balance';
+import { CLOCK_VALUES, SCORE_VALUES, SIN_BIN_DURATION, slotFamiliarity, SLOT_POSITION } from './balance';
 import type { Player, PlayerStats } from '../types/player';
 
 // The single function permitted to mutate MatchState (or any Player field).
@@ -531,7 +531,7 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       // player's match-clone baseStats were left unscaled at initPlayer, so
       // this is their first and only scale. Mirrors the starter path in
       // MatchCoordinator.initPlayer — see balance/positionFamiliarity.ts.
-      const subMult = positionFamiliarity(on.position, off.position);
+      const subMult = slotFamiliarity(on.position, off.id);
       if (subMult !== 1.0) {
         for (const key of Object.keys(on.baseStats) as (keyof PlayerStats)[]) {
           on.baseStats[key] = clamp(Math.round(on.baseStats[key] * subMult), 1, 100);
@@ -539,7 +539,7 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
         }
       }
       on.id = off.id;
-      on.position = off.position;
+      on.position = SLOT_POSITION[off.id] ?? off.position;
       on.x = off.x;
       on.y = off.y;
       team.players[fieldIdx] = on;

@@ -132,8 +132,9 @@ const HELP_TOPICS = {
     title: 'Squad Selection',
     purpose: 'Pick your matchday 23 — the starting XV and eight replacements — for the next fixture.',
     features: [
-      { label: 'Starting XV', desc: 'The 15 players who begin the match, by position.' },
-      { label: 'Bench', desc: 'Eight replacements available to bring on during the game.' },
+      { label: 'Making changes', desc: 'Tap a player number to select it, then tap another number to swap the two.' },
+      { label: 'Player detail', desc: 'Tap a player name to open their full profile.' },
+      { label: 'Quick attributes', desc: 'Tap the down arrow on a player row to see their key attributes without leaving the screen.' },
       { label: 'Player ratings', desc: 'Each player’s overall and key attributes guide your selection.' },
       { label: 'Fitness & injuries', desc: 'Tired or injured players carry a warning — rest them or risk poor performance.' },
     ],

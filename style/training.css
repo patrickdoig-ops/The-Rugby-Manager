@@ -232,7 +232,7 @@
 }
 
 #tr-continue,
-#tr-back {
+#tr-save {
   display: flex;
   width: 100%;
   align-items: center;
@@ -252,14 +252,14 @@
 }
 
 #tr-continue:active,
-#tr-back:active {
+#tr-save:active {
   background: var(--rm-cta-active);
   transform: scale(0.98);
 }
 
 @media (hover: hover) {
   #tr-continue:hover,
-  #tr-back:hover {
+  #tr-save:hover {
     background: var(--rm-cta-hover);
   }
 }

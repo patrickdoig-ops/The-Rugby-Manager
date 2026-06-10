@@ -21,7 +21,7 @@ function assertPlayer(p: Player, location: string): void {
   if (!(p.fatiguePct >= 0 && p.fatiguePct <= 100)) {
     fail('player.fatiguePct', `${location} squad#${p.squadNumber} fatiguePct=${p.fatiguePct}`);
   }
-  if (!(p.rating >= 0 && p.rating <= 10)) {
+  if (!(p.rating >= 1 && p.rating <= 10)) {
     fail('player.rating', `${location} squad#${p.squadNumber} rating=${p.rating}`);
   }
   for (const key of Object.keys(p.currentStats) as (keyof PlayerStats)[]) {

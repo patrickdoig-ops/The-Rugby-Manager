@@ -79,8 +79,9 @@ export function tickInjuryEvents(state: GameState, gapStartIso?: string): Season
 
 // Picks a severity bucket from a per-kind weight table. Uses rngTransfer
 // (career stream). Weights sum to 100 by convention; the picker reads
-// them in mild → moderate → severe order.
-function pickSeverity(weights: Record<InjurySeverity, number>): InjurySeverity {
+// them in mild → moderate → severe order. Shared by the season injury
+// roll here, training-week injuries, and international-duty injuries.
+export function pickSeverity(weights: Record<InjurySeverity, number>): InjurySeverity {
   const roll = rngTransfer(1, 100);
   let cum = 0;
   cum += weights.mild;

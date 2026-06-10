@@ -21,7 +21,7 @@ For the season/career engine internals this sits inside, see
   - **Leg 1 (Autumn block):** 8 fixtures/pool — Autumn Nations break
   - **Leg 2 (Six Nations block):** 8 fixtures/pool + knockouts
 - **Points:** identical to the league — 4 win / 2 draw / 0 loss + try bonus
-  (≥ 4 tries) + losing bonus (≤ 7), applied via the shared `applyToSide`
+  (≥ 4 tries) + losing bonus (≤ 7), applied via the shared `applyResultToStanding` (`leagueTable.ts`)
   helper in `src/game/applySeasonEvent.ts`. Cup standings are scoped per pool
   and live on `state.league.premCup`, **never** on `state.league.standings`.
 - **Knockouts** (Six Nations block, after the leg-2 pool stage): top two per

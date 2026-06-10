@@ -90,7 +90,7 @@ All season-scope state writes go through `applySeasonEvent(state, event)`, calle
 | Event | When | Effect |
 |---|---|---|
 | `PREM_CUP_SEEDED` | Once per season — `newSeason` (fixed 2025-26 pools) + appended **last** in `computeRollover` (year 2+, redrawn pools) | Builds `state.league.premCup` — two pools (each with `zeroStanding` rows) + 40 pool fixtures (3 legs: 4/pool pre-season, 8/pool autumn, 8/pool six-nations). Idempotent on a matching `seasonLabel`. |
-| `PREM_CUP_FIXTURE_RECORDED` | Per pool fixture, inside `runInternationalBreakBlock` | Sets the fixture result + applies it to that pool's standings via the shared `applyToSide` (same 4/2/0 + bonus rules as the league). |
+| `PREM_CUP_FIXTURE_RECORDED` | Per pool fixture, inside `runInternationalBreakBlock` | Sets the fixture result + applies it to that pool's standings via the shared `applyResultToStanding` (`leagueTable.ts`) (same 4/2/0 + bonus rules as the league). |
 | `PREM_CUP_KNOCKOUT_SEEDED` | Once, after the leg-2 pool stage | Seeds `premCup.knockout` — SF1 = winner(A) v runner-up(B), SF2 = winner(B) v runner-up(A). |
 | `PREM_CUP_KNOCKOUT_RECORDED` | Per knockout match | Records the result; cascades SF winners → final slots (SF1→home, SF2→away), final winner → `championTeamId`. Mirrors `PLAYOFF_RESULT_RECORDED`. |
 | `PLAYER_CUP_DIRECTION_SET` | When the user toggles the cup direction | Persists `state.player.cupDirection` (`'best'` \| `'rest_first_15'`). |

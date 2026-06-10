@@ -29,6 +29,7 @@ import { playerOverall } from '../engine/RatingEngine';
 import { INJURY_SEVERITY } from '../engine/balance/injuries';
 import { rngTransfer, rngTransferRaw } from '../utils/rng';
 import { pickPlan as pickAIPlan } from './aiTrainingDirector';
+import { pickSeverity } from './injuryEffects';
 import { getAge, parseSeasonStartYear, seasonOpenIso } from './age';
 
 const TRAINING_INJURY_KINDS = ['muscle_strain', 'ligament_sprain', 'knock'] as const;
@@ -187,7 +188,7 @@ function pushClubTrainingEvents(
       if (injuryChance > 0 && rngTransferRaw() < injuryChance) {
         const kind: TrainingInjuryKind = TRAINING_INJURY_KINDS[rngTransfer(0, TRAINING_INJURY_KINDS.length - 1)];
         const profile = INJURY_SEVERITY[kind];
-        const severity = pickSeverityFromWeights(profile.weights);
+        const severity = pickSeverity(profile.weights);
         const [lo, hi] = profile.bands[severity];
         const weeksRemaining = rngTransfer(lo, hi);
         out.push({
@@ -209,19 +210,6 @@ function conditionRiskMultiplier(condition: number): number {
   // Linear interpolation in between.
   const drop = (INJURY_RISK.fullCondition - condition) / INJURY_RISK.fullCondition;
   return 1 + drop * (INJURY_RISK.conditionMultiplier - 1);
-}
-
-// Mirrors GameCoordinator.pickSeverity but inlined so trainingWeek.ts is
-// the single place training-injury rolls happen (no cross-module
-// dependence on the in-match injury seam).
-function pickSeverityFromWeights(weights: Record<'mild' | 'moderate' | 'severe', number>): 'mild' | 'moderate' | 'severe' {
-  const roll = rngTransfer(1, 100);
-  let cum = 0;
-  cum += weights.mild;
-  if (roll <= cum) return 'mild';
-  cum += weights.moderate;
-  if (roll <= cum) return 'moderate';
-  return 'severe';
 }
 
 // One development pass over all PLAYER_STAT_KEYS: rolls rngTransferRaw()

@@ -5,7 +5,7 @@
 
 import type { FixtureResult, GameState, TeamStanding } from '../types/gameState';
 import { HOME_ADVANTAGE } from '../engine/balance';
-import { LEAGUE_POINTS } from '../engine/balance/season';
+import { resultLeaguePoints } from './leagueTable';
 
 export type FormResult = 'W' | 'L' | 'D';
 
@@ -43,18 +43,7 @@ export function formPoints(teamId: string, results: FixtureResult[], n = 5): num
     const isHome = r.homeId === teamId;
     const my = isHome ? r.homeScore : r.awayScore;
     const op = isHome ? r.awayScore : r.homeScore;
-    const margin = my - op;
-    if (margin > 0) {
-      pts += LEAGUE_POINTS.win;
-    } else if (margin === 0) {
-      pts += LEAGUE_POINTS.draw;
-    } else {
-      pts += LEAGUE_POINTS.loss;
-      if (-margin <= LEAGUE_POINTS.losingBonusThreshold) pts += LEAGUE_POINTS.losingBonusPoints;
-    }
-    if ((isHome ? r.homeTries : r.awayTries) >= LEAGUE_POINTS.tryBonusThreshold) {
-      pts += LEAGUE_POINTS.tryBonusPoints;
-    }
+    pts += resultLeaguePoints(my - op, isHome ? r.homeTries : r.awayTries);
   }
   return pts;
 }

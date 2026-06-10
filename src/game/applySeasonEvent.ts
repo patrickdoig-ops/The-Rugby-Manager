@@ -7,7 +7,8 @@ import type { CupKnockoutMatch, EuropeanCompState, EuropeanKnockoutMatch, Fixtur
 import { zeroStanding, zeroTeamSeasonStats } from '../types/gameState';
 import type { MoraleReason } from '../types/player';
 import { zeroSeasonStats } from '../types/player';
-import { LEAGUE_POINTS, SEASON_VALUES, SENIOR_CAP, EFFECTIVE_CAP_CREDITS, FORM_MODEL, MORALE, STAFF_BUDGET_FRACTION } from '../engine/balance';
+import { SEASON_VALUES, SENIOR_CAP, EFFECTIVE_CAP_CREDITS, FORM_MODEL, MORALE, STAFF_BUDGET_FRACTION } from '../engine/balance';
+import { applyResultToStanding } from './leagueTable';
 
 // Sum of senior cap + dispensation credits — the league's absolute
 // ceiling on any club's non-marquee wage spend. The takeover boost
@@ -61,8 +62,8 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       const home = findOrCreate(state.league.standings, event.result.homeId);
       const away = findOrCreate(state.league.standings, event.result.awayId);
       const margin = event.result.homeScore - event.result.awayScore;
-      applyToSide(home, event.result.homeScore, event.result.awayScore, event.result.homeTries, margin);
-      applyToSide(away, event.result.awayScore, event.result.homeScore, event.result.awayTries, -margin);
+      applyResultToStanding(home, event.result.homeScore, event.result.awayScore, event.result.homeTries, margin);
+      applyResultToStanding(away, event.result.awayScore, event.result.homeScore, event.result.awayTries, -margin);
       return;
     }
     case 'MEDIA_STORY_PUBLISHED': {
@@ -775,8 +776,8 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       const away = pool.standings.find(s => s.teamId === event.awayId);
       if (!home || !away) return;
       const margin = event.homeScore - event.awayScore;
-      applyToSide(home, event.homeScore, event.awayScore, event.homeTries, margin);
-      applyToSide(away, event.awayScore, event.homeScore, event.awayTries, -margin);
+      applyResultToStanding(home, event.homeScore, event.awayScore, event.homeTries, margin);
+      applyResultToStanding(away, event.awayScore, event.homeScore, event.awayTries, -margin);
       return;
     }
     case 'PREM_CUP_KNOCKOUT_SEEDED': {
@@ -1099,8 +1100,8 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       const away = pool.standings.find(s => s.teamId === event.awayId);
       if (!home || !away) return;
       const margin = event.homeScore - event.awayScore;
-      applyToSide(home, event.homeScore, event.awayScore, event.homeTries, margin);
-      applyToSide(away, event.awayScore, event.homeScore, event.awayTries, -margin);
+      applyResultToStanding(home, event.homeScore, event.awayScore, event.homeTries, margin);
+      applyResultToStanding(away, event.awayScore, event.homeScore, event.awayTries, -margin);
       return;
     }
     case 'EUROPEAN_KNOCKOUT_SEEDED': {
@@ -1294,32 +1295,6 @@ function findOrCreate(standings: TeamStanding[], teamId: string): TeamStanding {
     standings.push(s);
   }
   return s;
-}
-
-function applyToSide(s: TeamStanding, pf: number, pa: number, tries: number, margin: number): void {
-  s.played += 1;
-  s.pointsFor += pf;
-  s.pointsAgainst += pa;
-  s.pointsDiff = s.pointsFor - s.pointsAgainst;
-  if (margin > 0) {
-    s.won += 1;
-    s.leaguePoints += LEAGUE_POINTS.win;
-  } else if (margin === 0) {
-    s.drawn += 1;
-    s.leaguePoints += LEAGUE_POINTS.draw;
-  } else {
-    s.lost += 1;
-    s.leaguePoints += LEAGUE_POINTS.loss;
-    if (-margin <= LEAGUE_POINTS.losingBonusThreshold) {
-      s.leaguePoints += LEAGUE_POINTS.losingBonusPoints;
-      s.losingBonus += 1;
-    }
-  }
-  // Try bonus is independent of the result — a 4-try loss still earns it.
-  if (tries >= LEAGUE_POINTS.tryBonusThreshold) {
-    s.leaguePoints += LEAGUE_POINTS.tryBonusPoints;
-    s.tryBonus += 1;
-  }
 }
 
 // Min ISO date across fixtures in a given round. Returns null if no fixture

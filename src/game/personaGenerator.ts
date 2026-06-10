@@ -12,7 +12,8 @@
 import type { Player, Position, PlayerStats } from '../types/player';
 import { zeroMatchStats, zeroSeasonStats } from '../types/player';
 import { rngTransfer, rngTransferRaw } from '../utils/rng';
-import { WAGE_BY_RATING, POSITION_SCARCITY, WAGE_FLOOR, WAGE_ROUNDING_UNIT, PERSONA_CONTRACT_LENGTH_YEARS, PERSONA_REPUTATION, IMPORT_CONTRACT_LENGTH } from '../engine/balance/transfers';
+import { POSITION_SCARCITY, WAGE_FLOOR, WAGE_ROUNDING_UNIT, PERSONA_CONTRACT_LENGTH_YEARS, PERSONA_REPUTATION, IMPORT_CONTRACT_LENGTH } from '../engine/balance/transfers';
+import { wageFromRating } from './contractSeeder';
 import { ACADEMY_SUPPLY, POTENTIAL_HEADROOM } from '../engine/balance/career';
 import { MORALE } from '../engine/balance/morale';
 import { playerOverall } from '../engine/RatingEngine';
@@ -203,19 +204,5 @@ function pickImportLength(): number {
   if (roll < IMPORT_CONTRACT_LENGTH.p1) return 1;
   if (roll < IMPORT_CONTRACT_LENGTH.p2) return 2;
   return 3;
-}
-
-function wageFromRating(rating: number): number {
-  const anchors = WAGE_BY_RATING;
-  if (rating <= anchors[0].rating) return anchors[0].wage;
-  if (rating >= anchors[anchors.length - 1].rating) return anchors[anchors.length - 1].wage;
-  for (let i = 0; i < anchors.length - 1; i++) {
-    const a = anchors[i], b = anchors[i + 1];
-    if (rating >= a.rating && rating <= b.rating) {
-      const t = (rating - a.rating) / (b.rating - a.rating);
-      return a.wage + t * (b.wage - a.wage);
-    }
-  }
-  return anchors[anchors.length - 1].wage;
 }
 

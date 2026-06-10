@@ -83,8 +83,9 @@ export function estimateMarketWage(overall: number, position: string): number {
 }
 
 // Piecewise-linear lookup between the anchor points. Below the lowest
-// or above the highest, clamp to the endpoint.
-function wageFromRating(overall: number): number {
+// or above the highest, clamp to the endpoint. Shared with
+// personaGenerator's import-wage seeding.
+export function wageFromRating(overall: number): number {
   const anchors = WAGE_BY_RATING;
   if (overall <= anchors[0].rating) return anchors[0].wage;
   if (overall >= anchors[anchors.length - 1].rating) return anchors[anchors.length - 1].wage;

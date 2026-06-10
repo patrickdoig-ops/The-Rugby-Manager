@@ -21,7 +21,7 @@
 // (reconcileRestObligations) live here too.
 
 import type { GameState, SeasonEvent } from '../types/gameState';
-import type { Player, InternationalWindow, InjurySeverity, PlayerStats } from '../types/player';
+import type { Player, InternationalWindow, PlayerStats } from '../types/player';
 import { isForward } from '../types/player';
 import type { InternationalBreakSummary, InternationalCallUpResult, ForwardsFocus, BacksFocus } from '../types/training';
 import {
@@ -37,6 +37,7 @@ import {
   INTENSITY_EFFECTS, ageMultiplier,
 } from '../engine/balance/training';
 import { rollDevelopmentGains } from './trainingWeek';
+import { pickSeverity } from './injuryEffects';
 import { proximityMultiplier } from '../engine/balance/career';
 import { getAge, parseSeasonStartYear, seasonOpenIso } from './age';
 import { playerOverall } from '../engine/RatingEngine';
@@ -130,13 +131,6 @@ export function buildCallUpEvents(callUps: CallUp[], window: InternationalWindow
 }
 
 // ===== Resolution (RNG via rngTransfer) =====
-
-function pickSeverity(weights: Record<InjurySeverity, number>): InjurySeverity {
-  const roll = rngTransfer(1, 100);
-  if (roll <= weights.mild) return 'mild';
-  if (roll <= weights.mild + weights.moderate) return 'moderate';
-  return 'severe';
-}
 
 // Resolves every call-up's block outcome: appearances, return condition,
 // possible injury, and (England heavy-load only) a rest obligation. Walks the

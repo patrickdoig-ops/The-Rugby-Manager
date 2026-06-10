@@ -1,6 +1,9 @@
 // Lightweight Canvas confetti for win celebrations. Mounts as a
-// full-viewport overlay, autoplays on mount, removes itself when
-// all particles fall offscreen.
+// full-viewport overlay, autoplays on launch, removes itself when
+// all particles fall offscreen. Concurrent launches append to one
+// shared particle array driven by a single rAF loop — two loops over
+// the one canvas would fight over clearRect and the first to finish
+// would remove the canvas under the survivor.
 interface Particle {
   x: number;
   y: number;
@@ -12,6 +15,9 @@ interface Particle {
   size: number;
   shape: 'square' | 'rect';
 }
+
+const particles: Particle[] = [];
+let loopRunning = false;
 
 export function launchConfetti(
   teamColor: string,
@@ -47,7 +53,6 @@ export function launchConfetti(
     root.getPropertyValue('--rm-pitch').trim(),
   ];
 
-  const particles: Particle[] = [];
   for (let i = 0; i < count; i++) {
     particles.push({
       x: Math.random() * window.innerWidth,
@@ -89,8 +94,13 @@ export function launchConfetti(
     if (alive) {
       requestAnimationFrame(frame);
     } else {
+      particles.length = 0;
+      loopRunning = false;
       canvas!.remove();
     }
   }
-  requestAnimationFrame(frame);
+  if (!loopRunning) {
+    loopRunning = true;
+    requestAnimationFrame(frame);
+  }
 }

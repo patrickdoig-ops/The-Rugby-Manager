@@ -7,7 +7,7 @@
 //     Read-only: full pool tables + both legs' fixtures + bracket if seeded.
 // One-shot init from main.ts.
 
-import type { BreakBeginResult, PreSeasonBlockResult, GameCoordinator } from '../game/GameCoordinator';
+import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import { poolTableHtml, fixtureListHtml, bracketHtml } from './components/cupViews';
 import { helpButtonHtml } from './help/helpButton';

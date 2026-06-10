@@ -69,7 +69,7 @@ import { TransferCoordinator, type EarlyRenewalResult } from './TransferCoordina
 import { StaffCoordinator } from './StaffCoordinator';
 import { BoardCoordinator } from './BoardCoordinator';
 import { PlayoffCoordinator } from './PlayoffCoordinator';
-import { InternationalBreakCoordinator, type BreakBeginResult, type PreSeasonBlockResult, type CupFixtureRef } from './InternationalBreakCoordinator';
+import { InternationalBreakCoordinator, type BreakBeginResult, type CupFixtureRef } from './InternationalBreakCoordinator';
 import { EuropeanCoordinator } from './EuropeanCoordinator';
 import { computeBudgetEvents } from './budgetPlanner';
 import { computeAttendance } from './attendance';
@@ -82,7 +82,7 @@ import type { RawTeamInput } from '../types/teamData';
 
 // Re-exported from InternationalBreakCoordinator (where the break flow lives)
 // so existing UI imports `from '../game/GameCoordinator'` keep working.
-export type { BreakBeginResult, PreSeasonBlockResult, CupFixtureRef };
+export type { BreakBeginResult, CupFixtureRef };
 export type { CupRoundRef } from '../types/gameState';
 
 import type { EuropeanFixture, EuropeanKnockoutMatch } from '../types/gameState';
@@ -554,9 +554,8 @@ export class GameCoordinator {
   // day count is split into ~7-day periods (splitGapIntoPeriods); condition
   // recovers per day across each period's span while development + injury
   // rolls fire once per period. RNG flows through rngTransfer; stable
-  // iteration order keeps it deterministic. International breaks are handled
-  // separately — beginInternationalBreak() + runInternationalBreakBlock() —
-  // so the call-ups + Prem Cup screens can surface before the block runs.
+  // iteration order keeps it deterministic. Cup / European matchday training
+  // is handled separately (runCupMatchdayTraining / runEuropeanMatchdayTraining).
   applyTrainingBlock(weeks: TrainingPlan[]): TrainingWeekResult {
     const n = Math.max(1, weeks.length);
     const { days } = upcomingGap(this.state);
@@ -568,32 +567,12 @@ export class GameCoordinator {
 
   // ===== International break + Prem Cup =====
   //
-  // All delegate to InternationalBreakCoordinator (same `state` reference).
-  // The non-break applyTrainingBlock above stays on GameCoordinator; these
-  // are the break-flow surface main.ts / the determinism harness drive.
-
-  isPreSeasonCupPending(): boolean {
-    return this.intlBreak.isPreSeasonCupPending();
-  }
-
-  beginPreSeasonBlock(): PreSeasonBlockResult {
-    return this.intlBreak.beginPreSeasonBlock();
-  }
-
-  async runPreSeasonBlock(weeks: TrainingPlan[]): Promise<TrainingWeekResult> {
-    return this.intlBreak.runPreSeasonBlock(weeks);
-  }
-
-  isBreakPending(): boolean {
-    return this.intlBreak.isBreakPending();
-  }
+  // The cup is now a sequence of ordinary game-weeks (see the live cup flow
+  // delegates below). beginInternationalBreak still flags the international
+  // call-ups (and surfaces the call-ups screen) at the start of a break.
 
   beginInternationalBreak(): BreakBeginResult | null {
     return this.intlBreak.beginInternationalBreak();
-  }
-
-  async runInternationalBreakBlock(weeks: TrainingPlan[], begin: BreakBeginResult): Promise<TrainingWeekResult> {
-    return this.intlBreak.runInternationalBreakBlock(weeks, begin);
   }
 
   // Persists the manager's training plan without executing training. Used

@@ -33,10 +33,10 @@ import { helpButtonHtml } from './help/helpButton';
 
 const SHORT_WEEK_DAYS = 6; // turnaround at or below this nudges toward Light
 
-// `runBlock`, when supplied (an international break), runs the cup + training
-// block via GameCoordinator.runInternationalBreakBlock instead of the plain
-// applyTrainingBlock. It's async (the cup fixtures simulate headless), so the
-// Continue handler awaits it.
+// `runBlock`, when supplied, applies that game-week's training via an injected
+// async method (cup matchday: GameCoordinator.runCupMatchdayTraining; European:
+// runEuropeanMatchdayTraining) instead of the plain applyTrainingBlock. It's a
+// Promise so the Continue handler can await it uniformly.
 interface PostMatchOpts {
   playoffLabel?: string;
   runBlock?: (weeks: TrainingPlan[]) => Promise<TrainingWeekResult>;
@@ -254,14 +254,14 @@ function renderPostMatch(
       backsFocus: draftPlan.backsFocus,
     }));
     if (mode.runBlock) {
-      // International break: the cup fixtures simulate headless, so the block
-      // is async. Show a loading state and yield one macrotask (setTimeout 0)
-      // so the browser repaints the spinner before the sim chain starts.
+      // Matchday training is applied via an injected async method. Show a
+      // loading state and yield one macrotask (setTimeout 0) so the browser
+      // repaints the spinner before it runs.
       const btn = e.currentTarget as HTMLButtonElement;
       const runBlock = mode.runBlock;
       btn.disabled = true;
       btn.classList.add('tr-continue--simulating');
-      btn.querySelector<HTMLSpanElement>('.tr-continue-label')!.textContent = 'Simulating cup…';
+      btn.querySelector<HTMLSpanElement>('.tr-continue-label')!.textContent = 'Applying…';
       setTimeout(() => {
         void runBlock(weeks).then(results => {
           draftHydrated = false;

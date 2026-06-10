@@ -740,7 +740,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function onQuickStart(team: RawTeamInput): Promise<void> {
     // Existing new-game path: seed the save immediately so Continue is enabled
     // even if the user backs out before playing the first match.
-    gameEngine = await GameCoordinator.newSeason(team.id, generateSeed(), allTeams);
+    gameEngine = await GameCoordinator.newSeason(team.id, generateSeed(), allTeams, undefined, true);
     autosave(gameEngine.toSavePayload());
     initInSeasonScreens();
     goHub();

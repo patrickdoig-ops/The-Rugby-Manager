@@ -263,6 +263,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   const direction = attackDir(state);
 
   let chainNarration: NarrationStep[] = [];
+  let chainMetres = 0;
   if (res.outcome !== 'line_break') {
     const chain = tryOffloadChain({
       state, attackTeam, defendTeam, attackSide, defSide,
@@ -284,6 +285,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
     ballCarrier = chain.finalCarrier;
     defender = chain.finalDefender;
     chainNarration = chain.chainNarration;
+    chainMetres = chain.chainMetres;
   }
 
   // Hard-carry line-break upgrade — forwards rarely clear the standard
@@ -311,8 +313,9 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   }
 
   // Try check hoisted above CARRY_RESOLVED so the cover-tackler pick can
-  // be gated on a non-try line break.
-  const projectedBallX = clamp(state.ball.x + direction * res.gainMetres, 0, 100);
+  // be gated on a non-try line break. Include chainMetres so offload-chain
+  // gains don't cause the projected position to undershoot the try line.
+  const projectedBallX = clamp(state.ball.x + direction * (chainMetres + res.gainMetres), 0, 100);
   const canScore = res.outcome === 'line_break' || res.outcome === 'dominant_carry';
   const tryScored = canScore && isTryScoredAt(projectedBallX, attackSide, state.clock.halfTimeDone);
 

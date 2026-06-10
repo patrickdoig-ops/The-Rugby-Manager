@@ -13,6 +13,7 @@ import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { Fixture, FixtureResult, GameState } from '../types/gameState';
 import { eventBus } from '../utils/eventBus';
+import { onScreenShow } from './ScreenRouter';
 import { recentForm, type FormResult } from '../game/teamStats';
 import { renderFormPipStrip } from './components/formPip';
 import { ROUND_LABELS } from '../engine/balance/season';
@@ -229,10 +230,24 @@ export function initFixtureListScreen(
     });
   }
 
-  eventBus.on('game:fixtureRecorded',  () => render());
-  eventBus.on('game:weekAdvanced',     () => render());
-  eventBus.on('game:initialized',      () => render());
-  eventBus.on('game:seasonRolledOver', () => render());
+  // Hidden-screen renders are deferred: mark dirty and replay on the next
+  // fixture-list show (render() reads live engine state, so the deferred
+  // render is always current).
+  let needsRender = false;
+  const renderOrDefer = (): void => {
+    if (el.offsetParent !== null) render();
+    else needsRender = true;
+  };
+  eventBus.on('game:fixtureRecorded',  renderOrDefer);
+  eventBus.on('game:weekAdvanced',     renderOrDefer);
+  eventBus.on('game:initialized',      renderOrDefer);
+  eventBus.on('game:seasonRolledOver', renderOrDefer);
+  onScreenShow(id => {
+    if (id === 'fixture-list' && needsRender) {
+      needsRender = false;
+      render();
+    }
+  });
 
   render();
 }

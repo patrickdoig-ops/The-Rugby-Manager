@@ -164,10 +164,6 @@ export interface SavedSeason {
   europeanShield?: import('../types/gameState').EuropeanCompState | null;
 }
 
-// Deep clone the roster index for save serialisation — every Player and
-// its nested PlayerStats / PlayerMatchStats / PlayerSeasonStats. Skip
-
-
 function emptyState(): GameState {
   return {
     calendar: { date: SEASON_VALUES.startDate, week: 1, seasonLabel: '' },
@@ -388,6 +384,9 @@ export class GameCoordinator {
         objective: save.board.objective,
         warningIssued: save.board.warningIssued,
         sacked: save.board.sacked,
+        ...(save.board.europeanObjective !== undefined
+          ? { europeanObjective: save.board.europeanObjective }
+          : {}),
       });
     } else {
       coord.board.seedBoardState();
@@ -883,8 +882,10 @@ export class GameCoordinator {
         (f.homeId === playerTeamId || f.awayId === playerTeamId) && f.result,
       );
       if (playerFixtures.length < 4) return null; // pool not finished yet
-      // Check if they qualified (top 4)
-      const sorted = [...pool.standings].sort((a, b) => b.leaguePoints - a.leaguePoints);
+      // Check if they qualified (top 4) — must use the same sort as the
+      // actual R16 seeding (EuropeanCoordinator.seedR16), else on level
+      // points the verdict can contradict the bracket.
+      const sorted = sortStandings([...pool.standings]);
       const rank = sorted.findIndex(s => s.teamId === playerTeamId) + 1;
       if (rank <= 4) return null; // qualified — not eliminated
       return 'participate';
@@ -915,6 +916,13 @@ export class GameCoordinator {
   ): Promise<void> {
     const playerTeamId = this.state.player.teamId;
     const playerSide: 'home' | 'away' = homeId === playerTeamId ? 'home' : 'away';
+    // Idempotency guard — EuropeanCoordinator skips an already-recorded
+    // fixture, so the board-confidence / media-story side effects below
+    // must not re-apply either (e.g. a double-tap on the result overlay).
+    const poolFx = this.state.league[competition]?.fixtures.find(f =>
+      f.poolId === poolId && f.round === round && f.homeId === homeId && f.awayId === awayId,
+    );
+    if (!poolFx || poolFx.result) return;
     await this.european.recordPlayerEuropeanPoolResult(
       competition, poolId, round, homeId, awayId, homeScore, awayScore, snapshot,
     );
@@ -944,7 +952,9 @@ export class GameCoordinator {
     if (!ko) return;
     const matchArr = stage === 'r16' ? ko.r16 : stage === 'quarterfinal' ? ko.quarterfinals : stage === 'semifinal' ? ko.semifinals as Array<{ homeId: string | null; awayId: string | null; result?: unknown }> : [ko.final];
     const match = matchArr[matchIndex];
-    if (!match) return;
+    // Idempotency guard — mirror EuropeanCoordinator's already-recorded skip
+    // so the board-confidence / media-story side effects below don't re-apply.
+    if (!match || match.result) return;
     const playerTeamId = this.state.player.teamId;
     const playerSide: 'home' | 'away' = match.homeId === playerTeamId ? 'home' : 'away';
     await this.european.recordPlayerEuropeanKnockoutResult(
@@ -1086,8 +1096,11 @@ export class GameCoordinator {
       if (!homeJson || !awayJson) continue;
       const home = buildAutoSelectedTeamFromRoster(this.state, homeJson);
       const away = buildAutoSelectedTeamFromRoster(this.state, awayJson);
-      const homeFillRate = homeJson.stadiumCapacity
-        ? computeAttendance(f, homeJson.stadiumCapacity, this.state.league.standings, this.state.league.results) / homeJson.stadiumCapacity
+      const attendance = homeJson.stadiumCapacity
+        ? computeAttendance(f, homeJson.stadiumCapacity, this.state.league.standings, this.state.league.results)
+        : undefined;
+      const homeFillRate = attendance !== undefined && homeJson.stadiumCapacity
+        ? attendance / homeJson.stadiumCapacity
         : undefined;
       const sim = await simulateFixture(home, away, this.state.seed, f.round, { homeFillRate, isDerby: f.isDerby });
       const aiResult: FixtureResult = {
@@ -1101,9 +1114,7 @@ export class GameCoordinator {
         playerSide: null,
         homeStats: sim.snapshot.homeSummary,
         awayStats: sim.snapshot.awaySummary,
-        attendance: homeJson?.stadiumCapacity
-          ? computeAttendance(f, homeJson.stadiumCapacity, this.state.league.standings, this.state.league.results)
-          : undefined,
+        attendance,
       };
       applySeasonEvent(this.state, { type: 'FIXTURE_RESULT_RECORDED', result: aiResult });
       for (const ev of collectSeasonEvents(sim.snapshot)) {
@@ -1363,176 +1374,78 @@ export class GameCoordinator {
     return events;
   }
 
+  // Every consumer immediately JSON.stringifys the payload (autosave →
+  // saveGame → saveToSlot; the schema harness only inspects keys), so the
+  // sub-trees are returned by reference — no defensive cloning (CLAUDE.md §2:
+  // never deep-clone just to stringify).
   toSavePayload(): SavedSeason {
     return {
       playerTeamId: this.state.player.teamId,
       seed: this.state.seed,
       currentWeek: this.state.calendar.week,
-      results: this.state.league.results.map(r => ({ ...r })),
+      results: this.state.league.results,
       seasonLabel: this.state.calendar.seasonLabel,
-      fixtures: this.state.league.fixtures.map(f => ({ ...f })),
-      ...(this.state.player.tactics ? { tactics: { ...this.state.player.tactics } } : {}),
+      fixtures: this.state.league.fixtures,
+      ...(this.state.player.tactics ? { tactics: this.state.player.tactics } : {}),
       ...(this.state.player.matchdaySquad
-        ? { matchdaySquad: this.state.player.matchdaySquad.map(r => ({ ...r })) }
+        ? { matchdaySquad: this.state.player.matchdaySquad }
         : {}),
-      ...(this.state.player.training ? { training: { ...this.state.player.training } } : {}),
-      ...(this.state.player.board ? { board: { ...this.state.player.board } } : {}),
+      ...(this.state.player.training ? { training: this.state.player.training } : {}),
+      ...(this.state.player.board ? { board: this.state.player.board } : {}),
       careerRngOffset: getTransferCallCount(),
       career: {
         seasonsCompleted: this.state.career.seasonsCompleted,
         nextRosterId: this.state.career.nextRosterId,
-        clubs: this.state.career.clubs.map(c => ({ id: c.id, squad: [...c.squad], salaryBudget: c.salaryBudget })),
+        clubs: this.state.career.clubs.map(c => ({ id: c.id, squad: c.squad, salaryBudget: c.salaryBudget })),
         roster: this.state.career.roster,
-        archive: this.state.career.archive.map(a => ({
-          seasonLabel: a.seasonLabel,
-          standings: a.standings.map(s => ({ ...s })),
-          topScorerRosterId: a.topScorerRosterId,
-          mvpRosterId: a.mvpRosterId,
-          championTeamId: a.championTeamId,
-          ...(a.leaders
-            ? { leaders: {
-                topTries:   a.leaders.topTries.map(l => ({ ...l })),
-                topCarries: a.leaders.topCarries.map(l => ({ ...l })),
-                topTackles: a.leaders.topTackles.map(l => ({ ...l })),
-                topRating:  a.leaders.topRating.map(l => ({ ...l })),
-              } }
-            : {}),
-          ...(a.playerSeasonHistory
-            ? { playerSeasonHistory: clonePlayerHistoryForSave(a.playerSeasonHistory) }
-            : {}),
-        })),
-        freeAgents: [...this.state.career.freeAgents],
-        market: this.state.career.market
-          ? {
-              phase: this.state.career.market.phase,
-              openedAfterSeason: this.state.career.market.openedAfterSeason,
-              expiringRosterIds: [...this.state.career.market.expiringRosterIds],
-              offers: this.state.career.market.offers.map(o => ({ ...o })),
-              bids: this.state.career.market.bids.map(b => ({ ...b })),
-            }
-          : null,
-        pendingMoves: this.state.career.pendingMoves.map(m => ({ ...m })),
+        archive: this.state.career.archive,
+        freeAgents: this.state.career.freeAgents,
+        market: this.state.career.market,
+        pendingMoves: this.state.career.pendingMoves,
         ...(this.state.career.preSeasonStep !== undefined
           ? { preSeasonStep: this.state.career.preSeasonStep }
           : {}),
-        takeoverHistory: [...this.state.career.takeoverHistory],
-        midseasonRejections: { ...this.state.career.midseasonRejections },
-        activePoachedIds: [...this.state.career.activePoachedIds],
+        takeoverHistory: this.state.career.takeoverHistory,
+        midseasonRejections: this.state.career.midseasonRejections,
+        activePoachedIds: this.state.career.activePoachedIds,
         ...(this.state.career.staff !== undefined
-          ? { staff: this.state.career.staff.map(m => ({ ...m })), nextStaffId: this.state.career.nextStaffId }
+          ? { staff: this.state.career.staff, nextStaffId: this.state.career.nextStaffId }
           : {}),
         ...(this.state.career.loanPool !== undefined
-          ? { loanPool: [...this.state.career.loanPool] }
+          ? { loanPool: this.state.career.loanPool }
           : {}),
       },
-      teamSeasonStats: Object.fromEntries(
-        Object.entries(this.state.league.teamSeasonStats).map(([id, s]) => [id, { ...s }]),
-      ),
+      teamSeasonStats: this.state.league.teamSeasonStats,
       // Persist the live playoff bracket only when it exists — keeps the
       // save payload byte-equivalent for the common in-season case.
       ...(this.state.league.playoffs
-        ? { playoffs: clonePlayoffs(this.state.league.playoffs) }
+        ? { playoffs: this.state.league.playoffs }
         : {}),
       // Persist the Prem Cup (cup results aren't replayable from `results`).
       ...(this.state.league.premCup
-        ? { premCup: cloneCupForSave(this.state.league.premCup) }
+        ? { premCup: this.state.league.premCup }
         : {}),
       ...(this.state.player.cupDirection
         ? { cupDirection: this.state.player.cupDirection }
         : {}),
       ...(this.state.league.mediaStories.length > 0
-        ? { mediaStories: this.state.league.mediaStories.map(s => ({ ...s })) }
+        ? { mediaStories: this.state.league.mediaStories }
         : {}),
       ...(this.state.player.captainRosterId !== undefined
         ? { captainRosterId: this.state.player.captainRosterId }
         : {}),
       ...(this.state.player.scouting && Object.keys(this.state.player.scouting).length > 0
-        ? { scouting: Object.fromEntries(
-              Object.entries(this.state.player.scouting).map(([k, v]) => [k, { ...v }]),
-            ) as Record<number, ScoutingRecord> }
+        ? { scouting: this.state.player.scouting }
         : {}),
       // Persist European competition states (not replayable from `results`).
       ...(this.state.league.europeanCup
-        ? { europeanCup: cloneEuropeanForSave(this.state.league.europeanCup) }
+        ? { europeanCup: this.state.league.europeanCup }
         : {}),
       ...(this.state.league.europeanShield
-        ? { europeanShield: cloneEuropeanForSave(this.state.league.europeanShield) }
+        ? { europeanShield: this.state.league.europeanShield }
         : {}),
     };
   }
-}
-
-// Deep-ish clone of a PremCupState for the save payload — mirrors clonePlayoffs.
-function cloneCupForSave(cup: import('../types/gameState').PremCupState): import('../types/gameState').PremCupState {
-  const cloneKo = (m: import('../types/gameState').CupKnockoutMatch) => ({
-    ...m,
-    ...(m.result ? { result: { ...m.result } } : {}),
-  });
-  return {
-    seasonLabel: cup.seasonLabel,
-    pools: [
-      { id: 'A', teamIds: [...cup.pools[0].teamIds], standings: cup.pools[0].standings.map(s => ({ ...s })) },
-      { id: 'B', teamIds: [...cup.pools[1].teamIds], standings: cup.pools[1].standings.map(s => ({ ...s })) },
-    ],
-    fixtures: cup.fixtures.map(f => ({ ...f, ...(f.result ? { result: { ...f.result } } : {}) })),
-    knockout: cup.knockout
-      ? {
-          semifinals: [cloneKo(cup.knockout.semifinals[0]), cloneKo(cup.knockout.semifinals[1])],
-          final: cloneKo(cup.knockout.final),
-          championTeamId: cup.knockout.championTeamId,
-        }
-      : null,
-  };
-}
-
-function clonePlayerHistoryForSave(
-  h: Record<number, import('../types/gameState').ArchivedPlayerSeason>,
-): Record<number, import('../types/gameState').ArchivedPlayerSeason> {
-  const out: Record<number, import('../types/gameState').ArchivedPlayerSeason> = {};
-  for (const k of Object.keys(h)) out[Number(k)] = { ...h[Number(k)] };
-  return out;
-}
-
-// Deep-ish clone of an EuropeanCompState for the save payload.
-function cloneEuropeanForSave(comp: import('../types/gameState').EuropeanCompState): import('../types/gameState').EuropeanCompState {
-  const cloneMatch = (m: import('../types/gameState').EuropeanKnockoutMatch) => ({
-    ...m,
-    ...(m.result ? { result: { ...m.result } } : {}),
-  });
-  return {
-    seasonLabel: comp.seasonLabel,
-    competition: comp.competition,
-    pools: comp.pools.map(p => ({
-      id: p.id,
-      teamIds: [...p.teamIds],
-      standings: p.standings.map(s => ({ ...s })),
-    })),
-    fixtures: comp.fixtures.map(f => ({ ...f, ...(f.result ? { result: { ...f.result } } : {}) })),
-    knockout: comp.knockout
-      ? {
-          r16: comp.knockout.r16.map(cloneMatch),
-          quarterfinals: comp.knockout.quarterfinals.map(cloneMatch),
-          semifinals: [cloneMatch(comp.knockout.semifinals[0]), cloneMatch(comp.knockout.semifinals[1])],
-          final: cloneMatch(comp.knockout.final),
-          championTeamId: comp.knockout.championTeamId,
-        }
-      : null,
-  };
-}
-
-// Deep-ish clone of a PlayoffState for the save payload. Shallow on the
-// PlayoffMatch level, with a fresh `result` object so a downstream
-// reader's mutation can't reach back into our state.
-function clonePlayoffs(p: PlayoffState): PlayoffState {
-  const cloneMatch = (m: PlayoffMatch): PlayoffMatch => ({
-    ...m,
-    ...(m.result ? { result: { ...m.result } } : {}),
-  });
-  return {
-    semifinals: [cloneMatch(p.semifinals[0]), cloneMatch(p.semifinals[1])],
-    final: cloneMatch(p.final),
-    championTeamId: p.championTeamId,
-  };
 }
 
 

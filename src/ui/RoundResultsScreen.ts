@@ -133,7 +133,8 @@ export function initRoundResultsScreen(
   renderImpl = render;
 
   // Re-render as each headless AI fixture resolves so pending scores fill in.
-  eventBus.on('game:fixtureRecorded', () => render());
+  // Skip while hidden — showRoundResults re-renders on navigation.
+  eventBus.on('game:fixtureRecorded', () => { if (el.offsetParent !== null) render(); });
 }
 
 // Tug-of-war row for one stat pair. Centred zero — both bars grow

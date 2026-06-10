@@ -1,7 +1,7 @@
 // Determinism golden-master harness.
 //
-// Runs a fixed (seed, home, away) match through MatchCoordinator twice and
-// asserts the two snapshots produce identical SHA-256 hashes. The snapshot
+// Runs each (seed, home, away) case in CASES through MatchCoordinator twice
+// and asserts the two snapshots produce identical SHA-256 hashes. The snapshot
 // covers both the commentary log (state.events) and per-player matchStats
 // from every player who took the field on either side. The wider snapshot
 // catches regressions that corrupt a stat counter without changing the
@@ -21,14 +21,26 @@ import type { RawTeamInput } from '../src/types/teamData.js';
 import { eventBus } from '../src/utils/eventBus.js';
 import bathRaw from '../src/data/team-bath.json' with { type: 'json' };
 import saracensRaw from '../src/data/team-saracens.json' with { type: 'json' };
+import exeterRaw from '../src/data/team-exeter.json' with { type: 'json' };
+import leicesterRaw from '../src/data/team-leicester.json' with { type: 'json' };
 
-const SEED = 0xDEADBEEF;
-const HOME = bathRaw as unknown as RawTeamInput;
-const AWAY = saracensRaw as unknown as RawTeamInput;
+const BATH      = bathRaw as unknown as RawTeamInput;
+const SARACENS  = saracensRaw as unknown as RawTeamInput;
+const EXETER    = exeterRaw as unknown as RawTeamInput;
+const LEICESTER = leicesterRaw as unknown as RawTeamInput;
 
-function runOnce(seed: number): Promise<string> {
+// Two seeds × two pairings — a single (seed, pairing) leaves whole code
+// paths (different tactics matchups, different modal sequences) untested.
+const CASES: { seed: number; home: RawTeamInput; away: RawTeamInput }[] = [
+  { seed: 0xDEADBEEF, home: BATH,      away: SARACENS },
+  { seed: 0xC0FFEE42, home: BATH,      away: SARACENS },
+  { seed: 0xDEADBEEF, home: LEICESTER, away: EXETER },
+  { seed: 0xC0FFEE42, home: LEICESTER, away: EXETER },
+];
+
+function runOnce(seed: number, home: RawTeamInput, away: RawTeamInput): Promise<string> {
   return new Promise(resolve => {
-    const engine = new MatchCoordinator(HOME, AWAY, { tickDelayMs: 0, seed });
+    const engine = new MatchCoordinator(home, away, { tickDelayMs: 0, seed });
 
     const offPaused = eventBus.on('engine:paused', ({ payload }) => {
       if (payload.type === 'kickoff_choice') payload.onChoice('high_ball');
@@ -103,10 +115,12 @@ function runOnce(seed: number): Promise<string> {
   });
 }
 
-const h1 = await runOnce(SEED);
-const h2 = await runOnce(SEED);
-if (h1 !== h2) {
-  console.error(`DETERMINISM BROKEN\n  run1: ${h1}\n  run2: ${h2}`);
-  process.exit(1);
+for (const c of CASES) {
+  const h1 = await runOnce(c.seed, c.home, c.away);
+  const h2 = await runOnce(c.seed, c.home, c.away);
+  if (h1 !== h2) {
+    console.error(`DETERMINISM BROKEN (seed=0x${c.seed.toString(16)} ${c.home.id} v ${c.away.id})\n  run1: ${h1}\n  run2: ${h2}`);
+    process.exit(1);
+  }
+  console.log(`OK: deterministic. seed=0x${c.seed.toString(16)} ${c.home.id} v ${c.away.id} hash=${h1.slice(0, 16)}…`);
 }
-console.log(`OK: deterministic. seed=0x${SEED.toString(16)} hash=${h1.slice(0, 16)}…`);

@@ -12,6 +12,8 @@
 // setSlotWriteHook — SaveManager itself has no Capacitor dependency.
 
 import type { SavedCareer, SavedSeason, SavedSeasonResult } from '../game/GameCoordinator';
+import { generateFixtures } from '../game/fixtures';
+import { setCareerSeed } from '../utils/rng';
 import type { ArchivedPlayerSeason, ArchivedSeason, ClubState, CupFixture, CupKnockout, CupKnockoutMatch, Fixture, MarketState, MediaStory, PlayerRef, PlayoffMatch, PlayoffState, PremCupState, PreAgreement, SeasonAwards, TeamSeasonStats, TransferBid, TransferOffer } from '../types/gameState';
 import type { Player, PlayerSeasonStats } from '../types/player';
 import { zeroSeasonStats, PLAYER_STAT_KEYS } from '../types/player';
@@ -43,7 +45,7 @@ const SLOT_BAK_KEY: Record<SlotId, string> = {
   3: 'rugby-manager-save-3-bak',
 };
 const ACTIVE_KEY = 'rugby-manager-active-slot';
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 // Including SAVE_VERSION here is load-bearing — without it a freshly written
 // save is rejected on the very next load.
 const ACCEPTED_VERSIONS = new Set([SAVE_VERSION]);
@@ -85,7 +87,26 @@ export function setBakWriteHook(fn: ((id: SlotId, raw: string) => void) | null):
 // here (and a checkSaveSchema.ts snapshot update) so existing careers migrate
 // forward instead of being rejected at the gate.
 type MigrationStep = (env: SavedGame) => SavedGame;
-const MIGRATIONS: Record<number, MigrationStep> = {};
+// v1 → v2: regenerate fixture lists for saves where the greedy matching
+// produced fewer than 90 fixtures (the circle-method fix in fixtures.ts).
+// Uses the save's own seed for determinism; fromSave resets the career RNG
+// correctly after migration via setCareerSeed + advanceTransferTo.
+const MIGRATIONS: Record<number, MigrationStep> = {
+  1: (env: SavedGame): SavedGame => {
+    if (env.fixtures && env.fixtures.length < 90 && env.career) {
+      const allTeamIds = env.career.clubs.map((c: ClubState) => c.id);
+      const seasonsCompleted = env.career.seasonsCompleted ?? 1;
+      setCareerSeed(env.seed);
+      try {
+        env.fixtures = generateFixtures(env.playerTeamId, allTeamIds, { seasonsCompleted });
+      } catch {
+        // Keep the existing (incomplete) list if regeneration fails — an
+        // unloadable save is worse than a slightly wrong fixture list.
+      }
+    }
+    return env;
+  },
+};
 
 // Walk an old-but-known envelope up to the current SAVE_VERSION. Returns null
 // if the chain has a gap (an unmigratable version), so the caller rejects it
@@ -507,9 +528,10 @@ function parseCupFixture(raw: unknown): CupFixture | null {
   if (f.leg !== 0 && f.leg !== 1 && f.leg !== 2) return null;
   if (typeof f.homeId !== 'string' || typeof f.awayId !== 'string') return null;
   if (typeof f.date !== 'string') return null;
+  const result = parseCupResult(f.result);
   return {
     pool: f.pool, leg: f.leg, homeId: f.homeId, awayId: f.awayId, date: f.date,
-    ...(parseCupResult(f.result) ? { result: parseCupResult(f.result)! } : {}),
+    ...(result ? { result } : {}),
   };
 }
 
@@ -533,12 +555,13 @@ function parseCupKnockoutMatch(raw: unknown, expectedKind: CupKnockoutMatch['kin
   const m = raw as Record<string, unknown>;
   if (m.kind !== expectedKind) return null;
   if (typeof m.date !== 'string') return null;
+  const result = parseCupResult(m.result);
   return {
     kind: expectedKind,
     homeId: typeof m.homeId === 'string' ? m.homeId : null,
     awayId: typeof m.awayId === 'string' ? m.awayId : null,
     date: m.date,
-    ...(parseCupResult(m.result) ? { result: parseCupResult(m.result)! } : {}),
+    ...(result ? { result } : {}),
   };
 }
 
@@ -732,7 +755,7 @@ export function saveToSlot(id: SlotId, save: SavedSeason, name?: string): void {
   const payload: SavedGame = { version: SAVE_VERSION, slotName, savedAt: Date.now(), ...save };
   const raw = JSON.stringify(payload);
   const prev = getRawSlot(id);
-  if (prev) setRawBak(id, prev);          // rotate current good copy → .bak
+  if (prev && parseRawSave(prev)) setRawBak(id, prev); // rotate only if prev parses → .bak
   localStorage.setItem(SLOT_KEY[id], raw); // may throw → caught by saveGame; .bak still holds prev
   slotWriteHook?.(id, raw);
 }

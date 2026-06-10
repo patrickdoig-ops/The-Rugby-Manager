@@ -262,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
       allTeams,
       getGameEngine: () => gameEngine,
       onLoad: () => continueGame(),
-      onNewGame: () => goTeamSelector('forward'),
+      onNewGame: () => { gameEngine = null; goTeamSelector('forward'); },
       onBack,
     });
     screenRouter.show('saves', { direction: 'forward' });
@@ -543,6 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // sacked career can't be resumed, then shows the terminal screen.
   function runSackScreen(reason: 'midseason' | 'endOfSeason'): void {
     clearSave();
+    gameEngine = null; // prevent flushActiveGame from re-writing the cleared slot
     showSack({
       reason,
       onNewGame: () => goTeamSelector('forward'),
@@ -1303,9 +1304,10 @@ document.addEventListener('DOMContentLoaded', () => {
     initSimController(engine);
 
     const unsub = eventBus.on('engine:finished', ({ state }) => {
-      unsub();
+      unsub(); unsubErr();
       showPlayoffMatchResult(engine, state, match, onAfterResult);
     });
+    const unsubErr = eventBus.on('engine:error', () => { unsub(); unsubErr(); engine.destroy(); });
     // Initialise BEFORE revealing #app — see onMatchStart for the rationale.
     engine.initialize();
     screenRouter.show('app');
@@ -1427,9 +1429,10 @@ document.addEventListener('DOMContentLoaded', () => {
     initSimController(engine);
 
     const unsub = eventBus.on('engine:finished', ({ state }) => {
-      unsub();
+      unsub(); unsubErr();
       showMatchResult(engine, state, round);
     });
+    const unsubErr = eventBus.on('engine:error', () => { unsub(); unsubErr(); engine.destroy(); });
     // Initialise BEFORE revealing #app so the scoreboard / commentary / pitch
     // panels reset on engine:initialized and repaint on the first
     // engine:stateChange while the screen is still hidden. Otherwise the user
@@ -1694,9 +1697,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     initSimController(engine);
     const unsub = eventBus.on('engine:finished', ({ state }) => {
-      unsub();
+      unsub(); unsubErr();
       showEuropeanMatchResult(engine, state, euroFix, onAfterResult);
     });
+    const unsubErr = eventBus.on('engine:error', () => { unsub(); unsubErr(); engine.destroy(); });
     engine.initialize();
     screenRouter.show('app');
   }

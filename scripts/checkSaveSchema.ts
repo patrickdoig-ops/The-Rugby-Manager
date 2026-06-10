@@ -37,16 +37,27 @@ const allTeams = [
 
 // Pinned snapshot — bump `version` and update the key lists together whenever
 // the serialised shape legitimately changes (and add a MIGRATIONS step).
+// The nested key sets (player / club / fixture) catch shape drift inside
+// representative records that the two top-level key sets can't see.
 const EXPECTED = {
-  version: 1,
+  version: 2,
   topKeys: 'board,career,careerRngOffset,currentWeek,europeanCup,europeanShield,fixtures,mediaStories,playerTeamId,premCup,results,seasonLabel,seed,teamSeasonStats',
   careerKeys: 'activePoachedIds,archive,clubs,freeAgents,loanPool,market,midseasonRejections,nextRosterId,nextStaffId,pendingMoves,roster,seasonsCompleted,staff,takeoverHistory',
+  playerKeys: 'baseStats,condition,contract,currentStats,dob,fatiguePct,firstName,formModifier,id,lastName,matchStats,morale,nationality,position,potential,rating,reputation,rosterId,seasonStats,squadNumber,x,y',
+  clubKeys: 'id,salaryBudget,squad',
+  fixtureKeys: 'awayId,date,homeId,round',
 };
 
 const coord = await GameCoordinator.newSeason('bath', 0xDEADBEEF, allTeams);
 const payload = coord.toSavePayload() as Record<string, unknown>;
+const career = payload.career as Record<string, unknown>;
 const topKeys = Object.keys(payload).sort().join(',');
-const careerKeys = Object.keys(payload.career as object).sort().join(',');
+const careerKeys = Object.keys(career).sort().join(',');
+const roster = career.roster as Record<number, object>;
+const firstRid = Object.keys(roster).map(Number).sort((a, b) => a - b)[0];
+const playerKeys = Object.keys(roster[firstRid]).sort().join(',');
+const clubKeys = Object.keys((career.clubs as object[])[0]).sort().join(',');
+const fixtureKeys = Object.keys((payload.fixtures as object[])[0]).sort().join(',');
 
 const problems: string[] = [];
 if (SAVE_VERSION !== EXPECTED.version) {
@@ -57,6 +68,15 @@ if (topKeys !== EXPECTED.topKeys) {
 }
 if (careerKeys !== EXPECTED.careerKeys) {
   problems.push(`SavedCareer keys changed:\n  expected: ${EXPECTED.careerKeys}\n  actual:   ${careerKeys}`);
+}
+if (playerKeys !== EXPECTED.playerKeys) {
+  problems.push(`Player keys changed:\n  expected: ${EXPECTED.playerKeys}\n  actual:   ${playerKeys}`);
+}
+if (clubKeys !== EXPECTED.clubKeys) {
+  problems.push(`ClubState keys changed:\n  expected: ${EXPECTED.clubKeys}\n  actual:   ${clubKeys}`);
+}
+if (fixtureKeys !== EXPECTED.fixtureKeys) {
+  problems.push(`Fixture keys changed:\n  expected: ${EXPECTED.fixtureKeys}\n  actual:   ${fixtureKeys}`);
 }
 
 if (problems.length > 0) {

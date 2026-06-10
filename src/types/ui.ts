@@ -65,6 +65,10 @@ export interface AppEvents {
   };
   'ui:halfTimeTalkDone': Record<string, never>;
   'ui:speedChange':     { delayMs: number };
+  // Fired by SimController when the live-match bottom-panel view switches
+  // (dashboard / pitch / commentary / stats / players). StatsPanel uses it
+  // to flush a render it deferred while its pane was hidden.
+  'ui:viewChange':      { view: 'dashboard' | 'pitch' | 'commentary' | 'stats' | 'players' };
   'ui:matchPaused':     Record<string, never>;
   'ui:tacticsChange':   { teamId: string; tactics: TeamTactics };
   'ui:openTacticsModal':{ tactics: TeamTactics; teamId: 'home' | 'away'; oppTactics: TeamTactics };

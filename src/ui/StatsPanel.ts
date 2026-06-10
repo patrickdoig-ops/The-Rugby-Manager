@@ -379,57 +379,108 @@ export function initStatsPanel(): void {
     playerExpander.collapseAll();
   });
 
+  // The three panes live in mutually exclusive views (SimController's
+  // view buttons). Per-beat key-builds + innerHTML rebuilds for a hidden
+  // pane are wasted work — defer instead and flush on ui:viewChange.
+  let lastDisplayRef: DisplaySnapshot | null = null;
+  let summaryDirty = false;
+  let playerStatsDirty = false;
+  let playerTableDirty = false;
+
+  function renderSummary(state: MatchState, display: DisplaySnapshot): void {
+    const key = statsKey(display);
+    if (key === lastStatsKey) return;
+    lastStatsKey = key;
+    // Compute the new winners BEFORE the re-render so we can flash the
+    // freshly-rendered rows whose winner has flipped.
+    const newRows = buildStatRows(display);
+    const newWinners = new Map<string, WinnerSide>(newRows.map(r => [r.id, winnerOf(r)]));
+
+    statsContent.innerHTML = renderStats(display, state.homeTeam, state.awayTeam);
+
+    if (prevWinners !== null) {
+      for (const [id, win] of newWinners) {
+        const prev = prevWinners.get(id);
+        if (prev !== undefined && prev !== win && win !== 'tie' && prev !== 'tie') {
+          const row = statsContent.querySelector<HTMLElement>(`.stat-row[data-stat-id="${id}"]`);
+          if (row) {
+            row.classList.add('stat-row--changed');
+            setTimeout(() => row.classList.remove('stat-row--changed'), STAT_FLASH_MS);
+          }
+        }
+      }
+    }
+    prevWinners = newWinners;
+  }
+
+  function renderPlayerStatsPane(state: MatchState): void {
+    if (!isPlayerStatsInit) {
+      playerStatsContent.innerHTML = renderPlayerStats(state, playerExpander.isExpanded);
+      isPlayerStatsInit = true;
+    } else if (!updatePlayerStatsDOM(playerStatsContent, state)) {
+      // Substitution or roster shape change — re-render to inject the
+      // new player's row + expand panel. Expander state survives via
+      // its rosterId-keyed Set, so any open panel on a still-present
+      // player stays open.
+      playerStatsContent.innerHTML = renderPlayerStats(state, playerExpander.isExpanded);
+    }
+  }
+
+  function renderPlayerTablePane(state: MatchState): void {
+    const tableKey = playerTableKey(state);
+    if (tableKey === lastPlayerTableKey) return;
+    lastPlayerTableKey = tableKey;
+    playerDetailContent.innerHTML = renderPlayerTable(state);
+  }
+
   eventBus.on('engine:stateChange', ({ state, display }) => {
     lastStateRef = state;
+    lastDisplayRef = display;
 
     // Summary stat rows read the per-event snapshot (beat-time), so they track
     // the narrated line even while the producer runs ahead. The per-player
     // list + detail table below read live state (the documented compromise —
     // per-player snapshots would be squad-sized allocations per beat).
-    const key = statsKey(display);
-    if (key !== lastStatsKey) {
-      lastStatsKey = key;
-      // Compute the new winners BEFORE the re-render so we can flash the
-      // freshly-rendered rows whose winner has flipped.
-      const newRows = buildStatRows(display);
-      const newWinners = new Map<string, WinnerSide>(newRows.map(r => [r.id, winnerOf(r)]));
-
-      statsContent.innerHTML = renderStats(display, state.homeTeam, state.awayTeam);
-
-      if (prevWinners !== null) {
-        for (const [id, win] of newWinners) {
-          const prev = prevWinners.get(id);
-          if (prev !== undefined && prev !== win && win !== 'tie' && prev !== 'tie') {
-            const row = statsContent.querySelector<HTMLElement>(`.stat-row[data-stat-id="${id}"]`);
-            if (row) {
-              row.classList.add('stat-row--changed');
-              setTimeout(() => row.classList.remove('stat-row--changed'), STAT_FLASH_MS);
-            }
-          }
-        }
-      }
-      prevWinners = newWinners;
+    if (statsContent.offsetParent !== null) {
+      summaryDirty = false;
+      renderSummary(state, display);
+    } else {
+      summaryDirty = true;
     }
 
     const minute = Math.floor(state.clock.gameMinute);
     if (minute !== lastPlayerStatsMinute) {
       lastPlayerStatsMinute = minute;
-      if (!isPlayerStatsInit) {
-        playerStatsContent.innerHTML = renderPlayerStats(state, playerExpander.isExpanded);
-        isPlayerStatsInit = true;
-      } else if (!updatePlayerStatsDOM(playerStatsContent, state)) {
-        // Substitution or roster shape change — re-render to inject the
-        // new player's row + expand panel. Expander state survives via
-        // its rosterId-keyed Set, so any open panel on a still-present
-        // player stays open.
-        playerStatsContent.innerHTML = renderPlayerStats(state, playerExpander.isExpanded);
+      if (playerStatsContent.offsetParent !== null) {
+        playerStatsDirty = false;
+        renderPlayerStatsPane(state);
+      } else {
+        playerStatsDirty = true;
       }
     }
 
-    const tableKey = playerTableKey(state);
-    if (tableKey !== lastPlayerTableKey) {
-      lastPlayerTableKey = tableKey;
-      playerDetailContent.innerHTML = renderPlayerTable(state);
+    if (playerDetailContent.offsetParent !== null) {
+      playerTableDirty = false;
+      renderPlayerTablePane(state);
+    } else {
+      playerTableDirty = true;
+    }
+  });
+
+  // Flush any deferred render when its pane becomes visible.
+  eventBus.on('ui:viewChange', () => {
+    if (!lastStateRef) return;
+    if (summaryDirty && lastDisplayRef && statsContent.offsetParent !== null) {
+      summaryDirty = false;
+      renderSummary(lastStateRef, lastDisplayRef);
+    }
+    if (playerStatsDirty && playerStatsContent.offsetParent !== null) {
+      playerStatsDirty = false;
+      renderPlayerStatsPane(lastStateRef);
+    }
+    if (playerTableDirty && playerDetailContent.offsetParent !== null) {
+      playerTableDirty = false;
+      renderPlayerTablePane(lastStateRef);
     }
   });
 }

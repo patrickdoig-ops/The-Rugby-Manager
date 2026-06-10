@@ -72,6 +72,7 @@ export function computeMoraleDecayEvents(state: GameState): SeasonEvent[] {
     const rid = Number(key);
     if (freeAgentSet.has(rid)) continue;
     const p = state.career.roster[rid];
+    if (p.retired) continue;
     const current = p.morale ?? MORALE.baseline;
     const rawDelta = (MORALE.baseline - current) * MORALE.decayRate;
     const delta = Math.round(rawDelta);

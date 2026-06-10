@@ -10,6 +10,7 @@ import type { GameCoordinator, EuropeanFixtureRef, EuropeanRoundRef } from '../g
 import type { RawTeamInput } from '../types/teamData';
 import type { Fixture, GameState } from '../types/gameState';
 import { eventBus } from '../utils/eventBus';
+import { onScreenShow } from './ScreenRouter';
 import { recentForm } from '../game/teamStats';
 import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
 import { buildAssistantReport } from '../game/inbox';
@@ -563,16 +564,32 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
 
 
   // Re-render whenever the season state changes — date, week, next-fixture
-  // and the disabled-CTA state all derive from GameState.
-  eventBus.on('game:initialized',     ({ state }) => render(state));
-  eventBus.on('game:fixtureRecorded', ({ state }) => render(state));
-  eventBus.on('game:weekAdvanced',    ({ state }) => render(state));
-  eventBus.on('game:trainingApplied', ({ state }) => render(state));
-  eventBus.on('game:bracketSeeded',   ({ state }) => render(state));
-  eventBus.on('game:playoffsUpdated', ({ state }) => render(state));
-  eventBus.on('game:seasonRolledOver',({ state }) => render(state));
+  // and the disabled-CTA state all derive from GameState. Hidden-screen
+  // renders are deferred: mark dirty and replay on the next hub show.
+  let needsRender = false;
+  const renderOrDefer = (state: GameState): void => {
+    if (el.offsetParent !== null) {
+      render(state);
+    } else {
+      lastState = state;
+      needsRender = true;
+    }
+  };
+  eventBus.on('game:initialized',     ({ state }) => renderOrDefer(state));
+  eventBus.on('game:fixtureRecorded', ({ state }) => renderOrDefer(state));
+  eventBus.on('game:weekAdvanced',    ({ state }) => renderOrDefer(state));
+  eventBus.on('game:trainingApplied', ({ state }) => renderOrDefer(state));
+  eventBus.on('game:bracketSeeded',   ({ state }) => renderOrDefer(state));
+  eventBus.on('game:playoffsUpdated', ({ state }) => renderOrDefer(state));
+  eventBus.on('game:seasonRolledOver',({ state }) => renderOrDefer(state));
+  onScreenShow(id => {
+    if (id === 'hub' && needsRender && lastState) {
+      needsRender = false;
+      render(lastState);
+    }
+  });
 
   render(opts.getGameEngine().getState());
 
-  return { refresh: () => { if (lastState) render(lastState); } };
+  return { refresh: () => { needsRender = false; if (lastState) render(lastState); } };
 }

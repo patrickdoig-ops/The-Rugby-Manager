@@ -739,6 +739,9 @@ export type SeasonEvent =
       objective: BoardAmbition;
       warningIssued: boolean;
       sacked: boolean;
+      // Restored verbatim on save-load; absent on a fresh season seed
+      // (EUROPEAN_OBJECTIVE_SET fills it once the competition is drawn).
+      europeanObjective?: EuropeanObjective;
     }
   | {
       type: 'BOARD_CONFIDENCE_ADJUSTED';
@@ -787,6 +790,7 @@ export type SeasonEvent =
         metresCarried:          number;
         lineBreaks:             number;
         defendersBeaten:        number;
+        offloadsCompleted:      number;
         passes:                 number;
         // Reserved for the goal-kicking split (see CLAUDE.md known gap);
         // always 0 today.

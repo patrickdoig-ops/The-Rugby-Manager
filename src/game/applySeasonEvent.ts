@@ -126,6 +126,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       s.metresCarried          += d.metresCarried;
       s.lineBreaks             += d.lineBreaks;
       s.defendersBeaten        += d.defendersBeaten;
+      s.offloadsCompleted      += d.offloadsCompleted;
       s.passes                 += d.passes;
       s.conversions            += d.conversions;
       s.penaltiesScored        += d.penaltiesScored;
@@ -206,6 +207,13 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       state.career.freeAgents = state.career.freeAgents.filter(id => id !== event.rosterId);
       // Drop any dangling pre-agreement — a retired player can't move.
       state.career.pendingMoves = state.career.pendingMoves.filter(m => m.rosterId !== event.rosterId);
+      // A retired loan-pool player must not remain signable on the Loan screen.
+      if (state.career.loanPool) {
+        state.career.loanPool = state.career.loanPool.filter(id => id !== event.rosterId);
+      }
+      // Flag so the rollover aging loop and weekly morale decay skip them.
+      const retiree = state.career.roster[event.rosterId];
+      if (retiree) retiree.retired = true;
       return;
     }
     case 'PLAYER_INJURED': {
@@ -543,6 +551,9 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       // the FA pool itself gets reshuffled, so the per-rosterId locks
       // become stale.
       state.career.midseasonRejections = {};
+      // Poach threats are season-scoped — stale ids would drive the Hub
+      // Transfers badge and inbox items until the first updatePoachThreats().
+      state.career.activePoachedIds = [];
       // Season-only staff budget boost doesn't carry over.
       for (const club of state.career.clubs) {
         if (club.staffBudgetBoost) club.staffBudgetBoost = 0;
@@ -828,6 +839,9 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         objective: event.objective,
         warningIssued: event.warningIssued,
         sacked: event.sacked,
+        ...(event.europeanObjective !== undefined
+          ? { europeanObjective: event.europeanObjective }
+          : {}),
       };
       return;
     }

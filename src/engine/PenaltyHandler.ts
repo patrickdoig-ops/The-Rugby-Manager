@@ -202,9 +202,6 @@ export class PenaltyHandler {
       const defender = pickFullback(defendTeam, state, defendSide);
       const kickFromOppositionHalf = inOppositionHalf(state);
 
-      if (state.clock.clockInTheRed) {
-        applyMatchEvent(state, { type: 'PENALTY_KICK_TO_TOUCH_FLAG_SET', value: true });
-      }
       applyMatchEvent(state, { type: 'KICK_FROM_HAND', kicker, metres: res.distance });
       applyMatchEvent(state, {
         type: 'BALL_REPOSITIONED',
@@ -238,6 +235,9 @@ export class PenaltyHandler {
       this.emit('engine:event', { event: penEvent });
 
       if (res.findsTouch) {
+        if (state.clock.clockInTheRed) {
+          applyMatchEvent(state, { type: 'PENALTY_KICK_TO_TOUCH_FLAG_SET', value: true });
+        }
         // Found touch — attacking team retains the throw at the new ball
         // position. The set_piece_award announcement is fired by
         // MatchCoordinator's cross-tick detector at the start of the next
@@ -302,14 +302,10 @@ export class PenaltyHandler {
         type: 'CARRY_RESOLVED',
         carrier,
         defender,
-        metres: Math.max(0, gainMetres),
+        metres: gainMetres,
         direction,
         outcome,
         defSide: defendSide,
-      });
-      applyMatchEvent(state, {
-        type: 'BALL_REPOSITIONED',
-        x: clamp(state.ball.x + direction * gainMetres, 0, 100),
       });
 
       const tryScored = isTryScoredAt(state.ball.x, attackSide, state.clock.halfTimeDone);

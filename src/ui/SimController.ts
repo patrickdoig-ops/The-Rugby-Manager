@@ -96,7 +96,7 @@ export function initSimController(engine: MatchCoordinator): void {
   applySpeed(presetMs);
 
   speedBtns.forEach(btn => {
-    btn.addEventListener('click', () => applySpeed(Number(btn.dataset.ms)));
+    btn.onclick = () => applySpeed(Number(btn.dataset.ms));
   });
 
   function updateSubsBadge(n: number): void {
@@ -242,6 +242,7 @@ export function initSimController(engine: MatchCoordinator): void {
       // The 1D pitch strip lives in the scoreboard (outside #panel-bottom), so
       // hide it via a body class when the 2D Pitch view is active.
       document.body.classList.toggle('pitch-view-active', views[i] === 'pitch');
+      eventBus.emit('ui:viewChange', { view: views[i] });
     };
   });
 }

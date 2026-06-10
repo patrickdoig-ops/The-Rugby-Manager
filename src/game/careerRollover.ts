@@ -60,7 +60,7 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
       fromClubId: move.fromClubId,
       toClubId: move.toClubId,
       annualWage: move.annualWage,
-      expiresOn: `${newSeasonStartYear + move.lengthYears - 1}-06-30`,
+      expiresOn: `${newSeasonStartYear + move.lengthYears}-06-30`,
     });
   }
 
@@ -70,7 +70,7 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
   const rosterIds = Object.keys(state.career.roster).map(Number).sort((a, b) => a - b);
   for (const rid of rosterIds) {
     const p = state.career.roster[rid];
-    if (!p.dob) continue;
+    if (!p.dob || p.retired) continue;
     const ageInNewSeason = getAge(p.dob, seasonOpenIso(newSeasonStartYear)) ?? 0;
 
     const deltas = developStats(p, ageInNewSeason);

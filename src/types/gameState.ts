@@ -787,6 +787,7 @@ export type SeasonEvent =
         metresCarried:          number;
         lineBreaks:             number;
         defendersBeaten:        number;
+        offloadsCompleted:      number;
         passes:                 number;
         // Reserved for the goal-kicking split (see CLAUDE.md known gap);
         // always 0 today.

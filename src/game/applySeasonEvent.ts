@@ -126,6 +126,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       s.metresCarried          += d.metresCarried;
       s.lineBreaks             += d.lineBreaks;
       s.defendersBeaten        += d.defendersBeaten;
+      s.offloadsCompleted      += d.offloadsCompleted;
       s.passes                 += d.passes;
       s.conversions            += d.conversions;
       s.penaltiesScored        += d.penaltiesScored;

@@ -396,15 +396,21 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
           if (e.type === 'BALL_REPOSITIONED' && e.y !== undefined) finalY = e.y;
         }
 
-        const tryRepoEvent = res.events.find((e: any) => e.type === 'BALL_REPOSITIONED' && e.t === undefined) as any;
+        const tryRepoEvent = res.events.find(
+          (e): e is Extract<MatchEvent, { type: 'BALL_REPOSITIONED' }> =>
+            e.type === 'BALL_REPOSITIONED' && e.t === undefined,
+        );
         if (tryRepoEvent) {
           tryRepoEvent.y = finalY;
         }
-        
+
         if (res.narration && res.narration.steps) {
-          const tryLocStep = res.narration.steps.find((s: any) => s.kind === 'announcement' && typeof s.key === 'string' && s.key.startsWith('try_location_'));
+          const tryLocStep = res.narration.steps.find(
+            (s): s is Extract<NarrationStep, { kind: 'announcement' }> =>
+              s.kind === 'announcement' && s.key.startsWith('try_location_'),
+          );
           if (tryLocStep) {
-            (tryLocStep as any).key = `try_location_${tryLocationBand(finalY)}`;
+            tryLocStep.key = `try_location_${tryLocationBand(finalY)}`;
           }
         }
       }

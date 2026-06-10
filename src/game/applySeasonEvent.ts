@@ -551,6 +551,9 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       // the FA pool itself gets reshuffled, so the per-rosterId locks
       // become stale.
       state.career.midseasonRejections = {};
+      // Poach threats are season-scoped — stale ids would drive the Hub
+      // Transfers badge and inbox items until the first updatePoachThreats().
+      state.career.activePoachedIds = [];
       // Season-only staff budget boost doesn't carry over.
       for (const club of state.career.clubs) {
         if (club.staffBudgetBoost) club.staffBudgetBoost = 0;

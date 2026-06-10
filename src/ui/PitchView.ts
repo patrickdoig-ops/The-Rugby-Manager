@@ -112,7 +112,11 @@ export function initPitchView(): void {
   // (success = through centre, failure = wide). The element is a copy of the
   // main ball that scales down and fades out, giving a "going into the
   // distance" read without touching the main ball's CSS transitions.
+  let kickFlightTimer: ReturnType<typeof setTimeout> | null = null;
   const triggerKickFlight = (ballX: number, ballY: number, success: boolean, side: string) => {
+    // A stale timer from a previous flight (within 700ms, or across a match
+    // restart) would kill this flight's transition mid-animation.
+    if (kickFlightTimer !== null) { clearTimeout(kickFlightTimer); kickFlightTimer = null; }
     const startTop  = toTop(ballX);
     const startLeft = toLeft(ballY);
     // Home attacks toward x=100 (top of screen) before half-time; inverted after.
@@ -135,7 +139,7 @@ export function initPitchView(): void {
     kickFlight.style.left       = `${targetLeft}%`;
     kickFlight.style.transform  = 'translate(-50%, -50%) scale(0.25)';
     kickFlight.style.opacity    = '0';
-    setTimeout(() => { kickFlight.style.transition = 'none'; }, 700);
+    kickFlightTimer = setTimeout(() => { kickFlight.style.transition = 'none'; kickFlightTimer = null; }, 700);
     // Hide the main ball immediately so it doesn't linger at the kick spot
     // while the flight overlay animates toward the posts.
     ball.style.opacity = '0';
@@ -393,6 +397,7 @@ export function initPitchView(): void {
     lastLeft = toLeft(50);
     ballHiddenForKickFlight = false;
     kickFlightThisBeat = false;
+    if (kickFlightTimer !== null) { clearTimeout(kickFlightTimer); kickFlightTimer = null; }
     ball.style.opacity = '';
     clearMovement();
     players.reset();

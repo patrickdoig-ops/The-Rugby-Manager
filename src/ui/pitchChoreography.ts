@@ -793,10 +793,13 @@ const TACTICAL_KICK_BASE: Formation = { nearTop: true,
   },
 };
 
+// Overlay from-tables on the resting tables: from-tables only list movers,
+// so a slot they omit (defending #15) must fall back to its resting spot or
+// the frozen frame draws 29 dots.
 const TACTICAL_KICK_FROZEN: Formation = {
   nearTop: TACTICAL_KICK_BASE.nearTop,
-  atk: TACTICAL_KICK_BASE.atkFrom ?? TACTICAL_KICK_BASE.atk,
-  def: TACTICAL_KICK_BASE.defFrom ?? TACTICAL_KICK_BASE.def,
+  atk: { ...TACTICAL_KICK_BASE.atk, ...TACTICAL_KICK_BASE.atkFrom },
+  def: { ...TACTICAL_KICK_BASE.def, ...TACTICAL_KICK_BASE.defFrom },
 };
 
 // Kick-off formation, authored in the phase animator (KICK_OFF / clean_receive) and

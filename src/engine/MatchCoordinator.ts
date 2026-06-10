@@ -864,8 +864,19 @@ export class MatchCoordinator {
 
     this.fatigue.tick(timeAdvance);
 
-    if (this.state.phase === MatchPhase.TmoReview) { await this.tickTmoReview(); return; }
-    if (this.state.phase === MatchPhase.KickAtGoal) { await this.tickKickAtGoal(); return; }
+    // Micro-phase ticks bypass the main body — still record their start
+    // phase so the cross-tick set_piece_award detector in
+    // prepareEnteringPhase never compares against a stale pre-TMO phase.
+    if (this.state.phase === MatchPhase.TmoReview) {
+      this.prevTickStartPhase = MatchPhase.TmoReview;
+      await this.tickTmoReview();
+      return;
+    }
+    if (this.state.phase === MatchPhase.KickAtGoal) {
+      this.prevTickStartPhase = MatchPhase.KickAtGoal;
+      await this.tickKickAtGoal();
+      return;
+    }
 
     if (await this.processForcedSubstitutions()) return;
 
@@ -947,6 +958,7 @@ export class MatchCoordinator {
       // next 3 ticks of narrative.
       const verdict = this.cardHandler.evaluateNewPenalty();
       if (verdict === 'tmo') {
+        this.prevTickStartPhase = phaseAtTickStart;
         this.streamer.flush(this.state.engine.tickDelayMs, this.state);
         if (!this.silent) this.scheduleTick(this.nextTickDelay());
         return;

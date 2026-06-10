@@ -6,7 +6,7 @@
 > them against the engine's real ball path for any phase.
 >
 > Tool: `public/tools/phase-animator.html` · Generator: `scripts/exportPhases.ts`
-> · Integration recipe: `docs/phase-animator.md` § 9 + `CLAUDE.md` § 8
+> · Integration recipe: `docs/phase-animator.md` § 9 + `docs/DESIGN.md` § 15.7
 
 ---
 

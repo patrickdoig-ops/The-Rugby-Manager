@@ -46,6 +46,10 @@ export function appealScore(
   state: GameState,
   bid: TransferBid,
   player: Player,
+  // Optional per-round memo for weightedLeaguePosition — the archive sort
+  // is identical for every bid in a resolution round, so resolveSigningRound
+  // passes one Map to avoid re-sorting per bid evaluation.
+  wlpMemo?: Map<string, number>,
 ): number {
   const club = state.career.clubs.find(c => c.id === bid.clubId);
   if (!club) return -Infinity;
@@ -71,7 +75,11 @@ export function appealScore(
   const positionShortage = Math.max(0, Math.min(3, APPEAL_WEIGHTS.needTargetPerPosition - positionCount));
 
   // Ambition: weighted average of recent league positions (2/3 + 1/3).
-  const lastSeasonPosition = weightedLeaguePosition(state, club.id);
+  let lastSeasonPosition = wlpMemo?.get(club.id);
+  if (lastSeasonPosition === undefined) {
+    lastSeasonPosition = weightedLeaguePosition(state, club.id);
+    wlpMemo?.set(club.id, lastSeasonPosition);
+  }
 
   // Loyalty: retention bid by the player's current club gets a fixed
   // bonus to model the player's mild "devil you know" preference.
@@ -134,6 +142,7 @@ export function resolveSigningRound(state: GameState): ResolveResult {
   }
 
   const sortedRosterIds = [...bidsByRoster.keys()].sort((a, b) => a - b);
+  const wlpMemo = new Map<string, number>();
 
   for (const rid of sortedRosterIds) {
     const player = state.career.roster[rid];
@@ -159,7 +168,7 @@ export function resolveSigningRound(state: GameState): ResolveResult {
     let winner: TransferBid | null = null;
     let bestScore = -Infinity;
     for (const bid of bids) {
-      const score = appealScore(state, bid, player) + wageSatisfaction(bid.annualWage, askFor(bid));
+      const score = appealScore(state, bid, player, wlpMemo) + wageSatisfaction(bid.annualWage, askFor(bid));
       const wins = score > bestScore
         || (score === bestScore && winner !== null && bid.clubId.localeCompare(winner.clubId) < 0);
       if (wins) {

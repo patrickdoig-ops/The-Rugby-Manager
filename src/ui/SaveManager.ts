@@ -528,9 +528,10 @@ function parseCupFixture(raw: unknown): CupFixture | null {
   if (f.leg !== 0 && f.leg !== 1 && f.leg !== 2) return null;
   if (typeof f.homeId !== 'string' || typeof f.awayId !== 'string') return null;
   if (typeof f.date !== 'string') return null;
+  const result = parseCupResult(f.result);
   return {
     pool: f.pool, leg: f.leg, homeId: f.homeId, awayId: f.awayId, date: f.date,
-    ...(parseCupResult(f.result) ? { result: parseCupResult(f.result)! } : {}),
+    ...(result ? { result } : {}),
   };
 }
 
@@ -554,12 +555,13 @@ function parseCupKnockoutMatch(raw: unknown, expectedKind: CupKnockoutMatch['kin
   const m = raw as Record<string, unknown>;
   if (m.kind !== expectedKind) return null;
   if (typeof m.date !== 'string') return null;
+  const result = parseCupResult(m.result);
   return {
     kind: expectedKind,
     homeId: typeof m.homeId === 'string' ? m.homeId : null,
     awayId: typeof m.awayId === 'string' ? m.awayId : null,
     date: m.date,
-    ...(parseCupResult(m.result) ? { result: parseCupResult(m.result)! } : {}),
+    ...(result ? { result } : {}),
   };
 }
 

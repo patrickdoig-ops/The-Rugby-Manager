@@ -1093,8 +1093,11 @@ export class GameCoordinator {
       if (!homeJson || !awayJson) continue;
       const home = buildAutoSelectedTeamFromRoster(this.state, homeJson);
       const away = buildAutoSelectedTeamFromRoster(this.state, awayJson);
-      const homeFillRate = homeJson.stadiumCapacity
-        ? computeAttendance(f, homeJson.stadiumCapacity, this.state.league.standings, this.state.league.results) / homeJson.stadiumCapacity
+      const attendance = homeJson.stadiumCapacity
+        ? computeAttendance(f, homeJson.stadiumCapacity, this.state.league.standings, this.state.league.results)
+        : undefined;
+      const homeFillRate = attendance !== undefined && homeJson.stadiumCapacity
+        ? attendance / homeJson.stadiumCapacity
         : undefined;
       const sim = await simulateFixture(home, away, this.state.seed, f.round, { homeFillRate, isDerby: f.isDerby });
       const aiResult: FixtureResult = {
@@ -1108,9 +1111,7 @@ export class GameCoordinator {
         playerSide: null,
         homeStats: sim.snapshot.homeSummary,
         awayStats: sim.snapshot.awaySummary,
-        attendance: homeJson?.stadiumCapacity
-          ? computeAttendance(f, homeJson.stadiumCapacity, this.state.league.standings, this.state.league.results)
-          : undefined,
+        attendance,
       };
       applySeasonEvent(this.state, { type: 'FIXTURE_RESULT_RECORDED', result: aiResult });
       for (const ev of collectSeasonEvents(sim.snapshot)) {

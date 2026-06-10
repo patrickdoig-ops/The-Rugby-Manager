@@ -40,7 +40,8 @@ import { emptyCareerState } from '../types/gameState';
 import { sortStandings } from './leagueTable';
 import type { Player } from '../types/player';
 import type { TeamTactics } from '../types/team';
-import type { TrainingPlan, TrainingWeekResult } from '../types/training';
+import type { TrainingPlan, TrainingWeekResult, InternationalBreakSummary } from '../types/training';
+import type { InternationalWindow } from '../types/player';
 import { applySeasonEvent } from './applySeasonEvent';
 import type { PreSeasonTransfer } from '../data/transfers-2025-26';
 import { simulateFixture } from './simulateFixture';
@@ -54,7 +55,7 @@ import { generateMatchStory, type MediaMatchContext, type MediaPlayer } from './
 import { buildEuropeanDrawStory, buildEuropeanEliminationStory } from './media/europeanStories';
 import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot } from './seasonStatsCollector';
 import { runTrainingPeriods } from './trainingRunner';
-import { upcomingGap, splitGapIntoPeriods } from './trainingCalendar';
+import { upcomingGap, upcomingGapFromDate, splitGapIntoPeriods } from './trainingCalendar';
 import { reconcileRestObligations, lionsReturnEvents, summerTourReturnEvents } from './internationalDutyEngine';
 import { computeRollover } from './careerRollover';
 import { generateStaffPool } from './staffPoolGenerator';
@@ -655,6 +656,66 @@ export class GameCoordinator {
   async simDueCupFixtures(): Promise<void> {
     await this.intlBreak.simDueCupFixtures();
     eventBus.emit('game:weekAdvanced', { state: this.state });
+  }
+
+  // What the cup break needs next (play a fixture / advance a round / resolve
+  // international returns), or null when the break is done. Drives the Hub CTA
+  // + the determinism harness.
+  getCupBreakStep(): 'play_fixture' | 'advance_round' | 'resolve_returns' | null {
+    return this.intlBreak.getCupBreakStep();
+  }
+
+  // Process international returns at the end of the break's cup weeks.
+  resolveInternationalWindow(window: InternationalWindow): InternationalBreakSummary | undefined {
+    return this.intlBreak.resolveInternationalWindow(window);
+  }
+
+  getBreakWindow(): InternationalWindow | null {
+    return this.intlBreak.getBreakWindow();
+  }
+
+  isCupBlockStart(): boolean {
+    return this.intlBreak.isCupBlockStart();
+  }
+
+  // One training week for a cup/European matchday — gap-based like
+  // applyTrainingBlock, but from the current matchday's date to the next
+  // matchday (cup or league), so each game week recovers/develops over just
+  // its own span. Emits game:trainingApplied.
+  runCupMatchdayTraining(weeks: TrainingPlan[]): TrainingWeekResult {
+    const n = Math.max(1, weeks.length);
+    const { days } = upcomingGapFromDate(this.state.calendar.date, this.nextMatchdayDate());
+    const spans = splitGapIntoPeriods(days, n);
+    const acc = runTrainingPeriods(this.state, weeks, spans);
+    eventBus.emit('game:trainingApplied', { state: this.state });
+    return { plan: weeks[weeks.length - 1], players: [...acc.values()], weeks: n };
+  }
+
+  // Earliest date strictly after today among the player's remaining cup
+  // matchdays and the upcoming league round — the horizon for a cup matchday's
+  // training gap.
+  private nextMatchdayDate(): string {
+    const cur = this.state.calendar.date;
+    const dates: string[] = [];
+    const cup = this.state.league.premCup;
+    const playerId = this.state.player.teamId;
+    if (cup) {
+      for (const f of cup.fixtures) {
+        if (!f.result && (f.homeId === playerId || f.awayId === playerId) && f.date > cur) dates.push(f.date);
+      }
+      const ko = cup.knockout;
+      if (ko) for (const m of [ko.semifinals[0], ko.semifinals[1], ko.final]) {
+        if (!m.result && m.homeId && m.awayId && (m.homeId === playerId || m.awayId === playerId) && m.date > cur) dates.push(m.date);
+      }
+    }
+    let leagueDate: string | null = null;
+    for (const f of this.state.league.fixtures) {
+      if (f.round !== this.state.calendar.week || !f.date) continue;
+      if (leagueDate === null || f.date < leagueDate) leagueDate = f.date;
+    }
+    if (leagueDate && leagueDate > cur) dates.push(leagueDate);
+    dates.sort();
+    return dates[0] ?? leagueDate ?? cur;
   }
 
   // ===== Off-season market (Phases 2-7) =====

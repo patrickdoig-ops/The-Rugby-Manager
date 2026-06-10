@@ -22,10 +22,11 @@
 //   5. The renewal window (Phase 4: openRenewalWindow +
 //      closeRenewalWindow with AI-only decisions) produces the same
 //      offers + accept/reject outcomes + freeAgents pool every run.
-//   6. The Prem Cup break blocks (beginInternationalBreak +
-//      runInternationalBreakBlock at rounds 6 / 11) are reproducible:
-//      same pool seeding (incl. year-2+ redraw), cup sim results, KO
-//      cascade + champion — and don't perturb the league/career hash.
+//   6. The Prem Cup live weekly flow (drainCupBreak: per-matchday cup sims +
+//      per-matchday training + international call-up/return bracketing at the
+//      pre-season block and rounds 6 / 11) is reproducible: same pool seeding
+//      (incl. year-2+ redraw), cup results, KO cascade + champion — and the
+//      reload round-trip resumes mid-career identically.
 
 import { createHash } from 'node:crypto';
 import { GameCoordinator } from '../src/game/GameCoordinator.js';
@@ -59,15 +60,13 @@ const HARNESS_TRAINING_PLAN = { intensity: 'light', forwardsFocus: 'set_piece', 
 
 async function simulateSeason(coord: GameCoordinator, teamsById: Map<string, RawTeamInput>): Promise<void> {
   while (true) {
+    // Drive any pending cup game-weeks before the next league round — the
+    // pre-season leg-0 block (before R1) and the autumn / six-nations break
+    // legs. Mirrors the Hub-driven per-matchday flow with the assistant
+    // managing every cup match (cupManageLive = false).
+    await drainCupBreak(coord);
     const next = coord.getCurrentFixture();
     if (!next) break;
-    // International break: when the calendar has reached a return round, run
-    // the Prem Cup + training block before recording the post-break fixture.
-    // beginInternationalBreak returns null off a break round.
-    const begin = coord.beginInternationalBreak();
-    if (begin) {
-      await coord.runInternationalBreakBlock([HARNESS_TRAINING_PLAN], begin);
-    }
     const state = coord.getState();
     const homeJson = teamsById.get(next.homeId)!;
     const awayJson = teamsById.get(next.awayId)!;
@@ -84,6 +83,34 @@ async function simulateSeason(coord: GameCoordinator, teamsById: Map<string, Raw
   // simulatePendingPlayoffMatches (the method skips player matches; we
   // pick them up directly here).
   await playOutPlayoffs(coord);
+}
+
+// Drive the cup break to completion: flag call-ups (beginInternationalBreak,
+// idempotent), play out every cup matchday (assistant-simmed) with its own
+// training week, advance completed rounds, and resolve international returns.
+// Mirrors the Hub / onPlayCupStep driver in main.ts.
+async function drainCupBreak(coord: GameCoordinator): Promise<void> {
+  const begin = coord.beginInternationalBreak(); // flags call-ups; null off a break round
+  const window = begin?.window;
+  let guard = 0;
+  while (true) {
+    const step = coord.getCupBreakStep();
+    if (!step) break;
+    if (++guard > 300) throw new Error('cup break did not terminate');
+    if (step === 'play_fixture') {
+      const ref = coord.getCurrentCupFixture()!;
+      coord.advanceCupCalendar(ref.kind === 'pool' ? ref.fixture.date : ref.match.date);
+      await coord.runPlayerCupFixtureHeadless(ref);
+      coord.runCupMatchdayTraining([HARNESS_TRAINING_PLAN]);
+    } else if (step === 'advance_round') {
+      await coord.simDueCupFixtures();
+      const round = coord.getCurrentCupRound();
+      if (round) coord.markCupRoundShown(round.roundKey);
+    } else if (step === 'resolve_returns') {
+      if (window) coord.resolveInternationalWindow(window);
+      else break; // defensive — should never happen (duty implies a window)
+    }
+  }
 }
 
 async function playOutPlayoffs(coord: GameCoordinator): Promise<void> {

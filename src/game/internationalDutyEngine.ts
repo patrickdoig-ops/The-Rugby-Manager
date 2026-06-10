@@ -121,6 +121,35 @@ export function selectInternationalSquads(state: GameState, window: Internationa
   return callUps;
 }
 
+// Reconstruct the call-up list from the players currently flagged on duty for
+// `window`, rather than re-selecting. Used to RESOLVE a break that spanned
+// several cup game-weeks: a fresh selectInternationalSquads() could drift (cup
+// dev nudges shift non-called players' OVR), leaving a flagged player out of
+// the returns list and stuck on duty. The flagged players sat out the cup, so
+// their OVR is unchanged — sorting them within nation reproduces the same
+// selectionRank they were given at call-up time. Deterministic + reload-safe.
+export function callUpsFromDutyFlags(state: GameState, window: InternationalWindow): CallUp[] {
+  const spec = INTERNATIONAL_WINDOWS[window];
+  const byNation = new Map<string, { rid: number; ovr: number }[]>();
+  for (const rid in state.career.roster) {
+    const p = state.career.roster[rid];
+    if (p.internationalDuty?.window !== window) continue;
+    const nationKey = nationKeyForPlayer(p, spec.nations) ?? 'unknown';
+    let pool = byNation.get(nationKey);
+    if (!pool) { pool = []; byNation.set(nationKey, pool); }
+    pool.push({ rid: Number(rid), ovr: playerOverall(p.baseStats, p.position) });
+  }
+  const callUps: CallUp[] = [];
+  for (const nationKey of spec.nations) {
+    const pool = byNation.get(nationKey);
+    if (!pool) continue;
+    pool.sort((a, b) => (b.ovr - a.ovr) || (a.rid - b.rid));
+    pool.forEach((entry, i) => callUps.push({ rosterId: entry.rid, nation: nationKey, selectionRank: i + 1 }));
+  }
+  callUps.sort((a, b) => a.rosterId - b.rosterId);
+  return callUps;
+}
+
 export function buildCallUpEvents(callUps: CallUp[], window: InternationalWindow): SeasonEvent[] {
   return callUps.map(c => ({
     type: 'PLAYER_CALLED_UP' as const,
@@ -288,7 +317,10 @@ export function selectionUnavailableIds(state: GameState, clubId: string): Set<n
   const week = state.calendar.week;
   for (const rid of club.squad) {
     const p = state.career.roster[rid];
-    if (p && (mustRestThisRound(p, state) || lionsUnavailable(p, week) || isSuspended(p, week))) out.add(rid);
+    // internationalDuty is only set during a break (when the sole matches are
+    // cup matches), so excluding on-duty players here keeps them out of the
+    // live cup XV without affecting league selection.
+    if (p && (mustRestThisRound(p, state) || lionsUnavailable(p, week) || isSuspended(p, week) || p.internationalDuty)) out.add(rid);
   }
   return out;
 }

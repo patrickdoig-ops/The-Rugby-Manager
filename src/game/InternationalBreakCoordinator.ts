@@ -22,7 +22,7 @@ import { runTrainingPeriods } from './trainingRunner';
 import { upcomingGap, splitGapIntoPeriods } from './trainingCalendar';
 import {
   isInternationalBreak, selectInternationalSquads, buildCallUpEvents,
-  resolveInternationalBreak, getSummerTourRosterIds, type CallUp,
+  resolveInternationalBreak, callUpsFromDutyFlags, getSummerTourRosterIds, type CallUp,
 } from './internationalDutyEngine';
 import { eventBus } from '../utils/eventBus';
 
@@ -351,39 +351,41 @@ export class InternationalBreakCoordinator {
     return earliest ?? this.state.calendar.date;
   }
 
-  // The leg whose fixtures are currently in play: the earliest leg with any
-  // unplayed fixture whose first fixture date is on or before the upcoming
-  // league round's date. Returns null when no leg is reachable yet / all done.
+  // The leg whose fixtures are currently in play, scoped by which break the
+  // calendar is in rather than by fixture dates — robust against the synthetic
+  // year-2+ schedule where cup/league dates can interleave oddly. Leg 0 is the
+  // pre-season block (before any league round is played); legs 1 / 2 map to the
+  // Autumn / Six Nations breaks. Null outside a block / when the leg is done.
   private activeCupLeg(): 0 | 1 | 2 | null {
     const cup = this.state.league.premCup;
     if (!cup) return null;
-    const horizon = this.upcomingLeagueDate();
-    for (const leg of [0, 1, 2] as const) {
-      const fxs = cup.fixtures.filter(f => f.leg === leg);
-      if (fxs.length === 0) continue;
-      if (fxs.every(f => f.result)) continue;            // leg complete
-      const legStart = fxs.map(f => f.date).sort()[0] ?? '';
-      if (legStart && legStart > horizon) return null;   // future leg, not reached
-      return leg;
-    }
+    const hasUnresolved = (leg: 0 | 1 | 2) => cup.fixtures.some(f => f.leg === leg && !f.result);
+    if (this.state.league.results.length === 0 && hasUnresolved(0)) return 0;
+    const window = isInternationalBreak(this.state);
+    if (window === 'autumn' && hasUnresolved(1)) return 1;
+    if (window === 'six_nations' && hasUnresolved(2)) return 2;
     return null;
   }
 
-  // The player's next playable cup fixture (pool then knockout) in the active
-  // leg. Null when the player has no unplayed fixture due (bye / leg done).
+  // The player's next playable cup fixture — a pool fixture in the active
+  // leg, or an unplayed knockout match. Null when the player has nothing due
+  // (bye / leg done / not in the knockout).
   getCurrentCupFixture(): CupFixtureRef | null {
     const cup = this.state.league.premCup;
     if (!cup) return null;
-    const leg = this.activeCupLeg();
-    if (leg === null) return null;
     const playerId = this.state.player.teamId;
-    const pending = cup.fixtures
-      .filter(f => f.leg === leg && !f.result && (f.homeId === playerId || f.awayId === playerId))
-      .sort((a, b) => a.date.localeCompare(b.date));
-    if (pending[0]) return { kind: 'pool', fixture: pending[0] };
-    // Leg-2 knockout: the player's unplayed SF / final, slotted and reached.
+    const leg = this.activeCupLeg();
+    if (leg !== null) {
+      const pending = cup.fixtures
+        .filter(f => f.leg === leg && !f.result && (f.homeId === playerId || f.awayId === playerId))
+        .sort((a, b) => a.date.localeCompare(b.date));
+      if (pending[0]) return { kind: 'pool', fixture: pending[0] };
+    }
+    // Knockout — the player's unplayed SF / final. Decoupled from the active
+    // leg: the leg-2 pool is complete (so activeCupLeg is null) by the time
+    // the bracket is seeded, but the player may still be in it.
     const ko = cup.knockout;
-    if (ko && leg === 2) {
+    if (ko && ko.championTeamId === null) {
       for (const m of [ko.semifinals[0], ko.semifinals[1], ko.final]) {
         if (!m.result && m.homeId && m.awayId && (m.homeId === playerId || m.awayId === playerId)) {
           return { kind: 'knockout', stage: m.kind, match: m };
@@ -516,7 +518,9 @@ export class InternationalBreakCoordinator {
   async simDueCupFixtures(): Promise<void> {
     const leg = this.activeCupLeg();
     if (leg === null) { await this.simDueCupKnockouts(); return; }
-    await this.simRestOfCupLeg(leg, this.upcomingLeagueDate());
+    // Complete the whole leg (unbounded date) — this is the catch-up pass that
+    // resolves byes / non-player fixtures so the leg can close.
+    await this.simRestOfCupLeg(leg, '9999-12-31');
     if (leg === 2) this.maybeSeedCupKnockout();
     if (leg === 2) await this.simDueCupKnockouts();
     this.maybeFireCupLegDevelopment(leg);
@@ -609,5 +613,67 @@ export class InternationalBreakCoordinator {
       applySeasonEvent(this.state, ev);
     }
     applySeasonEvent(this.state, { type: 'PREM_CUP_FEATURED_ADDED', rosterIds: [], reset: true });
+  }
+
+  // ── Break lifecycle (per-matchday weekly flow) ───────────────────────────
+  //
+  // The international break is no longer a single headless block. It is a
+  // sequence of ordinary cup game-weeks driven by the Hub / determinism
+  // harness through getCupBreakStep(). Call-ups are flagged once at the start
+  // (beginInternationalBreak, reused) and returns are processed once at the
+  // end (resolveInternationalWindow), bracketing the intervening cup weeks so
+  // the manager's internationals are away throughout (the rotation challenge).
+
+  // What the cup break needs next, in priority order. Null when the break has
+  // nothing left to do (→ the Hub falls through to the next league round).
+  getCupBreakStep(): 'play_fixture' | 'advance_round' | 'resolve_returns' | null {
+    const cup = this.state.league.premCup;
+    if (cup) {
+      if (this.getCurrentCupFixture()) return 'play_fixture';
+      const leg = this.activeCupLeg();
+      if (leg !== null && cup.fixtures.some(f => f.leg === leg && !f.result)) return 'advance_round';
+      if (cup.knockout && cup.knockout.championTeamId === null) return 'advance_round';
+      if (this.getCurrentCupRound()) return 'advance_round';
+    }
+    const window = isInternationalBreak(this.state);
+    if (window && this.anyOnInternationalDuty(window)) return 'resolve_returns';
+    return null;
+  }
+
+  // Resolve the international window at the end of the break's cup weeks:
+  // restore the display calendar to the upcoming league round (so returns are
+  // dated there, as in the legacy block), re-derive the call-ups (RNG-free
+  // selection → reload-safe), then process returns (rngTransfer).
+  resolveInternationalWindow(window: InternationalWindow): InternationalBreakSummary | undefined {
+    this.advanceCupCalendar(this.upcomingLeagueDate());
+    // Derive returns from the actually-flagged players (not a fresh selection,
+    // which could drift mid-break) so every called-up player is returned.
+    const callUps = callUpsFromDutyFlags(this.state, window);
+    if (callUps.length === 0) return undefined;
+    const resolved = resolveInternationalBreak(this.state, callUps, window);
+    for (const ev of resolved.events) applySeasonEvent(this.state, ev);
+    return resolved.summary;
+  }
+
+  private anyOnInternationalDuty(window: InternationalWindow): boolean {
+    for (const rid in this.state.career.roster) {
+      if (this.state.career.roster[rid].internationalDuty?.window === window) return true;
+    }
+    return false;
+  }
+
+  // The break window the calendar is currently in (or null) — used to resolve
+  // returns and to know which leg the cup CTA is playing.
+  getBreakWindow(): InternationalWindow | null {
+    return isInternationalBreak(this.state);
+  }
+
+  // True only at the very first matchday of a cup block (the active leg has no
+  // resolved fixtures yet) — the cue to show the live/assistant decision once.
+  isCupBlockStart(): boolean {
+    const cup = this.state.league.premCup;
+    const leg = this.activeCupLeg();
+    if (!cup || leg === null) return false;
+    return !cup.fixtures.some(f => f.leg === leg && f.result);
   }
 }

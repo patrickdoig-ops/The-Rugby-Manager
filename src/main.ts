@@ -140,7 +140,7 @@ import type { TalkArgs }           from './types/ui';
 import * as teamProfile            from './team/teamProfile';
 import type { TeamJson }           from './team/teamProfile';
 import { GameCoordinator }         from './game/GameCoordinator';
-import type { BreakBeginResult, PreSeasonBlockResult, EuropeanFixtureRef, EuropeanRoundRef } from './game/GameCoordinator';
+import type { BreakBeginResult, EuropeanFixtureRef, EuropeanRoundRef, CupFixtureRef } from './game/GameCoordinator';
 import { buildEuropeanOpponent } from './game/buildEuropeanOpponent';
 import { europeanTeams } from './data/european-teams';
 import { extractMatchdaySquad }    from './game/playerSquad';
@@ -340,11 +340,8 @@ document.addEventListener('DOMContentLoaded', () => {
       allTeams: allTeamsWithEuropean,
       onPlayMatch: onPlayRound,
       onPlayoffs: () => { void runPlayoffWeek(); },
-      onPreSeasonCup: () => {
-        const eng = gameEngine;
-        if (!eng) return;
-        const begin = eng.beginPreSeasonBlock();
-        runPreSeasonCupChain(begin, eng, () => { autosave(eng.toSavePayload()); goHub(); });
+      onPlayCup: () => {
+        onPlayCupStep(() => { if (gameEngine) autosave(gameEngine.toSavePayload()); goHub(); });
       },
       onPlayEuropean: () => {
         maybePlayEuropeanFixture(() => { if (gameEngine) autosave(gameEngine.toSavePayload()); goHub(); });
@@ -932,27 +929,10 @@ document.addEventListener('DOMContentLoaded', () => {
       runEndOfSeasonChain();
       return;
     }
-    // Pre-season cup not yet started (or tab closed before completing the
-    // cup chain). Go to Hub — the cup CTA there will trigger the chain.
-    if (gameEngine.isPreSeasonCupPending()) {
-      goHub();
-      return;
-    }
-    // Interrupted international break (tab closed on the post-match chain at a
-    // Round 6 / 11 break, before the cup + training block ran). Re-enter the
-    // break flow instead of dropping to Hub and skipping the break. The break
-    // re-runs deterministically from the last (post-pre-break-round) save.
-    if (gameEngine.isBreakPending()) {
-      const begin = gameEngine.beginInternationalBreak();
-      if (begin) {
-        const eng = gameEngine;
-        runInternationalBreakChain(begin, eng, () => {
-          if (eng.isManagerSacked()) { runSackScreen('midseason'); return; }
-          maybeRunMidseasonPoach(() => { autosave(eng.toSavePayload()); goHub(); });
-        });
-        return;
-      }
-    }
+    // Pre-season cup or an interrupted international break: the cup is now
+    // driven from the Hub's cup CTA (gated on getCupBreakStep), and the
+    // per-matchday flow resumes cleanly from the result/playerSide cursor — so
+    // we just drop to the Hub, exactly like the European weekly flow.
     goHub();
   }
 
@@ -1443,55 +1423,205 @@ document.addEventListener('DOMContentLoaded', () => {
     screenRouter.show('app');
   }
 
-  // Pre-season cup chain: cup fixtures (+ direction) → training plan →
-  // [block runs] → cup results → training impact → afterBlock.
-  // No call-ups and no returns screen (not an international window).
-  function runPreSeasonCupChain(begin: PreSeasonBlockResult, eng: GameCoordinator, afterBlock: () => void): void {
-    showCupFixturesPreBlock(begin, (direction) => {
-      eng.setCupDirection(direction);
-      showTrainingPostMatch((results) => {
-        const toPostTraining = () => {
-          showPostTrainingResults(results, afterBlock);
-          screenRouter.show('training-results');
-        };
-        showCupResults(0, toPostTraining);
-        screenRouter.show('cup-results');
-      }, { runBlock: (weeks) => eng.runPreSeasonBlock(weeks) });
-      screenRouter.show('training');
+  // ── Live cup weekly flow (per-matchday, Hub-returning) ───────────────────
+  // The cup break is a sequence of ordinary game-weeks driven from the Hub's
+  // cup CTA (onPlayCupStep). Each tap plays/sims ONE matchday — with its own
+  // training week — and returns to the Hub, which re-surfaces the CTA until
+  // the break is done. Call-ups are flagged + shown once at the block start;
+  // international returns are processed once at the end.
+  function onPlayCupStep(onDone: () => void): void {
+    const eng = gameEngine;
+    if (!eng) { onDone(); return; }
+    const begin = eng.beginInternationalBreak(); // flag call-ups (idempotent); null off a break
+    const step = eng.getCupBreakStep();
+    if (!step) { onDone(); return; }
+    if (eng.isCupBlockStart()) {
+      // First matchday of the block: show who's away (intl breaks) + the
+      // live/assistant decision, then play the step.
+      const proceed = () => showCupDecision(() => runCupStep(onDone));
+      if (begin) {
+        showInternationalCallUps(begin, proceed);
+        screenRouter.show('intl-callups');
+      } else {
+        proceed();
+      }
+      return;
+    }
+    runCupStep(onDone);
+  }
+
+  function runCupStep(onDone: () => void): void {
+    const eng = gameEngine;
+    if (!eng) { onDone(); return; }
+    const step = eng.getCupBreakStep();
+    if (step === 'play_fixture') {
+      const ref = eng.getCurrentCupFixture()!;
+      eng.advanceCupCalendar(ref.kind === 'pool' ? ref.fixture.date : ref.match.date);
+      if (eng.getState().player.cupManageLive) {
+        onPlayCupMatch(ref, () => afterCupMatch(onDone));
+      } else {
+        void eng.runPlayerCupFixtureHeadless(ref).then(() => afterCupMatch(onDone));
+      }
+    } else if (step === 'advance_round') {
+      void eng.simDueCupFixtures().then(() => {
+        const round = eng.getCurrentCupRound();
+        if (round) {
+          const legNum = round.roundKey === 'leg:0' ? 0 : round.roundKey === 'leg:1' ? 1 : 2;
+          showCupResults(legNum, () => {
+            eng.markCupRoundShown(round.roundKey);
+            autosave(eng.toSavePayload());
+            onDone();
+          });
+          screenRouter.show('cup-results');
+        } else {
+          autosave(eng.toSavePayload());
+          onDone();
+        }
+      });
+    } else if (step === 'resolve_returns') {
+      const window = eng.getBreakWindow();
+      const summary = window ? eng.resolveInternationalWindow(window) : undefined;
+      autosave(eng.toSavePayload());
+      if (summary) {
+        showInternationalBreak(summary, onDone);
+        screenRouter.show('international-break');
+      } else {
+        onDone();
+      }
+    } else {
+      onDone();
+    }
+  }
+
+  // One training week after a cup matchday — gap-scoped to the next matchday.
+  function afterCupMatch(onDone: () => void): void {
+    const eng = gameEngine;
+    if (!eng) { onDone(); return; }
+    autosave(eng.toSavePayload());
+    showTrainingPostMatch((results) => {
+      showPostTrainingResults(results, () => { autosave(eng.toSavePayload()); onDone(); });
+      screenRouter.show('training-results');
+    }, { runBlock: (weeks) => Promise.resolve(eng.runCupMatchdayTraining(weeks)) });
+    screenRouter.show('training');
+  }
+
+  // The once-per-block live/assistant + direction decision screen.
+  function showCupDecision(onContinue: () => void): void {
+    showCupFixturesPreBlock((manageLive, direction) => {
+      if (gameEngine) {
+        gameEngine.setCupManageLive(manageLive);
+        gameEngine.setCupDirection(direction);
+        autosave(gameEngine.toSavePayload());
+      }
+      onContinue();
     });
     screenRouter.show('cup-fixtures');
   }
 
-  // International-break screen chain: call-ups → cup fixtures (+ direction)
-  // → training plan → [block runs] → cup results → training impact →
-  // international returns → afterTraining. The Assistant Manager runs the
-  // cup headless inside runInternationalBreakBlock (the training Continue).
-  function runInternationalBreakChain(begin: BreakBeginResult, eng: GameCoordinator, afterTraining: () => void): void {
-    showInternationalCallUps(begin, () => {
-      showCupFixturesPreBlock(begin, (direction) => {
-        begin.cupDirection = direction;
-        eng.setCupDirection(direction);
-        showTrainingPostMatch((results) => {
-          // After the block: cup results → training impact → international
-          // returns → the chain's next step (Hub via the mid-season poach gate).
-          const toReturns = results.international
-            ? () => {
-                showInternationalBreak(results.international!, afterTraining);
-                screenRouter.show('international-break');
-              }
-            : afterTraining;
-          const toPostTraining = () => {
-            showPostTrainingResults(results, toReturns);
-            screenRouter.show('training-results');
-          };
-          showCupResults(begin.cupLeg, toPostTraining);
-          screenRouter.show('cup-results');
-        }, { runBlock: (weeks) => eng.runInternationalBreakBlock(weeks, begin) });
-        screenRouter.show('training');
-      });
-      screenRouter.show('cup-fixtures');
+  function onPlayCupMatch(ref: CupFixtureRef, onAfterResult: () => void): void {
+    if (!gameEngine) { onAfterResult(); return; }
+    const state = gameEngine.getState();
+    const playerTeamId = state.player.teamId;
+    const homeId = ref.kind === 'pool' ? ref.fixture.homeId : (ref.match.homeId ?? '');
+    const awayId = ref.kind === 'pool' ? ref.fixture.awayId : (ref.match.awayId ?? '');
+    const homeRaw = allTeams.find(t => t.id === homeId);
+    const awayRaw = allTeams.find(t => t.id === awayId);
+    if (!homeRaw || !awayRaw) { onAfterResult(); return; }
+    const playerSide: 'home' | 'away' = homeId === playerTeamId ? 'home' : 'away';
+    const homeTeam = playerSide === 'home' ? buildTeamFromRoster(state, homeRaw) : buildAutoSelectedTeamFromRoster(state, homeRaw);
+    const awayTeam = playerSide === 'away' ? buildTeamFromRoster(state, awayRaw) : buildAutoSelectedTeamFromRoster(state, awayRaw);
+    const playerRawTeam = playerSide === 'home' ? homeRaw : awayRaw;
+    const oppRawTeam    = playerSide === 'home' ? awayRaw : homeRaw;
+    const isFinal = ref.kind === 'knockout' && ref.stage === 'final';
+    const stageLabel = ref.kind === 'pool'
+      ? (ref.fixture.leg === 0 ? 'Pre-Season' : 'Pool Stage')
+      : (ref.stage === 'final' ? 'Final' : 'Semi-Final');
+    const contextLabel = `League Cup · ${stageLabel}`;
+    initPreMatchScreen(
+      homeTeam, awayTeam, playerSide, 0, gameEngine,
+      (configuredHome, configuredAway, playerTactics) => {
+        const playerConfigured = playerSide === 'home' ? configuredHome : configuredAway;
+        if (gameEngine) {
+          gameEngine.setPlayerTactics(playerTactics);
+          gameEngine.setPlayerMatchdaySquad(extractMatchdaySquad(playerConfigured));
+          autosave(gameEngine.toSavePayload());
+        }
+        const avgMorale = computeAverageMorale(playerConfigured);
+        initTeamTalkScreen(
+          { name: playerRawTeam.name, shortName: playerRawTeam.shortName, color: playerRawTeam.color },
+          { name: oppRawTeam.name, shortName: oppRawTeam.shortName, color: oppRawTeam.color },
+          contextLabel,
+          playerConfigured.players.slice(0, 15),
+          avgMorale,
+          (talkArgs) => {
+            onCupMatchStart(configuredHome, configuredAway, playerSide, ref, playerTactics, onAfterResult, talkArgs, avgMorale);
+          },
+        );
+        screenRouter.show('team-talk');
+      },
+      () => goHub('back'),
+      { contextLabel, neutralVenue: isFinal, backLabel: 'Hub' },
+      goSquadFromPreMatch,
+      (rosterId, returnStep) => goPlayerProfile(rosterId, () => {
+        showPreMatchAtStep(returnStep);
+        screenRouter.show('pre-match', { direction: 'back' });
+      }),
+    );
+    screenRouter.show('pre-match');
+  }
+
+  function onCupMatchStart(
+    configuredHome: RawTeamInput,
+    configuredAway: RawTeamInput,
+    playerSide: 'home' | 'away',
+    ref: CupFixtureRef,
+    playerTactics: TeamTactics,
+    onAfterResult: () => void,
+    humanPreTalk?: TalkArgs,
+    humanSquadMorale?: number,
+  ): void {
+    const humanConfigured = playerSide === 'home' ? configuredHome : configuredAway;
+    const humanCaptainRosterId = resolveCaptainRosterId(humanConfigured.players, gameEngine?.getState().player.captainRosterId);
+    const isFinal = ref.kind === 'knockout' && ref.stage === 'final';
+    const engine = new MatchCoordinator(configuredHome, configuredAway, {
+      tickDelayMs: loadTickDelayMs(),
+      playerTactics,
+      humanSide: playerSide,
+      neutralVenue: isFinal,
+      humanCaptainRosterId,
+      humanPreTalk,
+      humanSquadMorale,
     });
-    screenRouter.show('intl-callups');
+    initSimController(engine);
+    const unsub = eventBus.on('engine:finished', ({ state }) => {
+      unsub(); unsubErr();
+      showCupMatchResult(engine, state, ref, onAfterResult);
+    });
+    const unsubErr = eventBus.on('engine:error', () => { unsub(); unsubErr(); engine.destroy(); });
+    engine.initialize();
+    screenRouter.show('app');
+  }
+
+  function showCupMatchResult(
+    engine: MatchCoordinator,
+    state: MatchState,
+    ref: CupFixtureRef,
+    onAfterResult: () => void,
+  ): void {
+    initMatchResultScreen(state, 0, null, async () => {
+      const snapshot = snapshotMatch(state, state.homeTeam.id, state.awayTeam.id);
+      engine.destroy();
+      if (gameEngine) {
+        if (ref.kind === 'pool') {
+          await gameEngine.recordPlayerCupPoolResult(ref.fixture.pool, ref.fixture.leg, ref.fixture.homeId, ref.fixture.awayId, state.score.home, state.score.away, snapshot);
+        } else {
+          await gameEngine.recordPlayerCupKnockoutResult(ref.stage, state.score.home, state.score.away, snapshot);
+        }
+        autosave(gameEngine.toSavePayload());
+      }
+      onAfterResult();
+    });
+    screenRouter.show('match-result');
   }
 
   function showMatchResult(engine: MatchCoordinator, state: MatchState, round: number): void {
@@ -1563,16 +1693,15 @@ document.addEventListener('DOMContentLoaded', () => {
             maybePlayEuropeanFixture(() => { if (gameEngine) autosave(gameEngine.toSavePayload()); goHub(); });
           });
         };
-        // International break detection (RNG-free): flags the call-ups and
-        // reads this block's Prem Cup fixtures. When present, the break runs
-        // its own screen chain (call-ups → cup fixtures + direction → training
-        // → cup results → training impact → returns). Otherwise the plain
-        // post-match training path. beginInternationalBreak() returns null for
-        // all regular-season rounds outside the two break windows, including R18.
+        // International break: the cup is now a sequence of ordinary game-weeks
+        // driven from the Hub's cup CTA (each with its own training week), so
+        // the pre-break league round skips its own training week — the cup
+        // weeks fill the gap. Flag the call-ups (so internationals are away for
+        // the cup) and drop to the Hub, where the cup CTA takes over.
         const eng = gameEngine;
         const begin = eng ? eng.beginInternationalBreak() : null;
         if (begin && eng) {
-          runInternationalBreakChain(begin, eng, afterTraining);
+          afterTraining();
           return;
         }
         showTrainingPostMatch((results) => {

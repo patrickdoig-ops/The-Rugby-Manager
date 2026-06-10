@@ -13,19 +13,22 @@ import { poolTableHtml, fixtureListHtml, bracketHtml } from './components/cupVie
 import { helpButtonHtml } from './help/helpButton';
 
 type Mode =
-  | { kind: 'pre_block'; begin: BreakBeginResult | PreSeasonBlockResult; onContinue: (direction: 'best' | 'rest_first_15') => void }
+  | { kind: 'pre_block'; onContinue: (manageLive: boolean, direction: 'best' | 'rest_first_15') => void }
   | { kind: 'browse'; onBack: () => void };
 
 let activeMode: Mode | null = null;
 let draftDirection: 'best' | 'rest_first_15' = 'best';
+let draftManageLive = false;
+let preBlockNeedsInit = false;
 let renderImpl: (() => void) | null = null;
 
+// Once-per-block decision screen: play my cup matches live, or let the
+// assistant take over (and if so, best XV vs rest the starters).
 export function showCupFixturesPreBlock(
-  begin: BreakBeginResult | PreSeasonBlockResult,
-  onContinue: (direction: 'best' | 'rest_first_15') => void,
+  onContinue: (manageLive: boolean, direction: 'best' | 'rest_first_15') => void,
 ): void {
-  activeMode = { kind: 'pre_block', begin, onContinue };
-  draftDirection = begin.cupDirection;
+  activeMode = { kind: 'pre_block', onContinue };
+  preBlockNeedsInit = true; // render seeds the toggles from saved prefs
   renderImpl?.();
 }
 
@@ -57,11 +60,16 @@ export function initCupFixturesScreen(
       : `<div class="intl-empty">The League Cup hasn't started yet.</div>`;
 
     if (mode.kind === 'pre_block') {
-      const legFixtures = mode.begin.cupFixturesThisBlock;
-      const cupLeg = 'cupLeg' in mode.begin ? mode.begin.cupLeg : 0;
-      const legLabel = cupLeg === 0 ? 'Pre-Season'
-                     : cupLeg === 1 ? 'Pool Stage — Leg 1'
-                     :                'Pool Stage — Leg 2 + Knockouts';
+      if (preBlockNeedsInit) {
+        draftManageLive = state.player.cupManageLive ?? false;
+        draftDirection = state.player.cupDirection ?? 'best';
+        preBlockNeedsInit = false;
+      }
+      const block = state.league.results.length === 0 ? 'Pre-Season' : 'International Break';
+      // Player's unplayed cup fixtures (pool + knockout) — this block's slate.
+      const myFixtures = (cup?.fixtures ?? []).filter(
+        f => !f.result && (f.homeId === myId || f.awayId === myId),
+      );
       el!.innerHTML = `
         <div class="app-header">
           <div class="app-topbar">
@@ -69,13 +77,28 @@ export function initCupFixturesScreen(
             <span class="app-title">League Cup</span>
             <div class="app-topbar-spacer">${helpButtonHtml('cup-fixtures')}</div>
           </div>
-          <div class="app-eyebrow">${legLabel} · ${state.calendar.seasonLabel}</div>
+          <div class="app-eyebrow">${block} · ${state.calendar.seasonLabel}</div>
         </div>
 
         <div class="cup-content">
           <div class="cup-direction">
-            <div class="cup-direction-title">Assistant Manager</div>
-            <div class="cup-direction-note">The Assistant Manager runs these games. How should they pick the squad?</div>
+            <div class="cup-direction-title">Who runs your cup matches?</div>
+            <div class="cup-direction-note">Manage them yourself, or let your assistant take over.</div>
+            <div class="cup-toggle" role="group" aria-label="Cup management">
+              <button class="cup-toggle-opt${draftManageLive ? ' cup-toggle-opt--on' : ''}" data-manage="live">
+                <span class="cup-toggle-label">I'll manage them</span>
+                <span class="cup-toggle-sub">Pick the squad &amp; play live</span>
+              </button>
+              <button class="cup-toggle-opt${!draftManageLive ? ' cup-toggle-opt--on' : ''}" data-manage="assistant">
+                <span class="cup-toggle-label">Assistant manages</span>
+                <span class="cup-toggle-sub">Simulate the matches</span>
+              </button>
+            </div>
+          </div>
+
+          ${draftManageLive ? '' : `
+          <div class="cup-direction">
+            <div class="cup-direction-note">How should the assistant pick the squad?</div>
             <div class="cup-toggle" role="group" aria-label="Cup selection direction">
               <button class="cup-toggle-opt${draftDirection === 'best' ? ' cup-toggle-opt--on' : ''}" data-dir="best">
                 <span class="cup-toggle-label">Best available</span>
@@ -86,10 +109,10 @@ export function initCupFixturesScreen(
                 <span class="cup-toggle-sub">Keep your first XV fresh</span>
               </button>
             </div>
-          </div>
+          </div>`}
 
-          <div class="cup-section-title">Your block fixtures</div>
-          <div class="cup-fixtures">${fixtureListHtml(legFixtures, teamsById, myId) || '<div class="intl-empty">No cup fixtures this block.</div>'}</div>
+          <div class="cup-section-title">Your cup fixtures</div>
+          <div class="cup-fixtures">${fixtureListHtml(myFixtures, teamsById, myId) || '<div class="intl-empty">No cup fixtures this block.</div>'}</div>
 
           <div class="cup-section-title">Pools</div>
           ${pools}
@@ -97,19 +120,25 @@ export function initCupFixturesScreen(
 
         <div class="cup-footer">
           <button id="cup-continue" class="cta-pulse">
-            <span>Set training plan</span>
+            <span>Continue</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
           </button>
         </div>
       `;
-      el!.querySelectorAll<HTMLButtonElement>('.cup-toggle-opt').forEach(btn => {
+      el!.querySelectorAll<HTMLButtonElement>('[data-manage]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          draftManageLive = btn.dataset.manage === 'live';
+          renderImpl?.();
+        });
+      });
+      el!.querySelectorAll<HTMLButtonElement>('[data-dir]').forEach(btn => {
         btn.addEventListener('click', () => {
           draftDirection = btn.dataset.dir === 'rest_first_15' ? 'rest_first_15' : 'best';
           renderImpl?.();
         });
       });
       el!.querySelector<HTMLButtonElement>('#cup-continue')!.addEventListener('click', () => {
-        (mode as Extract<Mode, { kind: 'pre_block' }>).onContinue(draftDirection);
+        (mode as Extract<Mode, { kind: 'pre_block' }>).onContinue(draftManageLive, draftDirection);
       });
       return;
     }

@@ -6,7 +6,7 @@
 // tiles, the settings cog, and the primary CTA (`onPlayMatch`) all receive
 // live callbacks.
 
-import type { GameCoordinator, EuropeanFixtureRef, EuropeanRoundRef } from '../game/GameCoordinator';
+import type { GameCoordinator, EuropeanFixtureRef, EuropeanRoundRef, CupFixtureRef } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import type { Fixture, GameState } from '../types/gameState';
 import { eventBus } from '../utils/eventBus';
@@ -33,11 +33,11 @@ export interface InitHubScreenOpts {
   // show next (PlayoffBracketScreen with sim CTA, or PreMatch for the
   // player's next playoff match).
   onPlayoffs:     () => void;
-  // Called when the pre-season League Cup block CTA is tapped. Absent when
-  // the cup is not pending (avoids a dangling reference in the early render
-  // before the engine is ready). HubScreen gates on both this field and
-  // getGameEngine().isPreSeasonCupPending().
-  onPreSeasonCup?: () => void;
+  // Called when the League Cup CTA is tapped — plays / sims one cup matchday
+  // (or advances a round / resolves international returns) then returns to the
+  // Hub. Absent ⇔ no cup activity. HubScreen gates on getGameEngine()
+  // .getCupBreakStep() != null. Covers the pre-season block + the two breaks.
+  onPlayCup?: () => void;
   // Called when the European fixture CTA is tapped. Absent ⇔ no European
   // fixture is due. HubScreen gates on getGameEngine().getCurrentEuropeanFixture().
   onPlayEuropean?: () => void;
@@ -114,9 +114,11 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
     if (!playerTeam) return;
 
     const nextFixture = opts.getGameEngine().getCurrentFixture();
-    // Pre-season cup takes priority over the first league fixture — the cup
-    // block must run before R1 is played.
-    const preSeasonCupPending = !!opts.onPreSeasonCup && opts.getGameEngine().isPreSeasonCupPending();
+    // League Cup activity (pre-season block or an Autumn / Six Nations break)
+    // takes priority over the next league fixture — the cup game-weeks run in
+    // the gap before the next league round.
+    const cupStep = !!opts.onPlayCup ? opts.getGameEngine().getCupBreakStep() : null;
+    const cupFixture = cupStep === 'play_fixture' ? opts.getGameEngine().getCurrentCupFixture() : null;
     // European fixture due before the next league match (calendar gate: fixture
     // date ≤ calendar.date). Also check for unshown rounds (when player is
     // eliminated or watching). Takes priority over league CTA when present.
@@ -154,8 +156,8 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
 
       ${playoffsActive
         ? playoffsHtml(playoffs!, teamsById, playerTeam.id, playerPlayoffMatch)
-        : preSeasonCupPending
-          ? preSeasonCupHtml(state)
+        : cupStep
+          ? cupBreakHtml(state, cupStep, cupFixture, teamsById, playerTeam.id)
           : europeanFixture
             ? europeanNextMatchHtml(europeanFixture, teamsById, playerTeam.id, state.calendar.date)
             : europeanRound
@@ -207,7 +209,7 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
         }).join('')}
       </div>
 
-      <div id="hub-footer">${playoffsActive ? playoffFooterHtml(playoffs!, playerPlayoffMatch) : preSeasonCupPending ? preSeasonCupFooterHtml() : europeanFixture ? europeanFooterHtml(europeanFixture) : europeanRound ? europeanRoundFooterHtml(europeanRound) : footerHtml(nextFixture)}</div>
+      <div id="hub-footer">${playoffsActive ? playoffFooterHtml(playoffs!, playerPlayoffMatch) : cupStep ? cupBreakFooterHtml(cupStep, state.player.cupManageLive ?? false) : europeanFixture ? europeanFooterHtml(europeanFixture) : europeanRound ? europeanRoundFooterHtml(europeanRound) : footerHtml(nextFixture)}</div>
     `;
 
     injectTeamColors(el!, playerTeam);
@@ -220,8 +222,8 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
     }
     if (playoffsActive) {
       el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => opts.onPlayoffs());
-    } else if (preSeasonCupPending) {
-      el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => opts.onPreSeasonCup!());
+    } else if (cupStep) {
+      el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => opts.onPlayCup!());
     } else if (europeanFixture || europeanRound) {
       el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => opts.onPlayEuropean!());
     } else if (nextFixture) {
@@ -390,26 +392,63 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
     return `<span class="hub-nm-countdown">${label}</span>`;
   }
 
-  function preSeasonCupHtml(state: GameState): string {
+  function cupBreakHtml(
+    state: GameState,
+    step: 'play_fixture' | 'advance_round' | 'resolve_returns',
+    cupFixture: CupFixtureRef | null,
+    byId: Map<string, RawTeamInput>,
+    playerId: string,
+  ): string {
+    const block = state.league.results.length === 0 ? 'PRE-SEASON' : 'INTERNATIONAL BREAK';
+    if (step === 'play_fixture' && cupFixture) {
+      const homeId = cupFixture.kind === 'pool' ? cupFixture.fixture.homeId : (cupFixture.match.homeId ?? '');
+      const awayId = cupFixture.kind === 'pool' ? cupFixture.fixture.awayId : (cupFixture.match.awayId ?? '');
+      const home = byId.get(homeId);
+      const away = byId.get(awayId);
+      const stage = cupFixture.kind === 'knockout'
+        ? (cupFixture.stage === 'final' ? 'Final' : 'Semi-Final')
+        : 'Pool Stage';
+      if (home && away) {
+        const playerHome = homeId === playerId;
+        const venueLabel = playerHome ? 'HOME' : 'AWAY';
+        return `
+          <div id="hub-next-match">
+            <div class="hub-nm-label">LEAGUE CUP · ${stage} · ${block}</div>
+            <div class="hub-nm-body">
+              <div class="hub-nm-fixture">
+                ${crestHtml(home, 'hub-nm-crest')}
+                <span class="hub-nm-name">${home.shortName}</span>
+                <span class="hub-nm-v">v</span>
+                <span class="hub-nm-name">${away.shortName}</span>
+                ${crestHtml(away, 'hub-nm-crest')}
+              </div>
+              <div class="hub-nm-meta">${venueLabel} · ${(playerHome ? home : away).stadium.split('(')[0].trim().toUpperCase()}</div>
+            </div>
+          </div>
+        `;
+      }
+    }
+    const label = step === 'resolve_returns' ? 'Internationals returning' : 'Cup results';
     return `
       <div id="hub-next-match">
-        <div class="hub-nm-label">LEAGUE CUP · PRE-SEASON · ${state.calendar.seasonLabel}</div>
+        <div class="hub-nm-label">LEAGUE CUP · ${block} · ${state.calendar.seasonLabel}</div>
         <div class="hub-nm-body">
           <div class="hub-nm-fixture" style="justify-content:center;gap:0.5rem">
-            <span class="hub-nm-name" style="font-size:1.05rem">Pool Stage — Rounds 1 &amp; 2</span>
+            <span class="hub-nm-name" style="font-size:1.05rem">${label}</span>
           </div>
-          <div class="hub-nm-meta">Assistant Manager runs the cup fixtures</div>
-          <div class="hub-nm-spread">Set squad direction and training plan before kick-off</div>
         </div>
       </div>
     `;
   }
 
-  function preSeasonCupFooterHtml(): string {
+  function cupBreakFooterHtml(step: 'play_fixture' | 'advance_round' | 'resolve_returns', manageLive: boolean): string {
+    const label = step !== 'play_fixture'
+      ? 'Continue'
+      : manageLive ? 'Play League Cup match' : 'Continue League Cup';
     return `
-      <button id="hub-play-next" class="cta-pulse" aria-label="Start League Cup">
+      <button id="hub-play-next" class="cta-pulse" aria-label="${label}">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>
-        <span>Start League Cup</span>
+        <span>${label}</span>
       </button>
     `;
   }

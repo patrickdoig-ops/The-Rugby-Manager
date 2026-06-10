@@ -361,11 +361,14 @@ const HELP_TOPICS = {
   // ─── Cups & Europe ────────────────────────────────────────────
   'cup-fixtures': {
     title: 'League Cup',
-    purpose: 'The pre-season pool competition. Browse the cup’s fixtures and how your club is progressing.',
+    purpose: 'A pool competition played as ordinary game weeks before the season and during the two international breaks. Choose whether to manage your cup matches yourself or let your assistant take over.',
     features: [
+      { label: 'Manage them yourself', desc: 'Pick the squad and play each cup match live from the Hub, week by week — with its own training session.' },
+      { label: 'Let the assistant take over', desc: 'Simulate your cup matches, choosing best-available or resting your first-choice XV.' },
+      { label: 'Internationals away', desc: 'Your called-up players are on international duty during the cup weeks, so it’s a chance to rotate.' },
       { label: 'Pool fixtures', desc: 'Your group’s matches and results.' },
-      { label: 'Assistant-run', desc: 'Your assistant manager handles the cup matches while you set squad direction.' },
     ],
+    tips: ['Your choice is remembered, but you can switch it each block on this screen.'],
   },
   'cup-results': {
     title: 'League Cup Results',

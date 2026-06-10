@@ -57,7 +57,7 @@ import { runTrainingPeriods } from './trainingRunner';
 import { upcomingGap, splitGapIntoPeriods } from './trainingCalendar';
 import { reconcileRestObligations, lionsReturnEvents, summerTourReturnEvents } from './internationalDutyEngine';
 import { computeRollover } from './careerRollover';
-import { generateStaffPool, staffWageForRating } from './staffPoolGenerator';
+import { generateStaffPool } from './staffPoolGenerator';
 import { STAFF_RATING_BAND } from '../engine/balance/staff';
 import { generatePersona } from './personaGenerator';
 import { buildLoanPoolEvents } from './loanPoolGenerator';
@@ -285,9 +285,10 @@ export class GameCoordinator {
     let nextStaffId = poolNextId;
     if (quickStart) {
       const AVG = Math.round((STAFF_RATING_BAND.min + STAFF_RATING_BAND.max) / 2);
-      const wage = staffWageForRating(AVG);
+      // annualWage is 0 — these are gifted starter staff so they don't
+      // consume the club's staff budget and allow normal hiring from day one.
       const make = (role: 'assistant' | 'fitness' | 'scout', name: string) => ({
-        id: `s${nextStaffId++}`, role, name, rating: AVG, annualWage: wage,
+        id: `s${nextStaffId++}`, role, name, rating: AVG, annualWage: 0,
         clubId: playerTeamId,
       });
       staffPool = [

@@ -208,6 +208,8 @@ export function initPlayoffBracketScreen(
   renderImpl = render;
   // Re-render whenever the bracket updates so a fixture-resolution
   // notification (e.g. AI sim completing) refreshes the visible state.
-  eventBus.on('game:bracketSeeded',   () => render());
-  eventBus.on('game:playoffsUpdated', () => render());
+  // Skip while hidden — showPlayoffBracket re-renders on navigation.
+  const renderIfVisible = (): void => { if (el.offsetParent !== null) render(); };
+  eventBus.on('game:bracketSeeded',   renderIfVisible);
+  eventBus.on('game:playoffsUpdated', renderIfVisible);
 }

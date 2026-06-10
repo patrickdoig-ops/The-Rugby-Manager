@@ -8,6 +8,7 @@ import { loadDismissed, dismissItem } from './inboxDismiss';
 import { swipeToDismiss } from './swipeToDismiss';
 import { injectTeamColors } from './teamColors';
 import { eventBus } from '../utils/eventBus';
+import { onScreenShow } from './ScreenRouter';
 
 // ─── Conversation content keyed by morale reason ─────────────────────────────
 
@@ -281,12 +282,30 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
     _markCurrentAsRead = () => markRead(key, items.map(i => i.id));
   }
 
-  eventBus.on('game:initialized',     ({ state }) => render(state));
-  eventBus.on('game:fixtureRecorded', ({ state }) => render(state));
-  eventBus.on('game:weekAdvanced',    ({ state }) => render(state));
-  eventBus.on('game:trainingApplied', ({ state }) => render(state));
-  eventBus.on('game:bracketSeeded',   ({ state }) => render(state));
-  eventBus.on('game:playoffsUpdated', ({ state }) => render(state));
+  // Hidden-screen renders are deferred: mark dirty and replay on the next
+  // inbox show (rendering a hidden screen on every game:* event is wasted
+  // innerHTML churn).
+  let needsRender = false;
+  const renderOrDefer = (state: GameState): void => {
+    if (el.offsetParent !== null) {
+      render(state);
+    } else {
+      lastState = state;
+      needsRender = true;
+    }
+  };
+  eventBus.on('game:initialized',     ({ state }) => renderOrDefer(state));
+  eventBus.on('game:fixtureRecorded', ({ state }) => renderOrDefer(state));
+  eventBus.on('game:weekAdvanced',    ({ state }) => renderOrDefer(state));
+  eventBus.on('game:trainingApplied', ({ state }) => renderOrDefer(state));
+  eventBus.on('game:bracketSeeded',   ({ state }) => renderOrDefer(state));
+  eventBus.on('game:playoffsUpdated', ({ state }) => renderOrDefer(state));
+  onScreenShow(id => {
+    if (id === 'inbox' && needsRender && lastState) {
+      needsRender = false;
+      render(lastState);
+    }
+  });
 
   render(opts.getGameEngine().getState());
 }

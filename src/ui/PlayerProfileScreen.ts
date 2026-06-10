@@ -630,10 +630,12 @@ export function initPlayerProfileScreen(
   // Live refresh while the screen is open. Stats update mid-season as
   // fixtures resolve; injury weeks decrement on the week tick. Rollover
   // re-entry goes through showPlayerProfile() so the archive history
-  // refresh doesn't need its own subscription.
-  eventBus.on('game:fixtureRecorded', () => renderImpl?.());
-  eventBus.on('game:weekAdvanced',    () => renderImpl?.());
-  eventBus.on('game:initialized',     () => renderImpl?.());
+  // refresh doesn't need its own subscription. Skip while hidden — every
+  // entry goes through showPlayerProfile, which renders fresh.
+  const renderIfVisible = (): void => { if (el.offsetParent !== null) renderImpl?.(); };
+  eventBus.on('game:fixtureRecorded', renderIfVisible);
+  eventBus.on('game:weekAdvanced',    renderIfVisible);
+  eventBus.on('game:initialized',     renderIfVisible);
 }
 
 function seasonStat(label: string, value: string, valClass = ''): string {

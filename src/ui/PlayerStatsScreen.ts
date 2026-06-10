@@ -240,9 +240,11 @@ export function initPlayerStatsScreen(
   }
 
   renderImpl = render;
-  eventBus.on('game:fixtureRecorded', () => render());
-  eventBus.on('game:weekAdvanced', () => render());
-  eventBus.on('game:initialized', () => render());
+  // Skip renders while hidden — showPlayerStats re-renders on navigation.
+  const renderIfVisible = (): void => { if (el.offsetParent !== null) render(); };
+  eventBus.on('game:fixtureRecorded', renderIfVisible);
+  eventBus.on('game:weekAdvanced', renderIfVisible);
+  eventBus.on('game:initialized', renderIfVisible);
 
   render();
 }

@@ -321,10 +321,13 @@ export function initLeagueTableScreen(
 
   renderImpl = render;
 
-  eventBus.on('game:fixtureRecorded',  () => render());
-  eventBus.on('game:weekAdvanced',     () => render());
-  eventBus.on('game:initialized',      () => render());
-  eventBus.on('game:seasonRolledOver', () => render());
+  // Skip renders while hidden — every navigation entry (showLeagueTable /
+  // showLeagueTablePostMatch) re-renders from live state anyway.
+  const renderIfVisible = (): void => { if (el.offsetParent !== null) render(); };
+  eventBus.on('game:fixtureRecorded',  renderIfVisible);
+  eventBus.on('game:weekAdvanced',     renderIfVisible);
+  eventBus.on('game:initialized',      renderIfVisible);
+  eventBus.on('game:seasonRolledOver', renderIfVisible);
 
   render();
 }

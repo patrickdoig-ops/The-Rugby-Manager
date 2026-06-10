@@ -149,8 +149,11 @@ export function initTrainingScreen(
   }
 
   renderImpl = render;
-  eventBus.on('game:trainingApplied', () => render());
-  eventBus.on('game:weekAdvanced',    () => render());
+  // Skip renders while hidden — showTrainingPostMatch / showTrainingMidweek
+  // re-render on navigation.
+  const renderIfVisible = (): void => { if (el.offsetParent !== null) render(); };
+  eventBus.on('game:trainingApplied', renderIfVisible);
+  eventBus.on('game:weekAdvanced',    renderIfVisible);
 }
 
 function renderPostMatch(

@@ -462,7 +462,20 @@ function parsePremCup(raw: unknown): PremCupState | null | undefined {
   }
   const knockout = c.knockout === null || c.knockout === undefined ? null : parseCupKnockout(c.knockout);
   if (knockout === undefined) return undefined;
-  return { seasonLabel: c.seasonLabel, pools: [poolA, poolB], fixtures, knockout };
+  // Additive-optional accumulators (v2.7x live cup flow). Reload-safety:
+  // legFeatured drives the once-per-leg dev nudge; shownRounds suppresses
+  // already-viewed round recaps.
+  const shownRounds = Array.isArray(c.shownRounds)
+    ? c.shownRounds.filter((s): s is string => typeof s === 'string')
+    : undefined;
+  const legFeatured = Array.isArray(c.legFeatured)
+    ? c.legFeatured.filter((n): n is number => typeof n === 'number')
+    : undefined;
+  return {
+    seasonLabel: c.seasonLabel, pools: [poolA, poolB], fixtures, knockout,
+    ...(shownRounds ? { shownRounds } : {}),
+    ...(legFeatured ? { legFeatured } : {}),
+  };
 }
 
 function parseCupPool(raw: unknown, expectedId: 'A' | 'B'): PremCupState['pools'][number] | null {
@@ -554,6 +567,7 @@ function parseCupResult(raw: unknown): CupFixture['result'] | undefined {
     awayScore: r.awayScore,
     homeTries: typeof r.homeTries === 'number' ? r.homeTries : 0,
     awayTries: typeof r.awayTries === 'number' ? r.awayTries : 0,
+    ...(r.playerSide === 'home' || r.playerSide === 'away' ? { playerSide: r.playerSide } : {}),
   };
 }
 

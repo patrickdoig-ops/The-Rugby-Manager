@@ -202,20 +202,12 @@ export class InternationalBreakCoordinator {
       if (shown.has(key)) continue;
       const fxs = cup.fixtures.filter(f => f.leg === leg);
       if (fxs.length === 0 || fxs.some(f => !f.result)) continue;
-      const label = leg === 0 ? 'Pre-Season' : leg === 1 ? 'Pool Stage — Leg 1' : 'Pool Stage — Leg 2';
-      return { roundKey: key, isFinal: false, label };
-    }
-    const ko = cup.knockout;
-    if (ko) {
-      if (!shown.has('sf')) {
-        const sfs = [ko.semifinals[0], ko.semifinals[1]].filter(m => m.homeId && m.awayId);
-        if (sfs.length > 0 && sfs.every(m => m.result)) {
-          return { roundKey: 'sf', isFinal: false, label: 'Semi-Finals' };
-        }
-      }
-      if (!shown.has('final') && ko.final.homeId && ko.final.awayId && ko.final.result) {
-        return { roundKey: 'final', isFinal: true, label: 'Final' };
-      }
+      // Leg 2 also gates on the knockout being decided, since its recap
+      // (CupResultsScreen) renders the full bracket — wait for the champion so
+      // the recap is complete and never pre-empts the player's own KO matches.
+      if (leg === 2 && (!cup.knockout || cup.knockout.championTeamId === null)) continue;
+      const label = leg === 0 ? 'Pre-Season' : leg === 1 ? 'Pool Stage — Leg 1' : 'Pool Stage — Leg 2 + Knockouts';
+      return { roundKey: key, isFinal: leg === 2, label };
     }
     return null;
   }
@@ -278,6 +270,7 @@ export class InternationalBreakCoordinator {
     });
     this.applyCupMatchAftermath(snapshot);
     await this.simDueCupKnockouts();
+    this.maybeFireCupLegDevelopment(2); // fires once the champion is crowned
   }
 
   // Assistant-sims the player's own cup fixture (the skip-to-assistant path),
@@ -395,14 +388,21 @@ export class InternationalBreakCoordinator {
     if (rosterIds.length > 0) applySeasonEvent(this.state, { type: 'PREM_CUP_FEATURED_ADDED', rosterIds });
   }
 
-  // Fire the once-per-leg development nudge when a pool leg has just become
-  // fully resolved, then clear the featured accumulator. RNG-free; the
-  // completing fixture is recorded exactly once, so this fires exactly once.
+  // Fire the once-per-leg development nudge when the leg is fully done, then
+  // clear the featured accumulator. RNG-free. Leg 2 bundles the knockout, so
+  // it waits for the champion to be crowned (otherwise the player's SF / final
+  // participants — added to legFeatured after the pool closes — would miss the
+  // nudge and orphan the accumulator). Idempotent: legFeatured is emptied on
+  // fire, so a later call no-ops.
   private maybeFireCupLegDevelopment(leg: 0 | 1 | 2): void {
     const cup = this.state.league.premCup;
     if (!cup) return;
-    const fxs = cup.fixtures.filter(f => f.leg === leg);
-    if (fxs.length === 0 || fxs.some(f => !f.result)) return; // leg not complete
+    if (leg === 2) {
+      if (!cup.knockout || cup.knockout.championTeamId === null) return; // KO not done
+    } else {
+      const fxs = cup.fixtures.filter(f => f.leg === leg);
+      if (fxs.length === 0 || fxs.some(f => !f.result)) return; // pool not complete
+    }
     const featured = cup.legFeatured ?? [];
     if (featured.length === 0) return;
     for (const ev of cupDevelopmentEvents(this.state, featured, this.state.calendar.date)) {

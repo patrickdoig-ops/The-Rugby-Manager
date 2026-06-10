@@ -1433,12 +1433,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function onPlayCupStep(onDone: () => void): void {
     const eng = gameEngine;
     if (!eng) { onDone(); return; }
-    const begin = eng.beginInternationalBreak(); // flag call-ups (idempotent); null off a break
     const step = eng.getCupBreakStep();
     if (!step) { onDone(); return; }
     if (eng.isCupBlockStart()) {
-      // First matchday of the block: show who's away (intl breaks) + the
+      // First matchday of the block: flag the international call-ups (idempotent;
+      // null off a break round) — only here, so a tap after the returns are
+      // resolved can never re-flag — then show who's away (intl breaks) + the
       // live/assistant decision, then play the step.
+      const begin = eng.beginInternationalBreak();
       const proceed = () => showCupDecision(() => runCupStep(onDone));
       if (begin) {
         showInternationalCallUps(begin, proceed);

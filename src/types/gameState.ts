@@ -360,7 +360,7 @@ export interface PremCupState {
   fixtures: CupFixture[];      // 40 pool fixtures (20/pool: leg0 4 + leg1 8 + leg2 8)
   knockout: CupKnockout | null; // null until the leg-2 pool stage completes
   // Cup rounds (legs / KO stages) already shown to the player in the weekly
-  // flow. Keys: 'leg:0'-'leg:2', 'sf', 'final'. Additive-optional — absent on
+  // flow. Keys: 'leg:0'-'leg:2' (leg 2 includes the knockouts). Additive-optional — absent on
   // legacy saves (treated as empty). Mirrors EuropeanCompState.shownRounds.
   shownRounds?: string[];
   // rosterIds who have featured in the current (not-yet-developed) leg's cup
@@ -374,7 +374,7 @@ export interface PremCupState {
 // GameCoordinator.getCurrentCupRound() to drive the weekly flow. Mirrors
 // EuropeanRoundRef.
 export interface CupRoundRef {
-  roundKey: string;   // 'leg:0'-'leg:2' | 'sf' | 'final'
+  roundKey: string;   // 'leg:0'-'leg:2' (leg 2 includes the knockouts)
   isFinal: boolean;
   label: string;      // e.g. 'Pre-Season', 'Pool Stage — Leg 1', 'Final'
 }
@@ -1338,7 +1338,7 @@ export type SeasonEvent =
       // Marks a cup round (leg / KO stage) as shown to the player in the
       // weekly flow. Mirrors EUROPEAN_ROUND_SHOWN.
       type: 'PREM_CUP_ROUND_SHOWN';
-      roundKey: string; // 'leg:0'-'leg:2' | 'sf' | 'final'
+      roundKey: string; // 'leg:0'-'leg:2' (leg 2 includes the knockouts)
     }
   | {
       // Tracks players who featured in the current leg's cup matches, for the

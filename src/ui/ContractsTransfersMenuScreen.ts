@@ -11,6 +11,7 @@ import type { RawTeamInput } from '../types/teamData';
 import type { GameState } from '../types/gameState';
 import { injectTeamColors } from './teamColors';
 import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
+import { helpButtonHtml } from './help/helpButton';
 
 export interface InitContractsTransfersMenuOpts {
   getGameEngine: () => GameCoordinator;
@@ -74,7 +75,7 @@ export function showContractsTransfersMenu(): void {
           <span>Hub</span>
         </button>
         <span class="app-title">Contracts &amp; Transfers</span>
-        <div class="app-topbar-spacer"></div>
+        <div class="app-topbar-spacer">${helpButtonHtml('contracts-transfers-menu')}</div>
       </div>
       <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
     </div>

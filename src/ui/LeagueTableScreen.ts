@@ -21,6 +21,7 @@ import { renderFormPipStrip } from './components/formPip';
 import { eventBus } from '../utils/eventBus';
 import { ROUND_LABELS } from '../engine/balance/season';
 import { formatDateMedium } from '../utils/formatDate';
+import { helpButtonHtml } from './help/helpButton';
 
 const PLAYOFF_SPOTS = 4;
 const EUROPEAN_SPOTS = 8;
@@ -267,7 +268,7 @@ export function initLeagueTableScreen(
         <div class="app-topbar">
           ${topbarLeft}
           <span class="app-title">League Table</span>
-          <div class="app-topbar-spacer"></div>
+          <div class="app-topbar-spacer">${helpButtonHtml('league-table')}</div>
         </div>
         <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)} · R${state.calendar.week}/${totalRounds}</div>
       </div>

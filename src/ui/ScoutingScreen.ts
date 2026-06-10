@@ -9,6 +9,7 @@ import { getAge } from '../game/age';
 import { injectTeamColors } from './teamColors';
 import { swipeToDismiss } from './swipeToDismiss';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
+import { helpButtonHtml } from './help/helpButton';
 
 const STAT_SHORT: Record<keyof PlayerStats, string> = {
   stamina:     'STM',
@@ -177,7 +178,7 @@ function render(): void {
           <span>Back</span>
         </button>
         <span class="app-title">Scouting</span>
-        <div class="app-topbar-spacer"></div>
+        <div class="app-topbar-spacer">${helpButtonHtml('scouting')}</div>
       </div>
       <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
     </div>

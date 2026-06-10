@@ -10,6 +10,7 @@ import {
   setManualTextScale, setFollowSystem, setTextScaleChangeHandler,
   isFollowingSystem, systemFollowAvailable, getEffectiveTextScale,
 } from './textScale';
+import { helpButtonHtml } from './help/helpButton';
 
 function backIcon(): string {
   return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -29,7 +30,7 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves
           <span>Home</span>
         </button>
         <span class="app-title">Settings</span>
-        <div class="app-topbar-spacer"></div>
+        <div class="app-topbar-spacer">${helpButtonHtml('settings')}</div>
       </div>
     </div>
 

@@ -11,6 +11,7 @@ import type { InternationalBreakSummary, InternationalCallUpResult } from '../ty
 import type { PlayerStats } from '../types/player';
 import { INTERNATIONAL_WINDOWS } from '../engine/balance/international';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
+import { helpButtonHtml } from './help/helpButton';
 
 function statLabel(s: keyof PlayerStats): string {
   if (s === 'setPiece') return 'Set Piece';
@@ -124,7 +125,7 @@ export function initInternationalBreakScreen(
         <div class="app-topbar">
           <div class="app-topbar-spacer"></div>
           <span class="app-title">International Break</span>
-          <div class="app-topbar-spacer"></div>
+          <div class="app-topbar-spacer">${helpButtonHtml('international-break')}</div>
         </div>
         <div class="app-eyebrow">${windowLabel(summary.window)} · ${state.calendar.seasonLabel}</div>
       </div>

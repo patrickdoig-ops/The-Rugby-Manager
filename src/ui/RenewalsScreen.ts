@@ -26,6 +26,7 @@ import { wageOfferModal, budgetLineFor, readFromProbability, type WageRead } fro
 import { showToast } from './Toast';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 import type { TransferBid } from '../types/gameState';
+import { helpButtonHtml } from './help/helpButton';
 
 type Decision = 'renew' | 'release';
 
@@ -91,7 +92,7 @@ export function initRenewalsScreen(
           <div class="app-topbar">
             <div class="app-topbar-spacer"></div>
             <span class="app-title">No Renewals</span>
-            <div class="app-topbar-spacer"></div>
+            <div class="app-topbar-spacer">${helpButtonHtml('renewals')}</div>
           </div>
         </div>
         <div class="empty-state">
@@ -187,7 +188,7 @@ export function initRenewalsScreen(
         <div class="app-topbar">
           <div class="app-topbar-spacer"></div>
           <span class="app-title">Renewals</span>
-          ${capPill}
+          <div class="app-topbar-right">${helpButtonHtml('renewals')}${capPill}</div>
         </div>
         <div class="app-eyebrow">${team.name} · ${state.calendar.seasonLabel} · ${renewedCount} of ${myOffers.length} keeping</div>
       </div>

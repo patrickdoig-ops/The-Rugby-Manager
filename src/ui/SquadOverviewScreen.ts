@@ -27,6 +27,7 @@ import {
   POSITION_GROUPS_ORDER, POSITION_TO_GROUP, POSITION_GROUP_DEPTH_TARGET,
   type PositionGroupId,
 } from '../game/positionGroups';
+import { helpButtonHtml } from './help/helpButton';
 
 let renderImpl: (() => void) | null = null;
 let activeOnContinue: () => void = () => {};
@@ -182,7 +183,7 @@ export function initSquadOverviewScreen(
         <div class="app-topbar">
           <div class="app-topbar-spacer"></div>
           <span class="app-title">Squad Overview</span>
-          <div class="app-topbar-spacer"></div>
+          <div class="app-topbar-spacer">${helpButtonHtml('squad-overview')}</div>
         </div>
         <div class="app-eyebrow">${eyebrow}</div>
       </div>

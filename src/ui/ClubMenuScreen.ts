@@ -7,6 +7,7 @@
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import { injectTeamColors } from './teamColors';
+import { helpButtonHtml } from './help/helpButton';
 
 export interface InitClubMenuOpts {
   getGameEngine: () => GameCoordinator;
@@ -59,7 +60,7 @@ export function showClubMenu(): void {
           <span>Hub</span>
         </button>
         <span class="app-title">Club</span>
-        <div class="app-topbar-spacer"></div>
+        <div class="app-topbar-spacer">${helpButtonHtml('club-menu')}</div>
       </div>
       <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
     </div>

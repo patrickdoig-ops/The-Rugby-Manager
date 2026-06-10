@@ -20,6 +20,7 @@ import { renderTacticsMenu } from './TacticsMenu';
 import { injectTeamColors } from './teamColors';
 import { discardConfirm } from './components/discardConfirm';
 import { eventBus } from '../utils/eventBus';
+import { helpButtonHtml } from './help/helpButton';
 
 export interface InitTacticsHubOpts {
   getGameEngine: () => GameCoordinator;
@@ -62,7 +63,7 @@ export function initTacticsHubScreen(opts: InitTacticsHubOpts): void {
             <span>Hub</span>
           </button>
           <span class="app-title">Tactics</span>
-          <div class="app-topbar-spacer"></div>
+          <div class="app-topbar-spacer">${helpButtonHtml('tactics')}</div>
         </div>
       </div>
       <div class="tactics-screen-body"><div id="tactics-host"></div></div>

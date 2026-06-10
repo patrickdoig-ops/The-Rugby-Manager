@@ -32,6 +32,7 @@ import { clubBudgetUsage } from '../game/teamStats';
 import { APPEAL_WEIGHTS, WAGE_FLOOR, WAGE_ROUNDING_UNIT, WAGE_NEGOTIATION } from '../engine/balance/transfers';
 import { wageOfferModal, budgetLineFor, readFromProbability, type WageRead } from './components/wageOfferModal';
 import type { TransferBid, GameState } from '../types/gameState';
+import { helpButtonHtml } from './help/helpButton';
 
 type SortKey = 'name' | 'pos' | 'age' | 'ovr' | 'wage';
 type SortDir = 'asc' | 'desc';
@@ -129,7 +130,7 @@ export function initTransferMarketScreen(
           <div class="app-topbar">
             <div class="app-topbar-spacer"></div>
             <span class="app-title">No Free Agents</span>
-            <div class="app-topbar-spacer"></div>
+            <div class="app-topbar-spacer">${helpButtonHtml('transfer-market')}</div>
           </div>
         </div>
         <div class="empty-state">
@@ -381,7 +382,7 @@ export function initTransferMarketScreen(
         <div class="app-topbar">
           <div class="app-topbar-spacer"></div>
           <span class="app-title">${title}</span>
-          ${capPill}
+          <div class="app-topbar-right">${helpButtonHtml('transfer-market')}${capPill}</div>
         </div>
         <div class="app-eyebrow">${eyebrowText}</div>
       </div>

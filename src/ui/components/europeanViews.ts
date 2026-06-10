@@ -4,6 +4,8 @@
 import type { EuropeanCompState, EuropeanFixture, EuropeanKnockout, EuropeanKnockoutMatch, EuropeanPool } from '../../types/gameState';
 import type { RawTeamInput } from '../../types/teamData';
 import { sortStandings } from '../../game/leagueTable';
+import { helpButtonHtml } from '../help/helpButton';
+import type { HelpTopicId } from '../help/helpContent';
 
 type TeamsById = Map<string, RawTeamInput>;
 
@@ -135,6 +137,7 @@ export function euroScreenHtml(
   highlightId: string,
   compName: string,
   backId: string,
+  helpTopic: HelpTopicId,
 ): string {
   if (!comp) {
     return `
@@ -145,7 +148,7 @@ export function euroScreenHtml(
             <span>Competitions</span>
           </button>
           <span class="app-title">${compName}</span>
-          <div class="app-topbar-spacer"></div>
+          <div class="app-topbar-spacer">${helpButtonHtml(helpTopic)}</div>
         </div>
       </div>
       <div style="padding:2rem;text-align:center;color:var(--color-chalk-dim)">Season not yet started.</div>
@@ -174,7 +177,7 @@ export function euroScreenHtml(
           <span>Competitions</span>
         </button>
         <span class="app-title">${compName}</span>
-        <div class="app-topbar-spacer"></div>
+        <div class="app-topbar-spacer">${helpButtonHtml(helpTopic)}</div>
       </div>
       <div class="app-eyebrow">${comp.seasonLabel}</div>
     </div>

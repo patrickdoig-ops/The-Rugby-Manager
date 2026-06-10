@@ -19,6 +19,7 @@ import { exportSlot, importToSlot, listBackups, restoreBackup } from './saveBack
 import { buildSaveContext, ordinalSuffix } from '../game/saveSummary';
 import { confirmModal } from './components/confirmModal';
 import { showToast } from './Toast';
+import { helpButtonHtml } from './help/helpButton';
 
 interface SavesScreenDeps {
   allTeams: RawTeamInput[];
@@ -110,7 +111,7 @@ function render(): void {
           <span>Back</span>
         </button>
         <span class="app-title">Saves</span>
-        <div class="app-topbar-spacer"></div>
+        <div class="app-topbar-spacer">${helpButtonHtml('saves')}</div>
       </div>
     </div>
 

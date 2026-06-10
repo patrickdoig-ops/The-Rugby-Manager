@@ -14,6 +14,7 @@ import type { GameState, TeamSeasonStats } from '../types/gameState';
 import { teamSeasonStat, teamPossessionPct, teamTerritoryPct } from '../game/seasonLeaderboards';
 import { eventBus } from '../utils/eventBus';
 import { formatDateMedium } from '../utils/formatDate';
+import { helpButtonHtml } from './help/helpButton';
 
 type CategoryKey = 'attack' | 'defence' | 'kicking' | 'setpiece' | 'possession' | 'discipline';
 
@@ -224,7 +225,7 @@ export function initTeamStatsScreen(
             <span>League</span>
           </button>
           <span class="app-title">Team Stats</span>
-          <div class="app-topbar-spacer"></div>
+          <div class="app-topbar-spacer">${helpButtonHtml('team-stats')}</div>
         </div>
         <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)}</div>
       </div>

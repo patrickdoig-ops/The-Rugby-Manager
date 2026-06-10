@@ -1047,6 +1047,18 @@ League Table → Training → Hub (bracket now active)
 
 **Pre-season resume.** Each Squad Builder step writes `state.career.preSeasonStep` (`PRE_SEASON_STEP_SET`) before saving. `continueGame` reads the flag and routes back to the in-flight screen after a mid-pre-season tab close.
 
+### 15.6 Help system
+
+A global help affordance: a **"?" button** in the top-right of a screen opens a **shared help overlay** describing that screen's purpose, its features, and tips for new managers. Built from three modules in `src/ui/help/`:
+
+- **`helpContent.ts`** — the single content registry. A typed map keyed by `HelpTopicId` (`{ title, purpose, features: {label,desc}[], tips?: string[] }`). All copy lives here as data, never inline in screens. Rolling help out to a new screen = one registry entry + one button.
+- **`HelpOverlay.ts`** — one reusable bottom-sheet (`.rm-help-*`, `style/help.css`), modelled on the `discardConfirm` singleton. `openHelp(id)` renders the topic; dismiss via the close button, a backdrop tap, or `Escape`. Pure UI — no engine/state dependency, safe to open from any screen.
+- **`helpButton.ts`** — `helpButtonHtml(topic, floating?)` returns the button markup for embedding directly in a screen's template; clicks are handled by **one delegated listener** (`initHelpDelegation()`, wired once in `main.ts`). No per-screen event wiring, and the button survives in-place re-renders for free because it lives in the template.
+
+**Placement.** Standard `.app-header` screens embed `helpButtonHtml(topic)` in the right-hand `.app-topbar-spacer` (the last one — dual-mode screens add a second spacer in the left column). Screens whose right cell already holds an element (a cap pill on Renewals/TransferMarket, the sort button on Contracts) wrap both in an `.app-topbar-right` flex cell. The Hub places it beside the settings cog in `#hub-topbar`. Custom-header screens (Home in its chrome-actions row; Team Selector / Mode Picker / Team Info via the `rm-help-btn--floating` top-right variant) embed it directly.
+
+**Coverage.** Onboarding (Home, Team Selector, Mode Picker, Team Info) and the in-season management screens (Hub, Squad, Tactics, Training, all Contracts & Transfers / Club / Competitions leaves, League / stats screens, cups, European Cup/Shield/Round via `europeanViews`, international screens, Inbox, Settings, Saves). **The live match screen and the transient post-match / reveal flow screens are intentionally excluded** for now. Adding help to a new screen: add a `HelpTopic` to the registry and drop `helpButtonHtml('id')` into its header — that is the whole change.
+
 ---
 
 ## 16. Maintaining this document

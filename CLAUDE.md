@@ -279,6 +279,8 @@ npm run probe     # headless-Chromium capture of the 2D pitch animation (scripts
 
 `npm run build` and `npm run verify` must both pass cleanly before every commit.
 
+**Docs-only exception:** a commit that touches *only* Markdown / documentation (no `src/` changes) skips both `npm run build` and `npm run verify` — there is nothing to compile or re-baseline.
+
 **Deploy (web):** push to `main`. GitHub Actions builds and deploys to GitHub Pages. The Vite base path is `/The-Rugby-Manager/` for the default `npm run build` — do not change that or asset URLs break in production. `vite.config.ts` switches `base` to `./` only under `--mode capacitor` (`npm run build:cap`); the GitHub Pages path is untouched.
 
 **Native iOS (Capacitor).** The web app is wrapped via Capacitor (`capacitor.config.ts`, appId `com.patrickdoig.rugbymanager`). The `ios/` Xcode project is committed; a fresh clone must run `npm run cap:sync` before opening Xcode. Building / signing / archiving for the App Store requires a Mac with Xcode + CocoaPods. Asset paths must stay base-relative (use `import.meta.env.BASE_URL`, see `SoundManager.ts`) so they resolve under `capacitor://localhost`.
@@ -286,6 +288,8 @@ npm run probe     # headless-Chromium capture of the 2D pitch animation (scripts
 ## Versioning
 
 **After every committed update, bump `src/version.ts` and push to `main`.** Pattern `1.XXb` (e.g. `1.00b`, `1.01b`); increment the two-digit minor number by 1.
+
+**Docs-only exception:** a commit that touches *only* Markdown / documentation (no `src/` changes) skips the version bump — the deployed app is unchanged, so the version must not move.
 
 ## Balance constants
 

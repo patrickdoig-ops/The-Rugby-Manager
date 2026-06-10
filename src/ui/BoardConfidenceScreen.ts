@@ -6,6 +6,7 @@ import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import { injectTeamColors } from './teamColors';
 import { confidenceBand, boardConfidenceFactors } from '../game/board';
+import { helpButtonHtml } from './help/helpButton';
 
 export interface InitBoardConfidenceOpts {
   getGameEngine: () => GameCoordinator;
@@ -62,7 +63,7 @@ export function showBoardConfidence(): void {
           <span>Club</span>
         </button>
         <span class="app-title">Board</span>
-        <div class="app-topbar-spacer"></div>
+        <div class="app-topbar-spacer">${helpButtonHtml('board-confidence')}</div>
       </div>
       <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
     </div>

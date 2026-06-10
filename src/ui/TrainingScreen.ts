@@ -29,6 +29,7 @@ import { suggestPlanForUser } from '../game/aiTrainingDirector';
 import { eventBus } from '../utils/eventBus';
 import { injectTeamColors } from './teamColors';
 import { discardConfirm } from './components/discardConfirm';
+import { helpButtonHtml } from './help/helpButton';
 
 const SHORT_WEEK_DAYS = 6; // turnaround at or below this nudges toward Light
 
@@ -197,7 +198,7 @@ function renderPostMatch(
       <div class="app-topbar">
         <div class="app-topbar-spacer"></div>
         <span class="app-title">${gap.weeks > 1 ? 'Training Block' : 'Training Week'}</span>
-        <div class="app-topbar-spacer"></div>
+        <div class="app-topbar-spacer">${helpButtonHtml('training')}</div>
       </div>
       <div class="app-eyebrow">${eyebrow}</div>
     </div>
@@ -302,7 +303,7 @@ function renderMidWeek(
           <span>Hub</span>
         </button>
         <span class="app-title">Training Plan</span>
-        <div class="app-topbar-spacer"></div>
+        <div class="app-topbar-spacer">${helpButtonHtml('training')}</div>
       </div>
       <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week}</div>
     </div>

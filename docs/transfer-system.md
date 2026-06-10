@@ -516,7 +516,7 @@ Two loan directions managed from the Contracts & Transfers sub-menu (`LoanScreen
 - `SEASON_ROLLED_OVER` releases all active loan-out and loan-in arrangements and clears `player.loanOut` / `player.loanIn`.
 
 **Loans in — emergency cover from a generated pool:**
-- At the start of each season `buildLoanPoolEvents` generates 15-20 lower-rated players (OVR 55-72, ages 19-26) via `generatePersona` + `FOREIGN_IMPORT_ARRIVED` → added to roster but immediately removed from `freeAgents` by `LOAN_POOL_SEEDED` (so they don't appear in the transfer market). `state.career.loanPool` holds the active rosterIds.
+- At the start of each season `buildLoanPoolEvents` generates 15-20 lower-rated players (OVR 55-72, ages 19-26) via `generatePersona` + `FOREIGN_IMPORT_ARRIVED` → added to roster but immediately removed from `freeAgents` by `LOAN_POOL_SEEDED` (so they don't appear in the transfer market). `state.career.loanPool` holds the active rosterIds. Year 1 seeds at `newSeason()`; every later season re-seeds at the end of `rollSeason()` (the previous pool's players persist in the roster as orphaned records).
 - `signLoanPlayer(rosterId)`: fires `LOAN_PLAYER_SIGNED` → adds player to club's squad, sets `player.loanIn`, removes from `career.loanPool`. Player is immediately available for selection.
 - `releaseLoanPlayer(rosterId)`: fires `LOAN_PLAYER_RELEASED` → removes from squad, clears `player.loanIn`, returns player to `career.loanPool`.
 - `fromSave()` restores the pool via a `LOAN_POOL_SEEDED` replay event when `save.career.loanPool` is present.

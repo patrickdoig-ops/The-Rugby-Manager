@@ -1355,6 +1355,16 @@ export class GameCoordinator {
   async rollSeason(): Promise<SeasonEvent[]> {
     const events = computeRollover(this.state, [...this.teamsById.keys()]);
     for (const ev of events) applySeasonEvent(this.state, ev);
+    // Re-seed the loan pool for the new season — replaces the old pool
+    // (whose returned players persist in the roster as orphaned records).
+    // Runs AFTER the rollover events so nextRosterId reflects the academy/
+    // import allocations, and after redrawCupPools so its rngTransfer draws
+    // can't shift any rollover draw. [RNG]: shifts career draws downstream
+    // of the rollover relative to pre-reseed saves.
+    for (const ev of buildLoanPoolEvents(this.state)) {
+      applySeasonEvent(this.state, ev);
+      events.push(ev);
+    }
     // Re-seed board confidence for the new season from the finish just
     // archived by SEASON_ROLLED_OVER (resets the final-warning latch).
     this.board.seedBoardState();

@@ -78,7 +78,7 @@ const HELP_TOPICS = {
       { label: 'Inbox banner', desc: 'Your assistant’s briefings — injuries, expiring contracts and news that need attention.' },
       { label: 'Six tiles', desc: 'Squad, Tactics, Competitions, Training, Contracts & Transfers, and Club open the management screens.' },
       { label: 'Go to next match', desc: 'The main button — advances time to your next fixture and starts the build-up.' },
-      { label: 'Settings cog', desc: 'Top-right — preferences and the route back to the main menu.' },
+      { label: 'Settings cog', desc: 'Top-left — preferences and the route back to the main menu.' },
     ],
     tips: [
       'Clear your inbox before each match — it flags the decisions that matter most.',

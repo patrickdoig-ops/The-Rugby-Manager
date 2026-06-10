@@ -5,10 +5,6 @@ export const BALL_SVG = `<svg width="26" height="16" viewBox="0 0 30 18" style="
   <ellipse cx="15" cy="9" rx="14" ry="7.5" fill="var(--ball-color, var(--rm-amber))"
     stroke="color-mix(in oklch,var(--ball-color, var(--rm-amber)) 40%,black)" stroke-width="0.8"/>
   <path d="M3 9 L27 9" stroke="rgba(255,255,255,0.55)" stroke-width="0.8" stroke-linecap="round"/>
-  <g stroke="rgba(255,255,255,0.55)" stroke-width="0.8" stroke-linecap="round">
-    <path d="M10 7.5L10 10.5"/><path d="M14 7L14 11"/>
-    <path d="M18 7L18 11"/><path d="M22 7.5L22 10.5"/>
-  </g>
 </svg>`;
 
 export function initPitchStrip(): void {

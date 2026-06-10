@@ -206,6 +206,13 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       state.career.freeAgents = state.career.freeAgents.filter(id => id !== event.rosterId);
       // Drop any dangling pre-agreement — a retired player can't move.
       state.career.pendingMoves = state.career.pendingMoves.filter(m => m.rosterId !== event.rosterId);
+      // A retired loan-pool player must not remain signable on the Loan screen.
+      if (state.career.loanPool) {
+        state.career.loanPool = state.career.loanPool.filter(id => id !== event.rosterId);
+      }
+      // Flag so the rollover aging loop and weekly morale decay skip them.
+      const retiree = state.career.roster[event.rosterId];
+      if (retiree) retiree.retired = true;
       return;
     }
     case 'PLAYER_INJURED': {

@@ -342,6 +342,10 @@ export interface Player {
   // absent on saves written before the European competitions system.
   europeanCupStats?: PlayerSeasonStats;
   europeanShieldStats?: PlayerSeasonStats;
+  // Set by the PLAYER_RETIRED reducer. Retired players stay in the roster
+  // (history screens read them) but are skipped by the rollover aging loop
+  // and weekly morale decay. Additive optional — absent on older saves.
+  retired?: true;
 }
 
 // Identity element for PlayerMatchStats — co-located with the type so adding

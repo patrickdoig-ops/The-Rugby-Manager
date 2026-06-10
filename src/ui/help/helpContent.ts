@@ -342,10 +342,14 @@ const HELP_TOPICS = {
   },
   'achievements': {
     title: 'Awards & Achievements',
-    purpose: 'A record of the honours and milestones you and your players have earned.',
+    purpose: 'A record of the honours and milestones you and your players have earned — match feats, season results, European runs and career landmarks.',
     features: [
-      { label: 'Awards', desc: 'Season honours, trophies and individual recognition.' },
-      { label: 'Milestones', desc: 'Notable feats reached across your career.' },
+      { label: 'Match', desc: 'Feats from a single game — first win, big scorelines, shut-outs.' },
+      { label: 'Season', desc: 'League and European milestones — playoffs, finals, titles.' },
+      { label: 'Career', desc: 'Long-term landmarks across multiple seasons.' },
+    ],
+    tips: [
+      'European achievements unlock as your club progresses — qualifying, reaching the knockout stage, the final, and winning.',
     ],
   },
 

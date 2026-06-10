@@ -45,7 +45,7 @@ export function inOpposition22(state: MatchState): boolean {
 
 // Distance from the ball to the opposition try line, in pitch metres.
 // Try lines sit at x=0 (home goal) and x=100 (away goal); x=5/x=95 are the
-// 5m lines. Positive going forward — clamps to 0 once past the try line.
+// 5m lines. Always non-negative (Math.abs of the gap).
 export function metresFromOppositionTryLine(state: MatchState): number {
   const homeAttacksRight = !state.clock.halfTimeDone;
   const oppTryLineX = (state.possession === 'home') === homeAttacksRight ? 100 : 0;

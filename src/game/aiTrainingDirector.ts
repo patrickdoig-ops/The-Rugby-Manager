@@ -21,13 +21,14 @@ const BACKS_FOCUS_KEYS:    BacksFocus[]    = ['tackling', 'defensive_organisatio
 
 export function pickPlan(state: GameState, club: ClubState): TrainingPlan {
   const intensity = pickIntensity(state, club);
-  // 3 rngTransfer calls per club regardless of branch taken keeps the
-  // sequence stable across seasons.
+  // Exactly 4 rngTransfer calls per club regardless of branch taken keeps
+  // the sequence stable across seasons: 1 intensity + 2 focus picks + the
+  // legacy burn below.
   const forwardsFocus = FORWARDS_FOCUS_KEYS[Math.floor(rngTransferRaw() * FORWARDS_FOCUS_KEYS.length)];
   const backsFocus    = BACKS_FOCUS_KEYS   [Math.floor(rngTransferRaw() * BACKS_FOCUS_KEYS.length)];
-  // Burn one extra roll so pickIntensity + 2 focus picks always cost 3
-  // rngTransfer regardless of which intensity branch was hit (the
-  // intensity picker may consume 1 or 2 rolls otherwise).
+  // Historic padding roll — pickIntensity once consumed a variable 1-2
+  // rolls and this burn evened it out. It now always consumes 1, but the
+  // burn must stay: removing it would shift every later career draw.
   rngTransferRaw();
   return { intensity, forwardsFocus, backsFocus };
 }

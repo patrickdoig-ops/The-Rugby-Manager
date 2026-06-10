@@ -4,10 +4,9 @@
 // rngTransfer call sequence at the moment of generation.
 //
 // Name pools per nationality are deliberately small (~15-20 each):
-// enough for variety, small enough for the source tree. Per-nationality
-// duplicate names within a single rollover are possible but rare;
-// across-nationality collisions are blocked by name-uniqueness checks
-// in the caller (careerRollover dedupes against the live roster).
+// enough for variety, small enough for the source tree. Duplicate
+// names (within a rollover or against the live roster) are possible
+// but rare and harmless — identity is rosterId, no dedupe is applied.
 
 import type { Player, Position, PlayerStats } from '../types/player';
 import { zeroMatchStats, zeroSeasonStats } from '../types/player';

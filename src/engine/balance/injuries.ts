@@ -40,9 +40,9 @@ export const INJURY = {
   // increases as the match wears on.
   fatigueWeight:       0.6,
 
-  // Recurrence: a player who picked up an injury within the last X
-  // weeks (RECURRENCE_WINDOW_WEEKS) rolls a higher chance of going
-  // down again, and (in INJURY_SEVERITY) loses more time when they do.
+  // Recurrence scaffolding — NOT YET WIRED. Intended: a player injured
+  // within the last recurrenceWindowWeeks rolls a higher chance of going
+  // down again. No consumer reads these two values today.
   recurrenceMult:      1.4,
   recurrenceWindowWeeks: 8,
 

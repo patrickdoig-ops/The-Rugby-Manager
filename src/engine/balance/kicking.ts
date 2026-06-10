@@ -114,7 +114,7 @@ export const PENALTY_VALUES = {
 // field and the opposition counter-attacks via KickReturn.
 //
 // Distance scales with kicker quality (kicker.kicking + rng(1,20) vs
-// goodKickThreshold = 25 — same threshold as tactical kicks, so most
+// goodKickThreshold = 75 — same threshold as tactical kicks, so most
 // #10s clear it comfortably). Touch probability gates whether the
 // deliberate corner kick actually finds the sideline.
 //

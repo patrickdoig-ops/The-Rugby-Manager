@@ -20,7 +20,7 @@ export type MatchEvent =
       type: 'CARRY_RESOLVED';
       carrier: Player;
       defender: Player;
-      metres: number;            // positive — added to carrier.metresCarried
+      metres: number;            // added to carrier.metresCarried; negative on a dominant tackle (driven back)
       direction: 1 | -1;         // attackDir at carry time; ballX += direction*metres (clamped 0–100)
       suppressBallMove?: boolean;// if true, skips the ballX mutation (for authored choreographies)
       outcome: 'line_break' | 'dominant_carry' | 'dominant_tackle' | 'play_on';

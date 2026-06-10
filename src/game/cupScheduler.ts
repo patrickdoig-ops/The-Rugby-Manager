@@ -2,8 +2,8 @@
 //
 // Three blocks across the season:
 //   Leg 0 (pre-season): rounds 0-1 home — Sep, before league R1 (4 fixtures/pool)
-//   Leg 1 (Autumn):     rounds 2-3 home + rounds 0-1 away — Autumn Nations break (8/pool)
-//   Leg 2 (Six Nations): round 4 home + rounds 2-4 away + knockouts — Six Nations break (8/pool)
+//   Leg 1 (Autumn):     rounds 2-3 home + rounds 0-1 away — Autumn Nations break (6/pool)
+//   Leg 2 (Six Nations): round 4 home + rounds 2-4 away + knockouts — Six Nations break (10/pool)
 //
 // Full home-&-away double round-robin within each pool of 5 (8 games/team,
 // 20 fixtures/pool, 40 total). Pools are the real 2025-26 groupings for

@@ -38,7 +38,7 @@ export const HARD_CARRY_LINE_BREAK_METRES = [10, 15] as const;
 // Base gain for a dominant hard carry that does not upgrade to a line break.
 export const HARD_CARRY_DOMINANT_METRES = [5, 10] as const;
 
-// Quadratic handling gate. Per-check KO probability = gap² / 100, where
+// Quadratic handling gate. Per-check KO probability = gap² / 20, where
 // gap = max(0, zeroRiskHandling − handling). Above zeroRiskHandling the
 // rate is identically zero — elite playmakers don't drop clean ball. Below,
 // the gap squared means moderate handlers (75–80) stay safe and only

@@ -1774,7 +1774,7 @@ The persistent injury sits on `Player.injury?` (in `state.career.roster[rosterId
 
 ```ts
 INJURY = {
-  basePctPerTackle:    8.0,
+  basePctPerTackle:    6.0,
   dominantTackleMult:  2.5,
   fatigueWeight:       0.6,
   recurrenceMult:      1.4,        // scaffolding for future recurrence path

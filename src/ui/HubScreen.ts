@@ -1,10 +1,10 @@
 // In-season control centre. Sits in the navigation flow as
 //   Home → Team Selector → Hub → PreMatch → Match → Result → Hub.
 //
-// This module renders the Hub shell and reacts to game-engine events; it is
-// NOT wired into main.ts's flow in this change. Callers pass no-op callbacks
-// for the six nav tiles and the settings cog; only the primary CTA
-// (`onPlayMatch`) is exercisable in this iteration.
+// This module renders the Hub shell and reacts to game-engine events. It is
+// fully wired into main.ts's flow via initInSeasonScreens — the six nav
+// tiles, the settings cog, and the primary CTA (`onPlayMatch`) all receive
+// live callbacks.
 
 import type { GameCoordinator, EuropeanFixtureRef, EuropeanRoundRef } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';

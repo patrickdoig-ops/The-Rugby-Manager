@@ -136,6 +136,8 @@ The engine emits the following UI-bound events through `src/utils/eventBus.ts`. 
 
 UI→engine direction is one channel: `SimController` is the only UI module that calls engine methods (`start`, `pause`, `resume`, `setTickDelay`). Substitutions and tactics changes go through `ui:substitution` / `ui:tacticsChange` bus events; `MatchCoordinator` subscribes to these in its constructor and unsubscribes in `destroy()` (called from `main.ts` after the match-result overlay closes).
 
+**Hidden-pane render deferral.** The bottom-panel views (dashboard / pitch / commentary / stats / players) are mutually exclusive; `SimController` emits `ui:viewChange { view }` on each switch. `StatsPanel` gates its three per-beat renders (summary rows, player list, detail table) on the pane's `offsetParent !== null` — a hidden pane marks itself dirty instead of rebuilding innerHTML, and the deferred render flushes on the next `ui:viewChange` that reveals it.
+
 ---
 
 ## Simulation Loop

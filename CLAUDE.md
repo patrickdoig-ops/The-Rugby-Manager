@@ -254,6 +254,7 @@ When a formation moves between beats, `PitchPlayers` adds `dot-transitioning` to
 | `src/engine/MatchCoordinator.ts` / new `engine:*` event | `docs/match-engine.md` § "UI Event Bus Contract" table |
 | `src/ui/HubScreen.ts` — TILES array | `docs/DESIGN.md` § 15.4 Hub tile list |
 | New screen added to `src/ui/` | `docs/DESIGN.md` § 15.5 navigation flow |
+| Any `src/ui/` screen changed — controls added/removed/renamed, layout restructured, new features surfaced | Review the matching topic in `src/ui/help/helpContent.ts` and update `purpose`, `features`, and `tips` in the same commit so the help overlay stays accurate. If the screen has no help topic yet, add one (`HelpTopicId` entry + button in the screen template). |
 | `docs/team-data.md` changes | Run `node scripts/generateTeamJsons.mjs` |
 | `src/ui/pitchChoreography.ts` / `PitchView.ts` / `PitchPlayers.ts` — new animation seam, new layout function, or changed choreography behaviour | `CLAUDE.md § 8` (update the relevant seam description or between-beat state note) |
 

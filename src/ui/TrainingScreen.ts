@@ -245,6 +245,8 @@ function renderPostMatch(
   wireChips(el, () => renderImpl?.());
 
   el.querySelector<HTMLButtonElement>('#tr-continue')!.addEventListener('click', (e) => {
+    // Double-click guard — a queued second click would apply the block twice.
+    if ((e.currentTarget as HTMLButtonElement).disabled) return;
     const weeks: TrainingPlan[] = draftWeekIntensities.map(intensity => ({
       intensity,
       forwardsFocus: draftPlan.forwardsFocus,
@@ -275,6 +277,7 @@ function renderPostMatch(
       }, 0);
       return;
     }
+    (e.currentTarget as HTMLButtonElement).disabled = true;
     const results = engine.applyTrainingBlock(weeks);
     draftHydrated = false; // next entry re-reads from state
     mode.onContinue(results);

@@ -1389,6 +1389,11 @@ export class GameCoordinator {
   // saveGame → saveToSlot; the schema harness only inspects keys), so the
   // sub-trees are returned by reference — no defensive cloning (CLAUDE.md §2:
   // never deep-clone just to stringify).
+  //
+  // Archive is capped at the most recent 15 seasons to keep localStorage
+  // within the 5 MB browser quota on long careers (~30 KB/season).
+  static readonly ARCHIVE_CAP = 15;
+
   toSavePayload(): SavedSeason {
     return {
       playerTeamId: this.state.player.teamId,
@@ -1409,7 +1414,7 @@ export class GameCoordinator {
         nextRosterId: this.state.career.nextRosterId,
         clubs: this.state.career.clubs.map(c => ({ id: c.id, squad: c.squad, salaryBudget: c.salaryBudget })),
         roster: this.state.career.roster,
-        archive: this.state.career.archive,
+        archive: this.state.career.archive.slice(-GameCoordinator.ARCHIVE_CAP),
         freeAgents: this.state.career.freeAgents,
         market: this.state.career.market,
         pendingMoves: this.state.career.pendingMoves,

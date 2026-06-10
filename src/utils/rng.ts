@@ -81,6 +81,7 @@ export function rngFormRaw(): number {
 }
 
 export function pickRandom<T>(arr: readonly T[]): T {
+  if (arr.length === 0) throw new Error('pickRandom called on an empty array');
   return arr[Math.floor(commentaryRand() * arr.length)];
 }
 

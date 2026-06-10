@@ -655,10 +655,11 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
 
     default: {
       // Exhaustiveness check — TS will error here if a new MatchEvent type is added
-      // without a case above.
+      // without a case above. Also throws at runtime (matching the nested
+      // CardKind default) to catch malformed events from a future
+      // replay/migration path.
       const _exhaustive: never = event;
-      void _exhaustive;
-      return;
+      throw new Error(`unhandled MatchEvent: ${(_exhaustive as { type?: string }).type}`);
     }
   }
 }

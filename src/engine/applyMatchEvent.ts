@@ -381,9 +381,14 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
           state.consecutiveWheels = 0;
           break;
       }
-      state.stats.ownScrums[event.attackSide].putIn++;
-      if (event.possessionSideAfter === event.attackSide) {
-        state.stats.ownScrums[event.attackSide].won++;
+      // A wheel is a reset, not a completed scrum — skip the ownScrums
+      // counters (mirrors stats.scrums above), else every wheel inflates
+      // both putIn and won for the attacking side.
+      if (event.outcome !== 'wheel') {
+        state.stats.ownScrums[event.attackSide].putIn++;
+        if (event.possessionSideAfter === event.attackSide) {
+          state.stats.ownScrums[event.attackSide].won++;
+        }
       }
       state.possession = event.possessionSideAfter;
       return;

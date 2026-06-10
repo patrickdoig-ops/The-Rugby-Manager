@@ -7,7 +7,7 @@
 // game:trainingApplied inline. GameCoordinator keeps thin public delegations so
 // screens / main.ts / the determinism harness keep talking to it.
 
-import type { CupFixture, GameState } from '../types/gameState';
+import type { CupFixture, CupKnockoutMatch, CupRoundRef, Fixture, GameState } from '../types/gameState';
 import type { RawTeamInput } from '../types/teamData';
 import type { InternationalWindow } from '../types/player';
 import type { TrainingPlan, TrainingWeekResult, InternationalBreakSummary } from '../types/training';
@@ -16,7 +16,7 @@ import { simulateFixture } from './simulateFixture';
 import { buildCupTeamFromRoster } from './rosterTeamBuilder';
 import { CUP_POOLS_2025_26, CUP_FIXTURES_2025_26, CUP_SEED_ROUND, buildCupSeed, buildCupKnockoutSeed } from './cupScheduler';
 import { cupDevelopmentEvents } from './cupDevelopment';
-import { collectConditionEvents } from './seasonStatsCollector';
+import { collectConditionEvents, type MatchSnapshot } from './seasonStatsCollector';
 import { rollNewInjuryEvents } from './injuryEffects';
 import { runTrainingPeriods } from './trainingRunner';
 import { upcomingGap, splitGapIntoPeriods } from './trainingCalendar';
@@ -43,6 +43,12 @@ export interface PreSeasonBlockResult {
   cupFixturesThisBlock: CupFixture[];
   cupDirection: 'best' | 'rest_first_15';
 }
+
+// Identifies the player's next playable cup fixture — pool or knockout.
+// Mirrors EuropeanFixtureRef; drives the live cup weekly flow.
+export type CupFixtureRef =
+  | { kind: 'pool'; fixture: CupFixture }
+  | { kind: 'knockout'; stage: 'semifinal_1' | 'semifinal_2' | 'final'; match: CupKnockoutMatch };
 
 export class InternationalBreakCoordinator {
   constructor(private state: GameState, private teamsById: Map<string, RawTeamInput>) {}
@@ -317,5 +323,291 @@ export class InternationalBreakCoordinator {
   // first-choice 15). Becomes the remembered default for the next break.
   setCupDirection(direction: 'best' | 'rest_first_15'): void {
     applySeasonEvent(this.state, { type: 'PLAYER_CUP_DIRECTION_SET', direction });
+  }
+
+  // ── Live cup weekly flow (per-matchday) — mirrors the European flow ──────
+  //
+  // Each cup matchday is an ordinary game week: the player plays (or
+  // assistant-sims) their own fixture, the rest of that matchday is simmed
+  // headless. Cup stats stay OUT of the league leaderboards (no
+  // collectSeasonEvents), matching the legacy headless block. The leg the
+  // player is "in" is scoped by the league calendar (a leg is reachable once
+  // its earliest fixture date is on or before the upcoming league round's
+  // date), NOT by calendar.date stepping — so display-only date advances
+  // can't hide a later matchday of the same leg.
+  //
+  // Wired into main.ts / the Hub by commit 4; dormant until then.
+
+  // The earliest date of the upcoming league round — the horizon that scopes
+  // which cup leg is currently reachable.
+  private upcomingLeagueDate(): string {
+    const fixtures: Fixture[] = this.state.league.fixtures;
+    const round = this.state.calendar.week;
+    let earliest: string | null = null;
+    for (const f of fixtures) {
+      if (f.round !== round || !f.date) continue;
+      if (earliest === null || f.date < earliest) earliest = f.date;
+    }
+    return earliest ?? this.state.calendar.date;
+  }
+
+  // The leg whose fixtures are currently in play: the earliest leg with any
+  // unplayed fixture whose first fixture date is on or before the upcoming
+  // league round's date. Returns null when no leg is reachable yet / all done.
+  private activeCupLeg(): 0 | 1 | 2 | null {
+    const cup = this.state.league.premCup;
+    if (!cup) return null;
+    const horizon = this.upcomingLeagueDate();
+    for (const leg of [0, 1, 2] as const) {
+      const fxs = cup.fixtures.filter(f => f.leg === leg);
+      if (fxs.length === 0) continue;
+      if (fxs.every(f => f.result)) continue;            // leg complete
+      const legStart = fxs.map(f => f.date).sort()[0] ?? '';
+      if (legStart && legStart > horizon) return null;   // future leg, not reached
+      return leg;
+    }
+    return null;
+  }
+
+  // The player's next playable cup fixture (pool then knockout) in the active
+  // leg. Null when the player has no unplayed fixture due (bye / leg done).
+  getCurrentCupFixture(): CupFixtureRef | null {
+    const cup = this.state.league.premCup;
+    if (!cup) return null;
+    const leg = this.activeCupLeg();
+    if (leg === null) return null;
+    const playerId = this.state.player.teamId;
+    const pending = cup.fixtures
+      .filter(f => f.leg === leg && !f.result && (f.homeId === playerId || f.awayId === playerId))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    if (pending[0]) return { kind: 'pool', fixture: pending[0] };
+    // Leg-2 knockout: the player's unplayed SF / final, slotted and reached.
+    const ko = cup.knockout;
+    if (ko && leg === 2) {
+      for (const m of [ko.semifinals[0], ko.semifinals[1], ko.final]) {
+        if (!m.result && m.homeId && m.awayId && (m.homeId === playerId || m.awayId === playerId)) {
+          return { kind: 'knockout', stage: m.kind, match: m };
+        }
+      }
+    }
+    return null;
+  }
+
+  // The earliest cup round (leg / KO stage) whose fixtures are all resolved
+  // and not yet shown to the player. Mirrors getCurrentEuropeanRound.
+  getCurrentCupRound(): CupRoundRef | null {
+    const cup = this.state.league.premCup;
+    if (!cup) return null;
+    const shown = new Set(cup.shownRounds ?? []);
+    for (const leg of [0, 1, 2] as const) {
+      const key = `leg:${leg}`;
+      if (shown.has(key)) continue;
+      const fxs = cup.fixtures.filter(f => f.leg === leg);
+      if (fxs.length === 0 || fxs.some(f => !f.result)) continue;
+      const label = leg === 0 ? 'Pre-Season' : leg === 1 ? 'Pool Stage — Leg 1' : 'Pool Stage — Leg 2';
+      return { roundKey: key, isFinal: false, label };
+    }
+    const ko = cup.knockout;
+    if (ko) {
+      if (!shown.has('sf')) {
+        const sfs = [ko.semifinals[0], ko.semifinals[1]].filter(m => m.homeId && m.awayId);
+        if (sfs.length > 0 && sfs.every(m => m.result)) {
+          return { roundKey: 'sf', isFinal: false, label: 'Semi-Finals' };
+        }
+      }
+      if (!shown.has('final') && ko.final.homeId && ko.final.awayId && ko.final.result) {
+        return { roundKey: 'final', isFinal: true, label: 'Final' };
+      }
+    }
+    return null;
+  }
+
+  markCupRoundShown(roundKey: string): void {
+    applySeasonEvent(this.state, { type: 'PREM_CUP_ROUND_SHOWN', roundKey });
+  }
+
+  // Display-only calendar advance to a cup matchday's date. Safe to call with
+  // an earlier or later date — leg scoping is independent of calendar.date.
+  advanceCupCalendar(toDate: string): void {
+    if (toDate && toDate !== this.state.calendar.date) {
+      applySeasonEvent(this.state, { type: 'MATCHDAY_ADVANCED', toDate });
+    }
+  }
+
+  // Record a live cup pool match the player just played. Applies condition +
+  // injury (NOT season stats — cup stays out of league leaderboards), then
+  // sims the rest of that matchday headless and seeds/sims the knockout when
+  // the pool stage completes. The per-leg development nudge fires when the
+  // leg's last fixture resolves.
+  async recordPlayerCupPoolResult(
+    pool: 'A' | 'B', leg: 0 | 1 | 2, homeId: string, awayId: string,
+    homeScore: number, awayScore: number, snapshot: MatchSnapshot,
+  ): Promise<void> {
+    const cup = this.state.league.premCup;
+    if (!cup) return;
+    const fx = cup.fixtures.find(f => f.pool === pool && f.leg === leg && f.homeId === homeId && f.awayId === awayId);
+    if (!fx || fx.result) return; // idempotent
+    const playerId = this.state.player.teamId;
+    const playerSide: 'home' | 'away' | null = homeId === playerId ? 'home' : awayId === playerId ? 'away' : null;
+    applySeasonEvent(this.state, {
+      type: 'PREM_CUP_FIXTURE_RECORDED',
+      pool, leg, homeId, awayId, homeScore, awayScore,
+      homeTries: snapshot.homeSummary.tries, awayTries: snapshot.awaySummary.tries, playerSide,
+    });
+    this.applyCupMatchAftermath(snapshot);
+    await this.simRestOfCupLeg(leg, fx.date);
+    if (leg === 2) this.maybeSeedCupKnockout();
+    if (leg === 2) await this.simDueCupKnockouts();
+    this.maybeFireCupLegDevelopment(leg);
+  }
+
+  // Record a live cup knockout match the player just played. Sims the rest of
+  // the bracket (skipping the player) so the cascade completes.
+  async recordPlayerCupKnockoutResult(
+    kind: 'semifinal_1' | 'semifinal_2' | 'final',
+    homeScore: number, awayScore: number, snapshot: MatchSnapshot,
+  ): Promise<void> {
+    const ko = this.state.league.premCup?.knockout;
+    if (!ko) return;
+    const match = kind === 'semifinal_1' ? ko.semifinals[0] : kind === 'semifinal_2' ? ko.semifinals[1] : ko.final;
+    if (match.result || !match.homeId || !match.awayId) return; // idempotent
+    const playerId = this.state.player.teamId;
+    const playerSide: 'home' | 'away' | null = match.homeId === playerId ? 'home' : match.awayId === playerId ? 'away' : null;
+    applySeasonEvent(this.state, {
+      type: 'PREM_CUP_KNOCKOUT_RECORDED',
+      kind, homeScore, awayScore,
+      homeTries: snapshot.homeSummary.tries, awayTries: snapshot.awaySummary.tries, playerSide,
+    });
+    this.applyCupMatchAftermath(snapshot);
+    await this.simDueCupKnockouts();
+  }
+
+  // Assistant-sims the player's own cup fixture (the skip-to-assistant path),
+  // honouring the cup direction, then records it through the player-result
+  // method so the rest of the matchday + knockouts resolve identically.
+  async runPlayerCupFixtureHeadless(ref: CupFixtureRef): Promise<void> {
+    const restIds = this.state.player.cupDirection === 'rest_first_15' ? this.firstChoiceStarterIds() : undefined;
+    if (ref.kind === 'pool') {
+      const fx = ref.fixture;
+      const homeJson = this.teamsById.get(fx.homeId);
+      const awayJson = this.teamsById.get(fx.awayId);
+      if (!homeJson || !awayJson) return;
+      const home = this.buildCupSide(homeJson, restIds);
+      const away = this.buildCupSide(awayJson, restIds);
+      const pseudoRound = fx.leg === 0 ? CUP_SEED_ROUND.preseason : fx.leg === 1 ? CUP_SEED_ROUND.leg1 : CUP_SEED_ROUND.leg2;
+      const sim = await simulateFixture(home, away, this.state.seed, pseudoRound, {});
+      await this.recordPlayerCupPoolResult(fx.pool, fx.leg, fx.homeId, fx.awayId, sim.homeScore, sim.awayScore, sim.snapshot);
+    } else {
+      const m = ref.match;
+      if (!m.homeId || !m.awayId) return;
+      const homeJson = this.teamsById.get(m.homeId);
+      const awayJson = this.teamsById.get(m.awayId);
+      if (!homeJson || !awayJson) return;
+      const home = this.buildCupSide(homeJson, restIds);
+      const away = this.buildCupSide(awayJson, restIds);
+      const sim = await simulateFixture(home, away, this.state.seed, CUP_SEED_ROUND[m.kind], { neutralVenue: m.kind === 'final' });
+      await this.recordPlayerCupKnockoutResult(m.kind, sim.homeScore, sim.awayScore, sim.snapshot);
+    }
+  }
+
+  // Sims all non-player cup fixtures whose matchday has been reached but the
+  // player has no fixture for (byes), so pool tables stay consistent and legs
+  // can complete. Seeds + sims the knockout when leg-2 pool finishes.
+  async simDueCupFixtures(): Promise<void> {
+    const leg = this.activeCupLeg();
+    if (leg === null) { await this.simDueCupKnockouts(); return; }
+    await this.simRestOfCupLeg(leg, this.upcomingLeagueDate());
+    if (leg === 2) this.maybeSeedCupKnockout();
+    if (leg === 2) await this.simDueCupKnockouts();
+    this.maybeFireCupLegDevelopment(leg);
+  }
+
+  // Sim every unplayed non-player fixture in `leg` dated on or before
+  // `uptoDate`, in fixture-list order (stable).
+  private async simRestOfCupLeg(leg: 0 | 1 | 2, uptoDate: string): Promise<void> {
+    const cup = this.state.league.premCup;
+    if (!cup) return;
+    const playerId = this.state.player.teamId;
+    const restIds = this.state.player.cupDirection === 'rest_first_15' ? this.firstChoiceStarterIds() : undefined;
+    const pseudoRound = leg === 0 ? CUP_SEED_ROUND.preseason : leg === 1 ? CUP_SEED_ROUND.leg1 : CUP_SEED_ROUND.leg2;
+    for (const fx of cup.fixtures) {
+      if (fx.leg !== leg || fx.result || fx.date > uptoDate) continue;
+      if (fx.homeId === playerId || fx.awayId === playerId) continue; // player's own — recorded live
+      const homeJson = this.teamsById.get(fx.homeId);
+      const awayJson = this.teamsById.get(fx.awayId);
+      if (!homeJson || !awayJson) continue;
+      const home = this.buildCupSide(homeJson, restIds);
+      const away = this.buildCupSide(awayJson, restIds);
+      const sim = await simulateFixture(home, away, this.state.seed, pseudoRound, {});
+      applySeasonEvent(this.state, {
+        type: 'PREM_CUP_FIXTURE_RECORDED',
+        pool: fx.pool, leg: fx.leg, homeId: fx.homeId, awayId: fx.awayId,
+        homeScore: sim.homeScore, awayScore: sim.awayScore,
+        homeTries: sim.snapshot.homeSummary.tries, awayTries: sim.snapshot.awaySummary.tries, playerSide: null,
+      });
+      this.applyCupMatchAftermath(sim.snapshot);
+    }
+  }
+
+  // Seed the knockout once the leg-2 pool stage is complete (idempotent).
+  private maybeSeedCupKnockout(): void {
+    const cup = this.state.league.premCup;
+    if (!cup || cup.knockout) return;
+    const leg2 = cup.fixtures.filter(f => f.leg === 2);
+    if (leg2.length === 0 || leg2.some(f => !f.result)) return;
+    const seed = buildCupKnockoutSeed(cup, this.state.league.fixtures);
+    applySeasonEvent(this.state, { type: 'PREM_CUP_KNOCKOUT_SEEDED', semifinals: seed.semifinals, final: seed.final });
+  }
+
+  // Sim every slotted knockout match the player is NOT in (player KO matches
+  // are played live / assistant-simmed via the matchday flow). Runs SFs then
+  // the final so the cascade fills before the final is simmed.
+  private async simDueCupKnockouts(): Promise<void> {
+    const playerId = this.state.player.teamId;
+    const restIds = this.state.player.cupDirection === 'rest_first_15' ? this.firstChoiceStarterIds() : undefined;
+    for (const kind of ['semifinal_1', 'semifinal_2', 'final'] as const) {
+      const ko = this.state.league.premCup?.knockout;
+      if (!ko) return;
+      const m = kind === 'semifinal_1' ? ko.semifinals[0] : kind === 'semifinal_2' ? ko.semifinals[1] : ko.final;
+      if (m.result || !m.homeId || !m.awayId) continue;
+      if (m.homeId === playerId || m.awayId === playerId) continue; // player's own — live
+      const homeJson = this.teamsById.get(m.homeId);
+      const awayJson = this.teamsById.get(m.awayId);
+      if (!homeJson || !awayJson) continue;
+      const home = this.buildCupSide(homeJson, restIds);
+      const away = this.buildCupSide(awayJson, restIds);
+      const sim = await simulateFixture(home, away, this.state.seed, CUP_SEED_ROUND[kind], { neutralVenue: kind === 'final' });
+      applySeasonEvent(this.state, {
+        type: 'PREM_CUP_KNOCKOUT_RECORDED',
+        kind, homeScore: sim.homeScore, awayScore: sim.awayScore,
+        homeTries: sim.snapshot.homeSummary.tries, awayTries: sim.snapshot.awaySummary.tries, playerSide: null,
+      });
+      this.applyCupMatchAftermath(sim.snapshot);
+    }
+  }
+
+  // Condition writeback + injury rolls + per-leg featured tracking for one
+  // cup match. NOT collectSeasonEvents (cup stays out of league leaderboards).
+  private applyCupMatchAftermath(snapshot: MatchSnapshot): void {
+    for (const ev of collectConditionEvents(snapshot)) applySeasonEvent(this.state, ev);
+    for (const ev of rollNewInjuryEvents(this.state, snapshot.playerSnapshots)) applySeasonEvent(this.state, ev);
+    const rosterIds = snapshot.playerSnapshots.map(s => s.rosterId);
+    if (rosterIds.length > 0) applySeasonEvent(this.state, { type: 'PREM_CUP_FEATURED_ADDED', rosterIds });
+  }
+
+  // Fire the once-per-leg development nudge when a pool leg has just become
+  // fully resolved, then clear the featured accumulator. RNG-free; the
+  // completing fixture is recorded exactly once, so this fires exactly once.
+  private maybeFireCupLegDevelopment(leg: 0 | 1 | 2): void {
+    const cup = this.state.league.premCup;
+    if (!cup) return;
+    const fxs = cup.fixtures.filter(f => f.leg === leg);
+    if (fxs.length === 0 || fxs.some(f => !f.result)) return; // leg not complete
+    const featured = cup.legFeatured ?? [];
+    if (featured.length === 0) return;
+    for (const ev of cupDevelopmentEvents(this.state, featured, this.state.calendar.date)) {
+      applySeasonEvent(this.state, ev);
+    }
+    applySeasonEvent(this.state, { type: 'PREM_CUP_FEATURED_ADDED', rosterIds: [], reset: true });
   }
 }

@@ -330,7 +330,11 @@ export interface CupFixture {
   homeId: string;
   awayId: string;
   date: string;
-  result?: { homeScore: number; awayScore: number; homeTries: number; awayTries: number };
+  // `playerSide` is the manager's club's side when this matchday was the
+  // player's own fixture (live or assistant-simmed), else null for a pure
+  // headless sim. Additive-optional inside the persisted `premCup` blob —
+  // absent on legacy saves (treated as null). Resume cursor + result render.
+  result?: { homeScore: number; awayScore: number; homeTries: number; awayTries: number; playerSide?: 'home' | 'away' | null };
 }
 
 // A knockout match — same structure family as PlayoffMatch. Played in the
@@ -340,7 +344,7 @@ export interface CupKnockoutMatch {
   homeId: string | null;   // null until the pool stage / SFs resolve
   awayId: string | null;
   date: string;
-  result?: { homeScore: number; awayScore: number; homeTries: number; awayTries: number };
+  result?: { homeScore: number; awayScore: number; homeTries: number; awayTries: number; playerSide?: 'home' | 'away' | null };
 }
 
 export interface CupKnockout {
@@ -355,6 +359,24 @@ export interface PremCupState {
   pools: [CupPool, CupPool];   // index 0 = A, index 1 = B
   fixtures: CupFixture[];      // 40 pool fixtures (20/pool: leg0 4 + leg1 8 + leg2 8)
   knockout: CupKnockout | null; // null until the leg-2 pool stage completes
+  // Cup rounds (legs / KO stages) already shown to the player in the weekly
+  // flow. Keys: 'leg:0'-'leg:2', 'sf', 'final'. Additive-optional — absent on
+  // legacy saves (treated as empty). Mirrors EuropeanCompState.shownRounds.
+  shownRounds?: string[];
+  // rosterIds who have featured in the current (not-yet-developed) leg's cup
+  // matches. Persisted so the once-per-leg development nudge (fired at leg
+  // completion) is reload-safe across matchdays. Reset to [] when each leg's
+  // nudge fires. Additive-optional — absent on legacy saves.
+  legFeatured?: number[];
+}
+
+// Reference to a completeable cup round — returned by
+// GameCoordinator.getCurrentCupRound() to drive the weekly flow. Mirrors
+// EuropeanRoundRef.
+export interface CupRoundRef {
+  roundKey: string;   // 'leg:0'-'leg:2' | 'sf' | 'final'
+  isFinal: boolean;
+  label: string;      // e.g. 'Pre-Season', 'Pool Stage — Leg 1', 'Final'
 }
 
 // Stable reference to a real player across save/load and across raw-team
@@ -1284,6 +1306,8 @@ export type SeasonEvent =
       awayScore: number;
       homeTries: number;
       awayTries: number;
+      // The manager's club's side, or null for a pure headless sim.
+      playerSide?: 'home' | 'away' | null;
     }
   | {
       // Seeds the cup knockout bracket from the final pool standings after
@@ -1303,6 +1327,22 @@ export type SeasonEvent =
       awayScore: number;
       homeTries: number;
       awayTries: number;
+      // The manager's club's side, or null for a pure headless sim.
+      playerSide?: 'home' | 'away' | null;
+    }
+  | {
+      // Marks a cup round (leg / KO stage) as shown to the player in the
+      // weekly flow. Mirrors EUROPEAN_ROUND_SHOWN.
+      type: 'PREM_CUP_ROUND_SHOWN';
+      roundKey: string; // 'leg:0'-'leg:2' | 'sf' | 'final'
+    }
+  | {
+      // Tracks players who featured in the current leg's cup matches, for the
+      // once-per-leg development nudge. `reset: true` clears the list (fired
+      // after the leg's nudge); otherwise appends (deduped).
+      type: 'PREM_CUP_FEATURED_ADDED';
+      rosterIds: number[];
+      reset?: boolean;
     }
   | {
       // Persists the Assistant-Manager cup direction (best vs rest the

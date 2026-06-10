@@ -33,7 +33,7 @@
 // runs on a timer.
 
 import type {
-  ArchivedSeason, ClubState, EuropeanObjective, EuropeanRoundRef,
+  ArchivedSeason, ClubState, CupRoundRef, EuropeanObjective, EuropeanRoundRef,
   Fixture, FixtureResult, GameState, MarketState, PlayerRef, PlayoffMatch, PlayoffState, PreAgreement, ScoutingRecord, SeasonEvent, SeasonSchedule,
 } from '../types/gameState';
 import { emptyCareerState } from '../types/gameState';
@@ -68,7 +68,7 @@ import { TransferCoordinator, type EarlyRenewalResult } from './TransferCoordina
 import { StaffCoordinator } from './StaffCoordinator';
 import { BoardCoordinator } from './BoardCoordinator';
 import { PlayoffCoordinator } from './PlayoffCoordinator';
-import { InternationalBreakCoordinator, type BreakBeginResult, type PreSeasonBlockResult } from './InternationalBreakCoordinator';
+import { InternationalBreakCoordinator, type BreakBeginResult, type PreSeasonBlockResult, type CupFixtureRef } from './InternationalBreakCoordinator';
 import { EuropeanCoordinator } from './EuropeanCoordinator';
 import { computeBudgetEvents } from './budgetPlanner';
 import { computeAttendance } from './attendance';
@@ -81,7 +81,8 @@ import type { RawTeamInput } from '../types/teamData';
 
 // Re-exported from InternationalBreakCoordinator (where the break flow lives)
 // so existing UI imports `from '../game/GameCoordinator'` keep working.
-export type { BreakBeginResult, PreSeasonBlockResult };
+export type { BreakBeginResult, PreSeasonBlockResult, CupFixtureRef };
+export type { CupRoundRef } from '../types/gameState';
 
 import type { EuropeanFixture, EuropeanKnockoutMatch } from '../types/gameState';
 
@@ -600,6 +601,49 @@ export class GameCoordinator {
   // first-choice 15). Becomes the remembered default for the next break.
   setCupDirection(direction: 'best' | 'rest_first_15'): void {
     this.intlBreak.setCupDirection(direction);
+  }
+
+  // ── Live cup weekly flow — delegates to InternationalBreakCoordinator ────
+  getCurrentCupFixture(): CupFixtureRef | null {
+    return this.intlBreak.getCurrentCupFixture();
+  }
+
+  getCurrentCupRound(): CupRoundRef | null {
+    return this.intlBreak.getCurrentCupRound();
+  }
+
+  markCupRoundShown(roundKey: string): void {
+    this.intlBreak.markCupRoundShown(roundKey);
+  }
+
+  advanceCupCalendar(toDate: string): void {
+    this.intlBreak.advanceCupCalendar(toDate);
+  }
+
+  async recordPlayerCupPoolResult(
+    pool: 'A' | 'B', leg: 0 | 1 | 2, homeId: string, awayId: string,
+    homeScore: number, awayScore: number, snapshot: MatchSnapshot,
+  ): Promise<void> {
+    await this.intlBreak.recordPlayerCupPoolResult(pool, leg, homeId, awayId, homeScore, awayScore, snapshot);
+    eventBus.emit('game:weekAdvanced', { state: this.state });
+  }
+
+  async recordPlayerCupKnockoutResult(
+    kind: 'semifinal_1' | 'semifinal_2' | 'final',
+    homeScore: number, awayScore: number, snapshot: MatchSnapshot,
+  ): Promise<void> {
+    await this.intlBreak.recordPlayerCupKnockoutResult(kind, homeScore, awayScore, snapshot);
+    eventBus.emit('game:weekAdvanced', { state: this.state });
+  }
+
+  async runPlayerCupFixtureHeadless(ref: CupFixtureRef): Promise<void> {
+    await this.intlBreak.runPlayerCupFixtureHeadless(ref);
+    eventBus.emit('game:weekAdvanced', { state: this.state });
+  }
+
+  async simDueCupFixtures(): Promise<void> {
+    await this.intlBreak.simDueCupFixtures();
+    eventBus.emit('game:weekAdvanced', { state: this.state });
   }
 
   // ===== Off-season market (Phases 2-7) =====

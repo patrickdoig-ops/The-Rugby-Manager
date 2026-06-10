@@ -773,6 +773,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         awayScore: event.awayScore,
         homeTries: event.homeTries,
         awayTries: event.awayTries,
+        playerSide: event.playerSide ?? null,
       };
       const pool = cup.pools.find(p => p.id === event.pool);
       if (!pool) return;
@@ -807,6 +808,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         awayScore: event.awayScore,
         homeTries: event.homeTries,
         awayTries: event.awayTries,
+        playerSide: event.playerSide ?? null,
       };
       // Cascade SF winners into the final's slots (SF1 → home, SF2 → away),
       // guarded against double-population (slot writes only when null).
@@ -825,6 +827,23 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
     }
     case 'PLAYER_CUP_DIRECTION_SET': {
       state.player.cupDirection = event.direction;
+      return;
+    }
+    case 'PREM_CUP_ROUND_SHOWN': {
+      const cup = state.league.premCup;
+      if (!cup) return;
+      if (!cup.shownRounds) cup.shownRounds = [];
+      if (!cup.shownRounds.includes(event.roundKey)) cup.shownRounds.push(event.roundKey);
+      return;
+    }
+    case 'PREM_CUP_FEATURED_ADDED': {
+      const cup = state.league.premCup;
+      if (!cup) return;
+      if (event.reset) { cup.legFeatured = []; return; }
+      if (!cup.legFeatured) cup.legFeatured = [];
+      for (const rid of event.rosterIds) {
+        if (!cup.legFeatured.includes(rid)) cup.legFeatured.push(rid);
+      }
       return;
     }
     case 'PLAYER_CAPTAIN_SET': {

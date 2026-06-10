@@ -915,6 +915,13 @@ export class GameCoordinator {
   ): Promise<void> {
     const playerTeamId = this.state.player.teamId;
     const playerSide: 'home' | 'away' = homeId === playerTeamId ? 'home' : 'away';
+    // Idempotency guard — EuropeanCoordinator skips an already-recorded
+    // fixture, so the board-confidence / media-story side effects below
+    // must not re-apply either (e.g. a double-tap on the result overlay).
+    const poolFx = this.state.league[competition]?.fixtures.find(f =>
+      f.poolId === poolId && f.round === round && f.homeId === homeId && f.awayId === awayId,
+    );
+    if (!poolFx || poolFx.result) return;
     await this.european.recordPlayerEuropeanPoolResult(
       competition, poolId, round, homeId, awayId, homeScore, awayScore, snapshot,
     );
@@ -944,7 +951,9 @@ export class GameCoordinator {
     if (!ko) return;
     const matchArr = stage === 'r16' ? ko.r16 : stage === 'quarterfinal' ? ko.quarterfinals : stage === 'semifinal' ? ko.semifinals as Array<{ homeId: string | null; awayId: string | null; result?: unknown }> : [ko.final];
     const match = matchArr[matchIndex];
-    if (!match) return;
+    // Idempotency guard — mirror EuropeanCoordinator's already-recorded skip
+    // so the board-confidence / media-story side effects below don't re-apply.
+    if (!match || match.result) return;
     const playerTeamId = this.state.player.teamId;
     const playerSide: 'home' | 'away' = match.homeId === playerTeamId ? 'home' : 'away';
     await this.european.recordPlayerEuropeanKnockoutResult(

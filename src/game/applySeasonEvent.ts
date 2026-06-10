@@ -51,6 +51,8 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       state.league.teamSeasonStats = Object.fromEntries(event.teamIds.map(id => [id, zeroTeamSeasonStats()]));
       state.league.playoffs = null;
       state.league.premCup = null;
+      state.league.europeanCup = null;
+      state.league.europeanShield = null;
       state.league.mediaStories = [];
       return;
     }

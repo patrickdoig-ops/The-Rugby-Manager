@@ -1,4 +1,4 @@
-// Persists the player's in-progress career to localStorage so the Home
+// Persists the player's in-progress career to IndexedDB so the Home
 // Screen's "Continue Game" button can resume mid-season after a browser
 // close. Schema is versioned — bump SAVE_VERSION whenever the shape changes.
 //
@@ -10,6 +10,15 @@
 // active slot, preserving the original autosave contract for every call site.
 // The native iCloud-backup mirror lives in saveBackup.ts and hooks in via
 // setSlotWriteHook — SaveManager itself has no Capacitor dependency.
+//
+// Primary store: IndexedDB ('rugby-manager' db, 'saves' object store). An
+// in-memory cache mirrors every key so all reads stay synchronous throughout
+// the codebase. Writes update the cache immediately and flush to IDB in the
+// background; saveToSlot/saveGame await the primary write so failures are
+// surfaced. Falls back to localStorage on browsers where IDB is unavailable
+// (Safari private mode). getActiveSlot/setActiveSlot remain in localStorage
+// (a single digit, read synchronously in many hot paths).
+// initSaves() must be awaited at boot before any slot read.
 
 import type { SavedCareer, SavedSeason, SavedSeasonResult } from '../game/GameCoordinator';
 import { generateFixtures } from '../game/fixtures';
@@ -37,8 +46,7 @@ const SLOT_KEY: Record<SlotId, string> = {
 // Last-known-good copy of each slot. Every write rotates the current primary
 // here BEFORE overwriting it, so a corrupt or partial write can never destroy
 // the only copy — loadSlot falls back to this when the primary won't parse.
-// This is a synchronous, always-present (incl. web) corruption fallback; the
-// richer multi-generation rolling history lives on disk (saveBackup.ts).
+// On IDB this lives alongside the primary in the same object store.
 const SLOT_BAK_KEY: Record<SlotId, string> = {
   1: 'rugby-manager-save-1-bak',
   2: 'rugby-manager-save-2-bak',
@@ -64,9 +72,9 @@ function defaultSlotName(id: SlotId): string {
   return `Save ${id}`;
 }
 
-// Fired after a slot's raw JSON is written to localStorage so the native
-// backup layer (saveBackup.ts) can mirror it to disk. Decouples SaveManager
-// from Capacitor — set once at boot via setSlotWriteHook, no-op on web.
+// Fired after a slot's raw JSON is written so the native backup layer
+// (saveBackup.ts) can mirror it to disk. Decouples SaveManager from
+// Capacitor — set once at boot via setSlotWriteHook, no-op on web.
 let slotWriteHook: ((id: SlotId, raw: string) => void) | null = null;
 export function setSlotWriteHook(fn: ((id: SlotId, raw: string) => void) | null): void {
   slotWriteHook = fn;
@@ -622,50 +630,137 @@ function isValidOffer(o: unknown): o is TransferOffer {
       && typeof r.lengthYears === 'number';
 }
 
+// ── IndexedDB + in-memory cache ───────────────────────────────────────────
+//
+// All slot payloads live in IDB. The cache mirrors every key so reads are
+// synchronous everywhere in the codebase (no API changes for callers that
+// only read). Writes update the cache first, then persist to IDB; saveToSlot
+// awaits the IDB write so storage failures are surfaced to saveGame's caller.
+//
+// On browsers where IDB is unavailable (Safari private mode), idbAvailable is
+// set to false and the fallback path writes directly to localStorage instead.
+
+const IDB_NAME = 'rugby-manager';
+const IDB_STORE = 'saves';
+let dbPromise: Promise<IDBDatabase> | null = null;
+
+function openDb(): Promise<IDBDatabase> {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => { dbPromise = null; reject(req.error); };
+  });
+  return dbPromise;
+}
+
+function idbGet(key: string): Promise<string | null> {
+  return openDb().then(db => new Promise((resolve, reject) => {
+    const req = db.transaction(IDB_STORE, 'readonly').objectStore(IDB_STORE).get(key);
+    req.onsuccess = () => resolve((req.result as string | undefined) ?? null);
+    req.onerror = () => reject(req.error);
+  }));
+}
+
+function idbPut(key: string, value: string): Promise<void> {
+  return openDb().then(db => new Promise((resolve, reject) => {
+    const req = db.transaction(IDB_STORE, 'readwrite').objectStore(IDB_STORE).put(value, key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  }));
+}
+
+function idbDelete(key: string): Promise<void> {
+  return openDb().then(db => new Promise((resolve, reject) => {
+    const req = db.transaction(IDB_STORE, 'readwrite').objectStore(IDB_STORE).delete(key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  }));
+}
+
+const cache = new Map<string, string>();
+let idbAvailable = true;
+
+// Update cache and persist to IDB (or localStorage on fallback).
+// Best-effort for .bak / metadata writes — only saveToSlot awaits the result.
+function storePut(key: string, value: string): Promise<void> {
+  cache.set(key, value);
+  if (!idbAvailable) {
+    try { localStorage.setItem(key, value); } catch { /* best-effort */ }
+    return Promise.resolve();
+  }
+  return idbPut(key, value);
+}
+
+function storeDel(key: string): void {
+  cache.delete(key);
+  if (!idbAvailable) {
+    try { localStorage.removeItem(key); } catch { /* best-effort */ }
+    return;
+  }
+  idbDelete(key).catch(() => {});
+}
+
+// Call once at boot, before any slot read. Opens IDB, migrates any existing
+// localStorage saves into IDB (one-time upgrade for returning players), then
+// populates the in-memory cache. Falls back to localStorage if IDB fails.
+export async function initSaves(): Promise<void> {
+  const allKeys = [
+    ...Object.values(SLOT_KEY),
+    ...Object.values(SLOT_BAK_KEY),
+  ];
+  try {
+    // One-time migration: move any existing localStorage payloads into IDB.
+    for (const key of allKeys) {
+      const val = localStorage.getItem(key);
+      if (val) {
+        await idbPut(key, val);
+        localStorage.removeItem(key);
+      }
+    }
+    // Populate cache from IDB.
+    await Promise.all(allKeys.map(async key => {
+      const val = await idbGet(key);
+      if (val !== null) cache.set(key, val);
+    }));
+  } catch {
+    // IDB unavailable — fall back to localStorage for this session.
+    idbAvailable = false;
+    for (const key of allKeys) {
+      const val = localStorage.getItem(key);
+      if (val) cache.set(key, val);
+    }
+  }
+}
+
 // ── Slot storage ──────────────────────────────────────────────────────────
 
-// Raw localStorage accessors — the native backup layer (saveBackup.ts) reads
-// and writes through these so all key knowledge stays here.
+// Raw cache accessors — the native backup layer (saveBackup.ts) reads and
+// writes through these so all key knowledge stays here.
 export function getRawSlot(id: SlotId): string | null {
-  try {
-    return localStorage.getItem(SLOT_KEY[id]);
-  } catch {
-    return null;
-  }
+  return cache.get(SLOT_KEY[id]) ?? null;
 }
 
-// Write a raw envelope string straight into a slot, firing the mirror hook.
-// Used by the backup reconcile path (disk → localStorage) and by saveToSlot.
+// Write a raw envelope string into a slot, firing the mirror hook.
+// Used by the backup reconcile path (disk → cache) and by saveToSlot.
 export function setRawSlot(id: SlotId, raw: string): void {
-  try {
-    localStorage.setItem(SLOT_KEY[id], raw);
-    slotWriteHook?.(id, raw);
-  } catch {
-    // Best-effort — used by the backup-reconcile path. saveToSlot owns the
-    // user-facing failure on the explicit-save path.
-  }
+  storePut(SLOT_KEY[id], raw).catch(() => {});
+  slotWriteHook?.(id, raw);
 }
 
-// Last-known-good (`.bak`) raw accessors. Mirror getRawSlot/setRawSlot but
-// target the bak key and fire the bak hook. Used by the rotate-before-write in
-// saveToSlot, the load-time fallback, and the backup-reconcile path.
+// Last-known-good (`.bak`) raw accessors.
 export function getRawBak(id: SlotId): string | null {
-  try {
-    return localStorage.getItem(SLOT_BAK_KEY[id]);
-  } catch {
-    return null;
-  }
+  return cache.get(SLOT_BAK_KEY[id]) ?? null;
 }
 
 export function setRawBak(id: SlotId, raw: string): void {
-  try {
-    localStorage.setItem(SLOT_BAK_KEY[id], raw);
-    bakWriteHook?.(id, raw);
-  } catch {
-    // Best-effort — a failed bak write must never block the live save.
-  }
+  storePut(SLOT_BAK_KEY[id], raw).catch(() => {});
+  bakWriteHook?.(id, raw);
 }
 
+// Active-slot pointer stays in localStorage — it's a single digit read
+// synchronously in many hot paths and contains no user data.
 export function getActiveSlot(): SlotId {
   try {
     const v = Number(localStorage.getItem(ACTIVE_KEY));
@@ -740,43 +835,43 @@ export function listSlots(): SlotInfo[] {
 }
 
 // Write a game into a slot, preserving the slot's existing name unless a new
-// one is supplied. Throws on quota failure so the UI can surface it (the
-// legacy saveGame wrapper swallows it to preserve the old autosave contract).
+// one is supplied. Async — awaits the IDB write so storage failures propagate
+// to saveGame's caller as a rejected Promise.
 //
-// Rotate-before-write: the current primary is copied to the `.bak` key FIRST,
-// then the new primary is written. This guarantees the previous good copy is
-// never lost — if the new-primary write throws (quota) or produces corrupt
-// bytes, `.bak` still holds the last good save and loadSlot falls back to it.
-// The bak rotation has its own try/catch so a failed rotation can never block
-// the live save; the primary setItem stays the one that signals quota failure.
-export function saveToSlot(id: SlotId, save: SavedSeason, name?: string): void {
+// Rotate-before-write: the current primary is copied to the `.bak` key FIRST
+// (best-effort, background), then the new primary is written and awaited. If
+// the primary write throws, `.bak` still holds the last good save and
+// loadSlot falls back to it.
+export async function saveToSlot(id: SlotId, save: SavedSeason, name?: string): Promise<void> {
   const existing = readEnvelope(id);
   const slotName = (name ?? existing?.slotName ?? defaultSlotName(id));
   const payload: SavedGame = { version: SAVE_VERSION, slotName, savedAt: Date.now(), ...save };
   const raw = JSON.stringify(payload);
   const prev = getRawSlot(id);
-  if (prev && parseRawSave(prev)) setRawBak(id, prev); // rotate only if prev parses → .bak
-  localStorage.setItem(SLOT_KEY[id], raw); // may throw → caught by saveGame; .bak still holds prev
+  if (prev && parseRawSave(prev)) setRawBak(id, prev); // rotate .bak (best-effort)
+  // Write primary to cache immediately so reads are consistent even if the
+  // IDB flush is still in flight.
+  cache.set(SLOT_KEY[id], raw);
+  if (idbAvailable) {
+    await idbPut(SLOT_KEY[id], raw); // throws on storage failure
+  } else {
+    localStorage.setItem(SLOT_KEY[id], raw); // fallback: throws on quota
+  }
   slotWriteHook?.(id, raw);
 }
 
 export function clearSlot(id: SlotId): void {
-  try {
-    localStorage.removeItem(SLOT_KEY[id]);
-    localStorage.removeItem(SLOT_BAK_KEY[id]);
-    slotWriteHook?.(id, '');
-    bakWriteHook?.(id, '');
-  } catch {
-    // ignore
-  }
+  storeDel(SLOT_KEY[id]);
+  storeDel(SLOT_BAK_KEY[id]);
+  slotWriteHook?.(id, '');
+  bakWriteHook?.(id, '');
 }
 
 export function renameSlot(id: SlotId, name: string): void {
   const env = readEnvelope(id);
   if (!env) return;
   env.slotName = name.trim() || defaultSlotName(id);
-  const raw = JSON.stringify(env);
-  setRawSlot(id, raw);
+  setRawSlot(id, JSON.stringify(env));
 }
 
 // ── Active-slot wrappers (preserve the original autosave contract) ──────────
@@ -788,13 +883,11 @@ export function loadSave(): SavedSeason | null {
 }
 
 // Returns true on success, false on a caught write failure (storage full /
-// disabled / private mode). Autosave stays silent on success to keep the old
-// contract; main.ts inspects the boolean and surfaces a debounced warning on
-// failure so a long career can't silently stop saving. The explicit Save
-// action surfaces failures via toast directly.
-export function saveGame(save: SavedSeason): boolean {
+// disabled / private mode). Autosave callers use .then(ok => ...) so they
+// stay fire-and-forget; the explicit Save action awaits for direct feedback.
+export async function saveGame(save: SavedSeason): Promise<boolean> {
   try {
-    saveToSlot(getActiveSlot(), save);
+    await saveToSlot(getActiveSlot(), save);
     return true;
   } catch {
     return false;

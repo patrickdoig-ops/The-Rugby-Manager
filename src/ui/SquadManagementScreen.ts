@@ -503,7 +503,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
         };
         const ge = opts.getGameEngine();
         ge.setPlayerMatchdaySquad(extractMatchdaySquad(playerTeam));
-        saveGame(ge.toSavePayload());
+        saveGame(ge.toSavePayload()).catch(() => {});
         dirty = false;
         showToast('Squad saved');
         triggerBack();

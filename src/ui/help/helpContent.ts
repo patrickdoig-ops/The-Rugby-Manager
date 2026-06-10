@@ -328,8 +328,13 @@ const HELP_TOPICS = {
     title: 'Team Stats',
     purpose: 'League-wide team leaderboards — see how your club ranks for attack, defence and discipline.',
     features: [
-      { label: 'Stat categories', desc: 'Tries, points, possession, tackles and more across every club.' },
-      { label: 'Your club', desc: 'Highlighted so you can benchmark against the league.' },
+      { label: 'Stat categories', desc: 'Seven views: Attack, Carry, Defence, Kicking, Set Piece, Possession and Discipline.' },
+      { label: 'Your club', desc: 'Your row is highlighted so you can benchmark against the rest of the league.' },
+      { label: 'Sorting', desc: 'Tap any column header to re-sort; tap again to reverse the direction.' },
+      { label: 'Team detail', desc: 'Tap a team row to open their full club information.' },
+    ],
+    tips: [
+      'The chip bar scrolls horizontally — swipe it to reach Possession and Discipline.',
     ],
   },
   'player-stats': {

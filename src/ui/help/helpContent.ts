@@ -143,6 +143,23 @@ const HELP_TOPICS = {
       'Cover every position on the bench so you can react to injuries and sin-bins.',
     ],
   },
+  'player-profile': {
+    title: 'Player Profile',
+    purpose: 'A full breakdown of a player — attributes, contract, form, squad role and career history.',
+    features: [
+      { label: 'OVR badge', desc: 'Overall rating derived from position-relevant attributes. Unscouted players show reputation instead until scouted.' },
+      { label: 'Identity grid', desc: 'Contract expiry, wage, condition, reputation, morale and form at a glance. Coloured values signal when something needs attention.' },
+      { label: 'Squad status', desc: 'The role assigned to this player — First-Team Regular, Fringe Player and so on — and the playing-time expectation it carries. Tap Change to reassign.' },
+      { label: 'Attributes radar', desc: 'Twelve-axis chart showing overall shape at a glance. Greyed axes are less relevant to the position.' },
+      { label: 'Attribute bars', desc: 'Precise values across Physical, Skill and Mental groups. Scouted players show a band rather than an exact number until accuracy reaches 100%.' },
+      { label: 'Career history', desc: 'Season-by-season appearances, tries and average match rating.' },
+      { label: 'Scouting', desc: 'Shown for players outside your squad. Assign one of your hired scouts to improve attribute accuracy over time.' },
+    ],
+    tips: [
+      'Condition and morale both affect match ratings — act early if either drops.',
+      'Assign a scout to a transfer target to narrow attribute bands before making an offer.',
+    ],
+  },
   'squad-overview': {
     title: 'Squad Overview',
     purpose: 'A full view of your roster — every player, their position, ratings and contract status at a glance.',

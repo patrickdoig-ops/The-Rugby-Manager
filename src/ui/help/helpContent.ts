@@ -89,7 +89,7 @@ const HELP_TOPICS = {
     title: 'Competitions',
     purpose: 'A hub for every competition you are involved in — the league, the League Cup and the European tournaments.',
     features: [
-      { label: 'League', desc: 'Standings, fixtures, team and player stats, and end-of-season awards.' },
+      { label: 'League', desc: 'Standings, fixtures, and team and player stats.' },
       { label: 'League Cup', desc: 'The pre-season pool competition run alongside your league campaign.' },
       { label: 'European Cup / Shield', desc: 'Continental pool and knockout competitions, when your club has qualified.' },
     ],
@@ -101,7 +101,6 @@ const HELP_TOPICS = {
       { label: 'Table', desc: 'Live standings, including playoff and European qualification cut-offs.' },
       { label: 'Fixtures', desc: 'The full season schedule with results so far.' },
       { label: 'Team & Player Stats', desc: 'League-wide leaderboards for clubs and individuals.' },
-      { label: 'Awards', desc: 'End-of-season honours once the campaign is decided.' },
     ],
   },
   'contracts-transfers-menu': {
@@ -124,6 +123,7 @@ const HELP_TOPICS = {
       { label: 'Board Confidence', desc: 'How happy your owner is, and the factors driving it.' },
       { label: 'Staff', desc: 'Hire and release your assistant manager, fitness lead and scouts.' },
       { label: 'Finances', desc: 'Player wage budget, staff budget and the slider to move spare headroom between them.' },
+      { label: 'Awards', desc: 'Season honours, trophies and career milestones.' },
     ],
   },
 

@@ -382,7 +382,6 @@ document.addEventListener('DOMContentLoaded', () => {
       onTable:        goLeagueTable,
       onTeamStats:    goTeamStats,
       onPlayerStats:  goPlayerStats,
-      onAchievements: goAchievements,
       onFixtures:     goFixtures,
     });
     initCompetitionsMenuScreen({
@@ -427,6 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onBoardConfidence: () => goBoard(),
       onStaff: () => goStaff(),
       onFinances: () => goFinances(),
+      onAwards: goAchievements,
     });
     initBoardConfidenceScreen({
       getGameEngine,
@@ -515,7 +515,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     initCupFixturesScreen(getGameEngine, allTeams);
     initCupResultsScreen(getGameEngine, allTeams);
-    initAchievementsScreen(() => goLeagueMenu('back'));
+    initAchievementsScreen(() => goClubMenu('back'));
     // Achievements listen to game:* events and read live state through the
     // getter, so the engine swaps cleanly on New Game. Subscriptions are
     // permanent — registered once here like the in-season screens.

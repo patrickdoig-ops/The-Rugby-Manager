@@ -61,13 +61,19 @@ export class AISubstitutionDirector {
       // state, so queuedThisTick tracks players decided in this call so the
       // loop terminates when all eligible tired players have been queued.
       const queuedThisTick = new Set<number>();
-      while (team.bench.length > 0) {
+      // Bench players already assigned this call. In queued mode the bench
+      // array doesn't shrink until the queue applies, so without this two
+      // tired starters could both be matched to the same bench player (the
+      // second substitute() silently no-ops).
+      const queuedBench = new Set<number>();
+      while (team.bench.length > queuedBench.size) {
         const tired = this.pickTiredCandidate(team, side, queuedThisTick);
         if (!tired) break;
-        const replacement = this.pickReplacement(team.bench, tired);
+        const replacement = this.pickReplacement(team.bench, tired, queuedBench);
         if (!replacement) break;
         this.substitute(side, replacement.squadNumber, tired.squadNumber);
         queuedThisTick.add(tired.squadNumber);
+        queuedBench.add(replacement.squadNumber);
       }
     }
   }
@@ -90,11 +96,13 @@ export class AISubstitutionDirector {
 
   // Exact position match first, then forward/back group. No "any bench"
   // fallback — a back coming on for a prop weakens the scrum more than a
-  // 60% prop staying on does.
-  private pickReplacement(bench: Player[], off: Player): Player | null {
-    const exact = bench.find(p => p.position === off.position);
+  // 60% prop staying on does. `exclude` holds bench squadNumbers already
+  // queued this tick (queued mode doesn't mutate the bench until applied).
+  private pickReplacement(bench: Player[], off: Player, exclude: Set<number>): Player | null {
+    const available = bench.filter(p => !exclude.has(p.squadNumber));
+    const exact = available.find(p => p.position === off.position);
     if (exact) return exact;
     const offIsForward = isForward(off.position);
-    return bench.find(p => isForward(p.position) === offIsForward) ?? null;
+    return available.find(p => isForward(p.position) === offIsForward) ?? null;
   }
 }

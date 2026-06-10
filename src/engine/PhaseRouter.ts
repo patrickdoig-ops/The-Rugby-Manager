@@ -2,6 +2,7 @@ import type { MatchState, GameEvent } from '../types/match';
 import { MatchPhase, type KickOffStrategy } from '../types/engine';
 import { rng } from '../utils/rng';
 import { makeId } from './eventId';
+import { onFieldPlayers } from './FieldPosition';
 import type { PhaseContext, PhaseResult } from './events/types';
 import { applyMatchEvent } from './applyMatchEvent';
 import { handleKickOff }        from './events/KickOffEvent';
@@ -67,7 +68,16 @@ export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy
     state,
     attackTeam,
     defendTeam,
-    randomPlayer: (team) => team.players[rng(0, team.players.length - 1)],
+    // On-field only — a sin-binned / sent-off / injured player must never be
+    // the named chaser/receiver/scorer. Falls back to the raw list only if
+    // the on-field pool is somehow empty (defensive; one rng draw either way).
+    randomPlayer: (team) => {
+      const side: 'home' | 'away' = team === state.homeTeam ? 'home' : 'away';
+      const pool = onFieldPlayers(team, state, side);
+      return pool.length > 0
+        ? pool[rng(0, pool.length - 1)]
+        : team.players[rng(0, team.players.length - 1)];
+    },
     pickPlayer:   (team, ...ids) => team.players.find(p => ids.includes(p.id)) ?? team.players[0],
     draftEvent:   (phase) => draftEvent(state, phase),
     kickOffStrategy,

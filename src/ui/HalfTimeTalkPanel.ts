@@ -101,7 +101,7 @@ export function initHalfTimeTalkPanel(panelEl: HTMLElement): void {
       return TONES.map(({ tone, label, category }) => {
         const isActive = selectedTone === tone;
         const isWarn = tone === 'demand' && averageMorale < TEAM_TALK.flatThreshold;
-        const isGood = tone === 'demand' && averageMorale >= TEAM_TALK.flyingThreshold && !isWarn;
+        const isGood = isActive && tone === 'demand' && averageMorale >= TEAM_TALK.flyingThreshold && !isWarn;
         let displayLabel = label;
         if (tone === 'single_out' && selectedPlayerId !== undefined) {
           const p = starters.find(s => s.id === selectedPlayerId);

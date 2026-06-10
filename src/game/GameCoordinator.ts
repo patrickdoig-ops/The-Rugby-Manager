@@ -58,6 +58,7 @@ import { upcomingGap, splitGapIntoPeriods } from './trainingCalendar';
 import { reconcileRestObligations, lionsReturnEvents, summerTourReturnEvents } from './internationalDutyEngine';
 import { computeRollover } from './careerRollover';
 import { generateStaffPool, staffWageForRating } from './staffPoolGenerator';
+import { STAFF_RATING_BAND } from '../engine/balance/staff';
 import { generatePersona } from './personaGenerator';
 import { buildLoanPoolEvents } from './loanPoolGenerator';
 import { buildRosterSeededEvent, buildCareerArchiveRestoredEvent } from './saveMigration';
@@ -283,7 +284,7 @@ export class GameCoordinator {
     let staffPool = initialStaff;
     let nextStaffId = poolNextId;
     if (quickStart) {
-      const AVG = 65; // midpoint of STAFF_RATING_BAND (40–90)
+      const AVG = Math.round((STAFF_RATING_BAND.min + STAFF_RATING_BAND.max) / 2);
       const wage = staffWageForRating(AVG);
       const make = (role: 'assistant' | 'fitness' | 'scout', name: string) => ({
         id: `s${nextStaffId++}`, role, name, rating: AVG, annualWage: wage,

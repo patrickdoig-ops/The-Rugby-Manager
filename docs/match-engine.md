@@ -1911,8 +1911,8 @@ The period ends only when the ball goes dead. `shouldEndPeriod` returns `true` o
 |---|---|
 | `state.phase === Scrum && prevPhase !== Scrum` | Knock-on or crooked lineout throw (not a wheel reset — those have prevPhase === Scrum) |
 | `state.phase === Lineout && !state.clock.penaltyKickToTouchLineout` | Ball in touch (except after a penalty kick-to-touch — see exception below) |
-| `state.phase === KickOff && prevPhase === ConversionKick` | Try scored and conversion taken |
-| `state.phase === KickOff && prevPhase === Penalty` | Penalty goal kick attempt (success or miss) |
+
+Goal kicks (conversions and penalty kicks at goal) never reach `shouldEndPeriod` — they resolve in the KickAtGoal micro-phase, whose tick ends the period itself (see the short-circuit below).
 
 **Penalty kick-to-touch exception:** When the home team chooses `kick_to_touch` on a penalty during the red, `state.clock.penaltyKickToTouchLineout` is set to `true`. `shouldEndPeriod` detects this, clears the flag, and returns `false` — the subsequent lineout does not end the period. This allows the attacking team to take the lineout and keep playing.
 

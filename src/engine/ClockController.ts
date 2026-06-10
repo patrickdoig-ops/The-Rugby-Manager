@@ -83,14 +83,9 @@ export class ClockController {
       }
       return true;
     }
-    // Try scored and conversion taken → kickoff restart
-    if (state.phase === MatchPhase.KickOff && prevPhase === MatchPhase.ConversionKick) return true;
-    // Penalty goal kick or conversion resolved via KickAtGoal micro-phase →
-    // kickoff restart. KickAtGoalHandler.advance transitions phase to KickOff,
-    // so prevPhase at the next tick is KickAtGoal.
-    if (state.phase === MatchPhase.KickOff && prevPhase === MatchPhase.KickAtGoal) return true;
-    // Penalty tap-and-kick-dead (clock-killing kick to touch) → kickoff restart
-    if (state.phase === MatchPhase.KickOff && prevPhase === MatchPhase.Penalty) return true;
+    // Goal kicks (penalty / conversion) resolve in the KickAtGoal micro-phase,
+    // whose tick handles the in-the-red period end itself (tickKickAtGoal) —
+    // they never reach this check.
     return false;
   }
 

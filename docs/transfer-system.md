@@ -451,7 +451,7 @@ After renewals close, the user + every AI club can sign any player in `state.car
 
 **Phase 5 work items proper:**
 1. ✅ `TransferMarketScreen` lists free agents sortable by name / pos / age / OVR / wage, with live projected-cap pill.
-2. ✅ `aiTransferDirector.decideAISignings` — greedy by `overall + position-need × 10`, no OVR floor (the pool is largely sub-70 — score keeps quality ahead of squad-filler), capped at 4 signings per club per window against `AI_SIGN_CAP_TARGET = 0.92` of effective cap.
+2. ✅ `aiTransferDirector.decideAISignings` — greedy by `overall + position-need × 10`, no OVR floor (the pool is largely sub-70 — score keeps quality ahead of squad-filler), capped at 4 signings per club per window against `AI_SIGN_CAP_TARGET = 0.92` of effective cap. *(Superseded by the Phase-10 bid-then-resolve passes and since removed from the code.)*
 3. ✅ Cached offers on `state.career.market.offers` (seeded once at `openSigningWindow`, read by re-renders + sign calls + AI close pass — keeps `rngTransfer` stable).
 4. ✅ User-side `signFreeAgent(rosterId)` fires `CONTRACT_SIGNED` immediately at the cached terms.
 
@@ -465,7 +465,7 @@ Approach players at other clubs whose contract enters its final 12 months. The m
 1. ✅ `aiTransferDirector.isPoachEligible(player, currentDate)` — final-12-month check.
 2. ✅ Surfaced in `TransferMarketScreen` as a second section ("Final-12-Month Contracts (Reg 7 Pre-Agreement)") alongside free agents — the same screen serves both flows.
 3. ✅ `PRE_AGREEMENT_SIGNED` pushes onto `state.career.pendingMoves`; `careerRollover` fires `TRANSFER_ACTIVATED` per pending move on rollover (atomic squad swap, no `freeAgents` touch).
-4. ✅ `aiTransferDirector.decideAIPoaches` — max 1 per non-human AI club per window, OVR ≥ `aiReleaseRatingFloor`, position-need bonus.
+4. ✅ `aiTransferDirector.decideAIPoaches` — max 1 per non-human AI club per window, OVR ≥ `aiReleaseRatingFloor`, position-need bonus. *(Superseded by the Phase-10 bid-then-resolve passes and since removed from the code.)*
 
 **Deferred:** mid-season activation, buyouts, loan deals.
 

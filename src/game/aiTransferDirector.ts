@@ -177,95 +177,6 @@ function makeOfferId(seasonsCompleted: number, clubId: string, rid: number): str
 
 // --- Free-agent signings (Phase 5) ---
 
-// Per-signing decision the director produces for one AI club. Caller
-// fires CONTRACT_SIGNED with these fields.
-export interface AISigning {
-  rosterId: number;
-  clubId: string;
-  annualWage: number;
-  expiresOn: string;
-}
-
-// One pass per AI club, in stable club-id-ascending order. For each:
-// score the remaining free agents (rating + position-need bonus),
-// greedy-sign the top scorers until the club's cap target or the
-// per-club signing limit is hit. Players signed by an earlier club
-// are not re-considered by later clubs (deterministic resolution of
-// what would otherwise be multi-club bidding).
-//
-// rngTransfer is advanced once per candidate per club (via
-// contractSeeder seeding their fresh-market wage). Stable rosterId
-// iteration order keeps the sequence deterministic across runs.
-//
-// `humanClubId` (if provided) is skipped — the human signs themselves
-// via signFreeAgent. Pass undefined in headless contexts so the
-// director fills every club.
-export function decideAISignings(state: GameState, humanClubId?: string): AISigning[] {
-  const signings: AISigning[] = [];
-  const taken = new Set<number>();
-  const seasonStartYear = parseSeasonStartYear(state.calendar.seasonLabel);
-
-  const clubs = [...state.career.clubs].sort((a, b) => a.id.localeCompare(b.id));
-  for (const club of clubs) {
-    if (club.id === humanClubId) continue;
-
-    let currentCap = 0;
-    const positionCounts = new Map<string, number>();
-    for (const rid of club.squad) {
-      const p = state.career.roster[rid];
-      if (!p) continue;
-      if (!p.contract.isMarquee) currentCap += p.contract.annualWage;
-      positionCounts.set(p.position, (positionCounts.get(p.position) ?? 0) + 1);
-    }
-    // Target the club's own salaryBudget (owner-set), not the league
-    // cap. Bath spends near £7.8m, Newcastle stays much lower.
-    let headroom = club.salaryBudget * AI_SIGNING_POLICY.capTarget - currentCap;
-    if (headroom <= 0) continue;
-
-    // Score every remaining free agent for this club. Each candidate
-    // gets a fresh wage seed (advances rngTransfer twice) so the
-    // sequence is deterministic.
-    const candidates = state.career.freeAgents
-      .filter(rid => !taken.has(rid))
-      .map(rid => {
-        const p = state.career.roster[rid];
-        if (!p) return null;
-        const overall = playerOverall(p.baseStats, p.position);
-        const fresh = seedContractFields(p, club.id, seasonStartYear);
-        const need = Math.max(0, AI_SIGNING_POLICY.targetPerPosition - (positionCounts.get(p.position) ?? 0));
-        const score = overall + need * AI_SIGNING_POLICY.positionNeedWeight;
-        return { rid, p, overall, fresh, score };
-      })
-      .filter((x): x is NonNullable<typeof x> => x !== null)
-      // No OVR floor here — the pool is largely sub-70 (renewals
-      // released them precisely because of the renewal floor) but
-      // clubs still need to fill thin positions. Score keeps quality
-      // signings ahead of squad-filler ones.
-      .sort((a, b) => b.score - a.score || a.rid - b.rid);
-
-    let signedThisClub = 0;
-    for (const { rid, p, fresh } of candidates) {
-      if (signedThisClub >= AI_SIGNING_POLICY.perClubLimit) break;
-      const wage = fresh.contract.annualWage;
-      if (wage > headroom) continue;
-      void p; // p available if needed by future heuristics
-      const lengthYears = fresh.lengthYears;
-      signings.push({
-        rosterId: rid,
-        clubId: club.id,
-        annualWage: wage,
-        expiresOn: expiryAfterYears(state, lengthYears),
-      });
-      taken.add(rid);
-      headroom -= wage;
-      positionCounts.set(p.position, (positionCounts.get(p.position) ?? 0) + 1);
-      signedThisClub += 1;
-    }
-  }
-
-  return signings;
-}
-
 // Pure helper for the user-side signing path. Returns the wage +
 // length the user's club would offer a given free agent (matches what
 // the AI director would compute for the same player at the same
@@ -356,79 +267,11 @@ export function assessAIPoachThreats(state: GameState, humanClubId: string): num
   return threatened.sort((a, b) => a - b);
 }
 
-// AI poaching pass: per club, score available poach candidates and
-// pre-agree the top scorer if cap fits AND the player's OVR is above
-// the floor + the candidate isn't already pre-agreed by an earlier
-// club. Pure / RNG-free decision logic (wage seeds via contractSeeder
-// inside seedContractFields → rngTransfer, deterministic over stable
-// iteration).
-//
-// One poaching per non-human AI club per window in v1 — keeps the AI
-// from gutting a rival's entire squad in one off-season.
-export function decideAIPoaches(state: GameState, humanClubId?: string): Array<{
-  rosterId: number; toClubId: string; annualWage: number; lengthYears: number;
-}> {
-  const decisions: Array<{ rosterId: number; toClubId: string; annualWage: number; lengthYears: number }> = [];
-  const claimed = new Set<number>();
-  const seasonStartYear = parseSeasonStartYear(state.calendar.seasonLabel);
-  const candidates = poachCandidates(state);
-  if (candidates.length === 0) return decisions;
-
-  const clubs = [...state.career.clubs].sort((a, b) => a.id.localeCompare(b.id));
-  for (const club of clubs) {
-    if (club.id === humanClubId) continue;
-
-    let currentCap = 0;
-    for (const rid of club.squad) {
-      const p = state.career.roster[rid];
-      if (!p || p.contract.isMarquee) continue;
-      currentCap += p.contract.annualWage;
-    }
-    // Target the club's owner-set salaryBudget, not the league cap.
-    const headroom = club.salaryBudget * AI_SIGNING_POLICY.capTarget - currentCap;
-    if (headroom <= 0) continue;
-
-    // Score: overall + position-need bonus, restricted to OVR >= floor.
-    const positionCounts = new Map<string, number>();
-    for (const rid of club.squad) {
-      const p = state.career.roster[rid];
-      if (!p) continue;
-      positionCounts.set(p.position, (positionCounts.get(p.position) ?? 0) + 1);
-    }
-
-    const ranked = candidates
-      .filter(rid => !claimed.has(rid))
-      .map(rid => state.career.roster[rid])
-      .filter((p): p is Player => !!p)
-      .filter(p => p.contract.clubId !== club.id) // don't poach your own
-      .map(p => {
-        const overall = playerOverall(p.baseStats, p.position);
-        const fresh = seedContractFields(p, club.id, seasonStartYear);
-        const need = Math.max(0, AI_SIGNING_POLICY.targetPerPosition - (positionCounts.get(p.position) ?? 0));
-        return { p, overall, fresh, score: overall + need * AI_SIGNING_POLICY.positionNeedWeight };
-      })
-      .filter(x => x.overall >= RENEWAL.aiReleaseRatingFloor)
-      .filter(x => x.fresh.contract.annualWage <= headroom)
-      .sort((a, b) => b.score - a.score || a.p.rosterId - b.p.rosterId);
-
-    const top = ranked[0];
-    if (!top) continue;
-    decisions.push({
-      rosterId: top.p.rosterId,
-      toClubId: club.id,
-      annualWage: top.fresh.contract.annualWage,
-      lengthYears: top.fresh.lengthYears,
-    });
-    claimed.add(top.p.rosterId);
-  }
-
-  return decisions;
-}
-
 // --- Competitive bidding (Phase 10) ---
 //
-// Replaces the direct CONTRACT_SIGNED / PRE_AGREEMENT_SIGNED path in
-// decideAISignings + decideAIPoaches with bid-then-resolve. Each AI
+// Replaced the older direct CONTRACT_SIGNED / PRE_AGREEMENT_SIGNED
+// greedy passes (decideAISignings/decideAIPoaches, since removed) with
+// bid-then-resolve. Each AI
 // club's per-round pass picks targets they could afford + need + are
 // good enough to want, and produces a TransferBid for each. The
 // resolver later picks winners by appeal score.

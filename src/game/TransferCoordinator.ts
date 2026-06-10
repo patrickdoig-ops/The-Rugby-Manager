@@ -19,7 +19,7 @@ import type { Player } from '../types/player';
 import { applySeasonEvent } from './applySeasonEvent';
 import {
   expiringRosterIds, generateRenewalOffers, decideAIOffers, expiryAfterYears,
-  decideAISignings, signingTermsFor, isPoachEligible, decideAIPoaches, poachCandidates,
+  signingTermsFor, isPoachEligible, poachCandidates,
   decideAIBids, decideAIRetentions, decideAIFinalSignings, retentionTermsFor,
   assessAIPoachThreats,
 } from './aiTransferDirector';

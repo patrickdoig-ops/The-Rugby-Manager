@@ -582,13 +582,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function goEuropeanCup(direction: 'forward' | 'back' = 'forward'): void {
-    screenRouter.show('european-cup', { direction });
     showEuropeanCupScreen();
+    screenRouter.show('european-cup', { direction });
   }
 
   function goEuropeanShield(direction: 'forward' | 'back' = 'forward'): void {
-    screenRouter.show('european-shield', { direction });
     showEuropeanShieldScreen();
+    screenRouter.show('european-shield', { direction });
   }
 
   function goCupBrowse(direction: 'forward' | 'back' = 'forward'): void {
@@ -1599,19 +1599,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const euroRound = gameEngine.getCurrentEuropeanRound();
     if (euroRound) {
       if (euroRound.isFinal) {
-        screenRouter.show('european-final');
         showEuropeanFinal(euroRound, () => {
           gameEngine!.markEuropeanRoundShown(euroRound.competition, euroRound.roundKey);
           if (gameEngine) autosave(gameEngine.toSavePayload());
           maybePlayEuropeanFixture(onDone);
         });
+        screenRouter.show('european-final');
       } else {
-        screenRouter.show('european-round');
         showEuropeanRound(euroRound, () => {
           gameEngine!.markEuropeanRoundShown(euroRound.competition, euroRound.roundKey);
           if (gameEngine) autosave(gameEngine.toSavePayload());
           maybePlayEuropeanFixture(onDone);
         });
+        screenRouter.show('european-round');
       }
       return;
     }

@@ -32,7 +32,7 @@ import {
 } from './midseasonSigningResolver';
 import { clubBudgetUsage } from './teamStats';
 import { isContractExpiringSoon } from './age';
-import { RENEWAL, WAGE_FLOOR, WAGE_ROUNDING_UNIT, MIDSEASON_POACH } from '../engine/balance/transfers';
+import { RENEWAL, WAGE_FLOOR, WAGE_ROUNDING_UNIT, MIDSEASON_POACH, MAX_LOANS_OUT, PLAYING_TIME_PROMISE } from '../engine/balance/transfers';
 import { MORALE, SQUAD_STATUS_THRESHOLDS } from '../engine/balance';
 import { rngTransfer } from '../utils/rng';
 import type { PreSeasonTransfer } from '../data/transfers-2025-26';
@@ -1123,12 +1123,12 @@ export class TransferCoordinator {
   }
 
   // Feature 1.4 — promise game time to a player (inbox CTA).
-  // Promises `startsRequired` starts in the next 5 rounds.
+  // Promises `startsRequired` starts in the next `windowRounds` rounds.
   makePlayingTimePromise(rosterId: number): void {
     const p = this.state.career.roster[rosterId];
     if (!p) return;
-    const toRound = this.state.calendar.week + 5;
-    const startsRequired = 3;
+    const toRound = this.state.calendar.week + PLAYING_TIME_PROMISE.windowRounds;
+    const startsRequired = PLAYING_TIME_PROMISE.startsRequired;
     applySeasonEvent(this.state, {
       type: 'PLAYING_TIME_PROMISED',
       rosterId,
@@ -1159,11 +1159,10 @@ export class TransferCoordinator {
     if (!p || p.loanOut) return;
     const partnerClub = PARTNERSHIP_CLUB[this.state.player.teamId];
     if (!partnerClub) return;
-    // Check 5-player loan-out limit.
     const club = this.state.career.clubs.find(c => c.id === this.state.player.teamId);
     if (!club) return;
     const currentLoans = club.squad.filter(rid2 => this.state.career.roster[rid2]?.loanOut).length;
-    if (currentLoans >= 5) return;
+    if (currentLoans >= MAX_LOANS_OUT) return;
     applySeasonEvent(this.state, {
       type: 'PLAYER_LOANED_OUT',
       rosterId,

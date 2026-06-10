@@ -65,3 +65,12 @@ export const BOARD_BANDS: { min: number; key: 'secure' | 'stable' | 'shaky' | 'c
   { min: 26, key: 'shaky',    label: 'Under pressure' },
   { min: 0,  key: 'critical', label: 'At risk' },
 ];
+
+// Immediate board-confidence delta on European elimination, keyed by how
+// the achieved stage compares to the board's europeanObjective
+// (BoardCoordinator.applyEuropeanElimination).
+export const BOARD_EURO_ELIMINATION_DELTA = {
+  metOrExceeded: 3,    // achieved >= objective
+  oneStageShort: -5,   // achieved == objective - 1
+  furtherShort:  -10,  // achieved <= objective - 2
+};

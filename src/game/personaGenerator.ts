@@ -14,6 +14,7 @@ import { zeroMatchStats, zeroSeasonStats } from '../types/player';
 import { rngTransfer, rngTransferRaw } from '../utils/rng';
 import { WAGE_BY_RATING, POSITION_SCARCITY, WAGE_FLOOR, WAGE_ROUNDING_UNIT, PERSONA_CONTRACT_LENGTH_YEARS, PERSONA_REPUTATION, IMPORT_CONTRACT_LENGTH } from '../engine/balance/transfers';
 import { ACADEMY_SUPPLY, POTENTIAL_HEADROOM } from '../engine/balance/career';
+import { MORALE } from '../engine/balance/morale';
 import { playerOverall } from '../engine/RatingEngine';
 
 // First names + surnames per nationality. Drawn from league-era
@@ -164,7 +165,7 @@ export function generatePersona(seed: PersonaSeed, calendarDate: string): Player
     x: 50,
     y: 50,
     condition: 100,
-    morale: 65,
+    morale: MORALE.baseline,
     potential,
   };
 }

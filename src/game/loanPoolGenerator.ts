@@ -14,21 +14,21 @@
 import type { GameState, SeasonEvent } from '../types/gameState';
 import { generatePersona } from './personaGenerator';
 import { rngTransfer } from '../utils/rng';
-
-const LOAN_POOL_MIN = 15;
-const LOAN_POOL_MAX = 20;
-const LOAN_AGE_BAND  = { min: 19, max: 26 };
-const LOAN_RATING_BAND = { min: 55, max: 72 };
+import { LOAN_POOL } from '../engine/balance/transfers';
 
 export function buildLoanPoolEvents(state: GameState): SeasonEvent[] {
   const events: SeasonEvent[] = [];
-  const count = rngTransfer(LOAN_POOL_MIN, LOAN_POOL_MAX);
+  const count = rngTransfer(LOAN_POOL.countMin, LOAN_POOL.countMax);
   const rosterIds: number[] = [];
   let nextId = state.career.nextRosterId;
 
   for (let i = 0; i < count; i++) {
     const player = generatePersona(
-      { rosterId: nextId, ageBand: LOAN_AGE_BAND, ratingBand: LOAN_RATING_BAND },
+      {
+        rosterId: nextId,
+        ageBand: { min: LOAN_POOL.ageMin, max: LOAN_POOL.ageMax },
+        ratingBand: { min: LOAN_POOL.ratingMin, max: LOAN_POOL.ratingMax },
+      },
       state.calendar.date,
     );
     events.push({ type: 'FOREIGN_IMPORT_ARRIVED', player });

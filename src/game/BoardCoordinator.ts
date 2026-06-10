@@ -12,7 +12,7 @@ import { applySeasonEvent } from './applySeasonEvent';
 import { sortStandings } from './leagueTable';
 import { seedConfidence, resultDelta, currentObjectiveVerdict, eosSwing, type ObjectiveVerdict } from './board';
 import { recentForm, type FormResult } from './teamStats';
-import { BOARD_THRESHOLDS, PRESS_SKIP_BOARD_PENALTY } from '../engine/balance';
+import { BOARD_THRESHOLDS, BOARD_EURO_ELIMINATION_DELTA, PRESS_SKIP_BOARD_PENALTY } from '../engine/balance';
 
 export class BoardCoordinator {
   constructor(private state: GameState, private teamsById: Map<string, RawTeamInput>) {}
@@ -124,7 +124,9 @@ export class BoardCoordinator {
     const achieved = STAGES.indexOf(achievedStage);
     const objective = STAGES.indexOf(this.state.player.board.europeanObjective ?? 'participate');
     const gap = achieved - objective;
-    const delta = gap >= 0 ? 3 : gap === -1 ? -5 : -10;
+    const delta = gap >= 0 ? BOARD_EURO_ELIMINATION_DELTA.metOrExceeded
+      : gap === -1 ? BOARD_EURO_ELIMINATION_DELTA.oneStageShort
+      : BOARD_EURO_ELIMINATION_DELTA.furtherShort;
     applySeasonEvent(this.state, {
       type: 'BOARD_CONFIDENCE_ADJUSTED',
       delta,

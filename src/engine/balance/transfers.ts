@@ -397,3 +397,30 @@ export const STATUS_MISMATCH_PENALTY = {
   statusMismatchPenalty:   0.25,
   statusMismatchHardBlock: 0.50,
 };
+
+// Maximum simultaneous loan-outs to the partnership club
+// (GameCoordinator.loanOutPlayer).
+export const MAX_LOANS_OUT = 5;
+
+// Playing-time promise (Feature 1.4, inbox CTA): the player must start
+// `startsRequired` matches before round `week + windowRounds` or
+// PROMISE_BROKEN fires.
+export const PLAYING_TIME_PROMISE = {
+  windowRounds:   5,
+  startsRequired: 3,
+};
+
+// Per-season loan-pool re-seed (loanPoolGenerator): pool size and the
+// age / rating bands the generated personas draw from.
+export const LOAN_POOL = {
+  countMin:  15,
+  countMax:  20,
+  ageMin:    19,
+  ageMax:    26,
+  ratingMin: 55,
+  ratingMax: 72,
+};
+
+// AI clubs attempt early renewals of their own expiring players every
+// N rounds (GameCoordinator: week % cadenceRounds === 1).
+export const AI_EARLY_RENEWAL_CADENCE_ROUNDS = 4;

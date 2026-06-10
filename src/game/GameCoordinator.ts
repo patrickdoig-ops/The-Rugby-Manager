@@ -73,7 +73,7 @@ import { computeBudgetEvents } from './budgetPlanner';
 import { computeAttendance } from './attendance';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed, rngTransfer, getTransferCallCount, advanceTransferTo, hashSeed } from '../utils/rng';
-import { SEASON_VALUES, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD, MORALE } from '../engine/balance';
+import { SEASON_VALUES, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD, MORALE, AI_EARLY_RENEWAL_CADENCE_ROUNDS } from '../engine/balance';
 import type { SquadStatusKey } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 import type { RawTeamInput } from '../types/teamData';
@@ -1173,9 +1173,10 @@ export class GameCoordinator {
       this.transfers.updatePoachThreats();
     }
 
-    // AI early-renewal cadence: every 4 rounds, each AI club attempts to
-    // lock in its best expiring player before the off-season window.
-    if (this.state.calendar.week % 4 === 1) {
+    // AI early-renewal cadence: every AI_EARLY_RENEWAL_CADENCE_ROUNDS rounds,
+    // each AI club attempts to lock in its best expiring player before the
+    // off-season window.
+    if (this.state.calendar.week % AI_EARLY_RENEWAL_CADENCE_ROUNDS === 1) {
       this.transfers.runAIEarlyRenewals();
     }
 

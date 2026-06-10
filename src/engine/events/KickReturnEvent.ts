@@ -33,7 +33,12 @@ export function handleKickReturn({ state, attackTeam, defendTeam, randomPlayer, 
   // Step 1 — Carrier is whoever caught the kick; no handling gate.
   // Defender is drawn from the chase pack — back-row + hookers do most of
   // the chase-and-tackle work (flat forward-weighted, no carrier awareness).
-  let carrier = state.kickReturnCarrier ?? (attackOnField.length > 0 ? attackOnField[rng(0, attackOnField.length - 1)] : randomPlayer(attackTeam));
+  // Validate the stored carrier is still on the field — a silent-mode AI sub
+  // applied earlier this tick can have substituted them off since the catch.
+  const storedCarrier = state.kickReturnCarrier && attackOnField.includes(state.kickReturnCarrier)
+    ? state.kickReturnCarrier
+    : undefined;
+  let carrier = storedCarrier ?? (attackOnField.length > 0 ? attackOnField[rng(0, attackOnField.length - 1)] : randomPlayer(attackTeam));
 
   // Pod pickup — catcher (typically FB / wing) pops to a trailing back-row
   // pod runner who actually takes contact. Tactics-keyed: tight teams build

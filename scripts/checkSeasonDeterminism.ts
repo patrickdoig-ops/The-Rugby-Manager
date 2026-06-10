@@ -114,8 +114,14 @@ function lookupTeam(teamId: string): RawTeamInput | undefined {
   return allTeams.find(t => t.id === teamId);
 }
 
-async function runOnce(seed: number): Promise<string> {
-  const coord = await GameCoordinator.newSeason(PLAYER_ID, seed, allTeams);
+// `roundTrip: true` exercises the save/load contract: after the season-2 →
+// season-3 rollover, the coordinator is serialised via toSavePayload(), put
+// through a real JSON round-trip, and rebuilt with GameCoordinator.fromSave;
+// season 3 then runs on the restored coordinator. The final hash must match
+// the uninterrupted run — this is what makes the careerRngOffset snapshot
+// claim ("load/reload is fully deterministic") an enforced invariant.
+async function runOnce(seed: number, roundTrip = false): Promise<string> {
+  let coord = await GameCoordinator.newSeason(PLAYER_ID, seed, allTeams);
   const teamsById = new Map(allTeams.map(t => [t.id, t]));
 
   const seasonSnapshots: unknown[] = [];
@@ -249,7 +255,34 @@ async function runOnce(seed: number): Promise<string> {
       } : null,
     } : null;
 
-    seasonSnapshots.push({
+    // Snapshot both European competitions — pool standings, every fixture
+    // result, and the full knockout cascade + champion. Locks the European
+    // sims (the only competition layer previously uncovered by this harness).
+    const euroSummary = (comp: typeof preRolloverState.league.europeanCup): unknown => comp ? {
+      seasonLabel: comp.seasonLabel,
+      pools: comp.pools.map(p => ({ id: p.id, teamIds: p.teamIds, standings: p.standings })),
+      fixtures: comp.fixtures.map(f => ({ poolId: f.poolId, round: f.round, homeId: f.homeId, awayId: f.awayId, result: f.result ?? null })),
+      knockout: comp.knockout ? {
+        championTeamId: comp.knockout.championTeamId,
+        r16: comp.knockout.r16.map(m => ({ homeId: m.homeId, awayId: m.awayId, result: m.result ?? null })),
+        quarterfinals: comp.knockout.quarterfinals.map(m => ({ homeId: m.homeId, awayId: m.awayId, result: m.result ?? null })),
+        semifinals: comp.knockout.semifinals.map(m => ({ homeId: m.homeId, awayId: m.awayId, result: m.result ?? null })),
+        final: { homeId: comp.knockout.final.homeId, awayId: comp.knockout.final.awayId, result: comp.knockout.final.result ?? null },
+      } : null,
+    } : null;
+    const europeanSummary = {
+      cup: euroSummary(preRolloverState.league.europeanCup),
+      shield: euroSummary(preRolloverState.league.europeanShield),
+    };
+
+    // Freeze the snapshot BY VALUE at capture time. Several fields hold live
+    // references into coordinator state (standings; rollover events carrying
+    // whole Player objects), which continue mutating through later seasons —
+    // run-vs-run that cancels out, but the save/load round-trip leg swaps
+    // coordinators mid-career, freezing the old references while the
+    // uninterrupted run keeps mutating them. Value snapshots make the
+    // comparison reflect actual game state, not aliasing.
+    seasonSnapshots.push(JSON.parse(JSON.stringify({
       seasonLabel,
       finalStandings,
       resultsHash,
@@ -259,12 +292,20 @@ async function runOnce(seed: number): Promise<string> {
       budgetSummary,
       playoffSummary,
       premCupSummary,
+      europeanSummary,
       // Strip large stable fields from the rollover payload — only the
       // PLAYER_RETIRED rosterIds and PLAYER_AGED deltas matter for the
       // determinism contract; SEASON_ROLLED_OVER's fixture list is
       // already covered via the next season's `finalStandings`.
       rolloverEvents,
-    });
+    })));
+
+    // Save/load round-trip leg — rebuild the coordinator from its own save
+    // after the rollover into the final season.
+    if (roundTrip && s === SEASONS - 2) {
+      const payload = JSON.parse(JSON.stringify(coord.toSavePayload()));
+      coord = GameCoordinator.fromSave(payload, allTeams);
+    }
   }
 
   // Final roster snapshot: every player's baseStats, sorted by rosterId
@@ -295,4 +336,9 @@ if (h1 !== h2) {
   console.error(`CAREER DETERMINISM BROKEN\n  run1: ${h1}\n  run2: ${h2}`);
   process.exit(1);
 }
-console.log(`OK: career deterministic (${SEASONS} seasons). seed=0x${SEED.toString(16)} hash=${h1.slice(0, 16)}…`);
+const h3 = await runOnce(SEED, true);
+if (h3 !== h1) {
+  console.error(`SAVE/LOAD ROUND-TRIP BROKEN — a career restored from its own save diverges\n  uninterrupted: ${h1}\n  round-trip:    ${h3}`);
+  process.exit(1);
+}
+console.log(`OK: career deterministic (${SEASONS} seasons, incl. save/load round-trip). seed=0x${SEED.toString(16)} hash=${h1.slice(0, 16)}…`);

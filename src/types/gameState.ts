@@ -739,6 +739,9 @@ export type SeasonEvent =
       objective: BoardAmbition;
       warningIssued: boolean;
       sacked: boolean;
+      // Restored verbatim on save-load; absent on a fresh season seed
+      // (EUROPEAN_OBJECTIVE_SET fills it once the competition is drawn).
+      europeanObjective?: EuropeanObjective;
     }
   | {
       type: 'BOARD_CONFIDENCE_ADJUSTED';

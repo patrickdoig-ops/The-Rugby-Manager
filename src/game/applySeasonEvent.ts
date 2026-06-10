@@ -839,6 +839,9 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         objective: event.objective,
         warningIssued: event.warningIssued,
         sacked: event.sacked,
+        ...(event.europeanObjective !== undefined
+          ? { europeanObjective: event.europeanObjective }
+          : {}),
       };
       return;
     }

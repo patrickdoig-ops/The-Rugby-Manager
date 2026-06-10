@@ -384,6 +384,9 @@ export class GameCoordinator {
         objective: save.board.objective,
         warningIssued: save.board.warningIssued,
         sacked: save.board.sacked,
+        ...(save.board.europeanObjective !== undefined
+          ? { europeanObjective: save.board.europeanObjective }
+          : {}),
       });
     } else {
       coord.board.seedBoardState();

@@ -146,6 +146,8 @@ export interface SavedSeason {
   premCup?: import('../types/gameState').PremCupState | null;
   // Remembered Assistant-Manager cup direction.
   cupDirection?: 'best' | 'rest_first_15';
+  // Remembered manage-cup-live preference (omitted when false/default).
+  cupManageLive?: boolean;
   // Generated media stories for the current season. Not replayable from
   // `results` (they need the per-match snapshot), so persisted directly and
   // restored verbatim by fromSave. Optional — absent on saves written before
@@ -385,6 +387,9 @@ export class GameCoordinator {
     if (save.cupDirection) {
       applySeasonEvent(coord.state, { type: 'PLAYER_CUP_DIRECTION_SET', direction: save.cupDirection });
     }
+    if (save.cupManageLive) {
+      applySeasonEvent(coord.state, { type: 'PLAYER_CUP_MANAGE_LIVE_SET', manageLive: save.cupManageLive });
+    }
     // Media stories aren't replayable from `results` (they need the per-match
     // snapshot), so restore them verbatim.
     if (save.mediaStories) {
@@ -601,6 +606,12 @@ export class GameCoordinator {
   // first-choice 15). Becomes the remembered default for the next break.
   setCupDirection(direction: 'best' | 'rest_first_15'): void {
     this.intlBreak.setCupDirection(direction);
+  }
+
+  // Persists whether the manager plays their own cup matches live or hands
+  // them to the assistant. Remembered default for subsequent matchdays.
+  setCupManageLive(manageLive: boolean): void {
+    applySeasonEvent(this.state, { type: 'PLAYER_CUP_MANAGE_LIVE_SET', manageLive });
   }
 
   // ── Live cup weekly flow — delegates to InternationalBreakCoordinator ────
@@ -1507,6 +1518,9 @@ export class GameCoordinator {
         : {}),
       ...(this.state.player.cupDirection
         ? { cupDirection: this.state.player.cupDirection }
+        : {}),
+      ...(this.state.player.cupManageLive
+        ? { cupManageLive: true }
         : {}),
       ...(this.state.league.mediaStories.length > 0
         ? { mediaStories: this.state.league.mediaStories }

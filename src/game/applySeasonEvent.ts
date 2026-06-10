@@ -829,6 +829,10 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       state.player.cupDirection = event.direction;
       return;
     }
+    case 'PLAYER_CUP_MANAGE_LIVE_SET': {
+      state.player.cupManageLive = event.manageLive;
+      return;
+    }
     case 'PREM_CUP_ROUND_SHOWN': {
       const cup = state.league.premCup;
       if (!cup) return;

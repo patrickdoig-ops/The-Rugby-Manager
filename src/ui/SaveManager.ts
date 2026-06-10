@@ -166,6 +166,7 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
     const cupDirection = parsed.cupDirection === 'rest_first_15' || parsed.cupDirection === 'best'
       ? parsed.cupDirection
       : undefined;
+    const cupManageLive = parsed.cupManageLive === true ? true : undefined;
     const mediaStories: MediaStory[] | undefined = Array.isArray(parsed.mediaStories)
       ? parsed.mediaStories
           .filter((s): s is MediaStory =>
@@ -211,6 +212,7 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
       ...(playoffs !== undefined ? { playoffs } : {}),
       ...(premCup !== undefined ? { premCup } : {}),
       ...(cupDirection !== undefined ? { cupDirection } : {}),
+      ...(cupManageLive !== undefined ? { cupManageLive } : {}),
       ...(mediaStories !== undefined ? { mediaStories } : {}),
       ...(captainRosterId !== undefined ? { captainRosterId } : {}),
       ...(board !== undefined ? { board } : {}),

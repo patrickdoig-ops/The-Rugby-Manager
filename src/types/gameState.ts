@@ -686,6 +686,10 @@ export interface GameState {
     // 'rest_first_15' keeps the user's first-choice league starters out so
     // they stay fresh. Undefined ⇔ 'best'. Set via PLAYER_CUP_DIRECTION_SET.
     cupDirection?: 'best' | 'rest_first_15';
+    // Whether the manager plays their own Prem Cup matches live (true) or
+    // hands each one to the assistant to sim (false / undefined). Remembered
+    // default, overridable per matchday. Set via PLAYER_CUP_MANAGE_LIVE_SET.
+    cupManageLive?: boolean;
     // rosterId of the manager's nominated match captain. Undefined ⇔ no
     // explicit pick → resolveCaptainRosterId() falls back to the
     // highest-composure starter. Set via PLAYER_CAPTAIN_SET. Narrative-only:
@@ -1351,6 +1355,13 @@ export type SeasonEvent =
       // remembered default for the next break.
       type: 'PLAYER_CUP_DIRECTION_SET';
       direction: 'best' | 'rest_first_15';
+    }
+  | {
+      // Persists whether the manager plays their own cup matches live or lets
+      // the assistant sim them, to state.player.cupManageLive. Remembered
+      // default, flippable per block / per matchday.
+      type: 'PLAYER_CUP_MANAGE_LIVE_SET';
+      manageLive: boolean;
     }
   | {
       // Persists the manager's nominated match captain to

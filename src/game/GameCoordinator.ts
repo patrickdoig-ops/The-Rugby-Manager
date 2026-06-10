@@ -883,8 +883,10 @@ export class GameCoordinator {
         (f.homeId === playerTeamId || f.awayId === playerTeamId) && f.result,
       );
       if (playerFixtures.length < 4) return null; // pool not finished yet
-      // Check if they qualified (top 4)
-      const sorted = [...pool.standings].sort((a, b) => b.leaguePoints - a.leaguePoints);
+      // Check if they qualified (top 4) — must use the same sort as the
+      // actual R16 seeding (EuropeanCoordinator.seedR16), else on level
+      // points the verdict can contradict the bracket.
+      const sorted = sortStandings([...pool.standings]);
       const rank = sorted.findIndex(s => s.teamId === playerTeamId) + 1;
       if (rank <= 4) return null; // qualified — not eliminated
       return 'participate';

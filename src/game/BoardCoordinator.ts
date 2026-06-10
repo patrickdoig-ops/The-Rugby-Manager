@@ -9,6 +9,7 @@
 import type { EuropeanObjective, FixtureResult, GameState } from '../types/gameState';
 import type { RawTeamInput, BoardAmbition } from '../types/teamData';
 import { applySeasonEvent } from './applySeasonEvent';
+import { sortStandings } from './leagueTable';
 import { seedConfidence, resultDelta, currentObjectiveVerdict, eosSwing, type ObjectiveVerdict } from './board';
 import { recentForm, type FormResult } from './teamStats';
 import { BOARD_THRESHOLDS, PRESS_SKIP_BOARD_PENALTY } from '../engine/balance';
@@ -105,7 +106,8 @@ export class BoardCoordinator {
         const ambition: BoardAmbition = this.teamsById.get(this.state.player.teamId)?.boardAmbition ?? 'topHalf';
         objective = ambition === 'title' ? 'semifinal' : ambition === 'playoffs' ? 'r16' : 'participate';
       } else {
-        const sorted = [...prior.standings].sort((a, b) => b.leaguePoints - a.leaguePoints);
+        // Same sort as the league table / R16 seeding (points → diff → for).
+        const sorted = sortStandings([...prior.standings]);
         const rank = sorted.findIndex(s => s.teamId === this.state.player.teamId) + 1;
         objective = rank === 1 ? 'semifinal' : rank <= 4 ? 'r16' : 'participate';
       }

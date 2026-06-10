@@ -553,7 +553,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
     const wings = attackOnField.filter(p => p.id === SLOT.WING_11 || p.id === SLOT.WING_14);
     const attacksTop = attackDir(state) === 1;
-    const sweepsTo100 = state.ball.y < 50; // because nearY = 0, sweeps to 100
+    const sweepsTo100 = state.ball.y <= 50; // matches openSideDir's nearTouch tie-break at y=50
     const targetSlot = (attacksTop === sweepsTo100) ? SLOT.WING_14 : SLOT.WING_11;
     const wideReceiver = wings.find(p => p.id === targetSlot) ?? wings[0] ?? attackOnField[0] ?? attackTeam.players[0];
 

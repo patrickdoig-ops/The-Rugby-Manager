@@ -8,6 +8,7 @@ import { MatchPhase } from '../types/engine';
 import { SLOT } from '../engine/Slot';
 import { toTop, toLeft } from './pitchCoords';
 import { choreograph } from './pitchChoreography';
+import { GLIDE_MS, SNAP_MS } from './pitchAnimConstants';
 
 // Kick phases a KickReturn can follow. On a kick → KickReturn transition we seed the
 // return from the predecessor kick formation: keep its dots on screen and glide, rather
@@ -177,9 +178,9 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
         MatchPhase.KickOff, MatchPhase.HalfTime, MatchPhase.FullTime
       ]);
       if (snapPhases.has(event.phase)) {
-        scheduleGlide('dot-snap-transition', 400);
+        scheduleGlide('dot-snap-transition', SNAP_MS);
       } else {
-        scheduleGlide('dot-transitioning', 600);
+        scheduleGlide('dot-transitioning', GLIDE_MS);
       }
       if (keepLineout) {
         // Attacking #9 must start FirstPhase at their set-piece position (lineout
@@ -210,7 +211,7 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     // (no position change → no transition fires). The carrier rides the ball via the
     // follower, which sets transition:none on its own dot so the glide can't fight it.
     if (event.phase === MatchPhase.PhasePlay) {
-      scheduleGlide('dot-transitioning', 600);
+      scheduleGlide('dot-transitioning', GLIDE_MS);
     }
 
     carrierEl = null;

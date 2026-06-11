@@ -10,6 +10,10 @@ import { lineGapMs } from '../engine/balance';
 import { toTop, toLeft, fromTop, fromLeft } from './pitchCoords';
 import { initPitchPlayers } from './PitchPlayers';
 import { kickFindsTouch, outcomeKeys, clampX, clampY, MAUL_HOOKER_DX } from './pitchChoreography';
+import {
+  CARRIER_BEHIND_BALL, TACKLER_AHEAD, KICK_ARC_MS_MIN, KICK_ARC_MS_MAX, LEG_FLOOR_MS,
+  GLIDE_MS, MAUL_SLIDE_FLOOR_MS, SH_SWEEP_MS_MIN, SH_SWEEP_MS_MAX, SCRUM_SH_INFIELD_START,
+} from './pitchAnimConstants';
 import { SLOT } from '../engine/Slot';
 
 // Which flash a key event warrants, or null for a beat we don't highlight. Kept
@@ -233,7 +237,7 @@ export function initPitchView(): void {
   const animateKickArc = (tgtTop: number, tgtLeft: number) => {
     clearMovement();
     movementAnimating = true;
-    const dur = Math.max(300, Math.min(stepMs, 650));
+    const dur = Math.max(KICK_ARC_MS_MIN, Math.min(stepMs, KICK_ARC_MS_MAX));
     const { w, h } = hostDims();
     const midTop = (lastTop + tgtTop) / 2, midLeft = (lastLeft + tgtLeft) / 2;
     runAnim([
@@ -251,7 +255,7 @@ export function initPitchView(): void {
     // Fit the whole path inside the beat window so the ball never lags the
     // commentary; never faster than a readable floor.
     const beatWindow = stepMs * Math.max(1, lineCount);
-    const legMs = Math.max(90, Math.min(stepMs, Math.round(beatWindow / kfs.length)));
+    const legMs = Math.max(LEG_FLOOR_MS, Math.min(stepMs, Math.round(beatWindow / kfs.length)));
     const { w, h } = hostDims();
     const final = kfs[kfs.length - 1];
     const finalTop = toTop(final.x), finalLeft = toLeft(final.y);
@@ -275,14 +279,14 @@ export function initPitchView(): void {
 
     // Carrier dot: ride the final carry leg of the ball walk (or the whole path on a
     // direct pick-up). carrierFinalTop sits fwd*2.5 behind the ball's resting spot.
-    const carrierFinalTop = toTop(clampX(final.x - fwd * 2.5));
+    const carrierFinalTop = toTop(clampX(final.x - fwd * CARRIER_BEHIND_BALL));
     const carrierFinalLeft = finalLeft;
     let carrierFrames: Keyframe[];
 
     const ballPath = [{ x: fromTop(lastTop), y: fromLeft(lastLeft) }, ...kfs];
     const N = kfs.length;
     const carrierPath = ballPath.map(p => ({
-      top: toTop(clampX(p.x - fwd * 2.5)),
+      top: toTop(clampX(p.x - fwd * CARRIER_BEHIND_BALL)),
       left: toLeft(p.y)
     }));
 
@@ -324,7 +328,7 @@ export function initPitchView(): void {
       let tacklerFrames: Keyframe[];
       const tacklerFromTop = toTop(players.domTacklerFrom.x);
       const tacklerFromLeft = toLeft(players.domTacklerFrom.y);
-      const tacklerFinalTop = toTop(clampX(fromTop(carrierFinalTop) + fwd * 1.3));
+      const tacklerFinalTop = toTop(clampX(fromTop(carrierFinalTop) + fwd * TACKLER_AHEAD));
       const tacklerFinalLeft = carrierFinalLeft;
 
       if (carrierFromStart) {
@@ -335,7 +339,7 @@ export function initPitchView(): void {
       } else {
         const carryStartPct = carryStartIdx / N;
         const receiveCp = carrierPath[carryStartIdx];
-        const tacklerReceiveTop = toTop(clampX(fromTop(receiveCp.top) + fwd * 1.3));
+        const tacklerReceiveTop = toTop(clampX(fromTop(receiveCp.top) + fwd * TACKLER_AHEAD));
         const tacklerReceiveLeft = receiveCp.left;
 
         tacklerFrames = [
@@ -344,7 +348,7 @@ export function initPitchView(): void {
         ];
 
         for (let i = carryStartIdx + 1; i <= N; i++) {
-          const tTop = toTop(clampX(fromTop(carrierPath[i].top) + fwd * 1.3));
+          const tTop = toTop(clampX(fromTop(carrierPath[i].top) + fwd * TACKLER_AHEAD));
           tacklerFrames.push({
             transform: offsetTransform(tTop, carrierPath[i].left, tacklerFinalTop, tacklerFinalLeft, w, h),
             offset: i / N
@@ -384,7 +388,7 @@ export function initPitchView(): void {
       startLeft = toLeft(final.y);
     }
 
-    const carrierFinalTop = toTop(clampX(final.x - fwd * 2.5));
+    const carrierFinalTop = toTop(clampX(final.x - fwd * CARRIER_BEHIND_BALL));
     const carrierFinalLeft = finalLeft;
 
     const carrierFrames: Keyframe[] = [
@@ -450,7 +454,7 @@ export function initPitchView(): void {
     // eases forward (the same anchor-and-offset pattern as the ball/scrum-half dots).
     if (players.chaseDots.length) {
       const { w, h } = hostDims();
-      const dur = Math.max(300, Math.min(stepMs, 650));
+      const dur = Math.max(KICK_ARC_MS_MIN, Math.min(stepMs, KICK_ARC_MS_MAX));
       for (const d of players.chaseDots) {
         runDotAnim(d.el, [
           { transform: offsetTransform(toTop(d.fromX), toLeft(d.fromY), toTop(d.toX), toLeft(d.toY), w, h) },
@@ -508,7 +512,7 @@ export function initPitchView(): void {
       runAnim([
         { transform: offsetTransform(lastTop, lastLeft, hookerTop, hookerLeft, w, h) },
         { transform: offsetTransform(hookerTop, hookerLeft, hookerTop, hookerLeft, w, h) },
-      ], Math.max(200, Math.min(stepMs, 400)), 'ease-in', hookerTop, hookerLeft);
+      ], Math.max(MAUL_SLIDE_FLOOR_MS, Math.min(stepMs, GLIDE_MS)), 'ease-in', hookerTop, hookerLeft);
     } else if (event.movements && event.movements.length >= 2) {
       const isKickDecision = event.narration.steps.some(s => s.kind === 'phase_outcome' && s.key === 'kick_decision');
       // A kick-decision with NO authored choreography uses the bespoke kicker-step
@@ -533,7 +537,7 @@ export function initPitchView(): void {
       const beatWindow = stepMs * Math.max(1, lineCount);
       let duration = beatWindow;
       if (event.movements && event.movements.length > 0) {
-        const legMs = Math.max(90, Math.min(stepMs, Math.round(beatWindow / event.movements.length)));
+        const legMs = Math.max(LEG_FLOOR_MS, Math.min(stepMs, Math.round(beatWindow / event.movements.length)));
         duration = legMs * event.movements.length;
       }
       for (const ch of event.choreography) {
@@ -558,10 +562,10 @@ export function initPitchView(): void {
       const attacksTopScrum = (event.side === 'home') !== cachedHalfTimeDone;
       const fwdS = attacksTopScrum ? 1 : -1;
       const { w, h } = hostDims();
-      const dur = Math.max(300, Math.min(stepMs, 500));
+      const dur = Math.max(SH_SWEEP_MS_MIN, Math.min(stepMs, SH_SWEEP_MS_MAX));
       // Start 9 units infield from the ball (away from the nearer touchline) so
       // the sweep arc has enough travel to read clearly on mobile.
-      const startLooseY = event.ballY + (event.ballY < 50 ? 9 : -9);
+      const startLooseY = event.ballY + (event.ballY < 50 ? SCRUM_SH_INFIELD_START : -SCRUM_SH_INFIELD_START);
 
       const sweepSH = (el: HTMLElement | null, startPitchX: number) => {
         if (!el) return;

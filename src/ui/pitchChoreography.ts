@@ -14,6 +14,7 @@ import { MatchPhase } from '../types/engine';
 import { availableForwards, onFieldPlayers } from '../engine/FieldPosition';
 import { SLOT } from '../engine/Slot';
 import { textOn } from './teamColors';
+import { CARRIER_BEHIND_BALL, TACKLER_AHEAD } from './pitchAnimConstants';
 
 // A placed dot in pitch coords (x = long axis 0–100, y = lateral 0–100).
 export interface Placed {
@@ -131,7 +132,7 @@ export function choreograph(
         // Run FROM their authored defensive-line placement...
         catcherDot.from = { x: catcherDot.x, y: catcherDot.y };
         // ...TO the actual ball landing spot
-        catcherDot.x = clampX(event.ballX - fwd * 2.5);
+        catcherDot.x = clampX(event.ballX - fwd * CARRIER_BEHIND_BALL);
         catcherDot.y = clampY(event.ballY);
         catcherDot.isCarrier = true;
       }
@@ -305,7 +306,7 @@ function travelingKickLayout(
   }
   // On-ball player just behind the ball's landing spot, so their circle reads on the ball.
   if (onBall) {
-    out.push(placed(onBall, sideOf(onBall, state), state, clampX(event.ballX - fwd * 2.5), clampY(event.ballY), true));
+    out.push(placed(onBall, sideOf(onBall, state), state, clampX(event.ballX - fwd * CARRIER_BEHIND_BALL), clampY(event.ballY), true));
   }
   return out;
 }
@@ -1153,8 +1154,8 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
   let carrierDot: Placed | null = null;
   if (carrier) {
     const carrierX = event.phase === MatchPhase.TryScored
-      ? clampInGoalX((fwd > 0 ? 100 : 0) + fwd * 2.5)
-      : clampX(ballX - fwd * 2.5);
+      ? clampInGoalX((fwd > 0 ? 100 : 0) + fwd * CARRIER_BEHIND_BALL)
+      : clampX(ballX - fwd * CARRIER_BEHIND_BALL);
     carrierDot = placed(carrier, atkSide, state, carrierX, ballY, true);
     out.push(carrierDot);
   }
@@ -1179,7 +1180,7 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
       // short), so the tackler lands fwd*1.3 behind the scorer rather than ~6
       // units adrift. Give them a `from` at their defensive-line spot so the
       // WAAPI chase animation runs them INTO the tackle over the beat duration.
-      const tackleX = clampDefenderX(carrierDot.x + fwd * 1.3, fwd);
+      const tackleX = clampDefenderX(carrierDot.x + fwd * TACKLER_AHEAD, fwd);
       const defLineX = clampDefenderX(ballX + fwd * 10, fwd);
       const defLineY = clampY(ballY + 4);
       const dot = placed(p, defSide, state, tackleX, carrierDot.y, false);
@@ -1563,7 +1564,7 @@ function firstPhaseBacklineLayout(
           let finalY = last.y;
           if (pl === carrier) {
             const engineFinalBall = hops[hops.length - 1] ?? { x: last.x, y: last.y };
-            finalX = engineFinalBall.x - fwd * 2.5;
+            finalX = engineFinalBall.x - fwd * CARRIER_BEHIND_BALL;
             finalY = engineFinalBall.y;
           }
           // No `from`: a choreographed dot is driven by PitchView's choreography
@@ -1603,14 +1604,14 @@ function firstPhaseBacklineLayout(
     const hop = recvHops[i];
     // Sit a touch behind the ball's gain-line hop, progressively deeper as play
     // goes wider — the diagonal read, anchored on the engine's real lateral y.
-    out.push(placed(p, atkSide, state, clampX(hop.x - fwd * (2.5 + i * 4)), clampY(hop.y), p === carrier));
+    out.push(placed(p, atkSide, state, clampX(hop.x - fwd * (CARRIER_BEHIND_BALL + i * 4)), clampY(hop.y), p === carrier));
   }
 
   // Carrier safety: if the chain didn't surface the carrier (offload / edge case),
   // place them at the final receive hop so they're never left invisible.
   if (carrier && !out.some(pl => pl.key === `${atkSide}:${carrier.id}`) && !choreographedKeys.has(`${atkSide}:${carrier.id}`)) {
     const last = recvHops[recvHops.length - 1] ?? hops[hops.length - 1];
-    out.push(placed(carrier, atkSide, state, clampX(last.x - fwd * 2.5), clampY(last.y), true));
+    out.push(placed(carrier, atkSide, state, clampX(last.x - fwd * CARRIER_BEHIND_BALL), clampY(last.y), true));
   }
 
   // Defenders: event actors on the defending side, placed just ahead of the ball.
@@ -1624,7 +1625,7 @@ function firstPhaseBacklineLayout(
       // Pin tackler to the ball carrier — animate from defensive-line spot
       const carrierPl = out.find(pl => pl.key === `${atkSide}:${carrier.id}`);
       if (carrierPl) {
-        const tackleX = clampDefenderX(carrierPl.x + fwd * 1.3, fwd);
+        const tackleX = clampDefenderX(carrierPl.x + fwd * TACKLER_AHEAD, fwd);
         const defLineX = clampDefenderX(event.ballX + fwd * 10, fwd);
         const defLineY = clampY(event.ballY + 4);
         const dot = placed(p, defSide, state, tackleX, carrierPl.y, false);

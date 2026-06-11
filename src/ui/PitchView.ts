@@ -159,6 +159,19 @@ export function initPitchView(): void {
   let stepMs = lineGapMs(loadTickDelayMs());
   // In-flight WAAPI animation (walk or lob), if any — cancelled when interrupted.
   let arcAnim: Animation | null = null;
+  // Per-dot WAAPI animations keyed by element (chase line, authored choreography,
+  // scrum-half sweep). These ride the anchor-and-offset pattern, so the DOM already
+  // rests at the final position — cancelling a superseded one is safe and leaves the
+  // dot correct. Without this, a fast next beat commits a new top/left anchor while
+  // the stale animation still applies px offsets computed against the OLD anchor, so
+  // the dot renders at `new anchor + stale offset` and lurches until the old one ends.
+  const dotAnims = new Map<HTMLElement, Animation>();
+  const runDotAnim = (el: HTMLElement, frames: Keyframe[], opts: KeyframeAnimationOptions): void => {
+    dotAnims.get(el)?.cancel();
+    const anim = el.animate(frames, opts);
+    dotAnims.set(el, anim);
+    anim.onfinish = () => { if (dotAnims.get(el) === anim) dotAnims.delete(el); };
+  };
   // True while an animation owns the ball — the stateChange handler then leaves
   // the ball alone (the animation ends exactly at display.ballX/ballY = the final
   // keyframe / landing, which the animator has committed to lastTop/lastLeft).
@@ -400,6 +413,8 @@ export function initPitchView(): void {
     if (kickFlightTimer !== null) { clearTimeout(kickFlightTimer); kickFlightTimer = null; }
     ball.style.opacity = '';
     clearMovement();
+    for (const a of dotAnims.values()) a.cancel();
+    dotAnims.clear();
     players.reset();
   });
 
@@ -437,7 +452,7 @@ export function initPitchView(): void {
       const { w, h } = hostDims();
       const dur = Math.max(300, Math.min(stepMs, 650));
       for (const d of players.chaseDots) {
-        d.el.animate([
+        runDotAnim(d.el, [
           { transform: offsetTransform(toTop(d.fromX), toLeft(d.fromY), toTop(d.toX), toLeft(d.toY), w, h) },
           { transform: 'translate(-50%, -50%)' },
         ], { duration: dur, easing: 'ease-out' });
@@ -532,8 +547,8 @@ export function initPitchView(): void {
           transform: offsetTransform(toTop(kf.x), toLeft(kf.y), finalTop, finalLeft, w, h),
           offset: kf.t
         }));
-        
-        el.animate(frames, { duration, easing: 'linear' });
+
+        runDotAnim(el, frames, { duration, easing: 'linear' });
       }
     }
 
@@ -554,7 +569,7 @@ export function initPitchView(): void {
         const startLeft = toLeft(clampY(startLooseY));
         const finalTop  = parseFloat(el.style.top);
         const finalLeft = parseFloat(el.style.left);
-        el.animate([
+        runDotAnim(el, [
           { transform: offsetTransform(startTop, startLeft, finalTop, finalLeft, w, h) },
           { transform: 'translate(-50%, -50%)' },
         ], { duration: dur, easing: 'ease-in-out' });

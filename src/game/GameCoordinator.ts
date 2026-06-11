@@ -1267,8 +1267,20 @@ export class GameCoordinator {
     // Play out any European fixtures whose date has now arrived (AI sides;
     // the player plays their own live). The bracket fills in over the season.
     await this.advanceEuropeanCompetitions();
-    for (const ev of computeMoraleDecayEvents(this.state)) {
-      applySeasonEvent(this.state, ev);
+    // Morale decay now runs once per week of the gap to the next fixture, so a
+    // multi-week international break decays idle players toward baseline
+    // proportionally more than a normal one-week turnaround — the weekly-pass
+    // cadence is no longer pinned to a single league round. This mirrors how
+    // injury recovery + scouting accuracy already scale by the gap above.
+    // RNG-free + order-stable, so determinism holds. max(1, …) keeps an
+    // ordinary turnaround (recoveryWeeks === 1) byte-for-byte unchanged; only
+    // break weeks differ. (Transfer-request + poach-threat passes stay
+    // round-based: their promise-deadline / streak edges aren't safe to loop.)
+    const moraleWeeks = Math.max(1, recoveryWeeks);
+    for (let w = 0; w < moraleWeeks; w++) {
+      for (const ev of computeMoraleDecayEvents(this.state)) {
+        applySeasonEvent(this.state, ev);
+      }
     }
     this.transfers.checkTransferRequestsAndPromises();
     for (let w = 0; w < recoveryWeeks; w++) this.staff.advanceScoutingAccuracy();

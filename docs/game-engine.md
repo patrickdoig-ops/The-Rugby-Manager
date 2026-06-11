@@ -36,7 +36,9 @@ Match-scope writes flow through `applyMatchEvent`; **season-scope writes flow th
 | `teamStats.ts` | Pure derivations from `FixtureResult[]` + overall ratings: `recentForm` (rolling W/L/D pins padded with null on the left), `headToHead` (W/D/L record from one team's POV across every meeting so far), `matchSpread` (rating-derived handicap, favored side negative). Read by `PreMatchScreen`; no module state, no bus subscriptions. |
 | `derive.ts` | `deriveFixtureSeed(rootSeed, round, homeId, awayId)` — hashes the inputs so each headless AI fixture has a stable, derivable seed independent of the round in which it was simulated. |
 | `age.ts` | Pure `getAge(dobIso, currentDateIso)` — returns null when `dob` is missing. Plus `parseSeasonStartYear(seasonLabel)` and `seasonOpenIso(year)` helpers used by `contractSeeder`, `careerRollover`, `personaGenerator`, and `aiTransferDirector` to anchor age + expiry calculations to the current calendar. |
-| `balance/season.ts` | Season tuning constants — `SEASON_VALUES` (start date, season label, week length, season-open anchor month/day, international skip windows) and `LEAGUE_POINTS` (League 4/2/0 + losing bonus when margin ≤ 7). |
+| `blockFixture.ts` | Pure discriminated union `BlockFixtureRef` — one variant per competition (`league` / `cup` / `european` / `playoff`). Carries `date`, `homeId`, `awayId`, and a competition-specific ref so the block loop can record results via the existing per-competition `GameCoordinator` methods without knowing the union tag at each call site. Also exports `PlayoffMatchRef`. |
+| `calendarBlocks.ts` | Pure calendar-block utilities. `nextBlock(state, allTeamIds): CalendarBlock | null` — collects all unplayed fixtures from every competition, sorts ascending by date, and greedily clusters starting at the earliest into a `CalendarBlock` while the gap between consecutive dates `≤ BLOCK_GAP_DAYS`. Returns `null` when no unplayed fixtures remain (season exhausted). `CalendarBlock` carries `startDate`, `endDate`, `fixtures: BlockFixtureRef[]`, and `competitions` (distinct competition kinds in canonical order: league, cup, european, playoff). |
+| `balance/season.ts` | Season tuning constants — `SEASON_VALUES` (start date, season label, week length, season-open anchor month/day, international skip windows), `BLOCK_GAP_DAYS` (default 3 — groups Fri/Sat/Sun weekend rounds; splits a 7-day gap into separate blocks), and `LEAGUE_POINTS` (League 4/2/0 + losing bonus when margin ≤ 7). |
 | `balance/career.ts` | Rollover tuning — `AGE_CURVES` per stat (peakAge / growth / decline — growth rates halved vs v1, physical decline steepened, mental decline flattened), `STAT_NOISE` (Gaussian std-dev + clamp), `RETIREMENT_CURVE` (forwards / backs cumulative probabilities), `SEASON_AWARDS.mvpMinAppearances`. Also holds the development-ceiling constants: `POTENTIAL_HEADROOM` (age-banded OVR headroom ranges seeded once at game-start), `PROXIMITY_CURVE` (piecewise-linear headroom→multiplier table, applied to growth only), `APPEARANCES_CURVE` (step function of season appearances applied to rollover growth). Exports `proximityMultiplier(potential, ovr)` and `appearancesMultiplier(apps)` helpers consumed by both `careerRollover` and `trainingWeek`. |
 | `balance/transfers.ts` | Contract + market tuning — `SENIOR_CAP` (£6.4M), `CAP_CREDITS` (£600k HG + £400k EPS + £400k injury = £1.4M `EFFECTIVE_CAP_CREDITS` widening effective cap to £7.8M), `WAGE_BY_RATING` anchor table (capped at £560k @ rating 96 so ordinary stars compress into £350-550k band), `POSITION_SCARCITY`, `WAGE_NOISE`, `CONTRACT_LENGTH` age-band weights, `REPUTATION_SEED`, plus the Phase 4 `RENEWAL` block (`loyaltyDiscount`, `aiTargetCapUtilisation`, `aiReleaseRatingFloor`). |
 
@@ -574,6 +576,45 @@ Effect constants in `PRESS_ANSWER_EFFECTS` (`balance/press.ts`).
 **Save/load.** No state to persist — the press conference has no persistent record. After `applyPressEffects`, `saveGame` runs immediately so the board/morale changes are written.
 
 **UI.** `src/ui/PressConferenceScreen.ts` renders a fullscreen overlay (`#press-conference`) with two stacked question blocks. Each question has 3 answer buttons (label + text + effect hint). "Publish" is enabled when both questions are answered. "Skip press conference" is always available. The overlay is not in `ScreenRouter` — it shows/hides via `classList.toggle('hidden')` directly. CSS: `style/press-conference.css`.
+
+## Calendar-block model
+
+`src/game/calendarBlocks.ts` provides a pure scheduling primitive that clusters all unplayed fixtures — across every active competition — into a single "next block" to drive the weekly flow.
+
+### Types
+
+- **`BlockFixtureRef`** (`src/game/blockFixture.ts`) — discriminated union over all four competitions:
+  - `{ comp: 'league';   date; homeId; awayId; round }` — a league round fixture.
+  - `{ comp: 'cup';      date; homeId; awayId; ref: CupFixtureRef }` — a Prem Cup fixture (pool or knockout).
+  - `{ comp: 'european'; date; homeId; awayId; ref: EuropeanFixtureRef }` — a European Cup/Shield fixture (pool or knockout).
+  - `{ comp: 'playoff';  date; homeId; awayId; ref: PlayoffMatchRef }` — a playoff match (semifinal\_1/2 or final).
+- **`PlayoffMatchRef`** — `{ kind: 'semifinal_1' | 'semifinal_2' | 'final' }`. Stable pointer into `state.league.playoffs`.
+- **`CalendarBlock`** — `{ startDate, endDate, fixtures: BlockFixtureRef[], competitions }`. `competitions` is the distinct set of competition kinds present, in canonical order (league → cup → european → playoff).
+
+### `nextBlock(state, allTeamIds)`
+
+Returns a `CalendarBlock | null`. Algorithm:
+
+1. Collects every unplayed fixture from all active competitions:
+   - League: fixtures not present in `state.league.results` (matched by round+homeId+awayId).
+   - Cup pool: `premCup.fixtures` where `result` is absent.
+   - Cup knockout: `premCup.knockout` semifinals and final where `homeId`/`awayId` are non-null and `result` is absent.
+   - European pool: `europeanCup/europeanShield.fixtures` where `date` and `result` are absent.
+   - European knockout: r16/quarterfinals/semifinals/final where `homeId`/`awayId` are non-null and `result` is absent.
+   - Playoffs: semifinals/final where `homeId`/`awayId` are non-null and `result` is absent.
+2. Sorts all collected refs ascending by `date` (lexicographic — ISO dates compare correctly).
+3. Takes the earliest date D0. Greedily extends the block: a fixture joins if its date is within `BLOCK_GAP_DAYS` of the current block tail. This clusters Fri/Sat/Sun weekends, back-to-back cup rounds, etc.
+4. Returns `null` when no unplayed fixtures remain.
+
+### Tuning constant
+
+`BLOCK_GAP_DAYS = 3` in `src/engine/balance/season.ts`. A gap of 3 groups a typical Fri/Sat/Sun weekend round into one block.
+
+### Invariants
+
+- Pure: no RNG, no side effects, no mutations.
+- `allTeamIds` is accepted for future use but unused by the current algorithm.
+- Knockout fixtures whose `homeId`/`awayId` are still `null` (bracket not yet seeded) are excluded — they are not schedulable.
 
 ## League Cup
 

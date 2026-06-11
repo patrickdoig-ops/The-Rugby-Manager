@@ -51,6 +51,10 @@ export const ROUND_LABELS: Record<number, string> = {
   18: 'The Run In',
 };
 
+// Maximum day gap between consecutive fixtures to cluster them into the same
+// calendar block. A gap of 3 groups Fri/Sat/Sun weekend rounds together.
+export const BLOCK_GAP_DAYS = 3;
+
 export const LEAGUE_POINTS = {
   win: 4,
   draw: 2,

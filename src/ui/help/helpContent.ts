@@ -91,6 +91,7 @@ const HELP_TOPICS = {
     features: [
       { label: 'Fixture list', desc: 'Every match in this block — league, cup, European or playoff — with a tag showing which competition each belongs to.' },
       { label: 'Your games', desc: 'Highlighted rows are your club’s fixtures. Continue takes you into the build-up for each in turn.' },
+      { label: 'Cup management note', desc: 'On a League Cup week, a line tells you whether you’re managing the match or your assistant is taking charge — set this on Club → Assistant Manager.' },
       { label: 'Continue', desc: 'Plays your fixture(s) and resolves the rest of the week’s results.' },
     ],
   },
@@ -127,12 +128,25 @@ const HELP_TOPICS = {
   },
   'club-menu': {
     title: 'Club',
-    purpose: 'Off-field management — your standing with the board, your backroom staff and the club’s finances.',
+    purpose: 'Off-field management — your standing with the board, your assistant manager, backroom staff and the club’s finances.',
     features: [
       { label: 'Board Confidence', desc: 'How happy your owner is, and the factors driving it.' },
+      { label: 'Assistant Manager', desc: 'Choose whether to delegate your League Cup matches to your assistant, and if so whether to rest your starters.' },
       { label: 'Staff', desc: 'Hire and release your assistant manager, fitness lead and scouts.' },
       { label: 'Finances', desc: 'Player wage budget, staff budget and the slider to move spare headroom between them.' },
       { label: 'Awards', desc: 'Season honours, trophies and career milestones.' },
+    ],
+  },
+  'assistant-manager': {
+    title: 'Assistant Manager',
+    purpose: 'Decide how the League Cup is run. Set it once and it applies to every cup match until you change it — there is no longer a prompt before each round.',
+    features: [
+      { label: 'Who runs your cup matches?', desc: '“I’ll manage them” plays every League Cup game live; “Assistant manages” lets your assistant simulate them so you can focus on the league.' },
+      { label: 'How should the assistant pick the squad?', desc: 'When delegating: “Best available” fields your strongest 23; “Rest the starters” keeps your first-choice XV fresh for the league.' },
+    ],
+    tips: [
+      'Resting starters in the cup protects them from injury and fatigue, but a weaker side is more likely to go out early.',
+      'Your choice is shown on the This Week screen whenever you have a cup game, so you always know who’s in charge.',
     ],
   },
 

@@ -270,7 +270,7 @@ export function initLeagueTableScreen(
           <span class="app-title">League Table</span>
           <div class="app-topbar-spacer">${helpButtonHtml('league-table')}</div>
         </div>
-        <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)} · R${state.calendar.week}/${totalRounds}</div>
+        <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)} · Round ${state.calendar.week}/${totalRounds}</div>
       </div>
       <div class="lt-toggle" role="tablist">
         <button class="lt-toggle__btn ${viewMode === 'standard' ? 'lt-toggle__btn--active' : ''}" data-mode="standard" role="tab" aria-selected="${viewMode === 'standard'}">Standard</button>

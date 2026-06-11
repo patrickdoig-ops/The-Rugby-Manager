@@ -12,6 +12,7 @@ import type { GameState } from '../types/gameState';
 import { injectTeamColors } from './teamColors';
 import { EXPIRING_CONTRACT_WINDOW_MONTHS } from '../engine/balance/transfers';
 import { helpButtonHtml } from './help/helpButton';
+import { formatDateMedium } from '../utils/formatDate';
 
 export interface InitContractsTransfersMenuOpts {
   getGameEngine: () => GameCoordinator;
@@ -57,7 +58,6 @@ export function showContractsTransfersMenu(): void {
   const playerTeam = _teamsById.get(state.player.teamId);
   if (!playerTeam) return;
 
-  const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
   const expiringCount = countExpiringContracts(state);
   const poachCount = (state.career.activePoachedIds ?? []).length;
   const scoutingCount = Object.keys(state.player.scouting ?? {}).length;
@@ -77,7 +77,7 @@ export function showContractsTransfersMenu(): void {
         <span class="app-title">Contracts &amp; Transfers</span>
         <div class="app-topbar-spacer">${helpButtonHtml('contracts-transfers-menu')}</div>
       </div>
-      <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
+      <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)}</div>
     </div>
 
     <div id="ctm-grid">

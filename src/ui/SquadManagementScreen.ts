@@ -41,6 +41,7 @@ import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 import { discardConfirm } from './components/discardConfirm';
 import { playHaptic } from './HapticsManager';
 import { helpButtonHtml } from './help/helpButton';
+import { formatDateMedium } from '../utils/formatDate';
 
 export interface InitSquadManagementOpts {
   // Always called fresh — see HubScreen for the rationale.
@@ -352,8 +353,6 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     if (draftStarters.length === 0) resetDraftFromState();
 
     const seasonLabel = state.calendar.seasonLabel;
-    const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
-    const round = Math.min(state.calendar.week, totalRounds || state.calendar.week);
 
     const visible = visibleGroups();
     const chipsHtml = GROUPS
@@ -399,7 +398,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
           <span class="app-title">Squad</span>
           <div class="app-topbar-spacer">${helpButtonHtml('squad-management')}</div>
         </div>
-        <div class="app-eyebrow">${teamJson.name} · ${seasonLabel} · Round ${round}</div>
+        <div class="app-eyebrow">${teamJson.name} · ${seasonLabel} · ${formatDateMedium(state.calendar.date)}</div>
       </div>
 
       <div id="sq-filter-bar">${chipsHtml}</div>

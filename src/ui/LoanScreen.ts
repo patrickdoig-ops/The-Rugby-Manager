@@ -12,6 +12,7 @@ import { playerOverall } from '../engine/RatingEngine';
 import { injectTeamColors } from './teamColors';
 import { PARTNERSHIP_CLUB } from '../data/partnershipClubs';
 import { helpButtonHtml } from './help/helpButton';
+import { formatDateMedium } from '../utils/formatDate';
 
 export interface InitLoanScreenOpts {
   getGameEngine: () => GameCoordinator;
@@ -62,7 +63,6 @@ export function showLoans(): void {
   const club = state.career.clubs.find(c => c.id === clubId);
   if (!club) return;
 
-  const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
   const partnerClub = PARTNERSHIP_CLUB[clubId] ?? 'Partnership Club';
   const date = state.calendar.date;
 
@@ -109,7 +109,7 @@ export function showLoans(): void {
         <span class="app-title">Loans</span>
         <div class="app-topbar-spacer">${helpButtonHtml('loans')}</div>
       </div>
-      <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
+      <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)}</div>
     </div>
 
     <div class="loan-body">

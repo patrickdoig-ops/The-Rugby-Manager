@@ -110,6 +110,7 @@ import { initContractsScreen, showContracts, showContractsMarqueeEdit } from './
 import { initContractsTransfersMenuScreen, showContractsTransfersMenu } from './ui/ContractsTransfersMenuScreen';
 import { initLoanScreen, showLoans } from './ui/LoanScreen';
 import { initClubMenuScreen, showClubMenu } from './ui/ClubMenuScreen';
+import { initAssistantManagerScreen, showAssistantManager } from './ui/AssistantManagerScreen';
 import { initBoardConfidenceScreen, showBoardConfidence } from './ui/BoardConfidenceScreen';
 import { initStaffScreen, showStaff } from './ui/StaffScreen';
 import { initFinancesScreen, showFinancesScreen } from './ui/FinancesScreen';
@@ -122,7 +123,7 @@ import { initTrainingScreen, showTrainingPostMatch, showTrainingMidweek } from '
 import { initPostTrainingResultsScreen, showPostTrainingResults } from './ui/PostTrainingResultsScreen';
 import { initInternationalBreakScreen, showInternationalBreak } from './ui/InternationalBreakScreen';
 import { initInternationalCallUpsScreen, showInternationalCallUps } from './ui/InternationalCallUpsScreen';
-import { initCupFixturesScreen, showCupFixturesPreBlock, showCupFixturesBrowse } from './ui/CupFixturesScreen';
+import { initCupFixturesScreen, showCupFixturesBrowse } from './ui/CupFixturesScreen';
 import { initCupResultsScreen, showCupResults } from './ui/CupResultsScreen';
 import { initAchievementsScreen, showAchievements }  from './ui/AchievementsScreen';
 import { initInboxScreen, markInboxRead } from './ui/InboxScreen';
@@ -443,9 +444,22 @@ document.addEventListener('DOMContentLoaded', () => {
       allTeams,
       onBack: () => goHub('back'),
       onBoardConfidence: () => goBoard(),
+      onAssistantManager: () => goAssistantManager(),
       onStaff: () => goStaff(),
       onFinances: () => goFinances(),
       onAwards: goAchievements,
+    });
+    initAssistantManagerScreen({
+      getGameEngine,
+      allTeams,
+      persist: (manageLive, direction) => {
+        if (gameEngine) {
+          gameEngine.setCupManageLive(manageLive);
+          gameEngine.setCupDirection(direction);
+          autosave(gameEngine.toSavePayload());
+        }
+      },
+      onBack: () => goClubMenu('back'),
     });
     initBoardConfidenceScreen({
       getGameEngine,
@@ -662,6 +676,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function goBoard(direction: 'forward' | 'back' = 'forward'): void {
     showBoardConfidence();
     screenRouter.show('board-confidence', { direction });
+  }
+
+  function goAssistantManager(direction: 'forward' | 'back' = 'forward'): void {
+    showAssistantManager();
+    screenRouter.show('assistant-manager', { direction });
   }
 
   function goLoans(direction: 'forward' | 'back' = 'forward'): void {
@@ -1434,7 +1453,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!eng) { onDone(); return; }
     if (eng.isCupBlockStart()) {
       const begin = eng.beginInternationalBreak();
-      const proceed = (): void => showCupDecision(() => playCupBlockMatches(block, onDone));
+      // The live/assistant + rest-direction decision is now a persistent
+      // setting on the Club → Assistant Manager screen, not a per-block prompt.
+      const proceed = (): void => playCupBlockMatches(block, onDone);
       if (begin) {
         showInternationalCallUps(begin, proceed);
         screenRouter.show('intl-callups');
@@ -1615,10 +1636,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (eng.isCupBlockStart()) {
       // First matchday of the block: flag the international call-ups (idempotent;
       // null off a break round) — only here, so a tap after the returns are
-      // resolved can never re-flag — then show who's away (intl breaks) + the
-      // live/assistant decision, then play the step.
+      // resolved can never re-flag — then show who's away (intl breaks), then
+      // play the step. (The live/assistant decision is now a persistent setting
+      // on Club → Assistant Manager.)
       const begin = eng.beginInternationalBreak();
-      const proceed = () => showCupDecision(() => runCupStep(onDone));
+      const proceed = () => runCupStep(onDone);
       if (begin) {
         showInternationalCallUps(begin, proceed);
         screenRouter.show('intl-callups');
@@ -1691,19 +1713,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const eng = gameEngine;
     if (!eng) { onDone(); return; }
     afterMatchdayTraining((weeks) => eng.runCupMatchdayTraining(weeks), onDone);
-  }
-
-  // The once-per-block live/assistant + direction decision screen.
-  function showCupDecision(onContinue: () => void): void {
-    showCupFixturesPreBlock((manageLive, direction) => {
-      if (gameEngine) {
-        gameEngine.setCupManageLive(manageLive);
-        gameEngine.setCupDirection(direction);
-        autosave(gameEngine.toSavePayload());
-      }
-      onContinue();
-    });
-    screenRouter.show('cup-fixtures');
   }
 
   function onPlayCupMatch(ref: CupFixtureRef, onAfterResult: () => void): void {

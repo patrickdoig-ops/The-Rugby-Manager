@@ -10,6 +10,7 @@ import { injectTeamColors } from './teamColors';
 import { swipeToDismiss } from './swipeToDismiss';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
 import { helpButtonHtml } from './help/helpButton';
+import { formatDateMedium } from '../utils/formatDate';
 
 const STAT_SHORT: Record<keyof PlayerStats, string> = {
   stamina:     'STM',
@@ -73,7 +74,6 @@ function render(): void {
   const onPlayerClick = _onPlayerClick;
 
   const playerTeam = _allTeams.find(t => t.id === state.player.teamId);
-  const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
 
   // Build sorted card data.
   type CardData = {
@@ -180,7 +180,7 @@ function render(): void {
         <span class="app-title">Scouting</span>
         <div class="app-topbar-spacer">${helpButtonHtml('scouting')}</div>
       </div>
-      <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
+      <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)}</div>
     </div>
     <div class="scout-list">${cardsHtml}</div>
   `;

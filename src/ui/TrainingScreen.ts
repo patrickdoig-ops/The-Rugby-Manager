@@ -21,6 +21,7 @@ import type { RawTeamInput } from '../types/teamData';
 import type {
   BacksFocus, ForwardsFocus, TrainingIntensity, TrainingPlan, TrainingWeekResult,
 } from '../types/training';
+import { formatDateMedium } from '../utils/formatDate';
 import { DEFAULT_TRAINING_PLAN } from '../types/training';
 import { isForward } from '../types/player';
 import { INTENSITY_EFFECTS } from '../engine/balance';
@@ -191,7 +192,7 @@ function renderPostMatch(
 
   const eyebrow = mode.playoffLabel
     ? `${state.calendar.seasonLabel} · ${mode.playoffLabel}`
-    : `${state.calendar.seasonLabel} · WK ${state.calendar.week}`;
+    : `${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)}`;
 
   el.innerHTML = `
     <div class="app-header">
@@ -305,7 +306,7 @@ function renderMidWeek(
         <span class="app-title">Training Plan</span>
         <div class="app-topbar-spacer">${helpButtonHtml('training')}</div>
       </div>
-      <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week}</div>
+      <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)}</div>
     </div>
 
     <div id="tr-body">

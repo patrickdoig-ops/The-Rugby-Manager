@@ -3,6 +3,7 @@ import { loadSave, clearSave } from './SaveManager';
 import type { RawTeamInput } from '../types/teamData';
 import { buildSaveContext, ordinalSuffix, type SaveContext } from '../game/saveSummary';
 import { helpButtonHtml } from './help/helpButton';
+import { formatDateMedium } from '../utils/formatDate';
 
 function pitchLinesSvg(): string {
   return `<svg class="home-pitch-lines" aria-hidden="true" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
@@ -79,7 +80,7 @@ function saveCardHtml(ctx: SaveContext): string {
       <div class="save-card-footer">
         <div class="save-card-meta">
           <span class="save-card-season">${ctx.seasonLabel}</span>
-          <span>Wk ${ctx.week} / ${ctx.totalRounds}</span>
+          <span>${ctx.date ? formatDateMedium(ctx.date) : `Wk ${ctx.week}`}</span>
         </div>
         <div class="save-progress-track">
           <div class="save-progress-fill" style="width:${progressPct}%"></div>
@@ -95,7 +96,7 @@ function confirmModalHtml(ctx: SaveContext): string {
       <div class="home-confirm">
         <div class="home-confirm-handle"></div>
         <div class="home-confirm-title">Start New Game?</div>
-        <div class="home-confirm-body">This will permanently delete your save — ${ctx.teamName}, Week ${ctx.week}${ctx.rank > 0 ? `, ${ctx.rank}${ordinalSuffix(ctx.rank)} place` : ''}. This cannot be undone.</div>
+        <div class="home-confirm-body">This will permanently delete your save — ${ctx.teamName}, ${ctx.date ? formatDateMedium(ctx.date) : `Week ${ctx.week}`}${ctx.rank > 0 ? `, ${ctx.rank}${ordinalSuffix(ctx.rank)} place` : ''}. This cannot be undone.</div>
         <div class="home-confirm-actions">
           <button class="home-confirm-btn home-confirm-cancel" id="home-confirm-cancel">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>

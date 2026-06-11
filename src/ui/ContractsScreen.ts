@@ -43,6 +43,7 @@ import { computeFormInputs } from '../game/playerForm';
 import { formRating, formStars } from './formDisplay';
 import { playHaptic } from './HapticsManager';
 import { helpButtonHtml } from './help/helpButton';
+import { formatDateMedium } from '../utils/formatDate';
 
 type SortKey = 'wage' | 'expiry' | 'ovr' | 'position' | 'age' | 'name';
 type SortDir = 'asc' | 'desc';
@@ -150,7 +151,6 @@ export function initContractsScreen(
     }
 
     const calendarDate = state.calendar.date;
-    const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
     const players: Player[] = club.squad.map(rid => state.career.roster[rid]).filter((p): p is Player => !!p);
     const sorted = sortPlayers(players, calendarDate);
 
@@ -217,9 +217,12 @@ export function initContractsScreen(
       // holds the round the player is approachable again).
       const cooldownUntil = state.career.midseasonRejections[p.rosterId];
       const onCooldown = cooldownUntil !== undefined && cooldownUntil > state.calendar.week;
+      const cooldownDate = onCooldown
+        ? (() => { let m: string | undefined; for (const f of state.league.fixtures) if (f.round === cooldownUntil && f.date && (!m || f.date < m)) m = f.date; return m ? formatDateMedium(m) : `Round ${cooldownUntil}`; })()
+        : '';
       const renewHtml = (onOfferRenewal && mode === 'hub' && expiring)
         ? (onCooldown
-            ? `<button class="ct-renew-btn" disabled>Approached · back WK ${cooldownUntil}</button>`
+            ? `<button class="ct-renew-btn" disabled>Approached · back ${cooldownDate}</button>`
             : `<button class="ct-renew-btn" data-renew="${p.rosterId}">Offer Renewal</button>`)
         : '';
       const expandPanel = isExpandable
@@ -292,7 +295,7 @@ export function initContractsScreen(
             </button>
           </div>
         </div>
-        <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
+        <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)}</div>
       </div>
 
       <div id="ct-cap-section">

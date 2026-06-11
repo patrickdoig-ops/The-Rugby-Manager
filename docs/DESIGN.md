@@ -695,12 +695,13 @@ Every list-screen header (Fixtures, League Table, Contracts, Squad, Transfer Mar
     <span class="app-title">Screen Title</span>
     <div class="app-topbar-spacer"></div>
   </div>
-  <div class="app-eyebrow">Season label · WK 14 / 22</div>
+  <div class="app-eyebrow">Season label · 14 Mar 2026</div>
 </div>
 ```
 
 - `.app-title` is **20px Anton uppercase** with `letter-spacing: 0.05em`. Never 16px.
-- `.app-eyebrow` is **10px mono uppercase, pitch-green**, used for temporal context (season + week) or fixture metadata.
+- `.app-eyebrow` is **10px mono uppercase, pitch-green**, used for temporal context or fixture metadata.
+- **The calendar date (`formatDateMedium(calendar.date)`) is the canonical "point in the season" indicator** — every screen's eyebrow shows `{seasonLabel} · {date}`. **Never "Week N"**. "Round N" appears **only** for genuinely league-specific surfaces (League Table eyebrow `… · Round N/total`, league fixture/round headers, a league fixture's Round in the Hub Next Match tile / Match Result). Save-slot summaries (Home, Saves) and all sub-menus follow the date rule too. The Hub shows the same date in grey under the club name. Match Result omits "Round" for non-league (cup/European/playoff) matches.
 - The right slot may be a `<div class="app-topbar-spacer">` (placeholder), a sort button, or a cap pill — never the title.
 
 **Intentional exceptions to this pattern:** Hub, PreMatch, MatchResult, TeamSelector, TeamInfo, Home. These screens have bespoke headers because they're not "browse list" contexts.
@@ -989,7 +990,7 @@ The Hub (`src/ui/HubScreen.ts`) has **six tiles** plus a Settings cog and a sing
 | Competitions | `competitions-menu` | Sub-menu: League / League Cup / European Cup / European Shield |
 | Training | `training` (mid-week mode) | Persists plan without running the training block |
 | Contracts & Transfers | `contracts-transfers-menu` | Sub-menu (club colours): Contracts leaf + Transfers leaf + Scouting leaf; badge = expiring-contract count + poach-threat count combined |
-| Club | `club-menu` | Sub-menu (club colours): Board Confidence, Staff, Finances, Awards tiles |
+| Club | `club-menu` | Sub-menu (club colours): Board Confidence, Assistant Manager, Staff, Finances, Awards tiles |
 
 **Invariant: the Hub tile count is fixed at six.** New screens must fit inside existing sub-menus. `CompetitionsMenuScreen` is the home for competition-related screens; `ClubMenuScreen` and `ContractsTransfersMenuScreen` are the natural homes for club-management features. (The **Fixtures** list — formerly a Hub tile — now lives as a tile in the **League sub-menu**; `goFixtures` → `fixture-list` is shared by the League sub-menu and the inbox.)
 
@@ -997,7 +998,7 @@ PreMatch's 'mine' step (the user's starting XV) carries a tappable captain badge
 
 **Contracts sub-menu** (`contracts-transfers-menu`, `src/ui/ContractsTransfersMenuScreen.ts`): Tier 2 club-colour app-header; four tiles with the same `.hub-tile` class but WITHOUT the `--rm-cta` override used by the League sub-menu, so tiles inherit `--team-color-tile` from `injectTeamColors`. Individual tile badges: Contracts = expiring-contract count, Transfers = poach-threat count, Scouting = total scouted player count. The fourth tile is **Loans** → `loans` (loan management screen — development loans out to a fixed partnership club, emergency cover loans in from a generated pool).
 
-**Club sub-menu** (`club-menu`, `src/ui/ClubMenuScreen.ts`): Tier 2 club-colour app-header; four hub-tiles with the same `.hub-tile` class — **Board Confidence** → `board-confidence`, **Staff** → `staff`, **Finances** → `club-finances`, **Awards** → `achievements`. New club-management screens should be added here as additional tiles (extend `TILES` and `InitClubMenuOpts` in `ClubMenuScreen.ts`). The `BoardConfidenceScreen` hosts the owner-confidence card and factor list. The `StaffScreen` hosts hire/release. The `FinancesScreen` shows the player salary budget vs committed wages, staff budget vs spend, and a one-way season-only slider to transfer unused player salary headroom to staff budget (`ClubState.staffBudgetBoost`, cleared at `SEASON_ROLLED_OVER`).
+**Club sub-menu** (`club-menu`, `src/ui/ClubMenuScreen.ts`): Tier 2 club-colour app-header; five hub-tiles with the same `.hub-tile` class — **Board Confidence** → `board-confidence`, **Assistant Manager** → `assistant-manager`, **Staff** → `staff`, **Finances** → `club-finances`, **Awards** → `achievements`. New club-management screens should be added here as additional tiles (extend `TILES` and `InitClubMenuOpts` in `ClubMenuScreen.ts`). The **`AssistantManagerScreen`** (`assistant-manager`) is the persistent home of the League Cup delegation choice — manage live vs. assistant-simulate, and (when delegating) best-available vs. rest-the-starters — persisted to `state.player.cupManageLive` / `cupDirection` immediately on toggle. It replaced the old once-per-block `CupFixturesScreen` `pre_block` decision prompt; that screen is now browse-only (Competitions → League Cup). The "This Week" preview (`MatchdayScreen`) surfaces the current choice as a note whenever the manager has a cup game. The `BoardConfidenceScreen` hosts the owner-confidence card and factor list. The `StaffScreen` hosts hire/release. The `FinancesScreen` shows the player salary budget vs committed wages, staff budget vs spend, and a one-way season-only slider to transfer unused player salary headroom to staff budget (`ClubState.staffBudgetBoost`, cleared at `SEASON_ROLLED_OVER`).
 
 ### 15.5 Navigation flow
 

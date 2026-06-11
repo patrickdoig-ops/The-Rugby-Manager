@@ -52,6 +52,10 @@ export interface SaveContext {
   teamName: string;
   week: number;
   totalRounds: number;
+  /** Calendar date of the saved point — derived from the current round's
+   *  earliest fixture (saves store the round, not the date). The canonical
+   *  in-game "point in the season" indicator. */
+  date?: string;
   rank: number;
   pts: number;
   seasonLabel: string;
@@ -60,8 +64,12 @@ export interface SaveContext {
 export function buildSaveContext(save: SavedSeason, allTeams: RawTeamInput[]): SaveContext | null {
   const team = allTeams.find(t => t.id === save.playerTeamId);
   if (!team) return null;
-  const totalRounds = (save.fixtures ?? PREMIERSHIP_2025_26.fixtures)
-    .reduce((m, f) => Math.max(m, f.round), 0);
+  const fixtures = save.fixtures ?? PREMIERSHIP_2025_26.fixtures;
+  const totalRounds = fixtures.reduce((m, f) => Math.max(m, f.round), 0);
+  const date = fixtures
+    .filter(f => f.round === save.currentWeek && f.date)
+    .map(f => f.date!)
+    .sort()[0];
   const standings = approximateStandings(allTeams.map(t => t.id), save.results);
   const rankIdx = standings.findIndex(s => s.teamId === save.playerTeamId);
   const player = rankIdx >= 0 ? standings[rankIdx] : null;
@@ -69,6 +77,7 @@ export function buildSaveContext(save: SavedSeason, allTeams: RawTeamInput[]): S
     teamName: team.name,
     week: save.currentWeek,
     totalRounds,
+    date,
     rank: rankIdx + 1,
     pts: player?.pts ?? 0,
     seasonLabel: save.seasonLabel ?? '2025/26',

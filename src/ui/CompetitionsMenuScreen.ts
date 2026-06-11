@@ -6,6 +6,7 @@
 
 import type { GameCoordinator } from '../game/GameCoordinator';
 import { formatDateMedium } from '../utils/formatDate';
+import { onScreenShow } from './ScreenRouter';
 import { helpButtonHtml } from './help/helpButton';
 
 export interface InitCompetitionsMenuOpts {
@@ -75,5 +76,8 @@ export function initCompetitionsMenuScreen(opts: InitCompetitionsMenuOpts): void
     }
   }
 
+  // Re-render every time the screen is shown so the date (and any other live
+  // state) is current — this screen has no go-helper show() to refresh it.
+  onScreenShow(id => { if (id === 'competitions-menu') render(); });
   render();
 }

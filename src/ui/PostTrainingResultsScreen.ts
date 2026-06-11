@@ -9,6 +9,7 @@ import type { RawTeamInput } from '../types/teamData';
 import type { PlayerTrainingResult, TrainingWeekResult } from '../types/training';
 import type { PlayerStats } from '../types/player';
 import { playerLinkHtml, wirePlayerLinks } from './components/playerLink';
+import { formatDateMedium } from '../utils/formatDate';
 
 let activeResults: TrainingWeekResult | null = null;
 let activeOnContinue: (() => void) | null = null;
@@ -145,7 +146,7 @@ export function initPostTrainingResultsScreen(
     // Eyebrow
     const eyebrow = isBlock
       ? `Training Block · ${state.calendar.seasonLabel} · ${results.weeks}-Wk Block`
-      : `Training Report · ${state.calendar.seasonLabel} · Wk ${state.calendar.week}`;
+      : `Training Report · ${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)}`;
 
     // Hero number subline
     const numSubline = withGains.length > 0

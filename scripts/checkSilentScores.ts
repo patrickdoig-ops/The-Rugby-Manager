@@ -42,9 +42,11 @@ const TEAMS = [
 const ROOT_SEED = 0xDEADBEEF;
 
 // Pinned golden hash of the full result set. Regenerate intentionally only.
-// Re-baselined 2026-06: authored FIRST_PHASE try grounding y now takes
-// precedence over the procedural tryLandingY (conversion difficulty shifts).
-const GOLDEN = '349455cecf62052f02461ee7838b3a6f619e34d10a96f1b5af63ebb41bfa9f10';
+// Re-baselined 2026-06 (twice): authored FIRST_PHASE try grounding y takes
+// precedence over the procedural tryLandingY, then the 5m try-leniency band
+// was removed (isTryScoredAt now requires reaching the line) — both shift
+// outcomes by design.
+const GOLDEN = '0fc665cdfe7733871dab6d3419d164eec2a79758cef4ac39bdc13932246c0576';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

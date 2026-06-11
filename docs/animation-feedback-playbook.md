@@ -35,8 +35,10 @@ cross-reference `beats[].side` + `movements[]` to identify actors).
 
 Two pipelines exist (both are kept, by owner decision):
 
-- **UI pipeline** — layouts + baked tables in `src/ui/pitchChoreography.ts`, animated by
-  `PitchView.ts` / `PitchPlayers.ts`.
+- **UI pipeline** — router + layout geometry in `src/ui/pitchChoreography.ts`, baked offset /
+  spot tables (every `Formation`, the `KICKOFF_*` / `DROPOUT_*` spots, `CONV_ABS`, scrum /
+  lineout / maul rows) in `src/ui/pitchFormations.ts`, animated by `PitchView.ts` /
+  `PitchPlayers.ts`.
 - **Engine pipeline** — Phase Animator JSON parsed into
   `src/engine/balance/firstPhaseChoreography.ts` (`FIRST_PHASE_CHOREOGRAPHIES`), applied by
   `applyChoreography` in `src/engine/events/FirstPhaseEvent.ts` (and
@@ -94,7 +96,7 @@ re-export and drift from the tool).
 ### R2 — A baked formation frame is wrong (box kick / breakdown / penalty / tactical kick)
 These are `Formation` offset tables (`{ nearTop, atk, def, atkFrom?, defFrom? }`,
 slot → `[dx, dy]` from the ball, canonical frame: **attacker toward +x, ball near the
-`nearTop` touchline**).
+`nearTop` touchline**), defined in `src/ui/pitchFormations.ts`.
 
 1. Prefer re-authoring the frame in the Phase Animator and re-baking the offsets
    (subtract the authored ball position from each player; a small parse script over the
@@ -118,8 +120,9 @@ team orientation, and the chaser direction from ball travel (`ballX >= 50`), nev
 `event.side` — both are documented invariants.
 
 ### R4 — Procedural layout wrong (open-play fan, lineout spread, scrum pack, subs, maul backs)
-Edit the geometry in the layout functions / row tables in `pitchChoreography.ts`
-(`fanLateral`, `SCRUM_ROWS`, `lineSpread` 5m/15m bounds, etc.). Shared presentation
+Edit the geometry in the layout functions in `pitchChoreography.ts` (`fanLateral`,
+`lineSpread` 5m/15m bounds, etc.) or the row tables in `pitchFormations.ts` (`SCRUM_ROWS`,
+`MAUL_ATK_ROWS`, the scrum / lineout backs arrays). Shared presentation
 constants (carrier-behind-ball `2.5`, tackler-ahead `1.3`, `MAUL_HOOKER_DX`) are load-bearing
 in **multiple files** — change them in their shared home (`src/ui/pitchAnimConstants.ts`
 once it exists; until then, find every copy) or the ball and dots drift apart.
@@ -133,10 +136,11 @@ resolvers); fix pace problems in `PitchView.animateMovements` (durations/offsets
 the carrier/tackler follower frames on the same offset scheme as the ball or they desync.
 
 ### R6 — Dots vanish or linger across a transition
-This is the persistence model: `persistedKeys` + the `keepX` holds in
-`PitchPlayers.applyBeat` (moving to a pure `transitionDirective` in `pitchChoreography`
-under plan WP5.2). A formation wrongly cleared on entry to a phase usually needs a hold
-flag; a formation wrongly surviving needs the phase removed from a hold. Empty beats
+This is the persistence model: `persistedKeys` in `PitchPlayers.applyBeat` + the `keepX`
+holds, which now live in the pure `transitionDirective(event, currentPhase)` in
+`pitchChoreography.ts` (returns `{ snap, hold, preserveKeys }`). A formation wrongly cleared
+on entry to a phase usually needs a hold case added to `transitionDirective`; a formation
+wrongly surviving needs the phase removed from one. Empty beats
 (pure announcements) hold by design. Snap phases (`KickOff`, `HalfTime`, `FullTime`) cut
 instead of glide — also by design.
 
@@ -172,7 +176,9 @@ often violated by feedback-driven tweaks:
   never leave a dot whose DOM rest position isn't its final position.
 - Coordinates map through `pitchCoords.toTop/toLeft` and the shared clamps
   (`clampX`/`clampY`/`clampInGoalX`/`clampDefenderX`) — never copy the numbers.
-- Try-line actors anchor on the line (x=0/100), not `ballX` (5 m leniency).
+- Try-line actors anchor on the line (x=0/100). A try requires the ball to reach the line
+  (`isTryScoredAt`, no leniency band) so `ballX` rests exactly on it; the rendered grounding
+  is pushed into the in-goal (`line + dir*4`).
 - Authored `t` offsets must stay in `[0,1]`, sorted; if any keyframe has `t`, the whole
   walk runs on authored offsets — don't mix with even/distance-based spacing.
 

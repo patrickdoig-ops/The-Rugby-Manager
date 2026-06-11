@@ -20,7 +20,17 @@ Architectural invariants and ways of working for this repo. Lean by design. Read
 
 ---
 
-## 1. Think Before Coding
+## 1. Model Selection
+
+**Never use the Fable model unless the user explicitly instructs you to.**
+
+- Do not select Fable based on inference, context, or an accidental mention of the word in a prompt.
+- The user must clearly and directly say something like "use Fable" or "switch to Fable" — a passing reference is not permission.
+- When in doubt, use the default model for the session.
+
+---
+
+## 2. Think Before Coding
 
 **Don't assume. Don't hide confusion. Surface tradeoffs.**
 
@@ -29,7 +39,7 @@ Architectural invariants and ways of working for this repo. Lean by design. Read
 - If a simpler approach exists, say so. Push back when warranted.
 - If something is unclear, stop. Name what's confusing. Ask.
 
-## 2. Simplicity First
+## 3. Simplicity First
 
 **Minimum code that solves the problem. Nothing speculative.**
 
@@ -45,7 +55,7 @@ Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, sim
 
 **Resolve constant arithmetic at write-time, not runtime.** If a formula applies a fixed multiplier or offset to a literal or random range, collapse it. `rng(0.5, 1.5) * 8` → `rng(4, 12)`. The result should express the actual value used, not the derivation of it.
 
-## 3. Surgical Changes
+## 4. Surgical Changes
 
 **Touch only what you must. Clean up only your own mess.**
 
@@ -61,7 +71,7 @@ The test: every changed line traces directly to the user's request.
 
 **Namespacing is not decoupling.** `state.phase.breakdownMod` has identical coupling properties to `state.breakdownMod`. Before drafting a "decouple" refactor, name the specific coupling smell and verify the proposed shape actually removes it.
 
-## 4. Module Boundaries
+## 5. Module Boundaries
 
 **Split before god objects form. Don't wrap clean primitives.**
 
@@ -91,7 +101,7 @@ The test: every changed line traces directly to the user's request.
 
 For full module internals (AITacticalDirector, AISubstitutionDirector, CardHandler, KickDecisionDirector, PenaltyHandler, phase handlers, home advantage, attack direction, position familiarity, tactics, maul, display snapshot / presenter pacing) see **`docs/match-engine.md`**.
 
-## 5. Mutation Boundaries
+## 6. Mutation Boundaries
 
 **State mutation flows through one function. Don't sneak in a direct write.**
 
@@ -106,7 +116,7 @@ For full module internals (AITacticalDirector, AISubstitutionDirector, CardHandl
 
 **Season-scope mutations go through `applySeasonEvent(state, event)`** in `src/game/applySeasonEvent.ts`, operating on `GameState`. `GameCoordinator` and its season sub-coordinators (`TransferCoordinator`, `StaffCoordinator`, `BoardCoordinator`, `PlayoffCoordinator`, `InternationalBreakCoordinator`) plus the pure season helpers (`injuryEffects`, `moraleEffects`, `trainingRunner`) are the only callers — all share the one `GameState`. **`applySeasonEvent` runs `assertSeasonInvariants(state)` after every event.** Same `default: never` exhaustiveness contract. Full `SeasonEvent` variant list: **`docs/game-engine.md`** § "Mutation seam".
 
-## 6. Randomness Boundary
+## 7. Randomness Boundary
 
 **All randomness flows through `src/utils/rng.ts`. Never call `Math.random()` directly in engine code.**
 
@@ -119,7 +129,7 @@ Five isolated mulberry32 streams:
 
 Streams are independent — adding a commentary line cannot shift outcome rolls; adding a transfer event cannot shift a match. Pick the matching stream when adding a randomness consumer. Full details: **`docs/match-engine.md`** § "Determinism (Seeded RNG)".
 
-## 7. Worktree & Branch Integrity
+## 8. Worktree & Branch Integrity
 
 **Each session owns exactly one branch. Never let sessions bleed into each other.**
 
@@ -134,7 +144,7 @@ Streams are independent — adding a commentary line cannot shift outcome rolls;
 
 Diagnostic: `git status && git log --oneline -5 && git branch -vv`.
 
-## 8. 2D Pitch Animation Model
+## 9. 2D Pitch Animation Model
 
 **All animation is purely visual — the DOM's resting state is always the final position.** Full detail in **`docs/DESIGN.md`** § 15.7. When the user reports an animation looks wrong, triage and fix via **`docs/animation-feedback-playbook.md`** before editing any animation code.
 
@@ -150,7 +160,7 @@ Diagnostic: `git status && git log --oneline -5 && git branch -vv`.
 - **`keepX` flags** (`keepLineout`, `keepKickFormation`, `keepTmo`, `keepPhasePlay`, `keepTryScored`, `keepSubstitution`, `keepBoxKickAnnounce`) prevent dot fade on those phase transitions. Empty beats (no `placed` entries) hold automatically.
 - **Authored choreography skips the follower** — `animateMovements` returns early on `skipFollower`; the per-dot choreography loop drives those actors instead.
 - **`cachedEventPhase`** (not `display.phase`) keys the lineout ball-lateral override — `buildDisplaySnapshot` captures phase *after* the transition, so `display.phase` already reads the next phase on a lineout beat.
-- **Try scorer anchors on the try line** (x=100/0), not `ballX` — tries are awarded with 5m leniency so `ballX` can rest short.
+- **Try scorer anchors on the try line** (x=100/0) — a try requires the ball to REACH the line (`isTryScoredAt`, no leniency band), so `ballX` rests exactly ON it; the display grounds the ball in-goal at line+4.
 - **Kick-off chaser direction** comes from ball travel (`event.ballX >= 50 ? 1 : -1`), not `event.side` (which is the receiving team after possession flips).
 
 ---

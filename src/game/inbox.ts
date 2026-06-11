@@ -171,7 +171,7 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
       category: 'medical',
       priority: 72,
       subject: `${summerBack.length} player${summerBack.length !== 1 ? 's' : ''} back from summer internationals`,
-      body: `${listed}${extra} have returned from the England and Wales summer tours. They come back slightly below peak condition after a busy July schedule and are not available for the pre-season cup — they will be available for all Premiership fixtures from Round 1.`,
+      body: `${listed}${extra} have returned from the England and Wales summer tours. They come back slightly below peak condition after a busy July schedule and are not available for the pre-season cup — they will be available for all League fixtures from Round 1.`,
       deepLink: 'squad',
     });
   }

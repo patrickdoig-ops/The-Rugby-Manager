@@ -5,17 +5,9 @@
 
 import type { GameEvent, MatchState } from '../types/match';
 import { MatchPhase } from '../types/engine';
-import { SLOT } from '../engine/Slot';
 import { toTop, toLeft } from './pitchCoords';
-import { choreograph } from './pitchChoreography';
+import { choreograph, transitionDirective } from './pitchChoreography';
 import { GLIDE_MS, SNAP_MS } from './pitchAnimConstants';
-
-// Kick phases a KickReturn can follow. On a kick → KickReturn transition we seed the
-// return from the predecessor kick formation: keep its dots on screen and glide, rather
-// than fading the pack and re-drawing a sparse return layout.
-const KICK_PREDECESSORS = new Set<string>([
-  MatchPhase.KickOff, MatchPhase.BoxKick, MatchPhase.TacticalKick, MatchPhase.DropOut22, MatchPhase.Penalty,
-]);
 
 // Injury / fatigue announcement beats highlight the named player's dot. The coordinator
 // emits these with `side` = the player's OWN team, so the dot key derives directly.
@@ -137,71 +129,28 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     }
     activeGlows = [];
 
-    // Key of the attacking #9 whose position we must preserve on the transition
-    // beat from a set-piece into FirstPhase — they hold their set-piece position
-    // (lineout mark or behind-#8) so the first-phase dot reads as a continuation.
-    let setpieceSHKey: string | null = null;
+    // Dot keys whose position we must preserve this beat (the set-piece #9 holding its
+    // position into FirstPhase) — supplied by the directive on a set-piece→FirstPhase beat.
+    let preserveKeys = new Set<string>();
 
-    // On phase change, fade out persisted dots that aren't in the new beat.
+    // On phase change, ask the pure choreographer what to do (snap vs glide, hold the
+    // predecessor formation or fade it, which dots keep their position), then act.
     if (event.phase !== currentPhase) {
-      // Lineout/Scrum→FirstPhase: keep set-piece forwards visible through the whole
-      // first phase — carry persistedKeys forward so they don't clear at the boundary.
-      // They fade normally when FirstPhase itself ends.
-      const keepLineout = (currentPhase === MatchPhase.Lineout || currentPhase === MatchPhase.Scrum || currentPhase === MatchPhase.Maul)
-        && event.phase === MatchPhase.FirstPhase;
-      // Kick→KickReturn: seed the return from the predecessor kick formation. Keep all
-      // its dots on screen (carry persistedKeys forward) and enable the glide, so the
-      // involved actors (openPlayLayout) ease from their kick positions to their return
-      // spots while the rest hold where the kick left them. CSS animates from each dot's
-      // live position, so one path covers every kick predecessor without per-predecessor data.
-      const keepKickFormation = currentPhase !== null && KICK_PREDECESSORS.has(currentPhase)
-        && event.phase === MatchPhase.KickReturn;
-      // TMO review: the review beats place no players (announcement-only), so hold the
-      // predecessor formation frozen on screen rather than fading everyone. It
-      // fades/repositions normally when the review resolves (try / penalty / scrum).
-      const keepTmo = event.phase === MatchPhase.TmoReview;
-      // PhasePlay: hold the predecessor formation (usually the breakdown) and let only
-      // the involved actors (openPlayLayout) move, so don't fade on the way in either.
-      const keepPhasePlay = event.phase === MatchPhase.PhasePlay;
-      // TryScored: hold the predecessor formation (the carry that scored) and let only the
-      // involved actors (openPlayLayout: the scorer + nearby defender) move, gliding them
-      // to the line while every other player stays where the carry left them.
-      const keepTryScored = event.phase === MatchPhase.TryScored;
-      // Substitution: hold the predecessor formation.
-      const keepSubstitution = event.phase === MatchPhase.Substitution;
-      // Glide rule: every phase change glides (dot-transitioning) EXCEPT the
-      // snap phases (kick-off / half-time / full-time reset the whole frame —
-      // a faster snap transition reads as a cut, not a drift). CSS animates
-      // from each dot's live position, so the one rule covers every
-      // predecessor without per-transition cases.
-      const snapPhases = new Set([
-        MatchPhase.KickOff, MatchPhase.HalfTime, MatchPhase.FullTime
-      ]);
-      if (snapPhases.has(event.phase)) {
-        scheduleGlide('dot-snap-transition', SNAP_MS);
-      } else {
-        scheduleGlide('dot-transitioning', GLIDE_MS);
-      }
-      if (keepLineout) {
-        // Attacking #9 must start FirstPhase at their set-piece position (lineout
-        // mark or behind their #8 in a scrum). Skip the position update for their
-        // dot this beat only; subsequent beats will reposition them normally.
-        setpieceSHKey = `${event.side === 'home' ? 'h' : 'a'}:${SLOT.SCRUM_HALF}`;
-      } else {
-        // BoxKick announce: hold the predecessor formation.
-        const keepBoxKickAnnounce = event.phase === MatchPhase.BoxKick && event.narration.steps.some((s: any) => s.kind === 'phase_outcome' && s.key === 'announce');
-        
-        if (!keepKickFormation && !keepTmo && !keepPhasePlay && !keepTryScored && !keepSubstitution && !keepBoxKickAnnounce && nextKeys.size > 0) {
-          for (const key of persistedKeys) {
-            if (!nextKeys.has(key)) pool.get(key)?.classList.remove('visible');
-          }
-          persistedKeys = new Set();
+      const dir = transitionDirective(event, currentPhase);
+      // Snap phases (kick-off / half-time / full-time) cut; everything else glides. CSS
+      // animates from each dot's live position, so one rule covers every predecessor.
+      scheduleGlide(dir.snap ? 'dot-snap-transition' : 'dot-transitioning', dir.snap ? SNAP_MS : GLIDE_MS);
+      // Fade persisted dots not in the new beat — unless the directive says hold (keep the
+      // predecessor formation and let only the involved actors move), or this is an empty
+      // announcement beat (nextKeys.size === 0), which holds the formation on screen while
+      // the line is read rather than clearing the pitch.
+      if (!dir.hold && nextKeys.size > 0) {
+        for (const key of persistedKeys) {
+          if (!nextKeys.has(key)) pool.get(key)?.classList.remove('visible');
         }
+        persistedKeys = new Set();
       }
-      // else (keepKickFormation / keepTmo / keepPhasePlay / empty announcement beat):
-      // hold — skip the fade, carry persistedKeys. An empty beat (nextKeys.size === 0,
-      // an injury/fatigue/card/set-piece-award announcement) keeps the formation on
-      // screen rather than clearing the pitch while the line is read.
+      preserveKeys = new Set(dir.preserveKeys);
       currentPhase = event.phase;
     }
 
@@ -224,7 +173,7 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       persistedKeys.add(p.key);
       const el = ensureDot(p.key, p.color, p.text, p.jersey);
       // Preserve the set-piece #9 position on the Lineout/Scrum→FirstPhase beat.
-      if (p.key !== setpieceSHKey) {
+      if (!preserveKeys.has(p.key)) {
         const nextTopNum = toTop(p.x);
         const nextLeftNum = toLeft(p.y);
         const newTop = `${nextTopNum}%`;

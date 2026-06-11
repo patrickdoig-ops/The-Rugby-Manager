@@ -695,12 +695,13 @@ Every list-screen header (Fixtures, League Table, Contracts, Squad, Transfer Mar
     <span class="app-title">Screen Title</span>
     <div class="app-topbar-spacer"></div>
   </div>
-  <div class="app-eyebrow">Season label · WK 14 / 22</div>
+  <div class="app-eyebrow">Season label · 14 Mar 2026</div>
 </div>
 ```
 
 - `.app-title` is **20px Anton uppercase** with `letter-spacing: 0.05em`. Never 16px.
-- `.app-eyebrow` is **10px mono uppercase, pitch-green**, used for temporal context (season + week) or fixture metadata.
+- `.app-eyebrow` is **10px mono uppercase, pitch-green**, used for temporal context or fixture metadata.
+- **The calendar date (`formatDateMedium(calendar.date)`) is the canonical "point in the season" indicator** — every screen's eyebrow shows `{seasonLabel} · {date}`. **Never "Week N"**. "Round N" appears **only** for genuinely league-specific surfaces (League Table eyebrow `… · Round N/total`, league fixture/round headers, a league fixture's Round in the Hub Next Match tile / Match Result). Save-slot summaries (Home, Saves) and all sub-menus follow the date rule too. The Hub shows the same date in grey under the club name. Match Result omits "Round" for non-league (cup/European/playoff) matches.
 - The right slot may be a `<div class="app-topbar-spacer">` (placeholder), a sort button, or a cap pill — never the title.
 
 **Intentional exceptions to this pattern:** Hub, PreMatch, MatchResult, TeamSelector, TeamInfo, Home. These screens have bespoke headers because they're not "browse list" contexts.

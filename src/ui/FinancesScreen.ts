@@ -11,6 +11,7 @@ import { STAFF_BUDGET_FRACTION } from '../engine/balance/staff';
 import { staffBudgetUsage } from '../game/teamStats';
 import { injectTeamColors } from './teamColors';
 import { helpButtonHtml } from './help/helpButton';
+import { formatDateMedium } from '../utils/formatDate';
 
 export interface InitFinancesScreenOpts {
   getGameEngine: () => GameCoordinator;
@@ -36,7 +37,6 @@ export function showFinancesScreen(): void {
   const playerTeam = _teamsById.get(clubId);
   if (!playerTeam) return;
 
-  const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
   const club = state.career.clubs.find(c => c.id === clubId);
   if (!club) return;
 
@@ -78,7 +78,7 @@ export function showFinancesScreen(): void {
         <span class="app-title">Finances</span>
         <div class="app-topbar-spacer">${helpButtonHtml('club-finances')}</div>
       </div>
-      <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
+      <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)}</div>
     </div>
 
     <div id="fin-content">

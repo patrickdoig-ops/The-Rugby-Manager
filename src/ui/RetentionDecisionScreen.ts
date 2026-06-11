@@ -14,6 +14,7 @@ import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import { playerOverall } from '../engine/RatingEngine';
 import { getAge } from '../game/age';
+import { formatDateMedium } from '../utils/formatDate';
 import { clubBudgetUsage } from '../game/teamStats';
 import { RENEWAL, WAGE_FLOOR, WAGE_ROUNDING_UNIT, WAGE_NEGOTIATION } from '../engine/balance/transfers';
 import { wageOfferModal, budgetLineFor, type WageRead } from './components/wageOfferModal';
@@ -171,7 +172,7 @@ export function initRetentionDecisionScreen(
     const daysLeft = deadlineDays(state.calendar.date, market?.deadline ?? null);
     const isUrgent = daysLeft <= 3;
     const daysLabel = daysLeft <= 1 ? 'Last day' : `${daysLeft} days`;
-    const deadlinePill = `<span class="rd-deadline${isUrgent ? ' rd-deadline--urgent' : ''}">Decide before R${state.calendar.week + 1} · ${daysLabel}</span>`;
+    const deadlinePill = `<span class="rd-deadline${isUrgent ? ' rd-deadline--urgent' : ''}">Decide by ${market?.deadline ? formatDateMedium(market.deadline) : 'the deadline'} · ${daysLabel}</span>`;
 
     el!.innerHTML = `
       <div class="app-header">

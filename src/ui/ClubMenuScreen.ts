@@ -8,6 +8,7 @@ import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import { injectTeamColors } from './teamColors';
 import { helpButtonHtml } from './help/helpButton';
+import { formatDateMedium } from '../utils/formatDate';
 
 export interface InitClubMenuOpts {
   getGameEngine: () => GameCoordinator;
@@ -56,8 +57,6 @@ export function showClubMenu(): void {
   const playerTeam = _teamsById.get(state.player.teamId);
   if (!playerTeam) return;
 
-  const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
-
   el.innerHTML = `
     <div class="app-header">
       <div class="app-topbar">
@@ -68,7 +67,7 @@ export function showClubMenu(): void {
         <span class="app-title">Club</span>
         <div class="app-topbar-spacer">${helpButtonHtml('club-menu')}</div>
       </div>
-      <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
+      <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)}</div>
     </div>
 
     <div id="ctm-grid">

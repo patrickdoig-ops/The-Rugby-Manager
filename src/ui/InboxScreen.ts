@@ -10,6 +10,7 @@ import { injectTeamColors } from './teamColors';
 import { eventBus } from '../utils/eventBus';
 import { helpButtonHtml } from './help/helpButton';
 import { onScreenShow } from './ScreenRouter';
+import { formatDateMedium } from '../utils/formatDate';
 
 // ─── Conversation content keyed by morale reason ─────────────────────────────
 
@@ -213,7 +214,7 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
           <span class="app-title">Inbox</span>
           <div class="app-topbar-spacer">${helpButtonHtml('inbox')}</div>
         </div>
-        <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week}</div>
+        <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)}</div>
       </div>
       <div class="inbox-body">
         ${sectionsHtml}

@@ -20,6 +20,7 @@ import { buildSaveContext, ordinalSuffix } from '../game/saveSummary';
 import { confirmModal } from './components/confirmModal';
 import { showToast } from './Toast';
 import { helpButtonHtml } from './help/helpButton';
+import { formatDateMedium } from '../utils/formatDate';
 
 interface SavesScreenDeps {
   allTeams: RawTeamInput[];
@@ -61,7 +62,7 @@ function slotCardHtml(info: SlotInfo, activeId: SlotId, gameLive: boolean): stri
         <div class="saves-slot-stats">
           ${ctx.rank > 0 ? `<span class="saves-chip">${ctx.rank}${ordinalSuffix(ctx.rank)}</span>` : ''}
           <span class="saves-chip">${ctx.pts} pts</span>
-          <span class="saves-chip">Wk ${ctx.week} / ${ctx.totalRounds}</span>
+          <span class="saves-chip">${ctx.date ? formatDateMedium(ctx.date) : `Wk ${ctx.week}`}</span>
         </div>
         <div class="saves-slot-sub">${ctx.seasonLabel}${info.savedAt ? ` · saved ${relativeTime(info.savedAt)}` : ''}</div>
       </div>`

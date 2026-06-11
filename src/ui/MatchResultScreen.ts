@@ -423,7 +423,7 @@ export function initMatchResultScreen(
   el.innerHTML = `
     <div id="mr-body">
       <div class="mr-header">
-        <span class="mr-eyebrow">Full Time · Round ${round}</span>
+        <span class="mr-eyebrow">Full Time${round > 0 ? ` · Round ${round}` : ''}</span>
       </div>
 
       <div class="mr-versus">

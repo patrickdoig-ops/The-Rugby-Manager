@@ -12,6 +12,7 @@ import { STAFF_CAPS, STAFF_BUDGET_FRACTION } from '../engine/balance/staff';
 import { staffBudgetUsage } from '../game/teamStats';
 import { injectTeamColors } from './teamColors';
 import { helpButtonHtml } from './help/helpButton';
+import { formatDateMedium } from '../utils/formatDate';
 
 export interface InitStaffScreenOpts {
   getGameEngine: () => GameCoordinator;
@@ -78,7 +79,6 @@ export function showStaff(): void {
   const playerTeam = _teamsById.get(state.player.teamId);
   if (!playerTeam) return;
 
-  const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
   const allStaff = state.career.staff ?? [];
   const clubId = state.player.teamId;
 
@@ -132,7 +132,7 @@ export function showStaff(): void {
         <span class="app-title">Staff</span>
         <div class="app-topbar-spacer">${helpButtonHtml('staff')}</div>
       </div>
-      <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
+      <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)}</div>
     </div>
     <div id="st-content">
       <div class="staff-budget-pill">

@@ -7,6 +7,7 @@ import type { RawTeamInput } from '../types/teamData';
 import { injectTeamColors } from './teamColors';
 import { confidenceBand, boardConfidenceFactors } from '../game/board';
 import { helpButtonHtml } from './help/helpButton';
+import { formatDateMedium } from '../utils/formatDate';
 
 export interface InitBoardConfidenceOpts {
   getGameEngine: () => GameCoordinator;
@@ -24,8 +25,6 @@ export function showBoardConfidence(): void {
   const state = opts.getGameEngine().getState();
   const playerTeam = _teamsById.get(state.player.teamId);
   if (!playerTeam) return;
-
-  const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
 
   const boardHtml = state.player.board ? (() => {
     const conf = state.player.board.confidence;
@@ -65,7 +64,7 @@ export function showBoardConfidence(): void {
         <span class="app-title">Board</span>
         <div class="app-topbar-spacer">${helpButtonHtml('board-confidence')}</div>
       </div>
-      <div class="app-eyebrow">${state.calendar.seasonLabel} · WK ${state.calendar.week} / ${totalRounds}</div>
+      <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)}</div>
     </div>
     <div id="cm-content">
       ${boardHtml}

@@ -15,6 +15,7 @@ import { availableForwards, onFieldPlayers } from '../engine/FieldPosition';
 import { SLOT } from '../engine/Slot';
 import { textOn } from './teamColors';
 import { CARRIER_BEHIND_BALL, TACKLER_AHEAD } from './pitchAnimConstants';
+import { swapPairedSlot } from '../engine/choreography/transform';
 
 // A placed dot in pitch coords (x = long axis 0–100, y = lateral 0–100).
 export interface Placed {
@@ -352,6 +353,14 @@ function placeFormation(
   const flipDir = form.defenderIsAttacker ? false : (atkSide !== possSide);
   const dir = (flipDir ? !attacksTop : attacksTop) ? 1 : -1;
   const mirrorY = form.nearTop !== (anchorY >= 50);
+  // The canonical Formation frame is authored attacking toward +x, so the long-axis
+  // flip relative to it is (dir === -1) and the lateral flip is mirrorY. A reflection
+  // on exactly ONE axis swaps the field side a role sits on, so the paired jersey
+  // slots (1<->3, 6<->7, 11<->14) swap too — matching the engine pipeline's
+  // `flipX !== flipY`. Skipped for defenderIsAttacker frames: those are authored
+  // pre-inverted (no clean canonical orientation), so their swap parity is unverified —
+  // leave them un-swapped until checked in the animator.
+  const swapLateral = !form.defenderIsAttacker && ((dir === -1) !== mirrorY);
   const atkOn = onFieldPlayers(atkSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(atkSide));
   const defOn = onFieldPlayers(defSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(defSide));
 
@@ -361,13 +370,16 @@ function placeFormation(
 
   const fill = (on: Player[], side: Side, tbl: FormOffsets, fromTbl?: FormOffsets): void => {
     for (let slot = 1; slot <= 15; slot++) {
-      const off = tbl[slot];
+      // The real player in `slot` reads the authored offset for its laterally-paired
+      // slot when the frame is reflected on one axis.
+      const tblSlot = swapLateral ? swapPairedSlot(slot) : slot;
+      const off = tbl[tblSlot];
       const p = on.find(pl => pl.id === slot);
       if (off && p) {
         const dot = placed(p, side, state,
           cX(anchorX + off[0] * dir),
           cY(anchorY + (mirrorY ? -off[1] : off[1])), false);
-        const fromOff = fromTbl?.[slot];
+        const fromOff = fromTbl?.[tblSlot];
         if (fromOff) dot.from = {
           x: cX(anchorX + fromOff[0] * dir),
           y: cY(anchorY + (mirrorY ? -fromOff[1] : fromOff[1])),

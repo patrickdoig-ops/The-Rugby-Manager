@@ -1,10 +1,13 @@
 // Training selector. Two modes:
 //   - showTrainingPostMatch(onContinue) — post-match flow between LeagueTable
 //     and Hub. Renders a *block*: one card per training week of the gap until
-//     the player's next match (1 for a normal turnaround, more across the
-//     Autumn Nations / Six Nations breaks). Each week has its own intensity;
-//     forwards/backs focus is shared across the block. Continue applies the
-//     block via GameCoordinator.applyTrainingBlock and returns the results.
+//     the player's next match (1 for a normal league turnaround, more across a
+//     multi-week league gap). Each week has its own intensity; forwards/backs
+//     focus is shared across the block. Continue applies the block via
+//     GameCoordinator.applyTrainingBlock and returns the results. Cup / European
+//     matchdays sit inside a multi-week league break but are themselves a single
+//     game-week, so they pass an explicit single-week `gap` (and apply via the
+//     injected `runBlock` matchday method) — the screen renders one week.
 //   - showTrainingMidweek(onBack) — Hub-tile entry. Single default-plan
 //     editor; Back persists the plan (no training executed) and returns.
 //
@@ -38,13 +41,20 @@ const SHORT_WEEK_DAYS = 6; // turnaround at or below this nudges toward Light
 // async method (cup matchday: GameCoordinator.runCupMatchdayTraining; European:
 // runEuropeanMatchdayTraining) instead of the plain applyTrainingBlock. It's a
 // Promise so the Continue handler can await it uniformly.
+//
+// `gap`, when supplied, overrides the league-round gap (`upcomingGap`) the
+// screen would otherwise derive. Cup / European matchdays are single game-weeks
+// that sit inside a multi-week league break, so they pass their own matchday gap
+// (a single week) — without it the screen would render the whole break as a
+// multi-week "Training Block".
 interface PostMatchOpts {
   playoffLabel?: string;
   runBlock?: (weeks: TrainingPlan[]) => Promise<TrainingWeekResult>;
+  gap?: { weeks: number; days: number };
 }
 
 type Mode =
-  | { kind: 'post_match'; onContinue: (results: TrainingWeekResult) => void; playoffLabel?: string; runBlock?: (weeks: TrainingPlan[]) => Promise<TrainingWeekResult> }
+  | { kind: 'post_match'; onContinue: (results: TrainingWeekResult) => void; playoffLabel?: string; runBlock?: (weeks: TrainingPlan[]) => Promise<TrainingWeekResult>; gap?: { weeks: number; days: number } }
   | { kind: 'mid_week';   onBack:     () => void };
 
 let activeMode: Mode | null = null;
@@ -54,7 +64,7 @@ let draftHydrated = false;
 let renderImpl: (() => void) | null = null;
 
 export function showTrainingPostMatch(onContinue: (results: TrainingWeekResult) => void, opts?: PostMatchOpts): void {
-  activeMode = { kind: 'post_match', onContinue, playoffLabel: opts?.playoffLabel, runBlock: opts?.runBlock };
+  activeMode = { kind: 'post_match', onContinue, playoffLabel: opts?.playoffLabel, runBlock: opts?.runBlock, gap: opts?.gap };
   renderImpl?.();
 }
 
@@ -111,7 +121,9 @@ export function initTrainingScreen(
     const mode = activeMode;
     if (!mode) return;
 
-    const gap = upcomingGap(state);
+    // Cup / European matchdays pass their own single-week matchday gap; the
+    // league post-match flow derives the gap from the calendar round.
+    const gap = (mode.kind === 'post_match' && mode.gap) ? mode.gap : upcomingGap(state);
     const spans = splitGapIntoPeriods(gap.days, gap.weeks);
 
     // Hydrate working drafts from persisted state at first render after a

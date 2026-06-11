@@ -1698,21 +1698,29 @@ document.addEventListener('DOMContentLoaded', () => {
   // One training week after a cup / European matchday, applied via the given
   // coordinator training method (cup: gap-scoped to the next matchday;
   // European: a fixed 7-day week). Shared by the cup + European weekly flows.
-  function afterMatchdayTraining(runTraining: (weeks: TrainingPlan[]) => TrainingWeekResult, onDone: () => void): void {
+  // `gap` is the single matchday week the screen renders — without it the
+  // screen would derive the surrounding multi-week league break and show a
+  // "Training Block" (a cup/European matchday is only ever one game-week).
+  function afterMatchdayTraining(
+    runTraining: (weeks: TrainingPlan[]) => TrainingWeekResult,
+    gap: { weeks: number; days: number },
+    onDone: () => void,
+  ): void {
     const eng = gameEngine;
     if (!eng) { onDone(); return; }
     autosave(eng.toSavePayload());
     showTrainingPostMatch((results) => {
       showPostTrainingResults(results, () => { autosave(eng.toSavePayload()); onDone(); });
       screenRouter.show('training-results');
-    }, { runBlock: (weeks) => Promise.resolve(runTraining(weeks)) });
+    }, { runBlock: (weeks) => Promise.resolve(runTraining(weeks)), gap });
     screenRouter.show('training');
   }
 
   function afterCupMatch(onDone: () => void): void {
     const eng = gameEngine;
     if (!eng) { onDone(); return; }
-    afterMatchdayTraining((weeks) => eng.runCupMatchdayTraining(weeks), onDone);
+    // A cup matchday is a single week, scoped to the gap to the next matchday.
+    afterMatchdayTraining((weeks) => eng.runCupMatchdayTraining(weeks), { weeks: 1, days: eng.cupMatchdayGap().days }, onDone);
   }
 
   function onPlayCupMatch(ref: CupFixtureRef, onAfterResult: () => void): void {
@@ -1926,6 +1934,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (euroFix) {
       onPlayEuropeanMatch(euroFix, () => afterMatchdayTraining(
         (weeks) => gameEngine!.runEuropeanMatchdayTraining(weeks),
+        { weeks: 1, days: 7 }, // European matchday = a fixed 7-day game-week
         () => maybePlayEuropeanFixture(onDone),
       ));
       return;

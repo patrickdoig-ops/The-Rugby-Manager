@@ -16,6 +16,8 @@ import { playoffRaceStatus } from './playoffRace';
 import { generateSeasonPrediction } from './media/mediaManager';
 import { confidenceBand, europeanObjectiveText } from './board';
 import { hashSeed } from '../utils/rng';
+import { nextBlock } from './calendarBlocks';
+import { europeanTeams } from '../data/european-teams';
 
 export interface InboxItem {
   id: string;
@@ -61,6 +63,56 @@ function currentStreak(form: Array<FormResult | null>): { type: FormResult; coun
     else break;
   }
   return { type: last, count };
+}
+
+// The player's next match across every competition — league, League Cup,
+// European or play-off — resolved from the next calendar block (the same
+// block model that drives the Hub's "Continue" cycle). Returns null on a bye
+// week or when the season has no fixtures left. `opp` is the opponent's team
+// data: Premiership clubs come from `allTeams`, foreign European clubs from
+// the `european-teams` dataset (both expose `suggestedTactics`). `hasLeagueData`
+// is true only for Premiership opponents, who carry season standings/stats.
+interface NextOpponent {
+  opp: RawTeamInput;
+  oppId: string;
+  stageLabel: string;
+  date: string;
+  hasLeagueData: boolean;
+}
+
+function resolveNextOpponent(state: GameState, allTeams: RawTeamInput[]): NextOpponent | null {
+  const teamId = state.player.teamId;
+  const block = nextBlock(state, []);
+  if (!block) return null;
+  const fix = block.fixtures.find(f => f.homeId === teamId || f.awayId === teamId);
+  if (!fix) return null;
+
+  const oppId = fix.homeId === teamId ? fix.awayId : fix.homeId;
+  const premOpp = allTeams.find(t => t.id === oppId);
+  const opp = premOpp ?? europeanTeams.find(t => t.id === oppId);
+  if (!opp) return null;
+
+  let stageLabel: string;
+  switch (fix.comp) {
+    case 'league':
+      stageLabel = `Round ${fix.round}`;
+      break;
+    case 'cup':
+      stageLabel = fix.ref.kind === 'knockout'
+        ? (fix.ref.stage === 'final' ? 'League Cup Final' : 'League Cup Semi-Final')
+        : 'League Cup';
+      break;
+    case 'european': {
+      const compName = fix.ref.competition === 'europeanCup' ? 'European Cup' : 'European Shield';
+      stageLabel = fix.ref.kind === 'knockout' ? `${compName} Knockout` : compName;
+      break;
+    }
+    case 'playoff':
+      stageLabel = fix.ref.kind === 'final' ? 'Play-off Final' : 'Play-off Semi-Final';
+      break;
+  }
+
+  return { opp, oppId, stageLabel, date: fix.date, hasLeagueData: premOpp !== undefined };
 }
 
 export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[]): InboxItem[] {
@@ -414,15 +466,18 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
   }
 
   // --- Scout report ---
-  if (nextFixture) {
-    const oppId = nextFixture.homeId === teamId ? nextFixture.awayId : nextFixture.homeId;
-    const opp = allTeams.find(t => t.id === oppId);
-
-    if (opp) {
+  // Targets the player's actual next match across all competitions (league,
+  // League Cup, European, play-off) via the calendar-block model — not just
+  // the next league round. Tactical-identity insights fire for any opponent;
+  // the season-stat observations gate on Premiership opponents (hasLeagueData).
+  const nextOpp = resolveNextOpponent(state, allTeams);
+  if (nextOpp) {
+    const { opp, oppId, stageLabel } = nextOpp;
+    {
       const oppStats = teamSeasonStat(state, oppId);
       const sentences: string[] = [];
 
-      // Tactical identity — fires from Round 1
+      // Tactical identity — fires for any opponent with a suggested style
       const oppTactics = opp.suggestedTactics;
       if (oppTactics) {
         const tacticInsights: [keyof TeamTactics, Record<string, string>][] = [
@@ -461,8 +516,9 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
         }
       }
 
-      // Stat-based observations — gated on matchesPlayed >= 2
-      if (oppStats.matchesPlayed >= 2) {
+      // Stat-based observations — Premiership opponents only (they carry
+      // league standings / season stats), gated on matchesPlayed >= 2.
+      if (nextOpp.hasLeagueData && oppStats.matchesPlayed >= 2) {
         const sorted = sortStandings(state.league.standings);
         const oppPos = sorted.findIndex(s => s.teamId === oppId) + 1;
         const oppForm = recentForm(oppId, state.league.results, 5);
@@ -528,10 +584,10 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
 
       if (sentences.length > 0) {
         items.push({
-          id: `scout:${season}:r${nextFixture.round}`,
+          id: `scout:${season}:${nextOpp.date}:${oppId}`,
           category: 'match',
           priority: 110,
-          subject: `Scout report — Round ${nextFixture.round} vs ${opp.name}`,
+          subject: `Scout report — ${stageLabel} vs ${opp.name}`,
           body: sentences.slice(0, 5).join(' '),
           deepLink: 'fixtures',
         });

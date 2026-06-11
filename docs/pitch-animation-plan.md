@@ -5,6 +5,27 @@ This is the handover plan for implementation sessions. Work through the packages
 each numbered item is **one commit** that must build clean (`npm run build` + `npm run verify`),
 follow the doc-sync table in `CLAUDE.md`, and bump `src/version.ts` (src-touching commits only).
 
+## Delivery status (updated as work lands)
+
+| Item | Status | Notes |
+|---|---|---|
+| WP1.1–1.5 | ✅ done | All five glitch fixes shipped + verified. |
+| WP2.1 | ✅ done | `pitchAnimConstants.ts`; maul-slide aligned to GLIDE_MS. |
+| WP2.2 | ✅ done | Distance-proportional pacing over the full beat window. |
+| WP2.3 | ✅ done | Roster-lead comment corrected. |
+| WP3.3 | ✅ done (reframed) | The validator already existed in `parseChoreography` and runs in `verify` via import; tightened it with a slot-range check rather than adding a redundant script. |
+| WP4.1 | ◑ partial | Shared `swapPairedSlot` helper extracted + both engine sites refactored. The fuller transform unification (`flipPoint`/`anchorPoint` across all 5 sites) is **not** done. |
+| WP4.2 | ✅ done | `placeFormation` swaps paired slots on single-axis reflection. **Skips `defenderIsAttacker` frames** (unverified parity). **NEEDS OWNER EYEBALL** on both touchlines/directions. |
+| WP6.1 | ✅ done | DESIGN.md drift fixes (chaserEl, key convention). |
+| **WP3.1** | ⏳ not started | Large behaviour-preserving refactor of the 390-line `applyChoreography`. Runs only in live (non-silent) mode, so `verify` can't catch a regression — do it with the dev server open and eyeball an authored crash-ball / out-the-back / wheel before+after. |
+| **WP3.2** | ⏳ deferred | Needs new cross-tick engine state (the set-piece origin isn't tracked past the tick that sets `nextPhase = FirstPhase`), so it is **not** the "additive" change first assumed — it touches the mutation boundary. No current registry entry benefits (only bare keys + the separately-handled `SCRUM:wheel`). Do alongside authoring the first per-predecessor variant. |
+| **WP5** | ⏳ not started | Between-ruck drift (owner-requested). WP5.1 (data extraction) + WP5.2 (hold directive) are behaviour-neutral prep; WP5.3 introduces new visible behaviour and **must be tuned live** (`DRIFT_WEIGHT`) with the owner watching — do not ship blind. |
+| **WP6.2** | ⏳ not started | Probe sync assertions (teleport / carrier-contact / channel-exclusivity). Needs the headless-Chromium probe harness. |
+
+**Recommended next session:** WP5 (drift) with the dev server running so `DRIFT_WEIGHT` can be
+tuned by eye, then WP3.1 (refactor) with an authored-play before/after check. Both want a human
+watching the pitch — they are not safe to land purely on `build`/`verify` green.
+
 **Decisions already made by the project owner — do not re-litigate:**
 
 1. **Roster lead is accepted.** The dot layer reads the live (producer run-ahead, ≤4-beat)

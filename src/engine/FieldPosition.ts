@@ -33,10 +33,16 @@ export function isTryScored(state: MatchState): boolean {
 
 // Same logic as isTryScored but takes the raw ballX — useful when a handler needs
 // to check whether a projected (not-yet-applied) ball position crosses the try line.
+// The ball must REACH the try line (x=100 / x=0) — there is no leniency band. Every
+// caller clamps its projection to [0,100] first, so a carry/drive that would cross
+// the line projects to exactly 100 (or 0) and scores; one stopped short, by however
+// little, is a breakdown/next phase, not a try. (Until v3.08b a 5m leniency band
+// (x>=95) awarded the try early, which made close-range mauls and tap-and-goes
+// score without actually reaching the line — removed at the owner's direction.)
 export function isTryScoredAt(ballX: number, possession: 'home' | 'away', halfTimeDone: boolean): boolean {
   const homeAttacksRight = !halfTimeDone;
-  if (possession === 'home') return homeAttacksRight ? ballX >= 95 : ballX <= 5;
-  return homeAttacksRight ? ballX <= 5 : ballX >= 95;
+  if (possession === 'home') return homeAttacksRight ? ballX >= 100 : ballX <= 0;
+  return homeAttacksRight ? ballX <= 0 : ballX >= 100;
 }
 
 export function inOpposition22(state: MatchState): boolean {

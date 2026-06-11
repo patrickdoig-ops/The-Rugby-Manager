@@ -162,7 +162,7 @@ Each tick:
 Home attacks toward `ball.x = 100` in the first half, toward `ball.x = 0` in the second. **Teams swap ends only at half-time, never on turnovers.** All ball movement uses pure helpers in `src/engine/FieldPosition.ts` that factor in `state.clock.halfTimeDone`:
 
 - `attackDir(state)` → `+1` or `-1` for the possession team's attacking direction
-- `isTryScored(state)` → true if `ballX` has crossed the possessing team's attacking try line
+- `isTryScored(state)` → true if `ballX` has reached the possessing team's attacking try line (`x ≥ 100` / `≤ 0` — callers clamp projections to `[0,100]`, so a carry that would cross projects to exactly the line; there is **no leniency band** — until v3.08b `x ≥ 95` counted, which let close-range mauls and tap-and-goes score 5m short)
 - `inOpposition22(state)` → true if `ballX` is inside the defending team's 22m zone
 
 Never compute ball direction or territory logic outside these helpers.

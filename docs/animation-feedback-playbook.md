@@ -172,7 +172,9 @@ often violated by feedback-driven tweaks:
   never leave a dot whose DOM rest position isn't its final position.
 - Coordinates map through `pitchCoords.toTop/toLeft` and the shared clamps
   (`clampX`/`clampY`/`clampInGoalX`/`clampDefenderX`) — never copy the numbers.
-- Try-line actors anchor on the line (x=0/100), not `ballX` (5 m leniency).
+- Try-line actors anchor on the line (x=0/100). A try requires the ball to reach the line
+  (`isTryScoredAt`, no leniency band) so `ballX` rests exactly on it; the rendered grounding
+  is pushed into the in-goal (`line + dir*4`).
 - Authored `t` offsets must stay in `[0,1]`, sorted; if any keyframe has `t`, the whole
   walk runs on authored offsets — don't mix with even/distance-based spacing.
 

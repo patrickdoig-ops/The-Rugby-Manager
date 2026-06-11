@@ -1158,11 +1158,12 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
   const [carrier, ...support] = attackers;
 
   // Carrier sits just behind the ball so their circle is visible alongside it. On a try the
-  // scorer is placed relative to the TRY LINE (x=100 / x=0), NOT the grounded ballX: the try
-  // is awarded with a 5m leniency so ballX can sit short of the line, and the display snapshot
-  // pushes the ball off the line too (line + dir*4). Place the scorer `fwd*2.5` past the line
-  // (just behind the in-goal ball, clearly over) via the wider in-goal clamp; the standard
-  // clampX [2,98] would strand them on-field, and the keepTryScored glide eases them across.
+  // scorer is placed relative to the TRY LINE (x=100 / x=0): a try requires the ball to REACH
+  // the line, and the [0,100] clamp means ballX rests exactly ON it, while the display
+  // snapshot grounds the ball inside the in-goal (line + dir*4). Place the scorer `fwd*2.5`
+  // past the line (just behind the in-goal ball, clearly over) via the wider in-goal clamp;
+  // the standard clampX [2,98] would strand them on-field; the keepTryScored glide eases
+  // them across.
   let carrierDot: Placed | null = null;
   if (carrier) {
     const carrierX = event.phase === MatchPhase.TryScored
@@ -1187,11 +1188,11 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
   defenders.forEach((p, i) => {
     if (p === tackler && carrierDot) {
       // Pin tackler to the ball carrier to visually represent the collision.
-      // Derive the tackle spot from the carrier's ACTUAL placed position (which,
-      // on a lenient try, sits on the try line — not at ballX, which can rest 5m
-      // short), so the tackler lands fwd*1.3 behind the scorer rather than ~6
-      // units adrift. Give them a `from` at their defensive-line spot so the
-      // WAAPI chase animation runs them INTO the tackle over the beat duration.
+      // Derive the tackle spot from the carrier's ACTUAL placed position (on a
+      // try that's `fwd*2.5` past the line, not ballX, which rests ON the line)
+      // so the tackler lands fwd*1.3 behind the scorer rather than adrift. Give
+      // them a `from` at their defensive-line spot so the WAAPI chase animation
+      // runs them INTO the tackle over the beat duration.
       const tackleX = clampDefenderX(carrierDot.x + fwd * TACKLER_AHEAD, fwd);
       const defLineX = clampDefenderX(ballX + fwd * 10, fwd);
       const defLineY = clampY(ballY + 4);

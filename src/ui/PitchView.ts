@@ -449,11 +449,12 @@ export function initPitchView(): void {
     kickFlightThisBeat = false;
     const cls = flashClass(event);
     if (cls) {
-      // A try is awarded with 5m leniency so event.ballX can rest short of the
-      // line; displaySnapshot renders the try ball at line+dir*4, so anchor the
-      // try flash there too (not the raw ballX) or it pulses behind the ball and
-      // scorer. Conversions also carry the try phase class but keep the raw kick
-      // spot — hence the explicit TryScored phase gate.
+      // On a try, event.ballX rests exactly ON the try line (a try requires
+      // reaching it; the [0,100] clamp stops it passing). displaySnapshot renders
+      // the try ball grounded in the in-goal at line+dir*4, so anchor the try
+      // flash there too or it pulses behind the rendered ball and scorer.
+      // Conversions also carry the try phase class but keep the raw kick spot —
+      // hence the explicit TryScored phase gate.
       let flashX = event.ballX;
       if (cls === 'flash-try' && event.phase === MatchPhase.TryScored) {
         const attacksTop = (event.side === 'home') !== cachedHalfTimeDone;

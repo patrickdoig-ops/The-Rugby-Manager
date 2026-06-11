@@ -150,7 +150,7 @@ Diagnostic: `git status && git log --oneline -5 && git branch -vv`.
 - **`keepX` flags** (`keepLineout`, `keepKickFormation`, `keepTmo`, `keepPhasePlay`, `keepTryScored`, `keepSubstitution`, `keepBoxKickAnnounce`) prevent dot fade on those phase transitions. Empty beats (no `placed` entries) hold automatically.
 - **Authored choreography skips the follower** — `animateMovements` returns early on `skipFollower`; the per-dot choreography loop drives those actors instead.
 - **`cachedEventPhase`** (not `display.phase`) keys the lineout ball-lateral override — `buildDisplaySnapshot` captures phase *after* the transition, so `display.phase` already reads the next phase on a lineout beat.
-- **Try scorer anchors on the try line** (x=100/0), not `ballX` — tries are awarded with 5m leniency so `ballX` can rest short.
+- **Try scorer anchors on the try line** (x=100/0) — a try requires the ball to REACH the line (`isTryScoredAt`, no leniency band), so `ballX` rests exactly ON it; the display grounds the ball in-goal at line+4.
 - **Kick-off chaser direction** comes from ball travel (`event.ballX >= 50 ? 1 : -1`), not `event.side` (which is the receiving team after possession flips).
 
 ---

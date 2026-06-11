@@ -1400,7 +1400,7 @@ document.addEventListener('DOMContentLoaded', () => {
       || (!eng.getCurrentEuropeanFixture() && eng.getCurrentEuropeanRound() != null);
     const block = eng.getNextBlock();
     if (block && !isRecapStep) {
-      showMatchdayPreview(block, dispatch);
+      showMatchdayPreview(block, dispatch, () => goHub('back'));
       screenRouter.show('matchday');
     } else {
       dispatch();

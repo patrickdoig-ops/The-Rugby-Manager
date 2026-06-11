@@ -22,11 +22,13 @@ const COMP_NAME: Record<CalendarBlock['competitions'][number], string> = {
 
 let activeBlock: CalendarBlock | null = null;
 let activeOnContinue: (() => void) | null = null;
+let activeOnBack: (() => void) | null = null;
 let renderImpl: (() => void) | null = null;
 
-export function showMatchdayPreview(block: CalendarBlock, onContinue: () => void): void {
+export function showMatchdayPreview(block: CalendarBlock, onContinue: () => void, onBack: () => void): void {
   activeBlock = block;
   activeOnContinue = onContinue;
+  activeOnBack = onBack;
   renderImpl?.();
 }
 
@@ -49,7 +51,8 @@ export function initMatchdayScreen(
   function render(): void {
     const block = activeBlock;
     const onContinue = activeOnContinue;
-    if (!block || !onContinue) return;
+    const onBack = activeOnBack;
+    if (!block || !onContinue || !onBack) return;
 
     const state = getGameEngine().getState();
     const myId = state.player.teamId;
@@ -92,7 +95,10 @@ export function initMatchdayScreen(
     el!.innerHTML = `
       <div class="app-header">
         <div class="app-topbar">
-          <div class="app-topbar-spacer"></div>
+          <button id="matchday-back" class="app-back" aria-label="Back to hub">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Hub</span>
+          </button>
           <span class="app-title">This Week</span>
           <div class="app-topbar-spacer">${helpButtonHtml('matchday')}</div>
         </div>
@@ -113,6 +119,7 @@ export function initMatchdayScreen(
     `;
 
     el!.querySelector<HTMLButtonElement>('#matchday-continue')!.addEventListener('click', () => onContinue());
+    el!.querySelector<HTMLButtonElement>('#matchday-back')!.addEventListener('click', () => onBack());
   }
 
   renderImpl = render;

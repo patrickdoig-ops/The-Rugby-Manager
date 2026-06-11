@@ -32,6 +32,7 @@ import { createHash } from 'node:crypto';
 import { GameCoordinator } from '../src/game/GameCoordinator.js';
 import { simulateFixture } from '../src/game/simulateFixture.js';
 import { buildAutoSelectedTeamFromRoster } from '../src/game/rosterTeamBuilder.js';
+import { buildEuropeanOpponent } from '../src/game/buildEuropeanOpponent.js';
 import type { RawTeamInput } from '../src/types/teamData.js';
 
 import bathRaw         from '../src/data/team-bath.json' with { type: 'json' };
@@ -74,6 +75,10 @@ async function simulateSeason(coord: GameCoordinator, teamsById: Map<string, Raw
     const away = buildAutoSelectedTeamFromRoster(state, awayJson);
     const sim = await simulateFixture(home, away, state.seed, next.round);
     await coord.recordPlayerMatchResult(next.round, sim.homeScore, sim.awayScore, sim.snapshot);
+    // Play out the player's own European fixtures that have come due (mirrors
+    // the post-match chain's maybePlayEuropeanFixture). This completes the EC
+    // pool so the Shield knockout (which seeds the EC drop-downs) can resolve.
+    await drainEuropean(coord, teamsById);
   }
   // After the final regular fixture, the engine has already seeded the
   // bracket (via recordPlayerMatchResult). Drive the knockouts headlessly
@@ -110,6 +115,41 @@ async function drainCupBreak(coord: GameCoordinator): Promise<void> {
       if (window) coord.resolveInternationalWindow(window);
       else break; // defensive — should never happen (duty implies a window)
     }
+  }
+}
+
+// Play the player's due European fixtures headlessly (the harness has no live
+// match seam) + step through completed round screens, each followed by its own
+// matchday training week — mirroring main.ts's maybePlayEuropeanFixture.
+async function drainEuropean(coord: GameCoordinator, teamsById: Map<string, RawTeamInput>): Promise<void> {
+  let guard = 0;
+  while (true) {
+    if (++guard > 200) throw new Error('european drain did not terminate');
+    const fix = coord.getCurrentEuropeanFixture();
+    if (fix) {
+      const state = coord.getState();
+      const homeId = fix.kind === 'pool' ? fix.fixture.homeId : (fix.match.homeId ?? '');
+      const awayId = fix.kind === 'pool' ? fix.fixture.awayId : (fix.match.awayId ?? '');
+      const resolveTeam = (id: string): RawTeamInput =>
+        teamsById.get(id) ? buildAutoSelectedTeamFromRoster(state, teamsById.get(id)!) : buildEuropeanOpponent(id)!;
+      const home = resolveTeam(homeId);
+      const away = resolveTeam(awayId);
+      const seedRound = fix.kind === 'pool'
+        ? 400 + fix.fixture.round
+        : 410 + ['r16', 'quarterfinal', 'semifinal', 'final'].indexOf(fix.stage);
+      const isFinal = fix.kind === 'knockout' && fix.stage === 'final';
+      const sim = await simulateFixture(home, away, state.seed, seedRound, { neutralVenue: isFinal });
+      if (fix.kind === 'pool') {
+        await coord.recordPlayerEuropeanPoolResult(fix.competition, fix.fixture.poolId, fix.fixture.round, homeId, awayId, sim.homeScore, sim.awayScore, sim.snapshot);
+      } else {
+        await coord.recordPlayerEuropeanKnockoutResult(fix.competition, fix.stage, fix.match.matchIndex, sim.homeScore, sim.awayScore, sim.snapshot);
+      }
+      coord.runEuropeanMatchdayTraining([HARNESS_TRAINING_PLAN]);
+      continue;
+    }
+    const round = coord.getCurrentEuropeanRound();
+    if (round) { coord.markEuropeanRoundShown(round.competition, round.roundKey); continue; }
+    break;
   }
 }
 

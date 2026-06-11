@@ -267,19 +267,11 @@ export class GameCoordinator {
       type: 'PREM_CUP_SEEDED',
       ...buildCupSeed(CUP_POOLS_2025_26, coord.state.league.fixtures, coord.state.calendar.seasonLabel, CUP_FIXTURES_2025_26),
     });
-    // Seed and simulate all European pool + knockout matches headlessly.
-    // Phase 4 will make these steppable in the calendar; for now they run
-    // immediately so pool standings and knockout results are available from
-    // day 1 of the season.
+    // Seed the European competitions (pools + pool fixtures, no results). The
+    // AI fixtures sim incrementally by date through advanceEuropeanCompetitions
+    // (driven from the match tick), and the player plays their own live — so
+    // the bracket fills in over the season rather than being pre-populated.
     coord.european.seedEuropeanComps(coord.state.calendar.seasonLabel);
-    await coord.european.runPoolStage('europeanCup');
-    if (coord.european.allPoolFixturesDone('europeanCup')) {
-      await coord.european.runKnockoutStage('europeanCup');
-    }
-    await coord.european.runPoolStage('europeanShield');
-    if (coord.european.allPoolFixturesDone('europeanShield')) {
-      await coord.european.runKnockoutStage('europeanShield');
-    }
     coord.board.seedBoardState();
     coord.seedEuropeanObjectiveAndDrawStory();
     // Seed the initial staff hire pool. Quick-start pre-hires one average-rated
@@ -1029,6 +1021,29 @@ export class GameCoordinator {
     return STAGE_TO_OBJECTIVE[stage] ?? null;
   }
 
+  // Play out the AI side of both European competitions up to the current
+  // calendar date: sim due pool fixtures, seed each knockout once its pool
+  // completes, then sim due knockout matches (the player's own are skipped —
+  // they're played live). Idempotent + date-gated, so results accumulate
+  // round-by-round across the season. Driven from the match tick + after the
+  // player records a European result.
+  async advanceEuropeanCompetitions(): Promise<void> {
+    const asOf = this.state.calendar.date;
+    // Pool fixtures for both competitions first.
+    await this.european.runPoolStage('europeanCup', asOf);
+    await this.european.runPoolStage('europeanShield', asOf);
+    // EC knockout once its pool is complete.
+    if (this.european.allPoolFixturesDone('europeanCup')) {
+      await this.european.runKnockoutStage('europeanCup', asOf);
+    }
+    // Shield knockout once BOTH pools are complete — the Shield R16 seeds the
+    // 5th-placed EC teams as drop-downs, so the EC pool's final standings must
+    // be settled first.
+    if (this.european.allPoolFixturesDone('europeanShield') && this.european.allPoolFixturesDone('europeanCup')) {
+      await this.european.runKnockoutStage('europeanShield', asOf);
+    }
+  }
+
   async recordPlayerEuropeanPoolResult(
     competition: 'europeanCup' | 'europeanShield',
     poolId: number,
@@ -1051,6 +1066,9 @@ export class GameCoordinator {
     await this.european.recordPlayerEuropeanPoolResult(
       competition, poolId, round, homeId, awayId, homeScore, awayScore, snapshot,
     );
+    // Sim any AI fixtures now due + seed the knockout once the pool completes,
+    // so the elimination check below sees the finished pool / seeded bracket.
+    await this.advanceEuropeanCompetitions();
     // Check for pool-stage elimination after the player's last pool match
     const elim = this.getEliminationStage(competition, 'pool', homeScore, awayScore, playerSide);
     if (elim !== null) {
@@ -1085,6 +1103,9 @@ export class GameCoordinator {
     await this.european.recordPlayerEuropeanKnockoutResult(
       competition, stage, matchIndex, homeScore, awayScore, snapshot,
     );
+    // Sim the rest of this knockout round's AI matches (now due) so the
+    // bracket cascades; later rounds sim by date as the season advances.
+    await this.advanceEuropeanCompetitions();
     if (stage !== 'final') {
       const elim = this.getEliminationStage(competition, stage, homeScore, awayScore, playerSide);
       if (elim !== null) {
@@ -1284,6 +1305,9 @@ export class GameCoordinator {
     }
 
     applySeasonEvent(this.state, { type: 'WEEK_ADVANCED' });
+    // Play out any European fixtures whose date has now arrived (AI sides;
+    // the player plays their own live). The bracket fills in over the season.
+    await this.advanceEuropeanCompetitions();
     for (const ev of computeMoraleDecayEvents(this.state)) {
       applySeasonEvent(this.state, ev);
     }

@@ -41,20 +41,24 @@ export class EuropeanCoordinator {
     return comp.fixtures.every(f => !!f.result);
   }
 
-  // Run all unplayed pool fixtures headlessly, skipping the player's team.
-  async runPoolStage(competition: 'europeanCup' | 'europeanShield'): Promise<void> {
+  // Sim unplayed AI pool fixtures, skipping the player's team. When `asOfDate`
+  // is given, only fixtures whose date has arrived are played — so results
+  // accumulate round-by-round through the season rather than all at once.
+  async runPoolStage(competition: 'europeanCup' | 'europeanShield', asOfDate?: string): Promise<void> {
     const comp = this.state.league[competition];
     if (!comp) return;
     const playerTeamId = this.state.player.teamId;
     for (const fx of comp.fixtures.filter(f => !f.result)) {
       if (fx.homeId === playerTeamId || fx.awayId === playerTeamId) continue;
+      if (asOfDate && fx.date && fx.date > asOfDate) continue; // not yet due
       await this.simulatePoolFixture(competition, fx);
     }
   }
 
-  // Seed and run the knockout stage headlessly, skipping the player's team.
-  // Must be called after all pool fixtures (including the player's) are done.
-  async runKnockoutStage(competition: 'europeanCup' | 'europeanShield'): Promise<void> {
+  // Seed the knockout bracket from the final pool standings. Idempotent.
+  // Called once the pool stage is complete; the rounds are then simmed by date
+  // (runKnockoutStage), so knockout results also accumulate over the season.
+  seedKnockout(competition: 'europeanCup' | 'europeanShield'): void {
     const comp = this.state.league[competition];
     if (!comp || comp.knockout !== null) return;
     const shieldDropdowns = competition === 'europeanShield' ? this.computeEcDropdowns() : [];
@@ -72,11 +76,18 @@ export class EuropeanCoordinator {
       ],
       final: { matchIndex: 0, homeId: null, awayId: null, date: koDates.final },
     });
+  }
+
+  // Seed (if needed) and sim the AI knockout matches whose date has arrived,
+  // skipping the player's team. `asOfDate` gates each round so the bracket
+  // plays out over the season; omit it to run the whole bracket at once.
+  async runKnockoutStage(competition: 'europeanCup' | 'europeanShield', asOfDate?: string): Promise<void> {
+    this.seedKnockout(competition);
     const playerTeamId = this.state.player.teamId;
-    await this.runKnockoutRound(competition, 'r16', playerTeamId);
-    await this.runKnockoutRound(competition, 'quarterfinal', playerTeamId);
-    await this.runKnockoutRound(competition, 'semifinal', playerTeamId);
-    await this.runKnockoutRound(competition, 'final', playerTeamId);
+    await this.runKnockoutRound(competition, 'r16', playerTeamId, asOfDate);
+    await this.runKnockoutRound(competition, 'quarterfinal', playerTeamId, asOfDate);
+    await this.runKnockoutRound(competition, 'semifinal', playerTeamId, asOfDate);
+    await this.runKnockoutRound(competition, 'final', playerTeamId, asOfDate);
   }
 
   // Record the result of a live European pool match the player just played.
@@ -111,10 +122,8 @@ export class EuropeanCoordinator {
     for (const ev of collectSeasonEvents(snapshot, competition)) applySeasonEvent(this.state, ev);
     for (const ev of collectConditionEvents(snapshot)) applySeasonEvent(this.state, ev);
     for (const ev of rollNewInjuryEvents(this.state, snapshot.playerSnapshots)) applySeasonEvent(this.state, ev);
-    // Seed and run the knockout once all pool fixtures (including the player's) are done.
-    if (this.allPoolFixturesDone(competition) && !comp.knockout) {
-      await this.runKnockoutStage(competition);
-    }
+    // Knockout seeding + AI sims are driven incrementally by date through
+    // GameCoordinator.advanceEuropeanCompetitions (called by the wrapper).
   }
 
   // Record the result of a live European knockout match the player just played.
@@ -148,11 +157,9 @@ export class EuropeanCoordinator {
     for (const ev of collectSeasonEvents(snapshot, competition)) applySeasonEvent(this.state, ev);
     for (const ev of collectConditionEvents(snapshot)) applySeasonEvent(this.state, ev);
     for (const ev of rollNewInjuryEvents(this.state, snapshot.playerSnapshots)) applySeasonEvent(this.state, ev);
-    // Sim remaining matches in current and subsequent stages, skipping player.
-    const allStages: Array<'r16' | 'quarterfinal' | 'semifinal' | 'final'> = ['r16', 'quarterfinal', 'semifinal', 'final'];
-    for (const s of allStages.slice(allStages.indexOf(stage))) {
-      await this.runKnockoutRound(competition, s, playerTeamId);
-    }
+    // The recorded result cascades the winner into the next round's slot (in
+    // the reducer); the remaining AI matches of this round and later rounds are
+    // simmed by date through GameCoordinator.advanceEuropeanCompetitions.
   }
 
   private async simulatePoolFixture(competition: 'europeanCup' | 'europeanShield', fx: EuropeanFixture): Promise<void> {
@@ -232,6 +239,7 @@ export class EuropeanCoordinator {
     competition: 'europeanCup' | 'europeanShield',
     stage: 'r16' | 'quarterfinal' | 'semifinal' | 'final',
     skipTeamId?: string,
+    asOfDate?: string,
   ): Promise<void> {
     const comp = this.state.league[competition];
     const ko = comp?.knockout;
@@ -244,6 +252,7 @@ export class EuropeanCoordinator {
     for (const match of this.getKoMatches(ko, stage)) {
       if (match.result || !match.homeId || !match.awayId) continue;
       if (skipTeamId && (match.homeId === skipTeamId || match.awayId === skipTeamId)) continue;
+      if (asOfDate && match.date && match.date > asOfDate) continue; // not yet due
       const homeTeam = this.teamsById.get(match.homeId) ?? buildEuropeanOpponent(match.homeId);
       const awayTeam = this.teamsById.get(match.awayId) ?? buildEuropeanOpponent(match.awayId);
       if (!homeTeam || !awayTeam) continue;

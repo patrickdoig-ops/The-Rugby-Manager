@@ -386,8 +386,16 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       // (and conversion alignment) back to a mid-path keyframe.
       if (authoredBallEvents.length > 0) {
         let finalY = authoredBallEvents[authoredBallEvents.length - 1].y;
+        // Refine from res.events because the offload-extension block splices its
+        // run keyframes into res.events WITHOUT mirroring them into
+        // authoredBallEvents — but only TIMED keyframes (t defined) may refine
+        // the grounding y. The procedural try grounding (t === undefined,
+        // y = tryLandingY) is the very event we're about to override; letting it
+        // into this scan made the override circular, the procedural y silently
+        // won, and the conversion lined up off a different spot than where the
+        // authored animation grounded the ball. The animation takes precedence.
         for (const e of res.events) {
-          if (e.type === 'BALL_REPOSITIONED' && e.y !== undefined) finalY = e.y;
+          if (e.type === 'BALL_REPOSITIONED' && e.t !== undefined && e.y !== undefined) finalY = e.y;
         }
 
         const tryRepoEvent = res.events.find(

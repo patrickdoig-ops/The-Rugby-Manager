@@ -77,6 +77,7 @@ import { initSavesScreen }         from './ui/SavesScreen';
 import { initTeamSelectorScreen }  from './ui/TeamSelectorScreen';
 import { initTeamInfoScreen }      from './ui/TeamInfoScreen';
 import { initFixtureListScreen }   from './ui/FixtureListScreen';
+import { initMatchdayScreen, showMatchdayPreview } from './ui/MatchdayScreen';
 import { initTacticsHubScreen, showTacticsScreen } from './ui/TacticsHubScreen';
 import { initLeagueTableScreen, showLeagueTable, showLeagueTablePostMatch } from './ui/LeagueTableScreen';
 import { initLeagueMenuScreen, showLeagueMenuScreen } from './ui/LeagueMenuScreen';
@@ -369,6 +370,9 @@ document.addEventListener('DOMContentLoaded', () => {
       onInbox:    goInbox,
     });
     initFixtureListScreen(getGameEngine, allTeams, () => goHub('back'));
+    // The block fixtures preview ("This Week") — inited with European teams so
+    // it can resolve non-Premiership opponent names on European weekends.
+    initMatchdayScreen(getGameEngine, allTeamsWithEuropean);
     // Standalone Tactics screen (Hub tile). The Save CTA commits the player's
     // tactics + autosaves; the back arrow discards (with confirmation) and exits.
     initTacticsHubScreen({
@@ -1357,31 +1361,50 @@ document.addEventListener('DOMContentLoaded', () => {
     // Mid-season sack latch — route to the game-over screen rather than
     // advancing (mirrors continueGame / the post-match chain guard).
     if (eng.isManagerSacked()) { runSackScreen('midseason'); return; }
-    const state = eng.getState();
     const toHub = (): void => { if (gameEngine) autosave(gameEngine.toSavePayload()); goHub(); };
 
-    // 1. Playoffs — the bracket exists from the final regular round until rollover.
-    if (state.league.playoffs) { void runPlayoffWeek(); return; }
-    // 2. League Cup break (pre-season block / international windows).
-    if (eng.getCupBreakStep()) { onPlayCupStep(toHub); return; }
-    // 3. European fixture due, or a completed-but-unshown European round.
-    if (eng.getCurrentEuropeanFixture() || eng.getCurrentEuropeanRound()) {
-      maybePlayEuropeanFixture(toHub);
-      return;
-    }
-    // 4. Next league fixture.
-    const next = eng.getCurrentFixture();
-    if (next) {
-      const home = allTeams.find(t => t.id === next.homeId);
-      const away = allTeams.find(t => t.id === next.awayId);
-      if (home && away) {
-        const playerSide: 'home' | 'away' = next.homeId === state.player.teamId ? 'home' : 'away';
-        onPlayRound(home, away, playerSide, next.round);
+    // The actual advance: route to the existing per-competition flow in the
+    // same priority order the Hub preview uses.
+    const dispatch = (): void => {
+      const s = eng.getState();
+      // 1. Playoffs — the bracket exists from the final regular round until rollover.
+      if (s.league.playoffs) { void runPlayoffWeek(); return; }
+      // 2. League Cup break (pre-season block / international windows).
+      if (eng.getCupBreakStep()) { onPlayCupStep(toHub); return; }
+      // 3. European fixture due, or a completed-but-unshown European round.
+      if (eng.getCurrentEuropeanFixture() || eng.getCurrentEuropeanRound()) {
+        maybePlayEuropeanFixture(toHub);
+        return;
       }
-      return;
+      // 4. Next league fixture.
+      const next = eng.getCurrentFixture();
+      if (next) {
+        const home = allTeams.find(t => t.id === next.homeId);
+        const away = allTeams.find(t => t.id === next.awayId);
+        if (home && away) {
+          const playerSide: 'home' | 'away' = next.homeId === s.player.teamId ? 'home' : 'away';
+          onPlayRound(home, away, playerSide, next.round);
+        }
+        return;
+      }
+      // 5. Nothing left to play — the season is over; enter the end-of-season chain.
+      runEndOfSeasonChain();
+    };
+
+    // Show the week's fixtures ("This Week") before playing — except on the
+    // cup recap / international-return admin steps and the European
+    // round-recap step, which carry no fixtures to preview; those advance
+    // straight through their existing recap screens.
+    const cupStep = eng.getCupBreakStep();
+    const isRecapStep = (cupStep != null && cupStep !== 'play_fixture')
+      || (!eng.getCurrentEuropeanFixture() && eng.getCurrentEuropeanRound() != null);
+    const block = eng.getNextBlock();
+    if (block && !isRecapStep) {
+      showMatchdayPreview(block, dispatch);
+      screenRouter.show('matchday');
+    } else {
+      dispatch();
     }
-    // 5. Nothing left to play — the season is over; enter the end-of-season chain.
-    runEndOfSeasonChain();
   }
 
   function onPlayRound(homeTeam: RawTeamInput, awayTeam: RawTeamInput, playerSide: 'home' | 'away', round: number): void {

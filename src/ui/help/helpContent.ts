@@ -85,6 +85,15 @@ const HELP_TOPICS = {
       'A number badge on a tile means something needs your action there.',
     ],
   },
+  'matchday': {
+    title: 'This Week',
+    purpose: 'The fixtures being played this game week, across every competition. Your own games are highlighted; tap Continue to play through them.',
+    features: [
+      { label: 'Fixture list', desc: 'Every match in this block — league, cup, European or playoff — with a tag showing which competition each belongs to.' },
+      { label: 'Your games', desc: 'Highlighted rows are your club’s fixtures. Continue takes you into the build-up for each in turn.' },
+      { label: 'Continue', desc: 'Plays your fixture(s) and resolves the rest of the week’s results.' },
+    ],
+  },
   'competitions-menu': {
     title: 'Competitions',
     purpose: 'A hub for every competition you are involved in — the league, the League Cup and the European tournaments.',

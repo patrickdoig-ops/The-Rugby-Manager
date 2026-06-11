@@ -980,7 +980,7 @@ Dual-mode screens: `RoundResultsScreen`, `LeagueTableScreen`, `TrainingScreen`, 
 
 ### 15.4 Hub tile list
 
-The Hub (`src/ui/HubScreen.ts`) has **six tiles** plus a Settings cog and a single **"Continue"** CTA. The CTA reads "Continue" in every scenario — there is no per-competition call-to-action. `main.ts`'s `onContinue` dispatches to the right flow (playoffs -> League Cup -> European -> league, the same priority the preview panel uses); each runs the shared play -> result -> results -> training -> Hub cycle, so every game week feels the same. The panel above the button still previews what's next; that preview is derived via `GameCoordinator.getNextBlock()` (`src/game/calendarBlocks.ts`).
+The Hub (`src/ui/HubScreen.ts`) has **six tiles** plus a Settings cog and a single **"Continue"** CTA. The CTA reads "Continue" in every scenario — there is no per-competition call-to-action. `main.ts`'s `onContinue` dispatches to the right flow (playoffs -> League Cup -> European -> league, the same priority the preview panel uses); each runs the shared play -> result -> results -> training -> Hub cycle, so every game week feels the same. The panel above the button still previews what's next; that preview is derived via `GameCoordinator.getNextBlock()` (`src/game/calendarBlocks.ts`). Tapping Continue first opens the **"This Week" block fixtures preview** (`MatchdayScreen`, screen id `matchday`) — every fixture in the next date-clustered block across all competitions, the manager's own games highlighted — and its Continue hands off to the per-competition play flow. The preview is skipped on the cup recap / international-return admin steps and the European round-recap step (no fixtures to show).
 
 | Tile | Routes to | Notes |
 |---|---|---|

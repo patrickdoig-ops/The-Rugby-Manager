@@ -44,6 +44,7 @@ export type ScreenId =
   | 'intl-callups'
   | 'cup-fixtures'
   | 'cup-results'
+  | 'matchday'
   | 'achievements'
   | 'inbox'
   | 'contracts-transfers-menu'
@@ -77,6 +78,7 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'intl-callups':  { elId: 'intl-callups',  shownDisplay: '' },
   'cup-fixtures':  { elId: 'cup-fixtures',  shownDisplay: '' },
   'cup-results':   { elId: 'cup-results',   shownDisplay: '' },
+  'matchday':      { elId: 'matchday',      shownDisplay: '' },
   'player-profile':{ elId: 'player-profile',shownDisplay: '' },
   'pre-match':     { elId: 'pre-match',     shownDisplay: '' },
   'app':           { elId: 'app',           shownDisplay: '' },

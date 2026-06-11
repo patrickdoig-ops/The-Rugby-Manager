@@ -26,15 +26,24 @@ export interface ParsedChoreography {
 
 export function parseChoreography(json: PhaseAnimatorExport): ParsedChoreography {
   const ball = json.entities.find(e => e.id === 'ball');
+  // The ball's kf[0] is the formation anchor, so it must exist — but it may be the ONLY
+  // ball keyframe (e.g. SCRUM:wheel, where the ball is static and only the players move).
   if (!ball || ball.kf.length === 0) throw new Error("Choreography missing ball");
 
   // Validate the authored data at module load so a malformed export (out-of-order or
-  // out-of-range timestamps, NaN coords, a typo'd id) fails loudly here rather than
-  // silently corrupting the WAAPI animation at runtime — `t` is applied as the keyframe
-  // `offset`, which must be a number in [0,1] and non-decreasing per entity.
+  // out-of-range timestamps, NaN coords, a typo'd id, an out-of-range slot) fails loudly
+  // here — this runs at import time, so it fails `npm run build` AND `npm run verify`
+  // rather than silently corrupting the WAAPI animation at runtime: `t` is applied as the
+  // keyframe `offset`, which must be a number in [0,1] and non-decreasing per entity, and
+  // a slot outside 1-15 maps to no player so the dot would never be drawn.
   const phase = json.meta?.phase ?? '?';
   for (const e of json.entities) {
     if (!/^(?:h|a|ball)\d*$/.test(e.id)) throw new Error(`Choreography (${phase}): invalid entity id "${e.id}"`);
+    if (e.id !== 'ball') {
+      const slot = parseInt(e.id.substring(1), 10);
+      if (!Number.isInteger(slot) || slot < 1 || slot > 15)
+        throw new Error(`Choreography (${phase}): entity "${e.id}" maps to slot ${slot} outside 1-15`);
+    }
     let prevT = -Infinity;
     for (const k of e.kf) {
       if (!Number.isFinite(k.t) || !Number.isFinite(k.x) || !Number.isFinite(k.y))

@@ -219,6 +219,13 @@ export interface MatchState {
     // True for a playoff semi-final (not the final). Used by occasion-commentary
     // hooks alongside isDerby and neutralVenue. Defaults to false.
     isPlayoffSemi: boolean;
+    // Skips the per-event assertInvariants() structural sweep for headless AI
+    // fixtures (set from `silent`). The sweep is O(matchday squad × stats) and
+    // dominates silent-fixture runtime; nothing reads it mid-match in silent
+    // mode. A single forced full sweep still runs at MATCH_ENDED as a tripwire
+    // before the season snapshot is harvested. Live play + the determinism /
+    // telemetry harnesses keep full per-event coverage. Defaults to false.
+    skipInvariants: boolean;
   };
   phase: MatchPhase;
   possession: PossessionSide;

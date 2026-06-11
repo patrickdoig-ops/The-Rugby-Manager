@@ -15,6 +15,8 @@ Architectural invariants and ways of working for this repo. Lean by design. Read
 | Team data (squad tables, baseStats, star players) | **`docs/team-data.md`** → `node scripts/generateTeamJsons.mjs` syncs JSONs |
 | Phase Animator dev tool (keyframe authoring) | **`docs/phase-animator.md`** ↔ `public/tools/phase-animator.html` (regen: `npm run export:phases`) |
 | Wiring an exported animation JSON | **`docs/phase-animator.md`** § 9 + **`docs/DESIGN.md`** § 15.7 |
+| Fixing a 2D animation from user feedback ("X looks wrong") | **`docs/animation-feedback-playbook.md`** — triage table + adjustment recipes; read before touching animation code |
+| Animation improvement work packages (agreed plan) | **`docs/pitch-animation-plan.md`** |
 
 ---
 
@@ -94,7 +96,7 @@ For full module internals (AITacticalDirector, AISubstitutionDirector, CardHandl
 **State mutation flows through one function. Don't sneak in a direct write.**
 
 - All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.currentStats`, and `player.rating` go through **`applyMatchEvent(state, event)`** in `src/engine/applyMatchEvent.ts`. No exceptions, including `state.events.push(...)`.
-- **`applyMatchEvent` runs `assertInvariants(state)` after every event** (`src/engine/invariants.ts`). It throws if score/possession/phase/ball/clock or any player's `fatiguePct`/`rating`/`currentStats` strays outside its legal range. Adding a mutation that could push a value off the asserted range: extend the invariant check too.
+- **`applyMatchEvent` runs `assertInvariants(state)` after every event** (`src/engine/invariants.ts`). It throws if score/possession/phase/ball/clock or any player's `fatiguePct`/`rating`/`currentStats` strays outside its legal range. Adding a mutation that could push a value off the asserted range: extend the invariant check too. (Headless AI fixtures set `state.engine.skipInvariants` from `silent` to gate the per-event sweep — it dominates a flat-out silent fixture — and `applyMatchEvent` forces one full sweep on `MATCH_ENDED` instead. Live play + the determinism/telemetry harnesses keep full per-event coverage, so a new invariant is still exercised there.)
 - Phase handlers in `src/engine/events/` are **read-only** over state: they read, compute, build a `MatchEvent[]`, and return it on `PhaseResult.events`. `PhaseRouter.resolvePhase()` applies the queue.
 - Use **domain-meaningful** event names (`TRY_SCORED`, `KNOCK_ON`, `CARRY_RESOLVED`). Narrow exception: structural setters (`BALL_REPOSITIONED` — optional `x`/`y`/`lateralDir`, `PHASE_CHANGED`, `POSSESSION_SWAPPED`). `ball.lateralDir` (lateral sweep direction) is a sign, not a coordinate — not range-checked by `assertInvariants`. See `docs/match-engine.md` § "Lateral / Y-axis model".
 - Adding a new mutation kind: one variant in the `MatchEvent` union (`src/types/matchEvent.ts`) + one branch in `applyMatchEvent`. The `default: const _: never = event;` exhaustiveness check catches missing branches at compile time.
@@ -134,7 +136,7 @@ Diagnostic: `git status && git log --oneline -5 && git branch -vv`.
 
 ## 8. 2D Pitch Animation Model
 
-**All animation is purely visual — the DOM's resting state is always the final position.** Full detail in **`docs/DESIGN.md`** § 15.7.
+**All animation is purely visual — the DOM's resting state is always the final position.** Full detail in **`docs/DESIGN.md`** § 15.7. When the user reports an animation looks wrong, triage and fix via **`docs/animation-feedback-playbook.md`** before editing any animation code.
 
 **Coordinate space.** Engine `x`/`y` are 0–100: `x` is the long axis (try lines at x=0/100), `y` is lateral (touchlines at y=0/100). `pitchCoords.toTop/toLeft` is the single source — never copy the numbers. `clampX` (`[2,98]`) / `clampY` (`[3,97]`) keep dots on-pitch; only use `clampInGoalX` (`[-8,108]`) for in-goal actors (try scorer, conversion line).
 
@@ -144,7 +146,7 @@ Diagnostic: `git status && git log --oneline -5 && git branch -vv`.
 - **Layer 3 — Formation (CSS `dot-transitioning`, `PitchPlayers.ts`)**: armed on every phase change except snap phases (`KickOff`, `HalfTime`, `FullTime`, which use `dot-snap-transition`).
 
 **Key invariants — violating any of these breaks animation:**
-- **`isCarrier` XOR `from`** on any dot — a dot in both is fought over by two animators simultaneously.
+- **A dot is driven by exactly one channel: `isCarrier` (follower) XOR `from` (chase) XOR an authored `event.choreography` entry.** A dot in two of these is fought over by two animators simultaneously — so a layout that places a dot from `event.choreography` must NOT also give it a `from` (the choreography keyframes already encode the start).
 - **`keepX` flags** (`keepLineout`, `keepKickFormation`, `keepTmo`, `keepPhasePlay`, `keepTryScored`, `keepSubstitution`, `keepBoxKickAnnounce`) prevent dot fade on those phase transitions. Empty beats (no `placed` entries) hold automatically.
 - **Authored choreography skips the follower** — `animateMovements` returns early on `skipFollower`; the per-dot choreography loop drives those actors instead.
 - **`cachedEventPhase`** (not `display.phase`) keys the lineout ball-lateral override — `buildDisplaySnapshot` captures phase *after* the transition, so `display.phase` already reads the next phase on a lineout beat.
@@ -171,7 +173,7 @@ Diagnostic: `git status && git log --oneline -5 && git branch -vv`.
 | New screen added to `src/ui/` | `docs/DESIGN.md` § 15.5 navigation flow |
 | Any `src/ui/` screen changed — controls added/removed/renamed, layout restructured, new features surfaced | Review the matching topic in `src/ui/help/helpContent.ts` and update `purpose`, `features`, and `tips` in the same commit so the help overlay stays accurate. If the screen has no help topic yet, add one (`HelpTopicId` entry + button in the screen template). |
 | `docs/team-data.md` changes | Run `node scripts/generateTeamJsons.mjs` |
-| `src/ui/pitchChoreography.ts` / `PitchView.ts` / `PitchPlayers.ts` — new animation seam, new layout function, or changed choreography behaviour | `docs/DESIGN.md` § 15.7 (update the relevant seam description or between-beat state note) |
+| `src/ui/pitchChoreography.ts` / `PitchView.ts` / `PitchPlayers.ts` — new animation seam, new layout function, or changed choreography behaviour | `docs/DESIGN.md` § 15.7 (update the relevant seam description or between-beat state note) + the triage table in `docs/animation-feedback-playbook.md` if a placement source moved |
 
 ## Save schema
 

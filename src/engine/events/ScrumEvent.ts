@@ -12,6 +12,7 @@ import { SLOT, isFrontRowSlot } from '../Slot';
 import { SCRUM_VALUES, TACTIC_MODIFIERS } from '../balance';
 import { effIntensityScalar, effDisciplineScalar } from '../tacticsResolve';
 import { FIRST_PHASE_CHOREOGRAPHIES } from '../balance/firstPhaseChoreography';
+import { swapPairedSlot } from '../choreography/transform';
 
 // Random front-row offender for a scrum penalty — props and hooker can all
 // be cited, not just the hooker. Falls back to the hooker (and onward) when
@@ -195,12 +196,7 @@ function applyScrumChoreography(res: PhaseResult, state: MatchState, attackSide:
     if (authoredSlot > 8) continue;
 
     const swapLateral = flipX !== flipY;
-    if (swapLateral) {
-      if (authoredSlot === 1) authoredSlot = 3;
-      else if (authoredSlot === 3) authoredSlot = 1;
-      else if (authoredSlot === 6) authoredSlot = 7;
-      else if (authoredSlot === 7) authoredSlot = 6;
-    }
+    if (swapLateral) authoredSlot = swapPairedSlot(authoredSlot);
 
     const isAuthoredAtk = (authoredSideChar === 'h' && parsedChoreo.authoredAttackingKind === 'home') ||
                           (authoredSideChar === 'a' && parsedChoreo.authoredAttackingKind === 'away');

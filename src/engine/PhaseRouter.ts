@@ -157,7 +157,13 @@ export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy
     ballY: state.ball.y,
     movements: movements.length > 1 ? movements : undefined,
     carrierFromStart: result.carrierFromStart,
-    choreography: result.choreography,
+    // Normalise an empty choreography array to undefined so every consumer
+    // (PitchView's skipFollower gate, the choreography loop) sees one truth:
+    // present-and-non-empty, or absent. An authored play whose surviving
+    // entries are all forwards (slots 1-8 are skipped by applyChoreography)
+    // would otherwise yield [] — truthy enough to skip the carrier follower,
+    // but empty so the choreography loop draws nothing, stranding the carrier.
+    choreography: result.choreography && result.choreography.length > 0 ? result.choreography : undefined,
     narration: result.narration,
     outcome: result.outcome,
   };

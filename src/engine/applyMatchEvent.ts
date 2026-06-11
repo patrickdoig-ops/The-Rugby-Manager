@@ -19,7 +19,11 @@ import type { Player, PlayerStats } from '../types/player';
 
 export function applyMatchEvent(state: MatchState, event: MatchEvent): void {
   applyEventToState(state, event);
-  assertInvariants(state);
+  // Silent AI fixtures skip the per-event sweep (state.engine.skipInvariants)
+  // for speed; force one full sweep on the terminal MATCH_ENDED event so
+  // structural corruption still surfaces before the season snapshot is taken.
+  // Live play / harnesses (skipInvariants false) sweep every event as before.
+  assertInvariants(state, event.type === 'MATCH_ENDED');
 }
 
 function applyEventToState(state: MatchState, event: MatchEvent): void {

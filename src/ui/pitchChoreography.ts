@@ -14,6 +14,8 @@ import { MatchPhase } from '../types/engine';
 import { availableForwards, onFieldPlayers } from '../engine/FieldPosition';
 import { SLOT } from '../engine/Slot';
 import { textOn } from './teamColors';
+import { CARRIER_BEHIND_BALL, TACKLER_AHEAD } from './pitchAnimConstants';
+import { swapPairedSlot } from '../engine/choreography/transform';
 
 // A placed dot in pitch coords (x = long axis 0–100, y = lateral 0–100).
 export interface Placed {
@@ -131,7 +133,7 @@ export function choreograph(
         // Run FROM their authored defensive-line placement...
         catcherDot.from = { x: catcherDot.x, y: catcherDot.y };
         // ...TO the actual ball landing spot
-        catcherDot.x = clampX(event.ballX - fwd * 2.5);
+        catcherDot.x = clampX(event.ballX - fwd * CARRIER_BEHIND_BALL);
         catcherDot.y = clampY(event.ballY);
         catcherDot.isCarrier = true;
       }
@@ -305,7 +307,7 @@ function travelingKickLayout(
   }
   // On-ball player just behind the ball's landing spot, so their circle reads on the ball.
   if (onBall) {
-    out.push(placed(onBall, sideOf(onBall, state), state, clampX(event.ballX - fwd * 2.5), clampY(event.ballY), true));
+    out.push(placed(onBall, sideOf(onBall, state), state, clampX(event.ballX - fwd * CARRIER_BEHIND_BALL), clampY(event.ballY), true));
   }
   return out;
 }
@@ -351,6 +353,14 @@ function placeFormation(
   const flipDir = form.defenderIsAttacker ? false : (atkSide !== possSide);
   const dir = (flipDir ? !attacksTop : attacksTop) ? 1 : -1;
   const mirrorY = form.nearTop !== (anchorY >= 50);
+  // The canonical Formation frame is authored attacking toward +x, so the long-axis
+  // flip relative to it is (dir === -1) and the lateral flip is mirrorY. A reflection
+  // on exactly ONE axis swaps the field side a role sits on, so the paired jersey
+  // slots (1<->3, 6<->7, 11<->14) swap too — matching the engine pipeline's
+  // `flipX !== flipY`. Skipped for defenderIsAttacker frames: those are authored
+  // pre-inverted (no clean canonical orientation), so their swap parity is unverified —
+  // leave them un-swapped until checked in the animator.
+  const swapLateral = !form.defenderIsAttacker && ((dir === -1) !== mirrorY);
   const atkOn = onFieldPlayers(atkSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(atkSide));
   const defOn = onFieldPlayers(defSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(defSide));
 
@@ -360,13 +370,16 @@ function placeFormation(
 
   const fill = (on: Player[], side: Side, tbl: FormOffsets, fromTbl?: FormOffsets): void => {
     for (let slot = 1; slot <= 15; slot++) {
-      const off = tbl[slot];
+      // The real player in `slot` reads the authored offset for its laterally-paired
+      // slot when the frame is reflected on one axis.
+      const tblSlot = swapLateral ? swapPairedSlot(slot) : slot;
+      const off = tbl[tblSlot];
       const p = on.find(pl => pl.id === slot);
       if (off && p) {
         const dot = placed(p, side, state,
           cX(anchorX + off[0] * dir),
           cY(anchorY + (mirrorY ? -off[1] : off[1])), false);
-        const fromOff = fromTbl?.[slot];
+        const fromOff = fromTbl?.[tblSlot];
         if (fromOff) dot.from = {
           x: cX(anchorX + fromOff[0] * dir),
           y: cY(anchorY + (mirrorY ? -fromOff[1] : fromOff[1])),
@@ -1150,11 +1163,13 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
   // pushes the ball off the line too (line + dir*4). Place the scorer `fwd*2.5` past the line
   // (just behind the in-goal ball, clearly over) via the wider in-goal clamp; the standard
   // clampX [2,98] would strand them on-field, and the keepTryScored glide eases them across.
+  let carrierDot: Placed | null = null;
   if (carrier) {
     const carrierX = event.phase === MatchPhase.TryScored
-      ? clampInGoalX((fwd > 0 ? 100 : 0) + fwd * 2.5)
-      : clampX(ballX - fwd * 2.5);
-    out.push(placed(carrier, atkSide, state, carrierX, ballY, true));
+      ? clampInGoalX((fwd > 0 ? 100 : 0) + fwd * CARRIER_BEHIND_BALL)
+      : clampX(ballX - fwd * CARRIER_BEHIND_BALL);
+    carrierDot = placed(carrier, atkSide, state, carrierX, ballY, true);
+    out.push(carrierDot);
   }
 
   // Support attackers: fan behind the carrier in a wider arc so circles don't overlap.
@@ -1170,17 +1185,17 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
   const tackler = event.secondaryPlayer && sideOf(event.secondaryPlayer, state) === defSide ? event.secondaryPlayer : null;
 
   defenders.forEach((p, i) => {
-    if (p === tackler && carrier) {
+    if (p === tackler && carrierDot) {
       // Pin tackler to the ball carrier to visually represent the collision.
-      // Give them a `from` at their defensive-line spot so the WAAPI chase
-      // animation runs them INTO the tackle over the beat duration.
-      const carrierX = event.phase === MatchPhase.TryScored
-        ? clampInGoalX(ballX + fwd * 2.5)
-        : clampX(ballX - fwd * 2.5);
-      const tackleX = clampDefenderX(carrierX + fwd * 1.3, fwd);
+      // Derive the tackle spot from the carrier's ACTUAL placed position (which,
+      // on a lenient try, sits on the try line — not at ballX, which can rest 5m
+      // short), so the tackler lands fwd*1.3 behind the scorer rather than ~6
+      // units adrift. Give them a `from` at their defensive-line spot so the
+      // WAAPI chase animation runs them INTO the tackle over the beat duration.
+      const tackleX = clampDefenderX(carrierDot.x + fwd * TACKLER_AHEAD, fwd);
       const defLineX = clampDefenderX(ballX + fwd * 10, fwd);
       const defLineY = clampY(ballY + 4);
-      const dot = placed(p, defSide, state, tackleX, ballY, false);
+      const dot = placed(p, defSide, state, tackleX, carrierDot.y, false);
       dot.from = { x: defLineX, y: defLineY };
       const isDominant = event.outcome === 'dominant_carry' || event.outcome === 'dominant_tackle';
       if (isDominant) dot.isDominantTackler = true;
@@ -1335,12 +1350,11 @@ function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): 
       const team = p.side === 'h' ? state.homeTeam : state.awayTeam;
       const pl = team.players.find(x => x.id === p.id);
       if (pl && p.movements && p.movements.length > 0) {
-        const first = p.movements[0];
+        // No `from`: a choreographed dot is driven by PitchView's choreography
+        // loop (its keyframes already encode the start). Setting `from` would
+        // ALSO push it to chaseDots, so two animators would fight the element.
         const last = p.movements[p.movements.length - 1];
         const dot = placed(pl, p.side, state, clampX(last.x), clampY(last.y), false);
-        if (p.movements.length > 1) {
-          dot.from = { x: clampX(first.x), y: clampY(first.y) };
-        }
         out.push(dot);
         choreographedKeys.add(`${p.side}:${p.id}`);
       }
@@ -1557,19 +1571,18 @@ function firstPhaseBacklineLayout(
       if (pl) {
         const moves = p.movements;
         if (moves.length > 0) {
-          const first = moves[0];
           const last = moves[moves.length - 1];
           let finalX = last.x;
           let finalY = last.y;
           if (pl === carrier) {
             const engineFinalBall = hops[hops.length - 1] ?? { x: last.x, y: last.y };
-            finalX = engineFinalBall.x - fwd * 2.5;
+            finalX = engineFinalBall.x - fwd * CARRIER_BEHIND_BALL;
             finalY = engineFinalBall.y;
           }
+          // No `from`: a choreographed dot is driven by PitchView's choreography
+          // loop (its keyframes already encode the start). Setting `from` would
+          // ALSO push it to chaseDots, so two animators would fight the element.
           const dot = placed(pl, p.side, state, clampX(finalX), clampY(finalY), pl === carrier);
-          if (moves.length > 1) {
-            dot.from = { x: clampX(first.x), y: clampY(first.y) };
-          }
           out.push(dot);
           choreographedKeys.add(`${p.side}:${p.id}`);
         }
@@ -1603,14 +1616,14 @@ function firstPhaseBacklineLayout(
     const hop = recvHops[i];
     // Sit a touch behind the ball's gain-line hop, progressively deeper as play
     // goes wider — the diagonal read, anchored on the engine's real lateral y.
-    out.push(placed(p, atkSide, state, clampX(hop.x - fwd * (2.5 + i * 4)), clampY(hop.y), p === carrier));
+    out.push(placed(p, atkSide, state, clampX(hop.x - fwd * (CARRIER_BEHIND_BALL + i * 4)), clampY(hop.y), p === carrier));
   }
 
   // Carrier safety: if the chain didn't surface the carrier (offload / edge case),
   // place them at the final receive hop so they're never left invisible.
   if (carrier && !out.some(pl => pl.key === `${atkSide}:${carrier.id}`) && !choreographedKeys.has(`${atkSide}:${carrier.id}`)) {
     const last = recvHops[recvHops.length - 1] ?? hops[hops.length - 1];
-    out.push(placed(carrier, atkSide, state, clampX(last.x - fwd * 2.5), clampY(last.y), true));
+    out.push(placed(carrier, atkSide, state, clampX(last.x - fwd * CARRIER_BEHIND_BALL), clampY(last.y), true));
   }
 
   // Defenders: event actors on the defending side, placed just ahead of the ball.
@@ -1624,7 +1637,7 @@ function firstPhaseBacklineLayout(
       // Pin tackler to the ball carrier — animate from defensive-line spot
       const carrierPl = out.find(pl => pl.key === `${atkSide}:${carrier.id}`);
       if (carrierPl) {
-        const tackleX = clampDefenderX(carrierPl.x + fwd * 1.3, fwd);
+        const tackleX = clampDefenderX(carrierPl.x + fwd * TACKLER_AHEAD, fwd);
         const defLineX = clampDefenderX(event.ballX + fwd * 10, fwd);
         const defLineY = clampY(event.ballY + 4);
         const dot = placed(p, defSide, state, tackleX, carrierPl.y, false);

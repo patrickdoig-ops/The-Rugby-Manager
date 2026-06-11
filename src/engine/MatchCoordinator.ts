@@ -182,7 +182,7 @@ function buildTeam(raw: RawTeamInput, tactics?: TeamTactics, kitColor?: string):
   };
 }
 
-function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayMs: number, seed: number, playerTactics?: TeamTactics, humanSide: 'home' | 'away' = 'home', neutralVenue = false, homeFillRate: number = HOME_ADVANTAGE.crowdFillNeutral, isDerby = false, isPlayoffSemi = false, humanCaptainRosterId?: number): MatchState {
+function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayMs: number, seed: number, playerTactics?: TeamTactics, humanSide: 'home' | 'away' = 'home', neutralVenue = false, homeFillRate: number = HOME_ADVANTAGE.crowdFillNeutral, isDerby = false, isPlayoffSemi = false, humanCaptainRosterId?: number, skipInvariants = false): MatchState {
   return {
     clock: {
       gameMinute: 0,
@@ -203,6 +203,7 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
       homeFillRate,
       isDerby,
       isPlayoffSemi,
+      skipInvariants,
     },
     phase: MatchPhase.KickOff,
     score: { home: 0, away: 0 },
@@ -316,7 +317,7 @@ export class MatchCoordinator {
     this.humanSquadMorale = opts.humanSquadMorale ?? TEAM_TALK.flatThreshold + 15; // neutral default ~65 = baseline
     this.humanPreTalk = opts.humanPreTalk;
     const tactics = opts.playerTactics ?? opts.homeTactics;
-    this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, seed, tactics, this.humanSide, opts.neutralVenue ?? false, opts.homeFillRate, opts.isDerby ?? false, opts.isPlayoffSemi ?? false, opts.humanCaptainRosterId);
+    this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, seed, tactics, this.humanSide, opts.neutralVenue ?? false, opts.homeFillRate, opts.isDerby ?? false, opts.isPlayoffSemi ?? false, opts.humanCaptainRosterId, this.silent);
     if (opts.commentaryBufferCap !== undefined) {
       applyMatchEvent(this.state, { type: 'COMMENTARY_BUFFER_CAP_SET', value: opts.commentaryBufferCap });
     }

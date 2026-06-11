@@ -1,9 +1,12 @@
 // Runtime tripwires for MatchState. Called from applyMatchEvent after every
-// mutation. If anything in the engine ever drives state outside its legal
-// numeric/structural range, this throws with the offending field — surfacing
-// the bug at the mutation that caused it rather than at some downstream
-// rendering or save-load step. Cost is O(matchday squad) per call; negligible
-// next to the RNG / event work already done per tick.
+// mutation (live play + determinism / telemetry harnesses). If anything in the
+// engine ever drives state outside its legal numeric/structural range, this
+// throws with the offending field — surfacing the bug at the mutation that
+// caused it rather than at some downstream rendering or save-load step. Cost is
+// O(matchday squad) per call; negligible next to the RNG / event work already
+// done per tick in live play, but it dominates a flat-out silent AI fixture —
+// so those set `state.engine.skipInvariants` and the per-event sweep is gated
+// out, with a single forced sweep at MATCH_ENDED as a tripwire.
 
 import type { MatchState } from '../types/match';
 import type { Player, PlayerStats } from '../types/player';
@@ -40,8 +43,13 @@ function assertPlayer(p: Player, location: string): void {
   }
 }
 
-export function assertInvariants(state: MatchState): void {
+// `force` bypasses the per-match `skipInvariants` flag (set for silent AI
+// fixtures) so the orchestrator can run one full sweep at MATCH_ENDED even
+// when every other event skipped it. The global `invariantsEnabled()` toggle
+// still wins — telemetry / experiment scripts that opt out stay fully fast.
+export function assertInvariants(state: MatchState, force = false): void {
   if (!invariantsEnabled()) return;
+  if (!force && state.engine.skipInvariants) return;
   // Score
   if (!(state.score.home >= 0) || !Number.isInteger(state.score.home)) {
     fail('score.home', `${state.score.home}`);

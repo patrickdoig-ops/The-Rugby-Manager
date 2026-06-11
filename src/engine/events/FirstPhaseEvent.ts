@@ -14,6 +14,7 @@ import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, CRASH_BALL_THRESHOLDS, CRASH_BAL
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { SLOT, isBackSlot } from '../Slot';
 import { tryOffloadChain } from './offloadChain';
+import { swapPairedSlot } from '../choreography/transform';
 import { effDefendingBreakdown, effBackfieldDefence, effDefensiveLine, effDisciplineScalar, effStyleScalar } from '../tacticsResolve';
 
 const FULL_BACKLINE = 7;
@@ -77,14 +78,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       if (authoredSlot >= 1 && authoredSlot <= 8) continue;
 
       const swapLateral = flipX !== flipY;
-      if (swapLateral) {
-        if (authoredSlot === 11) authoredSlot = 14;
-        else if (authoredSlot === 14) authoredSlot = 11;
-        else if (authoredSlot === 1) authoredSlot = 3;
-        else if (authoredSlot === 3) authoredSlot = 1;
-        else if (authoredSlot === 6) authoredSlot = 7;
-        else if (authoredSlot === 7) authoredSlot = 6;
-      }
+      if (swapLateral) authoredSlot = swapPairedSlot(authoredSlot);
 
       const isAuthoredAtk = (authoredSideChar === 'h' && parsedChoreo.authoredAttackingKind === 'home') ||
                             (authoredSideChar === 'a' && parsedChoreo.authoredAttackingKind === 'away');
@@ -392,8 +386,16 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       // (and conversion alignment) back to a mid-path keyframe.
       if (authoredBallEvents.length > 0) {
         let finalY = authoredBallEvents[authoredBallEvents.length - 1].y;
+        // Refine from res.events because the offload-extension block splices its
+        // run keyframes into res.events WITHOUT mirroring them into
+        // authoredBallEvents — but only TIMED keyframes (t defined) may refine
+        // the grounding y. The procedural try grounding (t === undefined,
+        // y = tryLandingY) is the very event we're about to override; letting it
+        // into this scan made the override circular, the procedural y silently
+        // won, and the conversion lined up off a different spot than where the
+        // authored animation grounded the ball. The animation takes precedence.
         for (const e of res.events) {
-          if (e.type === 'BALL_REPOSITIONED' && e.y !== undefined) finalY = e.y;
+          if (e.type === 'BALL_REPOSITIONED' && e.t !== undefined && e.y !== undefined) finalY = e.y;
         }
 
         const tryRepoEvent = res.events.find(

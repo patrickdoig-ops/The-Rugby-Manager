@@ -71,8 +71,13 @@ export function initPitchView(): void {
   // each beat and lets the carrier dot run the final carry leg via its follower seam.
   const players = initPitchPlayers(field);
   const follower = players.ballWalkFollower;
-  // applyBeat runs in engine:event (before stateChange), so it reads the previous
-  // beat's state for rosters — a one-beat lag matching StatsPanel's accepted lead.
+  // cachedState is a REFERENCE to the live MatchState (re-assigned each stateChange,
+  // but it's the same object the producer mutates). The producer runs ahead of the
+  // presenter, so the rosters choreograph reads (onFieldPlayers / availableForwards)
+  // can LEAD the narrated beat by up to COMMENTARY_PACING.lookaheadBeats (4) — a
+  // substitution or sin-bin can show on the pitch a few beats before its commentary.
+  // This is accepted by design (owner decision; matches StatsPanel's accepted lead);
+  // the lead is bounded and self-corrects. Do not add a per-beat roster snapshot.
   let cachedState: MatchState | null = null;
 
   let lastHalfTimeDone: boolean | null = null;

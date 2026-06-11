@@ -12,6 +12,10 @@
 //     coord.getCurrentFixture()             // next fixture for the player's team
 //     coord.toSavePayload()                 // minimal slice for SaveManager
 //
+//   Calendar-block surface (unified-calendar Stage 2 — not yet wired to UI)
+//     coord.getNextBlock()                  // next unplayed CalendarBlock across all comps
+//     coord.simRestOfBlock(block)           // sims all non-player fixtures in the block
+//
 //   In-season per-round
 //     coord.recordPlayerMatchResult(...)    // applies result + simulates AI + advances week
 //     coord.setPlayerTactics(...)           // persists pre-match tactics commit
@@ -79,6 +83,7 @@ import { SEASON_VALUES, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOL
 import type { SquadStatusKey } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 import type { RawTeamInput } from '../types/teamData';
+import { nextBlock, type CalendarBlock } from './calendarBlocks';
 
 // Re-exported from InternationalBreakCoordinator (where the break flow lives)
 // so existing UI imports `from '../game/GameCoordinator'` keep working.
@@ -1229,54 +1234,8 @@ export class GameCoordinator {
     this.publishMediaStory(round, result, snapshot, playerSide, fixture, expectedToWin);
 
     // Headless-simulate every other fixture in this round so the league table
-    // reflects a full round of results. Sims run in fixture order; each derives
-    // its own seed from (rootSeed, round, homeId, awayId).
-    const aiFixtures = this.state.league.fixtures.filter(f =>
-      f.round === round &&
-      f.homeId !== this.state.player.teamId &&
-      f.awayId !== this.state.player.teamId
-    );
-    for (const f of aiFixtures) {
-      const homeJson = this.teamsById.get(f.homeId);
-      const awayJson = this.teamsById.get(f.awayId);
-      if (!homeJson || !awayJson) continue;
-      const home = buildAutoSelectedTeamFromRoster(this.state, homeJson);
-      const away = buildAutoSelectedTeamFromRoster(this.state, awayJson);
-      const attendance = homeJson.stadiumCapacity
-        ? computeAttendance(f, homeJson.stadiumCapacity, this.state.league.standings, this.state.league.results)
-        : undefined;
-      const homeFillRate = attendance !== undefined && homeJson.stadiumCapacity
-        ? attendance / homeJson.stadiumCapacity
-        : undefined;
-      const sim = await simulateFixture(home, away, this.state.seed, f.round, { homeFillRate, isDerby: f.isDerby });
-      const aiResult: FixtureResult = {
-        round: f.round,
-        homeId: f.homeId,
-        awayId: f.awayId,
-        homeScore: sim.homeScore,
-        awayScore: sim.awayScore,
-        homeTries: sim.snapshot.homeSummary.tries,
-        awayTries: sim.snapshot.awaySummary.tries,
-        playerSide: null,
-        homeStats: sim.snapshot.homeSummary,
-        awayStats: sim.snapshot.awaySummary,
-        attendance,
-      };
-      applySeasonEvent(this.state, { type: 'FIXTURE_RESULT_RECORDED', result: aiResult });
-      for (const ev of collectSeasonEvents(sim.snapshot)) {
-        applySeasonEvent(this.state, ev);
-      }
-      for (const ev of collectConditionEvents(sim.snapshot)) {
-        applySeasonEvent(this.state, ev);
-      }
-      for (const ev of rollNewInjuryEvents(this.state, sim.snapshot.playerSnapshots)) {
-        applySeasonEvent(this.state, ev);
-      }
-      for (const ev of computeFixtureMoraleEvents(this.state, aiResult, sim.snapshot)) {
-        applySeasonEvent(this.state, ev);
-      }
-      eventBus.emit('game:fixtureRecorded', { result: aiResult, state: this.state });
-    }
+    // reflects a full round of results.
+    await this.simLeagueRound(round);
 
     // Yellow card accumulation ban: check if any human squad player has hit
     // the threshold for the first time this season. calendar.week is still
@@ -1532,6 +1491,113 @@ export class GameCoordinator {
     this.seedEuropeanObjectiveAndDrawStory();
     eventBus.emit('game:seasonRolledOver', { state: this.state });
     return events;
+  }
+
+  // ===== Calendar-block surface (Stage 2 of the unified-calendar refactor) =====
+
+  // The next unplayed block across all competitions, or null when the season
+  // is exhausted. Thin wrapper over the pure calendarBlocks.nextBlock helper.
+  getNextBlock(): CalendarBlock | null {
+    return nextBlock(this.state, [...this.teamsById.keys()]);
+  }
+
+  // Sims all non-player, not-yet-recorded fixtures in the block across every
+  // competition present. Delegates to the existing per-competition sim methods;
+  // does NOT drive calendar advance or weekly passes (those belong to the block
+  // driver in main.ts). Fixtures are processed in competition order (league →
+  // cup → european → playoff), then by date, then by homeId within each
+  // competition — determinism depends on this stable ordering.
+  async simRestOfBlock(block: CalendarBlock): Promise<void> {
+    // League: collect distinct rounds in the block (stable: ascending round).
+    if (block.competitions.includes('league')) {
+      const rounds = [...new Set(
+        block.fixtures
+          .filter((f): f is Extract<typeof f, { comp: 'league' }> => f.comp === 'league')
+          .map(f => f.round),
+      )].sort((a, b) => a - b);
+      for (const r of rounds) {
+        await this.simLeagueRound(r);
+      }
+    }
+
+    // Cup: simDueCupFixtures sims all non-player unplayed cup fixtures
+    // (including knockouts seeded once leg-2 completes), skipping player's own.
+    if (block.competitions.includes('cup')) {
+      await this.simDueCupFixtures();
+    }
+
+    // European: advanceEuropeanCompetitions sims all non-player pool + knockout
+    // fixtures due by the current calendar date, skipping player's own.
+    if (block.competitions.includes('european')) {
+      await this.advanceEuropeanCompetitions();
+    }
+
+    // Playoff: sim SFs first (so the final slot fills), then the final.
+    if (block.competitions.includes('playoff')) {
+      await this.simulatePendingPlayoffMatches('sf');
+      await this.simulatePendingPlayoffMatches('final');
+    }
+  }
+
+  // Headless-simulate every non-player, unrecorded fixture in `round`. Sims
+  // run in fixture-list order (stable: authored/generated sort). Each fixture
+  // derives its own seed from (rootSeed, round, homeId, awayId) via
+  // simulateFixture. Called from recordPlayerMatchResult (after the player's
+  // own result is applied) and simRestOfBlock (for AI-only rounds in the block).
+  private async simLeagueRound(round: number): Promise<void> {
+    const playerId = this.state.player.teamId;
+    const recorded = new Set(
+      this.state.league.results
+        .filter(r => r.round === round)
+        .map(r => `${r.homeId}|${r.awayId}`),
+    );
+    const aiFixtures = this.state.league.fixtures.filter(f =>
+      f.round === round &&
+      f.homeId !== playerId &&
+      f.awayId !== playerId &&
+      !recorded.has(`${f.homeId}|${f.awayId}`),
+    );
+    for (const f of aiFixtures) {
+      const homeJson = this.teamsById.get(f.homeId);
+      const awayJson = this.teamsById.get(f.awayId);
+      if (!homeJson || !awayJson) continue;
+      const home = buildAutoSelectedTeamFromRoster(this.state, homeJson);
+      const away = buildAutoSelectedTeamFromRoster(this.state, awayJson);
+      const attendance = homeJson.stadiumCapacity
+        ? computeAttendance(f, homeJson.stadiumCapacity, this.state.league.standings, this.state.league.results)
+        : undefined;
+      const homeFillRate = attendance !== undefined && homeJson.stadiumCapacity
+        ? attendance / homeJson.stadiumCapacity
+        : undefined;
+      const sim = await simulateFixture(home, away, this.state.seed, f.round, { homeFillRate, isDerby: f.isDerby });
+      const aiResult: FixtureResult = {
+        round: f.round,
+        homeId: f.homeId,
+        awayId: f.awayId,
+        homeScore: sim.homeScore,
+        awayScore: sim.awayScore,
+        homeTries: sim.snapshot.homeSummary.tries,
+        awayTries: sim.snapshot.awaySummary.tries,
+        playerSide: null,
+        homeStats: sim.snapshot.homeSummary,
+        awayStats: sim.snapshot.awaySummary,
+        attendance,
+      };
+      applySeasonEvent(this.state, { type: 'FIXTURE_RESULT_RECORDED', result: aiResult });
+      for (const ev of collectSeasonEvents(sim.snapshot)) {
+        applySeasonEvent(this.state, ev);
+      }
+      for (const ev of collectConditionEvents(sim.snapshot)) {
+        applySeasonEvent(this.state, ev);
+      }
+      for (const ev of rollNewInjuryEvents(this.state, sim.snapshot.playerSnapshots)) {
+        applySeasonEvent(this.state, ev);
+      }
+      for (const ev of computeFixtureMoraleEvents(this.state, aiResult, sim.snapshot)) {
+        applySeasonEvent(this.state, ev);
+      }
+      eventBus.emit('game:fixtureRecorded', { result: aiResult, state: this.state });
+    }
   }
 
   // Every consumer immediately JSON.stringifys the payload (autosave →

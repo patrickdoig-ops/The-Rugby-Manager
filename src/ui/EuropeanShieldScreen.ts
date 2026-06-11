@@ -9,6 +9,7 @@ export interface InitEuropeanShieldScreenOpts {
   getGameEngine: () => GameCoordinator;
   allTeams: RawTeamInput[];
   onBack: () => void;
+  onTeamClick?: (teamId: string) => void;
 }
 
 let _render: (() => void) | null = null;
@@ -30,6 +31,11 @@ export function initEuropeanShieldScreen(opts: InitEuropeanShieldScreenOpts): vo
     if (team) el!.style.setProperty('--team-color', team.color);
     el!.innerHTML = euroScreenHtml(comp, teamsById, state.player.teamId, 'European Shield', 'es-back', 'european-shield');
     el!.querySelector<HTMLButtonElement>('#es-back')!.addEventListener('click', () => opts.onBack());
+    if (opts.onTeamClick) {
+      el!.querySelectorAll<HTMLElement>('[data-team-id]').forEach(elt => {
+        elt.addEventListener('click', () => opts.onTeamClick!(elt.dataset.teamId!));
+      });
+    }
   }
 
   _render = render;

@@ -25,6 +25,13 @@ function fullName(teamId: string | null, byId: TeamsById): string {
   return byId.get(teamId)?.name ?? teamId;
 }
 
+// A team name that opens the team-info screen on click (wired by the parent
+// screen's delegated [data-team-id] handler). Plain span for an unfilled slot.
+function teamNameLink(teamId: string | null, name: string): string {
+  if (!teamId) return `<span>${name}</span>`;
+  return `<span class="cup-tname--link" data-team-id="${teamId}" role="button" tabindex="0">${name}</span>`;
+}
+
 function formatDate(iso: string | undefined): string {
   if (!iso) return 'TBC';
   const d = new Date(iso);
@@ -45,7 +52,7 @@ export function euroPoolTableHtml(pool: EuropeanPool, byId: TeamsById, highlight
       <div class="${cls.join(' ')}">
         <span class="cup-trank">${i + 1}</span>
         ${teamBadge(team)}
-        <span class="cup-tname">${team?.name ?? s.teamId}</span>
+        <span class="cup-tname cup-tname--link" data-team-id="${s.teamId}" role="button" tabindex="0">${team?.name ?? s.teamId}</span>
         <span class="cup-tnum">${s.played}</span>
         <span class="cup-tnum cup-tnum--diff">${diff}</span>
         <span class="cup-tpts">${s.leaguePoints}</span>
@@ -105,8 +112,8 @@ function koMatchCard(m: EuropeanKnockoutMatch, label: string, byId: TeamsById, h
   return `
     <div class="cup-ko${mine ? ' cup-ko--me' : ''}">
       <div class="cup-ko-label">${label}${m.date ? ` · ${formatDate(m.date)}` : ''}</div>
-      <div class="cup-ko-team${m.result && homeWin ? ' cup-ko-team--win' : ''}"><span>${home}</span><span class="cup-ko-score">${hs}</span></div>
-      <div class="cup-ko-team${m.result && awayWin ? ' cup-ko-team--win' : ''}"><span>${away}</span><span class="cup-ko-score">${as}</span></div>
+      <div class="cup-ko-team${m.result && homeWin ? ' cup-ko-team--win' : ''}">${teamNameLink(m.homeId, home)}<span class="cup-ko-score">${hs}</span></div>
+      <div class="cup-ko-team${m.result && awayWin ? ' cup-ko-team--win' : ''}">${teamNameLink(m.awayId, away)}<span class="cup-ko-score">${as}</span></div>
     </div>`;
 }
 

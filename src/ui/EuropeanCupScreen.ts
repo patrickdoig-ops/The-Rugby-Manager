@@ -9,6 +9,7 @@ export interface InitEuropeanCupScreenOpts {
   getGameEngine: () => GameCoordinator;
   allTeams: RawTeamInput[];
   onBack: () => void;
+  onTeamClick?: (teamId: string) => void;
 }
 
 let _render: (() => void) | null = null;
@@ -30,6 +31,11 @@ export function initEuropeanCupScreen(opts: InitEuropeanCupScreenOpts): void {
     if (team) el!.style.setProperty('--team-color', team.color);
     el!.innerHTML = euroScreenHtml(comp, teamsById, state.player.teamId, 'European Cup', 'ec-back', 'european-cup');
     el!.querySelector<HTMLButtonElement>('#ec-back')!.addEventListener('click', () => opts.onBack());
+    if (opts.onTeamClick) {
+      el!.querySelectorAll<HTMLElement>('[data-team-id]').forEach(elt => {
+        elt.addEventListener('click', () => opts.onTeamClick!(elt.dataset.teamId!));
+      });
+    }
   }
 
   _render = render;

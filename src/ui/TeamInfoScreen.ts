@@ -106,11 +106,15 @@ export function initTeamInfoScreen(
   // When provided, shows reputation instead of OVR in the squad list
   // (used for opponent teams mid-season where exact stats are hidden).
   getRep?: (rosterId: number) => number,
+  // When provided, used as the headline overall rating instead of
+  // computeOverallRating — for European teams, which aren't in the career
+  // roster computeOverallRating reads from (their rating is authored).
+  overallRatingOverride?: number,
 ): void {
   const el = document.getElementById('team-info');
   if (!el) return;
 
-  const overallRating = computeOverallRating(profile.id);
+  const overallRating = overallRatingOverride ?? computeOverallRating(profile.id);
 
   const starters = rawTeam.players;
   const bench = rawTeam.bench ?? [];

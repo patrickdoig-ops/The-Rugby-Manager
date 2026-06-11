@@ -2578,6 +2578,8 @@ html.native-app .app-header {
 .cup-trow--me { background: color-mix(in oklch, var(--team-color, var(--rm-pitch)) 18%, transparent); font-weight: 600; color: var(--rm-chalk); }
 .cup-trank { color: var(--rm-text-muted); text-align: center; }
 .cup-tname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.08em; }
+.cup-tname--link { cursor: pointer; }
+.cup-tname--link:hover { color: var(--rm-pitch); text-decoration: underline; }
 .cup-tnum { text-align: center; color: var(--rm-text-muted); font-variant-numeric: tabular-nums; }
 .cup-tnum--diff { font-size: var(--rm-fs-13); }
 .cup-tpts { text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }

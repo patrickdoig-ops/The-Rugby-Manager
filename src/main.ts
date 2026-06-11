@@ -133,6 +133,7 @@ import { loadTickDelayMs }           from './ui/uiPrefs';
 import { initTextScale }             from './ui/textScale';
 import { MatchCoordinator }        from './engine/MatchCoordinator';
 import type { RawTeamInput }       from './types/teamData';
+import type { TeamProfile }        from './types/teamProfile';
 import type { TeamTactics }        from './types/team';
 import type { MatchState }         from './types/match';
 import type { PlayoffMatch }       from './types/gameState';
@@ -328,6 +329,24 @@ document.addEventListener('DOMContentLoaded', () => {
     screenRouter.show('team-info');
   }
 
+  // Team-info for a club in the European competitions. Premiership clubs use
+  // the normal roster-backed path; non-English clubs build a profile straight
+  // from the authored European team data (they're not in the career roster).
+  function goEuropeanTeamInfo(teamId: string, onBack: () => void): void {
+    const prem = allTeams.find(t => t.id === teamId);
+    if (prem) { goTeamInfoMidSeason(prem, onBack); return; }
+    const et = europeanTeams.find(t => t.id === teamId);
+    if (!et) return;
+    const profile: TeamProfile = {
+      id: et.id, name: et.name, shortName: et.shortName, color: et.color, secondaryColor: et.secondaryColor,
+      stadium: et.stadium, stadiumCapacity: et.stadiumCapacity, suggestedTactics: et.suggestedTactics!,
+      statBias: et.statBias, stars: et.stars,
+    };
+    const date = gameEngine?.getState().calendar.date ?? SEASON_VALUES.startDate;
+    initTeamInfoScreen(profile, et, date, onBack, undefined, undefined, et.rating);
+    screenRouter.show('team-info');
+  }
+
   // Initialise the three in-season screens (Hub, Fixtures, League) for the
   // current game engine instance. Done once per game so each screen registers
   // its game:* event subscriptions exactly once; later navigations between
@@ -396,11 +415,13 @@ document.addEventListener('DOMContentLoaded', () => {
       getGameEngine,
       allTeams: allTeamsWithEuropean,
       onBack: () => goCompetitionsMenu('back'),
+      onTeamClick: (teamId) => goEuropeanTeamInfo(teamId, goEuropeanCup),
     });
     initEuropeanShieldScreen({
       getGameEngine,
       allTeams: allTeamsWithEuropean,
       onBack: () => goCompetitionsMenu('back'),
+      onTeamClick: (teamId) => goEuropeanTeamInfo(teamId, goEuropeanShield),
     });
     initEuropeanRoundScreen(getGameEngine, allTeamsWithEuropean);
     initEuropeanFinalScreen(getGameEngine, allTeamsWithEuropean);

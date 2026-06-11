@@ -1013,8 +1013,8 @@ Hub
  ├─ [Competitions] → CompetitionsMenuScreen → back → Hub
  │   ├─ [League] → LeagueMenuScreen → leaf (Table / Fixtures / Team Stats / Player Stats), back → LeagueMenuScreen → back → CompetitionsMenuScreen
  │   ├─ [League Cup] → CupFixturesScreen (browse), back → CompetitionsMenuScreen
- │   ├─ [European Cup] → EuropeanCupScreen (pools & knockouts), back → CompetitionsMenuScreen
- │   └─ [European Shield] → EuropeanShieldScreen (pools & knockouts), back → CompetitionsMenuScreen
+ │   ├─ [European Cup] → EuropeanCupScreen (pools & knockouts; tap a team name → TeamInfoScreen), back → CompetitionsMenuScreen
+ │   └─ [European Shield] → EuropeanShieldScreen (pools & knockouts; tap a team name → TeamInfoScreen), back → CompetitionsMenuScreen
  ├─ [Contracts & Transfers] → ContractsTransfersMenuScreen → Contracts / Transfers / Scouting / Loans, back → ContractsTransfersMenuScreen → back → Hub
  │   └─ [Scouting] → ScoutingScreen (swipe card → removeScouting; tap card → PlayerProfile), back → ContractsTransfersMenuScreen
  ├─ [Club] → ClubMenuScreen (Board / Staff / Finances / Awards tiles), back → Hub

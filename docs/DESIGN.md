@@ -980,7 +980,7 @@ Dual-mode screens: `RoundResultsScreen`, `LeagueTableScreen`, `TrainingScreen`, 
 
 ### 15.4 Hub tile list
 
-The Hub (`src/ui/HubScreen.ts`) has **six tiles** plus a Settings cog and a single **"Continue"** CTA. The CTA reads "Continue" in every scenario — there is no per-competition call-to-action. `main.ts`'s `onContinue` dispatches to the right flow (playoffs -> League Cup -> European -> league, the same priority the preview panel uses); each runs the shared play -> result -> results -> training -> Hub cycle, so every game week feels the same. The panel above the button still previews what's next; that preview is derived via `GameCoordinator.getNextBlock()` (`src/game/calendarBlocks.ts`). The four dead per-competition footer helpers are pending cleanup.
+The Hub (`src/ui/HubScreen.ts`) has **six tiles** plus a Settings cog and a single **"Continue"** CTA. The CTA reads "Continue" in every scenario — there is no per-competition call-to-action. `main.ts`'s `onContinue` dispatches to the right flow (playoffs -> League Cup -> European -> league, the same priority the preview panel uses); each runs the shared play -> result -> results -> training -> Hub cycle, so every game week feels the same. The panel above the button still previews what's next; that preview is derived via `GameCoordinator.getNextBlock()` (`src/game/calendarBlocks.ts`).
 
 | Tile | Routes to | Notes |
 |---|---|---|

@@ -90,7 +90,6 @@ const TILES: TileSpec[] = [
   { id: 'hub-tile-club',                 ariaLabel: 'Club',                     label: 'Club',                   iconKey: 'club',                 handlerKey: 'onClub' },
 ];
 
-
 export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } {
   const el = document.getElementById('hub');
   if (!el) return { refresh: () => {} };
@@ -299,25 +298,6 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
       </button>`;
   }
 
-  function playoffFooterHtml(
-    playoffs: import('../types/gameState').PlayoffState,
-    playerMatch: import('../types/gameState').PlayoffMatch | null,
-  ): string {
-    let label: string;
-    if (playoffs.championTeamId !== null) {
-      label = 'Continue';
-    } else if (playerMatch && playerMatch.homeId && playerMatch.awayId) {
-      label = playerMatch.kind === 'final' ? 'Play Final' : 'Play Semi-Final';
-    } else {
-      label = 'Continue';
-    }
-    return `
-      <button id="hub-play-next" class="cta-pulse" aria-label="${label}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>
-        <span>${label}</span>
-      </button>`;
-  }
-
   function nextMatchHtml(fixture: Fixture | null, state: GameState, byId: Map<string, RawTeamInput>, playerId: string): string {
     if (!fixture) {
       return `<div id="hub-next-match"><div class="hub-nm-complete">Season complete</div></div>`;
@@ -431,18 +411,6 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
     `;
   }
 
-  function cupBreakFooterHtml(step: 'play_fixture' | 'advance_round' | 'resolve_returns', manageLive: boolean): string {
-    const label = step !== 'play_fixture'
-      ? 'Continue'
-      : manageLive ? 'Play League Cup match' : 'Continue League Cup';
-    return `
-      <button id="hub-play-next" class="cta-pulse" aria-label="${label}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>
-        <span>${label}</span>
-      </button>
-    `;
-  }
-
   function europeanNextMatchHtml(euroFix: EuropeanFixtureRef, byId: Map<string, RawTeamInput>, playerId: string, calendarDate: string): string {
     const compName = euroFix.competition === 'europeanCup' ? 'European Cup' : 'European Shield';
     if (euroFix.kind === 'pool') {
@@ -511,44 +479,12 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
     `;
   }
 
-  function europeanFooterHtml(euroFix: EuropeanFixtureRef): string {
-    const compName = euroFix.competition === 'europeanCup' ? 'European Cup' : 'European Shield';
-    return `
-      <button id="hub-play-next" class="cta-pulse" aria-label="Play ${compName} match">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>
-        <span>Play ${compName} match</span>
-      </button>
-    `;
-  }
-
   function europeanRoundCtaHtml(rr: EuropeanRoundRef): string {
     return `
       <div class="hub-euro-round">
         <div class="hub-euro-round-label">${rr.compLabel}</div>
         <div class="hub-euro-round-sub">${rr.isFinal ? 'The Final has been played' : `${rr.label} results are in`}</div>
       </div>`;
-  }
-
-  function europeanRoundFooterHtml(rr: EuropeanRoundRef): string {
-    const label = rr.isFinal ? `View ${rr.compLabel} Final` : `View ${rr.compLabel} ${rr.label}`;
-    return `
-      <button id="hub-play-next" class="cta-pulse" aria-label="${label}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>
-        <span>${label}</span>
-      </button>
-    `;
-  }
-
-  function footerHtml(fixture: Fixture | null): string {
-    if (!fixture) {
-      return `<p id="hub-season-done">Season complete</p>`;
-    }
-    return `
-      <button id="hub-play-next" class="cta-pulse" aria-label="Go to next match">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>
-        <span>Go to next match</span>
-      </button>
-    `;
   }
 
   // Count of currently injured roster players on the player's club. Pure
@@ -590,7 +526,6 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
     }
     return n;
   }
-
 
   // Re-render whenever the season state changes — date, week, next-fixture
   // and the disabled-CTA state all derive from GameState. Hidden-screen

@@ -19,6 +19,7 @@ import { loadDismissed } from './inboxDismiss';
 import { ROUND_LABELS } from '../engine/balance/season';
 import { renderFormPipStrip } from './components/formPip';
 import { injectTeamColors } from './teamColors';
+import { formatDateMedium } from '../utils/formatDate';
 import { helpButtonHtml } from './help/helpButton';
 
 export interface InitHubScreenOpts {
@@ -155,6 +156,8 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
       <div id="hub-hero">
         <h1 id="hub-team-name">${playerTeam.name}</h1>
       </div>
+
+      <div id="hub-date" style="text-align:center;color:#9aa0a6;font-size:0.85rem;margin:0 0 0.6rem">${formatDateMedium(state.calendar.date)}</div>
 
       ${(() => {
           const myId = playerTeam.id;

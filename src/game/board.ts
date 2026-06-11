@@ -3,7 +3,7 @@
 // Confidence is fully deterministic from results (no RNG), so the determinism
 // harness is unaffected.
 
-import type { GameState, ArchivedSeason, TeamStanding } from '../types/gameState';
+import type { GameState, ArchivedSeason, TeamStanding, EuropeanObjective } from '../types/gameState';
 import type { BoardAmbition } from '../types/teamData';
 import {
   BOARD_SEED,
@@ -122,6 +122,20 @@ function ordinal(n: number): string {
   return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
 }
 
+// Phrase the owner's European target as a full objective, e.g. "win the
+// European Cup" / "reach the European Shield semi-finals". Used by the board
+// breakdown + the season-objective owner messages.
+export function europeanObjectiveText(objective: EuropeanObjective, compName: string): string {
+  switch (objective) {
+    case 'win':          return `win the ${compName}`;
+    case 'final':        return `reach the ${compName} final`;
+    case 'semifinal':    return `reach the ${compName} semi-finals`;
+    case 'quarterfinal': return `reach the ${compName} quarter-finals`;
+    case 'r16':          return `reach the ${compName} knockout stage`;
+    case 'participate':  return `make a respectable showing in the ${compName}`;
+  }
+}
+
 // The concrete factors currently moving board confidence, for the Club page's
 // "what's driving it" breakdown. Mirrors the real mechanics: results vs
 // expectation (the per-result deltas), losing runs (the streak penalty), and
@@ -145,6 +159,17 @@ export function boardConfidenceFactors(state: GameState): BoardFactor[] {
       : `The owner expects you to ${objText}.`,
     tone: verdict === 'missed' ? 'negative' : verdict === 'exceeded' ? 'positive' : 'neutral',
   });
+
+  // European objective — the owner's continental target this season.
+  if (board.europeanObjective) {
+    const inCup = state.league.europeanCup?.pools.some(p => p.teamIds.includes(teamId)) ?? false;
+    const compName = inCup ? 'European Cup' : 'European Shield';
+    factors.push({
+      label: 'European objective',
+      detail: `The owner expects you to ${europeanObjectiveText(board.europeanObjective, compName)}.`,
+      tone: 'neutral',
+    });
+  }
 
   // Recent results — the main lever on confidence.
   const last = recentForm(teamId, state.league.results, 5).filter((r): r is FormResult => r !== null);

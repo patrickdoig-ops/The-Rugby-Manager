@@ -14,7 +14,7 @@ import { sortStandings } from './leagueTable';
 import { getAge } from './age';
 import { playoffRaceStatus } from './playoffRace';
 import { generateSeasonPrediction } from './media/mediaManager';
-import { confidenceBand } from './board';
+import { confidenceBand, europeanObjectiveText } from './board';
 import { hashSeed } from '../utils/rng';
 
 export interface InboxItem {
@@ -666,6 +666,13 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
           body = `Finishing ${ordinal(lastPos)} was well below where this club should be. The board is demanding a significant improvement — top four is the minimum expectation.`;
         }
       }
+    }
+
+    // Continental target — the owner's European objective for the season.
+    if (state.player.board?.europeanObjective) {
+      const inCup = state.league.europeanCup?.pools.some(p => p.teamIds.includes(teamId)) ?? false;
+      const compName = inCup ? 'European Cup' : 'European Shield';
+      body += ` In Europe, the board wants you to ${europeanObjectiveText(state.player.board.europeanObjective, compName)}.`;
     }
 
     if (state.player.board) {

@@ -16,8 +16,10 @@ import type { CommentaryStreamer } from './CommentaryStreamer';
 export interface PenaltyHandlerDeps {
   state: MatchState;
   humanSide: 'home' | 'away';
-  // Silent mode (headless AI fixture): never prompt; resolve with the same
-  // defaults the determinism harness uses (`high_ball` / `kick_for_goal`).
+  // Silent mode (headless AI fixture): never prompt. Kick-off defaults to
+  // `high_ball`; penalty decisions take the symmetric field-position
+  // auto-choice in handlePenaltyDecision (kick_to_touch / tap_and_go /
+  // tap_and_kick_dead — same logic for both sides, so no home/away bias).
   silent?: boolean;
   // Events route through the streamer so they pace evenly across the tick.
   streamer: CommentaryStreamer;

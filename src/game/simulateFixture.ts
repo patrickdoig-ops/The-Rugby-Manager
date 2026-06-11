@@ -2,9 +2,11 @@
 // delay, waits for engine:finished, returns the final score.
 //
 // The silent flag on MatchCoordinator suppresses every commentary event and
-// stateChange notification, and PenaltyHandler short-circuits modal prompts
-// to its determinism-harness defaults (`high_ball` / `kick_for_goal`), so the
-// live UI stays inert while a background fixture runs.
+// stateChange notification, and short-circuits the modal prompts: the kick-off
+// strategy defaults to `high_ball`, while penalty decisions use the symmetric
+// field-position auto-choice (kick_to_touch / tap_and_go / tap_and_kick_dead —
+// identical for both sides, see PenaltyHandler), so the live UI stays inert
+// while a background fixture runs.
 //
 // Determinism: seed is derived per-fixture via deriveFixtureSeed so the same
 // (rootSeed, round, homeId, awayId) always produces the same score.

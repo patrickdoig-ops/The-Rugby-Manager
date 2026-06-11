@@ -1337,12 +1337,11 @@ function scrumLayout(event: GameEvent, state: MatchState, attacksTop: boolean): 
       const team = p.side === 'h' ? state.homeTeam : state.awayTeam;
       const pl = team.players.find(x => x.id === p.id);
       if (pl && p.movements && p.movements.length > 0) {
-        const first = p.movements[0];
+        // No `from`: a choreographed dot is driven by PitchView's choreography
+        // loop (its keyframes already encode the start). Setting `from` would
+        // ALSO push it to chaseDots, so two animators would fight the element.
         const last = p.movements[p.movements.length - 1];
         const dot = placed(pl, p.side, state, clampX(last.x), clampY(last.y), false);
-        if (p.movements.length > 1) {
-          dot.from = { x: clampX(first.x), y: clampY(first.y) };
-        }
         out.push(dot);
         choreographedKeys.add(`${p.side}:${p.id}`);
       }
@@ -1559,7 +1558,6 @@ function firstPhaseBacklineLayout(
       if (pl) {
         const moves = p.movements;
         if (moves.length > 0) {
-          const first = moves[0];
           const last = moves[moves.length - 1];
           let finalX = last.x;
           let finalY = last.y;
@@ -1568,10 +1566,10 @@ function firstPhaseBacklineLayout(
             finalX = engineFinalBall.x - fwd * 2.5;
             finalY = engineFinalBall.y;
           }
+          // No `from`: a choreographed dot is driven by PitchView's choreography
+          // loop (its keyframes already encode the start). Setting `from` would
+          // ALSO push it to chaseDots, so two animators would fight the element.
           const dot = placed(pl, p.side, state, clampX(finalX), clampY(finalY), pl === carrier);
-          if (moves.length > 1) {
-            dot.from = { x: clampX(first.x), y: clampY(first.y) };
-          }
           out.push(dot);
           choreographedKeys.add(`${p.side}:${p.id}`);
         }

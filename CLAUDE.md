@@ -146,7 +146,7 @@ Diagnostic: `git status && git log --oneline -5 && git branch -vv`.
 - **Layer 3 — Formation (CSS `dot-transitioning`, `PitchPlayers.ts`)**: armed on every phase change except snap phases (`KickOff`, `HalfTime`, `FullTime`, which use `dot-snap-transition`).
 
 **Key invariants — violating any of these breaks animation:**
-- **`isCarrier` XOR `from`** on any dot — a dot in both is fought over by two animators simultaneously.
+- **A dot is driven by exactly one channel: `isCarrier` (follower) XOR `from` (chase) XOR an authored `event.choreography` entry.** A dot in two of these is fought over by two animators simultaneously — so a layout that places a dot from `event.choreography` must NOT also give it a `from` (the choreography keyframes already encode the start).
 - **`keepX` flags** (`keepLineout`, `keepKickFormation`, `keepTmo`, `keepPhasePlay`, `keepTryScored`, `keepSubstitution`, `keepBoxKickAnnounce`) prevent dot fade on those phase transitions. Empty beats (no `placed` entries) hold automatically.
 - **Authored choreography skips the follower** — `animateMovements` returns early on `skipFollower`; the per-dot choreography loop drives those actors instead.
 - **`cachedEventPhase`** (not `display.phase`) keys the lineout ball-lateral override — `buildDisplaySnapshot` captures phase *after* the transition, so `display.phase` already reads the next phase on a lineout beat.

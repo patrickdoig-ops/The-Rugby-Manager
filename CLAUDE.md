@@ -15,6 +15,8 @@ Architectural invariants and ways of working for this repo. Lean by design. Read
 | Team data (squad tables, baseStats, star players) | **`docs/team-data.md`** → `node scripts/generateTeamJsons.mjs` syncs JSONs |
 | Phase Animator dev tool (keyframe authoring) | **`docs/phase-animator.md`** ↔ `public/tools/phase-animator.html` (regen: `npm run export:phases`) |
 | Wiring an exported animation JSON | **`docs/phase-animator.md`** § 9 + **`docs/DESIGN.md`** § 15.7 |
+| Fixing a 2D animation from user feedback ("X looks wrong") | **`docs/animation-feedback-playbook.md`** — triage table + adjustment recipes; read before touching animation code |
+| Animation improvement work packages (agreed plan) | **`docs/pitch-animation-plan.md`** |
 
 ---
 
@@ -134,7 +136,7 @@ Diagnostic: `git status && git log --oneline -5 && git branch -vv`.
 
 ## 8. 2D Pitch Animation Model
 
-**All animation is purely visual — the DOM's resting state is always the final position.** Full detail in **`docs/DESIGN.md`** § 15.7.
+**All animation is purely visual — the DOM's resting state is always the final position.** Full detail in **`docs/DESIGN.md`** § 15.7. When the user reports an animation looks wrong, triage and fix via **`docs/animation-feedback-playbook.md`** before editing any animation code.
 
 **Coordinate space.** Engine `x`/`y` are 0–100: `x` is the long axis (try lines at x=0/100), `y` is lateral (touchlines at y=0/100). `pitchCoords.toTop/toLeft` is the single source — never copy the numbers. `clampX` (`[2,98]`) / `clampY` (`[3,97]`) keep dots on-pitch; only use `clampInGoalX` (`[-8,108]`) for in-goal actors (try scorer, conversion line).
 
@@ -171,7 +173,7 @@ Diagnostic: `git status && git log --oneline -5 && git branch -vv`.
 | New screen added to `src/ui/` | `docs/DESIGN.md` § 15.5 navigation flow |
 | Any `src/ui/` screen changed — controls added/removed/renamed, layout restructured, new features surfaced | Review the matching topic in `src/ui/help/helpContent.ts` and update `purpose`, `features`, and `tips` in the same commit so the help overlay stays accurate. If the screen has no help topic yet, add one (`HelpTopicId` entry + button in the screen template). |
 | `docs/team-data.md` changes | Run `node scripts/generateTeamJsons.mjs` |
-| `src/ui/pitchChoreography.ts` / `PitchView.ts` / `PitchPlayers.ts` — new animation seam, new layout function, or changed choreography behaviour | `docs/DESIGN.md` § 15.7 (update the relevant seam description or between-beat state note) |
+| `src/ui/pitchChoreography.ts` / `PitchView.ts` / `PitchPlayers.ts` — new animation seam, new layout function, or changed choreography behaviour | `docs/DESIGN.md` § 15.7 (update the relevant seam description or between-beat state note) + the triage table in `docs/animation-feedback-playbook.md` if a placement source moved |
 
 ## Save schema
 

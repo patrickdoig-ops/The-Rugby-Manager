@@ -106,7 +106,37 @@ This was V3's best section. Every nearby player scores commit-vs-reform each dec
 
 The *number and quality* of committed bodies then feeds the existing `BreakdownResolver` maths (attack ruck score vs defence) — initially as modified inputs to the proven formula, later replacing it once telemetry says the spatial version matches (§ 9). Slow-ball/clean-ball/turnover/penalty vocabulary (`BreakdownResult`) unchanged.
 
-### 3.7 Kicking & chase
+### 3.7 Backline movement & the attacking playbook (layered control)
+
+The central coordination problem — drilled team shapes coexisting with independently-deciding agents — is solved by a **three-layer control stack**, evaluated per agent per decision tick, each layer able to override the one below:
+
+```
+Layer 3 — REACT    hard interrupts: ball in the air near me, line break in radius,
+                   loose ball → abandon role, bypass scoring entirely
+Layer 2 — DECIDE   per-agent utility: is my assigned role still the best use of me?
+                   (winger holds width instead of chasing the ball; openside abandons
+                   his pod when the ruck-commit score of § 3.6 beats his shape score)
+Layer 1 — ROLE     team-level shape solver, run once per tick: outputs a target map
+                   { slot → (targetPos, depth, lane) } from ball, phase, possession,
+                   tactics. Assigns destinations only — it never moves anyone.
+```
+
+Shapes look drilled because 13 of 15 agents are quietly obeying Layer 1; the 2 making interesting decisions do so for legible reasons. **Independence is veto power over the team plan, not freelancing.** Pure emergence is rejected (real rugby shapes are drilled precisely because they don't arise naturally — chasing emergence produces ants); pure scripting is rejected (that's the legacy engine with more steps). The model is *authored intent, simulated outcome*.
+
+**Three mechanics that make a backline look like a backline:**
+
+1. **Depth as a first-class variable.** Backs align on a diagonal 5–8 m behind the gain line, deeper the wider they stand. Depth is tactic-driven (flat = fast/risky ball, deep = safe/slow) and is what gives the defensive line model (§ 3.2) something real to read.
+2. **Run onto the ball.** The receiver's maximum-acceleration window is timed to coincide with pass arrival: his target point drifts toward the gain line as the ball comes his way, and his run starts `flightTime + windup` before release. This single timing mechanic is the signature of a credible backline.
+3. **The pass window.** Pass target = receiver's *projected* position at flight time (lead the runner), which falls out naturally once (2) exists.
+
+**Plays are data overlays, not scripts.** A play is a temporary named role-assignment — 2–4 roles, ~3 s lifetime — carrying run lines (waypoints **relative to the play origin and `attackDir`**, so one definition mirrors to anywhere on the pitch in either direction) and a timing schedule (`t`-offset pass/dummy/receive actions). It overrides Layer 1 for its named roles only; **Layers 2–3 stay live throughout**, and every play carries abort conditions (turnover, intercept risk over threshold, receiver covered). The play sets up the picture; contact (§ 3.5), evasion geometry, and the defensive fold (§ 3.2) decide whether it works. The same miss-2 dies into a rush defence and creates the overlap against a slow drift fold — and the user can *see why*. That is the FM-quality bar.
+
+- **Definitions live in `src/data/` as content** (roles, run lines, triggers, aborts); **selection weights live in `balance/spatialDecision.ts`** as tuning — same data/tuning separation as everywhere else.
+- **Initial library** (~15 lines of data each): switch/scissors, loop, miss-1, miss-2 + blocker, dummy switch, crash ball + tip-on, back-door screen, blindside strike off scrum, midfield bust off lineout, 1-3-3-1 same-way phase patterns.
+- **Play selection** is owned by the carrier utility layer (§ 3.4): field position, defensive picture (rush vs drift, fold speed — readable from the § 3.2 model), `attackingGamePlan`, playmaker `composure`/`positioning`, plus a **recency familiarity penalty** so defenders "learn" a repeated play (cheap to implement, large realism payoff).
+- **Authoring pipeline:** the phase-animator (`public/tools/phase-animator.html`) is already a keyframe editor over pitch coordinates — retool it to author run-line waypoints + timing offsets and export play JSON, turning the playbook into a visual content pipeline rather than blind number-editing.
+
+### 3.8 Kicking & chase
 
 Tactical kicks get a real trajectory (hang time from `kicking`, landing point via `rngSpatial` dispersion), a chase line (chasers assigned by proximity + derived work rate), and a contested or clean take using `handling`/jump derivation vs chaser pressure. Box-kick and 50:22 logic reuse `KickDecisionDirector` strategy; only *execution* becomes spatial.
 
@@ -206,8 +236,9 @@ Each WP merges only when: `npm run build` + `npm run verify` green, telemetry wi
 | **2. Defensive line + carry corridor** | Line model (§ 3.2) + straight-line carry vs fold; spatial **line breaks**; emits existing `CARRY_RESOLVED` | the line-break/metres portion of `OpenPlayResolver` | telemetry bands; 2-on-1 + fold scenarios pass; *watchability review* |
 | **3. Contact** | Two-phase tackle (§ 3.5), broken tackles, offload window | tackle outcomes in `OpenPlayResolver`/`TacklingInfringement` paths | dominant/neutral/passive distribution matches baseline |
 | **4. Breakdown commitment** | Heuristic ruck entries (§ 3.6) feeding `BreakdownResolver` inputs | breakdown *inputs* (formula retained) | turnover/penalty rates in band; isolation scenario passes |
-| **5. Shape & distribution** | Pods (§ 3.3), pass chains, carrier utility AI (§ 3.4), width/overlap play | remaining `OpenPlayResolver` + `Lateral.ts` sweep model | overlap-conversion scenario; try distribution by channel sane |
-| **6. Kicking spatially** | Trajectories, chase lines, contested takes (§ 3.7) | `KickingResolver`/`BoxKickResolver` execution (decision layer retained) | kick-outcome rates in band; 50:22 still occurs at baseline rate |
+| **5. Shape & distribution** | Shape solver + three-layer control stack (§ 3.7), pods (§ 3.3), depth/run-timing/pass-window mechanics, pass chains, carrier utility AI (§ 3.4), width/overlap play | remaining `OpenPlayResolver` + `Lateral.ts` sweep model | overlap-conversion scenario; try distribution by channel sane |
+| **5b. Attacking playbook** | Play-overlay system + data schema, initial library (~10 moves, § 3.7), phase-animator retooled as play editor, defensive familiarity penalty | nothing (additive over WP 5) | strike-play scenarios: miss-2 vs slow drift fold creates the overlap, same play vs rush dies; play-abort rate in credible band |
+| **6. Kicking spatially** | Trajectories, chase lines, contested takes (§ 3.8) | `KickingResolver`/`BoxKickResolver` execution (decision layer retained) | kick-outcome rates in band; 50:22 still occurs at baseline rate |
 | **7. Renderer Phase A** | Frames-driven dot animation for spatial phases | authored choreography for those phases only | probe harness traces match frames; no regression on set-piece beats |
 | **8. Polish to FM-quality** | Decision-noise tuning, commentary hooks for spatial moments ("beat three men on the outside"), new telemetry metrics, Canvas spike decision | — | end-to-end watch test: a full match is *legible* as rugby with the sound off |
 

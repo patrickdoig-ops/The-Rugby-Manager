@@ -407,7 +407,19 @@ export function initPitchView(): void {
     cachedEventPhase = event.phase;
     kickFlightThisBeat = false;
     const cls = flashClass(event);
-    if (cls) fireFlash(toTop(event.ballX), toLeft(event.ballY), cls);
+    if (cls) {
+      // A try is awarded with 5m leniency so event.ballX can rest short of the
+      // line; displaySnapshot renders the try ball at line+dir*4, so anchor the
+      // try flash there too (not the raw ballX) or it pulses behind the ball and
+      // scorer. Conversions also carry the try phase class but keep the raw kick
+      // spot — hence the explicit TryScored phase gate.
+      let flashX = event.ballX;
+      if (cls === 'flash-try' && event.phase === MatchPhase.TryScored) {
+        const attacksTop = (event.side === 'home') !== cachedHalfTimeDone;
+        flashX = (attacksTop ? 100 : 0) + (attacksTop ? 1 : -1) * 4;
+      }
+      fireFlash(toTop(flashX), toLeft(event.ballY), cls);
+    }
 
     // Position the involved-player dots BEFORE the ball walk, so the carrier dot
     // exists when animateMovements asks the follower to ride it. attacksTop is the

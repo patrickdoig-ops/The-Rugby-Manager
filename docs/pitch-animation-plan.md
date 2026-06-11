@@ -20,7 +20,8 @@ follow the doc-sync table in `CLAUDE.md`, and bump `src/version.ts` (src-touchin
 | **WP3.1** | ⏳ not started | Large behaviour-preserving refactor of the 390-line `applyChoreography`. Runs only in live (non-silent) mode, so `verify` can't catch a regression — do it with the dev server open and eyeball an authored crash-ball / out-the-back / wheel before+after. |
 | **WP3.2** | ⏳ deferred | Needs new cross-tick engine state (the set-piece origin isn't tracked past the tick that sets `nextPhase = FirstPhase`), so it is **not** the "additive" change first assumed — it touches the mutation boundary. No current registry entry benefits (only bare keys + the separately-handled `SCRUM:wheel`). Do alongside authoring the first per-predecessor variant. |
 | **WP5.1** | ✅ done | Baked tables extracted to `src/ui/pitchFormations.ts`; behaviour-neutral (silent-score golden unchanged). |
-| **WP5** | ◑ in progress | Between-ruck drift (owner-requested). WP5.1 (data extraction) ✅ done; WP5.2 (hold directive) is behaviour-neutral prep; WP5.3 introduces new visible behaviour and **must be tuned live** (`DRIFT_WEIGHT`) with the owner watching — do not ship blind. |
+| **WP5.2** | ✅ done | Pure `transitionDirective(event, currentPhase)` → `{ snap, hold, preserveKeys }` in `pitchChoreography.ts`; `PitchPlayers.applyBeat` consumes it. Behaviour-preserving. |
+| **WP5** | ◑ in progress | Between-ruck drift (owner-requested). WP5.1 (data extraction) + WP5.2 (hold directive) ✅ done; WP5.3 introduces new visible behaviour and **must be tuned live** (`DRIFT_WEIGHT`) with the owner watching — do not ship blind. |
 | **WP6.2** | ⏳ not started | Probe sync assertions (teleport / carrier-contact / channel-exclusivity). Needs the headless-Chromium probe harness. |
 
 **Recommended next session:** WP5 (drift) with the dev server running so `DRIFT_WEIGHT` can be
@@ -257,7 +258,7 @@ this plan's commit and will drift.
 - **Behaviour-neutral** (silent-score golden unchanged); doc sync done: `docs/DESIGN.md`
   §15.7 split-boundary note + playbook UI-pipeline / R2 / R4 source pointers.
 
-### 5.2 Hold/snap directive moves into the pure choreographer
+### 5.2 Hold/snap directive moves into the pure choreographer ✅ DELIVERED
 - **Where:** `PitchPlayers.applyBeat` owns the eight `keepX` hold flags,
   `KICK_PREDECESSORS`, the BoxKick-announce special case, and the `setpieceSHKey`
   rule — rugby knowledge its own header disclaims.
@@ -266,10 +267,13 @@ this plan's commit and will drift.
   (preserveKeys carries the set-piece #9 case). `applyBeat` consumes it: fade-unless-hold,
   snap-vs-glide, skip-position-update for `preserveKeys`. `PitchPlayers` ends up with zero
   phase names outside the directive call.
-- **Behaviour-preserving** — the directive must reproduce the current flag logic exactly
-  (including the empty-beat hold via `nextKeys.size > 0` staying in `applyBeat`, since it
-  depends on `placed`). **Doc sync:** §15.7 "Dot persistence" section restructured around
-  the directive.
+- **Behaviour-preserving** — the directive reproduces the current flag logic exactly
+  (the empty-beat hold via `nextKeys.size > 0` stays in `applyBeat`, since it depends on
+  `placed`). `KICK_PREDECESSORS` moved to `pitchChoreography.ts`; `SLOT` import dropped from
+  `PitchPlayers`. The per-beat `PhasePlay` glide and the `glowsForBeat` Substitution check
+  stay in `PitchPlayers` (separate concerns, not phase-transition decisions). **Doc sync
+  done:** §15.7 "Dot persistence" + Layer-3 glide rule restructured around the directive;
+  playbook R6 updated.
 
 ### 5.3 Drift pass
 - **Goal:** during `PhasePlay`, the ~27 held dots stop being statues — the defensive line

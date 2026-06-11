@@ -261,6 +261,53 @@ export function choreograph(
   return openPlayLayout(event, state, attacksTop);
 }
 
+// Kick phases a KickReturn can follow. On a kick → KickReturn transition the return is
+// seeded from the predecessor kick formation: keep its dots on screen and glide, rather
+// than fading the pack and re-drawing a sparse return layout.
+const KICK_PREDECESSORS = new Set<string>([
+  MatchPhase.KickOff, MatchPhase.BoxKick, MatchPhase.TacticalKick, MatchPhase.DropOut22, MatchPhase.Penalty,
+]);
+
+// What the dot layer (PitchPlayers) should do on a phase-change beat. Pure decision —
+// all the rugby phase-name knowledge that the dumb dot pool must not carry lives here:
+//  - `snap`: the kick-off / half-time / full-time frames reset wholesale, so they
+//    snap-cut (a faster transition reads as a cut, not a drift) rather than glide.
+//  - `hold`: keep the predecessor formation on screen (skip fading persisted dots) so
+//    only the involved actors move. True when a set piece flows into FirstPhase
+//    (forwards hold their pack shape), a kick flows into KickReturn (seed from the kick
+//    formation), or the next phase is a held-formation phase (TMO review, PhasePlay,
+//    TryScored, Substitution, BoxKick announce). The empty-beat hold (nextKeys.size === 0)
+//    stays in applyBeat — it depends on the placed dots, not just the phase.
+//  - `preserveKeys`: dot keys whose position must NOT be updated this beat. The attacking
+//    #9 starts FirstPhase at its set-piece position (lineout mark / behind #8) so the
+//    first-phase dot reads as a continuation; subsequent beats reposition it normally.
+// `currentPhase` is the phase of the previous beat.
+export interface TransitionDirective { snap: boolean; hold: boolean; preserveKeys: string[]; }
+export function transitionDirective(event: GameEvent, currentPhase: string | null): TransitionDirective {
+  const phase = event.phase;
+  const snap = phase === MatchPhase.KickOff || phase === MatchPhase.HalfTime || phase === MatchPhase.FullTime;
+
+  const keepLineout = (currentPhase === MatchPhase.Lineout || currentPhase === MatchPhase.Scrum || currentPhase === MatchPhase.Maul)
+    && phase === MatchPhase.FirstPhase;
+  const keepKickFormation = currentPhase !== null && KICK_PREDECESSORS.has(currentPhase)
+    && phase === MatchPhase.KickReturn;
+  const keepTmo = phase === MatchPhase.TmoReview;
+  const keepPhasePlay = phase === MatchPhase.PhasePlay;
+  const keepTryScored = phase === MatchPhase.TryScored;
+  const keepSubstitution = phase === MatchPhase.Substitution;
+  const keepBoxKickAnnounce = phase === MatchPhase.BoxKick
+    && event.narration.steps.some(s => s.kind === 'phase_outcome' && (s as { key: string }).key === 'announce');
+
+  const hold = keepLineout || keepKickFormation || keepTmo || keepPhasePlay
+    || keepTryScored || keepSubstitution || keepBoxKickAnnounce;
+
+  const preserveKeys = keepLineout
+    ? [`${event.side === 'home' ? 'h' : 'a'}:${SLOT.SCRUM_HALF}`]
+    : [];
+
+  return { snap, hold, preserveKeys };
+}
+
 // A kick that found touch — the ball went OUT and a lineout forms next beat, so
 // there's no catch (no on-ball receiver) and PitchView walks the ball across the
 // touchline. The engine resolves these to the lineout mark (~5m infield). Covers

@@ -136,10 +136,11 @@ resolvers); fix pace problems in `PitchView.animateMovements` (durations/offsets
 the carrier/tackler follower frames on the same offset scheme as the ball or they desync.
 
 ### R6 — Dots vanish or linger across a transition
-This is the persistence model: `persistedKeys` + the `keepX` holds in
-`PitchPlayers.applyBeat` (moving to a pure `transitionDirective` in `pitchChoreography`
-under plan WP5.2). A formation wrongly cleared on entry to a phase usually needs a hold
-flag; a formation wrongly surviving needs the phase removed from a hold. Empty beats
+This is the persistence model: `persistedKeys` in `PitchPlayers.applyBeat` + the `keepX`
+holds, which now live in the pure `transitionDirective(event, currentPhase)` in
+`pitchChoreography.ts` (returns `{ snap, hold, preserveKeys }`). A formation wrongly cleared
+on entry to a phase usually needs a hold case added to `transitionDirective`; a formation
+wrongly surviving needs the phase removed from one. Empty beats
 (pure announcements) hold by design. Snap phases (`KickOff`, `HalfTime`, `FullTime`) cut
 instead of glide — also by design.
 

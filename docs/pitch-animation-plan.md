@@ -19,7 +19,8 @@ follow the doc-sync table in `CLAUDE.md`, and bump `src/version.ts` (src-touchin
 | WP6.1 | ✅ done | DESIGN.md drift fixes (chaserEl, key convention). |
 | **WP3.1** | ⏳ not started | Large behaviour-preserving refactor of the 390-line `applyChoreography`. Runs only in live (non-silent) mode, so `verify` can't catch a regression — do it with the dev server open and eyeball an authored crash-ball / out-the-back / wheel before+after. |
 | **WP3.2** | ⏳ deferred | Needs new cross-tick engine state (the set-piece origin isn't tracked past the tick that sets `nextPhase = FirstPhase`), so it is **not** the "additive" change first assumed — it touches the mutation boundary. No current registry entry benefits (only bare keys + the separately-handled `SCRUM:wheel`). Do alongside authoring the first per-predecessor variant. |
-| **WP5** | ⏳ not started | Between-ruck drift (owner-requested). WP5.1 (data extraction) + WP5.2 (hold directive) are behaviour-neutral prep; WP5.3 introduces new visible behaviour and **must be tuned live** (`DRIFT_WEIGHT`) with the owner watching — do not ship blind. |
+| **WP5.1** | ✅ done | Baked tables extracted to `src/ui/pitchFormations.ts`; behaviour-neutral (silent-score golden unchanged). |
+| **WP5** | ◑ in progress | Between-ruck drift (owner-requested). WP5.1 (data extraction) ✅ done; WP5.2 (hold directive) is behaviour-neutral prep; WP5.3 introduces new visible behaviour and **must be tuned live** (`DRIFT_WEIGHT`) with the owner watching — do not ship blind. |
 | **WP6.2** | ⏳ not started | Probe sync assertions (teleport / carrier-contact / channel-exclusivity). Needs the headless-Chromium probe harness. |
 
 **Recommended next session:** WP5 (drift) with the dev server running so `DRIFT_WEIGHT` can be
@@ -246,13 +247,15 @@ this plan's commit and will drift.
 ## WP5 — Between-ruck formation drift (3 commits)
 *(Owner wants this. Two preparatory structural commits make it clean.)*
 
-### 5.1 Extract baked data → `src/ui/pitchFormations.ts`
-- Move the ~1,000 lines of tables out of `pitchChoreography.ts`: the 12 `Formation`
-  constants, `KICKOFF_*` / `DROPOUT_*` spot tables, `CONV_ABS`, `SCRUM_ROWS`,
-  `MAUL_ATK_ROWS`, the `*_BACKS` tables, `MAUL_HOOKER_DX`. Types (`Formation`,
-  `KickoffSpot`) move with them. `pitchChoreography.ts` keeps router + layout logic only.
-- **Behaviour-neutral; doc sync:** `docs/DESIGN.md` §15.7 pointers + playbook source-table
-  column.
+### 5.1 Extract baked data → `src/ui/pitchFormations.ts` ✅ DELIVERED
+- Moved the baked tables out of `pitchChoreography.ts`: all `Formation` constants +
+  `BOX_KICK_FORMS`, `KICKOFF_*` / `DROPOUT_*` spot tables, `CONV_ABS`, `SCRUM_ROWS`,
+  `MAUL_ATK_ROWS`, the `*_BACKS` tables, `MAUL_HOOKER_DX`. Types (`FormOffsets`,
+  `Formation`, `KickoffSpot`) moved with them. `pitchChoreography.ts` imports them and
+  keeps router + layout logic only; `MAUL_HOOKER_DX` is re-exported so `PitchView`'s
+  import path is unchanged.
+- **Behaviour-neutral** (silent-score golden unchanged); doc sync done: `docs/DESIGN.md`
+  §15.7 split-boundary note + playbook UI-pipeline / R2 / R4 source pointers.
 
 ### 5.2 Hold/snap directive moves into the pure choreographer
 - **Where:** `PitchPlayers.applyBeat` owns the eight `keepX` hold flags,

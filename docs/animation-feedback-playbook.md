@@ -35,8 +35,10 @@ cross-reference `beats[].side` + `movements[]` to identify actors).
 
 Two pipelines exist (both are kept, by owner decision):
 
-- **UI pipeline** — layouts + baked tables in `src/ui/pitchChoreography.ts`, animated by
-  `PitchView.ts` / `PitchPlayers.ts`.
+- **UI pipeline** — router + layout geometry in `src/ui/pitchChoreography.ts`, baked offset /
+  spot tables (every `Formation`, the `KICKOFF_*` / `DROPOUT_*` spots, `CONV_ABS`, scrum /
+  lineout / maul rows) in `src/ui/pitchFormations.ts`, animated by `PitchView.ts` /
+  `PitchPlayers.ts`.
 - **Engine pipeline** — Phase Animator JSON parsed into
   `src/engine/balance/firstPhaseChoreography.ts` (`FIRST_PHASE_CHOREOGRAPHIES`), applied by
   `applyChoreography` in `src/engine/events/FirstPhaseEvent.ts` (and
@@ -94,7 +96,7 @@ re-export and drift from the tool).
 ### R2 — A baked formation frame is wrong (box kick / breakdown / penalty / tactical kick)
 These are `Formation` offset tables (`{ nearTop, atk, def, atkFrom?, defFrom? }`,
 slot → `[dx, dy]` from the ball, canonical frame: **attacker toward +x, ball near the
-`nearTop` touchline**).
+`nearTop` touchline**), defined in `src/ui/pitchFormations.ts`.
 
 1. Prefer re-authoring the frame in the Phase Animator and re-baking the offsets
    (subtract the authored ball position from each player; a small parse script over the
@@ -118,8 +120,9 @@ team orientation, and the chaser direction from ball travel (`ballX >= 50`), nev
 `event.side` — both are documented invariants.
 
 ### R4 — Procedural layout wrong (open-play fan, lineout spread, scrum pack, subs, maul backs)
-Edit the geometry in the layout functions / row tables in `pitchChoreography.ts`
-(`fanLateral`, `SCRUM_ROWS`, `lineSpread` 5m/15m bounds, etc.). Shared presentation
+Edit the geometry in the layout functions in `pitchChoreography.ts` (`fanLateral`,
+`lineSpread` 5m/15m bounds, etc.) or the row tables in `pitchFormations.ts` (`SCRUM_ROWS`,
+`MAUL_ATK_ROWS`, the scrum / lineout backs arrays). Shared presentation
 constants (carrier-behind-ball `2.5`, tackler-ahead `1.3`, `MAUL_HOOKER_DX`) are load-bearing
 in **multiple files** — change them in their shared home (`src/ui/pitchAnimConstants.ts`
 once it exists; until then, find every copy) or the ball and dots drift apart.

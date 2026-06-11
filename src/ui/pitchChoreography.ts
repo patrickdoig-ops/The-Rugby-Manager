@@ -1150,11 +1150,13 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
   // pushes the ball off the line too (line + dir*4). Place the scorer `fwd*2.5` past the line
   // (just behind the in-goal ball, clearly over) via the wider in-goal clamp; the standard
   // clampX [2,98] would strand them on-field, and the keepTryScored glide eases them across.
+  let carrierDot: Placed | null = null;
   if (carrier) {
     const carrierX = event.phase === MatchPhase.TryScored
       ? clampInGoalX((fwd > 0 ? 100 : 0) + fwd * 2.5)
       : clampX(ballX - fwd * 2.5);
-    out.push(placed(carrier, atkSide, state, carrierX, ballY, true));
+    carrierDot = placed(carrier, atkSide, state, carrierX, ballY, true);
+    out.push(carrierDot);
   }
 
   // Support attackers: fan behind the carrier in a wider arc so circles don't overlap.
@@ -1170,17 +1172,17 @@ function openPlayLayout(event: GameEvent, state: MatchState, attacksTop: boolean
   const tackler = event.secondaryPlayer && sideOf(event.secondaryPlayer, state) === defSide ? event.secondaryPlayer : null;
 
   defenders.forEach((p, i) => {
-    if (p === tackler && carrier) {
+    if (p === tackler && carrierDot) {
       // Pin tackler to the ball carrier to visually represent the collision.
-      // Give them a `from` at their defensive-line spot so the WAAPI chase
-      // animation runs them INTO the tackle over the beat duration.
-      const carrierX = event.phase === MatchPhase.TryScored
-        ? clampInGoalX(ballX + fwd * 2.5)
-        : clampX(ballX - fwd * 2.5);
-      const tackleX = clampDefenderX(carrierX + fwd * 1.3, fwd);
+      // Derive the tackle spot from the carrier's ACTUAL placed position (which,
+      // on a lenient try, sits on the try line — not at ballX, which can rest 5m
+      // short), so the tackler lands fwd*1.3 behind the scorer rather than ~6
+      // units adrift. Give them a `from` at their defensive-line spot so the
+      // WAAPI chase animation runs them INTO the tackle over the beat duration.
+      const tackleX = clampDefenderX(carrierDot.x + fwd * 1.3, fwd);
       const defLineX = clampDefenderX(ballX + fwd * 10, fwd);
       const defLineY = clampY(ballY + 4);
-      const dot = placed(p, defSide, state, tackleX, ballY, false);
+      const dot = placed(p, defSide, state, tackleX, carrierDot.y, false);
       dot.from = { x: defLineX, y: defLineY };
       const isDominant = event.outcome === 'dominant_carry' || event.outcome === 'dominant_tackle';
       if (isDominant) dot.isDominantTackler = true;

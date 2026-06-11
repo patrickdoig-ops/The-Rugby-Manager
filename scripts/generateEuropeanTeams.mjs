@@ -57,7 +57,7 @@ const SHORT_NAME_MAP = {
   'castres':       'CAS',
   'la-rochelle':   'LRO',
   'bayonne':       'BAY',
-  'bordeaux':      'UBB',
+  'bordeaux':      'BOR',
   'pau':           'PAU',
   'glasgow':       'GLA',
   'sharks':        'SHA',
@@ -67,22 +67,50 @@ const SHORT_NAME_MAP = {
   'stormers':      'STO',
   'bulls':         'BUL',
   'scarlets':      'SCA',
-  'montpellier':   'MHR',
+  'montpellier':   'MTP',
   'montauban':     'MON',
   'lyon':          'LYO',
-  'usap':          'USP',
+  'usap':          'PER',
   'racing92':      'R92',
-  'stade-francais':'SFP',
+  'stade-francais':'STF',
   'connacht':      'CON',
   'ospreys':       'OSP',
   'zebre':         'ZEB',
   'black-lion':    'BLI',
-  'benetton':      'BEN',
+  'benetton':      'TRE',
   'dragons':       'DRA',
   'em-lions':      'LIO',
   'ulster':        'ULS',
   'cardiff':       'CAR',
   'cheetahs':      'CHE',
+};
+
+// De-branded display names (sponsors stripped; club names reduced to the
+// city/town where appropriate). Keyed by slug; only entries that differ from
+// the source `##` header. The header + SLUG_MAP stay untouched so team ids
+// remain stable.
+const DISPLAY_NAME_MAP = {
+  'bordeaux':       'Bordeaux',
+  'pau':            'Pau',
+  'glasgow':        'Glasgow',
+  'sharks':         'Sharks',
+  'edinburgh':      'Edinburgh',
+  'munster':        'Munster',
+  'leinster':       'Leinster',
+  'stormers':       'Stormers',
+  'bulls':          'Bulls',
+  'montpellier':    'Montpellier',
+  'montauban':      'Montauban',
+  'lyon':           'Lyon',
+  'usap':           'Perpignan',
+  'stade-francais': 'Stade Français',
+  'zebre':          'Zebre',
+  'benetton':       'Treviso',
+  'dragons':        'Dragons',
+  'em-lions':       'Lions',
+  'ulster':         'Ulster',
+  'cardiff':        'Cardiff',
+  'cheetahs':       'Cheetahs',
 };
 
 // Section headers that are not team entries
@@ -344,7 +372,7 @@ function parseEuropeanTeamsMd(md) {
 
     teams.push({
       id: slug,
-      name: headerLine,
+      name: DISPLAY_NAME_MAP[slug] || headerLine,
       shortName: SHORT_NAME_MAP[slug] || slug.toUpperCase().slice(0, 3),
       color: coloursMatch[1].toLowerCase(),
       secondaryColor: coloursMatch[2].toLowerCase(),

@@ -36,7 +36,7 @@ export const PRE_SEASON_TRANSFERS_2025_26: PreSeasonTransfer[] = [
   { name: 'Henry Arundell',         fromClub: 'Racing 92' },
   { name: 'Chris Harris',           fromClub: 'Gloucester' },
   // Bristol Bears
-  { name: 'Tom Jordan',             fromClub: 'Glasgow Warriors' },
+  { name: 'Tom Jordan',             fromClub: 'Glasgow' },
   { name: 'Pedro Rubiolo',          fromClub: 'Newcastle Falcons' },
   { name: 'Max Pepper',             fromClub: 'Newcastle Falcons' },
   { name: 'Josh Carrington',        fromClub: 'Cardiff Metropolitan University' },
@@ -50,7 +50,7 @@ export const PRE_SEASON_TRANSFERS_2025_26: PreSeasonTransfer[] = [
   { name: 'Julian Heaven',          fromClub: 'NSW Waratahs' },
   { name: 'Charlie Chapman',        fromClub: 'Gloucester' },
   { name: 'Len Ikitau',             fromClub: 'ACT Brumbies' },
-  { name: 'Andrea Zambonin',        fromClub: 'Zebre Parma' },
+  { name: 'Andrea Zambonin',        fromClub: 'Zebre' },
   { name: 'Bachuki Tchumbadze',     fromClub: 'Black Lion' },
   { name: 'Khwezi Mona',            fromClub: 'Sharks' },
   // Gloucester
@@ -60,7 +60,7 @@ export const PRE_SEASON_TRANSFERS_2025_26: PreSeasonTransfer[] = [
   { name: 'James Venter',           fromClub: 'Sharks' },
   { name: 'Jack Innard',            fromClub: 'Exeter Chiefs' },
   { name: 'Ben Redshaw',            fromClub: 'Newcastle Falcons' },
-  { name: 'Jack Mann',              fromClub: 'Glasgow Warriors' },
+  { name: 'Jack Mann',              fromClub: 'Glasgow' },
   { name: 'Will Trenholm',          fromClub: 'Harlequins' },
   { name: 'Mike Austin',            fromClub: 'Hartpury University' },
   { name: 'Josh Basham',            fromClub: 'Shimizu Koto Blue Sharks' },
@@ -121,8 +121,8 @@ export const PRE_SEASON_TRANSFERS_2025_26: PreSeasonTransfer[] = [
   { name: 'Samson Adejimi',         fromClub: 'Saracens (season-long loan)' },
   // Northampton Saints
   { name: 'Cleopas Kundiona',       fromClub: 'Nevers' },
-  { name: 'Amena Caqusau',          fromClub: 'Glasgow Warriors' },
-  { name: 'Danilo Fischetti',       fromClub: 'Zebre Parma' },
+  { name: 'Amena Caqusau',          fromClub: 'Glasgow' },
+  { name: 'Danilo Fischetti',       fromClub: 'Zebre' },
   { name: 'Callum Chick',           fromClub: 'Newcastle Falcons' },
   { name: 'Anthony Belleau',        fromClub: 'Clermont' },
   { name: 'JJ van der Mescht',      fromClub: 'Stade Français' },

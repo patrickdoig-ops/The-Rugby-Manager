@@ -3551,8 +3551,8 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "bordeaux",
-    name: "Bordeaux Bègles",
-    shortName: "UBB",
+    name: "Bordeaux",
+    shortName: "BOR",
     color: "#00529b",
     secondaryColor: "#000000",
     stadium: "Stade Chaban-Delmas",
@@ -4119,7 +4119,7 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "pau",
-    name: "Section Paloise (Pau)",
+    name: "Pau",
     shortName: "PAU",
     color: "#006b3c",
     secondaryColor: "#ffffff",
@@ -4696,7 +4696,7 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "glasgow",
-    name: "Glasgow Warriors",
+    name: "Glasgow",
     shortName: "GLA",
     color: "#1a1a2e",
     secondaryColor: "#c8102e",
@@ -5287,7 +5287,7 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "sharks",
-    name: "Hollywoodbets Sharks",
+    name: "Sharks",
     shortName: "SHA",
     color: "#0f2044",
     secondaryColor: "#e8c423",
@@ -5878,11 +5878,11 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "edinburgh",
-    name: "Edinburgh Rugby",
+    name: "Edinburgh",
     shortName: "EDI",
     color: "#5e259b",
     secondaryColor: "#ffffff",
-    stadium: "Hive Stadium (Murrayfield for derbies)",
+    stadium: "Murrayfield",
     stadiumCapacity: 7800,
     suggestedTactics: {
       attackingGamePlan: "balanced",
@@ -6462,11 +6462,11 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "munster",
-    name: "Munster Rugby",
+    name: "Munster",
     shortName: "MUN",
     color: "#cc0000",
     secondaryColor: "#ffffff",
-    stadium: "Thomond Park (Limerick) / Virgin Media Park (Cork)",
+    stadium: "Thomond Park (Limerick) / Musgrave Park (Cork)",
     stadiumCapacity: 26267,
     suggestedTactics: {
       attackingGamePlan: "possession",
@@ -7053,11 +7053,11 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "leinster",
-    name: "Leinster Rugby",
+    name: "Leinster",
     shortName: "LEI",
     color: "#003da5",
     secondaryColor: "#ffffff",
-    stadium: "Aviva Stadium / RDS Arena",
+    stadium: "Lansdowne Road / RDS Arena",
     stadiumCapacity: 51700,
     suggestedTactics: {
       attackingGamePlan: "balanced",
@@ -7658,11 +7658,11 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "stormers",
-    name: "DHL Stormers",
+    name: "Stormers",
     shortName: "STO",
     color: "#0a2240",
     secondaryColor: "#3399cc",
-    stadium: "DHL Newlands / Cape Town Stadium",
+    stadium: "Newlands / Cape Town Stadium",
     stadiumCapacity: 55000,
     suggestedTactics: {
       attackingGamePlan: "balanced",
@@ -8249,7 +8249,7 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "bulls",
-    name: "Vodacom Bulls",
+    name: "Bulls",
     shortName: "BUL",
     color: "#003da5",
     secondaryColor: "#ffffff",
@@ -9417,11 +9417,11 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "montpellier",
-    name: "Montpellier Hérault Rugby",
-    shortName: "MHR",
+    name: "Montpellier",
+    shortName: "MTP",
     color: "#0033a0",
     secondaryColor: "#ff6600",
-    stadium: "GGL Stadium",
+    stadium: "Stade Yves-du-Manoir",
     stadiumCapacity: 32900,
     suggestedTactics: {
       attackingGamePlan: "possession",
@@ -10008,7 +10008,7 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "montauban",
-    name: "US Montauban",
+    name: "Montauban",
     shortName: "MON",
     color: "#cc0000",
     secondaryColor: "#000080",
@@ -10585,11 +10585,11 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "lyon",
-    name: "Lyon Olympique Universitaire",
+    name: "Lyon",
     shortName: "LYO",
     color: "#cc0000",
     secondaryColor: "#1a1a1a",
-    stadium: "Matmut Stadium (GGL Stadium for some fixtures)",
+    stadium: "Stade de Gerland",
     stadiumCapacity: 25000,
     suggestedTactics: {
       attackingGamePlan: "balanced",
@@ -11176,8 +11176,8 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "usap",
-    name: "USAP (Union Sportive Arlequins Perpignanais)",
-    shortName: "USP",
+    name: "Perpignan",
+    shortName: "PER",
     color: "#cc0000",
     secondaryColor: "#ffd700",
     stadium: "Stade Aimé-Giral",
@@ -12344,8 +12344,8 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "stade-francais",
-    name: "Stade Français Paris",
-    shortName: "SFP",
+    name: "Stade Français",
+    shortName: "STF",
     color: "#e75480",
     secondaryColor: "#000000",
     stadium: "Stade Jean-Bouin",
@@ -13516,7 +13516,7 @@ export const europeanTeams: EuropeanTeamData[] = [
     shortName: "OSP",
     color: "#000000",
     secondaryColor: "#ff6600",
-    stadium: "Swansea.com Stadium",
+    stadium: "Swansea Stadium",
     stadiumCapacity: 20827,
     suggestedTactics: {
       attackingGamePlan: "balanced",
@@ -14096,7 +14096,7 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "zebre",
-    name: "Zebre Parma",
+    name: "Zebre",
     shortName: "ZEB",
     color: "#e8112d",
     secondaryColor: "#000000",
@@ -15257,8 +15257,8 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "benetton",
-    name: "Benetton Rugby",
-    shortName: "BEN",
+    name: "Treviso",
+    shortName: "TRE",
     color: "#006239",
     secondaryColor: "#ffffff",
     stadium: "Stadio Monigo, Treviso",
@@ -15848,7 +15848,7 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "dragons",
-    name: "Dragons RFC",
+    name: "Dragons",
     shortName: "DRA",
     color: "#cc0000",
     secondaryColor: "#000000",
@@ -16432,11 +16432,11 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "em-lions",
-    name: "Emirates Lions",
+    name: "Lions",
     shortName: "LIO",
     color: "#cc0000",
     secondaryColor: "#ffd700",
-    stadium: "Ellis Park (Emirates Airline Park), Johannesburg",
+    stadium: "Ellis Park, Johannesburg",
     stadiumCapacity: 62567,
     suggestedTactics: {
       attackingGamePlan: "balanced",
@@ -17016,11 +17016,11 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "ulster",
-    name: "Ulster Rugby",
+    name: "Ulster",
     shortName: "ULS",
     color: "#ffffff",
     secondaryColor: "#003da5",
-    stadium: "Kingspan Stadium, Belfast",
+    stadium: "Ravenhill Stadium, Belfast",
     stadiumCapacity: 18196,
     suggestedTactics: {
       attackingGamePlan: "possession",
@@ -17607,7 +17607,7 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "cardiff",
-    name: "Cardiff Rugby",
+    name: "Cardiff",
     shortName: "CAR",
     color: "#003da5",
     secondaryColor: "#ffffff",
@@ -18191,11 +18191,11 @@ export const europeanTeams: EuropeanTeamData[] = [
   },
   {
     id: "cheetahs",
-    name: "Toyota Cheetahs",
+    name: "Cheetahs",
     shortName: "CHE",
     color: "#ff6600",
     secondaryColor: "#000000",
-    stadium: "Toyota Stadium (Free State Stadium), Bloemfontein",
+    stadium: "Free State Stadium, Bloemfontein",
     stadiumCapacity: 42800,
     suggestedTactics: {
       attackingGamePlan: "balanced",

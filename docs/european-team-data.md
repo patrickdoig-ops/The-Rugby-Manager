@@ -620,7 +620,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 
 ## Edinburgh Rugby
 
-- **Home ground:** Hive Stadium (Murrayfield for derbies).
+- **Home ground:** Murrayfield.
 - **Club colours:** `#5e259b` / `#ffffff`
 - **Nickname:** Edinburgh.
 - **Founded:** 1872.
@@ -680,7 +680,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 
 ## Munster Rugby
 
-- **Home ground:** Thomond Park (Limerick) / Virgin Media Park (Cork).
+- **Home ground:** Thomond Park (Limerick) / Musgrave Park (Cork).
 - **Club colours:** `#cc0000` / `#ffffff`
 - **Nickname:** The Province.
 - **Founded:** 1879.
@@ -741,7 +741,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 
 ## Leinster Rugby
 
-- **Home ground:** Aviva Stadium / RDS Arena.
+- **Home ground:** Lansdowne Road / RDS Arena.
 - **Club colours:** `#003da5` / `#ffffff`
 - **Nickname:** The Province / Boys in Blue.
 - **Founded:** 1879.
@@ -804,7 +804,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 
 ## DHL Stormers
 
-- **Home ground:** DHL Newlands / Cape Town Stadium.
+- **Home ground:** Newlands / Cape Town Stadium.
 - **Club colours:** `#0a2240` / `#3399cc`
 - **Nickname:** Stormers.
 - **Founded:** 1997.
@@ -989,7 +989,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 
 ## Montpellier Hérault Rugby
 
-- **Home ground:** GGL Stadium.
+- **Home ground:** Stade Yves-du-Manoir.
 - **Club colours:** `#0033a0` / `#ff6600`
 - **Nickname:** MHR.
 - **Founded:** 1902.
@@ -1109,7 +1109,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 
 ## Lyon Olympique Universitaire
 
-- **Home ground:** Matmut Stadium (GGL Stadium for some fixtures).
+- **Home ground:** Stade de Gerland.
 - **Club colours:** `#cc0000` / `#1a1a1a`
 - **Nickname:** LOU Rugby.
 - **Founded:** 1899.
@@ -1415,7 +1415,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 
 ## Ospreys
 
-- **Home ground:** Swansea.com Stadium.
+- **Home ground:** Swansea Stadium.
 - **Club colours:** `#000000` / `#ff6600`
 - **Nickname:** Y Gweilch.
 - **Founded:** 2003.
@@ -1715,7 +1715,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 
 ## Emirates Lions
 
-- **Home ground:** Ellis Park (Emirates Airline Park), Johannesburg.
+- **Home ground:** Ellis Park, Johannesburg.
 - **Club colours:** `#cc0000` / `#ffd700`
 - **Nickname:** The Lions.
 - **Founded:** 1996.
@@ -1775,7 +1775,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 
 ## Ulster Rugby
 
-- **Home ground:** Kingspan Stadium, Belfast.
+- **Home ground:** Ravenhill Stadium, Belfast.
 - **Club colours:** `#ffffff` / `#003DA5`
 - **Nickname:** Ulster.
 - **Founded:** 1879.
@@ -1896,7 +1896,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 
 ## Toyota Cheetahs
 
-- **Home ground:** Toyota Stadium (Free State Stadium), Bloemfontein.
+- **Home ground:** Free State Stadium, Bloemfontein.
 - **Club colours:** `#ff6600` / `#000000`
 - **Nickname:** Cheetahs.
 - **Founded:** 2005.

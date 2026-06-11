@@ -63,7 +63,7 @@ Two pipelines exist (both are kept, by owner decision):
 | FirstPhase (authored play registered) | engine pipeline (`FIRST_PHASE_CHOREOGRAPHIES`) | choreography loop + ball on authored `t` |
 | FirstPhase (no authored play) | `firstPhaseBacklineLayout` on engine `movements[]` hops | follower + chase |
 | Breakdown outcomes | `BREAKDOWN_*` formations (anchor = live ruck) | Layer-3 glide |
-| PhasePlay / KickReturn / open play | `openPlayLayout` (involved actors only) | follower + per-beat glide |
+| PhasePlay / KickReturn / open play | `openPlayLayout` (involved actors) + `appendFormationDrift` (off-ball dots → ball-anchored `BREAKDOWN_CLEAN`, PhasePlay only) | follower + per-beat glide |
 | TryScored | `openPlayLayout` try branch (scorer anchored on the **try line**, `keepTryScored` hold) | glide |
 | Substitution | `substitutionLayout` + glows | static + glow classes |
 | TMO review | none (`keepTmo` frozen hold) | none |

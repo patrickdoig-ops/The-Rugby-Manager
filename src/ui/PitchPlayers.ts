@@ -60,6 +60,7 @@ export interface PitchPlayers {
 
 export function initPitchPlayers(field: HTMLElement): PitchPlayers {
   const pool = new Map<string, HTMLElement>();   // key -> dot (kept while hidden)
+  const lastPositions = new Map<string, { x: number; y: number }>(); // key -> last committed game coords (PhasePlay drift seed)
   let persistedKeys = new Set<string>();         // keys shown since last phase change
   let currentPhase: string | null = null;        // phase of the last beat
   let prevBallX = 50;                            // event.ballX from the previous beat
@@ -118,14 +119,14 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       el.classList.remove('dot-moving');
     }
 
-    const placed = choreograph(event, state, attacksTop, currentPhase, prevBallX, prevBallY);
+    const placed = choreograph(event, state, attacksTop, currentPhase, prevBallX, prevBallY, lastPositions);
     const nextKeys = new Set(placed.map(p => p.key));
 
     // Clear the previous beat's injury/fatigue glow. If we re-showed an off-field injured
     // dot purely for the glow and it isn't part of this beat's formation, hide it again.
     for (const g of activeGlows) {
       g.el.classList.remove(g.cls);
-      if (g.reshown && !nextKeys.has(g.key)) g.el.classList.remove('visible');
+      if (g.reshown && !nextKeys.has(g.key)) { g.el.classList.remove('visible'); lastPositions.delete(g.key); }
     }
     activeGlows = [];
 
@@ -146,7 +147,7 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
       // the line is read rather than clearing the pitch.
       if (!dir.hold && nextKeys.size > 0) {
         for (const key of persistedKeys) {
-          if (!nextKeys.has(key)) pool.get(key)?.classList.remove('visible');
+          if (!nextKeys.has(key)) { pool.get(key)?.classList.remove('visible'); lastPositions.delete(key); }
         }
         persistedKeys = new Set();
       }
@@ -183,8 +184,10 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
         const parsedTop = parseFloat(el.style.top || '0');
         const parsedLeft = parseFloat(el.style.left || '0');
 
-        // Only pulse if the dot was already on screen and moved by more than 0.1% (a meaningful margin to ignore float rounding)
-        if (wasVisible && el.style.top && (Math.abs(parsedTop - nextTopNum) > 0.1 || Math.abs(parsedLeft - nextLeftNum) > 0.1)) {
+        // Only pulse if the dot was already on screen and moved by more than 0.1% (a meaningful
+        // margin to ignore float rounding). Drift dots glide but skip the pulse — ~27 dots
+        // blurring every PhasePlay beat would be far too noisy.
+        if (wasVisible && !p.isDrift && el.style.top && (Math.abs(parsedTop - nextTopNum) > 0.1 || Math.abs(parsedLeft - nextLeftNum) > 0.1)) {
           el.classList.add('dot-moving');
         } else {
           el.classList.remove('dot-moving');
@@ -195,6 +198,10 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
 
         el.style.top = newTop;
         el.style.left = newLeft;
+        // Record the committed game position so PhasePlay drift can ease this dot from
+        // where it actually rests (only when its position was committed — a preserved
+        // set-piece #9 keeps its old DOM spot, so its old lastPositions entry stands).
+        lastPositions.set(p.key, { x: p.x, y: p.y });
       }
       el.classList.add('visible');
       if (p.isCarrier) carrierEl = el;
@@ -286,6 +293,7 @@ export function initPitchPlayers(field: HTMLElement): PitchPlayers {
     field.classList.remove('dot-snap-transition');
     for (const el of pool.values()) el.remove();
     pool.clear();
+    lastPositions.clear();
     persistedKeys = new Set();
     currentPhase = null;
     prevBallX = 50;

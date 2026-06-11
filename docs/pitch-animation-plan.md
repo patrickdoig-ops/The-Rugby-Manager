@@ -21,7 +21,8 @@ follow the doc-sync table in `CLAUDE.md`, and bump `src/version.ts` (src-touchin
 | **WP3.2** | ⏳ deferred | Needs new cross-tick engine state (the set-piece origin isn't tracked past the tick that sets `nextPhase = FirstPhase`), so it is **not** the "additive" change first assumed — it touches the mutation boundary. No current registry entry benefits (only bare keys + the separately-handled `SCRUM:wheel`). Do alongside authoring the first per-predecessor variant. |
 | **WP5.1** | ✅ done | Baked tables extracted to `src/ui/pitchFormations.ts`; behaviour-neutral (silent-score golden unchanged). |
 | **WP5.2** | ✅ done | Pure `transitionDirective(event, currentPhase)` → `{ snap, hold, preserveKeys }` in `pitchChoreography.ts`; `PitchPlayers.applyBeat` consumes it. Behaviour-preserving. |
-| **WP5** | ◑ in progress | Between-ruck drift (owner-requested). WP5.1 (data extraction) + WP5.2 (hold directive) ✅ done; WP5.3 introduces new visible behaviour and **must be tuned live** (`DRIFT_WEIGHT`) with the owner watching — do not ship blind. |
+| **WP5.3** | ✅ shipped | `appendFormationDrift` — off-ball dots ease toward a ball-anchored `BREAKDOWN_CLEAN` frame on PhasePlay beats (`DRIFT_WEIGHT = 0.25`). Presentation-only (golden unchanged). **NEEDS OWNER EYEBALL** to tune `DRIFT_WEIGHT` and confirm the shape reads right. |
+| **WP5** | ✅ done | Between-ruck drift (owner-requested). WP5.1 + WP5.2 + WP5.3 all shipped; `DRIFT_WEIGHT` is the live-tuning dial. |
 | **WP6.2** | ⏳ not started | Probe sync assertions (teleport / carrier-contact / channel-exclusivity). Needs the headless-Chromium probe harness. |
 
 **Recommended next session:** WP5 (drift) with the dev server running so `DRIFT_WEIGHT` can be
@@ -282,7 +283,7 @@ this plan's commit and will drift.
   done:** §15.7 "Dot persistence" + Layer-3 glide rule restructured around the directive;
   playbook R6 updated.
 
-### 5.3 Drift pass
+### 5.3 Drift pass ✅ SHIPPED (live-tune `DRIFT_WEIGHT`)
 - **Goal:** during `PhasePlay`, the ~27 held dots stop being statues — the defensive line
   re-forms ball-relative, the attacking shape follows — without fighting the carrier /
   tackler / chase channels.

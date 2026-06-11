@@ -45,3 +45,10 @@ export const SH_SWEEP_MS_MAX = 500;
 // Lateral offset (pitch units) infield from the ball where the scrum #9 starts its
 // sweep, so the arc has enough travel to read on mobile.
 export const SCRUM_SH_INFIELD_START = 9;
+
+// Between-ruck formation drift: the fraction of the way each off-ball dot moves
+// toward its ball-anchored target shape (BREAKDOWN_CLEAN) on each PhasePlay beat.
+// A lerp weight — low enough that the shape eases (never snaps), high enough that the
+// defensive line visibly keeps re-forming goal-side of an advancing ball over a few
+// phases. Presentation only.
+export const DRIFT_WEIGHT = 0.25;

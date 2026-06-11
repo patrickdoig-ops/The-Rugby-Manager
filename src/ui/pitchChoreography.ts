@@ -14,7 +14,7 @@ import { MatchPhase } from '../types/engine';
 import { availableForwards, onFieldPlayers } from '../engine/FieldPosition';
 import { SLOT } from '../engine/Slot';
 import { textOn } from './teamColors';
-import { CARRIER_BEHIND_BALL, TACKLER_AHEAD } from './pitchAnimConstants';
+import { CARRIER_BEHIND_BALL, TACKLER_AHEAD, DRIFT_WEIGHT } from './pitchAnimConstants';
 import { swapPairedSlot } from '../engine/choreography/transform';
 import type { FormOffsets, Formation, KickoffSpot } from './pitchFormations';
 import {
@@ -44,6 +44,7 @@ export interface Placed {
   from?: { x: number; y: number }; // start position — PitchView animates the dot from here to its resting (x,y) over the beat (kick-off chase line)
   scrumHalfRole?: 'atk' | 'def'; // scrum SH — PitchView sweeps from loosehead start to behind-#8 final
   isDominantTackler?: boolean;   // tackler on a dominant carry/tackle, who will animate in sync with the ball carrier
+  isDrift?: boolean;             // off-ball PhasePlay drift dot — glides toward the formation shape but skips the dot-moving pulse
 }
 
 type Side = 'h' | 'a';
@@ -111,6 +112,7 @@ function harvestActors(event: GameEvent): Player[] {
 // everything else (open play, breakdown, maul, penalty, try) fans the involved chain.
 // prevPhase / prevBallX / prevBallY are the previous beat's phase and ball position,
 // used to anchor the FirstPhase backline formation when coming off a set piece.
+// lastPositions (game coords, owned by PitchPlayers) seeds the PhasePlay formation drift.
 export function choreograph(
   event: GameEvent,
   state: MatchState,
@@ -118,6 +120,7 @@ export function choreograph(
   prevPhase: string | null = null,
   prevBallX = 50,
   prevBallY = 50,
+  lastPositions?: Map<string, { x: number; y: number }>,
 ): Placed[] {
   // Substitution beats always show players near the touchline, not the ball.
   if (event.phase === MatchPhase.Substitution) return substitutionLayout(event, state);
@@ -258,7 +261,66 @@ export function choreograph(
     if (keys.includes('penalty_defending'))            return placeFormation(event, state, attacksTop, event.ballX, event.ballY, BREAKDOWN_PENALTY_DEFENDING);
   }
 
-  return openPlayLayout(event, state, attacksTop);
+  const dots = openPlayLayout(event, state, attacksTop);
+  // Between-ruck formation drift: on PhasePlay, the ~27 dots that openPlayLayout did NOT
+  // place (everyone but the carrier / tackler / immediate support) ease toward a ball-
+  // anchored shape instead of standing frozen. Other phases keep their held formation.
+  if (event.phase === MatchPhase.PhasePlay && lastPositions) {
+    appendFormationDrift(dots, event, state, attacksTop, lastPositions);
+  }
+  return dots;
+}
+
+// Ease the off-ball dots toward the BREAKDOWN_CLEAN shape anchored on the live ball, so
+// the defensive line keeps re-forming goal-side of the ball and the attacking support
+// drifts upfield with play. Only dots NOT already placed this beat (and still on-field)
+// drift; each moves DRIFT_WEIGHT of the way from its last committed position toward its
+// slot's target, so the shape converges over several beats without ever snapping. The
+// drift dots carry no `from` and no `isCarrier` — they glide via the Layer-3
+// dot-transitioning that PhasePlay re-arms every beat. The same canonical-frame transform
+// as placeFormation (dir from attack direction, lateral mirror + paired-slot swap on a
+// single-axis reflection); BREAKDOWN_CLEAN is a normal frame, so the attacking team is the
+// possession side and dir is just `fwd`.
+function appendFormationDrift(
+  dots: Placed[],
+  event: GameEvent,
+  state: MatchState,
+  attacksTop: boolean,
+  lastPositions: Map<string, { x: number; y: number }>,
+): void {
+  const atkSide: Side = event.side === 'home' ? 'h' : 'a';
+  const dir = attacksTop ? 1 : -1;
+  const anchorX = event.ballX;
+  const anchorY = event.ballY;
+  const mirrorY = BREAKDOWN_CLEAN.nearTop !== (anchorY >= 50);
+  const swapLateral = (dir === -1) !== mirrorY;
+
+  const placedKeys = new Set(dots.map(p => p.key));
+  const homeOn = onFieldPlayers(state.homeTeam, state, 'home');
+  const awayOn = onFieldPlayers(state.awayTeam, state, 'away');
+
+  for (const [key, cur] of lastPositions) {
+    if (placedKeys.has(key)) continue;                 // carrier / tackler / support already placed
+    const sep = key.indexOf(':');
+    const side = key.slice(0, sep) as Side;
+    const slot = parseInt(key.slice(sep + 1), 10);
+    const p = (side === 'h' ? homeOn : awayOn).find(pl => pl.id === slot);
+    if (!p) continue;                                  // off-field (subbed / sin-binned) → let it fade
+
+    const isAtk = side === atkSide;
+    const off = (isAtk ? BREAKDOWN_CLEAN.atk : BREAKDOWN_CLEAN.def)[swapLateral ? swapPairedSlot(slot) : slot];
+    if (!off) continue;
+
+    const targetX = isAtk ? clampX(anchorX + off[0] * dir) : clampDefenderX(anchorX + off[0] * dir, dir);
+    const targetY = clampY(anchorY + (mirrorY ? -off[1] : off[1]));
+
+    const d = placed(p, side, state,
+      cur.x + (targetX - cur.x) * DRIFT_WEIGHT,
+      cur.y + (targetY - cur.y) * DRIFT_WEIGHT,
+      false);
+    d.isDrift = true;
+    dots.push(d);
+  }
 }
 
 // Kick phases a KickReturn can follow. On a kick → KickReturn transition the return is

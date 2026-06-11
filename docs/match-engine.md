@@ -739,6 +739,8 @@ If a Phase Animator JSON is registered for the play type, the authored frame is 
 - `truncateToOutcome` → cuts the authored timeline back to where the engine outcome lands and rescales `t` to `[0,1]` (the min-distance + tolerance scan).
 - `extendForOffloads` → procedurally appends offload pass/run keyframes past the authored end.
 - `reconcileTryY` → on a try, the authored grounding y overrides the procedural `tryLandingY` (and the try-location commentary band).
+- `holdScrumHalfUntilPass` → holds the attacking #9 still at its feed until it has passed to #10 (the first authored ball leg), so it stops drifting forward before the pass is made, then runs its authored support line.
+- `snapTacklerToCarrier` → lands the engine's real tackler (`res.secondaryPlayer` — the cover defender on a line break, the primary defender otherwise) adjacent to the carrier's final ball position, so the collision reads (the authored defender path ends where it was authored, not where the truncated engine outcome stopped the ball). Skipped on a try and for forwards (not in the backs-only choreography).
 
 Concretely the pipeline does the following:
 1. **Parses the authored anchor** — the ball's `t = 0` keyframe position (`authoredAnchorX`, `authoredAnchorY`) plus the attack direction inferred from the attacking #10's depth relative to the ball (`authoredAttacksTop`). Also computes `authoredNearTop = authoredAnchorY >= 50`.

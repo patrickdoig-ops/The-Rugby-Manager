@@ -491,6 +491,50 @@ export function reconcileTryY(res: PhaseResult, authoredBallEvents: AuthoredBall
   }
 }
 
+// Hold the attacking scrum-half (#9) still at its feed position until it has delivered the
+// pass to #10, then let it run its authored support line. `passT` is the authored time the
+// ball completes its first leg (arrives at #10 = the first authored ball keyframe). Without
+// this the #9 starts drifting forward from t=0, before the pass is even made. Applied on the
+// authored timeline (before any truncation rescale). Presentation-only.
+export function holdScrumHalfUntilPass(choreography: Choreography, atkSideStr: 'h' | 'a', passT: number): void {
+  if (!(passT > 0)) return;
+  const sh = choreography.find(c => c.id === SLOT.SCRUM_HALF && c.side === atkSideStr);
+  if (!sh || sh.movements.length === 0) return;
+  const start = sh.movements[0];
+  const after = sh.movements.filter(m => m.t > passT);
+  sh.movements = [
+    { t: 0, x: start.x, y: start.y },
+    { t: passT, x: start.x, y: start.y },
+    ...after,
+  ];
+}
+
+// Land the actual tackler adjacent to the carrier's final position so the collision reads.
+// The authored defender path ends wherever it was authored, but the engine outcome (after
+// truncation) stops the ball somewhere else — `res.secondaryPlayer` is the engine's real
+// tackler (the cover defender on a line break, the primary defender otherwise), so snap that
+// dot's last keyframe just ahead of the carrier's final ball position. Skipped on a try (no
+// tackler) and when the tackler is a forward (not in the backs-only choreography).
+// Presentation-only.
+export function snapTacklerToCarrier(
+  res: PhaseResult,
+  choreography: Choreography,
+  authoredBallEvents: AuthoredBallEvent[],
+  defSideStr: 'h' | 'a',
+  dir: number,
+): void {
+  if (res.nextPhase === MatchPhase.TryScored) return;
+  const tacklerPlayer = res.secondaryPlayer;
+  if (!tacklerPlayer) return;
+  const last = authoredBallEvents[authoredBallEvents.length - 1];
+  if (!last) return;
+  const tackler = choreography.find(c => c.id === tacklerPlayer.id && c.side === defSideStr);
+  if (!tackler || tackler.movements.length === 0) return;
+  const lastK = tackler.movements[tackler.movements.length - 1];
+  lastK.x = clamp(last.x + dir * 1.5, 0, 100);
+  lastK.y = last.y;
+}
+
 // First-phase authored play: full reconciliation pipeline. Backs only (forwards hold the
 // set-piece shape), ball path collected. No-op when no play is registered for the key.
 export function applyFirstPhaseChoreography(
@@ -508,6 +552,10 @@ export function applyFirstPhaseChoreography(
   });
   let authoredBallEvents = initialBall;
 
+  // Hold #9 still until it has passed to #10 (the first authored ball leg) — before any
+  // t-rescale, so passT is the authored pass time.
+  holdScrumHalfUntilPass(choreography, frame.atkSideStr, authoredBallEvents[0]?.t ?? 0);
+
   spliceBallEvents(res, authoredBallEvents);
 
   const outcome = findOutcomeEvents(res);
@@ -518,6 +566,8 @@ export function applyFirstPhaseChoreography(
   });
   extendForOffloads(res, choreography, authoredBallEvents, outcome.carryEvent, { state: ctx.state, dir: ctx.dir });
   reconcileTryY(res, authoredBallEvents);
+  // Land the real tackler next to the carrier's final position (presentation-only).
+  snapTacklerToCarrier(res, choreography, authoredBallEvents, frame.defSideStr, ctx.dir);
 
   return { ...res, choreography };
 }

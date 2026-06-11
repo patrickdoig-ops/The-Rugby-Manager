@@ -1,16 +1,14 @@
 // Stepped pre-match flow. Replaces the old single-screen tab-based
-// preview. Internal state machine walks the user through four steps:
+// preview. Internal state machine walks the user through three steps:
 //
 //   1. 'mine'    — confirmation of the user's starting XV + bench
-//   2. 'opp'     — same format for the opponent
-//   3. 'scout'   — opponent scouting report (form, approach, threats, trends)
-//   4. 'tactics' — the existing compact TacticsMenu
+//   2. 'scout'   — opponent scouting report (form, approach, threats, trends)
+//   3. 'tactics' — the existing compact TacticsMenu
 //
 // Each step shares a small top header (back arrow + context label +
-// compact two-crest banner). Forward CTA labels: Continue → Continue
-// → Choose Tactics → Start Match. The back arrow decrements one step;
-// at step 1 it invokes the caller's onBack (returns to Hub or
-// PlayoffBracket).
+// compact two-crest banner). Forward CTA labels: Continue → Choose
+// Tactics → Start Match. The back arrow decrements one step; at step
+// 1 it invokes the caller's onBack (returns to Hub or PlayoffBracket).
 //
 // The exported initPreMatchScreen signature is unchanged so main.ts's
 // wiring carries over. A new optional onEditSquad opens Squad
@@ -58,7 +56,7 @@ type RawPlayer = {
 };
 
 type RawTeam = RawTeamInput;
-type Step = 'mine' | 'opp' | 'scout' | 'tactics';
+type Step = 'mine' | 'scout' | 'tactics';
 
 // Human-readable labels for the seven tactical dimensions. Duplicates
 // the map in TeamInfoScreen.ts — small enough to inline rather than
@@ -579,7 +577,7 @@ export function initPreMatchScreen(
 
   // ── Step state machine ───────────────────────────────────────────────
   let step: Step = 'mine';
-  const STEP_ORDER: Step[] = ['mine', 'opp', 'scout', 'tactics'];
+  const STEP_ORDER: Step[] = ['mine', 'scout', 'tactics'];
   function stepIndex(): number { return STEP_ORDER.indexOf(step); }
 
   // ── Per-row lineup-expand controller ─────────────────────────────────
@@ -629,7 +627,6 @@ export function initPreMatchScreen(
   function footerHtml(): string {
     const isLast = step === 'tactics';
     const ctaLabel = step === 'mine'    ? 'Continue'
-                   : step === 'opp'     ? 'Continue'
                    : step === 'scout'   ? 'Choose Tactics'
                    :                       'Start Match';
     const id = isLast ? 'pm-start' : 'pm-next';
@@ -677,9 +674,6 @@ export function initPreMatchScreen(
   function bodyHtml(): string {
     if (step === 'mine') {
       return renderLineupBody('LINE-UP', playerTeam, playerStarters, playerBench, stadiumName, matchDate, !!onEditSquad, !!onPlayerProfile, state, isRowExpanded, currentCaptainId);
-    }
-    if (step === 'opp') {
-      return renderLineupBody('LINE-UP', oppTeam, oppStarters, oppBench, stadiumName, matchDate, false, !!onPlayerProfile, state, isRowExpanded, undefined);
     }
     if (step === 'scout') {
       return renderScoutBody(oppTeam, oppTeam.shortName, scoutData);
@@ -767,10 +761,9 @@ export function initPreMatchScreen(
       });
     }
 
-    // Wire any player-link spans on line-up steps.
-    if ((step === 'mine' || step === 'opp') && onPlayerProfile) {
-      const currentStep = step;
-      wirePlayerLinks(screen, (rosterId) => onPlayerProfile(rosterId, currentStep));
+    // Wire any player-link spans on the user's line-up step.
+    if (step === 'mine' && onPlayerProfile) {
+      wirePlayerLinks(screen, (rosterId) => onPlayerProfile(rosterId, step));
     }
 
     // Re-attach the row-expand delegated handler. The controller's
@@ -778,7 +771,7 @@ export function initPreMatchScreen(
     // needs rebinding because the previous render's innerHTML was
     // wiped. Scoped per step to the active lineup card so a stray tap
     // outside doesn't bubble.
-    if (step === 'mine' || step === 'opp') {
+    if (step === 'mine') {
       const card = screen.querySelector<HTMLElement>('.pm-lineup-card');
       if (card) lineupExpander.attach(card);
     }

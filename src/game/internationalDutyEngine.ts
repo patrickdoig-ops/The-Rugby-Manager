@@ -320,7 +320,7 @@ export function selectionUnavailableIds(state: GameState, clubId: string): Set<n
     // internationalDuty is only set during a break (when the sole matches are
     // cup matches), so excluding on-duty players here keeps them out of the
     // live cup XV without affecting league selection.
-    if (p && (mustRestThisRound(p, state) || lionsUnavailable(p, week) || isSuspended(p, week) || p.internationalDuty)) out.add(rid);
+    if (p && (mustRestThisRound(p, state) || lionsUnavailable(p, week) || isSuspended(p, week) || p.internationalDuty || p.loanOut)) out.add(rid);
   }
   return out;
 }

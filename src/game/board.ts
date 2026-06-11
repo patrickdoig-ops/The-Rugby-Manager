@@ -149,7 +149,7 @@ export function boardConfidenceFactors(state: GameState): BoardFactor[] {
   // Season objective + where the club sits against it (live verdict).
   const verdict = currentObjectiveVerdict(state, board.objective);
   const pos = positionOf(state.league.standings, teamId);
-  const objText = board.objective === 'title' ? 'win the Premiership'
+  const objText = board.objective === 'title' ? 'win the League'
     : board.objective === 'playoffs' ? 'reach the playoffs (top four)'
     : 'finish in the top half';
   factors.push({

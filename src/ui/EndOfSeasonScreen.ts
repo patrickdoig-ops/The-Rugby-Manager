@@ -206,7 +206,7 @@ export function initEndOfSeasonScreen(
     const board = state.player.board;
     const boardSection = board ? (() => {
       const verdict = currentObjectiveVerdict(state, board.objective);
-      const objectiveText = board.objective === 'title' ? 'Win the Premiership'
+      const objectiveText = board.objective === 'title' ? 'Win the League'
         : board.objective === 'playoffs' ? 'Reach the playoffs (top four)'
         : 'Finish in the top half';
       const verdictLabel = verdict === 'exceeded' ? 'Objective exceeded'

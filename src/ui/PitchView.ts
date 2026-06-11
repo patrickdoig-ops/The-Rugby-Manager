@@ -278,6 +278,11 @@ export function initPitchView(): void {
     let offsets: number[];
     if (hasAuthoredT) {
       offsets = [0, ...kfs.map((kf, i) => kf.t ?? (i + 1) / N)];
+      // Safety net: a mix of timed (authored `t`) and untimed (`(i+1)/N`) frames can fall
+      // out of order, and WAAPI renders a backwards offset as a teleport. Clamp to
+      // non-decreasing. (The engine should not emit such a mix — see spliceBallEvents —
+      // but a clamp here is cheap insurance against the whole class of jump.)
+      for (let i = 1; i < offsets.length; i++) if (offsets[i] < offsets[i - 1]) offsets[i] = offsets[i - 1];
     } else {
       const cum = [0];
       for (let i = 1; i <= N; i++) {

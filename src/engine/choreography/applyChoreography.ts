@@ -145,6 +145,14 @@ export function spliceBallEvents(res: PhaseResult, authoredBallEvents: AuthoredB
   } else {
     const hasPenalty = res.events.some(e => e.type === 'PENALTY_AWARDED');
     if (!hasPenalty) {
+      // The authored ball path is the SOLE ball timeline. Strip any procedural pre-kick
+      // sweep (the mark→9→10 BALL_REPOSITIONED hops buildKickTransition emits for a
+      // fly-half kick) so the two don't coexist: appending the authored path on top left a
+      // conflicting double path and — because the sweep hops are untimed while the authored
+      // hops carry `t` — non-monotonic WAAPI offsets that teleported the ball straight to
+      // the #10. The authored path already ended at the same spot (it was pushed last), so
+      // the final ball position is unchanged; only the redundant mid-path hops go.
+      res.events = res.events.filter(e => e.type !== 'BALL_REPOSITIONED');
       res.events.push(...authoredBallEvents);
     }
   }

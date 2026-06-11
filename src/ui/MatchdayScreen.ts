@@ -17,7 +17,7 @@ const COMP_TAG: Record<CalendarBlock['competitions'][number], string> = {
   league: 'LGE', cup: 'CUP', european: 'EUR', playoff: 'P/O',
 };
 const COMP_NAME: Record<CalendarBlock['competitions'][number], string> = {
-  league: 'Premiership', cup: 'League Cup', european: 'European', playoff: 'Playoffs',
+  league: 'League', cup: 'League Cup', european: 'European', playoff: 'Playoffs',
 };
 
 let activeBlock: CalendarBlock | null = null;
@@ -92,6 +92,15 @@ export function initMatchdayScreen(
       ? `${myTeam?.name ?? 'Your club'} ${mineCount > 1 ? `play ${mineCount} games` : 'are in action'} this week.`
       : `${myTeam?.name ?? 'Your club'} have no fixture this week — the rest of the schedule plays out.`;
 
+    // When the manager has a League Cup game this block, note who's in charge —
+    // mirrors the persistent Club → Assistant Manager setting.
+    const myCupGame = block.fixtures.some(f => f.comp === 'cup' && (f.homeId === myId || f.awayId === myId));
+    const assistNote = !myCupGame
+      ? ''
+      : (state.player.cupManageLive
+          ? `You're managing this League Cup match.`
+          : `Your Assistant Manager will take charge${state.player.cupDirection === 'rest_first_15' ? ', resting your first-choice XV' : ''}.`);
+
     el!.innerHTML = `
       <div class="app-header">
         <div class="app-topbar">
@@ -106,7 +115,10 @@ export function initMatchdayScreen(
       </div>
 
       <div class="cup-content">
-        <div class="cup-hero"><div class="cup-hero-sub">${sub}</div></div>
+        <div class="cup-hero">
+          <div class="cup-hero-sub">${sub}</div>
+          ${assistNote ? `<div class="cup-hero-sub" style="margin-top:0.35rem;color:#9aa0a6;font-style:italic">${assistNote}</div>` : ''}
+        </div>
         <div id="fl-list">${rows}</div>
       </div>
 

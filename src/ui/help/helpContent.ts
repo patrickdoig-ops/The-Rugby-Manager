@@ -77,7 +77,7 @@ const HELP_TOPICS = {
       { label: 'Next Match card', desc: 'Shows your upcoming fixture, venue and recent form for both sides.' },
       { label: 'Inbox banner', desc: 'Your assistant’s briefings — injuries, expiring contracts and news that need attention.' },
       { label: 'Six tiles', desc: 'Squad, Tactics, Competitions, Training, Contracts & Transfers, and Club open the management screens.' },
-      { label: 'Go to next match', desc: 'The main button — advances time to your next fixture and starts the build-up.' },
+      { label: 'Continue', desc: 'The main button — always reads “Continue”. Advances the game by one step, whether that’s a league match, a cup tie, a European fixture or a playoff, and starts the build-up.' },
       { label: 'Settings cog', desc: 'Top-left — preferences and the route back to the main menu.' },
     ],
     tips: [

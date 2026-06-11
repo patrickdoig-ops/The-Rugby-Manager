@@ -3,7 +3,7 @@
 //
 // This module renders the Hub shell and reacts to game-engine events. It is
 // fully wired into main.ts's flow via initInSeasonScreens — the six nav
-// tiles, the settings cog, and the primary CTA (`onPlayMatch`) all receive
+// tiles, the settings cog, and the primary CTA (`onContinue`) all receive
 // live callbacks.
 
 import type { GameCoordinator, EuropeanFixtureRef, EuropeanRoundRef, CupFixtureRef } from '../game/GameCoordinator';
@@ -27,20 +27,11 @@ export interface InitHubScreenOpts {
   // engine at init time would freeze the screen to the first game.
   getGameEngine: () => GameCoordinator;
   allTeams: RawTeamInput[];
-  onPlayMatch: (homeTeam: RawTeamInput, awayTeam: RawTeamInput, playerSide: 'home' | 'away', round: number) => void;
-  // Entry into the playoff stage chain. Called when the regular season
-  // is over and state.league.playoffs is active. main.ts decides what to
-  // show next (PlayoffBracketScreen with sim CTA, or PreMatch for the
-  // player's next playoff match).
-  onPlayoffs:     () => void;
-  // Called when the League Cup CTA is tapped — plays / sims one cup matchday
-  // (or advances a round / resolves international returns) then returns to the
-  // Hub. Absent ⇔ no cup activity. HubScreen gates on getGameEngine()
-  // .getCupBreakStep() != null. Covers the pre-season block + the two breaks.
-  onPlayCup?: () => void;
-  // Called when the European fixture CTA is tapped. Absent ⇔ no European
-  // fixture is due. HubScreen gates on getGameEngine().getCurrentEuropeanFixture().
-  onPlayEuropean?: () => void;
+  // Single unified "Continue" CTA. Advances the game by one step regardless of
+  // competition — main.ts dispatches to the league / League Cup / European /
+  // playoff flow based on what's next. The Hub no longer carries
+  // per-competition calls-to-action; the button always reads "Continue".
+  onContinue: () => void;
   onSquad:     () => void;
   onTactics:   () => void;
   onCompetitions: () => void;
@@ -117,13 +108,13 @@ export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } 
     // League Cup activity (pre-season block or an Autumn / Six Nations break)
     // takes priority over the next league fixture — the cup game-weeks run in
     // the gap before the next league round.
-    const cupStep = !!opts.onPlayCup ? opts.getGameEngine().getCupBreakStep() : null;
+    const cupStep = opts.getGameEngine().getCupBreakStep();
     const cupFixture = cupStep === 'play_fixture' ? opts.getGameEngine().getCurrentCupFixture() : null;
     // European fixture due before the next league match (calendar gate: fixture
     // date ≤ calendar.date). Also check for unshown rounds (when player is
     // eliminated or watching). Takes priority over league CTA when present.
-    const europeanFixture = !!opts.onPlayEuropean ? opts.getGameEngine().getCurrentEuropeanFixture() : null;
-    const europeanRound = !europeanFixture && !!opts.onPlayEuropean ? opts.getGameEngine().getCurrentEuropeanRound() : null;
+    const europeanFixture = opts.getGameEngine().getCurrentEuropeanFixture();
+    const europeanRound = !europeanFixture ? opts.getGameEngine().getCurrentEuropeanRound() : null;
     // The bracket exists from the moment the final regular-round fixture
     // resolves until SEASON_ROLLED_OVER clears it. While it exists, the
     // "Go to next match" CTA is replaced with "Continue to playoffs",
@@ -209,7 +200,7 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
         }).join('')}
       </div>
 
-      <div id="hub-footer">${playoffsActive ? playoffFooterHtml(playoffs!, playerPlayoffMatch) : cupStep ? cupBreakFooterHtml(cupStep, state.player.cupManageLive ?? false) : europeanFixture ? europeanFooterHtml(europeanFixture) : europeanRound ? europeanRoundFooterHtml(europeanRound) : footerHtml(nextFixture)}</div>
+      <div id="hub-footer">${continueFooterHtml()}</div>
     `;
 
     injectTeamColors(el!, playerTeam);
@@ -220,20 +211,7 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
       if (t.stub) continue;
       el!.querySelector<HTMLButtonElement>(`#${t.id}`)!.addEventListener('click', () => opts[t.handlerKey]());
     }
-    if (playoffsActive) {
-      el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => opts.onPlayoffs());
-    } else if (cupStep) {
-      el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => opts.onPlayCup!());
-    } else if (europeanFixture || europeanRound) {
-      el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => opts.onPlayEuropean!());
-    } else if (nextFixture) {
-      el!.querySelector<HTMLButtonElement>('#hub-play-next')!.addEventListener('click', () => {
-        const home = teamsById.get(nextFixture.homeId)!;
-        const away = teamsById.get(nextFixture.awayId)!;
-        const playerSide: 'home' | 'away' = nextFixture.homeId === playerTeam.id ? 'home' : 'away';
-        opts.onPlayMatch(home, away, playerSide, nextFixture.round);
-      });
-    }
+    el!.querySelector<HTMLButtonElement>('#hub-play-next')?.addEventListener('click', () => opts.onContinue());
   }
 
   function playoffsHtml(
@@ -307,6 +285,18 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
           <div class="hub-nm-meta">${subline}</div>
         </div>
       </div>`;
+  }
+
+  // The Hub's one and only call-to-action. Always reads "Continue" — the
+  // competition-specific preview lives in the panel above; the button is
+  // uniform across league / League Cup / European / playoff so every game
+  // week feels the same. main.ts's onContinue dispatches to the right flow.
+  function continueFooterHtml(): string {
+    return `
+      <button id="hub-play-next" class="cta-pulse" aria-label="Continue">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd"/></svg>
+        <span>Continue</span>
+      </button>`;
   }
 
   function playoffFooterHtml(

@@ -358,14 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const hubScreen = initHubScreen({
       getGameEngine,
       allTeams: allTeamsWithEuropean,
-      onPlayMatch: onPlayRound,
-      onPlayoffs: () => { void runPlayoffWeek(); },
-      onPlayCup: () => {
-        onPlayCupStep(() => { if (gameEngine) autosave(gameEngine.toSavePayload()); goHub(); });
-      },
-      onPlayEuropean: () => {
-        maybePlayEuropeanFixture(() => { if (gameEngine) autosave(gameEngine.toSavePayload()); goHub(); });
-      },
+      onContinue,
       onTactics:       goTactics,
       onCompetitions:  goCompetitionsMenu,
       onSquad:         goSquad,
@@ -1349,6 +1342,46 @@ document.addEventListener('DOMContentLoaded', () => {
       sum += rosterPlayer?.morale ?? MORALE.baseline;
     }
     return sum / starters.length;
+  }
+
+  // The Hub's single "Continue" CTA. One entry point that advances the game by
+  // one step regardless of competition, so every game week has the same rhythm.
+  // It dispatches to the existing per-competition flows in the same priority
+  // order the Hub's panel uses (playoffs -> League Cup -> European -> league),
+  // each of which already runs the shared play -> result -> results -> training
+  // -> Hub cycle. The block primitives (getNextBlock) drive the Hub's preview;
+  // the deeper block-merged presentation is a later stage.
+  function onContinue(): void {
+    if (!gameEngine) return;
+    const eng = gameEngine;
+    // Mid-season sack latch — route to the game-over screen rather than
+    // advancing (mirrors continueGame / the post-match chain guard).
+    if (eng.isManagerSacked()) { runSackScreen('midseason'); return; }
+    const state = eng.getState();
+    const toHub = (): void => { if (gameEngine) autosave(gameEngine.toSavePayload()); goHub(); };
+
+    // 1. Playoffs — the bracket exists from the final regular round until rollover.
+    if (state.league.playoffs) { void runPlayoffWeek(); return; }
+    // 2. League Cup break (pre-season block / international windows).
+    if (eng.getCupBreakStep()) { onPlayCupStep(toHub); return; }
+    // 3. European fixture due, or a completed-but-unshown European round.
+    if (eng.getCurrentEuropeanFixture() || eng.getCurrentEuropeanRound()) {
+      maybePlayEuropeanFixture(toHub);
+      return;
+    }
+    // 4. Next league fixture.
+    const next = eng.getCurrentFixture();
+    if (next) {
+      const home = allTeams.find(t => t.id === next.homeId);
+      const away = allTeams.find(t => t.id === next.awayId);
+      if (home && away) {
+        const playerSide: 'home' | 'away' = next.homeId === state.player.teamId ? 'home' : 'away';
+        onPlayRound(home, away, playerSide, next.round);
+      }
+      return;
+    }
+    // 5. Nothing left to play — the season is over; enter the end-of-season chain.
+    runEndOfSeasonChain();
   }
 
   function onPlayRound(homeTeam: RawTeamInput, awayTeam: RawTeamInput, playerSide: 'home' | 'away', round: number): void {
